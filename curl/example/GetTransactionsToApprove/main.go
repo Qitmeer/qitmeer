@@ -15,7 +15,7 @@ func main() {
 		Timeout: 10 * time.Second,
 	}
 	api := giota.NewAPI(Host, &client)
-	resp, _ := api.GetTransactionsToApprove(2)
+	resp, _ := api.GetTransactionsToApprove(2, giota.DefaultNumberOfWalks, "")
 	fmt.Printf("%v\n", resp)
 	//&{6360 MVCRKZSLVXVDCSEOASCQQVLKT9PAQKZRIFCFLCMHZMYBQRJABLSVNCBXXKPWLRWWLZOQOISXTVWS99999 YKKXOQRROPBXMXDKTVREXWXXDSQIUPKAZZEZW9LLGQRBTQIFZKPNSDCLMSRQNUMLUIAEMQPGETIB99999}
 }
