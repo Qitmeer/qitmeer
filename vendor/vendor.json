@@ -69,6 +69,12 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
+			"checksumSHA1": "Q5YN3JDk0g8zt0gZulGLn+uFC30=",
+			"path": "github.com/dchest/blake256",
+			"revision": "dee3fe6eb0e98dc774a94fc231f85baf7c29d360",
+			"revisionTime": "2015-09-03T10:16:04Z"
+		},
+		{
 			"checksumSHA1": "d/66StC2ywzEBAIaIIjKr5RLqkI=",
 			"path": "github.com/dedis/kyber/util/random",
 			"revision": "0c94e82eebe66696a8af6c7a0d071564e8dc7b8e",
@@ -187,6 +193,18 @@
 			"path": "github.com/huin/goupnp/ssdp",
 			"revision": "679507af18f3c7ba2bcc7905392ce23e148661c3",
 			"revisionTime": "2016-12-24T10:41:01Z"
+		},
+		{
+			"checksumSHA1": "9JU2sP8zpUCjbmAXfRIIprSDGnA=",
+			"path": "github.com/iotaledger/giota",
+			"revision": "fb9a0f2af32757bc6c740164a77157369fe44e56",
+			"revisionTime": "2018-02-26T20:28:43Z"
+		},
+		{
+			"checksumSHA1": "wUOeM1KEEm0zejAv39gfThl8gTs=",
+			"path": "github.com/iotaledger/giota/cl",
+			"revision": "fb9a0f2af32757bc6c740164a77157369fe44e56",
+			"revisionTime": "2018-02-26T20:28:43Z"
 		},
 		{
 			"checksumSHA1": "vTGKMIfiMwz43y5bsgx9PrL+AVw=",
@@ -434,6 +452,12 @@
 			"path": "github.com/syndtr/goleveldb/leveldb/util",
 			"revision": "b89cc31ef7977104127d34c1bd31ebd1a9db2199",
 			"revisionTime": "2017-07-25T06:48:36Z"
+		},
+		{
+			"checksumSHA1": "dgP/DWFK0eUVRM7EKh6m6K9Dvtk=",
+			"path": "github.com/tildeleb/hashland/keccakpg",
+			"revision": "07375b562deaa8d6891f9618a04e94a0b98e2ee7",
+			"revisionTime": "2017-10-03T00:32:32Z"
 		},
 		{
 			"checksumSHA1": "TT1rac6kpQp2vz24m5yDGUNQ/QQ=",
