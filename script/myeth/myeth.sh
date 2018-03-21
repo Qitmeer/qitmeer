@@ -120,7 +120,7 @@ if [ $1 == "get_block" ]; then
   shift
   if [ "$1" == "" ] ;then
       echo "get lastet block"
-      blocknum=$(get_block_number|jq '.result'|xargs printf "%d")
+      blocknum=$(get_block_number|xargs printf "%d")
       echo "the lastet block is $blocknum"
       exit 
   fi
