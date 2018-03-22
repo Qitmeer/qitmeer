@@ -3,8 +3,9 @@
 set -e
 
 # settings
-
-ERR_FILE=/tmp/myeth_curl_result
+DEBUG=0
+DEBUG_FILE=/tmp/myeth_curl_debug
+ERR_FILE=/tmp/myeth_curl_error
 
 # All jsonrpc calls 
 
@@ -56,7 +57,11 @@ function get_balance(){
 function get_code(){
   #local contract_addr="0xbdeb5b87843062116b118e574a68a58f511a30e6"
   local contract_addr=$1
-  local data='{"jsonrpc":"2.0","method":"eth_getCode","params":["'$contract_addr'","latest"],"id":1}'
+  local block_num=$2
+  if [ "$block_num" == "" ]; then
+    block_num="latest"
+  fi
+  local data='{"jsonrpc":"2.0","method":"eth_getCode","params":["'$contract_addr'","'$block_num'"],"id":1}'
   get_result "$data"
 }
 function get_storage(){
@@ -64,7 +69,11 @@ function get_storage(){
   #local at="0x0"
   local contract_addr=$1 
   local at=$2 
-  local data='{"jsonrpc":"2.0","method":"eth_getStorageAt","params":["'$contract_addr'","'$at'","latest"],"id":1}'
+  local block_num=$3
+  if [ "$block_num" == "" ]; then
+    block_num="latest"
+  fi
+  local data='{"jsonrpc":"2.0","method":"eth_getStorageAt","params":["'$contract_addr'","'$at'","'$block_num'"],"id":1}'
   get_result "$data"
 }
 function get_tx_count_by_addr(){
@@ -85,6 +94,11 @@ function get_result(){
   local data=$1
   local curl_result=$(curl -s -X POST -H 'Content-Type: application/json' --data $data http://$host:$port)
   local result=$(echo $curl_result|jq -r -c -M '.result')
+  if [ $DEBUG -gt 0 ]; then
+    local curl_cmd="curl -s -X POST -H 'Content-Type: application/json' --data '"$data"' http://$host:$port"
+    echo "$curl_cmd" > $DEBUG_FILE
+    echo "$curl_result" >> $DEBUG_FILE
+  fi
   if [ "$result" == "null" ];then
     echo "$curl_result" > $ERR_FILE
     result="" 
@@ -139,8 +153,8 @@ function usage(){
   echo "addr  :"
   echo "  get_balance <addr> [blocknum]"
   echo "  get_tx_count <addr>"
-  echo "  get_code <addr> <at>"
-  echo "  get_storage <addr> <at>"
+  echo "  get_code <addr> [blocknum]"
+  echo "  get_storage <addr> <at> [blocknum]"
 
 }
 # level 2 functions
@@ -204,7 +218,7 @@ function cmd_get_block(){
 }
 
 # main logic 
-args=$(getopt h:p: "$@")
+args=$(getopt h:p:D "$@")
 if [ $? != 0 ]; then
   echo "Usage: -h [host] -p [port] "
   exit;
@@ -221,6 +235,9 @@ while [ -n "$1" ] ;do
       port=$2
       #echo "port is $port"
       shift;;
+    -D)
+      DEBUG=1
+      ;;
     --)
       shift
       cmd=$@
@@ -260,7 +277,7 @@ elif [ $1 == "get_highest_block" ]; then
   get_syncing $@|jq .highestBlock -r|xargs printf "%d\n"
 elif [ $1 == "get_tx" ]; then
   shift
-  get_tx_by_hash $@
+  get_tx_by_hash $@ |jq .
 elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex
@@ -269,28 +286,55 @@ elif [ $1 == "get_balance" ]; then
   shift
   addr=$(pad_hex_prefix $1)
   shift
-  if [ "${1:0:2}" == "0x" ];then
-    num=$1
-  else
-    num=$(to_hex_with_0x_prefix $1)
+  if [ ! -z "$1" ]; then
+    if [ "${1:0:2}" == "0x" ];then
+      num=$1
+    else
+      num=$(to_hex_with_0x_prefix $1)
+    fi
+    shift
   fi
-  shift
+  # echo "debug get_balance $addr $num"
   balance=$(get_balance $addr $num $@)
   check_error
-  #echo "debug get_balance $addr $num --> $balance"
+  # echo "debug get_balance $addr $num --> $balance"
   echo $balance|xargs -I {} python -c 'print "%.4f ether" % ('{}/1000000000000000000.0')'
 elif [ $1 == "get_code" ]; then
   shift
-  addr=$1
+  addr=$(pad_hex_prefix $1)
   shift
-  get_code $(pad_hex_prefix $addr) $@
+  if [ ! -z "$1" ]; then
+    if [ "${1:0:2}" == "0x" ];then
+      num=$1
+    else
+      num=$(to_hex_with_0x_prefix $1)
+    fi
+    shift
+  fi
+  get_code $addr $num
+  check_error
 elif [ $1 == "get_storage" ]; then
   shift
-  addr=$1
+  addr=$(pad_hex_prefix $1)
   shift
-  at=$1
-  shift
-  get_storage $(pad_hex_prefix $addr) $at $@
+  if [ ! -z "$1" ]; then
+    if [ "${1:0:2}" == "0x" ];then
+      at=$1
+    else
+      at=$(to_hex_with_0x_prefix $1)
+    fi
+    shift
+  fi
+  if [ ! -z "$1" ]; then
+    if [ "${1:0:2}" == "0x" ];then
+      num=$1
+    else
+      num=$(to_hex_with_0x_prefix $1)
+    fi
+    shift
+  fi
+  get_storage $addr $at $num
+  check_error
 elif [ $1 == "get_tx_count" ]; then
   shift
   addr=$1
@@ -306,4 +350,10 @@ else
   echo "Unkown cmd : $1"
   usage
   exit -1
+fi
+if [ $DEBUG -gt 0 ]; then
+  if [ -e $DEBUG_FILE ]; then
+    cat $DEBUG_FILE
+    rm $DEBUG_FILE
+  fi
 fi
