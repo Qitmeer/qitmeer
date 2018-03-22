@@ -1,3 +1,4 @@
+// Copyright 2017-2018 The nox developers
 //
 // Copyright 2015 The go-ethereum Authors
 // This file is part of go-ethereum.
