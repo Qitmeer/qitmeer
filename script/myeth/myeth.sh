@@ -1,5 +1,10 @@
 #!/bin/bash
 
+set -e
+
+# settings
+
+ERR_FILE=/tmp/myeth_curl_result
 
 # All jsonrpc calls 
 
@@ -68,6 +73,7 @@ function get_tx_count_by_addr(){
   get_result "$data"
 }
 function get_result(){
+  set +x
   #local site=10.0.0.6
   #local site=10.0.0.8
   if [ -z "$host" ]; then
@@ -77,8 +83,13 @@ function get_result(){
      port=8545
   fi
   local data=$1
-  curl -s -X POST -H 'Content-Type: application/json' --data $data http://$host:$port|jq -r '.result'
-  
+  local curl_result=$(curl -s -X POST -H 'Content-Type: application/json' --data $data http://$host:$port)
+  local result=$(echo $curl_result|jq -r -c -M '.result')
+  if [ "$result" == "null" ];then
+    echo "$curl_result" > $ERR_FILE
+    result="" 
+  fi
+  echo $result
 }
 
 # util functions 
@@ -90,8 +101,50 @@ function pad_hex_prefix(){
     echo "0x$input"
   fi
 }
+function to_hex() {
+  printf "%x\n" $1 
+}
+function to_hex_with_0x_prefix(){
+  printf "0x%x\n" $1 
+}
+function check_error() {
+  if [ -e $ERR_FILE ]; then
+    echo "Error:"
+    cat $ERR_FILE|jq .error
+    rm $ERR_FILE 
+    exit -1
+  fi
+}
 
+function usage(){
+
+  echo "chain :"
+  echo "  get_block_number"
+  echo "  get_syncing_info"
+  echo "  get_current_block"
+  echo "  get_current_block2 <num|hash> [-tx |-txcount|-blocktime|...]"
+  echo "  get_highest_block"
+  echo "block :"
+  echo "  get_block <num|hash>"
+  echo "  get_block <num|hash> -tx [num]"
+  echo "  get_block <num|hash> -txcount"
+  echo "  get_block <num|hash> -blocktime"
+  echo "  get_block <num|hash> -stroot"
+  echo "  get_block <num|hash> -txroot"
+  echo "  get_block <num|hash> -rcroot"
+  echo "  get_block <num|hash> -roots"
+  echo "tx    :"
+  echo "  get_tx <hash>"
+  echo "  get_tx_by_block_and_index <num_hex> <index_hex>"
+  echo "addr  :"
+  echo "  get_balance <addr> [blocknum]"
+  echo "  get_tx_count <addr>"
+  echo "  get_code <addr> <at>"
+  echo "  get_storage <addr> <at>"
+
+}
 # level 2 functions
+
 
 function get_current_block_num(){
   get_syncing $@|jq .currentBlock -r|xargs printf "%d\n"
@@ -145,6 +198,8 @@ function cmd_get_block(){
   elif [ "$1" == "-rcroot" ];then
     echo $block_result|jq '.receiptsRoot'
     shift
+  elif [ "$1" == "-roots" ]; then
+    echo $block_result|jq '{"stroot":.stateRoot, "txroot":.transactionsRoot, "rcroot":.receiptsRoot}'
   fi
 }
 
@@ -210,26 +265,33 @@ elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex
   get_tx_by_blocknum_and_index_hex $@
-elif [ $1 == "get_balance_by_addr" ]; then
+elif [ $1 == "get_balance" ]; then
   shift
-  addr=$1
+  addr=$(pad_hex_prefix $1)
   shift
-  num=$1
+  if [ "${1:0:2}" == "0x" ];then
+    num=$1
+  else
+    num=$(to_hex_with_0x_prefix $1)
+  fi
   shift
-  get_balance $(pad_hex_prefix $addr) $num $@|xargs -I {} python -c 'print "%.4f ether" % ('{}/1000000000000000000.0')'
-elif [ $1 == "get_code_by_addr" ]; then
+  balance=$(get_balance $addr $num $@)
+  check_error
+  #echo "debug get_balance $addr $num --> $balance"
+  echo $balance|xargs -I {} python -c 'print "%.4f ether" % ('{}/1000000000000000000.0')'
+elif [ $1 == "get_code" ]; then
   shift
   addr=$1
   shift
   get_code $(pad_hex_prefix $addr) $@
-elif [ $1 == "get_storage_by_addr" ]; then
+elif [ $1 == "get_storage" ]; then
   shift
   addr=$1
   shift
   at=$1
   shift
   get_storage $(pad_hex_prefix $addr) $at $@
-elif [ $1 == "get_tx_count_by_addr" ]; then
+elif [ $1 == "get_tx_count" ]; then
   shift
   addr=$1
   shift
@@ -239,28 +301,9 @@ elif [ $1 == "get_tx_count_by_addr" ]; then
     get_tx_count_by_addr $(pad_hex_prefix $addr) $@
   fi
 elif [ $1 == "list_command" ]; then
-  echo "chain :"
-  echo "  get_block_number"
-  echo "  get_syncing_info"
-  echo "  get_current_block"
-  echo "  get_current_block2"
-  echo "  get_current_block2 [-tx|-txcount|-blocktime|...]"
-  echo "  get_highest_block"
-  echo "block :"
-  echo "  get_block [num|hash]"
-  echo "  get_block [num|hash] -tx"
-  echo "  get_block [num|hash] -tx 1"
-  echo "  get_block [num|hash] -txcount"
-  echo "  get_block [num|hash] -blocktime"
-  echo "  get_block [num|hash] -stroot"
-  echo "  get_block [num|hash] -txroot"
-  echo "  get_block [num|hash] -rcroot"
-  echo "tx    :"
-  echo "  get_tx [tx_hash]"
-  echo "  get_tx_by_block_and_index [block_num_hex] [tx_index_hex]"
-  echo "addr  :"
-  echo "  get_balance_by_addr"
-  echo "  get_tx_count_by_addr"
-  echo "  get_code_by_addr"
-  echo "  get_storage_by_addr"
+  usage
+else
+  echo "Unkown cmd : $1"
+  usage
+  exit -1
 fi
