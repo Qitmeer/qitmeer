@@ -1,4 +1,8 @@
 #!/bin/bash
+
+
+# All jsonrpc calls 
+
 function get_tx_by_blocknum_and_index_hex(){
   local block_num=$1 #"0x467a65"
   local tx_index=$2  #"0x0"
@@ -76,6 +80,8 @@ function get_result(){
   curl -s -X POST -H 'Content-Type: application/json' --data $data http://$host:$port|jq -r '.result'
   
 }
+
+# util functions 
 function pad_hex_prefix(){
   local input=$1
   if [ "${input:0:2}" == "0x" ];then
@@ -85,39 +91,15 @@ function pad_hex_prefix(){
   fi
 }
 
-args=$(getopt h:p: "$@")
-if [ $? != 0 ]; then
-  echo "Usage: -h [host] -p [port] "
-  exit;
-fi
-set -- $args
-#echo $@
-while [ -n "$1" ] ;do
-  case "$1" in 
-    -h) 
-      host=$2
-      #echo "host is $host"
-      shift;;
-    -p)
-      port=$2
-      #echo "port is $port"
-      shift;;
-    --)
-      shift
-      cmd=$@
-      #echo "cmd is $cmd"
-      break;;
-    *)
-      echo "$1 not a option"
-  esac
-  shift
-done
-#echo "get opt done!"
+# level 2 functions
 
-set -- $cmd
-#echo $@
-if [ $1 == "get_block" ]; then
-  shift
+function get_current_block_num(){
+  get_syncing $@|jq .currentBlock -r|xargs printf "%d\n"
+} 
+
+# control function
+function cmd_get_block(){
+  # echo "debug cmd_get_block $@"
   if [ "$1" == "" ] ;then
       echo "get lastet block"
       blocknum=$(get_block_number|xargs printf "%d")
@@ -151,7 +133,56 @@ if [ $1 == "get_block" ]; then
   elif [ "$1" == "-txcount" ];then
     shift
     echo $block_result|jq '.transactions|length'
+  elif [ "$1" == "-blocktime" ];then
+    shift
+    echo $block_result|jq '.timestamp'| hex2dec|timestamp
+  elif [ "$1" == "-stroot" ];then
+    echo $block_result|jq '.stateRoot'
+    shift
+  elif [ "$1" == "-txroot" ];then
+    echo $block_result|jq '.transactionsRoot'
+    shift
+  elif [ "$1" == "-rcroot" ];then
+    echo $block_result|jq '.receiptsRoot'
+    shift
   fi
+}
+
+# main logic 
+args=$(getopt h:p: "$@")
+if [ $? != 0 ]; then
+  echo "Usage: -h [host] -p [port] "
+  exit;
+fi
+set -- $args
+#echo $@
+while [ -n "$1" ] ;do
+  case "$1" in 
+    -h) 
+      host=$2
+      #echo "host is $host"
+      shift;;
+    -p)
+      port=$2
+      #echo "port is $port"
+      shift;;
+    --)
+      shift
+      cmd=$@
+      #echo "cmd is $cmd"
+      break;;
+    *)
+      echo "$1 not a option"
+  esac
+  shift
+done
+#echo "get opt done!"
+
+set -- $cmd
+#echo $@
+if [ $1 == "get_block" ]; then
+  shift
+  cmd_get_block $@
 elif [ $1 == "get_block_number" ]; then
   shift
   if [ "$1" == "-hex" ]; then # result ishex by default
@@ -162,6 +193,16 @@ elif [ $1 == "get_block_number" ]; then
 elif [ $1 == "get_syncing_info" ]; then
   shift
   get_syncing $@
+elif [ $1 == "get_current_block" ]; then
+  shift
+  get_current_block_num
+elif [ $1 == "get_current_block2" ]; then
+  shift
+  blocknum=$(get_current_block_num)
+  cmd_get_block $blocknum $@ 
+elif [ $1 == "get_highest_block" ]; then
+  shift
+  get_syncing $@|jq .highestBlock -r|xargs printf "%d\n"
 elif [ $1 == "get_tx" ]; then
   shift
   get_tx_by_hash $@
@@ -201,10 +242,19 @@ elif [ $1 == "list_command" ]; then
   echo "chain :"
   echo "  get_block_number"
   echo "  get_syncing_info"
+  echo "  get_current_block"
+  echo "  get_current_block2"
+  echo "  get_current_block2 [-tx|-txcount|-blocktime|...]"
+  echo "  get_highest_block"
   echo "block :"
   echo "  get_block [num|hash]"
   echo "  get_block [num|hash] -tx"
   echo "  get_block [num|hash] -tx 1"
+  echo "  get_block [num|hash] -txcount"
+  echo "  get_block [num|hash] -blocktime"
+  echo "  get_block [num|hash] -stroot"
+  echo "  get_block [num|hash] -txroot"
+  echo "  get_block [num|hash] -rcroot"
   echo "tx    :"
   echo "  get_tx [tx_hash]"
   echo "  get_tx_by_block_and_index [block_num_hex] [tx_index_hex]"
