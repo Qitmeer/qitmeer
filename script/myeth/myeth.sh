@@ -130,6 +130,14 @@ function check_error() {
   fi
 }
 
+function wei_to_ether() {
+  python -c 'print "%s" % ('$1'*pow(10,(-18)))'
+}
+
+function ether_to_wei() {
+  python -c 'print "%.0f" % ('$1'*pow(10,(18)))'
+}
+
 function usage(){
 
   echo "chain :"
@@ -155,6 +163,9 @@ function usage(){
   echo "  get_tx_count <addr>"
   echo "  get_code <addr> [blocknum]"
   echo "  get_storage <addr> <at> [blocknum]"
+  echo "util  :"
+  echo "to_ether <wei>"
+  echo "to_wei <ether>"
 
 }
 # level 2 functions
@@ -298,7 +309,7 @@ elif [ $1 == "get_balance" ]; then
   balance=$(get_balance $addr $num $@)
   check_error
   # echo "debug get_balance $addr $num --> $balance"
-  echo $balance|xargs -I {} python -c 'print "%.4f ether" % ('{}/1000000000000000000.0')'
+  wei_to_ether $balance
 elif [ $1 == "get_code" ]; then
   shift
   addr=$(pad_hex_prefix $1)
@@ -344,6 +355,14 @@ elif [ $1 == "get_tx_count" ]; then
   else
     get_tx_count_by_addr $(pad_hex_prefix $addr) $@
   fi
+elif [ $1 == "to_ether" ]; then
+  shift
+  wei_to_ether $1
+  shift
+elif [ $1 == "to_wei" ]; then
+  shift
+  ether_to_wei $1
+  shift
 elif [ $1 == "list_command" ]; then
   usage
 else
