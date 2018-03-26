@@ -268,7 +268,7 @@ function wei_to_ether() {
     # 1.8E-08 -> 0.000000018
     python << EOF
 $py_eth_currency
-result=from_wei(decimal.Decimal('$1'),'ether')
+result=from_wei(decimal.Decimal($1),'ether')
 out="{:.20f}".format(result)
 frac=out.split('.')[1] 
 # by default, remove all fractional part.
