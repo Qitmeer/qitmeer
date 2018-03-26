@@ -8,11 +8,28 @@ DEBUG_FILE=/tmp/myeth_curl_debug
 ERR_FILE=/tmp/myeth_curl_error
 
 # All jsonrpc calls 
+# https://github.com/ethereum/wiki/wiki/JSON-RPC
+# https://github.com/ethereum/go-ethereum/wiki/Management-APIs
 
-function get_mining(){
-  local data='{"jsonrpc":"2.0","method":"eth_mining","params":[],"id":71}'
+function get_rpc_modules(){
+  local data='{"jsonrpc":"2.0","method":"rpc_modules","params":[],"id":1}'
   get_result "$data"
 }
+
+function get_mining(){
+  local data='{"jsonrpc":"2.0","method":"eth_mining","params":[],"id":1}'
+  get_result "$data"
+}
+function miner_start(){
+  local data='{"jsonrpc":"2.0","method":"miner_start","params":[],"id":1}'
+  get_result "$data"
+}
+
+function miner_stop(){
+  local data='{"jsonrpc":"2.0","method":"miner_stop","params":[],"id":1}'
+  get_result "$data"
+}
+
 function get_hashrate(){
   local data='{"jsonrpc":"2.0","method":"eth_hashrate","params":[],"id":71}'
   get_result "$data"
@@ -21,7 +38,6 @@ function get_gasprice(){
   local data='{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":73}'
   get_result "$data"
 }
-
 function get_coinbase(){
   local data='{"jsonrpc":"2.0","method":"eth_coinbase","params":[],"id":1}'
   get_result "$data"
@@ -127,7 +143,9 @@ function get_result(){
   echo $result
 }
 
+# -------------------------
 # util functions 
+# -------------------------
 function pad_hex_prefix(){
   local input=$1
   if [ "${input:0:2}" == "0x" ];then
@@ -319,22 +337,98 @@ function usage(){
   echo "mining  :"
   echo "  get_coinbase"
   echo "  set_coinbase"
-  echo "  mining_status"
   echo "  start_mining"
   echo "  stop_mining"
+  echo "status  :"
+  echo "  get_info"
+  echo "  get_info -mining"
+  echo "  get_info -module"
   echo "util  :"
   echo "to_ether <wei>"
   echo "to_wei <ether>"
 
 }
-# level 2 functions
 
+# -------------------
+# level 2 functions
+# -------------------
+
+function start_mining(){
+  check_api_error_stop miner
+  local mining=$(get_mining)
+  if [ "$mining" == "false" ]; then
+    echo start mining ...
+    $(miner_start)
+    get_mining
+  else
+    echo already stated
+    get_mining_status
+  fi
+}
+
+function stop_mining(){
+  check_api_error_stop miner
+  local mining=$(get_mining)
+  if [ "$mining" == "true" ]; then
+    echo stop mining ...
+    miner_stop
+  else
+    echo already stopped
+    get_mining_status
+  fi
+}
+
+function check_api_error_stop(){
+  if [ "$(check_api $1)" == "" ]; then
+    echo "$1 api not find, need to enable the management APIs"
+    echo "For example: geth --rpcapi eth,web3,miner --rpc"
+    exit
+  fi
+}
+
+function check_api() {
+  local api=$1
+  if ! [ "$api" == "" ]; then
+    local api_ver=$(get_rpc_modules|jq .$api -r)
+     if ! [ "$api_ver" == "null" ]; then
+         echo $api_ver
+     fi
+  fi
+}
+function get_mining_status(){
+  local mining=$(get_mining)
+  local hashrate=$(get_hashrate)
+  local gasprice=$(get_gasprice)
+  local gasprice_dec=$(printf "%d" $gasprice)
+  echo "mining   : $mining"
+  echo "hashRate : $hashrate"
+  echo "gasPrice : $gasprice -> ($gasprice_dec wei/$(wei_to_ether $gasprice) ether)"
+}
+function get_modules(){
+  get_rpc_modules|jq . -r
+}
+
+function get_status() {
+  #echo "debug get_status $@"
+  if [ "$1" == "" ]; then
+    get_modules
+  elif [ "$1" == "-module" ]; then
+    get_modules
+  elif [ "$1" == "-mining" ]; then
+    get_mining_status
+  elif [ "$1" == "-all" ]; then
+    echo "modules  : $(get_modules|jq -c -M .)"
+    get_mining_status
+  else
+    echo "unknown opt $@"
+  fi
+}
 
 function get_current_block_num(){
   get_syncing $@|jq .currentBlock -r|xargs printf "%d\n"
 } 
 
-# control function
+# get_block control function
 function cmd_get_block(){
   # echo "debug cmd_get_block $@"
   if [ "$1" == "" ] ;then
@@ -534,14 +628,18 @@ elif [ $1 == "get_storage" ]; then
 elif [ $1 == "get_coinbase" ]; then
   shift
   get_coinbase
-elif [ $1 == "mining_status" ]; then
+elif [ $1 == "start_mining" ]; then
   shift
-  get_mining
-  get_hashrate
-  gasprice=$(get_gasprice)
-  gasprice_dec=$(printf "%d" $gasprice)
-  echo $gasprice $gasprice_dec
-  wei_to_ether $gasprice
+  start_mining
+elif [ $1 == "stop_mining" ]; then
+  shift
+  stop_mining
+
+## INFO & STATUS
+elif [ $1 == "status" ] || [ $1 == "info" ] || [ $1 == "get_status" ] || [ $1 == "get_info" ]; then
+  shift
+  get_status $@
+
 ## UTILS
 elif [ $1 == "to_ether" ]; then
   shift
