@@ -9,6 +9,27 @@ ERR_FILE=/tmp/myeth_curl_error
 
 # All jsonrpc calls 
 
+function get_mining(){
+  local data='{"jsonrpc":"2.0","method":"eth_mining","params":[],"id":71}'
+  get_result "$data"
+}
+function get_hashrate(){
+  local data='{"jsonrpc":"2.0","method":"eth_hashrate","params":[],"id":71}'
+  get_result "$data"
+}
+function get_gasprice(){
+  local data='{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":73}'
+  get_result "$data"
+}
+
+function get_coinbase(){
+  local data='{"jsonrpc":"2.0","method":"eth_coinbase","params":[],"id":1}'
+  get_result "$data"
+}
+function get_accounts(){
+  local data='{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}'
+  get_result "$data"
+}
 function get_tx_by_blocknum_and_index_hex(){
   local block_num=$1 #"0x467a65"
   local tx_index=$2  #"0x0"
@@ -130,13 +151,144 @@ function check_error() {
   fi
 }
 
+# The python script for eth currency.
+# the orignal script from https://github.com/ethereum/eth-utils
+# the -d '\0' trick makes read exit with status 0
+read -r -d '\0' py_eth_currency <<-"EOF"
+import decimal
+from decimal import localcontext
+
+units = {
+    'wei':          decimal.Decimal('1'),  # noqa: E241
+    'kwei':         decimal.Decimal('1000'),  # noqa: E241
+    'babbage':      decimal.Decimal('1000'),  # noqa: E241
+    'femtoether':   decimal.Decimal('1000'),  # noqa: E241
+    'mwei':         decimal.Decimal('1000000'),  # noqa: E241
+    'lovelace':     decimal.Decimal('1000000'),  # noqa: E241
+    'picoether':    decimal.Decimal('1000000'),  # noqa: E241
+    'gwei':         decimal.Decimal('1000000000'),  # noqa: E241
+    'shannon':      decimal.Decimal('1000000000'),  # noqa: E241
+    'nanoether':    decimal.Decimal('1000000000'),  # noqa: E241
+    'nano':         decimal.Decimal('1000000000'),  # noqa: E241
+    'szabo':        decimal.Decimal('1000000000000'),  # noqa: E241
+    'microether':   decimal.Decimal('1000000000000'),  # noqa: E241
+    'micro':        decimal.Decimal('1000000000000'),  # noqa: E241
+    'finney':       decimal.Decimal('1000000000000000'),  # noqa: E241
+    'milliether':   decimal.Decimal('1000000000000000'),  # noqa: E241
+    'milli':        decimal.Decimal('1000000000000000'),  # noqa: E241
+    'ether':        decimal.Decimal('1000000000000000000'),  # noqa: E241
+    'kether':       decimal.Decimal('1000000000000000000000'),  # noqa: E241
+    'grand':        decimal.Decimal('1000000000000000000000'),  # noqa: E241
+    'mether':       decimal.Decimal('1000000000000000000000000'),  # noqa: E241
+    'gether':       decimal.Decimal('1000000000000000000000000000'),  # noqa: E241
+    'tether':       decimal.Decimal('1000000000000000000000000000000'),  # noqa: E241
+}
+
+denoms = type('denoms', (object,), {
+    key: int(value) for key, value in units.items()
+})
+
+MIN_WEI = 0
+MAX_WEI = 2 ** 256 - 1
+
+def is_integer(value):
+    return isinstance(value, (int,)) and not isinstance(value, bool)
+
+def is_string(value):
+    return isinstance(value, (bytes, str, bytearray))
+
+def from_wei(number, unit):
+    """
+    Takes a number of wei and converts it to any other ether unit.
+    """
+    if unit.lower() not in units:
+        raise ValueError(
+            "Unknown unit.  Must be one of {0}".format('/'.join(units.keys()))
+        )
+
+    if number == 0:
+        return 0
+
+    if number < MIN_WEI or number > MAX_WEI:
+        raise ValueError("value must be between 1 and 2**256 - 1")
+
+    unit_value = units[unit.lower()]
+
+    with localcontext() as ctx:
+        ctx.prec = 999
+        d_number = decimal.Decimal(value=number, context=ctx)
+        result_value = d_number / unit_value
+
+    return result_value
+
+def to_wei(number, unit):
+    """
+    Takes a number of a unit and converts it to wei.
+    """
+    if unit.lower() not in units:
+        raise ValueError(
+            "Unknown unit.  Must be one of {0}".format('/'.join(units.keys()))
+        )
+
+    if is_integer(number) or is_string(number):
+        d_number = decimal.Decimal(value=number)
+    elif isinstance(number, float):
+        d_number = decimal.Decimal(value=str(number))
+    elif isinstance(number, decimal.Decimal):
+        d_number = number
+    else:
+        raise TypeError("Unsupported type.  Must be one of integer, float, or string")
+
+    s_number = str(number)
+    unit_value = units[unit.lower()]
+
+    if d_number == 0:
+        return 0
+
+    if d_number < 1 and '.' in s_number:
+        with localcontext() as ctx:
+            multiplier = len(s_number) - s_number.index('.') - 1
+            ctx.prec = multiplier
+            d_number = decimal.Decimal(value=number, context=ctx) * 10**multiplier
+        unit_value /= 10**multiplier
+
+    with localcontext() as ctx:
+        ctx.prec = 999
+        result_value = decimal.Decimal(value=d_number, context=ctx) * unit_value
+
+    if result_value < MIN_WEI or result_value > MAX_WEI:
+        raise ValueError("Resulting wei value must be between 1 and 2**256 - 1")
+
+    return int(result_value)
+\0
+EOF
+
 function wei_to_ether() {
-  python -c 'print "%s" % ('$1'*pow(10,(-18)))'
+    # supress the scientific notation 
+    # 1.8E-08 -> 0.000000018
+    python << EOF
+$py_eth_currency
+result=from_wei(decimal.Decimal('$1'),'ether')
+out="{:.20f}".format(result)
+frac=out.split('.')[1] 
+# by default, remove all fractional part.
+no_zero=len(frac)-1 
+for i,v in enumerate(reversed(frac)):
+    if int(v) > 0 :
+        #print "first no zero -> i=%s,v=%s" % (i,v)
+        no_zero=i 
+        break
+print out[:len(out)-no_zero]
+EOF
 }
 
 function ether_to_wei() {
-  python -c 'print "%.0f" % ('$1'*pow(10,(18)))'
+    python << EOF
+$py_eth_currency
+print "%s" % to_wei(str('$1'),'ether')
+EOF
 }
+
 
 function usage(){
 
@@ -158,11 +310,18 @@ function usage(){
   echo "tx    :"
   echo "  get_tx <hash>"
   echo "  get_tx_by_block_and_index <num_hex> <index_hex>"
-  echo "addr  :"
+  echo "account  :"
+  echo "  get_accounts"
   echo "  get_balance <addr> [blocknum]"
   echo "  get_tx_count <addr>"
   echo "  get_code <addr> [blocknum]"
   echo "  get_storage <addr> <at> [blocknum]"
+  echo "mining  :"
+  echo "  get_coinbase"
+  echo "  set_coinbase"
+  echo "  mining_status"
+  echo "  start_mining"
+  echo "  stop_mining"
   echo "util  :"
   echo "to_ether <wei>"
   echo "to_wei <ether>"
@@ -263,6 +422,8 @@ done
 
 set -- $cmd
 #echo $@
+
+## Block
 if [ $1 == "get_block" ]; then
   shift
   cmd_get_block $@
@@ -286,6 +447,8 @@ elif [ $1 == "get_current_block2" ]; then
 elif [ $1 == "get_highest_block" ]; then
   shift
   get_syncing $@|jq .highestBlock -r|xargs printf "%d\n"
+
+## Tx
 elif [ $1 == "get_tx" ]; then
   shift
   get_tx_by_hash $@ |jq .
@@ -293,6 +456,17 @@ elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex
   get_tx_by_blocknum_and_index_hex $@
+
+## Accounts
+elif [ $1 == "get_accounts" ]; then
+  shift
+  accounts=$(get_accounts)
+  check_error
+  if [ -z "$1" ]; then
+    echo $accounts|jq '.'
+  else
+    echo $accounts|jq '.['$1']' -r
+  fi 
 elif [ $1 == "get_balance" ]; then
   shift
   addr=$(pad_hex_prefix $1)
@@ -310,6 +484,15 @@ elif [ $1 == "get_balance" ]; then
   check_error
   # echo "debug get_balance $addr $num --> $balance"
   wei_to_ether $balance
+elif [ $1 == "get_tx_count" ]; then
+  shift
+  addr=$1
+  shift
+  if [ "$1" == "-h" ]; then
+    get_tx_count_by_addr $(pad_hex_prefix $addr) $@|xargs printf "%d\n"
+  else
+    get_tx_count_by_addr $(pad_hex_prefix $addr) $@
+  fi
 elif [ $1 == "get_code" ]; then
   shift
   addr=$(pad_hex_prefix $1)
@@ -346,22 +529,27 @@ elif [ $1 == "get_storage" ]; then
   fi
   get_storage $addr $at $num
   check_error
-elif [ $1 == "get_tx_count" ]; then
+
+## Mining
+elif [ $1 == "get_coinbase" ]; then
   shift
-  addr=$1
+  get_coinbase
+elif [ $1 == "mining_status" ]; then
   shift
-  if [ "$1" == "-h" ]; then
-    get_tx_count_by_addr $(pad_hex_prefix $addr) $@|xargs printf "%d\n"
-  else
-    get_tx_count_by_addr $(pad_hex_prefix $addr) $@
-  fi
+  get_mining
+  get_hashrate
+  gasprice=$(get_gasprice)
+  gasprice_dec=$(printf "%d" $gasprice)
+  echo $gasprice $gasprice_dec
+  wei_to_ether $gasprice
+## UTILS
 elif [ $1 == "to_ether" ]; then
   shift
-  wei_to_ether $1
+  wei_to_ether $@
   shift
 elif [ $1 == "to_wei" ]; then
   shift
-  ether_to_wei $1
+  ether_to_wei $@
   shift
 elif [ $1 == "list_command" ]; then
   usage
