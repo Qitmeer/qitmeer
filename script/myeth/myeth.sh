@@ -378,13 +378,13 @@ EOF
 
 function usage(){
 
-  echo "chain :"
+  echo "chain    :"
   echo "  get_block_number"
   echo "  get_syncing_info"
   echo "  get_current_block"
   echo "  get_current_block2 <num|hash> [-tx |-txcount|-blocktime|...]"
   echo "  get_highest_block"
-  echo "block :"
+  echo "block    :"
   echo "  get_block <num|hash>"
   echo "  get_block <num|hash> -tx [num]"
   echo "  get_block <num|hash> -txcount"
@@ -393,7 +393,7 @@ function usage(){
   echo "  get_block <num|hash> -txroot"
   echo "  get_block <num|hash> -rcroot"
   echo "  get_block <num|hash> -roots"
-  echo "tx    :"
+  echo "tx       :"
   echo "  get_tx <hash>"
   echo "  get_tx_by_block_and_index <num_hex> <index_hex>"
   echo "account  :"
@@ -408,12 +408,15 @@ function usage(){
   echo "  start_mining"
   echo "  stop_mining"
   echo "status  :"
-  echo "  get_info"
-  echo "  get_info -mining"
-  echo "  get_info -module"
-  echo "util  :"
-  echo "to_ether <wei>"
-  echo "to_wei <ether>"
+  echo "  status|get_status|info|get_info [-mining|-module|-all]"
+  echo "compile :"
+  echo "  eth_complie [-bin|-abi|-fun|-all] [-q]"
+  echo "excute  :"
+  echo "  dump_block <num>"
+  echo "  eth_call -from <addr> -to <addr> -v <value> -d <data>"
+  echo "util    :"
+  echo "  to_ether <wei>"
+  echo "  to_wei <ether>"
 
 }
 
