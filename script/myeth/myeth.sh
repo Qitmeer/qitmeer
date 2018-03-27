@@ -48,11 +48,20 @@ function eth_compile(){
       *) opts+=" $1"; shift;;
     esac
   done
-  if [ "$opts" == "" ];then  # by-default, out cleanup binary
+  if [ "$opts" == "" ]; then
     echo "$code" | solc --bin 2>/dev/null | awk /^[0-9]/
     return
+  elif [ "$opts" == " -bin" ] ;then  # by-default, out cleanup binary
+    echo "$code" | solc --bin 2>/dev/null | awk /^[0-9]/ |jq -R {"binary":.}
+    return
+  elif [ "$opts" == " -abi" ];then
+    echo "$code" | solc --abi 2>/dev/null | tail -n 1 |jq .
+    return
+  elif [ "$opts" == " -func" ];then
+    echo "$code" | solc --hashes 2>/dev/null |awk /^[0-9a-f]/|jq -R '.|split(": ")|{name:.[1],sign: .[0]}'
+    return
   fi;
-  # echo "debug opts=$opts s_err=$suppress_error"
+  #echo "debug opts=$opts s_err=$suppress_error"
   if [[ $suppress_error -eq 0 ]]; then
     echo "$code" | solc $opts
   else
