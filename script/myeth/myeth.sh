@@ -10,7 +10,67 @@ ERR_FILE=/tmp/myeth_curl_error
 # All jsonrpc calls 
 # https://github.com/ethereum/wiki/wiki/JSON-RPC
 # https://github.com/ethereum/go-ethereum/wiki/Management-APIs
+# https://wiki.parity.io/JSONRPC-eth-module.html
 
+function eth_call(){
+  local params="{"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -from)        shift; params+='"from":"'$1'",'; shift ;;
+      -to)          shift; params+='"to":"'$1'",'; shift ;;
+      -v|-value)    shift; params+='"value":"'$1'",'; shift ;;
+      -d|-data)     shift; params+='"data":"'$1'",'; shift ;;
+      -b|-blocknum) shift; block_num=$1; shift ;;
+      *)            shift;;
+    esac
+  done
+  if [ "$block_num" == "" ]; then
+    block_num="latest"
+  fi
+  params=${params%,}"}"  # remove the last , and add }
+  #echo "debug params=$params"
+  local payload='{"jsonrpc":"2.0","method":"eth_call","params":['$params',"'$block_num'"],"id":1}'
+  get_result "$payload"
+}
+
+#  eth_compileSolidity removed, use solc comand instaed
+function eth_compile(){
+  # local payload='{"jsonrpc":"2.0","method":"eth_compileSolidity","params":["'$code'"],"id":1}'
+  # get_result "$payload"
+  local code="$1"
+  local suppress_error=0
+  local opts=""
+  shift
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -q) suppress_error=1; shift ;;
+      -all) opts="--bin --abi --hashes"; shift;;
+      *) opts+=" $1"; shift;;
+    esac
+  done
+  if [ "$opts" == "" ];then  # by-default, out cleanup binary
+    echo "$code" | solc --bin 2>/dev/null | awk /^[0-9]/
+    return
+  fi;
+  # echo "debug opts=$opts s_err=$suppress_error"
+  if [[ $suppress_error -eq 0 ]]; then
+    echo "$code" | solc $opts
+  else
+    echo "$code" | solc $opts 2>/dev/null
+  fi
+}
+
+function dump_block(){
+  local number=
+  if [ "${1:0:2}" == "0x" ];then
+      number=$1
+  else
+      number=$(to_hex_with_0x_prefix $1)
+  fi
+
+  local data='{"jsonrpc":"2.0","method":"debug_dumpBlock","params":["'$number'"],"id":1}'
+  get_result "$data"
+}
 function get_rpc_modules(){
   local data='{"jsonrpc":"2.0","method":"rpc_modules","params":[],"id":1}'
   get_result "$data"
@@ -165,7 +225,6 @@ function check_error() {
     echo "Error:"
     cat $ERR_FILE|jq .error
     rm $ERR_FILE 
-    exit -1
   fi
 }
 
@@ -482,14 +541,12 @@ function cmd_get_block(){
 }
 
 # main logic 
-args=$(getopt h:p:D "$@")
 if [ $? != 0 ]; then
   echo "Usage: -h [host] -p [port] "
   exit;
 fi
-set -- $args
-#echo $@
-while [ -n "$1" ] ;do
+#echo "$@"
+while [ $# -gt 0 ] ;do
   case "$1" in 
     -h) 
       host=$2
@@ -502,20 +559,14 @@ while [ -n "$1" ] ;do
     -D)
       DEBUG=1
       ;;
-    --)
-      shift
-      cmd=$@
+    *)
+      cmd="$@"
       #echo "cmd is $cmd"
       break;;
-    *)
-      echo "$1 not a option"
-  esac
+    esac
   shift
 done
-#echo "get opt done!"
 
-set -- $cmd
-#echo $@
 
 ## Block
 if [ $1 == "get_block" ]; then
@@ -639,6 +690,20 @@ elif [ $1 == "stop_mining" ]; then
 elif [ $1 == "status" ] || [ $1 == "info" ] || [ $1 == "get_status" ] || [ $1 == "get_info" ]; then
   shift
   get_status $@
+
+## Execute
+elif [ $1 == "eth_compile" ]; then
+  shift
+  eth_compile "$@"
+
+elif [ $1 == "eth_call" ]; then
+  shift
+  eth_call $@ |jq -R
+  check_error
+## DEBUG Moduls
+elif [ $1 == "dump_block" ]; then
+  shift
+  dump_block $@|jq .
 
 ## UTILS
 elif [ $1 == "to_ether" ]; then
