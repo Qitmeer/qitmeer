@@ -2,36 +2,16 @@
 
 set -e
 
+# ---------------------------
 # settings
+# ---------------------------
 DEBUG=0
 DEBUG_FILE=/tmp/myeth_curl_debug
 ERR_FILE=/tmp/myeth_curl_error
 
-# All jsonrpc calls 
-# https://github.com/ethereum/wiki/wiki/JSON-RPC
-# https://github.com/ethereum/go-ethereum/wiki/Management-APIs
-# https://wiki.parity.io/JSONRPC-eth-module.html
-
-function eth_call(){
-  local params="{"
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      -from)        shift; params+='"from":"'$1'",'; shift ;;
-      -to)          shift; params+='"to":"'$1'",'; shift ;;
-      -v|-value)    shift; params+='"value":"'$1'",'; shift ;;
-      -d|-data)     shift; params+='"data":"'$1'",'; shift ;;
-      -b|-blocknum) shift; block_num=$1; shift ;;
-      *)            shift;;
-    esac
-  done
-  if [ "$block_num" == "" ]; then
-    block_num="latest"
-  fi
-  params=${params%,}"}"  # remove the last , and add }
-  #echo "debug params=$params"
-  local payload='{"jsonrpc":"2.0","method":"eth_call","params":['$params',"'$block_num'"],"id":1}'
-  get_result "$payload"
-}
+# ---------------------------
+# solc call, need solc command line
+# ---------------------------
 
 #  eth_compileSolidity removed, use solc comand instaed
 function eth_compile(){
@@ -69,6 +49,49 @@ function eth_compile(){
   fi
 }
 
+
+# ---------------------------
+# All jsonrpc calls
+# https://github.com/ethereum/wiki/wiki/JSON-RPC
+# https://github.com/ethereum/go-ethereum/wiki/Management-APIs
+# https://github.com/ethereum/wiki/wiki/JavaScript-API
+# https://wiki.parity.io/JSONRPC-eth-module.html
+# ---------------------------
+
+# eth_call
+#   executes a message call which is directly/immediately executed
+#   in the VM of the node,  but never mined into the blockchain.
+#   aka, without creating a transaction on the block chain.
+# geth : internal/ethapi/api.go
+#   func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber) (hexutil.Bytes, error)
+function eth_call(){
+  local params="{"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -from)        shift; params+='"from":"'$1'",'; shift ;;
+      -to)          shift; params+='"to":"'$1'",'; shift ;;
+      -v|-value)    shift; params+='"value":"'$1'",'; shift ;;
+      -d|-data)     shift; params+='"data":"'$1'",'; shift ;;
+      -b|-blocknum) shift; block_num=$1; shift ;;
+      *)            shift;;
+    esac
+  done
+  if [ "$block_num" == "" ]; then
+    block_num="latest"
+  fi
+  params=${params%,}"}"  # remove the last , and add }
+  #echo "debug params=$params"
+  local payload='{"jsonrpc":"2.0","method":"eth_call","params":['$params',"'$block_num'"],"id":1}'
+  get_result "$payload"
+}
+
+
+#
+# debug_dumpBlock
+#   retrieves the entire state of the database at a given block.
+# geth : eth/api.go
+#   func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error)
+#
 function dump_block(){
   local number=
   if [ "${1:0:2}" == "0x" ];then
@@ -80,60 +103,136 @@ function dump_block(){
   local data='{"jsonrpc":"2.0","method":"debug_dumpBlock","params":["'$number'"],"id":1}'
   get_result "$data"
 }
+
+#
+# rpc_modules
+#   returns the list of RPC services with their version number
+# geth : rpc/server.go
+#   func (s *RPCService) Modules() map[string]string
+#
 function get_rpc_modules(){
   local data='{"jsonrpc":"2.0","method":"rpc_modules","params":[],"id":1}'
   get_result "$data"
 }
 
+#
+# eth_mining
+#   if this node is currently mining
+# geth : eth/api.go
+#   func (api *PublicMinerAPI) Mining() bool
 function get_mining(){
   local data='{"jsonrpc":"2.0","method":"eth_mining","params":[],"id":1}'
   get_result "$data"
 }
+
+#
+# // GetWork returns a work package for external miner. The work package consists of 3 strings
+# // result[0], 32 bytes hex encoded current block header pow-hash
+# // result[1], 32 bytes hex encoded seed hash used for DAG
+# // result[2], 32 bytes hex encoded boundary condition ("target"), 2^256/difficulty
+# geth : eth/api.go
+#   func (api *PublicMinerAPI) GetWork() ([3]string, error)
+function get_work(){
+  local data='{"jsonrpc":"2.0","method":"eth_getWork","params":[],"id":1}'
+  get_result "$data"
+}
+
+# miner_start
+#   Start the miner with the given number of threads.
+# geth : eth/api.go
+#   func (api *PrivateMinerAPI) Start(threads *int) error
 function miner_start(){
   local data='{"jsonrpc":"2.0","method":"miner_start","params":[],"id":1}'
   get_result "$data"
 }
 
+# miner_stop
+#   Stop the miner
+# geth : eth/api.go
+#   func (api *PrivateMinerAPI) Stop() bool
 function miner_stop(){
   local data='{"jsonrpc":"2.0","method":"miner_stop","params":[],"id":1}'
   get_result "$data"
 }
 
+# returns the POW hashrate
+# geth : eth/api.go
+#   func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64
 function get_hashrate(){
   local data='{"jsonrpc":"2.0","method":"eth_hashrate","params":[],"id":71}'
   get_result "$data"
 }
+
+# GasPrice returns a suggestion for a gas price.
+# geth :internal/ethapi/api.go
+#   func (s *PublicEthereumAPI) GasPrice(ctx context.Context) (*big.Int, error)
 function get_gasprice(){
   local data='{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":73}'
   get_result "$data"
 }
+
+# return the address that mining rewards will be send to (alias for Etherbase)
+# geth : eth/api.go
+#   func (api *PublicEthereumAPI) Coinbase()
 function get_coinbase(){
   local data='{"jsonrpc":"2.0","method":"eth_coinbase","params":[],"id":1}'
   get_result "$data"
 }
+
+# the collection of accounts this node manages
+# geth : eth/api.go
+#  func (s *PublicAccountAPI) Accounts() []common.Address
 function get_accounts(){
   local data='{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}'
   get_result "$data"
 }
+
+# returns the transaction for the given block hash and index.
+# It's just a language suger, internally it look up block by block num frist then get tx by index
+# geth : internal/ethapi/api.go
+#  func (s *PublicTransactionPoolAPI) GetTransactionByBlockNumberAndIndex(ctx context.Context, blockNr rpc.BlockNumber, index hexutil.Uint) *RPCTransaction
 function get_tx_by_blocknum_and_index_hex(){
   local block_num=$1 #"0x467a65"
   local tx_index=$2  #"0x0"
   local data='{"jsonrpc":"2.0","method":"eth_getTransactionByBlockNumberAndIndex","params":["'$block_num'","'$tx_index'"],"id":1}'
   get_result "$data"
 }
+
+# returns the transaction for the given hash
+# geth : internal/ethapi/api.go
+#   func (s *PublicTransactionPoolAPI) GetTransactionByHash(ctx context.Context, hash common.Hash) *RPCTransaction
 function get_tx_by_hash(){
   local tx_hash=$1
   local data='{"jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["'$tx_hash'"],"id":1}'
   get_result "$data"
 }
+
+# the block number of the chain head
+# geth : internal/ethapi/api.go
+#   func (s *PublicBlockChainAPI) BlockNumber() *big.Int
 function get_block_number(){
   local data='{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":83}'
   get_result "$data"
 }
+
+# Syncing returns false in case the node is currently not syncing with the network. It can be up to date or has not
+# yet received the latest block headers from its pears. In case it is synchronizing:
+#   - startingBlock: block number this node started to synchronise from
+#   - currentBlock:  block number this node is currently importing
+#   - highestBlock:  block number of the highest block header this node has received from peers
+#   - pulledStates:  number of state entries processed until now
+#   - knownStates:   number of known state entries that still need to be pulled
+# geth : internal/ethapi/api.go
+#   func (s *PublicEthereumAPI) Syncing() (interface{}, error)
 function get_syncing(){
   local data='{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}'
   get_result "$data"
 }
+
+# returns the requested block by blockNr
+# When fullTx is true all transactions in the block are # returned in full detail, otherwise only the transaction hash is returned.
+# geth : internal/ethapi/api.go
+#   func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error)
 function get_block(){
   local block_number=$1
   local hex_prefix=${block_number:0:2}
@@ -142,14 +241,25 @@ function get_block(){
     # $block_number not using hex_prefix, try to convert hex"
     num_hex=$(echo "obase=16;$block_number"|bc)
   fi
-  local data='{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x'$num_hex'",true],"id":1}'
-  get_result "$data" 
+  local fullTx=$2
+  if [ "$fullTx" == "" ]; then
+    fullTx="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x'$num_hex'",'$fullTx'],"id":1}'
+  get_result "$data"
 }
+# return block by hash
+# geth : internal/ethapi/api.go
+#   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){
   local block_hash=$1
   local data='{"jsonrpc":"2.0","method":"eth_getBlockByHash","params":["'$block_hash'",true],"id":1}'
   get_result "$data"
 }
+
+# the amount of wei for the given address in the state of the given block number.
+# geth : internal/ethapi/api.go
+#   func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*big.Int, error)
 function get_balance(){
   local addr=$1
   local block_num=$2
@@ -160,6 +270,10 @@ function get_balance(){
   local data='{"jsonrpc":"2.0","method":"eth_getBalance","params":["'$addr'","'$block_num'"],"id":1}'
   get_result "$data"
 }
+
+# the code stored at the given address in the state for the given block number
+# geth : internal/ethapi/api.go
+#   func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (hexutil.Bytes, error)
 function get_code(){
   #local contract_addr="0xbdeb5b87843062116b118e574a68a58f511a30e6"
   local contract_addr=$1
@@ -170,11 +284,15 @@ function get_code(){
   local data='{"jsonrpc":"2.0","method":"eth_getCode","params":["'$contract_addr'","'$block_num'"],"id":1}'
   get_result "$data"
 }
+
+# the storage from the state at the given address, key and block numbe
+# geth : internal/ethapi/api.go
+#   func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.Address, key string, blockNr rpc.BlockNumber) (hexutil.Bytes, error)
 function get_storage(){
   #local contract_addr="0xbdeb5b87843062116b118e574a68a58f511a30e6"
   #local at="0x0"
-  local contract_addr=$1 
-  local at=$2 
+  local contract_addr=$1
+  local at=$2
   local block_num=$3
   if [ "$block_num" == "" ]; then
     block_num="latest"
@@ -182,11 +300,17 @@ function get_storage(){
   local data='{"jsonrpc":"2.0","method":"eth_getStorageAt","params":["'$contract_addr'","'$at'","'$block_num'"],"id":1}'
   get_result "$data"
 }
+
+# the number of transactions the given address has sent for the given block numbe
+# acutally it's return the nouce of the account(address) of the stateDB of the given blockNr
+# geth : internal/ethapi/api.go
+#   func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Uint64, error)
 function get_tx_count_by_addr(){
   local addr=$1
   local data='{"jsonrpc":"2.0","method":"eth_getTransactionCount","params":["'$addr'","latest"],"id":1}'
   get_result "$data"
 }
+
 function get_result(){
   set +x
   #local site=10.0.0.6
@@ -207,13 +331,13 @@ function get_result(){
   fi
   if [ "$result" == "null" ];then
     echo "$curl_result" > $ERR_FILE
-    result="" 
+    result=""
   fi
   echo $result
 }
 
 # -------------------------
-# util functions 
+# util functions
 # -------------------------
 function pad_hex_prefix(){
   local input=$1
@@ -224,16 +348,16 @@ function pad_hex_prefix(){
   fi
 }
 function to_hex() {
-  printf "%x\n" $1 
+  printf "%x\n" $1
 }
 function to_hex_with_0x_prefix(){
-  printf "0x%x\n" $1 
+  printf "0x%x\n" $1
 }
 function check_error() {
   if [ -e $ERR_FILE ]; then
     echo "Error:"
     cat $ERR_FILE|jq .error
-    rm $ERR_FILE 
+    rm $ERR_FILE
   fi
 }
 
@@ -350,19 +474,19 @@ def to_wei(number, unit):
 EOF
 
 function wei_to_ether() {
-    # supress the scientific notation 
+    # supress the scientific notation
     # 1.8E-08 -> 0.000000018
     python << EOF
 $py_eth_currency
 result=from_wei(decimal.Decimal($1),'ether')
 out="{:.20f}".format(result)
-frac=out.split('.')[1] 
+frac=out.split('.')[1]
 # by default, remove all fractional part.
-no_zero=len(frac)-1 
+no_zero=len(frac)-1
 for i,v in enumerate(reversed(frac)):
     if int(v) > 0 :
         #print "first no zero -> i=%s,v=%s" % (i,v)
-        no_zero=i 
+        no_zero=i
         break
 print out[:len(out)-no_zero]
 EOF
@@ -408,7 +532,7 @@ function usage(){
   echo "  start_mining"
   echo "  stop_mining"
   echo "status  :"
-  echo "  status|get_status|info|get_info [-mining|-module|-all]"
+  echo "  status|get_status|info|get_info [-mining|-module|-hashrate|-work|-all]"
   echo "compile :"
   echo "  eth_complie [-bin|-abi|-fun|-all] [-q]"
   echo "excute  :"
@@ -487,6 +611,11 @@ function get_status() {
     get_modules
   elif [ "$1" == "-mining" ]; then
     get_mining_status
+  elif [ "$1" == "-hashrate" ]; then
+    get_hashrate
+  elif [ "$1" == "-work" ]; then
+    get_work|jq .
+    check_error
   elif [ "$1" == "-all" ]; then
     echo "modules  : $(get_modules|jq -c -M .)"
     get_mining_status
@@ -497,7 +626,7 @@ function get_status() {
 
 function get_current_block_num(){
   get_syncing $@|jq .currentBlock -r|xargs printf "%d\n"
-} 
+}
 
 # get_block control function
 function cmd_get_block(){
@@ -506,22 +635,21 @@ function cmd_get_block(){
       echo "get lastet block"
       blocknum=$(get_block_number|xargs printf "%d")
       echo "the lastet block is $blocknum"
-      exit 
+      exit
   fi
   if [ "${1:0:2}" == "0x" ];then
     block_hash=$1
     block_result=$(get_block_by_hash $(pad_hex_prefix $block_hash) $@)
-  else 
+  else
     blocknum=$1
     block_result=$(get_block "$blocknum")
   fi
-
+  shift
   #echo debug $block_result
   if [ "$block_result" == "null" ];then
     echo "block $1 not found"
     exit -1
   fi
-  shift
   if [ -z "$1" ]; then
     echo $block_result|jq '.'
   elif [ "$1" == "-tx" ]; then
@@ -552,15 +680,15 @@ function cmd_get_block(){
   fi
 }
 
-# main logic 
+# main logic
 if [ $? != 0 ]; then
   echo "Usage: -h [host] -p [port] "
   exit;
 fi
 #echo "$@"
 while [ $# -gt 0 ] ;do
-  case "$1" in 
-    -h) 
+  case "$1" in
+    -h)
       host=$2
       #echo "host is $host"
       shift;;
@@ -600,7 +728,7 @@ elif [ $1 == "get_current_block" ]; then
 elif [ $1 == "get_current_block2" ]; then
   shift
   blocknum=$(get_current_block_num)
-  cmd_get_block $blocknum $@ 
+  cmd_get_block $blocknum $@
 elif [ $1 == "get_highest_block" ]; then
   shift
   get_syncing $@|jq .highestBlock -r|xargs printf "%d\n"
@@ -623,7 +751,7 @@ elif [ $1 == "get_accounts" ]; then
     echo $accounts|jq '.'
   else
     echo $accounts|jq '.['$1']' -r
-  fi 
+  fi
 elif [ $1 == "get_balance" ]; then
   shift
   addr=$(pad_hex_prefix $1)
@@ -716,6 +844,7 @@ elif [ $1 == "eth_call" ]; then
 elif [ $1 == "dump_block" ]; then
   shift
   dump_block $@|jq .
+  check_error
 
 ## UTILS
 elif [ $1 == "to_ether" ]; then
