@@ -54,9 +54,87 @@ function eth_compile(){
 # All jsonrpc calls
 # https://github.com/ethereum/wiki/wiki/JSON-RPC
 # https://github.com/ethereum/go-ethereum/wiki/Management-APIs
+# https://github.com/ethereum/go-ethereum/wiki/RPC-PUB-SUB
 # https://github.com/ethereum/wiki/wiki/JavaScript-API
 # https://wiki.parity.io/JSONRPC-eth-module.html
+# https://wiki.parity.io/JSONRPC-Parity-Pub-Sub-module
 # ---------------------------
+
+# eth_sendTransaction
+# Creates a transaction for the given argument, sign it and submit it to the transaction pool.
+#   - from should not omit, it will look up the wallet for the account as the signer
+#   - the func need to unlock the from address before the executing, it will introduce an security issue,
+#     should not open as a public api in my option.
+# geth : internal/ethapi/api.go
+#   func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args SendTxArgs) (common.Hash, error)
+#
+# personal_sendTransaction
+# Create a transaction from the given arguments, sign it with args.From account (the priv get by proived pass)
+#   - need to open the module before use
+#   - security issue , never use it in product mode
+# geth : internal/ethapi/api.go
+#   func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args SendTxArgs, passwd string) (common.Hash, error)
+#
+# Gas Note:
+#   - default is 90000 if not provied
+#   - 21000 normal tx/ contract creation after homestead
+#   - 53000 contract creation (homestead)
+#   - the total need should be 21000+(byte_of_data*68) (68 is TxDataNonZeroGas)
+function send_tx(){
+  local params="{"
+  local passphrase=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -from)        shift; params+='"from":"'$1'",'; shift ;;
+      -to)          shift; params+='"to":"'$1'",'; shift ;;
+      -v|-value)    shift; params+='"value":"'$1'",'; shift ;;
+      -d|-data)     shift; params+='"data":"'$1'",'; shift ;;
+      -n|-nounce)   shift; params+='"noucne":"'$1'",'; shift ;;
+      -g|-gas)      shift; params+='"gas":"'$(to_hex $1)'",'; shift;; #defult is 90000
+      -p|-pass)     shift; passphrase=$1; shift;;
+      *)            shift;;
+    esac
+  done
+  params=${params%,}"}"  # remove the last , and add }
+  echo "debug params=$params"
+
+  if [ "$passphrase" == "" ]; then
+    local payload='{"jsonrpc":"2.0","method":"eth_sendTransaction","params":['$params'],"id":1}'
+  else
+    local payload='{"jsonrpc":"2.0","method":"personal_sendTransaction","params":['$params',"'$passphrase'"],"id":1}'
+  fi
+  get_result "$payload"
+}
+
+# eth_getTransactionReceipt
+#   Returns the receipt of a transaction by transaction hash, the receipt is not available for pending transactions.
+#   - tx_hash -> block_hash, tx_index -> receipts of the block -> receipt by tx_index (log,bloom,poststatus,status,contractaddress)
+# geth : internal/ethapi/api.go
+#   func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, hash common.Hash) (map[string]interface{}, error)
+function get_receipt(){
+  local tx_hash=$1
+  local payload='{"jsonrpc":"2.0","method":"eth_getTransactionReceipt","params":["'$tx_hash'"],"id":1}'
+  get_result "$payload"
+}
+
+# txpool
+# geth : internal/ethapi/api.go
+#   func (s *PublicTxPoolAPI) Status() map[string]hexutil.Uint
+#   func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string
+#   func (s *PublicTxPoolAPI) Content() map[string]map[string]map[string]*RPCTransaction
+function txpool(){
+  local payload=""
+  if [ "$1" == "" ] || [ "$1" == "-status" ]; then
+    payload='{"jsonrpc":"2.0","method":"txpool_status","id":1}'
+  elif [ "$1" == "-inspect" ]; then
+    payload='{"jsonrpc":"2.0","method":"txpool_inspect","id":1}'
+  elif [ "$1" == "-content" ]; then
+    payload='{"jsonrpc":"2.0","method":"txpool_content","id":1}'
+  else echo '{ "error" : "unkown option: '$1'"}'; exit -1;
+  fi
+  get_result "$payload"
+}
+
 
 # eth_call
 #   executes a message call which is directly/immediately executed
@@ -93,13 +171,7 @@ function eth_call(){
 #   func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error)
 #
 function dump_block(){
-  local number=
-  if [ "${1:0:2}" == "0x" ];then
-      number=$1
-  else
-      number=$(to_hex_with_0x_prefix $1)
-  fi
-
+  local number=$(to_hex $1)
   local data='{"jsonrpc":"2.0","method":"debug_dumpBlock","params":["'$number'"],"id":1}'
   get_result "$data"
 }
@@ -347,12 +419,12 @@ function pad_hex_prefix(){
     echo "0x$input"
   fi
 }
+
+# convert int to hex, also add 0x prefix if missing
 function to_hex() {
-  printf "%x\n" $1
-}
-function to_hex_with_0x_prefix(){
   printf "0x%x\n" $1
 }
+
 function check_error() {
   if [ -e $ERR_FILE ]; then
     echo "Error:"
@@ -532,12 +604,16 @@ function usage(){
   echo "  start_mining"
   echo "  stop_mining"
   echo "status  :"
-  echo "  status|get_status|info|get_info [-mining|-module|-hashrate|-work|-all]"
+  echo "  status|get_status|info|get_info [-mining|-module|-hashrate|-work|-txpool|-all]"
   echo "compile :"
   echo "  eth_complie [-bin|-abi|-fun|-all] [-q]"
   echo "excute  :"
   echo "  dump_block <num>"
   echo "  eth_call -from <addr> -to <addr> -v <value> -d <data>"
+  echo "  send_tx -from <addr> -to <addr> -v <value> -d <data>"
+  echo "  get_receipt <tx_hash>"
+  echo "txpool  :"
+  echo "  txpool -status|-inspect|-content"
   echo "util    :"
   echo "  to_ether <wei>"
   echo "  to_wei <ether>"
@@ -615,6 +691,9 @@ function get_status() {
     get_hashrate
   elif [ "$1" == "-work" ]; then
     get_work|jq .
+    check_error
+  elif [ "$1" == "-txpool" ]; then
+    txpool -status|jq .
     check_error
   elif [ "$1" == "-all" ]; then
     echo "modules  : $(get_modules|jq -c -M .)"
@@ -757,11 +836,7 @@ elif [ $1 == "get_balance" ]; then
   addr=$(pad_hex_prefix $1)
   shift
   if [ ! -z "$1" ]; then
-    if [ "${1:0:2}" == "0x" ];then
-      num=$1
-    else
-      num=$(to_hex_with_0x_prefix $1)
-    fi
+    num=$(to_hex $1)
     shift
   fi
   # echo "debug get_balance $addr $num"
@@ -783,11 +858,7 @@ elif [ $1 == "get_code" ]; then
   addr=$(pad_hex_prefix $1)
   shift
   if [ ! -z "$1" ]; then
-    if [ "${1:0:2}" == "0x" ];then
-      num=$1
-    else
-      num=$(to_hex_with_0x_prefix $1)
-    fi
+    num=$(to_hex $1)
     shift
   fi
   get_code $addr $num
@@ -797,19 +868,11 @@ elif [ $1 == "get_storage" ]; then
   addr=$(pad_hex_prefix $1)
   shift
   if [ ! -z "$1" ]; then
-    if [ "${1:0:2}" == "0x" ];then
-      at=$1
-    else
-      at=$(to_hex_with_0x_prefix $1)
-    fi
+    at=$(to_hex $1)
     shift
   fi
   if [ ! -z "$1" ]; then
-    if [ "${1:0:2}" == "0x" ];then
-      num=$1
-    else
-      num=$(to_hex_with_0x_prefix $1)
-    fi
+    num=$(to_hex $1)
     shift
   fi
   get_storage $addr $at $num
@@ -835,11 +898,24 @@ elif [ $1 == "status" ] || [ $1 == "info" ] || [ $1 == "get_status" ] || [ $1 ==
 elif [ $1 == "eth_compile" ]; then
   shift
   eth_compile "$@"
-
 elif [ $1 == "eth_call" ]; then
   shift
   eth_call $@ |jq -R
   check_error
+elif [ $1 == "send_tx" ]; then
+  shift
+  send_tx $@
+  check_error
+elif [ $1 == "get_receipt" ]; then
+  shift
+  get_receipt $@ |jq .
+  check_error
+## TXPOOL
+elif [ $1 == "txpool" ]; then
+  shift
+  txpool $@ |jq .
+  check_error
+
 ## DEBUG Moduls
 elif [ $1 == "dump_block" ]; then
   shift
@@ -855,6 +931,9 @@ elif [ $1 == "to_wei" ]; then
   shift
   ether_to_wei $@
   shift
+elif [ $1 == "to_hex" ]; then
+  shift
+  to_hex $1
 elif [ $1 == "list_command" ]; then
   usage
 else
