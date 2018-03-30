@@ -176,6 +176,15 @@ function dump_block(){
   get_result "$data"
 }
 
+# geth : internal/ethapi/api.go
+#   func (api *PublicDebugAPI) GetBlockRlp(ctx context.Context, number uint64) (string, error)
+#
+function block_rlp(){
+  local number=$(to_dec $1)
+  local data='{"jsonrpc":"2.0","method":"debug_getBlockRlp","params":['$number'],"id":1}'
+  get_result "$data"
+}
+
 #
 # rpc_modules
 #   returns the list of RPC services with their version number
@@ -306,18 +315,12 @@ function get_syncing(){
 # geth : internal/ethapi/api.go
 #   func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error)
 function get_block(){
-  local block_number=$1
-  local hex_prefix=${block_number:0:2}
-  local num_hex=${block_number:2}
-  if [ ! "$hex_prefix" == "0x" ] ;then
-    # $block_number not using hex_prefix, try to convert hex"
-    num_hex=$(echo "obase=16;$block_number"|bc)
-  fi
+  local block_number=$(to_hex $1)
   local fullTx=$2
   if [ "$fullTx" == "" ]; then
     fullTx="true"
   fi
-  local data='{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x'$num_hex'",'$fullTx'],"id":1}'
+  local data='{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["'$block_number'",'$fullTx'],"id":1}'
   get_result "$data"
 }
 # return block by hash
@@ -336,7 +339,6 @@ function get_balance(){
   local addr=$1
   local block_num=$2
   if [ "$block_num" == "" ]; then
-    #echo '{"result":"block_tag is latest and addr is '$addr'"}'
     block_num="latest"
   fi
   local data='{"jsonrpc":"2.0","method":"eth_getBalance","params":["'$addr'","'$block_num'"],"id":1}'
@@ -424,14 +426,30 @@ function pad_hex_prefix(){
 function to_hex() {
   printf "0x%x\n" $1
 }
+function to_dec() {
+  printf "%d\n" $1
+}
 
 function check_error() {
   if [ -e $ERR_FILE ]; then
     echo "Error:"
     cat $ERR_FILE|jq .error
     rm $ERR_FILE
+    if [ "$1" == "-e" ]; then
+      check_debug
+      exit -1
+    fi
   fi
 }
+function check_debug() {
+  if [ $DEBUG -gt 0 ]; then
+    if [ -e $DEBUG_FILE ]; then
+      cat $DEBUG_FILE
+      rm $DEBUG_FILE
+    fi
+  fi
+}
+
 
 # The python script for eth currency.
 # the orignal script from https://github.com/ethereum/eth-utils
@@ -582,13 +600,15 @@ function usage(){
   echo "  get_highest_block"
   echo "block    :"
   echo "  get_block <num|hash>"
-  echo "  get_block <num|hash> -tx [num]"
-  echo "  get_block <num|hash> -txcount"
-  echo "  get_block <num|hash> -blocktime"
-  echo "  get_block <num|hash> -stroot"
-  echo "  get_block <num|hash> -txroot"
-  echo "  get_block <num|hash> -rcroot"
-  echo "  get_block <num|hash> -roots"
+  echo "  get_block -n <numb> | -h <hash>"
+  echo "  get_block <num> -show rlp|<num> -show rlp=dump"
+  echo "  get_block <num|hash> -show tx=[num]"
+  echo "  get_block <num|hash> -show txcount"
+  echo "  get_block <num|hash> -show blocktime"
+  echo "  get_block <num|hash> -show stroot"
+  echo "  get_block <num|hash> -show txroot"
+  echo "  get_block <num|hash> -show rcroot"
+  echo "  get_block <num|hash> -show roots"
   echo "tx       :"
   echo "  get_tx <hash>"
   echo "  get_tx_by_block_and_index <num_hex> <index_hex>"
@@ -707,57 +727,90 @@ function get_current_block_num(){
   get_syncing $@|jq .currentBlock -r|xargs printf "%d\n"
 }
 
-# get_block control function
-function cmd_get_block(){
-  # echo "debug cmd_get_block $@"
-  if [ "$1" == "" ] ;then
-      echo "get lastet block"
-      blocknum=$(get_block_number|xargs printf "%d")
-      echo "the lastet block is $blocknum"
-      exit
+function call_get_block() {
+  # echo "debug call_get_block $@"
+  local blknum=""
+  local blkhash=""
+  local show=""
+  local show_opt=""
+
+  if [[ $# -eq 0 ]]; then
+    # echo "get lastet block"
+    local latest_num=$(get_block_number|xargs printf "%d")
+    echo "the lastet block is $latest_num"
+    exit
   fi
-  if [ "${1:0:2}" == "0x" ];then
-    block_hash=$1
-    block_result=$(get_block_by_hash $(pad_hex_prefix $block_hash) $@)
-  else
-    blocknum=$1
-    block_result=$(get_block "$blocknum")
-  fi
-  shift
-  #echo debug $block_result
-  if [ "$block_result" == "null" ];then
-    echo "block $1 not found"
-    exit -1
-  fi
-  if [ -z "$1" ]; then
-    echo $block_result|jq '.'
-  elif [ "$1" == "-tx" ]; then
+
+  if ! [ "${1:0:1}" == "-" ]; then
+    if [ "${1:0:2}" == "0x" ] && [[ ${#1} -eq 66 ]] ; then # 64
+      blkhash=$1
+    else
+      blknum=$1
+    fi
     shift
-    tx=$1
+  fi
+
+  while [[ $# -gt 1 ]]; do
+    case "$1" in
+      -n|-num)  shift; blknum=$1; shift ;;
+      -h|-hash) shift; blkhash=$1; shift ;;
+      -show)    shift; show=${1%%=*}; show_opt="${1#*=}"; shift ;;
+      *) echo '{ "error" : "unkown option: '$1'"}'|jq .; exit -1;;
+    esac
+  done
+
+  if [ "$show_opt" == "$show" ]; then show_opt=""; fi;
+  #echo "debug: blknum=$blknum,blkhash=$blkhash,show=$show;show_opt=$show_opt"
+
+  if [ "$show" == "rlp" ]; then
+    if ! [ "$blknum" == "" ]; then
+      if [ "$show_opt" == "dump" ];then
+        block_rlp $blknum|rlpdump
+      else
+        block_rlp $blknum
+      fi
+      return
+    else
+       echo '{ "error" : "show rlp only support by using blknum."}'|jq .; exit -1;
+    fi
+  else #default show all
+    if ! [ "$blknum" == "" ]; then
+       block_result=$(get_block "$blknum")
+    elif ! [ "$blkhash" == "" ]; then
+       block_result=$(get_block_by_hash $blkhash)
+    else
+       echo '{ "error" : "need to provide blknum or blkhash"}'; exit -1;
+    fi
+  fi
+  check_error -e
+
+  if [ "$show" == "" ]; then
+    echo $block_result|jq '.'
+  elif [ "$show" == "tx" ]; then
+    tx=$show_opt
     if [ "${tx:0:2}" == "0x" ];then
       echo $block_result|jq '.transactions|.[]|select(.transactionIndex == "'$tx'")'
     else
+      echo show tx from $tx
       echo $block_result|jq '.transactions['$tx']'
     fi
-  elif [ "$1" == "-txcount" ];then
-    shift
+  elif [ "$show" == "txcount" ]; then
     echo $block_result|jq '.transactions|length'
-  elif [ "$1" == "-blocktime" ];then
-    shift
-    echo $block_result|jq '.timestamp'| hex2dec|timestamp
-  elif [ "$1" == "-stroot" ];then
+  elif [ "$show" == "blocktime" ];then
+    echo $block_result|jq '.timestamp'|hex2dec|timestamp
+  elif [ "$show" == "stroot" ];then
     echo $block_result|jq '.stateRoot'
-    shift
-  elif [ "$1" == "-txroot" ];then
+  elif [ "$show" == "txroot" ];then
     echo $block_result|jq '.transactionsRoot'
-    shift
-  elif [ "$1" == "-rcroot" ];then
+  elif [ "$show" == "rcroot" ];then
     echo $block_result|jq '.receiptsRoot'
-    shift
-  elif [ "$1" == "-roots" ]; then
+  elif [ "$show" == "roots" ]; then
     echo $block_result|jq '{"stroot":.stateRoot, "txroot":.transactionsRoot, "rcroot":.receiptsRoot}'
+  else
+    echo '{ "error" : "unkown option: '$show'"}'; exit -1;
   fi
 }
+
 
 # main logic
 if [ $? != 0 ]; then
@@ -790,7 +843,7 @@ done
 ## Block
 if [ $1 == "get_block" ]; then
   shift
-  cmd_get_block $@
+  call_get_block $@
 elif [ $1 == "get_block_number" ]; then
   shift
   if [ "$1" == "-hex" ]; then # result ishex by default
@@ -941,9 +994,4 @@ else
   usage
   exit -1
 fi
-if [ $DEBUG -gt 0 ]; then
-  if [ -e $DEBUG_FILE ]; then
-    cat $DEBUG_FILE
-    rm $DEBUG_FILE
-  fi
-fi
+check_debug
