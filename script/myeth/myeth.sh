@@ -176,12 +176,50 @@ function dump_block(){
   get_result "$data"
 }
 
+# debug_getBlockRlp
 # geth : internal/ethapi/api.go
 #   func (api *PublicDebugAPI) GetBlockRlp(ctx context.Context, number uint64) (string, error)
-#
+# Note: input num is int
 function block_rlp(){
   local number=$(to_dec $1)
   local data='{"jsonrpc":"2.0","method":"debug_getBlockRlp","params":['$number'],"id":1}'
+  get_result "$data"
+}
+
+# debug_traceBlockByNumber
+# debug_traceBlockByHash
+# debug_traceBlock
+# geth : eth/api_tracer.go
+#   func (api *PrivateDebugAPI) TraceBlockByNumber(ctx context.Context, number rpc.BlockNumber, config *TraceConfig) ([]*txTraceResult, error)
+#   func (api *PrivateDebugAPI) TraceBlockByHash(ctx context.Context, hash common.Hash, config *TraceConfig) ([]*txTraceResult, error)
+#   func (api *PrivateDebugAPI) TraceBlock(ctx context.Context, blob []byte, config *TraceConfig) ([]*txTraceResult, error)
+#
+function trace_block(){
+  local blknum=""
+  local blkhash=""
+  local data=""
+  case $1 in
+    -n|-num)
+      shift; blknum=$(to_hex $1);
+      data='{"jsonrpc":"2.0","method":"debug_traceBlockByNumber","params":["'$blknum'"],"id":1}' ;;
+    -h|-hash)
+      shift; blkhash=$1;
+      data='{"jsonrpc":"2.0","method":"debug_traceBlockByHash","params":["'$blkhash'"],"id":1}' ;;
+    -r|-rlp)
+      shift; rlp=$(to_base64 $1);
+      data='{"jsonrpc":"2.0","method":"debug_traceBlock","params":["'$rlp'"],"id":1}' ;;
+      #data='{"jsonrpc":"2.0","method":"debug_traceBlock","params":["'$rlp'"],"id":1}' ;;
+    *) echo '{ "error" : "unkown option: '$1'"}'; exit -1 ;;
+  esac
+  get_result "$data"
+}
+
+# debug_traceTransaction
+# geth: eth/api_tracer.go
+#   func (api *PrivateDebugAPI) TraceTransaction(ctx context.Context, hash common.Hash, config *TraceConfig) (interface{}, error) {}
+function trace_tx() {
+  local txHash=$1
+  local data='{"jsonrpc":"2.0","method":"debug_traceTransaction","params":["'$txHash'"],"id":1}'
   get_result "$data"
 }
 
@@ -428,6 +466,10 @@ function to_hex() {
 }
 function to_dec() {
   printf "%d\n" $1
+}
+
+function to_base64() {
+  echo -n $1|xxd -r -p|base64
 }
 
 function check_error() {
@@ -791,7 +833,6 @@ function call_get_block() {
     if [ "${tx:0:2}" == "0x" ];then
       echo $block_result|jq '.transactions|.[]|select(.transactionIndex == "'$tx'")'
     else
-      echo show tx from $tx
       echo $block_result|jq '.transactions['$tx']'
     fi
   elif [ "$show" == "txcount" ]; then
@@ -974,6 +1015,18 @@ elif [ $1 == "dump_block" ]; then
   shift
   dump_block $@|jq .
   check_error
+elif [ $1 == "rlp_block" ]; then
+  shift
+  block_rlp $@
+  check_error
+elif [ $1 == "trace_block" ]; then
+  shift
+  trace_block $@|jq .
+  check_error
+elif [ $1 == "trace_tx" ]; then
+  shift
+  trace_tx $@|jq .
+  check_error
 
 ## UTILS
 elif [ $1 == "to_ether" ]; then
@@ -987,6 +1040,9 @@ elif [ $1 == "to_wei" ]; then
 elif [ $1 == "to_hex" ]; then
   shift
   to_hex $1
+elif [ $1 == "to_base64" ]; then
+  shift
+  to_base64 $1
 elif [ $1 == "list_command" ]; then
   usage
 else
