@@ -38,5 +38,5 @@ func TestConfigIdShouldNotLessThan(t *testing.T) {
 	conf := new(Config)
 	err := json.NewDecoder(r).Decode(&conf)
 	assert.NotNil(t,err)
-	assert.Equal(t,ErrConfigIdRange,err)
+	assert.EqualError(t,err,"error field 'Id' for Config, minimal is 0")
 }

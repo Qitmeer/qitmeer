@@ -63,4 +63,13 @@ func TestGenesis_UnmarshalJSON(t *testing.T) {
 	}
 }
 
+func TestNounceShouldLargeThanZero(t *testing.T) {
+	input := `{"config": {"Id":10}, "nonce":0}  `
+	r := strings.NewReader(input)
+	g := new(Genesis)
+	err := json.NewDecoder(r).Decode(&g)
+	assert.NotNil(t,err)
+	assert.EqualError(t,err,"error field 'nonce' for Genesis, minimal is 1")
+}
+
 

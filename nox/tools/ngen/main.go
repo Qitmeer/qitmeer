@@ -33,6 +33,7 @@ import (
 	"golang.org/x/tools/imports"
 	"golang.org/x/tools/go/loader"
 	"golang.org/x/tools/go/buildutil"
+	//"math/big"
 )
 
 // Configuration set most from command-line
@@ -176,10 +177,18 @@ type marshalerField struct {
 // isRequired returns whether the field is required when decoding the given format.
 func (mf *marshalerField) isRequired(format string) bool {
 	rtag := reflect.StructTag(mf.tag)
-	req := rtag.Get("gencodec") == "required"
+	req := rtag.Get("required") == "true"
 	// Fields with json:"-" must be treated as optional. This also works
 	// for the other supported formats.
 	return req && !strings.HasPrefix(rtag.Get(format), "-")
+}
+
+func (mf *marshalerField) hasMinimal(format string) (string, bool)  {
+	rtag := reflect.StructTag(mf.tag)
+	min,ok := rtag.Lookup("min")
+	// Fields with json:"-" must be treated as optional. This also works
+	// for the other supported formats.
+	return min, ok && !strings.HasPrefix(rtag.Get(format), "-")
 }
 
 
@@ -524,6 +533,19 @@ func (me NotEqual) Expression() ast.Expr {
 	}
 }
 
+type LessThan struct {
+	Lhs Expression
+	Rhs Expression
+}
+
+func (me LessThan) Expression() ast.Expr {
+	return &ast.BinaryExpr{
+		Op: token.LSS,
+		X:  me.Lhs.Expression(),
+		Y:  me.Rhs.Expression(),
+	}
+}
+
 type DeclareAndAssign struct {
 	Lhs Expression
 	Rhs Expression
@@ -600,6 +622,43 @@ func (m *marshalMethod) unmarshalConversions(from, to Var, format string) (s []S
 				},
 			})
 			s = append(s, m.convert(accessFrom, accessTo, typ, f.origTyp)...)
+			if v, ok :=f.hasMinimal(format); ok{
+				err := fmt.Sprintf("error field '%s' for %s, minimal is %s", f.encodedName(format), m.mtyp.name, v)
+				if f.origTyp.String() == "*math/big.Int" { //need to handle bigInt
+					s = append(s, If{
+						Condition: Equals{
+							Lhs: CallFunction{
+								Func:   Dotted{Receiver: accessTo, Name: "Cmp"},
+								Params: []Expression{Name("big.NewInt("+v+")")},
+							},
+							Rhs: Name("-1")},
+						Body: []Statement{
+							Return{
+								Values: []Expression{
+									CallFunction{
+										Func:   Dotted{Receiver: Name(errors), Name: "New"},
+										Params: []Expression{stringLit{err}},
+									},
+								},
+							},
+						},
+					})
+				} else {
+					s = append(s, If{
+						Condition: LessThan{Lhs: accessTo, Rhs: Name(v)},
+						Body: []Statement{
+							Return{
+								Values: []Expression{
+									CallFunction{
+										Func:   Dotted{Receiver: Name(errors), Name: "New"},
+										Params: []Expression{stringLit{err}},
+									},
+								},
+							},
+						},
+					})
+				}
+			}
 		}
 	}
 	return s

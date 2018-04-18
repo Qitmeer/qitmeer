@@ -4,6 +4,7 @@ package types
 
 import (
 	"encoding/json"
+	"errors"
 )
 
 var _ = (*genesisJSON)(nil)
@@ -11,8 +12,8 @@ var _ = (*genesisJSON)(nil)
 // MarshalJSON marshals as JSON
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
-		Config *Config
-		Nonce  UInt64
+		Config *Config `json:"config" required:"true"`
+		Nonce  UInt64  `json:"nonce"  required:"true" min:"1"`
 	}
 	var enc Genesis
 	enc.Config = g.Config
@@ -23,18 +24,23 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON
 func (g *Genesis) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
-		Config *Config
-		Nonce  *UInt64
+		Config *Config `json:"config" required:"true"`
+		Nonce  *UInt64 `json:"nonce"  required:"true" min:"1"`
 	}
 	var dec Genesis
 	if err := json.Unmarshal(input, &dec); err != nil {
 		return err
 	}
-	if dec.Config != nil {
-		g.Config = dec.Config
+	if dec.Config == nil {
+		return errors.New("missing required field 'config' for Genesis")
 	}
-	if dec.Nonce != nil {
-		g.Nonce = uint64(*dec.Nonce)
+	g.Config = dec.Config
+	if dec.Nonce == nil {
+		return errors.New("missing required field 'nonce' for Genesis")
+	}
+	g.Nonce = uint64(*dec.Nonce)
+	if g.Nonce < 1 {
+		return errors.New("error field 'nonce' for Genesis, minimal is 1")
 	}
 	return nil
 }

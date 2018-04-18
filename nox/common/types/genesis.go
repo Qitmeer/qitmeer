@@ -3,12 +3,12 @@
 package types
 
 type Genesis struct {
-	Config    *Config
-	Nonce    uint64
+	Config    *Config      `json:"config" required:"true"`
+	Nonce    uint64        `json:"nonce"  required:"true" min:"1"`
 }
 
 type genesisJSON struct {
-	Config  *Config           `json:"config"`
-	Nonce   UInt64           `json:"nonce"`
+	Config  *Config
+	Nonce   UInt64
 }
 
