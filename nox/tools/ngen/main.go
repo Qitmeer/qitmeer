@@ -40,8 +40,6 @@ type Config struct {
 	Dir           string   // input package directory
 	Type          string   // type to generate methods for
 	FieldOverride string   // name of struct type for field overrides
-	Importer      types.Importer
-	FileSet       *token.FileSet
 }
 
 // marshalerType represents the intermediate struct type used during marshaling.
@@ -1175,7 +1173,7 @@ func (s *funcScope) newIdent(base string) string {
 
 func newMarshalerType(cfg *Config, typ *types.Named) *marshalerType {
 	styp := typ.Underlying().(*types.Struct)
-	mtyp := &marshalerType{name: typ.Obj().Name(), fs: cfg.FileSet, orig: typ}
+	mtyp := &marshalerType{name: typ.Obj().Name(), fs: token.NewFileSet() , orig: typ}
 	mtyp.scope = newFileScope(cfg, typ.Obj().Pkg())
 	mtyp.scope.addReferences(styp)
 
@@ -1205,7 +1203,7 @@ func newMarshalerType(cfg *Config, typ *types.Named) *marshalerType {
 	return mtyp
 }
 func newFileScope(cfg *Config, pkg *types.Package) *fileScope {
-	return &fileScope{otherNames: make(map[string]bool), pkg: pkg, imp: cfg.Importer}
+	return &fileScope{otherNames: make(map[string]bool), pkg: pkg, imp: importer.Default()}
 }
 
 // walkNamedTypes runs the callback for all named types contained in the given type.
@@ -1257,7 +1255,7 @@ func loadPackage(cfg *Config) (*types.Package, error) {
 		return nil, err
 	}
 	nocheck := func(path string) bool { return false }
-	lcfg := loader.Config{Fset: cfg.FileSet, TypeCheckFuncBodies: nocheck}
+	lcfg := loader.Config{Fset: token.NewFileSet(), TypeCheckFuncBodies: nocheck}
 	lcfg.ImportWithTests(pkg.ImportPath)
 	prog, err := lcfg.Load()
 	if err != nil {
@@ -1276,9 +1274,7 @@ func main(){
 	)
 	flag.Parse()
 
-	cfg := Config{Dir: *pkgdir, Type: *typename, FieldOverride: *overrides,
-		Importer:importer.Default(),
-		FileSet:token.NewFileSet()}
+	cfg := Config{Dir: *pkgdir, Type: *typename, FieldOverride: *overrides}
 	code, err := process(&cfg)
 	if err != nil {
 		log.Fatal(err)
