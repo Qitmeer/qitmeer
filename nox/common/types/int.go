@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+type Bytes []byte
+type Uint uint
 type UInt64 uint64
 type UInt128 big.Int
 type UInt256 big.Int
