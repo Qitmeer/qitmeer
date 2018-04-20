@@ -11,7 +11,7 @@ import (
 )
 
 func TestCreatePrivateKey(t *testing.T) {
-	_, err := GenerateKey()
+	_, err := GenerateKeySecp256k1()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,7 +3,7 @@
 package types
 
 type BlockHeader struct {
-	parents []Hash
+	parents []Hash256
 }
 
 type Block struct {
@@ -16,4 +16,4 @@ type BlockLink struct{
 	to   Block
 }
 
-type BlockSet map[Hash]bool
+type BlockSet map[Hash256]bool

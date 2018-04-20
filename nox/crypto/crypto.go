@@ -5,24 +5,43 @@ package crypto
 import (
 	"math/big"
 	"crypto"
+	"fmt"
 )
 
 type PublicKey  crypto.PublicKey
 type PrivateKey crypto.PrivateKey
 
- // Secp256k1 is the secp256k1 curve and ECDSA system used in Bitcoin.
-var Secp256k1 = newSecp256k1DSA()
+type DSAType byte
 
-func newSecp256k1DSA() interface{} {
-	
+const (
+
+	// the secp256k1 curve and ECDSA system used in Bitcoin and Ethereum
+	Secp256k1DSA DSAType = iota
+
+	// the Ed25519 ECDSA signature system.
+    Ed25519DSA
+
+	// the Schnorr signature scheme about the secp256k1 curve
+	// implemented in libsecp256k1.
+    SchnorrDSA
+
+    // the Sm2 ecdsa, SM2-P-256
+    // TODO, try github.com/tjfoc/gmsm/sm2
+    SM2
+)
+
+func GenKeyPair() (PublicKey,PrivateKey, error){
+	return GenerateKeyPair(Secp256k1DSA)
 }
 
-// Edwards is the Ed25519 ECDSA signature system.
-var Edwards = newEdwardsDSA()
+func GenerateKeyPair(dsa DSAType) (PublicKey,PrivateKey, error) {
+	switch dsa {
+	case Secp256k1DSA:
+		GenerateKeySecp256k1()
+	}
+	return nil,nil,fmt.Errorf("unsupport DSA type %v",dsa)
+}
 
-// SecSchnorr is a Schnorr signature scheme about the secp256k1 curve
-// implemented in libsecp256k1.
-var SecSchnorr = newSecSchnorrDSA()
 
 // PublicKey represents a public key using an unspecified algorithm.
 type EcdsaPubKey interface {

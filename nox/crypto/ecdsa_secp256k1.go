@@ -13,11 +13,9 @@ import (
 
 var secp256k1_N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 
-func GenerateKey() (*ecdsa.PrivateKey, error) {
+func GenerateKeySecp256k1() (*ecdsa.PrivateKey, error) {
 	return ecdsa.GenerateKey(secp256k1.S256(), rand.Reader)
 }
-
-
 
 // ToECDSA creates a private key with the given D value. The strict parameter
 // controls whether the key's length should be enforced at the curve size or

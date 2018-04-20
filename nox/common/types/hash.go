@@ -11,6 +11,10 @@ import (
     _ "golang.org/x/crypto/blake2b"
 )
 
+type Hash interface{
+
+}
+
 type Hash160 [20]byte
 
 type Hash256 [32]byte
