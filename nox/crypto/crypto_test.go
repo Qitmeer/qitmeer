@@ -30,7 +30,7 @@ func TestGenKeyPair(t *testing.T) {
 
 func TestGenrateKeyPair(t *testing.T) {
 
-	privKey, pubKey, err := GenerateKeyPair(Secp256k1DSA)
+	privKey, pubKey, err := GenerateKeyPair(ECDSA_Secp256k1)
 	if err != nil {
 		t.Fatal(err)
 	}

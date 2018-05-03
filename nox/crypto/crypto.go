@@ -52,25 +52,25 @@ type DSA interface {
 	GetN() *big.Int
 }
 
-type DSAType byte
+type SignatureScheme byte
 
 const (
 
 	// the secp256k1 curve and ECDSA system used in Bitcoin and Ethereum
-	Secp256k1DSA DSAType = iota
+	ECDSA_Secp256k1 SignatureScheme = iota
 
 	// the Ed25519 ECDSA signature system.
-	Ed25519DSA
+	EdDSA_Ed25519
 
 	// the Schnorr signature scheme
 	// TODO
 	// 1.) the secp256k1 curve implemented in libsecp256k1
 	// 2.) the Schnorr signatures over Curve25519
-	SchnorrDSA
+	ECDSA_Schnorr
 
 	// the Sm2 ecdsa, SM2-P-256
 	// TODO, try github.com/tjfoc/gmsm/sm2
-	SM2
+	ECDSA_SM2
 )
 
 type EcType byte
@@ -81,19 +81,19 @@ const (
 )
 
 func GenKeyPair() (PrivateKey,PublicKey, error){
-	return GenerateKeyPair(Secp256k1DSA)
+	return GenerateKeyPair(ECDSA_Secp256k1)
 }
 
-func GenerateKeyPair(dsa DSAType) (EccPrivateKey,EccPublicKey, error) {
-	switch dsa {
-	case Secp256k1DSA:
+func GenerateKeyPair(scheme SignatureScheme) (EccPrivateKey,EccPublicKey, error) {
+	switch scheme {
+	case ECDSA_Secp256k1:
 		if privKey,err := GenerateKeySecp256k1(); err !=nil {
 			return nil, nil, err
 		}else {
 			return ecdsaPrivateKey{privKey},
 				ecdsaPubKey{privKey.PublicKey,Secp256k1}, nil
 		}
-	case Ed25519DSA:
+	case EdDSA_Ed25519:
 		if privKey,err := GenerateKeyEd25519(); err !=nil {
 			return nil, nil, err
 		}else {
@@ -101,7 +101,7 @@ func GenerateKeyPair(dsa DSAType) (EccPrivateKey,EccPublicKey, error) {
 				ecdsaPubKey{privKey.PublicKey,Edwards}, nil
 		}
 	}
-	return nil,nil,fmt.Errorf("unsupport DSA type %v",dsa)
+	return nil,nil,fmt.Errorf("unsupport SignatureScheme %v",scheme)
 }
 
 type ecdsaPubKey struct {

@@ -2,18 +2,28 @@
 
 package types
 
-type Address string
+import "fmt"
 
-func (a Address) EncodeAddress() string {
-	return "bar"
+type Address interface{
+	Encode() (string, error)
+	getHash() []byte
 }
+
+type AddressType byte
 
 type pubKeyHashAddress struct{
-	config *Config
-	hash  Hash160          // 160bits pubKey hash
+	pkhash  Hash         // pubKey hash
+	addrType AddressType
 }
 
-func (b pubKeyHashAddress) String() string {
-	return "foo"
+type pubKeyAddress struct{
+	pk      []byte
+	addrType AddressType
 }
+
+func (a pubKeyHashAddress) Encode() (string, error) {
+	// TODO encode pkhash
+	return "", fmt.Errorf("unsupport encode for %v",a.addrType)
+}
+
 

@@ -10,7 +10,7 @@ import (
 	"math/big"
 )
 
-func TestCreatePrivateKey(t *testing.T) {
+func TestCreateySecp256k1PrivateKey(t *testing.T) {
 	_, err := GenerateKeySecp256k1()
 	if err != nil {
 		t.Fatal(err)
