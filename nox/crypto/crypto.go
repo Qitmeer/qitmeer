@@ -52,6 +52,11 @@ type DSA interface {
 	GetN() *big.Int
 }
 
+// TODO: refactor to use stand api to do sign encoding,
+// using the asn1.Unmarshal(b, sig)/asn1.Marshal(*sig)
+// see https://github.com/google/tink/blob/master/go/subtle/signature/ecdsa.go
+// see the EncodeEcdsaSignature for a example
+
 type SignatureScheme byte
 
 const (
