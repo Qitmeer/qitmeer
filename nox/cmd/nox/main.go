@@ -3,23 +3,24 @@
 package main
 
 import (
-	"os"
-	"log"
 	"encoding/json"
-	"github.com/noxproject/nox/common/types"
+	"log"
+	"os"
+
+	"github.com/noxproject/nox/core/types"
 )
 
 func init() {
 
 }
 
-func main(){
+func main() {
 	initGenesis()
 }
 
 // initialize the genesis block from the genesis json
-func initGenesis(){
-    // open genesis JSON
+func initGenesis() {
+	// open genesis JSON
 	genesisFile := "/work/temp/nox-private/genesis_test.json"
 	file, err := os.Open(genesisFile)
 	if err != nil {
@@ -29,8 +30,8 @@ func initGenesis(){
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Genesis=%v\n",genesis)
+	log.Printf("Genesis=%v\n", genesis)
 
-   // load genesis object by parse json
-   // Open database & save genesis
+	// load genesis object by parse json
+	// Open database & save genesis
 }

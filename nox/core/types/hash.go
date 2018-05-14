@@ -11,7 +11,7 @@ import (
     _ "golang.org/x/crypto/blake2b"
 )
 
-type Hash []byte
+type Hash Hash256
 
 type Hash160 [20]byte
 
