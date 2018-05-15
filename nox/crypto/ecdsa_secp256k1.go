@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"math/big"
 	"errors"
-	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/noxproject/nox-crypto/secp256k1"
 )
 
 var secp256k1_N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 
 func GenerateKeySecp256k1() (*ecdsa.PrivateKey, error) {
-	return ecdsa.GenerateKey(secp256k1.S256(), rand.Reader)
+	return ecdsa.GenerateKey(secp256k1.NoxS256(), rand.Reader)
 }
 
 // ToECDSA creates a private key with the given D value. The strict parameter
@@ -22,7 +22,7 @@ func GenerateKeySecp256k1() (*ecdsa.PrivateKey, error) {
 // it can also accept legacy encodings (0 prefixes).
 func ToECDSA(d []byte, strict bool) (*ecdsa.PrivateKey, error) {
 	priv := new(ecdsa.PrivateKey)
-	priv.PublicKey.Curve = secp256k1.S256()
+	priv.PublicKey.Curve = secp256k1.NoxS256()
 	if strict && 8*len(d) != priv.Params().BitSize {
 		return nil, fmt.Errorf("invalid length, need %d bits", priv.Params().BitSize)
 	}
