@@ -11,5 +11,5 @@ elif [ "$1" == "receipt" ]; then
 elif [ "$1" == "storage" ]; then
   $cli getstorage $2
 else
-  $cli $@
+  $cli "$@"
 fi
