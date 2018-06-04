@@ -25,7 +25,7 @@ function get_result(){
   local method=$1
   local params=$2
   local data='{"jsonrpc": "2.0", "id": 0, "method": "'$method'", "params": {'$params'}}'
-  local curl_result=$(curl -s -X POST -H 'Content-Type: text/plain;' --data-binary "$data" "http://$host:$port/v2")
+  local curl_result=$(curl -s -X POST -H 'Content-Type: application/json' --data "$data" "http://$host:$port/v2")
 
   local result=$(echo $curl_result|jq -r -c -M '.')
   if [ $DEBUG -gt 0 ]; then
@@ -89,12 +89,18 @@ done
 
 if [ "$1" == "tx" ]; then
   get_result tx
-elif [ "$1" == "ablock" ]; then
+elif [ "$1" == "ablock" ]; then #amdin block
   shift
   get_result ablock-by-height '"height":'$1''|jq .
-elif [ "$1" == "ecblock" ]; then
+elif [ "$1" == "ecblock" ]; then #entry credit block
   shift
   get_result ecblock-by-height '"height":'$1''|jq .
+elif [ "$1" == "dblock" ]; then #directory block
+  shift
+  get_result dblock-by-height '"height":'$1''|jq .
+elif [ "$1" == "fblock" ]; then #factoid block
+  shift
+  get_result fblock-by-height '"height":'$1''|jq .
 elif [ "$1" == "api" ]; then
   shift
   get_result "$@" |jq .
