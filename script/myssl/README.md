@@ -17,3 +17,20 @@ exec_command : printf %s test|openssl dgst -ripemd160
   hash argo  : ripemd160
 exec_result  : 5e52fee47e6b070565f74372468cdc699de89107
 ```
+
+
+
+Ed25519 (tested under 1.1.1-pre7)
+
+```
+./bin/openssl genpkey -algorithm ed25519 -out ed25519-priv-key.pem
+
+$ ./bin/openssl pkey -in ed25519-priv-key.pem -pubout
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEASEX7IJiU6cS01vz33WhpcjwSi81SjgBzLG/3y5JOsqw=
+-----END PUBLIC KEY-----
+ 
+$ ./bin/openssl pkey -in ed25519-priv-key.pem -pubout|./bin/openssl pkey -pubin -outform DER|./bin/openssl base64
+MCowBQYDK2VwAyEASEX7IJiU6cS01vz33WhpcjwSi81SjgBzLG/3y5JOsqw=
+
+```
