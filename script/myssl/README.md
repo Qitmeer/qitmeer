@@ -46,3 +46,9 @@ Visit a web site that offers truly random data, such as http://www.random.org, a
 ```
 ./bin/openssl rand  -rand ~/Downloads/RandomNumbers -hex 64
 ```
+
+create EdDSA certs 
+
+```
+OPENSSL_CONF=/work/openssl/1_1_1-pre7/ssl/openssl.cnf ./bin/openssl req -x509 -key ed25519-priv-key.pem -subj "/CN=AU" -days 365 -out cert.pem
+```
