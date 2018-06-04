@@ -33,4 +33,16 @@ MCowBQYDK2VwAyEASEX7IJiU6cS01vz33WhpcjwSi81SjgBzLG/3y5JOsqw=
 $ ./bin/openssl pkey -in ed25519-priv-key.pem -pubout|./bin/openssl pkey -pubin -outform DER|./bin/openssl base64
 MCowBQYDK2VwAyEASEX7IJiU6cS01vz33WhpcjwSi81SjgBzLG/3y5JOsqw=
 
+
+$ ./bin/openssl pkey -in ed25519-priv-key.pem -pubout -outform DER|./bin/openssl base64
+MCowBQYDK2VwAyEASEX7IJiU6cS01vz33WhpcjwSi81SjgBzLG/3y5JOsqw=
+
+```
+
+openssl rand & HOME/.rnd
+
+Visit a web site that offers truly random data, such as http://www.random.org, and copy the data into the new seed file. The seed file must contain at least 1024 bytes.
+
+```
+./bin/openssl rand  -rand ~/Downloads/RandomNumbers -hex 64
 ```
