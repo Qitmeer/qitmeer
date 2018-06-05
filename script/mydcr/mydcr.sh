@@ -22,14 +22,25 @@ function get_result(){
   fi
   local method=$1
   local params=$2
-  local verbose=$3
+  if [ ! -z "$3" ]; then
+    local verbose="/$3"
+  fi
+  
+  if [ "$method" == "tx" ]; then
+    if [ -z "$decode" ] || [ "$decode" == "json" ]; then
+      local method="tx/decoded"
+    else
+      local method="tx/$decode"
+    fi
+  fi
+
   # curl -s https://explorer.dcrdata.org/api/tx/decoded/5442e9dd4961ffefad37cb64b8c906574937b1c74850167c1af9d8587ed504ce|jq .
 
-  local curl_result=$(curl -s "https://$host$port/api/$method/$params/$verbose")
+  local curl_result=$(curl -s "https://$host$port/api/$method/$params$verbose")
 
-  local result=$(echo $curl_result|jq -r -c -M '.')
+  local result=$(echo $curl_result)
   if [ $DEBUG -gt 0 ]; then
-    local curl_cmd="curl -s https://$host:$port/api/$method/$params/$verbose"
+    local curl_cmd="curl -s https://$host$port/api/$method/$params$verbose"
     echo "$curl_cmd" > $DEBUG_FILE                                                                                        
     echo "$curl_result" >> $DEBUG_FILE
   fi
@@ -37,7 +48,11 @@ function get_result(){
     echo "$curl_result" > $ERR_FILE
     result=""
   fi
-  echo $result
+  if [ "$decode" == "hex" ]; then
+    echo $result
+  else
+    echo $result |jq .
+  fi
 }
 
 function check_error() {
@@ -79,6 +94,9 @@ while [ $# -gt 0 ] ;do
     -D)
       DEBUG=1
       ;;
+    -decode)
+      decode=$2
+      shift;;
     *)
       cmd="$@"
       #echo "cmd is $cmd"
@@ -89,13 +107,13 @@ done
 
 if [ "$1" == "tx" ]; then
   shift
-  get_result tx $@ |jq .
+  get_result tx $@ 
 elif [ "$1" == "block" ]; then #amdin block
   shift
-  get_result block $@|jq .
+  get_result block $@
 elif [ "$1" == "api" ]; then
   shift
-  get_result "$@" |jq .
+  get_result "$@" 
 else
   $cli "$@"
 fi
