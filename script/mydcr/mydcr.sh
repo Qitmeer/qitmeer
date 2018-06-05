@@ -12,7 +12,7 @@ ERR_FILE=/tmp/mydcr_curl_error
 
 data_dir="/data/dcr/private/" 
 
-cli="./dcrctl -C ./dcrd.conf -c rpc.cert"
+cli="./dcrctl -C ./dcrd.conf -c ./rpc.cert --simnet"
 
 
 function get_result(){
@@ -110,7 +110,7 @@ done
 
 if [ "$1" == "tx" ]; then
   shift
-  $cli getrawtransaction $1 
+  $cli getrawtransaction $@
 elif [ "$1" == "block" ]; then
   shift
   $cli getblock $($cli getblockhash $1)
