@@ -2,7 +2,6 @@
 
 package types
 
-
 type TxType byte
 
 const (
@@ -13,26 +12,43 @@ const (
 )
 
 type Transaction struct {
-	Id  Hash
-	Version byte
-	Type TxType
-	Nonce uint64
-	Message []byte
-	Payload []byte
+	Id        Hash
+	Version   uint32
+	LockTime  uint32
+	Expire    uint32
+	Type      TxType
+	Nonce     uint64
+	Message   []byte
+	Payload   []byte
 	Signature []byte
+}
+
+type TxOutRef struct {
+	Hash       Hash       //txid
+	OutIndex   uint32     //vout
+}
+type TxInput struct {
+
+
+	// This number has more historical significance than relevant usage;
+	// however, its most relevant purpose is to enable “locking” of payments
+	// so that they cannot be redeemed until a certain time.
+	/*
+	Sequence         uint32     //work with LockTime (disable use 0xffffffff, bitcoin historical)
+	*/
+
+	//ref to the block/tx,
+	AmountIn         uint64
+	BlockHeight      uint32
+	TxIndex          uint32
+	TxOutRef
+
+	SignScript       []byte
 }
 
 type TxOutput struct {
 	Amount     uint64
-	PkScript   []byte
-}
-
-type TxInput struct {
-	PreviousOutHash  Hash
-	Index            uint32
-	SignScript       []byte
-	Witness          [][]byte
-	Sequence         uint32
+	PkScript   []byte    //Here, asm/type -> OP_XXX OP_RETURN
 }
 
 type LegerTxPayload struct{
@@ -40,19 +56,20 @@ type LegerTxPayload struct{
 	Outputs []TxOutput
 }
 
-type ContractTxPayLoad struct {
-	ContractAddr Account
+type ContractTxPayload struct {
+	LegerTxPayload
 	GasPrice     uint64
 	GasLimit     uint64
-	Payload      []byte
 }
 
-type ContractCreatePayload struct {
+type ContractCreateTxPayload struct {
+	ContractTxPayload
 	Code []byte
 }
 
-type ContractExecutePayload struct {
-	Code   []byte
+type ContractExecuteTxPayload struct {
+	ContractTxPayload
+	ContractAddr Account
 	Method []byte
 	Params []byte
 }

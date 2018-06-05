@@ -14,6 +14,8 @@ type BlockHeader struct {
 	// state
 	// The merkle root of the tx tree    (tx of the block)
 	TxRoot      Hash
+	// The merkle root of the stake tx tree
+	StakeRoot   Hash
 	// The merkle root of UTXO set
 	UtxoRoot    Hash
 	// The merkle root of state tire
@@ -30,5 +32,7 @@ type BlockHeader struct {
 
 type Block struct {
 	Header       BlockHeader
-	Transactions []Transaction
+	Transactions []Transaction    //tx
+	STransctions []Transaction    //stx
+	CTransctions []Transaction    //ctx
 }
