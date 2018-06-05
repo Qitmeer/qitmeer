@@ -22,9 +22,7 @@ function get_result(){
   fi
   local method=$1
   local params=$2
-  if [ "is$3" == "istrue" ]; then
-    local verbose="verbose"
-  fi
+  local verbose=$3
   # curl -s https://explorer.dcrdata.org/api/tx/decoded/5442e9dd4961ffefad37cb64b8c906574937b1c74850167c1af9d8587ed504ce|jq .
 
   local curl_result=$(curl -s "https://$host$port/api/$method/$params/$verbose")
