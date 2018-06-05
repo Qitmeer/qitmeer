@@ -3,4 +3,4 @@
 package types
 
 // An identifier for an account of the system, which stand for a address
-type AccountId Address
+type Account Address

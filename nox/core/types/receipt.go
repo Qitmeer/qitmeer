@@ -5,9 +5,7 @@ package types
 // block execution event, ex. validator change event
 type Event []byte
 
-const ChangeRanges = 32
-
-type receipt struct{
+type BlockReceipt struct{
 
 	BlockNumber uint64
 
@@ -29,27 +27,6 @@ type receipt struct{
 	Events      []Event
 }
 
-type lightBlockHeader struct {
-
-	BlockNumber uint64
-
-    // link to previous block
-	ParentHash 	Hash256
-
-	// The merkle root of the tx tree    (tx of the block)
-	TxRoot  	Hash256
-
-	// The merkle root the receipt trie  (proof of changes)
-	ReceiptRoot Hash256
-}
-
-type runtimeBlockHeader struct {
-
-	lightBlockHeader
-
-	// The  merkle root of state tire
-	StateRoot Hash256
-}
 
 
 

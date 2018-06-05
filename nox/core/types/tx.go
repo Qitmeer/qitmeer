@@ -2,23 +2,50 @@
 
 package types
 
-// The abstract of Tx, serializable
-type Tx []byte
 
-// It's generally a payment transaction, but also can be abstract as
-// the instructions for state-transit
+type TxType byte
+
+const (
+	CoinBase         TxType = 0x01
+	Leger            TxType = 0x02
+	ContractCreate   TxType = 0x03
+	ContractExecute  TxType = 0x04
+)
+
 type Transaction struct {
-	// sender
-	from AccountId
-
-	// receiver
-	to AccountId
-
-	// how much to send
-	Amount uint64
-
-	// How many transactions sender already sent.
+	Id  Hash
+	Version byte
+	Type TxType
 	Nonce uint64
+	Message []byte
+	Payload []byte
+	Signature []byte
 }
+
+type TxInput []byte
+type TxOutput []byte
+
+type LegerTxPayload struct{
+	Inputs []TxInput
+	Outputs []TxOutput
+}
+
+type ContractTxPayLoad struct {
+	ContractAddr Account
+	GasPrice     uint64
+	GasLimit     uint64
+	Payload      []byte
+}
+
+type ContractCreatePayload struct {
+	Code []byte
+}
+
+type ContractExecutePayload struct {
+	Code   []byte
+	Method []byte
+	Params []byte
+}
+
 
 

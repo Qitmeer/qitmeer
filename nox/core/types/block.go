@@ -3,17 +3,32 @@
 package types
 
 type BlockHeader struct {
-	parents []Hash256
+	Hash   Hash
+
+	// block number
+	Height uint64
+
+	// DAG references to previous blocks
+	ParentHashes     []Hash
+
+	// state
+	// The merkle root of the tx tree    (tx of the block)
+	TxRoot      Hash
+	// The merkle root of UTXO set
+	UtxoRoot    Hash
+	// The merkle root of state tire
+	StorageRoot	Hash
+	// The merkle root the receipt trie  (proof of changes)
+	ReceiptRoot Hash
+
+	// coinbase
+	Coinbase    Address
+
+	// sign
+	Signature   []byte
 }
 
 type Block struct {
-	header  BlockHeader
-	payload []byte
+	Header       BlockHeader
+	Transactions []Transaction
 }
-
-type BlockLink struct{
-	from Block
-	to   Block
-}
-
-type BlockSet map[Hash256]bool
