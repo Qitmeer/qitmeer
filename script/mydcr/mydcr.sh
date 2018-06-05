@@ -12,6 +12,9 @@ ERR_FILE=/tmp/mydcr_curl_error
 
 data_dir="/data/dcr/private/" 
 
+cli="./dcrctl -C ./dcrd.conf -c rpc.cert"
+
+
 function get_result(){
   set +x
   if [ -z "$host" ]; then
@@ -107,14 +110,16 @@ done
 
 if [ "$1" == "tx" ]; then
   shift
-  get_result tx $@ 
-elif [ "$1" == "block" ]; then #amdin block
+  $cli getrawtransaction $1 
+elif [ "$1" == "block" ]; then
   shift
-  get_result block $@
+  $cli getblock $($cli getblockhash $1)
 elif [ "$1" == "api" ]; then
   shift
   get_result "$@" 
 else
   $cli "$@"
 fi
+      
+
 check_debug
