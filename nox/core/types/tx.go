@@ -22,8 +22,18 @@ type Transaction struct {
 	Signature []byte
 }
 
-type TxInput []byte
-type TxOutput []byte
+type TxOutput struct {
+	Amount     uint64
+	PkScript   []byte
+}
+
+type TxInput struct {
+	PreviousOutHash  Hash
+	Index            uint32
+	SignScript       []byte
+	Witness          [][]byte
+	Sequence         uint32
+}
 
 type LegerTxPayload struct{
 	Inputs []TxInput
