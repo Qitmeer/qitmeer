@@ -12,10 +12,12 @@ type BlockHeader struct {
 	ParentHashes     []Hash
 
 	// state
-	// The merkle root of the tx tree    (tx of the block)
+	// The merkle root of the leger tx tree    (tx of the block)
 	TxRoot      Hash
 	// The merkle root of the stake tx tree
-	StakeRoot   Hash
+	STxRoot     Hash
+	// The merkle root of the contact tx tree
+	CTxRoot     Hash
 	// The merkle root of UTXO set
 	UtxoRoot    Hash
 	// The merkle root of state tire
