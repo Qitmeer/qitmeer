@@ -5,10 +5,11 @@ package types
 type TxType byte
 
 const (
-	CoinBase         TxType = 0x01
-	Leger            TxType = 0x02
-	ContractCreate   TxType = 0x03
-	ContractExecute  TxType = 0x04
+	Leger             TxType = 0x01
+	CoinBase          TxType = 0xa0
+	ContractTransfer  TxType = 0xc0
+	ContractCreate    TxType = 0xc1
+	ContractExecute   TxType = 0xc2
 )
 
 type Transaction struct {
@@ -17,8 +18,6 @@ type Transaction struct {
 	LockTime  uint32
 	Expire    uint32
 	Type      TxType
-	Nonce     uint64
-	Message   []byte
 	Payload   []byte
 	Signature []byte
 }
@@ -52,27 +51,31 @@ type TxOutput struct {
 }
 
 type LegerTxPayload struct{
-	Inputs []TxInput
-	Outputs []TxOutput
+	TxIn 	  []TxInput
+	TxOut 	  []TxOutput
+	Message   []byte     //a unencrypted/encrypted message if user pay additional fee & limit the max length
+	                     //might op_return redundancy
 }
 
-type ContractTxPayload struct {
-	LegerTxPayload
+type ContractTxHeader struct {
+	From Account
+	To Account
 	GasPrice     uint64
 	GasLimit     uint64
+	Nonce        uint64
+}
+
+type ContractTransferTxPayload struct {
+	ContractTxHeader
+	Value uint64
 }
 
 type ContractCreateTxPayload struct {
-	ContractTxPayload
+	ContractTxHeader
 	Code []byte
 }
 
 type ContractExecuteTxPayload struct {
-	ContractTxPayload
-	ContractAddr Account
-	Method []byte
-	Params []byte
+	ContractTxHeader
+	Input []byte
 }
-
-
-
