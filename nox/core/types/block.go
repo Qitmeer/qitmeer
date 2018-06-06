@@ -19,7 +19,7 @@ type BlockHeader struct {
 	// The merkle root of UTXO set
 	UtxoRoot    Hash
 	// The merkle root of state tire
-	StorageRoot	Hash
+	StateRoot	Hash
 	// The merkle root the receipt trie  (proof of changes)
 	ReceiptRoot Hash
 
