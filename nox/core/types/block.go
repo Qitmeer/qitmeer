@@ -9,7 +9,7 @@ type BlockHeader struct {
 	Height uint64
 
 	// DAG references to previous blocks
-	ParentHashes     []Hash
+	Parents     []Hash
 
 	// state
 	// The merkle root of the leger tx tree    (tx of the block)
@@ -18,8 +18,8 @@ type BlockHeader struct {
 	STxRoot     Hash
 	// The merkle root of the contact tx tree
 	CTxRoot     Hash
-	// The merkle root of UTXO set
-	UtxoRoot    Hash
+	// The Multiset hash of UTXO set or(?) merkle range/path or(?) tire tree root
+	Utxo        Hash
 	// The merkle root of state tire
 	StateRoot	Hash
 	// The merkle root the receipt trie  (proof of changes)
