@@ -6,31 +6,36 @@
 # settings
 # ---------------------------
 DEBUG=0
-DEBUG_FILE=/tmp/mybtc_curl_debug
-ERR_FILE=/tmp/mybtc_curl_error
+DEBUG_FILE=/tmp/myneo_curl_debug
+ERR_FILE=/tmp/myneo_curl_error
 
-data_dir="/data/bitcoin/private/" 
 
-cli="./bitcoin-cli -regtest --datadir=$data_dir" 
+data_dir="/data/neo/private/" 
+
+cli=""
+
 
 function get_result(){
   set +x
   if [ -z "$host" ]; then
-     host="blockexplorer.com"
+     host="neoscan.io"
   fi
   if [ -z "$port" ]; then
      port=""
   fi
+  if [ -z "$network" ]; then
+     network="main_net"
+  fi
   local method=$1
   local params=$2
 
-  # curl -s https://blockexplorer.com/api/rawtx/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6210d0f8e5bf5be7df1d|jq -r .rawtx
+  # curl -s https://neoscan.io/api/main_net/v1/get_highest_block|jq .
 
-  local curl_result=$(curl -s "https://$host$port/api/$method/$params$verbose")
+  local curl_result=$(curl -s "https://$host$port/api/$network/v1/$method/$params$verbose")
 
   local result=$(echo $curl_result)
   if [ $DEBUG -gt 0 ]; then
-    local curl_cmd="curl -s https://$host$port/api/$method/$params$verbose"
+    local curl_cmd="curl -s https://$host$port/api/$network/v1/$method/$params$verbose"
     echo "$curl_cmd" > $DEBUG_FILE                                                                                        
     echo "$curl_result" >> $DEBUG_FILE
   fi
@@ -97,19 +102,16 @@ done
 
 if [ "$1" == "tx" ]; then
   shift
-  $cli getrawtransaction $1 1
+  echo $cli $@
 elif [ "$1" == "block" ]; then
   shift
-  $cli getblock $($cli getblockhash $1)
+  echo $cli $@
 elif [ "$1" == "api" ]; then
   shift
-  if [ $1 == "block" ]; then
-    shift
-    get_result block $(get_result block-index $1|jq -r .blockHash)
-  else
-    get_result "$@" 
-  fi
+  get_result "$@" 
 else
   echo $cli "$@"
 fi
+      
+
 check_debug
