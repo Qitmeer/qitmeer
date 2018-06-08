@@ -9,10 +9,6 @@ DEBUG=0
 DEBUG_FILE=/tmp/mybtc_curl_debug
 ERR_FILE=/tmp/mybtc_curl_error
 
-data_dir="/data/bitcoin/private/" 
-
-cli="./bitcoin-cli -regtest --datadir=$data_dir" 
-
 function get_result(){
   set +x
   if [ -z "$host" ]; then
@@ -84,8 +80,11 @@ while [ $# -gt 0 ] ;do
     -D)
       DEBUG=1
       ;;
-    -n|--network)
+    -n|-network|--network)
       network=$2
+      shift;;
+    -datadir|--datadir)
+      datadir=$2
       shift;;
     *)
       cmd="$@"
@@ -95,21 +94,47 @@ while [ $# -gt 0 ] ;do
   shift
 done
 
+if [ -z "$datadir" ]; then
+  datadir="/data/bitcoin/private/" 
+fi
+
+case "$network" in
+  mainnet)
+    net="";;
+  testnet)
+    net="-testnet";;
+  regtest)
+    net="-regtest";;
+  *)
+    net="-regtest";;
+esac
+
+cli="./bitcoin-cli $net --datadir=$datadir" 
+
 if [ "$1" == "tx" ]; then
   shift
   $cli getrawtransaction $1 1
+elif [ "$1" == "rawtx" ]; then
+  shift
+  $cli getrawtransaction $1 0
 elif [ "$1" == "block" ]; then
   shift
   $cli getblock $($cli getblockhash $1)
+elif [ "$1" == "decode" ]; then
+  shift
+  $cli decoderawtransaction $1
 elif [ "$1" == "api" ]; then
   shift
   if [ $1 == "block" ]; then
     shift
     get_result block $(get_result block-index $1|jq -r .blockHash)
+  elif [ "$1" == "tx" ]; then
+    shift
+    get_result tx "$@"
   else
     get_result "$@" 
   fi
 else
-  echo $cli "$@"
+  $cli "$@"
 fi
 check_debug
