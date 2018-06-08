@@ -73,7 +73,7 @@ while [ $# -gt 0 ] ;do
       host=$2
       #echo "host is $host"
       shift;;
-    -p)
+    -p|-port|--port)
       port=$2
       #echo "port is $port"
       shift;;
@@ -109,7 +109,11 @@ case "$network" in
     net="-regtest";;
 esac
 
-cli="./bitcoin-cli $net --datadir=$datadir" 
+if [ ! -z "$port" ]; then
+  rpcport="--rpcport=$port"
+fi
+
+cli="./bitcoin-cli $net --datadir=$datadir $rpcport" 
 
 if [ "$1" == "tx" ]; then
   shift
