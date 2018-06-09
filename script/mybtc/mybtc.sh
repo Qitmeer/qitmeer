@@ -9,7 +9,40 @@ DEBUG=0
 DEBUG_FILE=/tmp/mybtc_curl_debug
 ERR_FILE=/tmp/mybtc_curl_error
 
-function get_result(){
+function get_api_1(){
+  set +x
+  if [ -z "$host" ]; then
+     host="chain.api.btc.com"
+  fi
+  if [ -z "$port" ]; then
+     port=""
+  fi
+  local method=$1
+  local params=$2
+
+  # curl -s https://chain.api.btc.com/v3/tx/da917699942e4a96272401b534381a75512eeebe8403084500bd637bd47168b3?verbose=3|jq .
+
+
+  local curl_result=$(curl -s "https://$host$port/v3/$method/$params?verbose=3")
+
+  local result=$(echo $curl_result)
+  if [ $DEBUG -gt 0 ]; then
+    local curl_cmd="curl -s https://$host$port/v3/$method/$params?verbose=3"
+    echo "$curl_cmd" > $DEBUG_FILE                                                                                        
+    echo "$curl_result" >> $DEBUG_FILE
+  fi
+  if [ "$result" == "null" ];then
+    echo "$curl_result" > $ERR_FILE
+    result=""
+  fi
+  if [ "$decode" == "hex" ]; then
+    echo $result
+  else
+    echo $result |jq .
+  fi
+}
+
+function get_api_2(){
   set +x
   if [ -z "$host" ]; then
      host="blockexplorer.com"
@@ -21,6 +54,7 @@ function get_result(){
   local params=$2
 
   # curl -s https://blockexplorer.com/api/rawtx/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6210d0f8e5bf5be7df1d|jq -r .rawtx
+
 
   local curl_result=$(curl -s "https://$host$port/api/$method/$params$verbose")
 
@@ -123,20 +157,38 @@ elif [ "$1" == "rawtx" ]; then
   $cli getrawtransaction $1 0
 elif [ "$1" == "block" ]; then
   shift
-  $cli getblock $($cli getblockhash $1)
+  if [ "$1" == "latest" ]; then
+    shift
+    $cli getblock $($cli getblockhash $($cli getblockcount))
+  elif [ "$2" == "txcount" ]; then
+    $cli getblock $($cli getblockhash $1) |jq -r '[.tx[]]|length'
+  else
+    $cli getblock $($cli getblockhash $1)
+  fi
 elif [ "$1" == "decode" ]; then
   shift
   $cli decoderawtransaction $1
-elif [ "$1" == "api" ]; then
+elif [ "$1" == "api1" ]; then
   shift
   if [ $1 == "block" ]; then
     shift
-    get_result block $(get_result block-index $1|jq -r .blockHash)
+    get_api_1 block "$@" 
   elif [ "$1" == "tx" ]; then
     shift
-    get_result tx "$@"
+    get_api_1 tx "$@"
   else
-    get_result "$@" 
+    get_api_1 "$@" 
+  fi
+elif [ "$1" == "api2" ]; then
+  shift
+  if [ $1 == "block" ]; then
+    shift
+    get_api_2 block $(get_api_2 block-index $1|jq -r .blockHash)
+  elif [ "$1" == "tx" ]; then
+    shift
+    get_api_2 tx "$@"
+  else
+    get_api_2 "$@" 
   fi
 else
   $cli "$@"
