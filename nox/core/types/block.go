@@ -18,8 +18,14 @@ type BlockHeader struct {
 	STxRoot     Hash
 	// The merkle root of the contact tx tree
 	CTxRoot     Hash
+
 	// The Multiset hash of UTXO set or(?) merkle range/path or(?) tire tree root
 	Utxo        Hash
+
+	// The merkle root of the witness commitment
+	// Do we really need the commitment?
+	// WitnessRoot Hash
+
 	// The merkle root of state tire
 	StateRoot	Hash
 	// The merkle root the receipt trie  (proof of changes)

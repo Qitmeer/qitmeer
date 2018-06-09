@@ -28,20 +28,20 @@ type TxOutRef struct {
 }
 type TxInput struct {
 
-
+	// no-witness part
+	PreviousOut TxOutRef
 	// This number has more historical significance than relevant usage;
 	// however, its most relevant purpose is to enable “locking” of payments
 	// so that they cannot be redeemed until a certain time.
-	/*
 	Sequence         uint32     //work with LockTime (disable use 0xffffffff, bitcoin historical)
-	*/
 
-	//ref to the block/tx,
+	// the witness part
+
+	//ref to block/tx
 	AmountIn         uint64
 	BlockHeight      uint32
 	TxIndex          uint32
-	TxOutRef
-
+	//the signature script (or witness script?)
 	SignScript       []byte
 }
 
