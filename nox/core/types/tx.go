@@ -22,26 +22,28 @@ type Transaction struct {
 	Signature []byte
 }
 
-type TxOutRef struct {
+type TxOutPoint struct {
 	Hash       Hash       //txid
 	OutIndex   uint32     //vout
 }
 type TxInput struct {
-
-	// no-witness part
-	PreviousOut TxOutRef
+	PreviousOut TxOutPoint
 	// This number has more historical significance than relevant usage;
 	// however, its most relevant purpose is to enable “locking” of payments
 	// so that they cannot be redeemed until a certain time.
 	Sequence         uint32     //work with LockTime (disable use 0xffffffff, bitcoin historical)
+}
 
-	// the witness part
+// a witness of a txInput
+type TxInWitness struct {
 
-	//ref to block/tx
+	//Fraud proof, input exist to block/tx, useful for SPV
+	//see also https://gist.github.com/justusranvier/451616fa4697b5f25f60#invalid-transaction-input-already-spent
 	AmountIn         uint64
-	BlockHeight      uint32
-	TxIndex          uint32
-	//the signature script (or witness script?)
+	BlockHeight      uint32   //might a block hash (?)
+	BlockTxIndex     uint32
+
+	//the signature script (or witness script? or redeem script?)
 	SignScript       []byte
 }
 
@@ -54,7 +56,11 @@ type LegerTxPayload struct{
 	TxIn 	  []TxInput
 	TxOut 	  []TxOutput
 	Message   []byte     //a unencrypted/encrypted message if user pay additional fee & limit the max length
-	                     //might op_return redundancy
+}
+
+type LegerTxWitnessPayload struct {
+	LegerTxPayload
+	Witness []TxInWitness
 }
 
 type ContractTxHeader struct {
