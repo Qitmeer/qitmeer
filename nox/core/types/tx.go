@@ -5,8 +5,8 @@ package types
 type TxType byte
 
 const (
-	Leger             TxType = 0x01
-	CoinBase          TxType = 0xa0
+	CoinBase          TxType = 0x01
+	Leger             TxType = 0x02
 	ContractTransfer  TxType = 0xc0
 	ContractCreate    TxType = 0xc1
 	ContractExecute   TxType = 0xc2
