@@ -21,7 +21,7 @@ type BlockHeader struct {
 	CTxRoot     Hash
 
 	// The Multiset hash of UTXO set or(?) merkle range/path or(?) tire tree root
-	Utxo        Hash
+	UtxoEcmh    Hash
 
 	// The merkle root of state tire
 	StateRoot	Hash
@@ -30,16 +30,34 @@ type BlockHeader struct {
 
 	// Nonce
 	Nonce       uint64
+	// Difficulty target for tx
+	Difficulty  uint32
+
+	// Double difficulty might not work
+	// Difficulty target for ctx
+	// CDifficulty  uint32
+	// Nonce for ctx
+	// CNonce       uint64
 
 	// TimeStamp (might big.Int, if we don't want limitation in the future)
 	Timestamp   uint64
 
 	//might extra data here
+
+	//Do we need to add Coinbase address here?
 }
 
 type Block struct {
 	Header       BlockHeader
 	Transactions []Transaction    //tx
-	STransctions []Transaction    //stx
-	CTransctions []Transaction    //ctx
+}
+
+type SBlock struct {
+	Header       BlockHeader
+	STransactions []Transaction    //stx
+}
+
+type CBlock struct {
+	Header       BlockHeader
+	CTransactions []Transaction    //ctx
 }

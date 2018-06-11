@@ -19,7 +19,6 @@ type Transaction struct {
 	Expire    uint32
 	Type      TxType
 	Payload   []byte
-	Signature []byte
 }
 
 type TxOutPoint struct {
@@ -69,6 +68,7 @@ type ContractTxHeader struct {
 	GasPrice     uint64
 	GasLimit     uint64
 	Nonce        uint64
+	Signature    []byte
 }
 
 type ContractTransferTxPayload struct {
