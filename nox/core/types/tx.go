@@ -5,11 +5,13 @@ package types
 type TxType byte
 
 const (
-	CoinBase          TxType = 0x01
-	Leger             TxType = 0x02
-	ContractTransfer  TxType = 0xc0
-	ContractCreate    TxType = 0xc1
-	ContractExecute   TxType = 0xc2
+	CoinBase         TxType = 0x01
+	Leger            TxType = 0x02
+	AssetIssue       TxType = 0xa0
+	AssetRevoke      TxType = 0xa1
+	ContractCreate   TxType = 0xc0
+	ContractDestroy  TxType = 0xc1
+	ContractUpdate   TxType = 0xc2
 )
 
 type Transaction struct {
@@ -18,7 +20,10 @@ type Transaction struct {
 	LockTime  uint32
 	Expire    uint32
 	Type      TxType
-	Payload   []byte
+	TxIn 	  []TxInput
+	TxOut 	  []TxOutput
+	Witness   []TxInWitness
+	Message   []byte     //a unencrypted/encrypted message if user pay additional fee & limit the max length
 }
 
 type TxOutPoint struct {
@@ -51,37 +56,13 @@ type TxOutput struct {
 	PkScript   []byte    //Here, asm/type -> OP_XXX OP_RETURN
 }
 
-type LegerTxPayload struct{
-	TxIn 	  []TxInput
-	TxOut 	  []TxOutput
-	Message   []byte     //a unencrypted/encrypted message if user pay additional fee & limit the max length
-}
-
-type LegerTxWitnessPayload struct {
-	LegerTxPayload
-	Witness []TxInWitness
-}
-
-type ContractTxHeader struct {
+type ContractTransaction struct {
 	From Account
 	To Account
+	Value        uint64
 	GasPrice     uint64
 	GasLimit     uint64
 	Nonce        uint64
+	Input        []byte
 	Signature    []byte
-}
-
-type ContractTransferTxPayload struct {
-	ContractTxHeader
-	Value uint64
-}
-
-type ContractCreateTxPayload struct {
-	ContractTxHeader
-	Code []byte
-}
-
-type ContractExecuteTxPayload struct {
-	ContractTxHeader
-	Input []byte
 }

@@ -2,6 +2,8 @@
 
 package types
 
+import "math/big"
+
 type BlockHeader struct {
 
 	// block id/hash
@@ -13,17 +15,12 @@ type BlockHeader struct {
 	// DAG references to previous blocks
 	Parents     []Hash
 
-	// The state headers
-
-	// The merkle root of the leger tx tree    (tx of the block)
+	// The merkle root of the tx tree  (tx of the block)
 	// included Witness here instead of the separated witness commitment
 	TxRoot      Hash
 
 	// The merkle root of the stake tx tree
-	STxRoot     Hash
-
-	// The merkle root of the contact tx tree
-	CTxRoot     Hash
+	// STxRoot     Hash
 
 	// The Multiset hash of UTXO set or(?) merkle range/path or(?) tire tree root
 	UtxoCommitment Hash
@@ -34,44 +31,53 @@ type BlockHeader struct {
 	// The merkle root of state tire
 	StateRoot	Hash
 
-	// The merkle root the ctx receipt trie  (proof of changes)
-	// receipt generated after ctx processed (aka. post-tx info)
-	ReceiptRoot Hash
-
-	// bloom filter for log entry of ctx receipt
-	// can we remove/combine with cbf ?
-	// LogBloom    Hash
-
 	// Nonce
 	Nonce       uint64
 	// Difficulty target for tx
 	Difficulty  uint32
-
-	// Double difficulty might not work
-	// Difficulty target for ctx
-	// CDifficulty  uint32
-	// Nonce for ctx
-	// CNonce       uint64
 
 	// TimeStamp (might big.Int, if we don't want limitation in the future)
 	Timestamp   uint64
 
 	//might extra data here
 
-	//Do we need to add Coinbase address here?
 }
 
 type Block struct {
-	Header       BlockHeader
-	Transactions []Transaction    //tx
+	Header        BlockHeader
+	Transactions  []Transaction    //tx
+	// STransactions []Transaction    //stx
 }
 
-type SBlock struct {
-	Header        BlockHeader
-	STransactions []Transaction    //stx
+// Contract block header
+type CBlockHeader struct {
+
+	//Contract block number
+	CBlockNum      *big.Int
+
+	//Parent block hash
+    CBlockParent   Hash
+
+	// The merkle root of contract storage
+	ContractRoot Hash
+
+	// The merkle root the ctx receipt trie  (proof of changes)
+	// receipt generated after ctx processed (aka. post-tx info)
+	ReceiptRoot Hash
+
+	// bloom filter for log entry of ctx receipt
+	// can we remove/combine with cbf ?
+	LogBloom    Hash
+
+	// Difficulty target for ctx
+	CDifficulty  uint32
+	// Nonce for ctx
+	CNonce       uint64
+
+	//Do we need to add Coinbase address here?
 }
 
 type CBlock struct {
-	Header        BlockHeader
-	CTransactions []Transaction    //ctx
+	Header        CBlockHeader
+	CTransactions []ContractTransaction    //ctx
 }

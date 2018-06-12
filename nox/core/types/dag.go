@@ -2,6 +2,10 @@
 
 package types
 
+type BlockSet struct {
+	m map[Hash]bool
+}
+
 type BlockDag struct {
 	genesis       Block
 	blocks        map[Hash]Block
