@@ -98,6 +98,9 @@ elif [ "$1" == "block" ]; then
 elif [ "$1" == "decode" ]; then
   shift
   $cli decoderawtransaction $1
+elif [ "$1" == "newaddr" ]; then
+  shift
+  $cli --wallet getnewaddress
 elif [ "$1" == "api" ]; then
   shift
   if [ $1 == "block" ]; then
