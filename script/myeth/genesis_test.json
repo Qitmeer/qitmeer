@@ -1,0 +1,26 @@
+{
+  "config": {
+    "chainId": 5,
+    "homesteadBlock": 0,
+    "daoForkSupport": true,
+    "eip150Block": 0,
+    "eip150Hash": "0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d",
+    "eip155Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 1700000,
+    "ethash": {}
+  },
+  "alloc": {
+	  "0x053f99a3382cee85de2ca6a28e7cfee5fac90502": {
+		  "balance": "0x56bc75e2d63100000",
+		  "code": "0x",
+		  "nonce": "0",
+		  "storage": {}
+	  }
+},
+  "difficulty": "0x100",
+  "extraData": "",
+  "gasLimit": "5000000",
+  "nonce": "0x0",
+  "timestamp": "0x0"
+}

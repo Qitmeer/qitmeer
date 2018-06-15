@@ -882,7 +882,7 @@ done
 
 
 ## Block
-if [ $1 == "get_block" ]; then
+if [ $1 == "block" ]; then
   shift
   call_get_block $@
 elif [ $1 == "get_block_number" ]; then
@@ -907,7 +907,7 @@ elif [ $1 == "get_highest_block" ]; then
   get_syncing $@|jq .highestBlock -r|xargs printf "%d\n"
 
 ## Tx
-elif [ $1 == "get_tx" ]; then
+elif [ $1 == "tx" ]; then
   shift
   get_tx_by_hash $@ |jq .
 elif [ $1 == "get_tx_by_block_and_index" ]; then
@@ -916,7 +916,7 @@ elif [ $1 == "get_tx_by_block_and_index" ]; then
   get_tx_by_blocknum_and_index_hex $@
 
 ## Accounts
-elif [ $1 == "get_accounts" ]; then
+elif [ $1 == "accounts" ]; then
   shift
   accounts=$(get_accounts)
   check_error
@@ -925,7 +925,7 @@ elif [ $1 == "get_accounts" ]; then
   else
     echo $accounts|jq '.['$1']' -r
   fi
-elif [ $1 == "get_balance" ]; then
+elif [ $1 == "balance" ]; then
   shift
   addr=$(pad_hex_prefix $1)
   shift
