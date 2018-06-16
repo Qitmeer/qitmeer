@@ -60,6 +60,30 @@ function eth_compile(){
 # https://wiki.parity.io/JSONRPC-Parity-Pub-Sub-module
 # ---------------------------
 
+
+# personal_newAccount
+# Generates a new private key and stores it in the key store directory. The key file is encrypted with the given passphrase. 
+# Returns the address of the new account.
+# geth : internal/ethapi/api.go
+#    func (s *PrivateAccountAPI) NewAccount(password string) (common.Address, error) 
+#
+function new_account(){
+  local passphrase=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -p|-pass)     shift; passphrase=$1; shift;;
+      *)            shift;;
+    esac
+  done
+  if [ "$passphrase" == "" ]; then
+    # passphrase="test"
+    passphrase=""
+  fi
+  local payload='{"jsonrpc":"2.0","method":"personal_newAccount","params":["'$passphrase'"],"id":1}'
+  get_result "$payload"
+}
+
+
 # eth_sendTransaction
 # Creates a transaction for the given argument, sign it and submit it to the transaction pool.
 #   - from should not omit, it will look up the wallet for the account as the signer
@@ -641,39 +665,45 @@ function usage(){
   echo "  get_current_block2 <num|hash> [-tx |-txcount|-blocktime|...]"
   echo "  get_highest_block"
   echo "block    :"
-  echo "  get_block <num|hash>"
-  echo "  get_block -n <numb> | -h <hash>"
-  echo "  get_block <num> -show rlp|<num> -show rlp=dump"
-  echo "  get_block <num|hash> -show tx=[num]"
-  echo "  get_block <num|hash> -show txcount"
-  echo "  get_block <num|hash> -show blocktime"
-  echo "  get_block <num|hash> -show stroot"
-  echo "  get_block <num|hash> -show txroot"
-  echo "  get_block <num|hash> -show rcroot"
-  echo "  get_block <num|hash> -show roots"
+  echo "  block <num|hash>"
+  echo "  block -n <numb> | -h <hash>"
+  echo "  block <num> -show rlp|<num> -show rlp=dump"
+  echo "  block <num|hash> -show tx=[num]"
+  echo "  block <num|hash> -show txcount"
+  echo "  block <num|hash> -show blocktime"
+  echo "  block <num|hash> -show stroot"
+  echo "  block <num|hash> -show txroot"
+  echo "  block <num|hash> -show rcroot"
+  echo "  block <num|hash> -show roots"
   echo "tx       :"
-  echo "  get_tx <hash>"
+  echo "  tx <hash>"
   echo "  get_tx_by_block_and_index <num_hex> <index_hex>"
   echo "account  :"
-  echo "  get_accounts"
-  echo "  get_balance <addr> [blocknum]"
-  echo "  get_tx_count <addr>"
-  echo "  get_code <addr> [blocknum]"
-  echo "  get_storage <addr> <at> [blocknum]"
-  echo "mining  :"
+  echo "  newaccount"
+  echo "  accounts"
+  echo "  balance      <account> [blknum]"
+  echo "  get_tx_count <account>"
+  echo "  get_code     <account> [blknum]"
+  echo "  get_storage  <account> <at> [blknum]"
+  echo "mining   :"
   echo "  get_coinbase"
   echo "  set_coinbase"
   echo "  start_mining"
   echo "  stop_mining"
-  echo "status  :"
+  echo "  mining <second>"
+  echo "status   :"
   echo "  status|get_status|info|get_info [-mining|-module|-hashrate|-work|-txpool|-all]"
-  echo "compile :"
-  echo "  eth_complie [-bin|-abi|-fun|-all] [-q]"
-  echo "excute  :"
-  echo "  dump_block <num>"
-  echo "  eth_call -from <addr> -to <addr> -v <value> -d <data>"
-  echo "  send_tx -from <addr> -to <addr> -v <value> -d <data>"
-  echo "  get_receipt <tx_hash>"
+  echo "contract :"
+  echo "  complie        [-bin|-abi|-fun|-all] [-q]"
+  echo "  send_tx        -from <addr> -to <addr> -v <value> -d <data>"
+  echo "  receipt        <tx_hash>"
+  echo "  contractaddr   <tx_hash>"
+  echo "  call           -from <addr> -to <addr> -v <value> -d <data>"
+  echo "debug   :"
+  echo "  dump_state    <blknum>"
+  echo "  rlp_block     <num>"
+  echo "  trace_block   [-n <num>|-h <hash>|-r <rlp>]"
+  echo "  trace_tx      <tx_hash>"
   echo "txpool  :"
   echo "  txpool -status|-inspect|-content"
   echo "util    :"
@@ -882,9 +912,14 @@ done
 
 
 ## Block
-if [ $1 == "block" ]; then
+if [ "$1" == "block" ]; then
   shift
-  call_get_block $@
+  if [ "$1" == "latest" ]; then
+    shift
+    call_get_block $(get_block_number)
+  else
+    call_get_block $@
+  fi
 elif [ $1 == "get_block_number" ]; then
   shift
   if [ "$1" == "-hex" ]; then # result ishex by default
@@ -916,6 +951,10 @@ elif [ $1 == "get_tx_by_block_and_index" ]; then
   get_tx_by_blocknum_and_index_hex $@
 
 ## Accounts
+elif [ $1 == "newaccount" ]; then
+  shift
+  new_account "$@"
+  check_error
 elif [ $1 == "accounts" ]; then
   shift
   accounts=$(get_accounts)
@@ -982,6 +1021,11 @@ elif [ $1 == "start_mining" ]; then
 elif [ $1 == "stop_mining" ]; then
   shift
   stop_mining
+elif [ $1 == "mining" ]; then
+  shift
+  start_mining
+  sleep $1
+  stop_mining
 
 ## INFO & STATUS
 elif [ $1 == "status" ] || [ $1 == "info" ] || [ $1 == "get_status" ] || [ $1 == "get_info" ]; then
@@ -989,10 +1033,10 @@ elif [ $1 == "status" ] || [ $1 == "info" ] || [ $1 == "get_status" ] || [ $1 ==
   get_status $@
 
 ## Execute
-elif [ $1 == "eth_compile" ]; then
+elif [ $1 == "compile" ]; then
   shift
   eth_compile "$@"
-elif [ $1 == "eth_call" ]; then
+elif [ $1 == "call" ]; then
   shift
   eth_call $@ |jq -R
   check_error
@@ -1000,9 +1044,13 @@ elif [ $1 == "send_tx" ]; then
   shift
   send_tx $@
   check_error
-elif [ $1 == "get_receipt" ]; then
+elif [ $1 == "receipt" ]; then
   shift
   get_receipt $@ |jq .
+  check_error
+elif [ $1 == "contractaddr" ]; then
+  shift
+  get_receipt $@ |jq -r .contractAddress
   check_error
 ## TXPOOL
 elif [ $1 == "txpool" ]; then
@@ -1011,7 +1059,7 @@ elif [ $1 == "txpool" ]; then
   check_error
 
 ## DEBUG Moduls
-elif [ $1 == "dump_block" ]; then
+elif [ $1 == "dump_state" ]; then
   shift
   dump_block $@|jq .
   check_error
