@@ -29,23 +29,23 @@ function eth_compile(){
     esac
   done
   if [ "$opts" == "" ]; then
-    echo "$code" | solc --bin 2>/dev/null | awk /^[0-9]/
+    solc --optimize --bin "$code" 2>/dev/null | awk /^[0-9]/
     return
   elif [ "$opts" == " -bin" ] ;then  # by-default, out cleanup binary
-    echo "$code" | solc --bin 2>/dev/null | awk /^[0-9]/ |jq -R {"binary":.}
+    solc --optimize --bin "$code" 2>/dev/null | awk /^[0-9]/ |jq -R {"binary":.}
     return
   elif [ "$opts" == " -abi" ];then
-    echo "$code" | solc --abi 2>/dev/null | tail -n 1 |jq .
+    solc --abi "$code" 2>/dev/null | tail -n 1 |jq .
     return
   elif [ "$opts" == " -func" ];then
-    echo "$code" | solc --hashes 2>/dev/null |awk /^[0-9a-f]/|jq -R '.|split(": ")|{name:.[1],sign: .[0]}'
+    solc --hashes "$code" 2>/dev/null |awk /^[0-9a-f]/|jq -R '.|split(": ")|{name:.[1],sign: .[0]}'
     return
   fi;
   #echo "debug opts=$opts s_err=$suppress_error"
   if [[ $suppress_error -eq 0 ]]; then
-    echo "$code" | solc $opts
+    solc $opts "$code"
   else
-    echo "$code" | solc $opts 2>/dev/null
+    solc $opts "$code" 2>/dev/null
   fi
 }
 
@@ -694,7 +694,7 @@ function usage(){
   echo "status   :"
   echo "  status|get_status|info|get_info [-mining|-module|-hashrate|-work|-txpool|-all]"
   echo "contract :"
-  echo "  complie        [-bin|-abi|-fun|-all] [-q]"
+  echo "  compile        <sol_file> [-bin|-abi|-fun|-all] [-q]"
   echo "  send_tx        -from <addr> -to <addr> -v <value> -d <data>"
   echo "  receipt        <tx_hash>"
   echo "  contractaddr   <tx_hash>"
@@ -1038,7 +1038,7 @@ elif [ $1 == "compile" ]; then
   eth_compile "$@"
 elif [ $1 == "call" ]; then
   shift
-  eth_call $@ |jq -R
+  eth_call $@ 
   check_error
 elif [ $1 == "send_tx" ]; then
   shift

@@ -20,7 +20,7 @@
 },
   "difficulty": "0x100",
   "extraData": "",
-  "gasLimit": "5000000",
+  "gasLimit": "50000000",
   "nonce": "0x0",
   "timestamp": "0x0"
 }
