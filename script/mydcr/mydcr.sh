@@ -78,6 +78,12 @@ function check_debug() {
   fi
 }
 
+function do_curl() {
+  local username=faMtZ/p6y/Ima/a9CssdLg4zXJg=
+  local password=eCzUMNhvyYTJYI8Pjv5a+VDAEUw=
+  /usr/local/opt/curl/bin/curl -s -X POST --http1.1 -H "Content-Type:application/json"  -u $username:$password --cacert ./rpc.cert --data '{"jsonrpc":"1.0","method":"getbalance","params":[],"id":1}' https://localhost:19557|jq .
+}
+
 # main logic
 if [ $? != 0 ]; then
   echo "Usage: -h [host] -p [port] "
@@ -117,6 +123,9 @@ elif [ "$1" == "block" ]; then
 elif [ "$1" == "api" ]; then
   shift
   get_result "$@" 
+elif [ "$1" == "curl" ]; then
+  shift
+  do_curl "$@"
 else
   $cli "$@"
 fi
