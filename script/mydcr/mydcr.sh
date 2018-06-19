@@ -78,10 +78,21 @@ function check_debug() {
   fi
 }
 
-function do_curl() {
+function do_jsonrpc() {
   local username=faMtZ/p6y/Ima/a9CssdLg4zXJg=
   local password=eCzUMNhvyYTJYI8Pjv5a+VDAEUw=
-  /usr/local/opt/curl/bin/curl -s -X POST --http1.1 -H "Content-Type:application/json"  -u $username:$password --cacert ./rpc.cert --data '{"jsonrpc":"1.0","method":"getbalance","params":[],"id":1}' https://localhost:19557|jq .
+  #/usr/local/opt/curl/bin/curl -s -X POST --http1.1 -H "Content-Type:application/json"  -u $username:$password --cacert ./rpc.cert --data '{"jsonrpc":"1.0","method":"getbalance","params":[],"id":1}' https://localhost:19557|jq .
+  local account=$1
+  /usr/local/opt/curl/bin/curl -s -k -X POST --http1.1 -H "Content-Type:application/json" -u $username:$password --data '{"jsonrpc":"1.0","method":"getbalance","params":["'$account'"],"id":1}' https://localhost:19557
+}
+
+function do_grpc() {
+  local username=faMtZ/p6y/Ima/a9CssdLg4zXJg=
+  local password=eCzUMNhvyYTJYI8Pjv5a+VDAEUw=
+  local input="account_number:$1,required_confirmations:$2"
+  local msg=$(echo $input|protoc --encode=walletrpc.BalanceRequest api.proto |xxd -p)
+  python -c "print '00' + hex(len('$msg')/2).lstrip('0x').zfill(8) + '$msg'"|xxd -r -p - >input.bin
+  /usr/local/opt/curl/bin/curl -s -k -X POST --http2 -H "Content-Type:application/grpc" --data-binary @input.bin "$@" https://localhost:19558/walletrpc.WalletService/Balance |xxd -p|cut -c11-|xxd -r -p|protoc --decode=walletrpc.BalanceResponse api.proto
 }
 
 # main logic
@@ -123,9 +134,12 @@ elif [ "$1" == "block" ]; then
 elif [ "$1" == "api" ]; then
   shift
   get_result "$@" 
-elif [ "$1" == "curl" ]; then
+elif [ "$1" == "jsonrpc" ]; then
   shift
-  do_curl "$@"
+  do_jsonrpc "$@"
+elif [ "$1" == "grpc" ]; then
+  shift
+  do_grpc "$@"
 else
   $cli "$@"
 fi

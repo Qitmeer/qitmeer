@@ -149,7 +149,7 @@ elif [ "$1" == "received" ]; then
   #$cli --wallet listreceivedbyaccount 
 
 ### curl json
-elif [ "$1" == "json_rpc" ]; then
+elif [ "$1" == "jsonrpc" ]; then
   shift
   if [ -z "$1" ]; then 
     call_json_rpc |jq . 
