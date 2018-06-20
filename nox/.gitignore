@@ -32,3 +32,10 @@ profile.cov
 
 # IdeaIDE
 .idea
+
+# Folders
+vendor
+
+# Binaries
+nox
+tools/rlpdump/rlpdump
