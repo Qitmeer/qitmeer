@@ -9,6 +9,9 @@ import (
 
 var (
 	Big0   = big.NewInt(0)
+
+	// bigOne is 1 represented as a big.Int.  It is defined here to avoid
+	// the overhead of creating it multiple times.
 	Big1   = big.NewInt(1)
 
 	tt256 = new(big.Int).Lsh(big.NewInt(1), 256)   //2^256

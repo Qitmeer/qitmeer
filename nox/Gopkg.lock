@@ -48,6 +48,12 @@
   version = "v1.4.0"
 
 [[projects]]
+  name = "github.com/jrick/logrotate"
+  packages = ["rotator"]
+  revision = "a93b200c26cbae3bb09dd0dc2c7c7fe1468a034a"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/mattn/go-colorable"
   packages = ["."]
   revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
@@ -113,6 +119,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "00b82b490e643540e5f974ba37c9652d66bf7fed565d4bae479dbb803a7d55b8"
+  inputs-digest = "d0d38ce28734b24c6c0a5486767000f62bac75fb93365dfae3d2f63e67e26072"
   solver-name = "gps-cdcl"
   solver-version = 1

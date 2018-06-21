@@ -20,9 +20,9 @@ type Transaction struct {
 	LockTime  uint32
 	Expire    uint32
 	Type      TxType
-	TxIn 	  []TxInput
-	TxOut 	  []TxOutput
-	Witness   []TxInWitness
+	TxIn 	  []*TxInput
+	TxOut 	  []*TxOutput
+	Witness   []*TxInWitness
 	Message   []byte     //a unencrypted/encrypted message if user pay additional fee & limit the max length
 }
 

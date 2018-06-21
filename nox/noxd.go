@@ -10,42 +10,29 @@ import (
 	"fmt"
 	"os"
 	"github.com/noxproject/nox/log"
-	"io"
-	"github.com/noxproject/nox/log/term"
-	"github.com/mattn/go-colorable"
+	"path/filepath"
+	"github.com/noxproject/nox/database"
+)
+
+const (
+	// blockDbNamePrefix is the prefix for the block database name.  The
+	// database type is appended to this value to form the full block
+	// database name.
+	blockDbNamePrefix = "blocks"
+)
+
+var (
+	cfg *config
 )
 
 // winServiceMain is only invoked on Windows.  It detects when dcrd is running
 // as a service and reacts accordingly.
 var winServiceMain func() (bool, error)
 
-var glogger *log.GlogHandler
-
-func init() {
-
-	// init a colorful logger if possible
-	usecolor := term.IsTty(os.Stderr.Fd()) && os.Getenv("TERM") != "dumb"
-	output := io.Writer(os.Stderr)
-	if usecolor {
-		output = colorable.NewColorableStderr()
-	}
-	glogger = log.NewGlogHandler(log.StreamHandler(output, log.TerminalFormat(usecolor)))
-
-	// print log location (file:line) (useful for debug)
-	// TODO config & command line flag
-	log.PrintOrigins(false)
-
-	// set log level to info
-	// TODO config & comand line flag
-	glogger.Verbosity(log.LvlInfo)
-
-	log.Root().SetHandler(glogger)
+func main() {
 
 	// Initialize the goroutine count,  Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
-}
-
-func main() {
 
 	// Block and transaction processing can cause bursty allocations.  This
 	// limits the garbage collector from excessively overallocating during
@@ -82,10 +69,11 @@ func noxdMain(serverChan chan<- *peerServer) error {
 
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
-	cfg, _, err := loadConfig()
+	tcfg, _, err := loadConfig()
 	if err != nil {
 		return err
 	}
+	cfg = tcfg
 
 	// Get a channel that will be closed when a shutdown signal has been
 	// triggered either from an OS signal such as SIGINT (Ctrl+C) or from
@@ -100,6 +88,18 @@ func noxdMain(serverChan chan<- *peerServer) error {
 		log.Info("File logging disabled")
 	}
 
+	// Load the block database.
+	db, err := loadBlockDB()
+	if err != nil {
+		log.Error("load block database","error", err)
+		return err
+	}
+	defer func() {
+		// Ensure the database is sync'd and closed on shutdown.
+		log.Info("Gracefully shutting down the database...")
+		db.Close()
+	}()
+
 	// Return now if an interrupt signal was triggered.
 	if interruptRequested(interrupt) {
 		return nil
@@ -112,5 +112,46 @@ func noxdMain(serverChan chan<- *peerServer) error {
 	return nil
 }
 
+// loadBlockDB loads (or creates when needed) the block database taking into
+// account the selected database backend and returns a handle to it.  It also
+// contains additional logic such warning the user if there are multiple
+// databases which consume space on the file system and ensuring the regression
+// test database is clean when in regression test mode.
+func loadBlockDB() (database.DB, error) {
+
+	// The database name is based on the database type.
+	dbPath := blockDbPath(cfg.DbType)
+
+	log.Info("Loading block database", "dbPath", dbPath)
+	db, err := database.Open(cfg.DbType, dbPath, activeNetParams.Net)
+	if err != nil {
+		// Return the error if it's not because the database doesn't
+		// exist.
+		if dbErr, ok := err.(database.Error); !ok || dbErr.ErrorCode !=
+			database.ErrDbDoesNotExist {
+
+			return nil, err
+		}
+		// Create the db if it does not exist.
+		err = os.MkdirAll(cfg.DataDir, 0700)
+		if err != nil {
+			return nil, err
+		}
+		db, err = database.Create(cfg.DbType, dbPath, activeNetParams.Net)
+		if err != nil {
+			return nil, err
+		}
+	}
+	log.Info("Block database loaded")
+	return db, nil
+}
+
+// blockDbPath returns the path to the block database given a database type.
+func blockDbPath(dbType string) string {
+	// The database name is based on the database type.
+	dbName := blockDbNamePrefix + "_" + dbType
+	dbPath := filepath.Join(cfg.DataDir, dbName)
+	return dbPath
+}
 
 

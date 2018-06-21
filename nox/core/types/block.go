@@ -2,7 +2,10 @@
 
 package types
 
-import "math/big"
+import (
+	"math/big"
+	"time"
+)
 
 type BlockHeader struct {
 
@@ -13,7 +16,7 @@ type BlockHeader struct {
 	Height uint64
 
 	// DAG references to previous blocks
-	Parents     []Hash
+	Parents     []*Hash
 
 	// The merkle root of the tx tree  (tx of the block)
 	// included Witness here instead of the separated witness commitment
@@ -33,11 +36,12 @@ type BlockHeader struct {
 
 	// Nonce
 	Nonce       uint64
+
 	// Difficulty target for tx
 	Difficulty  uint32
 
-	// TimeStamp (might big.Int, if we don't want limitation in the future)
-	Timestamp   uint64
+	// TimeStamp
+	Timestamp   time.Time
 
 	//might extra data here
 
@@ -45,7 +49,7 @@ type BlockHeader struct {
 
 type Block struct {
 	Header        BlockHeader
-	Transactions  []Transaction    //tx
+	Transactions  []*Transaction    //tx
 	// STransactions []Transaction    //stx
 }
 
@@ -79,5 +83,5 @@ type CBlockHeader struct {
 
 type CBlock struct {
 	Header        CBlockHeader
-	CTransactions []ContractTransaction    //ctx
+	CTransactions []*ContractTransaction    //ctx
 }

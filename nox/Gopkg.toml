@@ -34,3 +34,7 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "github.com/jrick/logrotate"
+  version = "1.0.0"
