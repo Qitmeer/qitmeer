@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"io"
 	"unicode/utf8"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/protocol"
+	s "github.com/noxproject/nox/core/serialization"
 )
 
 // MessageHeaderSize is the number of bytes in a message header.
@@ -70,7 +70,7 @@ func makeEmptyMessage(command string) (Message, error) {
 
 // messageHeader defines the header structure for all nox protocol messages.
 type messageHeader struct {
-	magic    params.Network // 4 bytes
+	magic    protocol.Network // 4 bytes
 	command  string         // 12 bytes
 	length   uint32         // 4 bytes
 	checksum [4]byte        // 4 bytes
@@ -92,7 +92,7 @@ func readMessageHeader(r io.Reader) (int, *messageHeader, error) {
 	// Create and populate a messageHeader struct from the raw header bytes.
 	hdr := messageHeader{}
 	var command [CommandSize]byte
-	types.ReadElements(hr, &hdr.magic, &command, &hdr.length, &hdr.checksum)
+	s.ReadElements(hr, &hdr.magic, &command, &hdr.length, &hdr.checksum)
 
 	// Strip trailing zeros from command string.
 	hdr.command = string(bytes.TrimRight(command[:], string(0)))
@@ -123,7 +123,7 @@ func discardInput(r io.Reader, n uint32) {
 // WriteMessageN writes a Message to w including the necessary header
 // information and returns the number of bytes written.    This function is the
 // same as WriteMessage except it also returns the number of bytes written.
-func WriteMessageN(w io.Writer, msg Message, pver uint32, net params.Network) (int, error) {
+func WriteMessageN(w io.Writer, msg Message, pver uint32, net protocol.Network) (int, error) {
 	totalBytes := 0
 
 	// Enforce max command size.
@@ -176,7 +176,7 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, net params.Network) (i
 	// rather than directly to the writer since writeElements doesn't
 	// return the number of bytes written.
 	hw := bytes.NewBuffer(make([]byte, 0, MessageHeaderSize))
-	types.WriteElements(hw, hdr.magic, command, hdr.length, hdr.checksum)
+	s.WriteElements(hw, hdr.magic, command, hdr.length, hdr.checksum)
 
 	// Write header.
 	n, err := w.Write(hw.Bytes())
@@ -196,7 +196,7 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, net params.Network) (i
 // doesn't return the number of bytes written.  This function is mainly provided
 // for backwards compatibility with the original API, but it's also useful for
 // callers that don't care about byte counts.
-func WriteMessage(w io.Writer, msg Message, pver uint32, net params.Network) error {
+func WriteMessage(w io.Writer, msg Message, pver uint32, net protocol.Network) error {
 	_, err := WriteMessageN(w, msg, pver, net)
 	return err
 }
@@ -206,7 +206,7 @@ func WriteMessage(w io.Writer, msg Message, pver uint32, net params.Network) err
 // bytes read in addition to the parsed Message and raw bytes which comprise the
 // message.  This function is the same as ReadMessage except it also returns the
 // number of bytes read.
-func ReadMessageN(r io.Reader, pver uint32, net params.Network) (int, Message, []byte, error) {
+func ReadMessageN(r io.Reader, pver uint32, net protocol.Network) (int, Message, []byte, error) {
 	totalBytes := 0
 	n, hdr, err := readMessageHeader(r)
 	totalBytes += n
@@ -294,7 +294,7 @@ func ReadMessageN(r io.Reader, pver uint32, net params.Network) (int, Message, [
 // from ReadMessageN in that it doesn't return the number of bytes read.  This
 // function is mainly provided for backwards compatibility with the original
 // API, but it's also useful for callers that don't care about byte counts.
-func ReadMessage(r io.Reader, pver uint32, net params.Network) (Message, []byte, error) {
+func ReadMessage(r io.Reader, pver uint32, net protocol.Network) (Message, []byte, error) {
 	_, msg, buf, err := ReadMessageN(r, pver, net)
 	return msg, buf, err
 }

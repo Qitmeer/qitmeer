@@ -26,6 +26,8 @@ const (
     MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 )
 
+
+// TODO unify endian
 var (
 	// littleEndian is a convenience variable since binary.LittleEndian is
 	// quite long.

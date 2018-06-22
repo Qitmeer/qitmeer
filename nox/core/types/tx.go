@@ -8,6 +8,7 @@ import (
 	s "github.com/noxproject/nox/core/serialization"
 	"fmt"
 	"bytes"
+	"encoding/binary"
 )
 
 type TxType byte
@@ -191,7 +192,7 @@ func (tx *Transaction) TxHashFull() hash.Hash {
 }
 
 func (tx *Transaction) Encode(w io.Writer, pver uint32) error {
-	err := s.BinarySerializer.PutUint32(w, littleEndian, uint32(tx.Version))
+	err := s.BinarySerializer.PutUint32(w, binary.LittleEndian, uint32(tx.Version))
 	if err != nil {
 		return err
 	}
@@ -240,12 +241,12 @@ func (tx *Transaction) encodePrefix(w io.Writer, pver uint32) error {
 		}
 	}
 
-	err = s.BinarySerializer.PutUint32(w, littleEndian, tx.LockTime)
+	err = s.BinarySerializer.PutUint32(w, binary.LittleEndian, tx.LockTime)
 	if err != nil {
 		return err
 	}
 
-	return s.BinarySerializer.PutUint32(w, littleEndian, tx.Expire)
+	return s.BinarySerializer.PutUint32(w, binary.LittleEndian, tx.Expire)
 }
 
 // encodeWitness encodes a transaction witness into a writer.
@@ -273,7 +274,7 @@ func writeTxInPrefix(w io.Writer, pver uint32, version uint32, ti *TxInput) erro
 		return err
 	}
 
-	return s.BinarySerializer.PutUint32(w, littleEndian, ti.Sequence)
+	return s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.Sequence)
 }
 
 // WriteOutPoint encodes for an OutPoint to w.
@@ -283,12 +284,12 @@ func WriteOutPoint(w io.Writer, pver uint32, version uint32, op *TxOutPoint) err
 		return err
 	}
 
-	return s.BinarySerializer.PutUint32(w, littleEndian, op.OutIndex)
+	return s.BinarySerializer.PutUint32(w, binary.LittleEndian, op.OutIndex)
 }
 
 // writeTxOut encodes for a transaction output (TxOut) to w.
 func writeTxOut(w io.Writer, pver uint32, to *TxOutput) error {
-	err := s.BinarySerializer.PutUint64(w, littleEndian, uint64(to.Amount))
+	err := s.BinarySerializer.PutUint64(w, binary.LittleEndian, uint64(to.Amount))
 	if err != nil {
 		return err
 	}
@@ -298,19 +299,19 @@ func writeTxOut(w io.Writer, pver uint32, to *TxOutput) error {
 // writeTxWitness encodes for a transaction input (TxIn) witness to w.
 func writeTxInWitness(w io.Writer, pver uint32, ti *TxInput) error {
 	// ValueIn.
-	err := s.BinarySerializer.PutUint64(w, littleEndian, uint64(ti.AmountIn))
+	err := s.BinarySerializer.PutUint64(w, binary.LittleEndian, uint64(ti.AmountIn))
 	if err != nil {
 		return err
 	}
 
 	// BlockHeight.
-	err = s.BinarySerializer.PutUint32(w, littleEndian, ti.BlockHeight)
+	err = s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.BlockHeight)
 	if err != nil {
 		return err
 	}
 
 	// BlockIndex.
-	s.BinarySerializer.PutUint32(w, littleEndian, ti.BlockTxIndex)
+	s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.BlockTxIndex)
 	if err != nil {
 		return err
 	}

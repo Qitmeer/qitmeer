@@ -1,4 +1,5 @@
-package types
+// Copyright (c) 2017-2018 The nox developers
+package serialization
 
 import (
 	"io"
@@ -6,20 +7,9 @@ import (
 	"encoding/binary"
 	"time"
 	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/serialization"
 )
 
-var (
-	// littleEndian is a convenience variable since binary.LittleEndian is
-	// quite long.
-	littleEndian = binary.LittleEndian
-
-	// bigEndian is a convenience variable since binary.BigEndian is quite
-	// long.
-	bigEndian = binary.BigEndian
-)
-
-// readElements reads multiple items from r.  It is equivalent to multiple
+// ReadElements reads multiple items from r.  It is equivalent to multiple
 // calls to readElement.
 func ReadElements(r io.Reader, elements ...interface{}) error {
 	for _, element := range elements {
@@ -38,7 +28,7 @@ func readElement(r io.Reader, element interface{}) error {
 	// type assertions first.
 	switch e := element.(type) {
 	case *uint8:
-		rv, err := serialization.BinarySerializer.Uint8(r)
+		rv, err := BinarySerializer.Uint8(r)
 		if err != nil {
 			return err
 		}
@@ -46,7 +36,7 @@ func readElement(r io.Reader, element interface{}) error {
 		return nil
 
 	case *uint16:
-		rv, err := serialization.BinarySerializer.Uint16(r, littleEndian)
+		rv, err := BinarySerializer.Uint16(r, littleEndian)
 		if err != nil {
 			return err
 		}
@@ -54,7 +44,7 @@ func readElement(r io.Reader, element interface{}) error {
 		return nil
 
 	case *int32:
-		rv, err := serialization.BinarySerializer.Uint32(r, littleEndian)
+		rv, err := BinarySerializer.Uint32(r, littleEndian)
 		if err != nil {
 			return err
 		}
@@ -62,7 +52,7 @@ func readElement(r io.Reader, element interface{}) error {
 		return nil
 
 	case *uint32:
-		rv, err := serialization.BinarySerializer.Uint32(r, littleEndian)
+		rv, err := BinarySerializer.Uint32(r, littleEndian)
 		if err != nil {
 			return err
 		}
@@ -70,7 +60,7 @@ func readElement(r io.Reader, element interface{}) error {
 		return nil
 
 	case *int64:
-		rv, err := serialization.BinarySerializer.Uint64(r, littleEndian)
+		rv, err := BinarySerializer.Uint64(r, littleEndian)
 		if err != nil {
 			return err
 		}
@@ -78,7 +68,7 @@ func readElement(r io.Reader, element interface{}) error {
 		return nil
 
 	case *uint64:
-		rv, err := serialization.BinarySerializer.Uint64(r, littleEndian)
+		rv, err := BinarySerializer.Uint64(r, littleEndian)
 		if err != nil {
 			return err
 		}
@@ -86,7 +76,7 @@ func readElement(r io.Reader, element interface{}) error {
 		return nil
 
 	case *bool:
-		rv, err := serialization.BinarySerializer.Uint8(r)
+		rv, err := BinarySerializer.Uint8(r)
 		if err != nil {
 			return err
 		}
@@ -100,7 +90,7 @@ func readElement(r io.Reader, element interface{}) error {
 	// Unix timestamp encoded as a uint32.
 	// TODO fix time ambiguous
 	case *Uint32Time:
-		rv, err := serialization.BinarySerializer.Uint32(r, binary.LittleEndian)
+		rv, err := BinarySerializer.Uint32(r, binary.LittleEndian)
 		if err != nil {
 			return err
 		}
@@ -110,7 +100,7 @@ func readElement(r io.Reader, element interface{}) error {
 	// Unix timestamp encoded as an int64.
 	// TODO fix time ambiguous
 	case *Int64Time:
-		rv, err := serialization.BinarySerializer.Uint64(r, binary.LittleEndian)
+		rv, err := BinarySerializer.Uint64(r, binary.LittleEndian)
 		if err != nil {
 			return err
 		}
@@ -155,7 +145,7 @@ func readElement(r io.Reader, element interface{}) error {
 		return nil
 
 	case *protocol.Network:
-		rv, err := serialization.BinarySerializer.Uint32(r, littleEndian)
+		rv, err := BinarySerializer.Uint32(r, littleEndian)
 		if err != nil {
 			return err
 		}
@@ -187,28 +177,28 @@ func writeElement(w io.Writer, element interface{}) error {
 	// type assertions first.
 	switch e := element.(type) {
 	case int32:
-		err := serialization.BinarySerializer.PutUint32(w, littleEndian, uint32(e))
+		err := BinarySerializer.PutUint32(w, littleEndian, uint32(e))
 		if err != nil {
 			return err
 		}
 		return nil
 
 	case uint32:
-		err := serialization.BinarySerializer.PutUint32(w, littleEndian, e)
+		err := BinarySerializer.PutUint32(w, littleEndian, e)
 		if err != nil {
 			return err
 		}
 		return nil
 
 	case int64:
-		err := serialization.BinarySerializer.PutUint64(w, littleEndian, uint64(e))
+		err := BinarySerializer.PutUint64(w, littleEndian, uint64(e))
 		if err != nil {
 			return err
 		}
 		return nil
 
 	case uint64:
-		err := serialization.BinarySerializer.PutUint64(w, littleEndian, e)
+		err := BinarySerializer.PutUint64(w, littleEndian, e)
 		if err != nil {
 			return err
 		}
@@ -217,9 +207,9 @@ func writeElement(w io.Writer, element interface{}) error {
 	case bool:
 		var err error
 		if e {
-			err = serialization.BinarySerializer.PutUint8(w, 0x01)
+			err = BinarySerializer.PutUint8(w, 0x01)
 		} else {
-			err = serialization.BinarySerializer.PutUint8(w, 0x00)
+			err = BinarySerializer.PutUint8(w, 0x00)
 		}
 		if err != nil {
 			return err
@@ -250,7 +240,7 @@ func writeElement(w io.Writer, element interface{}) error {
 		return nil
 
 	case protocol.Network:
-		err := serialization.BinarySerializer.PutUint32(w, littleEndian, uint32(e))
+		err := BinarySerializer.PutUint32(w, littleEndian, uint32(e))
 		if err != nil {
 			return err
 		}

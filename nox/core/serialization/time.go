@@ -1,4 +1,4 @@
-package types
+package serialization
 
 import "time"
 

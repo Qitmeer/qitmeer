@@ -81,8 +81,8 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 // TODO, redefine the protocol version and storage
 func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
-	return ReadElements(r, &bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, &bh.Difficulty, &bh.Height, (*Uint32Time)(&bh.Timestamp),
+	return s.ReadElements(r, &bh.Version, &bh.ParentRoot, &bh.TxRoot,
+		&bh.StateRoot, &bh.Difficulty, &bh.Height, (*s.Uint32Time)(&bh.Timestamp),
 		&bh.Nonce)
 }
 
@@ -93,7 +93,7 @@ func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
 	sec := uint32(bh.Timestamp.Unix())
-	return WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
+	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
 		&bh.StateRoot, bh.Difficulty, bh.Height, sec, bh.Nonce)
 }
 
