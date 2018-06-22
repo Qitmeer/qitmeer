@@ -2,7 +2,10 @@
 
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/noxproject/nox/common/hash"
+)
 
 type Address interface{
 	Encode() (string, error)
@@ -19,7 +22,7 @@ const (
 
 
 type pubKeyHashAddress struct{
-	pkhash  Hash         // pubKey hash
+	pkhash  hash.Hash         // pubKey hash
 	addrType AddressType
 }
 

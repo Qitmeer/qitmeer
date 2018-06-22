@@ -2,17 +2,19 @@
 
 package types
 
+import "github.com/noxproject/nox/common/hash"
+
 type BlockSet struct {
-	m map[Hash]bool
+	m map[hash.Hash]bool
 }
 
 type BlockDag struct {
 	genesis       Block
-	blocks        map[Hash]Block
+	blocks        map[hash.Hash]Block
 	tips          BlockSet
 	blueSet       BlockSet
-	parentsIndex  map[Hash]BlockSet
-	childIndex    map[Hash]BlockSet
-	anticoneIndex map[Hash]BlockSet
-	scoreMap      map[Hash]uint64
+	parentsIndex  map[hash.Hash]BlockSet
+	childIndex    map[hash.Hash]BlockSet
+	anticoneIndex map[hash.Hash]BlockSet
+	scoreMap      map[hash.Hash]uint64
 }

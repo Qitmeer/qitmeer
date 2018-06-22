@@ -9,6 +9,7 @@ package params
 import (
 	"time"
 	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/common/hash"
 )
 
 // MainNet ------------------------------------------------------------------------
@@ -21,7 +22,7 @@ var genesisCoinbaseTx = types.Transaction{
 		{
 			// Fully null.
 			PreviousOut: types.TxOutPoint{
-				Hash:  types.Hash{},
+				Hash:  hash.Hash{},
 				OutIndex: 0xffffffff,
 			},
 			Sequence:    0xffffffff,
@@ -45,7 +46,7 @@ var genesisCoinbaseTx = types.Transaction{
 // genesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the main network.
 // TODO calculate hash
-var genesisMerkleRoot = types.Hash{}
+var genesisMerkleRoot = hash.Hash{}
 
 // genesisBlock defines the genesis block of the block chain which serves as the
 // public transaction ledger for the main network.
@@ -63,13 +64,11 @@ var genesisMerkleRoot = types.Hash{}
 // it are validated for correctness.
 var genesisBlock = types.Block{
 	Header: types.BlockHeader{
-		Parents:    []*types.Hash{
-			{},
-		},
+		ParentRoot:    hash.Hash{},
 		TxRoot:   genesisMerkleRoot,
-		UtxoCommitment: types.Hash{},
-		CompactFilter: types.Hash{},
-		StateRoot:	 types.Hash{},
+		//UtxoCommitment: types.Hash{},
+		//CompactFilter: types.Hash{},
+		StateRoot:	 hash.Hash{},
 		Timestamp:    time.Unix(1454954400, 0), // Mon, 08 Feb 2016 18:00:00 GMT
 		Difficulty:         0x1b01ffff,               // Difficulty 32767
 		Nonce:        0x00000000,
@@ -80,7 +79,7 @@ var genesisBlock = types.Block{
 // genesisHash is the hash of the first block in the block chain for the main
 // network (genesis block).
 // TODO calculate hash
-var genesisHash = types.Hash{}
+var genesisHash = hash.Hash{}
 
 
 // TestNet ------------------------------------------------------------------------
@@ -91,15 +90,13 @@ var testNetGenesisCoinbaseTx = types.Transaction{}
 // testNetGenesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the test network.
 // TODO calculate hash
-var testNetGenesisMerkleRoot = types.Hash{}
+var testNetGenesisMerkleRoot = hash.Hash{}
 
 // testNetGenesisBlock defines the genesis block of the block chain which
 // serves as the public transaction ledger for the test network (version 3).
 var testNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
-		Parents:    []*types.Hash{
-			{},
-		},
+		ParentRoot:   hash.Hash{},
 		TxRoot:       testNetGenesisMerkleRoot,
 		Timestamp:    time.Unix(1489550400, 0), // 2017-03-15 TestNet10
 		Difficulty:   0x1e00ffff,
@@ -111,7 +108,7 @@ var testNetGenesisBlock = types.Block{
 // testNetGenesisHash is the hash of the first block in the block chain for the
 // test network.
 // TODO calculate hash
-var testNetGenesisHash = types.Hash{}
+var testNetGenesisHash = hash.Hash{}
 
 // PrivNet -------------------------------------------------------------------------
 
@@ -120,14 +117,10 @@ var privNetGenesisCoinbaseTx = types.Transaction{
 	TxIn: []*types.TxInput{
 		{
 			PreviousOut: types.TxOutPoint{
-				Hash:  types.Hash{},
+				Hash:  hash.Hash{},
 				OutIndex: 0xffffffff,
 			},
 			Sequence: 0xffffffff,
-		},
-	},
-	Witness:[]*types.TxInWitness{
-		{
 			SignScript: []byte{
 				0x04, 0xff, 0xff, 0x00, 0x1d, 0x01, 0x04, 0x45, /* |.......E| */
 				0x54, 0x68, 0x65, 0x20, 0x54, 0x69, 0x6d, 0x65, /* |The Time| */
@@ -167,7 +160,7 @@ var privNetGenesisCoinbaseTx = types.Transaction{
 // the main network.
 var privNetGenesisMerkleRoot = genesisMerkleRoot
 
-var zeroHash =  types.Hash([32]byte{ // Make go vet happy.
+var zeroHash =  hash.Hash([32]byte{ // Make go vet happy.
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -177,9 +170,9 @@ var zeroHash =  types.Hash([32]byte{ // Make go vet happy.
 // as the public transaction ledger for the simulation test network.
 var privNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
-		Parents: []*types.Hash{&zeroHash},
+		ParentRoot: zeroHash,
 		TxRoot: privNetGenesisMerkleRoot,
-		StateRoot: types.Hash([32]byte{ // Make go vet happy.
+		StateRoot: hash.Hash([32]byte{ // Make go vet happy.
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

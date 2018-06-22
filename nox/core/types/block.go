@@ -5,53 +5,218 @@ package types
 import (
 	"math/big"
 	"time"
+	"bytes"
+	"github.com/noxproject/nox/common/hash"
+	"io"
+	s "github.com/noxproject/nox/core/serialization"
 )
+
+// MaxBlockHeaderPayload is the maximum number of bytes a block header can be.
+// Version 4 bytes + ParentRoot 32 bytes + TxRoot 32 bytes + StateRoot 32 bytes
+// Difficulty 4 bytes + Height 4 bytes  + Timestamp 4 bytes + Nonce 8 bytes
+// --> Total 120 bytes.
+const MaxBlockHeaderPayload = 4 + 4 + 4 + 4 + 8 + (hash.HashSize * 3)
+
+// blockHeaderLen is a constant that represents the number of bytes for a block
+// header.
+const blockHeaderLen = 180
 
 type BlockHeader struct {
 
-	// block id/hash
-	Hash   Hash
+	// block version
+	Version   uint32
 
-	// block number
-	Height uint64
-
-	// DAG references to previous blocks
-	Parents     []*Hash
+	// The merkle root of the previous parent blocks
+	ParentRoot    hash.Hash
 
 	// The merkle root of the tx tree  (tx of the block)
 	// included Witness here instead of the separated witness commitment
-	TxRoot      Hash
+	TxRoot      hash.Hash
 
 	// The merkle root of the stake tx tree
 	// STxRoot     Hash
 
 	// The Multiset hash of UTXO set or(?) merkle range/path or(?) tire tree root
-	UtxoCommitment Hash
+	// UtxoCommitment Hash
 
 	// bip157/158 cbf
-	CompactFilter Hash
+	// CompactFilter Hash
 
 	// The merkle root of state tire
-	StateRoot	Hash
-
-	// Nonce
-	Nonce       uint64
+	StateRoot	hash.Hash
 
 	// Difficulty target for tx
 	Difficulty  uint32
 
+	// block number
+	Height uint64
+
 	// TimeStamp
 	Timestamp   time.Time
+
+	// Nonce
+	Nonce       uint64
 
 	//might extra data here
 
 }
 
+// BlockHash computes the block identifier hash for the given block header.
+func (h *BlockHeader) BlockHash() hash.Hash {
+	// Encode the header and hash256 everything prior to the number of
+	// transactions.  Ignore the error returns since there is no way the
+	// encode could fail except being out of memory which would cause a
+	// run-time panic.
+	buf := bytes.NewBuffer(make([]byte, 0, MaxBlockHeaderPayload))
+	// TODO, redefine the protocol version and storage
+	_ = writeBlockHeader(buf,0, h)
+	// TODO, add an abstract layer of hash func
+	// TODO, double sha256 or other crypto hash
+	return hash.DoubleHashH(buf.Bytes())
+}
+
+// readBlockHeader reads a block header from io reader.  See Deserialize for
+// decoding block headers stored to disk, such as in a database, as opposed to
+// decoding from the type.
+// TODO, redefine the protocol version and storage
+func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
+	// TODO fix time ambiguous
+	return ReadElements(r, &bh.Version, &bh.ParentRoot, &bh.TxRoot,
+		&bh.StateRoot, &bh.Difficulty, &bh.Height, (*Uint32Time)(&bh.Timestamp),
+		&bh.Nonce)
+}
+
+// writeBlockHeader writes a block header to w.  See Serialize for
+// encoding block headers to be stored to disk, such as in a database, as
+// opposed to encoding for the type.
+// TODO, redefine the protocol version and storage
+func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
+	// TODO fix time ambiguous
+	sec := uint32(bh.Timestamp.Unix())
+	return WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
+		&bh.StateRoot, bh.Difficulty, bh.Height, sec, bh.Nonce)
+}
+
 type Block struct {
 	Header        BlockHeader
+	Parents       []*hash.Hash
 	Transactions  []*Transaction    //tx
 	// STransactions []Transaction    //stx
 }
+
+// BlockHash computes the block identifier hash for this block.
+func (block *Block) BlockHash() hash.Hash {
+	return block.Header.BlockHash()
+}
+
+// SerializeSize returns the number of bytes it would take to serialize the
+// the block.
+func (block *Block) SerializeSize() int {
+	// Check to make sure that all transactions have the correct
+	// type and version to be included in a block.
+
+	// Block header bytes + Serialized varint size for the number of
+	// transactions + Serialized varint size for the number of
+	// stake transactions
+
+	n := blockHeaderLen + s.VarIntSerializeSize(uint64(len(block.Transactions))) +
+		s.VarIntSerializeSize(uint64(len(block.Parents)))
+
+	for _, tx := range block.Transactions {
+		n += tx.SerializeSize()
+	}
+
+	//TODO, handle parents
+
+	return n
+}
+// Serialize encodes the block to w using a format that suitable for long-term
+// storage such as a database while respecting the Version field in the block.
+func (block *Block) Serialize(w io.Writer) error {
+	// At the current time, there is no difference between the wire encoding
+	// at protocol version 0 and the stable long-term storage format.
+	// TODO, redefine the protocol version and storage
+	return block.Encode(w, 0)
+}
+
+// Encode encodes the receiver to w using the protocol encoding.
+// This is part of the Message interface implementation.
+// See Serialize for encoding blocks to be stored to disk, such as in a
+// database, as opposed to encoding blocks for the wire.
+func (block *Block) Encode(w io.Writer, pver uint32) error {
+	err := writeBlockHeader(w, pver, &block.Header)
+	if err != nil {
+		return err
+	}
+
+	//TODO, write block.Parents
+
+	err = s.WriteVarInt(w, pver, uint64(len(block.Transactions)))
+	if err != nil {
+		return err
+	}
+
+	for _, tx := range block.Transactions {
+		err = tx.Encode(w, pver)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SerializedBlock provides easier and more efficient manipulation of raw blocks.
+// It also memorizes hashes for the block and its transactions on their first
+// access so subsequent accesses don't have to  repeat the relatively expensive
+// hashing operations.
+type SerializedBlock struct {
+	block                 *Block          // Underlying Block
+	hash                  hash.Hash       // Cached block hash
+	serializedBytes       []byte          // Serialized bytes for the block
+	transactions          []*Tx           // Transactions
+	txnsGenerated         bool            // ALL wrapped transactions generated
+}
+
+// NewBlock returns a new instance of the serialized block given an underlying Block.
+// the block hash has been calculated and cached
+func NewBlock(block *Block) *SerializedBlock {
+	return &SerializedBlock{
+		hash:   block.BlockHash(),
+		block: 	block,
+	}
+}
+
+// Hash returns the block identifier hash for the Block.  This is equivalent to
+// calling BlockHash on the underlying Block, however it caches the
+// result so subsequent calls are more efficient.
+func (sb *SerializedBlock) Hash() *hash.Hash {
+	//TODO, might need to assertBlockImmutability
+	return &sb.hash
+}
+
+// Bytes returns the serialized bytes for the Block.  This is equivalent to
+// calling Serialize on the underlying Block, however it caches the
+// result so subsequent calls are more efficient.
+func (sb *SerializedBlock) Bytes() ([]byte, error) {
+	// Return the cached serialized bytes if it has already been generated.
+	if len(sb.serializedBytes) != 0 {
+		return sb.serializedBytes, nil
+	}
+
+	// Serialize the MsgBlock.
+	var w bytes.Buffer
+	w.Grow(sb.block.SerializeSize())
+	err := sb.block.Serialize(&w)
+	if err != nil {
+		return nil, err
+	}
+	serialized := w.Bytes()
+
+	// Cache the serialized bytes and return them.
+	sb.serializedBytes = serialized
+	return serialized, nil
+}
+
 
 // Contract block header
 type CBlockHeader struct {
@@ -60,18 +225,18 @@ type CBlockHeader struct {
 	CBlockNum      *big.Int
 
 	//Parent block hash
-    CBlockParent   Hash
+    CBlockParent   hash.Hash
 
 	// The merkle root of contract storage
-	ContractRoot Hash
+	ContractRoot hash.Hash
 
 	// The merkle root the ctx receipt trie  (proof of changes)
 	// receipt generated after ctx processed (aka. post-tx info)
-	ReceiptRoot Hash
+	ReceiptRoot hash.Hash
 
 	// bloom filter for log entry of ctx receipt
 	// can we remove/combine with cbf ?
-	LogBloom    Hash
+	LogBloom    hash.Hash
 
 	// Difficulty target for ctx
 	CDifficulty  uint32

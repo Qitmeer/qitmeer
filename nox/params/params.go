@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"time"
 	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/protocol"
 )
 
 // Checkpoint identifies a known good point in the block chain.  Using
@@ -21,7 +23,7 @@ import (
 // selection criteria.
 type Checkpoint struct {
 	Height int32
-	Hash   *types.Hash
+	Hash   *hash.Hash
 }
 
 // DNSSeed identifies a DNS seed.
@@ -58,7 +60,7 @@ type Params struct {
 	Name string
 
 	// Net defines the magic bytes used to identify the network.
-	Net Network
+	Net protocol.Network
 
 	// DefaultPort defines the default peer-to-peer port for the network.
 	DefaultPort string
@@ -71,7 +73,7 @@ type Params struct {
 	GenesisBlock *types.Block
 
 	// GenesisHash is the starting block hash.
-	GenesisHash *types.Hash
+	GenesisHash *hash.Hash
 
 	// PowLimit defines the highest allowed proof of work value for a block
 	// as a uint256.
@@ -218,7 +220,7 @@ var (
 )
 
 var (
-	registeredNets       = make(map[Network]struct{})
+	registeredNets       = make(map[protocol.Network]struct{})
 	pubKeyHashAddrIDs    = make(map[[2]byte]struct{})
 	scriptHashAddrIDs    = make(map[[2]byte]struct{})
 	hdPrivToPubKeyIDs    = make(map[[4]byte][]byte)

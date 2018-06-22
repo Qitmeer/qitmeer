@@ -10,6 +10,7 @@ import (
 	"time"
 	"math/big"
 	"github.com/noxproject/nox/common"
+	"github.com/noxproject/nox/core/protocol"
 )
 
 
@@ -26,7 +27,7 @@ var	privNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 255), commo
 // just turn into another public testnet.
 var PrivNetParams = Params{
 	Name:        "privnet",
-	Net:         PrivNet,
+	Net:         protocol.PrivNet,
 	DefaultPort: "28130",
 	DNSSeeds:    []DNSSeed{}, // NOTE: There must NOT be any seeds.
 

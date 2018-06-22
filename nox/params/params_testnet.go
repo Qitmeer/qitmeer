@@ -10,6 +10,7 @@ import (
 	"time"
 	"math/big"
 	"github.com/noxproject/nox/common"
+	"github.com/noxproject/nox/core/protocol"
 )
 
 // testNetPowLimit is the highest proof of work value a block can
@@ -19,7 +20,7 @@ var	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 224), commo
 // TestNetParams defines the network parameters for the test network.
 var TestNetParams = Params{
 	Name:        "testnet",
-	Net:         TestNet,
+	Net:         protocol.TestNet,
 	DefaultPort: "18130",
 	DNSSeeds: []DNSSeed{
 		{"testnet-seed.alice.noxproject.io", true},

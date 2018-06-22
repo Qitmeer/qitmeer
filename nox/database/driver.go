@@ -81,7 +81,7 @@ func Create(dbType string, args ...interface{}) (DB, error) {
 func Open(dbType string, args ...interface{}) (DB, error) {
 	drv, exists := drivers[dbType]
 	if !exists {
-		str := fmt.Sprintf("driver %q is not registered", dbType)
+		str := fmt.Sprintf("driver %s is not registered", dbType)
 		return nil, makeError(ErrDbUnknownType, str, nil)
 	}
 

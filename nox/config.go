@@ -29,6 +29,7 @@ var (
 	defaultHomeDir     = util.AppDataDir("noxd", false)
 	defaultConfigFile  = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultDataDir     = filepath.Join(defaultHomeDir, defaultDataDirname)
+	defaultDbType      = "ffldb"
 	defaultLogDir      = filepath.Join(defaultHomeDir, defaultLogDirname)
 	defaultRPCKeyFile  = filepath.Join(defaultHomeDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(defaultHomeDir, "rpc.cert")
@@ -67,6 +68,7 @@ func loadConfig() (*config, []string, error) {
 		DebugLevel:           defaultLogLevel,
 		DataDir:              defaultDataDir,
 		LogDir:               defaultLogDir,
+		DbType:               defaultDbType,
 		RPCKey:               defaultRPCKeyFile,
 		RPCCert:              defaultRPCCertFile,
 		Generate:             defaultGenerate,

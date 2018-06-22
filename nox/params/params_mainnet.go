@@ -10,16 +10,17 @@ import (
 	"time"
 	"math/big"
 	"github.com/noxproject/nox/common"
+	"github.com/noxproject/nox/core/protocol"
 )
 
 // mainPowLimit is the highest proof of work value a block can
 // have for the main network. It is the value 2^224 - 1.
 var mainPowLimit    = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 224), common.Big1)
 
-// MainNetParams defines the network parameters for the main Decred network.
+// MainNetParams defines the network parameters for the main network.
 var MainNetParams = Params{
 	Name:        "mainnet",
-	Net:         MainNet,
+	Net:         protocol.MainNet,
 	DefaultPort: "8130",
 	DNSSeeds: []DNSSeed{
 		{"mainnet-seed.alice.nox.io", true},

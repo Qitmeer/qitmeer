@@ -2,6 +2,8 @@
 
 package types
 
+import "github.com/noxproject/nox/common/hash"
+
 // block execution event, ex. validator change event
 type Event []byte
 
@@ -10,7 +12,7 @@ type BlockReceipt struct{
 	BlockNumber uint64
 
 	// The merkle root of storage trie (for kv)
-	StorageRoot Hash256
+	StorageRoot hash.Hash
 
 	// The merkle root for change logs trie
 	// 1.) ordered storage keys that changed the storage, k also map to tx(one or many) (how them changed)
@@ -18,7 +20,7 @@ type BlockReceipt struct{
 	//     which refer to block(s) that caused the change rather than the tx included from the current block
 	//     which provide proof that any group of change range blocks either don't change a storage item
 	//     or can find out which tx exactly did.
-	ChangeRoot  Hash256
+	ChangeRoot  hash.Hash
 
 	// The event digest of a block, which is chain-specific, useful for light-clients.
 	// Events are an array of data fragments that runtime encode events for light-client

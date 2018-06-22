@@ -11,6 +11,7 @@ package database
 
 import (
 	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/common/hash"
 )
 
 // Cursor represents a cursor over key/value pairs and nested buckets of a
@@ -199,7 +200,7 @@ type Bucket interface {
 // BlockRegion specifies a particular region of a block identified by the
 // specified hash, given an offset and length.
 type BlockRegion struct {
-	Hash   *types.Hash
+	Hash   *hash.Hash
 	Offset uint32
 	Len    uint32
 }
@@ -228,7 +229,7 @@ type Tx interface {
 	//   - ErrTxClosed if the transaction has already been closed
 	//
 	// Other errors are possible depending on the implementation.
-	StoreBlock(block *types.Block) error
+	StoreBlock(block *types.SerializedBlock) error
 
 	// HasBlock returns whether or not a block with the given hash exists
 	// in the database.
@@ -238,7 +239,7 @@ type Tx interface {
 	//   - ErrTxClosed if the transaction has already been closed
 	//
 	// Other errors are possible depending on the implementation.
-	HasBlock(hash *types.Hash) (bool, error)
+	HasBlock(hash *hash.Hash) (bool, error)
 
 	// HasBlocks returns whether or not the blocks with the provided hashes
 	// exist in the database.
@@ -248,7 +249,7 @@ type Tx interface {
 	//   - ErrTxClosed if the transaction has already been closed
 	//
 	// Other errors are possible depending on the implementation.
-	HasBlocks(hashes []types.Hash) ([]bool, error)
+	HasBlocks(hashes []hash.Hash) ([]bool, error)
 
 	// FetchBlockHeader returns the raw serialized bytes for the block
 	// header identified by the given hash.  The raw bytes are in the format
@@ -271,7 +272,7 @@ type Tx interface {
 	// has ended results in undefined behavior.  This constraint prevents
 	// additional data copies and allows support for memory-mapped database
 	// implementations.
-	FetchBlockHeader(hash *types.Hash) ([]byte, error)
+	FetchBlockHeader(hash *hash.Hash) ([]byte, error)
 
 	// FetchBlockHeaders returns the raw serialized bytes for the block
 	// headers identified by the given hashes.  The raw bytes are in the
@@ -298,7 +299,7 @@ type Tx interface {
 	// has ended results in undefined behavior.  This constraint prevents
 	// additional data copies and allows support for memory-mapped database
 	// implementations.
-	FetchBlockHeaders(hashes []types.Hash) ([][]byte, error)
+	FetchBlockHeaders(hashes []hash.Hash) ([][]byte, error)
 
 	// FetchBlock returns the raw serialized bytes for the block identified
 	// by the given hash.  The raw bytes are in the format returned by
@@ -315,7 +316,7 @@ type Tx interface {
 	// has ended results in undefined behavior.  This constraint prevents
 	// additional data copies and allows support for memory-mapped database
 	// implementations.
-	FetchBlock(hash *types.Hash) ([]byte, error)
+	FetchBlock(hash *hash.Hash) ([]byte, error)
 
 	// FetchBlocks returns the raw serialized bytes for the blocks
 	// identified by the given hashes.  The raw bytes are in the format
@@ -333,7 +334,7 @@ type Tx interface {
 	// has ended results in undefined behavior.  This constraint prevents
 	// additional data copies and allows support for memory-mapped database
 	// implementations.
-	FetchBlocks(hashes []types.Hash) ([][]byte, error)
+	FetchBlocks(hashes []hash.Hash) ([][]byte, error)
 
 	// FetchBlockRegion returns the raw serialized bytes for the given
 	// block region.

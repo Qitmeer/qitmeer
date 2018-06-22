@@ -9,7 +9,7 @@ package main
 import "github.com/noxproject/nox/params"
 
 // activeNetParams is a pointer to the parameters specific to the
-// currently active Decred network.
+// currently active network.
 var activeNetParams = &mainNetParams
 
 // netParams is used to group parameters for various networks such as the main

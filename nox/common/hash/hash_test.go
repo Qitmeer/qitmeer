@@ -1,4 +1,4 @@
-package types
+package hash
 
 type _Golden struct {
 	out uint32

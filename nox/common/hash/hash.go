@@ -1,6 +1,6 @@
 // Copyright 2017-2018 The nox developers
 
-package types
+package hash
 
 import (
 	"hash"
@@ -11,7 +11,9 @@ import (
     _ "golang.org/x/crypto/blake2b"
 )
 
-type Hash [32]byte
+const HashSize = 32
+
+type Hash [HashSize]byte
 
 type Hash160 [20]byte
 
@@ -25,8 +27,9 @@ type Hasher interface{
 
 type HashType byte
 
+// TODO refactoring hasher
 const (
-	sha256 HashType = iota
+	SHA256 HashType = iota
 	keccak_256
 	keccak_512
 	ripemd160
@@ -36,7 +39,7 @@ const (
 
 func GetHasher(ht HashType) Hasher{
 	switch ht {
-	case sha256:
+	case SHA256:
 		return crypto.SHA256.New()
 	case keccak_256:
 		return crypto.SHA3_256.New()
