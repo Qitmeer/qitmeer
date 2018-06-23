@@ -26,7 +26,8 @@ import (
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/database/ffldb/treap"
-	"github.com/noxproject/nox/params"
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/protocol"
 )
 
 const (
@@ -946,7 +947,7 @@ func (b *bucket) Delete(key []byte) error {
 // pendingBlock houses a block that will be written to disk when the database
 // transaction is committed.
 type pendingBlock struct {
-	hash  *types.Hash
+	hash  *hash.Hash
 	bytes []byte
 }
 
@@ -964,7 +965,7 @@ type transaction struct {
 
 	// Blocks that need to be stored on commit.  The pendingBlocks map is
 	// kept to allow quick lookups of pending data by block hash.
-	pendingBlocks    map[types.Hash]int
+	pendingBlocks    map[hash.Hash]int
 	pendingBlockData []pendingBlock
 
 	// Keys that need to be stored or deleted on commit.
@@ -1126,7 +1127,7 @@ func (tx *transaction) Metadata() database.Bucket {
 }
 
 // hasBlock returns whether or not a block with the given hash exists.
-func (tx *transaction) hasBlock(hash *types.Hash) bool {
+func (tx *transaction) hasBlock(hash *hash.Hash) bool {
 	// Return true if the block is pending to be written on commit since
 	// it exists from the viewpoint of this transaction.
 	if _, exists := tx.pendingBlocks[*hash]; exists {
@@ -1178,7 +1179,7 @@ func (tx *transaction) StoreBlock(block *types.SerializedBlock) error {
 	// map so it is easy to determine the block is pending based on the
 	// block hash.
 	if tx.pendingBlocks == nil {
-		tx.pendingBlocks = make(map[types.Hash]int)
+		tx.pendingBlocks = make(map[hash.Hash]int)
 	}
 	tx.pendingBlocks[*blockHash] = len(tx.pendingBlockData)
 	tx.pendingBlockData = append(tx.pendingBlockData, pendingBlock{
@@ -1197,7 +1198,7 @@ func (tx *transaction) StoreBlock(block *types.SerializedBlock) error {
 //   - ErrTxClosed if the transaction has already been closed
 //
 // This function is part of the database.Tx interface implementation.
-func (tx *transaction) HasBlock(hash *types.Hash) (bool, error) {
+func (tx *transaction) HasBlock(hash *hash.Hash) (bool, error) {
 	// Ensure transaction state is valid.
 	if err := tx.checkClosed(); err != nil {
 		return false, err
@@ -1213,7 +1214,7 @@ func (tx *transaction) HasBlock(hash *types.Hash) (bool, error) {
 //   - ErrTxClosed if the transaction has already been closed
 //
 // This function is part of the database.Tx interface implementation.
-func (tx *transaction) HasBlocks(hashes []types.Hash) ([]bool, error) {
+func (tx *transaction) HasBlocks(hashes []hash.Hash) ([]bool, error) {
 	// Ensure transaction state is valid.
 	if err := tx.checkClosed(); err != nil {
 		return nil, err
@@ -1229,7 +1230,7 @@ func (tx *transaction) HasBlocks(hashes []types.Hash) ([]bool, error) {
 
 // fetchBlockRow fetches the metadata stored in the block index for the provided
 // hash.  It will return ErrBlockNotFound if there is no entry.
-func (tx *transaction) fetchBlockRow(hash *types.Hash) ([]byte, error) {
+func (tx *transaction) fetchBlockRow(hash *hash.Hash) ([]byte, error) {
 	blockRow := tx.blockIdxBucket.Get(hash[:])
 	if blockRow == nil {
 		str := fmt.Sprintf("block %s does not exist", hash)
@@ -1255,7 +1256,7 @@ func (tx *transaction) fetchBlockRow(hash *types.Hash) ([]byte, error) {
 // implementations.
 //
 // This function is part of the database.Tx interface implementation.
-func (tx *transaction) FetchBlockHeader(hash *types.Hash) ([]byte, error) {
+func (tx *transaction) FetchBlockHeader(hash *hash.Hash) ([]byte, error) {
 	// Ensure transaction state is valid.
 	if err := tx.checkClosed(); err != nil {
 		return nil, err
@@ -1294,7 +1295,7 @@ func (tx *transaction) FetchBlockHeader(hash *types.Hash) ([]byte, error) {
 // allows support for memory-mapped database implementations.
 //
 // This function is part of the database.Tx interface implementation.
-func (tx *transaction) FetchBlockHeaders(hashes []types.Hash) ([][]byte, error) {
+func (tx *transaction) FetchBlockHeaders(hashes []hash.Hash) ([][]byte, error) {
 	// Ensure transaction state is valid.
 	if err := tx.checkClosed(); err != nil {
 		return nil, err
@@ -1308,11 +1309,11 @@ func (tx *transaction) FetchBlockHeaders(hashes []types.Hash) ([][]byte, error) 
 	// Load the headers.
 	headers := make([][]byte, len(hashes))
 	for i := range hashes {
-		hash := &hashes[i]
+		h := &hashes[i]
 
 		// When the block is pending to be written on commit return the
 		// bytes from there.
-		if idx, exists := tx.pendingBlocks[*hash]; exists {
+		if idx, exists := tx.pendingBlocks[*h]; exists {
 			blkBytes := tx.pendingBlockData[idx].bytes
 			headers[i] = blkBytes[0:blockHdrSize:blockHdrSize]
 			continue
@@ -1321,7 +1322,7 @@ func (tx *transaction) FetchBlockHeaders(hashes []types.Hash) ([][]byte, error) 
 		// Fetch the block index row and slice off the header.  Notice
 		// the use of the cap on the subslice to prevent the caller
 		// from accidentally appending into the db data.
-		blockRow, err := tx.fetchBlockRow(hash)
+		blockRow, err := tx.fetchBlockRow(h)
 		if err != nil {
 			return nil, err
 		}
@@ -1350,7 +1351,7 @@ func (tx *transaction) FetchBlockHeaders(hashes []types.Hash) ([][]byte, error) 
 // allows support for memory-mapped database implementations.
 //
 // This function is part of the database.Tx interface implementation.
-func (tx *transaction) FetchBlock(hash *types.Hash) ([]byte, error) {
+func (tx *transaction) FetchBlock(hash *hash.Hash) ([]byte, error) {
 	// Ensure transaction state is valid.
 	if err := tx.checkClosed(); err != nil {
 		return nil, err
@@ -1397,7 +1398,7 @@ func (tx *transaction) FetchBlock(hash *types.Hash) ([]byte, error) {
 // allows support for memory-mapped database implementations.
 //
 // This function is part of the database.Tx interface implementation.
-func (tx *transaction) FetchBlocks(hashes []types.Hash) ([][]byte, error) {
+func (tx *transaction) FetchBlocks(hashes []hash.Hash) ([][]byte, error) {
 	// Ensure transaction state is valid.
 	if err := tx.checkClosed(); err != nil {
 		return nil, err
@@ -2041,7 +2042,7 @@ func initDB(ldb *leveldb.DB) error {
 
 // openDB opens the database at the provided path.  database.ErrDbDoesNotExist
 // is returned if the database doesn't exist and the create flag is not set.
-func openDB(dbPath string, network params.Network, create bool) (database.DB, error) {
+func openDB(dbPath string, network protocol.Network, create bool) (database.DB, error) {
 	// Error if the database doesn't exist and the create flag is not set.
 	metadataDbPath := filepath.Join(dbPath, metadataDbName)
 	dbExists := fileExists(metadataDbPath)

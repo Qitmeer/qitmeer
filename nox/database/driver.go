@@ -87,3 +87,14 @@ func Open(dbType string, args ...interface{}) (DB, error) {
 
 	return drv.Open(args...)
 }
+
+// UseLogger uses a specified Logger to the registered database drivers .
+func UseLogger(logger log.Logger) {
+
+	// Update the logger for the registered drivers.
+	for _, drv := range drivers {
+		if drv.UseLogger != nil {
+			drv.UseLogger(logger)
+		}
+	}
+}

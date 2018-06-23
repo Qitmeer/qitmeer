@@ -8,9 +8,9 @@ package ffldb
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/log"
+	"github.com/noxproject/nox/core/protocol"
 )
 
 var dblog log.Logger
@@ -20,7 +20,7 @@ const (
 )
 
 // parseArgs parses the arguments from the database Open/Create methods.
-func parseArgs(funcName string, args ...interface{}) (string, params.Network, error) {
+func parseArgs(funcName string, args ...interface{}) (string, protocol.Network, error) {
 	if len(args) != 2 {
 		return "", 0, fmt.Errorf("invalid arguments to %s.%s -- "+
 			"expected database path and block network", dbType,
@@ -33,7 +33,7 @@ func parseArgs(funcName string, args ...interface{}) (string, params.Network, er
 			"expected database path string", dbType, funcName)
 	}
 
-	network, ok := args[1].(params.Network)
+	network, ok := args[1].(protocol.Network)
 	if !ok {
 		return "", 0, fmt.Errorf("second argument to %s.%s is invalid -- "+
 			"expected block network", dbType, funcName)

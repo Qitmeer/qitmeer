@@ -12,6 +12,7 @@ import (
 	"github.com/noxproject/nox/log"
 	"path/filepath"
 	"github.com/noxproject/nox/database"
+	 _ "github.com/noxproject/nox/database/ffldb"
 )
 
 const (

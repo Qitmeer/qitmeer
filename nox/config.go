@@ -19,6 +19,7 @@ const (
 	defaultConfigFilename        = "noxd.conf"
 	defaultDataDirname           = "data"
 	defaultLogLevel              = "info"
+	defaultDebugPrintOrigins     = false
 	defaultLogDirname            = "logs"
 	defaultLogFilename           = "noxd.log"
 	defaultGenerate              = false
@@ -52,7 +53,8 @@ type config struct {
 	PrivNet              bool          `long:"privnet" description:"Use the private network"`
 	DbType               string        `long:"dbtype" description:"Database backend to use for the Block Chain"`
 	Profile              string        `long:"profile" description:"Enable HTTP profiling on given [addr:]port -- NOTE port must be between 1024 and 65536"`
-	DebugLevel           string        `short:"d" long:"debuglevel" description:"Logging level for all subsystems {trace, debug, info, warn, error, critical} -- You may also specify <subsystem>=<level>,<subsystem2>=<level>,... to set the log level for individual subsystems -- Use show to list available subsystems"`
+	DebugLevel           string        `short:"d" long:"debuglevel" description:"Logging level {trace, debug, info, warn, error, critical} "`
+	DebugPrintOrigins    bool          `long:"printorigin" description:"Print log debug location (file:line) "`
 	Generate             bool          `long:"generate" description:"Generate (mine) coins using the CPU"`
 	MiningAddrs          []string      `long:"miningaddr" description:"Add the specified payment address to the list of addresses to use for generated blocks -- At least one address is required if the generate option is set"`
 }
@@ -66,6 +68,7 @@ func loadConfig() (*config, []string, error) {
 		HomeDir:              defaultHomeDir,
 		ConfigFile:           defaultConfigFile,
 		DebugLevel:           defaultLogLevel,
+		DebugPrintOrigins:    defaultDebugPrintOrigins,
 		DataDir:              defaultDataDir,
 		LogDir:               defaultLogDir,
 		DbType:               defaultDbType,
@@ -224,7 +227,6 @@ func loadConfig() (*config, []string, error) {
 	cfg.DataDir = filepath.Join(cfg.DataDir, activeNetParams.Name)
 
 	// Set logging file if presented
-	logRotator = nil
 	if !cfg.NoFileLogging {
 		// Append the network type to the log directory so it is "namespaced"
 		// per network in the same fashion as the data directory.
@@ -236,6 +238,18 @@ func loadConfig() (*config, []string, error) {
 		initLogRotator(filepath.Join(cfg.LogDir, defaultLogFilename))
 	}
 
+	// Parse, validate, and set debug log level(s).
+	if err := parseAndSetDebugLevels(cfg.DebugLevel); err != nil {
+		err := fmt.Errorf("%s: %v", funcName, err.Error())
+		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, usageMessage)
+		return nil, nil, err
+	}
+
+	// DebugPrintOrigins
+	if cfg.DebugPrintOrigins {
+		log.PrintOrigins(true)
+	}
 
 	// Warn about missing config file only after all other configuration is
 	// done.  This prevents the warning on help messages and invalid
@@ -261,3 +275,26 @@ func newConfigParser(cfg *config, options flags.Options) *flags.Parser {
 	}
 	return parser
 }
+
+// parseAndSetDebugLevels attempts to parse the specified debug level and set
+// the levels accordingly.  An appropriate error is returned if anything is
+// invalid.
+func parseAndSetDebugLevels(debugLevel string) error {
+
+	// When the specified string doesn't have any delimters, treat it as
+	// the log level for all subsystems.
+	if !strings.Contains(debugLevel, ",") && !strings.Contains(debugLevel, "=") {
+		// Validate debug log level.
+		lvl, err := log.LvlFromString(debugLevel)
+		if err != nil {
+			str := "the specified debug level [%v] is invalid"
+			return fmt.Errorf(str, debugLevel)
+		}
+		// Change the logging level for all subsystems.
+		glogger.Verbosity(lvl)
+		return nil
+	}
+	// TODO support log for subsystem
+	return nil
+}
+

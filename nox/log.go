@@ -11,6 +11,7 @@ import (
 	"github.com/noxproject/nox/log/term"
 	"path/filepath"
 	"fmt"
+	"github.com/noxproject/nox/database"
 )
 
 var (
@@ -37,15 +38,9 @@ func init() {
 	}
 	glogger = log.NewGlogHandler(log.StreamHandler(output, log.TerminalFormat(usecolor)))
 
-	// print log location (file:line) (useful for debug)
-	// TODO config & command line flag
-	log.PrintOrigins(false)
-
-	// set log level to info
-	// TODO config & comand line flag
-	glogger.Verbosity(log.LvlInfo)
-
 	log.Root().SetHandler(glogger)
+
+	database.UseLogger(log.New(log.Ctx{"module": "database"}))
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and

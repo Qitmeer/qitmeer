@@ -18,9 +18,9 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/params"
+	"github.com/noxproject/nox/core/protocol"
+	"github.com/noxproject/nox/common/hash"
 )
 
 const (
@@ -115,7 +115,7 @@ type blockStore struct {
 
 	// network is the specific network to use in the flat files for each
 	// block.
-	network params.Network
+	network protocol.Network
 
 	// basePath is the base path used for the flat block files and metadata.
 	basePath string
@@ -509,7 +509,7 @@ func (s *blockStore) writeBlock(rawBlock []byte) (blockLocation, error) {
 // read from the file.
 //
 // Format: <network><block length><serialized block><checksum>
-func (s *blockStore) readBlock(hash *types.Hash, loc blockLocation) ([]byte, error) {
+func (s *blockStore) readBlock(hash *hash.Hash, loc blockLocation) ([]byte, error) {
 	// Get the referenced block file handle opening the file as needed.  The
 	// function also handles closing files as needed to avoid going over the
 	// max allowed open files.
@@ -741,7 +741,7 @@ func scanBlockFiles(dbPath string) (int, uint32) {
 
 // newBlockStore returns a new block store with the current block file number
 // and offset set and all fields initialized.
-func newBlockStore(basePath string, network params.Network) *blockStore {
+func newBlockStore(basePath string, network protocol.Network) *blockStore {
 	// Look for the end of the latest block to file to determine what the
 	// write cursor position is from the viewpoing of the block files on
 	// disk.
