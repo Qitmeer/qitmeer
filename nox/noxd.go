@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"github.com/noxproject/nox/database"
 	 _ "github.com/noxproject/nox/database/ffldb"
+	"github.com/noxproject/nox/node"
 )
 
 const (
@@ -66,7 +67,7 @@ func main() {
 // optional serverChan parameter is mainly used by the service code to be
 // notified with the server once it is setup so it can gracefully stop it when
 // requested from the service control manager.
-func noxdMain(serverChan chan<- *peerServer) error {
+func noxdMain(serverChan chan<- *node.Node) error {
 
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.

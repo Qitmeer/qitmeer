@@ -1,8 +1,14 @@
-package main
+// Copyright (c) 2017-2018 The nox developers
+package node
 
+// Node works as a container server for all service can be registered.
+// such as p2p, rpc, ws etc.
+type Node struct {
+
+}
 
 // peer server handling communications to and from nox peers.
-type peerServer struct {
+type peerServer struct{
 	// The following variables must only be used atomically.
 	// Putting the uint64s first makes them 64-bit aligned for 32-bit systems.
 	bytesReceived uint64 // Total bytes received from all peers since start.
