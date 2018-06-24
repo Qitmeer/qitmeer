@@ -11,9 +11,9 @@ import (
 	"os"
 	"github.com/noxproject/nox/log"
 	"path/filepath"
+	"github.com/noxproject/nox/node"
 	"github.com/noxproject/nox/database"
 	 _ "github.com/noxproject/nox/database/ffldb"
-	"github.com/noxproject/nox/node"
 )
 
 const (
@@ -64,10 +64,10 @@ func main() {
 
 // noxdMain is the real main function for noxd.  It is necessary to work around
 // the fact that deferred functions do not run when os.Exit() is called.  The
-// optional serverChan parameter is mainly used by the service code to be
-// notified with the server once it is setup so it can gracefully stop it when
+// optional nodeChan parameter is mainly used by the service code to be
+// notified with the node once it is setup so it can gracefully stop it when
 // requested from the service control manager.
-func noxdMain(serverChan chan<- *node.Node) error {
+func noxdMain(nodeChan chan<- *node.Node) error {
 
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
@@ -107,6 +107,23 @@ func noxdMain(serverChan chan<- *node.Node) error {
 		return nil
 	}
 
+	// Create node and start it.
+	node, err := node.NewNode(cfg.Listeners, db, activeNetParams.Params,
+		interrupt)
+	if err != nil {
+		log.Error("Unable to start server","listeners",cfg.Listeners,"error", err)
+		return err
+	}
+	defer func() {
+		log.Info("Gracefully shutting down the server...")
+		node.Stop()
+		node.WaitForShutdown()
+		log.Info("Server shutdown complete")
+	}()
+	node.Start()
+	if nodeChan != nil {
+		nodeChan <- node
+	}
 	// Wait until the interrupt signal is received from an OS signal or
 	// shutdown is requested through one of the subsystems such as the RPC
 	// server.
