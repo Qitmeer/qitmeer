@@ -84,7 +84,7 @@ func noxdMain(nodeChan chan<- *node.Node) error {
 	defer log.Info("Shutdown complete")
 
 	// Show version and home dir at startup.
-	log.Info("System info", "Version", version(), "Go version",runtime.Version())
+	log.Info("System info", "Nox Version", version(), "Go version",runtime.Version())
 	log.Info("System info", "Home dir", cfg.HomeDir)
 	if cfg.NoFileLogging {
 		log.Info("File logging disabled")
