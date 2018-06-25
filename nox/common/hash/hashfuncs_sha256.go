@@ -8,7 +8,11 @@ package hash
 
 import (
 	"crypto/sha256"
+
 )
+
+// TODO switch to faster sha256 library
+// example: https://github.com/minio/sha256-simd
 
 // HashB calculates hash(b) and returns the resulting bytes.
 func HashB(b []byte) []byte {

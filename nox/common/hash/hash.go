@@ -28,6 +28,7 @@ type Hasher interface{
 type HashType byte
 
 // TODO refactoring hasher
+// consider to integrated https://github.com/multiformats/go-multihash
 const (
 	SHA256 HashType = iota
 	keccak_256

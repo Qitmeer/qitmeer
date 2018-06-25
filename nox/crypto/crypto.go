@@ -15,6 +15,8 @@ type PublicKey  crypto.PublicKey
 type PrivateKey interface {
 	Public() crypto.PublicKey
 }
+// TODO : refactor the interface design
+// consider to merge the design on https://github.com/libp2p/go-libp2p-crypto
 // EccPublicKey represents a public key using an elliptic eurves algorithm. (included edwards curves)
 type EccPublicKey interface {
 
