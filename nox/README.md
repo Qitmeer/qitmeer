@@ -2,7 +2,9 @@
 How to build
 
 ```
-$ go get -u golang.org/x/crypto/...
-$ go get -u golang.org/x/tools/...
+go get -u github.com/golang/dep/cmd/dep
+dep ensure
+go build
+./nox
 ```
 
