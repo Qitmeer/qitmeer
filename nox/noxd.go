@@ -7,7 +7,6 @@ package main
 import (
 	"runtime"
 	"runtime/debug"
-	"fmt"
 	"os"
 	"github.com/noxproject/nox/log"
 	"path/filepath"
@@ -27,10 +26,6 @@ var (
 	cfg *config
 )
 
-// winServiceMain is only invoked on Windows.  It detects when dcrd is running
-// as a service and reacts accordingly.
-var winServiceMain func() (bool, error)
-
 func main() {
 
 	// Initialize the goroutine count,  Use all processor cores.
@@ -41,20 +36,6 @@ func main() {
 	// bursts.  This value was arrived at with the help of profiling live
 	// usage.
 	debug.SetGCPercent(20)
-
-	// Call serviceMain on Windows to handle running as a service.  When
-	// the return isService flag is true, exit now since we ran as a
-	// service.  Otherwise, just fall through to normal operation.
-	if runtime.GOOS == "windows" {
-		isService, err := winServiceMain()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		if isService {
-			os.Exit(0)
-		}
-	}
 
 	// Work around defer not working after os.Exit()
 	if err := noxdMain(nil); err != nil {

@@ -270,11 +270,6 @@ type serviceOptions struct {
 // newConfigParser returns a new command line flags parser.
 func newConfigParser(cfg *config, options flags.Options) *flags.Parser {
 	parser := flags.NewParser(cfg, options)
-	if runtime.GOOS == "windows" {
-		// Service options which are only added on Windows.
-		serviceOpts := serviceOptions{}
-		parser.AddGroup("Service Options", "Service Options", serviceOpts)
-	}
 	return parser
 }
 

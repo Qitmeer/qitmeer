@@ -5,9 +5,9 @@ import (
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/rpc"
-	"sync"
 	"time"
 	"github.com/noxproject/nox/log"
+	"github.com/noxproject/nox/common/util"
 )
 
 // Node works as a server container for all service can be registered.
@@ -15,7 +15,7 @@ import (
 type Node struct {
 	peerServer    *peerServer
 	rpcServer     *rpc.RpcServer
-	wg            sync.WaitGroup
+	wg            util.WaitGroupWrapper
 	startupTime   int64
 }
 

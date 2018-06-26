@@ -4,6 +4,7 @@ package rpc
 
 import (
 	"sync"
+	"github.com/noxproject/nox/common/util"
 )
 
 // RpcServer provides a concurrent safe RPC server to a chain server.
@@ -13,7 +14,7 @@ type RpcServer struct {
 	numClients             int32
 	statusLines            map[int]string
 	statusLock             sync.RWMutex
-	wg                     sync.WaitGroup
+	wg                     util.WaitGroupWrapper
 	requestProcessShutdown chan struct{}
 	quit                   chan int
 }
