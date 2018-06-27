@@ -5,7 +5,6 @@ import (
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/rpc"
-	"time"
 	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/common/util"
 	"github.com/noxproject/nox/p2p"
@@ -14,6 +13,7 @@ import (
 	"github.com/noxproject/nox/config"
 	"sync/atomic"
 	"sync"
+	"time"
 )
 
 // Node works as a server container for all service can be registered.
@@ -38,15 +38,32 @@ type Node struct {
 	runningSvcs   map[reflect.Type]Service
 	// network layer
 	peerServer    *p2p.PeerServer
-	/// api layer
+	// api layer
 	rpcServer     *rpc.RpcServer
 }
 
-func NewNode(conf *config.Config, db database.DB, chainParams *params.Params) (*Node,error) {
-    return &Node{
+func NewNode(cfg *config.Config, database database.DB, chainParams *params.Params) (*Node,error) {
+
+	n := Node{
+		db    : database,
 		params: chainParams,
 		quit:   make(chan struct{}),
-	},nil
+	}
+
+	server, err := p2p.NewPeerServer(cfg,database,chainParams)
+	if err != nil {
+		return nil, err
+	}
+	n.peerServer = server
+
+	if !cfg.DisableRPC {
+		n.rpcServer, err = rpc.NewRPCServer(cfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+    return &n, nil
 }
 
 func (n *Node) Stop() error {
@@ -118,6 +135,7 @@ func (n *Node) Start() error {
 	// Server startup time. Used for the uptime command for uptime calculation.
 	n.startupTime = time.Now().Unix()
 	n.wg.Wrap(n.nodeEventHandler)
+
 	return nil
 }
 
