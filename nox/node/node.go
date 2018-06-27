@@ -36,14 +36,6 @@ type Node struct {
 
 }
 
-// newNode returns a new nox node which configured to listen on addr for the
-// nox network type specified by the network Params.
-func NewNode(listenAddrs []string, db database.DB, params *params.Params, interrupt <-chan struct{}) (*Node, error) {
-	node := Node{
-	}
-	return &node,nil
-}
-
 func (n *Node) Stop() error {
 	return nil
 }

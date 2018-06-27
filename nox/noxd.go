@@ -8,9 +8,11 @@ import (
 	"runtime"
 	"runtime/debug"
 	"os"
-	"github.com/noxproject/nox/log"
 	"path/filepath"
+	"github.com/noxproject/nox/config"
+	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/node"
+	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/database"
 	 _ "github.com/noxproject/nox/database/ffldb"
 )
@@ -23,7 +25,7 @@ const (
 )
 
 var (
-	cfg *config
+	cfg *config.Config
 )
 
 func main() {
@@ -89,8 +91,7 @@ func noxdMain(nodeChan chan<- *node.Node) error {
 	}
 
 	// Create node and start it.
-	node, err := node.NewNode(cfg.Listeners, db, activeNetParams.Params,
-		interrupt)
+	node, err := makeNode(db, activeNetParams.Params, interrupt)
 	if err != nil {
 		log.Error("Unable to start server","listeners",cfg.Listeners,"error", err)
 		return err
@@ -152,6 +153,14 @@ func blockDbPath(dbType string) string {
 	dbName := blockDbNamePrefix + "_" + dbType
 	dbPath := filepath.Join(cfg.DataDir, dbName)
 	return dbPath
+}
+
+// newNode returns a new nox node which configured to listen on addr for the
+// nox network type specified by the network Params.
+func makeNode(db database.DB, params *params.Params, interrupt <-chan struct{}) (*node.Node, error) {
+	node := node.Node{
+	}
+	return &node,nil
 }
 
 
