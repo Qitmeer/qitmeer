@@ -158,9 +158,11 @@ func blockDbPath(dbType string) string {
 // newNode returns a new nox node which configured to listen on addr for the
 // nox network type specified by the network Params.
 func makeNode(db database.DB, params *params.Params, interrupt <-chan struct{}) (*node.Node, error) {
-	node := node.Node{
+	n,err := node.NewNode(cfg,db,params)
+	if err != nil{
+		return nil, err
 	}
-	return &node,nil
+	return n,nil
 }
 
 

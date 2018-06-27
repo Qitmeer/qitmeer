@@ -18,6 +18,18 @@ type Service interface {
 	Stop() error
 }
 
+// ServiceContext is a collection of service independent options inherited from
+// the protocol stack, that is passed to all constructors to be optionally used;
+// as well as utility methods to operate on the service environment.
+type ServiceContext struct {
+
+}
+
+// ServiceConstructor is the function signature of the constructors needed to be
+// registered for service instantiation.
+type ServiceConstructor func(ctx *ServiceContext) (Service, error)
+
+
 type service struct {
 	//   account/wallet service
 	acctmanager           *acct.AccountManager
