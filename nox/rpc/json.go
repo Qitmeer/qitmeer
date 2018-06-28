@@ -31,7 +31,7 @@ import (
 
 const (
 	jsonrpcVersion           = "2.0"
-	defaultServiceNameSpace  = "|nox|"
+	DefaultServiceNameSpace  = "|nox|"
 	serviceMethodSeparator   = "_"
 	subscribeMethodSuffix    = "_subscribe"
 	unsubscribeMethodSuffix  = "_unsubscribe"
@@ -220,7 +220,7 @@ func parseRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) {
 		if elem := strings.Split(r.Method, serviceMethodSeparator); len(elem) == 2 {
 			requests[i].service, requests[i].method = elem[0], elem[1]
 		}else if len(elem) == 1{
-			requests[i].service, requests[i].method = defaultServiceNameSpace, elem[0]
+			requests[i].service, requests[i].method = DefaultServiceNameSpace, elem[0]
 		}else {
 			requests[i].err = &methodNotFoundError{"",r.Method}
 		}

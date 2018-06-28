@@ -22,7 +22,12 @@ func (a *AccountManager) Stop() error {
 }
 
 func (a AccountManager)	APIs() []rpc.API {
-	return nil
+	return []rpc.API{
+		{
+			NameSpace: rpc.DefaultServiceNameSpace,
+			Service:   NewPublicAccountManagerAPI(&a),
+		},
+	}
 }
 
 func New() (*AccountManager, error){

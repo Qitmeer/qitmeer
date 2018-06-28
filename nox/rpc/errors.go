@@ -27,7 +27,7 @@ type methodNotFoundError struct {
 func (e *methodNotFoundError) ErrorCode() int { return -32601 }
 
 func (e *methodNotFoundError) Error() string {
-	if e.service == defaultServiceNameSpace {
+	if e.service == DefaultServiceNameSpace {
 		return fmt.Sprintf("The method %s does not exist/is not available", e.method)
 	}
 	return fmt.Sprintf("The method %s%s%s does not exist/is not available", e.service, serviceMethodSeparator, e.method)
