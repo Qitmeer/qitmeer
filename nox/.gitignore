@@ -37,5 +37,6 @@ profile.cov
 vendor
 
 # Binaries
+*.exe
 nox
 tools/rlpdump/rlpdump
