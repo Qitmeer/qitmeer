@@ -194,9 +194,15 @@
   ]
   revision = "53440098a4ee92255ee62fe260cd95970c544076"
 
+[[projects]]
+  name = "gopkg.in/fatih/set.v0"
+  packages = ["."]
+  revision = "57907de300222151a123d29255ed17f5ed43fad3"
+  version = "v0.1.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ac2ad6ce10d0a278bf5bb7c4e9f7c9605a37bf6e780434277335f9901866f428"
+  inputs-digest = "94624f98b3a85e73a1fca77a4b45f52286bcc6c4b5591c3f06faa47bc6c9bfac"
   solver-name = "gps-cdcl"
   solver-version = 1

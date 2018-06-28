@@ -16,6 +16,12 @@ import (
 	"github.com/noxproject/nox/log"
 	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/base64"
+	"golang.org/x/net/context"
+	"io"
+	"runtime"
+	"gopkg.in/fatih/set.v0"
+	"strings"
 )
 
 // API describes the set of methods offered over the RPC interface
@@ -27,8 +33,7 @@ type API struct {
 // RpcServer provides a concurrent safe RPC server to a chain server.
 type RpcServer struct {
 
-	started                int32
-	shutdown               int32
+	run                    int32
 	wg                     util.WaitGroupWrapper
 	quit                   chan int
 	statusLock             sync.RWMutex
@@ -37,8 +42,10 @@ type RpcServer struct {
 
 	rpcSvcRegistry         serviceRegistry
 
+	codecsMu               sync.Mutex
+	codecs                 *set.Set
+
 	authsha                [sha256.Size]byte
-	limitauthsha           [sha256.Size]byte
 	numClients             int32
 	statusLines            map[int]string
 	requestProcessShutdown chan struct{}
@@ -80,6 +87,16 @@ type rpcRequest struct {
 	err      Error // invalid batch element
 }
 
+// serverRequest is an incoming request
+type serverRequest struct {
+	id            interface{}
+	svcname       string
+	callb         *callback
+	args          []reflect.Value
+	isUnsubscribe bool
+	err           Error
+}
+
 
 // newRPCServer returns a new instance of the rpcServer struct.
 func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
@@ -88,10 +105,18 @@ func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 		config:                 cfg,
 
 		rpcSvcRegistry:         make(serviceRegistry),
+		codecs:                 set.New(),
 
 		statusLines:            make(map[int]string),
 		requestProcessShutdown: make(chan struct{}),
 		quit: make(chan int),
+	}
+
+	if cfg.RPCUser != "" && cfg.RPCPass != "" {
+		login := cfg.RPCUser + ":" + cfg.RPCPass
+		auth := "Basic " +
+			base64.StdEncoding.EncodeToString([]byte(login))
+		rpc.authsha = sha256.Sum256([]byte(auth))
 	}
 	return &rpc, nil
 }
@@ -101,7 +126,22 @@ func (s *RpcServer) Start() error {
 	if err := s.startHTTP(s.config.Listeners); err!=nil {
 		return err
 	}
+	s.run = 1
 	return nil
+}
+
+// Stop will stop reading new requests, wait for stopPendingRequestTimeout to allow pending requests to finish,
+// close all codecs which will cancel pending requests/subscriptions.
+func (s *RpcServer) Stop() {
+	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
+		log.Debug("RPC Server is stopping")
+		s.codecsMu.Lock()
+		defer s.codecsMu.Unlock()
+		s.codecs.Each(func(c interface{}) bool {
+			c.(ServerCodec).Close()
+			return true
+		})
+	}
 }
 
 const (
@@ -134,13 +174,13 @@ func (s *RpcServer) startHTTP(listenAddrs []string) error{
 		// Keep track of the number of connected clients.
 		s.incrementClients()
 		defer s.decrementClients()
-		_, isAdmin, err := s.checkAuth(r, true)
+		_, err := s.checkAuth(r, true)
 		if err != nil {
 			jsonAuthFail(w)
 			return
 		}
 		// Read and respond to the request.
-		s.jsonRPCRead(w, r, isAdmin)
+		s.jsonRPCRead(w, r)
 	})
 	listeners, err := ParseListeners(s.config,listenAddrs);
 	if err!=nil {
@@ -164,9 +204,8 @@ func (s *RpcServer) startHTTP(listenAddrs []string) error{
 // This function is safe for concurrent access.
 func (s *RpcServer) limitConnections(w http.ResponseWriter, remoteAddr string) bool {
 	if int(atomic.LoadInt32(&s.numClients)+1) > s.config.RPCMaxClients {
-		log.Info("Max RPC clients exceeded [%d] - "+
-			"disconnecting client %s", s.config.RPCMaxClients,
-			remoteAddr)
+		log.Info("RPC clients exceeded","max",s.config.RPCMaxClients,
+			"client",remoteAddr)
 		http.Error(w, "503 Too busy.  Try again later.",
 			http.StatusServiceUnavailable)
 		return true
@@ -192,45 +231,35 @@ func (s *RpcServer) decrementClients() {
 	atomic.AddInt32(&s.numClients, -1)
 }
 
+// TODO, repalace Basic Authentication
 // checkAuth checks the HTTP Basic authentication supplied by a wallet or RPC
 // client in the HTTP request r.  If the supplied authentication does not match
 // the username and password expected, a non-nil error is returned.
 //
 // This check is time-constant.
-//
-// The first bool return value signifies auth success (true if successful) and
-// the second bool return value specifies whether the user can change the state
-// of the server (true) or whether the user is limited (false). The second is
-// always false if the first is.
-func (s *RpcServer) checkAuth(r *http.Request, require bool) (bool, bool, error) {
+func (s *RpcServer) checkAuth(r *http.Request, require bool) (bool, error) {
 	authhdr := r.Header["Authorization"]
 	if len(authhdr) <= 0 {
 		if require {
-			log.Warn("RPC authentication failure from %s", r.RemoteAddr)
-			return false, false, fmt.Errorf("auth failure")
+			log.Warn("RPC authentication failure", "from", r.RemoteAddr,
+				"error","no authorization header")
+			return false, fmt.Errorf("auth failure")
 		}
 
-		return false, false, nil
+		return false, nil
 	}
 
 	authsha := sha256.Sum256([]byte(authhdr[0]))
 
-	// Check for limited auth first as in environments with limited users,
-	// those are probably expected to have a higher volume of calls
-	limitcmp := subtle.ConstantTimeCompare(authsha[:], s.limitauthsha[:])
-	if limitcmp == 1 {
-		return true, false, nil
-	}
-
-	// Check for admin-level auth
+	// Check for auth
 	cmp := subtle.ConstantTimeCompare(authsha[:], s.authsha[:])
 	if cmp == 1 {
-		return true, true, nil
+		return true, nil
 	}
 
 	// Request's auth doesn't match either user
-	log.Warn("RPC authentication failure from %s", r.RemoteAddr)
-	return false, false, fmt.Errorf("auth failure")
+	log.Warn("RPC authentication failure", "from", r.RemoteAddr)
+	return false, fmt.Errorf("auth failure")
 }
 
 // jsonAuthFail sends a message back to the client if the http auth is rejected.
@@ -239,13 +268,364 @@ func jsonAuthFail(w http.ResponseWriter) {
 	http.Error(w, "401 Unauthorized.", http.StatusUnauthorized)
 }
 
+// CodecOption specifies which type of messages this codec supports
+type CodecOption int
+
+const (
+	// OptionMethodInvocation is an indication that the codec supports RPC method calls
+	OptionMethodInvocation CodecOption = 1 << iota
+
+	// OptionSubscriptions is an indication that the codec suports RPC notifications
+	OptionSubscriptions = 1 << iota // support pub sub
+)
+
 // jsonRPCRead handles reading and responding to RPC messages.
-func (s *RpcServer) jsonRPCRead(w http.ResponseWriter, r *http.Request, isAdmin bool) {
-	if atomic.LoadInt32(&s.shutdown) != 0 {
+func (s *RpcServer) jsonRPCRead(w http.ResponseWriter, r *http.Request) {
+	if atomic.LoadInt32(&s.run) != 1 { // server stopped
 		return
 	}
-	log.Debug("jsonRPC ", "request",r)
+	// discard dumb empty requests
+	if emptyRequest(r) {
+		log.Trace("Discard empty request", "from",r.RemoteAddr, "request",r)
+		return
+	}
+	// validate request
+	if code, err := validateRequest(r); err != nil {
+		http.Error(w, err.Error(), code)
+		return
+	}
+	// All checks passed, create a codec that reads direct from the request body
+	// untilEOF and writes the response to w and order the server to process a
+	// single request.
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, "remote", r.RemoteAddr)
+	ctx = context.WithValue(ctx, "scheme", r.Proto)
+	ctx = context.WithValue(ctx, "local", r.Host)
+
+	// Read and close the JSON-RPC request body from the caller.
+	body := io.LimitReader(r.Body, maxRequestContentLength)
+	codec := NewJSONCodec(&httpReadWriteNopCloser{body, w})
+	defer codec.Close()
+
+	log.Trace("jsonRPCRead", "body",body, "codec",codec)
+
+	s.ServeSingleRequest(ctx, codec, OptionMethodInvocation)
 }
+
+// ServeSingleRequest reads and processes a single RPC request from the given codec. It will not
+// close the codec unless a non-recoverable error has occurred. Note, this method will return after
+// a single request has been processed!
+func (s *RpcServer) ServeSingleRequest(ctx context.Context, codec ServerCodec, options CodecOption) {
+	s.serveRequest(ctx, codec, true, options)
+}
+
+// serveRequest will reads requests from the codec, calls the RPC callback and
+// writes the response to the given codec.
+//
+// If singleShot is true it will process a single request, otherwise it will handle
+// requests until the codec returns an error when reading a request (in most cases
+// an EOF). It executes requests in parallel when singleShot is false.
+func (s *RpcServer) serveRequest(ctx context.Context, codec ServerCodec, singleShot bool, options CodecOption) error {
+	var pend sync.WaitGroup
+
+	defer func() {
+		if err := recover(); err != nil {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			log.Error(string(buf))
+		}
+		s.codecsMu.Lock()
+		s.codecs.Remove(codec)
+		s.codecsMu.Unlock()
+	}()
+
+	//	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// if the codec supports notification include a notifier that callbacks can use
+	// to send notification to clients. It is tied to the codec/connection. If the
+	// connection is closed the notifier will stop and cancels all active subscriptions.
+	if options&OptionSubscriptions == OptionSubscriptions {
+		ctx = context.WithValue(ctx, notifierKey{}, newNotifier(codec))
+	}
+	s.codecsMu.Lock()
+	if atomic.LoadInt32(&s.run) != 1 { // server stopped
+		s.codecsMu.Unlock()
+		return &shutdownError{}
+	}
+	s.codecs.Add(codec)
+	s.codecsMu.Unlock()
+
+	// test if the server is ordered to stop
+	for atomic.LoadInt32(&s.run) == 1 {
+		reqs, batch, err := s.readRequest(codec)
+		if err != nil {
+			// If a parsing error occurred, send an error
+			if err.Error() != "EOF" {
+				log.Debug(fmt.Sprintf("read error %v\n", err))
+				codec.Write(codec.CreateErrorResponse(nil, err))
+			}
+			// Error or end of stream, wait for requests and tear down
+			pend.Wait()
+			return nil
+		}
+
+		// check if server is ordered to shutdown and return an error
+		// telling the client that his request failed.
+		if atomic.LoadInt32(&s.run) != 1 {
+			err = &shutdownError{}
+			if batch {
+				resps := make([]interface{}, len(reqs))
+				for i, r := range reqs {
+					resps[i] = codec.CreateErrorResponse(&r.id, err)
+				}
+				codec.Write(resps)
+			} else {
+				codec.Write(codec.CreateErrorResponse(&reqs[0].id, err))
+			}
+			return nil
+		}
+		// If a single shot request is executing, run and return immediately
+		if singleShot {
+			if batch {
+				s.execBatch(ctx, codec, reqs)
+			} else {
+				s.exec(ctx, codec, reqs[0])
+			}
+			return nil
+		}
+		// For multi-shot connections, start a goroutine to serve and loop back
+		pend.Add(1)
+
+		go func(reqs []*serverRequest, batch bool) {
+			defer pend.Done()
+			if batch {
+				s.execBatch(ctx, codec, reqs)
+			} else {
+				s.exec(ctx, codec, reqs[0])
+			}
+		}(reqs, batch)
+	}
+	return nil
+}
+
+// httpReadWriteNopCloser wraps a io.Reader and io.Writer with a NOP Close method.
+type httpReadWriteNopCloser struct {
+	io.Reader
+	io.Writer
+}
+
+// Close does nothing and returns always nil
+func (t *httpReadWriteNopCloser) Close() error {
+	return nil
+}
+
+// readRequest requests the next (batch) request from the codec. It will return the collection
+// of requests, an indication if the request was a batch, the invalid request identifier and an
+// error when the request could not be read/parsed.
+func (s *RpcServer) readRequest(codec ServerCodec) ([]*serverRequest, bool, Error) {
+	reqs, batch, err := codec.ReadRequestHeaders()
+	if err != nil {
+		return nil, batch, err
+	}
+
+	requests := make([]*serverRequest, len(reqs))
+
+	// verify requests
+	for i, r := range reqs {
+		var ok bool
+		var svc *service
+
+		if r.err != nil {
+			requests[i] = &serverRequest{id: r.id, err: r.err}
+			continue
+		}
+
+		if r.isPubSub && strings.HasSuffix(r.method, unsubscribeMethodSuffix) {
+			requests[i] = &serverRequest{id: r.id, isUnsubscribe: true}
+			argTypes := []reflect.Type{reflect.TypeOf("")} // expect subscription id as first arg
+			if args, err := codec.ParseRequestArguments(argTypes, r.params); err == nil {
+				requests[i].args = args
+			} else {
+				requests[i].err = &invalidParamsError{err.Error()}
+			}
+			continue
+		}
+
+		if svc, ok = s.rpcSvcRegistry[r.service]; !ok { // rpc method isn't available
+			requests[i] = &serverRequest{id: r.id, err: &methodNotFoundError{r.service, r.method}}
+			continue
+		}
+
+		if r.isPubSub { // eth_subscribe, r.method contains the subscription method name
+			if callb, ok := svc.subscriptions[r.method]; ok {
+				requests[i] = &serverRequest{id: r.id, svcname: svc.svcNamespace, callb: callb}
+				if r.params != nil && len(callb.argTypes) > 0 {
+					argTypes := []reflect.Type{reflect.TypeOf("")}
+					argTypes = append(argTypes, callb.argTypes...)
+					if args, err := codec.ParseRequestArguments(argTypes, r.params); err == nil {
+						requests[i].args = args[1:] // first one is service.method name which isn't an actual argument
+					} else {
+						requests[i].err = &invalidParamsError{err.Error()}
+					}
+				}
+			} else {
+				requests[i] = &serverRequest{id: r.id, err: &methodNotFoundError{r.service, r.method}}
+			}
+			continue
+		}
+
+		if callb, ok := svc.callbacks[r.method]; ok { // lookup RPC method
+			requests[i] = &serverRequest{id: r.id, svcname: svc.svcNamespace, callb: callb}
+			if r.params != nil && len(callb.argTypes) > 0 {
+				if args, err := codec.ParseRequestArguments(callb.argTypes, r.params); err == nil {
+					requests[i].args = args
+				} else {
+					requests[i].err = &invalidParamsError{err.Error()}
+				}
+			}
+			continue
+		}
+
+		requests[i] = &serverRequest{id: r.id, err: &methodNotFoundError{r.service, r.method}}
+	}
+
+	return requests, batch, nil
+}
+
+// execBatch executes the given requests and writes the result back using the codec.
+// It will only write the response back when the last request is processed.
+func (s *RpcServer) execBatch(ctx context.Context, codec ServerCodec, requests []*serverRequest) {
+	responses := make([]interface{}, len(requests))
+	var callbacks []func()
+	for i, req := range requests {
+		if req.err != nil {
+			responses[i] = codec.CreateErrorResponse(&req.id, req.err)
+		} else {
+			var callback func()
+			if responses[i], callback = s.handle(ctx, codec, req); callback != nil {
+				callbacks = append(callbacks, callback)
+			}
+		}
+	}
+
+	if err := codec.Write(responses); err != nil {
+		log.Error(fmt.Sprintf("%v\n", err))
+		codec.Close()
+	}
+
+	// when request holds one of more subscribe requests this allows these subscriptions to be activated
+	for _, c := range callbacks {
+		c()
+	}
+}
+
+// exec executes the given request and writes the result back using the codec.
+func (s *RpcServer) exec(ctx context.Context, codec ServerCodec, req *serverRequest) {
+	var response interface{}
+	var callback func()
+	if req.err != nil {
+		response = codec.CreateErrorResponse(&req.id, req.err)
+	} else {
+		response, callback = s.handle(ctx, codec, req)
+	}
+
+	if err := codec.Write(response); err != nil {
+		log.Error(fmt.Sprintf("%v\n", err))
+		codec.Close()
+	}
+
+	// when request was a subscribe request this allows these subscriptions to be actived
+	if callback != nil {
+		callback()
+	}
+}
+
+// handle executes a request and returns the response from the callback.
+func (s *RpcServer) handle(ctx context.Context, codec ServerCodec, req *serverRequest) (interface{}, func()) {
+	if req.err != nil {
+		return codec.CreateErrorResponse(&req.id, req.err), nil
+	}
+
+	if req.isUnsubscribe { // cancel subscription, first param must be the subscription id
+		if len(req.args) >= 1 && req.args[0].Kind() == reflect.String {
+			notifier, supported := NotifierFromContext(ctx)
+			if !supported { // interface doesn't support subscriptions (e.g. http)
+				return codec.CreateErrorResponse(&req.id, &callbackError{ErrNotificationsUnsupported.Error()}), nil
+			}
+
+			subid := ID(req.args[0].String())
+			if err := notifier.unsubscribe(subid); err != nil {
+				return codec.CreateErrorResponse(&req.id, &callbackError{err.Error()}), nil
+			}
+
+			return codec.CreateResponse(req.id, true), nil
+		}
+		return codec.CreateErrorResponse(&req.id, &invalidParamsError{"Expected subscription id as first argument"}), nil
+	}
+
+	if req.callb.isSubscribe {
+		subid, err := s.createSubscription(ctx, codec, req)
+		if err != nil {
+			return codec.CreateErrorResponse(&req.id, &callbackError{err.Error()}), nil
+		}
+
+		// active the subscription after the sub id was successfully sent to the client
+		activateSub := func() {
+			notifier, _ := NotifierFromContext(ctx)
+			notifier.activate(subid, req.svcname)
+		}
+
+		return codec.CreateResponse(req.id, subid), activateSub
+	}
+
+	// regular RPC call, prepare arguments
+	if len(req.args) != len(req.callb.argTypes) {
+		rpcErr := &invalidParamsError{fmt.Sprintf("%s%s%s expects %d parameters, got %d",
+			req.svcname, serviceMethodSeparator, req.callb.method.Name,
+			len(req.callb.argTypes), len(req.args))}
+		return codec.CreateErrorResponse(&req.id, rpcErr), nil
+	}
+
+	arguments := []reflect.Value{req.callb.receiver}
+	if req.callb.hasCtx {
+		arguments = append(arguments, reflect.ValueOf(ctx))
+	}
+	if len(req.args) > 0 {
+		arguments = append(arguments, req.args...)
+	}
+
+	// execute RPC method and return result
+	reply := req.callb.method.Func.Call(arguments)
+	if len(reply) == 0 {
+		return codec.CreateResponse(req.id, nil), nil
+	}
+	if req.callb.errPos >= 0 { // test if method returned an error
+		if !reply[req.callb.errPos].IsNil() {
+			e := reply[req.callb.errPos].Interface().(error)
+			res := codec.CreateErrorResponse(&req.id, &callbackError{e.Error()})
+			return res, nil
+		}
+	}
+	return codec.CreateResponse(req.id, reply[0].Interface()), nil
+}
+
+// createSubscription will call the subscription callback and returns the subscription id or error.
+func (s *RpcServer) createSubscription(ctx context.Context, c ServerCodec, req *serverRequest) (ID, error) {
+	// subscription have as first argument the context following optional arguments
+	args := []reflect.Value{req.callb.receiver, reflect.ValueOf(ctx)}
+	args = append(args, req.args...)
+	reply := req.callb.method.Func.Call(args)
+
+	if !reply[1].IsNil() { // subscription creation failed
+		return "", reply[1].Interface().(error)
+	}
+
+	return reply[0].Interface().(*Subscription).ID, nil
+}
+
 
 // RegisterService will create a service for the given type under the given namespace.
 // When no methods on the given type match the criteria to be either a RPC method or

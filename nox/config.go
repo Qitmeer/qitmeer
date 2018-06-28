@@ -24,6 +24,7 @@ const (
 	defaultLogDirname            = "logs"
 	defaultLogFilename           = "noxd.log"
 	defaultGenerate              = false
+	defaultMaxRPCClients         = 10
 
 )
 
@@ -54,6 +55,7 @@ func loadConfig() (*config.Config, []string, error) {
 		DbType:               defaultDbType,
 		RPCKey:               defaultRPCKeyFile,
 		RPCCert:              defaultRPCCertFile,
+		RPCMaxClients:        defaultMaxRPCClients,
 		Generate:             defaultGenerate,
 	}
 

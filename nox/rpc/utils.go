@@ -332,7 +332,7 @@ func ParseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) 
 		listeners = append(listeners, listener)
 	}
 	if len(listeners) == 0 {
-		return nil, fmt.Errorf("RPCS: No valid listen address")
+		return nil, fmt.Errorf("No valid listen address")
 	}
 	return listeners, nil
 }
