@@ -106,7 +106,11 @@ func noxdMain(nodeChan chan<- *node.Node) error {
 		n.WaitForShutdown()
 		log.Info("Server shutdown complete")
 	}()
-	n.Start()
+	err = n.Start()
+	if err != nil {
+		log.Error("Uable to start server", "error",err)
+		return err
+	}
 
 	if nodeChan != nil {
 		nodeChan <- n
