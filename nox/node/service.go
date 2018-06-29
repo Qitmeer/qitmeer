@@ -1,16 +1,13 @@
 package node
 
 import (
-	"github.com/noxproject/nox/services/acct"
-	"github.com/noxproject/nox/services/blkmgr"
-	"github.com/noxproject/nox/services/mempool"
-	"github.com/noxproject/nox/services/miner"
 	"reflect"
 	"fmt"
 	"github.com/noxproject/nox/p2p"
 	"github.com/noxproject/nox/rpc"
 )
 
+// Service is a service can be registered into & running in a Node
 type Service interface {
 
 	// APIs retrieves the list of RPC descriptors the service provides
@@ -57,17 +54,3 @@ func NewServiceConstructor(name string, constructor func(ctx *ServiceContext) (S
 	}
 	return sc
 }
-
-
-type service struct {
-	//   account/wallet service
-	acctmanager           *acct.AccountManager
-	//   block manager handles all incoming blocks.
-	blockManager         *blkmgr.BlockManager
-	//   mempool of transactions that need to be mined into blocks and relayed to other peers.
-	txMemPool            *mempool.TxPool
-	//   miner service
-	cpuMiner             *miner.CPUMiner
-
-}
-

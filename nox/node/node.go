@@ -35,7 +35,7 @@ type Node struct {
 	// database layer
 	db            database.DB
 
-	// network layer
+	// network server
 	peerServer    *p2p.PeerServer
 
 	// service layer
@@ -44,7 +44,7 @@ type Node struct {
     // Currently registered & running services
 	runningSvcs   map[reflect.Type]Service
 
-	// api layer
+	// api server
 	rpcServer     *rpc.RpcServer
 
 
@@ -156,7 +156,7 @@ func (n *Node) Start() error {
 		}
 		// Mark the service has been started
 		startedSvs = append(startedSvs, kind)
-		log.Debug("Service started", "service",kind)
+		log.Debug("Node service started", "service",kind)
 	}
 	n.runningSvcs = services
 
@@ -206,7 +206,7 @@ func (n *Node) startRPC(services map[reflect.Type]Service) error {
 		if err := n.rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
 			return err
 		}
-		log.Debug("Service registered", "service", api.Service)
+		log.Debug("RPC Service API registered", "api", reflect.TypeOf(api.Service))
 	}
 	if err := n.rpcServer.Start(); err != nil {
 		return err

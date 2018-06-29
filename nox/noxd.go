@@ -15,7 +15,6 @@ import (
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/database"
 	 _ "github.com/noxproject/nox/database/ffldb"
-	"github.com/noxproject/nox/services/acct"
 )
 
 const (
@@ -164,28 +163,21 @@ func blockDbPath(dbType string) string {
 	return dbPath
 }
 
-// newNode returns a new nox node which configured to listen on addr for the
-// nox network type specified by the network Params.
+// makeNode returns a new nox node which been registered the node service
+// and ready to start
 func makeNode(db database.DB, params *params.Params, interrupt <-chan struct{}) (*node.Node, error) {
 	n,err := node.NewNode(cfg,db,params)
 	if err != nil{
 		return nil, err
 	}
-	err = registerAcctMgr(n)
+	//TODO do register by config
+	err = node.RegisterNoxFull(n)
 	if err != nil {
 		return nil, err
 	}
 	return n,nil
 }
 
-func registerAcctMgr(n *node.Node) error{
-	// register acctmgr
-	err := n.Register(node.NewServiceConstructor("acctMgr",
-		func(ctx *node.ServiceContext) (node.Service, error) {
-		acctmgr, err := acct.New()
-		return acctmgr, err
-	}))
-	return err
-}
+
 
 
