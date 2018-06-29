@@ -14,6 +14,7 @@ import (
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/protocol"
 	s "github.com/noxproject/nox/core/serialization"
+	"github.com/noxproject/nox/core/types"
 )
 
 // MessageHeaderSize is the number of bytes in a message header.
@@ -24,10 +25,6 @@ const MessageHeaderSize = 24
 // CommandSize is the fixed size of all commands in the common message
 // header.  Shorter commands must be zero padded.
 const CommandSize = 12
-
-// MaxMessagePayload is the maximum bytes a message can be regardless of other
-// individual limits imposed by messages themselves.
-const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 
 // Commands used in message headers which describe the type of message.
 const (
@@ -146,10 +143,10 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, net protocol.Network) 
 	lenp := len(payload)
 
 	// Enforce maximum overall message payload.
-	if lenp > MaxMessagePayload {
+	if lenp > types.MaxMessagePayload {
 		str := fmt.Sprintf("message payload is too large - encoded "+
 			"%d bytes, but maximum message payload is %d bytes",
-			lenp, MaxMessagePayload)
+			lenp, types.MaxMessagePayload)
 		return totalBytes, messageError("WriteMessage", str)
 	}
 
@@ -215,10 +212,10 @@ func ReadMessageN(r io.Reader, pver uint32, net protocol.Network) (int, Message,
 	}
 
 	// Enforce maximum message payload.
-	if hdr.length > MaxMessagePayload {
+	if hdr.length > types.MaxMessagePayload {
 		str := fmt.Sprintf("message payload is too large - header "+
 			"indicates %d bytes, but max message payload is %d "+
-			"bytes.", hdr.length, MaxMessagePayload)
+			"bytes.", hdr.length, types.MaxMessagePayload)
 		return totalBytes, nil, nil, messageError("ReadMessage", str)
 
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/noxproject/nox/p2p"
 	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/rpc"
+	"github.com/noxproject/nox/services/index"
 )
 
 // NoxFull implements the nox full node service.
@@ -24,6 +25,8 @@ type NoxFull struct {
 	txMemPool            *mempool.TxPool
 	// miner service
 	cpuMiner             *miner.CPUMiner
+	// index
+	txIndex              *index.TxIndex
 
 }
 
@@ -54,7 +57,7 @@ func newNoxFull() (*NoxFull, error){
 // register NoxFull service to node
 func registerNoxFull(n *Node) error{
 	// register acctmgr
-	err := n.Register(NewServiceConstructor("Nox",
+	err := n.register(NewServiceConstructor("Nox",
 		func(ctx *ServiceContext) (Service, error) {
 		noxfull, err := newNoxFull()
 		return noxfull, err

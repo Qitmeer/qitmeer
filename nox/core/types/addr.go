@@ -1,16 +1,16 @@
 // Copyright 2017-2018 The nox developers
-
 package types
 
 import (
-	"fmt"
-	"github.com/noxproject/nox/common/hash"
+	"golang.org/x/crypto/ripemd160"
+	"github.com/noxproject/nox/crypto"
 )
 
 type Address interface{
-	Encode() (string, error)
-	getHash() []byte
-	Type() AddressType
+	Encode()        string
+	Hash160()       *[ripemd160.Size]byte
+	SignScheme()    crypto.SignatureScheme
+	ScriptAddress() []byte
 }
 
 type AddressType byte
@@ -19,26 +19,5 @@ const (
 	LegerAddress AddressType = 0x01
 	ContractAddress AddressType = 0x02
 )
-
-
-type pubKeyHashAddress struct{
-	pkhash  hash.Hash         // pubKey hash
-	addrType AddressType
-}
-
-type pubKeyAddress struct{
-	pk      []byte
-	addrType AddressType
-}
-
-type contractAddress struct{
-	pk      []byte
-	addrType AddressType
-}
-
-func (a pubKeyHashAddress) Encode() (string, error) {
-	// TODO encode pkhash
-	return "", fmt.Errorf("unsupport encode for %v",a.addrType)
-}
 
 

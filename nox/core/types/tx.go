@@ -24,6 +24,60 @@ const (
 	ContractUpdate   TxType = 0xc2
 )
 
+const (
+
+	// MaxTxInSequenceNum is the maximum sequence number the sequence field
+	// of a transaction input can be.
+	MaxTxInSequenceNum uint32 = 0xffffffff
+
+	// SequenceLockTimeDisabled is a flag that if set on a transaction
+	// input's sequence number, the sequence number will not be interpreted
+	// as a relative locktime.
+	SequenceLockTimeDisabled = 1 << 31
+
+	// SequenceLockTimeIsSeconds is a flag that if set on a transaction
+	// input's sequence number, the relative locktime has units of 512
+	// seconds.
+	SequenceLockTimeIsSeconds = 1 << 22
+
+	// SequenceLockTimeMask is a mask that extracts the relative locktime
+	// when masked against the transaction input sequence number.
+	SequenceLockTimeMask = 0x0000ffff
+
+	// minTxPayload is the minimum payload size for a transaction.  Note
+	// that any realistically usable transaction must have at least one
+	// input or output, but that is a rule enforced at a higher layer, so
+	// it is intentionally not included here.
+	// Version 4 bytes + Varint number of transaction inputs 1 byte + Varint
+	// number of transaction outputs 1 byte + LockTime 4 bytes + min input
+	// payload + min output payload.
+	minTxPayload = 10
+
+	// minTxInPayload is the minimum payload size for a transaction input.
+	// PreviousOutPoint.Hash + PreviousOutPoint.Index 4 bytes +
+	// PreviousOutPoint.Tree 1 byte + Varint for SignatureScript length 1
+	// byte + Sequence 4 bytes.
+	minTxInPayload = 11 + hash.HashSize
+
+	// MaxMessagePayload is the maximum bytes a message can be regardless of other
+	// individual limits imposed by messages themselves.
+	MaxMessagePayload = (1024 * 1024 * 32) // 32MB
+
+	// maxTxInPerMessage is the maximum number of transactions inputs that
+	// a transaction which fits into a message could possibly have.
+	maxTxInPerMessage = (MaxMessagePayload / minTxInPayload) + 1
+
+	// minTxOutPayload is the minimum payload size for a transaction output.
+	// Value 8 bytes + Varint for PkScript length 1 byte.
+	minTxOutPayload = 9
+
+	// maxTxOutPerMessage is the maximum number of transactions outputs that
+	// a transaction which fits into a message could possibly have.
+	maxTxOutPerMessage = (MaxMessagePayload / minTxOutPayload) + 1
+
+
+)
+
 // TxIndexUnknown is the value returned for a transaction index that is unknown.
 // This is typically because the transaction has not been inserted into a block
 // yet.
@@ -159,6 +213,353 @@ func (tx *Transaction) serialize(serType TxSerializeType) ([]byte, error) {
 	}
 }
 
+// Deserialize decodes a transaction from r into the receiver using a format
+// that is suitable for long-term storage such as a database while respecting
+// the Version field in the transaction.
+func (tx *Transaction) Deserialize(r io.Reader) error {
+
+	// The serialized encoding of the version includes the real transaction
+	// version in the lower 16 bits and the transaction serialization type
+	// in the upper 16 bits.
+	version, err := s.BinarySerializer.Uint32(r, binary.LittleEndian)
+	if err != nil {
+		return err
+	}
+	tx.Version = uint32(version & 0xffff)
+	serType := TxSerializeType(version >> 16)
+
+ 	if serType != TxSerializeFull {
+		return fmt.Errorf("Transaction.Decode : wrong transaction serializetion type [%d]",serType)
+	}
+
+	// returnScriptBuffers is a closure that returns any script buffers that
+	// were borrowed from the pool when there are any deserialization
+	// errors.  This is only valid to call before the final step which
+	// replaces the scripts with the location in a contiguous buffer and
+	// returns them.
+	returnScriptBuffers := func() {
+		for _, txIn := range tx.TxIn {
+			if txIn == nil || txIn.SignScript == nil {
+				continue
+			}
+			scriptPool.Return(txIn.SignScript)
+		}
+		for _, txOut := range tx.TxOut {
+			if txOut == nil || txOut.PkScript == nil {
+				continue
+			}
+			scriptPool.Return(txOut.PkScript)
+		}
+	}
+
+	totalScriptSizeIns, err := tx.decodePrefix(r)
+		if err != nil {
+			returnScriptBuffers()
+			return err
+		}
+	totalScriptSizeOuts, err := tx.decodeWitness(r)
+		if err != nil {
+			returnScriptBuffers()
+			return err
+		}
+	writeTxScriptsToMsgTx(tx, totalScriptSizeIns+
+			totalScriptSizeOuts, TxSerializeFull)
+
+	return nil
+}
+
+// writeTxScriptsToMsgTx allocates the memory for variable length fields in a
+// Tx TxIns, TxOuts, or both as a contiguous chunk of memory, then fills
+// in these fields for the Tx by copying to a contiguous piece of memory
+// and setting the pointer.
+//
+// NOTE: It is no longer valid to return any previously borrowed script
+// buffers after this function has run because it is already done and the
+// scripts in the transaction inputs and outputs no longer point to the
+// buffers.
+func writeTxScriptsToMsgTx(tx *Transaction, totalScriptSize uint64, serType TxSerializeType) {
+	// Create a single allocation to house all of the scripts and set each
+	// input signature scripts and output public key scripts to the
+	// appropriate subslice of the overall contiguous buffer.  Then, return
+	// each individual script buffer back to the pool so they can be reused
+	// for future deserializations.  This is done because it significantly
+	// reduces the number of allocations the garbage collector needs to track,
+	// which in turn improves performance and drastically reduces the amount
+	// of runtime overhead that would otherwise be needed to keep track of
+	// millions of small allocations.
+	//
+	// Closures around writing the TxIn and TxOut scripts are used in Decred
+	// because, depending on the serialization type desired, only input or
+	// output scripts may be required.
+	var offset uint64
+	scripts := make([]byte, totalScriptSize)
+	writeTxIns := func() {
+		for i := 0; i < len(tx.TxIn); i++ {
+			// Copy the signature script into the contiguous buffer at the
+			// appropriate offset.
+			signatureScript := tx.TxIn[i].SignScript
+			copy(scripts[offset:], signatureScript)
+
+			// Reset the signature script of the transaction input to the
+			// slice of the contiguous buffer where the script lives.
+			scriptSize := uint64(len(signatureScript))
+			end := offset + scriptSize
+			tx.TxIn[i].SignScript = scripts[offset:end:end]
+			offset += scriptSize
+
+			// Return the temporary script buffer to the pool.
+			scriptPool.Return(signatureScript)
+		}
+	}
+	writeTxOuts := func() {
+		for i := 0; i < len(tx.TxOut); i++ {
+			// Copy the public key script into the contiguous buffer at the
+			// appropriate offset.
+			pkScript := tx.TxOut[i].PkScript
+			copy(scripts[offset:], pkScript)
+
+			// Reset the public key script of the transaction output to the
+			// slice of the contiguous buffer where the script lives.
+			scriptSize := uint64(len(pkScript))
+			end := offset + scriptSize
+			tx.TxOut[i].PkScript = scripts[offset:end:end]
+			offset += scriptSize
+
+			// Return the temporary script buffer to the pool.
+			scriptPool.Return(pkScript)
+		}
+	}
+
+	// Handle the serialization types accordingly.
+	writeTxIns()
+	writeTxOuts()
+
+}
+
+func (tx *Transaction) decodeWitness(r io.Reader) (uint64, error) {
+	// Witness only; generate the TxIn list and fill out only the
+	// sigScripts.
+	var totalScriptSize uint64
+
+	// We're decoding witnesses from a full transaction, so read in
+	// the number of signature scripts, check to make sure it's the
+	// same as the number of TxIns we currently have, then fill in
+	// the signature scripts.
+	count, err := s.ReadVarInt(r, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	// Don't allow the deserializer to panic by accessing memory
+	// that doesn't exist.
+	if int(count) != len(tx.TxIn) {
+		return 0, fmt.Errorf("Tx.decodeWitness: non equal witness and prefix txin quantities "+
+			"(witness %v, prefix %v)", count,
+			len(tx.TxIn))
+	}
+
+	// Prevent more input transactions than could possibly fit into a
+	// message.  It would be possible to cause memory exhaustion and panics
+	// without a sane upper bound on this count.
+	if count > uint64(maxTxInPerMessage) {
+		return 0, fmt.Errorf("MsgTx.decodeWitness:too many input transactions to fit into "+
+			"max message size [count %d, max %d]", count,
+			maxTxInPerMessage)
+	}
+
+	// Read in the witnesses, and copy them into the already generated
+	// by decodePrefix TxIns.
+	txIns := make([]TxInput, count)
+	for i := uint64(0); i < count; i++ {
+		ti := &txIns[i]
+		err = readTxInWitness(r, ti)
+		if err != nil {
+			return 0, err
+		}
+		totalScriptSize += uint64(len(ti.SignScript))
+
+		tx.TxIn[i].AmountIn = ti.AmountIn
+		tx.TxIn[i].BlockHeight = ti.BlockHeight
+		tx.TxIn[i].BlockTxIndex = ti.BlockTxIndex
+		tx.TxIn[i].SignScript = ti.SignScript
+	}
+	return totalScriptSize, nil
+}
+
+// readTxInWitness reads the next sequence of bytes from r as a transaction input
+// (TxIn) in the transaction witness.
+func readTxInWitness(r io.Reader, ti *TxInput) error {
+	// ValueIn.
+	valueIn, err := s.BinarySerializer.Uint64(r, binary.LittleEndian)
+	if err != nil {
+		return err
+	}
+	ti.AmountIn = uint64(valueIn)
+
+	// BlockHeight.
+	ti.BlockHeight, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
+	if err != nil {
+		return err
+	}
+
+	// BlockIndex.
+	ti.BlockTxIndex, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
+	if err != nil {
+		return err
+	}
+
+	// Signature script.
+	ti.SignScript, err = readScript(r)
+	return err
+}
+
+// decodePrefix decodes a transaction prefix and stores the contents
+// in the embedded msgTx.
+func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
+
+	count, err := s.ReadVarInt(r,0)
+
+	// Prevent more input transactions than could possibly fit into a
+	// message.  It would be possible to cause memory exhaustion and panics
+	// without a sane upper bound on this count.
+	if count > uint64(maxTxInPerMessage) {
+		return 0, fmt.Errorf("Tx.decodePrefix: too many input " +
+			"transactions to fit into max message size [count %d, max %d]",
+			count,
+			maxTxInPerMessage)
+	}
+	return tx.decodePrefix(r)
+
+	// TxIns.
+	txIns := make([]TxInput, count)
+	tx.TxIn = make([]*TxInput, count)
+	for i := uint64(0); i < count; i++ {
+		// The pointer is set now in case a script buffer is borrowed
+		// and needs to be returned to the pool on error.
+		ti := &txIns[i]
+		tx.TxIn[i] = ti
+		err = readTxInPrefix(r,tx.Version, ti)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	count, err = s.ReadVarInt(r, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	// Prevent more output transactions than could possibly fit into a
+	// message.  It would be possible to cause memory exhaustion and panics
+	// without a sane upper bound on this count.
+	if count > uint64(maxTxOutPerMessage) {
+
+		return 0, fmt.Errorf("Tx.decodePrefix too many output transactions" +
+			" to fit into max message size [count %d, max %d]", count,
+			maxTxOutPerMessage)
+	}
+
+	// TxOuts.
+	var totalScriptSize uint64
+	txOuts := make([]TxOutput, count)
+	tx.TxOut = make([]*TxOutput, count)
+	for i := uint64(0); i < count; i++ {
+		// The pointer is set now in case a script buffer is borrowed
+		// and needs to be returned to the pool on error.
+		to := &txOuts[i]
+		tx.TxOut[i] = to
+		err = readTxOut(r, to)
+		if err != nil {
+			return 0, err
+		}
+		totalScriptSize += uint64(len(to.PkScript))
+	}
+
+	// Locktime and expiry.
+	tx.LockTime, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
+	if err != nil {
+		return 0, err
+	}
+
+	tx.Expire, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalScriptSize, nil
+}
+
+// readTxInPrefix reads the next sequence of bytes from r as a transaction input
+// (TxIn) in the transaction prefix.
+func readTxInPrefix(r io.Reader, version uint32, ti *TxInput) error {
+
+	// Outpoint.
+	err := ReadOutPoint(r,version, &ti.PreviousOut)
+	if err != nil {
+		return err
+	}
+
+	// Sequence.
+	ti.Sequence, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
+	return err
+}
+
+// ReadOutPoint reads the next sequence of bytes from r as an OutPoint.
+func ReadOutPoint(r io.Reader,version uint32, op *TxOutPoint) error {
+	_, err := io.ReadFull(r, op.Hash[:])
+	if err != nil {
+		return err
+	}
+	op.OutIndex, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// readTxOut reads the next sequence of bytes from r as a transaction output
+// (TxOut).
+func readTxOut(r io.Reader, to *TxOutput) error {
+	value, err := s.BinarySerializer.Uint64(r, binary.LittleEndian)
+	if err != nil {
+		return err
+	}
+	to.Amount = uint64(value)
+
+	to.PkScript, err = readScript(r)
+	return err
+}
+
+// readScript reads a variable length byte array that represents a transaction
+// script.  It is encoded as a varInt containing the length of the array
+// followed by the bytes themselves.  An error is returned if the length is
+// greater than the passed maxAllowed parameter which helps protect against
+// memory exhaustion attacks and forced panics thorugh malformed messages.  The
+// fieldName parameter is only used for the error message so it provides more
+// context in the error.
+func readScript(r io.Reader) ([]byte, error) {
+	count, err := s.ReadVarInt(r, 0)
+	if err != nil {
+		return nil, err
+	}
+	// Prevent byte array larger than the max message size.  It would
+	// be possible to cause memory exhaustion and panics without a sane
+	// upper bound on this count.
+	if count > uint64(MaxMessagePayload) {
+		return nil,fmt.Errorf("readScript: larger than the max allowed size "+
+			"[count %d, max %d]", count, MaxMessagePayload)
+	}
+
+	b := scriptPool.Borrow(count)
+	_, err = io.ReadFull(r, b)
+	if err != nil {
+		scriptPool.Return(b)
+		return nil, err
+	}
+	return b, nil
+}
+
+
 // TxHash generates the hash for the transaction prefix.  Since it does not
 // contain any witness data, it is not malleable and therefore is stable for
 // use in unconfirmed transaction chains.
@@ -193,7 +594,9 @@ func (tx *Transaction) TxHashFull() hash.Hash {
 }
 
 func (tx *Transaction) Encode(w io.Writer, pver uint32) error {
-	err := s.BinarySerializer.PutUint32(w, binary.LittleEndian, uint32(tx.Version))
+	// serialize version using Full
+	serializedVersion := uint32(tx.Version) | uint32(TxSerializeFull)<<16
+	err := s.BinarySerializer.PutUint32(w, binary.LittleEndian, serializedVersion)
 	if err != nil {
 		return err
 	}
@@ -327,7 +730,7 @@ func writeTxInWitness(w io.Writer, pver uint32, ti *TxInput) error {
 // expensive hashing operations.
 type Tx struct {
 	Tx      *Transaction   // Underlying Transaction
-	hash    hash.Hash           // Cached transaction hash
+	hash    hash.Hash      // Cached transaction hash
 	txIndex int            // Position within a block or TxIndexUnknown
 }
 
@@ -344,6 +747,18 @@ func NewTx(t *Transaction) *Tx {
 		Tx:   t,
 		txIndex: TxIndexUnknown,
 	}
+}
+
+// Hash returns the hash of the transaction.  This is equivalent to
+// calling TxHash on the underlying wire.MsgTx, however it caches the
+// result so subsequent calls are more efficient.
+func (t *Tx) Hash() *hash.Hash {
+	return &t.hash
+}
+
+// SetIndex sets the index of the transaction in within a block.
+func (t *Tx) SetIndex(index int) {
+	t.txIndex = index
 }
 
 type TxOutPoint struct {
@@ -399,8 +814,8 @@ func (to *TxOutput) SerializeSize() int {
 }
 
 type ContractTransaction struct {
-	From Account
-	To Account
+	From         Account
+	To           Account
 	Value        uint64
 	GasPrice     uint64
 	GasLimit     uint64
@@ -429,3 +844,84 @@ type TxDesc struct {
 	// Fee is the total fee the transaction associated with the entry pays.
 	Fee int64
 }
+
+// TxLoc holds locator data for the offset and length of where a transaction is
+// located within a MsgBlock data buffer.
+type TxLoc struct {
+	TxStart int
+	TxLen   int
+}
+
+
+const (
+	// freeListMaxScriptSize is the size of each buffer in the free list
+	// that	is used for deserializing scripts from the wire before they are
+	// concatenated into a single contiguous buffers.  This value was chosen
+	// because it is slightly more than twice the size of the vast majority
+	// of all "standard" scripts.  Larger scripts are still deserialized
+	// properly as the free list will simply be bypassed for them.
+	freeListMaxScriptSize = 512
+
+	// freeListMaxItems is the number of buffers to keep in the free list
+	// to use for script deserialization.  This value allows up to 100
+	// scripts per transaction being simultaneously deserialized by 125
+	// peers.  Thus, the peak usage of the free list is 12,500 * 512 =
+	// 6,400,000 bytes.
+	freeListMaxItems = 12500
+)
+// scriptFreeList defines a free list of byte slices (up to the maximum number
+// defined by the freeListMaxItems constant) that have a cap according to the
+// freeListMaxScriptSize constant.  It is used to provide temporary buffers for
+// deserializing scripts in order to greatly reduce the number of allocations
+// required.
+//
+// The caller can obtain a buffer from the free list by calling the Borrow
+// function and should return it via the Return function when done using it.
+type scriptFreeList chan []byte
+
+// Borrow returns a byte slice from the free list with a length according the
+// provided size.  A new buffer is allocated if there are any items available.
+//
+// When the size is larger than the max size allowed for items on the free list
+// a new buffer of the appropriate size is allocated and returned.  It is safe
+// to attempt to return said buffer via the Return function as it will be
+// ignored and allowed to go the garbage collector.
+func (c scriptFreeList) Borrow(size uint64) []byte {
+	if size > freeListMaxScriptSize {
+		return make([]byte, size)
+	}
+
+	var buf []byte
+	select {
+	case buf = <-c:
+	default:
+		buf = make([]byte, freeListMaxScriptSize)
+	}
+	return buf[:size]
+}
+
+// Return puts the provided byte slice back on the free list when it has a cap
+// of the expected length.  The buffer is expected to have been obtained via
+// the Borrow function.  Any slices that are not of the appropriate size, such
+// as those whose size is greater than the largest allowed free list item size
+// are simply ignored so they can go to the garbage collector.
+func (c scriptFreeList) Return(buf []byte) {
+	// Ignore any buffers returned that aren't the expected size for the
+	// free list.
+	if cap(buf) != freeListMaxScriptSize {
+		return
+	}
+
+	// Return the buffer to the free list when it's not full.  Otherwise let
+	// it be garbage collected.
+	select {
+	case c <- buf:
+	default:
+		// Let it go to the garbage collector.
+	}
+}
+
+// Create the concurrent safe free list to use for script deserialization.  As
+// previously described, this free list is maintained to significantly reduce
+// the number of allocations.
+var scriptPool scriptFreeList = make(chan []byte, freeListMaxItems)

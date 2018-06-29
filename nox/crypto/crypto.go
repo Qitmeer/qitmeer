@@ -31,6 +31,16 @@ type EccPublicKey interface {
 
 	// GetEcType returns the current elliptic curve type, ex. secp256k1
 	GetEcType() EcType
+
+	// Serialize is the default serialization method.
+	Serialize() []byte
+
+	// SerializeUncompressed serializes to the uncompressed format (if available).
+	SerializeUncompressed() []byte
+
+	// SerializeCompressed serializes to the compressed format (if available).
+	SerializeCompressed() []byte
+
 }
 
 // EccPrivateKey represents a private key using an elliptic curves algorithm. (included Edwards curves)
@@ -78,6 +88,8 @@ const (
 	// the Sm2 ecdsa, SM2-P-256
 	// TODO, try github.com/tjfoc/gmsm/sm2
 	ECDSA_SM2
+
+	UNKNOWN
 )
 
 type EcType byte
@@ -98,14 +110,14 @@ func GenerateKeyPair(scheme SignatureScheme) (EccPrivateKey,EccPublicKey, error)
 			return nil, nil, err
 		}else {
 			return ecdsaPrivateKey{privKey},
-				ecdsaPubKey{privKey.PublicKey,Secp256k1}, nil
+				&ecdsaPubKey{privKey.PublicKey,Secp256k1}, nil
 		}
 	case EdDSA_Ed25519:
 		if privKey,err := GenerateKeyEd25519(); err !=nil {
 			return nil, nil, err
 		}else {
 			return ecdsaPrivateKey{privKey},
-				ecdsaPubKey{privKey.PublicKey,Edwards}, nil
+				&ecdsaPubKey{privKey.PublicKey,Edwards}, nil
 		}
 	}
 	return nil,nil,fmt.Errorf("unsupport SignatureScheme %v",scheme)
@@ -116,17 +128,29 @@ type ecdsaPubKey struct {
 	ectype EcType
 }
 
-func (pk ecdsaPubKey) GetX() *big.Int {
+func (pk *ecdsaPubKey) GetX() *big.Int {
 	return pk.X
 }
-func (pk ecdsaPubKey) GetY() *big.Int {
+func (pk *ecdsaPubKey) GetY() *big.Int {
 	return pk.Y
 }
-func (pk ecdsaPubKey) GetCurve() elliptic.Curve {
+func (pk *ecdsaPubKey) GetCurve() elliptic.Curve {
 	return pk.Curve
 }
-func (pk ecdsaPubKey) GetEcType() EcType {
+func (pk *ecdsaPubKey) GetEcType() EcType {
 	return pk.ectype
+}
+
+func (pk *ecdsaPubKey) SerializeUncompressed() []byte {
+	return []byte{}
+}
+
+func (pk *ecdsaPubKey) SerializeCompressed() []byte {
+	return []byte{}
+}
+
+func (pk *ecdsaPubKey) Serialize() []byte {
+	return []byte{}
 }
 
 type ecdsaPrivateKey struct{
@@ -140,3 +164,4 @@ func (k ecdsaPrivateKey) getPubKey() (*big.Int, *big.Int) {
 func (k ecdsaPrivateKey) Public() crypto.PublicKey {
 	return k.PublicKey
 }
+

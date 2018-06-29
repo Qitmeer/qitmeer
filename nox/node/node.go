@@ -179,7 +179,7 @@ func (n *Node) Start() error {
 }
 
 
-func (n *Node) Register(sc ServiceConstructor) error {
+func (n *Node) register(sc ServiceConstructor) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	// Already started?

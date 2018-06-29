@@ -21,11 +21,11 @@ type IndexManager interface {
 
 	// ConnectBlock is invoked when a new block has been connected to the
 	// main chain.
-	ConnectBlock(database.Tx, *types.Block, *types.Block, *UtxoViewpoint) error
+	ConnectBlock(tx database.Tx, block *types.SerializedBlock, parent *types.SerializedBlock, utxoView *UtxoViewpoint) error
 
 	// DisconnectBlock is invoked when a block has been disconnected from
 	// the main chain.
-	DisconnectBlock(database.Tx, *types.Block, *types.Block, *UtxoViewpoint) error
+	DisconnectBlock(tx database.Tx, block *types.SerializedBlock, parent *types.SerializedBlock,  utxoView *UtxoViewpoint) error
 }
 
 // blockIndex provides facilities for keeping track of an in-memory index of the

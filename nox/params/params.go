@@ -14,6 +14,17 @@ import (
 	"github.com/noxproject/nox/core/protocol"
 )
 
+// SigHashOptimization is an optimization for verification of transactions that
+// do CHECKSIG operations with hashType SIGHASH_ALL. Although there should be no
+// consequences to daemons that are simply running a node, it may be the case
+// that you could cause database corruption if you turn this code on, create and
+// manipulate your own MsgTx, then include them in blocks. For safety, if you're
+// using the daemon with wallet or mining with the daemon this should be disabled.
+// If you believe that any MsgTxs in your daemon will be used mutably, do NOT
+// turn on this feature. It is disabled by default.
+// This feature is considered EXPERIMENTAL, enable at your own risk!
+var SigHashOptimization = false
+
 // Checkpoint identifies a known good point in the block chain.  Using
 // checkpoints allows a few optimizations for old blocks during initial download
 // and also prevents forks from old blocks.
@@ -193,9 +204,13 @@ type Params struct {
 	NetworkAddressPrefix string
 
 	// Address encoding magics
-	PubKeyHashAddrID       [2]byte // First 2 bytes of a P2PKH address
+	PubKeyHashAddrID       [2]byte // First 2 bytes of P2PKH address
+	PKHEdwardsAddrID       [2]byte // First 2 bytes of Edwards P2PKH address
+	PKHSchnorrAddrID       [2]byte // First 2 bytes of secp256k1 Schnorr P2PKH address
+
 	ScriptHashAddrID       [2]byte // First 2 bytes of a P2SH address
 	PrivateKeyID           [2]byte // First 2 bytes of a WIF private key
+
 
 
 	// BIP32 hierarchical deterministic extended key magics

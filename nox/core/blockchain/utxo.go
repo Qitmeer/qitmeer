@@ -58,3 +58,50 @@ type UtxoViewpoint struct {
 	entries   map[hash.Hash]*UtxoEntry
 	bestHash  hash.Hash
 }
+
+// LookupEntry returns information about a given transaction according to the
+// current state of the view.  It will return nil if the passed transaction
+// hash does not exist in the view or is otherwise not available such as when
+// it has been disconnected during a reorg.
+func (view *UtxoViewpoint) LookupEntry(txHash *hash.Hash) *UtxoEntry {
+	entry, ok := view.entries[*txHash]
+	if !ok {
+		return nil
+	}
+
+	return entry
+}
+// PkScriptByIndex returns the public key script for the provided output index.
+//
+// Returns nil if the output index references an output that does not exist
+// either due to it being invalid or because the output is not part of the view
+// due to previously being spent/pruned.
+func (entry *UtxoEntry) PkScriptByIndex(outputIndex uint32) []byte {
+	output, ok := entry.sparseOutputs[outputIndex]
+	if !ok {
+		return nil
+	}
+
+	// Ensure the output is decompressed before returning the script.
+	output.maybeDecompress(currentCompressionVersion)
+	return output.pkScript
+}
+
+// maybeDecompress decompresses the amount and public key script fields of the
+// utxo and marks it decompressed if needed.
+func (o *utxoOutput) maybeDecompress(compressionVersion uint32) {
+	// Nothing to do if it's not compressed.
+	if !o.compressed {
+		return
+	}
+
+	//TODO: impl compressed/decompressScript
+	// o.pkScript = decompressScript(o.pkScript, compressionVersion)
+	o.compressed = false
+}
+
+// TransactionType returns the transaction type of the transaction the utxo entry
+// represents.
+func (entry *UtxoEntry) TransactionType() types.TxType {
+	return entry.txType
+}

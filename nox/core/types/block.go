@@ -9,6 +9,7 @@ import (
 	"github.com/noxproject/nox/common/hash"
 	"io"
 	s "github.com/noxproject/nox/core/serialization"
+	"fmt"
 )
 
 // MaxBlockHeaderPayload is the maximum number of bytes a block header can be.
@@ -16,6 +17,14 @@ import (
 // Difficulty 4 bytes + Height 4 bytes  + Timestamp 4 bytes + Nonce 8 bytes
 // --> Total 120 bytes.
 const MaxBlockHeaderPayload = 4 + 4 + 4 + 4 + 8 + (hash.HashSize * 3)
+
+// MaxBlockPayload is the maximum bytes a block message can be in bytes.
+// After Segregated Witness, the max block payload has been raised to 4MB.
+const MaxBlockPayload = 4000000
+
+// maxTxPerBlock is the maximum number of transactions that could
+// possibly fit into a block.
+const maxTxPerBlock = (MaxBlockPayload / minTxPayload) + 1
 
 // blockHeaderLen is a constant that represents the number of bytes for a block
 // header.
@@ -165,6 +174,50 @@ func (block *Block) Encode(w io.Writer, pver uint32) error {
 	return nil
 }
 
+// DeserializeTxLoc decodes r in the same manner Deserialize does, but it takes
+// a byte buffer instead of a generic reader and returns a slice containing the
+// start and length of each transaction within the raw data that is being
+// deserialized.
+func (msg *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
+	fullLen := r.Len()
+
+	// At the current time, there is no difference between the wire encoding
+	// at protocol version 0 and the stable long-term storage format.  As
+	// a result, make use of existing wire protocol functions.
+	err := readBlockHeader(r, 0, &msg.Header)
+	if err != nil {
+		return nil, err
+	}
+
+	txCount, err := s.ReadVarInt(r, 0)
+	if err != nil {
+		return nil, err
+	}
+	// Prevent more transactions than could possibly fit into a block.
+	// It would be possible to cause memory exhaustion and panics without
+	// a sane upper bound on this count.
+	if txCount > maxTxPerBlock {
+		return nil, fmt.Errorf("Block.DeserializeTxLoc: too many transactions to fit into a block "+
+			"[count %d, max %d]", txCount, maxTxPerBlock)
+	}
+
+	// Deserialize each transaction while keeping track of its location
+	// within the byte stream.
+	msg.Transactions = make([]*Transaction, 0, txCount)
+	txLocs := make([]TxLoc, txCount)
+	for i := uint64(0); i < txCount; i++ {
+		txLocs[i].TxStart = fullLen - r.Len()
+		var tx Transaction
+		err := tx.Deserialize(r)
+		if err != nil {
+			return nil, err
+		}
+		msg.Transactions = append(msg.Transactions, &tx)
+		txLocs[i].TxLen = (fullLen - r.Len()) - txLocs[i].TxStart
+	}
+	return txLocs, nil
+}
+
 // SerializedBlock provides easier and more efficient manipulation of raw blocks.
 // It also memorizes hashes for the block and its transactions on their first
 // access so subsequent accesses don't have to  repeat the relatively expensive
@@ -194,6 +247,10 @@ func (sb *SerializedBlock) Hash() *hash.Hash {
 	return &sb.hash
 }
 
+func (sb *SerializedBlock) Block() *Block {
+	return sb.block
+}
+
 // Bytes returns the serialized bytes for the Block.  This is equivalent to
 // calling Serialize on the underlying Block, however it caches the
 // result so subsequent calls are more efficient.
@@ -215,6 +272,63 @@ func (sb *SerializedBlock) Bytes() ([]byte, error) {
 	// Cache the serialized bytes and return them.
 	sb.serializedBytes = serialized
 	return serialized, nil
+}
+
+// TxLoc returns the offsets and lengths of each transaction in a raw block.
+// It is used to allow fast indexing into transactions within the raw byte
+// stream.
+func (sb *SerializedBlock) TxLoc() ([]TxLoc, error) {
+	rawMsg, err := sb.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	rbuf := bytes.NewBuffer(rawMsg)
+
+	var mblock Block
+	txLocs, err := mblock.DeserializeTxLoc(rbuf)
+	if err != nil {
+		return nil, err
+	}
+	return txLocs, err
+}
+
+// Height returns a casted int64 height from the block header.
+//
+// This function should not be used for new code and will be
+// removed in the future.
+func (sb *SerializedBlock) Height() int64 {
+	return int64(sb.block.Header.Height)
+}
+
+// Transactions returns a slice of wrapped transactions (btcutil.Tx) for all
+// transactions in the Block.  This is nearly equivalent to accessing the raw
+// transactions (wire.MsgTx) in the underlying wire.MsgBlock, however it
+// instead provides easy access to wrapped versions (btcutil.Tx) of them.
+func (sb *SerializedBlock) Transactions() []*Tx {
+	// Return transactions if they have ALL already been generated.  This
+	// flag is necessary because the wrapped transactions are lazily
+	// generated in a sparse fashion.
+	if sb.txnsGenerated {
+		return sb.transactions
+	}
+
+	// Generate slice to hold all of the wrapped transactions if needed.
+	if len(sb.transactions) == 0 {
+		sb.transactions = make([]*Tx, len(sb.block.Transactions))
+	}
+
+	// Generate and cache the wrapped transactions for all that haven't
+	// already been done.
+	for i, tx := range sb.transactions {
+		if tx == nil {
+			newTx := NewTx(sb.block.Transactions[i])
+			newTx.SetIndex(i)
+			sb.transactions[i] = newTx
+		}
+	}
+
+	sb.txnsGenerated = true
+	return sb.transactions
 }
 
 

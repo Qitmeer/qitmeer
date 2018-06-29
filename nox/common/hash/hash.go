@@ -15,7 +15,16 @@ const HashSize = 32
 
 type Hash [HashSize]byte
 
-type Hash160 [20]byte
+// IsEqual returns true if target is the same as hash.
+func (hash *Hash) IsEqual(target *Hash) bool {
+	if hash == nil && target == nil {
+		return true
+	}
+	if hash == nil || target == nil {
+		return false
+	}
+	return *hash == *target
+}
 
 type Hash256 [32]byte
 
