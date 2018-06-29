@@ -2,7 +2,6 @@ package acct
 
 import (
 	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/p2p"
 	"github.com/noxproject/nox/rpc"
 )
 
@@ -11,7 +10,7 @@ type AccountManager struct {
 
 }
 
-func (a *AccountManager) Start(server *p2p.PeerServer) error {
+func (a *AccountManager) Start() error {
 	log.Debug("Starting account manager")
 	return nil
 }

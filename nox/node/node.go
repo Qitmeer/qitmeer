@@ -112,7 +112,6 @@ func (n *Node) nodeEventHandler() {
 	}
 }
 
-
 func (n *Node) Start() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
@@ -192,6 +191,10 @@ func (n *Node) Register(sc ServiceConstructor) error {
 	return nil
 }
 
+func (n *Node) RegisterService(cfg *config.Config) error {
+	//TODO register by config
+	return registerNoxFull(n)
+}
 // startRPC is a helper method to start all the various RPC endpoint during node
 // startup. It's not meant to be called at any time afterwards as it makes certain
 // assumptions about the state of the node.

@@ -12,7 +12,6 @@ import (
 	"github.com/noxproject/nox/config"
 	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/node"
-	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/database"
 	 _ "github.com/noxproject/nox/database/ffldb"
 )
@@ -91,9 +90,13 @@ func noxdMain(nodeChan chan<- *node.Node) error {
 	}
 
 	// Create node and start it.
-	n, err := makeNode(db, activeNetParams.Params, interrupt)
+	n, err := node.NewNode(cfg,db,activeNetParams.Params)
 	if err != nil {
 		log.Error("Unable to start server","listeners",cfg.Listeners,"error", err)
+		return err
+	}
+	err = n.RegisterService(cfg)
+	if err != nil {
 		return err
 	}
 	defer func() {
@@ -162,22 +165,3 @@ func blockDbPath(dbType string) string {
 	dbPath := filepath.Join(cfg.DataDir, dbName)
 	return dbPath
 }
-
-// makeNode returns a new nox node which been registered the node service
-// and ready to start
-func makeNode(db database.DB, params *params.Params, interrupt <-chan struct{}) (*node.Node, error) {
-	n,err := node.NewNode(cfg,db,params)
-	if err != nil{
-		return nil, err
-	}
-	//TODO do register by config
-	err = node.RegisterNoxFull(n)
-	if err != nil {
-		return nil, err
-	}
-	return n,nil
-}
-
-
-
-

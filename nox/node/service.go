@@ -5,6 +5,15 @@ import (
 	"fmt"
 	"github.com/noxproject/nox/p2p"
 	"github.com/noxproject/nox/rpc"
+	"github.com/noxproject/nox/core/protocol"
+)
+
+const (
+	// the default services supported by the node
+	defaultServices = protocol.Full| protocol.CF
+
+	// the default services that are required to be supported
+	defaultRequiredServices = protocol.Full & protocol.Light
 )
 
 // Service is a service can be registered into & running in a Node

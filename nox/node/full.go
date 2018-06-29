@@ -52,7 +52,7 @@ func newNoxFull() (*NoxFull, error){
 }
 
 // register NoxFull service to node
-func RegisterNoxFull(n *Node) error{
+func registerNoxFull(n *Node) error{
 	// register acctmgr
 	err := n.Register(NewServiceConstructor("Nox",
 		func(ctx *ServiceContext) (Service, error) {
@@ -61,15 +61,3 @@ func RegisterNoxFull(n *Node) error{
 	}))
 	return err
 }
-
-// register account manger service to node
-func RegisterAcctMgr(n *Node) error{
-	// register acctmgr
-	err := n.Register(NewServiceConstructor("acctMgr",
-		func(ctx *ServiceContext) (Service, error) {
-		acctmgr, err := acct.New()
-		return acctmgr, err
-	}))
-	return err
-}
-

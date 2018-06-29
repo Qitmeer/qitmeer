@@ -52,3 +52,20 @@ func (n Network) String() string {
 	}
 	return fmt.Sprintf("Unknown Network (%d)", uint32(n))
 }
+
+// NodeServiceFlag identifies services supported by a peer node.
+type NodeServiceFlag uint64
+
+const (
+	//  full node.
+	Full NodeServiceFlag = 1 << iota
+
+	// light node
+	Light
+
+	// a peer supports bloom filtering.
+	Bloom
+
+	// a peer supports committed filters (CFs).
+	CF
+)
