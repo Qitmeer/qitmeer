@@ -184,8 +184,7 @@ func (b *Block) Deserialize(r io.Reader) error {
 	return b.Decode(r, 0)
 }
 
-// Decode decodes r using the Decred protocol encoding into the receiver.
-// This is part of the Message interface implementation.
+// decodes r into the receiver.
 // See Deserialize for decoding blocks stored to disk, such as in a database, as
 // opposed to decoding blocks .
 func (b *Block) Decode(r io.Reader, pver uint32) error {
@@ -364,10 +363,10 @@ func (sb *SerializedBlock) Height() int64 {
 	return int64(sb.block.Header.Height)
 }
 
-// Transactions returns a slice of wrapped transactions (btcutil.Tx) for all
+// Transactions returns a slice of wrapped transactions for all
 // transactions in the Block.  This is nearly equivalent to accessing the raw
-// transactions (wire.MsgTx) in the underlying wire.MsgBlock, however it
-// instead provides easy access to wrapped versions (btcutil.Tx) of them.
+// transactions (types.Transaction) in the underlying types.Block, however it
+// instead provides easy access to wrapped versions of them.
 func (sb *SerializedBlock) Transactions() []*Tx {
 	// Return transactions if they have ALL already been generated.  This
 	// flag is necessary because the wrapped transactions are lazily

@@ -297,15 +297,15 @@ func writeTxScriptsToMsgTx(tx *Transaction, totalScriptSize uint64, serType TxSe
 	// input signature scripts and output public key scripts to the
 	// appropriate subslice of the overall contiguous buffer.  Then, return
 	// each individual script buffer back to the pool so they can be reused
-	// for future deserializations.  This is done because it significantly
+	// for future deserialization.  This is done because it significantly
 	// reduces the number of allocations the garbage collector needs to track,
 	// which in turn improves performance and drastically reduces the amount
 	// of runtime overhead that would otherwise be needed to keep track of
 	// millions of small allocations.
 	//
-	// Closures around writing the TxIn and TxOut scripts are used in Decred
-	// because, depending on the serialization type desired, only input or
-	// output scripts may be required.
+	// using Closures to write the TxIn and TxOut scripts because, depending
+	// on the serialization type desired, only input or output scripts may
+	// be required.
 	var offset uint64
 	scripts := make([]byte, totalScriptSize)
 	writeTxIns := func() {

@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018 The nox developers
 package blockchain
 
 import (
@@ -9,9 +10,8 @@ import (
 	"time"
 )
 
-// BlockChain provides functions for working with the Decred block chain.
-// It includes functionality such as rejecting duplicate blocks, ensuring blocks
-// follow all rules, orphan handling, checkpoint handling, and best chain
+// BlockChain provides functions such as rejecting duplicate blocks, ensuring
+// blocks follow all rules, orphan handling, checkpoint handling, and best chain
 // selection with reorganization.
 type BlockChain struct {
 

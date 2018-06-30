@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018 The nox developers
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
@@ -35,8 +36,7 @@ type opcode struct {
 }
 
 // These constants are the values of the official opcodes used on the btc wiki,
-// in bitcoin core and in most if not all other references and software related
-// to handling DCR scripts.
+// in bitcoin core and extension to handling tx scripts.
 const (
 	OP_0                   = 0x00 // 0
 	OP_FALSE               = 0x00 // 0 - AKA OP_0
@@ -228,12 +228,12 @@ const (
 	OP_NOP8                = 0xb7 // 183
 	OP_NOP9                = 0xb8 // 184
 	OP_NOP10               = 0xb9 // 185
-	OP_SSTX                = 0xba // 186 DECRED
-	OP_SSGEN               = 0xbb // 187 DECRED
-	OP_SSRTX               = 0xbc // 188 DECRED
-	OP_SSTXCHANGE          = 0xbd // 189 DECRED
-	OP_CHECKSIGALT         = 0xbe // 190 DECRED
-	OP_CHECKSIGALTVERIFY   = 0xbf // 191 DECRED
+	OP_SSTX                = 0xba // 186 PayToSStx       //TODO, refactor stake related op
+	OP_SSGEN               = 0xbb // 187 PayToSSGen      //TODO, refactor stake related op
+	OP_SSRTX               = 0xbc // 188 PayToSSRtx      //TODO, refactor stake related op
+	OP_SSTXCHANGE          = 0xbd // 189 PayToSStxChange //TODO, refactor stake related op
+	OP_CHECKSIGALT         = 0xbe // 190 Alternative checksig op (ed25519/snnor)       //TODO, refactor name
+	OP_CHECKSIGALTVERIFY   = 0xbf // 191 Alternative checksigverify op (ed25519/snnor) //TODO, refactor name
 	OP_SHA256              = 0xc0 // 192
 	OP_UNKNOWN193          = 0xc1 // 193
 	OP_UNKNOWN194          = 0xc2 // 194

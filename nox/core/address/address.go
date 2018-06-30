@@ -4,12 +4,12 @@ package address
 
 import (
 	"errors"
-	"github.com/btcsuite/btcutil/base58"
-	"github.com/noxproject/nox/params"
 	"golang.org/x/crypto/ripemd160"
-	"github.com/noxproject/nox/crypto"
-	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/common/encode/base58"
+	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/crypto"
+	"github.com/noxproject/nox/params"
 	"github.com/decred/dcrd/chaincfg/chainec"
 )
 
@@ -20,7 +20,7 @@ func encodeAddress(hash160 []byte, netID [2]byte) string {
 	// Format is 2 bytes for a network and address class (i.e. P2PKH vs
 	// P2SH), 20 bytes for a RIPEMD160 hash, and 4 bytes of checksum.
 	//TODO, customize base58 version (two bytes)
-	return base58.CheckEncode(hash160[:ripemd160.Size], netID[0])
+	return base58.CheckEncode(hash160[:ripemd160.Size], netID)
 }
 
 // PubKeyHashAddress is an Address for a pay-to-pubkey-hash (P2PKH)
@@ -69,7 +69,7 @@ func newAddressPubKeyHash(pkHash []byte, netID [2]byte) (*PubKeyHashAddress,
 	return addr, nil
 }
 
-// DSA returns the digital signature algorithm for the associated public key
+// SignScheme returns the digital signature algorithm for the associated public key
 // hash.
 func (a *PubKeyHashAddress) SignScheme() crypto.SignatureScheme {
 	switch a.netID {
@@ -102,7 +102,7 @@ func (a *PubKeyHashAddress) ScriptAddress() []byte {
 	return a.hash[:]
 }
 
-// AddressScriptHash is an Address for a pay-to-script-hash (P2SH)
+// ScriptHashAddress is an Address for a pay-to-script-hash (P2SH)
 // transaction.
 type ScriptHashAddress struct {
 	net   *params.Params
@@ -207,7 +207,7 @@ func NewSecpPubKeyAddress(serializedPubKey []byte,
 	}
 
 	// Set the format of the pubkey.  This probably should be returned
-	// from dcrec, but do it here to avoid API churn.  We already know the
+	// from the crypto layer, but do it here to avoid API churn.  We already know the
 	// pubkey is valid since it parsed above, so it's safe to simply examine
 	// the leading byte to get the format.
 	var pkFormat PubKeyFormat
@@ -232,9 +232,7 @@ func NewSecpPubKeyAddress(serializedPubKey []byte,
 // pay-to-pubkey-hash.  Note that the public key format (uncompressed,
 // compressed, etc) will change the resulting address.  This is expected since
 // pay-to-pubkey-hash is a hash of the serialized public key which obviously
-// differs with the format.  At the time of this writing, most Decred addresses
-// are pay-to-pubkey-hash constructed from the uncompressed public key.
-//
+// differs with the format.
 // Part of the Address interface.
 func (a *SecpPubKeyAddress) Encode() string {
 	return encodeAddress(hash.Hash160(a.serialize()), a.pubKeyHashID)
@@ -272,12 +270,11 @@ func (a *SecpPubKeyAddress) Hash160() *[ripemd160.Size]byte {
 
 
 
-// AddressPubKeyHash returns the pay-to-pubkey address converted to a
+// PKHAddress returns the pay-to-pubkey address converted to a
 // pay-to-pubkey-hash address.  Note that the public key format (uncompressed,
 // compressed, etc) will change the resulting address.  This is expected since
 // pay-to-pubkey-hash is a hash of the serialized public key which obviously
-// differs with the format.  At the time of this writing, most Decred addresses
-// are pay-to-pubkey-hash constructed from the uncompressed public key.
+// differs with the format.
 func (a *SecpPubKeyAddress) PKHAddress() *PubKeyHashAddress {
 	return toPKHAddress(a.net,a.pubKeyHashID,a.serialize())
 }

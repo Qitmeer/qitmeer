@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018 The nox developers
 // Copyright (c) 2013-2015 The btcsuite developers
 // Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
@@ -1354,13 +1355,14 @@ type AtomicSwapDataPushes struct {
 	LockTime         int64
 }
 
+// TODO, refactor & design of the Atomics Swaps of btc-alike chains & eth-alike chains
 // ExtractAtomicSwapDataPushes returns the data pushes from an atomic swap
 // contract.  If the script is not an atomic swap contract,
 // ExtractAtomicSwapDataPushes returns (nil, nil).  Non-nil errors are returned
 // for unparsable scripts.
 //
-// NOTE: Atomic swaps are not considered standard script types by the dcrd
-// mempool policy and should be used with P2SH.  The atomic swap format is also
+// NOTE: Atomic swaps are not considered standard script types by the mempool policy
+// and should be used with P2SH.  The atomic swap format is also
 // expected to change to use a more secure hash function in the future.
 //
 // This function is only defined in the txscript package due to API limitations

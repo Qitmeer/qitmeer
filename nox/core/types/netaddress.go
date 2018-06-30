@@ -19,7 +19,7 @@ import (
 // a TCP address as required.
 var ErrInvalidNetAddr = errors.New("provided net.Addr is not a net.TCPAddr")
 
-// MaxNetAddressPayload returns the max payload size for a Decred NetAddress
+// MaxNetAddressPayload returns the max payload size for the NetAddress
 // based on the protocol version.
 func MaxNetAddressPayload(pver uint32) uint32 {
 	// Services 8 bytes + ip 16 bytes + port 2 bytes.
@@ -34,9 +34,10 @@ func MaxNetAddressPayload(pver uint32) uint32 {
 // NetAddress defines information about a peer on the network including the time
 // it was last seen, the services it supports, its IP address, and port.
 type NetAddress struct {
+	// TODO fix time ambiguous
 	// Last time the address was seen.  This is, unfortunately, encoded as a
 	// uint32 on the wire and therefore is limited to 2106.  This field is
-	// not present in the Decred version message (MsgVersion) nor was it
+	// not present in the version message (MsgVersion) nor was it
 	// added until protocol version >= NetAddressTimeVersion.
 	Timestamp time.Time
 
@@ -91,7 +92,8 @@ func NewNetAddress(addr net.Addr) (*NetAddress, error) {
 func ReadNetAddress(r io.Reader, pver uint32, na *NetAddress, ts bool) error {
 	var ip [16]byte
 
-	// NOTE: The Decred protocol uses a uint32 for the timestamp so it will
+	// TODO fix time ambiguous
+	// NOTE: The protocol uses a uint32 for the timestamp so it will
 	// stop working somewhere around 2106.  Also timestamp wasn't added until
 	// protocol version >= NetAddressTimeVersion
 	if ts {

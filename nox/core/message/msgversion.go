@@ -25,13 +25,13 @@ const MaxUserAgentLen = 256
 // DefaultUserAgent for wire in the stack
 const DefaultUserAgent = "/noxd:0.0.1/"
 
-// MsgVersion implements the Message interface and represents a Decred version
-// message.  It is used for a peer to advertise itself as soon as an outbound
-// connection is made.  The remote peer then uses this information along with
-// its own to negotiate.  The remote peer must then respond with a version
-// message of its own containing the negotiated values followed by a verack
-// message (MsgVerAck).  This exchange must take place before any further
-// communication is allowed to proceed.
+// MsgVersion implements the Message interface and represents a version message.
+// It is used for a peer to advertise itself as soon as an outbound connection
+// is made.  The remote peer then uses this information along with its own to
+// negotiate.  The remote peer must then respond with a version message of its
+// own containing the negotiated values followed by a verack message (MsgVerAck).
+// This exchange must take place before any further communication is allowed
+// to proceed.
 type MsgVersion struct {
 	// Version of the protocol the node is using.
 	ProtocolVersion int32
@@ -60,7 +60,7 @@ type MsgVersion struct {
 	DisableRelayTx bool
 }
 
-// BtcDecode decodes r using the Decred protocol encoding into the receiver.
+// Decode decodes r encoding into the receiver.
 // The version message is special in that the protocol version hasn't been
 // negotiated yet.  As a result, the pver field is ignored and any fields which
 // are added in new versions are optional.  This also mean that r must be a
@@ -199,8 +199,8 @@ func (msg *MsgVersion) MaxPayloadLength(pver uint32) uint32 {
 		MaxUserAgentLen
 }
 
-// NewMsgVersion returns a new Decred version message that conforms to the
-// Message interface using the passed parameters and defaults for the remaining
+// NewMsgVersion returns a new Version message that conforms to the Message
+// interface using the passed parameters and defaults for the remaining
 // fields.
 func NewMsgVersion(me *types.NetAddress, you *types.NetAddress, nonce uint64,
 	lastBlock int32) *MsgVersion {

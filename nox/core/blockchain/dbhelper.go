@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018 The nox developers
 package blockchain
 
 import (
@@ -34,7 +35,7 @@ func DBFetchBlockByHeight(dbTx database.Tx, height int64) (*types.SerializedBloc
 	return dbFetchBlockByHeight(dbTx, height)
 }
 // dbFetchBlockByHeight uses an existing database transaction to retrieve the
-// raw block for the provided height, deserialize it, and return a dcrutil.Block
+// raw block for the provided height, deserialize it, and return a Block
 // with the height set.
 func dbFetchBlockByHeight(dbTx database.Tx, height int64) (*types.SerializedBlock, error) {
 	// First find the hash associated with the provided height in the index.

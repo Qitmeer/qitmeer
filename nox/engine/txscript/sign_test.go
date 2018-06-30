@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018 The nox developers
 // Copyright (c) 2014-2016 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
@@ -16,6 +17,8 @@ import (
 	"github.com/btcsuite/btcutil"
 	"bytes"
 )
+
+// TODO refactor & remove btcd/btcec depdences
 
 // This example demonstrates creating a script which pays to a bitcoin address.
 // It also prints the created script hex and uses the DisasmString function to

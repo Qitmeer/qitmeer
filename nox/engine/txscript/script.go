@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018 The nox developers
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
@@ -376,8 +377,10 @@ func GetPreciseSigOpCount(scriptSig, scriptPubKey []byte, bip16 bool) int {
 
 // IsUnspendable returns whether the passed public key script is unspendable, or
 // guaranteed to fail at execution.  This allows inputs to be pruned instantly
-// when entering the UTXO set. In Decred, all zero value outputs are unspendable.
+// when entering the UTXO set.
+// TODO, refactor the output spendable
 func IsUnspendable(amount uint64, pkScript []byte) bool {
+	// all zero value outputs are unspendable, it's different with btc
 	if amount == 0 {
 		return true
 	}
