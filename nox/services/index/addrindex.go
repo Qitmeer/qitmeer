@@ -674,7 +674,7 @@ type writeIndexData map[[addrKeySize]byte][]int
 func (idx *AddrIndex) indexPkScript(data writeIndexData, scriptVersion uint16, pkScript []byte, txIdx int) {
 	// Nothing to index if the script is non-standard or otherwise doesn't
 	// contain any addresses.
-	class, addrs, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, pkScript,
+	_, addrs, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, pkScript,
 		idx.chainParams)
 	if err != nil {
 		return
@@ -876,7 +876,7 @@ func (idx *AddrIndex) indexUnconfirmedAddresses(scriptVersion uint16, pkScript [
 	// The error is ignored here since the only reason it can fail is if the
 	// script fails to parse and it was already validated before being
 	// admitted to the mempool.
-	class, addresses, _, _ := txscript.ExtractPkScriptAddrs(scriptVersion,
+	_, addresses, _, _ := txscript.ExtractPkScriptAddrs(scriptVersion,
 		pkScript, idx.chainParams)
 
 	for _, addr := range addresses {

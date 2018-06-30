@@ -106,3 +106,15 @@ type BestState struct {
 	MedianTime   time.Time      // Median time as per CalcPastMedianTime.
 	TotalSubsidy int64          // The total subsidy for the chain.
 }
+
+// BestSnapshot returns information about the current best chain block and
+// related state as of the current point in time.  The returned instance must be
+// treated as immutable since it is shared by all callers.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) BestSnapshot() *BestState {
+	b.stateLock.RLock()
+	snapshot := b.stateSnapshot
+	b.stateLock.RUnlock()
+	return snapshot
+}

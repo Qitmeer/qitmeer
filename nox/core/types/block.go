@@ -174,17 +174,55 @@ func (block *Block) Encode(w io.Writer, pver uint32) error {
 	return nil
 }
 
+// Deserialize decodes a block from r into the receiver using a format that is
+// suitable for long-term storage such as a database while respecting the
+// Version field in the block.
+func (b *Block) Deserialize(r io.Reader) error {
+	// At the current time, there is no difference between the wire encoding
+	// at protocol version 0 and the stable long-term storage format.  As
+	// a result, make use of Decode.
+	return b.Decode(r, 0)
+}
+
+// Decode decodes r using the Decred protocol encoding into the receiver.
+// This is part of the Message interface implementation.
+// See Deserialize for decoding blocks stored to disk, such as in a database, as
+// opposed to decoding blocks .
+func (b *Block) Decode(r io.Reader, pver uint32) error {
+	err := readBlockHeader(r, pver, &b.Header)
+	if err != nil {
+		return err
+	}
+
+	txCount, err := s.ReadVarInt(r, pver)
+	if err != nil {
+		return err
+	}
+
+	b.Transactions = make([]*Transaction, 0, txCount)
+	for i := uint64(0); i < txCount; i++ {
+		var tx Transaction
+		err := tx.Deserialize(r)
+		if err != nil {
+			return err
+		}
+		b.Transactions = append(b.Transactions, &tx)
+	}
+
+	return nil
+}
+
 // DeserializeTxLoc decodes r in the same manner Deserialize does, but it takes
 // a byte buffer instead of a generic reader and returns a slice containing the
 // start and length of each transaction within the raw data that is being
 // deserialized.
-func (msg *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
+func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	fullLen := r.Len()
 
 	// At the current time, there is no difference between the wire encoding
 	// at protocol version 0 and the stable long-term storage format.  As
 	// a result, make use of existing wire protocol functions.
-	err := readBlockHeader(r, 0, &msg.Header)
+	err := readBlockHeader(r, 0, &b.Header)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +241,7 @@ func (msg *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 
 	// Deserialize each transaction while keeping track of its location
 	// within the byte stream.
-	msg.Transactions = make([]*Transaction, 0, txCount)
+	b.Transactions = make([]*Transaction, 0, txCount)
 	txLocs := make([]TxLoc, txCount)
 	for i := uint64(0); i < txCount; i++ {
 		txLocs[i].TxStart = fullLen - r.Len()
@@ -212,7 +250,7 @@ func (msg *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 		if err != nil {
 			return nil, err
 		}
-		msg.Transactions = append(msg.Transactions, &tx)
+		b.Transactions = append(b.Transactions, &tx)
 		txLocs[i].TxLen = (fullLen - r.Len()) - txLocs[i].TxStart
 	}
 	return txLocs, nil
@@ -249,6 +287,32 @@ func (sb *SerializedBlock) Hash() *hash.Hash {
 
 func (sb *SerializedBlock) Block() *Block {
 	return sb.block
+}
+
+// NewBlockFromBytes returns a new instance of a block given the
+// serialized bytes.  See Block.
+func NewBlockFromBytes(serializedBytes []byte) (*SerializedBlock, error) {
+	br := bytes.NewReader(serializedBytes)
+	b, err := NewBlockFromReader(br)
+	if err != nil {
+		return nil, err
+	}
+	b.serializedBytes = serializedBytes
+
+	return b, nil
+}
+
+// NewBlockFromReader returns a new instance of a block given a
+// Reader to deserialize the block.  See Block.
+func NewBlockFromReader(r io.Reader) (*SerializedBlock, error) {
+	// Deserialize the bytes into a MsgBlock.
+	var block Block
+	err := block.Deserialize(r)
+	if err != nil {
+		return nil, err
+	}
+	sb := NewBlock(&block)
+	return sb,nil
 }
 
 // Bytes returns the serialized bytes for the Block.  This is equivalent to

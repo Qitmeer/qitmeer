@@ -26,6 +26,14 @@ const (
 
 const (
 
+	// NullBlockHeight is the null value for an input witness. It references
+	// the genesis block.
+	NullBlockHeight uint32 = 0x00000000
+
+	// NullBlockIndex is the null transaction index in a block for an input
+	// witness.
+	NullBlockIndex uint32 = 0xffffffff
+
 	// MaxTxInSequenceNum is the maximum sequence number the sequence field
 	// of a transaction input can be.
 	MaxTxInSequenceNum uint32 = 0xffffffff
@@ -106,6 +114,13 @@ type Transaction struct {
 	TxIn 	  []*TxInput
 	TxOut 	  []*TxOutput
 	Message   []byte     //a unencrypted/encrypted message if user pay additional fee & limit the max length
+}
+
+// DetermineTxType determines the type of stake transaction a transaction is; if
+// none, it returns that it is an assumed regular tx.
+func DetermineTxType(tx *Transaction) TxType {
+	//TODO txType
+	return Leger
 }
 
 // SerializeSize returns the number of bytes it would take to serialize the

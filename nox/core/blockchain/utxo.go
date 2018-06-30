@@ -3,6 +3,7 @@ package blockchain
 import (
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/engine/txscript"
 )
 
 
@@ -17,7 +18,7 @@ type UtxoEntry struct {
 	txType    types.TxType // The stake type of the transaction.
 	height    uint32       // Height of block containing tx.
 	index     uint32       // Index of containing tx in block.
-	txVersion uint16       // The tx version of this tx.
+	txVersion uint32       // The tx version of this tx.
 
 	isCoinBase bool // Whether entry is a coinbase tx.
 	hasExpiry  bool // Whether entry has an expiry.
@@ -40,11 +41,10 @@ type UtxoEntry struct {
 //
 // The struct is aligned for memory efficiency.
 type utxoOutput struct {
-	pkScript      []byte // The public key script for the output.
-	amount        int64  // The amount of the output.
-	scriptVersion uint16 // The script version
-	compressed    bool   // The public key script is compressed.
-	spent         bool   // Output is spent.
+	pkScript      []byte  // The public key script for the output.
+	amount        uint64  // The amount of the output.
+	compressed    bool    // The public key script is compressed.
+	spent         bool    // Output is spent.
 }
 
 // UtxoViewpoint represents a view into the set of unspent transaction outputs
@@ -57,6 +57,78 @@ type utxoOutput struct {
 type UtxoViewpoint struct {
 	entries   map[hash.Hash]*UtxoEntry
 	bestHash  hash.Hash
+}
+
+// NewUtxoViewpoint returns a new empty unspent transaction output view.
+func NewUtxoViewpoint() *UtxoViewpoint {
+	return &UtxoViewpoint{
+		entries: make(map[hash.Hash]*UtxoEntry),
+	}
+}
+
+// AddTxOuts adds all outputs in the passed transaction which are not provably
+// unspendable to the view.  When the view already has entries for any of the
+// outputs, they are simply marked unspent.  All fields will be updated for
+// existing entries since it's possible it has changed during a reorg.
+func (view *UtxoViewpoint) AddTxOuts(theTx *types.Tx, blockHeight int64, blockIndex uint32) {
+	tx := theTx.Transaction()
+	// When there are not already any utxos associated with the transaction,
+	// add a new entry for it to the view.
+	entry := view.LookupEntry(theTx.Hash())
+	if entry == nil {
+		txType := types.DetermineTxType(tx)
+		entry = newUtxoEntry(tx.Version, uint32(blockHeight),
+			blockIndex, IsCoinBaseTx(tx), tx.Expire != 0, txType)
+		view.entries[*theTx.Hash()] = entry
+	} else {
+		entry.height = uint32(blockHeight)
+		entry.index = blockIndex
+	}
+	entry.modified = true
+
+	// Loop all of the transaction outputs and add those which are not
+	// provably unspendable.
+	for txOutIdx, txOut := range theTx.Transaction().TxOut {
+		// TODO allow pruning of stake utxs after all other outputs are spent
+		if txscript.IsUnspendable(txOut.Amount, txOut.PkScript) {
+			continue
+		}
+
+		// Update existing entries.  All fields are updated because it's
+		// possible (although extremely unlikely) that the existing
+		// entry is being replaced by a different transaction with the
+		// same hash.  This is allowed so long as the previous
+		// transaction is fully spent.
+		if output, ok := entry.sparseOutputs[uint32(txOutIdx)]; ok {
+			output.spent = false
+			output.amount = txOut.Amount
+			output.pkScript = txOut.PkScript
+			output.compressed = false
+			continue
+		}
+
+		// Add the unspent transaction output.
+		entry.sparseOutputs[uint32(txOutIdx)] = &utxoOutput{
+			spent:         false,
+			amount:        txOut.Amount,
+			pkScript:      txOut.PkScript,
+			compressed:    false,
+		}
+	}
+}
+
+// newUtxoEntry returns a new unspent transaction output entry with the provided
+// coinbase flag and block height ready to have unspent outputs added.
+func newUtxoEntry(txVersion uint32, height uint32, index uint32, isCoinBase bool, hasExpiry bool, tt types.TxType) *UtxoEntry {
+	return &UtxoEntry{
+		sparseOutputs: make(map[uint32]*utxoOutput),
+		txVersion:     txVersion,
+		height:        height,
+		index:         index,
+		isCoinBase:    isCoinBase,
+		hasExpiry:     hasExpiry,
+		txType:        tt,
+	}
 }
 
 // LookupEntry returns information about a given transaction according to the

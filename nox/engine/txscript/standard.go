@@ -15,7 +15,6 @@ import (
 	"github.com/noxproject/nox/core/address"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/crypto"
-	"github.com/decred/dcrd/dcrutil"
 )
 
 const (
@@ -762,7 +761,7 @@ func PayToSStx(addr types.Address) ([]byte, error) {
 // PayToSStxChange creates a new script to pay a transaction output to a
 // public key hash, but tags the output with OP_SSTXCHANGE. For use in constructing
 // valid SStxs.
-func PayToSStxChange(addr dcrutil.Address) ([]byte, error) {
+func PayToSStxChange(addr types.Address) ([]byte, error) {
 	if addr == nil {
 		return nil, ErrUnsupportedAddress
 	}
@@ -771,31 +770,31 @@ func PayToSStxChange(addr dcrutil.Address) ([]byte, error) {
 	// supported.
 	scriptType := PubKeyHashTy
 	switch addr := addr.(type) {
-	case *dcrutil.AddressPubKeyHash:
-		if addr.DSA(addr.Net()) != chainec.ECTypeSecp256k1 {
+	case *address.PubKeyHashAddress:
+		if addr.SignScheme() != crypto.ECDSA_Secp256k1 {
 			return nil, ErrUnsupportedAddress
 		}
-	case *dcrutil.AddressScriptHash:
+	case *address.ScriptHashAddress:
 		scriptType = ScriptHashTy
 	default:
 		return nil, ErrUnsupportedAddress
 	}
 
-	hash := addr.ScriptAddress()
+	h := addr.ScriptAddress()
 
 	if scriptType == PubKeyHashTy {
 		return NewScriptBuilder().AddOp(OP_SSTXCHANGE).AddOp(OP_DUP).
-			AddOp(OP_HASH160).AddData(hash).AddOp(OP_EQUALVERIFY).
+			AddOp(OP_HASH160).AddData(h).AddOp(OP_EQUALVERIFY).
 			AddOp(OP_CHECKSIG).Script()
 	}
 	return NewScriptBuilder().AddOp(OP_SSTXCHANGE).AddOp(OP_HASH160).
-		AddData(hash).AddOp(OP_EQUAL).Script()
+		AddData(h).AddOp(OP_EQUAL).Script()
 }
 
 // PayToSSGen creates a new script to pay a transaction output to a public key
 // hash or script hash, but tags the output with OP_SSGEN. For use in constructing
 // valid SSGen txs.
-func PayToSSGen(addr dcrutil.Address) ([]byte, error) {
+func PayToSSGen(addr types.Address) ([]byte, error) {
 	if addr == nil {
 		return nil, ErrUnsupportedAddress
 	}
@@ -804,25 +803,25 @@ func PayToSSGen(addr dcrutil.Address) ([]byte, error) {
 	// supported.
 	scriptType := PubKeyHashTy
 	switch addr := addr.(type) {
-	case *dcrutil.AddressPubKeyHash:
-		if addr.DSA(addr.Net()) != chainec.ECTypeSecp256k1 {
+	case *address.PubKeyHashAddress:
+		if addr.SignScheme() != crypto.ECDSA_Secp256k1 {
 			return nil, ErrUnsupportedAddress
 		}
-	case *dcrutil.AddressScriptHash:
+	case *address.ScriptHashAddress:
 		scriptType = ScriptHashTy
 	default:
 		return nil, ErrUnsupportedAddress
 	}
 
-	hash := addr.ScriptAddress()
+	h := addr.ScriptAddress()
 
 	if scriptType == PubKeyHashTy {
 		return NewScriptBuilder().AddOp(OP_SSGEN).AddOp(OP_DUP).
-			AddOp(OP_HASH160).AddData(hash).AddOp(OP_EQUALVERIFY).
+			AddOp(OP_HASH160).AddData(h).AddOp(OP_EQUALVERIFY).
 			AddOp(OP_CHECKSIG).Script()
 	}
 	return NewScriptBuilder().AddOp(OP_SSGEN).AddOp(OP_HASH160).
-		AddData(hash).AddOp(OP_EQUAL).Script()
+		AddData(h).AddOp(OP_EQUAL).Script()
 }
 
 // PayToSSGenPKHDirect creates a new script to pay a transaction output to a
@@ -855,7 +854,7 @@ func PayToSSGenSHDirect(sh []byte) ([]byte, error) {
 // PayToSSRtx creates a new script to pay a transaction output to a
 // public key hash, but tags the output with OP_SSRTX. For use in constructing
 // valid SSRtx.
-func PayToSSRtx(addr dcrutil.Address) ([]byte, error) {
+func PayToSSRtx(addr types.Address) ([]byte, error) {
 	if addr == nil {
 		return nil, ErrUnsupportedAddress
 	}
@@ -864,25 +863,25 @@ func PayToSSRtx(addr dcrutil.Address) ([]byte, error) {
 	// supported.
 	scriptType := PubKeyHashTy
 	switch addr := addr.(type) {
-	case *dcrutil.AddressPubKeyHash:
-		if addr.DSA(addr.Net()) != chainec.ECTypeSecp256k1 {
+	case *address.PubKeyHashAddress:
+		if addr.SignScheme() != crypto.ECDSA_Secp256k1 {
 			return nil, ErrUnsupportedAddress
 		}
-	case *dcrutil.AddressScriptHash:
+	case *address.ScriptHashAddress:
 		scriptType = ScriptHashTy
 	default:
 		return nil, ErrUnsupportedAddress
 	}
 
-	hash := addr.ScriptAddress()
+	h := addr.ScriptAddress()
 
 	if scriptType == PubKeyHashTy {
 		return NewScriptBuilder().AddOp(OP_SSRTX).AddOp(OP_DUP).
-			AddOp(OP_HASH160).AddData(hash).AddOp(OP_EQUALVERIFY).
+			AddOp(OP_HASH160).AddData(h).AddOp(OP_EQUALVERIFY).
 			AddOp(OP_CHECKSIG).Script()
 	}
 	return NewScriptBuilder().AddOp(OP_SSRTX).AddOp(OP_HASH160).
-		AddData(hash).AddOp(OP_EQUAL).Script()
+		AddData(h).AddOp(OP_EQUAL).Script()
 }
 
 // PayToSSRtxPKHDirect creates a new script to pay a transaction output to a
@@ -914,7 +913,7 @@ func PayToSSRtxSHDirect(sh []byte) ([]byte, error) {
 
 // GenerateSStxAddrPush generates an OP_RETURN push for SSGen payment addresses in
 // an SStx.
-func GenerateSStxAddrPush(addr dcrutil.Address, amount dcrutil.Amount,
+func GenerateSStxAddrPush(addr types.Address, amount uint64,
 	limits uint16) ([]byte, error) {
 	if addr == nil {
 		return nil, ErrUnsupportedAddress
@@ -924,11 +923,11 @@ func GenerateSStxAddrPush(addr dcrutil.Address, amount dcrutil.Amount,
 	// supported.
 	scriptType := PubKeyHashTy
 	switch addr := addr.(type) {
-	case *dcrutil.AddressPubKeyHash:
-		if addr.DSA(addr.Net()) != chainec.ECTypeSecp256k1 {
+	case *address.PubKeyHashAddress:
+		if addr.SignScheme() != crypto.ECDSA_Secp256k1 {
 			return nil, ErrUnsupportedAddress
 		}
-	case *dcrutil.AddressScriptHash:
+	case *address.ScriptHashAddress:
 		scriptType = ScriptHashTy
 	default:
 		return nil, ErrUnsupportedAddress
@@ -1059,7 +1058,7 @@ func PayToAddrScript(addr types.Address) ([]byte, error) {
 // nrequired of the keys in pubkeys are required to have signed the transaction
 // for success.  An ErrBadNumRequired will be returned if nrequired is larger
 // than the number of keys provided.
-func MultiSigScript(pubkeys []*dcrutil.AddressSecpPubKey, nrequired int) ([]byte,
+func MultiSigScript(pubkeys []*address.SecpPubKeyAddress, nrequired int) ([]byte,
 	error) {
 	if len(pubkeys) < nrequired {
 		return nil, ErrBadNumRequired
