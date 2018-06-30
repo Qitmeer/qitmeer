@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018 The nox developers
 // Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
@@ -14,8 +15,9 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/agl/ed25519"
-	"github.com/agl/ed25519/edwards25519"
+
+	"github.com/noxproject/nox/crypto/ecc/ed25519/internal"
+	"github.com/noxproject/nox/crypto/ecc/ed25519/internal/edwards25519"
 )
 
 // BIG CAVEAT
@@ -40,15 +42,17 @@ var (
 // random secret.
 func GenerateKey(curve *TwistedEdwardsCurve, rand io.Reader) (priv []byte, x,
 	y *big.Int, err error) {
-	var pub *[PubKeyBytesLen]byte
+	pub, priv, err := ed25519.GenerateKey(rand)
+	var pubArray *[PubKeyBytesLen]byte
 	var privArray *[PrivKeyBytesLen]byte
-	pub, privArray, err = ed25519.GenerateKey(rand)
+	copy(pubArray[:], pub)
+	copy(privArray[:],priv)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	priv = privArray[:]
 
-	x, y, err = curve.EncodedBytesToBigIntPoint(pub)
+	x, y, err = curve.EncodedBytesToBigIntPoint(pubArray)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -70,8 +74,8 @@ func SignFromSecret(rand io.Reader, priv *PrivateKey, hash []byte) (r, s *big.In
 func SignFromSecretNoReader(priv *PrivateKey, hash []byte) (r, s *big.Int,
 	err error) {
 	privBytes := priv.SerializeSecret()
-	privArray := copyBytes64(privBytes)
-	sig := ed25519.Sign(privArray, hash)
+	//privArray := copyBytes64(privBytes)
+	sig := ed25519.Sign(privBytes, hash)
 
 	// The signatures are encoded as
 	//   sig[0:32]  R, a point encoded as little endian
@@ -355,7 +359,7 @@ func Verify(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	pubBytes := pub.Serialize()
 	sig := &Signature{r, s}
 	sigBytes := sig.Serialize()
-	pubArray := copyBytes(pubBytes)
-	sigArray := copyBytes64(sigBytes)
-	return ed25519.Verify(pubArray, hash, sigArray)
+	//pubArray := copyBytes(pubBytes)
+	//sigArray := copyBytes64(sigBytes)
+	return ed25519.Verify(pubBytes, hash, sigBytes)
 }

@@ -2624,7 +2624,7 @@ func opcodeCheckSigVerify(op *parsedOpcode, vm *Engine) error {
 // the same signature multiple times when verifying a multisig.
 type parsedSigInfo struct {
 	signature       []byte
-	parsedSignature chainec.Signature
+	parsedSignature ecc.Signature
 	parsed          bool
 }
 

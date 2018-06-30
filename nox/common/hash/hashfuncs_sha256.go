@@ -8,7 +8,8 @@ package hash
 
 import (
 	"crypto/sha256"
-
+	"github.com/dchest/blake256"
+	"github.com/glycerine/blake2b"
 )
 
 // TODO switch to faster sha256 library
@@ -18,6 +19,20 @@ import (
 func HashB(b []byte) []byte {
 	hash := sha256.Sum256(b)
 	return hash[:]
+}
+
+// BlakeHashB using blake2b calculates hash(b) and returns the resulting bytes.
+func BlakeHashB(b []byte) []byte {
+	hash := blake2b.Sum256(b)
+	return hash[:]
+}
+
+// Blake256HashB using blake256 to calculates hash(b) and returns the resulting bytes.
+func Blake256HashB(b []byte) []byte {
+	a := blake256.New()
+	a.Write(b)
+	out := a.Sum(nil)
+	return out
 }
 
 // HashH calculates hash(b) and returns the resulting bytes as a Hash.

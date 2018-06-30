@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018 The nox developers
 // Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
@@ -8,7 +9,7 @@ import (
 	"crypto/elliptic"
 	"math/big"
 
-	"github.com/agl/ed25519/edwards25519"
+	"github.com/noxproject/nox/crypto/ecc/ed25519/internal/edwards25519"
 )
 
 // TwistedEdwardsCurve extended an elliptical curve set of

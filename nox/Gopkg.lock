@@ -48,6 +48,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/dchest/blake256"
+  packages = ["."]
+  revision = "dee3fe6eb0e98dc774a94fc231f85baf7c29d360"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/dgraph-io/badger"
   packages = [
     ".",
@@ -65,6 +71,12 @@
   name = "github.com/dgryski/go-farm"
   packages = ["."]
   revision = "2de33835d10275975374b37b2dcfd22c9020a1f5"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/glycerine/blake2b"
+  packages = ["."]
+  revision = "3c8c640cd7bea3ca78209d812b5854442ab92fed"
 
 [[projects]]
   name = "github.com/go-stack/stack"
@@ -109,12 +121,6 @@
   version = "v0.0.3"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/noxproject/nox-crypto"
-  packages = ["secp256k1"]
-  revision = "1a47f5ab18ab45dddaa86753e8f94c5939e8eef8"
-
-[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
@@ -156,8 +162,6 @@
   name = "golang.org/x/crypto"
   packages = [
     "blake2b",
-    "ed25519",
-    "ed25519/internal/edwards25519",
     "ripemd160",
     "sha3"
   ]
@@ -203,6 +207,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "94624f98b3a85e73a1fca77a4b45f52286bcc6c4b5591c3f06faa47bc6c9bfac"
+  inputs-digest = "6c45e727a4db3a727024464afd96821ca938d92de598c318a2bc3dbb2f3a94d2"
   solver-name = "gps-cdcl"
   solver-version = 1

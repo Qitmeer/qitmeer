@@ -16,10 +16,6 @@
   version = "1.4.0"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/noxproject/nox-crypto"
-
-[[constraint]]
   name = "github.com/stretchr/testify"
   version = "1.2.2"
 

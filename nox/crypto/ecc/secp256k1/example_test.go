@@ -28,6 +28,8 @@ func Example_signMessage() {
 	// Sign a message using the private key.
 	message := "test message"
 	messageHash := chainhash.HashB([]byte(message))
+	//messageHash := chainhash.BlakeHashB([]byte(message))
+	//messageHash := chainhash.Blake256HashB([]byte(message))
 	signature, err := privKey.Sign(messageHash)
 	if err != nil {
 		fmt.Println(err)
@@ -42,7 +44,7 @@ func Example_signMessage() {
 	fmt.Printf("Signature Verified? %v\n", verified)
 
 	// Output:
-	// Serialized Signature: 3045022100fcc0a8768cfbcefcf2cadd7cfb0fb18ed08dd2e2ae84bef1a474a3d351b26f0302200fc1a350b45f46fa00101391302818d748c2b22615511a3ffd5bb638bd777207
+	// Serialized Signature: 3045022100fa7cdbd9243b99889b033e88ae2ddf55cc189efd5ae64dfa77655f01fc48e8000220045ec2f0dfebc7891d31b40d1ed686ca0e33c7c1b1b693e0fb305e6fc4d84a6a
 	// Signature Verified? true
 }
 
@@ -64,9 +66,9 @@ func Example_verifySignature() {
 	}
 
 	// Decode hex-encoded serialized signature.
-	sigBytes, err := hex.DecodeString("3045022100fcc0a8768cfbcefcf2cadd7cfb0" +
-		"fb18ed08dd2e2ae84bef1a474a3d351b26f0302200fc1a350b45f46fa0010139130" +
-		"2818d748c2b22615511a3ffd5bb638bd777207")
+	sigBytes, err := hex.DecodeString( "3045022100fa7cdbd9243b99889b033e88" +
+		"ae2ddf55cc189efd5ae64dfa77655f01fc48e8000220045ec2f0dfebc7891d31b40d" +
+		"1ed686ca0e33c7c1b1b693e0fb305e6fc4d84a6a")
 
 	if err != nil {
 		fmt.Println(err)
