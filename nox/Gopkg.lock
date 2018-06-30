@@ -73,12 +73,6 @@
   revision = "2de33835d10275975374b37b2dcfd22c9020a1f5"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/glycerine/blake2b"
-  packages = ["."]
-  revision = "3c8c640cd7bea3ca78209d812b5854442ab92fed"
-
-[[projects]]
   name = "github.com/go-stack/stack"
   packages = ["."]
   revision = "259ab82a6cad3992b4e21ff5cac294ccb06474bc"
@@ -207,6 +201,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6c45e727a4db3a727024464afd96821ca938d92de598c318a2bc3dbb2f3a94d2"
+  inputs-digest = "b45277197156e431b2c29c32e826a75a72ce220ec6b5cc56ffb998d9bf37311e"
   solver-name = "gps-cdcl"
   solver-version = 1
