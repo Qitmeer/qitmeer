@@ -3,13 +3,13 @@ package types
 
 import (
 	"golang.org/x/crypto/ripemd160"
-	"github.com/noxproject/nox/crypto"
+	"github.com/noxproject/nox/crypto/ecc"
 )
 
 type Address interface{
 	Encode()        string
 	Hash160()       *[ripemd160.Size]byte
-	SignScheme()    crypto.SignatureScheme
+	EcType()        ecc.EcType
 	ScriptAddress() []byte
 }
 

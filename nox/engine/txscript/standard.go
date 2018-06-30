@@ -10,12 +10,11 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg/chainec"
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/core/address"
 	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/crypto"
+	"github.com/noxproject/nox/crypto/ecc"
 )
 
 const (
@@ -739,7 +738,7 @@ func PayToSStx(addr types.Address) ([]byte, error) {
 	scriptType := PubKeyHashTy
 	switch addr := addr.(type) {
 	case *address.PubKeyHashAddress:
-		if addr.SignScheme() != crypto.ECDSA_Secp256k1 {
+		if addr.EcType() != ecc.ECDSA_Secp256k1 {
 			return nil, ErrUnsupportedAddress
 		}
 	case *address.ScriptHashAddress:
@@ -772,7 +771,7 @@ func PayToSStxChange(addr types.Address) ([]byte, error) {
 	scriptType := PubKeyHashTy
 	switch addr := addr.(type) {
 	case *address.PubKeyHashAddress:
-		if addr.SignScheme() != crypto.ECDSA_Secp256k1 {
+		if addr.EcType() != ecc.ECDSA_Secp256k1 {
 			return nil, ErrUnsupportedAddress
 		}
 	case *address.ScriptHashAddress:
@@ -805,7 +804,7 @@ func PayToSSGen(addr types.Address) ([]byte, error) {
 	scriptType := PubKeyHashTy
 	switch addr := addr.(type) {
 	case *address.PubKeyHashAddress:
-		if addr.SignScheme() != crypto.ECDSA_Secp256k1 {
+		if addr.EcType() != ecc.ECDSA_Secp256k1 {
 			return nil, ErrUnsupportedAddress
 		}
 	case *address.ScriptHashAddress:
@@ -865,7 +864,7 @@ func PayToSSRtx(addr types.Address) ([]byte, error) {
 	scriptType := PubKeyHashTy
 	switch addr := addr.(type) {
 	case *address.PubKeyHashAddress:
-		if addr.SignScheme() != crypto.ECDSA_Secp256k1 {
+		if addr.EcType() != ecc.ECDSA_Secp256k1 {
 			return nil, ErrUnsupportedAddress
 		}
 	case *address.ScriptHashAddress:
@@ -925,7 +924,7 @@ func GenerateSStxAddrPush(addr types.Address, amount uint64,
 	scriptType := PubKeyHashTy
 	switch addr := addr.(type) {
 	case *address.PubKeyHashAddress:
-		if addr.SignScheme() != crypto.ECDSA_Secp256k1 {
+		if addr.EcType() != ecc.ECDSA_Secp256k1 {
 			return nil, ErrUnsupportedAddress
 		}
 	case *address.ScriptHashAddress:
@@ -1018,12 +1017,12 @@ func PayToAddrScript(addr types.Address) ([]byte, error) {
 		if addr == nil {
 			return nil, ErrUnsupportedAddress
 		}
-		switch addr.SignScheme() {
-		case crypto.ECDSA_Secp256k1:
+		switch addr.EcType() {
+		case ecc.ECDSA_Secp256k1:
 			return payToPubKeyHashScript(addr.ScriptAddress())
-		case crypto.EdDSA_Ed25519:
+		case ecc.EdDSA_Ed25519:
 			return payToPubKeyHashEdwardsScript(addr.ScriptAddress())
-		case crypto.ECDSA_Schnorr:
+		case ecc.ECDSA_SecpSchnorr:
 			return payToPubKeyHashSchnorrScript(addr.ScriptAddress())
 		}
 
@@ -1140,7 +1139,7 @@ func ExtractPkScriptAddrs(version uint16, pkScript []byte,
 		// Skip the pubkey hash if it's invalid for some reason.
 		requiredSigs = 1
 		addr, err := address.NewPubKeyHashAddress(pops[2].data,
-			chainParams, chainec.ECTypeSecp256k1)
+			chainParams, ecc.ECDSA_Secp256k1)
 		if err == nil {
 			addrs = append(addrs, addr)
 		}
@@ -1164,7 +1163,7 @@ func ExtractPkScriptAddrs(version uint16, pkScript []byte,
 		// Therefore the pubkey is the first item on the stack.
 		// Skip the pubkey if it's invalid for some reason.
 		requiredSigs = 1
-		pk, err := chainec.Secp256k1.ParsePubKey(pops[0].data)
+		pk, err := ecc.Secp256k1.ParsePubKey(pops[0].data)
 		if err == nil {
 			addr, err := address.NewSecpPubKeyCompressedAddress(pk, chainParams)
 			if err == nil {
@@ -1182,10 +1181,10 @@ func ExtractPkScriptAddrs(version uint16, pkScript []byte,
 		var addr types.Address
 		err := fmt.Errorf("invalid signature suite for alt sig")
 		switch suite {
-		case chainec.ECTypeEdwards:
+		case ecc.EdDSA_Ed25519:
 			addr, err = address.NewEdwardsPubKeyAddress(pops[0].data,
 				chainParams)
-		case chainec.ECTypeSecSchnorr:
+		case ecc.ECDSA_SecpSchnorr:
 			addr, err = address.NewSecSchnorrPubKeyAddress(pops[0].data,
 				chainParams)
 		}
@@ -1260,7 +1259,7 @@ func ExtractPkScriptAddrs(version uint16, pkScript []byte,
 		// Extract the public keys while skipping any that are invalid.
 		addrs = make([]types.Address, 0, numPubKeys)
 		for i := 0; i < numPubKeys; i++ {
-			pubkey, err := chainec.Secp256k1.ParsePubKey(pops[i+1].data)
+			pubkey, err := ecc.Secp256k1.ParsePubKey(pops[i+1].data)
 			if err == nil {
 				addr, err := address.NewSecpPubKeyCompressedAddress(pubkey,
 					chainParams)
@@ -1312,7 +1311,7 @@ func extractOneBytePush(po parsedOpcode) int {
 
 // ExtractPkScriptAltSigType returns the signature scheme to use for an
 // alternative check signature script.
-func ExtractPkScriptAltSigType(pkScript []byte) (int, error) {
+func ExtractPkScriptAltSigType(pkScript []byte) (ecc.EcType, error) {
 	pops, err := parseScript(pkScript)
 	if err != nil {
 		return 0, err
@@ -1336,9 +1335,9 @@ func ExtractPkScriptAltSigType(pkScript []byte) (int, error) {
 	val := sigTypes(valInt)
 	switch val {
 	case edwards:
-		return int(val), nil
+		return ecc.EcType(val), nil
 	case secSchnorr:
-		return int(val), nil
+		return ecc.EcType(val), nil
 	default:
 		break
 	}

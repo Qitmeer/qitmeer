@@ -274,8 +274,9 @@ func ReadMessageN(r io.Reader, pver uint32, net protocol.Network) (int, Message,
 		return totalBytes, nil, nil, messageError("ReadMessage", str)
 	}
 
-	// Unmarshal message.  NOTE: This must be a *bytes.Buffer since the
-	// MsgVersion BtcDecode function requires it.
+	// Unmarshal message.
+	// NOTE: This must be a *bytes.Buffer since the
+	// MsgVersion's Decode function requires it.
 	pr := bytes.NewBuffer(payload)
 	err = msg.Decode(pr, pver)
 	if err != nil {

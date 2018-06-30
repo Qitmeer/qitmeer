@@ -17,9 +17,9 @@ import (
 	"golang.org/x/crypto/ripemd160"
 
 	"github.com/noxproject/nox/params"
-	"github.com/decred/dcrd/chaincfg/chainec"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/crypto/ecc"
 )
 
 var optimizeSigVerification = params.SigHashOptimization
@@ -2567,18 +2567,18 @@ func opcodeCheckSig(op *parsedOpcode, vm *Engine) error {
 		return nil
 	}
 
-	pubKey, err := chainec.Secp256k1.ParsePubKey(pkBytes)
+	pubKey, err := ecc.Secp256k1.ParsePubKey(pkBytes)
 	if err != nil {
 		vm.dstack.PushBool(false)
 		return nil
 	}
 
-	var signature chainec.Signature
+	var signature ecc.Signature
 	if vm.hasFlag(ScriptVerifyStrictEncoding) ||
 		vm.hasFlag(ScriptVerifyDERSignatures) {
-		signature, err = chainec.Secp256k1.ParseDERSignature(sigBytes)
+		signature, err = ecc.Secp256k1.ParseDERSignature(sigBytes)
 	} else {
-		signature, err = chainec.Secp256k1.ParseSignature(sigBytes)
+		signature, err = ecc.Secp256k1.ParseSignature(sigBytes)
 	}
 	if err != nil {
 		vm.dstack.PushBool(false)
@@ -2591,14 +2591,14 @@ func opcodeCheckSig(op *parsedOpcode, vm *Engine) error {
 		copy(sigHash[:], h)
 
 		valid = vm.sigCache.Exists(sigHash, signature, pubKey)
-		if !valid && chainec.Secp256k1.Verify(pubKey, h,
+		if !valid && ecc.Secp256k1.Verify(pubKey, h,
 			signature.GetR(), signature.GetS()) {
 
 			vm.sigCache.Add(sigHash, signature, pubKey)
 			valid = true
 		}
 	} else {
-		valid = chainec.Secp256k1.Verify(pubKey, h, signature.GetR(),
+		valid = ecc.Secp256k1.Verify(pubKey, h, signature.GetR(),
 			signature.GetS())
 	}
 
@@ -2731,7 +2731,7 @@ func opcodeCheckMultiSig(op *parsedOpcode, vm *Engine) error {
 		signature := rawSig[:len(rawSig)-1]
 
 		// Only parse and check the signature encoding once.
-		var parsedSig chainec.Signature
+		var parsedSig ecc.Signature
 		if !sigInfo.parsed {
 			if err := vm.checkHashTypeEncoding(hashType); err != nil {
 				return err
@@ -2745,9 +2745,9 @@ func opcodeCheckMultiSig(op *parsedOpcode, vm *Engine) error {
 			if vm.hasFlag(ScriptVerifyStrictEncoding) ||
 				vm.hasFlag(ScriptVerifyDERSignatures) {
 
-				parsedSig, err = chainec.Secp256k1.ParseDERSignature(signature)
+				parsedSig, err = ecc.Secp256k1.ParseDERSignature(signature)
 			} else {
-				parsedSig, err = chainec.Secp256k1.ParseSignature(signature)
+				parsedSig, err = ecc.Secp256k1.ParseSignature(signature)
 			}
 			sigInfo.parsed = true
 			if err != nil {
@@ -2769,7 +2769,7 @@ func opcodeCheckMultiSig(op *parsedOpcode, vm *Engine) error {
 		}
 
 		// Parse the pubkey.
-		parsedPubKey, err := chainec.Secp256k1.ParsePubKey(pubKey)
+		parsedPubKey, err := ecc.Secp256k1.ParsePubKey(pubKey)
 		if err != nil {
 			continue
 		}
@@ -2794,14 +2794,14 @@ func opcodeCheckMultiSig(op *parsedOpcode, vm *Engine) error {
 			copy(sigHash[:], h)
 
 			valid = vm.sigCache.Exists(sigHash, parsedSig, parsedPubKey)
-			if !valid && chainec.Secp256k1.Verify(parsedPubKey, h,
+			if !valid && ecc.Secp256k1.Verify(parsedPubKey, h,
 				parsedSig.GetR(), parsedSig.GetS()) {
 
 				vm.sigCache.Add(sigHash, parsedSig, parsedPubKey)
 				valid = true
 			}
 		} else {
-			valid = chainec.Secp256k1.Verify(parsedPubKey, h,
+			valid = ecc.Secp256k1.Verify(parsedPubKey, h,
 				parsedSig.GetR(), parsedSig.GetS())
 		}
 
@@ -2833,10 +2833,10 @@ func opcodeCheckMultiSigVerify(op *parsedOpcode, vm *Engine) error {
 // ECDSA signature schemes encoded as a single byte. Secp256k1 traditional
 // is non-accessible through CheckSigAlt, but is used elsewhere for in the
 // sign function to indicate the type of signature to generate.
-type sigTypes uint8
+type sigTypes ecc.EcType
 
-var edwards = sigTypes(chainec.ECTypeEdwards)
-var secSchnorr = sigTypes(chainec.ECTypeSecSchnorr)
+var edwards = sigTypes(ecc.EdDSA_Ed25519)
+var secSchnorr = sigTypes(ecc.ECDSA_SecpSchnorr)
 
 // opcodeCheckSigAlt accepts a three item stack and pops off the first three
 // items. The first item is a signature type (1-255, can not be zero or the
@@ -2952,17 +2952,17 @@ func opcodeCheckSigAlt(op *parsedOpcode, vm *Engine) error {
 	}
 
 	// Get the public key from bytes.
-	var pubKey chainec.PublicKey
+	var pubKey ecc.PublicKey
 	switch sigTypes(sigType) {
 	case edwards:
-		pubKeyEd, err := chainec.Edwards.ParsePubKey(pkBytes)
+		pubKeyEd, err := ecc.Ed25519.ParsePubKey(pkBytes)
 		if err != nil {
 			vm.dstack.PushBool(false)
 			return nil
 		}
 		pubKey = pubKeyEd
 	case secSchnorr:
-		pubKeySec, err := chainec.SecSchnorr.ParsePubKey(pkBytes)
+		pubKeySec, err := ecc.SecSchnorr.ParsePubKey(pkBytes)
 		if err != nil {
 			vm.dstack.PushBool(false)
 			return nil
@@ -2971,17 +2971,17 @@ func opcodeCheckSigAlt(op *parsedOpcode, vm *Engine) error {
 	}
 
 	// Get the signature from bytes.
-	var signature chainec.Signature
+	var signature ecc.Signature
 	switch sigTypes(sigType) {
 	case edwards:
-		sigEd, err := chainec.Edwards.ParseSignature(sigBytes)
+		sigEd, err := ecc.Ed25519.ParseSignature(sigBytes)
 		if err != nil {
 			vm.dstack.PushBool(false)
 			return nil
 		}
 		signature = sigEd
 	case secSchnorr:
-		sigSec, err := chainec.SecSchnorr.ParseSignature(sigBytes)
+		sigSec, err := ecc.SecSchnorr.ParseSignature(sigBytes)
 		if err != nil {
 			vm.dstack.PushBool(false)
 			return nil
@@ -2995,12 +2995,12 @@ func opcodeCheckSigAlt(op *parsedOpcode, vm *Engine) error {
 	// Attempt to validate the signature.
 	switch sigTypes(sigType) {
 	case edwards:
-		ok := chainec.Edwards.Verify(pubKey, hash, signature.GetR(),
+		ok := ecc.Ed25519.Verify(pubKey, hash, signature.GetR(),
 			signature.GetS())
 		vm.dstack.PushBool(ok)
 		return nil
 	case secSchnorr:
-		ok := chainec.SecSchnorr.Verify(pubKey, hash, signature.GetR(),
+		ok := ecc.SecSchnorr.Verify(pubKey, hash, signature.GetR(),
 			signature.GetS())
 		vm.dstack.PushBool(ok)
 		return nil

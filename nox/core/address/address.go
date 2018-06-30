@@ -8,9 +8,8 @@ import (
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/common/encode/base58"
 	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/crypto"
 	"github.com/noxproject/nox/params"
-	"github.com/decred/dcrd/chaincfg/chainec"
+	"github.com/noxproject/nox/crypto/ecc"
 )
 
 // encodeAddress returns a human-readable payment address given a ripemd160 hash
@@ -19,7 +18,6 @@ import (
 func encodeAddress(hash160 []byte, netID [2]byte) string {
 	// Format is 2 bytes for a network and address class (i.e. P2PKH vs
 	// P2SH), 20 bytes for a RIPEMD160 hash, and 4 bytes of checksum.
-	//TODO, customize base58 version (two bytes)
 	return base58.CheckEncode(hash160[:ripemd160.Size], netID)
 }
 
@@ -33,14 +31,14 @@ type PubKeyHashAddress struct {
 
 // NewAddressPubKeyHash returns a new AddressPubKeyHash.  pkHash must
 // be 20 bytes.
-func NewPubKeyHashAddress(pkHash []byte, net *params.Params, algo int) (*PubKeyHashAddress, error) {
+func NewPubKeyHashAddress(pkHash []byte, net *params.Params, algo ecc.EcType ) (*PubKeyHashAddress, error) {
 	var addrID [2]byte
 	switch algo {
-	case chainec.ECTypeSecp256k1:
+	case ecc.ECDSA_Secp256k1:
 		addrID = net.PubKeyHashAddrID
-	case chainec.ECTypeEdwards:
+	case ecc.EdDSA_Ed25519:
 		addrID = net.PKHEdwardsAddrID
-	case chainec.ECTypeSecSchnorr:
+	case ecc.ECDSA_SecpSchnorr:
 		addrID = net.PKHSchnorrAddrID
 	default:
 		return nil, errors.New("unknown ECDSA algorithm")
@@ -69,18 +67,18 @@ func newAddressPubKeyHash(pkHash []byte, netID [2]byte) (*PubKeyHashAddress,
 	return addr, nil
 }
 
-// SignScheme returns the digital signature algorithm for the associated public key
+// EcType returns the digital signature algorithm for the associated public key
 // hash.
-func (a *PubKeyHashAddress) SignScheme() crypto.SignatureScheme {
+func (a *PubKeyHashAddress) EcType() ecc.EcType {
 	switch a.netID {
 	case a.net.PubKeyHashAddrID:
-		return crypto.ECDSA_Secp256k1
+		return ecc.ECDSA_Secp256k1
 	case a.net.PKHEdwardsAddrID:
-		return crypto.EdDSA_Ed25519
+		return ecc.EdDSA_Ed25519
 	case a.net.PKHSchnorrAddrID:
-		return crypto.ECDSA_Schnorr
+		return ecc.ECDSA_SecpSchnorr
 	}
-	return crypto.UNKNOWN
+	return -1
 }
 func (a *PubKeyHashAddress) Encode() string {
 	//TODO error handling
@@ -151,8 +149,8 @@ func (a *ScriptHashAddress) Encode() string {
 	return encodeAddress(a.hash[:], a.netID)
 }
 
-func (a *ScriptHashAddress) SignScheme() crypto.SignatureScheme {
-	return crypto.UNKNOWN
+func (a *ScriptHashAddress) EcType() ecc.EcType {
+	return ecc.ECDSA_Secp256k1
 }
 
 // ScriptAddress returns the bytes to be included in a txout script to pay
@@ -180,12 +178,12 @@ const (
 type SecpPubKeyAddress struct {
 	net          *params.Params
 	pubKeyFormat PubKeyFormat
-	pubKey       crypto.EccPublicKey
+	pubKey       ecc.PublicKey
 	pubKeyHashID [2]byte
 }
 
 // NewSecpPubKeyCompressedAddress creates a new address using a compressed public key
-func NewSecpPubKeyCompressedAddress(pubkey chainec.PublicKey, params *params.Params) (*SecpPubKeyAddress, error) {
+func NewSecpPubKeyCompressedAddress(pubkey ecc.PublicKey, params *params.Params) (*SecpPubKeyAddress, error) {
 	return NewSecpPubKeyAddress(pubkey.SerializeCompressed(), params)
 }
 
@@ -198,9 +196,7 @@ var ErrInvalidPubKeyFormat = errors.New("invalid pubkey format")
 // parameter must be a valid pubkey and must be uncompressed or compressed.
 func NewSecpPubKeyAddress(serializedPubKey []byte,
 	net *params.Params) (*SecpPubKeyAddress, error) {
-	//pubKey, err := chainec.Secp256k1.ParsePubKey(serializedPubKey)
-	//TODO fix cypto layer
-	_, pubKey, err := crypto.GenerateKeyPair(crypto.ECDSA_Secp256k1)
+	pubKey, err := ecc.Secp256k1.ParsePubKey(serializedPubKey)
 
 	if err != nil {
 		return nil, err
@@ -252,8 +248,8 @@ func (a *SecpPubKeyAddress) serialize() []byte {
 	}
 }
 
-func (a *SecpPubKeyAddress) SignScheme() crypto.SignatureScheme {
-	return crypto.ECDSA_Secp256k1
+func (a *SecpPubKeyAddress) EcType() ecc.EcType {
+	return ecc.ECDSA_Secp256k1
 }
 
 // Hash160 returns the underlying array of the pubkey hash.  This can be useful
@@ -295,7 +291,7 @@ func (a *SecpPubKeyAddress) ScriptAddress() []byte {
 // EdwardsPubKeyAddress is an Address for an Ed25519 pay-to-pubkey transaction.
 type EdwardsPubKeyAddress struct {
 	net          *params.Params
-	pubKey       crypto.EccPublicKey
+	pubKey       ecc.PublicKey
 	pubKeyHashID [2]byte
 }
 
@@ -304,9 +300,7 @@ type EdwardsPubKeyAddress struct {
 // parameter must be a valid 32 byte serialized public key.
 func NewEdwardsPubKeyAddress(serializedPubKey []byte,
 	net *params.Params) (*EdwardsPubKeyAddress, error) {
-	//pubKey, err := chainec.Edwards.ParsePubKey(serializedPubKey)
-	//TODO fix crypto layer
-	_,pubKey,err := crypto.GenerateKeyPair(crypto.EdDSA_Ed25519)
+	pubKey, err := ecc.Ed25519.ParsePubKey(serializedPubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -318,8 +312,8 @@ func NewEdwardsPubKeyAddress(serializedPubKey []byte,
 	}, nil
 }
 
-func (a *EdwardsPubKeyAddress) SignScheme() crypto.SignatureScheme {
-	return crypto.EdDSA_Ed25519
+func (a *EdwardsPubKeyAddress) EcType() ecc.EcType {
+	return ecc.EdDSA_Ed25519
 }
 func (a *EdwardsPubKeyAddress) Encode() string {
 	return encodeAddress(hash.Hash160(a.serialize()), a.pubKeyHashID)
@@ -354,7 +348,7 @@ func (a *EdwardsPubKeyAddress) ScriptAddress() []byte {
 // SecSchnorrPubKeyAddress is an Address for a secp256k1-schnorr pay-to-pubkey transaction.
 type SecSchnorrPubKeyAddress struct {
 	net          *params.Params
-	pubKey       crypto.EccPublicKey
+	pubKey       ecc.PublicKey
 	pubKeyHashID [2]byte
 }
 
@@ -363,13 +357,10 @@ type SecSchnorrPubKeyAddress struct {
 // parameter must be a valid pubkey and must be compressed.
 func NewSecSchnorrPubKeyAddress(serializedPubKey []byte,
 	net *params.Params) (*SecSchnorrPubKeyAddress, error) {
-	//pubKey, err := chainec.SecSchnorr.ParsePubKey(serializedPubKey)
-	//TODO fix crypto layer
-	_,pubKey,err := crypto.GenerateKeyPair(crypto.ECDSA_Schnorr)
+	pubKey, err := ecc.SecSchnorr.ParsePubKey(serializedPubKey)
 	if err != nil {
 		return nil, err
 	}
-
 	return &SecSchnorrPubKeyAddress{
 		net:          net,
 		pubKey:       pubKey,
@@ -377,8 +368,8 @@ func NewSecSchnorrPubKeyAddress(serializedPubKey []byte,
 	}, nil
 }
 
-func (a *SecSchnorrPubKeyAddress) SignScheme() crypto.SignatureScheme {
-	return crypto.ECDSA_Schnorr
+func (a *SecSchnorrPubKeyAddress) EcType() ecc.EcType {
+	return ecc.ECDSA_SecpSchnorr
 }
 
 func (a *SecSchnorrPubKeyAddress) Encode() string {

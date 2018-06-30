@@ -16,9 +16,9 @@ import (
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/crypto"
 	"github.com/noxproject/nox/core/address"
 	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/crypto/ecc"
 )
 
 const (
@@ -535,18 +535,18 @@ func dbRemoveAddrIndexEntries(bucket internalBucket, addrKey [addrKeySize]byte, 
 func addrToKey(addr types.Address, params *params.Params) ([addrKeySize]byte, error) {
 	switch addr := addr.(type) {
 	case *address.PubKeyHashAddress:
-		switch addr.SignScheme() {
-		case crypto.ECDSA_Secp256k1:
+		switch addr.EcType() {
+		case ecc.ECDSA_Secp256k1:
 			var result [addrKeySize]byte
 			result[0] = addrKeyTypePubKeyHash
 			copy(result[1:], addr.Hash160()[:])
 			return result, nil
-		case crypto.EdDSA_Ed25519:
+		case ecc.EdDSA_Ed25519:
 			var result [addrKeySize]byte
 			result[0] = addrKeyTypePubKeyHashEdwards
 			copy(result[1:], addr.Hash160()[:])
 			return result, nil
-		case crypto.ECDSA_Schnorr:
+		case ecc.ECDSA_SecpSchnorr:
 			var result [addrKeySize]byte
 			result[0] = addrKeyTypePubKeyHashSchnorr
 			copy(result[1:], addr.Hash160()[:])

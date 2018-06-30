@@ -3,12 +3,12 @@
 package types
 
 import (
-	"github.com/noxproject/nox/crypto"
+	"github.com/noxproject/nox/crypto/ecc"
 )
 
 type Key struct {
 	Address Address
-	PrivateKey *crypto.PrivateKey
+	PrivateKey *ecc.PrivateKey
 }
 
 type keyJSON struct {

@@ -10,8 +10,8 @@ import (
 	"encoding/binary"
 	"math"
 	"github.com/noxproject/nox/common/hash"
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/params"
 )
 
 // SigHashType represents hash type bits at the end of a signature.
@@ -304,7 +304,7 @@ func calcSignatureHash(prevOutScript []parsedOpcode, hashType SigHashType, tx *t
 	// can be reused because only the witness data has been modified, so
 	// the wasteful extra O(N^2) hash can be avoided.
 	var prefixHash hash.Hash
-	if chaincfg.SigHashOptimization && cachedPrefix != nil &&
+	if params.SigHashOptimization && cachedPrefix != nil &&
 		hashType&sigHashMask == SigHashAll &&
 		hashType&SigHashAnyOneCanPay == 0 {
 
