@@ -3,22 +3,20 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package txscript_test
+package btc_test
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
-	"bytes"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
-
-// TODO refactor & remove btcd/btcec depdences
 
 // This example demonstrates creating a script which pays to a bitcoin address.
 // It also prints the created script hex and uses the DisasmString function to
@@ -249,3 +247,4 @@ func ExampleSignTxOutput() {
 	// addr=16eTfd5Qsh3CRjW2bPKAF3iQqmYs1MJcZR
 	// Transaction successfully signed
 }
+
