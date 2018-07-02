@@ -14,7 +14,6 @@ import (
 	"golang.org/x/crypto/ripemd160"
 	"github.com/noxproject/nox/common/encode/base58"
 	"github.com/noxproject/nox/common/encode/bech32"
-	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/crypto/ecc"
 	"github.com/noxproject/nox/common/hash/btc"
 )
@@ -453,7 +452,7 @@ func (a *AddressPubKey) serialize() []byte {
 //
 // Part of the Address interface.
 func (a *AddressPubKey) EncodeAddress() string {
-	return encodeAddress(hash.Hash160(a.serialize()), a.pubKeyHashID)
+	return encodeAddress(btc.Hash160(a.serialize()), a.pubKeyHashID)
 }
 
 // ScriptAddress returns the bytes to be included in a txout script to pay
@@ -495,7 +494,7 @@ func (a *AddressPubKey) SetFormat(pkFormat PubKeyFormat) {
 // are pay-to-pubkey-hash constructed from the uncompressed public key.
 func (a *AddressPubKey) AddressPubKeyHash() *AddressPubKeyHash {
 	addr := &AddressPubKeyHash{netID: a.pubKeyHashID}
-	copy(addr.hash[:], hash.Hash160(a.serialize()))
+	copy(addr.hash[:], btc.Hash160(a.serialize()))
 	return addr
 }
 

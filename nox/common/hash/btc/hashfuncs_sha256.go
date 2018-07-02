@@ -37,5 +37,6 @@ func DoubleHashH(b []byte) hash.Hash {
 }
 
 func Hash160(buf []byte) []byte {
-	return hash.CalcHash(DoubleHashB(buf), hash.GetHasher(hash.Ripemd160))
+	return hash.CalcHash(HashB(buf), hash.GetHasher(hash.Ripemd160))
+	//return hash.CalcHash(DoubleHashB(buf), hash.GetHasher(hash.Ripemd160))
 }
