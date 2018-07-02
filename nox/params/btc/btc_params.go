@@ -14,7 +14,7 @@ import (
 // it panics on an error since it will only (and must only) be called with
 // hard-coded, and therefore known good, hashes.
 func newHashFromStr(hexStr string) *hash.Hash {
-	hash, err := hash.NewHashFromStr(hexStr)
+	h, err := hash.NewHashFromStr(hexStr)
 	if err != nil {
 		// Ordinarily I don't like panics in library code since it
 		// can take applications down without them having a chance to
@@ -25,7 +25,7 @@ func newHashFromStr(hexStr string) *hash.Hash {
 		// 100% predictable.
 		panic(err)
 	}
-	return hash
+	return h
 }
 
 // These variables are the chain proof-of-work limit parameters for each default
@@ -601,3 +601,44 @@ var SimNetParams = Params{
 	HDCoinType: 115, // ASCII for s
 }
 
+
+func init() {
+	// Register all default networks when the package is initialized.
+	mustRegister(&MainNetParams)
+	mustRegister(&TestNet3Params)
+	mustRegister(&RegressionNetParams)
+	mustRegister(&SimNetParams)
+}
+
+// mustRegister performs the same function as Register except it panics if there
+// is an error.  This should only be called from package init functions.
+func mustRegister(params *Params) {
+	if err := Register(params); err != nil {
+		panic("failed to register network: " + err.Error())
+	}
+}
+
+
+// Register registers the network parameters for a Bitcoin network.  This may
+// error with ErrDuplicateNet if the network is already registered (either
+// due to a previous Register call, or the network being one of the default
+// networks).
+//
+// Network parameters should be registered into this package by a main package
+// as early as possible.  Then, library packages may lookup networks or network
+// parameters based on inputs and work regardless of the network being standard
+// or not.
+func Register(params *Params) error {
+	if _, ok := registeredNets[params.Net]; ok {
+		return ErrDuplicateNet
+	}
+	registeredNets[params.Net] = struct{}{}
+	pubKeyHashAddrIDs[params.PubKeyHashAddrID] = struct{}{}
+	scriptHashAddrIDs[params.ScriptHashAddrID] = struct{}{}
+	hdPrivToPubKeyIDs[params.HDPrivateKeyID] = params.HDPublicKeyID[:]
+
+	// A valid Bech32 encoded segwit address always has as prefix the
+	// human-readable part for the given net followed by '1'.
+	bech32SegwitPrefixes[params.Bech32HRPSegwit+"1"] = struct{}{}
+	return nil
+}

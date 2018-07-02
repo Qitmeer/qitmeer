@@ -4,10 +4,11 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package hash
+package btc
 
 import (
 	"crypto/sha256"
+	"github.com/noxproject/nox/common/hash"
 )
 
 // HashB calculates hash(b) and returns the resulting bytes.
@@ -17,8 +18,8 @@ func HashB(b []byte) []byte {
 }
 
 // HashH calculates hash(b) and returns the resulting bytes as a Hash.
-func HashH(b []byte) Hash {
-	return Hash(sha256.Sum256(b))
+func HashH(b []byte) hash.Hash {
+	return hash.Hash(sha256.Sum256(b))
 }
 
 // DoubleHashB calculates hash(hash(b)) and returns the resulting bytes.
@@ -30,7 +31,11 @@ func DoubleHashB(b []byte) []byte {
 
 // DoubleHashH calculates hash(hash(b)) and returns the resulting bytes as a
 // Hash.
-func DoubleHashH(b []byte) Hash {
+func DoubleHashH(b []byte) hash.Hash {
 	first := sha256.Sum256(b)
-	return Hash(sha256.Sum256(first[:]))
+	return hash.Hash(sha256.Sum256(first[:]))
+}
+
+func Hash160(buf []byte) []byte {
+	return hash.CalcHash(DoubleHashB(buf), hash.GetHasher(hash.Ripemd160))
 }

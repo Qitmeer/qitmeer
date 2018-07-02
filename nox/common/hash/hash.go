@@ -37,26 +37,26 @@ type HashType byte
 // consider to integrated https://github.com/multiformats/go-multihash
 const (
 	SHA256 HashType = iota
-	keccak_256
-	keccak_512
-	ripemd160
-	blake2b_256
-	blake2b_512
+	Keccak_256
+	Keccak_512
+	Ripemd160
+	Blake2b_256
+	Blake2b_512
 )
 
 func GetHasher(ht HashType) Hasher{
 	switch ht {
 	case SHA256:
 		return crypto.SHA256.New()
-	case keccak_256:
+	case Keccak_256:
 		return crypto.SHA3_256.New()
-	case keccak_512:
+	case Keccak_512:
 		return crypto.SHA3_512.New()
-	case ripemd160:
+	case Ripemd160:
 		return crypto.RIPEMD160.New()
-	case blake2b_256:
+	case Blake2b_256:
 		return crypto.BLAKE2b_256.New()
-	case blake2b_512:
+	case Blake2b_512:
 		return crypto.BLAKE2b_512.New()
 	}
 	return nil

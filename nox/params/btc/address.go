@@ -16,6 +16,7 @@ import (
 	"github.com/noxproject/nox/common/encode/bech32"
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/crypto/ecc"
+	"github.com/noxproject/nox/common/hash/btc"
 )
 
 // UnsupportedWitnessVerError describes an error where a segwit address being
@@ -61,7 +62,7 @@ var (
 func encodeAddress(hash160 []byte, netID byte) string {
 	// Format is 1 byte for a network and address class (i.e. P2PKH vs
 	// P2SH), 20 bytes for a RIPEMD160 hash, and 4 bytes of checksum.
-	return base58.CheckEncode(hash160[:ripemd160.Size], [2]byte{netID})
+	return base58.CheckEncode(hash160[:ripemd160.Size], [2]byte{0x42,netID})
 }
 
 // encodeSegWitAddress creates a bech32 encoded address string representation
@@ -179,7 +180,7 @@ func DecodeAddress(addr string, defaultNet *Params) (Address, error) {
 	}
 
 	// Switch on decoded length to determine the type.
-	decoded, netID, err := base58.CheckDecode(addr)
+	decoded, netID, err := base58.BtcCheckDecode(addr)
 	if err != nil {
 		if err == base58.ErrChecksum {
 			return nil, ErrChecksumMismatch
@@ -188,15 +189,15 @@ func DecodeAddress(addr string, defaultNet *Params) (Address, error) {
 	}
 	switch len(decoded) {
 	case ripemd160.Size: // P2PKH or P2SH
-		isP2PKH := IsPubKeyHashAddrID(netID[0])
-		isP2SH := IsScriptHashAddrID(netID[0])
+		isP2PKH := IsPubKeyHashAddrID(netID)
+		isP2SH := IsScriptHashAddrID(netID)
 		switch hash160 := decoded; {
 		case isP2PKH && isP2SH:
 			return nil, ErrAddressCollision
 		case isP2PKH:
-			return newAddressPubKeyHash(hash160, netID[0])
+			return newAddressPubKeyHash(hash160, netID)
 		case isP2SH:
-			return newAddressScriptHashFromHash(hash160, netID[0])
+			return newAddressScriptHashFromHash(hash160, netID)
 		default:
 			return nil, ErrUnknownAddressType
 		}
@@ -319,7 +320,7 @@ type AddressScriptHash struct {
 
 // NewAddressScriptHash returns a new AddressScriptHash.
 func NewAddressScriptHash(serializedScript []byte, net *Params) (*AddressScriptHash, error) {
-	scriptHash := hash.Hash160(serializedScript)
+	scriptHash := btc.Hash160(serializedScript)
 	return newAddressScriptHashFromHash(scriptHash, net.ScriptHashAddrID)
 }
 
