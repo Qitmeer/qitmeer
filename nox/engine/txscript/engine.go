@@ -92,7 +92,7 @@ var halfOrder = new(big.Int).Rsh(ecc.Secp256k1.GetN(), 1)
 
 // Engine is the virtual machine that executes scripts.
 type Engine struct {
-	scripts         [][]parsedOpcode
+	scripts         [][]ParsedOpcode
 	savedFirstStack [][]byte // stack from first script for bip16 scripts
 	sigCache        *SigCache
 
@@ -129,7 +129,7 @@ func (vm *Engine) isBranchExecuting() bool {
 // executeOpcode peforms execution on the passed opcode.  It takes into account
 // whether or not it is hidden by conditionals, but some rules still must be
 // tested in this case.
-func (vm *Engine) executeOpcode(pop *parsedOpcode) error {
+func (vm *Engine) executeOpcode(pop *ParsedOpcode) error {
 	// Disabled opcodes are fail on program counter.
 	if pop.isDisabled() {
 		return ErrStackOpDisabled
@@ -385,7 +385,7 @@ func (vm *Engine) Execute() (err error) {
 }
 
 // subScript returns the script since the last OP_CODESEPARATOR.
-func (vm *Engine) subScript() []parsedOpcode {
+func (vm *Engine) subScript() []ParsedOpcode {
 	return vm.scripts[vm.scriptIdx][vm.lastCodeSep:]
 }
 
@@ -643,7 +643,7 @@ func NewEngine(scriptPubKey []byte, tx *types.Tx, txIdx int,
 	// with a pay-to-script-hash transaction, there will be ultimately be
 	// a third script to execute.
 	scripts := [][]byte{scriptSig, scriptPubKey}
-	vm.scripts = make([][]parsedOpcode, len(scripts))
+	vm.scripts = make([][]ParsedOpcode, len(scripts))
 	for i, scr := range scripts {
 		if len(scr) > maxScriptSize {
 			return nil, ErrStackLongScript

@@ -42,6 +42,74 @@ const (
 	PubkeyHashAltTy                      // Alternative signature pubkey hash.
 )
 
+// Script Interface provide a abstract layer to support new Script parsing from opcode
+type Script interface {
+	GetClass() ScriptClass
+	Match(pops []ParsedOpcode) bool
+	SetOpcode(pops []ParsedOpcode) error
+	GetAddresses() []types.Address
+	RequiredSigs() bool
+}
+
+// The registry where the add-on script been registered
+var scriptRegistry = []Script{
+	NonStandardTy: &NonStandardScript{},
+}
+
+func fromRegisteredScript(pops []ParsedOpcode) Script {
+	for _, s := range scriptRegistry{
+		if s.Match(pops) {
+			s.SetOpcode(pops)
+			return s
+		}
+	}
+	return &NonStandardScript{}
+}
+
+// Register Script into the registry, which can be parsed from the outside of txscript engine
+func RegisterScript(sin Script) error {
+	for _, s := range scriptRegistry {
+		if s.GetClass() == sin.GetClass() {
+			return fmt.Errorf("%v has been registred as script %v ",sin, s)
+		}
+	}
+	scriptRegistry = append(scriptRegistry, sin)
+	return nil
+}
+
+// ParsePkScript returns a parsed Script from the Script registry, which's addresses and
+// required signatures are associated with. Note: It's methold only works for the
+// registered Script
+func ParsePkScript(pkScript []byte) (Script,error) {
+	pops, err := parseScript(pkScript)
+	if err != nil {
+		return nil, err
+	}
+	return fromRegisteredScript(pops),nil
+}
+
+type NonStandardScript struct {}
+
+func (s *NonStandardScript) Name() string {
+	return scriptClassToName[NonStandardTy]
+}
+func (s *NonStandardScript) GetClass() ScriptClass{
+	return NonStandardTy
+}
+func (s *NonStandardScript) Match(pops []ParsedOpcode) bool{
+	return false
+}
+func (s *NonStandardScript) SetOpcode(pops []ParsedOpcode) error {
+	return nil
+}
+func (s *NonStandardScript) GetAddresses() []types.Address {
+	return []types.Address{}
+}
+func (s *NonStandardScript) RequiredSigs() bool {
+	return true
+}
+var _ Script = (*NonStandardScript)(nil)
+
 // scriptClassToName houses the human-readable strings which describe each
 // script class.
 var scriptClassToName = []string{
@@ -71,7 +139,7 @@ func (t ScriptClass) String() string {
 
 // isPubkey returns true if the script passed is a pay-to-pubkey transaction,
 // false otherwise.
-func isPubkey(pops []parsedOpcode) bool {
+func isPubkey(pops []ParsedOpcode) bool {
 	// Valid pubkeys are either 33 or 65 bytes.
 	return len(pops) == 2 &&
 		(len(pops[0].data) == 33 || len(pops[0].data) == 65) &&
@@ -80,7 +148,7 @@ func isPubkey(pops []parsedOpcode) bool {
 
 // isOneByteMaxDataPush returns true if the parsed opcode pushes exactly one
 // byte to the stack.
-func isOneByteMaxDataPush(po parsedOpcode) bool {
+func isOneByteMaxDataPush(po ParsedOpcode) bool {
 	return po.opcode.value == OP_1 ||
 		po.opcode.value == OP_2 ||
 		po.opcode.value == OP_3 ||
@@ -102,7 +170,7 @@ func isOneByteMaxDataPush(po parsedOpcode) bool {
 
 // isPubkey returns true if the script passed is an alternative pay-to-pubkey
 // transaction, false otherwise.
-func isPubkeyAlt(pops []parsedOpcode) bool {
+func isPubkeyAlt(pops []ParsedOpcode) bool {
 	// An alternative pubkey must be less than 512 bytes.
 	return len(pops) == 3 &&
 		len(pops[0].data) < 512 &&
@@ -112,7 +180,7 @@ func isPubkeyAlt(pops []parsedOpcode) bool {
 
 // isPubkeyHash returns true if the script passed is a pay-to-pubkey-hash
 // transaction, false otherwise.
-func isPubkeyHash(pops []parsedOpcode) bool {
+func isPubkeyHash(pops []ParsedOpcode) bool {
 	return len(pops) == 5 &&
 		pops[0].opcode.value == OP_DUP &&
 		pops[1].opcode.value == OP_HASH160 &&
@@ -123,7 +191,7 @@ func isPubkeyHash(pops []parsedOpcode) bool {
 
 // isPubkeyHashAlt returns true if the script passed is a pay-to-pubkey-hash
 // transaction, false otherwise.
-func isPubkeyHashAlt(pops []parsedOpcode) bool {
+func isPubkeyHashAlt(pops []ParsedOpcode) bool {
 	return len(pops) == 6 &&
 		pops[0].opcode.value == OP_DUP &&
 		pops[1].opcode.value == OP_HASH160 &&
@@ -135,7 +203,7 @@ func isPubkeyHashAlt(pops []parsedOpcode) bool {
 
 // isScriptHash returns true if the script passed is a pay-to-script-hash
 // transaction, false otherwise.
-func isScriptHash(pops []parsedOpcode) bool {
+func isScriptHash(pops []ParsedOpcode) bool {
 	return len(pops) == 3 &&
 		pops[0].opcode.value == OP_HASH160 &&
 		pops[1].opcode.value == OP_DATA_20 &&
@@ -145,7 +213,7 @@ func isScriptHash(pops []parsedOpcode) bool {
 // isAnyKindOfScriptHash returns true if the script passed is a pay-to-script-hash
 // or stake pay-to-script-hash transaction, false otherwise. Used to make the
 // engine have the correct behaviour.
-func isAnyKindOfScriptHash(pops []parsedOpcode) bool {
+func isAnyKindOfScriptHash(pops []ParsedOpcode) bool {
 	standardP2SH := len(pops) == 3 &&
 		pops[0].opcode.value == OP_HASH160 &&
 		pops[1].opcode.value == OP_DATA_20 &&
@@ -163,7 +231,7 @@ func isAnyKindOfScriptHash(pops []parsedOpcode) bool {
 
 // isMultiSig returns true if the passed script is a multisig transaction, false
 // otherwise.
-func isMultiSig(pops []parsedOpcode) bool {
+func isMultiSig(pops []ParsedOpcode) bool {
 	// The absolute minimum is 1 pubkey:
 	// OP_0/OP_1-16 <pubkey> OP_1 OP_CHECKMULTISIG
 	l := len(pops)
@@ -225,7 +293,7 @@ func IsMultisigSigScript(script []byte) bool {
 
 // isNullData returns true if the passed script is a null data transaction,
 // false otherwise.
-func isNullData(pops []parsedOpcode) bool {
+func isNullData(pops []ParsedOpcode) bool {
 	// A nulldata transaction is either a single OP_RETURN or an
 	// OP_RETURN SMALLDATA (where SMALLDATA is a data push up to
 	// MaxDataCarrierSize bytes).
@@ -243,7 +311,7 @@ func isNullData(pops []parsedOpcode) bool {
 
 // isStakeSubmission returns true if the script passed is a stake submission tx,
 // false otherwise.
-func isStakeSubmission(pops []parsedOpcode) bool {
+func isStakeSubmission(pops []ParsedOpcode) bool {
 	if len(pops) == 6 &&
 		pops[0].opcode.value == OP_SSTX &&
 		pops[1].opcode.value == OP_DUP &&
@@ -267,7 +335,7 @@ func isStakeSubmission(pops []parsedOpcode) bool {
 
 // isStakeGen returns true if the script passed is a stake generation tx,
 // false otherwise.
-func isStakeGen(pops []parsedOpcode) bool {
+func isStakeGen(pops []ParsedOpcode) bool {
 	if len(pops) == 6 &&
 		pops[0].opcode.value == OP_SSGEN &&
 		pops[1].opcode.value == OP_DUP &&
@@ -291,7 +359,7 @@ func isStakeGen(pops []parsedOpcode) bool {
 
 // isStakeRevocation returns true if the script passed is a stake submission
 // revocation tx, false otherwise.
-func isStakeRevocation(pops []parsedOpcode) bool {
+func isStakeRevocation(pops []ParsedOpcode) bool {
 	if len(pops) == 6 &&
 		pops[0].opcode.value == OP_SSRTX &&
 		pops[1].opcode.value == OP_DUP &&
@@ -315,7 +383,7 @@ func isStakeRevocation(pops []parsedOpcode) bool {
 
 // isSStxChange returns true if the script passed is a stake submission
 // change tx, false otherwise.
-func isSStxChange(pops []parsedOpcode) bool {
+func isSStxChange(pops []ParsedOpcode) bool {
 	if len(pops) == 6 &&
 		pops[0].opcode.value == OP_SSTXCHANGE &&
 		pops[1].opcode.value == OP_DUP &&
@@ -339,7 +407,7 @@ func isSStxChange(pops []parsedOpcode) bool {
 
 // scriptType returns the type of the script being inspected from the known
 // standard types.
-func typeOfScript(pops []parsedOpcode) ScriptClass {
+func typeOfScript(pops []ParsedOpcode) ScriptClass {
 	if isPubkey(pops) {
 		return PubKeyTy
 	} else if isPubkeyAlt(pops) {
@@ -390,7 +458,7 @@ func GetScriptClass(version uint16, script []byte) ScriptClass {
 // then -1 is returned. We are an internal function and thus assume that class
 // is the real class of pops (and we can thus assume things that were determined
 // while finding out the type).
-func expectedInputs(pops []parsedOpcode, class ScriptClass,
+func expectedInputs(pops []ParsedOpcode, class ScriptClass,
 	subclass ScriptClass) int {
 	switch class {
 	case PubKeyTy:
@@ -493,7 +561,7 @@ func GetStakeOutSubclass(pkScript []byte) (ScriptClass, error) {
 
 	subClass := ScriptClass(0)
 	if isStake {
-		var stakeSubscript []parsedOpcode
+		var stakeSubscript []ParsedOpcode
 		for _, pop := range pkPops {
 			if pop.opcode.value >= 186 && pop.opcode.value <= 189 {
 				continue
@@ -1282,7 +1350,7 @@ func ExtractPkScriptAddrs(version uint16, pkScript []byte,
 }
 
 // extractOneBytePush returns the value of a one byte push.
-func extractOneBytePush(po parsedOpcode) int {
+func extractOneBytePush(po ParsedOpcode) int {
 	if !isOneByteMaxDataPush(po) {
 		return -1
 	}

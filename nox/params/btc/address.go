@@ -16,6 +16,7 @@ import (
 	"github.com/noxproject/nox/common/encode/bech32"
 	"github.com/noxproject/nox/crypto/ecc"
 	"github.com/noxproject/nox/common/hash/btc"
+	"github.com/noxproject/nox/core/types"
 )
 
 // UnsupportedWitnessVerError describes an error where a segwit address being
@@ -103,6 +104,7 @@ func encodeSegWitAddress(hrp string, witnessVersion byte, witnessProgram []byte)
 // enough that other kinds of addresses may be added in the future without
 // changing the decoding and encoding API.
 type Address interface {
+	types.Address
 	// String returns the string encoding of the transaction output
 	// destination.
 	//
@@ -117,10 +119,6 @@ type Address interface {
 	// associated with the Address value.  See the comment on String
 	// for how this method differs from String.
 	EncodeAddress() string
-
-	// ScriptAddress returns the raw bytes of the address to be used
-	// when inserting the address into a txout's script.
-	ScriptAddress() []byte
 
 	// IsForNet returns whether or not the address is associated with the
 	// passed bitcoin network.
@@ -303,12 +301,23 @@ func (a *AddressPubKeyHash) String() string {
 	return a.EncodeAddress()
 }
 
+func (a *AddressPubKeyHash) Encode() string {
+	return a.EncodeAddress()
+}
+
 // Hash160 returns the underlying array of the pubkey hash.  This can be useful
 // when an array is more appropiate than a slice (for example, when used as map
 // keys).
 func (a *AddressPubKeyHash) Hash160() *[ripemd160.Size]byte {
 	return &a.hash
 }
+
+func (a *AddressPubKeyHash) EcType() ecc.EcType {
+	return ecc.ECDSA_Secp256k1
+}
+
+
+
 
 // AddressScriptHash is an Address for a pay-to-script-hash (P2SH)
 // transaction.
@@ -375,6 +384,14 @@ func (a *AddressScriptHash) String() string {
 // keys).
 func (a *AddressScriptHash) Hash160() *[ripemd160.Size]byte {
 	return &a.hash
+}
+
+func (a *AddressScriptHash) EcType() ecc.EcType {
+	return ecc.ECDSA_Secp256k1
+}
+
+func (a *AddressScriptHash) Encode() string {
+	return a.String()
 }
 
 // PubKeyFormat describes what format to use for a pay-to-pubkey address.
@@ -473,6 +490,19 @@ func (a *AddressPubKey) IsForNet(net *Params) bool {
 func (a *AddressPubKey) String() string {
 	return hex.EncodeToString(a.serialize())
 }
+func (a *AddressPubKey) Encode() string {
+	return a.String()
+}
+
+func (a *AddressPubKey) Hash160() *[ripemd160.Size]byte {
+	var h [ripemd160.Size]byte
+	copy(h[:],btc.Hash160(a.serialize()))
+	return &h
+}
+
+func (a *AddressPubKey) EcType() ecc.EcType {
+	return ecc.ECDSA_Secp256k1
+}
 
 // Format returns the format (uncompressed, compressed, etc) of the
 // pay-to-pubkey address.
@@ -570,6 +600,15 @@ func (a *AddressWitnessPubKeyHash) IsForNet(net *Params) bool {
 // Part of the Address interface.
 func (a *AddressWitnessPubKeyHash) String() string {
 	return a.EncodeAddress()
+}
+
+func (a *AddressWitnessPubKeyHash) Encode() string {
+	return a.EncodeAddress()
+}
+
+func (a *AddressWitnessPubKeyHash) EcType() ecc.EcType {
+	return ecc.ECDSA_Secp256k1
+
 }
 
 // Hrp returns the human-readable part of the bech32 encoded
@@ -677,4 +716,17 @@ func (a *AddressWitnessScriptHash) WitnessVersion() byte {
 // WitnessProgram returns the witness program of the AddressWitnessScriptHash.
 func (a *AddressWitnessScriptHash) WitnessProgram() []byte {
 	return a.witnessProgram[:]
+}
+
+func (a *AddressWitnessScriptHash) Encode() string {
+	return a.EncodeAddress()
+}
+
+func (a *AddressWitnessScriptHash) EcType() ecc.EcType {
+	return ecc.ECDSA_Secp256k1
+
+}
+
+func (a *AddressWitnessScriptHash) Hash160() *[ripemd160.Size]byte {
+	return nil
 }

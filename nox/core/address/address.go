@@ -43,7 +43,7 @@ func NewPubKeyHashAddress(pkHash []byte, net *params.Params, algo ecc.EcType ) (
 	default:
 		return nil, errors.New("unknown ECDSA algorithm")
 	}
-	apkh, err := newAddressPubKeyHash(pkHash, addrID)
+	apkh, err := newPubKeyHashAddress(pkHash, addrID)
 	if err != nil {
 		return nil, err
 	}
@@ -51,12 +51,21 @@ func NewPubKeyHashAddress(pkHash []byte, net *params.Params, algo ecc.EcType ) (
 	return apkh, nil
 }
 
-// newAddressPubKeyHash is the internal API to create a pubkey hash address
+// NewPubKeyHashAddressByNetId returns a new PubKeyHashAddress from net id directly instead from params
+func NewPubKeyHashAddressByNetId(pkHash []byte, netID [2]byte) (*PubKeyHashAddress,
+	error) {
+	apkh, err := newPubKeyHashAddress(pkHash, netID)
+	if err != nil {
+		return nil, err
+	}
+	return apkh, nil
+}
+// newPubKeyHashAddress is the internal API to create a pubkey hash address
 // with a known leading identifier byte for a network, rather than looking
 // it up through its parameters.  This is useful when creating a new address
 // structure from a string encoding where the identifer byte is already
 // known.
-func newAddressPubKeyHash(pkHash []byte, netID [2]byte) (*PubKeyHashAddress,
+func newPubKeyHashAddress(pkHash []byte, netID [2]byte) (*PubKeyHashAddress,
 	error) {
 	// Check for a valid pubkey hash length.
 	if len(pkHash) != ripemd160.Size {

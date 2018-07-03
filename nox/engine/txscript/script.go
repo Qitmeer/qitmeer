@@ -20,7 +20,7 @@ const (
 
 // isSmallInt returns whether or not the opcode is considered a small integer,
 // which is an OP_0, or OP_1 through OP_16.
-func isSmallInt(op *opcode) bool {
+func isSmallInt(op *Opcode) bool {
 	if op.value == OP_0 || (op.value >= OP_1 && op.value <= OP_16) {
 		return true
 	}
@@ -38,7 +38,7 @@ func IsPayToScriptHash(script []byte) bool {
 }
 
 // isPushOnly returns true if the script only pushes data, false otherwise.
-func isPushOnly(pops []parsedOpcode) bool {
+func isPushOnly(pops []ParsedOpcode) bool {
 	// NOTE: This function does NOT verify opcodes directly since it is
 	// internal and is only called with parsed opcodes for scripts that did
 	// not have any parse errors.  Thus, consensus is properly maintained.
@@ -107,13 +107,13 @@ func HasP2SHScriptSigStakeOpCodes(version uint16, scriptSig,
 // parseScriptTemplate is the same as parseScript but allows the passing of the
 // template list for testing purposes.  When there are parse errors, it returns
 // the list of parsed opcodes up to the point of failure along with the error.
-func parseScriptTemplate(script []byte, opcodes *[256]opcode) ([]parsedOpcode,
+func parseScriptTemplate(script []byte, opcodes *[256]Opcode) ([]ParsedOpcode,
 	error) {
-	retScript := make([]parsedOpcode, 0, len(script))
+	retScript := make([]ParsedOpcode, 0, len(script))
 	for i := 0; i < len(script); {
 		instr := script[i]
 		op := &opcodes[instr]
-		pop := parsedOpcode{opcode: op}
+		pop := ParsedOpcode{opcode: op}
 
 		// Parse data out of instruction.
 		switch {
@@ -179,15 +179,15 @@ func parseScriptTemplate(script []byte, opcodes *[256]opcode) ([]parsedOpcode,
 	return retScript, nil
 }
 
-// parseScript preparses the script in bytes into a list of parsedOpcodes while
+// parseScript preparses the script in bytes into a list of ParsedOpcodes while
 // applying a number of sanity checks.
-func parseScript(script []byte) ([]parsedOpcode, error) {
+func parseScript(script []byte) ([]ParsedOpcode, error) {
 	return parseScriptTemplate(script, &opcodeArray)
 }
 
 // unparseScript reversed the action of parseScript and returns the
-// parsedOpcodes as a list of bytes
-func unparseScript(pops []parsedOpcode) ([]byte, error) {
+// ParsedOpcodes as a list of bytes
+func unparseScript(pops []ParsedOpcode) ([]byte, error) {
 	script := make([]byte, 0, len(pops))
 	for _, pop := range pops {
 		b, err := pop.bytes()
@@ -222,8 +222,8 @@ func DisasmString(buf []byte) (string, error) {
 
 // removeOpcode will remove any opcode matching ``opcode'' from the opcode
 // stream in pkscript
-func removeOpcode(pkscript []parsedOpcode, opcode byte) []parsedOpcode {
-	retScript := make([]parsedOpcode, 0, len(pkscript))
+func removeOpcode(pkscript []ParsedOpcode, opcode byte) []ParsedOpcode {
+	retScript := make([]ParsedOpcode, 0, len(pkscript))
 	for _, pop := range pkscript {
 		if pop.opcode.value != opcode {
 			retScript = append(retScript, pop)
@@ -235,7 +235,7 @@ func removeOpcode(pkscript []parsedOpcode, opcode byte) []parsedOpcode {
 // canonicalPush returns true if the object is either not a push instruction
 // or the push instruction contained wherein is matches the canonical form
 // or using the smallest instruction to do the job. False otherwise.
-func canonicalPush(pop parsedOpcode) bool {
+func canonicalPush(pop ParsedOpcode) bool {
 	opcode := pop.opcode.value
 	data := pop.data
 	dataLen := len(pop.data)
@@ -260,8 +260,8 @@ func canonicalPush(pop parsedOpcode) bool {
 
 // removeOpcodeByData will return the script minus any opcodes that would push
 // the passed data to the stack.
-func removeOpcodeByData(pkscript []parsedOpcode, data []byte) []parsedOpcode {
-	retScript := make([]parsedOpcode, 0, len(pkscript))
+func removeOpcodeByData(pkscript []ParsedOpcode, data []byte) []ParsedOpcode {
+	retScript := make([]ParsedOpcode, 0, len(pkscript))
 	for _, pop := range pkscript {
 		if !canonicalPush(pop) || !bytes.Contains(pop.data, data) {
 			retScript = append(retScript, pop)
@@ -273,7 +273,7 @@ func removeOpcodeByData(pkscript []parsedOpcode, data []byte) []parsedOpcode {
 
 // asSmallInt returns the passed opcode, which must be true according to
 // isSmallInt(), as an integer.
-func asSmallInt(op *opcode) int {
+func asSmallInt(op *Opcode) int {
 	if op.value == OP_0 {
 		return 0
 	}
@@ -285,7 +285,7 @@ func asSmallInt(op *opcode) int {
 // signature operations in the script provided by pops. If precise mode is
 // requested then we attempt to count the number of operations for a multisig
 // op. Otherwise we use the maximum.
-func getSigOpCount(pops []parsedOpcode, precise bool) int {
+func getSigOpCount(pops []ParsedOpcode, precise bool) int {
 	nSigs := 0
 	for i, pop := range pops {
 		switch pop.opcode.value {

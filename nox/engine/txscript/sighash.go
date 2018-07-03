@@ -227,7 +227,7 @@ func sigHashWitnessSerializeSize(hashType SigHashType, txIns []*types.TxInput, s
 // cached prefix parameter allows the caller to optimize the calculation by
 // providing the prefix hash to be reused in the case of SigHashAll without the
 // SigHashAnyOneCanPay flag set.
-func calcSignatureHash(prevOutScript []parsedOpcode, hashType SigHashType, tx *types.Transaction, idx int, cachedPrefix *hash.Hash) ([]byte, error) {
+func calcSignatureHash(prevOutScript []ParsedOpcode, hashType SigHashType, tx *types.Transaction, idx int, cachedPrefix *hash.Hash) ([]byte, error) {
 	// The SigHashSingle signature type signs only the corresponding input
 	// and output (the output with the same index number as the input).
 	//
