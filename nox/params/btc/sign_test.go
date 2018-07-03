@@ -17,6 +17,7 @@ import (
 	_ "github.com/noxproject/nox/params/btc/txscript"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/common/hash"
+
 )
 
 // This example demonstrates creating a script which pays to a bitcoin address.
@@ -89,6 +90,7 @@ func ExampleExtractPkScriptAddrs() {
 //This example demonstrates manually creating and signing a redeem transaction.
 
 func ExampleSignTxOutput() {
+
 	// Ordinarily the private key would come from whatever storage mechanism
 	// is being used, but for this example just hard code it.
 	privKeyBytes, err := hex.DecodeString("22a47fa09a223f2aa079edf85a7c2" +
@@ -221,7 +223,7 @@ func ExampleSignTxOutput() {
 	// Notice that the script database parameter is nil here since it isn't
 	// used.  It must be specified when pay-to-script-hash transactions are
 	// being signed.
-	sigScript, err := txscript.SignTxOutput(&btcparams.MainNetParams,
+	sigScript, err := txscript.SignTxOut(
 		redeemTx, 0, originTx.TxOut[0].PkScript, txscript.SigHashAll,
 		txscript.KeyClosure(lookupKey), nil, nil, ecc.ECDSA_Secp256k1)
 	if err != nil {

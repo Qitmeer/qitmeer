@@ -618,3 +618,186 @@ func SignTxOutput(chainParams *params.Params, tx *types.Transaction, idx int,
 		addresses, nrequired, sigScript, previousScript)
 	return mergedScript, nil
 }
+
+//TODO refactor SignTxOut remove depends on params
+func SignTxOut(tx *types.Transaction, idx int,
+	pkScript []byte, hashType SigHashType, kdb KeyDB, sdb ScriptDB,
+	previousScript []byte, sigType ecc.EcType) ([]byte, error) {
+	sigScript, class, addresses, nrequired, err := sign2(tx,
+		idx, pkScript, hashType, kdb, sdb, sigTypes(sigType))
+	if err != nil {
+		return nil, err
+	}
+	// Merge scripts. with any previous data, if any.
+	mergedScript := mergeScripts2(tx, idx, pkScript, class,
+		addresses, nrequired, sigScript, previousScript)
+	return mergedScript, nil
+}
+
+// sign2 (refactor sign)
+func sign2(tx *types.Transaction, idx int,
+	subScript []byte, hashType SigHashType, kdb KeyDB, sdb ScriptDB,
+	sigType sigTypes) ([]byte,
+	ScriptClass, []types.Address, int, error) {
+
+	s,err	:=ParsePkScript(subScript)
+
+	if err != nil {
+		return nil, NonStandardTy, nil, 0, err
+	}
+	class :=s.GetClass()
+	addresses := s.GetAddresses()
+	nrequired := 0
+	if s.RequiredSigs() {
+		nrequired = 1
+	}
+	switch class {
+	case PubKeyTy:
+		// look up key for address
+		key, _, err := kdb.GetKey(addresses[0])
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		script, err := p2pkSignatureScript(tx, idx, subScript, hashType,
+			key)
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		return script, class, addresses, nrequired, nil
+
+	case PubkeyAltTy:
+		// look up key for address
+		key, _, err := kdb.GetKey(addresses[0])
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		script, err := p2pkSignatureScriptAlt(tx, idx, subScript, hashType,
+			key, sigType)
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		return script, class, addresses, nrequired, nil
+
+	case PubKeyHashTy:
+		// look up key for address
+		key, compressed, err := kdb.GetKey(addresses[0])
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		script, err := SignatureScript(tx, idx, subScript, hashType,
+			key, compressed)
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		return script, class, addresses, nrequired, nil
+
+	case PubkeyHashAltTy:
+		// look up key for address
+		key, compressed, err := kdb.GetKey(addresses[0])
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		script, err := SignatureScriptAlt(tx, idx, subScript, hashType,
+			key, compressed, int(sigType))
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		return script, class, addresses, nrequired, nil
+
+	case ScriptHashTy:
+		script, err := sdb.GetScript(addresses[0])
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		return script, class, addresses, nrequired, nil
+
+	case MultiSigTy:
+		script, _ := signMultiSig(tx, idx, subScript, hashType,
+			addresses, nrequired, kdb)
+		return script, class, addresses, nrequired, nil
+
+	case NullDataTy:
+		return nil, class, nil, 0,
+			errors.New("can't sign NULLDATA transactions")
+
+	default:
+		return nil, class, nil, 0,
+			errors.New("can't sign unknown transactions")
+	}
+}
+
+// mergeScripts2 (refactor mergeScript)
+func mergeScripts2(tx *types.Transaction, idx int,
+	pkScript []byte, class ScriptClass, addresses []types.Address,
+	nRequired int, sigScript, prevScript []byte) []byte {
+
+	// TODO(oga) the scripthash and multisig paths here are overly
+	// inefficient in that they will recompute already known data.
+	// some internal refactoring could probably make this avoid needless
+	// extra calculations.
+	switch class {
+	case ScriptHashTy:
+		// Remove the last push in the script and then recurse.
+		// this could be a lot less inefficient.
+		sigPops, err := parseScript(sigScript)
+		if err != nil || len(sigPops) == 0 {
+			return prevScript
+		}
+		prevPops, err := parseScript(prevScript)
+		if err != nil || len(prevPops) == 0 {
+			return sigScript
+		}
+
+		// assume that script in sigPops is the correct one, we just
+		// made it.
+		script := sigPops[len(sigPops)-1].data
+
+		// We already know this information somewhere up the stack,
+		// therefore the error is ignored.
+		s,_:= ParsePkScript(script)
+		class := s.GetClass()
+		addresses := s.GetAddresses()
+		nrequired := 0
+		if (s.RequiredSigs()) {
+			nrequired = 1
+		}
+		// regenerate scripts.
+		sigScript, _ := unparseScript(sigPops)
+		prevScript, _ := unparseScript(prevPops)
+
+		// Merge
+		mergedScript := mergeScripts2(tx, idx, script,
+			class, addresses, nrequired, sigScript, prevScript)
+
+		// Reappend the script and return the result.
+		builder := NewScriptBuilder()
+		builder.AddOps(mergedScript)
+		builder.AddData(script)
+		finalScript, _ := builder.Script()
+		return finalScript
+	case MultiSigTy:
+		return mergeMultiSig(tx, idx, addresses, nRequired, pkScript,
+			sigScript, prevScript)
+
+	// It doesn't actually make sense to merge anything other than multiig
+	// and scripthash (because it could contain multisig). Everything else
+	// has either zero signature, can't be spent, or has a single signature
+	// which is either present or not. The other two cases are handled
+	// above. In the conflict case here we just assume the longest is
+	// correct (this matches behaviour of the reference implementation).
+	default:
+		if len(sigScript) > len(prevScript) {
+			return sigScript
+		}
+		return prevScript
+	}
+}

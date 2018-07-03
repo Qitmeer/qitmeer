@@ -5,6 +5,7 @@ import (
 	btcaddr "github.com/noxproject/nox/core/address/btc"
 	"github.com/noxproject/nox/engine/txscript"
 	btcparams "github.com/noxproject/nox/params/btc"
+	"github.com/noxproject/nox/log"
 )
 
 type PKHashScript struct {
@@ -51,6 +52,7 @@ var _ txscript.Script = (*PKHashScript)(nil)
 func init() {
 	sin := &PKHashScript{}
 	txscript.RegisterScript(sin)
+	txscript.UseLogger(log.New(log.Ctx{"module": "txscript engine"}))
 }
 
 

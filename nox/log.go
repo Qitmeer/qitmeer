@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"fmt"
 	"github.com/noxproject/nox/database"
+	"github.com/noxproject/nox/engine/txscript"
 )
 
 var (
@@ -41,6 +42,7 @@ func init() {
 	log.Root().SetHandler(glogger)
 
 	database.UseLogger(log.New(log.Ctx{"module": "database"}))
+	txscript.UseLogger(log.New(log.Ctx{"module": "txscript engine"}))
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and
