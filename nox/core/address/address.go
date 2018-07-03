@@ -326,8 +326,10 @@ func (a *SecpPubKeyAddress) Hash160() *[ripemd160.Size]byte {
 	return array
 }
 
-
-
+// PubKey returns the underlying public key for the address.
+func (a *SecpPubKeyAddress) PubKey() chainec.PublicKey {
+	return a.pubKey
+}
 
 // PKHAddress returns the pay-to-pubkey address converted to a
 // pay-to-pubkey-hash address.  Note that the public key format (uncompressed,

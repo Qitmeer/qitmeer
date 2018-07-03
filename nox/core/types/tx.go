@@ -26,6 +26,17 @@ const (
 
 const (
 
+	// TxVersion is the current latest supported transaction version.
+	TxVersion uint32 = 1
+
+	// defaultTxInOutAlloc is the default size used for the backing array
+	// for transaction inputs and outputs.  The array will dynamically grow
+	// as needed, but this figure is intended to provide enough space for
+	// the number of inputs and outputs in a typical transaction without
+	// needing to grow the backing array multiple times.
+	defaultTxInOutAlloc = 15
+
+
 	// NullBlockHeight is the null value for an input witness. It references
 	// the genesis block.
 	NullBlockHeight uint32 = 0x00000000
@@ -107,6 +118,7 @@ const (
 )
 
 type Transaction struct {
+	CachedHash *hash.Hash
 	Version   uint32
 	LockTime  uint32
 	Expire    uint32
@@ -114,6 +126,29 @@ type Transaction struct {
 	TxIn 	  []*TxInput
 	TxOut 	  []*TxOutput
 	Message   []byte     //a unencrypted/encrypted message if user pay additional fee & limit the max length
+}
+
+// NewMsgTx returns a new Decred tx message that conforms to the Message
+// interface.  The return instance has a default version of TxVersion and there
+// are no transaction inputs or outputs.  Also, the lock time is set to zero
+// to indicate the transaction is valid immediately as opposed to some time in
+// future.
+func NewTransaction() *Transaction {
+	return &Transaction{
+		Version: TxVersion,
+		TxIn:    make([]*TxInput, 0, defaultTxInOutAlloc),
+		TxOut:   make([]*TxOutput, 0, defaultTxInOutAlloc),
+	}
+}
+
+// AddTxIn adds a transaction input to the message.
+func (t *Transaction) AddTxIn(ti *TxInput) {
+	t.TxIn = append(t.TxIn, ti)
+}
+
+// AddTxOut adds a transaction output to the message.
+func (t *Transaction) AddTxOut(to *TxOutput) {
+	t.TxOut = append(t.TxOut, to)
 }
 
 // DetermineTxType determines the type of stake transaction a transaction is; if
@@ -183,7 +218,7 @@ func (tx *Transaction) SerializeSizeOnlyWitness() int {
 // serialization type without modifying the original transaction.  It will panic
 // if any errors occur.
 func (tx *Transaction) mustSerialize(serType TxSerializeType) []byte {
-	serialized, err := tx.serialize(serType)
+	serialized, err := tx.Serialize(serType)
 	if err != nil {
 		panic(fmt.Sprintf("MsgTx failed serializing for type %v",
 			serType))
@@ -193,7 +228,7 @@ func (tx *Transaction) mustSerialize(serType TxSerializeType) []byte {
 
 // serialize returns the serialization of the transaction for the provided
 // serialization type without modifying the original transaction.
-func (tx *Transaction) serialize(serType TxSerializeType) ([]byte, error) {
+func (tx *Transaction) Serialize(serType TxSerializeType) ([]byte, error) {
 	// Shallow copy so the serialization type can be changed without
 	// modifying the original transaction.
 	txCopy := *tx
@@ -574,6 +609,26 @@ func readScript(r io.Reader) ([]byte, error) {
 	return b, nil
 }
 
+// CachedTxHash is equivalent to calling TxHash, however it caches the result so
+// subsequent calls do not have to recalculate the hash.  It can be recalculated
+// later with RecacheTxHash.
+func (t *Transaction) CachedTxHash() *hash.Hash {
+	if t.CachedHash == nil {
+		h := t.TxHash()
+		t.CachedHash = &h
+	}
+
+	return t.CachedHash
+}
+
+// RecacheTxHash is equivalent to calling TxHash, however it replaces the cached
+// result so future calls to CachedTxHash will return this newly calculated
+// hash.
+func (t *Transaction) RecacheTxHash() *hash.Hash {
+	h := t.TxHash()
+	t.CachedHash = &h
+	return t.CachedHash
+}
 
 // TxHash generates the hash for the transaction prefix.  Since it does not
 // contain any witness data, it is not malleable and therefore is stable for
@@ -778,8 +833,18 @@ func (t *Tx) SetIndex(index int) {
 
 type TxOutPoint struct {
 	Hash       hash.Hash       //txid
-	OutIndex   uint32     //vout
+	OutIndex   uint32          //vout
 }
+
+// NewOutPoint returns a new transaction outpoint point with the
+// provided hash and index.
+func NewOutPoint(hash *hash.Hash, index uint32) *TxOutPoint {
+	return &TxOutPoint{
+		Hash:  *hash,
+		OutIndex: index,
+	}
+}
+
 type TxInput struct {
 	PreviousOut TxOutPoint
 	// This number has more historical significance than relevant usage;
@@ -796,6 +861,20 @@ type TxInput struct {
 
 	//the signature script (or witness script? or redeem script?)
 	SignScript       []byte
+}
+
+// NewTxIn returns a new Decred transaction input with the provided
+// previous outpoint point and signature script with a default sequence of
+// MaxTxInSequenceNum.
+func NewTxInput(prevOut *TxOutPoint, amountIn uint64, signScript []byte) *TxInput {
+	return &TxInput{
+		PreviousOut:   *prevOut,
+		Sequence:      MaxTxInSequenceNum,
+		SignScript:    signScript,
+		AmountIn:      amountIn,
+		BlockHeight:   NullBlockHeight,
+		BlockTxIndex:  NullBlockIndex,
+	}
 }
 
 // SerializeSizePrefix returns the number of bytes it would take to serialize
@@ -818,6 +897,15 @@ func (ti *TxInput) SerializeSizeWitness() int {
 type TxOutput struct {
 	Amount     uint64
 	PkScript   []byte    //Here, asm/type -> OP_XXX OP_RETURN
+}
+
+// NewTxOutput returns a new bitcoin transaction output with the provided
+// transaction value and public key script.
+func NewTxOutput(amount uint64, pkScript []byte) *TxOutput {
+	return &TxOutput{
+		Amount:    amount,
+		PkScript: pkScript,
+	}
 }
 
 // SerializeSize returns the number of bytes it would take to serialize the

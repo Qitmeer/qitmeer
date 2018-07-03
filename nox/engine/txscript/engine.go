@@ -101,7 +101,7 @@ type Engine struct {
 	lastCodeSep int
 	dstack      stack // data stack
 	astack      stack // alt stack
-	tx          types.Tx
+	tx          types.Transaction
 	txIdx       int
 	condStack   []int
 	numOps      int
@@ -600,14 +600,14 @@ func (vm *Engine) SetAltStack(data [][]byte) {
 // NewEngine returns a new script engine for the provided public key script,
 // transaction, and input index.  The flags modify the behavior of the script
 // engine according to the description provided by each flag.
-func NewEngine(scriptPubKey []byte, tx *types.Tx, txIdx int,
+func NewEngine(scriptPubKey []byte, tx *types.Transaction, txIdx int,
 	flags ScriptFlags, scriptVersion uint16, sigCache *SigCache) (*Engine, error) {
 
 	// The provided transaction input index must refer to a valid input.
-	if txIdx < 0 || txIdx >= len(tx.Tx.TxIn) {
+	if txIdx < 0 || txIdx >= len(tx.TxIn) {
 		return nil, ErrInvalidIndex
 	}
-	scriptSig := tx.Tx.TxIn[txIdx].SignScript
+	scriptSig := tx.TxIn[txIdx].SignScript
 
 	// The clean stack flag (ScriptVerifyCleanStack) is not allowed without
 	// the pay-to-script-hash (P2SH) evaluation (ScriptBip16) flag.
