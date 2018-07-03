@@ -1,4 +1,4 @@
-package btc
+package txscript
 
 import (
 	"github.com/noxproject/nox/core/types"

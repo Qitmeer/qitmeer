@@ -8,8 +8,9 @@ package btc_test
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/noxproject/nox/params/btc"
+	"github.com/noxproject/nox/core/address/btc"
 	"github.com/noxproject/nox/engine/txscript"
+	btcparams "github.com/noxproject/nox/params/btc"
 )
 
 // This example demonstrates creating a script which pays to a bitcoin address.
@@ -21,7 +22,7 @@ func ExamplePayToAddrScript() {
 	// the address type.  It is also required for the upcoming call to
 	// PayToAddrScript.
 	addressStr := "12gpXQVcCL2qhTNQgyLVdCFG2Qs2px98nV"
-	address, err := btc.DecodeAddress(addressStr, &btc.MainNetParams)
+	address, err := btc.DecodeAddress(addressStr, &btcparams.MainNetParams)
 	if err != nil {
 		fmt.Println(err)
 		return
