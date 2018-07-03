@@ -608,6 +608,8 @@ func init() {
 	mustRegister(&TestNet3Params)
 	mustRegister(&RegressionNetParams)
 	mustRegister(&SimNetParams)
+
+
 }
 
 // mustRegister performs the same function as Register except it panics if there

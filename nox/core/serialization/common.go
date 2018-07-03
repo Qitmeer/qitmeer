@@ -356,7 +356,7 @@ func ReadVarBytes(r io.Reader, pver uint32, maxAllowed uint32,
 	if count > uint64(maxAllowed) {
 		str := fmt.Sprintf("%s is larger than the max allowed size "+
 			"[count %d, max %d]", fieldName, count, maxAllowed)
-		return nil, fmt.Errorf("messageError %v: %v",ReadVarBytes, str)
+		return nil, fmt.Errorf("messageError ReadVarBytes: %v",str)
 	}
 
 	b := make([]byte, count)

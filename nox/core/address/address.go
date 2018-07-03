@@ -10,6 +10,7 @@ import (
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/crypto/ecc"
+	"github.com/decred/dcrd/chaincfg/chainec"
 )
 
 // encodeAddress returns a human-readable payment address given a ripemd160 hash
@@ -19,6 +20,41 @@ func encodeAddress(hash160 []byte, netID [2]byte) string {
 	// Format is 2 bytes for a network and address class (i.e. P2PKH vs
 	// P2SH), 20 bytes for a RIPEMD160 hash, and 4 bytes of checksum.
 	return base58.CheckEncode(hash160[:ripemd160.Size], netID)
+}
+
+// encodePKAddress returns a human-readable payment address to a public key
+// given a serialized public key, a netID, and a signature suite.
+func encodePKAddress(serializedPK []byte, netID [2]byte, algo ecc.EcType) string {
+	pubKeyBytes := []byte{0x00}
+
+	switch algo {
+	case ecc.ECDSA_Secp256k1:
+		pubKeyBytes[0] = byte(ecc.ECDSA_Secp256k1)
+	case ecc.EdDSA_Ed25519:
+		pubKeyBytes[0] = byte(ecc.EdDSA_Ed25519)
+	case ecc.ECDSA_SecpSchnorr:
+		pubKeyBytes[0] = byte(ecc.ECDSA_SecpSchnorr)
+	}
+
+	// Pubkeys are encoded as [0] = type/ybit, [1:33] = serialized pubkey
+	compressed := serializedPK
+	if algo == ecc.ECDSA_Secp256k1 || algo == ecc.ECDSA_SecpSchnorr {
+		pub, err := chainec.Secp256k1.ParsePubKey(serializedPK)
+		if err != nil {
+			return ""
+		}
+		pubSerComp := pub.SerializeCompressed()
+
+		// Set the y-bit if needed.
+		if pubSerComp[0] == 0x03 {
+			pubKeyBytes[0] |= (1 << 7)
+		}
+
+		compressed = pubSerComp[1:]
+	}
+
+	pubKeyBytes = append(pubKeyBytes, compressed...)
+	return base58.CheckEncode(pubKeyBytes, netID)
 }
 
 // PubKeyHashAddress is an Address for a pay-to-pubkey-hash (P2PKH)
@@ -94,6 +130,13 @@ func (a *PubKeyHashAddress) Encode() string {
 	return encodeAddress(a.hash[:], a.netID)
 }
 
+// String returns a human-readable string for the pay-to-pubkey-hash address.
+// This is equivalent to calling EncodeAddress, but is provided so the type can
+// be used as a fmt.Stringer.
+func (a *PubKeyHashAddress) String() string {
+	return a.Encode()
+}
+
 func (a *PubKeyHashAddress) Hash160() *[ripemd160.Size]byte {
 	return &a.hash
 }
@@ -156,6 +199,10 @@ func (a *ScriptHashAddress) Hash160() *[ripemd160.Size]byte {
 // address.  Part of the Address interface.
 func (a *ScriptHashAddress) Encode() string {
 	return encodeAddress(a.hash[:], a.netID)
+}
+
+func (a *ScriptHashAddress) String() string {
+	return a.Encode()
 }
 
 func (a *ScriptHashAddress) EcType() ecc.EcType {
@@ -243,6 +290,13 @@ func (a *SecpPubKeyAddress) Encode() string {
 	return encodeAddress(hash.Hash160(a.serialize()), a.pubKeyHashID)
 }
 
+// String returns the hex-encoded human-readable string for the pay-to-pubkey
+// address.  This is not the same as calling EncodeAddress.
+func (a *SecpPubKeyAddress) String() string {
+	return encodePKAddress(a.serialize(), a.net.PubKeyAddrID,
+		ecc.ECDSA_Secp256k1)
+}
+
 // serialize returns the serialization of the public key according to the
 // format associated with the address.
 func (a *SecpPubKeyAddress) serialize() []byte {
@@ -327,6 +381,12 @@ func (a *EdwardsPubKeyAddress) EcType() ecc.EcType {
 func (a *EdwardsPubKeyAddress) Encode() string {
 	return encodeAddress(hash.Hash160(a.serialize()), a.pubKeyHashID)
 }
+// String returns the hex-encoded human-readable string for the pay-to-pubkey
+// address.  This is not the same as calling EncodeAddress.
+func (a *EdwardsPubKeyAddress) String() string {
+	return encodePKAddress(a.serialize(), a.net.PubKeyAddrID,
+		ecc.EdDSA_Ed25519)
+}
 
 // serialize returns the serialization of the public key.
 func (a *EdwardsPubKeyAddress) serialize() []byte {
@@ -383,6 +443,13 @@ func (a *SecSchnorrPubKeyAddress) EcType() ecc.EcType {
 
 func (a *SecSchnorrPubKeyAddress) Encode() string {
 	return encodeAddress(hash.Hash160(a.serialize()), a.pubKeyHashID)
+}
+
+// String returns the hex-encoded human-readable string for the pay-to-pubkey
+// address.  This is not the same as calling EncodeAddress.
+func (a *SecSchnorrPubKeyAddress) String() string {
+	return encodePKAddress(a.serialize(), a.net.PubKeyAddrID,
+		ecc.ECDSA_SecpSchnorr)
 }
 
 func (a *SecSchnorrPubKeyAddress) serialize() []byte {

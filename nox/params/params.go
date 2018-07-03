@@ -204,6 +204,7 @@ type Params struct {
 	NetworkAddressPrefix string
 
 	// Address encoding magics
+	PubKeyAddrID           [2]byte // First 2 bytes of a P2PK address
 	PubKeyHashAddrID       [2]byte // First 2 bytes of P2PKH address
 	PKHEdwardsAddrID       [2]byte // First 2 bytes of Edwards P2PKH address
 	PKHSchnorrAddrID       [2]byte // First 2 bytes of secp256k1 Schnorr P2PKH address

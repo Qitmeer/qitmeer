@@ -11,6 +11,7 @@ import (
 	"github.com/noxproject/nox/core/address/btc"
 	"github.com/noxproject/nox/engine/txscript"
 	btcparams "github.com/noxproject/nox/params/btc"
+	_ "github.com/noxproject/nox/params/btc/txscript"
 )
 
 // This example demonstrates creating a script which pays to a bitcoin address.
@@ -77,7 +78,7 @@ func ExampleExtractPkScriptAddrs() {
 	// Output:
 	// Script Class: pubkeyhash
 	// Addresses: [12gpXQVcCL2qhTNQgyLVdCFG2Qs2px98nV]
-	// Required Signatures: 1
+	// Required Signatures: true
 }
 
 // This example demonstrates manually creating and signing a redeem transaction.

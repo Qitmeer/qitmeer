@@ -2,13 +2,13 @@ package txscript
 
 import (
 	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/core/address"
+	btcaddr "github.com/noxproject/nox/core/address/btc"
 	"github.com/noxproject/nox/engine/txscript"
+	btcparams "github.com/noxproject/nox/params/btc"
 )
 
 type PKHashScript struct {
 	ops    []txscript.ParsedOpcode
-	netId  [2]byte
 }
 
 func (s *PKHashScript) Match(pops []txscript.ParsedOpcode) bool{
@@ -35,8 +35,8 @@ func (s *PKHashScript) GetAddresses() []types.Address {
 	// Therefore the pubkey hash is the 3rd item on the stack.
 	// Skip the pubkey hash if it's invalid for some reason.
 	var addrs []types.Address
-	addr, err := address.NewPubKeyHashAddressByNetId(s.ops[2].GetData(),
-		s.netId)
+	addr, err := btcaddr.NewAddressPubKeyHash(s.ops[2].GetData(),
+		&btcparams.MainNetParams)
 	if err == nil {
 		addrs = append(addrs, addr)
 	}
@@ -47,5 +47,10 @@ func (s *PKHashScript) RequiredSigs() bool {
 }
 
 var _ txscript.Script = (*PKHashScript)(nil)
+
+func init() {
+	sin := &PKHashScript{}
+	txscript.RegisterScript(sin)
+}
 
 

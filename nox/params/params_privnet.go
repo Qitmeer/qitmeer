@@ -63,9 +63,12 @@ var PrivNetParams = Params{
 
 	// Address encoding magics
 	NetworkAddressPrefix: "S",
+	PubKeyAddrID:         [2]byte{0x27, 0x6f}, // starts with Sk
 	PubKeyHashAddrID:     [2]byte{0x0e, 0x91}, // starts with Ss
-	ScriptHashAddrID:     [2]byte{0x0e, 0x6c}, // starts with Sc
+    PKHEdwardsAddrID:     [2]byte{0x0e, 0x71}, // starts with Se
+	PKHSchnorrAddrID:     [2]byte{0x0e, 0x53}, // starts with SS	ScriptHashAddrID:     [2]byte{0x0e, 0x6c}, // starts with Sc
 	PrivateKeyID:         [2]byte{0x23, 0x07}, // starts with Ps
+
 
 	// BIP32 hierarchical deterministic extended key magics
 	HDPrivateKeyID: [4]byte{0x04, 0x20, 0xb9, 0x03}, // starts with sprv
