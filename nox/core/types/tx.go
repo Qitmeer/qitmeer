@@ -117,6 +117,27 @@ const (
 	TxSerializeOnlyWitness
 )
 
+type Input interface{
+	GetSignScript() []byte
+}
+
+type Output interface{
+	GetPkScript() []byte
+}
+type ScriptTx interface {
+	GetInput()     []Input
+	GetOutput()    []Output
+	GetVersion()   uint32
+	GetLockTime()  uint32
+	GetType()      ScriptTxType
+}
+type ScriptTxType int
+
+const (
+	NoxScriptTx ScriptTxType = iota
+	BtcScriptTx
+)
+
 type Transaction struct {
 	CachedHash *hash.Hash
 	Version   uint32
@@ -877,6 +898,9 @@ func NewTxInput(prevOut *TxOutPoint, amountIn uint64, signScript []byte) *TxInpu
 	}
 }
 
+func (ti *TxInput) GetSignScript() []byte{
+	return ti.SignScript
+}
 // SerializeSizePrefix returns the number of bytes it would take to serialize
 // the transaction input for a prefix.
 func (ti *TxInput) SerializeSizePrefix() int {
@@ -906,6 +930,10 @@ func NewTxOutput(amount uint64, pkScript []byte) *TxOutput {
 		Amount:    amount,
 		PkScript: pkScript,
 	}
+}
+
+func (to *TxOutput) GetPkScript() []byte {
+	return to.PkScript
 }
 
 // SerializeSize returns the number of bytes it would take to serialize the

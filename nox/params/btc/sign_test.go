@@ -16,7 +16,6 @@ import (
 	"github.com/noxproject/nox/params/btc/addr"
 	"github.com/noxproject/nox/params/btc/types"
 	_ "github.com/noxproject/nox/params/btc/txscript"
-	_ "github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/types"
 )
@@ -195,23 +194,23 @@ func ExampleSignTxOutput() {
 	 */
 
 	// Create the transaction to redeem the fake transaction.
-	redeemTx := types.NewTransaction()
-	//redeemTx := btctypes.NewMsgTx(btctypes.TxVersion)
+	// redeemTx := types.NewTransaction()
+	redeemTx := btctypes.NewBtcTx(btctypes.TxVersion)
 
 	// Add the input(s) the redeeming transaction will spend.  There is no
 	// signature script at this point since it hasn't been created or signed
 	// yet, hence nil is provided for it.
-	newPrevOut := types.NewOutPoint(&originTxHash, 0)
-	// prevOut = btctypes.NewOutPoint(&originTxHash, 0)
-	newTxIn := types.NewTxInput(newPrevOut, 0,nil)
-	// txIn = btctypes.NewTxIn(prevOut, nil,nil)
-	redeemTx.AddTxIn(newTxIn)
+	// newPrevOut := types.NewOutPoint(&originTxHash, 0)
+	prevOut = btctypes.NewOutPoint(&originTxHash, 0)
+	// newTxIn := types.NewTxInput(newPrevOut, 0,nil)
+	txIn = btctypes.NewTxIn(prevOut, nil,nil)
+	redeemTx.AddTxIn(txIn)
 
 	// Ordinarily this would contain that actual destination of the funds,
 	// but for this example don't bother.
-	newTxOut := types.NewTxOutput(0, nil)
-	//txOut = btctypes.NewTxOut(0, nil)
-	redeemTx.AddTxOut(newTxOut)
+	// newTxOut := types.NewTxOutput(0, nil)
+	txOut = btctypes.NewTxOut(0, nil)
+	redeemTx.AddTxOut(txOut)
 
 	// Sign the redeeming transaction.
 
@@ -244,14 +243,13 @@ func ExampleSignTxOutput() {
 		fmt.Println(err)
 		return
 	}
-	redeemTx.TxIn[0].SignScript = sigScript
-	//redeemTx.TxIn[0].SignatureScript = sigScript
+	//redeemTx.TxIn[0].SignScript = sigScript
+	redeemTx.TxIn[0].SignatureScript = sigScript
 
-	/*
 	sigScriptHash := btchash.HashH(sigScript)
 	fmt.Printf("sigScriptHash=%s\n",sigScriptHash) //sigScriptHash=be48b666469c05f92a307998f4a1830b08906ddbd4590202ee340bac77ec46ec
 
-
+	/*
 	// Prove that the transaction has been validly signed by executing the
 	// script pair.
 	flags := txscript.ScriptBip16 | txscript.ScriptVerifyDERSignatures |

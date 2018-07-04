@@ -14,6 +14,7 @@ import (
 	chainhash "github.com/noxproject/nox/common/hash"
     btchash "github.com/noxproject/nox/common/hash/btc"
 	s "github.com/noxproject/nox/core/serialization"
+	"github.com/noxproject/nox/core/types"
 )
 
 const (
@@ -217,6 +218,10 @@ type TxIn struct {
 	Sequence         uint32
 }
 
+func (t *TxIn) GetSignScript() []byte{
+	return t.SignatureScript
+}
+
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction input.
 func (t *TxIn) SerializeSize() int {
@@ -266,6 +271,10 @@ type TxOut struct {
 	PkScript []byte
 }
 
+func (t *TxOut) GetPkScript() []byte {
+	return t.PkScript
+}
+
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (t *TxOut) SerializeSize() int {
@@ -291,6 +300,30 @@ type BtcTx struct {
 	TxIn     []*TxIn
 	TxOut    []*TxOut
 	LockTime uint32
+}
+
+func (t *BtcTx) GetInput() []types.Input {
+	txIns := make([]types.Input,len(t.TxIn))
+	for i, txIn := range t.TxIn {
+		txIns[i] = txIn
+	}
+	return txIns
+}
+func (t *BtcTx) GetVersion() uint32{
+	return uint32(t.Version)
+}
+func (t *BtcTx) GetLockTime() uint32{
+	return t.LockTime
+}
+func (t *BtcTx) GetType() types.ScriptTxType{
+	return types.BtcScriptTx
+}
+func (t *BtcTx) GetOutput() []types.Output{
+	txOuts := make([]types.Output,len(t.TxOut))
+	for i, txOut := range t.TxOut{
+		txOuts[i] = txOut
+	}
+	return txOuts
 }
 
 // AddTxIn adds a transaction input to the message.

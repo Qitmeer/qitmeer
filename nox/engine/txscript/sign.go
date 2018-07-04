@@ -14,6 +14,11 @@ import (
 	"github.com/noxproject/nox/core/address"
 	"github.com/noxproject/nox/crypto/ecc"
 	"github.com/noxproject/nox/params"
+	"github.com/noxproject/nox/common/hash"
+	"bytes"
+	"encoding/binary"
+	"github.com/noxproject/nox/params/btc/types"
+	"github.com/noxproject/nox/common/hash/btc"
 )
 
 // RawTxInSignature returns the serialized ECDSA signature for the input idx of
@@ -619,8 +624,8 @@ func SignTxOutput(chainParams *params.Params, tx *types.Transaction, idx int,
 	return mergedScript, nil
 }
 
-//TODO refactor SignTxOut remove depends on params
-func SignTxOut(tx *types.Transaction, idx int,
+//TODO refactor SignTxOut remove depends on params & types.Transaction
+func SignTxOut(tx types.ScriptTx, idx int,
 	pkScript []byte, hashType SigHashType, kdb KeyDB, sdb ScriptDB,
 	previousScript []byte, sigType ecc.EcType) ([]byte, error) {
 	sigScript, class, addresses, nrequired, err := sign2(tx,
@@ -635,12 +640,12 @@ func SignTxOut(tx *types.Transaction, idx int,
 }
 
 // sign2 (refactor sign)
-func sign2(tx *types.Transaction, idx int,
+func sign2(tx types.ScriptTx, idx int,
 	subScript []byte, hashType SigHashType, kdb KeyDB, sdb ScriptDB,
 	sigType sigTypes) ([]byte,
 	ScriptClass, []types.Address, int, error) {
 
-	s,err	:=ParsePkScript(subScript)
+	s,err :=ParsePkScript(subScript)
 
 	if err != nil {
 		return nil, NonStandardTy, nil, 0, err
@@ -653,35 +658,9 @@ func sign2(tx *types.Transaction, idx int,
 	}
 	switch class {
 	case PubKeyTy:
-		// look up key for address
-		key, _, err := kdb.GetKey(addresses[0])
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		script, err := p2pkSignatureScript(tx, idx, subScript, hashType,
-			key)
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		return script, class, addresses, nrequired, nil
-
+		//TODO
 	case PubkeyAltTy:
-		// look up key for address
-		key, _, err := kdb.GetKey(addresses[0])
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		script, err := p2pkSignatureScriptAlt(tx, idx, subScript, hashType,
-			key, sigType)
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		return script, class, addresses, nrequired, nil
-
+		//TODO
 	case PubKeyHashTy:
 		// look up key for address
 		key, compressed, err := kdb.GetKey(addresses[0])
@@ -689,54 +668,463 @@ func sign2(tx *types.Transaction, idx int,
 			return nil, class, nil, 0, err
 		}
 
-		script, err := SignatureScript(tx, idx, subScript, hashType,
+		script, err := SignatureScript2(tx, idx, subScript, hashType,
 			key, compressed)
 		if err != nil {
 			return nil, class, nil, 0, err
 		}
-
 		return script, class, addresses, nrequired, nil
-
 	case PubkeyHashAltTy:
-		// look up key for address
-		key, compressed, err := kdb.GetKey(addresses[0])
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		script, err := SignatureScriptAlt(tx, idx, subScript, hashType,
-			key, compressed, int(sigType))
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		return script, class, addresses, nrequired, nil
-
+		// TODO
 	case ScriptHashTy:
-		script, err := sdb.GetScript(addresses[0])
-		if err != nil {
-			return nil, class, nil, 0, err
-		}
-
-		return script, class, addresses, nrequired, nil
-
+		// TODO
 	case MultiSigTy:
-		script, _ := signMultiSig(tx, idx, subScript, hashType,
-			addresses, nrequired, kdb)
-		return script, class, addresses, nrequired, nil
-
+		// TODO
+		return nil, class, nil, 0,
+			fmt.Errorf("NOT support %s transactions",class)
 	case NullDataTy:
 		return nil, class, nil, 0,
 			errors.New("can't sign NULLDATA transactions")
-
 	default:
 		return nil, class, nil, 0,
 			errors.New("can't sign unknown transactions")
 	}
+	//TODO should not go here
+	return nil, class, nil, 0,
+		fmt.Errorf("NOT support %s transactions",class)
+}
+
+// SignatureScript2, ( refactor of SignatureScript)
+func SignatureScript2(tx types.ScriptTx, idx int, subscript []byte,
+	hashType SigHashType, privKey ecc.PrivateKey, compress bool) ([]byte,
+	error) {
+	sig, err := RawTxInSignature2(tx, idx, subscript, hashType, privKey)
+	if err != nil {
+		return nil, err
+	}
+
+	pubx, puby := privKey.Public()
+	pub := ecc.Secp256k1.NewPublicKey(pubx, puby)
+	var pkData []byte
+	if compress {
+		pkData = pub.SerializeCompressed()
+	} else {
+		pkData = pub.SerializeUncompressed()
+	}
+
+	return NewScriptBuilder().AddData(sig).AddData(pkData).Script()
+}
+
+// RawTxInSignature2 (refactor of  RawTxInSignature)
+func RawTxInSignature2(tx types.ScriptTx, idx int, subScript []byte,
+	hashType SigHashType, key ecc.PrivateKey) ([]byte, error) {
+
+	parsedScript, err := parseScript(subScript)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse output script: %v", err)
+	}
+	var h []byte
+	// TODO, need to abstract SignatureHash calculator, instead of switch by type
+	switch tx.GetType() {
+		case types.NoxScriptTx:
+			h, err = calcSignatureHash2(parsedScript, hashType, tx, idx, nil)
+		case types.BtcScriptTx:
+			h = calcSignatureHash_btc(parsedScript, hashType, tx, idx)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	r, s, err := ecc.Secp256k1.Sign(key, h)
+	if err != nil {
+		return nil, fmt.Errorf("cannot sign tx input: %s", err)
+	}
+	sig := ecc.Secp256k1.NewSignature(r, s)
+
+	return append(sig.Serialize(), byte(hashType)), nil
+}
+
+// calcSignatureHash2 (refactor of calcSignatureHash)
+// 2 -> normal
+func calcSignatureHash2(prevOutScript []ParsedOpcode, hashType SigHashType, txScript types.ScriptTx, idx int, cachedPrefix *hash.Hash) ([]byte, error) {
+	// TODO, error handling
+	tx,_ := shallowCopyTx(txScript)
+
+	// The SigHashSingle signature type signs only the corresponding input
+	// and output (the output with the same index number as the input).
+	//
+	// Since transactions can have more inputs than outputs, this means it
+	// is improper to use SigHashSingle on input indices that don't have a
+	// corresponding output.
+	if hashType&sigHashMask == SigHashSingle && idx >= len(tx.TxOut) {
+		return nil, ErrSighashSingleIdx
+	}
+
+	// Remove all instances of OP_CODESEPARATOR from the script.
+	//
+	// The call to unparseScript cannot fail here because removeOpcode
+	// only returns a valid script.
+	prevOutScript = removeOpcode(prevOutScript, OP_CODESEPARATOR)
+	signScript, _ := unparseScript(prevOutScript)
+
+	// Choose the inputs that will be committed to based on the signature
+	// hash type.
+	//
+	// The SigHashAnyOneCanPay flag specifies that the signature will only
+	// commit to the input being signed.  Otherwise, it will commit to all
+	// inputs.
+	txIns := tx.TxIn
+	signTxInIdx := idx
+	if hashType&SigHashAnyOneCanPay != 0 {
+		txIns = tx.TxIn[idx : idx+1]
+		signTxInIdx = 0
+	}
+
+	// The prefix hash commits to the non-witness data depending on the
+	// signature hash type.  In particular, the specific inputs and output
+	// semantics which are committed to are modified depending on the
+	// signature hash type as follows:
+	//
+	// SigHashAll (and undefined signature hash types):
+	//   Commits to all outputs.
+	// SigHashNone:
+	//   Commits to no outputs with all input sequences except the input
+	//   being signed replaced with 0.
+	// SigHashSingle:
+	//   Commits to a single output at the same index as the input being
+	//   signed.  All outputs before that index are cleared by setting the
+	//   value to -1 and pkscript to nil and all outputs after that index
+	//   are removed.  Like SigHashNone, all input sequences except the
+	//   input being signed are replaced by 0.
+	// SigHashAnyOneCanPay:
+	//   Commits to only the input being signed.  Bit flag that can be
+	//   combined with the other signature hash types.  Without this flag
+	//   set, commits to all inputs.
+	//
+	// With the relevant inputs and outputs selected and the aforementioned
+	// substitions, the prefix hash consists of the hash of the
+	// serialization of the following fields:
+	//
+	// 1) txversion|(SigHashSerializePrefix<<16) (as little-endian uint32)
+	// 2) number of inputs (as varint)
+	// 3) per input:
+	//    a) prevout hash (as little-endian uint256)
+	//    b) prevout index (as little-endian uint32)
+	//    c) prevout tree (as single byte)
+	//    d) sequence (as little-endian uint32)
+	// 4) number of outputs (as varint)
+	// 5) per output:
+	//    a) output amount (as little-endian uint64)
+	//    b) pkscript version (as little-endian uint16)
+	//    c) pkscript length (as varint)
+	//    d) pkscript (as unmodified bytes)
+	// 6) transaction lock time (as little-endian uint32)
+	// 7) transaction expiry (as little-endian uint32)
+	//
+	// In addition, an optimization for SigHashAll is provided when the
+	// SigHashAnyOneCanPay flag is not set.  In that case, the prefix hash
+	// can be reused because only the witness data has been modified, so
+	// the wasteful extra O(N^2) hash can be avoided.
+	var prefixHash hash.Hash
+	if params.SigHashOptimization && cachedPrefix != nil &&
+		hashType&sigHashMask == SigHashAll &&
+		hashType&SigHashAnyOneCanPay == 0 {
+
+		prefixHash = *cachedPrefix
+	} else {
+		// Choose the outputs to commit to based on the signature hash
+		// type.
+		//
+		// As the names imply, SigHashNone commits to no outputs and
+		// SigHashSingle commits to the single output that corresponds
+		// to the input being signed.  However, SigHashSingle is also a
+		// bit special in that it commits to cleared out variants of all
+		// outputs prior to the one being signed.  This is required by
+		// consensus due to legacy reasons.
+		//
+		// All other signature hash types, such as SighHashAll commit to
+		// all outputs.  Note that this includes undefined hash types as well.
+		txOuts := tx.TxOut
+		switch hashType & sigHashMask {
+		case SigHashNone:
+			txOuts = nil
+		case SigHashSingle:
+			txOuts = tx.TxOut[:idx+1]
+		default:
+			fallthrough
+		case SigHashOld:
+			fallthrough
+		case SigHashAll:
+			// Nothing special here.
+		}
+
+		size := sigHashPrefixSerializeSize(hashType, txIns, txOuts, idx)
+		prefixBuf := make([]byte, size)
+
+		// Commit to the version and hash serialization type.
+		version := uint32(tx.Version) | uint32(SigHashSerializePrefix)<<16
+		offset := putUint32LE(prefixBuf, version)
+
+		// Commit to the relevant transaction inputs.
+		offset += putVarInt(prefixBuf[offset:], uint64(len(txIns)))
+		for txInIdx, txIn := range txIns {
+			// Commit to the outpoint being spent.
+			prevOut := &txIn.PreviousOut
+			offset += copy(prefixBuf[offset:], prevOut.Hash[:])
+			offset += putUint32LE(prefixBuf[offset:], prevOut.OutIndex)
+
+			// Commit to the sequence.  In the case of SigHashNone
+			// and SigHashSingle, commit to 0 for everything that is
+			// not the input being signed instead.
+			sequence := txIn.Sequence
+			if (hashType&sigHashMask == SigHashNone ||
+				hashType&sigHashMask == SigHashSingle) &&
+				txInIdx != signTxInIdx {
+
+				sequence = 0
+			}
+			offset += putUint32LE(prefixBuf[offset:], sequence)
+		}
+
+		// Commit to the relevant transaction outputs.
+		offset += putVarInt(prefixBuf[offset:], uint64(len(txOuts)))
+		for txOutIdx, txOut := range txOuts {
+			// Commit to the output amount, script version, and
+			// public key script.  In the case of SigHashSingle,
+			// commit to an output amount of -1 and a nil public
+			// key script for everything that is not the output
+			// corresponding to the input being signed instead.
+			value := txOut.Amount
+			pkScript := txOut.PkScript
+			if hashType&sigHashMask == SigHashSingle && txOutIdx != idx {
+				value = 0
+				pkScript = nil
+			}
+			offset += putUint64LE(prefixBuf[offset:], uint64(value))
+			offset += putVarInt(prefixBuf[offset:], uint64(len(pkScript)))
+			offset += copy(prefixBuf[offset:], pkScript)
+		}
+
+		// Commit to the lock time and expiry.
+		offset += putUint32LE(prefixBuf[offset:], tx.LockTime)
+		putUint32LE(prefixBuf[offset:], tx.Expire)
+
+		prefixHash = hash.HashH(prefixBuf)
+	}
+
+	// The witness hash commits to the input witness data depending on
+	// whether or not the signature hash type has the SigHashAnyOneCanPay
+	// flag set.  In particular the semantics are as follows:
+	//
+	// SigHashAnyOneCanPay:
+	//   Commits to only the input being signed.  Without this flag set,
+	//   commits to all inputs with the reference scripts cleared by setting
+	//   them to nil.
+	//
+	// With the relevant inputs selected, and the aforementioned substitutions,
+	// the witness hash consists of the hash of the serialization of the
+	// following fields:
+	//
+	// 1) txversion|(SigHashSerializeWitness<<16) (as little-endian uint32)
+	// 2) number of inputs (as varint)
+	// 3) per input:
+	//    a) length of prevout pkscript (as varint)
+	//    b) prevout pkscript (as unmodified bytes)
+
+	size := sigHashWitnessSerializeSize(hashType, txIns, signScript)
+	witnessBuf := make([]byte, size)
+
+	// Commit to the version and hash serialization type.
+	version := uint32(tx.Version) | uint32(SigHashSerializeWitness)<<16
+	offset := putUint32LE(witnessBuf, version)
+
+	// Commit to the relevant transaction inputs.
+	offset += putVarInt(witnessBuf[offset:], uint64(len(txIns)))
+	for txInIdx := range txIns {
+		// Commit to the input script at the index corresponding to the
+		// input index being signed.  Otherwise, commit to a nil script
+		// instead.
+		commitScript := signScript
+		if txInIdx != signTxInIdx {
+			commitScript = nil
+		}
+		offset += putVarInt(witnessBuf[offset:], uint64(len(commitScript)))
+		offset += copy(witnessBuf[offset:], commitScript)
+	}
+
+	witnessHash := hash.HashH(witnessBuf)
+
+	// The final signature hash (message to sign) is the hash of the
+	// serialization of the following fields:
+	//
+	// 1) the hash type (as little-endian uint32)
+	// 2) prefix hash (as produced by hash function)
+	// 3) witness hash (as produced by hash function)
+	sigHashBuf := make([]byte, hash.HashSize*2+4)
+	offset = putUint32LE(sigHashBuf, uint32(hashType))
+	offset += copy(sigHashBuf[offset:], prefixHash[:])
+	copy(sigHashBuf[offset:], witnessHash[:])
+	return hash.HashB(sigHashBuf), nil
+}
+
+// calcSignatureHash_btc (refactor of btcd's calcSignatureHash)
+func calcSignatureHash_btc(script []ParsedOpcode, hashType SigHashType, tx types.ScriptTx, idx int) []byte {
+	// The SigHashSingle signature type signs only the corresponding input
+	// and output (the output with the same index number as the input).
+	//
+	// Since transactions can have more inputs than outputs, this means it
+	// is improper to use SigHashSingle on input indices that don't have a
+	// corresponding output.
+	//
+	// A bug in the original Satoshi client implementation means specifying
+	// an index that is out of range results in a signature hash of 1 (as a
+	// uint256 little endian).  The original intent appeared to be to
+	// indicate failure, but unfortunately, it was never checked and thus is
+	// treated as the actual signature hash.  This buggy behavior is now
+	// part of the consensus and a hard fork would be required to fix it.
+	//
+	// Due to this, care must be taken by software that creates transactions
+	// which make use of SigHashSingle because it can lead to an extremely
+	// dangerous situation where the invalid inputs will end up signing a
+	// hash of 1.  This in turn presents an opportunity for attackers to
+	// cleverly construct transactions which can steal those coins provided
+	// they can reuse signatures.
+	if hashType&sigHashMask == SigHashSingle && idx >= len(tx.GetOutput()) {
+		var hash hash.Hash
+		hash[0] = 0x01
+		return hash[:]
+	}
+
+	// Remove all instances of OP_CODESEPARATOR from the script.
+	script = removeOpcode(script, OP_CODESEPARATOR)
+
+	// Make a shallow copy of the transaction, zeroing out the script for
+	// all inputs that are not currently being processed.
+	// TODO, error handling
+	txCopy,_ := shallowCopyBtcTx(tx)
+	for i := range txCopy.TxIn {
+		if i == idx {
+			// UnparseScript cannot fail here because removeOpcode
+			// above only returns a valid script.
+			sigScript, _ := unparseScript(script)
+			txCopy.TxIn[idx].SignatureScript = sigScript
+		} else {
+			txCopy.TxIn[i].SignatureScript = nil
+		}
+	}
+
+	switch hashType & sigHashMask {
+	case SigHashNone:
+		txCopy.TxOut = txCopy.TxOut[0:0] // Empty slice.
+		for i := range txCopy.TxIn {
+			if i != idx {
+				txCopy.TxIn[i].Sequence = 0
+			}
+		}
+
+	case SigHashSingle:
+		// Resize output array to up to and including requested index.
+		txCopy.TxOut = txCopy.TxOut[:idx+1]
+
+		// All but current output get zeroed out.
+		for i := 0; i < idx; i++ {
+			txCopy.TxOut[i].Value = -1
+			txCopy.TxOut[i].PkScript = nil
+		}
+
+		// Sequence on all other inputs is 0, too.
+		for i := range txCopy.TxIn {
+			if i != idx {
+				txCopy.TxIn[i].Sequence = 0
+			}
+		}
+
+	default:
+		// Consensus treats undefined hashtypes like normal SigHashAll
+		// for purposes of hash generation.
+		fallthrough
+	case SigHashOld:
+		fallthrough
+	case SigHashAll:
+		// Nothing special here.
+	}
+	if hashType&SigHashAnyOneCanPay != 0 {
+		txCopy.TxIn = txCopy.TxIn[idx : idx+1]
+	}
+
+	// The final hash is the double sha256 of both the serialized modified
+	// transaction and the hash type (encoded as a 4-byte little-endian
+	// value) appended.
+	wbuf := bytes.NewBuffer(make([]byte, 0, txCopy.SerializeSizeStripped()+4))
+	txCopy.SerializeNoWitness(wbuf)
+	binary.Write(wbuf, binary.LittleEndian, hashType)
+	return btc.DoubleHashB(wbuf.Bytes())
+}
+
+func shallowCopyTx(tx types.ScriptTx) (types.Transaction,error){
+	txCopy := types.Transaction{
+		Version: tx.GetVersion(),
+
+	}
+	txIns := make([]types.TxInput, len(tx.GetInput()))
+	for i, oldTxIn := range tx.GetInput() {
+		in, ok := oldTxIn.(*types.TxInput);
+		if !ok {
+			return txCopy, fmt.Errorf("fail to convert %v to TxIN",oldTxIn)
+		}
+		txIns[i] = *in
+		txCopy.TxIn[i] = &txIns[i]
+	}
+	txOuts := make([]types.TxOutput, len(tx.GetOutput()))
+	for i, oldTxOut := range tx.GetOutput() {
+		out, ok := oldTxOut.(*types.TxOutput)
+		if !ok {
+			return txCopy, fmt.Errorf("fail to convert %v to TxOut",oldTxOut)
+		}
+		txOuts[i] = *out
+		txCopy.TxOut[i] = &txOuts[i]
+	}
+	return txCopy,nil
+}
+
+// shallowCopyBtcTx creates a shallow copy of the transaction for use when
+// calculating the signature hash.  It is used over the Copy method on the
+// transaction itself since that is a deep copy and therefore does more work and
+// allocates much more space than needed.
+func shallowCopyBtcTx(tx types.ScriptTx) (btctypes.BtcTx, error){
+	// As an additional memory optimization, use contiguous backing arrays
+	// for the copied inputs and outputs and point the final slice of
+	// pointers into the contiguous arrays.  This avoids a lot of small
+	// allocations.
+	txCopy := btctypes.BtcTx{
+		Version:  int32(tx.GetVersion()),
+		TxIn:     make([]*btctypes.TxIn, len(tx.GetInput())),
+		TxOut:    make([]*btctypes.TxOut, len(tx.GetOutput())),
+		LockTime: tx.GetLockTime(),
+	}
+	txIns := make([]btctypes.TxIn, len(tx.GetInput()))
+	for i, oldTxIn := range tx.GetInput() {
+		in, ok := oldTxIn.(*btctypes.TxIn);
+		if !ok {
+			return txCopy, fmt.Errorf("fail to convert %v to TxIN",oldTxIn)
+		}
+		txIns[i] = *in
+		txCopy.TxIn[i] = &txIns[i]
+	}
+	txOuts := make([]btctypes.TxOut, len(tx.GetOutput()))
+	for i, oldTxOut := range tx.GetOutput() {
+		out, ok := oldTxOut.(*btctypes.TxOut)
+		if !ok {
+			return txCopy, fmt.Errorf("fail to convert %v to TxOut",oldTxOut)
+		}
+		txOuts[i] = *out
+		txCopy.TxOut[i] = &txOuts[i]
+	}
+	return txCopy,nil
 }
 
 // mergeScripts2 (refactor mergeScript)
-func mergeScripts2(tx *types.Transaction, idx int,
+func mergeScripts2(tx types.ScriptTx, idx int,
 	pkScript []byte, class ScriptClass, addresses []types.Address,
 	nRequired int, sigScript, prevScript []byte) []byte {
 
@@ -785,7 +1173,7 @@ func mergeScripts2(tx *types.Transaction, idx int,
 		finalScript, _ := builder.Script()
 		return finalScript
 	case MultiSigTy:
-		return mergeMultiSig(tx, idx, addresses, nRequired, pkScript,
+		return mergeMultiSig2(tx, idx, addresses, nRequired, pkScript,
 			sigScript, prevScript)
 
 	// It doesn't actually make sense to merge anything other than multiig
@@ -800,4 +1188,127 @@ func mergeScripts2(tx *types.Transaction, idx int,
 		}
 		return prevScript
 	}
+}
+// mergeMultiSig2 (refactor of mergeMultiSig)
+func mergeMultiSig2(tx types.ScriptTx, idx int, addresses []types.Address,
+	nRequired int, pkScript, sigScript, prevScript []byte) []byte {
+
+	// This is an internal only function and we already parsed this script
+	// as ok for multisig (this is how we got here), so if this fails then
+	// all assumptions are broken and who knows which way is up?
+	pkPops, _ := parseScript(pkScript)
+
+	sigPops, err := parseScript(sigScript)
+	if err != nil || len(sigPops) == 0 {
+		return prevScript
+	}
+
+	prevPops, err := parseScript(prevScript)
+	if err != nil || len(prevPops) == 0 {
+		return sigScript
+	}
+
+	// Convenience function to avoid duplication.
+	extractSigs := func(pops []ParsedOpcode, sigs [][]byte) [][]byte {
+		for _, pop := range pops {
+			if len(pop.data) != 0 {
+				sigs = append(sigs, pop.data)
+			}
+		}
+		return sigs
+	}
+
+	possibleSigs := make([][]byte, 0, len(sigPops)+len(prevPops))
+	possibleSigs = extractSigs(sigPops, possibleSigs)
+	possibleSigs = extractSigs(prevPops, possibleSigs)
+
+	// Now we need to match the signatures to pubkeys, the only real way to
+	// do that is to try to verify them all and match it to the pubkey
+	// that verifies it. we then can go through the addresses in order
+	// to build our script. Anything that doesn't parse or doesn't verify we
+	// throw away.
+	addrToSig := make(map[string][]byte)
+sigLoop:
+	for _, sig := range possibleSigs {
+
+		// can't have a valid signature that doesn't at least have a
+		// hashtype, in practise it is even longer than this. but
+		// that'll be checked next.
+		if len(sig) < 1 {
+			continue
+		}
+		tSig := sig[:len(sig)-1]
+		hashType := SigHashType(sig[len(sig)-1])
+
+		pSig, err := ecc.Secp256k1.ParseDERSignature(tSig)
+		if err != nil {
+			continue
+		}
+
+		// We have to do this each round since hash types may vary
+		// between signatures and so the hash will vary. We can,
+		// however, assume no sigs etc are in the script since that
+		// would make the transaction nonstandard and thus not
+		// MultiSigTy, so we just need to hash the full thing.
+		var h []byte
+			// TODO, need to abstract SignatureHash calculator, instead of switch by type
+			switch tx.GetType() {
+			case types.NoxScriptTx:
+				h, err = calcSignatureHash2(pkPops, hashType, tx, idx, nil)
+			case types.BtcScriptTx:
+				h = calcSignatureHash_btc(pkPops, hashType, tx, idx)
+		}
+		if err != nil {
+			// Decred -- is this the right handling for SIGHASH_SINGLE error ?
+			// TODO make sure this doesn't break anything.
+			continue
+		}
+
+		for _, addr := range addresses {
+			// All multisig addresses should be pubkey addreses
+			// it is an error to call this internal function with
+			// bad input.
+			pkaddr := addr.(*address.SecpPubKeyAddress)
+
+			pubKey := pkaddr.PubKey()
+
+			// If it matches we put it in the map. We only
+			// can take one signature per public key so if we
+			// already have one, we can throw this away.
+			r := pSig.GetR()
+			s := pSig.GetS()
+			if ecc.Secp256k1.Verify(pubKey, h, r, s) {
+				aStr := addr.Encode()
+				if _, ok := addrToSig[aStr]; !ok {
+					addrToSig[aStr] = sig
+				}
+				continue sigLoop
+			}
+		}
+	}
+
+	// Extra opcode to handle the extra arg consumed (due to previous bugs
+	// in the reference implementation).
+	builder := NewScriptBuilder() //.AddOp(OP_FALSE)
+	doneSigs := 0
+	// This assumes that addresses are in the same order as in the script.
+	for _, addr := range addresses {
+		sig, ok := addrToSig[addr.Encode()]
+		if !ok {
+			continue
+		}
+		builder.AddData(sig)
+		doneSigs++
+		if doneSigs == nRequired {
+			break
+		}
+	}
+
+	// padding for missing ones.
+	for i := doneSigs; i < nRequired; i++ {
+		builder.AddOp(OP_0)
+	}
+
+	script, _ := builder.Script()
+	return script
 }
