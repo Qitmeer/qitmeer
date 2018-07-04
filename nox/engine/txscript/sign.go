@@ -748,7 +748,7 @@ func RawTxInSignature2(tx types.ScriptTx, idx int, subScript []byte,
 // 2 -> normal
 func calcSignatureHash2(prevOutScript []ParsedOpcode, hashType SigHashType, txScript types.ScriptTx, idx int, cachedPrefix *hash.Hash) ([]byte, error) {
 	// TODO, error handling
-	tx,_ := shallowCopyTx(txScript)
+	tx,_ := txScript.(*types.Transaction)
 
 	// The SigHashSingle signature type signs only the corresponding input
 	// and output (the output with the same index number as the input).
@@ -968,7 +968,10 @@ func calcSignatureHash2(prevOutScript []ParsedOpcode, hashType SigHashType, txSc
 }
 
 // calcSignatureHash_btc (refactor of btcd's calcSignatureHash)
-func calcSignatureHash_btc(script []ParsedOpcode, hashType SigHashType, tx types.ScriptTx, idx int) []byte {
+func calcSignatureHash_btc(script []ParsedOpcode, hashType SigHashType, scriptTx types.ScriptTx, idx int) []byte {
+
+	tx := scriptTx.(*btctypes.BtcTx)
+
 	// The SigHashSingle signature type signs only the corresponding input
 	// and output (the output with the same index number as the input).
 	//
@@ -989,7 +992,7 @@ func calcSignatureHash_btc(script []ParsedOpcode, hashType SigHashType, tx types
 	// hash of 1.  This in turn presents an opportunity for attackers to
 	// cleverly construct transactions which can steal those coins provided
 	// they can reuse signatures.
-	if hashType&sigHashMask == SigHashSingle && idx >= len(tx.GetOutput()) {
+	if hashType&sigHashMask == SigHashSingle && idx >= len(tx.TxOut) {
 		var hash hash.Hash
 		hash[0] = 0x01
 		return hash[:]
@@ -1001,7 +1004,7 @@ func calcSignatureHash_btc(script []ParsedOpcode, hashType SigHashType, tx types
 	// Make a shallow copy of the transaction, zeroing out the script for
 	// all inputs that are not currently being processed.
 	// TODO, error handling
-	txCopy,_ := shallowCopyBtcTx(tx)
+	txCopy := shallowCopyTx(tx)
 	for i := range txCopy.TxIn {
 		if i == idx {
 			// UnparseScript cannot fail here because removeOpcode
@@ -1057,10 +1060,11 @@ func calcSignatureHash_btc(script []ParsedOpcode, hashType SigHashType, tx types
 	// value) appended.
 	wbuf := bytes.NewBuffer(make([]byte, 0, txCopy.SerializeSizeStripped()+4))
 	txCopy.SerializeNoWitness(wbuf)
-	binary.Write(wbuf, binary.LittleEndian, hashType)
+	binary.Write(wbuf, binary.LittleEndian, uint32(hashType))  //NOTE: the hashType in BTC is Uint32, TODO unify the serilization
 	return btc.DoubleHashB(wbuf.Bytes())
 }
 
+/*
 func shallowCopyTx(tx types.ScriptTx) (types.Transaction,error){
 	txCopy := types.Transaction{
 		Version: tx.GetVersion(),
@@ -1086,6 +1090,7 @@ func shallowCopyTx(tx types.ScriptTx) (types.Transaction,error){
 	}
 	return txCopy,nil
 }
+*/
 
 // shallowCopyBtcTx creates a shallow copy of the transaction for use when
 // calculating the signature hash.  It is used over the Copy method on the
@@ -1121,6 +1126,34 @@ func shallowCopyBtcTx(tx types.ScriptTx) (btctypes.BtcTx, error){
 		txCopy.TxOut[i] = &txOuts[i]
 	}
 	return txCopy,nil
+}
+
+// shallowCopyTx creates a shallow copy of the transaction for use when
+// calculating the signature hash.  It is used over the Copy method on the
+// transaction itself since that is a deep copy and therefore does more work and
+// allocates much more space than needed.
+func shallowCopyTx(tx *btctypes.BtcTx) btctypes.BtcTx {
+	// As an additional memory optimization, use contiguous backing arrays
+	// for the copied inputs and outputs and point the final slice of
+	// pointers into the contiguous arrays.  This avoids a lot of small
+	// allocations.
+	txCopy := btctypes.BtcTx{
+		Version:  tx.Version,
+		TxIn:     make([]*btctypes.TxIn, len(tx.TxIn)),
+		TxOut:    make([]*btctypes.TxOut, len(tx.TxOut)),
+		LockTime: tx.LockTime,
+	}
+	txIns := make([]btctypes.TxIn, len(tx.TxIn))
+	for i, oldTxIn := range tx.TxIn {
+		txIns[i] = *oldTxIn
+		txCopy.TxIn[i] = &txIns[i]
+	}
+	txOuts := make([]btctypes.TxOut, len(tx.TxOut))
+	for i, oldTxOut := range tx.TxOut {
+		txOuts[i] = *oldTxOut
+		txCopy.TxOut[i] = &txOuts[i]
+	}
+	return txCopy
 }
 
 // mergeScripts2 (refactor mergeScript)

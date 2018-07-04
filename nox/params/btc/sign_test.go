@@ -249,13 +249,13 @@ func ExampleSignTxOutput() {
 	sigScriptHash := btchash.HashH(sigScript)
 	fmt.Printf("sigScriptHash=%s\n",sigScriptHash) //sigScriptHash=be48b666469c05f92a307998f4a1830b08906ddbd4590202ee340bac77ec46ec
 
-	/*
+
 	// Prove that the transaction has been validly signed by executing the
 	// script pair.
 	flags := txscript.ScriptBip16 | txscript.ScriptVerifyDERSignatures |
 		//txscript.ScriptStrictMultiSig |
 		txscript.ScriptDiscourageUpgradableNops
-	vm, err := txscript.NewEngine(originTx.TxOut[0].PkScript, redeemTx, 0,
+	vm, err := txscript.NewEngine2(originTx.TxOut[0].PkScript, redeemTx, 0,
 		flags, 0, nil,)
 	if err != nil {
 		fmt.Println(err)
@@ -265,8 +265,6 @@ func ExampleSignTxOutput() {
 		fmt.Println(err)
 		return
 	}
-	*/
-
 
 	fmt.Println("Transaction successfully signed")
 	// Output:
@@ -279,6 +277,7 @@ func ExampleSignTxOutput() {
 	// originTxHash=349f60d2bbddfb156536de22c5cd8c4c5a14baa0fadc65dc4e0a9f02e5207b3e
 	// originTxHashWit=349f60d2bbddfb156536de22c5cd8c4c5a14baa0fadc65dc4e0a9f02e5207b3e
     // originTxDump=01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff020000ffffffff0100e1f505000000001976a9143dee47716e3cfa57df45113473a6312ebeaef31188ac00000000
+    // sigScriptHash=be48b666469c05f92a307998f4a1830b08906ddbd4590202ee340bac77ec46ec
     // Transaction successfully signed
 }
 

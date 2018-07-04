@@ -20,6 +20,7 @@ import (
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/crypto/ecc"
+	"github.com/noxproject/nox/common/hash/btc"
 )
 
 var optimizeSigVerification = params.SigHashOptimization
@@ -2485,6 +2486,10 @@ func opcodeHash160(op *ParsedOpcode, vm *Engine) error {
 	}
 
 	h := hash.HashB(buf)
+	// TODO, remove hard coding
+	if vm.scriptTx.GetType() == types.BtcScriptTx {
+		h = btc.HashB(buf)
+	}
 	vm.dstack.PushByteArray(calcHash(h[:], ripemd160.New()))
 	return nil
 }
@@ -2574,11 +2579,17 @@ func opcodeCheckSig(op *ParsedOpcode, vm *Engine) error {
 			prefixHash = vm.tx.CachedTxHash()
 		}
 	}
-	h, err := calcSignatureHash(subScript, hashType, &vm.tx, vm.txIdx,
-		prefixHash)
-	if err != nil {
-		vm.dstack.PushBool(false)
-		return nil
+	// TODO, remove the hardcoded BTC handing
+	var h []byte
+	if vm.scriptTx.GetType() == types.BtcScriptTx {
+		h = calcSignatureHash_btc(subScript, hashType, vm.scriptTx, vm.txIdx)
+	}else {
+		h, err = calcSignatureHash(subScript, hashType, &vm.tx, vm.txIdx,
+			prefixHash)
+		if err != nil {
+			vm.dstack.PushBool(false)
+			return nil
+		}
 	}
 
 	pubKey, err := ecc.Secp256k1.ParsePubKey(pkBytes)

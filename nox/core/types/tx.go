@@ -162,6 +162,30 @@ func NewTransaction() *Transaction {
 	}
 }
 
+ func (t *Transaction) GetInput() []Input {
+	txIns := make([]Input,len(t.TxIn))
+	for i, txIn := range t.TxIn {
+		txIns[i] = txIn
+	}
+	return txIns
+}
+func (t *Transaction) GetVersion() uint32{
+	return uint32(t.Version)
+}
+func (t *Transaction) GetLockTime() uint32{
+	return t.LockTime
+}
+func (t *Transaction) GetType() ScriptTxType{
+	return NoxScriptTx
+}
+func (t *Transaction) GetOutput() []Output{
+	txOuts := make([]Output,len(t.TxOut))
+	for i, txOut := range t.TxOut{
+		txOuts[i] = txOut
+	}
+	return txOuts
+}
+
 // AddTxIn adds a transaction input to the message.
 func (t *Transaction) AddTxIn(ti *TxInput) {
 	t.TxIn = append(t.TxIn, ti)
