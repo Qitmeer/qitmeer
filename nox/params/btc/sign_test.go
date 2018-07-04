@@ -6,7 +6,6 @@
 package btc_test
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/noxproject/nox/engine/txscript"
@@ -15,9 +14,12 @@ import (
 	btcaddr "github.com/noxproject/nox/core/address/btc"
 	btchash "github.com/noxproject/nox/common/hash/btc"
 	_ "github.com/noxproject/nox/params/btc/txscript"
-	"github.com/noxproject/nox/core/types"
+	_ "github.com/noxproject/nox/core/types"
+	btctypes "github.com/noxproject/nox/params/btc/types"
 	"github.com/noxproject/nox/common/hash"
 
+	"bytes"
+	"github.com/noxproject/nox/core/types"
 )
 
 // This example demonstrates creating a script which pays to a bitcoin address.
@@ -124,11 +126,14 @@ func ExampleSignTxOutput() {
 	// For this example, create a fake transaction that represents what
 	// would ordinarily be the real transaction that is being spent.  It
 	// contains a single output that pays to address in the amount of 1 BTC.
-	originTx :=  types.NewTransaction()
+	//originTx :=  types.NewTransaction()
+	originTx :=  btctypes.NewBtcTx(btctypes.TxVersion)
 
-	prevOut := types.NewOutPoint(&hash.Hash{}, ^uint32(0))   //coin-base 0x0 & 0xffffffff
+	//prevOut := types.NewOutPoint(&hash.Hash{}, ^uint32(0))   //coin-base 0x0 & 0xffffffff
+	prevOut := btctypes.NewOutPoint(&hash.Hash{}, ^uint32(0))   //coin-base 0x0 & 0xffffffff
 	fmt.Printf("prevOut=%v\n",prevOut)
-	txIn := types.NewTxInput(prevOut, 100000000, []byte{txscript.OP_0, txscript.OP_0})
+	//txIn := types.NewTxInput(prevOut, 100000000, []byte{txscript.OP_0, txscript.OP_0})
+	txIn := btctypes.NewTxIn(prevOut, []byte{txscript.OP_0, txscript.OP_0}, nil)
 	originTx.AddTxIn(txIn)
 	pkScript, err := txscript.PayToAddrScript(addr)
 	if err != nil {
@@ -140,14 +145,20 @@ func ExampleSignTxOutput() {
 	  $ echo 76a9143dee47716e3cfa57df45113473a6312ebeaef31188ac|bx script-decode
 	  dup hash160 [3dee47716e3cfa57df45113473a6312ebeaef311] equalverify checksig
 	 */
-	txOut := types.NewTxOutput(100000000, pkScript)
-	fmt.Printf("txOut=%x\n",txOut)
+	//txOut := types.NewTxOutput(100000000, pkScript)
+	txOut := btctypes.NewTxOut(100000000, pkScript)
+	fmt.Printf("txOut=%x\n",txOut)   //txOut=&{5f5e100 76a9143dee47716e3cfa57df45113473a6312ebeaef31188ac}
 	originTx.AddTxOut(txOut)
+
 	originTxHash := originTx.TxHash()
-	fmt.Printf("originTx=%v\n",originTx)
 	fmt.Printf("originTxHash=%s\n",originTxHash.String()) //originTxHash=349f60d2bbddfb156536de22c5cd8c4c5a14baa0fadc65dc4e0a9f02e5207b3e
+	originTxHashWit := originTx.WitnessHash()   //originTxHashWit=349f60d2bbddfb156536de22c5cd8c4c5a14baa0fadc65dc4e0a9f02e5207b3e
+	fmt.Printf("originTxHashWit=%s\n",originTxHashWit.String())
+	//originTxHashFull := originTx.TxHashFull()
+	//fmt.Printf("originTxHashFull=%s\n",originTxHashFull.String())
+	//buf,_ := originTx.Serialize(types.TxSerializeFull)
 	buf := new(bytes.Buffer)
-	originTx.Serialize(types.TxSerializeFull)
+	originTx.Serialize(buf)
 	fmt.Printf("originTxDump=%x\n",buf)
 	//originTxDump=01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff020000ffffffff0100e1f505000000001976a9143dee47716e3cfa57df45113473a6312ebeaef31188ac00000000
 
@@ -184,21 +195,24 @@ func ExampleSignTxOutput() {
 }
 	 */
 
-
 	// Create the transaction to redeem the fake transaction.
 	redeemTx := types.NewTransaction()
+	//redeemTx := btctypes.NewMsgTx(btctypes.TxVersion)
 
 	// Add the input(s) the redeeming transaction will spend.  There is no
 	// signature script at this point since it hasn't been created or signed
 	// yet, hence nil is provided for it.
-	prevOut = types.NewOutPoint(&originTxHash, 0)
-	txIn = types.NewTxInput(prevOut, 0,nil)
-	redeemTx.AddTxIn(txIn)
+	newPrevOut := types.NewOutPoint(&originTxHash, 0)
+	// prevOut = btctypes.NewOutPoint(&originTxHash, 0)
+	newTxIn := types.NewTxInput(newPrevOut, 0,nil)
+	// txIn = btctypes.NewTxIn(prevOut, nil,nil)
+	redeemTx.AddTxIn(newTxIn)
 
 	// Ordinarily this would contain that actual destination of the funds,
 	// but for this example don't bother.
-	txOut = types.NewTxOutput(0, nil)
-	redeemTx.AddTxOut(txOut)
+	newTxOut := types.NewTxOutput(0, nil)
+	//txOut = btctypes.NewTxOut(0, nil)
+	redeemTx.AddTxOut(newTxOut)
 
 	// Sign the redeeming transaction.
 
@@ -220,6 +234,7 @@ func ExampleSignTxOutput() {
 		//
 		return privKey, true, nil
 	}
+
 	// Notice that the script database parameter is nil here since it isn't
 	// used.  It must be specified when pay-to-script-hash transactions are
 	// being signed.
@@ -231,6 +246,10 @@ func ExampleSignTxOutput() {
 		return
 	}
 	redeemTx.TxIn[0].SignScript = sigScript
+	//redeemTx.TxIn[0].SignatureScript = sigScript
+	sigScriptHash := btchash.HashH(sigScript)
+	fmt.Printf("sigScriptHash=%s\n",sigScriptHash) //sigScriptHash=be48b666469c05f92a307998f4a1830b08906ddbd4590202ee340bac77ec46ec
+
 
 	// Prove that the transaction has been validly signed by executing the
 	// script pair.
@@ -253,6 +272,13 @@ func ExampleSignTxOutput() {
 	// pk=02a673638cb9587cb68ea08dbef685c6f2d2a751a8b3c6f2a7e9a4999e6e4bfaf5
 	// pkhash=3dee47716e3cfa57df45113473a6312ebeaef311
 	// addr=16eTfd5Qsh3CRjW2bPKAF3iQqmYs1MJcZR
-	// Transaction successfully signed
+	// prevOut=0000000000000000000000000000000000000000000000000000000000000000:4294967295
+	// pkScript=76a9143dee47716e3cfa57df45113473a6312ebeaef31188ac
+	// txOut=&{5f5e100 76a9143dee47716e3cfa57df45113473a6312ebeaef31188ac}
+	// originTxHash=349f60d2bbddfb156536de22c5cd8c4c5a14baa0fadc65dc4e0a9f02e5207b3e
+	// originTxHashWit=349f60d2bbddfb156536de22c5cd8c4c5a14baa0fadc65dc4e0a9f02e5207b3e
+    // originTxDump=01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff020000ffffffff0100e1f505000000001976a9143dee47716e3cfa57df45113473a6312ebeaef31188ac00000000
+    // sigScriptHash=be48b666469c05f92a307998f4a1830b08906ddbd4590202ee340bac77ec46ec
+    // Transaction successfully signed
 }
 
