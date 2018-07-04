@@ -8,34 +8,6 @@
   revision = "28f7e881ca57bc00e028f9ede9f0d9104cfeef5e"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/btcsuite/btcd"
-  packages = [
-    "btcec",
-    "chaincfg",
-    "chaincfg/chainhash",
-    "txscript",
-    "wire"
-  ]
-  revision = "86fed781132ac890ee03e906e4ecd5d6fa180c64"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/btcsuite/btclog"
-  packages = ["."]
-  revision = "84c8d2346e9fc8c7b947e243b9c24e6df9fd206a"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/btcsuite/btcutil"
-  packages = [
-    ".",
-    "base58",
-    "bech32"
-  ]
-  revision = "d4cc87b860166d00d6b5b9e0d3b3d71d6088d4d4"
-
-[[projects]]
   name = "github.com/coreos/bbolt"
   packages = ["."]
   revision = "583e8937c61f1af6513608ccc75c97b6abdf4ff9"
@@ -201,6 +173,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b45277197156e431b2c29c32e826a75a72ce220ec6b5cc56ffb998d9bf37311e"
+  inputs-digest = "080865a5ebf5ac4fc255f9aa016e98dceca1cbb0d155a0e0fa56c97c5dccab5c"
   solver-name = "gps-cdcl"
   solver-version = 1

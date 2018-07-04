@@ -10,7 +10,6 @@ import (
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/crypto/ecc"
-	"github.com/decred/dcrd/chaincfg/chainec"
 )
 
 // encodeAddress returns a human-readable payment address given a ripemd160 hash
@@ -39,7 +38,7 @@ func encodePKAddress(serializedPK []byte, netID [2]byte, algo ecc.EcType) string
 	// Pubkeys are encoded as [0] = type/ybit, [1:33] = serialized pubkey
 	compressed := serializedPK
 	if algo == ecc.ECDSA_Secp256k1 || algo == ecc.ECDSA_SecpSchnorr {
-		pub, err := chainec.Secp256k1.ParsePubKey(serializedPK)
+		pub, err := ecc.Secp256k1.ParsePubKey(serializedPK)
 		if err != nil {
 			return ""
 		}
@@ -327,7 +326,7 @@ func (a *SecpPubKeyAddress) Hash160() *[ripemd160.Size]byte {
 }
 
 // PubKey returns the underlying public key for the address.
-func (a *SecpPubKeyAddress) PubKey() chainec.PublicKey {
+func (a *SecpPubKeyAddress) PubKey() ecc.PublicKey {
 	return a.pubKey
 }
 
