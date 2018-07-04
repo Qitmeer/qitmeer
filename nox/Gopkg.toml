@@ -4,14 +4,6 @@
 # for detailed Gopkg.toml documentation.
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/btcsuite/btcd"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/btcsuite/btcutil"
-
-[[constraint]]
   name = "github.com/jessevdk/go-flags"
   version = "1.4.0"
 
