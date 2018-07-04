@@ -191,8 +191,11 @@ func (n *Node) register(sc ServiceConstructor) error {
 	return nil
 }
 
-func (n *Node) RegisterService(cfg *config.Config) error {
-	//TODO register by config
+func (n *Node) RegisterService() error {
+	//TODO register by n.config
+	if n.config.LightNode {
+		return registerNoxLight(n)
+	}
 	return registerNoxFull(n)
 }
 // startRPC is a helper method to start all the various RPC endpoint during node

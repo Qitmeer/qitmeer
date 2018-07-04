@@ -95,7 +95,7 @@ func noxdMain(nodeChan chan<- *node.Node) error {
 		log.Error("Unable to start server","listeners",cfg.Listeners,"error", err)
 		return err
 	}
-	err = n.RegisterService(cfg)
+	err = n.RegisterService()
 	if err != nil {
 		return err
 	}

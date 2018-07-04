@@ -17,6 +17,8 @@ type Config struct {
 	DisableRPC           bool          `long:"norpc" description:"Disable built-in RPC server -- NOTE: The RPC server is disabled by default if no rpcuser/rpcpass or rpclimituser/rpclimitpass is specified"`
 	DisableTLS           bool          `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
 	DisableDNSSeed       bool          `long:"nodnsseed" description:"Disable DNS seeding for peers"`
+	TxIndex              bool          `long:"txindex" description:"Maintain a full hash-based transaction index which makes all transactions available via the getrawtransaction RPC"`
+	LightNode            bool          `long:"light" description:"start as a nox light node"`
 	TestNet              bool          `long:"testnet" description:"Use the test network"`
 	PrivNet              bool          `long:"privnet" description:"Use the private network"`
 	DbType               string        `long:"dbtype" description:"Database backend to use for the Block Chain"`

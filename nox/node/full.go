@@ -11,6 +11,7 @@ import (
 	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/services/index"
+	"github.com/noxproject/nox/config"
 )
 
 // NoxFull implements the nox full node service.
@@ -43,13 +44,22 @@ func (nox *NoxFull) Stop() error {
 func (nox *NoxFull)	APIs() []rpc.API {
 	return nox.acctmanager.APIs()
 }
-func newNoxFull() (*NoxFull, error){
+func newNoxFull(cfg *config.Config,db database.DB) (*NoxFull, error){
+
+	// Create account manager
 	acctmgr, err := acct.New()
 	if err != nil{
 		return nil,err
 	}
 	nox := NoxFull{
 		acctmanager: acctmgr,
+	}
+	// Create the transaction and address indexes if needed.
+	var indexes []index.Indexer
+	if cfg.TxIndex {
+		log.Info("Transaction index is enabled")
+		nox.txIndex = index.NewTxIndex(db)
+		indexes = append(indexes, nox.txIndex)
 	}
 	return &nox, nil
 }
@@ -59,7 +69,7 @@ func registerNoxFull(n *Node) error{
 	// register acctmgr
 	err := n.register(NewServiceConstructor("Nox",
 		func(ctx *ServiceContext) (Service, error) {
-		noxfull, err := newNoxFull()
+		noxfull, err := newNoxFull(n.config,n.db)
 		return noxfull, err
 	}))
 	return err
