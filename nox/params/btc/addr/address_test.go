@@ -3,7 +3,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package btc_test
+package btcaddr_test
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"golang.org/x/crypto/ripemd160"
-	"github.com/noxproject/nox/core/address/btc"
+	btc "github.com/noxproject/nox/params/btc/addr"
 	btcparams "github.com/noxproject/nox/params/btc"
 )
 

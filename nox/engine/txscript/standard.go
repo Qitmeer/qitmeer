@@ -15,7 +15,7 @@ import (
 	"github.com/noxproject/nox/core/address"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/crypto/ecc"
-	"github.com/noxproject/nox/core/address/btc"
+	"github.com/noxproject/nox/params/btc/addr"
 )
 
 const (
@@ -1094,7 +1094,8 @@ func PayToAddrScript(addr types.Address) ([]byte, error) {
 		case ecc.ECDSA_SecpSchnorr:
 			return payToPubKeyHashSchnorrScript(addr.ScriptAddress())
 		}
-	case *btc.AddressPubKeyHash:
+	case *btcaddr.AddressPubKeyHash:
+		//TODO remove the hardcoding type wire here (remove dependence of btc addr)
 		if addr == nil {
 			return nil, ErrUnsupportedAddress
 		}
