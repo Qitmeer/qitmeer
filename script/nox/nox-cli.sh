@@ -76,7 +76,7 @@ function new_account(){
 # returns the requested block by blockNr
 # When fullTx is true all transactions in the block are # returned in full detail, otherwise only the transaction hash is returned.
 #   func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error)
-function get_block(){
+function get_block_eth(){
   local block_number=$(to_hex $1)
   local fullTx=$2
   if [ "$fullTx" == "" ]; then
@@ -85,6 +85,17 @@ function get_block(){
   local data='{"jsonrpc":"2.0","method":"getBlockByNumber","params":["'$block_number'",'$fullTx'],"id":1}'
   get_result "$data"
 }
+
+function get_block(){
+  local block_number=$1
+  local fullTx=$2
+  if [ "$fullTx" == "" ]; then
+    fullTx="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockByHeight","params":['$block_number','$fullTx'],"id":1}'
+  get_result "$data"
+}
+
 # return block by hash
 #   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){
@@ -117,7 +128,7 @@ function generate() {
 
 function get_blockhash(){
   local blk_num=$1
-  local data='{"jsonrpc":"2.0","method":"getblockhash","params":['$blk_num'],"id":null}'
+  local data='{"jsonrpc":"2.0","method":"getBlockhash","params":['$blk_num'],"id":null}'
   get_result "$data"
 }
 

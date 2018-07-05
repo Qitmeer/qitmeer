@@ -69,7 +69,7 @@ var genesisBlock = types.Block{
 		//UtxoCommitment: types.Hash{},
 		//CompactFilter: types.Hash{},
 		StateRoot:	 hash.Hash{},
-		Timestamp:    time.Unix(1454954400, 0), // Mon, 08 Feb 2016 18:00:00 GMT
+		Timestamp:    time.Unix(1530833717, 0), // 2018-07-05 23:35:17 GMT
 		Difficulty:         0x1b01ffff,               // Difficulty 32767
 		Nonce:        0x00000000,
 	},
