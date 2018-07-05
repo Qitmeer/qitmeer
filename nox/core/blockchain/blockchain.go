@@ -268,14 +268,11 @@ func New(config *Config) (*BlockChain, error) {
 	//TODO chain Pruner
 	// b.pruner = newChainPruner(&b)
 
-	log.Info("Blockchain database version info: chain: %d, compression: "+
-		"%d, block index: %d", b.dbInfo.version, b.dbInfo.compVer,
-		b.dbInfo.bidxVer)
+	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
+		"index",b.dbInfo.bidxVer)
 
-	log.Info("Chain state: height %d, hash %v, total transactions %d, "+
-		"work %v, stake version %v", b.bestNode.height, b.bestNode.hash,
-		b.stateSnapshot.NumTxns, b.bestNode.workSum,
-		0)
+	log.Info("Chain state", "height",  b.bestNode.height,
+		"hash",b.bestNode.hash,"tx_num", b.stateSnapshot.NumTxns)
 
 	return &b, nil
 }
