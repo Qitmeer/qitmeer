@@ -523,7 +523,6 @@ func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
 			count,
 			maxTxInPerMessage)
 	}
-	return tx.decodePrefix(r)
 
 	// TxIns.
 	txIns := make([]TxInput, count)
