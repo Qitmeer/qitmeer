@@ -89,7 +89,7 @@ function get_block(){
 #   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){
   local block_hash=$1
-  local data='{"jsonrpc":"2.0","method":"_getBlockByHash","params":["'$block_hash'",true],"id":1}'
+  local data='{"jsonrpc":"2.0","method":"getBlockByHash","params":["'$block_hash'",true],"id":1}'
   get_result "$data"
 }
 
@@ -112,6 +112,12 @@ function generate() {
     block_num="latest"
   fi
   local data='{"jsonrpc":"2.0","method":"generate","params":['$count'],"id":null}'
+  get_result "$data"
+}
+
+function get_blockhash(){
+  local blk_num=$1
+  local data='{"jsonrpc":"2.0","method":"getblockhash","params":['$blk_num'],"id":null}'
   get_result "$data"
 }
 
@@ -461,6 +467,10 @@ elif [ $1 == "get_current_block2" ]; then
 elif [ $1 == "get_highest_block" ]; then
   shift
   get_syncing $@|jq .highestBlock -r|xargs printf "%d\n"
+elif [ $1 == "blockhash" ]; then
+  shift
+  get_blockhash $1
+  check_error
 
 ## Tx
 elif [ $1 == "tx" ]; then

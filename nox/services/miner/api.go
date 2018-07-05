@@ -29,7 +29,8 @@ func (api *PublicMinerAPI) Generate(count uint) ([]string, error) {
 	if count > 1000 {
 		return nil, fmt.Errorf("error, more than 1000")
 	}
-	result := []string{}
+	//TODO wire with the real miner execution
+	var result []string
 	for i:=uint(0); i<count; i++ {
 		h := hash.HashH(util.ReadSizedRand(nil,32))
 		result = append(result,h.String())
