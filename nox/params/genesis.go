@@ -78,8 +78,7 @@ var genesisBlock = types.Block{
 
 // genesisHash is the hash of the first block in the block chain for the main
 // network (genesis block).
-// TODO calculate hash
-var genesisHash = hash.Hash{}
+var genesisHash = genesisBlock.BlockHash()
 
 
 // TestNet ------------------------------------------------------------------------

@@ -397,7 +397,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if serializedData == nil {
 			return nil
 		}
-		log.Trace("Serialized chain state: %x", serializedData)
+		log.Trace("Serialized chain state: ","serializedData", fmt.Sprintf("%x",serializedData))
 		state, err := deserializeBestChainState(serializedData)
 		if err != nil {
 			return err
@@ -478,7 +478,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			b.mainNodesByHeight[n.height] = n
 		}
 
-		log.Debug("Block index loaded in %v", time.Since(bidxStart))
+		log.Debug("Block index loaded","loadTime", time.Since(bidxStart))
 
 		// Load the best and parent blocks and cache them.
 		utilBlock, err := dbFetchBlockByHash(dbTx, &tip.hash)
