@@ -105,6 +105,16 @@ function get_balance(){
   get_result "$data"
 }
 
+function generate() {
+  local count=$1
+  local block_num=$2
+  if [ "$block_num" == "" ]; then
+    block_num="latest"
+  fi
+  local data='{"jsonrpc":"2.0","method":"generate","params":['$count'],"id":null}'
+  get_result "$data"
+}
+
 function get_result(){
   set +x
   if [ -z "$host" ]; then
@@ -204,6 +214,7 @@ function usage(){
   echo "  start_mining"
   echo "  stop_mining"
   echo "  mining <second>"
+  echo "  generate <blk_count>"
   echo "status   :"
   echo "  status|get_status|info|get_info [-mining|-module|-hashrate|-work|-txpool|-all]"
   echo "contract :"
@@ -536,6 +547,10 @@ elif [ $1 == "mining" ]; then
   start_mining
   sleep $1
   stop_mining
+elif [ $1 == "generate" ]; then
+  shift
+  generate $1|jq .
+  check_error
 
 ## INFO & STATUS
 elif [ $1 == "status" ] || [ $1 == "info" ] || [ $1 == "get_status" ] || [ $1 == "get_info" ]; then

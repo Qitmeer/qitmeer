@@ -48,7 +48,9 @@ func (nox *NoxFull) Stop() error {
 }
 
 func (nox *NoxFull)	APIs() []rpc.API {
-	return nox.acctmanager.APIs()
+	apis := nox.acctmanager.APIs()
+	apis = append(apis,nox.cpuMiner.APIs()...)
+	return apis
 }
 func newNoxFullNode(node *Node) (*NoxFull, error){
 

@@ -37,3 +37,5 @@ type CPUMiner struct {
 	// accessed in a single threaded loop below.
 	minedOnParents map[hash.Hash]uint8
 }
+
+

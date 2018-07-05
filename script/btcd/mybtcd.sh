@@ -97,6 +97,41 @@ function call_json_rpc() {
   /usr/local/opt/curl/bin/curl -s -k --http1.1 -H "Content-Type:application/json" -u $user:$pass --data '{"jsonrpc":"1.0","method":"getbalance","params":[],"id":1}' "$@" https://localhost:18554  
 }
 
+
+function generate(){
+  local count=$1
+  local data='{"jsonrpc":"1.0","method":"generate","params":["'$count'"],"id":1}'
+  get_result "$data"
+}
+
+function get_result(){
+  set +x
+  #local site=10.0.0.6
+  #local site=10.0.0.8
+  if [ -z "$host" ]; then
+     host=127.0.0.1
+  fi
+  if [ -z "$port" ]; then
+     port=18554
+  fi
+  local user=3d9d8d1f97e9e352bcc578eaf4cc2a0f67214ab50b854e70bdec61a8b221dfaa
+  local pass=b67903f2240c3acd453e04ba0fa0780cfb1462d88456c6f9699b2f1d60392789
+  local data=$1
+  local curl_result=$(curl -s -k -u $user:$pass  -X POST -H 'Content-Type: application/json' --data $data http://$host:$port)
+  local result=$(echo $curl_result|jq -r -c -M '.result')
+  if [ $DEBUG -gt 0 ]; then
+    local curl_cmd="curl -s -k -u $user:$pass -X POST -H 'Content-Type:application/json' --data '"$data"' http://$host:$port"
+    echo "$curl_cmd" > $DEBUG_FILE
+    echo "$curl_result" >> $DEBUG_FILE
+  fi
+  if [ "$result" == "null" ];then
+    echo "$curl_result" > $ERR_FILE
+    result=""
+  fi
+  echo $result
+}
+
+
 function call_grpc() {
  /usr/local/opt/curl/bin/curl -s -k  -H "Content-Type: application/grpc" --data-binary @$1 https://localhost:18558/walletrpc.WalletService/Balance |xxd -p|cut -c11-|xxd -r -p|protoc --decode_raw
 }
@@ -154,7 +189,10 @@ elif [ "$1" == "jsonrpc" ]; then
   if [ -z "$1" ]; then 
     call_json_rpc |jq . 
   else
-    call_json_rpc "$@" 
+    if [ "$1" == "generate" ]; then
+      shift
+      generate $1
+    fi
   fi
 ### curl grpc
 elif [ "$1" == "grpc" ]; then
