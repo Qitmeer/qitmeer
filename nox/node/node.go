@@ -7,7 +7,7 @@ import (
 	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/common/util"
-	"github.com/noxproject/nox/p2p"
+	"github.com/noxproject/nox/p2p/peerserver"
 	"reflect"
 	"fmt"
 	"github.com/noxproject/nox/config"
@@ -29,14 +29,14 @@ type Node struct {
 	startupTime   int64
 
 	// config
-	config        *config.Config
-	params        *params.Params
+	Config        *config.Config
+	Params        *params.Params
 
 	// database layer
-	db            database.DB
+	DB            database.DB
 
 	// network server
-	peerServer    *p2p.PeerServer
+	peerServer    *peerserver.PeerServer
 
 	// service layer
 	// Service constructors (in dependency order)
@@ -47,19 +47,18 @@ type Node struct {
 	// api server
 	rpcServer     *rpc.RpcServer
 
-
 }
 
 func NewNode(cfg *config.Config, database database.DB, chainParams *params.Params) (*Node,error) {
 
 	n := Node{
-		config: cfg,
-		db    : database,
-		params: chainParams,
+		Config: cfg,
+		DB    : database,
+		Params: chainParams,
 		quit:   make(chan struct{}),
 	}
 
-	server, err := p2p.NewPeerServer(cfg,database,chainParams)
+	server, err := peerserver.NewPeerServer(cfg,database,chainParams)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +159,7 @@ func (n *Node) Start() error {
 	n.runningSvcs = services
 
 	// start RPC by service
-	if !n.config.DisableRPC {
+	if !n.Config.DisableRPC {
 		if err:= n.startRPC(services); err != nil {
 			for _, service := range services {
 				service.Stop()
@@ -192,11 +191,10 @@ func (n *Node) register(sc ServiceConstructor) error {
 }
 
 func (n *Node) RegisterService() error {
-	//TODO register by n.config
-	if n.config.LightNode {
-		return registerNoxLight(n)
+	if n.Config.LightNode {
+		return n.registerNoxLight()
 	}
-	return registerNoxFull(n)
+	return n.registerNoxFull()
 }
 // startRPC is a helper method to start all the various RPC endpoint during node
 // startup. It's not meant to be called at any time afterwards as it makes certain
@@ -218,4 +216,24 @@ func (n *Node) startRPC(services map[reflect.Type]Service) error {
 		return err
 	}
 	return nil
+}
+
+// register services as Nox Full node
+func (n *Node) registerNoxFull() error{
+	err := n.register(NewServiceConstructor("Nox",
+		func(ctx *ServiceContext) (Service, error) {
+		fullNode, err := newNoxFullNode(n)
+		return fullNode, err
+	}))
+	return err
+}
+
+// register services as the Nox Light node
+func (n *Node)registerNoxLight() error{
+	err := n.register(NewServiceConstructor("Nox-light",
+		func(ctx *ServiceContext) (Service, error) {
+			lightNode, err := newNoxLight(n)
+			return lightNode, err
+		}))
+	return err
 }

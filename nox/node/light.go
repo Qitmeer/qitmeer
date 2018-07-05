@@ -4,9 +4,9 @@ package node
 import (
 	"github.com/noxproject/nox/config"
 	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/p2p"
 	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/log"
+	"github.com/noxproject/nox/p2p/peerserver"
 )
 
 // NoxLight implements the nox light node service.
@@ -16,7 +16,7 @@ type NoxLight struct {
 	config           *config.Config
 }
 
-func (light *NoxLight) Start(server *p2p.PeerServer) error {
+func (light *NoxLight) Start(server *peerserver.PeerServer) error {
 	log.Debug("Starting Nox light node service")
 	return nil
 }
@@ -30,22 +30,10 @@ func (light *NoxLight)	APIs() []rpc.API {
 	return []rpc.API{}
 }
 
-// register NoxLight service to node
-func registerNoxLight(n *Node) error{
-	// register acctmgr
-	err := n.register(NewServiceConstructor("Nox-light",
-		func(ctx *ServiceContext) (Service, error) {
-		noxlight, err := newNoxLight(n.config,n.db)
-		return noxlight, err
-	}))
-	return err
-}
-
-
-func newNoxLight(cfg *config.Config,db database.DB) (*NoxLight, error){
+func newNoxLight(n *Node) (*NoxLight, error){
 	light := NoxLight{
-		config : cfg,
-		db : db,
+		config : n.Config,
+		db : n.DB,
 	}
 	return &light, nil
 }

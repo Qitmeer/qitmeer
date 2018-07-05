@@ -7,17 +7,20 @@ import (
 	"github.com/noxproject/nox/services/miner"
 	"github.com/noxproject/nox/services/mempool"
 	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/p2p"
 	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/services/index"
-	"github.com/noxproject/nox/config"
+	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/p2p/peerserver"
 )
 
 // NoxFull implements the nox full node service.
 type NoxFull struct {
+	// under node
+	node                 *Node
 	// database
-	db                   *database.DB
+	db                   database.DB
 	// account/wallet service
 	acctmanager          *acct.AccountManager
 	// block manager handles all incoming blocks.
@@ -26,12 +29,15 @@ type NoxFull struct {
 	txMemPool            *mempool.TxPool
 	// miner service
 	cpuMiner             *miner.CPUMiner
-	// index
+	// tx index
 	txIndex              *index.TxIndex
-
+	// clock time service
+	timeSource    		 blockchain.MedianTimeSource
+	// signature cache
+	sigCache             *txscript.SigCache
 }
 
-func (nox *NoxFull) Start(server *p2p.PeerServer) error {
+func (nox *NoxFull) Start(server *peerserver.PeerServer) error {
 	log.Debug("Starting Nox full node service")
 	return nil
 }
@@ -44,33 +50,45 @@ func (nox *NoxFull) Stop() error {
 func (nox *NoxFull)	APIs() []rpc.API {
 	return nox.acctmanager.APIs()
 }
-func newNoxFull(cfg *config.Config,db database.DB) (*NoxFull, error){
+func newNoxFullNode(node *Node) (*NoxFull, error){
 
-	// Create account manager
+	// account manager
 	acctmgr, err := acct.New()
 	if err != nil{
 		return nil,err
 	}
 	nox := NoxFull{
-		acctmanager: acctmgr,
+		node:         node,
+		db:           node.DB,
+		acctmanager:  acctmgr,
+		timeSource:   blockchain.NewMedianTime(),
+		sigCache:     txscript.NewSigCache(node.Config.SigCacheMaxSize),
 	}
 	// Create the transaction and address indexes if needed.
 	var indexes []index.Indexer
+	cfg := node.Config
+
 	if cfg.TxIndex {
 		log.Info("Transaction index is enabled")
-		nox.txIndex = index.NewTxIndex(db)
+		nox.txIndex = index.NewTxIndex(nox.db)
 		indexes = append(indexes, nox.txIndex)
 	}
+	// index-manager
+	var indexManager blockchain.IndexManager
+	if len(indexes) > 0 {
+		indexManager = index.NewManager(nox.db,indexes,node.Params)
+	}
+
+	// block-manager
+	bm, err := blkmgr.NewBlockManager(indexManager,node.DB, nox.timeSource, nox.sigCache, node.Config, node.Params,
+		node.peerServer, node.quit)
+	if err != nil {
+		return nil, err
+	}
+	nox.blockManager = bm
+
+
 	return &nox, nil
 }
 
-// register NoxFull service to node
-func registerNoxFull(n *Node) error{
-	// register acctmgr
-	err := n.register(NewServiceConstructor("Nox",
-		func(ctx *ServiceContext) (Service, error) {
-		noxfull, err := newNoxFull(n.config,n.db)
-		return noxfull, err
-	}))
-	return err
-}
+

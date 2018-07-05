@@ -33,7 +33,7 @@ var SigHashOptimization = false
 // documentation for blockchain.IsCheckpointCandidate for details on the
 // selection criteria.
 type Checkpoint struct {
-	Height int32
+	Height uint64
 	Hash   *hash.Hash
 }
 
@@ -93,6 +93,19 @@ type Params struct {
 	// PowLimitBits defines the highest allowed proof of work value for a
 	// block in compact form.
 	PowLimitBits uint32
+
+	// WorkDiffAlpha is the stake difficulty EMA calculation alpha (smoothing)
+	// value. It is different from a normal EMA alpha. Closer to 1 --> smoother.
+	WorkDiffAlpha int64
+
+	// WorkDiffWindowSize is the number of windows (intervals) used for calculation
+	// of the exponentially weighted average.
+	WorkDiffWindowSize int64
+
+	// WorkDiffWindows is the number of windows (intervals) used for calculation
+	// of the exponentially weighted average.
+	WorkDiffWindows int64
+
 
 	// CoinbaseMaturity is the number of blocks required before newly mined
 	// coins (coinbase transactions) can be spent.

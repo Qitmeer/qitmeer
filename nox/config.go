@@ -25,7 +25,8 @@ const (
 	defaultLogFilename           = "noxd.log"
 	defaultGenerate              = false
 	defaultMaxRPCClients         = 10
-
+	defaultMaxPeers              = 125
+	defaultSigCacheMaxSize       = 100000
 )
 
 var (
@@ -36,6 +37,7 @@ var (
 	defaultLogDir      = filepath.Join(defaultHomeDir, defaultLogDirname)
 	defaultRPCKeyFile  = filepath.Join(defaultHomeDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(defaultHomeDir, "rpc.cert")
+
 )
 
 
@@ -57,6 +59,8 @@ func loadConfig() (*config.Config, []string, error) {
 		RPCCert:              defaultRPCCertFile,
 		RPCMaxClients:        defaultMaxRPCClients,
 		Generate:             defaultGenerate,
+		MaxPeers:             defaultMaxPeers,
+		SigCacheMaxSize:      defaultSigCacheMaxSize,
 	}
 
 	// Pre-parse the command line options to see if an alternative config

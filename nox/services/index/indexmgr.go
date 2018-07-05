@@ -33,6 +33,18 @@ type Manager struct {
 // Ensure the Manager type implements the blockchain.IndexManager interface.
 var _ blockchain.IndexManager = (*Manager)(nil)
 
+// NewManager returns a new index manager with the provided indexes enabled.
+//
+// The manager returned satisfies the blockchain.IndexManager interface and thus
+// cleanly plugs into the normal blockchain processing path.
+func NewManager(db database.DB, enabledIndexes []Indexer, params *params.Params) *Manager {
+	return &Manager{
+		db:             db,
+		enabledIndexes: enabledIndexes,
+		params:         params,
+	}
+}
+
 // Init initializes the enabled indexes.  This is called during chain
 // initialization and primarily consists of catching up all indexes to the
 // current best chain tip.  This is necessary since each index can be disabled
@@ -112,7 +124,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 				var block *types.SerializedBlock
 				if cachedBlock == nil && height > 0 {
 					block, err = blockchain.DBFetchBlockByHeight(dbTx,
-						int64(height))
+						uint64(height))
 					if err != nil {
 						return err
 					}
@@ -123,7 +135,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 				// Load the parent block for the height since it is
 				// required to remove it.
 				parent, err := blockchain.DBFetchBlockByHeight(dbTx,
-					int64(height)-1)
+					uint64(height)-1)
 				if err != nil {
 					return err
 				}
@@ -233,7 +245,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			// Get the parent of the block, unless it's already cached.
 			if cachedParent == nil && height > 0 {
 				parent, err = blockchain.DBFetchBlockByHeight(
-					dbTx, int64(height-1))
+					dbTx, uint64(height-1))
 				if err != nil {
 					return err
 				}
@@ -244,7 +256,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			// Load the block for the height since it is required to index
 			// it.
 			block, err = blockchain.DBFetchBlockByHeight(dbTx,
-				int64(height))
+				uint64(height))
 			if err != nil {
 				return err
 			}
@@ -289,7 +301,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		if err != nil {
 			return err
 		}
-		progressLogger.LogBlockHeight(block, parent)
+		progressLogger.LogBlockHeightByParent(block, parent)
 	}
 
 	log.Info("Indexes caught up to height %d", bestHeight)

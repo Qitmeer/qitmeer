@@ -8,6 +8,7 @@ type Config struct {
 	LogDir               string        `long:"logdir" description:"Directory to log output."`
 	NoFileLogging        bool          `long:"nofilelogging" description:"Disable file logging."`
 	Listeners            []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8131, testnet: 18131)"`
+	MaxPeers             int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
 	DisableListen        bool          `long:"nolisten" description:"Disable listening for incoming connections"`
 	RPCUser              string        `short:"u" long:"rpcuser" description:"Username for RPC connections"`
 	RPCPass              string        `short:"P" long:"rpcpass" default-mask:"-" description:"Password for RPC connections"`
@@ -17,8 +18,11 @@ type Config struct {
 	DisableRPC           bool          `long:"norpc" description:"Disable built-in RPC server -- NOTE: The RPC server is disabled by default if no rpcuser/rpcpass or rpclimituser/rpclimitpass is specified"`
 	DisableTLS           bool          `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
 	DisableDNSSeed       bool          `long:"nodnsseed" description:"Disable DNS seeding for peers"`
+	DisableCheckpoints   bool          `long:"nocheckpoints" description:"Disable built-in checkpoints.  Don't do this unless you know what you're doing."`
 	TxIndex              bool          `long:"txindex" description:"Maintain a full hash-based transaction index which makes all transactions available via the getrawtransaction RPC"`
 	LightNode            bool          `long:"light" description:"start as a nox light node"`
+	SigCacheMaxSize      uint          `long:"sigcachemaxsize" description:"The maximum number of entries in the signature verification cache"`
+	DumpBlockchain       string        `long:"dumpblockchain" description:"Write blockchain as a flat file of blocks for use with addblock, to the specified filename"`
 	TestNet              bool          `long:"testnet" description:"Use the test network"`
 	PrivNet              bool          `long:"privnet" description:"Use the private network"`
 	DbType               string        `long:"dbtype" description:"Database backend to use for the Block Chain"`

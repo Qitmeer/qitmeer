@@ -3,9 +3,9 @@ package node
 import (
 	"reflect"
 	"fmt"
-	"github.com/noxproject/nox/p2p"
 	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/core/protocol"
+	"github.com/noxproject/nox/p2p/peerserver"
 )
 
 const (
@@ -24,7 +24,7 @@ type Service interface {
 
 	// Start is called after all services have been constructed and the networking
 	// layer was also initialized to spawn any goroutines required by the service.
-	Start(server *p2p.PeerServer) error
+	Start(server *peerserver.PeerServer) error
 
 	// Stop terminates all goroutines belonging to the service, blocking until they
 	// are all terminated.

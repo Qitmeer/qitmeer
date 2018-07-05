@@ -39,9 +39,98 @@ type blockIndex struct {
 	// be changed afterwards, so there is no need to protect them with a
 	// separate mutex.
 	db          database.DB
-	chainParams *params.Params
+	params      *params.Params
 
 	sync.RWMutex
 	index     map[hash.Hash]*blockNode
-	chainTips map[int64][]*blockNode
+	chainTips map[uint64][]*blockNode
+}
+
+// newBlockIndex returns a new empty instance of a block index.  The index will
+// be dynamically populated as block nodes are loaded from the database and
+// manually added.
+func newBlockIndex(db database.DB, par *params.Params) *blockIndex {
+	return &blockIndex{
+		db:          db,
+		params:      par,
+		index:       make(map[hash.Hash]*blockNode),
+		chainTips:   make(map[uint64][]*blockNode),
+	}
+}
+
+// lookupNode returns the block node identified by the provided hash.  It will
+// return nil if there is no entry for the hash.
+//
+// This function MUST be called with the block index lock held (for reads).
+func (bi *blockIndex) lookupNode(hash *hash.Hash) *blockNode {
+	return bi.index[*hash]
+}
+
+// LookupNode returns the block node identified by the provided hash.  It will
+// return nil if there is no entry for the hash.
+//
+// This function is safe for concurrent access.
+func (bi *blockIndex) LookupNode(hash *hash.Hash) *blockNode {
+	bi.RLock()
+	node := bi.lookupNode(hash)
+	bi.RUnlock()
+	return node
+}
+
+// addNode adds the provided node to the block index.  Duplicate entries are not
+// checked so it is up to caller to avoid adding them.
+//
+// This function MUST be called with the block index lock held (for writes).
+func (bi *blockIndex) addNode(node *blockNode) {
+	bi.index[node.hash] = node
+
+	// Since the block index does not support nodes that do not connect to
+	// an existing node (except the genesis block), all new nodes are either
+	// extending an existing chain or are on a side chain, but in either
+	// case, are a new chain tip.  In the case the node is extending a
+	// chain, the parent is no longer a tip.
+	bi.addChainTip(node)
+	if node.parent != nil {
+		bi.removeChainTip(node.parent)
+	}
+}
+
+// AddNode adds the provided node to the block index.  Duplicate entries are not
+// checked so it is up to caller to avoid adding them.
+//
+// This function is safe for concurrent access.
+func (bi *blockIndex) AddNode(node *blockNode) {
+	bi.Lock()
+	bi.addNode(node)
+	bi.Unlock()
+}
+
+// addChainTip adds the passed block node as a new chain tip.
+//
+// This function MUST be called with the block index lock held (for writes).
+func (bi *blockIndex) addChainTip(tip *blockNode) {
+	bi.chainTips[tip.height] = append(bi.chainTips[tip.height], tip)
+}
+
+// removeChainTip removes the passed block node from the available chain tips.
+//
+// This function MUST be called with the block index lock held (for writes).
+func (bi *blockIndex) removeChainTip(tip *blockNode) {
+	nodes := bi.chainTips[tip.height]
+	for i, n := range nodes {
+		if n == tip {
+			copy(nodes[i:], nodes[i+1:])
+			nodes[len(nodes)-1] = nil
+			nodes = nodes[:len(nodes)-1]
+			break
+		}
+	}
+
+	// Either update the map entry for the height with the remaining nodes
+	// or remove it altogether if there are no more nodes left.
+	if len(nodes) == 0 {
+		delete(bi.chainTips, tip.height)
+	} else {
+		bi.chainTips[tip.height] = nodes
+	}
 }

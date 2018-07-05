@@ -106,6 +106,26 @@ func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 		&bh.StateRoot, bh.Difficulty, bh.Height, sec, bh.Nonce)
 }
 
+// Serialize encodes a block header from r into the receiver using a format
+// that is suitable for long-term storage such as a database while respecting
+// the Version field.
+func (h *BlockHeader) Serialize(w io.Writer) error {
+	// At the current time, there is no difference between the wire encoding
+	// at protocol version 0 and the stable long-term storage format.  As
+	// a result, make use of writeBlockHeader.
+	return writeBlockHeader(w, 0, h)
+}
+
+// Deserialize decodes a block header from r into the receiver using a format
+// that is suitable for long-term storage such as a database while respecting
+// the Version field.
+func (h *BlockHeader) Deserialize(r io.Reader) error {
+	// At the current time, there is no difference between the wire encoding
+	// at protocol version 0 and the stable long-term storage format.  As
+	// a result, make use of readBlockHeader.
+	return readBlockHeader(r, 0, h)
+}
+
 type Block struct {
 	Header        BlockHeader
 	Parents       []*hash.Hash

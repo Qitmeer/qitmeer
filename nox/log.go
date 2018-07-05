@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/services/blkmgr"
+	"github.com/noxproject/nox/core/blockchain"
 )
 
 var (
@@ -43,6 +45,9 @@ func init() {
 
 	database.UseLogger(log.New(log.Ctx{"module": "database"}))
 	txscript.UseLogger(log.New(log.Ctx{"module": "txscript engine"}))
+	blockchainlogger := log.New(log.Ctx{"module": "blockchain"})
+	blkmgr.UseLogger(blockchainlogger)
+	blockchain.UseLogger(blockchainlogger)
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and

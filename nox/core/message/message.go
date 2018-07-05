@@ -26,12 +26,19 @@ const MessageHeaderSize = 24
 // header.  Shorter commands must be zero padded.
 const CommandSize = 12
 
+// MaxMessagePayload is the maximum bytes a message can be regardless of other
+// individual limits imposed by messages themselves.
+const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
+
 // Commands used in message headers which describe the type of message.
 const (
 	CmdVersion        = "version"
 	CmdVerAck         = "verack"
 	CmdGetAddr        = "getaddr"
 	CmdAddr           = "addr"
+	CmdBlock          = "block"
+	CmdTx             = "tx"
+	CmdReject         = "reject"
 )
 
 // Message is an interface that describes a nox message.  A type that
