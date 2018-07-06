@@ -25,12 +25,18 @@ var genesisCoinbaseTx = types.Transaction{
 				Hash:  hash.Hash{},
 				OutIndex: 0xffffffff,
 			},
+			SignScript: []byte{
+				0x00, 0x00,
+			},
+			BlockHeight: types.NullBlockHeight,
+			BlockTxIndex:  types.NullBlockIndex,
+			AmountIn:     types.NullValueIn,
 			Sequence:    0xffffffff,
 		},
 	},
 	TxOut: []*types.TxOutput{
 		{
-			Amount:   0x00000000,
+			Amount:   0x0000000000000000,
 			PkScript: []byte{
 				0x80, 0x16, 0x79, 0xe9, 0x85, 0x61, 0xad, 0xa9,
 				0x6c, 0xae, 0xc2, 0x94, 0x9a, 0x5d, 0x41, 0xc4,
@@ -45,8 +51,7 @@ var genesisCoinbaseTx = types.Transaction{
 
 // genesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the main network.
-// TODO calculate hash
-var genesisMerkleRoot = hash.Hash{}
+var genesisMerkleRoot = genesisCoinbaseTx.TxHashFull()
 
 // genesisBlock defines the genesis block of the block chain which serves as the
 // public transaction ledger for the main network.

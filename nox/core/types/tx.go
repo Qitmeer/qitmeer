@@ -36,6 +36,8 @@ const (
 	// needing to grow the backing array multiple times.
 	defaultTxInOutAlloc = 15
 
+	// NullValueIn is a null value for an input witness.
+	NullValueIn uint64 = 0
 
 	// NullBlockHeight is the null value for an input witness. It references
 	// the genesis block.

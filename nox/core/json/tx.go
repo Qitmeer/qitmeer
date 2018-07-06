@@ -2,6 +2,8 @@
 
 package json
 
+import "encoding/json"
+
 // TxRawResult models the data from the getrawtransaction command.
 type TxRawResult struct {
 	Hex           string `json:"hex"`
@@ -31,6 +33,50 @@ type Vin struct {
 	BlockHeight uint32     `json:"blockheight"`
 	BlockIndex  uint32     `json:"blockindex"`
 	ScriptSig   *ScriptSig `json:"scriptSig"`
+}
+
+// IsCoinBase returns a bool to show if a Vin is a Coinbase one or not.
+func (v *Vin) IsCoinBase() bool {
+	return len(v.Coinbase) > 0
+}
+
+// MarshalJSON provides a custom Marshal method for Vin.
+func (v *Vin) MarshalJSON() ([]byte, error) {
+	if v.IsCoinBase() {
+		coinbaseStruct := struct {
+			AmountIn    float64 `json:"amountin"`
+			BlockHeight uint32  `json:"blockheight"`
+			BlockIndex  uint32  `json:"blockindex"`
+			Coinbase    string  `json:"coinbase"`
+			Sequence    uint32  `json:"sequence"`
+		}{
+			AmountIn:    v.AmountIn,
+			BlockHeight: v.BlockHeight,
+			BlockIndex:  v.BlockIndex,
+			Coinbase:    v.Coinbase,
+			Sequence:    v.Sequence,
+		}
+		return json.Marshal(coinbaseStruct)
+	}
+
+	txStruct := struct {
+		Txid        string     `json:"txid"`
+		Vout        uint32     `json:"vout"`
+		Sequence    uint32     `json:"sequence"`
+		AmountIn    float64    `json:"amountin"`
+		BlockHeight uint32     `json:"blockheight"`
+		BlockIndex  uint32     `json:"blockindex"`
+		ScriptSig   *ScriptSig `json:"scriptSig"`
+	}{
+		Txid:        v.Txid,
+		Vout:        v.Vout,
+		Sequence:    v.Sequence,
+		AmountIn:    v.AmountIn,
+		BlockHeight: v.BlockHeight,
+		BlockIndex:  v.BlockIndex,
+		ScriptSig:   v.ScriptSig,
+	}
+	return json.Marshal(txStruct)
 }
 
 // Vout models parts of the tx data.  It is defined separately since both
