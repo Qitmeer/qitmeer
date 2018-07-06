@@ -51,6 +51,10 @@ func CheckEncode(input []byte, version [2]byte) string {
 	}
 }
 
+func DcrCheckEncode(input []byte, version [2]byte) string{
+	return checkEncode(input,version[:],checksum_dcr)
+}
+
 func checkEncode(input []byte, version []byte, cksumfunc func([]byte) [4]byte) string{
 	b := make([]byte, 0, len(version)+len(input)+4)
 	b = append(b, version[:]...)

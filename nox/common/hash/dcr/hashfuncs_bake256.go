@@ -50,5 +50,8 @@ func HashH(b []byte) hash.Hash {
 	return hash.Hash(outB)
 }
 
+func Hash160(buf []byte) []byte {
+	return hash.CalcHash(HashB(buf), hash.GetHasher(hash.Ripemd160))
+}
 // HashBlockSize is the block size of the hash algorithm in bytes.
 const HashBlockSize = blake256.BlockSize

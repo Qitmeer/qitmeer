@@ -90,6 +90,8 @@ func ExampleCheckEncodeDcr() {
 	// Encoded Data: 2uLtqkeVgFqTUBnjicK8o
 }
 
+
+
 func ExampleCheckDecodeDcr() {
 	encoded := "2uLtqkeVgFqTUBnjicK8o"
 	decoded, version, err := base58.DcrCheckDecode(encoded)
@@ -104,6 +106,43 @@ func ExampleCheckDecodeDcr() {
 	// Output:
 	// Decoded data: 546573742064617461
 	// Version Byte: [68 0]
+}
+
+func ExampleCheckDecode_ds_addr() {
+	encoded := "DsaAKsMvZ6HrqhmbhLjV9qVbPkkzF7FnNFY"
+	decoded, version, err := base58.CheckDecode(encoded)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Show the decoded data.
+	fmt.Printf("Decoded data: %x\n", decoded)
+	fmt.Println("Version Byte:", version)
+	// Output:
+	// Decoded data: 64e20eb6075561d30c23a517c5b73badbc120f05
+	// Version Byte: [7 63]
+}
+
+func ExampleCheckEncode_ds_addr() {
+	// Encode example data with the Base58Check encoding scheme.
+	data := []byte{ 0x64, 0xe2, 0x0e, 0xb6, 0x07, 0x55, 0x61, 0xd3, 0x0c, 0x23, 0xa5, 0x17,
+		0xc5, 0xb7, 0x3b, 0xad, 0xbc, 0x12, 0x0f, 0x05}
+
+	type Ver [][2]byte
+	vers := Ver{
+		{0x13, 0x86},
+		{0x7, 0x3f}, //Ds -> p2pkh addr
+	}
+
+	for _, ver:= range vers {
+		encoded := base58.CheckEncode(data, ver)
+		// Show the encoded data.
+		fmt.Println("Encoded Data:", encoded)
+	}
+
+	// Output:
+	// Encoded Data: DsaAKsMvZ6HrqhmbhLjV9qVbPkkzF7FnNFY
 }
 
 func ExampleCheckEncode() {

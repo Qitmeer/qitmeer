@@ -53,6 +53,15 @@ var checkEncodingStringTests = []struct {
 	{0x4e, 20,"1234598760", "AeD3mvFdyCt8akCaar1Muf"},
 	{0x4e, 20,"abcdefghijklmnopqrstuvwxyz", "6FnprApC2tXWptudC4CzngX2qUYTrzGUdhXoFAK53LFq"},
 	{0x4e, 20,"00000000000000000000000000000000000000000000000000000000000000", "BDU3ycLHFvYhCRqEXvg2qH8WqUs1scJiQVz86VNAmeq5JuiarpT7TQAvgWikTdeMfuW7EofPmHmMru7JYzSJZxAedRZE8"},
+
+	//DCR mainnet
+	//PubKeyAddrID:         [2]byte{0x13, 0x86}, // starts with Dk
+	//PubKeyHashAddrID:     [2]byte{0x07, 0x3f}, // starts with Ds
+	//PKHEdwardsAddrID:     [2]byte{0x07, 0x1f}, // starts with De
+	//PKHSchnorrAddrID:     [2]byte{0x07, 0x01}, // starts with DS
+	//ScriptHashAddrID:     [2]byte{0x07, 0x1a}, // starts with Dc
+	//PrivateKeyID:         [2]byte{0x22, 0xde}, // starts with Pm
+	{0x44, 0x86,"64e20eb6075561d30c23a517c5b73badbc120f05", "DsaAKsMvZ6HrqhmbhLjV9qVbPkkzF7FnNFY"},
 }
 
 func TestBase58Check(t *testing.T) {
