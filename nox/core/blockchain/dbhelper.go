@@ -185,6 +185,33 @@ func (b *BlockChain) BlockByHeight(blockHeight uint64) (*types.SerializedBlock, 
 	return block, err
 }
 
+// BlockHashByHeight returns the hash of the block at the given height in the
+// main chain.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) BlockHashByHeight(blockHeight uint64) (*hash.Hash, error) {
+	var hash *hash.Hash
+	err := b.db.View(func(dbTx database.Tx) error {
+		var err error
+		hash, err = dbFetchHashByHeight(dbTx, blockHeight)
+		return err
+	})
+	return hash, err
+}
+
+// MainChainHasBlock returns whether or not the block with the given hash is in
+// the main chain.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) MainChainHasBlock(hash *hash.Hash) (bool, error) {
+	var exists bool
+	err := b.db.View(func(dbTx database.Tx) error {
+		exists = dbMainChainHasBlock(dbTx, hash)
+		return nil
+	})
+	return exists, err
+}
+
 // dbFetchDatabaseInfo uses an existing database transaction to fetch the
 // database versioning and creation information.
 func dbFetchDatabaseInfo(dbTx database.Tx) (*databaseInfo, error) {
