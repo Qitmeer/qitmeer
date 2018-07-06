@@ -1,6 +1,6 @@
 // Copyright (c) 2017-2018 The nox developers
 
-package util
+package json
 
 import (
 	"bytes"
@@ -8,30 +8,31 @@ import (
 	"reflect"
 )
 
+// The Result works as method calling response can be marshaled as json map
+type Result map[string]interface{}
 
-// The OrderedMap works as the order map[string]interface{}, which useful to
+// The OrderedResult works as the order map[string]interface{}, which useful to
 // marshal a Json map using a specific order
 // Note:
 // it works almost as the 'omitEmpty' set to true, empty value should be omitted when marshaling.
 // only for empty string/array/map/slice/interface
-type OrderedMap []KV
+type OrderedResult []KV
 
 type KV struct {
 	Key string
 	Val interface{}
 }
 
-func (omap OrderedMap) MarshalJSON() ([]byte, error) {
+func (ores OrderedResult) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString("{")
-	for i, kv := range omap {
+	for i, kv := range ores {
 		if isEmptyValue(reflect.ValueOf(kv.Val)) {
-			continue
+			continue  //omit empty
 		}
 		if i != 0 {
 			buf.WriteString(",")
 		}
-
 		// marshal key
 		key, err := json.Marshal(kv.Key)
 		if err != nil {

@@ -87,12 +87,12 @@ function get_block_eth(){
 }
 
 function get_block(){
-  local block_number=$1
-  local fullTx=$2
-  if [ "$fullTx" == "" ]; then
-    fullTx="true"
+  local height=$1
+  local verbose=$2
+  if [ "$verbose" == "" ]; then
+    verbose="true"
   fi
-  local data='{"jsonrpc":"2.0","method":"getBlockByHeight","params":['$block_number','$fullTx'],"id":1}'
+  local data='{"jsonrpc":"2.0","method":"getBlockByHeight","params":['$height','$verbose'],"id":1}'
   get_result "$data"
 }
 
@@ -100,7 +100,11 @@ function get_block(){
 #   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){
   local block_hash=$1
-  local data='{"jsonrpc":"2.0","method":"getBlockByHash","params":["'$block_hash'",true],"id":1}'
+  local verbose=$2
+  if [ "$verbose" == "" ]; then
+    verbose="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockByHash","params":["'$block_hash'",'$verbose'],"id":1}'
   get_result "$data"
 }
 
@@ -343,6 +347,7 @@ function call_get_block() {
   local blkhash=""
   local show=""
   local show_opt=""
+  local verbose="false"
 
   if [[ $# -eq 0 ]]; then
     # echo "get lastet block"
@@ -360,11 +365,12 @@ function call_get_block() {
     shift
   fi
 
-  while [[ $# -gt 1 ]]; do
+  while [[ $# -gt 0 ]]; do
     case "$1" in
       -n|-num)  shift; blknum=$1; shift ;;
       -h|-hash) shift; blkhash=$1; shift ;;
       -show)    shift; show=${1%%=*}; show_opt="${1#*=}"; shift ;;
+      -v|-verbose|--verbose) shift; verbose="true"; ;;
       *) echo '{ "error" : "unkown option: '$1'"}'|jq .; exit -1;;
     esac
   done
@@ -385,9 +391,9 @@ function call_get_block() {
     fi
   else #default show all
     if ! [ "$blknum" == "" ]; then
-       block_result=$(get_block "$blknum")
+       block_result=$(get_block "$blknum" "$verbose")
     elif ! [ "$blkhash" == "" ]; then
-       block_result=$(get_block_by_hash $blkhash)
+       block_result=$(get_block_by_hash "$blkhash" "$verbose")
     else
        echo '{ "error" : "need to provide blknum or blkhash"}'; exit -1;
     fi

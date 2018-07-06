@@ -324,7 +324,7 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 	serType := TxSerializeType(version >> 16)
 
  	if serType != TxSerializeFull {
-		return fmt.Errorf("Transaction.Decode : wrong transaction serializetion type [%d]",serType)
+		return fmt.Errorf("Transaction.Deserialize : wrong transaction serializetion type [%d]",serType)
 	}
 
 	// returnScriptBuffers is a closure that returns any script buffers that

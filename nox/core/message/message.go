@@ -15,6 +15,7 @@ import (
 	"github.com/noxproject/nox/core/protocol"
 	s "github.com/noxproject/nox/core/serialization"
 	"github.com/noxproject/nox/core/types"
+	"encoding/hex"
 )
 
 // MessageHeaderSize is the number of bytes in a message header.
@@ -29,6 +30,8 @@ const CommandSize = 12
 // MaxMessagePayload is the maximum bytes a message can be regardless of other
 // individual limits imposed by messages themselves.
 const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
+
+const MaxBlockPayload = 1000000 // Not actually 1MB which would be 1024 * 1024
 
 // Commands used in message headers which describe the type of message.
 const (
@@ -302,4 +305,12 @@ func ReadMessageN(r io.Reader, pver uint32, net protocol.Network) (int, Message,
 func ReadMessage(r io.Reader, pver uint32, net protocol.Network) (Message, []byte, error) {
 	_, msg, buf, err := ReadMessageN(r, pver, net)
 	return msg, buf, err
+}
+
+func ToHex(msg Message) (string, error) {
+	var buf bytes.Buffer
+	if err := msg.Encode(&buf, 0); err != nil {
+		return "", fmt.Errorf("Failed to encode msg of type %T", msg)
+	}
+	return hex.EncodeToString(buf.Bytes()), nil
 }
