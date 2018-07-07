@@ -505,6 +505,7 @@ elif [ $1 == "blockhash" ]; then
 elif [ $1 == "tx" ]; then
   shift
   get_tx_by_hash $@ |jq .
+  check_error
 elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex

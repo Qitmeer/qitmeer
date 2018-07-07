@@ -11,6 +11,7 @@ import (
     _ "golang.org/x/crypto/blake2b"
 	"encoding/hex"
 	"fmt"
+	"github.com/noxproject/nox/core/json"
 )
 
 const HashSize = 32
@@ -164,3 +165,28 @@ func Decode(dst *Hash, src string) error {
 
 	return nil
 }
+
+
+// UnmarshalText decodes the hash from hex. The 0x prefix is optional.
+// TODO clean-up the byte-reverse hash
+func (h *Hash) UnmarshalText(input []byte) error {
+ 	var inputStr [HashSize]byte
+	err := json.UnmarshalFixedUnprefixedText("UnprefixedHash", input, inputStr[:])
+	if err!=nil {
+		return err
+	}
+	//TODO, remove the need to reverse byte
+	err = Decode(h, hex.EncodeToString(inputStr[:]))
+	if err!=nil{
+		return err
+	}
+	return nil
+}
+
+// MarshalText encodes the hash as hex.
+// TODO, impl after the clean-up of byte-reverse hash
+/*
+func (h Hash) MarshalText() ([]byte, error) {
+	return []byte(hex.EncodeToString(h[:])), nil
+}
+*/
