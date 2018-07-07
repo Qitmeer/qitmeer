@@ -745,4 +745,30 @@ func deserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 	return entry, nil
 }
 
+// BlockHeightByHash returns the height of the block with the given hash in the
+// main chain.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) BlockHeightByHash(hash *hash.Hash) (uint64, error) {
+	var height uint64
+	err := b.db.View(func(dbTx database.Tx) error {
+		var err error
+		height, err = dbFetchHeightByHash(dbTx, hash)
+		return err
+	})
+	return height, err
+}
 
+// dbFetchHeightByHash uses an existing database transaction to retrieve the
+// height for the provided hash from the index.
+func dbFetchHeightByHash(dbTx database.Tx, hash *hash.Hash) (uint64, error) {
+	meta := dbTx.Metadata()
+	hashIndex := meta.Bucket(dbnamespace.HashIndexBucketName)
+	serializedHeight := hashIndex.Get(hash[:])
+	if serializedHeight == nil {
+		str := fmt.Sprintf("block %s is not in the main chain", hash)
+		return 0, errNotInMainChain(str)
+	}
+
+	return uint64(dbnamespace.ByteOrder.Uint32(serializedHeight)), nil
+}
