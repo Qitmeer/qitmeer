@@ -13,8 +13,8 @@ import (
 
 // HashB calculates hash(b) and returns the resulting bytes.
 func HashB(b []byte) []byte {
-	hash := sha256.Sum256(b)
-	return hash[:]
+	h := sha256.Sum256(b)
+	return h[:]
 }
 
 // HashH calculates hash(b) and returns the resulting bytes as a Hash.
@@ -37,5 +37,5 @@ func DoubleHashH(b []byte) hash.Hash {
 }
 
 func Hash160(buf []byte) []byte {
-	return hash.CalcHash(DoubleHashB(buf), hash.GetHasher(hash.Ripemd160))
+	return hash.CalcHash(HashB(buf), hash.GetHasher(hash.Ripemd160))
 }

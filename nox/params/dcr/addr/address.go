@@ -47,7 +47,7 @@ var (
 func encodeAddress(hash160 []byte, netID [2]byte) string {
 	// Format is 2 bytes for a network and address class (i.e. P2PKH vs
 	// P2SH), 20 bytes for a RIPEMD160 hash, and 4 bytes of checksum.
-	return base58.CheckEncode(hash160[:ripemd160.Size], netID)
+	return base58.DcrCheckEncode(hash160[:ripemd160.Size], netID)
 }
 
 // encodePKAddress returns a human-readable payment address to a public key
@@ -82,7 +82,7 @@ func encodePKAddress(serializedPK []byte, netID [2]byte, algo chainec.EcType) st
 	}
 
 	pubKeyBytes = append(pubKeyBytes, compressed...)
-	return base58.CheckEncode(pubKeyBytes, netID)
+	return base58.DcrCheckEncode(pubKeyBytes, netID)
 }
 
 // Address is an interface type for any type of destination a transaction
@@ -159,7 +159,7 @@ func NewAddressPubKey(decoded []byte, net *chaincfg.Params) (Address, error) {
 // the Address if addr is a valid encoding for a known address type
 func DecodeAddress(addr string) (Address, error) {
 	// Switch on decoded length to determine the type.
-	decoded, netID, err := base58.CheckDecode(addr)
+	decoded, netID, err := base58.DcrCheckDecode(addr)
 	if err != nil {
 		if err == base58.ErrChecksum {
 			return nil, ErrChecksumMismatch

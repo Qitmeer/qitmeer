@@ -65,7 +65,7 @@ func ExampleCheckDecodeBtc() {
 func ExampleCheckEncodeBtc() {
 	// Encode example data with the Base58Check encoding scheme.
 	data := []byte("Test data")
-	encoded := base58.CheckEncode(data, [2]byte{0x42,0})
+	encoded := base58.BtcCheckEncode(data, 0x0)
 
 	// Show the encoded data.
 	fmt.Println("Encoded Data:", encoded)
@@ -77,11 +77,9 @@ func ExampleCheckEncodeBtc() {
 func ExampleCheckEncodeDcr() {
 	// Encode example data with the Base58Check encoding scheme.
 	data := []byte("Test data")
-	var ver [2]byte
-	ver[0] = 0x44
-	ver[1] = 0
+	ver := [2]byte{0x44, 0x0}
 
-	encoded := base58.CheckEncode(data, ver)
+	encoded := base58.DcrCheckEncode(data, ver)
 
 	// Show the encoded data.
 	fmt.Println("Encoded Data:", encoded)
@@ -124,26 +122,6 @@ func ExampleCheckDecode_ds_addr() {
 	// Version Byte: [7 63]
 }
 
-func ExampleCheckEncode_ds_addr() {
-	// Encode example data with the Base58Check encoding scheme.
-	data := []byte{ 0x64, 0xe2, 0x0e, 0xb6, 0x07, 0x55, 0x61, 0xd3, 0x0c, 0x23, 0xa5, 0x17,
-		0xc5, 0xb7, 0x3b, 0xad, 0xbc, 0x12, 0x0f, 0x05}
-
-	type Ver [][2]byte
-	vers := Ver{
-		{0x13, 0x86},
-		{0x7, 0x3f}, //Ds -> p2pkh addr
-	}
-
-	for _, ver:= range vers {
-		encoded := base58.CheckEncode(data, ver)
-		// Show the encoded data.
-		fmt.Println("Encoded Data:", encoded)
-	}
-
-	// Output:
-	// Encoded Data: DsaAKsMvZ6HrqhmbhLjV9qVbPkkzF7FnNFY
-}
 
 func ExampleCheckEncode() {
 	// Encode example data with the Base58Check encoding scheme.

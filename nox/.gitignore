@@ -40,3 +40,4 @@ vendor
 *.exe
 nox
 tools/rlpdump/rlpdump
+tools/nx/nx

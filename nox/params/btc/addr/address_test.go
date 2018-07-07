@@ -682,8 +682,8 @@ func TestAddresses(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(addr, test.result) {
-			t.Errorf("%v: created address does not match expected result",
-				test.name)
+			t.Errorf("%v: created address [%s] does not match expected result [%s]",
+				test.name,addr,test.result)
 			return
 		}
 	}

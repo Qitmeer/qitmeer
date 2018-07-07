@@ -41,18 +41,16 @@ func checksum(input []byte) (cksum [4]byte) {
 
 // CheckEncode prepends two version bytes and appends a four byte checksum.
 func CheckEncode(input []byte, version [2]byte) string {
-	switch version[0] {
-		case 0x42 :  //BTC
-			return checkEncode(input,version[1:],checksum_btc)
-		case 0x44 :  //DCR
-			return checkEncode(input,version[:],checksum_dcr)
-		default:
-			return checkEncode(input,version[:],checksum)
-	}
+	return checkEncode(input,version[:],checksum)
 }
 
 func DcrCheckEncode(input []byte, version [2]byte) string{
 	return checkEncode(input,version[:],checksum_dcr)
+}
+func BtcCheckEncode(input []byte, version byte) string{
+	var ver []byte
+	ver = append(ver,version)
+	return checkEncode(input,ver[:],checksum_btc)
 }
 
 func checkEncode(input []byte, version []byte, cksumfunc func([]byte) [4]byte) string{

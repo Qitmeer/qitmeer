@@ -64,7 +64,7 @@ var (
 func encodeAddress(hash160 []byte, netID byte) string {
 	// Format is 1 byte for a network and address class (i.e. P2PKH vs
 	// P2SH), 20 bytes for a RIPEMD160 hash, and 4 bytes of checksum.
-	return base58.CheckEncode(hash160[:ripemd160.Size], [2]byte{0x42,netID})
+	return base58.BtcCheckEncode(hash160[:ripemd160.Size], netID)
 }
 
 // encodeSegWitAddress creates a bech32 encoded address string representation

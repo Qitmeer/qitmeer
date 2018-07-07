@@ -62,12 +62,12 @@ var TestNetParams = Params{
 
 	// Address encoding magics
 	NetworkAddressPrefix: "T",
-	PubKeyAddrID:         [2]byte{0x28, 0xf7}, // starts with Tk
-	PubKeyHashAddrID:     [2]byte{0x0f, 0x21}, // starts with Ts
+	PubKeyAddrID:         [2]byte{0x0f, 0x0f}, // starts with Tk
+	PubKeyHashAddrID:     [2]byte{0x0f, 0x11}, // starts with Tm
 	PKHEdwardsAddrID:     [2]byte{0x0f, 0x01}, // starts with Te
-	PKHSchnorrAddrID:     [2]byte{0x0e, 0xe3}, // starts with TS
-	ScriptHashAddrID:     [2]byte{0x0e, 0xfc}, // starts with Tc
-	PrivateKeyID:         [2]byte{0x23, 0x0e}, // starts with Pt
+	PKHSchnorrAddrID:     [2]byte{0x0f, 0x1e}, // starts with Tr
+	ScriptHashAddrID:     [2]byte{0x0f, 0x20}, // starts with Ts
+	PrivateKeyID:         [2]byte{0x0c, 0xe2}, // starts with Pt
 
 	// BIP32 hierarchical deterministic extended key magics
 	HDPrivateKeyID: [4]byte{0x04, 0x35, 0x83, 0x97}, // starts with tprv

@@ -53,17 +53,17 @@ var MainNetParams = Params{
 	},
 
 	// Address encoding magics
-	NetworkAddressPrefix: "D",
-	PubKeyAddrID:         [2]byte{0x13, 0x86}, // starts with Dk
-	PubKeyHashAddrID:     [2]byte{0x07, 0x3f}, // starts with Ds
-	PKHEdwardsAddrID:     [2]byte{0x07, 0x1f}, // starts with De
-	PKHSchnorrAddrID:     [2]byte{0x07, 0x01}, // starts with DS
-	ScriptHashAddrID:     [2]byte{0x07, 0x1a}, // starts with Dc
-	PrivateKeyID:         [2]byte{0x22, 0xde}, // starts with Pm
+	NetworkAddressPrefix: "N",
+	PubKeyAddrID:         [2]byte{0x0c, 0x48}, // starts with Nk
+	PubKeyHashAddrID:     [2]byte{0x0c, 0x40}, // starts with Nm
+	ScriptHashAddrID:     [2]byte{0x0c, 0x4f}, // starts with Ns
+	PKHEdwardsAddrID:     [2]byte{0x0c, 0xf3}, // starts with NE
+	PKHSchnorrAddrID:     [2]byte{0x0c, 0x11}, // starts with NS
+	PrivateKeyID:         [2]byte{0x0c, 0xd1}, // starts with Pm
 
 	// BIP32 hierarchical deterministic extended key magics
-	HDPrivateKeyID: [4]byte{0x02, 0xfd, 0xa4, 0xe8}, // starts with dprv
-	HDPublicKeyID:  [4]byte{0x02, 0xfd, 0xa9, 0x26}, // starts with dpub
+	HDPrivateKeyID: [4]byte{0x02, 0xfd, 0xa4, 0xe8}, // starts with nprv
+	HDPublicKeyID:  [4]byte{0x02, 0xfd, 0xa9, 0x26}, // starts with npub
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.

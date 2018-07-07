@@ -62,17 +62,18 @@ var PrivNetParams = Params{
 	},
 
 	// Address encoding magics
-	NetworkAddressPrefix: "S",
-	PubKeyAddrID:         [2]byte{0x27, 0x6f}, // starts with Sk
-	PubKeyHashAddrID:     [2]byte{0x0e, 0x91}, // starts with Ss
-    PKHEdwardsAddrID:     [2]byte{0x0e, 0x71}, // starts with Se
-	PKHSchnorrAddrID:     [2]byte{0x0e, 0x53}, // starts with SS	ScriptHashAddrID:     [2]byte{0x0e, 0x6c}, // starts with Sc
-	PrivateKeyID:         [2]byte{0x23, 0x07}, // starts with Ps
+	NetworkAddressPrefix: "R",
+	PubKeyAddrID:         [2]byte{0x0d, 0xee}, // starts with Rk
+	PubKeyHashAddrID:     [2]byte{0x0d, 0xf1}, // starts with Rm
+	PKHEdwardsAddrID:     [2]byte{0x0d, 0xdf}, // starts with Re
+	PKHSchnorrAddrID:     [2]byte{0x0d, 0xfd}, // starts with Rr
+	ScriptHashAddrID:     [2]byte{0x0e, 0x01}, // starts with Rs
+	PrivateKeyID:         [2]byte{0x0c, 0xdd}, // starts with Pr
 
 
 	// BIP32 hierarchical deterministic extended key magics
-	HDPrivateKeyID: [4]byte{0x04, 0x20, 0xb9, 0x03}, // starts with sprv
-	HDPublicKeyID:  [4]byte{0x04, 0x20, 0xbd, 0x3d}, // starts with spub
+	HDPrivateKeyID: [4]byte{0x04, 0x20, 0xb9, 0x03}, // starts with rprv
+	HDPublicKeyID:  [4]byte{0x04, 0x20, 0xbd, 0x3d}, // starts with rpub
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
