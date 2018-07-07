@@ -13,6 +13,8 @@ import (
 	"github.com/noxproject/nox/core/blockchain"
 	"github.com/noxproject/nox/engine/txscript"
 	"github.com/noxproject/nox/p2p/peerserver"
+	"github.com/noxproject/nox/common/hash"
+	"time"
 )
 
 // NoxFull implements the nox full node service.
@@ -51,6 +53,7 @@ func (nox *NoxFull)	APIs() []rpc.API {
 	apis := nox.acctmanager.APIs()
 	apis = append(apis,nox.cpuMiner.APIs()...)
 	apis = append(apis,nox.blockManager.API())
+	apis = append(apis,nox.API())
 	return apis
 }
 func newNoxFullNode(node *Node) (*NoxFull, error){
@@ -90,8 +93,43 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 	}
 	nox.blockManager = bm
 
+	// mem-pool
+	txC := mempool.Config{
+		Policy: mempool.Policy{
+			MaxTxVersion:         2,
+			DisableRelayPriority: cfg.NoRelayPriority,
+			AcceptNonStd:         cfg.AcceptNonStd,
+			FreeTxRelayLimit:     cfg.FreeTxRelayLimit,
+			MaxOrphanTxs:         cfg.MaxOrphanTxs,
+			MaxOrphanTxSize:      mempool.DefaultMaxOrphanTxSize,
+			MaxSigOpsPerTx:       blockchain.MaxSigOpsPerBlock / 5,
+			MinRelayTxFee:        cfg.MinRelayTxFee,
+			StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
+				return standardScriptVerifyFlags(bm.GetChain())
+			},
+		},
+		ChainParams:      node.Params,
+		FetchUtxoView:    bm.GetChain().FetchUtxoView,
+		BlockByHash:      bm.GetChain().BlockByHash,
+		BestHash:         func() *hash.Hash { return &bm.GetChain().BestSnapshot().Hash },
+		BestHeight:       func() uint64 { return bm.GetChain().BestSnapshot().Height },
+		SigCache:         nox.sigCache,
+		PastMedianTime:   func() time.Time { return bm.GetChain().BestSnapshot().MedianTime },
+	}
+	nox.txMemPool = mempool.New(&txC)
+
+	// Cpu Miner
 
 	return &nox, nil
+}
+
+// standardScriptVerifyFlags returns the script flags that should be used when
+// executing transaction scripts to enforce additional checks which are required
+// for the script to be considered standard.  Note these flags are different
+// than what is required for the consensus rules in that they are more strict.
+func standardScriptVerifyFlags(chain *blockchain.BlockChain) (txscript.ScriptFlags, error) {
+	scriptFlags := mempool.BaseStandardVerifyFlags
+	return scriptFlags, nil
 }
 
 

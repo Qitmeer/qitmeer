@@ -29,6 +29,13 @@ type Config struct {
 	Profile              string        `long:"profile" description:"Enable HTTP profiling on given [addr:]port -- NOTE port must be between 1024 and 65536"`
 	DebugLevel           string        `short:"d" long:"debuglevel" description:"Logging level {trace, debug, info, warn, error, critical} "`
 	DebugPrintOrigins    bool          `long:"printorigin" description:"Print log debug location (file:line) "`
+	// Miner
 	Generate             bool          `long:"generate" description:"Generate (mine) coins using the CPU"`
 	MiningAddrs          []string      `long:"miningaddr" description:"Add the specified payment address to the list of addresses to use for generated blocks -- At least one address is required if the generate option is set"`
+	// MemPool Config
+	NoRelayPriority      bool          `long:"norelaypriority" description:"Do not require free or low-fee transactions to have high priority for relaying"`
+	FreeTxRelayLimit     float64       `long:"limitfreerelay" description:"Limit relay of transactions with no transaction fee to the given amount in thousands of bytes per minute"`
+	AcceptNonStd         bool          `long:"acceptnonstd" description:"Accept and relay non-standard transactions to the network regardless of the default settings for the active network."`
+	MaxOrphanTxs         int           `long:"maxorphantx" description:"Max number of orphan transactions to keep in memory"`
+	MinRelayTxFee        int64
 }

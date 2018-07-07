@@ -117,6 +117,8 @@ func NewBlockManager(indexManager blockchain.IndexManager,db database.DB,
 	return &bm, nil
 }
 
+
+
 // handleNotifyMsg handles notifications from blockchain.  It does things such
 // as request orphan block parents and relay accepted blocks to connected peers.
 func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {

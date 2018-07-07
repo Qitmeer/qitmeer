@@ -619,3 +619,130 @@ func dbFetchBlockByHash(dbTx database.Tx, hash *hash.Hash) (*types.SerializedBlo
 
 	return block, nil
 }
+
+
+// deserializeUtxoEntry decodes a utxo entry from the passed serialized byte
+// slice into a new UtxoEntry using a format that is suitable for long-term
+// storage.  The format is described in detail above.
+func deserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
+	// Deserialize the version.
+	version, bytesRead := deserializeVLQ(serialized)
+	offset := bytesRead
+	if offset >= len(serialized) {
+		return nil, errDeserialize("unexpected end of data after version")
+	}
+
+	// Deserialize the block height.
+	blockHeight, bytesRead := deserializeVLQ(serialized[offset:])
+	offset += bytesRead
+	if offset >= len(serialized) {
+		return nil, errDeserialize("unexpected end of data after height")
+	}
+
+	// Deserialize the block index.
+	blockIndex, bytesRead := deserializeVLQ(serialized[offset:])
+	offset += bytesRead
+	if offset >= len(serialized) {
+		return nil, errDeserialize("unexpected end of data after index")
+	}
+
+	// Deserialize the flags.
+	flags, bytesRead := deserializeVLQ(serialized[offset:])
+	offset += bytesRead
+	if offset >= len(serialized) {
+		return nil, errDeserialize("unexpected end of data after flags")
+	}
+	isCoinBase, hasExpiry, txType, _ := decodeFlags(byte(flags))
+
+	// Deserialize the header code.
+	code, bytesRead := deserializeVLQ(serialized[offset:])
+	offset += bytesRead
+	if offset >= len(serialized) {
+		return nil, errDeserialize("unexpected end of data after header")
+	}
+
+	// Decode the header code.
+	//
+	// Bit 0 indicates output 0 is unspent.
+	// Bit 1 indicates output 1 is unspent.
+	// Bits 2-x encodes the number of non-zero unspentness bitmap bytes that
+	// follow.  When both output 0 and 1 are spent, it encodes N-1.
+	output0Unspent := code&0x01 != 0
+	output1Unspent := code&0x02 != 0
+	numBitmapBytes := code >> 2
+	if !output0Unspent && !output1Unspent {
+		numBitmapBytes++
+	}
+
+	// Ensure there are enough bytes left to deserialize the unspentness
+	// bitmap.
+	if uint64(len(serialized[offset:])) < numBitmapBytes {
+		return nil, errDeserialize("unexpected end of data for " +
+			"unspentness bitmap")
+	}
+
+	// Create a new utxo entry with the details deserialized above to house
+	// all of the utxos.
+	//TODO, remove type conversion
+	entry := newUtxoEntry(uint32(version), uint32(blockHeight),
+		uint32(blockIndex), isCoinBase, hasExpiry, txType)
+
+	// Add sparse output for unspent outputs 0 and 1 as needed based on the
+	// details provided by the header code.
+	var outputIndexes []uint32
+	if output0Unspent {
+		outputIndexes = append(outputIndexes, 0)
+	}
+	if output1Unspent {
+		outputIndexes = append(outputIndexes, 1)
+	}
+
+	// Decode the unspentness bitmap adding a sparse output for each unspent
+	// output.
+	for i := uint32(0); i < uint32(numBitmapBytes); i++ {
+		unspentBits := serialized[offset]
+		for j := uint32(0); j < 8; j++ {
+			if unspentBits&0x01 != 0 {
+				// The first 2 outputs are encoded via the
+				// header code, so adjust the output number
+				// accordingly.
+				outputNum := 2 + i*8 + j
+				outputIndexes = append(outputIndexes, outputNum)
+			}
+			unspentBits >>= 1
+		}
+		offset++
+	}
+
+	// Decode and add all of the utxos.
+	for i, outputIndex := range outputIndexes {
+		// Decode the next utxo.  The script and amount fields of the
+		// utxo output are left compressed so decompression can be
+		// avoided on those that are not accessed.  This is done since
+		// it is quite common for a redeeming transaction to only
+		// reference a single utxo from a referenced transaction.
+		//
+		// 'true' below instructs the method to deserialize a stored
+		// amount.
+		// TODO script version is omit
+		amount, _, compScript, bytesRead, err :=
+			decodeCompressedTxOut(serialized[offset:], currentCompressionVersion,
+				true)
+		if err != nil {
+			return nil, errDeserialize(fmt.Sprintf("unable to "+
+				"decode utxo at index %d: %v", i, err))
+		}
+		offset += bytesRead
+
+		entry.sparseOutputs[outputIndex] = &utxoOutput{
+			spent:         false,
+			compressed:    true,
+			pkScript:      compScript,
+			amount:        uint64(amount),  //TODO, remove type conversion
+		}
+	}
+
+	return entry, nil
+}
+
+

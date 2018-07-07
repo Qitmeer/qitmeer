@@ -26,7 +26,12 @@ const (
 	defaultGenerate              = false
 	defaultMaxRPCClients         = 10
 	defaultMaxPeers              = 125
+)
+const (
 	defaultSigCacheMaxSize       = 100000
+)
+const (
+	defaultMaxOrphanTxSize       = 5000
 )
 
 var (
@@ -37,7 +42,6 @@ var (
 	defaultLogDir      = filepath.Join(defaultHomeDir, defaultLogDirname)
 	defaultRPCKeyFile  = filepath.Join(defaultHomeDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(defaultHomeDir, "rpc.cert")
-
 )
 
 

@@ -5,6 +5,9 @@ import (
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/database"
+	"fmt"
+	"github.com/noxproject/nox/core/dbnamespace"
 )
 
 
@@ -116,6 +119,133 @@ func (view *UtxoViewpoint) AddTxOuts(theTx *types.Tx, blockHeight int64, blockIn
 			compressed:    false,
 		}
 	}
+}
+
+// FetchUtxoView loads utxo details about the input transactions referenced by
+// the passed transaction from the point of view of the end of the main chain.
+// It also attempts to fetch the utxo details for the transaction itself so the
+// returned view can be examined for duplicate unspent transaction outputs.
+//
+// This function is safe for concurrent access however the returned view is NOT.
+func (b *BlockChain) FetchUtxoView(tx *types.Tx, treeValid bool) (*UtxoViewpoint, error) {
+	b.chainLock.RLock()
+	defer b.chainLock.RUnlock()
+
+	// The genesis block does not have any spendable transactions, so there
+	// can't possibly be any details about it.  This is also necessary
+	// because the code below requires the parent block and the genesis
+	// block doesn't have one.
+	tip := b.bestNode
+	view := NewUtxoViewpoint()
+	if tip.height == 0 {
+		view.SetBestHash(&tip.hash)
+		return view, nil
+	}
+
+	view.SetBestHash(&tip.hash)
+
+	// Create a set of needed transactions based on those referenced by the
+	// inputs of the passed transaction.  Also, add the passed transaction
+	// itself as a way for the caller to detect duplicates that are not
+	// fully spent.
+	txNeededSet := make(map[hash.Hash]struct{})
+	txNeededSet[*tx.Hash()] = struct{}{}
+
+	err := view.fetchUtxosMain(b.db, txNeededSet)
+
+	return view, err
+}
+
+// BestHash returns the hash of the best block in the chain the view currently
+// respresents.
+func (view *UtxoViewpoint) BestHash() *hash.Hash {
+	return &view.bestHash
+}
+
+// SetBestHash sets the hash of the best block in the chain the view currently
+// respresents.
+func (view *UtxoViewpoint) SetBestHash(hash *hash.Hash) {
+	view.bestHash = *hash
+}
+
+// fetchUtxosMain fetches unspent transaction output data about the provided
+// set of transactions from the point of view of the end of the main chain at
+// the time of the call.
+//
+// Upon completion of this function, the view will contain an entry for each
+// requested transaction.  Fully spent transactions, or those which otherwise
+// don't exist, will result in a nil entry in the view.
+func (view *UtxoViewpoint) fetchUtxosMain(db database.DB, txSet map[hash.Hash]struct{}) error {
+	// Nothing to do if there are no requested hashes.
+	if len(txSet) == 0 {
+		return nil
+	}
+
+	// Load the unspent transaction output information for the requested set
+	// of transactions from the point of view of the end of the main chain.
+	//
+	// NOTE: Missing entries are not considered an error here and instead
+	// will result in nil entries in the view.  This is intentionally done
+	// since other code uses the presence of an entry in the store as a way
+	// to optimize spend and unspend updates to apply only to the specific
+	// utxos that the caller needs access to.
+	return db.View(func(dbTx database.Tx) error {
+		for hash := range txSet {
+			hashCopy := hash
+			// If the UTX already exists in the view, skip adding it.
+			if _, ok := view.entries[hashCopy]; ok {
+				continue
+			}
+			entry, err := dbFetchUtxoEntry(dbTx, &hashCopy)
+			if err != nil {
+				return err
+			}
+
+			view.entries[hash] = entry
+		}
+
+		return nil
+	})
+}
+
+// dbFetchUtxoEntry uses an existing database transaction to fetch all unspent
+// outputs for the provided Bitcoin transaction hash from the utxo set.
+//
+// When there is no entry for the provided hash, nil will be returned for the
+// both the entry and the error.
+func dbFetchUtxoEntry(dbTx database.Tx, hash *hash.Hash) (*UtxoEntry, error) {
+	// Fetch the unspent transaction output information for the passed
+	// transaction hash.  Return now when there is no entry.
+	utxoBucket := dbTx.Metadata().Bucket(dbnamespace.UtxoSetBucketName)
+	serializedUtxo := utxoBucket.Get(hash[:])
+	if serializedUtxo == nil {
+		return nil, nil
+	}
+
+	// A non-nil zero-length entry means there is an entry in the database
+	// for a fully spent transaction which should never be the case.
+	if len(serializedUtxo) == 0 {
+		return nil, AssertError(fmt.Sprintf("database contains entry "+
+			"for fully spent tx %v", hash))
+	}
+
+	// Deserialize the utxo entry and return it.
+	entry, err := deserializeUtxoEntry(serializedUtxo)
+	if err != nil {
+		// Ensure any deserialization errors are returned as database
+		// corruption errors.
+		if isDeserializeErr(err) {
+			return nil, database.Error{
+				ErrorCode: database.ErrCorruption,
+				Description: fmt.Sprintf("corrupt utxo entry "+
+					"for %v: %v", hash, err),
+			}
+		}
+
+		return nil, err
+	}
+
+	return entry, nil
 }
 
 // newUtxoEntry returns a new unspent transaction output entry with the provided

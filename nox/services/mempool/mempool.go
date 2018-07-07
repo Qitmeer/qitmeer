@@ -1,3 +1,8 @@
+// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2013-2016 The btcsuite developers
+// Copyright (c) 2017-2018 The Decred developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
 package mempool
 
 import (
@@ -8,6 +13,7 @@ import (
 	"time"
 	"github.com/noxproject/nox/log"
 	"container/list"
+	"fmt"
 )
 
 // TxPool is used as a source of transactions that need to be mined into blocks
@@ -26,6 +32,18 @@ type TxPool struct {
 
 	pennyTotal    float64 // exponentially decaying total for penny spends.
 	lastPennyUnix int64   // unix time of last ``penny spend''
+}
+
+// New returns a new memory pool for validating and storing standalone
+// transactions until they are mined into a block.
+func New(cfg *Config) *TxPool {
+	return &TxPool{
+		cfg:           *cfg,
+		pool:          make(map[hash.Hash]*TxDesc),
+		orphans:       make(map[hash.Hash]*types.Tx),
+		orphansByPrev: make(map[hash.Hash]map[hash.Hash]*types.Tx),
+		outpoints:     make(map[types.TxOutPoint]*types.Tx),
+	}
 }
 
 // TxDesc is a descriptor containing a transaction in the mempool along with
@@ -652,5 +670,42 @@ func (mp *TxPool) ProcessOrphans(hash *hash.Hash) []*types.Tx {
 	acceptedTxns := mp.processOrphans(hash)
 	mp.mtx.Unlock()
 	return acceptedTxns
+}
+
+// FetchTransaction returns the requested transaction from the transaction pool.
+// This only fetches from the main transaction pool and does not include
+// orphans.
+//
+// This function is safe for concurrent access.
+func (mp *TxPool) FetchTransaction(txHash *hash.Hash, includeRecentBlock bool) (*types.Tx, error) {
+	// Protect concurrent access.
+	mp.mtx.RLock()
+	txDesc, exists := mp.pool[*txHash]
+	mp.mtx.RUnlock()
+
+	if exists {
+		return txDesc.Tx, nil
+	}
+
+	// TODO, impl of more detail mempool searching logic
+	/*
+	// the latest block is considered "unconfirmed"
+	// for the regular transaction tree. Search that if the
+	// user indicates too, as well.
+	if includeRecentBlock {
+		bl, err := mp.cfg.BlockByHash(mp.cfg.BestHash())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, tx := range bl.Transactions() {
+			if tx.Hash().IsEqual(txHash) {
+				return tx, nil
+			}
+		}
+	}
+	*/
+
+	return nil, fmt.Errorf("transaction is not in the pool")
 }
 

@@ -52,7 +52,7 @@ type BlockChain struct {
 	timeSource          MedianTimeSource
 	notifications       NotificationCallback
 	sigCache            *txscript.SigCache
-	indexManager        IndexManager
+	indexManager        *IndexManager
 
 	// chainLock protects concurrent access to the vast majority of the
 	// fields in this struct below this point.
@@ -240,7 +240,7 @@ func New(config *Config) (*BlockChain, error) {
 		timeSource:                    config.TimeSource,
 		notifications:                 config.Notifications,
 		sigCache:                      config.SigCache,
-		indexManager:                  config.IndexManager,
+		indexManager:                  &config.IndexManager,
 		index:                         newBlockIndex(config.DB,par),
 		mainNodesByHeight:             make(map[uint64]*blockNode),
 		orphans:                       make(map[hash.Hash]*orphanBlock),
@@ -640,4 +640,40 @@ func (b *BlockChain) BestPrevHash() hash.Hash {
 	}
 	return prevHash
 }
+
+// BlockByHash returns the block from the main chain with the given hash.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) BlockByHash(hash *hash.Hash) (*types.SerializedBlock, error) {
+	b.chainLock.RLock()
+	defer b.chainLock.RUnlock()
+
+	return b.fetchMainChainBlockByHash(hash)
+}
+
+// fetchMainChainBlockByHash returns the block from the main chain with the
+// given hash.  It first attempts to use cache and then falls back to loading it
+// from the database.
+//
+// An error is returned if the block is either not found or not in the main
+// chain.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) fetchMainChainBlockByHash(hash *hash.Hash) (*types.SerializedBlock, error) {
+	b.mainchainBlockCacheLock.RLock()
+	block, ok := b.mainchainBlockCache[*hash]
+	b.mainchainBlockCacheLock.RUnlock()
+	if ok {
+		return block, nil
+	}
+
+	// Load the block from the database.
+	err := b.db.View(func(dbTx database.Tx) error {
+		var err error
+		block, err = dbFetchBlockByHash(dbTx, hash)
+		return err
+	})
+	return block, err
+}
+
 

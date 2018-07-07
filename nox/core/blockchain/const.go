@@ -4,6 +4,15 @@ package blockchain
 import "github.com/noxproject/nox/core/types"
 
 const (
+	// MaxSigOpsPerBlock is the maximum number of signature operations
+	// allowed for a block.  This really should be based upon the max
+	// allowed block size for a network and any votes that might change it,
+	// however, since it was not updated to be based upon it before
+	// release, it will require a hard fork and associated vote agenda to
+	// change it.  The original max block size for the protocol was 1MiB,
+	// so that is what this is based on.
+	MaxSigOpsPerBlock = 1000000 / 200
+
 	// currentBlockIndexVersion indicates what the current block index
 	// database version.
 	currentBlockIndexVersion= 1

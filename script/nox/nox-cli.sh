@@ -108,6 +108,18 @@ function get_block_by_hash(){
   get_result "$data"
 }
 
+# return tx by hash
+function get_tx_by_hash(){
+  local tx_hash=$1
+  local verbose=$2
+  if [ "$verbose" == "" ]; then
+    verbose="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getRawTransaction","params":["'$tx_hash'",'$verbose'],"id":1}'
+  get_result "$data"
+}
+
+
 # the amount of wei for the given address in the state of the given block number.
 #   func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*big.Int, error)
 function get_balance(){
