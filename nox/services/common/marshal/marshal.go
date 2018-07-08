@@ -1,4 +1,4 @@
-package blkmgr
+package marshal
 
 import (
 	"encoding/hex"
@@ -8,29 +8,40 @@ import (
 	"github.com/noxproject/nox/core/json"
 	"github.com/noxproject/nox/core/blockchain"
 	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/params"
 )
 
-func (api *PublicBlockAPI) marshalJsonTransaction(tx *types.Tx) (json.TxRawResult, error){
+func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHeight uint64,blkHashStr string) (json.TxRawResult, error){
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
+	return MarshalJsonTransaction(tx.Transaction(), params, blkHeight,blkHashStr)
+}
+
+
+func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHeight uint64,blkHashStr string) (json.TxRawResult, error){
 
 	//TODO, refactor the hex serialize code
-	buf,_ :=tx.Transaction().Serialize(types.TxSerializeFull)
+	buf,_ :=tx.Serialize(types.TxSerializeFull)
 	hexStr:=hex.EncodeToString(buf)
+
+	//TODO, handle the blkHeight/blkHash
 
 	return json.TxRawResult{
 		Hex : hexStr,
-		Txid : tx.Hash().String(),
-		Version: tx.Transaction().Version,
-		LockTime:tx.Transaction().LockTime,
-		Expire:tx.Transaction().Expire,
-		Vin: api.marshJsonVin(tx.Transaction()),
-		Vout:api.marshJsonVout(tx.Transaction(),nil),
+		Txid : tx.TxHash().String(),
+		Version:tx.Version,
+		LockTime:tx.LockTime,
+		Expire:tx.Expire,
+		Vin: MarshJsonVin(tx),
+		Vout:MarshJsonVout(tx,nil, params),
+		BlockHash:blkHashStr,
+		BlockHeight:blkHeight,
 	},nil
+
 }
 
-func (api *PublicBlockAPI) marshJsonVin(tx *types.Transaction)([]json.Vin) {
+func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
 	// Coinbase transactions only have a single txin by definition.
 	vinList := make([]json.Vin, len(tx.TxIn))
 	if blockchain.IsCoinBaseTx(tx) {
@@ -65,7 +76,7 @@ func (api *PublicBlockAPI) marshJsonVin(tx *types.Transaction)([]json.Vin) {
 	return vinList
 }
 
-func (api *PublicBlockAPI) marshJsonVout(tx *types.Transaction,filterAddrMap map[string]struct{})([]json.Vout) {
+func  MarshJsonVout(tx *types.Transaction,filterAddrMap map[string]struct{}, params *params.Params)([]json.Vout) {
 	voutList := make([]json.Vout, 0, len(tx.TxOut))
 	for _, v := range tx.TxOut {
 		// The disassembled string will contain [error] inline if the
@@ -77,7 +88,7 @@ func (api *PublicBlockAPI) marshJsonVout(tx *types.Transaction,filterAddrMap map
 		// couldn't parse and there is no additional information
 		// about it anyways.
 		sc , addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(0,
-				v.PkScript, api.bm.params)
+				v.PkScript, params)
 		scriptClass := sc.String()
 
 		// Encode the addresses while checking if the address passes the
@@ -119,30 +130,14 @@ func (api *PublicBlockAPI) marshJsonVout(tx *types.Transaction,filterAddrMap map
 // RPCMarshalBlock converts the given block to the RPC output which depends on fullTx. If inclTx is true transactions are
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
-func (api *PublicBlockAPI) marshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool) (json.OrderedResult, error) {
+func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
+	params *params.Params, confirmations int64, nextHashString string) (json.OrderedResult, error) {
 
 	head := b.Block().Header // copies the header once
 
-
-	best := api.bm.chain.BestSnapshot()
-
-	// See if this block is an orphan and adjust Confirmations accordingly.
-	onMainChain, _ := api.bm.chain.MainChainHasBlock(b.Hash())
-
 	// Get next block hash unless there are none.
-	var nextHashString string
-	confirmations := int64(-1)
 	height := uint64(head.Height)
-	if onMainChain {
-		if height < best.Height {
-			nextHash, err := api.bm.chain.BlockHashByHeight(height + 1)
-			if err != nil {
-				return nil, err
-			}
-			nextHashString = nextHash.String()
-		}
-		confirmations = 1 + int64(best.Height) - int64(height)
-	}
+
 	fields := json.OrderedResult{
 		{"hash",         b.Hash().String()},
 		{"confirmations",confirmations},
@@ -157,7 +152,7 @@ func (api *PublicBlockAPI) marshalJsonBlock(b *types.SerializedBlock, inclTx boo
 		}
 		if fullTx {
 			formatTx = func(tx *types.Tx) (interface{}, error) {
-				return api.marshalJsonTransaction(tx)
+				return MarshalJsonTx(tx,params,height,"")
 			}
 		}
 		txs := b.Transactions()

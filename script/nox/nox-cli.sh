@@ -504,7 +504,11 @@ elif [ $1 == "blockhash" ]; then
 ## Tx
 elif [ $1 == "tx" ]; then
   shift
-  get_tx_by_hash $@ |jq .
+  if [ "$2" == "false" ]; then
+    get_tx_by_hash $@ 
+  else
+    get_tx_by_hash $@|jq .
+  fi
   check_error
 elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift

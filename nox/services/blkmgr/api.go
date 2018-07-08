@@ -6,6 +6,7 @@ import (
 	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/core/json"
 	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/services/common/marshal"
 )
 
 func (b *BlockManager) GetChain() *blockchain.BlockChain{
@@ -34,12 +35,32 @@ func (api *PublicBlockAPI) GetBlockhash(height uint) (string, error){
 	return block.Hash().String(),nil
 }
 
-func (api *PublicBlockAPI) GetBlockByHeight(height uint, fullTx bool) (json.OrderedResult, error){
-	block,err := api.bm.chain.BlockByHeight(uint64(height))
+func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.OrderedResult, error){
+	block,err := api.bm.chain.BlockByHeight(height)
  	if err!=nil {
  		return nil,err
 	}
-	fields, err := api.marshalJsonBlock(block, true, fullTx)
+
+	best := api.bm.chain.BestSnapshot()
+
+	// See if this block is an orphan and adjust Confirmations accordingly.
+	onMainChain, _ := api.bm.chain.MainChainHasBlock(block.Hash())
+
+	// Get next block hash unless there are none.
+	var nextHashString string
+	confirmations := int64(-1)
+
+	if onMainChain {
+		if height < best.Height {
+			nextHash, err := api.bm.chain.BlockHashByHeight(height + 1)
+			if err != nil {
+				return nil, err
+			}
+			nextHashString = nextHash.String()
+		}
+		confirmations = 1 + int64(best.Height) - int64(height)
+	}
+	fields, err := marshal.MarshalJsonBlock(block, true, fullTx, api.bm.params, confirmations, nextHashString)
 	if err != nil {
 		return nil, err
 	}

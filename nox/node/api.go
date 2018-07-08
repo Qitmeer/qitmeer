@@ -4,12 +4,12 @@ import (
 	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/common/hash"
 	"fmt"
-	"github.com/noxproject/nox/core/json"
 	"encoding/hex"
 	"bytes"
 	"github.com/noxproject/nox/core/types"
 	"errors"
 	"github.com/noxproject/nox/database"
+	"github.com/noxproject/nox/services/common/marshal"
 )
 
 func (nf *NoxFull) API() rpc.API {
@@ -29,7 +29,7 @@ func NewPublicBlockChainAPI(node *NoxFull) *PublicBlockChainAPI {
 
 
 
-func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool)(interface{}, error){
+func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool)(interface{}, error) {
 
 	var mtx *types.Transaction
 	var blkHash *hash.Hash
@@ -41,13 +41,13 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 		//not found from mem-pool, try db
 		txIndex := api.node.txIndex
 		if txIndex == nil {
-			return nil, fmt.Errorf("the transaction index "+
+			return nil, fmt.Errorf("the transaction index " +
 				"must be enabled to query the blockchain (specify --txindex in configuration)")
 		}
 		// Look up the location of the transaction.
 		blockRegion, err := txIndex.TxBlockRegion(txHash)
 		if err != nil {
-			return nil,errors.New("Failed to retrieve transaction location")
+			return nil, errors.New("Failed to retrieve transaction location")
 		}
 		if blockRegion == nil {
 			return nil, rpcNoTxInfoError(&txHash)
@@ -87,7 +87,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			return nil, rpcInternalError(err.Error(), context)
 		}
 		mtx = &msgTx
-	}else{
+	} else {
 		// When the verbose flag isn't set, simply return the
 		// network-serialized transaction as a hex-encoded string.
 		if !verbose {
@@ -97,7 +97,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			// string to the client instead of nothing (nil) in the
 			// case of an error.
 
-			buf, err :=tx.Transaction().Serialize(types.TxSerializeFull)
+			buf, err := tx.Transaction().Serialize(types.TxSerializeFull)
 			if err != nil {
 				return nil, err
 			}
@@ -107,11 +107,13 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 
 		mtx = tx.Transaction()
 	}
-	return json.TxRawResult{
-		BlockHash:blkHash.String(),
-		BlockIndex:uint32(blkHeight),  //TODO, remove type conversion
-		Txid:mtx.TxHash().String(),
-	},nil
+
+	//TODO, refactor the paramas place
+	blkHashStr := ""
+	if blkHash != nil {
+		blkHashStr = blkHash.String()
+	}
+	return marshal.MarshalJsonTransaction(mtx,api.node.node.Params,blkHeight,blkHashStr)
 }
 
 
