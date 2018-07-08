@@ -341,8 +341,7 @@ func (idx *TxIndex) Init() error {
 			highestKnown = testBlockID
 			testBlockID += increment
 		}
-		log.Trace("Forward scan (highest known %d, next unknown %d)",
-			highestKnown, nextUnknown)
+		log.Trace("Forward scan ...","highest known",highestKnown, "next unknown",nextUnknown)
 
 		// No used block IDs due to new database.
 		if nextUnknown == 1 {
@@ -373,7 +372,7 @@ func (idx *TxIndex) Init() error {
 		return err
 	}
 
-	log.Debug("Current internal block ID: %d", idx.curBlockID)
+	log.Debug("Current internal block ", "block id",idx.curBlockID)
 	return nil
 }
 

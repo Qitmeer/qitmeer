@@ -206,9 +206,8 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			if err != nil {
 				return err
 			}
-
-			log.Debug("Current %s tip (height %d, hash %v)",
-				indexer.Name(), height, h)
+			log.Debug(fmt.Sprintf("Current %s tip", indexer.Name()),
+				"height", height, "hash", h)
 			indexerHeights[i] = height
 			if height < lowestHeight {
 				lowestHeight = height

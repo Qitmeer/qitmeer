@@ -687,8 +687,6 @@ func (mp *TxPool) FetchTransaction(txHash *hash.Hash, includeRecentBlock bool) (
 		return txDesc.Tx, nil
 	}
 
-	// TODO, impl of more detail mempool searching logic
-	/*
 	// the latest block is considered "unconfirmed"
 	// for the regular transaction tree. Search that if the
 	// user indicates too, as well.
@@ -704,8 +702,6 @@ func (mp *TxPool) FetchTransaction(txHash *hash.Hash, includeRecentBlock bool) (
 			}
 		}
 	}
-	*/
-
 	return nil, fmt.Errorf("transaction is not in the pool")
 }
 

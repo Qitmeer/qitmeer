@@ -375,7 +375,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		}
 	}
 
-	//  TODO: Uphrade the database as needed.
+	//  TODO: Upgrade the database as needed.
 	/*
 	err = upgradeDB(b.db, b.chainParams, b.dbInfo, interrupt)
 	if err != nil {

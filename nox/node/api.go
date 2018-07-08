@@ -87,6 +87,25 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			return nil, rpcInternalError(err.Error(), context)
 		}
 		mtx = &msgTx
+	}else{
+		// When the verbose flag isn't set, simply return the
+		// network-serialized transaction as a hex-encoded string.
+		if !verbose {
+			// Note that this is intentionally not directly
+			// returning because the first return value is a
+			// string and it would result in returning an empty
+			// string to the client instead of nothing (nil) in the
+			// case of an error.
+
+			buf, err :=tx.Transaction().Serialize(types.TxSerializeFull)
+			if err != nil {
+				return nil, err
+			}
+			txHex := hex.EncodeToString(buf)
+			return txHex, nil
+		}
+
+		mtx = tx.Transaction()
 	}
 	return json.TxRawResult{
 		BlockHash:blkHash.String(),
