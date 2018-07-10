@@ -50,3 +50,7 @@ type Config struct {
 func (c *Config) GetMinningAddrs() []types.Address {
 	return c.miningAddrs
 }
+
+func (c *Config) SetMiningAddrs(addr types.Address) {
+	c.miningAddrs = append(c.miningAddrs,addr)
+}

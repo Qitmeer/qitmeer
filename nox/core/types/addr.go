@@ -27,6 +27,11 @@ type Address interface{
 
 	// raw byte in script, aka the hash in the most case
 	ScriptAddress() []byte
+
+	// TODO, revisit the design of address type decision
+	// IsForNet returns whether or not the address is associated with the
+	// passed network.
+	// IsForNetwork(hashID [2]byte) bool
 }
 
 type AddressType byte

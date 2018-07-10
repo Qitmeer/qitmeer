@@ -14,6 +14,7 @@ import (
 	"github.com/noxproject/nox/common/util"
 	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/config"
+	"github.com/noxproject/nox/core/address"
 )
 
 const (
@@ -239,6 +240,40 @@ func loadConfig() (*config.Config, []string, error) {
 	// DebugPrintOrigins
 	if cfg.DebugPrintOrigins {
 		log.PrintOrigins(true)
+	}
+
+		// Check mining addresses are valid and saved parsed versions.
+	for _, strAddr := range cfg.MiningAddrs {
+		addr, err := address.DecodeAddress(strAddr)
+		if err != nil {
+			str := "%s: mining address '%s' failed to decode: %v"
+			err := fmt.Errorf(str, funcName, strAddr, err)
+			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, usageMessage)
+			return nil, nil, err
+		}
+		// TODO, check network by using IsForNetwork()
+		/*
+		if !addr.IsForNetwork(activeNetParams.Params) {
+			str := "%s: mining address '%s' is on the wrong network"
+			err := fmt.Errorf(str, funcName, strAddr)
+			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, usageMessage)
+			return nil, nil, err
+		}
+		*/
+		cfg.SetMiningAddrs(addr)
+	}
+
+	// Ensure there is at least one mining address when the generate flag is
+	// set.
+	if cfg.Generate && len(cfg.MiningAddrs) == 0 {
+		str := "%s: the generate flag is set, but there are no mining " +
+			"addresses specified "
+		err := fmt.Errorf(str, funcName)
+		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, usageMessage)
+		return nil, nil, err
 	}
 
 	// Warn about missing config file only after all other configuration is
