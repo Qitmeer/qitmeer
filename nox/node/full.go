@@ -15,6 +15,8 @@ import (
 	"github.com/noxproject/nox/p2p/peerserver"
 	"github.com/noxproject/nox/common/hash"
 	"time"
+	"github.com/noxproject/nox/params"
+	"github.com/noxproject/nox/services/mining"
 )
 
 // NoxFull implements the nox full node service.
@@ -109,7 +111,7 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 			},
 		},
 		ChainParams:      node.Params,
-		FetchUtxoView:    bm.GetChain().FetchUtxoView,
+		FetchUtxoView:    bm.GetChain().FetchUtxoView,  //TODO, duplicated dependence of miner
 		BlockByHash:      bm.GetChain().BlockByHash,
 		BestHash:         func() *hash.Hash { return &bm.GetChain().BestSnapshot().Hash },
 		BestHeight:       func() uint64 { return bm.GetChain().BestSnapshot().Height },
@@ -119,6 +121,25 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 	nox.txMemPool = mempool.New(&txC)
 
 	// Cpu Miner
+	// Create the mining policy based on the configuration options.
+	// NOTE: The CPU miner relies on the mempool, so the mempool has to be
+	// created before calling the function to create the CPU miner.
+	policy := mining.Policy{
+		BlockMinSize:      cfg.BlockMinSize,
+		BlockMaxSize:      cfg.BlockMaxSize,
+		BlockPrioritySize: cfg.BlockPrioritySize,
+		TxMinFreeFee:      cfg.MinRelayTxFee,    //TODO, duplicated config item with mem-pool
+		StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
+				return standardScriptVerifyFlags(bm.GetChain())
+		}, //TODO, duplicated config item with mem-pool
+	}
+	// defaultNumWorkers is the default number of workers to use for mining
+	// and is based on the number of processor cores.  This helps ensure the
+	// system stays reasonably responsive under heavy load.
+	defaultNumWorkers := uint32(params.CPUMinerThreads) //TODO, move to config
+
+	nox.cpuMiner = miner.NewCPUMiner(cfg,node.Params,&policy,nox.sigCache,
+		nox.txMemPool,nox.timeSource,nox.blockManager,defaultNumWorkers)
 
 	return &nox, nil
 }

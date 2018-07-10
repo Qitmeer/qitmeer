@@ -134,3 +134,43 @@ func (bi *blockIndex) removeChainTip(tip *blockNode) {
 		bi.chainTips[tip.height] = nodes
 	}
 }
+
+// HaveBlock returns whether or not the block index contains the provided hash.
+//
+// This function is safe for concurrent access.
+func (bi *blockIndex) HaveBlock(hash *hash.Hash) bool {
+	bi.RLock()
+	_, hasBlock := bi.index[*hash]
+	bi.RUnlock()
+	return hasBlock
+}
+
+// NodeStatus returns the status associated with the provided node.
+//
+// This function is safe for concurrent access.
+func (bi *blockIndex) NodeStatus(node *blockNode) blockStatus {
+	bi.RLock()
+	status := node.status
+	bi.RUnlock()
+	return status
+}
+
+// SetStatusFlags sets the provided status flags for the given block node
+// regardless of their previous state.  It does not unset any flags.
+//
+// This function is safe for concurrent access.
+func (bi *blockIndex) SetStatusFlags(node *blockNode, flags blockStatus) {
+	bi.Lock()
+	node.status |= flags
+	bi.Unlock()
+}
+
+// UnsetStatusFlags unsets the provided status flags for the given block node
+// regardless of their previous state.
+//
+// This function is safe for concurrent access.
+func (bi *blockIndex) UnsetStatusFlags(node *blockNode, flags blockStatus) {
+	bi.Lock()
+	node.status &^= flags
+	bi.Unlock()
+}

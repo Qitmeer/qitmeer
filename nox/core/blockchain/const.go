@@ -1,7 +1,10 @@
 // Copyright (c) 2017-2018 The nox developers
 package blockchain
 
-import "github.com/noxproject/nox/core/types"
+import (
+	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/common/hash"
+)
 
 const (
 	// MaxSigOpsPerBlock is the maximum number of signature operations
@@ -30,6 +33,28 @@ const (
 	// used to calculate the median time used to validate block timestamps.
 	medianTimeBlocks = 11
 
+)
+
+const (
+
+	// MaxTimeOffsetSeconds is the maximum number of seconds a block time
+	// is allowed to be ahead of the current time.  This is currently 2
+	// hours.
+	MaxTimeOffsetSeconds = 2 * 60 * 60
+
+	// MinCoinbaseScriptLen is the minimum length a coinbase script can be.
+	MinCoinbaseScriptLen = 2
+
+	// MaxCoinbaseScriptLen is the maximum length a coinbase script can be.
+	MaxCoinbaseScriptLen = 100
+
+)
+
+var (
+	// zeroHash is the zero value for a hash.Hash and is defined as a
+	// package level variable to avoid the need to create a new instance
+	// every time a check is needed.
+	zeroHash = &hash.Hash{}
 )
 
 

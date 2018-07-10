@@ -27,6 +27,7 @@ func NewPublicBlockAPI(bm *BlockManager) *PublicBlockAPI {
 	return &PublicBlockAPI{bm}
 }
 
+//TODO, refactor BlkMgr API
 func (api *PublicBlockAPI) GetBlockhash(height uint) (string, error){
  	block,err := api.bm.chain.BlockByHeight(uint64(height))
  	if err!=nil {
@@ -35,6 +36,7 @@ func (api *PublicBlockAPI) GetBlockhash(height uint) (string, error){
 	return block.Hash().String(),nil
 }
 
+//TODO, refactor BlkMgr API
 func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.OrderedResult, error){
 	block,err := api.bm.chain.BlockByHeight(height)
  	if err!=nil {
@@ -60,6 +62,7 @@ func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.Or
 		}
 		confirmations = 1 + int64(best.Height) - int64(height)
 	}
+	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(block, true, fullTx, api.bm.params, confirmations, nextHashString)
 	if err != nil {
 		return nil, err

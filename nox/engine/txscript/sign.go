@@ -30,12 +30,12 @@ func RawTxInSignature(tx *types.Transaction, idx int, subScript []byte,
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse output script: %v", err)
 	}
-	hash, err := calcSignatureHash(parsedScript, hashType, tx, idx, nil)
+	h, err := calcSignatureHash(parsedScript, hashType, tx, idx, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	r, s, err := ecc.Secp256k1.Sign(key, hash)
+	r, s, err := ecc.Secp256k1.Sign(key, h)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign tx input: %s", err)
 	}
@@ -170,7 +170,8 @@ func p2pkSignatureScriptAlt(tx *types.Transaction, idx int, subScript []byte,
 // legal to not be able to sign any of the outputs, no error is returned.
 func signMultiSig(tx *types.Transaction, idx int, subScript []byte, hashType SigHashType,
 	addresses []types.Address, nRequired int, kdb KeyDB) ([]byte, bool) {
-	// No need to add dummy in Decred.
+	// No need to add dummy.
+	// TODO, revisit the bitcoin multi-sig script bug
 	builder := NewScriptBuilder()
 	signed := 0
 	for _, addr := range addresses {
@@ -491,8 +492,9 @@ sigLoop:
 		// MultiSigTy, so we just need to hash the full thing.
 		hash, err := calcSignatureHash(pkPops, hashType, tx, idx, nil)
 		if err != nil {
-			// Decred -- is this the right handling for SIGHASH_SINGLE error ?
-			// TODO make sure this doesn't break anything.
+			// is this the right handling for SIGHASH_SINGLE error ?
+			// make sure this doesn't break anything.
+			// TODO revisit the SIGHASH_SINGLE design
 			continue
 		}
 
@@ -1292,8 +1294,9 @@ sigLoop:
 				h = calcSignatureHash_btc(pkPops, hashType, tx, idx)
 		}
 		if err != nil {
-			// Decred -- is this the right handling for SIGHASH_SINGLE error ?
-			// TODO make sure this doesn't break anything.
+			// is this the right handling for SIGHASH_SINGLE error ?
+			// make sure this doesn't break anything.
+			// TODO revisit the SIGHASH_SINGLE design
 			continue
 		}
 

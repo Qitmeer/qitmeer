@@ -5,7 +5,7 @@ import (
 	"github.com/noxproject/nox/common/hash"
 )
 
-// broadcastMsg provides the ability to house a Decred message to be broadcast
+// broadcastMsg provides the ability to house a  message to be broadcast
 // to all connected peers except specified excluded peers.
 type broadcastMsg struct {
 	message      message.Message

@@ -15,7 +15,14 @@ import (
 )
 
 const (
+
+	//TODO, refactor config item
 	DefaultMaxOrphanTxSize       = 5000
+
+	// MinHighPriority is the minimum priority value that allows a
+	// transaction to be considered high priority.
+	MinHighPriority = types.AtomsPerCoin * 144.0 / 250
+
 )
 
 
@@ -31,7 +38,7 @@ type Config struct {
 
 	// FetchUtxoView defines the function to use to fetch unspent
 	// transaction output information.
-	FetchUtxoView func(*types.Tx, bool) (*blockchain.UtxoViewpoint, error)
+	FetchUtxoView func(*types.Tx) (*blockchain.UtxoViewpoint, error)
 
 	// BlockByHash defines the function use to fetch the block identified
 	// by the given hash.

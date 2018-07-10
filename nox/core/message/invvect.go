@@ -14,7 +14,7 @@ import (
 
 const (
 	// MaxInvPerMsg is the maximum number of inventory vectors that can be in a
-	// single Decred inv message.
+	// single inv message.
 	MaxInvPerMsg = 50000
 
 	// Maximum payload size for an inventory vector.

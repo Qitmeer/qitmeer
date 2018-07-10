@@ -14,6 +14,7 @@ import (
 	"github.com/noxproject/nox/log"
 	"container/list"
 	"fmt"
+	"github.com/noxproject/nox/core/blockchain"
 )
 
 // TxPool is used as a source of transactions that need to be mined into blocks
@@ -703,5 +704,144 @@ func (mp *TxPool) FetchTransaction(txHash *hash.Hash, includeRecentBlock bool) (
 		}
 	}
 	return nil, fmt.Errorf("transaction is not in the pool")
+}
+
+// HaveAllTransactions returns whether or not all of the passed transaction
+// hashes exist in the mempool.
+//
+// This function is safe for concurrent access.
+func (mp *TxPool) HaveAllTransactions(hashes []hash.Hash) bool {
+	mp.mtx.RLock()
+	inPool := true
+	for _, h := range hashes {
+		if _, exists := mp.pool[h]; !exists {
+			inPool = false
+			break
+		}
+	}
+	mp.mtx.RUnlock()
+	return inPool
+}
+
+// haveTransaction returns whether or not the passed transaction already exists
+// in the main pool or in the orphan pool.
+//
+// This function MUST be called with the mempool lock held (for reads).
+func (mp *TxPool) haveTransaction(hash *hash.Hash) bool {
+	return mp.isTransactionInPool(hash) || mp.isOrphanInPool(hash)
+}
+
+// HaveTransaction returns whether or not the passed transaction already exists
+// in the main pool or in the orphan pool.
+//
+// This function is safe for concurrent access.
+func (mp *TxPool) HaveTransaction(hash *hash.Hash) bool {
+	// Protect concurrent access.
+	mp.mtx.RLock()
+	haveTx := mp.haveTransaction(hash)
+	mp.mtx.RUnlock()
+
+	return haveTx
+}
+
+// isTransactionInPool returns whether or not the passed transaction already
+// exists in the main pool.
+//
+// This function MUST be called with the mempool lock held (for reads).
+func (mp *TxPool) isTransactionInPool(hash *hash.Hash) bool {
+	if _, exists := mp.pool[*hash]; exists {
+		return true
+	}
+
+	return false
+}
+
+// IsTransactionInPool returns whether or not the passed transaction already
+// exists in the main pool.
+//
+// This function is safe for concurrent access.
+func (mp *TxPool) IsTransactionInPool(hash *hash.Hash) bool {
+	// Protect concurrent access.
+	mp.mtx.RLock()
+	inPool := mp.isTransactionInPool(hash)
+	mp.mtx.RUnlock()
+
+	return inPool
+}
+
+// isOrphanInPool returns whether or not the passed transaction already exists
+// in the orphan pool.
+//
+// This function MUST be called with the mempool lock held (for reads).
+func (mp *TxPool) isOrphanInPool(hash *hash.Hash) bool {
+	if _, exists := mp.orphans[*hash]; exists {
+		return true
+	}
+
+	return false
+}
+
+// IsOrphanInPool returns whether or not the passed transaction already exists
+// in the orphan pool.
+//
+// This function is safe for concurrent access.
+func (mp *TxPool) IsOrphanInPool(hash *hash.Hash) bool {
+	// Protect concurrent access.
+	mp.mtx.RLock()
+	inPool := mp.isOrphanInPool(hash)
+	mp.mtx.RUnlock()
+
+	return inPool
+}
+
+// LastUpdated returns the last time a transaction was added to or removed from
+// the main pool.  It does not include the orphan pool.
+//
+// This function is safe for concurrent access.
+func (mp *TxPool) LastUpdated() time.Time {
+	return time.Unix(atomic.LoadInt64(&mp.lastUpdated), 0)
+}
+
+// MiningDescs returns a slice of mining descriptors for all the transactions
+// in the pool.
+//
+// This is part of the mining.TxSource interface implementation and is safe for
+// concurrent access as required by the interface contract.
+func (mp *TxPool) MiningDescs() []*types.TxDesc {
+	mp.mtx.RLock()
+	descs := make([]*types.TxDesc, len(mp.pool))
+	i := 0
+	for _, desc := range mp.pool {
+		descs[i] = &desc.TxDesc
+		i++
+	}
+	mp.mtx.RUnlock()
+
+	return descs
+}
+
+// pruneExpiredTx prunes expired transactions from the mempool that may no longer
+// be able to be included into a block.
+//
+// This function MUST be called with the mempool lock held (for writes).
+func (mp *TxPool) pruneExpiredTx(height uint64) {
+	for _, tx := range mp.pool {
+		if blockchain.IsExpired(tx.Tx, height) {
+			log.Debug("Pruning expired transaction %v from the mempool",
+				tx.Tx.Hash())
+			mp.removeTransaction(tx.Tx, true)
+		}
+	}
+}
+
+// PruneExpiredTx prunes expired transactions from the mempool that may no longer
+// be able to be included into a block.
+//
+// This function is safe for concurrent access.
+func (mp *TxPool) PruneExpiredTx(height uint64) {
+	// Protect concurrent access.
+	mp.mtx.Lock()
+	mp.pruneExpiredTx(height)
+	mp.mtx.Unlock()
 }
 

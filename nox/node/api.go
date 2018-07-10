@@ -10,6 +10,7 @@ import (
 	"errors"
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/services/common/marshal"
+	"github.com/noxproject/nox/services/common/error"
 )
 
 func (nf *NoxFull) API() rpc.API {
@@ -50,7 +51,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			return nil, errors.New("Failed to retrieve transaction location")
 		}
 		if blockRegion == nil {
-			return nil, rpcNoTxInfoError(&txHash)
+			return nil, er.RpcNoTxInfoError(&txHash)
 		}
 
 		// Load the raw transaction bytes from the database.
@@ -61,7 +62,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			return err
 		})
 		if err != nil {
-			return nil, rpcNoTxInfoError(&txHash)
+			return nil, er.RpcNoTxInfoError(&txHash)
 		}
 
 		// When the verbose flag isn't set, simply return the serialized
@@ -76,7 +77,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 		blkHeight, err = api.node.blockManager.GetChain().BlockHeightByHash(blkHash)
 		if err != nil {
 			context := "Failed to retrieve block height"
-			return nil, rpcInternalError(err.Error(), context)
+			return nil, er.RpcInternalError(err.Error(), context)
 		}
 
 		// Deserialize the transaction
@@ -84,7 +85,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 		err = msgTx.Deserialize(bytes.NewReader(txBytes))
 		if err != nil {
 			context := "Failed to deserialize transaction"
-			return nil, rpcInternalError(err.Error(), context)
+			return nil, er.RpcInternalError(err.Error(), context)
 		}
 		mtx = &msgTx
 	} else {
@@ -117,16 +118,4 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 }
 
 
-// rpcNoTxInfoError is a convenience function for returning a nicely formatted
-// RPC error which indicates there is no information available for the provided
-// transaction hash.
-func rpcNoTxInfoError(txHash *hash.Hash) error {
-	return errors.New(
-		fmt.Sprintf("No information available about transaction %v",
-			txHash))
-}
 
-func rpcInternalError(err, context string) error{
-	return errors.New(
-		fmt.Sprintf("%s:%s",err,context))
-}

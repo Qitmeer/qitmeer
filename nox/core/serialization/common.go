@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"crypto/rand"
 )
 
 const (
@@ -378,4 +379,20 @@ func WriteVarBytes(w io.Writer, pver uint32, bytes []byte) error {
 
 	_, err = w.Write(bytes)
 	return err
+}
+
+// randomUint64 returns a cryptographically random uint64 value.  This
+// unexported version takes a reader primarily to ensure the error paths
+// can be properly tested by passing a fake reader in the tests.
+func randomUint64(r io.Reader) (uint64, error) {
+	rv, err := BinarySerializer.Uint64(r, bigEndian)
+	if err != nil {
+		return 0, err
+	}
+	return rv, nil
+}
+
+// RandomUint64 returns a cryptographically random uint64 value.
+func RandomUint64() (uint64, error) {
+	return randomUint64(rand.Reader)
 }

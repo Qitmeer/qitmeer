@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"github.com/noxproject/nox/p2p/peerserver"
 	"github.com/noxproject/nox/services/mempool"
+	"github.com/noxproject/nox/core/types"
 )
 
 // BlockManager provides a concurrency safe block manager for handling all
@@ -28,8 +29,11 @@ type BlockManager struct {
 
 	config              *config.Config
 	params              *params.Params
+
 	peerServer          *peerserver.PeerServer
+
 	txMemPool			*mempool.TxPool
+
 	chain               *blockchain.BlockChain
 
 	rejectedTxns        map[hash.Hash]struct{}
@@ -41,7 +45,9 @@ type BlockManager struct {
 
 	syncPeer            *p2p.Peer
 	msgChan             chan interface{}
-	chainState          chainState
+
+	chainState          ChainState
+
 	wg                  sync.WaitGroup
 	quit                chan struct{}
 
@@ -498,6 +504,7 @@ out:
 					hashes: g,
 					err:    err,
 				}
+			*/
 
 			case processBlockMsg:
 				forkLen, isOrphan, err := b.chain.ProcessBlock(
@@ -520,103 +527,66 @@ out:
 					// on a side chain or have caused a reorg.
 					best := b.chain.BestSnapshot()
 
-					// Update registered websocket clients on the
-					// current stake difficulty.
-					nextStakeDiff, err :=
-						b.chain.CalcNextRequiredStakeDifficulty()
-					if err != nil {
-						bmgrLog.Warnf("Failed to get next stake difficulty "+
-							"calculation: %v", err)
-					} else {
-						r := b.server.rpcServer
-						if r != nil {
-							r.ntfnMgr.NotifyStakeDifficulty(
-								&StakeDifficultyNtfnData{
-									best.Hash,
-									best.Height,
-									nextStakeDiff,
-								})
-						}
-					}
+					b.txMemPool.PruneExpiredTx(best.Height)
 
-					b.server.txMemPool.PruneStakeTx(nextStakeDiff,
-						best.Height)
-					b.server.txMemPool.PruneExpiredTx(
-						best.Height)
-
-					missedTickets, err := b.chain.MissedTickets()
-					if err != nil {
-						bmgrLog.Warnf("Failed to get missing tickets for "+
-							"incoming block %v: %v", best.Hash, err)
-					}
 					curPrevHash := b.chain.BestPrevHash()
-
-					winningTickets, poolSize, finalState, err :=
-						b.chain.LotteryDataForBlock(msg.block.Hash())
-					if err != nil {
-						bmgrLog.Warnf("Failed to determine block "+
-							"lottery data for incoming best block %v: %v",
-							best.Hash, err)
-					}
 
 					b.updateChainState(&best.Hash,
 						best.Height,
-						finalState,
-						uint32(poolSize),
-						nextStakeDiff,
-						winningTickets,
-						missedTickets,
 						curPrevHash)
 				}
 
 				// Allow any clients performing long polling via the
 				// getblocktemplate RPC to be notified when the new block causes
 				// their old block template to become stale.
-				rpcServer := b.server.rpcServer
+				// TODO, re-impl the client notify by subscript/publish
+				/*
+				rpcServer := b.rpcServer
 				if rpcServer != nil {
 					rpcServer.gbtWorkState.NotifyBlockConnected(msg.block.Hash())
 				}
+				*/
 
 				msg.reply <- processBlockResponse{
 					isOrphan: isOrphan,
 					err:      nil,
 				}
 
-			case processTransactionMsg:
-				acceptedTxs, err := b.server.txMemPool.ProcessTransaction(msg.tx,
-					msg.allowOrphans, msg.rateLimit, msg.allowHighFees)
-				msg.reply <- processTransactionResponse{
-					acceptedTxs: acceptedTxs,
-					err:         err,
-				}
+				/*
+				case processTransactionMsg:
+					acceptedTxs, err := b.server.txMemPool.ProcessTransaction(msg.tx,
+						msg.allowOrphans, msg.rateLimit, msg.allowHighFees)
+					msg.reply <- processTransactionResponse{
+						acceptedTxs: acceptedTxs,
+						err:         err,
+					}
+				case isCurrentMsg:
+					msg.reply <- b.current()
 
-			case isCurrentMsg:
-				msg.reply <- b.current()
+				case pauseMsg:
+					// Wait until the sender unpauses the manager.
+					<-msg.unpause
 
-			case pauseMsg:
-				// Wait until the sender unpauses the manager.
-				<-msg.unpause
+				case getCurrentTemplateMsg:
+					cur := deepCopyBlockTemplate(b.cachedCurrentTemplate)
+					msg.reply <- getCurrentTemplateResponse{
+						Template: cur,
+					}
 
-			case getCurrentTemplateMsg:
-				cur := deepCopyBlockTemplate(b.cachedCurrentTemplate)
-				msg.reply <- getCurrentTemplateResponse{
-					Template: cur,
-				}
+				case setCurrentTemplateMsg:
+					b.cachedCurrentTemplate = deepCopyBlockTemplate(msg.Template)
+					msg.reply <- setCurrentTemplateResponse{}
 
-			case setCurrentTemplateMsg:
-				b.cachedCurrentTemplate = deepCopyBlockTemplate(msg.Template)
-				msg.reply <- setCurrentTemplateResponse{}
+				case getParentTemplateMsg:
+					par := deepCopyBlockTemplate(b.cachedParentTemplate)
+					msg.reply <- getParentTemplateResponse{
+						Template: par,
+					}
 
-			case getParentTemplateMsg:
-				par := deepCopyBlockTemplate(b.cachedParentTemplate)
-				msg.reply <- getParentTemplateResponse{
-					Template: par,
-				}
-
-			case setParentTemplateMsg:
-				b.cachedParentTemplate = deepCopyBlockTemplate(msg.Template)
-				msg.reply <- setParentTemplateResponse{}
-			*/
+				case setParentTemplateMsg:
+					b.cachedParentTemplate = deepCopyBlockTemplate(msg.Template)
+					msg.reply <- setParentTemplateResponse{}
+				*/
 			default:
 				log.Warn("Invalid message type in block "+
 					"handler: %T", msg)
@@ -629,6 +599,36 @@ out:
 
 	b.wg.Done()
 	log.Trace("Block handler done")
+}
+
+// processBlockResponse is a response sent to the reply channel of a
+// processBlockMsg.
+type processBlockResponse struct {
+	forkLen  int64
+	isOrphan bool
+	err      error
+}
+
+// processBlockMsg is a message type to be sent across the message channel
+// for requested a block is processed.  Note this call differs from blockMsg
+// above in that blockMsg is intended for blocks that came from peers and have
+// extra handling whereas this message essentially is just a concurrent safe
+// way to call ProcessBlock on the internal block chain instance.
+type processBlockMsg struct {
+	block *types.SerializedBlock
+	flags blockchain.BehaviorFlags
+	reply chan processBlockResponse
+}
+
+
+// ProcessBlock makes use of ProcessBlock on an internal instance of a block
+// chain.  It is funneled through the block manager since blockchain is not safe
+// for concurrent access.
+func (b *BlockManager) ProcessBlock(block *types.SerializedBlock, flags blockchain.BehaviorFlags) (bool, error) {
+	reply := make(chan processBlockResponse, 1)
+	b.msgChan <- processBlockMsg{block: block, flags: flags, reply: reply}
+	response := <-reply
+	return response.isOrphan, response.err
 }
 
 

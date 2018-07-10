@@ -10,6 +10,7 @@ import (
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/crypto/ecc"
+	"fmt"
 )
 
 // encodeAddress returns a human-readable payment address given a ripemd160 hash
@@ -145,6 +146,35 @@ type PubKeyAddress struct{
 	addrType types.AddressType
 }
 
+// NewAddressPubKey returns a new Address. decoded must
+// be 33 bytes.
+func NewPubKeyAddress(decoded []byte, net *params.Params) (types.Address, error) {
+	if len(decoded) == 33 {
+		// First byte is the signature suite and ybit.
+		suite := decoded[0]
+		suite &= ^uint8(1 << 7)
+		ybit := !(decoded[0]&(1<<7) == 0)
+		toAppend := uint8(0x02)
+		if ybit {
+			toAppend = 0x03
+		}
+		switch ecc.EcType(suite) {
+		case ecc.ECDSA_Secp256k1:
+			return NewSecpPubKeyAddress(
+				append([]byte{toAppend}, decoded[1:]...),
+				net)
+		case ecc.EdDSA_Ed25519:
+			return NewEdwardsPubKeyAddress(decoded, net)
+		case ecc.ECDSA_SecpSchnorr:
+			return NewSecSchnorrPubKeyAddress(
+				append([]byte{toAppend}, decoded[1:]...),
+				net)
+		}
+		return nil, ErrUnknownAddressType
+	}
+	return nil, ErrUnknownAddressType
+}
+
 // ScriptAddress returns the bytes to be included in a txout script to pay
 // to a pubkey hash.  Part of the Address interface.
 func (a *PubKeyHashAddress) ScriptAddress() []byte {
@@ -161,6 +191,7 @@ type ScriptHashAddress struct {
 
 // NewAddressScriptHashFromHash returns a new AddressScriptHash.  scriptHash
 // must be 20 bytes.
+// TODO refactor method name
 func NewAddressScriptHashFromHash(scriptHash []byte, net *params.Params) (*ScriptHashAddress, error) {
 	ash, err := newAddressScriptHashFromHash(scriptHash, net.ScriptHashAddrID)
 	if err != nil {
@@ -176,6 +207,7 @@ func NewAddressScriptHashFromHash(scriptHash []byte, net *params.Params) (*Scrip
 // looking it up through its parameters.  This is useful when creating a new
 // address structure from a string encoding where the identifer byte is already
 // known.
+// TODO refactor method name
 func newAddressScriptHashFromHash(scriptHash []byte, netID [2]byte) (*ScriptHashAddress, error) {
 	// Check for a valid script hash length.
 	if len(scriptHash) != ripemd160.Size {
@@ -483,6 +515,69 @@ type ContractAddress struct{
 	addrType types.AddressType
 }
 
+
+// DecodeAddress decodes the string encoding of an address and returns
+// the Address if addr is a valid encoding for a known address type
+func DecodeAddress(addr string) (types.Address, error) {
+	// Switch on decoded length to determine the type.
+	decoded, netID, err := base58.CheckDecode(addr)
+	if err != nil {
+		if err == base58.ErrChecksum {
+			return nil, ErrChecksumMismatch
+		}
+		return nil, fmt.Errorf("decoded address is of unknown format: %v",
+			err.Error())
+	}
+
+	// TODO, refactor the params design for address
+	net, err := detectNetworkForAddress(addr)
+	if err != nil {
+		return nil, ErrUnknownAddressType
+	}
+
+	// TODO, refactor the params design for address
+	switch netID {
+	case net.PubKeyAddrID:
+		return NewPubKeyAddress(decoded, net)
+
+	case net.PubKeyHashAddrID:
+		return NewPubKeyHashAddress(decoded, net, ecc.ECDSA_Secp256k1)
+
+	case net.PKHEdwardsAddrID:
+		return NewPubKeyHashAddress(decoded, net, ecc.EdDSA_Ed25519)
+
+	case net.PKHSchnorrAddrID:
+		return NewPubKeyHashAddress(decoded, net, ecc.ECDSA_SecpSchnorr)
+
+	case net.ScriptHashAddrID:
+		//TODO refactor method name
+		return NewAddressScriptHashFromHash(decoded, net)
+
+	default:
+		return nil, ErrUnknownAddressType
+	}
+}
+
+// TODO, refactor the params design for address
+// detectNetworkForAddress pops the first character from a string encoded
+// address and detects what network type it is for.
+func detectNetworkForAddress(addr string) (*params.Params, error) {
+	if len(addr) < 1 {
+		return nil, fmt.Errorf("empty string given for network detection")
+	}
+
+	networkChar := addr[0:1]
+	switch networkChar {
+	case params.MainNetParams.NetworkAddressPrefix:
+		return &params.MainNetParams, nil
+	case params.TestNetParams.NetworkAddressPrefix:
+		return &params.TestNetParams, nil
+	case params.PrivNetParams.NetworkAddressPrefix:
+		return &params.PrivNetParams, nil
+	}
+
+	return nil, fmt.Errorf("unknown network type in string encoded address")
+}
 
 
 

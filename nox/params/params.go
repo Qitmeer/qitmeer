@@ -14,6 +14,13 @@ import (
 	"github.com/noxproject/nox/core/protocol"
 )
 
+// CheckForDuplicateHashes checks for duplicate hashes when validating blocks.
+// Because of the rule inserting the height into the second (nonce) txOut, there
+// should never be a duplicate transaction hash that overwrites another. However,
+// because there is a 2^128 chance of a collision, the paranoid user may wish to
+// turn this feature on.
+var CheckForDuplicateHashes = false
+
 // SigHashOptimization is an optimization for verification of transactions that
 // do CHECKSIG operations with hashType SIGHASH_ALL. Although there should be no
 // consequences to daemons that are simply running a node, it may be the case
@@ -24,6 +31,10 @@ import (
 // turn on this feature. It is disabled by default.
 // This feature is considered EXPERIMENTAL, enable at your own risk!
 var SigHashOptimization = false
+
+// CPUMinerThreads is the default number of threads to utilize with the
+// CPUMiner when mining.
+var CPUMinerThreads = 1
 
 // Checkpoint identifies a known good point in the block chain.  Using
 // checkpoints allows a few optimizations for old blocks during initial download
@@ -234,6 +245,40 @@ type Params struct {
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
 	HDCoinType uint32
+
+	// OrganizationPkScript is the output script for block taxes to be
+	// distributed to in every block's coinbase. It should ideally be a P2SH
+	// multisignature address.
+	// TODO revisit the org-pkscript design
+	OrganizationPkScript        []byte
+
+	// BlockOneLedger specifies the list of payouts in the coinbase of
+	// block height 1. If there are no payouts to be given, set this
+	// to an empty slice.
+	// TODO revisit the block one ICO design
+	BlockOneLedger []*TokenPayout
+}
+
+// TokenPayout is a payout for block 1 which specifies an address and an amount
+// to pay to that address in a transaction output.
+type TokenPayout struct {
+	Address string
+	Amount  uint64
+}
+
+// BlockOneSubsidy returns the total subsidy of block height 1 for the
+// network.
+func (p *Params) BlockOneSubsidy() uint64 {
+	if len(p.BlockOneLedger) == 0 {
+		return 0
+	}
+
+	sum := uint64(0)
+	for _, output := range p.BlockOneLedger {
+		sum += output.Amount
+	}
+
+	return sum
 }
 
 var (

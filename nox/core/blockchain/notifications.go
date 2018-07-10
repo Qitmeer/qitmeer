@@ -66,7 +66,7 @@ type BlockAcceptedNotifyData struct {
 	// BestHeight is the height of the current best chain.  Since the accepted
 	// block might be on a side chain, this is not necessarily the same as the
 	// height of the accepted block.
-	BestHeight int64
+	BestHeight uint64
 
 	// ForkLen is the length of the side chain the block extended or zero in the
 	// case the block extended the main chain.
@@ -84,9 +84,9 @@ type BlockAcceptedNotifyData struct {
 // about a reorganization.
 type ReorganizationNotifyData struct {
 	OldHash   hash.Hash
-	OldHeight int64
+	OldHeight uint64
 	NewHash   hash.Hash
-	NewHeight int64
+	NewHeight uint64
 }
 
 // Notification defines notification that is sent to the caller via the callback

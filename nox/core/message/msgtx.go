@@ -29,16 +29,18 @@ func (msg *MsgTx) MaxPayloadLength(pver uint32) uint32 {
 	return MaxBlockPayload
 }
 
-// Decode decodes r using the Decred protocol encoding into the receiver.
+// Decode decodes r into the receiver.
 // This is part of the Message interface implementation.
+//
 // See Deserialize for decoding transactions stored to disk, such as in a
 // database, as opposed to decoding transactions from the wire.
 func (msg *MsgTx) Decode(r io.Reader, pver uint32) error {
 	return msg.Tx.Deserialize(r)
 }
 
-// Encode encodes the receiver to w using the Decred protocol encoding.
+// Encode encodes the receiver to w.
 // This is part of the Message interface implementation.
+//
 // See Serialize for encoding transactions to be stored to disk, such as in a
 // database, as opposed to encoding transactions for the wire.
 func (msg *MsgTx) Encode(w io.Writer, pver uint32) error {

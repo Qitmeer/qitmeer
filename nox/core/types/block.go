@@ -68,6 +68,12 @@ type BlockHeader struct {
 
 	//might extra data here
 
+	// Size is the size of the serialized block/block-header in its entirety.
+
+	// The variable-sized block might require a size serialized & verify-check
+	// BlockSize uint32
+
+
 }
 
 // BlockHash computes the block identifier hash for the given block header.
@@ -275,6 +281,13 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	return txLocs, nil
 }
 
+// AddTransaction adds a transaction to the message.
+func (b *Block) AddTransaction(tx *Transaction) error {
+	b.Transactions = append(b.Transactions, tx)
+	return nil
+
+}
+
 // SerializedBlock provides easier and more efficient manipulation of raw blocks.
 // It also memorizes hashes for the block and its transactions on their first
 // access so subsequent accesses don't have to  repeat the relatively expensive
@@ -294,6 +307,33 @@ func NewBlock(block *Block) *SerializedBlock {
 		hash:   block.BlockHash(),
 		block: 	block,
 	}
+}
+
+// NewBlockDeepCopyCoinbase returns a new instance of a block given an underlying
+// wire.MsgBlock, but makes a deep copy of the coinbase transaction since it's
+// sometimes mutable.
+func NewBlockDeepCopyCoinbase(msgBlock *Block) *SerializedBlock {
+	// Copy the msgBlock and the pointers to all the transactions.
+	msgBlockCopy := new(Block)
+
+	lenTxs := len(msgBlock.Transactions)
+	mtxsCopy := make([]*Transaction, lenTxs)
+	copy(mtxsCopy, msgBlock.Transactions)
+
+	msgBlockCopy.Transactions = mtxsCopy
+
+	msgBlockCopy.Header = msgBlock.Header
+
+	// Deep copy the first transaction. Also change the coinbase pointer.
+	msgBlockCopy.Transactions[0] =
+		NewTxDeep(msgBlockCopy.Transactions[0]).Transaction()
+
+	bl := &SerializedBlock{
+		block: msgBlockCopy,
+	}
+	bl.hash = msgBlock.BlockHash()
+
+	return bl
 }
 
 // Hash returns the block identifier hash for the Block.  This is equivalent to
@@ -379,8 +419,8 @@ func (sb *SerializedBlock) TxLoc() ([]TxLoc, error) {
 //
 // This function should not be used for new code and will be
 // removed in the future.
-func (sb *SerializedBlock) Height() int64 {
-	return int64(sb.block.Header.Height)
+func (sb *SerializedBlock) Height() uint64 {
+	return sb.block.Header.Height
 }
 
 // Transactions returns a slice of wrapped transactions for all

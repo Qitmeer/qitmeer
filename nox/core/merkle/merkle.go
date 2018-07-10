@@ -43,7 +43,7 @@ func CalcMerkleRoot(nodes []hash.Hash) (root hash.Hash, err error) {
 // are calculated by concatenating the left node with itself before hashing.
 // Since this function uses nodes that are pointers to the hashes, empty nodes
 // will be nil.
-func buildMerkleTreeStore(transactions []*types.Tx) []*hash.Hash {
+func BuildMerkleTreeStore(transactions []*types.Tx) []*hash.Hash {
 	// If there's an empty stake tree, return totally zeroed out merkle tree root
 	// only.
 	if len(transactions) == 0 {
@@ -99,7 +99,7 @@ func calcMerkleRoot(txns []*types.Transaction) hash.Hash {
 	for _, tx := range txns {
 		utilTxns = append(utilTxns, types.NewTx(tx))
 	}
-	merkles := buildMerkleTreeStore(utilTxns)
+	merkles := BuildMerkleTreeStore(utilTxns)
 	return *merkles[len(merkles)-1]
 }
 

@@ -35,6 +35,26 @@ const (
 	statusInvalidAncestor = 1 << 3
 )
 
+// HaveData returns whether the full block data is stored in the database.  This
+// will return false for a block node where only the header is downloaded or
+// stored.
+func (status blockStatus) HaveData() bool {
+	return status&statusDataStored != 0
+}
+
+// KnownValid returns whether the block is known to be valid.  This will return
+// false for a valid block that has not been fully validated yet.
+func (status blockStatus) KnownValid() bool {
+	return status&statusValid != 0
+}
+
+// KnownInvalid returns whether the block is known to be invalid.  This will
+// return false for invalid blocks that have not been proven invalid yet.
+func (status blockStatus) KnownInvalid() bool {
+	return status&(statusValidateFailed|statusInvalidAncestor) != 0
+}
+
+
 // blockNode represents a block within the block chain and is primarily used to
 // aid in selecting the best chain to be the main chain.  The main chain is
 // stored into the block database.
@@ -173,4 +193,23 @@ func (node *blockNode) CalcPastMedianTime() time.Time {
 	// even number, this code will be wrong.
 	medianTimestamp := timestamps[numNodes/2]
 	return time.Unix(medianTimestamp, 0)
+}
+
+// Ancestor returns the ancestor block node at the provided height by following
+// the chain backwards from this node.  The returned block will be nil when a
+// height is requested that is after the height of the passed node or is less
+// than zero.
+//
+// This function is safe for concurrent access.
+func (node *blockNode) Ancestor(height uint64) *blockNode {
+	if height < 0 || height > node.height {
+		return nil
+	}
+
+	n := node
+	for ; n != nil && n.height != height; n = n.parent {
+		// Intentionally left blank
+	}
+
+	return n
 }

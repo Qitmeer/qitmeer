@@ -17,6 +17,7 @@ type TxType byte
 const (
 	CoinBase         TxType = 0x01
 	Leger            TxType = 0x02
+	TxTypeRegular    TxType = 0x03
 	AssetIssue       TxType = 0xa0
 	AssetRevoke      TxType = 0xa1
 	ContractCreate   TxType = 0xc0
@@ -51,6 +52,10 @@ const (
 	// of a transaction input can be.
 	MaxTxInSequenceNum uint32 = 0xffffffff
 
+	// MaxPrevOutIndex is the maximum index the index field of a previous
+	// outpoint can be.
+	MaxPrevOutIndex uint32 = 0xffffffff
+
 	// SequenceLockTimeDisabled is a flag that if set on a transaction
 	// input's sequence number, the sequence number will not be interpreted
 	// as a relative locktime.
@@ -64,6 +69,14 @@ const (
 	// SequenceLockTimeMask is a mask that extracts the relative locktime
 	// when masked against the transaction input sequence number.
 	SequenceLockTimeMask = 0x0000ffff
+
+	// TODO, revisit lock time define
+	// SequenceLockTimeGranularity is the defined time based granularity
+	// for seconds-based relative time locks.  When converting from seconds
+	// to a sequence number, the value is right shifted by this amount,
+	// therefore the granularity of relative time locks in 512 or 2^9
+	// seconds.  Enforced relative lock times are multiples of 512 seconds.
+	SequenceLockTimeGranularity = 9
 
 	// minTxPayload is the minimum payload size for a transaction.  Note
 	// that any realistically usable transaction must have at least one
@@ -96,6 +109,9 @@ const (
 	// a transaction which fits into a message could possibly have.
 	maxTxOutPerMessage = (MaxMessagePayload / minTxOutPayload) + 1
 
+	// NoExpiryValue is the value of expiry that indicates the transaction
+	// has no expiry.
+	NoExpiryValue uint32 = 0
 
 )
 
@@ -151,8 +167,8 @@ type Transaction struct {
 	Message   []byte     //a unencrypted/encrypted message if user pay additional fee & limit the max length
 }
 
-// NewMsgTx returns a new Decred tx message that conforms to the Message
-// interface.  The return instance has a default version of TxVersion and there
+// NewMsgTx returns a new tx message that conforms to the Message interface.
+// The return instance has a default version of TxVersion and there
 // are no transaction inputs or outputs.  Also, the lock time is set to zero
 // to indicate the transaction is valid immediately as opposed to some time in
 // future.
@@ -202,7 +218,7 @@ func (t *Transaction) AddTxOut(to *TxOutput) {
 // none, it returns that it is an assumed regular tx.
 func DetermineTxType(tx *Transaction) TxType {
 	//TODO txType
-	return Leger
+	return TxTypeRegular
 }
 
 // SerializeSize returns the number of bytes it would take to serialize the
@@ -865,6 +881,105 @@ func NewTx(t *Transaction) *Tx {
 	}
 }
 
+// NewTxDeep returns a new instance of a transaction given an underlying
+// wire.MsgTx.  Until NewTx, it completely copies the data in the msgTx
+// so that there are new memory allocations, in case you were to somewhere
+// else modify the data assigned to these pointers.
+func NewTxDeep(msgTx *Transaction) *Tx {
+	txIns := make([]*TxInput, len(msgTx.TxIn))
+	txOuts := make([]*TxOutput, len(msgTx.TxOut))
+
+	for i, txin := range msgTx.TxIn {
+		sigScript := make([]byte, len(txin.SignScript))
+		copy(sigScript[:], txin.SignScript[:])
+
+		txIns[i] = &TxInput{
+			PreviousOut: TxOutPoint{
+				Hash:     txin.PreviousOut.Hash,
+				OutIndex: txin.PreviousOut.OutIndex,
+			},
+			Sequence:        txin.Sequence,
+			AmountIn:        txin.AmountIn,
+			BlockHeight:     txin.BlockHeight,
+			BlockTxIndex:    txin.BlockTxIndex,
+			SignScript:      sigScript,
+		}
+	}
+
+	for i, txout := range msgTx.TxOut {
+		pkScript := make([]byte, len(txout.PkScript))
+		copy(pkScript[:], txout.PkScript[:])
+
+		txOuts[i] = &TxOutput{
+			Amount:   txout.Amount,
+			PkScript: pkScript,
+		}
+	}
+
+	mtx := &Transaction{
+		CachedHash: nil,
+		Version:    msgTx.Version,
+		TxIn:       txIns,
+		TxOut:      txOuts,
+		LockTime:   msgTx.LockTime,
+		Expire:     msgTx.Expire,
+	}
+
+	return &Tx{
+		hash:    mtx.TxHash(),
+		Tx:      mtx,
+		txIndex: TxIndexUnknown,
+	}
+}
+
+
+// NewTxDeepTxIns is used to deep copy a transaction, maintaining the old
+// pointers to the TxOuts while replacing the old pointers to the TxIns with
+// deep copies. This is to prevent races when the fraud proofs for the
+// transactions are set by the miner.
+func NewTxDeepTxIns(msgTx *Transaction) *Tx {
+	if msgTx == nil {
+		return nil
+	}
+
+	newMsgTx := new(Transaction)
+
+	// Copy the fixed fields.
+	newMsgTx.Version = msgTx.Version
+	newMsgTx.LockTime = msgTx.LockTime
+	newMsgTx.Expire = msgTx.Expire
+
+	// Copy the TxIns deeply.
+	for _, txIn := range msgTx.TxIn {
+		sigScrLen := len(txIn.SignScript)
+		sigScrCopy := make([]byte, sigScrLen)
+
+		txInCopy := new(TxInput)
+		txInCopy.PreviousOut.Hash = txIn.PreviousOut.Hash
+		txInCopy.PreviousOut.OutIndex = txIn.PreviousOut.OutIndex
+
+		txInCopy.Sequence = txIn.Sequence
+		txInCopy.AmountIn = txIn.AmountIn
+		txInCopy.BlockHeight = txIn.BlockHeight
+		txInCopy.BlockTxIndex = txIn.BlockTxIndex
+
+		txInCopy.SignScript = sigScrCopy
+
+		newMsgTx.AddTxIn(txIn)
+	}
+
+	// Shallow copy the TxOuts.
+	for _, txOut := range msgTx.TxOut {
+		newMsgTx.AddTxOut(txOut)
+	}
+
+	return &Tx{
+		hash:    msgTx.TxHash(),
+		Tx:   msgTx,
+		txIndex: TxIndexUnknown,
+	}
+}
+
 // Hash returns the hash of the transaction.  This is equivalent to
 // calling TxHash on the underlying wire.MsgTx, however it caches the
 // result so subsequent calls are more efficient.
@@ -909,9 +1024,8 @@ type TxInput struct {
 	SignScript       []byte
 }
 
-// NewTxIn returns a new Decred transaction input with the provided
-// previous outpoint point and signature script with a default sequence of
-// MaxTxInSequenceNum.
+// NewTxIn returns a new transaction input with the provided  previous outpoint
+// point and signature script with a default sequence of MaxTxInSequenceNum.
 func NewTxInput(prevOut *TxOutPoint, amountIn uint64, signScript []byte) *TxInput {
 	return &TxInput{
 		PreviousOut:   *prevOut,

@@ -189,6 +189,10 @@ const (
 	// coinbase transaction.
 	ErrMultipleCoinbases
 
+	// ErrIrregTxInRegularTree indicates irregular transaction was found in
+	// the regular transaction tree.
+	ErrIrregTxInRegularTree
+
 	// ErrBadCoinbaseScriptLen indicates the length of the signature script
 	// for a coinbase transaction is not within the valid range.
 	ErrBadCoinbaseScriptLen
@@ -333,6 +337,7 @@ var errorCodeStrings = map[ErrorCode]string{
 	ErrFirstTxNotCoinbase:     "ErrFirstTxNotCoinbase",
 	ErrCoinbaseHeight:         "ErrCoinbaseHeight",
 	ErrMultipleCoinbases:      "ErrMultipleCoinbases",
+	ErrIrregTxInRegularTree:   "ErrIrregularTxInRegularTree",
 	ErrBadCoinbaseScriptLen:   "ErrBadCoinbaseScriptLen",
 	ErrBadCoinbaseValue:       "ErrBadCoinbaseValue",
 	ErrBadCoinbaseOutpoint:    "ErrBadCoinbaseOutpoint",
