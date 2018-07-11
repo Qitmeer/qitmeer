@@ -110,6 +110,11 @@ function get_block(){
   get_result "$data"
 }
 
+function get_block_number(){
+  local data='{"jsonrpc":"2.0","method":"getBlockCount","params":[],"id":1}'
+  get_result "$data"
+}
+
 # return block by hash
 #   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){

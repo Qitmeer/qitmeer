@@ -125,4 +125,16 @@ func (api *PublicBlockAPI) GetBlock(hash hash.Hash, verbose bool) (interface{}, 
 
 }
 
+func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error){
+	best := api.bm.chain.BestSnapshot()
+	return best.Hash.String(), nil
+}
+
+func (api *PublicBlockAPI) GetBlockCount() (interface{}, error){
+	best := api.bm.chain.BestSnapshot()
+	return best.Height, nil
+}
+
+
+
 
