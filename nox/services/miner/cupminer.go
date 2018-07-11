@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"errors"
 	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/services/blkmgr"
 	"github.com/noxproject/nox/core/blockchain"
 	"github.com/noxproject/nox/core/types"
@@ -139,7 +138,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 
 	m.Unlock()
 
-	log.Trace("Generating blocks", n)
+	log.Trace("Generating blocks","num", n)
 
 	i := uint32(0)
 	blockHashes := make([]*hash.Hash, n)
@@ -174,16 +173,20 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 		template, err := mining.NewBlockTemplate(m.policy,m.config,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr)
 		m.submitBlockLock.Unlock()
 		if err != nil {
-			errStr := fmt.Sprintf("Failed to create new block "+
-				"template: %v", err)
-			log.Error(errStr)
-			continue
+			errStr := fmt.Sprintf("template: %v", err)
+			log.Error("Failed to create new block ","err",errStr)
+			//TODO refactor the quit logic
+			m.Lock()
+			close(m.speedMonitorQuit)
+			m.wg.Wait()
+			m.started = false
+			m.discreteMining = false
+			m.Unlock()
+			return nil, err  //should miner if error
 		}
-		if template == nil {
-			errStr := fmt.Sprintf("Not enough voters on parent block " +
-				"and failed to pull parent template")
-			log.Debug(errStr)
-			continue
+		if template == nil {  // should not go here
+			log.Debug("Failed to create new block template","err","but error=nil")
+			continue //might try again?
 		}
 
 		// Attempt to solve the block.  The function will exit early
@@ -196,7 +199,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 			blockHashes[i] = block.Hash()
 			i++
 			if i == n {
-				log.Trace("Generated %d blocks", i)
+				log.Trace(fmt.Sprintf("Generated %d blocks", i))
 				m.Lock()
 				close(m.speedMonitorQuit)
 				m.wg.Wait()
@@ -236,8 +239,8 @@ out:
 			hashesPerSec = (hashesPerSec + curHashesPerSec) / 2
 			totalHashes = 0
 			if hashesPerSec != 0 {
-				log.Debug("Hash speed: %6.0f kilohashes/s",
-					hashesPerSec/1000)
+				log.Debug(fmt.Sprintf("Hash speed: %6.0f kilohashes/s",
+					hashesPerSec/1000))
 			}
 
 		// Request for the number of hashes per second.
@@ -321,12 +324,12 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 
 			// Update the nonce and hash the block header.
 			header.Nonce = i
-			hash := header.BlockHash()
+			h := header.BlockHash()
 			hashesCompleted++
 
 			// The block is solved when the new block hash is less
 			// than the target difficulty.  Yay!
-			if blockchain.HashToBig(&hash).Cmp(targetDifficulty) <= 0 {
+			if blockchain.HashToBig(&h).Cmp(targetDifficulty) <= 0 {
 				m.updateHashes <- hashesCompleted
 				return true
 			}
@@ -380,9 +383,281 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 	for _, out := range coinbaseTxOuts {
 		coinbaseTxGenerated += out.Amount
 	}
-	log.Info("Block submitted via CPU miner accepted (hash %s, "+
-		"height %v, amount %v)", block.Hash(), block.Height(),
-		int64(coinbaseTxGenerated))
+	log.Info("Block submitted accepted","hash",block.Hash(),
+		"height", block.Height(),"amount",coinbaseTxGenerated)
 	return true
+}
+
+// Start begins the CPU mining process as well as the speed monitor used to
+// track hashing metrics.  Calling this function when the CPU miner has
+// already been started will have no effect.
+//
+// This function is safe for concurrent access.
+func (m *CPUMiner) Start() {
+	m.Lock()
+	defer m.Unlock()
+
+	// Nothing to do if the miner is already running or if running in discrete
+	// mode (using GenerateNBlocks).
+	if m.started || m.discreteMining {
+		return
+	}
+
+	m.quit = make(chan struct{})
+	m.speedMonitorQuit = make(chan struct{})
+	m.wg.Add(2)
+	go m.speedMonitor()
+	go m.miningWorkerController()
+
+	m.started = true
+	log.Info("CPU miner started")
+}
+
+// miningWorkerController launches the worker goroutines that are used to
+// generate block templates and solve them.  It also provides the ability to
+// dynamically adjust the number of running worker goroutines.
+//
+// It must be run as a goroutine.
+func (m *CPUMiner) miningWorkerController() {
+	// launchWorkers groups common code to launch a specified number of
+	// workers for generating blocks.
+	var runningWorkers []chan struct{}
+	launchWorkers := func(numWorkers uint32) {
+		for i := uint32(0); i < numWorkers; i++ {
+			quit := make(chan struct{})
+			runningWorkers = append(runningWorkers, quit)
+
+			m.workerWg.Add(1)
+			go m.generateBlocks(quit)
+		}
+	}
+
+	// Launch the current number of workers by default.
+	runningWorkers = make([]chan struct{}, 0, m.numWorkers)
+	launchWorkers(m.numWorkers)
+
+out:
+	for {
+		select {
+		// Update the number of running workers.
+		case <-m.updateNumWorkers:
+			// No change.
+			numRunning := uint32(len(runningWorkers))
+			if m.numWorkers == numRunning {
+				continue
+			}
+
+			// Add new workers.
+			if m.numWorkers > numRunning {
+				launchWorkers(m.numWorkers - numRunning)
+				continue
+			}
+
+			// Signal the most recently created goroutines to exit.
+			for i := numRunning - 1; i >= m.numWorkers; i-- {
+				close(runningWorkers[i])
+				runningWorkers[i] = nil
+				runningWorkers = runningWorkers[:i]
+			}
+
+		case <-m.quit:
+			for _, quit := range runningWorkers {
+				close(quit)
+			}
+			break out
+		}
+	}
+
+	// Wait until all workers shut down to stop the speed monitor since
+	// they rely on being able to send updates to it.
+	m.workerWg.Wait()
+	close(m.speedMonitorQuit)
+	m.wg.Done()
+}
+
+// Stop gracefully stops the mining process by signalling all workers, and the
+// speed monitor to quit.  Calling this function when the CPU miner has not
+// already been started will have no effect.
+//
+// This function is safe for concurrent access.
+func (m *CPUMiner) Stop() {
+	m.Lock()
+	defer m.Unlock()
+
+	// Nothing to do if the miner is not currently running or if running in
+	// discrete mode (using GenerateNBlocks).
+	if !m.started || m.discreteMining {
+		return
+	}
+
+	close(m.quit)
+	m.wg.Wait()
+	m.started = false
+	log.Info("CPU miner stopped")
+}
+
+// IsMining returns whether or not the CPU miner has been started and is
+// therefore currenting mining.
+//
+// This function is safe for concurrent access.
+func (m *CPUMiner) IsMining() bool {
+	m.Lock()
+	defer m.Unlock()
+
+	return m.started
+}
+
+// HashesPerSecond returns the number of hashes per second the mining process
+// is performing.  0 is returned if the miner is not currently running.
+//
+// This function is safe for concurrent access.
+func (m *CPUMiner) HashesPerSecond() float64 {
+	m.Lock()
+	defer m.Unlock()
+
+	// Nothing to do if the miner is not currently running.
+	if !m.started {
+		return 0
+	}
+
+	return <-m.queryHashesPerSec
+}
+
+// SetNumWorkers sets the number of workers to create which solve blocks.  Any
+// negative values will cause a default number of workers to be used which is
+// based on the number of processor cores in the system.  A value of 0 will
+// cause all CPU mining to be stopped.
+//
+// This function is safe for concurrent access.
+func (m *CPUMiner) SetNumWorkers(numWorkers int32) {
+	if numWorkers == 0 {
+		m.Stop()
+	}
+
+	// Don't lock until after the first check since Stop does its own
+	// locking.
+	m.Lock()
+	defer m.Unlock()
+
+	// Use default if provided value is negative.
+	if numWorkers < 0 {
+		m.numWorkers = uint32(params.CPUMinerThreads) //TODO, move to config
+	} else {
+		m.numWorkers = uint32(numWorkers)
+	}
+
+	// When the miner is already running, notify the controller about the
+	// the change.
+	if m.started {
+		m.updateNumWorkers <- struct{}{}
+	}
+}
+
+// NumWorkers returns the number of workers which are running to solve blocks.
+//
+// This function is safe for concurrent access.
+func (m *CPUMiner) NumWorkers() int32 {
+	m.Lock()
+	defer m.Unlock()
+
+	return int32(m.numWorkers)
+}
+
+
+// generateBlocks is a worker that is controlled by the miningWorkerController.
+// It is self contained in that it creates block templates and attempts to solve
+// them while detecting when it is performing stale work and reacting
+// accordingly by generating a new block template.  When a block is solved, it
+// is submitted.
+//
+// It must be run as a goroutine.
+func (m *CPUMiner) generateBlocks(quit chan struct{}) {
+	log.Trace("Starting generate blocks worker")
+
+	// Start a ticker which is used to signal checks for stale work and
+	// updates to the speed monitor.
+	ticker := time.NewTicker(333 * time.Millisecond)
+	defer ticker.Stop()
+
+out:
+	for {
+		// Quit when the miner is stopped.
+		select {
+		case <-quit:
+			break out
+		default:
+			// Non-blocking select to fall through
+		}
+
+		// No point in searching for a solution before the chain is
+		// synced.  Also, grab the same lock as used for block
+		// submission, since the current block will be changing and
+		// this would otherwise end up building a new block template on
+		// a block that is in the process of becoming stale.
+		m.submitBlockLock.Lock()
+		time.Sleep(100 * time.Millisecond)
+
+		// Hacks to make work with PoC (privnet only)
+		// TODO Remove before production.
+		if m.config.PrivNet {
+			_, curHeight := m.blockManager.GetChainState().Best()
+
+			if curHeight == 1 {
+				time.Sleep(5500 * time.Millisecond) // let wallet reconn
+			} else if curHeight > 100 && curHeight < 201 { // slow down to i
+				time.Sleep(10 * time.Millisecond) // 2500
+			} else { // burn through the first pile of blocks
+				time.Sleep(10 * time.Millisecond)
+			}
+		}
+
+		// Choose a payment address at random.
+		rand.Seed(time.Now().UnixNano())
+		miningaddrs :=m.config.GetMinningAddrs()
+		fmt.Printf("why %v, %d \n",miningaddrs,len(miningaddrs))
+		rindex :=rand.Intn(len(miningaddrs))
+		payToAddr := miningaddrs[rindex]
+
+		// Create a new block template using the available transactions
+		// in the memory pool as a source of transactions to potentially
+		// include in the block.
+		template, err := mining.NewBlockTemplate(m.policy,m.config,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr)
+		m.submitBlockLock.Unlock()
+		if err != nil {
+			errStr := fmt.Sprintf( "template: %v", err)
+			log.Error("Failed to create new block ","err",errStr)
+			continue  //TODO do we still continue?
+		}
+
+		// Not enough voters.
+		if template == nil {
+			continue
+		}
+
+		// This prevents you from causing memory exhaustion issues
+		// when mining aggressively in a simulation network.
+		if m.config.PrivNet {
+			if m.minedOnParents[template.Block.Header.ParentRoot] >=
+				maxSimnetToMine {
+				log.Trace("too many blocks mined on parent, stopping " +
+					"until there are enough votes on these to make a new " +
+					"block")
+				continue
+			}
+		}
+
+		// Attempt to solve the block.  The function will exit early
+		// with false when conditions that trigger a stale block, so
+		// a new block template can be generated.  When the return is
+		// true a solution was found, so submit the solved block.
+		if m.solveBlock(template.Block, ticker, quit) {
+			block := types.NewBlock(template.Block)
+			m.submitBlock(block)
+			m.minedOnParents[template.Block.Header.ParentRoot]++
+		}
+	}
+
+	m.workerWg.Done()
+	log.Trace("Generate blocks worker done")
 }
 

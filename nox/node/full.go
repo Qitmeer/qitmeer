@@ -43,11 +43,29 @@ type NoxFull struct {
 
 func (nox *NoxFull) Start(server *peerserver.PeerServer) error {
 	log.Debug("Starting Nox full node service")
+
+	// Start the CPU miner if generation is enabled.
+	if nox.node.Config.Generate {
+		nox.cpuMiner.Start()
+	}
+
+	nox.blockManager.Start()
 	return nil
 }
 
 func (nox *NoxFull) Stop() error {
 	log.Debug("Stopping Nox full node service")
+
+	log.Info("try stop bm")
+
+	nox.blockManager.Stop()
+
+	log.Info("try stop cpu miner")
+	// Stop the CPU miner if needed.
+	if nox.node.Config.Generate && nox.cpuMiner != nil {
+		nox.cpuMiner.Stop()
+	}
+
 	return nil
 }
 
@@ -119,6 +137,10 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 		PastMedianTime:   func() time.Time { return bm.GetChain().BestSnapshot().MedianTime },
 	}
 	nox.txMemPool = mempool.New(&txC)
+
+	// set mempool to bm
+	bm.SetMemPool(nox.txMemPool)
+
 
 	// Cpu Miner
 	// Create the mining policy based on the configuration options.

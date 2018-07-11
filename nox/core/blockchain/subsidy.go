@@ -4,6 +4,8 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
+// TODO decoupling subsidy from bm, might move to protocol/params
+
 package blockchain
 
 import (
@@ -119,10 +121,17 @@ func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
 }
 
 // CalcBlockWorkSubsidy calculates the proof of work subsidy for a block as a
-// proportion of the total subsidy.
+// proportion of the total subsidy. (aka, the coinbase subsidy)
 // TODO refactor CalcBlockWorkSubsidy
 func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, height int64, voters uint16, params *params.Params) uint64 {
-	return 0
+
+	subsidy := subsidyCache.CalcBlockSubsidy(height)
+	proportionWork := int64(params.WorkRewardProportion)
+	proportions := int64(params.TotalSubsidyProportions())
+	subsidy *= proportionWork
+	subsidy /= proportions
+
+	return uint64(subsidy) //TODO remove type conversion
 }
 
 // CalculateAddedSubsidy calculates the amount of subsidy added by a block
@@ -138,6 +147,13 @@ func CalculateAddedSubsidy(block, parent *types.SerializedBlock) int64 {
 // coinbase.
 // TODO refactor CalcBlockTaxSubsidy
 func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, voters uint16, params *params.Params) int64 {
-	return 0
+
+	subsidy := subsidyCache.CalcBlockSubsidy(height)
+	proportionTax := int64(params.BlockTaxProportion)
+	proportions := int64(params.TotalSubsidyProportions())
+	subsidy *= proportionTax
+	subsidy /= proportions
+
+	return subsidy
 }
 

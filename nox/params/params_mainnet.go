@@ -36,11 +36,15 @@ var MainNetParams = Params{
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        false,
+	WorkDiffAlpha:            1,
+	WorkDiffWindowSize:       144,
+	WorkDiffWindows:          20,
 	MaximumBlockSizes:        []int{393216},
 	MaxTxSize:                393216,
 	TargetTimePerBlock:       time.Minute * 5,
 	TargetTimespan:           time.Minute * 5 * 144, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 4,
+
 
 	// Subsidy parameters.
 	SubsidyReductionInterval: 210000,  //bitcoin mainnet

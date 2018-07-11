@@ -191,6 +191,5 @@ var privNetGenesisBlock = types.Block{
 
 // privNetGenesisHash is the hash of the first block in the block chain for the
 // private test network.
-// TODO calculate hash
-var privNetGenesisHash = zeroHash
+var privNetGenesisHash = privNetGenesisBlock.BlockHash()
 

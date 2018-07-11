@@ -44,7 +44,7 @@ type Config struct {
 	BlockMinSize         uint32        `long:"blockminsize" description:"Mininum block size in bytes to be used when creating a block"`
 	BlockMaxSize         uint32        `long:"blockmaxsize" description:"Maximum block size in bytes to be used when creating a block"`
 	BlockPrioritySize    uint32        `long:"blockprioritysize" description:"Size in bytes for high-priority/low-fee transactions when creating a block"`
-	miningAddrs       []types.Address
+	miningAddrs          []types.Address
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {

@@ -889,9 +889,9 @@ func (b *BlockChain) connectBestChain(node *blockNode, block, parent *types.Seri
 
 		validateStr := "validating"
 
-		log.Debug("Block %v (height %v) connected to the main chain, "+
-			"%v the previous block", node.hash, node.height,
-			validateStr)
+		// TODO, validating previous block
+		log.Debug("Block connected to the main chain","hash",node.hash,"height",
+			node.height, "operation",fmt.Sprintf( "%v the previous block",validateStr))
 
 		// The fork length is zero since the block is now the tip of the
 		// best chain.

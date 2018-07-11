@@ -111,12 +111,12 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	fastAdd := flags&BFFastAdd == BFFastAdd
 
 	blockHash := block.Hash()
-	log.Trace("Processing block %v", blockHash)
+	log.Trace("Processing block ","hash", blockHash)
 	currentTime := time.Now()
 	defer func() {
 		elapsedTime := time.Since(currentTime)
-		log.Debug("Block %v (height %v) finished processing in %s",
-			blockHash, block.Height(), elapsedTime)
+		log.Debug(fmt.Sprintf("Finished block processing"),
+			"hash",blockHash,"height",block.Height(),"elapsed time", elapsedTime)
 	}()
 
 	// The block must not already exist in the main chain or side chains.
@@ -205,7 +205,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 		return 0, false, err
 	}
 
-	log.Debug("Accepted block %v", blockHash)
+	log.Debug("Accepted block", "hash", blockHash)
 
 	return forkLen, false, nil
 }

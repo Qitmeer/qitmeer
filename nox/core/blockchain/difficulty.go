@@ -247,7 +247,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	oldDiffBig := CompactToBig(curNode.bits)
 
 	// We're not at a retarget point, return the oldDiff.
-	if (curNode.height+1)%uint64(b.params.WorkDiffWindowSize) != 0 {
+	if int64(curNode.height+1)%b.params.WorkDiffWindowSize != 0 {
 		// For networks that support it, allow special reduction of the
 		// required difficulty once too much time has elapsed without
 		// mining a block.
@@ -403,9 +403,11 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	// newTarget since conversion to the compact representation loses
 	// precision.
 	nextDiffBits := BigToCompact(nextDiffBig)
-	log.Debug("Difficulty retarget at block height %d", curNode.height+1)
-	log.Debug("Old target %08x (%064x)", curNode.bits, oldDiffBig)
-	log.Debug("New target %08x (%064x)", nextDiffBits, CompactToBig(nextDiffBits))
+	log.Debug("Difficulty retarget", "block height", curNode.height+1)
+	log.Debug("Old target", "bits",fmt.Sprintf("%08x", curNode.bits),
+		"diff",fmt.Sprintf( "(%064x)",oldDiffBig))
+	log.Debug("New target", "bits",fmt.Sprintf("%08x", nextDiffBits),
+		"diff",fmt.Sprintf( "(%064x)",CompactToBig(nextDiffBits)))
 
 	return nextDiffBits, nil
 }

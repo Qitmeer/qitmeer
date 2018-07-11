@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/noxproject/nox/common/encode/base58"
+	"encoding/hex"
 )
 
 
@@ -120,6 +121,21 @@ func ExampleCheckDecode_ds_addr() {
 	// Output:
 	// Decoded data: 64e20eb6075561d30c23a517c5b73badbc120f05
 	// Version Byte: [7 63]
+}
+
+func ExampleCheckEncode_addr() {
+
+	data,_ := hex.DecodeString("64e20eb6075561d30c23a517c5b73badbc120f05")
+	ver  := [2]byte{0x0c, 0x40}  //Nox main
+	encoded := base58.CheckEncode(data, ver)
+	fmt.Println("Address (sha256) : Nm281BTkccPTDL1CfhAAR27GAzx2bqFLQx5")
+	fmt.Println("Address (b2b)    :",encoded)
+	encoded = base58.DcrCheckEncode(data, ver)
+	fmt.Println("Address (b256)   :",encoded)
+	// Output:
+	// Address (sha256) : Nm281BTkccPTDL1CfhAAR27GAzx2bqFLQx5
+	// Address (b2b)    : Nm281BTkccPTDL1CfhAAR27GAzx2bnKjZdM
+	// Address (b256)   : Nm281BTkccPTDL1CfhAAR27GAzx2br4Aebi
 }
 
 

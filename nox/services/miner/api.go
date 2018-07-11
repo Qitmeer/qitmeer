@@ -44,8 +44,8 @@ func (api *PublicMinerAPI) Generate(numBlocks uint32) ([]string, error) {
 	}
 	blockHashes, err := api.miner.GenerateNBlocks(numBlocks)
 	if err != nil {
-		return nil, er.RpcInternalError("Could not generate blocks",
-			"Configuration")
+		return nil, er.RpcInternalError("Could not generate blocks,"+err.Error(),
+			"miner")
 	}
 	// Create a reply
 	reply := make([]string, numBlocks)

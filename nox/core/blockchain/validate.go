@@ -764,8 +764,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.Ser
 	err = b.checkTransactionsAndConnect(b.subsidyCache, stakeTreeFees, node,
 		block.Transactions(), utxoView, stxos, true)
 	if err != nil {
-		log.Trace("checkTransactionsAndConnect failed for cur "+
-			"TxTreeRegular: %v", err)
+		log.Trace("checkTransactionsAndConnect failed","err", err)
 		return err
 	}
 
@@ -850,6 +849,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		cumulativeSigOps, err = checkNumSigOps(tx, utxoView, idx,
 			txTree, cumulativeSigOps)
 		if err != nil {
+			log.Trace("checkNumSigOps failed","err", err)
 			return err
 		}
 
@@ -859,8 +859,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			int64(node.height), utxoView, true, /* check fraud proofs */
 			b.params) //TODO, remove type conversion
 		if err != nil {
-			log.Trace("CheckTransactionInputs failed; error "+
-				"returned: %v", err)
+			log.Trace("CheckTransactionInputs failed","err", err)
 			return err
 		}
 
@@ -878,6 +877,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		err = utxoView.connectTransaction(tx, node.height, uint32(idx),
 			stxos)
 		if err != nil {
+			log.Trace("connectTransaction failed","err", err)
 			return err
 		}
 	}
@@ -899,9 +899,11 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		if node.height == 1 {
 			expAtomOut = subsidyCache.CalcBlockSubsidy(int64(node.height)) //TODO, remove type conversion
 		} else {
-			subsidyWork := int64(0)
-			subsidyTax := int64(0)
-			expAtomOut = subsidyWork + subsidyTax + totalFees
+			subsidyWork := CalcBlockWorkSubsidy(subsidyCache,
+				int64(node.height), 0, b.params)                    //TODO, remove type conversion
+			subsidyTax := CalcBlockTaxSubsidy(subsidyCache,
+				int64(node.height), 0, b.params)                    //TODO, remove type conversion
+			expAtomOut = int64(subsidyWork) + subsidyTax + totalFees       //TODO, remove type conversion
 		}
 
 		// AmountIn for the input should be equal to the subsidy.

@@ -12,6 +12,7 @@ import (
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/protocol"
+	"encoding/hex"
 )
 
 // CheckForDuplicateHashes checks for duplicate hashes when validating blocks.
@@ -281,6 +282,12 @@ func (p *Params) BlockOneSubsidy() uint64 {
 	return sum
 }
 
+// TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax
+// proportions.
+func (p *Params) TotalSubsidyProportions() uint16 {
+	return p.WorkRewardProportion + p.StakeRewardProportion + p.BlockTaxProportion
+}
+
 var (
 	// ErrDuplicateNet describes an error where the parameters for a network
 	// could not be set due to the network already being a standard
@@ -339,4 +346,13 @@ func init() {
 	mustRegister(&MainNetParams)
 	mustRegister(&TestNetParams)
 	mustRegister(&PrivNetParams)
+}
+
+// TODO, move to hex util
+func hexMustDecode(hexStr string) []byte {
+	b, err := hex.DecodeString(hexStr)
+	if err != nil {
+		panic(err)
+	}
+	return b
 }

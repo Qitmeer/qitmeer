@@ -41,6 +41,9 @@ var PrivNetParams = Params{
 	GenerateSupported:        true,
 	MaximumBlockSizes:        []int{1000000, 1310720},
 	MaxTxSize:                1000000,
+	WorkDiffAlpha:            1,
+	WorkDiffWindowSize:       8,
+	WorkDiffWindows:          4,
 	TargetTimePerBlock:       time.Second,
 	TargetTimespan:           time.Second * 8, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 4,
@@ -50,8 +53,8 @@ var PrivNetParams = Params{
 	MulSubsidy:               100,
 	DivSubsidy:               101,
 	SubsidyReductionInterval: 128,
-	WorkRewardProportion:     6,
-	StakeRewardProportion:    3,
+	WorkRewardProportion:     9,
+	StakeRewardProportion:    0,
 	BlockTaxProportion:       1,
 
 	// Checkpoints ordered from oldest to newest.
@@ -72,12 +75,17 @@ var PrivNetParams = Params{
 
 
 	// BIP32 hierarchical deterministic extended key magics
+	// TODO HD key magics
 	HDPrivateKeyID: [4]byte{0x04, 0x20, 0xb9, 0x03}, // starts with rprv
 	HDPublicKeyID:  [4]byte{0x04, 0x20, 0xbd, 0x3d}, // starts with rpub
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
+	// TODO coin type
 	HDCoinType: 115, // ASCII for s
 
-	CoinbaseMaturity:        16,
+	// TODO replace the test pkh
+	OrganizationPkScript:  hexMustDecode("76a91464e20eb6075561d30c23a517c5b73badbc120f0588ac"),
+
+	CoinbaseMaturity: 16,
 }

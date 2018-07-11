@@ -17,7 +17,7 @@ const (
 	timeFormat     = "2006-01-02T15:04:05-0700"
 	termTimeFormat = "2006-01-02|15:04:05.000"
 	floatFormat    = 'f'
-	termMsgJust    = 30
+	termMsgJust    = 35
 )
 
 // locationTrims are trimmed for display to avoid unwieldy log lines.

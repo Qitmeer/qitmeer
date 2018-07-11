@@ -242,7 +242,7 @@ func loadConfig() (*config.Config, []string, error) {
 		log.PrintOrigins(true)
 	}
 
-		// Check mining addresses are valid and saved parsed versions.
+	// Check mining addresses are valid and saved parsed versions.
 	for _, strAddr := range cfg.MiningAddrs {
 		addr, err := address.DecodeAddress(strAddr)
 		if err != nil {

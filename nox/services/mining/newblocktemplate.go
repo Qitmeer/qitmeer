@@ -1,15 +1,12 @@
 package mining
 
 import (
-	s "github.com/noxproject/nox/core/serialization"
-	"github.com/noxproject/nox/core/types"
+
 	"fmt"
+	"encoding/binary"
 	"container/heap"
 	"github.com/noxproject/nox/core/protocol"
 	"github.com/noxproject/nox/core/merkle"
-	"time"
-	"encoding/binary"
-	"github.com/noxproject/nox/core/address"
 	"github.com/noxproject/nox/config"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/common/hash"
@@ -18,6 +15,9 @@ import (
 	"github.com/noxproject/nox/engine/txscript"
 	"github.com/noxproject/nox/services/blkmgr"
 	"github.com/noxproject/nox/log"
+	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/core/address"
+	s "github.com/noxproject/nox/core/serialization"
 )
 
 
@@ -163,8 +163,7 @@ func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Param
 	txSigOpCountsMap := make(map[hash.Hash]int64)
 	txFees = append(txFees, -1) // Updated once known
 
-	log.Debug("Considering %d transactions for inclusion to new block",
-		len(sourceTxns))
+	log.Debug("Inclusion to new block", "transactions",len(sourceTxns))
 mempoolLoop:
 	for _, txDesc := range sourceTxns {
 		// A block can't have more than one coinbase or contain
@@ -260,8 +259,8 @@ mempoolLoop:
 		mergeUtxoView(blockUtxos, utxos)
 	}
 
-	log.Trace("Priority queue len %d, dependers len %d",
-		priorityQueue.Len(), len(dependers))
+	log.Trace("Priority queue","queue len", priorityQueue.Len(),
+		"dependers len", len(dependers))
 
 	// The starting block size is the size of the block header plus the max
 	// possible transaction count size, plus the size of the coinbase
@@ -514,7 +513,7 @@ mempoolLoop:
 	// Calculate the required difficulty for the block.  The timestamp
 	// is potentially adjusted to ensure it comes after the median time of
 	// the last several blocks per the chain consensus rules.
-	ts, err := medianAdjustedTime(chainState, timeSource,config)
+	ts, err := chainState.MedianAdjustedTime(timeSource,config)
 	if err != nil {
 		return nil, miningRuleError(ErrGettingMedianTime, err.Error())
 	}
@@ -642,12 +641,13 @@ mempoolLoop:
 		return nil, miningRuleError(ErrCheckConnectBlock, str)
 	}
 
-	log.Debug("Created new block template (%d transactions, %d "+
-		"stake transactions, %d in fees, %d signature operations, "+
-		"%d bytes, target difficulty %064x )",
-		len(block.Transactions),
-		totalFees, blockSigOps, blockSize,
-		blockchain.CompactToBig(block.Header.Difficulty))
+	log.Debug("Created new block template",
+		"transactions", len(block.Transactions),
+		"fees",totalFees,
+		"signOp",blockSigOps,
+		"bytes", blockSize,
+		"target",
+		fmt.Sprintf("%064x",blockchain.CompactToBig(block.Header.Difficulty)))
 
 	blockTemplate := &types.BlockTemplate{
 		Block:           &block,
@@ -656,7 +656,6 @@ mempoolLoop:
 		Height:          nextBlockHeight,
 		ValidPayAddress: payToAddress != nil,
 	}
-
 	return handleCreatedBlockTemplate(blockTemplate, blockManager)
 }
 
@@ -674,7 +673,7 @@ func UpdateBlockTime(msgBlock *types.Block, bManager *blkmgr.BlockManager,
 	// the median time of the last several blocks per the chain consensus
 	// rules.
 	// TODO, refactor the config dependence
-	newTimestamp, err := medianAdjustedTime(bManager.GetChainState(),
+	newTimestamp, err := bManager.GetChainState().MedianAdjustedTime(
 		timeSource, config)
 	if err != nil {
 		return miningRuleError(ErrGettingMedianTime, err.Error())
@@ -695,42 +694,16 @@ func UpdateBlockTime(msgBlock *types.Block, bManager *blkmgr.BlockManager,
 	return nil
 }
 
-// medianAdjustedTime returns the current time adjusted to ensure it is at least
-// one second after the median timestamp of the last several blocks per the
-// chain consensus rules.
-func medianAdjustedTime(chainState *blkmgr.ChainState, timeSource blockchain.MedianTimeSource, cfg *config.Config) (time.Time, error) {
-	chainState.Lock()
-	defer chainState.Unlock()
-
-	// The timestamp for the block must not be before the median timestamp
-	// of the last several blocks.  Thus, choose the maximum between the
-	// current time and one second after the past median time.  The current
-	// timestamp is truncated to a second boundary before comparison since a
-	// block timestamp does not supported a precision greater than one
-	// second.
-	newTimestamp := timeSource.AdjustedTime()
-	minTimestamp := chainState.GetPastMedianTime().Add(time.Second)
-	if newTimestamp.Before(minTimestamp) {
-		newTimestamp = minTimestamp
-	}
-	//TODO, refactor the config dependence
-	// Adjust by the amount requested from the command line argument.
-	newTimestamp = newTimestamp.Add(
-		time.Duration(-cfg.MiningTimeOffset) * time.Second)
-
-	return newTimestamp, nil
-}
-
 // mergeUtxoView adds all of the entries in view to viewA.  The result is that
 // viewA will contain all of its original entries plus all of the entries
 // in viewB.  It will replace any entries in viewB which also exist in viewA
 // if the entry in viewA is fully spent.
 func mergeUtxoView(viewA *blockchain.UtxoViewpoint, viewB *blockchain.UtxoViewpoint) {
 	viewAEntries := viewA.Entries()
-	for hash, entryB := range viewB.Entries() {
-		if entryA, exists := viewAEntries[hash]; !exists ||
+	for h, entryB := range viewB.Entries() {
+		if entryA, exists := viewAEntries[h]; !exists ||
 			entryA == nil || entryA.IsFullySpent() {
-			viewAEntries[hash] = entryB
+			viewAEntries[h] = entryB
 		}
 	}
 }

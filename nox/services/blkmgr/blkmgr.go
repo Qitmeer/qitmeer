@@ -19,6 +19,7 @@ import (
 	"github.com/noxproject/nox/p2p/peerserver"
 	"github.com/noxproject/nox/services/mempool"
 	"github.com/noxproject/nox/core/types"
+	"errors"
 )
 
 // BlockManager provides a concurrency safe block manager for handling all
@@ -32,6 +33,7 @@ type BlockManager struct {
 
 	peerServer          *peerserver.PeerServer
 
+	//TODO, decoupling mempool with bm
 	txMemPool			*mempool.TxPool
 
 	chain               *blockchain.BlockChain
@@ -56,6 +58,10 @@ type BlockManager struct {
 	headerList       *list.List
 	startHeader      *list.Element
 	nextCheckpoint   *params.Checkpoint
+
+	//block template cache
+	cachedCurrentTemplate *types.BlockTemplate
+	cachedParentTemplate  *types.BlockTemplate
 
 }
 
@@ -118,9 +124,20 @@ func NewBlockManager(indexManager blockchain.IndexManager,db database.DB,
 	// Retrieve the current previous block hash and next stake difficulty.
 	curPrevHash := bm.chain.BestPrevHash()
 
-	bm.updateChainState(&best.Hash, best.Height, curPrevHash)
+	bm.GetChainState().UpdateChainState(&best.Hash,best.Height,best.MedianTime,curPrevHash)
 
 	return &bm, nil
+}
+
+// Set the tx mem-pool to the block manager, It should call before the block manager
+// getting started otherwise an error thrown
+// TODO, decoupling mempool with bm
+func (b *BlockManager) SetMemPool(pool *mempool.TxPool) error {
+	if b.started == 1 {
+		return errors.New("BlockManager already started, can't set mem pool")
+	}
+	b.txMemPool = pool
+	return nil
 }
 
 
@@ -175,10 +192,13 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 
 		// Generate the inventory vector and relay it.
 		iv := message.NewInvVect(message.InvTypeBlock, blockHash)
-		b.peerServer.RelayInventory(iv, block.Block().Header)
-	/*
+		log.Info("relay inv","inv",iv)
+
+		// TODO the p2p layer
+		//b.peerServer.RelayInventory(iv, block.Block().Header)
 	// A block has been connected to the main block chain.
 	case blockchain.BlockConnected:
+		log.Trace("Chain connected notification.")
 		blockSlice, ok := notification.Data.([]*types.SerializedBlock)
 		if !ok {
 			log.Warn("Chain connected notification is not a block slice.")
@@ -190,6 +210,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			break
 		}
 
+		/*
 		block := blockSlice[0]
 		parentBlock := blockSlice[1]
 
@@ -228,9 +249,11 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			// Notify registered websocket clients of incoming block.
 			r.ntfnMgr.NotifyBlockConnected(block)
 		}
+		*/
 
 	// A block has been disconnected from the main block chain.
 	case blockchain.BlockDisconnected:
+		log.Trace("Chain disconnected notification.")
 		blockSlice, ok := notification.Data.([]*types.SerializedBlock)
 		if !ok {
 			log.Warn("Chain disconnected notification is not a block slice.")
@@ -242,15 +265,19 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			break
 		}
 
+		/*
 		block := blockSlice[0]
 
 		// Notify registered websocket clients.
 		if r := b.server.rpcServer; r != nil {
 			r.ntfnMgr.NotifyBlockDisconnected(block)
 		}
+		*/
 
 	// The blockchain is reorganizing.
 	case blockchain.Reorganization:
+		log.Trace("Chain reorganization notification")
+		/*
 		rd, ok := notification.Data.(*blockchain.ReorganizationNotifyData)
 		if !ok {
 			log.Warn("Chain reorganization notification is malformed")
@@ -265,7 +292,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		// Drop the associated mining template from the old chain, since it
 		// will be no longer valid.
 		b.cachedCurrentTemplate = nil
-	*/
+		*/
 	}
 }
 
@@ -365,23 +392,6 @@ func (b *BlockManager) resetHeaderState(newestHash *hash.Hash, newestHeight uint
 		b.headerList.PushBack(&node)
 	}
 }
-
-// updateChainState updates the chain state associated with the block manager.
-// This allows fast access to chain information since blockchain is currently not
-// safe for concurrent access and the block manager is typically quite busy
-// processing block and inventory.
-func (b *BlockManager) updateChainState(newestHash *hash.Hash,
-	newestHeight uint64, curPrevHash hash.Hash) {
-
-	b.chainState.Lock()
-	defer b.chainState.Unlock()
-
-	b.chainState.newestHash = newestHash
-	b.chainState.newestHeight = newestHeight
-	b.chainState.pastMedianTime = b.chain.BestSnapshot().MedianTime
-	b.chainState.curPrevHash = curPrevHash
-}
-
 
 func (b *BlockManager) blockHandler() {
 	//candidatePeers := list.New()
@@ -527,12 +537,13 @@ out:
 					// on a side chain or have caused a reorg.
 					best := b.chain.BestSnapshot()
 
+					// TODO, decoupling mempool with bm
 					b.txMemPool.PruneExpiredTx(best.Height)
 
 					curPrevHash := b.chain.BestPrevHash()
 
-					b.updateChainState(&best.Hash,
-						best.Height,
+					b.GetChainState().UpdateChainState(&best.Hash,
+						best.Height, best.MedianTime,
 						curPrevHash)
 				}
 
@@ -566,7 +577,7 @@ out:
 				case pauseMsg:
 					// Wait until the sender unpauses the manager.
 					<-msg.unpause
-
+				*/
 				case getCurrentTemplateMsg:
 					cur := deepCopyBlockTemplate(b.cachedCurrentTemplate)
 					msg.reply <- getCurrentTemplateResponse{
@@ -586,7 +597,6 @@ out:
 				case setParentTemplateMsg:
 					b.cachedParentTemplate = deepCopyBlockTemplate(msg.Template)
 					msg.reply <- setParentTemplateResponse{}
-				*/
 			default:
 				log.Warn("Invalid message type in block "+
 					"handler: %T", msg)
