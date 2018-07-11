@@ -73,6 +73,19 @@ function new_account(){
   get_result "$payload"
 }
 
+# the amount of wei for the given address in the state of the given block number.
+#   func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*big.Int, error)
+function get_balance(){
+  local addr=$1
+  local block_num=$2
+  if [ "$block_num" == "" ]; then
+    block_num="latest"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBalance","params":["'$addr'","'$block_num'"],"id":null}'
+  get_result "$data"
+}
+
+
 # returns the requested block by blockNr
 # When fullTx is true all transactions in the block are # returned in full detail, otherwise only the transaction hash is returned.
 #   func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error)
@@ -86,6 +99,7 @@ function get_block_eth(){
   get_result "$data"
 }
 
+# Nox 
 function get_block(){
   local height=$1
   local verbose=$2
@@ -104,7 +118,7 @@ function get_block_by_hash(){
   if [ "$verbose" == "" ]; then
     verbose="true"
   fi
-  local data='{"jsonrpc":"2.0","method":"getBlockByHash","params":["'$block_hash'",'$verbose'],"id":1}'
+  local data='{"jsonrpc":"2.0","method":"getBlock","params":["'$block_hash'",'$verbose'],"id":1}'
   get_result "$data"
 }
 
@@ -120,17 +134,6 @@ function get_tx_by_hash(){
 }
 
 
-# the amount of wei for the given address in the state of the given block number.
-#   func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*big.Int, error)
-function get_balance(){
-  local addr=$1
-  local block_num=$2
-  if [ "$block_num" == "" ]; then
-    block_num="latest"
-  fi
-  local data='{"jsonrpc":"2.0","method":"getBalance","params":["'$addr'","'$block_num'"],"id":null}'
-  get_result "$data"
-}
 
 function generate() {
   local count=$1
@@ -406,6 +409,9 @@ function call_get_block() {
        block_result=$(get_block "$blknum" "$verbose")
     elif ! [ "$blkhash" == "" ]; then
        block_result=$(get_block_by_hash "$blkhash" "$verbose")
+       if [ "$verbose" != "true" ]; then
+         block_result='{ "result" : "'$block_result'"}'
+       fi
     else
        echo '{ "error" : "need to provide blknum or blkhash"}'; exit -1;
     fi

@@ -642,6 +642,17 @@ func (b *BlockChain) BlockByHash(hash *hash.Hash) (*types.SerializedBlock, error
 	return b.fetchMainChainBlockByHash(hash)
 }
 
+// FetchBlockByHash searches the internal chain block stores and the database
+// in an attempt to find the requested block.
+//
+// This function differs from BlockByHash in that this one also returns blocks
+// that are not part of the main chain (if they are known).
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) FetchBlockByHash(hash *hash.Hash) (*types.SerializedBlock, error) {
+	return b.fetchBlockByHash(hash)
+}
+
 // fetchMainChainBlockByHash returns the block from the main chain with the
 // given hash.  It first attempts to use cache and then falls back to loading it
 // from the database.
