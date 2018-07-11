@@ -253,15 +253,14 @@ func loadConfig() (*config.Config, []string, error) {
 			return nil, nil, err
 		}
 		// TODO, check network by using IsForNetwork()
-		/*
-		if !addr.IsForNetwork(activeNetParams.Params) {
+
+		if !address.IsForNetwork(addr,activeNetParams.Params) {
 			str := "%s: mining address '%s' is on the wrong network"
 			err := fmt.Errorf(str, funcName, strAddr)
 			fmt.Fprintln(os.Stderr, err)
 			fmt.Fprintln(os.Stderr, usageMessage)
 			return nil, nil, err
 		}
-		*/
 		cfg.SetMiningAddrs(addr)
 	}
 
