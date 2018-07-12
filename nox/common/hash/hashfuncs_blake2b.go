@@ -1,8 +1,11 @@
+// Copyright (c) 2017-2018 The nox developers
 package hash
 
-import "golang.org/x/crypto/blake2b"
+import (
+	"golang.org/x/crypto/blake2b"
+)
 
-// BlakeHashB using blake2b calculates hash(b) and returns the resulting bytes.
+// HashB using blake2b calculates hash(b) and returns the resulting bytes.
 func HashB(b []byte) []byte {
 	hash := blake2b.Sum256(b)
 	return hash[:]
@@ -26,4 +29,5 @@ func DoubleHashH(b []byte) Hash {
 	first := blake2b.Sum256(b)
 	return Hash(blake2b.Sum256(first[:]))
 }
+
 

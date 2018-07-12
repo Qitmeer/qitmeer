@@ -39,5 +39,4 @@ var goldenTest = []_Golden{
 	{0x00000000, "How can you write a big system without C++?  -Paul Glick"},
 }
 
-func testHash(){
-}
+
