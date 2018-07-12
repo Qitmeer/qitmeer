@@ -3,7 +3,8 @@ data_dir=$app_dir/data
 log_dir=$app_dir/log
 debug_level=trace
 
-mining_addr=ShfUZ1roNdsTNki6wxZ4PfGwkdCPH643N1
+mining_addr=SiMVDjmSfbR9RAvvaxoBgMA4xi36yrwer4
+
 
 #  --rpclisten=    Add an interface/port to listen for RPC connections (default port: 8334, testnet: 18334)
 #  --rpccert=      File containing the certificate file (rpc.cert)

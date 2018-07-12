@@ -20,6 +20,7 @@ import (
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/engine/txscript"
 	"github.com/noxproject/nox/services/mining"
+	"github.com/noxproject/nox/core/merkle"
 )
 
 const (
@@ -288,6 +289,22 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 	lastTxUpdate := m.txSource.LastUpdated()
 	hashesCompleted := uint64(0)
 
+	// TODO, decided if need extra nonce for coinbase-tx
+	// Note that the entire extra nonce range is iterated and the offset is
+	// added relying on the fact that overflow will wrap around 0 as
+	// provided by the Go spec.
+	// for extraNonce := uint64(0); extraNonce < maxExtraNonce; extraNonce++ {
+
+		// Update the extra nonce in the block template with the
+		// new value by regenerating the coinbase script and
+		// setting the merkle root to the new value.
+		// TODO, decided if need extra nonce for coinbase-tx
+		// updateExtraNonce(msgBlock, extraNonce+enOffset)
+
+		// Update the extra nonce in the block template header with the
+		// new value.
+		// binary.LittleEndian.PutUint64(header.ExtraData[:], extraNonce+enOffset)
+
 		// Search through the entire nonce range for a solution while
 		// periodically checking for early quit and stale block
 		// conditions along with updates to the speed monitor.
@@ -311,7 +328,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 					return false
 				}
 
-				err := mining.UpdateBlockTime(msgBlock,m.blockManager, m.blockManager.GetChain(), m.timeSource, m.params, m.config)
+				err := mining.UpdateBlockTime(msgBlock, m.blockManager, m.blockManager.GetChain(), m.timeSource, m.params, m.config)
 				if err != nil {
 					log.Warn("CPU miner unable to update block template "+
 						"time: %v", err)
@@ -334,7 +351,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 				return true
 			}
 		}
-
+	//}
 	return false
 }
 
@@ -661,3 +678,28 @@ out:
 	log.Trace("Generate blocks worker done")
 }
 
+func updateExtraNonce(msgBlock *types.Block, extraNonce uint64) error {
+	// TODO, decided if need extra nonce for coinbase-tx
+	// do nothing for now
+	return nil
+	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(msgBlock.Header.Height)).
+		AddInt64(int64(extraNonce)).AddData([]byte("nox/test")).
+		Script()
+	if err != nil {
+		return err
+	}
+	if len(coinbaseScript) > blockchain.MaxCoinbaseScriptLen {
+		return fmt.Errorf("coinbase transaction script length "+
+			"of %d is out of range (min: %d, max: %d)",
+			len(coinbaseScript), blockchain.MinCoinbaseScriptLen,
+			blockchain.MaxCoinbaseScriptLen)
+	}
+	msgBlock.Transactions[0].TxIn[0].SignScript = coinbaseScript
+
+
+	// Recalculate the merkle root with the updated extra nonce.
+	block := types.NewBlock(msgBlock)
+	merkles := merkle.BuildMerkleTreeStore(block.Transactions())
+	msgBlock.Header.TxRoot = *merkles[len(merkles)-1]
+	return nil
+}

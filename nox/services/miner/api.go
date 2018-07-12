@@ -39,7 +39,7 @@ func (api *PublicMinerAPI) Generate(numBlocks uint32) ([]string, error) {
 		return nil, er.RpcInternalError("Invalid number of blocks",
 			"Configuration")
 	}
-	if numBlocks > 1000 {
+	if numBlocks > 3000 {
 		return nil, fmt.Errorf("error, more than 1000")
 	}
 	blockHashes, err := api.miner.GenerateNBlocks(numBlocks)

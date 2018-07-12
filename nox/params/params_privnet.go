@@ -7,10 +7,10 @@
 package params
 
 import (
-	"time"
 	"math/big"
 	"github.com/noxproject/nox/common"
 	"github.com/noxproject/nox/core/protocol"
+	"time"
 )
 
 
@@ -42,10 +42,10 @@ var PrivNetParams = Params{
 	MaximumBlockSizes:        []int{1000000, 1310720},
 	MaxTxSize:                1000000,
 	WorkDiffAlpha:            1,
-	WorkDiffWindowSize:       8,
-	WorkDiffWindows:          4,
-	TargetTimePerBlock:       time.Second,
-	TargetTimespan:           time.Second * 8, // TimePerBlock * WindowSize
+	WorkDiffWindowSize:       16,
+	WorkDiffWindows:          20,
+	TargetTimePerBlock:       time.Second * 30,
+	TargetTimespan:           time.Second * 30 * 16, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
