@@ -342,7 +342,9 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 			// Update the nonce and hash the block header.
 			header.Nonce = i
 			h := header.BlockHash()
-			hashesCompleted++
+			// Each hash is actually a double hash (tow hashes), so
+			// increment the number of hashes by 2
+			hashesCompleted += 2
 
 			// The block is solved when the new block hash is less
 			// than the target difficulty.  Yay!
