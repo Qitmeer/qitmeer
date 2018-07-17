@@ -61,6 +61,18 @@ func ExampleCheckDecodeBtc() {
 	// Version Byte: 0
 }
 
+func ExampleCheckEncodeBtc1() {
+	// Encode example data with the Base58Check encoding scheme.
+	data,_ := hex.DecodeString("62e907b15cbf27d5425399ebf6f0fb50ebb88f18a")
+	encoded := base58.BtcCheckEncode(data, 0x0)
+
+	// Show the encoded data.
+	fmt.Println("Encoded Data:", encoded)
+
+	// Output:
+	// Encoded Data: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+}
+
 // This example demonstrates how to encode data using the Base58Check encoding
 // scheme.
 func ExampleCheckEncodeBtc() {
