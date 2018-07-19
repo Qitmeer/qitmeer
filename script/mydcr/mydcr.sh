@@ -9,12 +9,6 @@ DEBUG=0
 DEBUG_FILE=/tmp/mydcr_curl_debug
 ERR_FILE=/tmp/mydcr_curl_error
 
-
-data_dir="/data/dcr/private/" 
-
-cli="./dcrctl -C ./dcrd.conf -c ./rpc.cert --simnet"
-
-
 function get_result(){
   set +x
   if [ -z "$host" ]; then
@@ -117,6 +111,9 @@ while [ $# -gt 0 ] ;do
     -decode)
       decode=$2
       shift;;
+    --network)
+      network=$2
+      shift;;
     *)
       cmd="$@"
       #echo "cmd is $cmd"
@@ -124,6 +121,24 @@ while [ $# -gt 0 ] ;do
     esac
   shift
 done
+
+case "$network" in
+  main*|mainnet*)
+    cli="./dcrctl -C ./dcrd.conf -c ./rpc.cert"
+    ;;
+  private*|simnet*|'')
+    cli="./dcrctl -C ./dcrd.conf -c ./rpc.cert --simnet"
+    ;;
+  test*|testnet*)
+    cli="./dcrctl -C ./dcrd.conf -c ./rpc.cert --testnet"
+    ;;
+  *)
+    cli="./dcrctl -C ./dcrd.conf -c ./rpc.cert"
+    ;;
+esac
+
+#echo $cli
+
 
 if [ "$1" == "tx" ]; then
   shift
