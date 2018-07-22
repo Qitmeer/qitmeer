@@ -350,6 +350,21 @@ function get_tx_by_hash(){
   get_result "$data"
 }
 
+# only supported by web3_ext
+function get_rawtx_by_hash(){
+  local tx_hash=$1
+  local data='{"jsonrpc":"2.0","method":"eth_getRawTransactionByHash","params":["'$tx_hash'"],"id":1}'
+  get_result "$data"
+}
+
+# should be replaced by a more elegant way
+function get_rawtx_by_hash_ugly(){
+  local tx_hash=$1
+  local url=https://etherscan.io/getRawTx?tx=$tx_hash
+  curl -s $url|grep "Returned Raw Transaction Hex :" |awk '{print $7}'|sed s/\<br\>\<br\>//
+}
+
+
 # the block number of the chain head
 # geth : internal/ethapi/api.go
 #   func (s *PublicBlockChainAPI) BlockNumber() *big.Int
@@ -457,11 +472,19 @@ function get_result(){
   if [ -z "$port" ]; then
      port=8545
   fi
+  
   local data=$1
-  local curl_result=$(curl -s -X POST -H 'Content-Type: application/json' --data $data http://$host:$port)
+  local endpoint="http://$host:$port"
+
+  # remote node by infura io 
+  if [ "$host" == "infura" ]; then
+    endpoint="https://mainnet.infura.io/$YOUR_API_KEY"
+  fi
+
+  local curl_result=$(curl -s -X POST -H 'Content-Type: application/json' --data $data $endpoint)
   local result=$(echo $curl_result|jq -r -c -M '.result')
   if [ $DEBUG -gt 0 ]; then
-    local curl_cmd="curl -s -X POST -H 'Content-Type: application/json' --data '"$data"' http://$host:$port"
+    local curl_cmd="curl -s -X POST -H 'Content-Type: application/json' --data '"$data"' $endpoint"
     echo "$curl_cmd" > $DEBUG_FILE
     echo "$curl_result" >> $DEBUG_FILE
   fi
@@ -470,6 +493,7 @@ function get_result(){
     result=""
   fi
   echo $result
+
 }
 
 # -------------------------
@@ -945,6 +969,9 @@ elif [ $1 == "get_highest_block" ]; then
 elif [ $1 == "tx" ]; then
   shift
   get_tx_by_hash $@ |jq .
+elif [ $1 == "rawtx" ]; then
+  shift
+  get_rawtx_by_hash_ugly $@ 
 elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex
