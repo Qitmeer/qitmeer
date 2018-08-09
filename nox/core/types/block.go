@@ -35,24 +35,31 @@ type BlockHeader struct {
 	// block version
 	Version   uint32
 
-	// The merkle root of the previous parent blocks
+	// The merkle root of the previous parent blocks (the dag layer)
 	ParentRoot    hash.Hash
 
 	// The merkle root of the tx tree  (tx of the block)
 	// included Witness here instead of the separated witness commitment
 	TxRoot      hash.Hash
 
-	// The merkle root of the stake tx tree
-	// STxRoot     Hash
-
-	// The Multiset hash of UTXO set or(?) merkle range/path or(?) tire tree root
-	// UtxoCommitment Hash
-
 	// bip157/158 cbf
 	// CompactFilter Hash
 
-	// The merkle root of state tire
+	// The merkle root of the stake commits tire
+	// for votes/voters/commits/pre-commits/validator/evidence etc, (the pos layer)
+	// StakeRoot     Hash
+
+	// The app result/receipt after the tx executed
+	// the UTXO commitment also a kind of state result after tx redeemed
+	// ResultRoot/ReceiptRoot hash.Hash
+
+	// The Multiset hash of UTXO set or(?) merkle range/path or(?) tire tree root
+	// UtxoCommitment      hash.Hash
+
+	// The merkle root of state tire (the app data layer)
+	// can all of the state data (stake, receipt, utxo) in state root?
 	StateRoot	hash.Hash
+
 
 	// Difficulty target for tx
 	Difficulty  uint32
@@ -136,7 +143,7 @@ type Block struct {
 	Header        BlockHeader
 	Parents       []*hash.Hash
 	Transactions  []*Transaction    //tx
-	// STransactions []Transaction    //stx
+	//Commits     []*StakeCommit    //vote for
 }
 
 // BlockHash computes the block identifier hash for this block.
