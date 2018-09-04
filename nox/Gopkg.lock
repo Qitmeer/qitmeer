@@ -42,6 +42,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:c166378e8ab0f794f293dfb941d250dd70b035b05dec58879f717621d0fe1714"
+  name = "github.com/deckarep/golang-set"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "1d4478f51bed434f1dadf96dcd9b43aabac66795"
+  version = "v1.7"
+
+[[projects]]
   digest = "1:21ac9938fb1098b3a7b0dd909fb30878d33231177fac11a2821114eb9c1088ff"
   name = "github.com/dgraph-io/badger"
   packages = [
@@ -232,72 +240,38 @@
   pruneopts = "UT"
   revision = "7ca132754999accbaa5c1735eda29e7ce0f3bf03"
 
-[[projects]]
-  digest = "1:5f1d44e13c151d777a80b0d8ca850347530773e73ccce5995a520cdc6947c205"
-  name = "gopkg.in/fatih/set.v0"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "2c768e3c5489976167bfc42b5c7c92ca783f4389"
-  version = "v0.2.1"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/AndreasBriese/bbloom",
-    "github.com/btcsuite/btcd/btcec",
     "github.com/coreos/bbolt",
     "github.com/davecgh/go-spew/spew",
     "github.com/dchest/blake256",
+    "github.com/deckarep/golang-set",
     "github.com/dgraph-io/badger",
-    "github.com/dgraph-io/badger/options",
-    "github.com/dgraph-io/badger/protos",
-    "github.com/dgraph-io/badger/skl",
-    "github.com/dgraph-io/badger/table",
-    "github.com/dgraph-io/badger/y",
-    "github.com/dgryski/go-farm",
-    "github.com/ethereum/go-ethereum/common",
-    "github.com/ethereum/go-ethereum/common/hexutil",
     "github.com/ethereum/go-ethereum/common/math",
     "github.com/ethereum/go-ethereum/crypto",
-    "github.com/ethereum/go-ethereum/crypto/secp256k1",
-    "github.com/ethereum/go-ethereum/crypto/sha3",
-    "github.com/ethereum/go-ethereum/rlp",
     "github.com/go-stack/stack",
-    "github.com/golang/protobuf/proto",
-    "github.com/golang/snappy",
     "github.com/jessevdk/go-flags",
     "github.com/jrick/logrotate/rotator",
     "github.com/mattn/go-colorable",
-    "github.com/mattn/go-isatty",
-    "github.com/pkg/errors",
-    "github.com/pmezard/go-difflib/difflib",
     "github.com/stretchr/testify/assert",
     "github.com/syndtr/goleveldb/leveldb",
-    "github.com/syndtr/goleveldb/leveldb/cache",
     "github.com/syndtr/goleveldb/leveldb/comparer",
     "github.com/syndtr/goleveldb/leveldb/errors",
     "github.com/syndtr/goleveldb/leveldb/filter",
     "github.com/syndtr/goleveldb/leveldb/iterator",
-    "github.com/syndtr/goleveldb/leveldb/journal",
-    "github.com/syndtr/goleveldb/leveldb/memdb",
     "github.com/syndtr/goleveldb/leveldb/opt",
-    "github.com/syndtr/goleveldb/leveldb/storage",
-    "github.com/syndtr/goleveldb/leveldb/table",
     "github.com/syndtr/goleveldb/leveldb/util",
     "golang.org/x/crypto/blake2b",
     "golang.org/x/crypto/pbkdf2",
     "golang.org/x/crypto/ripemd160",
     "golang.org/x/crypto/sha3",
     "golang.org/x/net/context",
-    "golang.org/x/net/trace",
-    "golang.org/x/sys/cpu",
     "golang.org/x/sys/unix",
-    "golang.org/x/tools/go/ast/astutil",
     "golang.org/x/tools/go/buildutil",
     "golang.org/x/tools/go/loader",
     "golang.org/x/tools/imports",
-    "gopkg.in/fatih/set.v0",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
