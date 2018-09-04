@@ -20,7 +20,7 @@ import (
 	"golang.org/x/net/context"
 	"io"
 	"runtime"
-	"gopkg.in/fatih/set.v0"
+	mapset "github.com/deckarep/golang-set"
 	"strings"
 )
 
@@ -43,7 +43,7 @@ type RpcServer struct {
 	rpcSvcRegistry         serviceRegistry
 
 	codecsMu               sync.Mutex
-	codecs                 *set.Set
+	codecs                 mapset.Set
 
 	authsha                [sha256.Size]byte
 	numClients             int32
@@ -105,7 +105,7 @@ func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 		config:                 cfg,
 
 		rpcSvcRegistry:         make(serviceRegistry),
-		codecs:                 set.New(),
+		codecs:                 mapset.NewSet(),
 
 		statusLines:            make(map[int]string),
 		requestProcessShutdown: make(chan struct{}),
