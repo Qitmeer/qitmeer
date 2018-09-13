@@ -44,3 +44,4 @@ tools/nx/nx
 tools/nx-eth-keccak256/nx-eth-keccak256
 tools/nx-eth/nx-eth
 tools/nx-hd/nx-hd
+go.sum
