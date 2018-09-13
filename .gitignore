@@ -32,3 +32,16 @@ profile.cov
 
 # IdeaIDE
 .idea
+
+# Folders
+vendor
+
+# Binaries
+*.exe
+nox
+tools/rlpdump/rlpdump
+tools/nx/nx
+tools/nx-eth-keccak256/nx-eth-keccak256
+tools/nx-eth/nx-eth
+tools/nx-hd/nx-hd
+go.sum
