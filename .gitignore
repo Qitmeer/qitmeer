@@ -32,3 +32,4 @@ profile.cov
 
 # IdeaIDE
 .idea
+go.sum
