@@ -11,7 +11,9 @@ go version go1.11 darwin/amd64
 ```
 ## How to build
 
-- 添加以下字段到你的环境变量 .zshrc .bashrc .bash_profile /etc/profile等选择合适的
+- 添加以下字段到你的环境变量
+（.zshrc .bashrc .bash_profile /etc/profile等选择合适的）
+
 ```bash
 export GO111MODULE=auto
 ```
