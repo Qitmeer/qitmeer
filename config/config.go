@@ -45,6 +45,8 @@ type Config struct {
 	BlockMaxSize         uint32        `long:"blockmaxsize" description:"Maximum block size in bytes to be used when creating a block"`
 	BlockPrioritySize    uint32        `long:"blockprioritysize" description:"Size in bytes for high-priority/low-fee transactions when creating a block"`
 	miningAddrs          []types.Address
+	//WebSocket support
+	RPCMaxWebsockets     int           `long:"rpcmaxwebsockets" description:"Max number of RPC websocket connections"`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {

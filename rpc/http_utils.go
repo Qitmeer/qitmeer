@@ -3,10 +3,10 @@
 package rpc
 
 import (
-	"net/http"
+	"errors"
 	"fmt"
 	"mime"
-	"errors"
+	"net/http"
 )
 
 const (
