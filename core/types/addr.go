@@ -29,7 +29,7 @@ type Address interface{
 	ScriptAddress() []byte
 
 	// TODO, revisit the design of address type decision
-	// IsForNet returns whether or not the address is associated with the
+	// IsForNetwork returns whether or not the address is associated with the
 	// passed network.
 	// IsForNetwork(hashID [2]byte) bool
 }
