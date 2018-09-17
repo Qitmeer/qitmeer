@@ -18,6 +18,7 @@ import (
 	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/services/common/error"
 	"github.com/noxproject/nox/services/common/marshal"
+	"github.com/noxproject/nox/services/mempool"
 )
 
 func (nf *NoxFull) API() rpc.API {
@@ -272,6 +273,64 @@ func createVoutList(mtx *types.Transaction, params *params.Params, filterAddrMap
 
 	return voutList
 }
+
+func (api *PublicBlockChainAPI) SendRawTransaction(hexTx string, allowHighFees *bool)(interface{}, error) {
+	hexStr := hexTx
+	highFees := false
+	if allowHighFees != nil {
+		highFees = *allowHighFees
+	}
+	if len(hexStr)%2 != 0 {
+		hexStr = "0" + hexStr
+	}
+	serializedTx, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, er.RpcDecodeHexError(hexStr)
+	}
+	msgtx := types.NewTransaction()
+	err = msgtx.Deserialize(bytes.NewReader(serializedTx))
+	if err != nil {
+		return nil, er.RpcDeserializationError("Could not decode Tx: %v",
+			err)
+	}
+
+	tx := types.NewTx(msgtx)
+	acceptedTxs, err := api.node.blockManager.ProcessTransaction(tx, false,
+		false, highFees)
+	if err != nil {
+		// When the error is a rule error, it means the transaction was
+		// simply rejected as opposed to something actually going
+		// wrong, so log it as such.  Otherwise, something really did
+		// go wrong, so log it as an actual error.  In both cases, a
+		// JSON-RPC error is returned to the client with the
+		// deserialization error code (to match bitcoind behavior).
+		if _, ok := err.(mempool.RuleError); ok {
+			err = fmt.Errorf("Rejected transaction %v: %v", tx.Hash(),
+				err)
+			log.Debug("%v", err)
+			txRuleErr, ok := err.(mempool.TxRuleError)
+			if ok {
+				if txRuleErr.RejectCode == message.RejectDuplicate {
+					// return a dublicate tx error
+					return nil, er.RpcDuplicateTxError("%v", err)
+				}
+			}
+
+			// return a generic rule error
+			return nil, er.RpcRuleError("%v", err)
+		}
+
+		err = fmt.Errorf("failed to process transaction %v: %v",
+			tx.Hash(), err)
+		log.Error("%v", err)
+		return nil, er.RpcDeserializationError("rejected: %v", err)
+	}
+	//TODO P2P layer announce
+	api.node.AnnounceNewTransactions(acceptedTxs)
+
+	return tx.Hash().String(), nil
+}
+
 
 func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool)(interface{}, error) {
 

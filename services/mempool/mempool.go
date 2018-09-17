@@ -6,6 +6,7 @@
 package mempool
 
 import (
+	"github.com/noxproject/nox/core/message"
 	"sync"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/common/hash"
@@ -139,7 +140,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// msgTx := tx.Transaction()
 	txHash := tx.Hash()
 
-
+	//TODO let mempool working
 	/*
 	// Don't accept the transaction if it already exists in the pool.  This
 	// applies to orphan transactions as well.  This check is intended to
@@ -478,10 +479,108 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		}
 	}
 	*/
-	log.Debug("Accepted transaction %v (pool size: %v)", txHash,
-		len(mp.pool))
+	log.Debug("Accepted transaction","txHash", txHash,"pool size", len(mp.pool))
 
 	return nil, nil
+}
+
+// ProcessTransaction is the main workhorse for handling insertion of new
+// free-standing transactions into the memory pool.  It includes functionality
+// such as rejecting duplicate transactions, ensuring transactions follow all
+// rules, orphan transaction handling, and insertion into the memory pool.
+//
+// It returns a slice of transactions added to the mempool.  When the
+// error is nil, the list will include the passed transaction itself along
+// with any additional orphan transaactions that were added as a result of
+// the passed one being accepted.
+//
+// This function is safe for concurrent access.
+func (mp *TxPool) ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*types.Tx, error) {
+	// Protect concurrent access.
+	mp.mtx.Lock()
+	defer mp.mtx.Unlock()
+	var err error
+	defer func() {
+		if err != nil {
+			log.Trace("Failed to process transaction %v: %s",
+				tx.Hash(), err.Error())
+		}
+	}()
+
+	// Potentially accept the transaction to the memory pool.
+	var missingParents []*hash.Hash
+	missingParents, err = mp.maybeAcceptTransaction(tx, true, rateLimit,
+		allowHighFees)
+	if err != nil {
+		return nil, err
+	}
+
+	// If len(missingParents) == 0 then we know the tx is NOT an orphan.
+	if len(missingParents) == 0 {
+		// Accept any orphan transactions that depend on this
+		// transaction (they are no longer orphans if all inputs are
+		// now available) and repeat for those accepted transactions
+		// until there are no more.
+		newTxs := mp.processOrphans(tx.Hash())
+		acceptedTxs := make([]*types.Tx, len(newTxs)+1)
+
+		// Add the parent transaction first so remote nodes
+		// do not add orphans.
+		acceptedTxs[0] = tx
+		copy(acceptedTxs[1:], newTxs)
+
+		return acceptedTxs, nil
+	}
+
+	// The transaction is an orphan (has inputs missing).  Reject
+	// it if the flag to allow orphans is not set.
+	if !allowOrphan {
+		// Only use the first missing parent transaction in
+		// the error message.
+		//
+		// NOTE: RejectDuplicate is really not an accurate
+		// reject code here, but it matches the reference
+		// implementation and there isn't a better choice due
+		// to the limited number of reject codes.  Missing
+		// inputs is assumed to mean they are already spent
+		// which is not really always the case.
+		str := fmt.Sprintf("orphan transaction %v references "+
+			"outputs of unknown or fully-spent "+
+			"transaction %v", tx.Hash(), missingParents[0])
+		return nil, txRuleError(message.RejectDuplicate, str)
+	}
+
+	// Potentially add the orphan transaction to the orphan pool.
+	err = mp.maybeAddOrphan(tx)
+	return nil, err
+}
+
+// maybeAddOrphan potentially adds an orphan to the orphan pool.
+//
+// This function MUST be called with the mempool lock held (for writes).
+func (mp *TxPool) maybeAddOrphan(tx *types.Tx) error {
+	// Ignore orphan transactions that are too large.  This helps avoid
+	// a memory exhaustion attack based on sending a lot of really large
+	// orphans.  In the case there is a valid transaction larger than this,
+	// it will ultimtely be rebroadcast after the parent transactions
+	// have been mined or otherwise received.
+	//
+	// Note that the number of orphan transactions in the orphan pool is
+	// also limited, so this equates to a maximum memory used of
+	// mp.cfg.Policy.MaxOrphanTxSize * mp.cfg.Policy.MaxOrphanTxs (which is ~5MB
+	// using the default values at the time this comment was written).
+	serializedLen := tx.Transaction().SerializeSize()
+	if serializedLen > mp.cfg.Policy.MaxOrphanTxSize {
+		str := fmt.Sprintf("orphan transaction size of %d bytes is "+
+			"larger than max allowed size of %d bytes",
+			serializedLen, mp.cfg.Policy.MaxOrphanTxSize)
+		return txRuleError(message.RejectNonstandard, str)
+	}
+
+	// Add the orphan if the none of the above disqualified it.
+	mp.addOrphan(tx)
+
+	return nil
 }
 
 // MaybeAcceptTransaction is the main workhorse for handling insertion of new

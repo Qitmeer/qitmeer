@@ -5,7 +5,6 @@ import (
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/rpc"
-	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/common/util"
 	"github.com/noxproject/nox/p2p/peerserver"
 	"reflect"

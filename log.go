@@ -3,6 +3,7 @@
 package main
 
 import (
+	"github.com/noxproject/nox/node"
 	"os"
 	"io"
 	"github.com/mattn/go-colorable"
@@ -48,9 +49,11 @@ func init() {
 	txscript.UseLogger(log.New(log.Ctx{"module": "txscript engine"}))
 	blockchainlogger := log.New(log.Ctx{"module": "blockchain"})
 	minerlogger := log.New(log.Ctx{"module": "cpu miner"})
+	rpclogger := log.New(log.Ctx{"module": "node"})
 	blkmgr.UseLogger(blockchainlogger)
 	blockchain.UseLogger(blockchainlogger)
 	miner.UseLogger(minerlogger)
+	node.UseLogger(rpclogger)
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and

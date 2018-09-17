@@ -37,6 +37,20 @@ func RpcDeserializationError(fmtStr string, args ...interface{}) error {
 	return errors.New(fmt.Sprintf("Deserialization Error : %s",str))
 }
 
+// RpcDuplicateTxError is a convenience function to convert a
+// rejected duplicate tx  error to an RPC error
+func RpcDuplicateTxError(fmtStr string, args ...interface{}) error {
+	str := fmt.Sprintf(fmtStr, args...)
+	return errors.New(fmt.Sprintf("Duplicate Tx Error : %s",str))
+}
+
+// RpcRuleError is a convenience function to convert a
+// rule error to an RPC error
+func RpcRuleError(fmtStr string, args ...interface{}) error {
+	str := fmt.Sprintf(fmtStr, args...)
+	return errors.New(fmt.Sprintf("Rule Error : %s",str))
+}
+
 
 // RpcAddressKeyError is a convenience function to convert an address/key error to
 // an RPC error.

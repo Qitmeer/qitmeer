@@ -138,7 +138,24 @@ function get_tx_by_hash(){
   get_result "$data"
 }
 
+# 
+function create_raw_tx(){
+  local input=$1
+  local data='{"jsonrpc":"2.0","method":"createRawTransaction","params":['$input'],"id":1}'
+  get_result "$data"
+}
 
+function decode_raw_tx(){
+  local input=$1
+  local data='{"jsonrpc":"2.0","method":"decodeRawTransaction","params":["'$input'"],"id":1}'
+  get_result "$data"
+}
+
+function send_raw_tx(){
+  local input=$1
+  local data='{"jsonrpc":"2.0","method":"sendRawTransaction","params":["'$input'"],"id":1}'
+  get_result "$data"
+}
 
 function generate() {
   local count=$1
@@ -520,6 +537,18 @@ elif [ $1 == "tx" ]; then
   else
     get_tx_by_hash $@|jq .
   fi
+  check_error
+elif [ $1 == "createRawTx" ]; then
+  shift
+  create_raw_tx $@
+  check_error
+elif [ $1 == "decodeRawTx" ]; then
+  shift
+  decode_raw_tx $@|jq .
+  check_error
+elif [ $1 == "sendRawTx" ]; then
+  shift
+  send_raw_tx $@
   check_error
 elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift
