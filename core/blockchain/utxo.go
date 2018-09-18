@@ -279,8 +279,7 @@ func (o *utxoOutput) maybeDecompress(compressionVersion uint32) {
 		return
 	}
 
-	//TODO: impl compressed/decompressScript
-	// o.pkScript = decompressScript(o.pkScript, compressionVersion)
+	o.pkScript = decompressScript(o.pkScript, compressionVersion)
 	o.compressed = false
 }
 
