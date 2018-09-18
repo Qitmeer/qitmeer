@@ -6,9 +6,18 @@
 
 package mempool
 
-import "github.com/noxproject/nox/engine/txscript"
+import (
+	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/engine/txscript"
+)
 
 const (
+	// DefaultBlockPrioritySize is the default size in bytes for high-
+	// priority / low-fee transactions.  It is used to help determine which
+	// are allowed into the mempool and consequently affects their relay and
+	// inclusion when generating block templates.
+	DefaultBlockPrioritySize = 20000
+
 	// maxStandardP2SHSigOps is the maximum number of signature operations
 	// that are considered standard in a pay-to-script-hash script.
 	maxStandardP2SHSigOps = 15
@@ -44,6 +53,11 @@ const (
 	// transactions.  This value is in Atoms/1000 bytes.
 	DefaultMinRelayTxFee = int64(1e4)
 
+	// maxRelayFeeMultiplier is the factor that we disallow fees / kB above the
+	// minimum tx fee.  At the current default minimum relay fee of 0.0001
+	// NOX/kB, this results in a maximum allowed high fee of 1 NOX/kB.
+	maxRelayFeeMultiplier = 1e4
+
 	// maxStandardMultiSigKeys is the maximum number of public keys allowed
 	// in a multi-signature transaction output script for it to be
 	// considered standard.
@@ -64,6 +78,21 @@ const (
 		txscript.ScriptVerifyCheckLockTimeVerify |
 		txscript.ScriptVerifyCheckSequenceVerify |
 		txscript.ScriptVerifyLowS
+
+	// maxNullDataOutputs is the maximum number of OP_RETURN null data
+	// pushes in a transaction, after which it is considered non-standard.
+	maxNullDataOutputs = 4
+
+
+	// UnminedHeight is the height used for the "block" height field of the
+	// contextual transaction information provided in a transaction store
+	// when it has not yet been mined into a block.
+	UnminedHeight = 0x7fffffff
+
+	// MinHighPriority is the minimum priority value that allows a
+	// transaction to be considered high priority.
+	MinHighPriority = types.AtomsPerCoin * 144.0 / 250
+
 )
 
 // Policy houses the policy (configuration parameters) which is used to
@@ -104,7 +133,7 @@ type Policy struct {
 
 	// MinRelayTxFee defines the minimum transaction fee in BTC/kB to be
 	// considered a non-zero fee.
-	MinRelayTxFee int64
+	MinRelayTxFee types.Amount
 
 	// StandardVerifyFlags defines the function to retrieve the flags to
 	// use for verifying scripts for the block after the current best block.

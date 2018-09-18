@@ -6,16 +6,17 @@
 package mempool
 
 import (
-	"github.com/noxproject/nox/core/message"
-	"sync"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/common/hash"
-	"sync/atomic"
-	"time"
-	"github.com/noxproject/nox/log"
 	"container/list"
 	"fmt"
+	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/core/message"
+	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/log"
+	"math"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 // TxPool is used as a source of transactions that need to be mined into blocks
@@ -131,17 +132,11 @@ func (mp *TxPool) RemoveDoubleSpends(tx *types.Tx) {
 // more details.
 //
 // This function MUST be called with the mempool lock held (for writes).
-// TODO
-// We need to make sure thing also assigns the TxType after it evaluates the tx,
-// so that we can easily pick different stake tx types from the mempool later.
-// This should probably be done at the bottom using "IsSStx" etc functions.
-// It should also set the dcrutil tree type for the tx as well.
 func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHighFees bool) ([]*hash.Hash, error) {
-	// msgTx := tx.Transaction()
+	msgTx := tx.Transaction()
 	txHash := tx.Hash()
 
 	//TODO let mempool working
-	/*
 	// Don't accept the transaction if it already exists in the pool.  This
 	// applies to orphan transactions as well.  This check is intended to
 	// be a quick check to weed out duplicates.
@@ -162,7 +157,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	// A standalone transaction must not be a coinbase transaction.
-	if blockchain.IsCoinBase(tx) {
+	if blockchain.IsCoinBaseTx(tx.Tx) {
 		str := fmt.Sprintf("transaction %v is an individual coinbase",
 			txHash)
 		return nil, txRuleError(message.RejectInvalid, str)
@@ -190,12 +185,14 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 			txHash, msgTx.Expire)
 		return nil, txRuleError(message.RejectInvalid, str)
 	}
+	// Determine what type of transaction we're dealing with.
+	txType := types.DetermineTxType(msgTx)
 
 	// Don't allow non-standard transactions if the mempool config forbids
 	// their acceptance and relaying.
 	medianTime := mp.cfg.PastMedianTime()
 	if !mp.cfg.Policy.AcceptNonStd {
-		err := checkTransactionStandard(tx, txType, nextBlockHeight,
+		err := checkTransactionStandard(tx, txType, int64(nextBlockHeight), //TODO fix type conversion
 			medianTime, mp.cfg.Policy.MinRelayTxFee,
 			mp.cfg.Policy.MaxTxVersion)
 		if err != nil {
@@ -241,7 +238,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// not already fully spent.
 	txEntry := utxoView.LookupEntry(txHash)
 	if txEntry != nil && !txEntry.IsFullySpent() {
-		return nil, txRuleError(wire.RejectDuplicate,
+		return nil, txRuleError(message.RejectDuplicate,
 			"transaction already exists")
 	}
 	delete(utxoView.Entries(), *txHash)
@@ -289,7 +286,8 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		}
 		return nil, err
 	}
-	if !blockchain.SequenceLockActive(seqLock, nextBlockHeight, medianTime) {
+	// TODO fix type conversion
+	if !blockchain.SequenceLockActive(seqLock, int64(nextBlockHeight), medianTime) {
 		return nil, txRuleError(message.RejectNonstandard,
 			"transaction sequence locks on inputs not met")
 	}
@@ -300,7 +298,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// used later.  The fraud proof is not checked because it will be
 	// filled in by the miner.
 	txFee, err := blockchain.CheckTransactionInputs(mp.cfg.SubsidyCache,
-		tx, nextBlockHeight, utxoView, false, mp.cfg.ChainParams)
+		tx, int64(nextBlockHeight), utxoView, false, mp.cfg.ChainParams) //TODO fix type conversion
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
 			return nil, chainRuleError(cerr)
@@ -335,8 +333,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// the coinbase address itself can contain signature operations, the
 	// maximum allowed signature operations per transaction is less than
 	// the maximum allowed signature operations per block.
-	numSigOps, err := blockchain.CountP2SHSigOps(tx, false,
-		(txType == stake.TxTypeSSGen), utxoView)
+	numSigOps, err := blockchain.CountP2SHSigOps(tx, false, utxoView)
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
 			return nil, chainRuleError(cerr)
@@ -344,11 +341,11 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, err
 	}
 
-	numSigOps += blockchain.CountSigOps(tx, false, (txType == stake.TxTypeSSGen))
+	numSigOps += blockchain.CountSigOps(tx, false)
 	if numSigOps > mp.cfg.Policy.MaxSigOpsPerTx {
 		str := fmt.Sprintf("transaction %v has too many sigops: %d > %d",
 			txHash, numSigOps, mp.cfg.Policy.MaxSigOpsPerTx)
-		return nil, txRuleError(wire.RejectNonstandard, str)
+		return nil, txRuleError(message.RejectNonstandard, str)
 	}
 
 	// Don't allow transactions with fees too low to get into a mined block.
@@ -366,14 +363,14 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	serializedSize := int64(msgTx.SerializeSize())
 	minFee := calcMinRequiredTxRelayFee(serializedSize,
 		mp.cfg.Policy.MinRelayTxFee)
-	if txType == stake.TxTypeRegular { // Non-stake only
+	if txType == types.TxTypeRegular { // Non-stake only
 		if serializedSize >= (DefaultBlockPrioritySize-1000) &&
 			txFee < minFee {
 
 			str := fmt.Sprintf("transaction %v has %v fees which "+
 				"is under the required amount of %v", txHash,
 				txFee, minFee)
-			return nil, txRuleError(wire.RejectInsufficientFee, str)
+			return nil, txRuleError(message.RejectInsufficientFee, str)
 		}
 	}
 
@@ -384,22 +381,22 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	//
 	// This applies to non-stake transactions only.
 	if isNew && !mp.cfg.Policy.DisableRelayPriority && txFee < minFee &&
-		txType == stake.TxTypeRegular {
+		txType == types.TxTypeRegular {
 
-		currentPriority := mining.CalcPriority(msgTx, utxoView,
+		currentPriority := CalcPriority(msgTx, utxoView,
 			nextBlockHeight)
 		if currentPriority <= MinHighPriority {
 			str := fmt.Sprintf("transaction %v has insufficient "+
 				"priority (%g <= %g)", txHash,
 				currentPriority, MinHighPriority)
-			return nil, txRuleError(wire.RejectInsufficientFee, str)
+			return nil, txRuleError(message.RejectInsufficientFee, str)
 		}
 	}
 
 	// Free-to-relay transactions are rate limited here to prevent
 	// penny-flooding with tiny transactions as a form of attack.
 	// This applies to non-stake transactions only.
-	if rateLimit && txFee < minFee && txType == stake.TxTypeRegular {
+	if rateLimit && txFee < minFee && txType == types.TxTypeRegular {
 		nowUnix := time.Now().Unix()
 		// Decay passed data with an exponentially decaying ~10 minute
 		// window.
@@ -411,7 +408,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		if mp.pennyTotal >= mp.cfg.Policy.FreeTxRelayLimit*10*1000 {
 			str := fmt.Sprintf("transaction %v has been rejected "+
 				"by the rate limiter due to low fees", txHash)
-			return nil, txRuleError(wire.RejectInsufficientFee, str)
+			return nil, txRuleError(message.RejectInsufficientFee, str)
 		}
 		oldTotal := mp.pennyTotal
 
@@ -419,21 +416,6 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		log.Trace("rate limit: curTotal %v, nextTotal: %v, "+
 			"limit %v", oldTotal, mp.pennyTotal,
 			mp.cfg.Policy.FreeTxRelayLimit*10*1000)
-	}
-
-	// Check that tickets also pay the minimum of the relay fee.  This fee is
-	// also performed on regular transactions above, but fees lower than the
-	// miniumum may be allowed when there is sufficient priority, and these
-	// checks aren't desired for ticket purchases.
-	if txType == stake.TxTypeSStx {
-		minTicketFee := calcMinRequiredTxRelayFee(serializedSize,
-			mp.cfg.Policy.MinRelayTxFee)
-		if txFee < minTicketFee {
-			str := fmt.Sprintf("ticket purchase transaction %v has a %v "+
-				"fee which is under the required threshold amount of %d",
-				txHash, txFee, minTicketFee)
-			return nil, txRuleError(wire.RejectInsufficientFee, str)
-		}
 	}
 
 	// Check whether allowHighFees is set to false (default), if so, then make
@@ -466,22 +448,38 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	// Add to transaction pool.
-	mp.addTransaction(utxoView, tx, txType, bestHeight, txFee)
+	//mp.addTransaction(utxoView, tx, txType, bestHeight, txFee)
 
-	// If it's an SSGen (vote), insert it into the list of
-	// votes.
-	if txType == stake.TxTypeSSGen {
-		mp.votesMtx.Lock()
-		err := mp.insertVote(tx)
-		mp.votesMtx.Unlock()
-		if err != nil {
-			return nil, err
-		}
-	}
-	*/
 	log.Debug("Accepted transaction","txHash", txHash,"pool size", len(mp.pool))
 
 	return nil, nil
+}
+
+// fetchInputUtxos loads utxo details about the input transactions referenced by
+// the passed transaction.  First, it loads the details form the viewpoint of
+// the main chain, then it adjusts them based upon the contents of the
+// transaction pool.
+//
+// This function MUST be called with the mempool lock held (for reads).
+func (mp *TxPool) fetchInputUtxos(tx *types.Tx) (*blockchain.UtxoViewpoint, error) {
+	utxoView, err := mp.cfg.FetchUtxoView(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Attempt to populate any missing inputs from the transaction pool.
+	for originHash, entry := range utxoView.Entries() {
+		if entry != nil && !entry.IsFullySpent() {
+			continue
+		}
+
+		if poolTxDesc, exists := mp.pool[originHash]; exists {
+			utxoView.AddTxOuts(poolTxDesc.Tx, UnminedHeight,
+				types.NullBlockIndex)
+		}
+	}
+
+	return utxoView, nil
 }
 
 // ProcessTransaction is the main workhorse for handling insertion of new

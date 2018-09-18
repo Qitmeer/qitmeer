@@ -19,9 +19,6 @@ const (
 	//TODO, refactor config item
 	DefaultMaxOrphanTxSize       = 5000
 
-	// MinHighPriority is the minimum priority value that allows a
-	// transaction to be considered high priority.
-	MinHighPriority = types.AtomsPerCoin * 144.0 / 250
 
 )
 
@@ -56,6 +53,14 @@ type Config struct {
 	// median time calculated from the point-of-view of the current chain
 	// tip within the best chain.
 	PastMedianTime func() time.Time
+
+	// CalcSequenceLock defines the function to use in order to generate
+	// the current sequence lock for the given transaction using the passed
+	// utxo view.
+	CalcSequenceLock func(*types.Tx, *blockchain.UtxoViewpoint) (*blockchain.SequenceLock, error)
+
+	// SubsidyCache defines a subsidy cache to use.
+	SubsidyCache *blockchain.SubsidyCache
 
 	// SigCache defines a signature cache to use.
 	SigCache *txscript.SigCache

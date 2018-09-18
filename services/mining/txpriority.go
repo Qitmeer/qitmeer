@@ -104,5 +104,3 @@ func txPQByFee(pq *txPriorityQueue, i, j int) bool {
 	// per KB.
 	return pq.items[i].feePerKB > pq.items[j].feePerKB
 }
-
-

@@ -124,7 +124,7 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 			MaxOrphanTxs:         cfg.MaxOrphanTxs,
 			MaxOrphanTxSize:      mempool.DefaultMaxOrphanTxSize,
 			MaxSigOpsPerTx:       blockchain.MaxSigOpsPerBlock / 5,
-			MinRelayTxFee:        cfg.MinRelayTxFee,
+			MinRelayTxFee:        types.Amount(cfg.MinRelayTxFee),
 			StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
 				return standardScriptVerifyFlags(bm.GetChain())
 			},
@@ -134,6 +134,8 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 		BlockByHash:      bm.GetChain().BlockByHash,
 		BestHash:         func() *hash.Hash { return &bm.GetChain().BestSnapshot().Hash },
 		BestHeight:       func() uint64 { return bm.GetChain().BestSnapshot().Height },
+		CalcSequenceLock: bm.GetChain().CalcSequenceLock,
+		SubsidyCache:     bm.GetChain().FetchSubsidyCache(),
 		SigCache:         nox.sigCache,
 		PastMedianTime:   func() time.Time { return bm.GetChain().BestSnapshot().MedianTime },
 	}
