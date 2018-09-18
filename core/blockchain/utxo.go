@@ -139,6 +139,12 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	// fully spent.
 	txNeededSet := make(map[hash.Hash]struct{})
 	txNeededSet[*tx.Hash()] = struct{}{}
+	msgTx := tx.Transaction()
+	if !IsCoinBaseTx(msgTx) {
+		for _, txIn := range msgTx.TxIn {
+			txNeededSet[txIn.PreviousOut.Hash] = struct{}{}
+		}
+	}
 
 	err := view.fetchUtxosMain(b.db, txNeededSet)
 

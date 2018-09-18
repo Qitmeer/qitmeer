@@ -136,7 +136,6 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	msgTx := tx.Transaction()
 	txHash := tx.Hash()
 
-	//TODO let mempool working
 	// Don't accept the transaction if it already exists in the pool.  This
 	// applies to orphan transactions as well.  This check is intended to
 	// be a quick check to weed out duplicates.
@@ -247,6 +246,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	var missingParents []*hash.Hash
 	for _, txIn := range msgTx.TxIn {
 
+		log.Trace("Looking up UTXO", "txIn",txIn,"PrevOutput",&txIn.PreviousOut.Hash)
 		entry := utxoView.LookupEntry(&txIn.PreviousOut.Hash)
 		if entry == nil || entry.IsFullySpent() {
 			// Must make a copy of the hash here since the iterator
@@ -259,15 +259,15 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 			// Prevent a panic in the logger by continuing here if the
 			// transaction input is nil.
 			if entry == nil {
-				log.Trace("Transaction %v uses unknown input %v "+
+				log.Trace(fmt.Sprintf("Transaction %v uses unknown input %v "+
 					"and will be considered an orphan", txHash,
-					txIn.PreviousOut.Hash)
+					txIn.PreviousOut.Hash))
 				continue
 			}
 			if entry.IsFullySpent() {
-				log.Trace("Transaction %v uses full spent input %v "+
+				log.Trace(fmt.Sprintf("Transaction %v uses full spent input %v "+
 					"and will be considered an orphan", txHash,
-					txIn.PreviousOut.Hash)
+					txIn.PreviousOut.Hash))
 			}
 		}
 	}
@@ -478,7 +478,6 @@ func (mp *TxPool) fetchInputUtxos(tx *types.Tx) (*blockchain.UtxoViewpoint, erro
 				types.NullBlockIndex)
 		}
 	}
-
 	return utxoView, nil
 }
 
@@ -500,8 +499,7 @@ func (mp *TxPool) ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allow
 	var err error
 	defer func() {
 		if err != nil {
-			log.Trace("Failed to process transaction %v: %s",
-				tx.Hash(), err.Error())
+			log.Trace("Failed to process transaction","tx",tx.Hash(),"err", err.Error())
 		}
 	}()
 

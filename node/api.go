@@ -307,7 +307,7 @@ func (api *PublicBlockChainAPI) SendRawTransaction(hexTx string, allowHighFees *
 		if _, ok := err.(mempool.RuleError); ok {
 			err = fmt.Errorf("Rejected transaction %v: %v", tx.Hash(),
 				err)
-			log.Debug("%v", err)
+			log.Error("Failed to process transaction", "mempool.RuleError",err)
 			txRuleErr, ok := err.(mempool.TxRuleError)
 			if ok {
 				if txRuleErr.RejectCode == message.RejectDuplicate {
@@ -320,9 +320,9 @@ func (api *PublicBlockChainAPI) SendRawTransaction(hexTx string, allowHighFees *
 			return nil, er.RpcRuleError("%v", err)
 		}
 
+		log.Error("Failed to process transaction","err", err)
 		err = fmt.Errorf("failed to process transaction %v: %v",
 			tx.Hash(), err)
-		log.Error("%v", err)
 		return nil, er.RpcDeserializationError("rejected: %v", err)
 	}
 	//TODO P2P layer announce
