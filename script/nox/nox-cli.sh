@@ -53,9 +53,9 @@ function solc_compile(){
 
 
 # newAccount
-# Generates a new private key and stores it in the key store directory. The key file is encrypted with the given passphrase. 
+# Generates a new private key and stores it in the key store directory. The key file is encrypted with the given passphrase.
 # Returns the address of the new account.
-#    func (s *PrivateAccountAPI) NewAccount(password string) (common.Address, error) 
+#    func (s *PrivateAccountAPI) NewAccount(password string) (common.Address, error)
 #
 function new_account(){
   local passphrase=""
@@ -99,7 +99,7 @@ function get_block_eth(){
   get_result "$data"
 }
 
-# Nox 
+# Nox
 function get_block(){
   local height=$1
   local verbose=$2
@@ -516,7 +516,7 @@ elif [ $1 == "blockhash" ]; then
 elif [ $1 == "tx" ]; then
   shift
   if [ "$2" == "false" ]; then
-    get_tx_by_hash $@ 
+    get_tx_by_hash $@
   else
     get_tx_by_hash $@|jq .
   fi
@@ -618,7 +618,7 @@ elif [ $1 == "compile" ]; then
   solc_compile "$@"
 elif [ $1 == "call" ]; then
   shift
-  nox_call $@ 
+  nox_call $@
   check_error
 elif [ $1 == "send_tx" ]; then
   shift

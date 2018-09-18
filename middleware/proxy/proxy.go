@@ -1,56 +1,55 @@
 package main
 
 import (
-	"github.com/iris-contrib/middleware/cors"
-	"github.com/kataras/iris"
-	"github.com/kataras/iris/middleware/logger"
-	"github.com/kataras/iris/middleware/recover"
-	"github.com/noxproject/nox/middleware/handler"
+	"fmt"
+	"github.com/noxproject/nox/middleware/rpc"
+	"log"
+	"net/http"
+	"strconv"
 )
 
-func transmit() {
-	app := iris.New()
-	app.Logger().SetLevel("debug")
-	app.Use(recover.New())
-	app.Use(logger.New())
-	//允许跨域
-	crs := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowCredentials: true,
-	})
+func checkAndSend(r *http.Request, method string) rpc.RpcResult {
+	r.ParseForm() //解析参数，默认是不会解析的
+	params := r.PostFormValue("params")
+	id := r.PostFormValue("id")
+	idInt64, err := strconv.ParseInt(id, 10, 64)
 
-	app.Use(crs)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	app.Get("/", func(ctx iris.Context) {
-		ctx.HTML("<h1>Empty</h1>")
-	})
+	data := rpc.RequestData{
+		JsonRpc: rpc.JSONRPC,
+		Method:  method,
+		Params:  params,
+		Id:      idInt64,
+	}
 
-	app.Post("/block/info", func(ctx iris.Context) {
-		blockHash := ctx.PostValue("hash")
-		blockInfo := handler.GetBlockInfo(blockHash)
-		ctx.JSON(blockInfo)
-	})
+	result := rpc.RpcResult{}
+	result.SendRpc(data)
 
-	app.Post("transaction", func(ctx iris.Context) {
-		transactionHashStr := ctx.PostValue("transaction")
-		transactionResult := handler.GetTransaction(transactionHashStr)
-		if transactionResult != nil {
-			ctx.JSON(transactionResult)
-		} else {
-			ctx.Writef("没有该交易")
-		}
-	})
+	return result
+}
 
-	app.Post("balance", func(ctx iris.Context) {
-		address := ctx.PostValue("address")
-		balance := handler.GetAddressInfo(address)
-		ctx.JSON(balance)
+func getBlockCount(w http.ResponseWriter, r *http.Request) {
+	result := checkAndSend(r, rpc.GetBlockCount)
+	resultString := result.ToString();
+	fmt.Fprintln(w, resultString)
+}
 
-	})
-
-	app.Run(iris.Addr(":9998"), iris.WithoutServerError(iris.ErrServerClosed))
+func getBlockInfo(w http.ResponseWriter, r *http.Request) {
+	result := checkAndSend(r, rpc.GetBlockByHeight)
+	resultString := result.ToString();
+	fmt.Fprintln(w, resultString)
 }
 
 func main() {
-	transmit()
+	http.HandleFunc("/block/count", getBlockCount)
+	http.HandleFunc("/block/info", getBlockInfo)
+
+	err := http.ListenAndServe(":9998", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }
