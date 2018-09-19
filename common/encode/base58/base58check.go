@@ -39,6 +39,16 @@ func checksum(input []byte) (cksum [4]byte) {
 	return
 }
 
+func CheckInput(input string) ([]byte, error){
+	decoded := Decode(input)
+	var cksum [4]byte
+	copy(cksum[:], decoded[len(decoded)-4:])
+	if checksum(decoded[:len(decoded)-4]) != cksum {
+		return nil,ErrChecksum
+	}
+	return cksum[:],nil
+}
+
 // CheckEncode prepends two version bytes and appends a four byte checksum.
 func CheckEncode(input []byte, version [2]byte) string {
 	return checkEncode(input,version[:],checksum)

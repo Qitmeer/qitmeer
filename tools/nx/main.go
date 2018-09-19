@@ -10,6 +10,7 @@ import (
 	"github.com/noxproject/nox/common/encode/base58"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -133,13 +134,21 @@ func base58CheckEncode(version string, input string){
 }
 
 func base58CheckDecode(input string) {
+	cksum, err := base58.CheckInput(input)
+	if err != nil {
+		errExit(err)
+	}
 	data, ver, err := base58.CheckDecode(input)
 	if err != nil {
 		errExit(err)
 	}
 	if showDecodeDetails {
 		fmt.Printf("payload : %x\n", data)
-		fmt.Printf("checksum: %x\n", data)
+		dec,err := strconv.ParseUint(hex.EncodeToString(cksum), 16, 64)
+		if err!=nil {
+			errExit(err)
+		}
+		fmt.Printf("checksum: %d (%x)\n",dec, cksum)
 		fmt.Printf("version : %x\n", ver)
 	}else {
 		fmt.Printf("%x\n", data)
