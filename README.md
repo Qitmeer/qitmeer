@@ -1,5 +1,10 @@
 # nox
 
+##注意，现已经迁移到cleanup分支
+```
+~ git checkout cleanup 
+```
+
 
 ###  Prerequisites
 
