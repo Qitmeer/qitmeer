@@ -10,10 +10,10 @@ import (
 	"github.com/noxproject/nox/config"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/services/mempool"
 	"github.com/noxproject/nox/core/blockchain"
 	"github.com/noxproject/nox/engine/txscript"
 	"github.com/noxproject/nox/services/blkmgr"
+	"github.com/noxproject/nox/services/mempool"
 	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/core/address"
@@ -234,7 +234,7 @@ mempoolLoop:
 		// Calculate the final transaction priority using the input
 		// value age sum as well as the adjusted transaction size.  The
 		// formula is: sum(inputValue * inputAge) / adjustedTxSize
-		prioItem.priority = CalcPriority(tx.Transaction(), utxos,
+		prioItem.priority = mempool.CalcPriority(tx.Transaction(), utxos,
 			nextBlockHeight)
 
 		// Calculate the fee in Atoms/KB.

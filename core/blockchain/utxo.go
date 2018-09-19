@@ -139,6 +139,12 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	// fully spent.
 	txNeededSet := make(map[hash.Hash]struct{})
 	txNeededSet[*tx.Hash()] = struct{}{}
+	msgTx := tx.Transaction()
+	if !IsCoinBaseTx(msgTx) {
+		for _, txIn := range msgTx.TxIn {
+			txNeededSet[txIn.PreviousOut.Hash] = struct{}{}
+		}
+	}
 
 	err := view.fetchUtxosMain(b.db, txNeededSet)
 
@@ -273,8 +279,7 @@ func (o *utxoOutput) maybeDecompress(compressionVersion uint32) {
 		return
 	}
 
-	//TODO: impl compressed/decompressScript
-	// o.pkScript = decompressScript(o.pkScript, compressionVersion)
+	o.pkScript = decompressScript(o.pkScript, compressionVersion)
 	o.compressed = false
 }
 

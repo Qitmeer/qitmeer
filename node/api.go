@@ -1,16 +1,29 @@
+// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2013-2016 The btcsuite developers
+// Copyright (c) 2017-2018 The Decred developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
 package node
 
 import (
-	"github.com/noxproject/nox/rpc"
-	"github.com/noxproject/nox/common/hash"
-	"fmt"
-	"encoding/hex"
 	"bytes"
-	"github.com/noxproject/nox/core/types"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/address"
+	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/core/json"
+	"github.com/noxproject/nox/core/message"
+	"github.com/noxproject/nox/core/protocol"
+	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/services/common/marshal"
+	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/params"
+	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/services/common/error"
+	"github.com/noxproject/nox/services/common/marshal"
+	"github.com/noxproject/nox/services/mempool"
 )
 
 func (nf *NoxFull) API() rpc.API {
@@ -28,6 +41,300 @@ func NewPublicBlockChainAPI(node *NoxFull) *PublicBlockChainAPI {
 	return &PublicBlockChainAPI{node}
 }
 
+// TransactionInput represents the inputs to a transaction.  Specifically a
+// transaction hash and output number pair.
+type TransactionInput struct {
+	Txid string `json:"txid"`
+	Vout uint32 `json:"vout"`
+}
+
+type Amounts map[string]float64 //{\"address\":amount,...}
+
+func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
+	amounts Amounts, lockTime *int64)(interface{},error){
+
+	// Validate the locktime, if given.
+	if lockTime != nil &&
+		(*lockTime < 0 || *lockTime > int64(types.MaxTxInSequenceNum)) {
+		return nil, er.RpcInvalidError("Locktime out of range")
+	}
+
+	// Add all transaction inputs to a new transaction after performing
+	// some validity checks.
+	mtx := types.NewTransaction()
+	for _, input := range inputs {
+		txHash, err := hash.NewHashFromStr(input.Txid)
+		if err != nil {
+			return nil, er.RpcDecodeHexError(input.Txid)
+		}
+		prevOut := types.NewOutPoint(txHash, input.Vout)
+		txIn := types.NewTxInput(prevOut, types.NullValueIn, []byte{})
+		if lockTime != nil && *lockTime != 0 {
+			txIn.Sequence = types.MaxTxInSequenceNum - 1
+		}
+		mtx.AddTxIn(txIn)
+	}
+
+		// Add all transaction outputs to the transaction after performing
+	// some validity checks.
+	for encodedAddr, amount := range amounts {
+		// Ensure amount is in the valid range for monetary amounts.
+		if amount <= 0 || amount > types.MaxAmount {
+			return nil, er.RpcInvalidError("Invalid amount: 0 >= %v "+
+				"> %v", amount, types.MaxAmount)
+		}
+
+		// Decode the provided address.
+		addr, err := address.DecodeAddress(encodedAddr)
+		if err != nil {
+			return nil, er.RpcAddressKeyError("Could not decode "+
+				"address: %v", err)
+		}
+
+		// Ensure the address is one of the supported types and that
+		// the network encoded with the address matches the network the
+		// server is currently on.
+		switch addr.(type) {
+		case *address.PubKeyHashAddress:
+		case *address.ScriptHashAddress:
+		default:
+			return nil, er.RpcAddressKeyError("Invalid type: %T", addr)
+		}
+		if !address.IsForNetwork(addr,api.node.node.Params) {
+			return nil, er.RpcAddressKeyError("Wrong network: %v",
+				addr)
+		}
+
+		// Create a new script which pays to the provided address.
+		pkScript, err := txscript.PayToAddrScript(addr)
+		if err != nil {
+			return nil, er.RpcInternalError(err.Error(),
+				"Pay to address script")
+		}
+
+		atomic, err := types.NewAmount(amount)
+		if err != nil {
+			return nil, er.RpcInternalError(err.Error(),
+				"New amount")
+		}
+
+		//TODO fix type conversion
+		txOut := types.NewTxOutput(uint64(atomic), pkScript)
+		mtx.AddTxOut(txOut)
+	}
+
+	// Set the Locktime, if given.
+	if lockTime != nil {
+		mtx.LockTime = uint32(*lockTime)
+	}
+
+	// Return the serialized and hex-encoded transaction.  Note that this
+	// is intentionally not directly returning because the first return
+	// value is a string and it would result in returning an empty string to
+	// the client instead of nothing (nil) in the case of an error.
+	mtxHex, err := messageToHex(&message.MsgTx{mtx})
+	if err != nil {
+		return nil, err
+	}
+	return mtxHex, nil
+}
+
+// messageToHex serializes a message to the wire protocol encoding using the
+// latest protocol version and returns a hex-encoded string of the result.
+func messageToHex(msg message.Message) (string, error) {
+	var buf bytes.Buffer
+	if err := msg.Encode(&buf, protocol.ProtocolVersion); err != nil {
+		context := fmt.Sprintf("Failed to encode msg of type %T", msg)
+		return "", er.RpcInternalError(err.Error(), context)
+	}
+
+	return hex.EncodeToString(buf.Bytes()), nil
+}
+
+func (api *PublicBlockChainAPI) DecodeRawTransaction(hexTx string)(interface{},error) {
+	// Deserialize the transaction.
+	hexStr := hexTx
+	if len(hexStr)%2 != 0 {
+		hexStr = "0" + hexStr
+	}
+	serializedTx, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, er.RpcDecodeHexError(hexStr)
+	}
+	var mtx types.Transaction
+	err = mtx.Deserialize(bytes.NewReader(serializedTx))
+	if err != nil {
+		return nil, er.RpcDeserializationError("Could not decode Tx: %v",
+			err)
+	}
+
+	// Create and return the result.
+	txReply := &json.OrderedResult{
+		{"Txid",     mtx.TxHash().String()},
+		{"Version",  int32(mtx.Version)},
+		{"Locktime", mtx.LockTime},
+		{"Vin",      createVinList(&mtx)},
+		{"Vout",     createVoutList(&mtx, api.node.node.Params, nil)},
+	}
+	return txReply, nil
+}
+
+// createVinList returns a slice of JSON objects for the inputs of the passed
+// transaction.
+func createVinList(mtx *types.Transaction) []json.Vin {
+	// Coinbase transactions only have a single txin by definition.
+	vinList := make([]json.Vin, len(mtx.TxIn))
+	if blockchain.IsCoinBaseTx(mtx) {
+		txIn := mtx.TxIn[0]
+		vinEntry := &vinList[0]
+		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
+		vinEntry.Sequence = txIn.Sequence
+		vinEntry.AmountIn = types.Amount(txIn.AmountIn).ToCoin()
+		vinEntry.BlockHeight = txIn.BlockHeight
+		vinEntry.BlockIndex = txIn.BlockTxIndex
+		return vinList
+	}
+
+	for i, txIn := range mtx.TxIn {
+		// The disassembled string will contain [error] inline
+		// if the script doesn't fully parse, so ignore the
+		// error here.
+		disbuf, _ := txscript.DisasmString(txIn.SignScript)
+
+		vinEntry := &vinList[i]
+		vinEntry.Txid = txIn.PreviousOut.Hash.String()
+		vinEntry.Vout = txIn.PreviousOut.OutIndex
+		vinEntry.Sequence = txIn.Sequence
+		vinEntry.AmountIn = types.Amount(txIn.AmountIn).ToCoin()
+		vinEntry.BlockHeight = txIn.BlockHeight
+		vinEntry.BlockIndex = txIn.BlockTxIndex
+		vinEntry.ScriptSig = &json.ScriptSig{
+			Asm: disbuf,
+			Hex: hex.EncodeToString(txIn.SignScript),
+		}
+	}
+
+	return vinList
+}
+
+// createVoutList returns a slice of JSON objects for the outputs of the passed
+// transaction.
+func createVoutList(mtx *types.Transaction, params *params.Params, filterAddrMap map[string]struct{}) []json.Vout {
+
+	voutList := make([]json.Vout, 0, len(mtx.TxOut))
+	for _, v := range mtx.TxOut {
+		// The disassembled string will contain [error] inline if the
+		// script doesn't fully parse, so ignore the error here.
+		disbuf, _ := txscript.DisasmString(v.PkScript)
+		// Attempt to extract addresses from the public key script.  In
+		// the case of stake submission transactions, the odd outputs
+		// contain a commitment address, so detect that case
+		// accordingly.
+		var addrs []types.Address
+		var scriptClass string
+		var reqSigs int
+
+		// Ignore the error here since an error means the script
+		// couldn't parse and there is no additional information
+		// about it anyways.
+		var sc txscript.ScriptClass
+		sc, addrs, reqSigs, _ = txscript.ExtractPkScriptAddrs(
+			txscript.DefaultScriptVersion, v.PkScript, params)
+			scriptClass = sc.String()
+
+		// Encode the addresses while checking if the address passes the
+		// filter when needed.
+		passesFilter := len(filterAddrMap) == 0
+		encodedAddrs := make([]string, len(addrs))
+		for j, addr := range addrs {
+			encodedAddr := addr.Encode()
+			encodedAddrs[j] = encodedAddr
+
+			// No need to check the map again if the filter already
+			// passes.
+			if passesFilter {
+				continue
+			}
+			if _, exists := filterAddrMap[encodedAddr]; exists {
+				passesFilter = true
+			}
+		}
+
+		if !passesFilter {
+			continue
+		}
+
+		var vout json.Vout
+		voutSPK := &vout.ScriptPubKey
+		vout.Amount = types.Amount(v.Amount).ToCoin()
+		voutSPK.Addresses = encodedAddrs
+		voutSPK.Asm = disbuf
+		voutSPK.Hex = hex.EncodeToString(v.PkScript)
+		voutSPK.Type = scriptClass
+		voutSPK.ReqSigs = int32(reqSigs)
+
+		voutList = append(voutList, vout)
+	}
+
+	return voutList
+}
+
+func (api *PublicBlockChainAPI) SendRawTransaction(hexTx string, allowHighFees *bool)(interface{}, error) {
+	hexStr := hexTx
+	highFees := false
+	if allowHighFees != nil {
+		highFees = *allowHighFees
+	}
+	if len(hexStr)%2 != 0 {
+		hexStr = "0" + hexStr
+	}
+	serializedTx, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, er.RpcDecodeHexError(hexStr)
+	}
+	msgtx := types.NewTransaction()
+	err = msgtx.Deserialize(bytes.NewReader(serializedTx))
+	if err != nil {
+		return nil, er.RpcDeserializationError("Could not decode Tx: %v",
+			err)
+	}
+
+	tx := types.NewTx(msgtx)
+	acceptedTxs, err := api.node.blockManager.ProcessTransaction(tx, false,
+		false, highFees)
+	if err != nil {
+		// When the error is a rule error, it means the transaction was
+		// simply rejected as opposed to something actually going
+		// wrong, so log it as such.  Otherwise, something really did
+		// go wrong, so log it as an actual error.  In both cases, a
+		// JSON-RPC error is returned to the client with the
+		// deserialization error code (to match bitcoind behavior).
+		if _, ok := err.(mempool.RuleError); ok {
+			err = fmt.Errorf("Rejected transaction %v: %v", tx.Hash(),
+				err)
+			log.Error("Failed to process transaction", "mempool.RuleError",err)
+			txRuleErr, ok := err.(mempool.TxRuleError)
+			if ok {
+				if txRuleErr.RejectCode == message.RejectDuplicate {
+					// return a dublicate tx error
+					return nil, er.RpcDuplicateTxError("%v", err)
+				}
+			}
+
+			// return a generic rule error
+			return nil, er.RpcRuleError("%v", err)
+		}
+
+		log.Error("Failed to process transaction","err", err)
+		err = fmt.Errorf("failed to process transaction %v: %v",
+			tx.Hash(), err)
+		return nil, er.RpcDeserializationError("rejected: %v", err)
+	}
+	//TODO P2P layer announce
+	api.node.AnnounceNewTransactions(acceptedTxs)
+
+	return tx.Hash().String(), nil
+}
 
 
 func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool)(interface{}, error) {

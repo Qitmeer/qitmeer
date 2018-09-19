@@ -448,6 +448,7 @@ func GetScriptClass(version uint16, script []byte) ScriptClass {
 
 	pops, err := parseScript(script)
 	if err != nil {
+		log.Error("parseScript error", "script",fmt.Sprintf("%x",script))
 		return NonStandardTy
 	}
 

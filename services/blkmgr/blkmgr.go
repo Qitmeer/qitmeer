@@ -563,40 +563,41 @@ out:
 					err:      nil,
 				}
 
-				/*
-				case processTransactionMsg:
-					acceptedTxs, err := b.server.txMemPool.ProcessTransaction(msg.tx,
-						msg.allowOrphans, msg.rateLimit, msg.allowHighFees)
-					msg.reply <- processTransactionResponse{
-						acceptedTxs: acceptedTxs,
-						err:         err,
-					}
-				case isCurrentMsg:
-					msg.reply <- b.current()
+			case processTransactionMsg:
+				acceptedTxs, err := b.txMemPool.ProcessTransaction(msg.tx,
+				msg.allowOrphans, msg.rateLimit, msg.allowHighFees)
+				msg.reply <- processTransactionResponse{
+					acceptedTxs: acceptedTxs,
+					err:         err,
+				}
+			/*
+			case isCurrentMsg:
+				msg.reply <- b.current()
 
-				case pauseMsg:
-					// Wait until the sender unpauses the manager.
-					<-msg.unpause
-				*/
-				case getCurrentTemplateMsg:
-					cur := deepCopyBlockTemplate(b.cachedCurrentTemplate)
-					msg.reply <- getCurrentTemplateResponse{
-						Template: cur,
-					}
+			case pauseMsg:
+				// Wait until the sender unpauses the manager.
+				<-msg.unpause
+			*/
+			case getCurrentTemplateMsg:
+				cur := deepCopyBlockTemplate(b.cachedCurrentTemplate)
+				msg.reply <- getCurrentTemplateResponse{
+					Template: cur,
+				}
 
-				case setCurrentTemplateMsg:
-					b.cachedCurrentTemplate = deepCopyBlockTemplate(msg.Template)
-					msg.reply <- setCurrentTemplateResponse{}
+			case setCurrentTemplateMsg:
+				b.cachedCurrentTemplate = deepCopyBlockTemplate(msg.Template)
+				msg.reply <- setCurrentTemplateResponse{}
 
-				case getParentTemplateMsg:
-					par := deepCopyBlockTemplate(b.cachedParentTemplate)
-					msg.reply <- getParentTemplateResponse{
-						Template: par,
-					}
+			case getParentTemplateMsg:
+				par := deepCopyBlockTemplate(b.cachedParentTemplate)
+				msg.reply <- getParentTemplateResponse{
+					Template: par,
+				}
 
-				case setParentTemplateMsg:
-					b.cachedParentTemplate = deepCopyBlockTemplate(msg.Template)
-					msg.reply <- setParentTemplateResponse{}
+			case setParentTemplateMsg:
+				b.cachedParentTemplate = deepCopyBlockTemplate(msg.Template)
+				msg.reply <- setParentTemplateResponse{}
+
 			default:
 				log.Warn("Invalid message type in block "+
 					"handler: %T", msg)
@@ -639,6 +640,36 @@ func (b *BlockManager) ProcessBlock(block *types.SerializedBlock, flags blockcha
 	b.msgChan <- processBlockMsg{block: block, flags: flags, reply: reply}
 	response := <-reply
 	return response.isOrphan, response.err
+}
+
+// processTransactionResponse is a response sent to the reply channel of a
+// processTransactionMsg.
+type processTransactionResponse struct {
+	acceptedTxs []*types.Tx
+	err         error
+}
+
+// processTransactionMsg is a message type to be sent across the message
+// channel for requesting a transaction to be processed through the block
+// manager.
+type processTransactionMsg struct {
+	tx            *types.Tx
+	allowOrphans  bool
+	rateLimit     bool
+	allowHighFees bool
+	reply         chan processTransactionResponse
+}
+
+// ProcessTransaction makes use of ProcessTransaction on an internal instance of
+// a block chain.  It is funneled through the block manager since blockchain is
+// not safe for concurrent access.
+func (b *BlockManager) ProcessTransaction(tx *types.Tx, allowOrphans bool,
+	rateLimit bool, allowHighFees bool) ([]*types.Tx, error) {
+	reply := make(chan processTransactionResponse, 1)
+	b.msgChan <- processTransactionMsg{tx, allowOrphans, rateLimit,
+		allowHighFees, reply}
+	response := <-reply
+	return response.acceptedTxs, response.err
 }
 
 

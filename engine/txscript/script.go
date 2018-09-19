@@ -109,6 +109,7 @@ func HasP2SHScriptSigStakeOpCodes(version uint16, scriptSig,
 // the list of parsed opcodes up to the point of failure along with the error.
 func parseScriptTemplate(script []byte, opcodes *[256]Opcode) ([]ParsedOpcode,
 	error) {
+	//log.Trace("Parsing script","script",fmt.Sprintf("%x",script))
 	retScript := make([]ParsedOpcode, 0, len(script))
 	for i := 0; i < len(script); {
 		instr := script[i]
@@ -175,7 +176,7 @@ func parseScriptTemplate(script []byte, opcodes *[256]Opcode) ([]ParsedOpcode,
 
 		retScript = append(retScript, pop)
 	}
-
+	//log.Trace("Parsing script","result",fmt.Sprintf("%x",retScript))
 	return retScript, nil
 }
 
