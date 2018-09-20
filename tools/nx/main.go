@@ -4,13 +4,14 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"flag"
 	"fmt"
 	"github.com/noxproject/nox/common/encode/base58"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -38,16 +39,18 @@ func errExit(err error){
 	os.Exit(1)
 }
 
-var base58version string
+var base58CheckVer string
 var showDecodeDetails bool
+var decodeMode string
 
 
 func main() {
-	encodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
-	encodeCommand.StringVar(&base58version, "v","0df1","base58check version")
+	base58CheckEncodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
+	base58CheckEncodeCommand.StringVar(&base58CheckVer, "v","0df1","base58check version")
 
-	decodeCommand := flag.NewFlagSet("base58check-decode", flag.ExitOnError)
-	decodeCommand.BoolVar(&showDecodeDetails,"d",false, "show decode datails")
+	base58CheckDecodeCommand := flag.NewFlagSet("base58check-decode", flag.ExitOnError)
+	base58CheckDecodeCommand.BoolVar(&showDecodeDetails,"d",false, "show decode datails")
+	base58CheckDecodeCommand.StringVar(&decodeMode,"m","nox", "base58 decode mode : [nox|btc]")
 
 	if len(os.Args) == 1 {
 		usage()
@@ -58,9 +61,9 @@ func main() {
 	case "version","--version":
 		version()
 	case "base58check-encode" :
-		encodeCommand.Parse(os.Args[2:])
+		base58CheckEncodeCommand.Parse(os.Args[2:])
 	case "base58check-decode" :
-		decodeCommand.Parse(os.Args[2:])
+		base58CheckDecodeCommand.Parse(os.Args[2:])
 	default:
 		invalid := os.Args[1]
 		if invalid[0] == '-' {
@@ -71,15 +74,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	if encodeCommand.Parsed(){
+	if base58CheckEncodeCommand.Parsed(){
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			switch os.Args[2] {
 			case "help","--help":
 				fmt.Fprintf(os.Stderr, "Usage: nx base58check-encode [-v <ver>] [hexstring]\n")
-				encodeCommand.PrintDefaults()
+				base58CheckEncodeCommand.PrintDefaults()
 			default:
-				base58CheckEncode(base58version,os.Args[len(os.Args)-1])
+				base58CheckEncode(base58CheckVer,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -87,19 +90,19 @@ func main() {
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			base58CheckEncode(base58version,str)
+			base58CheckEncode(base58CheckVer,str)
 		}
 	}
 
-	if decodeCommand.Parsed(){
+	if base58CheckDecodeCommand.Parsed(){
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			switch os.Args[2] {
 			case "help","--help":
 				fmt.Fprintf(os.Stderr, "Usage: nx base58check-decode [-d] [hexstring]\n")
-				decodeCommand.PrintDefaults()
+				base58CheckDecodeCommand.PrintDefaults()
 			default:
-				base58CheckDecode(os.Args[len(os.Args)-1])
+				base58CheckDecode(decodeMode,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -107,7 +110,7 @@ func main() {
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			base58CheckDecode(str)
+			base58CheckDecode(decodeMode,str)
 		}
 	}
 }
@@ -133,23 +136,49 @@ func base58CheckEncode(version string, input string){
 	fmt.Printf("%s\n",encoded)
 }
 
-func base58CheckDecode(input string) {
-	cksum, err := base58.CheckInput(input)
+func base58CheckDecode(mode string, input string) {
+	cksum, err := base58.CheckInput(mode,input)
 	if err != nil {
 		errExit(err)
 	}
-	data, ver, err := base58.CheckDecode(input)
-	if err != nil {
-		errExit(err)
+	var data []byte
+	var version []byte
+	switch mode {
+	case "btc" :
+		v := byte(0)
+		data, v, err = base58.BtcCheckDecode(input)
+		if err != nil {
+			errExit(err)
+		}
+		version = []byte{0x0,v}
+	default:
+		v := [2]byte{}
+		data, v, err = base58.CheckDecode(input)
+		if err != nil {
+			errExit(err)
+		}
+		version = []byte{v[0],v[1]}
 	}
+
 	if showDecodeDetails {
+		fmt.Printf("mode    : %s\n", mode)
 		fmt.Printf("payload : %x\n", data)
-		dec,err := strconv.ParseUint(hex.EncodeToString(cksum), 16, 64)
+		var dec_l uint32
+		var dec_b uint32
+		// the default parse string use bigEndian
+		// dec,err := strconv.ParseUint(hex.EncodeToString(cksum), 16, 64)
+		buff :=  bytes.NewReader(cksum)
+		err := binary.Read(buff, binary.LittleEndian, &dec_l)
 		if err!=nil {
 			errExit(err)
 		}
-		fmt.Printf("checksum: %d (%x)\n",dec, cksum)
-		fmt.Printf("version : %x\n", ver)
+		buff =  bytes.NewReader(cksum)
+		err = binary.Read(buff, binary.BigEndian, &dec_b)
+		if err!=nil {
+			errExit(err)
+		}
+		fmt.Printf("checksum: %d (le) %d (be) %x (hex)\n",dec_l, dec_b, cksum)
+		fmt.Printf("version : %x\n",version)
 	}else {
 		fmt.Printf("%x\n", data)
 	}

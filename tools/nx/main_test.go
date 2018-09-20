@@ -80,12 +80,24 @@ func TestNoxBase58CheckEncode(t *testing.T) {
 }
 
 func TestNoxHd(t *testing.T) {
-	// Use bx to verify the result
-	// $ echo "skin join dog sponsor camera puppy ritual diagram arrow poverty boy elbow" | bx mnemonic-to-seed
-	//   e8b9a1929f72ccd322b5241dd9a62c08d02129c386de9dc505bb4decc8eb33ffd89575a037be4fbb9a4cf258bff88bbf89745f2f523298e98810e5099502d1b6
 	//
-	// And double check https://iancoleman.io/bip39/
-	var mnemonic = "skin join dog sponsor camera puppy ritual diagram arrow poverty boy elbow"
+	// 1.) Use bx to verify the result
+	//
+	// $ echo 0c891ae06b952c7c30d741590068aa6ca63b4c9d39846da1|bx mnemonic-new
+	//   arrive emotion retreat strong fan dignity select trial flip addict clever sun glove play insane correct horror area
+	//
+	// $ echo 0c891ae06b952c7c30d741590068aa6ca63b4c9d39846da1|bx mnemonic-new|bx mnemonic-to-seed
+	//   17d2225306c59147d199e626bd322aaad6297225b39c720b5f59e99fe7fb872ff52705859851ad794aecb666e98fbe34a1d235f80a27b69daf486d23281e9567
+	//
+	// $ echo 0c891ae06b952c7c30d741590068aa6ca63b4c9d39846da1|bx mnemonic-new|bx mnemonic-to-seed|bx hd-new
+	//   xprv9s21ZrQH143K3eKjeMrovhEdqzX9mzxsAxXxY3rYEPRzs7o3hXnD6ja2YgxgvppmxFTYjEpE32yYsyxdnWbBBt3wSiRD1rqN1FFdnQJdnzF
+	//
+	// $ echo 0c891ae06b952c7c30d741590068aa6ca63b4c9d39846da1|bx mnemonic-new|bx mnemonic-to-seed|bx hd-new|bx hd-to-public
+	//   xpub661MyMwAqRbcG8QCkPPpHqBNQ2MeBTgiYBTZLSG9nixyjv8CF56TeXtWPx3tiZTfPc92cbZFtFhZpBuSgpNxvFpDAQKX47DdyYcofRNJYT2
+	//
+	// 2.) And double check at https://iancoleman.io/bip39/
+	//
+	var mnemonic = "arrive emotion retreat strong fan dignity select trial flip addict clever sun glove play insane correct horror area"
 	// Generate a Bip32 HD wallet for the mnemonic and a user supplied password
 	seed := bip39.NewSeed(mnemonic, "")
 
@@ -93,9 +105,9 @@ func TestNoxHd(t *testing.T) {
 	publicKey := masterKey.PublicKey()
 
 	assert.Equal(t, hex.EncodeToString(seed),
-		"e8b9a1929f72ccd322b5241dd9a62c08d02129c386de9dc505bb4decc8eb33ffd89575a037be4fbb9a4cf258bff88bbf89745f2f523298e98810e5099502d1b6")
+		"17d2225306c59147d199e626bd322aaad6297225b39c720b5f59e99fe7fb872ff52705859851ad794aecb666e98fbe34a1d235f80a27b69daf486d23281e9567")
 	assert.Equal(t, fmt.Sprintf("%s",masterKey),
-		"xprv9s21ZrQH143K4JrrZbKUXWM2MLy4zm6MHSSCJ3X4X1dUHnuYMeMwpWetk7ovL2uyzbvyoEpA6DTrtqFGExCGifFCJjHoDxYSaeerYN4CgrZ")
+		"xprv9s21ZrQH143K3eKjeMrovhEdqzX9mzxsAxXxY3rYEPRzs7o3hXnD6ja2YgxgvppmxFTYjEpE32yYsyxdnWbBBt3wSiRD1rqN1FFdnQJdnzF")
 	assert.Equal(t, fmt.Sprintf("%s",publicKey),
-		"xpub661MyMwAqRbcGnwKfcrUteHkuNoZQDpCefMo6Rvg5MATAbEguBgCNJyNbPcHrg9vDcYmas8e2fEUm7mqrWX4xoMrdCQj849PgaU2ubvBJTt")
+		"xpub661MyMwAqRbcG8QCkPPpHqBNQ2MeBTgiYBTZLSG9nixyjv8CF56TeXtWPx3tiZTfPc92cbZFtFhZpBuSgpNxvFpDAQKX47DdyYcofRNJYT2")
 }

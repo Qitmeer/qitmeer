@@ -39,12 +39,19 @@ func checksum(input []byte) (cksum [4]byte) {
 	return
 }
 
-func CheckInput(input string) ([]byte, error){
+func CheckInput(mode, input string) ([]byte, error){
 	decoded := Decode(input)
 	var cksum [4]byte
 	copy(cksum[:], decoded[len(decoded)-4:])
-	if checksum(decoded[:len(decoded)-4]) != cksum {
-		return nil,ErrChecksum
+	switch mode{
+	case "btc":
+		if checksum_btc(decoded[:len(decoded)-4]) != cksum {
+			return nil, ErrChecksum
+		}
+	default:
+		if checksum(decoded[:len(decoded)-4]) != cksum {
+			return nil, ErrChecksum
+		}
 	}
 	return cksum[:],nil
 }
