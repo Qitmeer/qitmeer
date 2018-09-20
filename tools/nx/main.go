@@ -64,16 +64,16 @@ func main() {
 	base58CheckDecodeCommand.BoolVar(&showDecodeDetails,"d",false, "show decode datails")
 	base58CheckDecodeCommand.StringVar(&decodeMode,"m","nox", "base58 decode mode : [nox|btc]")
 	base58CheckDecodeCommand.Usage = func() {
-		cmdUsage(base58CheckEncodeCommand,"Usage: nx base58check-encode [-v <ver>] [hexstring]\n")
+		cmdUsage(base58CheckDecodeCommand,"Usage: nx base58check-encode [-v <ver>] [hexstring]\n")
 	}
 
 	base58EncodeCmd := flag.NewFlagSet("base58encode",flag.ExitOnError)
 	base58EncodeCmd.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: nx base58-encode [-v <ver>] [hexstring]\n")
+		cmdUsage(base58EncodeCmd ,"Usage: nx base58-encode [-v <ver>] [hexstring]\n")
 	}
 	base58DecodeCmd := flag.NewFlagSet("base58decode",flag.ExitOnError)
 	base58DecodeCmd.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: nx base58-decode [-d] [hexstring]\n")
+		cmdUsage(base58DecodeCmd, "Usage: nx base58-decode [-d] [hexstring]\n")
 	}
 
 	if len(os.Args) == 1 {
