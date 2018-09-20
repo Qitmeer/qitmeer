@@ -19,8 +19,10 @@ func usage() {
 	fmt.Fprintf(os.Stderr,"Usage: nx [--version] [--help] <command> [<args>]\n")
 	fmt.Fprintf(os.Stderr,`
 Nox commmands :
-    base58check-encode    Encode base58check hex string from stdin
-    base58check-decode    Decode base58check hex string from stdin
+	base58-encode         Encode base58check hex string 
+    base58-decode         Decode base58check hex string
+    base58check-encode    Encode base58check hex string
+    base58check-decode    Decode base58check hex string
 `)
 	os.Exit(1)
 }
@@ -63,6 +65,10 @@ func main() {
 		base58CheckEncodeCommand.Parse(os.Args[2:])
 	case "base58check-decode" :
 		base58CheckDecodeCommand.Parse(os.Args[2:])
+	case "base58-encode" :
+		base58EncodeCmd.Parse(os.Args[2:])
+	case "base58-decode" :
+		base58DecodeCmd.Parse(os.Args[2:])
 	default:
 		invalid := os.Args[1]
 		if invalid[0] == '-' {
@@ -116,11 +122,43 @@ func main() {
 
 	// Handle base58-encode
 	if base58EncodeCmd.Parsed(){
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			switch os.Args[2] {
+			case "help","--help":
+				fmt.Fprintf(os.Stderr, "Usage: nx base58-encode [-v <ver>] [hexstring]\n")
+				base58EncodeCmd.PrintDefaults()
+			default:
+				base58Encode(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			base58Encode(str)
+		}
 
 	}
 	// Handle base58-decode
 	if base58DecodeCmd.Parsed(){
-
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			switch os.Args[2] {
+			case "help","--help":
+				fmt.Fprintf(os.Stderr, "Usage: nx base58-decode [-d] [hexstring]\n")
+				base58DecodeCmd.PrintDefaults()
+			default:
+				base58Decode(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			base58Decode(str)
+		}
 	}
 }
-

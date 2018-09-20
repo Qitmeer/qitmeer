@@ -79,3 +79,19 @@ func base58CheckDecode(mode string, input string) {
 		fmt.Printf("%x\n", data)
 	}
 }
+
+
+func base58Encode(input string){
+	data, err := hex.DecodeString(input)
+	if err!=nil {
+		errExit(err)
+	}
+	encoded := base58.Encode(data)
+	fmt.Printf("%s\n",encoded)
+}
+
+func base58Decode(input string){
+	data := base58.Decode(input)
+	fmt.Printf("%x\n", data)
+}
+
