@@ -179,8 +179,6 @@ func (s *RpcServer) startHTTP(listenAddrs []string) error{
 			jsonAuthFail(w)
 			return
 		}
-
-		fmt.Println(r.PostFormValue("params"))
 		// Read and respond to the request.
 		s.jsonRPCRead(w, r)
 	})
