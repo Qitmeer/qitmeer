@@ -33,6 +33,11 @@ sign
 	os.Exit(1)
 }
 
+func cmdUsage (cmd *flag.FlagSet, usage string){
+	fmt.Fprintf(os.Stderr, usage)
+	cmd.PrintDefaults()
+}
+
 func version() {
 	fmt.Fprintf(os.Stderr,"Nx Version : %q\n",NX_VERSION)
 	os.Exit(1)
@@ -51,13 +56,25 @@ func main() {
 
 	base58CheckEncodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
 	base58CheckEncodeCommand.StringVar(&base58CheckVer, "v","0df1","base58check version")
+	base58CheckEncodeCommand.Usage = func() {
+		cmdUsage(base58CheckEncodeCommand,"Usage: nx base58check-encode [-v <ver>] [hexstring]\n")
+	}
 
 	base58CheckDecodeCommand := flag.NewFlagSet("base58check-decode", flag.ExitOnError)
 	base58CheckDecodeCommand.BoolVar(&showDecodeDetails,"d",false, "show decode datails")
 	base58CheckDecodeCommand.StringVar(&decodeMode,"m","nox", "base58 decode mode : [nox|btc]")
+	base58CheckDecodeCommand.Usage = func() {
+		cmdUsage(base58CheckEncodeCommand,"Usage: nx base58check-encode [-v <ver>] [hexstring]\n")
+	}
 
 	base58EncodeCmd := flag.NewFlagSet("base58encode",flag.ExitOnError)
+	base58EncodeCmd.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: nx base58-encode [-v <ver>] [hexstring]\n")
+	}
 	base58DecodeCmd := flag.NewFlagSet("base58decode",flag.ExitOnError)
+	base58DecodeCmd.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: nx base58-decode [-d] [hexstring]\n")
+	}
 
 	if len(os.Args) == 1 {
 		usage()
@@ -88,11 +105,9 @@ func main() {
 	if base58CheckEncodeCommand.Parsed(){
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
-			switch os.Args[2] {
-			case "help","--help":
-				fmt.Fprintf(os.Stderr, "Usage: nx base58check-encode [-v <ver>] [hexstring]\n")
-				base58CheckEncodeCommand.PrintDefaults()
-			default:
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				base58CheckEncodeCommand.Usage()
+			}else{
 				base58CheckEncode(base58CheckVer,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
@@ -109,11 +124,9 @@ func main() {
 	if base58CheckDecodeCommand.Parsed(){
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
-			switch os.Args[2] {
-			case "help","--help":
-				fmt.Fprintf(os.Stderr, "Usage: nx base58check-decode [-d] [hexstring]\n")
-				base58CheckDecodeCommand.PrintDefaults()
-			default:
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				base58CheckDecodeCommand.Usage()
+			}else{
 				base58CheckDecode(decodeMode,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
@@ -130,11 +143,9 @@ func main() {
 	if base58EncodeCmd.Parsed(){
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
-			switch os.Args[2] {
-			case "help","--help":
-				fmt.Fprintf(os.Stderr, "Usage: nx base58-encode [-v <ver>] [hexstring]\n")
-				base58EncodeCmd.PrintDefaults()
-			default:
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				base58EncodeCmd.Usage()
+		 	}else{
 				base58Encode(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
@@ -151,11 +162,9 @@ func main() {
 	if base58DecodeCmd.Parsed(){
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
-			switch os.Args[2] {
-			case "help","--help":
-				fmt.Fprintf(os.Stderr, "Usage: nx base58-decode [-d] [hexstring]\n")
-				base58DecodeCmd.PrintDefaults()
-			default:
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				base58DecodeCmd.Usage()
+			}else{
 				base58Decode(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN

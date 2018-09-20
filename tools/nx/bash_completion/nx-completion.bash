@@ -7,6 +7,8 @@ _nx()
     
     # Generated from XML data source.
     local commands="
+        base58-decode
+        base58-encode
         base58check-decode
         base58check-encode
     "
