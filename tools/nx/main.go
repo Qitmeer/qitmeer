@@ -4,11 +4,8 @@
 package main
 
 import (
-	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/hash/btc"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -27,9 +24,12 @@ encode and decode :
     base58check-encode    encode a base58check string
     base58check-decode    decode a base58check string
 
-hash
-	black2b256
-	sha256
+hash :
+    blake2b256            calculate Blake2b 256 hash of a base16 data.
+    sha256                calculate SHA256 hash of a base16 data. 
+	ripemd160             calculate ripemd160 hash of a base16 data.
+	bitcion160            calculate ripemd160(sha256(data))   
+	hash160               calculate ripemd160(blake2b256(data))
 
 seed & mnemoic & hd
 
@@ -65,7 +65,6 @@ func main() {
 	base58CheckEncodeCommand.StringVar(&base58CheckVer, "v","0df1","base58check version")
 	base58CheckEncodeCommand.Usage = func() {
 		cmdUsage(base58CheckEncodeCommand,"Usage: nx base58check-encode [-v <ver>] [hexstring]\n")
-		base58CheckEncodeCommand.PrintDefaults()
 	}
 
 	base58CheckDecodeCommand := flag.NewFlagSet("base58check-decode", flag.ExitOnError)
@@ -77,15 +76,22 @@ func main() {
 
 	base58EncodeCmd := flag.NewFlagSet("base58encode",flag.ExitOnError)
 	base58EncodeCmd.Usage = func() {
-		cmdUsage(base58EncodeCmd ,"Usage: nx base58-encode [-v <ver>] [hexstring]\n")
+		cmdUsage(base58EncodeCmd ,"Usage: nx base58-encode [hexstring]\n")
 	}
 	base58DecodeCmd := flag.NewFlagSet("base58decode",flag.ExitOnError)
 	base58DecodeCmd.Usage = func() {
-		cmdUsage(base58DecodeCmd, "Usage: nx base58-decode [-d] [hexstring]\n")
+		cmdUsage(base58DecodeCmd, "Usage: nx base58-decode [hexstring]\n")
 	}
 
 	sha256cmd := flag.NewFlagSet("sha256",flag.ExitOnError)
+	sha256cmd.Usage = func() {
+		cmdUsage(sha256cmd, "Usage: nx sha256 [hexstring]\n")
+	}
+
 	blake2b256cmd := flag.NewFlagSet("blake2b256",flag.ExitOnError)
+	blake2b256cmd.Usage = func() {
+		cmdUsage(blake2b256cmd, "Usage: nx blak2b256 [hexstring]\n")
+	}
 
 	if len(os.Args) == 1 {
 		usage()
@@ -227,20 +233,4 @@ func main() {
 			blake2b256(str)
 		}
 	}
-}
-
-func sha256(input string){
-	data, err :=hex.DecodeString(input)
-	if err != nil {
-		errExit(err)
-	}
-	fmt.Printf("%x\n",btc.HashB(data))
-}
-
-func blake2b256(input string){
-	data, err :=hex.DecodeString(input)
-	if err != nil {
-		errExit(err)
-	}
-	fmt.Printf("%x\n",hash.HashB(data))
 }
