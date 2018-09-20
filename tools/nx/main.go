@@ -4,8 +4,11 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/common/hash/btc"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -23,6 +26,10 @@ encode and decode :
     base58-decode         decode a base58 string to a base16 string
     base58check-encode    encode a base58check string
     base58check-decode    decode a base58check string
+
+hash
+	black2b256
+	sha256
 
 seed & mnemoic & hd
 
@@ -58,6 +65,7 @@ func main() {
 	base58CheckEncodeCommand.StringVar(&base58CheckVer, "v","0df1","base58check version")
 	base58CheckEncodeCommand.Usage = func() {
 		cmdUsage(base58CheckEncodeCommand,"Usage: nx base58check-encode [-v <ver>] [hexstring]\n")
+		base58CheckEncodeCommand.PrintDefaults()
 	}
 
 	base58CheckDecodeCommand := flag.NewFlagSet("base58check-decode", flag.ExitOnError)
@@ -76,6 +84,9 @@ func main() {
 		cmdUsage(base58DecodeCmd, "Usage: nx base58-decode [-d] [hexstring]\n")
 	}
 
+	sha256cmd := flag.NewFlagSet("sha256",flag.ExitOnError)
+	blake2b256cmd := flag.NewFlagSet("blake2b256",flag.ExitOnError)
+
 	if len(os.Args) == 1 {
 		usage()
 	}
@@ -92,6 +103,10 @@ func main() {
 		base58EncodeCmd.Parse(os.Args[2:])
 	case "base58-decode" :
 		base58DecodeCmd.Parse(os.Args[2:])
+	case "sha256":
+		sha256cmd.Parse(os.Args[2:])
+	case "blake2b256":
+		blake2b256cmd.Parse(os.Args[2:])
 	default:
 		invalid := os.Args[1]
 		if invalid[0] == '-' {
@@ -176,4 +191,56 @@ func main() {
 			base58Decode(str)
 		}
 	}
+
+	if sha256cmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				sha256cmd.Usage()
+			}else{
+				sha256(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			sha256(str)
+		}
+	}
+
+	if blake2b256cmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				blake2b256cmd.Usage()
+			}else{
+				blake2b256(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			blake2b256(str)
+		}
+	}
+}
+
+func sha256(input string){
+	data, err :=hex.DecodeString(input)
+	if err != nil {
+		errExit(err)
+	}
+	fmt.Printf("%x\n",btc.HashB(data))
+}
+
+func blake2b256(input string){
+	data, err :=hex.DecodeString(input)
+	if err != nil {
+		errExit(err)
+	}
+	fmt.Printf("%x\n",hash.HashB(data))
 }
