@@ -18,11 +18,17 @@ const (
 func usage() {
 	fmt.Fprintf(os.Stderr,"Usage: nx [--version] [--help] <command> [<args>]\n")
 	fmt.Fprintf(os.Stderr,`
-Nox commmands :
-	base58-encode         Encode base58check hex string 
-    base58-decode         Decode base58check hex string
-    base58check-encode    Encode base58check hex string
-    base58check-decode    Decode base58check hex string
+encode and decode :
+    base58-encode         encode a base16 string to a base58 string
+    base58-decode         decode a base58 string to a base16 string
+    base58check-encode    encode a base58check string
+    base58check-decode    decode a base58check string
+
+seed & mnemoic & hd
+
+addr & pbkey
+
+sign 
 `)
 	os.Exit(1)
 }
