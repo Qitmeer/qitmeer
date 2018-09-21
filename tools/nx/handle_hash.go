@@ -4,6 +4,7 @@
 package main
 
 import (
+	"crypto"
 	"encoding/hex"
 	"fmt"
 	"github.com/noxproject/nox/common/hash"
@@ -24,5 +25,16 @@ func blake2b256(input string){
 		errExit(err)
 	}
 	fmt.Printf("%x\n",hash.HashB(data))
+}
+
+func ripemd160(input string){
+	data, err :=hex.DecodeString(input)
+	if err != nil {
+		errExit(err)
+	}
+	hasher := crypto.RIPEMD160.New()
+	hasher.Write(data)
+	hash := hasher.Sum(nil)
+	fmt.Printf("%x\n",hash[:])
 }
 

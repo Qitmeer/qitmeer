@@ -27,9 +27,9 @@ encode and decode :
 hash :
     blake2b256            calculate Blake2b 256 hash of a base16 data.
     sha256                calculate SHA256 hash of a base16 data. 
-	ripemd160             calculate ripemd160 hash of a base16 data.
-	bitcion160            calculate ripemd160(sha256(data))   
-	hash160               calculate ripemd160(blake2b256(data))
+    ripemd160             calculate ripemd160 hash of a base16 data.
+    bitcion160            calculate ripemd160(sha256(data))   
+    hash160               calculate ripemd160(blake2b256(data))
 
 seed & mnemoic & hd
 
@@ -74,11 +74,11 @@ func main() {
 		cmdUsage(base58CheckDecodeCommand,"Usage: nx base58check-encode [-v <ver>] [hexstring]\n")
 	}
 
-	base58EncodeCmd := flag.NewFlagSet("base58encode",flag.ExitOnError)
+	base58EncodeCmd := flag.NewFlagSet("base58-encode",flag.ExitOnError)
 	base58EncodeCmd.Usage = func() {
 		cmdUsage(base58EncodeCmd ,"Usage: nx base58-encode [hexstring]\n")
 	}
-	base58DecodeCmd := flag.NewFlagSet("base58decode",flag.ExitOnError)
+	base58DecodeCmd := flag.NewFlagSet("base58-decode",flag.ExitOnError)
 	base58DecodeCmd.Usage = func() {
 		cmdUsage(base58DecodeCmd, "Usage: nx base58-decode [hexstring]\n")
 	}
@@ -93,6 +93,22 @@ func main() {
 		cmdUsage(blake2b256cmd, "Usage: nx blak2b256 [hexstring]\n")
 	}
 
+	ripemd160Cmd := flag.NewFlagSet("ripemd160",flag.ExitOnError)
+	ripemd160Cmd.Usage = func() {
+		cmdUsage(ripemd160Cmd, "Usage: nx ripemd160 [hexstring]\n")
+	}
+
+	flagSet :=[]*flag.FlagSet{
+		base58CheckEncodeCommand,
+		base58CheckDecodeCommand,
+		base58EncodeCmd,
+		base58DecodeCmd,
+		sha256cmd,
+		blake2b256cmd,
+		ripemd160Cmd,
+	}
+
+
 	if len(os.Args) == 1 {
 		usage()
 	}
@@ -101,26 +117,24 @@ func main() {
 		usage()
 	case "version","--version":
 		version()
-	case "base58check-encode" :
-		base58CheckEncodeCommand.Parse(os.Args[2:])
-	case "base58check-decode" :
-		base58CheckDecodeCommand.Parse(os.Args[2:])
-	case "base58-encode" :
-		base58EncodeCmd.Parse(os.Args[2:])
-	case "base58-decode" :
-		base58DecodeCmd.Parse(os.Args[2:])
-	case "sha256":
-		sha256cmd.Parse(os.Args[2:])
-	case "blake2b256":
-		blake2b256cmd.Parse(os.Args[2:])
 	default:
-		invalid := os.Args[1]
-		if invalid[0] == '-' {
-			fmt.Fprintf(os.Stderr, "unknown option: %q \n", invalid)
-		}else {
-			fmt.Fprintf(os.Stderr, "%q is not valid command\n", invalid)
+		valid := false
+		for _, cmd := range flagSet{
+			if os.Args[1] == cmd.Name() {
+				cmd.Parse(os.Args[2:])
+				valid = true
+				break
+			}
 		}
-		os.Exit(1)
+		if !valid {
+			invalid := os.Args[1]
+			if invalid[0] == '-' {
+				fmt.Fprintf(os.Stderr, "unknown option: %q \n", invalid)
+			} else {
+				fmt.Fprintf(os.Stderr, "%q is not valid command\n", invalid)
+			}
+			os.Exit(1)
+		}
 	}
 	// Handle base58check-encode
 	if base58CheckEncodeCommand.Parsed(){
@@ -231,6 +245,24 @@ func main() {
 			}
 			str := strings.TrimSpace(string(src))
 			blake2b256(str)
+		}
+	}
+
+	if ripemd160Cmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				ripemd160Cmd.Usage()
+			}else{
+				ripemd160(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			ripemd160(str)
 		}
 	}
 }
