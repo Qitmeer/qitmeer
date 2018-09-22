@@ -46,3 +46,11 @@ func bitcoin160(input string){
 	fmt.Printf("%x\n",btc.Hash160(data))
 }
 
+func hash160(input string){
+	data, err :=hex.DecodeString(input)
+	if err != nil {
+		errExit(err)
+	}
+	fmt.Printf("%x\n",hash.Hash160(data))
+}
+

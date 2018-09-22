@@ -103,6 +103,11 @@ func main() {
 		cmdUsage(bitcion160Cmd, "Usage: nx bitcoin160 [hexstring]\n")
 	}
 
+	hash160Cmd := flag.NewFlagSet("hash160",flag.ExitOnError)
+	hash160Cmd.Usage = func() {
+		cmdUsage(bitcion160Cmd, "Usage: nx hash160 [hexstring]\n")
+	}
+
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
 		base58CheckDecodeCommand,
@@ -112,6 +117,7 @@ func main() {
 		blake2b256cmd,
 		ripemd160Cmd,
 		bitcion160Cmd,
+		hash160Cmd,
 	}
 
 
@@ -287,6 +293,24 @@ func main() {
 			}
 			str := strings.TrimSpace(string(src))
 			bitcoin160(str)
+		}
+	}
+
+	if hash160Cmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				hash160Cmd.Usage()
+			}else{
+				hash160(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			hash160(str)
 		}
 	}
 }
