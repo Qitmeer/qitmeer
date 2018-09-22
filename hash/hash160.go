@@ -12,7 +12,7 @@ func CalcHash(buf []byte, hasher h.Hash) []byte {
 
 // Hash160 calculates the hash ripemd160(hash256(b)).
 func Hash160(buf []byte) []byte {
-	return CalcHash(DoubleHashB(buf), GetHasher(Ripemd160))
+	return CalcHash(HashB(buf), GetHasher(Ripemd160))
 }
 
 
