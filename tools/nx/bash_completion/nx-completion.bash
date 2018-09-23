@@ -18,6 +18,8 @@ _nx()
         bitcoin160
         hash160
         seed
+        hd-new
+        hd-to-public
     "
 
     if [[ $COMP_CWORD == 1 ]]; then

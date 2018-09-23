@@ -35,6 +35,8 @@ hash :
 
 seed & mnemoic & hd
     seed                  generate a cryptographically secure pseudorandom seed
+    hd-new                create a new HD(BIP32) private key from a seed
+	hd-to-public          derive the HD (BIP32) public key from a HD private key
 
 addr & pbkey
 
@@ -62,6 +64,7 @@ var base58CheckVer string
 var showDecodeDetails bool
 var decodeMode string
 var seedSize uint
+var hdVer string
 
 func main() {
 
@@ -130,9 +133,20 @@ func main() {
 	// ----------------------------
 	seedCmd := flag.NewFlagSet("seed",flag.ExitOnError)
 	seedCmd.Usage = func() {
-		cmdUsage(seedCmd, "Usage: nx seed [-s|--size value] \n")
+		cmdUsage(seedCmd, "Usage: nx seed [-s size] \n")
 	}
 	seedCmd.UintVar(&seedSize,"s",seed.DefaultSeedBytes*8,"The length in bits for a seed")
+
+	hdNewCmd := flag.NewFlagSet("hd-new",flag.ExitOnError)
+	hdNewCmd.Usage = func() {
+		cmdUsage(hdNewCmd, "Usage: nx hd-new [-v version] \n")
+	}
+	hdNewCmd.StringVar(&hdVer, "v","76066276","The HD private key version")
+
+	hdToPubCmd := flag.NewFlagSet("hd-to-public",flag.ExitOnError)
+	hdToPubCmd.Usage = func() {
+		cmdUsage(hdToPubCmd, "Usage: nx hd-to-public [hd_private_key] \n")
+	}
 
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
@@ -146,6 +160,8 @@ func main() {
 		bitcion160Cmd,
 		hash160Cmd,
 		seedCmd,
+		hdNewCmd,
+		hdToPubCmd,
 	}
 
 
@@ -373,6 +389,42 @@ func main() {
 			}
 		}else {
 			seedCmd.Usage()
+		}
+	}
+
+	if hdNewCmd.Parsed(){
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				hdNewCmd.Usage()
+			}else{
+				hdNewMasterPrivateKey(hdVer,os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			hdNewMasterPrivateKey(hdVer,str)
+		}
+	}
+
+	if hdToPubCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				hdToPubCmd.Usage()
+			}else{
+				hdPrivateKeyToHdPublicKey(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			hdPrivateKeyToHdPublicKey(str)
 		}
 	}
 }
