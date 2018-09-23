@@ -7,7 +7,9 @@ import "encoding/json"
 // TxRawResult models the data from the getrawtransaction command.
 type TxRawResult struct {
 	Hex           string `json:"hex"`
+	HexWit        string `json:"hexwit"`
 	Txid          string `json:"txid"`
+	TxHash        string `json:"txhash"`
 	Version       uint32 `json:"version"`
 	LockTime      uint32 `json:"locktime"`
 	Expire        uint32 `json:"expire"`

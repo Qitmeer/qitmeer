@@ -1,15 +1,32 @@
 package marshal
 
 import (
+	"bytes"
 	"encoding/hex"
-	"strconv"
 	"errors"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/core/json"
+	"fmt"
+	"strconv"
 	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/core/json"
+	"github.com/noxproject/nox/core/message"
+	"github.com/noxproject/nox/core/protocol"
+	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/engine/txscript"
 	"github.com/noxproject/nox/params"
+	"github.com/noxproject/nox/services/common/error"
 )
+
+// messageToHex serializes a message to the wire protocol encoding using the
+// latest protocol version and returns a hex-encoded string of the result.
+func MessageToHex(msg message.Message) (string, error) {
+	var buf bytes.Buffer
+	if err := msg.Encode(&buf, protocol.ProtocolVersion); err != nil {
+		context := fmt.Sprintf("Failed to encode msg of type %T", msg)
+		return "", er.RpcInternalError(err.Error(), context)
+	}
+
+	return hex.EncodeToString(buf.Bytes()), nil
+}
 
 func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHeight uint64,blkHashStr string) (json.TxRawResult, error){
 	if tx == nil {
@@ -25,11 +42,16 @@ func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHei
 	buf,_ :=tx.Serialize(types.TxSerializeFull)
 	hexStr:=hex.EncodeToString(buf)
 
+	bufWit,_ :=tx.Serialize(types.TxSerializeOnlyWitness)
+	hexStrWit:=hex.EncodeToString(bufWit)
+
 	//TODO, handle the blkHeight/blkHash
 
 	return json.TxRawResult{
 		Hex : hexStr,
+		HexWit : hexStrWit,
 		Txid : tx.TxHash().String(),
+		TxHash : tx.TxHashFull().String(),
 		Version:tx.Version,
 		LockTime:tx.LockTime,
 		Expire:tx.Expire,

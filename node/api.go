@@ -15,7 +15,6 @@ import (
 	"github.com/noxproject/nox/core/blockchain"
 	"github.com/noxproject/nox/core/json"
 	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/core/protocol"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/engine/txscript"
@@ -132,24 +131,14 @@ func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
 	// is intentionally not directly returning because the first return
 	// value is a string and it would result in returning an empty string to
 	// the client instead of nothing (nil) in the case of an error.
-	mtxHex, err := messageToHex(&message.MsgTx{mtx})
+	mtxHex, err := marshal.MessageToHex(&message.MsgTx{mtx})
 	if err != nil {
 		return nil, err
 	}
 	return mtxHex, nil
 }
 
-// messageToHex serializes a message to the wire protocol encoding using the
-// latest protocol version and returns a hex-encoded string of the result.
-func messageToHex(msg message.Message) (string, error) {
-	var buf bytes.Buffer
-	if err := msg.Encode(&buf, protocol.ProtocolVersion); err != nil {
-		context := fmt.Sprintf("Failed to encode msg of type %T", msg)
-		return "", er.RpcInternalError(err.Error(), context)
-	}
 
-	return hex.EncodeToString(buf.Bytes()), nil
-}
 
 func (api *PublicBlockChainAPI) DecodeRawTransaction(hexTx string)(interface{},error) {
 	// Deserialize the transaction.
@@ -168,13 +157,18 @@ func (api *PublicBlockChainAPI) DecodeRawTransaction(hexTx string)(interface{},e
 			err)
 	}
 
+	log.Trace("decodeRawTx","hex",hexStr)
+	log.Trace("decodeRawTx","hex",serializedTx)
+
+
 	// Create and return the result.
 	txReply := &json.OrderedResult{
-		{"Txid",     mtx.TxHash().String()},
-		{"Version",  int32(mtx.Version)},
-		{"Locktime", mtx.LockTime},
-		{"Vin",      createVinList(&mtx)},
-		{"Vout",     createVoutList(&mtx, api.node.node.Params, nil)},
+		{"txid", mtx.TxHash().String()},
+		{"txhash", mtx.TxHashFull().String()},
+		{"version",  int32(mtx.Version)},
+		{"locktime", mtx.LockTime},
+		{"vin",      createVinList(&mtx)},
+		{"vout",     createVoutList(&mtx, api.node.node.Params, nil)},
 	}
 	return txReply, nil
 }
@@ -390,6 +384,8 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 		// Deserialize the transaction
 		var msgTx types.Transaction
 		err = msgTx.Deserialize(bytes.NewReader(txBytes))
+		log.Trace("GetRawTx","hex",txBytes)
+		log.Trace("GetRawTx","hex",hex.EncodeToString(txBytes))
 		if err != nil {
 			context := "Failed to deserialize transaction"
 			return nil, er.RpcInternalError(err.Error(), context)

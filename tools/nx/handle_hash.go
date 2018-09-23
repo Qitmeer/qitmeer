@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/common/hash/btc"
+	"github.com/noxproject/nox/common/hash/dcr"
 )
 
 func sha256(input string){
@@ -17,6 +18,14 @@ func sha256(input string){
 		errExit(err)
 	}
 	fmt.Printf("%x\n",btc.HashB(data))
+}
+
+func blake256(input string){
+	data, err :=hex.DecodeString(input)
+	if err != nil {
+		errExit(err)
+	}
+	fmt.Printf("%x\n",dcr.HashB(data))
 }
 
 func blake2b256(input string){

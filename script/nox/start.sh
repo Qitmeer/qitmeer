@@ -4,7 +4,7 @@ network="--privnet"
 mining="--miningaddr RmFUBXUpN3W6bSgaBHpPQzQ7pXNb3fG59Kn"
 debug="-d trace --printorigin"
 rpc="--listen 127.0.0.1:1234 --rpcuser test --rpcpass test"
-path="-b ."
+path="-b "$(pwd)
 index="--txindex"
 
 #1.) The start script used only for dev test purpose
