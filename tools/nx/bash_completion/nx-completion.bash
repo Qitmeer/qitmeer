@@ -12,10 +12,12 @@ _nx()
         base58check-decode
         base58check-encode
         blake2b256
+        blake256
         sha256
         ripemd160
         bitcoin160
         hash160
+        seed
     "
 
     if [[ $COMP_CWORD == 1 ]]; then

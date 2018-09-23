@@ -34,6 +34,7 @@ hash :
     hash160               calculate ripemd160(blake2b256(data))
 
 seed & mnemoic & hd
+    seed                  generate a cryptographically secure pseudorandom seed
 
 addr & pbkey
 
