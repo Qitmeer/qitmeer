@@ -43,20 +43,28 @@ func hdPrivateKeyToHdPublicKey(privateKeyStr string){
 }
 
 
-func mnemonicNew(seedStr string) {
-	seed, err := hex.DecodeString(seedStr)
+func mnemonicNew(entropyStr string) {
+	entropy, err := hex.DecodeString(entropyStr)
 	if err!=nil {
 		errExit(err)
 	}
-	mnemonic, err := bip39.NewMnemonic(seed)
+	mnemonic, err := bip39.NewMnemonic(entropy)
 	if err!=nil {
 		errExit(err)
 	}
 	fmt.Printf("%s\n",mnemonic)
 }
 
-func mnemonicToSeed(mnemonicStr string) {
-	seed, err :=bip39.EntropyFromMnemonic(mnemonicStr)
+func mnemonicToEntropy(mnemonicStr string) {
+	entropy, err :=bip39.EntropyFromMnemonic(mnemonicStr)
+	if err!=nil {
+		errExit(err)
+	}
+	fmt.Printf("%x\n",entropy)
+}
+
+func mnemonicToSeed(passphrase string, mnemonicStr string) {
+	seed, err :=bip39.NewSeedWithErrorChecking(mnemonicStr, passphrase)
 	if err!=nil {
 		errExit(err)
 	}

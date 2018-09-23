@@ -38,7 +38,8 @@ seed & mnemoic & hd
     hd-new                create a new HD(BIP32) private key from a seed
     hd-to-public          derive the HD (BIP32) public key from a HD private key
     mnemonic-new          create a mnemonic world-list (BIP39) from a seed
-    mnemonic-to-seed      convert to the seed from a mnemonic
+    mnemonic-to-entropy   return back to the entropy (the random seed) from a mnemonic world list (BIP39)
+    mnemonic-to-seed      convert a mnemonic world-list(BIP39) to its numeric representation
 
 addr & pbkey
 
@@ -67,6 +68,7 @@ var showDecodeDetails bool
 var decodeMode string
 var seedSize uint
 var hdVer string
+var mnemoicSeedPassphrase string
 
 func main() {
 
@@ -155,10 +157,16 @@ func main() {
 		cmdUsage(mnemonicNewCmd, "Usage: nx mnemonic-new [seed]  \n")
 	}
 
+	mnemonicToEntropyCmd := flag.NewFlagSet("mnemonic-to-entropy",flag.ExitOnError)
+	mnemonicToEntropyCmd.Usage = func() {
+		cmdUsage(mnemonicToEntropyCmd, "Usage: nx mnemonic-to-entropy [mnemonic]  \n")
+	}
+
 	mnemonicToSeedCmd := flag.NewFlagSet("mnemonic-to-seed",flag.ExitOnError)
 	mnemonicToSeedCmd.Usage = func() {
 		cmdUsage(mnemonicToSeedCmd, "Usage: nx mnemonic-to-seed [mnemonic]  \n")
 	}
+	mnemonicToSeedCmd.StringVar(&mnemoicSeedPassphrase,"p","","An optional passphrase for converting the mnemonic to a seed")
 
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
@@ -175,6 +183,7 @@ func main() {
 		hdNewCmd,
 		hdToPubCmd,
 		mnemonicNewCmd,
+		mnemonicToEntropyCmd,
 		mnemonicToSeedCmd,
 	}
 
@@ -460,13 +469,13 @@ func main() {
 		}
 	}
 
-	if mnemonicToSeedCmd.Parsed() {
+	if mnemonicToEntropyCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
-				mnemonicToSeedCmd.Usage()
+				mnemonicToEntropyCmd.Usage()
 			}else{
-				mnemonicToSeed(os.Args[len(os.Args)-1])
+				mnemonicToEntropy(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -474,7 +483,25 @@ func main() {
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			mnemonicToSeed(str)
+			mnemonicToEntropy(str)
+		}
+	}
+
+	if mnemonicToSeedCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				mnemonicToSeedCmd.Usage()
+			}else{
+				mnemonicToSeed(mnemoicSeedPassphrase, os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			mnemonicToSeed(mnemoicSeedPassphrase,str)
 		}
 	}
 }
