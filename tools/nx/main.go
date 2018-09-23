@@ -36,9 +36,9 @@ hash :
 seed & mnemoic & hd
     seed                  generate a cryptographically secure pseudorandom seed
     hd-new                create a new HD(BIP32) private key from a seed
-	hd-to-public          derive the HD (BIP32) public key from a HD private key
+    hd-to-public          derive the HD (BIP32) public key from a HD private key
     mnemonic-new          create a mnemonic world-list (BIP39) from a seed
-	mnemonic-to-seed      convert to the seed from a mnemonic
+    mnemonic-to-seed      convert to the seed from a mnemonic
 
 addr & pbkey
 
