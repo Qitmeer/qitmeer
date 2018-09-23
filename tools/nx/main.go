@@ -33,13 +33,13 @@ hash :
     bitcion160            calculate ripemd160(sha256(data))   
     hash160               calculate ripemd160(blake2b256(data))
 
-seed & mnemoic & hd
-    seed                  generate a cryptographically secure pseudorandom seed
-    hd-new                create a new HD(BIP32) private key from a seed
+seed (entropy) & mnemoic & hd
+    entropy               generate a cryptographically secure pseudorandom seed (entropy)
+    hd-new                create a new HD(BIP32) private key from a seed (entropy)
     hd-to-public          derive the HD (BIP32) public key from a HD private key
-    mnemonic-new          create a mnemonic world-list (BIP39) from a seed
+    mnemonic-new          create a mnemonic world-list (BIP39) from a seed (entropy)
     mnemonic-to-entropy   return back to the entropy (the random seed) from a mnemonic world list (BIP39)
-    mnemonic-to-seed      convert a mnemonic world-list(BIP39) to its numeric representation
+    mnemonic-to-seed      convert a mnemonic world-list (BIP39) to its 512 bits seed 
 
 addr & pbkey
 
@@ -135,11 +135,11 @@ func main() {
 	// ----------------------------
 	// cmd for crypto
 	// ----------------------------
-	seedCmd := flag.NewFlagSet("seed",flag.ExitOnError)
-	seedCmd.Usage = func() {
-		cmdUsage(seedCmd, "Usage: nx seed [-s size] \n")
+	entropyCmd := flag.NewFlagSet("entropy",flag.ExitOnError)
+	entropyCmd.Usage = func() {
+		cmdUsage(entropyCmd, "Usage: nx entropy [-s size] \n")
 	}
-	seedCmd.UintVar(&seedSize,"s",seed.DefaultSeedBytes*8,"The length in bits for a seed")
+	entropyCmd.UintVar(&seedSize,"s",seed.DefaultSeedBytes*8,"The length in bits for a seed (entropy)")
 
 	hdNewCmd := flag.NewFlagSet("hd-new",flag.ExitOnError)
 	hdNewCmd.Usage = func() {
@@ -179,7 +179,7 @@ func main() {
 		ripemd160Cmd,
 		bitcion160Cmd,
 		hash160Cmd,
-		seedCmd,
+		entropyCmd,
 		hdNewCmd,
 		hdToPubCmd,
 		mnemonicNewCmd,
@@ -399,19 +399,19 @@ func main() {
 		}
 	}
 
-	if seedCmd.Parsed(){
+	if entropyCmd.Parsed(){
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) > 2 && (os.Args[2] == "help" || os.Args[2] == "--help" ){
-				seedCmd.Usage()
+				entropyCmd.Usage()
 			}else{
 				if seedSize % 8 > 0	{
-					errExit(fmt.Errorf("seed length must be Must be divisible by 8"))
+					errExit(fmt.Errorf("seed (entropy) length must be Must be divisible by 8"))
 				}
-				newSeed(seedSize/8)
+				newEntropy(seedSize/8)
 			}
 		}else {
-			seedCmd.Usage()
+			entropyCmd.Usage()
 		}
 	}
 

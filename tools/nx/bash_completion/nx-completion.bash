@@ -17,7 +17,7 @@ _nx()
         ripemd160
         bitcoin160
         hash160
-        seed
+        entropy
         hd-new
         hd-to-public
         mnemonic-new

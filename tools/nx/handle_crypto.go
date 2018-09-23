@@ -12,7 +12,7 @@ import (
 	"github.com/noxproject/nox/crypto/seed"
 )
 
-func newSeed(size uint) {
+func newEntropy(size uint) {
 	s,err :=seed.GenerateSeed(uint16(size))
 	if err!=nil {
 		errExit(err)
