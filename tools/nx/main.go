@@ -37,6 +37,8 @@ seed & mnemoic & hd
     seed                  generate a cryptographically secure pseudorandom seed
     hd-new                create a new HD(BIP32) private key from a seed
 	hd-to-public          derive the HD (BIP32) public key from a HD private key
+    mnemonic-new          create a mnemonic world-list (BIP39) from a seed
+	mnemonic-to-seed      convert to the seed from a mnemonic
 
 addr & pbkey
 
@@ -139,13 +141,23 @@ func main() {
 
 	hdNewCmd := flag.NewFlagSet("hd-new",flag.ExitOnError)
 	hdNewCmd.Usage = func() {
-		cmdUsage(hdNewCmd, "Usage: nx hd-new [-v version] \n")
+		cmdUsage(hdNewCmd, "Usage: nx hd-new [-v version] [seed] \n")
 	}
 	hdNewCmd.StringVar(&hdVer, "v","76066276","The HD private key version")
 
 	hdToPubCmd := flag.NewFlagSet("hd-to-public",flag.ExitOnError)
 	hdToPubCmd.Usage = func() {
 		cmdUsage(hdToPubCmd, "Usage: nx hd-to-public [hd_private_key] \n")
+	}
+
+	mnemonicNewCmd := flag.NewFlagSet("mnemonic-new",flag.ExitOnError)
+	mnemonicNewCmd.Usage = func() {
+		cmdUsage(mnemonicNewCmd, "Usage: nx mnemonic-new [seed]  \n")
+	}
+
+	mnemonicToSeedCmd := flag.NewFlagSet("mnemonic-to-seed",flag.ExitOnError)
+	mnemonicToSeedCmd.Usage = func() {
+		cmdUsage(mnemonicToSeedCmd, "Usage: nx mnemonic-to-seed [mnemonic]  \n")
 	}
 
 	flagSet :=[]*flag.FlagSet{
@@ -162,6 +174,8 @@ func main() {
 		seedCmd,
 		hdNewCmd,
 		hdToPubCmd,
+		mnemonicNewCmd,
+		mnemonicToSeedCmd,
 	}
 
 
@@ -427,4 +441,42 @@ func main() {
 			hdPrivateKeyToHdPublicKey(str)
 		}
 	}
+
+	if mnemonicNewCmd.Parsed(){
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				mnemonicNewCmd.Usage()
+			}else{
+				mnemonicNew(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			mnemonicNew(str)
+		}
+	}
+
+	if mnemonicToSeedCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				mnemonicToSeedCmd.Usage()
+			}else{
+				mnemonicToSeed(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			mnemonicToSeed(str)
+		}
+	}
 }
+
+

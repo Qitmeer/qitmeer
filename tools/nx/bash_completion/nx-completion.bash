@@ -20,6 +20,8 @@ _nx()
         seed
         hd-new
         hd-to-public
+        mnemonic-new
+        mnemonic-to-seed
     "
 
     if [[ $COMP_CWORD == 1 ]]; then

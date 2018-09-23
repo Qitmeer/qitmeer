@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/noxproject/nox/common/encode/base58"
 	"github.com/noxproject/nox/crypto/bip32"
+	"github.com/noxproject/nox/crypto/bip39"
 	"github.com/noxproject/nox/crypto/seed"
 )
 
@@ -39,4 +40,25 @@ func hdPrivateKeyToHdPublicKey(privateKeyStr string){
 	}
 	pubKey := masterKey.PublicKey()
 	fmt.Printf("%s\n",pubKey)
+}
+
+
+func mnemonicNew(seedStr string) {
+	seed, err := hex.DecodeString(seedStr)
+	if err!=nil {
+		errExit(err)
+	}
+	mnemonic, err := bip39.NewMnemonic(seed)
+	if err!=nil {
+		errExit(err)
+	}
+	fmt.Printf("%s\n",mnemonic)
+}
+
+func mnemonicToSeed(mnemonicStr string) {
+	seed, err :=bip39.EntropyFromMnemonic(mnemonicStr)
+	if err!=nil {
+		errExit(err)
+	}
+	fmt.Printf("%x\n",seed)
 }
