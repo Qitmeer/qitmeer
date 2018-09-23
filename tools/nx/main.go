@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/noxproject/nox/crypto/seed"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -59,8 +60,13 @@ func errExit(err error){
 var base58CheckVer string
 var showDecodeDetails bool
 var decodeMode string
+var seedSize uint
 
 func main() {
+
+	// ----------------------------
+	// cmd for encoding & decoding
+	// ----------------------------
 
 	base58CheckEncodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
 	base58CheckEncodeCommand.StringVar(&base58CheckVer, "v","0df1","base58check version")
@@ -83,6 +89,10 @@ func main() {
 	base58DecodeCmd.Usage = func() {
 		cmdUsage(base58DecodeCmd, "Usage: nx base58-decode [hexstring]\n")
 	}
+
+	// ----------------------------
+	// cmd for hashing
+	// ----------------------------
 
 	sha256cmd := flag.NewFlagSet("sha256",flag.ExitOnError)
 	sha256cmd.Usage = func() {
@@ -114,6 +124,15 @@ func main() {
 		cmdUsage(bitcion160Cmd, "Usage: nx hash160 [hexstring]\n")
 	}
 
+	// ----------------------------
+	// cmd for crypto
+	// ----------------------------
+	seedCmd := flag.NewFlagSet("seed",flag.ExitOnError)
+	seedCmd.Usage = func() {
+		cmdUsage(seedCmd, "Usage: nx seed [-s|--size value] \n")
+	}
+	seedCmd.UintVar(&seedSize,"s",seed.DefaultSeedBytes*8,"The length in bits for a seed")
+
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
 		base58CheckDecodeCommand,
@@ -125,6 +144,7 @@ func main() {
 		ripemd160Cmd,
 		bitcion160Cmd,
 		hash160Cmd,
+		seedCmd,
 	}
 
 
@@ -336,6 +356,22 @@ func main() {
 			}
 			str := strings.TrimSpace(string(src))
 			hash160(str)
+		}
+	}
+
+	if seedCmd.Parsed(){
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) > 2 && (os.Args[2] == "help" || os.Args[2] == "--help" ){
+				seedCmd.Usage()
+			}else{
+				if seedSize % 8 > 0	{
+					errExit(fmt.Errorf("seed length must be Must be divisible by 8"))
+				}
+				newSeed(seedSize/8)
+			}
+		}else {
+			seedCmd.Usage()
 		}
 	}
 }

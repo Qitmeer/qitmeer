@@ -1,1 +1,3 @@
-./dcrwallet -A /data/decred/private/ --cafile=./rpc.cert --simnet $@ 
+basepath=$(pwd)
+
+./dcrwallet -A $basepath --cafile=$basepath/rpc.cert --simnet $@ 
