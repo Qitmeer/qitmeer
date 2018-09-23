@@ -38,9 +38,10 @@ func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHeight uint64,blkHash
 
 func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHeight uint64,blkHashStr string) (json.TxRawResult, error){
 
-	//TODO, refactor the hex serialize code
-	buf,_ :=tx.Serialize(types.TxSerializeFull)
-	hexStr:=hex.EncodeToString(buf)
+	hexStr, err := MessageToHex(&message.MsgTx{tx})
+	if err!=nil {
+		return json.TxRawResult{}, err
+	}
 
 	bufWit,_ :=tx.Serialize(types.TxSerializeOnlyWitness)
 	hexStrWit:=hex.EncodeToString(bufWit)

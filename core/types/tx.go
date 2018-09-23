@@ -341,10 +341,6 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 	tx.Version = uint32(version & 0xffff)
 	serType := TxSerializeType(version >> 16)
 
- 	if serType != TxSerializeFull {
-		return fmt.Errorf("Transaction.Deserialize : wrong transaction serializetion type [%d]",serType)
-	}
-
 	// returnScriptBuffers is a closure that returns any script buffers that
 	// were borrowed from the pool when there are any deserialization
 	// errors.  This is only valid to call before the final step which
@@ -364,20 +360,35 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 			scriptPool.Return(txOut.PkScript)
 		}
 	}
-
-	totalScriptSizeIns, err := tx.decodePrefix(r)
+	switch serType {
+	case TxSerializeFull:
+		totalScriptSizeIns, err := tx.decodePrefix(r)
 		if err != nil {
 			returnScriptBuffers()
 			return err
 		}
-	totalScriptSizeOuts, err := tx.decodeWitness(r)
+		totalScriptSizeOuts, err := tx.decodeWitness(r)
 		if err != nil {
 			returnScriptBuffers()
 			return err
 		}
-	writeTxScriptsToMsgTx(tx, totalScriptSizeIns+
+		writeTxScriptsToMsgTx(tx, totalScriptSizeIns+
 			totalScriptSizeOuts, TxSerializeFull)
-
+	case TxSerializeNoWitness:
+		_, err := tx.decodePrefix(r)
+		if err != nil {
+			returnScriptBuffers()
+			return err
+		}
+	case TxSerializeOnlyWitness:
+		_, err := tx.decodeOnlyWitness(r)
+		if err != nil {
+			returnScriptBuffers()
+			return err
+		}
+	default:
+		return fmt.Errorf("Transaction.Deserialize : wrong transaction serializetion type [%d]",serType)
+	}
 	return nil
 }
 
@@ -446,6 +457,40 @@ func writeTxScriptsToMsgTx(tx *Transaction, totalScriptSize uint64, serType TxSe
 	// Handle the serialization types accordingly.
 	writeTxIns()
 	writeTxOuts()
+
+}
+
+func (tx *Transaction) decodeOnlyWitness(r io.Reader) (uint64, error) {
+	// Witness only; generate the TxIn list and fill out only the
+	// sigScripts.
+	var totalScriptSize uint64
+	count, err := s.ReadVarInt(r, 0)
+	if err != nil {
+		return 0, err
+	}
+	// Prevent more input transactions than could possibly fit into a
+	// message.  It would be possible to cause memory exhaustion and panics
+	// without a sane upper bound on this count.
+	if count > uint64(maxTxInPerMessage) {
+		return 0, fmt.Errorf("MsgTx.decodeWitness:too many input transactions to fit into "+
+			"max message size [count %d, max %d]", count,
+			maxTxInPerMessage)
+	}
+	txIns := make([]TxInput, count)
+	tx.TxIn = make([]*TxInput, count)
+	for i := uint64(0); i < count; i++ {
+		// The pointer is set now in case a script buffer is borrowed
+		// and needs to be returned to the pool on error.
+		ti := &txIns[i]
+		tx.TxIn[i] = ti
+		err = readTxInWitness(r,ti)
+		if err != nil {
+			return 0, err
+		}
+		totalScriptSize += uint64(len(ti.SignScript))
+	}
+	tx.TxOut = make([]*TxOutput, 0)
+	return totalScriptSize, nil
 
 }
 

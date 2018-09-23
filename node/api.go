@@ -400,13 +400,12 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			// string and it would result in returning an empty
 			// string to the client instead of nothing (nil) in the
 			// case of an error.
-
-			buf, err := tx.Transaction().Serialize(types.TxSerializeFull)
+			hexStr, err := marshal.MessageToHex(&message.MsgTx{tx.Transaction()})
 			if err != nil {
 				return nil, err
 			}
-			txHex := hex.EncodeToString(buf)
-			return txHex, nil
+
+			return hexStr, nil
 		}
 
 		mtx = tx.Transaction()
