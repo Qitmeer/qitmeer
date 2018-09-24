@@ -27,6 +27,7 @@ encode and decode :
 
 hash :
     blake2b256            calculate Blake2b 256 hash of a base16 data.
+    blake2b512            calculate Blake2b 512 hash of a base16 data.
     sha256                calculate SHA256 hash of a base16 data. 
     blake256              calculate blake256 hash of a base16 data.
     ripemd160             calculate ripemd160 hash of a base16 data.
@@ -112,6 +113,11 @@ func main() {
 		cmdUsage(blake2b256cmd, "Usage: nx blak2b256 [hexstring]\n")
 	}
 
+	blake2b512cmd := flag.NewFlagSet("blake2b512",flag.ExitOnError)
+	blake2b512cmd.Usage = func() {
+		cmdUsage(blake2b512cmd, "Usage: nx blak2b512 [hexstring]\n")
+	}
+
 	blake256cmd := flag.NewFlagSet("blake256",flag.ExitOnError)
 	blake256cmd.Usage = func() {
 		cmdUsage(blake256cmd, "Usage: nx blake256 [hexstring]\n")
@@ -175,6 +181,7 @@ func main() {
 		base58DecodeCmd,
 		sha256cmd,
 		blake2b256cmd,
+		blake2b512cmd,
 		blake256cmd,
 		ripemd160Cmd,
 		bitcion160Cmd,
@@ -342,6 +349,24 @@ func main() {
 			}
 			str := strings.TrimSpace(string(src))
 			blake2b256(str)
+		}
+	}
+
+	if blake2b512cmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				blake2b512cmd.Usage()
+			}else{
+				blake2b512(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			blake2b512(str)
 		}
 	}
 

@@ -36,6 +36,14 @@ func blake2b256(input string){
 	fmt.Printf("%x\n",hash.HashB(data))
 }
 
+func blake2b512(input string){
+	data, err :=hex.DecodeString(input)
+	if err != nil {
+		errExit(err)
+	}
+	fmt.Printf("%x\n",hash.Hash512B(data))
+}
+
 func ripemd160(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {

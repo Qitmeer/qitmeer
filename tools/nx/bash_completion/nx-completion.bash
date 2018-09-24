@@ -12,6 +12,7 @@ _nx()
         base58check-decode
         base58check-encode
         blake2b256
+        blake2b512
         blake256
         sha256
         ripemd160
