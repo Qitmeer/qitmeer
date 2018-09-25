@@ -34,13 +34,14 @@ hash :
     bitcion160            calculate ripemd160(sha256(data))   
     hash160               calculate ripemd160(blake2b256(data))
 
-seed (entropy) & mnemoic & hd
-    entropy               generate a cryptographically secure pseudorandom seed (entropy)
-    hd-new                create a new HD(BIP32) private key from a seed (entropy)
+entropy (seed) & mnemoic & hd
+    entropy               generate a cryptographically secure pseudorandom entropy (seed)
+    hd-new                create a new HD(BIP32) private key from an entropy (seed)
     hd-to-public          derive the HD (BIP32) public key from a HD private key
-    mnemonic-new          create a mnemonic world-list (BIP39) from a seed (entropy)
+    mnemonic-new          create a mnemonic world-list (BIP39) from an entropy
     mnemonic-to-entropy   return back to the entropy (the random seed) from a mnemonic world list (BIP39)
     mnemonic-to-seed      convert a mnemonic world-list (BIP39) to its 512 bits seed 
+    ec-new                create a new EC private key from an entropy (seed).
 
 addr & pbkey
 
@@ -70,6 +71,7 @@ var decodeMode string
 var seedSize uint
 var hdVer string
 var mnemoicSeedPassphrase string
+var curve string
 
 func main() {
 
@@ -141,15 +143,18 @@ func main() {
 	// ----------------------------
 	// cmd for crypto
 	// ----------------------------
+
+	// Entropy (Seed)
 	entropyCmd := flag.NewFlagSet("entropy",flag.ExitOnError)
 	entropyCmd.Usage = func() {
 		cmdUsage(entropyCmd, "Usage: nx entropy [-s size] \n")
 	}
 	entropyCmd.UintVar(&seedSize,"s",seed.DefaultSeedBytes*8,"The length in bits for a seed (entropy)")
 
+	// HD (BIP32)
 	hdNewCmd := flag.NewFlagSet("hd-new",flag.ExitOnError)
 	hdNewCmd.Usage = func() {
-		cmdUsage(hdNewCmd, "Usage: nx hd-new [-v version] [seed] \n")
+		cmdUsage(hdNewCmd, "Usage: nx hd-new [-v version] [entropy] \n")
 	}
 	hdNewCmd.StringVar(&hdVer, "v","76066276","The HD private key version")
 
@@ -158,9 +163,10 @@ func main() {
 		cmdUsage(hdToPubCmd, "Usage: nx hd-to-public [hd_private_key] \n")
 	}
 
+	// Mnemonic (BIP39)
 	mnemonicNewCmd := flag.NewFlagSet("mnemonic-new",flag.ExitOnError)
 	mnemonicNewCmd.Usage = func() {
-		cmdUsage(mnemonicNewCmd, "Usage: nx mnemonic-new [seed]  \n")
+		cmdUsage(mnemonicNewCmd, "Usage: nx mnemonic-new [entropy]  \n")
 	}
 
 	mnemonicToEntropyCmd := flag.NewFlagSet("mnemonic-to-entropy",flag.ExitOnError)
@@ -173,6 +179,14 @@ func main() {
 		cmdUsage(mnemonicToSeedCmd, "Usage: nx mnemonic-to-seed [mnemonic]  \n")
 	}
 	mnemonicToSeedCmd.StringVar(&mnemoicSeedPassphrase,"p","","An optional passphrase for converting the mnemonic to a seed")
+
+	// EC
+	ecNewCmd := flag.NewFlagSet("ec-new",flag.ExitOnError)
+	ecNewCmd.Usage = func() {
+		cmdUsage(ecNewCmd, "Usage: nx ec-new [entropy]  \n")
+	}
+	ecNewCmd.StringVar(&curve,"c","secp256k1", "the elliptic curve is using")
+
 
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
@@ -192,6 +206,7 @@ func main() {
 		mnemonicNewCmd,
 		mnemonicToEntropyCmd,
 		mnemonicToSeedCmd,
+		ecNewCmd,
 	}
 
 
@@ -527,6 +542,24 @@ func main() {
 			}
 			str := strings.TrimSpace(string(src))
 			mnemonicToSeed(mnemoicSeedPassphrase,str)
+		}
+	}
+
+	if ecNewCmd.Parsed(){
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				ecNewCmd.Usage()
+			}else{
+				ecNew(curve,os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			ecNew(curve, str)
 		}
 	}
 }

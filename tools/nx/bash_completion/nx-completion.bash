@@ -24,6 +24,7 @@ _nx()
         mnemonic-new
         mnemonic-to-entropy
         mnemonic-to-seed
+        ec-new
     "
 
     if [[ $COMP_CWORD == 1 ]]; then

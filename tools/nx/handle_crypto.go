@@ -20,12 +20,13 @@ func newEntropy(size uint) {
 	fmt.Printf("%x\n",s)
 }
 
-func hdNewMasterPrivateKey(version string, seedStr string){
-	seed, err := hex.DecodeString(seedStr)
+func hdNewMasterPrivateKey(version string, entropyStr string){
+	//TODO support version
+	entropy, err := hex.DecodeString(entropyStr)
 	if err!=nil {
 		errExit(err)
 	}
-	masterKey, err := bip32.NewMasterKey(seed)
+	masterKey, err := bip32.NewMasterKey(entropy)
 	if err !=nil {
 		errExit(err)
 	}
@@ -69,4 +70,22 @@ func mnemonicToSeed(passphrase string, mnemonicStr string) {
 		errExit(err)
 	}
 	fmt.Printf("%x\n",seed)
+}
+
+func ecNew(curve string, entropyStr string){
+	entropy, err := hex.DecodeString(entropyStr)
+	if err!=nil {
+		errExit(err)
+	}
+	switch curve {
+	case "secp256k1":
+		masterKey,err := bip32.NewMasterKey(entropy)
+		if err!=nil {
+			errExit(err)
+		}
+		fmt.Printf("%x\n",masterKey.Key[:])
+	default:
+		errExit(fmt.Errorf("unknown curve : %s",curve))
+	}
+
 }
