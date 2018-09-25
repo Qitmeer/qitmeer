@@ -5,9 +5,15 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-// HashB using blake2b calculates hash(b) and returns the resulting bytes.
+// HashB using blake2b calculates 256 bits hash and returns the resulting bytes.
 func HashB(b []byte) []byte {
 	hash := blake2b.Sum256(b)
+	return hash[:]
+}
+
+// Hash512B using blake2b calculates 512 bits hash and returns the resulting bytes.
+func Hash512B(b []byte) []byte {
+	hash := blake2b.Sum512(b)
 	return hash[:]
 }
 
