@@ -36,6 +36,9 @@ func hdNewMasterPrivateKey(version string, entropyStr string){
 func hdPrivateKeyToHdPublicKey(privateKeyStr string){
 	data := base58.Decode(privateKeyStr)
 	masterKey, err :=bip32.Deserialize(data)
+	if ! masterKey.IsPrivate {
+		errExit(fmt.Errorf("%s is not a HD (BIP32) private key",privateKeyStr))
+	}
 	if err !=nil {
 		errExit(err)
 	}

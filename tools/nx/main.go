@@ -38,6 +38,7 @@ entropy (seed) & mnemoic & hd
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
     hd-new                create a new HD(BIP32) private key from an entropy (seed)
     hd-to-public          derive the HD (BIP32) public key from a HD private key
+    hd-to-ec              convert the HD (BIP32) format private/public key to a EC private/public key
     mnemonic-new          create a mnemonic world-list (BIP39) from an entropy
     mnemonic-to-entropy   return back to the entropy (the random seed) from a mnemonic world list (BIP39)
     mnemonic-to-seed      convert a mnemonic world-list (BIP39) to its 512 bits seed 
