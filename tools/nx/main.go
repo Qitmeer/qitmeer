@@ -157,11 +157,17 @@ func main() {
 	hdNewCmd.Usage = func() {
 		cmdUsage(hdNewCmd, "Usage: nx hd-new [-v version] [entropy] \n")
 	}
+	// TODO, the version not support yet
 	hdNewCmd.StringVar(&hdVer, "v","76066276","The HD private key version")
 
 	hdToPubCmd := flag.NewFlagSet("hd-to-public",flag.ExitOnError)
 	hdToPubCmd.Usage = func() {
 		cmdUsage(hdToPubCmd, "Usage: nx hd-to-public [hd_private_key] \n")
+	}
+
+	hdToEcCmd := flag.NewFlagSet("hd-to-ec",flag.ExitOnError)
+	hdToEcCmd.Usage = func() {
+		cmdUsage(hdToEcCmd, "Usage: nx hd-to-ec [hd_private_key or hd_public_key] \n")
 	}
 
 	// Mnemonic (BIP39)
@@ -204,6 +210,7 @@ func main() {
 		entropyCmd,
 		hdNewCmd,
 		hdToPubCmd,
+		hdToEcCmd,
 		mnemonicNewCmd,
 		mnemonicToEntropyCmd,
 		mnemonicToSeedCmd,
@@ -489,6 +496,24 @@ func main() {
 			}
 			str := strings.TrimSpace(string(src))
 			hdPrivateKeyToHdPublicKey(str)
+		}
+	}
+
+	if hdToEcCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				hdToEcCmd.Usage()
+			}else{
+				hdKeyToEcKey(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			hdKeyToEcKey(str)
 		}
 	}
 

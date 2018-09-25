@@ -46,6 +46,19 @@ func hdPrivateKeyToHdPublicKey(privateKeyStr string){
 	fmt.Printf("%s\n",pubKey)
 }
 
+func hdKeyToEcKey(keyStr string) {
+	data := base58.Decode(keyStr)
+	key, err := bip32.Deserialize(data)
+	if err != nil {
+		errExit(err)
+	}
+	if key.IsPrivate {
+		fmt.Printf("%x\n",key.Key[:])
+	}else{
+		fmt.Printf("%x\n",key.PublicKey().Key[:])
+	}
+}
+
 
 func mnemonicNew(entropyStr string) {
 	entropy, err := hex.DecodeString(entropyStr)
