@@ -4,8 +4,11 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
+	"github.com/noxproject/nox/common/encode/base58"
+	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/crypto/seed"
 	"io/ioutil"
 	"os"
@@ -34,18 +37,19 @@ hash :
     bitcion160            calculate ripemd160(sha256(data))   
     hash160               calculate ripemd160(blake2b256(data))
 
-entropy (seed) & mnemoic & hd
+entropy (seed) & mnemoic & hd & ec 
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
     hd-new                create a new HD(BIP32) private key from an entropy (seed)
-    hd-to-public          derive the HD (BIP32) public key from a HD private key
     hd-to-ec              convert the HD (BIP32) format private/public key to a EC private/public key
+    hd-to-public          derive the HD (BIP32) public key from a HD private key
     mnemonic-new          create a mnemonic world-list (BIP39) from an entropy
     mnemonic-to-entropy   return back to the entropy (the random seed) from a mnemonic world list (BIP39)
     mnemonic-to-seed      convert a mnemonic world-list (BIP39) to its 512 bits seed 
     ec-new                create a new EC private key from an entropy (seed).
     ec-to-public          derive the EC public key from an EC private key (Defaults to the compressed public key format)
 
-addr & pbkey
+addr
+    ec-to-addr            Convert an EC public key to a paymant address. default is nox address
 
 sign 
 `)
@@ -203,6 +207,11 @@ func main() {
 	}
 	ecToPubCmd.BoolVar(&uncompressedPKFormat,"u", false,"using the uncompressed public key format")
 
+	// Address
+	ecToAddrCmd := flag.NewFlagSet("ec-to-addr",flag.ExitOnError)
+	ecToAddrCmd.Usage = func() {
+		cmdUsage(ecToPubCmd, "Usage: nx ec-to-addr [ec_public_key] \n")
+	}
 
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
@@ -225,8 +234,8 @@ func main() {
 		mnemonicToSeedCmd,
 		ecNewCmd,
 		ecToPubCmd,
+		ecToAddrCmd,
 	}
-
 
 	if len(os.Args) == 1 {
 		usage()
@@ -616,6 +625,39 @@ func main() {
 			ecPrivateKeyToEcPublicKey(uncompressedPKFormat,str)
 		}
 	}
+
+	if ecToAddrCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				ecToAddrCmd.Usage()
+			}else{
+				ecPubKeyToAddress(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			ecPubKeyToAddress(str)
+		}
+	}
 }
+func ecPubKeyToAddress(pubkey string) {
+	data, err :=hex.DecodeString(pubkey)
+	if err != nil {
+		errExit(err)
+	}
+	h := hash.Hash160(data)
+	defaultVer, err := hex.DecodeString(base58CheckVer)
+	if err !=nil {
+		errExit(err)
+	}
+	address := base58.CheckEncode(h, [2]byte{defaultVer[0],defaultVer[1]})
+	fmt.Printf("%s\n",address)
+}
+
+
 
 
