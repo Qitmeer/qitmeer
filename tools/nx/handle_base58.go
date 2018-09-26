@@ -33,10 +33,7 @@ func base58CheckEncode(version string, input string){
 }
 
 func base58CheckDecode(mode string, input string) {
-	cksum, err := base58.CheckInput(mode,input)
-	if err != nil {
-		errExit(err)
-	}
+	var err error
 	var data []byte
 	var version []byte
 	switch mode {
@@ -57,6 +54,10 @@ func base58CheckDecode(mode string, input string) {
 	}
 
 	if showDecodeDetails {
+		cksum, err := base58.CheckInput(mode,input)
+		if err != nil {
+			errExit(err)
+		}
 		fmt.Printf("mode    : %s\n", mode)
 		fmt.Printf("payload : %x\n", data)
 		var dec_l uint32
@@ -64,7 +65,7 @@ func base58CheckDecode(mode string, input string) {
 		// the default parse string use bigEndian
 		// dec,err := strconv.ParseUint(hex.EncodeToString(cksum), 16, 64)
 		buff :=  bytes.NewReader(cksum)
-		err := binary.Read(buff, binary.LittleEndian, &dec_l)
+		err = binary.Read(buff, binary.LittleEndian, &dec_l)
 		if err!=nil {
 			errExit(err)
 		}
