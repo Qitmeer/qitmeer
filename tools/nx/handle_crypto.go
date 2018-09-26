@@ -9,6 +9,7 @@ import (
 	"github.com/noxproject/nox/common/encode/base58"
 	"github.com/noxproject/nox/crypto/bip32"
 	"github.com/noxproject/nox/crypto/bip39"
+	"github.com/noxproject/nox/crypto/ecc"
 	"github.com/noxproject/nox/crypto/seed"
 )
 
@@ -104,4 +105,19 @@ func ecNew(curve string, entropyStr string){
 		errExit(fmt.Errorf("unknown curve : %s",curve))
 	}
 
+}
+
+func ecPrivateKeyToEcPublicKey(uncompressed bool, privateKeyStr string) {
+	data, err := hex.DecodeString(privateKeyStr)
+	if err!=nil {
+		errExit(err)
+	}
+	_, pubKey := ecc.Secp256k1.PrivKeyFromBytes(data)
+	var key []byte
+	if uncompressed {
+		key = pubKey.SerializeUncompressed()
+	}else {
+		key = pubKey.SerializeCompressed()
+	}
+	fmt.Printf("%x\n",key[:])
 }

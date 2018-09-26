@@ -43,6 +43,7 @@ entropy (seed) & mnemoic & hd
     mnemonic-to-entropy   return back to the entropy (the random seed) from a mnemonic world list (BIP39)
     mnemonic-to-seed      convert a mnemonic world-list (BIP39) to its 512 bits seed 
     ec-new                create a new EC private key from an entropy (seed).
+    ec-to-public          derive the EC public key from an EC private key (Defaults to the compressed public key format)
 
 addr & pbkey
 
@@ -73,6 +74,7 @@ var seedSize uint
 var hdVer string
 var mnemoicSeedPassphrase string
 var curve string
+var uncompressedPKFormat bool
 
 func main() {
 
@@ -195,6 +197,13 @@ func main() {
 	ecNewCmd.StringVar(&curve,"c","secp256k1", "the elliptic curve is using")
 
 
+	ecToPubCmd := flag.NewFlagSet("ec-to-public",flag.ExitOnError)
+	ecToPubCmd.Usage = func() {
+		cmdUsage(ecToPubCmd, "Usage: nx ec-to-public [ec_private_key] \n")
+	}
+	ecToPubCmd.BoolVar(&uncompressedPKFormat,"u", false,"using the uncompressed public key format")
+
+
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
 		base58CheckDecodeCommand,
@@ -215,6 +224,7 @@ func main() {
 		mnemonicToEntropyCmd,
 		mnemonicToSeedCmd,
 		ecNewCmd,
+		ecToPubCmd,
 	}
 
 
@@ -586,6 +596,24 @@ func main() {
 			}
 			str := strings.TrimSpace(string(src))
 			ecNew(curve, str)
+		}
+	}
+
+	if ecToPubCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				ecToPubCmd.Usage()
+			}else{
+				ecPrivateKeyToEcPublicKey(uncompressedPKFormat,os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			ecPrivateKeyToEcPublicKey(uncompressedPKFormat,str)
 		}
 	}
 }
