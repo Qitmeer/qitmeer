@@ -210,7 +210,7 @@ func main() {
 	// Address
 	ecToAddrCmd := flag.NewFlagSet("ec-to-addr",flag.ExitOnError)
 	ecToAddrCmd.Usage = func() {
-		cmdUsage(ecToPubCmd, "Usage: nx ec-to-addr [ec_public_key] \n")
+		cmdUsage(ecToAddrCmd, "Usage: nx ec-to-addr [ec_public_key] \n")
 	}
 
 	flagSet :=[]*flag.FlagSet{
