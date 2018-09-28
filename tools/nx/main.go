@@ -4,11 +4,8 @@
 package main
 
 import (
-	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/noxproject/nox/common/encode/base58"
-	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/crypto/seed"
 	"io/ioutil"
 	"os"
@@ -48,10 +45,10 @@ entropy (seed) & mnemoic & hd & ec
     ec-new                create a new EC private key from an entropy (seed).
     ec-to-public          derive the EC public key from an EC private key (Defaults to the compressed public key format)
 
-addr
+addr & tx & sign
     ec-to-addr            Convert an EC public key to a paymant address. default is nox address
-
-sign 
+    tx-decode             decode a transaction in base16 to json format.
+	
 `)
 	os.Exit(1)
 }
@@ -79,6 +76,7 @@ var hdVer string
 var mnemoicSeedPassphrase string
 var curve string
 var uncompressedPKFormat bool
+var network string
 
 func main() {
 
@@ -213,6 +211,13 @@ func main() {
 		cmdUsage(ecToAddrCmd, "Usage: nx ec-to-addr [ec_public_key] \n")
 	}
 
+	// Transaction
+	txDecodeCmd := flag.NewFlagSet("tx-decode",flag.ExitOnError)
+	txDecodeCmd.Usage = func() {
+		cmdUsage(txDecodeCmd, "Usage: nx tx-decode [base16_string] \n")
+	}
+	txDecodeCmd.StringVar(&network,"n","privnet", "encode rawtx for the target network. (mainnet, testnet, privnet)")
+
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
 		base58CheckDecodeCommand,
@@ -235,6 +240,7 @@ func main() {
 		ecNewCmd,
 		ecToPubCmd,
 		ecToAddrCmd,
+		txDecodeCmd,
 	}
 
 	if len(os.Args) == 1 {
@@ -643,21 +649,24 @@ func main() {
 			ecPubKeyToAddress(str)
 		}
 	}
-}
-func ecPubKeyToAddress(pubkey string) {
-	data, err :=hex.DecodeString(pubkey)
-	if err != nil {
-		errExit(err)
-	}
-	h := hash.Hash160(data)
-	defaultVer, err := hex.DecodeString(base58CheckVer)
-	if err !=nil {
-		errExit(err)
-	}
-	address := base58.CheckEncode(h, [2]byte{defaultVer[0],defaultVer[1]})
-	fmt.Printf("%s\n",address)
-}
 
-
+	if txDecodeCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				txDecodeCmd.Usage()
+			}else{
+				txDecode(network,os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			txDecode(network, str)
+		}
+	}
+}
 
 
