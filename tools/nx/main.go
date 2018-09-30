@@ -47,7 +47,9 @@ entropy (seed) & mnemoic & hd & ec
 
 addr & tx & sign
     ec-to-addr            Convert an EC public key to a paymant address. default is nox address
+    tx-encode             encode a unsigned transaction.
     tx-decode             decode a transaction in base16 to json format.
+    
 	
 `)
 	os.Exit(1)
@@ -77,6 +79,7 @@ var mnemoicSeedPassphrase string
 var curve string
 var uncompressedPKFormat bool
 var network string
+var txInputs txInputsFlag
 
 func main() {
 
@@ -216,7 +219,19 @@ func main() {
 	txDecodeCmd.Usage = func() {
 		cmdUsage(txDecodeCmd, "Usage: nx tx-decode [base16_string] \n")
 	}
-	txDecodeCmd.StringVar(&network,"n","privnet", "encode rawtx for the target network. (mainnet, testnet, privnet)")
+	txDecodeCmd.StringVar(&network,"n","privnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
+
+	txEncodeCmd := flag.NewFlagSet("tx-encode",flag.ExitOnError)
+	txEncodeCmd.Usage = func() {
+		cmdUsage(txEncodeCmd, "Usage: nx tx-encode [-i tx-input] [-l tx-lock-time] [-o tx-output] [-v tx-version] \n")
+	}
+	txEncodeCmd.Var(&txInputs,"i",`The set of transaction input points encoded as
+TXHASH:INDEX:SEQUENCE. TXHASH is a Base16
+transaction hash. INDEX is the 32 bit input index in
+the context of the transaction. SEQUENCE is the
+optional 32 bit input sequence and defaults to the
+maximum value.`)
+
 
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
@@ -240,6 +255,7 @@ func main() {
 		ecNewCmd,
 		ecToPubCmd,
 		ecToAddrCmd,
+		txEncodeCmd,
 		txDecodeCmd,
 	}
 
@@ -665,6 +681,17 @@ func main() {
 			}
 			str := strings.TrimSpace(string(src))
 			txDecode(network, str)
+		}
+	}
+
+	if txEncodeCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				txEncodeCmd.Usage()
+			}else{
+				txEncode(txInputs)
+			}
 		}
 	}
 }

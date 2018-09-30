@@ -28,6 +28,8 @@ _nx()
         ec-new
         ec-to-public
         ec-to-addr
+        tx-decode
+        tx-encode
     "
 
     if [[ $COMP_CWORD == 1 ]]; then

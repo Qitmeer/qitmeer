@@ -52,6 +52,11 @@ func txDecode(network string, rawTxStr string) {
 	fmt.Printf("%s",marshaledTx)
 }
 
+func txEncode(iFlag txInputsFlag){
+	for _, input :=range iFlag.inputs {
+		fmt.Printf("%s\n",input)
+	}
+}
 
 
 
