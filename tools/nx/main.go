@@ -14,6 +14,7 @@ import (
 
 const (
 	NX_VERSION = "0.0.1"
+	TX_VERION = 1 //default version is 1
 )
 
 func usage() {
@@ -80,6 +81,9 @@ var curve string
 var uncompressedPKFormat bool
 var network string
 var txInputs txInputsFlag
+var txOutputs txOutputsFlag
+var txVersion txVersionFlag
+var txLockTime txLockTimeFlag
 
 func main() {
 
@@ -225,13 +229,16 @@ func main() {
 	txEncodeCmd.Usage = func() {
 		cmdUsage(txEncodeCmd, "Usage: nx tx-encode [-i tx-input] [-l tx-lock-time] [-o tx-output] [-v tx-version] \n")
 	}
-	txEncodeCmd.Var(&txInputs,"i",`The set of transaction input points encoded as
-TXHASH:INDEX:SEQUENCE. TXHASH is a Base16
-transaction hash. INDEX is the 32 bit input index in
-the context of the transaction. SEQUENCE is the
-optional 32 bit input sequence and defaults to the
-maximum value.`)
-
+	txVersion = txVersionFlag(TX_VERION) //set default tx version
+	txEncodeCmd.Var(&txVersion,"v","the transaction version")
+	txEncodeCmd.Var(&txLockTime,"l","the transaction lock time")
+	txEncodeCmd.Var(&txInputs,"i",`The set of transaction input points encoded as TXHASH:INDEX:SEQUENCE. 
+TXHASH is a Base16 transaction hash. INDEX is the 32 bit input index
+in the context of the transaction. SEQUENCE is the optional 32 bit 
+input sequence and defaults to the maximum value.`)
+	txEncodeCmd.Var(&txOutputs,"o",`The set of transaction output data encoded as TARGET:NOX. 
+TARGET is an address (pay-to-pubkey-hash or pay-to-script-hash).
+NOX is the 64 bit spend amount in nox.`)
 
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
@@ -690,7 +697,7 @@ maximum value.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				txEncodeCmd.Usage()
 			}else{
-				txEncode(txInputs)
+				txEncode(txVersion,txLockTime,txInputs,txOutputs)
 			}
 		}
 	}

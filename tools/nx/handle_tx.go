@@ -52,9 +52,14 @@ func txDecode(network string, rawTxStr string) {
 	fmt.Printf("%s",marshaledTx)
 }
 
-func txEncode(iFlag txInputsFlag){
-	for _, input :=range iFlag.inputs {
+func txEncode(version txVersionFlag, lockTime txLockTimeFlag, txIn txInputsFlag,txOut txOutputsFlag){
+	fmt.Printf("version:%d\n",version)
+	fmt.Printf("lockTime:%d\n",lockTime)
+	for _, input :=range txIn.inputs {
 		fmt.Printf("%s\n",input)
+	}
+	for _, output:= range txOutputs.outputs{
+		fmt.Printf("%s\n",output)
 	}
 }
 
