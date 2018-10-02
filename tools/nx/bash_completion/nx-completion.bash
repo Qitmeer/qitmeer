@@ -30,6 +30,7 @@ _nx()
         ec-to-addr
         tx-decode
         tx-encode
+        tx-sign
     "
 
     if [[ $COMP_CWORD == 1 ]]; then

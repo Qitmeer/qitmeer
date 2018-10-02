@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/noxproject/nox/common/encode/base58"
 	"math"
 	"strconv"
 	"strings"
@@ -45,19 +44,19 @@ type txOutputsFlag struct{
 
 type txInput struct {
 	txhash []byte
-	index uint64
+	index uint32
 	sequence uint32
 }
 type txOutput struct {
-	target []byte
-	amount uint64
+	target string
+	amount float64
 }
 
 func (i txInput) String() string {
 	return fmt.Sprintf("%x:%d:%d",i.txhash[:],i.index,i.sequence)
 }
 func (o txOutput) String() string {
-	return fmt.Sprintf("%x:%d",o.target[:],o.amount)
+	return fmt.Sprintf("%s:%f",o.target,o.amount)
 }
 
 func (v txInputsFlag) String() string {
@@ -107,7 +106,7 @@ func (v *txInputsFlag) Set(s string) error {
 	}
 	i := txInput{
 		data,
-		index,
+		uint32(index),
 		uint32(seq),
 	}
 	v.inputs = append(v.inputs,i)
@@ -119,11 +118,8 @@ func (of *txOutputsFlag) Set(s string) error {
 	if len(output) < 2 {
 		return fmt.Errorf("error to parse tx output : %s",s)
 	}
-	target, _, err := base58.CheckDecode(output[0])
-	if err!=nil{
-		return err
-	}
-    amount, err := strconv.ParseUint(output[1], 10, 64)
+	target:=output[0]
+    amount, err := strconv.ParseFloat(output[1],64)
 	if err != nil {
 		return err
 	}

@@ -19,7 +19,7 @@ require (
 	github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/onsi/gomega v1.4.2 // indirect
-	github.com/pkg/errors v0.8.0 // indirect
+	github.com/pkg/errors v0.8.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20180503174638-e2704e165165
 	github.com/stretchr/testify v1.2.2

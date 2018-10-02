@@ -47,10 +47,10 @@ entropy (seed) & mnemoic & hd & ec
     ec-to-public          derive the EC public key from an EC private key (Defaults to the compressed public key format)
 
 addr & tx & sign
-    ec-to-addr            Convert an EC public key to a paymant address. default is nox address
+    ec-to-addr            convert an EC public key to a paymant address. default is nox address
     tx-encode             encode a unsigned transaction.
     tx-decode             decode a transaction in base16 to json format.
-    
+    tx-sign               sign a transactions using a private key.
 	
 `)
 	os.Exit(1)
@@ -67,6 +67,7 @@ func version() {
 }
 
 func errExit(err error){
+	panic(err)
 	fmt.Fprintf(os.Stderr, "Nx Error : %q\n",err)
 	os.Exit(1)
 }
