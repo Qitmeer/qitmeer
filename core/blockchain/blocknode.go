@@ -66,9 +66,10 @@ type blockNode struct {
 	// hundreds of thousands of these in memory, so a few extra bytes of
 	// padding adds up.
 
-	// parent is the parent block for this node.
-	parent *blockNode
-
+	// parents is all the parents block for this node.
+	parents []*blockNode
+	// children is all the children block for this node.
+	children []*blockNode
 	// hash is the hash of the block this node represents.
 	hash hash.Hash
 
@@ -80,7 +81,6 @@ type blockNode struct {
 	// reconstructing headers from memory.  These must be treated as
 	// immutable and are intentionally ordered to avoid padding on 64-bit
 	// platforms.
-	height       uint64
 	blockVersion uint32
 	bits         uint32
 	timestamp    int64
@@ -101,14 +101,21 @@ type blockNode struct {
 	// ancestor when switching chains.
 	inMainChain bool
 
+	//pastSetNum is the size of past sets
+	pastSetNum uint64
+	//height is in the position of whole block chain.(It is actually DAG order)
+	//Why do I not call "order" directly, considering the compatibility of code?
+	height    uint64
+	//This is the height of block stacking in DAG.
+	mainHeight uint64
 }
 
 // newBlockNode returns a new block node for the given block header and parent
 // node.  The workSum is calculated based on the parent, or, in the case no
 // parent is provided, it will just be the work for the passed block.
-func newBlockNode(blockHeader *types.BlockHeader, parent *blockNode) *blockNode {
+func newBlockNode(blockHeader *types.BlockHeader, parents []*blockNode) *blockNode {
 	var node blockNode
-	initBlockNode(&node, blockHeader, parent)
+	initBlockNode(&node, blockHeader, parents)
 	return &node
 }
 
@@ -119,20 +126,24 @@ func newBlockNode(blockHeader *types.BlockHeader, parent *blockNode) *blockNode 
 //
 // This function is NOT safe for concurrent access.  It must only be called when
 // initially creating a node.
-func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parent *blockNode) {
+func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*blockNode) {
 	*node = blockNode{
 		hash:         blockHeader.BlockHash(),
 		workSum:      CalcWork(blockHeader.Difficulty),
-		height:       blockHeader.Height,
+		height:       0,
 		blockVersion: blockHeader.Version,
 		bits:         blockHeader.Difficulty,
 		timestamp:    blockHeader.Timestamp.Unix(),
 		txRoot:       blockHeader.TxRoot,
 		nonce:        blockHeader.Nonce,
+		mainHeight:        0,
 	}
-	if parent != nil {
-		node.parent = parent
-		node.workSum = node.workSum.Add(parent.workSum, node.workSum)
+	if parents != nil&&len(parents)>0 {
+		node.parents = parents
+
+		node.workSum = node.workSum.Add(node.GetParentsWorkSum(), node.workSum)
+	}else {
+		node.height=0
 	}
 }
 
@@ -141,18 +152,17 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parent *bloc
 // This function is safe for concurrent access.
 func (node *blockNode) Header() types.BlockHeader {
 	// No lock is needed because all accessed fields are immutable.
-	prevHash := zeroHash
-	if node.parent != nil {
-		prevHash = &node.parent.hash
+	hashs:=[]*hash.Hash{}
+	for _,v:=range node.parents{
+		hashs=append(hashs,&v.hash)
 	}
 	return types.BlockHeader{
-		Version:      node.blockVersion,
-		ParentRoot:    *prevHash,
-		TxRoot:   	  node.txRoot,
-		Difficulty:   node.bits,
-		Height:       node.height,
-		Timestamp:    time.Unix(node.timestamp, 0),
-		Nonce:        node.nonce,
+		Version:    node.blockVersion,
+		ParentRoot:types.GetParentsRoot(hashs),
+		TxRoot:   	node.txRoot,
+		Difficulty: node.bits,
+		Timestamp:  time.Unix(node.timestamp, 0),
+		Nonce:      node.nonce,
 	}
 }
 
@@ -170,7 +180,7 @@ func (node *blockNode) CalcPastMedianTime() time.Time {
 		timestamps[i] = iterNode.timestamp
 		numNodes++
 
-		iterNode = iterNode.parent
+		iterNode = iterNode.GetMainParent()
 	}
 
 	// Prune the slice to the actual number of available timestamps which
@@ -194,22 +204,91 @@ func (node *blockNode) CalcPastMedianTime() time.Time {
 	medianTimestamp := timestamps[numNodes/2]
 	return time.Unix(medianTimestamp, 0)
 }
-
-// Ancestor returns the ancestor block node at the provided height by following
-// the chain backwards from this node.  The returned block will be nil when a
-// height is requested that is after the height of the passed node or is less
-// than zero.
-//
-// This function is safe for concurrent access.
-func (node *blockNode) Ancestor(height uint64) *blockNode {
-	if height < 0 || height > node.height {
+func (node *blockNode) GetParentsWorkSum() *big.Int {
+	var workSum *big.Int=&big.Int{}
+	for _,v:=range node.parents{
+		workSum.Add(v.workSum, workSum)
+	}
+	return workSum
+}
+func (node *blockNode) GetParentsSet() *BlockSet{
+	if node.parents==nil||len(node.parents)==0 {
 		return nil
 	}
-
-	n := node
-	for ; n != nil && n.height != height; n = n.parent {
-		// Intentionally left blank
+	result:=NewBlockSet()
+	for _,v:=range node.parents{
+		result.Add(&v.hash)
 	}
+	return result
+}
 
-	return n
+func (node *blockNode) AddChild(child *blockNode){
+	if node.HasChild(child) {
+		return
+	}
+	if node.children==nil {
+		node.children=[]*blockNode{}
+	}
+	node.children=append(node.children,child)
+}
+func (node *blockNode) HasChild(child *blockNode) bool{
+	if node.children==nil||len(node.children)==0 {
+		return false
+	}
+	for _,v:=range node.children{
+		if v==child {
+			return true
+		}
+	}
+	return false
+}
+//For the moment,In order to match the DAG
+func (node *blockNode) GetChildrenSet() *BlockSet{
+	if node.children==nil||len(node.children)==0 {
+		return nil
+	}
+	result:=NewBlockSet()
+	for _,v:=range node.children{
+		result.Add(&v.hash)
+	}
+	return result
+}
+
+func (node *blockNode) GetHeight() uint64{
+	return node.height
+}
+func (node *blockNode) Clone() *blockNode{
+	header:=node.Header()
+	newNode := newBlockNode(&header,node.parents)
+	newNode.status = statusDataStored
+	newNode.children=node.children
+	newNode.height=node.height
+	newNode.mainHeight=node.mainHeight
+	return newNode
+}
+func (node *blockNode) IsBefore(other *blockNode) bool{
+	if other==nil {
+		return true
+	}
+	if node.height<other.height {
+		return true
+	}else if node.height==other.height {
+		if node.pastSetNum>other.pastSetNum {
+			return true
+		}else if node.pastSetNum==other.pastSetNum {
+			if node.hash.String()<other.hash.String() {
+				return true
+			}
+		}
+	}
+	return false
+}
+func (node *blockNode) GetMainParent() *blockNode{
+	var result *blockNode=nil
+	for _,v:=range node.parents{
+		if result==nil||v.IsBefore(result) {
+			result=v
+		}
+	}
+	return result
 }

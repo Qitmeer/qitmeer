@@ -19,7 +19,7 @@ func (b *BlockManager) GetChainState() *ChainState{
 // safe for concurrent access and the block manager is typically quite busy
 // processing block and inventory.
 func (c *ChainState) UpdateChainState(newestHash *hash.Hash,
-	newestHeight uint64, bestMedianTime time.Time, curPrevHash hash.Hash) {
+	newestHeight uint64, bestMedianTime time.Time) {
 
 	c.Lock()
 	defer c.Unlock()
@@ -27,7 +27,6 @@ func (c *ChainState) UpdateChainState(newestHash *hash.Hash,
 	c.newestHash = newestHash
 	c.newestHeight = newestHeight
 	c.pastMedianTime = bestMedianTime
-	c.curPrevHash = curPrevHash
 }
 
 //TODO revisit concurrent lock/unclock
@@ -92,7 +91,6 @@ type ChainState struct {
 	nextStakeDifficulty int64
 	winningTickets      []hash.Hash
 	missedTickets       []hash.Hash
-	curPrevHash         hash.Hash
 	pastMedianTime      time.Time
 }
 

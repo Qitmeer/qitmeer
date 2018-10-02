@@ -71,7 +71,6 @@ type BlockChain struct {
 
 	// These fields are related to the memory block index.  They are
 	// protected by the chain lock.
-	bestNode *blockNode
 	index    *blockIndex
 
 	// This field allows efficient lookup of nodes in the main chain by
@@ -116,6 +115,10 @@ type BlockChain struct {
 	// it is unlikely to be referenced in the future.
 	pruner *chainPruner
 
+	//block dag
+	dag *BlockDAG
+	//badTx hash->block hash
+	badTx map[hash.Hash]*BlockSet
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -192,7 +195,7 @@ type orphanBlock struct {
 // shared by all callers.
 type BestState struct {
 	Hash         hash.Hash      // The hash of the block.
-	Height       uint64          // The height of the block.
+	Height       uint64         // The height of the block.
 	Bits         uint32         // The difficulty bits of the block.
 	BlockSize    uint64         // The size of the block.
 	NumTxns      uint64         // The number of txns in the block.
@@ -263,7 +266,9 @@ func New(config *Config) (*BlockChain, error) {
 		mainchainBlockCache:           make(map[hash.Hash]*types.SerializedBlock),
 		mainchainBlockCacheSize:       mainchainBlockCacheSize,
 	}
-
+	b.dag=&BlockDAG{}
+	b.dag.Init(&b)
+	b.badTx=make(map[hash.Hash]*BlockSet)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -282,13 +287,19 @@ func New(config *Config) (*BlockChain, error) {
 
 	b.pruner = newChainPruner(&b)
 
-	b.subsidyCache = NewSubsidyCache(int64(b.bestNode.height), b.params)
+	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Height), b.params)
+
 
 	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
 		"index",b.dbInfo.bidxVer)
 
-	log.Info("Chain state", "height",  b.bestNode.height,
-		"hash",b.bestNode.hash,"tx_num", b.stateSnapshot.NumTxns)
+	tips:=b.dag.GetNodeTips()
+	logStr:=fmt.Sprintf("Chain state:totaltx=%d\ntips=%d\n",b.stateSnapshot.TotalTxns,len(tips))
+
+	for _,v:=range tips{
+		logStr+=fmt.Sprintf("hash=%v,height=%d,pastSetNum=%d,work=%v\n",v.hash,v.height,v.pastSetNum,v.workSum)
+	}
+	log.Info(logStr)
 
 	return &b, nil
 }
@@ -423,97 +434,85 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		// allocate the right amount as a single alloc versus a whole bunch of
 		// littles ones to reduce pressure on the GC.
 		blockIndexBucket := meta.Bucket(dbnamespace.BlockIndexBucketName)
-		var blockCount int32
-		cursor := blockIndexBucket.Cursor()
-		for ok := cursor.First(); ok; ok = cursor.Next() {
-			blockCount++
-		}
-		blockNodes := make([]blockNode, blockCount)
+		blocksM:=make(map[hash.Hash]*types.SerializedBlock)
+		blockList:=list.New()
 
-		// Load all of the block index entries and construct the block index
-		// accordingly.
-		//
-		// NOTE: No locks are used on the block index here since this is
-		// initialization code.
-		var i int32
-		var lastNode *blockNode
-		cursor = blockIndexBucket.Cursor()
+
+		cursor := blockIndexBucket.Cursor()
 		for ok := cursor.First(); ok; ok = cursor.Next() {
 			entry, err := deserializeBlockIndexEntry(cursor.Value())
 			if err != nil {
 				return err
 			}
 			header := &entry.header
-
-			// Determine the parent block node.  Since the block headers are
-			// iterated in order of height, there is a very good chance the
-			// previous header processed is the parent.
-			var parent *blockNode
-			if lastNode == nil {
-				blockHash := header.BlockHash()
-				if blockHash != *b.params.GenesisHash {
-					return AssertError(fmt.Sprintf("initChainState: expected "+
-						"first entry in block index to be genesis block, "+
-						"found %s", blockHash))
-				}
-			} else if header.ParentRoot == lastNode.hash {
-				parent = lastNode
-			} else {
-				parent = b.index.lookupNode(&header.ParentRoot)
-				if parent == nil {
-					return AssertError(fmt.Sprintf("initChainState: could "+
-						"not find parent for block %s", header.BlockHash()))
-				}
+			blockHash := header.BlockHash()
+			_,exit:=blocksM[blockHash]
+			if exit {
+				continue
 			}
-
-			// Initialize the block node, connect it, and add it to the block
-			// index.
-			node := &blockNodes[i]
-			initBlockNode(node, header, parent)
-			b.index.addNode(node)
-
-			lastNode = node
-			i++
-		}
-
-		// Set the best chain to the stored best state.
-		tip := b.index.lookupNode(&state.hash)
-		if tip == nil {
-			return AssertError(fmt.Sprintf("initChainState: cannot find "+
-				"chain tip %s in block index", state.hash))
-		}
-		b.bestNode = tip
-
-		// Mark all of the nodes from the tip back to the genesis block
-		// as part of the main chain and build the by height map.
-		for n := tip; n != nil; n = n.parent {
-			n.inMainChain = true
-			b.mainNodesByHeight[n.height] = n
-		}
-
-		log.Debug("Block index loaded","loadTime", time.Since(bidxStart))
-
-		// Load the best and parent blocks and cache them.
-		utilBlock, err := dbFetchBlockByHash(dbTx, &tip.hash)
-		if err != nil {
-			return err
-		}
-		b.mainchainBlockCache[tip.hash] = utilBlock
-		if tip.parent != nil {
-			parentBlock, err := dbFetchBlockByHash(dbTx, &tip.parent.hash)
+			block, err := dbFetchBlockByHash(dbTx,&blockHash)
 			if err != nil {
 				return err
 			}
-			b.mainchainBlockCache[tip.parent.hash] = parentBlock
+			blocksM[blockHash]=block
+			blockList.PushBack(block)
+
+		}
+		log.Trace(fmt.Sprintf("load %d blocks",blockList.Len()))
+
+		for blockList.Len()>0 {
+			var next *list.Element
+			for e := blockList.Front(); e != nil; e = next {
+				next = e.Next()
+				//
+				block:=e.Value.(*types.SerializedBlock)
+				parents:=[]*blockNode{}
+				needSkip:=false
+				for _,pb:=range block.Block().Parents{
+					parent:= b.index.LookupNode(pb)
+					if parent==nil {
+						needSkip=true
+						break
+					}
+					parents=append(parents,parent)
+				}
+				if needSkip {
+					continue
+				}
+				blockList.Remove(e)
+				//
+				node := &blockNode{}
+				initBlockNode(node, &block.Block().Header, parents)
+				list:=b.dag.AddBlock(node)
+				if list==nil||list.Len()==0 {
+					log.Error("Irreparable error!")
+					return AssertError(fmt.Sprintf("initChainState: Could "+
+						"not add %s",node.hash.String()))
+				}
+			}
+
+		}
+		log.Debug("Block index loaded","loadTime", time.Since(bidxStart))
+		/*if !b.dag.GetLastBlock().hash.IsEqual(&state.hash) {
+			return AssertError(fmt.Sprintf("initChainState:Data damage"))
+		}*/
+		// Set the best chain view to the stored best state.
+		tip := b.dag.GetLastBlock()
+		if tip == nil {
+			return AssertError(fmt.Sprintf("initChainState: cannot find "+
+				"chain last %s in block index", state.hash))
 		}
 
+		// Load the raw block bytes for the best block.
+		block, err := dbFetchBlockByHash(dbTx,&state.hash)
+		if err != nil {
+			return err
+		}
 		// Initialize the state related to the best block.
-		block := utilBlock.Block()
-		blockSize := uint64(block.SerializeSize())
-		numTxns := uint64(len(block.Transactions))
-
-		b.stateSnapshot = newBestState(tip, blockSize, numTxns,
-			 tip.CalcPastMedianTime(),state.totalTxns, state.totalSubsidy)
+		blockSize := uint64(block.Block().SerializeSize())
+		numTxns := uint64(len(block.Block().Transactions))
+		b.stateSnapshot = newBestState(tip, blockSize,numTxns,
+			tip.CalcPastMedianTime(),state.totalTxns,state.totalSubsidy)
 
 		return nil
 	})
@@ -618,19 +617,6 @@ func (b *BlockChain) DumpBlockChain(dumpFile string, params *params.Params, heig
 	return nil
 }
 
-// BestPrevHash returns the hash of the previous block of the block at HEAD.
-//
-// This function is safe for concurrent access.
-func (b *BlockChain) BestPrevHash() hash.Hash {
-	b.chainLock.Lock()
-	defer b.chainLock.Unlock()
-
-	var prevHash hash.Hash
-	if b.bestNode.parent != nil {
-		prevHash = b.bestNode.parent.hash
-	}
-	return prevHash
-}
 
 // BlockByHash returns the block from the main chain with the given hash.
 //
@@ -1600,4 +1586,49 @@ func (b *BlockChain) dropMainChainBlockCache(block *types.SerializedBlock) {
 	b.mainchainBlockCacheLock.Lock()
 	delete(b.mainchainBlockCache, *curHash)
 	b.mainchainBlockCacheLock.Unlock()
+}
+
+func (b *BlockChain) IsBadTx(txh *hash.Hash) bool{
+	_, ok := b.badTx[*txh]
+	return ok
+}
+func (b *BlockChain) GetBadTxFromBlock(bh *hash.Hash) []*hash.Hash{
+	result:=[]*hash.Hash{}
+	for k,v:=range b.badTx{
+		if v.Has(bh) {
+			txHash:=k
+			result=append(result,&txHash)
+		}
+	}
+	return result
+}
+func (b *BlockChain) AddBadTx(txh *hash.Hash,bh *hash.Hash){
+	if b.IsBadTx(txh) {
+		b.badTx[*txh].Add(bh)
+	}else{
+		set:=NewBlockSet()
+		set.Add(bh)
+		b.badTx[*txh]=set
+	}
+}
+func (b *BlockChain) AddBadTxArray(txha []*hash.Hash,bh *hash.Hash){
+	if len(txha)==0 {
+		return
+	}
+	for _,v:=range txha{
+		b.AddBadTx(v,bh)
+	}
+}
+func (b *BlockChain) RemoveBadTx(bh *hash.Hash){
+	for k,v:=range b.badTx{
+		if v.Has(bh) {
+			v.Remove(bh)
+			if v.IsEmpty() {
+				delete(b.badTx,k)
+			}
+		}
+	}
+}
+func (b *BlockChain) DAG() *BlockDAG{
+	return b.dag
 }

@@ -122,9 +122,8 @@ func NewBlockManager(indexManager blockchain.IndexManager,db database.DB,
 	}
 
 	// Retrieve the current previous block hash and next stake difficulty.
-	curPrevHash := bm.chain.BestPrevHash()
 
-	bm.GetChainState().UpdateChainState(&best.Hash,best.Height,best.MedianTime,curPrevHash)
+	bm.GetChainState().UpdateChainState(&best.Hash,best.Height,best.MedianTime)
 
 	return &bm, nil
 }
@@ -540,11 +539,8 @@ out:
 					// TODO, decoupling mempool with bm
 					b.txMemPool.PruneExpiredTx(best.Height)
 
-					curPrevHash := b.chain.BestPrevHash()
-
 					b.GetChainState().UpdateChainState(&best.Hash,
-						best.Height, best.MedianTime,
-						curPrevHash)
+						best.Height, best.MedianTime)
 				}
 
 				// Allow any clients performing long polling via the

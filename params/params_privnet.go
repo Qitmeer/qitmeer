@@ -88,4 +88,7 @@ var PrivNetParams = Params{
 	OrganizationPkScript:  hexMustDecode("76a91464e20eb6075561d30c23a517c5b73badbc120f0588ac"),
 
 	CoinbaseMaturity: 16,
+
+	//DAG
+	AnticoneSize:3,
 }

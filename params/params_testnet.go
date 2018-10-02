@@ -79,4 +79,7 @@ var TestNetParams = Params{
 
 	CoinbaseMaturity:        16,
 
+	//DAG
+	AnticoneSize:3,
+
 }

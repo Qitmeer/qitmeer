@@ -270,11 +270,12 @@ func dbFetchDatabaseInfo(dbTx database.Tx) (*databaseInfo, error) {
 func (b *BlockChain) createChainState() error {
 	// Create a new node from the genesis block and set it as the best node.
 	genesisBlock := types.NewBlock(b.params.GenesisBlock)
+	genesisBlock.SetHeight(0)
 	header := &genesisBlock.Block().Header
 	node := newBlockNode(header, nil)
 	node.status = statusDataStored | statusValid
 	node.inMainChain = true
-
+	b.dag.AddBlock(node)
 	// Initialize the state related to the best block.  Since it is the
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.Block().Transactions))

@@ -26,6 +26,9 @@ const MaxBlockPayload = 4000000
 // possibly fit into a block.
 const maxTxPerBlock = (MaxBlockPayload / minTxPayload) + 1
 
+//Limited parents quantity
+const maxParentsPerBlock=50
+
 // blockHeaderLen is a constant that represents the number of bytes for a block
 // header.
 const blockHeaderLen = 180
@@ -64,8 +67,6 @@ type BlockHeader struct {
 	// Difficulty target for tx
 	Difficulty  uint32
 
-	// block number
-	Height uint64
 
 	// TimeStamp
 	Timestamp   time.Time
@@ -104,7 +105,7 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
 	return s.ReadElements(r, &bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, &bh.Difficulty, &bh.Height, (*s.Uint32Time)(&bh.Timestamp),
+		&bh.StateRoot, &bh.Difficulty, (*s.Uint32Time)(&bh.Timestamp),
 		&bh.Nonce)
 }
 
@@ -116,9 +117,18 @@ func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
 	sec := uint32(bh.Timestamp.Unix())
 	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, bh.Difficulty, bh.Height, sec, bh.Nonce)
+		&bh.StateRoot, bh.Difficulty, sec, bh.Nonce)
 }
-
+func GetParentsRoot(parents []*hash.Hash) hash.Hash{
+	if len(parents)==0 {
+		return hash.Hash{}
+	}
+	hashStr:=""
+	for _,v:=range parents{
+		hashStr+=v.String()
+	}
+	return hash.DoubleHashH([]byte(hashStr))
+}
 // Serialize encodes a block header from r into the receiver using a format
 // that is suitable for long-term storage such as a database while respecting
 // the Version field.
@@ -161,8 +171,12 @@ func (block *Block) SerializeSize() int {
 	// transactions + Serialized varint size for the number of
 	// stake transactions
 
-	n := blockHeaderLen + s.VarIntSerializeSize(uint64(len(block.Transactions))) +
-		s.VarIntSerializeSize(uint64(len(block.Parents)))
+	n := blockHeaderLen + s.VarIntSerializeSize(uint64(len(block.Parents))) + s.VarIntSerializeSize(uint64(len(block.Transactions)))
+
+
+	for i:=0;i<len(block.Parents);i++ {
+		n += hash.HashSize
+	}
 
 	for _, tx := range block.Transactions {
 		n += tx.SerializeSize()
@@ -192,7 +206,17 @@ func (block *Block) Encode(w io.Writer, pver uint32) error {
 	}
 
 	//TODO, write block.Parents
-
+	err = s.WriteVarInt(w, pver, uint64(len(block.Parents)))
+	if err != nil {
+		return err
+	}
+	for _, pb := range block.Parents {
+		err = s.WriteElements(w,pb)
+		if err != nil {
+			return err
+		}
+	}
+	//
 	err = s.WriteVarInt(w, pver, uint64(len(block.Transactions)))
 	if err != nil {
 		return err
@@ -225,7 +249,27 @@ func (b *Block) Decode(r io.Reader, pver uint32) error {
 	if err != nil {
 		return err
 	}
-
+	//
+	pbCount, err := s.ReadVarInt(r, pver)
+	if err != nil {
+		return err
+	}
+	if pbCount > maxParentsPerBlock {
+		str := fmt.Sprintf("too many parents to fit into a block "+
+			"[count %d, max %d]", pbCount, maxParentsPerBlock)
+		return fmt.Errorf("MsgBlock.BtcDecode", str)
+	}
+	b.Parents = make([]*hash.Hash, 0, pbCount)
+	phash:=hash.Hash{}
+	for i := uint64(0); i < pbCount; i++ {
+		s.ReadElements(r, &phash)
+		if err != nil {
+			return err
+		}
+		ph:=phash
+		b.Parents = append(b.Parents, &ph)
+	}
+	//
 	txCount, err := s.ReadVarInt(r, pver)
 	if err != nil {
 		return err
@@ -258,6 +302,28 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	if err != nil {
 		return nil, err
 	}
+	//
+	pbCount, err := s.ReadVarInt(r, 0)
+	if err != nil {
+		return nil,err
+	}
+	if pbCount > maxParentsPerBlock {
+		str := fmt.Sprintf("too many parents to fit into a block "+
+			"[count %d, max %d]", pbCount, maxParentsPerBlock)
+		return nil,fmt.Errorf("MsgBlock.BtcDecode", str)
+	}
+	b.Parents = make([]*hash.Hash, 0, pbCount)
+	phash:=hash.Hash{}
+	for i := uint64(0); i < pbCount; i++ {
+		s.ReadElements(r, &phash)
+		if err != nil {
+			return nil,err
+		}
+		ph:=phash
+		b.Parents = append(b.Parents, &ph)
+	}
+
+	//
 
 	txCount, err := s.ReadVarInt(r, 0)
 	if err != nil {
@@ -305,6 +371,7 @@ type SerializedBlock struct {
 	serializedBytes       []byte          // Serialized bytes for the block
 	transactions          []*Tx           // Transactions
 	txnsGenerated         bool            // ALL wrapped transactions generated
+	height                uint64          //height is in the position of whole block chain.
 }
 
 // NewBlock returns a new instance of the serialized block given an underlying Block.
@@ -322,6 +389,8 @@ func NewBlock(block *Block) *SerializedBlock {
 func NewBlockDeepCopyCoinbase(msgBlock *Block) *SerializedBlock {
 	// Copy the msgBlock and the pointers to all the transactions.
 	msgBlockCopy := new(Block)
+
+	msgBlockCopy.Parents =msgBlock.Parents
 
 	lenTxs := len(msgBlock.Transactions)
 	mtxsCopy := make([]*Transaction, lenTxs)
@@ -427,7 +496,10 @@ func (sb *SerializedBlock) TxLoc() ([]TxLoc, error) {
 // This function should not be used for new code and will be
 // removed in the future.
 func (sb *SerializedBlock) Height() uint64 {
-	return sb.block.Header.Height
+	return sb.height
+}
+func (sb *SerializedBlock) SetHeight(height uint64) {
+	sb.height=height
 }
 
 // Transactions returns a slice of wrapped transactions for all

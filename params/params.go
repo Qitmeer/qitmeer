@@ -258,6 +258,9 @@ type Params struct {
 	// to an empty slice.
 	// TODO revisit the block one ICO design
 	BlockOneLedger []*TokenPayout
+
+	//DAG
+	AnticoneSize uint32
 }
 
 // TokenPayout is a payout for block 1 which specifies an address and an amount

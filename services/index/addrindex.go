@@ -709,10 +709,10 @@ func (idx *AddrIndex) indexPkScript(data writeIndexData, scriptVersion uint16, p
 // in the parent of the passed block (if they were valid) and all of the stake
 // transactions in the passed block, and maps each of them to the associated
 // transaction using the passed map.
-func (idx *AddrIndex) indexBlock(data writeIndexData, block, parent *types.SerializedBlock, view *blockchain.UtxoViewpoint) {
+func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) {
 	var parentRegularTxs []*types.Tx
 	if block.Height() > 1 {
-		parentRegularTxs = parent.Transactions()
+		parentRegularTxs = block.Transactions()
 	}
 	for txIdx, tx := range parentRegularTxs {
 		// Coinbases do not reference any inputs.  Since the block is
@@ -751,7 +751,7 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block, parent *types.Seria
 // the transactions in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block, parent *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
 	// The offset and length of the transactions within the serialized
 	// block for the regular transactions of the previous block, if
 	// applicable.
@@ -759,12 +759,12 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block, parent *types.Serial
 	var parentBlockID uint32
 	if block.Height() > 1 {
 		var err error
-		parentTxLocs, err = parent.TxLoc()
+		parentTxLocs, err = block.TxLoc()
 		if err != nil {
 			return err
 		}
 
-		parentHash := parent.Hash()
+		parentHash := block.Hash()
 		parentBlockID, err = dbFetchBlockIDByHash(dbTx, parentHash)
 		if err != nil {
 			return err
@@ -780,7 +780,7 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block, parent *types.Serial
 
 	// Build all of the address to transaction mappings in a local map.
 	addrsToTxns := make(writeIndexData)
-	idx.indexBlock(addrsToTxns, block, parent, view)
+	idx.indexBlock(addrsToTxns, block, view)
 
 	// Add all of the index entries for each address.
 	stakeIdxsStart := len(parentTxLocs)
@@ -812,10 +812,10 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block, parent *types.Serial
 // each transaction in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block, parent *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
 	// Build all of the address to transaction mappings in a local map.
 	addrsToTxns := make(writeIndexData)
-	idx.indexBlock(addrsToTxns, block, parent, view)
+	idx.indexBlock(addrsToTxns, block, view)
 
 	// Remove all of the index entries for each address.
 	bucket := dbTx.Metadata().Bucket(addrIndexKey)

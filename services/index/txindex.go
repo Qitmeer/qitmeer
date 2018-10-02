@@ -225,7 +225,7 @@ func dbFetchTxIndexEntry(dbTx database.Tx, txHash *hash.Hash) (*database.BlockRe
 // dbAddTxIndexEntries uses an existing database transaction to add a
 // transaction index entry for every transaction in the parent of the passed
 // block (if they were valid).
-func dbAddTxIndexEntries(dbTx database.Tx, block, parent *types.SerializedBlock, blockID uint32) error {
+func dbAddTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock, blockID uint32) error {
 	// As an optimization, allocate a single slice big enough to hold all
 	// of the serialized transaction index entries for the block and
 	// serialize them directly into the slice.  Then, pass the appropriate
@@ -251,17 +251,12 @@ func dbAddTxIndexEntries(dbTx database.Tx, block, parent *types.SerializedBlock,
 	if block.Height() > 1 {
 		// The offset and length of the transactions within the
 		// serialized parent block.
-		txLocs, err := parent.TxLoc()
+		txLocs, err := block.TxLoc()
 		if err != nil {
 			return err
 		}
 
-		parentBlockID, err := dbFetchBlockIDByHash(dbTx, parent.Hash())
-		if err != nil {
-			return err
-		}
-
-		err = addEntries(parent.Transactions(), txLocs, parentBlockID)
+		err = addEntries(block.Transactions(), txLocs, blockID)
 		if err != nil {
 			return err
 		}
@@ -286,7 +281,7 @@ func dbRemoveTxIndexEntry(dbTx database.Tx, txHash *hash.Hash) error {
 // dbRemoveTxIndexEntries uses an existing database transaction to remove the
 // latest transaction entry for every transaction in the parent of the passed
 // block (if they were valid) and every stake transaction in the passed block.
-func dbRemoveTxIndexEntries(dbTx database.Tx, block, parent *types.SerializedBlock) error {
+func dbRemoveTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock) error {
 	removeEntries := func(txns []*types.Tx) error {
 		for _, tx := range txns {
 			if err := dbRemoveTxIndexEntry(dbTx, tx.Hash()); err!=nil{
@@ -297,7 +292,7 @@ func dbRemoveTxIndexEntries(dbTx database.Tx, block, parent *types.SerializedBlo
 	}
 	// Remove all of the regular transactions of the parent if voted valid.
 	if block.Height() > 1 {
-		if err := removeEntries(parent.Transactions()); err != nil {
+		if err := removeEntries(block.Transactions()); err != nil {
 			return err
 		}
 	}
@@ -413,11 +408,11 @@ func (idx *TxIndex) Create(dbTx database.Tx) error {
 // for every transaction in the passed block.
 //
 // This is part of the Indexer interface.
-func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block, parent *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
 	// Increment the internal block ID to use for the block being connected
 	// and add all of the transactions in the block to the index.
 	newBlockID := idx.curBlockID + 1
-	if err := dbAddTxIndexEntries(dbTx, block, parent, newBlockID); err != nil {
+	if err := dbAddTxIndexEntries(dbTx, block, newBlockID); err != nil {
 		return err
 	}
 
@@ -436,9 +431,9 @@ func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block, parent *types.Serializ
 // hash-to-transaction mapping for every transaction in the block.
 //
 // This is part of the Indexer interface.
-func (idx *TxIndex) DisconnectBlock(dbTx database.Tx, block, parent *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (idx *TxIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
 	// Remove all of the transactions in the block from the index.
-	if err := dbRemoveTxIndexEntries(dbTx, block, parent); err != nil {
+	if err := dbRemoveTxIndexEntries(dbTx, block); err != nil {
 		return err
 	}
 

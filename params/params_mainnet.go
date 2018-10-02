@@ -74,4 +74,7 @@ var MainNetParams = Params{
 	HDCoinType: 20,
 
 	CoinbaseMaturity:        256,
+
+	//DAG
+	AnticoneSize:3,
 }

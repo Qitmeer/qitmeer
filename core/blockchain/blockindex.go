@@ -22,11 +22,11 @@ type IndexManager interface {
 
 	// ConnectBlock is invoked when a new block has been connected to the
 	// main chain.
-	ConnectBlock(tx database.Tx, block *types.SerializedBlock, parent *types.SerializedBlock, utxoView *UtxoViewpoint) error
+	ConnectBlock(tx database.Tx, block *types.SerializedBlock, utxoView *UtxoViewpoint) error
 
 	// DisconnectBlock is invoked when a block has been disconnected from
 	// the main chain.
-	DisconnectBlock(tx database.Tx, block *types.SerializedBlock, parent *types.SerializedBlock,  utxoView *UtxoViewpoint) error
+	DisconnectBlock(tx database.Tx, block *types.SerializedBlock,  utxoView *UtxoViewpoint) error
 }
 
 // blockIndex provides facilities for keeping track of an in-memory index of the
@@ -43,7 +43,6 @@ type blockIndex struct {
 
 	sync.RWMutex
 	index     map[hash.Hash]*blockNode
-	chainTips map[uint64][]*blockNode
 }
 
 // newBlockIndex returns a new empty instance of a block index.  The index will
@@ -54,7 +53,6 @@ func newBlockIndex(db database.DB, par *params.Params) *blockIndex {
 		db:          db,
 		params:      par,
 		index:       make(map[hash.Hash]*blockNode),
-		chainTips:   make(map[uint64][]*blockNode),
 	}
 }
 
@@ -83,18 +81,17 @@ func (bi *blockIndex) LookupNode(hash *hash.Hash) *blockNode {
 // This function MUST be called with the block index lock held (for writes).
 func (bi *blockIndex) addNode(node *blockNode) {
 	bi.index[node.hash] = node
-
-	// Since the block index does not support nodes that do not connect to
-	// an existing node (except the genesis block), all new nodes are either
-	// extending an existing chain or are on a side chain, but in either
-	// case, are a new chain tip.  In the case the node is extending a
-	// chain, the parent is no longer a tip.
-	bi.addChainTip(node)
-	if node.parent != nil {
-		bi.removeChainTip(node.parent)
+	if node.parents!=nil&&len(node.parents)>0 {
+		var maxHeight uint64=0
+		for _,v:=range node.parents{
+			v.AddChild(node)
+			if maxHeight==0||maxHeight<v.mainHeight {
+				maxHeight=v.mainHeight
+			}
+		}
+		node.mainHeight=maxHeight+1
 	}
 }
-
 // AddNode adds the provided node to the block index.  Duplicate entries are not
 // checked so it is up to caller to avoid adding them.
 //
@@ -105,35 +102,6 @@ func (bi *blockIndex) AddNode(node *blockNode) {
 	bi.Unlock()
 }
 
-// addChainTip adds the passed block node as a new chain tip.
-//
-// This function MUST be called with the block index lock held (for writes).
-func (bi *blockIndex) addChainTip(tip *blockNode) {
-	bi.chainTips[tip.height] = append(bi.chainTips[tip.height], tip)
-}
-
-// removeChainTip removes the passed block node from the available chain tips.
-//
-// This function MUST be called with the block index lock held (for writes).
-func (bi *blockIndex) removeChainTip(tip *blockNode) {
-	nodes := bi.chainTips[tip.height]
-	for i, n := range nodes {
-		if n == tip {
-			copy(nodes[i:], nodes[i+1:])
-			nodes[len(nodes)-1] = nil
-			nodes = nodes[:len(nodes)-1]
-			break
-		}
-	}
-
-	// Either update the map entry for the height with the remaining nodes
-	// or remove it altogether if there are no more nodes left.
-	if len(nodes) == 0 {
-		delete(bi.chainTips, tip.height)
-	} else {
-		bi.chainTips[tip.height] = nodes
-	}
-}
 
 // HaveBlock returns whether or not the block index contains the provided hash.
 //
@@ -173,4 +141,20 @@ func (bi *blockIndex) UnsetStatusFlags(node *blockNode, flags blockStatus) {
 	bi.Lock()
 	node.status &^= flags
 	bi.Unlock()
+}
+
+func (bi *blockIndex)GetMaxOrderFromList(list []*hash.Hash) *hash.Hash{
+	var maxOrder uint64=0
+	var maxHash *hash.Hash=nil
+	for _,v:=range list{
+		node:=bi.LookupNode(v)
+		if node==nil {
+			continue
+		}
+		if maxOrder==0||maxOrder<node.height {
+			maxOrder=node.height
+			maxHash=v
+		}
+	}
+	return maxHash
 }
