@@ -35,6 +35,7 @@ profile.cov
 
 # Folders
 vendor
+bin
 
 # Binaries
 *.exe
@@ -45,3 +46,4 @@ tools/nx-eth-keccak256/nx-eth-keccak256
 tools/nx-eth/nx-eth
 tools/nx-hd/nx-hd
 go.sum
+nox-diabin.iml

@@ -223,7 +223,7 @@ func ValidateTransactionScripts(tx *types.Tx, utxoView *UtxoViewpoint, flags txs
 // the passed block using multiple goroutines.
 // txTree = true is TxTreeRegular, txTree = false is TxTreeStake.
 func checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint, txTree bool,
-	scriptFlags txscript.ScriptFlags, sigCache *txscript.SigCache) error {
+	scriptFlags txscript.ScriptFlags, sigCache *txscript.SigCache,bc *BlockChain) error {
 
 	// Collect all of the transaction inputs and required information for
 	// validation for all transactions in the block into a single slice.
@@ -238,10 +238,18 @@ func checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint, tx
 	}
 
 	for _, tx := range txs {
+		hash := tx.Hash()
+		if bc.IsBadTx(hash) {
+			continue
+		}
 		numInputs += len(tx.Transaction().TxIn)
 	}
 	txValItems := make([]*txValidateItem, 0, numInputs)
 	for _, tx := range txs {
+		hash := tx.Hash()
+		if bc.IsBadTx(hash) {
+			continue
+		}
 		for txInIdx, txIn := range tx.Transaction().TxIn {
 			// Skip coinbases.
 			if txIn.PreviousOut.OutIndex == math.MaxUint32 {

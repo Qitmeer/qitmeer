@@ -196,6 +196,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 		// true a solution was found, so submit the solved block.
 		if m.solveBlock(template.Block, ticker, nil) {
 			block := types.NewBlock(template.Block)
+			block.SetHeight(template.Height)
 			m.submitBlock(block)
 			blockHashes[i] = block.Hash()
 			i++
@@ -362,6 +363,14 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 	m.submitBlockLock.Lock()
 	defer m.submitBlockLock.Unlock()
+
+	tipsList:=m.blockManager.GetChain().DAG().GetTips().List()
+	tipsPRoot:=types.GetParentsRoot(tipsList)
+	if !block.Block().Header.ParentRoot.IsEqual(&tipsPRoot) {
+		log.Debug("Block submitted via CPU miner with previous "+
+			"block %s is stale", block.Block().Header.ParentRoot)
+		return false
+	}
 
 	// Process this block using the same rules as blocks coming from other
 	// nodes. This will in turn relay it to the network like normal.

@@ -152,13 +152,18 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 // This function is safe for concurrent access.
 func (node *blockNode) Header() types.BlockHeader {
 	// No lock is needed because all accessed fields are immutable.
-	hashs:=[]*hash.Hash{}
-	for _,v:=range node.parents{
-		hashs=append(hashs,&v.hash)
+	var parentRoot hash.Hash
+	if node.parents!=nil {
+		hashs:=[]*hash.Hash{}
+		for _,v:=range node.parents{
+			hashs=append(hashs,&v.hash)
+		}
+		parentRoot=types.GetParentsRoot(hashs)
 	}
+
 	return types.BlockHeader{
 		Version:    node.blockVersion,
-		ParentRoot:types.GetParentsRoot(hashs),
+		ParentRoot: parentRoot,
 		TxRoot:   	node.txRoot,
 		Difficulty: node.bits,
 		Timestamp:  time.Unix(node.timestamp, 0),
@@ -287,6 +292,15 @@ func (node *blockNode) GetMainParent() *blockNode{
 	var result *blockNode=nil
 	for _,v:=range node.parents{
 		if result==nil||v.IsBefore(result) {
+			result=v
+		}
+	}
+	return result
+}
+func (node *blockNode) GetLastParent() *blockNode{
+	var result *blockNode=nil
+	for _,v:=range node.parents{
+		if result==nil||!v.IsBefore(result) {
 			result=v
 		}
 	}

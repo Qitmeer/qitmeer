@@ -27,7 +27,7 @@ const MaxBlockPayload = 4000000
 const maxTxPerBlock = (MaxBlockPayload / minTxPayload) + 1
 
 //Limited parents quantity
-const maxParentsPerBlock=50
+const MaxParentsPerBlock=50
 
 // blockHeaderLen is a constant that represents the number of bytes for a block
 // header.
@@ -307,9 +307,9 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	if err != nil {
 		return nil,err
 	}
-	if pbCount > maxParentsPerBlock {
+	if pbCount > MaxParentsPerBlock {
 		str := fmt.Sprintf("too many parents to fit into a block "+
-			"[count %d, max %d]", pbCount, maxParentsPerBlock)
+			"[count %d, max %d]", pbCount, MaxParentsPerBlock)
 		return nil,fmt.Errorf("MsgBlock.BtcDecode", str)
 	}
 	b.Parents = make([]*hash.Hash, 0, pbCount)
@@ -360,7 +360,12 @@ func (b *Block) AddTransaction(tx *Transaction) error {
 	return nil
 
 }
+// AddTransaction adds a transaction to the message.
+func (b *Block) AddParent(h *hash.Hash) error {
+	b.Parents = append(b.Parents, h)
+	return nil
 
+}
 // SerializedBlock provides easier and more efficient manipulation of raw blocks.
 // It also memorizes hashes for the block and its transactions on their first
 // access so subsequent accesses don't have to  repeat the relatively expensive

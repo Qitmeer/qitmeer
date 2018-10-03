@@ -289,7 +289,7 @@ func (o *utxoOutput) maybeDecompress(compressionVersion uint32) {
 // needed.  In particular, referenced entries that are earlier in the block are
 // added to the view and entries that are already in the view are not modified.
 // TODO, revisit the usage on the parent block
-func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block, parent *types.SerializedBlock) error {
+func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.SerializedBlock,bc *BlockChain) error {
 	// Build a map of in-flight transactions because some of the inputs in
 	// this block could be referencing other transactions earlier in this
 	// block which are not yet in the chain.
@@ -305,6 +305,9 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block, parent *types.
 	// which has no inputs) collecting them into sets of what is needed and
 	// what is already known (in-flight).
 	for i, tx := range transactions[1:] {
+		if bc.IsBadTx(tx.Hash()) {
+			continue
+		}
 		for _, txIn := range tx.Transaction().TxIn {
 			// It is acceptable for a transaction input to reference
 			// the output of another transaction in this block only
@@ -318,6 +321,10 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block, parent *types.
 			// than the actual position of the transaction within
 			// the block due to skipping the coinbase.
 			originHash := &txIn.PreviousOut.Hash
+			if bc.IsBadTx(originHash) {
+				bc.AddBadTx(tx.Hash(),block.Hash())
+				break
+			}
 			if inFlightIndex, ok := txInFlight[*originHash]; ok &&
 				i >= inFlightIndex {
 

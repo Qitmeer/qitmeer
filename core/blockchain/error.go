@@ -113,6 +113,9 @@ const (
 	// transaction.  A valid block must have at least the coinbase
 	// transaction.
 	ErrNoTransactions
+	// ErrNoParents indicates the block does not have a least one
+	// parent.
+	ErrNoParents
 
 	// ErrTooManyTransactions indicates the block has more transactions than
 	// are allowed.
@@ -299,6 +302,11 @@ const (
 
 	// numErrorCodes is the maximum error code number used in tests.
 	numErrorCodes
+
+	// ErrPrevBlockNotBest indicates that the block's previous block is not the
+	// current chain tip. This is not a block validation rule, but is required
+	// for block proposals submitted via getblocktemplate RPC.
+	ErrPrevBlockNotBest
 )
 
 // Map of ErrorCode values back to their constant names for pretty printing.

@@ -72,7 +72,20 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 	if err != nil {
 		return err
 	}
+	// A block must have at least one parent.
+	numPb := len(msgBlock.Parents)
+	if numPb == 0 {
+		return ruleError(ErrNoParents, "block does not contain "+
+			"any parent")
+	}
 
+	// A block must not have more parents than the max block payload or
+	// else it is certainly over the weight limit.
+	if numPb > types.MaxParentsPerBlock {
+		str := fmt.Sprintf("block contains too many parents - "+
+			"got %d, max %d", numPb, types.MaxParentsPerBlock)
+		return ruleError(ErrBlockTooBig, str)
+	}
 	// A block must have at least one regular transaction.
 	numTx := len(msgBlock.Transactions)
 	if numTx == 0 {
@@ -634,7 +647,7 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 // the bulk of its work.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.SerializedBlock, utxoView *UtxoViewpoint, stxos *[]spentTxOut) error {
+func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedBlock, utxoView *UtxoViewpoint, stxos *[]spentTxOut) error {
 	// If the side chain blocks end up in the database, a call to
 	// CheckBlockSanity should be done here in case a previous version
 	// allowed a block that is no longer valid.  However, since the
@@ -646,14 +659,6 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.Ser
 	if node.hash.IsEqual(b.params.GenesisHash) {
 		str := "the coinbase for the genesis block is not spendable"
 		return ruleError(ErrMissingTxOut, str)
-	}
-
-	// Ensure the view is for the node being checked.
-	parentHash := &block.Block().Header.ParentRoot
-	if !utxoView.BestHash().IsEqual(parentHash) {
-		return AssertError(fmt.Sprintf("inconsistent view when "+
-			"checking block connection: best hash is %v instead "+
-			"of expected %v", utxoView.BestHash(), parentHash))
 	}
 
 	// Check that the coinbase pays the tax, if applicable.
@@ -688,20 +693,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.Ser
 	// scripts.
 	// Do this for all TxTrees.
 
-	err := utxoView.fetchInputUtxos(b.db, block, parent)
-	if err != nil {
-		return err
-	}
-
-	for i, tx := range parent.Transactions() {
-		err := utxoView.connectTransaction(tx,
-			node.parent.height, uint32(i), stxos)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = utxoView.fetchInputUtxos(b.db, block, parent)
+	err := utxoView.fetchInputUtxos(b.db, block,b)
 	if err != nil {
 		return err
 	}
@@ -713,7 +705,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.Ser
 	// Use the past median time of the *previous* block in order
 		// to determine if the transactions in the current block are
 		// final.
-	prevMedianTime = node.parent.CalcPastMedianTime()
+	prevMedianTime = node.GetMainParent().CalcPastMedianTime()
 
 		// Skip the coinbase since it does not have any inputs and thus
 		// lock times do not apply.
@@ -736,7 +728,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.Ser
 
 	if runScripts {
 		err = checkBlockScripts(block, utxoView, false, scriptFlags,
-			b.sigCache)
+			b.sigCache,b)
 		if err != nil {
 			log.Trace("checkBlockScripts failed; error returned "+
 				"on txtreestake of cur block: %v", err)
@@ -753,7 +745,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.Ser
 		return err
 	}
 
-	err = utxoView.fetchInputUtxos(b.db, block, parent)
+	err = utxoView.fetchInputUtxos(b.db, block,b)
 	if err != nil {
 		return err
 	}
@@ -770,7 +762,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.Ser
 
 	if runScripts {
 		err = checkBlockScripts(block, utxoView, true,
-			scriptFlags, b.sigCache)
+			scriptFlags, b.sigCache,b)
 		if err != nil {
 			log.Trace("checkBlockScripts failed; error returned "+
 				"on txtreeregular of cur block: %v", err)
@@ -843,6 +835,9 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 	totalFees := int64(inputFees) // Stake tx tree carry forward
 	var cumulativeSigOps int
 	for idx, tx := range txs {
+		if b.IsBadTx(tx.Hash()) {
+			continue
+		}
 		// Ensure that the number of signature operations is not beyond
 		// the consensus limit.
 		var err error
@@ -850,7 +845,10 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			txTree, cumulativeSigOps)
 		if err != nil {
 			log.Trace("checkNumSigOps failed","err", err)
-			return err
+			//return err
+
+			b.AddBadTx(tx.Hash(),&node.hash)
+			continue
 		}
 
 		// This step modifies the txStore and marks the tx outs used
@@ -860,7 +858,9 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			b.params) //TODO, remove type conversion
 		if err != nil {
 			log.Trace("CheckTransactionInputs failed","err", err)
-			return err
+			//return err
+			b.AddBadTx(tx.Hash(),&node.hash)
+			continue
 		}
 
 		// Sum the total fees and ensure we don't overflow the
@@ -868,8 +868,12 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		lastTotalFees := totalFees
 		totalFees += txFee
 		if totalFees < lastTotalFees {
-			return ruleError(ErrBadFees, "total fees for block "+
-				"overflows accumulator")
+			//return ruleError(ErrBadFees, "total fees for block "+
+			//	"overflows accumulator")
+			log.Trace("total fees for block overflows accumulator")
+
+			b.AddBadTx(tx.Hash(),&node.hash)
+			continue
 		}
 
 		// Connect the transaction to the UTXO viewpoint, so that in
@@ -878,7 +882,10 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			stxos)
 		if err != nil {
 			log.Trace("connectTransaction failed","err", err)
-			return err
+			//return err
+
+			b.AddBadTx(tx.Hash(),&node.hash)
+			continue
 		}
 	}
 
@@ -1261,35 +1268,47 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 
 	// The block template must build off the current tip of the main chain
 	// or its parent.
-	tip := b.bestNode
-	var prevNode *blockNode
-	parentHash := block.Block().Header.ParentRoot
-	if parentHash == tip.hash {
-		prevNode = tip
-	} else if tip.parent != nil && parentHash == tip.parent.hash {
-		prevNode = tip.parent
-	}
-	if prevNode == nil {
-		var str string
-		if tip.parent != nil {
-			str = fmt.Sprintf("previous block must be the current chain tip "+
-				"%s or its parent %s, but got %s", tip.hash, tip.parent.hash,
-				parentHash)
-		} else {
-			str = fmt.Sprintf("previous block must be the current chain tip "+
-				"%s, but got %s", tip.hash, parentHash)
-		}
-		return ruleError(ErrInvalidTemplateParent, str)
-	}
 
 	// Perform context-free sanity checks on the block and its transactions.
 	err := checkBlockSanity(block, b.timeSource, flags, b.params)
 	if err != nil {
 		return err
 	}
+	view := NewUtxoViewpoint()
+	view.SetBestHash(b.index.GetMaxOrderFromList(block.Block().Parents))
+	tipsNode:=[]*blockNode{}
 
+	for _,v:=range block.Block().Parents{
+		bn:=b.index.LookupNode(v)
+		if bn!=nil {
+			tipsNode=append(tipsNode,bn)
+		}
+	}
+	if len(tipsNode)==0 {
+		return ruleError(ErrPrevBlockNotBest, "tipsNode")
+	}
+	header := &block.Block().Header
+	newNode := newBlockNode(header, tipsNode)
+	newNode.height=block.Height()
+	err=b.checkConnectBlock(newNode, block, view, nil)
+	if err!=nil{
+		return err
+	}
+	badTxArr:=b.GetBadTxFromBlock(block.Hash())
+	if badTxArr!=nil&&len(badTxArr)>0 {
+		str :=fmt.Sprintf("some bad transactions:")
+		for _,v:=range badTxArr{
+			str+="\n"
+			str+=v.String()
+		}
+		return ruleError(ErrMissingTxOut, str)
+	}
+	return nil
+
+	/*
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
+
 	err = b.checkBlockContext(block, prevNode, flags)
 	if err != nil {
 		return err
@@ -1426,5 +1445,5 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	// Notice the spent txout details are not requested here and thus will not
 	// be generated.  This is done because the state will not be written to the
 	// database, so it is not needed.
-	return b.checkConnectBlock(newNode, block, parent, view, nil)
+	return b.checkConnectBlock(newNode, block, parent, view, nil)*/
 }

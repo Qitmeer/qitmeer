@@ -199,6 +199,14 @@ mempoolLoop:
 		for _, txIn := range tx.Transaction().TxIn {
 
 			originHash := &txIn.PreviousOut.Hash
+			if blockManager.GetChain().IsBadTx(originHash) {
+				log.Trace("Skipping tx %s because it "+
+					"references bad output %s "+
+					"which is not available",
+					tx.Hash(), txIn.PreviousOut)
+				continue mempoolLoop
+			}
+
 			originIndex := txIn.PreviousOut.OutIndex
 			utxoEntry := utxos.LookupEntry(originHash)
 			if utxoEntry == nil || utxoEntry.IsOutputSpent(originIndex) {
@@ -605,19 +613,23 @@ mempoolLoop:
 
 	// Create a new block ready to be solved.
 	merkles := merkle.BuildMerkleTreeStore(blockTxnsRegular)
+	parents:=blockManager.GetChain().DAG().GetTips().List()
 
 	var block types.Block
 	block.Header = types.BlockHeader{
 		Version:      blockVersion,
-		ParentRoot:   *prevHash,
+		ParentRoot:   types.GetParentsRoot(parents),
 		TxRoot:       *merkles[len(merkles)-1],
 		StateRoot:    hash.Hash{}, //TODO, state root
 		Timestamp:    ts,
 		Difficulty:   reqDifficulty,
-		Height:       nextBlockHeight,
 		// Size declared below
 	}
-
+	for _,pb:=range parents{
+		if err := block.AddParent(pb); err != nil {
+			return nil, err
+		}
+	}
 	for _, tx := range blockTxnsRegular {
 		if err := block.AddTransaction(tx.Transaction()); err != nil {
 			return nil, miningRuleError(ErrTransactionAppend, err.Error())
@@ -633,6 +645,7 @@ mempoolLoop:
 	// consensus rules to ensure it properly connects to the current best
 	// chain with no issues.
 	sblock := types.NewBlockDeepCopyCoinbase(&block)
+	sblock.SetHeight(nextBlockHeight)
 	err = blockManager.GetChain().CheckConnectBlockTemplate(sblock)
 	if err != nil {
 		str := fmt.Sprintf("failed to do final check for check connect "+
