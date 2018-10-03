@@ -67,7 +67,6 @@ func version() {
 }
 
 func errExit(err error){
-	panic(err)
 	fmt.Fprintf(os.Stderr, "Nx Error : %q\n",err)
 	os.Exit(1)
 }
@@ -85,6 +84,7 @@ var txInputs txInputsFlag
 var txOutputs txOutputsFlag
 var txVersion txVersionFlag
 var txLockTime txLockTimeFlag
+var privateKey string
 
 func main() {
 
@@ -241,6 +241,12 @@ input sequence and defaults to the maximum value.`)
 TARGET is an address (pay-to-pubkey-hash or pay-to-script-hash).
 NOX is the 64 bit spend amount in nox.`)
 
+	txSignCmd := flag.NewFlagSet("tx-sign",flag.ExitOnError)
+	txSignCmd.Usage = func() {
+		cmdUsage(txDecodeCmd, "Usage: nx tx-sign [raw_tx_base16_string] \n")
+	}
+	txSignCmd.StringVar(&privateKey,"k","", "the ec private key to sign the raw transaction")
+
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
 		base58CheckDecodeCommand,
@@ -265,6 +271,7 @@ NOX is the 64 bit spend amount in nox.`)
 		ecToAddrCmd,
 		txEncodeCmd,
 		txDecodeCmd,
+		txSignCmd,
 	}
 
 	if len(os.Args) == 1 {
@@ -702,6 +709,25 @@ NOX is the 64 bit spend amount in nox.`)
 			}
 		}
 	}
+
+	if txSignCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				txSignCmd.Usage()
+			}else{
+				txSign(privateKey,os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			txSign(privateKey, str)
+		}
+	}
+
 }
 
 

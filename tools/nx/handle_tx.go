@@ -12,6 +12,7 @@ import (
 	"github.com/noxproject/nox/core/json"
 	"github.com/noxproject/nox/core/message"
 	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/crypto/ecc"
 	"github.com/noxproject/nox/engine/txscript"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/services/common/marshal"
@@ -120,5 +121,70 @@ func txEncode(version txVersionFlag, lockTime txLockTimeFlag, txIn txInputsFlag,
 	fmt.Printf("%s\n",mtxHex)
 }
 
+func txSign(privkeyStr string, rawTxStr string) {
+	privkeyByte, err := hex.DecodeString(privkeyStr)
+	if err!=nil {
+		errExit(err)
+	}
+	if len(privkeyByte) != 32 {
+		errExit(fmt.Errorf("invaid ec private key bytes: %d",len(privkeyByte)))
+	}
+	privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
+	h160 := hash.Hash160(pubKey.SerializeCompressed())
 
+	var param *params.Params
+	switch network {
+	case "mainnet":
+		param = &params.MainNetParams
+	case "testnet":
+		param = &params.TestNetParams
+	case "privnet":
+		param = &params.PrivNetParams
+	}
+	addr,err := address.NewPubKeyHashAddress(h160,param,ecc.ECDSA_Secp256k1)
+	if err!=nil {
+		errExit(err)
+	}
+	// Create a new script which pays to the provided address.
+	pkScript, err := txscript.PayToAddrScript(addr)
+	if err!=nil {
+		errExit(err)
+	}
+
+	if len(rawTxStr)%2 != 0 {
+		errExit(fmt.Errorf("invaild raw transaction : %s",rawTxStr))
+	}
+	serializedTx, err := hex.DecodeString(rawTxStr)
+	if err != nil {
+		errExit(err)
+	}
+
+	var redeemTx types.Transaction
+	err = redeemTx.Deserialize(bytes.NewReader(serializedTx))
+	if err != nil {
+		errExit(err)
+	}
+	var kdb txscript.KeyClosure
+	kdb = func(types.Address) (ecc.PrivateKey, bool, error){
+		return privateKey,true,nil // compressed is true
+	}
+	var sigScripts [][]byte
+	for i,_:= range redeemTx.TxIn {
+		sigScript,err := txscript.SignTxOutput(param,&redeemTx,i,pkScript,txscript.SigHashAll,kdb,nil,nil,ecc.ECDSA_Secp256k1)
+		if err != nil {
+			errExit(err)
+		}
+		sigScripts= append(sigScripts,sigScript)
+	}
+
+	for i2,_:=range sigScripts {
+		redeemTx.TxIn[i2].SignScript = sigScripts[i2]
+	}
+
+	mtxHex, err := marshal.MessageToHex(&message.MsgTx{&redeemTx})
+	if err != nil {
+		errExit(err)
+	}
+	fmt.Printf("%s\n",mtxHex)
+}
 
