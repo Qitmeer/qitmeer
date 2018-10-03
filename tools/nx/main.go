@@ -243,7 +243,7 @@ NOX is the 64 bit spend amount in nox.`)
 
 	txSignCmd := flag.NewFlagSet("tx-sign",flag.ExitOnError)
 	txSignCmd.Usage = func() {
-		cmdUsage(txDecodeCmd, "Usage: nx tx-sign [raw_tx_base16_string] \n")
+		cmdUsage(txSignCmd, "Usage: nx tx-sign [raw_tx_base16_string] \n")
 	}
 	txSignCmd.StringVar(&privateKey,"k","", "the ec private key to sign the raw transaction")
 

@@ -127,6 +127,42 @@ func (mp *TxPool) RemoveDoubleSpends(tx *types.Tx) {
 	mp.mtx.Unlock()
 }
 
+// addTransaction adds the passed transaction to the memory pool.  It should
+// not be called directly as it doesn't perform any validation.  This is a
+// helper for maybeAcceptTransaction.
+//
+// This function MUST be called with the mempool lock held (for writes).
+func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
+	tx *types.Tx, txType types.TxType, height uint64, fee int64) {
+
+	// Add the transaction to the pool and mark the referenced outpoints
+	// as spent by the pool.
+	msgTx := tx.Transaction()
+	mp.pool[*tx.Hash()] = &TxDesc{
+		TxDesc: types.TxDesc{
+			Tx:     tx,
+			Type:   txType,
+			Added:  time.Now(),
+			Height: int64(height),  //todo: fix type conversion
+			Fee:    fee,
+		},
+		StartingPriority: CalcPriority(msgTx, utxoView, height),
+	}
+	for _, txIn := range msgTx.TxIn {
+		mp.outpoints[txIn.PreviousOut] = tx
+	}
+	atomic.StoreInt64(&mp.lastUpdated, time.Now().Unix())
+
+	// Add unconfirmed address index entries associated with the transaction
+	// if enabled.
+	if mp.cfg.AddrIndex != nil {
+		mp.cfg.AddrIndex.AddUnconfirmedTx(tx, utxoView)
+	}
+	if mp.cfg.ExistsAddrIndex != nil {
+		mp.cfg.ExistsAddrIndex.AddUnconfirmedTx(msgTx)
+	}
+}
+
 // maybeAcceptTransaction is the internal function which implements the public
 // MaybeAcceptTransaction.  See the comment for MaybeAcceptTransaction for
 // more details.
@@ -448,7 +484,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	// Add to transaction pool.
-	//mp.addTransaction(utxoView, tx, txType, bestHeight, txFee)
+	mp.addTransaction(utxoView, tx, txType, bestHeight, txFee)
 
 	log.Debug("Accepted transaction","txHash", txHash,"pool size", len(mp.pool))
 
