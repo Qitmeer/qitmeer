@@ -289,10 +289,10 @@ mempoolLoop:
 		txSize := uint32(tx.Transaction().SerializeSize())
 		blockPlusTxSize := blockSize + txSize
 		if blockPlusTxSize < blockSize || blockPlusTxSize >= policy.BlockMaxSize {
-			log.Trace("Skipping tx %s (size %v) because it "+
+			log.Trace(fmt.Sprintf("Skipping tx %s (size %v) because it "+
 				"would exceed the max block size; cur block "+
 				"size %v, cur num tx %v", tx.Hash(), txSize,
-				blockSize, len(blockTxns))
+				blockSize, len(blockTxns)))
 			logSkippedDeps(tx, deps)
 			continue
 		}
@@ -414,8 +414,8 @@ mempoolLoop:
 		txFeesMap[*tx.Hash()] = prioItem.fee
 		txSigOpCountsMap[*tx.Hash()] = numSigOps
 
-		log.Trace("Adding tx %s (priority %.2f, feePerKB %.2f)",
-			prioItem.tx.Hash(), prioItem.priority, prioItem.feePerKB)
+		log.Trace(fmt.Sprintf("Adding tx %s (priority %.2f, feePerKB %.2f)",
+			prioItem.tx.Hash(), prioItem.priority, prioItem.feePerKB))
 
 		// Add transactions which depend on this one (and also do not
 		// have any other unsatisified dependencies) to the priority
@@ -479,6 +479,11 @@ mempoolLoop:
 
 	// Append coinbase.
 	blockTxnsRegular = append(blockTxnsRegular, coinbaseTx)
+
+	// Append regular tx
+	for _, tx := range blockTxns {
+		blockTxnsRegular = append(blockTxnsRegular, tx)
+	}
 
 	for _, tx := range blockTxnsRegular {
 		fee, ok := txFeesMap[*tx.Hash()]

@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/noxproject/nox/services/mempool"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -25,6 +26,8 @@ const (
 	defaultLogDirname            = "logs"
 	defaultLogFilename           = "noxd.log"
 	defaultGenerate              = false
+	defaultBlockMinSize          = 0
+	defaultBlockMaxSize          = 375000
 	defaultMaxRPCClients         = 10
 	defaultMaxPeers              = 125
 )
@@ -65,6 +68,9 @@ func loadConfig() (*config.Config, []string, error) {
 		RPCMaxClients:        defaultMaxRPCClients,
 		Generate:             defaultGenerate,
 		MaxPeers:             defaultMaxPeers,
+		MinRelayTxFee:        mempool.DefaultMinRelayTxFee,
+		BlockMinSize:         defaultBlockMinSize,
+		BlockMaxSize:         defaultBlockMaxSize,
 		SigCacheMaxSize:      defaultSigCacheMaxSize,
 	}
 
