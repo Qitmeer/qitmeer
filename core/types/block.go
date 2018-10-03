@@ -254,9 +254,9 @@ func (b *Block) Decode(r io.Reader, pver uint32) error {
 	if err != nil {
 		return err
 	}
-	if pbCount > maxParentsPerBlock {
+	if pbCount > MaxParentsPerBlock {
 		str := fmt.Sprintf("too many parents to fit into a block "+
-			"[count %d, max %d]", pbCount, maxParentsPerBlock)
+			"[count %d, max %d]", pbCount, MaxParentsPerBlock)
 		return fmt.Errorf("MsgBlock.BtcDecode", str)
 	}
 	b.Parents = make([]*hash.Hash, 0, pbCount)

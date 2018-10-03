@@ -544,7 +544,7 @@ func (b *BlockChain) isCurrent() bool {
 	// Not current if the latest main (best) chain height is before the
 	// latest known good checkpoint (when checkpoints are enabled).
 	checkpoint := b.latestCheckpoint()
-	if checkpoint != nil && b.bestNode.height < checkpoint.Height {
+	if checkpoint != nil && b.dag.GetLastBlock().height < checkpoint.Height {
 		return false
 	}
 
@@ -554,7 +554,7 @@ func (b *BlockChain) isCurrent() bool {
 	// The chain appears to be current if none of the checks reported
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
-	return b.bestNode.timestamp >= minus24Hours
+	return b.dag.GetLastBlock().timestamp >= minus24Hours
 }
 
 
@@ -826,62 +826,35 @@ func panicf(format string, args ...interface{}) {
 //    This is useful when using checkpoints.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) connectBestChain(node *blockNode, block, parent *types.SerializedBlock, flags BehaviorFlags) (int64, error) {
-	fastAdd := flags&BFFastAdd == BFFastAdd
-
-	// Ensure the passed parent is actually the parent of the block.
-	if *parent.Hash() != node.parent.hash {
-		panicf("parent block %v (height %v) does not match expected parent %v "+
-			"(height %v)", parent.Hash(), parent.Block().Header.Height,
-			node.parent.hash, node.height-1)
+func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlock,newOrders *list.List) (bool, error) {
+	if newOrders.Len()==0 {
+		return false,nil
 	}
-
 	// We are extending the main (best) chain with a new block.  This is the
 	// most common case.
-	parentHash := &block.Block().Header.ParentRoot
-	if *parentHash == b.bestNode.hash {
-		// Skip expensive checks if the block has already been fully
-		// validated.
-		fastAdd = fastAdd || b.index.NodeStatus(node).KnownValid()
-
+	if newOrders.Len()==1 {
 		// Perform several checks to verify the block can be connected
 		// to the main chain without violating any rules and without
 		// actually connecting the block.
 		view := NewUtxoViewpoint()
-		view.SetBestHash(parentHash)
+		view.SetBestHash(b.dag.GetPrevious(&node.hash))
 
 		var stxos []spentTxOut
-		if !fastAdd {
-			err := b.checkConnectBlock(node, block, parent, view,
-				&stxos)
-			if err != nil {
-				if _, ok := err.(RuleError); ok {
-					b.index.SetStatusFlags(node, statusValidateFailed)
-				}
-				return 0, err
-			}
-			b.index.SetStatusFlags(node, statusValid)
+		err := b.checkConnectBlock(node, block, view,&stxos)
+		if err != nil {
+			b.RemoveBadTx(block.Hash())
+			return false, err
 		}
 		// In the fast add case the code to check the block connection
 		// was skipped, so the utxo view needs to load the referenced
 		// utxos, spend them, and add the new utxos being created by
 		// this block.
-		if fastAdd {
-			err := view.fetchInputUtxos(b.db, block, parent)
-			if err != nil {
-				return 0, err
-			}
-			//TODO, connectTransactions also call fetchInputUtxos & refactor the inner logic
-			err = b.connectTransactions(view, block, parent, &stxos)
-			if err != nil {
-				return 0, err
-			}
-		}
 
 		// Connect the block to the main chain.
-		err := b.connectBlock(node, block, parent, view, stxos)
+		err = b.connectBlock(node, block, view, stxos)
 		if err != nil {
-			return 0, err
+			b.RemoveBadTx(block.Hash())
+			return false, err
 		}
 
 		validateStr := "validating"
@@ -892,42 +865,9 @@ func (b *BlockChain) connectBestChain(node *blockNode, block, parent *types.Seri
 
 		// The fork length is zero since the block is now the tip of the
 		// best chain.
-		return 0, nil
-	}
-	if fastAdd {
-		log.Warn("fastAdd set in the side chain case? %v\n",
-			block.Hash())
+		return true, nil
 	}
 
-	// We're extending (or creating) a side chain which may or may not
-	// become the main chain.
-	node.inMainChain = false
-
-	// We're extending (or creating) a side chain, but the cumulative
-	// work for this new side chain is not enough to make it the new chain.
-	if node.workSum.Cmp(b.bestNode.workSum) <= 0 {
-		// Find the fork point.
-		fork := node
-		for ; fork.parent != nil; fork = fork.parent {
-			if fork.inMainChain {
-				break
-			}
-		}
-
-		// Log information about how the block is forking the chain.
-		if fork.hash == *parentHash {
-			log.Info("FORK: Block %v (height %v) forks the chain at height "+
-				"%d/block %v, but does not cause a reorganize",
-				node.hash, node.height, fork.height, fork.hash)
-		} else {
-			log.Info("EXTEND FORK: Block %v (height %v) extends a side chain "+
-				"which forks the chain at height %d/block %v",
-				node.hash, node.height, fork.height, fork.hash)
-		}
-
-		forkLen := node.height - fork.height
-		return int64(forkLen), nil //TODO, remove type conversion
-	}
 
 	// We're extending (or creating) a side chain and the cumulative work
 	// for this new side chain is more than the old best chain, so this side
@@ -936,20 +876,23 @@ func (b *BlockChain) connectBestChain(node *blockNode, block, parent *types.Seri
 	// blocks that form the (now) old fork from the main chain, and attach
 	// the blocks that form the new chain to the main chain starting at the
 	// common ancenstor (the point where the chain forked).
-	detachNodes, attachNodes := b.getReorganizeNodes(node)
 
 	// Reorganize the chain.
-	log.Info("REORGANIZE: Block %v is causing a reorganize.", node.hash)
-	err := b.reorganizeChain(detachNodes, attachNodes)
-	if err != nil {
-		return 0, err
+	log.Info("DAG REORGANIZE: Block %v is causing a reorganize.", node.hash)
+	oldOrder:=list.New()
+	for e := newOrders.Front(); e != nil; e = e.Next() {
+		log.Info(e.Value.(*hash.Hash).String())
+		if e.Value.(*hash.Hash).IsEqual(&node.hash) {
+			continue
+		}
+		oldOrder.PushBack(e.Value)
 	}
-
-	// The fork length is zero since the block is now the tip of the best
-	// chain.
-	return 0, nil
+	err := b.reorganizeChain(oldOrder, newOrders,node)
+	if err!=nil {
+		return false,err
+	}
+	return true, nil
 }
-
 // connectBlock handles connecting the passed node/block to the end of the main
 // (best) chain.
 //
@@ -961,16 +904,7 @@ func (b *BlockChain) connectBestChain(node *blockNode, block, parent *types.Seri
 // it would be inefficient to repeat it.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) connectBlock(node *blockNode, block, parent *types.SerializedBlock, view *UtxoViewpoint, stxos []spentTxOut) error {
-	// Make sure it's extending the end of the best chain.
-	prevHash := block.Block().Header.ParentRoot
-	if prevHash != b.bestNode.hash {
-		panicf("block %v (height %v) connects to block %v instead of "+
-			"extending the best chain (hash %v, height %v)", node.hash,
-			node.height, prevHash, b.bestNode.hash, b.bestNode.height)
-	}
-
-
+func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []spentTxOut) error {
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()
@@ -983,7 +917,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block, parent *types.Serializ
 	numTxns := uint64(len(block.Block().Transactions))
 
 	// Calculate the exact subsidy produced by adding the block.
-	subsidy := CalculateAddedSubsidy(block, parent)
+	subsidy := CalculateAddedSubsidy(block)
 
 	/* TODO, revisit block size in block header
 	blockSize := uint64(block.Block().Header.Size)
@@ -1037,7 +971,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block, parent *types.Serializ
 		// optional indexes with the block being connected so they can
 		// update themselves accordingly.
 		if b.indexManager != nil {
-			err := b.indexManager.ConnectBlock(dbTx, block, parent, view)
+			err := b.indexManager.ConnectBlock(dbTx, block, view)
 			if err != nil {
 				return err
 			}
@@ -1059,8 +993,6 @@ func (b *BlockChain) connectBlock(node *blockNode, block, parent *types.Serializ
 	b.mainNodesByHeight[node.height] = node
 	b.heightLock.Unlock()
 
-	// This node is now the end of the best chain.
-	b.bestNode = node
 
 	// Update the state for the best block.  Notice how this replaces the
 	// entire struct instead of updating the existing one.  This effectively
@@ -1072,7 +1004,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block, parent *types.Serializ
 	b.stateLock.Unlock()
 
 	// Assemble the current block and the parent into a slice.
-	blockAndParent := []*types.SerializedBlock{block, parent}
+	blockAndParent := []*types.SerializedBlock{block}
 
 	// Notify the caller that the block was connected to the main chain.
 	// The caller would typically want to react with actions such as
@@ -1094,54 +1026,6 @@ func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 	return b.subsidyCache
 }
 
-// getReorganizeNodes finds the fork point between the main chain and the passed
-// node and returns a list of block nodes that would need to be detached from
-// the main chain and a list of block nodes that would need to be attached to
-// the fork point (which will be the end of the main chain after detaching the
-// returned list of block nodes) in order to reorganize the chain such that the
-// passed node is the new end of the main chain.  The lists will be empty if the
-// passed node is not on a side chain.
-//
-// This function MUST be called with the chain state lock held (for reads).
-func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List) {
-	// Nothing to detach or attach if there is no node.
-	attachNodes := list.New()
-	detachNodes := list.New()
-	if node == nil {
-		return detachNodes, attachNodes
-	}
-
-	// Don't allow a reorganize to a descendant of a known invalid block.
-	if b.index.NodeStatus(node.parent).KnownInvalid() {
-		b.index.SetStatusFlags(node, statusInvalidAncestor)
-		return detachNodes, attachNodes
-	}
-
-	// Find the fork point (if any) adding each block to the list of nodes
-	// to attach to the main tree.  Push them onto the list in reverse order
-	// so they are attached in the appropriate order when iterating the list
-	// later.
-	ancestor := node
-	for ; ancestor.parent != nil; ancestor = ancestor.parent {
-		if ancestor.inMainChain {
-			break
-		}
-		attachNodes.PushFront(ancestor)
-	}
-
-	// Start from the end of the main chain and work backwards until the
-	// common ancestor adding each block to the list of nodes to detach from
-	// the main chain.
-	for n := b.bestNode; n != nil; n = n.parent {
-		if n.hash == ancestor.hash {
-			break
-		}
-		detachNodes.PushBack(n)
-	}
-
-	return detachNodes, attachNodes
-}
-
 // reorganizeChain reorganizes the block chain by disconnecting the nodes in the
 // detachNodes list and connecting the nodes in the attach list.  It expects
 // that the lists are already in the correct order and are in sync with the
@@ -1151,266 +1035,82 @@ func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List
 // (think pushing them onto the end of the chain).
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error {
-	// Nothing to do if no reorganize nodes were provided.
-	if detachNodes.Len() == 0 && attachNodes.Len() == 0 {
-		return nil
-	}
 
-	// Ensure the provided nodes match the current best chain.
-	if detachNodes.Len() != 0 {
-		firstDetachNode := detachNodes.Front().Value.(*blockNode)
-		if firstDetachNode.hash != b.bestNode.hash {
-			panicf("reorganize nodes to detach are not for the current best "+
-				"chain -- first detach node %v, current chain %v",
-				&firstDetachNode.hash, &b.bestNode.hash)
-		}
-	}
+func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,node *blockNode) error {
 
-	// Ensure the provided nodes are for the same fork point.
-	if attachNodes.Len() != 0 && detachNodes.Len() != 0 {
-		firstAttachNode := attachNodes.Front().Value.(*blockNode)
-		lastDetachNode := detachNodes.Back().Value.(*blockNode)
-		if firstAttachNode.parent.hash != lastDetachNode.parent.hash {
-			panicf("reorganize nodes do not have the same fork point -- first "+
-				"attach parent %v, last detach parent %v",
-				&firstAttachNode.parent.hash, &lastDetachNode.parent.hash)
-		}
-	}
+	for e := detachNodes.Back(); e != nil; e = e.Prev() {
+		n:=b.index.LookupNode(e.Value.(*hash.Hash))
 
-	// Track the old and new best chains heads.
-	oldBest := b.bestNode
-	newBest := b.bestNode
+		block, err := b.fetchMainChainBlockByHash(&n.hash)
 
-	// All of the blocks to detach and related spend journal entries needed
-	// to unspend transaction outputs in the blocks being disconnected must
-	// be loaded from the database during the reorg check phase below and
-	// then they are needed again when doing the actual database updates.
-	// Rather than doing two loads, cache the loaded data into these slices.
-	detachBlocks := make([]*types.SerializedBlock, 0, detachNodes.Len())
-	detachSpentTxOuts := make([][]spentTxOut, 0, detachNodes.Len())
-	attachBlocks := make([]*types.SerializedBlock, 0, attachNodes.Len())
-
-	// Disconnect all of the blocks back to the point of the fork.  This
-	// entails loading the blocks and their associated spent txos from the
-	// database and using that information to unspend all of the spent txos
-	// and remove the utxos created by the blocks.
-	view := NewUtxoViewpoint()
-	view.SetBestHash(&oldBest.hash)
-	var nextBlockToDetach *types.SerializedBlock
-	for e := detachNodes.Front(); e != nil; e = e.Next() {
-		// Grab the block to detach based on the node.  Use the fact that the
-		// blocks are being detached in reverse order, so the parent of the
-		// current block being detached is the next one being detached.
-		n := e.Value.(*blockNode)
-		block := nextBlockToDetach
-		if block == nil {
-			var err error
-			block, err = b.fetchMainChainBlockByHash(&n.hash)
-			if err != nil {
-				return err
-			}
-		}
-		if n.hash != *block.Hash() {
-			panicf("detach block node hash %v (height %v) does not match "+
-				"previous parent block hash %v", &n.hash, n.height,
-				block.Hash())
-		}
-
-		// Grab the parent of the current block and also save a reference to it
-		// as the next block to detach so it doesn't need to be loaded again on
-		// the next iteration.
-		parent, err := b.fetchMainChainBlockByHash(&n.parent.hash)
 		if err != nil {
 			return err
 		}
-		nextBlockToDetach = parent
+		node:=b.index.lookupNode(&n.hash)
+		if node==nil {
+			return fmt.Errorf("no node %s",n.hash)
+		}
+		block.SetHeight(node.height)
+		// Load all of the utxos referenced by the block that aren't
+		// already in the view.
+		view := NewUtxoViewpoint()
+		view.SetBestHash(block.Hash())
+		err = view.fetchInputUtxos(b.db, block,b)
+		if err != nil {
+			return err
+		}
 
 		// Load all of the spent txos for the block from the spend
 		// journal.
-		var stxos []spentTxOut
+		var stxos map[string]spentTxOut
 		err = b.db.View(func(dbTx database.Tx) error {
-			stxos, err = dbFetchSpendJournalEntry(dbTx, block, parent)
+			stxos, err = dbFetchSpendJournalEntry(dbTx, block)
 			return err
 		})
 		if err != nil {
 			return err
 		}
-
-		// Quick sanity test.
-		// TODO, revisit the stxos count
-		if len(stxos) != countSpentOutputs(block, parent) {
-			panicf("retrieved %v stxos when trying to disconnect block %v "+
-				"(height %v), yet counted %v many spent utxos", len(stxos),
-				block.Hash(), block.Height(), countSpentOutputs(block, parent))
-		}
-
 		// Store the loaded block and spend journal entry for later.
-		detachBlocks = append(detachBlocks, block)
-		detachSpentTxOuts = append(detachSpentTxOuts, stxos)
 
-		err = b.disconnectTransactions(view, block, parent, stxos)
+		prevNode:=e.Prev()
+		var prevH *hash.Hash
+		if prevNode!=nil {
+			prevH=e.Value.(*hash.Hash)
+		}else{
+			prevH=b.dag.GetPrevious(block.Hash())
+			if prevH.IsEqual(&node.hash) {
+				prevH=b.dag.GetPrevious(block.Hash())
+			}
+		}
+		err=b.disconnectTransactions(view,block,stxos,prevH)
 		if err != nil {
 			return err
 		}
-
-		newBest = n.parent
+		err = b.disconnectBlock(n, block, view,prevH)
+		if err != nil {
+			return err
+		}
+		b.RemoveBadTx(&n.hash)
 	}
 
-	// Set the fork point and grab the fork block when there are nodes to be
-	// attached.  The fork block is used as the parent to the first node to be
-	// attached below.
-	var forkNode *blockNode
-	var forkBlock *types.SerializedBlock
-	if attachNodes.Len() > 0 {
-		forkNode = newBest
+	for e := attachNodes.Front(); e != nil; e = e.Next() {
+		n:=b.index.LookupNode(e.Value.(*hash.Hash))
+		// If any previous nodes in attachNodes failed validation,
+		// mark this one as having an invalid ancestor.
+		block, err := b.fetchMainChainBlockByHash(&n.hash)
 
-		var err error
-		forkBlock, err = b.fetchMainChainBlockByHash(&forkNode.hash)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Perform several checks to verify each block that needs to be attached
-	// to the main chain can be connected without violating any rules and
-	// without actually connecting the block.
-	//
-	// NOTE: These checks could be done directly when connecting a block,
-	// however the downside to that approach is that if any of these checks
-	// fail after disconnecting some blocks or attaching others, all of the
-	// operations have to be rolled back to get the chain back into the
-	// state it was before the rule violation (or other failure).  There are
-	// at least a couple of ways accomplish that rollback, but both involve
-	// tweaking the chain and/or database.  This approach catches these
-	// issues before ever modifying the chain.
-	for i, e := 0, attachNodes.Front(); e != nil; i, e = i+1, e.Next() {
-		// Grab the block to attach based on the node.  Use the fact that the
-		// parent of the block is either the fork point for the first node being
-		// attached or the previous one that was attached for subsequent blocks
-		// to optimize.
-		n := e.Value.(*blockNode)
-		block, err := b.fetchBlockByHash(&n.hash)
-		if err != nil {
-			return err
-		}
-		parent := forkBlock
-		if i > 0 {
-			parent = attachBlocks[i-1]
-		}
-		if n.parent.hash != *parent.Hash() {
-			panicf("attach block node hash %v (height %v) parent hash %v does "+
-				"not match previous parent block hash %v", &n.hash, n.height,
-				&n.parent.hash, parent.Hash())
-		}
-
-		// Store the loaded block for later.
-		attachBlocks = append(attachBlocks, block)
-
-		// Notice the spent txout details are not requested here and
-		// thus will not be generated.  This is done because the state
-		// is not being immediately written to the database, so it is
-		// not needed.
-		err = b.checkConnectBlock(n, block, parent, view, nil)
 		if err != nil {
 			return err
 		}
 
-		newBest = n
-	}
-	log.Debug("New best chain validation completed successfully, " +
-		"commencing with the reorganization.")
-
-	// Send a notification that a blockchain reorganization is in progress.
-	reorgData := &ReorganizationNotifyData{
-		oldBest.hash,
-		oldBest.height,
-		newBest.hash,
-		newBest.height,
-	}
-	b.chainLock.Unlock()
-	b.sendNotification(Reorganization, reorgData)
-	b.chainLock.Lock()
-
-	// Reset the view for the actual connection code below.  This is
-	// required because the view was previously modified when checking if
-	// the reorg would be successful and the connection code requires the
-	// view to be valid from the viewpoint of each block being connected or
-	// disconnected.
-	view = NewUtxoViewpoint()
-	view.SetBestHash(&oldBest.hash)
-
-	// Disconnect blocks from the main chain.
-	for i, e := 0, detachNodes.Front(); e != nil; i, e = i+1, e.Next() {
-		// Since the blocks are being detached in reverse order, the parent of
-		// current block being detached is the next one being detached up to
-		// the final one at which point it's the block that is already saved
-		// from the next block to detach above.
-		n := e.Value.(*blockNode)
-		block := detachBlocks[i]
-		parent := nextBlockToDetach
-		if i < len(detachBlocks)-1 {
-			parent = detachBlocks[i+1]
-		}
-		if n.parent.hash != *parent.Hash() {
-			panicf("detach block node hash %v (height %v) parent hash %v does "+
-				"not match previous parent block hash %v", &n.hash, n.height,
-				&n.parent.hash, parent.Hash())
-		}
-
-		// Load all of the utxos referenced by the block that aren't
-		// already in the view.
-		err := view.fetchInputUtxos(b.db, block, parent)
+		view := NewUtxoViewpoint()
+		view.SetBestHash(b.dag.GetPrevious(&node.hash))
+		stxos:=[]spentTxOut{}
+		err= b.checkConnectBlock(n, block, view, &stxos)
 		if err != nil {
 			return err
 		}
-
-		// Update the view to unspend all of the spent txos and remove
-		// the utxos created by the block.
-		err = b.disconnectTransactions(view, block, parent,
-			detachSpentTxOuts[i])
-		if err != nil {
-			return err
-		}
-
-		// Update the database and chain state.
-		err = b.disconnectBlock(n, block, parent, view)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Connect the new best chain blocks.
-	for i, e := 0, attachNodes.Front(); e != nil; i, e = i+1, e.Next() {
-		// Grab the block to attach based on the node.  Use the fact that the
-		// parent of the block is either the fork point for the first node being
-		// attached or the previous one that was attached for subsequent blocks
-		// to optimize.
-		n := e.Value.(*blockNode)
-		block := attachBlocks[i]
-		parent := forkBlock
-		if i > 0 {
-			parent = attachBlocks[i-1]
-		}
-		if n.parent.hash != *parent.Hash() {
-			panicf("attach block node hash %v (height %v) parent hash %v does "+
-				"not match previous parent block hash %v", &n.hash, n.height,
-				&n.parent.hash, parent.Hash())
-		}
-
-		// Update the view to mark all utxos referenced by the block
-		// as spent and add all transactions being created by this block
-		// to it.  Also, provide an stxo slice so the spent txout
-		// details are generated.
-		// TODO, revisit the design of stxos count
-		stxos := make([]spentTxOut, 0, countSpentOutputs(block, parent))
-		err := b.connectTransactions(view, block, parent, &stxos)
-		if err != nil {
-			return err
-		}
-
-		// Update the database and chain state.
-		err = b.connectBlock(n, block, parent, view, stxos)
+		err = b.connectBlock(n, block, view, stxos)
 		if err != nil {
 			return err
 		}
@@ -1418,18 +1118,14 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 	// Log the point where the chain forked and old and new best chain
 	// heads.
-	if forkNode != nil {
-		log.Info("REORGANIZE: Chain forks at %v (height %v)",
-			forkNode.hash, forkNode.height)
-	}
-	log.Info("REORGANIZE: Old best chain head was %v (height %v)",
-		&oldBest.hash, oldBest.height)
-	log.Info("REORGANIZE: New best chain head is %v (height %v)",
-		newBest.hash, newBest.height)
+	firstAttachNode := attachNodes.Front().Value.(*hash.Hash)
+	lastAttachNode := attachNodes.Back().Value.(*hash.Hash)
+	log.Info("DAG REORGANIZE: Start at %v", *firstAttachNode)
+	log.Info("DAG REORGANIZE: End at %v", *lastAttachNode)
+	log.Info("DAG REORGANIZE: New Len= %d;Old Len= %d",attachNodes.Len(),detachNodes.Len() )
 
 	return nil
 }
-
 // countSpentOutputs returns the number of utxos the passed block spends.
 // TODO, revisit the design of stxos count
 func countSpentOutputs(block,parent *types.SerializedBlock) int {
@@ -1445,14 +1141,17 @@ func countSpentOutputs(block,parent *types.SerializedBlock) int {
 // the main (best) chain.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) disconnectBlock(node *blockNode, block, parent *types.SerializedBlock, view *UtxoViewpoint) error {
-	// Make sure the node being disconnected is the end of the best chain.
-	if node.hash != b.bestNode.hash {
-		panicf("block %v (height %v) is not the end of the best chain "+
-			"(hash %v, height %v)", node.hash, node.height, b.bestNode.hash,
-			b.bestNode.height)
-	}
+func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint,prev *hash.Hash) error {
 
+	prevNode := b.index.LookupNode(prev)
+	if prevNode==nil {
+		return fmt.Errorf("no node")
+	}
+	prevBlock, err := b.fetchMainChainBlockByHash(prev)
+
+	if err != nil {
+		return err
+	}
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()
@@ -1463,27 +1162,26 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block, parent *types.Seria
 	/*
 	parentBlockSize := uint64(parent.Block().Header.Size)
 	*/
-	parentBlockSize := uint64(parent.Block().SerializeSize())
+	parentBlockSize := uint64(prevBlock.Block().SerializeSize())
 
 	// Calculate the number of transactions that would be added by adding
 	// this block.
 
 	// TODO revisit the tx count logic
-	numTxns := uint64(len(parent.Block().Transactions))
+	numTxns := uint64(len(prevBlock.Block().Transactions))
 	/*
 	numTxns := countNumberOfTransactions(block, parent)
 	*/
 	newTotalTxns := curTotalTxns - numTxns
 
 	// Calculate the exact subsidy produced by adding the block.
-	subsidy := CalculateAddedSubsidy(block, parent)
+	subsidy := CalculateAddedSubsidy(block)
 	newTotalSubsidy := curTotalSubsidy - subsidy
 
-	prevNode := node.parent
 	state := newBestState(prevNode, parentBlockSize, numTxns,
 		prevNode.CalcPastMedianTime(),  newTotalTxns, newTotalSubsidy)
 
-	err := b.db.Update(func(dbTx database.Tx) error {
+	err = b.db.Update(func(dbTx database.Tx) error {
 		// Update best block state.
 		err := dbPutBestState(dbTx, state, node.workSum)
 		if err != nil {
@@ -1515,7 +1213,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block, parent *types.Seria
 		// optional indexes with the block being disconnected so they
 		// can update themselves accordingly.
 		if b.indexManager != nil {
-			err := b.indexManager.DisconnectBlock(dbTx, block, parent, view)
+			err := b.indexManager.DisconnectBlock(dbTx, block, view)
 			if err != nil {
 				return err
 			}
@@ -1537,9 +1235,6 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block, parent *types.Seria
 	delete(b.mainNodesByHeight, node.height)
 	b.heightLock.Unlock()
 
-	// This node's parent is now the end of the best chain.
-	b.bestNode = node.parent
-
 	// Update the state for the best block.  Notice how this replaces the
 	// entire struct instead of updating the existing one.  This effectively
 	// allows the old version to act as a snapshot which callers can use
@@ -1550,7 +1245,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block, parent *types.Seria
 	b.stateLock.Unlock()
 
 	// Assemble the current block and the parent into a slice.
-	blockAndParent := []*types.SerializedBlock{block, parent}
+	blockAndParent := []*types.SerializedBlock{block}
 
 	// Notify the caller that the block was disconnected from the main
 	// chain.  The caller would typically want to react with actions such as

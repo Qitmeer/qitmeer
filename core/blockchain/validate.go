@@ -16,7 +16,6 @@ import (
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/core/merkle"
 	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/database"
 )
 
 
@@ -586,45 +585,6 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 		}
 	}
 
-	// The height of this block is one more than the referenced previous
-	// block.
-	blockHeight := prevNode.height + 1
-
-	// Ensure the header commits to the correct height based on the height it
-	// actually connects in the blockchain.
-	if header.Height != blockHeight {
-		errStr := fmt.Sprintf("block header commitment to height %d "+
-			"does not match chain height %d", header.Height,
-			blockHeight)
-		return ruleError(ErrBadBlockHeight, errStr)
-	}
-
-	// Ensure chain matches up to predetermined checkpoints.
-	blockHash := header.BlockHash()
-	if !b.verifyCheckpoint(blockHeight, &blockHash) {
-		str := fmt.Sprintf("block at height %d does not match "+
-			"checkpoint hash", blockHeight)
-		return ruleError(ErrBadCheckpoint, str)
-	}
-
-	// Find the previous checkpoint and prevent blocks which fork the main
-	// chain before it.  This prevents storage of new, otherwise valid,
-	// blocks which build off of old blocks that are likely at a much easier
-	// difficulty and therefore could be used to waste cache and disk space.
-	checkpointNode, err := b.findPreviousCheckpoint()
-	if err != nil {
-		return err
-	}
-	if checkpointNode != nil && blockHeight < checkpointNode.height {
-		str := fmt.Sprintf("block at height %d forks the main chain "+
-			"before the previous checkpoint at height %d",
-			blockHeight, checkpointNode.height)
-		return ruleError(ErrForkTooOld, str)
-	}
-
-	if !fastAdd {
-		// TODO, reject logic according to the header.version
-	}
 
 	return nil
 }

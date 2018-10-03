@@ -136,7 +136,7 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 		timestamp:    blockHeader.Timestamp.Unix(),
 		txRoot:       blockHeader.TxRoot,
 		nonce:        blockHeader.Nonce,
-		mainHeight:        0,
+		mainHeight:   0,
 	}
 	if parents != nil&&len(parents)>0 {
 		node.parents = parents

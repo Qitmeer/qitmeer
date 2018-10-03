@@ -62,7 +62,7 @@ func checkCoinbaseUniqueHeight(blockHeight uint64, block *types.SerializedBlock)
 		str := fmt.Sprintf("block %v output 1 has wrong height in "+
 			"coinbase; want %v, got %v; prevBlock %v, header height %v",
 			block.Hash(), blockHeight, cbHeight, prevBlock,
-			block.Block().Header.Height)
+			block.Height())
 		return ruleError(ErrCoinbaseHeight, str)
 	}
 
@@ -116,41 +116,36 @@ func IsFinalizedTransaction(tx *types.Tx, blockHeight uint64, blockTime time.Tim
 // their documentation for how the flags modify their behavior.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags BehaviorFlags) (int64, error) {
+func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags BehaviorFlags) (bool, error) {
 	// This function should never be called with orphan blocks or the
 	// genesis block.
-	prevHash := &block.Block().Header.ParentRoot
-	prevNode := b.index.LookupNode(prevHash)
-	if prevNode == nil {
-		str := fmt.Sprintf("previous block %s is not known", prevHash)
-		return 0, ruleError(ErrMissingParent, str)
-	}
 
-	// There is no need to validate the block if an ancestor is already
-	// known to be invalid.
-	if b.index.NodeStatus(prevNode).KnownInvalid() {
-		str := fmt.Sprintf("previous block %s is known to be invalid",
-			prevHash)
-		return 0, ruleError(ErrInvalidAncestorBlock, str)
+	parentsNode:=[]*blockNode{}
+	for _,pb:=range block.Block().Parents {
+		prevHash := pb
+		prevNode := b.index.LookupNode(prevHash)
+		if prevNode == nil {
+			str := fmt.Sprintf("previous block %s is unknown", prevHash)
+			return false, ruleError(ErrPreviousBlockUnknown, str)
+		} else if b.index.NodeStatus(prevNode).KnownInvalid() {
+			str := fmt.Sprintf("previous block %s is known to be invalid", prevHash)
+			return false, ruleError(ErrInvalidAncestorBlock, str)
+		}
+		parentsNode=append(parentsNode,prevNode)
 	}
-
+	blockHeader := &block.Block().Header
+	newNode := newBlockNode(blockHeader,parentsNode)
+	newNode.status = statusDataStored
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
-	err := b.checkBlockContext(block, prevNode, flags)
+	err := b.checkBlockContext(block, newNode.GetMainParent(), flags)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
 	// Prune stake nodes which are no longer needed before creating a new
 	// node.
 	b.pruner.pruneChainIfNeeded()
-
-	// Create a new block node for the block and add it to the block index.
-	// The block could either be on a side chain or the main chain, but it
-	// starts off as a side chain regardless.
-	blockHeader := &block.Block().Header
-	newNode := newBlockNode(blockHeader, prevNode)
-	b.index.AddNode(newNode)
 
 	// Insert the block into the database if it's not already there.  Even
 	// though it is possible the block will ultimately fail to connect, it
@@ -175,37 +170,36 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		return nil
 	})
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
-	// Grab the parent block since it is required throughout the block
-	// connection process.
-	parent, err := b.fetchBlockByHash(&newNode.parent.hash)
-	if err != nil {
-		return 0, err
+	//dag
+	list:=b.dag.AddBlock(newNode)
+	if list==nil||list.Len()==0 {
+		return false,fmt.Errorf("Irreparable error!")
 	}
+	block.SetHeight(newNode.height)
 
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This
 	// also handles validation of the transaction scripts.
-	forkLen, err := b.connectBestChain(newNode, block, parent, flags)
-	if err != nil {
-		return 0, err
+	success, err := b.connectDagChain(newNode, block,list)
+	if !success||err != nil {
+		return false, err
 	}
 
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
-	bestHeight := b.bestNode.height
 	b.chainLock.Unlock()
 
 	//TODO, refactor to event subscript/publish
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
-		BestHeight: bestHeight,
-		ForkLen:    forkLen,
+		BestHeight: block.Height(),
+		ForkLen:    0,
 		Block:      block,
 	})
 	b.chainLock.Lock()
 
-	return forkLen, nil
+	return true, nil
 }

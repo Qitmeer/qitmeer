@@ -204,7 +204,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			break
 		}
 
-		if len(blockSlice) != 2 {
+		if len(blockSlice) != 1 {
 			log.Warn("Chain connected notification is wrong size slice.")
 			break
 		}
@@ -259,7 +259,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			break
 		}
 
-		if len(blockSlice) != 2 {
+		if len(blockSlice) != 1 {
 			log.Warn("Chain disconnected notification is wrong size slice.")
 			break
 		}
@@ -516,11 +516,11 @@ out:
 			*/
 
 			case processBlockMsg:
-				forkLen, isOrphan, err := b.chain.ProcessBlock(
+				_, isOrphan, err := b.chain.ProcessBlock(
 					msg.block, msg.flags)
 				if err != nil {
 					msg.reply <- processBlockResponse{
-						forkLen:  forkLen,
+						forkLen:  0,
 						isOrphan: isOrphan,
 						err:      err,
 					}
@@ -529,7 +529,7 @@ out:
 
 				// If the block added to the main chain, then we need to
 				// update the tip locally on block manager.
-				onMainChain := !isOrphan && forkLen == 0
+				onMainChain := !isOrphan
 				if onMainChain {
 					// Query the chain for the latest best block
 					// since the block that was processed could be

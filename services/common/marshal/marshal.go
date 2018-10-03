@@ -159,7 +159,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 	head := b.Block().Header // copies the header once
 
 	// Get next block hash unless there are none.
-	height := uint64(head.Height)
+	height := uint64(b.Height())
 
 	fields := json.OrderedResult{
 		{"hash",         b.Hash().String()},

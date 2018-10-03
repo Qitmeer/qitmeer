@@ -139,7 +139,7 @@ func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, height int64, voters uint1
 // that have already been confirmed to abide by the consensus rules of the
 // network, or the function might panic.
 // TODO refactor CalculateAddedSubsidy
-func CalculateAddedSubsidy(block, parent *types.SerializedBlock) int64 {
+func CalculateAddedSubsidy(block *types.SerializedBlock) int64 {
 	return 0
 }
 

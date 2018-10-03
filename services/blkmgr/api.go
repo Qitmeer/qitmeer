@@ -102,8 +102,8 @@ func (api *PublicBlockAPI) GetBlock(hash hash.Hash, verbose bool) (interface{}, 
 
 	// Get next block hash unless there are none.
 	var nextHashString string
-	blockHeader := &blk.Block().Header
-	height := blockHeader.Height
+	//blockHeader := &blk.Block().Header
+	height := blk.Height()
 	confirmations := int64(-1)
 
 	if onMainChain {

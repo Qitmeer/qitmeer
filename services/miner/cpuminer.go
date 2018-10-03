@@ -693,7 +693,7 @@ func updateExtraNonce(msgBlock *types.Block, extraNonce uint64) error {
 	// TODO, decided if need extra nonce for coinbase-tx
 	// do nothing for now
 	return nil
-	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(msgBlock.Header.Height)).
+	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(0)).
 		AddInt64(int64(extraNonce)).AddData([]byte("nox/test")).
 		Script()
 	if err != nil {

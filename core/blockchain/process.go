@@ -42,51 +42,38 @@ const (
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
-	// Start with processing at least the passed hash.  Leave a little room
-	// for additional orphan blocks that need to be processed without
-	// needing to grow the array in the common case.
-	processHashes := make([]*hash.Hash, 0, 10)
-	processHashes = append(processHashes, h)
-	for len(processHashes) > 0 {
-		// Pop the first hash to process from the slice.
-		processHash := processHashes[0]
-		processHashes[0] = nil // Prevent GC leak.
-		processHashes = processHashes[1:]
-
-		// Look up all orphans that are parented by the block we just
-		// accepted.  This will typically only be one, but it could
-		// be multiple if multiple blocks are mined and broadcast
-		// around the same time.  The one with the most proof of work
-		// will eventually win out.  An indexing for loop is
-		// intentionally used over a range here as range does not
-		// reevaluate the slice on each iteration nor does it adjust the
-		// index for the modified slice.
-		for i := 0; i < len(b.prevOrphans[*processHash]); i++ {
-			orphan := b.prevOrphans[*processHash][i]
-			if orphan == nil {
-				log.Warn("Found a nil entry at index %d in the "+
-					"orphan dependency list for block %v", i,
-					processHash)
-				continue
+	for  {
+		needLoop:=false
+		for _,v:=range b.orphans{
+			allExists:=true
+			for _,h:=range v.block.Block().Parents{
+				exists:= b.index.HaveBlock(h)
+				if !exists {
+					allExists=false
+					break
+				}
 			}
-
-			// Remove the orphan from the orphan pool.
-			orphanHash := orphan.block.Hash()
-			b.removeOrphanBlock(orphan)
-			i--
-
-			// Potentially accept the block into the block chain.
-			_, err := b.maybeAcceptBlock(orphan.block, flags)
-			if err != nil {
-				return err
+			if allExists {
+				b.removeOrphanBlock(v)
+				//
+				exists := b.index.HaveBlock(v.block.Hash())
+				if exists {
+					continue
+				}
+				// Potentially accept the block into the block chain.
+				_, err := b.maybeAcceptBlock(v.block, flags)
+				if err != nil {
+					return err
+				}
+				needLoop=true
+				break
 			}
-
-			// Add this block to the list of blocks to process so
-			// any orphan blocks that depend on this block are
-			// handled too.
-			processHashes = append(processHashes, orphanHash)
+		}
+		if !needLoop {
+			return nil
 		}
 	}
+
 	return nil
 }
 
@@ -104,7 +91,7 @@ func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
 // best chain.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFlags) (int64, bool, error) {
+func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFlags) (bool, bool, error) {
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
 
@@ -122,19 +109,19 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	// The block must not already exist in the main chain or side chains.
 	if b.index.HaveBlock(blockHash) {
 		str := fmt.Sprintf("already have block %v", blockHash)
-		return 0, false, ruleError(ErrDuplicateBlock, str)
+		return false, false, ruleError(ErrDuplicateBlock, str)
 	}
 
 	// The block must not already exist as an orphan.
 	if _, exists := b.orphans[*blockHash]; exists {
 		str := fmt.Sprintf("already have block (orphan) %v", blockHash)
-		return 0, false, ruleError(ErrDuplicateBlock, str)
+		return false, false, ruleError(ErrDuplicateBlock, str)
 	}
 
 	// Perform preliminary sanity checks on the block and its transactions.
 	err := checkBlockSanity(block, b.timeSource, flags, b.params)
 	if err != nil {
-		return 0, false, err
+		return false, false, err
 	}
 
 	// Find the previous checkpoint and perform some additional checks based
@@ -146,7 +133,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	blockHeader := &block.Block().Header
 	checkpointNode, err := b.findPreviousCheckpoint()
 	if err != nil {
-		return 0, false, err
+		return false, false, err
 	}
 	if checkpointNode != nil {
 		// Ensure the block timestamp is after the checkpoint timestamp.
@@ -155,7 +142,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 			str := fmt.Sprintf("block %v has timestamp %v before "+
 				"last checkpoint timestamp %v", blockHash,
 				blockHeader.Timestamp, checkpointTime)
-			return 0, false, ruleError(ErrCheckpointTimeTooOld, str)
+			return false, false, ruleError(ErrCheckpointTimeTooOld, str)
 		}
 
 		if !fastAdd {
@@ -173,28 +160,28 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 				str := fmt.Sprintf("block target difficulty of %064x "+
 					"is too low when compared to the previous "+
 					"checkpoint", currentTarget)
-				return 0, false, ruleError(ErrDifficultyTooLow, str)
+				return false, false, ruleError(ErrDifficultyTooLow, str)
 			}
 		}
 	}
 
 	// Handle orphan blocks.
-	prevHash := &blockHeader.ParentRoot
-	if !b.index.HaveBlock(prevHash) {
-		log.Info("Adding orphan block %v with parent %v", blockHash,
-			prevHash)
-		b.addOrphanBlock(block)
+	for _,pb:=range block.Block().Parents{
+		if !b.index.HaveBlock(pb) {
+			log.Info("Adding orphan block %v with parent %v", blockHash,pb)
+			b.addOrphanBlock(block)
 
-		// The fork length of orphans is unknown since they, by definition, do
-		// not connect to the best chain.
-		return 0, true, nil
+			// The fork length of orphans is unknown since they, by definition, do
+			// not connect to the best chain.
+			return false, true, nil
+		}
 	}
 
 	// The block has passed all context independent checks and appears sane
 	// enough to potentially accept it into the block chain.
-	forkLen, err := b.maybeAcceptBlock(block, flags)
+	_, err = b.maybeAcceptBlock(block, flags)
 	if err != nil {
-		return 0, false, err
+		return false, false, err
 	}
 
 	// Accept any orphan blocks that depend on this block (they are no
@@ -202,10 +189,10 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	// no more.
 	err = b.processOrphans(blockHash, flags)
 	if err != nil {
-		return 0, false, err
+		return false, false, err
 	}
 
 	log.Debug("Accepted block", "hash", blockHash)
 
-	return forkLen, false, nil
+	return false, false, nil
 }

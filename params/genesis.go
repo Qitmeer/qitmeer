@@ -184,7 +184,6 @@ var privNetGenesisBlock = types.Block{
 		Timestamp:    time.Unix(1401292357, 0), // 2009-01-08 20:54:25 -0600 CST
 		Difficulty:   0x207fffff, // 545259519
 		Nonce:        0,
-		Height:       0,
 	},
 	Transactions:  []*types.Transaction{&privNetGenesisCoinbaseTx},
 }

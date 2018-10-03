@@ -841,7 +841,7 @@ func (bd *BlockDAG) updateOrder(b *blockNode) *list.List{
 
 			node.height=uint64(pNum+tIndex)
 			tIndex++
-			if node.height==-1 {
+			if node.height==0 {
 				log.Error(fmt.Sprintf("Order error:%v",node.hash))
 			}
 		}

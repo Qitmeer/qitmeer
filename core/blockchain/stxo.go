@@ -80,6 +80,7 @@ type spentTxOut struct {
 	txType        types.TxType // The tx type of the transaction.
 	height        uint32       // Height of the the block containing the tx.
 	index         uint32       // Index in the block of the transaction.
+	inIndex       uint32       // Index in the txIn
 	scriptVersion uint16       // The version of the scripting language.
 	txVersion     uint32       // The version of creating tx.
 
@@ -108,7 +109,7 @@ func spentTxOutSerializeSize(stxo *spentTxOut) int {
 	if stxo.txFullySpent {
 		size += serializeSizeVLQ(uint64(stxo.txVersion))
 	}
-
+	size+=8
 	return size
 }
 
@@ -130,6 +131,16 @@ func putSpentTxOut(target []byte, stxo *spentTxOut) int {
 	if stxo.txFullySpent {
 		offset += putVLQ(target[offset:], uint64(stxo.txVersion))
 	}
+	serializedIndex:=[]byte{0,0,0,0}
+	dbnamespace.ByteOrder.PutUint32(serializedIndex[:], uint32(stxo.index))
+	target=append(target,serializedIndex...)
+
+	serializedIndex=[]byte{0,0,0,0}
+	dbnamespace.ByteOrder.PutUint32(serializedIndex[:], uint32(stxo.inIndex))
+	target=append(target,serializedIndex...)
+
+	offset+=8
+
 	return offset
 }
 
@@ -145,7 +156,7 @@ func putSpentTxOut(target []byte, stxo *spentTxOut) int {
 //
 // An error will be returned if the version is not serialized as a part of the
 // stxo and is also not provided to the function.
-func decodeSpentTxOut(serialized []byte, stxo *spentTxOut, amount uint64, height uint32, index uint32) (int, error) {
+func decodeSpentTxOut(serialized []byte, stxo *spentTxOut) (int, error) {
 	// Ensure there are bytes to decode.
 	if len(serialized) == 0 {
 		return 0, errDeserialize("no serialized bytes")
@@ -181,11 +192,11 @@ func decodeSpentTxOut(serialized []byte, stxo *spentTxOut, amount uint64, height
 			"txout: %v", err))
 	}
 	stxo.scriptVersion = scriptVersion
-	stxo.amount = amount
+	//stxo.amount = amount
 	stxo.pkScript = compScript
 	stxo.compressed = true
-	stxo.height = height
-	stxo.index = index
+	//stxo.height = height
+	//stxo.index = index
 
 	// Deserialize the containing transaction if the flags indicate that
 	// the transaction has been fully spent.
@@ -211,7 +222,7 @@ func decodeSpentTxOut(serialized []byte, stxo *spentTxOut, amount uint64, height
 // format comments, this function also requires the transactions that spend the
 // txouts and a utxo view that contains any remaining existing utxos in the
 // transactions referenced by the inputs to the passed transasctions.
-func deserializeSpendJournalEntry(serialized []byte, txns []*types.Transaction) ([]spentTxOut, error) {
+func deserializeSpendJournalEntry(serialized []byte, txns []*types.Transaction) (map[string]spentTxOut, error) {
 	// Calculate the total number of stxos.
 	var numStxos int
 	for _, tx := range txns {
@@ -239,46 +250,27 @@ func deserializeSpendJournalEntry(serialized []byte, txns []*types.Transaction) 
 
 	// Loop backwards through all transactions so everything is read in
 	// reverse order to match the serialization order.
-	stxoIdx := numStxos - 1
-	offset := 0
-	stxos := make([]spentTxOut, numStxos)
-	for txIdx := len(txns) - 1; txIdx > -1; txIdx-- {
-		tx := txns[txIdx]
+	stxos := make(map[string]spentTxOut)
 
-		// Loop backwards through all of the transaction inputs and read
-		// the associated stxo.
-		for txInIdx := len(tx.TxIn) - 1; txInIdx > -1; txInIdx-- {
+	for offset:=0;offset<len(serialized); {
+		stxo := spentTxOut{}
+		n, err := decodeSpentTxOut(serialized[offset:], &stxo)
+		offset += n
 
-			txIn := tx.TxIn[txInIdx]
-			stxo := &stxos[stxoIdx]
-			stxoIdx--
-
-			// Get the transaction version for the stxo based on
-			// whether or not it should be serialized as a part of
-			// the stxo.  Recall that it is only serialized when the
-			// stxo spends the final utxo of a transaction.  Since
-			// they are deserialized in reverse order, this means
-			// the first time an entry for a given containing tx is
-			// encountered that is not already in the utxo view it
-			// must have been the final spend and thus the extra
-			// data will be serialized with the stxo.  Otherwise,
-			// the version must be pulled from the utxo entry.
-			//
-			// Since the view is not actually modified as the stxos
-			// are read here and it's possible later entries
-			// reference earlier ones, an inflight map is maintained
-			// to detect this case and pull the tx version from the
-			// entry that contains the version information as just
-			// described.
-			n, err := decodeSpentTxOut(serialized[offset:], stxo, txIn.AmountIn,
-				txIn.BlockHeight, txIn.BlockTxIndex)
-			offset += n
-			if err != nil {
-				return nil, errDeserialize(fmt.Sprintf("unable "+
-					"to decode stxo for %v: %v",
-					txIn.PreviousOut, err))
-			}
+		if n==0 || err != nil {
+			return nil, errDeserialize(fmt.Sprintf("unable "+
+				"to decode stxo for %v: %v",
+				offset, err))
 		}
+		//
+		tx := txns[stxo.index]
+		txIn := tx.TxIn[stxo.inIndex]
+
+		stxo.height=txIn.BlockHeight
+		stxo.amount=txIn.AmountIn
+		//
+		indexStr:=fmt.Sprintf("%d-%d",stxo.index,stxo.inIndex)
+		stxos[indexStr]=stxo
 	}
 
 	return stxos, nil
@@ -323,14 +315,11 @@ func serializeSpendJournalEntry(stxos []spentTxOut) ([]byte, error) {
 // view MUST have the utxos referenced by all of the transactions available for
 // the passed block since that information is required to reconstruct the spent
 // txouts.
-func dbFetchSpendJournalEntry(dbTx database.Tx, block, parent *types.SerializedBlock) ([]spentTxOut, error) {
+func dbFetchSpendJournalEntry(dbTx database.Tx, block *types.SerializedBlock) (map[string]spentTxOut, error) {
 	// Exclude the coinbase transaction since it can't spend anything.
 	spendBucket := dbTx.Metadata().Bucket(dbnamespace.SpendJournalBucketName)
 	serialized := spendBucket.Get(block.Hash()[:])
-
-	var blockTxns []*types.Transaction
-
-	blockTxns = append(blockTxns) //TODO, other tx types
+	blockTxns := block.Block().Transactions
 
 	if len(blockTxns) > 0 && len(serialized) == 0 {
 		return nil, AssertError("missing spend journal data")

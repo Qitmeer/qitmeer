@@ -330,7 +330,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 
 				originTx := transactions[inFlightIndex]
 				//TODO, remove type conversion
-				view.AddTxOuts(originTx, int64(block.Height()), uint32(i))
+				view.AddTxOuts(originTx, int64(block.Height()), uint32(i+1))
 				continue
 			}
 
@@ -367,7 +367,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, 
 	// Spend the referenced utxos by marking them spent in the view and,
 	// if a slice was provided for the spent txout details, append an entry
 	// to it.
-	for _, txIn := range msgTx.TxIn {
+	for inIndex, txIn := range msgTx.TxIn {
 
 		originIndex := txIn.PreviousOut.OutIndex
 		entry := view.entries[txIn.PreviousOut.Hash]
@@ -394,6 +394,8 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, 
 			amount:        txIn.AmountIn,
 			scriptVersion: entry.ScriptVersionByIndex(originIndex),
 			pkScript:      entry.PkScriptByIndex(originIndex),
+			index:         blockIndex,
+			inIndex:       uint32(inIndex),
 		}
 		if entry.IsFullySpent() {
 			stxo.txVersion = entry.TxVersion()
@@ -423,110 +425,91 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, 
 //
 // This function will ONLY work correctly for a single transaction tree at a
 // time because of index tracking.
-func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block, parent *types.SerializedBlock, stxos []spentTxOut) error {
+func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block *types.SerializedBlock, stxos map[string]spentTxOut,prev *hash.Hash) error {
 
-	// Loop backwards through all transactions so everything is unspent in
-	// reverse order.  This is necessary since transactions later in a block
-	// can spend from previous ones.
-	err := view.fetchInputUtxos(b.db, block, parent)
-	if err != nil {
-		return err
-	}
-	stxoIdx := len(stxos) - 1
+	transactions := block.Transactions()
+	for txIdx := len(transactions) - 1; txIdx > -1; txIdx-- {
+		tx := transactions[txIdx]
 
-	// There is no regular tx from before the genesis block, so ignore the genesis
-	// block for the next step.
-	if parent != nil && block.Height() != 0 {
-		// Only bother to unspend transactions if the parent's tx tree was
-		// validated. Otherwise, these transactions were never in the blockchain's
-		// history in the first place.
-		err = view.fetchInputUtxos(b.db, block, parent)
-		if err != nil {
-			return err
+		// Clear this transaction from the view if it already exists or
+		// create a new empty entry for when it does not.  This is done
+		// because the code relies on its existence in the view in order
+		// to signal modifications have happened.
+		isCoinbase := txIdx == 0
+		entry := view.entries[*tx.Hash()]
+		if entry == nil {
+			entry = newUtxoEntry(tx.Transaction().Version,
+				uint32(block.Height()), uint32(txIdx), isCoinbase,
+				tx.Transaction().Expire != 0, types.TxTypeRegular)
+			view.entries[*tx.Hash()] = entry
 		}
+		entry.modified = true
+		entry.sparseOutputs = make(map[uint32]*utxoOutput)
 
-		transactions := parent.Transactions()
-		for txIdx := len(transactions) - 1; txIdx > -1; txIdx-- {
-			tx := transactions[txIdx]
-
-			// Clear this transaction from the view if it already exists or
-			// create a new empty entry for when it does not.  This is done
-			// because the code relies on its existence in the view in order
-			// to signal modifications have happened.
-			isCoinbase := txIdx == 0
-			entry := view.entries[*tx.Hash()]
-			if entry == nil {
-				entry = newUtxoEntry(tx.Transaction().Version,
-					uint32(parent.Height()), uint32(txIdx), isCoinbase,
-					tx.Transaction().Expire != 0, types.TxTypeRegular)
-				view.entries[*tx.Hash()] = entry
-			}
-			entry.modified = true
-			entry.sparseOutputs = make(map[uint32]*utxoOutput)
-
-			// Loop backwards through all of the transaction inputs (except
-			// for the coinbase which has no inputs) and unspend the
-			// referenced txos.  This is necessary to match the order of the
-			// spent txout entries.
-			if isCoinbase {
+		// Loop backwards through all of the transaction inputs (except
+		// for the coinbase which has no inputs) and unspend the
+		// referenced txos.  This is necessary to match the order of the
+		// spent txout entries.
+		if isCoinbase {
+			continue
+		}
+		for txInIdx := len(tx.Transaction().TxIn) - 1; txInIdx > -1; txInIdx-- {
+			// Ensure the spent txout index is decremented to stay
+			// in sync with the transaction input.
+			indexStr:=fmt.Sprintf("%d-%d",txIdx,txInIdx)
+			stxo,ok := stxos[indexStr]
+			if !ok {
 				continue
 			}
-			for txInIdx := len(tx.Transaction().TxIn) - 1; txInIdx > -1; txInIdx-- {
-				// Ensure the spent txout index is decremented to stay
-				// in sync with the transaction input.
-				stxo := &stxos[stxoIdx]
-				stxoIdx--
-
-				// When there is not already an entry for the referenced
-				// transaction in the view, it means it was fully spent,
-				// so create a new utxo entry in order to resurrect it.
-				txIn := tx.Transaction().TxIn[txInIdx]
-				originHash := &txIn.PreviousOut.Hash
-				originIndex := txIn.PreviousOut.OutIndex
-				entry := view.entries[*originHash]
-				if entry == nil {
-					if !stxo.txFullySpent {
-						return AssertError(fmt.Sprintf("tried to "+
-							"revive utx %v from non-fully spent stx entry",
-							originHash))
-					}
-					entry = newUtxoEntry(tx.Transaction().Version,
-						stxo.height, stxo.index, stxo.isCoinBase,
-						stxo.hasExpiry, stxo.txType)
-					view.entries[*originHash] = entry
+			// When there is not already an entry for the referenced
+			// transaction in the view, it means it was fully spent,
+			// so create a new utxo entry in order to resurrect it.
+			txIn := tx.Transaction().TxIn[txInIdx]
+			originHash := &txIn.PreviousOut.Hash
+			originIndex := txIn.PreviousOut.OutIndex
+			entry := view.entries[*originHash]
+			if entry == nil {
+				if !stxo.txFullySpent {
+					return AssertError(fmt.Sprintf("tried to "+
+						"revive utx %v from non-fully spent stx entry",
+						originHash))
 				}
-
-				// Mark the entry as modified since it is either new
-				// or will be changed below.
-				entry.modified = true
-
-				// Restore the specific utxo using the stxo data from
-				// the spend journal if it doesn't already exist in the
-				// view.
-				output, ok := entry.sparseOutputs[originIndex]
-				if !ok {
-					// Add the unspent transaction output.
-					entry.sparseOutputs[originIndex] = &utxoOutput{
-						compressed:    stxo.compressed,
-						spent:         false,
-						amount:        txIn.AmountIn,
-						scriptVersion: stxo.scriptVersion,
-						pkScript:      stxo.pkScript,
-					}
-					continue
-				}
-
-				// Mark the existing referenced transaction output as
-				// unspent.
-				output.spent = false
+				entry = newUtxoEntry(tx.Transaction().Version,
+					stxo.height, stxo.index, stxo.isCoinBase,
+					stxo.hasExpiry, stxo.txType)
+				view.entries[*originHash] = entry
 			}
+
+			// Mark the entry as modified since it is either new
+			// or will be changed below.
+			entry.modified = true
+
+			// Restore the specific utxo using the stxo data from
+			// the spend journal if it doesn't already exist in the
+			// view.
+			output, ok := entry.sparseOutputs[originIndex]
+			if !ok {
+				// Add the unspent transaction output.
+				entry.sparseOutputs[originIndex] = &utxoOutput{
+					compressed:    stxo.compressed,
+					spent:         false,
+					amount:        txIn.AmountIn,
+					scriptVersion: stxo.scriptVersion,
+					pkScript:      stxo.pkScript,
+				}
+				continue
+			}
+
+			// Mark the existing referenced transaction output as
+			// unspent.
+			output.spent = false
 		}
 	}
 
 
 	// Update the best hash for view to the previous block since all of the
 	// transactions for the current block have been disconnected.
-	view.SetBestHash(parent.Hash())
+	view.SetBestHash(prev)
 	return nil
 }
 
@@ -538,7 +521,7 @@ func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block, parent *
 func (b *BlockChain) connectTransactions(view *UtxoViewpoint, block, parent *types.SerializedBlock, stxos *[]spentTxOut) error {
 
 	if parent != nil && block.Height() != 0 {
-		err := view.fetchInputUtxos(b.db, block, parent)
+		err := view.fetchInputUtxos(b.db, block,b)
 		if err != nil {
 			return err
 		}
@@ -551,7 +534,7 @@ func (b *BlockChain) connectTransactions(view *UtxoViewpoint, block, parent *typ
 		}
 	}
 
-	err := view.fetchInputUtxos(b.db, block, parent)
+	err := view.fetchInputUtxos(b.db, block,b)
 	if err != nil {
 		return err
 	}
