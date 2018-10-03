@@ -2487,7 +2487,7 @@ func opcodeHash160(op *ParsedOpcode, vm *Engine) error {
 
 	h := hash.HashB(buf)
 	// TODO, remove hard coding
-	if vm.scriptTx.GetType() == types.BtcScriptTx {
+	if vm.scriptTx!=nil && vm.scriptTx.GetType() == types.BtcScriptTx {
 		h = btc.HashB(buf)
 	}
 	vm.dstack.PushByteArray(calcHash(h[:], ripemd160.New()))
