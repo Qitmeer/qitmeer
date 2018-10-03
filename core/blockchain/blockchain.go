@@ -446,6 +446,9 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			}
 			header := &entry.header
 			blockHash := header.BlockHash()
+			if blockHash.IsEqual(b.params.GenesisHash) {
+				continue
+			}
 			_,exit:=blocksM[blockHash]
 			if exit {
 				continue
