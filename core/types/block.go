@@ -14,9 +14,9 @@ import (
 
 // MaxBlockHeaderPayload is the maximum number of bytes a block header can be.
 // Version 4 bytes + ParentRoot 32 bytes + TxRoot 32 bytes + StateRoot 32 bytes
-// Difficulty 4 bytes + Height 4 bytes  + Timestamp 4 bytes + Nonce 8 bytes
+// Difficulty 4 bytes   + Timestamp 4 bytes + Nonce 8 bytes
 // --> Total 120 bytes.
-const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 8 + 4 + 8
+const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 4 + 8
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
 // After Segregated Witness, the max block payload has been raised to 4MB.

@@ -280,7 +280,7 @@ func (b *BlockChain) createChainState() error {
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
-	stateSnapshot := newBestState(node, blockSize, numTxns,
+	b.stateSnapshot= newBestState(node, blockSize, numTxns,
 		time.Unix(node.timestamp,0), numTxns,0)
 
 	// Create the initial the database chain state including creating the
@@ -354,7 +354,7 @@ func (b *BlockChain) createChainState() error {
 		}
 
 		// Store the current best chain state into the database.
-		err = dbPutBestState(dbTx, stateSnapshot, node.workSum)
+		err = dbPutBestState(dbTx, b.stateSnapshot, node.workSum)
 		if err != nil {
 			return err
 		}

@@ -397,9 +397,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 
 	// Initialize the database if it has not already been done.
 	if !isStateInitialized {
-		if err := b.createChainState(); err != nil {
-			return err
-		}
+		return b.createChainState()
 	}
 
 	//  TODO: Upgrade the database as needed.
@@ -446,9 +444,6 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			}
 			header := &entry.header
 			blockHash := header.BlockHash()
-			if blockHash.IsEqual(b.params.GenesisHash) {
-				continue
-			}
 			_,exit:=blocksM[blockHash]
 			if exit {
 				continue
