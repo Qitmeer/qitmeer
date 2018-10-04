@@ -85,7 +85,7 @@ var PrivNetParams = Params{
 	HDCoinType: 115, // ASCII for s
 
 	// TODO replace the test pkh
-	OrganizationPkScript:  hexMustDecode("76a91464e20eb6075561d30c23a517c5b73badbc120f0588ac"),
+	OrganizationPkScript:  hexMustDecode("76a914699e7e705893b4e7b3f9742ca55a743c7167288a88ac"),
 
 	CoinbaseMaturity: 16,
 }
