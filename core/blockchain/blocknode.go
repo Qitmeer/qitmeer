@@ -216,6 +216,7 @@ func (node *blockNode) GetParentsWorkSum() *big.Int {
 	}
 	return workSum
 }
+//Include all parents for set
 func (node *blockNode) GetParentsSet() *BlockSet{
 	if node.parents==nil||len(node.parents)==0 {
 		return nil
@@ -226,7 +227,7 @@ func (node *blockNode) GetParentsSet() *BlockSet{
 	}
 	return result
 }
-
+//node has children in DAG
 func (node *blockNode) AddChild(child *blockNode){
 	if node.HasChild(child) {
 		return
@@ -236,6 +237,7 @@ func (node *blockNode) AddChild(child *blockNode){
 	}
 	node.children=append(node.children,child)
 }
+//check is there any child
 func (node *blockNode) HasChild(child *blockNode) bool{
 	if node.children==nil||len(node.children)==0 {
 		return false
@@ -258,7 +260,7 @@ func (node *blockNode) GetChildrenSet() *BlockSet{
 	}
 	return result
 }
-
+//return node height
 func (node *blockNode) GetHeight() uint64{
 	return node.height
 }
@@ -288,6 +290,7 @@ func (node *blockNode) IsBefore(other *blockNode) bool{
 	}
 	return false
 }
+//return parent that position is rather forward
 func (node *blockNode) GetMainParent() *blockNode{
 	var result *blockNode=nil
 	for _,v:=range node.parents{
@@ -297,6 +300,7 @@ func (node *blockNode) GetMainParent() *blockNode{
 	}
 	return result
 }
+//return parent that position is rather back
 func (node *blockNode) GetLastParent() *blockNode{
 	var result *blockNode=nil
 	for _,v:=range node.parents{

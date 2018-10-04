@@ -14,6 +14,7 @@ import (
 	"github.com/noxproject/nox/engine/txscript"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/services/common/error"
+	"github.com/noxproject/nox/common/hash"
 )
 
 // messageToHex serializes a message to the wire protocol encoding using the
@@ -154,10 +155,9 @@ func  MarshJsonVout(tx *types.Transaction,filterAddrMap map[string]struct{}, par
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
 func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
-	params *params.Params, confirmations int64, nextHashString string) (json.OrderedResult, error) {
+	params *params.Params, confirmations int64,children []*hash.Hash) (json.OrderedResult, error) {
 
 	head := b.Block().Header // copies the header once
-
 	// Get next block hash unless there are none.
 	height := uint64(b.Height())
 
@@ -194,8 +194,28 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		{"difficulty", head.Difficulty},
 		{"nonce", head.Nonce},
 		{"timestamp", head.Timestamp.Format("2006-01-02 15:04:05.0000")},
-		{"parentHash", head.ParentRoot.String()},
-		{"childrenHash", nextHashString},
 	}...)
+	tempArr:=[]string{}
+	if b.Block().Parents!=nil&&len(b.Block().Parents)>0 {
+
+		for i:=0;i<len(b.Block().Parents);i++  {
+			tempArr=append(tempArr,b.Block().Parents[i].String())
+		}
+	}else {
+		tempArr=append(tempArr,"null")
+	}
+	fields = append(fields, json.KV{"parents", tempArr})
+
+	tempArr=[]string{}
+	if children!=nil&&len(children)>0 {
+
+		for i:=0;i<len(children);i++  {
+			tempArr=append(tempArr,children[i].String())
+		}
+	}else {
+		tempArr=append(tempArr,"null")
+	}
+	fields = append(fields, json.KV{"children", tempArr})
+
 	return fields, nil
 }

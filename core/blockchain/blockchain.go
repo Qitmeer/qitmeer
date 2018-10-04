@@ -1325,3 +1325,6 @@ func (b *BlockChain) RemoveBadTx(bh *hash.Hash){
 func (b *BlockChain) DAG() *BlockDAG{
 	return b.dag
 }
+func (b *BlockChain) BlockIndex() *blockIndex{
+	return b.index
+}
