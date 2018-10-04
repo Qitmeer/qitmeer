@@ -881,7 +881,7 @@ func (b *BlockChain) connectBestChain(node *blockNode, block, parent *types.Seri
 		// utxos, spend them, and add the new utxos being created by
 		// this block.
 		if fastAdd {
-			err := view.fetchInputUtxos(b.db, block, parent)
+			err := view.fetchInputUtxos(b.db, block)
 			if err != nil {
 				return 0, err
 			}
@@ -1374,7 +1374,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 
 		// Load all of the utxos referenced by the block that aren't
 		// already in the view.
-		err := view.fetchInputUtxos(b.db, block, parent)
+		err := view.fetchInputUtxos(b.db, block)
 		if err != nil {
 			return err
 		}

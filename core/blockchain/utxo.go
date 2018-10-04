@@ -288,8 +288,7 @@ func (o *utxoOutput) maybeDecompress(compressionVersion uint32) {
 // by the transactions in the given block into the view from the database as
 // needed.  In particular, referenced entries that are earlier in the block are
 // added to the view and entries that are already in the view are not modified.
-// TODO, revisit the usage on the parent block
-func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block, parent *types.SerializedBlock) error {
+func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.SerializedBlock) error {
 	// Build a map of in-flight transactions because some of the inputs in
 	// this block could be referencing other transactions earlier in this
 	// block which are not yet in the chain.
@@ -421,7 +420,7 @@ func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block, parent *
 	// Loop backwards through all transactions so everything is unspent in
 	// reverse order.  This is necessary since transactions later in a block
 	// can spend from previous ones.
-	err := view.fetchInputUtxos(b.db, block, parent)
+	err := view.fetchInputUtxos(b.db, block)
 	if err != nil {
 		return err
 	}
@@ -433,7 +432,7 @@ func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block, parent *
 		// Only bother to unspend transactions if the parent's tx tree was
 		// validated. Otherwise, these transactions were never in the blockchain's
 		// history in the first place.
-		err = view.fetchInputUtxos(b.db, block, parent)
+		err = view.fetchInputUtxos(b.db,parent)
 		if err != nil {
 			return err
 		}
@@ -531,7 +530,7 @@ func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block, parent *
 func (b *BlockChain) connectTransactions(view *UtxoViewpoint, block, parent *types.SerializedBlock, stxos *[]spentTxOut) error {
 
 	if parent != nil && block.Height() != 0 {
-		err := view.fetchInputUtxos(b.db, block, parent)
+		err := view.fetchInputUtxos(b.db,parent)
 		if err != nil {
 			return err
 		}
@@ -544,7 +543,7 @@ func (b *BlockChain) connectTransactions(view *UtxoViewpoint, block, parent *typ
 		}
 	}
 
-	err := view.fetchInputUtxos(b.db, block, parent)
+	err := view.fetchInputUtxos(b.db, block)
 	if err != nil {
 		return err
 	}

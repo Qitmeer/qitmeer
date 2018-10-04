@@ -688,7 +688,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.Ser
 	// scripts.
 	// Do this for all TxTrees.
 
-	err := utxoView.fetchInputUtxos(b.db, block, parent)
+	err := utxoView.fetchInputUtxos(b.db,parent)
 	if err != nil {
 		return err
 	}
@@ -701,7 +701,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.Ser
 		}
 	}
 
-	err = utxoView.fetchInputUtxos(b.db, block, parent)
+	err = utxoView.fetchInputUtxos(b.db,block)
 	if err != nil {
 		return err
 	}
@@ -753,7 +753,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block, parent *types.Ser
 		return err
 	}
 
-	err = utxoView.fetchInputUtxos(b.db, block, parent)
+	err = utxoView.fetchInputUtxos(b.db, block)
 	if err != nil {
 		return err
 	}
