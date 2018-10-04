@@ -72,6 +72,9 @@ func (hash Hash) String() string {
 	return hex.EncodeToString(hash[:])
 }
 
+func (h Hash) Bytes() []byte { return h[:] }
+
+
 // CloneBytes returns a copy of the bytes which represent the hash as a byte
 // slice.
 //
@@ -129,6 +132,56 @@ func NewHashFromStr(hash string) (*Hash, error) {
 		return nil, err
 	}
 	return ret, nil
+}
+
+// convert hex string to a hash. Must means it panics for invalid input.
+func MustHexToHash(i string) Hash {
+	data, err := hex.DecodeString(i)
+	if err != nil {
+		panic(err)
+	}
+
+	var h Hash
+	if len(data) > len(h) {
+		data = data[len(data)-HashSize:]
+	}
+	copy(h[HashSize-len(data):], data)
+
+	var nh Hash
+	err = nh.SetBytes(h[:])
+	if err != nil {
+		panic(err)
+	}
+	return nh
+}
+// convert hex string to a byte-reversed hash, Must means it panics for invalid input.
+func MustHexToDecodedHash(i string) Hash {
+	h, err := NewHashFromStr(i)
+	if err!=nil {
+		panic(err)
+	}
+	return *h
+}
+
+// convert []byte to a hash, Must means it panics for invalid input.
+func MustBytesToHash(b []byte) Hash {
+	var h Hash
+	if len(b) > len(h) {
+		b = b[len(b)-HashSize:]
+	}
+	copy(h[HashSize-len(b):], b)
+
+	hh, err :=NewHash(h[:])
+	if err != nil {
+		panic(err)
+	}
+	return *hh
+}
+
+// convert []byte to a byte-reversed hash, Must means it panics for invalid input.
+func MustBytesToDecodeHash(b []byte) Hash {
+	s := hex.EncodeToString(b)
+	return MustHexToDecodedHash(s)
 }
 
 // Decode decodes the byte-reversed hexadecimal string encoding of a Hash to a

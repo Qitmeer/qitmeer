@@ -14,6 +14,10 @@ var (
 	// the overhead of creating it multiple times.
 	Big1   = big.NewInt(1)
 
+	Big2   = big.NewInt(2)
+	Big256 = big.NewInt(0xff)
+
+
 	tt256 = new(big.Int).Lsh(big.NewInt(1), 256)   //2^256
 	tt256m1 = new(big.Int).Sub(tt256, big.NewInt(1))  //2^256-1
 	MaxBig256 = new(big.Int).Set(tt256m1)
