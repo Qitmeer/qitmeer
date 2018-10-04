@@ -18,24 +18,23 @@ package trie
 
 import (
 	"bytes"
-	"hash"
+	"github.com/noxproject/nox/common/encode/rlp"
+	nh "github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/common/util"
+	hh "hash"
 	"sync"
-
-	"github.com/dindinw/dagproject/common"
-	"github.com/dindinw/dagproject/crypto/sha3"
-	"github.com/dindinw/dagproject/rlp"
 )
 
 // calculator is a utility used by the hasher to calculate the hash value of the tree node.
 type calculator struct {
-	sha    hash.Hash
+	sha    hh.Hash
 	buffer *bytes.Buffer
 }
 
 // calculatorPool is a set of temporary calculators that may be individually saved and retrieved.
 var calculatorPool = sync.Pool{
 	New: func() interface{} {
-		return &calculator{buffer: new(bytes.Buffer), sha: sha3.NewKeccak256()}
+		return &calculator{buffer: new(bytes.Buffer), sha: nh.GetHasher(nh.Keccak_256) }
 	},
 }
 
@@ -125,7 +124,7 @@ func (h *hasher) hashChildren(original node, db DatabaseWriter) (node, node, err
 		// Hash the short node's child, caching the newly hashed subtree
 		collapsed, cached := n.copy(), n.copy()
 		collapsed.Key = hexToCompact(n.Key)
-		cached.Key = common.CopyBytes(n.Key)
+		cached.Key = util.CopyBytes(n.Key)
 
 		if _, ok := n.Val.(valueNode); !ok {
 			collapsed.Val, cached.Val, err = h.hash(n.Val, db, false)

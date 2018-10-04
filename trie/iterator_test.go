@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
-
-	"github.com/dindinw/dagproject/common"
-	"github.com/dindinw/dagproject/dagdb"
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/common/util"
+	"github.com/noxproject/nox/database/statedb"
 )
 
 func TestIterator(t *testing.T) {
@@ -67,8 +67,8 @@ func TestIteratorLargeData(t *testing.T) {
 	vals := make(map[string]*kv)
 
 	for i := byte(0); i < 255; i++ {
-		value := &kv{common.LeftPadBytes([]byte{i}, 32), []byte{i}, false}
-		value2 := &kv{common.LeftPadBytes([]byte{10, i}, 32), []byte{i}, false}
+		value := &kv{util.LeftPadBytes([]byte{i}, 32), []byte{i}, false}
+		value2 := &kv{util.LeftPadBytes([]byte{10, i}, 32), []byte{i}, false}
 		trie.Update(value.k, value.v)
 		trie.Update(value2.k, value2.v)
 		vals[string(value.k)] = value
@@ -96,26 +96,26 @@ func TestIteratorLargeData(t *testing.T) {
 }
 
 // makeTestTrie create a sample test trie to test node-wise reconstruction.
-func makeTestTrie() (dagdb.Database, *Trie, map[string][]byte) {
+func makeTestTrie() (statedb.Database, *Trie, map[string][]byte) {
 	// Create an empty trie
-	db, _ := dagdb.NewMemDatabase()
-	trie, _ := New(common.Hash{}, db)
+	db, _ := statedb.NewMemDatabase()
+	trie, _ := New(hash.Hash{}, db)
 
 	// Fill it with some arbitrary data
 	content := make(map[string][]byte)
 	for i := byte(0); i < 255; i++ {
 		// Map the same data under multiple keys
-		key, val := common.LeftPadBytes([]byte{1, i}, 32), []byte{i}
+		key, val := util.LeftPadBytes([]byte{1, i}, 32), []byte{i}
 		content[string(key)] = val
 		trie.Update(key, val)
 
-		key, val = common.LeftPadBytes([]byte{2, i}, 32), []byte{i}
+		key, val = util.LeftPadBytes([]byte{2, i}, 32), []byte{i}
 		content[string(key)] = val
 		trie.Update(key, val)
 
 		// Add some other data to inflate the trie
 		for j := byte(3); j < 13; j++ {
-			key, val = common.LeftPadBytes([]byte{j, i}, 32), []byte{j, i}
+			key, val = util.LeftPadBytes([]byte{j, i}, 32), []byte{j, i}
 			content[string(key)] = val
 			trie.Update(key, val)
 		}
@@ -132,20 +132,20 @@ func TestNodeIteratorCoverage(t *testing.T) {
 	db, trie, _ := makeTestTrie()
 
 	// Gather all the node hashes found by the iterator
-	hashes := make(map[common.Hash]struct{})
+	hashes := make(map[hash.Hash]struct{})
 	for it := trie.NodeIterator(nil); it.Next(true); {
-		if it.Hash() != (common.Hash{}) {
+		if it.Hash() != (hash.Hash{}) {
 			hashes[it.Hash()] = struct{}{}
 		}
 	}
 	// Cross check the hashes and the database itself
-	for hash := range hashes {
-		if _, err := db.Get(hash.Bytes()); err != nil {
-			t.Errorf("failed to retrieve reported node %x: %v", hash, err)
+	for h := range hashes {
+		if _, err := db.Get(h[:]); err != nil {
+			t.Errorf("failed to retrieve reported node %x: %v", h, err)
 		}
 	}
-	for _, key := range db.(*dagdb.MemDatabase).Keys() {
-		if _, ok := hashes[common.BytesToHash(key)]; !ok {
+	for _, key := range db.(*statedb.MemDatabase).Keys() {
+		if _, ok := hashes[hash.MustBytesToHash(key)]; !ok {
 			t.Errorf("state entry not reported %x", key)
 		}
 	}
@@ -310,8 +310,8 @@ func TestIteratorNoDups(t *testing.T) {
 
 // This test checks that nodeIterator.Next can be retried after inserting missing trie nodes.
 func TestIteratorContinueAfterError(t *testing.T) {
-	db, _ := dagdb.NewMemDatabase()
-	tr, _ := New(common.Hash{}, db)
+	db, _ := statedb.NewMemDatabase()
+	tr, _ := New(hash.Hash{}, db)
 	for _, val := range testdata1 {
 		tr.Update([]byte(val.k), []byte(val.v))
 	}
@@ -361,13 +361,13 @@ func TestIteratorContinueAfterError(t *testing.T) {
 // should retry seeking before returning true for the first time.
 func TestIteratorContinueAfterSeekError(t *testing.T) {
 	// Commit test trie to db, then remove the node containing "bars".
-	db, _ := dagdb.NewMemDatabase()
-	ctr, _ := New(common.Hash{}, db)
+	db, _ := statedb.NewMemDatabase()
+	ctr, _ := New(hash.Hash{}, db)
 	for _, val := range testdata1 {
 		ctr.Update([]byte(val.k), []byte(val.v))
 	}
 	root, _ := ctr.Commit()
-	barNodeHash := common.HexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
+	barNodeHash := hash.MustHexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
 	barNode, _ := db.Get(barNodeHash[:])
 	db.Delete(barNodeHash[:])
 

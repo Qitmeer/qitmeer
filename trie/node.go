@@ -18,18 +18,19 @@ package trie
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/noxproject/nox/common/encode/rlp"
+	"github.com/noxproject/nox/common/hash"
 	"io"
 	"strings"
 
-	"github.com/dindinw/dagproject/common"
-	"github.com/dindinw/dagproject/rlp"
 )
 
 // MissingNodeError is returned by the trie functions (TryGet, TryUpdate, TryDelete)
 // in the case where a trie node is not present in the local database. It contains
 // information necessary for retrieving the missing node.
 type MissingNodeError struct {
-	NodeHash common.Hash // hash of the missing node
+	NodeHash hash.Hash // hash of the missing node
 	Path     []byte      // hex-encoded path to the missing node
 }
 

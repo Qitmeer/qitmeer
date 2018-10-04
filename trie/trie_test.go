@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018 The nox developers
 // Copyright 2014 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -19,8 +20,13 @@ package trie
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/noxproject/nox/common"
+	"github.com/noxproject/nox/common/encode/rlp"
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/database/statedb"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -30,10 +36,6 @@ import (
 	"testing/quick"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/dindinw/dagproject/common"
-	"github.com/dindinw/dagproject/crypto"
-	dagdb "github.com/dindinw/dagproject/dagdb"
-	"github.com/dindinw/dagproject/rlp"
 )
 
 func init() {
@@ -43,8 +45,8 @@ func init() {
 
 // Used for testing
 func newEmpty() *Trie {
-	db, _ := dagdb.NewMemDatabase()
-	trie, _ := New(common.Hash{}, db)
+	db, _ := statedb.NewMemDatabase()
+	trie, _ := New(hash.Hash{}, db)
 	return trie
 }
 
@@ -52,7 +54,7 @@ func TestEmptyTrie(t *testing.T) {
 	var trie Trie
 	res := trie.Hash()
 	exp := emptyRoot
-	if res != common.Hash(exp) {
+	if res != hash.Hash(exp) {
 		t.Errorf("expected %x got %x", exp, res)
 	}
 }
@@ -68,8 +70,8 @@ func TestNull(t *testing.T) {
 }
 
 func TestMissingRoot(t *testing.T) {
-	db, _ := dagdb.NewMemDatabase()
-	trie, err := New(common.HexToHash("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"), db)
+	db, _ := statedb.NewMemDatabase()
+	trie, err := New(hash.MustHexToHash("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"), db)
 	if trie != nil {
 		t.Error("New returned non-nil trie for invalid root")
 	}
@@ -79,8 +81,8 @@ func TestMissingRoot(t *testing.T) {
 }
 
 func TestMissingNode(t *testing.T) {
-	db, _ := dagdb.NewMemDatabase()
-	trie, _ := New(common.Hash{}, db)
+	db, _ := statedb.NewMemDatabase()
+	trie, _ := New(hash.Hash{}, db)
 	updateString(trie, "120000", "qwerqwerqwerqwerqwerqwerqwerqwer")
 	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdf")
 	root, _ := trie.Commit()
@@ -114,8 +116,8 @@ func TestMissingNode(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-
-	db.Delete(common.FromHex("e1d943cc8f061a0c0b98162830b970395ac9315654824bf21b73b891365262f9"))
+	key,_ := hex.DecodeString("e1d943cc8f061a0c0b98162830b970395ac9315654824bf21b73b891365262f9")
+	db.Delete(key)
 
 	trie, _ = New(root, db)
 	_, err = trie.TryGet([]byte("120000"))
@@ -155,7 +157,7 @@ func TestInsert(t *testing.T) {
 	updateString(trie, "dog", "puppy")
 	updateString(trie, "dogglesworth", "cat")
 
-	exp := common.HexToHash("8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3")
+	exp := hash.MustHexToHash("8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3")
 	root := trie.Hash()
 	if root != exp {
 		t.Errorf("exp %x got %x", exp, root)
@@ -164,7 +166,7 @@ func TestInsert(t *testing.T) {
 	trie = newEmpty()
 	updateString(trie, "A", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
-	exp = common.HexToHash("d23786fb4a010da3ce639d66d5e904a11dbc02746d1ce25029e53290cabf28ab")
+	exp = hash.MustHexToHash("d23786fb4a010da3ce639d66d5e904a11dbc02746d1ce25029e53290cabf28ab")
 	root, err := trie.Commit()
 	if err != nil {
 		t.Fatalf("commit error: %v", err)
@@ -218,10 +220,10 @@ func TestDelete(t *testing.T) {
 		}
 	}
 
-	hash := trie.Hash()
-	exp := common.HexToHash("5991bb8c6514148a29db676a14ac506cd2cd5775ace63c30a4fe457715e9ac84")
-	if hash != exp {
-		t.Errorf("expected %x got %x", exp, hash)
+	h := trie.Hash()
+	exp := hash.MustHexToHash("5991bb8c6514148a29db676a14ac506cd2cd5775ace63c30a4fe457715e9ac84")
+	if h != exp {
+		t.Errorf("expected %x got %x", exp, h)
 	}
 }
 
@@ -242,10 +244,10 @@ func TestEmptyValues(t *testing.T) {
 		updateString(trie, val.k, val.v)
 	}
 
-	hash := trie.Hash()
-	exp := common.HexToHash("5991bb8c6514148a29db676a14ac506cd2cd5775ace63c30a4fe457715e9ac84")
-	if hash != exp {
-		t.Errorf("expected %x got %x", exp, hash)
+	h := trie.Hash()
+	exp := hash.MustHexToHash("5991bb8c6514148a29db676a14ac506cd2cd5775ace63c30a4fe457715e9ac84")
+	if h != exp {
+		t.Errorf("expected %x got %x", exp, h)
 	}
 }
 
@@ -278,12 +280,12 @@ func TestReplication(t *testing.T) {
 			t.Errorf("trie2 doesn't have %q => %q", kv.k, kv.v)
 		}
 	}
-	hash, err := trie2.Commit()
+	h, err := trie2.Commit()
 	if err != nil {
 		t.Fatalf("commit error: %v", err)
 	}
-	if hash != exp {
-		t.Errorf("root failure. expected %x got %x", exp, hash)
+	if h != exp {
+		t.Errorf("root failure. expected %x got %x", exp, h)
 	}
 
 	// perform some insertions on the new trie.
@@ -301,8 +303,8 @@ func TestReplication(t *testing.T) {
 	for _, val := range vals2 {
 		updateString(trie2, val.k, val.v)
 	}
-	if hash := trie2.Hash(); hash != exp {
-		t.Errorf("root failure. expected %x got %x", exp, hash)
+	if h := trie2.Hash(); h != exp {
+		t.Errorf("root failure. expected %x got %x", exp, h)
 	}
 }
 
@@ -407,8 +409,8 @@ func (randTest) Generate(r *rand.Rand, size int) reflect.Value {
 }
 
 func runRandTest(rt randTest) bool {
-	db, _ := dagdb.NewMemDatabase()
-	tr, _ := New(common.Hash{}, db)
+	db, _ := statedb.NewMemDatabase()
+	tr, _ := New(hash.Hash{}, db)
 	values := make(map[string]string) // tracks content of the trie
 
 	for i, step := range rt {
@@ -430,19 +432,19 @@ func runRandTest(rt randTest) bool {
 		case opHash:
 			tr.Hash()
 		case opReset:
-			hash, err := tr.Commit()
+			h, err := tr.Commit()
 			if err != nil {
 				rt[i].err = err
 				return false
 			}
-			newtr, err := New(hash, db)
+			newtr, err := New(h, db)
 			if err != nil {
 				rt[i].err = err
 				return false
 			}
 			tr = newtr
 		case opItercheckhash:
-			checktr, _ := New(common.Hash{}, nil)
+			checktr, _ := New(hash.Hash{}, nil)
 			it := NewIterator(tr.NodeIterator(nil))
 			for it.Next() {
 				checktr.Update(it.Key, it.Value)
@@ -515,7 +517,7 @@ func benchGet(b *testing.B, commit bool) {
 	trie := new(Trie)
 	if commit {
 		_, tmpdb := tempDB()
-		trie, _ = New(common.Hash{}, tmpdb)
+		trie, _ = New(hash.Hash{}, tmpdb)
 	}
 	k := make([]byte, 32)
 	for i := 0; i < benchElemCount; i++ {
@@ -534,7 +536,7 @@ func benchGet(b *testing.B, commit bool) {
 	b.StopTimer()
 
 	if commit {
-		ldb := trie.db.(*dagdb.LDBDatabase)
+		ldb := trie.db.(*statedb.LDBDatabase)
 		ldb.Close()
 		os.RemoveAll(ldb.Path())
 	}
@@ -571,14 +573,14 @@ func BenchmarkHash(b *testing.B) {
 			nonce   = uint64(random.Int63())
 			balance = new(big.Int).Rand(random, new(big.Int).Exp(common.Big2, common.Big256, nil))
 			root    = emptyRoot
-			code    = crypto.Keccak256(nil)
+			code    = hash.GetHasher(hash.Keccak_256).Sum(nil)
 		)
 		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
 	for i := 0; i < len(addresses); i++ {
-		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+		trie.Update(hash.GetHasher(hash.Keccak_256).Sum(addresses[i][:]), accounts[i])
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -590,7 +592,7 @@ func tempDB() (string, Database) {
 	if err != nil {
 		panic(fmt.Sprintf("can't create temporary directory: %v", err))
 	}
-	db, err := dagdb.NewLDBDatabase(dir, 256, 0)
+	db, err := statedb.NewLDBDatabase(dir, 256, 0)
 	if err != nil {
 		panic(fmt.Sprintf("can't create temporary database: %v", err))
 	}
