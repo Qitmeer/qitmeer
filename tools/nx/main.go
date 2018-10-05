@@ -25,6 +25,8 @@ encode and decode :
     base58-decode         decode a base58 string to a base16 string
     base58check-encode    encode a base58check string
     base58check-decode    decode a base58check string
+    rlp-encode            encode a string to a rlp encoded base16 string 
+    rlp-decode            decode a rlp base16 string to a human-readble representation
 
 hash :
     blake2b256            calculate Blake2b 256 hash of a base16 data.
@@ -112,6 +114,16 @@ func main() {
 	base58DecodeCmd := flag.NewFlagSet("base58-decode",flag.ExitOnError)
 	base58DecodeCmd.Usage = func() {
 		cmdUsage(base58DecodeCmd, "Usage: nx base58-decode [hexstring]\n")
+	}
+
+	rlpEncodeCmd := flag.NewFlagSet("rlp-encode",flag.ExitOnError)
+	rlpEncodeCmd.Usage = func() {
+		cmdUsage(rlpEncodeCmd, "Usage: nx rlp-encode [string]\n")
+	}
+
+	rlpDecodeCmd := flag.NewFlagSet("rlp-decode",flag.ExitOnError)
+	rlpDecodeCmd.Usage = func() {
+		cmdUsage(rlpDecodeCmd, "Usage: nx rlp-decode [hexstring]\n")
 	}
 
 	// ----------------------------
@@ -252,6 +264,8 @@ NOX is the 64 bit spend amount in nox.`)
 		base58CheckDecodeCommand,
 		base58EncodeCmd,
 		base58DecodeCmd,
+		rlpEncodeCmd,
+		rlpDecodeCmd,
 		sha256cmd,
 		blake2b256cmd,
 		blake2b512cmd,
@@ -374,6 +388,41 @@ NOX is the 64 bit spend amount in nox.`)
 			}
 			str := strings.TrimSpace(string(src))
 			base58Decode(str)
+		}
+	}
+
+	if rlpEncodeCmd.Parsed(){
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				rlpEncodeCmd.Usage()
+		 	}else{
+				rlpEncode(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			rlpEncode(str)
+		}
+	}
+	if rlpDecodeCmd.Parsed(){
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				rlpDecodeCmd.Usage()
+			}else{
+				rlpDecode(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			rlpDecode(str)
 		}
 	}
 
@@ -729,5 +778,4 @@ NOX is the 64 bit spend amount in nox.`)
 	}
 
 }
-
 

@@ -11,6 +11,8 @@ _nx()
         base58-encode
         base58check-decode
         base58check-encode
+        rlp-decode
+        rlp-encode
         blake2b256
         blake2b512
         blake256
