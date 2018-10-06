@@ -3,6 +3,7 @@
 package hash
 
 import (
+	"golang.org/x/crypto/sha3"
 	"hash"
 	"crypto"
 	_ "crypto/sha256"
@@ -39,7 +40,8 @@ type HashType byte
 const (
 	SHA256 HashType = iota
 	Keccak_256
-	Keccak_512
+	SHA3_256
+	SHA3_512
 	Ripemd160
 	Blake2b_256
 	Blake2b_512
@@ -50,8 +52,10 @@ func GetHasher(ht HashType) Hasher{
 	case SHA256:
 		return crypto.SHA256.New()
 	case Keccak_256:
+		return sha3.NewLegacyKeccak256()
+	case SHA3_256:
 		return crypto.SHA3_256.New()
-	case Keccak_512:
+	case SHA3_512:
 		return crypto.SHA3_512.New()
 	case Ripemd160:
 		return crypto.RIPEMD160.New()

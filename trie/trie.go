@@ -53,7 +53,9 @@ func CacheUnloads() int64 {
 }
 
 func init() {
-	hash.CalcHash(emptyState[:0],hash.GetHasher(hash.Keccak_256))
+	// should be c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
+	// the legacy keccak_256 instead of the standard sha3_256
+	emptyState.SetBytes(hash.CalcHash(emptyState[:0],hash.GetHasher(hash.Keccak_256)))
 }
 
 // Database must be implemented by backing stores for the trie.

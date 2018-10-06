@@ -160,7 +160,7 @@ func TestInsert(t *testing.T) {
 	exp := hash.MustHexToHash("8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3")
 	root := trie.Hash()
 	if root != exp {
-		t.Errorf("exp %x got %x", exp, root)
+		t.Errorf("exp %x got %x", exp.Bytes(), root.Bytes())
 	}
 
 	trie = newEmpty()
