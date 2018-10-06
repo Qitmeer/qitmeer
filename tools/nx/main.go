@@ -32,6 +32,8 @@ hash :
     blake2b256            calculate Blake2b 256 hash of a base16 data.
     blake2b512            calculate Blake2b 512 hash of a base16 data.
     sha256                calculate SHA256 hash of a base16 data. 
+    sha3-256              calculate SHA3 256 hash of a base16 data.
+    keccak-256            calculate legacy keccak 256 hash of a bash16 data.
     blake256              calculate blake256 hash of a base16 data.
     ripemd160             calculate ripemd160 hash of a base16 data.
     bitcion160            calculate ripemd160(sha256(data))   
@@ -148,6 +150,16 @@ func main() {
 	blake256cmd := flag.NewFlagSet("blake256",flag.ExitOnError)
 	blake256cmd.Usage = func() {
 		cmdUsage(blake256cmd, "Usage: nx blake256 [hexstring]\n")
+	}
+
+	sha3_256cmd := flag.NewFlagSet("sha3-256",flag.ExitOnError)
+	sha3_256cmd.Usage = func() {
+		cmdUsage(sha3_256cmd, "Usage: nx sha3-256 [hexstring]\n")
+	}
+
+	keccak256cmd := flag.NewFlagSet("keccak-256",flag.ExitOnError)
+	keccak256cmd.Usage = func() {
+		cmdUsage(keccak256cmd, "Usage: nx keccak-256 [hexstring]\n")
 	}
 
 	ripemd160Cmd := flag.NewFlagSet("ripemd160",flag.ExitOnError)
@@ -270,6 +282,8 @@ NOX is the 64 bit spend amount in nox.`)
 		blake2b256cmd,
 		blake2b512cmd,
 		blake256cmd,
+		sha3_256cmd,
+		keccak256cmd,
 		ripemd160Cmd,
 		bitcion160Cmd,
 		hash160Cmd,
@@ -495,6 +509,42 @@ NOX is the 64 bit spend amount in nox.`)
 			}
 			str := strings.TrimSpace(string(src))
 			blake2b512(str)
+		}
+	}
+
+	if sha3_256cmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				sha3_256cmd.Usage()
+			}else{
+				sha3_256(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			sha3_256(str)
+		}
+	}
+
+	if keccak256cmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				keccak256cmd.Usage()
+			}else{
+				keccak256(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			keccak256(str)
 		}
 	}
 
@@ -776,6 +826,5 @@ NOX is the 64 bit spend amount in nox.`)
 			txSign(privateKey, str)
 		}
 	}
-
 }
 

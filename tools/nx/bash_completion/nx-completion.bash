@@ -17,6 +17,8 @@ _nx()
         blake2b512
         blake256
         sha256
+        sha3-256
+        keccak-256
         ripemd160
         bitcoin160
         hash160
