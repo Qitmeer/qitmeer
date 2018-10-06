@@ -21,7 +21,7 @@ export GO111MODULE=auto
 ```bash
 ~ mkdir -p /tmp/work
 ~ cd /tmp/work
-~ git clone https://github.com/noxproject/nox 
+~ git clone https://where/you/can/find/nox 
 ~ git checkout cleanup 
 ~ go build
 ```
