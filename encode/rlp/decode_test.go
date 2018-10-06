@@ -52,7 +52,6 @@ func TestStreamKind(t *testing.T) {
 		// using plainReader to inhibit input limit errors.
 		s := NewStream(newPlainReader(unhex(test.input)), 0)
 		kind, len, err := s.Kind()
-		fmt.Printf("test %v %v\n", kind, len)
 		if err != nil {
 			t.Errorf("test %d: Kind returned error: %v", i, err)
 			continue
