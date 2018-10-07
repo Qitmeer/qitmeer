@@ -26,6 +26,7 @@ _nx()
         hd-new
         hd-to-public
         hd-to-ec
+        hd-decode
         mnemonic-new
         mnemonic-to-entropy
         mnemonic-to-seed

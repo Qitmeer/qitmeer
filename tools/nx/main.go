@@ -44,6 +44,7 @@ entropy (seed) & mnemoic & hd & ec
     hd-new                create a new HD(BIP32) private key from an entropy (seed)
     hd-to-ec              convert the HD (BIP32) format private/public key to a EC private/public key
     hd-to-public          derive the HD (BIP32) public key from a HD private key
+    hd-decode             decode a HD (BIP32) private/public key serialization format
     mnemonic-new          create a mnemonic world-list (BIP39) from an entropy
     mnemonic-to-entropy   return back to the entropy (the random seed) from a mnemonic world list (BIP39)
     mnemonic-to-seed      convert a mnemonic world-list (BIP39) to its 512 bits seed 
@@ -206,6 +207,11 @@ func main() {
 		cmdUsage(hdToEcCmd, "Usage: nx hd-to-ec [hd_private_key or hd_public_key] \n")
 	}
 
+
+	hdDecodeCmd := flag.NewFlagSet("hd-decode",flag.ExitOnError)
+	hdDecodeCmd.Usage = func() {
+		cmdUsage(hdDecodeCmd, "Usage: nx hd-decode [hd_private_key or hd_public_key] \n")
+	}
 	// Mnemonic (BIP39)
 	mnemonicNewCmd := flag.NewFlagSet("mnemonic-new",flag.ExitOnError)
 	mnemonicNewCmd.Usage = func() {
@@ -291,6 +297,7 @@ NOX is the 64 bit spend amount in nox.`)
 		hdNewCmd,
 		hdToPubCmd,
 		hdToEcCmd,
+		hdDecodeCmd,
 		mnemonicNewCmd,
 		mnemonicToEntropyCmd,
 		mnemonicToSeedCmd,
@@ -669,6 +676,24 @@ NOX is the 64 bit spend amount in nox.`)
 			}
 			str := strings.TrimSpace(string(src))
 			hdKeyToEcKey(str)
+		}
+	}
+
+	if hdDecodeCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				hdDecodeCmd.Usage()
+			}else{
+				hdDecode(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			hdDecode(str)
 		}
 	}
 
