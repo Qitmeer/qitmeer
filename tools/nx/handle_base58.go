@@ -20,13 +20,15 @@ func base58CheckEncode(version string, input string){
 	if err !=nil {
 		errExit(err)
 	}
+	/*
 	if len(ver) != 2 {
 		errExit(fmt.Errorf("invaid version byte"))
 	}
 	var versionByte [2]byte
 	versionByte[0] = ver[0]
 	versionByte[1] = ver[1]
-	encoded := base58.CheckEncode(data, versionByte)
+	*/
+	encoded := base58.CheckEncode(data, ver[:])
 	// Show the encoded data.
 	//fmt.Printf("Encoded Data ver[%v] : %s\n",ver, encoded)
 	fmt.Printf("%s\n",encoded)

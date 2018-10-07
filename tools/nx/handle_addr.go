@@ -20,6 +20,6 @@ func ecPubKeyToAddress(pubkey string) {
 	if err !=nil {
 		errExit(err)
 	}
-	address := base58.CheckEncode(h, [2]byte{defaultVer[0],defaultVer[1]})
+	address := base58.CheckEncode(h, defaultVer[:])
 	fmt.Printf("%s\n",address)
 }

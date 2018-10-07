@@ -57,7 +57,7 @@ func CheckInput(mode, input string) ([]byte, error){
 }
 
 // CheckEncode prepends two version bytes and appends a four byte checksum.
-func CheckEncode(input []byte, version [2]byte) string {
+func CheckEncode(input []byte, version []byte) string {
 	return checkEncode(input,version[:],checksum)
 }
 
