@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"github.com/noxproject/nox/common/encode/base58"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/common/util"
+	"github.com/pkg/errors"
+	"strconv"
 )
 
 func base58CheckEncode(version string, mode string,hasher string, cksumSize int, input string){
@@ -128,9 +131,23 @@ func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 		}else {
 			fmt.Printf("mode    : %s\n", mode)
 		}
-		fmt.Printf("version : %x\n", version)
+		version_d, err := strconv.ParseUint(fmt.Sprintf("%x",version[:]), 16, 64)
+		if err!=nil {
+			errExit(errors.Wrapf(err,"convert version %x error",version[:]))
+		}
+		fmt.Printf("version : %x (hex) %v (d)\n", version, version_d)
 		fmt.Printf("payload : %x\n", data)
-		fmt.Printf("checksum: %x\n", decoded[len(decoded)-cksumSize:])
+		cksum := decoded[len(decoded)-cksumSize:]
+		cksum_d, err := strconv.ParseUint(fmt.Sprintf("%x",cksum[:]), 16, 64)
+		if err!=nil {
+			errExit(errors.Wrapf(err,"convert version %x error",cksum[:]))
+		}
+		//convere to  little endian
+		cksum_r := util.CopyBytes(cksum[:])
+		util.ReverseBytes(cksum_r)
+		cksum_d2, err := strconv.ParseUint(fmt.Sprintf("%x",cksum_r[:]), 16, 64)
+		fmt.Printf("checksum: %x (hex) %v (d,be) %v (d,le)\n", cksum, cksum_d, cksum_d2)
+
 	} else {
 		fmt.Printf("%x\n", data)
 	}
