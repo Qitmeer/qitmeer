@@ -44,45 +44,69 @@ func base58CheckEncode(version string, mode string, input string){
 	fmt.Printf("%s\n",encoded)
 }
 
-func base58CheckDecode(mode string, input string) {
+func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input string) {
 	var err error
 	var data []byte
 	var version []byte
-	switch mode {
-	case "btc" :
-		v := byte(0)
-		data, v, err = base58.BtcCheckDecode(input)
-		if err != nil {
-			errExit(err)
-		}
-		version = []byte{0x0,v}
-	case "nox":
-		v := [2]byte{}
-		data, v, err = base58.NoxCheckDecode(input)
-		if err != nil {
-			errExit(err)
-		}
-		version = []byte{v[0],v[1]}
-	case "ss" :
+	if hasher != "" && mode != "nox" {
+		errExit(fmt.Errorf("invaid flag -h %s with -m %s",hasher,mode))
+	}
+	if hasher != "" {
 		var v []byte
-		data, v, err = base58.CheckDecode(input,1,2,base58.SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_512),2))
-		if err != nil {
+		switch hasher {
+		case "sha256":
+			data, v, err = base58.CheckDecode(input, versionSize, cksumSize, base58.SingleHashChecksumFunc(hash.GetHasher(hash.SHA256), cksumSize))
+		case "dsha256":
+			data, v, err = base58.CheckDecode(input, versionSize, cksumSize, base58.DoubleHashChecksumFunc(hash.GetHasher(hash.SHA256), cksumSize))
+		case "blake2b256":
+			data, v, err = base58.CheckDecode(input, versionSize, cksumSize, base58.SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_256), cksumSize))
+		case "dblake2b256":
+			data, v, err = base58.CheckDecode(input, versionSize, cksumSize, base58.DoubleHashChecksumFunc(hash.GetHasher(hash.Blake2b_256), cksumSize))
+		case "blake2b512":
+			data, v, err = base58.CheckDecode(input, versionSize, cksumSize, base58.SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_512), cksumSize))
+		}
+		if err!=nil {
 			errExit(err)
 		}
 		version = v
-	default :
-		errExit(fmt.Errorf("unknown mode %s",mode))
+	}else {
+		switch mode {
+		case "btc":
+			v := byte(0)
+			data, v, err = base58.BtcCheckDecode(input)
+			if err != nil {
+				errExit(err)
+			}
+			version = []byte{0x0, v}
+		case "nox":
+			v := [2]byte{}
+			data, v, err = base58.NoxCheckDecode(input)
+			if err != nil {
+				errExit(err)
+			}
+			version = []byte{v[0], v[1]}
+		case "ss":
+			var v []byte
+			data, v, err = base58.CheckDecode(input, 1, 2, base58.SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_512), 2))
+			if err != nil {
+				errExit(err)
+			}
+			version = v
+		default:
+			errExit(fmt.Errorf("unknown mode %s", mode))
+		}
 	}
 	if showDecodeDetails {
-		cksum, err := base58.CheckInput(mode,input)
-		if err != nil {
-			errExit(err)
+		decoded := base58.Decode(input)
+		if hasher!="" {
+			fmt.Printf("hasher  : %s\n", hasher)
+		}else {
+			fmt.Printf("mode    : %s\n", mode)
 		}
-		fmt.Printf("mode    : %s\n", mode)
+		fmt.Printf("version : %x\n", version)
 		fmt.Printf("payload : %x\n", data)
-		fmt.Printf("checksum: %x\n", cksum)
-		fmt.Printf("version : %x\n",version)
-	}else {
+		fmt.Printf("checksum: %x\n", decoded[len(decoded)-cksumSize:])
+	} else {
 		fmt.Printf("%x\n", data)
 	}
 }

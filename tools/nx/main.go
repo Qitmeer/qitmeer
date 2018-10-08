@@ -80,6 +80,9 @@ var base58CheckVer string
 var base58CheckEncodeMode string
 var showDecodeDetails bool
 var decodeMode string
+var base58checkHasher string
+var base58checkVersionSize int
+var base58checkCksumSize int
 var seedSize uint
 var hdVer string
 var mnemoicSeedPassphrase string
@@ -108,6 +111,9 @@ func main() {
 	base58CheckDecodeCommand := flag.NewFlagSet("base58check-decode", flag.ExitOnError)
 	base58CheckDecodeCommand.BoolVar(&showDecodeDetails,"d",false, "show decode datails")
 	base58CheckDecodeCommand.StringVar(&decodeMode,"m","nox", "base58check decode mode : [nox|btc]")
+	base58CheckDecodeCommand.StringVar(&base58checkHasher,"a","", "base58check hasher")
+	base58CheckDecodeCommand.IntVar(&base58checkVersionSize,"v",2, "base58check version size")
+	base58CheckDecodeCommand.IntVar(&base58checkCksumSize,"c",4, "base58check checksum size")
 	base58CheckDecodeCommand.Usage = func() {
 		cmdUsage(base58CheckDecodeCommand,"Usage: nx base58check-decode [hexstring]\n")
 	}
@@ -364,7 +370,7 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				base58CheckDecodeCommand.Usage()
 			}else{
-				base58CheckDecode(decodeMode,os.Args[len(os.Args)-1])
+				base58CheckDecode(decodeMode,base58checkHasher,base58checkVersionSize,base58checkCksumSize,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -372,7 +378,7 @@ NOX is the 64 bit spend amount in nox.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			base58CheckDecode(decodeMode,str)
+			base58CheckDecode(decodeMode,base58checkHasher,base58checkVersionSize,base58checkCksumSize,str)
 		}
 	}
 
