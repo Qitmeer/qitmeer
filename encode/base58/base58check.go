@@ -8,7 +8,6 @@ package base58
 
 import (
 	"errors"
-	"fmt"
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/common/hash/btc"
 	"github.com/noxproject/nox/common/hash/dcr"
@@ -64,35 +63,6 @@ func DoubleHashChecksumFunc(hasher hash.Hasher,cksum_size int) (func([]byte) []b
 		var cksum []byte
 		cksum = append(cksum,second[:cksum_size]...)
 		return cksum[:]
-	}
-}
-
-func CheckInput(mode, input string) ([]byte, error){
-	decoded := Decode(input)
-	switch mode{
-	case "btc":
-		var cksum [4]byte
-		copy(cksum[:], decoded[len(decoded)-4:])
-		if !reflect.DeepEqual(checksum_btc(decoded[:len(decoded)-4]),cksum[:]) {
-			return nil, ErrChecksum
-		}
-		return cksum[:],nil
-	case "nox":
-		var cksum [4]byte
-		copy(cksum[:], decoded[len(decoded)-4:])
-		if !reflect.DeepEqual(checksum_nox(decoded[:len(decoded)-4]),cksum[:]) {
-			return nil, ErrChecksum
-		}
-		return cksum[:],nil
-	case "ss" :
-		var cksum [2]byte
-		copy(cksum[:], decoded[len(decoded)-2:])
-		if !reflect.DeepEqual(checksum_ss(decoded[:len(decoded)-2]),cksum[:]) {
-			return nil, ErrChecksum
-		}
-		return cksum[:],nil
-	default:
-		return []byte{},fmt.Errorf("unknown mode %s",mode)
 	}
 }
 
