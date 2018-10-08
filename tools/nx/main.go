@@ -113,11 +113,11 @@ func main() {
 	}
 
 	base58CheckDecodeCommand := flag.NewFlagSet("base58check-decode", flag.ExitOnError)
-	base58CheckDecodeCommand.BoolVar(&showDecodeDetails,"d",false, "show decode datails")
-	base58CheckDecodeCommand.StringVar(&base58checkMode,"m","nox", "base58check decode mode : [nox|btc]")
-	base58CheckDecodeCommand.StringVar(&base58checkHasher,"a","", "base58check hasher")
-	base58CheckDecodeCommand.IntVar(&base58checkVersionSize,"v",2, "base58check version size")
-	base58CheckDecodeCommand.IntVar(&base58checkCksumSize,"c",4, "base58check checksum size")
+	base58CheckDecodeCommand.BoolVar(&showDecodeDetails,"d",false, "show decode details")
+	base58CheckDecodeCommand.StringVar(&base58checkMode,"m","nox", "base58check decode `mode`: [nox|btc]")
+	base58CheckDecodeCommand.StringVar(&base58checkHasher,"a","", "base58check `hasher`")
+	base58CheckDecodeCommand.IntVar(&base58checkVersionSize,"vs",2, "base58check version `size`")
+	base58CheckDecodeCommand.IntVar(&base58checkCksumSize,"cs",4, "base58check checksum `size`")
 	base58CheckDecodeCommand.Usage = func() {
 		cmdUsage(base58CheckDecodeCommand,"Usage: nx base58check-decode [hexstring]\n")
 	}
