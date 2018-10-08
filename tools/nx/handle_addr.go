@@ -16,7 +16,7 @@ func ecPubKeyToAddress(pubkey string) {
 		errExit(err)
 	}
 	h := hash.Hash160(data)
-	defaultVer, err := hex.DecodeString(base58CheckVer)
+	defaultVer, err := hex.DecodeString(base58checkVersion)
 	if err !=nil {
 		errExit(err)
 	}
