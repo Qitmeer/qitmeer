@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/noxproject/nox/crypto/seed"
+	"github.com/noxproject/nox/wallet"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -87,6 +88,7 @@ var seedSize uint
 var hdVer string
 var hdHarden bool
 var hdIndex uint
+var derivePath derivePathFlag
 var mnemoicSeedPassphrase string
 var curve string
 var uncompressedPKFormat bool
@@ -228,8 +230,10 @@ func main() {
 	hdDeriveCmd.Usage = func() {
 		cmdUsage(hdDeriveCmd, "Usage: nx hd-derive [hd_private_key or hd_public_key] \n")
 	}
-	hdDeriveCmd.UintVar(&hdIndex,"i",0,"The HD index")
+	hdDeriveCmd.UintVar(&hdIndex,"i",0,"The HD `index`")
 	hdDeriveCmd.BoolVar(&hdHarden,"d",false,"create a hardened key")
+	derivePath = derivePathFlag{wallet.DerivationPath{}}
+	hdDeriveCmd.Var(&derivePath,"p","hd derive `path`. ex: m/44'/0'/0'/0")
 
 	// Mnemonic (BIP39)
 	mnemonicNewCmd := flag.NewFlagSet("mnemonic-new",flag.ExitOnError)
@@ -723,7 +727,7 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hdDeriveCmd.Usage()
 			}else{
-				hdDerive(hdHarden,uint32(hdIndex),os.Args[len(os.Args)-1])
+				hdDerive(hdHarden,uint32(hdIndex),derivePath.path,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -731,7 +735,7 @@ NOX is the 64 bit spend amount in nox.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hdDerive(hdHarden,uint32(hdIndex),str)
+			hdDerive(hdHarden,uint32(hdIndex),derivePath.path,str)
 		}
 	}
 

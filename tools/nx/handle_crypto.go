@@ -11,6 +11,7 @@ import (
 	"github.com/noxproject/nox/crypto/bip39"
 	"github.com/noxproject/nox/crypto/ecc"
 	"github.com/noxproject/nox/crypto/seed"
+	"github.com/noxproject/nox/wallet"
 	"strconv"
 )
 
@@ -118,7 +119,7 @@ func hdDecode(keyStr string){
 
 }
 
-func hdDerive(hard bool, index uint32, key string){
+func hdDerive(hard bool, index uint32, path wallet.DerivationPath, key string){
 	data := base58.Decode(key)
 	if len(data) != bip32_ByteSize {
 		errExit(fmt.Errorf("invalid bip32 key size (%d), the size hould be %d",len(data),bip32_ByteSize))
@@ -128,13 +129,24 @@ func hdDerive(hard bool, index uint32, key string){
 		errExit(err)
 	}
 	var childKey *bip32.Key
-	if hard {
-		childKey,err =mKey.NewChildKey(bip32.FirstHardenedChild+index)
+	if path.String() != "m"  {
+		var ck = mKey
+		for _,i := range path{
+			ck, err = ck.NewChildKey(i)
+			if err!=nil{
+				errExit(err)
+			}
+		}
+		childKey = ck
 	}else {
-		childKey,err =mKey.NewChildKey(index)
-	}
-	if err !=nil {
-		errExit(err)
+		if hard {
+			childKey, err = mKey.NewChildKey(bip32.FirstHardenedChild + index)
+		} else {
+			childKey, err = mKey.NewChildKey(index)
+		}
+		if err != nil {
+			errExit(err)
+		}
 	}
 	fmt.Printf("%s\n",childKey)
 }
