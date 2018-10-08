@@ -49,17 +49,19 @@ func checksum_ss(input []byte) []byte {
 }
 
 func SingleHashChecksumFunc(hasher hash.Hasher, cksum_size int) (func([]byte) []byte) {
-	return func (input []byte) (cksum []byte) {
+	return func (input []byte) ([]byte) {
 		h := hash.CalcHash(input,hasher)
+		var cksum []byte
 		cksum = append(cksum,h[:cksum_size]...)
 		return cksum[:]
 	}
 }
 
 func DoubleHashChecksumFunc(hasher hash.Hasher,cksum_size int) (func([]byte) []byte) {
-	return func (input []byte) (cksum []byte) {
+	return func (input []byte) ([]byte) {
 		first := hash.CalcHash(input,hasher)
 		second := hash.CalcHash(first[:],hasher)
+		var cksum []byte
 		cksum = append(cksum,second[:cksum_size]...)
 		return cksum[:]
 	}
