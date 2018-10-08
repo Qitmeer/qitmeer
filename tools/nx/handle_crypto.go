@@ -118,6 +118,27 @@ func hdDecode(keyStr string){
 
 }
 
+func hdDerive(hard bool, index uint32, key string){
+	data := base58.Decode(key)
+	if len(data) != bip32_ByteSize {
+		errExit(fmt.Errorf("invalid bip32 key size (%d), the size hould be %d",len(data),bip32_ByteSize))
+	}
+	mKey, err :=bip32.Deserialize(data)
+	if err!=nil {
+		errExit(err)
+	}
+	var childKey *bip32.Key
+	if hard {
+		childKey,err =mKey.NewChildKey(bip32.FirstHardenedChild+index)
+	}else {
+		childKey,err =mKey.NewChildKey(index)
+	}
+	if err !=nil {
+		errExit(err)
+	}
+	fmt.Printf("%s\n",childKey)
+}
+
 
 func mnemonicNew(entropyStr string) {
 	entropy, err := hex.DecodeString(entropyStr)

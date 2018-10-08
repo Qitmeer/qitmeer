@@ -45,6 +45,7 @@ entropy (seed) & mnemoic & hd & ec
     hd-to-ec              convert the HD (BIP32) format private/public key to a EC private/public key
     hd-to-public          derive the HD (BIP32) public key from a HD private key
     hd-decode             decode a HD (BIP32) private/public key serialization format
+	hd-derive             Derive a child HD (BIP32) key from another HD public or private key.
     mnemonic-new          create a mnemonic world-list (BIP39) from an entropy
     mnemonic-to-entropy   return back to the entropy (the random seed) from a mnemonic world list (BIP39)
     mnemonic-to-seed      convert a mnemonic world-list (BIP39) to its 512 bits seed 
@@ -84,6 +85,8 @@ var base58checkHasher string
 var base58checkCksumSize int
 var seedSize uint
 var hdVer string
+var hdHarden bool
+var hdIndex uint
 var mnemoicSeedPassphrase string
 var curve string
 var uncompressedPKFormat bool
@@ -216,11 +219,18 @@ func main() {
 		cmdUsage(hdToEcCmd, "Usage: nx hd-to-ec [hd_private_key or hd_public_key] \n")
 	}
 
-
 	hdDecodeCmd := flag.NewFlagSet("hd-decode",flag.ExitOnError)
 	hdDecodeCmd.Usage = func() {
 		cmdUsage(hdDecodeCmd, "Usage: nx hd-decode [hd_private_key or hd_public_key] \n")
 	}
+
+	hdDeriveCmd := flag.NewFlagSet("hd-derive",flag.ExitOnError)
+	hdDeriveCmd.Usage = func() {
+		cmdUsage(hdDeriveCmd, "Usage: nx hd-derive [hd_private_key or hd_public_key] \n")
+	}
+	hdDeriveCmd.UintVar(&hdIndex,"i",0,"The HD index")
+	hdDeriveCmd.BoolVar(&hdHarden,"d",false,"create a hardened key")
+
 	// Mnemonic (BIP39)
 	mnemonicNewCmd := flag.NewFlagSet("mnemonic-new",flag.ExitOnError)
 	mnemonicNewCmd.Usage = func() {
@@ -307,6 +317,7 @@ NOX is the 64 bit spend amount in nox.`)
 		hdToPubCmd,
 		hdToEcCmd,
 		hdDecodeCmd,
+		hdDeriveCmd,
 		mnemonicNewCmd,
 		mnemonicToEntropyCmd,
 		mnemonicToSeedCmd,
@@ -703,6 +714,24 @@ NOX is the 64 bit spend amount in nox.`)
 			}
 			str := strings.TrimSpace(string(src))
 			hdDecode(str)
+		}
+	}
+
+	if hdDeriveCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				hdDeriveCmd.Usage()
+			}else{
+				hdDerive(hdHarden,uint32(hdIndex),os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			hdDerive(hdHarden,uint32(hdIndex),str)
 		}
 	}
 
