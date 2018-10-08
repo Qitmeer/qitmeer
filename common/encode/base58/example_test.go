@@ -121,7 +121,7 @@ func ExampleCheckDecodeDcr() {
 
 func ExampleCheckDecode_ds_addr() {
 	encoded := "DsaAKsMvZ6HrqhmbhLjV9qVbPkkzF7FnNFY"
-	decoded, version, err := base58.CheckDecode(encoded)
+	decoded, version, err := base58.NoxCheckDecode(encoded)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -139,7 +139,7 @@ func ExampleCheckEncode_addr() {
 
 	data,_ := hex.DecodeString("64e20eb6075561d30c23a517c5b73badbc120f05")
 	ver  := [2]byte{0x0c, 0x40}  //Nox main
-	encoded := base58.CheckEncode(data, ver)
+	encoded := base58.NoxCheckEncode(data, ver[:])
 	fmt.Println("Address (sha256) : Nm281BTkccPTDL1CfhAAR27GAzx2bqFLQx5")
 	fmt.Println("Address (b2b)    :",encoded)
 	encoded = base58.DcrCheckEncode(data, ver)
@@ -158,7 +158,7 @@ func ExampleCheckEncode() {
 	ver[0] = 0
 	ver[1] = 0
 
-	encoded := base58.CheckEncode(data, ver)
+	encoded := base58.NoxCheckEncode(data, ver[:])
 
 	// Show the encoded data.
 	fmt.Println("Encoded Data:", encoded)
@@ -169,7 +169,7 @@ func ExampleCheckEncode() {
 
 func ExampleCheckDecode() {
 	encoded := "1182iP79GRURMp6Rsz9X"
-	decoded, version, err := base58.CheckDecode(encoded)
+	decoded, version, err := base58.NoxCheckDecode(encoded)
 	if err != nil {
 		fmt.Println(err)
 		return

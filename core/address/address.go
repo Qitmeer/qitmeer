@@ -19,7 +19,7 @@ import (
 func encodeAddress(hash160 []byte, netID [2]byte) string {
 	// Format is 2 bytes for a network and address class (i.e. P2PKH vs
 	// P2SH), 20 bytes for a RIPEMD160 hash, and 4 bytes of checksum.
-	return base58.CheckEncode(hash160[:ripemd160.Size], netID[:])
+	return base58.NoxCheckEncode(hash160[:ripemd160.Size], netID[:])
 }
 
 // encodePKAddress returns a human-readable payment address to a public key
@@ -54,7 +54,7 @@ func encodePKAddress(serializedPK []byte, netID [2]byte, algo ecc.EcType) string
 	}
 
 	pubKeyBytes = append(pubKeyBytes, compressed...)
-	return base58.CheckEncode(pubKeyBytes, netID[:])
+	return base58.NoxCheckEncode(pubKeyBytes, netID[:])
 }
 
 // PubKeyHashAddress is an Address for a pay-to-pubkey-hash (P2PKH)
@@ -520,7 +520,7 @@ type ContractAddress struct{
 // the Address if addr is a valid encoding for a known address type
 func DecodeAddress(addr string) (types.Address, error) {
 	// Switch on decoded length to determine the type.
-	decoded, netID, err := base58.CheckDecode(addr)
+	decoded, netID, err := base58.NoxCheckDecode(addr)
 	if err != nil {
 		if err == base58.ErrChecksum {
 			return nil, ErrChecksumMismatch
