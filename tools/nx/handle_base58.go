@@ -10,7 +10,10 @@ import (
 	"github.com/noxproject/nox/common/hash"
 )
 
-func base58CheckEncode(version string, mode string, input string){
+func base58CheckEncode(version string, mode string,hasher string, cksumSize int, input string){
+	if hasher != "" && mode != "nox" {
+		errExit(fmt.Errorf("invaid flag -a %s with -m %s",hasher,mode))
+	}
 	data, err := hex.DecodeString(input)
 	if err!=nil {
 		errExit(err)
@@ -20,24 +23,44 @@ func base58CheckEncode(version string, mode string, input string){
 		errExit(err)
 	}
 	var encoded string
-	switch mode {
-	case "nox" :
-		if len(ver) != 2 {
-		errExit(fmt.Errorf("invaid version byte size"))
+
+	if hasher != "" {
+		var cksumfunc func([]byte) []byte
+		switch (hasher) {
+		case "sha256":
+			cksumfunc = base58.SingleHashChecksumFunc(hash.GetHasher(hash.SHA256), cksumSize)
+		case "dsha256":
+			cksumfunc = base58.DoubleHashChecksumFunc(hash.GetHasher(hash.SHA256), cksumSize)
+		case "blake2b256":
+			cksumfunc = base58.SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_256), cksumSize)
+		case "dblake2b256":
+			cksumfunc = base58.DoubleHashChecksumFunc(hash.GetHasher(hash.Blake2b_256), cksumSize)
+		case "blake2b512":
+			cksumfunc = base58.SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_512), cksumSize)
+		default:
+			err = fmt.Errorf("unknown hasher %s", hasher)
 		}
-		var versionByte [2]byte
-		versionByte[0] = ver[0]
-		versionByte[1] = ver[1]
-		encoded = base58.NoxCheckEncode(data, versionByte[:])
-	case "btc" :
-		if len(ver) > 1 {
-			errExit(fmt.Errorf("invaid version size for btc base58check encode"))
+		encoded = base58.CheckEncode(data, ver, cksumSize, cksumfunc)
+	}else {
+		switch mode {
+		case "nox":
+			if len(ver) != 2 {
+				errExit(fmt.Errorf("invaid version byte size"))
+			}
+			var versionByte [2]byte
+			versionByte[0] = ver[0]
+			versionByte[1] = ver[1]
+			encoded = base58.NoxCheckEncode(data, versionByte[:])
+		case "btc":
+			if len(ver) > 1 {
+				errExit(fmt.Errorf("invaid version size for btc base58check encode"))
+			}
+			encoded = base58.BtcCheckEncode(data, ver[0])
+		case "ss":
+			encoded = base58.CheckEncode(data, ver[:], 2, base58.SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_512), 2))
+		default:
+			errExit(fmt.Errorf("unknown encode mode %s", mode))
 		}
-		encoded = base58.BtcCheckEncode(data, ver[0])
-	case "ss":
-		encoded = base58.CheckEncode(data,ver[:],2,base58.SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_512),2))
-	default:
-		errExit(fmt.Errorf("unknown encode mode %s",mode))
 	}
 	// Show the encoded data.
 	//fmt.Printf("Encoded Data ver[%v] : %s\n",ver, encoded)
@@ -49,7 +72,7 @@ func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 	var data []byte
 	var version []byte
 	if hasher != "" && mode != "nox" {
-		errExit(fmt.Errorf("invaid flag -h %s with -m %s",hasher,mode))
+		errExit(fmt.Errorf("invaid flag -a %s with -m %s",hasher,mode))
 	}
 	if hasher != "" {
 		var v []byte
@@ -64,6 +87,8 @@ func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 			data, v, err = base58.CheckDecode(input, versionSize, cksumSize, base58.DoubleHashChecksumFunc(hash.GetHasher(hash.Blake2b_256), cksumSize))
 		case "blake2b512":
 			data, v, err = base58.CheckDecode(input, versionSize, cksumSize, base58.SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_512), cksumSize))
+		default:
+			err = fmt.Errorf("unknown hasher %s",hasher)
 		}
 		if err!=nil {
 			errExit(err)
