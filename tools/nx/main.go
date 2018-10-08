@@ -45,7 +45,7 @@ entropy (seed) & mnemoic & hd & ec
     hd-to-ec              convert the HD (BIP32) format private/public key to a EC private/public key
     hd-to-public          derive the HD (BIP32) public key from a HD private key
     hd-decode             decode a HD (BIP32) private/public key serialization format
-	hd-derive             Derive a child HD (BIP32) key from another HD public or private key.
+    hd-derive             Derive a child HD (BIP32) key from another HD public or private key.
     mnemonic-new          create a mnemonic world-list (BIP39) from an entropy
     mnemonic-to-entropy   return back to the entropy (the random seed) from a mnemonic world list (BIP39)
     mnemonic-to-seed      convert a mnemonic world-list (BIP39) to its 512 bits seed 
