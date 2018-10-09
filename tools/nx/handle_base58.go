@@ -43,6 +43,9 @@ func base58CheckEncode(version string, mode string,hasher string, cksumSize int,
 		default:
 			err = fmt.Errorf("unknown hasher %s", hasher)
 		}
+		if err!=nil {
+			errExit(err)
+		}
 		encoded = base58.CheckEncode(data, ver, cksumSize, cksumfunc)
 	}else {
 		switch mode {
