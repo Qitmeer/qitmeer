@@ -5,8 +5,9 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha512"
-	"encoding/hex"
 	"errors"
+	"fmt"
+	"reflect"
 )
 
 const (
@@ -19,12 +20,12 @@ const (
 )
 
 var (
-	// PrivateWalletVersion is the version flag for serialized private keys
-	PrivateWalletVersion, _ = hex.DecodeString("0488ADE4")
-
-	// PublicWalletVersion is the version flag for serialized private keys
-	PublicWalletVersion, _ = hex.DecodeString("0488B21E")
-
+	DefaultBip32Version = Bip32Version{
+		// The default bip32 version flag for serialized private keys
+		[]byte{0x04,0x88,0xad,0xe4},
+		// The default bip32 version flag for serialized public keys
+		[]byte{0x04,0x88,0xb2,0x1e},
+	}
 	// ErrSerializedKeyWrongSize is returned when trying to deserialize a key that
 	// has an incorrect length
 	ErrSerializedKeyWrongSize = errors.New("Serialized keys should by exactly 82 bytes")
@@ -53,10 +54,29 @@ type Key struct {
 	ChainCode   []byte // 32 bytes
 	Depth       byte   // 1 bytes
 	IsPrivate   bool   // unserialized
+	Bip32Ver    Bip32Version //unserialized
+}
+
+type Bip32Version struct {
+	PrivKeyVersion []byte
+	PubKeyVersion  []byte
+}
+func (v Bip32Version) isEmpty() bool {
+	return len(v.PubKeyVersion) + len(v.PrivKeyVersion) == 0
+}
+func (v Bip32Version) IsPrivkeyVersion(privKeyVer []byte) bool {
+	return reflect.DeepEqual(v.PrivKeyVersion,privKeyVer)
+}
+func (v Bip32Version) IsPubkeyVersion(pukKeyVer []byte) bool {
+	return reflect.DeepEqual(v.PubKeyVersion,pukKeyVer)
 }
 
 // NewMasterKey creates a new master extended key from a seed
 func NewMasterKey(seed []byte) (*Key, error) {
+	return NewMasterKey2(seed,DefaultBip32Version)
+}
+
+func NewMasterKey2(seed []byte, version Bip32Version) (*Key, error) {
 	// Generate key and chaincode
 	hmac := hmac.New(sha512.New, []byte("Bitcoin seed"))
 	_, err := hmac.Write(seed)
@@ -75,15 +95,20 @@ func NewMasterKey(seed []byte) (*Key, error) {
 		return nil, err
 	}
 
+	if version.isEmpty() {
+		version = DefaultBip32Version
+	}
+
 	// Create the key struct
 	key := &Key{
-		Version:     PrivateWalletVersion,
+		Version:     version.PrivKeyVersion,
 		ChainCode:   chainCode,
 		Key:         keyBytes,
 		Depth:       0x0,
 		ChildNumber: []byte{0x00, 0x00, 0x00, 0x00},
 		FingerPrint: []byte{0x00, 0x00, 0x00, 0x00},
 		IsPrivate:   true,
+		Bip32Ver:    version,
 	}
 
 	return key, nil
@@ -107,11 +132,12 @@ func (key *Key) NewChildKey(childIdx uint32) (*Key, error) {
 		ChainCode:   intermediary[32:],
 		Depth:       key.Depth + 1,
 		IsPrivate:   key.IsPrivate,
+		Bip32Ver:    key.Bip32Ver,
 	}
 
 	// Bip32 CKDpriv
 	if key.IsPrivate {
-		childKey.Version = PrivateWalletVersion
+		childKey.Version = key.Bip32Ver.PrivKeyVersion
 		fingerprint, err := hash160(publicKeyForPrivateKey(key.Key))
 		if err != nil {
 			return nil, err
@@ -133,8 +159,7 @@ func (key *Key) NewChildKey(childIdx uint32) (*Key, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		childKey.Version = PublicWalletVersion
+		childKey.Version = key.Bip32Ver.PubKeyVersion
 		fingerprint, err := hash160(key.Key)
 		if err != nil {
 			return nil, err
@@ -182,13 +207,14 @@ func (key *Key) PublicKey() *Key {
 	}
 
 	return &Key{
-		Version:     PublicWalletVersion,
+		Version:     key.Bip32Ver.PubKeyVersion,
 		Key:         keyBytes,
 		Depth:       key.Depth,
 		ChildNumber: key.ChildNumber,
 		FingerPrint: key.FingerPrint,
 		ChainCode:   key.ChainCode,
 		IsPrivate:   false,
+		Bip32Ver:    key.Bip32Ver,
 	}
 }
 
@@ -233,13 +259,22 @@ func (key *Key) String() string {
 	return key.B58Serialize()
 }
 
-// Deserialize a byte slice into a Key
 func Deserialize(data []byte) (*Key, error) {
+	return Deserialize2(data, DefaultBip32Version)
+}
+// Deserialize a byte slice into a Key
+func Deserialize2(data []byte, version Bip32Version) (*Key, error) {
 	if len(data) != 82 {
 		return nil, ErrSerializedKeyWrongSize
 	}
 	var key = &Key{}
-	key.Version = data[0:4]
+	// check version correct
+	if version.IsPrivkeyVersion(data[0:4]) || version.IsPubkeyVersion(data[0:4]) {
+		key.Version = data[0:4]
+		key.Bip32Ver = version
+	}else {
+		return nil, fmt.Errorf("fail to derserilize, unmatched version data %x with {%x,%x}",data[0:4],version.PrivKeyVersion,version.PubKeyVersion)
+	}
 	key.Depth = data[4]
 	key.FingerPrint = data[5:9]
 	key.ChildNumber = data[9:13]
@@ -269,12 +304,12 @@ func Deserialize(data []byte) (*Key, error) {
 }
 
 // B58Deserialize deserializes a Key encoded in base58 encoding
-func B58Deserialize(data string) (*Key, error) {
+func B58Deserialize(data string, version Bip32Version) (*Key, error) {
 	b, err := base58Decode(data)
 	if err != nil {
 		return nil, err
 	}
-	return Deserialize(b)
+	return Deserialize2(b,version)
 }
 
 // NewSeed returns a cryptographically secure seed
