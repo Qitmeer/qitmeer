@@ -33,6 +33,9 @@ _nx()
         mnemonic-to-seed
         ec-new
         ec-to-public
+        ec-to-wif
+        wif-to-ec
+        wif-to-public
         ec-to-addr
         tx-decode
         tx-encode
