@@ -108,7 +108,7 @@ func main() {
 	base58CheckEncodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
 	base58checkVersion = noxBase58checkVersionFlag{}
 	base58checkVersion.Set("privnet")
-	base58CheckEncodeCommand.Var(&base58checkVersion, "v","base58check version")
+	base58CheckEncodeCommand.Var(&base58checkVersion, "v","base58check `version` [mainnet|testnet|privnet")
 	base58CheckEncodeCommand.StringVar(&base58checkMode, "m", "nox", "base58check encode mode : [nox|btc]")
 	base58CheckEncodeCommand.StringVar(&base58checkHasher,"a","", "base58check hasher")
 	base58CheckEncodeCommand.IntVar(&base58checkCksumSize,"c",4, "base58check checksum size")
@@ -277,6 +277,7 @@ func main() {
 	ecToAddrCmd.Usage = func() {
 		cmdUsage(ecToAddrCmd, "Usage: nx ec-to-addr [ec_public_key] \n")
 	}
+	ecToAddrCmd.Var(&base58checkVersion, "v","base58check `version` [mainnet|testnet|privnet]")
 
 	// Transaction
 	txDecodeCmd := flag.NewFlagSet("tx-decode",flag.ExitOnError)
@@ -841,7 +842,7 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecToAddrCmd.Usage()
 			}else{
-				ecPubKeyToAddress(os.Args[len(os.Args)-1])
+				ecPubKeyToAddress(base58checkVersion.ver,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -849,7 +850,7 @@ NOX is the 64 bit spend amount in nox.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			ecPubKeyToAddress(str)
+			ecPubKeyToAddress(base58checkVersion.ver,str)
 		}
 	}
 
