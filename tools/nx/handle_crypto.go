@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/noxproject/nox/common/encode/base58"
+	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/crypto/bip32"
 	"github.com/noxproject/nox/crypto/bip39"
 	"github.com/noxproject/nox/crypto/ecc"
@@ -194,7 +195,6 @@ func ecNew(curve string, entropyStr string){
 	default:
 		errExit(fmt.Errorf("unknown curve : %s",curve))
 	}
-
 }
 
 func ecPrivateKeyToEcPublicKey(uncompressed bool, privateKeyStr string) {
@@ -203,6 +203,65 @@ func ecPrivateKeyToEcPublicKey(uncompressed bool, privateKeyStr string) {
 		errExit(err)
 	}
 	_, pubKey := ecc.Secp256k1.PrivKeyFromBytes(data)
+	var key []byte
+	if uncompressed {
+		key = pubKey.SerializeUncompressed()
+	}else {
+		key = pubKey.SerializeCompressed()
+	}
+	fmt.Printf("%x\n",key[:])
+}
+
+func ecPrivateKeyToWif(uncompressed bool, privateKeyStr string) {
+	data, err := hex.DecodeString(privateKeyStr)
+	if err!=nil {
+		errExit(err)
+	}
+	privkey, _ := ecc.Secp256k1.PrivKeyFromBytes(data)
+	var key []byte
+	if uncompressed {
+		key = privkey.Serialize()
+	}else {
+		key = privkey.Serialize()
+		key = append(key,[]byte{0x01}...)
+	}
+	cksumfunc := base58.DoubleHashChecksumFunc(hash.GetHasher(hash.SHA256), 4)
+	encoded := base58.CheckEncode(key, []byte{0x80}, 4, cksumfunc)
+	fmt.Printf("%s\n",encoded)
+}
+
+func wifToEcPrivateKey(wif string) {
+	decoded,err := decodeWIF(wif)
+	if err!= nil {
+		errExit(err)
+	}
+	fmt.Printf("%x\n",decoded)
+}
+
+func decodeWIF(wif string) ([]byte, error){
+	cksumfunc := base58.DoubleHashChecksumFunc(hash.GetHasher(hash.SHA256), 4)
+	decoded, version, err := base58.CheckDecode(wif,1, 4,cksumfunc)
+	if err != nil {
+		return nil,err
+	}
+	if len(version) != 1 && version[0] != 0x80 {
+		return nil, fmt.Errorf("incorrect wif version %x, should be 0x80",version)
+	}
+	if len(decoded) == 32 {
+		return decoded[:],nil
+	}else if len(decoded) == 33 && decoded[32] == 0x01 {
+		return decoded[:32],nil
+	}else{
+		return nil,fmt.Errorf("incorrect wif length")
+	}
+}
+
+func wifToEcPubkey(uncompressed bool, wif string) {
+	decoded,err := decodeWIF(wif)
+	if err!= nil {
+		errExit(err)
+	}
+	_, pubKey := ecc.Secp256k1.PrivKeyFromBytes(decoded)
 	var key []byte
 	if uncompressed {
 		key = pubKey.SerializeUncompressed()

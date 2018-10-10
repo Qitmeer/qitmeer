@@ -51,7 +51,10 @@ entropy (seed) & mnemoic & hd & ec
     mnemonic-to-entropy   return back to the entropy (the random seed) from a mnemonic world list (BIP39)
     mnemonic-to-seed      convert a mnemonic world-list (BIP39) to its 512 bits seed 
     ec-new                create a new EC private key from an entropy (seed).
-    ec-to-public          derive the EC public key from an EC private key (Defaults to the compressed public key format)
+    ec-to-public          derive the EC public key from an EC private key (the compressed format by default )
+    ec-to-wif             convert an EC private key to a WIF, associates with the compressed public key by default.
+    wif-to-ec             convert a WIF private key to an EC private key.
+    wif-to-public         derive the EC public key from a WIF private key. 
 
 addr & tx & sign
     ec-to-addr            convert an EC public key to a paymant address. default is nox address
@@ -265,12 +268,32 @@ func main() {
 	}
 	ecNewCmd.StringVar(&curve,"c","secp256k1", "the elliptic curve is using")
 
-
 	ecToPubCmd := flag.NewFlagSet("ec-to-public",flag.ExitOnError)
 	ecToPubCmd.Usage = func() {
 		cmdUsage(ecToPubCmd, "Usage: nx ec-to-public [ec_private_key] \n")
 	}
 	ecToPubCmd.BoolVar(&uncompressedPKFormat,"u", false,"using the uncompressed public key format")
+
+	// Wif
+	ecToWifCmd := flag.NewFlagSet("ec-to-wif", flag.ExitOnError)
+	ecToWifCmd.Usage = func() {
+		cmdUsage(ecToWifCmd, "Usage: nx ec-to-wif [ec_private_key] \n")
+	}
+	ecToWifCmd.BoolVar(&uncompressedPKFormat,"u", false,"using the uncompressed public key format")
+
+	wifToEcCmd := flag.NewFlagSet("wif-to-ec", flag.ExitOnError)
+	wifToEcCmd.Usage = func() {
+		cmdUsage(wifToEcCmd, "Usage: nx wif-to-ec [WIF] \n")
+	}
+
+	wifToPubCmd:= flag.NewFlagSet("wif-to-public", flag.ExitOnError)
+	wifToPubCmd.Usage = func() {
+		cmdUsage(wifToPubCmd, "Usage: nx wif-to-public [WIF] \n")
+	}
+	wifToPubCmd.BoolVar(&uncompressedPKFormat,"u", false,"using the uncompressed public key format")
+
+
+
 
 	// Address
 	ecToAddrCmd := flag.NewFlagSet("ec-to-addr",flag.ExitOnError)
@@ -334,6 +357,9 @@ NOX is the 64 bit spend amount in nox.`)
 		mnemonicToSeedCmd,
 		ecNewCmd,
 		ecToPubCmd,
+		ecToWifCmd,
+		wifToEcCmd,
+		wifToPubCmd,
 		ecToAddrCmd,
 		txEncodeCmd,
 		txDecodeCmd,
@@ -833,6 +859,60 @@ NOX is the 64 bit spend amount in nox.`)
 			}
 			str := strings.TrimSpace(string(src))
 			ecPrivateKeyToEcPublicKey(uncompressedPKFormat,str)
+		}
+	}
+
+	if ecToWifCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				ecToWifCmd.Usage()
+			}else{
+				ecPrivateKeyToWif(uncompressedPKFormat,os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			ecPrivateKeyToWif(uncompressedPKFormat,str)
+		}
+	}
+
+	if wifToEcCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				wifToEcCmd.Usage()
+			}else{
+				wifToEcPrivateKey(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			wifToEcPrivateKey(str)
+		}
+	}
+
+	if wifToPubCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				wifToPubCmd.Usage()
+			}else{
+				wifToEcPubkey(uncompressedPKFormat,os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			wifToEcPubkey(uncompressedPKFormat,str)
 		}
 	}
 
