@@ -85,7 +85,7 @@ var showDecodeDetails bool
 var base58checkHasher string
 var base58checkCksumSize int
 var seedSize uint
-var hdVer string
+var hdVer bip32VersionFlag
 var hdHarden bool
 var hdIndex uint
 var derivePath derivePathFlag
@@ -210,18 +210,20 @@ func main() {
 	hdNewCmd.Usage = func() {
 		cmdUsage(hdNewCmd, "Usage: nx hd-new [-v version] [entropy] \n")
 	}
-	// TODO, the version not support yet
-	hdNewCmd.StringVar(&hdVer, "v","76066276","The HD private key version")
+	hdVer.Set("privnet")
+	hdNewCmd.Var(&hdVer, "v","The HD(BIP32) `version` [mainnet|testnet|privnet|bip32]")
 
 	hdToPubCmd := flag.NewFlagSet("hd-to-public",flag.ExitOnError)
 	hdToPubCmd.Usage = func() {
 		cmdUsage(hdToPubCmd, "Usage: nx hd-to-public [hd_private_key] \n")
 	}
+	hdToPubCmd.Var(&hdVer, "v","The HD(BIP32) `version` [mainnet|testnet|privnet|bip32]")
 
 	hdToEcCmd := flag.NewFlagSet("hd-to-ec",flag.ExitOnError)
 	hdToEcCmd.Usage = func() {
 		cmdUsage(hdToEcCmd, "Usage: nx hd-to-ec [hd_private_key or hd_public_key] \n")
 	}
+	hdToEcCmd.Var(&hdVer, "v","The HD(BIP32) `version` [mainnet|testnet|privnet|bip32]")
 
 	hdDecodeCmd := flag.NewFlagSet("hd-decode",flag.ExitOnError)
 	hdDecodeCmd.Usage = func() {
@@ -236,6 +238,8 @@ func main() {
 	hdDeriveCmd.BoolVar(&hdHarden,"d",false,"create a hardened key")
 	derivePath = derivePathFlag{wallet.DerivationPath{}}
 	hdDeriveCmd.Var(&derivePath,"p","hd derive `path`. ex: m/44'/0'/0'/0")
+	hdDeriveCmd.Var(&hdVer, "v","The HD(BIP32) `version` [mainnet|testnet|privnet|bip32]")
+
 
 	// Mnemonic (BIP39)
 	mnemonicNewCmd := flag.NewFlagSet("mnemonic-new",flag.ExitOnError)
@@ -657,7 +661,7 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hdNewCmd.Usage()
 			}else{
-				hdNewMasterPrivateKey(hdVer,os.Args[len(os.Args)-1])
+				hdNewMasterPrivateKey(hdVer.version,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -665,7 +669,7 @@ NOX is the 64 bit spend amount in nox.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hdNewMasterPrivateKey(hdVer,str)
+			hdNewMasterPrivateKey(hdVer.version,str)
 		}
 	}
 
@@ -675,7 +679,7 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hdToPubCmd.Usage()
 			}else{
-				hdPrivateKeyToHdPublicKey(os.Args[len(os.Args)-1])
+				hdPrivateKeyToHdPublicKey(hdVer.version,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -683,7 +687,7 @@ NOX is the 64 bit spend amount in nox.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hdPrivateKeyToHdPublicKey(str)
+			hdPrivateKeyToHdPublicKey(hdVer.version,str)
 		}
 	}
 
@@ -693,7 +697,7 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hdToEcCmd.Usage()
 			}else{
-				hdKeyToEcKey(os.Args[len(os.Args)-1])
+				hdKeyToEcKey(hdVer.version,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -701,7 +705,7 @@ NOX is the 64 bit spend amount in nox.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hdKeyToEcKey(str)
+			hdKeyToEcKey(hdVer.version,str)
 		}
 	}
 
@@ -729,7 +733,7 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hdDeriveCmd.Usage()
 			}else{
-				hdDerive(hdHarden,uint32(hdIndex),derivePath.path,os.Args[len(os.Args)-1])
+				hdDerive(hdHarden,uint32(hdIndex),derivePath.path,hdVer.version,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -737,7 +741,7 @@ NOX is the 64 bit spend amount in nox.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hdDerive(hdHarden,uint32(hdIndex),derivePath.path,str)
+			hdDerive(hdHarden,uint32(hdIndex),derivePath.path,hdVer.version,str)
 		}
 	}
 

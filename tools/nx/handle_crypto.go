@@ -23,35 +23,34 @@ func newEntropy(size uint) {
 	fmt.Printf("%x\n",s)
 }
 
-func hdNewMasterPrivateKey(version string, entropyStr string){
-	//TODO support version
+func hdNewMasterPrivateKey(version bip32.Bip32Version, entropyStr string){
 	entropy, err := hex.DecodeString(entropyStr)
 	if err!=nil {
 		errExit(err)
 	}
-	masterKey, err := bip32.NewMasterKey(entropy)
+	masterKey, err := bip32.NewMasterKey2(entropy,version)
 	if err !=nil {
 		errExit(err)
 	}
 	fmt.Printf("%s\n",masterKey)
 }
 
-func hdPrivateKeyToHdPublicKey(privateKeyStr string){
+func hdPrivateKeyToHdPublicKey(version bip32.Bip32Version,privateKeyStr string){
 	data := base58.Decode(privateKeyStr)
-	masterKey, err :=bip32.Deserialize(data)
-	if ! masterKey.IsPrivate {
-		errExit(fmt.Errorf("%s is not a HD (BIP32) private key",privateKeyStr))
-	}
+	masterKey, err :=bip32.Deserialize2(data,version)
 	if err !=nil {
 		errExit(err)
+	}
+	if ! masterKey.IsPrivate {
+		errExit(fmt.Errorf("%s is not a HD (BIP32) private key",privateKeyStr))
 	}
 	pubKey := masterKey.PublicKey()
 	fmt.Printf("%s\n",pubKey)
 }
 
-func hdKeyToEcKey(keyStr string) {
+func hdKeyToEcKey(version bip32.Bip32Version,keyStr string) {
 	data := base58.Decode(keyStr)
-	key, err := bip32.Deserialize(data)
+	key, err := bip32.Deserialize2(data,version)
 	if err != nil {
 		errExit(err)
 	}
@@ -81,7 +80,7 @@ func hdDecode(keyStr string){
 	if len(data) != bip32_ByteSize {
 		errExit(fmt.Errorf("invalid bip32 key size (%d), the size hould be %d",len(data),bip32_ByteSize))
 	}
-	fmt.Printf("   version : %x\n",data[:4])
+	fmt.Printf("   version : %x (%s)\n",data[:4], getBip32NetworkInfo(data[:4]))
 	fmt.Printf("     depth : %x\n",data[4:4+1])
 	fmt.Printf(" parent fp : %x\n",data[5:5+4])
 	childNumber,err := strconv.ParseInt(fmt.Sprintf("%x",data[9:9+4]),16,64)
@@ -119,12 +118,12 @@ func hdDecode(keyStr string){
 
 }
 
-func hdDerive(hard bool, index uint32, path wallet.DerivationPath, key string){
+func hdDerive(hard bool, index uint32, path wallet.DerivationPath, version bip32.Bip32Version, key string){
 	data := base58.Decode(key)
 	if len(data) != bip32_ByteSize {
 		errExit(fmt.Errorf("invalid bip32 key size (%d), the size hould be %d",len(data),bip32_ByteSize))
 	}
-	mKey, err :=bip32.Deserialize(data)
+	mKey, err :=bip32.Deserialize2(data,version)
 	if err!=nil {
 		errExit(err)
 	}

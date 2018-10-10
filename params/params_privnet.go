@@ -70,14 +70,13 @@ var PrivNetParams = Params{
 	PubKeyHashAddrID:     [2]byte{0x0d, 0xf1}, // starts with Rm
 	PKHEdwardsAddrID:     [2]byte{0x0d, 0xdf}, // starts with Re
 	PKHSchnorrAddrID:     [2]byte{0x0d, 0xfd}, // starts with Rr
-	ScriptHashAddrID:     [2]byte{0x0e, 0x01}, // starts with Rs
+	ScriptHashAddrID:     [2]byte{0x0d, 0xc2}, // starts with RS
 	PrivateKeyID:         [2]byte{0x0c, 0xdd}, // starts with Pr
 
 
 	// BIP32 hierarchical deterministic extended key magics
-	// TODO HD key magics
-	HDPrivateKeyID: [4]byte{0x04, 0x20, 0xb9, 0x03}, // starts with rprv
-	HDPublicKeyID:  [4]byte{0x04, 0x20, 0xbd, 0x3d}, // starts with rpub
+	HDPrivateKeyID: [4]byte{0x04, 0x0b, 0xee, 0x6e}, // starts with rprv
+	HDPublicKeyID:  [4]byte{0x04, 0x0b, 0xf2, 0xa7}, // starts with rpub
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.

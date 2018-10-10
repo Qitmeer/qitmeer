@@ -60,14 +60,14 @@ var MainNetParams = Params{
 	NetworkAddressPrefix: "N",
 	PubKeyAddrID:         [2]byte{0x0c, 0x3e}, // starts with Nk
 	PubKeyHashAddrID:     [2]byte{0x0c, 0x41}, // starts with Nm
-	ScriptHashAddrID:     [2]byte{0x0c, 0x50}, // starts with Ns
 	PKHEdwardsAddrID:     [2]byte{0x0c, 0x30}, // starts with Ne
-	PKHSchnorrAddrID:     [2]byte{0x0c, 0x12}, // starts with NS
+	PKHSchnorrAddrID:     [2]byte{0x0c, 0x12}, // starts with Nr
+	ScriptHashAddrID:     [2]byte{0x0c, 0x12}, // starts with NS
 	PrivateKeyID:         [2]byte{0x0c, 0xd1}, // starts with Pm
 
 	// BIP32 hierarchical deterministic extended key magics
-	HDPrivateKeyID: [4]byte{0x02, 0xfd, 0xa4, 0xe8}, // starts with nprv
-	HDPublicKeyID:  [4]byte{0x02, 0xfd, 0xa9, 0x26}, // starts with npub
+	HDPrivateKeyID: [4]byte{0x03, 0xb8, 0xc4, 0x22}, // starts with nprv
+	HDPublicKeyID:  [4]byte{0x03, 0xb8, 0xc8, 0x58}, // starts with npub
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.

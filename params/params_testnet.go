@@ -66,7 +66,7 @@ var TestNetParams = Params{
 	PubKeyHashAddrID:     [2]byte{0x0f, 0x12}, // starts with Tm
 	PKHEdwardsAddrID:     [2]byte{0x0f, 0x01}, // starts with Te
 	PKHSchnorrAddrID:     [2]byte{0x0f, 0x1e}, // starts with Tr
-	ScriptHashAddrID:     [2]byte{0x0f, 0x20}, // starts with Ts
+	ScriptHashAddrID:     [2]byte{0x0e, 0xe2}, // starts with TS
 	PrivateKeyID:         [2]byte{0x0c, 0xe2}, // starts with Pt
 
 	// BIP32 hierarchical deterministic extended key magics

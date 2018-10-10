@@ -147,7 +147,9 @@ func TestPublicParentPublicChildDerivation(t *testing.T) {
 	// Derivation Path m/44'/60'/0'/0:
 	// xprv9zy5o7z1GMmYdaeQdmabWFhUf52Ytbpe3G5hduA4SghboqWe7aDGWseN8BJy1GU72wPjkCbBE1hvbXYqpCecAYdaivxjNnBoSNxwYD4wHpW
 	// xpub6DxSCdWu6jKqr4isjo7bsPeDD6s3J4YVQV1JSHZg12Eagdqnf7XX4fxqyW2sLhUoFWutL7tAELU2LiGZrEXtjVbvYptvTX5Eoa4Mamdjm9u
-	extendedMasterPublic, err := B58Deserialize("xpub6DxSCdWu6jKqr4isjo7bsPeDD6s3J4YVQV1JSHZg12Eagdqnf7XX4fxqyW2sLhUoFWutL7tAELU2LiGZrEXtjVbvYptvTX5Eoa4Mamdjm9u")
+	extendedMasterPublic, err := B58Deserialize(
+		"xpub6DxSCdWu6jKqr4isjo7bsPeDD6s3J4YVQV1JSHZg12Eagdqnf7XX4fxqyW2sLhUoFWutL7tAELU2LiGZrEXtjVbvYptvTX5Eoa4Mamdjm9u",
+		DefaultBip32Version)
 	assert.NoError(t, err)
 
 	expectedChildren := []testChildKey{
@@ -217,11 +219,12 @@ func TestDeserializingInvalidStrings(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, err := B58Deserialize(test.base58)
+		_, err := B58Deserialize(test.base58,DefaultBip32Version)
 		assert.Equal(t, test.err, err)
 	}
 
-	_, err := B58Deserialize("notbase58iiiiiIIIIIbAXLMPCzJso5QAarQksAGc5rQCyZCBfw4Rj2PqVLFNgezSBhktYkiL3Ta2stLPDF9yZtLMaxk6Spiqh3DNFG8p8MVeEc")
+	_, err := B58Deserialize("notbase58iiiiiIIIIIbAXLMPCzJso5QAarQksAGc5rQCyZCBfw4Rj2PqVLFNgezSBhktYkiL3Ta2stLPDF9yZtLMaxk6Spiqh3DNFG8p8MVeEc",
+		DefaultBip32Version)
 	assert.NotNil(t, err)
 }
 
@@ -252,7 +255,7 @@ func assertKeySerialization(t *testing.T, key *Key, knownBase58 string) {
 	serializedBase58 := key.B58Serialize()
 	assert.Equal(t, knownBase58, serializedBase58)
 
-	unserializedBase58, err := B58Deserialize(serializedBase58)
+	unserializedBase58, err := B58Deserialize(serializedBase58,DefaultBip32Version)
 	assert.NoError(t, err)
 	assert.Equal(t, key, unserializedBase58)
 }
