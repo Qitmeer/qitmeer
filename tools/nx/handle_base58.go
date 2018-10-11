@@ -47,7 +47,7 @@ func base58CheckEncode(version []byte, mode string,hasher string, cksumSize int,
 		switch mode {
 		case "nox":
 			if len(version) != 2 {
-				errExit(fmt.Errorf("invaid version byte size. input = %x, len ",version))
+				errExit(fmt.Errorf("invaid version byte size for nox base58 check encode. input = %x (len = %d, required 2)",version,len(version)))
 			}
 			encoded = base58.NoxCheckEncode(data, version[:])
 		case "btc":
