@@ -120,7 +120,7 @@ func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 			errExit(fmt.Errorf("unknown mode %s", mode))
 		}
 	}
-	if showDecodeDetails {
+	if showDetails {
 		decoded := base58.Decode(input)
 		if hasher!="" {
 			fmt.Printf("hasher  : %s\n", hasher)

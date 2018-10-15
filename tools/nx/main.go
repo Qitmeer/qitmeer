@@ -89,7 +89,7 @@ func errExit(err error){
 var base58checkVersion noxBase58checkVersionFlag
 var base58checkVersionSize int
 var base58checkMode string
-var showDecodeDetails bool
+var showDetails bool
 var base58checkHasher string
 var base58checkCksumSize int
 var seedSize uint
@@ -126,7 +126,7 @@ func main() {
 	}
 
 	base58CheckDecodeCommand := flag.NewFlagSet("base58check-decode", flag.ExitOnError)
-	base58CheckDecodeCommand.BoolVar(&showDecodeDetails,"d",false, "show decode details")
+	base58CheckDecodeCommand.BoolVar(&showDetails,"d",false, "show decode details")
 	base58CheckDecodeCommand.StringVar(&base58checkMode,"m","nox", "base58check decode `mode`: [nox|btc]")
 	base58CheckDecodeCommand.StringVar(&base58checkHasher,"a","", "base58check `hasher`")
 	base58CheckDecodeCommand.IntVar(&base58checkVersionSize,"vs",2, "base58check version `size`")
@@ -350,6 +350,7 @@ NOX is the 64 bit spend amount in nox.`)
 		cmdUsage(msgSignCmd, "Usage: msg-sign [wif] [message] \n")
 	}
 	msgSignCmd.StringVar(&msgSignatureMode, "m","nox", "the msg signature mode")
+	msgSignCmd.BoolVar(&showDetails,"d",false, "show signature details")
 
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
@@ -1046,7 +1047,7 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				msgSignCmd.Usage()
 			}else{
-				msgSign(msgSignatureMode,os.Args[len(os.Args)-2],os.Args[len(os.Args)-1])
+				msgSign(msgSignatureMode,showDetails,os.Args[len(os.Args)-2],os.Args[len(os.Args)-1])
 			}
 		}
 	}

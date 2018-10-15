@@ -4,18 +4,13 @@
 package main
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"github.com/noxproject/nox/common/encode/base58"
 	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/hash/btc"
-	s "github.com/noxproject/nox/core/serialization"
 	"github.com/noxproject/nox/crypto/bip32"
 	"github.com/noxproject/nox/crypto/bip39"
 	"github.com/noxproject/nox/crypto/ecc"
-	"github.com/noxproject/nox/crypto/ecc/secp256k1"
 	"github.com/noxproject/nox/crypto/seed"
 	"github.com/noxproject/nox/wallet"
 	"strconv"
@@ -236,33 +231,35 @@ func ecPrivateKeyToWif(uncompressed bool, privateKeyStr string) {
 }
 
 func wifToEcPrivateKey(wif string) {
-	decoded,err := decodeWIF(wif)
+	decoded,_,err := decodeWIF(wif)
 	if err!= nil {
 		errExit(err)
 	}
 	fmt.Printf("%x\n",decoded)
 }
 
-func decodeWIF(wif string) ([]byte, error){
+func decodeWIF(wif string) ([]byte,bool, error){
 	cksumfunc := base58.DoubleHashChecksumFunc(hash.GetHasher(hash.SHA256), 4)
 	decoded, version, err := base58.CheckDecode(wif,1, 4,cksumfunc)
+	compressed :=false
 	if err != nil {
-		return nil,err
+		return nil,compressed,err
 	}
 	if len(version) != 1 && version[0] != 0x80 {
-		return nil, fmt.Errorf("incorrect wif version %x, should be 0x80",version)
+		return nil, compressed,fmt.Errorf("incorrect wif version %x, should be 0x80",version)
 	}
 	if len(decoded) == 32 {
-		return decoded[:],nil
+		return decoded[:],compressed,nil
 	}else if len(decoded) == 33 && decoded[32] == 0x01 {
-		return decoded[:32],nil
+		compressed = true
+		return decoded[:32],compressed,nil
 	}else{
-		return nil,fmt.Errorf("incorrect wif length")
+		return nil,compressed,fmt.Errorf("incorrect wif length")
 	}
 }
 
 func wifToEcPubkey(uncompressed bool, wif string) {
-	decoded,err := decodeWIF(wif)
+	decoded,_,err := decodeWIF(wif)
 	if err!= nil {
 		errExit(err)
 	}
@@ -276,96 +273,4 @@ func wifToEcPubkey(uncompressed bool, wif string) {
 	fmt.Printf("%x\n",key[:])
 }
 
-func decodeSignature(signStr string) {
-	signHex,err := base64.StdEncoding.DecodeString(signStr)
-	if err!=nil {
-		errExit(err)
-	}
-	signature,err := ecc.Secp256k1.ParseSignature(signHex)
-	if err!=nil {
-		errExit(err)
-	}
-	fmt.Printf("R=%x,S=%x\n",signature.GetR(),signature.GetS())
-}
 
-
-func msgSign(mode string, wif string, msg string){
-	decoded,err := decodeWIF(wif)
-	if err!= nil {
-		errExit(err)
-	}
-	var msgHex []byte
-	if err!= nil {
-		errExit(err)
-	}
-	var msgHash []byte
-	switch (mode) {
-	case "btc" :
-		var buf bytes.Buffer
-		s.WriteVarString(&buf, 0, "Bitcoin Signed Message:\n")
-		s.WriteVarString(&buf, 0, msg)
-		msgHash = btc.DoubleHashB(buf.Bytes())
-		fmt.Printf("btc msg hash (dsha256) : %x\n",msgHash)
-	default :
-		msgHash = hash.HashB(msgHex)
-		fmt.Printf("nox msg hash (blake2b256) : %x\n",msgHash)
-	}
-
-	privateKey, publicKey := ecc.Secp256k1.PrivKeyFromBytes(decoded)
-
-	r,s, err :=ecc.Secp256k1.Sign(privateKey,msgHash)
-	if err!=nil {
-		errExit(err)
-	}
-	// got the der signature
-	sigHex := ecc.Secp256k1.NewSignature(r,s).Serialize()
-	fmt.Printf("sigHex        =%x\n",sigHex)
-	fmt.Printf("sigHex(base64)=%s\n",base64.StdEncoding.EncodeToString(sigHex))
-
-	verified := ecc.Secp256k1.Verify(publicKey,msgHash,r,s)
-
-	fmt.Printf("Call verfiy, verified= %v \n", verified )
-
-	signature,err := ecc.Secp256k1.ParseSignature(sigHex)
-	if err != nil {
-		errExit(err)
-	}
-	fmt.Printf("R=%x,S=%x\n",signature.GetR(),signature.GetS())
-
-	signatureDer, err :=ecc.Secp256k1.ParseDERSignature(sigHex)
-	if err != nil {
-		errExit(err)
-	}
-	fmt.Printf("R=%x,S=%x\n",signatureDer.GetR(),signatureDer.GetS())
-
-	sign_c, err := secp256k1.SignCompact(secp256k1.NewPrivateKey(privateKey.GetD()),msgHash,true)
-	if err!=nil {
-		errExit(err)
-	}
-	fmt.Printf("SignCompact(ck)    =%x\n",sign_c[:])
-	fmt.Printf("SignCompact(base64)=%s\n",base64.StdEncoding.EncodeToString(sign_c[:]))
-
-	sign_uc, err := secp256k1.SignCompact(secp256k1.NewPrivateKey(privateKey.GetD()),msgHash,false)
-	if err!=nil {
-		errExit(err)
-	}
-	fmt.Printf("SignCompact(uck)   =%x\n",sign_uc[:])
-	fmt.Printf("SignCompact(base64)=%s\n",base64.StdEncoding.EncodeToString(sign_uc[:]))
-
-
-    // the recovery mode of btc
-    // That number between 0 and 3 we call the recovery id, or recid.
-    // Therefore, we return an extra byte, which also functions as a header byte,
-    // by using 27+recid (for uncompressed recovered pubkeys) or 31+recid (for compressed recovered pubkeys).
-    // https://bitcoin.stackexchange.com/a/38909
-    // 27 + recId (uncompressed pubkey)
-    // 31 + recId (compressed pubkey)
-    pubKey, uncompressed,err := ecc.Secp256k1.RecoverCompact(sign_c,msgHash)
-	if err!=nil {
-		errExit(err)
-	}
-	fmt.Printf("Recover compact :%v\n",uncompressed)
-	fmt.Printf("uncompressed pubkey=%x\n", pubKey.SerializeUncompressed())
-	fmt.Printf("  compressed pubkey=%x\n", pubKey.SerializeCompressed())
-
-}
