@@ -352,6 +352,12 @@ NOX is the 64 bit spend amount in nox.`)
 	msgSignCmd.StringVar(&msgSignatureMode, "m","nox", "the msg signature mode")
 	msgSignCmd.BoolVar(&showDetails,"d",false, "show signature details")
 
+	msgVerifyCmd := flag.NewFlagSet("msg-verify",flag.ExitOnError)
+	msgVerifyCmd.Usage = func() {
+		cmdUsage(msgVerifyCmd, "Usage: msg-verify [addr] [signature] [message] \n")
+	}
+	msgVerifyCmd.StringVar(&msgSignatureMode, "m","nox", "the msg signature mode")
+
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
 		base58CheckDecodeCommand,
@@ -389,6 +395,7 @@ NOX is the 64 bit spend amount in nox.`)
 		txDecodeCmd,
 		txSignCmd,
 		msgSignCmd,
+		msgVerifyCmd,
 	}
 
 	if len(os.Args) == 1 {
@@ -1048,6 +1055,17 @@ NOX is the 64 bit spend amount in nox.`)
 				msgSignCmd.Usage()
 			}else{
 				msgSign(msgSignatureMode,showDetails,os.Args[len(os.Args)-2],os.Args[len(os.Args)-1])
+			}
+		}
+	}
+
+	if msgVerifyCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				msgVerifyCmd.Usage()
+			}else{
+				verifyMsgSignature(msgSignatureMode,os.Args[len(os.Args)-3],os.Args[len(os.Args)-2],os.Args[len(os.Args)-1])
 			}
 		}
 	}

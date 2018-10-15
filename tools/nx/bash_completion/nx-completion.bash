@@ -40,6 +40,8 @@ _nx()
         tx-decode
         tx-encode
         tx-sign
+        msg-sign
+        msg-verify
     "
 
     if [[ $COMP_CWORD == 1 ]]; then
