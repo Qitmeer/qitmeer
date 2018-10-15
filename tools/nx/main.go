@@ -26,6 +26,8 @@ encode and decode :
     base58-decode         decode a base58 string to a base16 string
     base58check-encode    encode a base58check string
     base58check-decode    decode a base58check string
+    base64-encode         encode a base16 string to a base64 string
+    base64-encode         encode a base64 string to a base16 string
     rlp-encode            encode a string to a rlp encoded base16 string 
     rlp-decode            decode a rlp base16 string to a human-readble representation
 
@@ -61,6 +63,9 @@ addr & tx & sign
     tx-encode             encode a unsigned transaction.
     tx-decode             decode a transaction in base16 to json format.
     tx-sign               sign a transactions using a private key.
+    msg-sign              create a message signature
+    msg-verify            validate a message signature
+    signature-decode      decode a ECDSA signature
 	
 `)
 	os.Exit(1)
@@ -101,6 +106,7 @@ var txOutputs txOutputsFlag
 var txVersion txVersionFlag
 var txLockTime txLockTimeFlag
 var privateKey string
+var msgSignatureMode string
 
 func main() {
 
@@ -136,6 +142,15 @@ func main() {
 	base58DecodeCmd := flag.NewFlagSet("base58-decode",flag.ExitOnError)
 	base58DecodeCmd.Usage = func() {
 		cmdUsage(base58DecodeCmd, "Usage: nx base58-decode [hexstring]\n")
+	}
+
+	base64EncodeCmd := flag.NewFlagSet("base64-encode",flag.ExitOnError)
+	base64EncodeCmd.Usage = func() {
+		cmdUsage(base64EncodeCmd ,"Usage: nx base64-encode [hexstring]\n")
+	}
+	base64DecodeCmd := flag.NewFlagSet("base64-decode",flag.ExitOnError)
+	base64DecodeCmd.Usage = func() {
+		cmdUsage(base64DecodeCmd, "Usage: nx base64-decode [hexstring]\n")
 	}
 
 	rlpEncodeCmd := flag.NewFlagSet("rlp-encode",flag.ExitOnError)
@@ -330,11 +345,19 @@ NOX is the 64 bit spend amount in nox.`)
 	}
 	txSignCmd.StringVar(&privateKey,"k","", "the ec private key to sign the raw transaction")
 
+	msgSignCmd := flag.NewFlagSet("msg-sign",flag.ExitOnError)
+	msgSignCmd.Usage = func() {
+		cmdUsage(msgSignCmd, "Usage: msg-sign [wif] [message] \n")
+	}
+	msgSignCmd.StringVar(&msgSignatureMode, "m","nox", "the msg signature mode")
+
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
 		base58CheckDecodeCommand,
 		base58EncodeCmd,
 		base58DecodeCmd,
+		base64EncodeCmd,
+		base64DecodeCmd,
 		rlpEncodeCmd,
 		rlpDecodeCmd,
 		sha256cmd,
@@ -364,6 +387,7 @@ NOX is the 64 bit spend amount in nox.`)
 		txEncodeCmd,
 		txDecodeCmd,
 		txSignCmd,
+		msgSignCmd,
 	}
 
 	if len(os.Args) == 1 {
@@ -448,7 +472,6 @@ NOX is the 64 bit spend amount in nox.`)
 			str := strings.TrimSpace(string(src))
 			base58Encode(str)
 		}
-
 	}
 	// Handle base58-decode
 	if base58DecodeCmd.Parsed(){
@@ -466,6 +489,42 @@ NOX is the 64 bit spend amount in nox.`)
 			}
 			str := strings.TrimSpace(string(src))
 			base58Decode(str)
+		}
+	}
+
+	if base64EncodeCmd.Parsed(){
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				base64EncodeCmd.Usage()
+			}else{
+				base64Encode(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			base64Encode(str)
+		}
+	}
+
+	if base64DecodeCmd.Parsed(){
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				base64DecodeCmd.Usage()
+			}else{
+				base64Decode(os.Args[len(os.Args)-1])
+			}
+		}else {  //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			base64Decode(str)
 		}
 	}
 
@@ -978,6 +1037,17 @@ NOX is the 64 bit spend amount in nox.`)
 			}
 			str := strings.TrimSpace(string(src))
 			txSign(privateKey, str)
+		}
+	}
+
+	if msgSignCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				msgSignCmd.Usage()
+			}else{
+				msgSign(msgSignatureMode,os.Args[len(os.Args)-2],os.Args[len(os.Args)-1])
+			}
 		}
 	}
 }
