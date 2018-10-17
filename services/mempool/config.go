@@ -8,10 +8,11 @@ package mempool
 import (
 	"time"
 	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/services/index"
 )
 
 const (
@@ -64,6 +65,16 @@ type Config struct {
 
 	// SigCache defines a signature cache to use.
 	SigCache *txscript.SigCache
+
+	// AddrIndex defines the optional address index instance to use for
+	// indexing the unconfirmed transactions in the memory pool.
+	// This can be nil if the address index is not enabled.
+	AddrIndex *index.AddrIndex
+
+	// ExistsAddrIndex defines the optional exists address index instance
+	// to use for indexing the unconfirmed transactions in the memory pool.
+	// This can be nil if the address index is not enabled.
+	ExistsAddrIndex *index.ExistsAddrIndex
 
 }
 

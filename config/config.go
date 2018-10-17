@@ -36,7 +36,7 @@ type Config struct {
 	FreeTxRelayLimit     float64       `long:"limitfreerelay" description:"Limit relay of transactions with no transaction fee to the given amount in thousands of bytes per minute"`
 	AcceptNonStd         bool          `long:"acceptnonstd" description:"Accept and relay non-standard transactions to the network regardless of the default settings for the active network."`
 	MaxOrphanTxs         int           `long:"maxorphantx" description:"Max number of orphan transactions to keep in memory"`
-	MinRelayTxFee        int64
+	MinRelayTxFee        int64         `long:"minrelaytxfee" description:"The minimum transaction fee in NOX/kB to be considered a non-zero fee."`
 	// Miner
 	Generate             bool          `long:"generate" description:"Generate (mine) coins using the CPU"`
 	MiningAddrs          []string      `long:"miningaddr" description:"Add the specified payment address to the list of addresses to use for generated blocks -- At least one address is required if the generate option is set"`

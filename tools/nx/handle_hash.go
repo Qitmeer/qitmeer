@@ -44,6 +44,22 @@ func blake2b512(input string){
 	fmt.Printf("%x\n",hash.Hash512B(data))
 }
 
+func sha3_256(input string){
+	data, err :=hex.DecodeString(input)
+	if err != nil {
+		errExit(err)
+	}
+	fmt.Printf("%x\n",hash.CalcHash(data,hash.GetHasher(hash.SHA3_256)))
+}
+
+func keccak256(input string){
+	data, err :=hex.DecodeString(input)
+	if err != nil {
+		errExit(err)
+	}
+	fmt.Printf("%x\n",hash.CalcHash(data,hash.GetHasher(hash.Keccak_256)))
+}
+
 func ripemd160(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {

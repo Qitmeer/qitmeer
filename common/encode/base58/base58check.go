@@ -9,8 +9,9 @@ package base58
 import (
 	"errors"
 	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/hash/dcr"
 	"github.com/noxproject/nox/common/hash/btc"
+	"github.com/noxproject/nox/common/hash/dcr"
+	"reflect"
 )
 
 // ErrChecksum indicates that the checksum of a check-encoded string does not verify against
@@ -21,93 +22,102 @@ var ErrChecksum = errors.New("checksum error")
 var ErrInvalidFormat = errors.New("invalid format: version and/or checksum bytes missing")
 
 // btc checksum: first four bytes of double-sha256.
-func checksum_btc(input []byte) (cksum [4]byte) {
+func checksum_btc(input []byte) ([]byte) {
 	h := btc.DoubleHashB(input)
+	var cksum [4]byte
 	copy(cksum[:],h[:])
-	return
+	return cksum[:]
 }
 // dcr checksum: first four bytes of double-BLAKE256.
-func checksum_dcr(input []byte) (cksum [4]byte) {
+func checksum_dcr(input []byte) ([]byte) {
 	h := dcr.DoubleHashB(input)
+	var cksum [4]byte
 	copy(cksum[:],h[:])
-	return
+	return cksum[:]
 }
 // checksum: first four bytes of double-BLAKEb.
-func checksum(input []byte) (cksum [4]byte) {
+func checksum_nox(input []byte) []byte {
 	h := hash.DoubleHashB(input)
+	var cksum [4]byte
 	copy(cksum[:],h[:])
-	return
+	return cksum[:]
 }
 
-func CheckInput(mode, input string) ([]byte, error){
-	decoded := Decode(input)
-	var cksum [4]byte
-	copy(cksum[:], decoded[len(decoded)-4:])
-	switch mode{
-	case "btc":
-		if checksum_btc(decoded[:len(decoded)-4]) != cksum {
-			return nil, ErrChecksum
-		}
-	default:
-		if checksum(decoded[:len(decoded)-4]) != cksum {
-			return nil, ErrChecksum
-		}
+func checksum_ss(input []byte) []byte {
+	return SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_512),2)(input)
+}
+
+func SingleHashChecksumFunc(hasher hash.Hasher, cksum_size int) (func([]byte) []byte) {
+	return func (input []byte) ([]byte) {
+		h := hash.CalcHash(input,hasher)
+		var cksum []byte
+		cksum = append(cksum,h[:cksum_size]...)
+		return cksum[:]
 	}
-	return cksum[:],nil
+}
+
+func DoubleHashChecksumFunc(hasher hash.Hasher,cksum_size int) (func([]byte) []byte) {
+	return func (input []byte) ([]byte) {
+		first := hash.CalcHash(input,hasher)
+		second := hash.CalcHash(first[:],hasher)
+		var cksum []byte
+		cksum = append(cksum,second[:cksum_size]...)
+		return cksum[:]
+	}
 }
 
 // CheckEncode prepends two version bytes and appends a four byte checksum.
-func CheckEncode(input []byte, version [2]byte) string {
-	return checkEncode(input,version[:],checksum)
+func NoxCheckEncode(input []byte, version []byte) string {
+	return CheckEncode(input,version[:],4,checksum_nox)
 }
 
 func DcrCheckEncode(input []byte, version [2]byte) string{
-	return checkEncode(input,version[:],checksum_dcr)
+	return CheckEncode(input,version[:],4,checksum_dcr)
 }
 func BtcCheckEncode(input []byte, version byte) string{
 	var ver []byte
 	ver = append(ver,version)
-	return checkEncode(input,ver[:],checksum_btc)
+	return CheckEncode(input,ver[:],4,checksum_btc)
 }
 
-func checkEncode(input []byte, version []byte, cksumfunc func([]byte) [4]byte) string{
-	b := make([]byte, 0, len(version)+len(input)+4)
+func CheckEncode(input []byte, version []byte, cksum_size int, cksumfunc func([]byte) []byte) string{
+	b := make([]byte, 0, len(version)+len(input)+cksum_size)
 	b = append(b, version[:]...)
 	b = append(b, input[:]...)
-	var cksum [4]byte
+	var cksum []byte
 	cksum = cksumfunc(b)
 	b = append(b, cksum[:]...)
 	return Encode(b)
 }
 
-func checkDecode(input string, version_size int, cksumfunc func([]byte) [4]byte) (result []byte, version [2]byte, err error) {
+func CheckDecode(input string, version_size , cksum_size int, cksumfunc func([]byte) []byte) (result []byte, version []byte, err error) {
 	decoded := Decode(input)
-	if len(decoded) < 4 + version_size {
-		return nil, [2]byte{0, 0}, ErrInvalidFormat
+	if len(decoded) < cksum_size + version_size {
+		return nil, []byte{}, ErrInvalidFormat
 	}
-	if version_size == 1 {
-		version = [2]byte{decoded[0], 0}
-	}else{
-		version = [2]byte{decoded[0],decoded[1]}
+	version = append(version,decoded[:version_size]...)
+	var cksum []byte
+	cksum = append(cksum, decoded[len(decoded)-cksum_size:]...)
+	if !reflect.DeepEqual(cksumfunc(decoded[:len(decoded)-cksum_size]),cksum[:]) {
+		return nil, []byte{}, ErrChecksum
 	}
-	var cksum [4]byte
-	copy(cksum[:], decoded[len(decoded)-4:])
-	if cksumfunc(decoded[:len(decoded)-4]) != cksum {
-		return nil, [2]byte{0, 0}, ErrChecksum
-	}
-	payload := decoded[version_size : len(decoded)-4]
+	payload := decoded[version_size : len(decoded)-cksum_size]
 	result = append(result, payload...)
 	return
 }
 
-// CheckDecode decodes a string that was encoded with CheckEncode and verifies
-// the checksum.
-func CheckDecode(input string) (result []byte, version [2]byte, err error) {
-	return checkDecode(input,2, checksum)
+// NoxCheckDecode decodes a string that was encoded with 2 bytes version and verifies
+// the checksum using blake2b-256 hash.
+func NoxCheckDecode(input string) (result []byte, version [2]byte, err error) {
+	r,v,err := CheckDecode(input,2, 4,checksum_nox)
+	if err!=nil{
+		return nil, [2]byte{},err
+	}
+	return r, [2]byte{v[0],v[1]}, nil
 }
 
 func BtcCheckDecode(input string) (result []byte, version byte, err error) {
-	r,v,err := checkDecode(input, 1, checksum_btc)
+	r,v,err := CheckDecode(input, 1, 4,checksum_btc)
 	if err!=nil{
 		return nil,0,err
 	}
@@ -116,6 +126,10 @@ func BtcCheckDecode(input string) (result []byte, version byte, err error) {
 
 
 func DcrCheckDecode(input string) (result []byte, version [2]byte, err error) {
-	return checkDecode(input,2, checksum_dcr)
+	r,v,err := CheckDecode(input,2, 4,checksum_dcr)
+	if err!=nil{
+		return nil, [2]byte{},err
+	}
+	return r, [2]byte{v[0],v[1]}, nil
 }
 

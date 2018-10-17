@@ -10,16 +10,13 @@ import (
 	"github.com/noxproject/nox/common/hash"
 )
 
-func ecPubKeyToAddress(pubkey string) {
+func ecPubKeyToAddress(version []byte, pubkey string) {
 	data, err :=hex.DecodeString(pubkey)
 	if err != nil {
 		errExit(err)
 	}
 	h := hash.Hash160(data)
-	defaultVer, err := hex.DecodeString(base58CheckVer)
-	if err !=nil {
-		errExit(err)
-	}
-	address := base58.CheckEncode(h, [2]byte{defaultVer[0],defaultVer[1]})
+
+	address := base58.NoxCheckEncode(h, version[:])
 	fmt.Printf("%s\n",address)
 }

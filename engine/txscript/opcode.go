@@ -2487,7 +2487,7 @@ func opcodeHash160(op *ParsedOpcode, vm *Engine) error {
 
 	h := hash.HashB(buf)
 	// TODO, remove hard coding
-	if vm.scriptTx.GetType() == types.BtcScriptTx {
+	if vm.scriptTx!=nil && vm.scriptTx.GetType() == types.BtcScriptTx {
 		h = btc.HashB(buf)
 	}
 	vm.dstack.PushByteArray(calcHash(h[:], ripemd160.New()))
@@ -2581,7 +2581,7 @@ func opcodeCheckSig(op *ParsedOpcode, vm *Engine) error {
 	}
 	// TODO, remove the hardcoded BTC handing
 	var h []byte
-	if vm.scriptTx.GetType() == types.BtcScriptTx {
+	if vm.scriptTx!=nil && vm.scriptTx.GetType() == types.BtcScriptTx {
 		h = calcSignatureHash_btc(subScript, hashType, vm.scriptTx, vm.txIdx)
 	}else {
 		h, err = calcSignatureHash(subScript, hashType, &vm.tx, vm.txIdx,

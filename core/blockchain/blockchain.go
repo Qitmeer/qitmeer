@@ -1002,7 +1002,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	b.stateLock.Unlock()
 
 	// Assemble the current block and the parent into a slice.
-	blockAndParent := []*types.SerializedBlock{block}
+	blockAndParent := []*types.SerializedBlock{block, parent}
 
 	// Notify the caller that the block was connected to the main chain.
 	// The caller would typically want to react with actions such as

@@ -3,6 +3,7 @@
 package util
 
 import (
+	"encoding/hex"
 	"math/big"
 	"log"
 )
@@ -17,4 +18,13 @@ func FromHex(hex string) *big.Int {
 		log.Fatalln("bad number: " + hex)
 	}
 	return i
+}
+
+// MustHex2Bytes returns the bytes represented by the hexadecimal string str. Must means panic when err
+func MustHex2Bytes(str string) []byte {
+	h, err := hex.DecodeString(str)
+	if err !=nil {
+		panic(err)
+	}
+	return h
 }

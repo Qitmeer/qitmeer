@@ -6,6 +6,7 @@ import (
 
 // Calculate the hash of hasher over buf.
 func CalcHash(buf []byte, hasher h.Hash) []byte {
+	defer hasher.Reset()
 	hasher.Write(buf)
 	return hasher.Sum(nil)
 }

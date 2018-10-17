@@ -298,21 +298,36 @@ func (tx *Transaction) Serialize(serType TxSerializeType) ([]byte, error) {
 	switch serType {
 	case TxSerializeNoWitness:
 		buf := bytes.NewBuffer(make([]byte, 0, txCopy.SerializeSizeNoWitness()))
-		err := tx.encodePrefix(buf,0)
+		serializedVersion := uint32(txCopy.Version) | uint32(serType)<<16
+		err := s.BinarySerializer.PutUint32(buf, binary.LittleEndian, serializedVersion)
+		if err != nil {
+			return nil,err
+		}
+		err = tx.encodePrefix(buf,0)
 		if err != nil {
 			return nil,err
 		}
 		return buf.Bytes(), nil
 	case TxSerializeOnlyWitness:
 		buf := bytes.NewBuffer(make([]byte, 0, txCopy.SerializeSizeOnlyWitness()))
-		err := tx.encodeWitness(buf, 0)
+		serializedVersion := uint32(txCopy.Version) | uint32(serType)<<16
+		err := s.BinarySerializer.PutUint32(buf, binary.LittleEndian, serializedVersion)
+		if err != nil {
+			return nil,err
+		}
+		err = tx.encodeWitness(buf, 0)
 		if err != nil {
 			return nil,err
 		}
 		return buf.Bytes(), nil
 	case TxSerializeFull:
 		buf := bytes.NewBuffer(make([]byte, 0, txCopy.SerializeSize()))
-		err := tx.encodePrefix(buf,0)
+		serializedVersion := uint32(txCopy.Version) | uint32(serType)<<16
+		err := s.BinarySerializer.PutUint32(buf, binary.LittleEndian, serializedVersion)
+		if err != nil {
+			return nil,err
+		}
+		err = tx.encodePrefix(buf,0)
 		if err != nil {
 			return nil,err
 		}

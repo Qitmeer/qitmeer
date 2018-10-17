@@ -357,7 +357,7 @@ func (vm *Engine) Execute() (err error) {
 
 	done := false
 	for !done {
-		log.Trace("%v", newLogClosure(func() string {
+		log.Trace("tx-engine executing","step", newLogClosure(func() string {
 			dis, err := vm.DisasmPC()
 			if err != nil {
 				return fmt.Sprintf("stepping (%v)", err)
@@ -369,7 +369,7 @@ func (vm *Engine) Execute() (err error) {
 		if err != nil {
 			return err
 		}
-		log.Trace("%v", newLogClosure(func() string {
+		log.Trace(fmt.Sprintf("%v", newLogClosure(func() string {
 			var dstr, astr string
 
 			// if we're tracing, dump the stacks.
@@ -381,7 +381,7 @@ func (vm *Engine) Execute() (err error) {
 			}
 
 			return dstr + astr
-		}))
+		})))
 	}
 
 	return vm.CheckErrorCondition(true)

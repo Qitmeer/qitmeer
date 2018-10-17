@@ -74,7 +74,7 @@ func TestNoxBase58CheckEncode(t *testing.T) {
 	}
 	*/
 	for _, addrtest := range testAddresses {
-		encoded := base58.CheckEncode(data, addrtest.ver)
+		encoded := base58.NoxCheckEncode(data, addrtest.ver[:])
 		assert.Equal(t,fmt.Sprintf("%s",encoded),addrtest.addr)
 	}
 }

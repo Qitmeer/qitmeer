@@ -228,7 +228,7 @@ func deserializeSpendJournalEntry(serialized []byte, txns []*types.Transaction) 
 	for _, tx := range txns {
 		txType := types.DetermineTxType(tx)
 		if (txType != types.TxTypeRegular){
-			panicf("txType not TxTypeRegular, type=%s",txType)
+			panicf("txType not TxTypeRegular, type=%v",txType)
 		}
 
 		numStxos += len(tx.TxIn)

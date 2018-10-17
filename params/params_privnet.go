@@ -66,18 +66,17 @@ var PrivNetParams = Params{
 
 	// Address encoding magics
 	NetworkAddressPrefix: "R",
-	PubKeyAddrID:         [2]byte{0x0d, 0xee}, // starts with Rk
+	PubKeyAddrID:         [2]byte{0x0d, 0xef}, // starts with Rk
 	PubKeyHashAddrID:     [2]byte{0x0d, 0xf1}, // starts with Rm
 	PKHEdwardsAddrID:     [2]byte{0x0d, 0xdf}, // starts with Re
 	PKHSchnorrAddrID:     [2]byte{0x0d, 0xfd}, // starts with Rr
-	ScriptHashAddrID:     [2]byte{0x0e, 0x01}, // starts with Rs
+	ScriptHashAddrID:     [2]byte{0x0d, 0xc2}, // starts with RS
 	PrivateKeyID:         [2]byte{0x0c, 0xdd}, // starts with Pr
 
 
 	// BIP32 hierarchical deterministic extended key magics
-	// TODO HD key magics
-	HDPrivateKeyID: [4]byte{0x04, 0x20, 0xb9, 0x03}, // starts with rprv
-	HDPublicKeyID:  [4]byte{0x04, 0x20, 0xbd, 0x3d}, // starts with rpub
+	HDPrivateKeyID: [4]byte{0x04, 0x0b, 0xee, 0x6e}, // starts with rprv
+	HDPublicKeyID:  [4]byte{0x04, 0x0b, 0xf2, 0xa7}, // starts with rpub
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
@@ -85,7 +84,7 @@ var PrivNetParams = Params{
 	HDCoinType: 115, // ASCII for s
 
 	// TODO replace the test pkh
-	OrganizationPkScript:  hexMustDecode("76a91464e20eb6075561d30c23a517c5b73badbc120f0588ac"),
+	OrganizationPkScript:  hexMustDecode("76a914699e7e705893b4e7b3f9742ca55a743c7167288a88ac"),
 
 	CoinbaseMaturity: 16,
 

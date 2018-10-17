@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
+# 
+# echo 7e445aa5ffd834cb2d3b2db50f8997dd21af29bec3d296aaa066d902b93f484b|nx ec-new |nx ec-to-public |nx ec-to-addr
+# RmFa5hnPd3uQRpzr3xWTfr8EFZdX7dS1qzV
+# echo 7025927350b0f968c4a012df2b30cc494786cfff55b177d199069d9bc5aa4035|nx ec-new |nx ec-to-public |nx ec-to-addr
+# RmG6xQsV7gnS4JZmoq5FgmyEbmUQRenrTCo
 network="--privnet"
-mining="--miningaddr RmFUBXUpN3W6bSgaBHpPQzQ7pXNb3fG59Kn"
+mining="--miningaddr RmFa5hnPd3uQRpzr3xWTfr8EFZdX7dS1qzV"
 debug="-d trace --printorigin"
 rpc="--listen 127.0.0.1:1234 --rpcuser test --rpcpass test"
 path="-b "$(pwd)
