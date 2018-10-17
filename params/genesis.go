@@ -73,7 +73,7 @@ var genesisBlock = types.Block{
 		//UtxoCommitment: types.Hash{},
 		//CompactFilter: types.Hash{},
 		StateRoot:	 hash.Hash{},
-		Timestamp:    time.Unix(1530833717, 0), // 2018-07-05 23:35:17 GMT
+		Timestamp:    time.Unix(1561939200, 0), // 2019-07-01 00:00:00 GMT
 		Difficulty:         0x1b01ffff,               // Difficulty 32767
 		Nonce:        0x00000000,
 	},
@@ -101,7 +101,7 @@ var testNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
 		ParentRoot:   hash.Hash{},
 		TxRoot:       testNetGenesisMerkleRoot,
-		Timestamp:    time.Unix(1489550400, 0), // 2017-03-15 TestNet10
+		Timestamp:    time.Unix(1546300800, 0), // 2019-01-01 00:00:00 GMT
 		Difficulty:   0x1e00ffff,
 		Nonce:        0x18aea41a,
 	},
@@ -181,7 +181,7 @@ var privNetGenesisBlock = types.Block{
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		}),
-		Timestamp:    time.Unix(1401292357, 0), // 2009-01-08 20:54:25 -0600 CST
+		Timestamp:    time.Unix(1530833717, 0), // 2018-07-05 23:35:17 GMT
 		Difficulty:   0x207fffff, // 545259519
 		Nonce:        0,
 		Height:       0,
