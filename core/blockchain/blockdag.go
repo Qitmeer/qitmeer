@@ -7,6 +7,7 @@ import (
 	"time"
 	"github.com/noxproject/nox/common/hash"
 	"fmt"
+	"github.com/noxproject/nox/common/anticone"
 )
 
 type BlockDAG struct {
@@ -47,6 +48,10 @@ type BlockDAG struct {
 
 	// This is time when the last block have added
 	lastTime time.Time
+
+	// The block anticone size is all in the DAG which did not reference it and
+	// were not referenced by it.
+	anticoneSize int
 }
 
 func (bd *BlockDAG) Init(bch *BlockChain){
@@ -54,6 +59,11 @@ func (bd *BlockDAG) Init(bch *BlockChain){
 	bd.totalBlocks=0
 	//bd.genesis=&bd.Genesis().hash
 	bd.lastTime=time.Unix(time.Now().Unix(), 0)
+
+	bd.anticoneSize = anticone.GetSize(bd.bc.params.BlockDelay,bd.bc.params.BlockRate,
+		bd.bc.params.SecurityLevel)
+
+	log.Info(fmt.Sprintf("anticone size:%d",bd.anticoneSize))
 }
 
 func (bd *BlockDAG) Genesis() *blockNode {
@@ -616,7 +626,7 @@ func (bd *BlockDAG) calculateBlueSet(parents *BlockSet, exclude *BlockSet, pastB
 				inBS.AddSet(inPBS)
 			}
 
-			if inBS == nil || uint32(inBS.Len()) <= bd.bc.params.AnticoneSize {
+			if inBS == nil || inBS.Len() <= bd.anticoneSize {
 				result.Add(&k)
 			}
 		}

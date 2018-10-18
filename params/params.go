@@ -260,7 +260,9 @@ type Params struct {
 	BlockOneLedger []*TokenPayout
 
 	//DAG
-	AnticoneSize uint32
+	BlockDelay    float64
+	BlockRate     float64
+	SecurityLevel float64
 }
 
 // TokenPayout is a payout for block 1 which specifies an address and an amount
