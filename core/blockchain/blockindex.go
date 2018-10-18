@@ -143,6 +143,7 @@ func (bi *blockIndex) UnsetStatusFlags(node *blockNode, flags blockStatus) {
 	bi.Unlock()
 }
 
+// This function can get backward block hash from list.
 func (bi *blockIndex)GetMaxOrderFromList(list []*hash.Hash) *hash.Hash{
 	var maxOrder uint64=0
 	var maxHash *hash.Hash=nil

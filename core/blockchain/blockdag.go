@@ -10,44 +10,67 @@ import (
 )
 
 type BlockDAG struct {
+	// The outer layer block chain,it can use to interaction with the block dag.
 	bc *BlockChain
+
+	// The genesis of block dag
 	genesis hash.Hash
 
 	mtx   sync.Mutex
 
+	// The total number blocks that this dag currently owned
 	totalBlocks      uint
 
-	publicBlueSet    *BlockSet
+	// This is a set that only include honest block and it is the common part of each
+	// tips in the block dag, so it is a blue set too.
+	commonBlueSet    *BlockSet
+
+	// This is a set that only include honest block exclude from "commonBlueSet",
+	// but it's not very stable.
 	tempBlueSet      *BlockSet
 
-	lastPublicBlocks *BlockSet
+	lastCommonBlocks *BlockSet
 
-	publicOrder      []*hash.Hash
+	// Well understood,this orderly array is the sorting of common set.
+	commonOrder      []*hash.Hash
+
+	// This orderly array is the sorting of the end of dag set.
 	tempOrder        []*hash.Hash
+
+	// The terminal block is in block dag,this block have not any connecting at present.
 	tips             *BlockSet
-	//
+
+	// If it happens that during two propagation delays only one block is created, this block is called hourglass block.
+	// This means it reference all the tips and is reference by all following blocks.
+	// Hourglass block is a strong signal of finality because its blue set is stable.
 	hourglassBlocks *BlockSet
 
+	// This is time when the last block have added
 	lastTime time.Time
 }
+
 func (bd *BlockDAG) Init(bch *BlockChain){
 	bd.bc=bch
 	bd.totalBlocks=0
 	//bd.genesis=&bd.Genesis().hash
 	bd.lastTime=time.Unix(time.Now().Unix(), 0)
 }
+
 func (bd *BlockDAG) Genesis() *blockNode {
 	if bd.bc.params!=nil {
 		return bd.bc.index.LookupNode(bd.bc.params.GenesisHash)
 	}
 	return nil
 }
+
 func (bd *BlockDAG) GetTips() *BlockSet {
 	return bd.tips
 }
+
 func (bd *BlockDAG) SetTips(bs *BlockSet){
 	bd.tips=bs
 }
+
 func (bd *BlockDAG) GetNodeTips() []*blockNode {
 	result:=[]*blockNode{}
 	for k,_:=range bd.tips.GetMap(){
@@ -55,6 +78,9 @@ func (bd *BlockDAG) GetNodeTips() []*blockNode {
 	}
 	return result
 }
+
+// This is an entry for update the block dag,you need pass in a block parameter,
+// If add block have failure,it will return false.
 func (bd *BlockDAG) AddBlock(b *blockNode) *list.List {
 	if b == nil {
 		return nil
@@ -77,11 +103,12 @@ func (bd *BlockDAG) AddBlock(b *blockNode) *list.List {
 	bd.calculatePastBlockSetNum(b)
 	//
 	//obs:=NewBlockSet()
-	bd.updatePublicBlueSet(&b.hash)
+	bd.updateCommonBlueSet(&b.hash)
 	bd.updateHourglass()
 
 	return	bd.updateOrder(b)
 }
+
 func (bd *BlockDAG) updateTips(b *blockNode) {
 	if bd.tips == nil {
 		bd.tips = NewBlockSet()
@@ -100,12 +127,15 @@ func (bd *BlockDAG) updateTips(b *blockNode) {
 	}
 	bd.tips.Add(&b.hash)
 }
+
 func (bd *BlockDAG) addPastSetNum(b *blockNode, num uint64) {
 	b.pastSetNum=num
 }
+
 func (bd *BlockDAG) GetPastSetNum(b *blockNode) uint64 {
 	return b.pastSetNum
 }
+
 func isVirtualTip(b *blockNode, futureSet *BlockSet, anticone *BlockSet, children *BlockSet) bool {
 	for k, _ := range children.GetMap() {
 		if k.IsEqual(&b.hash) {
@@ -117,6 +147,7 @@ func isVirtualTip(b *blockNode, futureSet *BlockSet, anticone *BlockSet, childre
 	}
 	return true
 }
+
 func (bd *BlockDAG) recAnticone(b *blockNode, futureSet *BlockSet, anticone *BlockSet, h *hash.Hash) {
 	if h.IsEqual(&b.hash) {
 		return
@@ -134,12 +165,16 @@ func (bd *BlockDAG) recAnticone(b *blockNode, futureSet *BlockSet, anticone *Blo
 			anticone.Add(h)
 		}
 		parents := node.parents
-		//因为parents不可能为空  所以不用判断了
+
+		//Because parents can not be empty, so there is no need to judge.
 		for _, v := range parents {
 			bd.recAnticone(b, futureSet, anticone, &v.hash)
 		}
 	}
 }
+
+// This function can get anticone set for an block that you offered in the block dag,If
+// the exclude set is not empty,the final result will exclude set that you passed in.
 func (bd *BlockDAG) GetAnticone(b *blockNode, exclude *BlockSet) *BlockSet {
 	futureSet := NewBlockSet()
 	bd.GetFutureSet(futureSet, b)
@@ -152,6 +187,7 @@ func (bd *BlockDAG) GetAnticone(b *blockNode, exclude *BlockSet) *BlockSet {
 	}
 	return anticone
 }
+
 func (bd *BlockDAG) GetFutureSet(fs *BlockSet, b *blockNode) {
 	children := b.children
 	if children == nil || len(children) == 0 {
@@ -164,6 +200,7 @@ func (bd *BlockDAG) GetFutureSet(fs *BlockSet, b *blockNode) {
 		}
 	}
 }
+
 func (bd *BlockDAG) calculatePastBlockSetNum(b *blockNode) {
 
 	if b.hash.IsEqual(&bd.genesis) {
@@ -184,6 +221,7 @@ func (bd *BlockDAG) calculatePastBlockSetNum(b *blockNode) {
 
 	bd.addPastSetNum(b, bd.GetPastSetNum(parentsList[0])+uint64(anOther.Len())+1)
 }
+
 func (bd *BlockDAG) sortBlockSet(set *BlockSet, bs *BlockSet) SortBlocks {
 	sb0 := SortBlocks{}
 	sb1 := SortBlocks{}
@@ -203,6 +241,7 @@ func (bd *BlockDAG) sortBlockSet(set *BlockSet, bs *BlockSet) SortBlocks {
 	sb0 = append(sb0, sb1...)
 	return sb0
 }
+
 func (bd *BlockDAG) getPastSetByOrder(pastSet *BlockSet, exclude *BlockSet, h *hash.Hash) {
 	if exclude.Has(h) || pastSet.Has(h) {
 		return
@@ -223,6 +262,7 @@ func (bd *BlockDAG) getPastSetByOrder(pastSet *BlockSet, exclude *BlockSet, h *h
 		bd.getPastSetByOrder(pastSet, exclude, v)
 	}
 }
+
 func (bd *BlockDAG) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, bs *BlockSet, h *hash.Hash, exclude *BlockSet) {
 
 	if exclude != nil && exclude.Has(h) {
@@ -244,7 +284,7 @@ func (bd *BlockDAG) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, 
 
 	//
 	if !tempOrderM.Has(h) {
-		if !bd.genesis.IsEqual(h) && !bd.lastPublicBlocks.Has(h) {
+		if !bd.genesis.IsEqual(h) && !bd.lastCommonBlocks.Has(h) {
 			anticone = bd.GetAnticone(node, exclude)
 			//
 			if !anticone.IsEmpty() {
@@ -342,18 +382,19 @@ func (bd *BlockDAG) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, 
 		}
 	}
 }
-func (bd *BlockDAG) updatePublicOrder(tip *hash.Hash, blueSet *BlockSet, isRollBack bool, exclude *BlockSet, curLastPublicBS *BlockSet, startIndex int) {
+
+func (bd *BlockDAG) updateCommonOrder(tip *hash.Hash, blueSet *BlockSet, isRollBack bool, exclude *BlockSet, curLastCommonBS *BlockSet, startIndex int) {
 
 	if tip.IsEqual(&bd.genesis) {
-		bd.publicOrder = []*hash.Hash{}
+		bd.commonOrder = []*hash.Hash{}
 		return
 	}
 	node:=bd.bc.index.LookupNode(tip)
 	parents := node.GetParentsSet()
 
 	if parents.HasOnly(&bd.genesis) {
-		if len(bd.publicOrder) == 0 {
-			bd.publicOrder = append(bd.publicOrder, &bd.genesis)
+		if len(bd.commonOrder) == 0 {
+			bd.commonOrder = append(bd.commonOrder, &bd.genesis)
 		}
 	}
 
@@ -364,7 +405,7 @@ func (bd *BlockDAG) updatePublicOrder(tip *hash.Hash, blueSet *BlockSet, isRollB
 		tempOrder := []*hash.Hash{}
 		tempOrderM := NewBlockSet()
 
-		lpsb := bd.sortBlockSet(bd.lastPublicBlocks, blueSet)
+		lpsb := bd.sortBlockSet(bd.lastCommonBlocks, blueSet)
 
 		for _, v := range lpsb {
 			bd.GetTempOrder(&tempOrder, tempOrderM, blueSet, v.h, exclude)
@@ -372,22 +413,22 @@ func (bd *BlockDAG) updatePublicOrder(tip *hash.Hash, blueSet *BlockSet, isRollB
 		toLen := len(tempOrder)
 		var poLen int = 0
 		for i := 0; i < toLen; i++ {
-			if bd.lastPublicBlocks.Has(tempOrder[i]) {
+			if bd.lastCommonBlocks.Has(tempOrder[i]) {
 				continue
 			}
 			index := startIndex + i
-			poLen = len(bd.publicOrder)
+			poLen = len(bd.commonOrder)
 			if index < poLen {
-				bd.publicOrder[index] = tempOrder[i]
+				bd.commonOrder[index] = tempOrder[i]
 			} else {
-				bd.publicOrder = append(bd.publicOrder, tempOrder[i])
+				bd.commonOrder = append(bd.commonOrder, tempOrder[i])
 			}
 		}
-		poLen = len(bd.publicOrder)
+		poLen = len(bd.commonOrder)
 		for i := poLen - 1; i >= 0; i-- {
-			if bd.publicOrder[i]!=nil {
-				if !curLastPublicBS.Has(bd.publicOrder[i]) {
-					log.Error("order errer:end block is not new public block")
+			if bd.commonOrder[i]!=nil {
+				if !curLastCommonBS.Has(bd.commonOrder[i]) {
+					log.Error("order errer:end block is not new common block")
 				}
 				break
 			}
@@ -395,13 +436,13 @@ func (bd *BlockDAG) updatePublicOrder(tip *hash.Hash, blueSet *BlockSet, isRollB
 		}
 
 	} else {
-		poLen := len(bd.publicOrder)
+		poLen := len(bd.commonOrder)
 		rNum := 0
 		for i := poLen - 1; i >= 0; i-- {
-			if curLastPublicBS.Has(bd.publicOrder[i]) {
+			if curLastCommonBS.Has(bd.commonOrder[i]) {
 				break
 			}
-			bd.publicOrder[i] = nil
+			bd.commonOrder[i] = nil
 			rNum++
 		}
 		if (poLen - rNum) != startIndex {
@@ -409,6 +450,7 @@ func (bd *BlockDAG) updatePublicOrder(tip *hash.Hash, blueSet *BlockSet, isRollB
 		}
 	}
 }
+
 func (bd *BlockDAG) recPastBlockSet(genealogy *BlockSet, tipsAncestors *map[hash.Hash]*BlockSet, tipsGenealogy *map[hash.Hash]*BlockSet) {
 
 	var maxPastHash *hash.Hash = nil
@@ -453,7 +495,8 @@ func (bd *BlockDAG) recPastBlockSet(genealogy *BlockSet, tipsAncestors *map[hash
 
 	}
 }
-func (bd *BlockDAG) calLastPublicBlocks(tip *hash.Hash) *BlockSet {
+
+func (bd *BlockDAG) calLastCommonBlocks(tip *hash.Hash) *BlockSet {
 	tips := bd.GetTips()
 	if tips == nil {
 		return nil
@@ -491,15 +534,16 @@ func (bd *BlockDAG) calLastPublicBlocks(tip *hash.Hash) *BlockSet {
 	}
 	return tipsAncestors[*tip]
 }
-func (bd *BlockDAG) calLastPublicBlocksPBS(pastBlueSet *map[hash.Hash]*BlockSet) {
+
+func (bd *BlockDAG) calLastCommonBlocksPBS(pastBlueSet *map[hash.Hash]*BlockSet) {
 	/////
 	lastPFuture := NewBlockSet()
-	for k, _ := range bd.lastPublicBlocks.GetMap() {
+	for k, _ := range bd.lastCommonBlocks.GetMap() {
 		bd.GetFutureSet(lastPFuture, bd.bc.index.LookupNode(&k))
 	}
 
-	if bd.lastPublicBlocks.Len() == 1 {
-		lpbHash := bd.lastPublicBlocks.List()[0]
+	if bd.lastCommonBlocks.Len() == 1 {
+		lpbHash := bd.lastCommonBlocks.List()[0]
 		if pastBlueSet != nil {
 			(*pastBlueSet)[*lpbHash] = NewBlockSet()
 		}
@@ -510,17 +554,17 @@ func (bd *BlockDAG) calLastPublicBlocksPBS(pastBlueSet *map[hash.Hash]*BlockSet)
 		lastTempBlueSet := NewBlockSet()
 		lpbAnti := make(map[hash.Hash]*BlockSet)
 
-		for k, _ := range bd.lastPublicBlocks.GetMap() {
+		for k, _ := range bd.lastCommonBlocks.GetMap() {
 			lpbAnti[k] = bd.GetAnticone(bd.bc.index.LookupNode(&k), lastPFuture)
 			lastTempBlueSet.AddSet(lpbAnti[k])
 		}
 		if pastBlueSet != nil {
 			for k, _ := range lastTempBlueSet.GetMap() {
-				if !bd.publicBlueSet.Has(&k) {
+				if !bd.commonBlueSet.Has(&k) {
 					lastTempBlueSet.Remove(&k)
 				}
 			}
-			for k, _ := range bd.lastPublicBlocks.GetMap() {
+			for k, _ := range bd.lastCommonBlocks.GetMap() {
 				(*pastBlueSet)[k] = lastTempBlueSet.Clone()
 				(*pastBlueSet)[k].Exclude(lpbAnti[k])
 				(*pastBlueSet)[k].Remove(&k)
@@ -529,7 +573,8 @@ func (bd *BlockDAG) calLastPublicBlocksPBS(pastBlueSet *map[hash.Hash]*BlockSet)
 
 	}
 }
-func (bd *BlockDAG) calculateBlueSet(parents *BlockSet, exclude *BlockSet, pastBlueSet *map[hash.Hash]*BlockSet, usePublic bool) *BlockSet {
+
+func (bd *BlockDAG) calculateBlueSet(parents *BlockSet, exclude *BlockSet, pastBlueSet *map[hash.Hash]*BlockSet, useCommon bool) *BlockSet {
 
 	parentsPBSS := make(map[hash.Hash]*BlockSet)
 	for k, _ := range parents.GetMap() {
@@ -566,8 +611,8 @@ func (bd *BlockDAG) calculateBlueSet(parents *BlockSet, exclude *BlockSet, pastB
 				continue
 			}
 			inBS := result.Intersection(bAnBS)
-			if usePublic {
-				inPBS := bd.publicBlueSet.Intersection(bAnBS)
+			if useCommon {
+				inPBS := bd.commonBlueSet.Intersection(bAnBS)
 				inBS.AddSet(inPBS)
 			}
 
@@ -578,7 +623,8 @@ func (bd *BlockDAG) calculateBlueSet(parents *BlockSet, exclude *BlockSet, pastB
 	}
 	return result
 }
-func (bd *BlockDAG) calculatePastBlueSet(h *hash.Hash, pastBlueSet *map[hash.Hash]*BlockSet, usePublic bool) {
+
+func (bd *BlockDAG) calculatePastBlueSet(h *hash.Hash, pastBlueSet *map[hash.Hash]*BlockSet, useCommon bool) {
 
 	_, ok := (*pastBlueSet)[*h]
 	if ok {
@@ -599,19 +645,20 @@ func (bd *BlockDAG) calculatePastBlueSet(h *hash.Hash, pastBlueSet *map[hash.Has
 	}
 
 	for k, _ := range parents.GetMap() {
-		bd.calculatePastBlueSet(&k, pastBlueSet, usePublic)
+		bd.calculatePastBlueSet(&k, pastBlueSet, useCommon)
 	}
 	//
 	anticone := bd.GetAnticone(bd.bc.index.LookupNode(h), nil)
-	(*pastBlueSet)[*h] = bd.calculateBlueSet(parents, anticone, pastBlueSet, usePublic)
+	(*pastBlueSet)[*h] = bd.calculateBlueSet(parents, anticone, pastBlueSet, useCommon)
 }
-func (bd *BlockDAG) updatePublicBlueSet(tip *hash.Hash){
+
+func (bd *BlockDAG) updateCommonBlueSet(tip *hash.Hash){
 
 	if tip.IsEqual(&bd.genesis) {
 		//needOrderBS.Add(tip)
-		bd.publicBlueSet = NewBlockSet()
-		bd.lastPublicBlocks = NewBlockSet()
-		bd.updatePublicOrder(tip, nil, false, nil, nil, 0)
+		bd.commonBlueSet = NewBlockSet()
+		bd.lastCommonBlocks = NewBlockSet()
+		bd.updateCommonOrder(tip, nil, false, nil, nil, 0)
 
 		return
 	}
@@ -619,11 +666,11 @@ func (bd *BlockDAG) updatePublicBlueSet(tip *hash.Hash){
 
 	if parents.HasOnly(&bd.genesis) {
 		//needOrderBS.AddList(bd.tempOrder)
-		bd.publicBlueSet.Clear()
-		bd.publicBlueSet.Add(&bd.genesis)
-		bd.lastPublicBlocks.Clear()
-		bd.lastPublicBlocks.Add(&bd.genesis)
-		bd.updatePublicOrder(tip, nil, false, nil, nil, 0)
+		bd.commonBlueSet.Clear()
+		bd.commonBlueSet.Add(&bd.genesis)
+		bd.lastCommonBlocks.Clear()
+		bd.lastCommonBlocks.Add(&bd.genesis)
+		bd.updateCommonOrder(tip, nil, false, nil, nil, 0)
 
 	} else {
 		tips := bd.GetTips()
@@ -631,17 +678,17 @@ func (bd *BlockDAG) updatePublicBlueSet(tip *hash.Hash){
 			//needOrderBS.Add(tip)
 			return
 		}
-		curLastPublicBS := bd.calLastPublicBlocks(tip)
-		if curLastPublicBS.IsEqual(bd.lastPublicBlocks) {
+		curLastCommonBS := bd.calLastCommonBlocks(tip)
+		if curLastCommonBS.IsEqual(bd.lastCommonBlocks) {
 			return
 		}
 		curLPFuture := NewBlockSet()
-		for k, _ := range curLastPublicBS.GetMap() {
+		for k, _ := range curLastCommonBS.GetMap() {
 			bd.GetFutureSet(curLPFuture, bd.bc.index.LookupNode(&k))
 		}
 
 		lastPFuture := NewBlockSet()
-		for k, _ := range bd.lastPublicBlocks.GetMap() {
+		for k, _ := range bd.lastCommonBlocks.GetMap() {
 			bd.GetFutureSet(lastPFuture, bd.bc.index.LookupNode(&k))
 		}
 		//
@@ -652,34 +699,35 @@ func (bd *BlockDAG) updatePublicBlueSet(tip *hash.Hash){
 			//
 			oExclude := NewBlockSet()
 			oExclude.AddSet(curLPFuture)
-			for k, _ := range bd.lastPublicBlocks.GetMap() {
+			for k, _ := range bd.lastCommonBlocks.GetMap() {
 				oExclude.AddSet(bd.bc.index.LookupNode(&k).GetParentsSet())
 			}
 
-			bd.calLastPublicBlocksPBS(&pastBlueSet)
+			bd.calLastCommonBlocksPBS(&pastBlueSet)
 
-			for k, _ := range curLastPublicBS.GetMap() {
+			for k, _ := range curLastCommonBS.GetMap() {
 				bd.calculatePastBlueSet(&k, &pastBlueSet, false)
 			}
-			publicBlueSet := bd.calculateBlueSet(curLastPublicBS, curLPFuture, &pastBlueSet, false)
+			commonBlueSet := bd.calculateBlueSet(curLastCommonBS, curLPFuture, &pastBlueSet, false)
 			//
-			bd.updatePublicOrder(tip, publicBlueSet, false, oExclude, curLastPublicBS, int(bd.totalBlocks)-lastPFuture.Len())
+			bd.updateCommonOrder(tip, commonBlueSet, false, oExclude, curLastCommonBS, int(bd.totalBlocks)-lastPFuture.Len())
 			//
-			bd.publicBlueSet.AddSet(publicBlueSet)
-			bd.lastPublicBlocks = curLastPublicBS
+			bd.commonBlueSet.AddSet(commonBlueSet)
+			bd.lastCommonBlocks = curLastCommonBS
 		} else if curLPFuture.Contain(lastPFuture) {
 			//needOrderBS.AddSet(curLPFuture)
 
-			bd.updatePublicOrder(tip, nil, true, nil, curLastPublicBS, int(bd.totalBlocks)-curLPFuture.Len())
-			bd.publicBlueSet.Exclude(curLPFuture)
-			bd.lastPublicBlocks = curLastPublicBS
+			bd.updateCommonOrder(tip, nil, true, nil, curLastCommonBS, int(bd.totalBlocks)-curLPFuture.Len())
+			bd.commonBlueSet.Exclude(curLPFuture)
+			bd.lastCommonBlocks = curLastCommonBS
 		} else {
-			log.Error("error:public set")
+			log.Error("error:common set")
 		}
 
 	}
 
 }
+
 func (bd *BlockDAG) GetTempBlueSet() *BlockSet {
 	//
 	tips := bd.GetTips()
@@ -692,7 +740,7 @@ func (bd *BlockDAG) GetTempBlueSet() *BlockSet {
 	} else {
 		pastBlueSet := make(map[hash.Hash]*BlockSet)
 
-		bd.calLastPublicBlocksPBS(&pastBlueSet)
+		bd.calLastCommonBlocksPBS(&pastBlueSet)
 
 		for k, _ := range tips.GetMap() {
 			bd.calculatePastBlueSet(&k, &pastBlueSet, false)
@@ -702,12 +750,14 @@ func (bd *BlockDAG) GetTempBlueSet() *BlockSet {
 	}
 	return result
 }
+
 func (bd *BlockDAG) getTempBS() *BlockSet{
 	if bd.tempBlueSet==nil {
 		bd.tempBlueSet=bd.GetTempBlueSet()
 	}
 	return bd.tempBlueSet
 }
+
 func (bd *BlockDAG) recCalHourglass(genealogy *BlockSet, ancestors *BlockSet) {
 
 	var maxPastHash *hash.Hash = nil
@@ -737,6 +787,7 @@ func (bd *BlockDAG) recCalHourglass(genealogy *BlockSet, ancestors *BlockSet) {
 	}
 
 }
+
 func (bd *BlockDAG) updateHourglass(){
 	tips := bd.GetTips()
 	if tips == nil||tips.Len()==0 {
@@ -774,7 +825,7 @@ func (bd *BlockDAG) updateHourglass(){
 		bd.recCalHourglass(genealogy,ancestors)
 
 		ne0:=tempBs.Intersection(ancestors)
-		ne1:=bd.publicBlueSet.Intersection(ancestors)
+		ne1:=bd.commonBlueSet.Intersection(ancestors)
 		ne0.AddSet(ne1)
 
 		ancestors=ne0
@@ -796,7 +847,7 @@ func (bd *BlockDAG) updateHourglass(){
 				return
 			}else{
 				banti0:=tempBs.Intersection(anti)
-				banti1:=bd.publicBlueSet.Intersection(anti)
+				banti1:=bd.commonBlueSet.Intersection(anti)
 				banti0.AddSet(banti1)
 
 				if banti0.Len()==0 {
@@ -808,6 +859,7 @@ func (bd *BlockDAG) updateHourglass(){
 		}
 	}
 }
+
 func (bd *BlockDAG) updateOrder(b *blockNode) *list.List{
 	bd.tempOrder=[]*hash.Hash{}
 	refNodes:=list.New()
@@ -821,9 +873,9 @@ func (bd *BlockDAG) updateOrder(b *blockNode) *list.List{
 	tempOrderM := NewBlockSet()
 	//
 	blueSet := bd.getTempBS()
-	lpsb := bd.sortBlockSet(bd.lastPublicBlocks, nil)
+	lpsb := bd.sortBlockSet(bd.lastCommonBlocks, nil)
 	exclude := NewBlockSet()
-	for k, _ := range bd.lastPublicBlocks.GetMap() {
+	for k, _ := range bd.lastCommonBlocks.GetMap() {
 		exclude.AddSet(bd.bc.index.LookupNode(&k).GetParentsSet())
 	}
 	for _, v := range lpsb {
@@ -831,10 +883,10 @@ func (bd *BlockDAG) updateOrder(b *blockNode) *list.List{
 	}
 	tLen := len(tempOrder)
 	//
-	pNum:=bd.GetPublicOrderNum()
+	pNum:=bd.GetCommonOrderNum()
 	tIndex:=0
 	for i := 0; i < tLen; i++ {
-		if !bd.lastPublicBlocks.Has(tempOrder[i]) {
+		if !bd.lastCommonBlocks.Has(tempOrder[i]) {
 			bd.tempOrder = append(bd.tempOrder, tempOrder[i])
 			//
 			node:=bd.bc.index.LookupNode(tempOrder[i])
@@ -846,7 +898,7 @@ func (bd *BlockDAG) updateOrder(b *blockNode) *list.List{
 			}
 		}
 	}
-	checkOrder:=bd.GetPublicOrderNum()+len(bd.tempOrder)
+	checkOrder:=bd.GetCommonOrderNum()+len(bd.tempOrder)
 	if uint(checkOrder)!=bd.totalBlocks {
 		log.Error(fmt.Sprintf("Order error:The number is a problem"))
 	}
@@ -867,6 +919,7 @@ func (bd *BlockDAG) updateOrder(b *blockNode) *list.List{
 	}
 	return refNodes
 }
+
 func (bd *BlockDAG) GetLastBlock() *blockNode{
 	if bd.tempOrder==nil {
 		return nil
@@ -875,23 +928,24 @@ func (bd *BlockDAG) GetLastBlock() *blockNode{
 	if tLen>0 {
 		return bd.bc.index.LookupNode(bd.tempOrder[tLen-1])
 	}
-	pLen:=len(bd.publicOrder)
+	pLen:=len(bd.commonOrder)
 	if pLen>0 {
 		for i:=pLen-1;i>=0 ;i--  {
-			if bd.publicOrder[i]!=nil {
-				return bd.bc.index.LookupNode(bd.publicOrder[i])
+			if bd.commonOrder[i]!=nil {
+				return bd.bc.index.LookupNode(bd.commonOrder[i])
 			}
 		}
 	}
 	return nil
 }
-func (bd *BlockDAG) GetPublicOrderNum() int{
-	pLen:=len(bd.publicOrder)
+
+func (bd *BlockDAG) GetCommonOrderNum() int{
+	pLen:=len(bd.commonOrder)
 
 	if pLen>0 {
 		var i int
 		for i=pLen-1;i>=0 ;i--  {
-			if bd.publicOrder[i]!=nil {
+			if bd.commonOrder[i]!=nil {
 				break
 			}
 		}
@@ -899,6 +953,7 @@ func (bd *BlockDAG) GetPublicOrderNum() int{
 	}
 	return 0
 }
+
 func (bd *BlockDAG) GetBlockOrder(h *hash.Hash) int32{
 	var result int32=-1
 	if bd.tempOrder==nil {
@@ -916,12 +971,12 @@ func (bd *BlockDAG) GetBlockOrder(h *hash.Hash) int32{
 			}
 		}
 	}
-	pLen:=len(bd.publicOrder)
+	pLen:=len(bd.commonOrder)
 	if pLen>0 {
 		for i:=pLen-1;i>=0 ;i--  {
-			if bd.publicOrder[i]!=nil {
+			if bd.commonOrder[i]!=nil {
 				result--
-				if h.IsEqual(bd.publicOrder[i]) {
+				if h.IsEqual(bd.commonOrder[i]) {
 					return result
 				}
 			}
@@ -930,6 +985,7 @@ func (bd *BlockDAG) GetBlockOrder(h *hash.Hash) int32{
 
 	return -1
 }
+
 func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 	if bd.tempOrder==nil {
 		return nil
@@ -949,16 +1005,16 @@ func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 			}
 		}
 	}
-	pLen:=len(bd.publicOrder)
+	pLen:=len(bd.commonOrder)
 	if pLen>0 {
 		for i:=pLen-1;i>=0 ;i--  {
-			if bd.publicOrder[i]!=nil {
+			if bd.commonOrder[i]!=nil {
 				if isEnd {
-					return bd.publicOrder[i]
+					return bd.commonOrder[i]
 				}
-				if h.IsEqual(bd.publicOrder[i]) {
+				if h.IsEqual(bd.commonOrder[i]) {
 					if i>0 {
-						return bd.publicOrder[i-1]
+						return bd.commonOrder[i-1]
 					}
 				}
 			}
@@ -967,13 +1023,14 @@ func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 
 	return nil
 }
+
 func (bd *BlockDAG) NodeByOrder(order int) *hash.Hash{
 	if bd.tempOrder==nil||order<0 {
 		return nil
 	}
-	pNum:=bd.GetPublicOrderNum()
+	pNum:=bd.GetCommonOrderNum()
 	if order<pNum {
-		return bd.publicOrder[order]
+		return bd.commonOrder[order]
 	}
 	rIndex:=order-pNum
 	tLen:=len(bd.tempOrder)
@@ -982,25 +1039,30 @@ func (bd *BlockDAG) NodeByOrder(order int) *hash.Hash{
 	}
 	return nil
 }
+
 func (bd *BlockDAG) GetLastTime() *time.Time{
 	return &bd.lastTime
 }
+
 ///////
 type SortBlock struct {
 	h          *hash.Hash
 	pastSetNum uint64
 }
+
 type SortBlocks []SortBlock
 
 func (a SortBlocks) Len() int {
 	return len(a)
 }
+
 func (a SortBlocks) Less(i, j int) bool {
 	if a[i].pastSetNum == a[j].pastSetNum {
 		return a[i].h.String() < a[j].h.String()
 	}
 	return a[i].pastSetNum < a[j].pastSetNum
 }
+
 func (a SortBlocks) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
 }
