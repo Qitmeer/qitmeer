@@ -388,7 +388,6 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 		// Deserialize the transaction
 		var msgTx types.Transaction
 		err = msgTx.Deserialize(bytes.NewReader(txBytes))
-		log.Trace("GetRawTx","hex",txBytes)
 		log.Trace("GetRawTx","hex",hex.EncodeToString(txBytes))
 		if err != nil {
 			context := "Failed to deserialize transaction"
