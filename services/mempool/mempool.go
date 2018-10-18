@@ -809,14 +809,14 @@ func (mp *TxPool) ProcessOrphans(hash *hash.Hash) []*types.Tx {
 // orphans.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) FetchTransaction(txHash *hash.Hash, includeRecentBlock bool) (*types.Tx, error) {
+func (mp *TxPool) FetchTransaction(txHash *hash.Hash, includeRecentBlock bool) (*types.Tx,bool, error) {
 	// Protect concurrent access.
 	mp.mtx.RLock()
 	txDesc, exists := mp.pool[*txHash]
 	mp.mtx.RUnlock()
 
 	if exists {
-		return txDesc.Tx, nil
+		return txDesc.Tx,false, nil
 	}
 
 	// the latest block is considered "unconfirmed"
@@ -825,16 +825,16 @@ func (mp *TxPool) FetchTransaction(txHash *hash.Hash, includeRecentBlock bool) (
 	if includeRecentBlock {
 		bl, err := mp.cfg.BlockByHash(mp.cfg.BestHash())
 		if err != nil {
-			return nil, err
+			return nil, false,err
 		}
 
 		for _, tx := range bl.Transactions() {
 			if tx.Hash().IsEqual(txHash) {
-				return tx, nil
+				return tx,true, nil
 			}
 		}
 	}
-	return nil, fmt.Errorf("transaction is not in the pool")
+	return nil,false,fmt.Errorf("transaction is not in the pool, neither included in the recent block")
 }
 
 // HaveAllTransactions returns whether or not all of the passed transaction

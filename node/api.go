@@ -325,7 +325,7 @@ func (api *PublicBlockChainAPI) SendRawTransaction(hexTx string, allowHighFees *
 		return nil, er.RpcDeserializationError("rejected: %v", err)
 	}
 	//TODO P2P layer announce
-	api.node.AnnounceNewTransactions(acceptedTxs)
+	api.node.nfManager.AnnounceNewTransactions(acceptedTxs)
 
 	return tx.Hash().String(), nil
 }
@@ -336,9 +336,13 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 	var mtx *types.Transaction
 	var blkHash *hash.Hash
 	var blkHeight uint64
+	var blkHashStr string
+	var confirmations int64
+
 	// Try to fetch the transaction from the memory pool and if that fails,
 	// try the block database.
-	tx, _ := api.node.txMemPool.FetchTransaction(&txHash, true)
+	tx,inRecentBlock,_ := api.node.txMemPool.FetchTransaction(&txHash, true)
+
 	if tx == nil {
 		//not found from mem-pool, try db
 		txIndex := api.node.txIndex
@@ -411,12 +415,20 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 		mtx = tx.Transaction()
 	}
 
-	//TODO, refactor the paramas place
-	blkHashStr := ""
+
 	if blkHash != nil {
 		blkHashStr = blkHash.String()
 	}
-	return marshal.MarshalJsonTransaction(mtx,api.node.node.Params,blkHeight,blkHashStr)
+	if inRecentBlock{
+		blkHeight = api.node.blockManager.GetChain().BestSnapshot().Height
+		confirmations = 1
+	}else if tx != nil {
+		confirmations = 0
+	}else {
+		confirmations = 1 + int64(api.node.blockManager.GetChain().BestSnapshot().Height - blkHeight)
+	}
+
+	return marshal.MarshalJsonTransaction(mtx,api.node.node.Params,blkHeight,blkHashStr,confirmations)
 }
 
 

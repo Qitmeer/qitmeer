@@ -114,11 +114,11 @@ func txEncode(version txVersionFlag, lockTime txLockTimeFlag, txIn txInputsFlag,
 		txOut := types.NewTxOutput(uint64(atomic), pkScript)
 		mtx.AddTxOut(txOut)
 	}
-	mtxHex, err := marshal.MessageToHex(&message.MsgTx{mtx})
+	mtxHex, err := mtx.Serialize(types.TxSerializeNoWitness)
 	if err != nil {
 		errExit(err)
 	}
-	fmt.Printf("%s\n",mtxHex)
+	fmt.Printf("%x\n",mtxHex)
 }
 
 func txSign(privkeyStr string, rawTxStr string) {

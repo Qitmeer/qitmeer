@@ -29,15 +29,17 @@ func MessageToHex(msg message.Message) (string, error) {
 	return hex.EncodeToString(buf.Bytes()), nil
 }
 
-func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHeight uint64,blkHashStr string) (json.TxRawResult, error){
+func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHeight uint64,blkHashStr string,
+	confirmations int64) (json.TxRawResult, error){
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
-	return MarshalJsonTransaction(tx.Transaction(), params, blkHeight,blkHashStr)
+	return MarshalJsonTransaction(tx.Transaction(), params, blkHeight,blkHashStr, confirmations)
 }
 
 
-func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHeight uint64,blkHashStr string) (json.TxRawResult, error){
+func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHeight uint64,blkHashStr string,
+	confirmations int64) (json.TxRawResult, error){
 
 	hexStr, err := MessageToHex(&message.MsgTx{tx})
 	if err!=nil {
@@ -47,10 +49,14 @@ func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHei
 	bufWit,_ :=tx.Serialize(types.TxSerializeOnlyWitness)
 	hexStrWit:=hex.EncodeToString(bufWit)
 
+	bufNoWit,_:=tx.Serialize(types.TxSerializeNoWitness)
+	hexStrNoWit:=hex.EncodeToString(bufNoWit)
+
 	//TODO, handle the blkHeight/blkHash
 
 	return json.TxRawResult{
 		Hex : hexStr,
+		HexNoWit: hexStrNoWit,
 		HexWit : hexStrWit,
 		Txid : tx.TxHash().String(),
 		TxHash : tx.TxHashFull().String(),
@@ -61,6 +67,7 @@ func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHei
 		Vout:MarshJsonVout(tx,nil, params),
 		BlockHash:blkHashStr,
 		BlockHeight:blkHeight,
+		Confirmations: confirmations,
 	},nil
 
 }
@@ -175,7 +182,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		}
 		if fullTx {
 			formatTx = func(tx *types.Tx) (interface{}, error) {
-				return MarshalJsonTx(tx,params,height,"")
+				return MarshalJsonTx(tx,params,height,"",confirmations)
 			}
 		}
 		txs := b.Transactions()

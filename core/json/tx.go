@@ -7,6 +7,7 @@ import "encoding/json"
 // TxRawResult models the data from the getrawtransaction command.
 type TxRawResult struct {
 	Hex           string `json:"hex"`
+	HexNoWit      string `json:"hexnowit"`
 	HexWit        string `json:"hexwit"`
 	Txid          string `json:"txid"`
 	TxHash        string `json:"txhash"`
@@ -18,7 +19,7 @@ type TxRawResult struct {
 	BlockHash     string `json:"blockhash,omitempty"`
 	BlockHeight   uint64 `json:"blockheight"`
 	BlockIndex    uint32 `json:"blockindex,omitempty"`
-	Confirmations int64  `json:"confirmations,omitempty"`
+	Confirmations int64  `json:"confirmations"`
 	Time          int64  `json:"time,omitempty"`
 	Blocktime     int64  `json:"blocktime,omitempty"`
 }
