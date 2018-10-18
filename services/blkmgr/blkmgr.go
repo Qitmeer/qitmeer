@@ -3,6 +3,7 @@
 package blkmgr
 
 import (
+	"github.com/noxproject/nox/node/notify"
 	"sync"
 	"container/list"
 	"github.com/noxproject/nox/common/hash"
@@ -31,6 +32,7 @@ type BlockManager struct {
 	config              *config.Config
 	params              *params.Params
 
+	notifyMgr           *notify.NotifyMgr
 	peerServer          *peerserver.PeerServer
 
 	//TODO, decoupling mempool with bm
@@ -67,13 +69,14 @@ type BlockManager struct {
 
 // NewBlockManager returns a new block manager.
 // Use Start to begin processing asynchronous block and inv updates.
-func NewBlockManager(indexManager blockchain.IndexManager,db database.DB,
+func NewBlockManager(ntmgr *notify.NotifyMgr,indexManager blockchain.IndexManager,db database.DB,
 	timeSource blockchain.MedianTimeSource, sigCache *txscript.SigCache,
 	cfg *config.Config, par *params.Params, server *peerserver.PeerServer,
 	interrupt <-chan struct{}) (*BlockManager, error) {
 	bm := BlockManager{
 		config:              cfg,
 		params:              par,
+		notifyMgr:           ntmgr,
 		peerServer:          server,
 		rejectedTxns:        make(map[hash.Hash]struct{}),
 		requestedTxns:       make(map[hash.Hash]struct{}),
@@ -210,7 +213,6 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			break
 		}
 
-		/*
 		block := blockSlice[0]
 		parentBlock := blockSlice[1]
 
@@ -227,24 +229,22 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 				b.txMemPool.RemoveTransaction(tx, true)
 			}
 		}
-
-		// Remove all of the regular and stake transactions in the
-		// connected block from the transaction pool.  Also, remove any
+		// Remove all of the transactions (except the coinbase) in the
+		// connected block from the transaction pool.  Secondly, remove any
 		// transactions which are now double spends as a result of these
 		// new transactions.  Finally, remove any transaction that is
 		// no longer an orphan. Transactions which depend on a confirmed
 		// transaction are NOT removed recursively because they are still
-		// valid.  Also, the coinbase of the regular tx tree is skipped
-		// because the memory pool doesn't (and can't) have regular
-		// tree coinbase transactions in it.
-		for _, tx := range parentBlock.Transactions()[1:] {
+		// valid.
+		for _, tx := range block.Transactions()[1:] {
 			b.txMemPool.RemoveTransaction(tx, false)
 			b.txMemPool.RemoveDoubleSpends(tx)
 			b.txMemPool.RemoveOrphan(tx.Hash())
 			acceptedTxs := b.txMemPool.ProcessOrphans(tx.Hash())
-			b.server.AnnounceNewTransactions(acceptedTxs)
+			b.notifyMgr.AnnounceNewTransactions(acceptedTxs)
 		}
 
+		/*
 		if r := b.server.rpcServer; r != nil {
 			// Notify registered websocket clients of incoming block.
 			r.ntfnMgr.NotifyBlockConnected(block)
@@ -265,9 +265,22 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			break
 		}
 
-		/*
 		block := blockSlice[0]
 
+		// Reinsert all of the transactions (except the coinbase) into
+		// the transaction pool.
+		for _, tx := range block.Transactions()[1:] {
+			_, err := b.txMemPool.MaybeAcceptTransaction(tx,
+				false, false)
+			if err != nil {
+				// Remove the transaction and all transactions
+				// that depend on it if it wasn't accepted into
+				// the transaction pool.
+				b.txMemPool.RemoveTransaction(tx, true)
+			}
+		}
+
+		/*
 		// Notify registered websocket clients.
 		if r := b.server.rpcServer; r != nil {
 			r.ntfnMgr.NotifyBlockDisconnected(block)
