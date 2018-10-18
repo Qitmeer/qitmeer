@@ -1003,7 +1003,7 @@ func checkNumSigOps(tx *types.Tx, utxoView *UtxoViewpoint, index int, txTree boo
 	// full coinbase check again.
 	numP2SHSigOps, err := CountP2SHSigOps(tx, (index == 0) && txTree, utxoView)
 	if err != nil {
-		log.Trace("CountP2SHSigOps failed; error returned %v", err)
+		log.Trace("CountP2SHSigOps failed","error", err)
 		return 0, err
 	}
 
