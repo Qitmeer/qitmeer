@@ -203,12 +203,11 @@ func (idx *ExistsAddrIndex) ExistsAddresses(addrs []types.Address) ([]bool, erro
 // the transactions in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *ExistsAddrIndex) ConnectBlock(dbTx database.Tx, block, parent *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
-	var parentTxs []*types.Tx
+func (idx *ExistsAddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+	var allTxns []*types.Tx
 	if block.Height() > 1 {
-		parentTxs = parent.Transactions()
+		allTxns = block.Transactions()
 	}
-	allTxns := parentTxs
 
 	usedAddrs := make(map[[addrKeySize]byte]struct{})
 
@@ -300,7 +299,7 @@ func (idx *ExistsAddrIndex) ConnectBlock(dbTx database.Tx, block, parent *types.
 // never removes addresses.
 //
 // This is part of the Indexer interface.
-func (idx *ExistsAddrIndex) DisconnectBlock(dbTx database.Tx, block, parent *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (idx *ExistsAddrIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
 	return nil
 }
 
