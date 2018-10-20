@@ -310,6 +310,10 @@ const (
 	// current chain tip. This is not a block validation rule, but is required
 	// for block proposals submitted via getblocktemplate RPC.
 	ErrPrevBlockNotBest
+
+	// ErrBadParentsMerkleRoot indicates the calculated parents merkle root does not match
+	// the expected value.
+	ErrBadParentsMerkleRoot
 )
 
 // Map of ErrorCode values back to their constant names for pretty printing.

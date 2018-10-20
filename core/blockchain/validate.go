@@ -85,6 +85,24 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 			"got %d, max %d", numPb, types.MaxParentsPerBlock)
 		return ruleError(ErrBlockTooBig, str)
 	}
+	// Build the block parents merkle tree and ensure the calculated merkle
+	// parents root matches the entry in the block header.
+	// This also has the effect of caching all
+	// of the parents hashes in the block to speed up future hash
+	// checks.  The tree here and checks the merkle root
+	// after the following checks, but there is no reason not to check the
+	// merkle root matches here.
+	paMerkles := merkle.BuildParentsMerkleTreeStore(msgBlock.Parents)
+	paMerkleRoot := paMerkles[len(paMerkles)-1]
+	if !header.ParentRoot.IsEqual(paMerkleRoot) {
+		str := fmt.Sprintf("block parents merkle root is invalid - block "+
+			"header indicates %v, but calculated value is %v",
+			&header.ParentRoot, paMerkleRoot)
+		return ruleError(ErrBadParentsMerkleRoot, str)
+	}
+
+
+
 	// A block must have at least one regular transaction.
 	numTx := len(msgBlock.Transactions)
 	if numTx == 0 {

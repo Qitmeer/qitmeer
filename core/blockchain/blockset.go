@@ -1,6 +1,9 @@
 package blockchain
 
-import "github.com/noxproject/nox/common/hash"
+import (
+	"github.com/noxproject/nox/common/hash"
+	"sort"
+)
 
 type BlockSet struct {
 	m map[hash.Hash]bool
@@ -95,6 +98,13 @@ func (s *BlockSet) List() []*hash.Hash {
 	}
 	return list
 }
+
+func (s *BlockSet) OrderList() []*hash.Hash {
+	list := SortHashs(s.List())
+	sort.Sort(list)
+	return []*hash.Hash(list)
+}
+
 func (s *BlockSet) IsEqual(other *BlockSet) bool {
 	var k hash.Hash
 	for k, _ = range s.m {
@@ -147,4 +157,19 @@ func GetMaxLenBlockSet(bsm map[hash.Hash]*BlockSet) *hash.Hash {
 
 	}
 	return &result
+}
+
+// SortHashs is used to sort hash list
+type SortHashs []*hash.Hash
+
+func (sh SortHashs) Len() int {
+	return len(sh)
+}
+
+func (sh SortHashs) Less(i, j int) bool {
+	return sh[i].String() < sh[j].String()
+}
+
+func (sh SortHashs) Swap(i, j int) {
+	sh[i], sh[j] = sh[j], sh[i]
 }

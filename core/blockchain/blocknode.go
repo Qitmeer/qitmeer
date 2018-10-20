@@ -8,6 +8,7 @@ import (
 	"time"
 	"sort"
 	"github.com/noxproject/nox/common/util"
+	"github.com/noxproject/nox/core/merkle"
 )
 
 // blockStatus is a bit field representing the validation state of the block.
@@ -154,11 +155,8 @@ func (node *blockNode) Header() types.BlockHeader {
 	// No lock is needed because all accessed fields are immutable.
 	var parentRoot hash.Hash
 	if node.parents!=nil {
-		hashs:=[]*hash.Hash{}
-		for _,v:=range node.parents{
-			hashs=append(hashs,&v.hash)
-		}
-		parentRoot=types.GetParentsRoot(hashs)
+		paMerkles :=merkle.BuildParentsMerkleTreeStore(node.GetParentsSet().OrderList())
+		parentRoot=*paMerkles[len(paMerkles)-1]
 	}
 
 	return types.BlockHeader{

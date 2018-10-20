@@ -618,12 +618,12 @@ mempoolLoop:
 
 	// Create a new block ready to be solved.
 	merkles := merkle.BuildMerkleTreeStore(blockTxnsRegular)
-	parents:=blockManager.GetChain().DAG().GetTips().List()
-
+	parents :=blockManager.GetChain().DAG().GetTips().OrderList()
+	paMerkles :=merkle.BuildParentsMerkleTreeStore(parents)
 	var block types.Block
 	block.Header = types.BlockHeader{
 		Version:      blockVersion,
-		ParentRoot:   types.GetParentsRoot(parents),
+		ParentRoot:   *paMerkles[len(paMerkles)-1],
 		TxRoot:       *merkles[len(merkles)-1],
 		StateRoot:    hash.Hash{}, //TODO, state root
 		Timestamp:    ts,
