@@ -107,3 +107,13 @@ type ScriptSig struct {
 	Hex string `json:"hex"`
 }
 
+// GetUtxoResult models the data from the GetUtxo command.
+type GetUtxoResult struct {
+	BestBlock     string             `json:"bestblock"`
+	Confirmations int64              `json:"confirmations"`
+	Amount        float64            `json:"amount"`
+	ScriptPubKey  ScriptPubKeyResult `json:"scriptPubKey"`
+	Version       int32              `json:"version"`
+	Coinbase      bool               `json:"coinbase"`
+}
+

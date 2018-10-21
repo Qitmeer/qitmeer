@@ -138,6 +138,18 @@ function get_tx_by_hash(){
   get_result "$data"
 }
 
+# return info about UTXO
+function get_utxo() {
+  local tx_hash=$1
+  local vout=$2
+  local include_mempool=$3
+  if [ "$include_mempool" == "" ]; then
+    include_mempool="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getUtxo","params":["'$tx_hash'",'$vout','$include_mempool'],"id":1}'
+  get_result "$data"
+}
+
 # 
 function create_raw_tx(){
   local input=$1
@@ -259,6 +271,8 @@ function usage(){
   echo "tx       :"
   echo "  tx <hash>"
   echo "  get_tx_by_block_and_index <num_hex> <index_hex>"
+  echo "utxo  :"
+  echo "  getutxo <tx_id> <index> <include_mempool,default=true>"
   echo "account  :"
   echo "  newaccount"
   echo "  accounts"
@@ -554,6 +568,11 @@ elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex
   get_tx_by_blocknum_and_index_hex $@
+
+## UTXO 
+elif [ $1 == "getutxo" ]; then
+  shift
+  get_utxo $@|jq .
 
 ## Accounts
 elif [ $1 == "newaccount" ]; then

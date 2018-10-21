@@ -431,4 +431,111 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 }
 
 
+// Returns information about an unspent transaction output
+// 1. txid           (string, required)                The hash of the transaction
+// 2. vout           (numeric, required)               The index of the output
+// 3. includemempool (boolean, optional, default=true) Include the mempool when true
+//
+//Result:
+//{
+// "bestblock": "value",        (string)          The block hash that contains the transaction output
+// "confirmations": n,          (numeric)         The number of confirmations
+// "amount": n.nnn,             (numeric)         The transaction amount
+// "scriptPubKey": {            (object)          The public key script used to pay coins as a JSON object
+//  "asm": "value",             (string)          Disassembly of the script
+//  "hex": "value",             (string)          Hex-encoded bytes of the script
+//  "reqSigs": n,               (numeric)         The number of required signatures
+//  "type": "value",            (string)          The type of the script (e.g. 'pubkeyhash')
+//  "addresses": ["value",...], (array of string) The nox addresses associated with this script
+// },
+// "coinbase": true|false,      (boolean)         Whether or not the transaction is a coinbase
+//}
+func (api *PublicBlockChainAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *bool )(interface{}, error) {
 
+	// If requested and the tx is available in the mempool try to fetch it
+	// from there, otherwise attempt to fetch from the block database.
+	var bestBlockHash string
+	var confirmations int64
+	var txVersion uint32
+	var amount uint64
+	var pkScript []byte
+	var isCoinbase bool
+
+	// by default try to search mempool tx
+	includeMempoolTx := true
+	if includeMempool != nil {
+		includeMempoolTx = *includeMempool
+	}
+
+	var txFromMempool *types.Tx
+
+	// try mempool by default
+	if includeMempoolTx {
+		txFromMempool, inRecentBlock, _ := api.node.txMemPool.FetchTransaction(&txHash,true)
+		if txFromMempool != nil {
+			tx := txFromMempool.Transaction()
+			txOut := tx.TxOut[vout]
+			if txOut == nil {
+				return nil,nil
+			}
+			best := api.node.blockManager.GetChain().BestSnapshot()
+			bestBlockHash = best.Hash.String()
+			if inRecentBlock {
+				confirmations = 1
+			}else {
+				confirmations = 0
+			}
+			txVersion = tx.Version
+			amount = txOut.Amount
+			pkScript = txOut.PkScript
+			isCoinbase = blockchain.IsCoinBaseTx(tx)
+		}
+	}
+
+	// otherwise try to lookup utxo set
+	if txFromMempool == nil {
+		entry, _:= api.node.blockManager.GetChain().FetchUtxoEntry(&txHash)
+		if entry == nil || entry.IsOutputSpent(vout) {
+			return nil,nil
+		}
+		best := api.node.blockManager.GetChain().BestSnapshot()
+		bestBlockHash = best.Hash.String()
+		confirmations = 1 + int64(best.Height - entry.BlockHeight())
+		txVersion = entry.TxVersion()
+		amount = entry.AmountByIndex(vout)
+		pkScript = entry.PkScriptByIndex(vout)
+		isCoinbase = entry.IsCoinBase()
+	}
+
+	// Disassemble script into single line printable format.  The
+	// disassembled string will contain [error] inline if the script
+	// doesn't fully parse, so ignore the error here.
+	script := pkScript
+	disbuf, _ := txscript.DisasmString(script)
+
+	// Get further info about the script.  Ignore the error here since an
+	// error means the script couldn't parse and there is no additional
+	// information about it anyways.
+	scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion,
+		script, api.node.node.Params)
+	addresses := make([]string, len(addrs))
+	for i, addr := range addrs {
+		addresses[i] = addr.Encode()
+	}
+
+	txOutReply := &json.GetUtxoResult{
+		BestBlock:     bestBlockHash,
+		Confirmations: confirmations,
+		Amount:         types.Amount(amount).ToUnit(types.AmountCoin),
+		Version:       int32(txVersion),
+		ScriptPubKey: json.ScriptPubKeyResult{
+			Asm:       disbuf,
+			Hex:       hex.EncodeToString(pkScript),
+			ReqSigs:   int32(reqSigs),
+			Type:      scriptClass.String(),
+			Addresses: addresses,
+		},
+		Coinbase: isCoinbase,
+	}
+	return txOutReply, nil
+}
