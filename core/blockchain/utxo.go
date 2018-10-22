@@ -151,6 +151,33 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	return view, err
 }
 
+// FetchUtxoEntry loads and returns the unspent transaction output entry for the
+// passed hash from the point of view of the end of the main chain.
+//
+// NOTE: Requesting a hash for which there is no data will NOT return an error.
+// Instead both the entry and the error will be nil.  This is done to allow
+// pruning of fully spent transactions.  In practice this means the caller must
+// check if the returned entry is nil before invoking methods on it.
+//
+// This function is safe for concurrent access however the returned entry (if
+// any) is NOT.
+func (b *BlockChain) FetchUtxoEntry(txHash *hash.Hash) (*UtxoEntry, error) {
+	b.chainLock.RLock()
+	defer b.chainLock.RUnlock()
+
+	var entry *UtxoEntry
+	err := b.db.View(func(dbTx database.Tx) error {
+		var err error
+		entry, err = dbFetchUtxoEntry(dbTx, txHash)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return entry, nil
+}
+
 // BestHash returns the hash of the best block in the chain the view currently
 // respresents.
 func (view *UtxoViewpoint) BestHash() *hash.Hash {

@@ -6,8 +6,35 @@ import (
 	"github.com/noxproject/nox/core/blockchain"
 )
 
+// Any ConsensusState
+type ConsensusState interface {
+}
+
+type ConsensusAlgorithm interface {
+	SetState(state ConsensusState) (ConsensusState, error)
+}
+
+// agree on a consensus state
+type Consensus interface {
+	GetCurrentState() (ConsensusState, error)
+	Commit(state ConsensusState) (ConsensusState, error)
+	SetAlgorithm(algorithm ConsensusAlgorithm)
+}
+
+type Operation interface {
+	ApplyTo(state ConsensusState)(ConsensusState, error)
+}
+
+// agree on a operation that update the consensus state
+type Agreement interface {
+	Commit(operation Operation) (ConsensusState, error)
+	GetHeadState() (ConsensusState, error)
+	Rollback(state ConsensusState) error
+}
+
+
 // the algorithm agnostic consensus engine.
-type Consensue interface {
+type BlockChainConsensue interface {
 
 	// VerifySeal checks whether the crypto seal on a header is valid according to
 	// the consensus rules of the given engine.
@@ -31,7 +58,7 @@ type Consensue interface {
 // PoW is a consensus engine based on proof-of-work.
 type PoW interface {
 
-  	Consensue
+  	BlockChainConsensue
 	// CalcDifficulty is the difficulty adjustment algorithm. It returns the difficulty
 	// that a new block should have.
 	CalcDifficulty(chain blockchain.BlockChain, time uint64, parent *types.BlockHeader) *big.Int
@@ -41,5 +68,5 @@ type PoW interface {
 }
 
 type PoA interface {
-	Consensue
+	BlockChainConsensue
 }
