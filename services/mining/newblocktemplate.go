@@ -556,12 +556,12 @@ mempoolLoop:
 			if utx == nil {
 				// Set a flag with the index so we can properly set
 				// the fraud proof below.
-				txIn.BlockTxIndex = types.NullBlockIndex
+				txIn.TxIndex = types.NullTxIndex
 			} else {
 				originIdx := txIn.PreviousOut.OutIndex
 				txIn.AmountIn = utx.AmountByIndex(originIdx)
 				txIn.BlockHeight = uint32(utx.BlockHeight())
-				txIn.BlockTxIndex = utx.BlockIndex()
+				txIn.TxIndex = utx.TxIndex()
 			}
 		}
 	}
@@ -581,7 +581,7 @@ mempoolLoop:
 		for _, txIn := range tx.Transaction().TxIn {
 			// This tx was at some point 0-conf and now requires the
 			// correct block height and index. Set it here.
-			if txIn.BlockTxIndex == types.NullBlockIndex {
+			if txIn.TxIndex == types.NullTxIndex {
 				idx := txIndexFromTxList(txIn.PreviousOut.Hash,
 					blockTxnsRegular)
 
@@ -591,7 +591,7 @@ mempoolLoop:
 					amt := blockTxnsRegular[idx].Transaction().TxOut[originIdx].Amount
 					txIn.AmountIn = amt
 					txIn.BlockHeight = uint32(nextBlockHeight)   //TODO,remove type conversion
-					txIn.BlockTxIndex = uint32(idx)
+					txIn.TxIndex = uint32(idx)
 				} else {
 					str := fmt.Sprintf("failed find hash in tx list "+
 						"for fraud proof; tx in hash %v",
@@ -741,7 +741,7 @@ func spendTransaction(utxoView *blockchain.UtxoViewpoint, tx *types.Tx, height i
 
 	}
 
-	utxoView.AddTxOuts(tx, height, types.NullBlockIndex)
+	utxoView.AddTxOuts(tx, height, types.NullTxIndex)
 	return nil
 }
 
@@ -773,7 +773,7 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 			types.MaxPrevOutIndex ),
 		Sequence:        types.MaxTxInSequenceNum,
 		BlockHeight:     types.NullBlockHeight,
-		BlockTxIndex:    types.NullBlockIndex,
+		TxIndex:         types.NullTxIndex,
 		SignScript:      coinbaseScript,
 	})
 

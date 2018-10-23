@@ -271,7 +271,7 @@ func deserializeSpendJournalEntry(serialized []byte, txns []*types.Transaction) 
 			// entry that contains the version information as just
 			// described.
 			n, err := decodeSpentTxOut(serialized[offset:], stxo, txIn.AmountIn,
-				txIn.BlockHeight, txIn.BlockTxIndex)
+				txIn.BlockHeight, txIn.TxIndex)
 			offset += n
 			if err != nil {
 				return nil, errDeserialize(fmt.Sprintf("unable "+

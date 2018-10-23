@@ -81,7 +81,7 @@ func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
 		vinEntry.Sequence = txIn.Sequence
 		vinEntry.AmountIn = float64(txIn.AmountIn) //TODO coin conversion
 		vinEntry.BlockHeight = txIn.BlockHeight
-		vinEntry.BlockIndex = txIn.BlockTxIndex
+		vinEntry.TxIndex = txIn.TxIndex
 		return vinList
 	}
 
@@ -97,7 +97,7 @@ func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
 		vinEntry.Sequence = txIn.Sequence
 		vinEntry.AmountIn = float64(txIn.AmountIn) //TODO coin conversion
 		vinEntry.BlockHeight = txIn.BlockHeight
-		vinEntry.BlockIndex = txIn.BlockTxIndex
+		vinEntry.TxIndex = txIn.TxIndex
 		vinEntry.ScriptSig = &json.ScriptSig{
 			Asm: disbuf,
 			Hex: hex.EncodeToString(txIn.SignScript),

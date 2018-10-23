@@ -41,9 +41,9 @@ func (entry *UtxoEntry) IsCoinBase() bool {
 }
 
 
-// BlockIndex returns the height of the block containing the transaction the
+// TxIndex returns the transaction index of the block containing the transaction the
 // utxo entry represents.
-func (entry *UtxoEntry) BlockIndex() uint32 {
+func (entry *UtxoEntry) TxIndex() uint32 {
 	return entry.index
 }
 

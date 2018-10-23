@@ -511,7 +511,7 @@ func (mp *TxPool) fetchInputUtxos(tx *types.Tx) (*blockchain.UtxoViewpoint, erro
 
 		if poolTxDesc, exists := mp.pool[originHash]; exists {
 			utxoView.AddTxOuts(poolTxDesc.Tx, UnminedHeight,
-				types.NullBlockIndex)
+				types.NullTxIndex)
 		}
 	}
 	return utxoView, nil

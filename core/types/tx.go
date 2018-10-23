@@ -44,9 +44,9 @@ const (
 	// the genesis block.
 	NullBlockHeight uint32 = 0x00000000
 
-	// NullBlockIndex is the null transaction index in a block for an input
+	// NullTxIndex is the null transaction index in a block for an input
 	// witness.
-	NullBlockIndex uint32 = 0xffffffff
+	NullTxIndex uint32 = 0xffffffff
 
 	// MaxTxInSequenceNum is the maximum sequence number the sequence field
 	// of a transaction input can be.
@@ -553,7 +553,7 @@ func (tx *Transaction) decodeWitness(r io.Reader) (uint64, error) {
 
 		tx.TxIn[i].AmountIn = ti.AmountIn
 		tx.TxIn[i].BlockHeight = ti.BlockHeight
-		tx.TxIn[i].BlockTxIndex = ti.BlockTxIndex
+		tx.TxIn[i].TxIndex = ti.TxIndex
 		tx.TxIn[i].SignScript = ti.SignScript
 	}
 	return totalScriptSize, nil
@@ -575,8 +575,8 @@ func readTxInWitness(r io.Reader, ti *TxInput) error {
 		return err
 	}
 
-	// BlockIndex.
-	ti.BlockTxIndex, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
+	// TxIndex.
+	ti.TxIndex, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
 	if err != nil {
 		return err
 	}
@@ -906,8 +906,8 @@ func writeTxInWitness(w io.Writer, pver uint32, ti *TxInput) error {
 		return err
 	}
 
-	// BlockIndex.
-	s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.BlockTxIndex)
+	// TxIndex.
+	s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.TxIndex)
 	if err != nil {
 		return err
 	}
@@ -961,7 +961,7 @@ func NewTxDeep(msgTx *Transaction) *Tx {
 			Sequence:        txin.Sequence,
 			AmountIn:        txin.AmountIn,
 			BlockHeight:     txin.BlockHeight,
-			BlockTxIndex:    txin.BlockTxIndex,
+			TxIndex:         txin.TxIndex,
 			SignScript:      sigScript,
 		}
 	}
@@ -1021,7 +1021,7 @@ func NewTxDeepTxIns(msgTx *Transaction) *Tx {
 		txInCopy.Sequence = txIn.Sequence
 		txInCopy.AmountIn = txIn.AmountIn
 		txInCopy.BlockHeight = txIn.BlockHeight
-		txInCopy.BlockTxIndex = txIn.BlockTxIndex
+		txInCopy.TxIndex = txIn.TxIndex
 
 		txInCopy.SignScript = sigScrCopy
 
@@ -1077,8 +1077,8 @@ type TxInput struct {
 	// the Fraud proof, input exist to block/tx, useful for SPV
 	// see also https://gist.github.com/justusranvier/451616fa4697b5f25f60#invalid-transaction-input-already-spent
 	AmountIn         uint64
-	BlockHeight      uint32   //might a block hash (?)
-	BlockTxIndex     uint32
+	BlockHeight      uint32
+	TxIndex          uint32
 
 	//the signature script (or witness script? or redeem script?)
 	SignScript       []byte
@@ -1093,7 +1093,7 @@ func NewTxInput(prevOut *TxOutPoint, amountIn uint64, signScript []byte) *TxInpu
 		SignScript:    signScript,
 		AmountIn:      amountIn,
 		BlockHeight:   NullBlockHeight,
-		BlockTxIndex:  NullBlockIndex,
+		TxIndex:       NullTxIndex,
 	}
 }
 

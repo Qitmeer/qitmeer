@@ -47,6 +47,7 @@ func txDecode(network string, rawTxStr string) {
 		{"txhash", tx.TxHashFull().String()},
 		{"version",  int32(tx.Version)},
 		{"locktime", tx.LockTime},
+		{"expire",tx.Expire},
 		{"vin",      marshal.MarshJsonVin(&tx)},
 		{"vout",     marshal.MarshJsonVout(&tx, nil,param)},
 	}
