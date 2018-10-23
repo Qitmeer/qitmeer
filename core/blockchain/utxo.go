@@ -427,7 +427,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, 
 		if entry.IsFullySpent() {
 			stxo.txVersion = entry.TxVersion()
 			stxo.height = uint32(entry.BlockHeight())
-			stxo.index = entry.BlockIndex()
+			stxo.index = entry.TxIndex()
 			stxo.isCoinBase = entry.IsCoinBase()
 			stxo.hasExpiry = entry.HasExpiry()
 			stxo.txType = entry.txType

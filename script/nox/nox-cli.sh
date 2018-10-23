@@ -150,6 +150,13 @@ function get_utxo() {
   get_result "$data"
 }
 
+function tx_sign(){
+   local private_key=$1
+   local raw_tx=$2
+   local data='{"jsonrpc":"2.0","method":"txSign","params":["'$private_key'",'$raw_tx'],"id":1}'
+   get_result "$data"
+}
+
 # 
 function create_raw_tx(){
   local input=$1
@@ -568,6 +575,12 @@ elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex
   get_tx_by_blocknum_and_index_hex $@
+
+elif [ $1 == "txSign" ]; then
+  shift
+  tx_sign $@
+  echo $@
+  check_error
 
 ## UTXO 
 elif [ $1 == "getutxo" ]; then

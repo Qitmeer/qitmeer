@@ -440,7 +440,7 @@ func isNullFraudProof(txIn *types.TxInput) bool {
 	switch {
 	case txIn.BlockHeight != types.NullBlockHeight:
 		return false
-	case txIn.BlockTxIndex != types.NullBlockIndex:
+	case txIn.TxIndex != types.NullTxIndex:
 		return false
 	}
 
@@ -1130,11 +1130,11 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txHeight i
 				return 0, ruleError(ErrFraudBlockHeight, str)
 			}
 
-			if txIn.BlockTxIndex != utxoEntry.BlockIndex() {
+			if txIn.TxIndex != utxoEntry.TxIndex() {
 				str := fmt.Sprintf("bad fraud check block "+
 					"index (expected %v, given %v) for "+
-					"txIn %v", utxoEntry.BlockIndex(),
-					txIn.BlockTxIndex, idx)
+					"txIn %v", utxoEntry.TxIndex(),
+					txIn.TxIndex, idx)
 				return 0, ruleError(ErrFraudBlockIndex, str)
 			}
 		}
