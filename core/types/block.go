@@ -119,6 +119,9 @@ func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
 		&bh.StateRoot, bh.Difficulty, sec, bh.Nonce)
 }
+
+// This function get the simple hash use each parents string, so it can't use to
+// check for block body .At present we use the merkles tree.
 func GetParentsRoot(parents []*hash.Hash) hash.Hash{
 	if len(parents)==0 {
 		return hash.Hash{}

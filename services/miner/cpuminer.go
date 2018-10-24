@@ -364,8 +364,11 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 	m.submitBlockLock.Lock()
 	defer m.submitBlockLock.Unlock()
 
-	tipsList:=m.blockManager.GetChain().DAG().GetTips().List()
-	tipsPRoot:=types.GetParentsRoot(tipsList)
+	tipsList:=m.blockManager.GetChain().DAG().GetTips().OrderList()
+
+	paMerkles :=merkle.BuildParentsMerkleTreeStore(tipsList)
+	tipsPRoot :=*paMerkles[len(paMerkles)-1]
+
 	if !block.Block().Header.ParentRoot.IsEqual(&tipsPRoot) {
 		log.Debug("Block submitted via CPU miner with previous "+
 			"block %s is stale", block.Block().Header.ParentRoot)

@@ -213,21 +213,6 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		}
 
 		block := blockSlice[0]
-		parentBlock := blockSlice[1]
-
-		// Remove the transaction and all transactions
-		// that depend on it if it wasn't accepted into
-		// the transaction pool. Probably this will mostly
-		// throw errors, as the majority will already be
-		// in the mempool.
-		for _, tx := range parentBlock.Transactions()[1:] {
-			_, err := b.txMemPool.MaybeAcceptTransaction(tx, false,
-				true)
-			if err != nil {
-
-				b.txMemPool.RemoveTransaction(tx, true)
-			}
-		}
 		// Remove all of the transactions (except the coinbase) in the
 		// connected block from the transaction pool.  Secondly, remove any
 		// transactions which are now double spends as a result of these
