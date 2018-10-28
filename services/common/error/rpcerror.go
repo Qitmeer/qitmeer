@@ -64,3 +64,10 @@ func RpcInternalError(err, context string) error{
 	return errors.New(
 		fmt.Sprintf("%s : %s",context,err))
 }
+
+//LL(getblocktemplate RPC) 2018-10-28
+//client errors.
+func RPCClientInInitialDownloadError(err, context string) error{
+	return errors.New(fmt.Sprintf("%s : %s",context,err))
+}
+

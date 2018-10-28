@@ -19,32 +19,6 @@ import (
 	"github.com/noxproject/nox/services/mempool"
 )
 
-//LL(getblocktemplate RPC) 2018-10-28
-// TemplateRequest is a request object as defined in BIP22
-// (https://en.bitcoin.it/wiki/BIP_0022), it is optionally provided as an
-//// argument to GetBlockTemplate RPC.
-type TemplateRequest struct {
-	Mode         string   `json:"mode,omitempty"`
-	Capabilities []string `json:"capabilities,omitempty"`
-
-	// Optional long polling.
-	LongPollID string `json:"longpollid,omitempty"`
-
-	// Optional template tweaking.  SigOpLimit and SizeLimit can be int64
-	// or bool.
-	SigOpLimit interface{} `json:"sigoplimit,omitempty"`
-	SizeLimit  interface{} `json:"sizelimit,omitempty"`
-	MaxVersion uint32      `json:"maxversion,omitempty"`
-
-	// Basic pool extension from BIP 0023.
-	Target string `json:"target,omitempty"`
-
-	// Block proposal from BIP 0023.  Data is only provided when Mode is
-	// "proposal".
-	Data   string `json:"data,omitempty"`
-	WorkID string `json:"workid,omitempty"`
-}
-
 // NewBlockTemplate returns a new block template that is ready to be solved
 // using the transactions from the passed transaction source pool and a coinbase
 // that either pays to the passed address if it is not nil, or a coinbase that
