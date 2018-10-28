@@ -1,25 +1,49 @@
 package mining
 
 import (
-
-	"fmt"
-	"encoding/binary"
 	"container/heap"
-	"github.com/noxproject/nox/core/protocol"
-	"github.com/noxproject/nox/core/merkle"
-	"github.com/noxproject/nox/config"
-	"github.com/noxproject/nox/params"
+	"encoding/binary"
+	"fmt"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/config"
+	"github.com/noxproject/nox/core/address"
 	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/core/merkle"
+	"github.com/noxproject/nox/core/protocol"
+	s "github.com/noxproject/nox/core/serialization"
+	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/log"
+	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/services/blkmgr"
 	"github.com/noxproject/nox/services/mempool"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/core/address"
-	s "github.com/noxproject/nox/core/serialization"
 )
 
+//LL(getblocktemplate RPC) 2018-10-28
+// TemplateRequest is a request object as defined in BIP22
+// (https://en.bitcoin.it/wiki/BIP_0022), it is optionally provided as an
+//// argument to GetBlockTemplate RPC.
+type TemplateRequest struct {
+	Mode         string   `json:"mode,omitempty"`
+	Capabilities []string `json:"capabilities,omitempty"`
+
+	// Optional long polling.
+	LongPollID string `json:"longpollid,omitempty"`
+
+	// Optional template tweaking.  SigOpLimit and SizeLimit can be int64
+	// or bool.
+	SigOpLimit interface{} `json:"sigoplimit,omitempty"`
+	SizeLimit  interface{} `json:"sizelimit,omitempty"`
+	MaxVersion uint32      `json:"maxversion,omitempty"`
+
+	// Basic pool extension from BIP 0023.
+	Target string `json:"target,omitempty"`
+
+	// Block proposal from BIP 0023.  Data is only provided when Mode is
+	// "proposal".
+	Data   string `json:"data,omitempty"`
+	WorkID string `json:"workid,omitempty"`
+}
 
 // NewBlockTemplate returns a new block template that is ready to be solved
 // using the transactions from the passed transaction source pool and a coinbase
@@ -87,15 +111,14 @@ import (
 //  This function returns nil, nil if there are not enough voters on any of
 //  the current top blocks to create a new block template.
 // TODO, refactor NewBlockTemplate input dependencies
-func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Params,
+func NewBlockTemplate(policy *Policy, config *config.Config, params *params.Params,
 	sigCache *txscript.SigCache, source TxSource, tsource blockchain.MedianTimeSource,
-	blkMgr *blkmgr.BlockManager,  payToAddress types.Address) (*types.BlockTemplate, error) {
+	blkMgr *blkmgr.BlockManager, payToAddress types.Address) (*types.BlockTemplate, error) {
 	txSource := source
 	blockManager := blkMgr
 	timeSource := tsource
 	chainState := blockManager.GetChainState()
 	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
-
 
 	// All transaction scripts are verified using the more strict standarad
 	// flags.
@@ -112,7 +135,7 @@ func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Param
 	// The most recently known best block is the top block that has the most
 	// TODO,refactor the poolsize & finalstate
 
-	prevHash,nextBlockHeight,_,_ := chainState.GetNextHeightWithState()
+	prevHash, nextBlockHeight, _, _ := chainState.GetNextHeightWithState()
 
 	chainBest := blockManager.GetChain().BestSnapshot()
 	if *prevHash != chainBest.Hash ||
@@ -163,7 +186,7 @@ func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Param
 	txSigOpCountsMap := make(map[hash.Hash]int64)
 	txFees = append(txFees, -1) // Updated once known
 
-	log.Debug("Inclusion to new block", "transactions",len(sourceTxns))
+	log.Debug("Inclusion to new block", "transactions", len(sourceTxns))
 mempoolLoop:
 	for _, txDesc := range sourceTxns {
 		// A block can't have more than one coinbase or contain
@@ -259,7 +282,7 @@ mempoolLoop:
 		mergeUtxoView(blockUtxos, utxos)
 	}
 
-	log.Trace("Priority queue","queue len", priorityQueue.Len(),
+	log.Trace("Priority queue", "queue len", priorityQueue.Len(),
 		"dependers len", len(dependers))
 
 	// The starting block size is the size of the block header plus the max
@@ -353,10 +376,10 @@ mempoolLoop:
 				"kilobyte blockSize %d >= BlockPrioritySize "+
 				"%d || priority %.2f <= minHighPriority %.2f",
 				blockPlusTxSize, policy.BlockPrioritySize,
-				prioItem.priority,mempool.MinHighPriority)
+				prioItem.priority, mempool.MinHighPriority)
 
 			sortedByFee = true
-			priorityQueue.SetLessFunc(txPQByFee)  //TODO, revisit the PQ func
+			priorityQueue.SetLessFunc(txPQByFee) //TODO, revisit the PQ func
 
 			// Put the transaction back into the priority queue and
 			// skip it so it is re-priortized by fees if it won't
@@ -377,7 +400,7 @@ mempoolLoop:
 		// The fraud proof is not checked because it will be filled in
 		// by the miner.
 		_, err = blockchain.CheckTransactionInputs(subsidyCache, tx,
-			int64(nextBlockHeight), blockUtxos, false, params ) //TODO, remove the params dependence
+			int64(nextBlockHeight), blockUtxos, false, params) //TODO, remove the params dependence
 		if err != nil {
 			log.Trace("Skipping tx %s due to error in "+
 				"CheckTransactionInputs: %v", tx.Hash(), err)
@@ -453,11 +476,11 @@ mempoolLoop:
 	if err != nil {
 		return nil, err
 	}
-	voters := 0  //TODO remove voters
+	voters := 0 //TODO remove voters
 	coinbaseTx, err := createCoinbaseTx(subsidyCache,
 		coinbaseScript,
 		opReturnPkScript,
-		int64(nextBlockHeight),    //TODO remove type conversion
+		int64(nextBlockHeight), //TODO remove type conversion
 		payToAddress,
 		uint16(voters),
 		params)
@@ -502,7 +525,6 @@ mempoolLoop:
 		txSigOpCounts = append(txSigOpCounts, tsos)
 	}
 
-
 	txSigOpCounts = append(txSigOpCounts, numCoinbaseSigOps)
 
 	// Now that the actual transactions have been selected, update the
@@ -518,7 +540,7 @@ mempoolLoop:
 	// Calculate the required difficulty for the block.  The timestamp
 	// is potentially adjusted to ensure it comes after the median time of
 	// the last several blocks per the chain consensus rules.
-	ts, err := chainState.MedianAdjustedTime(timeSource,config)
+	ts, err := chainState.MedianAdjustedTime(timeSource, config)
 	if err != nil {
 		return nil, miningRuleError(ErrGettingMedianTime, err.Error())
 	}
@@ -590,7 +612,7 @@ mempoolLoop:
 					originIdx := txIn.PreviousOut.OutIndex
 					amt := blockTxnsRegular[idx].Transaction().TxOut[originIdx].Amount
 					txIn.AmountIn = amt
-					txIn.BlockHeight = uint32(nextBlockHeight)   //TODO,remove type conversion
+					txIn.BlockHeight = uint32(nextBlockHeight) //TODO,remove type conversion
 					txIn.TxIndex = uint32(idx)
 				} else {
 					str := fmt.Sprintf("failed find hash in tx list "+
@@ -613,13 +635,13 @@ mempoolLoop:
 
 	var block types.Block
 	block.Header = types.BlockHeader{
-		Version:      blockVersion,
-		ParentRoot:   *prevHash,
-		TxRoot:       *merkles[len(merkles)-1],
-		StateRoot:    hash.Hash{}, //TODO, state root
-		Timestamp:    ts,
-		Difficulty:   reqDifficulty,
-		Height:       nextBlockHeight,
+		Version:    blockVersion,
+		ParentRoot: *prevHash,
+		TxRoot:     *merkles[len(merkles)-1],
+		StateRoot:  hash.Hash{}, //TODO, state root
+		Timestamp:  ts,
+		Difficulty: reqDifficulty,
+		Height:     nextBlockHeight,
 		// Size declared below
 	}
 
@@ -631,7 +653,7 @@ mempoolLoop:
 
 	//TODO revisit the size in block header
 	/*
-	msgBlock.Header.Size = uint32(msgBlock.SerializeSize())
+		msgBlock.Header.Size = uint32(msgBlock.SerializeSize())
 	*/
 
 	// Finally, perform a full check on the created block against the chain
@@ -648,11 +670,11 @@ mempoolLoop:
 
 	log.Debug("Created new block template",
 		"transactions", len(block.Transactions),
-		"fees",totalFees,
-		"signOp",blockSigOps,
+		"fees", totalFees,
+		"signOp", blockSigOps,
 		"bytes", blockSize,
 		"target",
-		fmt.Sprintf("%064x",blockchain.CompactToBig(block.Header.Difficulty)))
+		fmt.Sprintf("%064x", blockchain.CompactToBig(block.Header.Difficulty)))
 
 	blockTemplate := &types.BlockTemplate{
 		Block:           &block,
@@ -672,7 +694,7 @@ mempoolLoop:
 // change based upon time.
 func UpdateBlockTime(msgBlock *types.Block, bManager *blkmgr.BlockManager,
 	chain *blockchain.BlockChain, timeSource blockchain.MedianTimeSource,
-	activeNetParams *params.Params, config *config.Config ) error {
+	activeNetParams *params.Params, config *config.Config) error {
 
 	// The new timestamp is potentially adjusted to ensure it comes after
 	// the median time of the last several blocks per the chain consensus
@@ -758,6 +780,7 @@ func standardCoinbaseOpReturn(height uint32, extraNonce uint64) ([]byte, error) 
 
 	return extraNonceScript, nil
 }
+
 // createCoinbaseTx returns a coinbase transaction paying an appropriate subsidy
 // based on the passed block height to the provided address.  When the address
 // is nil, the coinbase transaction will instead be redeemable by anyone.
@@ -770,11 +793,11 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 		// Coinbase transactions have no inputs, so previous outpoint is
 		// zero hash and max index.
 		PreviousOut: *types.NewOutPoint(&hash.Hash{},
-			types.MaxPrevOutIndex ),
-		Sequence:        types.MaxTxInSequenceNum,
-		BlockHeight:     types.NullBlockHeight,
-		TxIndex:         types.NullTxIndex,
-		SignScript:      coinbaseScript,
+			types.MaxPrevOutIndex),
+		Sequence:    types.MaxTxInSequenceNum,
+		BlockHeight: types.NullBlockHeight,
+		TxIndex:     types.NullTxIndex,
+		SignScript:  coinbaseScript,
 	})
 
 	// Block one is a special block that might pay out tokens to a ledger.
@@ -819,7 +842,7 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	// Tax output.
 	if params.BlockTaxProportion > 0 {
 		tx.AddTxOut(&types.TxOutput{
-			Amount:    uint64(tax),
+			Amount:   uint64(tax),
 			PkScript: params.OrganizationPkScript,
 		})
 	} else {
@@ -830,17 +853,17 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 			return nil, err
 		}
 		tx.AddTxOut(&types.TxOutput{
-			Amount:    uint64(tax),
+			Amount:   uint64(tax),
 			PkScript: trueScript,
 		})
 	}
 	// Extranonce.
 	tx.AddTxOut(&types.TxOutput{
-		Amount:    0,
+		Amount:   0,
 		PkScript: opReturnPkScript,
 	})
 	// AmountIn.
-	tx.TxIn[0].AmountIn = subsidy + uint64(tax)  //TODO, remove type conversion
+	tx.TxIn[0].AmountIn = subsidy + uint64(tax) //TODO, remove type conversion
 
 	// Create the script to pay to the provided payment address if one was
 	// specified.  Otherwise create a script that allows the coinbase to be
@@ -862,7 +885,7 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	}
 	// Subsidy paid to miner.
 	tx.AddTxOut(&types.TxOutput{
-		Amount:    subsidy,
+		Amount:   subsidy,
 		PkScript: pksSubsidy,
 	})
 
@@ -901,4 +924,3 @@ func handleCreatedBlockTemplate(blockTemplate *types.BlockTemplate, bm *blkmgr.B
 
 	return blockTemplate, nil
 }
-
