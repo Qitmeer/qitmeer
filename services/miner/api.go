@@ -14,6 +14,7 @@ import (
 	"github.com/noxproject/nox/services/common/error"
 	"github.com/noxproject/nox/services/mining"
 	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -21,7 +22,7 @@ import (
 // gbtNonceRange is two 32-bit big-endian hexadecimal integers which
 // represent the valid ranges of nonces returned by the getblocktemplate
 // RPC.
-const  gbtNonceRange = "00000000ffffffff"
+const gbtNonceRange = "00000000ffffffff"
 
 // MaxBlockWeight defines the maximum block weight, where "block
 // weight" is interpreted as defined in BIP0141. A block's weight is
@@ -31,7 +32,7 @@ const  gbtNonceRange = "00000000ffffffff"
 // 1. As a result, for a block to be valid, the BlockWeight MUST be
 // less than, or equal to MaxBlockWeight.
 // TODO, will be moved
-const  MaxBlockWeight = 4000000
+const MaxBlockWeight = 4000000
 
 // MaxBlockSigOpsCost is the maximum number of signature operations
 // allowed for a block. It is calculated via a weighted algorithm which
@@ -39,7 +40,7 @@ const  MaxBlockWeight = 4000000
 // TODO. will be moved
 const MaxBlockSigOpsCost = 80000
 
-func (c *CPUMiner)	APIs() []rpc.API {
+func (c *CPUMiner) APIs() []rpc.API {
 	return []rpc.API{
 		{
 			NameSpace: rpc.DefaultServiceNameSpace,
@@ -47,7 +48,6 @@ func (c *CPUMiner)	APIs() []rpc.API {
 		},
 	}
 }
-
 
 type PublicMinerAPI struct {
 	miner *CPUMiner
@@ -91,7 +91,7 @@ func (api *PublicMinerAPI) Generate(numBlocks uint32) ([]string, error) {
 }
 
 //func (api *PublicMinerAPI) GetBlockTemplate(request *mining.TemplateRequest) (interface{}, error){
-func (api *PublicMinerAPI) GetBlockTemplate() (interface{}, error){
+func (api *PublicMinerAPI) GetBlockTemplate() (interface{}, error) {
 	// Set the default mode and override it if supplied.
 	capabilities := []string{
 		"coinbasetxn", "workid", "coinbase/append",
@@ -142,8 +142,8 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	// if there are no addresses to pay the created block template to.
 	if !useCoinbaseValue && len(api.miner.config.GetMinningAddrs()) == 0 {
 		return nil, er.RpcInternalError("No payment addresses specified ",
-			"A coinbase transaction has been requested, " +
-				"but the server has not been configured with " +
+			"A coinbase transaction has been requested, "+
+				"but the server has not been configured with "+
 				"any payment addresses via --miningaddr")
 	}
 
@@ -152,14 +152,14 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	// However, allow this state when running in the private net mode.
 	//TODO LL, will be added
 	/*
-	if !(api.miner.config.PrivNet) &&
-		s.cfg.ConnMgr.ConnectedCount() == 0 {
+		if !(api.miner.config.PrivNet) &&
+			s.cfg.ConnMgr.ConnectedCount() == 0 {
 
-		return nil, &btcjson.RPCError{
-			Code:    btcjson.ErrRPCClientNotConnected,
-			Message: "NOX is not connected",
+			return nil, &btcjson.RPCError{
+				Code:    btcjson.ErrRPCClientNotConnected,
+				Message: "NOX is not connected",
+			}
 		}
-	}
 	*/
 	m := api.miner
 	m.submitBlockLock.Lock()
@@ -176,18 +176,18 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	// be replaced with a new one.
 	//TODO LL, will be added
 	/*
-	if request != nil && request.LongPollID != "" {
-		return handleGetBlockTemplateLongPoll(s, request.LongPollID,
-			useCoinbaseValue, closeChan)
-	}
+		if request != nil && request.LongPollID != "" {
+			return handleGetBlockTemplateLongPoll(s, request.LongPollID,
+				useCoinbaseValue, closeChan)
+		}
 	*/
 
 	// Protect concurrent access when updating block templates.
 	//TODO, LL ???
 	/*
-	state := s.gbtWorkState
-	state.Lock()
-	defer state.Unlock()
+		state := s.gbtWorkState
+		state.Lock()
+		defer state.Unlock()
 	*/
 
 	//TODO LL, will be added
@@ -198,9 +198,9 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	// timestamp for the existing block template is updated (and possibly
 	// the difficulty on testnet per the consesus rules).
 	/*
-	if err := state.updateBlockTemplate(s, useCoinbaseValue); err != nil {
-		return nil, err
-	}
+		if err := state.updateBlockTemplate(s, useCoinbaseValue); err != nil {
+			return nil, err
+		}
 	*/
 	//TODO LL,
 	//return state.blockTemplateResult(useCoinbaseValue, nil)
@@ -212,19 +212,19 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	go m.speedMonitor()
 	m.Unlock()
 
-	log.Trace("Generating blocks","num", 1)
+	log.Trace("Generating blocks", "num", 1)
 
 	// Choose a payment address at random.
 	rand.Seed(time.Now().UnixNano())
 	payToAddr := m.config.GetMinningAddrs()[rand.Intn(len(m.config.GetMinningAddrs()))]
 
-	template, err := mining.NewBlockTemplate(m.policy,m.config,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr)
+	template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr)
 
 	m.submitBlockLock.Unlock()
 
 	if err != nil {
 		errStr := fmt.Sprintf("template: %v", err)
-		log.Error("Failed to create new block ","err",errStr)
+		log.Error("Failed to create new block ", "err", errStr)
 		//TODO refactor the quit logic
 		m.Lock()
 		close(m.speedMonitorQuit)
@@ -232,10 +232,10 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		m.started = false
 		m.discreteMining = false
 		m.Unlock()
-		return nil, err  //should miner if error
+		return nil, err //should miner if error
 	}
-	if template == nil {  // should not go here
-		log.Debug("Failed to create new block template","err","but error=nil")
+	if template == nil { // should not go here
+		log.Debug("Failed to create new block template", "err", "but error=nil")
 		return nil, er.RpcInvalidError("Failed to create new block template")
 	}
 
@@ -244,8 +244,6 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	pastMedianTime := api.miner.blockManager.GetChainState().GetPastMedianTime()
 	minTime := pastMedianTime.Add(time.Second)
 	maxTime := api.miner.timeSource.AdjustedTime().Add(time.Second * blockchain.MaxTimeOffsetSeconds)
-
-
 
 	// Convert each transaction in the block template to a template result
 	// transaction.  The result does not include the coinbase, so notice
@@ -284,10 +282,10 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 
 		//TODO,
 		/*
-		if err := tx.Serialize(txBuf); err != nil {
-			context := "Failed to serialize transaction"
-			return nil, internalRPCError(err.Error(), context)
-		}
+			if err := tx.Serialize(txBuf); err != nil {
+				context := "Failed to serialize transaction"
+				return nil, internalRPCError(err.Error(), context)
+			}
 		*/
 
 		//TODO, bTx := btcutil.NewTx(tx)
@@ -298,12 +296,10 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 			Fee:     template.Fees[i],
 			SigOps:  template.SigOpCounts[i],
 			//TODO, blockchain.GetTransactionWeight(bTx)
-			Weight:  2000000,
+			Weight: 2000000,
 		}
 		transactions = append(transactions, resultTx)
 	}
-
-
 
 	//TODO,submitOld
 	var submitOld *bool
@@ -315,8 +311,9 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		"time", "transactions/add", "prevblock", "coinbase/append",
 	}
 	gbtCapabilities := []string{"proposal"}
+
 	return json.GetBlockTemplateResult{
-		Bits:         string(template.Block.Header.Difficulty),
+		Bits:         strconv.FormatInt(int64(template.Block.Header.Difficulty), 16),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
 		Height:       int64(template.Height),
 		PreviousHash: template.Block.Header.ParentRoot.String(),
@@ -329,16 +326,16 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		Version:      template.Block.Header.Version,
 		LongPollID:   longPollID,
 		//TODO, submitOld
-		SubmitOld:    submitOld,
-		Target:       targetDifficulty,
-		MinTime:      minTime.Unix(),
-		MaxTime:      maxTime.Unix(),
+		SubmitOld: submitOld,
+		Target:    targetDifficulty,
+		MinTime:   minTime.Unix(),
+		MaxTime:   maxTime.Unix(),
 		// gbtMutableFields
-		Mutable:      gbtMutableFields,
-		NonceRange:   gbtNonceRange,
+		Mutable:    gbtMutableFields,
+		NonceRange: gbtNonceRange,
 		// TODO, Capabilities
 		Capabilities: gbtCapabilities,
-	},nil
+	}, nil
 }
 
 //LL
