@@ -683,7 +683,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// Use the past median time of the *previous* block in order
 		// to determine if the transactions in the current block are
 		// final.
-	prevMedianTime = node.GetMainParent().CalcPastMedianTime()
+	prevMedianTime = node.GetLastParent().CalcPastMedianTime()
 
 		// Skip the coinbase since it does not have any inputs and thus
 		// lock times do not apply.

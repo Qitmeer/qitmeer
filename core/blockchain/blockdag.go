@@ -996,6 +996,8 @@ func (bd *BlockDAG) GetBlockOrder(h *hash.Hash) int32{
 	return -1
 }
 
+// This function need a stable sequence,so call it before sorting the DAG.
+// If the h is invalid,the function will become a little inefficient.
 func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 	if bd.tempOrder==nil {
 		return nil
