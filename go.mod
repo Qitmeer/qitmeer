@@ -13,18 +13,16 @@ require (
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
-	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/pkg/errors v0.8.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rcrowley/go-metrics v0.0.0-20180503174638-e2704e165165
+	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 	github.com/stretchr/testify v1.2.2
-	github.com/syndtr/goleveldb v0.0.0-20180815032940-ae2bd5eed72d
-	golang.org/x/crypto v0.0.0-20181001203147-e3636079e1a4
-	golang.org/x/net v0.0.0-20181005035420-146acd28ed58
-	golang.org/x/sys v0.0.0-20181005133103-4497e2df6f9e
-	golang.org/x/tools v0.0.0-20181006002542-f60d9635b16a
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	github.com/syndtr/goleveldb v0.0.0-20181012014443-6b91fda63f2e
+	golang.org/x/crypto v0.0.0-20181029021203-45a5f77698d3
+	golang.org/x/net v0.0.0-20181029044818-c44066c5c816
+	golang.org/x/sys v0.0.0-20181026203630-95b1ffbd15a5
+	golang.org/x/tools v0.0.0-20181026183834-f60e5f99f081
 )
