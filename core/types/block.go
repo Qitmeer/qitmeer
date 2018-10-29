@@ -155,7 +155,7 @@ func (h *BlockHeader) Deserialize(r io.Reader) error {
 type Block struct {
 	Header        BlockHeader
 	Parents       []*hash.Hash
-	Transactions  []*Transaction    //tx
+	Transactions  []*Transaction    //tx  6
 	//Commits     []*StakeCommit    //vote for
 }
 
