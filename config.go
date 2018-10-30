@@ -68,7 +68,7 @@ func loadConfig() (*config.Config, []string, error) {
 		RPCMaxClients:        defaultMaxRPCClients,
 		Generate:             defaultGenerate,
 		MaxPeers:             defaultMaxPeers,
-		MinRelayTxFee:        mempool.DefaultMinRelayTxFee,
+		MinTxFee:             mempool.DefaultMinRelayTxFee,
 		BlockMinSize:         defaultBlockMinSize,
 		BlockMaxSize:         defaultBlockMaxSize,
 		SigCacheMaxSize:      defaultSigCacheMaxSize,

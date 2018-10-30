@@ -127,7 +127,7 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 			MaxOrphanTxs:         cfg.MaxOrphanTxs,
 			MaxOrphanTxSize:      mempool.DefaultMaxOrphanTxSize,
 			MaxSigOpsPerTx:       blockchain.MaxSigOpsPerBlock / 5,
-			MinRelayTxFee:        types.Amount(cfg.MinRelayTxFee),
+			MinRelayTxFee:        types.Amount(cfg.MinTxFee),
 			StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
 				return standardScriptVerifyFlags(bm.GetChain())
 			},
@@ -156,7 +156,7 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 		BlockMinSize:      cfg.BlockMinSize,
 		BlockMaxSize:      cfg.BlockMaxSize,
 		BlockPrioritySize: cfg.BlockPrioritySize,
-		TxMinFreeFee:      cfg.MinRelayTxFee,    //TODO, duplicated config item with mem-pool
+		TxMinFreeFee:      cfg.MinTxFee,    //TODO, duplicated config item with mem-pool
 		StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
 				return standardScriptVerifyFlags(bm.GetChain())
 		}, //TODO, duplicated config item with mem-pool

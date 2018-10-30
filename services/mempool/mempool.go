@@ -385,24 +385,11 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	// Don't allow transactions with fees too low to get into a mined block.
-	//
-	// Most miners allow a free transaction area in blocks they mine to go
-	// alongside the area used for high-priority transactions as well as
-	// transactions with fees.  A transaction size of up to 1000 bytes is
-	// considered safe to go into this section.  Further, the minimum fee
-	// calculated below on its own would encourage several small
-	// transactions to avoid fees rather than one single larger transaction
-	// which is more desirable.  Therefore, as long as the size of the
-	// transaction does not exceeed 1000 less than the reserved space for
-	// high-priority transactions, don't require a fee for it.
-	// This applies to non-stake transactions only.
 	serializedSize := int64(msgTx.SerializeSize())
 	minFee := calcMinRequiredTxRelayFee(serializedSize,
 		mp.cfg.Policy.MinRelayTxFee)
-	if txType == types.TxTypeRegular { // Non-stake only
-		if serializedSize >= (DefaultBlockPrioritySize-1000) &&
-			txFee < minFee {
-
+	if txType == types.TxTypeRegular { // regular tx only
+		if txFee < minFee {
 			str := fmt.Sprintf("transaction %v has %v fees which "+
 				"is under the required amount of %v", txHash,
 				txFee, minFee)
@@ -462,8 +449,8 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 			mp.cfg.Policy.MinRelayTxFee)
 		if txFee > maxFee {
 			err = fmt.Errorf("transaction %v has %v fee which is above the "+
-				"allowHighFee check threshold amount of %v", txHash,
-				txFee, maxFee)
+				"allowHighFee check threshold amount of %v (= %v byte * %v/kB * %v)", txHash,
+				txFee, maxFee, serializedSize, mp.cfg.Policy.MinRelayTxFee.Format(types.AmountAtom), maxRelayFeeMultiplier)
 			return nil, err
 		}
 	}
