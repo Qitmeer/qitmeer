@@ -1138,9 +1138,9 @@ func (to *TxOutput) GetPkScript() []byte {
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (to *TxOutput) SerializeSize() int {
-	// Value 8 bytes + Version 2 bytes + serialized varint size for
+	// Value 8 bytes + serialized varint size for
 	// the length of PkScript + PkScript bytes.
-	return 8 + 2 + s.VarIntSerializeSize(uint64(len(to.PkScript))) + len(to.PkScript)
+	return 8 + s.VarIntSerializeSize(uint64(len(to.PkScript))) + len(to.PkScript)
 }
 
 type ContractTransaction struct {

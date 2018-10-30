@@ -6,7 +6,7 @@
 # echo 7025927350b0f968c4a012df2b30cc494786cfff55b177d199069d9bc5aa4035|nx ec-new |nx ec-to-public |nx ec-to-addr
 # RmG6xQsV7gnS4JZmoq5FgmyEbmUQRenrTCo
 network="--privnet"
-mining="--miningaddr RmFa5hnPd3uQRpzr3xWTfr8EFZdX7dS1qzV"
+mining="--miningaddr RmM4oveyHptJMkHRf396f6QawErf7Min6yU"
 debug="-d trace --printorigin"
 rpc="--listen 127.0.0.1:1234 --rpcuser test --rpcpass test"
 path="-b "$(pwd)
