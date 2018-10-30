@@ -9,6 +9,7 @@ import (
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/blockchain"
 	"github.com/noxproject/nox/core/json"
+	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/params/dcr/types"
 	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/services/common/error"
@@ -106,6 +107,32 @@ func (api *PublicMinerAPI) GetBlockTemplate() (interface{}, error) {
 		//return handleGetBlockTemplateProposal(s, request)
 	}
 	return nil, er.RpcInvalidError("Invalid mode")
+}
+
+//LL
+//Attempts to submit new block to network.
+//See https://en.bitcoin.it/wiki/BIP_0022 for full specification
+func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
+	// Deserialize the hexBlock.
+
+	if len(hexBlock)%2 != 0 {
+		hexBlock = "0" + hexBlock
+	}
+	serializedBlock, err := hex.DecodeString(hexBlock)
+
+	if err != nil {
+		return nil, er.RpcDecodeHexError(hexBlock)
+	}
+	block, err := types.NewBlockFromBytes(serializedBlock)
+	if err != nil {
+		return nil, er.RpcDeserializationError("Block decode failed: ", err.Error())
+	}
+	// Process this block using the same rules as blocks coming from other
+	// nodes.  This will in turn relay it to the network like normal.
+	if !api.miner.submitBlock(block) {
+		return fmt.Sprintf("rejected: %s", err.Error()), nil
+	}
+	return nil, nil
 }
 
 //LL
