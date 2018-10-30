@@ -176,7 +176,12 @@ function decode_raw_tx(){
 
 function send_raw_tx(){
   local input=$1
-  local data='{"jsonrpc":"2.0","method":"sendRawTransaction","params":["'$input'"],"id":1}'
+  local allow_high_fee=$2
+  if [ "$allow_high_fee" == "" ]; then
+    allow_high_fee="false"
+  fi
+
+  local data='{"jsonrpc":"2.0","method":"sendRawTransaction","params":["'$input'",'$allow_high_fee'],"id":1}'
   get_result "$data"
 }
 
@@ -208,7 +213,7 @@ function get_result(){
   local pass="test"
   local data=$1
   local curl_result=$(curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data $data https://$host:$port)
-  local result=$(echo $curl_result|jq -r -c -M '.result')
+  local result=$(echo $curl_result|jq -r -M '.result')
   if [ $DEBUG -gt 0 ]; then
     local curl_cmd="curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data '"$data"' https://$host:$port"
     echo "$curl_cmd" > $DEBUG_FILE
@@ -457,7 +462,7 @@ function call_get_block() {
     elif ! [ "$blkhash" == "" ]; then
        block_result=$(get_block_by_hash "$blkhash" "$verbose")
        if [ "$verbose" != "true" ]; then
-         block_result='{ "result" : "'$block_result'"}'
+         block_result='{ "hex" : "'$block_result'"}'
        fi
     else
        echo '{ "error" : "need to provide blknum or blkhash"}'; exit -1;
