@@ -47,15 +47,17 @@ const (
 	maxStandardSigScriptSize = 1650
 
 	// DefaultMinRelayTxFee is the minimum fee in atoms that is required for
-	// a transaction to be treated as free for relay and mining purposes.
+	// a transaction to be treated as free.
 	// It is also used to help determine if a transaction is considered dust
 	// and as a base for calculating minimum required fees for larger
-	// transactions.  This value is in Atoms/1000 bytes.
+	// transactions.  This value is in Atom Nox/kB. The default value is
+	// 10000 Atoms/kB (aka. 0.0001 NOX/kB)
 	DefaultMinRelayTxFee = int64(1e4)
 
 	// maxRelayFeeMultiplier is the factor that we disallow fees / kB above the
 	// minimum tx fee.  At the current default minimum relay fee of 0.0001
-	// NOX/kB, this results in a maximum allowed high fee of 1 NOX/kB.
+	// NOX/kB (aka. 10000 Atom Nox/kB), this results in a maximum allowed
+	// high fee of 1 NOX/kB.
 	maxRelayFeeMultiplier = 1e4
 
 	// maxStandardMultiSigKeys is the maximum number of public keys allowed
@@ -131,8 +133,7 @@ type Policy struct {
 	// of the max signature operations for a block.
 	MaxSigOpsPerTx int
 
-	// MinRelayTxFee defines the minimum transaction fee in BTC/kB to be
-	// considered a non-zero fee.
+	// MinRelayTxFee defines the minimum transaction fee in AtomNOX/kB
 	MinRelayTxFee types.Amount
 
 	// StandardVerifyFlags defines the function to retrieve the flags to

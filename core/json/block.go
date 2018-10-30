@@ -23,3 +23,20 @@ type BlockVerboseResult struct {
 	PreviousHash  string        `json:"previousblockhash"`
 	NextHash      string        `json:"nextblockhash,omitempty"`
 }
+
+// GetBlockHeaderVerboseResult models the data from the getblockheader command when
+// the verbose flag is set.  When the verbose flag is not set, getblockheader
+// returns a hex-encoded string.
+type GetBlockHeaderVerboseResult struct {
+	Hash          string  `json:"hash"`
+	Confirmations int64   `json:"confirmations"`
+	Version       int32   `json:"version"`
+	PreviousHash  string  `json:"previousblockhash,omitempty"`
+	TxRoot        string  `json:"txRoot"`
+	StateRoot     string  `json:"stateRoot"`
+	Difficulty    uint32  `json:"difficulty"`
+	Height        uint32  `json:"height"`
+	Time          int64   `json:"time"`
+	Nonce         uint64  `json:"nonce"`
+	NextHash      string  `json:"nextblockhash,omitempty"`
+}

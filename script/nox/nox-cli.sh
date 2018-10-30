@@ -127,6 +127,17 @@ function get_block_by_hash(){
   get_result "$data"
 }
 
+function get_blockheader_by_hash(){
+  local block_hash=$1
+  local verbose=$2
+  if [ "$verbose" == "" ]; then
+    verbose="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockHeader","params":["'$block_hash'",'$verbose'],"id":1}'
+  get_result "$data"
+}
+
+
 # return tx by hash
 function get_tx_by_hash(){
   local tx_hash=$1
@@ -548,6 +559,10 @@ elif [ $1 == "get_highest_block" ]; then
 elif [ $1 == "blockhash" ]; then
   shift
   get_blockhash $1
+  check_error
+elif [ $1 == "header" ]; then
+  shift
+  get_blockheader_by_hash $@
   check_error
 
 ## Tx

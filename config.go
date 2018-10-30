@@ -68,7 +68,7 @@ func loadConfig() (*config.Config, []string, error) {
 		RPCMaxClients:        defaultMaxRPCClients,
 		Generate:             defaultGenerate,
 		MaxPeers:             defaultMaxPeers,
-		MinRelayTxFee:        mempool.DefaultMinRelayTxFee,
+		MinTxFee:             mempool.DefaultMinRelayTxFee,
 		BlockMinSize:         defaultBlockMinSize,
 		BlockMaxSize:         defaultBlockMaxSize,
 		SigCacheMaxSize:      defaultSigCacheMaxSize,
@@ -79,7 +79,7 @@ func loadConfig() (*config.Config, []string, error) {
 	// help message error can be ignored here since they will be caught by
 	// the final parse below.
 	preCfg := cfg
-	preParser := newConfigParser(&preCfg, flags.Default)
+	preParser := newConfigParser(&preCfg, flags.HelpFlag)
 	_, err := preParser.Parse()
 	if err != nil {
 		if e, ok := err.(*flags.Error); ok && e.Type != flags.ErrHelp {
