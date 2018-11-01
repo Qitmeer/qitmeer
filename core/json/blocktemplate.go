@@ -48,6 +48,7 @@ type GetBlockTemplateResult struct {
 	// Base fields from BIP 0022.  CoinbaseAux is optional.  One of
 	// CoinbaseTxn or CoinbaseValue must be specified, but not both.
 	Bits          string                     `json:"bits"`
+	StateRoot     string                     `json:"stateroot"`
 	CurTime       int64                      `json:"curtime"`
 	Height        int64                      `json:"height"`
 	PreviousHash  string                     `json:"previousblockhash"`
@@ -55,7 +56,7 @@ type GetBlockTemplateResult struct {
 	SizeLimit     int64                      `json:"sizelimit,omitempty"`
 	WeightLimit   int64                      `json:"weightlimit,omitempty"`
 	Transactions  []GetBlockTemplateResultTx `json:"transactions"`
-	Version       uint32                      `json:"version"`
+	Version       uint32                     `json:"version"`
 	CoinbaseAux   *GetBlockTemplateResultAux `json:"coinbaseaux,omitempty"`
 	CoinbaseTxn   *GetBlockTemplateResultTx  `json:"coinbasetxn,omitempty"`
 	CoinbaseValue *int64                     `json:"coinbasevalue,omitempty"`
