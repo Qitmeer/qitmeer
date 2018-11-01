@@ -129,9 +129,51 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	}
 	// Process this block using the same rules as blocks coming from other
 	// nodes.  This will in turn relay it to the network like normal.
-	if !api.miner.submitBlock(block) {
-		return fmt.Sprintf("rejected: %s", err.Error()), nil
+	isOrphan, err := api.miner.blockManager.ProcessBlock(block, blockchain.BFNone)
+	if err != nil {
+		// Anything other than a rule violation is an unexpected error,
+		// so log that error as an internal error.
+		rErr, ok := err.(blockchain.RuleError)
+		if !ok {
+			return fmt.Sprintf("Unexpected error while processing "+
+				"block submitted via miner: %s", err.Error()), nil
+		}
+		// Occasionally errors are given out for timing errors with
+		// ReduceMinDifficulty and high block works that is above
+		// the target. Feed these to debug.
+		if api.miner.params.ReduceMinDifficulty &&
+			rErr.ErrorCode == blockchain.ErrHighHash {
+			return fmt.Sprintf("Block submitted via miner rejected "+
+				"because of ReduceMinDifficulty time sync failure: %s", err.Error()), nil
+		}
+
+		if rErr.ErrorCode == blockchain.ErrDuplicateBlock {
+			return fmt.Sprintf(rErr.Description, err.Error()), nil
+		}
+		// Other rule errors should be reported.
+		return fmt.Sprintf("Block submitted via miner rejected: %s", err.Error()), nil
 	}
+
+	if isOrphan {
+		return fmt.Sprintf("Block submitted via miner is an orphan building "+
+			"on parent: %s", err.Error()), nil
+	}
+
+	// The block was accepted.
+	coinbaseTxOuts := block.Block().Transactions[0].TxOut
+	coinbaseTxGenerated := uint64(0)
+	for _, out := range coinbaseTxOuts {
+		coinbaseTxGenerated += out.Amount
+	}
+	return fmt.Sprintf("Block submitted accepted", "hash", block.Hash(),
+		"height", block.Height(), "amount", coinbaseTxGenerated), nil
+
+	/*
+		if !api.miner.submitBlock(block) {
+			return fmt.Sprintf("rejected: %s", err.Error()), nil
+		}
+	*/
+
 	return nil, nil
 }
 
