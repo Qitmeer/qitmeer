@@ -383,6 +383,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 
 	return json.GetBlockTemplateResult{
 		Bits:         strconv.FormatInt(int64(template.Block.Header.Difficulty), 16),
+		StateRoot:    template.Block.Header.StateRoot.String(),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
 		Height:       int64(template.Height),
 		PreviousHash: template.Block.Header.ParentRoot.String(),
