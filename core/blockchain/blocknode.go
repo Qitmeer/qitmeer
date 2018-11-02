@@ -216,7 +216,7 @@ func (node *blockNode) GetParentsWorkSum() *big.Int {
 	return workSum
 }
 
-//Include all parents for set
+// Include all parents for set
 func (node *blockNode) GetParentsSet() *BlockSet{
 	if node.parents==nil||len(node.parents)==0 {
 		return nil
@@ -228,7 +228,7 @@ func (node *blockNode) GetParentsSet() *BlockSet{
 	return result
 }
 
-//node has children in DAG
+// node has children in DAG
 func (node *blockNode) AddChild(child *blockNode){
 	if node.HasChild(child) {
 		return
@@ -239,7 +239,7 @@ func (node *blockNode) AddChild(child *blockNode){
 	node.children=append(node.children,child)
 }
 
-//check is there any child
+// check is there any child
 func (node *blockNode) HasChild(child *blockNode) bool{
 	if node.children==nil||len(node.children)==0 {
 		return false
@@ -252,7 +252,7 @@ func (node *blockNode) HasChild(child *blockNode) bool{
 	return false
 }
 
-//For the moment,In order to match the DAG
+// For the moment,In order to match the DAG
 func (node *blockNode) GetChildrenSet() *BlockSet{
 	if node.children==nil||len(node.children)==0 {
 		return nil
@@ -264,9 +264,15 @@ func (node *blockNode) GetChildrenSet() *BlockSet{
 	return result
 }
 
-//return node height
+// return node height
 func (node *blockNode) GetHeight() uint64{
 	return node.height
+}
+
+// Return the real height of node,it is stable.
+// You can imagine that this is the main chain.
+func (node *blockNode) GetMainHeight() uint64{
+	return node.mainHeight
 }
 
 func (node *blockNode) Clone() *blockNode{

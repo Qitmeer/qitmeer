@@ -141,6 +141,11 @@ func (api *PublicBlockAPI) GetBlockCount() (interface{}, error){
 // GetBlockHeader implements the getblockheader command.
 func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interface{}, error) {
 
+	// Fetch the block node
+	node:=api.bm.chain.BlockIndex().LookupNode(&hash)
+	if node==nil {
+		return nil, er.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", hash))
+	}
 	// Fetch the header from chain.
 	blockHeader, err := api.bm.chain.HeaderByHash(&hash)
 	if err != nil {
@@ -160,25 +165,17 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 	}
 
 	best := api.bm.chain.BestSnapshot()
+	bestNode:=api.bm.chain.BlockIndex().LookupNode(&best.Hash)
 
 	// Get next block hash unless there are none.
-	var nextHashString string
 	confirmations := int64(-1)
-	height := uint64(0)//blockHeader.Height
-	onMainChain, err := api.bm.chain.MainChainHasBlock(&hash)
-	if onMainChain {
-		if height < best.Height {
-			nextHash, err := api.bm.chain.BlockHashByHeight(height + 1)
-			if err != nil {
-				context := "No next block"
-				return nil, er.RpcInternalError(err.Error(),
-					context)
-			}
-			nextHashString = nextHash.String()
+	height := node.GetMainHeight()
+	if bestNode!=nil {
+		confirmations=1+int64(bestNode.GetMainHeight())-int64(height)
+		if confirmations<1 {
+			confirmations=1
 		}
-		confirmations = 1 + int64(best.Height - height)
 	}
-
 	blockHeaderReply := json.GetBlockHeaderVerboseResult{
 		Hash:          hash.String(),
 		Confirmations: confirmations,
@@ -190,7 +187,6 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 		Height:        uint32(height),
 		Time:          blockHeader.Timestamp.Unix(),
 		Nonce:         blockHeader.Nonce,
-		NextHash:      nextHashString,
 	}
 
 	return blockHeaderReply, nil
