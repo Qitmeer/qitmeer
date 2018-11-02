@@ -9,6 +9,7 @@ import (
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/blockchain"
 	"github.com/noxproject/nox/core/json"
+	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/params/dcr/types"
 	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/services/common/error"
@@ -106,6 +107,74 @@ func (api *PublicMinerAPI) GetBlockTemplate() (interface{}, error) {
 		//return handleGetBlockTemplateProposal(s, request)
 	}
 	return nil, er.RpcInvalidError("Invalid mode")
+}
+
+//LL
+//Attempts to submit new block to network.
+//See https://en.bitcoin.it/wiki/BIP_0022 for full specification
+func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
+	// Deserialize the hexBlock.
+
+	if len(hexBlock)%2 != 0 {
+		hexBlock = "0" + hexBlock
+	}
+	serializedBlock, err := hex.DecodeString(hexBlock)
+
+	if err != nil {
+		return nil, er.RpcDecodeHexError(hexBlock)
+	}
+	block, err := types.NewBlockFromBytes(serializedBlock)
+	if err != nil {
+		return nil, er.RpcDeserializationError("Block decode failed: ", err.Error())
+	}
+	// Process this block using the same rules as blocks coming from other
+	// nodes.  This will in turn relay it to the network like normal.
+	isOrphan, err := api.miner.blockManager.ProcessBlock(block, blockchain.BFNone)
+	if err != nil {
+		// Anything other than a rule violation is an unexpected error,
+		// so log that error as an internal error.
+		rErr, ok := err.(blockchain.RuleError)
+		if !ok {
+			return fmt.Sprintf("Unexpected error while processing "+
+				"block submitted via miner: %s", err.Error()), nil
+		}
+		// Occasionally errors are given out for timing errors with
+		// ReduceMinDifficulty and high block works that is above
+		// the target. Feed these to debug.
+		if api.miner.params.ReduceMinDifficulty &&
+			rErr.ErrorCode == blockchain.ErrHighHash {
+			return fmt.Sprintf("Block submitted via miner rejected "+
+				"because of ReduceMinDifficulty time sync failure: %s", err.Error()), nil
+		}
+
+		if rErr.ErrorCode == blockchain.ErrDuplicateBlock {
+			return fmt.Sprintf(rErr.Description, err.Error()), nil
+		}
+		// Other rule errors should be reported.
+		return fmt.Sprintf("Block submitted via miner rejected: %s", err.Error()), nil
+	}
+
+	if isOrphan {
+		return fmt.Sprintf("Block submitted via miner is an orphan building "+
+			"on parent: %s", err.Error()), nil
+	}
+
+	// The block was accepted.
+	coinbaseTxOuts := block.Block().Transactions[0].TxOut
+	coinbaseTxGenerated := uint64(0)
+	for _, out := range coinbaseTxOuts {
+		coinbaseTxGenerated += out.Amount
+	}
+	return fmt.Sprintf("Block submitted accepted", "hash", block.Hash(),
+		"height", block.Height(), "amount", coinbaseTxGenerated), nil
+
+	/*
+		if !api.miner.submitBlock(block) {
+			return fmt.Sprintf("rejected: %s", err.Error()), nil
+		}
+	*/
+
+	return nil, nil
 }
 
 //LL
@@ -314,6 +383,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 
 	return json.GetBlockTemplateResult{
 		Bits:         strconv.FormatInt(int64(template.Block.Header.Difficulty), 16),
+		StateRoot:    template.Block.Header.StateRoot.String(),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
 		Height:       int64(template.Height),
 		PreviousHash: template.Block.Header.ParentRoot.String(),

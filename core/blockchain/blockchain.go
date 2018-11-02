@@ -3,19 +3,19 @@
 package blockchain
 
 import (
-	"sync"
-	"time"
+	"container/list"
+	"encoding/binary"
+	"fmt"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/dbnamespace"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/core/dbnamespace"
-	"fmt"
-	"encoding/binary"
+	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/services/common/progresslog"
 	"os"
-	"container/list"
+	"sync"
+	"time"
 )
 
 const (
@@ -624,6 +624,20 @@ func (b *BlockChain) BlockByHash(hash *hash.Hash) (*types.SerializedBlock, error
 	defer b.chainLock.RUnlock()
 
 	return b.fetchMainChainBlockByHash(hash)
+}
+
+// HeaderByHash returns the block header identified by the given hash or an
+// error if it doesn't exist.  Note that this will return headers from both the
+// main chain and any side chains.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) HeaderByHash(hash *hash.Hash) (types.BlockHeader, error) {
+	node := b.index.LookupNode(hash)
+	if node == nil {
+		return types.BlockHeader{}, fmt.Errorf("block %s is not known", hash)
+	}
+
+	return node.Header(), nil
 }
 
 // FetchBlockByHash searches the internal chain block stores and the database

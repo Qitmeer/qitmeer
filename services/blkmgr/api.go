@@ -3,14 +3,15 @@
 package blkmgr
 
 import (
-	"github.com/noxproject/nox/rpc"
-	"github.com/noxproject/nox/core/json"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/services/common/marshal"
-	"github.com/noxproject/nox/common/hash"
+	"bytes"
 	"encoding/hex"
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/core/json"
+	"github.com/noxproject/nox/rpc"
 	"github.com/noxproject/nox/services/common/error"
 	"fmt"
+	"github.com/noxproject/nox/services/common/marshal"
 )
 
 func (b *BlockManager) GetChain() *blockchain.BlockChain{
@@ -135,6 +136,65 @@ func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error){
 func (api *PublicBlockAPI) GetBlockCount() (interface{}, error){
 	best := api.bm.chain.BestSnapshot()
 	return best.Height, nil
+}
+
+// GetBlockHeader implements the getblockheader command.
+func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interface{}, error) {
+
+	// Fetch the header from chain.
+	blockHeader, err := api.bm.chain.HeaderByHash(&hash)
+	if err != nil {
+		return nil, er.RpcInternalError(err.Error(), fmt.Sprintf("Block not found: %v", hash))
+	}
+
+	// When the verbose flag isn't set, simply return the serialized block
+	// header as a hex-encoded string.
+	if !verbose {
+		var headerBuf bytes.Buffer
+		err := blockHeader.Serialize(&headerBuf)
+		if err != nil {
+			context := "Failed to serialize block header"
+			return nil, er.RpcInternalError(err.Error(), context)
+		}
+		return hex.EncodeToString(headerBuf.Bytes()), nil
+	}
+
+	best := api.bm.chain.BestSnapshot()
+
+	// Get next block hash unless there are none.
+	var nextHashString string
+	confirmations := int64(-1)
+	height := uint64(0)//blockHeader.Height
+	onMainChain, err := api.bm.chain.MainChainHasBlock(&hash)
+	if onMainChain {
+		if height < best.Height {
+			nextHash, err := api.bm.chain.BlockHashByHeight(height + 1)
+			if err != nil {
+				context := "No next block"
+				return nil, er.RpcInternalError(err.Error(),
+					context)
+			}
+			nextHashString = nextHash.String()
+		}
+		confirmations = 1 + int64(best.Height - height)
+	}
+
+	blockHeaderReply := json.GetBlockHeaderVerboseResult{
+		Hash:          hash.String(),
+		Confirmations: confirmations,
+		Version:       int32(blockHeader.Version),
+		PreviousHash:  blockHeader.ParentRoot.String(),
+		TxRoot:        blockHeader.TxRoot.String(),
+		StateRoot:     blockHeader.StateRoot.String(),
+		Difficulty:    blockHeader.Difficulty,
+		Height:        uint32(height),
+		Time:          blockHeader.Timestamp.Unix(),
+		Nonce:         blockHeader.Nonce,
+		NextHash:      nextHashString,
+	}
+
+	return blockHeaderReply, nil
+
 }
 
 
