@@ -54,6 +54,7 @@ type BlockDAG struct {
 	anticoneSize int
 }
 
+// Initialization block dag,for example, calculation anticone size.
 func (bd *BlockDAG) Init(bch *BlockChain){
 	bd.bc=bch
 	bd.totalBlocks=0
@@ -66,6 +67,7 @@ func (bd *BlockDAG) Init(bch *BlockChain){
 	log.Info(fmt.Sprintf("anticone size:%d",bd.anticoneSize))
 }
 
+// return the genesis block node
 func (bd *BlockDAG) Genesis() *blockNode {
 	if bd.bc.params!=nil {
 		return bd.bc.index.LookupNode(bd.bc.params.GenesisHash)
@@ -77,7 +79,7 @@ func (bd *BlockDAG) GetTips() *BlockSet {
 	return bd.tips
 }
 
-func (bd *BlockDAG) SetTips(bs *BlockSet){
+func (bd *BlockDAG) setTips(bs *BlockSet){
 	bd.tips=bs
 }
 
@@ -119,6 +121,7 @@ func (bd *BlockDAG) AddBlock(b *blockNode) *list.List {
 	return	bd.updateOrder(b)
 }
 
+// Refresh the dag tip whith new block,it will cause changes in tips set.
 func (bd *BlockDAG) updateTips(b *blockNode) {
 	if bd.tips == nil {
 		bd.tips = NewBlockSet()
@@ -126,6 +129,8 @@ func (bd *BlockDAG) updateTips(b *blockNode) {
 		bd.genesis=b.hash
 		return
 	}
+	isBelong:=bd.tips.Has(&b.hash)
+
 	for k, _ := range bd.tips.GetMap() {
 		node:=bd.bc.index.LookupNode(&k)
 		if node==nil {
@@ -135,7 +140,9 @@ func (bd *BlockDAG) updateTips(b *blockNode) {
 			bd.tips.Remove(&k)
 		}
 	}
-	bd.tips.Add(&b.hash)
+	if !isBelong {
+		bd.tips.Add(&b.hash)
+	}
 }
 
 func (bd *BlockDAG) addPastSetNum(b *blockNode, num uint64) {
@@ -211,6 +218,8 @@ func (bd *BlockDAG) GetFutureSet(fs *BlockSet, b *blockNode) {
 	}
 }
 
+// Calculate the size of the past block set.Because the past block set of block
+// is stable,we can calculate and save.
 func (bd *BlockDAG) calculatePastBlockSetNum(b *blockNode) {
 
 	if b.hash.IsEqual(&bd.genesis) {
