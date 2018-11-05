@@ -917,6 +917,8 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []spentTxOut) error {
+	// Must be end node of sequence in dag
+	lastTip:=b.dag.GetLastBlock()
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()
@@ -936,7 +938,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	*/
 	blockSize := uint64(block.Block().SerializeSize())
 
-	state := newBestState(node, uint64(blockSize), uint64(numTxns), node.CalcPastMedianTime(),curTotalTxns+numTxns,
+	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns), lastTip.CalcPastMedianTime(),curTotalTxns+numTxns,
 		 curTotalSubsidy+subsidy)
 
 
@@ -1050,6 +1052,10 @@ func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 
 func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,node *blockNode) error {
 
+	// Why the old order is the order that was removed by the new block, because the new block
+	// must be one of the tip of the dag.This is very important for the following understanding.
+	// In the two case, the perspective is the same.In the other words, the future can not
+	// affect the past.
 	for e := detachNodes.Back(); e != nil; e = e.Prev() {
 		n:=b.index.LookupNode(e.Value.(*hash.Hash))
 
