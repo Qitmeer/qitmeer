@@ -95,7 +95,7 @@ func (api *PublicMinerAPI) Generate(numBlocks uint32) ([]string, error) {
 func (api *PublicMinerAPI) GetBlockTemplate() (interface{}, error) {
 	// Set the default mode and override it if supplied.
 	capabilities := []string{
-		"coinbasetxn", "workid", "coinbase/append",
+		"", "workid", "coinbase/append",
 	}
 	mode := "template"
 
@@ -321,7 +321,8 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	transactions := make([]json.GetBlockTemplateResultTx, 0, numTx-1)
 	txIndex := make(map[hash.Hash]int64, numTx)
 	for i, tx := range template.Block.Transactions {
-		txHash := tx.TxHash()
+		//txHash := tx.TxHash()
+		txHash := tx.TxHashFull()
 		txIndex[txHash] = int64(i)
 
 		// Skip the coinbase transaction.
@@ -349,11 +350,10 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		// Serialize the transaction for later conversion to hex.
 		txBuf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
 
-		//TODO,
 		/*
 			if err := tx.Serialize(txBuf); err != nil {
-				context := "Failed to serialize transaction"
-				return nil, internalRPCError(err.Error(), context)
+					context := "Failed to serialize transaction"
+					return nil, internalRPCError(err.Error(), context)
 			}
 		*/
 
@@ -381,7 +381,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	}
 	gbtCapabilities := []string{"proposal"}
 
-	return json.GetBlockTemplateResult{
+	reply := json.GetBlockTemplateResult{
 		Bits:         strconv.FormatInt(int64(template.Block.Header.Difficulty), 16),
 		StateRoot:    template.Block.Header.StateRoot.String(),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
@@ -405,7 +405,23 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		NonceRange: gbtNonceRange,
 		// TODO, Capabilities
 		Capabilities: gbtCapabilities,
-	}, nil
+	}
+
+	if useCoinbaseValue {
+		reply.CoinbaseValue = &template.Block.Transactions[0].TxOut[0].Amount
+	} else {
+		// Ensure the template has a valid payment address associated
+		// with it when a full coinbase is requested.
+		if !template.ValidPayAddress {
+			return nil, er.RpcInvalidError("A coinbase transaction has been " +
+				"requested, but the server has not " +
+				"been configured with any payment " +
+				"addresses via --miningaddr")
+		}
+	}
+
+	return &reply, nil
+
 }
 
 //LL

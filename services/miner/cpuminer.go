@@ -7,20 +7,20 @@
 package miner
 
 import (
-	"sync"
+	"errors"
+	"fmt"
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/config"
-	"math/rand"
-	"time"
-	"fmt"
-	"errors"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/services/blkmgr"
 	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/core/merkle"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/params"
+	"github.com/noxproject/nox/services/blkmgr"
 	"github.com/noxproject/nox/services/mining"
-	"github.com/noxproject/nox/core/merkle"
+	"math/rand"
+	"sync"
+	"time"
 )
 
 const (
@@ -48,7 +48,6 @@ const (
 	// some reason run out during simulations.
 	maxSimnetToMine uint8 = 4
 )
-
 
 // CPUMiner provides facilities for solving blocks (mining) using the CPU in
 // a concurrency-safe manner.  It consists of two main goroutines -- a speed
@@ -88,9 +87,9 @@ type CPUMiner struct {
 // newCPUMiner returns a new instance of a CPU miner for the provided server.
 // Use Start to begin the mining process.  See the documentation for CPUMiner
 // type for more details.
-func NewCPUMiner(cfg *config.Config,par *params.Params, policy *mining.Policy,
+func NewCPUMiner(cfg *config.Config, par *params.Params, policy *mining.Policy,
 	cache *txscript.SigCache,
-	source mining.TxSource,tsource blockchain.MedianTimeSource,blkMgr *blkmgr.BlockManager,   numWorkers uint32) *CPUMiner {
+	source mining.TxSource, tsource blockchain.MedianTimeSource, blkMgr *blkmgr.BlockManager, numWorkers uint32) *CPUMiner {
 	return &CPUMiner{
 		config:            cfg,
 		params:            par,
@@ -126,12 +125,11 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 	// Respond with an error if server is already mining.
 	if m.started || m.discreteMining {
 		m.Unlock()
+		m.started = true
+		m.discreteMining = true
 		return nil, errors.New("server is already CPU mining. Please call " +
 			"`setgenerate 0` before calling discrete `generate` commands.")
 	}
-
-	m.started = true
-	m.discreteMining = true
 
 	m.speedMonitorQuit = make(chan struct{})
 	m.wg.Add(1)
@@ -139,7 +137,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 
 	m.Unlock()
 
-	log.Trace("Generating blocks","num", n)
+	log.Trace("Generating blocks", "num", n)
 
 	i := uint32(0)
 	blockHashes := make([]*hash.Hash, n)
@@ -171,11 +169,11 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.
 		// TODO, refactor NewBlockTemplate input dependencies
-		template, err := mining.NewBlockTemplate(m.policy,m.config,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr)
+		template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr)
 		m.submitBlockLock.Unlock()
 		if err != nil {
 			errStr := fmt.Sprintf("template: %v", err)
-			log.Error("Failed to create new block ","err",errStr)
+			log.Error("Failed to create new block ", "err", errStr)
 			//TODO refactor the quit logic
 			m.Lock()
 			close(m.speedMonitorQuit)
@@ -183,10 +181,10 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 			m.started = false
 			m.discreteMining = false
 			m.Unlock()
-			return nil, err  //should miner if error
+			return nil, err //should miner if error
 		}
-		if template == nil {  // should not go here
-			log.Debug("Failed to create new block template","err","but error=nil")
+		if template == nil { // should not go here
+			log.Debug("Failed to create new block template", "err", "but error=nil")
 			continue //might try again?
 		}
 
@@ -272,12 +270,12 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 	// Choose a random extra nonce offset for this block template and
 	// worker.
 	/*
-	enOffset, err := s.RandomUint64()
-	if err != nil {
-		log.Error("Unexpected error while generating random "+
-			"extra nonce offset: %v", err)
-		enOffset = 0
-	}
+		enOffset, err := s.RandomUint64()
+		if err != nil {
+			log.Error("Unexpected error while generating random "+
+				"extra nonce offset: %v", err)
+			enOffset = 0
+		}
 	*/
 
 	// Create a couple of convenience variables.
@@ -295,64 +293,64 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 	// provided by the Go spec.
 	// for extraNonce := uint64(0); extraNonce < maxExtraNonce; extraNonce++ {
 
-		// Update the extra nonce in the block template with the
-		// new value by regenerating the coinbase script and
-		// setting the merkle root to the new value.
-		// TODO, decided if need extra nonce for coinbase-tx
-		// updateExtraNonce(msgBlock, extraNonce+enOffset)
+	// Update the extra nonce in the block template with the
+	// new value by regenerating the coinbase script and
+	// setting the merkle root to the new value.
+	// TODO, decided if need extra nonce for coinbase-tx
+	// updateExtraNonce(msgBlock, extraNonce+enOffset)
 
-		// Update the extra nonce in the block template header with the
-		// new value.
-		// binary.LittleEndian.PutUint64(header.ExtraData[:], extraNonce+enOffset)
+	// Update the extra nonce in the block template header with the
+	// new value.
+	// binary.LittleEndian.PutUint64(header.ExtraData[:], extraNonce+enOffset)
 
-		// Search through the entire nonce range for a solution while
-		// periodically checking for early quit and stale block
-		// conditions along with updates to the speed monitor.
-		for i := uint64(0); i <= maxNonce; i++ {
-			select {
-			case <-quit:
+	// Search through the entire nonce range for a solution while
+	// periodically checking for early quit and stale block
+	// conditions along with updates to the speed monitor.
+	for i := uint64(0); i <= maxNonce; i++ {
+		select {
+		case <-quit:
+			return false
+
+		case <-ticker.C:
+			m.updateHashes <- hashesCompleted
+			hashesCompleted = 0
+
+			// The current block is stale if the memory pool
+			// has been updated since the block template was
+			// generated and it has been at least 3 seconds,
+			// or if it's been one minute.
+			if (lastTxUpdate != m.txSource.LastUpdated() &&
+				time.Now().After(lastGenerated.Add(3*time.Second))) ||
+				time.Now().After(lastGenerated.Add(60*time.Second)) {
+
 				return false
-
-			case <-ticker.C:
-				m.updateHashes <- hashesCompleted
-				hashesCompleted = 0
-
-				// The current block is stale if the memory pool
-				// has been updated since the block template was
-				// generated and it has been at least 3 seconds,
-				// or if it's been one minute.
-				if (lastTxUpdate != m.txSource.LastUpdated() &&
-					time.Now().After(lastGenerated.Add(3*time.Second))) ||
-					time.Now().After(lastGenerated.Add(60*time.Second)) {
-
-					return false
-				}
-
-				err := mining.UpdateBlockTime(msgBlock, m.blockManager, m.blockManager.GetChain(), m.timeSource, m.params, m.config)
-				if err != nil {
-					log.Warn("CPU miner unable to update block template "+
-						"time: %v", err)
-					return false
-				}
-
-			default:
-				// Non-blocking select to fall through
 			}
 
-			// Update the nonce and hash the block header.
-			header.Nonce = i
-			h := header.BlockHash()
-			// Each hash is actually a double hash (tow hashes), so
-			// increment the number of hashes by 2
-			hashesCompleted += 2
-
-			// The block is solved when the new block hash is less
-			// than the target difficulty.  Yay!
-			if blockchain.HashToBig(&h).Cmp(targetDifficulty) <= 0 {
-				m.updateHashes <- hashesCompleted
-				return true
+			err := mining.UpdateBlockTime(msgBlock, m.blockManager, m.blockManager.GetChain(), m.timeSource, m.params, m.config)
+			if err != nil {
+				log.Warn("CPU miner unable to update block template "+
+					"time: %v", err)
+				return false
 			}
+
+		default:
+			// Non-blocking select to fall through
 		}
+
+		// Update the nonce and hash the block header.
+		header.Nonce = i
+		h := header.BlockHash()
+		// Each hash is actually a double hash (tow hashes), so
+		// increment the number of hashes by 2
+		hashesCompleted += 2
+
+		// The block is solved when the new block hash is less
+		// than the target difficulty.  Yay!
+		if blockchain.HashToBig(&h).Cmp(targetDifficulty) <= 0 {
+			m.updateHashes <- hashesCompleted
+			return true
+		}
+	}
 	//}
 	return false
 }
@@ -386,6 +384,7 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 			return false
 		}
 		// Other rule errors should be reported.
+
 		log.Error("Block submitted via CPU miner rejected: %v", err)
 		return false
 
@@ -402,8 +401,8 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 	for _, out := range coinbaseTxOuts {
 		coinbaseTxGenerated += out.Amount
 	}
-	log.Info("Block submitted accepted","hash",block.Hash(),
-		"height", block.Height(),"amount",coinbaseTxGenerated)
+	log.Info("Block submitted accepted", "hash", block.Hash(),
+		"height", block.Height(), "amount", coinbaseTxGenerated)
 	return true
 }
 
@@ -582,7 +581,6 @@ func (m *CPUMiner) NumWorkers() int32 {
 	return int32(m.numWorkers)
 }
 
-
 // generateBlocks is a worker that is controlled by the miningWorkerController.
 // It is self contained in that it creates block templates and attempts to solve
 // them while detecting when it is performing stale work and reacting
@@ -632,20 +630,20 @@ out:
 
 		// Choose a payment address at random.
 		rand.Seed(time.Now().UnixNano())
-		miningaddrs :=m.config.GetMinningAddrs()
-		fmt.Printf("why %v, %d \n",miningaddrs,len(miningaddrs))
-		rindex :=rand.Intn(len(miningaddrs))
+		miningaddrs := m.config.GetMinningAddrs()
+		fmt.Printf("why %v, %d \n", miningaddrs, len(miningaddrs))
+		rindex := rand.Intn(len(miningaddrs))
 		payToAddr := miningaddrs[rindex]
 
 		// Create a new block template using the available transactions
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.
-		template, err := mining.NewBlockTemplate(m.policy,m.config,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr)
+		template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr)
 		m.submitBlockLock.Unlock()
 		if err != nil {
-			errStr := fmt.Sprintf( "template: %v", err)
-			log.Error("Failed to create new block ","err",errStr)
-			continue  //TODO do we still continue?
+			errStr := fmt.Sprintf("template: %v", err)
+			log.Error("Failed to create new block ", "err", errStr)
+			continue //TODO do we still continue?
 		}
 
 		// Not enough voters.
@@ -697,7 +695,6 @@ func updateExtraNonce(msgBlock *types.Block, extraNonce uint64) error {
 			blockchain.MaxCoinbaseScriptLen)
 	}
 	msgBlock.Transactions[0].TxIn[0].SignScript = coinbaseScript
-
 
 	// Recalculate the merkle root with the updated extra nonce.
 	block := types.NewBlock(msgBlock)
