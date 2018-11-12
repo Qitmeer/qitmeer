@@ -239,3 +239,14 @@ func (n *Node)registerNoxLight() error{
 		}))
 	return err
 }
+
+// return nox full
+func (n *Node) GetNoxFull() *NoxFull{
+	for _,server:=range n.runningSvcs{
+		fullnox:=server.(*NoxFull)
+		if fullnox!=nil {
+			return fullnox
+		}
+	}
+	return nil
+}

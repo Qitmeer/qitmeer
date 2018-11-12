@@ -99,10 +99,9 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 
 		// Fetch the current tip for the index.
 		var height int32
-		var h *hash.Hash
 		err := m.db.View(func(dbTx database.Tx) error {
 			idxKey := indexer.Key()
-			h, height, err = dbFetchIndexerTip(dbTx, idxKey)
+			_, height, err = dbFetchIndexerTip(dbTx, idxKey)
 			return err
 		})
 		if err != nil {

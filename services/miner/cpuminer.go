@@ -717,3 +717,118 @@ func updateExtraNonce(msgBlock *types.Block, extraNonce uint64) error {
 	msgBlock.Header.TxRoot = *merkles[len(merkles)-1]
 	return nil
 }
+
+func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, error) {
+	if parents==nil||len(parents)==0 {
+		return nil,errors.New("Parents is invalid")
+	}
+
+	m.Lock()
+
+	// Respond with an error if there's virtually 0 chance of CPU-mining a block.
+	if !m.params.GenerateSupported {
+		m.Unlock()
+		return nil, errors.New("no support for `generate` on the current " +
+			"network, " + m.params.Net.String() +
+			", as it's unlikely to be possible to CPU-mine a block.")
+	}
+
+	// Respond with an error if server is already mining.
+	if m.started || m.discreteMining {
+		m.Unlock()
+		return nil, errors.New("server is already CPU mining. Please call " +
+			"`setgenerate 0` before calling discrete `generate` commands.")
+	}
+
+	m.started = true
+	m.discreteMining = true
+
+	m.speedMonitorQuit = make(chan struct{})
+	m.wg.Add(1)
+	go m.speedMonitor()
+
+	m.Unlock()
+
+	log.Trace("Generating blocks")
+
+	// Start a ticker which is used to signal checks for stale work and
+	// updates to the speed monitor.
+	ticker := time.NewTicker(time.Second * hashUpdateSecs)
+	defer ticker.Stop()
+
+	for {
+		// Read updateNumWorkers in case someone tries a `setgenerate` while
+		// we're generating. We can ignore it as the `generate` RPC call only
+		// uses 1 worker.
+		select {
+		case <-m.updateNumWorkers:
+		default:
+		}
+
+		// Grab the lock used for block submission, since the current block will
+		// be changing and this would otherwise end up building a new block
+		// template on a block that is in the process of becoming stale.
+		m.submitBlockLock.Lock()
+
+		// Choose a payment address at random.
+		rand.Seed(time.Now().UnixNano())
+		payToAddr := m.config.GetMinningAddrs()[rand.Intn(len(m.config.GetMinningAddrs()))]
+
+		// Create a new block template using the available transactions
+		// in the memory pool as a source of transactions to potentially
+		// include in the block.
+		// TODO, refactor NewBlockTemplate input dependencies
+		template, err := mining.NewBlockTemplateByParents(m.policy,m.config,m.params,
+			m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr,parents)
+		m.submitBlockLock.Unlock()
+		if err != nil {
+			errStr := fmt.Sprintf("template: %v", err)
+			log.Error("Failed to create new block ","err",errStr)
+			//TODO refactor the quit logic
+			m.Lock()
+			close(m.speedMonitorQuit)
+			m.wg.Wait()
+			m.started = false
+			m.discreteMining = false
+			m.Unlock()
+			return nil, err  //should miner if error
+		}
+		if template == nil {  // should not go here
+			log.Debug("Failed to create new block template","err","but error=nil")
+			continue //might try again?
+		}
+
+		// Attempt to solve the block.  The function will exit early
+		// with false when conditions that trigger a stale block, so
+		// a new block template can be generated.  When the return is
+		// true a solution was found, so submit the solved block.
+		if m.solveBlock(template.Block, ticker, nil) {
+			block := types.NewBlock(template.Block)
+			block.SetHeight(template.Height)
+			//
+			_, err := m.blockManager.ProcessBlock(block, blockchain.BFNone)
+			if err == nil {
+				// The block was accepted.
+				coinbaseTxOuts := block.Block().Transactions[0].TxOut
+				coinbaseTxGenerated := uint64(0)
+				for _, out := range coinbaseTxOuts {
+					coinbaseTxGenerated += out.Amount
+				}
+				log.Info("Block submitted accepted","hash",block.Hash(),
+					"height", block.Height(),"amount",coinbaseTxGenerated)
+			}
+
+			//
+			blockHashes:= block.Hash()
+			log.Trace(fmt.Sprintf("Generated blocks"))
+			m.Lock()
+			close(m.speedMonitorQuit)
+			m.wg.Wait()
+			m.started = false
+			m.discreteMining = false
+			m.Unlock()
+			return blockHashes, nil
+
+		}
+	}
+}

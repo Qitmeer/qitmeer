@@ -180,3 +180,13 @@ func standardScriptVerifyFlags(chain *blockchain.BlockChain) (txscript.ScriptFla
 	scriptFlags := mempool.BaseStandardVerifyFlags
 	return scriptFlags, nil
 }
+
+// return block manager
+func (nox *NoxFull) GetBlockManager() *blkmgr.BlockManager{
+	return nox.blockManager
+}
+
+// return cpu miner
+func (nox *NoxFull) GetCpuMiner() *miner.CPUMiner{
+	return nox.cpuMiner
+}

@@ -915,3 +915,591 @@ func handleCreatedBlockTemplate(blockTemplate *types.BlockTemplate, bm *blkmgr.B
 	return blockTemplate, nil
 }
 
+func NewBlockTemplateByParents(policy *Policy,config *config.Config, params *params.Params,
+	sigCache *txscript.SigCache, source TxSource, tsource blockchain.MedianTimeSource,
+	blkMgr *blkmgr.BlockManager,  payToAddress types.Address,parents []*hash.Hash) (*types.BlockTemplate, error) {
+	txSource := source
+	blockManager := blkMgr
+	timeSource := tsource
+	chainState := blockManager.GetChainState()
+	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
+
+
+	// All transaction scripts are verified using the more strict standarad
+	// flags.
+	scriptFlags, err := policy.StandardVerifyFlags()
+	if err != nil {
+		return nil, err
+	}
+
+	// Lock times are relative to the past median time of the block this
+	// template is building on.
+	medianTime := chainState.GetPastMedianTime()
+
+	// Extend the most recently known best block.
+	// The most recently known best block is the top block that has the most
+	// TODO,refactor the poolsize & finalstate
+
+	prevHash,nextBlockHeight,_,_ := chainState.GetNextHeightWithState()
+
+	chainBest := blockManager.GetChain().BestSnapshot()
+	if *prevHash != chainBest.Hash ||
+		nextBlockHeight-1 != chainBest.Height {
+		return nil, fmt.Errorf("chain state is not syncronized to the "+
+			"blockchain (got %v:%v, want %v,%v",
+			prevHash, nextBlockHeight-1, chainBest.Hash, chainBest.Height)
+	}
+
+	// Get the current source transactions and create a priority queue to
+	// hold the transactions which are ready for inclusion into a block
+	// along with some priority related and fee metadata.  Reserve the same
+	// number of items that are available for the priority queue.  Also,
+	// choose the initial sort order for the priority queue based on whether
+	// or not there is an area allocated for high-priority transactions.
+	sourceTxns := txSource.MiningDescs()
+	sortedByFee := policy.BlockPrioritySize == 0
+	// TODO, impl more general priority func
+	lessFunc := txPQByFee
+	if sortedByFee {
+		lessFunc = txPQByFee
+	}
+	priorityQueue := newTxPriorityQueue(len(sourceTxns), lessFunc)
+
+	// Create a slice to hold the transactions to be included in the
+	// generated block with reserved space.  Also create a utxo view to
+	// house all of the input transactions so multiple lookups can be
+	// avoided.
+	blockTxns := make([]*types.Tx, 0, len(sourceTxns))
+	blockUtxos := blockchain.NewUtxoViewpoint()
+
+	// dependers is used to track transactions which depend on another
+	// transaction in the source pool.  This, in conjunction with the
+	// dependsOn map kept with each dependent transaction helps quickly
+	// determine which dependent transactions are now eligible for inclusion
+	// in the block once each transaction has been included.
+	dependers := make(map[hash.Hash]map[hash.Hash]*txPrioItem)
+
+	// Create slices to hold the fees and number of signature operations
+	// for each of the selected transactions and add an entry for the
+	// coinbase.  This allows the code below to simply append details about
+	// a transaction as it is selected for inclusion in the final block.
+	// However, since the total fees aren't known yet, use a dummy value for
+	// the coinbase fee which will be updated later.
+	txFees := make([]int64, 0, len(sourceTxns))
+	txFeesMap := make(map[hash.Hash]int64)
+	txSigOpCounts := make([]int64, 0, len(sourceTxns))
+	txSigOpCountsMap := make(map[hash.Hash]int64)
+	txFees = append(txFees, -1) // Updated once known
+
+	log.Debug("Inclusion to new block", "transactions",len(sourceTxns))
+mempoolLoop:
+	for _, txDesc := range sourceTxns {
+		// A block can't have more than one coinbase or contain
+		// non-finalized transactions.
+		tx := txDesc.Tx
+		msgTx := tx.Transaction()
+		if blockchain.IsCoinBaseTx(msgTx) {
+			log.Trace("Skipping coinbase tx %s", tx.Hash())
+			continue
+		}
+		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight,
+			medianTime) {
+
+			log.Trace("Skipping non-finalized tx %s", tx.Hash())
+			continue
+		}
+
+		// Fetch all of the utxos referenced by the this transaction.
+		// NOTE: This intentionally does not fetch inputs from the
+		// mempool since a transaction which depends on other
+		// transactions in the mempool must come after those
+		utxos, err := blockManager.GetChain().FetchUtxoView(tx)
+		if err != nil {
+			log.Warn("Unable to fetch utxo view for tx %s: "+
+				"%v", tx.Hash(), err)
+			continue
+		}
+
+		// Setup dependencies for any transactions which reference
+		// other transactions in the mempool so they can be properly
+		// ordered below.
+		prioItem := &txPrioItem{tx: txDesc.Tx, txType: txDesc.Type}
+		for _, txIn := range tx.Transaction().TxIn {
+
+			originHash := &txIn.PreviousOut.Hash
+			if blockManager.GetChain().IsBadTx(originHash) {
+				log.Trace("Skipping tx %s because it "+
+					"references bad output %s "+
+					"which is not available",
+					tx.Hash(), txIn.PreviousOut)
+				continue mempoolLoop
+			}
+
+			originIndex := txIn.PreviousOut.OutIndex
+			utxoEntry := utxos.LookupEntry(originHash)
+			if utxoEntry == nil || utxoEntry.IsOutputSpent(originIndex) {
+				if !txSource.HaveTransaction(originHash) {
+					log.Trace("Skipping tx %s because "+
+						"it references unspent output "+
+						"%s which is not available",
+						tx.Hash(), txIn.PreviousOut)
+					continue mempoolLoop
+				}
+
+				// The transaction is referencing another
+				// transaction in the source pool, so setup an
+				// ordering dependency.
+				deps, exists := dependers[*originHash]
+				if !exists {
+					deps = make(map[hash.Hash]*txPrioItem)
+					dependers[*originHash] = deps
+				}
+				deps[*prioItem.tx.Hash()] = prioItem
+				if prioItem.dependsOn == nil {
+					prioItem.dependsOn = make(
+					map[hash.Hash]struct{})
+				}
+				prioItem.dependsOn[*originHash] = struct{}{}
+
+				// Skip the check below. We already know the
+				// referenced transaction is available.
+				continue
+			}
+		}
+
+		// Calculate the final transaction priority using the input
+		// value age sum as well as the adjusted transaction size.  The
+		// formula is: sum(inputValue * inputAge) / adjustedTxSize
+		prioItem.priority = mempool.CalcPriority(tx.Transaction(), utxos,
+			nextBlockHeight)
+
+		// Calculate the fee in Atoms/KB.
+		// NOTE: This is a more precise value than the one calculated
+		// during calcMinRelayFee which rounds up to the nearest full
+		// kilobyte boundary.  This is beneficial since it provides an
+		// incentive to create smaller transactions.
+		txSize := tx.Transaction().SerializeSize()
+		prioItem.feePerKB = (float64(txDesc.Fee) * float64(kilobyte)) /
+			float64(txSize)
+		prioItem.fee = txDesc.Fee
+
+		// Add the transaction to the priority queue to mark it ready
+		// for inclusion in the block unless it has dependencies.
+		if prioItem.dependsOn == nil {
+			heap.Push(priorityQueue, prioItem)
+		}
+
+		// Merge the referenced outputs from the input transactions to
+		// this transaction into the block utxo view.  This allows the
+		// code below to avoid a second lookup.
+		mergeUtxoView(blockUtxos, utxos)
+	}
+
+	log.Trace("Priority queue","queue len", priorityQueue.Len(),
+		"dependers len", len(dependers))
+
+	// The starting block size is the size of the block header plus the max
+	// possible transaction count size, plus the size of the coinbase
+	// transaction.
+	blockSize := uint32(blockHeaderOverhead)
+
+	// Guesstimate for sigops based on valid txs in loop below. This number
+	// tends to overestimate sigops because of the way the loop below is
+	// coded and the fact that tx can sometimes be removed from the tx
+	// trees if they fail one of the stake checks below the priorityQueue
+	// pop loop. This is buggy, but not catastrophic behaviour. A future
+	// release should fix it. TODO
+	blockSigOps := int64(0)
+	totalFees := int64(0)
+	// Choose which transactions make it into the block.
+	for priorityQueue.Len() > 0 {
+		// Grab the highest priority (or highest fee per kilobyte
+		// depending on the sort order) transaction.
+		prioItem := heap.Pop(priorityQueue).(*txPrioItem)
+		tx := prioItem.tx
+
+		// Grab the list of transactions which depend on this one (if any).
+		deps := dependers[*tx.Hash()]
+
+		// Enforce maximum block size.  Also check for overflow.
+		txSize := uint32(tx.Transaction().SerializeSize())
+		blockPlusTxSize := blockSize + txSize
+		if blockPlusTxSize < blockSize || blockPlusTxSize >= policy.BlockMaxSize {
+			log.Trace(fmt.Sprintf("Skipping tx %s (size %v) because it "+
+				"would exceed the max block size; cur block "+
+				"size %v, cur num tx %v", tx.Hash(), txSize,
+				blockSize, len(blockTxns)))
+			logSkippedDeps(tx, deps)
+			continue
+		}
+
+		// Enforce maximum signature operations per block.  Also check
+		// for overflow.
+		numSigOps := int64(blockchain.CountSigOps(tx, false))
+		if blockSigOps+numSigOps < blockSigOps ||
+			blockSigOps+numSigOps > blockchain.MaxSigOpsPerBlock {
+			log.Trace("Skipping tx %s because it would "+
+				"exceed the maximum sigops per block", tx.Hash())
+			logSkippedDeps(tx, deps)
+			continue
+		}
+
+		// This isn't very expensive, but we do this check a number of times.
+		// Consider caching this in the mempool in the future.
+		numP2SHSigOps, err := blockchain.CountP2SHSigOps(tx, false,
+			blockUtxos)
+		if err != nil {
+			log.Trace("Skipping tx %s due to error in "+
+				"CountP2SHSigOps: %v", tx.Hash(), err)
+			logSkippedDeps(tx, deps)
+			continue
+		}
+		numSigOps += int64(numP2SHSigOps)
+		if blockSigOps+numSigOps < blockSigOps ||
+			blockSigOps+numSigOps > blockchain.MaxSigOpsPerBlock {
+			log.Trace("Skipping tx %s because it would "+
+				"exceed the maximum sigops per block (p2sh)",
+				tx.Hash())
+			logSkippedDeps(tx, deps)
+			continue
+		}
+
+		// Skip free transactions once the block is larger than the
+		// minimum block size, except for stake transactions.
+		if sortedByFee &&
+			(prioItem.feePerKB < float64(policy.TxMinFreeFee)) &&
+			(blockPlusTxSize >= policy.BlockMinSize) {
+
+			log.Trace("Skipping tx %s with feePerKB %.2f "+
+				"< TxMinFreeFee %d and block size %d >= "+
+				"minBlockSize %d", tx.Hash(), prioItem.feePerKB,
+				policy.TxMinFreeFee, blockPlusTxSize,
+				policy.BlockMinSize)
+			logSkippedDeps(tx, deps)
+			continue
+		}
+
+		// Prioritize by fee per kilobyte once the block is larger than
+		// the priority size or there are no more high-priority
+		// transactions.
+		if !sortedByFee && (blockPlusTxSize >= policy.BlockPrioritySize ||
+			prioItem.priority <= mempool.MinHighPriority) {
+
+			log.Trace("Switching to sort by fees per "+
+				"kilobyte blockSize %d >= BlockPrioritySize "+
+				"%d || priority %.2f <= minHighPriority %.2f",
+				blockPlusTxSize, policy.BlockPrioritySize,
+				prioItem.priority,mempool.MinHighPriority)
+
+			sortedByFee = true
+			priorityQueue.SetLessFunc(txPQByFee)  //TODO, revisit the PQ func
+
+			// Put the transaction back into the priority queue and
+			// skip it so it is re-priortized by fees if it won't
+			// fit into the high-priority section or the priority is
+			// too low.  Otherwise this transaction will be the
+			// final one in the high-priority section, so just fall
+			// though to the code below so it is added now.
+			if blockPlusTxSize > policy.BlockPrioritySize ||
+				prioItem.priority < mempool.MinHighPriority {
+
+				heap.Push(priorityQueue, prioItem)
+				continue
+			}
+		}
+
+		// Ensure the transaction inputs pass all of the necessary
+		// preconditions before allowing it to be added to the block.
+		// The fraud proof is not checked because it will be filled in
+		// by the miner.
+		_, err = blockchain.CheckTransactionInputs(subsidyCache, tx,
+			int64(nextBlockHeight), blockUtxos, false, params ) //TODO, remove the params dependence
+		if err != nil {
+			log.Trace("Skipping tx %s due to error in "+
+				"CheckTransactionInputs: %v", tx.Hash(), err)
+			logSkippedDeps(tx, deps)
+			continue
+		}
+		err = blockchain.ValidateTransactionScripts(tx, blockUtxos,
+			scriptFlags, sigCache)
+		if err != nil {
+			log.Trace("Skipping tx %s due to error in "+
+				"ValidateTransactionScripts: %v", tx.Hash(), err)
+			logSkippedDeps(tx, deps)
+			continue
+		}
+
+		// Spend the transaction inputs in the block utxo view and add
+		// an entry for it to ensure any transactions which reference
+		// this one have it available as an input and can ensure they
+		// aren't double spending.
+		err = spendTransaction(blockUtxos, tx, int64(nextBlockHeight)) //TODO, remove type conversion
+		if err != nil {
+			log.Warn("Unable to spend transaction %v in the preliminary "+
+				"UTXO view for the block template: %v",
+				tx.Hash(), err)
+		}
+
+		// Add the transaction to the block, increment counters, and
+		// save the fees and signature operation counts to the block
+		// template.
+		blockTxns = append(blockTxns, tx)
+		blockSize += txSize
+		blockSigOps += numSigOps
+
+		txFeesMap[*tx.Hash()] = prioItem.fee
+		txSigOpCountsMap[*tx.Hash()] = numSigOps
+
+		log.Trace(fmt.Sprintf("Adding tx %s (priority %.2f, feePerKB %.2f)",
+			prioItem.tx.Hash(), prioItem.priority, prioItem.feePerKB))
+
+		// Add transactions which depend on this one (and also do not
+		// have any other unsatisified dependencies) to the priority
+		// queue.
+		for _, item := range deps {
+			// Add the transaction to the priority queue if there
+			// are no more dependencies after this one.
+			delete(item.dependsOn, *tx.Hash())
+			if len(item.dependsOn) == 0 {
+				heap.Push(priorityQueue, item)
+			}
+		}
+	}
+
+	// Create a standard coinbase transaction paying to the provided
+	// address.  NOTE: The coinbase value will be updated to include the
+	// fees from the selected transactions later after they have actually
+	// been selected.  It is created here to detect any errors early
+	// before potentially doing a lot of work below.  The extra nonce helps
+	// ensure the transaction is not a duplicate transaction (paying the
+	// same value to the same public key address would otherwise be an
+	// identical transaction for block version 1).
+	coinbaseScript := []byte{0x00, 0x00}
+	coinbaseScript = append(coinbaseScript, []byte(coinbaseFlags)...)
+
+	// Add a random coinbase nonce to ensure that tx prefix hash
+	// so that our merkle root is unique for lookups needed for
+	// getwork, etc.
+	rand, err := s.RandomUint64()
+	if err != nil {
+		return nil, err
+	}
+	opReturnPkScript, err := standardCoinbaseOpReturn(uint32(nextBlockHeight),
+		rand)
+	if err != nil {
+		return nil, err
+	}
+	voters := 0  //TODO remove voters
+	coinbaseTx, err := createCoinbaseTx(subsidyCache,
+		coinbaseScript,
+		opReturnPkScript,
+		int64(nextBlockHeight),    //TODO remove type conversion
+		payToAddress,
+		uint16(voters),
+		params)
+	if err != nil {
+		return nil, err
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	numCoinbaseSigOps := int64(blockchain.CountSigOps(coinbaseTx, true))
+	blockSize += uint32(coinbaseTx.Transaction().SerializeSize())
+	blockSigOps += numCoinbaseSigOps
+	txFeesMap[*coinbaseTx.Hash()] = 0
+	txSigOpCountsMap[*coinbaseTx.Hash()] = numCoinbaseSigOps
+
+	// Build tx lists for regular tx.
+	blockTxnsRegular := make([]*types.Tx, 0, len(blockTxns)+1)
+
+	// Append coinbase.
+	blockTxnsRegular = append(blockTxnsRegular, coinbaseTx)
+
+	// Append regular tx
+	for _, tx := range blockTxns {
+		blockTxnsRegular = append(blockTxnsRegular, tx)
+	}
+
+	for _, tx := range blockTxnsRegular {
+		fee, ok := txFeesMap[*tx.Hash()]
+		if !ok {
+			return nil, fmt.Errorf("couldn't find fee for tx %v",
+				*tx.Hash())
+		}
+		totalFees += fee
+		txFees = append(txFees, fee)
+
+		tsos, ok := txSigOpCountsMap[*tx.Hash()]
+		if !ok {
+			return nil, fmt.Errorf("couldn't find sig ops count for tx %v",
+				*tx.Hash())
+		}
+		txSigOpCounts = append(txSigOpCounts, tsos)
+	}
+
+
+	txSigOpCounts = append(txSigOpCounts, numCoinbaseSigOps)
+
+	// Now that the actual transactions have been selected, update the
+	// block size for the real transaction count and coinbase value with
+	// the total fees accordingly.
+	if nextBlockHeight > 1 {
+		blockSize -= s.MaxVarIntPayload -
+			uint32(s.VarIntSerializeSize(uint64(len(blockTxnsRegular))))
+		coinbaseTx.Transaction().TxOut[2].Amount += uint64(totalFees)
+		txFees[0] = -totalFees
+	}
+
+	// Calculate the required difficulty for the block.  The timestamp
+	// is potentially adjusted to ensure it comes after the median time of
+	// the last several blocks per the chain consensus rules.
+	ts, err := chainState.MedianAdjustedTime(timeSource,config)
+	if err != nil {
+		return nil, miningRuleError(ErrGettingMedianTime, err.Error())
+	}
+	reqDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts)
+
+	if err != nil {
+		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
+	}
+
+	// Correct transaction index fraud proofs for any transactions that
+	// are chains. maybeInsertStakeTx fills this in for stake transactions
+	// already, so only do it for regular transactions.
+	for i, tx := range blockTxnsRegular {
+		// No need to check any of the transactions in the custom first
+		// block.
+		if nextBlockHeight == 1 {
+			break
+		}
+
+		utxs, err := blockManager.GetChain().FetchUtxoView(tx)
+		if err != nil {
+			str := fmt.Sprintf("failed to fetch input utxs for tx %v: %s",
+				tx.Hash(), err.Error())
+			return nil, miningRuleError(ErrFetchTxStore, str)
+		}
+
+		// Copy the transaction and swap the pointer.
+		txCopy := types.NewTxDeepTxIns(tx.Transaction())
+		blockTxnsRegular[i] = txCopy
+		tx = txCopy
+
+		for _, txIn := range tx.Transaction().TxIn {
+			originHash := &txIn.PreviousOut.Hash
+			utx := utxs.LookupEntry(originHash)
+			if utx == nil {
+				// Set a flag with the index so we can properly set
+				// the fraud proof below.
+				txIn.TxIndex = types.NullTxIndex
+			} else {
+				originIdx := txIn.PreviousOut.OutIndex
+				txIn.AmountIn = utx.AmountByIndex(originIdx)
+				txIn.BlockHeight = uint32(utx.BlockHeight())
+				txIn.TxIndex = utx.TxIndex()
+			}
+		}
+	}
+
+	// Fill in locally referenced inputs.
+	for i, tx := range blockTxnsRegular {
+		// Skip coinbase.
+		if i == 0 {
+			continue
+		}
+
+		// Copy the transaction and swap the pointer.
+		txCopy := types.NewTxDeepTxIns(tx.Transaction())
+		blockTxnsRegular[i] = txCopy
+		tx = txCopy
+
+		for _, txIn := range tx.Transaction().TxIn {
+			// This tx was at some point 0-conf and now requires the
+			// correct block height and index. Set it here.
+			if txIn.TxIndex == types.NullTxIndex {
+				idx := txIndexFromTxList(txIn.PreviousOut.Hash,
+					blockTxnsRegular)
+
+				// The input is in the block, set it accordingly.
+				if idx != -1 {
+					originIdx := txIn.PreviousOut.OutIndex
+					amt := blockTxnsRegular[idx].Transaction().TxOut[originIdx].Amount
+					txIn.AmountIn = amt
+					txIn.BlockHeight = uint32(nextBlockHeight)   //TODO,remove type conversion
+					txIn.TxIndex = uint32(idx)
+				} else {
+					str := fmt.Sprintf("failed find hash in tx list "+
+						"for fraud proof; tx in hash %v",
+						txIn.PreviousOut.Hash)
+					return nil, miningRuleError(ErrFraudProofIndex, str)
+				}
+			}
+		}
+	}
+
+	// Choose the block version to generate based on the network.
+	blockVersion := uint32(generatedBlockVersion)
+	if params.Net != protocol.MainNet {
+		blockVersion = generatedBlockVersionTest
+	}
+
+	// Create a new block ready to be solved.
+	merkles := merkle.BuildMerkleTreeStore(blockTxnsRegular)
+	paMerkles :=merkle.BuildParentsMerkleTreeStore(parents)
+	var block types.Block
+	block.Header = types.BlockHeader{
+		Version:      blockVersion,
+		ParentRoot:   *paMerkles[len(paMerkles)-1],
+		TxRoot:       *merkles[len(merkles)-1],
+		StateRoot:    hash.Hash{}, //TODO, state root
+		Timestamp:    ts,
+		Difficulty:   reqDifficulty,
+		// Size declared below
+	}
+	for _,pb:=range parents{
+		if err := block.AddParent(pb); err != nil {
+			return nil, err
+		}
+	}
+	for _, tx := range blockTxnsRegular {
+		if err := block.AddTransaction(tx.Transaction()); err != nil {
+			return nil, miningRuleError(ErrTransactionAppend, err.Error())
+		}
+	}
+
+	//TODO revisit the size in block header
+	/*
+	msgBlock.Header.Size = uint32(msgBlock.SerializeSize())
+	*/
+
+	// Finally, perform a full check on the created block against the chain
+	// consensus rules to ensure it properly connects to the current best
+	// chain with no issues.
+	sblock := types.NewBlockDeepCopyCoinbase(&block)
+	sblock.SetHeight(nextBlockHeight)
+	err = blockManager.GetChain().CheckConnectBlockTemplate(sblock)
+	if err != nil {
+		str := fmt.Sprintf("failed to do final check for check connect "+
+			"block when making new block template: %v",
+			err.Error())
+		return nil, miningRuleError(ErrCheckConnectBlock, str)
+	}
+
+	log.Debug("Created new block template",
+		"transactions", len(block.Transactions),
+		"fees",totalFees,
+		"signOp",blockSigOps,
+		"bytes", blockSize,
+		"target",
+		fmt.Sprintf("%064x",blockchain.CompactToBig(block.Header.Difficulty)))
+
+	blockTemplate := &types.BlockTemplate{
+		Block:           &block,
+		Fees:            txFees,
+		SigOpCounts:     txSigOpCounts,
+		Height:          nextBlockHeight,
+		ValidPayAddress: payToAddress != nil,
+	}
+	return handleCreatedBlockTemplate(blockTemplate, blockManager)
+}
