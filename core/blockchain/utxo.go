@@ -124,15 +124,7 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	// can't possibly be any details about it.  This is also necessary
 	// because the code below requires the parent block and the genesis
 	// block doesn't have one.
-	tip := b.DAG().GetLastBlock()
 	view := NewUtxoViewpoint()
-	if tip.height == 0 {
-		view.SetBestHash(&tip.hash)
-		return view, nil
-	}
-
-	view.SetBestHash(&tip.hash)
-
 	// Create a set of needed transactions based on those referenced by the
 	// inputs of the passed transaction.  Also, add the passed transaction
 	// itself as a way for the caller to detect duplicates that are not
