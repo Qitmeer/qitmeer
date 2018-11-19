@@ -525,7 +525,7 @@ out:
 					continue
 				}
 
-				// If the block added to the main chain, then we need to
+				// If the block added to the dag chain, then we need to
 				// update the tip locally on block manager.
 				onMainChain := !isOrphan
 				if onMainChain {

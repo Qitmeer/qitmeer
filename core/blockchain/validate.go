@@ -1122,13 +1122,13 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txHeight i
 				return 0, ruleError(ErrFraudAmountIn, str)
 			}
 
-			if txIn.BlockHeight != uint32(utxoEntry.BlockHeight()) {  //TODO, remove type conversion
+			/*if txIn.BlockHeight != uint32(utxoEntry.BlockHeight()) {  //TODO, remove type conversion
 				str := fmt.Sprintf("bad fraud check block "+
 					"height (expected %v, given %v) for "+
 					"txIn %v", utxoEntry.BlockHeight(),
 					txIn.BlockHeight, idx)
 				return 0, ruleError(ErrFraudBlockHeight, str)
-			}
+			}*/
 
 			if txIn.TxIndex != utxoEntry.TxIndex() {
 				str := fmt.Sprintf("bad fraud check block "+

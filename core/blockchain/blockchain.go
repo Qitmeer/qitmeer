@@ -1064,11 +1064,10 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,node *b
 		if err != nil {
 			return err
 		}
-		node:=b.index.lookupNode(&n.hash)
-		if node==nil {
+		if n==nil {
 			return fmt.Errorf("no node %s",n.hash)
 		}
-		block.SetHeight(node.height)
+		block.SetHeight(n.height-1)
 		// Load all of the utxos referenced by the block that aren't
 		// already in the view.
 		view := NewUtxoViewpoint()

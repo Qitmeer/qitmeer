@@ -816,6 +816,8 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 				}
 				log.Info("Block submitted accepted","hash",block.Hash(),
 					"height", block.Height(),"amount",coinbaseTxGenerated)
+			}else{
+				return nil,err
 			}
 
 			//

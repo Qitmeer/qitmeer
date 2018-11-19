@@ -319,12 +319,7 @@ func dbFetchSpendJournalEntry(dbTx database.Tx, block *types.SerializedBlock) (m
 	// Exclude the coinbase transaction since it can't spend anything.
 	spendBucket := dbTx.Metadata().Bucket(dbnamespace.SpendJournalBucketName)
 	serialized := spendBucket.Get(block.Hash()[:])
-	blockTxns := block.Block().Transactions
-
-	if len(blockTxns) > 0 && len(serialized) == 0 {
-		return nil, AssertError("missing spend journal data")
-	}
-
+	blockTxns := block.Block().Transactions[1:]
 	stxos, err := deserializeSpendJournalEntry(serialized, blockTxns)
 	if err != nil {
 		// Ensure any deserialization errors are returned as database
