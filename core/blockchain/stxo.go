@@ -212,6 +212,11 @@ func decodeSpentTxOut(serialized []byte, stxo *spentTxOut) (int, error) {
 
 	}
 
+	stxo.index=dbnamespace.ByteOrder.Uint32(serialized[offset:offset+4])
+	offset+=4
+	stxo.inIndex=dbnamespace.ByteOrder.Uint32(serialized[offset:offset+4])
+	offset+=4
+
 	return offset, nil
 }
 
