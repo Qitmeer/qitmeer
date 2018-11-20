@@ -604,12 +604,6 @@ func decodeBlockIndexEntry(serialized []byte, entry *blockIndexEntry) (int, erro
 // block for the provided hash, deserialize it, retrieve the appropriate height
 // from the index, and return a dcrutil.Block with the height set.
 func dbFetchBlockByHash(dbTx database.Tx, hash *hash.Hash) (*types.SerializedBlock, error) {
-	// Check if the block is in the main chain.
-	if !dbMainChainHasBlock(dbTx, hash) {
-		str := fmt.Sprintf("block %s is not in the main chain", hash)
-		return nil, errNotInMainChain(str)
-	}
-
 	// Load the raw block bytes from the database.
 	blockBytes, err := dbTx.FetchBlock(hash)
 	if err != nil {

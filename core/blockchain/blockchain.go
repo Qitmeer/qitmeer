@@ -669,6 +669,12 @@ func (b *BlockChain) fetchMainChainBlockByHash(hash *hash.Hash) (*types.Serializ
 
 	// Load the block from the database.
 	err := b.db.View(func(dbTx database.Tx) error {
+		// Check if the block is in the main chain.
+		if !dbMainChainHasBlock(dbTx, hash) {
+			str := fmt.Sprintf("block %s is not in the main chain", hash)
+			return errNotInMainChain(str)
+		}
+
 		var err error
 		block, err = dbFetchBlockByHash(dbTx, hash)
 		return err
@@ -792,23 +798,15 @@ func (b *BlockChain) fetchBlockByHash(hash *hash.Hash) (*types.SerializedBlock, 
 	if ok {
 		return block, nil
 	}
-
-	// Attempt to load the block from the database.
-	err := b.db.View(func(dbTx database.Tx) error {
-		// NOTE: This does not use the dbFetchBlockByHash function since that
-		// function only works with main chain blocks.
-		blockBytes, err := dbTx.FetchBlock(hash)
-		if err != nil {
-			return err
-		}
-
-		block, err = types.NewBlockFromBytes(blockBytes)
+	// Load the block from the database.
+	dbErr := b.db.View(func(dbTx database.Tx) error {
+		var err error
+		block, err= dbFetchBlockByHash(dbTx, hash)
 		return err
 	})
-	if err == nil && block != nil {
-		return block, nil
+	if dbErr==nil&&block!=nil {
+		return block,nil
 	}
-
 	return nil, fmt.Errorf("unable to find block %v in cache or db", hash)
 }
 
@@ -899,7 +897,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		}
 		oldOrder.PushBack(e.Value)
 	}
-	err := b.reorganizeChain(oldOrder, newOrders,node)
+	err := b.reorganizeChain(oldOrder, newOrders,block)
 	if err!=nil {
 		return false,err
 	}
@@ -1050,16 +1048,21 @@ func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 //
 // This function MUST be called with the chain state lock held (for writes).
 
-func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,node *blockNode) error {
+func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBlock *types.SerializedBlock) error {
 
+	node:=b.index.LookupNode(newBlock.Hash())
 	// Why the old order is the order that was removed by the new block, because the new block
 	// must be one of the tip of the dag.This is very important for the following understanding.
 	// In the two case, the perspective is the same.In the other words, the future can not
 	// affect the past.
-	for e := detachNodes.Back(); e != nil; e = e.Prev() {
-		n:=b.index.LookupNode(e.Value.(*hash.Hash))
+	var n *blockNode
+	var block *types.SerializedBlock
+	var err error
 
-		block, err := b.fetchMainChainBlockByHash(&n.hash)
+	for e := detachNodes.Back(); e != nil; e = e.Prev() {
+		n=b.index.LookupNode(e.Value.(*hash.Hash))
+
+		block, err = b.fetchMainChainBlockByHash(&n.hash)
 
 		if err != nil {
 			return err
@@ -1096,7 +1099,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,node *b
 		}else{
 			prevH=b.dag.GetPrevious(block.Hash())
 			if prevH.IsEqual(&node.hash) {
-				prevH=b.dag.GetPrevious(block.Hash())
+				prevH=b.dag.GetPrevious(prevH)
 			}
 		}
 		err=b.disconnectTransactions(view,block,stxos,prevH)
@@ -1111,17 +1114,24 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,node *b
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
-		n:=b.index.LookupNode(e.Value.(*hash.Hash))
-		// If any previous nodes in attachNodes failed validation,
-		// mark this one as having an invalid ancestor.
-		block, err := b.fetchMainChainBlockByHash(&n.hash)
+		nodeHash:=e.Value.(*hash.Hash)
+		if nodeHash.IsEqual(newBlock.Hash()) {
+			n=node
+			block=newBlock
+		} else {
+			n=b.index.LookupNode(nodeHash)
+			// If any previous nodes in attachNodes failed validation,
+			// mark this one as having an invalid ancestor.
+			block, err = b.FetchBlockByHash(&n.hash)
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
 		}
 
+
 		view := NewUtxoViewpoint()
-		view.SetBestHash(b.dag.GetPrevious(&node.hash))
+		view.SetBestHash(b.dag.GetPrevious(&n.hash))
 		stxos:=[]spentTxOut{}
 		err= b.checkConnectBlock(n, block, view, &stxos)
 		if err != nil {
