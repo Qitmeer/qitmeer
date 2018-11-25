@@ -75,6 +75,7 @@ func (bd *BlockDAG) Genesis() *blockNode {
 	return nil
 }
 
+// return the terminal blocks, because there maybe more than one, so this is a set.
 func (bd *BlockDAG) GetTips() *BlockSet {
 	return bd.tips
 }
@@ -145,6 +146,8 @@ func (bd *BlockDAG) updateTips(b *blockNode) {
 	}
 }
 
+// The past set is all its its ancestors.Because the past cannot be
+// changed, so its number is fixed.
 func (bd *BlockDAG) addPastSetNum(b *blockNode, num uint64) {
 	b.pastSetNum=num
 }
