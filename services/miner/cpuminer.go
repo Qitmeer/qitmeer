@@ -171,7 +171,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.
 		// TODO, refactor NewBlockTemplate input dependencies
-		template, err := mining.NewBlockTemplate(m.policy,m.config,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr)
+		template, err := mining.NewBlockTemplate(m.policy,m.config,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr,nil)
 		m.submitBlockLock.Unlock()
 		if err != nil {
 			errStr := fmt.Sprintf("template: %v", err)
@@ -652,7 +652,7 @@ out:
 		// Create a new block template using the available transactions
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.
-		template, err := mining.NewBlockTemplate(m.policy,m.config,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr)
+		template, err := mining.NewBlockTemplate(m.policy,m.config,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr,nil)
 		m.submitBlockLock.Unlock()
 		if err != nil {
 			errStr := fmt.Sprintf( "template: %v", err)
@@ -778,7 +778,7 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.
 		// TODO, refactor NewBlockTemplate input dependencies
-		template, err := mining.NewBlockTemplateByParents(m.policy,m.config,m.params,
+		template, err := mining.NewBlockTemplate(m.policy,m.config,m.params,
 			m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr,parents)
 		m.submitBlockLock.Unlock()
 		if err != nil {

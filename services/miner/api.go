@@ -287,7 +287,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	rand.Seed(time.Now().UnixNano())
 	payToAddr := m.config.GetMinningAddrs()[rand.Intn(len(m.config.GetMinningAddrs()))]
 
-	template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr)
+	template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr,nil)
 
 	m.submitBlockLock.Unlock()
 
