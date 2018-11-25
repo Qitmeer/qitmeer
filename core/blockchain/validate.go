@@ -528,7 +528,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, prevNode *b
 
 		// The height of this block is one more than the referenced
 		// previous block.
-		blockHeight := prevNode.height + 1
+		blockHeight := prevNode.GetMainHeight() + 1
 
 		// Ensure all transactions in the block are finalized and are
 		// not expired.
@@ -550,11 +550,9 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, prevNode *b
 
 		// Check that the coinbase contains at minimum the block
 		// height in output 1.
-		if blockHeight > 1 {
-			err := checkCoinbaseUniqueHeight(blockHeight, block)
-			if err != nil {
-				return err
-			}
+		err = checkCoinbaseUniqueHeight(blockHeight, block)
+		if err != nil {
+			return err
 		}
 	}
 

@@ -248,18 +248,16 @@ func dbAddTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock, blockID
 	}
 
 	// Add the regular transactions.
-	if block.Height() > 1 {
-		// The offset and length of the transactions within the
-		// serialized parent block.
-		txLocs, err := block.TxLoc()
-		if err != nil {
-			return err
-		}
+	// The offset and length of the transactions within the
+	// serialized parent block.
+	txLocs, err := block.TxLoc()
+	if err != nil {
+		return err
+	}
 
-		err = addEntries(block.Transactions(), txLocs, blockID)
-		if err != nil {
-			return err
-		}
+	err = addEntries(block.Transactions(), txLocs, blockID)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -291,10 +289,8 @@ func dbRemoveTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock) erro
 		return nil
 	}
 	// Remove all of the regular transactions of the parent if voted valid.
-	if block.Height() > 1 {
-		if err := removeEntries(block.Transactions()); err != nil {
-			return err
-		}
+	if err := removeEntries(block.Transactions()); err != nil {
+		return err
 	}
 	return nil
 }

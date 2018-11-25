@@ -57,7 +57,7 @@ func checkCoinbaseUniqueHeight(blockHeight uint64, block *types.SerializedBlock)
 
 	// Check the height and ensure it is correct.
 	cbHeight := binary.LittleEndian.Uint32(nullData[0:4])
-	if cbHeight != uint32(blockHeight) {
+	if cbHeight < uint32(blockHeight) {
 		prevBlock := block.Block().Header.ParentRoot
 		str := fmt.Sprintf("block %v output 1 has wrong height in "+
 			"coinbase; want %v, got %v; prevBlock %v, header height %v",

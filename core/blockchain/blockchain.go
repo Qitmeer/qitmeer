@@ -936,7 +936,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	*/
 	blockSize := uint64(block.Block().SerializeSize())
 
-	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns), lastTip.CalcPastMedianTime(),curTotalTxns+numTxns,
+	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns),*b.dag.GetLastTime(),curTotalTxns+numTxns,
 		 curTotalSubsidy+subsidy)
 
 
