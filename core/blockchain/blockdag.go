@@ -10,6 +10,21 @@ import (
 	"github.com/noxproject/nox/common/anticone"
 )
 
+type IBlock interface {
+	GetHash() *hash.Hash
+	GetParents() *BlockSet
+	GetChildren() *BlockSet
+}
+
+type IBlockDAG interface {
+	HasBlock(h *hash.Hash) bool
+	GetBlock(h *hash.Hash) IBlock
+	GetFutureSet(fs *BlockSet, b IBlock)
+	GetTips() *BlockSet
+	GetBlockCount() uint
+	GetGenesis() IBlock
+}
+
 type BlockDAG struct {
 	// The outer layer block chain,it can use to interaction with the block dag.
 	bc *BlockChain

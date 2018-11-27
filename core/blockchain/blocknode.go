@@ -304,7 +304,7 @@ func (node *blockNode) IsBefore(other *blockNode) bool{
 }
 
 //return parent that position is rather forward
-func (node *blockNode) GetMainParent() *blockNode{
+func (node *blockNode) GetMainParent() *blockNode {
 	var result *blockNode=nil
 	for _,v:=range node.parents{
 		if result==nil||v.IsBefore(result) {
@@ -315,12 +315,41 @@ func (node *blockNode) GetMainParent() *blockNode{
 }
 
 //return parent that position is rather back
-func (node *blockNode) GetLastParent() *blockNode{
+func (node *blockNode) GetLastParent() *blockNode {
 	var result *blockNode=nil
 	for _,v:=range node.parents{
 		if result==nil||!v.IsBefore(result) {
 			result=v
 		}
+	}
+	return result
+}
+
+//return the block node hash.
+func (node *blockNode) GetHash() *hash.Hash {
+	return &node.hash
+}
+
+//return the parents hash set
+func (node *blockNode) GetParents() *BlockSet {
+	if node.parents==nil {
+		return nil
+	}
+	result:=NewBlockSet()
+	for _,v:=range node.parents{
+		result.Add(&v.hash)
+	}
+	return result
+}
+
+//return the children hash set
+func (node *blockNode) GetChildren() *BlockSet {
+	if node.children==nil {
+		return nil
+	}
+	result:=NewBlockSet()
+	for _,v:=range node.children{
+		result.Add(&v.hash)
 	}
 	return result
 }
