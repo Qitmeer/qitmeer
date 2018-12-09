@@ -101,6 +101,25 @@ func (sb *SpectreBlock) GetChildren() *BlockSet {
 	return sb.children
 }
 
+func (sb *SpectreBlock) GetTimestamp() int64 {
+	return 0
+}
+
+func (sb *SpectreBlock) SetPastSetNum(num uint64) {
+
+}
+
+func (sb *SpectreBlock) GetPastSetNum() uint64 {
+	return 0
+}
+
+func (sb *SpectreBlock) GetHeight() uint64 {
+	return 0
+}
+
+func (sb *SpectreBlock) SetHeight(h uint64) {
+
+}
 func NewSpectreBlock(h *hash.Hash) IBlock {
 	sb := &SpectreBlock{}
 	sb.Votes1, sb.Votes2 = -1, -1

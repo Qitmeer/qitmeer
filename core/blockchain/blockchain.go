@@ -297,7 +297,8 @@ func New(config *Config) (*BlockChain, error) {
 	logStr:=fmt.Sprintf("Chain state:totaltx=%d\ntips=%d\n",b.stateSnapshot.TotalTxns,len(tips))
 
 	for _,v:=range tips{
-		logStr+=fmt.Sprintf("hash=%v,height=%d,pastSetNum=%d,work=%v\n",v.hash,v.height,v.pastSetNum,v.workSum)
+		tnode:=v.(*blockNode)
+		logStr+=fmt.Sprintf("hash=%v,height=%d,pastSetNum=%d,work=%v\n",tnode.hash,tnode.height,tnode.pastSetNum,tnode.workSum)
 	}
 	log.Info(logStr)
 
@@ -495,7 +496,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			return AssertError(fmt.Sprintf("initChainState:Data damage"))
 		}*/
 		// Set the best chain view to the stored best state.
-		tip := b.dag.GetLastBlock()
+		tip := b.dag.GetLastBlock().(*blockNode)
 		if tip == nil {
 			return AssertError(fmt.Sprintf("initChainState: cannot find "+
 				"chain last %s in block index", state.hash))
@@ -542,7 +543,8 @@ func (b *BlockChain) isCurrent() bool {
 	// Not current if the latest main (best) chain height is before the
 	// latest known good checkpoint (when checkpoints are enabled).
 	checkpoint := b.latestCheckpoint()
-	if checkpoint != nil && b.dag.GetLastBlock().height < checkpoint.Height {
+	lastBlock:=b.dag.GetLastBlock().(*blockNode)
+	if checkpoint != nil && lastBlock.height < checkpoint.Height {
 		return false
 	}
 
@@ -552,7 +554,7 @@ func (b *BlockChain) isCurrent() bool {
 	// The chain appears to be current if none of the checks reported
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
-	return b.dag.GetLastBlock().timestamp >= minus24Hours
+	return lastBlock.timestamp >= minus24Hours
 }
 
 
@@ -916,7 +918,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []spentTxOut) error {
 	// Must be end node of sequence in dag
-	lastTip:=b.dag.GetLastBlock()
+	lastTip:=b.dag.GetLastBlock().(*blockNode)
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()

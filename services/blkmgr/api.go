@@ -64,7 +64,7 @@ func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.Or
 	if onMainChain {
 		confirmations = 1 + int64(best.Height) - int64(height)
 	}
-	cs:=node.GetChildrenSet()
+	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
 	if cs!=nil {
 		children=cs.List()
@@ -114,7 +114,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 	if onMainChain {
 		confirmations = 1 + int64(best.Height) - int64(height)
 	}
-	cs:=node.GetChildrenSet()
+	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
 	if cs!=nil {
 		children=cs.List()

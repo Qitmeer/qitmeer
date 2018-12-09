@@ -96,9 +96,9 @@ func (bi *blockIndex) addNode(node *blockNode) {
 // checked so it is up to caller to avoid adding them.
 //
 // This function is safe for concurrent access.
-func (bi *blockIndex) AddNode(node *blockNode) {
+func (bi *blockIndex) AddNode(node IBlock) {
 	bi.Lock()
-	bi.addNode(node)
+	bi.addNode(node.(*blockNode))
 	bi.Unlock()
 }
 

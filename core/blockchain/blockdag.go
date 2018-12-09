@@ -14,6 +14,11 @@ type IBlock interface {
 	GetHash() *hash.Hash
 	GetParents() *BlockSet
 	GetChildren() *BlockSet
+	GetTimestamp() int64
+	SetPastSetNum(num uint64)
+	GetPastSetNum() uint64
+	SetHeight(h uint64)
+	GetHeight() uint64
 }
 
 type IBlockDAG interface {
@@ -82,10 +87,14 @@ func (bd *BlockDAG) Init(bch *BlockChain){
 	log.Info(fmt.Sprintf("anticone size:%d",bd.anticoneSize))
 }
 
+func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
+	return bd.bc.index.LookupNode(h)
+}
+
 // return the genesis block node
-func (bd *BlockDAG) Genesis() *blockNode {
+func (bd *BlockDAG) Genesis() IBlock {
 	if bd.bc.params!=nil {
-		return bd.bc.index.LookupNode(bd.bc.params.GenesisHash)
+		return bd.GetBlock(bd.bc.params.GenesisHash)
 	}
 	return nil
 }
@@ -99,17 +108,17 @@ func (bd *BlockDAG) setTips(bs *BlockSet){
 	bd.tips=bs
 }
 
-func (bd *BlockDAG) GetNodeTips() []*blockNode {
-	result:=[]*blockNode{}
+func (bd *BlockDAG) GetNodeTips() []IBlock {
+	result:=[]IBlock{}
 	for k,_:=range bd.tips.GetMap(){
-		result=append(result,bd.bc.index.LookupNode(&k))
+		result=append(result,bd.GetBlock(&k))
 	}
 	return result
 }
 
 // This is an entry for update the block dag,you need pass in a block parameter,
 // If add block have failure,it will return false.
-func (bd *BlockDAG) AddBlock(b *blockNode) *list.List {
+func (bd *BlockDAG) AddBlock(b IBlock) *list.List {
 	if b == nil {
 		return nil
 	}
@@ -120,9 +129,9 @@ func (bd *BlockDAG) AddBlock(b *blockNode) *list.List {
 	bd.totalBlocks++
 	bd.tempBlueSet=nil
 
-	log.Trace(fmt.Sprintf("Add block:%v",b.hash.String()))
+	log.Trace(fmt.Sprintf("Add block:%v",b.GetHash().String()))
 
-	t:=time.Unix(b.timestamp, 0)
+	t:=time.Unix(b.GetTimestamp(), 0)
 	if bd.lastTime.Before(t) {
 		bd.lastTime=t
 	}
@@ -131,49 +140,50 @@ func (bd *BlockDAG) AddBlock(b *blockNode) *list.List {
 	bd.calculatePastBlockSetNum(b)
 	//
 	//obs:=NewBlockSet()
-	bd.updateCommonBlueSet(&b.hash)
+	bd.updateCommonBlueSet(b.GetHash())
 	bd.updateHourglass()
 
 	return	bd.updateOrder(b)
 }
 
 // Refresh the dag tip whith new block,it will cause changes in tips set.
-func (bd *BlockDAG) updateTips(b *blockNode) {
+func (bd *BlockDAG) updateTips(b IBlock) {
 	if bd.tips == nil {
 		bd.tips = NewBlockSet()
-		bd.tips.Add(&b.hash)
-		bd.genesis=b.hash
+		bd.tips.Add(b.GetHash())
+		bd.genesis=*b.GetHash()
 		return
 	}
-	isBelong:=bd.tips.Has(&b.hash)
+	isBelong:=bd.tips.Has(b.GetHash())
 
 	for k, _ := range bd.tips.GetMap() {
-		node:=bd.bc.index.LookupNode(&k)
+		node:=bd.GetBlock(&k)
 		if node==nil {
 			continue
 		}
-		if node.children!=nil&&len(node.children)>0 {
+		children:=node.GetChildren()
+		if children!=nil&&!children.IsEmpty() {
 			bd.tips.Remove(&k)
 		}
 	}
 	if !isBelong {
-		bd.tips.Add(&b.hash)
+		bd.tips.Add(b.GetHash())
 	}
 }
 
 // The past set is all its its ancestors.Because the past cannot be
 // changed, so its number is fixed.
-func (bd *BlockDAG) addPastSetNum(b *blockNode, num uint64) {
-	b.pastSetNum=num
+func (bd *BlockDAG) addPastSetNum(b IBlock, num uint64) {
+	b.SetPastSetNum(num)
 }
 
-func (bd *BlockDAG) GetPastSetNum(b *blockNode) uint64 {
-	return b.pastSetNum
+func (bd *BlockDAG) GetPastSetNum(b IBlock) uint64 {
+	return b.GetPastSetNum()
 }
 
-func isVirtualTip(b *blockNode, futureSet *BlockSet, anticone *BlockSet, children *BlockSet) bool {
+func isVirtualTip(b IBlock, futureSet *BlockSet, anticone *BlockSet, children *BlockSet) bool {
 	for k, _ := range children.GetMap() {
-		if k.IsEqual(&b.hash) {
+		if k.IsEqual(b.GetHash()) {
 			return false
 		}
 		if !futureSet.Has(&k) && !anticone.Has(&k) {
@@ -183,12 +193,12 @@ func isVirtualTip(b *blockNode, futureSet *BlockSet, anticone *BlockSet, childre
 	return true
 }
 
-func (bd *BlockDAG) recAnticone(b *blockNode, futureSet *BlockSet, anticone *BlockSet, h *hash.Hash) {
-	if h.IsEqual(&b.hash) {
+func (bd *BlockDAG) recAnticone(b IBlock, futureSet *BlockSet, anticone *BlockSet, h *hash.Hash) {
+	if h.IsEqual(b.GetHash()) {
 		return
 	}
-	node:=bd.bc.index.LookupNode(h)
-	children := node.GetChildrenSet()
+	node:=bd.GetBlock(h)
+	children := node.GetChildren()
 	needRecursion := false
 	if children == nil || children.Len() == 0 {
 		needRecursion = true
@@ -199,18 +209,18 @@ func (bd *BlockDAG) recAnticone(b *blockNode, futureSet *BlockSet, anticone *Blo
 		if !futureSet.Has(h) {
 			anticone.Add(h)
 		}
-		parents := node.parents
+		parents := node.GetParents()
 
 		//Because parents can not be empty, so there is no need to judge.
-		for _, v := range parents {
-			bd.recAnticone(b, futureSet, anticone, &v.hash)
+		for k, _ := range parents.GetMap() {
+			bd.recAnticone(b, futureSet, anticone, &k)
 		}
 	}
 }
 
 // This function can get anticone set for an block that you offered in the block dag,If
 // the exclude set is not empty,the final result will exclude set that you passed in.
-func (bd *BlockDAG) GetAnticone(b *blockNode, exclude *BlockSet) *BlockSet {
+func (bd *BlockDAG) GetAnticone(b IBlock, exclude *BlockSet) *BlockSet {
 	futureSet := NewBlockSet()
 	bd.GetFutureSet(futureSet, b)
 	anticone := NewBlockSet()
@@ -223,31 +233,36 @@ func (bd *BlockDAG) GetAnticone(b *blockNode, exclude *BlockSet) *BlockSet {
 	return anticone
 }
 
-func (bd *BlockDAG) GetFutureSet(fs *BlockSet, b *blockNode) {
-	children := b.children
-	if children == nil || len(children) == 0 {
+func (bd *BlockDAG) GetFutureSet(fs *BlockSet, b IBlock) {
+	children := b.GetChildren()
+	if children == nil || children.IsEmpty() {
 		return
 	}
-	for _, v := range children {
-		if !fs.Has(&v.hash) {
-			fs.Add(&v.hash)
-			bd.GetFutureSet(fs, v)
+	for k, _ := range children.GetMap() {
+		if !fs.Has(&k) {
+			fs.Add(&k)
+			bd.GetFutureSet(fs, bd.GetBlock(&k))
 		}
 	}
 }
 
 // Calculate the size of the past block set.Because the past block set of block
 // is stable,we can calculate and save.
-func (bd *BlockDAG) calculatePastBlockSetNum(b *blockNode) {
+func (bd *BlockDAG) calculatePastBlockSetNum(b IBlock) {
 
-	if b.hash.IsEqual(&bd.genesis) {
+	if b.GetHash().IsEqual(&bd.genesis) {
 		bd.addPastSetNum(b, 0)
 		return
 	}
-	parentsList := b.parents
-	if parentsList == nil || len(parentsList) == 0 {
+	parents:=b.GetParents()
+	if parents == nil || parents.IsEmpty() {
 		return
 	}
+	parentsList:=[]IBlock{}
+	for k,_:=range parents.GetMap(){
+		parentsList=append(parentsList,bd.GetBlock(&k))
+	}
+
 	if len(parentsList) == 1 {
 		bd.addPastSetNum(b, bd.GetPastSetNum(parentsList[0])+1)
 		return
@@ -264,7 +279,7 @@ func (bd *BlockDAG) sortBlockSet(set *BlockSet, bs *BlockSet) SortBlocks {
 	sb1 := SortBlocks{}
 
 	for k, _ := range set.GetMap() {
-		node:=bd.bc.index.LookupNode(&k)
+		node:=bd.GetBlock(&k)
 		kv:=k
 		if bs != nil && bs.Has(&k) {
 			sb0 = append(sb0, SortBlock{&kv, bd.GetPastSetNum(node)})
@@ -288,7 +303,7 @@ func (bd *BlockDAG) getPastSetByOrder(pastSet *BlockSet, exclude *BlockSet, h *h
 		return
 	}
 
-	parents := bd.bc.index.LookupNode(h).GetParentsSet()
+	parents := bd.GetBlock(h).GetParents()
 	parentsList := parents.List()
 	if parents == nil || len(parentsList) == 0 {
 		return
@@ -305,8 +320,8 @@ func (bd *BlockDAG) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, 
 	if exclude != nil && exclude.Has(h) {
 		return
 	}
-	node:=bd.bc.index.LookupNode(h)
-	parents := node.GetParentsSet()
+	node:=bd.GetBlock(h)
+	parents := node.GetParents()
 	if parents != nil && parents.Len() > 0 {
 		for k, _ := range parents.GetMap() {
 			if exclude != nil && exclude.Has(&k) {
@@ -328,7 +343,7 @@ func (bd *BlockDAG) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, 
 				ansb := bd.sortBlockSet(anticone, bs)
 				if bs.Has(h) {
 					for _, av := range ansb {
-						avNode:=bd.bc.index.LookupNode(av.h)
+						avNode:=bd.GetBlock(av.h)
 						if bs.Has(av.h) && bd.GetPastSetNum(avNode) < bd.GetPastSetNum(node) && !tempOrderM.Has(av.h) {
 							bd.GetTempOrder(tempOrder, tempOrderM, bs, av.h, exclude)
 						}
@@ -350,7 +365,7 @@ func (bd *BlockDAG) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, 
 		tempOrderM.Add(h)
 	}
 	//
-	childrenSrc := node.GetChildrenSet()
+	childrenSrc := node.GetChildren()
 	children := childrenSrc.Clone()
 	if exclude != nil {
 		children.Exclude(exclude)
@@ -426,8 +441,8 @@ func (bd *BlockDAG) updateCommonOrder(tip *hash.Hash, blueSet *BlockSet, isRollB
 		bd.commonOrder = []*hash.Hash{}
 		return
 	}
-	node:=bd.bc.index.LookupNode(tip)
-	parents := node.GetParentsSet()
+	node:=bd.GetBlock(tip)
+	parents := node.GetParents()
 
 	if parents.HasOnly(&bd.genesis) {
 		if len(bd.commonOrder) == 0 {
@@ -502,7 +517,7 @@ func (bd *BlockDAG) recPastBlockSet(genealogy *BlockSet, tipsAncestors *map[hash
 
 		for k, _ := range v.GetMap() {
 			kv:=k
-			node:=bd.bc.index.LookupNode(&kv)
+			node:=bd.GetBlock(&kv)
 			pastNum := bd.GetPastSetNum(node)
 			if maxPastHash == nil || maxPastNum < pastNum {
 				maxPastHash = &kv
@@ -515,7 +530,7 @@ func (bd *BlockDAG) recPastBlockSet(genealogy *BlockSet, tipsAncestors *map[hash
 	if maxPastHash == nil {
 		return
 	}
-	parents := bd.bc.index.LookupNode(maxPastHash).GetParentsSet()
+	parents := bd.GetBlock(maxPastHash).GetParents()
 	if parents == nil || parents.Len() == 0 {
 		return
 	}
@@ -576,7 +591,7 @@ func (bd *BlockDAG) calLastCommonBlocksPBS(pastBlueSet *map[hash.Hash]*BlockSet)
 	/////
 	lastPFuture := NewBlockSet()
 	for k, _ := range bd.lastCommonBlocks.GetMap() {
-		bd.GetFutureSet(lastPFuture, bd.bc.index.LookupNode(&k))
+		bd.GetFutureSet(lastPFuture, bd.GetBlock(&k))
 	}
 
 	if bd.lastCommonBlocks.Len() == 1 {
@@ -592,7 +607,7 @@ func (bd *BlockDAG) calLastCommonBlocksPBS(pastBlueSet *map[hash.Hash]*BlockSet)
 		lpbAnti := make(map[hash.Hash]*BlockSet)
 
 		for k, _ := range bd.lastCommonBlocks.GetMap() {
-			lpbAnti[k] = bd.GetAnticone(bd.bc.index.LookupNode(&k), lastPFuture)
+			lpbAnti[k] = bd.GetAnticone(bd.GetBlock(&k), lastPFuture)
 			lastTempBlueSet.AddSet(lpbAnti[k])
 		}
 		if pastBlueSet != nil {
@@ -636,14 +651,14 @@ func (bd *BlockDAG) calculateBlueSet(parents *BlockSet, exclude *BlockSet, pastB
 		return result
 	}
 
-	maxBlueAnBS := bd.GetAnticone(bd.bc.index.LookupNode(maxBluePBSHash), exclude)
+	maxBlueAnBS := bd.GetAnticone(bd.GetBlock(maxBluePBSHash), exclude)
 
 	//
 
 	if maxBlueAnBS != nil && maxBlueAnBS.Len() > 0 {
 
 		for k, _ := range maxBlueAnBS.GetMap() {
-			bAnBS := bd.GetAnticone(bd.bc.index.LookupNode(&k), exclude)
+			bAnBS := bd.GetAnticone(bd.GetBlock(&k), exclude)
 			if bAnBS == nil || bAnBS.Len() == 0 {
 				continue
 			}
@@ -672,7 +687,7 @@ func (bd *BlockDAG) calculatePastBlueSet(h *hash.Hash, pastBlueSet *map[hash.Has
 		return
 	}
 	//
-	parents := bd.bc.index.LookupNode(h).GetParentsSet()
+	parents := bd.GetBlock(h).GetParents()
 	if parents == nil || parents.IsEmpty() {
 		return
 	} else if parents.HasOnly(&bd.genesis) {
@@ -685,7 +700,7 @@ func (bd *BlockDAG) calculatePastBlueSet(h *hash.Hash, pastBlueSet *map[hash.Has
 		bd.calculatePastBlueSet(&k, pastBlueSet, useCommon)
 	}
 	//
-	anticone := bd.GetAnticone(bd.bc.index.LookupNode(h), nil)
+	anticone := bd.GetAnticone(bd.GetBlock(h), nil)
 	(*pastBlueSet)[*h] = bd.calculateBlueSet(parents, anticone, pastBlueSet, useCommon)
 }
 
@@ -699,7 +714,7 @@ func (bd *BlockDAG) updateCommonBlueSet(tip *hash.Hash){
 
 		return
 	}
-	parents := bd.bc.index.LookupNode(tip).GetParentsSet()
+	parents := bd.GetBlock(tip).GetParents()
 
 	if parents.HasOnly(&bd.genesis) {
 		//needOrderBS.AddList(bd.tempOrder)
@@ -721,12 +736,12 @@ func (bd *BlockDAG) updateCommonBlueSet(tip *hash.Hash){
 		}
 		curLPFuture := NewBlockSet()
 		for k, _ := range curLastCommonBS.GetMap() {
-			bd.GetFutureSet(curLPFuture, bd.bc.index.LookupNode(&k))
+			bd.GetFutureSet(curLPFuture, bd.GetBlock(&k))
 		}
 
 		lastPFuture := NewBlockSet()
 		for k, _ := range bd.lastCommonBlocks.GetMap() {
-			bd.GetFutureSet(lastPFuture, bd.bc.index.LookupNode(&k))
+			bd.GetFutureSet(lastPFuture, bd.GetBlock(&k))
 		}
 		//
 		pastBlueSet := make(map[hash.Hash]*BlockSet)
@@ -737,7 +752,7 @@ func (bd *BlockDAG) updateCommonBlueSet(tip *hash.Hash){
 			oExclude := NewBlockSet()
 			oExclude.AddSet(curLPFuture)
 			for k, _ := range bd.lastCommonBlocks.GetMap() {
-				oExclude.AddSet(bd.bc.index.LookupNode(&k).GetParentsSet())
+				oExclude.AddSet(bd.GetBlock(&k).GetParents())
 			}
 
 			bd.calLastCommonBlocksPBS(&pastBlueSet)
@@ -801,7 +816,7 @@ func (bd *BlockDAG) recCalHourglass(genealogy *BlockSet, ancestors *BlockSet) {
 	var maxPastNum uint64 = 0
 
 	for k, _ := range ancestors.GetMap() {
-		pastNum := bd.GetPastSetNum(bd.bc.index.LookupNode(&k))
+		pastNum := bd.GetPastSetNum(bd.GetBlock(&k))
 		if maxPastHash == nil || maxPastNum < pastNum {
 			maxPastHash = &k
 			maxPastNum = pastNum
@@ -811,7 +826,7 @@ func (bd *BlockDAG) recCalHourglass(genealogy *BlockSet, ancestors *BlockSet) {
 	if maxPastHash == nil {
 		return
 	}
-	parents := bd.bc.index.LookupNode(maxPastHash).GetParentsSet()
+	parents := bd.GetBlock(maxPastHash).GetParents()
 	if parents == nil || parents.Len() == 0 {
 		return
 	}
@@ -840,7 +855,7 @@ func (bd *BlockDAG) updateHourglass(){
 	}
 	tempNum:=0
 	for k,_:=range tips.GetMap(){
-		parents:=bd.bc.index.LookupNode(&k).GetParentsSet()
+		parents:=bd.GetBlock(&k).GetParents()
 		if parents!=nil&&parents.HasOnly(&bd.genesis) {
 			tempNum++
 		}
@@ -877,7 +892,7 @@ func (bd *BlockDAG) updateHourglass(){
 
 		sb := bd.sortBlockSet(ancestors,nil)
 		for _,v:=range sb{
-			anti:=bd.GetAnticone(bd.bc.index.LookupNode(v.h),nil)
+			anti:=bd.GetAnticone(bd.GetBlock(v.h),nil)
 			if anti.Len()==0 {
 				bd.hourglassBlocks.Exclude(genealogy)
 				bd.hourglassBlocks.Add(v.h)
@@ -897,13 +912,13 @@ func (bd *BlockDAG) updateHourglass(){
 	}
 }
 
-func (bd *BlockDAG) updateOrder(b *blockNode) *list.List{
+func (bd *BlockDAG) updateOrder(b IBlock) *list.List{
 	bd.tempOrder=[]*hash.Hash{}
 	refNodes:=list.New()
 	if bd.totalBlocks == 1 {
 		bd.tempOrder=append(bd.tempOrder, &bd.genesis)
 		refNodes.PushBack(bd.genesis)
-		b.height=0
+		b.SetHeight(0)
 		return refNodes
 	}
 	tempOrder := []*hash.Hash{}
@@ -913,7 +928,7 @@ func (bd *BlockDAG) updateOrder(b *blockNode) *list.List{
 	lpsb := bd.sortBlockSet(bd.lastCommonBlocks, nil)
 	exclude := NewBlockSet()
 	for k, _ := range bd.lastCommonBlocks.GetMap() {
-		exclude.AddSet(bd.bc.index.LookupNode(&k).GetParentsSet())
+		exclude.AddSet(bd.GetBlock(&k).GetParents())
 	}
 	for _, v := range lpsb {
 		bd.GetTempOrder(&tempOrder, tempOrderM, blueSet, v.h, exclude)
@@ -926,12 +941,12 @@ func (bd *BlockDAG) updateOrder(b *blockNode) *list.List{
 		if !bd.lastCommonBlocks.Has(tempOrder[i]) {
 			bd.tempOrder = append(bd.tempOrder, tempOrder[i])
 			//
-			node:=bd.bc.index.LookupNode(tempOrder[i])
+			node:=bd.GetBlock(tempOrder[i])
 
-			node.height=uint64(pNum+tIndex)
+			node.SetHeight(uint64(pNum+tIndex))
 			tIndex++
-			if node.height==0 {
-				log.Error(fmt.Sprintf("Order error:%v",node.hash))
+			if node.GetHeight()==0 {
+				log.Error(fmt.Sprintf("Order error:%v",*node.GetHash()))
 			}
 		}
 	}
@@ -941,35 +956,35 @@ func (bd *BlockDAG) updateOrder(b *blockNode) *list.List{
 	}
 	//////
 	tips:=bd.GetTips()
-	if tips.HasOnly(&b.hash)||bd.tempOrder[len(bd.tempOrder)-1].IsEqual(&b.hash) {
-		b.height=uint64(bd.totalBlocks-1)
-		refNodes.PushBack(&b.hash)
+	if tips.HasOnly(b.GetHash())||bd.tempOrder[len(bd.tempOrder)-1].IsEqual(b.GetHash()) {
+		b.SetHeight(uint64(bd.totalBlocks-1))
+		refNodes.PushBack(b.GetHash())
 		return refNodes
 	}
 	////
 	tLen = len(bd.tempOrder)
 	for i:=tLen-1;i>=0;i-- {
 		refNodes.PushFront(bd.tempOrder[i])
-		if bd.tempOrder[i].IsEqual(&b.hash) {
+		if bd.tempOrder[i].IsEqual(b.GetHash()) {
 			break
 		}
 	}
 	return refNodes
 }
 
-func (bd *BlockDAG) GetLastBlock() *blockNode{
+func (bd *BlockDAG) GetLastBlock() IBlock{
 	if bd.tempOrder==nil {
 		return nil
 	}
 	tLen:=len(bd.tempOrder)
 	if tLen>0 {
-		return bd.bc.index.LookupNode(bd.tempOrder[tLen-1])
+		return bd.GetBlock(bd.tempOrder[tLen-1])
 	}
 	pLen:=len(bd.commonOrder)
 	if pLen>0 {
 		for i:=pLen-1;i>=0 ;i--  {
 			if bd.commonOrder[i]!=nil {
-				return bd.bc.index.LookupNode(bd.commonOrder[i])
+				return bd.GetBlock(bd.commonOrder[i])
 			}
 		}
 	}

@@ -155,7 +155,7 @@ func (node *blockNode) Header() types.BlockHeader {
 	// No lock is needed because all accessed fields are immutable.
 	var parentRoot hash.Hash
 	if node.parents!=nil {
-		paMerkles :=merkle.BuildParentsMerkleTreeStore(node.GetParentsSet().OrderList())
+		paMerkles :=merkle.BuildParentsMerkleTreeStore(node.GetParents().OrderList())
 		parentRoot=*paMerkles[len(paMerkles)-1]
 	}
 
@@ -217,7 +217,7 @@ func (node *blockNode) GetParentsWorkSum() *big.Int {
 }
 
 // Include all parents for set
-func (node *blockNode) GetParentsSet() *BlockSet{
+func (node *blockNode) GetParents() *BlockSet{
 	if node.parents==nil||len(node.parents)==0 {
 		return nil
 	}
@@ -253,7 +253,7 @@ func (node *blockNode) HasChild(child *blockNode) bool{
 }
 
 // For the moment,In order to match the DAG
-func (node *blockNode) GetChildrenSet() *BlockSet{
+func (node *blockNode) GetChildren() *BlockSet{
 	if node.children==nil||len(node.children)==0 {
 		return nil
 	}
@@ -262,6 +262,10 @@ func (node *blockNode) GetChildrenSet() *BlockSet{
 		result.Add(&v.hash)
 	}
 	return result
+}
+
+func (node *blockNode) SetHeight(h uint64) {
+	node.height=h
 }
 
 // return node height
@@ -330,26 +334,17 @@ func (node *blockNode) GetHash() *hash.Hash {
 	return &node.hash
 }
 
-//return the parents hash set
-func (node *blockNode) GetParents() *BlockSet {
-	if node.parents==nil {
-		return nil
-	}
-	result:=NewBlockSet()
-	for _,v:=range node.parents{
-		result.Add(&v.hash)
-	}
-	return result
+//return the timestamp of node
+func (node *blockNode) GetTimestamp() int64 {
+	return node.timestamp
 }
 
-//return the children hash set
-func (node *blockNode) GetChildren() *BlockSet {
-	if node.children==nil {
-		return nil
-	}
-	result:=NewBlockSet()
-	for _,v:=range node.children{
-		result.Add(&v.hash)
-	}
-	return result
+//set the total of the past node about this node
+func (node *blockNode) SetPastSetNum(num uint64) {
+	node.pastSetNum=num
+}
+
+//return the total of the past node about this node
+func (node *blockNode) GetPastSetNum() uint64 {
+	return node.pastSetNum
 }
