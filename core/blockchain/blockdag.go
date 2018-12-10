@@ -10,6 +10,7 @@ import (
 	"github.com/noxproject/nox/common/anticone"
 )
 
+//The abstract inferface is used to dag block
 type IBlock interface {
 	GetHash() *hash.Hash
 	GetParents() *BlockSet
@@ -21,6 +22,7 @@ type IBlock interface {
 	GetHeight() uint64
 }
 
+//The abstract inferface is used to build and manager DAG
 type IBlockDAG interface {
 	HasBlock(h *hash.Hash) bool
 	GetBlock(h *hash.Hash) IBlock
@@ -108,7 +110,7 @@ func (bd *BlockDAG) setTips(bs *BlockSet){
 	bd.tips=bs
 }
 
-func (bd *BlockDAG) GetNodeTips() []IBlock {
+func (bd *BlockDAG) GetTipsList() []IBlock {
 	result:=[]IBlock{}
 	for k,_:=range bd.tips.GetMap(){
 		result=append(result,bd.GetBlock(&k))

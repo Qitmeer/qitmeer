@@ -293,7 +293,7 @@ func New(config *Config) (*BlockChain, error) {
 	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
 		"index",b.dbInfo.bidxVer)
 
-	tips:=b.dag.GetNodeTips()
+	tips:=b.dag.GetTipsList()
 	logStr:=fmt.Sprintf("Chain state:totaltx=%d\ntips=%d\n",b.stateSnapshot.TotalTxns,len(tips))
 
 	for _,v:=range tips{
@@ -842,6 +842,8 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 	if newOrders.Len()==0 {
 		return false,nil
 	}
+	//Fast double spent check
+
 	// We are extending the main (best) chain with a new block.  This is the
 	// most common case.
 	if newOrders.Len()==1 {
@@ -1112,7 +1114,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 		if err != nil {
 			return err
 		}
-		b.RemoveBadTx(&n.hash)
+
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
@@ -1257,6 +1259,8 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	// Prune fully spent entries and mark all entries in the view unmodified
 	// now that the modifications have been committed to the database.
 	view.commit()
+
+	b.RemoveBadTx(&node.hash)
 
 	// Mark block as being in a side chain.
 	node.inMainChain = false
