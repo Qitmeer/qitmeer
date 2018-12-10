@@ -843,6 +843,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		return false,nil
 	}
 	//Fast double spent check
+	b.fastDoubleSpentCheck(node,block)
 
 	// We are extending the main (best) chain with a new block.  This is the
 	// most common case.
@@ -907,6 +908,42 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 	}
 	return true, nil
 }
+
+// This function is fast check before global sequencing,it can judge who is the bad block quickly.
+func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.SerializedBlock) {
+	transactions:=block.Transactions()
+	if len(transactions)>1 {
+		for i, tx := range transactions {
+			if i==0 {
+				continue
+			}
+			for _, txIn := range tx.Transaction().TxIn {
+				entry,err:= b.FetchUtxoEntry(&txIn.PreviousOut.Hash)
+				if entry == nil || err!=nil || !entry.IsOutputSpent(txIn.PreviousOut.OutIndex) {
+					continue
+				}
+				preBlockH:=b.dag.GetBlockByOrder(int(entry.height))
+				if preBlockH==nil {
+					continue
+				}
+				preBlock:=b.index.LookupNode(preBlockH)
+				if preBlock==nil {
+					continue
+				}
+				ret, err := b.dag.s.Vote(preBlock,node)
+				if err!=nil {
+					continue
+				}
+				if ret {
+					b.AddBadTx(tx.Hash(),block.Hash())
+				}else{
+					b.AddBadTx(tx.Hash(),preBlockH)
+				}
+			}
+		}
+	}
+}
+
 // connectBlock handles connecting the passed node/block to the end of the main
 // (best) chain.
 //

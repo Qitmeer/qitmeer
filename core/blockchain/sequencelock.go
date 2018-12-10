@@ -92,7 +92,7 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			if prevInputHeight < 0 {
 				prevInputHeight = 0
 			}
-			blockNode := b.index.LookupNode(b.dag.NodeByOrder(int(prevInputHeight)))
+			blockNode := b.index.LookupNode(b.dag.GetBlockByOrder(int(prevInputHeight)))
 			medianTime := blockNode.CalcPastMedianTime()
 
 			// Calculate the minimum required timestamp based on the

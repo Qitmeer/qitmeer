@@ -74,6 +74,9 @@ type BlockDAG struct {
 	// The block anticone size is all in the DAG which did not reference it and
 	// were not referenced by it.
 	anticoneSize int
+
+	// The Spectre algorithm
+	s *Spectre
 }
 
 // Initialization block dag,for example, calculation anticone size.
@@ -86,6 +89,9 @@ func (bd *BlockDAG) Init(bch *BlockChain){
 	bd.anticoneSize = anticone.GetSize(bd.bc.params.BlockDelay,bd.bc.params.BlockRate,
 		bd.bc.params.SecurityLevel)
 
+	//spectre
+	bd.s = NewSpectre(bd)
+
 	log.Info(fmt.Sprintf("anticone size:%d",bd.anticoneSize))
 }
 
@@ -94,7 +100,7 @@ func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
 }
 
 // return the genesis block node
-func (bd *BlockDAG) Genesis() IBlock {
+func (bd *BlockDAG) GetGenesis() IBlock {
 	if bd.bc.params!=nil {
 		return bd.GetBlock(bd.bc.params.GenesisHash)
 	}
@@ -1080,7 +1086,7 @@ func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 	return nil
 }
 
-func (bd *BlockDAG) NodeByOrder(order int) *hash.Hash{
+func (bd *BlockDAG) GetBlockByOrder(order int) *hash.Hash{
 	if bd.tempOrder==nil||order<0 {
 		return nil
 	}
@@ -1100,6 +1106,13 @@ func (bd *BlockDAG) GetLastTime() *time.Time{
 	return &bd.lastTime
 }
 
+func (bd *BlockDAG) HasBlock(h *hash.Hash) bool {
+	return bd.GetBlock(h)!=nil
+}
+
+func (bd *BlockDAG) GetBlockCount() uint {
+	return bd.totalBlocks
+}
 ///////
 type SortBlock struct {
 	h          *hash.Hash
