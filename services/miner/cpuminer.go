@@ -680,11 +680,16 @@ out:
 	log.Trace("Generate blocks worker done")
 }
 
-func updateExtraNonce(msgBlock *types.Block, extraNonce uint64) error {
+func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) error {
 	// TODO, decided if need extra nonce for coinbase-tx
 	// do nothing for now
 	return nil
-	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(msgBlock.Header.Height)).
+	blockHash:=msgBlock.BlockHash()
+	height,err:=m.blockManager.GetChain().BlockHeightByHash(&blockHash)
+	if err!=nil {
+		return err
+	}
+	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(height)).
 		AddInt64(int64(extraNonce)).AddData([]byte("nox/test")).
 		Script()
 	if err != nil {
