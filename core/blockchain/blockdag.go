@@ -12,12 +12,18 @@ import (
 
 //The abstract inferface is used to dag block
 type IBlock interface {
+	// Get hash of block
 	GetHash() *hash.Hash
+
+	// Get all parents set,the dag block has more than one parent
 	GetParents() *BlockSet
+
 	GetChildren() *BlockSet
 	GetTimestamp() int64
 	SetPastSetNum(num uint64)
 	GetPastSetNum() uint64
+
+	// The height is global order
 	SetHeight(h uint64)
 	GetHeight() uint64
 }
@@ -201,6 +207,7 @@ func isVirtualTip(b IBlock, futureSet *BlockSet, anticone *BlockSet, children *B
 	return true
 }
 
+// This function is used to GetAnticone recursion
 func (bd *BlockDAG) recAnticone(b IBlock, futureSet *BlockSet, anticone *BlockSet, h *hash.Hash) {
 	if h.IsEqual(b.GetHash()) {
 		return

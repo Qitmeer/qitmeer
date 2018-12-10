@@ -936,8 +936,6 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.Serialize
 				}
 				if ret {
 					b.AddBadTx(tx.Hash(),block.Hash())
-				}else{
-					b.AddBadTx(tx.Hash(),preBlockH)
 				}
 			}
 		}
