@@ -196,7 +196,6 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 		// true a solution was found, so submit the solved block.
 		if m.solveBlock(template.Block, ticker, nil) {
 			block := types.NewBlock(template.Block)
-			block.SetHeight(template.Height)
 			m.submitBlock(block)
 			blockHashes[i] = block.Hash()
 			i++
@@ -363,17 +362,6 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 	m.submitBlockLock.Lock()
 	defer m.submitBlockLock.Unlock()
-
-	tipsList:=m.blockManager.GetChain().DAG().GetTips().OrderList()
-
-	paMerkles :=merkle.BuildParentsMerkleTreeStore(tipsList)
-	tipsPRoot :=*paMerkles[len(paMerkles)-1]
-
-	if !block.Block().Header.ParentRoot.IsEqual(&tipsPRoot) {
-		log.Debug("Block submitted via CPU miner with previous "+
-			"block %s is stale", block.Block().Header.ParentRoot)
-		return false
-	}
 
 	// Process this block using the same rules as blocks coming from other
 	// nodes. This will in turn relay it to the network like normal.
@@ -696,7 +684,7 @@ func updateExtraNonce(msgBlock *types.Block, extraNonce uint64) error {
 	// TODO, decided if need extra nonce for coinbase-tx
 	// do nothing for now
 	return nil
-	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(0)).
+	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(msgBlock.Header.Height)).
 		AddInt64(int64(extraNonce)).AddData([]byte("nox/test")).
 		Script()
 	if err != nil {
