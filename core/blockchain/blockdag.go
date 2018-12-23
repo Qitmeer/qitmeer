@@ -332,11 +332,14 @@ func (bd *BlockDAG) getPastSetByOrder(pastSet *BlockSet, exclude *BlockSet, h *h
 
 func (bd *BlockDAG) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, bs *BlockSet, h *hash.Hash, exclude *BlockSet) {
 
+	//1.If h that has already appeared must be excluded.
 	if exclude != nil && exclude.Has(h) {
 		return
 	}
 	node:=bd.GetBlock(h)
 	parents := node.GetParents()
+
+	//2.If its father hasn't sorted,the function must return.
 	if parents != nil && parents.Len() > 0 {
 		for k, _ := range parents.GetMap() {
 			if exclude != nil && exclude.Has(&k) {
@@ -349,7 +352,8 @@ func (bd *BlockDAG) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, 
 	}
 	var anticone *BlockSet
 
-	//
+	//3.Search some uncle block that it is in front of me, then
+	//make sure they are sorted.
 	if !tempOrderM.Has(h) {
 		if !bd.genesis.IsEqual(h) && !bd.lastCommonBlocks.Has(h) {
 			anticone = bd.GetAnticone(node, exclude)
@@ -375,11 +379,14 @@ func (bd *BlockDAG) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, 
 		}
 
 	}
+
+	//4.Add myself to the array
 	if !tempOrderM.Has(h) {
 		(*tempOrder) = append(*tempOrder, h)
 		tempOrderM.Add(h)
 	}
-	//
+
+	//5.Sort all my children
 	childrenSrc := node.GetChildren()
 	children := childrenSrc.Clone()
 	if exclude != nil {
