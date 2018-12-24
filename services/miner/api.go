@@ -127,6 +127,15 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	if err != nil {
 		return nil, er.RpcDeserializationError("Block decode failed: ", err.Error())
 	}
+
+	// Because it's asynchronous, so you must ensure that all tips are referenced
+	tips:=api.miner.blockManager.GetChain().DAG().GetTips()
+	parents:=blockchain.NewBlockSet()
+	parents.AddList(block.Block().Parents)
+	if parents.IsEqual(tips) {
+		return fmt.Sprintf("The tips of block is expired."), nil
+	}
+
 	// Process this block using the same rules as blocks coming from other
 	// nodes.  This will in turn relay it to the network like normal.
 	isOrphan, err := api.miner.blockManager.ProcessBlock(block, blockchain.BFNone)
