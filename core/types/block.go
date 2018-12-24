@@ -14,9 +14,9 @@ import (
 
 // MaxBlockHeaderPayload is the maximum number of bytes a block header can be.
 // Version 4 bytes + ParentRoot 32 bytes + TxRoot 32 bytes + StateRoot 32 bytes
-// Difficulty 4 bytes   + Timestamp 4 bytes + Nonce 8 bytes
-// --> Total 120 bytes.
-const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 4 + 8
+// Difficulty 4 bytes   + Timestamp 8 bytes + Nonce 8 bytes +ExNonce 8 bytes
+// --> Total 128 bytes.
+const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 8 + 8 +8
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
 // After Segregated Witness, the max block payload has been raised to 4MB.
@@ -74,6 +74,9 @@ type BlockHeader struct {
 	// Nonce
 	Nonce       uint64
 
+	// extra nonce for miner
+	ExNonce     uint64
+
 	//might extra data here
 
 	// Size is the size of the serialized block/block-header in its entirety.
@@ -105,8 +108,8 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
 	return s.ReadElements(r, &bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, &bh.Difficulty, (*s.Uint32Time)(&bh.Timestamp),
-		&bh.Nonce)
+		&bh.StateRoot, &bh.Difficulty, (*s.Int64Time)(&bh.Timestamp),
+		&bh.Nonce,&bh.ExNonce)
 }
 
 // writeBlockHeader writes a block header to w.  See Serialize for
@@ -115,9 +118,9 @@ func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
 // TODO, redefine the protocol version and storage
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
-	sec := uint32(bh.Timestamp.Unix())
+	sec := bh.Timestamp.Unix()
 	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, bh.Difficulty, sec, bh.Nonce)
+		&bh.StateRoot, bh.Difficulty, sec, bh.Nonce,bh.ExNonce)
 }
 
 // This function get the simple hash use each parents string, so it can't use to
