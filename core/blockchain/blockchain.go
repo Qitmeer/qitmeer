@@ -1355,6 +1355,7 @@ func (b *BlockChain) IsBadTx(txh *hash.Hash) bool{
 	_, ok := b.badTx[*txh]
 	return ok
 }
+
 func (b *BlockChain) GetBadTxFromBlock(bh *hash.Hash) []*hash.Hash{
 	result:=[]*hash.Hash{}
 	for k,v:=range b.badTx{
@@ -1365,6 +1366,7 @@ func (b *BlockChain) GetBadTxFromBlock(bh *hash.Hash) []*hash.Hash{
 	}
 	return result
 }
+
 func (b *BlockChain) AddBadTx(txh *hash.Hash,bh *hash.Hash){
 	if b.IsBadTx(txh) {
 		b.badTx[*txh].Add(bh)
@@ -1374,6 +1376,7 @@ func (b *BlockChain) AddBadTx(txh *hash.Hash,bh *hash.Hash){
 		b.badTx[*txh]=set
 	}
 }
+
 func (b *BlockChain) AddBadTxArray(txha []*hash.Hash,bh *hash.Hash){
 	if len(txha)==0 {
 		return
@@ -1382,6 +1385,7 @@ func (b *BlockChain) AddBadTxArray(txha []*hash.Hash,bh *hash.Hash){
 		b.AddBadTx(v,bh)
 	}
 }
+
 func (b *BlockChain) RemoveBadTx(bh *hash.Hash){
 	for k,v:=range b.badTx{
 		if v.Has(bh) {
@@ -1392,9 +1396,36 @@ func (b *BlockChain) RemoveBadTx(bh *hash.Hash){
 		}
 	}
 }
+
+// Return the dag instance
 func (b *BlockChain) DAG() *BlockDAG{
 	return b.dag
 }
+
+// Return the blockindex instance
 func (b *BlockChain) BlockIndex() *blockIndex{
 	return b.index
+}
+
+// This function use to locate the other node dag position, then
+// collect some missing blocks that we need. It is very useful
+// for dag synchronization.
+func (b *BlockChain) LocateBlocks(mainHeight uint64,blocks []*hash.Hash, maxHashes uint32) []*hash.Hash {
+	blocksNum:=len(blocks)
+	result:=NewBlockSet()
+	if blocksNum>0 {
+		curBlock:=b.dag.GetLastBlock().(*blockNode)
+		for  {
+			if curBlock.GetMainHeight()<mainHeight {
+				break
+			}
+			result.AddSet(curBlock.GetParents())
+			result.AddSet(curBlock.GetChildren())
+			curBlockH:=b.dag.GetBlockByOrder(int(curBlock.GetHeight()-1))
+			curBlock=b.index.LookupNode(curBlockH)
+		}
+	}else{
+		return blocks
+	}
+	return result.List()
 }

@@ -33,6 +33,9 @@ const MaxParentsPerBlock=50
 // header.
 const blockHeaderLen = 180
 
+// MaxBlocksPerMsg is the maximum number of blocks allowed per message.
+const MaxBlocksPerMsg = 500
+
 type BlockHeader struct {
 
 	// block version

@@ -104,9 +104,11 @@ type blockNode struct {
 
 	//pastSetNum is the size of past sets
 	pastSetNum uint64
+
 	//height is in the position of whole block chain.(It is actually DAG order)
 	//Why do I not call "order" directly, considering the compatibility of code?
 	height    uint64
+
 	//This is the height of block stacking in DAG.
 	mainHeight uint64
 }

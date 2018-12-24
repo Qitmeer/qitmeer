@@ -170,4 +170,7 @@ func (s *PeerServer) RelayInventory(invVect *message.InvVect, data interface{}) 
 	s.relayInv <- relayMsg{invVect: invVect, data: data}
 }
 
+// handleGetBlocksMsg use to get some blocks from neighbor peers
+func (s *PeerServer) handleGetBlocksMsg(state *peerState, msg *GetBlocksMsg) {
 
+}

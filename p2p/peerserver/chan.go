@@ -38,3 +38,9 @@ type updatePeerHeightsMsg struct {
 	newHeight  int64
 	originPeer *serverPeer
 }
+
+// GetBlocksMsg
+type GetBlocksMsg struct {
+	MainHeight uint64
+	Blocks []*hash.Hash
+}
