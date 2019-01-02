@@ -379,6 +379,15 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		transactions = append(transactions, resultTx)
 	}
 
+	//parents
+	parents:=[]json.GetBlockTemplateResultPt{}
+	for _,v:=range template.Block.Parents{
+		resultPt := json.GetBlockTemplateResultPt{
+			Data:    hex.EncodeToString(v.Bytes()),
+			Hash:    v.String(),
+		}
+		parents=append(parents,resultPt)
+	}
 	//TODO,submitOld
 	var submitOld *bool
 	// gbtMutableFields are the manipulations the server allows to be made
@@ -401,6 +410,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		SizeLimit:    wire.MaxBlockPayload,
 		//TODO，transactions
 		// make([]json.GetBlockTemplateResultTx, 0, 1)
+		Parents:      parents,
 		Transactions: transactions,
 		Version:      template.Block.Header.Version,
 		LongPollID:   longPollID,

@@ -37,6 +37,13 @@ type GetBlockTemplateResultTx struct {
 	Weight  int64   `json:"weight"`
 }
 
+// GetBlockTemplateResultPt models the parents field of the
+// getblocktemplate command.
+type GetBlockTemplateResultPt struct {
+	Data    string  `json:"data"`
+	Hash    string  `json:"hash"`
+}
+
 // GetBlockTemplateResultAux models the coinbaseaux field of the
 // getblocktemplate command.
 type GetBlockTemplateResultAux struct {
@@ -55,6 +62,7 @@ type GetBlockTemplateResult struct {
 	SigOpLimit    int64                      `json:"sigoplimit,omitempty"`
 	SizeLimit     int64                      `json:"sizelimit,omitempty"`
 	WeightLimit   int64                      `json:"weightlimit,omitempty"`
+	Parents       []GetBlockTemplateResultPt `json:"parents"`
 	Transactions  []GetBlockTemplateResultTx `json:"transactions"`
 	Version       uint32                     `json:"version"`
 	CoinbaseAux   *GetBlockTemplateResultAux `json:"coinbaseaux,omitempty"`
