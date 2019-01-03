@@ -70,15 +70,14 @@ type BlockHeader struct {
 	// Difficulty target for tx
 	Difficulty  uint32
 
+	// extra nonce for miner
+	ExNonce     uint64
 
 	// TimeStamp
 	Timestamp   time.Time
 
 	// Nonce
 	Nonce       uint64
-
-	// extra nonce for miner
-	ExNonce     uint64
 
 	//might extra data here
 
@@ -111,8 +110,8 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
 	return s.ReadElements(r, &bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, &bh.Difficulty, (*s.Int64Time)(&bh.Timestamp),
-		&bh.Nonce,&bh.ExNonce)
+		&bh.StateRoot, &bh.Difficulty,&bh.ExNonce, (*s.Int64Time)(&bh.Timestamp),
+		&bh.Nonce)
 }
 
 // writeBlockHeader writes a block header to w.  See Serialize for
@@ -123,7 +122,7 @@ func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
 	sec := bh.Timestamp.Unix()
 	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, bh.Difficulty, sec, bh.Nonce,bh.ExNonce)
+		&bh.StateRoot, bh.Difficulty,bh.ExNonce, sec, bh.Nonce)
 }
 
 // This function get the simple hash use each parents string, so it can't use to
