@@ -132,7 +132,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	tips:=api.miner.blockManager.GetChain().DAG().GetTips()
 	parents:=blockchain.NewBlockSet()
 	parents.AddList(block.Block().Parents)
-	if parents.IsEqual(tips) {
+	if !parents.IsEqual(tips) {
 		return fmt.Sprintf("The tips of block is expired."), nil
 	}
 
