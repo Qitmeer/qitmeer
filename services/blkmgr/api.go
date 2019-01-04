@@ -180,7 +180,7 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 		Hash:          hash.String(),
 		Confirmations: confirmations,
 		Version:       int32(blockHeader.Version),
-		PreviousHash:  blockHeader.ParentRoot.String(),
+		ParentRoot:    blockHeader.ParentRoot.String(),
 		TxRoot:        blockHeader.TxRoot.String(),
 		StateRoot:     blockHeader.StateRoot.String(),
 		Difficulty:    blockHeader.Difficulty,
