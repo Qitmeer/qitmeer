@@ -3,7 +3,6 @@
 package miner
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/noxproject/nox/common/hash"
@@ -357,18 +356,16 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		}
 
 		// Serialize the transaction for later conversion to hex.
-		txBuf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
+		txBuf,err:=tx.Serialize(types.TxSerializeFull)
+		if err!=nil {
+			context := "Failed to serialize transaction"
+			return nil, er.RpcInvalidError(err.Error(),context)
 
-		/*
-			if err := tx.Serialize(txBuf); err != nil {
-					context := "Failed to serialize transaction"
-					return nil, internalRPCError(err.Error(), context)
-			}
-		*/
+		}
 
 		//TODO, bTx := btcutil.NewTx(tx)
 		resultTx := json.GetBlockTemplateResultTx{
-			Data:    hex.EncodeToString(txBuf.Bytes()),
+			Data:    hex.EncodeToString(txBuf),
 			Hash:    txHash.String(),
 			Depends: depends,
 			Fee:     template.Fees[i],
