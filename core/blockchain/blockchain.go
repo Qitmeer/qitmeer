@@ -918,7 +918,7 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.Serialize
 				continue
 			}
 			for _, txIn := range tx.Transaction().TxIn {
-				entry,err:= b.FetchUtxoEntry(&txIn.PreviousOut.Hash)
+				entry,err:= b.fetchUtxoEntry(&txIn.PreviousOut.Hash)
 				if entry == nil || err!=nil || !entry.IsOutputSpent(txIn.PreviousOut.OutIndex) {
 					continue
 				}

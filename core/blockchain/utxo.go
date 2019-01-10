@@ -156,7 +156,11 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 func (b *BlockChain) FetchUtxoEntry(txHash *hash.Hash) (*UtxoEntry, error) {
 	b.chainLock.RLock()
 	defer b.chainLock.RUnlock()
+	return b.fetchUtxoEntry(txHash)
+}
 
+// fetchUtxoEntry without chainLock
+func (b *BlockChain) fetchUtxoEntry(txHash *hash.Hash) (*UtxoEntry, error) {
 	var entry *UtxoEntry
 	err := b.db.View(func(dbTx database.Tx) error {
 		var err error
