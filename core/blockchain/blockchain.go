@@ -854,7 +854,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		view := NewUtxoViewpoint()
 		view.SetBestHash(b.dag.GetPrevious(&node.hash))
 
-		var stxos []spentTxOut
+		stxos:=[]spentTxOut{}
 		err := b.checkConnectBlock(node, block, view,&stxos)
 		if err != nil {
 			b.RemoveBadTx(block.Hash())

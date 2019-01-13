@@ -749,13 +749,13 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// Rollback the final tx tree regular so that we don't write it to
 	// database.
 	if node.height > 1 && stxos != nil {
-		idx, err := utxoView.disconnectTransactionSlice(block.Transactions(),
+		_, err := utxoView.disconnectTransactionSlice(block.Transactions(),
 			int64(node.height), stxos) //TODO,remove type conversion
 		if err != nil {
 			return err
 		}
-		stxosDeref := *stxos
-		*stxos = stxosDeref[0:idx]
+		//stxosDeref := *stxos
+		//*stxos = stxosDeref[0:idx]
 	}
 
 	// First block has special rules concerning the ledger.
@@ -879,7 +879,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		}
 
 		var expAtomOut int64
-		if node.height == 1 {
+		if node.height == 0 {
 			expAtomOut = subsidyCache.CalcBlockSubsidy(int64(node.height)) //TODO, remove type conversion
 		} else {
 			subsidyWork := CalcBlockWorkSubsidy(subsidyCache,
