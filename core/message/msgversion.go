@@ -36,6 +36,9 @@ type MsgVersion struct {
 	// Version of the protocol the node is using.
 	ProtocolVersion int32
 
+	// Bitfield which identifies the enabled services.
+	Services protocol.ServiceFlag
+
 	// Time the message was generated.  This is encoded as an int64 on the wire.
 	Timestamp time.Time
 
@@ -58,6 +61,18 @@ type MsgVersion struct {
 
 	// Don't announce transactions to peer.
 	DisableRelayTx bool
+}
+
+// HasService returns whether the specified service is supported by the peer
+// that generated the message.
+func (msg *MsgVersion) HasService(service protocol.ServiceFlag) bool {
+	return msg.Services&service == service
+}
+
+// AddService adds service as a supported service by the peer generating the
+// message.
+func (msg *MsgVersion) AddService(service protocol.ServiceFlag) {
+	msg.Services |= service
 }
 
 // Decode decodes r encoding into the receiver.
@@ -225,12 +240,15 @@ func NewMsgVersion(me *types.NetAddress, you *types.NetAddress, nonce uint64,
 func NewMsgVersionFromConn(conn net.Conn, nonce uint64,
 	lastBlock int32) (*MsgVersion, error) {
 
-	lna, err := types.NewNetAddress(conn.LocalAddr())
+	// TODO, should define unknown flag instead of using hard-coding 0
+	// Don't assume any services until we know otherwise.
+	lna, err := types.NewNetAddress(conn.LocalAddr(),0)
 	if err != nil {
 		return nil, err
 	}
 
-	rna, err := types.NewNetAddress(conn.RemoteAddr())
+	// Don't assume any services until we know otherwise.
+	rna, err := types.NewNetAddress(conn.RemoteAddr(),0)
 	if err != nil {
 		return nil, err
 	}

@@ -7,6 +7,8 @@ package main
 import (
 	"fmt"
 	"github.com/noxproject/nox/services/mempool"
+	"github.com/noxproject/nox/version"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -94,7 +96,7 @@ func loadConfig() (*config.Config, []string, error) {
 	appName := filepath.Base(os.Args[0])
 	appName = strings.TrimSuffix(appName, filepath.Ext(appName))
 	if preCfg.ShowVersion {
-		fmt.Printf("%s version %s (Go version %s)\n", appName, version(), runtime.Version())
+		fmt.Printf("%s version %s (Go version %s)\n", appName, version.String(), runtime.Version())
 		os.Exit(0)
 	}
 
@@ -268,6 +270,36 @@ func loadConfig() (*config.Config, []string, error) {
 			return nil, nil, err
 		}
 		cfg.SetMiningAddrs(addr)
+	}
+
+	// Validate any given whitelisted IP addresses and networks.
+	if len(cfg.Whitelists) > 0 {
+		var ip net.IP
+		for _, addr := range cfg.Whitelists {
+			_, ipnet, err := net.ParseCIDR(addr)
+			if err != nil {
+				ip = net.ParseIP(addr)
+				if ip == nil {
+					str := "%s: the whitelist value of '%s' is invalid"
+					err = fmt.Errorf(str, funcName, addr)
+					fmt.Fprintln(os.Stderr, err)
+					fmt.Fprintln(os.Stderr, usageMessage)
+					return nil, nil, err
+				}
+				var bits int
+				if ip.To4() == nil {
+					// IPv6
+					bits = 128
+				} else {
+					bits = 32
+				}
+				ipnet = &net.IPNet{
+					IP:   ip,
+					Mask: net.CIDRMask(bits, bits),
+				}
+			}
+			cfg.AddToWhitelists(ipnet)
+		}
 	}
 
 	// Ensure there is at least one mining address when the generate flag is

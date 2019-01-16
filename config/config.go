@@ -1,6 +1,9 @@
 package config
 
-import "github.com/noxproject/nox/core/types"
+import (
+	"github.com/noxproject/nox/core/types"
+	"net"
+)
 
 type Config struct {
 	HomeDir              string        `short:"A" long:"appdata" description:"Path to application home directory"`
@@ -47,6 +50,14 @@ type Config struct {
 	miningAddrs          []types.Address
 	//WebSocket support
 	RPCMaxWebsockets     int           `long:"rpcmaxwebsockets" description:"Max number of RPC websocket connections"`
+	//P2P
+	BlocksOnly           bool          `long:"blocksonly" description:"Do not accept transactions from remote peers."`
+	ConnectPeers         []string      `long:"connect" description:"Connect only to the specified peers at startup"`
+	ExternalIPs          []string      `long:"externalip" description:"list of local addresses we claim to listen on to peers"`
+	Upnp                 bool          `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
+	Whitelists           []string      `long:"whitelist" description:"Add an IP network or IP that will not be banned. (eg. 192.168.1.0/24 or ::1)"`
+	whitelists           []*net.IPNet
+
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {
@@ -55,4 +66,11 @@ func (c *Config) GetMinningAddrs() []types.Address {
 
 func (c *Config) SetMiningAddrs(addr types.Address) {
 	c.miningAddrs = append(c.miningAddrs,addr)
+}
+func (c *Config) GetWhitelists() []*net.IPNet {
+	return c.whitelists
+}
+
+func (c *Config) AddToWhitelists(ip *net.IPNet) {
+	c.whitelists = append(c.whitelists,ip)
 }

@@ -42,6 +42,8 @@ const (
 	CmdBlock          = "block"
 	CmdTx             = "tx"
 	CmdReject         = "reject"
+	CmdPing           = "ping"
+	CmdPong           = "pong"
 )
 
 // Message is an interface that describes a nox message.  A type that

@@ -111,11 +111,15 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 
 	// block-manager
 	bm, err := blkmgr.NewBlockManager(nox.nfManager,indexManager,node.DB, nox.timeSource, nox.sigCache, node.Config, node.Params,
-		node.peerServer, node.quit)
+		node.quit)
 	if err != nil {
 		return nil, err
 	}
 	nox.blockManager = bm
+
+	// prepare peerServer
+	node.peerServer.BlockManager = bm
+	node.peerServer.TimeSource = nox.timeSource
 
 	// mem-pool
 	txC := mempool.Config{

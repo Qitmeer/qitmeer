@@ -3,24 +3,23 @@
 package blkmgr
 
 import (
-	"github.com/noxproject/nox/node/notify"
-	"sync"
 	"container/list"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/p2p"
-	"github.com/noxproject/nox/services/common/progresslog"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/config"
-	"fmt"
-	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/core/message"
-	"sync/atomic"
-	"github.com/noxproject/nox/p2p/peerserver"
-	"github.com/noxproject/nox/services/mempool"
-	"github.com/noxproject/nox/core/types"
 	"errors"
+	"fmt"
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/config"
+	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/core/message"
+	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/database"
+	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/node/notify"
+	"github.com/noxproject/nox/p2p/peer"
+	"github.com/noxproject/nox/params"
+	"github.com/noxproject/nox/services/common/progresslog"
+	"github.com/noxproject/nox/services/mempool"
+	"sync"
+	"sync/atomic"
 )
 
 // BlockManager provides a concurrency safe block manager for handling all
@@ -33,7 +32,6 @@ type BlockManager struct {
 	params              *params.Params
 
 	notifyMgr           *notify.NotifyMgr
-	peerServer          *peerserver.PeerServer
 
 	//TODO, decoupling mempool with bm
 	txMemPool			*mempool.TxPool
@@ -47,7 +45,7 @@ type BlockManager struct {
 	requestedEverBlocks map[hash.Hash]uint8
 	progressLogger      *progresslog.BlockProgressLogger
 
-	syncPeer            *p2p.Peer
+	syncPeer            *peer.Peer
 	msgChan             chan interface{}
 
 	chainState          ChainState
@@ -71,13 +69,12 @@ type BlockManager struct {
 // Use Start to begin processing asynchronous block and inv updates.
 func NewBlockManager(ntmgr *notify.NotifyMgr,indexManager blockchain.IndexManager,db database.DB,
 	timeSource blockchain.MedianTimeSource, sigCache *txscript.SigCache,
-	cfg *config.Config, par *params.Params, server *peerserver.PeerServer,
+	cfg *config.Config, par *params.Params, /*server *peerserver.PeerServer,*/
 	interrupt <-chan struct{}) (*BlockManager, error) {
 	bm := BlockManager{
 		config:              cfg,
 		params:              par,
 		notifyMgr:           ntmgr,
-		peerServer:          server,
 		rejectedTxns:        make(map[hash.Hash]struct{}),
 		requestedTxns:       make(map[hash.Hash]struct{}),
 		requestedEverTxns:   make(map[hash.Hash]uint8),
@@ -684,6 +681,53 @@ func (b *BlockManager) ProcessTransaction(tx *types.Tx, allowOrphans bool,
 	response := <-reply
 	return response.acceptedTxs, response.err
 }
+
+// newPeerMsg signifies a newly connected peer to the block handler.
+type newPeerMsg struct {
+	peer *peer.ServerPeer
+}
+
+// NewPeer informs the block manager of a newly active peer.
+func (b *BlockManager) NewPeer(sp *peer.ServerPeer) {
+	// Ignore if we are shutting down.
+	if atomic.LoadInt32(&b.shutdown) != 0 {
+		return
+	}
+	b.msgChan <- &newPeerMsg{peer: sp}
+}
+
+// txMsg packages a tx message and the peer it came from together
+// so the block handler has access to that information.
+type txMsg struct {
+	tx   *types.Tx
+	peer *peer.ServerPeer
+}
+// QueueTx adds the passed transaction message and peer to the block handling
+// queue.
+func (b *BlockManager) QueueTx(tx *types.Tx, sp *peer.ServerPeer) {
+	// Don't accept more transactions if we're shutting down.
+	if atomic.LoadInt32(&b.shutdown) != 0 {
+		sp.TxProcessed <- struct{}{}
+		return
+	}
+
+	b.msgChan <- &txMsg{tx: tx, peer: sp}
+}
+
+// donePeerMsg signifies a newly disconnected peer to the block handler.
+type donePeerMsg struct {
+	peer *peer.ServerPeer
+}
+
+// DonePeer informs the blockmanager that a peer has disconnected.
+func (b *BlockManager) DonePeer(sp *peer.ServerPeer) {
+	// Ignore if we are shutting down.
+	if atomic.LoadInt32(&b.shutdown) != 0 {
+		return
+	}
+	b.msgChan <- &donePeerMsg{peer: sp}
+}
+
 
 
 

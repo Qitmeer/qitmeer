@@ -1,5 +1,6 @@
 data_dir=/data/decred/private
 network=
+debug_level=trace
 
 while [ $# -gt 0 ] ;do
   case "$1" in
@@ -14,4 +15,4 @@ while [ $# -gt 0 ] ;do
 done
 
 
-./dcrd -A $data_dir --txindex --simnet --miningaddr SsmmJgfYDKHTh5JHXxEUHTC7Ddeos8dbdPT $@
+./dcrd -A $data_dir --txindex --simnet --debuglevel=$debug_level --miningaddr SsmmJgfYDKHTh5JHXxEUHTC7Ddeos8dbdPT $@
