@@ -827,3 +827,18 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 		}
 	}
 }
+
+//return time source
+func (m *CPUMiner)GetTimeSource() blockchain.MedianTimeSource {
+	return m.timeSource
+}
+
+//return policy
+func (m *CPUMiner)GetPolicy() *mining.Policy {
+	return m.policy
+}
+
+//return sig cache
+func (m *CPUMiner)GetSigCache() *txscript.SigCache {
+	return m.sigCache
+}

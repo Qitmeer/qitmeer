@@ -911,6 +911,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 
 // This function is fast check before global sequencing,it can judge who is the bad block quickly.
 func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.SerializedBlock) {
+	return
 	transactions:=block.Transactions()
 	if len(transactions)>1 {
 		for i, tx := range transactions {
@@ -1017,7 +1018,6 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 		if err != nil {
 			return err
 		}
-
 		// Allow the index manager to call each of the currently active
 		// optional indexes with the block being connected so they can
 		// update themselves accordingly.
@@ -1274,7 +1274,6 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 		if err != nil {
 			return err
 		}
-
 		// Allow the index manager to call each of the currently active
 		// optional indexes with the block being disconnected so they
 		// can update themselves accordingly.

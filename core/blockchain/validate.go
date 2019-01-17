@@ -748,15 +748,15 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 
 	// Rollback the final tx tree regular so that we don't write it to
 	// database.
-	if node.height > 1 && stxos != nil {
+	/*if node.height > 1 && stxos != nil {
 		_, err := utxoView.disconnectTransactionSlice(block.Transactions(),
 			int64(node.height), stxos) //TODO,remove type conversion
 		if err != nil {
 			return err
 		}
-		//stxosDeref := *stxos
-		//*stxos = stxosDeref[0:idx]
-	}
+		stxosDeref := *stxos
+		*stxos = stxosDeref[0:idx]
+	}*/
 
 	// First block has special rules concerning the ledger.
 	// TODO, block one ICO
@@ -830,7 +830,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		// This step modifies the txStore and marks the tx outs used
 		// spent, so be aware of this.
 		txFee, err := CheckTransactionInputs(b.subsidyCache, tx,
-			int64(node.height), utxoView, true, /* check fraud proofs */
+			int64(node.height), utxoView, false, /* check fraud proofs */
 			b.params) //TODO, remove type conversion
 		if err != nil {
 			log.Trace("CheckTransactionInputs failed","err", err)
@@ -870,7 +870,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 	// mining the block.  It is safe to ignore overflow and out of range
 	// errors here because those error conditions would have already been
 	// caught by checkTransactionSanity.
-	if txTree { //TxTreeRegular
+	/*if txTree { //TxTreeRegular
 
 		var totalAtomOutRegular uint64
 
@@ -910,7 +910,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 	} else {
 		// TxTreeStake
 	}
-
+	*/
 	return nil
 }
 
@@ -1083,7 +1083,6 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txHeight i
 	if IsCoinBaseTx(msgTx) {
 		return 0, nil
 	}
-
 	// -------------------------------------------------------------------
 	// General transaction testing.
 	// -------------------------------------------------------------------

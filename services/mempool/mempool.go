@@ -163,6 +163,11 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 	}
 }
 
+//Call addTransaction
+func (mp *TxPool) AddTransaction(utxoView *blockchain.UtxoViewpoint,
+	tx *types.Tx, txType types.TxType, height uint64, fee int64) {
+		mp.addTransaction(utxoView,tx,txType,height,fee)
+}
 // maybeAcceptTransaction is the internal function which implements the public
 // MaybeAcceptTransaction.  See the comment for MaybeAcceptTransaction for
 // more details.

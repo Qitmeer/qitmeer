@@ -102,7 +102,7 @@ func spentTxOutSerializeSize(stxo *spentTxOut) int {
 
 	// false below indicates that the txOut does not specify an amount.
 	size += compressedTxOutSize(uint64(stxo.amount), stxo.scriptVersion,
-		stxo.pkScript, currentCompressionVersion, stxo.compressed, false)
+		stxo.pkScript, currentCompressionVersion, stxo.compressed, true)
 
 	// The transaction was fully spent, so we need to store some extra
 	// data for UTX resurrection.
@@ -123,8 +123,8 @@ func putSpentTxOut(target []byte, stxo *spentTxOut) int {
 	offset := putVLQ(target, uint64(flags))
 
 	// false below indicates that the txOut does not specify an amount.
-	offset += putCompressedTxOut(target[offset:], 0, stxo.scriptVersion,
-		stxo.pkScript, currentCompressionVersion, stxo.compressed, false)
+	offset += putCompressedTxOut(target[offset:], stxo.amount, stxo.scriptVersion,
+		stxo.pkScript, currentCompressionVersion, stxo.compressed, true)
 
 	// The transaction was fully spent, so we need to store some extra
 	// data for UTX resurrection.
@@ -133,13 +133,19 @@ func putSpentTxOut(target []byte, stxo *spentTxOut) int {
 	}
 	serializedIndex:=[]byte{0,0,0,0}
 	dbnamespace.ByteOrder.PutUint32(serializedIndex[:], uint32(stxo.index))
-	target=append(target,serializedIndex...)
+	target[offset]=serializedIndex[0]
+	target[offset+1]=serializedIndex[1]
+	target[offset+2]=serializedIndex[2]
+	target[offset+3]=serializedIndex[3]
+	offset+=4
 
 	serializedIndex=[]byte{0,0,0,0}
 	dbnamespace.ByteOrder.PutUint32(serializedIndex[:], uint32(stxo.inIndex))
-	target=append(target,serializedIndex...)
-
-	offset+=8
+	target[offset]=serializedIndex[0]
+	target[offset+1]=serializedIndex[1]
+	target[offset+2]=serializedIndex[2]
+	target[offset+3]=serializedIndex[3]
+	offset+=4
 
 	return offset
 }
@@ -183,16 +189,16 @@ func decodeSpentTxOut(serialized []byte, stxo *spentTxOut) (int, error) {
 	// Decode the compressed txout. We pass false for the amount flag,
 	// since we only need pkScript at most due to fraud proofs already
 	// storing the decompressed amount.
-	_, scriptVersion, compScript, bytesRead, err :=
+	amount, scriptVersion, compScript, bytesRead, err :=
 		decodeCompressedTxOut(serialized[offset:], currentCompressionVersion,
-			false)
+			true)
 	offset += bytesRead
 	if err != nil {
 		return offset, errDeserialize(fmt.Sprintf("unable to decode "+
 			"txout: %v", err))
 	}
 	stxo.scriptVersion = scriptVersion
-	//stxo.amount = amount
+	stxo.amount = uint64(amount)
 	stxo.pkScript = compScript
 	stxo.compressed = true
 	//stxo.height = height
@@ -244,11 +250,11 @@ func deserializeSpendJournalEntry(serialized []byte, txns []*types.Transaction) 
 		// Ensure the block actually has no stxos.  This should never
 		// happen unless there is database corruption or an empty entry
 		// erroneously made its way into the database.
-		if numStxos != 0 {
+		/*if numStxos != 0 {
 			return nil, AssertError(fmt.Sprintf("mismatched spend "+
 				"journal serialization - no serialization for "+
 				"expected %d stxos", numStxos))
-		}
+		}*/
 
 		return nil, nil
 	}
@@ -268,11 +274,11 @@ func deserializeSpendJournalEntry(serialized []byte, txns []*types.Transaction) 
 				offset, err))
 		}
 		//
-		tx := txns[stxo.index]
+		tx := txns[stxo.index-1]
 		txIn := tx.TxIn[stxo.inIndex]
 
 		stxo.height=txIn.BlockHeight
-		stxo.amount=txIn.AmountIn
+		//stxo.amount=txIn.AmountIn
 		//
 		indexStr:=fmt.Sprintf("%d-%d",stxo.index,stxo.inIndex)
 		stxos[indexStr]=stxo
@@ -325,6 +331,7 @@ func dbFetchSpendJournalEntry(dbTx database.Tx, block *types.SerializedBlock) (m
 	spendBucket := dbTx.Metadata().Bucket(dbnamespace.SpendJournalBucketName)
 	serialized := spendBucket.Get(block.Hash()[:])
 	blockTxns := block.Block().Transactions[1:]
+
 	stxos, err := deserializeSpendJournalEntry(serialized, blockTxns)
 	if err != nil {
 		// Ensure any deserialization errors are returned as database

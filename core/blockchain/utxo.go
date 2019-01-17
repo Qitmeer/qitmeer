@@ -414,22 +414,20 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, 
 		// in the utxo set.
 		var stxo = spentTxOut{
 			compressed:    false,
-			amount:        txIn.AmountIn,
+			amount:        entry.AmountByIndex(originIndex),
 			scriptVersion: entry.ScriptVersionByIndex(originIndex),
 			pkScript:      entry.PkScriptByIndex(originIndex),
 			index:         blockIndex,
 			inIndex:       uint32(inIndex),
 		}
-		if entry.IsFullySpent() {
-			stxo.txVersion = entry.TxVersion()
-			stxo.height = uint32(entry.BlockHeight())
-			stxo.index = entry.TxIndex()
-			stxo.isCoinBase = entry.IsCoinBase()
-			stxo.hasExpiry = entry.HasExpiry()
-			stxo.txType = entry.txType
-			stxo.txFullySpent = true
+		stxo.txVersion = entry.TxVersion()
+		stxo.height = uint32(entry.BlockHeight())
+		stxo.isCoinBase = entry.IsCoinBase()
+		stxo.hasExpiry = entry.HasExpiry()
+		stxo.txType = entry.txType
+		stxo.txFullySpent = entry.IsFullySpent()
 
-		}
+
 
 		// Append the entry to the provided spent txouts slice.
 		*stxos = append(*stxos, stxo)
@@ -516,7 +514,7 @@ func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block *types.Se
 				entry.sparseOutputs[originIndex] = &utxoOutput{
 					compressed:    stxo.compressed,
 					spent:         false,
-					amount:        txIn.AmountIn,
+					amount:        stxo.amount,
 					scriptVersion: stxo.scriptVersion,
 					pkScript:      stxo.pkScript,
 				}

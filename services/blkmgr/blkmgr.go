@@ -142,6 +142,10 @@ func (b *BlockManager) SetMemPool(pool *mempool.TxPool) error {
 	return nil
 }
 
+//return mempool
+func (b *BlockManager) GetMemPool() *mempool.TxPool {
+	return b.txMemPool
+}
 
 
 // handleNotifyMsg handles notifications from blockchain.  It does things such
