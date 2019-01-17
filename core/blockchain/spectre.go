@@ -222,7 +222,7 @@ func (s *Spectre) votedPast(virtualBlock IBlock) IBlockDAG {
 		}
 	}
 
-	vh := hash.MustHexToHash(strconv.Itoa(int(s.dag.GetBlockCount())))
+	vh := hash.MustHexToDecodedHash(strconv.Itoa(int(s.dag.GetBlockCount())))
 	if virtualBlock != nil {
 		vh = *virtualBlock.GetHash()
 	}
