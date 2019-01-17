@@ -47,7 +47,13 @@ var MainNetParams = Params{
 
 
 	// Subsidy parameters.
-	SubsidyReductionInterval: 210000,  //bitcoin mainnet
+	BaseSubsidy:              3119582664, // 21m
+	MulSubsidy:               100,
+	DivSubsidy:               101,
+	SubsidyReductionInterval: 6144,
+	WorkRewardProportion:     9,
+	StakeRewardProportion:    0,
+	BlockTaxProportion:       1,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{
@@ -71,7 +77,9 @@ var MainNetParams = Params{
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
-	HDCoinType: 20,
+	// TODO : register coin type
+	// https://github.com/satoshilabs/slips/blob/master/slip-0044.md
+	HDCoinType: 223,
 
 	CoinbaseMaturity:        256,
 }

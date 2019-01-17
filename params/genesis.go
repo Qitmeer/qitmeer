@@ -100,9 +100,9 @@ var testNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
 		ParentRoot:   hash.Hash{},
 		TxRoot:       testNetGenesisMerkleRoot,
-		Timestamp:    time.Unix(1546300800, 0), // 2019-01-01 00:00:00 GMT
+		Timestamp:    time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
 		Difficulty:   0x1e00ffff,
-		Nonce:        0x18aea41a,
+		Nonce:        0x00000000,
 	},
 	Transactions: []*types.Transaction{&testNetGenesisCoinbaseTx},
 }

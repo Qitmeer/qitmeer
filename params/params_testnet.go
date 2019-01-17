@@ -14,8 +14,8 @@ import (
 )
 
 // testNetPowLimit is the highest proof of work value a block can
-// have for the test network. It is the value 2^224 - 1.
-var	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 224), common.Big1)
+// have for the test network. It is the value 2^232 - 1.
+var	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1)
 
 // TestNetParams defines the network parameters for the test network.
 var TestNetParams = Params{
@@ -36,6 +36,9 @@ var TestNetParams = Params{
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        true,
+	WorkDiffAlpha:            1,
+	WorkDiffWindowSize:       144,
+	WorkDiffWindows:          20,
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
 	TargetTimePerBlock:       time.Minute * 2,
@@ -47,8 +50,8 @@ var TestNetParams = Params{
 	MulSubsidy:               100,
 	DivSubsidy:               101,
 	SubsidyReductionInterval: 2048,
-	WorkRewardProportion:     6,
-	StakeRewardProportion:    3,
+	WorkRewardProportion:     9,
+	StakeRewardProportion:    0,
 	BlockTaxProportion:       1,
 
 	// Checkpoints ordered from oldest to newest.
