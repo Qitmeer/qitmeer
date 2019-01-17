@@ -216,6 +216,28 @@ func loadConfig() (*config.Config, []string, error) {
 		return nil, nil, err
 	}
 
+	// Add the default listener if none were specified. The default
+	// listener is all addresses on the listen port for the network
+	// we are to connect to.
+	if len(cfg.Listeners) == 0 {
+		cfg.Listeners = []string{
+			net.JoinHostPort("", activeNetParams.DefaultPort),
+		}
+	}
+
+	// Default RPC to listen on localhost only.
+	if !cfg.DisableRPC && len(cfg.RPCListeners) == 0 {
+		addrs, err := net.LookupHost("localhost")
+		if err != nil {
+			return nil, nil, err
+		}
+		cfg.RPCListeners = make([]string, 0, len(addrs))
+		for _, addr := range addrs {
+			addr = net.JoinHostPort(addr, activeNetParams.rpcPort)
+			cfg.RPCListeners = append(cfg.RPCListeners, addr)
+		}
+	}
+
 	// Append the network type to the data directory so it is "namespaced"
 	// per network.  In addition to the block database, there are other
 	// pieces of data that are saved to disk such as address manager state.

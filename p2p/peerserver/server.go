@@ -34,7 +34,7 @@ const (
 	defaultServices = protocol.Full| protocol.CF
 
 	// the default services that are required to be supported
-	defaultRequiredServices = protocol.Full & protocol.Light
+	defaultRequiredServices = protocol.Full
 
 	// defaultTargetOutbound is the default number of outbound peers to
 	// target.

@@ -92,8 +92,7 @@ var testNetGenesisCoinbaseTx = types.Transaction{}
 
 // testNetGenesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the test network.
-// TODO calculate hash
-var testNetGenesisMerkleRoot = hash.Hash{}
+var testNetGenesisMerkleRoot = testNetGenesisCoinbaseTx.TxHashFull()
 
 // testNetGenesisBlock defines the genesis block of the block chain which
 // serves as the public transaction ledger for the test network (version 3).
@@ -110,8 +109,7 @@ var testNetGenesisBlock = types.Block{
 
 // testNetGenesisHash is the hash of the first block in the block chain for the
 // test network.
-// TODO calculate hash
-var testNetGenesisHash = hash.Hash{}
+var testNetGenesisHash = testNetGenesisBlock.BlockHash()
 
 // PrivNet -------------------------------------------------------------------------
 
@@ -161,7 +159,7 @@ var privNetGenesisCoinbaseTx = types.Transaction{
 // privNetGenesisMerkleRoot is the hash of the first transaction in the genesis
 // block for the simulation test network.  It is the same as the merkle root for
 // the main network.
-var privNetGenesisMerkleRoot = genesisMerkleRoot
+var privNetGenesisMerkleRoot = privNetGenesisCoinbaseTx.TxHashFull()
 
 var zeroHash =  hash.Hash([32]byte{ // Make go vet happy.
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

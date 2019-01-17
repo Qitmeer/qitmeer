@@ -23,9 +23,9 @@ var MainNetParams = Params{
 	Net:         protocol.MainNet,
 	DefaultPort: "8130",
 	DNSSeeds: []DNSSeed{
-		{"mainnet-seed.alice.nox.io", true},
-		{"mainnet-seed.bob.nox.io", true},
-		{"mainnet-seed.charis.nox.io", true},
+		{"seed.nox.io", true},
+		{"seed2.nox.io", true},
+		{"seed3.nox.io", true},
 	},
 
 	// Chain parameters
