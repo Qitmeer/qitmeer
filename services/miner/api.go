@@ -5,17 +5,18 @@ package miner
 import (
 	"encoding/hex"
 	"fmt"
+	"math/rand"
+	"strconv"
+	"time"
+
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/blockchain"
 	"github.com/noxproject/nox/core/json"
 	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/params/dcr/types"
+	wire "github.com/noxproject/nox/params/dcr/types"
 	"github.com/noxproject/nox/rpc"
-	"github.com/noxproject/nox/services/common/error"
+	er "github.com/noxproject/nox/services/common/error"
 	"github.com/noxproject/nox/services/mining"
-	"math/rand"
-	"strconv"
-	"time"
 )
 
 //LL
@@ -128,8 +129,8 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	}
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
-	tips:=api.miner.blockManager.GetChain().DAG().GetTips()
-	parents:=blockchain.NewBlockSet()
+	tips := api.miner.blockManager.GetChain().DAG().GetTips()
+	parents := blockchain.NewBlockSet()
 	parents.AddList(block.Block().Parents)
 	if !parents.IsEqual(tips) {
 		return fmt.Sprintf("The tips of block is expired."), nil
@@ -295,7 +296,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	rand.Seed(time.Now().UnixNano())
 	payToAddr := m.config.GetMinningAddrs()[rand.Intn(len(m.config.GetMinningAddrs()))]
 
-	template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr,nil)
+	template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil)
 
 	m.submitBlockLock.Unlock()
 
@@ -356,10 +357,10 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		}
 
 		// Serialize the transaction for later conversion to hex.
-		txBuf,err:=tx.Serialize(types.TxSerializeFull)
-		if err!=nil {
+		txBuf, err := tx.Serialize(types.TxSerializeFull)
+		if err != nil {
 			context := "Failed to serialize transaction"
-			return nil, er.RpcInvalidError(err.Error(),context)
+			return nil, er.RpcInvalidError(err.Error(), context)
 
 		}
 
@@ -377,13 +378,13 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	}
 
 	//parents
-	parents:=[]json.GetBlockTemplateResultPt{}
-	for _,v:=range template.Block.Parents{
+	parents := []json.GetBlockTemplateResultPt{}
+	for _, v := range template.Block.Parents {
 		resultPt := json.GetBlockTemplateResultPt{
-			Data:    hex.EncodeToString(v.Bytes()),
-			Hash:    v.String(),
+			Data: hex.EncodeToString(v.Bytes()),
+			Hash: v.String(),
 		}
-		parents=append(parents,resultPt)
+		parents = append(parents, resultPt)
 	}
 	//TODO,submitOld
 	var submitOld *bool
@@ -424,7 +425,11 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	}
 
 	if useCoinbaseValue {
-		reply.CoinbaseValue = &template.Block.Transactions[0].TxOut[0].Amount
+		//reply.CoinbaseValue = &template.Block.Transactions[0].TxOut[0].Amount
+
+		var coinbaseValue uint64 // coinbaseValue = all coinbase value
+		coinbaseValue = uint64(api.miner.blockManager.GetChain().FetchSubsidyCache().CalcBlockSubsidy(int64(template.Height)))
+		reply.CoinbaseValue = &coinbaseValue
 	} else {
 		// Ensure the template has a valid payment address associated
 		// with it when a full coinbase is requested.
