@@ -609,8 +609,7 @@ out:
 				msg.reply <- setParentTemplateResponse{}
 
 			default:
-				log.Warn("Invalid message type in block "+
-					"handler: %T", msg)
+				log.Warn("Unknown message type", "msg",msg)
 			}
 
 		case <-b.quit:

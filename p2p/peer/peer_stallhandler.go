@@ -6,6 +6,7 @@
 package peer
 
 import (
+	"fmt"
 	"github.com/noxproject/nox/core/message"
 	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/params/dcr/types"
@@ -185,7 +186,7 @@ cleanup:
 			break cleanup
 		}
 	}
-	log.Trace("Peer stall handler done for %s", p)
+	log.Trace("Peer stall handler done", "peer",p.addr)
 }
 
 // maybeAddDeadline potentially adds a deadline for the appropriate expected
@@ -197,7 +198,8 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 	// sent asynchronously and as a result of a long backlock of messages,
 	// such as is typical in the case of initial block download, the
 	// response won't be received in time.
-	log.Debug("Adding deadline for command %s for peer %s", msgCmd, p.addr)
+	log.Debug(fmt.Sprintf("Adding deadline for command %s for peer %s",
+		msgCmd, p.addr))
 
 	deadline := time.Now().Add(stallResponseTimeout)
 	switch msgCmd {

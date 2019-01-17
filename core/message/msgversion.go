@@ -89,7 +89,7 @@ func (msg *MsgVersion) Decode(r io.Reader, pver uint32) error {
 			"*bytes.Buffer")
 	}
 
-	err := s.ReadElements(buf, &msg.ProtocolVersion,
+	err := s.ReadElements(buf, &msg.ProtocolVersion, &msg.Services,
 		(*s.Int64Time)(&msg.Timestamp))
 	if err != nil {
 		return err

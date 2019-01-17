@@ -222,7 +222,7 @@ out:
 	p.Disconnect()
 
 	close(p.inQuit)
-	log.Trace("Peer input handler done", "peer",p)
+	log.Trace("Peer input handler done", "peer",p.addr)
 }
 
 // shouldHandleReadError returns whether or not the passed error, which is

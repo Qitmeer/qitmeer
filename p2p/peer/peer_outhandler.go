@@ -91,7 +91,7 @@ cleanup:
 		}
 	}
 	close(p.outQuit)
-	log.Trace("Peer output handler done", "peer",p)
+	log.Trace("Peer output handler done", "peer",p.addr)
 }
 
 // shouldLogWriteError returns whether or not the passed error, which is

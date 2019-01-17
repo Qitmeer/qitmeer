@@ -139,5 +139,5 @@ cleanup:
 		}
 	}
 	close(p.queueQuit)
-	log.Trace("Peer queue handler done for %s", p)
+	log.Trace("Peer queue handler done", "peer", p.addr)
 }

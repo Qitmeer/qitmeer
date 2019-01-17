@@ -140,21 +140,21 @@ func (p *Peer) readMessage() (message.Message, []byte, error) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	log.Debug("read peer message", "summary",log.LogClosure(func() string {
+	log.Debug(fmt.Sprintf("%v",log.LogClosure(func() string {
 		// Debug summary of message.
 		summary := message.Summary(msg)
 		if len(summary) > 0 {
 			summary = " (" + summary + ")"
 		}
 		return fmt.Sprintf("Received %v%s from %s",
-			msg.Command(), summary, p)
-	}))
-	log.Trace("read peer message", "msg", log.LogClosure(func() string {
+			msg.Command(), summary, p.addr)
+	})))
+	log.Trace(fmt.Sprintf("%v",log.LogClosure(func() string {
 		return spew.Sdump(msg)
-	}))
-	log.Trace("read peer message", "buf", log.LogClosure(func() string {
+	})))
+	log.Trace(fmt.Sprintf("%v",log.LogClosure(func() string {
 		return spew.Sdump(buf)
-	}))
+	})))
 
 	return msg, buf, nil
 }
@@ -168,19 +168,19 @@ func (p *Peer) writeMessage(msg message.Message) error {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	log.Debug("write peer message","summary", log.LogClosure(func() string {
+	log.Debug(fmt.Sprintf("%v", log.LogClosure(func() string {
 		// Debug summary of message.
 		summary := message.Summary(msg)
 		if len(summary) > 0 {
 			summary = " (" + summary + ")"
 		}
 		return fmt.Sprintf("Sending %v%s to %s", msg.Command(),
-			summary, p)
-	}))
-	log.Trace("write peer message","msg", log.LogClosure(func() string {
+			summary, p.addr)
+	})))
+	log.Trace(fmt.Sprintf("%v", log.LogClosure(func() string {
 		return spew.Sdump(msg)
-	}))
-	log.Trace("write peer message","buf", log.LogClosure(func() string {
+	})))
+	log.Trace(fmt.Sprintf("%v", log.LogClosure(func() string {
 		var buf bytes.Buffer
 		err := message.WriteMessage(&buf, msg, p.ProtocolVersion(),
 			p.cfg.ChainParams.Net)
@@ -188,7 +188,7 @@ func (p *Peer) writeMessage(msg message.Message) error {
 			return err.Error()
 		}
 		return spew.Sdump(buf.Bytes())
-	}))
+	})))
 
 	// Write the message to the peer.
 	n, err := message.WriteMessageN(p.conn, msg, p.ProtocolVersion(),
@@ -238,7 +238,7 @@ func (p *Peer) readRemoteVersionMsg() error {
 	p.services = msg.Services
 	p.na.Services = msg.Services
 	p.flagsMtx.Unlock()
-	log.Debug("Negotiated protocol version for peer", "version",p.protocolVersion,"peer", p)
+	log.Debug("Negotiated protocol version", "ver",p.protocolVersion,"peer", p.addr)
 
 	// Updating a bunch of stats.
 	p.statsMtx.Lock()
