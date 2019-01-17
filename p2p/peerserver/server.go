@@ -9,10 +9,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/common/network"
+	"github.com/noxproject/nox/config"
 	"github.com/noxproject/nox/core/blockchain"
+	"github.com/noxproject/nox/core/message"
 	"github.com/noxproject/nox/core/protocol"
 	"github.com/noxproject/nox/core/types"
+	"github.com/noxproject/nox/log"
+	"github.com/noxproject/nox/p2p/addmgr"
+	"github.com/noxproject/nox/p2p/connmgr"
 	"github.com/noxproject/nox/p2p/peer"
+	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/services/blkmgr"
 	"github.com/noxproject/nox/version"
 	"net"
@@ -20,14 +27,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"github.com/noxproject/nox/common/network"
-	"github.com/noxproject/nox/config"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/p2p/addmgr"
-	"github.com/noxproject/nox/p2p/connmgr"
 )
 
 const (
@@ -70,7 +69,8 @@ type PeerServer struct{
 	bytesReceived uint64 // Total bytes received from all peers since start.
 	bytesSent     uint64 // Total bytes sent by all peers since start.
 
-	started       int32
+	started       int32  // p2p server start flag
+	shutdown      int32  // p2p server stop flag
 
     // address manager caching the peers
 	addrManager          *addmgr.AddrManager
@@ -102,13 +102,22 @@ type PeerServer struct{
 
 }
 
-func NewPeerServer(cfg *config.Config, db database.DB, chainParams *params.Params) (*PeerServer, error){
+func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, error){
 
 	services := defaultServices
 
 	s := PeerServer{
 		services: services,
 		cfg: cfg,
+		chainParams:          chainParams,
+		newPeers:             make(chan *serverPeer, cfg.MaxPeers),
+		donePeers:            make(chan *serverPeer, cfg.MaxPeers),
+		banPeers:             make(chan *serverPeer, cfg.MaxPeers),
+		query:                make(chan interface{}),
+		relayInv:             make(chan relayMsg, cfg.MaxPeers),
+		broadcast:            make(chan broadcastMsg, cfg.MaxPeers),
+		peerHeightsUpdate:    make(chan updatePeerHeightsMsg),
+		quit:                 make(chan struct{}),
 	}
 
 	amgr := addmgr.New(cfg.DataDir, net.LookupIP)
@@ -454,7 +463,15 @@ func (p *PeerServer) Start() error {
 	return nil
 }
 func (p *PeerServer) Stop() error {
-	log.Debug("Stopping P2P server")
+	// Make sure this only happens once.
+	if atomic.AddInt32(&p.shutdown, 1) != 1 {
+		log.Info("P2P Server is already in the process of shutting down")
+		return nil
+	}
+	log.Warn("Stopping P2P Server")
+
+	// Signal the remaining goroutines to quit.
+	close(p.quit)
 	return nil
 }
 

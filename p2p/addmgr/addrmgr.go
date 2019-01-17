@@ -413,17 +413,16 @@ func (a *AddrManager) loadPeers() {
 
 	err := a.deserializePeers(a.peersFile)
 	if err != nil {
-		log.Error("Failed to parse file %s: %v", a.peersFile, err)
+		log.Error("Failed to parse file", "file", a.peersFile, "error",err)
 		// if it is invalid we nuke the old one unconditionally.
 		err = os.Remove(a.peersFile)
 		if err != nil {
-			log.Warn("Failed to remove corrupt peers file %s: %v",
-				a.peersFile, err)
+			log.Warn("Failed to remove corrupt peers file","file",a.peersFile, "error",err)
 		}
 		a.reset()
 		return
 	}
-	log.Info("Loaded %d addresses from file '%s'", a.numAddresses(), a.peersFile)
+	log.Info(fmt.Sprintf("Loaded %d addresses from file '%s'", a.numAddresses(), a.peersFile))
 }
 
 func (a *AddrManager) deserializePeers(filePath string) error {
@@ -526,10 +525,6 @@ func (a *AddrManager) DeserializeNetAddress(addr string) (*types.NetAddress, err
 
 	return a.HostToNetAddress(host, uint16(port), protocol.Full)
 }
-
-
-
-
 
 // AddAddresses adds new addresses to the address manager.  It enforces a max
 // number of addresses and silently ignores duplicate addresses.  It is

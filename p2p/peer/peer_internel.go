@@ -45,7 +45,7 @@ type Peer struct {
 
 	// These fields are variables must only be used atomically.
 	connected     int32   //connected flag
-	disconnect    int32   //disconnect falg
+	disconnect    int32   //disconnect flag
 
 	bytesReceived uint64  //msg bytes read from
 	bytesSent     uint64  //msg bytes write to

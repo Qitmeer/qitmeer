@@ -398,7 +398,7 @@ func (cm *ConnManager) Remove(id uint64) {
 // listenHandler accepts incoming connections on a given listener.  It must be
 // run as a goroutine.
 func (cm *ConnManager) listenHandler(listener net.Listener) {
-	log.Info("Server listening on %s", listener.Addr())
+	log.Info("P2P Server listening on", "addr",listener.Addr())
 	for atomic.LoadInt32(&cm.stop) == 0 {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -412,14 +412,10 @@ func (cm *ConnManager) listenHandler(listener net.Listener) {
 	}
 
 	cm.wg.Done()
-	log.Trace("Listener handler done for %s", listener.Addr())
+	log.Trace("Listener handler done", "addr", listener.Addr())
 }
 
 // Wait blocks until the connection manager halts gracefully.
 func (cm *ConnManager) Wait() {
 	cm.wg.Wait()
 }
-
-
-
-
