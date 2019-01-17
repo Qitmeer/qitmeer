@@ -5,10 +5,11 @@
 # RmFa5hnPd3uQRpzr3xWTfr8EFZdX7dS1qzV
 # echo 7025927350b0f968c4a012df2b30cc494786cfff55b177d199069d9bc5aa4035|nx ec-new |nx ec-to-public |nx ec-to-addr
 # RmG6xQsV7gnS4JZmoq5FgmyEbmUQRenrTCo
-network="--privnet"
+net="--privnet"
 mining="--miningaddr RmFa5hnPd3uQRpzr3xWTfr8EFZdX7dS1qzV"
 debug="-d trace --printorigin"
-rpc="--listen 127.0.0.1:1234 --rpcuser test --rpcpass test"
+rpc="--rpclisten 127.0.0.1:1234 --rpcuser test --rpcpass test"
+p2p="--listen 127.0.0.1:2234"
 path="-b "$(pwd)
 index="--txindex"
 
@@ -23,6 +24,6 @@ index="--txindex"
 # $ ls -s /where/is/my/nox/executable
 # $ ln -s /where/is/my/nox/start.sh
 # $ ./start.sh
-./nox $debug $rpc $path $index $network $mining "$@"
+./nox $debug $net $rpc $p2p $path $index $mining "$@"
 
 

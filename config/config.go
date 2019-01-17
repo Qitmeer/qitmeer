@@ -12,7 +12,8 @@ type Config struct {
 	DataDir              string        `short:"b" long:"datadir" description:"Directory to store data"`
 	LogDir               string        `long:"logdir" description:"Directory to log output."`
 	NoFileLogging        bool          `long:"nofilelogging" description:"Disable file logging."`
-	Listeners            []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8131, testnet: 18131)"`
+	Listeners            []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8130, testnet: 18130)"`
+	RPCListeners         []string      `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 8131 , testnet: 18131)"`
 	MaxPeers             int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
 	DisableListen        bool          `long:"nolisten" description:"Disable listening for incoming connections"`
 	RPCUser              string        `short:"u" long:"rpcuser" description:"Username for RPC connections"`

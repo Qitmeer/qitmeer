@@ -122,7 +122,7 @@ func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 
 func (s *RpcServer) Start() error {
 	//TODO control by config
-	if err := s.startHTTP(s.config.Listeners); err!=nil {
+	if err := s.startHTTP(s.config.RPCListeners); err!=nil {
 		return err
 	}
 	s.run = 1

@@ -246,7 +246,7 @@ func NewID() ID {
 // both slices.
 func parseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) {
 
-	ipv6ListenAddrs,ipv4ListenAddrs,_,err := network.ParseListeners(addrs)
+	ipv4ListenAddrs,ipv6ListenAddrs,_,err := network.ParseListeners(addrs)
 	if err!=nil {
 		return nil, err
 	}
@@ -281,7 +281,7 @@ func parseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) 
 	for _, addr := range ipv4ListenAddrs {
 		listener, err := listenFunc("tcp4", addr)
 		if err != nil {
-			log.Warn("Can't listen on %s: %v", addr, err)
+			log.Warn("Can't listen on", "addr",addr, "error",err)
 			continue
 		}
 		listeners = append(listeners, listener)
@@ -290,7 +290,7 @@ func parseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) 
 	for _, addr := range ipv6ListenAddrs {
 		listener, err := listenFunc("tcp6", addr)
 		if err != nil {
-			log.Warn("Can't listen on %s: %v", addr, err)
+			log.Warn("Can't listen on", "addr",addr, "error",err)
 			continue
 		}
 		listeners = append(listeners, listener)
