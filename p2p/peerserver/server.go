@@ -70,6 +70,8 @@ type PeerServer struct{
 	bytesReceived uint64 // Total bytes received from all peers since start.
 	bytesSent     uint64 // Total bytes sent by all peers since start.
 
+	started       int32
+
     // address manager caching the peers
 	addrManager          *addmgr.AddrManager
 
@@ -106,6 +108,7 @@ func NewPeerServer(cfg *config.Config, db database.DB, chainParams *params.Param
 
 	s := PeerServer{
 		services: services,
+		cfg: cfg,
 	}
 
 	amgr := addmgr.New(cfg.DataDir, net.LookupIP)
@@ -201,7 +204,7 @@ func NewPeerServer(cfg *config.Config, db database.DB, chainParams *params.Param
 				if na, err := amgr.DeserializeNetAddress(addr); err == nil {
 					err = amgr.AddLocalAddress(na, addmgr.BoundPrio)
 					if err != nil {
-						log.Warn("Skipping bound address", "error",err)
+						log.Warn("Skipping bound address", "addr",addr, "error",err)
 					}
 				}
 			}
@@ -292,6 +295,7 @@ func NewPeerServer(cfg *config.Config, db database.DB, chainParams *params.Param
 		return nil, err
 	}
 
+	s.addrManager = amgr
 	s.connManager = cmgr
 	s.nat = nat
 
@@ -430,7 +434,23 @@ func addrStringToNetAddr(addr string) (net.Addr, error) {
 }
 
 func (p *PeerServer) Start() error {
+
+	// Already started?
+	if atomic.AddInt32(&p.started, 1) != 1 {
+		return errors.New("p2p server already started")
+	}
+
 	log.Debug("Starting P2P server")
+
+	// Start the peer handler which in turn starts the address and block
+	// managers.
+	p.wg.Add(1)
+	go p.peerHandler()
+
+	if p.nat != nil {
+		p.wg.Add(1)
+		go p.upnpUpdateThread()
+	}
 	return nil
 }
 func (p *PeerServer) Stop() error {

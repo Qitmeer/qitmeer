@@ -69,7 +69,7 @@ func (p *Peer) Disconnect() {
 		return
 	}
 
-	log.Trace("Disconnecting %s", p)
+	log.Trace("Disconnecting ", "peer",p.addr)
 	if atomic.LoadInt32(&p.connected) != 0 {
 		p.conn.Close()
 	}
@@ -105,7 +105,7 @@ func (p *Peer) AssociateConnection(conn net.Conn) {
 
 	go func(peer *Peer) {
 		if err := peer.start(); err != nil {
-			log.Debug("Cannot start peer", "peer",peer, "error",err)
+			log.Debug("Cannot start peer", "peer",peer.addr, "error",err)
 			peer.Disconnect()
 		}
 	}(p)

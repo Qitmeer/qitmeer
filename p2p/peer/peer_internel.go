@@ -391,7 +391,7 @@ func (p *Peer) negotiateOutboundProtocol() error {
 
 // start begins processing input and output messages.
 func (p *Peer) start() error {
-	log.Trace("Starting peer", "peer", p)
+	log.Trace("Starting peer", "peer", p.addr)
 
 	negotiateErr := make(chan error, 1)
 	go func() {
