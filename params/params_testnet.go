@@ -23,9 +23,9 @@ var TestNetParams = Params{
 	Net:         protocol.TestNet,
 	DefaultPort: "18130",
 	DNSSeeds: []DNSSeed{
-		{"testnet-seed.noxproject.io", true},
-		{"testnet-seed2.noxproject.io", true},
-		{"testnet-seed3.noxproject.io", true},
+		{"testnet-seed.noxproject.org", true},
+		{"testnet-seed2.noxproject.org", true},
+		{"testnet-seed3.noxproject.org", true},
 	},
 
 	// Chain parameters
