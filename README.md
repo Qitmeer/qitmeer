@@ -15,7 +15,6 @@ go version go1.11 darwin/amd64
 ~ mkdir -p /tmp/work
 ~ cd /tmp/work
 ~ git clone https://where/you/can/find/nox 
-~ git checkout cleanup 
 ~ go build
 ```
 
