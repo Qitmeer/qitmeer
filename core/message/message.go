@@ -70,6 +70,73 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgGetAddr{}
 	case CmdAddr:
 		msg = &MsgAddr{}
+	case CmdPing:
+		msg = &MsgPing{}
+	case CmdPong:
+		msg = &MsgPong{}
+	/*
+	case CmdGetBlocks:
+		msg = &MsgGetBlocks{}
+
+	case CmdBlock:
+		msg = &MsgBlock{}
+
+	case CmdInv:
+		msg = &MsgInv{}
+
+	case CmdGetData:
+		msg = &MsgGetData{}
+
+	case CmdNotFound:
+		msg = &MsgNotFound{}
+
+	case CmdTx:
+		msg = &MsgTx{}
+
+	case CmdGetHeaders:
+		msg = &MsgGetHeaders{}
+
+	case CmdHeaders:
+		msg = &MsgHeaders{}
+	*/
+
+	/*
+	case CmdMemPool:
+		msg = &MsgMemPool{}
+
+	case CmdMiningState:
+		msg = &MsgMiningState{}
+
+	case CmdGetMiningState:
+		msg = &MsgGetMiningState{}
+
+	case CmdReject:
+		msg = &MsgReject{}
+
+	case CmdSendHeaders:
+		msg = &MsgSendHeaders{}
+
+	case CmdFeeFilter:
+		msg = &MsgFeeFilter{}
+
+	case CmdGetCFilter:
+		msg = &MsgGetCFilter{}
+
+	case CmdGetCFHeaders:
+		msg = &MsgGetCFHeaders{}
+
+	case CmdGetCFTypes:
+		msg = &MsgGetCFTypes{}
+
+	case CmdCFilter:
+		msg = &MsgCFilter{}
+
+	case CmdCFHeaders:
+		msg = &MsgCFHeaders{}
+
+	case CmdCFTypes:
+		msg = &MsgCFTypes{}
+	*/
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)

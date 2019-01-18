@@ -1051,11 +1051,11 @@ func (a *AddrManager) GetBestLocalAddress(remoteAddr *types.NetAddress) *types.N
 		}
 	}
 	if bestAddress != nil {
-		log.Debug("Suggesting address %s:%d for %s:%d", bestAddress.IP,
-			bestAddress.Port, remoteAddr.IP, remoteAddr.Port)
+		log.Debug(fmt.Sprintf("Suggesting address %s:%d for %s:%d", bestAddress.IP,
+			bestAddress.Port, remoteAddr.IP, remoteAddr.Port))
 	} else {
-		log.Debug("No worthy address for %s:%d", remoteAddr.IP,
-			remoteAddr.Port)
+		log.Debug(fmt.Sprintf("No worthy address for %s:%d", remoteAddr.IP,
+			remoteAddr.Port))
 
 		// Send something unroutable if nothing suitable.
 		var ip net.IP

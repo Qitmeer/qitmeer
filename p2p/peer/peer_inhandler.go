@@ -38,7 +38,7 @@ out:
 			// local peer is not forcibly disconnecting and the
 			// remote peer has not disconnected.
 			if p.shouldHandleReadError(err) {
-				errMsg := fmt.Sprintf("Can't read message from %s: %v", p, err)
+				errMsg := fmt.Sprintf("Can't read message from %s: %v", p.addr, err)
 				log.Error(errMsg)
 
 				// Push a reject message for the malformed message and wait for
