@@ -292,7 +292,7 @@ out:
 				connReq.updateState(ConnEstablished)
 				connReq.conn = msg.conn
 				conns[connReq.id] = connReq
-				log.Debug("Connected to %v", connReq)
+				log.Debug("Connected to", "conn",connReq)
 				connReq.retryCount = 0
 				cm.failedAttempts = 0
 
@@ -370,7 +370,7 @@ func (cm *ConnManager) Connect(c *ConnReq) {
 	if atomic.LoadUint64(&c.id) == 0 {
 		atomic.StoreUint64(&c.id, atomic.AddUint64(&cm.connReqCount, 1))
 	}
-	log.Debug("Attempting to connect to %v", c)
+	log.Debug("Attempting to connect", "conn",c)
 	conn, err := cm.cfg.Dial(c.Addr.Network(), c.Addr.String())
 	if err != nil {
 		cm.requests <- handleFailed{c, err}

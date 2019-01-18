@@ -161,7 +161,7 @@ func (msg *MsgVersion) Encode(w io.Writer, pver uint32) error {
 		return err
 	}
 
-	err = s.WriteElements(w, msg.ProtocolVersion,
+	err = s.WriteElements(w, msg.ProtocolVersion,msg.Services,
 		msg.Timestamp.Unix())
 	if err != nil {
 		return err

@@ -206,7 +206,7 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *types.NetAddress) {
 	a.addrNew[bucket][addr] = ka
 	a.addrChanged = true
 
-	log.Trace("Added new address %s for a total of %d addresses", addr,
+	log.Trace("Added new address", "addr",addr, "total",
 		a.nTried+a.nNew)
 }
 
@@ -758,8 +758,8 @@ func (a *AddrManager) GetAddress() *KnownAddress {
 			}
 			randval := a.rand.Intn(large)
 			if float64(randval) < (factor * ka.chance() * float64(large)) {
-				log.Trace("Selected %v from new bucket",
-					NetAddressKey(ka.na))
+				log.Trace("Selected from new bucket",
+					"addr",NetAddressKey(ka.na))
 				return ka
 			}
 			factor *= 1.2
