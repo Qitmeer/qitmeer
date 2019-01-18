@@ -74,6 +74,9 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgPing{}
 	case CmdPong:
 		msg = &MsgPong{}
+	case CmdReject:
+		msg = &MsgReject{}
+
 	/*
 	case CmdGetBlocks:
 		msg = &MsgGetBlocks{}
@@ -110,8 +113,6 @@ func makeEmptyMessage(command string) (Message, error) {
 	case CmdGetMiningState:
 		msg = &MsgGetMiningState{}
 
-	case CmdReject:
-		msg = &MsgReject{}
 
 	case CmdSendHeaders:
 		msg = &MsgSendHeaders{}

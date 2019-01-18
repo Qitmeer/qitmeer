@@ -6,6 +6,7 @@
 package peer
 
 import (
+	"fmt"
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/message"
 	"github.com/noxproject/nox/core/types"
@@ -266,4 +267,12 @@ func NewOutboundPeer(cfg *Config, addr string) (*Peer, error) {
 	}
 
 	return p, nil
+}
+
+func (p *Peer) String() string {
+	direction := "outbound"
+	if p.inbound {
+		direction = "inbound"
+	}
+	return fmt.Sprintf("%s (%s)", p.addr, direction)
 }
