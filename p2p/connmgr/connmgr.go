@@ -70,6 +70,7 @@ func (cm *ConnManager) Start() {
 		}
 	}
 
+	// try open connections : outbound (default, 8)
 	for i := atomic.LoadUint64(&cm.connReqCount); i < uint64(cm.cfg.TargetOutbound); i++ {
 		go cm.NewConnReq()
 	}
@@ -259,13 +260,14 @@ func (cm *ConnManager) handleFailedConn(c *ConnReq) {
 	} else if cm.cfg.GetNewAddress != nil {
 		cm.failedAttempts++
 		if cm.failedAttempts >= maxFailedAttempts {
-			log.Debug(fmt.Sprintf("Max failed connection attempts reached: [%d] "+
-				"-- retrying connection in: %v", maxFailedAttempts,
-				cm.cfg.RetryDuration))
+			log.Trace(fmt.Sprintf("Max %d failed connection attempts reached", maxFailedAttempts))
+			log.Trace(fmt.Sprintf("Retrying connection in: %v", cm.cfg.RetryDuration),
+				"failed",cm.failedAttempts)
 			time.AfterFunc(cm.cfg.RetryDuration, func() {
 				cm.NewConnReq()
 			})
 		} else {
+			log.Trace("Trying new connection","failed",cm.failedAttempts)
 			go cm.NewConnReq()
 		}
 	}
@@ -321,7 +323,7 @@ out:
 			case handleFailed:
 				connReq := msg.c
 				connReq.updateState(ConnFailed)
-				log.Debug(fmt.Sprintf("Failed to connect to %v: %v", connReq, msg.err))
+				log.Debug("Failed to connect", "addr",connReq.Addr, "error",msg.err)
 				cm.handleFailedConn(connReq)
 			}
 
@@ -337,6 +339,7 @@ out:
 // NewConnReq creates a new connection request and connects to the
 // corresponding address.
 func (cm *ConnManager) NewConnReq() {
+	log.Trace("Open new Connection")
 	if atomic.LoadInt32(&cm.stop) != 0 {
 		return
 	}
@@ -404,7 +407,7 @@ func (cm *ConnManager) listenHandler(listener net.Listener) {
 		if err != nil {
 			// Only log the error if not forcibly shutting down.
 			if atomic.LoadInt32(&cm.stop) == 0 {
-				log.Error("Can't accept connection: %v", err)
+				log.Error("Can't accept connection", "error", err)
 			}
 			continue
 		}
