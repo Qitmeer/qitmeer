@@ -31,7 +31,11 @@ const CommandSize = 12
 // individual limits imposed by messages themselves.
 const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 
-const MaxBlockPayload = 1000000 // Not actually 1MB which would be 1024 * 1024
+
+// MaxVarIntPayload is the maximum payload size for a variable length integer.
+const MaxVarIntPayload = 9
+
+//const MaxBlockPayload = 1000000 // Not actually 1MB which would be 1024 * 1024
 
 // Commands used in message headers which describe the type of message.
 const (
@@ -39,11 +43,14 @@ const (
 	CmdVerAck         = "verack"
 	CmdGetAddr        = "getaddr"
 	CmdAddr           = "addr"
-	CmdBlock          = "block"
-	CmdTx             = "tx"
 	CmdReject         = "reject"
 	CmdPing           = "ping"
 	CmdPong           = "pong"
+	CmdGetBlocks      = "getblocks"
+	CmdGetHeaders     = "getheaders"
+	CmdBlock          = "block"
+	CmdHeaders        = "headers"
+	CmdTx             = "tx"
 )
 
 // Message is an interface that describes a nox message.  A type that
@@ -76,14 +83,11 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgPong{}
 	case CmdReject:
 		msg = &MsgReject{}
-
-	/*
 	case CmdGetBlocks:
 		msg = &MsgGetBlocks{}
-
 	case CmdBlock:
 		msg = &MsgBlock{}
-
+	/*
 	case CmdInv:
 		msg = &MsgInv{}
 

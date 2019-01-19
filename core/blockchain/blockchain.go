@@ -69,15 +69,17 @@ type BlockChain struct {
 	noVerify      bool
 	noCheckpoints bool
 
-	// These fields are related to the memory block index.  They are
-	// protected by the chain lock.
-	bestNode *blockNode
-	index    *blockIndex
-
-	// This field allows efficient lookup of nodes in the main chain by
-	// height.  It is protected by the height lock.
-	heightLock        sync.RWMutex
-	mainNodesByHeight map[uint64]*blockNode
+	// These fields are related to the memory block index.  They both have
+	// their own locks, however they are often also protected by the chain
+	// lock to help prevent logic races when blocks are being processed.
+	//
+	// index houses the entire block index in memory.  The block index is
+	// a tree-shaped structure.
+	//
+	// bestChain tracks the current active chain by making use of an
+	// efficient chain view into the block index.
+	index     *blockIndex
+	bestChain *chainView
 
 	// These fields are related to handling of orphan blocks.  They are
 	// protected by a combination of the chain lock and the orphan lock.
@@ -257,7 +259,7 @@ func New(config *Config) (*BlockChain, error) {
 		sigCache:                      config.SigCache,
 		indexManager:                  config.IndexManager,
 		index:                         newBlockIndex(config.DB,par),
-		mainNodesByHeight:             make(map[uint64]*blockNode),
+		bestChain:                     newChainView(nil),
 		orphans:                       make(map[hash.Hash]*orphanBlock),
 		prevOrphans:                   make(map[hash.Hash][]*orphanBlock),
 		mainchainBlockCache:           make(map[hash.Hash]*types.SerializedBlock),
@@ -280,15 +282,15 @@ func New(config *Config) (*BlockChain, error) {
 		}
 	}
 
+	tip := b.bestChain.Tip()
 	b.pruner = newChainPruner(&b)
-
-	b.subsidyCache = NewSubsidyCache(int64(b.bestNode.height), b.params)
+	b.subsidyCache = NewSubsidyCache(int64(tip.height), b.params)
 
 	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
 		"index",b.dbInfo.bidxVer)
 
-	log.Info("Chain state", "height",  b.bestNode.height,
-		"hash",b.bestNode.hash,"tx_num", b.stateSnapshot.NumTxns)
+	log.Info("Chain state", "height",  tip.height,
+		"hash",tip.hash,"tx_num", b.stateSnapshot.NumTxns, "work", tip.workSum, "total tx", b.stateSnapshot.TotalTxns)
 
 	return &b, nil
 }
@@ -482,14 +484,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			return AssertError(fmt.Sprintf("initChainState: cannot find "+
 				"chain tip %s in block index", state.hash))
 		}
-		b.bestNode = tip
-
-		// Mark all of the nodes from the tip back to the genesis block
-		// as part of the main chain and build the by height map.
-		for n := tip; n != nil; n = n.parent {
-			n.inMainChain = true
-			b.mainNodesByHeight[n.height] = n
-		}
+		b.bestChain.SetTip(tip)
 
 		log.Debug("Block index loaded","loadTime", time.Since(bidxStart))
 
@@ -544,8 +539,9 @@ func (b *BlockChain) IsCurrent() bool {
 func (b *BlockChain) isCurrent() bool {
 	// Not current if the latest main (best) chain height is before the
 	// latest known good checkpoint (when checkpoints are enabled).
+	tip := b.bestChain.Tip()
 	checkpoint := b.latestCheckpoint()
-	if checkpoint != nil && b.bestNode.height < checkpoint.Height {
+	if checkpoint != nil && tip.height < checkpoint.Height {
 		return false
 	}
 
@@ -555,7 +551,7 @@ func (b *BlockChain) isCurrent() bool {
 	// The chain appears to be current if none of the checks reported
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
-	return b.bestNode.timestamp >= minus24Hours
+	return tip.timestamp >= minus24Hours
 }
 
 
@@ -626,8 +622,9 @@ func (b *BlockChain) BestPrevHash() hash.Hash {
 	defer b.chainLock.Unlock()
 
 	var prevHash hash.Hash
-	if b.bestNode.parent != nil {
-		prevHash = b.bestNode.parent.hash
+	tip := b.bestChain.Tip()
+	if tip.parent != nil {
+		prevHash = tip.parent.hash
 	}
 	return prevHash
 }
@@ -867,7 +864,8 @@ func (b *BlockChain) connectBestChain(node *blockNode, block, parent *types.Seri
 	// We are extending the main (best) chain with a new block.  This is the
 	// most common case.
 	parentHash := &block.Block().Header.ParentRoot
-	if *parentHash == b.bestNode.hash {
+	tip := b.bestChain.Tip()
+	if *parentHash == tip.hash {
 		// Skip expensive checks if the block has already been fully
 		// validated.
 		fastAdd = fastAdd || b.index.NodeStatus(node).KnownValid()
@@ -926,23 +924,11 @@ func (b *BlockChain) connectBestChain(node *blockNode, block, parent *types.Seri
 		log.Warn("fastAdd set in the side chain case? %v\n",
 			block.Hash())
 	}
-
-	// We're extending (or creating) a side chain which may or may not
-	// become the main chain.
-	node.inMainChain = false
-
 	// We're extending (or creating) a side chain, but the cumulative
 	// work for this new side chain is not enough to make it the new chain.
-	if node.workSum.Cmp(b.bestNode.workSum) <= 0 {
-		// Find the fork point.
-		fork := node
-		for ; fork.parent != nil; fork = fork.parent {
-			if fork.inMainChain {
-				break
-			}
-		}
-
+	if node.workSum.Cmp(tip.workSum) <= 0 {
 		// Log information about how the block is forking the chain.
+		fork := b.bestChain.FindFork(node)
 		if fork.hash == *parentHash {
 			log.Info("FORK: Block %v (height %v) forks the chain at height "+
 				"%d/block %v, but does not cause a reorganize",
@@ -992,10 +978,11 @@ func (b *BlockChain) connectBestChain(node *blockNode, block, parent *types.Seri
 func (b *BlockChain) connectBlock(node *blockNode, block, parent *types.SerializedBlock, view *UtxoViewpoint, stxos []spentTxOut) error {
 	// Make sure it's extending the end of the best chain.
 	prevHash := block.Block().Header.ParentRoot
-	if prevHash != b.bestNode.hash {
+	tip := b.bestChain.Tip()
+	if prevHash != tip.hash {
 		panicf("block %v (height %v) connects to block %v instead of "+
 			"extending the best chain (hash %v, height %v)", node.hash,
-			node.height, prevHash, b.bestNode.hash, b.bestNode.height)
+			node.height, prevHash, tip.hash, tip.height)
 	}
 
 
@@ -1081,14 +1068,8 @@ func (b *BlockChain) connectBlock(node *blockNode, block, parent *types.Serializ
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	// Mark block as being in the main chain.
-	node.inMainChain = true
-	b.heightLock.Lock()
-	b.mainNodesByHeight[node.height] = node
-	b.heightLock.Unlock()
-
 	// This node is now the end of the best chain.
-	b.bestNode = node
+	b.bestChain.SetTip(node)
 
 	// Update the state for the best block.  Notice how this replaces the
 	// entire struct instead of updating the existing one.  This effectively
@@ -1149,21 +1130,15 @@ func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List
 	// to attach to the main tree.  Push them onto the list in reverse order
 	// so they are attached in the appropriate order when iterating the list
 	// later.
-	ancestor := node
-	for ; ancestor.parent != nil; ancestor = ancestor.parent {
-		if ancestor.inMainChain {
-			break
-		}
-		attachNodes.PushFront(ancestor)
+	forkNode := b.bestChain.FindFork(node)
+	for n := node; n != nil && n != forkNode; n = n.parent {
+		attachNodes.PushFront(n)
 	}
 
 	// Start from the end of the main chain and work backwards until the
 	// common ancestor adding each block to the list of nodes to detach from
 	// the main chain.
-	for n := b.bestNode; n != nil; n = n.parent {
-		if n.hash == ancestor.hash {
-			break
-		}
+	for n := b.bestChain.Tip(); n != nil && n != forkNode; n = n.parent {
 		detachNodes.PushBack(n)
 	}
 
@@ -1186,12 +1161,13 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	}
 
 	// Ensure the provided nodes match the current best chain.
+	tip := b.bestChain.Tip()
 	if detachNodes.Len() != 0 {
 		firstDetachNode := detachNodes.Front().Value.(*blockNode)
-		if firstDetachNode.hash != b.bestNode.hash {
+		if firstDetachNode.hash != tip.hash {
 			panicf("reorganize nodes to detach are not for the current best "+
 				"chain -- first detach node %v, current chain %v",
-				&firstDetachNode.hash, &b.bestNode.hash)
+				&firstDetachNode.hash, &tip.hash)
 		}
 	}
 
@@ -1207,8 +1183,8 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	}
 
 	// Track the old and new best chains heads.
-	oldBest := b.bestNode
-	newBest := b.bestNode
+	oldBest := tip
+	newBest := tip
 
 	// All of the blocks to detach and related spend journal entries needed
 	// to unspend transaction outputs in the blocks being disconnected must
@@ -1475,10 +1451,11 @@ func countSpentOutputs(block,parent *types.SerializedBlock) int {
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) disconnectBlock(node *blockNode, block, parent *types.SerializedBlock, view *UtxoViewpoint) error {
 	// Make sure the node being disconnected is the end of the best chain.
-	if node.hash != b.bestNode.hash {
+	tip := b.bestChain.Tip()
+	if node.hash != tip.hash {
 		panicf("block %v (height %v) is not the end of the best chain "+
-			"(hash %v, height %v)", node.hash, node.height, b.bestNode.hash,
-			b.bestNode.height)
+			"(hash %v, height %v)", node.hash, node.height, tip.hash,
+			tip.height)
 	}
 
 	// Generate a new best state snapshot that will be used to update the
@@ -1559,14 +1536,8 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block, parent *types.Seria
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	// Mark block as being in a side chain.
-	node.inMainChain = false
-	b.heightLock.Lock()
-	delete(b.mainNodesByHeight, node.height)
-	b.heightLock.Unlock()
-
 	// This node's parent is now the end of the best chain.
-	b.bestNode = node.parent
+	b.bestChain.SetTip(node.parent)
 
 	// Update the state for the best block.  Notice how this replaces the
 	// entire struct instead of updating the existing one.  This effectively

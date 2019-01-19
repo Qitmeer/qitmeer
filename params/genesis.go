@@ -161,12 +161,8 @@ var privNetGenesisCoinbaseTx = types.Transaction{
 // the main network.
 var privNetGenesisMerkleRoot = privNetGenesisCoinbaseTx.TxHashFull()
 
-var zeroHash =  hash.Hash([32]byte{ // Make go vet happy.
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		})
+var zeroHash =  hash.ZeroHash
+
 // privNetGenesisBlock defines the genesis block of the block chain which serves
 // as the public transaction ledger for the simulation test network.
 var privNetGenesisBlock = types.Block{

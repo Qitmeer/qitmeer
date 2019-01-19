@@ -8,7 +8,9 @@ package peer
 import (
 	"fmt"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/blockchain"
 	"github.com/noxproject/nox/core/message"
+	"github.com/noxproject/nox/core/protocol"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/log"
 	"math/rand"
@@ -16,12 +18,6 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
-)
-
-var (
-	// zeroHash is the zero value hash (all zeros).  It is defined as a
-	// convenience.
-	zeroHash hash.Hash
 )
 
 //TODO last-block from peer
@@ -217,7 +213,7 @@ func (p *Peer) PushRejectMsg(command string, code message.RejectCode, reason str
 			log.Warn("Sending a reject message for command "+
 				"type %v which should have specified a hash "+
 				"but does not", command)
-			h = &zeroHash
+			h = &hash.ZeroHash
 		}
 		msg.Hash = *h
 	}
@@ -275,4 +271,117 @@ func (p *Peer) String() string {
 		direction = "inbound"
 	}
 	return fmt.Sprintf("%s (%s)", p.addr, direction)
+}
+
+// UserAgent returns the user agent of the remote peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) UserAgent() string {
+	p.flagsMtx.Lock()
+	userAgent := p.userAgent
+	p.flagsMtx.Unlock()
+
+	return userAgent
+}
+
+// Services returns the services flag of the remote peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) Services() protocol.ServiceFlag {
+	p.flagsMtx.Lock()
+	services := p.services
+	p.flagsMtx.Unlock()
+
+	return services
+}
+
+
+
+// PushGetBlocksMsg sends a getblocks message for the provided block locator
+// and stop hash.  It will ignore back-to-back duplicate requests.
+//
+// This function is safe for concurrent access.
+func (p *Peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash *hash.Hash) error {
+	// Extract the begin hash from the block locator, if one was specified,
+	// to use for filtering duplicate getblocks requests.
+	var beginHash *hash.Hash
+	if len(locator) > 0 {
+		beginHash = locator[0]
+	}
+
+	// Filter duplicate getblocks requests.
+	p.prevGetBlocksMtx.Lock()
+	isDuplicate := p.prevGetBlocksStop != nil && p.prevGetBlocksBegin != nil &&
+		beginHash != nil && stopHash.IsEqual(p.prevGetBlocksStop) &&
+		beginHash.IsEqual(p.prevGetBlocksBegin)
+	p.prevGetBlocksMtx.Unlock()
+
+	if isDuplicate {
+		log.Trace(fmt.Sprintf("Filtering duplicate [getblocks] with begin "+
+			"hash %v, stop hash %v", beginHash, stopHash))
+		return nil
+	}
+
+	// Construct the getblocks request and queue it to be sent.
+	msg := message.NewMsgGetBlocks(stopHash)
+	for _, hash := range locator {
+		err := msg.AddBlockLocatorHash(hash)
+		if err != nil {
+			return err
+		}
+	}
+	p.QueueMessage(msg, nil)
+
+	// Update the previous getblocks request information for filtering
+	// duplicates.
+	p.prevGetBlocksMtx.Lock()
+	p.prevGetBlocksBegin = beginHash
+	p.prevGetBlocksStop = stopHash
+	p.prevGetBlocksMtx.Unlock()
+	return nil
+}
+
+// PushGetHeadersMsg sends a getblocks message for the provided block locator
+// and stop hash.  It will ignore back-to-back duplicate requests.
+//
+// This function is safe for concurrent access.
+func (p *Peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *hash.Hash) error {
+	// Extract the begin hash from the block locator, if one was specified,
+	// to use for filtering duplicate getheaders requests.
+	var beginHash *hash.Hash
+	if len(locator) > 0 {
+		beginHash = locator[0]
+	}
+
+	// Filter duplicate getheaders requests.
+	p.prevGetHdrsMtx.Lock()
+	isDuplicate := p.prevGetHdrsStop != nil && p.prevGetHdrsBegin != nil &&
+		beginHash != nil && stopHash.IsEqual(p.prevGetHdrsStop) &&
+		beginHash.IsEqual(p.prevGetHdrsBegin)
+	p.prevGetHdrsMtx.Unlock()
+
+	if isDuplicate {
+		log.Trace(fmt.Sprintf("Filtering duplicate [getheaders] with begin hash %v",
+			beginHash))
+		return nil
+	}
+
+	// Construct the getheaders request and queue it to be sent.
+	msg := message.NewMsgGetHeaders()
+	msg.HashStop = *stopHash
+	for _, hash := range locator {
+		err := msg.AddBlockLocatorHash(hash)
+		if err != nil {
+			return err
+		}
+	}
+	p.QueueMessage(msg, nil)
+
+	// Update the previous getheaders request information for filtering
+	// duplicates.
+	p.prevGetHdrsMtx.Lock()
+	p.prevGetHdrsBegin = beginHash
+	p.prevGetHdrsStop = stopHash
+	p.prevGetHdrsMtx.Unlock()
+	return nil
 }

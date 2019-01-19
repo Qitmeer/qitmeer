@@ -308,6 +308,23 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 	s.connManager = cmgr
 	s.nat = nat
 
+	// Start up persistent peers.
+	permanentPeers := cfg.ConnectPeers
+	if len(permanentPeers) == 0 {
+		permanentPeers = cfg.AddPeers
+	}
+	for _, addr := range permanentPeers {
+		tcpAddr, err := addrStringToNetAddr(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		go s.connManager.Connect(&connmgr.ConnReq{
+			Addr:      tcpAddr,
+			Permanent: true,
+		})
+	}
+
 	return &s, nil
 }
 

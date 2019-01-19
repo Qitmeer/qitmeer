@@ -124,7 +124,7 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	// can't possibly be any details about it.  This is also necessary
 	// because the code below requires the parent block and the genesis
 	// block doesn't have one.
-	tip := b.bestNode
+	tip := b.bestChain.Tip()
 	view := NewUtxoViewpoint()
 	if tip.height == 0 {
 		view.SetBestHash(&tip.hash)

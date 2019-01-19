@@ -1262,7 +1262,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 
 	// The block template must build off the current tip of the main chain
 	// or its parent.
-	tip := b.bestNode
+	tip := b.bestChain.Tip()
 	var prevNode *blockNode
 	parentHash := block.Block().Header.ParentRoot
 	if parentHash == tip.hash {

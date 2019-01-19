@@ -45,7 +45,7 @@ type BlockManager struct {
 	requestedEverBlocks map[hash.Hash]uint8
 	progressLogger      *progresslog.BlockProgressLogger
 
-	syncPeer            *peer.Peer
+	syncPeer            *peer.ServerPeer
 	msgChan             chan interface{}
 
 	chainState          ChainState
@@ -62,6 +62,11 @@ type BlockManager struct {
 	//block template cache
 	cachedCurrentTemplate *types.BlockTemplate
 	cachedParentTemplate  *types.BlockTemplate
+
+	// The following fields are used to track the height being synced to from
+	// peers.
+	syncHeightMtx sync.Mutex
+	syncHeight    uint64
 
 }
 
@@ -126,6 +131,9 @@ func NewBlockManager(ntmgr *notify.NotifyMgr,indexManager blockchain.IndexManage
 
 	bm.GetChainState().UpdateChainState(&best.Hash,best.Height,best.MedianTime,curPrevHash)
 
+	bm.syncHeightMtx.Lock()
+	bm.syncHeight = best.Height
+	bm.syncHeightMtx.Unlock()
 	return &bm, nil
 }
 
@@ -404,16 +412,15 @@ func (b *BlockManager) resetHeaderState(newestHash *hash.Hash, newestHeight uint
 }
 
 func (b *BlockManager) blockHandler() {
-	//candidatePeers := list.New()
+	candidatePeers := list.New()
 out:
 	for {
 		select {
 		case m := <-b.msgChan:
 			switch msg := m.(type) {
-			/*
 			case *newPeerMsg:
 				b.handleNewPeerMsg(candidatePeers, msg.peer)
-
+			/*
 			case *txMsg:
 				b.handleTxMsg(msg)
 				msg.peer.txProcessed <- struct{}{}
@@ -580,10 +587,9 @@ out:
 					acceptedTxs: acceptedTxs,
 					err:         err,
 				}
-			/*
 			case isCurrentMsg:
 				msg.reply <- b.current()
-
+			/*
 			case pauseMsg:
 				// Wait until the sender unpauses the manager.
 				<-msg.unpause
@@ -725,6 +731,21 @@ func (b *BlockManager) DonePeer(sp *peer.ServerPeer) {
 		return
 	}
 	b.msgChan <- &donePeerMsg{peer: sp}
+}
+
+// isCurrentMsg is a message type to be sent across the message channel for
+// requesting whether or not the block manager believes it is synced with
+// the currently connected peers.
+type isCurrentMsg struct {
+	reply chan bool
+}
+
+// IsCurrent returns whether or not the block manager believes it is synced with
+// the connected peers.
+func (b *BlockManager) IsCurrent() bool {
+	reply := make(chan bool)
+	b.msgChan <- isCurrentMsg{reply: reply}
+	return <-reply
 }
 
 

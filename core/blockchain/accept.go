@@ -196,7 +196,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
-	bestHeight := b.bestNode.height
+	bestHeight := b.bestChain.Tip().height
 	b.chainLock.Unlock()
 
 	//TODO, refactor to event subscript/publish

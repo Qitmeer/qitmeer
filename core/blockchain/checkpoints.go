@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/params"
+	"time"
 )
 
 // CheckpointConfirmations is the number of blocks before the end of the current
@@ -118,7 +118,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
 		// that is already available.
 		for i := numCheckpoints - 1; i >= 0; i-- {
 			node := b.index.LookupNode(checkpoints[i].Hash)
-			if node == nil || !node.inMainChain {
+			if node == nil || !b.bestChain.Contains(node) {
 				continue
 			}
 
@@ -149,7 +149,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
 	// When there is a next checkpoint and the height of the current best
 	// chain does not exceed it, the current checkpoint lockin is still
 	// the latest known checkpoint.
-	if b.bestNode.height < b.nextCheckpoint.Height {
+	if b.bestChain.Tip().height < b.nextCheckpoint.Height {
 		return b.checkpointNode, nil
 	}
 
@@ -226,69 +226,60 @@ func (b *BlockChain) IsCheckpointCandidate(block *types.SerializedBlock) (bool, 
 		return false, fmt.Errorf("checkpoints are disabled")
 	}
 
-	var isCandidate bool
-	err := b.db.View(func(dbTx database.Tx) error {
-		// A checkpoint must be in the main chain.
-		blockHeight, err := dbFetchHeightByHash(dbTx, block.Hash())
-		if err != nil {
-			// Only return an error if it's not due to the block not
-			// being in the main chain.
-			if !isNotInMainChainErr(err) {
-				return err
-			}
-			return nil
-		}
+	// A checkpoint must be in the main chain.
+	node := b.index.LookupNode(block.Hash())
+	if node == nil || !b.bestChain.Contains(node) {
+		return false, nil
+	}
 
-		// Ensure the height of the passed block and the entry for the
-		// block in the main chain match.  This should always be the
-		// case unless the caller provided an invalid block.
-		if blockHeight != block.Height() {
-			return fmt.Errorf("passed block height of %d does not "+
-				"match the main chain height of %d",
-				block.Height(), blockHeight)
-		}
+	// Ensure the height of the passed block and the entry for the block in
+	// the main chain match.  This should always be the case unless the
+	// caller provided an invalid block.
+	if node.height != block.Height() {
+		return false, fmt.Errorf("passed block height of %d does not "+
+			"match the main chain height of %d", block.Height(),
+			node.height)
+	}
 
-		// A checkpoint must be at least CheckpointConfirmations blocks
-		// before the end of the main chain.
-		mainChainHeight := b.bestNode.height
-		if blockHeight > (mainChainHeight - CheckpointConfirmations) {
-			return nil
-		}
+	// A checkpoint must be at least CheckpointConfirmations blocks before
+	// the end of the main chain.
+	if node.height > (b.bestChain.Tip().height - CheckpointConfirmations) {
+		return false, nil
+	}
 
-		// Get the previous block header.
-		prevHash := &block.Block().Header.ParentRoot
-		prevHeader, err := dbFetchHeaderByHash(dbTx, prevHash)
-		if err != nil {
-			return err
-		}
+	// A checkpoint must be have at least one block after it.
+	//
+	// This should always succeed since the check above already made sure it
+	// is CheckpointConfirmations back, but be safe in case the constant
+	// changes.
+	nextNode := b.bestChain.Next(node)
+	if nextNode == nil {
+		return false, nil
+	}
 
-		// Get the next block header.
-		nextHeader, err := dbFetchHeaderByHeight(dbTx, blockHeight+1)
-		if err != nil {
-			return err
-		}
+	// A checkpoint must be have at least one block before it.
+	if node.parent == nil {
+		return false, nil
+	}
 
-		// A checkpoint must have timestamps for the block and the
-		// blocks on either side of it in order (due to the median time
-		// allowance this is not always the case).
-		prevTime := prevHeader.Timestamp
-		curTime := block.Block().Header.Timestamp
-		nextTime := nextHeader.Timestamp
-		if prevTime.After(curTime) || nextTime.Before(curTime) {
-			return nil
-		}
+	// A checkpoint must have timestamps for the block and the blocks on
+	// either side of it in order (due to the median time allowance this is
+	// not always the case).
+	prevTime := time.Unix(node.parent.timestamp, 0)
+	curTime := block.Block().Header.Timestamp
+	nextTime := time.Unix(nextNode.timestamp, 0)
+	if prevTime.After(curTime) || nextTime.Before(curTime) {
+		return false, nil
+	}
 
-		// A checkpoint must have transactions that only contain
-		// standard scripts.
-		for _, tx := range block.Transactions() {
-			if isNonstandardTransaction(tx) {
-				return nil
-			}
+	// A checkpoint must have transactions that only contain standard
+	// scripts.
+	for _, tx := range block.Transactions() {
+		if isNonstandardTransaction(tx) {
+			return false, nil
 		}
+	}
 
-		// All of the checks passed, so the block is a candidate.
-		isCandidate = true
-		return nil
-	})
-	return isCandidate, err
+	// All of the checks passed, so the block is a candidate.
+	return true, nil
 }

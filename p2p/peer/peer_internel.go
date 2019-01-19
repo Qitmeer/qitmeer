@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/message"
 	"github.com/noxproject/nox/core/protocol"
 	s "github.com/noxproject/nox/core/serialization"
@@ -76,6 +77,13 @@ type Peer struct {
 
 	// Inv
 	knownInventory     *invcache.InventoryCache
+
+	prevGetBlocksMtx   sync.Mutex
+	prevGetBlocksBegin *hash.Hash
+	prevGetBlocksStop  *hash.Hash
+	prevGetHdrsMtx     sync.Mutex
+	prevGetHdrsBegin   *hash.Hash
+	prevGetHdrsStop    *hash.Hash
 
 	// These fields keep track of statistics for the peer and are protected
 	// by the statsMtx mutex.

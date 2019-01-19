@@ -65,7 +65,7 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 		// Advertise the local address when the server accepts incoming
 		// connections and it believes itself to be close to the best
 		// known tip.
-		if !sp.server.cfg.DisableListen && sp.server.BlockManager.GetChain().IsCurrent() {
+		if !sp.server.cfg.DisableListen && sp.server.BlockManager.IsCurrent() {
 			// Get address that best matches.
 			lna := addrManager.GetBestLocalAddress(remoteAddr)
 			if addmgr.IsRoutable(lna) {
@@ -93,7 +93,16 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 	sp.server.TimeSource.AddTimeSample(p.Addr(), msg.Timestamp)
 
 	// Signal the block manager this peer is a new sync candidate.
-	sp.server.BlockManager.NewPeer(sp.syncPeer)
+	serverPeer := &peer.ServerPeer{
+			TxProcessed: make(chan struct{}, 1),
+			BlockProcessed: make(chan struct{}, 1),
+		}
+	serverPeer.Peer = sp.Peer
+
+		//	TxProcessed: make(chan struct{}, 1),
+		//	BlockProcessed: make(chan struct{}, 1),
+		//}
+	sp.server.BlockManager.NewPeer(serverPeer)
 
 	// Add valid peer to the server.
 	sp.server.AddPeer(sp)

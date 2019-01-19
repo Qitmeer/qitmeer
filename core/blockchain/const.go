@@ -2,8 +2,8 @@
 package blockchain
 
 import (
-	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/types"
 )
 
 const (
@@ -54,7 +54,7 @@ var (
 	// zeroHash is the zero value for a hash.Hash and is defined as a
 	// package level variable to avoid the need to create a new instance
 	// every time a check is needed.
-	zeroHash = &hash.Hash{}
+	zeroHash = &hash.ZeroHash
 )
 
 
