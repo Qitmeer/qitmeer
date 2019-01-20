@@ -257,3 +257,35 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 		p.QueueMessage(invMsg, nil)
 	}
 }
+
+// OnInv is invoked when a peer receives an inv  message and is used to
+// examine the inventory being advertised by the remote peer and react
+// accordingly.  We pass the message down to blockmanager which will call
+// QueueMessage with any appropriate responses.
+func (sp *serverPeer) OnInv(p *peer.Peer, msg *message.MsgInv) {
+	if !sp.server.cfg.BlocksOnly {
+		if len(msg.InvList) > 0 {
+			sp.server.BlockManager.QueueInv(msg, sp.syncPeer)
+		}
+		return
+	}
+
+	newInv := message.NewMsgInvSizeHint(uint(len(msg.InvList)))
+	for _, invVect := range msg.InvList {
+		if invVect.Type == message.InvTypeTx {
+			log.Info(fmt.Sprintf("Peer %v is announcing transactions -- "+
+				"disconnecting", p))
+			p.Disconnect()
+			return
+		}
+		err := newInv.AddInvVect(invVect)
+		if err != nil {
+			log.Error("Failed to add inventory vector", "error",err)
+			break
+		}
+	}
+
+	if len(newInv.InvList) > 0 {
+		sp.server.BlockManager.QueueInv(newInv, sp.syncPeer)
+	}
+}

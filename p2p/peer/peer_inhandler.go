@@ -113,6 +113,10 @@ out:
 			if p.cfg.Listeners.OnGetBlocks != nil {
 				p.cfg.Listeners.OnGetBlocks(p, msg)
 			}
+		case *message.MsgInv:
+			if p.cfg.Listeners.OnInv != nil {
+				p.cfg.Listeners.OnInv(p, msg)
+		}
 
 		/*
 		case *message.MsgMemPool:
@@ -130,12 +134,6 @@ out:
 				p.cfg.Listeners.OnMiningState(p, msg)
 			}
 
-
-		case *message.MsgInv:
-			if p.cfg.Listeners.OnInv != nil {
-				p.cfg.Listeners.OnInv(p, msg)
-			}
-
 		case *message.MsgHeaders:
 			if p.cfg.Listeners.OnHeaders != nil {
 				p.cfg.Listeners.OnHeaders(p, msg)
@@ -150,7 +148,6 @@ out:
 			if p.cfg.Listeners.OnGetData != nil {
 				p.cfg.Listeners.OnGetData(p, msg)
 			}
-
 
 		case *message.MsgGetHeaders:
 			if p.cfg.Listeners.OnGetHeaders != nil {

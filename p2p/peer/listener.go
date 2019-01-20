@@ -67,6 +67,9 @@ type MessageListeners struct {
 	// OnBlock is invoked when a peer receives a block wire message.
 	OnBlock func(p *Peer, msg *message.MsgBlock, buf []byte)
 
+	// OnInv is invoked when a peer receives an inv wire message.
+	OnInv func(p *Peer, msg *message.MsgInv)
+
 	/*
 	// OnSendHeaders is invoked when a peer receives a sendheaders message.
 	OnSendHeaders func(p *Peer, msg *message.MsgSendHeaders)
@@ -82,7 +85,6 @@ type MessageListeners struct {
 	// message.
 	OnMiningState func(p *Peer, msg *message.MsgMiningState)
 
-
 	// OnCFilter is invoked when a peer receives a cfilter wire message.
 	OnCFilter func(p *Peer, msg *message.MsgCFilter)
 
@@ -93,9 +95,6 @@ type MessageListeners struct {
 	// OnCFTypes is invoked when a peer receives a cftypes wire message.
 	OnCFTypes func(p *Peer, msg *message.MsgCFTypes)
 
-	// OnInv is invoked when a peer receives an inv wire message.
-	OnInv func(p *Peer, msg *message.MsgInv)
-
 	// OnHeaders is invoked when a peer receives a headers wire message.
 	OnHeaders func(p *Peer, msg *message.MsgHeaders)
 
@@ -104,7 +103,6 @@ type MessageListeners struct {
 
 	// OnGetData is invoked when a peer receives a getdata wire message.
 	OnGetData func(p *Peer, msg *message.MsgGetData)
-
 
 	// OnGetHeaders is invoked when a peer receives a getheaders wire
 	// message.

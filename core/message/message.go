@@ -102,27 +102,22 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgGetBlocks{}
 	case CmdBlock:
 		msg = &MsgBlock{}
-	/*
 	case CmdInv:
 		msg = &MsgInv{}
+	case CmdTx:
+		msg = &MsgTx{}
+	case CmdGetHeaders:
+		msg = &MsgGetHeaders{}
+	case CmdHeaders:
+		msg = &MsgHeaders{}
 
+	/*
 	case CmdGetData:
 		msg = &MsgGetData{}
 
 	case CmdNotFound:
 		msg = &MsgNotFound{}
 
-	case CmdTx:
-		msg = &MsgTx{}
-
-	case CmdGetHeaders:
-		msg = &MsgGetHeaders{}
-
-	case CmdHeaders:
-		msg = &MsgHeaders{}
-	*/
-
-	/*
 	case CmdMemPool:
 		msg = &MsgMemPool{}
 
