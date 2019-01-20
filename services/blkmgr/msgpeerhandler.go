@@ -24,7 +24,7 @@ func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
 		return
 	}
 
-	log.Info(fmt.Sprintf("New valid peer %s (%s)", sp, sp.UserAgent()))
+	log.Info(fmt.Sprintf("New valid peer", "peer",sp, "user-agent",sp.UserAgent()))
 
 	// Ignore the peer if it's not a sync candidate.
 	if !b.isSyncCandidate(sp) {
@@ -122,8 +122,8 @@ func (b *BlockManager) startSync(peers *list.List) {
 			return
 		}
 
-		log.Info(fmt.Sprintf("Syncing to block height %d from peer %v",
-			bestPeer.LastBlock(), bestPeer.Addr()))
+		log.Info(fmt.Sprintf("Syncing to block height %d",
+			bestPeer.LastBlock()), "from peer", bestPeer.Addr())
 
 		// When the current height is less than a known checkpoint we
 		// can use block headers to learn about which blocks comprise

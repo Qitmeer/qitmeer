@@ -126,10 +126,6 @@ func (n *Node) Start() error {
 
 	log.Info("Starting Server")
 
-	// start p2p server
-	if err :=n.peerServer.Start(); err != nil {
-		return err
-	}
 	// Initialize every service by calling the registered service constructors & save to services
 	services := make(map[reflect.Type]Service)
 	for _, c := range n.svcConstructors {
@@ -161,6 +157,10 @@ func (n *Node) Start() error {
 	}
 	n.runningSvcs = services
 
+	// start p2p server
+	if err :=n.peerServer.Start(); err != nil {
+		return err
+	}
 	// start RPC by service
 	if !n.Config.DisableRPC {
 		if err:= n.startRPC(services); err != nil {
