@@ -24,7 +24,7 @@ func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
 		return
 	}
 
-	log.Info(fmt.Sprintf("New valid peer", "peer",sp, "user-agent",sp.UserAgent()))
+	log.Info("New valid peer", "peer",sp, "user-agent",sp.UserAgent())
 
 	// Ignore the peer if it's not a sync candidate.
 	if !b.isSyncCandidate(sp) {

@@ -46,11 +46,26 @@ const (
 	CmdReject         = "reject"
 	CmdPing           = "ping"
 	CmdPong           = "pong"
-	CmdGetBlocks      = "getblocks"
-	CmdGetHeaders     = "getheaders"
+	CmdInv            = "inv"
 	CmdBlock          = "block"
+	CmdGetBlocks      = "getblocks"
 	CmdHeaders        = "headers"
+	CmdGetHeaders     = "getheaders"
 	CmdTx             = "tx"
+
+	CmdGetData        = "getdata"
+	CmdNotFound       = "notfound"
+	CmdMemPool        = "mempool"
+	CmdMiningState    = "miningstate"
+	CmdGetMiningState = "getminings"
+	CmdSendHeaders    = "sendheaders"
+	CmdFeeFilter      = "feefilter"
+	CmdGetCFilter     = "getcfilter"
+	CmdGetCFHeaders   = "getcfheaders"
+	CmdGetCFTypes     = "getcftypes"
+	CmdCFilter        = "cfilter"
+	CmdCFHeaders      = "cfheaders"
+	CmdCFTypes        = "cftypes"
 )
 
 // Message is an interface that describes a nox message.  A type that

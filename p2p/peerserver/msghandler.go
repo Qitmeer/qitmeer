@@ -196,3 +196,64 @@ func (sp *serverPeer) OnRead(p *peer.Peer, bytesRead int, msg message.Message, e
 func (sp *serverPeer) OnWrite(p *peer.Peer, bytesWritten int, msg message.Message, err error) {
 	sp.server.AddBytesSent(uint64(bytesWritten))
 }
+
+// OnBlock is invoked when a peer receives a block wire message.  It blocks
+// until the network block has been fully processed.
+func (sp *serverPeer) OnBlock(p *peer.Peer, msg *message.MsgBlock, buf []byte) {
+	// Convert the raw MsgBlock to a types.Block which provides some
+	// convenience methods and things such as hash caching.
+
+	block := types.NewBlockFromBlockAndBytes(msg.Block, buf)
+
+	// Add the block to the known inventory for the peer.
+	iv := message.NewInvVect(message.InvTypeBlock, block.Hash())
+	p.AddKnownInventory(iv)
+
+	// Queue the block up to be handled by the block manager and
+	// intentionally block further receives until the network block is fully
+	// processed and known good or bad.  This helps prevent a malicious peer
+	// from queuing up a bunch of bad blocks before disconnecting (or being
+	// disconnected) and wasting memory.  Additionally, this behavior is
+	// depended on by at least the block acceptance test tool as the
+	// reference implementation processes blocks in the same thread and
+	// therefore blocks further messages until the network block has been
+	// fully processed.
+	sp.server.BlockManager.QueueBlock(block, sp.syncPeer)
+	<-sp.syncPeer.BlockProcessed
+}
+
+// OnGetBlocks is invoked when a peer receives a getblocks wire message.
+func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
+	// Find the most recent known block in the best chain based on the block
+	// locator and fetch all of the block hashes after it until either
+	// wire.MaxBlocksPerMsg have been fetched or the provided stop hash is
+	// encountered.
+	//
+	// Use the block after the genesis block if no other blocks in the
+	// provided locator are known.  This does mean the client will start
+	// over with the genesis block if unknown block locators are provided.
+	chain := sp.server.BlockManager.GetChain()
+	hashList := chain.LocateBlocks(msg.BlockLocatorHashes, &msg.HashStop,
+		message.MaxBlocksPerMsg)
+
+	// Generate inventory message.
+	invMsg := message.NewMsgInv()
+	for i := range hashList {
+		iv := message.NewInvVect(message.InvTypeBlock, &hashList[i])
+		invMsg.AddInvVect(iv)
+	}
+
+	// Send the inventory message if there is anything to send.
+	if len(invMsg.InvList) > 0 {
+		invListLen := len(invMsg.InvList)
+		if invListLen == message.MaxBlocksPerMsg {
+			// Intentionally use a copy of the final hash so there
+			// is not a reference into the inventory slice which
+			// would prevent the entire slice from being eligible
+			// for GC as soon as it's sent.
+			continueHash := invMsg.InvList[invListLen-1].Hash
+			sp.continueHash = &continueHash
+		}
+		p.QueueMessage(invMsg, nil)
+	}
+}

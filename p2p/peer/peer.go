@@ -385,3 +385,11 @@ func (p *Peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *hash
 	p.prevGetHdrsMtx.Unlock()
 	return nil
 }
+
+// AddKnownInventory adds the passed inventory to the cache of known inventory
+// for the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) AddKnownInventory(invVect *message.InvVect) {
+	p.knownInventory.Add(invVect)
+}

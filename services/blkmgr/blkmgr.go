@@ -748,6 +748,24 @@ func (b *BlockManager) IsCurrent() bool {
 	return <-reply
 }
 
+// blockMsg packages a Decred block message and the peer it came from together
+// so the block handler has access to that information.
+type blockMsg struct {
+	block *types.SerializedBlock
+	peer  *peer.ServerPeer
+}
+
+// QueueBlock adds the passed block message and peer to the block handling queue.
+func (b *BlockManager) QueueBlock(block *types.SerializedBlock, sp *peer.ServerPeer) {
+	// Don't accept more blocks if we're shutting down.
+	if atomic.LoadInt32(&b.shutdown) != 0 {
+		sp.BlockProcessed <- struct{}{}
+		return
+	}
+
+	b.msgChan <- &blockMsg{block: block, peer: sp}
+}
+
 
 
 

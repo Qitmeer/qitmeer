@@ -31,7 +31,7 @@ out:
 		// Read a message and stop the idle timer as soon as the read
 		// is done.  The timer is reset below for the next iteration if
 		// needed.
-		rmsg, _, err := p.readMessage()
+		rmsg, buf, err := p.readMessage()
 		idleTimer.Stop()
 		if err != nil {
 			// Only log the error and send reject message if the
@@ -105,6 +105,14 @@ out:
 			if p.cfg.Listeners.OnTx != nil {
 				p.cfg.Listeners.OnTx(p, msg)
 			}
+		case *message.MsgBlock:
+			if p.cfg.Listeners.OnBlock != nil {
+				p.cfg.Listeners.OnBlock(p, msg, buf)
+			}
+		case *message.MsgGetBlocks:
+			if p.cfg.Listeners.OnGetBlocks != nil {
+				p.cfg.Listeners.OnGetBlocks(p, msg)
+			}
 
 		/*
 		case *message.MsgMemPool:
@@ -122,10 +130,6 @@ out:
 				p.cfg.Listeners.OnMiningState(p, msg)
 			}
 
-		case *message.MsgBlock:
-			if p.cfg.Listeners.OnBlock != nil {
-				p.cfg.Listeners.OnBlock(p, msg, buf)
-			}
 
 		case *message.MsgInv:
 			if p.cfg.Listeners.OnInv != nil {
@@ -147,10 +151,6 @@ out:
 				p.cfg.Listeners.OnGetData(p, msg)
 			}
 
-		case *message.MsgGetBlocks:
-			if p.cfg.Listeners.OnGetBlocks != nil {
-				p.cfg.Listeners.OnGetBlocks(p, msg)
-			}
 
 		case *message.MsgGetHeaders:
 			if p.cfg.Listeners.OnGetHeaders != nil {
