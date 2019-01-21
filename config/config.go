@@ -47,6 +47,7 @@ type Config struct {
 	miningAddrs          []types.Address
 	//WebSocket support
 	RPCMaxWebsockets     int           `long:"rpcmaxwebsockets" description:"Max number of RPC websocket connections"`
+	DAGType              string        `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {
