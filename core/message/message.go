@@ -52,8 +52,8 @@ const (
 	CmdHeaders        = "headers"
 	CmdGetHeaders     = "getheaders"
 	CmdTx             = "tx"
-
 	CmdGetData        = "getdata"
+
 	CmdNotFound       = "notfound"
 	CmdMemPool        = "mempool"
 	CmdMiningState    = "miningstate"
@@ -110,10 +110,9 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgGetHeaders{}
 	case CmdHeaders:
 		msg = &MsgHeaders{}
-
-	/*
 	case CmdGetData:
 		msg = &MsgGetData{}
+	/*
 
 	case CmdNotFound:
 		msg = &MsgNotFound{}

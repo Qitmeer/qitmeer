@@ -346,6 +346,7 @@ func (s *PeerServer) inboundPeerConnected(conn net.Conn) {
 	sp.Peer = peer.NewInboundPeer(newPeerConfig(sp))
 	sp.AssociateConnection(conn)
 	go s.peerDoneHandler(sp)
+	go sp.syncPeerHandler()
 }
 
 // outboundPeerConnected is invoked by the connection manager when a new
@@ -657,6 +658,18 @@ func (s *PeerServer) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
 // that are not already known to have it.
 func (s *PeerServer) RelayInventory(invVect *message.InvVect, data interface{}) {
 	s.relayInv <- relayMsg{invVect: invVect, data: data}
+}
+
+// UpdatePeerHeights updates the heights of all peers who have have announced
+// the latest connected main chain block, or a recognized orphan. These height
+// updates allow us to dynamically refresh peer heights, ensuring sync peer
+// selection has access to the latest block heights for each peer.
+func (s *PeerServer) UpdatePeerHeights(latestBlkHash *hash.Hash, latestHeight uint64, updateSource *serverPeer) {
+	s.peerHeightsUpdate <- updatePeerHeightsMsg{
+		newHash:    latestBlkHash,
+		newHeight:  latestHeight,
+		originPeer: updateSource,
+	}
 }
 
 

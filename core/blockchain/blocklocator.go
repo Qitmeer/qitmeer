@@ -137,3 +137,19 @@ func (b *BlockChain) locateInventory(locator BlockLocator, hashStop *hash.Hash, 
 
 	return startNode, total
 }
+
+// BlockLocatorFromHash returns a block locator for the passed block hash.
+// See BlockLocator for details on the algorithm used to create a block locator.
+//
+// In addition to the general algorithm referenced above, this function will
+// return the block locator for the latest known tip of the main (best) chain if
+// the passed hash is not currently known.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) BlockLocatorFromHash(hash *hash.Hash) BlockLocator {
+	b.chainLock.RLock()
+	node := b.index.LookupNode(hash)
+	locator := b.bestChain.BlockLocator(node)
+	b.chainLock.RUnlock()
+	return locator
+}

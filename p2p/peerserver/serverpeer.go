@@ -31,7 +31,6 @@ type serverPeer struct {
 	isWhitelisted   bool
 	requestQueue    []*message.InvVect
 	requestedTxns   map[hash.Hash]struct{}
-	requestedBlocks map[hash.Hash]struct{}
 	knownAddresses  map[string]struct{}
 	quit            chan struct{}
 
@@ -58,16 +57,29 @@ func newServerPeer(s *PeerServer, isPersistent bool) *serverPeer {
 	return &serverPeer{
 		server:          s,
 		persistent:      isPersistent,
-		requestedTxns:   make(map[hash.Hash]struct{}),
-		requestedBlocks: make(map[hash.Hash]struct{}),
 		knownAddresses:  make(map[string]struct{}),
 		quit:            make(chan struct{}),
 		syncPeer: &peer.ServerPeer{
 			TxProcessed: make(chan struct{}, 1),
 			BlockProcessed: make(chan struct{}, 1),
+			RequestedBlocks: make(map[hash.Hash]struct{}),
+			RequestedTxns:   make(map[hash.Hash]struct{}),
 		},
 	}
+}
 
+func (sp *serverPeer) syncPeerHandler() {
+out:
+	for {
+		select {
+
+			case msg := <-sp.syncPeer.RequiredUpdatePeerHeights:
+				sp.server.UpdatePeerHeights(msg.Hash, msg.Height,sp)
+
+			case <-sp.server.quit:
+				break out
+		}
+	}
 }
 
 // pushAddrMsg sends an addr message to the connected peer using the provided

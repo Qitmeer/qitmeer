@@ -16,6 +16,7 @@ import (
 	"github.com/noxproject/nox/node/notify"
 	"github.com/noxproject/nox/p2p/peer"
 	"github.com/noxproject/nox/params"
+	"github.com/noxproject/nox/params/dcr/types"
 	"github.com/noxproject/nox/services/common/progresslog"
 	"github.com/noxproject/nox/services/mempool"
 	"sync"
@@ -361,6 +362,106 @@ func (b *BlockManager) Stop() error {
 	return nil
 }
 
+// limitMap is a helper function for maps that require a maximum limit by
+// evicting a random transaction if adding a new value would cause it to
+// overflow the maximum allowed.
+func (b *BlockManager) limitMap(m map[hash.Hash]struct{}, limit int) {
+	if len(m)+1 > limit {
+		// Remove a random entry from the map.  For most compilers, Go's
+		// range statement iterates starting at a random item although
+		// that is not 100% guaranteed by the spec.  The iteration order
+		// is not important here because an adversary would have to be
+		// able to pull off preimage attacks on the hashing function in
+		// order to target eviction of specific entries anyways.
+		for txHash := range m {
+			delete(m, txHash)
+			return
+		}
+	}
+}
+
+// fetchHeaderBlocks creates and sends a request to the syncPeer for the next
+// list of blocks to be downloaded based on the current list of headers.
+func (b *BlockManager) fetchHeaderBlocks() {
+	// Nothing to do if there is no start header.
+	if b.startHeader == nil {
+		log.Warn("fetchHeaderBlocks called with no start header")
+		return
+	}
+
+	// Build up a getdata request for the list of blocks the headers
+	// describe.  The size hint will be limited to wire.MaxInvPerMsg by
+	// the function, so no need to double check it here.
+	gdmsg := message.NewMsgGetDataSizeHint(uint(b.headerList.Len()))
+	numRequested := 0
+	for e := b.startHeader; e != nil; e = e.Next() {
+		node, ok := e.Value.(*headerNode)
+		if !ok {
+			log.Warn("Header list node type is not a headerNode")
+			continue
+		}
+
+		iv := message.NewInvVect(message.InvTypeBlock, node.hash)
+		haveInv, err := b.haveInventory(iv)
+		if err != nil {
+			log.Warn("Unexpected failure when checking for "+
+				"existing inventory during header block fetch",
+				"error",err)
+			continue
+		}
+		if !haveInv {
+			b.requestedBlocks[*node.hash] = struct{}{}
+			b.requestedEverBlocks[*node.hash] = 0
+			b.syncPeer.RequestedBlocks[*node.hash] = struct{}{}
+			err = gdmsg.AddInvVect(iv)
+			if err != nil {
+				log.Warn("Failed to add invvect while fetching block headers",
+					"error",err)
+			}
+			numRequested++
+		}
+		b.startHeader = e.Next()
+		if numRequested >= wire.MaxInvPerMsg {
+			break
+		}
+	}
+	if len(gdmsg.InvList) > 0 {
+		b.syncPeer.QueueMessage(gdmsg, nil)
+	}
+}
+
+// haveInventory returns whether or not the inventory represented by the passed
+// inventory vector is known.  This includes checking all of the various places
+// inventory can be when it is in different states such as blocks that are part
+// of the main chain, on a side chain, in the orphan pool, and transactions that
+// are in the memory pool (either the main pool or orphan pool).
+func (b *BlockManager) haveInventory(invVect *message.InvVect) (bool, error) {
+	switch invVect.Type {
+	case message.InvTypeBlock:
+		// Ask chain if the block is known to it in any form (main
+		// chain, side chain, or orphan).
+		return b.chain.HaveBlock(&invVect.Hash)
+
+	case message.InvTypeTx:
+		// Ask the transaction memory pool if the transaction is known
+		// to it in any form (main pool or orphan).
+		if b.txMemPool.HaveTransaction(&invVect.Hash) {
+			return true, nil
+		}
+
+		// Check if the transaction exists from the point of view of the
+		// end of the main chain.
+		entry, err := b.chain.FetchUtxoEntry(&invVect.Hash)
+		if err != nil {
+			return false, err
+		}
+		return entry != nil && !entry.IsFullySpent(), nil
+	}
+
+	// The requested inventory is is an unsupported type, so just claim
+	// it is known to avoid requesting it.
+	return true, nil
+}
 
 // findNextHeaderCheckpoint returns the next checkpoint after the passed height.
 // It returns nil when there is not one either because the height is already
@@ -420,17 +521,15 @@ out:
 			switch msg := m.(type) {
 			case *newPeerMsg:
 				b.handleNewPeerMsg(candidatePeers, msg.peer)
+			case *blockMsg:
+				b.handleBlockMsg(msg)
+				msg.peer.BlockProcessed <- struct{}{}
+			case *invMsg:
+				b.handleInvMsg(msg)
 			/*
 			case *txMsg:
 				b.handleTxMsg(msg)
 				msg.peer.txProcessed <- struct{}{}
-
-			case *blockMsg:
-				b.handleBlockMsg(msg)
-				msg.peer.blockProcessed <- struct{}{}
-
-			case *invMsg:
-				b.handleInvMsg(msg)
 
 			case *headersMsg:
 				b.handleHeadersMsg(msg)
@@ -555,7 +654,7 @@ out:
 					best := b.chain.BestSnapshot()
 
 					// TODO, decoupling mempool with bm
-					b.txMemPool.PruneExpiredTx(best.Height)
+					b.txMemPool.PruneExpiredTx()
 
 					curPrevHash := b.chain.BestPrevHash()
 
@@ -748,7 +847,7 @@ func (b *BlockManager) IsCurrent() bool {
 	return <-reply
 }
 
-// blockMsg packages a Decred block message and the peer it came from together
+// blockMsg packages a block message and the peer it came from together
 // so the block handler has access to that information.
 type blockMsg struct {
 	block *types.SerializedBlock
@@ -766,7 +865,7 @@ func (b *BlockManager) QueueBlock(block *types.SerializedBlock, sp *peer.ServerP
 	b.msgChan <- &blockMsg{block: block, peer: sp}
 }
 
-// invMsg packages a Decred inv message and the peer it came from together
+// invMsg packages a inv message and the peer it came from together
 // so the block handler has access to that information.
 type invMsg struct {
 	inv  *message.MsgInv

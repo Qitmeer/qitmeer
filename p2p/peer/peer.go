@@ -393,3 +393,26 @@ func (p *Peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *hash
 func (p *Peer) AddKnownInventory(invVect *message.InvVect) {
 	p.knownInventory.Add(invVect)
 }
+
+// UpdateLastBlockHeight updates the last known block for the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) UpdateLastBlockHeight(newHeight uint64) {
+	p.statsMtx.Lock()
+	log.Trace(fmt.Sprintf("Updating last block height of peer %v from %v to %v",
+		p.addr, p.lastBlock, newHeight))
+	p.lastBlock = newHeight
+	p.statsMtx.Unlock()
+}
+
+// UpdateLastAnnouncedBlock updates meta-data about the last block hash this
+// peer is known to have announced.
+//
+// This function is safe for concurrent access.
+func (p *Peer) UpdateLastAnnouncedBlock(blkHash *hash.Hash) {
+	log.Trace("Updating last blk for peer %v, %v", p.addr, blkHash)
+
+	p.statsMtx.Lock()
+	p.lastAnnouncedBlock = blkHash
+	p.statsMtx.Unlock()
+}

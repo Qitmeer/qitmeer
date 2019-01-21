@@ -942,9 +942,11 @@ func (mp *TxPool) MiningDescs() []*types.TxDesc {
 // be able to be included into a block.
 //
 // This function MUST be called with the mempool lock held (for writes).
-func (mp *TxPool) pruneExpiredTx(height uint64) {
+func (mp *TxPool) pruneExpiredTx() {
+	nextBlockHeight := mp.cfg.BestHeight() + 1
+
 	for _, tx := range mp.pool {
-		if blockchain.IsExpired(tx.Tx, height) {
+		if blockchain.IsExpired(tx.Tx, nextBlockHeight) {
 			log.Debug("Pruning expired transaction %v from the mempool",
 				tx.Tx.Hash())
 			mp.removeTransaction(tx.Tx, true)
@@ -956,10 +958,10 @@ func (mp *TxPool) pruneExpiredTx(height uint64) {
 // be able to be included into a block.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) PruneExpiredTx(height uint64) {
+func (mp *TxPool) PruneExpiredTx() {
 	// Protect concurrent access.
 	mp.mtx.Lock()
-	mp.pruneExpiredTx(height)
+	mp.pruneExpiredTx()
 	mp.mtx.Unlock()
 }
 

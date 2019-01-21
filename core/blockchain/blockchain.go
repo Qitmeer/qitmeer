@@ -515,6 +515,61 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 	return err
 }
 
+// HaveBlock returns whether or not the chain instance has the block represented
+// by the passed hash.  This includes checking the various places a block can
+// be like part of the main chain, on a side chain, or in the orphan pool.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) HaveBlock(hash *hash.Hash) (bool, error) {
+	return b.index.HaveBlock(hash) || b.IsKnownOrphan(hash), nil
+}
+
+// IsKnownOrphan returns whether the passed hash is currently a known orphan.
+// Keep in mind that only a limited number of orphans are held onto for a
+// limited amount of time, so this function must not be used as an absolute
+// way to test if a block is an orphan block.  A full block (as opposed to just
+// its hash) must be passed to ProcessBlock for that purpose.  However, calling
+// ProcessBlock with an orphan that already exists results in an error, so this
+// function provides a mechanism for a caller to intelligently detect *recent*
+// duplicate orphans and react accordingly.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) IsKnownOrphan(hash *hash.Hash) bool {
+	// Protect concurrent access.  Using a read lock only so multiple
+	// readers can query without blocking each other.
+	b.orphanLock.RLock()
+	_, exists := b.orphans[*hash]
+	b.orphanLock.RUnlock()
+
+	return exists
+}
+
+// GetOrphanRoot returns the head of the chain for the provided hash from the
+// map of orphan blocks.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) GetOrphanRoot(hash *hash.Hash) *hash.Hash {
+	// Protect concurrent access.  Using a read lock only so multiple
+	// readers can query without blocking each other.
+	b.orphanLock.RLock()
+	defer b.orphanLock.RUnlock()
+
+	// Keep looping while the parent of each orphaned block is
+	// known and is an orphan itself.
+	orphanRoot := hash
+	prevHash := hash
+	for {
+		orphan, exists := b.orphans[*prevHash]
+		if !exists {
+			break
+		}
+		orphanRoot = prevHash
+		prevHash = &orphan.block.Block().Header.ParentRoot
+	}
+
+	return orphanRoot
+}
+
 // IsCurrent returns whether or not the chain believes it is current.  Several
 // factors are used to guess, but the key factors that allow the chain to
 // believe it is current are:

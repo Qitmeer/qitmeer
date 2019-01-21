@@ -40,6 +40,7 @@ type relayMsg struct {
 // selecting sync peer candidacy.
 type updatePeerHeightsMsg struct {
 	newHash    *hash.Hash
-	newHeight  int64
+	newHeight  uint64
 	originPeer *serverPeer
 }
+

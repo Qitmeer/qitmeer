@@ -92,6 +92,7 @@ type Peer struct {
 	// - block
 	startingHeight     int64
 	lastBlock          uint64
+	lastAnnouncedBlock *hash.Hash
 
 	// - Time
 	timeOffset         int64
