@@ -21,6 +21,7 @@ import (
 	"github.com/noxproject/nox/p2p/peer"
 	"github.com/noxproject/nox/params"
 	"github.com/noxproject/nox/services/blkmgr"
+	"github.com/noxproject/nox/services/mempool"
 	"github.com/noxproject/nox/version"
 	"net"
 	"strconv"
@@ -97,6 +98,7 @@ type PeerServer struct{
 
 	TimeSource           blockchain.MedianTimeSource
 	BlockManager         *blkmgr.BlockManager
+	txMemPool            *mempool.TxPool
 
 	services             protocol.ServiceFlag
 
@@ -388,6 +390,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			//OnGetCFilter:     sp.OnGetCFilter,
 			//OnGetCFHeaders:   sp.OnGetCFHeaders,
 			//OnGetCFTypes:     sp.OnGetCFTypes,
+			OnGetData:        sp.OnGetData,
 			OnInv:            sp.OnInv,
 			OnGetBlocks:      sp.OnGetBlocks,
 			OnBlock:          sp.OnBlock,

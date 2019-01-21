@@ -117,6 +117,10 @@ out:
 			if p.cfg.Listeners.OnInv != nil {
 				p.cfg.Listeners.OnInv(p, msg)
 		}
+		case *message.MsgGetData:
+			if p.cfg.Listeners.OnGetData != nil {
+				p.cfg.Listeners.OnGetData(p, msg)
+		}
 
 		/*
 		case *message.MsgMemPool:
@@ -142,11 +146,6 @@ out:
 		case *message.MsgNotFound:
 			if p.cfg.Listeners.OnNotFound != nil {
 				p.cfg.Listeners.OnNotFound(p, msg)
-			}
-
-		case *message.MsgGetData:
-			if p.cfg.Listeners.OnGetData != nil {
-				p.cfg.Listeners.OnGetData(p, msg)
 			}
 
 		case *message.MsgGetHeaders:

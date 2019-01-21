@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/noxproject/nox/core/types"
 	"net"
+	"time"
 )
 
 type Config struct {
@@ -60,6 +61,10 @@ type Config struct {
 	Upnp                 bool          `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
 	Whitelists           []string      `long:"whitelist" description:"Add an IP network or IP that will not be banned. (eg. 192.168.1.0/24 or ::1)"`
 	whitelists           []*net.IPNet
+	//P2P - server ban
+	DisableBanning       bool          `long:"nobanning" description:"Disable banning of misbehaving peers"`
+	BanDuration          time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
+	BanThreshold         uint32        `long:"banthreshold" description:"Maximum allowed ban score before disconnecting and banning misbehaving peers."`
 
 }
 

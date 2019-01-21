@@ -70,6 +70,9 @@ type MessageListeners struct {
 	// OnInv is invoked when a peer receives an inv wire message.
 	OnInv func(p *Peer, msg *message.MsgInv)
 
+	// OnGetData is invoked when a peer receives a getdata wire message.
+	OnGetData func(p *Peer, msg *message.MsgGetData)
+
 	/*
 	// OnSendHeaders is invoked when a peer receives a sendheaders message.
 	OnSendHeaders func(p *Peer, msg *message.MsgSendHeaders)
@@ -100,9 +103,6 @@ type MessageListeners struct {
 
 	// OnNotFound is invoked when a peer receives a notfound wire message.
 	OnNotFound func(p *Peer, msg *message.MsgNotFound)
-
-	// OnGetData is invoked when a peer receives a getdata wire message.
-	OnGetData func(p *Peer, msg *message.MsgGetData)
 
 	// OnGetHeaders is invoked when a peer receives a getheaders wire
 	// message.

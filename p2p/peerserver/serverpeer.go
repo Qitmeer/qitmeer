@@ -32,6 +32,7 @@ type serverPeer struct {
 	requestQueue    []*message.InvVect
 	requestedTxns   map[hash.Hash]struct{}
 	knownAddresses  map[string]struct{}
+	banScore        connmgr.DynamicBanScore
 	quit            chan struct{}
 
 	// addrsSent tracks whether or not the peer has responded to a getaddr

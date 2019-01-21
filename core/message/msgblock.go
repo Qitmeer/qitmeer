@@ -56,6 +56,7 @@ func (msg *MsgBlock) ClearTransactions() {
 // See Deserialize for decoding blocks stored to disk, such as in a database, as
 // opposed to decoding blocks from the wire.
 func (msg *MsgBlock) Decode(r io.Reader, pver uint32) error {
+	msg.Block = &types.Block{}
 	return msg.Block.Decode(r,pver)
 }
 
@@ -71,6 +72,7 @@ func (msg *MsgBlock) FromBytes(b []byte) error {
 // See Serialize for encoding blocks to be stored to disk, such as in a
 // database, as opposed to encoding blocks for the wire.
 func (msg *MsgBlock) Encode(w io.Writer, pver uint32) error {
+	msg.Block = &types.Block{}
 	return msg.Block.Encode(w, pver)
 }
 
