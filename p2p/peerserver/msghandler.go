@@ -93,16 +93,7 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 	sp.server.TimeSource.AddTimeSample(p.Addr(), msg.Timestamp)
 
 	// Signal the block manager this peer is a new sync candidate.
-	serverPeer := &peer.ServerPeer{
-			TxProcessed: make(chan struct{}, 1),
-			BlockProcessed: make(chan struct{}, 1),
-		}
-	serverPeer.Peer = sp.Peer
-
-		//	TxProcessed: make(chan struct{}, 1),
-		//	BlockProcessed: make(chan struct{}, 1),
-		//}
-	sp.server.BlockManager.NewPeer(serverPeer)
+	sp.server.BlockManager.NewPeer(sp.syncPeer)
 
 	// Add valid peer to the server.
 	sp.server.AddPeer(sp)

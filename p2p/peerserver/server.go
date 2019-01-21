@@ -345,6 +345,7 @@ func (s *PeerServer) inboundPeerConnected(conn net.Conn) {
 	sp.isWhitelisted = isWhitelisted(s.cfg, conn.RemoteAddr())
 	sp.Peer = peer.NewInboundPeer(newPeerConfig(sp))
 	sp.AssociateConnection(conn)
+	sp.syncPeer.Peer = sp.Peer
 	go s.peerDoneHandler(sp)
 	go sp.syncPeerHandler()
 }
@@ -362,10 +363,12 @@ func (s *PeerServer) outboundPeerConnected(c *connmgr.ConnReq, conn net.Conn) {
 		s.connManager.Disconnect(c.ID())
 	}
 	sp.Peer = p
+	sp.syncPeer.Peer = sp.Peer
 	sp.connReq = c
-	sp.isWhitelisted = isWhitelisted(s.cfg,conn.RemoteAddr())
+	sp.isWhitelisted = isWhitelisted(s.cfg, conn.RemoteAddr())
 	sp.AssociateConnection(conn)
 	go s.peerDoneHandler(sp)
+	go sp.syncPeerHandler()
 	s.addrManager.Attempt(sp.NA())
 }
 
@@ -380,13 +383,12 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			//OnGetMiningState: sp.OnGetMiningState,
 			//OnMiningState:    sp.OnMiningState,
 			//OnTx:             sp.OnTx,
-			//OnInv:            sp.OnInv,
 			//OnHeaders:        sp.OnHeaders,
-			//OnGetData:        sp.OnGetData,
 			//OnGetHeaders:     sp.OnGetHeaders,
 			//OnGetCFilter:     sp.OnGetCFilter,
 			//OnGetCFHeaders:   sp.OnGetCFHeaders,
 			//OnGetCFTypes:     sp.OnGetCFTypes,
+			OnInv:            sp.OnInv,
 			OnGetBlocks:      sp.OnGetBlocks,
 			OnBlock:          sp.OnBlock,
 			OnGetAddr:        sp.OnGetAddr,

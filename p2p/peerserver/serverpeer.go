@@ -59,13 +59,12 @@ func newServerPeer(s *PeerServer, isPersistent bool) *serverPeer {
 		persistent:      isPersistent,
 		knownAddresses:  make(map[string]struct{}),
 		quit:            make(chan struct{}),
-		syncPeer: &peer.ServerPeer{
-			TxProcessed: make(chan struct{}, 1),
-			BlockProcessed: make(chan struct{}, 1),
+		syncPeer : &peer.ServerPeer{
+			TxProcessed:     make(chan struct{}, 1),
+			BlockProcessed:  make(chan struct{}, 1),
 			RequestedBlocks: make(map[hash.Hash]struct{}),
 			RequestedTxns:   make(map[hash.Hash]struct{}),
-		},
-	}
+	}}
 }
 
 func (sp *serverPeer) syncPeerHandler() {

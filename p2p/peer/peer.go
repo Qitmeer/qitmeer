@@ -410,7 +410,7 @@ func (p *Peer) UpdateLastBlockHeight(newHeight uint64) {
 //
 // This function is safe for concurrent access.
 func (p *Peer) UpdateLastAnnouncedBlock(blkHash *hash.Hash) {
-	log.Trace("Updating last blk for peer %v, %v", p.addr, blkHash)
+	log.Trace("Updating last blk for peer", "peer",p.addr, "block hash",blkHash)
 
 	p.statsMtx.Lock()
 	p.lastAnnouncedBlock = blkHash
