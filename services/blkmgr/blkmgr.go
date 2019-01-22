@@ -544,6 +544,18 @@ out:
 			case getSyncPeerMsg:
 				log.Trace("blkmgr msgChan getSyncPeerMsg", "msg", msg)
 				msg.reply <- b.syncPeer
+			case tipGenerationMsg:
+				log.Trace("blkmgr msgChan tipGenerationMsg", "msg", msg)
+				g, err := b.chain.TipGeneration()
+				msg.reply <- tipGenerationResponse{
+					hashes: g,
+					err:    err,
+				}
+			case requestFromPeerMsg:
+				err := b.requestFromPeer(msg.peer, msg.blocks)
+				msg.reply <- requestFromPeerResponse{
+					err: err,
+				}
 
 				/*
 			case *txMsg:
@@ -554,11 +566,6 @@ out:
 				b.handleHeadersMsg(msg)
 
 
-			case requestFromPeerMsg:
-				err := b.requestFromPeer(msg.peer, msg.blocks, msg.txs)
-				msg.reply <- requestFromPeerResponse{
-					err: err,
-				}
 
 			case calcNextReqDiffNodeMsg:
 				difficulty, err :=
@@ -638,12 +645,7 @@ out:
 					err: err,
 				}
 
-			case tipGenerationMsg:
-				g, err := b.chain.TipGeneration()
-				msg.reply <- tipGenerationResponse{
-					hashes: g,
-					err:    err,
-				}
+
 			*/
 
 			case processBlockMsg:
@@ -894,6 +896,100 @@ func (b *BlockManager) QueueInv(inv *message.MsgInv, sp *peer.ServerPeer) {
 	}
 
 	b.msgChan <- &invMsg{inv: inv, peer: sp}
+}
+
+// tipGenerationResponse is a response sent to the reply channel of a
+// tipGenerationMsg query.
+type tipGenerationResponse struct {
+	hashes []hash.Hash
+	err    error
+}
+
+// tipGenerationMsg is a message type to be sent across the message
+// channel for requesting the required the entire generation of a
+// block node.
+type tipGenerationMsg struct {
+	reply chan tipGenerationResponse
+}
+
+// TipGeneration returns the hashes of all the children of the current best
+// chain tip.  It is funneled through the block manager since blockchain is not
+// safe for concurrent access.
+func (b *BlockManager) TipGeneration() ([]hash.Hash, error) {
+	reply := make(chan tipGenerationResponse)
+	b.msgChan <- tipGenerationMsg{reply: reply}
+	response := <-reply
+	return response.hashes, response.err
+}
+
+
+// requestFromPeerMsg is a message type to be sent across the message channel
+// for requesting either blocks or transactions from a given peer. It routes
+// this through the block manager so the block manager doesn't ban the peer
+// when it sends this information back.
+type requestFromPeerMsg struct {
+	peer   *peer.ServerPeer
+	blocks []*hash.Hash
+	reply  chan requestFromPeerResponse
+}
+
+// requestFromPeerResponse is a response sent to the reply channel of a
+// requestFromPeerMsg query.
+type requestFromPeerResponse struct {
+	err error
+}
+
+// RequestFromPeer allows an outside caller to request blocks or transactions
+// from a peer. The requests are logged in the blockmanager's internal map of
+// requests so they do not later ban the peer for sending the respective data.
+func (b *BlockManager) RequestFromPeer(p *peer.ServerPeer, blocks[]*hash.Hash) error {
+	reply := make(chan requestFromPeerResponse)
+	b.msgChan <- requestFromPeerMsg{peer: p, blocks: blocks, reply: reply}
+	response := <-reply
+
+	return response.err
+}
+
+func (b *BlockManager) requestFromPeer(p *peer.ServerPeer, blocks []*hash.Hash) error {
+	msgResp := message.NewMsgGetData()
+
+	// Add the blocks to the request.
+	for _, bh := range blocks {
+		// If we've already requested this block, skip it.
+		_, alreadyReqP := p.RequestedBlocks[*bh]
+		_, alreadyReqB := b.requestedBlocks[*bh]
+
+		if alreadyReqP || alreadyReqB {
+			continue
+		}
+
+		// Check to see if we already have this block, too.
+		// If so, skip.
+		exists, err := b.chain.HaveBlock(bh)
+		if err != nil {
+			return err
+		}
+		if exists {
+			continue
+		}
+
+		err = msgResp.AddInvVect(message.NewInvVect(message.InvTypeBlock, bh))
+		if err != nil {
+			return fmt.Errorf("unexpected error encountered building request "+
+				"for mining state block %v: %v",
+				bh, err.Error())
+		}
+
+		p.RequestedBlocks[*bh] = struct{}{}
+		b.requestedBlocks[*bh] = struct{}{}
+		b.requestedEverBlocks[*bh] = 0
+	}
+
+	if len(msgResp.InvList) > 0 {
+		p.QueueMessage(msgResp, nil)
+	}
+
+	return nil
 }
 
 

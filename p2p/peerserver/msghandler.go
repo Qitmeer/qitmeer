@@ -357,3 +357,50 @@ func (sp *serverPeer) OnGetData(p *peer.Peer, msg *message.MsgGetData) {
 		<-doneChan
 	}
 }
+
+// OnGetMiningState is invoked when a peer receives a getminings wire message.
+// It constructs a list of the current best blocks and votes that should be
+// mined on and pushes a miningstate wire message back to the requesting peer.
+func (sp *serverPeer) OnGetMiningState(p *peer.Peer, msg *message.MsgGetMiningState) {
+	// Access the block manager and get the list of best blocks to mine on.
+	bm := sp.server.BlockManager
+	best := bm.GetChain().BestSnapshot()
+
+	// Obtain the entire generation of blocks stemming from the parent of
+	// the current tip.
+	children, err := bm.TipGeneration()
+	if err != nil {
+		log.Warn(fmt.Sprintf("failed to access block manager to get the generation "+
+			"for a mining state request (block: %v): %v", best.Hash, err))
+		return
+	}
+
+	// Get the list of blocks of blocks that are eligible to built on and
+	// limit the list to the maximum number of allowed eligible block hashes
+	// per mining state message.  There is nothing to send when there are no
+	// eligible blocks.
+
+	blockHashes := children   // TODO, the children should be sorted by rules
+	numBlocks := len(blockHashes)
+	if numBlocks == 0 {
+		return
+	}
+	if numBlocks > message.MaxMSBlocksAtHeadPerMsg {
+		blockHashes = blockHashes[:message.MaxMSBlocksAtHeadPerMsg]
+	}
+
+	err = sp.pushMiningStateMsg(uint32(best.Height), blockHashes)
+	if err != nil {
+		log.Warn(fmt.Sprintf("unexpected error while pushing data for "+
+			"mining state request: %v", err.Error()))
+	}
+}
+
+// OnMiningState is invoked when a peer receives a miningstate wire message.  It
+// requests the data advertised in the message from the peer.
+func (sp *serverPeer) OnMiningState(p *peer.Peer, msg *message.MsgMiningState) {
+	err := sp.server.BlockManager.RequestFromPeer(sp.syncPeer, msg.BlockHashes)
+	if err != nil {
+		log.Warn("couldn't handle mining state message", "error",err.Error())
+	}
+}

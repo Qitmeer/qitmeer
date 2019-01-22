@@ -609,6 +609,22 @@ func (b *BlockChain) isCurrent() bool {
 	return tip.timestamp >= minus24Hours
 }
 
+// TipGeneration returns the entire generation of blocks stemming from the
+// parent of the current tip.
+//
+// The function is safe for concurrent access.
+func (b *BlockChain) TipGeneration() ([]hash.Hash, error) {
+	b.chainLock.Lock()
+	b.index.RLock()
+	nodes := b.index.chainTips[b.bestChain.Tip().height]
+	nodeHashes := make([]hash.Hash, len(nodes))
+	for i, n := range nodes {
+		nodeHashes[i] = n.hash
+	}
+	b.index.RUnlock()
+	b.chainLock.Unlock()
+	return nodeHashes, nil
+}
 
 // dumpBlockChain dumps a map of the blockchain blocks as serialized bytes.
 func (b *BlockChain) DumpBlockChain(dumpFile string, params *params.Params, height uint64) error {

@@ -9,6 +9,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/message"
 	"github.com/noxproject/nox/core/protocol"
 	"github.com/noxproject/nox/p2p/peer"
 	"sync/atomic"
@@ -103,10 +104,8 @@ func (b *BlockManager) syncMiningStateAfterSync(sp *peer.ServerPeer) {
 				return
 			}
 			if b.IsCurrent() {
-				//TODO send MsgGetMiningState
-				log.Trace("TODO, send MsgGetMiningState")
-				//msg := message.NewMsgGetMiningState()
-				//sp.QueueMessage(msg, nil)
+				msg := message.NewMsgGetMiningState()
+				sp.QueueMessage(msg, nil)
 				return
 			}
 		}

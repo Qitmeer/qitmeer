@@ -101,32 +101,31 @@ out:
 			if p.cfg.Listeners.OnPong != nil {
 				p.cfg.Listeners.OnPong(p, msg)
 			}
+
 		case *message.MsgTx:
 			if p.cfg.Listeners.OnTx != nil {
 				p.cfg.Listeners.OnTx(p, msg)
 			}
+
 		case *message.MsgBlock:
 			if p.cfg.Listeners.OnBlock != nil {
 				p.cfg.Listeners.OnBlock(p, msg, buf)
 			}
+
 		case *message.MsgGetBlocks:
 			if p.cfg.Listeners.OnGetBlocks != nil {
 				p.cfg.Listeners.OnGetBlocks(p, msg)
 			}
+
 		case *message.MsgInv:
 			if p.cfg.Listeners.OnInv != nil {
 				p.cfg.Listeners.OnInv(p, msg)
 		}
+
 		case *message.MsgGetData:
 			if p.cfg.Listeners.OnGetData != nil {
 				p.cfg.Listeners.OnGetData(p, msg)
 		}
-
-		/*
-		case *message.MsgMemPool:
-			if p.cfg.Listeners.OnMemPool != nil {
-				p.cfg.Listeners.OnMemPool(p, msg)
-			}
 
 		case *message.MsgGetMiningState:
 			if p.cfg.Listeners.OnGetMiningState != nil {
@@ -137,6 +136,14 @@ out:
 			if p.cfg.Listeners.OnMiningState != nil {
 				p.cfg.Listeners.OnMiningState(p, msg)
 			}
+
+		/*
+		case *message.MsgMemPool:
+			if p.cfg.Listeners.OnMemPool != nil {
+				p.cfg.Listeners.OnMemPool(p, msg)
+			}
+
+
 
 		case *message.MsgHeaders:
 			if p.cfg.Listeners.OnHeaders != nil {
