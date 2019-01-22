@@ -64,8 +64,7 @@ var (
 
 // Use start to begin accepting connections from peers.
 // peer server handling communications to and from nox peers.
-type PeerServer struct{
-
+type PeerServer struct {
 	// These fields are variables must only be used atomically.
 	bytesReceived uint64 // Total bytes received from all peers since start.
 	bytesSent     uint64 // Total bytes sent by all peers since start.
@@ -74,34 +73,33 @@ type PeerServer struct{
 	shutdown      int32  // p2p server stop flag
 
     // address manager caching the peers
-	addrManager          *addmgr.AddrManager
+	addrManager *addmgr.AddrManager
 
 	// conn manager handles network connections.
-	connManager          *connmgr.ConnManager
-	nat                  NAT
+	connManager *connmgr.ConnManager
+	nat         NAT
 
-	newPeers             chan *serverPeer
-	donePeers            chan *serverPeer
-	banPeers             chan *serverPeer
+	newPeers  chan *serverPeer
+	donePeers chan *serverPeer
+	banPeers  chan *serverPeer
 
 	// peer handler chan
-	relayInv             chan relayMsg
-	broadcast            chan broadcastMsg
-	peerHeightsUpdate    chan updatePeerHeightsMsg
-	query                chan interface{}
-	quit          		 chan struct{}
+	relayInv          chan relayMsg
+	broadcast         chan broadcastMsg
+	peerHeightsUpdate chan updatePeerHeightsMsg
+	query             chan interface{}
+	quit              chan struct{}
 
-	wg                   sync.WaitGroup
+	wg sync.WaitGroup
 
-	chainParams          *params.Params
-	cfg                  *config.Config
+	chainParams *params.Params
+	cfg         *config.Config
 
-	TimeSource           blockchain.MedianTimeSource
-	BlockManager         *blkmgr.BlockManager
-	txMemPool            *mempool.TxPool
+	TimeSource   blockchain.MedianTimeSource
+	BlockManager *blkmgr.BlockManager
+	txMemPool    *mempool.TxPool
 
 	services             protocol.ServiceFlag
-
 }
 
 func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, error){
@@ -525,9 +523,11 @@ func (s *PeerServer) AddBytesSent(bytesSent uint64) {
 	atomic.AddUint64(&s.bytesSent, bytesSent)
 }
 
+
 // peerDoneHandler handles peer disconnects by notifiying the server that it's
 // done.
 func (s *PeerServer) peerDoneHandler(sp *serverPeer) {
+	log.Trace("start peerDoneHandler")
 	sp.WaitForDisconnect()
 	s.donePeers <- sp
 
@@ -536,8 +536,8 @@ func (s *PeerServer) peerDoneHandler(sp *serverPeer) {
 		s.BlockManager.DonePeer(sp.syncPeer)
 	}
 	close(sp.quit)
+	log.Trace("stop peerDoneHandler")
 }
-
 // peerHandler is used to handle peer operations such as adding and removing
 // peers to and from the server, banning peers, and broadcasting messages to
 // peers.  It must be run in a goroutine.
@@ -632,7 +632,6 @@ cleanup:
 }
 
 
-
 // RelayInventory relays the passed inventory vector to all connected peers
 // that are not already known to have it.
 func (s *PeerServer) RelayInventory(invVect *message.InvVect, data interface{}) {
@@ -650,5 +649,4 @@ func (s *PeerServer) UpdatePeerHeights(latestBlkHash *hash.Hash, latestHeight ui
 		originPeer: updateSource,
 	}
 }
-
 

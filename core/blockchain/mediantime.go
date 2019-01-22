@@ -193,7 +193,7 @@ func (m *medianTime) AddTimeSample(sourceID string, timeVal time.Time) {
 	}
 
 	medianDuration := time.Duration(m.offsetSecs) * time.Second
-	log.Debug("New time offset: %v", medianDuration)
+	log.Debug("New time offset", "duration",medianDuration)
 }
 
 // Offset returns the number of seconds to adjust the local clock based upon the

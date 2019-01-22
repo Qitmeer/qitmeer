@@ -69,7 +69,7 @@ out:
 			case msg := <-sp.syncPeer.RequiredUpdatePeerHeights:
 				sp.server.UpdatePeerHeights(msg.Hash, msg.Height,sp)
 
-			case <-sp.server.quit:
+			case <-sp.quit:
 				break out
 		}
 	}
