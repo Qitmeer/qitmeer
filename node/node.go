@@ -91,7 +91,6 @@ func (n *Node) Stop() error {
 		}
 		log.Debug("Service stopped", "service",kind)
 	}
-
 	// Signal the node quit.
 	close(n.quit)
 

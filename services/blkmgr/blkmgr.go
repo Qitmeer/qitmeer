@@ -355,18 +355,19 @@ func (b *BlockManager) Stop() error {
 			"shutting down")
 		return nil
 	}
-
 	log.Info("Block manager shutting down")
+	// drain the msg channel before send quit signal
+	for len(b.msgChan) > 0 {
+		<-b.msgChan
+	}
 	close(b.quit)
-	log.Info("Block manager wait for shutting down ..")
-	b.wg.Wait()
-	log.Info("Block manager stopped")
 	return nil
 }
 
 func (b *BlockManager) WaitForStop() {
 	log.Info("Wait For Block manager stop ...")
 	b.wg.Wait()
+	log.Info("Block manager stopped")
 }
 
 // limitMap is a helper function for maps that require a maximum limit by
@@ -735,19 +736,6 @@ out:
 			break out
 		}
 	}
-
-	// Drain channels before exiting so nothing is left waiting around
-	// to send.
-cleanup:
-	for {
-		select {
-		case <-b.msgChan:
-			log.Trace("Block msg clean up ...")
-		default:
-			break cleanup
-		}
-	}
-	log.Trace("Block msg clean up done")
 
 	b.wg.Done()
 	log.Trace("Block handler done")

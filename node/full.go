@@ -63,6 +63,7 @@ func (nox *NoxFull) Stop() error {
 	log.Info("try stop bm")
 
 	nox.blockManager.Stop()
+	nox.blockManager.WaitForStop()
 
 	log.Info("try stop cpu miner")
 	// Stop the CPU miner if needed.
