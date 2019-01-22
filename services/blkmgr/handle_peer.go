@@ -43,6 +43,48 @@ func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
 	}
 }
 
+// handleDonePeerMsg deals with peers that have signalled they are done.  It
+// removes the peer as a candidate for syncing and in the case where it was
+// the current sync peer, attempts to select a new best peer to sync from.  It
+// is invoked from the syncHandler goroutine.
+func (b *BlockManager) handleDonePeerMsg(peers *list.List, sp *peer.ServerPeer) {
+	// Remove the peer from the list of candidate peers.
+	for e := peers.Front(); e != nil; e = e.Next() {
+		if e.Value == sp {
+			peers.Remove(e)
+			break
+		}
+	}
+
+	log.Info("Lost peer", "peer",sp)
+
+	// Remove requested transactions from the global map so that they will
+	// be fetched from elsewhere next time we get an inv.
+	for k := range sp.RequestedTxns {
+		delete(b.requestedTxns, k)
+	}
+
+	// Remove requested blocks from the global map so that they will be
+	// fetched from elsewhere next time we get an inv.
+	// TODO(oga) we could possibly here check which peers have these blocks
+	// and request them now to speed things up a little.
+	for k := range sp.RequestedBlocks {
+		delete(b.requestedBlocks, k)
+	}
+
+	// Attempt to find a new peer to sync from if the quitting peer is the
+	// sync peer.  Also, reset the headers-first state if in headers-first
+	// mode so
+	if b.syncPeer != nil && b.syncPeer == sp {
+		b.syncPeer = nil
+		if b.headersFirstMode {
+			best := b.chain.BestSnapshot()
+			b.resetHeaderState(&best.Hash, best.Height)
+		}
+		b.startSync(peers)
+	}
+}
+
 // isSyncCandidate returns whether or not the peer is a candidate to consider
 // syncing from.
 func (b *BlockManager) isSyncCandidate(sp *peer.ServerPeer) bool {
@@ -69,6 +111,12 @@ func (b *BlockManager) syncMiningStateAfterSync(sp *peer.ServerPeer) {
 			}
 		}
 	}()
+}
+
+// getSyncPeerMsg is a message type to be sent across the message channel for
+// retrieving the current sync peer.
+type getSyncPeerMsg struct {
+	reply chan *peer.ServerPeer
 }
 
 // startSync will choose the best peer among the available candidate peers to

@@ -76,6 +76,11 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 func (n *Node) Stop() error {
 	log.Info("Stopping Server")
 
+	// stop rpc server
+	n.rpcServer.Stop()
+	// stop p2p server
+	n.peerServer.Stop()
+
 	failure := &ServiceStopError{
 		Services: make(map[reflect.Type]error),
 	}
@@ -86,10 +91,6 @@ func (n *Node) Stop() error {
 		}
 		log.Debug("Service stopped", "service",kind)
 	}
-	// stop rpc server
-	n.rpcServer.Stop()
-	// stop p2p server
-	n.peerServer.Stop()
 
 	// Signal the node quit.
 	close(n.quit)

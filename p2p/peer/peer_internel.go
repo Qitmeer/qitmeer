@@ -72,8 +72,9 @@ type Peer struct {
 	// - negotiated protocol version
 	protocolVersion      uint32
 
-	versionSent          bool  // sent the version msg
-	verAckReceived       bool  // received the version ack msg
+	versionSent          bool  // peer sent the version msg
+	verAckReceived       bool  // peer received the version ack msg
+	sendHeadersPreferred bool  // peer wants header instead of block
 
 	// Inv
 	knownInventory     *invcache.InventoryCache

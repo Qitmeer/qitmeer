@@ -14,7 +14,6 @@ import (
 	"github.com/noxproject/nox/p2p/connmgr"
 	"github.com/noxproject/nox/p2p/peer"
 	"sync"
-	"time"
 )
 
 // serverPeer extends the peer to maintain state shared by the p2p server and
@@ -42,15 +41,8 @@ type serverPeer struct {
 	// The following chans are used to sync blockmanager and server.
 	syncPeer        *peer.ServerPeer
 }
-// peerState maintains state of inbound, persistent, outbound peers as well
-// as banned peers and outbound groups.
-type peerState struct {
-	inboundPeers    map[int32]*serverPeer
-	outboundPeers   map[int32]*serverPeer
-	persistentPeers map[int32]*serverPeer
-	banned          map[string]time.Time
-	outboundGroups  map[string]int
-}
+
+
 
 // newServerPeer returns a new serverPeer instance. The peer needs to be set by
 // the caller.
@@ -69,6 +61,7 @@ func newServerPeer(s *PeerServer, isPersistent bool) *serverPeer {
 }
 
 func (sp *serverPeer) syncPeerHandler() {
+log.Trace("start syncPeerHandler")
 out:
 	for {
 		select {
@@ -80,6 +73,7 @@ out:
 				break out
 		}
 	}
+log.Trace("stop syncPeerHandler done")
 }
 
 // pushAddrMsg sends an addr message to the connected peer using the provided
@@ -121,6 +115,17 @@ func (sp *serverPeer) setDisableRelayTx(disable bool) {
 	sp.relayMtx.Lock()
 	sp.disableRelayTx = disable
 	sp.relayMtx.Unlock()
+}
+
+// relayTxDisabled returns whether or not relaying of transactions for the given
+// peer is disabled.
+// It is safe for concurrent access.
+func (sp *serverPeer) relayTxDisabled() bool {
+	sp.relayMtx.Lock()
+	isDisabled := sp.disableRelayTx
+	sp.relayMtx.Unlock()
+
+	return isDisabled
 }
 
 

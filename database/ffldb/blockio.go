@@ -664,8 +664,8 @@ func (s *blockStore) handleRollback(oldBlockFileNum, oldBlockOffset uint32) {
 		wc.curOffset = oldBlockOffset
 	}()
 
-	dblog.Debug("ROLLBACK: Rolling back to file %d, offset %d",
-		oldBlockFileNum, oldBlockOffset)
+	dblog.Debug("ROLLBACK: Rolling back to",
+		"file num", oldBlockFileNum, "offset", oldBlockOffset)
 
 	// Close the current write file if it needs to be deleted.  Then delete
 	// all files that are newer than the provided rollback file while

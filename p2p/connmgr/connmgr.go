@@ -306,7 +306,7 @@ out:
 					if connReq.conn != nil {
 						connReq.conn.Close()
 					}
-					log.Debug("Disconnected from %v", connReq)
+					log.Debug(fmt.Sprintf("Disconnected from %v", connReq))
 					delete(conns, msg.id)
 
 					if cm.cfg.OnDisconnection != nil {

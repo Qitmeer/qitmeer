@@ -17,7 +17,7 @@ import (
 // to outHandler to be actually written.
 func (p *Peer) queueHandler() {
 	pendingMsgs := list.New()
-	//invSendQueue := list.New()
+	invSendQueue := list.New()
 	trickleTicker := time.NewTicker(trickleTimeout)
 	defer trickleTicker.Stop()
 
@@ -62,13 +62,12 @@ out:
 			val := pendingMsgs.Remove(next)
 			p.sendQueue <- val.(outMsg)
 
-		/*
 		case iv := <-p.outputInvChan:
 			// No handshake?  They'll find out soon enough.
 			if p.VersionKnown() {
 				invSendQueue.PushBack(iv)
 			}
-
+		/*
 		case <-trickleTicker.C:
 			// Don't send anything if we're disconnecting or there
 			// is no queued inventory.
@@ -129,11 +128,9 @@ cleanup:
 			if msg.doneChan != nil {
 				msg.doneChan <- struct{}{}
 			}
-		/*
 		case <-p.outputInvChan:
 			// Just drain channel
 		// sendDoneQueue is buffered so doesn't need draining.
-		*/
 		default:
 			break cleanup
 		}

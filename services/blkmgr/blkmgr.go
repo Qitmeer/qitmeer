@@ -32,7 +32,7 @@ type BlockManager struct {
 	config              *config.Config
 	params              *params.Params
 
-	notifyMgr           *notify.NotifyMgr
+	notify              notify.Notify
 
 	//TODO, decoupling mempool with bm
 	txMemPool			*mempool.TxPool
@@ -73,14 +73,14 @@ type BlockManager struct {
 
 // NewBlockManager returns a new block manager.
 // Use Start to begin processing asynchronous block and inv updates.
-func NewBlockManager(ntmgr *notify.NotifyMgr,indexManager blockchain.IndexManager,db database.DB,
+func NewBlockManager(ntmgr notify.Notify,indexManager blockchain.IndexManager,db database.DB,
 	timeSource blockchain.MedianTimeSource, sigCache *txscript.SigCache,
 	cfg *config.Config, par *params.Params, /*server *peerserver.PeerServer,*/
 	interrupt <-chan struct{}) (*BlockManager, error) {
 	bm := BlockManager{
 		config:              cfg,
 		params:              par,
-		notifyMgr:           ntmgr,
+		notify:              ntmgr,
 		rejectedTxns:        make(map[hash.Hash]struct{}),
 		requestedTxns:       make(map[hash.Hash]struct{}),
 		requestedEverTxns:   make(map[hash.Hash]uint8),
@@ -203,8 +203,8 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		iv := message.NewInvVect(message.InvTypeBlock, blockHash)
 		log.Info("relay inv","inv",iv)
 
-		// TODO the p2p layer
-		//b.peerServer.RelayInventory(iv, block.Block().Header)
+		b.notify.RelayInventory(iv, block.Block().Header)
+
 	// A block has been connected to the main block chain.
 	case blockchain.BlockConnected:
 		log.Trace("Chain connected notification.")
@@ -247,7 +247,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			b.txMemPool.RemoveDoubleSpends(tx)
 			b.txMemPool.RemoveOrphan(tx.Hash())
 			acceptedTxs := b.txMemPool.ProcessOrphans(tx.Hash())
-			b.notifyMgr.AnnounceNewTransactions(acceptedTxs)
+			b.notify.AnnounceNewTransactions(acceptedTxs)
 		}
 
 		/*
@@ -358,8 +358,15 @@ func (b *BlockManager) Stop() error {
 
 	log.Info("Block manager shutting down")
 	close(b.quit)
+	log.Info("Block manager wait for shutting down ..")
 	b.wg.Wait()
+	log.Info("Block manager stopped")
 	return nil
+}
+
+func (b *BlockManager) WaitForStop() {
+	log.Info("Wait For Block manager stop ...")
+	b.wg.Wait()
 }
 
 // limitMap is a helper function for maps that require a maximum limit by
@@ -518,14 +525,25 @@ out:
 	for {
 		select {
 		case m := <-b.msgChan:
+			log.Trace("blkmgr msgChan received ...", "msg", m,)
 			switch msg := m.(type) {
 			case *newPeerMsg:
+				log.Trace("blkmgr msgChan newPeer", "msg", msg,)
 				b.handleNewPeerMsg(candidatePeers, msg.peer)
 			case *blockMsg:
+				log.Trace("blkmgr msgChan blockMsg", "msg", msg,)
 				b.handleBlockMsg(msg)
 				msg.peer.BlockProcessed <- struct{}{}
 			case *invMsg:
+				log.Trace("blkmgr msgChan invMsg", "msg", msg,)
 				b.handleInvMsg(msg)
+			case *donePeerMsg:
+				log.Trace("blkmgr msgChan donePeerMsg", "msg", msg,)
+				b.handleDonePeerMsg(candidatePeers, msg.peer)
+			case getSyncPeerMsg:
+				log.Trace("blkmgr msgChan getSyncPeerMsg", "msg", msg,)
+				msg.reply <- b.syncPeer
+
 			/*
 			case *txMsg:
 				b.handleTxMsg(msg)
@@ -534,11 +552,6 @@ out:
 			case *headersMsg:
 				b.handleHeadersMsg(msg)
 
-			case *donePeerMsg:
-				b.handleDonePeerMsg(candidatePeers, msg.peer)
-
-			case getSyncPeerMsg:
-				msg.reply <- b.syncPeer
 
 			case requestFromPeerMsg:
 				err := b.requestFromPeer(msg.peer, msg.blocks, msg.txs)
@@ -718,9 +731,23 @@ out:
 			}
 
 		case <-b.quit:
+			log.Trace("blkmgr quit received, break out")
 			break out
 		}
 	}
+
+	// Drain channels before exiting so nothing is left waiting around
+	// to send.
+cleanup:
+	for {
+		select {
+		case <-b.msgChan:
+			log.Trace("Block msg clean up ...")
+		default:
+			break cleanup
+		}
+	}
+	log.Trace("Block msg clean up done")
 
 	b.wg.Done()
 	log.Trace("Block handler done")

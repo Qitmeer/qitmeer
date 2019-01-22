@@ -495,6 +495,9 @@ func (p *PeerServer) Stop() error {
 
 	// Signal the remaining goroutines to quit.
 	close(p.quit)
+	log.Warn("wait for P2P stop ...")
+	p.wg.Wait()
+	log.Warn("P2P Server stopped")
 	return nil
 }
 
@@ -597,6 +600,11 @@ out:
 			s.handleQuery(state, qmsg)
 
 		case <-s.quit:
+			// Disconnect all peers on server shutdown.
+			state.forAllPeers(func(sp *serverPeer) {
+				log.Trace("Shutdown peer", "peer",sp)
+				sp.Disconnect()
+			})
 			break out
 		}
 	}
@@ -623,41 +631,7 @@ cleanup:
 	log.Trace("Peer handler done")
 }
 
-// handleAddPeerMsg deals with adding new peers.  It is invoked from the
-// peerHandler goroutine.
-func (s *PeerServer) handleAddPeerMsg(state *peerState, sp *serverPeer) bool {
-	return false
-}
 
-// handleDonePeerMsg deals with peers that have signalled they are done.  It is
-// invoked from the peerHandler goroutine.
-func (s *PeerServer) handleDonePeerMsg(state *peerState, sp *serverPeer) {
-
-}
-
-// handleUpdatePeerHeight updates the heights of all peers who were known to
-// announce a block we recently accepted.
-func (s *PeerServer) handleUpdatePeerHeights(state *peerState, umsg updatePeerHeightsMsg) {
-
-}
-
-// handleBanPeerMsg deals with banning peers.  It is invoked from the
-// peerHandler goroutine.
-func (s *PeerServer) handleBanPeerMsg(state *peerState, sp *serverPeer) {
-
-}
-
-// handleRelayInvMsg deals with relaying inventory to peers that are not already
-// known to have it.  It is invoked from the peerHandler goroutine.
-func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
-
-}
-
-// handleBroadcastMsg deals with broadcasting messages to peers.  It is invoked
-// from the peerHandler goroutine.
-func (s *PeerServer) handleBroadcastMsg(state *peerState, bmsg *broadcastMsg) {
-
-}
 
 // RelayInventory relays the passed inventory vector to all connected peers
 // that are not already known to have it.

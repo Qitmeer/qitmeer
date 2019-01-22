@@ -17,6 +17,7 @@ import (
 	"github.com/noxproject/nox/services/mempool"
 	"github.com/noxproject/nox/services/miner"
 	"github.com/noxproject/nox/services/mining"
+	"github.com/noxproject/nox/services/notifymgr"
 	"time"
 )
 
@@ -25,7 +26,7 @@ type NoxFull struct {
 	// under node
 	node                 *Node
 	// msg notifier
-	nfManager            *notify.NotifyMgr
+	nfManager            notify.Notify
 	// database
 	db                   database.DB
 	// account/wallet service
@@ -88,7 +89,6 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 	}
 	nox := NoxFull{
 		node:         node,
-		nfManager:    &notify.NotifyMgr{},
 		db:           node.DB,
 		acctmanager:  acctmgr,
 		timeSource:   blockchain.NewMedianTime(),
@@ -108,6 +108,8 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 	if len(indexes) > 0 {
 		indexManager = index.NewManager(nox.db,indexes,node.Params)
 	}
+
+	nox.nfManager = &notifymgr.NotifyMgr{node.peerServer, node.rpcServer}
 
 	// block-manager
 	bm, err := blkmgr.NewBlockManager(nox.nfManager,indexManager,node.DB, nox.timeSource, nox.sigCache, node.Config, node.Params,

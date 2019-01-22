@@ -12,6 +12,9 @@ import (
 	"net"
 )
 
+//TODO, refactor all the util functions into the network and types,
+//remove depends from the addmgr for those functions
+
 var (
 	// rfc1918Nets specifies the IPv4 private address blocks as defined by
 	// by RFC1918 (10.0.0.0/8, 172.16.0.0/12, and 192.168.0.0/16).

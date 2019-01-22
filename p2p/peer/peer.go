@@ -20,16 +20,15 @@ import (
 	"time"
 )
 
-//TODO last-block from peer
-// LastBlock returns the last block of the peer.
+// ID returns the peer id.
 //
 // This function is safe for concurrent access.
-func (p *Peer) LastBlock() uint64 {
-	p.statsMtx.RLock()
-	lastBlock := p.lastBlock
-	p.statsMtx.RUnlock()
+func (p *Peer) ID() int32 {
+	p.flagsMtx.Lock()
+	id := p.id
+	p.flagsMtx.Unlock()
 
-	return lastBlock
+	return id
 }
 
 // NA returns the peer network address.
@@ -41,6 +40,17 @@ func (p *Peer) NA() *types.NetAddress {
 	p.flagsMtx.Unlock()
 
 	return na
+}
+
+// LastBlock returns the last block of the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) LastBlock() uint64 {
+	p.statsMtx.RLock()
+	lastBlock := p.lastBlock
+	p.statsMtx.RUnlock()
+
+	return lastBlock
 }
 
 // Inbound returns whether the peer is inbound.
@@ -198,6 +208,18 @@ func (p *Peer) ProtocolVersion() uint32 {
 	p.flagsMtx.Unlock()
 
 	return protocolVersion
+}
+
+// VerAckReceived returns whether or not a verack message was received by the
+// peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) VerAckReceived() bool {
+	p.flagsMtx.Lock()
+	verAckReceived := p.verAckReceived
+	p.flagsMtx.Unlock()
+
+	return verAckReceived
 }
 
 // PushRejectMsg sends a reject message for the provided command, reject code,
@@ -416,3 +438,65 @@ func (p *Peer) UpdateLastAnnouncedBlock(blkHash *hash.Hash) {
 	p.lastAnnouncedBlock = blkHash
 	p.statsMtx.Unlock()
 }
+
+// WantsHeaders returns if the peer wants header messages instead of
+// inventory vectors for blocks.
+//
+// This function is safe for concurrent access.
+func (p *Peer) WantsHeaders() bool {
+	p.flagsMtx.Lock()
+	sendHeadersPreferred := p.sendHeadersPreferred
+	p.flagsMtx.Unlock()
+
+	return sendHeadersPreferred
+}
+
+// QueueInventory adds the passed inventory to the inventory send queue which
+// might not be sent right away, rather it is trickled to the peer in batches.
+// Inventory that the peer is already known to have is ignored.
+//
+// This function is safe for concurrent access.
+func (p *Peer) QueueInventory(invVect *message.InvVect) {
+	// Don't add the inventory to the send queue if the peer is already
+	// known to have it.
+	if p.knownInventory.Exists(invVect) {
+		return
+	}
+
+	// Avoid risk of deadlock if goroutine already exited.  The goroutine
+	// we will be sending to hangs around until it knows for a fact that
+	// it is marked as disconnected and *then* it drains the channels.
+	if !p.Connected() {
+		return
+	}
+
+	p.outputInvChan <- invVect
+}
+
+// QueueInventoryImmediate adds the passed inventory to the send queue to be
+// sent immediately.  This should typically only be used for inventory that is
+// time sensitive such as new tip blocks or votes.  Normal inventory should be
+// announced via QueueInventory which instead trickles it to the peer in
+// batches.  Inventory that the peer is already known to have is ignored.
+//
+// This function is safe for concurrent access.
+func (p *Peer) QueueInventoryImmediate(invVect *message.InvVect) {
+	// Don't announce the inventory if the peer is already known to have it.
+	if p.knownInventory.Exists(invVect) {
+		return
+	}
+
+	// Avoid risk of deadlock if goroutine already exited.  The goroutine
+	// we will be sending to hangs around until it knows for a fact that
+	// it is marked as disconnected and *then* it drains the channels.
+	if !p.Connected() {
+		return
+	}
+
+	// Generate and queue a single inv message with the inventory vector.
+	invMsg := message.NewMsgInvSizeHint(1)
+	invMsg.AddInvVect(invVect)
+	p.AddKnownInventory(invVect)
+	p.outputQueue <- outMsg{msg: invMsg, doneChan: nil}
+}
+
