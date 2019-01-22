@@ -627,8 +627,6 @@ cleanup:
 			break cleanup
 		}
 	}
-//	s.BlockManager.Stop()
-//	s.BlockManager.WaitForStop()
 	s.wg.Done()
 	log.Trace("Peer handler done")
 }

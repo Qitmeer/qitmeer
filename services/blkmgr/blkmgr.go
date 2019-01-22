@@ -358,7 +358,7 @@ func (b *BlockManager) Stop() error {
 	log.Info("Block manager shutting down")
 	// drain the msg channel before send quit signal
 	for len(b.msgChan) > 0 {
-		<-b.msgChan
+		log.Trace("Drain Block manager msgchan","msg", <-b.msgChan)
 	}
 	close(b.quit)
 	return nil
@@ -526,26 +526,26 @@ out:
 	for {
 		select {
 		case m := <-b.msgChan:
-			log.Trace("blkmgr msgChan received ...", "msg", m,)
+			log.Trace("blkmgr msgChan received ...", "msg", m)
 			switch msg := m.(type) {
 			case *newPeerMsg:
-				log.Trace("blkmgr msgChan newPeer", "msg", msg,)
+				log.Trace("blkmgr msgChan newPeer", "msg", msg)
 				b.handleNewPeerMsg(candidatePeers, msg.peer)
 			case *blockMsg:
-				log.Trace("blkmgr msgChan blockMsg", "msg", msg,)
+				log.Trace("blkmgr msgChan blockMsg", "msg", msg)
 				b.handleBlockMsg(msg)
 				msg.peer.BlockProcessed <- struct{}{}
 			case *invMsg:
-				log.Trace("blkmgr msgChan invMsg", "msg", msg,)
+				log.Trace("blkmgr msgChan invMsg", "msg", msg)
 				b.handleInvMsg(msg)
 			case *donePeerMsg:
-				log.Trace("blkmgr msgChan donePeerMsg", "msg", msg,)
+				log.Trace("blkmgr msgChan donePeerMsg", "msg", msg)
 				b.handleDonePeerMsg(candidatePeers, msg.peer)
 			case getSyncPeerMsg:
-				log.Trace("blkmgr msgChan getSyncPeerMsg", "msg", msg,)
+				log.Trace("blkmgr msgChan getSyncPeerMsg", "msg", msg)
 				msg.reply <- b.syncPeer
 
-			/*
+				/*
 			case *txMsg:
 				b.handleTxMsg(msg)
 				msg.peer.txProcessed <- struct{}{}
@@ -695,14 +695,14 @@ out:
 
 			case processTransactionMsg:
 				acceptedTxs, err := b.txMemPool.ProcessTransaction(msg.tx,
-				msg.allowOrphans, msg.rateLimit, msg.allowHighFees)
+					msg.allowOrphans, msg.rateLimit, msg.allowHighFees)
 				msg.reply <- processTransactionResponse{
 					acceptedTxs: acceptedTxs,
 					err:         err,
 				}
 			case isCurrentMsg:
 				msg.reply <- b.current()
-			/*
+				/*
 			case pauseMsg:
 				// Wait until the sender unpauses the manager.
 				<-msg.unpause
@@ -728,15 +728,13 @@ out:
 				msg.reply <- setParentTemplateResponse{}
 
 			default:
-				log.Warn("Unknown message type", "msg",msg)
+				log.Warn("Unknown message type", "msg", msg)
 			}
-
 		case <-b.quit:
 			log.Trace("blkmgr quit received, break out")
 			break out
 		}
 	}
-
 	b.wg.Done()
 	log.Trace("Block handler done")
 }
