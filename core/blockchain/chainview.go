@@ -388,9 +388,13 @@ func (c *chainView) blockLocator(node *blockNode) BlockLocator {
 
 		// Calculate height of previous node to include ensuring the
 		// final node is the genesis block.
-		height := node.height - step
-		if height < 0 {
-			height = 0
+		// height := node.height - step
+		// if height < 0 {
+		//	 height = 0
+		// }
+		height := uint64(0)
+		if node.height > step {
+			height = node.height - step
 		}
 
 		// When the node is in the current chain view, all of its
