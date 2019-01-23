@@ -36,6 +36,7 @@ func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
 	peers.PushBack(sp)
 
 	// Start syncing by choosing the best candidate if needed.
+	log.Trace("Start syncing (NewPeer) by choosing the best candidate if needed", "peers",peers)
 	b.startSync(peers)
 
 	// Grab the mining state from this peer after we're synced.
@@ -76,12 +77,14 @@ func (b *BlockManager) handleDonePeerMsg(peers *list.List, sp *peer.ServerPeer) 
 	// Attempt to find a new peer to sync from if the quitting peer is the
 	// sync peer.  Also, reset the headers-first state if in headers-first
 	// mode so
+	log.Trace("comparing syncPeer with sp", "b.syncPeer",b.syncPeer, "sp", sp)
 	if b.syncPeer != nil && b.syncPeer == sp {
 		b.syncPeer = nil
 		if b.headersFirstMode {
 			best := b.chain.BestSnapshot()
 			b.resetHeaderState(&best.Hash, best.Height)
 		}
+		log.Trace("Start syncing (DonePeer) by choosing the best candidate if needed", "peers",peers)
 		b.startSync(peers)
 	}
 }

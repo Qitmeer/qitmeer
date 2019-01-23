@@ -1024,7 +1024,7 @@ func (b *BlockChain) connectBestChain(node *blockNode, block, parent *types.Seri
 	detachNodes, attachNodes := b.getReorganizeNodes(node)
 
 	// Reorganize the chain.
-	log.Info("REORGANIZE: Block %v is causing a reorganize.", node.hash)
+	log.Info(fmt.Sprintf("REORGANIZE: Block %v is causing a reorganize.", node.hash))
 	err := b.reorganizeChain(detachNodes, attachNodes)
 	if err != nil {
 		return 0, err

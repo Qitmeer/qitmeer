@@ -158,10 +158,8 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 	// A block has been accepted into the block chain.  Relay it to other peers
 	// and possibly notify RPC clients with the winning tickets.
 	case blockchain.BlockAccepted:
-		// Don't relay or notify RPC clients with winning tickets if we
-		// are not current. Other peers that are current should already
-		// know about it and clients, such as wallets, shouldn't be voting on
-		// old blocks.
+		// Don't relay if we are not current. Other peers that are current
+		// should already know about it
 		if !b.current() {
 			return
 		}
@@ -331,6 +329,8 @@ func (b *BlockManager) current() bool {
 	// No matter what chain thinks, if we are below the block we are syncing
 	// to we are not current.
 	if b.chain.BestSnapshot().Height < b.syncPeer.LastBlock() {
+		log.Trace("comparing the current best vs sync last",
+			"current.best", b.chain.BestSnapshot().Height, "sync.last",b.syncPeer.LastBlock())
 		return false
 	}
 
