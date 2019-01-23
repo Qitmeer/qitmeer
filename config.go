@@ -46,6 +46,7 @@ var (
 	defaultLogDir      = filepath.Join(defaultHomeDir, defaultLogDirname)
 	defaultRPCKeyFile  = filepath.Join(defaultHomeDir, "rpc.key")
 	defaultRPCCertFile = filepath.Join(defaultHomeDir, "rpc.cert")
+	defaultDAGType     = "phantom"
 )
 
 
@@ -72,6 +73,7 @@ func loadConfig() (*config.Config, []string, error) {
 		BlockMinSize:         defaultBlockMinSize,
 		BlockMaxSize:         defaultBlockMaxSize,
 		SigCacheMaxSize:      defaultSigCacheMaxSize,
+		DAGType:              defaultDAGType,
 	}
 
 	// Pre-parse the command line options to see if an alternative config

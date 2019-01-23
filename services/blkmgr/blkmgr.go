@@ -99,6 +99,7 @@ func NewBlockManager(ntmgr *notify.NotifyMgr,indexManager blockchain.IndexManage
 		Notifications: bm.handleNotifyMsg,
 		SigCache:      sigCache,
 		IndexManager:  indexManager,
+		DAGType:       cfg.DAGType,
 	})
 	if err != nil {
 		return nil, err
