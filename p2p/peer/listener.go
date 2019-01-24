@@ -7,7 +7,6 @@ package peer
 
 import (
 	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/params/dcr/types"
 )
 
 // MessageListeners defines callback function pointers to invoke with message
@@ -41,7 +40,7 @@ type MessageListeners struct {
 	OnVerAck func(p *Peer, msg *message.MsgVerAck)
 
 	// OnReject is invoked when a peer receives a reject wire message.
-	OnReject func(p *Peer, msg *wire.MsgReject)
+	OnReject func(p *Peer, msg *message.MsgReject)
 
 	// OnRead is invoked when a peer receives a wire message.  It consists
 	// of the number of bytes read, the message, and whether or not an error
@@ -67,11 +66,14 @@ type MessageListeners struct {
 	// OnBlock is invoked when a peer receives a block wire message.
 	OnBlock func(p *Peer, msg *message.MsgBlock, buf []byte)
 
-	// OnInv is invoked when a peer receives an inv wire message.
+	// OnInv is invoked when a peer receives an inv message.
 	OnInv func(p *Peer, msg *message.MsgInv)
 
 	// OnGetData is invoked when a peer receives a getdata wire message.
 	OnGetData func(p *Peer, msg *message.MsgGetData)
+
+	// OnNotFound is invoked when a peer receives a notfound message.
+	OnNotFound func(p *Peer, msg *message.MsgNotFound)
 
 	// OnGetMiningState is invoked when a peer receives a getminings wire
 	// message.
@@ -101,8 +103,6 @@ type MessageListeners struct {
 	// OnHeaders is invoked when a peer receives a headers wire message.
 	OnHeaders func(p *Peer, msg *message.MsgHeaders)
 
-	// OnNotFound is invoked when a peer receives a notfound wire message.
-	OnNotFound func(p *Peer, msg *message.MsgNotFound)
 
 	// OnGetHeaders is invoked when a peer receives a getheaders wire
 	// message.

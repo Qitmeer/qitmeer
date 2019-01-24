@@ -73,7 +73,7 @@ func (s *PeerServer) handleAddPeerMsg(state *peerState, sp *serverPeer) bool {
 // handleUpdatePeerHeight updates the heights of all peers who were known to
 // announce a block we recently accepted.
 func (s *PeerServer) handleUpdatePeerHeights(state *peerState, umsg updatePeerHeightsMsg) {
-	log.Trace("TODO handleUpdatePeerHeights()")
+	log.Error("TODO handleUpdatePeerHeights()")
 }
 
 

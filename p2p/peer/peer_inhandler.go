@@ -58,6 +58,7 @@ out:
 
 		// Handle each supported message type.
 		p.stallControl <- stallControlMsg{sccHandlerStart, rmsg}
+		// log.Trace("peer inHandler", "rmsg", rmsg, "buff",buf)
 		switch msg := rmsg.(type) {
 		case *message.MsgVersion:
 			// Limit to one version message per peer.
@@ -137,22 +138,20 @@ out:
 				p.cfg.Listeners.OnMiningState(p, msg)
 			}
 
+		case *message.MsgNotFound:
+			if p.cfg.Listeners.OnNotFound != nil {
+				p.cfg.Listeners.OnNotFound(p, msg)
+			}
+
 		/*
 		case *message.MsgMemPool:
 			if p.cfg.Listeners.OnMemPool != nil {
 				p.cfg.Listeners.OnMemPool(p, msg)
 			}
 
-
-
 		case *message.MsgHeaders:
 			if p.cfg.Listeners.OnHeaders != nil {
 				p.cfg.Listeners.OnHeaders(p, msg)
-			}
-
-		case *message.MsgNotFound:
-			if p.cfg.Listeners.OnNotFound != nil {
-				p.cfg.Listeners.OnNotFound(p, msg)
 			}
 
 		case *message.MsgGetHeaders:
@@ -195,11 +194,6 @@ out:
 				p.cfg.Listeners.OnFeeFilter(p, msg)
 			}
 
-		case *message.MsgReject:
-			if p.cfg.Listeners.OnReject != nil {
-				p.cfg.Listeners.OnReject(p, msg)
-			}
-
 		case *message.MsgSendHeaders:
 			p.flagsMtx.Lock()
 			p.sendHeadersPreferred = true
@@ -209,6 +203,10 @@ out:
 				p.cfg.Listeners.OnSendHeaders(p, msg)
 			}
 		*/
+		case *message.MsgReject:
+			if p.cfg.Listeners.OnReject != nil {
+				p.cfg.Listeners.OnReject(p, msg)
+			}
 		default:
 			log.Debug("Received unhandled message", "command",rmsg.Command(),"peer", p)
 		}

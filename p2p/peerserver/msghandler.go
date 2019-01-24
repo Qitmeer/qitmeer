@@ -94,6 +94,7 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 	sp.server.TimeSource.AddTimeSample(p.Addr(), msg.Timestamp)
 
 	// Signal the block manager this peer is a new sync candidate.
+	log.Trace("OnVersion -> NewPeer send to blkMgr msgChan", "peer", sp.syncPeer)
 	sp.server.BlockManager.NewPeer(sp.syncPeer)
 
 	// Add valid peer to the server.
@@ -192,6 +193,7 @@ func (sp *serverPeer) OnWrite(p *peer.Peer, bytesWritten int, msg message.Messag
 // OnBlock is invoked when a peer receives a block wire message.  It blocks
 // until the network block has been fully processed.
 func (sp *serverPeer) OnBlock(p *peer.Peer, msg *message.MsgBlock, buf []byte) {
+	log.Trace("OnBlock called", "peer",p,  "block", msg)
 	// Convert the raw MsgBlock to a types.Block which provides some
 	// convenience methods and things such as hash caching.
 
@@ -212,6 +214,7 @@ func (sp *serverPeer) OnBlock(p *peer.Peer, msg *message.MsgBlock, buf []byte) {
 	// fully processed.
 	sp.server.BlockManager.QueueBlock(block, sp.syncPeer)
 	<-sp.syncPeer.BlockProcessed
+	log.Trace("OnBlock done, sp.syncPeer.BlockProcessed")
 }
 
 // OnGetBlocks is invoked when a peer receives a getblocks wire message.

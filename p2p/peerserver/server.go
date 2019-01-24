@@ -117,8 +117,8 @@ func (s *PeerServer) inboundPeerConnected(conn net.Conn) {
 	sp := newServerPeer(s,false)
 	sp.isWhitelisted = isWhitelisted(s.cfg, conn.RemoteAddr())
 	sp.Peer = peer.NewInboundPeer(newPeerConfig(sp))
-	sp.AssociateConnection(conn)
 	sp.syncPeer.Peer = sp.Peer
+	sp.AssociateConnection(conn)
 	go s.peerDoneHandler(sp)
 	go sp.syncPeerHandler()
 }
@@ -351,6 +351,7 @@ out:
 
 		// Disconnected peers.
 		case p := <-s.donePeers:
+			log.Trace("read peer from donePeers and do handleDonePeerMsg")
 			s.handleDonePeerMsg(state, p)
 
 		// Block accepted in mainchain or orphan, update peer height.

@@ -23,6 +23,7 @@ const(
 
 // handleBlockMsg handles block messages from all peers.
 func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
+	log.Trace("handleBlockMsg called", "bmsg",bmsg)
 	// If we didn't ask for this block then the peer is misbehaving.
 	blockHash := bmsg.block.Hash()
 	if _, exists := bmsg.peer.RequestedBlocks[*blockHash]; !exists {
@@ -184,6 +185,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	if blkHashUpdate != nil && heightUpdate != 0 {
 		bmsg.peer.UpdateLastBlockHeight(heightUpdate)
 		if isOrphan || b.current() {
+			log.Trace("handleBlockMsg blocked")
 			bmsg.peer.RequiredUpdatePeerHeights <- peer.UpdatePeerHeightsMsg{
 				blkHashUpdate, heightUpdate}
 		}
@@ -191,6 +193,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 
 	// Nothing more to do if we aren't in headers-first mode.
 	if !b.headersFirstMode {
+		log.Trace("handleBlockMsg done", "headerFist", b.headersFirstMode)
 		return
 	}
 

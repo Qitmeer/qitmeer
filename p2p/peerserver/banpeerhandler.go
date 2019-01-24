@@ -13,7 +13,7 @@ func (s *PeerServer) BanPeer(sp *serverPeer) {
 // handleBanPeerMsg deals with banning peers.  It is invoked from the
 // peerHandler goroutine.
 func (s *PeerServer) handleBanPeerMsg(state *peerState, sp *serverPeer) {
-	log.Trace("TODO handleBanPeerMsg()")
+	log.Error("TODO handleBanPeerMsg()")
 }
 
 // addBanScore increases the persistent and decaying ban score fields by the

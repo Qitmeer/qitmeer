@@ -55,6 +55,7 @@ func newServerPeer(s *PeerServer, isPersistent bool) *serverPeer {
 		syncPeer : &peer.ServerPeer{
 			TxProcessed:     make(chan struct{}, 1),
 			BlockProcessed:  make(chan struct{}, 1),
+			RequiredUpdatePeerHeights: make(chan peer.UpdatePeerHeightsMsg,1),
 			RequestedBlocks: make(map[hash.Hash]struct{}),
 			RequestedTxns:   make(map[hash.Hash]struct{}),
 	}}

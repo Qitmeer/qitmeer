@@ -161,8 +161,10 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		// Don't relay if we are not current. Other peers that are current
 		// should already know about it
 		if !b.current() {
+			log.Trace("we are not current")
 			return
 		}
+		log.Trace("we are current, can do relay")
 
 		band, ok := notification.Data.(*blockchain.BlockAcceptedNotifyData)
 		if !ok {
@@ -199,7 +201,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 
 		// Generate the inventory vector and relay it.
 		iv := message.NewInvVect(message.InvTypeBlock, blockHash)
-		log.Info("relay inv","inv",iv)
+		log.Trace("relay inv","inv",iv)
 
 		b.notify.RelayInventory(iv, block.Block().Header)
 
@@ -534,6 +536,7 @@ out:
 			case *blockMsg:
 				log.Trace("blkmgr msgChan blockMsg", "msg", msg)
 				b.handleBlockMsg(msg)
+				log.Trace("notify syncPeer BlockProcessed done")
 				msg.peer.BlockProcessed <- struct{}{}
 			case *invMsg:
 				log.Trace("blkmgr msgChan invMsg", "msg", msg)
@@ -552,6 +555,7 @@ out:
 					err:    err,
 				}
 			case requestFromPeerMsg:
+				log.Trace("blkmgr msgChan requestFromPeerMsg", "msg", msg)
 				err := b.requestFromPeer(msg.peer, msg.blocks)
 				msg.reply <- requestFromPeerResponse{
 					err: err,
@@ -649,6 +653,7 @@ out:
 			*/
 
 			case processBlockMsg:
+				log.Trace("blkmgr msgChan processBlockMsg", "msg", msg)
 				forkLen, isOrphan, err := b.chain.ProcessBlock(
 					msg.block, msg.flags)
 				if err != nil {
@@ -663,6 +668,7 @@ out:
 				// If the block added to the main chain, then we need to
 				// update the tip locally on block manager.
 				onMainChain := !isOrphan && forkLen == 0
+				log.Trace("test onMainChain when blkmgr read processBlockMsg msgchan", "onMainChain", onMainChain)
 				if onMainChain {
 					// Query the chain for the latest best block
 					// since the block that was processed could be
@@ -673,7 +679,7 @@ out:
 					b.txMemPool.PruneExpiredTx()
 
 					curPrevHash := b.chain.BestPrevHash()
-
+					log.Trace("update chain state when blkmgr read processBlockMsg msgchan")
 					b.GetChainState().UpdateChainState(&best.Hash,
 						best.Height, best.MedianTime,
 						curPrevHash)
@@ -696,6 +702,7 @@ out:
 				}
 
 			case processTransactionMsg:
+				log.Trace("blkmgr msgChan processTransactionMsg", "msg", msg)
 				acceptedTxs, err := b.txMemPool.ProcessTransaction(msg.tx,
 					msg.allowOrphans, msg.rateLimit, msg.allowHighFees)
 				msg.reply <- processTransactionResponse{
@@ -703,34 +710,38 @@ out:
 					err:         err,
 				}
 			case isCurrentMsg:
-				msg.reply <- b.current()
+				log.Trace("blkmgr msgChan isCurrentMsg", "msg", msg)
+				msg.isCurrentReply <- b.current()
 				/*
 			case pauseMsg:
 				// Wait until the sender unpauses the manager.
 				<-msg.unpause
 			*/
 			case getCurrentTemplateMsg:
+				log.Trace("blkmgr msgChan getCurrentTemplateMsg", "msg", msg)
 				cur := deepCopyBlockTemplate(b.cachedCurrentTemplate)
 				msg.reply <- getCurrentTemplateResponse{
 					Template: cur,
 				}
 
 			case setCurrentTemplateMsg:
+				log.Trace("blkmgr msgChan setCurrentTemplateMsg", "msg", msg)
 				b.cachedCurrentTemplate = deepCopyBlockTemplate(msg.Template)
 				msg.reply <- setCurrentTemplateResponse{}
 
 			case getParentTemplateMsg:
+				log.Trace("blkmgr msgChan getParentTemplateMsg", "msg", msg)
 				par := deepCopyBlockTemplate(b.cachedParentTemplate)
 				msg.reply <- getParentTemplateResponse{
 					Template: par,
 				}
 
 			case setParentTemplateMsg:
+				log.Trace("blkmgr msgChan setParentTemplateMsg", "msg", msg)
 				b.cachedParentTemplate = deepCopyBlockTemplate(msg.Template)
 				msg.reply <- setParentTemplateResponse{}
-
 			default:
-				log.Warn("Unknown message type", "msg", msg)
+				log.Error("Unknown message type", "msg", msg)
 			}
 		case <-b.quit:
 			log.Trace("blkmgr quit received, break out")
@@ -812,6 +823,7 @@ func (b *BlockManager) NewPeer(sp *peer.ServerPeer) {
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		return
 	}
+	log.Trace("send newPeerMsg to msgChan", "peer", sp)
 	b.msgChan <- &newPeerMsg{peer: sp}
 }
 
@@ -851,14 +863,15 @@ func (b *BlockManager) DonePeer(sp *peer.ServerPeer) {
 // requesting whether or not the block manager believes it is synced with
 // the currently connected peers.
 type isCurrentMsg struct {
-	reply chan bool
+	isCurrentReply chan bool
 }
 
 // IsCurrent returns whether or not the block manager believes it is synced with
 // the connected peers.
 func (b *BlockManager) IsCurrent() bool {
 	reply := make(chan bool)
-	b.msgChan <- isCurrentMsg{reply: reply}
+	log.Trace("send isCurrentMsg to blkmgr msgChan")
+	b.msgChan <- isCurrentMsg{isCurrentReply: reply}
 	return <-reply
 }
 
@@ -876,7 +889,7 @@ func (b *BlockManager) QueueBlock(block *types.SerializedBlock, sp *peer.ServerP
 		sp.BlockProcessed <- struct{}{}
 		return
 	}
-
+	log.Trace("send blockMsg to blkmgr msgChan", "block",block, "peer",sp)
 	b.msgChan <- &blockMsg{block: block, peer: sp}
 }
 
@@ -990,6 +1003,13 @@ func (b *BlockManager) requestFromPeer(p *peer.ServerPeer, blocks []*hash.Hash) 
 	}
 
 	return nil
+}
+
+// SyncPeer returns the current sync peer.
+func (b *BlockManager) SyncPeer() *peer.ServerPeer {
+	reply := make(chan *peer.ServerPeer)
+	b.msgChan <- getSyncPeerMsg{reply: reply}
+	return <-reply
 }
 
 
