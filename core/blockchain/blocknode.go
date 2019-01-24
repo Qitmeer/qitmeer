@@ -102,9 +102,6 @@ type blockNode struct {
 	// ancestor when switching chains.
 	inMainChain bool
 
-	//pastSetNum is the size of past sets
-	pastSetNum uint64
-
 	//height is in the position of whole block chain.(It is actually DAG order)
 	//Why do I not call "order" directly, considering the compatibility of code?
 	height    uint64
@@ -157,7 +154,7 @@ func (node *blockNode) Header() types.BlockHeader {
 	// No lock is needed because all accessed fields are immutable.
 	var parentRoot hash.Hash
 	if node.parents!=nil {
-		paMerkles :=merkle.BuildParentsMerkleTreeStore(node.GetParents().OrderList())
+		paMerkles :=merkle.BuildParentsMerkleTreeStore(node.GetParents())
 		parentRoot=*paMerkles[len(paMerkles)-1]
 	}
 
@@ -219,13 +216,13 @@ func (node *blockNode) GetParentsWorkSum() *big.Int {
 }
 
 // Include all parents for set
-func (node *blockNode) GetParents() *BlockSet{
+func (node *blockNode) GetParents() []*hash.Hash{
 	if node.parents==nil||len(node.parents)==0 {
 		return nil
 	}
-	result:=NewBlockSet()
+	result:=[]*hash.Hash{}
 	for _,v:=range node.parents{
-		result.Add(&v.hash)
+		result=append(result,&v.hash)
 	}
 	return result
 }
@@ -297,14 +294,6 @@ func (node *blockNode) IsBefore(other *blockNode) bool{
 	}
 	if node.height<other.height {
 		return true
-	}else if node.height==other.height {
-		if node.pastSetNum>other.pastSetNum {
-			return true
-		}else if node.pastSetNum==other.pastSetNum {
-			if node.hash.String()<other.hash.String() {
-				return true
-			}
-		}
 	}
 	return false
 }
@@ -339,14 +328,4 @@ func (node *blockNode) GetHash() *hash.Hash {
 //return the timestamp of node
 func (node *blockNode) GetTimestamp() int64 {
 	return node.timestamp
-}
-
-//set the total of the past node about this node
-func (node *blockNode) SetPastSetNum(num uint64) {
-	node.pastSetNum=num
-}
-
-//return the total of the past node about this node
-func (node *blockNode) GetPastSetNum() uint64 {
-	return node.pastSetNum
 }

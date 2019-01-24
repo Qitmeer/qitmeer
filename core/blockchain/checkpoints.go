@@ -149,7 +149,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
 	// When there is a next checkpoint and the height of the current best
 	// chain does not exceed it, the current checkpoint lockin is still
 	// the latest known checkpoint.
-	if b.dag.GetLastBlock().(*blockNode).height < b.nextCheckpoint.Height {
+	if uint64(b.dag.GetLastBlock().GetOrder()) < b.nextCheckpoint.Height {
 		return b.checkpointNode, nil
 	}
 
@@ -250,7 +250,7 @@ func (b *BlockChain) IsCheckpointCandidate(block *types.SerializedBlock) (bool, 
 
 		// A checkpoint must be at least CheckpointConfirmations blocks
 		// before the end of the main chain.
-		mainChainHeight := b.dag.GetLastBlock().(*blockNode).height
+		mainChainHeight := uint64(b.dag.GetLastBlock().GetOrder())
 		if blockHeight > (mainChainHeight - CheckpointConfirmations) {
 			return nil
 		}

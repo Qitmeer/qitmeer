@@ -174,6 +174,9 @@ type Config struct {
 	// This field can be nil if the caller does not wish to make use of an
 	// index manager.
 	IndexManager IndexManager
+
+	// Setting different dag types will use different consensus
+	DAGType string
 }
 
 // orphanBlock represents a block that we don't yet have the parent for.  It
@@ -267,7 +270,7 @@ func New(config *Config) (*BlockChain, error) {
 		mainchainBlockCacheSize:       mainchainBlockCacheSize,
 	}
 	b.dag=&BlockDAG{}
-	b.dag.Init(&b)
+	b.dag.Init(config.DAGType)
 	b.badTx=make(map[hash.Hash]*BlockSet)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
@@ -289,7 +292,7 @@ func New(config *Config) (*BlockChain, error) {
 
 	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Height), b.params)
 
-
+	log.Info("DAG Type:%s",b.dag.GetName())
 	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
 		"index",b.dbInfo.bidxVer)
 
@@ -297,8 +300,8 @@ func New(config *Config) (*BlockChain, error) {
 	logStr:=fmt.Sprintf("Chain state:totaltx=%d\ntips=%d\n",b.stateSnapshot.TotalTxns,len(tips))
 
 	for _,v:=range tips{
-		tnode:=v.(*blockNode)
-		logStr+=fmt.Sprintf("hash=%v,height=%d,pastSetNum=%d,work=%v\n",tnode.hash,tnode.height,tnode.pastSetNum,tnode.workSum)
+		tnode:=b.index.lookupNode(v.GetHash())
+		logStr+=fmt.Sprintf("hash=%v,height=%d,pastSetNum=%d,work=%v\n",tnode.hash,tnode.height,v.GetWeight(),tnode.workSum)
 	}
 	log.Info(logStr)
 
@@ -496,7 +499,8 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			return AssertError(fmt.Sprintf("initChainState:Data damage"))
 		}*/
 		// Set the best chain view to the stored best state.
-		tip := b.dag.GetLastBlock().(*blockNode)
+		lastBlock:=b.dag.GetLastBlock()
+		tip :=b.index.lookupNode(lastBlock.GetHash())
 		if tip == nil {
 			return AssertError(fmt.Sprintf("initChainState: cannot find "+
 				"chain last %s in block index", state.hash))
@@ -543,8 +547,8 @@ func (b *BlockChain) isCurrent() bool {
 	// Not current if the latest main (best) chain height is before the
 	// latest known good checkpoint (when checkpoints are enabled).
 	checkpoint := b.latestCheckpoint()
-	lastBlock:=b.dag.GetLastBlock().(*blockNode)
-	if checkpoint != nil && lastBlock.height < checkpoint.Height {
+	lastBlock:=b.dag.GetLastBlock()
+	if checkpoint != nil && uint64(lastBlock.GetOrder()) < checkpoint.Height {
 		return false
 	}
 
@@ -554,7 +558,8 @@ func (b *BlockChain) isCurrent() bool {
 	// The chain appears to be current if none of the checks reported
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
-	return lastBlock.timestamp >= minus24Hours
+	lastNode:=b.index.lookupNode(lastBlock.GetHash())
+	return lastNode.timestamp >= minus24Hours
 }
 
 
@@ -911,7 +916,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 
 // This function is fast check before global sequencing,it can judge who is the bad block quickly.
 func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.SerializedBlock) {
-	transactions:=block.Transactions()
+	/*transactions:=block.Transactions()
 	if len(transactions)>1 {
 		for i, tx := range transactions {
 			if i==0 {
@@ -922,7 +927,7 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.Serialize
 				if entry == nil || err!=nil || !entry.IsOutputSpent(txIn.PreviousOut.OutIndex) {
 					continue
 				}
-				preBlockH:=b.dag.GetBlockByOrder(int(entry.height))
+				preBlockH:=b.dag.GetBlockByOrder(uint(entry.height))
 				if preBlockH==nil {
 					continue
 				}
@@ -939,7 +944,7 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.Serialize
 				}
 			}
 		}
-	}
+	}*/
 }
 
 // connectBlock handles connecting the passed node/block to the end of the main
@@ -955,7 +960,8 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.Serialize
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []spentTxOut) error {
 	// Must be end node of sequence in dag
-	lastTip:=b.dag.GetLastBlock().(*blockNode)
+	lastBlock:=b.dag.GetLastBlock()
+	lastTip:=b.index.lookupNode(lastBlock.GetHash())
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()
@@ -1412,15 +1418,16 @@ func (b *BlockChain) LocateBlocks(mainHeight uint64,blocks []*hash.Hash, maxHash
 	blocksNum:=len(blocks)
 	result:=NewBlockSet()
 	if blocksNum>0 {
-		curBlock:=b.dag.GetLastBlock().(*blockNode)
+		curBlock:=b.dag.GetLastBlock()
+		curNode:=b.index.lookupNode(curBlock.GetHash())
 		for  {
-			if curBlock.GetMainHeight()<mainHeight {
+			if curNode.GetMainHeight()<mainHeight {
 				break
 			}
 			result.AddSet(curBlock.GetParents())
 			result.AddSet(curBlock.GetChildren())
-			curBlockH:=b.dag.GetBlockByOrder(int(curBlock.GetHeight()-1))
-			curBlock=b.index.LookupNode(curBlockH)
+			curBlockH:=b.dag.GetBlockByOrder(uint(curNode.GetHeight()-1))
+			curNode=b.index.LookupNode(curBlockH)
 		}
 	}else{
 		return blocks
