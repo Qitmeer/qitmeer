@@ -561,16 +561,14 @@ out:
 				msg.reply <- requestFromPeerResponse{
 					err: err,
 				}
-
-				/*
 			case *txMsg:
+				log.Trace("blkmgr msgChan txMsg", "msg", msg)
 				b.handleTxMsg(msg)
-				msg.peer.txProcessed <- struct{}{}
+				msg.peer.TxProcessed <- struct{}{}
 
+			/*
 			case *headersMsg:
 				b.handleHeadersMsg(msg)
-
-
 
 			case calcNextReqDiffNodeMsg:
 				difficulty, err :=

@@ -25,14 +25,16 @@ func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.Tx) {
 	for _, tx := range newTxs {
 		// Generate the inventory vector and relay it.
 		iv := message.NewInvVect(message.InvTypeTx, tx.Hash())
+		// reply to p2p
 		ntmgr.RelayInventory(iv, tx)
-		//TODO p2p layer
+		// reply to rpc
 		if ntmgr.RpcServer != nil {
-			//// Notify websocket clients about mempool transactions.
+			//TODO reply to rpc layer (if websockect long connection or gbt long poll)
+			// Notify websocket clients about mempool transactions.
 			//nox.node.rpcServer.ntfnMgr.NotifyMempoolTx(tx, true)
 			//
-			//// Potentially notify any getblocktemplate long poll clients
-			//// about stale block templates due to the new transaction.
+			// Potentially notify any getblocktemplate long poll clients
+			// about stale block templates due to the new transaction.
 			//nox.node.rpcServer.gbtWorkState.NotifyMempoolTx(
 			//	nox.txMemPool.LastUpdated())
 		}
