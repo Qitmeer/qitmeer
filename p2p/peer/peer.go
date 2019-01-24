@@ -500,3 +500,14 @@ func (p *Peer) QueueInventoryImmediate(invVect *message.InvVect) {
 	p.outputQueue <- outMsg{msg: invMsg, doneChan: nil}
 }
 
+// LastAnnouncedBlock returns the last announced block of the remote peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) LastAnnouncedBlock() *hash.Hash {
+	p.statsMtx.RLock()
+	lastAnnouncedBlock := p.lastAnnouncedBlock
+	p.statsMtx.RUnlock()
+
+	return lastAnnouncedBlock
+}
+

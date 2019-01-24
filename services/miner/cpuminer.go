@@ -616,20 +616,6 @@ out:
 		m.submitBlockLock.Lock()
 		time.Sleep(100 * time.Millisecond)
 
-		// Hacks to make work with PoC (privnet only)
-		// TODO Remove before production.
-		if m.config.PrivNet {
-			_, curHeight := m.blockManager.GetChainState().Best()
-
-			if curHeight == 1 {
-				time.Sleep(5500 * time.Millisecond) // let wallet reconn
-			} else if curHeight > 100 && curHeight < 201 { // slow down to i
-				time.Sleep(10 * time.Millisecond) // 2500
-			} else { // burn through the first pile of blocks
-				time.Sleep(10 * time.Millisecond)
-			}
-		}
-
 		// Choose a payment address at random.
 		rand.Seed(time.Now().UnixNano())
 		miningaddrs :=m.config.GetMinningAddrs()

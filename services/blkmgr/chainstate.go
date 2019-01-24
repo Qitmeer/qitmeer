@@ -65,18 +65,6 @@ func (c *ChainState) MedianAdjustedTime(timeSource blockchain.MedianTimeSource, 
 	return newTimestamp, nil
 }
 
-//TODO revisit concurrent lock/unclock
-func (c *ChainState) GetNextHeightWithState() (prevHash *hash.Hash, nextBlockHeight uint64, poolSize uint32,
-	finalState [6]byte){
-	c.RLock()
-	defer c.RUnlock()
-	prevHash = c.newestHash
-	nextBlockHeight = c.newestHeight + 1
-	poolSize = c.nextPoolSize
-	finalState = c.nextFinalState
-	return
-}
-
 // chainState tracks the state of the best chain as blocks are inserted.  This
 // is done because blockchain is currently not safe for concurrent access and the
 // block manager is typically quite busy processing block and inventory.
@@ -95,18 +83,6 @@ type ChainState struct {
 	curPrevHash         hash.Hash
 	pastMedianTime      time.Time
 }
-
-// Best returns the block hash and height known for the tip of the best known
-// chain.
-//
-// This function is safe for concurrent access.
-func (c *ChainState) Best() (*hash.Hash, uint64) {
-	c.RLock()
-	defer c.RUnlock()
-
-	return c.newestHash, c.newestHeight
-}
-
 
 
 // headerNode is used as a node in a list of headers that are linked together

@@ -49,6 +49,7 @@ type BlockManager struct {
 	syncPeer            *peer.ServerPeer
 	msgChan             chan interface{}
 
+	//TODO remove chainState
 	chainState          ChainState
 
 	wg                  sync.WaitGroup

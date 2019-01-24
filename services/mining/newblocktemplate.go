@@ -112,15 +112,9 @@ func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Param
 	// The most recently known best block is the top block that has the most
 	// TODO,refactor the poolsize & finalstate
 
-	prevHash,nextBlockHeight,_,_ := chainState.GetNextHeightWithState()
-
-	chainBest := blockManager.GetChain().BestSnapshot()
-	if *prevHash != chainBest.Hash ||
-		nextBlockHeight-1 != chainBest.Height {
-		return nil, fmt.Errorf("chain state is not syncronized to the "+
-			"blockchain (got %v:%v, want %v,%v",
-			prevHash, nextBlockHeight-1, chainBest.Hash, chainBest.Height)
-	}
+	best := blockManager.GetChain().BestSnapshot()
+	prevHash := best.Hash
+	nextBlockHeight := best.Height + 1
 
 	// Get the current source transactions and create a priority queue to
 	// hold the transactions which are ready for inclusion into a block
@@ -614,7 +608,7 @@ mempoolLoop:
 	var block types.Block
 	block.Header = types.BlockHeader{
 		Version:      blockVersion,
-		ParentRoot:   *prevHash,
+		ParentRoot:   prevHash,
 		TxRoot:       *merkles[len(merkles)-1],
 		StateRoot:    hash.Hash{}, //TODO, state root
 		Timestamp:    ts,
