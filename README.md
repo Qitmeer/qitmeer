@@ -3,36 +3,30 @@
 
 ##  Prerequisites
 
-- Update Go to at least version 1.11 (required >= 1.11)
+- Update Go to version at least 1.11 (required >= **1.11**)
+
+Check your golang version
 
 ```bash
 ~ go version
-go version go1.11 darwin/amd64
+go version go1.11.4 darwin/amd64
 ```
+
 ## How to build
 
 ```bash
 ~ mkdir -p /tmp/work
 ~ cd /tmp/work
-~ git clone https://where/you/can/find/nox 
-~ go build
-```
-
-### Go Mod
-
-```bash
-~ go mod tidy
-~ go mod verify
-~ go build
-```
-
-```bash
+~ git clone https://where/you/can/find/nox
+~ cd nox
 ~ go build
 ~ ./nox --version
+nox version 0.3.0+dev (Go version go1.11.4)
 ```
----
 
-### GWF Issue
+### How to fix `golang.org unrecognized` Issue
+
+If you got trouble to download the `golang.org` depends automatically
 
 ```
 go: golang.org/x/crypto@v0.0.0-20181001203147-e3636079e1a4: unrecognized import path "golang.org/x/crypto" (https fetch: Get https://golang.org/x/crypto?go-get=1: dial tcp 216.239.37.1:443: i/o timeout)
@@ -45,9 +39,7 @@ go: golang.org/x/sys@v0.0.0-20181005133103-4497e2df6f9e: unrecognized import pat
 go: golang.org/x/sys@v0.0.0-20180909124046-d0be0721c37e: unrecognized import path "golang.org/x/sys" (https fetch: Get https://golang.org/x/sys?go-get=1: dial tcp 216.239.37.1:443: i/o timeout)
 ```
 
-#### HOW TO Fix
-
-add following lines to the `go.mod`
+you might need to `replace` the download url (ex: using a mirror site like github.com) on your `go.mod`
 
 ```
 replace (
