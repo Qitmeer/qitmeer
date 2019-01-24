@@ -115,6 +115,21 @@ function get_block_number(){
   get_result "$data"
 }
 
+# Nox mempool
+
+function get_mempool(){
+  local type=$1
+  local verbose=$2
+  if [ "$type" == "" ]; then
+    type="regular"
+  fi
+  if [ "$verbose" == "" ]; then
+    verbose="false"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getMempool","params":["'$type'",'$verbose'],"id":1}'
+  get_result "$data"
+}
+
 # return block by hash
 #   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){
@@ -588,6 +603,12 @@ elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex
   get_tx_by_blocknum_and_index_hex $@
+
+## MemPool
+elif [ $1 == "mempool" ]; then
+  shift
+  get_mempool $@
+  check_error
 
 ## UTXO 
 elif [ $1 == "getutxo" ]; then

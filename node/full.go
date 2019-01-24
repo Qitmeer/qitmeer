@@ -80,6 +80,7 @@ func (nox *NoxFull)	APIs() []rpc.API {
 	apis := nox.acctmanager.APIs()
 	apis = append(apis,nox.cpuMiner.APIs()...)
 	apis = append(apis,nox.blockManager.API())
+	apis = append(apis,nox.txMemPool.API())
 	apis = append(apis,nox.API())
 	return apis
 }

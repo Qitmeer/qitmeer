@@ -59,6 +59,23 @@ type TxDesc struct {
 	StartingPriority float64
 }
 
+// TxDescs returns a slice of descriptors for all the transactions in the pool.
+// The descriptors are to be treated as read only.
+//
+// This function is safe for concurrent access.
+func (mp *TxPool) TxDescs() []*TxDesc {
+	mp.mtx.RLock()
+	descs := make([]*TxDesc, len(mp.pool))
+	i := 0
+	for _, desc := range mp.pool {
+		descs[i] = desc
+		i++
+	}
+	mp.mtx.RUnlock()
+
+	return descs
+}
+
 // removeTransaction is the internal function which implements the public
 // RemoveTransaction.  See the comment for RemoveTransaction for more details.
 //
