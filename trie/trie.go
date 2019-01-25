@@ -1,3 +1,4 @@
+// Copyright 2017-2018 The nox developers
 // Copyright 2014 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -20,18 +21,17 @@ package trie
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/dindinw/dagproject/common"
-	"github.com/dindinw/dagproject/crypto/sha3"
-	"github.com/dindinw/dagproject/log"
-	"github.com/rcrowley/go-metrics"
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/log"
+	"github.com/noxproject/nox/metrics"
 )
 
 var (
-	// This is the known root hash of an empty trie.
-	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-	// This is the known hash of an empty state trie entry.
-	emptyState common.Hash
+	// emptyRoot is the known root hash of an empty trie.
+	emptyRoot = hash.MustHexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+
+	// emptyState is the known hash of an empty state trie entry.
+	emptyState hash.Hash
 )
 
 var (
@@ -39,6 +39,9 @@ var (
 	cacheUnloadCounter = metrics.NewRegisteredCounter("trie/cacheunload", nil)
 )
 
+func init() {
+	emptyState.SetBytes(hash.CalcHash(emptyState[:0],hash.GetHasher(hash.Keccak_256)))
+}
 // CacheMisses retrieves a global counter measuring the number of cache misses
 // the trie had since process startup. This isn't useful for anything apart from
 // trie debugging purposes.
@@ -53,29 +56,10 @@ func CacheUnloads() int64 {
 	return cacheUnloadCounter.Count()
 }
 
-func init() {
-	sha3.NewKeccak256().Sum(emptyState[:0])
-}
-
-// Database must be implemented by backing stores for the trie.
-type Database interface {
-	DatabaseReader
-	DatabaseWriter
-}
-
-// DatabaseReader wraps the Get method of a backing store for the trie.
-type DatabaseReader interface {
-	Get(key []byte) (value []byte, err error)
-	Has(key []byte) (bool, error)
-}
-
-// DatabaseWriter wraps the Put method of a backing store for the trie.
-type DatabaseWriter interface {
-	// Put stores the mapping key->value in the database.
-	// Implementations must not hold onto the value bytes, the trie
-	// will reuse the slice across calls to Put.
-	Put(key, value []byte) error
-}
+// LeafCallback is a callback type invoked when a trie operation reaches a leaf
+// node. It's used by state sync and commit to allow handling external references
+// between account and storage tries.
+type LeafCallback func(leaf []byte, parent hash.Hash) error
 
 // Trie is a Merkle Patricia Trie.
 // The zero value is an empty trie with no database.
@@ -83,9 +67,9 @@ type DatabaseWriter interface {
 //
 // Trie is not safe for concurrent use.
 type Trie struct {
+	db           *Database
 	root         node
-	db           Database
-	originalRoot common.Hash
+	originalRoot hash.Hash
 
 	// Cache generation values.
 	// cachegen increases by one with each commit operation.
@@ -111,12 +95,15 @@ func (t *Trie) newFlag() nodeFlag {
 // trie is initially empty and does not require a database. Otherwise,
 // New will panic if db is nil and returns a MissingNodeError if root does
 // not exist in the database. Accessing the trie loads nodes from db on demand.
-func New(root common.Hash, db Database) (*Trie, error) {
-	trie := &Trie{db: db, originalRoot: root}
-	if (root != common.Hash{}) && root != emptyRoot {
-		if db == nil {
-			panic("trie.New: cannot use existing root without a database")
-		}
+func New(root hash.Hash, db *Database) (*Trie, error) {
+	if db == nil {
+		panic("trie.New called without a database")
+	}
+	trie := &Trie{
+		db:           db,
+		originalRoot: root,
+	}
+	if root != (hash.Hash{}) && root != emptyRoot {
 		rootnode, err := trie.resolveHash(root[:], nil)
 		if err != nil {
 			return nil, err
@@ -371,7 +358,7 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 		// value that is left in n or -2 if n contains at least two
 		// values.
 		pos := -1
-		for i, cld := range n.Children {
+		for i, cld := range &n.Children {
 			if cld != nil {
 				if pos == -1 {
 					pos = i
@@ -447,12 +434,11 @@ func (t *Trie) resolve(n node, prefix []byte) (node, error) {
 func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
 	cacheMissCounter.Inc(1)
 
-	enc, err := t.db.Get(n)
-	if err != nil || enc == nil {
-		return nil, &MissingNodeError{NodeHash: common.BytesToHash(n), Path: prefix}
+	h := hash.MustBytesToHash(n)
+	if node := t.db.node(h, t.cachegen); node != nil {
+		return node, nil
 	}
-	dec := mustDecodeNode(n, enc, t.cachegen)
-	return dec, nil
+	return nil, &MissingNodeError{NodeHash: h, Path: prefix}
 }
 
 // Root returns the root hash of the trie.
@@ -461,45 +447,32 @@ func (t *Trie) Root() []byte { return t.Hash().Bytes() }
 
 // Hash returns the root hash of the trie. It does not write to the
 // database and can be used even if the trie doesn't have one.
-func (t *Trie) Hash() common.Hash {
-	hash, cached, _ := t.hashRoot(nil)
+func (t *Trie) Hash() hash.Hash {
+	h, cached, _ := t.hashRoot(nil, nil)
 	t.root = cached
-	return common.BytesToHash(hash.(hashNode))
+	return hash.MustBytesToHash(h.(hashNode))
 }
 
-// Commit writes all nodes to the trie's database.
-// Nodes are stored with their sha3 hash as the key.
-//
-// Committing flushes nodes from memory.
-// Subsequent Get calls will load nodes from the database.
-func (t *Trie) Commit() (root common.Hash, err error) {
+// Commit writes all nodes to the trie's memory database, tracking the internal
+// and external (for account tries) references.
+func (t *Trie) Commit(onleaf LeafCallback) (root hash.Hash, err error) {
 	if t.db == nil {
-		panic("Commit called on trie with nil database")
+		panic("commit called on trie with nil database")
 	}
-	return t.CommitTo(t.db)
-}
-
-// CommitTo writes all nodes to the given database.
-// Nodes are stored with their sha3 hash as the key.
-//
-// Committing flushes nodes from memory. Subsequent Get calls will
-// load nodes from the trie's database. Calling code must ensure that
-// the changes made to db are written back to the trie's attached
-// database before using the trie.
-func (t *Trie) CommitTo(db DatabaseWriter) (root common.Hash, err error) {
-	hash, cached, err := t.hashRoot(db)
+	h, cached, err := t.hashRoot(t.db, onleaf)
 	if err != nil {
-		return (common.Hash{}), err
+		return hash.Hash{}, err
 	}
 	t.root = cached
 	t.cachegen++
-	return common.BytesToHash(hash.(hashNode)), nil
+	return hash.MustBytesToHash(h.(hashNode)), nil
 }
 
-func (t *Trie) hashRoot(db DatabaseWriter) (node, node, error) {
+func (t *Trie) hashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
 	if t.root == nil {
 		return hashNode(emptyRoot.Bytes()), nil, nil
 	}
-	h := newHasher(t.cachegen, t.cachelimit)
+	h := newHasher(t.cachegen, t.cachelimit, onleaf)
+	defer returnHasherToPool(h)
 	return h.hash(t.root, db, true)
 }

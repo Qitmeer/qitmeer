@@ -1,3 +1,4 @@
+// Copyright (c) 2017-2018 The nox developers
 // Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -18,12 +19,12 @@
 package metrics
 
 import (
+	"github.com/noxproject/nox/log"
 	"os"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/dindinw/dagproject/log"
     "github.com/rcrowley/go-metrics"
 	"github.com/rcrowley/go-metrics/exp"
 )
@@ -120,3 +121,12 @@ func CollectProcessMetrics(refresh time.Duration) {
 		time.Sleep(refresh)
 	}
 }
+
+func NewRegisteredMeter(name string, r metrics.Registry) metrics.Meter {
+	return metrics.NewRegisteredMeter(name,r)
+}
+
+func NewRegisteredCounter(name string, r metrics.Registry) metrics.Counter {
+	return metrics.NewRegisteredCounter(name,r)
+}
+

@@ -15,14 +15,14 @@ import (
 
 const (
 	timeFormat     = "2006-01-02T15:04:05-0700"
-	termTimeFormat = "01-02|15:04:05"
+	termTimeFormat = "2006-01-02|15:04:05.000"
 	floatFormat    = 'f'
-	termMsgJust    = 40
+	termMsgJust    = 35
 )
 
 // locationTrims are trimmed for display to avoid unwieldy log lines.
 var locationTrims = []string{
-	"github.com/ethereum/go-ethereum/",
+	"github.com/noxproject/nox/",
 }
 
 // PrintOrigins sets or unsets log location (file:line) printing for terminal
@@ -121,15 +121,15 @@ func TerminalFormat(usecolor bool) Format {
 
 			// Assemble and print the log heading
 			if color > 0 {
-				fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s|%s]%s %s ", color, lvl, r.Time.Format(termTimeFormat), location, padding, r.Msg)
+				fmt.Fprintf(b, "%s [\x1b[%dm%s|%s\x1b[0m]%s %s", r.Time.Format(termTimeFormat), color, lvl, location, padding, r.Msg)
 			} else {
-				fmt.Fprintf(b, "%s[%s|%s]%s %s ", lvl, r.Time.Format(termTimeFormat), location, padding, r.Msg)
+				fmt.Fprintf(b, "%s [%s|%s]%s %s ", r.Time.Format(termTimeFormat), lvl, location, padding, r.Msg)
 			}
 		} else {
 			if color > 0 {
-				fmt.Fprintf(b, "\x1b[%dm%s\x1b[0m[%s] %s ", color, lvl, r.Time.Format(termTimeFormat), r.Msg)
+				fmt.Fprintf(b, "%s [\x1b[%dm%s\x1b[0m] %s ",r.Time.Format(termTimeFormat), color, lvl, r.Msg)
 			} else {
-				fmt.Fprintf(b, "%s[%s] %s ", lvl, r.Time.Format(termTimeFormat), r.Msg)
+				fmt.Fprintf(b, "%s [%s] %s ", r.Time.Format(termTimeFormat), lvl, r.Msg)
 			}
 		}
 		// try to justify the log output for short messages
@@ -196,16 +196,16 @@ func logfmt(buf *bytes.Buffer, ctx []interface{}, color int, term bool) {
 	buf.WriteByte('\n')
 }
 
-// JsonFormat formats log records as JSON objects separated by newlines.
-// It is the equivalent of JsonFormatEx(false, true).
-func JsonFormat() Format {
-	return JsonFormatEx(false, true)
+// JSONFormat formats log records as JSON objects separated by newlines.
+// It is the equivalent of JSONFormatEx(false, true).
+func JSONFormat() Format {
+	return JSONFormatEx(false, true)
 }
 
-// JsonFormatEx formats log records as JSON objects. If pretty is true,
+// JSONFormatEx formats log records as JSON objects. If pretty is true,
 // records will be pretty-printed. If lineSeparated is true, records
 // will be logged with a new line between each record.
-func JsonFormatEx(pretty, lineSeparated bool) Format {
+func JSONFormatEx(pretty, lineSeparated bool) Format {
 	jsonMarshal := json.Marshal
 	if pretty {
 		jsonMarshal = func(v interface{}) ([]byte, error) {
@@ -225,7 +225,7 @@ func JsonFormatEx(pretty, lineSeparated bool) Format {
 			if !ok {
 				props[errorKey] = fmt.Sprintf("%+v is not a string key", r.Ctx[i])
 			}
-			props[k] = formatJsonValue(r.Ctx[i+1])
+			props[k] = formatJSONValue(r.Ctx[i+1])
 		}
 
 		b, err := jsonMarshal(props)
@@ -270,7 +270,7 @@ func formatShared(value interface{}) (result interface{}) {
 	}
 }
 
-func formatJsonValue(value interface{}) interface{} {
+func formatJSONValue(value interface{}) interface{} {
 	value = formatShared(value)
 	switch value.(type) {
 	case int, int8, int16, int32, int64, float32, float64, uint, uint8, uint16, uint32, uint64, string:

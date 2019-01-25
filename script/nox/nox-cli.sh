@@ -53,9 +53,9 @@ function solc_compile(){
 
 
 # newAccount
-# Generates a new private key and stores it in the key store directory. The key file is encrypted with the given passphrase. 
+# Generates a new private key and stores it in the key store directory. The key file is encrypted with the given passphrase.
 # Returns the address of the new account.
-#    func (s *PrivateAccountAPI) NewAccount(password string) (common.Address, error) 
+#    func (s *PrivateAccountAPI) NewAccount(password string) (common.Address, error)
 #
 function new_account(){
   local passphrase=""
@@ -99,7 +99,7 @@ function get_block_eth(){
   get_result "$data"
 }
 
-# Nox 
+# Nox
 function get_block(){
   local height=$1
   local verbose=$2
@@ -115,6 +115,21 @@ function get_block_number(){
   get_result "$data"
 }
 
+# Nox mempool
+
+function get_mempool(){
+  local type=$1
+  local verbose=$2
+  if [ "$type" == "" ]; then
+    type="regular"
+  fi
+  if [ "$verbose" == "" ]; then
+    verbose="false"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getMempool","params":["'$type'",'$verbose'],"id":1}'
+  get_result "$data"
+}
+
 # return block by hash
 #   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){
@@ -127,6 +142,17 @@ function get_block_by_hash(){
   get_result "$data"
 }
 
+function get_blockheader_by_hash(){
+  local block_hash=$1
+  local verbose=$2
+  if [ "$verbose" == "" ]; then
+    verbose="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockHeader","params":["'$block_hash'",'$verbose'],"id":1}'
+  get_result "$data"
+}
+
+
 # return tx by hash
 function get_tx_by_hash(){
   local tx_hash=$1
@@ -138,7 +164,41 @@ function get_tx_by_hash(){
   get_result "$data"
 }
 
+# return info about UTXO
+function get_utxo() {
+  local tx_hash=$1
+  local vout=$2
+  local include_mempool=$3
+  if [ "$include_mempool" == "" ]; then
+    include_mempool="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getUtxo","params":["'$tx_hash'",'$vout','$include_mempool'],"id":1}'
+  get_result "$data"
+}
 
+# 
+function create_raw_tx(){
+  local input=$1
+  local data='{"jsonrpc":"2.0","method":"createRawTransaction","params":['$input'],"id":1}'
+  get_result "$data"
+}
+
+function decode_raw_tx(){
+  local input=$1
+  local data='{"jsonrpc":"2.0","method":"decodeRawTransaction","params":["'$input'"],"id":1}'
+  get_result "$data"
+}
+
+function send_raw_tx(){
+  local input=$1
+  local allow_high_fee=$2
+  if [ "$allow_high_fee" == "" ]; then
+    allow_high_fee="false"
+  fi
+
+  local data='{"jsonrpc":"2.0","method":"sendRawTransaction","params":["'$input'",'$allow_high_fee'],"id":1}'
+  get_result "$data"
+}
 
 function generate() {
   local count=$1
@@ -168,7 +228,7 @@ function get_result(){
   local pass="test"
   local data=$1
   local curl_result=$(curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data $data https://$host:$port)
-  local result=$(echo $curl_result|jq -r -c -M '.result')
+  local result=$(echo $curl_result|jq -r -M '.result')
   if [ $DEBUG -gt 0 ]; then
     local curl_cmd="curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data '"$data"' https://$host:$port"
     echo "$curl_cmd" > $DEBUG_FILE
@@ -242,6 +302,8 @@ function usage(){
   echo "tx       :"
   echo "  tx <hash>"
   echo "  get_tx_by_block_and_index <num_hex> <index_hex>"
+  echo "utxo  :"
+  echo "  getutxo <tx_id> <index> <include_mempool,default=true>"
   echo "account  :"
   echo "  newaccount"
   echo "  accounts"
@@ -415,7 +477,7 @@ function call_get_block() {
     elif ! [ "$blkhash" == "" ]; then
        block_result=$(get_block_by_hash "$blkhash" "$verbose")
        if [ "$verbose" != "true" ]; then
-         block_result='{ "result" : "'$block_result'"}'
+         block_result='{ "hex" : "'$block_result'"}'
        fi
     else
        echo '{ "error" : "need to provide blknum or blkhash"}'; exit -1;
@@ -511,20 +573,47 @@ elif [ $1 == "blockhash" ]; then
   shift
   get_blockhash $1
   check_error
+elif [ $1 == "header" ]; then
+  shift
+  get_blockheader_by_hash $@
+  check_error
 
 ## Tx
 elif [ $1 == "tx" ]; then
   shift
   if [ "$2" == "false" ]; then
-    get_tx_by_hash $@ 
+    get_tx_by_hash $@
   else
     get_tx_by_hash $@|jq .
   fi
+  check_error
+elif [ $1 == "createRawTx" ]; then
+  shift
+  create_raw_tx $@
+  check_error
+elif [ $1 == "decodeRawTx" ]; then
+  shift
+  decode_raw_tx $@|jq .
+  check_error
+elif [ $1 == "sendRawTx" ]; then
+  shift
+  send_raw_tx $@
   check_error
 elif [ $1 == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex
   get_tx_by_blocknum_and_index_hex $@
+
+## MemPool
+elif [ $1 == "mempool" ]; then
+  shift
+  get_mempool $@|jq .
+  check_error
+
+## UTXO 
+elif [ $1 == "getutxo" ]; then
+  shift
+  get_utxo $@|jq .
 
 ## Accounts
 elif [ $1 == "newaccount" ]; then
@@ -618,7 +707,7 @@ elif [ $1 == "compile" ]; then
   solc_compile "$@"
 elif [ $1 == "call" ]; then
   shift
-  nox_call $@ 
+  nox_call $@
   check_error
 elif [ $1 == "send_tx" ]; then
   shift
