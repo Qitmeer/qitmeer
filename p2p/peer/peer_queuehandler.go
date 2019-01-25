@@ -7,7 +7,9 @@ package peer
 
 import (
 	"container/list"
+	"github.com/noxproject/nox/core/message"
 	"github.com/noxproject/nox/log"
+	"sync/atomic"
 	"time"
 )
 
@@ -67,7 +69,6 @@ out:
 			if p.VersionKnown() {
 				invSendQueue.PushBack(iv)
 			}
-		/*
 		case <-trickleTicker.C:
 			// Don't send anything if we're disconnecting or there
 			// is no queued inventory.
@@ -81,7 +82,7 @@ out:
 			// drain the inventory send queue.
 			invMsg := message.NewMsgInvSizeHint(uint(invSendQueue.Len()))
 			for e := invSendQueue.Front(); e != nil; e = invSendQueue.Front() {
-				iv := invSendQueue.Remove(e).(*wire.InvVect)
+				iv := invSendQueue.Remove(e).(*message.InvVect)
 
 				// Don't send inventory that became known after
 				// the initial check.
@@ -94,7 +95,7 @@ out:
 					waiting = queuePacket(
 						outMsg{msg: invMsg},
 						pendingMsgs, waiting)
-					invMsg = wire.NewMsgInvSizeHint(uint(invSendQueue.Len()))
+					invMsg = message.NewMsgInvSizeHint(uint(invSendQueue.Len()))
 				}
 
 				// Add the inventory that is being relayed to
@@ -105,7 +106,6 @@ out:
 				waiting = queuePacket(outMsg{msg: invMsg},
 					pendingMsgs, waiting)
 			}
-		*/
 
 		case <-p.quit:
 			break out

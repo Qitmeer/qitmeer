@@ -96,7 +96,7 @@ type PeerServer struct {
 
 	TimeSource   blockchain.MedianTimeSource
 	BlockManager *blkmgr.BlockManager
-	txMemPool    *mempool.TxPool
+	TxMemPool    *mempool.TxPool
 
 	services             protocol.ServiceFlag
 }

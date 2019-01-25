@@ -607,7 +607,7 @@ elif [ $1 == "get_tx_by_block_and_index" ]; then
 ## MemPool
 elif [ $1 == "mempool" ]; then
   shift
-  get_mempool $@
+  get_mempool $@|jq .
   check_error
 
 ## UTXO 

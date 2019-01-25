@@ -4,6 +4,7 @@ import (
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/log"
 	"github.com/noxproject/nox/rpc"
+	"sort"
 )
 
 func (t *TxPool) API() rpc.API {
@@ -36,5 +37,6 @@ func (api *PublicMempoolAPI) GetMempool(txType *string , verbose bool) (interfac
 		}
 		hashStrings = append(hashStrings, descs[i].Tx.Hash().String())
 	}
+	sort.Strings(hashStrings)
 	return hashStrings,nil
 }

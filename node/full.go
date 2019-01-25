@@ -123,10 +123,6 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 	}
 	nox.blockManager = bm
 
-	// prepare peerServer
-	node.peerServer.BlockManager = bm
-	node.peerServer.TimeSource = nox.timeSource
-
 	// mem-pool
 	txC := mempool.Config{
 		Policy: mempool.Policy{
@@ -157,6 +153,10 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 	// set mempool to bm
 	bm.SetMemPool(nox.txMemPool)
 
+	// prepare peerServer
+	node.peerServer.BlockManager = bm
+	node.peerServer.TimeSource = nox.timeSource
+	node.peerServer.TxMemPool = nox.txMemPool
 
 	// Cpu Miner
 	// Create the mining policy based on the configuration options.
