@@ -13,4 +13,4 @@ mining_addr=SiMVDjmSfbR9RAvvaxoBgMA4xi36yrwer4
 #./btcd -C=$app_dir/btcd.conf -b=$data_dir --rpclisten=127.0.0.1:18111 --rpccert=$app_dir/rpc.cert --rpckey=$app_dir/rpc.key --logdir=$log_dir --txindex --regtest
 
 
-./btcd -C=$app_dir/btcd.conf -b=$data_dir --rpccert=$app_dir/rpc.cert --rpckey=$app_dir/rpc.key --logdir=$log_dir --txindex --simnet --miningaddr=$mining_addr --debuglevel=$debug_level
+./btcd -C=$app_dir/btcd.conf -b=$data_dir --rpccert=$app_dir/rpc.cert --rpckey=$app_dir/rpc.key --logdir=$log_dir --txindex --simnet --miningaddr=$mining_addr --debuglevel=$debug_level --addrindex
