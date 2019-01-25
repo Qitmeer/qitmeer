@@ -486,6 +486,9 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				node := &blockNode{}
 				initBlockNode(node, &block.Block().Header, parents)
 				list:=b.dag.AddBlock(node)
+				dblock:=b.dag.GetBlock(node.GetHash())
+				node.SetHeight(uint64(dblock.GetOrder()))
+				b.index.addNode(node)
 				if list==nil||list.Len()==0 {
 					log.Error("Irreparable error!")
 					return AssertError(fmt.Sprintf("initChainState: Could "+

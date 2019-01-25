@@ -178,6 +178,9 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	if list==nil||list.Len()==0 {
 		return false,fmt.Errorf("Irreparable error!")
 	}
+	b.index.addNode(newNode)
+	dblock:=b.dag.GetBlock(newNode.GetHash())
+	newNode.SetHeight(uint64(dblock.order))
 	block.SetHeight(newNode.height)
 
 	// Connect the passed block to the chain while respecting proper chain
