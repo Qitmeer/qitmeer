@@ -356,7 +356,6 @@ func (sp *Spectre) updateVotes(votedPast *BlockDAG, vh hash.Hash) bool {
 			return false
 		}
 	}
-
 	parents := votedPast.GetBlock(&vh).GetParents()
 
 	if parents == nil || parents.Len() == 0 {
@@ -741,15 +740,36 @@ func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) *Block {
 	sb.parents=[]*hash.Hash{}
 	vhChildren:=sp.bd.GetBlock(&vh).GetChildren()
 	for h := range vhChildren.GetMap() {
-		if votedPast.HasBlock(&h) {
-			sb.parents=append(sb.parents,&h)
+		hash:=h
+		if votedPast.HasBlock(&hash) {
+			sb.parents=append(sb.parents,&hash)
 		}
 	}
 	if votedPast.HasBlock(&vh) {
 		log.Error("has already voter ", vh)
 	}
-	votedPast.AddBlock(&sb)
-	return votedPast.GetBlock(&vh)
+	//votedPast.AddBlock(&sb)
+	block := Block{hash: *sb.GetHash(), weight: 1}
+	if sb.parents != nil {
+		block.parents = NewBlockSet()
+		for _, h := range sb.parents {
+			hash:=*h
+			block.parents.Add(&hash)
+			parent := votedPast.GetBlock(&hash)
+			parent.AddChild(block.GetHash())
+		}
+	}
+	if votedPast.blocks == nil {
+		votedPast.blocks = map[hash.Hash]*Block{}
+	}
+	votedPast.blocks[block.hash] = &block
+	if votedPast.GetBlockTotal() == 0 {
+		votedPast.genesis = *block.GetHash()
+	}
+	votedPast.blockTotal++
+	votedPast.updateTips(block.GetHash())
+	votedPast.instance.AddBlock(&block)
+	return &block
 }
 
 //5) finally, (for the case where z equals x or y ), z votes for itself to succeed any block in past (z) and to precede any block outside past (z).
