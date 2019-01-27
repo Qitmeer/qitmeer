@@ -142,11 +142,13 @@ func (bd *BlockDAG) GetName() string {
 	return bd.instance.GetName()
 }
 
-func (bd *BlockDAG) Init(dagType string){
+func (bd *BlockDAG) Init(dagType string) IBlockDAG{
 	bd.instance=NewBlockDAG(dagType)
 	bd.instance.Init(bd)
 
 	bd.lastTime=time.Unix(time.Now().Unix(), 0)
+
+	return bd.instance
 }
 
 // This is an entry for update the block dag,you need pass in a block parameter,

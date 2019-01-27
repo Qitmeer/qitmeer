@@ -51,9 +51,6 @@ type Conflux struct {
 	bd *BlockDAG
 
 	privotTip *Block
-
-	// The full sequence of conflux
-	order []*hash.Hash
 }
 
 func (con *Conflux) GetName() string {
@@ -65,23 +62,40 @@ func (con *Conflux) Init(bd *BlockDAG) bool {
 	return true
 }
 
-func (con *Conflux) AddBlock(b *Block) bool {
+func (con *Conflux) AddBlock(b *Block) *list.List {
 	if b == nil {
-		return false
+		return nil
 	}
 	//
 	con.updatePrivot(b)
-	con.order = []*hash.Hash{}
+	oldOrder:=con.bd.order
+	con.bd.order = []*hash.Hash{}
 	con.updateMainChain(con.bd.GetGenesis(), nil, nil)
-	return true
+
+	var result *list.List
+	if oldOrder!=nil&&len(oldOrder)>0 {
+
+		var i uint
+		for i=0;i<con.bd.GetBlockTotal();i++ {
+			if result==nil {
+				if !oldOrder[i].IsEqual(con.bd.order[i]) {
+					result=list.New()
+				}
+			}else{
+				result.PushBack(con.bd.order[i])
+			}
+
+		}
+	}
+	return result
 }
 
-func (con *Conflux) GetTipsList() []*hash.Hash {
+func (con *Conflux) GetTipsList() []*Block {
 	if con.bd.tips.IsEmpty() || con.privotTip == nil {
 		return nil
 	}
 	if con.bd.tips.HasOnly(con.privotTip.GetHash()) {
-		return []*hash.Hash{con.privotTip.GetHash()}
+		return []*Block{con.privotTip}
 	}
 	if !con.bd.tips.Has(con.privotTip.GetHash()) {
 		return nil
@@ -89,9 +103,9 @@ func (con *Conflux) GetTipsList() []*hash.Hash {
 	tips := con.bd.tips.Clone()
 	tips.Remove(con.privotTip.GetHash())
 	tipsList := tips.List()
-	result := []*hash.Hash{con.privotTip.GetHash()}
+	result := []*Block{con.privotTip}
 	for _, h := range tipsList {
-		result = append(result, h)
+		result = append(result, con.bd.GetBlock(h))
 	}
 	return result
 }
@@ -209,13 +223,13 @@ func (con *Conflux) updateOrder(b *Block, preEpoch *Epoch, main *BlockSet) *Epoc
 	}
 	//update list
 	sequence := result.GetSequence()
-	startOrder := len(con.order)
+	startOrder := len(con.bd.order)
 	for i, block := range sequence {
 		if block.order != uint(startOrder+i) {
 			panic("epoch order error")
 		}
 		if !con.isVirtualBlock(block) {
-			con.order = append(con.order, block.GetHash())
+			con.bd.order = append(con.bd.order, block.GetHash())
 		}
 	}
 
@@ -304,10 +318,10 @@ func (con *Conflux) getForwardBlocks(bs *BlockSet) []*Block {
 	return result
 }
 
-func (con *Conflux) GetOrder() []*hash.Hash {
-	return con.order
-}
-
 func (con *Conflux) isVirtualBlock(b *Block) bool {
 	return b.GetHash().IsEqual(&hash.Hash{})
+}
+
+func (con *Conflux) GetBlockByOrder(order uint) *hash.Hash {
+	return nil
 }
