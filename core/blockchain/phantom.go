@@ -131,7 +131,7 @@ func (ph *Phantom) recAnticone(b *Block, futureSet *BlockSet, anticone *BlockSet
 // the exclude set is not empty,the final result will exclude set that you passed in.
 func (ph *Phantom) GetAnticone(b *Block, exclude *BlockSet) *BlockSet {
 	futureSet := NewBlockSet()
-	ph.GetFutureSet(futureSet, b)
+	ph.bd.GetFutureSet(futureSet, b)
 	anticone := NewBlockSet()
 	for k, _ := range ph.bd.tips.GetMap() {
 		ph.recAnticone(b, futureSet, anticone, &k)
@@ -140,19 +140,6 @@ func (ph *Phantom) GetAnticone(b *Block, exclude *BlockSet) *BlockSet {
 		anticone.Exclude(exclude)
 	}
 	return anticone
-}
-
-func (ph *Phantom) GetFutureSet(fs *BlockSet, b *Block) {
-	children := b.GetChildren()
-	if children == nil || children.IsEmpty() {
-		return
-	}
-	for k, _ := range children.GetMap() {
-		if !fs.Has(&k) {
-			fs.Add(&k)
-			ph.GetFutureSet(fs, ph.bd.GetBlock(&k))
-		}
-	}
 }
 
 // Calculate the size of the past block set.Because the past block set of block
@@ -507,7 +494,7 @@ func (ph *Phantom) calLastCommonBlocksPBS(pastBlueSet *map[hash.Hash]*BlockSet) 
 	/////
 	lastPFuture := NewBlockSet()
 	for k, _ := range ph.lastCommonBlocks.GetMap() {
-		ph.GetFutureSet(lastPFuture, ph.bd.GetBlock(&k))
+		ph.bd.GetFutureSet(lastPFuture, ph.bd.GetBlock(&k))
 	}
 
 	if ph.lastCommonBlocks.Len() == 1 {
@@ -652,12 +639,12 @@ func (ph *Phantom) updateCommonBlueSet(tip *hash.Hash){
 		}
 		curLPFuture := NewBlockSet()
 		for k, _ := range curLastCommonBS.GetMap() {
-			ph.GetFutureSet(curLPFuture, ph.bd.GetBlock(&k))
+			ph.bd.GetFutureSet(curLPFuture, ph.bd.GetBlock(&k))
 		}
 
 		lastPFuture := NewBlockSet()
 		for k, _ := range ph.lastCommonBlocks.GetMap() {
-			ph.GetFutureSet(lastPFuture, ph.bd.GetBlock(&k))
+			ph.bd.GetFutureSet(lastPFuture, ph.bd.GetBlock(&k))
 		}
 		//
 		pastBlueSet := make(map[hash.Hash]*BlockSet)
