@@ -72,10 +72,12 @@ func TestDoubleSpent(t *testing.T) {
 	}
 	//
 	fmt.Println()
-	lastNode:=ser.GetNoxFull().GetBlockManager().GetChain().DAG().GetLastBlock()
-	fmt.Printf("The Fig.2 Order: %d\n",lastNode.GetHeight())
+	lastBlock:=ser.GetNoxFull().GetBlockManager().GetChain().DAG().GetLastBlock()
+	fmt.Printf("The Fig.2 Order: %d (%s)\n",lastBlock.GetOrder()+1,
+		ser.GetNoxFull().GetBlockManager().GetChain().DAG().GetName())
 
-	for i:=0;i<=int(lastNode.GetHeight());i++ {
+	var i uint
+	for i=0;i<lastBlock.GetOrder()+1;i++ {
 		hash:=ser.GetNoxFull().GetBlockManager().GetChain().DAG().GetBlockByOrder(i)
 		hb:=bmap[*hash]
 		if hb==nil {

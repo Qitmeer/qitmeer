@@ -14,6 +14,7 @@ import (
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/engine/txscript"
+	"github.com/noxproject/nox/common/hash"
 )
 
 // checkCoinbaseUniqueHeight checks to ensure that for all blocks height > 1 the
@@ -179,9 +180,18 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		return false,fmt.Errorf("Irreparable error!")
 	}
 	b.index.addNode(newNode)
-	dblock:=b.dag.GetBlock(newNode.GetHash())
-	newNode.SetHeight(uint64(dblock.order))
-	block.SetHeight(newNode.height)
+	//
+	for e := list.Front(); e != nil; e = e.Next() {
+		refHash:=e.Value.(*hash.Hash)
+		refblock:=b.dag.GetBlock(refHash)
+		refnode:=b.index.lookupNode(refHash)
+		refnode.SetHeight(uint64(refblock.order))
+
+		if newNode.GetHash().IsEqual(refHash) {
+			block.SetHeight(uint64(refblock.order))
+		}
+	}
+
 
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This

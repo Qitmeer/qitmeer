@@ -292,7 +292,7 @@ func New(config *Config) (*BlockChain, error) {
 
 	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Height), b.params)
 
-	log.Info("DAG Type:%s",b.dag.GetName())
+	log.Info(fmt.Sprintf("DAG Type:%s",b.dag.GetName()))
 	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
 		"index",b.dbInfo.bidxVer)
 

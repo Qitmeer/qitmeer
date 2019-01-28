@@ -73,19 +73,20 @@ func (con *Conflux) AddBlock(b *Block) *list.List {
 	con.updateMainChain(con.bd.GetGenesis(), nil, nil)
 
 	var result *list.List
-	if oldOrder!=nil&&len(oldOrder)>0 {
-
-		var i uint
-		for i=0;i<con.bd.GetBlockTotal();i++ {
-			if result==nil {
-				if !oldOrder[i].IsEqual(con.bd.order[i]) {
-					result=list.New()
-				}
-			}else{
+	var i uint
+	for i=0;i<con.bd.GetBlockTotal();i++ {
+		if result==nil {
+			if oldOrder==nil||
+				len(oldOrder)==0||
+				i>=uint(len(oldOrder))||
+				!oldOrder[i].IsEqual(con.bd.order[i]) {
+				result=list.New()
 				result.PushBack(con.bd.order[i])
 			}
-
+		}else{
+			result.PushBack(con.bd.order[i])
 		}
+
 	}
 	return result
 }
