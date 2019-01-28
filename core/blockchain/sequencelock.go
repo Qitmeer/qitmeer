@@ -92,7 +92,7 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			if prevInputHeight < 0 {
 				prevInputHeight = 0
 			}
-			blockNode := b.index.LookupNode(b.dag.GetBlockByOrder(uint(prevInputHeight)))
+			blockNode := b.index.LookupNode(b.bd.GetBlockByOrder(uint(prevInputHeight)))
 			medianTime := blockNode.CalcPastMedianTime()
 
 			// Calculate the minimum required timestamp based on the
@@ -142,7 +142,7 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 // This function is safe for concurrent access.
 func (b *BlockChain) CalcSequenceLock(tx *types.Tx, view *UtxoViewpoint) (*SequenceLock, error) {
 	b.chainLock.Lock()
-	block:=b.dag.GetLastBlock()
+	block:=b.bd.GetLastBlock()
 	node:=b.index.lookupNode(block.GetHash())
 	seqLock, err := b.calcSequenceLock(node, tx, view, true)
 	b.chainLock.Unlock()

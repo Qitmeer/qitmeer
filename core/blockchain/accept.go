@@ -175,7 +175,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	}
 
 	//dag
-	list:=b.dag.AddBlock(newNode)
+	list:=b.bd.AddBlock(newNode)
 	if list==nil||list.Len()==0 {
 		return false,fmt.Errorf("Irreparable error!")
 	}
@@ -183,12 +183,12 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	//
 	for e := list.Front(); e != nil; e = e.Next() {
 		refHash:=e.Value.(*hash.Hash)
-		refblock:=b.dag.GetBlock(refHash)
+		refblock:=b.bd.GetBlock(refHash)
 		refnode:=b.index.lookupNode(refHash)
-		refnode.SetHeight(uint64(refblock.order))
+		refnode.SetHeight(uint64(refblock.GetOrder()))
 
 		if newNode.GetHash().IsEqual(refHash) {
-			block.SetHeight(uint64(refblock.order))
+			block.SetHeight(uint64(refblock.GetOrder()))
 		}
 	}
 

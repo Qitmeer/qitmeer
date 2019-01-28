@@ -432,7 +432,7 @@ func (b *BlockChain) CalcNextRequiredDiffFromNode(hash *hash.Hash, timestamp tim
 // This function is safe for concurrent access.
 func (b *BlockChain) CalcNextRequiredDifficulty(timestamp time.Time) (uint32, error) {
 	b.chainLock.Lock()
-	block:=b.dag.GetLastBlock()
+	block:=b.bd.GetLastBlock()
 	node:=b.index.lookupNode(block.GetHash())
 	difficulty, err := b.calcNextRequiredDifficulty(node, timestamp)
 	b.chainLock.Unlock()

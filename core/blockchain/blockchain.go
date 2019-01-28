@@ -16,6 +16,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"github.com/noxproject/nox/core/blockdag"
 )
 
 const (
@@ -116,9 +117,9 @@ type BlockChain struct {
 	pruner *chainPruner
 
 	//block dag
-	dag *BlockDAG
+	bd *blockdag.BlockDAG
 	//badTx hash->block hash
-	badTx map[hash.Hash]*BlockSet
+	badTx map[hash.Hash]*blockdag.BlockSet
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -269,9 +270,9 @@ func New(config *Config) (*BlockChain, error) {
 		mainchainBlockCache:           make(map[hash.Hash]*types.SerializedBlock),
 		mainchainBlockCacheSize:       mainchainBlockCacheSize,
 	}
-	b.dag=&BlockDAG{}
-	b.dag.Init(config.DAGType)
-	b.badTx=make(map[hash.Hash]*BlockSet)
+	b.bd=&blockdag.BlockDAG{}
+	b.bd.Init(config.DAGType)
+	b.badTx=make(map[hash.Hash]*blockdag.BlockSet)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -292,11 +293,11 @@ func New(config *Config) (*BlockChain, error) {
 
 	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Height), b.params)
 
-	log.Info(fmt.Sprintf("DAG Type:%s",b.dag.GetName()))
+	log.Info(fmt.Sprintf("DAG Type:%s",b.bd.GetName()))
 	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
 		"index",b.dbInfo.bidxVer)
 
-	tips:=b.dag.GetTipsList()
+	tips:=b.bd.GetTipsList()
 	logStr:=fmt.Sprintf("Chain state:totaltx=%d\ntips=%d\n",b.stateSnapshot.TotalTxns,len(tips))
 
 	for _,v:=range tips{
@@ -485,8 +486,8 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				//
 				node := &blockNode{}
 				initBlockNode(node, &block.Block().Header, parents)
-				list:=b.dag.AddBlock(node)
-				dblock:=b.dag.GetBlock(node.GetHash())
+				list:=b.bd.AddBlock(node)
+				dblock:=b.bd.GetBlock(node.GetHash())
 				node.SetHeight(uint64(dblock.GetOrder()))
 				b.index.addNode(node)
 				if list==nil||list.Len()==0 {
@@ -502,7 +503,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			return AssertError(fmt.Sprintf("initChainState:Data damage"))
 		}*/
 		// Set the best chain view to the stored best state.
-		lastBlock:=b.dag.GetLastBlock()
+		lastBlock:=b.bd.GetLastBlock()
 		tip :=b.index.lookupNode(lastBlock.GetHash())
 		if tip == nil {
 			return AssertError(fmt.Sprintf("initChainState: cannot find "+
@@ -550,7 +551,7 @@ func (b *BlockChain) isCurrent() bool {
 	// Not current if the latest main (best) chain height is before the
 	// latest known good checkpoint (when checkpoints are enabled).
 	checkpoint := b.latestCheckpoint()
-	lastBlock:=b.dag.GetLastBlock()
+	lastBlock:=b.bd.GetLastBlock()
 	if checkpoint != nil && uint64(lastBlock.GetOrder()) < checkpoint.Height {
 		return false
 	}
@@ -860,7 +861,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// to the main chain without violating any rules and without
 		// actually connecting the block.
 		view := NewUtxoViewpoint()
-		view.SetBestHash(b.dag.GetPrevious(&node.hash))
+		view.SetBestHash(b.bd.GetPrevious(&node.hash))
 
 		stxos:=[]spentTxOut{}
 		err := b.checkConnectBlock(node, block, view,&stxos)
@@ -963,7 +964,7 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.Serialize
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []spentTxOut) error {
 	// Must be end node of sequence in dag
-	lastBlock:=b.dag.GetLastBlock()
+	lastBlock:=b.bd.GetLastBlock()
 	lastTip:=b.index.lookupNode(lastBlock.GetHash())
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
@@ -984,7 +985,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	*/
 	blockSize := uint64(block.Block().SerializeSize())
 
-	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns),*b.dag.GetLastTime(),curTotalTxns+numTxns,
+	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns),*b.bd.GetLastTime(),curTotalTxns+numTxns,
 		 curTotalSubsidy+subsidy)
 
 
@@ -1144,9 +1145,9 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 		if prevNode!=nil {
 			prevH=e.Value.(*hash.Hash)
 		}else{
-			prevH=b.dag.GetPrevious(block.Hash())
+			prevH=b.bd.GetPrevious(block.Hash())
 			if prevH.IsEqual(&node.hash) {
-				prevH=b.dag.GetPrevious(prevH)
+				prevH=b.bd.GetPrevious(prevH)
 			}
 		}
 		err=b.disconnectTransactions(view,block,stxos,prevH)
@@ -1178,7 +1179,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 
 
 		view := NewUtxoViewpoint()
-		view.SetBestHash(b.dag.GetPrevious(&n.hash))
+		view.SetBestHash(b.bd.GetPrevious(&n.hash))
 		stxos:=[]spentTxOut{}
 		err= b.checkConnectBlock(n, block, view, &stxos)
 		if err != nil {
@@ -1378,7 +1379,7 @@ func (b *BlockChain) AddBadTx(txh *hash.Hash,bh *hash.Hash){
 	if b.IsBadTx(txh) {
 		b.badTx[*txh].Add(bh)
 	}else{
-		set:=NewBlockSet()
+		set:=blockdag.NewBlockSet()
 		set.Add(bh)
 		b.badTx[*txh]=set
 	}
@@ -1405,8 +1406,8 @@ func (b *BlockChain) RemoveBadTx(bh *hash.Hash){
 }
 
 // Return the dag instance
-func (b *BlockChain) DAG() *BlockDAG{
-	return b.dag
+func (b *BlockChain) BlockDAG() *blockdag.BlockDAG{
+	return b.bd
 }
 
 // Return the blockindex instance
@@ -1419,9 +1420,9 @@ func (b *BlockChain) BlockIndex() *blockIndex{
 // for dag synchronization.
 func (b *BlockChain) LocateBlocks(mainHeight uint64,blocks []*hash.Hash, maxHashes uint32) []*hash.Hash {
 	blocksNum:=len(blocks)
-	result:=NewBlockSet()
+	result:=blockdag.NewBlockSet()
 	if blocksNum>0 {
-		curBlock:=b.dag.GetLastBlock()
+		curBlock:=b.bd.GetLastBlock()
 		curNode:=b.index.lookupNode(curBlock.GetHash())
 		for  {
 			if curNode.GetMainHeight()<mainHeight {
@@ -1429,7 +1430,7 @@ func (b *BlockChain) LocateBlocks(mainHeight uint64,blocks []*hash.Hash, maxHash
 			}
 			result.AddSet(curBlock.GetParents())
 			result.AddSet(curBlock.GetChildren())
-			curBlockH:=b.dag.GetBlockByOrder(uint(curNode.GetHeight()-1))
+			curBlockH:=b.bd.GetBlockByOrder(uint(curNode.GetHeight()-1))
 			curNode=b.index.LookupNode(curBlockH)
 		}
 	}else{

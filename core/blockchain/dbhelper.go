@@ -275,7 +275,7 @@ func (b *BlockChain) createChainState() error {
 	node := newBlockNode(header, nil)
 	node.status = statusDataStored | statusValid
 	node.inMainChain = true
-	b.dag.AddBlock(node)
+	b.bd.AddBlock(node)
 	node.SetHeight(0)
 	b.index.addNode(node)
 	// Initialize the state related to the best block.  Since it is the

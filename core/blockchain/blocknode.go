@@ -9,6 +9,7 @@ import (
 	"sort"
 	"github.com/noxproject/nox/common/util"
 	"github.com/noxproject/nox/core/merkle"
+	"github.com/noxproject/nox/core/blockdag"
 )
 
 // blockStatus is a bit field representing the validation state of the block.
@@ -252,11 +253,11 @@ func (node *blockNode) HasChild(child *blockNode) bool{
 }
 
 // For the moment,In order to match the DAG
-func (node *blockNode) GetChildren() *BlockSet{
+func (node *blockNode) GetChildren() *blockdag.BlockSet{
 	if node.children==nil||len(node.children)==0 {
 		return nil
 	}
-	result:=NewBlockSet()
+	result:=blockdag.NewBlockSet()
 	for _,v:=range node.children{
 		result.Add(&v.hash)
 	}

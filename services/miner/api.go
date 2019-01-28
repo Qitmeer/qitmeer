@@ -17,6 +17,7 @@ import (
 	"github.com/noxproject/nox/rpc"
 	er "github.com/noxproject/nox/services/common/error"
 	"github.com/noxproject/nox/services/mining"
+	"github.com/noxproject/nox/core/blockdag"
 )
 
 //LL
@@ -129,8 +130,8 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	}
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
-	tips := api.miner.blockManager.GetChain().DAG().GetTips()
-	parents := blockchain.NewBlockSet()
+	tips := api.miner.blockManager.GetChain().BlockDAG().GetTips()
+	parents := blockdag.NewBlockSet()
 	parents.AddList(block.Block().Parents)
 	if !parents.IsEqual(tips) {
 		return fmt.Sprintf("The tips of block is expired."), nil

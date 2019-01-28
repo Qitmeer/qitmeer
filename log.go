@@ -17,6 +17,7 @@ import (
 	"github.com/noxproject/nox/services/blkmgr"
 	"github.com/noxproject/nox/core/blockchain"
 	"github.com/noxproject/nox/services/miner"
+	"github.com/noxproject/nox/core/blockdag"
 )
 
 var (
@@ -50,10 +51,12 @@ func init() {
 	blockchainlogger := log.New(log.Ctx{"module": "blockchain"})
 	minerlogger := log.New(log.Ctx{"module": "cpu miner"})
 	rpclogger := log.New(log.Ctx{"module": "node"})
+	blockdaglogger := log.New(log.Ctx{"module": "blockdag"})
 	blkmgr.UseLogger(blockchainlogger)
 	blockchain.UseLogger(blockchainlogger)
 	miner.UseLogger(minerlogger)
 	node.UseLogger(rpclogger)
+	blockdag.UseLogger(blockdaglogger)
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and

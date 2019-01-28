@@ -1,4 +1,4 @@
-package blockchain
+package blockdag
 
 import (
 	"container/list"
