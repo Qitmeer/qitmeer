@@ -74,9 +74,4 @@ var MainNetParams = Params{
 	HDCoinType: 20,
 
 	CoinbaseMaturity:        256,
-
-	//DAG
-	BlockDelay:    15,
-	BlockRate:     0.02,
-	SecurityLevel: 0.01,
 }

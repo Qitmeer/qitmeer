@@ -87,9 +87,4 @@ var PrivNetParams = Params{
 	OrganizationPkScript:  hexMustDecode("76a914699e7e705893b4e7b3f9742ca55a743c7167288a88ac"),
 
 	CoinbaseMaturity: 16,
-
-	//DAG
-	BlockDelay:    15,
-	BlockRate:     0.02,
-	SecurityLevel: 0.01,
 }

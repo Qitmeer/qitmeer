@@ -113,6 +113,7 @@ func (b *Block) GetWeight() uint {
 func (b *Block) GetOrder() uint {
 	return b.order
 }
+
 // The general foundation framework of DAG
 type BlockDAG struct {
 	// The genesis of block dag

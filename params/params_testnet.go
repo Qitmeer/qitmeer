@@ -78,9 +78,4 @@ var TestNetParams = Params{
 	HDCoinType: 11,
 
 	CoinbaseMaturity:        16,
-
-	//DAG
-	BlockDelay:    15,
-	BlockRate:     0.02,
-	SecurityLevel: 0.01,
 }
