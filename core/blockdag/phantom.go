@@ -42,9 +42,6 @@ type Phantom struct {
 	// The block anticone size is all in the DAG which did not reference it and
 	// were not referenced by it.
 	anticoneSize int
-
-	// The past set of block
-	pastSetNum map[hash.Hash]uint
 }
 
 func (ph *Phantom) GetName() string {
@@ -55,8 +52,6 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 	ph.bd=bd
 
 	ph.anticoneSize = anticone.GetSize(BlockDelay,BlockRate,SecurityLevel)
-
-	ph.pastSetNum=map[hash.Hash]uint{}
 
 	log.Info(fmt.Sprintf("anticone size:%d",ph.anticoneSize))
 
@@ -77,16 +72,6 @@ func (ph *Phantom) AddBlock(b *Block) *list.List {
 	ph.updateHourglass()
 
 	return ph.updateOrder(b)
-}
-
-// The past set is all its its ancestors.Because the past cannot be
-// changed, so its number is fixed.
-func (ph *Phantom) addPastSetNum(b *Block, num uint) {
-	ph.pastSetNum[*b.GetHash()]=num
-}
-
-func (ph *Phantom) GetPastSetNum(b *Block) uint {
-	return ph.pastSetNum[*b.GetHash()]
 }
 
 func isVirtualTip(b *Block, futureSet *BlockSet, anticone *BlockSet, children *BlockSet) bool {
@@ -145,9 +130,8 @@ func (ph *Phantom) GetAnticone(b *Block, exclude *BlockSet) *BlockSet {
 // Calculate the size of the past block set.Because the past block set of block
 // is stable,we can calculate and save.
 func (ph *Phantom) calculatePastBlockSetNum(b *Block) {
-
 	if b.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
-		ph.addPastSetNum(b, 0)
+		b.weight=0
 		return
 	}
 	parents:=b.GetParents()
@@ -160,14 +144,16 @@ func (ph *Phantom) calculatePastBlockSetNum(b *Block) {
 	}
 
 	if len(parentsList) == 1 {
-		ph.addPastSetNum(b, ph.GetPastSetNum(parentsList[0])+1)
+		b.weight=parentsList[0].weight+1
 		return
 	}
 	anticone := ph.GetAnticone(b, nil)
 
 	anOther := ph.GetAnticone(parentsList[0], anticone)
 
-	ph.addPastSetNum(b, ph.GetPastSetNum(parentsList[0])+uint(anOther.Len())+1)
+	// The past set is all its its ancestors.Because the past cannot be
+	// changed, so its number is fixed.
+	b.weight=parentsList[0].weight+uint(anOther.Len())+1
 }
 
 func (ph *Phantom) sortBlockSet(set *BlockSet, bs *BlockSet) SortBlocks {
@@ -178,9 +164,9 @@ func (ph *Phantom) sortBlockSet(set *BlockSet, bs *BlockSet) SortBlocks {
 		node:=ph.bd.GetBlock(&k)
 		kv:=k
 		if bs != nil && bs.Has(&k) {
-			sb0 = append(sb0, SortBlock{&kv, ph.GetPastSetNum(node)})
+			sb0 = append(sb0, SortBlock{&kv, node.weight})
 		} else {
-			sb1 = append(sb1, SortBlock{&kv, ph.GetPastSetNum(node)})
+			sb1 = append(sb1, SortBlock{&kv, node.weight})
 		}
 
 	}
@@ -244,7 +230,7 @@ func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, b
 				if bs.Has(h) {
 					for _, av := range ansb {
 						avNode:=ph.bd.GetBlock(av.h)
-						if bs.Has(av.h) && ph.GetPastSetNum(avNode) < ph.GetPastSetNum(node) && !tempOrderM.Has(av.h) {
+						if bs.Has(av.h) && avNode.weight < node.weight && !tempOrderM.Has(av.h) {
 							ph.GetTempOrder(tempOrder, tempOrderM, bs, av.h, exclude)
 						}
 					}
@@ -421,7 +407,7 @@ func (ph *Phantom) recPastBlockSet(genealogy *BlockSet, tipsAncestors *map[hash.
 		for k, _ := range v.GetMap() {
 			kv:=k
 			node:=ph.bd.GetBlock(&kv)
-			pastNum := ph.GetPastSetNum(node)
+			pastNum := node.weight
 			if maxPastHash == nil || maxPastNum < pastNum {
 				maxPastHash = &kv
 				maxPastNum = pastNum
@@ -719,7 +705,7 @@ func (ph *Phantom) recCalHourglass(genealogy *BlockSet, ancestors *BlockSet) {
 	var maxPastNum uint = 0
 
 	for k, _ := range ancestors.GetMap() {
-		pastNum := ph.GetPastSetNum(ph.bd.GetBlock(&k))
+		pastNum := ph.bd.GetBlock(&k).weight
 		if maxPastHash == nil || maxPastNum < pastNum {
 			maxPastHash = &k
 			maxPastNum = pastNum
