@@ -31,9 +31,6 @@ type Phantom struct {
 	// Well understood,this orderly array is the sorting of common set.
 	commonOrder      []*hash.Hash
 
-	// This orderly array is the sorting of the end of dag set.
-	tempOrder        []*hash.Hash
-
 	// If it happens that during two propagation delays only one block is created, this block is called hourglass block.
 	// This means it reference all the tips and is reference by all following blocks.
 	// Hourglass block is a strong signal of finality because its blue set is stable.
@@ -802,10 +799,11 @@ func (ph *Phantom) updateHourglass(){
 }
 
 func (ph *Phantom) updateOrder(b *Block) *list.List{
-	ph.tempOrder=[]*hash.Hash{}
+	// The blockdag orderly array is the sorting of the end of dag set.
+	ph.bd.order=[]*hash.Hash{}
 	refNodes:=list.New()
 	if ph.bd.GetBlockTotal() == 1 {
-		ph.tempOrder=append(ph.tempOrder, ph.bd.GetGenesisHash())
+		ph.bd.order=append(ph.bd.order, ph.bd.GetGenesisHash())
 		refNodes.PushBack(*ph.bd.GetGenesisHash())
 		b.order=0
 		return refNodes
@@ -828,7 +826,7 @@ func (ph *Phantom) updateOrder(b *Block) *list.List{
 	tIndex:=0
 	for i := 0; i < tLen; i++ {
 		if !ph.lastCommonBlocks.Has(tempOrder[i]) {
-			ph.tempOrder = append(ph.tempOrder, tempOrder[i])
+			ph.bd.order = append(ph.bd.order, tempOrder[i])
 			//
 			node:=ph.bd.GetBlock(tempOrder[i])
 
@@ -839,22 +837,22 @@ func (ph *Phantom) updateOrder(b *Block) *list.List{
 			}
 		}
 	}
-	checkOrder:=ph.GetCommonOrderNum()+len(ph.tempOrder)
+	checkOrder:=ph.GetCommonOrderNum()+len(ph.bd.order)
 	if uint(checkOrder)!=ph.bd.GetBlockTotal() {
 		log.Error(fmt.Sprintf("Order error:The number is a problem"))
 	}
 	//////
 	tips:=ph.bd.GetTips()
-	if tips.HasOnly(b.GetHash())||ph.tempOrder[len(ph.tempOrder)-1].IsEqual(b.GetHash()) {
+	if tips.HasOnly(b.GetHash())||ph.bd.order[len(ph.bd.order)-1].IsEqual(b.GetHash()) {
 		b.order=uint(ph.bd.GetBlockTotal()-1)
 		refNodes.PushBack(b.GetHash())
 		return refNodes
 	}
 	////
-	tLen = len(ph.tempOrder)
+	tLen = len(ph.bd.order)
 	for i:=tLen-1;i>=0;i-- {
-		refNodes.PushFront(ph.tempOrder[i])
-		if ph.tempOrder[i].IsEqual(b.GetHash()) {
+		refNodes.PushFront(ph.bd.order[i])
+		if ph.bd.order[i].IsEqual(b.GetHash()) {
 			break
 		}
 	}
@@ -911,7 +909,7 @@ func (ph *Phantom) GetBlockOrder(h *hash.Hash) int32{
 
 
 func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash{
-	if ph.tempOrder==nil||order<0 {
+	if ph.bd.order==nil||order<0 {
 		return nil
 	}
 	pNum:=uint(ph.GetCommonOrderNum())
@@ -919,9 +917,9 @@ func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash{
 		return ph.commonOrder[order]
 	}
 	rIndex:=order-pNum
-	tLen:=len(ph.tempOrder)
+	tLen:=len(ph.bd.order)
 	if rIndex<uint(tLen) {
-		return ph.tempOrder[rIndex]
+		return ph.bd.order[rIndex]
 	}
 	return nil
 }
