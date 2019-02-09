@@ -20,13 +20,13 @@ type Phantom struct {
 
 	// This is a set that only include honest block and it is the common part of each
 	// tips in the block dag, so it is a blue set too.
-	commonBlueSet    *BlockSet
+	commonBlueSet    *HashSet
 
 	// This is a set that only include honest block exclude from "commonBlueSet",
 	// but it's not very stable.
-	tempBlueSet      *BlockSet
+	tempBlueSet      *HashSet
 
-	lastCommonBlocks *BlockSet
+	lastCommonBlocks *HashSet
 
 	// Well understood,this orderly array is the sorting of common set.
 	commonOrder      []*hash.Hash
@@ -34,7 +34,7 @@ type Phantom struct {
 	// If it happens that during two propagation delays only one block is created, this block is called hourglass block.
 	// This means it reference all the tips and is reference by all following blocks.
 	// Hourglass block is a strong signal of finality because its blue set is stable.
-	hourglassBlocks *BlockSet
+	hourglassBlocks *HashSet
 
 	// The block anticone size is all in the DAG which did not reference it and
 	// were not referenced by it.
@@ -64,14 +64,14 @@ func (ph *Phantom) AddBlock(b *Block) *list.List {
 	ph.tempBlueSet=nil
 	log.Trace(fmt.Sprintf("Add block:%v",b.GetHash().String()))
 
-	ph.calculatePastBlockSetNum(b)
+	ph.calculatePastHashSetNum(b)
 	ph.updateCommonBlueSet(b.GetHash())
 	ph.updateHourglass()
 
 	return ph.updateOrder(b)
 }
 
-func isVirtualTip(b *Block, futureSet *BlockSet, anticone *BlockSet, children *BlockSet) bool {
+func isVirtualTip(b *Block, futureSet *HashSet, anticone *HashSet, children *HashSet) bool {
 	for k, _ := range children.GetMap() {
 		if k.IsEqual(b.GetHash()) {
 			return false
@@ -84,7 +84,7 @@ func isVirtualTip(b *Block, futureSet *BlockSet, anticone *BlockSet, children *B
 }
 
 // This function is used to GetAnticone recursion
-func (ph *Phantom) recAnticone(b *Block, futureSet *BlockSet, anticone *BlockSet, h *hash.Hash) {
+func (ph *Phantom) recAnticone(b *Block, futureSet *HashSet, anticone *HashSet, h *hash.Hash) {
 	if h.IsEqual(b.GetHash()) {
 		return
 	}
@@ -111,10 +111,10 @@ func (ph *Phantom) recAnticone(b *Block, futureSet *BlockSet, anticone *BlockSet
 
 // This function can get anticone set for an block that you offered in the block dag,If
 // the exclude set is not empty,the final result will exclude set that you passed in.
-func (ph *Phantom) GetAnticone(b *Block, exclude *BlockSet) *BlockSet {
-	futureSet := NewBlockSet()
+func (ph *Phantom) GetAnticone(b *Block, exclude *HashSet) *HashSet {
+	futureSet := NewHashSet()
 	ph.bd.GetFutureSet(futureSet, b)
-	anticone := NewBlockSet()
+	anticone := NewHashSet()
 	for k, _ := range ph.bd.tips.GetMap() {
 		ph.recAnticone(b, futureSet, anticone, &k)
 	}
@@ -126,7 +126,7 @@ func (ph *Phantom) GetAnticone(b *Block, exclude *BlockSet) *BlockSet {
 
 // Calculate the size of the past block set.Because the past block set of block
 // is stable,we can calculate and save.
-func (ph *Phantom) calculatePastBlockSetNum(b *Block) {
+func (ph *Phantom) calculatePastHashSetNum(b *Block) {
 	if b.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
 		b.weight=0
 		return
@@ -153,7 +153,7 @@ func (ph *Phantom) calculatePastBlockSetNum(b *Block) {
 	b.weight=parentsList[0].weight+uint(anOther.Len())+1
 }
 
-func (ph *Phantom) sortBlockSet(set *BlockSet, bs *BlockSet) SortBlocks {
+func (ph *Phantom) sortHashSet(set *HashSet, bs *HashSet) SortBlocks {
 	sb0 := SortBlocks{}
 	sb1 := SortBlocks{}
 
@@ -173,7 +173,7 @@ func (ph *Phantom) sortBlockSet(set *BlockSet, bs *BlockSet) SortBlocks {
 	return sb0
 }
 
-func (ph *Phantom) getPastSetByOrder(pastSet *BlockSet, exclude *BlockSet, h *hash.Hash) {
+func (ph *Phantom) getPastSetByOrder(pastSet *HashSet, exclude *HashSet, h *hash.Hash) {
 	if exclude.Has(h) || pastSet.Has(h) {
 		return
 	}
@@ -194,7 +194,7 @@ func (ph *Phantom) getPastSetByOrder(pastSet *BlockSet, exclude *BlockSet, h *ha
 	}
 }
 
-func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, bs *BlockSet, h *hash.Hash, exclude *BlockSet) {
+func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *HashSet, bs *HashSet, h *hash.Hash, exclude *HashSet) {
 
 	//1.If h that has already appeared must be excluded.
 	if exclude != nil && exclude.Has(h) {
@@ -214,7 +214,7 @@ func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, b
 			}
 		}
 	}
-	var anticone *BlockSet
+	var anticone *HashSet
 
 	//3.Search some uncle block that it is in front of me, then
 	//make sure they are sorted.
@@ -223,7 +223,7 @@ func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, b
 			anticone = ph.GetAnticone(node, exclude)
 			//
 			if !anticone.IsEmpty() {
-				ansb := ph.sortBlockSet(anticone, bs)
+				ansb := ph.sortHashSet(anticone, bs)
 				if bs.Has(h) {
 					for _, av := range ansb {
 						avNode:=ph.bd.GetBlock(av.h)
@@ -259,9 +259,9 @@ func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, b
 	if children == nil || children.Len() == 0 {
 		return
 	}
-	pastSet := NewBlockSet()
-	redSet := NewBlockSet()
-	sb := ph.sortBlockSet(children, bs)
+	pastSet := NewHashSet()
+	redSet := NewHashSet()
+	sb := ph.sortHashSet(children, bs)
 
 	for _, v := range sb {
 
@@ -269,7 +269,7 @@ func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, b
 			if !tempOrderM.Has(v.h) {
 				pastSet.Clear()
 				redSet.Clear()
-				var excludeT *BlockSet
+				var excludeT *HashSet
 				if exclude != nil {
 					excludeT = tempOrderM.Clone()
 					excludeT.AddSet(exclude)
@@ -281,7 +281,7 @@ func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, b
 
 				inbs := pastSet.Intersection(anticone)
 				if inbs != nil && inbs.Len() > 0 {
-					insb := ph.sortBlockSet(inbs, bs)
+					insb := ph.sortHashSet(inbs, bs)
 
 					for _, v0 := range insb {
 						if bs.Has(v0.h) {
@@ -302,7 +302,7 @@ func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, b
 							}
 						}
 						if isAllOrder {
-							redsb := ph.sortBlockSet(redSet, bs)
+							redsb := ph.sortHashSet(redSet, bs)
 							for _, v1 := range redsb {
 								ph.GetTempOrder(tempOrder, tempOrderM, bs, v1.h, exclude)
 							}
@@ -321,7 +321,7 @@ func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *BlockSet, b
 	}
 }
 
-func (ph *Phantom) updateCommonOrder(tip *hash.Hash, blueSet *BlockSet, isRollBack bool, exclude *BlockSet, curLastCommonBS *BlockSet, startIndex int) {
+func (ph *Phantom) updateCommonOrder(tip *hash.Hash, blueSet *HashSet, isRollBack bool, exclude *HashSet, curLastCommonBS *HashSet, startIndex int) {
 
 	if tip.IsEqual(ph.bd.GetGenesisHash()) {
 		ph.commonOrder = []*hash.Hash{}
@@ -341,9 +341,9 @@ func (ph *Phantom) updateCommonOrder(tip *hash.Hash, blueSet *BlockSet, isRollBa
 			return
 		}
 		tempOrder := []*hash.Hash{}
-		tempOrderM := NewBlockSet()
+		tempOrderM := NewHashSet()
 
-		lpsb := ph.sortBlockSet(ph.lastCommonBlocks, blueSet)
+		lpsb := ph.sortHashSet(ph.lastCommonBlocks, blueSet)
 
 		for _, v := range lpsb {
 			ph.GetTempOrder(&tempOrder, tempOrderM, blueSet, v.h, exclude)
@@ -389,7 +389,7 @@ func (ph *Phantom) updateCommonOrder(tip *hash.Hash, blueSet *BlockSet, isRollBa
 	}
 }
 
-func (ph *Phantom) recPastBlockSet(genealogy *BlockSet, tipsAncestors *map[hash.Hash]*BlockSet, tipsGenealogy *map[hash.Hash]*BlockSet) {
+func (ph *Phantom) recPastHashSet(genealogy *HashSet, tipsAncestors *map[hash.Hash]*HashSet, tipsGenealogy *map[hash.Hash]*HashSet) {
 
 	var maxPastHash *hash.Hash = nil
 	var maxPastNum uint = 0
@@ -434,7 +434,7 @@ func (ph *Phantom) recPastBlockSet(genealogy *BlockSet, tipsAncestors *map[hash.
 	}
 }
 
-func (ph *Phantom) calLastCommonBlocks(tip *hash.Hash) *BlockSet {
+func (ph *Phantom) calLastCommonBlocks(tip *hash.Hash) *HashSet {
 	tips := ph.bd.GetTips()
 	if tips == nil {
 		return nil
@@ -443,13 +443,13 @@ func (ph *Phantom) calLastCommonBlocks(tip *hash.Hash) *BlockSet {
 	if len(tipsList) <= 1 {
 		return nil
 	}
-	tipsGenealogy:=make(map[hash.Hash]*BlockSet)
-	tipsAncestors := make(map[hash.Hash]*BlockSet)
+	tipsGenealogy:=make(map[hash.Hash]*HashSet)
+	tipsAncestors := make(map[hash.Hash]*HashSet)
 	for _, v := range tipsList {
-		tipsAncestors[*v] = NewBlockSet()
+		tipsAncestors[*v] = NewHashSet()
 		tipsAncestors[*v].Add(v)
 
-		tipsGenealogy[*v]=NewBlockSet()
+		tipsGenealogy[*v]=NewHashSet()
 		tipsGenealogy[*v].Add(v)
 	}
 
@@ -468,14 +468,14 @@ func (ph *Phantom) calLastCommonBlocks(tip *hash.Hash) *BlockSet {
 		if !hasDifferent {
 			break
 		}
-		ph.recPastBlockSet(nil, &tipsAncestors, &tipsGenealogy)
+		ph.recPastHashSet(nil, &tipsAncestors, &tipsGenealogy)
 	}
 	return tipsAncestors[*tip]
 }
 
-func (ph *Phantom) calLastCommonBlocksPBS(pastBlueSet *map[hash.Hash]*BlockSet) {
+func (ph *Phantom) calLastCommonBlocksPBS(pastBlueSet *map[hash.Hash]*HashSet) {
 	/////
-	lastPFuture := NewBlockSet()
+	lastPFuture := NewHashSet()
 	for k, _ := range ph.lastCommonBlocks.GetMap() {
 		ph.bd.GetFutureSet(lastPFuture, ph.bd.GetBlock(&k))
 	}
@@ -483,14 +483,14 @@ func (ph *Phantom) calLastCommonBlocksPBS(pastBlueSet *map[hash.Hash]*BlockSet) 
 	if ph.lastCommonBlocks.Len() == 1 {
 		lpbHash := ph.lastCommonBlocks.List()[0]
 		if pastBlueSet != nil {
-			(*pastBlueSet)[*lpbHash] = NewBlockSet()
+			(*pastBlueSet)[*lpbHash] = NewHashSet()
 		}
 
 		//pastBlueSet[lpbHash].Add(lpbHash)
 
 	} else {
-		lastTempBlueSet := NewBlockSet()
-		lpbAnti := make(map[hash.Hash]*BlockSet)
+		lastTempBlueSet := NewHashSet()
+		lpbAnti := make(map[hash.Hash]*HashSet)
 
 		for k, _ := range ph.lastCommonBlocks.GetMap() {
 			lpbAnti[k] = ph.GetAnticone(ph.bd.GetBlock(&k), lastPFuture)
@@ -512,24 +512,24 @@ func (ph *Phantom) calLastCommonBlocksPBS(pastBlueSet *map[hash.Hash]*BlockSet) 
 	}
 }
 
-func (ph *Phantom) calculateBlueSet(parents *BlockSet, exclude *BlockSet, pastBlueSet *map[hash.Hash]*BlockSet, useCommon bool) *BlockSet {
+func (ph *Phantom) calculateBlueSet(parents *HashSet, exclude *HashSet, pastBlueSet *map[hash.Hash]*HashSet, useCommon bool) *HashSet {
 
-	parentsPBSS := make(map[hash.Hash]*BlockSet)
+	parentsPBSS := make(map[hash.Hash]*HashSet)
 	for k, _ := range parents.GetMap() {
 		if _, ok := (*pastBlueSet)[k]; ok {
 			parentsPBSS[k] = (*pastBlueSet)[k]
 		} else {
-			parentsPBSS[k] = NewBlockSet()
+			parentsPBSS[k] = NewHashSet()
 		}
 
 	}
 
-	maxBluePBSHash := GetMaxLenBlockSet(parentsPBSS)
+	maxBluePBSHash := GetMaxLenHashSet(parentsPBSS)
 	if maxBluePBSHash == nil {
 		return nil
 	}
 	//
-	result := NewBlockSet()
+	result := NewHashSet()
 	result.AddSet(parentsPBSS[*maxBluePBSHash])
 	result.Add(maxBluePBSHash)
 
@@ -562,14 +562,14 @@ func (ph *Phantom) calculateBlueSet(parents *BlockSet, exclude *BlockSet, pastBl
 	return result
 }
 
-func (ph *Phantom) calculatePastBlueSet(h *hash.Hash, pastBlueSet *map[hash.Hash]*BlockSet, useCommon bool) {
+func (ph *Phantom) calculatePastBlueSet(h *hash.Hash, pastBlueSet *map[hash.Hash]*HashSet, useCommon bool) {
 
 	_, ok := (*pastBlueSet)[*h]
 	if ok {
 		return
 	}
 	if h.IsEqual(ph.bd.GetGenesisHash()) {
-		(*pastBlueSet)[*h] = NewBlockSet()
+		(*pastBlueSet)[*h] = NewHashSet()
 		return
 	}
 	//
@@ -577,7 +577,7 @@ func (ph *Phantom) calculatePastBlueSet(h *hash.Hash, pastBlueSet *map[hash.Hash
 	if parents == nil || parents.IsEmpty() {
 		return
 	} else if parents.HasOnly(ph.bd.GetGenesisHash()) {
-		(*pastBlueSet)[*h] = NewBlockSet()
+		(*pastBlueSet)[*h] = NewHashSet()
 		(*pastBlueSet)[*h].Add(ph.bd.GetGenesisHash())
 		return
 	}
@@ -594,8 +594,8 @@ func (ph *Phantom) updateCommonBlueSet(tip *hash.Hash){
 
 	if tip.IsEqual(ph.bd.GetGenesisHash()) {
 		//needOrderBS.Add(tip)
-		ph.commonBlueSet = NewBlockSet()
-		ph.lastCommonBlocks = NewBlockSet()
+		ph.commonBlueSet = NewHashSet()
+		ph.lastCommonBlocks = NewHashSet()
 		ph.updateCommonOrder(tip, nil, false, nil, nil, 0)
 
 		return
@@ -620,22 +620,22 @@ func (ph *Phantom) updateCommonBlueSet(tip *hash.Hash){
 		if curLastCommonBS.IsEqual(ph.lastCommonBlocks) {
 			return
 		}
-		curLPFuture := NewBlockSet()
+		curLPFuture := NewHashSet()
 		for k, _ := range curLastCommonBS.GetMap() {
 			ph.bd.GetFutureSet(curLPFuture, ph.bd.GetBlock(&k))
 		}
 
-		lastPFuture := NewBlockSet()
+		lastPFuture := NewHashSet()
 		for k, _ := range ph.lastCommonBlocks.GetMap() {
 			ph.bd.GetFutureSet(lastPFuture, ph.bd.GetBlock(&k))
 		}
 		//
-		pastBlueSet := make(map[hash.Hash]*BlockSet)
+		pastBlueSet := make(map[hash.Hash]*HashSet)
 
 		if lastPFuture.Contain(curLPFuture) {
 			//needOrderBS.AddSet(lastPFuture)
 			//
-			oExclude := NewBlockSet()
+			oExclude := NewHashSet()
 			oExclude.AddSet(curLPFuture)
 			for k, _ := range ph.lastCommonBlocks.GetMap() {
 				oExclude.AddSet(ph.bd.GetBlock(&k).GetParents())
@@ -666,17 +666,17 @@ func (ph *Phantom) updateCommonBlueSet(tip *hash.Hash){
 
 }
 
-func (ph *Phantom) GetTempBlueSet() *BlockSet {
+func (ph *Phantom) GetTempBlueSet() *HashSet {
 	//
 	tips := ph.bd.GetTips()
 	//
 
-	result := NewBlockSet()
+	result := NewHashSet()
 	if tips.HasOnly(ph.bd.GetGenesisHash()) {
-		result = NewBlockSet()
+		result = NewHashSet()
 		result.Add(ph.bd.GetGenesisHash())
 	} else {
-		pastBlueSet := make(map[hash.Hash]*BlockSet)
+		pastBlueSet := make(map[hash.Hash]*HashSet)
 
 		ph.calLastCommonBlocksPBS(&pastBlueSet)
 
@@ -689,14 +689,14 @@ func (ph *Phantom) GetTempBlueSet() *BlockSet {
 	return result
 }
 
-func (ph *Phantom) getTempBS() *BlockSet{
+func (ph *Phantom) getTempBS() *HashSet{
 	if ph.tempBlueSet==nil {
 		ph.tempBlueSet=ph.GetTempBlueSet()
 	}
 	return ph.tempBlueSet
 }
 
-func (ph *Phantom) recCalHourglass(genealogy *BlockSet, ancestors *BlockSet) {
+func (ph *Phantom) recCalHourglass(genealogy *HashSet, ancestors *HashSet) {
 
 	var maxPastHash *hash.Hash = nil
 	var maxPastNum uint = 0
@@ -732,7 +732,7 @@ func (ph *Phantom) updateHourglass(){
 		return
 	}
 	if ph.hourglassBlocks==nil {
-		ph.hourglassBlocks=NewBlockSet()
+		ph.hourglassBlocks=NewHashSet()
 	}
 	if tips.HasOnly(ph.bd.GetGenesisHash()){
 
@@ -750,8 +750,8 @@ func (ph *Phantom) updateHourglass(){
 		return
 	}
 	//
-	genealogy:=NewBlockSet()
-	ancestors:=NewBlockSet()
+	genealogy:=NewHashSet()
+	ancestors:=NewHashSet()
 
 	for k,_:=range tips.GetMap(){
 		genealogy.Add(&k)
@@ -776,7 +776,7 @@ func (ph *Phantom) updateHourglass(){
 			return
 		}
 
-		sb := ph.sortBlockSet(ancestors,nil)
+		sb := ph.sortHashSet(ancestors,nil)
 		for _,v:=range sb{
 			anti:=ph.GetAnticone(ph.bd.GetBlock(v.h),nil)
 			if anti.Len()==0 {
@@ -809,11 +809,11 @@ func (ph *Phantom) updateOrder(b *Block) *list.List{
 		return refNodes
 	}
 	tempOrder := []*hash.Hash{}
-	tempOrderM := NewBlockSet()
+	tempOrderM := NewHashSet()
 	//
 	blueSet := ph.getTempBS()
-	lpsb := ph.sortBlockSet(ph.lastCommonBlocks, nil)
-	exclude := NewBlockSet()
+	lpsb := ph.sortHashSet(ph.lastCommonBlocks, nil)
+	exclude := NewHashSet()
 	for k, _ := range ph.lastCommonBlocks.GetMap() {
 		exclude.AddSet(ph.bd.GetBlock(&k).GetParents())
 	}

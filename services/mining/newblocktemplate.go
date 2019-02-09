@@ -619,7 +619,7 @@ mempoolLoop:
 	// Create a new block ready to be solved.
 	merkles := merkle.BuildMerkleTreeStore(blockTxnsRegular)
 	if parents==nil {
-		parents=blockManager.GetChain().BlockDAG().GetTips().OrderList()
+		parents=blockManager.GetChain().BlockDAG().GetTips().SortList()
 	}
 
 	paMerkles :=merkle.BuildParentsMerkleTreeStore(parents)

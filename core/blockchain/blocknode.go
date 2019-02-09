@@ -253,11 +253,11 @@ func (node *blockNode) HasChild(child *blockNode) bool{
 }
 
 // For the moment,In order to match the DAG
-func (node *blockNode) GetChildren() *blockdag.BlockSet{
+func (node *blockNode) GetChildren() *blockdag.HashSet{
 	if node.children==nil||len(node.children)==0 {
 		return nil
 	}
-	result:=blockdag.NewBlockSet()
+	result:=blockdag.NewHashSet()
 	for _,v:=range node.children{
 		result.Add(&v.hash)
 	}

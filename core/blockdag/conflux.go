@@ -130,10 +130,10 @@ func (con *Conflux) updatePrivot(b *Block) {
 	}
 }
 
-func (con *Conflux) updateMainChain(b *Block, preEpoch *Epoch, main *BlockSet) {
+func (con *Conflux) updateMainChain(b *Block, preEpoch *Epoch, main *HashSet) {
 
 	if main == nil {
-		main = NewBlockSet()
+		main = NewHashSet()
 	}
 	main.Add(b.GetHash())
 
@@ -145,7 +145,7 @@ func (con *Conflux) updateMainChain(b *Block, preEpoch *Epoch, main *BlockSet) {
 		con.privotTip = b
 		if con.bd.GetTips().Len() > 1 {
 			virtualBlock := Block{hash: hash.Hash{}, weight: 1}
-			virtualBlock.parents = NewBlockSet()
+			virtualBlock.parents = NewHashSet()
 			virtualBlock.parents.AddSet(con.bd.GetTips())
 			con.updateMainChain(&virtualBlock, curEpoch, main)
 		}
@@ -186,7 +186,7 @@ func (con *Conflux) GetMainChain() []*hash.Hash {
 	return result
 }
 
-func (con *Conflux) updateOrder(b *Block, preEpoch *Epoch, main *BlockSet) *Epoch {
+func (con *Conflux) updateOrder(b *Block, preEpoch *Epoch, main *HashSet) *Epoch {
 	var result *Epoch
 	if preEpoch == nil {
 		b.order = 0
@@ -199,7 +199,7 @@ func (con *Conflux) updateOrder(b *Block, preEpoch *Epoch, main *BlockSet) *Epoc
 			if dependsNum == 1 {
 				result.depends[0].order = preEpoch.main.order + 1
 			} else {
-				es := NewBlockSet()
+				es := NewHashSet()
 				for _, dep := range result.depends {
 					es.Add(dep.GetHash())
 				}
@@ -237,10 +237,10 @@ func (con *Conflux) updateOrder(b *Block, preEpoch *Epoch, main *BlockSet) *Epoc
 	return result
 }
 
-func (con *Conflux) getEpoch(b *Block, preEpoch *Epoch, main *BlockSet) *Epoch {
+func (con *Conflux) getEpoch(b *Block, preEpoch *Epoch, main *HashSet) *Epoch {
 
 	result := Epoch{main: b}
-	var dependsS *BlockSet
+	var dependsS *HashSet
 
 	chain := list.New()
 	chain.PushBack(b)
@@ -259,7 +259,7 @@ func (con *Conflux) getEpoch(b *Block, preEpoch *Epoch, main *BlockSet) *Epoch {
 				}
 				if result.depends == nil {
 					result.depends = []*Block{}
-					dependsS = NewBlockSet()
+					dependsS = NewHashSet()
 				}
 				if dependsS.Has(&h) {
 					continue
@@ -274,9 +274,9 @@ func (con *Conflux) getEpoch(b *Block, preEpoch *Epoch, main *BlockSet) *Epoch {
 	return &result
 }
 
-func (con *Conflux) getForwardBlocks(bs *BlockSet) []*Block {
+func (con *Conflux) getForwardBlocks(bs *HashSet) []*Block {
 	result := []*Block{}
-	rs := NewBlockSet()
+	rs := NewHashSet()
 	for h := range bs.GetMap() {
 		block := con.bd.GetBlock(&h)
 

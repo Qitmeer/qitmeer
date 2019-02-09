@@ -119,7 +119,7 @@ type BlockChain struct {
 	//block dag
 	bd *blockdag.BlockDAG
 	//badTx hash->block hash
-	badTx map[hash.Hash]*blockdag.BlockSet
+	badTx map[hash.Hash]*blockdag.HashSet
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -272,7 +272,7 @@ func New(config *Config) (*BlockChain, error) {
 	}
 	b.bd=&blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType)
-	b.badTx=make(map[hash.Hash]*blockdag.BlockSet)
+	b.badTx=make(map[hash.Hash]*blockdag.HashSet)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -1379,7 +1379,7 @@ func (b *BlockChain) AddBadTx(txh *hash.Hash,bh *hash.Hash){
 	if b.IsBadTx(txh) {
 		b.badTx[*txh].Add(bh)
 	}else{
-		set:=blockdag.NewBlockSet()
+		set:=blockdag.NewHashSet()
 		set.Add(bh)
 		b.badTx[*txh]=set
 	}
@@ -1420,7 +1420,7 @@ func (b *BlockChain) BlockIndex() *blockIndex{
 // for dag synchronization.
 func (b *BlockChain) LocateBlocks(mainHeight uint64,blocks []*hash.Hash, maxHashes uint32) []*hash.Hash {
 	blocksNum:=len(blocks)
-	result:=blockdag.NewBlockSet()
+	result:=blockdag.NewHashSet()
 	if blocksNum>0 {
 		curBlock:=b.bd.GetLastBlock()
 		curNode:=b.index.lookupNode(curBlock.GetHash())

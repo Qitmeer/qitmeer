@@ -5,22 +5,25 @@ import (
 	"sort"
 )
 
-type BlockSet struct {
-	m map[hash.Hash]bool
+type HashSet struct {
+	m map[hash.Hash]Empty
 }
 
-func NewBlockSet() *BlockSet {
-	return &BlockSet{
-		m: map[hash.Hash]bool{},
+func NewHashSet() *HashSet {
+	return &HashSet{
+		m: map[hash.Hash]Empty{},
 	}
 }
-func (s *BlockSet) GetMap() map[hash.Hash]bool {
+
+func (s *HashSet) GetMap() map[hash.Hash]Empty {
 	return s.m
 }
-func (s *BlockSet) Add(item *hash.Hash) {
-	s.m[*item] = true
+
+func (s *HashSet) Add(item *hash.Hash) {
+	s.m[*item] = Empty{}
 }
-func (s *BlockSet) AddSet(other *BlockSet) {
+
+func (s *HashSet) AddSet(other *HashSet) {
 	if other == nil || other.Len() == 0 {
 		return
 	}
@@ -28,7 +31,8 @@ func (s *BlockSet) AddSet(other *BlockSet) {
 		s.Add(&k)
 	}
 }
-func (s *BlockSet) AddList(list []*hash.Hash) {
+
+func (s *HashSet) AddList(list []*hash.Hash) {
 	if len(list) == 0 {
 		return
 	}
@@ -37,9 +41,9 @@ func (s *BlockSet) AddList(list []*hash.Hash) {
 	}
 }
 
-/*This function returns a new open memory (BlockSet)*/
-func (s *BlockSet) Intersection(other *BlockSet) *BlockSet {
-	result := NewBlockSet()
+/*This function returns a new open memory (HashSet)*/
+func (s *HashSet) Intersection(other *HashSet) *HashSet {
+	result := NewHashSet()
 	if s == other {
 		result.AddSet(s)
 	} else {
@@ -54,10 +58,11 @@ func (s *BlockSet) Intersection(other *BlockSet) *BlockSet {
 	return result
 }
 
-func (s *BlockSet) Remove(item *hash.Hash) {
+func (s *HashSet) Remove(item *hash.Hash) {
 	delete(s.m, *item)
 }
-func (s *BlockSet) Exclude(other *BlockSet) {
+
+func (s *HashSet) Exclude(other *HashSet) {
 	if other != nil && other.Len() > 0 {
 		for k, _ := range other.GetMap() {
 			if s.Has(&k) {
@@ -67,30 +72,31 @@ func (s *BlockSet) Exclude(other *BlockSet) {
 	}
 }
 
-func (s *BlockSet) Has(item *hash.Hash) bool {
+func (s *HashSet) Has(item *hash.Hash) bool {
 	_, ok := s.m[*item]
 	return ok
 }
-func (s *BlockSet) HasOnly(item *hash.Hash) bool {
+
+func (s *HashSet) HasOnly(item *hash.Hash) bool {
 	return s.Len() == 1 && s.Has(item)
 }
 
-func (s *BlockSet) Len() int {
+func (s *HashSet) Len() int {
 	return len(s.List())
 }
 
-func (s *BlockSet) Clear() {
-	s.m = map[hash.Hash]bool{}
+func (s *HashSet) Clear() {
+	s.m = map[hash.Hash]Empty{}
 }
 
-func (s *BlockSet) IsEmpty() bool {
+func (s *HashSet) IsEmpty() bool {
 	if s.Len() == 0 {
 		return true
 	}
 	return false
 }
 
-func (s *BlockSet) List() []*hash.Hash {
+func (s *HashSet) List() []*hash.Hash {
 	list := []*hash.Hash{}
 	for item,_ := range s.m {
 		kv:=item
@@ -99,13 +105,13 @@ func (s *BlockSet) List() []*hash.Hash {
 	return list
 }
 
-func (s *BlockSet) OrderList() []*hash.Hash {
+func (s *HashSet) SortList() []*hash.Hash {
 	list := SortHashs(s.List())
 	sort.Sort(list)
 	return []*hash.Hash(list)
 }
 
-func (s *BlockSet) IsEqual(other *BlockSet) bool {
+func (s *HashSet) IsEqual(other *HashSet) bool {
 	var k hash.Hash
 	for k, _ = range s.m {
 		if !other.Has(&k) {
@@ -120,7 +126,7 @@ func (s *BlockSet) IsEqual(other *BlockSet) bool {
 
 	return true
 }
-func (s *BlockSet) Contain(other *BlockSet) bool {
+func (s *HashSet) Contain(other *HashSet) bool {
 	if other.IsEmpty() {
 		return false
 	}
@@ -131,12 +137,12 @@ func (s *BlockSet) Contain(other *BlockSet) bool {
 	}
 	return true
 }
-func (s *BlockSet) Clone() *BlockSet {
-	result := NewBlockSet()
+func (s *HashSet) Clone() *HashSet {
+	result := NewHashSet()
 	result.AddSet(s)
 	return result
 }
-func GetMaxLenBlockSet(bsm map[hash.Hash]*BlockSet) *hash.Hash {
+func GetMaxLenHashSet(bsm map[hash.Hash]*HashSet) *hash.Hash {
 
 	var result hash.Hash
 	var curNum int = 0
@@ -173,3 +179,6 @@ func (sh SortHashs) Less(i, j int) bool {
 func (sh SortHashs) Swap(i, j int) {
 	sh[i], sh[j] = sh[j], sh[i]
 }
+
+// This struct is empty
+type Empty struct {}

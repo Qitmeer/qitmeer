@@ -54,8 +54,8 @@ type IBlockData interface {
 
 type Block struct {
 	hash     hash.Hash
-	parents  *BlockSet
-	children *BlockSet
+	parents  *HashSet
+	children *HashSet
 
 	privot *Block
 	weight uint
@@ -67,7 +67,7 @@ func (b *Block) GetHash() *hash.Hash {
 }
 
 // Get all parents set,the dag block has more than one parent
-func (b *Block) GetParents() *BlockSet {
+func (b *Block) GetParents() *HashSet {
 	return b.parents
 }
 
@@ -83,12 +83,12 @@ func (b *Block) HasParents() bool {
 
 func (b *Block) AddChild(child *hash.Hash) {
 	if b.children == nil {
-		b.children = NewBlockSet()
+		b.children = NewHashSet()
 	}
 	b.children.Add(child)
 }
 
-func (b *Block) GetChildren() *BlockSet {
+func (b *Block) GetChildren() *HashSet {
 	return b.children
 }
 
@@ -126,7 +126,7 @@ type BlockDAG struct {
 	blockTotal uint
 
 	// The terminal block is in block dag,this block have not any connecting at present.
-	tips *BlockSet
+	tips *HashSet
 
 	// This is time when the last block have added
 	lastTime time.Time
@@ -177,7 +177,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	//
 	block := Block{hash: *b.GetHash(), weight: 1}
 	if parents != nil {
-		block.parents = NewBlockSet()
+		block.parents = NewHashSet()
 		for k, h := range parents {
 			block.parents.Add(h)
 			parent := bd.GetBlock(h)
@@ -245,7 +245,7 @@ func (bd *BlockDAG) GetBlockTotal() uint {
 }
 
 // return the terminal blocks, because there maybe more than one, so this is a set.
-func (bd *BlockDAG) GetTips() *BlockSet {
+func (bd *BlockDAG) GetTips() *HashSet {
 	return bd.tips
 }
 
@@ -264,7 +264,7 @@ func (bd *BlockDAG) GetTipsList() []*Block {
 // Refresh the dag tip whith new block,it will cause changes in tips set.
 func (bd *BlockDAG) updateTips(h *hash.Hash) {
 	if bd.tips == nil {
-		bd.tips = NewBlockSet()
+		bd.tips = NewHashSet()
 		bd.tips.Add(h)
 		return
 	}
@@ -327,7 +327,7 @@ func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 	return bd.GetBlockByOrder(b.order-1)
 }
 
-func (bd *BlockDAG) GetFutureSet(fs *BlockSet, b *Block) {
+func (bd *BlockDAG) GetFutureSet(fs *HashSet, b *Block) {
 	children := b.GetChildren()
 	if children == nil || children.IsEmpty() {
 		return
