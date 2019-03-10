@@ -43,8 +43,7 @@ func (s *HashSet) AddList(list []*hash.Hash) {
 
 // return union of a set
 func (s *HashSet) Union(other *HashSet) *HashSet {
-	result := NewHashSet()
-	result.AddSet(s)
+	result := s.Clone()
 	if s != other {
 		result.AddSet(other)
 	}
