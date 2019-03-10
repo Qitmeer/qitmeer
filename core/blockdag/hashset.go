@@ -41,7 +41,18 @@ func (s *HashSet) AddList(list []*hash.Hash) {
 	}
 }
 
-/*This function returns a new open memory (HashSet)*/
+// return union of a set
+func (s *HashSet) Union(other *HashSet) *HashSet {
+	result := NewHashSet()
+	result.AddSet(s)
+	if s != other {
+		result.AddSet(other)
+	}
+	return result
+}
+
+// This function returns a new open memory (HashSet)
+// The intersection of a set
 func (s *HashSet) Intersection(other *HashSet) *HashSet {
 	result := NewHashSet()
 	if s == other {
@@ -126,6 +137,7 @@ func (s *HashSet) IsEqual(other *HashSet) bool {
 
 	return true
 }
+
 func (s *HashSet) Contain(other *HashSet) bool {
 	if other.IsEmpty() {
 		return false
@@ -137,11 +149,13 @@ func (s *HashSet) Contain(other *HashSet) bool {
 	}
 	return true
 }
+
 func (s *HashSet) Clone() *HashSet {
 	result := NewHashSet()
 	result.AddSet(s)
 	return result
 }
+
 func GetMaxLenHashSet(bsm map[hash.Hash]*HashSet) *hash.Hash {
 
 	var result hash.Hash
