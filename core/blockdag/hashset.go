@@ -9,18 +9,12 @@ type HashSet struct {
 	m map[hash.Hash]Empty
 }
 
-func NewHashSet() *HashSet {
-	return &HashSet{
-		m: map[hash.Hash]Empty{},
-	}
-}
-
 func (s *HashSet) GetMap() map[hash.Hash]Empty {
 	return s.m
 }
 
-func (s *HashSet) Add(item *hash.Hash) {
-	s.m[*item] = Empty{}
+func (s *HashSet) Add(elem *hash.Hash) {
+	s.m[*elem] = Empty{}
 }
 
 func (s *HashSet) AddSet(other *HashSet) {
@@ -29,6 +23,15 @@ func (s *HashSet) AddSet(other *HashSet) {
 	}
 	for k, _ := range other.GetMap() {
 		s.Add(&k)
+	}
+}
+
+func (s *HashSet) RemoveSet(other *HashSet) {
+	if other == nil || other.Len() == 0 {
+		return
+	}
+	for k, _ := range other.GetMap() {
+		s.Remove(&k)
 	}
 }
 
@@ -68,8 +71,8 @@ func (s *HashSet) Intersection(other *HashSet) *HashSet {
 	return result
 }
 
-func (s *HashSet) Remove(item *hash.Hash) {
-	delete(s.m, *item)
+func (s *HashSet) Remove(elem *hash.Hash) {
+	delete(s.m, *elem)
 }
 
 func (s *HashSet) Exclude(other *HashSet) {
@@ -82,13 +85,13 @@ func (s *HashSet) Exclude(other *HashSet) {
 	}
 }
 
-func (s *HashSet) Has(item *hash.Hash) bool {
-	_, ok := s.m[*item]
+func (s *HashSet) Has(elem *hash.Hash) bool {
+	_, ok := s.m[*elem]
 	return ok
 }
 
-func (s *HashSet) HasOnly(item *hash.Hash) bool {
-	return s.Len() == 1 && s.Has(item)
+func (s *HashSet) HasOnly(elem *hash.Hash) bool {
+	return s.Len() == 1 && s.Has(elem)
 }
 
 func (s *HashSet) Len() int {
@@ -149,10 +152,18 @@ func (s *HashSet) Contain(other *HashSet) bool {
 	return true
 }
 
+// return a new copy
 func (s *HashSet) Clone() *HashSet {
 	result := NewHashSet()
 	result.AddSet(s)
 	return result
+}
+
+// Create a new HashSet
+func NewHashSet() *HashSet {
+	return &HashSet{
+		m: map[hash.Hash]Empty{},
+	}
 }
 
 func GetMaxLenHashSet(bsm map[hash.Hash]*HashSet) *hash.Hash {
