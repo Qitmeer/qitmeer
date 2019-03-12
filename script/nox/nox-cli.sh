@@ -115,6 +115,21 @@ function get_block_number(){
   get_result "$data"
 }
 
+# Nox mempool
+
+function get_mempool(){
+  local type=$1
+  local verbose=$2
+  if [ "$type" == "" ]; then
+    type="regular"
+  fi
+  if [ "$verbose" == "" ]; then
+    verbose="false"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getMempool","params":["'$type'",'$verbose'],"id":1}'
+  get_result "$data"
+}
+
 # return block by hash
 #   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){
@@ -168,7 +183,7 @@ function tx_sign(){
    get_result "$data"
 }
 
-# 
+#
 function create_raw_tx(){
   local input=$1
   local data='{"jsonrpc":"2.0","method":"createRawTransaction","params":['$input'],"id":1}'
@@ -183,7 +198,12 @@ function decode_raw_tx(){
 
 function send_raw_tx(){
   local input=$1
-  local data='{"jsonrpc":"2.0","method":"sendRawTransaction","params":["'$input'"],"id":1}'
+  local allow_high_fee=$2
+  if [ "$allow_high_fee" == "" ]; then
+    allow_high_fee="false"
+  fi
+
+  local data='{"jsonrpc":"2.0","method":"sendRawTransaction","params":["'$input'",'$allow_high_fee'],"id":1}'
   get_result "$data"
 }
 
@@ -215,7 +235,7 @@ function get_result(){
   local pass="test"
   local data=$1
   local curl_result=$(curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data $data https://$host:$port)
-  local result=$(echo $curl_result|jq -r -c -M '.result')
+  local result=$(echo $curl_result|jq -r -M '.result')
   if [ $DEBUG -gt 0 ]; then
     local curl_cmd="curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data '"$data"' https://$host:$port"
     echo "$curl_cmd" > $DEBUG_FILE
@@ -464,7 +484,7 @@ function call_get_block() {
     elif ! [ "$blkhash" == "" ]; then
        block_result=$(get_block_by_hash "$blkhash" "$verbose")
        if [ "$verbose" != "true" ]; then
-         block_result='{ "result" : "'$block_result'"}'
+         block_result='{ "hex" : "'$block_result'"}'
        fi
     else
        echo '{ "error" : "need to provide blknum or blkhash"}'; exit -1;
@@ -591,13 +611,19 @@ elif [ $1 == "get_tx_by_block_and_index" ]; then
   # note: the input is block number & tx index in hex
   get_tx_by_blocknum_and_index_hex $@
 
+## MemPool
+elif [ $1 == "mempool" ]; then
+  shift
+  get_mempool $@|jq .
+  check_error
+
 elif [ $1 == "txSign" ]; then
   shift
   tx_sign $@
   echo $@
   check_error
 
-## UTXO 
+## UTXO
 elif [ $1 == "getutxo" ]; then
   shift
   get_utxo $@|jq .

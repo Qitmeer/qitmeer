@@ -7,6 +7,7 @@
 package blockchain
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"sync"
@@ -136,8 +137,8 @@ func (m *medianTime) AddTimeSample(sourceID string, timeVal time.Time) {
 	sort.Sort(int64Sorter(sortedOffsets))
 
 	offsetDuration := time.Duration(offsetSecs) * time.Second
-	log.Debug("Added time sample of %v (total: %v)", offsetDuration,
-		numOffsets)
+	log.Debug(fmt.Sprintf("Added time sample of %v (total: %v)", offsetDuration,
+		numOffsets))
 
 	// NOTE: The following code intentionally has a bug to mirror the
 	// buggy behavior in Bitcoin Core since the median time is used in the
@@ -192,7 +193,7 @@ func (m *medianTime) AddTimeSample(sourceID string, timeVal time.Time) {
 	}
 
 	medianDuration := time.Duration(m.offsetSecs) * time.Second
-	log.Debug("New time offset: %v", medianDuration)
+	log.Debug("New time offset", "duration",medianDuration)
 }
 
 // Offset returns the number of seconds to adjust the local clock based upon the

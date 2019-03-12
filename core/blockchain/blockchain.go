@@ -70,14 +70,17 @@ type BlockChain struct {
 	noVerify      bool
 	noCheckpoints bool
 
-	// These fields are related to the memory block index.  They are
-	// protected by the chain lock.
-	index    *blockIndex
-
-	// This field allows efficient lookup of nodes in the main chain by
-	// height.  It is protected by the height lock.
-	heightLock        sync.RWMutex
-	mainNodesByHeight map[uint64]*blockNode
+	// These fields are related to the memory block index.  They both have
+	// their own locks, however they are often also protected by the chain
+	// lock to help prevent logic races when blocks are being processed.
+	//
+	// index houses the entire block index in memory.  The block index is
+	// a tree-shaped structure.
+	//
+	// bestChain tracks the current active chain by making use of an
+	// efficient chain view into the block index.
+	index     *blockIndex
+	bestChain *chainView
 
 	// These fields are related to handling of orphan blocks.  They are
 	// protected by a combination of the chain lock and the orphan lock.
@@ -264,7 +267,7 @@ func New(config *Config) (*BlockChain, error) {
 		sigCache:                      config.SigCache,
 		indexManager:                  config.IndexManager,
 		index:                         newBlockIndex(config.DB,par),
-		mainNodesByHeight:             make(map[uint64]*blockNode),
+		bestChain:                     newChainView(nil),
 		orphans:                       make(map[hash.Hash]*orphanBlock),
 		prevOrphans:                   make(map[hash.Hash][]*orphanBlock),
 		mainchainBlockCache:           make(map[hash.Hash]*types.SerializedBlock),
@@ -289,7 +292,9 @@ func New(config *Config) (*BlockChain, error) {
 		}
 	}
 
+	tip := b.bestChain.Tip()
 	b.pruner = newChainPruner(&b)
+	b.subsidyCache = NewSubsidyCache(int64(tip.height), b.params)
 
 	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Height), b.params)
 
@@ -297,6 +302,8 @@ func New(config *Config) (*BlockChain, error) {
 	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
 		"index",b.dbInfo.bidxVer)
 
+	log.Info("Chain state", "height",  tip.height,
+		"hash",tip.hash,"tx_num", b.stateSnapshot.NumTxns, "work", tip.workSum, "total tx", b.stateSnapshot.TotalTxns)
 	tips:=b.bd.GetTipsList()
 	logStr:=fmt.Sprintf("Chain state:totaltx=%d\ntips=%d\n",b.stateSnapshot.TotalTxns,len(tips))
 
@@ -526,6 +533,61 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 	return err
 }
 
+// HaveBlock returns whether or not the chain instance has the block represented
+// by the passed hash.  This includes checking the various places a block can
+// be like part of the main chain, on a side chain, or in the orphan pool.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) HaveBlock(hash *hash.Hash) (bool, error) {
+	return b.index.HaveBlock(hash) || b.IsKnownOrphan(hash), nil
+}
+
+// IsKnownOrphan returns whether the passed hash is currently a known orphan.
+// Keep in mind that only a limited number of orphans are held onto for a
+// limited amount of time, so this function must not be used as an absolute
+// way to test if a block is an orphan block.  A full block (as opposed to just
+// its hash) must be passed to ProcessBlock for that purpose.  However, calling
+// ProcessBlock with an orphan that already exists results in an error, so this
+// function provides a mechanism for a caller to intelligently detect *recent*
+// duplicate orphans and react accordingly.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) IsKnownOrphan(hash *hash.Hash) bool {
+	// Protect concurrent access.  Using a read lock only so multiple
+	// readers can query without blocking each other.
+	b.orphanLock.RLock()
+	_, exists := b.orphans[*hash]
+	b.orphanLock.RUnlock()
+
+	return exists
+}
+
+// GetOrphanRoot returns the head of the chain for the provided hash from the
+// map of orphan blocks.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) GetOrphanRoot(hash *hash.Hash) *hash.Hash {
+	// Protect concurrent access.  Using a read lock only so multiple
+	// readers can query without blocking each other.
+	b.orphanLock.RLock()
+	defer b.orphanLock.RUnlock()
+
+	// Keep looping while the parent of each orphaned block is
+	// known and is an orphan itself.
+	orphanRoot := hash
+	prevHash := hash
+	for {
+		orphan, exists := b.orphans[*prevHash]
+		if !exists {
+			break
+		}
+		orphanRoot = prevHash
+		prevHash = &orphan.block.Block().Header.ParentRoot
+	}
+
+	return orphanRoot
+}
+
 // IsCurrent returns whether or not the chain believes it is current.  Several
 // factors are used to guess, but the key factors that allow the chain to
 // believe it is current are:
@@ -566,6 +628,22 @@ func (b *BlockChain) isCurrent() bool {
 	return lastNode.timestamp >= minus24Hours
 }
 
+// TipGeneration returns the entire generation of blocks stemming from the
+// parent of the current tip.
+//
+// The function is safe for concurrent access.
+func (b *BlockChain) TipGeneration() ([]hash.Hash, error) {
+	b.chainLock.Lock()
+	b.index.RLock()
+	nodes := b.index.chainTips[b.bestChain.Tip().height]
+	nodeHashes := make([]hash.Hash, len(nodes))
+	for i, n := range nodes {
+		nodeHashes[i] = n.hash
+	}
+	b.index.RUnlock()
+	b.chainLock.Unlock()
+	return nodeHashes, nil
+}
 
 // dumpBlockChain dumps a map of the blockchain blocks as serialized bytes.
 func (b *BlockChain) DumpBlockChain(dumpFile string, params *params.Params, height uint64) error {
@@ -1053,6 +1131,8 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	b.mainNodesByHeight[node.height] = node
 	b.heightLock.Unlock()
 
+	// This node is now the end of the best chain.
+	b.bestChain.SetTip(node)
 
 	// Update the state for the best block.  Notice how this replaces the
 	// entire struct instead of updating the existing one.  This effectively
@@ -1084,6 +1164,48 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 // This function is safe for concurrent access.
 func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 	return b.subsidyCache
+}
+
+// getReorganizeNodes finds the fork point between the main chain and the passed
+// node and returns a list of block nodes that would need to be detached from
+// the main chain and a list of block nodes that would need to be attached to
+// the fork point (which will be the end of the main chain after detaching the
+// returned list of block nodes) in order to reorganize the chain such that the
+// passed node is the new end of the main chain.  The lists will be empty if the
+// passed node is not on a side chain.
+//
+// This function MUST be called with the chain state lock held (for reads).
+func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List) {
+	// Nothing to detach or attach if there is no node.
+	attachNodes := list.New()
+	detachNodes := list.New()
+	if node == nil {
+		return detachNodes, attachNodes
+	}
+
+	// Don't allow a reorganize to a descendant of a known invalid block.
+	if b.index.NodeStatus(node.parent).KnownInvalid() {
+		b.index.SetStatusFlags(node, statusInvalidAncestor)
+		return detachNodes, attachNodes
+	}
+
+	// Find the fork point (if any) adding each block to the list of nodes
+	// to attach to the main tree.  Push them onto the list in reverse order
+	// so they are attached in the appropriate order when iterating the list
+	// later.
+	forkNode := b.bestChain.FindFork(node)
+	for n := node; n != nil && n != forkNode; n = n.parent {
+		attachNodes.PushFront(n)
+	}
+
+	// Start from the end of the main chain and work backwards until the
+	// common ancestor adding each block to the list of nodes to detach from
+	// the main chain.
+	for n := b.bestChain.Tip(); n != nil && n != forkNode; n = n.parent {
+		detachNodes.PushBack(n)
+	}
+
+	return detachNodes, attachNodes
 }
 
 // reorganizeChain reorganizes the block chain by disconnecting the nodes in the
@@ -1310,6 +1432,9 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	b.heightLock.Lock()
 	delete(b.mainNodesByHeight, node.height)
 	b.heightLock.Unlock()
+
+	// This node's parent is now the end of the best chain.
+	b.bestChain.SetTip(node.parent)
 
 	// Update the state for the best block.  Notice how this replaces the
 	// entire struct instead of updating the existing one.  This effectively

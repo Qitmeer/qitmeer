@@ -31,7 +31,11 @@ const CommandSize = 12
 // individual limits imposed by messages themselves.
 const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 
-const MaxBlockPayload = 1000000 // Not actually 1MB which would be 1024 * 1024
+
+// MaxVarIntPayload is the maximum payload size for a variable length integer.
+const MaxVarIntPayload = 9
+
+//const MaxBlockPayload = 1000000 // Not actually 1MB which would be 1024 * 1024
 
 // Commands used in message headers which describe the type of message.
 const (
@@ -39,9 +43,30 @@ const (
 	CmdVerAck         = "verack"
 	CmdGetAddr        = "getaddr"
 	CmdAddr           = "addr"
-	CmdBlock          = "block"
-	CmdTx             = "tx"
 	CmdReject         = "reject"
+	CmdPing           = "ping"
+	CmdPong           = "pong"
+	CmdInv            = "inv"
+	CmdBlock          = "block"
+	CmdGetBlocks      = "getblocks"
+	CmdHeaders        = "headers"
+	CmdGetHeaders     = "getheaders"
+	CmdTx             = "tx"
+	CmdGetData        = "getdata"
+	CmdNotFound       = "notfound"
+
+	CmdMiningState    = "miningstate"
+	CmdGetMiningState = "getminings"
+
+	CmdMemPool        = "mempool"
+	CmdSendHeaders    = "sendheaders"
+	CmdFeeFilter      = "feefilter"
+	CmdGetCFilter     = "getcfilter"
+	CmdGetCFHeaders   = "getcfheaders"
+	CmdGetCFTypes     = "getcftypes"
+	CmdCFilter        = "cfilter"
+	CmdCFHeaders      = "cfheaders"
+	CmdCFTypes        = "cftypes"
 )
 
 // Message is an interface that describes a nox message.  A type that
@@ -68,6 +93,62 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgGetAddr{}
 	case CmdAddr:
 		msg = &MsgAddr{}
+	case CmdPing:
+		msg = &MsgPing{}
+	case CmdPong:
+		msg = &MsgPong{}
+	case CmdReject:
+		msg = &MsgReject{}
+	case CmdGetBlocks:
+		msg = &MsgGetBlocks{}
+	case CmdBlock:
+		msg = &MsgBlock{}
+	case CmdInv:
+		msg = &MsgInv{}
+	case CmdTx:
+		msg = &MsgTx{}
+	case CmdGetHeaders:
+		msg = &MsgGetHeaders{}
+	case CmdHeaders:
+		msg = &MsgHeaders{}
+	case CmdGetData:
+		msg = &MsgGetData{}
+	case CmdNotFound:
+		msg = &MsgNotFound{}
+	case CmdMiningState:
+		msg = &MsgMiningState{}
+	case CmdGetMiningState:
+		msg = &MsgGetMiningState{}
+
+	/*
+
+	case CmdMemPool:
+		msg = &MsgMemPool{}
+
+	case CmdSendHeaders:
+		msg = &MsgSendHeaders{}
+
+	case CmdFeeFilter:
+		msg = &MsgFeeFilter{}
+
+	case CmdGetCFilter:
+		msg = &MsgGetCFilter{}
+
+	case CmdGetCFHeaders:
+		msg = &MsgGetCFHeaders{}
+
+	case CmdGetCFTypes:
+		msg = &MsgGetCFTypes{}
+
+	case CmdCFilter:
+		msg = &MsgCFilter{}
+
+	case CmdCFHeaders:
+		msg = &MsgCFHeaders{}
+
+	case CmdCFTypes:
+		msg = &MsgCFTypes{}
+	*/
 
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)

@@ -3,25 +3,24 @@
 package rpc
 
 import (
-
-	"sync"
-	"reflect"
-	"fmt"
-	"net/http"
-	"net"
-	"time"
-	"sync/atomic"
-	"github.com/noxproject/nox/config"
-	"github.com/noxproject/nox/common/util"
-	"github.com/noxproject/nox/log"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
+	"fmt"
+	"github.com/deckarep/golang-set"
+	"github.com/noxproject/nox/common/util"
+	"github.com/noxproject/nox/config"
+	"github.com/noxproject/nox/log"
 	"golang.org/x/net/context"
 	"io"
+	"net"
+	"net/http"
+	"reflect"
 	"runtime"
-	mapset "github.com/deckarep/golang-set"
 	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 // API describes the set of methods offered over the RPC interface
@@ -123,7 +122,7 @@ func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 
 func (s *RpcServer) Start() error {
 	//TODO control by config
-	if err := s.startHTTP(s.config.Listeners); err!=nil {
+	if err := s.startHTTP(s.config.RPCListeners); err!=nil {
 		return err
 	}
 	s.run = 1
@@ -182,7 +181,7 @@ func (s *RpcServer) startHTTP(listenAddrs []string) error{
 		// Read and respond to the request.
 		s.jsonRPCRead(w, r)
 	})
-	listeners, err := ParseListeners(s.config,listenAddrs);
+	listeners, err := parseListeners(s.config,listenAddrs);
 	if err!=nil {
 		return err
 	}

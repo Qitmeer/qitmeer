@@ -180,6 +180,12 @@ func NewTransaction() *Transaction {
 	}
 }
 
+// MaxTxPerTxTree returns the maximum number of transactions that could possibly
+// fit into a block per ekach merkle root for the given protocol version.
+func MaxTxPerTxTree(pver uint32) uint64 {
+	return ((MaxBlockPayload / minTxPayload) / 2) + 1
+}
+
  func (t *Transaction) GetInput() []Input {
 	txIns := make([]Input,len(t.TxIn))
 	for i, txIn := range t.TxIn {

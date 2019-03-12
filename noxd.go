@@ -5,6 +5,7 @@
 package main
 
 import (
+	"github.com/noxproject/nox/version"
 	"runtime"
 	"runtime/debug"
 	"os"
@@ -66,7 +67,7 @@ func noxdMain(nodeChan chan<- *node.Node) error {
 	defer log.Info("Shutdown complete")
 
 	// Show version and home dir at startup.
-	log.Info("System info", "Nox Version", version(), "Go version",runtime.Version())
+	log.Info("System info", "Nox Version", version.String(), "Go version",runtime.Version())
 	log.Info("System info", "Home dir", cfg.HomeDir)
 	if cfg.NoFileLogging {
 		log.Info("File logging disabled")
@@ -106,7 +107,6 @@ func noxdMain(nodeChan chan<- *node.Node) error {
 			log.Warn("node stop error","error",err)
 		}
 		n.WaitForShutdown()
-		log.Info("Server shutdown complete")
 	}()
 	err = n.Start()
 	if err != nil {

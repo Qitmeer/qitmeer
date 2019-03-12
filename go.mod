@@ -27,3 +27,14 @@ require (
 	golang.org/x/sys v0.0.0-20181026203630-95b1ffbd15a5
 	golang.org/x/tools v0.0.0-20181026183834-f60e5f99f081
 )
+
+replace (
+	golang.org/x/crypto v0.0.0-20181001203147-e3636079e1a4 => github.com/golang/crypto v0.0.0-20181001203147-e3636079e1a4
+	golang.org/x/net v0.0.0-20180906233101-161cd47e91fd => github.com/golang/net v0.0.0-20180906233101-161cd47e91fd
+	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 => github.com/golang/net v0.0.0-20181005035420-146acd28ed58
+	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f => github.com/golang/sync v0.0.0-20180314180146-1d60e4601c6f
+	golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e => github.com/golang/sys v0.0.0-20180909124046-d0be0721c37e
+	golang.org/x/sys v0.0.0-20181005133103-4497e2df6f9e => github.com/golang/sys v0.0.0-20181005133103-4497e2df6f9e
+	golang.org/x/text v0.3.0 => github.com/golang/text v0.3.0
+	golang.org/x/tools v0.0.0-20181006002542-f60d9635b16a => github.com/golang/tools v0.0.0-20181006002542-f60d9635b16a
+)

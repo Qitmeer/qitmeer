@@ -57,7 +57,7 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 		quit:   make(chan struct{}),
 	}
 
-	server, err := peerserver.NewPeerServer(cfg,database,chainParams)
+	server, err := peerserver.NewPeerServer(cfg,chainParams)
 	if err != nil {
 		return nil, err
 	}
@@ -76,9 +76,15 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 func (n *Node) Stop() error {
 	log.Info("Stopping Server")
 
+	// stop rpc server
+	n.rpcServer.Stop()
+	// stop p2p server
+	n.peerServer.Stop()
+
 	failure := &ServiceStopError{
 		Services: make(map[reflect.Type]error),
 	}
+	// stop all service
 	for kind, service := range n.runningSvcs {
 		if err := service.Stop(); err != nil {
 			failure.Services[kind] = err
@@ -120,12 +126,6 @@ func (n *Node) Start() error {
 
 	log.Info("Starting Server")
 
-	// start p2p server
-	if err :=n.peerServer.Start(); err != nil {
-		return err
-	}
-	log.Info("P2P server started")
-
 	// Initialize every service by calling the registered service constructors & save to services
 	services := make(map[reflect.Type]Service)
 	for _, c := range n.svcConstructors {
@@ -157,6 +157,10 @@ func (n *Node) Start() error {
 	}
 	n.runningSvcs = services
 
+	// start p2p server
+	if err :=n.peerServer.Start(); err != nil {
+		return err
+	}
 	// start RPC by service
 	if !n.Config.DisableRPC {
 		if err:= n.startRPC(services); err != nil {
@@ -167,9 +171,6 @@ func (n *Node) Start() error {
 			return err
 		}
 	}
-
-
-
 
 	// Finished node start
 	// Server startup time. Used for the uptime command for uptime calculation.

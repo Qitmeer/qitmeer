@@ -9,8 +9,11 @@ package types
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/noxproject/nox/common/network"
+	"github.com/noxproject/nox/core/protocol"
 	"io"
 	"net"
+	"strconv"
 	"time"
 	s "github.com/noxproject/nox/core/serialization"
 )
@@ -34,12 +37,14 @@ func MaxNetAddressPayload(pver uint32) uint32 {
 // NetAddress defines information about a peer on the network including the time
 // it was last seen, the services it supports, its IP address, and port.
 type NetAddress struct {
-	// TODO fix time ambiguous
 	// Last time the address was seen.  This is, unfortunately, encoded as a
 	// uint32 on the wire and therefore is limited to 2106.  This field is
 	// not present in the version message (MsgVersion) nor was it
 	// added until protocol version >= NetAddressTimeVersion.
 	Timestamp time.Time
+
+	// Bitfield which identifies the services supported by the address.
+	Services protocol.ServiceFlag
 
 	// IP address of the peer.
 	IP net.IP
@@ -49,22 +54,33 @@ type NetAddress struct {
 	Port uint16
 }
 
+// HasService returns whether the specified service is supported by the address.
+func (na *NetAddress) HasService(service protocol.ServiceFlag) bool {
+	return na.Services&service == service
+}
+
+// AddService adds service as a supported service by the peer generating the
+// message.
+func (na *NetAddress) AddService(service protocol.ServiceFlag) {
+	na.Services |= service
+}
 
 // NewNetAddressIPPort returns a new NetAddress using the provided IP, port, and
 // supported services with defaults for the remaining fields.
-func NewNetAddressIPPort(ip net.IP, port uint16 ) *NetAddress {
-	return NewNetAddressTimestamp(time.Now(),  ip, port)
+func NewNetAddressIPPort(ip net.IP, port uint16, services protocol.ServiceFlag) *NetAddress {
+	return NewNetAddressTimestamp(time.Now(), services, ip, port)
 }
 
 // NewNetAddressTimestamp returns a new NetAddress using the provided
 // timestamp, IP, port, and supported services. The timestamp is rounded to
 // single second precision.
 func NewNetAddressTimestamp(
-	timestamp time.Time, ip net.IP, port uint16) *NetAddress {
+	timestamp time.Time, services protocol.ServiceFlag, ip net.IP, port uint16) *NetAddress {
 	// Limit the timestamp to one second precision since the protocol
 	// doesn't support better.
 	na := NetAddress{
 		Timestamp: time.Unix(timestamp.Unix(), 0),
+		Services:  services,
 		IP:        ip,
 		Port:      port,
 	}
@@ -76,13 +92,51 @@ func NewNetAddressTimestamp(
 //
 // Note that addr must be a net.TCPAddr.  An ErrInvalidNetAddr is returned
 // if it is not.
-func NewNetAddress(addr net.Addr) (*NetAddress, error) {
+func NewNetAddress(addr net.Addr, services protocol.ServiceFlag) (*NetAddress, error) {
 	tcpAddr, ok := addr.(*net.TCPAddr)
 	if !ok {
 		return nil, ErrInvalidNetAddr
 	}
 
-	na := NewNetAddressIPPort(tcpAddr.IP, uint16(tcpAddr.Port))
+	na := NewNetAddressIPPort(tcpAddr.IP, uint16(tcpAddr.Port), services)
+	return na, nil
+}
+
+// NewNetAddressFailBack add more attempts to extract the IP address and port from the passed
+// net.Addr interface and create a NetAddress structure using that information.
+func NewNetAddressFailBack(addr net.Addr, services protocol.ServiceFlag) (*NetAddress, error) {
+	// addr will be a net.TCPAddr when not using a proxy.
+	if tcpAddr, ok := addr.(*net.TCPAddr); ok {
+		ip := tcpAddr.IP
+		port := uint16(tcpAddr.Port)
+		na := NewNetAddressIPPort(ip, port, services)
+		return na, nil
+	}
+
+	// addr will be a socks.ProxiedAddr when using a proxy.
+	if proxiedAddr, ok := addr.(*network.ProxiedAddr); ok {
+		ip := net.ParseIP(proxiedAddr.Host)
+		if ip == nil {
+			ip = net.ParseIP("0.0.0.0")
+		}
+		port := uint16(proxiedAddr.Port)
+		na := NewNetAddressIPPort(ip, port, services)
+		return na, nil
+	}
+
+	// For the most part, addr should be one of the two above cases, but
+	// to be safe, fall back to trying to parse the information from the
+	// address string as a last resort.
+	host, portStr, err := net.SplitHostPort(addr.String())
+	if err != nil {
+		return nil, err
+	}
+	ip := net.ParseIP(host)
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return nil, err
+	}
+	na := NewNetAddressIPPort(ip, uint16(port), services)
 	return na, nil
 }
 
@@ -103,7 +157,7 @@ func ReadNetAddress(r io.Reader, pver uint32, na *NetAddress, ts bool) error {
 		}
 	}
 
-	err := s.ReadElements(r, &ip)
+	err := s.ReadElements(r, &na.Services, &ip)
 	if err != nil {
 		return err
 	}
@@ -117,6 +171,7 @@ func ReadNetAddress(r io.Reader, pver uint32, na *NetAddress, ts bool) error {
 
 	*na = NetAddress{
 		Timestamp: na.Timestamp,
+		Services:  na.Services,
 		IP:        net.IP(ip[:]),
 		Port:      port,
 	}
@@ -143,7 +198,7 @@ func WriteNetAddress(w io.Writer, pver uint32, na *NetAddress, ts bool) error {
 	if na.IP != nil {
 		copy(ip[:], na.IP.To16())
 	}
-	err := s.WriteElements(w, ip)
+	err := s.WriteElements(w, na.Services, ip)
 	if err != nil {
 		return err
 	}

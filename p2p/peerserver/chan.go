@@ -1,8 +1,13 @@
+// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2013-2016 The btcsuite developers
+// Copyright (c) 2015-2018 The Decred developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
 package peerserver
 
 import (
-	"github.com/noxproject/nox/core/message"
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/message"
 )
 
 // broadcastMsg provides the ability to house a  message to be broadcast
@@ -21,10 +26,13 @@ type broadcastInventoryAdd relayMsg
 type broadcastInventoryDel *message.InvVect
 
 // relayMsg packages an inventory vector along with the newly discovered
-// inventory so the relay has access to that information.
+// inventory and a flag that determines if the relay should happen immediately
+// (it will be put into a trickle queue if false) so the relay has access to
+// that information.
 type relayMsg struct {
-	invVect *message.InvVect
-	data    interface{}
+	invVect   *message.InvVect
+	data      interface{}
+	immediate bool
 }
 
 // updatePeerHeightsMsg is a message sent from the blockmanager to the server
@@ -35,9 +43,10 @@ type relayMsg struct {
 // selecting sync peer candidacy.
 type updatePeerHeightsMsg struct {
 	newHash    *hash.Hash
-	newHeight  int64
+	newHeight  uint64
 	originPeer *serverPeer
 }
+
 
 // GetBlocksMsg
 type GetBlocksMsg struct {

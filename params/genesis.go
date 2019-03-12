@@ -92,8 +92,7 @@ var testNetGenesisCoinbaseTx = types.Transaction{}
 
 // testNetGenesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the test network.
-// TODO calculate hash
-var testNetGenesisMerkleRoot = hash.Hash{}
+var testNetGenesisMerkleRoot = testNetGenesisCoinbaseTx.TxHashFull()
 
 // testNetGenesisBlock defines the genesis block of the block chain which
 // serves as the public transaction ledger for the test network (version 3).
@@ -101,17 +100,16 @@ var testNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
 		ParentRoot:   hash.Hash{},
 		TxRoot:       testNetGenesisMerkleRoot,
-		Timestamp:    time.Unix(1546300800, 0), // 2019-01-01 00:00:00 GMT
+		Timestamp:    time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
 		Difficulty:   0x1e00ffff,
-		Nonce:        0x18aea41a,
+		Nonce:        0x00000000,
 	},
 	Transactions: []*types.Transaction{&testNetGenesisCoinbaseTx},
 }
 
 // testNetGenesisHash is the hash of the first block in the block chain for the
 // test network.
-// TODO calculate hash
-var testNetGenesisHash = hash.Hash{}
+var testNetGenesisHash = testNetGenesisBlock.BlockHash()
 
 // PrivNet -------------------------------------------------------------------------
 
@@ -161,14 +159,10 @@ var privNetGenesisCoinbaseTx = types.Transaction{
 // privNetGenesisMerkleRoot is the hash of the first transaction in the genesis
 // block for the simulation test network.  It is the same as the merkle root for
 // the main network.
-var privNetGenesisMerkleRoot = genesisMerkleRoot
+var privNetGenesisMerkleRoot = privNetGenesisCoinbaseTx.TxHashFull()
 
-var zeroHash =  hash.Hash([32]byte{ // Make go vet happy.
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		})
+var zeroHash =  hash.ZeroHash
+
 // privNetGenesisBlock defines the genesis block of the block chain which serves
 // as the public transaction ledger for the simulation test network.
 var privNetGenesisBlock = types.Block{

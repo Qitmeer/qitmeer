@@ -419,6 +419,7 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 			return ruleError(ErrDuplicateTxInputs, "transaction "+
 				"contains duplicate inputs")
 		}
+		existingTxOut[txIn.PreviousOut] = struct{}{}
 	}
 
 	return nil

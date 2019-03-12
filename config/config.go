@@ -1,6 +1,10 @@
 package config
 
-import "github.com/noxproject/nox/core/types"
+import (
+	"github.com/noxproject/nox/core/types"
+	"net"
+	"time"
+)
 
 type Config struct {
 	HomeDir              string        `short:"A" long:"appdata" description:"Path to application home directory"`
@@ -9,7 +13,8 @@ type Config struct {
 	DataDir              string        `short:"b" long:"datadir" description:"Directory to store data"`
 	LogDir               string        `long:"logdir" description:"Directory to log output."`
 	NoFileLogging        bool          `long:"nofilelogging" description:"Disable file logging."`
-	Listeners            []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8131, testnet: 18131)"`
+	Listeners            []string      `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8130, testnet: 18130)"`
+	RPCListeners         []string      `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 8131 , testnet: 18131)"`
 	MaxPeers             int           `long:"maxpeers" description:"Max number of inbound and outbound peers"`
 	DisableListen        bool          `long:"nolisten" description:"Disable listening for incoming connections"`
 	RPCUser              string        `short:"u" long:"rpcuser" description:"Username for RPC connections"`
@@ -47,6 +52,20 @@ type Config struct {
 	miningAddrs          []types.Address
 	//WebSocket support
 	RPCMaxWebsockets     int           `long:"rpcmaxwebsockets" description:"Max number of RPC websocket connections"`
+	//P2P
+	BlocksOnly           bool          `long:"blocksonly" description:"Do not accept transactions from remote peers."`
+	NoMiningStateSync    bool          `long:"nominingstatesync" description:"Disable synchronizing the mining state with other nodes"`
+	AddPeers             []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
+	ConnectPeers         []string      `long:"connect" description:"Connect only to the specified peers at startup"`
+	ExternalIPs          []string      `long:"externalip" description:"list of local addresses we claim to listen on to peers"`
+	Upnp                 bool          `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
+	Whitelists           []string      `long:"whitelist" description:"Add an IP network or IP that will not be banned. (eg. 192.168.1.0/24 or ::1)"`
+	whitelists           []*net.IPNet
+	//P2P - server ban
+	DisableBanning       bool          `long:"nobanning" description:"Disable banning of misbehaving peers"`
+	BanDuration          time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
+	BanThreshold         uint32        `long:"banthreshold" description:"Maximum allowed ban score before disconnecting and banning misbehaving peers."`
+
 	DAGType              string        `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
 }
 
@@ -57,3 +76,11 @@ func (c *Config) GetMinningAddrs() []types.Address {
 func (c *Config) SetMiningAddrs(addr types.Address) {
 	c.miningAddrs = append(c.miningAddrs,addr)
 }
+func (c *Config) GetWhitelists() []*net.IPNet {
+	return c.whitelists
+}
+
+func (c *Config) AddToWhitelists(ip *net.IPNet) {
+	c.whitelists = append(c.whitelists,ip)
+}
+

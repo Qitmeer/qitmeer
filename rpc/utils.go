@@ -22,27 +22,27 @@ package rpc
 import (
 	"bufio"
 	"context"
+	"crypto/elliptic"
 	crand "crypto/rand"
+	"crypto/tls"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
+	"github.com/noxproject/nox/common/network"
+	"github.com/noxproject/nox/common/util"
+	"github.com/noxproject/nox/config"
+	"github.com/noxproject/nox/crypto/certgen"
+	"github.com/noxproject/nox/log"
+	"io/ioutil"
 	"math/rand"
+	"net"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
-	"net"
-	"runtime"
-	"fmt"
-	"crypto/tls"
-	"crypto/elliptic"
-	"os"
-	"io/ioutil"
-	"github.com/noxproject/nox/common/util"
-	"github.com/noxproject/nox/config"
-	"github.com/noxproject/nox/crypto/certgen"
-	"github.com/noxproject/nox/log"
 )
 
 var (
@@ -239,53 +239,17 @@ func NewID() ID {
 	return ID("0x" + rpcId)
 }
 
-
 // parseListeners splits the list of listen addresses passed in addrs into
 // IPv4 and IPv6 slices and returns them.  This allows easy creation of the
 // listeners on the correct interface "tcp4" and "tcp6".  It also properly
 // detects addresses which apply to "all interfaces" and adds the address to
 // both slices.
-func ParseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) {
-	ipv4ListenAddrs := make([]string, 0, len(addrs)*2)
-	ipv6ListenAddrs := make([]string, 0, len(addrs)*2)
+func parseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) {
 
-	for _, addr := range addrs {
-		host, _, err := net.SplitHostPort(addr)
-		if err != nil {
-			// Shouldn't happen due to already being normalized.
-			return nil,err
-		}
-
-		// Empty host or host of * on plan9 is both IPv4 and IPv6.
-		if host == "" || (host == "*" && runtime.GOOS == "plan9") {
-			ipv4ListenAddrs = append(ipv4ListenAddrs, addr)
-			ipv6ListenAddrs = append(ipv6ListenAddrs, addr)
-			continue
-		}
-
-		// Strip IPv6 zone id if present since net.ParseIP does not
-		// handle it.
-		zoneIndex := strings.LastIndex(host, "%")
-		if zoneIndex > 0 {
-			host = host[:zoneIndex]
-		}
-
-		// Parse the IP.
-		ip := net.ParseIP(host)
-		if ip == nil {
-			return nil,fmt.Errorf("'%s' is not a valid IP address", host)
-		}
-
-		// To4 returns nil when the IP is not an IPv4 address, so use
-		// this determine the address type.
-		if ip.To4() == nil {
-			ipv6ListenAddrs = append(ipv6ListenAddrs, addr)
-		} else {
-			ipv4ListenAddrs = append(ipv4ListenAddrs, addr)
-		}
+	ipv4ListenAddrs,ipv6ListenAddrs,_,err := network.ParseListeners(addrs)
+	if err!=nil {
+		return nil, err
 	}
-
-
 	listenFunc := net.Listen
 	if !cfg.DisableRPC && !cfg.DisableTLS {
 		// Generate the TLS cert and key file if both don't already
@@ -317,7 +281,7 @@ func ParseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) 
 	for _, addr := range ipv4ListenAddrs {
 		listener, err := listenFunc("tcp4", addr)
 		if err != nil {
-			log.Warn("Can't listen on %s: %v", addr, err)
+			log.Warn("Can't listen on", "addr",addr, "error",err)
 			continue
 		}
 		listeners = append(listeners, listener)
@@ -326,7 +290,7 @@ func ParseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) 
 	for _, addr := range ipv6ListenAddrs {
 		listener, err := listenFunc("tcp6", addr)
 		if err != nil {
-			log.Warn("Can't listen on %s: %v", addr, err)
+			log.Warn("Can't listen on", "addr",addr, "error",err)
 			continue
 		}
 		listeners = append(listeners, listener)

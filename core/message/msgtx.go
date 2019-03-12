@@ -26,7 +26,7 @@ func (msg *MsgTx) Command() string {
 // MaxPayloadLength returns the maximum length the payload can be for the
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgTx) MaxPayloadLength(pver uint32) uint32 {
-	return MaxBlockPayload
+	return types.MaxBlockPayload
 }
 
 // Decode decodes r into the receiver.
@@ -35,6 +35,7 @@ func (msg *MsgTx) MaxPayloadLength(pver uint32) uint32 {
 // See Deserialize for decoding transactions stored to disk, such as in a
 // database, as opposed to decoding transactions from the wire.
 func (msg *MsgTx) Decode(r io.Reader, pver uint32) error {
+	msg.Tx =  &types.Transaction{}
 	return msg.Tx.Deserialize(r)
 }
 

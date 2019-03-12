@@ -17,6 +17,7 @@ import (
 	"github.com/noxproject/nox/services/mempool"
 	"github.com/noxproject/nox/services/miner"
 	"github.com/noxproject/nox/services/mining"
+	"github.com/noxproject/nox/services/notifymgr"
 	"time"
 )
 
@@ -25,7 +26,7 @@ type NoxFull struct {
 	// under node
 	node                 *Node
 	// msg notifier
-	nfManager            *notify.NotifyMgr
+	nfManager            notify.Notify
 	// database
 	db                   database.DB
 	// account/wallet service
@@ -61,7 +62,10 @@ func (nox *NoxFull) Stop() error {
 
 	log.Info("try stop bm")
 
-	nox.blockManager.Stop()
+	go func() {
+		nox.blockManager.Stop()
+		nox.blockManager.WaitForStop()
+	}()
 
 	log.Info("try stop cpu miner")
 	// Stop the CPU miner if needed.
@@ -76,6 +80,7 @@ func (nox *NoxFull)	APIs() []rpc.API {
 	apis := nox.acctmanager.APIs()
 	apis = append(apis,nox.cpuMiner.APIs()...)
 	apis = append(apis,nox.blockManager.API())
+	apis = append(apis,nox.txMemPool.API())
 	apis = append(apis,nox.API())
 	return apis
 }
@@ -88,7 +93,6 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 	}
 	nox := NoxFull{
 		node:         node,
-		nfManager:    &notify.NotifyMgr{},
 		db:           node.DB,
 		acctmanager:  acctmgr,
 		timeSource:   blockchain.NewMedianTime(),
@@ -109,9 +113,11 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 		indexManager = index.NewManager(nox.db,indexes,node.Params)
 	}
 
+	nox.nfManager = &notifymgr.NotifyMgr{node.peerServer, node.rpcServer}
+
 	// block-manager
 	bm, err := blkmgr.NewBlockManager(nox.nfManager,indexManager,node.DB, nox.timeSource, nox.sigCache, node.Config, node.Params,
-		node.peerServer, node.quit)
+		node.quit)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +153,10 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 	// set mempool to bm
 	bm.SetMemPool(nox.txMemPool)
 
+	// prepare peerServer
+	node.peerServer.BlockManager = bm
+	node.peerServer.TimeSource = nox.timeSource
+	node.peerServer.TxMemPool = nox.txMemPool
 
 	// Cpu Miner
 	// Create the mining policy based on the configuration options.

@@ -3,13 +3,13 @@
 package types
 
 import (
+	"bytes"
+	"fmt"
+	"github.com/noxproject/nox/common/hash"
+	s "github.com/noxproject/nox/core/serialization"
+	"io"
 	"math/big"
 	"time"
-	"bytes"
-	"github.com/noxproject/nox/common/hash"
-	"io"
-	s "github.com/noxproject/nox/core/serialization"
-	"fmt"
 )
 
 // MaxBlockHeaderPayload is the maximum number of bytes a block header can be.
@@ -393,6 +393,16 @@ func NewBlock(block *Block) *SerializedBlock {
 	return &SerializedBlock{
 		hash:   block.BlockHash(),
 		block: 	block,
+	}
+}
+
+// NewBlockFromBlockAndBytes returns a new instance of a block given
+// an underlying Block and the serialized bytes for it.
+func NewBlockFromBlockAndBytes(block *Block, serializedBytes []byte) *SerializedBlock {
+	return &SerializedBlock{
+		hash:            block.BlockHash(),
+		block:        block,
+		serializedBytes: serializedBytes,
 	}
 }
 
