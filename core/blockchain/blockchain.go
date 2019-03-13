@@ -76,11 +76,7 @@ type BlockChain struct {
 	//
 	// index houses the entire block index in memory.  The block index is
 	// a tree-shaped structure.
-	//
-	// bestChain tracks the current active chain by making use of an
-	// efficient chain view into the block index.
 	index     *blockIndex
-	bestChain *chainView
 
 	// These fields are related to handling of orphan blocks.  They are
 	// protected by a combination of the chain lock and the orphan lock.
@@ -267,7 +263,6 @@ func New(config *Config) (*BlockChain, error) {
 		sigCache:                      config.SigCache,
 		indexManager:                  config.IndexManager,
 		index:                         newBlockIndex(config.DB,par),
-		bestChain:                     newChainView(nil),
 		orphans:                       make(map[hash.Hash]*orphanBlock),
 		prevOrphans:                   make(map[hash.Hash][]*orphanBlock),
 		mainchainBlockCache:           make(map[hash.Hash]*types.SerializedBlock),
@@ -292,18 +287,13 @@ func New(config *Config) (*BlockChain, error) {
 		}
 	}
 
-	tip := b.bestChain.Tip()
 	b.pruner = newChainPruner(&b)
-	b.subsidyCache = NewSubsidyCache(int64(tip.height), b.params)
-
 	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Height), b.params)
 
 	log.Info(fmt.Sprintf("DAG Type:%s",b.bd.GetName()))
 	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
 		"index",b.dbInfo.bidxVer)
 
-	log.Info("Chain state", "height",  tip.height,
-		"hash",tip.hash,"tx_num", b.stateSnapshot.NumTxns, "work", tip.workSum, "total tx", b.stateSnapshot.TotalTxns)
 	tips:=b.bd.GetTipsList()
 	logStr:=fmt.Sprintf("Chain state:totaltx=%d\ntips=%d\n",b.stateSnapshot.TotalTxns,len(tips))
 
@@ -1125,15 +1115,6 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	// Mark block as being in the main chain.
-	node.inMainChain = true
-	b.heightLock.Lock()
-	b.mainNodesByHeight[node.height] = node
-	b.heightLock.Unlock()
-
-	// This node is now the end of the best chain.
-	b.bestChain.SetTip(node)
-
 	// Update the state for the best block.  Notice how this replaces the
 	// entire struct instead of updating the existing one.  This effectively
 	// allows the old version to act as a snapshot which callers can use
@@ -1427,15 +1408,6 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 
 	b.RemoveBadTx(&node.hash)
 
-	// Mark block as being in a side chain.
-	node.inMainChain = false
-	b.heightLock.Lock()
-	delete(b.mainNodesByHeight, node.height)
-	b.heightLock.Unlock()
-
-	// This node's parent is now the end of the best chain.
-	b.bestChain.SetTip(node.parent)
-
 	// Update the state for the best block.  Notice how this replaces the
 	// entire struct instead of updating the existing one.  This effectively
 	// allows the old version to act as a snapshot which callers can use
@@ -1540,26 +1512,4 @@ func (b *BlockChain) BlockIndex() *blockIndex{
 	return b.index
 }
 
-// This function use to locate the other node dag position, then
-// collect some missing blocks that we need. It is very useful
-// for dag synchronization.
-func (b *BlockChain) LocateBlocks(mainHeight uint64,blocks []*hash.Hash, maxHashes uint32) []*hash.Hash {
-	blocksNum:=len(blocks)
-	result:=blockdag.NewHashSet()
-	if blocksNum>0 {
-		curBlock:=b.bd.GetLastBlock()
-		curNode:=b.index.lookupNode(curBlock.GetHash())
-		for  {
-			if curNode.GetMainHeight()<mainHeight {
-				break
-			}
-			result.AddSet(curBlock.GetParents())
-			result.AddSet(curBlock.GetChildren())
-			curBlockH:=b.bd.GetBlockByOrder(uint(curNode.GetHeight()-1))
-			curNode=b.index.LookupNode(curBlockH)
-		}
-	}else{
-		return blocks
-	}
-	return result.List()
-}
+

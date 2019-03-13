@@ -1,6 +1,9 @@
 package blockchain
 
-import "github.com/noxproject/nox/common/hash"
+import (
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/blockdag"
+)
 
 // BlockLocator is used to help locate a specific block.  The algorithm for
 // building the block locator is to add the hashes in reverse order until
@@ -48,6 +51,30 @@ func (b *BlockChain) LocateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 	hashes := b.locateBlocks(locator, hashStop, maxHashes)
 	b.chainLock.RUnlock()
 	return hashes
+}
+
+// This function use to locate the other node dag position, then
+// collect some missing blocks that we need. It is very useful
+// for dag synchronization.
+func (b *BlockChain) LocateBlocks(mainHeight uint64,blocks []*hash.Hash, maxHashes uint32) []*hash.Hash {
+	blocksNum:=len(blocks)
+	result:=blockdag.NewHashSet()
+	if blocksNum>0 {
+		curBlock:=b.bd.GetLastBlock()
+		curNode:=b.index.lookupNode(curBlock.GetHash())
+		for  {
+			if curNode.GetMainHeight()<mainHeight {
+				break
+			}
+			result.AddSet(curBlock.GetParents())
+			result.AddSet(curBlock.GetChildren())
+			curBlockH:=b.bd.GetBlockByOrder(uint(curNode.GetHeight()-1))
+			curNode=b.index.LookupNode(curBlockH)
+		}
+	}else{
+		return blocks
+	}
+	return result.List()
 }
 
 // locateBlocks returns the hashes of the blocks after the first known block in

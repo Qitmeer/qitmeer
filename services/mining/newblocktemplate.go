@@ -113,7 +113,6 @@ func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Param
 	// TODO,refactor the poolsize & finalstate
 
 	best := blockManager.GetChain().BestSnapshot()
-	prevHash := best.Hash
 	nextBlockHeight := best.Height + 1
 
 	// Get the current source transactions and create a priority queue to

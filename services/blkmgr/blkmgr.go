@@ -642,7 +642,6 @@ out:
 
 			case processBlockMsg:
 				log.Trace("blkmgr msgChan processBlockMsg", "msg", msg)
-				forkLen, isOrphan, err := b.chain.ProcessBlock(
 				_, isOrphan, err := b.chain.ProcessBlock(
 					msg.block, msg.flags)
 				if err != nil {
@@ -657,8 +656,7 @@ out:
 
 				// If the block added to the dag chain, then we need to
 				// update the tip locally on block manager.
-				onMainChain := !isOrphan && forkLen == 0
-				log.Trace("test onMainChain when blkmgr read processBlockMsg msgchan", "onMainChain", onMainChain)
+				log.Trace("test onMainChain when blkmgr read processBlockMsg msgchan", "onMainChain")
 				onMainChain := !isOrphan
 				if onMainChain {
 					// Query the chain for the latest best block
@@ -669,7 +667,6 @@ out:
 					// TODO, decoupling mempool with bm
 					b.txMemPool.PruneExpiredTx()
 
-					curPrevHash := b.chain.BestPrevHash()
 					log.Trace("update chain state when blkmgr read processBlockMsg msgchan")
 					b.GetChainState().UpdateChainState(&best.Hash,
 						best.Height, best.MedianTime)
