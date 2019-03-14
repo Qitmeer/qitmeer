@@ -625,14 +625,14 @@ func (b *BlockChain) isCurrent() bool {
 func (b *BlockChain) TipGeneration() ([]hash.Hash, error) {
 	b.chainLock.Lock()
 	b.index.RLock()
-	nodes := b.index.chainTips[b.bestChain.Tip().height]
-	nodeHashes := make([]hash.Hash, len(nodes))
-	for i, n := range nodes {
-		nodeHashes[i] = n.hash
+	tips := b.bd.GetTipsList()
+	tiphashs:=[]hash.Hash{}
+	for _, block := range tips {
+		tiphashs=append(tiphashs,*block.GetHash())
 	}
 	b.index.RUnlock()
 	b.chainLock.Unlock()
-	return nodeHashes, nil
+	return tiphashs, nil
 }
 
 // dumpBlockChain dumps a map of the blockchain blocks as serialized bytes.
@@ -1145,48 +1145,6 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 // This function is safe for concurrent access.
 func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 	return b.subsidyCache
-}
-
-// getReorganizeNodes finds the fork point between the main chain and the passed
-// node and returns a list of block nodes that would need to be detached from
-// the main chain and a list of block nodes that would need to be attached to
-// the fork point (which will be the end of the main chain after detaching the
-// returned list of block nodes) in order to reorganize the chain such that the
-// passed node is the new end of the main chain.  The lists will be empty if the
-// passed node is not on a side chain.
-//
-// This function MUST be called with the chain state lock held (for reads).
-func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List) {
-	// Nothing to detach or attach if there is no node.
-	attachNodes := list.New()
-	detachNodes := list.New()
-	if node == nil {
-		return detachNodes, attachNodes
-	}
-
-	// Don't allow a reorganize to a descendant of a known invalid block.
-	if b.index.NodeStatus(node.parent).KnownInvalid() {
-		b.index.SetStatusFlags(node, statusInvalidAncestor)
-		return detachNodes, attachNodes
-	}
-
-	// Find the fork point (if any) adding each block to the list of nodes
-	// to attach to the main tree.  Push them onto the list in reverse order
-	// so they are attached in the appropriate order when iterating the list
-	// later.
-	forkNode := b.bestChain.FindFork(node)
-	for n := node; n != nil && n != forkNode; n = n.parent {
-		attachNodes.PushFront(n)
-	}
-
-	// Start from the end of the main chain and work backwards until the
-	// common ancestor adding each block to the list of nodes to detach from
-	// the main chain.
-	for n := b.bestChain.Tip(); n != nil && n != forkNode; n = n.parent {
-		detachNodes.PushBack(n)
-	}
-
-	return detachNodes, attachNodes
 }
 
 // reorganizeChain reorganizes the block chain by disconnecting the nodes in the
