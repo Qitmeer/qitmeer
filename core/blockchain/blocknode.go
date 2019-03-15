@@ -263,7 +263,7 @@ func (node *blockNode) SetHeight(h uint64) {
 	node.height=h
 }
 
-// return node height
+// return node height (Actually,it is order)
 func (node *blockNode) GetHeight() uint64{
 	return node.height
 }

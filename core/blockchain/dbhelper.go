@@ -274,7 +274,6 @@ func (b *BlockChain) createChainState() error {
 	header := &genesisBlock.Block().Header
 	node := newBlockNode(header, nil)
 	node.status = statusDataStored | statusValid
-	node.inMainChain = true
 	b.bd.AddBlock(node)
 	node.SetHeight(0)
 	b.index.addNode(node)

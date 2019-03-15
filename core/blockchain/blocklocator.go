@@ -2,7 +2,6 @@ package blockchain
 
 import (
 	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/blockdag"
 )
 
 // BlockLocator is used to help locate a specific block.  The algorithm for
@@ -21,14 +20,31 @@ import (
 // [17a 16a 15 14 13 12 11 10 9 8 7 6 4 genesis]
 type BlockLocator []*hash.Hash
 
+// log2FloorMasks defines the masks to use when quickly calculating
+// floor(log2(x)) in a constant log2(32) = 5 steps, where x is a uint32, using
+// shifts.  They are derived from (2^(2^x) - 1) * (2^(2^x)), for x in 4..0.
+var log2FloorMasks = []uint32{0xffff0000, 0xff00, 0xf0, 0xc, 0x2}
 
-// LatestBlockLocator returns a block locator for the latest known tip of the
-// main (best) chain.
+// fastLog2Floor calculates and returns floor(log2(x)) in a constant 5 steps.
+func fastLog2Floor(n uint32) uint8 {
+	rv := uint8(0)
+	exponent := uint8(16)
+	for i := 0; i < 5; i++ {
+		if n&log2FloorMasks[i] != 0 {
+			rv += exponent
+			n >>= exponent
+		}
+		exponent >>= 1
+	}
+	return rv
+}
+
+// LatestBlockLocator returns a block locator for the latest DAG state.
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) LatestBlockLocator() (BlockLocator, error) {
 	b.chainLock.RLock()
-	locator := b.bestChain.BlockLocator(nil)
+	locator := b.blockLocator(nil)
 	b.chainLock.RUnlock()
 	return locator, nil
 }
@@ -53,30 +69,6 @@ func (b *BlockChain) LocateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 	return hashes
 }
 
-// This function use to locate the other node dag position, then
-// collect some missing blocks that we need. It is very useful
-// for dag synchronization.
-func (b *BlockChain) LocateBlocks(mainHeight uint64,blocks []*hash.Hash, maxHashes uint32) []*hash.Hash {
-	blocksNum:=len(blocks)
-	result:=blockdag.NewHashSet()
-	if blocksNum>0 {
-		curBlock:=b.bd.GetLastBlock()
-		curNode:=b.index.lookupNode(curBlock.GetHash())
-		for  {
-			if curNode.GetMainHeight()<mainHeight {
-				break
-			}
-			result.AddSet(curBlock.GetParents())
-			result.AddSet(curBlock.GetChildren())
-			curBlockH:=b.bd.GetBlockByOrder(uint(curNode.GetHeight()-1))
-			curNode=b.index.LookupNode(curBlockH)
-		}
-	}else{
-		return blocks
-	}
-	return result.List()
-}
-
 // locateBlocks returns the hashes of the blocks after the first known block in
 // the locator until the provided stop hash is reached, or up to the provided
 // max number of block hashes.
@@ -85,98 +77,81 @@ func (b *BlockChain) LocateBlocks(mainHeight uint64,blocks []*hash.Hash, maxHash
 //
 // This function MUST be called with the chain state lock held (for reads).
 func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, maxHashes uint32) []hash.Hash {
-	// Find the node after the first known block in the locator and the
-	// total number of nodes after it needed while respecting the stop hash
-	// and max entries.
-	node, total := b.locateInventory(locator, hashStop, maxHashes)
-	if total == 0 {
-		return nil
-	}
-
-	// Populate and return the found hashes.
-	hashes := make([]hash.Hash, 0, total)
-	for i := uint32(0); i < total; i++ {
-		hashes = append(hashes, node.hash)
-		node = b.bestChain.Next(node)
-	}
-	return hashes
-}
-
-// locateInventory returns the node of the block after the first known block in
-// the locator along with the number of subsequent nodes needed to either reach
-// the provided stop hash or the provided max number of entries.
-//
-// In addition, there are two special cases:
-//
-// - When no locators are provided, the stop hash is treated as a request for
-//   that block, so it will either return the node associated with the stop hash
-//   if it is known, or nil if it is unknown
-// - When locators are provided, but none of them are known, nodes starting
-//   after the genesis block will be returned
-//
-// This is primarily a helper function for the locateBlocks and locateHeaders
-// functions.
-//
-// This function MUST be called with the chain state lock held (for reads).
-func (b *BlockChain) locateInventory(locator BlockLocator, hashStop *hash.Hash, maxEntries uint32) (*blockNode, uint32) {
-	// There are no block locators so a specific block is being requested
-	// as identified by the stop hash.
-	stopNode := b.index.LookupNode(hashStop)
-	if len(locator) == 0 {
-		if stopNode == nil {
-			// No blocks with the stop hash were found so there is
-			// nothing to do.
-			return nil, 0
-		}
-		return stopNode, 1
-	}
-
-	// Find the most recent locator block hash in the main chain.  In the
-	// case none of the hashes in the locator are in the main chain, fall
-	// back to the genesis block.
-	startNode := b.bestChain.Genesis()
-	for _, hash := range locator {
-		node := b.index.LookupNode(hash)
-		if node != nil && b.bestChain.Contains(node) {
-			startNode = node
-			break
-		}
-	}
-
-	// Start at the block after the most recently known block.  When there
-	// is no next block it means the most recently known block is the tip of
-	// the best chain, so there is nothing more to do.
-	startNode = b.bestChain.Next(startNode)
-	if startNode == nil {
-		return nil, 0
-	}
-
-	// Calculate how many entries are needed.
-	total := uint32((b.bestChain.Tip().height - startNode.height) + 1)
-	if stopNode != nil && b.bestChain.Contains(stopNode) &&
-		stopNode.height >= startNode.height {
-
-		total = uint32((stopNode.height - startNode.height) + 1)
-	}
-	if total > maxEntries {
-		total = maxEntries
-	}
-
-	return startNode, total
+	
+	return nil
 }
 
 // BlockLocatorFromHash returns a block locator for the passed block hash.
 // See BlockLocator for details on the algorithm used to create a block locator.
 //
 // In addition to the general algorithm referenced above, this function will
-// return the block locator for the latest known tip of the main (best) chain if
-// the passed hash is not currently known.
+// return the block locator for the latest DAG.
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) BlockLocatorFromHash(hash *hash.Hash) BlockLocator {
 	b.chainLock.RLock()
 	node := b.index.LookupNode(hash)
-	locator := b.bestChain.BlockLocator(node)
+	locator := b.blockLocator(node)
 	b.chainLock.RUnlock()
+	return locator
+}
+
+// blockLocator returns a block locator for the passed block node.  The passed
+// node can be nil in which case the block locator for the current DAG
+// associated with the view will be returned.
+// This function MUST be called with the view mutex locked (for reads).
+func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
+	// Use the current tip if requested.
+	if node == nil {
+		lb:=b.bd.GetLastBlock()
+		node = b.index.lookupNode(lb.GetHash())
+		if node == nil {
+			return nil
+		}
+	}
+
+	// Calculate the max number of entries that will ultimately be in the
+	// block locator.  See the description of the algorithm for how these
+	// numbers are derived.
+	var maxEntries uint8
+	if node.height <= 12 {
+		maxEntries = uint8(node.height) + 1
+	} else {
+		// Requested hash itself + previous 10 entries + genesis block.
+		// Then floor(log2(height-10)) entries for the skip portion.
+		adjustedHeight := uint32(node.height) - 10
+		maxEntries = 12 + fastLog2Floor(adjustedHeight)
+	}
+	locator := make(BlockLocator, 0, maxEntries)
+
+	step := uint64(1)
+	for node != nil {
+		locator = append(locator, &node.hash)
+
+		// Nothing more to add once the genesis block has been added.
+		if node.height == 0 {
+			break
+		}
+
+		// Calculate height of previous node to include ensuring the
+		// final node is the genesis block.
+		// height := node.height - step
+		// if height < 0 {
+		//	 height = 0
+		// }
+		height := uint64(0)
+		if node.height > step {
+			height = node.height - step
+		}
+
+		nodeH := b.bd.GetBlockByOrder(uint(height))
+		node = b.index.lookupNode(nodeH)
+		// Once 11 entries have been included, start doubling the
+		// distance between included hashes.
+		if len(locator) > 10 {
+			step *= 2
+		}
+	}
+
 	return locator
 }
