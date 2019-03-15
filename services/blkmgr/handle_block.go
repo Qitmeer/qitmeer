@@ -81,7 +81,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 
 	// Process the block to include validation, best chain selection, orphan
 	// handling, etc.
-	forkLen, isOrphan, err := b.chain.ProcessBlock(bmsg.block,
+	_, isOrphan, err := b.chain.ProcessBlock(bmsg.block,
 		behaviorFlags)
 	if err != nil {
 		// When the error is a rule error, it means the block was simply
@@ -127,18 +127,15 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// block height from the scriptSig of the coinbase transaction.
 		// Extraction is only attempted if the block's version is
 		// high enough (ver 2+).
-		header := &bmsg.block.Block().Header
-		cbHeight := header.Height
-		heightUpdate = uint64(cbHeight)
+
 		blkHashUpdate = blockHash
 
-		orphanRoot := b.chain.GetOrphanRoot(blockHash)
 		locator, err := b.chain.LatestBlockLocator()
 		if err != nil {
 			log.Warn("Failed to get block locator for the latest block",
 				"error",err)
 		} else {
-			err = bmsg.peer.PushGetBlocksMsg(locator, orphanRoot)
+			err = bmsg.peer.PushGetBlocksMsg(locator, blockHash)
 			if err != nil {
 				log.Warn("Failed to push getblocksmsg for the latest block", "error",err)
 			}
@@ -148,34 +145,30 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// update the chain state.
 		b.progressLogger.LogBlockHeight(bmsg.block)
 
-		onMainChain := !isOrphan && forkLen == 0
-		if onMainChain {
+		// Notify stake difficulty subscribers and prune invalidated
+		// transactions.
+		best := b.chain.BestSnapshot()
 
-			// Notify stake difficulty subscribers and prune invalidated
-			// transactions.
-			best := b.chain.BestSnapshot()
+		b.txMemPool.PruneExpiredTx()
 
-			b.txMemPool.PruneExpiredTx()
+		// Update this peer's latest block height, for future
+		// potential sync node candidancy.
+		heightUpdate = best.Height
+		blkHashUpdate = &best.Hash
 
-			// Update this peer's latest block height, for future
-			// potential sync node candidancy.
-			heightUpdate = best.Height
-			blkHashUpdate = &best.Hash
+		// Clear the rejected transactions.
+		b.rejectedTxns = make(map[hash.Hash]struct{})
 
-			// Clear the rejected transactions.
-			b.rejectedTxns = make(map[hash.Hash]struct{})
-
-			// Allow any clients performing long polling via the
-			// getblocktemplate RPC to be notified when the new block causes
-			// their old block template to become stale.
-			// TODO, refactor how bm work with rpc-server
-			/*
-			rpcServer := b.server.rpcServer
-			if rpcServer != nil {
-				rpcServer.gbtWorkState.NotifyBlockConnected(blockHash)
-			}
-			*/
+		// Allow any clients performing long polling via the
+		// getblocktemplate RPC to be notified when the new block causes
+		// their old block template to become stale.
+		// TODO, refactor how bm work with rpc-server
+		/*
+		rpcServer := b.server.rpcServer
+		if rpcServer != nil {
+			rpcServer.gbtWorkState.NotifyBlockConnected(blockHash)
 		}
+		*/
 	}
 
 	// Update the block height for this peer. But only send a message to

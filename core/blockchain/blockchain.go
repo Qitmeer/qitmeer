@@ -552,30 +552,24 @@ func (b *BlockChain) IsKnownOrphan(hash *hash.Hash) bool {
 	return exists
 }
 
-// GetOrphanRoot returns the head of the chain for the provided hash from the
+// GetOrphansParents returns the parents for the provided hash from the
 // map of orphan blocks.
-//
-// This function is safe for concurrent access.
-func (b *BlockChain) GetOrphanRoot(hash *hash.Hash) *hash.Hash {
-	// Protect concurrent access.  Using a read lock only so multiple
-	// readers can query without blocking each other.
+func (b *BlockChain) GetOrphansParents() []*hash.Hash{
 	b.orphanLock.RLock()
 	defer b.orphanLock.RUnlock()
-
-	// Keep looping while the parent of each orphaned block is
-	// known and is an orphan itself.
-	orphanRoot := hash
-	prevHash := hash
-	for {
-		orphan, exists := b.orphans[*prevHash]
-		if !exists {
-			break
+	//
+	result:=blockdag.NewHashSet()
+	for _,v:=range b.orphans{
+		for _,h:=range v.block.Block().Parents{
+			exists, err := b.HaveBlock(h)
+			if err != nil||exists {
+				continue
+			}
+			result.Add(h)
 		}
-		orphanRoot = prevHash
-		prevHash = &orphan.block.Block().Header.ParentRoot
-	}
 
-	return orphanRoot
+	}
+	return result.List()
 }
 
 // IsCurrent returns whether or not the chain believes it is current.  Several

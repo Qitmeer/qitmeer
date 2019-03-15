@@ -110,14 +110,13 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				// Request blocks starting at the latest known
 				// up to the root of the orphan that just came
 				// in.
-				orphanRoot := b.chain.GetOrphanRoot(&iv.Hash)
 				locator, err := b.chain.LatestBlockLocator()
 				if err != nil {
 					log.Error("Failed to get block locator for the latest block",
 						"error", err)
 					continue
 				}
-				err = imsg.peer.PushGetBlocksMsg(locator, orphanRoot)
+				err = imsg.peer.PushGetBlocksMsg(locator,&iv.Hash)
 				if err != nil {
 					log.Error("Failed to push getblocksmsg for orphan chain",
 						"error", err)

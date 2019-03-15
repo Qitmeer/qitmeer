@@ -12,7 +12,6 @@ import (
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/engine/txscript"
 	"github.com/noxproject/nox/params"
-	"time"
 )
 
 // CheckpointConfirmations is the number of blocks before the end of the current
@@ -118,7 +117,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
 		// that is already available.
 		for i := numCheckpoints - 1; i >= 0; i-- {
 			node := b.index.LookupNode(checkpoints[i].Hash)
-			if node == nil || !b.bestChain.Contains(node) {
+			if node == nil {
 				continue
 			}
 
@@ -217,7 +216,7 @@ func isNonstandardTransaction(tx *types.Tx) bool {
 // decision and then manually added to the list of checkpoints for a network.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) IsCheckpointCandidate(block *types.SerializedBlock) (bool, error) {
+/*func (b *BlockChain) IsCheckpointCandidate(block *types.SerializedBlock) (bool, error) {
 	b.chainLock.RLock()
 	defer b.chainLock.RUnlock()
 
@@ -228,7 +227,7 @@ func (b *BlockChain) IsCheckpointCandidate(block *types.SerializedBlock) (bool, 
 
 	// A checkpoint must be in the main chain.
 	node := b.index.LookupNode(block.Hash())
-	if node == nil || !b.bestChain.Contains(node) {
+	if node == nil {
 		return false, nil
 	}
 
@@ -283,4 +282,4 @@ func (b *BlockChain) IsCheckpointCandidate(block *types.SerializedBlock) (bool, 
 
 	// All of the checks passed, so the block is a candidate.
 	return true, nil
-}
+}*/

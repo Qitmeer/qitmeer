@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/core/blockdag"
 )
 
 // BlockLocator is used to help locate a specific block.  The algorithm for
@@ -70,15 +71,52 @@ func (b *BlockChain) LocateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 }
 
 // locateBlocks returns the hashes of the blocks after the first known block in
-// the locator until the provided stop hash is reached, or up to the provided
+// the locator until the provided stop hash is nearby, or up to the provided
 // max number of block hashes.
 //
 // See the comment on the exported function for more details on special cases.
 //
 // This function MUST be called with the chain state lock held (for reads).
 func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, maxHashes uint32) []hash.Hash {
-	
-	return nil
+	// It must be not empty
+	if len(locator)==0 {
+		return nil
+	}
+	hashes:=[]hash.Hash{}
+	endHash:=hashStop
+	if hashStop.IsEqual(&hash.ZeroHash) {
+		endHash=b.bd.GetLastBlock().GetHash()
+	}else if hashStop.IsEqual(locator[0]) {
+		for _,v:=range locator{
+			hashes=append(hashes,hash.Hash(*v))
+		}
+		return hashes
+	}
+	if !b.bd.HasBlock(endHash) {
+		return nil
+	}
+	endBlock:=b.bd.GetBlock(endHash)
+	hashesSet:=blockdag.NewHashSet()
+	hashesSet.AddSet(endBlock.GetParents())
+
+	curNum:=uint32(hashesSet.Len())
+	curBlock:=b.bd.GetBlock(locator[0])
+	for {
+		curBlock=b.bd.GetBlock(b.bd.GetBlockByOrder(curBlock.GetOrder()+1))
+		if curNum>=maxHashes||
+			curBlock==endBlock||
+			curBlock==nil||
+			curBlock.GetOrder()>=endBlock.GetOrder() {
+			break
+		}
+		hashesSet.Add(curBlock.GetHash())
+		curNum++
+	}
+
+	for k,_:=range hashesSet.GetMap(){
+		hashes=append(hashes,hash.Hash(k))
+	}
+	return hashes
 }
 
 // BlockLocatorFromHash returns a block locator for the passed block hash.
