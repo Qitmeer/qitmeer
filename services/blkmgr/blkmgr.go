@@ -647,7 +647,6 @@ out:
 				if err != nil {
 					b.chain.RemoveBadTx(msg.block.Hash())
 					msg.reply <- processBlockResponse{
-						forkLen:  0,
 						isOrphan: isOrphan,
 						err:      err,
 					}
@@ -657,11 +656,10 @@ out:
 				// If the block added to the dag chain, then we need to
 				// update the tip locally on block manager.
 				log.Trace("test onMainChain when blkmgr read processBlockMsg msgchan", "onMainChain")
-				onMainChain := !isOrphan
-				if onMainChain {
+				if !isOrphan {
 					// Query the chain for the latest best block
-					// since the block that was processed could be
-					// on a side chain or have caused a reorg.
+					// since the block that was processed and add
+					// to the DAG
 					best := b.chain.BestSnapshot()
 
 					// TODO, decoupling mempool with bm
@@ -742,7 +740,6 @@ out:
 // processBlockResponse is a response sent to the reply channel of a
 // processBlockMsg.
 type processBlockResponse struct {
-	forkLen  int64
 	isOrphan bool
 	err      error
 }
