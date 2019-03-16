@@ -6,12 +6,14 @@ import (
 	"github.com/noxproject/nox/common/hash"
 )
 
+// Some available DAG algorithm types
 const (
 	phantom="phantom"
 	conflux="conflux"
 	spectre="spectre"
 )
 
+// It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
 	case phantom:
@@ -52,6 +54,7 @@ type IBlockData interface {
 	GetTimestamp() int64
 }
 
+// It is the element of a DAG. It is the most basic data unit.
 type Block struct {
 	hash     hash.Hash
 	parents  *HashSet
@@ -62,6 +65,7 @@ type Block struct {
 	order  uint
 }
 
+// Return the hash of block. It will be a pointer.
 func (b *Block) GetHash() *hash.Hash {
 	return &b.hash
 }
@@ -71,6 +75,7 @@ func (b *Block) GetParents() *HashSet {
 	return b.parents
 }
 
+// Testing whether it has parents
 func (b *Block) HasParents() bool {
 	if b.parents == nil {
 		return false
@@ -327,6 +332,8 @@ func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 	return bd.GetBlockByOrder(b.order-1)
 }
 
+// Returns a future collection of block. This function is a recursively called function
+// So we should consider its efficiency.
 func (bd *BlockDAG) GetFutureSet(fs *HashSet, b *Block) {
 	children := b.GetChildren()
 	if children == nil || children.IsEmpty() {
