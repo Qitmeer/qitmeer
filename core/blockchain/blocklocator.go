@@ -79,15 +79,21 @@ func (b *BlockChain) LocateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 // This function MUST be called with the chain state lock held (for reads).
 func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, maxHashes uint32) []hash.Hash {
 	// It must be not empty
-	if len(locator)==0 {
+	loLen:=len(locator)
+	if loLen==0 {
 		return nil
 	}
 	hashes:=[]hash.Hash{}
 	endHash:=hashStop
 	if hashStop.IsEqual(&hash.ZeroHash) {
+		// If the stop block is zero, that means it doesn't end until last tip.
 		endHash=b.bd.GetLastBlock().GetHash()
 	}else if hashStop.IsEqual(locator[0]) {
+		// In this case, we're going back to what block we need.
 		for _,v:=range locator{
+			if !b.index.HaveBlock(v) {
+				continue
+			}
 			hashes=append(hashes,hash.Hash(*v))
 		}
 		return hashes
@@ -97,20 +103,35 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 	}
 	endBlock:=b.bd.GetBlock(endHash)
 	hashesSet:=blockdag.NewHashSet()
-	hashesSet.AddSet(endBlock.GetParents())
 
+	// First of all, we need to make sure we have the parents of block.
+	hashesSet.AddSet(endBlock.GetParents())
 	curNum:=uint32(hashesSet.Len())
-	curBlock:=b.bd.GetBlock(locator[0])
-	for {
-		curBlock=b.bd.GetBlock(b.bd.GetBlockByOrder(curBlock.GetOrder()+1))
+
+	// Because of chain forking, a common forking point must be found.
+	// It's the real starting point.
+	var curBlock *blockdag.Block
+	for i:=0;i<loLen;i++{
+		if b.bd.HasBlock(locator[i]) {
+			curBlock=b.bd.GetBlock(locator[0])
+			break
+		}
+	}
+
+	for curBlock!=nil {
+		curBlockH:=b.bd.GetBlockByOrder(curBlock.GetOrder()+1)
+		if curBlockH==nil {
+			break
+		}
+		curBlock=b.bd.GetBlock(curBlockH)
+		hashesSet.Add(curBlock.GetHash())
+		curNum++
+
 		if curNum>=maxHashes||
 			curBlock==endBlock||
-			curBlock==nil||
 			curBlock.GetOrder()>=endBlock.GetOrder() {
 			break
 		}
-		hashesSet.Add(curBlock.GetHash())
-		curNum++
 	}
 
 	for k,_:=range hashesSet.GetMap(){

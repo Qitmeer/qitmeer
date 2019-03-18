@@ -41,10 +41,12 @@ type Phantom struct {
 	anticoneSize int
 }
 
+// Return the instance name.
 func (ph *Phantom) GetName() string {
 	return phantom
 }
 
+// It will initialize anticone size by some preset constants.
 func (ph *Phantom) Init(bd *BlockDAG) bool {
 	ph.bd=bd
 
