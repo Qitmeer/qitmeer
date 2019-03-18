@@ -5,6 +5,7 @@ import (
 	"github.com/noxproject/nox/node"
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/log"
+	"github.com/noxproject/nox/version"
 	"testing"
 	"os"
 	"runtime"
@@ -28,7 +29,6 @@ import (
 	"github.com/noxproject/nox/core/serialization"
 	"encoding/binary"
 )
-
 
 func TestDoubleSpent(t *testing.T) {
 	addr0:="RmR7D8F2is5jWd5oXaxYyxL5NxwJPeWYXsH"
@@ -226,10 +226,10 @@ func buildDoubleSpentTx(txHash *hash.Hash,addrStr string,amount float64,privkeyS
 	}*/
 	//time.Sleep(time.Second)
 }
+
 //some base function
 var ser *node.Node=nil
 var db database.DB
-/////////////////////
 var bmap map[hash.Hash]*HelpBlock
 var barray []*HelpBlock
 
@@ -237,9 +237,11 @@ type HelpBlock struct {
 	Name string
 	Hash *hash.Hash
 }
+
 func (hb *HelpBlock) GetHash() *hash.Hash{
 	return hb.Hash
 }
+
 func initDag() *HelpBlock{
 	err:=Run()
 	if err!=nil {
@@ -255,6 +257,7 @@ func initDag() *HelpBlock{
 
 	return Gen
 }
+
 func buildBlock(name string,parents []*hash.Hash) *HelpBlock{
 	hb:=&HelpBlock{Name:name}
 
@@ -276,14 +279,14 @@ func buildBlock(name string,parents []*hash.Hash) *HelpBlock{
 
 	return hb
 }
-////////////////////
+
 func Run() error {
 	os.Args=[]string{}
 	os.Args=append(os.Args,"dag_test")
 	os.Args=append(os.Args,"-A=./bin")
 	os.Args=append(os.Args,"--privnet")
 	os.Args=append(os.Args,"--miningaddr=RmPuiebMrf8mZmt4UAYuhD9PkK9hq6HraBa")
-	os.Args=append(os.Args,"--listen=127.0.0.1:1234")
+	os.Args=append(os.Args,"--rpclisten=127.0.0.1:1234")
 	os.Args=append(os.Args,"--rpcuser=test")
 	os.Args=append(os.Args,"--rpcpass=test")
 	os.Args=append(os.Args,"--txindex")
@@ -305,7 +308,7 @@ func Run() error {
 	interrupt := interruptListener()
 	defer log.Info("Shutdown complete")
 
-	log.Info("System info", "Nox Version", version(), "Go version",runtime.Version())
+	log.Info("System info", "Nox Version", version.String(), "Go version",runtime.Version())
 	log.Info("System info", "Home dir", cfg.HomeDir)
 	if cfg.NoFileLogging {
 		log.Info("File logging disabled")
@@ -420,6 +423,7 @@ func GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, error) {
 		}
 	}
 }
+
 func NewBlockTemplate(policy *mining.Policy,config *config.Config, params *params.Params,
 	sigCache *txscript.SigCache, source mining.TxSource, tsource blockchain.MedianTimeSource,
 	blkMgr *blkmgr.BlockManager,  payToAddress types.Address,parents []*hash.Hash) (*types.BlockTemplate, error) {
@@ -428,15 +432,9 @@ func NewBlockTemplate(policy *mining.Policy,config *config.Config, params *param
 	timeSource := tsource
 	chainState := blockManager.GetChainState()
 	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
-	prevHash,nextBlockHeight,_,_ := chainState.GetNextHeightWithState()
 
 	chainBest := blockManager.GetChain().BestSnapshot()
-	if *prevHash != chainBest.Hash ||
-		nextBlockHeight-1 != chainBest.Height {
-		return nil, fmt.Errorf("chain state is not syncronized to the "+
-			"blockchain (got %v:%v, want %v,%v",
-			prevHash, nextBlockHeight-1, chainBest.Hash, chainBest.Height)
-	}
+	nextBlockHeight:=chainBest.Height+1
 	sourceTxns := txSource.MiningDescs()
 	sortedByFee := policy.BlockPrioritySize == 0
 	// TODO, impl more general priority func
@@ -642,6 +640,7 @@ func NewBlockTemplate(policy *mining.Policy,config *config.Config, params *param
 	blockManager.SetCurrentTemplate(blockTemplate)
 	return blockTemplate,nil
 }
+
 func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, opReturnPkScript []byte, nextBlockHeight int64, addr types.Address, voters uint16, params *params.Params) (*types.Tx, error) {
 	tx := types.NewTransaction()
 	tx.AddTxIn(&types.TxInput{
@@ -746,6 +745,7 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 
 	return types.NewTx(tx), nil
 }
+
 type txPrioItem struct {
 	tx       *types.Tx
 	txType   types.TxType
@@ -754,23 +754,30 @@ type txPrioItem struct {
 	feePerKB float64
 	dependsOn map[hash.Hash]struct{}
 }
+
 type txPriorityQueueLessFunc func(*txPriorityQueue, int, int) bool
+
 type txPriorityQueue struct {
 	lessFunc txPriorityQueueLessFunc
 	items    []*txPrioItem
 }
+
 func (pq *txPriorityQueue) Len() int {
 	return len(pq.items)
 }
+
 func (pq *txPriorityQueue) Less(i, j int) bool {
 	return pq.lessFunc(pq, i, j)
 }
+
 func (pq *txPriorityQueue) Swap(i, j int) {
 	pq.items[i], pq.items[j] = pq.items[j], pq.items[i]
 }
+
 func (pq *txPriorityQueue) Push(x interface{}) {
 	pq.items = append(pq.items, x.(*txPrioItem))
 }
+
 func (pq *txPriorityQueue) Pop() interface{} {
 	n := len(pq.items)
 	item := pq.items[n-1]
@@ -778,10 +785,12 @@ func (pq *txPriorityQueue) Pop() interface{} {
 	pq.items = pq.items[0 : n-1]
 	return item
 }
+
 func (pq *txPriorityQueue) SetLessFunc(lessFunc txPriorityQueueLessFunc) {
 	pq.lessFunc = lessFunc
 	heap.Init(pq)
 }
+
 func newTxPriorityQueue(reserve int, lessFunc func(*txPriorityQueue, int, int) bool) *txPriorityQueue {
 	pq := &txPriorityQueue{
 		items: make([]*txPrioItem, 0, reserve),
@@ -789,6 +798,7 @@ func newTxPriorityQueue(reserve int, lessFunc func(*txPriorityQueue, int, int) b
 	pq.SetLessFunc(lessFunc)
 	return pq
 }
+
 func txPQByFee(pq *txPriorityQueue, i, j int) bool {
 	if pq.items[i].feePerKB == pq.items[j].feePerKB {
 		return pq.items[i].priority > pq.items[j].priority
