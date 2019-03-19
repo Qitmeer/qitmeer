@@ -52,6 +52,8 @@ func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.Or
 	if node==nil {
 		return nil,fmt.Errorf("no node")
 	}
+	// Update the source block order
+	block.SetHeight(node.GetHeight())
 
 	best := api.bm.chain.BestSnapshot()
 
@@ -70,6 +72,7 @@ func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.Or
 		children=cs.List()
 	}
 	//TODO, refactor marshal api
+
 	fields, err := marshal.MarshalJsonBlock(block, true, fullTx, api.bm.params, confirmations,children)
 	if err != nil {
 		return nil, err
@@ -92,6 +95,8 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 	if node==nil {
 		return nil,fmt.Errorf("no node")
 	}
+	// Update the source block order
+	blk.SetHeight(node.GetHeight())
 	// When the verbose flag isn't set, simply return the
 	// network-serialized block as a hex-encoded string.
 	if !verbose {
