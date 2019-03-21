@@ -126,6 +126,7 @@ func TestDoubleSpent(t *testing.T) {
 	//time.Sleep(5*time.Second)
 	End()
 }
+
 func buildDoubleSpentTx(txHash *hash.Hash,addrStr string,amount float64,privkeyStr string){
 
 	mtx := types.NewTransaction()

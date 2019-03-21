@@ -282,10 +282,12 @@ func (bd *BlockDAG) updateTips(h *hash.Hash) {
 	bd.tips.Add(h)
 }
 
+// The last time is when add one block to DAG.
 func (bd *BlockDAG) GetLastTime() *time.Time{
 	return &bd.lastTime
 }
 
+// Return the full sequence array.
 func (bd *BlockDAG) GetOrder() []*hash.Hash {
 	return bd.order
 }
