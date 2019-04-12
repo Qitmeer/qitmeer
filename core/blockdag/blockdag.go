@@ -26,7 +26,7 @@ func NewBlockDAG(dagType string) IBlockDAG {
 	return nil
 }
 
-//The abstract inferface is used to build and manager DAG
+// The abstract inferface is used to build and manager DAG
 type IBlockDAG interface {
 	GetName() string
 	Init(bd *BlockDAG) bool
