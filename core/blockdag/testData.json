@@ -307,5 +307,98 @@
   },
   "CO_GetOrder":{
     "out":["Gen","A","B","C","D","F","E","G","J","I","H","K"]
-  }
+  },
+  "SP_Blocks":[
+    {
+      "tag":"Gen",
+      "parents": [
+      ]
+    },
+    {
+      "tag":"b1",
+      "parents": [
+        "Gen"
+      ]
+    },
+    {
+      "tag":"b2",
+      "parents": [
+        "Gen"
+      ]
+    },
+    {
+      "tag":"b3",
+      "parents": [
+        "Gen"
+      ]
+    },
+    {
+      "tag":"b4",
+      "parents": [
+        "b1",
+        "b2",
+        "b3"
+      ]
+    },
+    {
+      "tag":"b5",
+      "parents": [
+        "b3"
+      ]
+    },
+    {
+      "tag":"b6",
+      "parents": [
+        "b2",
+        "b3"
+      ]
+    },
+    {
+      "tag":"b7",
+      "parents": [
+        "b4"
+      ]
+    },
+    {
+      "tag":"b8",
+      "parents": [
+        "b4",
+        "b5"
+      ]
+    },
+    {
+      "tag":"b9",
+      "parents": [
+        "b5",
+        "b6"
+      ]
+    },
+    {
+      "tag":"b10",
+      "parents": [
+        "b6"
+      ]
+    },
+    {
+      "tag":"b11",
+      "parents": [
+        "b7",
+        "b8"
+      ]
+    },
+    {
+      "tag":"b12",
+      "parents": [
+        "b9",
+        "b10"
+      ]
+    },
+    {
+      "tag":"b13",
+      "parents": [
+        "b9",
+        "b11"
+      ]
+    }
+  ]
 }
