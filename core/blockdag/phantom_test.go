@@ -1,1 +1,113 @@
 package blockdag
+
+import (
+	"fmt"
+	"github.com/noxproject/nox/common/hash"
+	"testing"
+)
+
+func Test_GetFutureSet(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig2-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	//ph:=ibd.(*Phantom)
+	anBlock := bd.GetBlock(tbMap[testData.PH_GetFutureSet.Input])
+	bset := NewHashSet()
+	bd.GetFutureSet(bset,anBlock)
+	fmt.Printf("Get %s future set：\n", testData.PH_GetFutureSet.Input)
+	printBlockSetTag(bset,tbMap)
+	//
+	if !processResult(bset,changeToHashList(testData.PH_GetFutureSet.Output, tbMap)) {
+		t.FailNow()
+	}
+}
+
+func Test_GetAnticone(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig2-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	ph:=ibd.(*Phantom)
+	//
+	anBlock := bd.GetBlock(tbMap[testData.PH_GetAnticone.Input])
+
+	////////////
+	bset := ph.GetAnticone(anBlock, nil)
+	fmt.Printf("Get %s anticone set：\n", testData.PH_GetAnticone.Input)
+	printBlockSetTag(bset,tbMap)
+	//
+	if !processResult(bset,changeToHashList(testData.PH_GetAnticone.Output, tbMap)) {
+		t.FailNow()
+	}
+
+}
+
+
+func Test_BlueSetFig2(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig2-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	ph:=ibd.(*Phantom)
+	//
+	blueSet := ph.GetBlueSet()
+	fmt.Println("Fig2 blue set：")
+	printBlockSetTag(blueSet,tbMap)
+	if !processResult(blueSet, changeToHashList(testData.PH_BlueSetFig2.Output, tbMap)) {
+		t.FailNow()
+	}
+}
+
+func Test_BlueSetFig4(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig4-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	ph:=ibd.(*Phantom)
+	//
+	blueSet := ph.GetBlueSet()
+	fmt.Println("Fig4 blue set：")
+	printBlockSetTag(blueSet,tbMap)
+	if !processResult(blueSet, changeToHashList(testData.PH_BlueSetFig4.Output, tbMap)) {
+		t.FailNow()
+	}
+}
+
+func Test_OrderFig2(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig2-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	//ph:=ibd.(*Phantom)
+	order:=[]*hash.Hash{}
+	var i uint
+	for i=0;i<bd.GetBlockTotal() ;i++  {
+		order=append(order,bd.GetBlockByOrder(i))
+	}
+	fmt.Printf("The Fig.2 Order: ")
+	printBlockChainTag(order,tbMap)
+
+	if !processResult(order, changeToHashList(testData.PH_OrderFig2.Output, tbMap)) {
+		t.FailNow()
+	}
+}
+
+func Test_OrderFig4(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig4-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	//ph:=ibd.(*Phantom)
+	order:=[]*hash.Hash{}
+	var i uint
+	for i=0;i<bd.GetBlockTotal() ;i++  {
+		order=append(order,bd.GetBlockByOrder(i))
+	}
+	fmt.Printf("The Fig.4 Order: ")
+	printBlockChainTag(order,tbMap)
+
+	if !processResult(order, changeToHashList(testData.PH_OrderFig4.Output, tbMap)) {
+		t.FailNow()
+	}
+}

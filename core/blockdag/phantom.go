@@ -52,7 +52,9 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 
 	ph.anticoneSize = anticone.GetSize(BlockDelay,BlockRate,SecurityLevel)
 
-	log.Info(fmt.Sprintf("anticone size:%d",ph.anticoneSize))
+	if log!=nil {
+		log.Info(fmt.Sprintf("anticone size:%d",ph.anticoneSize))
+	}
 
 	return true
 }
@@ -64,7 +66,9 @@ func (ph *Phantom) AddBlock(b *Block) *list.List {
 		return nil
 	}
 	ph.tempBlueSet=nil
-	log.Trace(fmt.Sprintf("Add block:%v",b.GetHash().String()))
+	if log!=nil {
+		log.Trace(fmt.Sprintf("Add block:%v",b.GetHash().String()))
+	}
 
 	ph.calculatePastHashSetNum(b)
 	ph.updateCommonBlueSet(b.GetHash())
@@ -696,6 +700,12 @@ func (ph *Phantom) getTempBS() *HashSet{
 		ph.tempBlueSet=ph.GetTempBlueSet()
 	}
 	return ph.tempBlueSet
+}
+
+func (ph *Phantom) GetBlueSet() *HashSet {
+	result := ph.getTempBS()
+	result.AddSet(ph.commonBlueSet)
+	return result
 }
 
 func (ph *Phantom) recCalHourglass(genealogy *HashSet, ancestors *HashSet) {

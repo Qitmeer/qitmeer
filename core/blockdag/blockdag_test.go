@@ -23,8 +23,8 @@ type TestInOutData struct {
 
 // Structure of test data
 type TestData struct {
-	PH_Fig2Blocks   []TestBlocksData
-	PH_Fig4Blocks   []TestBlocksData
+	PH_Fig2Blocks   []TestBlocksData `json:"PH_fig2-blocks"`
+	PH_Fig4Blocks   []TestBlocksData `json:"PH_fig4-blocks"`
 	PH_GetFutureSet TestInOutData
 	PH_GetAnticone  TestInOutData
 	PH_BlueSetFig2  TestInOutData
@@ -85,7 +85,7 @@ func (tb *TestBlock) GetTimestamp() int64 {
 }
 
 // This is the interface for Block DAG,can use to call public function.
-var bd IBlockDAG
+var bd BlockDAG
 
 // Used to simulate block hash,It's just a test program,beacause
 // we only care about the block DAG.
@@ -104,9 +104,9 @@ func InitBlockDAG(dagType string,graph string) (IBlockDAG, map[string]*hash.Hash
 		return nil, nil
 	}
 	var tbd []TestBlocksData
-	if graph == "PH_fig2" {
+	if graph == "PH_fig2-blocks" {
 		tbd = testData.PH_Fig2Blocks
-	} else if graph == "PH_fig4" {
+	} else if graph == "PH_fig4-blocks" {
 		tbd = testData.PH_Fig4Blocks
 	} else if graph == "CO_Blocks" {
 		tbd = testData.CO_Blocks
@@ -119,8 +119,7 @@ func InitBlockDAG(dagType string,graph string) (IBlockDAG, map[string]*hash.Hash
 	if blen < 2 {
 		return nil, nil
 	}
-
-	bd:=&BlockDAG{}
+	bd=BlockDAG{}
 	instance:=bd.Init(dagType)
 	tbMap := map[string]*hash.Hash{}
 	for i := 0; i < blen; i++ {
@@ -181,6 +180,7 @@ func processResult(calRet interface{}, theory []*hash.Hash) bool {
 		for i := 0; i < rLen; i++ {
 			if !result[i].IsEqual(theory[i]) {
 				ret = false
+				break
 			}
 		}
 	case *HashSet:
@@ -213,9 +213,27 @@ func printBlockChainTag(list []*hash.Hash, tbMap map[string]*hash.Hash) {
 	fmt.Println(result)
 }
 
+func printBlockSetTag(set *HashSet, tbMap map[string]*hash.Hash) {
+	var result string="["
+	isFirst:=true
+	for k,_:=range set.GetMap(){
+		name := getBlockTag(&k,tbMap)
+		if isFirst {
+			result += fmt.Sprintf("%s", name)
+			isFirst=false
+		}else {
+			result += fmt.Sprintf(",%s", name)
+		}
+
+	}
+	result+="]"
+	fmt.Println(result)
+}
+
 func reverseBlockList(s []*hash.Hash) []*hash.Hash {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
 	return s
 }
+
