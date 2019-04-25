@@ -556,37 +556,37 @@ if [ "$1" == "block" ]; then
   else
     call_get_block $@
   fi
-elif [ $1 == "get_block_number" ]; then
+elif [ "$1" == "get_block_number" ]; then
   shift
   if [ "$1" == "-hex" ]; then # result ishex by default
     get_block_number
   else                        # human can read (hex->decimal)
     get_block_number |xargs printf "%d\n"
   fi
-elif [ $1 == "get_syncing_info" ]; then
+elif [ "$1" == "get_syncing_info" ]; then
   shift
   get_syncing $@
-elif [ $1 == "get_current_block" ]; then
+elif [ "$1" == "get_current_block" ]; then
   shift
   get_current_block_num
-elif [ $1 == "get_current_block2" ]; then
+elif [ "$1" == "get_current_block2" ]; then
   shift
   blocknum=$(get_current_block_num)
   cmd_get_block $blocknum $@
-elif [ $1 == "get_highest_block" ]; then
+elif [ "$1" == "get_highest_block" ]; then
   shift
   get_syncing $@|jq .highestBlock -r|xargs printf "%d\n"
-elif [ $1 == "blockhash" ]; then
+elif [ "$1" == "blockhash" ]; then
   shift
   get_blockhash $1
   check_error
-elif [ $1 == "header" ]; then
+elif [ "$1" == "header" ]; then
   shift
   get_blockheader_by_hash $@
   check_error
 
 ## Tx
-elif [ $1 == "tx" ]; then
+elif [ "$1" == "tx" ]; then
   shift
   if [ "$2" == "false" ]; then
     get_tx_by_hash $@
@@ -594,46 +594,46 @@ elif [ $1 == "tx" ]; then
     get_tx_by_hash $@|jq .
   fi
   check_error
-elif [ $1 == "createRawTx" ]; then
+elif [ "$1" == "createRawTx" ]; then
   shift
   create_raw_tx $@
   check_error
-elif [ $1 == "decodeRawTx" ]; then
+elif [ "$1" == "decodeRawTx" ]; then
   shift
   decode_raw_tx $@|jq .
   check_error
-elif [ $1 == "sendRawTx" ]; then
+elif [ "$1" == "sendRawTx" ]; then
   shift
   send_raw_tx $@
   check_error
-elif [ $1 == "get_tx_by_block_and_index" ]; then
+elif [ "$1" == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex
   get_tx_by_blocknum_and_index_hex $@
 
 ## MemPool
-elif [ $1 == "mempool" ]; then
+elif [ "$1" == "mempool" ]; then
   shift
   get_mempool $@|jq .
   check_error
 
-elif [ $1 == "txSign" ]; then
+elif [ "$1" == "txSign" ]; then
   shift
   tx_sign $@
   echo $@
   check_error
 
 ## UTXO
-elif [ $1 == "getutxo" ]; then
+elif [ "$1" == "getutxo" ]; then
   shift
   get_utxo $@|jq .
 
 ## Accounts
-elif [ $1 == "newaccount" ]; then
+elif [ "$1" == "newaccount" ]; then
   shift
   new_account "$@"
   check_error
-elif [ $1 == "accounts" ]; then
+elif [ "$1" == "accounts" ]; then
   shift
   accounts=$(get_accounts)
   check_error
@@ -642,7 +642,7 @@ elif [ $1 == "accounts" ]; then
   else
     echo $accounts|jq '.['$1']' -r
   fi
-elif [ $1 == "balance" ]; then
+elif [ "$1" == "balance" ]; then
   shift
   addr=$(pad_hex_prefix $1)
   shift
@@ -655,7 +655,7 @@ elif [ $1 == "balance" ]; then
   check_error
   echo $balance
   # echo "debug get_balance $addr $num --> $balance"
-elif [ $1 == "get_tx_count" ]; then
+elif [ "$1" == "get_tx_count" ]; then
   shift
   addr=$1
   shift
@@ -664,7 +664,7 @@ elif [ $1 == "get_tx_count" ]; then
   else
     get_tx_count_by_addr $(pad_hex_prefix $addr) $@
   fi
-elif [ $1 == "get_code" ]; then
+elif [ "$1" == "get_code" ]; then
   shift
   addr=$(pad_hex_prefix $1)
   shift
@@ -674,7 +674,7 @@ elif [ $1 == "get_code" ]; then
   fi
   get_code $addr $num
   check_error
-elif [ $1 == "get_storage" ]; then
+elif [ "$1" == "get_storage" ]; then
   shift
   addr=$(pad_hex_prefix $1)
   shift
@@ -690,82 +690,82 @@ elif [ $1 == "get_storage" ]; then
   check_error
 
 ## Mining
-elif [ $1 == "get_coinbase" ]; then
+elif [ "$1" == "get_coinbase" ]; then
   shift
   get_coinbase
-elif [ $1 == "start_mining" ]; then
+elif [ "$1" == "start_mining" ]; then
   shift
   start_mining
-elif [ $1 == "stop_mining" ]; then
+elif [ "$1" == "stop_mining" ]; then
   shift
   stop_mining
-elif [ $1 == "mining" ]; then
+elif [ "$1" == "mining" ]; then
   shift
   start_mining
   sleep $1
   stop_mining
-elif [ $1 == "generate" ]; then
+elif [ "$1" == "generate" ]; then
   shift
   generate $1|jq .
   check_error
 
 ## INFO & STATUS
-elif [ $1 == "status" ] || [ $1 == "info" ] || [ $1 == "get_status" ] || [ $1 == "get_info" ]; then
+elif [ "$1" == "status" ] || [ "$1" == "info" ] || [ "$1" == "get_status" ] || [ "$1" == "get_info" ]; then
   shift
   get_status $@
 
 ## Execute
-elif [ $1 == "compile" ]; then
+elif [ "$1" == "compile" ]; then
   shift
   solc_compile "$@"
-elif [ $1 == "call" ]; then
+elif [ "$1" == "call" ]; then
   shift
   nox_call $@
   check_error
-elif [ $1 == "send_tx" ]; then
+elif [ "$1" == "send_tx" ]; then
   shift
   send_tx $@
   check_error
-elif [ $1 == "receipt" ]; then
+elif [ "$1" == "receipt" ]; then
   shift
   get_receipt $@ |jq .
   check_error
-elif [ $1 == "contractaddr" ]; then
+elif [ "$1" == "contractaddr" ]; then
   shift
   get_receipt $@ |jq -r .contractAddress
   check_error
 ## TXPOOL
-elif [ $1 == "txpool" ]; then
+elif [ "$1" == "txpool" ]; then
   shift
   txpool $@ |jq .
   check_error
 
 ## DEBUG Moduls
-elif [ $1 == "dump_state" ]; then
+elif [ "$1" == "dump_state" ]; then
   shift
   dump_block $@|jq .
   check_error
-elif [ $1 == "rlp_block" ]; then
+elif [ "$1" == "rlp_block" ]; then
   shift
   block_rlp $@
   check_error
-elif [ $1 == "trace_block" ]; then
+elif [ "$1" == "trace_block" ]; then
   shift
   trace_block $@|jq .
   check_error
-elif [ $1 == "trace_tx" ]; then
+elif [ "$1" == "trace_tx" ]; then
   shift
   trace_tx $@|jq .
   check_error
 
 ## UTILS
-elif [ $1 == "to_hex" ]; then
+elif [ "$1" == "to_hex" ]; then
   shift
   to_hex $1
-elif [ $1 == "to_base64" ]; then
+elif [ "$1" == "to_base64" ]; then
   shift
   to_base64 $1
-elif [ $1 == "list_command" ]; then
+elif [ "$1" == "list_command" ]; then
   usage
 else
   echo "Unkown cmd : $1"
