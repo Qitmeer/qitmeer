@@ -908,7 +908,36 @@ func (ph *Phantom) GetTipsList() []*Block {
 
 // Query whether a given block is on the main chain.
 func (ph *Phantom) IsOnMainChain(b *Block) bool {
+	var result *Block=nil
+	tips:=ph.bd.GetTips()
+	for k,_:=range tips.GetMap(){
+		vb:=ph.bd.GetBlock(&k)
+		if tips==nil || vb.GetOrder()<result.GetOrder() {
+			result=vb
+		}
+	}
+	for result!=nil {
+		if result.GetLayer()<b.GetLayer() {
+			return false
+		}
+		if result.GetHash().IsEqual(b.GetHash()) {
+			return true
+		}
+		result=ph.GetMainParent(result)
+	}
 	return false
+}
+
+//return parent that position is rather forward
+func (ph *Phantom) GetMainParent(b *Block) *Block {
+	var result *Block=nil
+	for k,_:=range b.parents.GetMap(){
+		vb:=ph.bd.GetBlock(&k)
+		if result==nil || vb.GetOrder()<result.GetOrder() {
+			result=vb
+		}
+	}
+	return result
 }
 
 type SortBlock struct {
