@@ -348,3 +348,9 @@ func (bd *BlockDAG) GetFutureSet(fs *HashSet, b *Block) {
 		}
 	}
 }
+
+// Query whether a given block is on the main chain.
+// Note that some DAG protocols may not support this feature.
+func (bd *BlockDAG) IsOnMainChain(h *hash.Hash) bool {
+	return true
+}

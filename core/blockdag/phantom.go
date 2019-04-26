@@ -885,40 +885,6 @@ func (ph *Phantom) GetCommonOrderNum() int{
 	}
 	return 0
 }
-/*
-func (ph *Phantom) GetBlockOrder(h *hash.Hash) int32{
-	var result int32=-1
-	if ph.tempOrder==nil {
-		return result
-	}
-	result=int32(ph.bd.GetBlockTotal())
-	tLen:=len(ph.tempOrder)
-	if tLen>0 {
-		for i:=tLen-1;i>=0 ;i--  {
-			if ph.tempOrder[i]!=nil {
-				result--
-				if h.IsEqual(ph.tempOrder[i]) {
-					return result
-				}
-			}
-		}
-	}
-	pLen:=len(ph.commonOrder)
-	if pLen>0 {
-		for i:=pLen-1;i>=0 ;i--  {
-			if ph.commonOrder[i]!=nil {
-				result--
-				if h.IsEqual(ph.commonOrder[i]) {
-					return result
-				}
-			}
-		}
-	}
-
-	return -1
-}
-*/
-
 
 func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash{
 	if ph.bd.order==nil||order<0 {
@@ -939,7 +905,7 @@ func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash{
 func (ph *Phantom) GetTipsList() []*Block {
 	return nil
 }
-///////
+
 type SortBlock struct {
 	h          *hash.Hash
 	pastSetNum uint
@@ -961,4 +927,3 @@ func (a SortBlocks) Less(i, j int) bool {
 func (a SortBlocks) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
 }
-/////////

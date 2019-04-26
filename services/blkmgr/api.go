@@ -12,6 +12,7 @@ import (
 	"github.com/noxproject/nox/services/common/error"
 	"fmt"
 	"github.com/noxproject/nox/services/common/marshal"
+	"strconv"
 )
 
 func (b *BlockManager) GetChain() *blockchain.BlockChain{
@@ -198,6 +199,16 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 
 }
 
+// Query whether a given block is on the main chain.
+// Note that some DAG protocols may not support this feature.
+func (api *PublicBlockAPI) IsOnMainChain(h hash.Hash) (interface{}, error){
+	node:=api.bm.chain.BlockIndex().LookupNode(&h)
+	if node==nil {
+		return nil, er.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
+	}
+	isOn:=api.bm.chain.BlockDAG().IsOnMainChain(&h)
 
+	return strconv.FormatBool(isOn),nil
+}
 
 

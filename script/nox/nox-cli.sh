@@ -223,6 +223,13 @@ function get_blockhash(){
   get_result "$data"
 }
 
+function is_on_mainchain(){
+  local block_hash=$1
+  local data='{"jsonrpc":"2.0","method":"isOnMainChain","params":["'$block_hash'"],"id":1}'
+  echo $data
+  get_result "$data"
+}
+
 function get_result(){
   set +x
   if [ -z "$host" ]; then
@@ -295,6 +302,7 @@ function check_debug() {
 function usage(){
 
   echo "chain    :"
+  echo "  main <hash>"
   echo "block    :"
   echo "  block <num|hash>"
   echo "  block -n <numb> | -h <hash>"
@@ -546,9 +554,13 @@ while [ $# -gt 0 ] ;do
   shift
 done
 
-
+## chain
+if [ "$1" == "main" ]; then
+    shift
+    is_on_mainchain $1
+    check_error
 ## Block
-if [ "$1" == "block" ]; then
+elif [ "$1" == "block" ]; then
   shift
   if [ "$1" == "latest" ]; then
     shift
