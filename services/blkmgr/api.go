@@ -175,9 +175,9 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 
 	// Get next block hash unless there are none.
 	confirmations := int64(-1)
-	height := node.GetMainHeight()
+	height := api.bm.chain.BlockDAG().GetLayer(node.GetHash())
 	if bestNode!=nil {
-		confirmations=1+int64(bestNode.GetMainHeight())-int64(height)
+		confirmations=1+int64(api.bm.chain.BlockDAG().GetLayer(bestNode.GetHash()))-int64(height)
 		if confirmations<1 {
 			confirmations=1
 		}

@@ -50,6 +50,6 @@ type updatePeerHeightsMsg struct {
 
 // GetBlocksMsg
 type GetBlocksMsg struct {
-	MainHeight uint64
+	Layer uint
 	Blocks []*hash.Hash
 }

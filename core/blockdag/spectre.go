@@ -818,3 +818,8 @@ func (sp *Spectre) voteByUniqueFutureSet(b1 *Block, b2 *Block) {
 		sp.dangling.Remove(&h)
 	}
 }
+
+// Currently not supported
+func (sp *Spectre) IsOnMainChain(b *Block) bool {
+	return false
+}

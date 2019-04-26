@@ -82,14 +82,9 @@ func (bi *blockIndex) LookupNode(hash *hash.Hash) *blockNode {
 func (bi *blockIndex) addNode(node *blockNode) {
 	bi.index[node.hash] = node
 	if node.parents!=nil&&len(node.parents)>0 {
-		var maxHeight uint64=0
 		for _,v:=range node.parents{
 			v.AddChild(node)
-			if maxHeight==0||maxHeight<v.mainHeight {
-				maxHeight=v.mainHeight
-			}
 		}
-		node.mainHeight=maxHeight+1
 	}
 }
 // AddNode adds the provided node to the block index.  Duplicate entries are not

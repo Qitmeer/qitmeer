@@ -529,7 +529,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, prevNode *b
 
 		// The height of this block is one more than the referenced
 		// previous block.
-		blockHeight := prevNode.GetMainHeight() + 1
+		blockHeight := uint64(b.BlockDAG().GetLayer(&prevNode.hash) + 1)
 
 		// Ensure all transactions in the block are finalized and are
 		// not expired.

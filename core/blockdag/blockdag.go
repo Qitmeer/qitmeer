@@ -39,6 +39,9 @@ type IBlockDAG interface {
 
 	// Find block hash by order, this is very fast.
 	GetBlockByOrder(order uint) *hash.Hash
+
+	// Query whether a given block is on the main chain.
+	IsOnMainChain(b *Block) bool
 }
 
 
@@ -63,6 +66,7 @@ type Block struct {
 	privot *Block
 	weight uint
 	order  uint
+	layer  uint
 }
 
 // Return the hash of block. It will be a pointer.
@@ -111,12 +115,20 @@ func (b *Block) SetWeight(weight uint) {
 	b.weight = weight
 }
 
+func (b *Block) SetLayer(layer uint) {
+	b.layer=layer
+}
+
 func (b *Block) GetWeight() uint {
 	return b.weight
 }
 
 func (b *Block) GetOrder() uint {
 	return b.order
+}
+
+func (b *Block) GetLayer() uint {
+	return b.layer
 }
 
 // The general foundation framework of DAG
@@ -180,9 +192,10 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		return nil
 	}
 	//
-	block := Block{hash: *b.GetHash(), weight: 1}
+	block := Block{hash: *b.GetHash(), weight: 1, layer:0}
 	if parents != nil {
 		block.parents = NewHashSet()
+		var maxLayer uint=0
 		for k, h := range parents {
 			block.parents.Add(h)
 			parent := bd.GetBlock(h)
@@ -190,8 +203,14 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 			if k == 0 {
 				block.privot = parent
 			}
+
+			if maxLayer==0 || maxLayer < parent.GetLayer() {
+				maxLayer=parent.GetLayer()
+			}
 		}
+		block.SetLayer(maxLayer+1)
 	}
+
 	if bd.blocks == nil {
 		bd.blocks = map[hash.Hash]*Block{}
 	}
@@ -352,5 +371,11 @@ func (bd *BlockDAG) GetFutureSet(fs *HashSet, b *Block) {
 // Query whether a given block is on the main chain.
 // Note that some DAG protocols may not support this feature.
 func (bd *BlockDAG) IsOnMainChain(h *hash.Hash) bool {
-	return true
+	return bd.instance.IsOnMainChain(bd.GetBlock(h))
+}
+
+// Return the layer of block,it is stable.
+// You can imagine that this is the main chain.
+func (bd *BlockDAG) GetLayer(h *hash.Hash) uint{
+	return bd.GetBlock(h).GetLayer()
 }

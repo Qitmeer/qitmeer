@@ -326,3 +326,16 @@ func (con *Conflux) isVirtualBlock(b *Block) bool {
 func (con *Conflux) GetBlockByOrder(order uint) *hash.Hash {
 	return nil
 }
+
+// Query whether a given block is on the main chain.
+func (con *Conflux) IsOnMainChain(b *Block) bool {
+	for p := con.privotTip; p != nil; p = p.privot {
+		if p.GetHash().IsEqual(b.GetHash()) {
+			return true
+		}
+		if p.GetLayer() < b.GetLayer() {
+			break
+		}
+	}
+	return false
+}

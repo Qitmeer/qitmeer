@@ -101,9 +101,6 @@ type blockNode struct {
 	//height is in the position of whole block chain.(It is actually DAG order)
 	//Why do I not call "order" directly, considering the compatibility of code?
 	height    uint64
-
-	//This is the height of block stacking in DAG.
-	mainHeight uint64
 }
 
 // newBlockNode returns a new block node for the given block header and parent
@@ -132,7 +129,6 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 		timestamp:    blockHeader.Timestamp.Unix(),
 		txRoot:       blockHeader.TxRoot,
 		nonce:        blockHeader.Nonce,
-		mainHeight:   0,
 	}
 	if parents != nil&&len(parents)>0 {
 		node.parents = parents
@@ -268,19 +264,12 @@ func (node *blockNode) GetHeight() uint64{
 	return node.height
 }
 
-// Return the real height of node,it is stable.
-// You can imagine that this is the main chain.
-func (node *blockNode) GetMainHeight() uint64{
-	return node.mainHeight
-}
-
 func (node *blockNode) Clone() *blockNode{
 	header:=node.Header()
 	newNode := newBlockNode(&header,node.parents)
 	newNode.status = statusDataStored
 	newNode.children=node.children
 	newNode.height=node.height
-	newNode.mainHeight=node.mainHeight
 	return newNode
 }
 

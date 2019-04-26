@@ -906,6 +906,11 @@ func (ph *Phantom) GetTipsList() []*Block {
 	return nil
 }
 
+// Query whether a given block is on the main chain.
+func (ph *Phantom) IsOnMainChain(b *Block) bool {
+	return false
+}
+
 type SortBlock struct {
 	h          *hash.Hash
 	pastSetNum uint
