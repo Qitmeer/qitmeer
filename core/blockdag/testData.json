@@ -222,6 +222,13 @@
   "PH_OrderFig4":{
     "out":["Genesis","B","C","D","I","F","J","E","K","O","P","L","M","H","N","R","Q","S","T","U"]
   },
+  "PH_GetLayer":{
+    "out":["01112231323"]
+  },
+  "PH_IsOnMainChain":{
+    "in": "D",
+    "out":["true"]
+  },
   "CO_Blocks":[
     {
       "tag":"Gen",

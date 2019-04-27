@@ -912,7 +912,7 @@ func (ph *Phantom) IsOnMainChain(b *Block) bool {
 	tips:=ph.bd.GetTips()
 	for k,_:=range tips.GetMap(){
 		vb:=ph.bd.GetBlock(&k)
-		if tips==nil || vb.GetOrder()<result.GetOrder() {
+		if result==nil || vb.GetOrder()<result.GetOrder() {
 			result=vb
 		}
 	}
@@ -931,10 +931,12 @@ func (ph *Phantom) IsOnMainChain(b *Block) bool {
 //return parent that position is rather forward
 func (ph *Phantom) GetMainParent(b *Block) *Block {
 	var result *Block=nil
-	for k,_:=range b.parents.GetMap(){
-		vb:=ph.bd.GetBlock(&k)
-		if result==nil || vb.GetOrder()<result.GetOrder() {
-			result=vb
+	if b.parents!=nil {
+		for k,_:=range b.parents.GetMap(){
+			vb:=ph.bd.GetBlock(&k)
+			if result==nil || vb.GetOrder()<result.GetOrder() {
+				result=vb
+			}
 		}
 	}
 	return result

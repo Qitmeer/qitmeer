@@ -3,6 +3,7 @@ package blockdag
 import (
 	"fmt"
 	"github.com/noxproject/nox/common/hash"
+	"strconv"
 	"testing"
 )
 
@@ -108,6 +109,32 @@ func Test_OrderFig4(t *testing.T) {
 	printBlockChainTag(order,tbMap)
 
 	if !processResult(order, changeToHashList(testData.PH_OrderFig4.Output, tbMap)) {
+		t.FailNow()
+	}
+}
+
+func Test_GetLayer(t *testing.T) {
+	ibd, _ := InitBlockDAG(phantom,"PH_fig2-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	var result string=""
+	var i uint
+	for i=0;i<bd.GetBlockTotal() ;i++  {
+		l:=bd.GetLayer(bd.GetBlockByOrder(i))
+		result=fmt.Sprintf("%s%d",result,l)
+	}
+	if result != testData.PH_GetLayer.Output[0] {
+		t.FailNow()
+	}
+}
+
+func Test_IsOnMainChain(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig2-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	if strconv.FormatBool(bd.IsOnMainChain(tbMap[testData.PH_IsOnMainChain.Input]))!=testData.PH_IsOnMainChain.Output[0] {
 		t.FailNow()
 	}
 }

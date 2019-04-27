@@ -31,6 +31,8 @@ type TestData struct {
 	PH_BlueSetFig4  TestInOutData
 	PH_OrderFig2    TestInOutData
 	PH_OrderFig4    TestInOutData
+	PH_IsOnMainChain TestInOutData
+	PH_GetLayer     TestInOutData
 	CO_Blocks       []TestBlocksData
 	CO_GetMainChain TestInOutData
 	CO_GetOrder     TestInOutData
