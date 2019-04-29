@@ -2,14 +2,14 @@
 package blockchain
 
 import (
-	"math/big"
 	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/types"
-	"time"
-	"sort"
 	"github.com/noxproject/nox/common/util"
-	"github.com/noxproject/nox/core/merkle"
 	"github.com/noxproject/nox/core/blockdag"
+	"github.com/noxproject/nox/core/merkle"
+	"github.com/noxproject/nox/core/types"
+	"math/big"
+	"sort"
+	"time"
 )
 
 // blockStatus is a bit field representing the validation state of the block.
@@ -89,6 +89,7 @@ type blockNode struct {
 	txRoot   	 hash.Hash
 	stateRoot    hash.Hash
 	nonce        uint64
+	exNonce      uint64
 	extraData    [32]byte
 
 	// status is a bitfield representing the validation state of the block.
@@ -129,6 +130,8 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 		timestamp:    blockHeader.Timestamp.Unix(),
 		txRoot:       blockHeader.TxRoot,
 		nonce:        blockHeader.Nonce,
+		exNonce:      blockHeader.ExNonce,
+		stateRoot:    blockHeader.StateRoot,
 	}
 	if parents != nil&&len(parents)>0 {
 		node.parents = parents
@@ -149,12 +152,13 @@ func (node *blockNode) Header() types.BlockHeader {
 		paMerkles :=merkle.BuildParentsMerkleTreeStore(node.GetParents())
 		parentRoot=*paMerkles[len(paMerkles)-1]
 	}
-
 	return types.BlockHeader{
 		Version:    node.blockVersion,
 		ParentRoot: parentRoot,
 		TxRoot:   	node.txRoot,
+		StateRoot:  node.stateRoot,
 		Difficulty: node.bits,
+		ExNonce:    node.exNonce,
 		Timestamp:  time.Unix(node.timestamp, 0),
 		Nonce:      node.nonce,
 	}
