@@ -126,11 +126,9 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		prevHash := pb
 		prevNode := b.index.LookupNode(prevHash)
 		if prevNode == nil {
-			str := fmt.Sprintf("previous block %s is unknown", prevHash)
-			return false, ruleError(ErrPreviousBlockUnknown, str)
-		} else if b.index.NodeStatus(prevNode).KnownInvalid() {
-			str := fmt.Sprintf("previous block %s is known to be invalid", prevHash)
-			return false, ruleError(ErrInvalidAncestorBlock, str)
+			str := fmt.Sprintf("Parents block %s is unknown", prevHash)
+			log.Debug(str)
+			return false, nil
 		}
 		parentsNode=append(parentsNode,prevNode)
 	}
@@ -177,7 +175,8 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	//dag
 	list:=b.bd.AddBlock(newNode)
 	if list==nil||list.Len()==0 {
-		return false,fmt.Errorf("Irreparable error!")
+		log.Debug(fmt.Sprintf("Irreparable error![%s]",newNode.hash.String()))
+		return false,nil
 	}
 	b.index.addNode(newNode)
 	//

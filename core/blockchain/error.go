@@ -292,8 +292,8 @@ const (
 	// height had a non-zero final state.
 	ErrInvalidEarlyFinalState
 
-	// ErrPreviousBlockUnknown indicates that the previous block is not known.
-	ErrPreviousBlockUnknown
+	// ErrParentsBlockUnknown indicates that the parents block is not known.
+	ErrParentsBlockUnknown
 
 	// ErrInvalidAncestorBlock indicates that an ancestor of this block has
 	// failed validation.

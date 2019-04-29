@@ -54,10 +54,11 @@ func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
 				}
 			}
 			if allExists {
-				b.removeOrphanBlock(v)
+
 				//
 				exists := b.index.HaveBlock(v.block.Hash())
 				if exists {
+					b.removeOrphanBlock(v)
 					continue
 				}
 				// Potentially accept the block into the block chain.
@@ -65,6 +66,7 @@ func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
 				if err != nil {
 					return err
 				}
+				b.removeOrphanBlock(v)
 				needLoop=true
 				break
 			}
