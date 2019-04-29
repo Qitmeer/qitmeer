@@ -170,7 +170,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	// Handle orphan blocks.
 	for _,pb:=range block.Block().Parents{
 		if !b.index.HaveBlock(pb) {
-			log.Info("Adding orphan block %v with parent %v", blockHash,pb)
+			log.Trace("Adding orphan block %s with parent %s", blockHash.String(),pb.String())
 			b.addOrphanBlock(block)
 
 			// The fork length of orphans is unknown since they, by definition, do
