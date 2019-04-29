@@ -9,12 +9,12 @@ package blockchain
 import (
 	"encoding/binary"
 	"fmt"
-	"math"
-	"time"
+	"github.com/noxproject/nox/common/hash"
 	"github.com/noxproject/nox/core/types"
 	"github.com/noxproject/nox/database"
 	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/common/hash"
+	"math"
+	"time"
 )
 
 // checkCoinbaseUniqueHeight checks to ensure that for all blocks height > 1 the
@@ -146,6 +146,25 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// node.
 	b.pruner.pruneChainIfNeeded()
 
+	//dag
+	list:=b.bd.AddBlock(newNode)
+	if list==nil||list.Len()==0 {
+		log.Debug(fmt.Sprintf("Irreparable error![%s]",newNode.hash.String()))
+		return false,nil
+	}
+	b.index.addNode(newNode)
+	//
+	for e := list.Front(); e != nil; e = e.Next() {
+		refHash:=e.Value.(*hash.Hash)
+		refblock:=b.bd.GetBlock(refHash)
+		refnode:=b.index.lookupNode(refHash)
+		refnode.SetHeight(uint64(refblock.GetOrder()))
+
+		if newNode.GetHash().IsEqual(refHash) {
+			block.SetHeight(uint64(refblock.GetOrder()))
+		}
+	}
+
 	// Insert the block into the database if it's not already there.  Even
 	// though it is possible the block will ultimately fail to connect, it
 	// has already passed all proof-of-work and validity tests which means
@@ -171,26 +190,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	if err != nil {
 		return false, err
 	}
-
-	//dag
-	list:=b.bd.AddBlock(newNode)
-	if list==nil||list.Len()==0 {
-		log.Debug(fmt.Sprintf("Irreparable error![%s]",newNode.hash.String()))
-		return false,nil
-	}
-	b.index.addNode(newNode)
-	//
-	for e := list.Front(); e != nil; e = e.Next() {
-		refHash:=e.Value.(*hash.Hash)
-		refblock:=b.bd.GetBlock(refHash)
-		refnode:=b.index.lookupNode(refHash)
-		refnode.SetHeight(uint64(refblock.GetOrder()))
-
-		if newNode.GetHash().IsEqual(refHash) {
-			block.SetHeight(uint64(refblock.GetOrder()))
-		}
-	}
-
 
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This
