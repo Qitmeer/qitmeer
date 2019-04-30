@@ -1,2 +1,2 @@
-# Hawala
-The transfer of trust. The core network of the Halachain
+# Qitmeer
+The guardian of trust. The core network of the Halachain
