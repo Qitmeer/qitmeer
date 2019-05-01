@@ -1,0 +1,825 @@
+package blockdag
+
+import (
+	"fmt"
+	"github.com/golang-collections/collections/stack"
+	"github.com/noxproject/nox/common/hash"
+	"github.com/noxproject/nox/common/util"
+	"strconv"
+	"container/list"
+)
+
+type ISpectre interface {
+	Vote(x *Block, y *Block) int
+}
+
+type SpectreBlock struct {
+	hash hash.Hash
+	Votes1, Votes2 int // votes in future set, -1 means not voted yet
+}
+
+func (sb *SpectreBlock) GetHash() *hash.Hash {
+	return &sb.hash
+}
+
+type SpectreBlockData struct {
+	hash hash.Hash
+	parents []*hash.Hash
+	timestamp int64
+}
+
+func (sd *SpectreBlockData) GetHash() *hash.Hash {
+	return &sd.hash
+}
+
+func (sd *SpectreBlockData) GetParents() []*hash.Hash {
+	return sd.parents
+}
+
+func (sd *SpectreBlockData) GetTimestamp() int64 {
+	return sd.timestamp
+}
+
+type Spectre struct {
+	// The general foundation framework of DAG
+	bd *BlockDAG
+
+	// voting votes, true value means voting the first candidate, otherwise voting the second
+	votes map[hash.Hash]bool
+
+	// the nodes don't exist in future sets of 1 and 2, but they are referenced by the future sets
+	//  e.g. node 7 in ByteBall 2
+	dangling *HashSet
+
+	// the candidates to compete with each other
+	candidate1, candidate2 *Block
+
+	// The votes of block
+	sblocks map[hash.Hash]*SpectreBlock
+}
+
+func (sp *Spectre) GetName() string {
+	return spectre
+}
+
+func (sp *Spectre) Init(bd *BlockDAG) bool {
+	sp.bd=bd
+
+	sp.votes = make(map[hash.Hash]bool)
+	sp.dangling = NewHashSet()
+
+	return true
+}
+
+func (sp *Spectre) AddBlock(b *Block) *list.List {
+	if sp.sblocks == nil {
+		sp.sblocks = map[hash.Hash]*SpectreBlock{}
+	}
+	block:=SpectreBlock{hash:*b.GetHash(),Votes1:-1,Votes2:-1}
+	sp.sblocks[block.hash] = &block
+
+	return nil
+}
+
+func (sp *Spectre) GetTipsList() []*Block {
+	return nil
+}
+
+func (sp *Spectre) GetBlockByOrder(order uint) *hash.Hash {
+	return nil
+}
+
+func (sp *Spectre) voteFirst(voter hash.Hash) {
+	sp.votes[voter] = true
+}
+
+func (sp *Spectre) voteSecond(voter hash.Hash) {
+	sp.votes[voter] = false
+}
+
+func (sp *Spectre) hasVoted(voter hash.Hash) bool {
+	if _, ok := sp.votes[voter]; ok {
+		return true
+	}
+
+	return false
+}
+
+func (sp *Spectre) Votes() map[hash.Hash]bool {
+	return sp.votes
+}
+
+func (sp *Spectre) InitVote(b1 *Block, b2 *Block) (bool, error) {
+	sp.candidate1, sp.candidate2 = b1, b2
+	tiebreak := sp.candidate1.GetHash().String() < sp.candidate2.GetHash().String()
+
+	exist1 := sp.bd.HasBlock(b1.GetHash())
+	exist2 := sp.bd.HasBlock(b2.GetHash())
+	if !exist1 && exist2 {
+		return false, fmt.Errorf("block  %v doesn't exist", b1.GetHash())
+	} else if exist1 && !exist2 {
+		return true, fmt.Errorf("block  %v doesn't exist", b2.GetHash())
+	} else if !exist1 && !exist2 {
+		return tiebreak, fmt.Errorf("block  %v and %v don't exist", b1.GetHash(), b2.GetHash())
+	}
+
+	if b1 == b2 {
+		return tiebreak, fmt.Errorf("block %v is identical to block %v", b1.GetHash(), b2.GetHash())
+	} else if sp.IsInPastOf(b1, b2) {
+		return true, fmt.Errorf("block %v is in past of block %v", b1.GetHash(), b2.GetHash())
+	} else if sp.IsInPastOf(b2, b1) {
+		return false, fmt.Errorf("block %v is in past of block %v", b2.GetHash(), b1.GetHash())
+	}
+	sp.voteBySelf(b1, b2)
+	sp.voteByUniqueFutureSet(b1, b2)
+
+	return tiebreak, nil
+}
+
+func (sp *Spectre) Vote(b1 *Block, b2 *Block) (bool, error) {
+	if v, err := sp.InitVote(b1, b2); err != nil {
+		return v, err
+	}
+
+	// For any node n in voted notes, if any child c of n hasn't voted, then add c into outer
+	// Outer is the outside layer of the voted notes, which means not all of its children have voted,
+	// so we start voting with these pending voting children. Once they have all voted, their children will become
+	// the new outside layer, so on and so forth, until all nodes have voted.
+	// note: tips are also outside layer, even though they have no children
+
+	outer := util.NewIterativeQueue()
+	for h := range sp.votes {
+		children := sp.bd.GetBlock(&h).GetChildren()
+		if children == nil { // tips
+			outer.Enqueue(h)
+		} else { // haven't voted children
+			for ch := range children.GetMap() {
+				if !sp.hasVoted(ch) {
+					outer.Enqueue(h)
+					break
+				}
+			}
+		}
+	}
+
+	for outer.Len() > 0 {
+		any := outer.Dequeue().(hash.Hash)
+
+		// having all children of some outer node voted or not, if this is true, that node can be dequeued
+		done := true
+		children := sp.bd.GetBlock(&any).GetChildren()
+		if children == nil || children.Len() == 0 { // tips
+			// game over once all tips have voted
+			if win, err := sp.VoteByBlock(nil); err == nil {
+				return win, nil
+			}
+			// go on when some tip hasn't voted
+			continue
+		}
+
+		for ch := range children.GetMap() {
+			if sp.hasVoted(ch) {
+				continue
+			}
+			all := true // all parented voted
+			chParents:=sp.bd.GetBlock(&ch).GetParents()
+			for ph := range chParents.GetMap() {
+				// note: must ignore dangling parent,
+				// e.g. in figure ByteBall2, 7 is a dangling node, so once 17 and 21 are voted, 24 is able to vote
+				if !sp.hasVoted(ph) && !sp.dangling.Has(&ph) {
+					all = false
+					break
+				}
+			}
+			if all {
+				vb := sp.bd.GetBlock(&ch)
+				sp.VoteByBlock(vb)
+				outer.Enqueue(ch)
+			} else {
+				done = false
+			}
+		}
+
+		// needs processing again
+		if !done {
+			outer.Enqueue(any)
+		}
+
+		// if all the outer nodes vote unanimously, then no need to come up with the rest nodes,
+		// because they will inherit the result of outer nodes
+		// e.g. in figure ByteBall2, once 17, 21, 20 have voted the same candidate,
+		// then 19, 22~27 should follow their votes
+		consistent := true
+		first := outer.Peek().(hash.Hash)
+		vote := sp.votes[first]
+		for _, o := range outer {
+			if sp.votes[o.(hash.Hash)] != vote {
+				consistent = false
+				break
+			}
+		}
+		if consistent {
+			return vote, nil
+		}
+	}
+
+	return sp.candidate1.GetHash().String() < sp.candidate2.GetHash().String(), nil
+}
+
+//  TODO: test if there is ancestor-descendant relationship between b1 and b2
+func (sp *Spectre) IsInPastOf(b1 *Block, b2 *Block) bool {
+	return false
+}
+
+// intersection of virtual block (if not nil) with its past set and voted nodes,
+// note the DIRECTION IS REVERSED than the original graph, which means virtual block is genesis
+func (sp *Spectre) votedPast(virtualBlock *Block) *BlockDAG {
+	q := util.NewIterativeQueue()
+
+	if virtualBlock == nil {
+		for ht := range sp.bd.GetTips().GetMap() {
+			q.Enqueue(ht)
+		}
+	} else {
+		q.Enqueue(*virtualBlock.GetHash())
+	}
+
+	visited := NewHashSet()
+	// cache the intersection of past set and voted notes
+	cache := make(map[hash.Hash]*Block)
+	for q.Len() > 0 {
+		h := q.Dequeue().(hash.Hash)
+
+		if visited.Has(&h) {
+			continue
+		} else {
+			visited.Add(&h)
+		}
+		hParents:=sp.bd.GetBlock(&h).GetParents()
+		for ph := range hParents.GetMap() {
+			if sp.dangling.Has(&ph) {
+				continue
+			}
+			if sp.hasVoted(ph) {
+				if !visited.Has(&ph) {
+					q.Enqueue(ph)
+				}
+
+				// must cache block  due to children index
+				sb, ok := cache[ph]
+				if !ok {
+					sb = &Block{hash:ph,parents:NewHashSet()}
+					cache[ph] = sb
+				}
+				sb.GetParents().Add(&h)
+			}
+		}
+	}
+
+	vh := hash.MustHexToDecodedHash(strconv.Itoa(int(sp.bd.GetBlockTotal())))
+	if virtualBlock != nil {
+		vh = *virtualBlock.GetHash()
+	}
+	sb := &SpectreBlockData{hash:vh}
+	vp := &BlockDAG{}
+	vp.Init(spectre)
+	vp.AddBlock(sb)
+	visited = NewHashSet()
+
+	q = util.NewIterativeQueue()
+	if virtualBlock == nil {
+		for th := range sp.bd.GetTips().GetMap() {
+			sb := &SpectreBlockData{hash:th}
+			sb.parents=[]*hash.Hash{}
+			// create a virtual block as genesis
+			sb.parents=append(sb.parents,&vh)
+			vp.AddBlock(sb)
+			q.Enqueue(th)
+		}
+	} else {
+		q.Enqueue(vh)
+	}
+	for q.Len() > 0 {
+		pos := q.Dequeue().(hash.Hash)
+		visited.Add(&pos)
+		posParents:=sp.bd.GetBlock(&pos).GetParents()
+		for ph := range posParents.GetMap() {
+			if !sp.hasVoted(ph) || sp.dangling.Has(&ph) {
+				continue
+			}
+			if visited.Has(&ph) {
+				continue
+			}
+
+			all := true
+			phChildren:=sp.bd.GetBlock(&ph).GetChildren()
+			for ch := range phChildren.GetMap() {
+				if _, ok := cache[ch]; !ok {
+					continue
+				}
+				if !visited.Has(&ch) {
+					all = false
+				}
+			}
+			// ensure that add ancestors before descendants
+			if all {
+				q.Enqueue(ph)
+				sp.newVoter(ph, vp)
+				visited.Add(&ph)
+			}
+		}
+	}
+
+	return vp
+}
+
+// Update votes of any node in votedPast
+// Note: the ancestors of the node must have their votes updated since the node needs inherit those votes
+func (sp *Spectre) updateVotes(votedPast *BlockDAG, vh hash.Hash) bool {
+	// test if all parents being voted
+	canUpdate := true
+	maxVotes := -1
+	maxParent := new(SpectreBlock)
+
+	// increase votedPast with new nodes, only happening on updating votes in candidates' past sets
+	if !votedPast.HasBlock(&vh) {
+		vhChildren:=sp.bd.GetBlock(&vh).GetChildren()
+		for ch := range vhChildren.GetMap() {
+			if !votedPast.HasBlock(&ch) && !sp.hasVoted(ch) {
+				canUpdate = false
+				break
+			}
+		}
+		if canUpdate {
+			sp.newVoter(vh, votedPast)
+		} else {
+			return false
+		}
+	}
+	parents := votedPast.GetBlock(&vh).GetParents()
+
+	if parents == nil || parents.Len() == 0 {
+		log.Error("no parents of ", vh)
+	}
+
+	// max parent has more nodes in its future set, which means more votes to inherit
+	for ph := range parents.GetMap() {
+		if ph.IsEqual(votedPast.GetGenesis().GetHash()) {
+			continue
+		}
+		b:=votedPast.GetBlock(&ph)
+		sb :=votedPast.instance.(*Spectre).sblocks[*b.GetHash()]
+		if sb.Votes1 < 0 || sb.Votes2 < 0 {
+			canUpdate = false
+			break
+		}
+		votes := sb.Votes2 + sb.Votes1
+		if votes > maxVotes {
+			maxVotes = votes
+			maxParent = sb
+		}
+	}
+
+	if canUpdate {
+		// first step, inherit votes from max voter
+		b:=votedPast.GetBlock(&vh)
+		voter :=votedPast.instance.(*Spectre).sblocks[*b.GetHash()]
+
+		voter.Votes1, voter.Votes2 = maxParent.Votes1, maxParent.Votes2
+
+		// if it can be updated, it MUST be updated
+		if maxParent == nil || maxParent.hash.IsEqual(&hash.Hash{}) {
+			log.Error(vh.String())
+		}
+
+		// Note: results in s is constant, so we must reference them in the first place
+		// then we compare its votes between candidate 1 and 2
+		if sp.hasVoted(*maxParent.GetHash()) {
+			v := sp.votes[*maxParent.GetHash()]
+			if v {
+				voter.Votes1 += 1
+			} else {
+				voter.Votes2 += 1
+			}
+		} else {
+			if maxParent.Votes2 > maxParent.Votes1 {
+				voter.Votes2 += 1
+			} else if maxParent.Votes2 < maxParent.Votes1 {
+				voter.Votes1 += 1
+			}
+		}
+
+		// second, add votes from other voters
+		if b.GetParents().Len() > 1 {
+			sp.updateTipVotes(voter, maxParent, votedPast)
+		}
+	}
+	return canUpdate
+}
+
+// once we have inherited votes from max parent (the tip with max votes), we need add votes from other tips
+// because each tip and its future set have various nodes in common with another tip and the common part has been
+// calculated by inheriting the max parent, we only need to add votes of nodes which are exclusive in each tip
+
+// e.g. in ByteBall2, if virtual block is 21 and the intersection of its past set and candidates' future sets has voted,
+// which are 11~18 and 20 in this case. For 10,
+// 12 is the max parent (3 votes for candidate 1(c1), 4 votes for candidate 2(c2)), so we inherit its votes.
+// for the other tips, in this case it is only 13, and we find the nodes which are inside 13 and 13's future set but
+// outside 12 and 12's future set is 13, and 13 has voted c2. so the final votes of 10 would be 3 for c1 and 4 for c2
+
+func (sp *Spectre) updateTipVotes(voter *SpectreBlock, maxParent *SpectreBlock, votedPast *BlockDAG) {
+	vb:=votedPast.GetBlock(voter.GetHash())
+	voterParents := vb.GetParents()
+	tipStack := stack.New()
+	tipSet := NewHashSet()
+	// take out all other tips and add their votes to child
+	for h := range voterParents.GetMap() {
+		if !h.IsEqual(maxParent.GetHash()) && !h.IsEqual(votedPast.GetGenesis().GetHash()) {
+			tipStack.Push(h)
+			tipSet.Add(&h)
+		}
+	}
+	for tipStack.Len() > 0 {
+		tipHash := tipStack.Pop().(hash.Hash)
+		tb:=votedPast.GetBlock(&tipHash)
+		tipVoter := votedPast.instance.(*Spectre).sblocks[*tb.GetHash()]
+		if sp.hasVoted(tipHash) {
+			v := sp.votes[tipHash]
+			if v {
+				voter.Votes1 += 1
+			} else {
+				voter.Votes2 += 1
+			}
+		} else {
+			if tipVoter.Votes2 > tipVoter.Votes1 {
+				voter.Votes2 += 1
+			} else if tipVoter.Votes2 < tipVoter.Votes1 {
+				voter.Votes1 += 1
+			}
+		}
+
+		// find nodes exclusively exist in one tip. We save all the nodes visited in tipSet, for a note's parent p,
+		// if all children of p exist in tipSet, p is exclusively in that node's future set.
+		// e.g. in ByteBall2 with 21 as the virtual block, from 10's view, if we want to find 12's exclusive future,
+		// we save 12 into tipSet first, the 14 and 15 are 12's exclusive parents since all their children
+		// (just 12 in this case ) exist in tipSet
+		for tp := range tb.GetParents().GetMap() {
+			if tipSet.Has(&tp) {
+				continue
+			}
+			only := true
+			tpChildren:=votedPast.GetBlock(&tp).GetChildren()
+			for tc := range tpChildren.GetMap() {
+				if !tipSet.Has(&tc) {
+					only = false
+					break
+				}
+			}
+			if only {
+				tipStack.Push(tp)
+				tipSet.Add(&tp)
+			}
+		}
+	}
+}
+func (sp *Spectre) followParents(virtualBlock *Block) (bool, bool, error) {
+	// if all parents have voted in consistence, then just follow them
+	consistent := true
+	last := 0
+
+	parents := NewHashSet()
+	if virtualBlock == nil { // whole graph
+		parents = sp.bd.GetTips()
+	} else { // past set of one node
+		parents = virtualBlock.GetParents()
+	}
+	for ph := range parents.GetMap() {
+		if sp.dangling.Has(&ph) {
+			continue
+		}
+		if !sp.hasVoted(ph) {
+			return true, sp.candidate1.GetHash().String() < sp.candidate2.GetHash().String(), fmt.Errorf("parent %v not ready", ph)
+		}
+		vote := -1
+		if !sp.votes[ph] {
+			vote = 1
+		}
+		if last == 0 {
+			last = vote
+		} else {
+			if vote != last {
+				consistent = false
+				break
+			}
+		}
+	}
+	firstWin := false
+	if consistent {
+		firstWin = last < 0
+		h := virtualBlock.GetHash()
+		if firstWin {
+			sp.voteFirst(*h)
+		} else {
+			sp.voteSecond(*h)
+		}
+		return true, firstWin, nil
+	}
+
+	return false, false, nil
+}
+
+//2) if z ∈ G is in future (x)∩future (y) then z ’s vote will be determined recursively according to the DAG that is reduced to its past,
+// i.e., it has the same vote as virtual (past (z)). If the result of this vote is a tie, z breaks it arbitrarily. 3
+
+// votedPast is a REVERSED graph, which means it starts from a virtual block and traverses backwards
+
+// If virtual block is nil, it is like an imaginary recent coming node which references all the tips and the whole graph
+// is its past set,  otherwise it means that some real block is the virtual block of its own past set
+func (sp *Spectre) VoteByBlock(virtualBlock *Block) (bool, error) {
+	if ok, res, err := sp.followParents(virtualBlock); ok {
+		return res, err
+	}
+
+	votedPast := sp.votedPast(virtualBlock)
+	// outer of votedPast, note the direction
+	outer := sp.voteFromFutureSet(votedPast)
+	firstWin := sp.voteFromPastSet(votedPast, outer)
+
+	//4) if z is the virtual block of G then it will vote the same way as the vote of the majority of blocks in G.
+	if virtualBlock != nil {
+		h := virtualBlock.GetHash()
+		if firstWin {
+			sp.voteFirst(*h)
+		} else {
+			sp.voteSecond(*h)
+		}
+	}
+	return firstWin, nil
+}
+
+//3) if z ∈ G is not in the future of either blocks then it will vote the same way as the vote of the majority of blocks in its own future.
+
+// Update vote numbers of votedPast, e.g. for any node n in votedPast, update its Votes1 and Votes2
+// note: because one node's vote number is dependent on its ancestor,
+// we need update them from genesis of votePast down to its tips
+func (sp *Spectre) voteFromFutureSet(votedPast *BlockDAG) *HashSet {
+	tips := NewHashSet()
+
+	vb := votedPast.GetGenesis()
+	unvisited := util.NewIterativeQueue()
+	visited := NewHashSet()
+
+	vChildren := votedPast.GetBlock(vb.GetHash()).GetChildren()
+	for ch := range vChildren.GetMap() {
+		// only children with one parent (virtual block) will be selected as initial tips,
+		// because they are only dependent on their single parent and their votes can be updated directly
+		// e.g. note 22 in ByteBall2, 14, 20 can be initialized with 0 votes, but 15 cannot due to its multiple parents
+		if votedPast.GetBlock(&ch).GetParents().Len() == 1 {
+			sb :=votedPast.instance.(*Spectre).sblocks[ch]
+			sb.Votes1, sb.Votes2 = 0, 0
+
+			parents := sp.bd.GetBlock(&ch).GetParents()
+			if parents != nil {
+				for ph := range parents.GetMap() {
+					if !votedPast.HasBlock(&ph) {
+						tips.Add(&ch)
+						break
+					}
+				}
+			} else {
+				if !ch.IsEqual(votedPast.GetGenesis().GetHash()) {
+					log.Error("only virtual block can do without parents")
+				}
+			}
+			cChildren := votedPast.GetBlock(&ch).GetChildren()
+			if cChildren != nil && cChildren.Len() > 0 {
+				unvisited.Enqueue(ch)
+			}
+		}
+	}
+
+	// update votes with BFS order
+	for unvisited.Len() > 0 {
+		n := unvisited.Dequeue().(hash.Hash)
+		childrenUpdated := true
+		nChildren:=votedPast.GetBlock(&n).GetChildren()
+		for ch := range nChildren.GetMap() {
+			if !visited.Has(&ch) {
+				if sp.updateVotes(votedPast, ch) {
+					visited.Add(&ch)
+
+					parents := sp.bd.GetBlock(&ch).GetParents()
+					if parents != nil {
+						for ph := range parents.GetMap() {
+							if !votedPast.HasBlock(&ph) {
+								tips.Add(&ch)
+								break
+							}
+						}
+					} else {
+						if !ch.IsEqual(votedPast.GetGenesis().GetHash()) {
+							log.Error("only virtual block can do without parents")
+						}
+					}
+					children := votedPast.GetBlock(&ch).GetChildren()
+					if children != nil && children.Len() > 0 {
+						unvisited.Enqueue(ch)
+					}
+				} else {
+					childrenUpdated = false
+				}
+			}
+		}
+		if !childrenUpdated {
+			unvisited.Enqueue(n)
+		}
+	}
+
+	return tips
+}
+
+// update votes of candidates's past sets
+// tips stand for nodes in votedPast with their children having not fully voted
+// and those children are called outer nodes.
+// e.g. BB2, VB is 21, 11, 12, 13 are tips, 9 and 10 are outer nodes
+
+// with outer nodes keep voting and become new tips, their children will become the new outer nodes
+// repeat this process until all the outer nodes votes for the same candidate, and VB will vote for him as well
+
+func (sp *Spectre) voteFromPastSet(votedPast *BlockDAG, tips *HashSet) bool {
+	unvisited := util.NewIterativeQueue()
+	outerNodes := NewHashSet()
+	for h := range tips.GetMap() {
+		hParents:=sp.bd.GetBlock(&h).GetParents()
+		for ph := range hParents.GetMap() {
+			if !outerNodes.Has(&ph) && !votedPast.HasBlock(&ph) {
+				unvisited.Enqueue(ph)
+				outerNodes.Add(&ph)
+			}
+		}
+	}
+
+	for unvisited.Len() > 0 {
+		n := unvisited.Dequeue().(hash.Hash)
+
+		if !sp.updateVotes(votedPast, n) {
+			unvisited.Enqueue(n)
+		} else {
+			lastVote := 0
+			consistent := true
+			for o := range outerNodes.GetMap() {
+				if !votedPast.HasBlock(&o) {
+					consistent = false
+					break
+				}
+				sp:=votedPast.instance.(*Spectre).sblocks[o]
+				// we don't consider those with tie votes
+				if sp.Votes2 != sp.Votes1 {
+					spVote := -1
+					if sp.Votes1 < sp.Votes2 {
+						spVote = 1
+					}
+					if lastVote == 0 {
+						lastVote = spVote
+					} else {
+						if lastVote != spVote {
+							consistent = false
+							break
+						}
+					}
+				}
+			}
+
+			// consistent then follow the result
+			if consistent {
+				return lastVote < 0
+			} else {
+				removing := NewHashSet()
+				skip := NewHashSet()
+				for o := range outerNodes.GetMap() {
+					if skip.Has(&o) {
+						continue
+					}
+					allUpdated := votedPast.HasBlock(&o)
+					oParents:=sp.bd.GetBlock(&o).GetParents()
+					for ph := range oParents.GetMap() {
+						if !sp.updateVotes(votedPast, ph) {
+							allUpdated = false
+							break
+						} else if outerNodes.Has(&ph) {
+							skip.Add(&ph)
+						}
+					}
+
+					if allUpdated {
+						removing.Add(&o)
+					}
+				}
+
+				for r := range removing.GetMap() {
+					outerNodes.Remove(&r)
+					rChildren:=votedPast.GetBlock(&r).GetChildren()
+					for c := range rChildren.GetMap() {
+						if !outerNodes.Has(&c) {
+							outerNodes.Add(&c)
+							unvisited.Enqueue(c)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// break the tie
+	return sp.candidate1.GetHash().String() < sp.candidate2.GetHash().String()
+}
+
+// add voter into voted past set
+func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) *Block {
+	sb := SpectreBlockData{hash:vh}
+	sb.parents=[]*hash.Hash{}
+	vhChildren:=sp.bd.GetBlock(&vh).GetChildren()
+	for h := range vhChildren.GetMap() {
+		hash:=h
+		if votedPast.HasBlock(&hash) {
+			sb.parents=append(sb.parents,&hash)
+		}
+	}
+	if votedPast.HasBlock(&vh) {
+		log.Error("has already voter ", vh)
+	}
+	//votedPast.AddBlock(&sb)
+	block := Block{hash: *sb.GetHash(), weight: 1}
+	if sb.parents != nil {
+		block.parents = NewHashSet()
+		for _, h := range sb.parents {
+			hash:=*h
+			block.parents.Add(&hash)
+			parent := votedPast.GetBlock(&hash)
+			parent.AddChild(block.GetHash())
+		}
+	}
+	if votedPast.blocks == nil {
+		votedPast.blocks = map[hash.Hash]*Block{}
+	}
+	votedPast.blocks[block.hash] = &block
+	if votedPast.GetBlockTotal() == 0 {
+		votedPast.genesis = *block.GetHash()
+	}
+	votedPast.blockTotal++
+	votedPast.updateTips(block.GetHash())
+	votedPast.instance.AddBlock(&block)
+	return &block
+}
+
+//5) finally, (for the case where z equals x or y ), z votes for itself to succeed any block in past (z) and to precede any block outside past (z).
+func (sp *Spectre) voteBySelf(b1 *Block, b2 *Block) {
+	sp.voteFirst(*b1.GetHash())
+	sp.voteSecond(*b2.GetHash())
+}
+
+// 1) if z ∈ G is in future (x) but not in future (y) then it will vote in favour of x (i.e., for x ≺y ).
+func (sp *Spectre) voteByUniqueFutureSet(b1 *Block, b2 *Block) {
+	fs1 := NewHashSet()
+	sp.bd.GetFutureSet(fs1, b1)
+
+	fs2 := NewHashSet()
+	sp.bd.GetFutureSet(fs2, b2)
+
+	for hf := range fs1.GetMap() {
+		hfParents:=sp.bd.GetBlock(&hf).GetParents()
+		for h := range hfParents.GetMap() {
+			if !fs1.Has(&h) && !fs2.Has(&h) {
+				sp.dangling.Add(&h)
+			}
+		}
+		if fs2.Has(&hf) {
+			fs2.Remove(&hf)
+		} else {
+			sp.voteFirst(hf)
+		}
+	}
+
+	for hf := range fs2.GetMap() {
+		hfParents:=sp.bd.GetBlock(&hf).GetParents()
+		for h := range hfParents.GetMap() {
+			if !fs1.Has(&h) && !fs2.Has(&h) {
+				sp.dangling.Add(&h)
+			}
+		}
+		sp.voteSecond(hf)
+	}
+	sp.dangling.Remove(b1.GetHash())
+	sp.dangling.Remove(b2.GetHash())
+	for h := range b1.GetParents().GetMap() {
+		sp.dangling.Remove(&h)
+	}
+	for h := range b2.GetParents().GetMap() {
+		sp.dangling.Remove(&h)
+	}
+}
+
+// Currently not supported
+func (sp *Spectre) IsOnMainChain(b *Block) bool {
+	return false
+}
