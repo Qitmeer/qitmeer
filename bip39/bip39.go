@@ -14,7 +14,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/noxproject/nox/crypto/bip39/wordlists"
+	"qitmeer/crypto/bip39/wordlists"
 	"golang.org/x/crypto/pbkdf2"
 )
 

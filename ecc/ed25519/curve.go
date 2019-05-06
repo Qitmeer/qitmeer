@@ -9,7 +9,7 @@ import (
 	"crypto/elliptic"
 	"math/big"
 
-	"github.com/noxproject/nox/crypto/ecc/ed25519/internal/edwards25519"
+	"qitmeer/crypto/ecc/ed25519/internal/edwards25519"
 )
 
 // TwistedEdwardsCurve extended an elliptical curve set of

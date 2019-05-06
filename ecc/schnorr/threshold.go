@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"math/big"
 
-	chainhash "github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/crypto/ecc/secp256k1"
+	chainhash "qitmeer/common/hash"
+	"qitmeer/crypto/ecc/secp256k1"
 )
 
 // Sha256VersionStringRFC6979 is the RFC6979 nonce version for a Schnorr signature

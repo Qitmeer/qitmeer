@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/noxproject/nox/crypto/bip39"
+	"qitmeer/crypto/bip39"
 )
 
 func ExampleNewMnemonic() {
