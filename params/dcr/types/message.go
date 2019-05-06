@@ -11,7 +11,7 @@ import (
 	"io"
 	"unicode/utf8"
 
-	chainhash "github.com/noxproject/nox/common/hash"
+	chainhash "qitmeer/common/hash"
 )
 
 // MessageHeaderSize is the number of bytes in a Decred message header.

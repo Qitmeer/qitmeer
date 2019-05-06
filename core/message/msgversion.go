@@ -13,9 +13,9 @@ import (
 	"net"
 	"strings"
 	"time"
-	s "github.com/noxproject/nox/core/serialization"
-	"github.com/noxproject/nox/core/protocol"
-	"github.com/noxproject/nox/core/types"
+	s "qitmeer/core/serialization"
+	"qitmeer/core/protocol"
+	"qitmeer/core/types"
 )
 
 // MaxUserAgentLen is the maximum allowed length for the user agent field in a

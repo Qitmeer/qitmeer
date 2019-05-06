@@ -8,7 +8,7 @@ package edwards
 import (
 	"math/big"
 
-	"github.com/noxproject/nox/crypto/ecc/ed25519/internal/edwards25519"
+	"qitmeer/crypto/ecc/ed25519/internal/edwards25519"
 )
 
 var (

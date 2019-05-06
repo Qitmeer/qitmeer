@@ -3,11 +3,11 @@
 package txscript
 
 import (
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/engine/txscript"
-	btcparams "github.com/noxproject/nox/params/btc"
-	btcaddr "github.com/noxproject/nox/params/btc/addr"
+	"qitmeer/log"
+	"qitmeer/core/types"
+	"qitmeer/engine/txscript"
+	btcparams "qitmeer/params/btc"
+	btcaddr "qitmeer/params/btc/addr"
 )
 
 type PKHashScript struct {

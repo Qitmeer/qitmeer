@@ -9,8 +9,8 @@ package params
 import (
 	"time"
 	"math/big"
-	"github.com/noxproject/nox/common"
-	"github.com/noxproject/nox/core/protocol"
+	"qitmeer/common"
+	"qitmeer/core/protocol"
 )
 
 // testNetPowLimit is the highest proof of work value a block can

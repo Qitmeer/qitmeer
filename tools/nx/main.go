@@ -6,8 +6,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/noxproject/nox/crypto/seed"
-	"github.com/noxproject/nox/wallet"
+	"qitmeer/crypto/seed"
+	"qitmeer/wallet"
 	"io/ioutil"
 	"os"
 	"strings"

@@ -9,7 +9,7 @@ package base58_test
 import (
 	"testing"
 
-	"github.com/noxproject/nox/common/encode/base58"
+	"qitmeer/common/encode/base58"
 )
 
 var checkEncodingStringTests = []struct {

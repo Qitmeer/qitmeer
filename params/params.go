@@ -9,9 +9,9 @@ import (
 	"errors"
 	"math/big"
 	"time"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/protocol"
+	"qitmeer/core/types"
+	"qitmeer/common/hash"
+	"qitmeer/core/protocol"
 	"encoding/hex"
 )
 

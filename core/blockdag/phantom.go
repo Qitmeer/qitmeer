@@ -1,11 +1,11 @@
 package blockdag
 
 import (
-	"github.com/noxproject/nox/common/anticone"
+	"qitmeer/common/anticone"
 	"fmt"
 	"container/list"
 	"sort"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 )
 
 const (

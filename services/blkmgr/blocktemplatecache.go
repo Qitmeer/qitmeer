@@ -1,7 +1,7 @@
 package blkmgr
 
 import (
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/types"
 )
 
 // getCurrentTemplateMsg handles a request for the current mining block template.

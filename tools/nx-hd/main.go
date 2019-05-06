@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/noxproject/nox/crypto/bip39"
+	"qitmeer/crypto/bip39"
 	"fmt"
-	"github.com/noxproject/nox/crypto/bip32"
+	"qitmeer/crypto/bip32"
 	"os"
 	"encoding/hex"
 )

@@ -12,12 +12,12 @@ import (
 	"fmt"
 	"strings"
 	"golang.org/x/crypto/ripemd160"
-	"github.com/noxproject/nox/common/encode/base58"
-	"github.com/noxproject/nox/common/encode/bech32"
-	"github.com/noxproject/nox/crypto/ecc"
-	"github.com/noxproject/nox/common/hash/btc"
-	"github.com/noxproject/nox/core/types"
-	btcparams "github.com/noxproject/nox/params/btc"
+	"qitmeer/common/encode/base58"
+	"qitmeer/common/encode/bech32"
+	"qitmeer/crypto/ecc"
+	"qitmeer/common/hash/btc"
+	"qitmeer/core/types"
+	btcparams "qitmeer/params/btc"
 
 )
 

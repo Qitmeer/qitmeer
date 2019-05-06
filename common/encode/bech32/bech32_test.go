@@ -21,7 +21,7 @@
 package bech32_test
 
 import (
-	"github.com/noxproject/nox/common/encode/bech32"
+	"qitmeer/common/encode/bech32"
 	"reflect"
 	"strings"
 	"testing"

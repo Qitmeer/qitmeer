@@ -3,10 +3,10 @@ package serialization
 
 import (
 	"io"
-	"github.com/noxproject/nox/core/protocol"
+	"qitmeer/core/protocol"
 	"encoding/binary"
 	"time"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 )
 
 // ReadElements reads multiple items from r.  It is equivalent to multiple

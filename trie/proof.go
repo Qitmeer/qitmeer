@@ -20,10 +20,10 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/noxproject/nox/common/encode/rlp"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/database/statedb"
-	"github.com/noxproject/nox/log"
+	"qitmeer/common/encode/rlp"
+	"qitmeer/common/hash"
+	"qitmeer/database/statedb"
+	"qitmeer/log"
 
 )
 

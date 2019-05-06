@@ -19,8 +19,8 @@ package trie
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/common/encode/rlp"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/encode/rlp"
+	"qitmeer/common/hash"
 	"io"
 	"strings"
 

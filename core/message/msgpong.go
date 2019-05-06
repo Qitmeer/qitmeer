@@ -7,7 +7,7 @@ package message
 
 import (
 	"io"
-	s "github.com/noxproject/nox/core/serialization"
+	s "qitmeer/core/serialization"
 )
 
 // MsgPong implements the Message interface and represents a pong message

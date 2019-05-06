@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"io"
 	"unicode/utf8"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/protocol"
-	s "github.com/noxproject/nox/core/serialization"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/common/hash"
+	"qitmeer/core/protocol"
+	s "qitmeer/core/serialization"
+	"qitmeer/core/types"
 	"encoding/hex"
 )
 

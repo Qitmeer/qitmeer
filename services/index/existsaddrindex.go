@@ -8,11 +8,11 @@ package index
 import (
 	"sync"
 
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/engine/txscript"
+	"qitmeer/database"
+	"qitmeer/params"
+	"qitmeer/core/types"
+	"qitmeer/core/blockchain"
+	"qitmeer/engine/txscript"
 
 )
 

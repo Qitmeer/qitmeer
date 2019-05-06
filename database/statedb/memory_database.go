@@ -19,7 +19,7 @@ package statedb
 
 import (
 	"errors"
-	"github.com/noxproject/nox/common/util"
+	"qitmeer/common/util"
 	"sync"
 )
 

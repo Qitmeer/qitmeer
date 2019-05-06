@@ -5,11 +5,11 @@ package address
 import (
 	"errors"
 	"golang.org/x/crypto/ripemd160"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/encode/base58"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/crypto/ecc"
+	"qitmeer/common/hash"
+	"qitmeer/common/encode/base58"
+	"qitmeer/core/types"
+	"qitmeer/params"
+	"qitmeer/crypto/ecc"
 	"fmt"
 )
 

@@ -10,8 +10,8 @@
 package database
 
 import (
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/core/types"
+	"qitmeer/common/hash"
 )
 
 // Cursor represents a cursor over key/value pairs and nested buckets of a

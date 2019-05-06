@@ -8,9 +8,9 @@ package mining
 
 import (
 	"time"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/common/hash"
-	s "github.com/noxproject/nox/core/serialization"
+	"qitmeer/core/types"
+	"qitmeer/common/hash"
+	s "qitmeer/core/serialization"
 )
 
 const (

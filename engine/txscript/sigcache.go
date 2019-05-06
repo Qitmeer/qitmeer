@@ -10,8 +10,8 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/crypto/ecc"
+	"qitmeer/common/hash"
+	"qitmeer/crypto/ecc"
 )
 
 // sigCacheEntry represents an entry in the SigCache. Entries within the

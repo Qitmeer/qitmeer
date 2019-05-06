@@ -8,10 +8,10 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/params"
+	"qitmeer/common/hash"
+	"qitmeer/core/types"
+	"qitmeer/engine/txscript"
+	"qitmeer/params"
 )
 
 // CheckpointConfirmations is the number of blocks before the end of the current

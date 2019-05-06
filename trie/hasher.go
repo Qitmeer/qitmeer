@@ -19,9 +19,9 @@ package trie
 
 import (
 	"sync"
-     "github.com/noxproject/nox/common/encode/rlp"
-     nh "github.com/noxproject/nox/common/hash"
-     "github.com/noxproject/nox/common/util"
+     "qitmeer/common/encode/rlp"
+     nh "qitmeer/common/hash"
+     "qitmeer/common/util"
      hh "hash"
 )
 

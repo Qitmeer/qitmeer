@@ -11,11 +11,11 @@ import (
 	"time"
 	"math"
 	"math/big"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/core/merkle"
-	"github.com/noxproject/nox/engine/txscript"
+	"qitmeer/core/types"
+	"qitmeer/common/hash"
+	"qitmeer/params"
+	"qitmeer/core/merkle"
+	"qitmeer/engine/txscript"
 )
 
 

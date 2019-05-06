@@ -1,9 +1,9 @@
 package peerserver
 
 import (
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/p2p/addmgr"
+	"qitmeer/core/types"
+	"qitmeer/log"
+	"qitmeer/p2p/addmgr"
 	"strconv"
 	"time"
 )

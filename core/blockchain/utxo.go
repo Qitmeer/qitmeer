@@ -2,12 +2,12 @@
 package blockchain
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/database"
+	"qitmeer/common/hash"
+	"qitmeer/core/types"
+	"qitmeer/engine/txscript"
+	"qitmeer/database"
 	"fmt"
-	"github.com/noxproject/nox/core/dbnamespace"
+	"qitmeer/core/dbnamespace"
 )
 
 

@@ -3,21 +3,21 @@
 package main
 
 import (
-	"github.com/noxproject/nox/node"
+	"qitmeer/node"
 	"os"
 	"io"
 	"github.com/mattn/go-colorable"
 	"github.com/jrick/logrotate/rotator"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/log/term"
+	"qitmeer/log"
+	"qitmeer/log/term"
 	"path/filepath"
 	"fmt"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/services/blkmgr"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/services/miner"
-	"github.com/noxproject/nox/core/blockdag"
+	"qitmeer/database"
+	"qitmeer/engine/txscript"
+	"qitmeer/services/blkmgr"
+	"qitmeer/core/blockchain"
+	"qitmeer/services/miner"
+	"qitmeer/core/blockdag"
 )
 
 var (

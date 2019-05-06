@@ -10,8 +10,8 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/noxproject/nox/crypto/ecc/secp256k1"
-	"github.com/noxproject/nox/crypto/ecc/schnorr"
+	"qitmeer/crypto/ecc/secp256k1"
+	"qitmeer/crypto/ecc/schnorr"
 )
 
 type secSchnorrDSA struct {

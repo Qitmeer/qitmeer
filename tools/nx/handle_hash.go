@@ -7,9 +7,9 @@ import (
 	"crypto"
 	"encoding/hex"
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/hash/btc"
-	"github.com/noxproject/nox/common/hash/dcr"
+	"qitmeer/common/hash"
+	"qitmeer/common/hash/btc"
+	"qitmeer/common/hash/dcr"
 )
 
 func sha256(input string){

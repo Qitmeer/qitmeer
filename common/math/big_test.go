@@ -19,7 +19,7 @@ package math
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/noxproject/nox/common/util"
+	"qitmeer/common/util"
 	"math/big"
 	"testing"
 

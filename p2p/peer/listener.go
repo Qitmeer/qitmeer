@@ -6,7 +6,7 @@
 package peer
 
 import (
-	"github.com/noxproject/nox/core/message"
+	"qitmeer/core/message"
 )
 
 // MessageListeners defines callback function pointers to invoke with message

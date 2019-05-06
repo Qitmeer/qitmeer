@@ -8,7 +8,7 @@ package dcr
 import (
 	"time"
 
-	"github.com/noxproject/nox/params/dcr/types"
+	"qitmeer/params/dcr/types"
 )
 
 // TestNet2Params defines the network parameters for the test currency network.

@@ -20,9 +20,9 @@ package trie
 import (
 	"bytes"
 	crand "crypto/rand"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/util"
-	"github.com/noxproject/nox/database/statedb"
+	"qitmeer/common/hash"
+	"qitmeer/common/util"
+	"qitmeer/database/statedb"
 	mrand "math/rand"
 	"testing"
 	"time"

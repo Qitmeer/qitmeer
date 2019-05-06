@@ -7,10 +7,10 @@ package connmgr
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/core/protocol"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/params"
+	"qitmeer/core/protocol"
+	"qitmeer/core/types"
+	"qitmeer/log"
+	"qitmeer/params"
 	mrand "math/rand"
 	"net"
 	"strconv"

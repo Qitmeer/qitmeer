@@ -21,8 +21,8 @@ import (
 	"bytes"
 	"container/heap"
 	"errors"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/encode/rlp"
+	"qitmeer/common/hash"
+	"qitmeer/common/encode/rlp"
 )
 
 // Iterator is a key-value trie iterator that traverses a Trie.

@@ -2,7 +2,7 @@ package message
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/engine/txscript"
+	"qitmeer/engine/txscript"
 	"strings"
 	"time"
 )

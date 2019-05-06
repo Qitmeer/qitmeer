@@ -5,8 +5,8 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	s "github.com/noxproject/nox/core/serialization"
+	"qitmeer/common/hash"
+	s "qitmeer/core/serialization"
 	"io"
 	"math/big"
 	"time"

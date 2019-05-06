@@ -5,8 +5,8 @@ import (
 	"time"
 	"math"
 	"math/big"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/common/hash"
+	"qitmeer/core/types"
 )
 
 // newHashFromStr converts the passed big-endian hex string into a

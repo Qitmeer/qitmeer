@@ -8,7 +8,7 @@ package btc
 
 import (
 	"crypto/sha256"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 )
 
 // HashB calculates hash(b) and returns the resulting bytes.

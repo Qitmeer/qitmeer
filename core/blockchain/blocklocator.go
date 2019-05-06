@@ -1,8 +1,8 @@
 package blockchain
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/blockdag"
+	"qitmeer/common/hash"
+	"qitmeer/core/blockdag"
 )
 
 // BlockLocator is used to help locate a specific block.  The algorithm for

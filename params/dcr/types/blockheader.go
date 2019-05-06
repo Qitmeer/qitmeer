@@ -10,7 +10,7 @@ import (
 	"io"
 	"time"
 
-	chainhash "github.com/noxproject/nox/common/hash"
+	chainhash "qitmeer/common/hash"
 )
 
 // MaxBlockHeaderPayload is the maximum number of bytes a block header can be.

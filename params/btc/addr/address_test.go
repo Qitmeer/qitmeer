@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"golang.org/x/crypto/ripemd160"
-	btc "github.com/noxproject/nox/params/btc/addr"
-	btcparams "github.com/noxproject/nox/params/btc"
+	btc "qitmeer/params/btc/addr"
+	btcparams "qitmeer/params/btc"
 )
 
 func TestAddresses(t *testing.T) {

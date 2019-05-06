@@ -4,7 +4,7 @@ package types
 
 import (
 	"math/big"
-	"github.com/noxproject/nox/common/util"
+	"qitmeer/common/util"
 	//"fmt"
 	"fmt"
 	"strings"

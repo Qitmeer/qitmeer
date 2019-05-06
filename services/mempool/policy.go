@@ -7,8 +7,8 @@
 package mempool
 
 import (
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/engine/txscript"
+	"qitmeer/core/types"
+	"qitmeer/engine/txscript"
 )
 
 const (

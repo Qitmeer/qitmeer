@@ -13,7 +13,7 @@ import (
 	"math"
 	"time"
 
-	chainhash "github.com/noxproject/nox/common/hash"
+	chainhash "qitmeer/common/hash"
 )
 
 const (

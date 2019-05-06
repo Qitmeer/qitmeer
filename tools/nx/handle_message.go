@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"github.com/noxproject/nox/common/encode/base58"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/hash/btc"
-	"github.com/noxproject/nox/core/serialization"
-	"github.com/noxproject/nox/crypto/ecc"
-	"github.com/noxproject/nox/crypto/ecc/secp256k1"
+	"qitmeer/common/encode/base58"
+	"qitmeer/common/hash"
+	"qitmeer/common/hash/btc"
+	"qitmeer/core/serialization"
+	"qitmeer/crypto/ecc"
+	"qitmeer/crypto/ecc/secp256k1"
 	"reflect"
 )
 

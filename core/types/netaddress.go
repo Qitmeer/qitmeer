@@ -9,13 +9,13 @@ package types
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/noxproject/nox/common/network"
-	"github.com/noxproject/nox/core/protocol"
+	"qitmeer/common/network"
+	"qitmeer/core/protocol"
 	"io"
 	"net"
 	"strconv"
 	"time"
-	s "github.com/noxproject/nox/core/serialization"
+	s "qitmeer/core/serialization"
 )
 
 // ErrInvalidNetAddr describes an error that indicates the caller didn't specify

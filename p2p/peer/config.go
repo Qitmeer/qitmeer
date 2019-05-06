@@ -6,10 +6,10 @@
 package peer
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/protocol"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/params"
+	"qitmeer/common/hash"
+	"qitmeer/core/protocol"
+	"qitmeer/core/types"
+	"qitmeer/params"
 	"time"
 )
 

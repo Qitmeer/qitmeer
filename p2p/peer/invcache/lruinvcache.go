@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"github.com/noxproject/nox/core/message"
+	"qitmeer/core/message"
 	"sync"
 )
 

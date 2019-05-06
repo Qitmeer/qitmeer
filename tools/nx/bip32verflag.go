@@ -5,8 +5,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/crypto/bip32"
-	"github.com/noxproject/nox/params"
+	"qitmeer/crypto/bip32"
+	"qitmeer/params"
 )
 
 var (

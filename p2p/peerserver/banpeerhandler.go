@@ -2,7 +2,7 @@ package peerserver
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/log"
+	"qitmeer/log"
 )
 
 // BanPeer bans a peer that has already been connected to the server by ip.

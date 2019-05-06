@@ -7,10 +7,10 @@ package mempool
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/engine/txscript"
+	"qitmeer/core/blockchain"
+	"qitmeer/core/message"
+	"qitmeer/core/types"
+	"qitmeer/engine/txscript"
 	"time"
 )
 

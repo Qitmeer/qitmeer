@@ -5,9 +5,9 @@ package blkmgr
 import (
 	"sync"
 	"time"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/config"
+	"qitmeer/common/hash"
+	"qitmeer/core/blockchain"
+	"qitmeer/config"
 )
 
 func (b *BlockManager) GetChainState() *ChainState{

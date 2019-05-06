@@ -2,8 +2,8 @@
 package blockchain
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/common/hash"
+	"qitmeer/core/types"
 )
 
 const (

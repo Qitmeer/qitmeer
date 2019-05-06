@@ -2,10 +2,10 @@
 package blockchain
 
 import (
-	"github.com/noxproject/nox/core/dbnamespace"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/dbnamespace"
+	"qitmeer/database"
+	"qitmeer/common/hash"
+	"qitmeer/core/types"
 	"fmt"
 	"time"
 	"encoding/binary"

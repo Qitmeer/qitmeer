@@ -6,8 +6,8 @@
 package peer
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/message"
+	"qitmeer/common/hash"
+	"qitmeer/core/message"
 )
 
 // ServerPeer extends the peer to maintain state shared by the p2p server and

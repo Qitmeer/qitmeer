@@ -8,8 +8,8 @@ package blockchain
 import (
 	"fmt"
 	"time"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/core/types"
+	"qitmeer/common/hash"
 )
 
 // BehaviorFlags is a bitmask defining tweaks to the normal behavior when

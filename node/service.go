@@ -2,8 +2,8 @@ package node
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/p2p/peerserver"
-	"github.com/noxproject/nox/rpc"
+	"qitmeer/p2p/peerserver"
+	"qitmeer/rpc"
 	"reflect"
 )
 

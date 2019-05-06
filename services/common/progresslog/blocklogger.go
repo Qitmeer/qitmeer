@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/log"
+	"qitmeer/core/types"
+	"qitmeer/log"
 )
 
 // BlockProgressLogger provides periodic logging for other services in order

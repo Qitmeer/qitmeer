@@ -8,7 +8,7 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/types"
 )
 
 // SequenceLock represents the minimum timestamp and minimum block height after

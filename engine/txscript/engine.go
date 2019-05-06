@@ -9,9 +9,9 @@ package txscript
 import (
 	"fmt"
 	"math/big"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/crypto/ecc"
-	"github.com/noxproject/nox/params/btc/types"
+	"qitmeer/core/types"
+	"qitmeer/crypto/ecc"
+	"qitmeer/params/btc/types"
 )
 
 // ScriptFlags is a bitmask defining additional operations or tests that will be

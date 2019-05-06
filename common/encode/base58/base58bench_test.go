@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/noxproject/nox/common/encode/base58"
+	"qitmeer/common/encode/base58"
 )
 
 func BenchmarkBase58Encode(b *testing.B) {

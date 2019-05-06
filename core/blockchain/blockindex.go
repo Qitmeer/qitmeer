@@ -3,10 +3,10 @@ package blockchain
 
 import (
 	"sync"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/params"
+	"qitmeer/database"
+	"qitmeer/common/hash"
+	"qitmeer/core/types"
 )
 
 // IndexManager provides a generic interface that the is called when blocks are

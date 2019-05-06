@@ -8,12 +8,12 @@ package dcraddr
 import (
 	"errors"
 	"golang.org/x/crypto/ripemd160"
-	"github.com/noxproject/nox/common/encode/base58"
-	chainec "github.com/noxproject/nox/crypto/ecc"
-	chaincfg "github.com/noxproject/nox/params/dcr"
+	"qitmeer/common/encode/base58"
+	chainec "qitmeer/crypto/ecc"
+	chaincfg "qitmeer/params/dcr"
 
 	"fmt"
-	"github.com/noxproject/nox/common/hash/dcr"
+	"qitmeer/common/hash/dcr"
 )
 
 var (

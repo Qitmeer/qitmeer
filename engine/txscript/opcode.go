@@ -16,11 +16,11 @@ import (
 	hhash "hash"
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/crypto/ecc"
-	"github.com/noxproject/nox/common/hash/btc"
+	"qitmeer/params"
+	"qitmeer/core/types"
+	"qitmeer/common/hash"
+	"qitmeer/crypto/ecc"
+	"qitmeer/common/hash/btc"
 )
 
 var optimizeSigVerification = params.SigHashOptimization

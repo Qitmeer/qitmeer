@@ -9,15 +9,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/core/json"
-	"github.com/noxproject/nox/core/types"
-	wire "github.com/noxproject/nox/params/dcr/types"
-	"github.com/noxproject/nox/rpc"
-	er "github.com/noxproject/nox/services/common/error"
-	"github.com/noxproject/nox/services/mining"
-	"github.com/noxproject/nox/core/blockdag"
+	"qitmeer/common/hash"
+	"qitmeer/core/blockchain"
+	"qitmeer/core/json"
+	"qitmeer/core/types"
+	wire "qitmeer/params/dcr/types"
+	"qitmeer/rpc"
+	er "qitmeer/services/common/error"
+	"qitmeer/services/mining"
+	"qitmeer/core/blockdag"
 )
 
 //LL

@@ -2,8 +2,8 @@ package blkmgr
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/params/dcr/types"
-	"github.com/noxproject/nox/services/mempool"
+	"qitmeer/params/dcr/types"
+	"qitmeer/services/mempool"
 )
 
 const (

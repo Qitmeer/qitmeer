@@ -6,8 +6,8 @@
 package peerserver
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/message"
+	"qitmeer/common/hash"
+	"qitmeer/core/message"
 )
 
 // broadcastMsg provides the ability to house a  message to be broadcast

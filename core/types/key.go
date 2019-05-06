@@ -3,7 +3,7 @@
 package types
 
 import (
-	"github.com/noxproject/nox/crypto/ecc"
+	"qitmeer/crypto/ecc"
 )
 
 type Key struct {

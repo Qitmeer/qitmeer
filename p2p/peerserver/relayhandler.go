@@ -1,9 +1,9 @@
 package peerserver
 
 import (
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/log"
+	"qitmeer/core/message"
+	"qitmeer/core/types"
+	"qitmeer/log"
 )
 
 // handleRelayInvMsg deals with relaying inventory to peers that are not already

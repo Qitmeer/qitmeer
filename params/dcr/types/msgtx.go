@@ -11,7 +11,7 @@ import (
 	"io"
 	"strconv"
 
-	chainhash "github.com/noxproject/nox/common/hash"
+	chainhash "qitmeer/common/hash"
 )
 
 const (

@@ -7,9 +7,9 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/crypto/ecc/secp256k1"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/engine/txscript"
+	"qitmeer/crypto/ecc/secp256k1"
+	"qitmeer/core/types"
 )
 
 // currentCompressionVersion is the current script compression version of the

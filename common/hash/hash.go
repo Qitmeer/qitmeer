@@ -12,7 +12,7 @@ import (
     _ "golang.org/x/crypto/blake2b"
 	"encoding/hex"
 	"fmt"
-	"github.com/noxproject/nox/core/json"
+	"qitmeer/core/json"
 )
 
 const HashSize = 32

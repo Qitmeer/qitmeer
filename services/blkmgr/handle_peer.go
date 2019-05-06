@@ -8,10 +8,10 @@ package blkmgr
 import (
 	"container/list"
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/core/protocol"
-	"github.com/noxproject/nox/p2p/peer"
+	"qitmeer/common/hash"
+	"qitmeer/core/message"
+	"qitmeer/core/protocol"
+	"qitmeer/p2p/peer"
 	"sync/atomic"
 	"time"
 )

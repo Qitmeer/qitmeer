@@ -1,10 +1,10 @@
 package notifymgr
 
 import (
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/p2p/peerserver"
-	"github.com/noxproject/nox/rpc"
+	"qitmeer/core/message"
+	"qitmeer/core/types"
+	"qitmeer/p2p/peerserver"
+	"qitmeer/rpc"
 )
 
 // NotifyMgr manage message announce & relay & notification between mempool, websocket, gbt long pull

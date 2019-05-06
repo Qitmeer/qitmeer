@@ -1,8 +1,8 @@
 package peerserver
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/message"
+	"qitmeer/common/hash"
+	"qitmeer/core/message"
 )
 
 // pushMiningStateMsg pushes a mining state message to the queue for a

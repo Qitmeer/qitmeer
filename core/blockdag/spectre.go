@@ -3,8 +3,8 @@ package blockdag
 import (
 	"fmt"
 	"github.com/golang-collections/collections/stack"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/util"
+	"qitmeer/common/hash"
+	"qitmeer/common/util"
 	"strconv"
 	"container/list"
 )

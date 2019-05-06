@@ -6,9 +6,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/math"
-	"github.com/noxproject/nox/crypto/ecc/secp256k1"
+	"qitmeer/common/hash"
+	"qitmeer/common/math"
+	"qitmeer/crypto/ecc/secp256k1"
 	"math/big"
 	"os"
 )

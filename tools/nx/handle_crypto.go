@@ -6,13 +6,13 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/noxproject/nox/common/encode/base58"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/crypto/bip32"
-	"github.com/noxproject/nox/crypto/bip39"
-	"github.com/noxproject/nox/crypto/ecc"
-	"github.com/noxproject/nox/crypto/seed"
-	"github.com/noxproject/nox/wallet"
+	"qitmeer/common/encode/base58"
+	"qitmeer/common/hash"
+	"qitmeer/crypto/bip32"
+	"qitmeer/crypto/bip39"
+	"qitmeer/crypto/ecc"
+	"qitmeer/crypto/seed"
+	"qitmeer/wallet"
 	"strconv"
 )
 

@@ -2,7 +2,7 @@ package blockdag
 
 import (
 	"container/list"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 )
 
 

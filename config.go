@@ -6,18 +6,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/services/mempool"
-	"github.com/noxproject/nox/version"
+	"qitmeer/services/mempool"
+	"qitmeer/version"
 	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"github.com/jessevdk/go-flags"
-	"github.com/noxproject/nox/common/util"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/config"
-	"github.com/noxproject/nox/core/address"
+	"qitmeer/common/util"
+	"qitmeer/log"
+	"qitmeer/config"
+	"qitmeer/core/address"
 )
 
 const (

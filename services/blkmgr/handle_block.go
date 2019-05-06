@@ -2,12 +2,12 @@ package blkmgr
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/p2p/peer"
-	"github.com/noxproject/nox/services/mempool"
+	"qitmeer/common/hash"
+	"qitmeer/core/blockchain"
+	"qitmeer/core/message"
+	"qitmeer/database"
+	"qitmeer/p2p/peer"
+	"qitmeer/services/mempool"
 )
 const(
 

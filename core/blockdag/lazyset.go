@@ -1,6 +1,6 @@
 package blockdag
 
-import "github.com/noxproject/nox/common/hash"
+import "qitmeer/common/hash"
 
 //A collection that tries to imitate "lazy" operations
 type LazySet struct {

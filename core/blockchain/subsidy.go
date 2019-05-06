@@ -11,8 +11,8 @@ package blockchain
 import (
 	"sync"
 
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/params"
+	"qitmeer/core/types"
 )
 
 // The number of values to precalculate on initialization of the subsidy

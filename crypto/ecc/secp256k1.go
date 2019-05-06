@@ -11,7 +11,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/noxproject/nox/crypto/ecc/secp256k1"
+	"qitmeer/crypto/ecc/secp256k1"
 )
 
 type secp256k1DSA struct {

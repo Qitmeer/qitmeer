@@ -11,15 +11,15 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/core/address"
-	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/crypto/ecc"
+	"qitmeer/log"
+	"qitmeer/core/types"
+	"qitmeer/common/hash"
+	"qitmeer/database"
+	"qitmeer/params"
+	"qitmeer/core/blockchain"
+	"qitmeer/core/address"
+	"qitmeer/engine/txscript"
+	"qitmeer/crypto/ecc"
 )
 
 const (

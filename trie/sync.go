@@ -20,9 +20,9 @@ package trie
 import (
 	"errors"
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/prque"
-	"github.com/noxproject/nox/database/statedb"
+	"qitmeer/common/hash"
+	"qitmeer/common/prque"
+	"qitmeer/database/statedb"
 
 )
 

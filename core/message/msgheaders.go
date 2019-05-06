@@ -7,9 +7,9 @@ package message
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/types"
 	"io"
-	s "github.com/noxproject/nox/core/serialization"
+	s "qitmeer/core/serialization"
 )
 
 // MaxBlockHeadersPerMsg is the maximum number of block headers that can be in

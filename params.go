@@ -6,7 +6,7 @@
 
 package main
 
-import "github.com/noxproject/nox/params"
+import "qitmeer/params"
 
 // activeNetParams is a pointer to the parameters specific to the
 // currently active network.
