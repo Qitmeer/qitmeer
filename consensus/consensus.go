@@ -2,8 +2,8 @@ package consensus
 
 import (
 	"math/big"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/core/blockchain"
+	"qitmeer/core/types"
+	"qitmeer/core/blockchain"
 )
 
 // Any ConsensusState

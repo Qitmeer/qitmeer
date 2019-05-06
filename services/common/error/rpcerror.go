@@ -3,7 +3,7 @@ package er
 import (
 	"fmt"
 	"errors"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 )
 
 // RpcNoTxInfoError is a convenience function for returning a nicely formatted

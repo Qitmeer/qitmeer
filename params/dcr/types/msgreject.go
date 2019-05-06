@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	chainhash "github.com/noxproject/nox/common/hash"
+	chainhash "qitmeer/common/hash"
 )
 
 // RejectCode represents a numeric value by which a remote peer indicates

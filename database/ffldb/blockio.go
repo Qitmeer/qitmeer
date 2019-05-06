@@ -18,9 +18,9 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/core/protocol"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/database"
+	"qitmeer/core/protocol"
+	"qitmeer/common/hash"
 )
 
 const (

@@ -10,15 +10,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/core/address"
-	"github.com/noxproject/nox/crypto/ecc"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/core/types"
+	"qitmeer/core/address"
+	"qitmeer/crypto/ecc"
+	"qitmeer/params"
+	"qitmeer/common/hash"
 	"bytes"
 	"encoding/binary"
-	"github.com/noxproject/nox/params/btc/types"
-	"github.com/noxproject/nox/common/hash/btc"
+	"qitmeer/params/btc/types"
+	"qitmeer/common/hash/btc"
 )
 
 // RawTxInSignature returns the serialized ECDSA signature for the input idx of

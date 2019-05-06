@@ -2,8 +2,8 @@ package peerserver
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/p2p/addmgr"
+	"qitmeer/log"
+	"qitmeer/p2p/addmgr"
 	"net"
 	"sync/atomic"
 	"time"

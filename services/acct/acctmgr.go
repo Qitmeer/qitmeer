@@ -1,8 +1,8 @@
 package acct
 
 import (
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/rpc"
+	"qitmeer/log"
+	"qitmeer/rpc"
 )
 
 // account manager communicate with various backends for signing transactions.

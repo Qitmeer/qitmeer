@@ -2,11 +2,11 @@
 package blockchain
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/util"
-	"github.com/noxproject/nox/core/blockdag"
-	"github.com/noxproject/nox/core/merkle"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/common/hash"
+	"qitmeer/common/util"
+	"qitmeer/core/blockdag"
+	"qitmeer/core/merkle"
+	"qitmeer/core/types"
 	"math/big"
 	"sort"
 	"time"

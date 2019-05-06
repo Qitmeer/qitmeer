@@ -12,9 +12,9 @@ import (
 	"reflect"
 	"testing"
 	"golang.org/x/crypto/ripemd160"
-	"github.com/noxproject/nox/params/dcr/addr"
-	chainec "github.com/noxproject/nox/crypto/ecc"
-	chaincfg "github.com/noxproject/nox/params/dcr"
+	"qitmeer/params/dcr/addr"
+	chainec "qitmeer/crypto/ecc"
+	chaincfg "qitmeer/params/dcr"
 )
 
 func TestAddresses(t *testing.T) {

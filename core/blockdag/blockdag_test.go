@@ -3,7 +3,7 @@ package blockdag
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 	"math/rand"
 	"os"
 	"time"

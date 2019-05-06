@@ -1,9 +1,9 @@
 package peerserver
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/log"
+	"qitmeer/common/hash"
+	"qitmeer/core/message"
+	"qitmeer/log"
 )
 
 // pushTxMsg sends a tx message for the provided transaction hash to the

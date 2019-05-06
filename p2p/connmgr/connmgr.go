@@ -12,7 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"github.com/noxproject/nox/log"
+	"qitmeer/log"
 )
 
 // ConnManager provides a manager to handle network connections.

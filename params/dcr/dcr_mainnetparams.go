@@ -7,7 +7,7 @@ package dcr
 
 import (
 	"time"
-	"github.com/noxproject/nox/params/dcr/types"
+	"qitmeer/params/dcr/types"
 )
 
 // MainNetParams defines the network parameters for the main Decred network.

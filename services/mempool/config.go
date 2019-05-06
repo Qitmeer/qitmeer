@@ -7,12 +7,12 @@ package mempool
 
 import (
 	"time"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/services/index"
+	"qitmeer/params"
+	"qitmeer/common/hash"
+	"qitmeer/core/types"
+	"qitmeer/core/blockchain"
+	"qitmeer/engine/txscript"
+	"qitmeer/services/index"
 )
 
 const (

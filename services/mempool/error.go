@@ -7,8 +7,8 @@
 package mempool
 
 import (
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/core/blockchain"
+	"qitmeer/core/message"
+	"qitmeer/core/blockchain"
 )
 
 // RuleError identifies a rule violation.  It is used to indicate that

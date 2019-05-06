@@ -8,9 +8,9 @@ package ffldb
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/core/protocol"
+	"qitmeer/database"
+	"qitmeer/log"
+	"qitmeer/core/protocol"
 )
 
 var dblog log.Logger

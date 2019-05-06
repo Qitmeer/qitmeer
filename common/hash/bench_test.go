@@ -5,7 +5,7 @@ package hash
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
-	"github.com/noxproject/nox/common/util"
+	"qitmeer/common/util"
 )
 
 // Ensure same result with the normal way
@@ -28,11 +28,11 @@ func TestHashWithPoolGotSameResult(t *testing.T){
 // go test -bench=.
 //	goos: darwin
 //	goarch: amd64
-//	pkg: github.com/noxproject/nox/common/hash
+//	pkg: qitmeer/common/hash
 //	BenchmarkHashWithPool-8      	  500000	      2544 ns/op
 //	BenchmarkHashWithoutPool-8   	  500000	      2390 ns/op
 //	PASS
-//	ok  	github.com/noxproject/nox/common/hash	2.541s
+//	ok  	qitmeer/common/hash	2.541s
 //
 
 func BenchmarkHashWithPool(b *testing.B) {

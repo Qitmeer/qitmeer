@@ -2,10 +2,10 @@
 package node
 
 import (
-	"github.com/noxproject/nox/config"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/rpc"
-	"github.com/noxproject/nox/p2p/peerserver"
+	"qitmeer/config"
+	"qitmeer/database"
+	"qitmeer/rpc"
+	"qitmeer/p2p/peerserver"
 )
 
 // NoxLight implements the nox light node service.

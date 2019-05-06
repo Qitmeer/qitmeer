@@ -8,19 +8,19 @@ package miner
 
 import (
 	"sync"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/config"
+	"qitmeer/common/hash"
+	"qitmeer/config"
 	"math/rand"
 	"time"
 	"fmt"
 	"errors"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/services/blkmgr"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/engine/txscript"
-	"github.com/noxproject/nox/services/mining"
-	"github.com/noxproject/nox/core/merkle"
+	"qitmeer/params"
+	"qitmeer/services/blkmgr"
+	"qitmeer/core/blockchain"
+	"qitmeer/core/types"
+	"qitmeer/engine/txscript"
+	"qitmeer/services/mining"
+	"qitmeer/core/merkle"
 )
 
 const (

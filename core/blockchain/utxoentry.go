@@ -1,7 +1,7 @@
 package blockchain
 
 import (
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/types"
 )
 
 // UtxoEntry contains contextual information about an unspent transaction such

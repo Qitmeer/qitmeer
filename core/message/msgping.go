@@ -7,7 +7,7 @@ package message
 
 import (
 	"io"
-	s "github.com/noxproject/nox/core/serialization"
+	s "qitmeer/core/serialization"
 )
 
 // MsgPing implements the Message interface and represents a ping message.

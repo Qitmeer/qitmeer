@@ -8,7 +8,7 @@ package message
 
 import (
 	"bytes"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/types"
 	"io"
 )
 

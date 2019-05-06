@@ -11,8 +11,8 @@ import (
 	"math"
 	"runtime"
 
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/engine/txscript"
+	"qitmeer/core/types"
+	"qitmeer/engine/txscript"
 )
 
 // txValidateItem holds a transaction along with which input to validate.

@@ -1,7 +1,7 @@
 package blockdag
 
 import (
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 	"sort"
 )
 

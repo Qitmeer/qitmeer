@@ -7,9 +7,9 @@ package message
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 	"io"
-	s "github.com/noxproject/nox/core/serialization"
+	s "qitmeer/core/serialization"
 )
 
 // MsgGetHeaders implements the Message interface and represents a getheaders

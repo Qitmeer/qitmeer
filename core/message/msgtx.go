@@ -2,7 +2,7 @@
 package message
 
 import (
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/types"
 	"io"
 )
 

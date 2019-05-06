@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"time"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 )
 
 var (

@@ -7,12 +7,12 @@ package peer
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/core/protocol"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/log"
+	"qitmeer/common/hash"
+	"qitmeer/core/blockchain"
+	"qitmeer/core/message"
+	"qitmeer/core/protocol"
+	"qitmeer/core/types"
+	"qitmeer/log"
 	"math/rand"
 	"net"
 	"strconv"

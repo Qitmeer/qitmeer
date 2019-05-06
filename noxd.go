@@ -5,16 +5,16 @@
 package main
 
 import (
-	"github.com/noxproject/nox/version"
+	"qitmeer/version"
 	"runtime"
 	"runtime/debug"
 	"os"
 	"path/filepath"
-	"github.com/noxproject/nox/config"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/node"
-	"github.com/noxproject/nox/database"
-	 _ "github.com/noxproject/nox/database/ffldb"
+	"qitmeer/config"
+	"qitmeer/log"
+	"qitmeer/node"
+	"qitmeer/database"
+	 _ "qitmeer/database/ffldb"
 )
 
 const (

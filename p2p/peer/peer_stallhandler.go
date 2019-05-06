@@ -7,9 +7,9 @@ package peer
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/params/dcr/types"
+	"qitmeer/core/message"
+	"qitmeer/log"
+	"qitmeer/params/dcr/types"
 	"time"
 )
 

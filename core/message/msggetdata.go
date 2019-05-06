@@ -8,7 +8,7 @@ package message
 import (
 	"fmt"
 	"io"
-	s "github.com/noxproject/nox/core/serialization"
+	s "qitmeer/core/serialization"
 )
 
 // MsgGetData implements the Message interface and represents a getdata message.

@@ -5,13 +5,13 @@ package blkmgr
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/core/json"
-	"github.com/noxproject/nox/rpc"
-	"github.com/noxproject/nox/services/common/error"
+	"qitmeer/common/hash"
+	"qitmeer/core/blockchain"
+	"qitmeer/core/json"
+	"qitmeer/rpc"
+	"qitmeer/services/common/error"
 	"fmt"
-	"github.com/noxproject/nox/services/common/marshal"
+	"qitmeer/services/common/marshal"
 	"strconv"
 )
 

@@ -10,9 +10,9 @@ package index
 
 import (
 	"encoding/binary"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/database"
+	"qitmeer/core/blockchain"
+	"qitmeer/core/types"
 	"errors"
 )
 

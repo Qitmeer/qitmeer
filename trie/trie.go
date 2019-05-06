@@ -21,9 +21,9 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/metrics"
+	"qitmeer/common/hash"
+	"qitmeer/log"
+	"qitmeer/metrics"
 )
 
 var (

@@ -3,8 +3,8 @@
 package address
 
 import (
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/params"
+	"qitmeer/core/types"
+	"qitmeer/params"
 )
 
 // IsForNetwork returns whether or not the address is associated with the

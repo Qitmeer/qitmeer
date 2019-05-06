@@ -19,7 +19,7 @@ package trie
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 )
 
 // MissingNodeError is returned by the trie functions (TryGet, TryUpdate, TryDelete)

@@ -9,10 +9,10 @@ package blockchain
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/engine/txscript"
+	"qitmeer/common/hash"
+	"qitmeer/core/types"
+	"qitmeer/database"
+	"qitmeer/engine/txscript"
 	"math"
 	"time"
 )

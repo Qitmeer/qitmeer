@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"testing"
 	"unicode"
-	"github.com/noxproject/nox/common/util"
+	"qitmeer/common/util"
 )
 
 // TestAppDataDir tests the API for AppDataDir to ensure it gives expected

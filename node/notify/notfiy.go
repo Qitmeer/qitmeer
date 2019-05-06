@@ -1,8 +1,8 @@
 package notify
 
 import (
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/message"
+	"qitmeer/core/types"
 )
 
 // Notify interface manage message announce & relay & notification between mempool, websocket, gbt long pull

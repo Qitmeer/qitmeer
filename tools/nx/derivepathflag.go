@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 package main
 
-import "github.com/noxproject/nox/wallet"
+import "qitmeer/wallet"
 
 type derivePathFlag struct {
 	path wallet.DerivationPath

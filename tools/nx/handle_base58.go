@@ -6,9 +6,9 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/noxproject/nox/common/encode/base58"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/util"
+	"qitmeer/common/encode/base58"
+	"qitmeer/common/hash"
+	"qitmeer/common/util"
 	"github.com/pkg/errors"
 	"strconv"
 )

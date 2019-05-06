@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/noxproject/nox/crypto/ecc/ed25519/internal/edwards25519"
+	"qitmeer/crypto/ecc/ed25519/internal/edwards25519"
 )
 
 type zeroReader struct{}

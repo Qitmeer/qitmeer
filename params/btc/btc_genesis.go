@@ -8,8 +8,8 @@ package btc
 import (
 	"time"
 
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/core/types"
+	"qitmeer/common/hash"
 )
 
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for

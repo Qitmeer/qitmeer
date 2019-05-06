@@ -13,9 +13,9 @@ interface. The functions are only exported while the tests are being run.
 package dcraddr
 
 import (
-	"github.com/noxproject/nox/common/encode/base58"
+	"qitmeer/common/encode/base58"
 	"golang.org/x/crypto/ripemd160"
-	chainec "github.com/noxproject/nox/crypto/ecc"
+	chainec "qitmeer/crypto/ecc"
 )
 
 // TstAddressPubKeyHash makes an AddressPubKeyHash, setting the

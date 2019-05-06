@@ -6,13 +6,13 @@
 package peerserver
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/p2p/addmgr"
-	"github.com/noxproject/nox/p2p/connmgr"
-	"github.com/noxproject/nox/p2p/peer"
+	"qitmeer/common/hash"
+	"qitmeer/core/message"
+	"qitmeer/core/types"
+	"qitmeer/log"
+	"qitmeer/p2p/addmgr"
+	"qitmeer/p2p/connmgr"
+	"qitmeer/p2p/peer"
 	"sync"
 )
 

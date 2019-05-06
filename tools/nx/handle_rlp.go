@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"github.com/noxproject/nox/common/encode/rlp"
+	"qitmeer/common/encode/rlp"
 )
 
 func rlpEncode(input string) {

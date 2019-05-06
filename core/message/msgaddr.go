@@ -9,8 +9,8 @@ package message
 import (
 	"fmt"
 	"io"
-	"github.com/noxproject/nox/core/types"
-	s "github.com/noxproject/nox/core/serialization"
+	"qitmeer/core/types"
+	s "qitmeer/core/serialization"
 )
 
 // MaxAddrPerMsg is the maximum number of addresses that can be in a single

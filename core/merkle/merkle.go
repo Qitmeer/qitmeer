@@ -4,8 +4,8 @@ package merkle
 
 import (
 	"math"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/core/types"
+	"qitmeer/common/hash"
 )
 
 //TODO refactoing the merkle root calculation to support abstract merkle node

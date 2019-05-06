@@ -3,7 +3,7 @@ package blockdag
 import (
 	"container/list"
 	"time"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 )
 
 // Some available DAG algorithm types

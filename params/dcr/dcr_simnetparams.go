@@ -9,7 +9,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/noxproject/nox/params/dcr/types"
+	"qitmeer/params/dcr/types"
 )
 
 // SimNetParams defines the network parameters for the simulation test Decred

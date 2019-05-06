@@ -7,13 +7,13 @@ package peerserver
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/core/protocol"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/p2p/addmgr"
-	"github.com/noxproject/nox/p2p/peer"
-	"github.com/noxproject/nox/params/dcr/types"
+	"qitmeer/core/message"
+	"qitmeer/core/protocol"
+	"qitmeer/core/types"
+	"qitmeer/log"
+	"qitmeer/p2p/addmgr"
+	"qitmeer/p2p/peer"
+	"qitmeer/params/dcr/types"
 	"time"
 )
 

@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/noxproject/nox/crypto/ecc/ed25519/internal"
+	"qitmeer/crypto/ecc/ed25519/internal"
 )
 
 // These constants define the lengths of serialized private keys.

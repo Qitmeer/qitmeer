@@ -10,12 +10,12 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/params"
-	"github.com/noxproject/nox/core/address"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/crypto/ecc"
-	"github.com/noxproject/nox/params/btc/addr"
+	"qitmeer/common/hash"
+	"qitmeer/params"
+	"qitmeer/core/address"
+	"qitmeer/core/types"
+	"qitmeer/crypto/ecc"
+	"qitmeer/params/btc/addr"
 )
 
 const (

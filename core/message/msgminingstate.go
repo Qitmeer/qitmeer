@@ -8,8 +8,8 @@ package message
 import (
 	"fmt"
 	"io"
-	"github.com/noxproject/nox/common/hash"
-	s "github.com/noxproject/nox/core/serialization"
+	"qitmeer/common/hash"
+	s "qitmeer/core/serialization"
 
 )
 

@@ -6,7 +6,7 @@
 package addmgr
 
 import (
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/types"
 	"sync"
 	"time"
 

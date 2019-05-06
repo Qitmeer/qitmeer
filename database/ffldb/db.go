@@ -23,11 +23,11 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/database/ffldb/treap"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/protocol"
+	"qitmeer/core/types"
+	"qitmeer/database"
+	"qitmeer/database/ffldb/treap"
+	"qitmeer/common/hash"
+	"qitmeer/core/protocol"
 )
 
 const (

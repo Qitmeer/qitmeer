@@ -11,10 +11,10 @@ import (
 	"io"
 	"strconv"
 
-	chainhash "github.com/noxproject/nox/common/hash"
-    btchash "github.com/noxproject/nox/common/hash/btc"
-	s "github.com/noxproject/nox/core/serialization"
-	"github.com/noxproject/nox/core/types"
+	chainhash "qitmeer/common/hash"
+    btchash "qitmeer/common/hash/btc"
+	s "qitmeer/core/serialization"
+	"qitmeer/core/types"
 )
 
 const (

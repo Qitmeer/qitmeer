@@ -8,7 +8,7 @@ package addmgr
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/types"
 	"net"
 )
 

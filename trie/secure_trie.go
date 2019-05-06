@@ -19,9 +19,9 @@ package trie
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/util"
-	"github.com/noxproject/nox/log"
+	"qitmeer/common/hash"
+	"qitmeer/common/util"
+	"qitmeer/log"
 )
 
 // SecureTrie wraps a trie with key hashing. In a secure trie, all

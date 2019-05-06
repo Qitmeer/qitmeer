@@ -8,7 +8,7 @@ package message
 import (
 	"fmt"
 	"io"
-	s "github.com/noxproject/nox/core/serialization"
+	s "qitmeer/core/serialization"
 )
 
 // defaultInvListAlloc is the default size used for the backing array for an

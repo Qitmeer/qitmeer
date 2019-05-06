@@ -7,8 +7,8 @@ package peer
 
 import (
 	"container/list"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/log"
+	"qitmeer/core/message"
+	"qitmeer/log"
 	"sync/atomic"
 	"time"
 )

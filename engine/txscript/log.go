@@ -7,7 +7,7 @@
 package txscript
 
 import (
-	l "github.com/noxproject/nox/log"
+	l "qitmeer/log"
 )
 
 // log is a logger that is initialized with no output filters.  This

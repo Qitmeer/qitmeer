@@ -9,9 +9,9 @@ package txscript
 import (
 	"encoding/binary"
 	"math"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/types"
-	"github.com/noxproject/nox/params"
+	"qitmeer/common/hash"
+	"qitmeer/core/types"
+	"qitmeer/params"
 )
 
 // SigHashType represents hash type bits at the end of a signature.

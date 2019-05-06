@@ -6,8 +6,8 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/noxproject/nox/common/encode/base58"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/encode/base58"
+	"qitmeer/common/hash"
 )
 
 func ecPubKeyToAddress(version []byte, pubkey string) {

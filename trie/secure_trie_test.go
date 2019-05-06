@@ -19,9 +19,9 @@ package trie
 
 import (
 	"bytes"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/common/util"
-	"github.com/noxproject/nox/database/statedb"
+	"qitmeer/common/hash"
+	"qitmeer/common/util"
+	"qitmeer/database/statedb"
 	"runtime"
 	"sync"
 	"testing"

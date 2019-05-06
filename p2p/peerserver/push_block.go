@@ -1,9 +1,9 @@
 package peerserver
 
 import (
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/core/message"
-	"github.com/noxproject/nox/log"
+	"qitmeer/common/hash"
+	"qitmeer/core/message"
+	"qitmeer/log"
 )
 
 // pushBlockMsg sends a block message for the provided block hash to the

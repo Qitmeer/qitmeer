@@ -6,8 +6,8 @@
 package mempool
 
 import (
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/core/blockchain"
+	"qitmeer/core/types"
 )
 
 // minInt is a helper function to return the minimum of two ints.  This avoids

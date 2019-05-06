@@ -2,7 +2,7 @@ package blockdag
 
 import (
 	"fmt"
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 	"strconv"
 	"testing"
 )

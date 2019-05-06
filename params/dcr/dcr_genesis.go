@@ -7,8 +7,8 @@ package dcr
 
 import (
 	"time"
-	"github.com/noxproject/nox/params/dcr/types"
-	chainhash "github.com/noxproject/nox/common/hash"
+	"qitmeer/params/dcr/types"
+	chainhash "qitmeer/common/hash"
 )
 
 // MainNet ------------------------------------------------------------------------

@@ -7,7 +7,7 @@
 package mining
 
 import (
-	"github.com/noxproject/nox/engine/txscript"
+	"qitmeer/engine/txscript"
 )
 
 // Policy houses the policy (configuration parameters) which is used to control

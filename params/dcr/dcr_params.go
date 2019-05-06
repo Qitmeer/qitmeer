@@ -12,8 +12,8 @@ import (
 	"math/big"
 	"time"
 
-	chainhash "github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/params/dcr/types"
+	chainhash "qitmeer/common/hash"
+	"qitmeer/params/dcr/types"
 )
 
 // These variables are the chain proof-of-work limit parameters for each default

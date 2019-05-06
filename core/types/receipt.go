@@ -2,7 +2,7 @@
 
 package types
 
-import "github.com/noxproject/nox/common/hash"
+import "qitmeer/common/hash"
 
 // block execution event, ex. validator change event
 type Event []byte

@@ -5,7 +5,7 @@ package main
 
 import (
 	"encoding/hex"
-	"github.com/noxproject/nox/params"
+	"qitmeer/params"
 )
 
 type noxBase58checkVersionFlag struct {

@@ -8,11 +8,11 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/noxproject/nox/log"
-	"github.com/noxproject/nox/common/hash"
-	"github.com/noxproject/nox/database"
-	"github.com/noxproject/nox/core/blockchain"
-	"github.com/noxproject/nox/core/types"
+	"qitmeer/log"
+	"qitmeer/common/hash"
+	"qitmeer/database"
+	"qitmeer/core/blockchain"
+	"qitmeer/core/types"
 )
 
 const (

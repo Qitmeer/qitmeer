@@ -10,7 +10,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/noxproject/nox/crypto/ecc/ed25519"
+	"qitmeer/crypto/ecc/ed25519"
 )
 
 type edwardsDSA struct {

@@ -9,7 +9,7 @@ package main
 import (
 	"os"
 	"os/signal"
-	"github.com/noxproject/nox/log"
+	"qitmeer/log"
 )
 
 // shutdownRequestChannel is used to initiate shutdown from one of the

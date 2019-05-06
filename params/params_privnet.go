@@ -8,8 +8,8 @@ package params
 
 import (
 	"math/big"
-	"github.com/noxproject/nox/common"
-	"github.com/noxproject/nox/core/protocol"
+	"qitmeer/common"
+	"qitmeer/core/protocol"
 	"time"
 )
 
