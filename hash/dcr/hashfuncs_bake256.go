@@ -1,7 +1,7 @@
 package dcr
 
 import (
-	"github.com/noxproject/nox/common/hash"
+	"qitmeer/common/hash"
 	"github.com/dchest/blake256"
 )
 

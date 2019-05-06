@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/noxproject/nox/common/encode/base58"
+	"qitmeer/common/encode/base58"
 )
 
 var stringTests = []struct {
