@@ -218,7 +218,7 @@ func (b *BlockChain) findPrevTestNetDifficulty(startNode *blockNode) uint32 {
 	for iterNode != nil && iterNode.height%blocksPerRetarget != 0 &&
 		iterNode.bits == b.params.PowLimitBits {
 
-		iterNode = iterNode.GetMainParent()
+		iterNode = iterNode.GetForwardParent(b)
 	}
 
 	// Return the found difficulty or the minimum difficulty if no
@@ -360,7 +360,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 		// Get the previous node while staying at the genesis block as
 		// needed.
 		if oldNode.parents != nil {
-			oldNode = oldNode.GetMainParent()
+			oldNode = oldNode.GetForwardParent(b)
 		}
 	}
 

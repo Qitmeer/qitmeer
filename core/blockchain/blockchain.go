@@ -516,7 +516,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 		b.stateSnapshot = newBestState(tip, blockSize,numTxns,
-			tip.CalcPastMedianTime(),state.totalTxns,state.totalSubsidy)
+			tip.CalcPastMedianTime(b),state.totalTxns,state.totalSubsidy)
 
 		return nil
 	})
@@ -1309,7 +1309,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	newTotalSubsidy := curTotalSubsidy - subsidy
 
 	state := newBestState(prevNode, parentBlockSize, numTxns,
-		prevNode.CalcPastMedianTime(),  newTotalTxns, newTotalSubsidy)
+		prevNode.CalcPastMedianTime(b),  newTotalTxns, newTotalSubsidy)
 
 	err = b.db.Update(func(dbTx database.Tx) error {
 		// Update best block state.
