@@ -17,6 +17,10 @@ func (s *HashSet) Add(elem *hash.Hash) {
 	s.m[*elem] = Empty{}
 }
 
+func (s *HashSet) Remove(elem *hash.Hash) {
+	delete(s.m, *elem)
+}
+
 func (s *HashSet) AddSet(other *HashSet) {
 	if other == nil || other.Len() == 0 {
 		return
@@ -71,9 +75,7 @@ func (s *HashSet) Intersection(other *HashSet) *HashSet {
 	return result
 }
 
-func (s *HashSet) Remove(elem *hash.Hash) {
-	delete(s.m, *elem)
-}
+
 
 func (s *HashSet) Exclude(other *HashSet) {
 	if other != nil && other.Len() > 0 {
