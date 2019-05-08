@@ -90,12 +90,42 @@ func (b *Block) HasParents() bool {
 	return true
 }
 
+// Parent with order in front.
+func (b *Block) GetForwardParent() *Block {
+	if b.parents==nil || b.parents.IsEmpty() {
+		return nil
+	}
+	var result *Block=nil
+	for _,v:=range b.parents.GetMap(){
+		parent:=v.(*Block)
+		if result==nil || parent.GetOrder()<result.GetOrder(){
+			result=parent
+		}
+	}
+	return result
+}
+
+// Parent with order in back.
+func (b *Block) GetBackParent() *Block {
+	if b==nil || b.parents==nil || b.parents.IsEmpty() {
+		return nil
+	}
+	var result *Block=nil
+	for _,v:=range b.parents.GetMap(){
+		parent:=v.(*Block)
+		if result==nil || parent.GetOrder()>result.GetOrder(){
+			result=parent
+		}
+	}
+	return result
+}
+
 // Add child nodes to block
-func (b *Block) AddChild(child *hash.Hash) {
+func (b *Block) AddChild(child *Block) {
 	if b.children == nil {
 		b.children = NewHashSet()
 	}
-	b.children.Add(child)
+	b.children.AddPair(child.GetHash(),child)
 }
 
 // Get all the children of block
@@ -207,9 +237,9 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		block.parents = NewHashSet()
 		var maxLayer uint=0
 		for k, h := range parents {
-			block.parents.Add(h)
 			parent := bd.GetBlock(h)
-			parent.AddChild(block.GetHash())
+			block.parents.AddPair(h,parent)
+			parent.AddChild(&block)
 			if k == 0 {
 				block.privot = parent
 			}
@@ -230,7 +260,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	}
 	bd.blockTotal++
 	//
-	bd.updateTips(block.GetHash())
+	bd.updateTips(&block)
 	//
 	t:=time.Unix(b.GetTimestamp(), 0)
 	if bd.lastTime.Before(t) {
@@ -303,10 +333,10 @@ func (bd *BlockDAG) GetTipsList() []*Block {
 }
 
 // Refresh the dag tip whith new block,it will cause changes in tips set.
-func (bd *BlockDAG) updateTips(h *hash.Hash) {
+func (bd *BlockDAG) updateTips(b *Block) {
 	if bd.tips == nil {
 		bd.tips = NewHashSet()
-		bd.tips.Add(h)
+		bd.tips.AddPair(b.GetHash(),b)
 		return
 	}
 	for k := range bd.tips.GetMap() {
@@ -315,7 +345,7 @@ func (bd *BlockDAG) updateTips(h *hash.Hash) {
 			bd.tips.Remove(&k)
 		}
 	}
-	bd.tips.Add(h)
+	bd.tips.AddPair(b.GetHash(),b)
 }
 
 // The last time is when add one block to DAG.
@@ -398,32 +428,3 @@ func (bd *BlockDAG) GetLayer(h *hash.Hash) uint{
 	return bd.GetBlock(h).GetLayer()
 }
 
-// Parent with order in front.
-func (bd *BlockDAG) GetForwardParent(b *Block) *Block {
-	if b.parents==nil || b.parents.IsEmpty() {
-		return nil
-	}
-	var result *Block=nil
-	for k,_:=range b.parents.GetMap(){
-		parent:=bd.GetBlock(&k)
-		if result==nil || parent.GetOrder()<result.GetOrder(){
-			result=parent
-		}
-	}
-	return result
-}
-
-// Parent with order in back.
-func (bd *BlockDAG) GetBackParent(b *Block) *Block {
-	if b==nil || b.parents==nil || b.parents.IsEmpty() {
-		return nil
-	}
-	var result *Block=nil
-	for k,_:=range b.parents.GetMap(){
-		parent:=bd.GetBlock(&k)
-		if result==nil || parent.GetOrder()>result.GetOrder(){
-			result=parent
-		}
-	}
-	return result
-}

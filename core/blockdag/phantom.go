@@ -924,7 +924,7 @@ func (ph *Phantom) IsOnMainChain(b *Block) bool {
 			return true
 		}
 		//get parent that position is rather forward
-		result=ph.bd.GetForwardParent(result)
+		result=result.GetForwardParent()
 	}
 	return false
 }

@@ -756,7 +756,7 @@ func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) *Block {
 			hash:=*h
 			block.parents.Add(&hash)
 			parent := votedPast.GetBlock(&hash)
-			parent.AddChild(block.GetHash())
+			parent.AddChild(&block)
 		}
 	}
 	if votedPast.blocks == nil {
@@ -767,7 +767,7 @@ func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) *Block {
 		votedPast.genesis = *block.GetHash()
 	}
 	votedPast.blockTotal++
-	votedPast.updateTips(block.GetHash())
+	votedPast.updateTips(&block)
 	votedPast.instance.AddBlock(&block)
 	return &block
 }

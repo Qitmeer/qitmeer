@@ -279,7 +279,7 @@ func (node *blockNode) Clone() *blockNode{
 
 //return parent that position is rather forward
 func (node *blockNode) GetForwardParent(bc *BlockChain) *blockNode {
-	b:=bc.bd.GetForwardParent(bc.bd.GetBlock(&node.hash))
+	b:=bc.bd.GetBlock(&node.hash).GetForwardParent()
 	if b==nil {
 		return nil
 	}
@@ -288,7 +288,7 @@ func (node *blockNode) GetForwardParent(bc *BlockChain) *blockNode {
 
 //return parent that position is rather back
 func (node *blockNode) GetBackParent(bc *BlockChain) *blockNode {
-	b:=bc.bd.GetBackParent(bc.bd.GetBlock(&node.hash))
+	b:=bc.bd.GetBlock(&node.hash).GetBackParent()
 	if b==nil {
 		return nil
 	}

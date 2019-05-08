@@ -6,15 +6,19 @@ import (
 )
 
 type HashSet struct {
-	m map[hash.Hash]Empty
+	m map[hash.Hash]interface{}
 }
 
-func (s *HashSet) GetMap() map[hash.Hash]Empty {
+func (s *HashSet) GetMap() map[hash.Hash]interface{} {
 	return s.m
 }
 
 func (s *HashSet) Add(elem *hash.Hash) {
 	s.m[*elem] = Empty{}
+}
+
+func (s *HashSet) AddPair(elem *hash.Hash,data interface{}) {
+	s.m[*elem] = data
 }
 
 func (s *HashSet) Remove(elem *hash.Hash) {
@@ -25,8 +29,8 @@ func (s *HashSet) AddSet(other *HashSet) {
 	if other == nil || other.Len() == 0 {
 		return
 	}
-	for k, _ := range other.GetMap() {
-		s.Add(&k)
+	for k, v := range other.GetMap() {
+		s.AddPair(&k,v)
 	}
 }
 
@@ -101,7 +105,7 @@ func (s *HashSet) Len() int {
 }
 
 func (s *HashSet) Clear() {
-	s.m = map[hash.Hash]Empty{}
+	s.m = map[hash.Hash]interface{}{}
 }
 
 func (s *HashSet) IsEmpty() bool {
@@ -164,7 +168,7 @@ func (s *HashSet) Clone() *HashSet {
 // Create a new HashSet
 func NewHashSet() *HashSet {
 	return &HashSet{
-		m: map[hash.Hash]Empty{},
+		m: map[hash.Hash]interface{}{},
 	}
 }
 
