@@ -923,23 +923,10 @@ func (ph *Phantom) IsOnMainChain(b *Block) bool {
 		if result.GetHash().IsEqual(b.GetHash()) {
 			return true
 		}
-		result=ph.GetMainParent(result)
+		//get parent that position is rather forward
+		result=ph.bd.GetForwardParent(result)
 	}
 	return false
-}
-
-//return parent that position is rather forward
-func (ph *Phantom) GetMainParent(b *Block) *Block {
-	var result *Block=nil
-	if b.parents!=nil {
-		for k,_:=range b.parents.GetMap(){
-			vb:=ph.bd.GetBlock(&k)
-			if result==nil || vb.GetOrder()<result.GetOrder() {
-				result=vb
-			}
-		}
-	}
-	return result
 }
 
 type SortBlock struct {
