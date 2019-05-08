@@ -4,19 +4,13 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"qitmeer/common/encode/base58"
 	"qitmeer/common/hash"
 )
 
 func ecPubKeyToAddress(version []byte, pubkey string) {
-	data, err :=hex.DecodeString(pubkey)
-	if err != nil {
-		errExit(err)
-	}
-	h := hash.Hash160(data)
-
+	h := hash.Hash160([]byte(pubkey))
 	address := base58.NoxCheckEncode(h, version[:])
 	fmt.Printf("%s\n",address)
 }

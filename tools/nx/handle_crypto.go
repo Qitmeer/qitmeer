@@ -197,7 +197,7 @@ func ecNew(curve string, entropyStr string){
 	}
 }
 
-func ecPrivateKeyToEcPublicKey(uncompressed bool, privateKeyStr string) {
+func ecPrivateKeyToEcPublicKey(uncompressed bool, privateKeyStr string) []byte {
 	data, err := hex.DecodeString(privateKeyStr)
 	if err!=nil {
 		errExit(err)
@@ -209,7 +209,7 @@ func ecPrivateKeyToEcPublicKey(uncompressed bool, privateKeyStr string) {
 	}else {
 		key = pubKey.SerializeCompressed()
 	}
-	fmt.Printf("%x\n",key[:])
+	return key
 }
 
 func ecPrivateKeyToWif(uncompressed bool, privateKeyStr string) {

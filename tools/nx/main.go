@@ -913,11 +913,12 @@ NOX is the 64 bit spend amount in nox.`)
 
 	if ecToPubCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
+		var key []byte
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecToPubCmd.Usage()
 			}else{
-				ecPrivateKeyToEcPublicKey(uncompressedPKFormat,os.Args[len(os.Args)-1])
+				key = ecPrivateKeyToEcPublicKey(uncompressedPKFormat,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -925,8 +926,9 @@ NOX is the 64 bit spend amount in nox.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			ecPrivateKeyToEcPublicKey(uncompressedPKFormat,str)
+			key = ecPrivateKeyToEcPublicKey(uncompressedPKFormat,str)
 		}
+		fmt.Printf("%x\n",key)
 	}
 
 	if ecToWifCmd.Parsed() {
@@ -989,7 +991,8 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecToAddrCmd.Usage()
 			}else{
-				ecPubKeyToAddress(base58checkVersion.ver,os.Args[len(os.Args)-1])
+				keys := ecPrivateKeyToEcPublicKey(uncompressedPKFormat,os.Args[len(os.Args)-1])
+				ecPubKeyToAddress(base58checkVersion.ver,string(keys[:]))
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
