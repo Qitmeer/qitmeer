@@ -90,6 +90,7 @@ func (b *Block) HasParents() bool {
 	return true
 }
 
+// Add child nodes to block
 func (b *Block) AddChild(child *hash.Hash) {
 	if b.children == nil {
 		b.children = NewHashSet()
@@ -97,10 +98,12 @@ func (b *Block) AddChild(child *hash.Hash) {
 	b.children.Add(child)
 }
 
+// Get all the children of block
 func (b *Block) GetChildren() *HashSet {
 	return b.children
 }
 
+// Detecting the presence of child nodes
 func (b *Block) HasChildren() bool {
 	if b.children == nil {
 		return false
@@ -111,24 +114,29 @@ func (b *Block) HasChildren() bool {
 	return true
 }
 
+// Setting the weight of block
 func (b *Block) SetWeight(weight uint) {
 	b.weight = weight
 }
 
-func (b *Block) SetLayer(layer uint) {
-	b.layer=layer
-}
-
+// Acquire the weight of block
 func (b *Block) GetWeight() uint {
 	return b.weight
 }
 
-func (b *Block) GetOrder() uint {
-	return b.order
+// Setting the layer of block
+func (b *Block) SetLayer(layer uint) {
+	b.layer=layer
 }
 
+// Acquire the layer of block
 func (b *Block) GetLayer() uint {
 	return b.layer
+}
+
+// Acquire the order of block
+func (b *Block) GetOrder() uint {
+	return b.order
 }
 
 // The general foundation framework of DAG
@@ -156,10 +164,12 @@ type BlockDAG struct {
 	instance IBlockDAG
 }
 
+// Acquire the name of DAG instance
 func (bd *BlockDAG) GetName() string {
 	return bd.instance.GetName()
 }
 
+// Initialize self, the function to be invoked at the beginning
 func (bd *BlockDAG) Init(dagType string) IBlockDAG{
 	bd.instance=NewBlockDAG(dagType)
 	bd.instance.Init(bd)
@@ -230,10 +240,12 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	return bd.instance.AddBlock(&block)
 }
 
+// Acquire the genesis block of chain
 func (bd *BlockDAG) GetGenesis() *Block {
 	return bd.GetBlock(&bd.genesis)
 }
 
+// Acquire the genesis block hash of chain
 func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 	return &bd.genesis
 }
@@ -243,10 +255,12 @@ func (bd *BlockDAG) IsDAG(b IBlockData) bool {
 	return true
 }
 
+// Is there a block in DAG?
 func (bd *BlockDAG) HasBlock(h *hash.Hash) bool {
 	return bd.GetBlock(h) != nil
 }
 
+// Is there some block in DAG?
 func (bd *BlockDAG) HasBlocks(hs []*hash.Hash) bool {
 	for _, h := range hs {
 		if !bd.HasBlock(h) {
@@ -256,6 +270,7 @@ func (bd *BlockDAG) HasBlocks(hs []*hash.Hash) bool {
 	return true
 }
 
+// Acquire one block by hash
 func (bd *BlockDAG) GetBlock(h *hash.Hash) *Block {
 	block, ok := bd.blocks[*h]
 	if !ok {
@@ -264,6 +279,7 @@ func (bd *BlockDAG) GetBlock(h *hash.Hash) *Block {
 	return block
 }
 
+// Total number of blocks
 func (bd *BlockDAG) GetBlockTotal() uint {
 	return bd.blockTotal
 }
@@ -273,6 +289,7 @@ func (bd *BlockDAG) GetTips() *HashSet {
 	return bd.tips
 }
 
+// Acquire the tips array of DAG
 func (bd *BlockDAG) GetTipsList() []*Block {
 	result:=bd.instance.GetTipsList()
 	if result!=nil {
@@ -311,6 +328,7 @@ func (bd *BlockDAG) GetOrder() []*hash.Hash {
 	return bd.order
 }
 
+// Obtain block hash by global order
 func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash{
 	result:=bd.instance.GetBlockByOrder(order)
 	if result!=nil {
