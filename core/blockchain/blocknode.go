@@ -168,7 +168,7 @@ func (node *blockNode) Header() types.BlockHeader {
 // prior to, and including, the block node.
 //
 // This function is safe for concurrent access.
-func (node *blockNode) CalcPastMedianTime(bc *BlockChain) time.Time {
+func (node *blockNode) CalcPastMedianTime() time.Time {
 	// Create a slice of the previous few block timestamps used to calculate
 	// the median per the number defined by the constant medianTimeBlocks.
 	timestamps := make([]int64, medianTimeBlocks)
@@ -178,7 +178,7 @@ func (node *blockNode) CalcPastMedianTime(bc *BlockChain) time.Time {
 		timestamps[i] = iterNode.timestamp
 		numNodes++
 
-		iterNode = iterNode.GetForwardParent(bc)
+		iterNode = iterNode.GetForwardParent()
 	}
 
 	// Prune the slice to the actual number of available timestamps which
@@ -278,21 +278,31 @@ func (node *blockNode) Clone() *blockNode{
 }
 
 //return parent that position is rather forward
-func (node *blockNode) GetForwardParent(bc *BlockChain) *blockNode {
-	b:=bc.bd.GetBlock(&node.hash).GetForwardParent()
-	if b==nil {
+func (node *blockNode) GetForwardParent() *blockNode {
+	if node.parents==nil || len(node.parents)<=0 {
 		return nil
 	}
-	return bc.index.lookupNode(b.GetHash())
+	var result *blockNode=nil
+	for _,v:=range node.parents{
+		if result==nil || v.GetHeight()<result.GetHeight(){
+			result=v
+		}
+	}
+	return result
 }
 
 //return parent that position is rather back
-func (node *blockNode) GetBackParent(bc *BlockChain) *blockNode {
-	b:=bc.bd.GetBlock(&node.hash).GetBackParent()
-	if b==nil {
+func (node *blockNode) GetBackParent() *blockNode {
+	if node.parents==nil || len(node.parents)<=0 {
 		return nil
 	}
-	return bc.index.lookupNode(b.GetHash())
+	var result *blockNode=nil
+	for _,v:=range node.parents{
+		if result==nil || v.GetHeight()>result.GetHeight(){
+			result=v
+		}
+	}
+	return result
 }
 
 //return the block node hash.

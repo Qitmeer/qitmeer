@@ -137,7 +137,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	newNode.status = statusDataStored
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
-	err := b.checkBlockContext(block, newNode.GetBackParent(b), flags)
+	err := b.checkBlockContext(block, newNode.GetBackParent(), flags)
 	if err != nil {
 		return false, err
 	}

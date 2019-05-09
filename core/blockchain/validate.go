@@ -594,7 +594,7 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 
 		// Ensure the timestamp for the block header is after the
 		// median time of the last several blocks (medianTimeBlocks).
-		medianTime := prevNode.CalcPastMedianTime(b)
+		medianTime := prevNode.CalcPastMedianTime()
 		if !header.Timestamp.After(medianTime) {
 			str := "block timestamp of %v is not after expected %v"
 			str = fmt.Sprintf(str, header.Timestamp, medianTime)
@@ -682,7 +682,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// Use the past median time of the *previous* block in order
 		// to determine if the transactions in the current block are
 		// final.
-	prevMedianTime = node.GetBackParent(b).CalcPastMedianTime(b)
+	prevMedianTime = node.GetBackParent().CalcPastMedianTime()
 
 		// Skip the coinbase since it does not have any inputs and thus
 		// lock times do not apply.
