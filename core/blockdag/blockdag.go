@@ -379,3 +379,33 @@ func (bd *BlockDAG) IsOnMainChain(h *hash.Hash) bool {
 func (bd *BlockDAG) GetLayer(h *hash.Hash) uint{
 	return bd.GetBlock(h).GetLayer()
 }
+
+// Parent with order in front.
+func (bd *BlockDAG) GetForwardParent(b *Block) *Block {
+	if b.parents==nil || b.parents.IsEmpty() {
+		return nil
+	}
+	var result *Block=nil
+	for k,_:=range b.parents.GetMap(){
+		parent:=bd.GetBlock(&k)
+		if result==nil || parent.GetOrder()<result.GetOrder(){
+			result=parent
+		}
+	}
+	return result
+}
+
+// Parent with order in back.
+func (bd *BlockDAG) GetBackParent(b *Block) *Block {
+	if b==nil || b.parents==nil || b.parents.IsEmpty() {
+		return nil
+	}
+	var result *Block=nil
+	for k,_:=range b.parents.GetMap(){
+		parent:=bd.GetBlock(&k)
+		if result==nil || parent.GetOrder()>result.GetOrder(){
+			result=parent
+		}
+	}
+	return result
+}
