@@ -8,6 +8,7 @@ package peerserver
 import (
 	"errors"
 	"fmt"
+	"net"
 	"qitmeer/common/hash"
 	"qitmeer/config"
 	"qitmeer/core/blockchain"
@@ -22,7 +23,6 @@ import (
 	"qitmeer/services/blkmgr"
 	"qitmeer/services/mempool"
 	"qitmeer/version"
-	"net"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -47,6 +47,9 @@ const (
 
 	// maxProtocolVersion is the max protocol version the server supports.
 	maxProtocolVersion = peer.MaxProtocolVersion
+
+	// connection timeout setting
+	defaultConnectTimeout        = time.Second * 30
 )
 
 var (
@@ -424,7 +427,13 @@ func (s *PeerServer) UpdatePeerHeights(latestBlkHash *hash.Hash, latestHeight ui
 		originPeer: updateSource,
 	}
 }
+
 // handleGetBlocksMsg use to get some blocks from neighbor peers
 func (s *PeerServer) handleGetBlocksMsg(state *peerState, msg *GetBlocksMsg) {
 
+}
+
+// Dial connects to the address on the named network.
+func (s *PeerServer) Dial(network, addr string) (net.Conn, error) {
+	return net.DialTimeout(network, addr, defaultConnectTimeout)
 }

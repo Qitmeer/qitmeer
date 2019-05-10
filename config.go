@@ -32,7 +32,7 @@ const (
 	defaultBlockMaxSize          = 375000
 	defaultMaxRPCClients         = 10
 	defaultMaxPeers              = 125
-	defaultNoMiningStateSync     = false
+	defaultNoMiningStateSync     = true
 )
 const (
 	defaultSigCacheMaxSize       = 100000

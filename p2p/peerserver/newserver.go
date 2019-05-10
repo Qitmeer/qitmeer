@@ -209,7 +209,7 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 		OnAccept:       s.inboundPeerConnected,
 		RetryDuration:  connectionRetryInterval,
 		TargetOutbound: uint32(targetOutbound),
-		Dial:           net.Dial,
+		Dial:           s.Dial,
 		OnConnection:   s.outboundPeerConnected,
 		GetNewAddress:  newAddressFunc,
 	})
