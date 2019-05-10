@@ -32,7 +32,7 @@ const (
 	defaultBlockMaxSize          = 375000
 	defaultMaxRPCClients         = 10
 	defaultMaxPeers              = 125
-	defaultNoMiningStateSync     = true
+	defaultMiningStateSync       = false
 )
 const (
 	defaultSigCacheMaxSize       = 100000
@@ -76,7 +76,7 @@ func loadConfig() (*config.Config, []string, error) {
 		BlockMinSize:         defaultBlockMinSize,
 		BlockMaxSize:         defaultBlockMaxSize,
 		SigCacheMaxSize:      defaultSigCacheMaxSize,
-		NoMiningStateSync:    defaultNoMiningStateSync,
+		MiningStateSync:      defaultMiningStateSync,
 		DAGType:              defaultDAGType,
 	}
 

@@ -40,7 +40,7 @@ func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
 	b.startSync(peers)
 
 	// Grab the mining state from this peer after we're synced.
-	if !b.config.NoMiningStateSync {
+	if b.config.MiningStateSync {
 		b.syncMiningStateAfterSync(sp)
 	}
 }
