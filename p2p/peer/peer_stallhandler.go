@@ -206,7 +206,7 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 	case message.CmdVersion:
 		// Expects a verack message.
 		pendingResponses[wire.CmdVerAck] = deadline
-	/*
+
 	case message.CmdMemPool:
 		// Expects an inv message.
 		pendingResponses[wire.CmdInv] = deadline
@@ -230,6 +230,6 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 
 	case message.CmdGetMiningState:
 		pendingResponses[wire.CmdMiningState] = deadline
-	*/
+
 	}
 }
