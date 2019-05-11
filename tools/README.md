@@ -1,5 +1,5 @@
 # nx user guide
-nx 是一个命令行工具，是 bx 命令的超集，提供了各种用于密钥管理和交易构建的命令。
+nx is a command-line tool that is a superset of bx commands and provides a variety of commands for key management and transaction construction.
 
 ## Prerequisites
 
@@ -119,7 +119,7 @@ decode a base58 string to a base16 string
 
 #### base58check-encode
 
-encode a base58check string,
+base16 string into HLC or BTC address.
 
 ```bash
 ~ nx base58check-encode
@@ -135,15 +135,17 @@ Usage: nx base58check-encode [-v <ver>] [hexstring]
 ##### Example
 
 ```bash
-~ nx base58check-encode 1234567890abcdef
+# create hlc privnet address by base16
+~ nx base58check-encode c1c3092d17c917c2799c041aeaeac18822772149
+
+# base58 string
+RmPwHCuC2m6gvz9TnVLapHySk1ZU72FTSru
 ```
 
 ```bash
+# create btc testnet address by base16
+~ nx base58check-encode -v btctestnet c1c3092d17c917c2799c041aeaeac18822772149
+
 # base58 string
-43c9JGZmRvE
+myBUMQTmZGK8yKLDranjSQEHbCYCaaywQD
 ```
-
----
-
-base58check-encode    encode a base58check string
-base58check-decode    decode a base58check string
