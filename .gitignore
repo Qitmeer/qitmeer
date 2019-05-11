@@ -49,3 +49,4 @@ tools/nx-hd/nx-hd
 # Go
 go.sum
 nox-diabin.iml
+.vscode

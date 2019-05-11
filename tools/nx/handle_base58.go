@@ -9,23 +9,24 @@ import (
 	"qitmeer/common/encode/base58"
 	"qitmeer/common/hash"
 	"qitmeer/common/util"
-	"github.com/pkg/errors"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
-func base58CheckEncode(version []byte, mode string,hasher string, cksumSize int, input string){
+func base58CheckEncode(version []byte, mode string, hasher string, cksumSize int, input string) {
 	if hasher != "" && mode != "nox" {
-		errExit(fmt.Errorf("invaid flag -a %s with -m %s",hasher,mode))
+		errExit(fmt.Errorf("invaid flag -a %s with -m %s", hasher, mode))
 	}
 	data, err := hex.DecodeString(input)
-	if err!=nil {
+	if err != nil {
 		errExit(err)
 	}
 	var encoded string
 
 	if hasher != "" {
 		var cksumfunc func([]byte) []byte
-		switch (hasher) {
+		switch hasher {
 		case "sha256":
 			cksumfunc = base58.SingleHashChecksumFunc(hash.GetHasher(hash.SHA256), cksumSize)
 		case "dsha256":
@@ -39,15 +40,15 @@ func base58CheckEncode(version []byte, mode string,hasher string, cksumSize int,
 		default:
 			err = fmt.Errorf("unknown hasher %s", hasher)
 		}
-		if err!=nil {
+		if err != nil {
 			errExit(err)
 		}
 		encoded = base58.CheckEncode(data, version, cksumSize, cksumfunc)
-	}else {
+	} else {
 		switch mode {
 		case "nox":
 			if len(version) != 2 {
-				errExit(fmt.Errorf("invaid version byte size for nox base58 check encode. input = %x (len = %d, required 2)",version,len(version)))
+				errExit(fmt.Errorf("invaid version byte size for nox base58 check encode. input = %x (len = %d, required 2)", version, len(version)))
 			}
 			encoded = base58.NoxCheckEncode(data, version[:])
 		case "btc":
@@ -63,7 +64,7 @@ func base58CheckEncode(version []byte, mode string,hasher string, cksumSize int,
 	}
 	// Show the encoded data.
 	//fmt.Printf("Encoded Data ver[%v] : %s\n",ver, encoded)
-	fmt.Printf("%s\n",encoded)
+	fmt.Printf("%s\n", encoded)
 }
 
 func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input string) {
@@ -71,7 +72,7 @@ func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 	var data []byte
 	var version []byte
 	if hasher != "" && mode != "nox" {
-		errExit(fmt.Errorf("invaid flag -a %s with -m %s",hasher,mode))
+		errExit(fmt.Errorf("invaid flag -a %s with -m %s", hasher, mode))
 	}
 	if hasher != "" {
 		var v []byte
@@ -87,13 +88,13 @@ func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 		case "blake2b512":
 			data, v, err = base58.CheckDecode(input, versionSize, cksumSize, base58.SingleHashChecksumFunc(hash.GetHasher(hash.Blake2b_512), cksumSize))
 		default:
-			err = fmt.Errorf("unknown hasher %s",hasher)
+			err = fmt.Errorf("unknown hasher %s", hasher)
 		}
-		if err!=nil {
+		if err != nil {
 			errExit(err)
 		}
 		version = v
-	}else {
+	} else {
 		switch mode {
 		case "btc":
 			v := byte(0)
@@ -122,29 +123,29 @@ func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 	}
 	if showDetails {
 		decoded := base58.Decode(input)
-		if hasher!="" {
+		if hasher != "" {
 			fmt.Printf("hasher  : %s\n", hasher)
-		}else {
+		} else {
 			fmt.Printf("mode    : %s\n", mode)
 		}
-		version_d, err := strconv.ParseUint(fmt.Sprintf("%x",version[:]), 16, 64)
+		version_d, err := strconv.ParseUint(fmt.Sprintf("%x", version[:]), 16, 64)
 		version_r := util.CopyBytes(version[:])
 		util.ReverseBytes(version_r)
-		version_d2, err := strconv.ParseUint(fmt.Sprintf("%x",version_r[:]), 16, 64)
-		if err!=nil {
-			errExit(errors.Wrapf(err,"convert version %x error",version[:]))
+		version_d2, err := strconv.ParseUint(fmt.Sprintf("%x", version_r[:]), 16, 64)
+		if err != nil {
+			errExit(errors.Wrapf(err, "convert version %x error", version[:]))
 		}
 		fmt.Printf("version : %x (hex) %v (BE) %v (LE)\n", version, version_d, version_d2)
 		fmt.Printf("payload : %x\n", data)
 		cksum := decoded[len(decoded)-cksumSize:]
-		cksum_d, err := strconv.ParseUint(fmt.Sprintf("%x",cksum[:]), 16, 64)
-		if err!=nil {
-			errExit(errors.Wrapf(err,"convert version %x error",cksum[:]))
+		cksum_d, err := strconv.ParseUint(fmt.Sprintf("%x", cksum[:]), 16, 64)
+		if err != nil {
+			errExit(errors.Wrapf(err, "convert version %x error", cksum[:]))
 		}
 		//convere to  little endian
 		cksum_r := util.CopyBytes(cksum[:])
 		util.ReverseBytes(cksum_r)
-		cksum_d2, err := strconv.ParseUint(fmt.Sprintf("%x",cksum_r[:]), 16, 64)
+		cksum_d2, err := strconv.ParseUint(fmt.Sprintf("%x", cksum_r[:]), 16, 64)
 		fmt.Printf("checksum: %x (hex) %v (BE) %v (LE)\n", cksum, cksum_d, cksum_d2)
 
 	} else {
@@ -152,18 +153,16 @@ func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 	}
 }
 
-
-func base58Encode(input string){
+func base58Encode(input string) {
 	data, err := hex.DecodeString(input)
-	if err!=nil {
+	if err != nil {
 		errExit(err)
 	}
 	encoded := base58.Encode(data)
-	fmt.Printf("%s\n",encoded)
+	fmt.Printf("%s\n", encoded)
 }
 
-func base58Decode(input string){
+func base58Decode(input string) {
 	data := base58.Decode(input)
 	fmt.Printf("%x\n", data)
 }
-
