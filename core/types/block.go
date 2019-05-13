@@ -265,7 +265,7 @@ func (b *Block) Decode(r io.Reader, pver uint32) error {
 	if pbCount > MaxParentsPerBlock {
 		str := fmt.Sprintf("too many parents to fit into a block "+
 			"[count %d, max %d]", pbCount, MaxParentsPerBlock)
-		return fmt.Errorf("MsgBlock.BtcDecode", str)
+		return fmt.Errorf("MsgBlock.BtcDecode %s", str)
 	}
 	b.Parents = make([]*hash.Hash, 0, pbCount)
 	phash:=hash.Hash{}
@@ -318,7 +318,7 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	if pbCount > MaxParentsPerBlock {
 		str := fmt.Sprintf("too many parents to fit into a block "+
 			"[count %d, max %d]", pbCount, MaxParentsPerBlock)
-		return nil,fmt.Errorf("MsgBlock.BtcDecode", str)
+		return nil,fmt.Errorf("MsgBlock.BtcDecode %s", str)
 	}
 	b.Parents = make([]*hash.Hash, 0, pbCount)
 	phash:=hash.Hash{}
