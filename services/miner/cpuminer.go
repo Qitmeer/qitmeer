@@ -669,7 +669,6 @@ out:
 func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) error {
 	// TODO, decided if need extra nonce for coinbase-tx
 	// do nothing for now
-	return nil
 	blockHash:=msgBlock.BlockHash()
 	height,err:=m.blockManager.GetChain().BlockHeightByHash(&blockHash)
 	if err!=nil {

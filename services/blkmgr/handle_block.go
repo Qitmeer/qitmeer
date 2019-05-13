@@ -180,7 +180,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		if isOrphan || b.current() {
 			log.Trace("handleBlockMsg blocked")
 			bmsg.peer.RequiredUpdatePeerHeights <- peer.UpdatePeerHeightsMsg{
-				blkHashUpdate, heightUpdate}
+				Hash:blkHashUpdate, Height:heightUpdate}
 		}
 	}
 

@@ -466,9 +466,6 @@ mempoolLoop:
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	numCoinbaseSigOps := int64(blockchain.CountSigOps(coinbaseTx, true))
 	blockSize += uint32(coinbaseTx.Transaction().SerializeSize())
 	blockSigOps += numCoinbaseSigOps

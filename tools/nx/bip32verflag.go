@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	NoxMainnetBip32Version = bip32.Bip32Version{params.MainNetParams.HDPrivateKeyID[:],params.MainNetParams.HDPublicKeyID[:]}
-	NoxTestnetBip32Version = bip32.Bip32Version{params.TestNetParams.HDPrivateKeyID[:],params.TestNetParams.HDPublicKeyID[:]}
-	NoxPrivnetBip32Version = bip32.Bip32Version{params.PrivNetParams.HDPrivateKeyID[:],params.PrivNetParams.HDPublicKeyID[:]}
+	NoxMainnetBip32Version = bip32.Bip32Version{PrivKeyVersion:params.MainNetParams.HDPrivateKeyID[:],PubKeyVersion:params.MainNetParams.HDPublicKeyID[:]}
+	NoxTestnetBip32Version = bip32.Bip32Version{PrivKeyVersion:params.TestNetParams.HDPrivateKeyID[:],PubKeyVersion:params.TestNetParams.HDPublicKeyID[:]}
+	NoxPrivnetBip32Version = bip32.Bip32Version{PrivKeyVersion:params.PrivNetParams.HDPrivateKeyID[:],PubKeyVersion:params.PrivNetParams.HDPublicKeyID[:]}
 )
 
 type bip32VersionFlag struct {

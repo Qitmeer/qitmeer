@@ -166,7 +166,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 
 	if isOrphan {
 		return fmt.Sprintf("Block submitted via miner is an orphan building "+
-			"on parent: %s", err.Error()), nil
+			"on parent"), nil
 	}
 
 	// The block was accepted.
@@ -178,13 +178,6 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, amount %d", block.Hash().String(),
 		 block.Height(), coinbaseTxGenerated), nil
 
-	/*
-		if !api.miner.submitBlock(block) {
-			return fmt.Sprintf("rejected: %s", err.Error()), nil
-		}
-	*/
-
-	return nil, nil
 }
 
 //LL
