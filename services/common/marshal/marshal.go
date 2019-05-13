@@ -214,7 +214,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 	fields = append(fields, json.KV{Key:"parents", Val:tempArr})
 
 	tempArr=[]string{}
-	if children!=nil&&len(children)>0 {
+	if len(children)>0 {
 
 		for i:=0;i<len(children);i++  {
 			tempArr=append(tempArr,children[i].String())

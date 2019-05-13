@@ -194,7 +194,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	// either a coinbase value or a coinbase transaction object depending on
 	// the request.  Default to only providing a coinbase value.
 	useCoinbaseValue := true
-	if capabilities != nil && len(capabilities) > 0 {
+	if len(capabilities) > 0 {
 		var hasCoinbaseValue, hasCoinbaseTxn bool
 		for _, capability := range capabilities {
 			switch capability {
@@ -421,8 +421,8 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	if useCoinbaseValue {
 		//reply.CoinbaseValue = &template.Block.Transactions[0].TxOut[0].Amount
 
-		var coinbaseValue uint64 // coinbaseValue = all coinbase value
-		coinbaseValue = uint64(api.miner.blockManager.GetChain().FetchSubsidyCache().CalcBlockSubsidy(int64(template.Height)))
+		// coinbaseValue = all coinbase value
+		var coinbaseValue uint64= uint64(api.miner.blockManager.GetChain().FetchSubsidyCache().CalcBlockSubsidy(int64(template.Height)))
 		reply.CoinbaseValue = &coinbaseValue
 	} else {
 		// Ensure the template has a valid payment address associated

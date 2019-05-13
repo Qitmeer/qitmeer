@@ -479,9 +479,7 @@ mempoolLoop:
 	blockTxnsRegular = append(blockTxnsRegular, coinbaseTx)
 
 	// Append regular tx
-	for _, tx := range blockTxns {
-		blockTxnsRegular = append(blockTxnsRegular, tx)
-	}
+	blockTxnsRegular = append(blockTxnsRegular, blockTxns...)
 
 	for _, tx := range blockTxnsRegular {
 		fee, ok := txFeesMap[*tx.Hash()]

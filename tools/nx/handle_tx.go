@@ -165,12 +165,11 @@ func txSign(privkeyStr string, rawTxStr string) {
 	if err != nil {
 		errExit(err)
 	}
-	var kdb txscript.KeyClosure
-	kdb = func(types.Address) (ecc.PrivateKey, bool, error){
+	var kdb txscript.KeyClosure= func(types.Address) (ecc.PrivateKey, bool, error){
 		return privateKey,true,nil // compressed is true
 	}
 	var sigScripts [][]byte
-	for i,_:= range redeemTx.TxIn {
+	for i:= range redeemTx.TxIn {
 		sigScript,err := txscript.SignTxOutput(param,&redeemTx,i,pkScript,txscript.SigHashAll,kdb,nil,nil,ecc.ECDSA_Secp256k1)
 		if err != nil {
 			errExit(err)
@@ -178,7 +177,7 @@ func txSign(privkeyStr string, rawTxStr string) {
 		sigScripts= append(sigScripts,sigScript)
 	}
 
-	for i2,_:=range sigScripts {
+	for i2:=range sigScripts {
 		redeemTx.TxIn[i2].SignScript = sigScripts[i2]
 	}
 

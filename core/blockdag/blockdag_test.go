@@ -207,7 +207,7 @@ func printBlockChainTag(list []*hash.Hash, tbMap map[string]*hash.Hash) {
 	for i := 0; i < len(list); i++ {
 		name := getBlockTag(list[i],tbMap)
 		if i == 0 {
-			result += fmt.Sprintf("%s", name)
+			result += name
 		} else {
 			result += fmt.Sprintf("-->%s", name)
 		}
@@ -218,10 +218,10 @@ func printBlockChainTag(list []*hash.Hash, tbMap map[string]*hash.Hash) {
 func printBlockSetTag(set *HashSet, tbMap map[string]*hash.Hash) {
 	var result string="["
 	isFirst:=true
-	for k,_:=range set.GetMap(){
+	for k:=range set.GetMap(){
 		name := getBlockTag(&k,tbMap)
 		if isFirst {
-			result += fmt.Sprintf("%s", name)
+			result += name
 			isFirst=false
 		}else {
 			result += fmt.Sprintf(",%s", name)

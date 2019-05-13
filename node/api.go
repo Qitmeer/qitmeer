@@ -543,8 +543,7 @@ func (api *PublicBlockChainAPI) TxSign(privkeyStr string, rawTxStr string) (inte
 	privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
 	h160 := hash.Hash160(pubKey.SerializeCompressed())
 
-	var param *params.Params
-	param = &params.PrivNetParams
+	var param *params.Params= &params.PrivNetParams
 	addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
 	if err != nil {
 	}
@@ -563,19 +562,18 @@ func (api *PublicBlockChainAPI) TxSign(privkeyStr string, rawTxStr string) (inte
 	err = redeemTx.Deserialize(bytes.NewReader(serializedTx))
 	if err != nil {
 	}
-	var kdb txscript.KeyClosure
-	kdb = func(types.Address) (ecc.PrivateKey, bool, error) {
+	var kdb txscript.KeyClosure= func(types.Address) (ecc.PrivateKey, bool, error) {
 		return privateKey, true, nil // compressed is true
 	}
 	var sigScripts [][]byte
-	for i, _ := range redeemTx.TxIn {
+	for i:= range redeemTx.TxIn {
 		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
 		if err != nil {
 		}
 		sigScripts = append(sigScripts, sigScript)
 	}
 
-	for i2, _ := range sigScripts {
+	for i2:= range sigScripts {
 		redeemTx.TxIn[i2].SignScript = sigScripts[i2]
 	}
 

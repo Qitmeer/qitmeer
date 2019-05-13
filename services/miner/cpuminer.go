@@ -697,7 +697,7 @@ func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) er
 }
 
 func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, error) {
-	if parents==nil||len(parents)==0 {
+	if len(parents)==0 {
 		return nil,errors.New("Parents is invalid")
 	}
 

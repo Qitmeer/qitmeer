@@ -48,7 +48,7 @@ func (s *PeerServer) handleQuery(state *peerState, querymsg interface{}) {
 		nconnected := int32(0)
 		msg.reply <- nconnected
 	case getPeersMsg:
-		peers := make([]*serverPeer, 0, 0)
+		peers := make([]*serverPeer, 0)
 		msg.reply <- peers
 	case connectNodeMsg:
 		msg.reply <- errors.New("not support")
@@ -57,7 +57,7 @@ func (s *PeerServer) handleQuery(state *peerState, querymsg interface{}) {
 	case getOutboundGroup:
 		msg.reply <- 0
 	case getAddedNodesMsg:
-		peers := make([]*serverPeer, 0, 0)
+		peers := make([]*serverPeer, 0)
 		msg.reply <- peers
 	case disconnectNodeMsg:
 		msg.reply <- errors.New("not support")

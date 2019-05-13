@@ -221,7 +221,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	var parents []*hash.Hash
 	if bd.GetBlockTotal() > 0 {
 		parents = b.GetParents()
-		if parents == nil || len(parents) == 0 {
+		if len(parents) == 0 {
 			return nil
 		}
 		if !bd.HasBlocks(parents) {
@@ -326,7 +326,7 @@ func (bd *BlockDAG) GetTipsList() []*Block {
 		return result
 	}
 	result=[]*Block{}
-	for k,_:=range bd.tips.GetMap(){
+	for k:=range bd.tips.GetMap(){
 		result=append(result,bd.GetBlock(&k))
 	}
 	return result
@@ -408,7 +408,7 @@ func (bd *BlockDAG) GetFutureSet(fs *HashSet, b *Block) {
 	if children == nil || children.IsEmpty() {
 		return
 	}
-	for k, _ := range children.GetMap() {
+	for k:= range children.GetMap() {
 		if !fs.Has(&k) {
 			fs.Add(&k)
 			bd.GetFutureSet(fs, bd.GetBlock(&k))
