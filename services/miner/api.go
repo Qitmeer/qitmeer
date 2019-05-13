@@ -126,7 +126,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	}
 	block, err := types.NewBlockFromBytes(serializedBlock)
 	if err != nil {
-		return nil, er.RpcDeserializationError("Block decode failed: ", err.Error())
+		return nil, er.RpcDeserializationError("Block decode failed: %s", err.Error())
 	}
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
@@ -175,8 +175,8 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	for _, out := range coinbaseTxOuts {
 		coinbaseTxGenerated += out.Amount
 	}
-	return fmt.Sprintf("Block submitted accepted", "hash", block.Hash(),
-		"height", block.Height(), "amount", coinbaseTxGenerated), nil
+	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, amount %d", block.Hash().String(),
+		 block.Height(), coinbaseTxGenerated), nil
 
 	/*
 		if !api.miner.submitBlock(block) {
