@@ -270,7 +270,7 @@ func (b *Block) Decode(r io.Reader, pver uint32) error {
 	b.Parents = make([]*hash.Hash, 0, pbCount)
 	phash:=hash.Hash{}
 	for i := uint64(0); i < pbCount; i++ {
-		s.ReadElements(r, &phash)
+		err=s.ReadElements(r, &phash)
 		if err != nil {
 			return err
 		}
@@ -323,7 +323,7 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	b.Parents = make([]*hash.Hash, 0, pbCount)
 	phash:=hash.Hash{}
 	for i := uint64(0); i < pbCount; i++ {
-		s.ReadElements(r, &phash)
+		err=s.ReadElements(r, &phash)
 		if err != nil {
 			return nil,err
 		}

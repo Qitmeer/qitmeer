@@ -8,6 +8,7 @@ package base58_test
 
 import (
 	"fmt"
+	"testing"
 
 	"qitmeer/common/encode/base58"
 	"encoding/hex"
@@ -16,7 +17,7 @@ import (
 
 
 // This example demonstrates how to decode modified base58 encoded data.
-func ExampleDecode() {
+func Test_ExampleDecode(t *testing.T) {
 	// Decode example modified base58 encoded data.
 	encoded := "25JnwSn7XKfNQ"
 	decoded := base58.Decode(encoded)
@@ -30,7 +31,7 @@ func ExampleDecode() {
 
 // This example demonstrates how to encode data using the modified base58
 // encoding scheme.
-func ExampleEncode() {
+func Test_ExampleEncode(t *testing.T) {
 	// Encode example data with the modified base58 encoding scheme.
 	data := []byte("Test data")
 	encoded := base58.Encode(data)
@@ -43,7 +44,7 @@ func ExampleEncode() {
 }
 
 // This example demonstrates how to decode Base58Check encoded data.
-func ExampleCheckDecodeBtc() {
+func Test_ExampleCheckDecodeBtc(t *testing.T) {
 	// Decode an example Base58Check encoded data.
 	encoded := "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
 	decoded, version, err := base58.BtcCheckDecode(encoded)
@@ -61,7 +62,7 @@ func ExampleCheckDecodeBtc() {
 	// Version Byte: 0
 }
 
-func ExampleCheckEncodeBtc1() {
+func Test_ExampleCheckEncodeBtc1(t *testing.T) {
 	// Encode example data with the Base58Check encoding scheme.
 	data,_ := hex.DecodeString("62e907b15cbf27d5425399ebf6f0fb50ebb88f18a")
 	encoded := base58.BtcCheckEncode(data, 0x0)
@@ -75,7 +76,7 @@ func ExampleCheckEncodeBtc1() {
 
 // This example demonstrates how to encode data using the Base58Check encoding
 // scheme.
-func ExampleCheckEncodeBtc() {
+func Test_ExampleCheckEncodeBtc(t *testing.T) {
 	// Encode example data with the Base58Check encoding scheme.
 	data := []byte("Test data")
 	encoded := base58.BtcCheckEncode(data, 0x0)
@@ -87,7 +88,7 @@ func ExampleCheckEncodeBtc() {
 	// Encoded Data: 182iP79GRURMp7oMHDU
 }
 
-func ExampleCheckEncodeDcr() {
+func Test_ExampleCheckEncodeDcr(t *testing.T) {
 	// Encode example data with the Base58Check encoding scheme.
 	data := []byte("Test data")
 	ver := [2]byte{0x44, 0x0}
@@ -103,7 +104,7 @@ func ExampleCheckEncodeDcr() {
 
 
 
-func ExampleCheckDecodeDcr() {
+func Test_ExampleCheckDecodeDcr(t *testing.T) {
 	encoded := "2uLtqkeVgFqTUBnjicK8o"
 	decoded, version, err := base58.DcrCheckDecode(encoded)
 	if err != nil {
@@ -119,7 +120,7 @@ func ExampleCheckDecodeDcr() {
 	// Version Byte: [68 0]
 }
 
-func ExampleCheckDecode_ds_addr() {
+func Test_ExampleCheckDecode_ds_addr(t *testing.T) {
 	encoded := "DsaAKsMvZ6HrqhmbhLjV9qVbPkkzF7FnNFY"
 	decoded, version, err := base58.NoxCheckDecode(encoded)
 	if err != nil {
@@ -135,7 +136,7 @@ func ExampleCheckDecode_ds_addr() {
 	// Version Byte: [7 63]
 }
 
-func ExampleCheckEncode_addr() {
+func Test_ExampleCheckEncode_addr(t *testing.T) {
 
 	data,_ := hex.DecodeString("64e20eb6075561d30c23a517c5b73badbc120f05")
 	ver  := [2]byte{0x0c, 0x40}  //Nox main
@@ -151,7 +152,7 @@ func ExampleCheckEncode_addr() {
 }
 
 
-func ExampleCheckEncode() {
+func Test_ExampleCheckEncode(t *testing.T) {
 	// Encode example data with the Base58Check encoding scheme.
 	data := []byte("Test data")
 	var ver [2]byte
@@ -167,7 +168,7 @@ func ExampleCheckEncode() {
 	// Encoded Data: 1182iP79GRURMp6Rsz9X
 }
 
-func ExampleCheckDecode() {
+func Test_ExampleCheckDecode(t *testing.T) {
 	encoded := "1182iP79GRURMp6Rsz9X"
 	decoded, version, err := base58.NoxCheckDecode(encoded)
 	if err != nil {

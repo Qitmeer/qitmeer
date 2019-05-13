@@ -18,12 +18,13 @@ import (
 	_ "qitmeer/params/btc/txscript"
 	"qitmeer/common/hash"
 	"qitmeer/core/types"
+	"testing"
 )
 
 // This example demonstrates creating a script which pays to a bitcoin address.
 // It also prints the created script hex and uses the DisasmString function to
 // display the disassembled script.
-func ExamplePayToAddrScript() {
+func Test_ExamplePayToAddrScript(t *testing.T) {
 	// Parse the address to send the coins to into a btcutil.Address
 	// which is useful to ensure the accuracy of the address and determine
 	// the address type.  It is also required for the upcoming call to
@@ -58,7 +59,7 @@ func ExamplePayToAddrScript() {
 
 // This example demonstrates extracting information from a standard public key
 // script.
-func ExampleExtractPkScriptAddrs() {
+func Test_ExampleExtractPkScriptAddrs(t *testing.T) {
 	// Start with a standard pay-to-pubkey-hash script.
 	scriptHex := "76a914128004ff2fcaf13b2b91eb654b1dc2b674f7ec6188ac"
 	script, err := hex.DecodeString(scriptHex)
@@ -89,7 +90,7 @@ func ExampleExtractPkScriptAddrs() {
 
 //This example demonstrates manually creating and signing a redeem transaction.
 
-func ExampleSignTxOutput() {
+func Test_ExampleSignTxOutput(t *testing.T) {
 
 	// Ordinarily the private key would come from whatever storage mechanism
 	// is being used, but for this example just hard code it.

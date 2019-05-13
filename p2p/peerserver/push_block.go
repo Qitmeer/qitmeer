@@ -34,7 +34,7 @@ func (s *PeerServer) pushBlockMsg(sp *serverPeer, hash *hash.Hash, doneChan chan
 	if !sendInv {
 		dc = doneChan
 	}
-	sp.QueueMessage(&message.MsgBlock{block.Block()}, dc)
+	sp.QueueMessage(&message.MsgBlock{Block:block.Block()}, dc)
 
 	// When the peer requests the final block that was advertised in
 	// response to a getblocks message which requested more blocks than

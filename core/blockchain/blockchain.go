@@ -361,7 +361,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		}
 
 		// The database bucket for the versioning information is missing.
-		if dbInfo == nil && err == nil {
+		if dbInfo == nil {
 			return nil
 		}
 
@@ -1171,7 +1171,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 			return err
 		}
 		if n==nil {
-			return fmt.Errorf("no node %s",n.hash)
+			return fmt.Errorf("no node")
 		}
 		block.SetHeight(n.height-1)
 		// Load all of the utxos referenced by the block that aren't
