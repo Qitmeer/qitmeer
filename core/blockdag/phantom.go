@@ -849,13 +849,15 @@ func (ph *Phantom) updateOrder(b *Block) *list.List{
 			}
 		}
 	}
-	checkOrder:=ph.GetCommonOrderNum()+len(ph.bd.order)
+	//
+	ntLen:=len(ph.bd.order)
+	checkOrder:=ph.GetCommonOrderNum()+ntLen
 	if uint(checkOrder)!=ph.bd.GetBlockTotal() {
 		log.Error(fmt.Sprintf("Order error:The number is a problem"))
 	}
 	//////
 	tips:=ph.bd.GetTips()
-	if tips.HasOnly(b.GetHash())||ph.bd.order[len(ph.bd.order)-1].IsEqual(b.GetHash()) {
+	if tips.HasOnly(b.GetHash()) || (ntLen>0 && ph.bd.order[ntLen-1].IsEqual(b.GetHash())) {
 		b.order=uint(ph.bd.GetBlockTotal()-1)
 		refNodes.PushBack(b.GetHash())
 		return refNodes
