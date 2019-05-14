@@ -1250,9 +1250,9 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 	// heads.
 	firstAttachNode := attachNodes.Front().Value.(*hash.Hash)
 	lastAttachNode := attachNodes.Back().Value.(*hash.Hash)
-	log.Info("DAG REORGANIZE: Start at %v", *firstAttachNode)
-	log.Info("DAG REORGANIZE: End at %v", *lastAttachNode)
-	log.Info("DAG REORGANIZE: New Len= %d;Old Len= %d",attachNodes.Len(),detachNodes.Len() )
+	log.Info(fmt.Sprintf("DAG REORGANIZE: Start at %s", firstAttachNode.String()))
+	log.Info(fmt.Sprintf("DAG REORGANIZE: End at %s", lastAttachNode.String()))
+	log.Info(fmt.Sprintf("DAG REORGANIZE: New Len= %d;Old Len= %d",attachNodes.Len(),detachNodes.Len()))
 
 	return nil
 }

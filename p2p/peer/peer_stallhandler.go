@@ -147,9 +147,9 @@ out:
 				}
 
 				if command != wire.CmdMiningState {
-					log.Info("Peer %s appears to be stalled or "+
+					log.Info(fmt.Sprintf("Peer %s appears to be stalled or "+
 						"misbehaving, %s timeout -- "+
-						"disconnecting", p, command)
+						"disconnecting", p, command))
 					p.Disconnect()
 				}
 				break
