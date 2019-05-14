@@ -10,7 +10,7 @@ if [ ! -x "$(type -p golangci-lint)" ]; then
 fi
 
 golangci-lint --version
-golangci-lint run -v --deadline=2m --disable-all --enable=govet  --enable=gosimple ./...
+golangci-lint run -v --deadline=2m --disable-all --enable=govet --tests=false --enable=gosimple ./...
 
 linter_targets=$(go list ./...) && \
 go test $linter_targets
