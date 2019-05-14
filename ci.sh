@@ -34,14 +34,14 @@ if [ -d "$cur_dir/bin" ];then
    rm -rf ./bin
 fi
 
-mkdir bin
+mkdir -p bin/build
 
-docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name go build -o ./bin/noxd && \
-docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name/tools/nx -e GO111MODULE=on $baseimage_name go build -o ./../../bin/nx && \
+docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name go build -o ./bin/build/noxd && \
+docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name/tools/nx -e GO111MODULE=on $baseimage_name go build -o ./../../bin/build/nx && \
 
 # create launch
 
-cat>./bin/launch<<EOF
+cat>./bin/build/launch<<EOF
 #!/usr/bin/env bash
 A="-A=./"
 net="--testnet"
@@ -75,12 +75,12 @@ fi
 ./noxd \$A \$net \$rpclisten \$rpcuser \$rpcpass \$txindex \$miningaddr \$debuglevel "\$@"
 EOF
 
-chmod u+x ./bin/launch
+chmod u+x ./bin/build/launch
 # create cli
 
-cp ./script/nox/nox-cli.sh ./bin/cli
-sed -i 's/127.0.0.1/172.17.0.1/g' ./bin/cli
-sed -i 's/port=1234/port=18131/g' ./bin/cli
+cp ./script/nox/nox-cli.sh ./bin/build/cli
+sed -i 's/127.0.0.1/172.17.0.1/g' ./bin/build/cli
+sed -i 's/port=1234/port=18131/g' ./bin/build/cli
 
 # build image
 cp ./container/docker/alpine/Dockerfile ./bin/ && \

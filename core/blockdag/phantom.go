@@ -480,7 +480,7 @@ func (ph *Phantom) calLastCommonBlocks(tip *hash.Hash) *HashSet {
 	// optimize tipsAncestors
 	result:=tipsAncestors[*tip].Clone()
 	if result.Len()>1 {
-		for k,_:=range tipsAncestors[*tip].GetMap() {
+		for k:=range tipsAncestors[*tip].GetMap() {
 			b:=ph.bd.GetBlock(&k)
 			if b.GetParents() !=nil {
 				pl:=b.GetParents().List()

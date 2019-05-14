@@ -6,7 +6,7 @@ ENV BUILDDIR=/nox
 RUN apk add --no-cache curl bash jq curl && \
     rm -rf /var/cache/apk/*
 
-COPY ./ $BUILDDIR
+COPY ./build/ $BUILDDIR
 
 ENTRYPOINT ["/nox/launch"]
 
