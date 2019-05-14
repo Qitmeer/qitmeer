@@ -104,7 +104,7 @@ var testData *TestData
 func InitBlockDAG(dagType string,graph string) (IBlockDAG, map[string]*hash.Hash) {
 	output := io.Writer(os.Stdout)
 	glogger := l.NewGlogHandler(l.StreamHandler(output, l.TerminalFormat(false)))
-	glogger.Verbosity(l.LvlTrace)
+	glogger.Verbosity(l.LvlError)
 	l.Root().SetHandler(glogger)
 	blockdaglogger := l.New(l.Ctx{"module": "blockdag"})
 	UseLogger(blockdaglogger)
@@ -143,7 +143,7 @@ func InitBlockDAG(dagType string,graph string) (IBlockDAG, map[string]*hash.Hash
 		if l!=nil&&l.Len()>0 {
 			tbMap[tbd[i].Tag] = block.GetHash()
 		}else{
-			fmt.Printf("Error:%d  %s\n",tempHash+1,tbd[i].Tag)
+			fmt.Printf("Error:%d  %s\n",tempHash,tbd[i].Tag)
 			return nil,nil
 		}
 
@@ -159,7 +159,7 @@ func buildBlock(tag string, parents []*hash.Hash, tbMap *map[string]*hash.Hash) 
 	tBlock := &TestBlock{hash: h}
 	tBlock.parents = parents
 	tBlock.timeStamp=time.Now().Unix()
-	
+
 	//
 	return tBlock
 }

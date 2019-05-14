@@ -476,7 +476,30 @@ func (ph *Phantom) calLastCommonBlocks(tip *hash.Hash) *HashSet {
 		}
 		ph.recPastHashSet(nil, &tipsAncestors, &tipsGenealogy)
 	}
-	return tipsAncestors[*tip]
+
+	// optimize tipsAncestors
+	result:=tipsAncestors[*tip].Clone()
+	if result.Len()>1 {
+		for k,_:=range tipsAncestors[*tip].GetMap() {
+			b:=ph.bd.GetBlock(&k)
+			if b.GetParents() !=nil {
+				pl:=b.GetParents().List()
+				if len(pl)==0 {
+					continue
+				}
+				isAll:=true
+				for _,v:=range pl{
+					if !tipsAncestors[*tip].Has(v) {
+						isAll=false
+					}
+				}
+				if isAll {
+					result.Remove(&k)
+				}
+			}
+		}
+	}
+	return result
 }
 
 func (ph *Phantom) calLastCommonBlocksPBS(pastBlueSet *map[hash.Hash]*HashSet) {
