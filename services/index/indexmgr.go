@@ -222,8 +222,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 // associated scripts are still required to index them.
 func makeUtxoView(dbTx database.Tx, block *types.SerializedBlock, interrupt <-chan struct{}) (*blockchain.UtxoViewpoint, error) {
 	view := blockchain.NewUtxoViewpoint()
-	var parentRegularTxs []*types.Tx
-	parentRegularTxs = block.Transactions()
+	var parentRegularTxs []*types.Tx = block.Transactions()
 
 	for txIdx, tx := range parentRegularTxs {
 		// Coinbases do not reference any inputs.  Since the block is

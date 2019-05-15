@@ -466,9 +466,6 @@ mempoolLoop:
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	numCoinbaseSigOps := int64(blockchain.CountSigOps(coinbaseTx, true))
 	blockSize += uint32(coinbaseTx.Transaction().SerializeSize())
 	blockSigOps += numCoinbaseSigOps
@@ -482,9 +479,7 @@ mempoolLoop:
 	blockTxnsRegular = append(blockTxnsRegular, coinbaseTx)
 
 	// Append regular tx
-	for _, tx := range blockTxns {
-		blockTxnsRegular = append(blockTxnsRegular, tx)
-	}
+	blockTxnsRegular = append(blockTxnsRegular, blockTxns...)
 
 	for _, tx := range blockTxnsRegular {
 		fee, ok := txFeesMap[*tx.Hash()]

@@ -76,7 +76,6 @@ func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
 		}
 	}
 
-	return nil
 }
 
 // ProcessBlock is the main workhorse for handling insertion of new blocks into

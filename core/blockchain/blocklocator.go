@@ -134,7 +134,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 		}
 	}
 
-	for k,_:=range hashesSet.GetMap(){
+	for k:=range hashesSet.GetMap(){
 		hashes=append(hashes,hash.Hash(k))
 	}
 	return hashes

@@ -133,7 +133,7 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 		exNonce:      blockHeader.ExNonce,
 		stateRoot:    blockHeader.StateRoot,
 	}
-	if parents != nil&&len(parents)>0 {
+	if len(parents)>0 {
 		node.parents = parents
 
 		node.workSum = node.workSum.Add(node.GetParentsWorkSum(), node.workSum)

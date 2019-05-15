@@ -132,7 +132,7 @@ func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
 	// is intentionally not directly returning because the first return
 	// value is a string and it would result in returning an empty string to
 	// the client instead of nothing (nil) in the case of an error.
-	mtxHex, err := marshal.MessageToHex(&message.MsgTx{mtx})
+	mtxHex, err := marshal.MessageToHex(&message.MsgTx{Tx:mtx})
 	if err != nil {
 		return nil, err
 	}
@@ -161,12 +161,12 @@ func (api *PublicBlockChainAPI) DecodeRawTransaction(hexTx string) (interface{},
 
 	// Create and return the result.
 	txReply := &json.OrderedResult{
-		{"txid", mtx.TxHash().String()},
-		{"txhash", mtx.TxHashFull().String()},
-		{"version", int32(mtx.Version)},
-		{"locktime", mtx.LockTime},
-		{"vin", createVinList(&mtx)},
-		{"vout", createVoutList(&mtx, api.node.node.Params, nil)},
+		{Key:"txid", Val:mtx.TxHash().String()},
+		{Key:"txhash", Val:mtx.TxHashFull().String()},
+		{Key:"version", Val:int32(mtx.Version)},
+		{Key:"locktime", Val:mtx.LockTime},
+		{Key:"vin", Val:createVinList(&mtx)},
+		{Key:"vout", Val:createVoutList(&mtx, api.node.node.Params, nil)},
 	}
 	return txReply, nil
 }
@@ -400,7 +400,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			// string and it would result in returning an empty
 			// string to the client instead of nothing (nil) in the
 			// case of an error.
-			hexStr, err := marshal.MessageToHex(&message.MsgTx{tx.Transaction()})
+			hexStr, err := marshal.MessageToHex(&message.MsgTx{Tx:tx.Transaction()})
 			if err != nil {
 				return nil, err
 			}
@@ -462,8 +462,6 @@ func (api *PublicBlockChainAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMe
 		includeMempoolTx = *includeMempool
 	}
 
-	var txFromMempool *types.Tx
-
 	// try mempool by default
 	if includeMempoolTx {
 		txFromMempool, inRecentBlock, _ := api.node.txMemPool.FetchTransaction(&txHash, true)
@@ -488,7 +486,7 @@ func (api *PublicBlockChainAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMe
 	}
 
 	// otherwise try to lookup utxo set
-	if txFromMempool == nil {
+	if bestBlockHash == "" {
 		entry, _ := api.node.blockManager.GetChain().FetchUtxoEntry(&txHash)
 		if entry == nil || entry.IsOutputSpent(vout) {
 			return nil, nil
@@ -545,8 +543,7 @@ func (api *PublicBlockChainAPI) TxSign(privkeyStr string, rawTxStr string) (inte
 	privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
 	h160 := hash.Hash160(pubKey.SerializeCompressed())
 
-	var param *params.Params
-	param = &params.PrivNetParams
+	var param *params.Params= &params.PrivNetParams
 	addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
 	if err != nil {
 	}
@@ -565,23 +562,22 @@ func (api *PublicBlockChainAPI) TxSign(privkeyStr string, rawTxStr string) (inte
 	err = redeemTx.Deserialize(bytes.NewReader(serializedTx))
 	if err != nil {
 	}
-	var kdb txscript.KeyClosure
-	kdb = func(types.Address) (ecc.PrivateKey, bool, error) {
+	var kdb txscript.KeyClosure= func(types.Address) (ecc.PrivateKey, bool, error) {
 		return privateKey, true, nil // compressed is true
 	}
 	var sigScripts [][]byte
-	for i, _ := range redeemTx.TxIn {
+	for i:= range redeemTx.TxIn {
 		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
 		if err != nil {
 		}
 		sigScripts = append(sigScripts, sigScript)
 	}
 
-	for i2, _ := range sigScripts {
+	for i2:= range sigScripts {
 		redeemTx.TxIn[i2].SignScript = sigScripts[i2]
 	}
 
-	mtxHex, err := marshal.MessageToHex(&message.MsgTx{&redeemTx})
+	mtxHex, err := marshal.MessageToHex(&message.MsgTx{Tx:&redeemTx})
 	if err != nil {
 	}
 	return mtxHex, nil

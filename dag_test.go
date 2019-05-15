@@ -163,12 +163,11 @@ func buildDoubleSpentTx(txHash *hash.Hash,addrStr string,amount float64,privkeyS
 	if err!=nil {
 		return
 	}
-	var kdb txscript.KeyClosure
-	kdb = func(types.Address) (ecc.PrivateKey, bool, error){
+	var kdb txscript.KeyClosure= func(types.Address) (ecc.PrivateKey, bool, error){
 		return privateKey,true,nil // compressed is true
 	}
 	var sigScripts [][]byte
-	for i,_:= range mtx.TxIn {
+	for i:= range mtx.TxIn {
 		sigScript,err := txscript.SignTxOutput(&params.PrivNetParams,mtx,i,pkScriptP,txscript.SigHashAll,kdb,nil,nil,ecc.ECDSA_Secp256k1)
 		if err != nil {
 			return
@@ -176,7 +175,7 @@ func buildDoubleSpentTx(txHash *hash.Hash,addrStr string,amount float64,privkeyS
 		sigScripts= append(sigScripts,sigScript)
 	}
 
-	for i2,_:=range sigScripts {
+	for i2:=range sigScripts {
 		mtx.TxIn[i2].SignScript = sigScripts[i2]
 	}
 
@@ -370,7 +369,7 @@ func End(){
 }
 
 func GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, error) {
-	if parents==nil||len(parents)==0 {
+	if len(parents)==0 {
 		return nil,fmt.Errorf("Parents is invalid")
 	}
 	m:=ser.GetNoxFull().GetCpuMiner()
@@ -560,9 +559,6 @@ func NewBlockTemplate(policy *mining.Policy,config *config.Config, params *param
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	numCoinbaseSigOps := int64(blockchain.CountSigOps(coinbaseTx, true))
 	blockSize += uint32(coinbaseTx.Transaction().SerializeSize())
 	blockSigOps += numCoinbaseSigOps
@@ -576,10 +572,7 @@ func NewBlockTemplate(policy *mining.Policy,config *config.Config, params *param
 	blockTxnsRegular = append(blockTxnsRegular, coinbaseTx)
 
 	// Append regular tx
-	for _, tx := range blockTxns {
-		blockTxnsRegular = append(blockTxnsRegular, tx)
-	}
-
+	blockTxnsRegular = append(blockTxnsRegular, blockTxns...)
 	for _, tx := range blockTxnsRegular {
 		fee, ok := txFeesMap[*tx.Hash()]
 		if !ok {

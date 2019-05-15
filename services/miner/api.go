@@ -126,7 +126,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	}
 	block, err := types.NewBlockFromBytes(serializedBlock)
 	if err != nil {
-		return nil, er.RpcDeserializationError("Block decode failed: ", err.Error())
+		return nil, er.RpcDeserializationError("Block decode failed: %s", err.Error())
 	}
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
@@ -166,7 +166,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 
 	if isOrphan {
 		return fmt.Sprintf("Block submitted via miner is an orphan building "+
-			"on parent: %s", err.Error()), nil
+			"on parent"), nil
 	}
 
 	// The block was accepted.
@@ -175,16 +175,9 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	for _, out := range coinbaseTxOuts {
 		coinbaseTxGenerated += out.Amount
 	}
-	return fmt.Sprintf("Block submitted accepted", "hash", block.Hash(),
-		"height", block.Height(), "amount", coinbaseTxGenerated), nil
+	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, amount %d", block.Hash().String(),
+		 block.Height(), coinbaseTxGenerated), nil
 
-	/*
-		if !api.miner.submitBlock(block) {
-			return fmt.Sprintf("rejected: %s", err.Error()), nil
-		}
-	*/
-
-	return nil, nil
 }
 
 //LL
@@ -201,7 +194,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	// either a coinbase value or a coinbase transaction object depending on
 	// the request.  Default to only providing a coinbase value.
 	useCoinbaseValue := true
-	if capabilities != nil && len(capabilities) > 0 {
+	if len(capabilities) > 0 {
 		var hasCoinbaseValue, hasCoinbaseTxn bool
 		for _, capability := range capabilities {
 			switch capability {
@@ -428,8 +421,8 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	if useCoinbaseValue {
 		//reply.CoinbaseValue = &template.Block.Transactions[0].TxOut[0].Amount
 
-		var coinbaseValue uint64 // coinbaseValue = all coinbase value
-		coinbaseValue = uint64(api.miner.blockManager.GetChain().FetchSubsidyCache().CalcBlockSubsidy(int64(template.Height)))
+		// coinbaseValue = all coinbase value
+		var coinbaseValue uint64= uint64(api.miner.blockManager.GetChain().FetchSubsidyCache().CalcBlockSubsidy(int64(template.Height)))
 		reply.CoinbaseValue = &coinbaseValue
 	} else {
 		// Ensure the template has a valid payment address associated

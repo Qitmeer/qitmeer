@@ -1225,9 +1225,6 @@ func writeTxInWitness(w io.Writer, pver uint32, version uint16, ti *TxIn) error 
 
 	// BlockIndex.
 	binarySerializer.PutUint32(w, littleEndian, ti.BlockIndex)
-	if err != nil {
-		return err
-	}
 
 	// Write the signature script.
 	return WriteVarBytes(w, pver, ti.SignatureScript)

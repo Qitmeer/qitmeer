@@ -677,12 +677,11 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 
 	// Enforce all relative lock times via sequence numbers for the regular
 	// transaction tree once the stake vote for the agenda is active.
-	var prevMedianTime time.Time
 
 	// Use the past median time of the *previous* block in order
 		// to determine if the transactions in the current block are
 		// final.
-	prevMedianTime = node.GetBackParent().CalcPastMedianTime()
+	var prevMedianTime time.Time = node.GetBackParent().CalcPastMedianTime()
 
 		// Skip the coinbase since it does not have any inputs and thus
 		// lock times do not apply.
@@ -1271,7 +1270,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		return err
 	}
 	badTxArr:=b.GetBadTxFromBlock(block.Hash())
-	if badTxArr!=nil&&len(badTxArr)>0 {
+	if len(badTxArr)>0 {
 		str :=fmt.Sprintf("some bad transactions:")
 		for _,v:=range badTxArr{
 			str+="\n"

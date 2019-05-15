@@ -176,9 +176,7 @@ func BuildParentsMerkleTreeStore(parents []*hash.Hash) []*hash.Hash {
 	merkles := make([]*hash.Hash, arraySize)
 
 	// Populate the array with hashs.
-	for i, tx := range parents {
-		merkles[i] = tx
-	}
+	copy(merkles,parents)
 
 	// Start the array offset after the last parent and adjusted to the
 	// next power of two.

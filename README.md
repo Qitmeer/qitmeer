@@ -1,5 +1,8 @@
 # Qitmeer
 
+[![Build Status](https://travis-ci.com/HalalChain/qitmeer.svg?token=DzCFNC6nhEqPc89sq1nd&branch=master)](https://travis-ci.com/HalalChain/qitmeer)
+
+
 The guardian of trust. The core network of the Halachain
 
 ##  Prerequisites
