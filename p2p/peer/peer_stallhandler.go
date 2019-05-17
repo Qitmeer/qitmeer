@@ -140,9 +140,9 @@ out:
 			// don't arrive by their adjusted deadline.
 			for command, deadline := range pendingResponses {
 				if now.Before(deadline.Add(offset)) {
-					log.Debug("Stall ticker rolling over for peer %s on "+
+					log.Debug(fmt.Sprintf("Stall ticker rolling over for peer %s on "+
 						"cmd %s (deadline for data: %s)", p, command,
-						deadline.String())
+						deadline.String()))
 					continue
 				}
 
