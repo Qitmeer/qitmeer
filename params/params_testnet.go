@@ -32,7 +32,7 @@ var TestNetParams = Params{
 	GenesisBlock:             &testNetGenesisBlock,
 	GenesisHash:              &testNetGenesisHash,
 	PowLimit:                 testNetPowLimit,
-	PowLimitBits:             0x1e00ffff,
+	PowLimitBits:             0x1d0000ff,
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        true,
