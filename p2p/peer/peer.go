@@ -368,7 +368,7 @@ func (p *Peer) PushGetBlocksMsg(gs *blockdag.GraphState,blocks []*hash.Hash) err
 	// Construct the getblocks request and queue it to be sent.
 	msg := message.NewMsgGetBlocks(gs)
 	if !bs.IsEmpty() {
-		for k,_:=range bs.GetMap(){
+		for k:=range bs.GetMap(){
 			msg.AddBlockLocatorHash(&k)
 		}
 	}

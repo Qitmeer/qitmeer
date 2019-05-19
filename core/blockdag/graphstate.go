@@ -86,7 +86,7 @@ func (gs *GraphState) Encode(w io.Writer,pver uint32) error {
 		return err
 	}
 
-	for k,_:= range gs.tips.GetMap() {
+	for k:= range gs.tips.GetMap() {
 		err = s.WriteElements(w, &k)
 		if err != nil {
 			return err

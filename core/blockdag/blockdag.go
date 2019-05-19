@@ -453,7 +453,7 @@ func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 		return nil
 	}
 	queue := []*Block{}
-	for k,_:=range gs.tips.GetMap(){
+	for k:=range gs.tips.GetMap(){
 		if bd.HasBlock(&k) {
 			queue=append(queue,bd.GetBlock(&k))
 		}

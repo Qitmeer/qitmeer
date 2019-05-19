@@ -166,7 +166,7 @@ func (b *BlockManager) startSync(peers *list.List) {
 		// to send.
 		b.requestedBlocks = make(map[hash.Hash]struct{})
 
-		log.Info(fmt.Sprintf("Syncing to state %s from peer %s cur graph state:%s",bestPeer.LastGS().String()), bestPeer.Addr(),best.GS.String())
+		log.Info(fmt.Sprintf("Syncing to state %s from peer %s cur graph state:%s",bestPeer.LastGS().String(), bestPeer.Addr(),best.GS.String()))
 
 		// When the current height is less than a known checkpoint we
 		// can use block headers to learn about which blocks comprise
