@@ -282,7 +282,7 @@ func (b *BlockChain) createChainState() error {
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
 	b.stateSnapshot= newBestState(node, blockSize, numTxns,
-		time.Unix(node.timestamp,0), numTxns,0)
+		time.Unix(node.timestamp,0), numTxns,0,b.bd.GetGraphState())
 
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.
@@ -490,7 +490,7 @@ func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) err
 	// Serialize the current best chain state.
 	serializedData := serializeBestChainState(bestChainState{
 		hash:         snapshot.Hash,
-		height:       snapshot.Height,
+		height:       snapshot.Order,
 	})
 
 	// Store the current best chain state into the database.

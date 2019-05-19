@@ -80,9 +80,10 @@ func (b *BlockManager) handleDonePeerMsg(peers *list.List, sp *peer.ServerPeer) 
 	log.Trace("comparing syncPeer with sp", "b.syncPeer",b.syncPeer, "sp", sp)
 	if b.syncPeer != nil && b.syncPeer == sp {
 		b.syncPeer = nil
+
 		if b.headersFirstMode {
 			best := b.chain.BestSnapshot()
-			b.resetHeaderState(&best.Hash, best.Height)
+			b.resetHeaderState(&best.Hash, best.Order)
 		}
 		log.Trace("Start syncing (DonePeer) by choosing the best candidate if needed", "peers",peers)
 		b.startSync(peers)
@@ -144,7 +145,7 @@ func (b *BlockManager) startSync(peers *list.List) {
 		// doesn't have a later block when it's equal, it will likely
 		// have one soon so it is a reasonable choice.  It also allows
 		// the case where both are at 0 such as during regression test.
-		if sp.LastBlock() < best.Height {
+		if best.GS.IsExcellent(sp.LastGS()) {
 			peers.Remove(e)
 			continue
 		}
@@ -153,7 +154,7 @@ func (b *BlockManager) startSync(peers *list.List) {
 		if bestPeer == nil {
 			bestPeer = sp
 		}
-		if bestPeer.LastBlock() < sp.LastBlock() {
+		if sp.LastGS().IsExcellent(bestPeer.LastGS()) {
 			bestPeer = sp
 		}
 	}
@@ -165,15 +166,7 @@ func (b *BlockManager) startSync(peers *list.List) {
 		// to send.
 		b.requestedBlocks = make(map[hash.Hash]struct{})
 
-		locator, err := b.chain.LatestBlockLocator()
-		if err != nil {
-			log.Error(fmt.Sprintf("Failed to get block locator for the "+
-				"latest block: %v", err))
-			return
-		}
-
-		log.Info(fmt.Sprintf("Syncing to block height %d",
-			bestPeer.LastBlock()), "from peer", bestPeer.Addr())
+		log.Info(fmt.Sprintf("Syncing to state %s from peer %s cur graph state:%s",bestPeer.LastGS().String()), bestPeer.Addr(),best.GS.String())
 
 		// When the current height is less than a known checkpoint we
 		// can use block headers to learn about which blocks comprise
@@ -192,32 +185,16 @@ func (b *BlockManager) startSync(peers *list.List) {
 		// and fully validate them.  Finally, regression test mode does
 		// not support the headers-first approach so do normal block
 		// downloads when in regression test mode.
-		if b.nextCheckpoint != nil &&
-			best.Height < b.nextCheckpoint.Height &&
-			!b.config.DisableCheckpoints {
-
-			err := bestPeer.PushGetHeadersMsg(locator, b.nextCheckpoint.Hash)
-			if err != nil {
-				log.Error(fmt.Sprintf("Failed to push getheadermsg for the "+
-					"latest blocks: %v", err))
-				return
-			}
-			b.headersFirstMode = true
-			log.Info(fmt.Sprintf("Downloading headers for blocks %d to "+
-				"%d from peer %s", best.Height+1,
-				b.nextCheckpoint.Height, bestPeer.Addr()))
-		} else {
-			err := bestPeer.PushGetBlocksMsg(locator, &hash.ZeroHash)
-			if err != nil {
-				log.Error(fmt.Sprintf("Failed to push getblocksmsg for the "+
-					"latest blocks: %v", err))
-				return
-			}
+		err := bestPeer.PushGetBlocksMsg(best.GS,nil)
+		if err != nil {
+			log.Error(fmt.Sprintf("Failed to push getblocksmsg for the "+
+				"latest GS: %v", err))
+			return
 		}
 		b.syncPeer = bestPeer
-		b.syncHeightMtx.Lock()
-		b.syncHeight = bestPeer.LastBlock()
-		b.syncHeightMtx.Unlock()
+		b.syncGSMtx.Lock()
+		b.syncGS = bestPeer.LastGS()
+		b.syncGSMtx.Unlock()
 	} else {
 		log.Warn("No sync peer candidates available")
 	}

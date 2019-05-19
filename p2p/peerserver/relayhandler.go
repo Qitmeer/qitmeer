@@ -1,6 +1,7 @@
 package peerserver
 
 import (
+	"qitmeer/core/blockdag"
 	"qitmeer/core/message"
 	"qitmeer/core/types"
 	"qitmeer/log"
@@ -10,11 +11,11 @@ import (
 // known to have it.  It is invoked from the peerHandler goroutine.
 func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 	log.Trace("handleRelayInvMsg", "msg",msg)
+	var gs *blockdag.GraphState
 	state.forAllPeers(func(sp *serverPeer) {
 		if !sp.Connected() {
 			return
 		}
-
 		// If the inventory is a block and the peer prefers headers,
 		// generate and send a headers message instead of an inventory
 		// message.
@@ -48,7 +49,10 @@ func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 		// It will be ignored in either case if the peer is already
 		// known to have the inventory.
 		if msg.immediate {
-			sp.QueueInventoryImmediate(msg.invVect)
+			if msg.invVect.Type == message.InvTypeBlock {
+				gs=s.BlockManager.GetChain().BestSnapshot().GS
+			}
+			sp.QueueInventoryImmediate(msg.invVect,gs)
 		} else {
 			sp.QueueInventory(msg.invVect)
 		}

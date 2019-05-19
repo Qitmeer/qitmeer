@@ -63,9 +63,9 @@ func (b *BlockChain) LatestBlockLocator() (BlockLocator, error) {
 //   after the genesis block will be returned
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) LocateBlocks(locator BlockLocator, hashStop *hash.Hash, maxHashes uint32) []hash.Hash {
+func (b *BlockChain) LocateBlocks(gs *blockdag.GraphState, maxHashes uint32) []*hash.Hash {
 	b.chainLock.RLock()
-	hashes := b.locateBlocks(locator, hashStop, maxHashes)
+	hashes := b.bd.LocateBlocks(gs, uint(maxHashes))
 	b.chainLock.RUnlock()
 	return hashes
 }
@@ -214,3 +214,4 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 
 	return locator
 }
+

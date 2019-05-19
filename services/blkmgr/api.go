@@ -43,8 +43,8 @@ func (api *PublicBlockAPI) GetBlockhash(height uint) (string, error){
 }
 
 //TODO, refactor BlkMgr API
-func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.OrderedResult, error){
-	block,err := api.bm.chain.BlockByHeight(height)
+func (api *PublicBlockAPI) GetBlockByHeight(order uint64, fullTx bool) (json.OrderedResult, error){
+	block,err := api.bm.chain.BlockByHeight(order)
 
  	if err!=nil {
  		return nil,err
@@ -65,7 +65,7 @@ func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.Or
 	confirmations := int64(-1)
 
 	if onMainChain {
-		confirmations = 1 + int64(best.Height) - int64(height)
+		confirmations = 1 + int64(best.Order) - int64(order)
 	}
 	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
@@ -114,11 +114,11 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 	onMainChain, _ := api.bm.chain.MainChainHasBlock(&h)
 
 	//blockHeader := &blk.Block().Header
-	height := blk.Height()
+	order := blk.Height()
 	confirmations := int64(-1)
 
 	if onMainChain {
-		confirmations = 1 + int64(best.Height) - int64(height)
+		confirmations = 1 + int64(best.Order) - int64(order)
 	}
 	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
@@ -141,7 +141,7 @@ func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error){
 
 func (api *PublicBlockAPI) GetBlockCount() (interface{}, error){
 	best := api.bm.chain.BestSnapshot()
-	return best.Height, nil
+	return best.Order, nil
 }
 
 // GetBlockHeader implements the getblockheader command.

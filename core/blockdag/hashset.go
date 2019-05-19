@@ -162,6 +162,10 @@ func (s *HashSet) Clone() *HashSet {
 	return result
 }
 
+func (s *HashSet) Clean() {
+	s.m=map[hash.Hash]interface{}{}
+}
+
 // Create a new HashSet
 func NewHashSet() *HashSet {
 	return &HashSet{

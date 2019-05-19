@@ -52,7 +52,7 @@ func (gs *GraphState) Clone() *GraphState {
 }
 
 func (gs *GraphState) String() string {
-	return fmt.Sprintf("(%v,%d,%d)",gs.tips,gs.total,gs.layer)
+	return fmt.Sprintf("(%d,%d,%d)",gs.tips.Len(),gs.total,gs.layer)
 }
 
 func (gs *GraphState) IsExcellent(other *GraphState) bool {
@@ -124,6 +124,10 @@ func (gs *GraphState) Decode(r io.Reader,pver uint32) error {
 		gs.tips.Add(h)
 	}
 	return nil
+}
+
+func (gs *GraphState) MaxPayloadLength() uint32 {
+	return 8 + 4 + (MaxTips * hash.HashSize)
 }
 
 // Create a new GraphState

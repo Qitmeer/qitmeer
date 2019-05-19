@@ -13,6 +13,8 @@ const (
 	spectre="spectre"
 )
 
+const MaxTips=100
+
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {

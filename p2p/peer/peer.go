@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"qitmeer/common/hash"
 	"qitmeer/core/blockchain"
+	"qitmeer/core/blockdag"
 	"qitmeer/core/message"
 	"qitmeer/core/protocol"
 	"qitmeer/core/types"
@@ -42,15 +43,15 @@ func (p *Peer) NA() *types.NetAddress {
 	return na
 }
 
-// LastBlock returns the last block of the peer.
+// LastGS returns the last graph state of the peer.
 //
 // This function is safe for concurrent access.
-func (p *Peer) LastBlock() uint64 {
+func (p *Peer) LastGS() *blockdag.GraphState {
 	p.statsMtx.RLock()
-	lastBlock := p.lastBlock
+	lastgs := p.lastGS
 	p.statsMtx.RUnlock()
 
-	return lastBlock
+	return lastgs
 }
 
 // Inbound returns whether the peer is inbound.
@@ -75,7 +76,6 @@ func (p *Peer) Disconnect() {
 	if atomic.AddInt32(&p.disconnect, 1) != 1 {
 		return
 	}
-
 	log.Trace("Disconnecting ", "peer",p.addr)
 	if atomic.LoadInt32(&p.connected) != 0 {
 		p.conn.Close()
@@ -323,33 +323,53 @@ func (p *Peer) Services() protocol.ServiceFlag {
 // and stop hash.  It will ignore back-to-back duplicate requests.
 //
 // This function is safe for concurrent access.
-func (p *Peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash *hash.Hash) error {
-	// Extract the begin hash from the block locator, if one was specified,
-	// to use for filtering duplicate getblocks requests.
-	var beginHash *hash.Hash
-	if len(locator) > 0 {
-		beginHash = locator[0]
-	}
+func (p *Peer) PushGetBlocksMsg(gs *blockdag.GraphState,blocks []*hash.Hash) error {
+
+	isDuplicate:=false
+	bs:=blockdag.NewHashSet()
+
 
 	// Filter duplicate getblocks requests.
 	p.prevGetBlocksMtx.Lock()
-	isDuplicate := p.prevGetBlocksStop != nil && p.prevGetBlocksBegin != nil &&
-		beginHash != nil && stopHash.IsEqual(p.prevGetBlocksStop) &&
-		beginHash.IsEqual(p.prevGetBlocksBegin)
+	if len(blocks)>0 {
+		if p.prevGetBlocks==nil {
+			p.prevGetBlocks=blockdag.NewHashSet()
+			bs.AddList(blocks)
+		}else {
+			isDuplicate = p.prevGetBlocks.Contain(bs)
+			for _,v:=range blocks{
+				if !p.prevGetBlocks.Has(v) {
+					bs.Add(v)
+				}
+			}
+			if bs.IsEmpty() {
+				isDuplicate=true
+			}
+		}
+	}else {
+		if p.prevGetGS!=nil {
+			isDuplicate = gs.IsEqual(p.prevGetGS)
+		}
+	}
 	p.prevGetBlocksMtx.Unlock()
 
 	if isDuplicate {
-		log.Trace(fmt.Sprintf("Filtering duplicate [getblocks] with begin "+
-			"hash %v, stop hash %v", beginHash, stopHash))
+		if len(blocks)>0 {
+			log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: "+
+				"prev:%d cur:%d", p.prevGetBlocks.Len(),len(blocks)))
+		}else {
+			log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: "+
+				"prev:%s cur:%s", p.prevGetGS.String(),gs.String()))
+		}
+
 		return nil
 	}
 
 	// Construct the getblocks request and queue it to be sent.
-	msg := message.NewMsgGetBlocks(stopHash)
-	for _, hash := range locator {
-		err := msg.AddBlockLocatorHash(hash)
-		if err != nil {
-			return err
+	msg := message.NewMsgGetBlocks(gs)
+	if !bs.IsEmpty() {
+		for k,_:=range bs.GetMap(){
+			msg.AddBlockLocatorHash(&k)
 		}
 	}
 	p.QueueMessage(msg, nil)
@@ -357,8 +377,8 @@ func (p *Peer) PushGetBlocksMsg(locator blockchain.BlockLocator, stopHash *hash.
 	// Update the previous getblocks request information for filtering
 	// duplicates.
 	p.prevGetBlocksMtx.Lock()
-	p.prevGetBlocksBegin = beginHash
-	p.prevGetBlocksStop = stopHash
+	p.prevGetGS=gs
+	p.prevGetBlocks.AddSet(bs)
 	p.prevGetBlocksMtx.Unlock()
 	return nil
 }
@@ -416,14 +436,14 @@ func (p *Peer) AddKnownInventory(invVect *message.InvVect) {
 	p.knownInventory.Add(invVect)
 }
 
-// UpdateLastBlockHeight updates the last known block for the peer.
+// UpdateLastGS updates the last known graph state for the peer.
 //
 // This function is safe for concurrent access.
-func (p *Peer) UpdateLastBlockHeight(newHeight uint64) {
+func (p *Peer) UpdateLastGS(newGS *blockdag.GraphState) {
 	p.statsMtx.Lock()
-	log.Trace(fmt.Sprintf("Updating last block height of peer %v from %v to %v",
-		p.addr, p.lastBlock, newHeight))
-	p.lastBlock = newHeight
+	log.Trace(fmt.Sprintf("Updating last graph state of peer %v from %v to %v",
+		p.addr, p.lastGS.String(),newGS.String()))
+	p.lastGS.Equal(newGS)
 	p.statsMtx.Unlock()
 }
 
@@ -480,7 +500,7 @@ func (p *Peer) QueueInventory(invVect *message.InvVect) {
 // batches.  Inventory that the peer is already known to have is ignored.
 //
 // This function is safe for concurrent access.
-func (p *Peer) QueueInventoryImmediate(invVect *message.InvVect) {
+func (p *Peer) QueueInventoryImmediate(invVect *message.InvVect,gs *blockdag.GraphState) {
 	// Don't announce the inventory if the peer is already known to have it.
 	if p.knownInventory.Exists(invVect) {
 		return
@@ -495,6 +515,7 @@ func (p *Peer) QueueInventoryImmediate(invVect *message.InvVect) {
 
 	// Generate and queue a single inv message with the inventory vector.
 	invMsg := message.NewMsgInvSizeHint(1)
+	invMsg.GS=gs
 	invMsg.AddInvVect(invVect)
 	p.AddKnownInventory(invVect)
 	p.outputQueue <- outMsg{msg: invMsg, doneChan: nil}
@@ -511,3 +532,10 @@ func (p *Peer) LastAnnouncedBlock() *hash.Hash {
 	return lastAnnouncedBlock
 }
 
+func (p*Peer) CleanGetBlocksSet() {
+	p.statsMtx.RLock()
+	if p.prevGetBlocks!=nil {
+		p.prevGetBlocks.Clean()
+	}
+	p.statsMtx.RUnlock()
+}

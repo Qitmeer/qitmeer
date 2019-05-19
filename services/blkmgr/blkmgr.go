@@ -9,6 +9,7 @@ import (
 	"qitmeer/common/hash"
 	"qitmeer/config"
 	"qitmeer/core/blockchain"
+	"qitmeer/core/blockdag"
 	"qitmeer/core/message"
 	"qitmeer/core/types"
 	"qitmeer/database"
@@ -67,8 +68,8 @@ type BlockManager struct {
 
 	// The following fields are used to track the height being synced to from
 	// peers.
-	syncHeightMtx sync.Mutex
-	syncHeight    uint64
+	syncGSMtx sync.Mutex
+	syncGS    *blockdag.GraphState
 
 }
 
@@ -112,16 +113,16 @@ func NewBlockManager(ntmgr notify.Notify,indexManager blockchain.IndexManager,db
 	bm.chain.DisableCheckpoints(cfg.DisableCheckpoints)
 	if !cfg.DisableCheckpoints {
 		// Initialize the next checkpoint based on the current height.
-		bm.nextCheckpoint = bm.findNextHeaderCheckpoint(best.Height)
+		bm.nextCheckpoint = bm.findNextHeaderCheckpoint(best.Order)
 		if bm.nextCheckpoint != nil {
-			bm.resetHeaderState(&best.Hash, best.Height)
+			bm.resetHeaderState(&best.Hash, best.Order)
 		}
 	} else {
 		log.Info("Checkpoints are disabled")
 	}
 
 	if cfg.DumpBlockchain != "" {
-		err = bm.chain.DumpBlockChain(cfg.DumpBlockchain, par, best.Height)
+		err = bm.chain.DumpBlockChain(cfg.DumpBlockchain, par, best.Order)
 		if err != nil {
 			return nil, err
 		}
@@ -131,11 +132,11 @@ func NewBlockManager(ntmgr notify.Notify,indexManager blockchain.IndexManager,db
 
 	// Retrieve the current previous block hash and next stake difficulty.
 
-	bm.GetChainState().UpdateChainState(&best.Hash,best.Height,best.MedianTime)
+	bm.GetChainState().UpdateChainState(&best.Hash,best.Order,best.MedianTime)
 
-	bm.syncHeightMtx.Lock()
-	bm.syncHeight = best.Height
-	bm.syncHeightMtx.Unlock()
+	bm.syncGSMtx.Lock()
+	bm.syncGS = best.GS
+	bm.syncGSMtx.Unlock()
 	return &bm, nil
 }
 
@@ -320,9 +321,9 @@ func (b *BlockManager) current() bool {
 
 	// No matter what chain thinks, if we are below the block we are syncing
 	// to we are not current.
-	if b.chain.BestSnapshot().Height < b.syncPeer.LastBlock() {
+	if b.syncPeer.LastGS().IsExcellent(b.chain.BestSnapshot().GS) {
 		log.Trace("comparing the current best vs sync last",
-			"current.best", b.chain.BestSnapshot().Height, "sync.last",b.syncPeer.LastBlock())
+			"current.best", b.chain.BestSnapshot().GS.String(), "sync.last",b.syncPeer.LastGS().String())
 		return false
 	}
 
@@ -667,7 +668,7 @@ out:
 
 					log.Trace("update chain state when blkmgr read processBlockMsg msgchan")
 					b.GetChainState().UpdateChainState(&best.Hash,
-						best.Height, best.MedianTime)
+						best.Order, best.MedianTime)
 				}
 
 				// Allow any clients performing long polling via the

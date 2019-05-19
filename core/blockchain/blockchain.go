@@ -198,26 +198,28 @@ type orphanBlock struct {
 // shared by all callers.
 type BestState struct {
 	Hash         hash.Hash      // The hash of the block.
-	Height       uint64         // The height of the block.
+	Order        uint64          // The order of the block.
 	Bits         uint32         // The difficulty bits of the block.
 	BlockSize    uint64         // The size of the block.
 	NumTxns      uint64         // The number of txns in the block.
 	MedianTime   time.Time      // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64         // The total number of txns in the chain.
 	TotalSubsidy int64          // The total subsidy for the chain.
+	GS           *blockdag.GraphState //The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64) *BestState {
+func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64,gs *blockdag.GraphState) *BestState {
 	return &BestState{
 		Hash:         node.hash,
-		Height:       node.height,
+		Order:        node.height,
 		Bits:         node.bits,
 		BlockSize:    blockSize,
 		NumTxns:      numTxns,
 		MedianTime:   medianTime,
 		TotalTxns:    totalTxns,
 		TotalSubsidy: totalSubsidy,
+		GS:gs,
 	}
 }
 
@@ -288,7 +290,7 @@ func New(config *Config) (*BlockChain, error) {
 	}
 
 	b.pruner = newChainPruner(&b)
-	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Height), b.params)
+	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Order), b.params)
 
 	log.Info(fmt.Sprintf("DAG Type:%s",b.bd.GetName()))
 	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
@@ -516,7 +518,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 		b.stateSnapshot = newBestState(tip, blockSize,numTxns,
-			tip.CalcPastMedianTime(),state.totalTxns,state.totalSubsidy)
+			tip.CalcPastMedianTime(),state.totalTxns,state.totalSubsidy,b.bd.GetGraphState())
 
 		return nil
 	})
@@ -569,6 +571,28 @@ func (b *BlockChain) GetOrphansParents() []*hash.Hash{
 		}
 
 	}
+	return result.List()
+}
+
+// GetOrphansParents returns the parents for the provided hash from the
+// map of orphan blocks.
+func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash{
+	b.orphanLock.RLock()
+	defer b.orphanLock.RUnlock()
+	//
+	ob, exists := b.orphans[*h]
+	if !exists {
+		return nil
+	}
+	result:=blockdag.NewHashSet()
+	for _,h:=range ob.block.Block().Parents{
+		exists, err := b.HaveBlock(h)
+		if err != nil||exists {
+			continue
+		}
+		result.Add(h)
+	}
+
 	return result.List()
 }
 
@@ -1048,7 +1072,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	blockSize := uint64(block.Block().SerializeSize())
 
 	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns),*b.bd.GetLastTime(),curTotalTxns+numTxns,
-		 curTotalSubsidy+subsidy)
+		 curTotalSubsidy+subsidy,b.bd.GetGraphState())
 
 
 	// Atomically insert info into the database.
@@ -1309,7 +1333,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	newTotalSubsidy := curTotalSubsidy - subsidy
 
 	state := newBestState(prevNode, parentBlockSize, numTxns,
-		prevNode.CalcPastMedianTime(),  newTotalTxns, newTotalSubsidy)
+		prevNode.CalcPastMedianTime(),  newTotalTxns, newTotalSubsidy,b.bd.GetGraphState())
 
 	err = b.db.Update(func(dbTx database.Tx) error {
 		// Update best block state.

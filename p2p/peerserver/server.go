@@ -12,6 +12,7 @@ import (
 	"qitmeer/common/hash"
 	"qitmeer/config"
 	"qitmeer/core/blockchain"
+	"qitmeer/core/blockdag"
 	"qitmeer/core/message"
 	"qitmeer/core/protocol"
 	"qitmeer/core/types"
@@ -173,7 +174,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			//OnGetCFHeaders:   sp.OnGetCFHeaders,
 			//OnGetCFTypes:     sp.OnGetCFTypes,
 		},
-		NewestBlock:       sp.newestBlock,
+		NewestGS:          sp.newestGS,
 		HostToNetAddress:  sp.server.addrManager.HostToNetAddress,
 		UserAgentName:     userAgentName,
 		UserAgentVersion:  userAgentVersion,
@@ -277,9 +278,9 @@ func (p *PeerServer) Stop() error {
 
 // newestBlock returns the current best block hash and height using the format
 // required by the configuration for the peer package.
-func (sp *serverPeer) newestBlock() (*hash.Hash, uint64, error) {
+func (sp *serverPeer) newestGS() (*blockdag.GraphState, error) {
 	best := sp.server.BlockManager.GetChain().BestSnapshot()
-	return &best.Hash, best.Height, nil
+	return best.GS, nil
 }
 
 // AddPeer adds a new peer that has already been connected to the server.
