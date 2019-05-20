@@ -386,7 +386,7 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 			return false
 		}
 		// Other rule errors should be reported.
-		log.Error("Block submitted via CPU miner rejected: %v", err)
+		log.Error(fmt.Sprintf("Block submitted via CPU miner rejected: %v", err))
 		return false
 
 	}
