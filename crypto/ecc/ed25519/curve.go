@@ -10,6 +10,7 @@ import (
 	"math/big"
 
 	"qitmeer/crypto/ecc/ed25519/internal/edwards25519"
+	"encoding/hex"
 )
 
 // TwistedEdwardsCurve extended an elliptical curve set of
@@ -407,4 +408,24 @@ func Edwards() *TwistedEdwardsCurve {
 	c := new(TwistedEdwardsCurve)
 	c.InitParam25519()
 	return c
+}
+
+func CreatePrivateKey()(k string,err error)  {
+	c := Edwards()
+	c.InitParam25519()
+	masterKey, err := GeneratePrivateKey(c)
+	if err != nil{
+		return "",err
+	}
+	return hex.EncodeToString(masterKey.Serialize()),nil
+}
+
+func FromPrivateKeyByte(privkeyByte []byte)(masterKey PrivateKey,pubKey PublicKey,err error)  {
+	c := Edwards()
+	c.InitParam25519()
+	masterKeyPointer, pubKeyPointer,err := PrivKeyFromScalar(c,privkeyByte)
+	if err != nil{
+		return PrivateKey{},PublicKey{},err
+	}
+	return *masterKeyPointer,*pubKeyPointer,nil
 }

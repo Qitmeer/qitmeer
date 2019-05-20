@@ -30,7 +30,7 @@ const (
 	defaultGenerate              = false
 	defaultBlockMinSize          = 0
 	defaultBlockMaxSize          = 375000
-	defaultMaxRPCClients         = 100000000
+	defaultMaxRPCClients         = 10
 	defaultMaxPeers              = 125
 	defaultNoMiningStateSync     = false
 )
@@ -203,7 +203,6 @@ func loadConfig() (*config.Config, []string, error) {
 	if cfg.TestNet {
 		numNets++
 		activeNetParams = &testNetParams
-		fmt.Println("testnet",activeNetParams.PubKeyHashAddrID)
 	}
 	if cfg.PrivNet {
 		numNets++

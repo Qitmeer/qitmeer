@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/hex"
 	"qitmeer/params"
+	"errors"
 )
 
 type noxBase58checkVersionFlag struct {
@@ -29,6 +30,29 @@ func (n *noxBase58checkVersionFlag) Set(s string) error {
 		n.ver = append(n.ver,v...)
 	}
 	n.flag = s
+	return nil
+}
+func (n *noxBase58checkVersionFlag) SetCurve(s string) error {
+	n.ver = []byte{}
+	addrID := [2]byte{}
+	p := params.Params{}
+	switch n.flag {
+	case "mainnet":
+		p = params.MainNetParams
+	case "privnet":
+		p = params.PrivNetParams
+	case "testnet":
+		p = params.TestNetParams
+	}
+	switch curve {
+	case "secp256k1":
+		addrID = p.PubKeyHashAddrID
+	case "ed25519":
+		addrID = p.PKHEdwardsAddrID
+	default:
+		errExit(errors.New("curve not support:"+curve))
+	}
+	n.ver = addrID[:]
 	return nil
 }
 

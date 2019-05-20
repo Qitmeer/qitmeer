@@ -17,6 +17,7 @@ import (
 	"qitmeer/params"
 	"qitmeer/services/common/marshal"
 	"github.com/pkg/errors"
+	"qitmeer/crypto/ecc/ed25519"
 )
 
 func txDecode(network string, rawTxStr string) {
@@ -122,7 +123,7 @@ func txEncode(version txVersionFlag, lockTime txLockTimeFlag, txIn txInputsFlag,
 	fmt.Printf("%x\n",mtxHex)
 }
 
-func txSign(privkeyStr string, rawTxStr string) {
+func txSign(curve string,privkeyStr string, rawTxStr string) {
 	privkeyByte, err := hex.DecodeString(privkeyStr)
 	if err!=nil {
 		errExit(err)
@@ -130,7 +131,23 @@ func txSign(privkeyStr string, rawTxStr string) {
 	if len(privkeyByte) != 32 {
 		errExit(fmt.Errorf("invaid ec private key bytes: %d",len(privkeyByte)))
 	}
-	privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
+	var pubKey ecc.PublicKey
+	var privateKey ecc.PrivateKey
+	var algo ecc.EcType
+	switch curve {
+	case "secp256k1":
+		privateKey, pubKey = ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
+		algo = ecc.ECDSA_Secp256k1
+	case "ed25519":
+		privateKey, pubKey,err = edwards.FromPrivateKeyByte(privkeyByte)
+		if err != nil{
+			errExit(errors.New("private key not match :"+curve))
+		}
+		algo = ecc.EdDSA_Ed25519
+	default:
+		errExit(errors.New("unknow curve"+curve))
+	}
+
 	h160 := hash.Hash160(pubKey.SerializeCompressed())
 
 	var param *params.Params
@@ -142,7 +159,7 @@ func txSign(privkeyStr string, rawTxStr string) {
 	case "privnet":
 		param = &params.PrivNetParams
 	}
-	addr,err := address.NewPubKeyHashAddress(h160,param,ecc.ECDSA_Secp256k1)
+	addr,err := address.NewPubKeyHashAddress(h160,param,algo)
 	if err!=nil {
 		errExit(err)
 	}
@@ -171,7 +188,7 @@ func txSign(privkeyStr string, rawTxStr string) {
 	}
 	var sigScripts [][]byte
 	for i,_:= range redeemTx.TxIn {
-		sigScript,err := txscript.SignTxOutput(param,&redeemTx,i,pkScript,txscript.SigHashAll,kdb,nil,nil,ecc.ECDSA_Secp256k1)
+		sigScript,err := txscript.SignTxOutput(param,&redeemTx,i,pkScript,txscript.SigHashAll,kdb,nil,nil,algo)
 		if err != nil {
 			errExit(err)
 		}

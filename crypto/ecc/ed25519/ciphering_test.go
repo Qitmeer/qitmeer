@@ -105,6 +105,7 @@ func TestCiphering(t *testing.T) {
 	if !bytes.Equal(in, dec) {
 		t.Error("decrypted data doesn't match original")
 	}
+
 }
 
 func TestCipheringErrors(t *testing.T) {

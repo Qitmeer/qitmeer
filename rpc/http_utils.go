@@ -11,7 +11,7 @@ import (
 
 const (
 	contentType             = "application/json"
-	maxRequestContentLength = 1024 * 128 * 1024
+	maxRequestContentLength = 1024 * 128
 )
 // validateRequest returns a non-zero response code and error message if the
 // request is invalid.

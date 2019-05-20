@@ -14,6 +14,7 @@ import (
 	"qitmeer/crypto/seed"
 	"qitmeer/wallet"
 	"strconv"
+	"qitmeer/crypto/ecc/ed25519"
 )
 
 func newEntropy(size uint) {
@@ -181,29 +182,46 @@ func mnemonicToSeed(passphrase string, mnemonicStr string) {
 }
 
 func ecNew(curve string, entropyStr string){
-	entropy, err := hex.DecodeString(entropyStr)
-	if err!=nil {
-		errExit(err)
-	}
 	switch curve {
 	case "secp256k1":
+		entropy, err := hex.DecodeString(entropyStr)
+		if err!=nil {
+			errExit(err)
+		}
 		masterKey,err := bip32.NewMasterKey(entropy)
 		if err!=nil {
 			errExit(err)
 		}
 		fmt.Printf("%x\n",masterKey.Key[:])
+	case "ed25519":
+		masterKey,err := edwards.CreatePrivateKey()
+		if err!=nil {
+			errExit(err)
+		}
+		fmt.Printf("%s\n",masterKey)
 	default:
 		errExit(fmt.Errorf("unknown curve : %s",curve))
 	}
 }
 
-func ecPrivateKeyToEcPublicKey(uncompressed bool, privateKeyStr string) {
+func ecPrivateKeyToEcPublicKey(curve string ,uncompressed bool, privateKeyStr string) {
 	data, err := hex.DecodeString(privateKeyStr)
 	if err!=nil {
 		errExit(err)
 	}
-	_, pubKey := ecc.Secp256k1.PrivKeyFromBytes(data)
 	var key []byte
+	var pubKey ecc.PublicKey
+	switch curve {
+	case "secp256k1":
+		_, pubKey = ecc.Secp256k1.PrivKeyFromBytes(data)
+	case "ed25519":
+		_, pubKey,err = edwards.FromPrivateKeyByte(data)
+		if err != nil{
+			errExit(fmt.Errorf("private key not match : %s",curve))
+		}
+	default:
+		errExit(fmt.Errorf("unknown curve : %s",curve))
+	}
 	if uncompressed {
 		key = pubKey.SerializeUncompressed()
 	}else {

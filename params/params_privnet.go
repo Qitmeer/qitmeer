@@ -49,13 +49,14 @@ var PrivNetParams = Params{
 	RetargetAdjustmentFactor: 4,
 
 	// Subsidy parameters.
-	BaseSubsidy:              2500000000, //25coins
+	BaseSubsidy:              50000000000,
 	MulSubsidy:               100,
 	DivSubsidy:               101,
 	SubsidyReductionInterval: 128,
 	WorkRewardProportion:     9,
 	StakeRewardProportion:    0,
 	BlockTaxProportion:       1,
+
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: nil,
 

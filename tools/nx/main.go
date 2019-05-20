@@ -288,6 +288,7 @@ func main() {
 		cmdUsage(ecToPubCmd, "Usage: nx ec-to-public [ec_private_key] \n")
 	}
 	ecToPubCmd.BoolVar(&uncompressedPKFormat,"u", false,"using the uncompressed public key format")
+	ecToPubCmd.StringVar(&curve,"c","secp256k1", "the elliptic curve is using")
 
 	// Wif
 	ecToWifCmd := flag.NewFlagSet("ec-to-wif", flag.ExitOnError)
@@ -315,8 +316,9 @@ func main() {
 	ecToAddrCmd.Usage = func() {
 		cmdUsage(ecToAddrCmd, "Usage: nx ec-to-addr [ec_public_key] \n")
 	}
+	base58checkVersion.Set("privnet")
 	ecToAddrCmd.Var(&base58checkVersion, "v","base58check `version` [mainnet|testnet|privnet]")
-
+	ecToAddrCmd.StringVar(&curve,"c","secp256k1", "the elliptic curve is using")
 	// Transaction
 	txDecodeCmd := flag.NewFlagSet("tx-decode",flag.ExitOnError)
 	txDecodeCmd.Usage = func() {
@@ -344,7 +346,7 @@ NOX is the 64 bit spend amount in nox.`)
 		cmdUsage(txSignCmd, "Usage: nx tx-sign [raw_tx_base16_string] \n")
 	}
 	txSignCmd.StringVar(&privateKey,"k","", "the ec private key to sign the raw transaction")
-
+	txSignCmd.StringVar(&curve,"c","secp256k1", "the elliptic curve is using")
 	msgSignCmd := flag.NewFlagSet("msg-sign",flag.ExitOnError)
 	msgSignCmd.Usage = func() {
 		cmdUsage(msgSignCmd, "Usage: msg-sign [wif] [message] \n")
@@ -376,8 +378,8 @@ NOX is the 64 bit spend amount in nox.`)
 		ripemd160Cmd,
 		bitcion160Cmd,
 		hash160Cmd,
-		entropyCmd,
 		hdNewCmd,
+		entropyCmd,
 		hdToPubCmd,
 		hdToEcCmd,
 		hdDecodeCmd,
@@ -917,7 +919,7 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecToPubCmd.Usage()
 			}else{
-				ecPrivateKeyToEcPublicKey(uncompressedPKFormat,os.Args[len(os.Args)-1])
+				ecPrivateKeyToEcPublicKey(curve,uncompressedPKFormat,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -925,7 +927,7 @@ NOX is the 64 bit spend amount in nox.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			ecPrivateKeyToEcPublicKey(uncompressedPKFormat,str)
+			ecPrivateKeyToEcPublicKey(curve,uncompressedPKFormat,str)
 		}
 	}
 
@@ -984,6 +986,7 @@ NOX is the 64 bit spend amount in nox.`)
 	}
 
 	if ecToAddrCmd.Parsed() {
+		base58checkVersion.SetCurve(curve)
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
@@ -1036,7 +1039,7 @@ NOX is the 64 bit spend amount in nox.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				txSignCmd.Usage()
 			}else{
-				txSign(privateKey,os.Args[len(os.Args)-1])
+				txSign(curve,privateKey,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -1044,7 +1047,7 @@ NOX is the 64 bit spend amount in nox.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			txSign(privateKey, str)
+			txSign(curve,privateKey, str)
 		}
 	}
 

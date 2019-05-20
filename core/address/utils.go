@@ -5,14 +5,12 @@ package address
 import (
 	"qitmeer/core/types"
 	"qitmeer/params"
-	"fmt"
 )
 
 // IsForNetwork returns whether or not the address is associated with the
 // passed network.
 //TODO, other addr type and ec type check
 func IsForNetwork(addr types.Address, p *params.Params) bool {
-	fmt.Println(p.PubKeyHashAddrID)
 	switch addr := addr.(type) {
 		case *PubKeyHashAddress:
 			return addr.netID == p.PubKeyHashAddrID || addr.netID == p.PKHEdwardsAddrID
