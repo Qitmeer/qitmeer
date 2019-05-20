@@ -466,7 +466,7 @@ func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 
 	result:=[]*hash.Hash{}
 
-	for len(queue) > 0 || len(result)>int(maxHashes) {
+	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
 		if !cur.HasChildren() {
@@ -481,6 +481,9 @@ func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 			queue = append(queue,b)
 			fs.Add(b.GetHash())
 			result=append(result,b.GetHash())
+			if len(result)>int(maxHashes) {
+				return result
+			}
 		}
 	}
 	return result
