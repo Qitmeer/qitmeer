@@ -6,7 +6,6 @@ import (
 	"qitmeer/core/blockchain"
 	"qitmeer/core/message"
 	"qitmeer/database"
-	"qitmeer/p2p/peer"
 	"qitmeer/services/mempool"
 )
 const(
@@ -117,9 +116,10 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	// the block heights over other peers who's invs may have been ignored
 	// if we are actively syncing while the chain is not yet current or
 	// who may have lost the lock announcment race.
-	var heightUpdate uint64
-	var blkHashUpdate *hash.Hash
 
+	// Notify stake difficulty subscribers and prune invalidated
+	// transactions.
+	best := b.chain.BestSnapshot()
 	// Request the parents for the orphan block from the peer that sent it.
 	if isOrphan {
 		// We've just received an orphan block from a peer. In order
@@ -128,16 +128,11 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// Extraction is only attempted if the block's version is
 		// high enough (ver 2+).
 
-		blkHashUpdate = blockHash
-
-		locator, err := b.chain.LatestBlockLocator()
-		if err != nil {
-			log.Warn("Failed to get block locator for the latest block",
-				"error",err)
-		} else {
-			err = bmsg.peer.PushGetBlocksMsg(locator, blockHash)
+		locator:=b.chain.GetOrphanParents(blockHash)
+		if len(locator)>0 {
+			err = bmsg.peer.PushGetBlocksMsg(best.GraphState,locator)
 			if err != nil {
-				log.Warn("Failed to push getblocksmsg for the latest block", "error",err)
+				log.Warn("Failed to push getblocksmsg for the orphan block", "error",err)
 			}
 		}
 	} else {
@@ -145,16 +140,8 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// update the chain state.
 		b.progressLogger.LogBlockHeight(bmsg.block)
 
-		// Notify stake difficulty subscribers and prune invalidated
-		// transactions.
-		best := b.chain.BestSnapshot()
-
 		b.txMemPool.PruneExpiredTx()
 
-		// Update this peer's latest block height, for future
-		// potential sync node candidancy.
-		heightUpdate = best.Height
-		blkHashUpdate = &best.Hash
 
 		// Clear the rejected transactions.
 		b.rejectedTxns = make(map[hash.Hash]struct{})
@@ -169,18 +156,13 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 			rpcServer.gbtWorkState.NotifyBlockConnected(blockHash)
 		}
 		*/
-	}
-
-	// Update the block height for this peer. But only send a message to
-	// the server for updating peer heights if this is an orphan or our
-	// chain is "current". This avoids sending a spammy amount of messages
-	// if we're syncing the chain from scratch.
-	if blkHashUpdate != nil && heightUpdate != 0 {
-		bmsg.peer.UpdateLastBlockHeight(heightUpdate)
-		if isOrphan || b.current() {
-			log.Trace("handleBlockMsg blocked")
-			bmsg.peer.RequiredUpdatePeerHeights <- peer.UpdatePeerHeightsMsg{
-				Hash:blkHashUpdate, Height:heightUpdate}
+		if !b.current()&&bmsg.peer==b.syncPeer {
+			if len(bmsg.peer.RequestedBlocks)==0 {
+				err = bmsg.peer.PushGetBlocksMsg(best.GraphState,nil)
+				if err != nil {
+					log.Warn("Failed to push getblocksmsg for the last block", "error",err)
+				}
+			}
 		}
 	}
 
@@ -228,8 +210,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	b.headersFirstMode = false
 	b.headerList.Init()
 	log.Info("Reached the final checkpoint -- switching to normal mode")
-	locator := blockchain.BlockLocator([]*hash.Hash{blockHash})
-	err = bmsg.peer.PushGetBlocksMsg(locator, &hash.ZeroHash)
+	err = bmsg.peer.PushGetBlocksMsg(best.GraphState,nil)
 	if err != nil {
 		log.Warn("Failed to send getblocks message",
 			"peer",bmsg.peer.Addr(), "error",err)

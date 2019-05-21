@@ -6,7 +6,7 @@
 package peer
 
 import (
-	"qitmeer/common/hash"
+	"qitmeer/core/blockdag"
 	"qitmeer/core/protocol"
 	"qitmeer/core/types"
 	"qitmeer/params"
@@ -56,7 +56,7 @@ const (
 
 // HashFunc is a function which returns a block hash, height and error
 // It is used as a callback to get newest block details.
-type HashFunc func() (h *hash.Hash, height uint64, err error)
+type GSFunc func() (gs *blockdag.GraphState, err error)
 
 // HostToNetAddrFunc is a func which takes a host, port, services and returns
 // the netaddress.
@@ -65,12 +65,8 @@ type HostToNetAddrFunc func(host string, port uint16,
 
 // Config is the struct to hold configuration options useful to Peer.
 type Config struct {
-	// NewestBlock specifies a callback which provides the newest block
-	// details to the peer as needed.  This can be nil in which case the
-	// peer will report a block height of 0, however it is good practice for
-	// peers to specify this so their currently best known is accurately
-	// reported.
-	NewestBlock HashFunc
+	// NewestGS specifies a callback which provides the newest GS
+	NewestGS GSFunc
 
 	// HostToNetAddress returns the netaddress for the given host. This can be
 	// nil in  which case the host will be parsed as an IP address.

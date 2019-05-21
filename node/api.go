@@ -332,7 +332,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 
 	var mtx *types.Transaction
 	var blkHash *hash.Hash
-	var blkHeight uint64
+	var blkOrder uint64
 	var blkHashStr string
 	var confirmations int64
 
@@ -376,7 +376,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 
 		// Grab the block height.
 		blkHash = blockRegion.Hash
-		blkHeight, err = api.node.blockManager.GetChain().BlockHeightByHash(blkHash)
+		blkOrder, err = api.node.blockManager.GetChain().BlockHeightByHash(blkHash)
 		if err != nil {
 			context := "Failed to retrieve block height"
 			return nil, er.RpcInternalError(err.Error(), context)
@@ -415,15 +415,15 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 		blkHashStr = blkHash.String()
 	}
 	if inRecentBlock {
-		blkHeight = api.node.blockManager.GetChain().BestSnapshot().Height
+		blkOrder = api.node.blockManager.GetChain().BestSnapshot().Order
 		confirmations = 1
 	} else if tx != nil {
 		confirmations = 0
 	} else {
-		confirmations = 1 + int64(api.node.blockManager.GetChain().BestSnapshot().Height-blkHeight)
+		confirmations = 1 + int64(api.node.blockManager.GetChain().BestSnapshot().Order-blkOrder)
 	}
 
-	return marshal.MarshalJsonTransaction(mtx, api.node.node.Params, blkHeight, blkHashStr, confirmations)
+	return marshal.MarshalJsonTransaction(mtx, api.node.node.Params, blkOrder, blkHashStr, confirmations)
 }
 
 // Returns information about an unspent transaction output
@@ -493,7 +493,7 @@ func (api *PublicBlockChainAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMe
 		}
 		best := api.node.blockManager.GetChain().BestSnapshot()
 		bestBlockHash = best.Hash.String()
-		confirmations = 1 + int64(best.Height-entry.BlockHeight())
+		confirmations = 1 + int64(best.Order-entry.BlockHeight())
 		txVersion = entry.TxVersion()
 		amount = entry.AmountByIndex(vout)
 		pkScript = entry.PkScriptByIndex(vout)

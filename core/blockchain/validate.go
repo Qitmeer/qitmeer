@@ -650,7 +650,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// portion of block handling.
 	checkpoint := b.latestCheckpoint()
 	runScripts := !b.noVerify
-	if checkpoint != nil && node.height <= checkpoint.Height {
+	if checkpoint != nil && node.order <= checkpoint.Height {
 		runScripts = false
 	}
 	var scriptFlags txscript.ScriptFlags
@@ -691,7 +691,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		if err != nil {
 			return err
 		}
-		if !SequenceLockActive(sequenceLock, int64(node.height),  //TODO, remove type conversion
+		if !SequenceLockActive(sequenceLock, int64(node.order),  //TODO, remove type conversion
 			prevMedianTime) {
 
 			str := fmt.Sprintf("block contains " +
@@ -830,7 +830,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		// This step modifies the txStore and marks the tx outs used
 		// spent, so be aware of this.
 		txFee, err := CheckTransactionInputs(b.subsidyCache, tx,
-			int64(node.height), utxoView, false, /* check fraud proofs */
+			int64(node.order), utxoView, false, /* check fraud proofs */
 			b.params) //TODO, remove type conversion
 		if err != nil {
 			log.Trace("CheckTransactionInputs failed","err", err)
@@ -854,7 +854,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 
 		// Connect the transaction to the UTXO viewpoint, so that in
 		// flight transactions may correctly validate.
-		err = utxoView.connectTransaction(tx, node.height, uint32(idx),
+		err = utxoView.connectTransaction(tx, node.order, uint32(idx),
 			stxos)
 		if err != nil {
 			log.Trace("connectTransaction failed","err", err)
@@ -1264,7 +1264,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	}
 	header := &block.Block().Header
 	newNode := newBlockNode(header, tipsNode)
-	newNode.height=block.Height()
+	newNode.order=block.Order()
 	err=b.checkConnectBlock(newNode, block, view, nil)
 	if err!=nil{
 		return err

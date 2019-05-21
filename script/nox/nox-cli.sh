@@ -53,12 +53,12 @@ function solc_compile(){
 
 # Nox
 function get_block(){
-  local height=$1
+  local order=$1
   local verbose=$2
   if [ "$verbose" == "" ]; then
     verbose="true"
   fi
-  local data='{"jsonrpc":"2.0","method":"getBlockByHeight","params":['$height','$verbose'],"id":1}'
+  local data='{"jsonrpc":"2.0","method":"getBlockByOrder","params":['$order','$verbose'],"id":1}'
   get_result "$data"
 }
 

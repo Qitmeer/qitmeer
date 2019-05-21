@@ -1,7 +1,6 @@
 package blkmgr
 
 import (
-	"qitmeer/common/hash"
 	"qitmeer/core/message"
 	"qitmeer/params/dcr/types"
 )
@@ -29,36 +28,23 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 		}
 	}
 
-	// If this inv contains a block announcement, and this isn't coming from
-	// our current sync peer or we're current, then update the last
-	// announced block for this peer. We'll use this information later to
-	// update the heights of peers based on blocks we've accepted that they
-	// previously announced.
-	if lastBlock != -1 && (imsg.peer != b.syncPeer || b.current()) {
-		imsg.peer.UpdateLastAnnouncedBlock(&invVects[lastBlock].Hash)
+	// If our chain is current and a peer announces a block we already
+	// know of, then update their current block height.
+	if lastBlock != -1 {
+		imsg.peer.UpdateLastGS(imsg.inv.GS)
 	}
-
 	// Ignore invs from peers that aren't the sync if we are not current.
 	// Helps prevent fetching a mass of orphans.
 	if imsg.peer != b.syncPeer && !b.current() {
 		return
 	}
-
-	// If our chain is current and a peer announces a block we already
-	// know of, then update their current block height.
-	if lastBlock != -1 && b.current() {
-		blkHeight, err := b.chain.BlockHeightByHash(&invVects[lastBlock].Hash)
-		if err == nil {
-
-			imsg.peer.UpdateLastBlockHeight(blkHeight)
-		}
-	}
-
 	// Request the advertised inventory if we don't already have it.  Also,
 	// request parent blocks of orphans if we receive one we already have.
 	// Finally, attempt to detect potential stalls due to long side chains
 	// we already have and request more blocks to prevent them.
-	for i, iv := range invVects {
+	gs:=b.chain.BestSnapshot().GraphState
+
+	for _, iv := range invVects {
 		// Ignore unsupported inventory types.
 		if iv.Type != message.InvTypeBlock && iv.Type != message.InvTypeTx {
 			continue
@@ -110,33 +96,18 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				// Request blocks starting at the latest known
 				// up to the root of the orphan that just came
 				// in.
-				locator, err := b.chain.LatestBlockLocator()
-				if err != nil {
-					log.Error("Failed to get block locator for the latest block",
-						"error", err)
+				locator:= b.chain.GetOrphanParents(&iv.Hash)
+				if len(locator)==0 {
+					log.Error("Failed to get block locator for the orphan block",
+						"error")
 					continue
 				}
-				err = imsg.peer.PushGetBlocksMsg(locator,&iv.Hash)
+				err = imsg.peer.PushGetBlocksMsg(gs,locator)
 				if err != nil {
 					log.Error("Failed to push getblocksmsg for orphan chain",
 						"error", err)
 				}
 				continue
-			}
-
-			// We already have the final block advertised by this
-			// inventory message, so force a request for more.  This
-			// should only happen if we're on a really long side
-			// chain.
-			if i == lastBlock {
-				// Request blocks after this one up to the
-				// final one the remote peer knows about (zero
-				// stop hash).
-				locator := b.chain.BlockLocatorFromHash(&iv.Hash)
-				err = imsg.peer.PushGetBlocksMsg(locator, &hash.ZeroHash)
-				if err != nil {
-					log.Error("Failed to push getblocksmsg","error", err)
-				}
 			}
 		}
 	}
@@ -184,5 +155,11 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 	imsg.peer.RequestQueue = requestQueue
 	if len(gdmsg.InvList) > 0 {
 		imsg.peer.QueueMessage(gdmsg, nil)
+	}else{
+		err:= imsg.peer.PushGetBlocksMsg(gs,nil)
+		if err != nil {
+			log.Error("Failed to push getblocksmsg for all chain",
+				"error", err)
+		}
 	}
 }

@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"qitmeer/common/hash"
+	"qitmeer/core/blockdag"
 	"strings"
 	"time"
 	s "qitmeer/core/serialization"
@@ -56,8 +58,8 @@ type MsgVersion struct {
 	// on the wire.  This has a max length of MaxUserAgentLen.
 	UserAgent string
 
-	// Last block seen by the generator of the version message.
-	LastBlock int32
+	// Last DAG graph state seen by the generator of the version message.
+	LastGS *blockdag.GraphState
 
 	// Don't announce transactions to peer.
 	DisableRelayTx bool
@@ -130,7 +132,8 @@ func (msg *MsgVersion) Decode(r io.Reader, pver uint32) error {
 	// Protocol versions >= 209 added a last known block field.  It is only
 	// considered present if there are bytes remaining in the message.
 	if buf.Len() > 0 {
-		err = s.ReadElements(buf, &msg.LastBlock)
+		msg.LastGS=blockdag.NewGraphState()
+		err=msg.LastGS.Decode(buf,pver)
 		if err != nil {
 			return err
 		}
@@ -186,8 +189,7 @@ func (msg *MsgVersion) Encode(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
-
-	err = s.WriteElements(w, msg.LastBlock)
+	err = msg.LastGS.Encode(w,pver)
 	if err != nil {
 		return err
 	}
@@ -210,15 +212,15 @@ func (msg *MsgVersion) MaxPayloadLength(pver uint32) uint32 {
 	// remote and local net addresses + nonce 8 bytes + length of user
 	// agent (varInt) + max allowed useragent length + last block 4 bytes +
 	// relay transactions flag 1 byte.
-	return 33 + (types.MaxNetAddressPayload(pver) * 2) + s.MaxVarIntPayload +
-		MaxUserAgentLen
+	return 29 + (types.MaxNetAddressPayload(pver) * 2) + s.MaxVarIntPayload +
+		MaxUserAgentLen+8 + 4 + (blockdag.MaxTips * hash.HashSize)
 }
 
 // NewMsgVersion returns a new Version message that conforms to the Message
 // interface using the passed parameters and defaults for the remaining
 // fields.
 func NewMsgVersion(me *types.NetAddress, you *types.NetAddress, nonce uint64,
-	lastBlock int32) *MsgVersion {
+	lastGS *blockdag.GraphState) *MsgVersion {
 
 	// Limit the timestamp to one second precision since the protocol
 	// doesn't support better.
@@ -229,7 +231,7 @@ func NewMsgVersion(me *types.NetAddress, you *types.NetAddress, nonce uint64,
 		AddrMe:          *me,
 		Nonce:           nonce,
 		UserAgent:       DefaultUserAgent,
-		LastBlock:       lastBlock,
+		LastGS:          lastGS,
 		DisableRelayTx:  false,
 	}
 }
@@ -238,7 +240,7 @@ func NewMsgVersion(me *types.NetAddress, you *types.NetAddress, nonce uint64,
 // and local address from conn and returns a new version message that
 // conforms to the Message interface.  See NewMsgVersion.
 func NewMsgVersionFromConn(conn net.Conn, nonce uint64,
-	lastBlock int32) (*MsgVersion, error) {
+	lastGS *blockdag.GraphState) (*MsgVersion, error) {
 
 	// TODO, should define unknown flag instead of using hard-coding 0
 	// Don't assume any services until we know otherwise.
@@ -253,7 +255,7 @@ func NewMsgVersionFromConn(conn net.Conn, nonce uint64,
 		return nil, err
 	}
 
-	return NewMsgVersion(lna, rna, nonce, lastBlock), nil
+	return NewMsgVersion(lna, rna, nonce, lastGS), nil
 }
 
 // validateUserAgent checks userAgent length against MaxUserAgentLen

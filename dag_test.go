@@ -188,14 +188,14 @@ func buildDoubleSpentTx(txHash *hash.Hash,addrStr string,amount float64,privkeyS
 	//
 	mp:=ser.GetNoxFull().GetBlockManager().GetMemPool()
 	tx := types.NewTx(mtx)
-	bestHeight := ser.GetNoxFull().GetBlockManager().GetChain().BestSnapshot().Height
+	bestOrder := ser.GetNoxFull().GetBlockManager().GetChain().BestSnapshot().Order
 	txType := types.DetermineTxType(mtx)
 
 	utxoView, err := ser.GetNoxFull().GetBlockManager().GetChain().FetchUtxoView(tx)
 	if err != nil {
 		return
 	}
-	utxoView.AddTxOuts(tx,int64(bestHeight), types.NullTxIndex)
+	utxoView.AddTxOuts(tx,int64(bestOrder), types.NullTxIndex)
 	//
 	var fee int64
 	if blockchain.IsCoinBaseTx(mtx) {
@@ -214,7 +214,7 @@ func buildDoubleSpentTx(txHash *hash.Hash,addrStr string,amount float64,privkeyS
 		}
 	}
 	//
-	mp.AddTransaction(utxoView, tx, txType, bestHeight, fee)
+	mp.AddTransaction(utxoView, tx, txType, bestOrder, fee)
 
 
 
@@ -412,7 +412,7 @@ func GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, error) {
 		if isSolve {
 
 			block := types.NewBlock(template.Block)
-			block.SetHeight(template.Height)
+			block.SetOrder(template.Height)
 			//
 			_, err := ser.GetNoxFull().GetBlockManager().ProcessBlock(block, blockchain.BFNone)
 			if err != nil {
@@ -434,7 +434,7 @@ func NewBlockTemplate(policy *mining.Policy,config *config.Config, params *param
 	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
 
 	chainBest := blockManager.GetChain().BestSnapshot()
-	nextBlockHeight:=chainBest.Height+1
+	nextBlockHeight:=chainBest.Order+1
 	sourceTxns := txSource.MiningDescs()
 	sortedByFee := policy.BlockPrioritySize == 0
 	// TODO, impl more general priority func

@@ -9,6 +9,7 @@ package message
 import (
 	"fmt"
 	"qitmeer/common/hash"
+	"qitmeer/core/blockdag"
 	"qitmeer/core/protocol"
 	"io"
 	s "qitmeer/core/serialization"
@@ -37,7 +38,7 @@ const MaxBlockLocatorsPerMsg = 500
 type MsgGetBlocks struct {
 	ProtocolVersion    uint32
 	BlockLocatorHashes []*hash.Hash
-	HashStop           hash.Hash
+	GS                 *blockdag.GraphState
 }
 
 // AddBlockLocatorHash adds a new block locator hash to the message.
@@ -59,7 +60,6 @@ func (msg *MsgGetBlocks) Decode(r io.Reader, pver uint32) error {
 	if err != nil {
 		return err
 	}
-
 	// Read num block locator hashes and limit to max.
 	count, err := s.ReadVarInt(r, pver)
 	if err != nil {
@@ -83,8 +83,12 @@ func (msg *MsgGetBlocks) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddBlockLocatorHash(hash)
 	}
-
-	return s.ReadElements(r, &msg.HashStop)
+	msg.GS=blockdag.NewGraphState()
+	err=msg.GS.Decode(r,pver)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Encode encodes the receiver to w using the protocol encoding.
@@ -101,7 +105,6 @@ func (msg *MsgGetBlocks) Encode(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
-
 	err = s.WriteVarInt(w, pver, uint64(count))
 	if err != nil {
 		return err
@@ -114,7 +117,12 @@ func (msg *MsgGetBlocks) Encode(w io.Writer, pver uint32) error {
 		}
 	}
 
-	return s.WriteElements(w, &msg.HashStop)
+	err = msg.GS.Encode(w,pver)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 // Command returns the protocol command string for the message.  This is part
@@ -128,16 +136,16 @@ func (msg *MsgGetBlocks) Command() string {
 func (msg *MsgGetBlocks) MaxPayloadLength(pver uint32) uint32 {
 	// Protocol version 4 bytes + num hashes (varInt) + max block locator
 	// hashes + hash stop.
-	return 4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * hash.HashSize) + hash.HashSize
+	return 4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * hash.HashSize) + msg.GS.MaxPayloadLength()
 }
 
 // NewMsgGetBlocks returns a new getblocks message that conforms to the
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
-func NewMsgGetBlocks(hashStop *hash.Hash) *MsgGetBlocks {
+func NewMsgGetBlocks(gs *blockdag.GraphState) *MsgGetBlocks {
 	return &MsgGetBlocks{
 		ProtocolVersion:    protocol.ProtocolVersion,
 		BlockLocatorHashes: make([]*hash.Hash, 0, MaxBlockLocatorsPerMsg),
-		HashStop:           *hashStop,
+		GS:gs,
 	}
 }

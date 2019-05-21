@@ -198,26 +198,28 @@ type orphanBlock struct {
 // shared by all callers.
 type BestState struct {
 	Hash         hash.Hash      // The hash of the block.
-	Height       uint64         // The height of the block.
+	Order        uint64          // The order of the block.
 	Bits         uint32         // The difficulty bits of the block.
 	BlockSize    uint64         // The size of the block.
 	NumTxns      uint64         // The number of txns in the block.
 	MedianTime   time.Time      // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64         // The total number of txns in the chain.
 	TotalSubsidy int64          // The total subsidy for the chain.
+	GraphState   *blockdag.GraphState //The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64) *BestState {
+func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64,gs *blockdag.GraphState) *BestState {
 	return &BestState{
 		Hash:         node.hash,
-		Height:       node.height,
+		Order:        node.order,
 		Bits:         node.bits,
 		BlockSize:    blockSize,
 		NumTxns:      numTxns,
 		MedianTime:   medianTime,
 		TotalTxns:    totalTxns,
 		TotalSubsidy: totalSubsidy,
+		GraphState:   gs,
 	}
 }
 
@@ -288,7 +290,7 @@ func New(config *Config) (*BlockChain, error) {
 	}
 
 	b.pruner = newChainPruner(&b)
-	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Height), b.params)
+	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Order), b.params)
 
 	log.Info(fmt.Sprintf("DAG Type:%s",b.bd.GetName()))
 	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
@@ -299,7 +301,7 @@ func New(config *Config) (*BlockChain, error) {
 
 	for _,v:=range tips{
 		tnode:=b.index.lookupNode(v.GetHash())
-		logStr+=fmt.Sprintf("hash=%v,height=%d,pastSetNum=%d,work=%v\n",tnode.hash,tnode.height,v.GetWeight(),tnode.workSum)
+		logStr+=fmt.Sprintf("hash=%v,order=%d,pastSetNum=%d,work=%v\n",tnode.hash,tnode.order,v.GetWeight(),tnode.workSum)
 	}
 	log.Info(logStr)
 
@@ -485,7 +487,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				initBlockNode(node, &block.Block().Header, parents)
 				list:=b.bd.AddBlock(node)
 				dblock:=b.bd.GetBlock(node.GetHash())
-				node.SetHeight(uint64(dblock.GetOrder()))
+				node.SetOrder(uint64(dblock.GetOrder()))
 				b.index.addNode(node)
 				if list==nil||list.Len()==0 {
 					log.Error("Irreparable error!")
@@ -516,7 +518,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 		b.stateSnapshot = newBestState(tip, blockSize,numTxns,
-			tip.CalcPastMedianTime(),state.totalTxns,state.totalSubsidy)
+			tip.CalcPastMedianTime(),state.totalTxns,state.totalSubsidy,b.bd.GetGraphState())
 
 		return nil
 	})
@@ -569,6 +571,28 @@ func (b *BlockChain) GetOrphansParents() []*hash.Hash{
 		}
 
 	}
+	return result.List()
+}
+
+// GetOrphansParents returns the parents for the provided hash from the
+// map of orphan blocks.
+func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash{
+	b.orphanLock.RLock()
+	defer b.orphanLock.RUnlock()
+	//
+	ob, exists := b.orphans[*h]
+	if !exists {
+		return nil
+	}
+	result:=blockdag.NewHashSet()
+	for _,h:=range ob.block.Block().Parents{
+		exists, err := b.HaveBlock(h)
+		if err != nil||exists {
+			continue
+		}
+		result.Add(h)
+	}
+
 	return result.List()
 }
 
@@ -630,7 +654,7 @@ func (b *BlockChain) TipGeneration() ([]hash.Hash, error) {
 }
 
 // dumpBlockChain dumps a map of the blockchain blocks as serialized bytes.
-func (b *BlockChain) DumpBlockChain(dumpFile string, params *params.Params, height uint64) error {
+func (b *BlockChain) DumpBlockChain(dumpFile string, params *params.Params, order uint64) error {
 	log.Info("Writing the blockchain to disk as a flat file, " +
 		"please wait...")
 
@@ -648,8 +672,8 @@ func (b *BlockChain) DumpBlockChain(dumpFile string, params *params.Params, heig
 
 	// Write the blocks sequentially, excluding the genesis block.
 	var sz [4]byte
-	for i := uint64(1); i <= height; i++ {
-		bl, err := b.BlockByHeight(i)
+	for i := uint64(1); i <= order; i++ {
+		bl, err := b.BlockByOrder(i)
 		if err != nil {
 			return err
 		}
@@ -683,7 +707,7 @@ func (b *BlockChain) DumpBlockChain(dumpFile string, params *params.Params, heig
 	}
 
 	log.Info("Successfully dumped the blockchain (%v blocks) to %v.",
-		height, dumpFile)
+		order, dumpFile)
 
 	return nil
 }
@@ -946,8 +970,8 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		validateStr := "validating"
 
 		// TODO, validating previous block
-		log.Debug("Block connected to the main chain","hash",node.hash,"height",
-			node.height, "operation",fmt.Sprintf( "%v the previous block",validateStr))
+		log.Debug("Block connected to the main chain","hash",node.hash,"order",
+			node.order, "operation",fmt.Sprintf( "%v the previous block",validateStr))
 
 		// The fork length is zero since the block is now the tip of the
 		// best chain.
@@ -1048,7 +1072,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	blockSize := uint64(block.Block().SerializeSize())
 
 	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns),*b.bd.GetLastTime(),curTotalTxns+numTxns,
-		 curTotalSubsidy+subsidy)
+		 curTotalSubsidy+subsidy,b.bd.GetGraphState())
 
 
 	// Atomically insert info into the database.
@@ -1070,7 +1094,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 		}
 
 		// Add the block hash and height to the main chain index.
-		err = dbPutMainChainIndex(dbTx, block.Hash(), node.height)
+		err = dbPutMainChainIndex(dbTx, block.Hash(), node.order)
 		if err != nil {
 			return err
 		}
@@ -1173,7 +1197,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 		if n==nil {
 			return fmt.Errorf("no node")
 		}
-		block.SetHeight(n.height-1)
+		block.SetOrder(n.order-1)
 		// Load all of the utxos referenced by the block that aren't
 		// already in the view.
 		view := NewUtxoViewpoint()
@@ -1309,7 +1333,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	newTotalSubsidy := curTotalSubsidy - subsidy
 
 	state := newBestState(prevNode, parentBlockSize, numTxns,
-		prevNode.CalcPastMedianTime(),  newTotalTxns, newTotalSubsidy)
+		prevNode.CalcPastMedianTime(),  newTotalTxns, newTotalSubsidy,b.bd.GetGraphState())
 
 	err = b.db.Update(func(dbTx database.Tx) error {
 		// Update best block state.
@@ -1319,7 +1343,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 		}
 
 		// Remove the block hash and height from the main chain index.
-		err = dbRemoveMainChainIndex(dbTx, block.Hash(), int64(node.height))  //TODO, remove type conversion
+		err = dbRemoveMainChainIndex(dbTx, block.Hash(), int64(node.order))  //TODO, remove type conversion
 		if err != nil {
 			return err
 		}
@@ -1388,12 +1412,12 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 // and removes any old blocks from the cache that might be present.
 // TODO, refactor the mainchainBlockCache
 func (b *BlockChain) pushMainChainBlockCache(block *types.SerializedBlock) {
-	curHeight := block.Height()
+	curHeight := block.Order()
 	curHash := block.Hash()
 	b.mainchainBlockCacheLock.Lock()
 	b.mainchainBlockCache[*curHash] = block
 	for hash, bl := range b.mainchainBlockCache {
-		if bl.Height() <= curHeight-uint64(b.mainchainBlockCacheSize) {  //TODO, remove type conversion
+		if bl.Order() <= curHeight-uint64(b.mainchainBlockCacheSize) {  //TODO, remove type conversion
 			delete(b.mainchainBlockCache, hash)
 		}
 	}

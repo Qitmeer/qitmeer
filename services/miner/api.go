@@ -176,7 +176,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 		coinbaseTxGenerated += out.Amount
 	}
 	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, amount %d", block.Hash().String(),
-		 block.Height(), coinbaseTxGenerated), nil
+		 block.Order(), coinbaseTxGenerated), nil
 
 }
 
@@ -237,8 +237,8 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	m.submitBlockLock.Lock()
 
 	// No point in generating or accepting work before the chain is synced.
-	currentHeight := api.miner.blockManager.GetChain().BestSnapshot().Height
-	if currentHeight != 0 && !api.miner.blockManager.GetChain().IsCurrent() {
+	currentOrder := api.miner.blockManager.GetChain().BestSnapshot().Order
+	if currentOrder != 0 && !api.miner.blockManager.GetChain().IsCurrent() {
 		return nil, er.RPCClientInInitialDownloadError("Client in initial download ",
 			"NOX is downloading blocks...")
 	}
