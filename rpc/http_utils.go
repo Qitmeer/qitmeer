@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
-	"qitmeer/core/types"
 )
 
 const (
 	contentType             = "application/json"
-	maxRequestContentLength = types.MaxBlockPayload
+	maxRequestContentLength = 1024 * 1024
 )
 // validateRequest returns a non-zero response code and error message if the
 // request is invalid.
