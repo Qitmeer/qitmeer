@@ -11,9 +11,10 @@ import (
 	"qitmeer/common/hash"
 	"qitmeer/common/encode/base58"
 	"qitmeer/params"
-	"github.com/minio/blake2b-simd"
 	"log"
 	"github.com/stretchr/testify/assert"
+	"qitmeer/crypto/ecc/secp256k1"
+	"qitmeer/crypto/ecc"
 )
 
 //test create address
@@ -58,19 +59,26 @@ func TestSignByEd25519(t *testing.T) {
 	}
 	c := edwards.TwistedEdwardsCurve{}
 	c.InitParam25519()
-	content := "hello world"
-	h := blake2b.Sum256([]byte(content))
-	r,s,err := edwards.Sign(&c,&privKey,h[:])
-
-	if err != nil{
-		errExit(err)
+	for i:=0;i<100000;i++{
+		content := []byte(fmt.Sprintf("hello world%d",i))
+		r,s,_ := ecc.Ed25519.Sign(privKey,content)
+		assert.Equal(t,ecc.Ed25519.Verify(pubKey,content,r,s),true)
 	}
 
-	if edwards.Verify(&pubKey, h[:], r, s){
-		log.Println("verify success")
-	} else{
-		log.Println("verify failed")
+}
+
+//test sign and verify sign
+func TestSignBySecp256k1(t *testing.T) {
+	masterKey,_ := secp256k1.GeneratePrivateKey()
+	log.Println(fmt.Sprintf("[secp256k1 private key] %x",masterKey.Serialize()))
+	privKey,pubKey := secp256k1.PrivKeyFromBytes(masterKey.Serialize())
+	for i:=0;i<100000;i++{
+		content := []byte(fmt.Sprintf("hello world%d",i))
+		//h := blake2b.Sum256([]byte(content))
+		r,s,_ := ecc.Secp256k1.Sign(privKey,content)
+		assert.Equal(t,ecc.Secp256k1.Verify(pubKey,content,r,s),true)
 	}
+
 }
 
 //test encrypt and decrypt
