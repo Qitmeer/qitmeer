@@ -34,8 +34,8 @@ func NewPublicBlockAPI(bm *BlockManager) *PublicBlockAPI {
 }
 
 //TODO, refactor BlkMgr API
-func (api *PublicBlockAPI) GetBlockhash(height uint) (string, error){
- 	block,err := api.bm.chain.BlockByHeight(uint64(height))
+func (api *PublicBlockAPI) GetBlockhash(order uint) (string, error){
+ 	block,err := api.bm.chain.BlockByOrder(uint64(order))
  	if err!=nil {
  		return "",err
 	}
@@ -43,8 +43,8 @@ func (api *PublicBlockAPI) GetBlockhash(height uint) (string, error){
 }
 
 //TODO, refactor BlkMgr API
-func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.OrderedResult, error){
-	block,err := api.bm.chain.BlockByHeight(height)
+func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool) (json.OrderedResult, error){
+	block,err := api.bm.chain.BlockByOrder(order)
 
  	if err!=nil {
  		return nil,err
@@ -54,7 +54,7 @@ func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.Or
 		return nil,fmt.Errorf("no node")
 	}
 	// Update the source block order
-	block.SetHeight(node.GetHeight())
+	block.SetOrder(node.GetOrder())
 
 	best := api.bm.chain.BestSnapshot()
 
@@ -65,7 +65,7 @@ func (api *PublicBlockAPI) GetBlockByHeight(height uint64, fullTx bool) (json.Or
 	confirmations := int64(-1)
 
 	if onMainChain {
-		confirmations = 1 + int64(best.Height) - int64(height)
+		confirmations = 1 + int64(best.Order) - int64(order)
 	}
 	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
@@ -97,7 +97,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 		return nil,fmt.Errorf("no node")
 	}
 	// Update the source block order
-	blk.SetHeight(node.GetHeight())
+	blk.SetOrder(node.GetOrder())
 	// When the verbose flag isn't set, simply return the
 	// network-serialized block as a hex-encoded string.
 	if !verbose {
@@ -114,11 +114,11 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 	onMainChain, _ := api.bm.chain.MainChainHasBlock(&h)
 
 	//blockHeader := &blk.Block().Header
-	height := blk.Height()
+	order := blk.Order()
 	confirmations := int64(-1)
 
 	if onMainChain {
-		confirmations = 1 + int64(best.Height) - int64(height)
+		confirmations = 1 + int64(best.Order) - int64(order)
 	}
 	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
@@ -141,7 +141,7 @@ func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error){
 
 func (api *PublicBlockAPI) GetBlockCount() (interface{}, error){
 	best := api.bm.chain.BestSnapshot()
-	return best.Height, nil
+	return best.Order, nil
 }
 
 // GetBlockHeader implements the getblockheader command.
@@ -175,9 +175,9 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 
 	// Get next block hash unless there are none.
 	confirmations := int64(-1)
-	height := api.bm.chain.BlockDAG().GetLayer(node.GetHash())
+	layer := api.bm.chain.BlockDAG().GetLayer(node.GetHash())
 	if bestNode!=nil {
-		confirmations=1+int64(api.bm.chain.BlockDAG().GetLayer(bestNode.GetHash()))-int64(height)
+		confirmations=1+int64(api.bm.chain.BlockDAG().GetLayer(bestNode.GetHash()))-int64(layer)
 		if confirmations<1 {
 			confirmations=1
 		}
@@ -190,7 +190,7 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 		TxRoot:        blockHeader.TxRoot.String(),
 		StateRoot:     blockHeader.StateRoot.String(),
 		Difficulty:    blockHeader.Difficulty,
-		Height:        uint32(height),
+		Layer:         uint32(layer),
 		Time:          blockHeader.Timestamp.Unix(),
 		Nonce:         blockHeader.Nonce,
 	}

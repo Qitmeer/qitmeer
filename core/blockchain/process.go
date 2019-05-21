@@ -104,7 +104,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	defer func() {
 		elapsedTime := time.Since(currentTime)
 		log.Debug(fmt.Sprintf("Finished block processing"),
-			"hash",blockHash,"height",block.Height(),"elapsed time", elapsedTime)
+			"hash",blockHash,"height",block.Order(),"elapsed time", elapsedTime)
 	}()
 
 	// The block must not already exist in the main chain or side chains.

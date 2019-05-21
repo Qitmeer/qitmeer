@@ -119,7 +119,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	// lowest one so the catchup code only needs to start at the earliest
 	// block and is able to skip connecting the block for the indexes that
 	// don't need it.
-	bestHeight := int32(chain.BestSnapshot().Height)
+	bestHeight := int32(chain.BestSnapshot().Order)
 	lowestHeight := bestHeight
 	indexerHeights := make([]int32, len(m.enabledIndexes))
 	err = m.db.View(func(dbTx database.Tx) error {
@@ -446,7 +446,7 @@ func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seri
 
 	// Update the current index tip.
 	prevHash := &block.Block().Header.ParentRoot
-	return dbPutIndexerTip(dbTx, idxKey, prevHash, int32(block.Height()-1))
+	return dbPutIndexerTip(dbTx, idxKey, prevHash, int32(block.Order()-1))
 }
 
 // dbIndexConnectBlock adds all of the index entries associated with the
@@ -474,7 +474,7 @@ func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seriali
 	}
 
 	// Update the current index tip.
-	return dbPutIndexerTip(dbTx, idxKey, block.Hash(), int32(block.Height()))
+	return dbPutIndexerTip(dbTx, idxKey, block.Hash(), int32(block.Order()))
 }
 
 // dbFetchIndexerTip uses an existing database transaction to retrieve the

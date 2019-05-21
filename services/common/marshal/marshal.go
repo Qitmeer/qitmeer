@@ -166,13 +166,13 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 
 	head := b.Block().Header // copies the header once
 	// Get next block hash unless there are none.
-	height := uint64(b.Height())
+	order := uint64(b.Order())
 
 	fields := json.OrderedResult{
 		{Key:"hash",         Val:b.Hash().String()},
 		{Key:"confirmations",Val:confirmations},
 		{Key:"version",      Val:head.Version},
-		{Key:"height",       Val:height},
+		{Key:"order",        Val:order},
 		{Key:"txRoot",       Val:head.TxRoot.String()},
 	}
 
@@ -182,7 +182,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		}
 		if fullTx {
 			formatTx = func(tx *types.Tx) (interface{}, error) {
-				return MarshalJsonTx(tx,params,height,"",confirmations)
+				return MarshalJsonTx(tx,params,order,"",confirmations)
 			}
 		}
 		txs := b.Transactions()

@@ -353,7 +353,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 
 				originTx := transactions[inFlightIndex]
 				//TODO, remove type conversion
-				view.AddTxOuts(originTx, int64(block.Height()), uint32(i+1))
+				view.AddTxOuts(originTx, int64(block.Order()), uint32(i+1))
 				continue
 			}
 
@@ -460,7 +460,7 @@ func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block *types.Se
 		entry := view.entries[*tx.Hash()]
 		if entry == nil {
 			entry = newUtxoEntry(tx.Transaction().Version,
-				uint32(block.Height()), uint32(txIdx), isCoinbase,
+				uint32(block.Order()), uint32(txIdx), isCoinbase,
 				tx.Transaction().Expire != 0, types.TxTypeRegular)
 			view.entries[*tx.Hash()] = entry
 		}
@@ -541,13 +541,13 @@ func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block *types.Se
 // append an entry for each spent txout.
 func (b *BlockChain) connectTransactions(view *UtxoViewpoint, block, parent *types.SerializedBlock, stxos *[]spentTxOut) error {
 
-	if parent != nil && block.Height() != 0 {
+	if parent != nil && block.Order() != 0 {
 		err := view.fetchInputUtxos(b.db, block,b)
 		if err != nil {
 			return err
 		}
 		for i, tx := range parent.Transactions() {
-			err := view.connectTransaction(tx, parent.Height(), uint32(i),
+			err := view.connectTransaction(tx, parent.Order(), uint32(i),
 				stxos)
 			if err != nil {
 				return err

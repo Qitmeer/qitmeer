@@ -39,6 +39,7 @@ type TestData struct {
 	CO_GetMainChain TestInOutData
 	CO_GetOrder     TestInOutData
 	SP_Blocks       []TestBlocksData
+	PH_LocateBlocks TestInOutData
 }
 
 // Load some data that phantom test need,it can use to build the dag ;This is the

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"qitmeer/core/types"
 )
 
 const (

@@ -18,8 +18,8 @@ const (
 func Summary(msg Message) string {
 	switch msg := msg.(type) {
 	case *MsgVersion:
-		return fmt.Sprintf("agent %s, pver %d, block %d",
-			msg.UserAgent, msg.ProtocolVersion, msg.LastBlock)
+		return fmt.Sprintf("agent %s, pver %d, gs %s",
+			msg.UserAgent, msg.ProtocolVersion, msg.LastGS.String())
 
 	case *MsgVerAck:
 		// No summary.
