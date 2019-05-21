@@ -81,7 +81,7 @@ type Peer struct {
 	knownInventory     *invcache.InventoryCache
 
 	prevGetBlocksMtx   sync.Mutex
-	prevGetGS 		   *blockdag.GraphState
+	prevGetGS          *blockdag.GraphState
 	prevGetBlocks      *blockdag.HashSet
 	prevGetHdrsMtx     sync.Mutex
 	prevGetHdrsBegin   *hash.Hash
