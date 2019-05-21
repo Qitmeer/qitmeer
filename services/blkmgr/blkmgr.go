@@ -135,7 +135,7 @@ func NewBlockManager(ntmgr notify.Notify,indexManager blockchain.IndexManager,db
 	bm.GetChainState().UpdateChainState(&best.Hash,best.Order,best.MedianTime)
 
 	bm.syncGSMtx.Lock()
-	bm.syncGS = best.GS
+	bm.syncGS = best.GraphState
 	bm.syncGSMtx.Unlock()
 	return &bm, nil
 }
@@ -321,9 +321,9 @@ func (b *BlockManager) current() bool {
 
 	// No matter what chain thinks, if we are below the block we are syncing
 	// to we are not current.
-	if b.syncPeer.LastGS().IsExcellent(b.chain.BestSnapshot().GS) {
+	if b.syncPeer.LastGS().IsExcellent(b.chain.BestSnapshot().GraphState) {
 		log.Trace("comparing the current best vs sync last",
-			"current.best", b.chain.BestSnapshot().GS.String(), "sync.last",b.syncPeer.LastGS().String())
+			"current.best", b.chain.BestSnapshot().GraphState.String(), "sync.last",b.syncPeer.LastGS().String())
 		return false
 	}
 

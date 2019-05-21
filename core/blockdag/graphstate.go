@@ -9,8 +9,13 @@ import (
 
 // A general description of the whole state of DAG
 type GraphState struct {
+	// The terminal block is in block dag,this block have not any connecting at present.
 	tips *HashSet
+
+	// The total number blocks that this dag currently owned
 	total uint
+
+	// At present, the whole graph nodes has the last layer level.
 	layer uint
 }
 

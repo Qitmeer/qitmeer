@@ -246,7 +246,7 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	}
 	// Generate inventory message.
 	invMsg := message.NewMsgInv()
-	invMsg.GS=chain.BestSnapshot().GS
+	invMsg.GS=chain.BestSnapshot().GraphState
 	for i := range hashList {
 		iv := message.NewInvVect(message.InvTypeBlock, hashList[i])
 		invMsg.AddInvVect(iv)

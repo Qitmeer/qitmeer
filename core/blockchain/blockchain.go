@@ -205,7 +205,7 @@ type BestState struct {
 	MedianTime   time.Time      // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64         // The total number of txns in the chain.
 	TotalSubsidy int64          // The total subsidy for the chain.
-	GS           *blockdag.GraphState //The graph state of dag
+	GraphState   *blockdag.GraphState //The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
@@ -219,7 +219,7 @@ func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Ti
 		MedianTime:   medianTime,
 		TotalTxns:    totalTxns,
 		TotalSubsidy: totalSubsidy,
-		GS:gs,
+		GraphState:   gs,
 	}
 }
 

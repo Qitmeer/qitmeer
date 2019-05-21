@@ -280,7 +280,7 @@ func (p *PeerServer) Stop() error {
 // required by the configuration for the peer package.
 func (sp *serverPeer) newestGS() (*blockdag.GraphState, error) {
 	best := sp.server.BlockManager.GetChain().BestSnapshot()
-	return best.GS, nil
+	return best.GraphState, nil
 }
 
 // AddPeer adds a new peer that has already been connected to the server.

@@ -42,7 +42,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 	// request parent blocks of orphans if we receive one we already have.
 	// Finally, attempt to detect potential stalls due to long side chains
 	// we already have and request more blocks to prevent them.
-	gs:=b.chain.BestSnapshot().GS
+	gs:=b.chain.BestSnapshot().GraphState
 
 	for _, iv := range invVects {
 		// Ignore unsupported inventory types.

@@ -145,7 +145,7 @@ func (b *BlockManager) startSync(peers *list.List) {
 		// doesn't have a later block when it's equal, it will likely
 		// have one soon so it is a reasonable choice.  It also allows
 		// the case where both are at 0 such as during regression test.
-		if best.GS.IsExcellent(sp.LastGS()) {
+		if best.GraphState.IsExcellent(sp.LastGS()) {
 			peers.Remove(e)
 			continue
 		}
@@ -166,7 +166,7 @@ func (b *BlockManager) startSync(peers *list.List) {
 		// to send.
 		b.requestedBlocks = make(map[hash.Hash]struct{})
 
-		log.Info(fmt.Sprintf("Syncing to state %s from peer %s cur graph state:%s",bestPeer.LastGS().String(), bestPeer.Addr(),best.GS.String()))
+		log.Info(fmt.Sprintf("Syncing to state %s from peer %s cur graph state:%s",bestPeer.LastGS().String(), bestPeer.Addr(),best.GraphState.String()))
 
 		// When the current height is less than a known checkpoint we
 		// can use block headers to learn about which blocks comprise
@@ -185,7 +185,7 @@ func (b *BlockManager) startSync(peers *list.List) {
 		// and fully validate them.  Finally, regression test mode does
 		// not support the headers-first approach so do normal block
 		// downloads when in regression test mode.
-		err := bestPeer.PushGetBlocksMsg(best.GS,nil)
+		err := bestPeer.PushGetBlocksMsg(best.GraphState,nil)
 		if err != nil {
 			log.Error(fmt.Sprintf("Failed to push getblocksmsg for the "+
 				"latest GS: %v", err))

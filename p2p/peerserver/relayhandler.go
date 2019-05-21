@@ -50,7 +50,7 @@ func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 		// known to have the inventory.
 		if msg.immediate {
 			if msg.invVect.Type == message.InvTypeBlock {
-				gs=s.BlockManager.GetChain().BestSnapshot().GS
+				gs=s.BlockManager.GetChain().BestSnapshot().GraphState
 			}
 			sp.QueueInventoryImmediate(msg.invVect,gs)
 		} else {

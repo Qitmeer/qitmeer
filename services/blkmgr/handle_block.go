@@ -130,7 +130,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 
 		locator:=b.chain.GetOrphanParents(blockHash)
 		if len(locator)>0 {
-			err = bmsg.peer.PushGetBlocksMsg(best.GS,locator)
+			err = bmsg.peer.PushGetBlocksMsg(best.GraphState,locator)
 			if err != nil {
 				log.Warn("Failed to push getblocksmsg for the orphan block", "error",err)
 			}
@@ -158,7 +158,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		*/
 		if !b.current()&&bmsg.peer==b.syncPeer {
 			if len(bmsg.peer.RequestedBlocks)==0 {
-				err = bmsg.peer.PushGetBlocksMsg(best.GS,nil)
+				err = bmsg.peer.PushGetBlocksMsg(best.GraphState,nil)
 				if err != nil {
 					log.Warn("Failed to push getblocksmsg for the last block", "error",err)
 				}
@@ -210,7 +210,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	b.headersFirstMode = false
 	b.headerList.Init()
 	log.Info("Reached the final checkpoint -- switching to normal mode")
-	err = bmsg.peer.PushGetBlocksMsg(best.GS,nil)
+	err = bmsg.peer.PushGetBlocksMsg(best.GraphState,nil)
 	if err != nil {
 		log.Warn("Failed to send getblocks message",
 			"peer",bmsg.peer.Addr(), "error",err)
