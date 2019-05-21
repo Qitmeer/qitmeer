@@ -641,7 +641,7 @@ mempoolLoop:
 	// consensus rules to ensure it properly connects to the current best
 	// chain with no issues.
 	sblock := types.NewBlockDeepCopyCoinbase(&block)
-	sblock.SetHeight(nextBlockHeight)
+	sblock.SetOrder(nextBlockHeight)
 	err = blockManager.GetChain().CheckConnectBlockTemplate(sblock)
 	if err != nil {
 		str := fmt.Sprintf("failed to do final check for check connect "+

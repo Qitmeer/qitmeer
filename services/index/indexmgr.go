@@ -446,7 +446,7 @@ func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seri
 
 	// Update the current index tip.
 	prevHash := &block.Block().Header.ParentRoot
-	return dbPutIndexerTip(dbTx, idxKey, prevHash, int32(block.Height()-1))
+	return dbPutIndexerTip(dbTx, idxKey, prevHash, int32(block.Order()-1))
 }
 
 // dbIndexConnectBlock adds all of the index entries associated with the
@@ -474,7 +474,7 @@ func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seriali
 	}
 
 	// Update the current index tip.
-	return dbPutIndexerTip(dbTx, idxKey, block.Hash(), int32(block.Height()))
+	return dbPutIndexerTip(dbTx, idxKey, block.Hash(), int32(block.Order()))
 }
 
 // dbFetchIndexerTip uses an existing database transaction to retrieve the

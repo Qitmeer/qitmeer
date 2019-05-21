@@ -60,10 +60,10 @@ func checkCoinbaseUniqueHeight(blockHeight uint64, block *types.SerializedBlock)
 	cbHeight := binary.LittleEndian.Uint32(nullData[0:4])
 	if cbHeight < uint32(blockHeight) {
 		prevBlock := block.Block().Header.ParentRoot
-		str := fmt.Sprintf("block %v output 1 has wrong height in "+
-			"coinbase; want %v, got %v; prevBlock %v, header height %v",
+		str := fmt.Sprintf("block %v output 1 has wrong order in "+
+			"coinbase; want %v, got %v; prevBlock %v, header order %v",
 			block.Hash(), blockHeight, cbHeight, prevBlock,
-			block.Height())
+			block.Order())
 		return ruleError(ErrCoinbaseHeight, str)
 	}
 
@@ -158,10 +158,10 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		refHash:=e.Value.(*hash.Hash)
 		refblock:=b.bd.GetBlock(refHash)
 		refnode:=b.index.lookupNode(refHash)
-		refnode.SetHeight(uint64(refblock.GetOrder()))
+		refnode.SetOrder(uint64(refblock.GetOrder()))
 
 		if newNode.GetHash().IsEqual(refHash) {
-			block.SetHeight(uint64(refblock.GetOrder()))
+			block.SetOrder(uint64(refblock.GetOrder()))
 		}
 	}
 
@@ -206,7 +206,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 
 	//TODO, refactor to event subscript/publish
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
-		BestHeight: block.Height(),
+		BestHeight: block.Order(),
 		ForkLen:    0,
 		Block:      block,
 	})

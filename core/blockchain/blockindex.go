@@ -147,8 +147,8 @@ func (bi *blockIndex)GetMaxOrderFromList(list []*hash.Hash) *hash.Hash{
 		if node==nil {
 			continue
 		}
-		if maxOrder==0||maxOrder<node.height {
-			maxOrder=node.height
+		if maxOrder==0||maxOrder<node.order {
+			maxOrder=node.order
 			maxHash=v
 		}
 	}

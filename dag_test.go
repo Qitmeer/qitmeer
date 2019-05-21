@@ -412,7 +412,7 @@ func GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, error) {
 		if isSolve {
 
 			block := types.NewBlock(template.Block)
-			block.SetHeight(template.Height)
+			block.SetOrder(template.Height)
 			//
 			_, err := ser.GetNoxFull().GetBlockManager().ProcessBlock(block, blockchain.BFNone)
 			if err != nil {

@@ -176,7 +176,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 		coinbaseTxGenerated += out.Amount
 	}
 	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, amount %d", block.Hash().String(),
-		 block.Height(), coinbaseTxGenerated), nil
+		 block.Order(), coinbaseTxGenerated), nil
 
 }
 

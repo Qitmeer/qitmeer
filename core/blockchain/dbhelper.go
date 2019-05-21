@@ -179,11 +179,11 @@ func dbFetchHashByHeight(dbTx database.Tx, height uint64) (*hash.Hash, error) {
 // BlockByHeight returns the block at the given height in the main chain.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) BlockByHeight(blockHeight uint64) (*types.SerializedBlock, error) {
+func (b *BlockChain) BlockByOrder(blockOrder uint64) (*types.SerializedBlock, error) {
 	var block *types.SerializedBlock
 	err := b.db.View(func(dbTx database.Tx) error {
 		var err error
-		block, err = dbFetchBlockByHeight(dbTx, blockHeight)
+		block, err = dbFetchBlockByHeight(dbTx, blockOrder)
 		return err
 	})
 	return block, err
@@ -270,12 +270,12 @@ func dbFetchDatabaseInfo(dbTx database.Tx) (*databaseInfo, error) {
 func (b *BlockChain) createChainState() error {
 	// Create a new node from the genesis block and set it as the best node.
 	genesisBlock := types.NewBlock(b.params.GenesisBlock)
-	genesisBlock.SetHeight(0)
+	genesisBlock.SetOrder(0)
 	header := &genesisBlock.Block().Header
 	node := newBlockNode(header, nil)
 	node.status = statusDataStored | statusValid
 	b.bd.AddBlock(node)
-	node.SetHeight(0)
+	node.SetOrder(0)
 	b.index.addNode(node)
 	// Initialize the state related to the best block.  Since it is the
 	// genesis block, use its timestamp for the median time.
@@ -349,7 +349,7 @@ func (b *BlockChain) createChainState() error {
 
 		// Add the genesis block hash to height and height to hash
 		// mappings to the index.
-		err = dbPutMainChainIndex(dbTx, &node.hash, node.height)
+		err = dbPutMainChainIndex(dbTx, &node.hash, node.order)
 		if err != nil {
 			return err
 		}
@@ -426,7 +426,7 @@ func dbPutBlockNode(dbTx database.Tx, node *blockNode) error {
 	}
 
 	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIndexBucketName)
-	key := blockIndexKey(&node.hash, uint32(node.height))
+	key := blockIndexKey(&node.hash, uint32(node.order))
 	return bucket.Put(key, serialized)
 }
 
