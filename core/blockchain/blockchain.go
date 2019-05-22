@@ -988,7 +988,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 	// common ancenstor (the point where the chain forked).
 
 	// Reorganize the chain.
-	log.Info("DAG REORGANIZE: Block %v is causing a reorganize.", node.hash)
+	log.Info(fmt.Sprintf("DAG REORGANIZE: Block %v is causing a reorganize.", node.hash))
 	oldOrder:=list.New()
 	for e := newOrders.Front(); e != nil; e = e.Next() {
 		log.Info(e.Value.(*hash.Hash).String())
