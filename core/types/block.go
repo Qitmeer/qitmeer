@@ -19,7 +19,7 @@ import (
 const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 8 + 8 +8
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
-// After Segregated Witness, the max block payload has been raised to 4MB.
+// After Segregated Witness, the max block payload has been raised to 1048576 = 1024*1024.
 const MaxBlockPayload = 1048576
 
 // maxTxPerBlock is the maximum number of transactions that could
