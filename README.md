@@ -48,4 +48,8 @@ replace (
 )
 ```
 
+## qitmeer-cli
+
+[qitmeer rpc tools](https://github.com/HalalChain/qitmeer-cli)
+
 **happy hacking!**
