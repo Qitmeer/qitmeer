@@ -297,13 +297,12 @@ func New(config *Config) (*BlockChain, error) {
 		"index",b.dbInfo.bidxVer)
 
 	tips:=b.bd.GetTipsList()
-	logStr:=fmt.Sprintf("Chain state:totaltx=%d\ntips=%d\n",b.stateSnapshot.TotalTxns,len(tips))
+	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d blockTotal=%d",b.stateSnapshot.TotalTxns,len(tips),b.bd.GetBlockTotal()))
 
 	for _,v:=range tips{
 		tnode:=b.index.lookupNode(v.GetHash())
-		logStr+=fmt.Sprintf("hash=%v,order=%d,pastSetNum=%d,work=%v\n",tnode.hash,tnode.order,v.GetWeight(),tnode.workSum)
+		log.Info(fmt.Sprintf("hash=%v,order=%d,work=%v",tnode.hash,tnode.order,tnode.workSum))
 	}
-	log.Info(logStr)
 
 	return &b, nil
 }
