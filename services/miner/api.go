@@ -302,7 +302,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		m.Lock()
 		m.started = false
 		m.Unlock()
-		return nil,er.RpcInvalidError("Failed to create new block template",fmt.Sprintf("template: %v", template)) //should miner if error
+		return nil,er.RpcInvalidError("Failed to create new block template: %v", template) //should miner if error
 	}
 
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, time.Now())
