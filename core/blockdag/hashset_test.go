@@ -25,6 +25,16 @@ func Test_AddSet(t *testing.T) {
 	}
 }
 
+func Test_AddPair(t *testing.T) {
+	var intData int=123
+	hs:=NewHashSet()
+	hs.AddPair(&hash.ZeroHash,int(intData))
+
+	if !hs.Has(&hash.ZeroHash) || hs.Get(&hash.ZeroHash).(int)!=intData{
+		t.FailNow()
+	}
+}
+
 func Test_Remove(t *testing.T) {
 	hs:=NewHashSet()
 	hs.Add(&hash.ZeroHash)

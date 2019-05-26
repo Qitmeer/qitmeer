@@ -5,18 +5,22 @@ import (
 	"sort"
 )
 
+// On the Set of hash, and the saved data can be of any type
 type HashSet struct {
 	m map[hash.Hash]interface{}
 }
 
+// Return the map
 func (s *HashSet) GetMap() map[hash.Hash]interface{} {
 	return s.m
 }
 
+// Add the key of element
 func (s *HashSet) Add(elem *hash.Hash) {
 	s.m[*elem] = Empty{}
 }
 
+// Add one pair of data
 func (s *HashSet) AddPair(elem *hash.Hash,data interface{}) {
 	s.m[*elem] = data
 }
@@ -98,6 +102,10 @@ func (s *HashSet) Has(elem *hash.Hash) bool {
 
 func (s *HashSet) HasOnly(elem *hash.Hash) bool {
 	return s.Len() == 1 && s.Has(elem)
+}
+
+func (s *HashSet) Get(elem *hash.Hash) interface{} {
+	return s.m[*elem]
 }
 
 func (s *HashSet) Len() int {

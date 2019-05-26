@@ -8,11 +8,15 @@ import (
 
 // Some available DAG algorithm types
 const (
+	// A Scalable BlockDAG protocol
 	phantom="phantom"
+	// The order of all transactions is solely determined by the Tree Graph (TG)
 	conflux="conflux"
+	// Confirming Transactions via Recursive Elections
 	spectre="spectre"
 )
 
+// Maximum number of the DAG tip
 const MaxTips=100
 
 // It will create different BlockDAG instances
@@ -30,7 +34,10 @@ func NewBlockDAG(dagType string) IBlockDAG {
 
 // The abstract inferface is used to build and manager DAG
 type IBlockDAG interface {
+	// Return the name
 	GetName() string
+
+	// This instance is initialized and will be executed first.
 	Init(bd *BlockDAG) bool
 
 	// Add a block
@@ -430,6 +437,7 @@ func (bd *BlockDAG) GetLayer(h *hash.Hash) uint {
 	return bd.GetBlock(h).GetLayer()
 }
 
+// Return current general description of the whole state of DAG
 func (bd *BlockDAG) GetGraphState() *GraphState {
 	gs:=NewGraphState()
 	if bd.tips!=nil && !bd.tips.IsEmpty() {
@@ -448,6 +456,7 @@ func (bd *BlockDAG) GetGraphState() *GraphState {
 	return gs
 }
 
+// Locate all eligible block by current graph state.
 func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 	if gs.IsExcellent(bd.GetGraphState()) {
 		return nil
