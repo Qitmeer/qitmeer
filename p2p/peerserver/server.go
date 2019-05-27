@@ -136,7 +136,7 @@ func (s *PeerServer) outboundPeerConnected(c *connmgr.ConnReq, conn net.Conn) {
 	sp := newServerPeer(s, c.Permanent)
 	p, err := peer.NewOutboundPeer(newPeerConfig(sp), c.Addr.String())
 	if err != nil {
-		log.Debug("Cannot create outbound peer %s: %v", c.Addr, err)
+		log.Debug(fmt.Sprintf("Cannot create outbound peer %s: %v", c.Addr, err))
 		s.connManager.Disconnect(c.ID())
 	}
 	sp.Peer = p

@@ -792,8 +792,8 @@ func (mp *TxPool) addOrphan(tx *types.Tx) {
 	}
 	*/
 
-	log.Debug("Stored orphan transaction %v (total: %d)", tx.Hash(),
-		len(mp.orphans))
+	log.Debug(fmt.Sprintf("Stored orphan transaction %v (total: %d)", tx.Hash(),
+		len(mp.orphans)))
 }
 
 // ProcessOrphans determines if there are any orphans which depend on the passed
@@ -969,8 +969,8 @@ func (mp *TxPool) pruneExpiredTx() {
 
 	for _, tx := range mp.pool {
 		if blockchain.IsExpired(tx.Tx, nextBlockHeight) {
-			log.Debug("Pruning expired transaction %v from the mempool",
-				tx.Tx.Hash())
+			log.Debug(fmt.Sprintf("Pruning expired transaction %v from the mempool",
+				tx.Tx.Hash()))
 			mp.removeTransaction(tx.Tx, true)
 		}
 	}

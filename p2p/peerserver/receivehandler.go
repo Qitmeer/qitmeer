@@ -50,9 +50,9 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 	if !isInbound && !protocol.HasServices(msg.Services, wantServices) {
 		// missingServices := wantServices & ^msg.Services
 		missingServices := protocol.MissingServices(msg.Services, wantServices)
-		log.Debug("Rejecting peer %s with services %v due to not "+
+		log.Debug(fmt.Sprintf("Rejecting peer %s with services %v due to not "+
 			"providing desired services %v", sp.Peer, msg.Services,
-			missingServices)
+			missingServices))
 		reason := fmt.Sprintf("required services %#x not offered",
 			uint64(missingServices))
 		return message.NewMsgReject(msg.Command(), message.RejectNonstandard, reason)
