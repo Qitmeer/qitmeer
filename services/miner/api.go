@@ -236,6 +236,13 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 			}
 		}
 	*/
+
+	// No point in generating or accepting work before the chain is synced.
+	currentOrder := api.miner.blockManager.GetChain().BestSnapshot().Order
+	if currentOrder != 0 && !api.miner.blockManager.GetChain().IsCurrent() {
+		return nil, er.RPCClientInInitialDownloadError("Client in initial download ",
+			"NOX is downloading blocks...")
+	}
 	m := api.miner
 	m.Lock()
 	if m.started {
@@ -244,14 +251,6 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	}
 	m.started = true
 	m.Unlock()
-
-	// No point in generating or accepting work before the chain is synced.
-	currentOrder := api.miner.blockManager.GetChain().BestSnapshot().Order
-	if currentOrder != 0 && !api.miner.blockManager.GetChain().IsCurrent() {
-		return nil, er.RPCClientInInitialDownloadError("Client in initial download ",
-			"NOX is downloading blocks...")
-	}
-
 	// When a long poll ID was provided, this is a long poll request by the
 	// client to be notified when block template referenced by the ID should
 	// be replaced with a new one.
@@ -348,6 +347,9 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		txBuf, err := tx.Serialize(types.TxSerializeFull)
 		if err != nil {
 			context := "Failed to serialize transaction"
+			m.Lock()
+			m.started = false
+			m.Unlock()
 			return nil, er.RpcInvalidError(err.Error(), context)
 
 		}
@@ -422,6 +424,9 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		// Ensure the template has a valid payment address associated
 		// with it when a full coinbase is requested.
 		if !template.ValidPayAddress {
+			m.Lock()
+			m.started = false
+			m.Unlock()
 			return nil, er.RpcInvalidError("A coinbase transaction has been " +
 				"requested, but the server has not " +
 				"been configured with any payment " +
