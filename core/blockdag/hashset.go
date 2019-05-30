@@ -38,7 +38,7 @@ func (s *HashSet) RemoveSet(other *HashSet) {
 	if other == nil || other.Len() == 0 {
 		return
 	}
-	for k, _ := range other.GetMap() {
+	for k:= range other.GetMap() {
 		s.Remove(&k)
 	}
 }
@@ -69,7 +69,7 @@ func (s *HashSet) Intersection(other *HashSet) *HashSet {
 		result.AddSet(s)
 	} else {
 		if other != nil && other.Len() > 0 {
-			for k, _ := range other.GetMap() {
+			for k:= range other.GetMap() {
 				if s.Has(&k) {
 					result.Add(&k)
 				}
@@ -83,7 +83,7 @@ func (s *HashSet) Intersection(other *HashSet) *HashSet {
 
 func (s *HashSet) Exclude(other *HashSet) {
 	if other != nil && other.Len() > 0 {
-		for k, _ := range other.GetMap() {
+		for k:= range other.GetMap() {
 			if s.Has(&k) {
 				s.Remove(&k)
 			}
@@ -109,15 +109,12 @@ func (s *HashSet) Clear() {
 }
 
 func (s *HashSet) IsEmpty() bool {
-	if s.Len() == 0 {
-		return true
-	}
-	return false
+	return s.Len()==0
 }
 
 func (s *HashSet) List() []*hash.Hash {
 	list := []*hash.Hash{}
-	for item,_ := range s.m {
+	for item:= range s.m {
 		kv:=item
 		list = append(list, &kv)
 	}
@@ -132,12 +129,12 @@ func (s *HashSet) SortList() []*hash.Hash {
 
 func (s *HashSet) IsEqual(other *HashSet) bool {
 	var k hash.Hash
-	for k, _ = range s.m {
+	for k= range s.m {
 		if !other.Has(&k) {
 			return false
 		}
 	}
-	for k, _ = range other.m {
+	for k= range other.m {
 		if !s.Has(&k) {
 			return false
 		}
@@ -150,7 +147,7 @@ func (s *HashSet) Contain(other *HashSet) bool {
 	if other.IsEmpty() {
 		return false
 	}
-	for k, _ := range other.GetMap() {
+	for k:= range other.GetMap() {
 		if !s.Has(&k) {
 			return false
 		}
@@ -163,6 +160,10 @@ func (s *HashSet) Clone() *HashSet {
 	result := NewHashSet()
 	result.AddSet(s)
 	return result
+}
+
+func (s *HashSet) Clean() {
+	s.m=map[hash.Hash]interface{}{}
 }
 
 // Create a new HashSet

@@ -386,7 +386,7 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 			return false
 		}
 		// Other rule errors should be reported.
-		log.Error("Block submitted via CPU miner rejected: %v", err)
+		log.Error(fmt.Sprintf("Block submitted via CPU miner rejected: %v", err))
 		return false
 
 	}
@@ -403,7 +403,7 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 		coinbaseTxGenerated += out.Amount
 	}
 	log.Info("Block submitted accepted","hash",block.Hash(),
-		"height", block.Height(),"amount",coinbaseTxGenerated)
+		"height", block.Order(),"amount",coinbaseTxGenerated)
 	return true
 }
 
@@ -669,7 +669,6 @@ out:
 func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) error {
 	// TODO, decided if need extra nonce for coinbase-tx
 	// do nothing for now
-	return nil
 	blockHash:=msgBlock.BlockHash()
 	height,err:=m.blockManager.GetChain().BlockHeightByHash(&blockHash)
 	if err!=nil {
@@ -698,7 +697,7 @@ func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) er
 }
 
 func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, error) {
-	if parents==nil||len(parents)==0 {
+	if len(parents)==0 {
 		return nil,errors.New("Parents is invalid")
 	}
 
@@ -783,7 +782,7 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 		// true a solution was found, so submit the solved block.
 		if m.solveBlock(template.Block, ticker, nil) {
 			block := types.NewBlock(template.Block)
-			block.SetHeight(template.Height)
+			block.SetOrder(template.Height)
 			//
 			_, err := m.blockManager.ProcessBlock(block, blockchain.BFNone)
 			if err == nil {
@@ -794,7 +793,7 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 					coinbaseTxGenerated += out.Amount
 				}
 				log.Info("Block submitted accepted","hash",block.Hash(),
-					"height", block.Height(),"amount",coinbaseTxGenerated)
+					"height", block.Order(),"amount",coinbaseTxGenerated)
 			}else{
 				return nil,err
 			}

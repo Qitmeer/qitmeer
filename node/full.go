@@ -113,7 +113,7 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 		indexManager = index.NewManager(nox.db,indexes,node.Params)
 	}
 
-	nox.nfManager = &notifymgr.NotifyMgr{node.peerServer, node.rpcServer}
+	nox.nfManager = &notifymgr.NotifyMgr{Server:node.peerServer, RpcServer:node.rpcServer}
 
 	// block-manager
 	bm, err := blkmgr.NewBlockManager(nox.nfManager,indexManager,node.DB, nox.timeSource, nox.sigCache, node.Config, node.Params,
@@ -142,7 +142,7 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 		FetchUtxoView:    bm.GetChain().FetchUtxoView,  //TODO, duplicated dependence of miner
 		BlockByHash:      bm.GetChain().BlockByHash,
 		BestHash:         func() *hash.Hash { return &bm.GetChain().BestSnapshot().Hash },
-		BestHeight:       func() uint64 { return bm.GetChain().BestSnapshot().Height },
+		BestHeight:       func() uint64 { return bm.GetChain().BestSnapshot().Order },
 		CalcSequenceLock: bm.GetChain().CalcSequenceLock,
 		SubsidyCache:     bm.GetChain().FetchSubsidyCache(),
 		SigCache:         nox.sigCache,

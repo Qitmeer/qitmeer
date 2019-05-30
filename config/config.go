@@ -54,7 +54,7 @@ type Config struct {
 	RPCMaxWebsockets     int           `long:"rpcmaxwebsockets" description:"Max number of RPC websocket connections"`
 	//P2P
 	BlocksOnly           bool          `long:"blocksonly" description:"Do not accept transactions from remote peers."`
-	NoMiningStateSync    bool          `long:"nominingstatesync" description:"Disable synchronizing the mining state with other nodes"`
+	MiningStateSync      bool          `long:"miningstatesync" description:"Synchronizing the mining state with other nodes"`
 	AddPeers             []string      `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	ConnectPeers         []string      `long:"connect" description:"Connect only to the specified peers at startup"`
 	ExternalIPs          []string      `long:"externalip" description:"list of local addresses we claim to listen on to peers"`

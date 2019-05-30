@@ -140,16 +140,16 @@ out:
 			// don't arrive by their adjusted deadline.
 			for command, deadline := range pendingResponses {
 				if now.Before(deadline.Add(offset)) {
-					log.Debug("Stall ticker rolling over for peer %s on "+
+					log.Debug(fmt.Sprintf("Stall ticker rolling over for peer %s on "+
 						"cmd %s (deadline for data: %s)", p, command,
-						deadline.String())
+						deadline.String()))
 					continue
 				}
 
 				if command != wire.CmdMiningState {
-					log.Info("Peer %s appears to be stalled or "+
+					log.Info(fmt.Sprintf("Peer %s appears to be stalled or "+
 						"misbehaving, %s timeout -- "+
-						"disconnecting", p, command)
+						"disconnecting", p, command))
 					p.Disconnect()
 				}
 				break
@@ -206,7 +206,7 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 	case message.CmdVersion:
 		// Expects a verack message.
 		pendingResponses[wire.CmdVerAck] = deadline
-	/*
+
 	case message.CmdMemPool:
 		// Expects an inv message.
 		pendingResponses[wire.CmdInv] = deadline
@@ -230,6 +230,6 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 
 	case message.CmdGetMiningState:
 		pendingResponses[wire.CmdMiningState] = deadline
-	*/
+
 	}
 }

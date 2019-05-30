@@ -41,7 +41,7 @@ func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHeight uint64,blkHash
 func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHeight uint64,blkHashStr string,
 	confirmations int64) (json.TxRawResult, error){
 
-	hexStr, err := MessageToHex(&message.MsgTx{tx})
+	hexStr, err := MessageToHex(&message.MsgTx{Tx:tx})
 	if err!=nil {
 		return json.TxRawResult{}, err
 	}
@@ -166,14 +166,14 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 
 	head := b.Block().Header // copies the header once
 	// Get next block hash unless there are none.
-	height := uint64(b.Height())
+	order := uint64(b.Order())
 
 	fields := json.OrderedResult{
-		{"hash",         b.Hash().String()},
-		{"confirmations",confirmations},
-		{"version",      head.Version},
-		{"height",       height},
-		{"txRoot",       head.TxRoot.String()},
+		{Key:"hash",         Val:b.Hash().String()},
+		{Key:"confirmations",Val:confirmations},
+		{Key:"version",      Val:head.Version},
+		{Key:"order",        Val:order},
+		{Key:"txRoot",       Val:head.TxRoot.String()},
 	}
 
 	if inclTx {
@@ -182,7 +182,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		}
 		if fullTx {
 			formatTx = func(tx *types.Tx) (interface{}, error) {
-				return MarshalJsonTx(tx,params,height,"",confirmations)
+				return MarshalJsonTx(tx,params,order,"",confirmations)
 			}
 		}
 		txs := b.Transactions()
@@ -193,14 +193,14 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 				return nil, err
 			}
 		}
-		fields = append(fields, json.KV{"transactions", transactions})
+		fields = append(fields, json.KV{Key:"transactions", Val:transactions})
 	}
 	fields = append(fields, json.OrderedResult{
-		{"stateRoot", head.StateRoot.String()},
-		{"bits", strconv.FormatUint(uint64(head.Difficulty), 16)},
-		{"difficulty", head.Difficulty},
-		{"nonce", head.Nonce},
-		{"timestamp", head.Timestamp.Format("2006-01-02 15:04:05.0000")},
+		{Key:"stateRoot", Val:head.StateRoot.String()},
+		{Key:"bits", Val:strconv.FormatUint(uint64(head.Difficulty), 16)},
+		{Key:"difficulty", Val:head.Difficulty},
+		{Key:"nonce", Val:head.Nonce},
+		{Key:"timestamp", Val:head.Timestamp.Format("2006-01-02 15:04:05.0000")},
 	}...)
 	tempArr:=[]string{}
 	if b.Block().Parents!=nil&&len(b.Block().Parents)>0 {
@@ -211,10 +211,10 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 	}else {
 		tempArr=append(tempArr,"null")
 	}
-	fields = append(fields, json.KV{"parents", tempArr})
+	fields = append(fields, json.KV{Key:"parents", Val:tempArr})
 
 	tempArr=[]string{}
-	if children!=nil&&len(children)>0 {
+	if len(children)>0 {
 
 		for i:=0;i<len(children);i++  {
 			tempArr=append(tempArr,children[i].String())
@@ -222,7 +222,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 	}else {
 		tempArr=append(tempArr,"null")
 	}
-	fields = append(fields, json.KV{"children", tempArr})
+	fields = append(fields, json.KV{Key:"children", Val:tempArr})
 
 	return fields, nil
 }

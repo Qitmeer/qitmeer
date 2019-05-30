@@ -138,3 +138,21 @@ func Test_IsOnMainChain(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func Test_LocateBlocks(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig2-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	gs:=NewGraphState()
+	gs.tips.Add(bd.GetGenesisHash())
+	gs.total=1
+	gs.layer=0
+	lb:=bd.LocateBlocks(gs,100)
+	lbhs:=NewHashSet()
+	lbhs.AddList(lb)
+
+	if !processResult(lbhs,changeToHashList(testData.PH_LocateBlocks.Output, tbMap)) {
+		t.FailNow()
+	}
+}

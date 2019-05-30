@@ -78,7 +78,9 @@ func (sp *Spectre) AddBlock(b *Block) *list.List {
 	block:=SpectreBlock{hash:*b.GetHash(),Votes1:-1,Votes2:-1}
 	sp.sblocks[block.hash] = &block
 
-	return nil
+	var result *list.List=list.New()
+	result.PushBack(block.GetHash())
+	return result
 }
 
 func (sp *Spectre) GetTipsList() []*Block {

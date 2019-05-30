@@ -229,6 +229,9 @@
     "in": "D",
     "out":["true"]
   },
+  "PH_LocateBlocks":{
+    "out":["B","C","D","E","F","J","G","I","K","H"]
+  },
   "CO_Blocks":[
     {
       "tag":"Gen",

@@ -99,9 +99,8 @@ type blockNode struct {
 	// methods on blockIndex once the node has been added to the index.
 	status blockStatus
 
-	//height is in the position of whole block chain.(It is actually DAG order)
-	//Why do I not call "order" directly, considering the compatibility of code?
-	height    uint64
+	//order is in the position of whole block chain.(It is actually DAG order)
+	order    uint64
 }
 
 // newBlockNode returns a new block node for the given block header and parent
@@ -124,7 +123,7 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 	*node = blockNode{
 		hash:         blockHeader.BlockHash(),
 		workSum:      CalcWork(blockHeader.Difficulty),
-		height:       0,
+		order:       0,
 		blockVersion: blockHeader.Version,
 		bits:         blockHeader.Difficulty,
 		timestamp:    blockHeader.Timestamp.Unix(),
@@ -133,12 +132,12 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 		exNonce:      blockHeader.ExNonce,
 		stateRoot:    blockHeader.StateRoot,
 	}
-	if parents != nil&&len(parents)>0 {
+	if len(parents)>0 {
 		node.parents = parents
 
 		node.workSum = node.workSum.Add(node.GetParentsWorkSum(), node.workSum)
 	}else {
-		node.height=0
+		node.order=0
 	}
 }
 
@@ -259,13 +258,13 @@ func (node *blockNode) GetChildren() *blockdag.HashSet{
 	return result
 }
 
-func (node *blockNode) SetHeight(h uint64) {
-	node.height=h
+func (node *blockNode) SetOrder(h uint64) {
+	node.order=h
 }
 
 // return node height (Actually,it is order)
-func (node *blockNode) GetHeight() uint64{
-	return node.height
+func (node *blockNode) GetOrder() uint64{
+	return node.order
 }
 
 func (node *blockNode) Clone() *blockNode{
@@ -273,7 +272,7 @@ func (node *blockNode) Clone() *blockNode{
 	newNode := newBlockNode(&header,node.parents)
 	newNode.status = statusDataStored
 	newNode.children=node.children
-	newNode.height=node.height
+	newNode.order=node.order
 	return newNode
 }
 
@@ -284,7 +283,7 @@ func (node *blockNode) GetForwardParent() *blockNode {
 	}
 	var result *blockNode=nil
 	for _,v:=range node.parents{
-		if result==nil || v.GetHeight()<result.GetHeight(){
+		if result==nil || v.GetOrder()<result.GetOrder(){
 			result=v
 		}
 	}
@@ -298,7 +297,7 @@ func (node *blockNode) GetBackParent() *blockNode {
 	}
 	var result *blockNode=nil
 	for _,v:=range node.parents{
-		if result==nil || v.GetHeight()>result.GetHeight(){
+		if result==nil || v.GetOrder()>result.GetOrder(){
 			result=v
 		}
 	}

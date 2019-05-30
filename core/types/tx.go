@@ -913,7 +913,7 @@ func writeTxInWitness(w io.Writer, pver uint32, ti *TxInput) error {
 	}
 
 	// TxIndex.
-	s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.TxIndex)
+	err=s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.TxIndex)
 	if err != nil {
 		return err
 	}

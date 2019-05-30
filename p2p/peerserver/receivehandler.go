@@ -7,6 +7,7 @@ package peerserver
 
 import (
 	"fmt"
+	"qitmeer/common/hash"
 	"qitmeer/core/message"
 	"qitmeer/core/protocol"
 	"qitmeer/core/types"
@@ -224,31 +225,35 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	// wire.MaxBlocksPerMsg have been fetched or the provided stop hash is
 	// encountered.
 	//
+	p.UpdateLastGS(msg.GS)
 	// Use the block after the genesis block if no other blocks in the
 	// provided locator are known.  This does mean the client will start
 	// over with the genesis block if unknown block locators are provided.
 	chain := sp.server.BlockManager.GetChain()
-	hashList := chain.LocateBlocks(msg.BlockLocatorHashes, &msg.HashStop,
-		message.MaxBlocksPerMsg)
+	hashList:=[]*hash.Hash{}
+	if len(msg.BlockLocatorHashes)>0 {
+		for _,v:=range msg.BlockLocatorHashes{
+			if chain.BlockDAG().HasBlock(v) {
+				hashList=append(hashList,v)
+			}
+		}
+	}else {
+		hashList = chain.LocateBlocks(msg.GS,message.MaxBlocksPerMsg)
+	}
 
+	if len(hashList)==0 {
+		return
+	}
 	// Generate inventory message.
 	invMsg := message.NewMsgInv()
+	invMsg.GS=chain.BestSnapshot().GraphState
 	for i := range hashList {
-		iv := message.NewInvVect(message.InvTypeBlock, &hashList[i])
+		iv := message.NewInvVect(message.InvTypeBlock, hashList[i])
 		invMsg.AddInvVect(iv)
 	}
 
 	// Send the inventory message if there is anything to send.
 	if len(invMsg.InvList) > 0 {
-		invListLen := len(invMsg.InvList)
-		if invListLen == message.MaxBlocksPerMsg {
-			// Intentionally use a copy of the final hash so there
-			// is not a reference into the inventory slice which
-			// would prevent the entire slice from being eligible
-			// for GC as soon as it's sent.
-			continueHash := invMsg.InvList[invListLen-1].Hash
-			sp.continueHash = &continueHash
-		}
 		p.QueueMessage(invMsg, nil)
 	}
 }
@@ -266,6 +271,7 @@ func (sp *serverPeer) OnInv(p *peer.Peer, msg *message.MsgInv) {
 	}
 
 	newInv := message.NewMsgInvSizeHint(uint(len(msg.InvList)))
+	newInv.GS=msg.GS
 	for _, invVect := range msg.InvList {
 		if invVect.Type == message.InvTypeTx {
 			log.Info(fmt.Sprintf("Peer %v is announcing transactions -- "+
@@ -392,7 +398,7 @@ func (sp *serverPeer) OnGetMiningState(p *peer.Peer, msg *message.MsgGetMiningSt
 		blockHashes = blockHashes[:message.MaxMSBlocksAtHeadPerMsg]
 	}
 
-	err = sp.pushMiningStateMsg(uint32(best.Height), blockHashes)
+	err = sp.pushMiningStateMsg(uint32(best.Order), blockHashes)
 	if err != nil {
 		log.Warn(fmt.Sprintf("unexpected error while pushing data for "+
 			"mining state request: %v", err.Error()))
