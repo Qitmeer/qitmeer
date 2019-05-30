@@ -129,9 +129,13 @@ func (s *HashSet) List() []*hash.Hash {
 	return list
 }
 
-func (s *HashSet) SortList() []*hash.Hash {
-	list := SortHashs(s.List())
-	sort.Sort(list)
+func (s *HashSet) SortList(reverse bool) []*hash.Hash {
+	list := HashList(s.List())
+	if reverse {
+		sort.Sort(sort.Reverse(list))
+	}else{
+		sort.Sort(list)
+	}
 	return []*hash.Hash(list)
 }
 
@@ -202,21 +206,6 @@ func GetMaxLenHashSet(bsm map[hash.Hash]*HashSet) *hash.Hash {
 
 	}
 	return &result
-}
-
-// SortHashs is used to sort hash list
-type SortHashs []*hash.Hash
-
-func (sh SortHashs) Len() int {
-	return len(sh)
-}
-
-func (sh SortHashs) Less(i, j int) bool {
-	return sh[i].String() < sh[j].String()
-}
-
-func (sh SortHashs) Swap(i, j int) {
-	sh[i], sh[j] = sh[j], sh[i]
 }
 
 // This struct is empty
