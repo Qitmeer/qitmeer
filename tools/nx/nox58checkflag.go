@@ -6,7 +6,6 @@ package main
 import (
 	"encoding/hex"
 	"qitmeer/params"
-	"qitmeer/params/btc"
 )
 
 type noxBase58checkVersionFlag struct {
@@ -28,15 +27,6 @@ func (n *noxBase58checkVersionFlag) Set(s string) error {
 	case "testnet":
 		n.ver = append(n.ver, params.TestNetParams.PubKeyHashAddrID[0:]...)
 		n.mode = "nox"
-	case "btcmainnet":
-		n.ver = append(n.ver, btc.MainNetParams.PubKeyHashAddrID)
-		n.mode = "btc"
-	case "btctestnet":
-		n.ver = append(n.ver, btc.TestNet3Params.PubKeyHashAddrID)
-		n.mode = "btc"
-	case "btcregressionnet":
-		n.ver = append(n.ver, btc.RegressionNetParams.PubKeyHashAddrID)
-		n.mode = "btc"
 	default:
 		v, err := hex.DecodeString(s)
 		if err != nil {
