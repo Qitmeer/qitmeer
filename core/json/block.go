@@ -35,7 +35,7 @@ type GetBlockHeaderVerboseResult struct {
 	TxRoot        string  `json:"txRoot"`
 	StateRoot     string  `json:"stateRoot"`
 	Difficulty    uint32  `json:"difficulty"`
-	Height        uint32  `json:"height"`
+	Layer         uint32  `json:"layer"`
 	Time          int64   `json:"time"`
 	Nonce         uint64  `json:"nonce"`
 }

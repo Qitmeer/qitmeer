@@ -54,7 +54,7 @@ func (ls *LazySet) Clone() *LazySet {
 	result := NewLazySet()
 	result.sets = make([]*HashSet,len(ls.sets))
 	copy(result.sets,ls.sets)
-	for k, _ := range ls.positiveIndices {
+	for k:= range ls.positiveIndices {
 		result.positiveIndices[k]=Empty{}
 	}
 	return result
@@ -63,7 +63,7 @@ func (ls *LazySet) Clone() *LazySet {
 
 func (ls *LazySet) flattenToSet() *HashSet {
 	baseSetIndex:=-1
-	for index,_:=range ls.sets{
+	for index:=range ls.sets{
 		if _, ok := ls.positiveIndices[index];ok {
 			baseSetIndex=index
 		}

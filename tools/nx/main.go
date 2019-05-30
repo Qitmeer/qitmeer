@@ -116,8 +116,9 @@ func main() {
 
 	base58CheckEncodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
 	base58checkVersion = noxBase58checkVersionFlag{}
-	base58checkVersion.Set("privnet")
-	base58CheckEncodeCommand.Var(&base58checkVersion, "v", "base58check `version` [mainnet|testnet|privnet]")
+	base58checkVersion.Set("testnet")
+	base58CheckEncodeCommand.Var(&base58checkVersion, "v", "base58check `version` [mainnet|testnet|privnet")
+	base58CheckEncodeCommand.StringVar(&base58checkMode, "m", "nox", "base58check encode mode : [nox|btc]")
 	base58CheckEncodeCommand.StringVar(&base58checkHasher, "a", "", "base58check hasher")
 	base58CheckEncodeCommand.IntVar(&base58checkCksumSize, "c", 4, "base58check checksum size")
 	base58CheckEncodeCommand.Usage = func() {

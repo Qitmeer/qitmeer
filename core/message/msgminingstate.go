@@ -73,12 +73,6 @@ func (msg *MsgMiningState) Decode(r io.Reader, pver uint32) error {
 		msg.AddBlockHash(&hash)
 	}
 
-	// Read num vote hashes and limit to max.
-	count, err = s.ReadVarInt(r, pver)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 

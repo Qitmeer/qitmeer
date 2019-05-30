@@ -13,6 +13,8 @@ const (
 	spectre="spectre"
 )
 
+const MaxTips=100
+
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
@@ -90,17 +92,50 @@ func (b *Block) HasParents() bool {
 	return true
 }
 
-func (b *Block) AddChild(child *hash.Hash) {
+// Parent with order in front.
+func (b *Block) GetForwardParent() *Block {
+	if b.parents==nil || b.parents.IsEmpty() {
+		return nil
+	}
+	var result *Block=nil
+	for _,v:=range b.parents.GetMap(){
+		parent:=v.(*Block)
+		if result==nil || parent.GetOrder()<result.GetOrder(){
+			result=parent
+		}
+	}
+	return result
+}
+
+// Parent with order in back.
+func (b *Block) GetBackParent() *Block {
+	if b==nil || b.parents==nil || b.parents.IsEmpty() {
+		return nil
+	}
+	var result *Block=nil
+	for _,v:=range b.parents.GetMap(){
+		parent:=v.(*Block)
+		if result==nil || parent.GetOrder()>result.GetOrder(){
+			result=parent
+		}
+	}
+	return result
+}
+
+// Add child nodes to block
+func (b *Block) AddChild(child *Block) {
 	if b.children == nil {
 		b.children = NewHashSet()
 	}
-	b.children.Add(child)
+	b.children.AddPair(child.GetHash(),child)
 }
 
+// Get all the children of block
 func (b *Block) GetChildren() *HashSet {
 	return b.children
 }
 
+// Detecting the presence of child nodes
 func (b *Block) HasChildren() bool {
 	if b.children == nil {
 		return false
@@ -111,24 +146,29 @@ func (b *Block) HasChildren() bool {
 	return true
 }
 
+// Setting the weight of block
 func (b *Block) SetWeight(weight uint) {
 	b.weight = weight
 }
 
-func (b *Block) SetLayer(layer uint) {
-	b.layer=layer
-}
-
+// Acquire the weight of block
 func (b *Block) GetWeight() uint {
 	return b.weight
 }
 
-func (b *Block) GetOrder() uint {
-	return b.order
+// Setting the layer of block
+func (b *Block) SetLayer(layer uint) {
+	b.layer=layer
 }
 
+// Acquire the layer of block
 func (b *Block) GetLayer() uint {
 	return b.layer
+}
+
+// Acquire the order of block
+func (b *Block) GetOrder() uint {
+	return b.order
 }
 
 // The general foundation framework of DAG
@@ -156,10 +196,12 @@ type BlockDAG struct {
 	instance IBlockDAG
 }
 
+// Acquire the name of DAG instance
 func (bd *BlockDAG) GetName() string {
 	return bd.instance.GetName()
 }
 
+// Initialize self, the function to be invoked at the beginning
 func (bd *BlockDAG) Init(dagType string) IBlockDAG{
 	bd.instance=NewBlockDAG(dagType)
 	bd.instance.Init(bd)
@@ -181,7 +223,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	var parents []*hash.Hash
 	if bd.GetBlockTotal() > 0 {
 		parents = b.GetParents()
-		if parents == nil || len(parents) == 0 {
+		if len(parents) == 0 {
 			return nil
 		}
 		if !bd.HasBlocks(parents) {
@@ -197,9 +239,9 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		block.parents = NewHashSet()
 		var maxLayer uint=0
 		for k, h := range parents {
-			block.parents.Add(h)
 			parent := bd.GetBlock(h)
-			parent.AddChild(block.GetHash())
+			block.parents.AddPair(h,parent)
+			parent.AddChild(&block)
 			if k == 0 {
 				block.privot = parent
 			}
@@ -220,7 +262,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	}
 	bd.blockTotal++
 	//
-	bd.updateTips(block.GetHash())
+	bd.updateTips(&block)
 	//
 	t:=time.Unix(b.GetTimestamp(), 0)
 	if bd.lastTime.Before(t) {
@@ -230,10 +272,12 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	return bd.instance.AddBlock(&block)
 }
 
+// Acquire the genesis block of chain
 func (bd *BlockDAG) GetGenesis() *Block {
 	return bd.GetBlock(&bd.genesis)
 }
 
+// Acquire the genesis block hash of chain
 func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 	return &bd.genesis
 }
@@ -243,10 +287,12 @@ func (bd *BlockDAG) IsDAG(b IBlockData) bool {
 	return true
 }
 
+// Is there a block in DAG?
 func (bd *BlockDAG) HasBlock(h *hash.Hash) bool {
 	return bd.GetBlock(h) != nil
 }
 
+// Is there some block in DAG?
 func (bd *BlockDAG) HasBlocks(hs []*hash.Hash) bool {
 	for _, h := range hs {
 		if !bd.HasBlock(h) {
@@ -256,6 +302,7 @@ func (bd *BlockDAG) HasBlocks(hs []*hash.Hash) bool {
 	return true
 }
 
+// Acquire one block by hash
 func (bd *BlockDAG) GetBlock(h *hash.Hash) *Block {
 	block, ok := bd.blocks[*h]
 	if !ok {
@@ -264,6 +311,7 @@ func (bd *BlockDAG) GetBlock(h *hash.Hash) *Block {
 	return block
 }
 
+// Total number of blocks
 func (bd *BlockDAG) GetBlockTotal() uint {
 	return bd.blockTotal
 }
@@ -273,23 +321,24 @@ func (bd *BlockDAG) GetTips() *HashSet {
 	return bd.tips
 }
 
+// Acquire the tips array of DAG
 func (bd *BlockDAG) GetTipsList() []*Block {
 	result:=bd.instance.GetTipsList()
 	if result!=nil {
 		return result
 	}
 	result=[]*Block{}
-	for k,_:=range bd.tips.GetMap(){
+	for k:=range bd.tips.GetMap(){
 		result=append(result,bd.GetBlock(&k))
 	}
 	return result
 }
 
 // Refresh the dag tip whith new block,it will cause changes in tips set.
-func (bd *BlockDAG) updateTips(h *hash.Hash) {
+func (bd *BlockDAG) updateTips(b *Block) {
 	if bd.tips == nil {
 		bd.tips = NewHashSet()
-		bd.tips.Add(h)
+		bd.tips.AddPair(b.GetHash(),b)
 		return
 	}
 	for k := range bd.tips.GetMap() {
@@ -298,7 +347,7 @@ func (bd *BlockDAG) updateTips(h *hash.Hash) {
 			bd.tips.Remove(&k)
 		}
 	}
-	bd.tips.Add(h)
+	bd.tips.AddPair(b.GetHash(),b)
 }
 
 // The last time is when add one block to DAG.
@@ -311,6 +360,7 @@ func (bd *BlockDAG) GetOrder() []*hash.Hash {
 	return bd.order
 }
 
+// Obtain block hash by global order
 func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash{
 	result:=bd.instance.GetBlockByOrder(order)
 	if result!=nil {
@@ -360,7 +410,7 @@ func (bd *BlockDAG) GetFutureSet(fs *HashSet, b *Block) {
 	if children == nil || children.IsEmpty() {
 		return
 	}
-	for k, _ := range children.GetMap() {
+	for k:= range children.GetMap() {
 		if !fs.Has(&k) {
 			fs.Add(&k)
 			bd.GetFutureSet(fs, bd.GetBlock(&k))
@@ -376,6 +426,65 @@ func (bd *BlockDAG) IsOnMainChain(h *hash.Hash) bool {
 
 // Return the layer of block,it is stable.
 // You can imagine that this is the main chain.
-func (bd *BlockDAG) GetLayer(h *hash.Hash) uint{
+func (bd *BlockDAG) GetLayer(h *hash.Hash) uint {
 	return bd.GetBlock(h).GetLayer()
+}
+
+func (bd *BlockDAG) GetGraphState() *GraphState {
+	gs:=NewGraphState()
+	if bd.tips!=nil && !bd.tips.IsEmpty() {
+		gs.tips=bd.tips.Clone()
+
+		gs.layer=0
+		for _,v:=range gs.tips.GetMap() {
+			tip:=v.(*Block)
+			if tip.GetLayer()>gs.layer{
+				gs.layer=tip.GetLayer()
+			}
+		}
+	}
+	gs.total=bd.GetBlockTotal()
+
+	return gs
+}
+
+func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
+	if gs.IsExcellent(bd.GetGraphState()) {
+		return nil
+	}
+	queue := []*Block{}
+	for k:=range gs.tips.GetMap(){
+		if bd.HasBlock(&k) {
+			queue=append(queue,bd.GetBlock(&k))
+		}
+	}
+	if len(queue)==0 {
+		return nil
+	}
+	fs:=NewHashSet()
+	fs.AddSet(gs.tips)
+
+	result:=[]*hash.Hash{}
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		if !cur.HasChildren() {
+			continue
+		}
+
+		for _,v := range cur.GetChildren().GetMap() {
+			b:=v.(*Block)
+			if fs.Has(b.GetHash()) {
+				continue
+			}
+			queue = append(queue,b)
+			fs.Add(b.GetHash())
+			result=append(result,b.GetHash())
+			if len(result)>int(maxHashes) {
+				return result
+			}
+		}
+	}
+	return result
 }

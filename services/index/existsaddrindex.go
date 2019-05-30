@@ -205,7 +205,7 @@ func (idx *ExistsAddrIndex) ExistsAddresses(addrs []types.Address) ([]bool, erro
 // This is part of the Indexer interface.
 func (idx *ExistsAddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
 	var allTxns []*types.Tx
-	if block.Height() > 1 {
+	if block.Order() > 1 {
 		allTxns = block.Transactions()
 	}
 

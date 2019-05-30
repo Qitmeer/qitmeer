@@ -9,15 +9,15 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"qitmeer/engine/txscript"
-	"qitmeer/crypto/ecc"
-	btcparams "qitmeer/params/btc"
-	btchash "qitmeer/common/hash/btc"
-	"qitmeer/params/btc/addr"
-	"qitmeer/params/btc/types"
-	_ "qitmeer/params/btc/txscript"
 	"qitmeer/common/hash"
+	btchash "qitmeer/common/hash/btc"
 	"qitmeer/core/types"
+	"qitmeer/crypto/ecc"
+	"qitmeer/engine/txscript"
+	btcparams "qitmeer/params/btc"
+	"qitmeer/params/btc/addr"
+	_ "qitmeer/params/btc/txscript"
+	"qitmeer/params/btc/types"
 )
 
 // This example demonstrates creating a script which pays to a bitcoin address.

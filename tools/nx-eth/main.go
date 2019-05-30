@@ -6,11 +6,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
+	"os"
 	"qitmeer/common/hash"
 	"qitmeer/common/math"
 	"qitmeer/crypto/ecc/secp256k1"
-	"math/big"
-	"os"
 )
 
 // Lengths of hashes and addresses in bytes.
@@ -27,6 +27,7 @@ func BytesToAddress(b []byte) Address {
 	a.SetBytes(b)
 	return a
 }
+
 // SetBytes sets the address to the value of b.
 // If b is larger than len(a) it will panic.
 func (a *Address) SetBytes(b []byte) {
@@ -68,9 +69,8 @@ func main() {
 	}
 	pubKey := privkey.PublicKey
 
-
 	fmt.Printf("priv_big %v \n", privkey)
-	fmt.Printf("priv %s\n",hex.EncodeToString(FromECDSAPriv(privkey)))
+	fmt.Printf("priv %s\n", hex.EncodeToString(FromECDSAPriv(privkey)))
 	fmt.Printf("pub %s \n", hex.EncodeToString(FromECDSAPub(&pubKey)))
 
 	pubkeyHash0 := keccak256(FromECDSAPub(&pubKey))
@@ -87,7 +87,7 @@ func main() {
 }
 
 func keccak256(data []byte) []byte {
-	return hash.CalcHash(data,hash.GetHasher(hash.Keccak_256))
+	return hash.CalcHash(data, hash.GetHasher(hash.Keccak_256))
 }
 
 func hexToECDSA(hexkey string) (*ecdsa.PrivateKey, error) {
@@ -95,7 +95,7 @@ func hexToECDSA(hexkey string) (*ecdsa.PrivateKey, error) {
 	if err != nil {
 		return nil, errors.New("invalid hex string")
 	}
-	return toECDSA(b,true)
+	return toECDSA(b, true)
 }
 
 // toECDSA creates a private key with the given D value. The strict parameter

@@ -8,9 +8,11 @@ package peerserver
 import (
 	"errors"
 	"fmt"
+	"net"
 	"qitmeer/common/hash"
 	"qitmeer/config"
 	"qitmeer/core/blockchain"
+	"qitmeer/core/blockdag"
 	"qitmeer/core/message"
 	"qitmeer/core/protocol"
 	"qitmeer/core/types"
@@ -22,7 +24,6 @@ import (
 	"qitmeer/services/blkmgr"
 	"qitmeer/services/mempool"
 	"qitmeer/version"
-	"net"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -47,6 +48,9 @@ const (
 
 	// maxProtocolVersion is the max protocol version the server supports.
 	maxProtocolVersion = peer.MaxProtocolVersion
+
+	// connection timeout setting
+	defaultConnectTimeout        = time.Second * 30
 )
 
 var (
@@ -170,7 +174,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			//OnGetCFHeaders:   sp.OnGetCFHeaders,
 			//OnGetCFTypes:     sp.OnGetCFTypes,
 		},
-		NewestBlock:       sp.newestBlock,
+		NewestGS:          sp.newestGS,
 		HostToNetAddress:  sp.server.addrManager.HostToNetAddress,
 		UserAgentName:     userAgentName,
 		UserAgentVersion:  userAgentVersion,
@@ -274,9 +278,9 @@ func (p *PeerServer) Stop() error {
 
 // newestBlock returns the current best block hash and height using the format
 // required by the configuration for the peer package.
-func (sp *serverPeer) newestBlock() (*hash.Hash, uint64, error) {
+func (sp *serverPeer) newestGS() (*blockdag.GraphState, error) {
 	best := sp.server.BlockManager.GetChain().BestSnapshot()
-	return &best.Hash, best.Height, nil
+	return best.GraphState, nil
 }
 
 // AddPeer adds a new peer that has already been connected to the server.
@@ -424,7 +428,13 @@ func (s *PeerServer) UpdatePeerHeights(latestBlkHash *hash.Hash, latestHeight ui
 		originPeer: updateSource,
 	}
 }
+
 // handleGetBlocksMsg use to get some blocks from neighbor peers
 func (s *PeerServer) handleGetBlocksMsg(state *peerState, msg *GetBlocksMsg) {
 
+}
+
+// Dial connects to the address on the named network.
+func (s *PeerServer) Dial(network, addr string) (net.Conn, error) {
+	return net.DialTimeout(network, addr, defaultConnectTimeout)
 }

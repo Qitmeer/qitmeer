@@ -712,7 +712,7 @@ func (idx *AddrIndex) indexPkScript(data writeIndexData, scriptVersion uint16, p
 // transaction using the passed map.
 func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) {
 	var parentRegularTxs []*types.Tx
-	if block.Height() > 1 {
+	if block.Order() > 1 {
 		parentRegularTxs = block.Transactions()
 	}
 	for txIdx, tx := range parentRegularTxs {
@@ -730,7 +730,7 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlo
 				if entry == nil {
 					log.Warn("Missing input %v for tx %v while "+
 						"indexing block %v (height %v)\n", origin.Hash,
-						tx.Hash(), block.Hash(), block.Height())
+						tx.Hash(), block.Hash(), block.Order())
 					continue
 				}
 
@@ -758,7 +758,7 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBloc
 	// applicable.
 	var parentTxLocs []types.TxLoc
 	var parentBlockID uint32
-	if block.Height() > 1 {
+	if block.Order() > 1 {
 		var err error
 		parentTxLocs, err = block.TxLoc()
 		if err != nil {

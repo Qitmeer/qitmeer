@@ -24,7 +24,6 @@ type serverPeer struct {
 	connReq         *connmgr.ConnReq
 	server          *PeerServer
 	persistent      bool
-	continueHash    *hash.Hash
 	relayMtx        sync.Mutex
 	disableRelayTx  bool
 	isWhitelisted   bool
