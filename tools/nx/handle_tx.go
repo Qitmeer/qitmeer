@@ -186,7 +186,7 @@ func txSign(curve string,privkeyStr string, rawTxStr string) {
 		return privateKey,true,nil // compressed is true
 	}
 	var sigScripts [][]byte
-	for i,_:= range redeemTx.TxIn {
+	for i:= range redeemTx.TxIn {
 		sigScript,err := txscript.SignTxOutput(param,&redeemTx,i,pkScript,txscript.SigHashAll,kdb,nil,nil,algo)
 		if err != nil {
 			errExit(err)
