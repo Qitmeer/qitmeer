@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"qitmeer/common/hash"
+	"qitmeer/core/blockdag"
 	"qitmeer/core/message"
 	"qitmeer/core/protocol"
 	s "qitmeer/core/serialization"
@@ -80,8 +81,8 @@ type Peer struct {
 	knownInventory     *invcache.InventoryCache
 
 	prevGetBlocksMtx   sync.Mutex
-	prevGetBlocksBegin *hash.Hash
-	prevGetBlocksStop  *hash.Hash
+	prevGetGS          *blockdag.GraphState
+	prevGetBlocks      *blockdag.HashSet
 	prevGetHdrsMtx     sync.Mutex
 	prevGetHdrsBegin   *hash.Hash
 	prevGetHdrsStop    *hash.Hash
@@ -91,8 +92,7 @@ type Peer struct {
 	statsMtx           sync.RWMutex
 
 	// - block
-	startingHeight     int64
-	lastBlock          uint64
+	lastGS             *blockdag.GraphState
 	lastAnnouncedBlock *hash.Hash
 
 	// - Time
@@ -252,8 +252,7 @@ func (p *Peer) readRemoteVersionMsg() error {
 
 	// Updating a bunch of stats.
 	p.statsMtx.Lock()
-	p.lastBlock = uint64(msg.LastBlock)
-	p.startingHeight = int64(msg.LastBlock)
+	p.lastGS.Equal(msg.LastGS)
 
 	// Set the peer's time offset.
 	p.timeOffset = msg.Timestamp.Unix() - time.Now().Unix()
@@ -295,13 +294,9 @@ func (p *Peer) readRemoteVersionMsg() error {
 // localVersionMsg creates a version message that can be used to send to the
 // remote peer.
 func (p *Peer) localVersionMsg() (*message.MsgVersion, error) {
-	var blockNum uint64
-	if p.cfg.NewestBlock != nil {
-		var err error
-		_, blockNum, err = p.cfg.NewestBlock()
-		if err != nil {
-			return nil, err
-		}
+	gs:=p.GetGraphState()
+	if gs==nil {
+		return nil,fmt.Errorf("no GS")
 	}
 
 	theirNA := p.na
@@ -344,7 +339,7 @@ func (p *Peer) localVersionMsg() (*message.MsgVersion, error) {
 	sentNonces.Add(nonce)
 
 	// Version message.
-	msg := message.NewMsgVersion(ourNA, theirNA, nonce, int32(blockNum))
+	msg := message.NewMsgVersion(ourNA, theirNA, nonce, gs)
 	msg.AddUserAgent(p.cfg.UserAgentName, p.cfg.UserAgentVersion,
 		p.cfg.UserAgentComments...)
 
@@ -437,6 +432,16 @@ func (p *Peer) start() error {
 	return nil
 }
 
+func (p *Peer) GetGraphState() *blockdag.GraphState {
+	if p.cfg.NewestGS != nil {
+		gs, err := p.cfg.NewestGS()
+		if err != nil {
+			return nil
+		}
+		return gs
+	}
+	return nil
+}
 // newPeerBase returns a new base peer based on the inbound flag.  This
 // is used by the NewInboundPeer and NewOutboundPeer functions to perform base
 // setup needed by both types of peers.
@@ -468,6 +473,7 @@ func newPeerBase(cfg *Config, inbound bool) *Peer {
 		cfg:             *cfg, // Copy so caller can't mutate.
 		services:        cfg.Services,
 		protocolVersion: protocolVersion,
+		lastGS:          blockdag.NewGraphState(),
 	}
 	return &p
 }

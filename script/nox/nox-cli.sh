@@ -51,62 +51,14 @@ function solc_compile(){
 # All jsonrpc calls
 # ---------------------------
 
-
-# newAccount
-# Generates a new private key and stores it in the key store directory. The key file is encrypted with the given passphrase.
-# Returns the address of the new account.
-#    func (s *PrivateAccountAPI) NewAccount(password string) (common.Address, error)
-#
-function new_account(){
-  local passphrase=""
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      -p|-pass)     shift; passphrase=$1; shift;;
-      *)            shift;;
-    esac
-  done
-  if [ "$passphrase" == "" ]; then
-    # passphrase="test"
-    passphrase=""
-  fi
-  local payload='{"jsonrpc":"2.0","method":"newAccount","params":["'$passphrase'"],"id":1}'
-  get_result "$payload"
-}
-
-# the amount of wei for the given address in the state of the given block number.
-#   func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*big.Int, error)
-function get_balance(){
-  local addr=$1
-  local block_num=$2
-  if [ "$block_num" == "" ]; then
-    block_num="latest"
-  fi
-  local data='{"jsonrpc":"2.0","method":"getBalance","params":["'$addr'","'$block_num'"],"id":null}'
-  get_result "$data"
-}
-
-
-# returns the requested block by blockNr
-# When fullTx is true all transactions in the block are # returned in full detail, otherwise only the transaction hash is returned.
-#   func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error)
-function get_block_eth(){
-  local block_number=$(to_hex $1)
-  local fullTx=$2
-  if [ "$fullTx" == "" ]; then
-    fullTx="true"
-  fi
-  local data='{"jsonrpc":"2.0","method":"getBlockByNumber","params":["'$block_number'",'$fullTx'],"id":1}'
-  get_result "$data"
-}
-
 # Nox
 function get_block(){
-  local height=$1
+  local order=$1
   local verbose=$2
   if [ "$verbose" == "" ]; then
     verbose="true"
   fi
-  local data='{"jsonrpc":"2.0","method":"getBlockByHeight","params":['$height','$verbose'],"id":1}'
+  local data='{"jsonrpc":"2.0","method":"getBlockByOrder","params":['$order','$verbose'],"id":1}'
   get_result "$data"
 }
 
@@ -301,54 +253,15 @@ function check_debug() {
 
 function usage(){
 
-  echo "chain    :"
-  echo "  main <hash>"
   echo "block    :"
   echo "  block <num|hash>"
-  echo "  block -n <numb> | -h <hash>"
-  echo "  block <num> -show rlp|<num> -show rlp=dump"
-  echo "  block <num|hash> -show tx=[num]"
-  echo "  block <num|hash> -show txcount"
-  echo "  block <num|hash> -show blocktime"
-  echo "  block <num|hash> -show stroot"
-  echo "  block <num|hash> -show txroot"
-  echo "  block <num|hash> -show rcroot"
-  echo "  block <num|hash> -show roots"
   echo "tx       :"
   echo "  tx <hash>"
-  echo "  get_tx_by_block_and_index <num_hex> <index_hex>"
+  echo "  txSign <rawTx>"
+  echo "  sendRawTx <signedRawTx>"
   echo "utxo  :"
   echo "  getutxo <tx_id> <index> <include_mempool,default=true>"
-  echo "account  :"
-  echo "  newaccount"
-  echo "  accounts"
-  echo "  balance      <account> [blknum]"
-  echo "  get_tx_count <account>"
-  echo "  get_code     <account> [blknum]"
-  echo "  get_storage  <account> <at> [blknum]"
-  echo "mining   :"
-  echo "  get_coinbase"
-  echo "  set_coinbase"
-  echo "  start_mining"
-  echo "  stop_mining"
-  echo "  mining <second>"
-  echo "  generate <blk_count>"
-  echo "status   :"
-  echo "  status|get_status|info|get_info [-mining|-module|-hashrate|-work|-txpool|-all]"
-  echo "contract :"
-  echo "  compile        <sol_file> [-bin|-abi|-fun|-all] [-q]"
-  echo "  send_tx        -from <addr> -to <addr> -v <value> -d <data>"
-  echo "  receipt        <tx_hash>"
-  echo "  contractaddr   <tx_hash>"
-  echo "  call           -from <addr> -to <addr> -v <value> -d <data>"
-  echo "debug   :"
-  echo "  dump_state    <blknum>"
-  echo "  rlp_block     <num>"
-  echo "  trace_block   [-n <num>|-h <hash>|-r <rlp>]"
-  echo "  trace_tx      <tx_hash>"
-  echo "txpool  :"
-  echo "  txpool -status|-inspect|-content"
-
+  
 }
 
 # -------------------

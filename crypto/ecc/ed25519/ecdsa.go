@@ -43,8 +43,8 @@ var (
 func GenerateKey(curve *TwistedEdwardsCurve, rand io.Reader) (priv []byte, x,
 	y *big.Int, err error) {
 	pub, priv, err := ed25519.GenerateKey(rand)
-	var pubArray *[PubKeyBytesLen]byte
-	var privArray *[PrivKeyBytesLen]byte
+	var pubArray [PubKeyBytesLen]byte
+	var privArray [PrivKeyBytesLen]byte
 	copy(pubArray[:], pub)
 	copy(privArray[:],priv)
 	if err != nil {
@@ -52,7 +52,7 @@ func GenerateKey(curve *TwistedEdwardsCurve, rand io.Reader) (priv []byte, x,
 	}
 	priv = privArray[:]
 
-	x, y, err = curve.EncodedBytesToBigIntPoint(pubArray)
+	x, y, err = curve.EncodedBytesToBigIntPoint(&pubArray)
 	if err != nil {
 		return nil, nil, nil, err
 	}

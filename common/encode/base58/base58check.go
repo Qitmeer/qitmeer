@@ -84,8 +84,7 @@ func CheckEncode(input []byte, version []byte, cksum_size int, cksumfunc func([]
 	b := make([]byte, 0, len(version)+len(input)+cksum_size)
 	b = append(b, version[:]...)
 	b = append(b, input[:]...)
-	var cksum []byte
-	cksum = cksumfunc(b)
+	var cksum []byte = cksumfunc(b)
 	b = append(b, cksum[:]...)
 	return Encode(b)
 }

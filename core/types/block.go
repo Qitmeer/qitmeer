@@ -19,8 +19,7 @@ import (
 const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 8 + 8 +8
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
-// After Segregated Witness, the max block payload has been raised to 4MB.
-const MaxBlockPayload = 4000000
+const MaxBlockPayload = 1048576 // 1024*1024 (1MB)
 
 // maxTxPerBlock is the maximum number of transactions that could
 // possibly fit into a block.
@@ -265,12 +264,12 @@ func (b *Block) Decode(r io.Reader, pver uint32) error {
 	if pbCount > MaxParentsPerBlock {
 		str := fmt.Sprintf("too many parents to fit into a block "+
 			"[count %d, max %d]", pbCount, MaxParentsPerBlock)
-		return fmt.Errorf("MsgBlock.BtcDecode", str)
+		return fmt.Errorf("MsgBlock.BtcDecode %s", str)
 	}
 	b.Parents = make([]*hash.Hash, 0, pbCount)
 	phash:=hash.Hash{}
 	for i := uint64(0); i < pbCount; i++ {
-		s.ReadElements(r, &phash)
+		err=s.ReadElements(r, &phash)
 		if err != nil {
 			return err
 		}
@@ -318,12 +317,12 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	if pbCount > MaxParentsPerBlock {
 		str := fmt.Sprintf("too many parents to fit into a block "+
 			"[count %d, max %d]", pbCount, MaxParentsPerBlock)
-		return nil,fmt.Errorf("MsgBlock.BtcDecode", str)
+		return nil,fmt.Errorf("MsgBlock.BtcDecode %s", str)
 	}
 	b.Parents = make([]*hash.Hash, 0, pbCount)
 	phash:=hash.Hash{}
 	for i := uint64(0); i < pbCount; i++ {
-		s.ReadElements(r, &phash)
+		err=s.ReadElements(r, &phash)
 		if err != nil {
 			return nil,err
 		}
@@ -384,7 +383,7 @@ type SerializedBlock struct {
 	serializedBytes       []byte          // Serialized bytes for the block
 	transactions          []*Tx           // Transactions
 	txnsGenerated         bool            // ALL wrapped transactions generated
-	height                uint64          //height is in the position of whole block chain.
+	order                 uint64          //order is in the position of whole block chain.
 }
 
 // NewBlock returns a new instance of the serialized block given an underlying Block.
@@ -514,15 +513,15 @@ func (sb *SerializedBlock) TxLoc() ([]TxLoc, error) {
 	return txLocs, err
 }
 
-// Height returns a casted int64 height from the block header.
+// Order returns a casted int64 order from the block header.
 //
 // This function should not be used for new code and will be
 // removed in the future.
-func (sb *SerializedBlock) Height() uint64 {
-	return sb.height
+func (sb *SerializedBlock) Order() uint64 {
+	return sb.order
 }
-func (sb *SerializedBlock) SetHeight(height uint64) {
-	sb.height=height
+func (sb *SerializedBlock) SetOrder(order uint64) {
+	sb.order=order
 }
 
 // Transactions returns a slice of wrapped transactions for all

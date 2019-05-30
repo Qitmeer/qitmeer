@@ -1,11 +1,11 @@
 package main
 
 import (
-	"qitmeer/crypto/bip39"
-	"fmt"
-	"qitmeer/crypto/bip32"
-	"os"
 	"encoding/hex"
+	"fmt"
+	"os"
+	"qitmeer/crypto/bip32"
+	"qitmeer/crypto/bip39"
 )
 
 func main() {

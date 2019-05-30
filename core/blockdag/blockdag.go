@@ -13,6 +13,8 @@ const (
 	spectre="spectre"
 )
 
+const MaxTips=100
+
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
@@ -221,7 +223,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	var parents []*hash.Hash
 	if bd.GetBlockTotal() > 0 {
 		parents = b.GetParents()
-		if parents == nil || len(parents) == 0 {
+		if len(parents) == 0 {
 			return nil
 		}
 		if !bd.HasBlocks(parents) {
@@ -326,7 +328,7 @@ func (bd *BlockDAG) GetTipsList() []*Block {
 		return result
 	}
 	result=[]*Block{}
-	for k,_:=range bd.tips.GetMap(){
+	for k:=range bd.tips.GetMap(){
 		result=append(result,bd.GetBlock(&k))
 	}
 	return result
@@ -408,7 +410,7 @@ func (bd *BlockDAG) GetFutureSet(fs *HashSet, b *Block) {
 	if children == nil || children.IsEmpty() {
 		return
 	}
-	for k, _ := range children.GetMap() {
+	for k:= range children.GetMap() {
 		if !fs.Has(&k) {
 			fs.Add(&k)
 			bd.GetFutureSet(fs, bd.GetBlock(&k))
@@ -424,7 +426,65 @@ func (bd *BlockDAG) IsOnMainChain(h *hash.Hash) bool {
 
 // Return the layer of block,it is stable.
 // You can imagine that this is the main chain.
-func (bd *BlockDAG) GetLayer(h *hash.Hash) uint{
+func (bd *BlockDAG) GetLayer(h *hash.Hash) uint {
 	return bd.GetBlock(h).GetLayer()
 }
 
+func (bd *BlockDAG) GetGraphState() *GraphState {
+	gs:=NewGraphState()
+	if bd.tips!=nil && !bd.tips.IsEmpty() {
+		gs.tips=bd.tips.Clone()
+
+		gs.layer=0
+		for _,v:=range gs.tips.GetMap() {
+			tip:=v.(*Block)
+			if tip.GetLayer()>gs.layer{
+				gs.layer=tip.GetLayer()
+			}
+		}
+	}
+	gs.total=bd.GetBlockTotal()
+
+	return gs
+}
+
+func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
+	if gs.IsExcellent(bd.GetGraphState()) {
+		return nil
+	}
+	queue := []*Block{}
+	for k:=range gs.tips.GetMap(){
+		if bd.HasBlock(&k) {
+			queue=append(queue,bd.GetBlock(&k))
+		}
+	}
+	if len(queue)==0 {
+		return nil
+	}
+	fs:=NewHashSet()
+	fs.AddSet(gs.tips)
+
+	result:=[]*hash.Hash{}
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		if !cur.HasChildren() {
+			continue
+		}
+
+		for _,v := range cur.GetChildren().GetMap() {
+			b:=v.(*Block)
+			if fs.Has(b.GetHash()) {
+				continue
+			}
+			queue = append(queue,b)
+			fs.Add(b.GetHash())
+			result=append(result,b.GetHash())
+			if len(result)>int(maxHashes) {
+				return result
+			}
+		}
+	}
+	return result
+}

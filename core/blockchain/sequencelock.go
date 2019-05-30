@@ -68,7 +68,7 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 		// next block for inputs that are in the mempool.
 		inputHeight := utxo.BlockHeight()
 		if inputHeight == 0x7fffffff {
-			inputHeight = node.height + 1
+			inputHeight = node.order + 1
 		}
 
 		// Mask off the value portion of the sequence number to obtain

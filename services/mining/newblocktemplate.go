@@ -113,7 +113,7 @@ func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Param
 	// TODO,refactor the poolsize & finalstate
 
 	best := blockManager.GetChain().BestSnapshot()
-	nextBlockHeight := best.Height + 1
+	nextBlockHeight := best.Order + 1
 
 	// Get the current source transactions and create a priority queue to
 	// hold the transactions which are ready for inclusion into a block
@@ -466,9 +466,6 @@ mempoolLoop:
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	numCoinbaseSigOps := int64(blockchain.CountSigOps(coinbaseTx, true))
 	blockSize += uint32(coinbaseTx.Transaction().SerializeSize())
 	blockSigOps += numCoinbaseSigOps
@@ -482,9 +479,7 @@ mempoolLoop:
 	blockTxnsRegular = append(blockTxnsRegular, coinbaseTx)
 
 	// Append regular tx
-	for _, tx := range blockTxns {
-		blockTxnsRegular = append(blockTxnsRegular, tx)
-	}
+	blockTxnsRegular = append(blockTxnsRegular, blockTxns...)
 
 	for _, tx := range blockTxnsRegular {
 		fee, ok := txFeesMap[*tx.Hash()]
@@ -646,7 +641,7 @@ mempoolLoop:
 	// consensus rules to ensure it properly connects to the current best
 	// chain with no issues.
 	sblock := types.NewBlockDeepCopyCoinbase(&block)
-	sblock.SetHeight(nextBlockHeight)
+	sblock.SetOrder(nextBlockHeight)
 	err = blockManager.GetChain().CheckConnectBlockTemplate(sblock)
 	if err != nil {
 		str := fmt.Sprintf("failed to do final check for check connect "+

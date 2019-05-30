@@ -1,5 +1,8 @@
 # Qitmeer
 
+[![Build Status](https://travis-ci.com/HalalChain/qitmeer.svg?token=DzCFNC6nhEqPc89sq1nd&branch=master)](https://travis-ci.com/HalalChain/qitmeer)
+
+
 The guardian of trust. The core network of the Halachain
 
 ##  Prerequisites
@@ -44,5 +47,9 @@ replace (
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 => github.com/golang/net v0.0.0-20181005035420-146acd28ed58
 )
 ```
+
+## qitmeer-cli
+
+[qitmeer rpc tools](https://github.com/HalalChain/qitmeer-cli)
 
 **happy hacking!**

@@ -27,8 +27,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"strings"
 	"qitmeer/common/encode/rlp"
+	"strings"
 )
 
 var (

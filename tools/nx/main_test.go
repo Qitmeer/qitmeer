@@ -5,11 +5,10 @@ package main
 
 import (
 	"encoding/hex"
-	"fmt"
+	"github.com/stretchr/testify/assert"
 	"qitmeer/common/encode/base58"
 	"qitmeer/crypto/bip32"
 	"qitmeer/crypto/bip39"
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -75,7 +74,7 @@ func TestNoxBase58CheckEncode(t *testing.T) {
 	*/
 	for _, addrtest := range testAddresses {
 		encoded := base58.NoxCheckEncode(data, addrtest.ver[:])
-		assert.Equal(t,fmt.Sprintf("%s",encoded),addrtest.addr)
+		assert.Equal(t,encoded,addrtest.addr)
 	}
 }
 
@@ -106,8 +105,8 @@ func TestNoxHd(t *testing.T) {
 
 	assert.Equal(t, hex.EncodeToString(seed),
 		"17d2225306c59147d199e626bd322aaad6297225b39c720b5f59e99fe7fb872ff52705859851ad794aecb666e98fbe34a1d235f80a27b69daf486d23281e9567")
-	assert.Equal(t, fmt.Sprintf("%s",masterKey),
+	assert.Equal(t,masterKey.String(),
 		"xprv9s21ZrQH143K3eKjeMrovhEdqzX9mzxsAxXxY3rYEPRzs7o3hXnD6ja2YgxgvppmxFTYjEpE32yYsyxdnWbBBt3wSiRD1rqN1FFdnQJdnzF")
-	assert.Equal(t, fmt.Sprintf("%s",publicKey),
+	assert.Equal(t,publicKey.String(),
 		"xpub661MyMwAqRbcG8QCkPPpHqBNQ2MeBTgiYBTZLSG9nixyjv8CF56TeXtWPx3tiZTfPc92cbZFtFhZpBuSgpNxvFpDAQKX47DdyYcofRNJYT2")
 }

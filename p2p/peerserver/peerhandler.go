@@ -93,7 +93,7 @@ func (s *PeerServer) handleUpdatePeerHeights(state *peerState, umsg updatePeerHe
 		// matches our newly accepted block, then update their block
 		// height.
 		if *latestBlkHash == *umsg.newHash {
-			sp.UpdateLastBlockHeight(umsg.newHeight)
+			//sp.UpdateLastBlockHeight(umsg.newHeight)
 			sp.UpdateLastAnnouncedBlock(nil)
 		}
 	})

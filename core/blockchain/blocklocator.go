@@ -63,9 +63,9 @@ func (b *BlockChain) LatestBlockLocator() (BlockLocator, error) {
 //   after the genesis block will be returned
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) LocateBlocks(locator BlockLocator, hashStop *hash.Hash, maxHashes uint32) []hash.Hash {
+func (b *BlockChain) LocateBlocks(gs *blockdag.GraphState, maxHashes uint32) []*hash.Hash {
 	b.chainLock.RLock()
-	hashes := b.locateBlocks(locator, hashStop, maxHashes)
+	hashes := b.bd.LocateBlocks(gs, uint(maxHashes))
 	b.chainLock.RUnlock()
 	return hashes
 }
@@ -134,7 +134,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 		}
 	}
 
-	for k,_:=range hashesSet.GetMap(){
+	for k:=range hashesSet.GetMap(){
 		hashes=append(hashes,hash.Hash(k))
 	}
 	return hashes
@@ -173,12 +173,12 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 	// block locator.  See the description of the algorithm for how these
 	// numbers are derived.
 	var maxEntries uint8
-	if node.height <= 12 {
-		maxEntries = uint8(node.height) + 1
+	if node.order <= 12 {
+		maxEntries = uint8(node.order) + 1
 	} else {
 		// Requested hash itself + previous 10 entries + genesis block.
 		// Then floor(log2(height-10)) entries for the skip portion.
-		adjustedHeight := uint32(node.height) - 10
+		adjustedHeight := uint32(node.order) - 10
 		maxEntries = 12 + fastLog2Floor(adjustedHeight)
 	}
 	locator := make(BlockLocator, 0, maxEntries)
@@ -188,7 +188,7 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 		locator = append(locator, &node.hash)
 
 		// Nothing more to add once the genesis block has been added.
-		if node.height == 0 {
+		if node.order == 0 {
 			break
 		}
 
@@ -199,8 +199,8 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 		//	 height = 0
 		// }
 		height := uint64(0)
-		if node.height > step {
-			height = node.height - step
+		if node.order > step {
+			height = node.order - step
 		}
 
 		nodeH := b.bd.GetBlockByOrder(uint(height))
@@ -214,3 +214,4 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 
 	return locator
 }
+

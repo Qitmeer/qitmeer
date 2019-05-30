@@ -3,10 +3,12 @@ package blockdag
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"qitmeer/common/hash"
 	"math/rand"
 	"os"
 	"time"
+	l "qitmeer/log"
 )
 
 // Structure of blocks data
@@ -37,6 +39,7 @@ type TestData struct {
 	CO_GetMainChain TestInOutData
 	CO_GetOrder     TestInOutData
 	SP_Blocks       []TestBlocksData
+	PH_LocateBlocks TestInOutData
 }
 
 // Load some data that phantom test need,it can use to build the dag ;This is the
@@ -100,6 +103,13 @@ var randTool *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 var testData *TestData
 
 func InitBlockDAG(dagType string,graph string) (IBlockDAG, map[string]*hash.Hash) {
+	output := io.Writer(os.Stdout)
+	glogger := l.NewGlogHandler(l.StreamHandler(output, l.TerminalFormat(false)))
+	glogger.Verbosity(l.LvlError)
+	l.Root().SetHandler(glogger)
+	blockdaglogger := l.New(l.Ctx{"module": "blockdag"})
+	UseLogger(blockdaglogger)
+
 	testData = &TestData{}
 	err := loadTestData("./testData.json", testData)
 	if err != nil {
@@ -130,8 +140,14 @@ func InitBlockDAG(dagType string,graph string) (IBlockDAG, map[string]*hash.Hash
 			parents = append(parents, tbMap[parent])
 		}
 		block := buildBlock(tbd[i].Tag,parents,&tbMap)
-		bd.AddBlock(block)
-		tbMap[tbd[i].Tag] = block.GetHash()
+		l:=bd.AddBlock(block)
+		if l!=nil&&l.Len()>0 {
+			tbMap[tbd[i].Tag] = block.GetHash()
+		}else{
+			fmt.Printf("Error:%d  %s\n",tempHash,tbd[i].Tag)
+			return nil,nil
+		}
+
 	}
 
 	return instance, tbMap
@@ -143,6 +159,8 @@ func buildBlock(tag string, parents []*hash.Hash, tbMap *map[string]*hash.Hash) 
 	h:=hash.MustHexToDecodedHash(hashStr)
 	tBlock := &TestBlock{hash: h}
 	tBlock.parents = parents
+	tBlock.timeStamp=time.Now().Unix()
+
 	//
 	return tBlock
 }
@@ -207,7 +225,7 @@ func printBlockChainTag(list []*hash.Hash, tbMap map[string]*hash.Hash) {
 	for i := 0; i < len(list); i++ {
 		name := getBlockTag(list[i],tbMap)
 		if i == 0 {
-			result += fmt.Sprintf("%s", name)
+			result += name
 		} else {
 			result += fmt.Sprintf("-->%s", name)
 		}
@@ -218,10 +236,10 @@ func printBlockChainTag(list []*hash.Hash, tbMap map[string]*hash.Hash) {
 func printBlockSetTag(set *HashSet, tbMap map[string]*hash.Hash) {
 	var result string="["
 	isFirst:=true
-	for k,_:=range set.GetMap(){
+	for k:=range set.GetMap(){
 		name := getBlockTag(&k,tbMap)
 		if isFirst {
-			result += fmt.Sprintf("%s", name)
+			result += name
 			isFirst=false
 		}else {
 			result += fmt.Sprintf(",%s", name)

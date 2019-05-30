@@ -83,7 +83,6 @@ out:
 			invMsg := message.NewMsgInvSizeHint(uint(invSendQueue.Len()))
 			for e := invSendQueue.Front(); e != nil; e = invSendQueue.Front() {
 				iv := invSendQueue.Remove(e).(*message.InvVect)
-
 				// Don't send inventory that became known after
 				// the initial check.
 				if p.knownInventory.Exists(iv) {
@@ -91,6 +90,7 @@ out:
 				}
 
 				invMsg.AddInvVect(iv)
+				invMsg.GS=p.GetGraphState()
 				if len(invMsg.InvList) >= maxInvTrickleSize {
 					waiting = queuePacket(
 						outMsg{msg: invMsg},
