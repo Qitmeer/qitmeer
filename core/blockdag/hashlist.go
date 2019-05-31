@@ -16,3 +16,12 @@ func (sh HashList) Less(i, j int) bool {
 func (sh HashList) Swap(i, j int) {
 	sh[i], sh[j] = sh[j], sh[i]
 }
+
+func (sh HashList) Has(h *hash.Hash) bool {
+	for _,v:=range sh{
+		if v.IsEqual(h) {
+			return true
+		}
+	}
+	return false
+}
