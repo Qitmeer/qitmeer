@@ -115,6 +115,9 @@ func (api *PublicMinerAPI) GetBlockTemplate() (interface{}, error) {
 //See https://en.bitcoin.it/wiki/BIP_0022 for full specification
 func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	// Deserialize the hexBlock.
+	m := api.miner
+	m.submitBlockLock.Lock()
+	defer m.submitBlockLock.Unlock()
 
 	if len(hexBlock)%2 != 0 {
 		hexBlock = "0" + hexBlock
@@ -233,8 +236,6 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 			}
 		}
 	*/
-	m := api.miner
-	m.submitBlockLock.Lock()
 
 	// No point in generating or accepting work before the chain is synced.
 	currentOrder := api.miner.blockManager.GetChain().BestSnapshot().Order
@@ -242,7 +243,14 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		return nil, er.RPCClientInInitialDownloadError("Client in initial download ",
 			"NOX is downloading blocks...")
 	}
-
+	m := api.miner
+	m.Lock()
+	if m.started {
+		m.Unlock()
+		return nil, er.RpcInternalError("Server is already CPU mining.","Please stop first.")
+	}
+	m.started = true
+	m.Unlock()
 	// When a long poll ID was provided, this is a long poll request by the
 	// client to be notified when block template referenced by the ID should
 	// be replaced with a new one.
@@ -276,13 +284,6 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	*/
 	//TODO LL,
 	//return state.blockTemplateResult(useCoinbaseValue, nil)
-	m.Lock()
-	m.started = true
-	m.discreteMining = true
-	m.speedMonitorQuit = make(chan struct{})
-	m.wg.Add(1)
-	go m.speedMonitor()
-	m.Unlock()
 
 	log.Trace("Generating blocks", "num", 1)
 
@@ -290,25 +291,17 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	rand.Seed(time.Now().UnixNano())
 	payToAddr := m.config.GetMinningAddrs()[rand.Intn(len(m.config.GetMinningAddrs()))]
 
+	m.submitBlockLock.Lock()
 	template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil)
-
 	m.submitBlockLock.Unlock()
 
-	if err != nil {
-		errStr := fmt.Sprintf("template: %v", err)
-		log.Error("Failed to create new block ", "err", errStr)
+	if err != nil || template==nil {
+		log.Error("Failed to create new block ", "err",fmt.Sprintf("%v", err))
 		//TODO refactor the quit logic
 		m.Lock()
-		close(m.speedMonitorQuit)
-		m.wg.Wait()
 		m.started = false
-		m.discreteMining = false
 		m.Unlock()
-		return nil, err //should miner if error
-	}
-	if template == nil { // should not go here
-		log.Debug("Failed to create new block template", "err", "but error=nil")
-		return nil, er.RpcInvalidError("Failed to create new block template")
+		return nil,er.RpcInvalidError("Failed to create new block template: %v", template) //should miner if error
 	}
 
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, time.Now())
@@ -354,6 +347,9 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		txBuf, err := tx.Serialize(types.TxSerializeFull)
 		if err != nil {
 			context := "Failed to serialize transaction"
+			m.Lock()
+			m.started = false
+			m.Unlock()
 			return nil, er.RpcInvalidError(err.Error(), context)
 
 		}
@@ -428,13 +424,18 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		// Ensure the template has a valid payment address associated
 		// with it when a full coinbase is requested.
 		if !template.ValidPayAddress {
+			m.Lock()
+			m.started = false
+			m.Unlock()
 			return nil, er.RpcInvalidError("A coinbase transaction has been " +
 				"requested, but the server has not " +
 				"been configured with any payment " +
 				"addresses via --miningaddr")
 		}
 	}
-
+	m.Lock()
+	m.started = false
+	m.Unlock()
 	return &reply, nil
 
 }
