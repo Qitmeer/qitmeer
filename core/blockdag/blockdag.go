@@ -10,8 +10,13 @@ import (
 const (
 	// A Scalable BlockDAG protocol
 	phantom="phantom"
+
+	// Phantom protocol V2
+	phantom_v2="phantom_v2"
+
 	// The order of all transactions is solely determined by the Tree Graph (TG)
 	conflux="conflux"
+
 	// Confirming Transactions via Recursive Elections
 	spectre="spectre"
 )
@@ -24,6 +29,8 @@ func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
 	case phantom:
 		return &Phantom{}
+	case phantom_v2:
+		return &Phantom_v2{}
 	case conflux:
 		return &Conflux{}
 	case spectre:
