@@ -24,6 +24,9 @@ const (
 // Maximum number of the DAG tip
 const MaxTips=100
 
+// Maximum order of the DAG block
+const MaxBlockOrder=uint(^uint32(0))
+
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
@@ -59,7 +62,6 @@ type IBlockDAG interface {
 	// Query whether a given block is on the main chain.
 	IsOnMainChain(b *Block) bool
 }
-
 
 //The abstract inferface is used to dag block
 type IBlockData interface {
@@ -178,6 +180,11 @@ func (b *Block) SetLayer(layer uint) {
 // Acquire the layer of block
 func (b *Block) GetLayer() uint {
 	return b.layer
+}
+
+// Setting the order of block
+func (b *Block) SetOrder(o uint) {
+	b.order=o
 }
 
 // Acquire the order of block

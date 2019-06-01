@@ -7,24 +7,6 @@ import (
 	"qitmeer/common/hash"
 )
 
-type PhantomBlock struct {
-	*Block
-	blueNum uint
-	coloringParent *hash.Hash
-	selfOrderIndex uint
-
-	blueDiffPastOrder *HashSet
-	redDiffPastOrder *HashSet
-}
-
-func (pb *PhantomBlock) IsBluer(other *PhantomBlock) bool {
-	if pb.blueNum > other.blueNum ||
-		(pb.blueNum == other.blueNum && pb.GetHash().String() < other.GetHash().String()) {
-		return true
-	}
-	return false
-}
-
 type KChain struct {
 	blocks *HashSet
 	minimalHeight uint
@@ -54,9 +36,7 @@ type Phantom_v2 struct {
 
 	kChain *KChain
 
-	incrementGenesis hash.Hash
-
-	coloringParent *hash.Hash
+	incrementGenesis *hash.Hash
 }
 
 func (ph *Phantom_v2) GetName() string {
@@ -85,12 +65,17 @@ func (ph *Phantom_v2) AddBlock(b *Block) *list.List {
 	if ph.blocks == nil {
 		ph.blocks = map[hash.Hash]*PhantomBlock{}
 	}
-	pb:=&PhantomBlock{b,0,nil,0,nil,nil}
+	pb:=&PhantomBlock{b,0,nil,nil,nil}
+	pb.SetOrder(MaxBlockOrder)
 	ph.blocks[*pb.GetHash()]=pb
 
 	ph.updateColoringIncrementally(pb)
 	ph.updateTopologicalOrderIncrementally(pb)
-	return nil
+
+	result:=list.New()
+	result.PushBack(pb)
+
+	return result
 }
 
 // If the successor return nil, the underlying layer will use the default tips list.
@@ -113,6 +98,11 @@ func (ph *Phantom_v2) updateColoringIncrementally(pb *PhantomBlock) {
 		cp:=ph.getBluest(pb.GetParents())
 		pb.coloringParent=cp.GetHash()
 		pb.blueNum=cp.blueNum
+	}else{
+		//It is genesis
+		if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
+			log.Error("Error genesis")
+		}
 	}
 	pb.blueDiffPastOrder=NewHashSet()
 	pb.redDiffPastOrder=NewHashSet()
@@ -126,10 +116,10 @@ func (ph *Phantom_v2) updateColoringIncrementally(pb *PhantomBlock) {
 func (ph *Phantom_v2) updateDiffColoringOfBlock(pb *PhantomBlock) {
 	blueDiffPastOrder:=NewHashSet()
 	redDiffPastOrder:=NewHashSet()
-	kchain:=ph.getKChain(pb)
-	parentAntipast:=ph.getAntipast(pb.coloringParent)
 
 	if pb.HasParents() {
+		kchain:=ph.getKChain(pb)
+		parentAntipast:=ph.getAntipast(pb.coloringParent)
 		diffPastQueue := []*PhantomBlock{}
 		for k:=range pb.GetParents().GetMap(){
 			diffPastQueue=append(diffPastQueue,ph.blocks[k])
@@ -150,18 +140,9 @@ func (ph *Phantom_v2) updateDiffColoringOfBlock(pb *PhantomBlock) {
 			ph.colorBlock(kchain,cur,blueDiffPastOrder,redDiffPastOrder)
 			filter.Add(cur.GetHash())
 
-			reference:=[]*hash.Hash{}
-			if cur.HasParents() {
-				reference=append(reference,cur.GetParents().List()...)
-			}
-
-			if cur.HasChildren() {
-				reference=append(reference,cur.GetChildren().List()...)
-			}
-
-			for _,v := range reference {
-				diffPastQueue = append(diffPastQueue,ph.blocks[*v])
-				filter.Add(v)
+			for k,_ := range cur.GetParents().GetMap() {
+				diffPastQueue = append(diffPastQueue,ph.blocks[k])
+				filter.Add(&k)
 			}
 		}
 	}
@@ -242,17 +223,20 @@ func (ph *Phantom_v2) getAntipast(h *hash.Hash) *HashSet {
 		curPb=ph.blocks[*curPb.coloringParent]
 	}
 
-	curPb=ph.blocks[*ph.coloringTip]
-	for !intersection.IsEqual(curPb.GetHash()) {
+	if ph.coloringTip!=nil {
+		curPb=ph.blocks[*ph.coloringTip]
+		for !curPb.GetHash().IsEqual(intersection) {
 
-		positive.AddSet(curPb.blueDiffPastOrder)
-		positive.AddSet(curPb.redDiffPastOrder)
+			positive.AddSet(curPb.blueDiffPastOrder)
+			positive.AddSet(curPb.redDiffPastOrder)
 
-		if curPb.coloringParent==nil {
-			break
+			if curPb.coloringParent==nil {
+				break
+			}
+			curPb=ph.blocks[*curPb.coloringParent]
 		}
-		curPb=ph.blocks[*curPb.coloringParent]
 	}
+
 
 	result.AddSet(positive)
 	result.RemoveSet(negative)
@@ -289,8 +273,8 @@ func (ph *Phantom_v2) updateMaxColoring(pb *PhantomBlock) {
 	if ph.isMaxColoringTip(pb) {
 		ph.updatePastColoringAccordingTo(pb)
 		ph.kChain=ph.getKChain(pb)
-		if !ph.coloringChain.Has(&ph.incrementGenesis) {
-			ph.incrementGenesis=*ph.getExtremeBlue(ph.coloringChain,false).GetHash()
+		if ph.incrementGenesis==nil || !ph.coloringChain.Has(ph.incrementGenesis) {
+			ph.incrementGenesis=ph.getExtremeBlue(ph.coloringChain,false).GetHash()
 		}
 	}
 }
@@ -328,17 +312,19 @@ func (ph *Phantom_v2) updatePastColoringAccordingTo(pb *PhantomBlock) {
 		curPb=ph.blocks[*curPb.coloringParent]
 	}
 
-	curPb=ph.blocks[*ph.coloringTip]
-	for !intersection.IsEqual(curPb.GetHash()) {
-		ph.coloringChain.Remove(curPb.GetHash())
-		ph.uncoloredUnorderedAntipast.AddSet(curPb.blueDiffPastOrder)
-		ph.uncoloredUnorderedAntipast.AddSet(curPb.redDiffPastOrder)
-		ph.pastOrder.Remove(curPb.GetHash())
+	if ph.coloringTip!=nil {
+		curPb=ph.blocks[*ph.coloringTip]
+		for !curPb.GetHash().IsEqual(intersection) {
+			ph.coloringChain.Remove(curPb.GetHash())
+			ph.uncoloredUnorderedAntipast.AddSet(curPb.blueDiffPastOrder)
+			ph.uncoloredUnorderedAntipast.AddSet(curPb.redDiffPastOrder)
+			ph.pastOrder.Remove(curPb.GetHash())
 
-		if curPb.coloringParent==nil {
-			break
+			if curPb.coloringParent==nil {
+				break
+			}
+			curPb=ph.blocks[*curPb.coloringParent]
 		}
-		curPb=ph.blocks[*curPb.coloringParent]
 	}
 
 	for _,v:=range diffPastOrderings{
@@ -358,7 +344,7 @@ func (ph *Phantom_v2) updateTopologicalOrderIncrementally(pb *PhantomBlock) {
 
 func (ph *Phantom_v2) updateTopologicalOrderInDicts(pb *PhantomBlock) {
 	var startOrder uint=0
-	if pb.coloringParent!=nil && ph.blocks[*pb.coloringParent].GetOrder()!=0 {
+	if pb.coloringParent!=nil && ph.blocks[*pb.coloringParent].GetOrder()!=MaxBlockOrder {
 		startOrder=ph.blocks[*pb.coloringParent].GetOrder()
 	}
 	ordered:=ph.calculateTopologicalOrder(pb)
@@ -403,7 +389,7 @@ func (ph *Phantom_v2) calculateTopologicalOrder(pb *PhantomBlock) []*hash.Hash {
 }
 
 func(ph *Phantom_v2) sortBlocks(lastBlock *hash.Hash,laterBlocks *HashSet,toSort *HashSet,unsorted *HashSet) []*hash.Hash {
-	if toSort.IsEmpty() {
+	if toSort==nil || toSort.IsEmpty() {
 		return []*hash.Hash{}
 	}
 	remaining:=NewHashSet()
@@ -430,8 +416,7 @@ func(ph *Phantom_v2) sortBlocks(lastBlock *hash.Hash,laterBlocks *HashSet,toSort
 
 func(ph *Phantom_v2) updateOrder(pb *PhantomBlock) {
 	pb.order=uint(pb.blueDiffPastOrder.Len()+pb.redDiffPastOrder.Len())
-	ph.coloringParent=pb.coloringParent
-	if ph.coloringParent!=nil &&ph.blocks[*ph.coloringParent].GetOrder()!=0{
-		pb.order+=ph.blocks[*ph.coloringParent].GetOrder()
+	if pb.coloringParent!=nil &&ph.blocks[*pb.coloringParent].GetOrder()!=MaxBlockOrder{
+		pb.order+=ph.blocks[*pb.coloringParent].GetOrder()
 	}
 }
