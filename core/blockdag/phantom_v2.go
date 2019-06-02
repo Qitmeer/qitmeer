@@ -85,6 +85,7 @@ func (ph *Phantom_v2) GetTipsList() []*Block {
 
 // Find block hash by order, this is very fast.
 func (ph *Phantom_v2) GetBlockByOrder(order uint) *hash.Hash {
+	ph.updateAntipastColoring()
 	return nil
 }
 
@@ -140,7 +141,7 @@ func (ph *Phantom_v2) updateDiffColoringOfBlock(pb *PhantomBlock) {
 			ph.colorBlock(kchain,cur,blueDiffPastOrder,redDiffPastOrder)
 			filter.Add(cur.GetHash())
 
-			for k,_ := range cur.GetParents().GetMap() {
+			for k:= range cur.GetParents().GetMap() {
 				diffPastQueue = append(diffPastQueue,ph.blocks[k])
 				filter.Add(&k)
 			}
@@ -161,7 +162,7 @@ func (ph *Phantom_v2) getExtremeBlue(bs *HashSet,bluest bool) *PhantomBlock {
 		return nil
 	}
 	var result *PhantomBlock
-	for k,_:=range bs.GetMap() {
+	for k:=range bs.GetMap() {
 		pb:=ph.blocks[k]
 		if result==nil {
 			result=pb
@@ -419,4 +420,11 @@ func(ph *Phantom_v2) updateOrder(pb *PhantomBlock) {
 	if pb.coloringParent!=nil &&ph.blocks[*pb.coloringParent].GetOrder()!=MaxBlockOrder{
 		pb.order+=ph.blocks[*pb.coloringParent].GetOrder()
 	}
+}
+
+func(ph *Phantom_v2) updateAntipastColoring() {
+	for k:=range ph.uncoloredUnorderedAntipast.GetMap() {
+		ph.colorBlock(ph.kChain,ph.blocks[k],ph.blueAntipastOrder,ph.redAntipastOrder)
+	}
+	ph.uncoloredUnorderedAntipast.Clean()
 }
