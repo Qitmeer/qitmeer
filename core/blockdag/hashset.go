@@ -112,10 +112,6 @@ func (s *HashSet) Len() int {
 	return len(s.List())
 }
 
-func (s *HashSet) Clear() {
-	s.m = map[hash.Hash]interface{}{}
-}
-
 func (s *HashSet) IsEmpty() bool {
 	return s.Len()==0
 }

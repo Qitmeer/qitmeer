@@ -273,8 +273,8 @@ func (ph *Phantom) GetTempOrder(tempOrder *[]*hash.Hash, tempOrderM *HashSet, bs
 
 		if bs.Has(v.h) {
 			if !tempOrderM.Has(v.h) {
-				pastSet.Clear()
-				redSet.Clear()
+				pastSet.Clean()
+				redSet.Clean()
 				var excludeT *HashSet
 				if exclude != nil {
 					excludeT = tempOrderM.Clone()
@@ -633,9 +633,9 @@ func (ph *Phantom) updateCommonBlueSet(tip *hash.Hash){
 
 	if parents.HasOnly(ph.bd.GetGenesisHash()) {
 		//needOrderBS.AddList(bd.tempOrder)
-		ph.commonBlueSet.Clear()
+		ph.commonBlueSet.Clean()
 		ph.commonBlueSet.Add(ph.bd.GetGenesisHash())
-		ph.lastCommonBlocks.Clear()
+		ph.lastCommonBlocks.Clean()
 		ph.lastCommonBlocks.Add(ph.bd.GetGenesisHash())
 		ph.updateCommonOrder(tip, nil, false, nil, nil, 0)
 
@@ -806,7 +806,7 @@ func (ph *Phantom) updateHourglass(){
 
 		//
 		if ancestors.IsEmpty()||ancestors.HasOnly(ph.bd.GetGenesisHash()) {
-			ph.hourglassBlocks.Clear()
+			ph.hourglassBlocks.Clean()
 			ph.hourglassBlocks.Add(ph.bd.GetGenesisHash())
 			return
 		}
