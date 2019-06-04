@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"qitmeer/common/hash"
 	"math/rand"
 	"os"
-	"time"
+	"qitmeer/common/hash"
 	l "qitmeer/log"
+	"time"
 )
 
 // Structure of blocks data
@@ -102,6 +102,9 @@ var randTool *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 // and output data.
 var testData *TestData
 
+// This is the test data file name
+var testDataFilePath string="./testData.json"
+
 func InitBlockDAG(dagType string,graph string) (IBlockDAG, map[string]*hash.Hash) {
 	output := io.Writer(os.Stdout)
 	glogger := l.NewGlogHandler(l.StreamHandler(output, l.TerminalFormat(false)))
@@ -111,7 +114,7 @@ func InitBlockDAG(dagType string,graph string) (IBlockDAG, map[string]*hash.Hash
 	UseLogger(blockdaglogger)
 
 	testData = &TestData{}
-	err := loadTestData("./testData.json", testData)
+	err := loadTestData(testDataFilePath, testData)
 	if err != nil {
 		return nil, nil
 	}
@@ -256,4 +259,3 @@ func reverseBlockList(s []*hash.Hash) []*hash.Hash {
 	}
 	return s
 }
-

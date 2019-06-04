@@ -67,7 +67,7 @@ func (con *Conflux) AddBlock(b *Block) *list.List {
 	//
 	con.updatePrivot(b)
 	oldOrder:=con.bd.order
-	con.bd.order = []*hash.Hash{}
+	con.bd.order = map[uint]*hash.Hash{}
 	con.updateMainChain(con.bd.GetGenesis(), nil, nil)
 
 	var result *list.List
@@ -227,7 +227,7 @@ func (con *Conflux) updateOrder(b *Block, preEpoch *Epoch, main *HashSet) *Epoch
 			panic("epoch order error")
 		}
 		if !con.isVirtualBlock(block) {
-			con.bd.order = append(con.bd.order, block.GetHash())
+			con.bd.order[block.order]=block.GetHash()
 		}
 	}
 

@@ -210,7 +210,7 @@ type BlockDAG struct {
 	lastTime time.Time
 
 	// The full sequence of dag, please note that the order starts at zero.
-	order []*hash.Hash
+	order map[uint]*hash.Hash
 
 	// Current dag instance used. Different algorithms work according to
 	// different dag types config.
@@ -377,7 +377,7 @@ func (bd *BlockDAG) GetLastTime() *time.Time{
 }
 
 // Return the full sequence array.
-func (bd *BlockDAG) GetOrder() []*hash.Hash {
+func (bd *BlockDAG) GetOrder() map[uint]*hash.Hash {
 	return bd.order
 }
 
