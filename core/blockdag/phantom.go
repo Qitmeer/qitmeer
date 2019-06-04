@@ -77,7 +77,7 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 	if pb.HasParents() {
 		tp:=ph.getBluest(pb.GetParents())
 		pb.mainParent=tp.GetHash()
-		pb.blueNum=tp.blueNum
+		pb.blueNum=tp.blueNum+1
 
 		pbAnticone:=ph.GetAnticone(pb.Block,nil)
 		tpAnticone:=ph.GetAnticone(tp.Block,nil)
@@ -401,7 +401,7 @@ func (ph *Phantom) updateMainOrder(path []*hash.Hash,intersection *hash.Hash) {
 
 func (ph *Phantom) updateVirtualBlockOrder() {
 	if ph.diffAnticone.IsEmpty() ||
-		ph.virtualBlock.GetOrder()!=MaxBlockOrder{
+		ph.virtualBlock.GetOrder()!=MaxBlockOrder {
 		return
 	}
 	ph.virtualBlock.parents = NewHashSet()
@@ -418,7 +418,7 @@ func (ph *Phantom) updateVirtualBlockOrder() {
 
 	tp:=ph.blocks[*ph.mainChain.tip]
 	ph.virtualBlock.mainParent=ph.mainChain.tip
-	ph.virtualBlock.blueNum=tp.blueNum
+	ph.virtualBlock.blueNum=tp.blueNum+1
 
 	ph.virtualBlock.blueDiffAnticone.Clean()
 	ph.virtualBlock.redDiffAnticone.Clean()
@@ -439,6 +439,7 @@ func (ph *Phantom) updateVirtualBlockOrder() {
 	}
 
 	ph.virtualBlock.SetOrder(ph.bd.GetBlockTotal()+1)
+
 }
 
 func (ph *Phantom) GetDiffBlueSet() *HashSet {

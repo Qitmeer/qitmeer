@@ -220,7 +220,7 @@
     "out":["A","C","D","G","B","E","J","F","I","H","K"]
   },
   "PH_OrderFig4":{
-    "out":["Genesis","B","C","F","D","J","E","I","K","L","M","O","P","H","N","R","Q","S","T","U"]
+    "out":["Genesis","B","C","F","D","J","E","I","K","O","P","H","N","R","L","M","Q","S","T","U"]
   },
   "PH_GetLayer":{
     "out":["01121132323"]
