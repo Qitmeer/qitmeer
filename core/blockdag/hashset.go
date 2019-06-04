@@ -109,7 +109,7 @@ func (s *HashSet) Get(elem *hash.Hash) interface{} {
 }
 
 func (s *HashSet) Len() int {
-	return len(s.List())
+	return len(s.m)
 }
 
 func (s *HashSet) IsEmpty() bool {
