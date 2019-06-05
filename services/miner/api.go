@@ -247,7 +247,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	m.Lock()
 	if m.started {
 		m.Unlock()
-		return nil, er.RpcInternalError("Server is already CPU mining.","Please stop first.")
+		return nil, er.RpcInternalError("Server is already mining.","Please wait a moment.")
 	}
 	m.started = true
 	m.Unlock()
