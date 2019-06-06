@@ -191,6 +191,12 @@ function get_mainchain_height(){
   get_result "$data"
 }
 
+function get_block_weight(){
+  local block_hash=$1
+  local data='{"jsonrpc":"2.0","method":"getBlockWeight","params":["'$block_hash'"],"id":1}'
+  get_result "$data"
+}
+
 function get_result(){
   set +x
   if [ -z "$host" ]; then
@@ -267,6 +273,7 @@ function usage(){
   echo "  main  <hash>"
   echo "  template"
   echo "  mainHeight"
+  echo "  weight <hash>"
   echo "tx       :"
   echo "  tx <hash>"
   echo "  txSign <rawTx>"
@@ -527,6 +534,10 @@ elif [ "$1" == "template" ]; then
 elif [ "$1" == "mainHeight" ]; then
     shift
     get_mainchain_height
+    check_error
+elif [ "$1" == "weight" ]; then
+    shift
+    get_block_weight $1
     check_error
 ## Tx
 elif [ "$1" == "tx" ]; then

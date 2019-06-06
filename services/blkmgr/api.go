@@ -215,3 +215,12 @@ func (api *PublicBlockAPI) IsOnMainChain(h hash.Hash) (interface{}, error){
 func (api *PublicBlockAPI) GetMainChainHeight() (interface{}, error){
 	return strconv.FormatUint(uint64(api.bm.GetChain().BlockDAG().GetMainChainTip().GetHeight()),10),nil
 }
+
+// Return the weight of block
+func (api *PublicBlockAPI) GetBlockWeight(h hash.Hash) (interface{}, error){
+	block,err:=api.bm.chain.FetchBlockByHash(&h)
+	if err != nil {
+		return nil, er.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
+	}
+	return strconv.FormatInt(int64(blockchain.GetBlockWeight(block.Block())),10),nil
+}

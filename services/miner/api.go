@@ -33,22 +33,6 @@ const gbtNonceRange = "00000000ffffffff"
 // in the memory pool.
 const gbtRegenerateSeconds = 60
 
-// MaxBlockWeight defines the maximum block weight, where "block
-// weight" is interpreted as defined in BIP0141. A block's weight is
-// calculated as the sum of the of bytes in the existing transactions
-// and header, plus the weight of each byte within a transaction. The
-// weight of a "base" byte is 4, while the weight of a witness byte is
-// 1. As a result, for a block to be valid, the BlockWeight MUST be
-// less than, or equal to MaxBlockWeight.
-// TODO, will be moved
-const MaxBlockWeight = 4000000
-
-// MaxBlockSigOpsCost is the maximum number of signature operations
-// allowed for a block. It is calculated via a weighted algorithm which
-// weights segregated witness sig ops lower than regular sig ops.
-// TODO. will be moved
-const MaxBlockSigOpsCost = 80000
-
 func (c *CPUMiner) APIs() []rpc.API {
 	return []rpc.API{
 		{
@@ -481,8 +465,8 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 		CurTime:      template.Block.Header.Timestamp.Unix(),
 		Height:       int64(template.Height),
 		PreviousHash: template.Block.Header.ParentRoot.String(),
-		WeightLimit:  MaxBlockWeight,
-		SigOpLimit:   MaxBlockSigOpsCost,
+		WeightLimit:  blockchain.MaxBlockWeight,
+		SigOpLimit:   blockchain.MaxBlockSigOpsCost,
 		SizeLimit:    wire.MaxBlockPayload,
 		//TODO，transactions
 		// make([]json.GetBlockTemplateResultTx, 0, 1)
