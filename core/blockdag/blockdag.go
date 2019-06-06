@@ -61,6 +61,9 @@ type IBlockDAG interface {
 
 	// Query whether a given block is on the main chain.
 	IsOnMainChain(b *Block) bool
+
+	// return the tip of main chain
+	GetMainChainTip() *Block
 }
 
 //The abstract inferface is used to dag block
@@ -85,6 +88,7 @@ type Block struct {
 	weight uint
 	order  uint
 	layer  uint
+	height uint
 }
 
 // Return the hash of block. It will be a pointer.
@@ -190,6 +194,16 @@ func (b *Block) SetOrder(o uint) {
 // Acquire the order of block
 func (b *Block) GetOrder() uint {
 	return b.order
+}
+
+// Setting the height of block in main chain
+func (b *Block) SetHeight(h uint) {
+	b.height=h
+}
+
+// Acquire the height of block in main chain
+func (b *Block) GetHeight() uint {
+	return b.height
 }
 
 // The general foundation framework of DAG
@@ -443,6 +457,11 @@ func (bd *BlockDAG) GetFutureSet(fs *HashSet, b *Block) {
 // Note that some DAG protocols may not support this feature.
 func (bd *BlockDAG) IsOnMainChain(h *hash.Hash) bool {
 	return bd.instance.IsOnMainChain(bd.GetBlock(h))
+}
+
+// return the tip of main chain
+func (bd *BlockDAG) GetMainChainTip() *Block {
+	return bd.instance.GetMainChainTip()
 }
 
 // Return the layer of block,it is stable.

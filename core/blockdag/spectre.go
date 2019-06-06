@@ -825,3 +825,8 @@ func (sp *Spectre) voteByUniqueFutureSet(b1 *Block, b2 *Block) {
 func (sp *Spectre) IsOnMainChain(b *Block) bool {
 	return false
 }
+
+// return the tip of main chain
+func (sp *Spectre) GetMainChainTip() *Block {
+	return nil
+}

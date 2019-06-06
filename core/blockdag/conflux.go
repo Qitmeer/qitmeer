@@ -336,3 +336,8 @@ func (con *Conflux) IsOnMainChain(b *Block) bool {
 	}
 	return false
 }
+
+// return the tip of main chain
+func (con *Conflux) GetMainChainTip() *Block {
+	return nil
+}

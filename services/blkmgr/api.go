@@ -211,4 +211,7 @@ func (api *PublicBlockAPI) IsOnMainChain(h hash.Hash) (interface{}, error){
 	return strconv.FormatBool(isOn),nil
 }
 
-
+// Return the current height of DAG main chain
+func (api *PublicBlockAPI) GetMainChainHeight() (interface{}, error){
+	return strconv.FormatUint(uint64(api.bm.GetChain().BlockDAG().GetMainChainTip().GetHeight()),10),nil
+}

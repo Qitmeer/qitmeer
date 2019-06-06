@@ -78,6 +78,7 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		tp:=ph.getBluest(pb.GetParents())
 		pb.mainParent=tp.GetHash()
 		pb.blueNum=tp.blueNum+1
+		pb.height=tp.height+1
 
 		pbAnticone:=ph.GetAnticone(pb.Block,nil)
 		tpAnticone:=ph.GetAnticone(tp.Block,nil)
@@ -513,6 +514,12 @@ func (ph *Phantom) getOrderChangeList(pb *PhantomBlock) *list.List {
 	}
 	return refNodes
 }
+
+// return the tip of main chain
+func (ph *Phantom) GetMainChainTip() *Block {
+	return ph.bd.GetBlock(ph.mainChain.tip)
+}
+
 // The main chain of DAG is support incremental expansion
 type MainChain struct {
 	blocks *HashSet

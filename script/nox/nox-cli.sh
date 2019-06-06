@@ -186,6 +186,11 @@ function get_block_template(){
   get_result "$data"
 }
 
+function get_mainchain_height(){
+  local data='{"jsonrpc":"2.0","method":"getMainChainHeight","params":[],"id":1}'
+  get_result "$data"
+}
+
 function get_result(){
   set +x
   if [ -z "$host" ]; then
@@ -260,7 +265,8 @@ function usage(){
   echo "block    :"
   echo "  block <num|hash>"
   echo "  main  <hash>"
-  echo "  getBlockTemplate"
+  echo "  template"
+  echo "  mainHeight"
   echo "tx       :"
   echo "  tx <hash>"
   echo "  txSign <rawTx>"
@@ -514,9 +520,13 @@ elif [ "$1" == "main" ]; then
     shift
     is_on_mainchain $1
     check_error
-elif [ "$1" == "getBlockTemplate" ]; then
+elif [ "$1" == "template" ]; then
     shift
     get_block_template | jq .
+    check_error
+elif [ "$1" == "mainHeight" ]; then
+    shift
+    get_mainchain_height
     check_error
 ## Tx
 elif [ "$1" == "tx" ]; then

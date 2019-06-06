@@ -428,3 +428,8 @@ func(ph *Phantom_v2) updateAntipastColoring() {
 	}
 	ph.uncoloredUnorderedAntipast.Clean()
 }
+
+// return the tip of main chain
+func (ph *Phantom_v2) GetMainChainTip() *Block {
+	return nil
+}
