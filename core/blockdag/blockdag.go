@@ -8,18 +8,32 @@ import (
 
 // Some available DAG algorithm types
 const (
+	// A Scalable BlockDAG protocol
 	phantom="phantom"
+
+	// Phantom protocol V2
+	phantom_v2="phantom_v2"
+
+	// The order of all transactions is solely determined by the Tree Graph (TG)
 	conflux="conflux"
+
+	// Confirming Transactions via Recursive Elections
 	spectre="spectre"
 )
 
+// Maximum number of the DAG tip
 const MaxTips=100
+
+// Maximum order of the DAG block
+const MaxBlockOrder=uint(^uint32(0))
 
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
 	case phantom:
 		return &Phantom{}
+	case phantom_v2:
+		return &Phantom_v2{}
 	case conflux:
 		return &Conflux{}
 	case spectre:
@@ -30,7 +44,10 @@ func NewBlockDAG(dagType string) IBlockDAG {
 
 // The abstract inferface is used to build and manager DAG
 type IBlockDAG interface {
+	// Return the name
 	GetName() string
+
+	// This instance is initialized and will be executed first.
 	Init(bd *BlockDAG) bool
 
 	// Add a block
@@ -45,7 +62,6 @@ type IBlockDAG interface {
 	// Query whether a given block is on the main chain.
 	IsOnMainChain(b *Block) bool
 }
-
 
 //The abstract inferface is used to dag block
 type IBlockData interface {
@@ -164,6 +180,11 @@ func (b *Block) SetLayer(layer uint) {
 // Acquire the layer of block
 func (b *Block) GetLayer() uint {
 	return b.layer
+}
+
+// Setting the order of block
+func (b *Block) SetOrder(o uint) {
+	b.order=o
 }
 
 // Acquire the order of block
@@ -430,6 +451,7 @@ func (bd *BlockDAG) GetLayer(h *hash.Hash) uint {
 	return bd.GetBlock(h).GetLayer()
 }
 
+// Return current general description of the whole state of DAG
 func (bd *BlockDAG) GetGraphState() *GraphState {
 	gs:=NewGraphState()
 	if bd.tips!=nil && !bd.tips.IsEmpty() {
@@ -448,6 +470,7 @@ func (bd *BlockDAG) GetGraphState() *GraphState {
 	return gs
 }
 
+// Locate all eligible block by current graph state.
 func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 	if gs.IsExcellent(bd.GetGraphState()) {
 		return nil

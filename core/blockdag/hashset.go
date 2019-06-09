@@ -5,18 +5,22 @@ import (
 	"sort"
 )
 
+// On the Set of hash, and the saved data can be of any type
 type HashSet struct {
 	m map[hash.Hash]interface{}
 }
 
+// Return the map
 func (s *HashSet) GetMap() map[hash.Hash]interface{} {
 	return s.m
 }
 
+// Add the key of element
 func (s *HashSet) Add(elem *hash.Hash) {
 	s.m[*elem] = Empty{}
 }
 
+// Add one pair of data
 func (s *HashSet) AddPair(elem *hash.Hash,data interface{}) {
 	s.m[*elem] = data
 }
@@ -100,6 +104,10 @@ func (s *HashSet) HasOnly(elem *hash.Hash) bool {
 	return s.Len() == 1 && s.Has(elem)
 }
 
+func (s *HashSet) Get(elem *hash.Hash) interface{} {
+	return s.m[*elem]
+}
+
 func (s *HashSet) Len() int {
 	return len(s.List())
 }
@@ -121,9 +129,13 @@ func (s *HashSet) List() []*hash.Hash {
 	return list
 }
 
-func (s *HashSet) SortList() []*hash.Hash {
-	list := SortHashs(s.List())
-	sort.Sort(list)
+func (s *HashSet) SortList(reverse bool) []*hash.Hash {
+	list := HashList(s.List())
+	if reverse {
+		sort.Sort(sort.Reverse(list))
+	}else{
+		sort.Sort(list)
+	}
 	return []*hash.Hash(list)
 }
 
@@ -194,21 +206,6 @@ func GetMaxLenHashSet(bsm map[hash.Hash]*HashSet) *hash.Hash {
 
 	}
 	return &result
-}
-
-// SortHashs is used to sort hash list
-type SortHashs []*hash.Hash
-
-func (sh SortHashs) Len() int {
-	return len(sh)
-}
-
-func (sh SortHashs) Less(i, j int) bool {
-	return sh[i].String() < sh[j].String()
-}
-
-func (sh SortHashs) Swap(i, j int) {
-	sh[i], sh[j] = sh[j], sh[i]
 }
 
 // This struct is empty
