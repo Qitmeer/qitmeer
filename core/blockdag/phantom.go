@@ -3,7 +3,7 @@ package blockdag
 import (
 	"container/list"
 	"fmt"
-	"qitmeer/common/anticone"
+	"qitmeer/core/blockdag/anticone"
 	"qitmeer/common/hash"
 )
 
