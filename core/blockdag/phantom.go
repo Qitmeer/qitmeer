@@ -175,7 +175,7 @@ func (ph *Phantom) GetAnticone(b *Block, exclude *HashSet) *HashSet {
 
 func (ph *Phantom) calculateBlueSet(pb *PhantomBlock,diffAnticone *HashSet) {
 	kc:=ph.getKChain(pb)
-	for k,_:=range diffAnticone.GetMap(){
+	for k:=range diffAnticone.GetMap(){
 		cur:=ph.blocks[k]
 		ph.colorBlock(kc,cur,pb.blueDiffAnticone,pb.redDiffAnticone)
 	}
@@ -407,7 +407,7 @@ func (ph *Phantom) updateVirtualBlockOrder() {
 	}
 	ph.virtualBlock.parents = NewHashSet()
 	var maxLayer uint=0
-	for k, _ := range ph.bd.GetTips().GetMap() {
+	for k:= range ph.bd.GetTips().GetMap() {
 		parent := ph.bd.GetBlock(&k)
 		ph.virtualBlock.parents.AddPair(&k,parent)
 
