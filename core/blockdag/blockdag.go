@@ -2,6 +2,7 @@ package blockdag
 
 import (
 	"container/list"
+	"qitmeer/core/merkle"
 	"time"
 	"qitmeer/common/hash"
 )
@@ -367,6 +368,12 @@ func (bd *BlockDAG) GetTipsList() []*Block {
 		result=append(result,bd.GetBlock(&k))
 	}
 	return result
+}
+
+// build merkle tree form current DAG tips
+func (bd *BlockDAG) BuildMerkleTreeStoreFromTips() []*hash.Hash {
+	parents:=bd.GetTips().SortList(false)
+	return merkle.BuildParentsMerkleTreeStore(parents)
 }
 
 // Refresh the dag tip whith new block,it will cause changes in tips set.

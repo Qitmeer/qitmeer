@@ -281,14 +281,11 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 	// generated.
 	var targetDifficulty string
 	rand.Seed(time.Now().UnixNano())
-	latestHash := &m.blockManager.GetChain().BestSnapshot().Hash
-	latestBlock,err:=m.blockManager.GetChain().FetchBlockByHash(latestHash)
-	if err!=nil {
-		return err
-	}
+	merkles:=m.blockManager.GetChain().BlockDAG().BuildMerkleTreeStoreFromTips()
+	parentRoot:=merkles[len(merkles)-1]
 	template := state.template
 	if template == nil || state.prevHash == nil ||
-		!state.prevHash.IsEqual(&latestBlock.Block().Header.ParentRoot) ||
+		!state.prevHash.IsEqual(parentRoot) ||
 		(state.lastTxUpdate != lastTxUpdate &&
 			time.Now().After(state.lastGenerated.Add(time.Second*
 				gbtRegenerateSeconds))) {
