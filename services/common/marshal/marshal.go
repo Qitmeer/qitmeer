@@ -172,6 +172,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		{Key:"hash",         Val:b.Hash().String()},
 		{Key:"confirmations",Val:confirmations},
 		{Key:"version",      Val:head.Version},
+		{Key:"weight",        Val:blockchain.GetBlockWeight(b.Block())},
 		{Key:"order",        Val:order},
 		{Key:"txRoot",       Val:head.TxRoot.String()},
 	}
