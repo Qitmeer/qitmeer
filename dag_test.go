@@ -283,7 +283,7 @@ func buildBlock(name string,parents []*hash.Hash) *HelpBlock{
 func Run() error {
 	os.Args=[]string{}
 	os.Args=append(os.Args,"dag_test")
-	os.Args=append(os.Args,"-A=./bin")
+	os.Args=append(os.Args,"-A=./../bin")
 	os.Args=append(os.Args,"--privnet")
 	os.Args=append(os.Args,"--miningaddr=RmPuiebMrf8mZmt4UAYuhD9PkK9hq6HraBa")
 	os.Args=append(os.Args,"--rpclisten=127.0.0.1:1234")

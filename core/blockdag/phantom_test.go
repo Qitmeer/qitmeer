@@ -35,7 +35,7 @@ func Test_GetAnticone(t *testing.T) {
 	anBlock := bd.GetBlock(tbMap[testData.PH_GetAnticone.Input])
 
 	////////////
-	bset := ph.GetAnticone(anBlock, nil)
+	bset := ph.bd.GetAnticone(anBlock, nil)
 	fmt.Printf("Get %s anticone set：\n", testData.PH_GetAnticone.Input)
 	printBlockSetTag(bset,tbMap)
 	//
