@@ -10,8 +10,8 @@ import (
 	"math/rand"
 	"testing"
 
-	chainhash "qitmeer/common/hash"
-	"qitmeer/crypto/ecc/secp256k1"
+	chainhash "github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/crypto/ecc/secp256k1"
 )
 
 type SchorrSigningTestVectorHex struct {

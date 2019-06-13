@@ -7,10 +7,10 @@
 package mining
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/blockchain"
-	s "qitmeer/core/serialization"
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	s "github.com/HalalChain/qitmeer/core/serialization"
+	"github.com/HalalChain/qitmeer/core/types"
 	"time"
 )
 

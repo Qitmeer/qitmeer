@@ -19,7 +19,7 @@ package trie
 
 import (
 	"fmt"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/hash"
 )
 
 // MissingNodeError is returned by the trie functions (TryGet, TryUpdate, TryDelete)

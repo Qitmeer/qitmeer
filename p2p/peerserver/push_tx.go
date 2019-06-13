@@ -1,9 +1,9 @@
 package peerserver
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/message"
-	"qitmeer/log"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer/log"
 )
 
 // pushTxMsg sends a tx message for the provided transaction hash to the

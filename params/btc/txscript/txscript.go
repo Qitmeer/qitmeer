@@ -3,11 +3,11 @@
 package txscript
 
 import (
-	"qitmeer/log"
-	"qitmeer/core/types"
-	"qitmeer/engine/txscript"
-	btcparams "qitmeer/params/btc"
-	btcaddr "qitmeer/params/btc/addr"
+	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/engine/txscript"
+	btcparams "github.com/HalalChain/qitmeer/params/btc"
+	btcaddr "github.com/HalalChain/qitmeer/params/btc/addr"
 )
 
 type PKHashScript struct {

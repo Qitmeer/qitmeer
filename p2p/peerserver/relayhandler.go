@@ -1,10 +1,10 @@
 package peerserver
 
 import (
-	"qitmeer/core/blockdag"
-	"qitmeer/core/message"
-	"qitmeer/core/types"
-	"qitmeer/log"
+	"github.com/HalalChain/qitmeer/core/blockdag"
+	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/log"
 )
 
 // handleRelayInvMsg deals with relaying inventory to peers that are not already

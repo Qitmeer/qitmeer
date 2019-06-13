@@ -9,8 +9,8 @@ package message
 import (
 	"fmt"
 	"io"
-	"qitmeer/core/types"
-	s "qitmeer/core/serialization"
+	"github.com/HalalChain/qitmeer/core/types"
+	s "github.com/HalalChain/qitmeer/core/serialization"
 )
 
 // MaxAddrPerMsg is the maximum number of addresses that can be in a single

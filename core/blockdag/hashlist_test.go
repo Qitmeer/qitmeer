@@ -1,7 +1,7 @@
 package blockdag
 
 import (
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/hash"
 	"testing"
 )
 

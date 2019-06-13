@@ -7,10 +7,10 @@ package mempool
 
 import (
 	"fmt"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/message"
-	"qitmeer/core/types"
-	"qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/engine/txscript"
 	"time"
 )
 

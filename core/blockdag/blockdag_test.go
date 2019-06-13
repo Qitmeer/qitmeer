@@ -6,8 +6,8 @@ import (
 	"io"
 	"math/rand"
 	"os"
-	"qitmeer/common/hash"
-	l "qitmeer/log"
+	"github.com/HalalChain/qitmeer/common/hash"
+	l "github.com/HalalChain/qitmeer/log"
 	"time"
 )
 

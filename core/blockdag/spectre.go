@@ -3,8 +3,8 @@ package blockdag
 import (
 	"fmt"
 	"github.com/golang-collections/collections/stack"
-	"qitmeer/common/hash"
-	"qitmeer/common/util"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/util"
 	"strconv"
 	"container/list"
 )

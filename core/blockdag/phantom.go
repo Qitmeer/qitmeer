@@ -3,8 +3,8 @@ package blockdag
 import (
 	"container/list"
 	"fmt"
-	"qitmeer/core/blockdag/anticone"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockdag/anticone"
+	"github.com/HalalChain/qitmeer/common/hash"
 )
 
 const (

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/core/types"
 )
 
 const (

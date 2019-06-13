@@ -2,7 +2,7 @@ package er
 
 import (
 	"fmt"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/hash"
 )
 
 // RpcNoTxInfoError is a convenience function for returning a nicely formatted

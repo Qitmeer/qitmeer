@@ -2,12 +2,12 @@
 package blockchain
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/types"
-	"qitmeer/engine/txscript"
-	"qitmeer/database"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer/database"
 	"fmt"
-	"qitmeer/core/dbnamespace"
+	"github.com/HalalChain/qitmeer/core/dbnamespace"
 )
 
 

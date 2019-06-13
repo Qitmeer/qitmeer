@@ -5,8 +5,8 @@ import (
 	"time"
 	"math"
 	"math/big"
-	"qitmeer/common/hash"
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/types"
 )
 
 // newHashFromStr converts the passed big-endian hex string into a

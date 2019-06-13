@@ -2,10 +2,10 @@
 package node
 
 import (
-	"qitmeer/config"
-	"qitmeer/database"
-	"qitmeer/rpc"
-	"qitmeer/p2p/peerserver"
+	"github.com/HalalChain/qitmeer/config"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/rpc"
+	"github.com/HalalChain/qitmeer/p2p/peerserver"
 )
 
 // NoxLight implements the nox light node service.

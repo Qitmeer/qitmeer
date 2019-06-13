@@ -8,8 +8,8 @@ package message
 import (
 	"fmt"
 	"io"
-	"qitmeer/common/hash"
-	s "qitmeer/core/serialization"
+	"github.com/HalalChain/qitmeer/common/hash"
+	s "github.com/HalalChain/qitmeer/core/serialization"
 
 )
 

@@ -23,11 +23,11 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"qitmeer/core/types"
-	"qitmeer/database"
-	"qitmeer/database/ffldb/treap"
-	"qitmeer/common/hash"
-	"qitmeer/core/protocol"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/database/ffldb/treap"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/protocol"
 )
 
 const (

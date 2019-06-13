@@ -10,7 +10,7 @@ import (
 	"io"
 	"math/big"
 
-	"qitmeer/crypto/ecc/ed25519"
+	"github.com/HalalChain/qitmeer/crypto/ecc/ed25519"
 )
 
 type edwardsDSA struct {

@@ -8,9 +8,9 @@ package message
 import (
 	"fmt"
 	"io"
-	"qitmeer/common/hash"
-	"qitmeer/core/blockdag"
-	s "qitmeer/core/serialization"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockdag"
+	s "github.com/HalalChain/qitmeer/core/serialization"
 )
 
 // defaultInvListAlloc is the default size used for the backing array for an

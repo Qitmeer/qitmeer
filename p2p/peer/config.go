@@ -6,10 +6,10 @@
 package peer
 
 import (
-	"qitmeer/core/blockdag"
-	"qitmeer/core/protocol"
-	"qitmeer/core/types"
-	"qitmeer/params"
+	"github.com/HalalChain/qitmeer/core/blockdag"
+	"github.com/HalalChain/qitmeer/core/protocol"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/params"
 	"time"
 )
 

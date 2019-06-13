@@ -2,11 +2,11 @@ package blkmgr
 
 import (
 	"fmt"
-	"qitmeer/common/hash"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/message"
-	"qitmeer/database"
-	"qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/services/mempool"
 )
 const(
 

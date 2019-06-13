@@ -6,13 +6,13 @@
 package peerserver
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/message"
-	"qitmeer/core/types"
-	"qitmeer/log"
-	"qitmeer/p2p/addmgr"
-	"qitmeer/p2p/connmgr"
-	"qitmeer/p2p/peer"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer/p2p/addmgr"
+	"github.com/HalalChain/qitmeer/p2p/connmgr"
+	"github.com/HalalChain/qitmeer/p2p/peer"
 	"sync"
 )
 

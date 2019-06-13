@@ -11,7 +11,7 @@ import (
 	"io"
 	"strconv"
 
-	chainhash "qitmeer/common/hash"
+	chainhash "github.com/HalalChain/qitmeer/common/hash"
 )
 
 const (

@@ -2,9 +2,9 @@ package blockdag
 
 import (
 	"container/list"
-	"qitmeer/core/merkle"
+	"github.com/HalalChain/qitmeer/core/merkle"
 	"time"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/hash"
 )
 
 // Some available DAG algorithm types

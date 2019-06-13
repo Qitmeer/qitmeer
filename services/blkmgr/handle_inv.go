@@ -1,8 +1,8 @@
 package blkmgr
 
 import (
-	"qitmeer/core/message"
-	"qitmeer/params/dcr/types"
+	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer/params/dcr/types"
 )
 const (
 	// maxRequestedBlocks is the maximum number of requested block

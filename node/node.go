@@ -2,14 +2,14 @@
 package node
 
 import (
-	"qitmeer/database"
-	"qitmeer/params"
-	"qitmeer/rpc"
-	"qitmeer/common/util"
-	"qitmeer/p2p/peerserver"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer/rpc"
+	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer/p2p/peerserver"
 	"reflect"
 	"fmt"
-	"qitmeer/config"
+	"github.com/HalalChain/qitmeer/config"
 	"sync/atomic"
 	"sync"
 	"time"

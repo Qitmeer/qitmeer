@@ -7,9 +7,9 @@ package peer
 
 import (
 	"fmt"
-	"qitmeer/core/message"
-	"qitmeer/log"
-	"qitmeer/params/dcr/types"
+	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer/params/dcr/types"
 	"time"
 )
 

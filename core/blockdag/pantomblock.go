@@ -1,6 +1,6 @@
 package blockdag
 
-import "qitmeer/common/hash"
+import "github.com/HalalChain/qitmeer/common/hash"
 
 type PhantomBlock struct {
 	*Block

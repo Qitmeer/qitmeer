@@ -1,7 +1,7 @@
 package config
 
 import (
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/core/types"
 	"net"
 	"time"
 )

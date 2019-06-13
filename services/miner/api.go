@@ -10,15 +10,15 @@ import (
 	"sync"
 	"time"
 
-	"qitmeer/common/hash"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/blockdag"
-	"qitmeer/core/json"
-	"qitmeer/core/types"
-	"qitmeer/params/dcr/types"
-	"qitmeer/rpc"
-	"qitmeer/services/common/error"
-	"qitmeer/services/mining"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/blockdag"
+	"github.com/HalalChain/qitmeer/core/json"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/params/dcr/types"
+	"github.com/HalalChain/qitmeer/rpc"
+	"github.com/HalalChain/qitmeer/services/common/error"
+	"github.com/HalalChain/qitmeer/services/mining"
 )
 
 //LL

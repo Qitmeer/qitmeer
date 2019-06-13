@@ -7,9 +7,9 @@ package btcaddr
 
 import (
 	"golang.org/x/crypto/ripemd160"
-	"qitmeer/common/encode/bech32"
-	"qitmeer/common/encode/base58"
-	"qitmeer/crypto/ecc"
+	"github.com/HalalChain/qitmeer/common/encode/bech32"
+	"github.com/HalalChain/qitmeer/common/encode/base58"
+	"github.com/HalalChain/qitmeer/crypto/ecc"
 )
 
 

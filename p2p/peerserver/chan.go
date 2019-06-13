@@ -6,8 +6,8 @@
 package peerserver
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/message"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/message"
 )
 
 // broadcastMsg provides the ability to house a  message to be broadcast

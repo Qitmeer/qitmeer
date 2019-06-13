@@ -2,7 +2,7 @@ package blockdag
 
 import (
 	"fmt"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/hash"
 	"strconv"
 	"testing"
 )

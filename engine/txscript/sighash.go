@@ -9,9 +9,9 @@ package txscript
 import (
 	"encoding/binary"
 	"math"
-	"qitmeer/common/hash"
-	"qitmeer/core/types"
-	"qitmeer/params"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/params"
 )
 
 // SigHashType represents hash type bits at the end of a signature.

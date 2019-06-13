@@ -5,8 +5,8 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"qitmeer/common/hash"
-	s "qitmeer/core/serialization"
+	"github.com/HalalChain/qitmeer/common/hash"
+	s "github.com/HalalChain/qitmeer/core/serialization"
 	"io"
 	"math/big"
 	"time"

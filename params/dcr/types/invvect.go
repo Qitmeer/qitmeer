@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	chainhash "qitmeer/common/hash"
+	chainhash "github.com/HalalChain/qitmeer/common/hash"
 )
 
 const (
