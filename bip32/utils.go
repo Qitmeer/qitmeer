@@ -8,8 +8,8 @@ import (
 	"io"
 	"math/big"
 	"golang.org/x/crypto/ripemd160"
-	"qitmeer/crypto/ecc/secp256k1"
-	"qitmeer/common/encode/base58"
+	"github.com/HalalChain/qitmeer/crypto/ecc/secp256k1"
+	"github.com/HalalChain/qitmeer/common/encode/base58"
 )
 
 var (

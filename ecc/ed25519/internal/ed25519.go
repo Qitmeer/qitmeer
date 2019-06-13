@@ -30,7 +30,7 @@ import (
 	"io"
 	"strconv"
 
-	"qitmeer/crypto/ecc/ed25519/internal/edwards25519"
+	"github.com/HalalChain/qitmeer/crypto/ecc/ed25519/internal/edwards25519"
 )
 
 const (
