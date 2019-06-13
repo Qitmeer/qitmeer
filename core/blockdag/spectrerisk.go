@@ -52,7 +52,7 @@ func GetRisk(N int,alpha float64,lambda float64,delay float64,waitingTime uint,a
 
 	ceigenvalues:=eig.Values(nil)
 	cfeatures:=complex(1,0)
-	featuresIndex:=0
+	featuresIndex:=-1
 
 	for i:=0;i<len(ceigenvalues) ;i++  {
 		if !floats.EqualWithinAbs(imag(ceigenvalues[i]),imag(cfeatures), tol) {
@@ -63,6 +63,10 @@ func GetRisk(N int,alpha float64,lambda float64,delay float64,waitingTime uint,a
 		}
 		featuresIndex=i
 		break
+	}
+	if featuresIndex==-1 {
+		fmt.Println("eigen vector failed")
+		return 0
 	}
 	ceigenvectors := eig.LeftVectorsTo(nil)
 	r, _ := ceigenvectors.Dims()
