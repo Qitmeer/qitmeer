@@ -80,8 +80,8 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		pb.blueNum=tp.blueNum+1
 		pb.height=tp.height+1
 
-		pbAnticone:=ph.GetAnticone(pb.Block,nil)
-		tpAnticone:=ph.GetAnticone(tp.Block,nil)
+		pbAnticone:=ph.bd.GetAnticone(pb.Block,nil)
+		tpAnticone:=ph.bd.GetAnticone(tp.Block,nil)
 		diffAnticone:=tpAnticone.Clone()
 		diffAnticone.RemoveSet(pbAnticone)
 
@@ -118,59 +118,6 @@ func (ph *Phantom) getExtremeBlue(bs *HashSet,bluest bool) *PhantomBlock {
 		}
 	}
 	return result
-}
-
-func isVirtualTip(b *Block, futureSet *HashSet, anticone *HashSet, children *HashSet) bool {
-	for k:= range children.GetMap() {
-		if k.IsEqual(b.GetHash()) {
-			return false
-		}
-		if !futureSet.Has(&k) && !anticone.Has(&k) {
-			return false
-		}
-	}
-	return true
-}
-
-// This function is used to GetAnticone recursion
-func (ph *Phantom) recAnticone(b *Block, futureSet *HashSet, anticone *HashSet, h *hash.Hash) {
-	if h.IsEqual(b.GetHash()) {
-		return
-	}
-	node:=ph.bd.GetBlock(h)
-	children := node.GetChildren()
-	needRecursion := false
-	if children == nil || children.Len() == 0 {
-		needRecursion = true
-	} else {
-		needRecursion = isVirtualTip(b, futureSet, anticone, children)
-	}
-	if needRecursion {
-		if !futureSet.Has(h) {
-			anticone.Add(h)
-		}
-		parents := node.GetParents()
-
-		//Because parents can not be empty, so there is no need to judge.
-		for k:= range parents.GetMap() {
-			ph.recAnticone(b, futureSet, anticone, &k)
-		}
-	}
-}
-
-// This function can get anticone set for an block that you offered in the block dag,If
-// the exclude set is not empty,the final result will exclude set that you passed in.
-func (ph *Phantom) GetAnticone(b *Block, exclude *HashSet) *HashSet {
-	futureSet := NewHashSet()
-	ph.bd.GetFutureSet(futureSet, b)
-	anticone := NewHashSet()
-	for k:= range ph.bd.tips.GetMap() {
-		ph.recAnticone(b, futureSet, anticone, &k)
-	}
-	if exclude != nil {
-		anticone.Exclude(exclude)
-	}
-	return anticone
 }
 
 func (ph *Phantom) calculateBlueSet(pb *PhantomBlock,diffAnticone *HashSet) {
@@ -329,7 +276,7 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock,pb *PhantomBlock) {
 	ph.updateMainOrder(path,intersection)
 	ph.mainChain.tip=buestTip.GetHash()
 
-	ph.diffAnticone=ph.GetAnticone(ph.bd.GetBlock(ph.mainChain.tip),nil)
+	ph.diffAnticone=ph.bd.GetAnticone(ph.bd.GetBlock(ph.mainChain.tip),nil)
 }
 
 func (ph *Phantom) isMaxMainTip(pb *PhantomBlock) bool {

@@ -537,3 +537,56 @@ func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 	}
 	return result
 }
+
+func isVirtualTip(b *Block, futureSet *HashSet, anticone *HashSet, children *HashSet) bool {
+	for k:= range children.GetMap() {
+		if k.IsEqual(b.GetHash()) {
+			return false
+		}
+		if !futureSet.Has(&k) && !anticone.Has(&k) {
+			return false
+		}
+	}
+	return true
+}
+
+// This function is used to GetAnticone recursion
+func (bd *BlockDAG) recAnticone(b *Block, futureSet *HashSet, anticone *HashSet, h *hash.Hash) {
+	if h.IsEqual(b.GetHash()) {
+		return
+	}
+	node:=bd.GetBlock(h)
+	children := node.GetChildren()
+	needRecursion := false
+	if children == nil || children.Len() == 0 {
+		needRecursion = true
+	} else {
+		needRecursion = isVirtualTip(b, futureSet, anticone, children)
+	}
+	if needRecursion {
+		if !futureSet.Has(h) {
+			anticone.Add(h)
+		}
+		parents := node.GetParents()
+
+		//Because parents can not be empty, so there is no need to judge.
+		for k:= range parents.GetMap() {
+			bd.recAnticone(b, futureSet, anticone, &k)
+		}
+	}
+}
+
+// This function can get anticone set for an block that you offered in the block dag,If
+// the exclude set is not empty,the final result will exclude set that you passed in.
+func (bd *BlockDAG) GetAnticone(b *Block, exclude *HashSet) *HashSet {
+	futureSet := NewHashSet()
+	bd.GetFutureSet(futureSet, b)
+	anticone := NewHashSet()
+	for k:= range bd.tips.GetMap() {
+		bd.recAnticone(b, futureSet, anticone, &k)
+	}
+	if exclude != nil {
+		anticone.Exclude(exclude)
+	}
+	return anticone
+}
