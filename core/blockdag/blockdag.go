@@ -52,19 +52,22 @@ type IBlockDAG interface {
 	Init(bd *BlockDAG) bool
 
 	// Add a block
-	AddBlock(b *Block) *list.List
+	AddBlock(ib IBlock) *list.List
+
+	// Build self block
+	CreateBlock(b *Block) IBlock
 
 	// If the successor return nil, the underlying layer will use the default tips list.
-	GetTipsList() []*Block
+	GetTipsList() []IBlock
 
 	// Find block hash by order, this is very fast.
 	GetBlockByOrder(order uint) *hash.Hash
 
 	// Query whether a given block is on the main chain.
-	IsOnMainChain(b *Block) bool
+	IsOnMainChain(ib IBlock) bool
 
 	// return the tip of main chain
-	GetMainChainTip() *Block
+	GetMainChainTip() IBlock
 }
 
 // The general foundation framework of DAG
@@ -73,7 +76,7 @@ type BlockDAG struct {
 	genesis hash.Hash
 
 	// Use block hash to save all blocks with mapping
-	blocks map[hash.Hash]*Block
+	blocks map[hash.Hash]IBlock
 
 	// The total number blocks that this dag currently owned
 	blockTotal uint
@@ -139,7 +142,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 			block.parents.AddPair(h,parent)
 			parent.AddChild(&block)
 			if k == 0 {
-				block.privot = parent
+				block.mainParent = parent.GetHash()
 			}
 
 			if maxLayer==0 || maxLayer < parent.GetLayer() {
@@ -150,9 +153,10 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	}
 
 	if bd.blocks == nil {
-		bd.blocks = map[hash.Hash]*Block{}
+		bd.blocks = map[hash.Hash]IBlock{}
 	}
-	bd.blocks[block.hash] = &block
+	ib:=bd.instance.CreateBlock(&block)
+	bd.blocks[block.hash] = ib
 	if bd.GetBlockTotal() == 0 {
 		bd.genesis = *block.GetHash()
 	}
@@ -165,11 +169,11 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		bd.lastTime=t
 	}
 	//
-	return bd.instance.AddBlock(&block)
+	return bd.instance.AddBlock(ib)
 }
 
 // Acquire the genesis block of chain
-func (bd *BlockDAG) GetGenesis() *Block {
+func (bd *BlockDAG) GetGenesis() IBlock {
 	return bd.GetBlock(&bd.genesis)
 }
 
@@ -199,7 +203,10 @@ func (bd *BlockDAG) HasBlocks(hs []*hash.Hash) bool {
 }
 
 // Acquire one block by hash
-func (bd *BlockDAG) GetBlock(h *hash.Hash) *Block {
+func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
+	if h == nil {
+		return nil
+	}
 	block, ok := bd.blocks[*h]
 	if !ok {
 		return nil
@@ -218,12 +225,12 @@ func (bd *BlockDAG) GetTips() *HashSet {
 }
 
 // Acquire the tips array of DAG
-func (bd *BlockDAG) GetTipsList() []*Block {
+func (bd *BlockDAG) GetTipsList() []IBlock {
 	result:=bd.instance.GetTipsList()
 	if result!=nil {
 		return result
 	}
-	result=[]*Block{}
+	result=[]IBlock{}
 	for k:=range bd.tips.GetMap(){
 		result=append(result,bd.GetBlock(&k))
 	}
@@ -275,7 +282,7 @@ func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash{
 }
 
 // Return the last order block
-func (bd *BlockDAG) GetLastBlock() *Block{
+func (bd *BlockDAG) GetLastBlock() IBlock{
 	if bd.GetBlockTotal()==0 {
 		return nil
 	}
@@ -299,15 +306,15 @@ func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 	if b==nil {
 		return nil
 	}
-	if b.order==0{
+	if b.GetOrder()==0{
 		return nil
 	}
-	return bd.GetBlockByOrder(b.order-1)
+	return bd.GetBlockByOrder(b.GetOrder()-1)
 }
 
 // Returns a future collection of block. This function is a recursively called function
 // So we should consider its efficiency.
-func (bd *BlockDAG) GetFutureSet(fs *HashSet, b *Block) {
+func (bd *BlockDAG) GetFutureSet(fs *HashSet, b IBlock) {
 	children := b.GetChildren()
 	if children == nil || children.IsEmpty() {
 		return
@@ -327,7 +334,7 @@ func (bd *BlockDAG) IsOnMainChain(h *hash.Hash) bool {
 }
 
 // return the tip of main chain
-func (bd *BlockDAG) GetMainChainTip() *Block {
+func (bd *BlockDAG) GetMainChainTip() IBlock {
 	return bd.instance.GetMainChainTip()
 }
 
@@ -361,7 +368,7 @@ func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 	if gs.IsExcellent(bd.GetGraphState()) {
 		return nil
 	}
-	queue := []*Block{}
+	queue := []IBlock{}
 	for k:=range gs.tips.GetMap(){
 		if bd.HasBlock(&k) {
 			queue=append(queue,bd.GetBlock(&k))
@@ -398,7 +405,7 @@ func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 	return result
 }
 
-func isVirtualTip(b *Block, futureSet *HashSet, anticone *HashSet, children *HashSet) bool {
+func isVirtualTip(b IBlock, futureSet *HashSet, anticone *HashSet, children *HashSet) bool {
 	for k:= range children.GetMap() {
 		if k.IsEqual(b.GetHash()) {
 			return false
@@ -411,7 +418,7 @@ func isVirtualTip(b *Block, futureSet *HashSet, anticone *HashSet, children *Has
 }
 
 // This function is used to GetAnticone recursion
-func (bd *BlockDAG) recAnticone(b *Block, futureSet *HashSet, anticone *HashSet, h *hash.Hash) {
+func (bd *BlockDAG) recAnticone(b IBlock, futureSet *HashSet, anticone *HashSet, h *hash.Hash) {
 	if h.IsEqual(b.GetHash()) {
 		return
 	}
@@ -438,7 +445,7 @@ func (bd *BlockDAG) recAnticone(b *Block, futureSet *HashSet, anticone *HashSet,
 
 // This function can get anticone set for an block that you offered in the block dag,If
 // the exclude set is not empty,the final result will exclude set that you passed in.
-func (bd *BlockDAG) GetAnticone(b *Block, exclude *HashSet) *HashSet {
+func (bd *BlockDAG) GetAnticone(b IBlock, exclude *HashSet) *HashSet {
 	futureSet := NewHashSet()
 	bd.GetFutureSet(futureSet, b)
 	anticone := NewHashSet()

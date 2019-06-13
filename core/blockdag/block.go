@@ -14,13 +14,54 @@ type IBlockData interface {
 	GetTimestamp() int64
 }
 
+//The interface of block
+type IBlock interface {
+	// Return the hash of block. It will be a pointer.
+	GetHash() *hash.Hash
+
+	// Acquire the layer of block
+	GetLayer() uint
+
+	// Setting the order of block
+	SetOrder(o uint)
+
+	// Acquire the order of block
+	GetOrder() uint
+
+	// Get all parents set,the dag block has more than one parent
+	GetParents() *HashSet
+
+	// Testing whether it has parents
+	HasParents() bool
+
+	// Add child nodes to block
+	AddChild(child *Block)
+
+    // Get all the children of block
+    GetChildren() *HashSet
+
+	// Detecting the presence of child nodes
+	HasChildren() bool
+
+	GetMainParent() *hash.Hash
+
+	// Setting the weight of block
+	SetWeight(weight uint)
+
+    // Acquire the weight of block
+    GetWeight() uint
+
+	// Acquire the height of block in main chain
+	GetHeight() uint
+}
+
 // It is the element of a DAG. It is the most basic data unit.
 type Block struct {
 	hash     hash.Hash
 	parents  *HashSet
 	children *HashSet
 
-	privot *Block
+	mainParent *hash.Hash
 	weight uint
 	order  uint
 	layer  uint
@@ -35,6 +76,10 @@ func (b *Block) GetHash() *hash.Hash {
 // Get all parents set,the dag block has more than one parent
 func (b *Block) GetParents() *HashSet {
 	return b.parents
+}
+
+func (b *Block) GetMainParent() *hash.Hash {
+	return b.mainParent
 }
 
 // Testing whether it has parents
