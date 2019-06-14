@@ -75,12 +75,12 @@ type blockIndexEntry struct {
 }
 
 // blockIndexKey generates the binary key for an entry in the block index
-// bucket.  The key is composed of the block height encoded as a big-endian
+// bucket.  The key is composed of the block order encoded as a big-endian
 // 32-bit unsigned int followed by the 32 byte block hash.  Big endian is used
 // here so the entries can easily be iterated by height.
-func blockIndexKey(blockHash *hash.Hash, blockHeight uint32) []byte {
+func blockIndexKey(blockHash *hash.Hash, blockOrder uint32) []byte {
 	indexKey := make([]byte, hash.HashSize+4)
-	binary.BigEndian.PutUint32(indexKey[0:4], blockHeight)
+	binary.BigEndian.PutUint32(indexKey[0:4], blockOrder)
 	copy(indexKey[4:hash.HashSize+4], blockHash[:])
 	return indexKey
 }
