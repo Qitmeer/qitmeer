@@ -140,7 +140,7 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 		},
 		ChainParams:      node.Params,
 		FetchUtxoView:    bm.GetChain().FetchUtxoView,  //TODO, duplicated dependence of miner
-		BlockByHash:      bm.GetChain().BlockByHash,
+		BlockByHash:      bm.GetChain().FetchBlockByHash,
 		BestHash:         func() *hash.Hash { return &bm.GetChain().BestSnapshot().Hash },
 		BestHeight:       func() uint64 { return bm.GetChain().BestSnapshot().Order },
 		CalcSequenceLock: bm.GetChain().CalcSequenceLock,

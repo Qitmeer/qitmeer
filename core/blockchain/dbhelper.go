@@ -115,18 +115,6 @@ type bestChainState struct {
 	workSum      *big.Int
 }
 
-// DBMainChainHasBlock is the exported version of dbMainChainHasBlock.
-func DBMainChainHasBlock(dbTx database.Tx, hash *hash.Hash) bool {
-	return dbMainChainHasBlock(dbTx, hash)
-}
-
-// dbMainChainHasBlock uses an existing database transaction to return whether
-// or not the main chain contains the block identified by the provided hash.
-func dbMainChainHasBlock(dbTx database.Tx, hash *hash.Hash) bool {
-	hashIndex := dbTx.Metadata().Bucket(dbnamespace.HashIndexBucketName)
-	return hashIndex.Get(hash[:]) != nil
-}
-
 // DBFetchBlockByHeight is the exported version of dbFetchBlockByHeight.
 func DBFetchBlockByHeight(dbTx database.Tx, height uint64) (*types.SerializedBlock, error) {
 	return dbFetchBlockByHeight(dbTx, height)
@@ -207,13 +195,8 @@ func (b *BlockChain) BlockHashByHeight(blockHeight uint64) (*hash.Hash, error) {
 // the main chain.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) MainChainHasBlock(hash *hash.Hash) (bool, error) {
-	var exists bool
-	err := b.db.View(func(dbTx database.Tx) error {
-		exists = dbMainChainHasBlock(dbTx, hash)
-		return nil
-	})
-	return exists, err
+func (b *BlockChain) MainChainHasBlock(hash *hash.Hash) bool {
+	return b.bd.IsOnMainChain(hash)
 }
 
 // dbFetchDatabaseInfo uses an existing database transaction to fetch the
