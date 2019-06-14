@@ -670,11 +670,11 @@ func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) er
 	// TODO, decided if need extra nonce for coinbase-tx
 	// do nothing for now
 	blockHash:=msgBlock.BlockHash()
-	height,err:=m.blockManager.GetChain().BlockHeightByHash(&blockHash)
+	order,err:=m.blockManager.GetChain().BlockOrderByHash(&blockHash)
 	if err!=nil {
 		return err
 	}
-	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(height)).
+	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(order)).
 		AddInt64(int64(extraNonce)).AddData([]byte("nox/test")).
 		Script()
 	if err != nil {

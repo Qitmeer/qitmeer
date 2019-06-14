@@ -376,7 +376,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 
 		// Grab the block height.
 		blkHash = blockRegion.Hash
-		blkOrder, err = api.node.blockManager.GetChain().BlockHeightByHash(blkHash)
+		blkOrder, err = api.node.blockManager.GetChain().BlockOrderByHash(blkHash)
 		if err != nil {
 			context := "Failed to retrieve block height"
 			return nil, er.RpcInternalError(err.Error(), context)

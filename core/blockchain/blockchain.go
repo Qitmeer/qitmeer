@@ -1063,8 +1063,8 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 			return err
 		}
 
-		// Add the block hash and height to the main chain index.
-		err = dbPutMainChainIndex(dbTx, block.Hash(), node.order)
+		// Add the block hash and height to the block index.
+		err = dbPutBlockIndex(dbTx, block.Hash(), node.order)
 		if err != nil {
 			return err
 		}
@@ -1309,8 +1309,8 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 			return err
 		}
 
-		// Remove the block hash and height from the main chain index.
-		err = dbRemoveMainChainIndex(dbTx, block.Hash(), int64(node.order))  //TODO, remove type conversion
+		// Remove the block hash and order from the block index.
+		err = dbRemoveBlockIndex(dbTx, block.Hash(), int64(node.order))  //TODO, remove type conversion
 		if err != nil {
 			return err
 		}
