@@ -91,8 +91,8 @@ func (b *BlockChain) verifyCheckpoint(height uint64, hash *hash.Hash) bool {
 		return false
 	}
 
-	log.Info("Verified checkpoint at height %d/block %s", checkpoint.Height,
-		checkpoint.Hash)
+	log.Info(fmt.Sprintf("Verified checkpoint at height %d/block %s", checkpoint.Height,
+		checkpoint.Hash))
 	return true
 }
 

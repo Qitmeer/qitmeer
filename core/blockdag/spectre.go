@@ -78,7 +78,9 @@ func (sp *Spectre) AddBlock(b *Block) *list.List {
 	block:=SpectreBlock{hash:*b.GetHash(),Votes1:-1,Votes2:-1}
 	sp.sblocks[block.hash] = &block
 
-	return nil
+	var result *list.List=list.New()
+	result.PushBack(block.GetHash())
+	return result
 }
 
 func (sp *Spectre) GetTipsList() []*Block {
@@ -756,7 +758,7 @@ func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) *Block {
 			hash:=*h
 			block.parents.Add(&hash)
 			parent := votedPast.GetBlock(&hash)
-			parent.AddChild(block.GetHash())
+			parent.AddChild(&block)
 		}
 	}
 	if votedPast.blocks == nil {
@@ -767,7 +769,7 @@ func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) *Block {
 		votedPast.genesis = *block.GetHash()
 	}
 	votedPast.blockTotal++
-	votedPast.updateTips(block.GetHash())
+	votedPast.updateTips(&block)
 	votedPast.instance.AddBlock(&block)
 	return &block
 }

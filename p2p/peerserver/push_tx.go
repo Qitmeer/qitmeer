@@ -31,7 +31,7 @@ func (s *PeerServer) pushTxMsg(sp *serverPeer, hash *hash.Hash, doneChan chan<- 
 		<-waitChan
 	}
 
-	sp.QueueMessage(&message.MsgTx{tx.Tx}, doneChan)
+	sp.QueueMessage(&message.MsgTx{Tx:tx.Tx}, doneChan)
 
 	return nil
 }

@@ -43,13 +43,13 @@ func txDecode(network string, rawTxStr string) {
 	}
 
 	jsonTx := &json.OrderedResult{
-		{"txid", tx.TxHash().String()},
-		{"txhash", tx.TxHashFull().String()},
-		{"version",  int32(tx.Version)},
-		{"locktime", tx.LockTime},
-		{"expire",tx.Expire},
-		{"vin",      marshal.MarshJsonVin(&tx)},
-		{"vout",     marshal.MarshJsonVout(&tx, nil,param)},
+		{Key:"txid", Val:tx.TxHash().String()},
+		{Key:"txhash", Val:tx.TxHashFull().String()},
+		{Key:"version",  Val:int32(tx.Version)},
+		{Key:"locktime", Val:tx.LockTime},
+		{Key:"expire",Val:tx.Expire},
+		{Key:"vin",      Val:marshal.MarshJsonVin(&tx)},
+		{Key:"vout",     Val:marshal.MarshJsonVout(&tx, nil,param)},
 	}
 	marshaledTx, err := jsonTx.MarshalJSON()
 	if err != nil {
@@ -165,12 +165,11 @@ func txSign(privkeyStr string, rawTxStr string) {
 	if err != nil {
 		errExit(err)
 	}
-	var kdb txscript.KeyClosure
-	kdb = func(types.Address) (ecc.PrivateKey, bool, error){
+	var kdb txscript.KeyClosure= func(types.Address) (ecc.PrivateKey, bool, error){
 		return privateKey,true,nil // compressed is true
 	}
 	var sigScripts [][]byte
-	for i,_:= range redeemTx.TxIn {
+	for i:= range redeemTx.TxIn {
 		sigScript,err := txscript.SignTxOutput(param,&redeemTx,i,pkScript,txscript.SigHashAll,kdb,nil,nil,ecc.ECDSA_Secp256k1)
 		if err != nil {
 			errExit(err)
@@ -178,11 +177,11 @@ func txSign(privkeyStr string, rawTxStr string) {
 		sigScripts= append(sigScripts,sigScript)
 	}
 
-	for i2,_:=range sigScripts {
+	for i2:=range sigScripts {
 		redeemTx.TxIn[i2].SignScript = sigScripts[i2]
 	}
 
-	mtxHex, err := marshal.MessageToHex(&message.MsgTx{&redeemTx})
+	mtxHex, err := marshal.MessageToHex(&message.MsgTx{Tx:&redeemTx})
 	if err != nil {
 		errExit(err)
 	}

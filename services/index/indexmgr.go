@@ -119,7 +119,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	// lowest one so the catchup code only needs to start at the earliest
 	// block and is able to skip connecting the block for the indexes that
 	// don't need it.
-	bestHeight := int32(chain.BestSnapshot().Height)
+	bestHeight := int32(chain.BestSnapshot().Order)
 	lowestHeight := bestHeight
 	indexerHeights := make([]int32, len(m.enabledIndexes))
 	err = m.db.View(func(dbTx database.Tx) error {
@@ -153,8 +153,8 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	// At this point, one or more indexes are behind the current best chain
 	// tip and need to be caught up, so log the details and loop through
 	// each block that needs to be indexed.
-	log.Info("Catching up indexes from height %d to %d", lowestHeight,
-		bestHeight)
+	log.Info(fmt.Sprintf("Catching up indexes from height %d to %d", lowestHeight,
+		bestHeight))
 
 	for height := lowestHeight + 1; height <= bestHeight; height++ {
 		if interruptRequested(interrupt) {
@@ -211,7 +211,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		progressLogger.LogBlockHeight(block)
 	}
 
-	log.Info("Indexes caught up to height %d", bestHeight)
+	log.Info(fmt.Sprintf("Indexes caught up to height %d", bestHeight))
 	return nil
 }
 
@@ -222,8 +222,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 // associated scripts are still required to index them.
 func makeUtxoView(dbTx database.Tx, block *types.SerializedBlock, interrupt <-chan struct{}) (*blockchain.UtxoViewpoint, error) {
 	view := blockchain.NewUtxoViewpoint()
-	var parentRegularTxs []*types.Tx
-	parentRegularTxs = block.Transactions()
+	var parentRegularTxs []*types.Tx = block.Transactions()
 
 	for txIdx, tx := range parentRegularTxs {
 		// Coinbases do not reference any inputs.  Since the block is
@@ -299,7 +298,7 @@ func (m *Manager) maybeFinishDrops(interrupt <-chan struct{}) error {
 			continue
 		}
 
-		log.Info("Resuming %s drop", indexer.Name())
+		log.Info(fmt.Sprintf("Resuming %s drop", indexer.Name()))
 
 		switch d := indexer.(type) {
 		case IndexDropper:
@@ -447,7 +446,7 @@ func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seri
 
 	// Update the current index tip.
 	prevHash := &block.Block().Header.ParentRoot
-	return dbPutIndexerTip(dbTx, idxKey, prevHash, int32(block.Height()-1))
+	return dbPutIndexerTip(dbTx, idxKey, prevHash, int32(block.Order()-1))
 }
 
 // dbIndexConnectBlock adds all of the index entries associated with the
@@ -475,7 +474,7 @@ func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seriali
 	}
 
 	// Update the current index tip.
-	return dbPutIndexerTip(dbTx, idxKey, block.Hash(), int32(block.Height()))
+	return dbPutIndexerTip(dbTx, idxKey, block.Hash(), int32(block.Order()))
 }
 
 // dbFetchIndexerTip uses an existing database transaction to retrieve the
@@ -567,12 +566,12 @@ func dropFlatIndex(db database.DB, idxKey []byte, idxName string, interrupt <-ch
 		return err
 	}
 	if !exists {
-		log.Info("Not dropping %s because it does not exist", idxName)
+		log.Info(fmt.Sprintf("Not dropping %s because it does not exist", idxName))
 		return nil
 	}
 
-	log.Info("Dropping all %s entries.  This might take a while...",
-		idxName)
+	log.Info(fmt.Sprintf("Dropping all %s entries.  This might take a while...",
+		idxName))
 
 	// Mark that the index is in the process of being dropped so that it
 	// can be resumed on the next start if interrupted before the process is
@@ -599,7 +598,7 @@ func dropFlatIndex(db database.DB, idxKey []byte, idxName string, interrupt <-ch
 		return err
 	}
 
-	log.Info("Dropped %s", idxName)
+	log.Info(fmt.Sprintf("Dropped %s", idxName))
 	return nil
 }
 
@@ -629,8 +628,8 @@ func incrementalFlatDrop(db database.DB, idxKey []byte, idxName string, interrup
 
 		if numDeleted > 0 {
 			totalDeleted += uint64(numDeleted)
-			log.Info("Deleted %d keys (%d total) from %s",
-				numDeleted, totalDeleted, idxName)
+			log.Info(fmt.Sprintf("Deleted %d keys (%d total) from %s",
+				numDeleted, totalDeleted, idxName))
 		}
 
 		if interruptRequested(interrupt) {
@@ -671,12 +670,12 @@ func dropIndex(db database.DB, idxKey []byte, idxName string) error {
 		return err
 	}
 	if !exists {
-		log.Info("Not dropping %s because it does not exist", idxName)
+		log.Info(fmt.Sprintf("Not dropping %s because it does not exist", idxName))
 		return nil
 	}
 
-	log.Info("Dropping all %s entries.  This might take a while...",
-		idxName)
+	log.Info(fmt.Sprintf("Dropping all %s entries.  This might take a while...",
+		idxName))
 
 	// Mark that the index is in the process of being dropped so that it
 	// can be resumed on the next start if interrupted before the process is
@@ -693,6 +692,6 @@ func dropIndex(db database.DB, idxKey []byte, idxName string) error {
 		return err
 	}
 
-	log.Info("Dropped %s", idxName)
+	log.Info(fmt.Sprintf("Dropped %s", idxName))
 	return nil
 }

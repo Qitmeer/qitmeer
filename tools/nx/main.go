@@ -116,7 +116,7 @@ func main() {
 
 	base58CheckEncodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
 	base58checkVersion = noxBase58checkVersionFlag{}
-	base58checkVersion.Set("privnet")
+	base58checkVersion.Set("testnet")
 	base58CheckEncodeCommand.Var(&base58checkVersion, "v","base58check `version` [mainnet|testnet|privnet")
 	base58CheckEncodeCommand.StringVar(&base58checkMode, "m", "nox", "base58check encode mode : [nox|btc]")
 	base58CheckEncodeCommand.StringVar(&base58checkHasher,"a","", "base58check hasher")
@@ -228,7 +228,7 @@ func main() {
 	hdNewCmd.Usage = func() {
 		cmdUsage(hdNewCmd, "Usage: nx hd-new [-v version] [entropy] \n")
 	}
-	hdVer.Set("privnet")
+	hdVer.Set("testnet")
 	hdNewCmd.Var(&hdVer, "v","The HD(BIP32) `version` [mainnet|testnet|privnet|bip32]")
 
 	hdToPubCmd := flag.NewFlagSet("hd-to-public",flag.ExitOnError)

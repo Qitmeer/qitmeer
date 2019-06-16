@@ -15,32 +15,32 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"log"
-	"path/filepath"
+	"go/ast"
+	"go/build"
+	"go/importer"
+	"go/printer"
+	"go/token"
+	"go/types"
+	"golang.org/x/tools/go/buildutil"
+	"golang.org/x/tools/go/loader"
+	"golang.org/x/tools/imports"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
+	"path/filepath"
 	"reflect"
-	"strings"
 	"sort"
 	"strconv"
-	"go/types"
-	"go/token"
-	"go/importer"
-	"go/build"
-	"go/printer"
-	"go/ast"
-	"golang.org/x/tools/imports"
-	"golang.org/x/tools/go/loader"
-	"golang.org/x/tools/go/buildutil"
+	"strings"
 	//"math/big"
 )
 
 // Configuration set most from command-line
 type Config struct {
-	Dir           string   // input package directory
-	Type          string   // type to generate methods for
-	FieldOverride string   // name of struct type for field overrides
+	Dir           string // input package directory
+	Type          string // type to generate methods for
+	FieldOverride string // name of struct type for field overrides
 }
 
 // marshalerType represents the intermediate struct type used during marshaling.
@@ -82,6 +82,7 @@ func (mtyp *marshalerType) loadOverrides(otyp *types.Named) error {
 	mtyp.override = otyp
 	return nil
 }
+
 // findFunction returns a function with `name` that accepts no arguments
 // and returns a single value that is convertible to the given to type.
 func findFunction(typ *types.Named, name string, to types.Type) (*types.Func, types.Type) {
@@ -160,7 +161,9 @@ func underlyingMap(typ types.Type) *types.Map {
 
 func (mtyp *marshalerType) fieldByName(name string) *marshalerField {
 	for _, f := range mtyp.Fields {
-		if f.name == name { return f }
+		if f.name == name {
+			return f
+		}
 	}
 	return nil
 }
@@ -183,15 +186,13 @@ func (mf *marshalerField) isRequired(format string) bool {
 	return req && !strings.HasPrefix(rtag.Get(format), "-")
 }
 
-func (mf *marshalerField) hasMinimal(format string) (string, bool)  {
+func (mf *marshalerField) hasMinimal(format string) (string, bool) {
 	rtag := reflect.StructTag(mf.tag)
-	min,ok := rtag.Lookup("min")
+	min, ok := rtag.Lookup("min")
 	// Fields with json:"-" must be treated as optional. This also works
 	// for the other supported formats.
 	return min, ok && !strings.HasPrefix(rtag.Get(format), "-")
 }
-
-
 
 // fileScope tracks imports and other names at file scope.
 type fileScope struct {
@@ -230,6 +231,7 @@ func (s *fileScope) addReferences(typ types.Type) {
 	})
 	s.rebuildImports()
 }
+
 // addImport loads a package and adds it to the import set.
 func (s *fileScope) addImport(path string) {
 	pkg, err := s.imp.Import(path)
@@ -239,6 +241,7 @@ func (s *fileScope) addImport(path string) {
 	s.insertImport(pkg)
 	s.rebuildImports()
 }
+
 // insertImport adds pkg to the list of known imports.
 // This method should not be used directly because it doesn't
 // rebuild the import name cache.
@@ -271,6 +274,7 @@ func (s *fileScope) maybeRenameImport(pkg *types.Package) {
 	s.importNames[pkg.Path()] = name
 	s.importsByName[name] = pkg
 }
+
 // isNameTaken reports whether the given name is used by an import or other identifier.
 func (s *fileScope) isNameTaken(name string) bool {
 	return s.importsByName[name] != nil || s.otherNames[name] || types.Universe.Lookup(name) != nil
@@ -288,7 +292,6 @@ func (s *fileScope) writeImportDecl(w io.Writer) {
 	fmt.Fprintln(w, ")")
 }
 
-
 // main logic to gen codde
 func process(cfg *Config) (code []byte, err error) {
 	pkg, err := loadPackage(cfg)
@@ -302,16 +305,18 @@ func process(cfg *Config) (code []byte, err error) {
 	// Construct the marshaling type.
 	mtyp := newMarshalerType(cfg, typ)
 	if cfg.FieldOverride != "" {
-		if otyp, err := lookupStructType(pkg.Scope(), cfg.FieldOverride) ; err != nil {
+		if otyp, err := lookupStructType(pkg.Scope(), cfg.FieldOverride); err != nil {
 			return nil, fmt.Errorf("can't find field replacement type %s: %v", cfg.FieldOverride, err)
-		}else if err := mtyp.loadOverrides(otyp) ; err != nil {
+		} else if err := mtyp.loadOverrides(otyp); err != nil {
 			return nil, err
 		}
 	}
 	// Generate and format the output. Formatting uses goimports because it
 	// removes unused imports.
 	code, err = generate(mtyp, cfg)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	opt := &imports.Options{Comments: true, TabIndent: true, TabWidth: 8}
 	code, err = imports.Process("", code, opt)
 	if err != nil {
@@ -335,7 +340,7 @@ func generate(mtyp *marshalerType, cfg *Config) ([]byte, error) {
 	}
 	genMarshal := genMarshalJSON(mtyp)
 	genUnmarshal := genUnmarshalJSON(mtyp)
-	fmt.Fprintf(w, "// %s marshals as JSON", genMarshal.Name )
+	fmt.Fprintf(w, "// %s marshals as JSON", genMarshal.Name)
 	fmt.Fprintln(w)
 	writeFunction(w, mtyp.fs, genMarshal)
 	fmt.Fprintln(w)
@@ -409,7 +414,7 @@ func genMarshalJSON(mtyp *marshalerType) Function {
 	return fn
 }
 
-var NIL     = Name("nil")
+var NIL = Name("nil")
 
 type AddressOf struct {
 	Value Expression
@@ -622,14 +627,14 @@ func (m *marshalMethod) unmarshalConversions(from, to Var, format string) (s []S
 				},
 			})
 			s = append(s, m.convert(accessFrom, accessTo, typ, f.origTyp)...)
-			if v, ok :=f.hasMinimal(format); ok{
+			if v, ok := f.hasMinimal(format); ok {
 				err := fmt.Sprintf("error field '%s' for %s, minimal is %s", f.encodedName(format), m.mtyp.name, v)
 				if f.origTyp.String() == "*math/big.Int" { //need to handle bigInt
 					s = append(s, If{
 						Condition: Equals{
 							Lhs: CallFunction{
 								Func:   Dotted{Receiver: accessTo, Name: "Cmp"},
-								Params: []Expression{Name("big.NewInt("+v+")")},
+								Params: []Expression{Name("big.NewInt(" + v + ")")},
 							},
 							Rhs: Name("-1")},
 						Body: []Statement{
@@ -771,6 +776,7 @@ func (m *marshalMethod) loopConv(from, to Expression, fromTyp, toTyp kvType) (co
 	}
 	return append(conv, inner...)
 }
+
 // hasSideEffects returns whether an expression may have side effects.
 func hasSideEffects(expr Expression) bool {
 	switch expr := expr.(type) {
@@ -846,10 +852,10 @@ func ensureNilCheckable(typ types.Type) types.Type {
 	}
 }
 
-
 type declStmt struct {
 	d Declaration
 }
+
 func (ds declStmt) Statement() ast.Stmt {
 	return &ast.DeclStmt{Decl: ds.d.Declaration()}
 }
@@ -916,7 +922,6 @@ type Function struct {
 	Body        []Statement
 }
 type Functions []Function
-
 
 func (me Function) Declaration() ast.Decl {
 	paramFields := make([]*ast.Field, len(me.Parameters))
@@ -988,8 +993,6 @@ func (me Function) Declaration() ast.Decl {
 	}
 }
 
-
-
 type Struct struct {
 	Name        string
 	Fields      Fields
@@ -1025,7 +1028,7 @@ func (me Struct) Expression() ast.Expr {
 				Name: field.Name,
 			},
 			Value: &ast.Ident{
-			//Value: me.FieldValues[field.Name].Expression(),
+				//Value: me.FieldValues[field.Name].Expression(),
 			},
 		}
 	}
@@ -1037,13 +1040,12 @@ func (me Struct) Expression() ast.Expr {
 	}
 }
 
-
-
 type Field struct {
 	Name     string
 	TypeName string
 	Tag      string
 }
+
 func (me Field) Ast() *ast.Field {
 	var tag *ast.BasicLit
 	if me.Tag != "" {
@@ -1072,7 +1074,9 @@ func (me Field) Ast() *ast.Field {
 		Tag: tag,
 	}
 }
+
 type Fields []Field
+
 func (me Fields) Ast() *ast.FieldList {
 	fields := make([]*ast.Field, len(me))
 	for i, field := range me {
@@ -1169,6 +1173,7 @@ type Expression interface {
 func Name(value string) Var {
 	return Var{value}
 }
+
 type Var struct {
 	Name string
 }
@@ -1232,7 +1237,7 @@ func (s *funcScope) newIdent(base string) string {
 
 func newMarshalerType(cfg *Config, typ *types.Named) *marshalerType {
 	styp := typ.Underlying().(*types.Struct)
-	mtyp := &marshalerType{name: typ.Obj().Name(), fs: token.NewFileSet() , orig: typ}
+	mtyp := &marshalerType{name: typ.Obj().Name(), fs: token.NewFileSet(), orig: typ}
 	mtyp.scope = newFileScope(cfg, typ.Obj().Pkg())
 	mtyp.scope.addReferences(styp)
 
@@ -1295,11 +1300,15 @@ func walkNamedTypes(typ types.Type, callback func(*types.Named)) {
 
 func lookupStructType(scope *types.Scope, name string) (*types.Named, error) {
 	obj := scope.Lookup(name)
-	if obj == nil { return nil, fmt.Errorf("can't find type name (%s)",name) }
+	if obj == nil {
+		return nil, fmt.Errorf("can't find type name (%s)", name)
+	}
 	typ, ok := obj.(*types.TypeName)
-	if !ok { return nil, fmt.Errorf("%s not a type",name) }
-	if _ ,ok = typ.Type().Underlying().(*types.Struct); !ok {
-		return nil, fmt.Errorf(" %s not a struct type",name)
+	if !ok {
+		return nil, fmt.Errorf("%s not a type", name)
+	}
+	if _, ok = typ.Type().Underlying().(*types.Struct); !ok {
+		return nil, fmt.Errorf(" %s not a struct type", name)
 	}
 	return typ.Type().(*types.Named), nil
 }
@@ -1323,12 +1332,12 @@ func loadPackage(cfg *Config) (*types.Package, error) {
 	return prog.Package(pkg.ImportPath).Pkg, nil
 }
 
-func main(){
+func main() {
 	var (
 		pkgdir    = flag.String("dir", ".", "input package (default is .)")
 		output    = flag.String("out", "-", "output file (default is stdout)")
 		typename  = flag.String("type", "", "type to generate methods for")
-		overrides = flag.String("field-override", "", "override type contains fields" +
+		overrides = flag.String("field-override", "", "override type contains fields"+
 			" which are excluded (default is `<typename>JSON`)")
 	)
 	flag.Parse()

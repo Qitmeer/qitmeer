@@ -115,6 +115,9 @@ func (api *PublicMinerAPI) GetBlockTemplate() (interface{}, error) {
 //See https://en.bitcoin.it/wiki/BIP_0022 for full specification
 func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	// Deserialize the hexBlock.
+	m := api.miner
+	m.submitBlockLock.Lock()
+	defer m.submitBlockLock.Unlock()
 
 	if len(hexBlock)%2 != 0 {
 		hexBlock = "0" + hexBlock
@@ -126,7 +129,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	}
 	block, err := types.NewBlockFromBytes(serializedBlock)
 	if err != nil {
-		return nil, er.RpcDeserializationError("Block decode failed: ", err.Error())
+		return nil, er.RpcDeserializationError("Block decode failed: %s", err.Error())
 	}
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
@@ -166,7 +169,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 
 	if isOrphan {
 		return fmt.Sprintf("Block submitted via miner is an orphan building "+
-			"on parent: %s", err.Error()), nil
+			"on parent"), nil
 	}
 
 	// The block was accepted.
@@ -175,16 +178,9 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	for _, out := range coinbaseTxOuts {
 		coinbaseTxGenerated += out.Amount
 	}
-	return fmt.Sprintf("Block submitted accepted", "hash", block.Hash(),
-		"height", block.Height(), "amount", coinbaseTxGenerated), nil
+	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, amount %d", block.Hash().String(),
+		 block.Order(), coinbaseTxGenerated), nil
 
-	/*
-		if !api.miner.submitBlock(block) {
-			return fmt.Sprintf("rejected: %s", err.Error()), nil
-		}
-	*/
-
-	return nil, nil
 }
 
 //LL
@@ -201,7 +197,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	// either a coinbase value or a coinbase transaction object depending on
 	// the request.  Default to only providing a coinbase value.
 	useCoinbaseValue := true
-	if capabilities != nil && len(capabilities) > 0 {
+	if len(capabilities) > 0 {
 		var hasCoinbaseValue, hasCoinbaseTxn bool
 		for _, capability := range capabilities {
 			switch capability {
@@ -240,16 +236,21 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 			}
 		}
 	*/
-	m := api.miner
-	m.submitBlockLock.Lock()
 
 	// No point in generating or accepting work before the chain is synced.
-	currentHeight := api.miner.blockManager.GetChain().BestSnapshot().Height
-	if currentHeight != 0 && !api.miner.blockManager.GetChain().IsCurrent() {
+	currentOrder := api.miner.blockManager.GetChain().BestSnapshot().Order
+	if currentOrder != 0 && !api.miner.blockManager.GetChain().IsCurrent() {
 		return nil, er.RPCClientInInitialDownloadError("Client in initial download ",
 			"NOX is downloading blocks...")
 	}
-
+	m := api.miner
+	m.Lock()
+	if m.started {
+		m.Unlock()
+		return nil, er.RpcInternalError("Server is already CPU mining.","Please stop first.")
+	}
+	m.started = true
+	m.Unlock()
 	// When a long poll ID was provided, this is a long poll request by the
 	// client to be notified when block template referenced by the ID should
 	// be replaced with a new one.
@@ -283,13 +284,6 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	*/
 	//TODO LL,
 	//return state.blockTemplateResult(useCoinbaseValue, nil)
-	m.Lock()
-	m.started = true
-	m.discreteMining = true
-	m.speedMonitorQuit = make(chan struct{})
-	m.wg.Add(1)
-	go m.speedMonitor()
-	m.Unlock()
 
 	log.Trace("Generating blocks", "num", 1)
 
@@ -297,25 +291,17 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	rand.Seed(time.Now().UnixNano())
 	payToAddr := m.config.GetMinningAddrs()[rand.Intn(len(m.config.GetMinningAddrs()))]
 
+	m.submitBlockLock.Lock()
 	template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil)
-
 	m.submitBlockLock.Unlock()
 
-	if err != nil {
-		errStr := fmt.Sprintf("template: %v", err)
-		log.Error("Failed to create new block ", "err", errStr)
+	if err != nil || template==nil {
+		log.Error("Failed to create new block ", "err",fmt.Sprintf("%v", err))
 		//TODO refactor the quit logic
 		m.Lock()
-		close(m.speedMonitorQuit)
-		m.wg.Wait()
 		m.started = false
-		m.discreteMining = false
 		m.Unlock()
-		return nil, err //should miner if error
-	}
-	if template == nil { // should not go here
-		log.Debug("Failed to create new block template", "err", "but error=nil")
-		return nil, er.RpcInvalidError("Failed to create new block template")
+		return nil,er.RpcInvalidError("Failed to create new block template: %v", template) //should miner if error
 	}
 
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, time.Now())
@@ -361,6 +347,9 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		txBuf, err := tx.Serialize(types.TxSerializeFull)
 		if err != nil {
 			context := "Failed to serialize transaction"
+			m.Lock()
+			m.started = false
+			m.Unlock()
 			return nil, er.RpcInvalidError(err.Error(), context)
 
 		}
@@ -428,20 +417,25 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	if useCoinbaseValue {
 		//reply.CoinbaseValue = &template.Block.Transactions[0].TxOut[0].Amount
 
-		var coinbaseValue uint64 // coinbaseValue = all coinbase value
-		coinbaseValue = uint64(api.miner.blockManager.GetChain().FetchSubsidyCache().CalcBlockSubsidy(int64(template.Height)))
+		// coinbaseValue = all coinbase value
+		var coinbaseValue uint64= uint64(api.miner.blockManager.GetChain().FetchSubsidyCache().CalcBlockSubsidy(int64(template.Height)))
 		reply.CoinbaseValue = &coinbaseValue
 	} else {
 		// Ensure the template has a valid payment address associated
 		// with it when a full coinbase is requested.
 		if !template.ValidPayAddress {
+			m.Lock()
+			m.started = false
+			m.Unlock()
 			return nil, er.RpcInvalidError("A coinbase transaction has been " +
 				"requested, but the server has not " +
 				"been configured with any payment " +
 				"addresses via --miningaddr")
 		}
 	}
-
+	m.Lock()
+	m.started = false
+	m.Unlock()
 	return &reply, nil
 
 }

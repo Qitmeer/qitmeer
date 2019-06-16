@@ -2,6 +2,7 @@ package blockdag
 
 import (
 	"fmt"
+	"qitmeer/common/hash"
 	"testing"
 )
 
@@ -25,9 +26,13 @@ func Test_GetOrder(t *testing.T) {
 	if ibd==nil {
 		t.FailNow()
 	}
-	con:=ibd.(*Conflux)
+	//con:=ibd.(*Conflux)
 	fmt.Println("Conflux order ：")
-	order := con.bd.GetOrder()
+	order:=[]*hash.Hash{}
+	var i uint
+	for i=0;i<bd.GetBlockTotal() ;i++  {
+		order=append(order,bd.GetBlockByOrder(i))
+	}
 	printBlockChainTag(order,tbMap)
 	if !processResult(order,changeToHashList(testData.CO_GetOrder.Output, tbMap)) {
 		t.FailNow()

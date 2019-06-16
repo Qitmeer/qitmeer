@@ -107,13 +107,8 @@ func (n *Node) WaitForShutdown() {
 }
 
 func (n *Node) nodeEventHandler() {
-	for {
-		select {
-			case <-n.quit:
-				log.Trace("node stop event (quit) received")
-				return
-		}
-	}
+	<-n.quit
+	log.Trace("node stop event (quit) received")
 }
 
 func (n *Node) Start() error {

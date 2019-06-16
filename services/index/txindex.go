@@ -492,7 +492,7 @@ func DropTxIndex(db database.DB, interrupt <-chan struct{}) error {
 		return err
 	}
 	if !exists {
-		log.Info("Not dropping %s because it does not exist", txIndexName)
+		log.Info(fmt.Sprintf("Not dropping %s because it does not exist", txIndexName))
 		return nil
 	}
 
@@ -511,8 +511,8 @@ func DropTxIndex(db database.DB, interrupt <-chan struct{}) error {
 		return err
 	}
 
-	log.Info("Dropping all %s entries.  This might take a while...",
-		txIndexName)
+	log.Info(fmt.Sprintf("Dropping all %s entries.  This might take a while...",
+		txIndexName))
 
 	// Since the indexes can be so large, attempting to simply delete
 	// the bucket in a single database transaction would result in massive
@@ -537,7 +537,7 @@ func DropTxIndex(db database.DB, interrupt <-chan struct{}) error {
 		return err
 	}
 
-	log.Info("Dropped %s", txIndexName)
+	log.Info(fmt.Sprintf("Dropped %s", txIndexName))
 	return nil
 }
 

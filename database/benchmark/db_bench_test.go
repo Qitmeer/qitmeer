@@ -11,7 +11,7 @@ package benchmark
 // BenchmarkGetBolt-8               2000000               647 ns/op          13.90 MB/s         440 B/op          7 allocs/op
 // PASS
 // ok      qitmeer/database/benchmark    8.194s
-
+/*
 import (
 	"io/ioutil"
 	"os"
@@ -137,3 +137,4 @@ func BenchmarkGetBolt(b *testing.B) {
 	db.Close()
 	os.RemoveAll(tmp)
 }
+*/

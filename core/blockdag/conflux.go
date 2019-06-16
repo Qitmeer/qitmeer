@@ -14,9 +14,7 @@ type Epoch struct {
 func (e *Epoch) GetSequence() []*Block {
 	result := []*Block{}
 	if e.depends != nil && len(e.depends) > 0 {
-		for _, b := range e.depends {
-			result = append(result, b)
-		}
+		result = append(result, e.depends...)
 	}
 	result = append(result, e.main)
 	return result
@@ -69,15 +67,14 @@ func (con *Conflux) AddBlock(b *Block) *list.List {
 	//
 	con.updatePrivot(b)
 	oldOrder:=con.bd.order
-	con.bd.order = []*hash.Hash{}
+	con.bd.order = map[uint]*hash.Hash{}
 	con.updateMainChain(con.bd.GetGenesis(), nil, nil)
 
 	var result *list.List
 	var i uint
 	for i=0;i<con.bd.GetBlockTotal();i++ {
 		if result==nil {
-			if oldOrder==nil||
-				len(oldOrder)==0||
+			if len(oldOrder)==0||
 				i>=uint(len(oldOrder))||
 				!oldOrder[i].IsEqual(con.bd.order[i]) {
 				result=list.New()
@@ -230,7 +227,7 @@ func (con *Conflux) updateOrder(b *Block, preEpoch *Epoch, main *HashSet) *Epoch
 			panic("epoch order error")
 		}
 		if !con.isVirtualBlock(block) {
-			con.bd.order = append(con.bd.order, block.GetHash())
+			con.bd.order[block.order]=block.GetHash()
 		}
 	}
 
