@@ -485,8 +485,6 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				node := &blockNode{}
 				initBlockNode(node, &block.Block().Header, parents)
 				list:=b.bd.AddBlock(node)
-				dblock:=b.bd.GetBlock(node.GetHash())
-				node.SetOrder(uint64(dblock.GetOrder()))
 				b.index.addNode(node)
 				if list==nil||list.Len()==0 {
 					log.Error("Irreparable error!")
@@ -495,6 +493,12 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				}
 			}
 
+		}
+
+		// update node order
+		for _,v:=range b.index.index {
+			dblock:=b.bd.GetBlock(v.GetHash())
+			v.SetOrder(uint64(dblock.GetOrder()))
 		}
 		log.Debug("Block index loaded","loadTime", time.Since(bidxStart))
 		/*if !b.dag.GetLastBlock().hash.IsEqual(&state.hash) {

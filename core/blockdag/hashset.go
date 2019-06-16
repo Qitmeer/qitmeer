@@ -109,11 +109,7 @@ func (s *HashSet) Get(elem *hash.Hash) interface{} {
 }
 
 func (s *HashSet) Len() int {
-	return len(s.List())
-}
-
-func (s *HashSet) Clear() {
-	s.m = map[hash.Hash]interface{}{}
+	return len(s.m)
 }
 
 func (s *HashSet) IsEmpty() bool {

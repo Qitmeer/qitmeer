@@ -12,6 +12,7 @@ func Test_GetFutureSet(t *testing.T) {
 	if ibd==nil {
 		t.FailNow()
 	}
+
 	//ph:=ibd.(*Phantom)
 	anBlock := bd.GetBlock(tbMap[testData.PH_GetFutureSet.Input])
 	bset := NewHashSet()
@@ -52,8 +53,8 @@ func Test_BlueSetFig2(t *testing.T) {
 	}
 	ph:=ibd.(*Phantom)
 	//
-	blueSet := ph.GetBlueSet()
-	fmt.Println("Fig2 blue set：")
+	blueSet := ph.GetDiffBlueSet()
+	fmt.Println("Fig2 diff blue set：")
 	printBlockSetTag(blueSet,tbMap)
 	if !processResult(blueSet, changeToHashList(testData.PH_BlueSetFig2.Output, tbMap)) {
 		t.FailNow()
@@ -67,8 +68,8 @@ func Test_BlueSetFig4(t *testing.T) {
 	}
 	ph:=ibd.(*Phantom)
 	//
-	blueSet := ph.GetBlueSet()
-	fmt.Println("Fig4 blue set：")
+	blueSet := ph.GetDiffBlueSet()
+	fmt.Println("Fig4 diff blue set：")
 	printBlockSetTag(blueSet,tbMap)
 	if !processResult(blueSet, changeToHashList(testData.PH_BlueSetFig4.Output, tbMap)) {
 		t.FailNow()

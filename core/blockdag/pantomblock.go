@@ -5,10 +5,10 @@ import "qitmeer/common/hash"
 type PhantomBlock struct {
 	*Block
 	blueNum uint
-	coloringParent *hash.Hash
+	mainParent *hash.Hash
 
-	blueDiffPastOrder *HashSet
-	redDiffPastOrder *HashSet
+	blueDiffAnticone *HashSet
+	redDiffAnticone *HashSet
 }
 
 func (pb *PhantomBlock) IsBluer(other *PhantomBlock) bool {
