@@ -14,11 +14,11 @@ const tol = 1e-10
 // N: just pick a value much greater than 1.
 // alpha: the attacker’s relative computational power.
 // lambda: blocks per second.
-// d: the upper bound on the recent delay diameter in the network.
-// waiting_time: wait time.
-// g: min(|future(x')|), where x' is x or any block in anticone(x)
+// delay: the upper bound on the recent delay diameter in the network.
+// waitingTime: wait time.
+// antiPast: min(|future(x')|), where x' is x or any block in anticone(x)
 // and x is the block we want to confirm, ideally this should be
-// about waiting_time * lambda.
+// about waitingTime * lambda.
 func GetRisk(N int,alpha float64,lambda float64,delay float64,waitingTime uint,antiPast int) float64 {
 	if N<3 || antiPast<=0 {
 		return 0
