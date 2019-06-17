@@ -4,13 +4,12 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"github.com/btcsuite/btcd/chaincfg/cuckoocycle/siphash"
 	"github.com/pkg/errors"
+	"qitmeer/core/pow/cuckoo/siphash"
+	"qitmeer/core/types"
 	"runtime"
 	"sort"
 	"sync"
-	//"github.com/btcsuite/btcd/wire"
-	"qitmeer/core/types"
 )
 
 const (
