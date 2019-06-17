@@ -67,7 +67,7 @@ var MainNetParams = Params{
 	PubKeyAddrID:         [2]byte{0x0c, 0x3e}, // starts with Nk
 	PubKeyHashAddrID:     [2]byte{0x0c, 0x41}, // starts with Nm
 	PKHEdwardsAddrID:     [2]byte{0x0c, 0x30}, // starts with Ne
-	PKHSchnorrAddrID:     [2]byte{0x0c, 0x12}, // starts with Nr
+	PKHSchnorrAddrID:     [2]byte{0x0c, 0x4e}, // starts with Nr
 	ScriptHashAddrID:     [2]byte{0x0c, 0x12}, // starts with NS
 	PrivateKeyID:         [2]byte{0x0c, 0xd1}, // starts with Pm
 
