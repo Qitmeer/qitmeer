@@ -16,8 +16,7 @@ import (
 	"qitmeer/engine/txscript"
 	"qitmeer/params"
 	"time"
-	//"crypto/sha256"
-	"golang.org/x/crypto/blake2b"
+
 	"qitmeer/core/pow/cuckoo"
 )
 
@@ -300,11 +299,10 @@ func checkProofOfWork(header *types.BlockHeader, powLimit *big.Int, flags Behavi
 	if flags&BFNoPoWCheck != BFNoPoWCheck {
 		// The block hash must be less than the claimed target.
 		h := header.BlockHash()
+		h1 := header.OldBlockHash()
 
 		//cuckoo,begin
-		powHeader := cuckoo.MakePowHeaderBytes(header)
-		powHeaderHash := computeBlockHeaderHash(powHeader)
-		if err := cuckoo.Verify(powHeaderHash[:16], header.CircleNonces); err != nil {
+		if err := cuckoo.Verify(h1[:16], header.CircleNonces); err != nil {
 			str := fmt.Sprintf("Bad cuckoo nonces: %s", err.Error())
 			return ruleError(ErrBadCuckooNonces, str)
 		}
@@ -1428,24 +1426,3 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		// database, so it is not needed.
 		return b.checkConnectBlock(newNode, block, parent, view, nil)*/
 }
-
-//cuckoo,begin
-func computeBlockHeaderHash(header []byte) []byte {
-	hash := computeBlake2bHash(header)
-	return reverseBytes(hash[:])
-}
-
-func computeBlake2bHash(data []byte) []byte {
-	h1 := blake2b.Sum256(data)
-	h2 := blake2b.Sum256(h1[:])
-	return h2[:]
-}
-
-func reverseBytes(bytes []byte) []byte {
-	for i, j := 0, len(bytes)-1; i < j; i, j = i+1, j-1 {
-		bytes[i], bytes[j] = bytes[j], bytes[i]
-	}
-	return bytes
-}
-
-//end

@@ -104,6 +104,20 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 	// transactions.  Ignore the error returns since there is no way the
 	// encode could fail except being out of memory which would cause a
 	// run-time panic.
+	buf := bytes.NewBuffer(make([]byte, 0, 128))
+	// TODO, redefine the protocol version and storage
+	_ = writeOldBlockHeader(buf, 0, h)
+	// TODO, add an abstract layer of hash func
+	// TODO, double sha256 or other crypto hash
+	return hash.DoubleHashH(buf.Bytes())
+}
+
+// BlockHash computes the block identifier hash for the given block header.
+func (h *BlockHeader) OldBlockHash() hash.Hash {
+	// Encode the header and hash256 everything prior to the number of
+	// transactions.  Ignore the error returns since there is no way the
+	// encode could fail except being out of memory which would cause a
+	// run-time panic.
 	buf := bytes.NewBuffer(make([]byte, 0, MaxBlockHeaderPayload))
 	// TODO, redefine the protocol version and storage
 	_ = writeBlockHeader(buf, 0, h)
@@ -147,6 +161,13 @@ func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	sec := bh.Timestamp.Unix()
 	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
 		&bh.StateRoot, bh.Difficulty, bh.ExNonce, sec, bh.Nonce, bh.CircleNonces)
+}
+
+func writeOldBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
+	// TODO fix time ambiguous
+	sec := bh.Timestamp.Unix()
+	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
+		&bh.StateRoot, bh.Difficulty, bh.ExNonce, sec, bh.Nonce)
 }
 
 //end
