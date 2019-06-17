@@ -131,6 +131,7 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 		nonce:        blockHeader.Nonce,
 		exNonce:      blockHeader.ExNonce,
 		stateRoot:    blockHeader.StateRoot,
+		status:       statusNone,
 	}
 	if len(parents)>0 {
 		node.parents = parents
@@ -270,7 +271,7 @@ func (node *blockNode) GetOrder() uint64{
 func (node *blockNode) Clone() *blockNode{
 	header:=node.Header()
 	newNode := newBlockNode(&header,node.parents)
-	newNode.status = statusDataStored
+	newNode.status = node.status
 	newNode.children=node.children
 	newNode.order=node.order
 	return newNode

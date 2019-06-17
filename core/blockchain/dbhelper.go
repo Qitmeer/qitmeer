@@ -409,7 +409,7 @@ func dbPutBlockNode(dbTx database.Tx, node *blockNode) error {
 	}
 
 	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIndexBucketName)
-	key := blockIndexKey(&node.hash, uint32(node.order))
+	key := node.hash[:]
 	return bucket.Put(key, serialized)
 }
 
