@@ -235,7 +235,6 @@ const (
 	// than were allowed.
 	ErrTooManyRevocations
 
-
 	// ErrInvalidFinalState indicates that the final state of the PRNG included
 	// in the the block differed from the calculated final state.
 	ErrInvalidFinalState
@@ -314,6 +313,11 @@ const (
 	// ErrBadParentsMerkleRoot indicates the calculated parents merkle root does not match
 	// the expected value.
 	ErrBadParentsMerkleRoot
+
+	//cuckoo,begin
+	// ErrBadCuckooNonces indicates that verification of cuckoo nonces is not passed
+	ErrBadCuckooNonces
+	//end
 )
 
 // Map of ErrorCode values back to their constant names for pretty printing.
@@ -379,6 +383,9 @@ var errorCodeStrings = map[ErrorCode]string{
 	ErrInvalidEarlyFinalState: "ErrInvalidEarlyFinalState",
 	ErrInvalidAncestorBlock:   "ErrInvalidAncestorBlock",
 	ErrInvalidTemplateParent:  "ErrInvalidTemplateParent",
+	//cuckoo,begin
+	ErrBadCuckooNonces: "ErrBadCuckooNonces",
+	//end
 }
 
 // String returns the ErrorCode as a human-readable name.

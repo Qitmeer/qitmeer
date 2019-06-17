@@ -5,10 +5,10 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"qitmeer/common/hash"
-	s "qitmeer/core/serialization"
 	"io"
 	"math/big"
+	"qitmeer/common/hash"
+	s "qitmeer/core/serialization"
 	"time"
 )
 
@@ -16,7 +16,11 @@ import (
 // Version 4 bytes + ParentRoot 32 bytes + TxRoot 32 bytes + StateRoot 32 bytes
 // Difficulty 4 bytes   + Timestamp 8 bytes + Nonce 8 bytes +ExNonce 8 bytes
 // --> Total 128 bytes.
-const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 8 + 8 +8
+//cuckoo,begin
+//const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 8 + 8 +8
+const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 8 + 8 + 8 + 20*4
+
+//end
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
 const MaxBlockPayload = 1048576 // 1024*1024 (1MB)
@@ -26,11 +30,16 @@ const MaxBlockPayload = 1048576 // 1024*1024 (1MB)
 const maxTxPerBlock = (MaxBlockPayload / minTxPayload) + 1
 
 //Limited parents quantity
-const MaxParentsPerBlock=50
+const MaxParentsPerBlock = 50
 
 // blockHeaderLen is a constant that represents the number of bytes for a block
 // header.
-const blockHeaderLen = 180
+
+//cuckoo,begin
+//const blockHeaderLen = 180
+const blockHeaderLen = 180 + 20
+
+//end
 
 // MaxBlocksPerMsg is the maximum number of blocks allowed per message.
 const MaxBlocksPerMsg = 500
@@ -38,14 +47,14 @@ const MaxBlocksPerMsg = 500
 type BlockHeader struct {
 
 	// block version
-	Version   uint32
+	Version uint32
 
 	// The merkle root of the previous parent blocks (the dag layer)
-	ParentRoot    hash.Hash
+	ParentRoot hash.Hash
 
 	// The merkle root of the tx tree  (tx of the block)
 	// included Witness here instead of the separated witness commitment
-	TxRoot      hash.Hash
+	TxRoot hash.Hash
 
 	// bip157/158 cbf
 	// CompactFilter Hash
@@ -63,20 +72,19 @@ type BlockHeader struct {
 
 	// The merkle root of state tire (the app data layer)
 	// can all of the state data (stake, receipt, utxo) in state root?
-	StateRoot	hash.Hash
-
+	StateRoot hash.Hash
 
 	// Difficulty target for tx
-	Difficulty  uint32
+	Difficulty uint32
 
 	// extra nonce for miner
-	ExNonce     uint64
+	ExNonce uint64
 
 	// TimeStamp
-	Timestamp   time.Time
+	Timestamp time.Time
 
 	// Nonce
-	Nonce       uint64
+	Nonce uint64
 
 	//might extra data here
 
@@ -85,7 +93,9 @@ type BlockHeader struct {
 	// The variable-sized block might require a size serialized & verify-check
 	// BlockSize uint32
 
-
+	//cuckoo,begin
+	CircleNonces [20]uint32
+	//end
 }
 
 // BlockHash computes the block identifier hash for the given block header.
@@ -96,46 +106,64 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 	// run-time panic.
 	buf := bytes.NewBuffer(make([]byte, 0, MaxBlockHeaderPayload))
 	// TODO, redefine the protocol version and storage
-	_ = writeBlockHeader(buf,0, h)
+	_ = writeBlockHeader(buf, 0, h)
 	// TODO, add an abstract layer of hash func
 	// TODO, double sha256 or other crypto hash
 	return hash.DoubleHashH(buf.Bytes())
 }
 
+//cuckoo,bigin
 // readBlockHeader reads a block header from io reader.  See Deserialize for
 // decoding block headers stored to disk, such as in a database, as opposed to
 // decoding from the type.
 // TODO, redefine the protocol version and storage
-func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
+//func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
+//	// TODO fix time ambiguous
+//	return s.ReadElements(r, &bh.Version, &bh.ParentRoot, &bh.TxRoot,
+//		&bh.StateRoot, &bh.Difficulty,&bh.ExNonce, (*s.Int64Time)(&bh.Timestamp),
+//		&bh.Nonce)
+//}
+
+func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
 	return s.ReadElements(r, &bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, &bh.Difficulty,&bh.ExNonce, (*s.Int64Time)(&bh.Timestamp),
-		&bh.Nonce)
+		&bh.StateRoot, &bh.Difficulty, &bh.ExNonce, (*s.Int64Time)(&bh.Timestamp),
+		&bh.Nonce, &bh.CircleNonces)
 }
 
 // writeBlockHeader writes a block header to w.  See Serialize for
 // encoding block headers to be stored to disk, such as in a database, as
 // opposed to encoding for the type.
 // TODO, redefine the protocol version and storage
+//func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
+//	// TODO fix time ambiguous
+//	sec := bh.Timestamp.Unix()
+//	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
+//		&bh.StateRoot, bh.Difficulty,bh.ExNonce, sec, bh.Nonce)
+//}
+
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
 	sec := bh.Timestamp.Unix()
 	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, bh.Difficulty,bh.ExNonce, sec, bh.Nonce)
+		&bh.StateRoot, bh.Difficulty, bh.ExNonce, sec, bh.Nonce, bh.CircleNonces)
 }
+
+//end
 
 // This function get the simple hash use each parents string, so it can't use to
 // check for block body .At present we use the merkles tree.
-func GetParentsRoot(parents []*hash.Hash) hash.Hash{
-	if len(parents)==0 {
+func GetParentsRoot(parents []*hash.Hash) hash.Hash {
+	if len(parents) == 0 {
 		return hash.Hash{}
 	}
-	hashStr:=""
-	for _,v:=range parents{
-		hashStr+=v.String()
+	hashStr := ""
+	for _, v := range parents {
+		hashStr += v.String()
 	}
 	return hash.DoubleHashH([]byte(hashStr))
 }
+
 // Serialize encodes a block header from r into the receiver using a format
 // that is suitable for long-term storage such as a database while respecting
 // the Version field.
@@ -157,9 +185,9 @@ func (h *BlockHeader) Deserialize(r io.Reader) error {
 }
 
 type Block struct {
-	Header        BlockHeader
-	Parents       []*hash.Hash
-	Transactions  []*Transaction    //tx  6
+	Header       BlockHeader
+	Parents      []*hash.Hash
+	Transactions []*Transaction //tx  6
 	//Commits     []*StakeCommit    //vote for
 }
 
@@ -180,8 +208,7 @@ func (block *Block) SerializeSize() int {
 
 	n := blockHeaderLen + s.VarIntSerializeSize(uint64(len(block.Parents))) + s.VarIntSerializeSize(uint64(len(block.Transactions)))
 
-
-	for i:=0;i<len(block.Parents);i++ {
+	for i := 0; i < len(block.Parents); i++ {
 		n += hash.HashSize
 	}
 
@@ -193,6 +220,7 @@ func (block *Block) SerializeSize() int {
 
 	return n
 }
+
 // Serialize encodes the block to w using a format that suitable for long-term
 // storage such as a database while respecting the Version field in the block.
 func (block *Block) Serialize(w io.Writer) error {
@@ -218,7 +246,7 @@ func (block *Block) Encode(w io.Writer, pver uint32) error {
 		return err
 	}
 	for _, pb := range block.Parents {
-		err = s.WriteElements(w,pb)
+		err = s.WriteElements(w, pb)
 		if err != nil {
 			return err
 		}
@@ -267,13 +295,13 @@ func (b *Block) Decode(r io.Reader, pver uint32) error {
 		return fmt.Errorf("MsgBlock.BtcDecode %s", str)
 	}
 	b.Parents = make([]*hash.Hash, 0, pbCount)
-	phash:=hash.Hash{}
+	phash := hash.Hash{}
 	for i := uint64(0); i < pbCount; i++ {
-		err=s.ReadElements(r, &phash)
+		err = s.ReadElements(r, &phash)
 		if err != nil {
 			return err
 		}
-		ph:=phash
+		ph := phash
 		b.Parents = append(b.Parents, &ph)
 	}
 	//
@@ -312,21 +340,21 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	//
 	pbCount, err := s.ReadVarInt(r, 0)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	if pbCount > MaxParentsPerBlock {
 		str := fmt.Sprintf("too many parents to fit into a block "+
 			"[count %d, max %d]", pbCount, MaxParentsPerBlock)
-		return nil,fmt.Errorf("MsgBlock.BtcDecode %s", str)
+		return nil, fmt.Errorf("MsgBlock.BtcDecode %s", str)
 	}
 	b.Parents = make([]*hash.Hash, 0, pbCount)
-	phash:=hash.Hash{}
+	phash := hash.Hash{}
 	for i := uint64(0); i < pbCount; i++ {
-		err=s.ReadElements(r, &phash)
+		err = s.ReadElements(r, &phash)
 		if err != nil {
-			return nil,err
+			return nil, err
 		}
-		ph:=phash
+		ph := phash
 		b.Parents = append(b.Parents, &ph)
 	}
 
@@ -367,31 +395,33 @@ func (b *Block) AddTransaction(tx *Transaction) error {
 	return nil
 
 }
+
 // AddTransaction adds a transaction to the message.
 func (b *Block) AddParent(h *hash.Hash) error {
 	b.Parents = append(b.Parents, h)
 	return nil
 
 }
+
 // SerializedBlock provides easier and more efficient manipulation of raw blocks.
 // It also memorizes hashes for the block and its transactions on their first
 // access so subsequent accesses don't have to  repeat the relatively expensive
 // hashing operations.
 type SerializedBlock struct {
-	block                 *Block          // Underlying Block
-	hash                  hash.Hash       // Cached block hash
-	serializedBytes       []byte          // Serialized bytes for the block
-	transactions          []*Tx           // Transactions
-	txnsGenerated         bool            // ALL wrapped transactions generated
-	order                 uint64          //order is in the position of whole block chain.
+	block           *Block    // Underlying Block
+	hash            hash.Hash // Cached block hash
+	serializedBytes []byte    // Serialized bytes for the block
+	transactions    []*Tx     // Transactions
+	txnsGenerated   bool      // ALL wrapped transactions generated
+	order           uint64    //order is in the position of whole block chain.
 }
 
 // NewBlock returns a new instance of the serialized block given an underlying Block.
 // the block hash has been calculated and cached
 func NewBlock(block *Block) *SerializedBlock {
 	return &SerializedBlock{
-		hash:   block.BlockHash(),
-		block: 	block,
+		hash:  block.BlockHash(),
+		block: block,
 	}
 }
 
@@ -400,7 +430,7 @@ func NewBlock(block *Block) *SerializedBlock {
 func NewBlockFromBlockAndBytes(block *Block, serializedBytes []byte) *SerializedBlock {
 	return &SerializedBlock{
 		hash:            block.BlockHash(),
-		block:        block,
+		block:           block,
 		serializedBytes: serializedBytes,
 	}
 }
@@ -412,7 +442,7 @@ func NewBlockDeepCopyCoinbase(msgBlock *Block) *SerializedBlock {
 	// Copy the msgBlock and the pointers to all the transactions.
 	msgBlockCopy := new(Block)
 
-	msgBlockCopy.Parents =msgBlock.Parents
+	msgBlockCopy.Parents = msgBlock.Parents
 
 	lenTxs := len(msgBlock.Transactions)
 	mtxsCopy := make([]*Transaction, lenTxs)
@@ -469,7 +499,7 @@ func NewBlockFromReader(r io.Reader) (*SerializedBlock, error) {
 		return nil, err
 	}
 	sb := NewBlock(&block)
-	return sb,nil
+	return sb, nil
 }
 
 // Bytes returns the serialized bytes for the Block.  This is equivalent to
@@ -521,7 +551,7 @@ func (sb *SerializedBlock) Order() uint64 {
 	return sb.order
 }
 func (sb *SerializedBlock) SetOrder(order uint64) {
-	sb.order=order
+	sb.order = order
 }
 
 // Transactions returns a slice of wrapped transactions for all
@@ -555,15 +585,14 @@ func (sb *SerializedBlock) Transactions() []*Tx {
 	return sb.transactions
 }
 
-
 // Contract block header
 type CBlockHeader struct {
 
 	//Contract block number
-	CBlockNum      *big.Int
+	CBlockNum *big.Int
 
 	//Parent block hash
-    CBlockParent   hash.Hash
+	CBlockParent hash.Hash
 
 	// The merkle root of contract storage
 	ContractRoot hash.Hash
@@ -574,17 +603,17 @@ type CBlockHeader struct {
 
 	// bloom filter for log entry of ctx receipt
 	// can we remove/combine with cbf ?
-	LogBloom    hash.Hash
+	LogBloom hash.Hash
 
 	// Difficulty target for ctx
-	CDifficulty  uint32
+	CDifficulty uint32
 	// Nonce for ctx
-	CNonce       uint64
+	CNonce uint64
 
 	//Do we need to add Coinbase address here?
 }
 
 type CBlock struct {
 	Header        CBlockHeader
-	CTransactions []*ContractTransaction    //ctx
+	CTransactions []*ContractTransaction //ctx
 }

@@ -8,17 +8,18 @@ package blockchain
 
 import (
 	"fmt"
-	"time"
 	"math"
 	"math/big"
-	"qitmeer/core/types"
 	"qitmeer/common/hash"
-	"qitmeer/params"
 	"qitmeer/core/merkle"
+	"qitmeer/core/types"
 	"qitmeer/engine/txscript"
+	"qitmeer/params"
+	"time"
+	//"crypto/sha256"
+	"golang.org/x/crypto/blake2b"
+	"qitmeer/core/pow/cuckoo"
 )
-
-
 
 // IsCoinBaseTx determines whether or not a transaction is a coinbase.  A
 // coinbase is a special transaction created by miners that has no inputs.
@@ -46,7 +47,7 @@ func IsCoinBaseTx(tx *types.Transaction) bool {
 // transaction as opposed to a higher level util transaction.
 func IsExpiredTx(tx *types.Transaction, blockHeight uint64) bool {
 	expiry := tx.Expire
-	return expiry != types.NoExpiryValue && blockHeight >= uint64(expiry)  //TODO, remove type conversion
+	return expiry != types.NoExpiryValue && blockHeight >= uint64(expiry) //TODO, remove type conversion
 }
 
 // IsExpired returns where or not the passed transaction is expired according to
@@ -101,8 +102,6 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 		return ruleError(ErrBadParentsMerkleRoot, str)
 	}
 
-
-
 	// A block must have at least one regular transaction.
 	numTx := len(msgBlock.Transactions)
 	if numTx == 0 {
@@ -129,12 +128,12 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 	}
 	// TODO header-size check, why
 	/*
-	if header.Size != uint32(serializedSize) {
-		str := fmt.Sprintf("serialized block is not size indicated in "+
-			"header - got %d, expected %d", header.Size,
-			serializedSize)
-		return ruleError(ErrWrongBlockSize, str)
-	}
+		if header.Size != uint32(serializedSize) {
+			str := fmt.Sprintf("serialized block is not size indicated in "+
+				"header - got %d, expected %d", header.Size,
+				serializedSize)
+			return ruleError(ErrWrongBlockSize, str)
+		}
 	*/
 
 	// The first transaction in a block's regular tree must be a coinbase.
@@ -301,6 +300,16 @@ func checkProofOfWork(header *types.BlockHeader, powLimit *big.Int, flags Behavi
 	if flags&BFNoPoWCheck != BFNoPoWCheck {
 		// The block hash must be less than the claimed target.
 		h := header.BlockHash()
+
+		//cuckoo,begin
+		powHeader := cuckoo.MakePowHeaderBytes(header)
+		powHeaderHash := computeBlockHeaderHash(powHeader)
+		if err := cuckoo.Verify(powHeaderHash[:16], header.CircleNonces); err != nil {
+			str := fmt.Sprintf("Bad cuckoo nonces: %s", err.Error())
+			return ruleError(ErrBadCuckooNonces, str)
+		}
+		//end
+
 		hashNum := HashToBig(&h)
 		if hashNum.Cmp(target) > 0 {
 			str := fmt.Sprintf("block hash of %064x is higher than"+
@@ -511,9 +520,9 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, prevNode *b
 		}
 		//TODO, revisit block size in header
 		/*
-		serializedSize := int64(block.Block().Header.Size)
+			serializedSize := int64(block.Block().Header.Size)
 		*/
-		blockBytes,_ :=block.Bytes()
+		blockBytes, _ := block.Bytes()
 		serializedSize := int64(len(blockBytes))
 		if serializedSize > maxBlockSize {
 			str := fmt.Sprintf("serialized block is too big - "+
@@ -602,7 +611,6 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 		}
 	}
 
-
 	return nil
 }
 
@@ -641,7 +649,6 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// Check that the coinbase pays the tax, if applicable.
 	// TODO tax pay
 
-
 	// Don't run scripts if this node is before the latest known good
 	// checkpoint since the validity is verified via the checkpoints (all
 	// transactions are included in the merkle root hash and any changes
@@ -670,7 +677,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// scripts.
 	// Do this for all TxTrees.
 
-	err := utxoView.fetchInputUtxos(b.db, block,b)
+	err := utxoView.fetchInputUtxos(b.db, block, b)
 	if err != nil {
 		return err
 	}
@@ -679,19 +686,19 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// transaction tree once the stake vote for the agenda is active.
 
 	// Use the past median time of the *previous* block in order
-		// to determine if the transactions in the current block are
-		// final.
+	// to determine if the transactions in the current block are
+	// final.
 	var prevMedianTime time.Time = node.GetBackParent().CalcPastMedianTime()
 
-		// Skip the coinbase since it does not have any inputs and thus
-		// lock times do not apply.
+	// Skip the coinbase since it does not have any inputs and thus
+	// lock times do not apply.
 	for _, tx := range block.Transactions()[1:] {
 		sequenceLock, err := b.calcSequenceLock(node, tx,
 			utxoView, true)
 		if err != nil {
 			return err
 		}
-		if !SequenceLockActive(sequenceLock, int64(node.order),  //TODO, remove type conversion
+		if !SequenceLockActive(sequenceLock, int64(node.order), //TODO, remove type conversion
 			prevMedianTime) {
 
 			str := fmt.Sprintf("block contains " +
@@ -701,10 +708,9 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		}
 	}
 
-
 	if runScripts {
 		err = checkBlockScripts(block, utxoView, false, scriptFlags,
-			b.sigCache,b)
+			b.sigCache, b)
 		if err != nil {
 			log.Trace("checkBlockScripts failed; error returned "+
 				"on txtreestake of cur block: %v", err)
@@ -721,24 +727,24 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		return err
 	}
 
-	err = utxoView.fetchInputUtxos(b.db, block,b)
+	err = utxoView.fetchInputUtxos(b.db, block, b)
 	if err != nil {
 		return err
 	}
 
 	//TODO, refactor/remove staketreefee
-	stakeTreeFees:=int64(0)
+	stakeTreeFees := int64(0)
 
 	err = b.checkTransactionsAndConnect(b.subsidyCache, stakeTreeFees, node,
 		block.Transactions(), utxoView, stxos, true)
 	if err != nil {
-		log.Trace("checkTransactionsAndConnect failed","err", err)
+		log.Trace("checkTransactionsAndConnect failed", "err", err)
 		return err
 	}
 
 	if runScripts {
 		err = checkBlockScripts(block, utxoView, true,
-			scriptFlags, b.sigCache,b)
+			scriptFlags, b.sigCache, b)
 		if err != nil {
 			log.Trace("checkBlockScripts failed; error returned "+
 				"on txtreeregular of cur block: %v", err)
@@ -761,13 +767,13 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// First block has special rules concerning the ledger.
 	// TODO, block one ICO
 	/*
-	if node.height == 1 {
-		err := BlockOneCoinbasePaysTokens(block.Transactions()[0],
-			b.params)
-		if err != nil {
-			return err
+		if node.height == 1 {
+			err := BlockOneCoinbasePaysTokens(block.Transactions()[0],
+				b.params)
+			if err != nil {
+				return err
+			}
 		}
-	}
 	*/
 
 	// Update the best hash for view to include this block since all of its
@@ -820,10 +826,10 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		cumulativeSigOps, err = checkNumSigOps(tx, utxoView, idx,
 			txTree, cumulativeSigOps)
 		if err != nil {
-			log.Trace("checkNumSigOps failed","err", err)
+			log.Trace("checkNumSigOps failed", "err", err)
 			//return err
 
-			b.AddBadTx(tx.Hash(),&node.hash)
+			b.AddBadTx(tx.Hash(), &node.hash)
 			continue
 		}
 
@@ -833,9 +839,9 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			int64(node.order), utxoView, false, /* check fraud proofs */
 			b.params) //TODO, remove type conversion
 		if err != nil {
-			log.Trace("CheckTransactionInputs failed","err", err)
+			log.Trace("CheckTransactionInputs failed", "err", err)
 			//return err
-			b.AddBadTx(tx.Hash(),&node.hash)
+			b.AddBadTx(tx.Hash(), &node.hash)
 			continue
 		}
 
@@ -848,7 +854,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			//	"overflows accumulator")
 			log.Trace("total fees for block overflows accumulator")
 
-			b.AddBadTx(tx.Hash(),&node.hash)
+			b.AddBadTx(tx.Hash(), &node.hash)
 			continue
 		}
 
@@ -857,10 +863,10 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		err = utxoView.connectTransaction(tx, node.order, uint32(idx),
 			stxos)
 		if err != nil {
-			log.Trace("connectTransaction failed","err", err)
+			log.Trace("connectTransaction failed", "err", err)
 			//return err
 
-			b.AddBadTx(tx.Hash(),&node.hash)
+			b.AddBadTx(tx.Hash(), &node.hash)
 			continue
 		}
 	}
@@ -977,7 +983,7 @@ func (b *BlockChain) checkDupTxs(txSet []*types.Tx, view *UtxoViewpoint) error {
 // TxTree true == Regular, false == Stake
 func checkNumSigOps(tx *types.Tx, utxoView *UtxoViewpoint, index int, txTree bool, cumulativeSigOps int) (int, error) {
 
-	numsigOps := CountSigOps(tx, (index == 0) && txTree )
+	numsigOps := CountSigOps(tx, (index == 0) && txTree)
 
 	// Since the first (and only the first) transaction has already been
 	// verified to be a coinbase transaction, use (i == 0) && TxTree as an
@@ -986,7 +992,7 @@ func checkNumSigOps(tx *types.Tx, utxoView *UtxoViewpoint, index int, txTree boo
 	// full coinbase check again.
 	numP2SHSigOps, err := CountP2SHSigOps(tx, (index == 0) && txTree, utxoView)
 	if err != nil {
-		log.Trace("CountP2SHSigOps failed","error", err)
+		log.Trace("CountP2SHSigOps failed", "error", err)
 		return 0, err
 	}
 
@@ -1011,7 +1017,7 @@ func checkNumSigOps(tx *types.Tx, utxoView *UtxoViewpoint, index int, txTree boo
 // transactions which are of the pay-to-script-hash type.  This uses the
 // precise, signature operation counting mechanism from the script engine which
 // requires access to the input transaction scripts.
-func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool,utxoView *UtxoViewpoint) (int, error) {
+func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool, utxoView *UtxoViewpoint) (int, error) {
 	// Coinbase transactions have no interesting inputs.
 	if isCoinBaseTx {
 		return 0, nil
@@ -1193,7 +1199,7 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txHeight i
 		// allowed per transaction.  Also, we could potentially
 		// overflow the accumulator so check for overflow.
 		lastAtomIn := totalAtomIn
-		totalAtomIn += int64(originTxAtom)  //TODO, remove type conversion
+		totalAtomIn += int64(originTxAtom) //TODO, remove type conversion
 		if totalAtomIn < lastAtomIn ||
 			totalAtomIn > types.MaxAmount {
 			str := fmt.Sprintf("total value of all transaction "+
@@ -1209,7 +1215,7 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txHeight i
 	// conditions would have already been caught by checkTransactionSanity.
 	var totalAtomOut int64
 	for _, txOut := range tx.Transaction().TxOut {
-		totalAtomOut += int64(txOut.Amount)  //TODO, remove type conversion
+		totalAtomOut += int64(txOut.Amount) //TODO, remove type conversion
 	}
 
 	// Ensure the transaction does not spend more than its inputs.
@@ -1251,174 +1257,195 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	}
 	view := NewUtxoViewpoint()
 	view.SetBestHash(b.index.GetMaxOrderFromList(block.Block().Parents))
-	tipsNode:=[]*blockNode{}
+	tipsNode := []*blockNode{}
 
-	for _,v:=range block.Block().Parents{
-		bn:=b.index.LookupNode(v)
-		if bn!=nil {
-			tipsNode=append(tipsNode,bn)
+	for _, v := range block.Block().Parents {
+		bn := b.index.LookupNode(v)
+		if bn != nil {
+			tipsNode = append(tipsNode, bn)
 		}
 	}
-	if len(tipsNode)==0 {
+	if len(tipsNode) == 0 {
 		return ruleError(ErrPrevBlockNotBest, "tipsNode")
 	}
 	header := &block.Block().Header
 	newNode := newBlockNode(header, tipsNode)
-	newNode.order=block.Order()
-	err=b.checkConnectBlock(newNode, block, view, nil)
-	if err!=nil{
+	newNode.order = block.Order()
+	err = b.checkConnectBlock(newNode, block, view, nil)
+	if err != nil {
 		return err
 	}
-	badTxArr:=b.GetBadTxFromBlock(block.Hash())
-	if len(badTxArr)>0 {
-		str :=fmt.Sprintf("some bad transactions:")
-		for _,v:=range badTxArr{
-			str+="\n"
-			str+=v.String()
+	badTxArr := b.GetBadTxFromBlock(block.Hash())
+	if len(badTxArr) > 0 {
+		str := fmt.Sprintf("some bad transactions:")
+		for _, v := range badTxArr {
+			str += "\n"
+			str += v.String()
 		}
 		return ruleError(ErrMissingTxOut, str)
 	}
 	return nil
 
 	/*
-	// The block must pass all of the validation rules which depend on the
-	// position of the block within the block chain.
+		// The block must pass all of the validation rules which depend on the
+		// position of the block within the block chain.
 
-	err = b.checkBlockContext(block, prevNode, flags)
-	if err != nil {
-		return err
-	}
-
-	newNode := newBlockNode(&block.Block().Header, prevNode)
-
-	// Use the ticket database as is when extending the main (best) chain.
-	if prevNode.hash == tip.hash {
-		// Grab the parent block since it is required throughout the block
-		// connection process.
-		parent, err := b.fetchMainChainBlockByHash(&prevNode.hash)
+		err = b.checkBlockContext(block, prevNode, flags)
 		if err != nil {
-			return ruleError(ErrMissingParent, err.Error())
+			return err
 		}
+
+		newNode := newBlockNode(&block.Block().Header, prevNode)
+
+		// Use the ticket database as is when extending the main (best) chain.
+		if prevNode.hash == tip.hash {
+			// Grab the parent block since it is required throughout the block
+			// connection process.
+			parent, err := b.fetchMainChainBlockByHash(&prevNode.hash)
+			if err != nil {
+				return ruleError(ErrMissingParent, err.Error())
+			}
+
+			view := NewUtxoViewpoint()
+			view.SetBestHash(&tip.hash)
+			return b.checkConnectBlock(newNode, block, parent, view, nil)
+		}
+
+		// The requested node is either on a side chain or is a node on the
+		// main chain before the end of it.  In either case, we need to undo
+		// the transactions and spend information for the blocks which would be
+		// disconnected during a reorganize to the point of view of the node
+		// just before the requested node.
+		detachNodes, attachNodes := b.getReorganizeNodes(prevNode)
 
 		view := NewUtxoViewpoint()
 		view.SetBestHash(&tip.hash)
-		return b.checkConnectBlock(newNode, block, parent, view, nil)
-	}
+		var nextBlockToDetach *types.SerializedBlock
+		for e := detachNodes.Front(); e != nil; e = e.Next() {
+			// Grab the block to detach based on the node.  Use the fact that the
+			// parent of the block is already required, and the next block to detach
+			// will also be the parent to optimize.
+			n := e.Value.(*blockNode)
+			block := nextBlockToDetach
+			if block == nil {
+				var err error
+				block, err = b.fetchMainChainBlockByHash(&n.hash)
+				if err != nil {
+					return err
+				}
+			}
+			if n.hash != *block.Hash() {
+				panicf("detach block node hash %v (height %v) does not match "+
+					"previous parent block hash %v", &n.hash, n.height,
+					block.Hash())
+			}
 
-	// The requested node is either on a side chain or is a node on the
-	// main chain before the end of it.  In either case, we need to undo
-	// the transactions and spend information for the blocks which would be
-	// disconnected during a reorganize to the point of view of the node
-	// just before the requested node.
-	detachNodes, attachNodes := b.getReorganizeNodes(prevNode)
+			parent, err := b.fetchMainChainBlockByHash(&n.parent.hash)
+			if err != nil {
+				return err
+			}
+			nextBlockToDetach = parent
 
-	view := NewUtxoViewpoint()
-	view.SetBestHash(&tip.hash)
-	var nextBlockToDetach *types.SerializedBlock
-	for e := detachNodes.Front(); e != nil; e = e.Next() {
-		// Grab the block to detach based on the node.  Use the fact that the
-		// parent of the block is already required, and the next block to detach
-		// will also be the parent to optimize.
-		n := e.Value.(*blockNode)
-		block := nextBlockToDetach
-		if block == nil {
-			var err error
-			block, err = b.fetchMainChainBlockByHash(&n.hash)
+			// Load all of the spent txos for the block from the spend journal.
+			var stxos []spentTxOut
+			//TODO, refactor the direct database access
+			err = b.db.View(func(dbTx database.Tx) error {
+				stxos, err = dbFetchSpendJournalEntry(dbTx, block, parent)
+				return err
+			})
+			if err != nil {
+				return err
+			}
+
+			err = b.disconnectTransactions(view, block, parent, stxos)
 			if err != nil {
 				return err
 			}
 		}
-		if n.hash != *block.Hash() {
-			panicf("detach block node hash %v (height %v) does not match "+
-				"previous parent block hash %v", &n.hash, n.height,
-				block.Hash())
+
+		// The UTXO viewpoint is now accurate to either the node where the
+		// requested node forks off the main chain (in the case where the
+		// requested node is on a side chain), or the requested node itself if
+		// the requested node is an old node on the main chain.  Entries in the
+		// attachNodes list indicate the requested node is on a side chain, so
+		// if there are no nodes to attach, we're done.
+		if attachNodes.Len() == 0 {
+			// Grab the parent block since it is required throughout the block
+			// connection process.
+			parent, err := b.fetchMainChainBlockByHash(&prevNode.hash)
+			if err != nil {
+				return ruleError(ErrMissingParent, err.Error())
+			}
+
+			return b.checkConnectBlock(newNode, block, parent, view, nil)
 		}
 
-		parent, err := b.fetchMainChainBlockByHash(&n.parent.hash)
-		if err != nil {
-			return err
-		}
-		nextBlockToDetach = parent
+		// The requested node is on a side chain, so we need to apply the
+		// transactions and spend information from each of the nodes to attach.
+		var prevAttachBlock *types.SerializedBlock
+		for e := attachNodes.Front(); e != nil; e = e.Next() {
+			// Grab the block to attach based on the node.  Use the fact that the
+			// parent of the block is either the fork point for the first node being
+			// attached or the previous one that was attached for subsequent blocks
+			// to optimize.
+			n := e.Value.(*blockNode)
+			block, err := b.fetchBlockByHash(&n.hash)
+			if err != nil {
+				return err
+			}
+			parent := prevAttachBlock
+			if parent == nil {
+				var err error
+				parent, err = b.fetchMainChainBlockByHash(&n.parent.hash)
+				if err != nil {
+					return err
+				}
+			}
+			if n.parent.hash != *parent.Hash() {
+				panicf("attach block node hash %v (height %v) parent hash %v does "+
+					"not match previous parent block hash %v", &n.hash, n.height,
+					&n.parent.hash, parent.Hash())
+			}
 
-		// Load all of the spent txos for the block from the spend journal.
-		var stxos []spentTxOut
-		//TODO, refactor the direct database access
-		err = b.db.View(func(dbTx database.Tx) error {
-			stxos, err = dbFetchSpendJournalEntry(dbTx, block, parent)
-			return err
-		})
-		if err != nil {
-			return err
+			// Store the loaded block for the next iteration.
+			prevAttachBlock = block
+
+			err = b.connectTransactions(view, block, parent, nil)
+			if err != nil {
+				return err
+			}
 		}
 
-		err = b.disconnectTransactions(view, block, parent, stxos)
-		if err != nil {
-			return err
-		}
-	}
-
-	// The UTXO viewpoint is now accurate to either the node where the
-	// requested node forks off the main chain (in the case where the
-	// requested node is on a side chain), or the requested node itself if
-	// the requested node is an old node on the main chain.  Entries in the
-	// attachNodes list indicate the requested node is on a side chain, so
-	// if there are no nodes to attach, we're done.
-	if attachNodes.Len() == 0 {
 		// Grab the parent block since it is required throughout the block
 		// connection process.
-		parent, err := b.fetchMainChainBlockByHash(&prevNode.hash)
+		parent, err := b.fetchBlockByHash(&prevNode.hash)
 		if err != nil {
 			return ruleError(ErrMissingParent, err.Error())
 		}
 
-		return b.checkConnectBlock(newNode, block, parent, view, nil)
-	}
-
-	// The requested node is on a side chain, so we need to apply the
-	// transactions and spend information from each of the nodes to attach.
-	var prevAttachBlock *types.SerializedBlock
-	for e := attachNodes.Front(); e != nil; e = e.Next() {
-		// Grab the block to attach based on the node.  Use the fact that the
-		// parent of the block is either the fork point for the first node being
-		// attached or the previous one that was attached for subsequent blocks
-		// to optimize.
-		n := e.Value.(*blockNode)
-		block, err := b.fetchBlockByHash(&n.hash)
-		if err != nil {
-			return err
-		}
-		parent := prevAttachBlock
-		if parent == nil {
-			var err error
-			parent, err = b.fetchMainChainBlockByHash(&n.parent.hash)
-			if err != nil {
-				return err
-			}
-		}
-		if n.parent.hash != *parent.Hash() {
-			panicf("attach block node hash %v (height %v) parent hash %v does "+
-				"not match previous parent block hash %v", &n.hash, n.height,
-				&n.parent.hash, parent.Hash())
-		}
-
-		// Store the loaded block for the next iteration.
-		prevAttachBlock = block
-
-		err = b.connectTransactions(view, block, parent, nil)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Grab the parent block since it is required throughout the block
-	// connection process.
-	parent, err := b.fetchBlockByHash(&prevNode.hash)
-	if err != nil {
-		return ruleError(ErrMissingParent, err.Error())
-	}
-
-	// Notice the spent txout details are not requested here and thus will not
-	// be generated.  This is done because the state will not be written to the
-	// database, so it is not needed.
-	return b.checkConnectBlock(newNode, block, parent, view, nil)*/
+		// Notice the spent txout details are not requested here and thus will not
+		// be generated.  This is done because the state will not be written to the
+		// database, so it is not needed.
+		return b.checkConnectBlock(newNode, block, parent, view, nil)*/
 }
+
+//cuckoo,begin
+func computeBlockHeaderHash(header []byte) []byte {
+	hash := computeBlake2bHash(header)
+	return reverseBytes(hash[:])
+}
+
+func computeBlake2bHash(data []byte) []byte {
+	h1 := blake2b.Sum256(data)
+	h2 := blake2b.Sum256(h1[:])
+	return h2[:]
+}
+
+func reverseBytes(bytes []byte) []byte {
+	for i, j := 0, len(bytes)-1; i < j; i, j = i+1, j-1 {
+		bytes[i], bytes[j] = bytes[j], bytes[i]
+	}
+	return bytes
+}
+
+//end
