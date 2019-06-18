@@ -1,7 +1,6 @@
 package cuckoo
 
 import (
-	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"github.com/pkg/errors"
@@ -722,22 +721,4 @@ func MakePowHeaderBytes(header *types.BlockHeader) []byte {
 	headerBytes = append(headerBytes, nonceBytes...)
 
 	return headerBytes
-}
-
-func ComputeBlockHeaderHash(header []byte) []byte {
-	hash := computeBTCHash(header)
-	return reverseBytes(hash[:])
-}
-
-func computeBTCHash(data []byte) []byte {
-	h1 := sha256.Sum256(data)
-	h2 := sha256.Sum256(h1[:])
-	return h2[:]
-}
-
-func reverseBytes(bytes []byte) []byte {
-	for i, j := 0, len(bytes)-1; i < j; i, j = i+1, j-1 {
-		bytes[i], bytes[j] = bytes[j], bytes[i]
-	}
-	return bytes
 }
