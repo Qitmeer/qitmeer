@@ -1,6 +1,4 @@
 //+build amd64 !noasm !appengine
-// .s文件是汇编语言源程序
-// 在源文件 (.go, .h, .c, .s 等) 头部添加 "+build" 注释，指示编译器检查相关环境变量。多个约束标记会合并处理。其中空格表示 OR，逗号 AND，感叹号 NOT。
 
 #include "textflag.h"
 
