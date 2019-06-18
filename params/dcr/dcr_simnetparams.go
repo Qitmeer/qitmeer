@@ -9,7 +9,7 @@ import (
 	"math"
 	"time"
 
-	"qitmeer/params/dcr/types"
+	"github.com/HalalChain/qitmeer/params/dcr/types"
 )
 
 // SimNetParams defines the network parameters for the simulation test Decred

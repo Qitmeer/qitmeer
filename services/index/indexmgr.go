@@ -7,14 +7,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"qitmeer/common/hash"
-	"qitmeer/core/dbnamespace"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/types"
-	"qitmeer/database"
-	"qitmeer/log"
-	"qitmeer/params"
-	"qitmeer/services/common/progresslog"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/dbnamespace"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer/services/common/progresslog"
 
 )
 

@@ -8,12 +8,12 @@ package dcraddr
 import (
 	"errors"
 	"golang.org/x/crypto/ripemd160"
-	"qitmeer/common/encode/base58"
-	chainec "qitmeer/crypto/ecc"
-	chaincfg "qitmeer/params/dcr"
+	"github.com/HalalChain/qitmeer/common/encode/base58"
+	chainec "github.com/HalalChain/qitmeer/crypto/ecc"
+	chaincfg "github.com/HalalChain/qitmeer/params/dcr"
 
 	"fmt"
-	"qitmeer/common/hash/dcr"
+	"github.com/HalalChain/qitmeer/common/hash/dcr"
 )
 
 var (

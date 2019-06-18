@@ -5,13 +5,13 @@ package blkmgr
 import (
 	"bytes"
 	"encoding/hex"
-	"qitmeer/common/hash"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/json"
-	"qitmeer/rpc"
-	"qitmeer/services/common/error"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/json"
+	"github.com/HalalChain/qitmeer/rpc"
+	"github.com/HalalChain/qitmeer/services/common/error"
 	"fmt"
-	"qitmeer/services/common/marshal"
+	"github.com/HalalChain/qitmeer/services/common/marshal"
 	"strconv"
 )
 
@@ -211,4 +211,16 @@ func (api *PublicBlockAPI) IsOnMainChain(h hash.Hash) (interface{}, error){
 	return strconv.FormatBool(isOn),nil
 }
 
+// Return the current height of DAG main chain
+func (api *PublicBlockAPI) GetMainChainHeight() (interface{}, error){
+	return strconv.FormatUint(uint64(api.bm.GetChain().BlockDAG().GetMainChainTip().GetHeight()),10),nil
+}
 
+// Return the weight of block
+func (api *PublicBlockAPI) GetBlockWeight(h hash.Hash) (interface{}, error){
+	block,err:=api.bm.chain.FetchBlockByHash(&h)
+	if err != nil {
+		return nil, er.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
+	}
+	return strconv.FormatInt(int64(blockchain.GetBlockWeight(block.Block())),10),nil
+}

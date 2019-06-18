@@ -6,15 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/json"
-	"qitmeer/core/message"
-	"qitmeer/core/protocol"
-	"qitmeer/core/types"
-	"qitmeer/engine/txscript"
-	"qitmeer/params"
-	"qitmeer/services/common/error"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/json"
+	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer/core/protocol"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer/services/common/error"
+	"github.com/HalalChain/qitmeer/common/hash"
 )
 
 // messageToHex serializes a message to the wire protocol encoding using the
@@ -172,6 +172,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		{Key:"hash",         Val:b.Hash().String()},
 		{Key:"confirmations",Val:confirmations},
 		{Key:"version",      Val:head.Version},
+		{Key:"weight",        Val:blockchain.GetBlockWeight(b.Block())},
 		{Key:"order",        Val:order},
 		{Key:"txRoot",       Val:head.TxRoot.String()},
 	}

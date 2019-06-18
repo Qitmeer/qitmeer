@@ -8,7 +8,7 @@ package blockchain
 import (
 	"fmt"
 
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/core/types"
 )
 
 // SequenceLock represents the minimum timestamp and minimum block height after

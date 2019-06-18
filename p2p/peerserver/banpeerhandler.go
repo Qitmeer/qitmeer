@@ -2,7 +2,7 @@ package peerserver
 
 import (
 	"fmt"
-	"qitmeer/log"
+	"github.com/HalalChain/qitmeer/log"
 )
 
 // BanPeer bans a peer that has already been connected to the server by ip.

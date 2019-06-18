@@ -2,8 +2,8 @@ package consensus
 
 import (
 	"math/big"
-	"qitmeer/core/types"
-	"qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/core/blockchain"
 )
 
 // Any ConsensusState

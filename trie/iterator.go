@@ -21,8 +21,8 @@ import (
 	"bytes"
 	"container/heap"
 	"errors"
-	"qitmeer/common/hash"
-	"qitmeer/common/encode/rlp"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/encode/rlp"
 )
 
 // Iterator is a key-value trie iterator that traverses a Trie.

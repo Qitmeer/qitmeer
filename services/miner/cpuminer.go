@@ -8,19 +8,19 @@ package miner
 
 import (
 	"sync"
-	"qitmeer/common/hash"
-	"qitmeer/config"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/config"
 	"math/rand"
 	"time"
 	"fmt"
 	"errors"
-	"qitmeer/params"
-	"qitmeer/services/blkmgr"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/types"
-	"qitmeer/engine/txscript"
-	"qitmeer/services/mining"
-	"qitmeer/core/merkle"
+	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer/services/blkmgr"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer/services/mining"
+	"github.com/HalalChain/qitmeer/core/merkle"
 )
 
 const (

@@ -10,15 +10,15 @@ import (
 	"errors"
 	"fmt"
 
-	"qitmeer/core/types"
-	"qitmeer/core/address"
-	"qitmeer/crypto/ecc"
-	"qitmeer/params"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/core/address"
+	"github.com/HalalChain/qitmeer/crypto/ecc"
+	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer/common/hash"
 	"bytes"
 	"encoding/binary"
-	"qitmeer/params/btc/types"
-	"qitmeer/common/hash/btc"
+	"github.com/HalalChain/qitmeer/params/btc/types"
+	"github.com/HalalChain/qitmeer/common/hash/btc"
 )
 
 // RawTxInSignature returns the serialized ECDSA signature for the input idx of

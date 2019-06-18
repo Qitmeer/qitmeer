@@ -2,7 +2,7 @@
 package message
 
 import (
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/core/types"
 	"io"
 )
 

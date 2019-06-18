@@ -3,21 +3,21 @@
 package main
 
 import (
-	"qitmeer/node"
+	"github.com/HalalChain/qitmeer/node"
 	"os"
 	"io"
 	"github.com/mattn/go-colorable"
 	"github.com/jrick/logrotate/rotator"
-	"qitmeer/log"
-	"qitmeer/log/term"
+	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer/log/term"
 	"path/filepath"
 	"fmt"
-	"qitmeer/database"
-	"qitmeer/engine/txscript"
-	"qitmeer/services/blkmgr"
-	"qitmeer/core/blockchain"
-	"qitmeer/services/miner"
-	"qitmeer/core/blockdag"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer/services/blkmgr"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/services/miner"
+	"github.com/HalalChain/qitmeer/core/blockdag"
 )
 
 var (

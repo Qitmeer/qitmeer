@@ -7,7 +7,7 @@
 package txscript
 
 import (
-	l "qitmeer/log"
+	l "github.com/HalalChain/qitmeer/log"
 )
 
 // log is a logger that is initialized with no output filters.  This

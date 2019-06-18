@@ -1,7 +1,7 @@
 package blockchain
 
 import (
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/core/types"
 )
 
 // UtxoEntry contains contextual information about an unspent transaction such

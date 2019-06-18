@@ -12,12 +12,12 @@ import (
 	"fmt"
 	"strings"
 	"golang.org/x/crypto/ripemd160"
-	"qitmeer/common/encode/base58"
-	"qitmeer/common/encode/bech32"
-	"qitmeer/crypto/ecc"
-	"qitmeer/common/hash/btc"
-	"qitmeer/core/types"
-	btcparams "qitmeer/params/btc"
+	"github.com/HalalChain/qitmeer/common/encode/base58"
+	"github.com/HalalChain/qitmeer/common/encode/bech32"
+	"github.com/HalalChain/qitmeer/crypto/ecc"
+	"github.com/HalalChain/qitmeer/common/hash/btc"
+	"github.com/HalalChain/qitmeer/core/types"
+	btcparams "github.com/HalalChain/qitmeer/params/btc"
 
 )
 

@@ -8,11 +8,11 @@ package index
 import (
 	"sync"
 
-	"qitmeer/database"
-	"qitmeer/params"
-	"qitmeer/core/types"
-	"qitmeer/core/blockchain"
-	"qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/engine/txscript"
 
 )
 

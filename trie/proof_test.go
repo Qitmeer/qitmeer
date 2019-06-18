@@ -20,9 +20,9 @@ package trie
 import (
 	"bytes"
 	crand "crypto/rand"
-	"qitmeer/common/hash"
-	"qitmeer/common/util"
-	"qitmeer/database/statedb"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer/database/statedb"
 	mrand "math/rand"
 	"testing"
 	"time"

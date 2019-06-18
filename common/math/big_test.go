@@ -19,7 +19,7 @@ package math
 import (
 	"bytes"
 	"encoding/hex"
-	"qitmeer/common/util"
+	"github.com/HalalChain/qitmeer/common/util"
 	"math/big"
 	"testing"
 

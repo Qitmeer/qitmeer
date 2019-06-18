@@ -3,14 +3,14 @@ package blockdag
 import (
 	"fmt"
 	"github.com/golang-collections/collections/stack"
-	"qitmeer/common/hash"
-	"qitmeer/common/util"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/util"
 	"strconv"
 	"container/list"
 )
 
 type ISpectre interface {
-	Vote(x *Block, y *Block) int
+	Vote(x IBlock, y IBlock) int
 }
 
 type SpectreBlock struct {
@@ -52,7 +52,7 @@ type Spectre struct {
 	dangling *HashSet
 
 	// the candidates to compete with each other
-	candidate1, candidate2 *Block
+	candidate1, candidate2 IBlock
 
 	// The votes of block
 	sblocks map[hash.Hash]*SpectreBlock
@@ -71,7 +71,7 @@ func (sp *Spectre) Init(bd *BlockDAG) bool {
 	return true
 }
 
-func (sp *Spectre) AddBlock(b *Block) *list.List {
+func (sp *Spectre) AddBlock(b IBlock) *list.List {
 	if sp.sblocks == nil {
 		sp.sblocks = map[hash.Hash]*SpectreBlock{}
 	}
@@ -83,7 +83,12 @@ func (sp *Spectre) AddBlock(b *Block) *list.List {
 	return result
 }
 
-func (sp *Spectre) GetTipsList() []*Block {
+// Build self block
+func (sp *Spectre) CreateBlock(b *Block) IBlock {
+	return b
+}
+
+func (sp *Spectre) GetTipsList() []IBlock {
 	return nil
 }
 
@@ -111,7 +116,7 @@ func (sp *Spectre) Votes() map[hash.Hash]bool {
 	return sp.votes
 }
 
-func (sp *Spectre) InitVote(b1 *Block, b2 *Block) (bool, error) {
+func (sp *Spectre) InitVote(b1 IBlock, b2 IBlock) (bool, error) {
 	sp.candidate1, sp.candidate2 = b1, b2
 	tiebreak := sp.candidate1.GetHash().String() < sp.candidate2.GetHash().String()
 
@@ -138,7 +143,7 @@ func (sp *Spectre) InitVote(b1 *Block, b2 *Block) (bool, error) {
 	return tiebreak, nil
 }
 
-func (sp *Spectre) Vote(b1 *Block, b2 *Block) (bool, error) {
+func (sp *Spectre) Vote(b1 IBlock, b2 IBlock) (bool, error) {
 	if v, err := sp.InitVote(b1, b2); err != nil {
 		return v, err
 	}
@@ -229,13 +234,13 @@ func (sp *Spectre) Vote(b1 *Block, b2 *Block) (bool, error) {
 }
 
 //  TODO: test if there is ancestor-descendant relationship between b1 and b2
-func (sp *Spectre) IsInPastOf(b1 *Block, b2 *Block) bool {
+func (sp *Spectre) IsInPastOf(b1 IBlock, b2 IBlock) bool {
 	return false
 }
 
 // intersection of virtual block (if not nil) with its past set and voted nodes,
 // note the DIRECTION IS REVERSED than the original graph, which means virtual block is genesis
-func (sp *Spectre) votedPast(virtualBlock *Block) *BlockDAG {
+func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 	q := util.NewIterativeQueue()
 
 	if virtualBlock == nil {
@@ -248,7 +253,7 @@ func (sp *Spectre) votedPast(virtualBlock *Block) *BlockDAG {
 
 	visited := NewHashSet()
 	// cache the intersection of past set and voted notes
-	cache := make(map[hash.Hash]*Block)
+	cache := make(map[hash.Hash]IBlock)
 	for q.Len() > 0 {
 		h := q.Dequeue().(hash.Hash)
 
@@ -484,7 +489,7 @@ func (sp *Spectre) updateTipVotes(voter *SpectreBlock, maxParent *SpectreBlock, 
 		}
 	}
 }
-func (sp *Spectre) followParents(virtualBlock *Block) (bool, bool, error) {
+func (sp *Spectre) followParents(virtualBlock IBlock) (bool, bool, error) {
 	// if all parents have voted in consistence, then just follow them
 	consistent := true
 	last := 0
@@ -537,7 +542,7 @@ func (sp *Spectre) followParents(virtualBlock *Block) (bool, bool, error) {
 
 // If virtual block is nil, it is like an imaginary recent coming node which references all the tips and the whole graph
 // is its past set,  otherwise it means that some real block is the virtual block of its own past set
-func (sp *Spectre) VoteByBlock(virtualBlock *Block) (bool, error) {
+func (sp *Spectre) VoteByBlock(virtualBlock IBlock) (bool, error) {
 	if ok, res, err := sp.followParents(virtualBlock); ok {
 		return res, err
 	}
@@ -737,7 +742,7 @@ func (sp *Spectre) voteFromPastSet(votedPast *BlockDAG, tips *HashSet) bool {
 }
 
 // add voter into voted past set
-func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) *Block {
+func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) IBlock {
 	sb := SpectreBlockData{hash:vh}
 	sb.parents=[]*hash.Hash{}
 	vhChildren:=sp.bd.GetBlock(&vh).GetChildren()
@@ -762,7 +767,7 @@ func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) *Block {
 		}
 	}
 	if votedPast.blocks == nil {
-		votedPast.blocks = map[hash.Hash]*Block{}
+		votedPast.blocks = map[hash.Hash]IBlock{}
 	}
 	votedPast.blocks[block.hash] = &block
 	if votedPast.GetBlockTotal() == 0 {
@@ -775,13 +780,13 @@ func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) *Block {
 }
 
 //5) finally, (for the case where z equals x or y ), z votes for itself to succeed any block in past (z) and to precede any block outside past (z).
-func (sp *Spectre) voteBySelf(b1 *Block, b2 *Block) {
+func (sp *Spectre) voteBySelf(b1 IBlock, b2 IBlock) {
 	sp.voteFirst(*b1.GetHash())
 	sp.voteSecond(*b2.GetHash())
 }
 
 // 1) if z ∈ G is in future (x) but not in future (y) then it will vote in favour of x (i.e., for x ≺y ).
-func (sp *Spectre) voteByUniqueFutureSet(b1 *Block, b2 *Block) {
+func (sp *Spectre) voteByUniqueFutureSet(b1 IBlock, b2 IBlock) {
 	fs1 := NewHashSet()
 	sp.bd.GetFutureSet(fs1, b1)
 
@@ -822,6 +827,11 @@ func (sp *Spectre) voteByUniqueFutureSet(b1 *Block, b2 *Block) {
 }
 
 // Currently not supported
-func (sp *Spectre) IsOnMainChain(b *Block) bool {
+func (sp *Spectre) IsOnMainChain(b IBlock) bool {
 	return false
+}
+
+// return the tip of main chain
+func (sp *Spectre) GetMainChainTip() IBlock {
+	return nil
 }

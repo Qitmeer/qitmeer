@@ -1,7 +1,7 @@
 package blkmgr
 
 import (
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/core/types"
 )
 
 // getCurrentTemplateMsg handles a request for the current mining block template.

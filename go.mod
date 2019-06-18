@@ -1,4 +1,4 @@
-module qitmeer
+module github.com/HalalChain/qitmeer
 
 go 1.12
 
@@ -23,6 +23,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
 	golang.org/x/tools v0.0.0-20190511041617-99f201b6807e
+	gonum.org/v1/gonum v0.0.0-20190608115022-c5f01565d866
 )
 
 replace (

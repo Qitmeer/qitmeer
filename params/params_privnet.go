@@ -8,8 +8,8 @@ package params
 
 import (
 	"math/big"
-	"qitmeer/common"
-	"qitmeer/core/protocol"
+	"github.com/HalalChain/qitmeer/common"
+	"github.com/HalalChain/qitmeer/core/protocol"
 	"time"
 )
 

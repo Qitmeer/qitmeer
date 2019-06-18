@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"io"
 	"unicode/utf8"
-	"qitmeer/common/hash"
-	"qitmeer/core/protocol"
-	s "qitmeer/core/serialization"
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/protocol"
+	s "github.com/HalalChain/qitmeer/core/serialization"
+	"github.com/HalalChain/qitmeer/core/types"
 	"encoding/hex"
 )
 

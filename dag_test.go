@@ -2,31 +2,31 @@ package main
 
 import (
 	"fmt"
-	"qitmeer/node"
-	"qitmeer/database"
-	"qitmeer/log"
-	"qitmeer/version"
+	"github.com/HalalChain/qitmeer/node"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer/version"
 	"testing"
 	"os"
 	"runtime"
 	"runtime/debug"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/hash"
 	"encoding/hex"
-	"qitmeer/core/types"
-	"qitmeer/engine/txscript"
-	"qitmeer/core/address"
-	"qitmeer/crypto/ecc"
-	"qitmeer/params"
-	"qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer/core/address"
+	"github.com/HalalChain/qitmeer/crypto/ecc"
+	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer/core/blockchain"
 	"time"
 	"math/rand"
-	"qitmeer/services/mining"
-	"qitmeer/config"
-	"qitmeer/services/blkmgr"
-	"qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer/services/mining"
+	"github.com/HalalChain/qitmeer/config"
+	"github.com/HalalChain/qitmeer/services/blkmgr"
+	"github.com/HalalChain/qitmeer/services/mempool"
 	"container/heap"
-	"qitmeer/core/merkle"
-	"qitmeer/core/serialization"
+	"github.com/HalalChain/qitmeer/core/merkle"
+	"github.com/HalalChain/qitmeer/core/serialization"
 	"encoding/binary"
 )
 
@@ -283,7 +283,7 @@ func buildBlock(name string,parents []*hash.Hash) *HelpBlock{
 func Run() error {
 	os.Args=[]string{}
 	os.Args=append(os.Args,"dag_test")
-	os.Args=append(os.Args,"-A=./bin")
+	os.Args=append(os.Args,"-A=./../bin")
 	os.Args=append(os.Args,"--privnet")
 	os.Args=append(os.Args,"--miningaddr=RmPuiebMrf8mZmt4UAYuhD9PkK9hq6HraBa")
 	os.Args=append(os.Args,"--rpclisten=127.0.0.1:1234")

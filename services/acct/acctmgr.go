@@ -1,8 +1,8 @@
 package acct
 
 import (
-	"qitmeer/log"
-	"qitmeer/rpc"
+	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer/rpc"
 )
 
 // account manager communicate with various backends for signing transactions.

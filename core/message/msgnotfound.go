@@ -8,7 +8,7 @@ package message
 import (
 	"fmt"
 	"io"
-	s "qitmeer/core/serialization"
+	s "github.com/HalalChain/qitmeer/core/serialization"
 )
 
 // MsgNotFound defines a notfound message which is sent in response to

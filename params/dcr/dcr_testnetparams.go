@@ -8,7 +8,7 @@ package dcr
 import (
 	"time"
 
-	"qitmeer/params/dcr/types"
+	"github.com/HalalChain/qitmeer/params/dcr/types"
 )
 
 // TestNet2Params defines the network parameters for the test currency network.

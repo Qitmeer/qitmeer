@@ -1,8 +1,8 @@
 package blockchain
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/blockdag"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockdag"
 )
 
 // BlockLocator is used to help locate a specific block.  The algorithm for
@@ -110,7 +110,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 
 	// Because of chain forking, a common forking point must be found.
 	// It's the real starting point.
-	var curBlock *blockdag.Block
+	var curBlock blockdag.IBlock
 	for i:=0;i<loLen;i++{
 		if b.bd.HasBlock(locator[i]) {
 			curBlock=b.bd.GetBlock(locator[0])

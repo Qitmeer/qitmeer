@@ -3,8 +3,8 @@ package blockdag
 import (
 	"container/list"
 	"fmt"
-	"qitmeer/common/anticone"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockdag/anticone"
+	"github.com/HalalChain/qitmeer/common/hash"
 )
 
 type KChain struct {
@@ -61,11 +61,11 @@ func (ph *Phantom_v2) Init(bd *BlockDAG) bool {
 }
 
 // Add a block
-func (ph *Phantom_v2) AddBlock(b *Block) *list.List {
+func (ph *Phantom_v2) AddBlock(b IBlock) *list.List {
 	if ph.blocks == nil {
 		ph.blocks = map[hash.Hash]*PhantomBlock{}
 	}
-	pb:=&PhantomBlock{b,0,nil,nil,nil}
+	pb:=b.(*PhantomBlock)
 	pb.SetOrder(MaxBlockOrder)
 	ph.blocks[*pb.GetHash()]=pb
 
@@ -78,8 +78,13 @@ func (ph *Phantom_v2) AddBlock(b *Block) *list.List {
 	return result
 }
 
+// Build self block
+func (ph *Phantom_v2) CreateBlock(b *Block) IBlock {
+	return &PhantomBlock{b,0,nil,nil}
+}
+
 // If the successor return nil, the underlying layer will use the default tips list.
-func (ph *Phantom_v2) GetTipsList() []*Block {
+func (ph *Phantom_v2) GetTipsList() []IBlock {
 	return nil
 }
 
@@ -90,7 +95,7 @@ func (ph *Phantom_v2) GetBlockByOrder(order uint) *hash.Hash {
 }
 
 // Query whether a given block is on the main chain.
-func (ph *Phantom_v2) IsOnMainChain(b *Block) bool {
+func (ph *Phantom_v2) IsOnMainChain(b IBlock) bool {
 	return false
 }
 
@@ -427,4 +432,9 @@ func(ph *Phantom_v2) updateAntipastColoring() {
 		ph.colorBlock(ph.kChain,ph.blocks[k],ph.blueAntipastOrder,ph.redAntipastOrder)
 	}
 	ph.uncoloredUnorderedAntipast.Clean()
+}
+
+// return the tip of main chain
+func (ph *Phantom_v2) GetMainChainTip() IBlock {
+	return nil
 }

@@ -10,9 +10,9 @@ package index
 
 import (
 	"encoding/binary"
-	"qitmeer/database"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/types"
 	"errors"
 )
 

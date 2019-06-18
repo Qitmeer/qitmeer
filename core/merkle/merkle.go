@@ -4,8 +4,8 @@ package merkle
 
 import (
 	"math"
-	"qitmeer/core/types"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/common/hash"
 )
 
 //TODO refactoing the merkle root calculation to support abstract merkle node

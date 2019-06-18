@@ -12,9 +12,9 @@ import (
 	"reflect"
 	"testing"
 	"golang.org/x/crypto/ripemd160"
-	"qitmeer/params/dcr/addr"
-	chainec "qitmeer/crypto/ecc"
-	chaincfg "qitmeer/params/dcr"
+	"github.com/HalalChain/qitmeer/params/dcr/addr"
+	chainec "github.com/HalalChain/qitmeer/crypto/ecc"
+	chaincfg "github.com/HalalChain/qitmeer/params/dcr"
 )
 
 func TestAddresses(t *testing.T) {

@@ -9,9 +9,9 @@ import (
 	"errors"
 	"math/big"
 	"time"
-	"qitmeer/core/types"
-	"qitmeer/common/hash"
-	"qitmeer/core/protocol"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/protocol"
 	"encoding/hex"
 )
 

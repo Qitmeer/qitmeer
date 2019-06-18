@@ -13,9 +13,9 @@ interface. The functions are only exported while the tests are being run.
 package dcraddr
 
 import (
-	"qitmeer/common/encode/base58"
+	"github.com/HalalChain/qitmeer/common/encode/base58"
 	"golang.org/x/crypto/ripemd160"
-	chainec "qitmeer/crypto/ecc"
+	chainec "github.com/HalalChain/qitmeer/crypto/ecc"
 )
 
 // TstAddressPubKeyHash makes an AddressPubKeyHash, setting the

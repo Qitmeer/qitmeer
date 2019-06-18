@@ -178,7 +178,22 @@ function get_blockhash(){
 function is_on_mainchain(){
   local block_hash=$1
   local data='{"jsonrpc":"2.0","method":"isOnMainChain","params":["'$block_hash'"],"id":1}'
-  echo $data
+  get_result "$data"
+}
+
+function get_block_template(){
+  local data='{"jsonrpc":"2.0","method":"getBlockTemplate","params":[],"id":1}'
+  get_result "$data"
+}
+
+function get_mainchain_height(){
+  local data='{"jsonrpc":"2.0","method":"getMainChainHeight","params":[],"id":1}'
+  get_result "$data"
+}
+
+function get_block_weight(){
+  local block_hash=$1
+  local data='{"jsonrpc":"2.0","method":"getBlockWeight","params":["'$block_hash'"],"id":1}'
   get_result "$data"
 }
 
@@ -255,6 +270,10 @@ function usage(){
 
   echo "block    :"
   echo "  block <num|hash>"
+  echo "  main  <hash>"
+  echo "  template"
+  echo "  mainHeight"
+  echo "  weight <hash>"
   echo "tx       :"
   echo "  tx <hash>"
   echo "  txSign <rawTx>"
@@ -467,13 +486,8 @@ while [ $# -gt 0 ] ;do
   shift
 done
 
-## chain
-if [ "$1" == "main" ]; then
-    shift
-    is_on_mainchain $1
-    check_error
 ## Block
-elif [ "$1" == "block" ]; then
+if [ "$1" == "block" ]; then
   shift
   if [ "$1" == "latest" ]; then
     shift
@@ -509,7 +523,22 @@ elif [ "$1" == "header" ]; then
   shift
   get_blockheader_by_hash $@
   check_error
-
+elif [ "$1" == "main" ]; then
+    shift
+    is_on_mainchain $1
+    check_error
+elif [ "$1" == "template" ]; then
+    shift
+    get_block_template | jq .
+    check_error
+elif [ "$1" == "mainHeight" ]; then
+    shift
+    get_mainchain_height
+    check_error
+elif [ "$1" == "weight" ]; then
+    shift
+    get_block_weight $1
+    check_error
 ## Tx
 elif [ "$1" == "tx" ]; then
   shift

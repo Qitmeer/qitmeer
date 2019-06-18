@@ -8,8 +8,8 @@ package params
 
 import (
 	"time"
-	"qitmeer/core/types"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer/common/hash"
 )
 
 // MainNet ------------------------------------------------------------------------

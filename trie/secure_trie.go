@@ -19,9 +19,9 @@ package trie
 
 import (
 	"fmt"
-	"qitmeer/common/hash"
-	"qitmeer/common/util"
-	"qitmeer/log"
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer/log"
 )
 
 // SecureTrie wraps a trie with key hashing. In a secure trie, all

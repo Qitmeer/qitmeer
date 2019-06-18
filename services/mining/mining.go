@@ -7,10 +7,11 @@
 package mining
 
 import (
+	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	s "github.com/HalalChain/qitmeer/core/serialization"
+	"github.com/HalalChain/qitmeer/core/types"
 	"time"
-	"qitmeer/core/types"
-	"qitmeer/common/hash"
-	s "qitmeer/core/serialization"
 )
 
 const (
@@ -69,4 +70,7 @@ type TxSource interface {
 
 }
 
-
+// Allowed timestamp for a block building on the end of the provided best chain.
+func MinimumMedianTime(chainState *blockchain.BestState) time.Time {
+	return chainState.MedianTime.Add(time.Second)
+}

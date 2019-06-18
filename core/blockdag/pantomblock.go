@@ -1,11 +1,8 @@
 package blockdag
 
-import "qitmeer/common/hash"
-
 type PhantomBlock struct {
 	*Block
 	blueNum uint
-	mainParent *hash.Hash
 
 	blueDiffAnticone *HashSet
 	redDiffAnticone *HashSet

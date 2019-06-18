@@ -6,18 +6,18 @@ package main
 
 import (
 	"fmt"
-	"qitmeer/services/mempool"
-	"qitmeer/version"
+	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer/version"
 	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"github.com/jessevdk/go-flags"
-	"qitmeer/common/util"
-	"qitmeer/log"
-	"qitmeer/config"
-	"qitmeer/core/address"
+	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer/config"
+	"github.com/HalalChain/qitmeer/core/address"
 )
 
 const (
