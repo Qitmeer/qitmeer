@@ -2,12 +2,12 @@
 package blockchain
 
 import (
+	"math/big"
 	"qitmeer/common/hash"
 	"qitmeer/common/util"
 	"qitmeer/core/blockdag"
 	"qitmeer/core/merkle"
 	"qitmeer/core/types"
-	"math/big"
 	"sort"
 	"time"
 )
@@ -56,7 +56,6 @@ func (status blockStatus) KnownInvalid() bool {
 	return status&(statusValidateFailed|statusInvalidAncestor) != 0
 }
 
-
 // blockNode represents a block within the block chain and is primarily used to
 // aid in selecting the best chain to be the main chain.  The main chain is
 // stored into the block database.
@@ -86,7 +85,7 @@ type blockNode struct {
 	blockVersion uint32
 	bits         uint32
 	timestamp    int64
-	txRoot   	 hash.Hash
+	txRoot       hash.Hash
 	stateRoot    hash.Hash
 	nonce        uint64
 	exNonce      uint64
@@ -100,7 +99,11 @@ type blockNode struct {
 	status blockStatus
 
 	//order is in the position of whole block chain.(It is actually DAG order)
-	order    uint64
+	order uint64
+
+	//cuckoo,begin
+	circleNonces [20]uint32
+	//end
 }
 
 // newBlockNode returns a new block node for the given block header and parent
@@ -123,7 +126,7 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 	*node = blockNode{
 		hash:         blockHeader.BlockHash(),
 		workSum:      CalcWork(blockHeader.Difficulty),
-		order:       0,
+		order:        0,
 		blockVersion: blockHeader.Version,
 		bits:         blockHeader.Difficulty,
 		timestamp:    blockHeader.Timestamp.Unix(),
@@ -131,13 +134,16 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 		nonce:        blockHeader.Nonce,
 		exNonce:      blockHeader.ExNonce,
 		stateRoot:    blockHeader.StateRoot,
+		//cuckoo.begin
+		circleNonces: blockHeader.CircleNonces,
+		//end
 	}
-	if len(parents)>0 {
+	if len(parents) > 0 {
 		node.parents = parents
 
 		node.workSum = node.workSum.Add(node.GetParentsWorkSum(), node.workSum)
-	}else {
-		node.order=0
+	} else {
+		node.order = 0
 	}
 }
 
@@ -147,14 +153,14 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 func (node *blockNode) Header() types.BlockHeader {
 	// No lock is needed because all accessed fields are immutable.
 	var parentRoot hash.Hash
-	if node.parents!=nil {
-		paMerkles :=merkle.BuildParentsMerkleTreeStore(node.GetParents())
-		parentRoot=*paMerkles[len(paMerkles)-1]
+	if node.parents != nil {
+		paMerkles := merkle.BuildParentsMerkleTreeStore(node.GetParents())
+		parentRoot = *paMerkles[len(paMerkles)-1]
 	}
 	return types.BlockHeader{
 		Version:    node.blockVersion,
 		ParentRoot: parentRoot,
-		TxRoot:   	node.txRoot,
+		TxRoot:     node.txRoot,
 		StateRoot:  node.stateRoot,
 		Difficulty: node.bits,
 		ExNonce:    node.exNonce,
@@ -203,43 +209,43 @@ func (node *blockNode) CalcPastMedianTime() time.Time {
 }
 
 func (node *blockNode) GetParentsWorkSum() *big.Int {
-	var workSum *big.Int=&big.Int{}
-	for _,v:=range node.parents{
+	var workSum *big.Int = &big.Int{}
+	for _, v := range node.parents {
 		workSum.Add(v.workSum, workSum)
 	}
 	return workSum
 }
 
 // Include all parents for set
-func (node *blockNode) GetParents() []*hash.Hash{
-	if node.parents==nil||len(node.parents)==0 {
+func (node *blockNode) GetParents() []*hash.Hash {
+	if node.parents == nil || len(node.parents) == 0 {
 		return nil
 	}
-	result:=[]*hash.Hash{}
-	for _,v:=range node.parents{
-		result=append(result,&v.hash)
+	result := []*hash.Hash{}
+	for _, v := range node.parents {
+		result = append(result, &v.hash)
 	}
 	return result
 }
 
 // node has children in DAG
-func (node *blockNode) AddChild(child *blockNode){
+func (node *blockNode) AddChild(child *blockNode) {
 	if node.HasChild(child) {
 		return
 	}
-	if node.children==nil {
-		node.children=[]*blockNode{}
+	if node.children == nil {
+		node.children = []*blockNode{}
 	}
-	node.children=append(node.children,child)
+	node.children = append(node.children, child)
 }
 
 // check is there any child
-func (node *blockNode) HasChild(child *blockNode) bool{
-	if node.children==nil||len(node.children)==0 {
+func (node *blockNode) HasChild(child *blockNode) bool {
+	if node.children == nil || len(node.children) == 0 {
 		return false
 	}
-	for _,v:=range node.children{
-		if v==child {
+	for _, v := range node.children {
+		if v == child {
 			return true
 		}
 	}
@@ -247,44 +253,44 @@ func (node *blockNode) HasChild(child *blockNode) bool{
 }
 
 // For the moment,In order to match the DAG
-func (node *blockNode) GetChildren() *blockdag.HashSet{
-	if node.children==nil||len(node.children)==0 {
+func (node *blockNode) GetChildren() *blockdag.HashSet {
+	if node.children == nil || len(node.children) == 0 {
 		return nil
 	}
-	result:=blockdag.NewHashSet()
-	for _,v:=range node.children{
+	result := blockdag.NewHashSet()
+	for _, v := range node.children {
 		result.Add(&v.hash)
 	}
 	return result
 }
 
 func (node *blockNode) SetOrder(h uint64) {
-	node.order=h
+	node.order = h
 }
 
 // return node height (Actually,it is order)
-func (node *blockNode) GetOrder() uint64{
+func (node *blockNode) GetOrder() uint64 {
 	return node.order
 }
 
-func (node *blockNode) Clone() *blockNode{
-	header:=node.Header()
-	newNode := newBlockNode(&header,node.parents)
+func (node *blockNode) Clone() *blockNode {
+	header := node.Header()
+	newNode := newBlockNode(&header, node.parents)
 	newNode.status = statusDataStored
-	newNode.children=node.children
-	newNode.order=node.order
+	newNode.children = node.children
+	newNode.order = node.order
 	return newNode
 }
 
 //return parent that position is rather forward
 func (node *blockNode) GetForwardParent() *blockNode {
-	if node.parents==nil || len(node.parents)<=0 {
+	if node.parents == nil || len(node.parents) <= 0 {
 		return nil
 	}
-	var result *blockNode=nil
-	for _,v:=range node.parents{
-		if result==nil || v.GetOrder()<result.GetOrder(){
-			result=v
+	var result *blockNode = nil
+	for _, v := range node.parents {
+		if result == nil || v.GetOrder() < result.GetOrder() {
+			result = v
 		}
 	}
 	return result
@@ -292,13 +298,13 @@ func (node *blockNode) GetForwardParent() *blockNode {
 
 //return parent that position is rather back
 func (node *blockNode) GetBackParent() *blockNode {
-	if node.parents==nil || len(node.parents)<=0 {
+	if node.parents == nil || len(node.parents) <= 0 {
 		return nil
 	}
-	var result *blockNode=nil
-	for _,v:=range node.parents{
-		if result==nil || v.GetOrder()>result.GetOrder(){
-			result=v
+	var result *blockNode = nil
+	for _, v := range node.parents {
+		if result == nil || v.GetOrder() > result.GetOrder() {
+			result = v
 		}
 	}
 	return result

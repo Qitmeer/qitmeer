@@ -81,6 +81,10 @@ type BlockHeader struct {
 
 	// StakeVersion used for voting.
 	StakeVersion uint32
+
+	//cuckoo,begin
+	CircleNonces [20]uint32
+	//end
 }
 
 // blockHeaderLen is a constant that represents the number of bytes for a block
@@ -152,14 +156,45 @@ func (h *BlockHeader) Bytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+//cuckoo,begin
 // NewBlockHeader returns a new BlockHeader using the provided previous block
 // hash, merkle root hash, difficulty bits, and nonce used to generate the
 // block with defaults for the remaining fields.
+//func NewBlockHeader(version int32, prevHash *chainhash.Hash,
+//	merkleRootHash *chainhash.Hash, stakeRoot *chainhash.Hash, voteBits uint16,
+//	finalState [6]byte, voters uint16, freshStake uint8, revocations uint8,
+//	poolsize uint32, bits uint32, sbits int64, height uint32, size uint32,
+//	nonce uint32, extraData [32]byte, stakeVersion uint32) *BlockHeader {
+//
+//	// Limit the timestamp to one second precision since the protocol
+//	// doesn't support better.
+//	return &BlockHeader{
+//		Version:      version,
+//		PrevBlock:    *prevHash,
+//		MerkleRoot:   *merkleRootHash,
+//		StakeRoot:    *stakeRoot,
+//		VoteBits:     voteBits,
+//		FinalState:   finalState,
+//		Voters:       voters,
+//		FreshStake:   freshStake,
+//		Revocations:  revocations,
+//		PoolSize:     poolsize,
+//		Bits:         bits,
+//		SBits:        sbits,
+//		Height:       height,
+//		Size:         size,
+//		Timestamp:    time.Unix(time.Now().Unix(), 0),
+//		Nonce:        nonce,
+//		ExtraData:    extraData,
+//		StakeVersion: stakeVersion,
+//	}
+//}
+
 func NewBlockHeader(version int32, prevHash *chainhash.Hash,
 	merkleRootHash *chainhash.Hash, stakeRoot *chainhash.Hash, voteBits uint16,
 	finalState [6]byte, voters uint16, freshStake uint8, revocations uint8,
 	poolsize uint32, bits uint32, sbits int64, height uint32, size uint32,
-	nonce uint32, extraData [32]byte, stakeVersion uint32) *BlockHeader {
+	nonce uint32, extraData [32]byte, stakeVersion uint32, circleNonces [20]uint32) *BlockHeader {
 
 	// Limit the timestamp to one second precision since the protocol
 	// doesn't support better.
@@ -182,8 +217,11 @@ func NewBlockHeader(version int32, prevHash *chainhash.Hash,
 		Nonce:        nonce,
 		ExtraData:    extraData,
 		StakeVersion: stakeVersion,
+		CircleNonces: circleNonces,
 	}
 }
+
+//end
 
 // readBlockHeader reads a Decred block header from r.  See Deserialize for
 // decoding block headers stored to disk, such as in a database, as opposed to

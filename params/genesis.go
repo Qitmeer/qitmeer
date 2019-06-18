@@ -7,9 +7,9 @@
 package params
 
 import (
-	"time"
-	"qitmeer/core/types"
 	"qitmeer/common/hash"
+	"qitmeer/core/types"
+	"time"
 )
 
 // MainNet ------------------------------------------------------------------------
@@ -22,7 +22,7 @@ var genesisCoinbaseTx = types.Transaction{
 		{
 			// Fully null.
 			PreviousOut: types.TxOutPoint{
-				Hash:  hash.Hash{},
+				Hash:     hash.Hash{},
 				OutIndex: 0xffffffff,
 			},
 			SignScript: []byte{
@@ -36,7 +36,7 @@ var genesisCoinbaseTx = types.Transaction{
 	},
 	TxOut: []*types.TxOutput{
 		{
-			Amount:   0x0000000000000000,
+			Amount: 0x0000000000000000,
 			PkScript: []byte{
 				0x76, 0xa9, 0x14, 0x64, 0xe2, 0x0e, 0xb6, 0x07, 0x55, 0x61, 0xd3, 0x0c,
 				0x23, 0xa5, 0x17, 0xc5, 0xb7, 0x3b, 0xad, 0xbc, 0x12, 0x0f, 0x05, 0x88,
@@ -68,14 +68,17 @@ var genesisMerkleRoot = genesisCoinbaseTx.TxHashFull()
 // it are validated for correctness.
 var genesisBlock = types.Block{
 	Header: types.BlockHeader{
-		ParentRoot:    hash.Hash{},
-		TxRoot:   genesisMerkleRoot,
+		ParentRoot: hash.Hash{},
+		TxRoot:     genesisMerkleRoot,
 		//UtxoCommitment: types.Hash{},
 		//CompactFilter: types.Hash{},
-		StateRoot:	 hash.Hash{},
-		Timestamp:    time.Unix(1561939200, 0), // 2019-07-01 00:00:00 GMT
-		Difficulty:         0x1b01ffff,               // Difficulty 32767
-		Nonce:        0x00000000,
+		StateRoot:  hash.Hash{},
+		Timestamp:  time.Unix(1561939200, 0), // 2019-07-01 00:00:00 GMT
+		Difficulty: 0x1b01ffff,               // Difficulty 32767
+		Nonce:      0x00000000,
+		//cuckoo,begin
+		CircleNonces: [20]uint32{},
+		//end
 	},
 	Transactions: []*types.Transaction{&genesisCoinbaseTx},
 }
@@ -83,7 +86,6 @@ var genesisBlock = types.Block{
 // genesisHash is the hash of the first block in the block chain for the main
 // network (genesis block).
 var genesisHash = genesisBlock.BlockHash()
-
 
 // TestNet ------------------------------------------------------------------------
 
@@ -98,11 +100,17 @@ var testNetGenesisMerkleRoot = testNetGenesisCoinbaseTx.TxHashFull()
 // serves as the public transaction ledger for the test network (version 3).
 var testNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
-		ParentRoot:   hash.Hash{},
-		TxRoot:       testNetGenesisMerkleRoot,
-		Timestamp:    time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
-		Difficulty:   0x1e00ffff,
-		Nonce:        0x00000000,
+		ParentRoot: hash.Hash{},
+		TxRoot:     testNetGenesisMerkleRoot,
+		Timestamp:  time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
+		Difficulty: 0x1e00ffff,
+		Nonce:      0x00000000,
+		//cuckoo,begin
+		CircleNonces: [20]uint32{
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		},
+		//end
 	},
 	Transactions: []*types.Transaction{&testNetGenesisCoinbaseTx},
 }
@@ -118,7 +126,7 @@ var privNetGenesisCoinbaseTx = types.Transaction{
 	TxIn: []*types.TxInput{
 		{
 			PreviousOut: types.TxOutPoint{
-				Hash:  hash.Hash{},
+				Hash:     hash.Hash{},
 				OutIndex: 0xffffffff,
 			},
 			Sequence: 0xffffffff,
@@ -161,28 +169,33 @@ var privNetGenesisCoinbaseTx = types.Transaction{
 // the main network.
 var privNetGenesisMerkleRoot = privNetGenesisCoinbaseTx.TxHashFull()
 
-var zeroHash =  hash.ZeroHash
+var zeroHash = hash.ZeroHash
 
 // privNetGenesisBlock defines the genesis block of the block chain which serves
 // as the public transaction ledger for the simulation test network.
 var privNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
 		ParentRoot: zeroHash,
-		TxRoot: privNetGenesisMerkleRoot,
+		TxRoot:     privNetGenesisMerkleRoot,
 		StateRoot: hash.Hash([32]byte{ // Make go vet happy.
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		}),
-		Timestamp:    time.Unix(1530833717, 0), // 2018-07-05 23:35:17 GMT
-		Difficulty:   0x207fffff, // 545259519
-		Nonce:        0,
+		Timestamp:  time.Unix(1530833717, 0), // 2018-07-05 23:35:17 GMT
+		Difficulty: 0x207fffff,               // 545259519
+		Nonce:      0,
+		//cuckoo,begin
+		CircleNonces: [20]uint32{
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		},
+		//end
 	},
-	Transactions:  []*types.Transaction{&privNetGenesisCoinbaseTx},
+	Transactions: []*types.Transaction{&privNetGenesisCoinbaseTx},
 }
 
 // privNetGenesisHash is the hash of the first block in the block chain for the
 // private test network.
 var privNetGenesisHash = privNetGenesisBlock.BlockHash()
-

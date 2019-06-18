@@ -2,11 +2,11 @@
 package serialization
 
 import (
-	"io"
-	"qitmeer/core/protocol"
 	"encoding/binary"
-	"time"
+	"io"
 	"qitmeer/common/hash"
+	"qitmeer/core/protocol"
+	"time"
 )
 
 // ReadElements reads multiple items from r.  It is equivalent to multiple
@@ -152,6 +152,22 @@ func readElement(r io.Reader, element interface{}) error {
 		*e = protocol.Network(rv)
 		return nil
 
+	// cuckoo,begin
+	case *[]uint32:
+		//var cuckoocycles [cuckoocycle.ProofSize]uint32
+		var cuckoocycles [20]uint32
+		//for i := 0; i < cuckoocycle.ProofSize; i++ {
+		for i := 0; i < 20; i++ {
+			rv, err := BinarySerializer.Uint32(r, binary.LittleEndian)
+			cuckoocycles[i] = rv
+			if err != nil {
+				return err
+			}
+		}
+		*e = cuckoocycles[:]
+		return nil
+		//end
+
 	}
 
 	// Fall back to the slower binary.Read if a fast path was not available
@@ -245,9 +261,19 @@ func writeElement(w io.Writer, element interface{}) error {
 			return err
 		}
 		return nil
+
+	//cuckoo,begin
+	case *[20]uint32:
+		for i := 0; i < 20; i++ {
+			err := BinarySerializer.PutUint32(w, littleEndian, uint32(e[i]))
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+		//end
 	}
 	// Fall back to the slower binary.Write if a fast path was not available
 	// above.
 	return binary.Write(w, littleEndian, element)
 }
-
