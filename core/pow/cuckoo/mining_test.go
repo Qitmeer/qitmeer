@@ -39,7 +39,7 @@ func TestCuckooMining(t *testing.T) {
 	for {
 		for nonce = 0; ; nonce++ {
 			fmt.Println("header nonce = ", nonce)
-			siphashKey = getBlockHeaderHash(nonce) // len(siphashKey) = 16
+			siphashKey = getBlockHeaderHash(nonce)
 			cycleNonces, isFound = c.PoW(siphashKey)
 			for i, v := range cycleNonces {
 				cycleNoncesArr[i] = v
