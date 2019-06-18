@@ -23,52 +23,33 @@ func TestCuckooMining(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	var targetDifficulty = big.NewInt(2)
-	//fmt.Printf("%064x\n", targetDifficulty.Bytes())
 	targetDifficulty.Lsh(targetDifficulty, uint(256-targetBits))
 	fmt.Printf("%064x\n", targetDifficulty.Bytes())
 	fmt.Printf("%0x\n", targetDifficulty.Bytes())
 
-	// var targetDifficulty = big.NewInt(2)
-	//0000000000000000000000000000000000000000000000000000000000000002
-	//010000000000000000000000000000000000000000000000000000000000000000
-
-	// c.cuckoo = [0 0 0...0 0 0],长度为131073 = 2^17 + 1
-	// c.ncpu =  8
-	// c.us =  []，创建了[]uint32
-	// c.vs =  []
-	// c.matrixs = [8][32][32]uint64, 创建这样一个多维数组，但没有初始化，[[[[] [] [].32.].32.].8.]
-	// c.m2tmp = [1][8][32]uint64, 创建这样一个多维切片，但没有初始化，[[[[] [] [].32.].8.].1.]
-	// c.sip =  <nil>
-	// c.m2 = [1][8][32]uint64, 创建这样一个多维切片，但没有初始化，[[[[] [] [].32.].8.].1.]
-	c := NewCuckoo() // 构建 Cuckoo 结构体
-
-	//rand.Seed(time.Now().UnixNano())
+	c := NewCuckoo()
 
 	var cycleNonces []uint32
+	var cycleNoncesArr [20]uint32
 	var isFound bool
 	var nonce int64
 	var cycleNoncesHashInt big.Int
 	var siphashKey []byte
-
-	//defer func() {
-	//	fmt.Print("defer:")
-	//	for _, v := range cycleNonces {
-	//		fmt.Printf("%#x,", v)
-	//	}
-	//	println()
-	//}()
 
 	for {
 		for nonce = 0; ; nonce++ {
 			fmt.Println("header nonce = ", nonce)
 			siphashKey = getBlockHeaderHash(nonce) // len(siphashKey) = 16
 			cycleNonces, isFound = c.PoW(siphashKey)
+			for i, v := range cycleNonces {
+				cycleNoncesArr[i] = v
+			}
 
 			if !isFound {
 				continue
 			}
 
-			if err := Verify(siphashKey, cycleNonces); err != nil {
+			if err := Verify(siphashKey, cycleNoncesArr); err != nil {
 				continue
 			}
 
@@ -111,19 +92,6 @@ func getBlockHeaderHash(nonce int64) []byte {
 	//fmt.Printf("%x\n",b)
 	return b
 }
-
-// HashToBig converts a hash.Hash into a big.Int that can be used to
-// perform math comparisons.
-//func HashToBig(hash *Hash) *big.Int {
-//	// A Hash is in little-endian, but the big package wants the bytes in
-//	// big-endian, so reverse them.
-//	buf := *hash
-//	blen := len(buf)
-//	for i := 0; i < blen/2; i++ {
-//		buf[i], buf[blen-1-i] = buf[blen-1-i], buf[i]
-//	}
-//	return new(big.Int).SetBytes(buf[:])
-//}
 
 func Uint32ToBytes(v []uint32) []byte {
 	var buf = make([]byte, 4*len(v))

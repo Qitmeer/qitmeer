@@ -17,10 +17,10 @@ const (
 	//edgebits  = 29
 	ProofSize = 20 //ProofSize is the number of nonces and cycles. the (even) length of the cycle to be found. a minimum of 12 is recommended.
 	//ProofSize = 42
-	nedge    = 1 << edgebits    //number of edges：2的“edgebits”次方
-	edgemask = nedge - 1        // used to mask siphash output
-	nnode    = 2 * nedge        // 节点数是边数的2倍
-	Easiness = nnode * 50 / 100 // 一个easiness值（a consensus value），它代表M/N，用来描述发现一个正确解的概率, Cuckoo Cycle固定M=N/2
+	nedge    = 1 << edgebits //number of edges：2的“edgebits”
+	edgemask = nedge - 1     // used to mask siphash output
+	nnode    = 2 * nedge
+	Easiness = nnode * 50 / 100
 	maxpath  = 8192
 	//maxpath   = 8 << ((edgebits + 2)/3) //2048
 
@@ -66,30 +66,29 @@ func NewCuckoo() *Cuckoo {
 	ncpu := runtime.NumCPU()
 	//fmt.Printf("maxpath = %v\n",maxpath)
 	c := &Cuckoo{
-		cuckoo:  make([]uint32, 1<<17+1),    // 创建length为2^17 + 1 的uint32数组,131073
-		ncpu:    ncpu,                       // CPU核数，华为MateBook D 是 8核
-		us:      make([]uint32, 0, maxpath), // 创建length为maxpath的uint32数组，并返回length为0，capacity为maxpath的slice
+		cuckoo:  make([]uint32, 1<<17+1),
+		ncpu:    ncpu,
+		us:      make([]uint32, 0, maxpath),
 		vs:      make([]uint32, 0, maxpath),
-		matrixs: make([][nx][nx]bucket, ncpu), //这里的nx=2^5,即32
+		matrixs: make([][nx][nx]bucket, ncpu),
 		m2tmp:   make([][nx]bucket, ncpu),
 	}
 	if c.ncpu > 32 {
 		c.ncpu = 32
 	}
-	c.m2 = make([][nx]bucket, c.ncpu) // 限定32列，但行数不定的二维数组
-	// 初始化8行32列的二维数组，二维数组的每个元素又是一个uint64类型的数组
+	c.m2 = make([][nx]bucket, c.ncpu)
 	for i := 0; i < c.ncpu; i++ {
 		for x := 0; x < nx; x++ {
 			c.m2[i][x] = make(bucket, 0, bigeps)
 		}
 	}
-	// 初始化32行32列的二维数组，二维数组的每个元素又是一个uint64类型的数组
+
 	for x := 0; x < nx; x++ {
 		for y := 0; y < nx; y++ {
 			c.matrix[x][y] = make([]uint64, 0, bigeps)
 		}
 	}
-	// 初始化8行32列32高的三维数组，三维数组的每个元素又是一个uint64类型的数组
+
 	for j := 0; j < c.ncpu; j++ {
 		for x := 0; x < nx; x++ {
 			for y := 0; y < nx; y++ {
@@ -97,65 +96,37 @@ func NewCuckoo() *Cuckoo {
 			}
 		}
 	}
-	// 初始化8行32列的二维数组，二维数组的每个元素又是一个uint64类型的数组
+
 	for j := 0; j < c.ncpu; j++ {
 		for i := range c.m2tmp[j] {
 			c.m2tmp[j][i] = make([]uint64, 0, bigeps)
 		}
 	}
-	//TODO，测试用打印 c
-	//fmt.Println("c.cuckoo = ",c.cuckoo)
-	//fmt.Println("c.ncpu = ",c.ncpu)
-	//fmt.Println("c.us = ",c.us)
-	//fmt.Println("c.vs = ",c.vs)
-	//fmt.Println("c.matrixs = ",c.matrixs)
-	//fmt.Println("c.matrixs[0] type:", reflect.TypeOf(c.matrixs[0]))
-	//fmt.Println("c.matrixs[0][0] type:", reflect.TypeOf(c.matrixs[0][0]))
-	//fmt.Println("c.matrixs[0][0][0] type:", reflect.TypeOf(c.matrixs[0][0][0]))
-	//fmt.Println("c.m2tmp = ",c.m2tmp)
-	//fmt.Println("c.sip = ",c.sip)
-	//fmt.Println("c.m2 = ",c.m2)
-
 	return c
 }
 
 //PoW does PoW with hash, which is the key for siphash.
 func (c *Cuckoo) PoW(siphashKey []byte) ([]uint32, bool) {
-	// c.m2 = [1][8][32]uint64, 创建这样一个多维切片，但没有初始化，[[[[] [] [].32.].8.].1.]
 	for i := 0; i < c.ncpu; i++ {
 		for x := 0; x < nx; x++ {
 			c.m2[i][x] = c.m2[i][x][:0]
 		}
 	}
-	//fmt.Printf("PoW() c.m2 = %v\n",c.m2)
 
-	// c.matrix = [1][32][32]uint64, 创建这样一个多维切片，但没有初始化，[[[[] [] [].32.].32.].1.]
 	for x := 0; x < nx; x++ {
 		for y := 0; y < nx; y++ {
 			c.matrix[x][y] = c.matrix[x][y][:0]
 		}
 	}
-	//fmt.Printf("PoW() c.matrix = %v\n",c.matrix)
 
-	// 一维数组初始化为0，一共有131073(2^17+1)个元素被初始化为0
 	for i := range c.cuckoo {
 		c.cuckoo[i] = 0
 	}
 
-	//
-	//fmt.Printf("siphashKey = %v\n",siphashKey)
-	// siphashKey = [196 107 38 219 80 75 209 213 243 49 219 252 101 35 20 105]
-	// s.k0 = 15407178610857372612
-	// s.k1 = 7571715794457539059
-	// s.V = [12015082867820662449 971459224712208030 13377991302290020773 2121554997101417600]
 	c.sip = siphash.Newsip(siphashKey)
 
-	//fmt.Printf("before buildU() c.matrix = %v\n",c.matrix)
 	c.buildU()
-	//fmt.Printf("after buildU() c.matrix = %v\n",c.matrix)
 	c.buildV()
-	//fmt.Printf("after buildV() c.matrix = %v\n",c.matrix)
-
 	c.trimmimng()
 
 	for _, ux := range c.matrix {
@@ -357,7 +328,6 @@ func (c *Cuckoo) solution(us []uint32, vs []uint32) ([]uint32, bool) {
 
 func (c *Cuckoo) buildU() {
 	var wg sync.WaitGroup
-	// c.matrixs = [8][32][32]uint64, 创建这样一个多维数组，但没有初始化，[[[[] [] [].32.].32.].8.]
 	for j := 0; j < c.ncpu; j++ {
 		for x := 0; x < nx; x++ { // nx = 2^5
 			for y := 0; y < nx; y++ {
@@ -365,65 +335,30 @@ func (c *Cuckoo) buildU() {
 			}
 		}
 	}
-	//fmt.Printf("buildU() c.matrixs = %v\n",c.matrixs)
 
-	steps := Easiness / c.ncpu        // easiness = 16777216 = 2^24, ncpu = 8, steps = 2097152 = 2^21
-	remain := Easiness - steps*c.ncpu // remain = 0
-	//TODO, 测试用设置 c.ncpu = 1
-	//c.ncpu = 1
+	steps := Easiness / c.ncpu
+	remain := Easiness - steps*c.ncpu
 	for j := 0; j < c.ncpu; j++ {
 		wg.Add(1)
 		go func(j int) {
-			// 0
-			//j = 0
-			//last = 2097152
-			// 1
-			//j = 0
-			//last = 16777216
-			//2
-			//j = 0
-			//last = 16777216
 			last := uint64((j + 1) * steps)
-			//fmt.Printf("***j = %v\nlast = %v\n",j,last)
 			if j == c.ncpu-1 {
 				last += uint64(remain)
 			}
 			var nodesU [8192]uint64
-			//TODO, 测试用，设置 last = 3
-			//last = 3
+
 			for nonce := uint64(steps * j); nonce < last; nonce += 8192 {
-
-				//当 nonce = 0 生成nodesU数组，     其中有8192个随机uint64类型的数字, [9763790239996453423 48331414249040509 ... 6838208080394788122]
-				//当 nonce = 8192 生成nodesU数组，  其中有8192个随机uint64类型的数字, [5011153096535506704 14743687886315419173 ... 16895110234403976984]
-				//当 nonce = 16384 生成nodesU数组， 其中有8192个随机uint64类型的数字, [14874194351879764632 13369115042760596344 ...13528283603548748680]
 				siphash.SiphashPRF8192Seq(&c.sip.V, nonce, 0, &nodesU)
-				//fmt.Printf("nonce = %v\n",nonce)
-				//fmt.Printf("nodesU = %v\n",nodesU)
-				//time.Sleep(1 * time.Second)
-
-				// 根据nodesU = [15097994728306670538 5135416001628188714 ...14861455826150337964]
-				// 生成c.matrixs =
 				for i := range nodesU {
-					//fmt.Printf("i = %v\n",i)
-					//fmt.Printf("nodesU[i] = %v\n",nodesU[i])
-					u := nodesU[i] & edgemask // 模数运算符，以及整数除法的余数，使得u的值落在[0, 2^24-1]这个区间内
-					//fmt.Printf("u = %v\n",u)
+					u := nodesU[i] & edgemask
 					if u == 0 {
 						continue
 					}
 					ux := (u >> (edgebits - xbits)) & xmask
-					//fmt.Printf("ux = %v\n",ux)
 					uy := (u >> (edgebits - 2*xbits)) & xmask
-					//fmt.Printf("uy = %v\n",uy)
 					v := ((nonce + uint64(i)) << 32) | u
-					//fmt.Printf("nonce = %v\n",nonce)
-					//fmt.Printf("v = %v\n",v)
 					c.matrixs[j][ux][uy] = append(c.matrixs[j][ux][uy], v)
-					//fmt.Printf("c.matrixs = %v\n",c.matrixs)
-					//time.Sleep(3 * time.Second)
 				}
-				//fmt.Printf("c.matrixs = %v\n",c.matrixs)
-				//time.Sleep(1 * time.Second)
 			}
 			wg.Done()
 		}(j)
@@ -440,14 +375,10 @@ func (c *Cuckoo) buildU() {
 
 func (c *Cuckoo) buildV() int {
 	var wg sync.WaitGroup
-	//TODO, 测试用设置ncpu=1
-	c.ncpu = 1
-
 	num := make([]int, c.ncpu)
 	steps := nx / c.ncpu // nx = 2^5 = 32
 	remain := nx - steps*c.ncpu
 	for j := 0; j < c.ncpu; j++ {
-		//println("buildV() j = ",j)
 		wg.Add(1)
 		go func(j int) {
 			var nodesV [8192]uint64
@@ -456,21 +387,16 @@ func (c *Cuckoo) buildV() int {
 			for i := range c.m2tmp[j] {
 				c.m2tmp[j][i] = c.m2tmp[j][i][:0]
 			}
-			last := (j + 1) * steps // last = 32
-			//println("buildV() last = ",last)
+			last := (j + 1) * steps
 			if j == c.ncpu-1 {
 				last += remain
 			}
-			//TODO,测试用，设置last = 3
-			//last = 3
+
 			for ux := j * steps; ux < last; ux++ {
 				mu := c.matrix[ux]
 				nsip := 0
-				//fmt.Println("buildV() mu = ",mu)
 				for _, m := range mu {
 					var cnt [nz]byte
-					//println("len(m) = ",len(m))
-					//println("len(cnt) = ",len(cnt))
 					for _, nu := range m {
 						cnt[nu&zmask]++
 					}
@@ -479,18 +405,13 @@ func (c *Cuckoo) buildV() int {
 							continue
 						}
 						num[j]++
-						//fmt.Printf("buildV() nu = %v\n",nu)
-						//fmt.Printf("buildV() nonces[nsip] = %v\n",nonces[nsip])
-						nonces[nsip] = nu >> 32 // nu / 2^32
-						//fmt.Printf("buildV() nonces[nsip] = %v\n",nonces[nsip])
-						us[nsip] = nu << 32 // nu * 2^32
-						//fmt.Printf("buildV() us[nsip] = %v\n",us[nsip])
-						//fmt.Printf("buildV() nsip = %v\n",nsip)
+						nonces[nsip] = nu >> 32
+						us[nsip] = nu << 32
 						if nsip++; nsip == 8192 {
 							nsip = 0
 							siphash.SiphashPRF8192(&c.sip.V, &nonces, 1, &nodesV)
 							for i, v := range nodesV {
-								v &= edgemask // 模数运算符，以及整数除法的余数，使得v的值落在[0, 2^24-1]这个区间内
+								v &= edgemask
 								vx := (v >> (edgebits - xbits)) & xmask
 								c.m2tmp[j][vx] = append(c.m2tmp[j][vx], us[i]|v)
 							}
@@ -498,13 +419,8 @@ func (c *Cuckoo) buildV() int {
 					}
 				}
 				siphash.SiphashPRF8192(&c.sip.V, &nonces, 1, &nodesV)
-				//fmt.Printf("buildV() nonces = %v\n",nonces)
-				//fmt.Printf("buildV() nodesV = %v\n",nodesV)
-				//time.Sleep(1 * time.Second)
 				for i := 0; i < nsip; i++ {
 					v := nodesV[i] & edgemask
-					//fmt.Printf("v = %v\n",v)
-					//time.Sleep(1 * time.Second)
 					vx := (v >> (edgebits - xbits)) & xmask
 					c.m2tmp[j][vx] = append(c.m2tmp[j][vx], us[i]|v)
 				}
@@ -583,8 +499,6 @@ func (c *Cuckoo) trim(isU bool) (int, int) {
 			maxb = maxbucket[j]
 		}
 	}
-	//fmt.Println("number=",number)
-	//fmt.Println("maxb=",maxb)
 	return number, maxb
 }
 
