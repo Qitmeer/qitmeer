@@ -425,7 +425,7 @@ func (bd *BlockDAG) recAnticone(b IBlock, futureSet *HashSet, anticone *HashSet,
 	node:=bd.GetBlock(h)
 	children := node.GetChildren()
 	needRecursion := false
-	if children == nil || children.Len() == 0 {
+	if children == nil || children.Size() == 0 {
 		needRecursion = true
 	} else {
 		needRecursion = isVirtualTip(b, futureSet, anticone, children)

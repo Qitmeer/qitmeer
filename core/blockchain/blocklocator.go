@@ -106,7 +106,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 
 	// First of all, we need to make sure we have the parents of block.
 	hashesSet.AddSet(endBlock.GetParents())
-	curNum:=uint32(hashesSet.Len())
+	curNum:=uint32(hashesSet.Size())
 
 	// Because of chain forking, a common forking point must be found.
 	// It's the real starting point.

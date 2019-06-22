@@ -154,7 +154,7 @@ func (ph *Phantom_v2) updateDiffColoringOfBlock(pb *PhantomBlock) {
 	}
 	pb.blueDiffAnticone=blueDiffPastOrder
 	pb.redDiffAnticone=redDiffPastOrder
-	pb.blueNum+=uint(pb.blueDiffAnticone.Len())
+	pb.blueNum+=uint(pb.blueDiffAnticone.Size())
 
 }
 
@@ -189,7 +189,7 @@ func (ph *Phantom_v2) getKChain(pb *PhantomBlock) *KChain {
 	for  {
 		result.blocks.AddPair(curPb.GetHash(),curPb)
 		result.minimalHeight=curPb.GetLayer()
-		blueCount+=curPb.blueDiffAnticone.Len()
+		blueCount+=curPb.blueDiffAnticone.Size()
 		if blueCount > ph.anticoneSize || curPb.mainParent==nil {
 			break
 		}
@@ -421,7 +421,7 @@ func(ph *Phantom_v2) sortBlocks(lastBlock *hash.Hash,laterBlocks *HashSet,toSort
 }
 
 func(ph *Phantom_v2) updateOrder(pb *PhantomBlock) {
-	pb.order=uint(pb.blueDiffAnticone.Len()+pb.redDiffAnticone.Len())
+	pb.order=uint(pb.blueDiffAnticone.Size()+pb.redDiffAnticone.Size())
 	if pb.mainParent!=nil &&ph.blocks[*pb.mainParent].GetOrder()!=MaxBlockOrder{
 		pb.order+=ph.blocks[*pb.mainParent].GetOrder()
 	}

@@ -356,7 +356,7 @@ func (p *Peer) PushGetBlocksMsg(gs *blockdag.GraphState,blocks []*hash.Hash) err
 	if isDuplicate {
 		if len(blocks)>0 {
 			log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: "+
-				"prev:%d cur:%d", p.prevGetBlocks.Len(),len(blocks)))
+				"prev:%d cur:%d", p.prevGetBlocks.Size(),len(blocks)))
 		}else {
 			log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: "+
 				"prev:%s cur:%s", p.prevGetGS.String(),gs.String()))
