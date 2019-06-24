@@ -7,11 +7,6 @@ import (
 	"github.com/HalalChain/qitmeer/common/hash"
 )
 
-type KChain struct {
-	blocks *HashSet
-	minimalHeight uint
-}
-
 type Phantom_v2 struct {
 	// The general foundation framework of DAG
 	bd *BlockDAG
@@ -188,7 +183,7 @@ func (ph *Phantom_v2) getKChain(pb *PhantomBlock) *KChain {
 	curPb:=pb
 	for  {
 		result.blocks.AddPair(curPb.GetHash(),curPb)
-		result.minimalHeight=curPb.GetLayer()
+		result.miniLayer=curPb.GetLayer()
 		blueCount+=curPb.blueDiffAnticone.Size()
 		if blueCount > ph.anticoneSize || curPb.mainParent==nil {
 			break
@@ -261,7 +256,7 @@ func (ph *Phantom_v2) colorBlock(kc *KChain,pb *PhantomBlock,blueOrder *HashSet,
 func (ph *Phantom_v2) coloringRule2(kc *KChain,pb *PhantomBlock) bool {
 	curPb:=pb
 	for  {
-		if curPb.GetLayer() < kc.minimalHeight {
+		if curPb.GetLayer() < kc.miniLayer {
 			return false
 		}
 		if kc.blocks.Has(curPb.GetHash()) {

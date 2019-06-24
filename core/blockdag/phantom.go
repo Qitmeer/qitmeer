@@ -137,7 +137,7 @@ func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
 	curPb:=pb
 	for  {
 		result.blocks.AddPair(curPb.GetHash(),curPb)
-		result.minimalHeight=curPb.GetLayer()
+		result.miniLayer=curPb.GetLayer()
 		blueCount+=curPb.blueDiffAnticone.Size()
 		if blueCount > ph.anticoneSize || curPb.mainParent==nil {
 			break
@@ -158,7 +158,7 @@ func (ph *Phantom) colorBlock(kc *KChain,pb *PhantomBlock,blueOrder *HashSet,red
 func (ph *Phantom) coloringRule(kc *KChain,pb *PhantomBlock) bool {
 	curPb:=pb
 	for  {
-		if curPb.GetLayer() < kc.minimalHeight {
+		if curPb.GetLayer() < kc.miniLayer {
 			return false
 		}
 		if kc.blocks.Has(curPb.GetHash()) {
@@ -475,4 +475,9 @@ type MainChain struct {
 	blocks *HashSet
 	tip *hash.Hash
 	genesis *hash.Hash
+}
+
+type KChain struct {
+	blocks *HashSet
+	miniLayer uint
 }
