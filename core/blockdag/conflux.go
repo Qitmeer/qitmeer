@@ -145,7 +145,7 @@ func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *HashSet) {
 	}
 	if !b.HasChildren() {
 		con.privotTip = b
-		if con.bd.GetTips().Len() > 1 {
+		if con.bd.GetTips().Size() > 1 {
 			virtualBlock := Block{hash: hash.Hash{}, weight: 1}
 			virtualBlock.parents = NewHashSet()
 			virtualBlock.parents.AddSet(con.bd.GetTips())
@@ -295,9 +295,9 @@ func (con *Conflux) getForwardBlocks(bs *HashSet) []IBlock {
 			rs.Add(&h)
 		}
 	}
-	if rs.Len() == 1 {
+	if rs.Size() == 1 {
 		result = append(result, con.bd.GetBlock(rs.List()[0]))
-	} else if rs.Len() > 1 {
+	} else if rs.Size() > 1 {
 		for {
 			if rs.IsEmpty() {
 				break

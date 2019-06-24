@@ -43,7 +43,7 @@ func TestDoubleSpent(t *testing.T) {
 	D:= buildBlock("D",[]*hash.Hash{Gen.Hash})
 	E:= buildBlock("E",[]*hash.Hash{Gen.Hash})
 
-	blockB,_:=ser.GetNoxFull().GetBlockManager().GetChain().BlockByHash(B.GetHash())
+	blockB,_:=ser.GetNoxFull().GetBlockManager().GetChain().FetchBlockByHash(B.GetHash())
 	buildDoubleSpentTx(blockB.Transactions()[0].Hash(),addr0,449.9,privateKey)
 
 	F := buildBlock("F", []*hash.Hash{B.GetHash(), C.GetHash()})
@@ -92,11 +92,11 @@ func TestDoubleSpent(t *testing.T) {
 	}
 	//
 	fmt.Println("\nSuppose there are two double spent transactions in F and H.")
-	orderF,err:=ser.GetNoxFull().GetBlockManager().GetChain().BlockHeightByHash(F.Hash)
+	orderF,err:=ser.GetNoxFull().GetBlockManager().GetChain().BlockOrderByHash(F.Hash)
 	if err!=nil {
 		t.Error(err)
 	}
-	orderD,err:=ser.GetNoxFull().GetBlockManager().GetChain().BlockHeightByHash(H.Hash)
+	orderD,err:=ser.GetNoxFull().GetBlockManager().GetChain().BlockOrderByHash(H.Hash)
 	if err!=nil {
 		t.Error(err)
 	}

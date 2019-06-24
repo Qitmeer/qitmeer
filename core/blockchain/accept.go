@@ -134,7 +134,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	}
 	blockHeader := &block.Block().Header
 	newNode := newBlockNode(blockHeader,parentsNode)
-	newNode.status = statusDataStored
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
 	err := b.checkBlockContext(block, newNode.GetBackParent(), flags)
@@ -184,10 +183,11 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		if err := dbPutBlockNode(dbTx, newNode); err != nil {
 			return err
 		}
-
+		b.index.SetStatusFlags(newNode,statusDataStored)
 		return nil
 	})
 	if err != nil {
+		b.index.SetStatusFlags(newNode,statusValidateFailed)
 		return false, err
 	}
 
@@ -196,9 +196,11 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// also handles validation of the transaction scripts.
 	success, err := b.connectDagChain(newNode, block,list)
 	if !success||err != nil {
+		b.index.SetStatusFlags(newNode,statusValidateFailed)
 		return false, err
 	}
 
+	b.index.SetStatusFlags(newNode,statusValid)
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.

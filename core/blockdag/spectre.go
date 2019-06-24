@@ -144,7 +144,7 @@ func (sp *Spectre) Vote(b1 IBlock, b2 IBlock) (bool, error) {
 		// having all children of some outer node voted or not, if this is true, that node can be dequeued
 		done := true
 		children := sp.bd.GetBlock(&any).GetChildren()
-		if children == nil || children.Len() == 0 { // tips
+		if children == nil || children.Size() == 0 { // tips
 			// game over once all tips have voted
 			if win, err := sp.VoteByBlock(nil); err == nil {
 				return win, nil
@@ -334,7 +334,7 @@ func (sp *Spectre) updateVotes(votedPast *BlockDAG, vh hash.Hash) bool {
 	}
 	parents := votedPast.GetBlock(&vh).GetParents()
 
-	if parents == nil || parents.Len() == 0 {
+	if parents == nil || parents.Size() == 0 {
 		log.Error("no parents of ", vh)
 	}
 
@@ -386,7 +386,7 @@ func (sp *Spectre) updateVotes(votedPast *BlockDAG, vh hash.Hash) bool {
 		}
 
 		// second, add votes from other voters
-		if b.GetParents().Len() > 1 {
+		if b.GetParents().Size() > 1 {
 			sp.updateTipVotes(voter, maxParent, votedPast)
 		}
 	}
@@ -550,7 +550,7 @@ func (sp *Spectre) voteFromFutureSet(votedPast *BlockDAG) *HashSet {
 		// only children with one parent (virtual block) will be selected as initial tips,
 		// because they are only dependent on their single parent and their votes can be updated directly
 		// e.g. note 22 in ByteBall2, 14, 20 can be initialized with 0 votes, but 15 cannot due to its multiple parents
-		if votedPast.GetBlock(&ch).GetParents().Len() == 1 {
+		if votedPast.GetBlock(&ch).GetParents().Size() == 1 {
 			sb :=votedPast.instance.(*Spectre).sblocks[ch]
 			sb.Votes1, sb.Votes2 = 0, 0
 
@@ -568,7 +568,7 @@ func (sp *Spectre) voteFromFutureSet(votedPast *BlockDAG) *HashSet {
 				}
 			}
 			cChildren := votedPast.GetBlock(&ch).GetChildren()
-			if cChildren != nil && cChildren.Len() > 0 {
+			if cChildren != nil && cChildren.Size() > 0 {
 				unvisited.Enqueue(ch)
 			}
 		}
@@ -598,7 +598,7 @@ func (sp *Spectre) voteFromFutureSet(votedPast *BlockDAG) *HashSet {
 						}
 					}
 					children := votedPast.GetBlock(&ch).GetChildren()
-					if children != nil && children.Len() > 0 {
+					if children != nil && children.Size() > 0 {
 						unvisited.Enqueue(ch)
 					}
 				} else {

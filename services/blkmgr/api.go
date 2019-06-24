@@ -58,15 +58,8 @@ func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool) (json.Orde
 
 	best := api.bm.chain.BestSnapshot()
 
-	// See if this block is an orphan and adjust Confirmations accordingly.
-	onMainChain, _ := api.bm.chain.MainChainHasBlock(block.Hash())
-
 	// Get next block hash unless there are none.
-	confirmations := int64(-1)
-
-	if onMainChain {
-		confirmations = 1 + int64(best.Order) - int64(order)
-	}
+	confirmations := 1 + int64(best.Order) - int64(order)
 	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
 	if cs!=nil {
@@ -110,16 +103,9 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 	}
 	best := api.bm.chain.BestSnapshot()
 
-	// See if this block is an orphan and adjust Confirmations accordingly.
-	onMainChain, _ := api.bm.chain.MainChainHasBlock(&h)
-
 	//blockHeader := &blk.Block().Header
 	order := blk.Order()
-	confirmations := int64(-1)
-
-	if onMainChain {
-		confirmations = 1 + int64(best.Order) - int64(order)
-	}
+	confirmations := 1 + int64(best.Order) - int64(order)
 	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
 	if cs!=nil {

@@ -125,10 +125,10 @@ func (ph *Phantom) calculateBlueSet(pb *PhantomBlock,diffAnticone *HashSet) {
 		cur:=ph.getBlock(&k)
 		ph.colorBlock(kc,cur,pb.blueDiffAnticone,pb.redDiffAnticone)
 	}
-	if diffAnticone.Len()!=pb.blueDiffAnticone.Len()+pb.redDiffAnticone.Len() {
+	if diffAnticone.Size()!=pb.blueDiffAnticone.Size()+pb.redDiffAnticone.Size() {
 		log.Error(fmt.Sprintf("error blue set"))
 	}
-	pb.blueNum+=uint(pb.blueDiffAnticone.Len())
+	pb.blueNum+=uint(pb.blueDiffAnticone.Size())
 }
 
 func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
@@ -137,8 +137,8 @@ func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
 	curPb:=pb
 	for  {
 		result.blocks.AddPair(curPb.GetHash(),curPb)
-		result.minimalHeight=curPb.GetLayer()
-		blueCount+=curPb.blueDiffAnticone.Len()
+		result.miniLayer=curPb.GetLayer()
+		blueCount+=curPb.blueDiffAnticone.Size()
 		if blueCount > ph.anticoneSize || curPb.mainParent==nil {
 			break
 		}
@@ -158,7 +158,7 @@ func (ph *Phantom) colorBlock(kc *KChain,pb *PhantomBlock,blueOrder *HashSet,red
 func (ph *Phantom) coloringRule(kc *KChain,pb *PhantomBlock) bool {
 	curPb:=pb
 	for  {
-		if curPb.GetLayer() < kc.minimalHeight {
+		if curPb.GetLayer() < kc.miniLayer {
 			return false
 		}
 		if kc.blocks.Has(curPb.GetHash()) {
@@ -178,7 +178,7 @@ func (ph *Phantom) updateBlockOrder(pb *PhantomBlock) {
 	}
 	order:=ph.getDiffAnticoneOrder(pb)
 	l:=len(order)
-	if l!=pb.blueDiffAnticone.Len()+pb.redDiffAnticone.Len() {
+	if l!=pb.blueDiffAnticone.Size()+pb.redDiffAnticone.Size() {
 		log.Error(fmt.Sprintf("error block order"))
 	}
 	for i:=0;i<l ;i++  {
@@ -328,7 +328,7 @@ func (ph *Phantom) updateMainOrder(path []*hash.Hash,intersection *hash.Hash) {
 	l:=len(path)
 	for i:=l-1;i>=0 ;i--  {
 		curBlock:=ph.getBlock(path[i])
-		curBlock.SetOrder(startOrder+uint(curBlock.blueDiffAnticone.Len()+curBlock.redDiffAnticone.Len()+1))
+		curBlock.SetOrder(startOrder+uint(curBlock.blueDiffAnticone.Size()+curBlock.redDiffAnticone.Size()+1))
 		ph.bd.order[curBlock.GetOrder()]=curBlock.GetHash()
 		ph.mainChain.blocks.Add(curBlock.GetHash())
 		for k,v:=range curBlock.blueDiffAnticone.GetMap() {
@@ -475,4 +475,9 @@ type MainChain struct {
 	blocks *HashSet
 	tip *hash.Hash
 	genesis *hash.Hash
+}
+
+type KChain struct {
+	blocks *HashSet
+	miniLayer uint
 }

@@ -32,9 +32,6 @@ const (
 	// that for minMemoryStakeNodes.
 	minMemoryNodes = 2880
 
-	// mainchainBlockCacheSize is the number of mainchain blocks to
-	// keep in memory, by height from the tip of the mainchain.
-	mainchainBlockCacheSize = 12
 )
 
 // BlockChain provides functions such as rejecting duplicate blocks, ensuring
@@ -84,12 +81,6 @@ type BlockChain struct {
 	orphans      map[hash.Hash]*orphanBlock
 	prevOrphans  map[hash.Hash][]*orphanBlock
 	oldestOrphan *orphanBlock
-
-	// The block cache for mainchain blocks, to facilitate faster
-	// reorganizations.
-	mainchainBlockCacheLock sync.RWMutex
-	mainchainBlockCache     map[hash.Hash]*types.SerializedBlock
-	mainchainBlockCacheSize int
 
 	// These fields are related to checkpoint handling.  They are protected
 	// by the chain lock.
@@ -267,8 +258,6 @@ func New(config *Config) (*BlockChain, error) {
 		index:                         newBlockIndex(config.DB,par),
 		orphans:                       make(map[hash.Hash]*orphanBlock),
 		prevOrphans:                   make(map[hash.Hash][]*orphanBlock),
-		mainchainBlockCache:           make(map[hash.Hash]*types.SerializedBlock),
-		mainchainBlockCacheSize:       mainchainBlockCacheSize,
 	}
 	b.bd=&blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType)
@@ -760,25 +749,10 @@ func (b *BlockChain) FetchBlockByHash(hash *hash.Hash) (*types.SerializedBlock, 
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) fetchMainChainBlockByHash(hash *hash.Hash) (*types.SerializedBlock, error) {
-	b.mainchainBlockCacheLock.RLock()
-	block, ok := b.mainchainBlockCache[*hash]
-	b.mainchainBlockCacheLock.RUnlock()
-	if ok {
-		return block, nil
+	if !b.MainChainHasBlock(hash) {
+		return nil,fmt.Errorf("No block in main chain")
 	}
-
-	// Load the block from the database.
-	err := b.db.View(func(dbTx database.Tx) error {
-		// Check if the block is in the main chain.
-		if !dbMainChainHasBlock(dbTx, hash) {
-			str := fmt.Sprintf("block %s is not in the main chain", hash)
-			return errNotInMainChain(str)
-		}
-
-		var err error
-		block, err = dbFetchBlockByHash(dbTx, hash)
-		return err
-	})
+	block,err:=b.fetchBlockByHash(hash)
 	return block, err
 }
 
@@ -890,14 +864,7 @@ func (b *BlockChain) fetchBlockByHash(hash *hash.Hash) (*types.SerializedBlock, 
 	if existsOrphans {
 		return orphan.block, nil
 	}
-
-	// Check main chain cache.
-	b.mainchainBlockCacheLock.RLock()
-	block, ok := b.mainchainBlockCache[*hash]
-	b.mainchainBlockCacheLock.RUnlock()
-	if ok {
-		return block, nil
-	}
+	var block *types.SerializedBlock
 	// Load the block from the database.
 	dbErr := b.db.View(func(dbTx database.Tx) error {
 		var err error
@@ -907,7 +874,7 @@ func (b *BlockChain) fetchBlockByHash(hash *hash.Hash) (*types.SerializedBlock, 
 	if dbErr==nil&&block!=nil {
 		return block,nil
 	}
-	return nil, fmt.Errorf("unable to find block %v in cache or db", hash)
+	return nil, fmt.Errorf("unable to find block %v db", hash)
 }
 
 // TODO, refactor to more general method for panic handling
@@ -1096,8 +1063,8 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 			return err
 		}
 
-		// Add the block hash and height to the main chain index.
-		err = dbPutMainChainIndex(dbTx, block.Hash(), node.order)
+		// Add the block hash and height to the block index.
+		err = dbPutBlockIndex(dbTx, block.Hash(), node.order)
 		if err != nil {
 			return err
 		}
@@ -1155,9 +1122,6 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	b.sendNotification(BlockConnected, blockAndParent)
 	b.chainLock.Lock()
 
-
-	b.pushMainChainBlockCache(block)
-
 	return nil
 }
 
@@ -1192,7 +1156,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 	for e := detachNodes.Back(); e != nil; e = e.Prev() {
 		n=b.index.LookupNode(e.Value.(*hash.Hash))
 
-		block, err = b.fetchMainChainBlockByHash(&n.hash)
+		block, err = b.fetchBlockByHash(&n.hash)
 
 		if err != nil {
 			return err
@@ -1304,7 +1268,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	if prevNode==nil {
 		return fmt.Errorf("no node")
 	}
-	prevBlock, err := b.fetchMainChainBlockByHash(prev)
+	prevBlock, err := b.fetchBlockByHash(prev)
 
 	if err != nil {
 		return err
@@ -1345,8 +1309,8 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 			return err
 		}
 
-		// Remove the block hash and height from the main chain index.
-		err = dbRemoveMainChainIndex(dbTx, block.Hash(), int64(node.order))  //TODO, remove type conversion
+		// Remove the block hash and order from the block index.
+		err = dbRemoveBlockIndex(dbTx, block.Hash(), int64(node.order))  //TODO, remove type conversion
 		if err != nil {
 			return err
 		}
@@ -1406,33 +1370,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	b.sendNotification(BlockDisconnected, blockAndParent)
 	b.chainLock.Lock()
 
-	b.dropMainChainBlockCache(block)
-
 	return nil
-}
-
-// pushMainChainBlockCache pushes a block onto the main chain block cache,
-// and removes any old blocks from the cache that might be present.
-// TODO, refactor the mainchainBlockCache
-func (b *BlockChain) pushMainChainBlockCache(block *types.SerializedBlock) {
-	curHeight := block.Order()
-	curHash := block.Hash()
-	b.mainchainBlockCacheLock.Lock()
-	b.mainchainBlockCache[*curHash] = block
-	for hash, bl := range b.mainchainBlockCache {
-		if bl.Order() <= curHeight-uint64(b.mainchainBlockCacheSize) {  //TODO, remove type conversion
-			delete(b.mainchainBlockCache, hash)
-		}
-	}
-	b.mainchainBlockCacheLock.Unlock()
-}
-// dropMainChainBlockCache drops a block from the main chain block cache.
-// TODO, refactor the mainchainBlockCache
-func (b *BlockChain) dropMainChainBlockCache(block *types.SerializedBlock) {
-	curHash := block.Hash()
-	b.mainchainBlockCacheLock.Lock()
-	delete(b.mainchainBlockCache, *curHash)
-	b.mainchainBlockCacheLock.Unlock()
 }
 
 func (b *BlockChain) IsBadTx(txh *hash.Hash) bool{

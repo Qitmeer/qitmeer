@@ -165,7 +165,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		err = m.db.Update(func(dbTx database.Tx) error {
 			// Load the block for the height since it is required to index
 			// it.
-			block, err = blockchain.DBFetchBlockByHeight(dbTx,
+			block, err = blockchain.DBFetchBlockByOrder(dbTx,
 				uint64(height))
 			if err != nil {
 				return err

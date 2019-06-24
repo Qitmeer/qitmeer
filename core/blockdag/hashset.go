@@ -30,7 +30,7 @@ func (s *HashSet) Remove(elem *hash.Hash) {
 }
 
 func (s *HashSet) AddSet(other *HashSet) {
-	if other == nil || other.Len() == 0 {
+	if other == nil || other.Size() == 0 {
 		return
 	}
 	for k, v := range other.GetMap() {
@@ -39,7 +39,7 @@ func (s *HashSet) AddSet(other *HashSet) {
 }
 
 func (s *HashSet) RemoveSet(other *HashSet) {
-	if other == nil || other.Len() == 0 {
+	if other == nil || other.Size() == 0 {
 		return
 	}
 	for k:= range other.GetMap() {
@@ -72,7 +72,7 @@ func (s *HashSet) Intersection(other *HashSet) *HashSet {
 	if s == other {
 		result.AddSet(s)
 	} else {
-		if other != nil && other.Len() > 0 {
+		if other != nil && other.Size() > 0 {
 			for k:= range other.GetMap() {
 				if s.Has(&k) {
 					result.Add(&k)
@@ -86,7 +86,7 @@ func (s *HashSet) Intersection(other *HashSet) *HashSet {
 
 
 func (s *HashSet) Exclude(other *HashSet) {
-	if other != nil && other.Len() > 0 {
+	if other != nil && other.Size() > 0 {
 		for k:= range other.GetMap() {
 			if s.Has(&k) {
 				s.Remove(&k)
@@ -101,19 +101,19 @@ func (s *HashSet) Has(elem *hash.Hash) bool {
 }
 
 func (s *HashSet) HasOnly(elem *hash.Hash) bool {
-	return s.Len() == 1 && s.Has(elem)
+	return s.Size() == 1 && s.Has(elem)
 }
 
 func (s *HashSet) Get(elem *hash.Hash) interface{} {
 	return s.m[*elem]
 }
 
-func (s *HashSet) Len() int {
+func (s *HashSet) Size() int {
 	return len(s.m)
 }
 
 func (s *HashSet) IsEmpty() bool {
-	return s.Len()==0
+	return s.Size()==0
 }
 
 func (s *HashSet) List() []*hash.Hash {
@@ -188,12 +188,12 @@ func GetMaxLenHashSet(bsm map[hash.Hash]*HashSet) *hash.Hash {
 	for k, v := range bsm {
 		if curNum == 0 {
 			result = k
-			curNum = v.Len()
+			curNum = v.Size()
 		} else {
-			if v.Len() > curNum {
-				curNum = v.Len()
+			if v.Size() > curNum {
+				curNum = v.Size()
 				result = k
-			} else if v.Len() == curNum {
+			} else if v.Size() == curNum {
 				if k.String() < result.String() {
 					result = k
 				}

@@ -57,7 +57,7 @@ func (gs *GraphState) Clone() *GraphState {
 }
 
 func (gs *GraphState) String() string {
-	return fmt.Sprintf("(%d,%d,%d)",gs.tips.Len(),gs.total,gs.layer)
+	return fmt.Sprintf("(%d,%d,%d)",gs.tips.Size(),gs.total,gs.layer)
 }
 
 func (gs *GraphState) IsExcellent(other *GraphState) bool {
@@ -86,7 +86,7 @@ func (gs *GraphState) Encode(w io.Writer,pver uint32) error {
 	if err != nil {
 		return err
 	}
-	err= s.WriteVarInt(w, pver, uint64(gs.tips.Len()))
+	err= s.WriteVarInt(w, pver, uint64(gs.tips.Size()))
 	if err != nil {
 		return err
 	}
