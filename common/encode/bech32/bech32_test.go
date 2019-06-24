@@ -21,7 +21,7 @@
 package bech32_test
 
 import (
-	"github.com/HalalChain/qitmeer/common/encode/bech32"
+	"github.com/HalalChain/qitmeer-lib/common/encode/bech32"
 	"reflect"
 	"strings"
 	"testing"

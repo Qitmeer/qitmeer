@@ -5,7 +5,7 @@ package hash
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
-	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer-lib/common/util"
 )
 
 // Ensure same result with the normal way

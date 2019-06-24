@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/HalalChain/qitmeer/common/encode/base58"
+	"github.com/HalalChain/qitmeer-lib/common/encode/base58"
 )
 
 var stringTests = []struct {

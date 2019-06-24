@@ -8,7 +8,7 @@ package edwards
 import (
 	"math/big"
 
-	"github.com/HalalChain/qitmeer/crypto/ecc/ed25519/internal/edwards25519"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc/ed25519/internal/edwards25519"
 )
 
 var (

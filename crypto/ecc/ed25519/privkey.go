@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/HalalChain/qitmeer/crypto/ecc/ed25519/internal"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc/ed25519/internal"
 )
 
 // These constants define the lengths of serialized private keys.
