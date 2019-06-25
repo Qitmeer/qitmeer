@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Currently suspended
-exit 0
 set -ex
 
 export GO111MODULE=on
@@ -38,8 +36,20 @@ fi
 
 mkdir -p bin/build
 
-docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name go build -o ./bin/build/noxd && \
-docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name/tools/nx -e GO111MODULE=on $baseimage_name go build -o ./../../bin/build/nx && \
+cat>./build.sh<<EOF
+#!/usr/bin/env bash
+echo "build..."
+touch ~/.git-credentials && \
+echo "https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com" >> ~/.git-credentials && \
+git config --global credential.helper store && \
+go build -o ./bin/build/noxd && \
+cd /go/src/$project_name/tools/nx && \
+go build -o ./../../bin/build/nx
+EOF
+
+chmod a+x ./build.sh
+
+docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name /bin/ash ./build.sh && \
 
 # create launch
 
