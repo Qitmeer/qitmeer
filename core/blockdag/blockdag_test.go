@@ -6,7 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	l "github.com/HalalChain/qitmeer/log"
 	"time"
 )

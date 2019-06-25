@@ -3,7 +3,7 @@ package peerserver
 import (
 	"errors"
 	"fmt"
-	"github.com/HalalChain/qitmeer/common/network"
+	"github.com/HalalChain/qitmeer-lib/common/network"
 	"github.com/HalalChain/qitmeer/config"
 	"github.com/HalalChain/qitmeer/core/types"
 	"github.com/HalalChain/qitmeer/log"

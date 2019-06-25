@@ -8,7 +8,7 @@ package blockchain
 import (
 	"fmt"
 	"github.com/HalalChain/qitmeer/engine/txscript"
-	"github.com/HalalChain/qitmeer/crypto/ecc/secp256k1"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc/secp256k1"
 	"github.com/HalalChain/qitmeer/core/types"
 )
 

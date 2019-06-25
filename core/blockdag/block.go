@@ -1,6 +1,6 @@
 package blockdag
 
-import "github.com/HalalChain/qitmeer/common/hash"
+import "github.com/HalalChain/qitmeer-lib/common/hash"
 
 //The abstract inferface is used to dag block
 type IBlockData interface {

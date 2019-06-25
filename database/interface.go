@@ -11,7 +11,7 @@ package database
 
 import (
 	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 // Cursor represents a cursor over key/value pairs and nested buckets of a

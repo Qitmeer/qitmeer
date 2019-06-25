@@ -1,6 +1,6 @@
 package blockdag
 
-import "github.com/HalalChain/qitmeer/common/hash"
+import "github.com/HalalChain/qitmeer-lib/common/hash"
 
 // HashList is used to sort hash list
 type HashList []*hash.Hash

@@ -5,7 +5,7 @@ package merkle
 import (
 	"math"
 	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 //TODO refactoing the merkle root calculation to support abstract merkle node

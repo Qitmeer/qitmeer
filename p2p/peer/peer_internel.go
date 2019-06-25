@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/blockdag"
 	"github.com/HalalChain/qitmeer/core/message"
 	"github.com/HalalChain/qitmeer/core/protocol"

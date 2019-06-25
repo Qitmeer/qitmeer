@@ -13,7 +13,7 @@ import (
 	"math"
 	"time"
 
-	chainhash "github.com/HalalChain/qitmeer/common/hash"
+	chainhash "github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 const (

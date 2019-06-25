@@ -7,9 +7,9 @@ import (
 	"crypto"
 	"encoding/hex"
 	"fmt"
-	"github.com/HalalChain/qitmeer/common/hash"
-	"github.com/HalalChain/qitmeer/common/hash/btc"
-	"github.com/HalalChain/qitmeer/common/hash/dcr"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash/btc"
+	"github.com/HalalChain/qitmeer-lib/common/hash/dcr"
 )
 
 func sha256(input string){

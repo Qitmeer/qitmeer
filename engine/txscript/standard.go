@@ -10,11 +10,11 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/params"
 	"github.com/HalalChain/qitmeer/core/address"
 	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/crypto/ecc"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
 	"github.com/HalalChain/qitmeer/params/btc/addr"
 )
 

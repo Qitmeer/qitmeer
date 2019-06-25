@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"time"
 	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/protocol"
 	"encoding/hex"
 )

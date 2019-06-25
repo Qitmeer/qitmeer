@@ -19,7 +19,7 @@ package statedb
 
 import (
 	"errors"
-	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer-lib/common/util"
 	"sync"
 )
 

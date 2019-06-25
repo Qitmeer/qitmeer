@@ -8,7 +8,7 @@ package mempool
 import (
 	"time"
 	"github.com/HalalChain/qitmeer/params"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/types"
 	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer/engine/txscript"

@@ -12,7 +12,7 @@ import (
 	"math"
 	"math/big"
 	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/params"
 	"github.com/HalalChain/qitmeer/core/merkle"
 	"github.com/HalalChain/qitmeer/engine/txscript"

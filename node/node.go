@@ -5,7 +5,7 @@ import (
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/params"
 	"github.com/HalalChain/qitmeer/rpc"
-	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer-lib/common/util"
 	"github.com/HalalChain/qitmeer/p2p/peerserver"
 	"reflect"
 	"fmt"

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"golang.org/x/crypto/ripemd160"
 	"github.com/HalalChain/qitmeer/params/dcr/addr"
-	chainec "github.com/HalalChain/qitmeer/crypto/ecc"
+	chainec "github.com/HalalChain/qitmeer-lib/crypto/ecc"
 	chaincfg "github.com/HalalChain/qitmeer/params/dcr"
 )
 

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/crypto/ecc"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
 	"github.com/HalalChain/qitmeer/params/btc/types"
 )
 

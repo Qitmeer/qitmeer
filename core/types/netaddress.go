@@ -9,7 +9,7 @@ package types
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/HalalChain/qitmeer/common/network"
+	"github.com/HalalChain/qitmeer-lib/common/network"
 	"github.com/HalalChain/qitmeer/core/protocol"
 	"io"
 	"net"

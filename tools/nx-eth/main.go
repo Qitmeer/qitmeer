@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"github.com/HalalChain/qitmeer/common/hash"
-	"github.com/HalalChain/qitmeer/common/math"
-	"github.com/HalalChain/qitmeer/crypto/ecc/secp256k1"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/math"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc/secp256k1"
 )
 
 // Lengths of hashes and addresses in bytes.

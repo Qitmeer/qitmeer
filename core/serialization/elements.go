@@ -6,7 +6,7 @@ import (
 	"github.com/HalalChain/qitmeer/core/protocol"
 	"encoding/binary"
 	"time"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 // ReadElements reads multiple items from r.  It is equivalent to multiple

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"github.com/HalalChain/qitmeer/params"
 	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/types"
 )
 

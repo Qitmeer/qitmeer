@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 // BehaviorFlags is a bitmask defining tweaks to the normal behavior when

@@ -11,8 +11,8 @@ import (
 	"io"
 	"strconv"
 
-	chainhash "github.com/HalalChain/qitmeer/common/hash"
-    btchash "github.com/HalalChain/qitmeer/common/hash/btc"
+	chainhash "github.com/HalalChain/qitmeer-lib/common/hash"
+    btchash "github.com/HalalChain/qitmeer-lib/common/hash/btc"
 	s "github.com/HalalChain/qitmeer/core/serialization"
 	"github.com/HalalChain/qitmeer/core/types"
 )
