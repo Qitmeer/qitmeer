@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"github.com/HalalChain/qitmeer/crypto/bip32"
-	"github.com/HalalChain/qitmeer/crypto/bip39"
+	"github.com/HalalChain/qitmeer-lib/crypto/bip32"
+	"github.com/HalalChain/qitmeer-lib/crypto/bip39"
 )
 
 func main() {

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"github.com/HalalChain/qitmeer/common/encode/rlp"
+	"github.com/HalalChain/qitmeer-lib/common/encode/rlp"
 )
 
 func rlpEncode(input string) {

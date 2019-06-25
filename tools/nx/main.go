@@ -6,7 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/HalalChain/qitmeer/crypto/seed"
+	"github.com/HalalChain/qitmeer-lib/crypto/seed"
 	"github.com/HalalChain/qitmeer/wallet"
 	"io/ioutil"
 	"os"

@@ -7,7 +7,7 @@ package peerserver
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/message"
 	"github.com/HalalChain/qitmeer/core/protocol"
 	"github.com/HalalChain/qitmeer/core/types"

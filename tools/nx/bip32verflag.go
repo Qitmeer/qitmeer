@@ -5,7 +5,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer/crypto/bip32"
+	"github.com/HalalChain/qitmeer-lib/crypto/bip32"
 	"github.com/HalalChain/qitmeer/params"
 )
 

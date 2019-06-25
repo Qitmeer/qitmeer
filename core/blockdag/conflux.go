@@ -2,7 +2,7 @@ package blockdag
 
 import (
 	"container/list"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 

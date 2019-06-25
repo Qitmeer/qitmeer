@@ -14,7 +14,7 @@ import (
 	"github.com/HalalChain/qitmeer/engine/txscript"
 	"github.com/HalalChain/qitmeer/params"
 	"github.com/HalalChain/qitmeer/services/common/error"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 // messageToHex serializes a message to the wire protocol encoding using the

@@ -6,9 +6,9 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/HalalChain/qitmeer/common/encode/base58"
-	"github.com/HalalChain/qitmeer/common/hash"
-	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer-lib/common/encode/base58"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/util"
 	"github.com/pkg/errors"
 	"strconv"
 )

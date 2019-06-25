@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Currently suspended
+exit 0
 set -ex
 
 export GO111MODULE=on

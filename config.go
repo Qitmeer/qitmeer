@@ -14,7 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"github.com/jessevdk/go-flags"
-	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer-lib/common/util"
 	"github.com/HalalChain/qitmeer/log"
 	"github.com/HalalChain/qitmeer/config"
 	"github.com/HalalChain/qitmeer/core/address"

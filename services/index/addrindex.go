@@ -13,13 +13,13 @@ import (
 
 	"github.com/HalalChain/qitmeer/log"
 	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/params"
 	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer/core/address"
 	"github.com/HalalChain/qitmeer/engine/txscript"
-	"github.com/HalalChain/qitmeer/crypto/ecc"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
 )
 
 const (

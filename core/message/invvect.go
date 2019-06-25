@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 	s "github.com/HalalChain/qitmeer/core/serialization"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 const (

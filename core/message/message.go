@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io"
 	"unicode/utf8"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/protocol"
 	s "github.com/HalalChain/qitmeer/core/serialization"
 	"github.com/HalalChain/qitmeer/core/types"

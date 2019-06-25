@@ -10,8 +10,8 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/HalalChain/qitmeer/common/hash"
-	"github.com/HalalChain/qitmeer/crypto/ecc"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
 )
 
 // sigCacheEntry represents an entry in the SigCache. Entries within the

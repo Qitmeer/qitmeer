@@ -6,9 +6,9 @@ package main
 import (
 	"encoding/hex"
 	"github.com/stretchr/testify/assert"
-	"github.com/HalalChain/qitmeer/common/encode/base58"
-	"github.com/HalalChain/qitmeer/crypto/bip32"
-	"github.com/HalalChain/qitmeer/crypto/bip39"
+	"github.com/HalalChain/qitmeer-lib/common/encode/base58"
+	"github.com/HalalChain/qitmeer-lib/crypto/bip32"
+	"github.com/HalalChain/qitmeer-lib/crypto/bip39"
 	"testing"
 )
 

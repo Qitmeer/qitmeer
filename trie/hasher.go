@@ -19,9 +19,9 @@ package trie
 
 import (
 	"sync"
-     "github.com/HalalChain/qitmeer/common/encode/rlp"
-     nh "github.com/HalalChain/qitmeer/common/hash"
-     "github.com/HalalChain/qitmeer/common/util"
+     "github.com/HalalChain/qitmeer-lib/common/encode/rlp"
+     nh "github.com/HalalChain/qitmeer-lib/common/hash"
+     "github.com/HalalChain/qitmeer-lib/common/util"
      hh "hash"
 )
 

@@ -4,7 +4,7 @@ package types
 
 import (
 	"math/big"
-	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer-lib/common/util"
 	//"fmt"
 	"fmt"
 	"strings"

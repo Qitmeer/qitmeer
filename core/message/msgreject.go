@@ -11,7 +11,7 @@ import (
 	"io"
 
 	s "github.com/HalalChain/qitmeer/core/serialization"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 // RejectCode represents a numeric value by which a remote peer indicates

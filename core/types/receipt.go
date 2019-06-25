@@ -2,7 +2,7 @@
 
 package types
 
-import "github.com/HalalChain/qitmeer/common/hash"
+import "github.com/HalalChain/qitmeer-lib/common/hash"
 
 // block execution event, ex. validator change event
 type Event []byte

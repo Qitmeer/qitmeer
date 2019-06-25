@@ -26,7 +26,7 @@ import (
 	"github.com/HalalChain/qitmeer/core/types"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/database/ffldb/treap"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/protocol"
 )
 

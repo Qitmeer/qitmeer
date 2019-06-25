@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"github.com/HalalChain/qitmeer/core/merkle"
 	"time"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 // Some available DAG algorithm types

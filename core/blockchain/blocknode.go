@@ -2,8 +2,8 @@
 package blockchain
 
 import (
-	"github.com/HalalChain/qitmeer/common/hash"
-	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/util"
 	"github.com/HalalChain/qitmeer/core/blockdag"
 	"github.com/HalalChain/qitmeer/core/merkle"
 	"github.com/HalalChain/qitmeer/core/types"

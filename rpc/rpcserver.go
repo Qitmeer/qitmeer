@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/deckarep/golang-set"
-	"github.com/HalalChain/qitmeer/common/util"
+	"github.com/HalalChain/qitmeer-lib/common/util"
 	"github.com/HalalChain/qitmeer/config"
 	"github.com/HalalChain/qitmeer/log"
 	"golang.org/x/net/context"

@@ -9,7 +9,7 @@ package blockchain
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/HalalChain/qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/types"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/engine/txscript"
