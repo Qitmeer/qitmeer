@@ -443,7 +443,7 @@ func (ph *Phantom) IsOnMainChain(b IBlock) bool {
 func (ph *Phantom) getOrderChangeList(pb *PhantomBlock) *list.List {
 	refNodes:=list.New()
 	if ph.bd.GetBlockTotal() == 1 {
-		refNodes.PushBack(*ph.bd.GetGenesisHash())
+		refNodes.PushBack(ph.bd.GetGenesisHash())
 		return refNodes
 	}
 	tips:=ph.bd.GetTips()
