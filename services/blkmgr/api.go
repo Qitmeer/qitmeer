@@ -42,6 +42,47 @@ func (api *PublicBlockAPI) GetBlockhash(order uint) (string, error){
 	return block.Hash().String(),nil
 }
 
+// Return the hash range of block from 'start' to 'end'(exclude self)
+// if 'end' is equal to zero, 'start' is the number that from the last block to the Gen
+// if 'start' is greater than or equal to 'end', it will just return the hash of 'start'
+func (api *PublicBlockAPI) GetBlockhashByRange(start uint,end uint) ([]string, error){
+	totalOrder:=api.bm.chain.BlockDAG().GetBlockTotal()
+	if start>=totalOrder {
+		return nil,fmt.Errorf("startOrder(%d) is greater than or equal to the totalOrder(%d)",start,totalOrder)
+	}
+	result:=[]string{}
+	if start>=end && end != 0 {
+		block,err := api.bm.chain.BlockByOrder(uint64(start))
+		if err!=nil {
+			return nil,err
+		}
+		result=append(result,block.Hash().String())
+	}else if end==0 {
+		for i:=totalOrder-1;i>=0 ;i--  {
+			if uint(len(result))>=start {
+				break
+			}
+			block,err := api.bm.chain.BlockByOrder(uint64(i))
+			if err!=nil {
+				return nil,err
+			}
+			result=append(result,block.Hash().String())
+		}
+	}else {
+		for i:=start;i<totalOrder ;i++  {
+			if i>=end {
+				break
+			}
+			block,err := api.bm.chain.BlockByOrder(uint64(i))
+			if err!=nil {
+				return nil,err
+			}
+			result=append(result,block.Hash().String())
+		}
+	}
+	return result,nil
+}
+
 //TODO, refactor BlkMgr API
 func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool) (json.OrderedResult, error){
 	block,err := api.bm.chain.BlockByOrder(order)

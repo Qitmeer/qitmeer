@@ -197,6 +197,16 @@ function get_block_weight(){
   get_result "$data"
 }
 
+function get_blockhash_range(){
+  local blk_num0=$1
+  local blk_num1=$2
+  if [ "$block_num1" == "" ]; then
+    block_num1=blk_num0
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockhashByRange","params":['$blk_num0','$blk_num1'],"id":null}'
+  get_result "$data"
+}
+
 function get_result(){
   set +x
   if [ -z "$host" ]; then
@@ -270,6 +280,7 @@ function usage(){
 
   echo "block    :"
   echo "  block <num|hash>"
+  echo "  blockrange <start,end>"
   echo "  main  <hash>"
   echo "  template"
   echo "  mainHeight"
@@ -539,6 +550,10 @@ elif [ "$1" == "weight" ]; then
     shift
     get_block_weight $1
     check_error
+elif [ "$1" == "blockrange" ]; then
+  shift
+  get_blockhash_range $@
+  check_error
 ## Tx
 elif [ "$1" == "tx" ]; then
   shift
