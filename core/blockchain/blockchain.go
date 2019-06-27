@@ -16,7 +16,6 @@ import (
 	"os"
 	"sync"
 	"time"
-	"github.com/HalalChain/qitmeer/core/blockdag"
 )
 
 const (
@@ -31,28 +30,25 @@ const (
 	// causing constant dynamic reloading.  This value should be larger than
 	// that for minMemoryStakeNodes.
 	minMemoryNodes = 2880
-
 )
 
 // BlockChain provides functions such as rejecting duplicate blocks, ensuring
 // blocks follow all rules, orphan handling, checkpoint handling, and best chain
 // selection with reorganization.
 type BlockChain struct {
-
-	params         		*params.Params
+	params *params.Params
 
 	// The following fields are set when the instance is created and can't
 	// be changed afterwards, so there is no need to protect them with a
 	// separate mutex.
 	checkpointsByHeight map[uint64]*params.Checkpoint
 
-	db                  database.DB
-	dbInfo              *databaseInfo
-	timeSource          MedianTimeSource
-	notifications       NotificationCallback
-	sigCache            *txscript.SigCache
-	indexManager        IndexManager
-
+	db            database.DB
+	dbInfo        *databaseInfo
+	timeSource    MedianTimeSource
+	notifications NotificationCallback
+	sigCache      *txscript.SigCache
+	indexManager  IndexManager
 
 	// subsidyCache is the cache that provides quick lookup of subsidy
 	// values.
@@ -73,7 +69,7 @@ type BlockChain struct {
 	//
 	// index houses the entire block index in memory.  The block index is
 	// a tree-shaped structure.
-	index     *blockIndex
+	index *blockIndex
 
 	// These fields are related to handling of orphan blocks.  They are
 	// protected by a combination of the chain lock and the orphan lock.
@@ -188,19 +184,19 @@ type orphanBlock struct {
 // However, the returned snapshot must be treated as immutable since it is
 // shared by all callers.
 type BestState struct {
-	Hash         hash.Hash      // The hash of the block.
-	Order        uint64          // The order of the block.
-	Bits         uint32         // The difficulty bits of the block.
-	BlockSize    uint64         // The size of the block.
-	NumTxns      uint64         // The number of txns in the block.
-	MedianTime   time.Time      // Median time as per CalcPastMedianTime.
-	TotalTxns    uint64         // The total number of txns in the chain.
-	TotalSubsidy int64          // The total subsidy for the chain.
+	Hash         hash.Hash            // The hash of the block.
+	Order        uint64               // The order of the block.
+	Bits         uint32               // The difficulty bits of the block.
+	BlockSize    uint64               // The size of the block.
+	NumTxns      uint64               // The number of txns in the block.
+	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
+	TotalTxns    uint64               // The total number of txns in the chain.
+	TotalSubsidy int64                // The total subsidy for the chain.
 	GraphState   *blockdag.GraphState //The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64,gs *blockdag.GraphState) *BestState {
+func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64, gs *blockdag.GraphState) *BestState {
 	return &BestState{
 		Hash:         node.hash,
 		Order:        node.order,
@@ -248,20 +244,20 @@ func New(config *Config) (*BlockChain, error) {
 	}
 
 	b := BlockChain{
-		checkpointsByHeight:           checkpointsByHeight,
-		db:                            config.DB,
-		params:                        par,
-		timeSource:                    config.TimeSource,
-		notifications:                 config.Notifications,
-		sigCache:                      config.SigCache,
-		indexManager:                  config.IndexManager,
-		index:                         newBlockIndex(config.DB,par),
-		orphans:                       make(map[hash.Hash]*orphanBlock),
-		prevOrphans:                   make(map[hash.Hash][]*orphanBlock),
+		checkpointsByHeight: checkpointsByHeight,
+		db:                  config.DB,
+		params:              par,
+		timeSource:          config.TimeSource,
+		notifications:       config.Notifications,
+		sigCache:            config.SigCache,
+		indexManager:        config.IndexManager,
+		index:               newBlockIndex(config.DB, par),
+		orphans:             make(map[hash.Hash]*orphanBlock),
+		prevOrphans:         make(map[hash.Hash][]*orphanBlock),
 	}
-	b.bd=&blockdag.BlockDAG{}
+	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType)
-	b.badTx=make(map[hash.Hash]*blockdag.HashSet)
+	b.badTx = make(map[hash.Hash]*blockdag.HashSet)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -281,21 +277,20 @@ func New(config *Config) (*BlockChain, error) {
 	b.pruner = newChainPruner(&b)
 	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Order), b.params)
 
-	log.Info(fmt.Sprintf("DAG Type:%s",b.bd.GetName()))
-	log.Info("Blockchain database version","chain", b.dbInfo.version,"compression", b.dbInfo.compVer,
-		"index",b.dbInfo.bidxVer)
+	log.Info(fmt.Sprintf("DAG Type:%s", b.bd.GetName()))
+	log.Info("Blockchain database version", "chain", b.dbInfo.version, "compression", b.dbInfo.compVer,
+		"index", b.dbInfo.bidxVer)
 
-	tips:=b.bd.GetTipsList()
-	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d blockTotal=%d",b.stateSnapshot.TotalTxns,len(tips),b.bd.GetBlockTotal()))
+	tips := b.bd.GetTipsList()
+	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d blockTotal=%d", b.stateSnapshot.TotalTxns, len(tips), b.bd.GetBlockTotal()))
 
-	for _,v:=range tips{
-		tnode:=b.index.lookupNode(v.GetHash())
-		log.Info(fmt.Sprintf("hash=%v,order=%d,work=%v",tnode.hash,tnode.order,tnode.workSum))
+	for _, v := range tips {
+		tnode := b.index.lookupNode(v.GetHash())
+		log.Info(fmt.Sprintf("hash=%v,order=%d,work=%v", tnode.hash, tnode.order, tnode.workSum))
 	}
 
 	return &b, nil
 }
-
 
 // initChainState attempts to load and initialize the chain state from the
 // database.  When the db does not yet contain any chain state, both it and the
@@ -323,15 +318,15 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		log.Info("Migrating versioning scheme...")
 		// TODO legacy support
 		/*
-		dbi, err := deserializeDatabaseInfoV2(legacyBytes)
-		if err != nil {
-			return err
-		}
+			dbi, err := deserializeDatabaseInfoV2(legacyBytes)
+			if err != nil {
+				return err
+			}
 
-		// Store the database version info using the new format.
-		if err := dbPutDatabaseInfo(dbTx, dbi); err != nil {
-			return err
-		}
+			// Store the database version info using the new format.
+			if err := dbPutDatabaseInfo(dbTx, dbi); err != nil {
+				return err
+			}
 		*/
 
 		// Remove the legacy version information.
@@ -394,10 +389,10 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 
 	//  TODO: Upgrade the database as needed.
 	/*
-	err = upgradeDB(b.db, b.chainParams, b.dbInfo, interrupt)
-	if err != nil {
-		return err
-	}
+		err = upgradeDB(b.db, b.chainParams, b.dbInfo, interrupt)
+		if err != nil {
+			return err
+		}
 	*/
 
 	// Attempt to load the chain state from the database.
@@ -411,7 +406,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if serializedData == nil {
 			return nil
 		}
-		log.Trace("Serialized chain state: ","serializedData", fmt.Sprintf("%x",serializedData))
+		log.Trace("Serialized chain state: ", "serializedData", fmt.Sprintf("%x", serializedData))
 		state, err := deserializeBestChainState(serializedData)
 		if err != nil {
 			return err
@@ -424,9 +419,8 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		// allocate the right amount as a single alloc versus a whole bunch of
 		// littles ones to reduce pressure on the GC.
 		blockIndexBucket := meta.Bucket(dbnamespace.BlockIndexBucketName)
-		blocksM:=make(map[hash.Hash]*types.SerializedBlock)
-		blockList:=list.New()
-
+		blocksM := make(map[hash.Hash]*types.SerializedBlock)
+		blockList := list.New()
 
 		cursor := blockIndexBucket.Cursor()
 		for ok := cursor.First(); ok; ok = cursor.Next() {
@@ -436,35 +430,35 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			}
 			header := &entry.header
 			blockHash := header.BlockHash()
-			_,exit:=blocksM[blockHash]
+			_, exit := blocksM[blockHash]
 			if exit {
 				continue
 			}
-			block, err := dbFetchBlockByHash(dbTx,&blockHash)
+			block, err := dbFetchBlockByHash(dbTx, &blockHash)
 			if err != nil {
 				return err
 			}
-			blocksM[blockHash]=block
+			blocksM[blockHash] = block
 			blockList.PushBack(block)
 
 		}
-		log.Trace(fmt.Sprintf("load %d blocks",blockList.Len()))
+		log.Trace(fmt.Sprintf("load %d blocks", blockList.Len()))
 
-		for blockList.Len()>0 {
+		for blockList.Len() > 0 {
 			var next *list.Element
 			for e := blockList.Front(); e != nil; e = next {
 				next = e.Next()
 				//
-				block:=e.Value.(*types.SerializedBlock)
-				parents:=[]*blockNode{}
-				needSkip:=false
-				for _,pb:=range block.Block().Parents{
-					parent:= b.index.LookupNode(pb)
-					if parent==nil {
-						needSkip=true
+				block := e.Value.(*types.SerializedBlock)
+				parents := []*blockNode{}
+				needSkip := false
+				for _, pb := range block.Block().Parents {
+					parent := b.index.LookupNode(pb)
+					if parent == nil {
+						needSkip = true
 						break
 					}
-					parents=append(parents,parent)
+					parents = append(parents, parent)
 				}
 				if needSkip {
 					continue
@@ -473,44 +467,44 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				//
 				node := &blockNode{}
 				initBlockNode(node, &block.Block().Header, parents)
-				list:=b.bd.AddBlock(node)
+				list := b.bd.AddBlock(node)
 				b.index.addNode(node)
-				if list==nil||list.Len()==0 {
+				if list == nil || list.Len() == 0 {
 					log.Error("Irreparable error!")
 					return AssertError(fmt.Sprintf("initChainState: Could "+
-						"not add %s",node.hash.String()))
+						"not add %s", node.hash.String()))
 				}
 			}
 
 		}
 
 		// update node order
-		for _,v:=range b.index.index {
-			dblock:=b.bd.GetBlock(v.GetHash())
+		for _, v := range b.index.index {
+			dblock := b.bd.GetBlock(v.GetHash())
 			v.SetOrder(uint64(dblock.GetOrder()))
 		}
-		log.Debug("Block index loaded","loadTime", time.Since(bidxStart))
+		log.Debug("Block index loaded", "loadTime", time.Since(bidxStart))
 		/*if !b.dag.GetLastBlock().hash.IsEqual(&state.hash) {
 			return AssertError(fmt.Sprintf("initChainState:Data damage"))
 		}*/
 		// Set the best chain view to the stored best state.
-		lastBlock:=b.bd.GetLastBlock()
-		tip :=b.index.lookupNode(lastBlock.GetHash())
+		lastBlock := b.bd.GetLastBlock()
+		tip := b.index.lookupNode(lastBlock.GetHash())
 		if tip == nil {
 			return AssertError(fmt.Sprintf("initChainState: cannot find "+
-				"chain last %s in block index", state.hash))
+				"chain last %s in block index", lastBlock.GetHash()))
 		}
 
 		// Load the raw block bytes for the best block.
-		block, err := dbFetchBlockByHash(dbTx,&state.hash)
+		block, err := dbFetchBlockByHash(dbTx, lastBlock.GetHash())
 		if err != nil {
 			return err
 		}
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
-		b.stateSnapshot = newBestState(tip, blockSize,numTxns,
-			tip.CalcPastMedianTime(),state.totalTxns,state.totalSubsidy,b.bd.GetGraphState())
+		b.stateSnapshot = newBestState(tip, blockSize, numTxns,
+			tip.CalcPastMedianTime(), state.totalTxns, state.totalSubsidy, b.bd.GetGraphState())
 
 		return nil
 	})
@@ -548,15 +542,15 @@ func (b *BlockChain) IsKnownOrphan(hash *hash.Hash) bool {
 
 // GetOrphansParents returns the parents for the provided hash from the
 // map of orphan blocks.
-func (b *BlockChain) GetOrphansParents() []*hash.Hash{
+func (b *BlockChain) GetOrphansParents() []*hash.Hash {
 	b.orphanLock.RLock()
 	defer b.orphanLock.RUnlock()
 	//
-	result:=blockdag.NewHashSet()
-	for _,v:=range b.orphans{
-		for _,h:=range v.block.Block().Parents{
+	result := blockdag.NewHashSet()
+	for _, v := range b.orphans {
+		for _, h := range v.block.Block().Parents {
 			exists, err := b.HaveBlock(h)
-			if err != nil||exists {
+			if err != nil || exists {
 				continue
 			}
 			result.Add(h)
@@ -568,7 +562,7 @@ func (b *BlockChain) GetOrphansParents() []*hash.Hash{
 
 // GetOrphansParents returns the parents for the provided hash from the
 // map of orphan blocks.
-func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash{
+func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash {
 	b.orphanLock.RLock()
 	defer b.orphanLock.RUnlock()
 	//
@@ -576,10 +570,10 @@ func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash{
 	if !exists {
 		return nil
 	}
-	result:=blockdag.NewHashSet()
-	for _,h:=range ob.block.Block().Parents{
+	result := blockdag.NewHashSet()
+	for _, h := range ob.block.Block().Parents {
 		exists, err := b.HaveBlock(h)
-		if err != nil||exists {
+		if err != nil || exists {
 			continue
 		}
 		result.Add(h)
@@ -613,7 +607,7 @@ func (b *BlockChain) isCurrent() bool {
 	// Not current if the latest main (best) chain height is before the
 	// latest known good checkpoint (when checkpoints are enabled).
 	checkpoint := b.latestCheckpoint()
-	lastBlock:=b.bd.GetLastBlock()
+	lastBlock := b.bd.GetLastBlock()
 	if checkpoint != nil && uint64(lastBlock.GetOrder()) < checkpoint.Height {
 		return false
 	}
@@ -624,7 +618,7 @@ func (b *BlockChain) isCurrent() bool {
 	// The chain appears to be current if none of the checks reported
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
-	lastNode:=b.index.lookupNode(lastBlock.GetHash())
+	lastNode := b.index.lookupNode(lastBlock.GetHash())
 	return lastNode.timestamp >= minus24Hours
 }
 
@@ -636,9 +630,9 @@ func (b *BlockChain) TipGeneration() ([]hash.Hash, error) {
 	b.chainLock.Lock()
 	b.index.RLock()
 	tips := b.bd.GetTipsList()
-	tiphashs:=[]hash.Hash{}
+	tiphashs := []hash.Hash{}
 	for _, block := range tips {
-		tiphashs=append(tiphashs,*block.GetHash())
+		tiphashs = append(tiphashs, *block.GetHash())
 	}
 	b.index.RUnlock()
 	b.chainLock.Unlock()
@@ -704,7 +698,6 @@ func (b *BlockChain) DumpBlockChain(dumpFile string, params *params.Params, orde
 	return nil
 }
 
-
 // BlockByHash returns the block from the main chain with the given hash.
 //
 // This function is safe for concurrent access.
@@ -750,9 +743,9 @@ func (b *BlockChain) FetchBlockByHash(hash *hash.Hash) (*types.SerializedBlock, 
 // This function is safe for concurrent access.
 func (b *BlockChain) fetchMainChainBlockByHash(hash *hash.Hash) (*types.SerializedBlock, error) {
 	if !b.MainChainHasBlock(hash) {
-		return nil,fmt.Errorf("No block in main chain")
+		return nil, fmt.Errorf("No block in main chain")
 	}
-	block,err:=b.fetchBlockByHash(hash)
+	block, err := b.fetchBlockByHash(hash)
 	return block, err
 }
 
@@ -868,11 +861,11 @@ func (b *BlockChain) fetchBlockByHash(hash *hash.Hash) (*types.SerializedBlock, 
 	// Load the block from the database.
 	dbErr := b.db.View(func(dbTx database.Tx) error {
 		var err error
-		block, err= dbFetchBlockByHash(dbTx, hash)
+		block, err = dbFetchBlockByHash(dbTx, hash)
 		return err
 	})
-	if dbErr==nil&&block!=nil {
-		return block,nil
+	if dbErr == nil && block != nil {
+		return block, nil
 	}
 	return nil, fmt.Errorf("unable to find block %v db", hash)
 }
@@ -903,24 +896,24 @@ func panicf(format string, args ...interface{}) {
 //    This is useful when using checkpoints.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlock,newOrders *list.List) (bool, error) {
-	if newOrders.Len()==0 {
-		return false,nil
+func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlock, newOrders *list.List) (bool, error) {
+	if newOrders.Len() == 0 {
+		return false, nil
 	}
 	//Fast double spent check
-	b.fastDoubleSpentCheck(node,block)
+	b.fastDoubleSpentCheck(node, block)
 
 	// We are extending the main (best) chain with a new block.  This is the
 	// most common case.
-	if newOrders.Len()==1 {
+	if newOrders.Len() == 1 {
 		// Perform several checks to verify the block can be connected
 		// to the main chain without violating any rules and without
 		// actually connecting the block.
 		view := NewUtxoViewpoint()
 		view.SetBestHash(b.bd.GetPrevious(&node.hash))
 
-		stxos:=[]spentTxOut{}
-		err := b.checkConnectBlock(node, block, view,&stxos)
+		stxos := []spentTxOut{}
+		err := b.checkConnectBlock(node, block, view, &stxos)
 		if err != nil {
 			b.RemoveBadTx(block.Hash())
 			return false, err
@@ -936,18 +929,15 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 			b.RemoveBadTx(block.Hash())
 			return false, err
 		}
-
-		validateStr := "validating"
-
 		// TODO, validating previous block
-		log.Debug("Block connected to the main chain","hash",node.hash,"order",
-			node.order, "operation",fmt.Sprintf( "%v the previous block",validateStr))
+		log.Debug("Block connected to the main chain", "hash", node.hash, "order",
+			node.order, "operation")
 
 		// The fork length is zero since the block is now the tip of the
 		// best chain.
+		b.updateBestState(node, block)
 		return true, nil
 	}
-
 
 	// We're extending (or creating) a side chain and the cumulative work
 	// for this new side chain is more than the old best chain, so this side
@@ -959,7 +949,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 
 	// Reorganize the chain.
 	log.Info(fmt.Sprintf("DAG REORGANIZE: Block %v is causing a reorganize.", node.hash))
-	oldOrder:=list.New()
+	oldOrder := list.New()
 	for e := newOrders.Front(); e != nil; e = e.Next() {
 		log.Info(e.Value.(*hash.Hash).String())
 		if e.Value.(*hash.Hash).IsEqual(&node.hash) {
@@ -967,15 +957,16 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		}
 		oldOrder.PushBack(e.Value)
 	}
-	err := b.reorganizeChain(oldOrder, newOrders,block)
-	if err!=nil {
-		return false,err
+	err := b.reorganizeChain(oldOrder, newOrders, block)
+	if err != nil {
+		return false, err
 	}
+	b.updateBestState(node, block)
 	return true, nil
 }
 
 // This function is fast check before global sequencing,it can judge who is the bad block quickly.
-func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.SerializedBlock) {
+func (b *BlockChain) fastDoubleSpentCheck(node *blockNode, block *types.SerializedBlock) {
 	/*transactions:=block.Transactions()
 	if len(transactions)>1 {
 		for i, tx := range transactions {
@@ -1007,21 +998,10 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode,block *types.Serialize
 	}*/
 }
 
-// connectBlock handles connecting the passed node/block to the end of the main
-// (best) chain.
-//
-// This passed utxo view must have all referenced txos the block spends marked
-// as spent and all of the new txos the block creates added to it.  In addition,
-// the passed stxos slice must be populated with all of the information for the
-// spent txos.  This approach is used because the connection validation that
-// must happen prior to calling this function requires the same details, so
-// it would be inefficient to repeat it.
-//
-// This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []spentTxOut) error {
+func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlock) error {
 	// Must be end node of sequence in dag
-	lastBlock:=b.bd.GetLastBlock()
-	lastTip:=b.index.lookupNode(lastBlock.GetHash())
+	lastBlock := b.bd.GetLastBlock()
+	lastTip := b.index.lookupNode(lastBlock.GetHash())
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()
@@ -1041,9 +1021,8 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	*/
 	blockSize := uint64(block.Block().SerializeSize())
 
-	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns),*b.bd.GetLastTime(),curTotalTxns+numTxns,
-		 curTotalSubsidy+subsidy,b.bd.GetGraphState())
-
+	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns), *b.bd.GetLastTime(), curTotalTxns+numTxns,
+		curTotalSubsidy+subsidy, b.bd.GetGraphState())
 
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
@@ -1052,19 +1031,39 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 		if err != nil {
 			return err
 		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	// Update the state for the best block.  Notice how this replaces the
+	// entire struct instead of updating the existing one.  This effectively
+	// allows the old version to act as a snapshot which callers can use
+	// freely without needing to hold a lock for the duration.  See the
+	// comments on the state variable for more details.
+	b.stateLock.Lock()
+	b.stateSnapshot = state
+	b.stateLock.Unlock()
 
-		// Add the block to the block index.  Ultimately the block index
-		// should track modified nodes and persist all of them prior
-		// this point as opposed to unconditionally peristing the node
-		// again.  However, this is needed for now in lieu of that to
-		// ensure the updated status is written to the database.
-		err = dbPutBlockNode(dbTx, node)
-		if err != nil {
-			return err
-		}
+	return nil
+}
 
+// connectBlock handles connecting the passed node/block to the end of the main
+// (best) chain.
+//
+// This passed utxo view must have all referenced txos the block spends marked
+// as spent and all of the new txos the block creates added to it.  In addition,
+// the passed stxos slice must be populated with all of the information for the
+// spent txos.  This approach is used because the connection validation that
+// must happen prior to calling this function requires the same details, so
+// it would be inefficient to repeat it.
+//
+// This function MUST be called with the chain state lock held (for writes).
+func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []spentTxOut) error {
+	// Atomically insert info into the database.
+	err := b.db.Update(func(dbTx database.Tx) error {
 		// Add the block hash and height to the block index.
-		err = dbPutBlockIndex(dbTx, block.Hash(), node.order)
+		err := dbPutBlockIndex(dbTx, block.Hash(), node.order)
 		if err != nil {
 			return err
 		}
@@ -1103,25 +1102,6 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	// Update the state for the best block.  Notice how this replaces the
-	// entire struct instead of updating the existing one.  This effectively
-	// allows the old version to act as a snapshot which callers can use
-	// freely without needing to hold a lock for the duration.  See the
-	// comments on the state variable for more details.
-	b.stateLock.Lock()
-	b.stateSnapshot = state
-	b.stateLock.Unlock()
-
-	// Assemble the current block and the parent into a slice.
-	blockAndParent := []*types.SerializedBlock{block}
-
-	// Notify the caller that the block was connected to the main chain.
-	// The caller would typically want to react with actions such as
-	// updating wallets.
-	b.chainLock.Unlock()
-	b.sendNotification(BlockConnected, blockAndParent)
-	b.chainLock.Lock()
-
 	return nil
 }
 
@@ -1142,9 +1122,9 @@ func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 //
 // This function MUST be called with the chain state lock held (for writes).
 
-func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBlock *types.SerializedBlock) error {
+func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List, newBlock *types.SerializedBlock) error {
 
-	node:=b.index.LookupNode(newBlock.Hash())
+	node := b.index.LookupNode(newBlock.Hash())
 	// Why the old order is the order that was removed by the new block, because the new block
 	// must be one of the tip of the dag.This is very important for the following understanding.
 	// In the two case, the perspective is the same.In the other words, the future can not
@@ -1154,22 +1134,22 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 	var err error
 
 	for e := detachNodes.Back(); e != nil; e = e.Prev() {
-		n=b.index.LookupNode(e.Value.(*hash.Hash))
+		n = b.index.LookupNode(e.Value.(*hash.Hash))
 
 		block, err = b.fetchBlockByHash(&n.hash)
 
 		if err != nil {
 			return err
 		}
-		if n==nil {
+		if n == nil {
 			return fmt.Errorf("no node")
 		}
-		block.SetOrder(n.order-1)
+		block.SetOrder(n.order - 1)
 		// Load all of the utxos referenced by the block that aren't
 		// already in the view.
 		view := NewUtxoViewpoint()
 		view.SetBestHash(block.Hash())
-		err = view.fetchInputUtxos(b.db, block,b)
+		err = view.fetchInputUtxos(b.db, block, b)
 		if err != nil {
 			return err
 		}
@@ -1186,21 +1166,21 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 		}
 		// Store the loaded block and spend journal entry for later.
 
-		prevNode:=e.Prev()
+		prevNode := e.Prev()
 		var prevH *hash.Hash
-		if prevNode!=nil {
-			prevH=e.Value.(*hash.Hash)
-		}else{
-			prevH=b.bd.GetPrevious(block.Hash())
+		if prevNode != nil {
+			prevH = e.Value.(*hash.Hash)
+		} else {
+			prevH = b.bd.GetPrevious(block.Hash())
 			if prevH.IsEqual(&node.hash) {
-				prevH=b.bd.GetPrevious(prevH)
+				prevH = b.bd.GetPrevious(prevH)
 			}
 		}
-		err=b.disconnectTransactions(view,block,stxos,prevH)
+		err = b.disconnectTransactions(view, block, stxos)
 		if err != nil {
 			return err
 		}
-		err = b.disconnectBlock(n, block, view,prevH)
+		err = b.disconnectBlock(n, block, view)
 		if err != nil {
 			return err
 		}
@@ -1208,12 +1188,12 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
-		nodeHash:=e.Value.(*hash.Hash)
+		nodeHash := e.Value.(*hash.Hash)
 		if nodeHash.IsEqual(newBlock.Hash()) {
-			n=node
-			block=newBlock
+			n = node
+			block = newBlock
 		} else {
-			n=b.index.LookupNode(nodeHash)
+			n = b.index.LookupNode(nodeHash)
 			// If any previous nodes in attachNodes failed validation,
 			// mark this one as having an invalid ancestor.
 			block, err = b.FetchBlockByHash(&n.hash)
@@ -1223,11 +1203,10 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 			}
 		}
 
-
 		view := NewUtxoViewpoint()
 		view.SetBestHash(b.bd.GetPrevious(&n.hash))
-		stxos:=[]spentTxOut{}
-		err= b.checkConnectBlock(n, block, view, &stxos)
+		stxos := []spentTxOut{}
+		err = b.checkConnectBlock(n, block, view, &stxos)
 		if err != nil {
 			return err
 		}
@@ -1243,13 +1222,14 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List,newBloc
 	lastAttachNode := attachNodes.Back().Value.(*hash.Hash)
 	log.Info(fmt.Sprintf("DAG REORGANIZE: Start at %s", firstAttachNode.String()))
 	log.Info(fmt.Sprintf("DAG REORGANIZE: End at %s", lastAttachNode.String()))
-	log.Info(fmt.Sprintf("DAG REORGANIZE: New Len= %d;Old Len= %d",attachNodes.Len(),detachNodes.Len()))
+	log.Info(fmt.Sprintf("DAG REORGANIZE: New Len= %d;Old Len= %d", attachNodes.Len(), detachNodes.Len()))
 
 	return nil
 }
+
 // countSpentOutputs returns the number of utxos the passed block spends.
 // TODO, revisit the design of stxos count
-func countSpentOutputs(block,parent *types.SerializedBlock) int {
+func countSpentOutputs(block, parent *types.SerializedBlock) int {
 	// Exclude the coinbase transaction since it can't spend anything.
 	var numSpent int
 	for _, tx := range block.Transactions()[1:] {
@@ -1262,55 +1242,12 @@ func countSpentOutputs(block,parent *types.SerializedBlock) int {
 // the main (best) chain.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint,prev *hash.Hash) error {
-
-	prevNode := b.index.LookupNode(prev)
-	if prevNode==nil {
-		return fmt.Errorf("no node")
-	}
-	prevBlock, err := b.fetchBlockByHash(prev)
-
-	if err != nil {
-		return err
-	}
-	// Generate a new best state snapshot that will be used to update the
-	// database and later memory if all database updates are successful.
-	b.stateLock.RLock()
-	curTotalTxns := b.stateSnapshot.TotalTxns
-	curTotalSubsidy := b.stateSnapshot.TotalSubsidy
-	b.stateLock.RUnlock()
-	// revisit the size in block headers
-	/*
-	parentBlockSize := uint64(parent.Block().Header.Size)
-	*/
-	parentBlockSize := uint64(prevBlock.Block().SerializeSize())
-
-	// Calculate the number of transactions that would be added by adding
-	// this block.
-
-	// TODO revisit the tx count logic
-	numTxns := uint64(len(prevBlock.Block().Transactions))
-	/*
-	numTxns := countNumberOfTransactions(block, parent)
-	*/
-	newTotalTxns := curTotalTxns - numTxns
+func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint) error {
 
 	// Calculate the exact subsidy produced by adding the block.
-	subsidy := CalculateAddedSubsidy(block)
-	newTotalSubsidy := curTotalSubsidy - subsidy
-
-	state := newBestState(prevNode, parentBlockSize, numTxns,
-		prevNode.CalcPastMedianTime(),  newTotalTxns, newTotalSubsidy,b.bd.GetGraphState())
-
-	err = b.db.Update(func(dbTx database.Tx) error {
-		// Update best block state.
-		err := dbPutBestState(dbTx, state, node.workSum)
-		if err != nil {
-			return err
-		}
-
+	err := b.db.Update(func(dbTx database.Tx) error {
 		// Remove the block hash and order from the block index.
-		err = dbRemoveBlockIndex(dbTx, block.Hash(), int64(node.order))  //TODO, remove type conversion
+		err := dbRemoveBlockIndex(dbTx, block.Hash(), int64(node.order)) //TODO, remove type conversion
 		if err != nil {
 			return err
 		}
@@ -1351,82 +1288,61 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 
 	b.RemoveBadTx(&node.hash)
 
-	// Update the state for the best block.  Notice how this replaces the
-	// entire struct instead of updating the existing one.  This effectively
-	// allows the old version to act as a snapshot which callers can use
-	// freely without needing to hold a lock for the duration.  See the
-	// comments on the state variable for more details.
-	b.stateLock.Lock()
-	b.stateSnapshot = state
-	b.stateLock.Unlock()
-
-	// Assemble the current block and the parent into a slice.
-	blockAndParent := []*types.SerializedBlock{block}
-
-	// Notify the caller that the block was disconnected from the main
-	// chain.  The caller would typically want to react with actions such as
-	// updating wallets.
-	b.chainLock.Unlock()
-	b.sendNotification(BlockDisconnected, blockAndParent)
-	b.chainLock.Lock()
-
 	return nil
 }
 
-func (b *BlockChain) IsBadTx(txh *hash.Hash) bool{
+func (b *BlockChain) IsBadTx(txh *hash.Hash) bool {
 	_, ok := b.badTx[*txh]
 	return ok
 }
 
-func (b *BlockChain) GetBadTxFromBlock(bh *hash.Hash) []*hash.Hash{
-	result:=[]*hash.Hash{}
-	for k,v:=range b.badTx{
+func (b *BlockChain) GetBadTxFromBlock(bh *hash.Hash) []*hash.Hash {
+	result := []*hash.Hash{}
+	for k, v := range b.badTx {
 		if v.Has(bh) {
-			txHash:=k
-			result=append(result,&txHash)
+			txHash := k
+			result = append(result, &txHash)
 		}
 	}
 	return result
 }
 
-func (b *BlockChain) AddBadTx(txh *hash.Hash,bh *hash.Hash){
+func (b *BlockChain) AddBadTx(txh *hash.Hash, bh *hash.Hash) {
 	if b.IsBadTx(txh) {
 		b.badTx[*txh].Add(bh)
-	}else{
-		set:=blockdag.NewHashSet()
+	} else {
+		set := blockdag.NewHashSet()
 		set.Add(bh)
-		b.badTx[*txh]=set
+		b.badTx[*txh] = set
 	}
 }
 
-func (b *BlockChain) AddBadTxArray(txha []*hash.Hash,bh *hash.Hash){
-	if len(txha)==0 {
+func (b *BlockChain) AddBadTxArray(txha []*hash.Hash, bh *hash.Hash) {
+	if len(txha) == 0 {
 		return
 	}
-	for _,v:=range txha{
-		b.AddBadTx(v,bh)
+	for _, v := range txha {
+		b.AddBadTx(v, bh)
 	}
 }
 
-func (b *BlockChain) RemoveBadTx(bh *hash.Hash){
-	for k,v:=range b.badTx{
+func (b *BlockChain) RemoveBadTx(bh *hash.Hash) {
+	for k, v := range b.badTx {
 		if v.Has(bh) {
 			v.Remove(bh)
 			if v.IsEmpty() {
-				delete(b.badTx,k)
+				delete(b.badTx, k)
 			}
 		}
 	}
 }
 
 // Return the dag instance
-func (b *BlockChain) BlockDAG() *blockdag.BlockDAG{
+func (b *BlockChain) BlockDAG() *blockdag.BlockDAG {
 	return b.bd
 }
 
 // Return the blockindex instance
-func (b *BlockChain) BlockIndex() *blockIndex{
+func (b *BlockChain) BlockIndex() *blockIndex {
 	return b.index
 }
-
-

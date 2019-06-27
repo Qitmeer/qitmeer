@@ -3,23 +3,19 @@
 package index
 
 import (
-
 	"bytes"
 	"errors"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/dbnamespace"
 	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/dbnamespace"
 	"github.com/HalalChain/qitmeer/core/types"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/log"
 	"github.com/HalalChain/qitmeer/params"
 	"github.com/HalalChain/qitmeer/services/common/progresslog"
-
 )
-
-
-
 
 // Manager defines an index manager that manages multiple optional indexes and
 // implements the blockchain.IndexManager interface so it can be seamlessly
@@ -98,10 +94,10 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		indexer := m.enabledIndexes[i-1]
 
 		// Fetch the current tip for the index.
-		var height int32
+		var order int32
 		err := m.db.View(func(dbTx database.Tx) error {
 			idxKey := indexer.Key()
-			_, height, err = dbFetchIndexerTip(dbTx, idxKey)
+			_, order, err = dbFetchIndexerTip(dbTx, idxKey)
 			return err
 		})
 		if err != nil {
@@ -109,7 +105,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		}
 
 		// Nothing to do if the index does not have any entries yet.
-		if height == 0 {
+		if order == 0 {
 			continue
 		}
 
@@ -119,21 +115,21 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	// lowest one so the catchup code only needs to start at the earliest
 	// block and is able to skip connecting the block for the indexes that
 	// don't need it.
-	bestHeight := int32(chain.BestSnapshot().Order)
-	lowestHeight := bestHeight
-	indexerHeights := make([]int32, len(m.enabledIndexes))
+	bestOrder := int32(chain.BestSnapshot().Order)
+	lowestOrder := bestOrder
+	indexerOrders := make([]int32, len(m.enabledIndexes))
 	err = m.db.View(func(dbTx database.Tx) error {
 		for i, indexer := range m.enabledIndexes {
 			idxKey := indexer.Key()
-			h, height, err := dbFetchIndexerTip(dbTx, idxKey)
+			h, order, err := dbFetchIndexerTip(dbTx, idxKey)
 			if err != nil {
 				return err
 			}
 			log.Debug(fmt.Sprintf("Current %s tip", indexer.Name()),
-				"height", height, "hash", h)
-			indexerHeights[i] = height
-			if height < lowestHeight {
-				lowestHeight = height
+				"order", order, "hash", h)
+			indexerOrders[i] = order
+			if order < lowestOrder {
+				lowestOrder = order
 			}
 		}
 		return nil
@@ -143,7 +139,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	}
 
 	// Nothing to index if all of the indexes are caught up.
-	if lowestHeight == bestHeight {
+	if lowestOrder == bestOrder {
 		return nil
 	}
 
@@ -153,10 +149,10 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	// At this point, one or more indexes are behind the current best chain
 	// tip and need to be caught up, so log the details and loop through
 	// each block that needs to be indexed.
-	log.Info(fmt.Sprintf("Catching up indexes from height %d to %d", lowestHeight,
-		bestHeight))
+	log.Info(fmt.Sprintf("Catching up indexes from order %d to %d", lowestOrder,
+		bestOrder))
 
-	for height := lowestHeight + 1; height <= bestHeight; height++ {
+	for order := lowestOrder + 1; order <= bestOrder; order++ {
 		if interruptRequested(interrupt) {
 			return errInterruptRequested
 		}
@@ -166,7 +162,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			// Load the block for the height since it is required to index
 			// it.
 			block, err = blockchain.DBFetchBlockByOrder(dbTx,
-				uint64(height))
+				uint64(order))
 			if err != nil {
 				return err
 			}
@@ -180,7 +176,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			for i, indexer := range m.enabledIndexes {
 				// Skip indexes that don't need to be updated with this
 				// block.
-				if indexerHeights[i] >= height {
+				if indexerOrders[i] >= order {
 					continue
 				}
 
@@ -190,7 +186,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 				// index.
 				if view == nil && indexNeedsInputs(indexer) {
 					var errMakeView error
-					view, errMakeView = makeUtxoView(dbTx, block,interrupt)
+					view, errMakeView = makeUtxoView(dbTx, block, interrupt)
 					if errMakeView != nil {
 						return errMakeView
 					}
@@ -200,7 +196,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 					return err
 				}
 
-				indexerHeights[i] = height
+				indexerOrders[i] = order
 			}
 
 			return nil
@@ -211,7 +207,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		progressLogger.LogBlockHeight(block)
 	}
 
-	log.Info(fmt.Sprintf("Indexes caught up to height %d", bestHeight))
+	log.Info(fmt.Sprintf("Indexes caught up to order %d", bestOrder))
 	return nil
 }
 
@@ -492,8 +488,8 @@ func dbFetchIndexerTip(dbTx database.Tx, idxKey []byte) (*hash.Hash, int32, erro
 
 	var h hash.Hash
 	copy(h[:], serialized[:hash.HashSize])
-	height := int32(byteOrder.Uint32(serialized[hash.HashSize:]))
-	return &h, height, nil
+	order := int32(byteOrder.Uint32(serialized[hash.HashSize:]))
+	return &h, order, nil
 }
 
 // -----------------------------------------------------------------------------
@@ -519,7 +515,6 @@ func dbPutIndexerTip(dbTx database.Tx, idxKey []byte, h *hash.Hash, height int32
 	indexesBucket := dbTx.Metadata().Bucket(dbnamespace.IndexTipsBucketName)
 	return indexesBucket.Put(idxKey, serialized)
 }
-
 
 // existsIndex returns whether the index keyed by idxKey exists in the database.
 func existsIndex(db database.DB, idxKey []byte, idxName string) (bool, error) {
