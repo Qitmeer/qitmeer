@@ -60,10 +60,18 @@ func (ph *Phantom) AddBlock(ib IBlock) *list.List {
 
 	ph.updateBlockColor(pb)
 	ph.updateBlockOrder(pb)
-	ph.updateMainChain(ph.getBluest(ph.bd.GetTips()),pb)
-	ph.updateVirtualBlockOrder()
 
-	return ph.getOrderChangeList(pb)
+	changeBlock:=pb
+	changeBlock0:=ph.updateMainChain(ph.getBluest(ph.bd.GetTips()),pb)
+	changeBlock1:=ph.updateVirtualBlockOrder()
+	if changeBlock0!=nil && changeBlock0.GetOrder()<changeBlock.GetOrder() {
+		changeBlock=changeBlock0
+	}
+	if changeBlock1!=nil && changeBlock1.GetOrder()<changeBlock.GetOrder() {
+		changeBlock=changeBlock1
+	}
+
+	return ph.getOrderChangeList(changeBlock)
 }
 
 // Build self block
@@ -250,11 +258,11 @@ func(ph *Phantom) sortBlocks(lastBlock *hash.Hash,blueDiffAnticone *HashSet,toSo
 	return result
 }
 
-func (ph *Phantom) updateMainChain(buestTip *PhantomBlock,pb *PhantomBlock) {
+func (ph *Phantom) updateMainChain(buestTip *PhantomBlock,pb *PhantomBlock) *PhantomBlock {
 	ph.virtualBlock.SetOrder(MaxBlockOrder)
 	if !ph.isMaxMainTip(buestTip) {
 		ph.diffAnticone.Add(pb.GetHash())
-		return
+		return pb
 	}
 	if ph.mainChain.tip==nil {
 		ph.mainChain.tip=buestTip.GetHash()
@@ -263,7 +271,7 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock,pb *PhantomBlock) {
 		ph.diffAnticone.Clean()
 		buestTip.SetOrder(0)
 		ph.bd.order[0]=buestTip.GetHash()
-		return
+		return buestTip
 	}
 
 	intersection,path:=ph.getIntersectionPathWithMainChain(buestTip)
@@ -276,6 +284,9 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock,pb *PhantomBlock) {
 	ph.mainChain.tip=buestTip.GetHash()
 
 	ph.diffAnticone=ph.bd.GetAnticone(ph.bd.GetBlock(ph.mainChain.tip),nil)
+
+	changeOrder:=ph.bd.GetBlock(intersection).GetOrder()+1
+	return ph.getBlock(ph.bd.order[changeOrder])
 }
 
 func (ph *Phantom) isMaxMainTip(pb *PhantomBlock) bool {
@@ -346,10 +357,10 @@ func (ph *Phantom) updateMainOrder(path []*hash.Hash,intersection *hash.Hash) {
 	//
 }
 
-func (ph *Phantom) updateVirtualBlockOrder() {
+func (ph *Phantom) updateVirtualBlockOrder() *PhantomBlock {
 	if ph.diffAnticone.IsEmpty() ||
 		ph.virtualBlock.GetOrder()!=MaxBlockOrder {
-		return
+		return nil
 	}
 	ph.virtualBlock.parents = NewHashSet()
 	var maxLayer uint=0
@@ -387,6 +398,7 @@ func (ph *Phantom) updateVirtualBlockOrder() {
 
 	ph.virtualBlock.SetOrder(ph.bd.GetBlockTotal()+1)
 
+	return ph.getBlock(ph.mainChain.tip)
 }
 
 func (ph *Phantom) GetDiffBlueSet() *HashSet {

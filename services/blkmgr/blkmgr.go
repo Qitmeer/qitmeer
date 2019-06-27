@@ -656,7 +656,6 @@ out:
 
 				// If the block added to the dag chain, then we need to
 				// update the tip locally on block manager.
-				log.Trace("test onMainChain when blkmgr read processBlockMsg msgchan", "onMainChain")
 				if !isOrphan {
 					// Query the chain for the latest best block
 					// since the block that was processed and add

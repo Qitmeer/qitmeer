@@ -259,3 +259,4 @@ func reverseBlockList(s []*hash.Hash) []*hash.Hash {
 	}
 	return s
 }
+
