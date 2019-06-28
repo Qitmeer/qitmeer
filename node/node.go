@@ -203,12 +203,20 @@ func (n *Node) startRPC(services map[reflect.Type]Service) error {
 	for _, service := range services {
 		apis = append(apis, service.APIs()...)
 	}
+	// Generate the whitelist based on the allowed modules
+	whitelist := make(map[string]bool)
+	for _, module := range n.Config.HTTPModules {
+		whitelist[module] = true
+	}
+
 	// Register all the APIs exposed by the services
 	for _, api := range apis {
-		if err := n.rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
-			return err
+		if whitelist[api.NameSpace] || (len(whitelist) == 0 && api.Public) {
+			if err := n.rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
+				return err
+			}
+			log.Debug(fmt.Sprintf("RPC Service API registered. NameSpace:%s     %s",api.NameSpace,reflect.TypeOf(api.Service)))
 		}
-		log.Debug("RPC Service API registered", "api", reflect.TypeOf(api.Service))
 	}
 	if err := n.rpcServer.Start(); err != nil {
 		return err

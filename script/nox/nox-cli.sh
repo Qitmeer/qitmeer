@@ -165,7 +165,7 @@ function generate() {
   if [ "$block_num" == "" ]; then
     block_num="latest"
   fi
-  local data='{"jsonrpc":"2.0","method":"generate","params":['$count'],"id":null}'
+  local data='{"jsonrpc":"2.0","method":"miner_generate","params":['$count'],"id":null}'
   get_result "$data"
 }
 

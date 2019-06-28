@@ -11,6 +11,7 @@ func (t *TxPool) API() rpc.API {
 	return rpc.API{
 		NameSpace: rpc.DefaultServiceNameSpace,
 		Service:   NewPublicMempoolAPI(t),
+		Public:    true,
 	}
 }
 

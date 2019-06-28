@@ -22,6 +22,7 @@ func (b *BlockManager) API() rpc.API {
 	return rpc.API{
 		NameSpace: rpc.DefaultServiceNameSpace,
 		Service:   NewPublicBlockAPI(b),
+		Public:    true,
 	}
 }
 

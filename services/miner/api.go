@@ -38,6 +38,12 @@ func (c *CPUMiner) APIs() []rpc.API {
 		{
 			NameSpace: rpc.DefaultServiceNameSpace,
 			Service:   NewPublicMinerAPI(c),
+			Public:    true,
+		},
+		{
+			NameSpace: "miner",
+			Service:   NewPrivateMinerAPI(c),
+			Public:    false,
 		},
 	}
 }
@@ -52,39 +58,6 @@ func NewPublicMinerAPI(c *CPUMiner) *PublicMinerAPI {
 	pmAPI.gbtWorkState=&gbtWorkState{timeSource:c.timeSource}
 
 	return pmAPI
-}
-
-func (api *PublicMinerAPI) Generate(numBlocks uint32) ([]string, error) {
-	// Respond with an error if there are no addresses to pay the
-	// created blocks to.
-	if len(api.miner.config.GetMinningAddrs()) == 0 {
-		return nil, er.RpcInternalError("No payment addresses specified "+
-			"via --miningaddr", "Configuration")
-	}
-
-	// Respond with an error if the client is requesting 0 blocks to be generated.
-	if numBlocks == 0 {
-		return nil, er.RpcInternalError("Invalid number of blocks",
-			"Configuration")
-	}
-	if numBlocks > 3000 {
-		return nil, fmt.Errorf("error, more than 1000")
-	}
-	blockHashes, err := api.miner.GenerateNBlocks(numBlocks)
-	if err != nil {
-		return nil, er.RpcInternalError("Could not generate blocks,"+err.Error(),
-			"miner")
-	}
-	// Create a reply
-	reply := make([]string, numBlocks)
-
-	// Mine the correct number of blocks, assigning the hex representation of the
-	// hash of each one to its place in the reply.
-	for i, hash := range blockHashes {
-		reply[i] = hash.String()
-	}
-
-	return reply, nil
 }
 
 //func (api *PublicMinerAPI) GetBlockTemplate(request *mining.TemplateRequest) (interface{}, error){
@@ -500,4 +473,47 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 		}
 	}
 	return &reply, nil
+}
+
+// PrivateMinerAPI provides private RPC methods to control the miner.
+type PrivateMinerAPI struct {
+	miner *CPUMiner
+}
+
+func NewPrivateMinerAPI(c *CPUMiner) *PrivateMinerAPI {
+	pmAPI:=&PrivateMinerAPI{miner:c}
+	return pmAPI
+}
+
+func (api *PrivateMinerAPI) Generate(numBlocks uint32) ([]string, error) {
+	// Respond with an error if there are no addresses to pay the
+	// created blocks to.
+	if len(api.miner.config.GetMinningAddrs()) == 0 {
+		return nil, er.RpcInternalError("No payment addresses specified "+
+			"via --miningaddr", "Configuration")
+	}
+
+	// Respond with an error if the client is requesting 0 blocks to be generated.
+	if numBlocks == 0 {
+		return nil, er.RpcInternalError("Invalid number of blocks",
+			"Configuration")
+	}
+	if numBlocks > 3000 {
+		return nil, fmt.Errorf("error, more than 1000")
+	}
+	blockHashes, err := api.miner.GenerateNBlocks(numBlocks)
+	if err != nil {
+		return nil, er.RpcInternalError("Could not generate blocks,"+err.Error(),
+			"miner")
+	}
+	// Create a reply
+	reply := make([]string, numBlocks)
+
+	// Mine the correct number of blocks, assigning the hex representation of the
+	// hash of each one to its place in the reply.
+	for i, hash := range blockHashes {
+		reply[i] = hash.String()
+	}
+
+	return reply, nil
 }
