@@ -7,8 +7,8 @@ package peer
 
 import (
 	"github.com/HalalChain/qitmeer/core/message"
-	"github.com/HalalChain/qitmeer/log"
-	"github.com/HalalChain/qitmeer/params/dcr/types"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 	"io"
 	"net"
 	"sync/atomic"

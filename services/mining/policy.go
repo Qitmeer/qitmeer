@@ -7,7 +7,7 @@
 package mining
 
 import (
-	"github.com/HalalChain/qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 )
 
 // Policy houses the policy (configuration parameters) which is used to control

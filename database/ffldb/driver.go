@@ -9,8 +9,8 @@ package ffldb
 import (
 	"fmt"
 	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer/log"
-	"github.com/HalalChain/qitmeer/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
 )
 
 var dblog log.Logger

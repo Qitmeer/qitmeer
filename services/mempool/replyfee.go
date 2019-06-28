@@ -5,7 +5,7 @@
 // license that can be found in the LICENSE file.
 package mempool
 
-import "github.com/HalalChain/qitmeer/core/types"
+import "github.com/HalalChain/qitmeer-lib/core/types"
 
 // calcMinRequiredTxRelayFee returns the minimum transaction fee required for a
 // transaction with the passed serialized size to be accepted into the memory

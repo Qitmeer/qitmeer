@@ -8,11 +8,11 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/log"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 )
 
 const (

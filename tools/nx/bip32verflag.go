@@ -6,7 +6,7 @@ package main
 import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/crypto/bip32"
-	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer-lib/params"
 )
 
 var (

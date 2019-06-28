@@ -3,14 +3,12 @@ module github.com/HalalChain/qitmeer
 go 1.12
 
 require (
-	github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 // indirect
-	github.com/HalalChain/qitmeer-lib v0.0.0-20190625033329-0a024ba36652
+	github.com/HalalChain/qitmeer-lib v0.0.0-20190627104333-34d1342836be
 	github.com/coreos/bbolt v1.3.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dchest/blake256 v1.0.0
 	github.com/deckarep/golang-set v1.7.1
 	github.com/dgraph-io/badger v1.5.4
-	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/etcd-io/bbolt v1.3.2
 	github.com/go-stack/stack v1.8.0
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3

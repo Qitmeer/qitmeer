@@ -6,7 +6,7 @@
 
 package main
 
-import "github.com/HalalChain/qitmeer/params"
+import "github.com/HalalChain/qitmeer-lib/params"
 
 // activeNetParams is a pointer to the parameters specific to the
 // currently active network.

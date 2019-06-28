@@ -15,9 +15,9 @@ import (
 	"github.com/HalalChain/qitmeer/core/blockdag"
 	"strings"
 	"time"
-	s "github.com/HalalChain/qitmeer/core/serialization"
-	"github.com/HalalChain/qitmeer/core/protocol"
-	"github.com/HalalChain/qitmeer/core/types"
+	s "github.com/HalalChain/qitmeer-lib/core/serialization"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 )
 
 // MaxUserAgentLen is the maximum allowed length for the user agent field in a

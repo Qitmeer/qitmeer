@@ -2,9 +2,9 @@
 package node
 
 import (
-	"github.com/HalalChain/qitmeer/config"
+	"github.com/HalalChain/qitmeer-lib/config"
 	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer/rpc"
+	"github.com/HalalChain/qitmeer-lib/rpc"
 	"github.com/HalalChain/qitmeer/p2p/peerserver"
 )
 

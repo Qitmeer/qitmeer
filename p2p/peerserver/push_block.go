@@ -3,7 +3,7 @@ package peerserver
 import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/message"
-	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/log"
 )
 
 // pushBlockMsg sends a block message for the provided block hash to the

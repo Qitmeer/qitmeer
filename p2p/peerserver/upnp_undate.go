@@ -1,8 +1,8 @@
 package peerserver
 
 import (
-	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/log"
 	"github.com/HalalChain/qitmeer/p2p/addmgr"
 	"strconv"
 	"time"

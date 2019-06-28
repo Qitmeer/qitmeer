@@ -6,7 +6,7 @@ import (
 	"github.com/HalalChain/qitmeer-lib/common/util"
 	"github.com/HalalChain/qitmeer/core/blockdag"
 	"github.com/HalalChain/qitmeer/core/merkle"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"math/big"
 	"sort"
 	"time"

@@ -12,7 +12,7 @@ import (
 	"encoding/binary"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"errors"
 )
 

@@ -7,7 +7,7 @@ package database
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/log"
 )
 
 // Driver defines a structure for backend drivers to use when they register

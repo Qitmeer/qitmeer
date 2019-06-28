@@ -12,7 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/log"
 )
 
 // ConnManager provides a manager to handle network connections.

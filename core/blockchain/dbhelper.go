@@ -2,18 +2,17 @@
 package blockchain
 
 import (
-	"github.com/HalalChain/qitmeer/core/dbnamespace"
-	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/types"
-	"fmt"
-	"time"
-	"encoding/binary"
-	"math/big"
 	"bytes"
+	"encoding/binary"
+	"fmt"
+	"github.com/HalalChain/qitmeer/core/dbnamespace"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer/database"
+	"math/big"
 	"sort"
+	"time"
 )
-
 
 // errNotInMainChain signifies that a block hash or height that is not in the
 // main chain was requested.
@@ -70,8 +69,8 @@ type databaseInfo struct {
 
 // blockIndexEntry represents a block index database entry.
 type blockIndexEntry struct {
-	header         types.BlockHeader
-	status         blockStatus
+	header types.BlockHeader
+	status blockStatus
 }
 
 // blockIndexKey generates the binary key for an entry in the block index
@@ -86,7 +85,7 @@ func blockIndexKey(blockHash *hash.Hash, blockOrder uint32) []byte {
 }
 
 // -----------------------------------------------------------------------------
-// The best chain state consists of the best block hash and height, the total
+// The best chain state consists of the best block hash and order, the total
 // number of transactions up to and including those in the best block, the
 // total coin supply, the subsidy at the current block, the subsidy of the
 // block prior (for rollbacks), and the accumulated work sum up to and
@@ -98,7 +97,7 @@ func blockIndexKey(blockHash *hash.Hash, blockOrder uint32) []byte {
 //
 //   Field             Type             Size
 //   block hash        chainhash.Hash   chainhash.HashSize
-//   block height      uint32           4 bytes
+//   block order       uint32           4 bytes
 //   total txns        uint64           8 bytes
 //   total subsidy     int64            8 bytes
 //   work sum length   uint32           4 bytes
@@ -109,7 +108,7 @@ func blockIndexKey(blockHash *hash.Hash, blockOrder uint32) []byte {
 // best chain state.
 type bestChainState struct {
 	hash         hash.Hash
-	height       uint64
+	order        uint64
 	totalTxns    uint64
 	totalSubsidy int64
 	workSum      *big.Int
@@ -119,6 +118,7 @@ type bestChainState struct {
 func DBFetchBlockByOrder(dbTx database.Tx, order uint64) (*types.SerializedBlock, error) {
 	return dbFetchBlockByOrder(dbTx, order)
 }
+
 // dbFetchBlockByOrder uses an existing database transaction to retrieve the
 // raw block for the provided order, deserialize it, and return a Block
 // with the height set.
@@ -162,7 +162,6 @@ func dbFetchHashByOrder(dbTx database.Tx, order uint64) (*hash.Hash, error) {
 	copy(h[:], hashBytes)
 	return &h, nil
 }
-
 
 // BlockByHeight returns the block at the given height in the main chain.
 //
@@ -264,8 +263,8 @@ func (b *BlockChain) createChainState() error {
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
-	b.stateSnapshot= newBestState(node, blockSize, numTxns,
-		time.Unix(node.timestamp,0), numTxns,0,b.bd.GetGraphState())
+	b.stateSnapshot = newBestState(node, blockSize, numTxns,
+		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState())
 
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.
@@ -349,7 +348,6 @@ func (b *BlockChain) createChainState() error {
 	return err
 }
 
-
 // dbPutDatabaseInfo uses an existing database transaction to store the database
 // information.
 func dbPutDatabaseInfo(dbTx database.Tx, dbi *databaseInfo) error {
@@ -401,8 +399,8 @@ func dbPutDatabaseInfo(dbTx database.Tx, dbi *databaseInfo) error {
 // block node in the block index according to the format described above.
 func dbPutBlockNode(dbTx database.Tx, node *blockNode) error {
 	serialized, err := serializeBlockIndexEntry(&blockIndexEntry{
-		header:         node.Header(),
-		status:         node.status,
+		header: node.Header(),
+		status: node.status,
 	})
 	if err != nil {
 		return err
@@ -490,8 +488,9 @@ func dbRemoveBlockIndex(dbTx database.Tx, hash *hash.Hash, order int64) error {
 func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) error {
 	// Serialize the current best chain state.
 	serializedData := serializeBestChainState(bestChainState{
-		hash:         snapshot.Hash,
-		height:       snapshot.Order,
+		hash:      snapshot.Hash,
+		order:     snapshot.Order,
+		totalTxns: snapshot.TotalTxns,
 	})
 
 	// Store the current best chain state into the database.
@@ -502,18 +501,19 @@ func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) err
 // chain state.  This is data to be stored in the chain state bucket.
 func serializeBestChainState(state bestChainState) []byte {
 	// Calculate the full size needed to serialize the chain state.
-	serializedLen := hash.HashSize + 4 + 8
+	serializedLen := hash.HashSize + 8 + 8
 
 	// Serialize the chain state.
 	serializedData := make([]byte, serializedLen)
 	copy(serializedData[0:hash.HashSize], state.hash[:])
 	offset := uint32(hash.HashSize)
-	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.height)
+	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.order)
+	offset += 8
+	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.totalTxns)
 	offset += 8
 
 	return serializedData[:]
 }
-
 
 // putBlockIndexEntry serializes the passed block index entry according to the
 // format described above directly into the passed target byte slice.  The
@@ -543,7 +543,7 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	// Ensure the serialized data has enough bytes to properly deserialize
 	// the hash, height, total transactions, total subsidy, current subsidy,
 	// and work sum length.
-	expectedMinLen := hash.HashSize + 8
+	expectedMinLen := hash.HashSize + 8 + 8
 	if len(serializedData) < expectedMinLen {
 		return bestChainState{}, database.Error{
 			ErrorCode: database.ErrCorruption,
@@ -555,9 +555,10 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	state := bestChainState{}
 	copy(state.hash[:], serializedData[0:hash.HashSize])
 	offset := uint32(hash.HashSize)
-	state.height = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
+	state.order = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
 	offset += 8
-
+	state.totalTxns = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
+	offset += 8
 	return state, nil
 }
 
@@ -620,7 +621,6 @@ func dbFetchBlockByHash(dbTx database.Tx, hash *hash.Hash) (*types.SerializedBlo
 
 	return block, nil
 }
-
 
 // deserializeUtxoEntry decodes a utxo entry from the passed serialized byte
 // slice into a new UtxoEntry using a format that is suitable for long-term
@@ -736,10 +736,10 @@ func deserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 		offset += bytesRead
 
 		entry.sparseOutputs[outputIndex] = &utxoOutput{
-			spent:         false,
-			compressed:    true,
-			pkScript:      compScript,
-			amount:        uint64(amount),  //TODO, remove type conversion
+			spent:      false,
+			compressed: true,
+			pkScript:   compScript,
+			amount:     uint64(amount), //TODO, remove type conversion
 		}
 	}
 
@@ -773,7 +773,6 @@ func dbFetchOrderByHash(dbTx database.Tx, hash *hash.Hash) (uint64, error) {
 
 	return uint64(dbnamespace.ByteOrder.Uint32(serializedOrder)), nil
 }
-
 
 // dbFetchHeaderByHash uses an existing database transaction to retrieve the
 // block header for the provided hash.
@@ -817,6 +816,7 @@ func dbMaybeStoreBlock(dbTx database.Tx, block *types.SerializedBlock) error {
 
 	return dbTx.StoreBlock(block)
 }
+
 // dbPutUtxoView uses an existing database transaction to update the utxo set
 // in the database based on the provided utxo view contents and state.  In
 // particular, only the entries that have been marked as modified are written
@@ -861,7 +861,6 @@ func dbPutUtxoView(dbTx database.Tx, view *UtxoViewpoint) error {
 
 	return nil
 }
-
 
 //TODO, refactor & move serializeUtxoEntry to serialization package
 // -----------------------------------------------------------------------------
@@ -1030,7 +1029,3 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 	}
 	return serialized, nil
 }
-
-
-
-

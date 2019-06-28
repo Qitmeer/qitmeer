@@ -7,9 +7,9 @@ package peer
 
 import (
 	"github.com/HalalChain/qitmeer/core/blockdag"
-	"github.com/HalalChain/qitmeer/core/protocol"
-	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/params"
 	"time"
 )
 

@@ -10,9 +10,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"math"
 	"time"
 )
@@ -34,11 +34,11 @@ func checkCoinbaseUniqueHeight(blockHeight uint64, block *types.SerializedBlock)
 	nullDataOut := block.Block().Transactions[0].TxOut[1]
 	// TODO, revisit version & check should go to validation
 	/*
-	if nullDataOut.Version != 0 {
-		str := fmt.Sprintf("block %v output 1 has wrong script version",
-			block.Hash())
-		return ruleError(ErrFirstTxNotCoinbase, str)
-	}
+		if nullDataOut.Version != 0 {
+			str := fmt.Sprintf("block %v output 1 has wrong script version",
+				block.Hash())
+			return ruleError(ErrFirstTxNotCoinbase, str)
+		}
 	*/
 
 	// The first 4 bytes of the null data output must be the encoded height
@@ -121,8 +121,8 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// This function should never be called with orphan blocks or the
 	// genesis block.
 
-	parentsNode:=[]*blockNode{}
-	for _,pb:=range block.Block().Parents {
+	parentsNode := []*blockNode{}
+	for _, pb := range block.Block().Parents {
 		prevHash := pb
 		prevNode := b.index.LookupNode(prevHash)
 		if prevNode == nil {
@@ -130,10 +130,10 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 			log.Debug(str)
 			return false, nil
 		}
-		parentsNode=append(parentsNode,prevNode)
+		parentsNode = append(parentsNode, prevNode)
 	}
 	blockHeader := &block.Block().Header
-	newNode := newBlockNode(blockHeader,parentsNode)
+	newNode := newBlockNode(blockHeader, parentsNode)
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
 	err := b.checkBlockContext(block, newNode.GetBackParent(), flags)
@@ -146,17 +146,17 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.pruner.pruneChainIfNeeded()
 
 	//dag
-	list:=b.bd.AddBlock(newNode)
-	if list==nil||list.Len()==0 {
-		log.Debug(fmt.Sprintf("Irreparable error![%s]",newNode.hash.String()))
-		return false,nil
+	list := b.bd.AddBlock(newNode)
+	if list == nil || list.Len() == 0 {
+		log.Debug(fmt.Sprintf("Irreparable error![%s]", newNode.hash.String()))
+		return false, nil
 	}
 	b.index.addNode(newNode)
 	//
 	for e := list.Front(); e != nil; e = e.Next() {
-		refHash:=e.Value.(*hash.Hash)
-		refblock:=b.bd.GetBlock(refHash)
-		refnode:=b.index.lookupNode(refHash)
+		refHash := e.Value.(*hash.Hash)
+		refblock := b.bd.GetBlock(refHash)
+		refnode := b.index.lookupNode(refHash)
 		refnode.SetOrder(uint64(refblock.GetOrder()))
 
 		if newNode.GetHash().IsEqual(refHash) {
@@ -183,28 +183,30 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		if err := dbPutBlockNode(dbTx, newNode); err != nil {
 			return err
 		}
-		b.index.SetStatusFlags(newNode,statusDataStored)
+		b.index.SetStatusFlags(newNode, statusDataStored)
 		return nil
 	})
 	if err != nil {
-		b.index.SetStatusFlags(newNode,statusValidateFailed)
+		b.index.SetStatusFlags(newNode, statusValidateFailed)
 		return false, err
 	}
 
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This
 	// also handles validation of the transaction scripts.
-	success, err := b.connectDagChain(newNode, block,list)
-	if !success||err != nil {
-		b.index.SetStatusFlags(newNode,statusValidateFailed)
+	success, err := b.connectDagChain(newNode, block, list)
+	if !success || err != nil {
+		b.index.SetStatusFlags(newNode, statusValidateFailed)
 		return false, err
 	}
 
-	b.index.SetStatusFlags(newNode,statusValid)
+	b.index.SetStatusFlags(newNode, statusValid)
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
 	b.chainLock.Unlock()
+
+	b.sendNotification(BlockConnected, []*types.SerializedBlock{block})
 
 	//TODO, refactor to event subscript/publish
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{

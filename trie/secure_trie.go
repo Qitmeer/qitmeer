@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/common/util"
-	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/log"
 )
 
 // SecureTrie wraps a trie with key hashing. In a secure trie, all

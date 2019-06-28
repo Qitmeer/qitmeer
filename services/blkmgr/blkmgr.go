@@ -7,17 +7,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/config"
+	"github.com/HalalChain/qitmeer-lib/config"
 	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer/core/blockdag"
 	"github.com/HalalChain/qitmeer/core/message"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer/node/notify"
 	"github.com/HalalChain/qitmeer/p2p/peer"
-	"github.com/HalalChain/qitmeer/params"
-	"github.com/HalalChain/qitmeer/params/dcr/types"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 	"github.com/HalalChain/qitmeer/services/common/progresslog"
 	"github.com/HalalChain/qitmeer/services/mempool"
 	"sync"
@@ -656,7 +656,6 @@ out:
 
 				// If the block added to the dag chain, then we need to
 				// update the tip locally on block manager.
-				log.Trace("test onMainChain when blkmgr read processBlockMsg msgchan", "onMainChain")
 				if !isOrphan {
 					// Query the chain for the latest best block
 					// since the block that was processed and add

@@ -2,15 +2,13 @@
 package blockchain
 
 import (
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/engine/txscript"
-	"github.com/HalalChain/qitmeer/database"
 	"fmt"
 	"github.com/HalalChain/qitmeer/core/dbnamespace"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 )
-
-
 
 // utxoOutput houses details about an individual unspent transaction output such
 // as whether or not it is spent, its public key script, and how much it pays.
@@ -28,11 +26,11 @@ import (
 //
 // The struct is aligned for memory efficiency.
 type utxoOutput struct {
-	scriptVersion uint16  // The script version
-	pkScript      []byte  // The public key script for the output.
-	amount        uint64  // The amount of the output.
-	compressed    bool    // The public key script is compressed.
-	spent         bool    // Output is spent.
+	scriptVersion uint16 // The script version
+	pkScript      []byte // The public key script for the output.
+	amount        uint64 // The amount of the output.
+	compressed    bool   // The public key script is compressed.
+	spent         bool   // Output is spent.
 }
 
 // UtxoViewpoint represents a view into the set of unspent transaction outputs
@@ -43,8 +41,8 @@ type utxoOutput struct {
 // The unspent outputs are needed by other transactions for things such as
 // script validation and double spend prevention.
 type UtxoViewpoint struct {
-	entries   map[hash.Hash]*UtxoEntry
-	bestHash  hash.Hash
+	entries  map[hash.Hash]*UtxoEntry
+	bestHash hash.Hash
 }
 
 // NewUtxoViewpoint returns a new empty unspent transaction output view.
@@ -102,10 +100,10 @@ func (view *UtxoViewpoint) AddTxOuts(theTx *types.Tx, blockHeight int64, blockIn
 
 		// Add the unspent transaction output.
 		entry.sparseOutputs[uint32(txOutIdx)] = &utxoOutput{
-			spent:         false,
-			amount:        txOut.Amount,
-			pkScript:      txOut.PkScript,
-			compressed:    false,
+			spent:      false,
+			amount:     txOut.Amount,
+			pkScript:   txOut.PkScript,
+			compressed: false,
 		}
 	}
 }
@@ -293,7 +291,6 @@ func (view *UtxoViewpoint) LookupEntry(txHash *hash.Hash) *UtxoEntry {
 	return entry
 }
 
-
 // maybeDecompress decompresses the amount and public key script fields of the
 // utxo and marks it decompressed if needed.
 func (o *utxoOutput) maybeDecompress(compressionVersion uint32) {
@@ -306,13 +303,12 @@ func (o *utxoOutput) maybeDecompress(compressionVersion uint32) {
 	o.compressed = false
 }
 
-
 // fetchInputUtxos loads utxo details about the input transactions referenced
 // by the transactions in the given block into the view from the database as
 // needed.  In particular, referenced entries that are earlier in the block are
 // added to the view and entries that are already in the view are not modified.
 // TODO, revisit the usage on the parent block
-func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.SerializedBlock,bc *BlockChain) error {
+func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.SerializedBlock, bc *BlockChain) error {
 	// Build a map of in-flight transactions because some of the inputs in
 	// this block could be referencing other transactions earlier in this
 	// block which are not yet in the chain.
@@ -345,7 +341,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 			// the block due to skipping the coinbase.
 			originHash := &txIn.PreviousOut.Hash
 			if bc.IsBadTx(originHash) {
-				bc.AddBadTx(tx.Hash(),block.Hash())
+				bc.AddBadTx(tx.Hash(), block.Hash())
 				break
 			}
 			if inFlightIndex, ok := txInFlight[*originHash]; ok &&
@@ -372,7 +368,6 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 
 }
 
-
 // connectTransaction updates the view by adding all new utxos created by the
 // passed transaction and marking all utxos that the transactions spend as
 // spent.  In addition, when the 'stxos' argument is not nil, it will be updated
@@ -383,7 +378,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, 
 	// Coinbase transactions don't have any inputs to spend.
 	if IsCoinBaseTx(msgTx) {
 		// Add the transaction's outputs as available utxos.
-		view.AddTxOuts(tx, int64(blockHeight), blockIndex)  //TODO, remove type conversion
+		view.AddTxOuts(tx, int64(blockHeight), blockIndex) //TODO, remove type conversion
 		return nil
 	}
 
@@ -427,8 +422,6 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, 
 		stxo.txType = entry.txType
 		stxo.txFullySpent = entry.IsFullySpent()
 
-
-
 		// Append the entry to the provided spent txouts slice.
 		*stxos = append(*stxos, stxo)
 	}
@@ -446,7 +439,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, 
 //
 // This function will ONLY work correctly for a single transaction tree at a
 // time because of index tracking.
-func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block *types.SerializedBlock, stxos map[string]spentTxOut,prev *hash.Hash) error {
+func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block *types.SerializedBlock, stxos map[string]spentTxOut) error {
 
 	transactions := block.Transactions()
 	for txIdx := len(transactions) - 1; txIdx > -1; txIdx-- {
@@ -477,8 +470,8 @@ func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block *types.Se
 		for txInIdx := len(tx.Transaction().TxIn) - 1; txInIdx > -1; txInIdx-- {
 			// Ensure the spent txout index is decremented to stay
 			// in sync with the transaction input.
-			indexStr:=fmt.Sprintf("%d-%d",txIdx,txInIdx)
-			stxo,ok := stxos[indexStr]
+			indexStr := fmt.Sprintf("%d-%d", txIdx, txInIdx)
+			stxo, ok := stxos[indexStr]
 			if !ok {
 				continue
 			}
@@ -527,10 +520,9 @@ func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block *types.Se
 		}
 	}
 
-
 	// Update the best hash for view to the previous block since all of the
 	// transactions for the current block have been disconnected.
-	view.SetBestHash(prev)
+	view.SetBestHash(block.Hash())
 	return nil
 }
 
@@ -542,7 +534,7 @@ func (b *BlockChain) disconnectTransactions(view *UtxoViewpoint, block *types.Se
 func (b *BlockChain) connectTransactions(view *UtxoViewpoint, block, parent *types.SerializedBlock, stxos *[]spentTxOut) error {
 
 	if parent != nil && block.Order() != 0 {
-		err := view.fetchInputUtxos(b.db, block,b)
+		err := view.fetchInputUtxos(b.db, block, b)
 		if err != nil {
 			return err
 		}
@@ -555,7 +547,7 @@ func (b *BlockChain) connectTransactions(view *UtxoViewpoint, block, parent *typ
 		}
 	}
 
-	err := view.fetchInputUtxos(b.db, block,b)
+	err := view.fetchInputUtxos(b.db, block, b)
 	if err != nil {
 		return err
 	}
@@ -565,7 +557,6 @@ func (b *BlockChain) connectTransactions(view *UtxoViewpoint, block, parent *typ
 	view.SetBestHash(block.Hash())
 	return nil
 }
-
 
 // commit prunes all entries marked modified that are now fully spent and marks
 // all entries as unmodified.
@@ -603,7 +594,6 @@ func (view *UtxoViewpoint) fetchUtxos(db database.DB, txSet map[hash.Hash]struct
 	// Request the input utxos from the database.
 	return view.fetchUtxosMain(db, txNeededSet)
 }
-
 
 // disconnectTransactionSlice updates the view by removing all of the transactions
 // created by the passed slice of transactions, restoring all utxos the
@@ -695,4 +685,3 @@ func (view *UtxoViewpoint) disconnectTransactionSlice(transactions []*types.Tx, 
 
 	return stxoIdx + 1, nil
 }
-

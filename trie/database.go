@@ -24,7 +24,7 @@ import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/common/util"
 	"github.com/HalalChain/qitmeer/database/statedb"
-	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/log"
 	"github.com/HalalChain/qitmeer/metrics"
 	"io"
 	"sync"

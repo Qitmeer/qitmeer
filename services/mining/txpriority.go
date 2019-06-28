@@ -2,7 +2,7 @@ package mining
 
 import (
 	"container/heap"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 

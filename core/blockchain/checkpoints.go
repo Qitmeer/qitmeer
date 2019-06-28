@@ -9,9 +9,9 @@ package blockchain
 import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/engine/txscript"
-	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/params"
 )
 
 // CheckpointConfirmations is the number of blocks before the end of the current
