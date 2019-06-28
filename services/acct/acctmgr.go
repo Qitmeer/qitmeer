@@ -25,6 +25,7 @@ func (a AccountManager)	APIs() []rpc.API {
 		{
 			NameSpace: rpc.DefaultServiceNameSpace,
 			Service:   NewPublicAccountManagerAPI(&a),
+			Public:    true,
 		},
 	}
 }

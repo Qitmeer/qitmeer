@@ -30,6 +30,7 @@ func (nf *NoxFull) API() rpc.API {
 	return rpc.API{
 		NameSpace: rpc.DefaultServiceNameSpace,
 		Service:   NewPublicBlockChainAPI(nf),
+		Public:    true,
 	}
 }
 
