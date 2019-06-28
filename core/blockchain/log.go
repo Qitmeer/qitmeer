@@ -3,7 +3,7 @@
 package blockchain
 
 import (
-	l "github.com/HalalChain/qitmeer/log"
+	l "github.com/HalalChain/qitmeer-lib/log"
 )
 
 // log is a logger that is initialized with no output filters.  This

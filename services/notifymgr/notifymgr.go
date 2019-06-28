@@ -2,9 +2,9 @@ package notifymgr
 
 import (
 	"github.com/HalalChain/qitmeer/core/message"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer/p2p/peerserver"
-	"github.com/HalalChain/qitmeer/rpc"
+	"github.com/HalalChain/qitmeer-lib/rpc"
 )
 
 // NotifyMgr manage message announce & relay & notification between mempool, websocket, gbt long pull

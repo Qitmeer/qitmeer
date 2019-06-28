@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer/core/dbnamespace"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer/database"
 	"math/big"
 	"sort"

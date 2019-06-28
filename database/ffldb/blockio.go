@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"sync"
 	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 

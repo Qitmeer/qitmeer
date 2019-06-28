@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer/core/dbnamespace"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 )
 
 // utxoOutput houses details about an individual unspent transaction output such

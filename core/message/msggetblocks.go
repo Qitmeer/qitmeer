@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/blockdag"
-	"github.com/HalalChain/qitmeer/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	"io"
-	s "github.com/HalalChain/qitmeer/core/serialization"
+	s "github.com/HalalChain/qitmeer-lib/core/serialization"
 
 )
 

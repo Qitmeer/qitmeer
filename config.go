@@ -15,9 +15,9 @@ import (
 	"strings"
 	"github.com/jessevdk/go-flags"
 	"github.com/HalalChain/qitmeer-lib/common/util"
-	"github.com/HalalChain/qitmeer/log"
-	"github.com/HalalChain/qitmeer/config"
-	"github.com/HalalChain/qitmeer/core/address"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/config"
+	"github.com/HalalChain/qitmeer-lib/core/address"
 )
 
 const (

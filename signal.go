@@ -9,7 +9,7 @@ package main
 import (
 	"os"
 	"os/signal"
-	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/log"
 )
 
 // shutdownRequestChannel is used to initiate shutdown from one of the

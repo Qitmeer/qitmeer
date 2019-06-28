@@ -3,10 +3,10 @@ package blockchain
 
 import (
 	"sync"
-	"github.com/HalalChain/qitmeer/params"
+	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 )
 
 // IndexManager provides a generic interface that the is called when blocks are

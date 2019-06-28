@@ -9,8 +9,8 @@ package mining
 import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/blockchain"
-	s "github.com/HalalChain/qitmeer/core/serialization"
-	"github.com/HalalChain/qitmeer/core/types"
+	s "github.com/HalalChain/qitmeer-lib/core/serialization"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"time"
 )
 

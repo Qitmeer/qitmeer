@@ -19,7 +19,7 @@
 package metrics
 
 import (
-	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/log"
 	"os"
 	"runtime"
 	"strings"

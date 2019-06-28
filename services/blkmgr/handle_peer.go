@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/message"
-	"github.com/HalalChain/qitmeer/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	"github.com/HalalChain/qitmeer/p2p/peer"
 	"sync/atomic"
 	"time"

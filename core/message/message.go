@@ -12,9 +12,9 @@ import (
 	"io"
 	"unicode/utf8"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/protocol"
-	s "github.com/HalalChain/qitmeer/core/serialization"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	s "github.com/HalalChain/qitmeer-lib/core/serialization"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"encoding/hex"
 )
 

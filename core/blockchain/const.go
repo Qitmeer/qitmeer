@@ -3,7 +3,7 @@ package blockchain
 
 import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 )
 
 const (

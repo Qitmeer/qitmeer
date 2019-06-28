@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"io"
-	s "github.com/HalalChain/qitmeer/core/serialization"
+	s "github.com/HalalChain/qitmeer-lib/core/serialization"
 )
 
 // MsgGetHeaders implements the Message interface and represents a getheaders

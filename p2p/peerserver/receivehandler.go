@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/message"
-	"github.com/HalalChain/qitmeer/core/protocol"
-	"github.com/HalalChain/qitmeer/core/types"
-	"github.com/HalalChain/qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/log"
 	"github.com/HalalChain/qitmeer/p2p/addmgr"
 	"github.com/HalalChain/qitmeer/p2p/peer"
-	"github.com/HalalChain/qitmeer/params/dcr/types"
+	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 	"time"
 )
 

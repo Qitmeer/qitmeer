@@ -10,7 +10,7 @@ import (
 	"io"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/blockdag"
-	s "github.com/HalalChain/qitmeer/core/serialization"
+	s "github.com/HalalChain/qitmeer-lib/core/serialization"
 )
 
 // defaultInvListAlloc is the default size used for the backing array for an

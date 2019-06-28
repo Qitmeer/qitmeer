@@ -7,9 +7,9 @@ package message
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"io"
-	s "github.com/HalalChain/qitmeer/core/serialization"
+	s "github.com/HalalChain/qitmeer-lib/core/serialization"
 )
 
 // MaxBlockHeadersPerMsg is the maximum number of block headers that can be in
