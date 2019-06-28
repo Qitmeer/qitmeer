@@ -27,6 +27,7 @@ import (
 type API struct {
 	NameSpace string      // namespace under which the rpc methods of Service are exposed
 	Service   interface{} // receiver instance which holds the methods
+	Public    bool        // indication if the methods must be considered safe for public use
 }
 
 // RpcServer provides a concurrent safe RPC server to a chain server.
