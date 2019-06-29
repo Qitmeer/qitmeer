@@ -25,10 +25,12 @@ func (s *HashSet) AddPair(elem *hash.Hash,data interface{}) {
 	s.m[*elem] = data
 }
 
+// Remove the element
 func (s *HashSet) Remove(elem *hash.Hash) {
 	delete(s.m, *elem)
 }
 
+// Add elements from set
 func (s *HashSet) AddSet(other *HashSet) {
 	if other == nil || other.Size() == 0 {
 		return
@@ -82,8 +84,6 @@ func (s *HashSet) Intersection(other *HashSet) *HashSet {
 	}
 	return result
 }
-
-
 
 func (s *HashSet) Exclude(other *HashSet) {
 	if other != nil && other.Size() > 0 {

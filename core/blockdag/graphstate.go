@@ -19,18 +19,22 @@ type GraphState struct {
 	layer uint
 }
 
+// Return the DAG layer
 func (gs *GraphState) GetLayer() uint {
 	return gs.layer
 }
 
+// Return the total of DAG
 func (gs *GraphState) GetTotal() uint {
 	return gs.total
 }
 
+// Return all tips of DAG
 func (gs *GraphState) GetTips() *HashSet {
 	return gs.tips
 }
 
+// Judging whether it is equal to other
 func (gs *GraphState) IsEqual(other *GraphState) bool {
 	if gs==other {
 		return true
@@ -41,6 +45,7 @@ func (gs *GraphState) IsEqual(other *GraphState) bool {
 	return gs.tips.IsEqual(other.tips)
 }
 
+// Setting vaules from other
 func (gs *GraphState) Equal(other *GraphState) {
 	if gs.IsEqual(other) {
 		return
@@ -50,16 +55,19 @@ func (gs *GraphState) Equal(other *GraphState) {
 	gs.total=other.total
 }
 
+// Copy self and return
 func (gs *GraphState) Clone() *GraphState {
 	result:=NewGraphState()
 	result.Equal(gs)
 	return result
 }
 
+// Return one string contain info
 func (gs *GraphState) String() string {
 	return fmt.Sprintf("(%d,%d,%d)",gs.tips.Size(),gs.total,gs.layer)
 }
 
+// Judging whether it is better than other
 func (gs *GraphState) IsExcellent(other *GraphState) bool {
 	if gs.IsEqual(other) {
 		return false
@@ -77,6 +85,7 @@ func (gs *GraphState) IsExcellent(other *GraphState) bool {
 	return false
 }
 
+// Encode itself to bytes buff
 func (gs *GraphState) Encode(w io.Writer,pver uint32) error {
 	err:= s.WriteVarInt(w, pver, uint64(gs.total))
 	if err != nil {
@@ -101,6 +110,7 @@ func (gs *GraphState) Encode(w io.Writer,pver uint32) error {
 	return nil
 }
 
+// Decode itself from bytes buff
 func (gs *GraphState) Decode(r io.Reader,pver uint32) error {
 	total, err := s.ReadVarInt(r,pver)
 	if err != nil {
