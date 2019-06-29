@@ -405,6 +405,7 @@ func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 	return result
 }
 
+// Judging whether block is the virtual tip that it have not future set.
 func isVirtualTip(b IBlock, futureSet *HashSet, anticone *HashSet, children *HashSet) bool {
 	for k:= range children.GetMap() {
 		if k.IsEqual(b.GetHash()) {
