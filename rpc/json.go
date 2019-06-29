@@ -31,7 +31,7 @@ import (
 
 const (
 	jsonrpcVersion           = "2.0"
-	DefaultServiceNameSpace  = "|nox|"
+	DefaultServiceNameSpace  = "nox"
 	serviceMethodSeparator   = "_"
 	subscribeMethodSuffix    = "_subscribe"
 	unsubscribeMethodSuffix  = "_unsubscribe"
