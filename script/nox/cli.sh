@@ -206,7 +206,6 @@ function get_blockhash_range(){
 }
 
 function get_result(){
-  set +x
   local proto="https"
   if [ $notls -eq 1 ]; then
      proto="http"
@@ -257,6 +256,7 @@ function to_base64() {
 function usage(){
   echo "block  :"
   echo "  block <num|hash>"
+  echo "  block_count"
   echo "  blockrange <start,end>"
   echo "  main  <hash>"
   echo "  template"
@@ -485,13 +485,10 @@ if [ "$1" == "block" ]; then
   else
     call_get_block $@
   fi
-elif [ "$1" == "get_block_number" ]; then
-  shift
-  if [ "$1" == "-hex" ]; then # result ishex by default
-    get_block_number
-  else                        # human can read (hex->decimal)
-    get_block_number |xargs printf "%d\n"
-  fi
+elif [ "$1" == "block_count" ]; then
+   shift
+   get_block_number
+
 elif [ "$1" == "get_syncing_info" ]; then
   shift
   get_syncing $@
@@ -720,4 +717,3 @@ else
   usage
   exit -1
 fi
-check_debug
