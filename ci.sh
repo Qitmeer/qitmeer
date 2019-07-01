@@ -2,7 +2,6 @@
 set -ex
 
 export GO111MODULE=on
-#go mod init qitmeer
 go mod tidy
 
 if [ ! -x "$(type -p golangci-lint)" ]; then
