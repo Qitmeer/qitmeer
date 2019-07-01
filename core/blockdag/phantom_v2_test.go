@@ -2,6 +2,7 @@ package blockdag
 
 import (
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"testing"
 )
 

@@ -3,6 +3,7 @@ package blockdag
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"io"
 	"math/rand"
 	"os"

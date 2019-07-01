@@ -3,7 +3,7 @@ package blockdag
 import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"strconv"
 	"testing"
 )
@@ -147,9 +147,9 @@ func Test_LocateBlocks(t *testing.T) {
 		t.FailNow()
 	}
 	gs:=dag.NewGraphState()
-	gs.tips.Add(bd.GetGenesisHash())
-	gs.total=1
-	gs.layer=0
+	gs.GetTips().Add(bd.GetGenesisHash())
+	gs.SetTotal(1)
+	gs.SetLayer(0)
 	lb:=bd.LocateBlocks(gs,100)
 	lbhs:=dag.NewHashSet()
 	lbhs.AddList(lb)
