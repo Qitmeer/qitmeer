@@ -2,6 +2,7 @@ package blockdag
 
 import (
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"github.com/golang-collections/collections/stack"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/common/util"
@@ -18,7 +19,7 @@ type Spectre struct {
 
 	// the nodes don't exist in future sets of 1 and 2, but they are referenced by the future sets
 	//  e.g. node 7 in ByteBall 2
-	dangling *HashSet
+	dangling *dag.HashSet
 
 	// the candidates to compete with each other
 	candidate1, candidate2 IBlock
@@ -35,7 +36,7 @@ func (sp *Spectre) Init(bd *BlockDAG) bool {
 	sp.bd=bd
 
 	sp.votes = make(map[hash.Hash]bool)
-	sp.dangling = NewHashSet()
+	sp.dangling = dag.NewHashSet()
 
 	return true
 }
@@ -220,7 +221,7 @@ func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 		q.Enqueue(*virtualBlock.GetHash())
 	}
 
-	visited := NewHashSet()
+	visited := dag.NewHashSet()
 	// cache the intersection of past set and voted notes
 	cache := make(map[hash.Hash]IBlock)
 	for q.Len() > 0 {
@@ -244,7 +245,7 @@ func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 				// must cache block  due to children index
 				sb, ok := cache[ph]
 				if !ok {
-					sb = &Block{hash:ph,parents:NewHashSet()}
+					sb = &Block{hash:ph,parents:dag.NewHashSet()}
 					cache[ph] = sb
 				}
 				sb.GetParents().Add(&h)
@@ -260,7 +261,7 @@ func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 	vp := &BlockDAG{}
 	vp.Init(spectre)
 	vp.AddBlock(sb)
-	visited = NewHashSet()
+	visited = dag.NewHashSet()
 
 	q = util.NewIterativeQueue()
 	if virtualBlock == nil {
@@ -407,7 +408,7 @@ func (sp *Spectre) updateTipVotes(voter *SpectreBlock, maxParent *SpectreBlock, 
 	vb:=votedPast.GetBlock(voter.GetHash())
 	voterParents := vb.GetParents()
 	tipStack := stack.New()
-	tipSet := NewHashSet()
+	tipSet := dag.NewHashSet()
 	// take out all other tips and add their votes to child
 	for h := range voterParents.GetMap() {
 		if !h.IsEqual(maxParent.GetHash()) && !h.IsEqual(votedPast.GetGenesis().GetHash()) {
@@ -463,7 +464,7 @@ func (sp *Spectre) followParents(virtualBlock IBlock) (bool, bool, error) {
 	consistent := true
 	last := 0
 
-	parents := NewHashSet()
+	parents := dag.NewHashSet()
 	if virtualBlock == nil { // whole graph
 		parents = sp.bd.GetTips()
 	} else { // past set of one node
@@ -538,12 +539,12 @@ func (sp *Spectre) VoteByBlock(virtualBlock IBlock) (bool, error) {
 // Update vote numbers of votedPast, e.g. for any node n in votedPast, update its Votes1 and Votes2
 // note: because one node's vote number is dependent on its ancestor,
 // we need update them from genesis of votePast down to its tips
-func (sp *Spectre) voteFromFutureSet(votedPast *BlockDAG) *HashSet {
-	tips := NewHashSet()
+func (sp *Spectre) voteFromFutureSet(votedPast *BlockDAG) *dag.HashSet {
+	tips := dag.NewHashSet()
 
 	vb := votedPast.GetGenesis()
 	unvisited := util.NewIterativeQueue()
-	visited := NewHashSet()
+	visited := dag.NewHashSet()
 
 	vChildren := votedPast.GetBlock(vb.GetHash()).GetChildren()
 	for ch := range vChildren.GetMap() {
@@ -622,9 +623,9 @@ func (sp *Spectre) voteFromFutureSet(votedPast *BlockDAG) *HashSet {
 // with outer nodes keep voting and become new tips, their children will become the new outer nodes
 // repeat this process until all the outer nodes votes for the same candidate, and VB will vote for him as well
 
-func (sp *Spectre) voteFromPastSet(votedPast *BlockDAG, tips *HashSet) bool {
+func (sp *Spectre) voteFromPastSet(votedPast *BlockDAG, tips *dag.HashSet) bool {
 	unvisited := util.NewIterativeQueue()
-	outerNodes := NewHashSet()
+	outerNodes := dag.NewHashSet()
 	for h := range tips.GetMap() {
 		hParents:=sp.bd.GetBlock(&h).GetParents()
 		for ph := range hParents.GetMap() {
@@ -670,8 +671,8 @@ func (sp *Spectre) voteFromPastSet(votedPast *BlockDAG, tips *HashSet) bool {
 			if consistent {
 				return lastVote < 0
 			} else {
-				removing := NewHashSet()
-				skip := NewHashSet()
+				removing := dag.NewHashSet()
+				skip := dag.NewHashSet()
 				for o := range outerNodes.GetMap() {
 					if skip.Has(&o) {
 						continue
@@ -727,7 +728,7 @@ func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) IBlock {
 	//votedPast.AddBlock(&sb)
 	block := Block{hash: *sb.GetHash(), weight: 1}
 	if sb.parents != nil {
-		block.parents = NewHashSet()
+		block.parents = dag.NewHashSet()
 		for _, h := range sb.parents {
 			hash:=*h
 			block.parents.Add(&hash)
@@ -756,10 +757,10 @@ func (sp *Spectre) voteBySelf(b1 IBlock, b2 IBlock) {
 
 // 1) if z ∈ G is in future (x) but not in future (y) then it will vote in favour of x (i.e., for x ≺y ).
 func (sp *Spectre) voteByUniqueFutureSet(b1 IBlock, b2 IBlock) {
-	fs1 := NewHashSet()
+	fs1 := dag.NewHashSet()
 	sp.bd.GetFutureSet(fs1, b1)
 
-	fs2 := NewHashSet()
+	fs2 := dag.NewHashSet()
 	sp.bd.GetFutureSet(fs2, b2)
 
 	for hf := range fs1.GetMap() {

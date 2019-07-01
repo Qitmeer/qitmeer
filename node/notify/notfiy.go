@@ -1,7 +1,7 @@
 package notify
 
 import (
-	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 )
 

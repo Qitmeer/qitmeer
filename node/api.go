@@ -11,18 +11,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/marshal"
 	"github.com/HalalChain/qitmeer-lib/core/address"
-	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer-lib/core/json"
-	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
-	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer-lib/rpc"
-	"github.com/HalalChain/qitmeer/services/common/error"
-	"github.com/HalalChain/qitmeer/services/common/marshal"
+	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/services/mempool"
 )
 
@@ -57,7 +55,7 @@ func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
 	// Validate the locktime, if given.
 	if lockTime != nil &&
 		(*lockTime < 0 || *lockTime > int64(types.MaxTxInSequenceNum)) {
-		return nil, er.RpcInvalidError("Locktime out of range")
+		return nil, rpc.RpcInvalidError("Locktime out of range")
 	}
 
 	// Add all transaction inputs to a new transaction after performing
@@ -66,7 +64,7 @@ func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
 	for _, input := range inputs {
 		txHash, err := hash.NewHashFromStr(input.Txid)
 		if err != nil {
-			return nil, er.RpcDecodeHexError(input.Txid)
+			return nil, rpc.RpcDecodeHexError(input.Txid)
 		}
 		prevOut := types.NewOutPoint(txHash, input.Vout)
 		txIn := types.NewTxInput(prevOut, types.NullValueIn, []byte{})
@@ -81,14 +79,14 @@ func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
 	for encodedAddr, amount := range amounts {
 		// Ensure amount is in the valid range for monetary amounts.
 		if amount <= 0 || amount > types.MaxAmount {
-			return nil, er.RpcInvalidError("Invalid amount: 0 >= %v "+
+			return nil, rpc.RpcInvalidError("Invalid amount: 0 >= %v "+
 				"> %v", amount, types.MaxAmount)
 		}
 
 		// Decode the provided address.
 		addr, err := address.DecodeAddress(encodedAddr)
 		if err != nil {
-			return nil, er.RpcAddressKeyError("Could not decode "+
+			return nil, rpc.RpcAddressKeyError("Could not decode "+
 				"address: %v", err)
 		}
 
@@ -99,23 +97,23 @@ func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
 		case *address.PubKeyHashAddress:
 		case *address.ScriptHashAddress:
 		default:
-			return nil, er.RpcAddressKeyError("Invalid type: %T", addr)
+			return nil, rpc.RpcAddressKeyError("Invalid type: %T", addr)
 		}
 		if !address.IsForNetwork(addr, api.node.node.Params) {
-			return nil, er.RpcAddressKeyError("Wrong network: %v",
+			return nil, rpc.RpcAddressKeyError("Wrong network: %v",
 				addr)
 		}
 
 		// Create a new script which pays to the provided address.
 		pkScript, err := txscript.PayToAddrScript(addr)
 		if err != nil {
-			return nil, er.RpcInternalError(err.Error(),
+			return nil, rpc.RpcInternalError(err.Error(),
 				"Pay to address script")
 		}
 
 		atomic, err := types.NewAmount(amount)
 		if err != nil {
-			return nil, er.RpcInternalError(err.Error(),
+			return nil, rpc.RpcInternalError(err.Error(),
 				"New amount")
 		}
 
@@ -148,12 +146,12 @@ func (api *PublicBlockChainAPI) DecodeRawTransaction(hexTx string) (interface{},
 	}
 	serializedTx, err := hex.DecodeString(hexStr)
 	if err != nil {
-		return nil, er.RpcDecodeHexError(hexStr)
+		return nil, rpc.RpcDecodeHexError(hexStr)
 	}
 	var mtx types.Transaction
 	err = mtx.Deserialize(bytes.NewReader(serializedTx))
 	if err != nil {
-		return nil, er.RpcDeserializationError("Could not decode Tx: %v",
+		return nil, rpc.RpcDeserializationError("Could not decode Tx: %v",
 			err)
 	}
 
@@ -177,7 +175,7 @@ func (api *PublicBlockChainAPI) DecodeRawTransaction(hexTx string) (interface{},
 func createVinList(mtx *types.Transaction) []json.Vin {
 	// Coinbase transactions only have a single txin by definition.
 	vinList := make([]json.Vin, len(mtx.TxIn))
-	if blockchain.IsCoinBaseTx(mtx) {
+	if mtx.IsCoinBaseTx() {
 		txIn := mtx.TxIn[0]
 		vinEntry := &vinList[0]
 		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
@@ -283,12 +281,12 @@ func (api *PublicBlockChainAPI) SendRawTransaction(hexTx string, allowHighFees *
 	}
 	serializedTx, err := hex.DecodeString(hexStr)
 	if err != nil {
-		return nil, er.RpcDecodeHexError(hexStr)
+		return nil, rpc.RpcDecodeHexError(hexStr)
 	}
 	msgtx := types.NewTransaction()
 	err = msgtx.Deserialize(bytes.NewReader(serializedTx))
 	if err != nil {
-		return nil, er.RpcDeserializationError("Could not decode Tx: %v",
+		return nil, rpc.RpcDeserializationError("Could not decode Tx: %v",
 			err)
 	}
 
@@ -310,18 +308,18 @@ func (api *PublicBlockChainAPI) SendRawTransaction(hexTx string, allowHighFees *
 			if ok {
 				if txRuleErr.RejectCode == message.RejectDuplicate {
 					// return a dublicate tx error
-					return nil, er.RpcDuplicateTxError("%v", err)
+					return nil, rpc.RpcDuplicateTxError("%v", err)
 				}
 			}
 
 			// return a generic rule error
-			return nil, er.RpcRuleError("%v", err)
+			return nil, rpc.RpcRuleError("%v", err)
 		}
 
 		log.Error("Failed to process transaction", "err", err)
 		err = fmt.Errorf("failed to process transaction %v: %v",
 			tx.Hash(), err)
-		return nil, er.RpcDeserializationError("rejected: %v", err)
+		return nil, rpc.RpcDeserializationError("rejected: %v", err)
 	}
 	//TODO P2P layer announce
 	api.node.nfManager.AnnounceNewTransactions(acceptedTxs)
@@ -354,7 +352,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			return nil, errors.New("Failed to retrieve transaction location")
 		}
 		if blockRegion == nil {
-			return nil, er.RpcNoTxInfoError(&txHash)
+			return nil, rpc.RpcNoTxInfoError(&txHash)
 		}
 
 		// Load the raw transaction bytes from the database.
@@ -365,7 +363,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			return err
 		})
 		if err != nil {
-			return nil, er.RpcNoTxInfoError(&txHash)
+			return nil, rpc.RpcNoTxInfoError(&txHash)
 		}
 
 		// When the verbose flag isn't set, simply return the serialized
@@ -380,7 +378,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 		blkOrder, err = api.node.blockManager.GetChain().BlockOrderByHash(blkHash)
 		if err != nil {
 			context := "Failed to retrieve block height"
-			return nil, er.RpcInternalError(err.Error(), context)
+			return nil, rpc.RpcInternalError(err.Error(), context)
 		}
 
 		// Deserialize the transaction
@@ -389,7 +387,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 		log.Trace("GetRawTx", "hex", hex.EncodeToString(txBytes))
 		if err != nil {
 			context := "Failed to deserialize transaction"
-			return nil, er.RpcInternalError(err.Error(), context)
+			return nil, rpc.RpcInternalError(err.Error(), context)
 		}
 		mtx = &msgTx
 	} else {
@@ -482,7 +480,7 @@ func (api *PublicBlockChainAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMe
 			txVersion = tx.Version
 			amount = txOut.Amount
 			pkScript = txOut.PkScript
-			isCoinbase = blockchain.IsCoinBaseTx(tx)
+			isCoinbase = tx.IsCoinBaseTx()
 		}
 	}
 

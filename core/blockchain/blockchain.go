@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"github.com/HalalChain/qitmeer/core/blockdag"
 	"github.com/HalalChain/qitmeer/core/dbnamespace"
 	"github.com/HalalChain/qitmeer-lib/core/types"
@@ -106,7 +107,7 @@ type BlockChain struct {
 	//block dag
 	bd *blockdag.BlockDAG
 	//badTx hash->block hash
-	badTx map[hash.Hash]*blockdag.HashSet
+	badTx map[hash.Hash]*dag.HashSet
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -193,11 +194,11 @@ type BestState struct {
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
 	TotalSubsidy int64                // The total subsidy for the chain.
-	GraphState   *blockdag.GraphState //The graph state of dag
+	GraphState   *dag.GraphState //The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64, gs *blockdag.GraphState) *BestState {
+func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64, gs *dag.GraphState) *BestState {
 	return &BestState{
 		Hash:         node.hash,
 		Order:        node.order,
@@ -258,7 +259,7 @@ func New(config *Config) (*BlockChain, error) {
 	}
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType)
-	b.badTx = make(map[hash.Hash]*blockdag.HashSet)
+	b.badTx = make(map[hash.Hash]*dag.HashSet)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -547,7 +548,7 @@ func (b *BlockChain) GetOrphansParents() []*hash.Hash {
 	b.orphanLock.RLock()
 	defer b.orphanLock.RUnlock()
 	//
-	result := blockdag.NewHashSet()
+	result := dag.NewHashSet()
 	for _, v := range b.orphans {
 		for _, h := range v.block.Block().Parents {
 			exists, err := b.HaveBlock(h)
@@ -571,7 +572,7 @@ func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash {
 	if !exists {
 		return nil
 	}
-	result := blockdag.NewHashSet()
+	result := dag.NewHashSet()
 	for _, h := range ob.block.Block().Parents {
 		exists, err := b.HaveBlock(h)
 		if err != nil || exists {
@@ -1312,7 +1313,7 @@ func (b *BlockChain) AddBadTx(txh *hash.Hash, bh *hash.Hash) {
 	if b.IsBadTx(txh) {
 		b.badTx[*txh].Add(bh)
 	} else {
-		set := blockdag.NewHashSet()
+		set := dag.NewHashSet()
 		set.Add(bh)
 		b.badTx[*txh] = set
 	}

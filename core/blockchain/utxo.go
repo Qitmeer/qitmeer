@@ -69,7 +69,7 @@ func (view *UtxoViewpoint) AddTxOuts(theTx *types.Tx, blockHeight int64, blockIn
 	if entry == nil {
 		txType := types.DetermineTxType(tx)
 		entry = newUtxoEntry(tx.Version, uint32(blockHeight),
-			blockIndex, IsCoinBaseTx(tx), tx.Expire != 0, txType)
+			blockIndex, tx.IsCoinBaseTx(), tx.Expire != 0, txType)
 		view.entries[*theTx.Hash()] = entry
 	} else {
 		entry.height = uint32(blockHeight)
@@ -130,7 +130,7 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	txNeededSet := make(map[hash.Hash]struct{})
 	txNeededSet[*tx.Hash()] = struct{}{}
 	msgTx := tx.Transaction()
-	if !IsCoinBaseTx(msgTx) {
+	if !msgTx.IsCoinBaseTx() {
 		for _, txIn := range msgTx.TxIn {
 			txNeededSet[txIn.PreviousOut.Hash] = struct{}{}
 		}
@@ -376,7 +376,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, blockIndex uint32, stxos *[]spentTxOut) error {
 	msgTx := tx.Transaction()
 	// Coinbase transactions don't have any inputs to spend.
-	if IsCoinBaseTx(msgTx) {
+	if msgTx.IsCoinBaseTx() {
 		// Add the transaction's outputs as available utxos.
 		view.AddTxOuts(tx, int64(blockHeight), blockIndex) //TODO, remove type conversion
 		return nil
@@ -622,7 +622,7 @@ func (view *UtxoViewpoint) disconnectTransactionSlice(transactions []*types.Tx, 
 		entry := view.entries[*tx.Hash()]
 		if entry == nil {
 			entry = newUtxoEntry(msgTx.Version, uint32(height),
-				uint32(txIdx), IsCoinBaseTx(msgTx), msgTx.Expire != 0, txType)
+				uint32(txIdx), msgTx.IsCoinBaseTx(), msgTx.Expire != 0, txType)
 			view.entries[*tx.Hash()] = entry
 		}
 		entry.modified = true

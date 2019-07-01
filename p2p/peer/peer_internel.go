@@ -9,10 +9,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/blockdag"
-	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	s "github.com/HalalChain/qitmeer-lib/core/serialization"
 	"github.com/HalalChain/qitmeer-lib/core/types"
@@ -81,8 +81,8 @@ type Peer struct {
 	knownInventory     *invcache.InventoryCache
 
 	prevGetBlocksMtx   sync.Mutex
-	prevGetGS          *blockdag.GraphState
-	prevGetBlocks      *blockdag.HashSet
+	prevGetGS          *dag.GraphState
+	prevGetBlocks      *dag.HashSet
 	prevGetHdrsMtx     sync.Mutex
 	prevGetHdrsBegin   *hash.Hash
 	prevGetHdrsStop    *hash.Hash
@@ -92,7 +92,7 @@ type Peer struct {
 	statsMtx           sync.RWMutex
 
 	// - block
-	lastGS             *blockdag.GraphState
+	lastGS             *dag.GraphState
 	lastAnnouncedBlock *hash.Hash
 
 	// - Time
@@ -432,7 +432,7 @@ func (p *Peer) start() error {
 	return nil
 }
 
-func (p *Peer) GetGraphState() *blockdag.GraphState {
+func (p *Peer) GetGraphState() *dag.GraphState {
 	if p.cfg.NewestGS != nil {
 		gs, err := p.cfg.NewestGS()
 		if err != nil {
@@ -473,7 +473,7 @@ func newPeerBase(cfg *Config, inbound bool) *Peer {
 		cfg:             *cfg, // Copy so caller can't mutate.
 		services:        cfg.Services,
 		protocolVersion: protocolVersion,
-		lastGS:          blockdag.NewGraphState(),
+		lastGS:          dag.NewGraphState(),
 	}
 	return &p
 }

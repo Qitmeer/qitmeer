@@ -3,6 +3,7 @@ package blockdag
 import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 	"strconv"
 	"testing"
 )
@@ -15,7 +16,7 @@ func Test_GetFutureSet(t *testing.T) {
 
 	//ph:=ibd.(*Phantom)
 	anBlock := bd.GetBlock(tbMap[testData.PH_GetFutureSet.Input])
-	bset := NewHashSet()
+	bset := dag.NewHashSet()
 	bd.GetFutureSet(bset,anBlock)
 	fmt.Printf("Get %s future set：\n", testData.PH_GetFutureSet.Input)
 	printBlockSetTag(bset,tbMap)
@@ -145,12 +146,12 @@ func Test_LocateBlocks(t *testing.T) {
 	if ibd==nil {
 		t.FailNow()
 	}
-	gs:=NewGraphState()
+	gs:=dag.NewGraphState()
 	gs.tips.Add(bd.GetGenesisHash())
 	gs.total=1
 	gs.layer=0
 	lb:=bd.LocateBlocks(gs,100)
-	lbhs:=NewHashSet()
+	lbhs:=dag.NewHashSet()
 	lbhs.AddList(lb)
 
 	if !processResult(lbhs,changeToHashList(testData.PH_LocateBlocks.Output, tbMap)) {

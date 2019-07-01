@@ -2,9 +2,10 @@ package blockdag
 
 import (
 	"container/list"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"github.com/HalalChain/qitmeer/core/merkle"
 	"time"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
 // Some available DAG algorithm types
@@ -82,7 +83,7 @@ type BlockDAG struct {
 	blockTotal uint
 
 	// The terminal block is in block dag,this block have not any connecting at present.
-	tips *HashSet
+	tips *dag.HashSet
 
 	// This is time when the last block have added
 	lastTime time.Time
@@ -135,7 +136,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	//
 	block := Block{hash: *b.GetHash(), weight: 1, layer:0}
 	if parents != nil {
-		block.parents = NewHashSet()
+		block.parents = dag.NewHashSet()
 		var maxLayer uint=0
 		for k, h := range parents {
 			parent := bd.GetBlock(h)
@@ -220,7 +221,7 @@ func (bd *BlockDAG) GetBlockTotal() uint {
 }
 
 // return the terminal blocks, because there maybe more than one, so this is a set.
-func (bd *BlockDAG) GetTips() *HashSet {
+func (bd *BlockDAG) GetTips() *dag.HashSet {
 	return bd.tips
 }
 
@@ -246,7 +247,7 @@ func (bd *BlockDAG) BuildMerkleTreeStoreFromTips() []*hash.Hash {
 // Refresh the dag tip whith new block,it will cause changes in tips set.
 func (bd *BlockDAG) updateTips(b *Block) {
 	if bd.tips == nil {
-		bd.tips = NewHashSet()
+		bd.tips = dag.NewHashSet()
 		bd.tips.AddPair(b.GetHash(),b)
 		return
 	}
@@ -314,7 +315,7 @@ func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 
 // Returns a future collection of block. This function is a recursively called function
 // So we should consider its efficiency.
-func (bd *BlockDAG) GetFutureSet(fs *HashSet, b IBlock) {
+func (bd *BlockDAG) GetFutureSet(fs *dag.HashSet, b IBlock) {
 	children := b.GetChildren()
 	if children == nil || children.IsEmpty() {
 		return
@@ -345,31 +346,31 @@ func (bd *BlockDAG) GetLayer(h *hash.Hash) uint {
 }
 
 // Return current general description of the whole state of DAG
-func (bd *BlockDAG) GetGraphState() *GraphState {
-	gs:=NewGraphState()
+func (bd *BlockDAG) GetGraphState() *dag.GraphState {
+	gs:=dag.NewGraphState()
 	if bd.tips!=nil && !bd.tips.IsEmpty() {
-		gs.tips=bd.tips.Clone()
+		gs.GetTips().AddList(bd.tips.List())
 
-		gs.layer=0
-		for _,v:=range gs.tips.GetMap() {
+		gs.SetLayer(0)
+		for _,v:=range bd.tips.GetMap() {
 			tip:=v.(*Block)
-			if tip.GetLayer()>gs.layer{
-				gs.layer=tip.GetLayer()
+			if tip.GetLayer()>gs.GetLayer(){
+				gs.SetLayer(tip.GetLayer())
 			}
 		}
 	}
-	gs.total=bd.GetBlockTotal()
+	gs.SetTotal(bd.GetBlockTotal())
 
 	return gs
 }
 
 // Locate all eligible block by current graph state.
-func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
+func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState,maxHashes uint) []*hash.Hash {
 	if gs.IsExcellent(bd.GetGraphState()) {
 		return nil
 	}
 	queue := []IBlock{}
-	for k:=range gs.tips.GetMap(){
+	for k:=range gs.GetTips().GetMap(){
 		if bd.HasBlock(&k) {
 			queue=append(queue,bd.GetBlock(&k))
 		}
@@ -377,8 +378,8 @@ func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 	if len(queue)==0 {
 		return nil
 	}
-	fs:=NewHashSet()
-	fs.AddSet(gs.tips)
+	fs:=dag.NewHashSet()
+	fs.AddList(gs.GetTips().List())
 
 	result:=[]*hash.Hash{}
 
@@ -406,7 +407,7 @@ func (bd *BlockDAG) LocateBlocks(gs *GraphState,maxHashes uint) []*hash.Hash {
 }
 
 // Judging whether block is the virtual tip that it have not future set.
-func isVirtualTip(b IBlock, futureSet *HashSet, anticone *HashSet, children *HashSet) bool {
+func isVirtualTip(b IBlock, futureSet *dag.HashSet, anticone *dag.HashSet, children *dag.HashSet) bool {
 	for k:= range children.GetMap() {
 		if k.IsEqual(b.GetHash()) {
 			return false
@@ -419,7 +420,7 @@ func isVirtualTip(b IBlock, futureSet *HashSet, anticone *HashSet, children *Has
 }
 
 // This function is used to GetAnticone recursion
-func (bd *BlockDAG) recAnticone(b IBlock, futureSet *HashSet, anticone *HashSet, h *hash.Hash) {
+func (bd *BlockDAG) recAnticone(b IBlock, futureSet *dag.HashSet, anticone *dag.HashSet, h *hash.Hash) {
 	if h.IsEqual(b.GetHash()) {
 		return
 	}
@@ -446,10 +447,10 @@ func (bd *BlockDAG) recAnticone(b IBlock, futureSet *HashSet, anticone *HashSet,
 
 // This function can get anticone set for an block that you offered in the block dag,If
 // the exclude set is not empty,the final result will exclude set that you passed in.
-func (bd *BlockDAG) GetAnticone(b IBlock, exclude *HashSet) *HashSet {
-	futureSet := NewHashSet()
+func (bd *BlockDAG) GetAnticone(b IBlock, exclude *dag.HashSet) *dag.HashSet {
+	futureSet := dag.NewHashSet()
 	bd.GetFutureSet(futureSet, b)
-	anticone := NewHashSet()
+	anticone := dag.NewHashSet()
 	for k:= range bd.tips.GetMap() {
 		bd.recAnticone(b, futureSet, anticone, &k)
 	}

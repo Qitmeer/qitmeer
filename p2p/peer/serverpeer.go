@@ -7,7 +7,7 @@ package peer
 
 import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 )
 
 // ServerPeer extends the peer to maintain state shared by the p2p server and
