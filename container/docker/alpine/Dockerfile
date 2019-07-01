@@ -1,12 +1,12 @@
 FROM alpine:3.9
 MAINTAINER jin
 
-ENV BUILDDIR=/nox
+ENV BUILDDIR=/qitmeer
 
 RUN apk add --no-cache curl bash jq curl && \
     rm -rf /var/cache/apk/*
 
 COPY ./build/ $BUILDDIR
 
-ENTRYPOINT ["/nox/launch"]
+ENTRYPOINT ["/qitmeer/launch"]
 
