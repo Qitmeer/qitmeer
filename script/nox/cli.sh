@@ -6,9 +6,7 @@ set -e
 # settings
 # ---------------------------
 DEBUG=0
-DEBUG_FILE=/tmp/nox_curl_debug
-ERR_FILE=/tmp/nox_curl_error
-
+notls=0
 # ---------------------------
 # solc call, need solc command line
 # ---------------------------
@@ -208,7 +206,10 @@ function get_blockhash_range(){
 }
 
 function get_result(){
-  set +x
+  local proto="https"
+  if [ $notls -eq 1 ]; then
+     proto="http"
+  fi
   if [ -z "$host" ]; then
      host=127.0.0.1
   fi
@@ -218,16 +219,12 @@ function get_result(){
   local user="test"
   local pass="test"
   local data=$1
-  local curl_result=$(curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data $data https://$host:$port)
+  local curl_result=$(curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data $data $proto://$host:$port)
   local result=$(echo $curl_result|jq -r -M '.result')
   if [ $DEBUG -gt 0 ]; then
-    local curl_cmd="curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data '"$data"' https://$host:$port"
-    echo "$curl_cmd" > $DEBUG_FILE
-    echo "$curl_result" >> $DEBUG_FILE
-  fi
-  if [ "$result" == "null" ];then
-    echo "$curl_result" > $ERR_FILE
-    result=""
+    local curl_cmd="curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data '"$data"' $proto://$host:$port"
+    echo "$curl_cmd"
+    echo "$curl_result"
   fi
   echo $result
 }
@@ -256,42 +253,22 @@ function to_base64() {
   echo -n $1|xxd -r -p|base64
 }
 
-function check_error() {
-  if [ -e $ERR_FILE ]; then
-    echo "Error:"
-    cat $ERR_FILE|jq .error
-    rm $ERR_FILE
-    if [ "$1" == "-e" ]; then
-      check_debug
-      exit -1
-    fi
-  fi
-}
-function check_debug() {
-  if [ $DEBUG -gt 0 ]; then
-    if [ -e $DEBUG_FILE ]; then
-      cat $DEBUG_FILE
-      rm $DEBUG_FILE
-    fi
-  fi
-}
-
 function usage(){
-
-  echo "block    :"
+  echo "block  :"
   echo "  block <num|hash>"
+  echo "  block_count"
   echo "  blockrange <start,end>"
   echo "  main  <hash>"
   echo "  template"
+  echo "  generate <num>"
   echo "  mainHeight"
   echo "  weight <hash>"
-  echo "tx       :"
+  echo "tx     :"
   echo "  tx <hash>"
   echo "  txSign <rawTx>"
   echo "  sendRawTx <signedRawTx>"
-  echo "utxo  :"
+  echo "utxo   :"
   echo "  getutxo <tx_id> <index> <include_mempool,default=true>"
-  
 }
 
 # -------------------
@@ -365,10 +342,10 @@ function get_status() {
     get_hashrate
   elif [ "$1" == "-work" ]; then
     get_work|jq .
-    check_error
+
   elif [ "$1" == "-txpool" ]; then
     txpool -status|jq .
-    check_error
+
   elif [ "$1" == "-all" ]; then
     echo "modules  : $(get_modules|jq -c -M .)"
     get_mining_status
@@ -441,7 +418,6 @@ function call_get_block() {
        echo '{ "error" : "need to provide blknum or blkhash"}'; exit -1;
     fi
   fi
-  check_error -e
 
   if [ "$show" == "" ]; then
     echo $block_result|jq '.'
@@ -478,6 +454,9 @@ fi
 #echo "$@"
 while [ $# -gt 0 ] ;do
   case "$1" in
+    -notls)
+      notls=1
+      ;;
     -h)
       host=$2
       #echo "host is $host"
@@ -506,13 +485,10 @@ if [ "$1" == "block" ]; then
   else
     call_get_block $@
   fi
-elif [ "$1" == "get_block_number" ]; then
-  shift
-  if [ "$1" == "-hex" ]; then # result ishex by default
-    get_block_number
-  else                        # human can read (hex->decimal)
-    get_block_number |xargs printf "%d\n"
-  fi
+elif [ "$1" == "block_count" ]; then
+   shift
+   get_block_number
+
 elif [ "$1" == "get_syncing_info" ]; then
   shift
   get_syncing $@
@@ -529,31 +505,31 @@ elif [ "$1" == "get_highest_block" ]; then
 elif [ "$1" == "blockhash" ]; then
   shift
   get_blockhash $1
-  check_error
+
 elif [ "$1" == "header" ]; then
   shift
   get_blockheader_by_hash $@
-  check_error
+
 elif [ "$1" == "main" ]; then
     shift
     is_on_mainchain $1
-    check_error
+
 elif [ "$1" == "template" ]; then
     shift
     get_block_template | jq .
-    check_error
+
 elif [ "$1" == "mainHeight" ]; then
     shift
     get_mainchain_height
-    check_error
+
 elif [ "$1" == "weight" ]; then
     shift
     get_block_weight $1
-    check_error
+
 elif [ "$1" == "blockrange" ]; then
   shift
   get_blockhash_range $@
-  check_error
+
 ## Tx
 elif [ "$1" == "tx" ]; then
   shift
@@ -562,19 +538,19 @@ elif [ "$1" == "tx" ]; then
   else
     get_tx_by_hash $@|jq .
   fi
-  check_error
+
 elif [ "$1" == "createRawTx" ]; then
   shift
   create_raw_tx $@
-  check_error
+
 elif [ "$1" == "decodeRawTx" ]; then
   shift
   decode_raw_tx $@|jq .
-  check_error
+
 elif [ "$1" == "sendRawTx" ]; then
   shift
   send_raw_tx $@
-  check_error
+
 elif [ "$1" == "get_tx_by_block_and_index" ]; then
   shift
   # note: the input is block number & tx index in hex
@@ -584,13 +560,13 @@ elif [ "$1" == "get_tx_by_block_and_index" ]; then
 elif [ "$1" == "mempool" ]; then
   shift
   get_mempool $@|jq .
-  check_error
+
 
 elif [ "$1" == "txSign" ]; then
   shift
   tx_sign $@
   echo $@
-  check_error
+
 
 ## UTXO
 elif [ "$1" == "getutxo" ]; then
@@ -601,11 +577,11 @@ elif [ "$1" == "getutxo" ]; then
 elif [ "$1" == "newaccount" ]; then
   shift
   new_account "$@"
-  check_error
+
 elif [ "$1" == "accounts" ]; then
   shift
   accounts=$(get_accounts)
-  check_error
+
   if [ -z "$1" ]; then
     echo $accounts|jq '.'
   else
@@ -621,7 +597,7 @@ elif [ "$1" == "balance" ]; then
   fi
   # echo "debug get_balance $addr $num"
   balance=$(get_balance $addr $num $@)
-  check_error
+
   echo $balance
   # echo "debug get_balance $addr $num --> $balance"
 elif [ "$1" == "get_tx_count" ]; then
@@ -642,7 +618,7 @@ elif [ "$1" == "get_code" ]; then
     shift
   fi
   get_code $addr $num
-  check_error
+
 elif [ "$1" == "get_storage" ]; then
   shift
   addr=$(pad_hex_prefix $1)
@@ -656,7 +632,7 @@ elif [ "$1" == "get_storage" ]; then
     shift
   fi
   get_storage $addr $at $num
-  check_error
+
 
 ## Mining
 elif [ "$1" == "get_coinbase" ]; then
@@ -676,7 +652,7 @@ elif [ "$1" == "mining" ]; then
 elif [ "$1" == "generate" ]; then
   shift
   generate $1|jq .
-  check_error
+
 
 ## INFO & STATUS
 elif [ "$1" == "status" ] || [ "$1" == "info" ] || [ "$1" == "get_status" ] || [ "$1" == "get_info" ]; then
@@ -690,42 +666,42 @@ elif [ "$1" == "compile" ]; then
 elif [ "$1" == "call" ]; then
   shift
   nox_call $@
-  check_error
+
 elif [ "$1" == "send_tx" ]; then
   shift
   send_tx $@
-  check_error
+
 elif [ "$1" == "receipt" ]; then
   shift
   get_receipt $@ |jq .
-  check_error
+
 elif [ "$1" == "contractaddr" ]; then
   shift
   get_receipt $@ |jq -r .contractAddress
-  check_error
+
 ## TXPOOL
 elif [ "$1" == "txpool" ]; then
   shift
   txpool $@ |jq .
-  check_error
+
 
 ## DEBUG Moduls
 elif [ "$1" == "dump_state" ]; then
   shift
   dump_block $@|jq .
-  check_error
+
 elif [ "$1" == "rlp_block" ]; then
   shift
   block_rlp $@
-  check_error
+
 elif [ "$1" == "trace_block" ]; then
   shift
   trace_block $@|jq .
-  check_error
+
 elif [ "$1" == "trace_tx" ]; then
   shift
   trace_tx $@|jq .
-  check_error
+
 
 ## UTILS
 elif [ "$1" == "to_hex" ]; then
@@ -741,4 +717,3 @@ else
   usage
   exit -1
 fi
-check_debug
