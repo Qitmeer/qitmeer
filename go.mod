@@ -3,7 +3,7 @@ module github.com/HalalChain/qitmeer
 go 1.12
 
 require (
-	github.com/HalalChain/qitmeer-lib v0.0.0-20190629103540-144b8ac33c1c
+	github.com/HalalChain/qitmeer-lib v0.0.0-20190701115803-6220816a33c9
 	github.com/coreos/bbolt v1.3.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dchest/blake256 v1.0.0
@@ -26,7 +26,6 @@ require (
 )
 
 replace (
-	github.com/HalalChain/qitmeer-lib => /Users/jin/Applications/HalalChain/qitmeer/qitmeer-lib
 	golang.org/x/crypto v0.0.0-20181001203147-e3636079e1a4 => github.com/golang/crypto v0.0.0-20181001203147-e3636079e1a4
 	golang.org/x/net v0.0.0-20180906233101-161cd47e91fd => github.com/golang/net v0.0.0-20180906233101-161cd47e91fd
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 => github.com/golang/net v0.0.0-20181005035420-146acd28ed58
