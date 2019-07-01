@@ -1,6 +1,9 @@
 package blockdag
 
-import "github.com/HalalChain/qitmeer-lib/common/hash"
+import (
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
+)
 
 //The abstract inferface is used to dag block
 type IBlockData interface {
@@ -29,7 +32,7 @@ type IBlock interface {
 	GetOrder() uint
 
 	// Get all parents set,the dag block has more than one parent
-	GetParents() *HashSet
+	GetParents() *dag.HashSet
 
 	// Testing whether it has parents
 	HasParents() bool
@@ -38,7 +41,7 @@ type IBlock interface {
 	AddChild(child *Block)
 
     // Get all the children of block
-    GetChildren() *HashSet
+    GetChildren() *dag.HashSet
 
 	// Detecting the presence of child nodes
 	HasChildren() bool
@@ -58,8 +61,8 @@ type IBlock interface {
 // It is the element of a DAG. It is the most basic data unit.
 type Block struct {
 	hash     hash.Hash
-	parents  *HashSet
-	children *HashSet
+	parents  *dag.HashSet
+	children *dag.HashSet
 
 	mainParent *hash.Hash
 	weight uint
@@ -74,7 +77,7 @@ func (b *Block) GetHash() *hash.Hash {
 }
 
 // Get all parents set,the dag block has more than one parent
-func (b *Block) GetParents() *HashSet {
+func (b *Block) GetParents() *dag.HashSet {
 	return b.parents
 }
 
@@ -126,13 +129,13 @@ func (b *Block) GetBackParent() *Block {
 // Add child nodes to block
 func (b *Block) AddChild(child *Block) {
 	if b.children == nil {
-		b.children = NewHashSet()
+		b.children = dag.NewHashSet()
 	}
 	b.children.AddPair(child.GetHash(),child)
 }
 
 // Get all the children of block
-func (b *Block) GetChildren() *HashSet {
+func (b *Block) GetChildren() *dag.HashSet {
 	return b.children
 }
 

@@ -6,12 +6,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer-lib/core/json"
 	"github.com/HalalChain/qitmeer-lib/rpc"
-	"github.com/HalalChain/qitmeer/services/common/error"
 	"fmt"
-	"github.com/HalalChain/qitmeer/services/common/marshal"
+	"github.com/HalalChain/qitmeer-lib/common/marshal"
 	"strconv"
 )
 
@@ -138,7 +138,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 	if !verbose {
 		blkBytes, err := blk.Bytes()
 		if err != nil {
-			return nil, er.RpcInternalError(err.Error(),
+			return nil, rpc.RpcInternalError(err.Error(),
 				"Could not serialize block")
 		}
 		return hex.EncodeToString(blkBytes), nil
@@ -178,12 +178,12 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 	// Fetch the block node
 	node:=api.bm.chain.BlockIndex().LookupNode(&hash)
 	if node==nil {
-		return nil, er.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", hash))
+		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", hash))
 	}
 	// Fetch the header from chain.
 	blockHeader, err := api.bm.chain.HeaderByHash(&hash)
 	if err != nil {
-		return nil, er.RpcInternalError(err.Error(), fmt.Sprintf("Block not found: %v", hash))
+		return nil, rpc.RpcInternalError(err.Error(), fmt.Sprintf("Block not found: %v", hash))
 	}
 
 	// When the verbose flag isn't set, simply return the serialized block
@@ -193,7 +193,7 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 		err := blockHeader.Serialize(&headerBuf)
 		if err != nil {
 			context := "Failed to serialize block header"
-			return nil, er.RpcInternalError(err.Error(), context)
+			return nil, rpc.RpcInternalError(err.Error(), context)
 		}
 		return hex.EncodeToString(headerBuf.Bytes()), nil
 	}
@@ -232,7 +232,7 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 func (api *PublicBlockAPI) IsOnMainChain(h hash.Hash) (interface{}, error){
 	node:=api.bm.chain.BlockIndex().LookupNode(&h)
 	if node==nil {
-		return nil, er.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
+		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
 	}
 	isOn:=api.bm.chain.BlockDAG().IsOnMainChain(&h)
 
@@ -248,7 +248,7 @@ func (api *PublicBlockAPI) GetMainChainHeight() (interface{}, error){
 func (api *PublicBlockAPI) GetBlockWeight(h hash.Hash) (interface{}, error){
 	block,err:=api.bm.chain.FetchBlockByHash(&h)
 	if err != nil {
-		return nil, er.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
+		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
 	}
-	return strconv.FormatInt(int64(blockchain.GetBlockWeight(block.Block())),10),nil
+	return strconv.FormatInt(int64(types.GetBlockWeight(block.Block())),10),nil
 }

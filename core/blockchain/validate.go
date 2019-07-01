@@ -18,30 +18,6 @@ import (
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 )
 
-
-
-// IsCoinBaseTx determines whether or not a transaction is a coinbase.  A
-// coinbase is a special transaction created by miners that has no inputs.
-// This is represented in the block chain by a transaction with a single input
-// that has a previous output transaction index set to the maximum value along
-// with a zero hash.
-//
-// This function only differs from IsCoinBase in that it works with a raw wire
-// transaction as opposed to a higher level util transaction.
-func IsCoinBaseTx(tx *types.Transaction) bool {
-	// A coin base must only have one transaction input.
-	if len(tx.TxIn) != 1 {
-		return false
-	}
-	// The previous output of a coin base must have a max value index and a
-	// zero hash.
-	prevOut := &tx.TxIn[0].PreviousOut
-	if prevOut.OutIndex != math.MaxUint32 || !prevOut.Hash.IsEqual(zeroHash) {
-		return false
-	}
-	return true
-}
-
 // This function only differs from IsExpired in that it works with a raw wire
 // transaction as opposed to a higher level util transaction.
 func IsExpiredTx(tx *types.Transaction, blockHeight uint64) bool {
@@ -139,14 +115,14 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 
 	// The first transaction in a block's regular tree must be a coinbase.
 	transactions := block.Transactions()
-	if !IsCoinBaseTx(transactions[0].Transaction()) {
+	if !transactions[0].Transaction().IsCoinBaseTx() {
 		return ruleError(ErrFirstTxNotCoinbase, "first transaction in "+
 			"block is not a coinbase")
 	}
 
 	// A block must not have more than one coinbase.
 	for i, tx := range transactions[1:] {
-		if IsCoinBaseTx(tx.Transaction()) {
+		if tx.Transaction().IsCoinBaseTx() {
 			str := fmt.Sprintf("block contains second coinbase at "+
 				"index %d", i+1)
 			return ruleError(ErrMultipleCoinbases, str)
@@ -214,7 +190,7 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 		lastSigOps := totalSigOps
 
 		msgTx := tx.Transaction()
-		isCoinBase := IsCoinBaseTx(msgTx)
+		isCoinBase := msgTx.IsCoinBaseTx()
 		totalSigOps += CountSigOps(tx, isCoinBase)
 		if totalSigOps < lastSigOps || totalSigOps > MaxSigOpsPerBlock {
 			str := fmt.Sprintf("block contains too many signature "+
@@ -375,7 +351,7 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 	}
 
 	// Coinbase script length must be between min and max length.
-	if IsCoinBaseTx(tx) {
+	if tx.IsCoinBaseTx() {
 		// The referenced outpoint should be null.
 		if !isNullOutpoint(&tx.TxIn[0].PreviousOut) {
 			str := fmt.Sprintf("coinbase transaction did not use " +
@@ -1080,7 +1056,7 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txHeight i
 	var totalAtomIn int64
 
 	// Coinbase transactions have no inputs.
-	if IsCoinBaseTx(msgTx) {
+	if msgTx.IsCoinBaseTx() {
 		return 0, nil
 	}
 	// -------------------------------------------------------------------

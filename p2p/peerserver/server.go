@@ -8,12 +8,12 @@ package peerserver
 import (
 	"errors"
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"net"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/config"
 	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/core/blockdag"
-	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/log"
@@ -278,7 +278,7 @@ func (p *PeerServer) Stop() error {
 
 // newestBlock returns the current best block hash and height using the format
 // required by the configuration for the peer package.
-func (sp *serverPeer) newestGS() (*blockdag.GraphState, error) {
+func (sp *serverPeer) newestGS() (*dag.GraphState, error) {
 	best := sp.server.BlockManager.GetChain().BestSnapshot()
 	return best.GraphState, nil
 }

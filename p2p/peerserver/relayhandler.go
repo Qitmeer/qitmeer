@@ -1,8 +1,8 @@
 package peerserver
 
 import (
-	"github.com/HalalChain/qitmeer/core/blockdag"
-	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/log"
 )
@@ -11,7 +11,7 @@ import (
 // known to have it.  It is invoked from the peerHandler goroutine.
 func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 	log.Trace("handleRelayInvMsg", "msg",msg)
-	var gs *blockdag.GraphState
+	var gs *dag.GraphState
 	state.forAllPeers(func(sp *serverPeer) {
 		if !sp.Connected() {
 			return

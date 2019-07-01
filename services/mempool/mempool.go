@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/log"
 	"math"
@@ -214,7 +214,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	// A standalone transaction must not be a coinbase transaction.
-	if blockchain.IsCoinBaseTx(tx.Tx) {
+	if tx.Tx.IsCoinBaseTx() {
 		str := fmt.Sprintf("transaction %v is an individual coinbase",
 			txHash)
 		return nil, txRuleError(message.RejectInvalid, str)

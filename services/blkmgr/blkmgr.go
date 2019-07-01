@@ -8,16 +8,16 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/config"
-	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/core/blockdag"
-	"github.com/HalalChain/qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
-	"github.com/HalalChain/qitmeer/node/notify"
-	"github.com/HalalChain/qitmeer/p2p/peer"
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/node/notify"
+	"github.com/HalalChain/qitmeer/p2p/peer"
 	"github.com/HalalChain/qitmeer/services/common/progresslog"
 	"github.com/HalalChain/qitmeer/services/mempool"
 	"sync"
@@ -69,7 +69,7 @@ type BlockManager struct {
 	// The following fields are used to track the height being synced to from
 	// peers.
 	syncGSMtx sync.Mutex
-	syncGS    *blockdag.GraphState
+	syncGS    *dag.GraphState
 
 }
 

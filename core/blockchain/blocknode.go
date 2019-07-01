@@ -4,7 +4,7 @@ package blockchain
 import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/common/util"
-	"github.com/HalalChain/qitmeer/core/blockdag"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"github.com/HalalChain/qitmeer/core/merkle"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"math/big"
@@ -248,11 +248,11 @@ func (node *blockNode) HasChild(child *blockNode) bool{
 }
 
 // For the moment,In order to match the DAG
-func (node *blockNode) GetChildren() *blockdag.HashSet{
+func (node *blockNode) GetChildren() *dag.HashSet{
 	if node.children==nil||len(node.children)==0 {
 		return nil
 	}
-	result:=blockdag.NewHashSet()
+	result:=dag.NewHashSet()
 	for _,v:=range node.children{
 		result.Add(&v.hash)
 	}

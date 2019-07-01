@@ -5,6 +5,7 @@ package miner
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -12,12 +13,10 @@ import (
 
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/core/blockdag"
 	"github.com/HalalChain/qitmeer-lib/core/json"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 	"github.com/HalalChain/qitmeer-lib/rpc"
-	"github.com/HalalChain/qitmeer/services/common/error"
 	"github.com/HalalChain/qitmeer/services/mining"
 )
 
@@ -72,7 +71,7 @@ func (api *PublicMinerAPI) GetBlockTemplate() (interface{}, error) {
 		//TODO LL, will be added
 		//return handleGetBlockTemplateProposal(s, request)
 	}
-	return nil, er.RpcInvalidError("Invalid mode")
+	return nil, rpc.RpcInvalidError("Invalid mode")
 }
 
 //LL
@@ -90,16 +89,16 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	serializedBlock, err := hex.DecodeString(hexBlock)
 
 	if err != nil {
-		return nil, er.RpcDecodeHexError(hexBlock)
+		return nil, rpc.RpcDecodeHexError(hexBlock)
 	}
 	block, err := types.NewBlockFromBytes(serializedBlock)
 	if err != nil {
-		return nil, er.RpcDeserializationError("Block decode failed: %s", err.Error())
+		return nil, rpc.RpcDeserializationError("Block decode failed: %s", err.Error())
 	}
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
 	tips := api.miner.blockManager.GetChain().BlockDAG().GetTips()
-	parents := blockdag.NewHashSet()
+	parents := dag.NewHashSet()
 	parents.AddList(block.Block().Parents)
 	if !parents.IsEqual(tips) {
 		return fmt.Sprintf("The tips of block is expired."), nil
@@ -179,7 +178,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI,request *json.TemplateReq
 	// When a coinbase transaction has been requested, respond with an error
 	// if there are no addresses to pay the created block template to.
 	if !useCoinbaseValue && len(api.miner.config.GetMinningAddrs()) == 0 {
-		return nil, er.RpcInternalError("No payment addresses specified ",
+		return nil, rpc.RpcInternalError("No payment addresses specified ",
 			"A coinbase transaction has been requested, "+
 				"but the server has not been configured with "+
 				"any payment addresses via --miningaddr")
@@ -188,7 +187,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI,request *json.TemplateReq
 	// No point in generating or accepting work before the chain is synced.
 	currentOrder := api.miner.blockManager.GetChain().BestSnapshot().Order
 	if currentOrder != 0 && !api.miner.blockManager.IsCurrent() {
-		return nil, er.RPCClientInInitialDownloadError("Client in initial download ",
+		return nil, rpc.RPCClientInInitialDownloadError("Client in initial download ",
 			"NOX is downloading blocks...")
 	}
 
@@ -284,7 +283,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 		// appropriate address(es).
 		template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil)
 		if err != nil {
-			return er.RpcInvalidError("Failed to create new block template: %s",err.Error())
+			return rpc.RpcInvalidError("Failed to create new block template: %s",err.Error())
 		}
 		msgBlock := template.Block
 		targetDifficulty = fmt.Sprintf("%064x",
@@ -347,7 +346,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 	adjustedTime := state.timeSource.AdjustedTime()
 	maxTime := adjustedTime.Add(time.Second * blockchain.MaxTimeOffsetSeconds)
 	if header.Timestamp.After(maxTime) {
-		return nil, er.RpcInvalidError("The template time is after the maximum allowed time for a block - template time %v, maximum time %v", adjustedTime, maxTime)
+		return nil, rpc.RpcInvalidError("The template time is after the maximum allowed time for a block - template time %v, maximum time %v", adjustedTime, maxTime)
 	}
 	// Convert each transaction in the block template to a template result
 	// transaction.  The result does not include the coinbase, so notice
@@ -389,7 +388,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 			m.Lock()
 			m.started = false
 			m.Unlock()
-			return nil, er.RpcInvalidError(err.Error(), context)
+			return nil, rpc.RpcInvalidError(err.Error(), context)
 
 		}
 
@@ -435,8 +434,8 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 		CurTime:      template.Block.Header.Timestamp.Unix(),
 		Height:       int64(template.Height),
 		PreviousHash: template.Block.Header.ParentRoot.String(),
-		WeightLimit:  blockchain.MaxBlockWeight,
-		SigOpLimit:   blockchain.MaxBlockSigOpsCost,
+		WeightLimit:  types.MaxBlockWeight,
+		SigOpLimit:   types.MaxBlockSigOpsCost,
 		SizeLimit:    wire.MaxBlockPayload,
 		//TODO，transactions
 		// make([]json.GetBlockTemplateResultTx, 0, 1)
@@ -466,7 +465,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 		// Ensure the template has a valid payment address associated
 		// with it when a full coinbase is requested.
 		if !template.ValidPayAddress {
-			return nil, er.RpcInvalidError("A coinbase transaction has been " +
+			return nil, rpc.RpcInvalidError("A coinbase transaction has been " +
 				"requested, but the server has not " +
 				"been configured with any payment " +
 				"addresses via --miningaddr")
@@ -489,13 +488,13 @@ func (api *PrivateMinerAPI) Generate(numBlocks uint32) ([]string, error) {
 	// Respond with an error if there are no addresses to pay the
 	// created blocks to.
 	if len(api.miner.config.GetMinningAddrs()) == 0 {
-		return nil, er.RpcInternalError("No payment addresses specified "+
+		return nil, rpc.RpcInternalError("No payment addresses specified "+
 			"via --miningaddr", "Configuration")
 	}
 
 	// Respond with an error if the client is requesting 0 blocks to be generated.
 	if numBlocks == 0 {
-		return nil, er.RpcInternalError("Invalid number of blocks",
+		return nil, rpc.RpcInternalError("Invalid number of blocks",
 			"Configuration")
 	}
 	if numBlocks > 3000 {
@@ -503,7 +502,7 @@ func (api *PrivateMinerAPI) Generate(numBlocks uint32) ([]string, error) {
 	}
 	blockHashes, err := api.miner.GenerateNBlocks(numBlocks)
 	if err != nil {
-		return nil, er.RpcInternalError("Could not generate blocks,"+err.Error(),
+		return nil, rpc.RpcInternalError("Could not generate blocks,"+err.Error(),
 			"miner")
 	}
 	// Create a reply

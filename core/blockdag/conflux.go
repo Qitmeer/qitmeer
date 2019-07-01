@@ -3,6 +3,7 @@ package blockdag
 import (
 	"container/list"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 )
 
 
@@ -132,10 +133,10 @@ func (con *Conflux) updatePrivot(b IBlock) {
 	}
 }
 
-func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *HashSet) {
+func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *dag.HashSet) {
 
 	if main == nil {
-		main = NewHashSet()
+		main = dag.NewHashSet()
 	}
 	main.Add(b.GetHash())
 
@@ -147,7 +148,7 @@ func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *HashSet) {
 		con.privotTip = b
 		if con.bd.GetTips().Size() > 1 {
 			virtualBlock := Block{hash: hash.Hash{}, weight: 1}
-			virtualBlock.parents = NewHashSet()
+			virtualBlock.parents = dag.NewHashSet()
 			virtualBlock.parents.AddSet(con.bd.GetTips())
 			con.updateMainChain(&virtualBlock, curEpoch, main)
 		}
@@ -188,7 +189,7 @@ func (con *Conflux) GetMainChain() []*hash.Hash {
 	return result
 }
 
-func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch {
+func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *dag.HashSet) *Epoch {
 	var result *Epoch
 	if preEpoch == nil {
 		b.SetOrder( 0)
@@ -201,7 +202,7 @@ func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch
 			if dependsNum == 1 {
 				result.depends[0].SetOrder(preEpoch.main.GetOrder() + 1)
 			} else {
-				es := NewHashSet()
+				es := dag.NewHashSet()
 				for _, dep := range result.depends {
 					es.Add(dep.GetHash())
 				}
@@ -239,10 +240,10 @@ func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch
 	return result
 }
 
-func (con *Conflux) getEpoch(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch {
+func (con *Conflux) getEpoch(b IBlock, preEpoch *Epoch, main *dag.HashSet) *Epoch {
 
 	result := Epoch{main: b}
-	var dependsS *HashSet
+	var dependsS *dag.HashSet
 
 	chain := list.New()
 	chain.PushBack(b)
@@ -261,7 +262,7 @@ func (con *Conflux) getEpoch(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch {
 				}
 				if result.depends == nil {
 					result.depends = []IBlock{}
-					dependsS = NewHashSet()
+					dependsS = dag.NewHashSet()
 				}
 				if dependsS.Has(&h) {
 					continue
@@ -276,9 +277,9 @@ func (con *Conflux) getEpoch(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch {
 	return &result
 }
 
-func (con *Conflux) getForwardBlocks(bs *HashSet) []IBlock {
+func (con *Conflux) getForwardBlocks(bs *dag.HashSet) []IBlock {
 	result := []IBlock{}
-	rs := NewHashSet()
+	rs := dag.NewHashSet()
 	for h := range bs.GetMap() {
 		block := con.bd.GetBlock(&h)
 

@@ -1,22 +1,25 @@
 package blockdag
 
-import "github.com/HalalChain/qitmeer-lib/common/hash"
+import (
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
+)
 
 //A collection that tries to imitate "lazy" operations
 type LazySet struct {
-	sets []*HashSet
-	positiveIndices map[int]Empty
+	sets []*dag.HashSet
+	positiveIndices map[int]dag.Empty
 }
 
-func (ls *LazySet) update(other *HashSet) {
+func (ls *LazySet) update(other *dag.HashSet) {
 	if other==nil {
 		return
 	}
-	ls.positiveIndices[len(ls.sets)]=Empty{}
+	ls.positiveIndices[len(ls.sets)]=dag.Empty{}
 	ls.sets=append(ls.sets,other)
 }
 
-func (ls *LazySet) differenceUpdate(other *HashSet) {
+func (ls *LazySet) differenceUpdate(other *dag.HashSet) {
 	if other==nil {
 		return
 	}
@@ -24,14 +27,14 @@ func (ls *LazySet) differenceUpdate(other *HashSet) {
 }
 
 // The set is composed of all self and other elements.
-func (ls *LazySet) Union(other *HashSet) *LazySet {
+func (ls *LazySet) Union(other *dag.HashSet) *LazySet {
 	result:=ls.Clone()
 	result.update(other)
 	return result
 }
 
 // A collection consisting of all elements belonging to set self and other.
-func (ls *LazySet) Intersection(other *HashSet) *LazySet {
+func (ls *LazySet) Intersection(other *dag.HashSet) *LazySet {
 	bs:=ls.flattenToSet()
 	if bs==nil || other==nil {
 		return nil
@@ -43,7 +46,7 @@ func (ls *LazySet) Intersection(other *HashSet) *LazySet {
 }
 
 // A collection of all elements that belong to self and not to other.
-func (ls *LazySet) difference(other *HashSet) *LazySet {
+func (ls *LazySet) difference(other *dag.HashSet) *LazySet {
 	result:=ls.Clone()
 	result.differenceUpdate(other)
 	return result
@@ -52,16 +55,16 @@ func (ls *LazySet) difference(other *HashSet) *LazySet {
 // Return a new copy
 func (ls *LazySet) Clone() *LazySet {
 	result := NewLazySet()
-	result.sets = make([]*HashSet,len(ls.sets))
+	result.sets = make([]*dag.HashSet,len(ls.sets))
 	copy(result.sets,ls.sets)
 	for k:= range ls.positiveIndices {
-		result.positiveIndices[k]=Empty{}
+		result.positiveIndices[k]=dag.Empty{}
 	}
 	return result
 
 }
 
-func (ls *LazySet) flattenToSet() *HashSet {
+func (ls *LazySet) flattenToSet() *dag.HashSet {
 	baseSetIndex:=-1
 	for index:=range ls.sets{
 		if _, ok := ls.positiveIndices[index];ok {
@@ -84,8 +87,8 @@ func (ls *LazySet) flattenToSet() *HashSet {
 }
 
 func (ls *LazySet) Clear() {
-	ls.sets=[]*HashSet{}
-	ls.positiveIndices=map[int]Empty{}
+	ls.sets=[]*dag.HashSet{}
+	ls.positiveIndices=map[int]dag.Empty{}
 }
 
 func (ls *LazySet) Add(elem *hash.Hash) {
@@ -99,7 +102,7 @@ func (ls *LazySet) Remove(elem *hash.Hash) {
 // Create a new LazySet
 func NewLazySet() *LazySet {
 	return &LazySet{
-		sets:[]*HashSet{},
-		positiveIndices:map[int]Empty{},
+		sets:[]*dag.HashSet{},
+		positiveIndices:map[int]dag.Empty{},
 	}
 }

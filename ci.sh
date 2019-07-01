@@ -21,7 +21,7 @@ then
 fi
 
 project_name="qitmeer"
-image_name="halalchain/nox-dag"
+image_name="halalchain/qitmeer"
 image_label="" #future
 baseimage_name="halalchain/golang:1.12.5-alpine3.9"
 
@@ -36,20 +36,7 @@ fi
 
 mkdir -p bin/build
 
-cat>./build.sh<<EOF
-#!/usr/bin/env bash
-echo "build..."
-touch ~/.git-credentials && \
-echo "https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com" >> ~/.git-credentials && \
-git config --global credential.helper store && \
-go build -o ./bin/build/noxd && \
-cd /go/src/$project_name/tools/nx && \
-go build -o ./../../bin/build/nx
-EOF
-
-chmod a+x ./build.sh
-
-docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name /bin/ash ./build.sh && \
+docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name go build -o ./bin/build/qitmeerd && \
 
 # create launch
 
@@ -78,19 +65,13 @@ then
   exit
 fi
 
-if [[ "\$1" == "nx" ]]
-then
-  ./\$*
-  exit
-fi
-
-./noxd \$A \$net \$rpclisten \$rpcuser \$rpcpass \$txindex \$miningaddr \$debuglevel "\$@"
+./qitmeerd \$A \$net \$rpclisten \$rpcuser \$rpcpass \$txindex \$miningaddr \$debuglevel "\$@"
 EOF
 
 chmod u+x ./bin/build/launch
 # create cli
 
-cp ./script/nox/nox-cli.sh ./bin/build/cli
+cp ./script/nox/cli.sh ./bin/build/cli
 sed -i 's/127.0.0.1/172.17.0.1/g' ./bin/build/cli
 sed -i 's/port=1234/port=18131/g' ./bin/build/cli
 
