@@ -13,7 +13,7 @@ qx is a command-line tool that provides a variety of commands for key management
 
 ## Usage
 
-```shell
+```
 $ ./qx
 Usage: qx [--version] [--help] <command> [<args>]
 
