@@ -1,4 +1,4 @@
-module github.com/lochjin/qx
+module github.com/HalalChain/qx
 
 go 1.12
 
