@@ -205,6 +205,11 @@ function get_blockhash_range(){
   get_result "$data"
 }
 
+function get_node_info(){
+  local data='{"jsonrpc":"2.0","method":"getNodeInfo","params":[],"id":null}'
+  get_result "$data"
+}
+
 function get_result(){
   local proto="https"
   if [ $notls -eq 1 ]; then
@@ -529,6 +534,10 @@ elif [ "$1" == "weight" ]; then
 elif [ "$1" == "blockrange" ]; then
   shift
   get_blockhash_range $@
+
+elif [ "$1" == "nodeinfo" ]; then
+  shift
+  get_node_info
 
 ## Tx
 elif [ "$1" == "tx" ]; then

@@ -15,13 +15,18 @@ import (
 	"github.com/HalalChain/qitmeer-lib/core/address"
 	"github.com/HalalChain/qitmeer-lib/core/json"
 	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer-lib/rpc"
+	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer/version"
+	"math/big"
+	"strconv"
 )
 
 func (nf *NoxFull) API() rpc.API {
@@ -580,4 +585,39 @@ func (api *PublicBlockChainAPI) TxSign(privkeyStr string, rawTxStr string) (inte
 	if err != nil {
 	}
 	return mtxHex, nil
+}
+
+// Return the node info
+func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
+	best := api.node.blockManager.GetChain().BestSnapshot()
+	ret := &json.InfoNodeResult{
+		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
+		ProtocolVersion: int32(protocol.ProtocolVersion),
+		Blocks:          uint32(best.Order+1),
+		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
+		Connections:     api.node.node.peerServer.ConnectedCount() ,
+		Difficulty:      getDifficultyRatio(best.Bits,api.node.node.Params),
+		TestNet:         api.node.node.Config.TestNet,
+	}
+	return ret, nil
+}
+
+// getDifficultyRatio returns the proof-of-work difficulty as a multiple of the
+// minimum difficulty using the passed bits field from the header of a block.
+func getDifficultyRatio(bits uint32, params *params.Params) float64 {
+	// The minimum difficulty is the max possible proof-of-work limit bits
+	// converted back to a number.  Note this is not the same as the proof of
+	// work limit directly because the block difficulty is encoded in a block
+	// with the compact form which loses precision.
+	max := blockchain.CompactToBig(params.PowLimitBits)
+	target := blockchain.CompactToBig(bits)
+
+	difficulty := new(big.Rat).SetFrac(max, target)
+	outString := difficulty.FloatString(8)
+	diff, err := strconv.ParseFloat(outString, 64)
+	if err != nil {
+		log.Error(fmt.Sprintf("Cannot get difficulty: %v", err))
+		return 0
+	}
+	return diff
 }
