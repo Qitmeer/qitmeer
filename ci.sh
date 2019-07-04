@@ -57,7 +57,7 @@ else
   miningaddr="--miningaddr=Tmgb3CyW7rGgn89MWEoAoMP47CwASc4KG4N"
 fi
 
-cd /nox/
+cd /qitmeer/
 
 if [[ "\$1" == "cli" ]]
 then

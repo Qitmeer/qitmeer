@@ -438,3 +438,19 @@ func (s *PeerServer) handleGetBlocksMsg(state *peerState, msg *GetBlocksMsg) {
 func (s *PeerServer) Dial(network, addr string) (net.Conn, error) {
 	return net.DialTimeout(network, addr, defaultConnectTimeout)
 }
+
+// ConnectedCount returns the number of currently connected peers.
+func (s *PeerServer) ConnectedCount() int32 {
+	replyChan := make(chan int32)
+
+	s.query <- getConnCountMsg{reply: replyChan}
+
+	return <-replyChan
+}
+
+// ConnectedPeers returns an array consisting of all connected peers.
+func (s *PeerServer) ConnectedPeers() []*serverPeer {
+	replyChan := make(chan []*serverPeer)
+	s.query <- getPeersMsg{reply: replyChan}
+	return <-replyChan
+}

@@ -442,6 +442,7 @@ func (p *Peer) GetGraphState() *dag.GraphState {
 	}
 	return nil
 }
+
 // newPeerBase returns a new base peer based on the inbound flag.  This
 // is used by the NewInboundPeer and NewOutboundPeer functions to perform base
 // setup needed by both types of peers.

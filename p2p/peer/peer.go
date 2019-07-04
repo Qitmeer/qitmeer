@@ -21,6 +21,26 @@ import (
 	"time"
 )
 
+// StatsSnap is a snapshot of peer stats at a point in time.
+type StatsSnap struct {
+	ID             int32
+	Addr           string
+	Services       protocol.ServiceFlag
+	LastSend       time.Time
+	LastRecv       time.Time
+	BytesSent      uint64
+	BytesRecv      uint64
+	ConnTime       time.Time
+	TimeOffset     int64
+	Version        uint32
+	UserAgent      string
+	Inbound        bool
+	LastPingNonce  uint64
+	LastPingTime   time.Time
+	LastPingMicros int64
+	GraphState     *dag.GraphState
+}
+
 // ID returns the peer id.
 //
 // This function is safe for concurrent access.
@@ -538,4 +558,90 @@ func (p*Peer) CleanGetBlocksSet() {
 		p.prevGetBlocks.Clean()
 	}
 	p.statsMtx.RUnlock()
+}
+
+// LastSend returns the last send time of the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) LastSend() time.Time {
+	return time.Unix(atomic.LoadInt64(&p.lastSend), 0)
+}
+
+// LastRecv returns the last recv time of the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) LastRecv() time.Time {
+	return time.Unix(atomic.LoadInt64(&p.lastRecv), 0)
+}
+
+// BytesSent returns the total number of bytes sent by the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) BytesSent() uint64 {
+	return atomic.LoadUint64(&p.bytesSent)
+}
+
+// BytesReceived returns the total number of bytes received by the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) BytesReceived() uint64 {
+	return atomic.LoadUint64(&p.bytesReceived)
+}
+
+// LocalAddr returns the local address of the connection.
+//
+// This function is safe fo concurrent access.
+func (p *Peer) LocalAddr() net.Addr {
+	var localAddr net.Addr
+	if atomic.LoadInt32(&p.connected) != 0 {
+		localAddr = p.conn.LocalAddr()
+	}
+	return localAddr
+}
+
+// StatsSnapshot returns a snapshot of the current peer flags and statistics.
+//
+// This function is safe for concurrent access.
+func (p *Peer) StatsSnapshot() *StatsSnap {
+	p.statsMtx.RLock()
+
+	p.flagsMtx.Lock()
+	id := p.id
+	addr := p.addr
+	userAgent := p.userAgent
+	services := p.services
+	protocolVersion := p.advertisedProtoVer
+	p.flagsMtx.Unlock()
+
+	// Get a copy of all relevant flags and stats.
+	statsSnap := &StatsSnap{
+		ID:             id,
+		Addr:           addr,
+		UserAgent:      userAgent,
+		Services:       services,
+		LastSend:       p.LastSend(),
+		LastRecv:       p.LastRecv(),
+		BytesSent:      p.BytesSent(),
+		BytesRecv:      p.BytesReceived(),
+		ConnTime:       p.timeConnected,
+		TimeOffset:     p.timeOffset,
+		Version:        protocolVersion,
+		Inbound:        p.inbound,
+		LastPingNonce:  p.lastPingNonce,
+		LastPingMicros: p.lastPingMicros,
+		LastPingTime:   p.lastPingTime,
+		GraphState:     p.lastGS,
+	}
+
+	p.statsMtx.RUnlock()
+	return statsSnap
+}
+
+// LastPingNonce returns the last ping nonce of the remote peer.
+func (p *Peer) LastPingNonce() uint64 {
+	p.statsMtx.RLock()
+	lastPingNonce := p.lastPingNonce
+	p.statsMtx.RUnlock()
+
+	return lastPingNonce
 }

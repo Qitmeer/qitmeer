@@ -1348,3 +1348,8 @@ func (b *BlockChain) BlockDAG() *blockdag.BlockDAG {
 func (b *BlockChain) BlockIndex() *blockIndex {
 	return b.index
 }
+
+// Return median time source
+func (b *BlockChain) TimeSource() MedianTimeSource {
+	return b.timeSource
+}

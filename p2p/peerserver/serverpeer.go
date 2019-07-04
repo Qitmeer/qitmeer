@@ -128,4 +128,14 @@ func (sp *serverPeer) relayTxDisabled() bool {
 	return isDisabled
 }
 
+// IsTxRelayDisabled returns whether or not the peer has disabled transaction
+// relay.
+func (sp *serverPeer) IsTxRelayDisabled() bool {
+	return sp.disableRelayTx
+}
 
+// BanScore returns the current integer value that represents how close the peer
+// is to being banned.
+func (sp *serverPeer) BanScore() uint32 {
+	return sp.banScore.Int()
+}
