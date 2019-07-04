@@ -210,6 +210,11 @@ function get_node_info(){
   get_result "$data"
 }
 
+function get_peer_info(){
+  local data='{"jsonrpc":"2.0","method":"getPeerInfo","params":[],"id":null}'
+  get_result "$data"
+}
+
 function get_result(){
   local proto="https"
   if [ $notls -eq 1 ]; then
@@ -259,13 +264,14 @@ function to_base64() {
 }
 
 function usage(){
+  echo "chain  :"
+  echo "  nodeinfo"
+  echo "  peerinfo"
+  echo "  main  <hash>"
   echo "block  :"
   echo "  block <num|hash>"
   echo "  block_count"
   echo "  blockrange <start,end>"
-  echo "  main  <hash>"
-  echo "  template"
-  echo "  generate <num>"
   echo "  mainHeight"
   echo "  weight <hash>"
   echo "tx     :"
@@ -274,6 +280,9 @@ function usage(){
   echo "  sendRawTx <signedRawTx>"
   echo "utxo   :"
   echo "  getutxo <tx_id> <index> <include_mempool,default=true>"
+  echo "miner  :"
+  echo "  template"
+  echo "  generate <num>"
 }
 
 # -------------------
@@ -538,6 +547,10 @@ elif [ "$1" == "blockrange" ]; then
 elif [ "$1" == "nodeinfo" ]; then
   shift
   get_node_info
+
+elif [ "$1" == "peerinfo" ]; then
+  shift
+  get_peer_info
 
 ## Tx
 elif [ "$1" == "tx" ]; then

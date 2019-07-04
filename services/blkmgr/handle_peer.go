@@ -119,7 +119,7 @@ func (b *BlockManager) syncMiningStateAfterSync(sp *peer.ServerPeer) {
 // getSyncPeerMsg is a message type to be sent across the message channel for
 // retrieving the current sync peer.
 type getSyncPeerMsg struct {
-	reply chan *peer.ServerPeer
+	reply chan int32
 }
 
 // startSync will choose the best peer among the available candidate peers to

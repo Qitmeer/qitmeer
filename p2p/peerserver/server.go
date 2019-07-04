@@ -447,3 +447,10 @@ func (s *PeerServer) ConnectedCount() int32 {
 
 	return <-replyChan
 }
+
+// ConnectedPeers returns an array consisting of all connected peers.
+func (s *PeerServer) ConnectedPeers() []*serverPeer {
+	replyChan := make(chan []*serverPeer)
+	s.query <- getPeersMsg{reply: replyChan}
+	return <-replyChan
+}

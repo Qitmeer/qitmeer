@@ -27,6 +27,7 @@ import (
 	"github.com/HalalChain/qitmeer/version"
 	"math/big"
 	"strconv"
+	"time"
 )
 
 func (nf *NoxFull) API() rpc.API {
@@ -595,7 +596,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		ProtocolVersion: int32(protocol.ProtocolVersion),
 		Blocks:          uint32(best.Order+1),
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
-		Connections:     api.node.node.peerServer.ConnectedCount() ,
+		Connections:     api.node.node.peerServer.ConnectedCount(),
 		Difficulty:      getDifficultyRatio(best.Bits,api.node.node.Params),
 		TestNet:         api.node.node.Config.TestNet,
 	}
@@ -620,4 +621,51 @@ func getDifficultyRatio(bits uint32, params *params.Params) float64 {
 		return 0
 	}
 	return diff
+}
+
+// Return the peer info
+func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
+	peers := api.node.node.peerServer.ConnectedPeers()
+	syncPeerID := api.node.blockManager.SyncPeerID()
+	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
+	for _, p := range peers {
+		statsSnap := p.StatsSnapshot()
+		info := &json.GetPeerInfoResult{
+			ID:             statsSnap.ID,
+			Addr:           statsSnap.Addr,
+			AddrLocal:      p.LocalAddr().String(),
+			Services:       fmt.Sprintf("%08d", uint64(statsSnap.Services)),
+			RelayTxes:      !p.IsTxRelayDisabled(),
+			LastSend:       statsSnap.LastSend.Unix(),
+			LastRecv:       statsSnap.LastRecv.Unix(),
+			BytesSent:      statsSnap.BytesSent,
+			BytesRecv:      statsSnap.BytesRecv,
+			ConnTime:       statsSnap.ConnTime.Unix(),
+			PingTime:       float64(statsSnap.LastPingMicros),
+			TimeOffset:     statsSnap.TimeOffset,
+			Version:        statsSnap.Version,
+			SubVer:         statsSnap.UserAgent,
+			Inbound:        statsSnap.Inbound,
+			BanScore:       int32(p.BanScore()),
+			SyncNode:       statsSnap.ID == syncPeerID,
+		}
+		if statsSnap.GraphState!=nil {
+			tips:=[]string{}
+			for k:=range statsSnap.GraphState.GetTips().GetMap(){
+				tips=append(tips,k.String())
+			}
+			info.GraphState=json.GetGraphStateResult{
+				Tips:tips,
+				Total:uint32(statsSnap.GraphState.GetTotal()),
+				Layer:uint32(statsSnap.GraphState.GetLayer()),
+			}
+		}
+		if p.LastPingNonce() != 0 {
+			wait := float64(time.Since(statsSnap.LastPingTime).Nanoseconds())
+			// We actually want microseconds.
+			info.PingWait = wait / 1000
+		}
+		infos = append(infos, info)
+	}
+	return infos, nil
 }

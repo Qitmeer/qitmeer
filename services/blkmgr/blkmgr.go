@@ -535,9 +535,15 @@ out:
 			case *donePeerMsg:
 				log.Trace("blkmgr msgChan donePeerMsg", "msg", msg)
 				b.handleDonePeerMsg(candidatePeers, msg.peer)
+
 			case getSyncPeerMsg:
 				log.Trace("blkmgr msgChan getSyncPeerMsg", "msg", msg)
-				msg.reply <- b.syncPeer
+				var peerID int32
+				if b.syncPeer != nil {
+					peerID = b.syncPeer.ID()
+				}
+				msg.reply <- peerID
+
 			case tipGenerationMsg:
 				log.Trace("blkmgr msgChan tipGenerationMsg", "msg", msg)
 				g, err := b.chain.TipGeneration()
@@ -989,13 +995,11 @@ func (b *BlockManager) requestFromPeer(p *peer.ServerPeer, blocks []*hash.Hash) 
 	return nil
 }
 
-// SyncPeer returns the current sync peer.
-func (b *BlockManager) SyncPeer() *peer.ServerPeer {
-	reply := make(chan *peer.ServerPeer)
+// SyncPeerID returns the ID of the current sync peer, or 0 if there is none.
+func (b *BlockManager) SyncPeerID() int32 {
+	reply := make(chan int32)
 	b.msgChan <- getSyncPeerMsg{reply: reply}
 	return <-reply
 }
-
-
 
 
