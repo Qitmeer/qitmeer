@@ -25,7 +25,5 @@ package siphash
 //go:noescape
 func SiphashPRF8192(v *[4]uint64, nonce *[8192]uint64, uorv uint64, result *[8192]uint64)
 
-// noescape 的作用是：禁止逃逸，而且它必须指示一个只有声明没有主体的函数，
-// 告诉编译器，下面的函数无论如何都不会逃逸，那么当函数返回时，其中的资源也会一并都被销毁。
 //go:noescape
 func SiphashPRF8192Seq(v *[4]uint64, nonce uint64, uorv uint64, result *[8192]uint64)

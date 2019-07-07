@@ -18,21 +18,16 @@ before s.V = [0 0 0 0]
 after s.V = [12015082867820662449 971459224712208030 13377991302290020773 2121554997101417600]
 */
 func Newsip(siphashKey []byte) *SipHash {
-	//fmt.Printf("siphashKey[:] = %v\n",siphashKey[:])
-	//fmt.Printf("siphashKey[8:] = %v\n",siphashKey[8:])
 	s := &SipHash{
 		k0: binary.LittleEndian.Uint64(siphashKey[:]),  // 17624113405423192833
 		k1: binary.LittleEndian.Uint64(siphashKey[8:]), // 16633022555945065022
 	}
-	//fmt.Printf("k0 = %v\n",s.k0)
-	//fmt.Printf("k1 = %v\n",s.k1)
 
 	//fmt.Printf("before s.V = %v\n",s.V)
 	s.V[0] = s.k0 ^ 0x736f6d6570736575 //9798144632717078132, 0x87fa00a173006e74
 	s.V[1] = s.k1 ^ 0x646f72616e646f6d //9420175285032990035, 0x82bb2f82f24e3553
 	s.V[2] = s.k0 ^ 0x6c7967656e657261 //11019194076704962912,0x98ec0aa16d167960
 	s.V[3] = s.k1 ^ 0x7465646279746573 //10570293030476988237,0x92b13981e55e3f4d
-	//fmt.Printf("after s.V = %v\n",s.V)
 
 	return s
 }
