@@ -31,12 +31,18 @@ import (
 
 const (
 	jsonrpcVersion           = "2.0"
-	DefaultServiceNameSpace  = "nox"
 	serviceMethodSeparator   = "_"
 	subscribeMethodSuffix    = "_subscribe"
 	unsubscribeMethodSuffix  = "_unsubscribe"
 	notificationMethodSuffix = "_subscription"
 )
+
+// These are all service namespace in node
+const (
+	DefaultServiceNameSpace  = "nox"
+	MinerNameSpace           = "miner"
+)
+
 
 type jsonRequest struct {
 	Method  string          `json:"method"`
