@@ -3,7 +3,7 @@ module github.com/HalalChain/qitmeer
 go 1.12
 
 require (
-	github.com/HalalChain/qitmeer-lib v0.0.0-20190701115803-6220816a33c9
+	github.com/HalalChain/qitmeer-lib v0.0.0-20190704093115-7374a2f54154
 	github.com/coreos/bbolt v1.3.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dchest/blake256 v1.0.0

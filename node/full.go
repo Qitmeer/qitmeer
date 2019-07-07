@@ -200,3 +200,8 @@ func (nox *NoxFull) GetBlockManager() *blkmgr.BlockManager{
 func (nox *NoxFull) GetCpuMiner() *miner.CPUMiner{
 	return nox.cpuMiner
 }
+
+// return peer server
+func (nox *NoxFull) GetPeerServer() *peerserver.PeerServer {
+	return nox.node.peerServer
+}

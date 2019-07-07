@@ -15,13 +15,19 @@ import (
 	"github.com/HalalChain/qitmeer-lib/core/address"
 	"github.com/HalalChain/qitmeer-lib/core/json"
 	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer-lib/rpc"
+	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer/version"
+	"math/big"
+	"strconv"
+	"time"
 )
 
 func (nf *NoxFull) API() rpc.API {
@@ -580,4 +586,86 @@ func (api *PublicBlockChainAPI) TxSign(privkeyStr string, rawTxStr string) (inte
 	if err != nil {
 	}
 	return mtxHex, nil
+}
+
+// Return the node info
+func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
+	best := api.node.blockManager.GetChain().BestSnapshot()
+	ret := &json.InfoNodeResult{
+		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
+		ProtocolVersion: int32(protocol.ProtocolVersion),
+		Blocks:          uint32(best.Order+1),
+		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
+		Connections:     api.node.node.peerServer.ConnectedCount(),
+		Difficulty:      getDifficultyRatio(best.Bits,api.node.node.Params),
+		TestNet:         api.node.node.Config.TestNet,
+	}
+	return ret, nil
+}
+
+// getDifficultyRatio returns the proof-of-work difficulty as a multiple of the
+// minimum difficulty using the passed bits field from the header of a block.
+func getDifficultyRatio(bits uint32, params *params.Params) float64 {
+	// The minimum difficulty is the max possible proof-of-work limit bits
+	// converted back to a number.  Note this is not the same as the proof of
+	// work limit directly because the block difficulty is encoded in a block
+	// with the compact form which loses precision.
+	max := blockchain.CompactToBig(params.PowLimitBits)
+	target := blockchain.CompactToBig(bits)
+
+	difficulty := new(big.Rat).SetFrac(max, target)
+	outString := difficulty.FloatString(8)
+	diff, err := strconv.ParseFloat(outString, 64)
+	if err != nil {
+		log.Error(fmt.Sprintf("Cannot get difficulty: %v", err))
+		return 0
+	}
+	return diff
+}
+
+// Return the peer info
+func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
+	peers := api.node.node.peerServer.ConnectedPeers()
+	syncPeerID := api.node.blockManager.SyncPeerID()
+	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
+	for _, p := range peers {
+		statsSnap := p.StatsSnapshot()
+		info := &json.GetPeerInfoResult{
+			ID:             statsSnap.ID,
+			Addr:           statsSnap.Addr,
+			AddrLocal:      p.LocalAddr().String(),
+			Services:       fmt.Sprintf("%08d", uint64(statsSnap.Services)),
+			RelayTxes:      !p.IsTxRelayDisabled(),
+			LastSend:       statsSnap.LastSend.Unix(),
+			LastRecv:       statsSnap.LastRecv.Unix(),
+			BytesSent:      statsSnap.BytesSent,
+			BytesRecv:      statsSnap.BytesRecv,
+			ConnTime:       statsSnap.ConnTime.Unix(),
+			PingTime:       float64(statsSnap.LastPingMicros),
+			TimeOffset:     statsSnap.TimeOffset,
+			Version:        statsSnap.Version,
+			SubVer:         statsSnap.UserAgent,
+			Inbound:        statsSnap.Inbound,
+			BanScore:       int32(p.BanScore()),
+			SyncNode:       statsSnap.ID == syncPeerID,
+		}
+		if statsSnap.GraphState!=nil {
+			tips:=[]string{}
+			for k:=range statsSnap.GraphState.GetTips().GetMap(){
+				tips=append(tips,k.String())
+			}
+			info.GraphState=json.GetGraphStateResult{
+				Tips:tips,
+				Total:uint32(statsSnap.GraphState.GetTotal()),
+				Layer:uint32(statsSnap.GraphState.GetLayer()),
+			}
+		}
+		if p.LastPingNonce() != 0 {
+			wait := float64(time.Since(statsSnap.LastPingTime).Nanoseconds())
+			// We actually want microseconds.
+			info.PingWait = wait / 1000
+		}
+		infos = append(infos, info)
+	}
+	return infos, nil
 }
