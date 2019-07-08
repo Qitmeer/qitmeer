@@ -6,10 +6,10 @@
 package peer
 
 import (
-	"qitmeer/core/blockdag"
-	"qitmeer/core/protocol"
-	"qitmeer/core/types"
-	"qitmeer/params"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/params"
 	"time"
 )
 
@@ -56,7 +56,7 @@ const (
 
 // HashFunc is a function which returns a block hash, height and error
 // It is used as a callback to get newest block details.
-type GSFunc func() (gs *blockdag.GraphState, err error)
+type GSFunc func() (gs *dag.GraphState, err error)
 
 // HostToNetAddrFunc is a func which takes a host, port, services and returns
 // the netaddress.

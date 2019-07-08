@@ -6,20 +6,20 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"qitmeer/common/hash"
-	"qitmeer/config"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/blockdag"
-	"qitmeer/core/message"
-	"qitmeer/core/types"
-	"qitmeer/database"
-	"qitmeer/engine/txscript"
-	"qitmeer/node/notify"
-	"qitmeer/p2p/peer"
-	"qitmeer/params"
-	"qitmeer/params/dcr/types"
-	"qitmeer/services/common/progresslog"
-	"qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/config"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/node/notify"
+	"github.com/HalalChain/qitmeer/p2p/peer"
+	"github.com/HalalChain/qitmeer/services/common/progresslog"
+	"github.com/HalalChain/qitmeer/services/mempool"
 	"sync"
 	"sync/atomic"
 )
@@ -69,7 +69,7 @@ type BlockManager struct {
 	// The following fields are used to track the height being synced to from
 	// peers.
 	syncGSMtx sync.Mutex
-	syncGS    *blockdag.GraphState
+	syncGS    *dag.GraphState
 
 }
 
@@ -535,9 +535,15 @@ out:
 			case *donePeerMsg:
 				log.Trace("blkmgr msgChan donePeerMsg", "msg", msg)
 				b.handleDonePeerMsg(candidatePeers, msg.peer)
+
 			case getSyncPeerMsg:
 				log.Trace("blkmgr msgChan getSyncPeerMsg", "msg", msg)
-				msg.reply <- b.syncPeer
+				var peerID int32
+				if b.syncPeer != nil {
+					peerID = b.syncPeer.ID()
+				}
+				msg.reply <- peerID
+
 			case tipGenerationMsg:
 				log.Trace("blkmgr msgChan tipGenerationMsg", "msg", msg)
 				g, err := b.chain.TipGeneration()
@@ -656,7 +662,6 @@ out:
 
 				// If the block added to the dag chain, then we need to
 				// update the tip locally on block manager.
-				log.Trace("test onMainChain when blkmgr read processBlockMsg msgchan", "onMainChain")
 				if !isOrphan {
 					// Query the chain for the latest best block
 					// since the block that was processed and add
@@ -990,13 +995,11 @@ func (b *BlockManager) requestFromPeer(p *peer.ServerPeer, blocks []*hash.Hash) 
 	return nil
 }
 
-// SyncPeer returns the current sync peer.
-func (b *BlockManager) SyncPeer() *peer.ServerPeer {
-	reply := make(chan *peer.ServerPeer)
+// SyncPeerID returns the ID of the current sync peer, or 0 if there is none.
+func (b *BlockManager) SyncPeerID() int32 {
+	reply := make(chan int32)
 	b.msgChan <- getSyncPeerMsg{reply: reply}
 	return <-reply
 }
-
-
 
 

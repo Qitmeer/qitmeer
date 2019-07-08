@@ -40,9 +40,9 @@ var (
 	// block hash -> block height index.
 	HashIndexBucketName = []byte("hashidx")
 
-	// HeightIndexBucketName is the name of the db bucket used to house to
-	// the block height -> block hash index.
-	HeightIndexBucketName = []byte("heightidx")
+	// OrderIndexBucketName is the name of the db bucket used to house to
+	// the block order -> block hash index.
+	OrderIndexBucketName = []byte("ordertidx")
 
 	// ChainStateKeyName is the name of the db key used to store the best
 	// chain state.
@@ -57,8 +57,7 @@ var (
 	UtxoSetBucketName = []byte("utxoset")
 
 	// BlockIndexBucketName is the name of the db bucket used to house the
-	// block index which consists of metadata for all known blocks both in
-	// the main chain and on side chains.
+	// block node which consists of metadata for all known blocks.
 	BlockIndexBucketName = []byte("blockidx")
 
 	// IndexTipsBucketName is the name of the db bucket used to house the

@@ -1,7 +1,7 @@
 package miner
 
 import (
-	l "qitmeer/log"
+	l "github.com/HalalChain/qitmeer-lib/log"
 )
 
 // log is a logger that is initialized with no output filters.  This

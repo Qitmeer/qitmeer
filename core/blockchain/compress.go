@@ -7,9 +7,9 @@ package blockchain
 
 import (
 	"fmt"
-	"qitmeer/engine/txscript"
-	"qitmeer/crypto/ecc/secp256k1"
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc/secp256k1"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 )
 
 // currentCompressionVersion is the current script compression version of the

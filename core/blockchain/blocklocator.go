@@ -1,8 +1,9 @@
 package blockchain
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/blockdag"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/HalalChain/qitmeer/core/blockdag"
 )
 
 // BlockLocator is used to help locate a specific block.  The algorithm for
@@ -63,7 +64,7 @@ func (b *BlockChain) LatestBlockLocator() (BlockLocator, error) {
 //   after the genesis block will be returned
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) LocateBlocks(gs *blockdag.GraphState, maxHashes uint32) []*hash.Hash {
+func (b *BlockChain) LocateBlocks(gs *dag.GraphState, maxHashes uint32) []*hash.Hash {
 	b.chainLock.RLock()
 	hashes := b.bd.LocateBlocks(gs, uint(maxHashes))
 	b.chainLock.RUnlock()
@@ -102,15 +103,15 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 		return nil
 	}
 	endBlock:=b.bd.GetBlock(endHash)
-	hashesSet:=blockdag.NewHashSet()
+	hashesSet:=dag.NewHashSet()
 
 	// First of all, we need to make sure we have the parents of block.
 	hashesSet.AddSet(endBlock.GetParents())
-	curNum:=uint32(hashesSet.Len())
+	curNum:=uint32(hashesSet.Size())
 
 	// Because of chain forking, a common forking point must be found.
 	// It's the real starting point.
-	var curBlock *blockdag.Block
+	var curBlock blockdag.IBlock
 	for i:=0;i<loLen;i++{
 		if b.bd.HasBlock(locator[i]) {
 			curBlock=b.bd.GetBlock(locator[0])

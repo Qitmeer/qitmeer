@@ -8,10 +8,10 @@ package blkmgr
 import (
 	"container/list"
 	"fmt"
-	"qitmeer/common/hash"
-	"qitmeer/core/message"
-	"qitmeer/core/protocol"
-	"qitmeer/p2p/peer"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer/p2p/peer"
 	"sync/atomic"
 	"time"
 )
@@ -119,7 +119,7 @@ func (b *BlockManager) syncMiningStateAfterSync(sp *peer.ServerPeer) {
 // getSyncPeerMsg is a message type to be sent across the message channel for
 // retrieving the current sync peer.
 type getSyncPeerMsg struct {
-	reply chan *peer.ServerPeer
+	reply chan int32
 }
 
 // startSync will choose the best peer among the available candidate peers to

@@ -20,10 +20,10 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"qitmeer/common/encode/rlp"
-	"qitmeer/common/hash"
-	"qitmeer/database/statedb"
-	"qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/common/encode/rlp"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer/database/statedb"
+	"github.com/HalalChain/qitmeer-lib/log"
 
 )
 

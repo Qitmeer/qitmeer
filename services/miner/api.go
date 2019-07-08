@@ -5,19 +5,19 @@ package miner
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"math/rand"
 	"strconv"
+	"sync"
 	"time"
 
-	"qitmeer/common/hash"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/json"
-	"qitmeer/core/types"
-	wire "qitmeer/params/dcr/types"
-	"qitmeer/rpc"
-	er "qitmeer/services/common/error"
-	"qitmeer/services/mining"
-	"qitmeer/core/blockdag"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/core/json"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
+	"github.com/HalalChain/qitmeer-lib/rpc"
+	"github.com/HalalChain/qitmeer/services/mining"
 )
 
 //LL
@@ -26,88 +26,52 @@ import (
 // RPC.
 const gbtNonceRange = "00000000ffffffff"
 
-// MaxBlockWeight defines the maximum block weight, where "block
-// weight" is interpreted as defined in BIP0141. A block's weight is
-// calculated as the sum of the of bytes in the existing transactions
-// and header, plus the weight of each byte within a transaction. The
-// weight of a "base" byte is 4, while the weight of a witness byte is
-// 1. As a result, for a block to be valid, the BlockWeight MUST be
-// less than, or equal to MaxBlockWeight.
-// TODO, will be moved
-const MaxBlockWeight = 4000000
-
-// MaxBlockSigOpsCost is the maximum number of signature operations
-// allowed for a block. It is calculated via a weighted algorithm which
-// weights segregated witness sig ops lower than regular sig ops.
-// TODO. will be moved
-const MaxBlockSigOpsCost = 80000
+// gbtRegenerateSeconds is the number of seconds that must pass before
+// a new template is generated when the previous block hash has not
+// changed and there have been changes to the available transactions
+// in the memory pool.
+const gbtRegenerateSeconds = 60
 
 func (c *CPUMiner) APIs() []rpc.API {
 	return []rpc.API{
 		{
 			NameSpace: rpc.DefaultServiceNameSpace,
 			Service:   NewPublicMinerAPI(c),
+			Public:    true,
+		},
+		{
+			NameSpace: "miner",
+			Service:   NewPrivateMinerAPI(c),
+			Public:    false,
 		},
 	}
 }
 
 type PublicMinerAPI struct {
 	miner *CPUMiner
+	gbtWorkState *gbtWorkState
 }
 
 func NewPublicMinerAPI(c *CPUMiner) *PublicMinerAPI {
-	return &PublicMinerAPI{c}
-}
+	pmAPI:=&PublicMinerAPI{miner:c}
+	pmAPI.gbtWorkState=&gbtWorkState{timeSource:c.timeSource}
 
-func (api *PublicMinerAPI) Generate(numBlocks uint32) ([]string, error) {
-	// Respond with an error if there are no addresses to pay the
-	// created blocks to.
-	if len(api.miner.config.GetMinningAddrs()) == 0 {
-		return nil, er.RpcInternalError("No payment addresses specified "+
-			"via --miningaddr", "Configuration")
-	}
-
-	// Respond with an error if the client is requesting 0 blocks to be generated.
-	if numBlocks == 0 {
-		return nil, er.RpcInternalError("Invalid number of blocks",
-			"Configuration")
-	}
-	if numBlocks > 3000 {
-		return nil, fmt.Errorf("error, more than 1000")
-	}
-	blockHashes, err := api.miner.GenerateNBlocks(numBlocks)
-	if err != nil {
-		return nil, er.RpcInternalError("Could not generate blocks,"+err.Error(),
-			"miner")
-	}
-	// Create a reply
-	reply := make([]string, numBlocks)
-
-	// Mine the correct number of blocks, assigning the hex representation of the
-	// hash of each one to its place in the reply.
-	for i, hash := range blockHashes {
-		reply[i] = hash.String()
-	}
-
-	return reply, nil
+	return pmAPI
 }
 
 //func (api *PublicMinerAPI) GetBlockTemplate(request *mining.TemplateRequest) (interface{}, error){
 func (api *PublicMinerAPI) GetBlockTemplate() (interface{}, error) {
 	// Set the default mode and override it if supplied.
-	capabilities := []string{
-		"", "workid", "coinbase/append",
-	}
 	mode := "template"
 
 	switch mode {
 	case "template":
-		return handleGetBlockTemplateRequest(api, capabilities)
+		return handleGetBlockTemplateRequest(api,nil)
 	case "proposal":
 		//TODO LL, will be added
 		//return handleGetBlockTemplateProposal(s, request)
 	}
-	return nil, er.RpcInvalidError("Invalid mode")
+	return nil, rpc.RpcInvalidError("Invalid mode")
 }
 
 //LL
@@ -125,16 +89,16 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	serializedBlock, err := hex.DecodeString(hexBlock)
 
 	if err != nil {
-		return nil, er.RpcDecodeHexError(hexBlock)
+		return nil, rpc.RpcDecodeHexError(hexBlock)
 	}
 	block, err := types.NewBlockFromBytes(serializedBlock)
 	if err != nil {
-		return nil, er.RpcDeserializationError("Block decode failed: %s", err.Error())
+		return nil, rpc.RpcDeserializationError("Block decode failed: %s", err.Error())
 	}
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
 	tips := api.miner.blockManager.GetChain().BlockDAG().GetTips()
-	parents := blockdag.NewHashSet()
+	parents := dag.NewHashSet()
 	parents.AddList(block.Block().Parents)
 	if !parents.IsEqual(tips) {
 		return fmt.Sprintf("The tips of block is expired."), nil
@@ -185,21 +149,19 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 
 //LL
 // handleGetBlockTemplateRequest is a helper for handleGetBlockTemplate which
-// deals with generating and returning block templates to the caller.  It
-// handles both long poll requests as specified by BIP 0022 as well as regular
-// requests.  In addition, it detects the capabilities reported by the caller
+// deals with generating and returning block templates to the caller. In addition,
+// it detects the capabilities reported by the caller
 // in regards to whether or not it supports creating its own coinbase (the
 // coinbasetxn and coinbasevalue capabilities) and modifies the returned block
 // template accordingly.
-//func handleGetBlockTemplateRequest(api *PublicMinerAPI, request *mining.TemplateRequest) (interface{}, error) {
-func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (interface{}, error) {
+func handleGetBlockTemplateRequest(api *PublicMinerAPI,request *json.TemplateRequest) (interface{}, error) {
 	// Extract the relevant passed capabilities and restrict the result to
 	// either a coinbase value or a coinbase transaction object depending on
 	// the request.  Default to only providing a coinbase value.
 	useCoinbaseValue := true
-	if len(capabilities) > 0 {
+	if request != nil {
 		var hasCoinbaseValue, hasCoinbaseTxn bool
-		for _, capability := range capabilities {
+		for _, capability := range request.Capabilities {
 			switch capability {
 			case "coinbasetxn":
 				hasCoinbaseTxn = true
@@ -216,100 +178,176 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	// When a coinbase transaction has been requested, respond with an error
 	// if there are no addresses to pay the created block template to.
 	if !useCoinbaseValue && len(api.miner.config.GetMinningAddrs()) == 0 {
-		return nil, er.RpcInternalError("No payment addresses specified ",
+		return nil, rpc.RpcInternalError("No payment addresses specified ",
 			"A coinbase transaction has been requested, "+
 				"but the server has not been configured with "+
 				"any payment addresses via --miningaddr")
 	}
 
-	// Return an error if there are no peers connected since there is no
-	// way to relay a found block or receive transactions to work on.
-	// However, allow this state when running in the private net mode.
-	//TODO LL, will be added
-	/*
-		if !(api.miner.config.PrivNet) &&
-			s.cfg.ConnMgr.ConnectedCount() == 0 {
-
-			return nil, &btcjson.RPCError{
-				Code:    btcjson.ErrRPCClientNotConnected,
-				Message: "NOX is not connected",
-			}
-		}
-	*/
-
 	// No point in generating or accepting work before the chain is synced.
 	currentOrder := api.miner.blockManager.GetChain().BestSnapshot().Order
-	if currentOrder != 0 && !api.miner.blockManager.GetChain().IsCurrent() {
-		return nil, er.RPCClientInInitialDownloadError("Client in initial download ",
+	if currentOrder != 0 && !api.miner.blockManager.IsCurrent() {
+		return nil, rpc.RPCClientInInitialDownloadError("Client in initial download ",
 			"NOX is downloading blocks...")
 	}
-	m := api.miner
-	m.Lock()
-	if m.started {
-		m.Unlock()
-		return nil, er.RpcInternalError("Server is already CPU mining.","Please stop first.")
-	}
-	m.started = true
-	m.Unlock()
-	// When a long poll ID was provided, this is a long poll request by the
-	// client to be notified when block template referenced by the ID should
-	// be replaced with a new one.
-	//TODO LL, will be added
-	/*
-		if request != nil && request.LongPollID != "" {
-			return handleGetBlockTemplateLongPoll(s, request.LongPollID,
-				useCoinbaseValue, closeChan)
-		}
-	*/
 
 	// Protect concurrent access when updating block templates.
-	//TODO, LL ???
-	/*
-		state := s.gbtWorkState
-		state.Lock()
-		defer state.Unlock()
-	*/
+	state := api.gbtWorkState
+	state.Lock()
+	defer state.Unlock()
 
-	//TODO LL, will be added
 	// Get and return a block template.  A new block template will be
 	// generated when the current best block has changed or the transactions
 	// in the memory pool have been updated and it has been at least five
 	// seconds since the last template was generated.  Otherwise, the
-	// timestamp for the existing block template is updated (and possibly
-	// the difficulty on testnet per the consesus rules).
-	/*
-		if err := state.updateBlockTemplate(s, useCoinbaseValue); err != nil {
-			return nil, err
-		}
-	*/
-	//TODO LL,
-	//return state.blockTemplateResult(useCoinbaseValue, nil)
+	// timestamp for the existing block template is updated .
+	if err := state.updateBlockTemplate(api, useCoinbaseValue); err != nil {
+		return nil, err
+	}
+	return state.blockTemplateResult(api,useCoinbaseValue, nil)
+}
 
-	log.Trace("Generating blocks", "num", 1)
+//LL
+// encodeTemplateID encodes the passed details into an ID that can be used to
+// uniquely identify a block template.
+func encodeTemplateID(prevHash hash.Hash, lastGenerated time.Time) string {
+	return fmt.Sprintf("%s-%d", prevHash.String(), lastGenerated.Unix())
+}
 
-	// Choose a payment address at random.
-	rand.Seed(time.Now().UnixNano())
-	payToAddr := m.config.GetMinningAddrs()[rand.Intn(len(m.config.GetMinningAddrs()))]
 
-	m.submitBlockLock.Lock()
-	template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil)
-	m.submitBlockLock.Unlock()
+// gbtWorkState houses state that is used in between multiple RPC invocations to
+// getblocktemplate.
+type gbtWorkState struct {
+	sync.Mutex
+	lastTxUpdate  time.Time
+	lastGenerated time.Time
+	prevHash      *hash.Hash
+	minTimestamp  time.Time
+	template      *types.BlockTemplate
+	timeSource    blockchain.MedianTimeSource
+}
 
-	if err != nil || template==nil {
-		log.Error("Failed to create new block ", "err",fmt.Sprintf("%v", err))
-		//TODO refactor the quit logic
-		m.Lock()
-		m.started = false
-		m.Unlock()
-		return nil,er.RpcInvalidError("Failed to create new block template: %v", template) //should miner if error
+
+// updateBlockTemplate creates or updates a block template for the work state.
+// A new block template will be generated when the current best block has
+// changed or the transactions in the memory pool have been updated and it has
+// been long enough since the last template was generated.  Otherwise, the
+// timestamp for the existing block template is updated (and possibly the
+// difficulty on testnet per the consesus rules).  Finally, if the
+// useCoinbaseValue flag is false and the existing block template does not
+// already contain a valid payment address, the block template will be updated
+// with a randomly selected payment address from the list of configured
+// addresses.
+//
+// This function MUST be called with the state locked.
+func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseValue bool) error {
+	m := api.miner
+	lastTxUpdate := m.txSource.LastUpdated()
+	if lastTxUpdate.IsZero() {
+		lastTxUpdate = time.Now()
 	}
 
-	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, time.Now())
-	targetDifficulty := fmt.Sprintf("%064x", blockchain.CompactToBig(template.Block.Header.Difficulty))
-	pastMedianTime := api.miner.blockManager.GetChainState().GetPastMedianTime()
-	minTime := pastMedianTime.Add(time.Second)
-	maxTime := api.miner.timeSource.AdjustedTime().Add(time.Second * blockchain.MaxTimeOffsetSeconds)
+	// Generate a new block template when the current best block has
+	// changed or the transactions in the memory pool have been updated and
+	// it has been at least gbtRegenerateSecond since the last template was
+	// generated.
+	var targetDifficulty string
+	rand.Seed(time.Now().UnixNano())
+	merkles:=m.blockManager.GetChain().BlockDAG().BuildMerkleTreeStoreFromTips()
+	parentRoot:=merkles[len(merkles)-1]
+	template := state.template
+	if template == nil || state.prevHash == nil ||
+		!state.prevHash.IsEqual(parentRoot) ||
+		(state.lastTxUpdate != lastTxUpdate &&
+			time.Now().After(state.lastGenerated.Add(time.Second*
+				gbtRegenerateSeconds))) {
 
+		// Reset the previous best hash the block template was generated
+		// against so any errors below cause the next invocation to try
+		// again.
+		state.prevHash = nil
+
+		// Choose a payment address at random if the caller requests a
+		// full coinbase as opposed to only the pertinent details needed
+		// to create their own coinbase.
+		var payToAddr types.Address
+		if !useCoinbaseValue {
+			// Choose a payment address at random.
+			payToAddr = m.config.GetMinningAddrs()[rand.Intn(len(m.config.GetMinningAddrs()))]
+		}
+
+		// Create a new block template that has a coinbase which anyone
+		// can redeem.  This is only acceptable because the returned
+		// block template doesn't include the coinbase, so the caller
+		// will ultimately create their own coinbase which pays to the
+		// appropriate address(es).
+		template, err := mining.NewBlockTemplate(m.policy, m.config, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil)
+		if err != nil {
+			return rpc.RpcInvalidError("Failed to create new block template: %s",err.Error())
+		}
+		msgBlock := template.Block
+		targetDifficulty = fmt.Sprintf("%064x",
+			blockchain.CompactToBig(msgBlock.Header.Difficulty))
+
+		// Get the minimum allowed timestamp for the block based on the
+		// median timestamp of the last several blocks per the chain
+		// consensus rules.
+		best := m.blockManager.GetChain().BestSnapshot()
+		minTimestamp := mining.MinimumMedianTime(best)
+
+		// Update work state to ensure another block template isn't
+		// generated until needed.
+		state.template = template
+		state.lastGenerated = time.Now()
+		state.lastTxUpdate = lastTxUpdate
+		state.prevHash = &msgBlock.Header.ParentRoot
+		state.minTimestamp = minTimestamp
+
+		log.Debug(fmt.Sprintf("Generated block template (timestamp %v, "+
+			"target %s, merkle root %s)",
+			msgBlock.Header.Timestamp, targetDifficulty,
+			msgBlock.Header.ParentRoot))
+
+	} else {
+		// Set locals for convenience.
+		msgBlock := template.Block
+		targetDifficulty = fmt.Sprintf("%064x",
+			blockchain.CompactToBig(msgBlock.Header.Difficulty))
+
+		// Update the time of the block template to the current time
+		// while accounting for the median time of the past several
+		// blocks per the chain consensus rules.
+		mining.UpdateBlockTime(msgBlock,m.blockManager,m.blockManager.GetChain(),m.timeSource,m.params,m.config)
+		msgBlock.Header.Nonce = 0
+
+		log.Debug(fmt.Sprintf("Updated block template (timestamp %v, "+
+			"target %s)", msgBlock.Header.Timestamp,
+			targetDifficulty))
+	}
+
+	return nil
+}
+
+
+// blockTemplateResult returns the current block template associated with the
+// state as a GetBlockTemplateResult that is ready to be encoded to JSON
+// and returned to the caller.
+//
+// This function MUST be called with the state locked.
+func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseValue bool, submitOld *bool) (*json.GetBlockTemplateResult, error) {
+	// Ensure the timestamps are still in valid range for the template.
+	// This should really only ever happen if the local clock is changed
+	// after the template is generated, but it's important to avoid serving
+	// invalid block templates.
+	m := api.miner
+	template := state.template
+	msgBlock := template.Block
+	header := &msgBlock.Header
+	adjustedTime := state.timeSource.AdjustedTime()
+	maxTime := adjustedTime.Add(time.Second * blockchain.MaxTimeOffsetSeconds)
+	if header.Timestamp.After(maxTime) {
+		return nil, rpc.RpcInvalidError("The template time is after the maximum allowed time for a block - template time %v, maximum time %v", adjustedTime, maxTime)
+	}
 	// Convert each transaction in the block template to a template result
 	// transaction.  The result does not include the coinbase, so notice
 	// the adjustments to the various lengths and indices.
@@ -350,7 +388,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 			m.Lock()
 			m.started = false
 			m.Unlock()
-			return nil, er.RpcInvalidError(err.Error(), context)
+			return nil, rpc.RpcInvalidError(err.Error(), context)
 
 		}
 
@@ -367,6 +405,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		transactions = append(transactions, resultTx)
 	}
 
+
 	//parents
 	parents := []json.GetBlockTemplateResultPt{}
 	for _, v := range template.Block.Parents {
@@ -377,7 +416,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		parents = append(parents, resultPt)
 	}
 	//TODO,submitOld
-	var submitOld *bool
+
 	// gbtMutableFields are the manipulations the server allows to be made
 	// to block templates generated by the getblocktemplate RPC.  It is
 	// declared here to avoid the overhead of creating the slice on every
@@ -387,14 +426,16 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 	}
 	gbtCapabilities := []string{"proposal"}
 
+	targetDifficulty := fmt.Sprintf("%064x", blockchain.CompactToBig(header.Difficulty))
+	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, state.lastGenerated)
 	reply := json.GetBlockTemplateResult{
 		Bits:         strconv.FormatInt(int64(template.Block.Header.Difficulty), 16),
 		StateRoot:    template.Block.Header.StateRoot.String(),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
 		Height:       int64(template.Height),
 		PreviousHash: template.Block.Header.ParentRoot.String(),
-		WeightLimit:  MaxBlockWeight,
-		SigOpLimit:   MaxBlockSigOpsCost,
+		WeightLimit:  types.MaxBlockWeight,
+		SigOpLimit:   types.MaxBlockSigOpsCost,
 		SizeLimit:    wire.MaxBlockPayload,
 		//TODO，transactions
 		// make([]json.GetBlockTemplateResultTx, 0, 1)
@@ -405,7 +446,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		//TODO, submitOld
 		SubmitOld: submitOld,
 		Target:    targetDifficulty,
-		MinTime:   minTime.Unix(),
+		MinTime:   state.minTimestamp.Unix(),
 		MaxTime:   maxTime.Unix(),
 		// gbtMutableFields
 		Mutable:    gbtMutableFields,
@@ -424,25 +465,54 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, capabilities []string) (
 		// Ensure the template has a valid payment address associated
 		// with it when a full coinbase is requested.
 		if !template.ValidPayAddress {
-			m.Lock()
-			m.started = false
-			m.Unlock()
-			return nil, er.RpcInvalidError("A coinbase transaction has been " +
+			return nil, rpc.RpcInvalidError("A coinbase transaction has been " +
 				"requested, but the server has not " +
 				"been configured with any payment " +
 				"addresses via --miningaddr")
 		}
 	}
-	m.Lock()
-	m.started = false
-	m.Unlock()
 	return &reply, nil
-
 }
 
-//LL
-// encodeTemplateID encodes the passed details into an ID that can be used to
-// uniquely identify a block template.
-func encodeTemplateID(prevHash hash.Hash, lastGenerated time.Time) string {
-	return fmt.Sprintf("%s-%d", prevHash.String(), lastGenerated.Unix())
+// PrivateMinerAPI provides private RPC methods to control the miner.
+type PrivateMinerAPI struct {
+	miner *CPUMiner
+}
+
+func NewPrivateMinerAPI(c *CPUMiner) *PrivateMinerAPI {
+	pmAPI:=&PrivateMinerAPI{miner:c}
+	return pmAPI
+}
+
+func (api *PrivateMinerAPI) Generate(numBlocks uint32) ([]string, error) {
+	// Respond with an error if there are no addresses to pay the
+	// created blocks to.
+	if len(api.miner.config.GetMinningAddrs()) == 0 {
+		return nil, rpc.RpcInternalError("No payment addresses specified "+
+			"via --miningaddr", "Configuration")
+	}
+
+	// Respond with an error if the client is requesting 0 blocks to be generated.
+	if numBlocks == 0 {
+		return nil, rpc.RpcInternalError("Invalid number of blocks",
+			"Configuration")
+	}
+	if numBlocks > 3000 {
+		return nil, fmt.Errorf("error, more than 1000")
+	}
+	blockHashes, err := api.miner.GenerateNBlocks(numBlocks)
+	if err != nil {
+		return nil, rpc.RpcInternalError("Could not generate blocks,"+err.Error(),
+			"miner")
+	}
+	// Create a reply
+	reply := make([]string, numBlocks)
+
+	// Mine the correct number of blocks, assigning the hex representation of the
+	// hash of each one to its place in the reply.
+	for i, hash := range blockHashes {
+		reply[i] = hash.String()
+	}
+
+	return reply, nil
 }

@@ -11,8 +11,8 @@ package blockchain
 import (
 	"sync"
 
-	"qitmeer/params"
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 )
 
 // The number of values to precalculate on initialization of the subsidy

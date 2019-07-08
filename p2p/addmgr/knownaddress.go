@@ -6,7 +6,7 @@
 package addmgr
 
 import (
-	"qitmeer/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"sync"
 	"time"
 

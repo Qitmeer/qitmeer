@@ -5,9 +5,9 @@ package blkmgr
 import (
 	"sync"
 	"time"
-	"qitmeer/common/hash"
-	"qitmeer/core/blockchain"
-	"qitmeer/config"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/config"
 )
 
 func (b *BlockManager) GetChainState() *ChainState{

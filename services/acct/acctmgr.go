@@ -1,8 +1,8 @@
 package acct
 
 import (
-	"qitmeer/log"
-	"qitmeer/rpc"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/rpc"
 )
 
 // account manager communicate with various backends for signing transactions.
@@ -25,6 +25,7 @@ func (a AccountManager)	APIs() []rpc.API {
 		{
 			NameSpace: rpc.DefaultServiceNameSpace,
 			Service:   NewPublicAccountManagerAPI(&a),
+			Public:    true,
 		},
 	}
 }

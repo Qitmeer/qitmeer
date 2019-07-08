@@ -7,8 +7,8 @@
 package mempool
 
 import (
-	"qitmeer/core/types"
-	"qitmeer/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 )
 
 const (

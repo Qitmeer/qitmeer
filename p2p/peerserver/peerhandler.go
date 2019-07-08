@@ -2,8 +2,8 @@ package peerserver
 
 import (
 	"fmt"
-	"qitmeer/log"
-	"qitmeer/p2p/addmgr"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer/p2p/addmgr"
 	"net"
 	"sync/atomic"
 	"time"

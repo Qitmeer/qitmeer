@@ -7,12 +7,12 @@ package mempool
 
 import (
 	"time"
-	"qitmeer/params"
-	"qitmeer/common/hash"
-	"qitmeer/core/types"
-	"qitmeer/core/blockchain"
-	"qitmeer/engine/txscript"
-	"qitmeer/services/index"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer/services/index"
 )
 
 const (

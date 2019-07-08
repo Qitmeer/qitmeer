@@ -46,10 +46,23 @@ func (s *PeerServer) handleQuery(state *peerState, querymsg interface{}) {
 	switch msg := querymsg.(type) {
 	case getConnCountMsg:
 		nconnected := int32(0)
+		state.forAllPeers(func(sp *serverPeer) {
+			if sp.Connected() {
+				nconnected++
+			}
+		})
 		msg.reply <- nconnected
+
 	case getPeersMsg:
-		peers := make([]*serverPeer, 0)
+		peers := make([]*serverPeer, 0, state.Count())
+		state.forAllPeers(func(sp *serverPeer) {
+			if !sp.Connected() {
+				return
+			}
+			peers = append(peers, sp)
+		})
 		msg.reply <- peers
+
 	case connectNodeMsg:
 		msg.reply <- errors.New("not support")
 	case removeNodeMsg:

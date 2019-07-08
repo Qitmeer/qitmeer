@@ -7,14 +7,14 @@ package peerserver
 
 import (
 	"fmt"
-	"qitmeer/common/hash"
-	"qitmeer/core/message"
-	"qitmeer/core/protocol"
-	"qitmeer/core/types"
-	"qitmeer/log"
-	"qitmeer/p2p/addmgr"
-	"qitmeer/p2p/peer"
-	"qitmeer/params/dcr/types"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer/p2p/addmgr"
+	"github.com/HalalChain/qitmeer/p2p/peer"
+	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 	"time"
 )
 

@@ -19,9 +19,9 @@ package trie
 
 import (
 	"bytes"
-	"qitmeer/common/hash"
-	"qitmeer/common/util"
-	"qitmeer/database/statedb"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/util"
+	"github.com/HalalChain/qitmeer/database/statedb"
 	"testing"
 )
 

@@ -1,9 +1,9 @@
 package mempool
 
 import (
-	"qitmeer/core/types"
-	"qitmeer/log"
-	"qitmeer/rpc"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/rpc"
 	"sort"
 )
 
@@ -11,6 +11,7 @@ func (t *TxPool) API() rpc.API {
 	return rpc.API{
 		NameSpace: rpc.DefaultServiceNameSpace,
 		Service:   NewPublicMempoolAPI(t),
+		Public:    true,
 	}
 }
 

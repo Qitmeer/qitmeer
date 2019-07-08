@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 	"sync"
 )
 

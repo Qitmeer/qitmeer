@@ -1,8 +1,8 @@
 package peerserver
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 )
 
 // pushMiningStateMsg pushes a mining state message to the queue for a

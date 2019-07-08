@@ -2,22 +2,22 @@
 package node
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/types"
-	"qitmeer/database"
-	"qitmeer/engine/txscript"
-	"qitmeer/node/notify"
-	"qitmeer/p2p/peerserver"
-	"qitmeer/params"
-	"qitmeer/rpc"
-	"qitmeer/services/acct"
-	"qitmeer/services/blkmgr"
-	"qitmeer/services/index"
-	"qitmeer/services/mempool"
-	"qitmeer/services/miner"
-	"qitmeer/services/mining"
-	"qitmeer/services/notifymgr"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer/node/notify"
+	"github.com/HalalChain/qitmeer/p2p/peerserver"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer-lib/rpc"
+	"github.com/HalalChain/qitmeer/services/acct"
+	"github.com/HalalChain/qitmeer/services/blkmgr"
+	"github.com/HalalChain/qitmeer/services/index"
+	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer/services/miner"
+	"github.com/HalalChain/qitmeer/services/mining"
+	"github.com/HalalChain/qitmeer/services/notifymgr"
 	"time"
 )
 
@@ -140,7 +140,7 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 		},
 		ChainParams:      node.Params,
 		FetchUtxoView:    bm.GetChain().FetchUtxoView,  //TODO, duplicated dependence of miner
-		BlockByHash:      bm.GetChain().BlockByHash,
+		BlockByHash:      bm.GetChain().FetchBlockByHash,
 		BestHash:         func() *hash.Hash { return &bm.GetChain().BestSnapshot().Hash },
 		BestHeight:       func() uint64 { return bm.GetChain().BestSnapshot().Order },
 		CalcSequenceLock: bm.GetChain().CalcSequenceLock,
@@ -199,4 +199,9 @@ func (nox *NoxFull) GetBlockManager() *blkmgr.BlockManager{
 // return cpu miner
 func (nox *NoxFull) GetCpuMiner() *miner.CPUMiner{
 	return nox.cpuMiner
+}
+
+// return peer server
+func (nox *NoxFull) GetPeerServer() *peerserver.PeerServer {
+	return nox.node.peerServer
 }
