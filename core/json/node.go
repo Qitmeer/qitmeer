@@ -10,6 +10,7 @@ type InfoNodeResult struct {
 	Difficulty      float64 `json:"difficulty"`
 	TestNet         bool    `json:"testnet"`
 	Errors          string  `json:"errors"`
+	Modules         []string `json:"modules"`
 }
 
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
