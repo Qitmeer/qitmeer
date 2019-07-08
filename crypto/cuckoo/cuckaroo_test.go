@@ -8,13 +8,10 @@ import (
 	"log"
 	"math/big"
 	"runtime"
-	"strconv"
 	"testing"
 )
 
 const targetBits = 1
-
-var txRoot = ""
 
 func TestCuckooMining(t *testing.T) {
 
@@ -22,22 +19,19 @@ func TestCuckooMining(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	var targetDifficulty = big.NewInt(2)
 	targetDifficulty.Lsh(targetDifficulty, uint(255-targetBits))
-	fmt.Printf("Target:%064x\n", targetDifficulty.Bytes())
-	c := NewCuckoo() // 构建 Cuckoo 结构体
-
-	//rand.Seed(time.Now().UnixNano())
+	fmt.Printf("Target Diff:%064x\n", targetDifficulty.Bytes())
+	c := NewCuckoo()
 
 	var cycleNonces []uint32
 	var isFound bool
 	var nonce int64
 	var cycleNoncesHashInt big.Int
 	var siphashKey []byte
-	test := "helloworld"
+	header := "helloworld"
 
 	for nonce = 0; ; nonce++ {
-		test += fmt.Sprintf("%d",nonce)
-		siphashKey = hash.DoubleHashB([]byte(test))
-		fmt.Println("header nonce = ", nonce)
+		headerBytes := []byte(fmt.Sprintf("%s%d",header,nonce))
+		siphashKey = hash.DoubleHashB(headerBytes)
 		cycleNonces, isFound = c.PoW(siphashKey[:16])
 		if !isFound {
 			continue
@@ -45,21 +39,16 @@ func TestCuckooMining(t *testing.T) {
 		if err := Verify(siphashKey[:16], cycleNonces); err != nil {
 			continue
 		}
-		log.Println("Found 42 Cycles:")
-		for _, v := range cycleNonces {
-			fmt.Printf("%d,", v)
-		}
 		cycleNoncesHash := hash.DoubleHashB(Uint32ToBytes(cycleNonces))
 		cycleNoncesHashInt.SetBytes(cycleNoncesHash[:])
 
 		// The block is solved when the new block hash is less
 		// than the target difficulty.  Yay!
 		if cycleNoncesHashInt.Cmp(targetDifficulty) <= 0 {
-			fmt.Println("\nsuccess!",hex.EncodeToString(cycleNoncesHash))
+			log.Println(fmt.Sprintf("Current Nonce:%d",nonce))
+			log.Println(fmt.Sprintf("Found %d Cycles Nonces:",ProofSize),cycleNonces)
+			fmt.Println("【Found Hash】",hex.EncodeToString(cycleNoncesHash))
 			break
-		} else {
-			txRoot = strconv.FormatInt(nonce, 10)
-			fmt.Println("txRoot=", txRoot)
 		}
 	}
 }
