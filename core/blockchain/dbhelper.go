@@ -2,18 +2,17 @@
 package blockchain
 
 import (
-	"qitmeer/core/dbnamespace"
-	"qitmeer/database"
-	"qitmeer/common/hash"
-	"qitmeer/core/types"
-	"fmt"
-	"time"
-	"encoding/binary"
-	"math/big"
 	"bytes"
+	"encoding/binary"
+	"fmt"
+	"github.com/HalalChain/qitmeer/core/dbnamespace"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer/database"
+	"math/big"
 	"sort"
+	"time"
 )
-
 
 // errNotInMainChain signifies that a block hash or height that is not in the
 // main chain was requested.
@@ -70,23 +69,23 @@ type databaseInfo struct {
 
 // blockIndexEntry represents a block index database entry.
 type blockIndexEntry struct {
-	header         types.BlockHeader
-	status         blockStatus
+	header types.BlockHeader
+	status blockStatus
 }
 
 // blockIndexKey generates the binary key for an entry in the block index
-// bucket.  The key is composed of the block height encoded as a big-endian
+// bucket.  The key is composed of the block order encoded as a big-endian
 // 32-bit unsigned int followed by the 32 byte block hash.  Big endian is used
 // here so the entries can easily be iterated by height.
-func blockIndexKey(blockHash *hash.Hash, blockHeight uint32) []byte {
+func blockIndexKey(blockHash *hash.Hash, blockOrder uint32) []byte {
 	indexKey := make([]byte, hash.HashSize+4)
-	binary.BigEndian.PutUint32(indexKey[0:4], blockHeight)
+	binary.BigEndian.PutUint32(indexKey[0:4], blockOrder)
 	copy(indexKey[4:hash.HashSize+4], blockHash[:])
 	return indexKey
 }
 
 // -----------------------------------------------------------------------------
-// The best chain state consists of the best block hash and height, the total
+// The best chain state consists of the best block hash and order, the total
 // number of transactions up to and including those in the best block, the
 // total coin supply, the subsidy at the current block, the subsidy of the
 // block prior (for rollbacks), and the accumulated work sum up to and
@@ -98,7 +97,7 @@ func blockIndexKey(blockHash *hash.Hash, blockHeight uint32) []byte {
 //
 //   Field             Type             Size
 //   block hash        chainhash.Hash   chainhash.HashSize
-//   block height      uint32           4 bytes
+//   block order       uint32           4 bytes
 //   total txns        uint64           8 bytes
 //   total subsidy     int64            8 bytes
 //   work sum length   uint32           4 bytes
@@ -109,34 +108,23 @@ func blockIndexKey(blockHash *hash.Hash, blockHeight uint32) []byte {
 // best chain state.
 type bestChainState struct {
 	hash         hash.Hash
-	height       uint64
+	order        uint64
 	totalTxns    uint64
 	totalSubsidy int64
 	workSum      *big.Int
 }
 
-// DBMainChainHasBlock is the exported version of dbMainChainHasBlock.
-func DBMainChainHasBlock(dbTx database.Tx, hash *hash.Hash) bool {
-	return dbMainChainHasBlock(dbTx, hash)
+// DBFetchBlockByOrder is the exported version of dbFetchBlockByOrder.
+func DBFetchBlockByOrder(dbTx database.Tx, order uint64) (*types.SerializedBlock, error) {
+	return dbFetchBlockByOrder(dbTx, order)
 }
 
-// dbMainChainHasBlock uses an existing database transaction to return whether
-// or not the main chain contains the block identified by the provided hash.
-func dbMainChainHasBlock(dbTx database.Tx, hash *hash.Hash) bool {
-	hashIndex := dbTx.Metadata().Bucket(dbnamespace.HashIndexBucketName)
-	return hashIndex.Get(hash[:]) != nil
-}
-
-// DBFetchBlockByHeight is the exported version of dbFetchBlockByHeight.
-func DBFetchBlockByHeight(dbTx database.Tx, height uint64) (*types.SerializedBlock, error) {
-	return dbFetchBlockByHeight(dbTx, height)
-}
-// dbFetchBlockByHeight uses an existing database transaction to retrieve the
-// raw block for the provided height, deserialize it, and return a Block
+// dbFetchBlockByOrder uses an existing database transaction to retrieve the
+// raw block for the provided order, deserialize it, and return a Block
 // with the height set.
-func dbFetchBlockByHeight(dbTx database.Tx, height uint64) (*types.SerializedBlock, error) {
-	// First find the hash associated with the provided height in the index.
-	h, err := dbFetchHashByHeight(dbTx, height)
+func dbFetchBlockByOrder(dbTx database.Tx, order uint64) (*types.SerializedBlock, error) {
+	// First find the hash associated with the provided order in the index.
+	h, err := dbFetchHashByOrder(dbTx, order)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +135,7 @@ func dbFetchBlockByHeight(dbTx database.Tx, height uint64) (*types.SerializedBlo
 		return nil, err
 	}
 
-	// Create the encapsulated block and set the height appropriately.
+	// Create the encapsulated block and set the order appropriately.
 	block, err := types.NewBlockFromBytes(blockBytes)
 	if err != nil {
 		return nil, err
@@ -156,17 +144,17 @@ func dbFetchBlockByHeight(dbTx database.Tx, height uint64) (*types.SerializedBlo
 	return block, nil
 }
 
-// dbFetchHashByHeight uses an existing database transaction to retrieve the
-// hash for the provided height from the index.
-func dbFetchHashByHeight(dbTx database.Tx, height uint64) (*hash.Hash, error) {
-	var serializedHeight [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedHeight[:], uint32(height))
+// dbFetchHashByOrder uses an existing database transaction to retrieve the
+// hash for the provided order from the index.
+func dbFetchHashByOrder(dbTx database.Tx, order uint64) (*hash.Hash, error) {
+	var serializedOrder [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedOrder[:], uint32(order))
 
 	meta := dbTx.Metadata()
-	heightIndex := meta.Bucket(dbnamespace.HeightIndexBucketName)
-	hashBytes := heightIndex.Get(serializedHeight[:])
+	orderIndex := meta.Bucket(dbnamespace.OrderIndexBucketName)
+	hashBytes := orderIndex.Get(serializedOrder[:])
 	if hashBytes == nil {
-		str := fmt.Sprintf("no block at height %d exists", height)
+		str := fmt.Sprintf("no block at order %d exists", order)
 		return nil, errNotInMainChain(str)
 	}
 
@@ -175,7 +163,6 @@ func dbFetchHashByHeight(dbTx database.Tx, height uint64) (*hash.Hash, error) {
 	return &h, nil
 }
 
-
 // BlockByHeight returns the block at the given height in the main chain.
 //
 // This function is safe for concurrent access.
@@ -183,21 +170,21 @@ func (b *BlockChain) BlockByOrder(blockOrder uint64) (*types.SerializedBlock, er
 	var block *types.SerializedBlock
 	err := b.db.View(func(dbTx database.Tx) error {
 		var err error
-		block, err = dbFetchBlockByHeight(dbTx, blockOrder)
+		block, err = dbFetchBlockByOrder(dbTx, blockOrder)
 		return err
 	})
 	return block, err
 }
 
-// BlockHashByHeight returns the hash of the block at the given height in the
+// BlockHashByOrder returns the hash of the block at the given order in the
 // main chain.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) BlockHashByHeight(blockHeight uint64) (*hash.Hash, error) {
+func (b *BlockChain) BlockHashByOrder(blockOrder uint64) (*hash.Hash, error) {
 	var hash *hash.Hash
 	err := b.db.View(func(dbTx database.Tx) error {
 		var err error
-		hash, err = dbFetchHashByHeight(dbTx, blockHeight)
+		hash, err = dbFetchHashByOrder(dbTx, blockOrder)
 		return err
 	})
 	return hash, err
@@ -207,13 +194,8 @@ func (b *BlockChain) BlockHashByHeight(blockHeight uint64) (*hash.Hash, error) {
 // the main chain.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) MainChainHasBlock(hash *hash.Hash) (bool, error) {
-	var exists bool
-	err := b.db.View(func(dbTx database.Tx) error {
-		exists = dbMainChainHasBlock(dbTx, hash)
-		return nil
-	})
-	return exists, err
+func (b *BlockChain) MainChainHasBlock(hash *hash.Hash) bool {
+	return b.bd.IsOnMainChain(hash)
 }
 
 // dbFetchDatabaseInfo uses an existing database transaction to fetch the
@@ -281,8 +263,8 @@ func (b *BlockChain) createChainState() error {
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
-	b.stateSnapshot= newBestState(node, blockSize, numTxns,
-		time.Unix(node.timestamp,0), numTxns,0,b.bd.GetGraphState())
+	b.stateSnapshot = newBestState(node, blockSize, numTxns,
+		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState())
 
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.
@@ -320,9 +302,9 @@ func (b *BlockChain) createChainState() error {
 			return err
 		}
 
-		// Create the bucket that houses the chain block height to hash
+		// Create the bucket that houses the chain block order to hash
 		// index.
-		_, err = meta.CreateBucket(dbnamespace.HeightIndexBucketName)
+		_, err = meta.CreateBucket(dbnamespace.OrderIndexBucketName)
 		if err != nil {
 			return err
 		}
@@ -349,7 +331,7 @@ func (b *BlockChain) createChainState() error {
 
 		// Add the genesis block hash to height and height to hash
 		// mappings to the index.
-		err = dbPutMainChainIndex(dbTx, &node.hash, node.order)
+		err = dbPutBlockIndex(dbTx, &node.hash, node.order)
 		if err != nil {
 			return err
 		}
@@ -365,7 +347,6 @@ func (b *BlockChain) createChainState() error {
 	})
 	return err
 }
-
 
 // dbPutDatabaseInfo uses an existing database transaction to store the database
 // information.
@@ -418,15 +399,15 @@ func dbPutDatabaseInfo(dbTx database.Tx, dbi *databaseInfo) error {
 // block node in the block index according to the format described above.
 func dbPutBlockNode(dbTx database.Tx, node *blockNode) error {
 	serialized, err := serializeBlockIndexEntry(&blockIndexEntry{
-		header:         node.Header(),
-		status:         node.status,
+		header: node.Header(),
+		status: node.status,
 	})
 	if err != nil {
 		return err
 	}
 
 	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIndexBucketName)
-	key := blockIndexKey(&node.hash, uint32(node.order))
+	key := node.hash[:]
 	return bucket.Put(key, serialized)
 }
 
@@ -447,41 +428,59 @@ func blockIndexEntrySerializeSize(entry *blockIndexEntry) int {
 }
 
 // -----------------------------------------------------------------------------
-// The main chain index consists of two buckets with an entry for every block in
-// the main chain.  One bucket is for the hash to height mapping and the other
-// is for the height to hash mapping.
+// The block index consists of two buckets with an entry for every block in
+// the chain.  One bucket is for the hash to order mapping and the other
+// is for the order to hash mapping.
 //
-// The serialized format for values in the hash to height bucket is:
-//   <height>
+// The serialized format for values in the hash to order bucket is:
+//   <order>
 //
 //   Field      Type     Size
-//   height     uint32   4 bytes
+//   order     uint32   4 bytes
 //
-// The serialized format for values in the height to hash bucket is:
+// The serialized format for values in the order to hash bucket is:
 //   <hash>
 //
 //   Field      Type             Size
 //   hash       chainhash.Hash   chainhash.HashSize
 // -----------------------------------------------------------------------------
 
-// dbPutMainChainIndex uses an existing database transaction to update or add
-// index entries for the hash to height and height to hash mappings for the
+// dbPutBlockIndex uses an existing database transaction to update or add
+// index entries for the hash to order and order to hash mappings for the
 // provided values.
-func dbPutMainChainIndex(dbTx database.Tx, hash *hash.Hash, height uint64) error {
-	// Serialize the height for use in the index entries.
-	var serializedHeight [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedHeight[:], uint32(height))
+func dbPutBlockIndex(dbTx database.Tx, hash *hash.Hash, order uint64) error {
+	// Serialize the order for use in the index entries.
+	var serializedOrder [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedOrder[:], uint32(order))
 
-	// Add the block hash to height mapping to the index.
+	// Add the block hash to order mapping to the index.
 	meta := dbTx.Metadata()
 	hashIndex := meta.Bucket(dbnamespace.HashIndexBucketName)
-	if err := hashIndex.Put(hash[:], serializedHeight[:]); err != nil {
+	if err := hashIndex.Put(hash[:], serializedOrder[:]); err != nil {
 		return err
 	}
 
-	// Add the block height to hash mapping to the index.
-	heightIndex := meta.Bucket(dbnamespace.HeightIndexBucketName)
-	return heightIndex.Put(serializedHeight[:], hash[:])
+	// Add the block order to hash mapping to the index.
+	orderIndex := meta.Bucket(dbnamespace.OrderIndexBucketName)
+	return orderIndex.Put(serializedOrder[:], hash[:])
+}
+
+// dbRemoveBlockIndex uses an existing database transaction remove block
+// index entries from the hash to order and order to hash mappings for
+// the provided values.
+func dbRemoveBlockIndex(dbTx database.Tx, hash *hash.Hash, order int64) error {
+	// Remove the block hash to height mapping.
+	meta := dbTx.Metadata()
+	hashIndex := meta.Bucket(dbnamespace.HashIndexBucketName)
+	if err := hashIndex.Delete(hash[:]); err != nil {
+		return err
+	}
+
+	// Remove the block height to hash mapping.
+	var serializedOrdert [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedOrdert[:], uint32(order))
+	orderIndex := meta.Bucket(dbnamespace.OrderIndexBucketName)
+	return orderIndex.Delete(serializedOrdert[:])
 }
 
 // dbPutBestState uses an existing database transaction to update the best chain
@@ -489,8 +488,9 @@ func dbPutMainChainIndex(dbTx database.Tx, hash *hash.Hash, height uint64) error
 func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) error {
 	// Serialize the current best chain state.
 	serializedData := serializeBestChainState(bestChainState{
-		hash:         snapshot.Hash,
-		height:       snapshot.Order,
+		hash:      snapshot.Hash,
+		order:     snapshot.Order,
+		totalTxns: snapshot.TotalTxns,
 	})
 
 	// Store the current best chain state into the database.
@@ -501,18 +501,19 @@ func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) err
 // chain state.  This is data to be stored in the chain state bucket.
 func serializeBestChainState(state bestChainState) []byte {
 	// Calculate the full size needed to serialize the chain state.
-	serializedLen := hash.HashSize + 4 + 8
+	serializedLen := hash.HashSize + 8 + 8
 
 	// Serialize the chain state.
 	serializedData := make([]byte, serializedLen)
 	copy(serializedData[0:hash.HashSize], state.hash[:])
 	offset := uint32(hash.HashSize)
-	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.height)
+	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.order)
+	offset += 8
+	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.totalTxns)
 	offset += 8
 
 	return serializedData[:]
 }
-
 
 // putBlockIndexEntry serializes the passed block index entry according to the
 // format described above directly into the passed target byte slice.  The
@@ -542,7 +543,7 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	// Ensure the serialized data has enough bytes to properly deserialize
 	// the hash, height, total transactions, total subsidy, current subsidy,
 	// and work sum length.
-	expectedMinLen := hash.HashSize + 8
+	expectedMinLen := hash.HashSize + 8 + 8
 	if len(serializedData) < expectedMinLen {
 		return bestChainState{}, database.Error{
 			ErrorCode: database.ErrCorruption,
@@ -554,9 +555,10 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	state := bestChainState{}
 	copy(state.hash[:], serializedData[0:hash.HashSize])
 	offset := uint32(hash.HashSize)
-	state.height = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
+	state.order = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
 	offset += 8
-
+	state.totalTxns = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
+	offset += 8
 	return state, nil
 }
 
@@ -619,7 +621,6 @@ func dbFetchBlockByHash(dbTx database.Tx, hash *hash.Hash) (*types.SerializedBlo
 
 	return block, nil
 }
-
 
 // deserializeUtxoEntry decodes a utxo entry from the passed serialized byte
 // slice into a new UtxoEntry using a format that is suitable for long-term
@@ -735,44 +736,43 @@ func deserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 		offset += bytesRead
 
 		entry.sparseOutputs[outputIndex] = &utxoOutput{
-			spent:         false,
-			compressed:    true,
-			pkScript:      compScript,
-			amount:        uint64(amount),  //TODO, remove type conversion
+			spent:      false,
+			compressed: true,
+			pkScript:   compScript,
+			amount:     uint64(amount), //TODO, remove type conversion
 		}
 	}
 
 	return entry, nil
 }
 
-// BlockHeightByHash returns the height of the block with the given hash in the
-// main chain.
+// BlockOrderByHash returns the order of the block with the given hash in the
+// chain.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) BlockHeightByHash(hash *hash.Hash) (uint64, error) {
+func (b *BlockChain) BlockOrderByHash(hash *hash.Hash) (uint64, error) {
 	var height uint64
 	err := b.db.View(func(dbTx database.Tx) error {
 		var err error
-		height, err = dbFetchHeightByHash(dbTx, hash)
+		height, err = dbFetchOrderByHash(dbTx, hash)
 		return err
 	})
 	return height, err
 }
 
-// dbFetchHeightByHash uses an existing database transaction to retrieve the
-// height for the provided hash from the index.
-func dbFetchHeightByHash(dbTx database.Tx, hash *hash.Hash) (uint64, error) {
+// dbFetchOrderByHash uses an existing database transaction to retrieve the
+// order for the provided hash from the index.
+func dbFetchOrderByHash(dbTx database.Tx, hash *hash.Hash) (uint64, error) {
 	meta := dbTx.Metadata()
 	hashIndex := meta.Bucket(dbnamespace.HashIndexBucketName)
-	serializedHeight := hashIndex.Get(hash[:])
-	if serializedHeight == nil {
-		str := fmt.Sprintf("block %s is not in the main chain", hash)
+	serializedOrder := hashIndex.Get(hash[:])
+	if serializedOrder == nil {
+		str := fmt.Sprintf("block %s is not in the chain", hash)
 		return 0, errNotInMainChain(str)
 	}
 
-	return uint64(dbnamespace.ByteOrder.Uint32(serializedHeight)), nil
+	return uint64(dbnamespace.ByteOrder.Uint32(serializedOrder)), nil
 }
-
 
 // dbFetchHeaderByHash uses an existing database transaction to retrieve the
 // block header for the provided hash.
@@ -794,7 +794,7 @@ func dbFetchHeaderByHash(dbTx database.Tx, hash *hash.Hash) (*types.BlockHeader,
 // dbFetchHeaderByHeight uses an existing database transaction to retrieve the
 // block header for the provided height.
 func dbFetchHeaderByHeight(dbTx database.Tx, height uint64) (*types.BlockHeader, error) {
-	h, err := dbFetchHashByHeight(dbTx, height)
+	h, err := dbFetchHashByOrder(dbTx, height)
 	if err != nil {
 		return nil, err
 	}
@@ -816,6 +816,7 @@ func dbMaybeStoreBlock(dbTx database.Tx, block *types.SerializedBlock) error {
 
 	return dbTx.StoreBlock(block)
 }
+
 // dbPutUtxoView uses an existing database transaction to update the utxo set
 // in the database based on the provided utxo view contents and state.  In
 // particular, only the entries that have been marked as modified are written
@@ -860,7 +861,6 @@ func dbPutUtxoView(dbTx database.Tx, view *UtxoViewpoint) error {
 
 	return nil
 }
-
 
 //TODO, refactor & move serializeUtxoEntry to serialization package
 // -----------------------------------------------------------------------------
@@ -1029,23 +1029,3 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 	}
 	return serialized, nil
 }
-
-// dbRemoveMainChainIndex uses an existing database transaction remove main
-// chain index entries from the hash to height and height to hash mappings for
-// the provided values.
-func dbRemoveMainChainIndex(dbTx database.Tx, hash *hash.Hash, height int64) error {
-	// Remove the block hash to height mapping.
-	meta := dbTx.Metadata()
-	hashIndex := meta.Bucket(dbnamespace.HashIndexBucketName)
-	if err := hashIndex.Delete(hash[:]); err != nil {
-		return err
-	}
-
-	// Remove the block height to hash mapping.
-	var serializedHeight [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedHeight[:], uint32(height))
-	heightIndex := meta.Bucket(dbnamespace.HeightIndexBucketName)
-	return heightIndex.Delete(serializedHeight[:])
-}
-
-

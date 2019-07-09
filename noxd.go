@@ -5,16 +5,16 @@
 package main
 
 import (
-	"qitmeer/version"
+	"github.com/HalalChain/qitmeer/version"
 	"runtime"
 	"runtime/debug"
 	"os"
 	"path/filepath"
-	"qitmeer/config"
-	"qitmeer/log"
-	"qitmeer/node"
-	"qitmeer/database"
-	 _ "qitmeer/database/ffldb"
+	"github.com/HalalChain/qitmeer-lib/config"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer/node"
+	"github.com/HalalChain/qitmeer/database"
+	 _ "github.com/HalalChain/qitmeer/database/ffldb"
 )
 
 const (

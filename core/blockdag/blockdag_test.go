@@ -3,11 +3,12 @@ package blockdag
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"io"
 	"math/rand"
 	"os"
-	"qitmeer/common/hash"
-	l "qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	l "github.com/HalalChain/qitmeer-lib/log"
 	"time"
 )
 
@@ -206,9 +207,9 @@ func processResult(calRet interface{}, theory []*hash.Hash) bool {
 				break
 			}
 		}
-	case *HashSet:
-		result := calRet.(*HashSet)
-		okResult := NewHashSet()
+	case *dag.HashSet:
+		result := calRet.(*dag.HashSet)
+		okResult := dag.NewHashSet()
 		okResult.AddList(theory)
 		if !result.IsEqual(okResult) {
 			ret = false
@@ -236,7 +237,7 @@ func printBlockChainTag(list []*hash.Hash, tbMap map[string]*hash.Hash) {
 	fmt.Println(result)
 }
 
-func printBlockSetTag(set *HashSet, tbMap map[string]*hash.Hash) {
+func printBlockSetTag(set *dag.HashSet, tbMap map[string]*hash.Hash) {
 	var result string="["
 	isFirst:=true
 	for k:=range set.GetMap(){
@@ -259,3 +260,4 @@ func reverseBlockList(s []*hash.Hash) []*hash.Hash {
 	}
 	return s
 }
+

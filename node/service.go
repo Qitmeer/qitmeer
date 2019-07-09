@@ -2,8 +2,8 @@ package node
 
 import (
 	"fmt"
-	"qitmeer/p2p/peerserver"
-	"qitmeer/rpc"
+	"github.com/HalalChain/qitmeer/p2p/peerserver"
+	"github.com/HalalChain/qitmeer-lib/rpc"
 	"reflect"
 )
 

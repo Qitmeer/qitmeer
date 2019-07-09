@@ -10,26 +10,31 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"qitmeer/common/hash"
-	"qitmeer/core/address"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/json"
-	"qitmeer/core/message"
-	"qitmeer/core/types"
-	"qitmeer/crypto/ecc"
-	"qitmeer/database"
-	"qitmeer/engine/txscript"
-	"qitmeer/params"
-	"qitmeer/rpc"
-	"qitmeer/services/common/error"
-	"qitmeer/services/common/marshal"
-	"qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/marshal"
+	"github.com/HalalChain/qitmeer-lib/core/address"
+	"github.com/HalalChain/qitmeer-lib/core/json"
+	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer-lib/rpc"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer/version"
+	"math/big"
+	"strconv"
+	"time"
 )
 
 func (nf *NoxFull) API() rpc.API {
 	return rpc.API{
 		NameSpace: rpc.DefaultServiceNameSpace,
 		Service:   NewPublicBlockChainAPI(nf),
+		Public:    true,
 	}
 }
 
@@ -56,7 +61,7 @@ func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
 	// Validate the locktime, if given.
 	if lockTime != nil &&
 		(*lockTime < 0 || *lockTime > int64(types.MaxTxInSequenceNum)) {
-		return nil, er.RpcInvalidError("Locktime out of range")
+		return nil, rpc.RpcInvalidError("Locktime out of range")
 	}
 
 	// Add all transaction inputs to a new transaction after performing
@@ -65,7 +70,7 @@ func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
 	for _, input := range inputs {
 		txHash, err := hash.NewHashFromStr(input.Txid)
 		if err != nil {
-			return nil, er.RpcDecodeHexError(input.Txid)
+			return nil, rpc.RpcDecodeHexError(input.Txid)
 		}
 		prevOut := types.NewOutPoint(txHash, input.Vout)
 		txIn := types.NewTxInput(prevOut, types.NullValueIn, []byte{})
@@ -80,14 +85,14 @@ func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
 	for encodedAddr, amount := range amounts {
 		// Ensure amount is in the valid range for monetary amounts.
 		if amount <= 0 || amount > types.MaxAmount {
-			return nil, er.RpcInvalidError("Invalid amount: 0 >= %v "+
+			return nil, rpc.RpcInvalidError("Invalid amount: 0 >= %v "+
 				"> %v", amount, types.MaxAmount)
 		}
 
 		// Decode the provided address.
 		addr, err := address.DecodeAddress(encodedAddr)
 		if err != nil {
-			return nil, er.RpcAddressKeyError("Could not decode "+
+			return nil, rpc.RpcAddressKeyError("Could not decode "+
 				"address: %v", err)
 		}
 
@@ -98,23 +103,23 @@ func (api *PublicBlockChainAPI) CreateRawTransaction(inputs []TransactionInput,
 		case *address.PubKeyHashAddress:
 		case *address.ScriptHashAddress:
 		default:
-			return nil, er.RpcAddressKeyError("Invalid type: %T", addr)
+			return nil, rpc.RpcAddressKeyError("Invalid type: %T", addr)
 		}
 		if !address.IsForNetwork(addr, api.node.node.Params) {
-			return nil, er.RpcAddressKeyError("Wrong network: %v",
+			return nil, rpc.RpcAddressKeyError("Wrong network: %v",
 				addr)
 		}
 
 		// Create a new script which pays to the provided address.
 		pkScript, err := txscript.PayToAddrScript(addr)
 		if err != nil {
-			return nil, er.RpcInternalError(err.Error(),
+			return nil, rpc.RpcInternalError(err.Error(),
 				"Pay to address script")
 		}
 
 		atomic, err := types.NewAmount(amount)
 		if err != nil {
-			return nil, er.RpcInternalError(err.Error(),
+			return nil, rpc.RpcInternalError(err.Error(),
 				"New amount")
 		}
 
@@ -147,12 +152,12 @@ func (api *PublicBlockChainAPI) DecodeRawTransaction(hexTx string) (interface{},
 	}
 	serializedTx, err := hex.DecodeString(hexStr)
 	if err != nil {
-		return nil, er.RpcDecodeHexError(hexStr)
+		return nil, rpc.RpcDecodeHexError(hexStr)
 	}
 	var mtx types.Transaction
 	err = mtx.Deserialize(bytes.NewReader(serializedTx))
 	if err != nil {
-		return nil, er.RpcDeserializationError("Could not decode Tx: %v",
+		return nil, rpc.RpcDeserializationError("Could not decode Tx: %v",
 			err)
 	}
 
@@ -176,7 +181,7 @@ func (api *PublicBlockChainAPI) DecodeRawTransaction(hexTx string) (interface{},
 func createVinList(mtx *types.Transaction) []json.Vin {
 	// Coinbase transactions only have a single txin by definition.
 	vinList := make([]json.Vin, len(mtx.TxIn))
-	if blockchain.IsCoinBaseTx(mtx) {
+	if mtx.IsCoinBaseTx() {
 		txIn := mtx.TxIn[0]
 		vinEntry := &vinList[0]
 		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
@@ -282,12 +287,12 @@ func (api *PublicBlockChainAPI) SendRawTransaction(hexTx string, allowHighFees *
 	}
 	serializedTx, err := hex.DecodeString(hexStr)
 	if err != nil {
-		return nil, er.RpcDecodeHexError(hexStr)
+		return nil, rpc.RpcDecodeHexError(hexStr)
 	}
 	msgtx := types.NewTransaction()
 	err = msgtx.Deserialize(bytes.NewReader(serializedTx))
 	if err != nil {
-		return nil, er.RpcDeserializationError("Could not decode Tx: %v",
+		return nil, rpc.RpcDeserializationError("Could not decode Tx: %v",
 			err)
 	}
 
@@ -309,18 +314,18 @@ func (api *PublicBlockChainAPI) SendRawTransaction(hexTx string, allowHighFees *
 			if ok {
 				if txRuleErr.RejectCode == message.RejectDuplicate {
 					// return a dublicate tx error
-					return nil, er.RpcDuplicateTxError("%v", err)
+					return nil, rpc.RpcDuplicateTxError("%v", err)
 				}
 			}
 
 			// return a generic rule error
-			return nil, er.RpcRuleError("%v", err)
+			return nil, rpc.RpcRuleError("%v", err)
 		}
 
 		log.Error("Failed to process transaction", "err", err)
 		err = fmt.Errorf("failed to process transaction %v: %v",
 			tx.Hash(), err)
-		return nil, er.RpcDeserializationError("rejected: %v", err)
+		return nil, rpc.RpcDeserializationError("rejected: %v", err)
 	}
 	//TODO P2P layer announce
 	api.node.nfManager.AnnounceNewTransactions(acceptedTxs)
@@ -353,7 +358,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			return nil, errors.New("Failed to retrieve transaction location")
 		}
 		if blockRegion == nil {
-			return nil, er.RpcNoTxInfoError(&txHash)
+			return nil, rpc.RpcNoTxInfoError(&txHash)
 		}
 
 		// Load the raw transaction bytes from the database.
@@ -364,7 +369,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 			return err
 		})
 		if err != nil {
-			return nil, er.RpcNoTxInfoError(&txHash)
+			return nil, rpc.RpcNoTxInfoError(&txHash)
 		}
 
 		// When the verbose flag isn't set, simply return the serialized
@@ -376,10 +381,10 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 
 		// Grab the block height.
 		blkHash = blockRegion.Hash
-		blkOrder, err = api.node.blockManager.GetChain().BlockHeightByHash(blkHash)
+		blkOrder, err = api.node.blockManager.GetChain().BlockOrderByHash(blkHash)
 		if err != nil {
 			context := "Failed to retrieve block height"
-			return nil, er.RpcInternalError(err.Error(), context)
+			return nil, rpc.RpcInternalError(err.Error(), context)
 		}
 
 		// Deserialize the transaction
@@ -388,7 +393,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 		log.Trace("GetRawTx", "hex", hex.EncodeToString(txBytes))
 		if err != nil {
 			context := "Failed to deserialize transaction"
-			return nil, er.RpcInternalError(err.Error(), context)
+			return nil, rpc.RpcInternalError(err.Error(), context)
 		}
 		mtx = &msgTx
 	} else {
@@ -481,7 +486,7 @@ func (api *PublicBlockChainAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMe
 			txVersion = tx.Version
 			amount = txOut.Amount
 			pkScript = txOut.PkScript
-			isCoinbase = blockchain.IsCoinBaseTx(tx)
+			isCoinbase = tx.IsCoinBaseTx()
 		}
 	}
 
@@ -581,4 +586,86 @@ func (api *PublicBlockChainAPI) TxSign(privkeyStr string, rawTxStr string) (inte
 	if err != nil {
 	}
 	return mtxHex, nil
+}
+
+// Return the node info
+func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
+	best := api.node.blockManager.GetChain().BestSnapshot()
+	ret := &json.InfoNodeResult{
+		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
+		ProtocolVersion: int32(protocol.ProtocolVersion),
+		Blocks:          uint32(best.Order+1),
+		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
+		Connections:     api.node.node.peerServer.ConnectedCount(),
+		Difficulty:      getDifficultyRatio(best.Bits,api.node.node.Params),
+		TestNet:         api.node.node.Config.TestNet,
+	}
+	return ret, nil
+}
+
+// getDifficultyRatio returns the proof-of-work difficulty as a multiple of the
+// minimum difficulty using the passed bits field from the header of a block.
+func getDifficultyRatio(bits uint32, params *params.Params) float64 {
+	// The minimum difficulty is the max possible proof-of-work limit bits
+	// converted back to a number.  Note this is not the same as the proof of
+	// work limit directly because the block difficulty is encoded in a block
+	// with the compact form which loses precision.
+	max := blockchain.CompactToBig(params.PowLimitBits)
+	target := blockchain.CompactToBig(bits)
+
+	difficulty := new(big.Rat).SetFrac(max, target)
+	outString := difficulty.FloatString(8)
+	diff, err := strconv.ParseFloat(outString, 64)
+	if err != nil {
+		log.Error(fmt.Sprintf("Cannot get difficulty: %v", err))
+		return 0
+	}
+	return diff
+}
+
+// Return the peer info
+func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
+	peers := api.node.node.peerServer.ConnectedPeers()
+	syncPeerID := api.node.blockManager.SyncPeerID()
+	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
+	for _, p := range peers {
+		statsSnap := p.StatsSnapshot()
+		info := &json.GetPeerInfoResult{
+			ID:             statsSnap.ID,
+			Addr:           statsSnap.Addr,
+			AddrLocal:      p.LocalAddr().String(),
+			Services:       fmt.Sprintf("%08d", uint64(statsSnap.Services)),
+			RelayTxes:      !p.IsTxRelayDisabled(),
+			LastSend:       statsSnap.LastSend.Unix(),
+			LastRecv:       statsSnap.LastRecv.Unix(),
+			BytesSent:      statsSnap.BytesSent,
+			BytesRecv:      statsSnap.BytesRecv,
+			ConnTime:       statsSnap.ConnTime.Unix(),
+			PingTime:       float64(statsSnap.LastPingMicros),
+			TimeOffset:     statsSnap.TimeOffset,
+			Version:        statsSnap.Version,
+			SubVer:         statsSnap.UserAgent,
+			Inbound:        statsSnap.Inbound,
+			BanScore:       int32(p.BanScore()),
+			SyncNode:       statsSnap.ID == syncPeerID,
+		}
+		if statsSnap.GraphState!=nil {
+			tips:=[]string{}
+			for k:=range statsSnap.GraphState.GetTips().GetMap(){
+				tips=append(tips,k.String())
+			}
+			info.GraphState=json.GetGraphStateResult{
+				Tips:tips,
+				Total:uint32(statsSnap.GraphState.GetTotal()),
+				Layer:uint32(statsSnap.GraphState.GetLayer()),
+			}
+		}
+		if p.LastPingNonce() != 0 {
+			wait := float64(time.Since(statsSnap.LastPingTime).Nanoseconds())
+			// We actually want microseconds.
+			info.PingWait = wait / 1000
+		}
+		infos = append(infos, info)
+	}
+	return infos, nil
 }

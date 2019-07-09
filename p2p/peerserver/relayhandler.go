@@ -1,17 +1,17 @@
 package peerserver
 
 import (
-	"qitmeer/core/blockdag"
-	"qitmeer/core/message"
-	"qitmeer/core/types"
-	"qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/log"
 )
 
 // handleRelayInvMsg deals with relaying inventory to peers that are not already
 // known to have it.  It is invoked from the peerHandler goroutine.
 func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 	log.Trace("handleRelayInvMsg", "msg",msg)
-	var gs *blockdag.GraphState
+	var gs *dag.GraphState
 	state.forAllPeers(func(sp *serverPeer) {
 		if !sp.Connected() {
 			return

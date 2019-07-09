@@ -7,10 +7,10 @@ package connmgr
 
 import (
 	"fmt"
-	"qitmeer/core/protocol"
-	"qitmeer/core/types"
-	"qitmeer/log"
-	"qitmeer/params"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/params"
 	mrand "math/rand"
 	"net"
 	"strconv"

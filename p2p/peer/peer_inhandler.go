@@ -7,8 +7,8 @@ package peer
 
 import (
 	"fmt"
-	"qitmeer/core/message"
-	"qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/log"
 	"io"
 	"net"
 	"sync/atomic"

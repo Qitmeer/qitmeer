@@ -6,7 +6,7 @@
 package peer
 
 import (
-	"qitmeer/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/message"
 )
 
 // MessageListeners defines callback function pointers to invoke with message

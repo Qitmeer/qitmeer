@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"encoding/binary"
 	"container/heap"
-	"qitmeer/core/protocol"
-	"qitmeer/core/merkle"
-	"qitmeer/config"
-	"qitmeer/params"
-	"qitmeer/common/hash"
-	"qitmeer/core/blockchain"
-	"qitmeer/engine/txscript"
-	"qitmeer/services/blkmgr"
-	"qitmeer/services/mempool"
-	"qitmeer/log"
-	"qitmeer/core/types"
-	"qitmeer/core/address"
-	s "qitmeer/core/serialization"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer/core/merkle"
+	"github.com/HalalChain/qitmeer-lib/config"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer/services/blkmgr"
+	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/core/address"
+	s "github.com/HalalChain/qitmeer-lib/core/serialization"
 )
 
 
@@ -163,7 +163,7 @@ mempoolLoop:
 		// non-finalized transactions.
 		tx := txDesc.Tx
 		msgTx := tx.Transaction()
-		if blockchain.IsCoinBaseTx(msgTx) {
+		if msgTx.IsCoinBaseTx() {
 			log.Trace("Skipping coinbase tx %s", tx.Hash())
 			continue
 		}

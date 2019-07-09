@@ -8,19 +8,19 @@ package miner
 
 import (
 	"sync"
-	"qitmeer/common/hash"
-	"qitmeer/config"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/config"
 	"math/rand"
 	"time"
 	"fmt"
 	"errors"
-	"qitmeer/params"
-	"qitmeer/services/blkmgr"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/types"
-	"qitmeer/engine/txscript"
-	"qitmeer/services/mining"
-	"qitmeer/core/merkle"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer/services/blkmgr"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer/services/mining"
+	"github.com/HalalChain/qitmeer/core/merkle"
 )
 
 const (
@@ -670,11 +670,11 @@ func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) er
 	// TODO, decided if need extra nonce for coinbase-tx
 	// do nothing for now
 	blockHash:=msgBlock.BlockHash()
-	height,err:=m.blockManager.GetChain().BlockHeightByHash(&blockHash)
+	order,err:=m.blockManager.GetChain().BlockOrderByHash(&blockHash)
 	if err!=nil {
 		return err
 	}
-	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(height)).
+	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(order)).
 		AddInt64(int64(extraNonce)).AddData([]byte("nox/test")).
 		Script()
 	if err != nil {

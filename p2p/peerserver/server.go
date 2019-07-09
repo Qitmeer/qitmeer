@@ -8,22 +8,22 @@ package peerserver
 import (
 	"errors"
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"net"
-	"qitmeer/common/hash"
-	"qitmeer/config"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/blockdag"
-	"qitmeer/core/message"
-	"qitmeer/core/protocol"
-	"qitmeer/core/types"
-	"qitmeer/log"
-	"qitmeer/p2p/addmgr"
-	"qitmeer/p2p/connmgr"
-	"qitmeer/p2p/peer"
-	"qitmeer/params"
-	"qitmeer/services/blkmgr"
-	"qitmeer/services/mempool"
-	"qitmeer/version"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/config"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer/p2p/addmgr"
+	"github.com/HalalChain/qitmeer/p2p/connmgr"
+	"github.com/HalalChain/qitmeer/p2p/peer"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer/services/blkmgr"
+	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/HalalChain/qitmeer/version"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -278,7 +278,7 @@ func (p *PeerServer) Stop() error {
 
 // newestBlock returns the current best block hash and height using the format
 // required by the configuration for the peer package.
-func (sp *serverPeer) newestGS() (*blockdag.GraphState, error) {
+func (sp *serverPeer) newestGS() (*dag.GraphState, error) {
 	best := sp.server.BlockManager.GetChain().BestSnapshot()
 	return best.GraphState, nil
 }
@@ -437,4 +437,20 @@ func (s *PeerServer) handleGetBlocksMsg(state *peerState, msg *GetBlocksMsg) {
 // Dial connects to the address on the named network.
 func (s *PeerServer) Dial(network, addr string) (net.Conn, error) {
 	return net.DialTimeout(network, addr, defaultConnectTimeout)
+}
+
+// ConnectedCount returns the number of currently connected peers.
+func (s *PeerServer) ConnectedCount() int32 {
+	replyChan := make(chan int32)
+
+	s.query <- getConnCountMsg{reply: replyChan}
+
+	return <-replyChan
+}
+
+// ConnectedPeers returns an array consisting of all connected peers.
+func (s *PeerServer) ConnectedPeers() []*serverPeer {
+	replyChan := make(chan []*serverPeer)
+	s.query <- getPeersMsg{reply: replyChan}
+	return <-replyChan
 }

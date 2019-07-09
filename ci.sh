@@ -15,13 +15,13 @@ golangci-lint run -v --deadline=2m --disable-all --enable=govet --tests=false --
 linter_targets=$(go list ./...) && \
 go test $linter_targets
 
-if [[ $TRAVIS_PULL_REQUEST != 'false' || $TRAVIS_REPO_SLUG != 'HalalChain/qitmeer' && $TRAVIS_BRANCH != 'master' ]];
+if [[ $TRAVIS_PULL_REQUEST != 'false' || $TRAVIS_REPO_SLUG != 'HalalChain/qitmeer' || $TRAVIS_BRANCH != 'master' ]];
 then
     exit 0
 fi
 
 project_name="qitmeer"
-image_name="halalchain/nox-dag"
+image_name="halalchain/qitmeer"
 image_label="" #future
 baseimage_name="halalchain/golang:1.12.5-alpine3.9"
 
@@ -36,8 +36,7 @@ fi
 
 mkdir -p bin/build
 
-docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name go build -o ./bin/build/noxd && \
-docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name/tools/nx -e GO111MODULE=on $baseimage_name go build -o ./../../bin/build/nx && \
+docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name go build -o ./bin/build/qitmeerd && \
 
 # create launch
 
@@ -58,7 +57,7 @@ else
   miningaddr="--miningaddr=Tmgb3CyW7rGgn89MWEoAoMP47CwASc4KG4N"
 fi
 
-cd /nox/
+cd /qitmeer/
 
 if [[ "\$1" == "cli" ]]
 then
@@ -66,19 +65,13 @@ then
   exit
 fi
 
-if [[ "\$1" == "nx" ]]
-then
-  ./\$*
-  exit
-fi
-
-./noxd \$A \$net \$rpclisten \$rpcuser \$rpcpass \$txindex \$miningaddr \$debuglevel "\$@"
+./qitmeerd \$A \$net \$rpclisten \$rpcuser \$rpcpass \$txindex \$miningaddr \$debuglevel "\$@"
 EOF
 
 chmod u+x ./bin/build/launch
 # create cli
 
-cp ./script/nox/nox-cli.sh ./bin/build/cli
+cp ./script/nox/cli.sh ./bin/build/cli
 sed -i 's/127.0.0.1/172.17.0.1/g' ./bin/build/cli
 sed -i 's/port=1234/port=18131/g' ./bin/build/cli
 

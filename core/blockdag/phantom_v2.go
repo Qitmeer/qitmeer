@@ -3,14 +3,10 @@ package blockdag
 import (
 	"container/list"
 	"fmt"
-	"qitmeer/common/anticone"
-	"qitmeer/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/HalalChain/qitmeer/core/blockdag/anticone"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
-
-type KChain struct {
-	blocks *HashSet
-	minimalHeight uint
-}
 
 type Phantom_v2 struct {
 	// The general foundation framework of DAG
@@ -24,15 +20,15 @@ type Phantom_v2 struct {
 
 	coloringTip *hash.Hash
 
-	blueAntipastOrder *HashSet
+	blueAntipastOrder *dag.HashSet
 
-	redAntipastOrder *HashSet
+	redAntipastOrder *dag.HashSet
 
-	uncoloredUnorderedAntipast *HashSet
+	uncoloredUnorderedAntipast *dag.HashSet
 
-	coloringChain *HashSet
+	coloringChain *dag.HashSet
 
-	pastOrder *HashSet
+	pastOrder *dag.HashSet
 
 	kChain *KChain
 
@@ -52,20 +48,20 @@ func (ph *Phantom_v2) Init(bd *BlockDAG) bool {
 		log.Info(fmt.Sprintf("anticone size:%d",ph.anticoneSize))
 	}
 
-	ph.blueAntipastOrder=NewHashSet()
-	ph.redAntipastOrder=NewHashSet()
-	ph.uncoloredUnorderedAntipast=NewHashSet()
-	ph.coloringChain=NewHashSet()
-	ph.pastOrder=NewHashSet()
+	ph.blueAntipastOrder=dag.NewHashSet()
+	ph.redAntipastOrder=dag.NewHashSet()
+	ph.uncoloredUnorderedAntipast=dag.NewHashSet()
+	ph.coloringChain=dag.NewHashSet()
+	ph.pastOrder=dag.NewHashSet()
 	return true
 }
 
 // Add a block
-func (ph *Phantom_v2) AddBlock(b *Block) *list.List {
+func (ph *Phantom_v2) AddBlock(b IBlock) *list.List {
 	if ph.blocks == nil {
 		ph.blocks = map[hash.Hash]*PhantomBlock{}
 	}
-	pb:=&PhantomBlock{b,0,nil,nil,nil}
+	pb:=b.(*PhantomBlock)
 	pb.SetOrder(MaxBlockOrder)
 	ph.blocks[*pb.GetHash()]=pb
 
@@ -78,8 +74,13 @@ func (ph *Phantom_v2) AddBlock(b *Block) *list.List {
 	return result
 }
 
+// Build self block
+func (ph *Phantom_v2) CreateBlock(b *Block) IBlock {
+	return &PhantomBlock{b,0,nil,nil}
+}
+
 // If the successor return nil, the underlying layer will use the default tips list.
-func (ph *Phantom_v2) GetTipsList() []*Block {
+func (ph *Phantom_v2) GetTipsList() []IBlock {
 	return nil
 }
 
@@ -90,7 +91,7 @@ func (ph *Phantom_v2) GetBlockByOrder(order uint) *hash.Hash {
 }
 
 // Query whether a given block is on the main chain.
-func (ph *Phantom_v2) IsOnMainChain(b *Block) bool {
+func (ph *Phantom_v2) IsOnMainChain(b IBlock) bool {
 	return false
 }
 
@@ -105,8 +106,8 @@ func (ph *Phantom_v2) updateColoringIncrementally(pb *PhantomBlock) {
 			log.Error("Error genesis")
 		}
 	}
-	pb.blueDiffAnticone=NewHashSet()
-	pb.redDiffAnticone=NewHashSet()
+	pb.blueDiffAnticone=dag.NewHashSet()
+	pb.redDiffAnticone=dag.NewHashSet()
 
 	ph.uncoloredUnorderedAntipast.AddPair(pb.GetHash(),pb)
 
@@ -115,8 +116,8 @@ func (ph *Phantom_v2) updateColoringIncrementally(pb *PhantomBlock) {
 }
 
 func (ph *Phantom_v2) updateDiffColoringOfBlock(pb *PhantomBlock) {
-	blueDiffPastOrder:=NewHashSet()
-	redDiffPastOrder:=NewHashSet()
+	blueDiffPastOrder:=dag.NewHashSet()
+	redDiffPastOrder:=dag.NewHashSet()
 
 	if pb.HasParents() {
 		kchain:=ph.getKChain(pb)
@@ -125,7 +126,7 @@ func (ph *Phantom_v2) updateDiffColoringOfBlock(pb *PhantomBlock) {
 		for k:=range pb.GetParents().GetMap(){
 			diffPastQueue=append(diffPastQueue,ph.blocks[k])
 		}
-		filter:=NewHashSet()
+		filter:=dag.NewHashSet()
 		filter.Add(pb.GetHash())
 
 		for len(diffPastQueue) > 0 {
@@ -149,15 +150,15 @@ func (ph *Phantom_v2) updateDiffColoringOfBlock(pb *PhantomBlock) {
 	}
 	pb.blueDiffAnticone=blueDiffPastOrder
 	pb.redDiffAnticone=redDiffPastOrder
-	pb.blueNum+=uint(pb.blueDiffAnticone.Len())
+	pb.blueNum+=uint(pb.blueDiffAnticone.Size())
 
 }
 
-func (ph *Phantom_v2) getBluest(bs *HashSet) *PhantomBlock {
+func (ph *Phantom_v2) getBluest(bs *dag.HashSet) *PhantomBlock {
 	return ph.getExtremeBlue(bs,true)
 }
 
-func (ph *Phantom_v2) getExtremeBlue(bs *HashSet,bluest bool) *PhantomBlock {
+func (ph *Phantom_v2) getExtremeBlue(bs *dag.HashSet,bluest bool) *PhantomBlock {
 	if bs.IsEmpty() {
 		return nil
 	}
@@ -179,12 +180,12 @@ func (ph *Phantom_v2) getExtremeBlue(bs *HashSet,bluest bool) *PhantomBlock {
 
 func (ph *Phantom_v2) getKChain(pb *PhantomBlock) *KChain {
 	var blueCount int=0
-	result:=&KChain{NewHashSet(),0}
+	result:=&KChain{dag.NewHashSet(),0}
 	curPb:=pb
 	for  {
 		result.blocks.AddPair(curPb.GetHash(),curPb)
-		result.minimalHeight=curPb.GetLayer()
-		blueCount+=curPb.blueDiffAnticone.Len()
+		result.miniLayer=curPb.GetLayer()
+		blueCount+=curPb.blueDiffAnticone.Size()
 		if blueCount > ph.anticoneSize || curPb.mainParent==nil {
 			break
 		}
@@ -193,8 +194,8 @@ func (ph *Phantom_v2) getKChain(pb *PhantomBlock) *KChain {
 	return result
 }
 
-func (ph *Phantom_v2) getAntipast(h *hash.Hash) *HashSet {
-	result:=NewHashSet()
+func (ph *Phantom_v2) getAntipast(h *hash.Hash) *dag.HashSet {
+	result:=dag.NewHashSet()
 	result.AddSet(ph.blueAntipastOrder)
 	result.AddSet(ph.redAntipastOrder)
 	result.AddSet(ph.uncoloredUnorderedAntipast)
@@ -205,8 +206,8 @@ func (ph *Phantom_v2) getAntipast(h *hash.Hash) *HashSet {
 
 	curPb:=ph.blocks[*h]
 	var intersection *hash.Hash
-	positive:=NewHashSet()
-	negative:=NewHashSet()
+	positive:=dag.NewHashSet()
+	negative:=dag.NewHashSet()
 
 	for  {
 
@@ -245,7 +246,7 @@ func (ph *Phantom_v2) getAntipast(h *hash.Hash) *HashSet {
 	return result
 }
 
-func (ph *Phantom_v2) colorBlock(kc *KChain,pb *PhantomBlock,blueOrder *HashSet,redOrder *HashSet) {
+func (ph *Phantom_v2) colorBlock(kc *KChain,pb *PhantomBlock,blueOrder *dag.HashSet,redOrder *dag.HashSet) {
 	if ph.coloringRule2(kc,pb) {
 		blueOrder.Add(pb.GetHash())
 	}else{
@@ -256,7 +257,7 @@ func (ph *Phantom_v2) colorBlock(kc *KChain,pb *PhantomBlock,blueOrder *HashSet,
 func (ph *Phantom_v2) coloringRule2(kc *KChain,pb *PhantomBlock) bool {
 	curPb:=pb
 	for  {
-		if curPb.GetLayer() < kc.minimalHeight {
+		if curPb.GetLayer() < kc.miniLayer {
 			return false
 		}
 		if kc.blocks.Has(curPb.GetHash()) {
@@ -363,8 +364,8 @@ func (ph *Phantom_v2) calculateTopologicalOrder(pb *PhantomBlock) []*hash.Hash {
 	unordered:=pb.blueDiffAnticone.Clone()
 	unordered.AddSet(pb.redDiffAnticone)
 	toOrder:=ph.sortBlocks(pb.mainParent,pb.blueDiffAnticone,pb.GetParents(),unordered)
-	ordered:=HashList{}
-	orderedSet:=NewHashSet()
+	ordered:=dag.HashList{}
+	orderedSet:=dag.NewHashSet()
 
 	for len(toOrder)>0 {
 		cur:=toOrder[0]
@@ -389,11 +390,11 @@ func (ph *Phantom_v2) calculateTopologicalOrder(pb *PhantomBlock) []*hash.Hash {
 	return ordered
 }
 
-func(ph *Phantom_v2) sortBlocks(lastBlock *hash.Hash,laterBlocks *HashSet,toSort *HashSet,unsorted *HashSet) []*hash.Hash {
+func(ph *Phantom_v2) sortBlocks(lastBlock *hash.Hash,laterBlocks *dag.HashSet,toSort *dag.HashSet,unsorted *dag.HashSet) []*hash.Hash {
 	if toSort==nil || toSort.IsEmpty() {
 		return []*hash.Hash{}
 	}
-	remaining:=NewHashSet()
+	remaining:=dag.NewHashSet()
 	remaining.AddSet(toSort)
 	remaining.Remove(lastBlock)
 	remaining=remaining.Intersection(unsorted)
@@ -416,7 +417,7 @@ func(ph *Phantom_v2) sortBlocks(lastBlock *hash.Hash,laterBlocks *HashSet,toSort
 }
 
 func(ph *Phantom_v2) updateOrder(pb *PhantomBlock) {
-	pb.order=uint(pb.blueDiffAnticone.Len()+pb.redDiffAnticone.Len())
+	pb.order=uint(pb.blueDiffAnticone.Size()+pb.redDiffAnticone.Size())
 	if pb.mainParent!=nil &&ph.blocks[*pb.mainParent].GetOrder()!=MaxBlockOrder{
 		pb.order+=ph.blocks[*pb.mainParent].GetOrder()
 	}
@@ -427,4 +428,9 @@ func(ph *Phantom_v2) updateAntipastColoring() {
 		ph.colorBlock(ph.kChain,ph.blocks[k],ph.blueAntipastOrder,ph.redAntipastOrder)
 	}
 	ph.uncoloredUnorderedAntipast.Clean()
+}
+
+// return the tip of main chain
+func (ph *Phantom_v2) GetMainChainTip() IBlock {
+	return nil
 }

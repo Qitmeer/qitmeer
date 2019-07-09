@@ -1,16 +1,16 @@
 package peerserver
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/message"
-	"qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/log"
 )
 
 // pushBlockMsg sends a block message for the provided block hash to the
 // connected peer.  An error is returned if the block hash is not known.
 func (s *PeerServer) pushBlockMsg(sp *serverPeer, hash *hash.Hash, doneChan chan<- struct{}, waitChan <-chan struct{}) error {
 
-	block, err := sp.server.BlockManager.GetChain().BlockByHash(hash)
+	block, err := sp.server.BlockManager.GetChain().FetchBlockByHash(hash)
 	if err != nil {
 		log.Trace("Unable to fetch requested block hash", "hash",hash,
 			"error", err)

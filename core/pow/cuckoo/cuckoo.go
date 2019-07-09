@@ -3,9 +3,9 @@ package cuckoo
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer/core/pow/cuckoo/siphash"
 	"github.com/pkg/errors"
-	"qitmeer/core/pow/cuckoo/siphash"
-	"qitmeer/core/types"
 	"runtime"
 	"sort"
 	"sync"

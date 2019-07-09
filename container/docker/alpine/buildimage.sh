@@ -4,7 +4,7 @@ set -e
 cd ./../../../
 
 project_name="qitmeer"
-image_name="halalchain/nox-dag"
+image_name="halalchain/qitmeer"
 baseimage_name="halalchain/golang:1.12.5-alpine3.9"
 
 docker pull $baseimage_name
@@ -17,7 +17,7 @@ fi
 
 mkdir -p bin/build
 
-docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name go build -o ./bin/build/noxd && \
+docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name go build -o ./bin/build/qitmeerd && \
 
 # build image
 cp ./container/docker/alpine/Dockerfile ./bin/ && \

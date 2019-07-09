@@ -2,6 +2,7 @@ package blockdag
 
 import (
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"testing"
 )
 
@@ -14,7 +15,7 @@ func Test_V2_GetFutureSet(t *testing.T) {
 
 	//ph:=ibd.(*Phantom)
 	anBlock := bd.GetBlock(tbMap[testData.PH_GetFutureSet.Input])
-	bset := NewHashSet()
+	bset := dag.NewHashSet()
 	bd.GetFutureSet(bset,anBlock)
 	fmt.Printf("Get %s future set：\n", testData.PH_GetFutureSet.Input)
 	printBlockSetTag(bset,tbMap)

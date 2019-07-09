@@ -6,13 +6,13 @@
 package peerserver
 
 import (
-	"qitmeer/common/hash"
-	"qitmeer/core/message"
-	"qitmeer/core/types"
-	"qitmeer/log"
-	"qitmeer/p2p/addmgr"
-	"qitmeer/p2p/connmgr"
-	"qitmeer/p2p/peer"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer/p2p/addmgr"
+	"github.com/HalalChain/qitmeer/p2p/connmgr"
+	"github.com/HalalChain/qitmeer/p2p/peer"
 	"sync"
 )
 
@@ -128,4 +128,14 @@ func (sp *serverPeer) relayTxDisabled() bool {
 	return isDisabled
 }
 
+// IsTxRelayDisabled returns whether or not the peer has disabled transaction
+// relay.
+func (sp *serverPeer) IsTxRelayDisabled() bool {
+	return sp.disableRelayTx
+}
 
+// BanScore returns the current integer value that represents how close the peer
+// is to being banned.
+func (sp *serverPeer) BanScore() uint32 {
+	return sp.banScore.Int()
+}

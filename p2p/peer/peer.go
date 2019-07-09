@@ -7,19 +7,39 @@ package peer
 
 import (
 	"fmt"
-	"qitmeer/common/hash"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/blockdag"
-	"qitmeer/core/message"
-	"qitmeer/core/protocol"
-	"qitmeer/core/types"
-	"qitmeer/log"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/core/message"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/log"
 	"math/rand"
 	"net"
 	"strconv"
 	"sync/atomic"
 	"time"
 )
+
+// StatsSnap is a snapshot of peer stats at a point in time.
+type StatsSnap struct {
+	ID             int32
+	Addr           string
+	Services       protocol.ServiceFlag
+	LastSend       time.Time
+	LastRecv       time.Time
+	BytesSent      uint64
+	BytesRecv      uint64
+	ConnTime       time.Time
+	TimeOffset     int64
+	Version        uint32
+	UserAgent      string
+	Inbound        bool
+	LastPingNonce  uint64
+	LastPingTime   time.Time
+	LastPingMicros int64
+	GraphState     *dag.GraphState
+}
 
 // ID returns the peer id.
 //
@@ -46,7 +66,7 @@ func (p *Peer) NA() *types.NetAddress {
 // LastGS returns the last graph state of the peer.
 //
 // This function is safe for concurrent access.
-func (p *Peer) LastGS() *blockdag.GraphState {
+func (p *Peer) LastGS() *dag.GraphState {
 	p.statsMtx.RLock()
 	lastgs := p.lastGS
 	p.statsMtx.RUnlock()
@@ -323,17 +343,17 @@ func (p *Peer) Services() protocol.ServiceFlag {
 // and stop hash.  It will ignore back-to-back duplicate requests.
 //
 // This function is safe for concurrent access.
-func (p *Peer) PushGetBlocksMsg(gs *blockdag.GraphState,blocks []*hash.Hash) error {
+func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
 
 	isDuplicate:=false
-	bs:=blockdag.NewHashSet()
+	bs:=dag.NewHashSet()
 
 
 	// Filter duplicate getblocks requests.
 	p.prevGetBlocksMtx.Lock()
 	if len(blocks)>0 {
 		if p.prevGetBlocks==nil {
-			p.prevGetBlocks=blockdag.NewHashSet()
+			p.prevGetBlocks=dag.NewHashSet()
 			bs.AddList(blocks)
 		}else {
 			isDuplicate = p.prevGetBlocks.Contain(bs)
@@ -356,7 +376,7 @@ func (p *Peer) PushGetBlocksMsg(gs *blockdag.GraphState,blocks []*hash.Hash) err
 	if isDuplicate {
 		if len(blocks)>0 {
 			log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: "+
-				"prev:%d cur:%d", p.prevGetBlocks.Len(),len(blocks)))
+				"prev:%d cur:%d", p.prevGetBlocks.Size(),len(blocks)))
 		}else {
 			log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: "+
 				"prev:%s cur:%s", p.prevGetGS.String(),gs.String()))
@@ -439,7 +459,7 @@ func (p *Peer) AddKnownInventory(invVect *message.InvVect) {
 // UpdateLastGS updates the last known graph state for the peer.
 //
 // This function is safe for concurrent access.
-func (p *Peer) UpdateLastGS(newGS *blockdag.GraphState) {
+func (p *Peer) UpdateLastGS(newGS *dag.GraphState) {
 	p.statsMtx.Lock()
 	log.Trace(fmt.Sprintf("Updating last graph state of peer %v from %v to %v",
 		p.addr, p.lastGS.String(),newGS.String()))
@@ -500,7 +520,7 @@ func (p *Peer) QueueInventory(invVect *message.InvVect) {
 // batches.  Inventory that the peer is already known to have is ignored.
 //
 // This function is safe for concurrent access.
-func (p *Peer) QueueInventoryImmediate(invVect *message.InvVect,gs *blockdag.GraphState) {
+func (p *Peer) QueueInventoryImmediate(invVect *message.InvVect,gs *dag.GraphState) {
 	// Don't announce the inventory if the peer is already known to have it.
 	if p.knownInventory.Exists(invVect) {
 		return
@@ -538,4 +558,90 @@ func (p*Peer) CleanGetBlocksSet() {
 		p.prevGetBlocks.Clean()
 	}
 	p.statsMtx.RUnlock()
+}
+
+// LastSend returns the last send time of the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) LastSend() time.Time {
+	return time.Unix(atomic.LoadInt64(&p.lastSend), 0)
+}
+
+// LastRecv returns the last recv time of the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) LastRecv() time.Time {
+	return time.Unix(atomic.LoadInt64(&p.lastRecv), 0)
+}
+
+// BytesSent returns the total number of bytes sent by the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) BytesSent() uint64 {
+	return atomic.LoadUint64(&p.bytesSent)
+}
+
+// BytesReceived returns the total number of bytes received by the peer.
+//
+// This function is safe for concurrent access.
+func (p *Peer) BytesReceived() uint64 {
+	return atomic.LoadUint64(&p.bytesReceived)
+}
+
+// LocalAddr returns the local address of the connection.
+//
+// This function is safe fo concurrent access.
+func (p *Peer) LocalAddr() net.Addr {
+	var localAddr net.Addr
+	if atomic.LoadInt32(&p.connected) != 0 {
+		localAddr = p.conn.LocalAddr()
+	}
+	return localAddr
+}
+
+// StatsSnapshot returns a snapshot of the current peer flags and statistics.
+//
+// This function is safe for concurrent access.
+func (p *Peer) StatsSnapshot() *StatsSnap {
+	p.statsMtx.RLock()
+
+	p.flagsMtx.Lock()
+	id := p.id
+	addr := p.addr
+	userAgent := p.userAgent
+	services := p.services
+	protocolVersion := p.advertisedProtoVer
+	p.flagsMtx.Unlock()
+
+	// Get a copy of all relevant flags and stats.
+	statsSnap := &StatsSnap{
+		ID:             id,
+		Addr:           addr,
+		UserAgent:      userAgent,
+		Services:       services,
+		LastSend:       p.LastSend(),
+		LastRecv:       p.LastRecv(),
+		BytesSent:      p.BytesSent(),
+		BytesRecv:      p.BytesReceived(),
+		ConnTime:       p.timeConnected,
+		TimeOffset:     p.timeOffset,
+		Version:        protocolVersion,
+		Inbound:        p.inbound,
+		LastPingNonce:  p.lastPingNonce,
+		LastPingMicros: p.lastPingMicros,
+		LastPingTime:   p.lastPingTime,
+		GraphState:     p.lastGS,
+	}
+
+	p.statsMtx.RUnlock()
+	return statsSnap
+}
+
+// LastPingNonce returns the last ping nonce of the remote peer.
+func (p *Peer) LastPingNonce() uint64 {
+	p.statsMtx.RLock()
+	lastPingNonce := p.lastPingNonce
+	p.statsMtx.RUnlock()
+
+	return lastPingNonce
 }

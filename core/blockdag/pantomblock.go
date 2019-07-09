@@ -1,14 +1,13 @@
 package blockdag
 
-import "qitmeer/common/hash"
+import "github.com/HalalChain/qitmeer-lib/core/dag"
 
 type PhantomBlock struct {
 	*Block
 	blueNum uint
-	mainParent *hash.Hash
 
-	blueDiffAnticone *HashSet
-	redDiffAnticone *HashSet
+	blueDiffAnticone *dag.HashSet
+	redDiffAnticone *dag.HashSet
 }
 
 func (pb *PhantomBlock) IsBluer(other *PhantomBlock) bool {

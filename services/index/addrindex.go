@@ -11,15 +11,15 @@ import (
 	"fmt"
 	"sync"
 
-	"qitmeer/log"
-	"qitmeer/core/types"
-	"qitmeer/common/hash"
-	"qitmeer/database"
-	"qitmeer/params"
-	"qitmeer/core/blockchain"
-	"qitmeer/core/address"
-	"qitmeer/engine/txscript"
-	"qitmeer/crypto/ecc"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/core/address"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
 )
 
 const (
