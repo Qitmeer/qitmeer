@@ -7,6 +7,7 @@
 package miner
 
 import (
+	"github.com/HalalChain/qitmeer-lib/crypto/cuckoo"
 	"sync"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/config"
@@ -341,6 +342,18 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 
 			// Update the nonce and hash the block header.
 			header.Nonce = i
+			cuckarooHash := header.BlockHashWithoutCircle()
+			c := cuckoo.NewCuckoo()
+			cycleNonces, isFound := c.PoW(cuckarooHash[:16])
+			if !isFound {
+				continue
+			}
+			if err := cuckoo.Verify(cuckarooHash[:16], cycleNonces); err != nil {
+				continue
+			}
+			for k,v := range cycleNonces{
+				header.CircleNonces[k] = v
+			}
 			h := header.BlockHash()
 			// Each hash is actually a double hash (tow hashes), so
 			// increment the number of hashes by 2

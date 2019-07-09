@@ -8,6 +8,7 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/crypto/cuckoo"
 	"time"
 	"math"
 	"math/big"
@@ -276,6 +277,11 @@ func checkProofOfWork(header *types.BlockHeader, powLimit *big.Int, flags Behavi
 	// to avoid proof of work checks is set.
 	if flags&BFNoPoWCheck != BFNoPoWCheck {
 		// The block hash must be less than the claimed target.
+		cuckarooHash := header.BlockHashWithoutCircle()
+		if err := cuckoo.Verify(cuckarooHash[:16], header.CircleNonces[:]); err != nil {
+			str := fmt.Sprintf("Bad cuckoo nonces: %s ", err.Error())
+			return ruleError(ErrBadCuckooNonces, str)
+		}
 		h := header.BlockHash()
 		hashNum := HashToBig(&h)
 		if hashNum.Cmp(target) > 0 {
