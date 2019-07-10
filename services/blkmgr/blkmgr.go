@@ -349,10 +349,6 @@ func (b *BlockManager) Stop() error {
 		return nil
 	}
 	log.Info("Block manager shutting down")
-	// drain the msg channel before send quit signal
-	for len(b.msgChan) > 0 {
-		log.Trace("Drain Block manager msgchan","msg", <-b.msgChan)
-	}
 	close(b.quit)
 	return nil
 }
