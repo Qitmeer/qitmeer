@@ -27,7 +27,7 @@ encode and decode :
     base58check-encode    encode a base58check string
     base58check-decode    decode a base58check string
     base64-encode         encode a base16 string to a base64 string
-    base64-encode         encode a base64 string to a base16 string
+    base64-decode         encode a base64 string to a base16 string
     rlp-encode            encode a string to a rlp encoded base16 string 
     rlp-decode            decode a rlp base16 string to a human-readble representation
 
@@ -39,7 +39,7 @@ hash :
     keccak-256            calculate legacy keccak 256 hash of a bash16 data.
     blake256              calculate blake256 hash of a base16 data.
     ripemd160             calculate ripemd160 hash of a base16 data.
-    bitcion160            calculate ripemd160(sha256(data))   
+    bitcoin160            calculate ripemd160(sha256(data))   
     hash160               calculate ripemd160(blake2b256(data))
 
 entropy (seed) & mnemoic & hd & ec 
