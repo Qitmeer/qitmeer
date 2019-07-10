@@ -40,7 +40,7 @@ func (c *CPUMiner) APIs() []rpc.API {
 			Public:    true,
 		},
 		{
-			NameSpace: "miner",
+			NameSpace: rpc.MinerNameSpace,
 			Service:   NewPrivateMinerAPI(c),
 			Public:    false,
 		},

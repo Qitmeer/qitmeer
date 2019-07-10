@@ -7,6 +7,7 @@ set -e
 # ---------------------------
 DEBUG=0
 notls=0
+
 # ---------------------------
 # solc call, need solc command line
 # ---------------------------
@@ -229,13 +230,14 @@ function get_result(){
   local user="test"
   local pass="test"
   local data=$1
-  local curl_result=$(curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data $data $proto://$host:$port)
-  local result=$(echo $curl_result|jq -r -M '.result')
+  local current_result=$(curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data $data $proto://$host:$port)
+  local result=$(echo $current_result|jq -r -M '.result')
   if [ $DEBUG -gt 0 ]; then
-    local curl_cmd="curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data '"$data"' $proto://$host:$port"
-    echo "$curl_cmd"
-    echo "$curl_result"
+    local current_cmd="curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data '"$data"' $proto://$host:$port"
+    echo "$current_cmd" >> "./cli.debug"
+    echo "$current_result" >> "./cli.debug"
   fi
+
   echo $result
 }
 
@@ -489,7 +491,6 @@ while [ $# -gt 0 ] ;do
     esac
   shift
 done
-
 ## Block
 if [ "$1" == "block" ]; then
   shift
@@ -546,11 +547,11 @@ elif [ "$1" == "blockrange" ]; then
 
 elif [ "$1" == "nodeinfo" ]; then
   shift
-  get_node_info
+  get_node_info | jq .
 
 elif [ "$1" == "peerinfo" ]; then
   shift
-  get_peer_info
+  get_peer_info | jq .
 
 ## Tx
 elif [ "$1" == "tx" ]; then
@@ -738,4 +739,12 @@ else
   echo "Unkown cmd : $1"
   usage
   exit -1
+fi
+
+
+# debug info
+if [ $DEBUG -gt 0 ]; then
+    echo -e "\nDebug info:"
+    cat ./cli.debug
+    rm ./cli.debug
 fi

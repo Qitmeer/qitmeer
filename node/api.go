@@ -599,6 +599,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		Connections:     api.node.node.peerServer.ConnectedCount(),
 		Difficulty:      getDifficultyRatio(best.Bits,api.node.node.Params),
 		TestNet:         api.node.node.Config.TestNet,
+		Modules:         []string{rpc.DefaultServiceNameSpace,rpc.MinerNameSpace},
 	}
 	return ret, nil
 }

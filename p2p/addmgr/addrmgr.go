@@ -52,6 +52,7 @@ type AddrManager struct {
 	nNew           int                                      // number of new addresses (i.e., not tried)
 	lamtx          sync.Mutex                               // local address mutex
 	localAddresses map[string]*localAddress                 // address key to la for all local addresses
+	getAddrPercent int                                      // it is the percentage of total addresses known that we will share.
 }
 
 type serializedKnownAddress struct {
@@ -1072,13 +1073,17 @@ func (a *AddrManager) GetBestLocalAddress(remoteAddr *types.NetAddress) *types.N
 // New returns a new address manager.
 // Use Start to begin processing asynchronous address updates.
 // The address manager uses lookupFunc for necessary DNS lookups.
-func New(dataDir string, lookupFunc func(string) ([]net.IP, error)) *AddrManager {
+func New(dataDir string,getAddrPer int, lookupFunc func(string) ([]net.IP, error)) *AddrManager {
+	if getAddrPer<=0 {
+		getAddrPer=getAddrPercent
+	}
 	am := AddrManager{
 		peersFile:      filepath.Join(dataDir, PeersFilename),
 		lookupFunc:     lookupFunc,
 		rand:           rand.New(rand.NewSource(time.Now().UnixNano())),
 		quit:           make(chan struct{}),
 		localAddresses: make(map[string]*localAddress),
+		getAddrPercent: getAddrPer,
 	}
 	am.reset()
 	return &am

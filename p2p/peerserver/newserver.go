@@ -33,7 +33,7 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 		quit:                 make(chan struct{}),
 	}
 
-	amgr := addmgr.New(cfg.DataDir, net.LookupIP)
+	amgr := addmgr.New(cfg.DataDir,cfg.GetAddrPercent,net.LookupIP)
 	var listeners []net.Listener
 	var nat NAT
 	if !cfg.DisableListen {
