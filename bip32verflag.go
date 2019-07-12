@@ -45,11 +45,11 @@ func (v *bip32VersionFlag) Set(versionFlag string) error {
 
 func getBip32NetworkInfo(rawVersionByte []byte) string {
 	if NoxMainnetBip32Version.IsPrivkeyVersion(rawVersionByte) || NoxMainnetBip32Version.IsPubkeyVersion(rawVersionByte) {
-		return "nox mainet"
+		return "qx mainet"
 	} else if NoxTestnetBip32Version.IsPrivkeyVersion(rawVersionByte) || NoxTestnetBip32Version.IsPubkeyVersion(rawVersionByte) {
-		return "nox testnet"
+		return "qx testnet"
 	} else if NoxPrivnetBip32Version.IsPrivkeyVersion(rawVersionByte) || NoxPrivnetBip32Version.IsPubkeyVersion(rawVersionByte) {
-		return "nox privnet"
+		return "qx privnet"
 	} else if bip32.DefaultBip32Version.IsPrivkeyVersion(rawVersionByte) || bip32.DefaultBip32Version.IsPubkeyVersion(rawVersionByte) {
 		return "btc mainnet"
 	} else {
