@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"github.com/HalalChain/qitmeer-lib/log"
+	"syscall"
 )
 
 // shutdownRequestChannel is used to initiate shutdown from one of the
@@ -18,7 +19,7 @@ var shutdownRequestChannel = make(chan struct{})
 
 // interruptSignals defines the default signals to catch in order to do a proper
 // shutdown.  This may be modified during init depending on the platform.
-var interruptSignals = []os.Signal{os.Interrupt}
+var interruptSignals = []os.Signal{os.Interrupt, os.Kill,syscall.SIGINT,syscall.SIGTERM}
 
 // interruptListener listens for OS Signals such as SIGINT (Ctrl+C) and shutdown
 // requests from shutdownRequestChannel.  It returns a channel that is closed
