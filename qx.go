@@ -59,7 +59,7 @@ entropy (seed) & mnemoic & hd & ec
     wif-to-public         derive the EC public key from a WIF private key. 
 
 addr & tx & sign
-    ec-to-addr            convert an EC public key to a paymant address. default is nox address
+    ec-to-addr            convert an EC public key to a paymant address. default is qx address
     tx-encode             encode a unsigned transaction.
     tx-decode             decode a transaction in base16 to json format.
     tx-sign               sign a transactions using a private key.
