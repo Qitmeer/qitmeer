@@ -349,14 +349,14 @@ NOX is the 64 bit spend amount in nox.`)
 	msgSignCmd.Usage = func() {
 		cmdUsage(msgSignCmd, "Usage: msg-sign [wif] [message] \n")
 	}
-	msgSignCmd.StringVar(&msgSignatureMode, "m","nox", "the msg signature mode")
+	msgSignCmd.StringVar(&msgSignatureMode, "m","qx", "the msg signature mode")
 	msgSignCmd.BoolVar(&showDetails,"d",false, "show signature details")
 
 	msgVerifyCmd := flag.NewFlagSet("msg-verify",flag.ExitOnError)
 	msgVerifyCmd.Usage = func() {
 		cmdUsage(msgVerifyCmd, "Usage: msg-verify [addr] [signature] [message] \n")
 	}
-	msgVerifyCmd.StringVar(&msgSignatureMode, "m","nox", "the msg signature mode")
+	msgVerifyCmd.StringVar(&msgSignatureMode, "m","qx", "the msg signature mode")
 
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
