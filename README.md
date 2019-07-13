@@ -48,6 +48,9 @@ replace (
 )
 ```
 
+### P.S.
+* You must use ctrl+c ,kill(the default is 15) or kill -2 to close the qitmeer, otherwise, it may destroy the integrity of program data.
+
 ## qitmeer-cli
 
 [qitmeer rpc tools](https://github.com/HalalChain/qitmeer-cli)
