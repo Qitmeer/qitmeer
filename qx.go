@@ -59,7 +59,7 @@ entropy (seed) & mnemoic & hd & ec
     wif-to-public         derive the EC public key from a WIF private key. 
 
 addr & tx & sign
-    ec-to-addr            convert an EC public key to a paymant address. default is nox address
+    ec-to-addr            convert an EC public key to a paymant address. default is qx address
     tx-encode             encode a unsigned transaction.
     tx-decode             decode a transaction in base16 to json format.
     tx-sign               sign a transactions using a private key.
@@ -349,14 +349,14 @@ NOX is the 64 bit spend amount in nox.`)
 	msgSignCmd.Usage = func() {
 		cmdUsage(msgSignCmd, "Usage: msg-sign [wif] [message] \n")
 	}
-	msgSignCmd.StringVar(&msgSignatureMode, "m","nox", "the msg signature mode")
+	msgSignCmd.StringVar(&msgSignatureMode, "m","qx", "the msg signature mode")
 	msgSignCmd.BoolVar(&showDetails,"d",false, "show signature details")
 
 	msgVerifyCmd := flag.NewFlagSet("msg-verify",flag.ExitOnError)
 	msgVerifyCmd.Usage = func() {
 		cmdUsage(msgVerifyCmd, "Usage: msg-verify [addr] [signature] [message] \n")
 	}
-	msgVerifyCmd.StringVar(&msgSignatureMode, "m","nox", "the msg signature mode")
+	msgVerifyCmd.StringVar(&msgSignatureMode, "m","qx", "the msg signature mode")
 
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,
