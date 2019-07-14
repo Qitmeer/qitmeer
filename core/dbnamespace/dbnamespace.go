@@ -37,7 +37,7 @@ var (
 	BCDBInfoCreatedKeyName = []byte("created")
 
 	// HashIndexBucketName is the name of the db bucket used to house to the
-	// block hash -> block height index.
+	// block hash -> block order index.
 	HashIndexBucketName = []byte("hashidx")
 
 	// OrderIndexBucketName is the name of the db bucket used to house to

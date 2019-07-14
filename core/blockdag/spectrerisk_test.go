@@ -1,9 +1,8 @@
 package blockdag
 
 import (
-	"fmt"
-	"testing"
 	"gonum.org/v1/gonum/floats"
+	"testing"
 )
 
 func TestOnlineRiskInSpectre(t *testing.T) {
@@ -12,12 +11,3 @@ func TestOnlineRiskInSpectre(t *testing.T) {
 	}
 }
 
-func TestOnlineRiskInSpectreData(t *testing.T) {
-	maxL:=1
-	for i:=0;i<maxL ;i++  {
-		risk:=GetRisk(500,0.1,666,0.05,600,666)
-
-		fmt.Println(risk)
-	}
-
-}
