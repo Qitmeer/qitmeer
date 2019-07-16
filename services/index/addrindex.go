@@ -712,9 +712,7 @@ func (idx *AddrIndex) indexPkScript(data writeIndexData, scriptVersion uint16, p
 // transaction using the passed map.
 func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) {
 	var parentRegularTxs []*types.Tx
-	if block.Order() > 1 {
-		parentRegularTxs = block.Transactions()
-	}
+	parentRegularTxs = block.Transactions()
 	for txIdx, tx := range parentRegularTxs {
 		// Coinbases do not reference any inputs.  Since the block is
 		// required to have already gone through full validation, it has
@@ -754,24 +752,11 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlo
 // This is part of the Indexer interface.
 func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
 	// The offset and length of the transactions within the serialized
-	// block for the regular transactions of the previous block, if
-	// applicable.
-	var parentTxLocs []types.TxLoc
-	var parentBlockID uint32
-	if block.Order() > 1 {
-		var err error
-		parentTxLocs, err = block.TxLoc()
-		if err != nil {
-			return err
-		}
-
-		parentHash := block.Hash()
-		parentBlockID, err = dbFetchBlockIDByHash(dbTx, parentHash)
-		if err != nil {
-			return err
-		}
+	// block.
+	txLocs, err := block.TxLoc()
+	if err != nil {
+		return err
 	}
-
 	// Get the internal block ID associated with the block.
 	blockHash := block.Hash()
 	blockID, err := dbFetchBlockIDByHash(dbTx, blockHash)
@@ -784,21 +769,14 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBloc
 	idx.indexBlock(addrsToTxns, block, view)
 
 	// Add all of the index entries for each address.
-	stakeIdxsStart := len(parentTxLocs)
-	allTxLocs := append(parentTxLocs)
 	addrIdxBucket := dbTx.Metadata().Bucket(addrIndexKey)
 	for addrKey, txIdxs := range addrsToTxns {
 		for _, txIdx := range txIdxs {
 			// Switch to using the newest block ID for the stake transactions,
 			// since these are not from the parent. Offset the index to be
 			// correct for the location in this given block.
-			blockIDToUse := parentBlockID
-			if txIdx >= stakeIdxsStart {
-				blockIDToUse = blockID
-			}
-
 			err := dbPutAddrIndexEntry(addrIdxBucket, addrKey,
-				blockIDToUse, allTxLocs[txIdx])
+				blockID, txLocs[txIdx])
 			if err != nil {
 				return err
 			}

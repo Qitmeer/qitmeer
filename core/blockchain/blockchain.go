@@ -413,78 +413,52 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %v",state.hash.String(),state.order,state.totalTxns,state.totalSubsidy,state.workSum))
 		log.Info("Loading block index...")
 		bidxStart := time.Now()
 
 		// Determine how many blocks will be loaded into the index in order to
 		// allocate the right amount as a single alloc versus a whole bunch of
 		// littles ones to reduce pressure on the GC.
-		blockIndexBucket := meta.Bucket(dbnamespace.BlockIndexBucketName)
-		blocksM := make(map[hash.Hash]*types.SerializedBlock)
-		blockList := list.New()
-
-		cursor := blockIndexBucket.Cursor()
-		for ok := cursor.First(); ok; ok = cursor.Next() {
-			entry, err := deserializeBlockIndexEntry(cursor.Value())
+		for i:=uint(0);i<=uint(state.order) ;i++ {
+			blockHash,err:=blockdag.DBGetDAGBlock(dbTx,i)
+			if err!=nil {
+				return err
+			}
+			block, err := dbFetchBlockByHash(dbTx, blockHash)
 			if err != nil {
 				return err
 			}
-			header := &entry.header
-			blockHash := header.BlockHash()
-			_, exit := blocksM[blockHash]
-			if exit {
-				continue
-			}
-			block, err := dbFetchBlockByHash(dbTx, &blockHash)
-			if err != nil {
-				return err
-			}
-			blocksM[blockHash] = block
-			blockList.PushBack(block)
-
-		}
-		log.Trace(fmt.Sprintf("load %d blocks", blockList.Len()))
-
-		for blockList.Len() > 0 {
-			var next *list.Element
-			for e := blockList.Front(); e != nil; e = next {
-				next = e.Next()
-				//
-				block := e.Value.(*types.SerializedBlock)
-				parents := []*blockNode{}
-				needSkip := false
-				for _, pb := range block.Block().Parents {
-					parent := b.index.LookupNode(pb)
-					if parent == nil {
-						needSkip = true
-						break
-					}
-					parents = append(parents, parent)
+			parents := []*blockNode{}
+			for _, pb := range block.Block().Parents {
+				parent := b.index.LookupNode(pb)
+				if parent == nil {
+					return fmt.Errorf("Can't find parent %s",pb.String())
 				}
-				if needSkip {
-					continue
-				}
-				blockList.Remove(e)
-				//
-				node := &blockNode{}
-				initBlockNode(node, &block.Block().Header, parents)
-				list := b.bd.AddBlock(node)
-				b.index.addNode(node)
-				if list == nil || list.Len() == 0 {
-					log.Error("Irreparable error!")
-					return AssertError(fmt.Sprintf("initChainState: Could "+
-						"not add %s", node.hash.String()))
-				}
+				parents = append(parents, parent)
 			}
+			//
+			node := &blockNode{}
+			initBlockNode(node, &block.Block().Header, parents)
+			list := b.bd.AddBlock(node)
+			b.index.addNode(node)
+			if list == nil || list.Len() == 0 {
+				log.Error("Irreparable error!")
+				return AssertError(fmt.Sprintf("initChainState: Could "+
+					"not add %s", node.hash.String()))
+			}
+			for e := list.Front(); e != nil; e = e.Next() {
+				refHash := e.Value.(*hash.Hash)
+				refblock := b.bd.GetBlock(refHash)
+				refnode := b.index.lookupNode(refHash)
+				refnode.SetOrder(uint64(refblock.GetOrder()))
 
+				/*if node.GetHash().IsEqual(refHash) {
+					block.SetOrder(uint64(refblock.GetOrder()))
+				}*/
+			}
 		}
 
-		// update node order
-		for _, v := range b.index.index {
-			dblock := b.bd.GetBlock(v.GetHash())
-			v.SetOrder(uint64(dblock.GetOrder()))
-		}
 		log.Debug("Block index loaded", "loadTime", time.Since(bidxStart))
 		/*if !b.dag.GetLastBlock().hash.IsEqual(&state.hash) {
 			return AssertError(fmt.Sprintf("initChainState:Data damage"))
@@ -1033,6 +1007,10 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 		if err != nil {
 			return err
 		}
+		err = blockdag.DBPutDAGBlock(dbTx,b.bd.GetBlock(node.GetHash()))
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -1093,7 +1071,6 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 				return err
 			}
 		}
-
 		return nil
 	})
 	if err != nil {
@@ -1103,6 +1080,58 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	// Prune fully spent entries and mark all entries in the view unmodified
 	// now that the modifications have been committed to the database.
 	view.commit()
+
+	return nil
+}
+
+// disconnectBlock handles disconnecting the passed node/block from the end of
+// the main (best) chain.
+//
+// This function MUST be called with the chain state lock held (for writes).
+func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint) error {
+
+	// Calculate the exact subsidy produced by adding the block.
+	err := b.db.Update(func(dbTx database.Tx) error {
+		// Remove the block hash and order from the block index.
+		err := dbRemoveBlockIndex(dbTx, block.Hash(), int64(node.order)) //TODO, remove type conversion
+		if err != nil {
+			return err
+		}
+
+		// Update the utxo set using the state of the utxo view.  This
+		// entails restoring all of the utxos spent and removing the new
+		// ones created by the block.
+		err = dbPutUtxoView(dbTx, view)
+		if err != nil {
+			return err
+		}
+
+		// Update the transaction spend journal by removing the record
+		// that contains all txos spent by the block .
+		err = dbRemoveSpendJournalEntry(dbTx, block.Hash())
+		if err != nil {
+			return err
+		}
+		// Allow the index manager to call each of the currently active
+		// optional indexes with the block being disconnected so they
+		// can update themselves accordingly.
+		if b.indexManager != nil {
+			err := b.indexManager.DisconnectBlock(dbTx, block, view)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Prune fully spent entries and mark all entries in the view unmodified
+	// now that the modifications have been committed to the database.
+	view.commit()
+
+	b.RemoveBadTx(&node.hash)
 
 	return nil
 }
@@ -1238,59 +1267,6 @@ func countSpentOutputs(block, parent *types.SerializedBlock) int {
 		numSpent += len(tx.Transaction().TxIn)
 	}
 	return numSpent
-}
-
-// disconnectBlock handles disconnecting the passed node/block from the end of
-// the main (best) chain.
-//
-// This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint) error {
-
-	// Calculate the exact subsidy produced by adding the block.
-	err := b.db.Update(func(dbTx database.Tx) error {
-		// Remove the block hash and order from the block index.
-		err := dbRemoveBlockIndex(dbTx, block.Hash(), int64(node.order)) //TODO, remove type conversion
-		if err != nil {
-			return err
-		}
-
-		// Update the utxo set using the state of the utxo view.  This
-		// entails restoring all of the utxos spent and removing the new
-		// ones created by the block.
-		err = dbPutUtxoView(dbTx, view)
-		if err != nil {
-			return err
-		}
-
-		// Update the transaction spend journal by removing the record
-		// that contains all txos spent by the block .
-		err = dbRemoveSpendJournalEntry(dbTx, block.Hash())
-		if err != nil {
-			return err
-		}
-		// Allow the index manager to call each of the currently active
-		// optional indexes with the block being disconnected so they
-		// can update themselves accordingly.
-		if b.indexManager != nil {
-			err := b.indexManager.DisconnectBlock(dbTx, block, view)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	// Prune fully spent entries and mark all entries in the view unmodified
-	// now that the modifications have been committed to the database.
-	view.commit()
-
-	b.RemoveBadTx(&node.hash)
-
-	return nil
 }
 
 func (b *BlockChain) IsBadTx(txh *hash.Hash) bool {

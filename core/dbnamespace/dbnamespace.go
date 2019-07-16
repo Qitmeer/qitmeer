@@ -57,7 +57,7 @@ var (
 	UtxoSetBucketName = []byte("utxoset")
 
 	// BlockIndexBucketName is the name of the db bucket used to house the
-	// block node which consists of metadata for all known blocks.
+	// block which consists of metadata for all known blocks in DAG.
 	BlockIndexBucketName = []byte("blockidx")
 
 	// IndexTipsBucketName is the name of the db bucket used to house the

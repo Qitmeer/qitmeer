@@ -179,10 +179,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		if err := dbMaybeStoreBlock(dbTx, block); err != nil {
 			return err
 		}
-
-		if err := dbPutBlockNode(dbTx, newNode); err != nil {
-			return err
-		}
 		b.index.SetStatusFlags(newNode, statusDataStored)
 		return nil
 	})

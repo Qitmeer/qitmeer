@@ -3,6 +3,8 @@ package blockdag
 import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/core/dag"
+	s "github.com/HalalChain/qitmeer-lib/core/serialization"
+	"io"
 )
 
 //The abstract inferface is used to dag block
@@ -19,6 +21,8 @@ type IBlockData interface {
 
 //The interface of block
 type IBlock interface {
+	// Return block ID
+	GetID() uint
 	// Return the hash of block. It will be a pointer.
 	GetHash() *hash.Hash
 
@@ -56,19 +60,31 @@ type IBlock interface {
 
 	// Acquire the height of block in main chain
 	GetHeight() uint
+
+	// encode
+	Encode(w io.Writer) error
+
+	// decode
+	Decode(r io.Reader) error
 }
 
 // It is the element of a DAG. It is the most basic data unit.
 type Block struct {
-	hash     hash.Hash
-	parents  *dag.HashSet
-	children *dag.HashSet
+	id         uint
+	hash       hash.Hash
+	parents    *dag.HashSet
+	children   *dag.HashSet
 
 	mainParent *hash.Hash
-	weight uint
-	order  uint
-	layer  uint
-	height uint
+	weight     uint
+	order      uint
+	layer      uint
+	height     uint
+}
+
+// Return block ID
+func (b *Block) GetID() uint {
+	return b.id
 }
 
 // Return the hash of block. It will be a pointer.
@@ -188,4 +204,165 @@ func (b *Block) SetHeight(h uint) {
 // Acquire the height of block in main chain
 func (b *Block) GetHeight() uint {
 	return b.height
+}
+
+// encode
+func (b *Block) Encode(w io.Writer) error {
+	err:=s.WriteElements(w,uint32(b.id))
+	if err != nil {
+		return err
+	}
+	err=s.WriteElements(w,&b.hash)
+	if err != nil {
+		return err
+	}
+	// parents
+	parents:=[]*hash.Hash{}
+	if b.parents!=nil && b.parents.Size()>0 {
+		parents=b.parents.List()
+	}
+	parentsSize:=len(parents)
+	err=s.WriteElements(w,uint32(parentsSize))
+	if err != nil {
+		return err
+	}
+	for i:=0;i<parentsSize ;i++  {
+		err=s.WriteElements(w,parents[i])
+		if err != nil {
+			return err
+		}
+	}
+	// children
+	children:=[]*hash.Hash{}
+	if b.children!=nil && b.children.Size()>0 {
+		children=b.children.List()
+	}
+	childrenSize:=len(parents)
+	err=s.WriteElements(w,uint32(childrenSize))
+	if err != nil {
+		return err
+	}
+	for i:=0;i<childrenSize ;i++  {
+		err=s.WriteElements(w,children[i])
+		if err != nil {
+			return err
+		}
+	}
+	// mainParent
+	mainParent:=&hash.ZeroHash
+	if b.mainParent!=nil {
+		mainParent=b.mainParent
+	}
+	err=s.WriteElements(w,mainParent)
+	if err != nil {
+		return err
+	}
+
+	err=s.WriteElements(w,uint32(b.weight))
+	if err != nil {
+		return err
+	}
+	err=s.WriteElements(w,uint32(b.order))
+	if err != nil {
+		return err
+	}
+	err=s.WriteElements(w,uint32(b.layer))
+	if err != nil {
+		return err
+	}
+	err=s.WriteElements(w,uint32(b.height))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// decode
+func (b *Block) Decode(r io.Reader) error {
+	var id uint32
+	err:=s.ReadElements(r,&id)
+	if err != nil {
+		return err
+	}
+	b.id=uint(id)
+
+	err=s.ReadElements(r,&b.hash)
+	if err != nil {
+		return err
+	}
+	// parents
+	var parentsSize uint32
+	err=s.ReadElements(r,&parentsSize)
+	if err != nil {
+		return err
+	}
+	if parentsSize>0 {
+		b.parents = dag.NewHashSet()
+		for i:=uint32(0);i<parentsSize ;i++  {
+			var parent hash.Hash
+			err:=s.ReadElements(r,&parent)
+			if err != nil {
+				return err
+			}
+			b.parents.Add(&parent)
+		}
+	}
+	// children
+	var childrenSize uint32
+	err=s.ReadElements(r,&childrenSize)
+	if err != nil {
+		return err
+	}
+	if childrenSize>0 {
+		b.children = dag.NewHashSet()
+		for i:=uint32(0);i<childrenSize ;i++  {
+			var children hash.Hash
+			err:=s.ReadElements(r,&children)
+			if err != nil {
+				return err
+			}
+			b.children.Add(&children)
+		}
+	}
+	// mainParent
+	var mainParent hash.Hash
+	err=s.ReadElements(r,&mainParent)
+	if err != nil {
+		return err
+	}
+	if mainParent.IsEqual(&hash.ZeroHash) {
+		b.mainParent=nil
+	}else{
+		b.mainParent=&mainParent
+	}
+
+	var weight uint32
+	err=s.ReadElements(r,&weight)
+	if err != nil {
+		return err
+	}
+	b.weight=uint(weight)
+
+	var order uint32
+	err=s.ReadElements(r,&order)
+	if err != nil {
+		return err
+	}
+	b.order=uint(order)
+
+	var layer uint32
+	err=s.ReadElements(r,&layer)
+	if err != nil {
+		return err
+	}
+	b.layer=uint(layer)
+
+	var height uint32
+	err=s.ReadElements(r,&height)
+	if err != nil {
+		return err
+	}
+	b.height=uint(height)
+
+	return nil
 }

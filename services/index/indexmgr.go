@@ -93,7 +93,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		indexer := m.enabledIndexes[i-1]
 
 		// Fetch the current tip for the index.
-		var order int32
+		var order uint32
 		err := m.db.View(func(dbTx database.Tx) error {
 			idxKey := indexer.Key()
 			_, order, err = dbFetchIndexerTip(dbTx, idxKey)
@@ -114,9 +114,9 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	// lowest one so the catchup code only needs to start at the earliest
 	// block and is able to skip connecting the block for the indexes that
 	// don't need it.
-	bestOrder := int32(chain.BestSnapshot().Order)
+	bestOrder := uint32(chain.BestSnapshot().Order)
 	lowestOrder := bestOrder
-	indexerOrders := make([]int32, len(m.enabledIndexes))
+	indexerOrders := make([]uint32, len(m.enabledIndexes))
 	err = m.db.View(func(dbTx database.Tx) error {
 		for i, indexer := range m.enabledIndexes {
 			idxKey := indexer.Key()
@@ -160,8 +160,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		err = m.db.Update(func(dbTx database.Tx) error {
 			// Load the block for the height since it is required to index
 			// it.
-			block, err = blockchain.DBFetchBlockByOrder(dbTx,
-				uint64(order))
+			block, err = blockchain.DBFetchBlockByOrder(dbTx,uint64(order))
 			if err != nil {
 				return err
 			}
@@ -422,7 +421,7 @@ func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seri
 	// Assert that the block being disconnected is the current tip of the
 	// index.
 	idxKey := indexer.Key()
-	/*curTipHash, _, err := dbFetchIndexerTip(dbTx, idxKey)
+	curTipHash,order, err := dbFetchIndexerTip(dbTx, idxKey)
 	if err != nil {
 		return err
 	}
@@ -431,7 +430,7 @@ func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seri
 			"be called with the block at the current index tip "+
 			"(%s, tip %s, block %s)", indexer.Name(),
 			curTipHash, block.Hash()))
-	}*/
+	}
 
 	// Notify the indexer with the disconnected block so it can remove all
 	// of the appropriate entries.
@@ -440,8 +439,11 @@ func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seri
 	}
 
 	// Update the current index tip.
-	prevHash := &block.Block().Header.ParentRoot
-	return dbPutIndexerTip(dbTx, idxKey, prevHash, int32(block.Order()-1))
+	prevHash,err:=dbFetchBlockHashByID(dbTx,order-1)
+	if err != nil {
+		return err
+	}
+	return dbPutIndexerTip(dbTx, idxKey, prevHash, uint32(order-1))
 }
 
 // dbIndexConnectBlock adds all of the index entries associated with the
@@ -452,16 +454,16 @@ func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seriali
 	// Assert that the block being connected properly connects to the
 	// current tip of the index.
 	idxKey := indexer.Key()
-	/*curTipHash, _, err := dbFetchIndexerTip(dbTx, idxKey)
+	_,order, err := dbFetchIndexerTip(dbTx, idxKey)
 	if err != nil {
 		return err
 	}
-	if !curTipHash.IsEqual(&block.Block().Header.ParentRoot) {
+	if order+1!=uint32(block.Order()) {
 		return AssertError(fmt.Sprintf("dbIndexConnectBlock must be "+
 			"called with a block that extends the current index "+
-			"tip (%s, tip %s, block %s)", indexer.Name(),
-			curTipHash, block.Hash()))
-	}*/
+			"tip (%s, tip %d, block %d)", indexer.Name(),
+			order, block.Order()))
+	}
 
 	// Notify the indexer with the connected block so it can index it.
 	if err := indexer.ConnectBlock(dbTx, block, view); err != nil {
@@ -469,12 +471,12 @@ func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seriali
 	}
 
 	// Update the current index tip.
-	return dbPutIndexerTip(dbTx, idxKey, block.Hash(), int32(block.Order()))
+	return dbPutIndexerTip(dbTx, idxKey, block.Hash(), uint32(block.Order()))
 }
 
 // dbFetchIndexerTip uses an existing database transaction to retrieve the
 // hash and height of the current tip for the provided index.
-func dbFetchIndexerTip(dbTx database.Tx, idxKey []byte) (*hash.Hash, int32, error) {
+func dbFetchIndexerTip(dbTx database.Tx, idxKey []byte) (*hash.Hash, uint32, error) {
 	indexesBucket := dbTx.Metadata().Bucket(dbnamespace.IndexTipsBucketName)
 	serialized := indexesBucket.Get(idxKey)
 	if len(serialized) < hash.HashSize+4 {
@@ -487,7 +489,7 @@ func dbFetchIndexerTip(dbTx database.Tx, idxKey []byte) (*hash.Hash, int32, erro
 
 	var h hash.Hash
 	copy(h[:], serialized[:hash.HashSize])
-	order := int32(byteOrder.Uint32(serialized[hash.HashSize:]))
+	order := uint32(byteOrder.Uint32(serialized[hash.HashSize:]))
 	return &h, order, nil
 }
 
@@ -497,19 +499,19 @@ func dbFetchIndexerTip(dbTx database.Tx, idxKey []byte) (*hash.Hash, int32, erro
 //
 // The serialized format for an index tip is:
 //
-//   [<block hash><block height>],...
+//   [<block hash><block order>],...
 //
 //   Field           Type             Size
 //   block hash      chainhash.Hash   chainhash.HashSize
-//   block height    uint32           4 bytes
+//   block order    uint32           4 bytes
 // -----------------------------------------------------------------------------
 
 // dbPutIndexerTip uses an existing database transaction to update or add the
 // current tip for the given index to the provided values.
-func dbPutIndexerTip(dbTx database.Tx, idxKey []byte, h *hash.Hash, height int32) error {
+func dbPutIndexerTip(dbTx database.Tx, idxKey []byte, h *hash.Hash, order uint32) error {
 	serialized := make([]byte, hash.HashSize+4)
 	copy(serialized, h[:])
-	byteOrder.PutUint32(serialized[hash.HashSize:], uint32(height))
+	byteOrder.PutUint32(serialized[hash.HashSize:], uint32(order))
 
 	indexesBucket := dbTx.Metadata().Bucket(dbnamespace.IndexTipsBucketName)
 	return indexesBucket.Put(idxKey, serialized)

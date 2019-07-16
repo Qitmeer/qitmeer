@@ -134,7 +134,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		return nil
 	}
 	//
-	block := Block{hash: *b.GetHash(), weight: 1, layer:0}
+	block := Block{id:bd.GetBlockTotal(),hash: *b.GetHash(), weight: 1, layer:0}
 	if parents != nil {
 		block.parents = dag.NewHashSet()
 		var maxLayer uint=0
