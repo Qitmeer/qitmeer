@@ -1,6 +1,8 @@
 github.com/HalalChain/qitmeer-lib v0.0.0-20190629103540-144b8ac33c1c/go.mod h1:hM4boPBobWb65MgdmBC3XLaPkCChDPxzUU+zZJB88a4=
 github.com/HalalChain/qitmeer-lib v0.0.0-20190701115803-6220816a33c9 h1:aFdGCaBH7jXKsPTpoS2RqmI9LomMGCZqmzBFHpJvQlQ=
 github.com/HalalChain/qitmeer-lib v0.0.0-20190701115803-6220816a33c9/go.mod h1:hM4boPBobWb65MgdmBC3XLaPkCChDPxzUU+zZJB88a4=
+github.com/HalalChain/qitmeer-lib v0.0.0-20190712023422-aa4eb277f880 h1:j1tE48PmhoAV//yOdnnx2iVmryghbw3AStXYlPiWx/k=
+github.com/HalalChain/qitmeer-lib v0.0.0-20190712023422-aa4eb277f880/go.mod h1:x0ckSIpXRVxTMMzJCtUj0vqso3UV8fat2BIjkplRkF4=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
