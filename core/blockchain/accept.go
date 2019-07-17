@@ -9,12 +9,10 @@ package blockchain
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer/database"
 	"math"
-	"sort"
 	"time"
 )
 
@@ -152,23 +150,10 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		log.Debug(fmt.Sprintf("Irreparable error![%s]", newNode.hash.String()))
 		return false, nil
 	}
-	b.index.addNode(newNode)
-	//
 	oldOrders:=BlockNodeList{}
-	for e := newOrders.Front(); e != nil; e = e.Next() {
-		refHash := e.Value.(*hash.Hash)
-		refblock := b.bd.GetBlock(refHash)
-		refnode := b.index.lookupNode(refHash)
-		if newNode.GetHash().IsEqual(refHash) {
-			block.SetOrder(uint64(refblock.GetOrder()))
-		}else {
-			oldOrders=append(oldOrders,refnode.Clone())
-		}
-		refnode.SetOrder(uint64(refblock.GetOrder()))
-	}
-	if len(oldOrders)>1 {
-		sort.Sort(oldOrders)
-	}
+	b.getReorganizeNodes(newNode,block,newOrders,&oldOrders)
+	b.index.addNode(newNode)
+
 	// Insert the block into the database if it's not already there.  Even
 	// though it is possible the block will ultimately fail to connect, it
 	// has already passed all proof-of-work and validity tests which means

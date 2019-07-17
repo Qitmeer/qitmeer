@@ -16,6 +16,7 @@ import (
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer/services/common/progresslog"
 	"os"
+	"sort"
 	"sync"
 	"time"
 )
@@ -925,14 +926,6 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 
 	// Reorganize the chain.
 	log.Debug(fmt.Sprintf("Start DAG REORGANIZE: Block %v is causing a reorganize.", node.hash))
-	for i:=0;i<len(oldOrders);i++ {
-		log.Debug(fmt.Sprintf("Old:%d-%s",oldOrders[i].order,oldOrders[i].hash.String()))
-	}
-	for e := newOrders.Front(); e != nil; e = e.Next() {
-		nodeHash := e.Value.(*hash.Hash)
-		n:= b.index.LookupNode(nodeHash)
-		log.Debug(fmt.Sprintf("New:%d-%s",n.order,n.hash.String()))
-	}
 	err := b.reorganizeChain(oldOrders, newOrders, block)
 	if err != nil {
 		return false, err
@@ -1316,4 +1309,62 @@ func (b *BlockChain) BlockIndex() *blockIndex {
 // Return median time source
 func (b *BlockChain) TimeSource() MedianTimeSource {
 	return b.timeSource
+}
+
+// Return the reorganization information
+func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.SerializedBlock, newOrders *list.List,oldOrders *BlockNodeList) {
+	var refnode *blockNode
+	var oldOrdersTemp BlockNodeList
+
+	for e := newOrders.Front(); e != nil; e = e.Next() {
+		refHash := e.Value.(*hash.Hash)
+		refblock := b.bd.GetBlock(refHash)
+		if refHash.IsEqual(&newNode.hash) {
+			refnode=newNode
+			block.SetOrder(uint64(refblock.GetOrder()))
+		}else{
+			refnode=b.index.lookupNode(refHash)
+			oldOrdersTemp=append(oldOrdersTemp,refnode.Clone())
+		}
+		refnode.SetOrder(uint64(refblock.GetOrder()))
+	}
+	if newOrders.Len()<=1 || len(oldOrdersTemp)==0 {
+		return
+	}
+
+	if len(oldOrdersTemp)>1 {
+		sort.Sort(oldOrdersTemp)
+	}
+	oldOrdersList:=list.New()
+	for i:=0;i<len(oldOrdersTemp) ;i++  {
+		oldOrdersList.PushBack(oldOrdersTemp[i])
+	}
+
+	// optimization
+	ne := newOrders.Front()
+	oe := oldOrdersList.Front()
+	for {
+		if ne == nil || oe == nil {
+			break
+		}
+		neNext:=ne.Next()
+		oeNext:=oe.Next()
+
+		neHash := ne.Value.(*hash.Hash)
+		oeNode := oe.Value.(*blockNode)
+		if neHash.IsEqual(oeNode.GetHash()) {
+			newOrders.Remove(ne)
+			oldOrdersList.Remove(oe)
+		}else{
+			break
+		}
+
+		ne=neNext
+		oe=oeNext
+	}
+	//
+	for e := oldOrdersList.Front(); e != nil; e = e.Next() {
+		node := e.Value.(*blockNode)
+		*oldOrders=append(*oldOrders,node.Clone())
+	}
 }
