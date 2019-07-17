@@ -3,11 +3,11 @@ package blockchain
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
-	"github.com/HalalChain/qitmeer/core/dbnamespace"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer/core/blockdag"
+	"github.com/HalalChain/qitmeer/core/dbnamespace"
 	"github.com/HalalChain/qitmeer/database"
 	"math/big"
 	"sort"
@@ -67,23 +67,6 @@ type databaseInfo struct {
 	created time.Time
 }
 
-// blockIndexEntry represents a block index database entry.
-type blockIndexEntry struct {
-	header types.BlockHeader
-	status blockStatus
-}
-
-// blockIndexKey generates the binary key for an entry in the block index
-// bucket.  The key is composed of the block order encoded as a big-endian
-// 32-bit unsigned int followed by the 32 byte block hash.  Big endian is used
-// here so the entries can easily be iterated by height.
-func blockIndexKey(blockHash *hash.Hash, blockOrder uint32) []byte {
-	indexKey := make([]byte, hash.HashSize+4)
-	binary.BigEndian.PutUint32(indexKey[0:4], blockOrder)
-	copy(indexKey[4:hash.HashSize+4], blockHash[:])
-	return indexKey
-}
-
 // -----------------------------------------------------------------------------
 // The best chain state consists of the best block hash and order, the total
 // number of transactions up to and including those in the best block, the
@@ -140,7 +123,7 @@ func dbFetchBlockByOrder(dbTx database.Tx, order uint64) (*types.SerializedBlock
 	if err != nil {
 		return nil, err
 	}
-
+	block.SetOrder(order)
 	return block, nil
 }
 
@@ -324,7 +307,7 @@ func (b *BlockChain) createChainState() error {
 		}
 
 		// Add the genesis block to the block index.
-		err = dbPutBlockNode(dbTx, node)
+		err=blockdag.DBPutDAGBlock(dbTx,b.bd.GetBlock(&node.hash))
 		if err != nil {
 			return err
 		}
@@ -393,38 +376,6 @@ func dbPutDatabaseInfo(dbTx database.Tx, dbi *databaseInfo) error {
 	// Store the database creation date.
 	return bucket.Put(dbnamespace.BCDBInfoCreatedKeyName,
 		uint64Bytes(uint64(dbi.created.Unix())))
-}
-
-// dbPutBlockNode stores the information needed to reconstruct the provided
-// block node in the block index according to the format described above.
-func dbPutBlockNode(dbTx database.Tx, node *blockNode) error {
-	serialized, err := serializeBlockIndexEntry(&blockIndexEntry{
-		header: node.Header(),
-		status: node.status,
-	})
-	if err != nil {
-		return err
-	}
-
-	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIndexBucketName)
-	key := node.hash[:]
-	return bucket.Put(key, serialized)
-}
-
-// serializeBlockIndexEntry serializes the passed block index entry into a
-// single byte slice according to the format described in detail above.
-func serializeBlockIndexEntry(entry *blockIndexEntry) ([]byte, error) {
-	serialized := make([]byte, blockIndexEntrySerializeSize(entry))
-	_, err := putBlockIndexEntry(serialized, entry)
-	return serialized, err
-}
-
-// blockIndexEntrySerializeSize returns the number of bytes it would take to
-// serialize the passed block index entry according to the format described
-// above.
-func blockIndexEntrySerializeSize(entry *blockIndexEntry) int {
-
-	return blockHdrSize + 1
 }
 
 // -----------------------------------------------------------------------------
@@ -515,26 +466,6 @@ func serializeBestChainState(state bestChainState) []byte {
 	return serializedData[:]
 }
 
-// putBlockIndexEntry serializes the passed block index entry according to the
-// format described above directly into the passed target byte slice.  The
-// target byte slice must be at least large enough to handle the number of bytes
-// returned by the blockIndexEntrySerializeSize function or it will panic.
-func putBlockIndexEntry(target []byte, entry *blockIndexEntry) (int, error) {
-
-	// Serialize the entire block header.
-	w := bytes.NewBuffer(target[0:0])
-	if err := entry.header.Serialize(w); err != nil {
-		return 0, err
-	}
-
-	// Serialize the status.
-	offset := blockHdrSize
-	target[offset] = byte(entry.status)
-	offset++
-
-	return offset, nil
-}
-
 // deserializeBestChainState deserializes the passed serialized best chain
 // state.  This is data stored in the chain state bucket and is updated after
 // every block is connected or disconnected form the main chain.
@@ -560,47 +491,6 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	state.totalTxns = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
 	offset += 8
 	return state, nil
-}
-
-// deserializeBlockIndexEntry decodes the passed serialized byte slice into a
-// block index entry according to the format described above.
-func deserializeBlockIndexEntry(serialized []byte) (*blockIndexEntry, error) {
-	var entry blockIndexEntry
-	if _, err := decodeBlockIndexEntry(serialized, &entry); err != nil {
-		return nil, err
-	}
-	return &entry, nil
-}
-
-// decodeBlockIndexEntry decodes the passed serialized block index entry into
-// the passed struct according to the format described above.  It returns the
-// number of bytes read.
-func decodeBlockIndexEntry(serialized []byte, entry *blockIndexEntry) (int, error) {
-	// Ensure there are enough bytes to decode header.
-	if len(serialized) < blockHdrSize {
-		return 0, errDeserialize("unexpected end of data while " +
-			"reading block header")
-	}
-	hB := serialized[0:blockHdrSize]
-
-	// Deserialize the header.
-	var header types.BlockHeader
-	if err := header.Deserialize(bytes.NewReader(hB)); err != nil {
-		return 0, err
-	}
-	offset := blockHdrSize
-
-	// Deserialize the status.
-	if offset+1 > len(serialized) {
-		return offset, errDeserialize("unexpected end of data while " +
-			"reading status")
-	}
-	status := blockStatus(serialized[offset])
-	offset++
-
-	entry.header = header
-	entry.status = status
-	return offset, nil
 }
 
 // dbFetchBlockByHash uses an existing database transaction to retrieve the raw
