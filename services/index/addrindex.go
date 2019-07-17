@@ -711,8 +711,7 @@ func (idx *AddrIndex) indexPkScript(data writeIndexData, scriptVersion uint16, p
 // transactions in the passed block, and maps each of them to the associated
 // transaction using the passed map.
 func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) {
-	var parentRegularTxs []*types.Tx
-	parentRegularTxs = block.Transactions()
+	parentRegularTxs := block.Transactions()
 	for txIdx, tx := range parentRegularTxs {
 		// Coinbases do not reference any inputs.  Since the block is
 		// required to have already gone through full validation, it has
