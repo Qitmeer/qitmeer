@@ -14,6 +14,7 @@ import (
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"math"
+	"sort"
 	"time"
 )
 
@@ -146,24 +147,28 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.pruner.pruneChainIfNeeded()
 
 	//dag
-	list := b.bd.AddBlock(newNode)
-	if list == nil || list.Len() == 0 {
+	newOrders := b.bd.AddBlock(newNode)
+	if newOrders == nil || newOrders.Len() == 0 {
 		log.Debug(fmt.Sprintf("Irreparable error![%s]", newNode.hash.String()))
 		return false, nil
 	}
 	b.index.addNode(newNode)
 	//
-	for e := list.Front(); e != nil; e = e.Next() {
+	oldOrders:=BlockNodeList{}
+	for e := newOrders.Front(); e != nil; e = e.Next() {
 		refHash := e.Value.(*hash.Hash)
 		refblock := b.bd.GetBlock(refHash)
 		refnode := b.index.lookupNode(refHash)
-		refnode.SetOrder(uint64(refblock.GetOrder()))
-
 		if newNode.GetHash().IsEqual(refHash) {
 			block.SetOrder(uint64(refblock.GetOrder()))
+		}else {
+			oldOrders=append(oldOrders,refnode.Clone())
 		}
+		refnode.SetOrder(uint64(refblock.GetOrder()))
 	}
-
+	if len(oldOrders)>1 {
+		sort.Sort(oldOrders)
+	}
 	// Insert the block into the database if it's not already there.  Even
 	// though it is possible the block will ultimately fail to connect, it
 	// has already passed all proof-of-work and validity tests which means
@@ -190,7 +195,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This
 	// also handles validation of the transaction scripts.
-	success, err := b.connectDagChain(newNode, block, list)
+	success, err := b.connectDagChain(newNode, block, newOrders,oldOrders)
 	if !success || err != nil {
 		b.index.SetStatusFlags(newNode, statusValidateFailed)
 		return false, err

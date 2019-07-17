@@ -377,7 +377,7 @@ func (m *Manager) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock
 	// Call each of the currently active optional indexes with the block
 	// being disconnected so they can update accordingly.
 	for _, index := range m.enabledIndexes {
-		err := dbIndexDisconnectBlock(dbTx, index, block, view)
+		err := m.dbIndexDisconnectBlock(dbTx, index, block, view)
 		if err != nil {
 			return err
 		}
@@ -417,7 +417,7 @@ func dbFetchTx(dbTx database.Tx, hash *hash.Hash) (*types.Transaction, error) {
 // given block using the provided indexer and updates the tip of the indexer
 // accordingly.  An error will be returned if the current tip for the indexer is
 // not the passed block.
-func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (m *Manager) dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
 	// Assert that the block being disconnected is the current tip of the
 	// index.
 	idxKey := indexer.Key()
@@ -426,10 +426,16 @@ func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seri
 		return err
 	}
 	if !curTipHash.IsEqual(block.Hash()) {
-		return AssertError(fmt.Sprintf("dbIndexDisconnectBlock must "+
+		log.Warn(fmt.Sprintf("dbIndexDisconnectBlock must "+
 			"be called with the block at the current index tip "+
 			"(%s, tip %s, block %s)", indexer.Name(),
 			curTipHash, block.Hash()))
+		return nil
+	}
+
+	if order==0 {
+		log.Warn(fmt.Sprintf("Can't disconnect genesis block"))
+		return nil
 	}
 
 	// Notify the indexer with the disconnected block so it can remove all
@@ -439,11 +445,21 @@ func dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seri
 	}
 
 	// Update the current index tip.
-	prevHash,err:=dbFetchBlockHashByID(dbTx,order-1)
-	if err != nil {
-		return err
+	var prevHash *hash.Hash
+	var preOrder uint32
+	if order<=1 {
+		h:=m.params.GenesisBlock.BlockHash()
+		prevHash=&h
+		preOrder=0
+	}else{
+		prevHash,err=dbFetchBlockHashByID(dbTx,order-1)
+		if err != nil {
+			return err
+		}
+		preOrder=uint32(order-1)
 	}
-	return dbPutIndexerTip(dbTx, idxKey, prevHash, uint32(order-1))
+
+	return dbPutIndexerTip(dbTx, idxKey, prevHash,preOrder)
 }
 
 // dbIndexConnectBlock adds all of the index entries associated with the
@@ -459,10 +475,12 @@ func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seriali
 		return err
 	}
 	if order+1!=uint32(block.Order()) {
-		return AssertError(fmt.Sprintf("dbIndexConnectBlock must be "+
+
+		log.Warn(fmt.Sprintf("dbIndexConnectBlock must be "+
 			"called with a block that extends the current index "+
 			"tip (%s, tip %d, block %d)", indexer.Name(),
 			order, block.Order()))
+		return nil
 	}
 
 	// Notify the indexer with the connected block so it can index it.

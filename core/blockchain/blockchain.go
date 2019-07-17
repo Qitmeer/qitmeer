@@ -872,7 +872,7 @@ func panicf(format string, args ...interface{}) {
 //    This is useful when using checkpoints.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlock, newOrders *list.List) (bool, error) {
+func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlock, newOrders *list.List,oldOrders BlockNodeList) (bool, error) {
 	if newOrders.Len() == 0 {
 		return false, nil
 	}
@@ -924,16 +924,16 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 	// common ancenstor (the point where the chain forked).
 
 	// Reorganize the chain.
-	log.Info(fmt.Sprintf("DAG REORGANIZE: Block %v is causing a reorganize.", node.hash))
-	oldOrder := list.New()
-	for e := newOrders.Front(); e != nil; e = e.Next() {
-		log.Info(e.Value.(*hash.Hash).String())
-		if e.Value.(*hash.Hash).IsEqual(&node.hash) {
-			continue
-		}
-		oldOrder.PushBack(e.Value)
+	log.Debug(fmt.Sprintf("Start DAG REORGANIZE: Block %v is causing a reorganize.", node.hash))
+	for i:=0;i<len(oldOrders);i++ {
+		log.Debug(fmt.Sprintf("Old:%d-%s",oldOrders[i].order,oldOrders[i].hash.String()))
 	}
-	err := b.reorganizeChain(oldOrder, newOrders, block)
+	for e := newOrders.Front(); e != nil; e = e.Next() {
+		nodeHash := e.Value.(*hash.Hash)
+		n:= b.index.LookupNode(nodeHash)
+		log.Debug(fmt.Sprintf("New:%d-%s",n.order,n.hash.String()))
+	}
+	err := b.reorganizeChain(oldOrders, newOrders, block)
 	if err != nil {
 		return false, err
 	}
@@ -1153,7 +1153,7 @@ func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 //
 // This function MUST be called with the chain state lock held (for writes).
 
-func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List, newBlock *types.SerializedBlock) error {
+func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *list.List, newBlock *types.SerializedBlock) error {
 
 	node := b.index.LookupNode(newBlock.Hash())
 	// Why the old order is the order that was removed by the new block, because the new block
@@ -1164,8 +1164,9 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List, newBlo
 	var block *types.SerializedBlock
 	var err error
 
-	for e := detachNodes.Back(); e != nil; e = e.Prev() {
-		n = b.index.LookupNode(e.Value.(*hash.Hash))
+	dl:=len(detachNodes)
+	for i:=dl-1;i>=0;i-- {
+		n = detachNodes[i]
 
 		block, err = b.fetchBlockByHash(&n.hash)
 
@@ -1175,7 +1176,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List, newBlo
 		if n == nil {
 			return fmt.Errorf("no node")
 		}
-		block.SetOrder(n.order - 1)
+		block.SetOrder(n.order)
 		// Load all of the utxos referenced by the block that aren't
 		// already in the view.
 		view := NewUtxoViewpoint()
@@ -1197,16 +1198,6 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List, newBlo
 		}
 		// Store the loaded block and spend journal entry for later.
 
-		prevNode := e.Prev()
-		var prevH *hash.Hash
-		if prevNode != nil {
-			prevH = e.Value.(*hash.Hash)
-		} else {
-			prevH = b.bd.GetPrevious(block.Hash())
-			if prevH.IsEqual(&node.hash) {
-				prevH = b.bd.GetPrevious(prevH)
-			}
-		}
 		err = b.disconnectTransactions(view, block, stxos)
 		if err != nil {
 			return err
@@ -1232,6 +1223,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List, newBlo
 			if err != nil {
 				return err
 			}
+			block.SetOrder(n.GetOrder())
 		}
 
 		view := NewUtxoViewpoint()
@@ -1249,11 +1241,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List, newBlo
 
 	// Log the point where the chain forked and old and new best chain
 	// heads.
-	firstAttachNode := attachNodes.Front().Value.(*hash.Hash)
-	lastAttachNode := attachNodes.Back().Value.(*hash.Hash)
-	log.Info(fmt.Sprintf("DAG REORGANIZE: Start at %s", firstAttachNode.String()))
-	log.Info(fmt.Sprintf("DAG REORGANIZE: End at %s", lastAttachNode.String()))
-	log.Info(fmt.Sprintf("DAG REORGANIZE: New Len= %d;Old Len= %d", attachNodes.Len(), detachNodes.Len()))
+	log.Debug(fmt.Sprintf("End DAG REORGANIZE: Old Len= %d;New Len= %d", attachNodes.Len(), detachNodes.Len()))
 
 	return nil
 }
