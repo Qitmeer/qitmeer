@@ -494,7 +494,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) HaveBlock(hash *hash.Hash) (bool, error) {
-	return b.index.HaveBlock(hash) || b.IsKnownOrphan(hash), nil
+	return b.index.HaveBlock(hash) || b.IsOrphan(hash), nil
 }
 
 // IsKnownOrphan returns whether the passed hash is currently a known orphan.
@@ -507,7 +507,7 @@ func (b *BlockChain) HaveBlock(hash *hash.Hash) (bool, error) {
 // duplicate orphans and react accordingly.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) IsKnownOrphan(hash *hash.Hash) bool {
+func (b *BlockChain) IsOrphan(hash *hash.Hash) bool {
 	// Protect concurrent access.  Using a read lock only so multiple
 	// readers can query without blocking each other.
 	b.orphanLock.RLock()
@@ -515,6 +515,12 @@ func (b *BlockChain) IsKnownOrphan(hash *hash.Hash) bool {
 	b.orphanLock.RUnlock()
 
 	return exists
+}
+
+// Whether it is connected by all parents
+func (b *BlockChain) IsUnconnectedOrphan(hash *hash.Hash) bool {
+	op:=b.GetOrphanParents(hash)
+	return op!=nil&&len(op)>0
 }
 
 // GetOrphansParents returns the parents for the provided hash from the
@@ -808,6 +814,8 @@ func (b *BlockChain) addOrphanBlock(block *types.SerializedBlock) {
 	// Add to previous hash lookup index for faster dependency lookups.
 	prevHash := &block.Block().Header.ParentRoot
 	b.prevOrphans[*prevHash] = append(b.prevOrphans[*prevHash], oBlock)
+
+	fmt.Printf("\nOrphan=%d\n",len(b.orphans))
 }
 
 // MaximumBlockSize returns the maximum permitted block size for the block

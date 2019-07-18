@@ -44,7 +44,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 	// we already have and request more blocks to prevent them.
 	gs:=b.chain.BestSnapshot().GraphState
 
-	for _, iv := range invVects {
+	for i, iv := range invVects {
 		// Ignore unsupported inventory types.
 		if iv.Type != message.InvTypeBlock && iv.Type != message.InvTypeTx {
 			continue
@@ -92,7 +92,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 			// resending the orphan block as an available block
 			// to signal there are more missing blocks that need to
 			// be requested.
-			if b.chain.IsKnownOrphan(&iv.Hash) {
+			if b.chain.IsUnconnectedOrphan(&iv.Hash) {
 				// Request blocks starting at the latest known
 				// up to the root of the orphan that just came
 				// in.
@@ -107,6 +107,13 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 						"error", err)
 				}
 				continue
+			}
+			if i == lastBlock {
+				err:= imsg.peer.PushGetBlocksMsg(gs,nil)
+				if err != nil {
+					log.Error("Failed to push getblocksmsg for all chain",
+						"error", err)
+				}
 			}
 		}
 	}
@@ -154,11 +161,5 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 	imsg.peer.RequestQueue = requestQueue
 	if len(gdmsg.InvList) > 0 {
 		imsg.peer.QueueMessage(gdmsg, nil)
-	}else{
-		err:= imsg.peer.PushGetBlocksMsg(gs,nil)
-		if err != nil {
-			log.Error("Failed to push getblocksmsg for all chain",
-				"error", err)
-		}
 	}
 }

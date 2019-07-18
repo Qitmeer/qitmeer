@@ -78,6 +78,43 @@ func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
 
 }
 
+func (b *BlockChain) TestProcessOrphans() error {
+	for  {
+		needLoop:=false
+		for _,v:=range b.orphans{
+			allExists:=true
+			for _,h:=range v.block.Block().Parents{
+				exists:= b.index.HaveBlock(h)
+				if !exists {
+					allExists=false
+					break
+				}
+			}
+			if allExists {
+
+				//
+				exists := b.index.HaveBlock(v.block.Hash())
+				if exists {
+					b.removeOrphanBlock(v)
+					continue
+				}
+				// Potentially accept the block into the block chain.
+				_, err := b.maybeAcceptBlock(v.block,BFNone)
+				if err != nil {
+					return err
+				}
+				b.removeOrphanBlock(v)
+				needLoop=true
+				break
+			}
+		}
+		if !needLoop {
+			return nil
+		}
+	}
+
+}
+
 // ProcessBlock is the main workhorse for handling insertion of new blocks into
 // the block chain.  It includes functionality such as rejecting duplicate
 // blocks, ensuring blocks follow all rules, orphan handling, and insertion into

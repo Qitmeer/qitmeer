@@ -5,6 +5,7 @@ import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"github.com/HalalChain/qitmeer/core/merkle"
+	"sort"
 	"time"
 )
 
@@ -458,4 +459,26 @@ func (bd *BlockDAG) GetAnticone(b IBlock, exclude *dag.HashSet) *dag.HashSet {
 		anticone.Exclude(exclude)
 	}
 	return anticone
+}
+
+// Sort block by id
+func (bd *BlockDAG) SortBlock(src []*hash.Hash) []*hash.Hash {
+	if len(src)<=1 {
+		return src
+	}
+	srcBlockS:=BlockSlice{}
+	for i:=0;i<len(src) ;i++  {
+		ib:=bd.GetBlock(src[i])
+		if ib!=nil {
+			srcBlockS=append(srcBlockS,ib)
+		}
+	}
+	if len(srcBlockS)>=2 {
+		sort.Sort(srcBlockS)
+	}
+	result:=[]*hash.Hash{}
+	for i:=0;i<len(srcBlockS) ;i++  {
+		result=append(result,srcBlockS[i].GetHash())
+	}
+	return result
 }

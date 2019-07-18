@@ -158,10 +158,19 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		*/
 		if !b.current()&&bmsg.peer==b.syncPeer {
 			if len(bmsg.peer.RequestedBlocks)==0 {
-				err = bmsg.peer.PushGetBlocksMsg(best.GraphState,nil)
-				if err != nil {
-					log.Warn("Failed to push getblocksmsg for the last block", "error",err)
+				allOrphan:=b.chain.GetOrphansParents()
+				if len(allOrphan)>0 {
+					err = bmsg.peer.PushGetBlocksMsg(best.GraphState,allOrphan)
+					if err != nil {
+						log.Warn("Failed to push getblocksmsg for all orphan", "error",err)
+					}
+				}else{
+					err = bmsg.peer.PushGetBlocksMsg(best.GraphState,nil)
+					if err != nil {
+						log.Warn("Failed to push getblocksmsg for the last block", "error",err)
+					}
 				}
+
 			}
 		}
 	}
