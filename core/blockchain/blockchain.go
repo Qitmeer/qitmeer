@@ -25,7 +25,7 @@ const (
 
 	// maxOrphanBlocks is the maximum number of orphan blocks that can be
 	// queued.
-	maxOrphanBlocks = 500
+	MaxOrphanBlocks = 500
 
 	// minMemoryNodes is the minimum number of consecutive nodes needed
 	// in memory in order to perform all necessary validation.  It is used
@@ -565,6 +565,14 @@ func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash {
 	return result.List()
 }
 
+// Get the total of all orphans
+func (b *BlockChain) GetOrphansTotal() int {
+	b.orphanLock.RLock()
+	ol:= len(b.orphans)
+	b.orphanLock.RUnlock()
+	return ol
+}
+
 // IsCurrent returns whether or not the chain believes it is current.  Several
 // factors are used to guess, but the key factors that allow the chain to
 // believe it is current are:
@@ -790,7 +798,7 @@ func (b *BlockChain) addOrphanBlock(block *types.SerializedBlock) {
 	}
 
 	// Limit orphan blocks to prevent memory exhaustion.
-	if len(b.orphans)+1 > maxOrphanBlocks {
+	if len(b.orphans)+1 > MaxOrphanBlocks*2 {
 		// Remove the oldest orphan to make room for the new one.
 		b.removeOrphanBlock(b.oldestOrphan)
 		b.oldestOrphan = nil
@@ -815,7 +823,6 @@ func (b *BlockChain) addOrphanBlock(block *types.SerializedBlock) {
 	prevHash := &block.Block().Header.ParentRoot
 	b.prevOrphans[*prevHash] = append(b.prevOrphans[*prevHash], oBlock)
 
-	fmt.Printf("\nOrphan=%d\n",len(b.orphans))
 }
 
 // MaximumBlockSize returns the maximum permitted block size for the block

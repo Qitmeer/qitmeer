@@ -998,4 +998,15 @@ func (b *BlockManager) SyncPeerID() int32 {
 	return <-reply
 }
 
+// Selective execution PushGetBlocksMsg to peer
+func (b *BlockManager) PushGetBlocksMsg(peer *peer.ServerPeer) {
+	gs:=b.chain.BestSnapshot().GraphState
+	allOrphan:=b.chain.GetOrphansParents()
+
+	if b.chain.GetOrphansTotal()>blockchain.MaxOrphanBlocks && len(allOrphan)>0 {
+		peer.PushGetBlocksMsg(gs,allOrphan)
+	}else{
+		peer.PushGetBlocksMsg(gs,nil)
+	}
+}
 

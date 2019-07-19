@@ -158,3 +158,21 @@ func Test_LocateBlocks(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func Test_LocateMaxBlocks(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig2-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	gs:=dag.NewGraphState()
+	gs.GetTips().Add(bd.GetGenesisHash())
+	gs.GetTips().Add(tbMap["C"])
+	gs.GetTips().Add(tbMap["D"])
+	gs.SetTotal(3)
+	gs.SetLayer(1)
+	lb:=bd.LocateBlocks(gs,4)
+	//printBlockChainTag(lb,tbMap)
+	if !processResult(lb,changeToHashList(testData.PH_LocateMaxBlocks.Output, tbMap)) {
+		t.FailNow()
+	}
+}

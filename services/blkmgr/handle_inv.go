@@ -109,11 +109,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				continue
 			}
 			if i == lastBlock {
-				err:= imsg.peer.PushGetBlocksMsg(gs,nil)
-				if err != nil {
-					log.Error("Failed to push getblocksmsg for all chain",
-						"error", err)
-				}
+				b.PushGetBlocksMsg(imsg.peer)
 			}
 		}
 	}

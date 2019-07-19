@@ -237,6 +237,9 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 				hashSlice=append(hashSlice,v)
 			}
 		}
+		if len(hashSlice)>=2 {
+			hashSlice=chain.BlockDAG().SortBlock(hashSlice)
+		}
 	}else {
 		hashSlice = chain.LocateBlocks(msg.GS,message.MaxBlocksPerMsg)
 	}
@@ -244,8 +247,6 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	if len(hashSlice)==0 {
 		return
 	}
-
-	hashSlice=chain.BlockDAG().SortBlock(hashSlice)
 	// Generate inventory message.
 	invMsg := message.NewMsgInv()
 	invMsg.GS=chain.BestSnapshot().GraphState
@@ -320,7 +321,6 @@ func (sp *serverPeer) OnGetData(p *peer.Peer, msg *message.MsgGetData) {
 	// provide a little pipelining.
 	var waitChan chan struct{}
 	doneChan := make(chan struct{}, 1)
-
 	for i, iv := range msg.InvList {
 		var c chan struct{}
 		// If this will be the last message we send.

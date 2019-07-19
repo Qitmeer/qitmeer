@@ -371,38 +371,60 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState,maxHashes uint) []*hash.Hash
 		return nil
 	}
 	queue := []IBlock{}
-	for k:=range gs.GetTips().GetMap(){
-		if bd.HasBlock(&k) {
-			queue=append(queue,bd.GetBlock(&k))
-		}
-	}
-	if len(queue)==0 {
-		return nil
-	}
 	fs:=dag.NewHashSet()
-	fs.AddList(gs.GetTips().List())
-
-	result:=[]*hash.Hash{}
+	for _,v:=range bd.GetTips().GetMap(){
+		ib:=v.(IBlock)
+		queue=append(queue,ib)
+		fs.AddPair(ib.GetHash(),ib)
+	}
 
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
-		if !cur.HasChildren() {
+
+		if gs.GetTips().Has(cur.GetHash()) {
 			continue
 		}
-
-		for _,v := range cur.GetChildren().GetMap() {
-			b:=v.(*Block)
-			if fs.Has(b.GetHash()) {
-				continue
-			}
-			queue = append(queue,b)
-			fs.Add(b.GetHash())
-			result=append(result,b.GetHash())
-			if len(result)>int(maxHashes) {
-				return result
+		needRec:=true
+		if cur.HasChildren() {
+			for _,v := range cur.GetChildren().GetMap() {
+				ib:=v.(IBlock)
+				if gs.GetTips().Has(ib.GetHash()) || !fs.Has(ib.GetHash()) {
+					needRec=false
+					break
+				}
 			}
 		}
+		if needRec {
+			fs.AddPair(cur.GetHash(),cur)
+			if cur.HasParents() {
+				for _,v := range cur.GetParents().GetMap() {
+					ib:=v.(IBlock)
+					if fs.Has(ib.GetHash()) {
+						continue
+					}
+					queue=append(queue,ib)
+				}
+			}
+		}
+	}
+
+	fsSlice:=BlockSlice{}
+	for _,v:=range fs.GetMap(){
+		ib:=v.(IBlock)
+		fsSlice=append(fsSlice,ib)
+	}
+
+	result:=[]*hash.Hash{}
+	if len(fsSlice)>=2 {
+		sort.Sort(fsSlice)
+	}
+
+	for i:=0;i<len(fsSlice) ;i++  {
+		if i>=int(maxHashes) {
+			break
+		}
+		result=append(result,fsSlice[i].GetHash())
 	}
 	return result
 }

@@ -344,11 +344,7 @@ func (p *Peer) Services() protocol.ServiceFlag {
 //
 // This function is safe for concurrent access.
 func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
-
-	isDuplicate:=false
 	bs:=dag.NewHashSet()
-
-
 	// Filter duplicate getblocks requests.
 	p.prevGetBlocksMtx.Lock()
 	if len(blocks)>0 {
@@ -356,34 +352,26 @@ func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
 			p.prevGetBlocks=dag.NewHashSet()
 			bs.AddList(blocks)
 		}else {
-			isDuplicate = p.prevGetBlocks.Contain(bs)
 			for _,v:=range blocks{
 				if !p.prevGetBlocks.Has(v) {
 					bs.Add(v)
 				}
 			}
-			if bs.IsEmpty() {
-				isDuplicate=true
-			}
 		}
+		if bs.IsEmpty() {
+			log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: blocks=%d",len(blocks)))
+			return nil
+		}
+		//isDuplicate=false
 	}else {
 		if p.prevGetGS!=nil {
-			isDuplicate = gs.IsEqual(p.prevGetGS)
+			if gs.IsEqual(p.prevGetGS) {
+				log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: gs=%d",gs.String()))
+				return nil
+			}
 		}
 	}
 	p.prevGetBlocksMtx.Unlock()
-
-	if isDuplicate {
-		if len(blocks)>0 {
-			log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: "+
-				"prev:%d cur:%d", p.prevGetBlocks.Size(),len(blocks)))
-		}else {
-			log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: "+
-				"prev:%s cur:%s", p.prevGetGS.String(),gs.String()))
-		}
-
-		return nil
-	}
 
 	// Construct the getblocks request and queue it to be sent.
 	msg := message.NewMsgGetBlocks(gs)
@@ -397,8 +385,11 @@ func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
 	// Update the previous getblocks request information for filtering
 	// duplicates.
 	p.prevGetBlocksMtx.Lock()
-	p.prevGetGS=gs
-	p.prevGetBlocks.AddSet(bs)
+	if len(blocks)>0 {
+		p.prevGetBlocks.AddSet(bs)
+	}else{
+		p.prevGetGS=gs
+	}
 	p.prevGetBlocksMtx.Unlock()
 	return nil
 }
@@ -461,9 +452,11 @@ func (p *Peer) AddKnownInventory(invVect *message.InvVect) {
 // This function is safe for concurrent access.
 func (p *Peer) UpdateLastGS(newGS *dag.GraphState) {
 	p.statsMtx.Lock()
-	log.Trace(fmt.Sprintf("Updating last graph state of peer %v from %v to %v",
-		p.addr, p.lastGS.String(),newGS.String()))
-	p.lastGS.Equal(newGS)
+	if !p.lastGS.IsEqual(newGS) {
+		log.Trace(fmt.Sprintf("Updating last graph state of peer %v from %v to %v",
+			p.addr, p.lastGS.String(),newGS.String()))
+		p.lastGS.Equal(newGS)
+	}
 	p.statsMtx.Unlock()
 }
 
