@@ -520,7 +520,7 @@ func (b *BlockChain) IsOrphan(hash *hash.Hash) bool {
 // Whether it is connected by all parents
 func (b *BlockChain) IsUnconnectedOrphan(hash *hash.Hash) bool {
 	op:=b.GetOrphanParents(hash)
-	return op!=nil&&len(op)>0
+	return len(op)>0
 }
 
 // GetOrphansParents returns the parents for the provided hash from the
