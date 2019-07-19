@@ -7,6 +7,7 @@ import (
 	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/services/mempool"
+	"time"
 )
 const(
 
@@ -161,6 +162,11 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 			if len(bmsg.peer.RequestedBlocks)==0 {
 				b.PushGetBlocksMsg(bmsg.peer)
 			}
+		}
+
+		// reset last progress time
+		if bmsg.peer == b.syncPeer {
+			b.lastProgressTime = time.Now()
 		}
 	}
 
