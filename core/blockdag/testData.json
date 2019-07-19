@@ -232,6 +232,9 @@
   "PH_LocateBlocks":{
     "out":["B","C","D","E","F","J","G","I","K","H"]
   },
+  "PH_LocateMaxBlocks":{
+    "out":["B","E","F","G"]
+  },
   "CO_Blocks":[
     {
       "tag":"Gen",

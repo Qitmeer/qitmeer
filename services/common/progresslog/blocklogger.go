@@ -109,7 +109,7 @@ func (b *BlockProgressLogger) LogBlockHeight(block *types.SerializedBlock) {
 		txStr = "transaction"
 	}
 
-	b.subsystemLogger.Info(fmt.Sprintf("%s %d %s in the last %s (%d %s, height %d, %s)",
+	b.subsystemLogger.Info(fmt.Sprintf("%s %d %s in the last %s (%d %s, order %d, %s)",
 		b.progressAction, b.receivedLogBlocks, blockStr, tDuration,
 		b.receivedLogTx, txStr, block.Order(), block.Block().Header.Timestamp))
 

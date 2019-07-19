@@ -12,9 +12,9 @@ import (
 	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 	"github.com/HalalChain/qitmeer/p2p/addmgr"
 	"github.com/HalalChain/qitmeer/p2p/peer"
-	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 	"time"
 )
 
@@ -230,25 +230,28 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	// provided locator are known.  This does mean the client will start
 	// over with the genesis block if unknown block locators are provided.
 	chain := sp.server.BlockManager.GetChain()
-	hashList:=[]*hash.Hash{}
+	hashSlice:=[]*hash.Hash{}
 	if len(msg.BlockLocatorHashes)>0 {
 		for _,v:=range msg.BlockLocatorHashes{
 			if chain.BlockDAG().HasBlock(v) {
-				hashList=append(hashList,v)
+				hashSlice=append(hashSlice,v)
 			}
 		}
+		if len(hashSlice)>=2 {
+			hashSlice=chain.BlockDAG().SortBlock(hashSlice)
+		}
 	}else {
-		hashList = chain.LocateBlocks(msg.GS,message.MaxBlocksPerMsg)
+		hashSlice = chain.LocateBlocks(msg.GS,message.MaxBlocksPerMsg)
 	}
 
-	if len(hashList)==0 {
+	if len(hashSlice)==0 {
 		return
 	}
 	// Generate inventory message.
 	invMsg := message.NewMsgInv()
 	invMsg.GS=chain.BestSnapshot().GraphState
-	for i := range hashList {
-		iv := message.NewInvVect(message.InvTypeBlock, hashList[i])
+	for i := range hashSlice {
+		iv := message.NewInvVect(message.InvTypeBlock, hashSlice[i])
 		invMsg.AddInvVect(iv)
 	}
 
@@ -318,7 +321,6 @@ func (sp *serverPeer) OnGetData(p *peer.Peer, msg *message.MsgGetData) {
 	// provide a little pipelining.
 	var waitChan chan struct{}
 	doneChan := make(chan struct{}, 1)
-
 	for i, iv := range msg.InvList {
 		var c chan struct{}
 		// If this will be the last message we send.

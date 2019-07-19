@@ -380,7 +380,7 @@ function call_get_block() {
   local blkhash=""
   local show=""
   local show_opt=""
-  local verbose="false"
+  local verbose="true"
 
   if [[ $# -eq 0 ]]; then
     # echo "get lastet block"

@@ -25,7 +25,7 @@ const (
 
 	// maxOrphanBlocks is the maximum number of orphan blocks that can be
 	// queued.
-	maxOrphanBlocks = 500
+	MaxOrphanBlocks = 500
 
 	// minMemoryNodes is the minimum number of consecutive nodes needed
 	// in memory in order to perform all necessary validation.  It is used
@@ -494,7 +494,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) HaveBlock(hash *hash.Hash) (bool, error) {
-	return b.index.HaveBlock(hash) || b.IsKnownOrphan(hash), nil
+	return b.index.HaveBlock(hash) || b.IsOrphan(hash), nil
 }
 
 // IsKnownOrphan returns whether the passed hash is currently a known orphan.
@@ -507,7 +507,7 @@ func (b *BlockChain) HaveBlock(hash *hash.Hash) (bool, error) {
 // duplicate orphans and react accordingly.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) IsKnownOrphan(hash *hash.Hash) bool {
+func (b *BlockChain) IsOrphan(hash *hash.Hash) bool {
 	// Protect concurrent access.  Using a read lock only so multiple
 	// readers can query without blocking each other.
 	b.orphanLock.RLock()
@@ -515,6 +515,12 @@ func (b *BlockChain) IsKnownOrphan(hash *hash.Hash) bool {
 	b.orphanLock.RUnlock()
 
 	return exists
+}
+
+// Whether it is connected by all parents
+func (b *BlockChain) IsUnconnectedOrphan(hash *hash.Hash) bool {
+	op:=b.GetOrphanParents(hash)
+	return len(op)>0
 }
 
 // GetOrphansParents returns the parents for the provided hash from the
@@ -557,6 +563,14 @@ func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash {
 	}
 
 	return result.List()
+}
+
+// Get the total of all orphans
+func (b *BlockChain) GetOrphansTotal() int {
+	b.orphanLock.RLock()
+	ol:= len(b.orphans)
+	b.orphanLock.RUnlock()
+	return ol
 }
 
 // IsCurrent returns whether or not the chain believes it is current.  Several
@@ -784,7 +798,7 @@ func (b *BlockChain) addOrphanBlock(block *types.SerializedBlock) {
 	}
 
 	// Limit orphan blocks to prevent memory exhaustion.
-	if len(b.orphans)+1 > maxOrphanBlocks {
+	if len(b.orphans)+1 > MaxOrphanBlocks*2 {
 		// Remove the oldest orphan to make room for the new one.
 		b.removeOrphanBlock(b.oldestOrphan)
 		b.oldestOrphan = nil
@@ -808,6 +822,7 @@ func (b *BlockChain) addOrphanBlock(block *types.SerializedBlock) {
 	// Add to previous hash lookup index for faster dependency lookups.
 	prevHash := &block.Block().Header.ParentRoot
 	b.prevOrphans[*prevHash] = append(b.prevOrphans[*prevHash], oBlock)
+
 }
 
 // MaximumBlockSize returns the maximum permitted block size for the block

@@ -22,6 +22,17 @@ import (
 	"github.com/HalalChain/qitmeer/services/mempool"
 	"sync"
 	"sync/atomic"
+	"time"
+)
+
+const (
+	// maxStallDuration is the time after which we will disconnect our
+	// current sync peer if we haven't made progress.
+	MaxStallDuration = 3 * time.Minute
+
+	// stallSampleInterval the interval at which we will check to see if our
+	// sync has stalled.
+	StallSampleInterval = 30 * time.Second
 )
 
 // BlockManager provides a concurrency safe block manager for handling all
@@ -47,6 +58,7 @@ type BlockManager struct {
 	requestedEverBlocks map[hash.Hash]uint8
 	progressLogger      *progresslog.BlockProgressLogger
 
+	candidatePeers      *list.List
 	syncPeer            *peer.ServerPeer
 	msgChan             chan interface{}
 
@@ -71,6 +83,7 @@ type BlockManager struct {
 	syncGSMtx sync.Mutex
 	syncGS    *dag.GraphState
 
+	lastProgressTime time.Time
 }
 
 // NewBlockManager returns a new block manager.
@@ -510,7 +523,10 @@ func (b *BlockManager) resetHeaderState(newestHash *hash.Hash, newestHeight uint
 }
 
 func (b *BlockManager) blockHandler() {
-	candidatePeers := list.New()
+	stallTicker := time.NewTicker(StallSampleInterval)
+	defer stallTicker.Stop()
+
+	b.candidatePeers = list.New()
 out:
 	for {
 		select {
@@ -519,7 +535,7 @@ out:
 			switch msg := m.(type) {
 			case *newPeerMsg:
 				log.Trace("blkmgr msgChan newPeer", "msg", msg)
-				b.handleNewPeerMsg(candidatePeers, msg.peer)
+				b.handleNewPeerMsg(b.candidatePeers, msg.peer)
 			case *blockMsg:
 				log.Trace("blkmgr msgChan blockMsg", "msg", msg)
 				b.handleBlockMsg(msg)
@@ -530,7 +546,7 @@ out:
 				b.handleInvMsg(msg)
 			case *donePeerMsg:
 				log.Trace("blkmgr msgChan donePeerMsg", "msg", msg)
-				b.handleDonePeerMsg(candidatePeers, msg.peer)
+				b.handleDonePeerMsg(b.candidatePeers, msg.peer)
 
 			case getSyncPeerMsg:
 				log.Trace("blkmgr msgChan getSyncPeerMsg", "msg", msg)
@@ -557,91 +573,6 @@ out:
 				log.Trace("blkmgr msgChan txMsg", "msg", msg)
 				b.handleTxMsg(msg)
 				msg.peer.TxProcessed <- struct{}{}
-
-			/*
-			case *headersMsg:
-				b.handleHeadersMsg(msg)
-
-			case calcNextReqDiffNodeMsg:
-				difficulty, err :=
-					b.chain.CalcNextRequiredDiffFromNode(msg.hash,
-						msg.timestamp)
-				msg.reply <- calcNextReqDifficultyResponse{
-					difficulty: difficulty,
-					err:        err,
-				}
-
-			case calcNextReqStakeDifficultyMsg:
-				stakeDiff, err := b.chain.CalcNextRequiredStakeDifficulty()
-				msg.reply <- calcNextReqStakeDifficultyResponse{
-					stakeDifficulty: stakeDiff,
-					err:             err,
-				}
-
-			case forceReorganizationMsg:
-				err := b.chain.ForceHeadReorganization(
-					msg.formerBest, msg.newBest)
-
-				// Reorganizing has succeeded, so we need to
-				// update the chain state.
-				if err == nil {
-					// Query the db for the latest best block since
-					// the block that was processed could be on a
-					// side chain or have caused a reorg.
-					best := b.chain.BestSnapshot()
-
-					// Fetch the required lottery data.
-					winningTickets, poolSize, finalState, err :=
-						b.chain.LotteryDataForBlock(&best.Hash)
-
-					// Update registered websocket clients on the
-					// current stake difficulty.
-					nextStakeDiff, errSDiff :=
-						b.chain.CalcNextRequiredStakeDifficulty()
-					if err != nil {
-						bmgrLog.Warnf("Failed to get next stake difficulty "+
-							"calculation: %v", err)
-					}
-					r := b.server.rpcServer
-					if r != nil && errSDiff == nil {
-						r.ntfnMgr.NotifyStakeDifficulty(
-							&StakeDifficultyNtfnData{
-								best.Hash,
-								best.Height,
-								nextStakeDiff,
-							})
-						b.server.txMemPool.PruneStakeTx(nextStakeDiff,
-							best.Height)
-						b.server.txMemPool.PruneExpiredTx(best.Height)
-					}
-
-					missedTickets, err := b.chain.MissedTickets()
-					if err != nil {
-						bmgrLog.Warnf("Failed to get missed tickets"+
-							": %v", err)
-					}
-
-					// The blockchain should be updated, so fetch the
-					// latest snapshot.
-					best = b.chain.BestSnapshot()
-					curPrevHash := b.chain.BestPrevHash()
-
-					b.updateChainState(&best.Hash,
-						best.Height,
-						finalState,
-						uint32(poolSize),
-						nextStakeDiff,
-						winningTickets,
-						missedTickets,
-						curPrevHash)
-				}
-
-				msg.reply <- forceReorganizationResponse{
-					err: err,
-				}
-
-
-			*/
 
 			case processBlockMsg:
 				log.Trace("blkmgr msgChan processBlockMsg", "msg", msg)
@@ -730,6 +661,10 @@ out:
 			default:
 				log.Error("Unknown message type", "msg", msg)
 			}
+
+		case <-stallTicker.C:
+			b.handleStallSample()
+
 		case <-b.quit:
 			log.Trace("blkmgr quit received, break out")
 			break out
@@ -998,4 +933,82 @@ func (b *BlockManager) SyncPeerID() int32 {
 	return <-reply
 }
 
+// Selective execution PushGetBlocksMsg to peer
+func (b *BlockManager) PushGetBlocksMsg(peer *peer.ServerPeer) {
+	gs:=b.chain.BestSnapshot().GraphState
+	allOrphan:=b.chain.GetOrphansParents()
 
+	if b.chain.GetOrphansTotal()>blockchain.MaxOrphanBlocks && len(allOrphan)>0 {
+		peer.PushGetBlocksMsg(gs,allOrphan)
+	}else{
+		peer.PushGetBlocksMsg(gs,nil)
+	}
+}
+
+// handleStallSample will switch to a new sync peer if the current one has
+// stalled. This is detected when by comparing the last progress timestamp with
+// the current time, and disconnecting the peer if we stalled before reaching
+// their highest advertised block.
+func (b *BlockManager) handleStallSample() {
+	if atomic.LoadInt32(&b.shutdown) != 0 {
+		return
+	}
+
+	// If we don't have an active sync peer, exit early.
+	if b.syncPeer == nil {
+		return
+	}
+
+	// If the stall timeout has not elapsed, exit early.
+	if time.Since(b.lastProgressTime) <= MaxStallDuration {
+		return
+	}
+
+	b.clearRequestedState(b.syncPeer)
+
+	best := b.chain.BestSnapshot()
+	disconnectSyncPeer := b.syncPeer.LastGS().IsExcellent(best.GraphState)
+	b.updateSyncPeer(disconnectSyncPeer)
+}
+
+// clearRequestedState wipes all expected transactions and blocks from the sync
+// manager's requested maps that were requested under a peer's sync state, This
+// allows them to be rerequested by a subsequent sync peer.
+func (b *BlockManager) clearRequestedState(sp *peer.ServerPeer) {
+	// Remove requested transactions from the global map so that they will
+	// be fetched from elsewhere next time we get an inv.
+	for txHash := range sp.RequestedTxns {
+		delete(b.requestedTxns, txHash)
+	}
+
+	// Remove requested blocks from the global map so that they will be
+	// fetched from elsewhere next time we get an inv.
+	// TODO: we could possibly here check which peers have these blocks
+	// and request them now to speed things up a little.
+	for blockHash := range sp.RequestedBlocks {
+		delete(b.requestedBlocks, blockHash)
+	}
+}
+
+// updateSyncPeer choose a new sync peer to replace the current one. If
+// dcSyncPeer is true, this method will also disconnect the current sync peer.
+// If we are in header first mode, any header state related to prefetching is
+// also reset in preparation for the next sync peer.
+func (b *BlockManager) updateSyncPeer(dcSyncPeer bool) {
+	log.Debug(fmt.Sprintf("Updating sync peer, no progress for: %v",
+		time.Since(b.lastProgressTime)))
+
+	// First, disconnect the current sync peer if requested.
+	if dcSyncPeer {
+		b.syncPeer.Disconnect()
+	}
+
+	// Reset any header state before we choose our next active sync peer.
+	if b.headersFirstMode {
+		best := b.chain.BestSnapshot()
+		b.resetHeaderState(&best.Hash, best.Order)
+	}
+
+	b.syncPeer = nil
+	b.startSync()
+}
