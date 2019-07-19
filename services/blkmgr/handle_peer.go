@@ -25,7 +25,7 @@ func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
 		return
 	}
 
-	log.Info("New valid peer", "peer",sp, "user-agent",sp.UserAgent())
+	log.Info(fmt.Sprintf("New valid peer: %s,user-agent:%s",sp,sp.UserAgent()))
 
 	// Ignore the peer if it's not a sync candidate.
 	if !b.isSyncCandidate(sp) {
@@ -36,9 +36,9 @@ func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
 	peers.PushBack(sp)
 
 	// Start syncing by choosing the best candidate if needed.
-	log.Trace("Start syncing (NewPeer) by choosing the best candidate if needed", "peers",peers)
-	b.startSync(peers)
-
+	if b.syncPeer == nil {
+		b.startSync()
+	}
 	// Grab the mining state from this peer after we're synced.
 	if b.config.MiningStateSync {
 		b.syncMiningStateAfterSync(sp)
@@ -51,42 +51,26 @@ func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
 // is invoked from the syncHandler goroutine.
 func (b *BlockManager) handleDonePeerMsg(peers *list.List, sp *peer.ServerPeer) {
 	// Remove the peer from the list of candidate peers.
+	hasRemove:=false
 	for e := peers.Front(); e != nil; e = e.Next() {
 		if e.Value == sp {
 			peers.Remove(e)
+			hasRemove=true
 			break
 		}
 	}
-
+	if !hasRemove {
+		log.Warn(fmt.Sprintf("Received done peer message for unknown peer %s", sp))
+		return
+	}
 	log.Info("Lost peer", "peer",sp)
 
-	// Remove requested transactions from the global map so that they will
-	// be fetched from elsewhere next time we get an inv.
-	for k := range sp.RequestedTxns {
-		delete(b.requestedTxns, k)
-	}
+	b.clearRequestedState(sp)
 
-	// Remove requested blocks from the global map so that they will be
-	// fetched from elsewhere next time we get an inv.
-	// TODO(oga) we could possibly here check which peers have these blocks
-	// and request them now to speed things up a little.
-	for k := range sp.RequestedBlocks {
-		delete(b.requestedBlocks, k)
-	}
-
-	// Attempt to find a new peer to sync from if the quitting peer is the
-	// sync peer.  Also, reset the headers-first state if in headers-first
-	// mode so
-	log.Trace("comparing syncPeer with sp", "b.syncPeer",b.syncPeer, "sp", sp)
-	if b.syncPeer != nil && b.syncPeer == sp {
-		b.syncPeer = nil
-
-		if b.headersFirstMode {
-			best := b.chain.BestSnapshot()
-			b.resetHeaderState(&best.Hash, best.Order)
-		}
-		log.Trace("Start syncing (DonePeer) by choosing the best candidate if needed", "peers",peers)
-		b.startSync(peers)
+	if b.syncPeer == sp {
+		// Update the sync peer. The server has already disconnected the
+		// peer before signaling to the sync manager.
+		b.updateSyncPeer(false)
 	}
 }
 
@@ -126,7 +110,7 @@ type getSyncPeerMsg struct {
 // download/sync the blockchain from.  When syncing is already running, it
 // simply returns.  It also examines the candidates for any which are no longer
 // candidates and removes them as needed.
-func (b *BlockManager) startSync(peers *list.List) {
+func (b *BlockManager) startSync() {
 	// Return now if we're already syncing.
 	if b.syncPeer != nil {
 		return
@@ -135,7 +119,7 @@ func (b *BlockManager) startSync(peers *list.List) {
 	best := b.chain.BestSnapshot()
 	var bestPeer *peer.ServerPeer
 	var enext *list.Element
-	for e := peers.Front(); e != nil; e = enext {
+	for e := b.candidatePeers.Front(); e != nil; e = enext {
 		enext = e.Next()
 		sp := e.Value.(*peer.ServerPeer)
 
@@ -146,7 +130,7 @@ func (b *BlockManager) startSync(peers *list.List) {
 		// have one soon so it is a reasonable choice.  It also allows
 		// the case where both are at 0 such as during regression test.
 		if best.GraphState.IsExcellent(sp.LastGS()) {
-			peers.Remove(e)
+			b.candidatePeers.Remove(e)
 			continue
 		}
 
@@ -192,6 +176,11 @@ func (b *BlockManager) startSync(peers *list.List) {
 			return
 		}
 		b.syncPeer = bestPeer
+		// Reset the last progress time now that we have a non-nil
+		// syncPeer to avoid instantly detecting it as stalled in the
+		// event the progress time hasn't been updated recently.
+		b.lastProgressTime = time.Now()
+
 		b.syncGSMtx.Lock()
 		b.syncGS = bestPeer.LastGS()
 		b.syncGSMtx.Unlock()
