@@ -344,9 +344,11 @@ func (p *Peer) Services() protocol.ServiceFlag {
 //
 // This function is safe for concurrent access.
 func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
+	p.prevGetBlocksMtx.Lock()
+	defer p.prevGetBlocksMtx.Unlock()
+
 	bs:=dag.NewHashSet()
 	// Filter duplicate getblocks requests.
-	p.prevGetBlocksMtx.Lock()
 	if len(blocks)>0 {
 		if p.prevGetBlocks==nil {
 			p.prevGetBlocks=dag.NewHashSet()
@@ -371,8 +373,6 @@ func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
 			}
 		}
 	}
-	p.prevGetBlocksMtx.Unlock()
-
 	// Construct the getblocks request and queue it to be sent.
 	msg := message.NewMsgGetBlocks(gs)
 	if !bs.IsEmpty() {
@@ -384,13 +384,12 @@ func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
 
 	// Update the previous getblocks request information for filtering
 	// duplicates.
-	p.prevGetBlocksMtx.Lock()
 	if len(blocks)>0 {
 		p.prevGetBlocks.AddSet(bs)
 	}else{
 		p.prevGetGS=gs
 	}
-	p.prevGetBlocksMtx.Unlock()
+
 	return nil
 }
 
