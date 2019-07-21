@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 package main
@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	NoxMainnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.MainNetParams.HDPrivateKeyID[:], PubKeyVersion: params.MainNetParams.HDPublicKeyID[:]}
-	NoxTestnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.TestNetParams.HDPrivateKeyID[:], PubKeyVersion: params.TestNetParams.HDPublicKeyID[:]}
-	NoxPrivnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.PrivNetParams.HDPrivateKeyID[:], PubKeyVersion: params.PrivNetParams.HDPublicKeyID[:]}
+	QitmeerMainnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.MainNetParams.HDPrivateKeyID[:], PubKeyVersion: params.MainNetParams.HDPublicKeyID[:]}
+	QitmeerTestnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.TestNetParams.HDPrivateKeyID[:], PubKeyVersion: params.TestNetParams.HDPublicKeyID[:]}
+	QitmeerPrivnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.PrivNetParams.HDPrivateKeyID[:], PubKeyVersion: params.PrivNetParams.HDPublicKeyID[:]}
 )
 
 type bip32VersionFlag struct {
@@ -30,11 +30,11 @@ func (v *bip32VersionFlag) Set(versionFlag string) error {
 	case "bip32", "btc":
 		version = bip32.DefaultBip32Version
 	case "mainnet":
-		version = NoxMainnetBip32Version
+		version = QitmeerMainnetBip32Version
 	case "testnet":
-		version = NoxTestnetBip32Version
+		version = QitmeerTestnetBip32Version
 	case "privnet":
-		version = NoxPrivnetBip32Version
+		version = QitmeerPrivnetBip32Version
 	default:
 		return fmt.Errorf("unknown bip32 version flag %s", versionFlag)
 	}
@@ -44,12 +44,12 @@ func (v *bip32VersionFlag) Set(versionFlag string) error {
 }
 
 func getBip32NetworkInfo(rawVersionByte []byte) string {
-	if NoxMainnetBip32Version.IsPrivkeyVersion(rawVersionByte) || NoxMainnetBip32Version.IsPubkeyVersion(rawVersionByte) {
-		return "nox mainet"
-	} else if NoxTestnetBip32Version.IsPrivkeyVersion(rawVersionByte) || NoxTestnetBip32Version.IsPubkeyVersion(rawVersionByte) {
-		return "nox testnet"
-	} else if NoxPrivnetBip32Version.IsPrivkeyVersion(rawVersionByte) || NoxPrivnetBip32Version.IsPubkeyVersion(rawVersionByte) {
-		return "nox privnet"
+	if QitmeerMainnetBip32Version.IsPrivkeyVersion(rawVersionByte) || QitmeerMainnetBip32Version.IsPubkeyVersion(rawVersionByte) {
+		return "qitmeer mainet"
+	} else if QitmeerTestnetBip32Version.IsPrivkeyVersion(rawVersionByte) || QitmeerTestnetBip32Version.IsPubkeyVersion(rawVersionByte) {
+		return "qitmeer testnet"
+	} else if QitmeerPrivnetBip32Version.IsPrivkeyVersion(rawVersionByte) || QitmeerPrivnetBip32Version.IsPubkeyVersion(rawVersionByte) {
+		return "qitmeer privnet"
 	} else if bip32.DefaultBip32Version.IsPrivkeyVersion(rawVersionByte) || bip32.DefaultBip32Version.IsPubkeyVersion(rawVersionByte) {
 		return "btc mainnet"
 	} else {

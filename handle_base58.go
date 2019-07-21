@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 package main
@@ -14,7 +14,7 @@ import (
 )
 
 func base58CheckEncode(version []byte, mode string,hasher string, cksumSize int, input string){
-	if hasher != "" && mode != "nox" {
+	if hasher != "" && mode != "qitmeer" {
 		errExit(fmt.Errorf("invaid flag -a %s with -m %s",hasher,mode))
 	}
 	data, err := hex.DecodeString(input)
@@ -45,11 +45,11 @@ func base58CheckEncode(version []byte, mode string,hasher string, cksumSize int,
 		encoded = base58.CheckEncode(data, version, cksumSize, cksumfunc)
 	}else {
 		switch mode {
-		case "nox":
+		case "qitmeer":
 			if len(version) != 2 {
-				errExit(fmt.Errorf("invaid version byte size for nox base58 check encode. input = %x (len = %d, required 2)",version,len(version)))
+				errExit(fmt.Errorf("invaid version byte size for qitmeer base58 check encode. input = %x (len = %d, required 2)",version,len(version)))
 			}
-			encoded = base58.NoxCheckEncode(data, version[:])
+			encoded = base58.QitmeerCheckEncode(data, version[:])
 		case "btc":
 			if len(version) > 1 {
 				errExit(fmt.Errorf("invaid version size for btc base58check encode"))
@@ -70,7 +70,7 @@ func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 	var err error
 	var data []byte
 	var version []byte
-	if hasher != "" && mode != "nox" {
+	if hasher != "" && mode != "qitmeer" {
 		errExit(fmt.Errorf("invaid flag -a %s with -m %s",hasher,mode))
 	}
 	if hasher != "" {
@@ -102,9 +102,9 @@ func base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 				errExit(err)
 			}
 			version = []byte{0x0, v}
-		case "nox":
+		case "qitmeer":
 			v := [2]byte{}
-			data, v, err = base58.NoxCheckDecode(input)
+			data, v, err = base58.QitmeerCheckDecode(input)
 			if err != nil {
 				errExit(err)
 			}

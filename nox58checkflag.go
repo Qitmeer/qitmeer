@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 package main
@@ -8,11 +8,11 @@ import (
 	"github.com/HalalChain/qitmeer-lib/params"
 )
 
-type noxBase58checkVersionFlag struct {
+type qitmeerBase58checkVersionFlag struct {
 	ver []byte
 	flag string
 }
-func (n *noxBase58checkVersionFlag) Set(s string) error {
+func (n *qitmeerBase58checkVersionFlag) Set(s string) error {
 	n.ver = []byte{}
 	switch (s) {
 	case "mainnet":
@@ -32,6 +32,6 @@ func (n *noxBase58checkVersionFlag) Set(s string) error {
 	return nil
 }
 
-func (n *noxBase58checkVersionFlag) String() string{
+func (n *qitmeerBase58checkVersionFlag) String() string{
 	return n.flag
 }

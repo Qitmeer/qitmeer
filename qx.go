@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 package main
@@ -59,7 +59,7 @@ entropy (seed) & mnemoic & hd & ec
     wif-to-public         derive the EC public key from a WIF private key. 
 
 addr & tx & sign
-    ec-to-addr            convert an EC public key to a paymant address. default is nox address
+    ec-to-addr            convert an EC public key to a paymant address. default is qitmeer address
     tx-encode             encode a unsigned transaction.
     tx-decode             decode a transaction in base16 to json format.
     tx-sign               sign a transactions using a private key.
@@ -86,7 +86,7 @@ func errExit(err error){
 	os.Exit(1)
 }
 
-var base58checkVersion noxBase58checkVersionFlag
+var base58checkVersion qitmeerBase58checkVersionFlag
 var base58checkVersionSize int
 var base58checkMode string
 var showDetails bool
@@ -115,10 +115,10 @@ func main() {
 	// ----------------------------
 
 	base58CheckEncodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
-	base58checkVersion = noxBase58checkVersionFlag{}
+	base58checkVersion = qitmeerBase58checkVersionFlag{}
 	base58checkVersion.Set("testnet")
 	base58CheckEncodeCommand.Var(&base58checkVersion, "v","base58check `version` [mainnet|testnet|privnet")
-	base58CheckEncodeCommand.StringVar(&base58checkMode, "m", "nox", "base58check encode mode : [nox|btc]")
+	base58CheckEncodeCommand.StringVar(&base58checkMode, "m", "qitmeer", "base58check encode mode : [qitmeer|btc]")
 	base58CheckEncodeCommand.StringVar(&base58checkHasher,"a","", "base58check hasher")
 	base58CheckEncodeCommand.IntVar(&base58checkCksumSize,"c",4, "base58check checksum size")
 	base58CheckEncodeCommand.Usage = func() {
@@ -127,7 +127,7 @@ func main() {
 
 	base58CheckDecodeCommand := flag.NewFlagSet("base58check-decode", flag.ExitOnError)
 	base58CheckDecodeCommand.BoolVar(&showDetails,"d",false, "show decode details")
-	base58CheckDecodeCommand.StringVar(&base58checkMode,"m","nox", "base58check decode `mode`: [nox|btc]")
+	base58CheckDecodeCommand.StringVar(&base58checkMode,"m","qitmeer", "base58check decode `mode`: [qitmeer|btc]")
 	base58CheckDecodeCommand.StringVar(&base58checkHasher,"a","", "base58check `hasher`")
 	base58CheckDecodeCommand.IntVar(&base58checkVersionSize,"vs",2, "base58check version `size`")
 	base58CheckDecodeCommand.IntVar(&base58checkCksumSize,"cs",4, "base58check checksum `size`")
@@ -335,9 +335,9 @@ func main() {
 TXHASH is a Base16 transaction hash. INDEX is the 32 bit input index
 in the context of the transaction. SEQUENCE is the optional 32 bit 
 input sequence and defaults to the maximum value.`)
-	txEncodeCmd.Var(&txOutputs,"o",`The set of transaction output data encoded as TARGET:NOX. 
+	txEncodeCmd.Var(&txOutputs,"o",`The set of transaction output data encoded as TARGET:MEER. 
 TARGET is an address (pay-to-pubkey-hash or pay-to-script-hash).
-NOX is the 64 bit spend amount in nox.`)
+MEER is the 64 bit spend amount in qitmeer.`)
 
 	txSignCmd := flag.NewFlagSet("tx-sign",flag.ExitOnError)
 	txSignCmd.Usage = func() {
@@ -349,14 +349,14 @@ NOX is the 64 bit spend amount in nox.`)
 	msgSignCmd.Usage = func() {
 		cmdUsage(msgSignCmd, "Usage: msg-sign [wif] [message] \n")
 	}
-	msgSignCmd.StringVar(&msgSignatureMode, "m","nox", "the msg signature mode")
+	msgSignCmd.StringVar(&msgSignatureMode, "m","qitmeer", "the msg signature mode")
 	msgSignCmd.BoolVar(&showDetails,"d",false, "show signature details")
 
 	msgVerifyCmd := flag.NewFlagSet("msg-verify",flag.ExitOnError)
 	msgVerifyCmd.Usage = func() {
 		cmdUsage(msgVerifyCmd, "Usage: msg-verify [addr] [signature] [message] \n")
 	}
-	msgVerifyCmd.StringVar(&msgSignatureMode, "m","nox", "the msg signature mode")
+	msgVerifyCmd.StringVar(&msgSignatureMode, "m","qitmeer", "the msg signature mode")
 
 	flagSet :=[]*flag.FlagSet{
 		base58CheckEncodeCommand,

@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 package main
@@ -17,6 +17,6 @@ func ecPubKeyToAddress(version []byte, pubkey string) {
 	}
 	h := hash.Hash160(data)
 
-	address := base58.NoxCheckEncode(h, version[:])
+	address := base58.QitmeerCheckEncode(h, version[:])
 	fmt.Printf("%s\n",address)
 }

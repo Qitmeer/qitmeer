@@ -15,7 +15,7 @@ import (
 
 const (
 	BTCMsgSignaturePrefixMagic = "Bitcoin Signed Message:\n"
-	NoxMsgSignaturePrefixMagic = "Nox Signed Message:\n"
+	QitmeerMsgSignaturePrefixMagic = "Qitmeer Signed Message:\n"
 )
 
 func decodeSignature(signatureType string, signStr string) {
@@ -36,7 +36,7 @@ func decodeAddr (mode string, addrStr string) ([]byte, error) {
 			addrHash160, _, err := base58.BtcCheckDecode(addrStr)
 			return addrHash160,err
 		default :
-			addrHash160,_,err := base58.NoxCheckDecode(addrStr)
+			addrHash160,_,err := base58.QitmeerCheckDecode(addrStr)
 			return addrHash160,err
 	}
 }
@@ -97,7 +97,7 @@ func buildMsgHash(mode string, msg string) []byte {
 
 	default :
 		var buf bytes.Buffer
-		serialization.WriteVarString(&buf, 0, NoxMsgSignaturePrefixMagic)
+		serialization.WriteVarString(&buf, 0, QitmeerMsgSignaturePrefixMagic)
 		serialization.WriteVarString(&buf, 0, msg)
 		msgHash = hash.HashB(buf.Bytes())
 	}
