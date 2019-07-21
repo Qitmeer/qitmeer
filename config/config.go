@@ -28,7 +28,7 @@ type Config struct {
 	DisableDNSSeed       bool          `long:"nodnsseed" description:"Disable DNS seeding for peers"`
 	DisableCheckpoints   bool          `long:"nocheckpoints" description:"Disable built-in checkpoints.  Don't do this unless you know what you're doing."`
 	TxIndex              bool          `long:"txindex" description:"Maintain a full hash-based transaction index which makes all transactions available via the getrawtransaction RPC"`
-	LightNode            bool          `long:"light" description:"start as a nox light node"`
+	LightNode            bool          `long:"light" description:"start as a qitmeer light node"`
 	SigCacheMaxSize      uint          `long:"sigcachemaxsize" description:"The maximum number of entries in the signature verification cache"`
 	DumpBlockchain       string        `long:"dumpblockchain" description:"Write blockchain as a flat file of blocks for use with addblock, to the specified filename"`
 	TestNet              bool          `long:"testnet" description:"Use the test network"`
@@ -42,7 +42,7 @@ type Config struct {
 	FreeTxRelayLimit     float64       `long:"limitfreerelay" description:"Limit relay of transactions with no transaction fee to the given amount in thousands of bytes per minute"`
 	AcceptNonStd         bool          `long:"acceptnonstd" description:"Accept and relay non-standard transactions to the network regardless of the default settings for the active network."`
 	MaxOrphanTxs         int           `long:"maxorphantx" description:"Max number of orphan transactions to keep in memory"`
-	MinTxFee             int64         `long:"mintxfee" description:"The minimum transaction fee in AtomNOX/kB."`
+	MinTxFee             int64         `long:"mintxfee" description:"The minimum transaction fee in AtomMEER/kB."`
 	// Miner
 	Generate             bool          `long:"generate" description:"Generate (mine) coins using the CPU"`
 	MiningAddrs          []string      `long:"miningaddr" description:"Add the specified payment address to the list of addresses to use for generated blocks -- At least one address is required if the generate option is set"`

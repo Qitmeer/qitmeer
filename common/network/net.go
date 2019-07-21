@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Copyright (c) 2015-2016 The Decred developers
 // Copyright (c) 2013-2014 The btcsuite developers
 // Use of this source code is governed by an ISC

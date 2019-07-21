@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2014 The btcsuite developers
 // Copyright (c) 2015 The Decred developers
 // Use of this source code is governed by an ISC
@@ -69,7 +69,7 @@ func TestBase58Check(t *testing.T) {
 		case 0x44 :
 			eRes = base58.DcrCheckEncode([]byte(test.in), ver);
 		default:
-			eRes = base58.NoxCheckEncode([]byte(test.in), ver[:]);
+			eRes = base58.QitmeerCheckEncode([]byte(test.in), ver[:]);
 		}
 		if  eRes != test.out {
 			t.Errorf("CheckEncode test #%d failed: got %s, want: %s", x, eRes, test.out)
@@ -85,7 +85,7 @@ func TestBase58Check(t *testing.T) {
 		case 0x44 :
 			res, version, err = base58.DcrCheckDecode(test.out)
 		default :
-			res, version, err = base58.NoxCheckDecode(test.out)
+			res, version, err = base58.QitmeerCheckDecode(test.out)
 
 		}
 		if err != nil {
@@ -102,7 +102,7 @@ func TestBase58Check(t *testing.T) {
 
 	// test the two decoding failure cases
 	// case 1: checksum error
-	_, _, err := base58.NoxCheckDecode("Axk2WA6M")
+	_, _, err := base58.QitmeerCheckDecode("Axk2WA6M")
 	if err != base58.ErrChecksum {
 		t.Error("Checkdecode test failed, expected ErrChecksum")
 	}
@@ -111,7 +111,7 @@ func TestBase58Check(t *testing.T) {
 	testString := ""
 	for len := 0; len < 4; len++ {
 		// make a string of length `len`
-		_, _, err = base58.NoxCheckDecode(testString)
+		_, _, err = base58.QitmeerCheckDecode(testString)
 		if err != base58.ErrInvalidFormat {
 			t.Error("Checkdecode test failed, expected ErrInvalidFormat")
 		}

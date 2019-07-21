@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 //
 // The code in the package copied from golang.org/x/crypto/ed25519
 // it used for internal test of edwards25519 package

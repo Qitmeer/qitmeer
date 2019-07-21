@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2014 The btcsuite developers
 // Copyright (c) 2015 The Decred developers
 // Use of this source code is governed by an ISC
@@ -120,7 +120,7 @@ func ExampleCheckDecodeDcr() {
 
 func ExampleCheckDecode_ds_addr() {
 	encoded := "DsaAKsMvZ6HrqhmbhLjV9qVbPkkzF7FnNFY"
-	decoded, version, err := base58.NoxCheckDecode(encoded)
+	decoded, version, err := base58.QitmeerCheckDecode(encoded)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -137,8 +137,8 @@ func ExampleCheckDecode_ds_addr() {
 func ExampleCheckEncode_addr() {
 
 	data,_ := hex.DecodeString("64e20eb6075561d30c23a517c5b73badbc120f05")
-	ver  := [2]byte{0x0c, 0x40}  //Nox main
-	encoded := base58.NoxCheckEncode(data, ver[:])
+	ver  := [2]byte{0x0c, 0x40}  //qitmeer main
+	encoded := base58.QitmeerCheckEncode(data, ver[:])
 	fmt.Println("Address (sha256) : Nm281BTkccPTDL1CfhAAR27GAzx2bqFLQx5")
 	fmt.Println("Address (b2b)    :",encoded)
 	encoded = base58.DcrCheckEncode(data, ver)
@@ -157,7 +157,7 @@ func ExampleCheckEncode() {
 	ver[0] = 0
 	ver[1] = 0
 
-	encoded := base58.NoxCheckEncode(data, ver[:])
+	encoded := base58.QitmeerCheckEncode(data, ver[:])
 
 	// Show the encoded data.
 	fmt.Println("Encoded Data:", encoded)
@@ -168,7 +168,7 @@ func ExampleCheckEncode() {
 
 func ExampleCheckDecode() {
 	encoded := "1182iP79GRURMp6Rsz9X"
-	decoded, version, err := base58.NoxCheckDecode(encoded)
+	decoded, version, err := base58.QitmeerCheckDecode(encoded)
 	if err != nil {
 		fmt.Println(err)
 		return

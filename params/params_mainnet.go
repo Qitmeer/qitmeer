@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2014-2016 The btcsuite developers
 // Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
@@ -23,9 +23,9 @@ var MainNetParams = Params{
 	Net:         protocol.MainNet,
 	DefaultPort: "8130",
 	DNSSeeds: []DNSSeed{
-		{"seed.nox.io", true},
-		{"seed2.nox.io", true},
-		{"seed3.nox.io", true},
+		{"seed.qitmeer.io", true},
+		{"seed2.qitmeer.io", true},
+		{"seed3.qitmeer.io", true},
 	},
 
 	// Chain parameters

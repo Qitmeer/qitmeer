@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Copyright 2015 The Decred developers
 // Copyright 2013, 2014 The btcsuite developers
 // Use of this source code is governed by an ISC
@@ -31,23 +31,23 @@ const (
 
 // String returns the unit as a string.  For recognized units, the SI
 // prefix is used, or "Atom" for the base unit.  For all unrecognized
-// units, "1eN NOX" is returned, where N is the AmountUnit.
+// units, "1eN MEER" is returned, where N is the AmountUnit.
 func (u AmountUnit) String() string {
 	switch u {
 	case AmountMegaCoin:
-		return "MNOX"
+		return "MMEER"
 	case AmountKiloCoin:
-		return "kNOX"
+		return "kMEER"
 	case AmountCoin:
-		return "NOX"
+		return "MEER"
 	case AmountMilliCoin:
-		return "mNOX"
+		return "mMEER"
 	case AmountMicroCoin:
-		return "μNOX"
+		return "μMEER"
 	case AmountAtom:
-		return "AtomNOX"
+		return "AtomMEER"
 	default:
-		return "1e" + strconv.FormatInt(int64(u), 10) + " NOX"
+		return "1e" + strconv.FormatInt(int64(u), 10) + " MEER"
 	}
 }
 
@@ -71,7 +71,7 @@ func round(f float64) Amount {
 // but does not check that the amount is within the total amount of coins
 // producible as f may not refer to an amount at a single moment in time.
 //
-// NewAmount is for specifically for converting NOX to Atoms (atomic units).
+// NewAmount is for specifically for converting qitmeer to Atoms (atomic units).
 // For creating a new Amount with an int64 value which denotes a quantity of
 // Atoms, do a simple type conversion from type int64 to Amount.
 func NewAmount(f float64) (Amount, error) {
@@ -116,7 +116,7 @@ func (a Amount) String() string {
 
 // MulF64 multiplies an Amount by a floating point value.  While this is not
 // an operation that must typically be done by a full node or wallet, it is
-// useful for services that build on top of NOX (for example, calculating
+// useful for services that build on top of qitmeer (for example, calculating
 // a fee by multiplying by a percentage).
 func (a Amount) MulF64(f float64) Amount {
 	return round(float64(a) * f)

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2014-2016 The btcsuite developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
@@ -75,8 +75,8 @@ type ConsensusDeployment struct {
 	ExpireTime uint64
 }
 
-// Params defines a nox network by its parameters.  These parameters may be
-// used by nox applications to differentiate networks as well as addresses
+// Params defines a qitmeer network by its parameters.  These parameters may be
+// used by qitmeer applications to differentiate networks as well as addresses
 // and keys for one network from those intended for use on another network.
 type Params struct {
 	// Name defines a human-readable identifier for the network.

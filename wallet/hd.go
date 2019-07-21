@@ -26,8 +26,8 @@ import (
 
 // Use 223	0x800000df for now,  change in the future
 // https://github.com/satoshilabs/slips/blob/master/slip-0044.md
-var NoxRootDerivationPath = DerivationPath{0x80000000 + 44, 0x80000000 + 223, 0x80000000 + 0, 0}
-var NoxBaseDerivationPath = DerivationPath{0x80000000 + 44, 0x80000000 + 223, 0x80000000 + 0, 0, 0}
+var QitmeerRootDerivationPath = DerivationPath{0x80000000 + 44, 0x80000000 + 223, 0x80000000 + 0, 0}
+var QitmeerBaseDerivationPath = DerivationPath{0x80000000 + 44, 0x80000000 + 223, 0x80000000 + 0, 0, 0}
 
 // BTC Path
 var BtcRootDerivationPath = DerivationPath{0x80000000 + 44, 0x80000000 + 0, 0x80000000 + 0, 0}
@@ -89,7 +89,7 @@ func ParseDerivationPath(path string) (DerivationPath, error) {
 		components = components[1:]
 
 	default:
-		result = append(result, NoxRootDerivationPath...)
+		result = append(result, QitmeerRootDerivationPath...)
 	}
 	// All remaining components are relative, append one by one
 	if len(components) == 0 {

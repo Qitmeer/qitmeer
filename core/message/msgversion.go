@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
@@ -25,7 +25,7 @@ import (
 const MaxUserAgentLen = 256
 
 // DefaultUserAgent for wire in the stack
-const DefaultUserAgent = "/noxd:0.0.1/"
+const DefaultUserAgent = "/qitmeerd:0.0.1/"
 
 // MsgVersion implements the Message interface and represents a version message.
 // It is used for a peer to advertise itself as soon as an outbound connection

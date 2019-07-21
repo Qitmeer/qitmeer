@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -39,7 +39,7 @@ const (
 
 // These are all service namespace in node
 const (
-	DefaultServiceNameSpace  = "nox"
+	DefaultServiceNameSpace  = "qitmeer"
 	MinerNameSpace           = "miner"
 )
 

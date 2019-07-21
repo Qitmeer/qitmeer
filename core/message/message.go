@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
@@ -19,7 +19,7 @@ import (
 )
 
 // MessageHeaderSize is the number of bytes in a message header.
-// Nox network (magic) 4 bytes + command 12 bytes + payload length 4 bytes +
+// Qitmeer network (magic) 4 bytes + command 12 bytes + payload length 4 bytes +
 // checksum 4 bytes.
 const MessageHeaderSize = 24
 
@@ -69,7 +69,7 @@ const (
 	CmdCFTypes        = "cftypes"
 )
 
-// Message is an interface that describes a nox message.  A type that
+// Message is an interface that describes a qitmeer message.  A type that
 // implements Message has complete control over the representation of its data
 // and may therefore contain additional or fewer fields than those which
 // are used directly in the protocol encoded message.
@@ -156,7 +156,7 @@ func makeEmptyMessage(command string) (Message, error) {
 	return msg, nil
 }
 
-// messageHeader defines the header structure for all nox protocol messages.
+// messageHeader defines the header structure for all qitmeer protocol messages.
 type messageHeader struct {
 	magic    protocol.Network // 4 bytes
 	command  string         // 12 bytes
