@@ -23,9 +23,9 @@ var TestNetParams = Params{
 	Net:         protocol.TestNet,
 	DefaultPort: "18130",
 	DNSSeeds: []DNSSeed{
-		{"testnet-seed.qitmeerproject.org", true},
-		{"testnet-seed2.qitmeerproject.org", true},
-		{"testnet-seed3.qitmeerproject.org", true},
+		{"testnet-seed.qitmeer.io", true},
+		{"testnet-seed2.qitmeer.io", true},
+		{"testnet-seed3.qitmeer.io", true},
 	},
 
 	// Chain parameters
