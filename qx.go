@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/crypto/seed"
 	"github.com/HalalChain/qitmeer-lib/wallet"
+	"github.com/HalalChain/qx/qx"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -81,30 +82,25 @@ func version() {
 	os.Exit(1)
 }
 
-func errExit(err error){
-	fmt.Fprintf(os.Stderr, "Qx Error : %q\n",err)
-	os.Exit(1)
-}
-
-var base58checkVersion qitmeerBase58checkVersionFlag
+var base58checkVersion qx.QitmeerBase58checkVersionFlag
 var base58checkVersionSize int
 var base58checkMode string
 var showDetails bool
 var base58checkHasher string
 var base58checkCksumSize int
 var seedSize uint
-var hdVer bip32VersionFlag
+var hdVer qx.Bip32VersionFlag
 var hdHarden bool
 var hdIndex uint
-var derivePath derivePathFlag
+var derivePath qx.DerivePathFlag
 var mnemoicSeedPassphrase string
 var curve string
 var uncompressedPKFormat bool
 var network string
-var txInputs txInputsFlag
-var txOutputs txOutputsFlag
-var txVersion txVersionFlag
-var txLockTime txLockTimeFlag
+var txInputs qx.TxInputsFlag
+var txOutputs qx.TxOutputsFlag
+var txVersion qx.TxVersionFlag
+var txLockTime qx.TxLockTimeFlag
 var privateKey string
 var msgSignatureMode string
 
@@ -115,7 +111,7 @@ func main() {
 	// ----------------------------
 
 	base58CheckEncodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
-	base58checkVersion = qitmeerBase58checkVersionFlag{}
+	base58checkVersion = qx.QitmeerBase58checkVersionFlag{}
 	base58checkVersion.Set("testnet")
 	base58CheckEncodeCommand.Var(&base58checkVersion, "v","base58check `version` [mainnet|testnet|privnet")
 	base58CheckEncodeCommand.StringVar(&base58checkMode, "m", "qitmeer", "base58check encode mode : [qitmeer|btc]")
@@ -254,7 +250,7 @@ func main() {
 	}
 	hdDeriveCmd.UintVar(&hdIndex,"i",0,"The HD `index`")
 	hdDeriveCmd.BoolVar(&hdHarden,"d",false,"create a hardened key")
-	derivePath = derivePathFlag{wallet.DerivationPath{}}
+	derivePath = qx.DerivePathFlag{Path:wallet.DerivationPath{}}
 	hdDeriveCmd.Var(&derivePath,"p","hd derive `path`. ex: m/44'/0'/0'/0")
 	hdDeriveCmd.Var(&hdVer, "v","The HD(BIP32) `version` [mainnet|testnet|privnet|bip32]")
 
@@ -328,7 +324,7 @@ func main() {
 	txEncodeCmd.Usage = func() {
 		cmdUsage(txEncodeCmd, "Usage: qx tx-encode [-i tx-input] [-l tx-lock-time] [-o tx-output] [-v tx-version] \n")
 	}
-	txVersion = txVersionFlag(TX_VERION) //set default tx version
+	txVersion = qx.TxVersionFlag(TX_VERION) //set default tx version
 	txEncodeCmd.Var(&txVersion,"v","the transaction version")
 	txEncodeCmd.Var(&txLockTime,"l","the transaction lock time")
 	txEncodeCmd.Var(&txInputs,"i",`The set of transaction input points encoded as TXHASH:INDEX:SEQUENCE. 
@@ -432,15 +428,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				base58CheckEncodeCommand.Usage()
 			}else{
-				base58CheckEncode(base58checkVersion.ver,base58checkMode,base58checkHasher,base58checkCksumSize,os.Args[len(os.Args)-1])
+				qx.Base58CheckEncode(base58checkVersion.Ver,base58checkMode,base58checkHasher,base58checkCksumSize,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			base58CheckEncode(base58checkVersion.ver,base58checkMode,base58checkHasher,base58checkCksumSize,str)
+			qx.Base58CheckEncode(base58checkVersion.Ver,base58checkMode,base58checkHasher,base58checkCksumSize,str)
 		}
 	}
 
@@ -451,15 +447,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				base58CheckDecodeCommand.Usage()
 			}else{
-				base58CheckDecode(base58checkMode,base58checkHasher,base58checkVersionSize,base58checkCksumSize,os.Args[len(os.Args)-1])
+				qx.Base58CheckDecode(base58checkMode,base58checkHasher,base58checkVersionSize,base58checkCksumSize,os.Args[len(os.Args)-1],showDetails)
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			base58CheckDecode(base58checkMode,base58checkHasher,base58checkVersionSize,base58checkCksumSize,str)
+			qx.Base58CheckDecode(base58checkMode,base58checkHasher,base58checkVersionSize,base58checkCksumSize,str,showDetails)
 		}
 	}
 
@@ -470,15 +466,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				base58EncodeCmd.Usage()
 		 	}else{
-				base58Encode(os.Args[len(os.Args)-1])
+				qx.Base58Encode(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			base58Encode(str)
+			qx.Base58Encode(str)
 		}
 	}
 	// Handle base58-decode
@@ -488,15 +484,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				base58DecodeCmd.Usage()
 			}else{
-				base58Decode(os.Args[len(os.Args)-1])
+				qx.Base58Decode(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			base58Decode(str)
+			qx.Base58Decode(str)
 		}
 	}
 
@@ -506,15 +502,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				base64EncodeCmd.Usage()
 			}else{
-				base64Encode(os.Args[len(os.Args)-1])
+				qx.Base64Encode(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			base64Encode(str)
+			qx.Base64Encode(str)
 		}
 	}
 
@@ -524,15 +520,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				base64DecodeCmd.Usage()
 			}else{
-				base64Decode(os.Args[len(os.Args)-1])
+				qx.Base64Decode(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			base64Decode(str)
+			qx.Base64Decode(str)
 		}
 	}
 
@@ -542,15 +538,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				rlpEncodeCmd.Usage()
 		 	}else{
-				rlpEncode(os.Args[len(os.Args)-1])
+				qx.RlpEncode(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			rlpEncode(str)
+			qx.RlpEncode(str)
 		}
 	}
 	if rlpDecodeCmd.Parsed(){
@@ -559,15 +555,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				rlpDecodeCmd.Usage()
 			}else{
-				rlpDecode(os.Args[len(os.Args)-1])
+				qx.RlpDecode(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			rlpDecode(str)
+			qx.RlpDecode(str)
 		}
 	}
 
@@ -577,15 +573,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				sha256cmd.Usage()
 			}else{
-				sha256(os.Args[len(os.Args)-1])
+				qx.Sha256(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			sha256(str)
+			qx.Sha256(str)
 		}
 	}
 
@@ -595,15 +591,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				blake256cmd.Usage()
 			}else{
-				blake256(os.Args[len(os.Args)-1])
+				qx.Blake256(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			blake256(str)
+			qx.Blake256(str)
 		}
 	}
 
@@ -613,15 +609,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				blake2b256cmd.Usage()
 			}else{
-				blake2b256(os.Args[len(os.Args)-1])
+				qx.Blake2b256(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			blake2b256(str)
+			qx.Blake2b256(str)
 		}
 	}
 
@@ -631,15 +627,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				blake2b512cmd.Usage()
 			}else{
-				blake2b512(os.Args[len(os.Args)-1])
+				qx.Blake2b512(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			blake2b512(str)
+			qx.Blake2b512(str)
 		}
 	}
 
@@ -649,15 +645,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				sha3_256cmd.Usage()
 			}else{
-				sha3_256(os.Args[len(os.Args)-1])
+				qx.Sha3_256(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			sha3_256(str)
+			qx.Sha3_256(str)
 		}
 	}
 
@@ -667,15 +663,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				keccak256cmd.Usage()
 			}else{
-				keccak256(os.Args[len(os.Args)-1])
+				qx.Keccak256(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			keccak256(str)
+			qx.Keccak256(str)
 		}
 	}
 
@@ -685,15 +681,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ripemd160Cmd.Usage()
 			}else{
-				ripemd160(os.Args[len(os.Args)-1])
+				qx.Ripemd160(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			ripemd160(str)
+			qx.Ripemd160(str)
 		}
 	}
 
@@ -703,15 +699,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				bitcion160Cmd.Usage()
 			}else{
-				bitcoin160(os.Args[len(os.Args)-1])
+				qx.Bitcoin160(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			bitcoin160(str)
+			qx.Bitcoin160(str)
 		}
 	}
 
@@ -721,15 +717,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hash160Cmd.Usage()
 			}else{
-				hash160(os.Args[len(os.Args)-1])
+				qx.Hash160(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hash160(str)
+			qx.Hash160(str)
 		}
 	}
 
@@ -740,9 +736,9 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				entropyCmd.Usage()
 			}else{
 				if seedSize % 8 > 0	{
-					errExit(fmt.Errorf("seed (entropy) length must be Must be divisible by 8"))
+					qx.ErrExit(fmt.Errorf("seed (entropy) length must be Must be divisible by 8"))
 				}
-				newEntropy(seedSize/8)
+				qx.NewEntropy(seedSize/8)
 			}
 		}else {
 			entropyCmd.Usage()
@@ -755,15 +751,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hdNewCmd.Usage()
 			}else{
-				hdNewMasterPrivateKey(hdVer.version,os.Args[len(os.Args)-1])
+				qx.HdNewMasterPrivateKey(hdVer.Version(),os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hdNewMasterPrivateKey(hdVer.version,str)
+			qx.HdNewMasterPrivateKey(hdVer.Version(),str)
 		}
 	}
 
@@ -773,15 +769,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hdToPubCmd.Usage()
 			}else{
-				hdPrivateKeyToHdPublicKey(hdVer.version,os.Args[len(os.Args)-1])
+				qx.HdPrivateKeyToHdPublicKey(hdVer.Version(),os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hdPrivateKeyToHdPublicKey(hdVer.version,str)
+			qx.HdPrivateKeyToHdPublicKey(hdVer.Version(),str)
 		}
 	}
 
@@ -791,15 +787,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hdToEcCmd.Usage()
 			}else{
-				hdKeyToEcKey(hdVer.version,os.Args[len(os.Args)-1])
+				qx.HdKeyToEcKey(hdVer.Version(),os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hdKeyToEcKey(hdVer.version,str)
+			qx.HdKeyToEcKey(hdVer.Version(),str)
 		}
 	}
 
@@ -809,15 +805,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hdDecodeCmd.Usage()
 			}else{
-				hdDecode(os.Args[len(os.Args)-1])
+				qx.HdDecode(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hdDecode(str)
+			qx.HdDecode(str)
 		}
 	}
 
@@ -827,15 +823,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				hdDeriveCmd.Usage()
 			}else{
-				hdDerive(hdHarden,uint32(hdIndex),derivePath.path,hdVer.version,os.Args[len(os.Args)-1])
+				qx.HdDerive(hdHarden,uint32(hdIndex),derivePath.Path,hdVer.Version(),os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			hdDerive(hdHarden,uint32(hdIndex),derivePath.path,hdVer.version,str)
+			qx.HdDerive(hdHarden,uint32(hdIndex),derivePath.Path,hdVer.Version(),str)
 		}
 	}
 
@@ -845,15 +841,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				mnemonicNewCmd.Usage()
 			}else{
-				mnemonicNew(os.Args[len(os.Args)-1])
+				qx.MnemonicNew(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			mnemonicNew(str)
+			qx.MnemonicNew(str)
 		}
 	}
 
@@ -863,15 +859,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				mnemonicToEntropyCmd.Usage()
 			}else{
-				mnemonicToEntropy(os.Args[len(os.Args)-1])
+				qx.MnemonicToEntropy(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			mnemonicToEntropy(str)
+			qx.MnemonicToEntropy(str)
 		}
 	}
 
@@ -881,15 +877,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				mnemonicToSeedCmd.Usage()
 			}else{
-				mnemonicToSeed(mnemoicSeedPassphrase, os.Args[len(os.Args)-1])
+				qx.MnemonicToSeed(mnemoicSeedPassphrase, os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			mnemonicToSeed(mnemoicSeedPassphrase,str)
+			qx.MnemonicToSeed(mnemoicSeedPassphrase,str)
 		}
 	}
 
@@ -899,15 +895,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecNewCmd.Usage()
 			}else{
-				ecNew(curve,os.Args[len(os.Args)-1])
+				qx.EcNew(curve,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			ecNew(curve, str)
+			qx.EcNew(curve, str)
 		}
 	}
 
@@ -917,15 +913,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecToPubCmd.Usage()
 			}else{
-				ecPrivateKeyToEcPublicKey(uncompressedPKFormat,os.Args[len(os.Args)-1])
+				qx.EcPrivateKeyToEcPublicKey(uncompressedPKFormat,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			ecPrivateKeyToEcPublicKey(uncompressedPKFormat,str)
+			qx.EcPrivateKeyToEcPublicKey(uncompressedPKFormat,str)
 		}
 	}
 
@@ -935,15 +931,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecToWifCmd.Usage()
 			}else{
-				ecPrivateKeyToWif(uncompressedPKFormat,os.Args[len(os.Args)-1])
+				qx.EcPrivateKeyToWif(uncompressedPKFormat,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			ecPrivateKeyToWif(uncompressedPKFormat,str)
+			qx.EcPrivateKeyToWif(uncompressedPKFormat,str)
 		}
 	}
 
@@ -953,15 +949,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				wifToEcCmd.Usage()
 			}else{
-				wifToEcPrivateKey(os.Args[len(os.Args)-1])
+				qx.WifToEcPrivateKey(os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			wifToEcPrivateKey(str)
+			qx.WifToEcPrivateKey(str)
 		}
 	}
 
@@ -971,15 +967,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				wifToPubCmd.Usage()
 			}else{
-				wifToEcPubkey(uncompressedPKFormat,os.Args[len(os.Args)-1])
+				qx.WifToEcPubkey(uncompressedPKFormat,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			wifToEcPubkey(uncompressedPKFormat,str)
+			qx.WifToEcPubkey(uncompressedPKFormat,str)
 		}
 	}
 
@@ -989,15 +985,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecToAddrCmd.Usage()
 			}else{
-				ecPubKeyToAddress(base58checkVersion.ver,os.Args[len(os.Args)-1])
+				qx.EcPubKeyToAddress(base58checkVersion.Ver,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			ecPubKeyToAddress(base58checkVersion.ver,str)
+			qx.EcPubKeyToAddress(base58checkVersion.Ver,str)
 		}
 	}
 
@@ -1007,15 +1003,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				txDecodeCmd.Usage()
 			}else{
-				txDecode(network,os.Args[len(os.Args)-1])
+				qx.TxDecode(network,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			txDecode(network, str)
+			qx.TxDecode(network, str)
 		}
 	}
 
@@ -1025,7 +1021,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				txEncodeCmd.Usage()
 			}else{
-				txEncode(txVersion,txLockTime,txInputs,txOutputs)
+				qx.TxEncode(txVersion,txLockTime,txInputs,txOutputs)
 			}
 		}
 	}
@@ -1036,15 +1032,15 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				txSignCmd.Usage()
 			}else{
-				txSign(privateKey,os.Args[len(os.Args)-1])
+				qx.TxSign(privateKey,os.Args[len(os.Args)-1],network)
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				errExit(err)
+				qx.ErrExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			txSign(privateKey, str)
+			qx.TxSign(privateKey, str,network)
 		}
 	}
 
@@ -1054,7 +1050,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				msgSignCmd.Usage()
 			}else{
-				msgSign(msgSignatureMode,showDetails,os.Args[len(os.Args)-2],os.Args[len(os.Args)-1])
+				qx.MsgSign(msgSignatureMode,showDetails,os.Args[len(os.Args)-2],os.Args[len(os.Args)-1],showDetails)
 			}
 		}
 	}
@@ -1065,7 +1061,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				msgVerifyCmd.Usage()
 			}else{
-				verifyMsgSignature(msgSignatureMode,os.Args[len(os.Args)-3],os.Args[len(os.Args)-2],os.Args[len(os.Args)-1])
+				qx.VerifyMsgSignature(msgSignatureMode,os.Args[len(os.Args)-3],os.Args[len(os.Args)-2],os.Args[len(os.Args)-1])
 			}
 		}
 	}

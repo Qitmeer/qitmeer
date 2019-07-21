@@ -1,7 +1,7 @@
 // Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
-package main
+package qx
 
 import (
 	"encoding/hex"
@@ -10,10 +10,10 @@ import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
-func ecPubKeyToAddress(version []byte, pubkey string) {
+func EcPubKeyToAddress(version []byte, pubkey string) {
 	data, err :=hex.DecodeString(pubkey)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	h := hash.Hash160(data)
 
