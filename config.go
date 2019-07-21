@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2015-2016 The Decred developers
 // Copyright (c) 2013-2016 The btcsuite developers
 
@@ -21,12 +21,12 @@ import (
 )
 
 const (
-	defaultConfigFilename        = "noxd.conf"
+	defaultConfigFilename        = "qitmeerd.conf"
 	defaultDataDirname           = "data"
 	defaultLogLevel              = "info"
 	defaultDebugPrintOrigins     = false
 	defaultLogDirname            = "logs"
-	defaultLogFilename           = "noxd.log"
+	defaultLogFilename           = "qitmeerd.log"
 	defaultGenerate              = false
 	defaultBlockMinSize          = 0
 	defaultBlockMaxSize          = 375000
@@ -42,7 +42,7 @@ const (
 )
 
 var (
-	defaultHomeDir     = util.AppDataDir("noxd", false)
+	defaultHomeDir     = util.AppDataDir("qitmeerd", false)
 	defaultConfigFile  = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultDataDir     = filepath.Join(defaultHomeDir, defaultDataDirname)
 	defaultDbType      = "ffldb"
@@ -112,7 +112,7 @@ func loadConfig() (*config.Config, []string, error) {
 	// the runServiceCommand function will be nil when not on Windows.
 	// TODO
 
-	// Update the home directory for noxd if specified. Since the home
+	// Update the home directory for qitmeerd if specified. Since the home
 	// directory is updated, other variables need to be updated to
 	// reflect the new changes.
 	if preCfg.HomeDir != "" {

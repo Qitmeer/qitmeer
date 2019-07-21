@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2017-2018 The Decred developers
 // Use of this source code is governed by an ISC
@@ -50,14 +50,14 @@ const (
 	// a transaction to be treated as free.
 	// It is also used to help determine if a transaction is considered dust
 	// and as a base for calculating minimum required fees for larger
-	// transactions.  This value is in Atom Nox/kB. The default value is
-	// 10000 Atoms/kB (aka. 0.0001 NOX/kB)
+	// transactions.  This value is in Atom Qitmeer/kB. The default value is
+	// 10000 Atoms/kB (aka. 0.0001 Qitmeer/kB)
 	DefaultMinRelayTxFee = int64(1e4)
 
 	// maxRelayFeeMultiplier is the factor that we disallow fees / kB above the
 	// minimum tx fee.  At the current default minimum relay fee of 0.0001
-	// NOX/kB (aka. 10000 Atom Nox/kB), this results in a maximum allowed
-	// high fee of 1 NOX/kB.
+	// Qitmeer/kB (aka. 10000 Atom Qitmeer/kB), this results in a maximum allowed
+	// high fee of 1 Qitmeer/kB.
 	maxRelayFeeMultiplier = 1e4
 
 	// maxStandardMultiSigKeys is the maximum number of public keys allowed
@@ -133,7 +133,7 @@ type Policy struct {
 	// of the max signature operations for a block.
 	MaxSigOpsPerTx int
 
-	// MinRelayTxFee defines the minimum transaction fee in AtomNOX/kB
+	// MinRelayTxFee defines the minimum transaction fee in AtomQitmeer/kB
 	MinRelayTxFee types.Amount
 
 	// StandardVerifyFlags defines the function to retrieve the flags to

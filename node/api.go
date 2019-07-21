@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2017-2018 The Decred developers
 // Use of this source code is governed by an ISC
@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-func (nf *NoxFull) API() rpc.API {
+func (nf *QitmeerFull) API() rpc.API {
 	return rpc.API{
 		NameSpace: rpc.DefaultServiceNameSpace,
 		Service:   NewPublicBlockChainAPI(nf),
@@ -39,10 +39,10 @@ func (nf *NoxFull) API() rpc.API {
 }
 
 type PublicBlockChainAPI struct {
-	node *NoxFull
+	node *QitmeerFull
 }
 
-func NewPublicBlockChainAPI(node *NoxFull) *PublicBlockChainAPI {
+func NewPublicBlockChainAPI(node *QitmeerFull) *PublicBlockChainAPI {
 	return &PublicBlockChainAPI{node}
 }
 
@@ -446,7 +446,7 @@ func (api *PublicBlockChainAPI) GetRawTransaction(txHash hash.Hash, verbose bool
 //  "hex": "value",             (string)          Hex-encoded bytes of the script
 //  "reqSigs": n,               (numeric)         The number of required signatures
 //  "type": "value",            (string)          The type of the script (e.g. 'pubkeyhash')
-//  "addresses": ["value",...], (array of string) The nox addresses associated with this script
+//  "addresses": ["value",...], (array of string) The qitmeer addresses associated with this script
 // },
 // "coinbase": true|false,      (boolean)         Whether or not the transaction is a coinbase
 //}

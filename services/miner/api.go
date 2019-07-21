@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 
 package miner
 
@@ -188,7 +188,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI,request *json.TemplateReq
 	currentOrder := api.miner.blockManager.GetChain().BestSnapshot().Order
 	if currentOrder != 0 && !api.miner.blockManager.IsCurrent() {
 		return nil, rpc.RPCClientInInitialDownloadError("Client in initial download ",
-			"NOX is downloading blocks...")
+			"qitmeer is downloading blocks...")
 	}
 
 	// Protect concurrent access when updating block templates.

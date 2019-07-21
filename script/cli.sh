@@ -50,7 +50,7 @@ function solc_compile(){
 # All jsonrpc calls
 # ---------------------------
 
-# Nox
+# qitmeer
 function get_block(){
   local order=$1
   local verbose=$2
@@ -66,7 +66,7 @@ function get_block_number(){
   get_result "$data"
 }
 
-# Nox mempool
+# qitmeer mempool
 
 function get_mempool(){
   local type=$1
@@ -688,7 +688,7 @@ elif [ "$1" == "compile" ]; then
   solc_compile "$@"
 elif [ "$1" == "call" ]; then
   shift
-  nox_call $@
+  qitmeer_call $@
 
 elif [ "$1" == "send_tx" ]; then
   shift

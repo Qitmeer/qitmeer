@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
@@ -56,7 +56,7 @@ const (
 var (
 	// userAgentName is the user agent name and is used to help identify
 	// ourselves to other peers.
-	userAgentName = "nox"
+	userAgentName = "qitmeer"
 
 	// userAgentVersion is the user agent version and is used to help
 	// identify ourselves to other peers.
@@ -66,7 +66,7 @@ var (
 
 
 // Use start to begin accepting connections from peers.
-// peer server handling communications to and from nox peers.
+// peer server handling communications to and from qitmeer peers.
 type PeerServer struct {
 	// These fields are variables must only be used atomically.
 	bytesReceived uint64 // Total bytes received from all peers since start.

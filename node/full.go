@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 package node
 
 import (
@@ -21,8 +21,8 @@ import (
 	"time"
 )
 
-// NoxFull implements the nox full node service.
-type NoxFull struct {
+// QitmeerFull implements the qitmeer full node service.
+type QitmeerFull struct {
 	// under node
 	node                 *Node
 	// msg notifier
@@ -45,51 +45,51 @@ type NoxFull struct {
 	sigCache             *txscript.SigCache
 }
 
-func (nox *NoxFull) Start(server *peerserver.PeerServer) error {
-	log.Debug("Starting Nox full node service")
+func (qm *QitmeerFull) Start(server *peerserver.PeerServer) error {
+	log.Debug("Starting Qitmeer full node service")
 
 	// Start the CPU miner if generation is enabled.
-	if nox.node.Config.Generate {
-		nox.cpuMiner.Start()
+	if qm.node.Config.Generate {
+		qm.cpuMiner.Start()
 	}
 
-	nox.blockManager.Start()
+	qm.blockManager.Start()
 	return nil
 }
 
-func (nox *NoxFull) Stop() error {
-	log.Debug("Stopping Nox full node service")
+func (qm *QitmeerFull) Stop() error {
+	log.Debug("Stopping Qitmeer full node service")
 
 	log.Info("try stop bm")
 
-	nox.blockManager.Stop()
-	nox.blockManager.WaitForStop()
+	qm.blockManager.Stop()
+	qm.blockManager.WaitForStop()
 
 	log.Info("try stop cpu miner")
 	// Stop the CPU miner if needed.
-	if nox.node.Config.Generate && nox.cpuMiner != nil {
-		nox.cpuMiner.Stop()
+	if qm.node.Config.Generate && qm.cpuMiner != nil {
+		qm.cpuMiner.Stop()
 	}
 
 	return nil
 }
 
-func (nox *NoxFull)	APIs() []rpc.API {
-	apis := nox.acctmanager.APIs()
-	apis = append(apis,nox.cpuMiner.APIs()...)
-	apis = append(apis,nox.blockManager.API())
-	apis = append(apis,nox.txMemPool.API())
-	apis = append(apis,nox.API())
+func (qm *QitmeerFull)	APIs() []rpc.API {
+	apis := qm.acctmanager.APIs()
+	apis = append(apis,qm.cpuMiner.APIs()...)
+	apis = append(apis,qm.blockManager.API())
+	apis = append(apis,qm.txMemPool.API())
+	apis = append(apis,qm.API())
 	return apis
 }
-func newNoxFullNode(node *Node) (*NoxFull, error){
+func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 
 	// account manager
 	acctmgr, err := acct.New()
 	if err != nil{
 		return nil,err
 	}
-	nox := NoxFull{
+	qm := QitmeerFull{
 		node:         node,
 		db:           node.DB,
 		acctmanager:  acctmgr,
@@ -102,24 +102,24 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 
 	if cfg.TxIndex {
 		log.Info("Transaction index is enabled")
-		nox.txIndex = index.NewTxIndex(nox.db)
-		indexes = append(indexes, nox.txIndex)
+		qm.txIndex = index.NewTxIndex(qm.db)
+		indexes = append(indexes, qm.txIndex)
 	}
 	// index-manager
 	var indexManager blockchain.IndexManager
 	if len(indexes) > 0 {
-		indexManager = index.NewManager(nox.db,indexes,node.Params)
+		indexManager = index.NewManager(qm.db,indexes,node.Params)
 	}
 
-	nox.nfManager = &notifymgr.NotifyMgr{Server:node.peerServer, RpcServer:node.rpcServer}
+	qm.nfManager = &notifymgr.NotifyMgr{Server:node.peerServer, RpcServer:node.rpcServer}
 
 	// block-manager
-	bm, err := blkmgr.NewBlockManager(nox.nfManager,indexManager,node.DB, nox.timeSource, nox.sigCache, node.Config, node.Params,
+	bm, err := blkmgr.NewBlockManager(qm.nfManager,indexManager,node.DB, qm.timeSource, qm.sigCache, node.Config, node.Params,
 		node.quit)
 	if err != nil {
 		return nil, err
 	}
-	nox.blockManager = bm
+	qm.blockManager = bm
 
 	// mem-pool
 	txC := mempool.Config{
@@ -143,18 +143,18 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 		BestHeight:       func() uint64 { return bm.GetChain().BestSnapshot().Order },
 		CalcSequenceLock: bm.GetChain().CalcSequenceLock,
 		SubsidyCache:     bm.GetChain().FetchSubsidyCache(),
-		SigCache:         nox.sigCache,
+		SigCache:         qm.sigCache,
 		PastMedianTime:   func() time.Time { return bm.GetChain().BestSnapshot().MedianTime },
 	}
-	nox.txMemPool = mempool.New(&txC)
+	qm.txMemPool = mempool.New(&txC)
 
 	// set mempool to bm
-	bm.SetMemPool(nox.txMemPool)
+	bm.SetMemPool(qm.txMemPool)
 
 	// prepare peerServer
 	node.peerServer.BlockManager = bm
-	node.peerServer.TimeSource = nox.timeSource
-	node.peerServer.TxMemPool = nox.txMemPool
+	node.peerServer.TimeSource = qm.timeSource
+	node.peerServer.TxMemPool = qm.txMemPool
 
 	// Cpu Miner
 	// Create the mining policy based on the configuration options.
@@ -174,10 +174,10 @@ func newNoxFullNode(node *Node) (*NoxFull, error){
 	// system stays reasonably responsive under heavy load.
 	defaultNumWorkers := uint32(params.CPUMinerThreads) //TODO, move to config
 
-	nox.cpuMiner = miner.NewCPUMiner(cfg,node.Params,&policy,nox.sigCache,
-		nox.txMemPool,nox.timeSource,nox.blockManager,defaultNumWorkers)
+	qm.cpuMiner = miner.NewCPUMiner(cfg,node.Params,&policy,qm.sigCache,
+		qm.txMemPool,qm.timeSource,qm.blockManager,defaultNumWorkers)
 
-	return &nox, nil
+	return &qm, nil
 }
 
 // standardScriptVerifyFlags returns the script flags that should be used when
@@ -190,16 +190,16 @@ func standardScriptVerifyFlags(chain *blockchain.BlockChain) (txscript.ScriptFla
 }
 
 // return block manager
-func (nox *NoxFull) GetBlockManager() *blkmgr.BlockManager{
-	return nox.blockManager
+func (qm *QitmeerFull) GetBlockManager() *blkmgr.BlockManager{
+	return qm.blockManager
 }
 
 // return cpu miner
-func (nox *NoxFull) GetCpuMiner() *miner.CPUMiner{
-	return nox.cpuMiner
+func (qm *QitmeerFull) GetCpuMiner() *miner.CPUMiner{
+	return qm.cpuMiner
 }
 
 // return peer server
-func (nox *NoxFull) GetPeerServer() *peerserver.PeerServer {
-	return nox.node.peerServer
+func (qm *QitmeerFull) GetPeerServer() *peerserver.PeerServer {
+	return qm.node.peerServer
 }

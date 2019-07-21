@@ -24,8 +24,8 @@ go version go1.12 darwin/amd64
 ~ git clone https://github.com/HalalChain/qitmeer.git
 ~ cd qitmeer
 ~ go build
-~ ./nox --version
-nox version 0.3.0+dev (Go version go1.12)
+~ ./qitmeerd --version
+qitmeer version 0.3.0+dev (Go version go1.12)
 ```
 
 ### How to fix `golang.org unrecognized` Issue
