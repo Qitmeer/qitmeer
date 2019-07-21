@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 package node
 
 import (
@@ -190,9 +190,9 @@ func (n *Node) register(sc ServiceConstructor) error {
 
 func (n *Node) RegisterService() error {
 	if n.Config.LightNode {
-		return n.registerNoxLight()
+		return n.registerQitmeerLight()
 	}
-	return n.registerNoxFull()
+	return n.registerQitmeerFull()
 }
 // startRPC is a helper method to start all the various RPC endpoint during node
 // startup. It's not meant to be called at any time afterwards as it makes certain
@@ -224,32 +224,32 @@ func (n *Node) startRPC(services map[reflect.Type]Service) error {
 	return nil
 }
 
-// register services as Nox Full node
-func (n *Node) registerNoxFull() error{
-	err := n.register(NewServiceConstructor("Nox",
+// register services as qitmeer Full node
+func (n *Node) registerQitmeerFull() error{
+	err := n.register(NewServiceConstructor("qitmeer",
 		func(ctx *ServiceContext) (Service, error) {
-		fullNode, err := newNoxFullNode(n)
+		fullNode, err := newQitmeerFullNode(n)
 		return fullNode, err
 	}))
 	return err
 }
 
-// register services as the Nox Light node
-func (n *Node)registerNoxLight() error{
-	err := n.register(NewServiceConstructor("Nox-light",
+// register services as the qitmeer Light node
+func (n *Node)registerQitmeerLight() error{
+	err := n.register(NewServiceConstructor("qitmeer-light",
 		func(ctx *ServiceContext) (Service, error) {
-			lightNode, err := newNoxLight(n)
+			lightNode, err := newQitmeerLight(n)
 			return lightNode, err
 		}))
 	return err
 }
 
-// return nox full
-func (n *Node) GetNoxFull() *NoxFull{
+// return qitmeer full
+func (n *Node) GetQitmeerFull() *QitmeerFull{
 	for _,server:=range n.runningSvcs{
-		fullnox:=server.(*NoxFull)
-		if fullnox!=nil {
-			return fullnox
+		fullqm:=server.(*QitmeerFull)
+		if fullqm!=nil {
+			return fullqm
 		}
 	}
 	return nil

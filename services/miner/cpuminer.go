@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2014-2016 The btcsuite developers
 // Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
@@ -675,7 +675,7 @@ func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) er
 		return err
 	}
 	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(order)).
-		AddInt64(int64(extraNonce)).AddData([]byte("nox/test")).
+		AddInt64(int64(extraNonce)).AddData([]byte("qitmeer/test")).
 		Script()
 	if err != nil {
 		return err

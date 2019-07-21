@@ -71,7 +71,7 @@ EOF
 chmod u+x ./bin/build/launch
 # create cli
 
-cp ./script/nox/cli.sh ./bin/build/cli
+cp ./script/cli.sh ./bin/build/cli
 sed -i 's/127.0.0.1/172.17.0.1/g' ./bin/build/cli
 sed -i 's/port=1234/port=18131/g' ./bin/build/cli
 

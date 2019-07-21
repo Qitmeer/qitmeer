@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2014 The btcsuite developers
 // Copyright (c) 2015-2018 The Decred developers
 // Use of this source code is governed by an ISC
@@ -33,7 +33,7 @@ import (
 const PeersFilename = "peers.json"
 
 // AddrManager provides a concurrency safe address manager for caching potential
-// peers on the nox network.
+// peers on the qitmeer network.
 type AddrManager struct {
 	mtx            sync.Mutex                               // main mutex used to sync methods
 	peersFile      string                                   // path of file to store peers in

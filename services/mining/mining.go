@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2014-2016 The btcsuite developers
 // Copyright (c) 2016-2018 The Decred developers
 // Use of this source code is governed by an ISC
@@ -28,7 +28,7 @@ const (
 	// coinbaseFlags is some extra data appended to the coinbase script
 	// sig.
 	// TODO, refactor the location of coinbaseFlags const
-	coinbaseFlags = "/nox/"
+	coinbaseFlags = "/qitmeer/"
 
 	// generatedBlockVersion is the version of the block being generated for
 	// the main network.  It is defined as a constant here rather than using

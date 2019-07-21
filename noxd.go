@@ -1,20 +1,20 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2015-2016 The Decred developers
 // Copyright (c) 2013-2016 The btcsuite developers
 
 package main
 
 import (
-	"github.com/HalalChain/qitmeer/version"
-	"runtime"
-	"runtime/debug"
-	"os"
-	"path/filepath"
 	"github.com/HalalChain/qitmeer-lib/config"
 	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer/node"
 	"github.com/HalalChain/qitmeer/database"
-	 _ "github.com/HalalChain/qitmeer/database/ffldb"
+	_ "github.com/HalalChain/qitmeer/database/ffldb"
+	"github.com/HalalChain/qitmeer/node"
+	"github.com/HalalChain/qitmeer/version"
+	"os"
+	"path/filepath"
+	"runtime"
+	"runtime/debug"
 )
 
 const (
@@ -29,7 +29,6 @@ var (
 )
 
 func main() {
-
 	// Initialize the goroutine count,  Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -40,17 +39,17 @@ func main() {
 	debug.SetGCPercent(20)
 
 	// Work around defer not working after os.Exit()
-	if err := noxdMain(nil); err != nil {
+	if err := qitmeerdMain(nil); err != nil {
 		os.Exit(1)
 	}
 }
 
-// noxdMain is the real main function for noxd.  It is necessary to work around
+// qitmeerdMain is the real main function for qitmeerd.  It is necessary to work around
 // the fact that deferred functions do not run when os.Exit() is called.  The
 // optional nodeChan parameter is mainly used by the service code to be
 // notified with the node once it is setup so it can gracefully stop it when
 // requested from the service control manager.
-func noxdMain(nodeChan chan<- *node.Node) error {
+func qitmeerdMain(nodeChan chan<- *node.Node) error {
 
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
@@ -67,7 +66,7 @@ func noxdMain(nodeChan chan<- *node.Node) error {
 	defer log.Info("Shutdown complete")
 
 	// Show version and home dir at startup.
-	log.Info("System info", "Nox Version", version.String(), "Go version",runtime.Version())
+	log.Info("System info", "Qitmeer Version", version.String(), "Go version",runtime.Version())
 	log.Info("System info", "Home dir", cfg.HomeDir)
 	if cfg.NoFileLogging {
 		log.Info("File logging disabled")

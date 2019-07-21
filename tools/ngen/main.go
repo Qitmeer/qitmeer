@@ -1,7 +1,7 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 
 /*
- 	Generates Json marshaling methods for the nox's go struct types.
+ 	Generates Json marshaling methods for the qitmeer's go struct types.
 	Inspired by github.com/fjl/gencodec & github.com/garslo/gogen
 	TODO :
 	1. remove fjl&garslo abstract and use AST directly

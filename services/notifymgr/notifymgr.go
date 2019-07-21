@@ -31,12 +31,12 @@ func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.Tx) {
 		if ntmgr.RpcServer != nil {
 			//TODO reply to rpc layer (if websockect long connection or gbt long poll)
 			// Notify websocket clients about mempool transactions.
-			//nox.node.rpcServer.ntfnMgr.NotifyMempoolTx(tx, true)
+			//qitmeer.node.rpcServer.ntfnMgr.NotifyMempoolTx(tx, true)
 			//
 			// Potentially notify any getblocktemplate long poll clients
 			// about stale block templates due to the new transaction.
-			//nox.node.rpcServer.gbtWorkState.NotifyMempoolTx(
-			//	nox.txMemPool.LastUpdated())
+			//qitmeer.node.rpcServer.gbtWorkState.NotifyMempoolTx(
+			//	qitmeer.txMemPool.LastUpdated())
 		}
 	}
 }
