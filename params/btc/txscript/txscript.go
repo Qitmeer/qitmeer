@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 
 package txscript
 

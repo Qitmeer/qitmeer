@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
@@ -19,7 +19,7 @@ const (
 	ProtocolVersion uint32 = 1
 )
 
-// Network represents which nox network a message belongs to.
+// Network represents which qitmeer network a message belongs to.
 type Network uint32
 
 // Constants used to indicate the message of network.  They can also be

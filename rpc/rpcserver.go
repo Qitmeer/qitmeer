@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 
 package rpc
 
@@ -264,7 +264,7 @@ func (s *RpcServer) checkAuth(r *http.Request, require bool) (bool, error) {
 
 // jsonAuthFail sends a message back to the client if the http auth is rejected.
 func jsonAuthFail(w http.ResponseWriter) {
-	w.Header().Add("WWW-Authenticate", `Basic realm="nox RPC"`)
+	w.Header().Add("WWW-Authenticate", `Basic realm="qitmeer RPC"`)
 	http.Error(w, "401 Unauthorized.", http.StatusUnauthorized)
 }
 

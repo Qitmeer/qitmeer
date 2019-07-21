@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2016 The btcsuite developers
 // Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
@@ -761,9 +761,9 @@ func NewEngine2(scriptPubKey []byte, tx types.ScriptTx, txIdx int,
 
 	vm.scriptTx = tx
 	switch tx.GetType() {
-	case types.NoxScriptTx:
-		noxtx,_ := tx.(*types.Transaction)
-		vm.tx = *noxtx
+	case types.QitmeerScriptTx:
+		qitmeertx,_ := tx.(*types.Transaction)
+		vm.tx = *qitmeertx
 	case types.BtcScriptTx:
 		btctx, _:= tx.(*btctypes.BtcTx)
 		vm.btctx = *btctx

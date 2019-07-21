@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2017 Takatoshi Nakagawa
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy

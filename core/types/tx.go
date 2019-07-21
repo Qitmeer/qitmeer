@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 
 package types
 
@@ -153,7 +153,7 @@ type ScriptTx interface {
 type ScriptTxType int
 
 const (
-	NoxScriptTx ScriptTxType = iota
+	QitmeerScriptTx ScriptTxType = iota
 	BtcScriptTx
 )
 
@@ -201,7 +201,7 @@ func (t *Transaction) GetLockTime() uint32{
 	return t.LockTime
 }
 func (t *Transaction) GetType() ScriptTxType{
-	return NoxScriptTx
+	return QitmeerScriptTx
 }
 func (t *Transaction) GetOutput() []Output{
 	txOuts := make([]Output,len(t.TxOut))

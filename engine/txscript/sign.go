@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2015 The btcsuite developers
 // Copyright (c) 2015-2016 The Decred developers
 // Use of this source code is governed by an ISC
@@ -728,7 +728,7 @@ func RawTxInSignature2(tx types.ScriptTx, idx int, subScript []byte,
 	var h []byte
 	// TODO, need to abstract SignatureHash calculator, instead of switch by type
 	switch tx.GetType() {
-		case types.NoxScriptTx:
+		case types.QitmeerScriptTx:
 			h, err = calcSignatureHash2(parsedScript, hashType, tx, idx, nil)
 		case types.BtcScriptTx:
 			h = calcSignatureHash_btc(parsedScript, hashType, tx, idx)
@@ -1288,7 +1288,7 @@ sigLoop:
 		var h []byte
 			// TODO, need to abstract SignatureHash calculator, instead of switch by type
 			switch tx.GetType() {
-			case types.NoxScriptTx:
+			case types.QitmeerScriptTx:
 				h, err = calcSignatureHash2(pkPops, hashType, tx, idx, nil)
 			case types.BtcScriptTx:
 				h = calcSignatureHash_btc(pkPops, hashType, tx, idx)

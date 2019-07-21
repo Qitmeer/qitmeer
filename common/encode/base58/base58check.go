@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2013-2014 The btcsuite developers
 // Copyright (c) 2015 The Decred developers
 // Use of this source code is governed by an ISC
@@ -36,7 +36,7 @@ func checksum_dcr(input []byte) ([]byte) {
 	return cksum[:]
 }
 // checksum: first four bytes of double-BLAKEb.
-func checksum_nox(input []byte) []byte {
+func checksum_qitmeer(input []byte) []byte {
 	h := hash.DoubleHashB(input)
 	var cksum [4]byte
 	copy(cksum[:],h[:])
@@ -67,8 +67,8 @@ func DoubleHashChecksumFunc(hasher hash.Hasher,cksum_size int) (func([]byte) []b
 }
 
 // CheckEncode prepends two version bytes and appends a four byte checksum.
-func NoxCheckEncode(input []byte, version []byte) string {
-	return CheckEncode(input,version[:],4,checksum_nox)
+func QitmeerCheckEncode(input []byte, version []byte) string {
+	return CheckEncode(input,version[:],4,checksum_qitmeer)
 }
 
 func DcrCheckEncode(input []byte, version [2]byte) string{
@@ -105,10 +105,10 @@ func CheckDecode(input string, version_size , cksum_size int, cksumfunc func([]b
 	return
 }
 
-// NoxCheckDecode decodes a string that was encoded with 2 bytes version and verifies
+// QitmeerCheckDecode decodes a string that was encoded with 2 bytes version and verifies
 // the checksum using blake2b-256 hash.
-func NoxCheckDecode(input string) (result []byte, version [2]byte, err error) {
-	r,v,err := CheckDecode(input,2, 4,checksum_nox)
+func QitmeerCheckDecode(input string) (result []byte, version [2]byte, err error) {
+	r,v,err := CheckDecode(input,2, 4,checksum_qitmeer)
 	if err!=nil{
 		return nil, [2]byte{},err
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 The nox developers
+// Copyright (c) 2017-2018 The qitmeer developers
 // Copyright (c) 2014-2016 The btcsuite developers
 // Copyright (c) 2015-2017 The Decred developers
 // Use of this source code is governed by an ISC
@@ -23,9 +23,9 @@ var TestNetParams = Params{
 	Net:         protocol.TestNet,
 	DefaultPort: "18130",
 	DNSSeeds: []DNSSeed{
-		{"testnet-seed.noxproject.org", true},
-		{"testnet-seed2.noxproject.org", true},
-		{"testnet-seed3.noxproject.org", true},
+		{"testnet-seed.qitmeerproject.org", true},
+		{"testnet-seed2.qitmeerproject.org", true},
+		{"testnet-seed3.qitmeerproject.org", true},
 	},
 
 	// Chain parameters

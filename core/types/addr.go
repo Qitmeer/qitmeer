@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 package types
 
 import (
