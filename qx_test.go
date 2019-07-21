@@ -1,4 +1,4 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 package main
@@ -61,7 +61,7 @@ var versions = []struct{
 	{[2]byte{0x0c, 0xe2}}, // starts with Pt
 }
 
-func TestNoxBase58CheckEncode(t *testing.T) {
+func TestQitmeerBase58CheckEncode(t *testing.T) {
 	// Encode example data with the Base58Check encoding scheme.
 	data := []byte{ 0x64, 0xe2, 0x0e, 0xb6, 0x07, 0x55, 0x61, 0xd3, 0x0c, 0x23, 0xa5, 0x17,
 		0xc5, 0xb7, 0x3b, 0xad, 0xbc, 0x12, 0x0f, 0x05}
@@ -73,12 +73,12 @@ func TestNoxBase58CheckEncode(t *testing.T) {
 	}
 	*/
 	for _, addrtest := range testAddresses {
-		encoded := base58.NoxCheckEncode(data, addrtest.ver[:])
+		encoded := base58.QitmeerCheckEncode(data, addrtest.ver[:])
 		assert.Equal(t,encoded,addrtest.addr)
 	}
 }
 
-func TestNoxHd(t *testing.T) {
+func TestQitmeerHd(t *testing.T) {
 	//
 	// 1.) Use bx to verify the result
 	//

@@ -1,4 +1,4 @@
-package main
+package qx
 
 import (
 	"bytes"
@@ -8,37 +8,37 @@ import (
 	"strconv"
 	"strings"
 )
-type txVersionFlag uint32
-type txLockTimeFlag uint32
+type TxVersionFlag uint32
+type TxLockTimeFlag uint32
 
-func (ver txVersionFlag) String() string {
+func (ver TxVersionFlag) String() string {
 	return fmt.Sprintf("%d",ver)
 }
-func (ver *txVersionFlag) Set(s string) error {
+func (ver *TxVersionFlag) Set(s string) error {
 	v, err :=strconv.ParseUint(s, 10, 32)
 	if err !=nil {
 		return err
 	}
-	*ver = txVersionFlag(uint32(v))
+	*ver = TxVersionFlag(uint32(v))
 	return nil
 }
 
-func (lt txLockTimeFlag) String() string {
+func (lt TxLockTimeFlag) String() string {
 	return fmt.Sprintf("%d",lt)
 }
-func (lt *txLockTimeFlag) Set(s string) error {
+func (lt *TxLockTimeFlag) Set(s string) error {
 	v, err :=strconv.ParseUint(s, 10, 32)
 	if err !=nil {
 		return err
 	}
-	*lt = txLockTimeFlag(uint32(v))
+	*lt = TxLockTimeFlag(uint32(v))
 	return nil
 }
 
-type txInputsFlag struct{
+type TxInputsFlag struct{
  	inputs []txInput
 }
-type txOutputsFlag struct{
+type TxOutputsFlag struct{
 	outputs []txOutput
 }
 
@@ -59,7 +59,7 @@ func (o txOutput) String() string {
 	return fmt.Sprintf("%s:%f",o.target,o.amount)
 }
 
-func (v txInputsFlag) String() string {
+func (v TxInputsFlag) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString("{")
 	for _,input := range v.inputs{
@@ -69,7 +69,7 @@ func (v txInputsFlag) String() string {
 	return buffer.String()
 }
 
-func(of txOutputsFlag) String() string {
+func(of TxOutputsFlag) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString("{")
 	for _,o := range of.outputs{
@@ -79,7 +79,7 @@ func(of txOutputsFlag) String() string {
 	return buffer.String()
 }
 
-func (v *txInputsFlag) Set(s string) error {
+func (v *TxInputsFlag) Set(s string) error {
 	input := strings.Split(s,":")
 	if len(input) < 2 {
 		return fmt.Errorf("error to parse tx input : %s",s)
@@ -113,7 +113,7 @@ func (v *txInputsFlag) Set(s string) error {
 	return nil
 }
 
-func (of *txOutputsFlag) Set(s string) error {
+func (of *TxOutputsFlag) Set(s string) error {
 	output := strings.Split(s,":")
 	if len(output) < 2 {
 		return fmt.Errorf("error to parse tx output : %s",s)

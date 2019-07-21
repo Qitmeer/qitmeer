@@ -1,4 +1,4 @@
-package main
+package qx
 
 import (
 	"bytes"
@@ -15,43 +15,43 @@ import (
 
 const (
 	BTCMsgSignaturePrefixMagic = "Bitcoin Signed Message:\n"
-	NoxMsgSignaturePrefixMagic = "Nox Signed Message:\n"
+	QitmeerMsgSignaturePrefixMagic = "Qitmeer Signed Message:\n"
 )
 
-func decodeSignature(signatureType string, signStr string) {
+func DecodeSignature(signatureType string, signStr string) {
 	signHex,err := base64.StdEncoding.DecodeString(signStr)
 	if err!=nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	signature,err := ecc.Secp256k1.ParseSignature(signHex)
 	if err!=nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	fmt.Printf("R=%x,S=%x\n",signature.GetR(),signature.GetS())
 }
 
-func decodeAddr (mode string, addrStr string) ([]byte, error) {
+func DecodeAddr (mode string, addrStr string) ([]byte, error) {
 	switch(mode) {
 		case "btc" :
 			addrHash160, _, err := base58.BtcCheckDecode(addrStr)
 			return addrHash160,err
 		default :
-			addrHash160,_,err := base58.NoxCheckDecode(addrStr)
+			addrHash160,_,err := base58.QitmeerCheckDecode(addrStr)
 			return addrHash160,err
 	}
 }
-func verifyMsgSignature(mode string, addrStr string, signStr string, msgStr string){
+func VerifyMsgSignature(mode string, addrStr string, signStr string, msgStr string){
 
-	msgHash := buildMsgHash(mode,msgStr)
+	msgHash := BuildMsgHash(mode,msgStr)
 
-	addrHash160, err := decodeAddr(mode,addrStr)
+	addrHash160, err := DecodeAddr(mode,addrStr)
 	if err!=nil {
-		errExit(err)
+		ErrExit(err)
 	}
 
 	sign_c, err :=base64.StdEncoding.DecodeString(signStr)
 	if err!=nil {
-		errExit(err)
+		ErrExit(err)
 	}
 
     // the recovery mode of btc
@@ -63,7 +63,7 @@ func verifyMsgSignature(mode string, addrStr string, signStr string, msgStr stri
     // 31 + recId (compressed pubkey)
     pubKey, compressed,err := ecc.Secp256k1.RecoverCompact(sign_c,msgHash)
 	if err!=nil {
-		errExit(err)
+		ErrExit(err)
 	}
 
     var data []byte
@@ -73,10 +73,10 @@ func verifyMsgSignature(mode string, addrStr string, signStr string, msgStr stri
 		data = pubKey.SerializeUncompressed()
 	}
 
-    fmt.Printf("%v\n",reflect.DeepEqual(calcHash160(mode,data),addrHash160))
+    fmt.Printf("%v\n",reflect.DeepEqual(CalcHash160(mode,data),addrHash160))
 }
 
-func calcHash160(mode string,data []byte) []byte {
+func CalcHash160(mode string,data []byte) []byte {
 	switch(mode) {
 	case "btc":
 		return btc.Hash160(data)
@@ -86,7 +86,7 @@ func calcHash160(mode string,data []byte) []byte {
 }
 
 
-func buildMsgHash(mode string, msg string) []byte {
+func BuildMsgHash(mode string, msg string) []byte {
 	var msgHash []byte
 	switch (mode) {
 	case "btc" :
@@ -97,32 +97,32 @@ func buildMsgHash(mode string, msg string) []byte {
 
 	default :
 		var buf bytes.Buffer
-		serialization.WriteVarString(&buf, 0, NoxMsgSignaturePrefixMagic)
+		serialization.WriteVarString(&buf, 0, QitmeerMsgSignaturePrefixMagic)
 		serialization.WriteVarString(&buf, 0, msg)
 		msgHash = hash.HashB(buf.Bytes())
 	}
 	return msgHash
 }
 
-func msgSign(mode string, showSignDetail bool, wif string, msg string){
-	decoded,compressed,err := decodeWIF(wif)
+func MsgSign(mode string, showSignDetail bool, wif string, msg string,showDetails bool){
+	decoded,compressed,err := DecodeWIF(wif)
 	if err!= nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	privateKey,_ := ecc.Secp256k1.PrivKeyFromBytes(decoded)
 
-	msgHash := buildMsgHash(mode,msg)
+	msgHash := BuildMsgHash(mode,msg)
 	//
 	r,s, err :=ecc.Secp256k1.Sign(privateKey,msgHash)
 	if err!=nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	// got the der signature
 	sigHex := ecc.Secp256k1.NewSignature(r,s).Serialize()
 
 	sign_c, err := secp256k1.SignCompact(secp256k1.NewPrivateKey(privateKey.GetD()),msgHash,compressed)
 	if err!=nil {
-		errExit(err)
+		ErrExit(err)
 	}
 
 	if showDetails {

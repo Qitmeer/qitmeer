@@ -1,43 +1,43 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
-package main
+package qx
 
 import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/common/encode/rlp"
 	"io"
 	"strings"
-	"github.com/HalalChain/qitmeer-lib/common/encode/rlp"
 )
 
-func rlpEncode(input string) {
+func RlpEncode(input string) {
 	var f interface{}
 	err := json.Unmarshal([]byte(input), &f)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	b, err := rlp.EncodeToBytes(f)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	fmt.Printf("%x\n",b)
 }
 
-func rlpDecode(input string) {
+func RlpDecode(input string) {
 	data, err := hex.DecodeString(input)
 	if err!=nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	r := bytes.NewReader(data)
 	s := rlp.NewStream(r, 0)
 	var buffer bytes.Buffer
 	for {
-		if _, err := dump(s,0,&buffer); err != nil {
+		if _, err := Dump(s,0,&buffer); err != nil {
 			if err != io.EOF {
-				errExit(err)
+				ErrExit(err)
 			}
 			break
 		}
@@ -45,7 +45,7 @@ func rlpDecode(input string) {
 	}
 }
 
-func dump(s *rlp.Stream, depth int, buffer *bytes.Buffer) (*bytes.Buffer, error) {
+func Dump(s *rlp.Stream, depth int, buffer *bytes.Buffer) (*bytes.Buffer, error) {
 	kind, size, err := s.Kind()
 	if err != nil {
 		return buffer,err
@@ -56,21 +56,21 @@ func dump(s *rlp.Stream, depth int, buffer *bytes.Buffer) (*bytes.Buffer, error)
 		if err != nil {
 			return buffer,err
 		}
-		if len(str) == 0 || isASCII(str) {
+		if len(str) == 0 || IsASCII(str) {
 
-			buffer.WriteString(fmt.Sprintf("%s%q", ws(depth), str))
+			buffer.WriteString(fmt.Sprintf("%s%q", Ws(depth), str))
 		} else {
-			buffer.WriteString(fmt.Sprintf("%s%x", ws(depth), str))
+			buffer.WriteString(fmt.Sprintf("%s%x", Ws(depth), str))
 		}
 	case rlp.List:
 		s.List()
 		defer s.ListEnd()
 		if size == 0 {
-			buffer.WriteString(fmt.Sprint(ws(depth) + "[]"))
+			buffer.WriteString(fmt.Sprint(Ws(depth) + "[]"))
 		} else {
-			buffer.WriteString(fmt.Sprintln(ws(depth) + "["))
+			buffer.WriteString(fmt.Sprintln(Ws(depth) + "["))
 			for i := 0; ; i++ {
-				if buff, err := dump(s, depth+1,buffer); err == rlp.EOL {
+				if buff, err := Dump(s, depth+1,buffer); err == rlp.EOL {
 					buff.Truncate(buff.Len() - 2)  //remove the last comma
 					buff.WriteString("\n")
 					break
@@ -80,13 +80,13 @@ func dump(s *rlp.Stream, depth int, buffer *bytes.Buffer) (*bytes.Buffer, error)
 					buff.WriteString(",\n")
 				}
 			}
-			buffer.WriteString(fmt.Sprint(ws(depth) + "]"))
+			buffer.WriteString(fmt.Sprint(Ws(depth) + "]"))
 		}
 	}
 	return buffer,nil
 }
 
-func isASCII(b []byte) bool {
+func IsASCII(b []byte) bool {
 	for _, c := range b {
 		if c < 32 || c > 126 {
 			return false
@@ -95,6 +95,6 @@ func isASCII(b []byte) bool {
 	return true
 }
 
-func ws(n int) string {
+func Ws(n int) string {
 	return strings.Repeat("  ", n)
 }

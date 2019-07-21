@@ -1,7 +1,7 @@
-// Copyright 2017-2018 The nox developers
+// Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
-package main
+package qx
 
 import (
 	"crypto"
@@ -12,58 +12,58 @@ import (
 	"github.com/HalalChain/qitmeer-lib/common/hash/dcr"
 )
 
-func sha256(input string){
+func Sha256(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	fmt.Printf("%x\n",btc.HashB(data))
 }
 
-func blake256(input string){
+func Blake256(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	fmt.Printf("%x\n",dcr.HashB(data))
 }
 
-func blake2b256(input string){
+func Blake2b256(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	fmt.Printf("%x\n",hash.HashB(data))
 }
 
-func blake2b512(input string){
+func Blake2b512(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	fmt.Printf("%x\n",hash.Hash512B(data))
 }
 
-func sha3_256(input string){
+func Sha3_256(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	fmt.Printf("%x\n",hash.CalcHash(data,hash.GetHasher(hash.SHA3_256)))
 }
 
-func keccak256(input string){
+func Keccak256(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	fmt.Printf("%x\n",hash.CalcHash(data,hash.GetHasher(hash.Keccak_256)))
 }
 
-func ripemd160(input string){
+func Ripemd160(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	hasher := crypto.RIPEMD160.New()
 	hasher.Write(data)
@@ -71,18 +71,18 @@ func ripemd160(input string){
 	fmt.Printf("%x\n",hash[:])
 }
 
-func bitcoin160(input string){
+func Bitcoin160(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	fmt.Printf("%x\n",btc.Hash160(data))
 }
 
-func hash160(input string){
+func Hash160(input string){
 	data, err :=hex.DecodeString(input)
 	if err != nil {
-		errExit(err)
+		ErrExit(err)
 	}
 	fmt.Printf("%x\n",hash.Hash160(data))
 }
