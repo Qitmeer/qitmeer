@@ -31,6 +31,6 @@ func EcPubKeyToAddress(version string, pubkey string) (string, error) {
 	}
 	h := hash.Hash160(data)
 
-	address := base58.NoxCheckEncode(h, ver[:])
+	address := base58.QitmeerCheckEncode(h, ver[:])
 	return address, nil
 }
