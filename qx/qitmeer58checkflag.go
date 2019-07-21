@@ -24,7 +24,7 @@ func (n *QitmeerBase58checkVersionFlag) Set(s string) error {
 	default:
 		v, err := hex.DecodeString(s)
 		if err!=nil {
-			ErrExit(err)
+			return err
 		}
 		n.Ver = append(n.Ver,v...)
 	}

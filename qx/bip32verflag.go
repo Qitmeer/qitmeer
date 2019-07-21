@@ -16,16 +16,12 @@ var (
 )
 
 type Bip32VersionFlag struct {
-	version bip32.Bip32Version
+	Version bip32.Bip32Version
 	flag    string
 }
 
 func (v *Bip32VersionFlag) String() string {
 	return v.flag
-}
-
-func (v *Bip32VersionFlag) Version() bip32.Bip32Version {
-	return v.version
 }
 
 func (v *Bip32VersionFlag) Set(versionFlag string) error {
@@ -42,22 +38,21 @@ func (v *Bip32VersionFlag) Set(versionFlag string) error {
 	default:
 		return fmt.Errorf("unknown bip32 version flag %s", versionFlag)
 	}
-	v.version = version
+	v.Version = version
 	v.flag = versionFlag
 	return nil
 }
 
 func GetBip32NetworkInfo(rawVersionByte []byte) string {
 	if QitmeerMainnetBip32Version.IsPrivkeyVersion(rawVersionByte) || QitmeerMainnetBip32Version.IsPubkeyVersion(rawVersionByte) {
-		return "qitmeer mainet"
+		return "qx mainet"
 	} else if QitmeerTestnetBip32Version.IsPrivkeyVersion(rawVersionByte) || QitmeerTestnetBip32Version.IsPubkeyVersion(rawVersionByte) {
-		return "qitmeer testnet"
+		return "qx testnet"
 	} else if QitmeerPrivnetBip32Version.IsPrivkeyVersion(rawVersionByte) || QitmeerPrivnetBip32Version.IsPubkeyVersion(rawVersionByte) {
-		return "qitmeer privnet"
+		return "qx privnet"
 	} else if bip32.DefaultBip32Version.IsPrivkeyVersion(rawVersionByte) || bip32.DefaultBip32Version.IsPubkeyVersion(rawVersionByte) {
 		return "btc mainnet"
 	} else {
 		return "unknown"
 	}
 }
-

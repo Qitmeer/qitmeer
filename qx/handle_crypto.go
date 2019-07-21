@@ -12,58 +12,58 @@ import (
 	"github.com/HalalChain/qitmeer-lib/crypto/bip39"
 	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
 	"github.com/HalalChain/qitmeer-lib/crypto/seed"
+	"github.com/HalalChain/qitmeer-lib/qx"
 	"github.com/HalalChain/qitmeer-lib/wallet"
 	"strconv"
 )
 
 func NewEntropy(size uint) {
-	s,err :=seed.GenerateSeed(uint16(size))
-	if err!=nil {
+	s, err := seed.GenerateSeed(uint16(size))
+	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",s)
+	fmt.Printf("%x\n", s)
 }
 
-func HdNewMasterPrivateKey(version bip32.Bip32Version, entropyStr string){
+func HdNewMasterPrivateKey(version bip32.Bip32Version, entropyStr string) {
 	entropy, err := hex.DecodeString(entropyStr)
-	if err!=nil {
+	if err != nil {
 		ErrExit(err)
 	}
-	masterKey, err := bip32.NewMasterKey2(entropy,version)
-	if err !=nil {
+	masterKey, err := bip32.NewMasterKey2(entropy, version)
+	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%s\n",masterKey)
+	fmt.Printf("%s\n", masterKey)
 }
 
-func HdPrivateKeyToHdPublicKey(version bip32.Bip32Version,privateKeyStr string){
+func HdPrivateKeyToHdPublicKey(version bip32.Bip32Version, privateKeyStr string) {
 	data := base58.Decode(privateKeyStr)
-	masterKey, err :=bip32.Deserialize2(data,version)
-	if err !=nil {
+	masterKey, err := bip32.Deserialize2(data, version)
+	if err != nil {
 		ErrExit(err)
 	}
-	if ! masterKey.IsPrivate {
-		ErrExit(fmt.Errorf("%s is not a HD (BIP32) private key",privateKeyStr))
+	if !masterKey.IsPrivate {
+		ErrExit(fmt.Errorf("%s is not a HD (BIP32) private key", privateKeyStr))
 	}
 	pubKey := masterKey.PublicKey()
-	fmt.Printf("%s\n",pubKey)
+	fmt.Printf("%s\n", pubKey)
 }
 
-func HdKeyToEcKey(version bip32.Bip32Version,keyStr string) {
+func HdKeyToEcKey(version bip32.Bip32Version, keyStr string) {
 	data := base58.Decode(keyStr)
-	key, err := bip32.Deserialize2(data,version)
+	key, err := bip32.Deserialize2(data, version)
 	if err != nil {
 		ErrExit(err)
 	}
 	if key.IsPrivate {
-		fmt.Printf("%x\n",key.Key[:])
-	}else{
-		fmt.Printf("%x\n",key.PublicKey().Key[:])
+		fmt.Printf("%x\n", key.Key[:])
+	} else {
+		fmt.Printf("%x\n", key.PublicKey().Key[:])
 	}
 }
 
-
-const bip32_ByteSize = 78+4
+const bip32_ByteSize = 78 + 4
 
 // The Serialization format of BIP32 Key
 // https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
@@ -76,25 +76,25 @@ const bip32_ByteSize = 78+4
 // 32 bytes: the chain code
 // 33 bytes: the public key or private key data (serP(K) for public keys, 0x00 || ser256(k) for private keys)
 //  4 bytes: checksum
-func HdDecode(keyStr string){
+func HdDecode(keyStr string) {
 	data := base58.Decode(keyStr)
 	if len(data) != bip32_ByteSize {
-		ErrExit(fmt.Errorf("invalid bip32 key size (%d), the size hould be %d",len(data),bip32_ByteSize))
+		ErrExit(fmt.Errorf("invalid bip32 key size (%d), the size hould be %d", len(data), bip32_ByteSize))
 	}
-	fmt.Printf("   version : %x (%s)\n",data[:4], GetBip32NetworkInfo(data[:4]))
-	fmt.Printf("     depth : %x\n",data[4:4+1])
-	fmt.Printf(" parent fp : %x\n",data[5:5+4])
-	childNumber,err := strconv.ParseInt(fmt.Sprintf("%x",data[9:9+4]),16,64)
-	if err!=nil {
+	fmt.Printf("   version : %x (%s)\n", data[:4], GetBip32NetworkInfo(data[:4]))
+	fmt.Printf("     depth : %x\n", data[4:4+1])
+	fmt.Printf(" parent fp : %x\n", data[5:5+4])
+	childNumber, err := strconv.ParseInt(fmt.Sprintf("%x", data[9:9+4]), 16, 64)
+	if err != nil {
 		ErrExit(err)
 	}
 	hardened := childNumber >= 0x80000000
-	fmt.Printf("  hardened : %v\n",hardened)
+	fmt.Printf("  hardened : %v\n", hardened)
 	if hardened {
 		childNumber -= 0x80000000
 	}
-	fmt.Printf(" child num : %d (%x)\n",childNumber,data[9:9+4])
-	fmt.Printf("chain code : %x\n",data[13:13+32])
+	fmt.Printf(" child num : %d (%x)\n", childNumber, data[9:9+4])
+	fmt.Printf("chain code : %x\n", data[13:13+32])
 	if keyStr[1:4] == "pub" {
 		// the pub key should be 33 bytes,
 		// the first byte 0x02 means y is even,
@@ -106,39 +106,39 @@ func HdDecode(keyStr string){
 		case 0x03:
 			oldOrEven = "odd"
 		default:
-			ErrExit(fmt.Errorf("invaid pub key [%x][%x]",data[45:46], data[46:46+32]))
+			ErrExit(fmt.Errorf("invaid pub key [%x][%x]", data[45:46], data[46:46+32]))
 		}
-		fmt.Printf("   pub key : [%x][%x] y=%s\n", data[45:46],data[46:46+32],oldOrEven)
-	}else {
+		fmt.Printf("   pub key : [%x][%x] y=%s\n", data[45:46], data[46:46+32], oldOrEven)
+	} else {
 		//the prv key should be 32 bytes, the first byte always 0x00
-		fmt.Printf("   prv key : [%x][%x]\n", data[45:46],data[46:46+32])
+		fmt.Printf("   prv key : [%x][%x]\n", data[45:46], data[46:46+32])
 	}
-	fmt.Printf("  checksum : %x\n",data[78:78+4])
-	fmt.Printf("       hex : %x\n",data[:78+4])
-	fmt.Printf("    base58 : %s\n",keyStr)
+	fmt.Printf("  checksum : %x\n", data[78:78+4])
+	fmt.Printf("       hex : %x\n", data[:78+4])
+	fmt.Printf("    base58 : %s\n", keyStr)
 
 }
 
-func HdDerive(hard bool, index uint32, path wallet.DerivationPath, version bip32.Bip32Version, key string){
+func HdDerive(hard bool, index uint32, path wallet.DerivationPath, version bip32.Bip32Version, key string) {
 	data := base58.Decode(key)
 	if len(data) != bip32_ByteSize {
-		ErrExit(fmt.Errorf("invalid bip32 key size (%d), the size hould be %d",len(data),bip32_ByteSize))
+		ErrExit(fmt.Errorf("invalid bip32 key size (%d), the size hould be %d", len(data), bip32_ByteSize))
 	}
-	mKey, err :=bip32.Deserialize2(data,version)
-	if err!=nil {
+	mKey, err := bip32.Deserialize2(data, version)
+	if err != nil {
 		ErrExit(err)
 	}
 	var childKey *bip32.Key
-	if path.String() != "m"  {
+	if path.String() != "m" {
 		var ck = mKey
-		for _,i := range path{
+		for _, i := range path {
 			ck, err = ck.NewChildKey(i)
-			if err!=nil{
+			if err != nil {
 				ErrExit(err)
 			}
 		}
 		childKey = ck
-	}else {
+	} else {
 		if hard {
 			childKey, err = mKey.NewChildKey(bip32.FirstHardenedChild + index)
 		} else {
@@ -148,129 +148,110 @@ func HdDerive(hard bool, index uint32, path wallet.DerivationPath, version bip32
 			ErrExit(err)
 		}
 	}
-	fmt.Printf("%s\n",childKey)
+	fmt.Printf("%s\n", childKey)
 }
-
 
 func MnemonicNew(entropyStr string) {
 	entropy, err := hex.DecodeString(entropyStr)
-	if err!=nil {
+	if err != nil {
 		ErrExit(err)
 	}
 	mnemonic, err := bip39.NewMnemonic(entropy)
-	if err!=nil {
+	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%s\n",mnemonic)
+	fmt.Printf("%s\n", mnemonic)
 }
 
 func MnemonicToEntropy(mnemonicStr string) {
-	entropy, err :=bip39.EntropyFromMnemonic(mnemonicStr)
-	if err!=nil {
+	entropy, err := bip39.EntropyFromMnemonic(mnemonicStr)
+	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",entropy)
+	fmt.Printf("%x\n", entropy)
 }
 
 func MnemonicToSeed(passphrase string, mnemonicStr string) {
-	seed, err :=bip39.NewSeedWithErrorChecking(mnemonicStr, passphrase)
-	if err!=nil {
+	seed, err := bip39.NewSeedWithErrorChecking(mnemonicStr, passphrase)
+	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",seed)
+	fmt.Printf("%x\n", seed)
 }
 
-func EcNew(curve string, entropyStr string){
-	entropy, err := hex.DecodeString(entropyStr)
-	if err!=nil {
+func EcNew(curve string, entropyStr string) {
+	pk, err := qx.EcNew(curve, entropyStr)
+	if err != nil {
 		ErrExit(err)
 	}
-	switch curve {
-	case "secp256k1":
-		masterKey,err := bip32.NewMasterKey(entropy)
-		if err!=nil {
-			ErrExit(err)
-		}
-		fmt.Printf("%x\n",masterKey.Key[:])
-	default:
-		ErrExit(fmt.Errorf("unknown curve : %s",curve))
-	}
+	fmt.Printf("%s\n", pk)
 }
 
 func EcPrivateKeyToEcPublicKey(uncompressed bool, privateKeyStr string) {
-	data, err := hex.DecodeString(privateKeyStr)
-	if err!=nil {
+	key, err := qx.EcPrivateKeyToEcPublicKey(uncompressed, privateKeyStr)
+	if err != nil {
 		ErrExit(err)
 	}
-	_, pubKey := ecc.Secp256k1.PrivKeyFromBytes(data)
-	var key []byte
-	if uncompressed {
-		key = pubKey.SerializeUncompressed()
-	}else {
-		key = pubKey.SerializeCompressed()
-	}
-	fmt.Printf("%x\n",key[:])
+	fmt.Printf("%s\n", key)
 }
 
 func EcPrivateKeyToWif(uncompressed bool, privateKeyStr string) {
 	data, err := hex.DecodeString(privateKeyStr)
-	if err!=nil {
+	if err != nil {
 		ErrExit(err)
 	}
 	privkey, _ := ecc.Secp256k1.PrivKeyFromBytes(data)
 	var key []byte
 	if uncompressed {
 		key = privkey.Serialize()
-	}else {
+	} else {
 		key = privkey.Serialize()
-		key = append(key,[]byte{0x01}...)
+		key = append(key, []byte{0x01}...)
 	}
 	cksumfunc := base58.DoubleHashChecksumFunc(hash.GetHasher(hash.SHA256), 4)
 	encoded := base58.CheckEncode(key, []byte{0x80}, 4, cksumfunc)
-	fmt.Printf("%s\n",encoded)
+	fmt.Printf("%s\n", encoded)
 }
 
 func WifToEcPrivateKey(wif string) {
-	decoded,_,err := DecodeWIF(wif)
-	if err!= nil {
+	decoded, _, err := DecodeWIF(wif)
+	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",decoded)
+	fmt.Printf("%x\n", decoded)
 }
 
-func DecodeWIF(wif string) ([]byte,bool, error){
+func DecodeWIF(wif string) ([]byte, bool, error) {
 	cksumfunc := base58.DoubleHashChecksumFunc(hash.GetHasher(hash.SHA256), 4)
-	decoded, version, err := base58.CheckDecode(wif,1, 4,cksumfunc)
-	compressed :=false
+	decoded, version, err := base58.CheckDecode(wif, 1, 4, cksumfunc)
+	compressed := false
 	if err != nil {
-		return nil,compressed,err
+		return nil, compressed, err
 	}
 	if len(version) != 1 && version[0] != 0x80 {
-		return nil, compressed,fmt.Errorf("incorrect wif version %x, should be 0x80",version)
+		return nil, compressed, fmt.Errorf("incorrect wif version %x, should be 0x80", version)
 	}
 	if len(decoded) == 32 {
-		return decoded[:],compressed,nil
-	}else if len(decoded) == 33 && decoded[32] == 0x01 {
+		return decoded[:], compressed, nil
+	} else if len(decoded) == 33 && decoded[32] == 0x01 {
 		compressed = true
-		return decoded[:32],compressed,nil
-	}else{
-		return nil,compressed,fmt.Errorf("incorrect wif length")
+		return decoded[:32], compressed, nil
+	} else {
+		return nil, compressed, fmt.Errorf("incorrect wif length")
 	}
 }
 
 func WifToEcPubkey(uncompressed bool, wif string) {
-	decoded,_,err := DecodeWIF(wif)
-	if err!= nil {
+	decoded, _, err := DecodeWIF(wif)
+	if err != nil {
 		ErrExit(err)
 	}
 	_, pubKey := ecc.Secp256k1.PrivKeyFromBytes(decoded)
 	var key []byte
 	if uncompressed {
 		key = pubKey.SerializeUncompressed()
-	}else {
+	} else {
 		key = pubKey.SerializeCompressed()
 	}
-	fmt.Printf("%x\n",key[:])
+	fmt.Printf("%x\n", key[:])
 }
-
-
