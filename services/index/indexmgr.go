@@ -86,6 +86,8 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		}
 	}
 
+	bestOrder := uint32(chain.BestSnapshot().Order)
+
 	// Rollback indexes to the main chain if their tip is an orphaned fork.
 	// This is fairly unlikely, but it can happen if the chain is
 	// reorganized while the index is disabled.  This has to be done in
@@ -105,17 +107,47 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		}
 
 		// Nothing to do if the index does not have any entries yet.
-		if order == 0 {
+		if order == math.MaxUint32 {
 			continue
 		}
-
+		var block *types.SerializedBlock
+		var view *blockchain.UtxoViewpoint
+		for order>bestOrder {
+			err = m.db.Update(func(dbTx database.Tx) error {
+				// Load the block for the height since it is required to index
+				// it.
+				block, err = blockchain.DBFetchBlockByOrder(dbTx, uint64(order))
+				if err != nil {
+					return err
+				}
+				if indexNeedsInputs(indexer) {
+					view, err = makeUtxoView(dbTx, block, interrupt)
+					if err != nil {
+						return err
+					}
+				}
+				err=m.dbIndexDisconnectBlock(dbTx,indexer,block,view)
+				if err != nil {
+					return err
+				}
+				log.Trace(fmt.Sprintf("%s rollback order= %d",indexer.Name(),order))
+				order--
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+			if interruptRequested(interrupt) {
+				return errInterruptRequested
+			}
+		}
 	}
 
 	// Fetch the current tip heights for each index along with tracking the
 	// lowest one so the catchup code only needs to start at the earliest
 	// block and is able to skip connecting the block for the indexes that
 	// don't need it.
-	bestOrder := uint32(chain.BestSnapshot().Order)
+
 	lowestOrder := int64(bestOrder)
 	indexerOrders := make([]int64, len(m.enabledIndexes))
 	err = m.db.View(func(dbTx database.Tx) error {
