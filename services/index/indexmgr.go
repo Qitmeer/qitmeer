@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/common/math"
 	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer/core/dbnamespace"
 	"github.com/HalalChain/qitmeer-lib/core/types"
@@ -115,8 +116,8 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	// block and is able to skip connecting the block for the indexes that
 	// don't need it.
 	bestOrder := uint32(chain.BestSnapshot().Order)
-	lowestOrder := bestOrder
-	indexerOrders := make([]uint32, len(m.enabledIndexes))
+	lowestOrder := int64(bestOrder)
+	indexerOrders := make([]int64, len(m.enabledIndexes))
 	err = m.db.View(func(dbTx database.Tx) error {
 		for i, indexer := range m.enabledIndexes {
 			idxKey := indexer.Key()
@@ -126,9 +127,13 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			}
 			log.Debug(fmt.Sprintf("Current %s tip", indexer.Name()),
 				"order", order, "hash", h)
-			indexerOrders[i] = order
-			if order < lowestOrder {
-				lowestOrder = order
+
+			if order == math.MaxUint32 {
+				lowestOrder = -1
+				indexerOrders[i] = -1
+			}else if int64(order) < lowestOrder {
+				lowestOrder = int64(order)
+				indexerOrders[i] = int64(order)
 			}
 		}
 		return nil
@@ -138,7 +143,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	}
 
 	// Nothing to index if all of the indexes are caught up.
-	if lowestOrder == bestOrder {
+	if lowestOrder == int64(bestOrder) {
 		return nil
 	}
 
@@ -151,7 +156,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	log.Info(fmt.Sprintf("Catching up indexes from order %d to %d", lowestOrder,
 		bestOrder))
 
-	for order := lowestOrder + 1; order <= bestOrder; order++ {
+	for order := lowestOrder + 1; order <= int64(bestOrder); order++ {
 		if interruptRequested(interrupt) {
 			return errInterruptRequested
 		}
@@ -340,8 +345,7 @@ func (m *Manager) maybeCreateIndexes(dbTx database.Tx) error {
 
 		// Set the tip for the index to values which represent an
 		// uninitialized index (the genesis block hash and height).
-		genesisBlockHash := m.params.GenesisBlock.BlockHash()
-		err := dbPutIndexerTip(dbTx, idxKey, &genesisBlockHash, 0)
+		err := dbPutIndexerTip(dbTx, idxKey, &hash.ZeroHash, math.MaxUint32)
 		if err != nil {
 			return err
 		}
@@ -432,12 +436,10 @@ func (m *Manager) dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, bloc
 			curTipHash, block.Hash()))
 		return nil
 	}
-
-	if order==0 {
-		log.Warn(fmt.Sprintf("Can't disconnect genesis block"))
+	if order==math.MaxUint32 {
+		log.Warn(fmt.Sprintf("Can't disconnect root index tip"))
 		return nil
 	}
-
 	// Notify the indexer with the disconnected block so it can remove all
 	// of the appropriate entries.
 	if err := indexer.DisconnectBlock(dbTx, block, view); err != nil {
@@ -447,12 +449,11 @@ func (m *Manager) dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, bloc
 	// Update the current index tip.
 	var prevHash *hash.Hash
 	var preOrder uint32
-	if order<=1 {
-		h:=m.params.GenesisBlock.BlockHash()
-		prevHash=&h
-		preOrder=0
+	if order==0 {
+		prevHash=&hash.ZeroHash
+		preOrder=math.MaxUint32
 	}else{
-		prevHash,err=dbFetchBlockHashByID(dbTx,order-1)
+		prevHash,err=dbFetchBlockHashByID(dbTx,order)
 		if err != nil {
 			return err
 		}
@@ -474,7 +475,8 @@ func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seriali
 	if err != nil {
 		return err
 	}
-	if order+1!=uint32(block.Order()) {
+	if order != math.MaxUint32 && order+1 != uint32(block.Order()) ||
+		order == math.MaxUint32 && block.Order() != 0 {
 
 		log.Warn(fmt.Sprintf("dbIndexConnectBlock must be "+
 			"called with a block that extends the current index "+
