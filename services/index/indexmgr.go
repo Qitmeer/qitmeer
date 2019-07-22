@@ -4,16 +4,15 @@ package index
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/common/math"
-	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/core/dbnamespace"
 	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer-lib/log"
 	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/dbnamespace"
+	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/services/common/progresslog"
 )
 
@@ -330,18 +329,9 @@ func (m *Manager) maybeFinishDrops(interrupt <-chan struct{}) error {
 		}
 
 		log.Info(fmt.Sprintf("Resuming %s drop", indexer.Name()))
-
-		switch d := indexer.(type) {
-		case IndexDropper:
-			err := d.DropIndex(m.db, interrupt)
-			if err != nil {
-				return err
-			}
-		default:
-			err := dropIndex(m.db, indexer.Key(), indexer.Name())
-			if err != nil {
-				return err
-			}
+		err := dropIndex(m.db, indexer.Key(), indexer.Name(), interrupt)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -601,13 +591,125 @@ func indexDropKey(idxKey []byte) []byte {
 	return dropKey
 }
 
-// dropFlatIndex incrementally drops the passed index from the database.  Since
-// indexes can be massive, it deletes the index in multiple database
-// transactions in order to keep memory usage to reasonable levels.  For this
-// algorithm to work, the index must be "flat" (have no nested buckets).  It
-// also marks the drop in progress so the drop can be resumed if it is stopped
-// before it is done before the index can be used again.
-func dropFlatIndex(db database.DB, idxKey []byte, idxName string, interrupt <-chan struct{}) error {
+// incrementalFlatDrop uses multiple database updates to remove key/value pairs
+// saved to a flat index.
+func incrementalFlatDrop(db database.DB, idxKey []byte, idxName string, interrupt <-chan struct{}) error {
+	// Since the indexes can be so large, attempting to simply delete
+	// the bucket in a single database transaction would result in massive
+	// memory usage and likely crash many systems due to ulimits.  In order
+	// to avoid this, use a cursor to delete a maximum number of entries out
+	// of the bucket at a time. Recurse buckets depth-first to delete any
+	// sub-buckets.
+	const maxDeletions = 2000000
+	var totalDeleted uint64
+
+	// Recurse through all buckets in the index, cataloging each for
+	// later deletion.
+	var subBuckets [][][]byte
+	var subBucketClosure func(database.Tx, []byte, [][]byte) error
+	subBucketClosure = func(dbTx database.Tx,
+		subBucket []byte, tlBucket [][]byte) error {
+		// Get full bucket name and append to subBuckets for later
+		// deletion.
+		var bucketName [][]byte
+		if (tlBucket == nil) || (len(tlBucket) == 0) {
+			bucketName = append(bucketName, subBucket)
+		} else {
+			bucketName = append(tlBucket, subBucket)
+		}
+		subBuckets = append(subBuckets, bucketName)
+		// Recurse sub-buckets to append to subBuckets slice.
+		bucket := dbTx.Metadata()
+		for _, subBucketName := range bucketName {
+			bucket = bucket.Bucket(subBucketName)
+		}
+		return bucket.ForEachBucket(func(k []byte) error {
+			return subBucketClosure(dbTx, k, bucketName)
+		})
+	}
+
+	// Call subBucketClosure with top-level bucket.
+	err := db.View(func(dbTx database.Tx) error {
+		return subBucketClosure(dbTx, idxKey, nil)
+	})
+	if err != nil {
+		return nil
+	}
+
+	// Iterate through each sub-bucket in reverse, deepest-first, deleting
+	// all keys inside them and then dropping the buckets themselves.
+	for i := range subBuckets {
+		bucketName := subBuckets[len(subBuckets)-1-i]
+		// Delete maxDeletions key/value pairs at a time.
+		for numDeleted := maxDeletions; numDeleted == maxDeletions; {
+			numDeleted = 0
+			err := db.Update(func(dbTx database.Tx) error {
+				subBucket := dbTx.Metadata()
+				for _, subBucketName := range bucketName {
+					subBucket = subBucket.Bucket(subBucketName)
+				}
+				cursor := subBucket.Cursor()
+				for ok := cursor.First(); ok; ok = cursor.Next() &&
+					numDeleted < maxDeletions {
+
+					if err := cursor.Delete(); err != nil {
+						return err
+					}
+					numDeleted++
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+
+			if numDeleted > 0 {
+				totalDeleted += uint64(numDeleted)
+				log.Info(fmt.Sprintf("Deleted %d keys (%d total) from %s",
+					numDeleted, totalDeleted, idxName))
+			}
+		}
+
+		if interruptRequested(interrupt) {
+			return errInterruptRequested
+		}
+
+		// Drop the bucket itself.
+		err = db.Update(func(dbTx database.Tx) error {
+			bucket := dbTx.Metadata()
+			for j := 0; j < len(bucketName)-1; j++ {
+				bucket = bucket.Bucket(bucketName[j])
+			}
+			return bucket.DeleteBucket(bucketName[len(bucketName)-1])
+		})
+	}
+	return nil
+}
+
+// dropIndexMetadata drops the passed index from the database by removing the
+// top level bucket for the index, the index tip, and any in-progress drop flag.
+func dropIndexMetadata(db database.DB, idxKey []byte, idxName string) error {
+	return db.Update(func(dbTx database.Tx) error {
+		meta := dbTx.Metadata()
+		indexesBucket := meta.Bucket(dbnamespace.IndexTipsBucketName)
+		err := indexesBucket.Delete(idxKey)
+		if err != nil {
+			return err
+		}
+
+		err = meta.DeleteBucket(idxKey)
+		if err != nil && !database.IsError(err, database.ErrBucketNotFound) {
+			return err
+		}
+
+		return indexesBucket.Delete(indexDropKey(idxKey))
+	})
+}
+
+// dropIndex drops the passed index from the database without using incremental
+// deletion.  This should be used to drop indexes containing nested buckets,
+// which can not be deleted with dropFlatIndex.
+func dropIndex(db database.DB, idxKey []byte, idxName string, interrupt <-chan struct{}) error {
 	// Nothing to do if the index doesn't already exist.
 	exists, err := existsIndex(db, idxKey, idxName)
 	if err != nil {
@@ -639,98 +741,12 @@ func dropFlatIndex(db database.DB, idxKey []byte, idxName string, interrupt <-ch
 		return err
 	}
 
-	// Remove the index tip, index bucket, and in-progress drop flag now
-	// that all index entries have been removed.
-	err = dropIndexMetadata(db, idxKey, idxName)
-	if err != nil {
-		return err
-	}
-
-	log.Info(fmt.Sprintf("Dropped %s", idxName))
-	return nil
-}
-
-// incrementalFlatDrop uses multiple database updates to remove key/value pairs
-// saved to a flat index.
-func incrementalFlatDrop(db database.DB, idxKey []byte, idxName string, interrupt <-chan struct{}) error {
-	const maxDeletions = 2000000
-	var totalDeleted uint64
-	for numDeleted := maxDeletions; numDeleted == maxDeletions; {
-		numDeleted = 0
-		err := db.Update(func(dbTx database.Tx) error {
-			bucket := dbTx.Metadata().Bucket(idxKey)
-			cursor := bucket.Cursor()
-			for ok := cursor.First(); ok; ok = cursor.Next() &&
-				numDeleted < maxDeletions {
-
-				if err := cursor.Delete(); err != nil {
-					return err
-				}
-				numDeleted++
-			}
-			return nil
-		})
+	// Call extra index specific deinitialization for the transaction index.
+	if idxName == txIndexName {
+		err = dropBlockIDIndex(db)
 		if err != nil {
 			return err
 		}
-
-		if numDeleted > 0 {
-			totalDeleted += uint64(numDeleted)
-			log.Info(fmt.Sprintf("Deleted %d keys (%d total) from %s",
-				numDeleted, totalDeleted, idxName))
-		}
-
-		if interruptRequested(interrupt) {
-			return errors.New("interrupt requested")
-		}
-
-	}
-	return nil
-}
-
-// dropIndexMetadata drops the passed index from the database by removing the
-// top level bucket for the index, the index tip, and any in-progress drop flag.
-func dropIndexMetadata(db database.DB, idxKey []byte, idxName string) error {
-	return db.Update(func(dbTx database.Tx) error {
-		meta := dbTx.Metadata()
-		indexesBucket := meta.Bucket(dbnamespace.IndexTipsBucketName)
-		err := indexesBucket.Delete(idxKey)
-		if err != nil {
-			return err
-		}
-
-		err = meta.DeleteBucket(idxKey)
-		if err != nil && !database.IsError(err, database.ErrBucketNotFound) {
-			return err
-		}
-
-		return indexesBucket.Delete(indexDropKey(idxKey))
-	})
-}
-
-// dropIndex drops the passed index from the database without using incremental
-// deletion.  This should be used to drop indexes containing nested buckets,
-// which can not be deleted with dropFlatIndex.
-func dropIndex(db database.DB, idxKey []byte, idxName string) error {
-	// Nothing to do if the index doesn't already exist.
-	exists, err := existsIndex(db, idxKey, idxName)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		log.Info(fmt.Sprintf("Not dropping %s because it does not exist", idxName))
-		return nil
-	}
-
-	log.Info(fmt.Sprintf("Dropping all %s entries.  This might take a while...",
-		idxName))
-
-	// Mark that the index is in the process of being dropped so that it
-	// can be resumed on the next start if interrupted before the process is
-	// complete.
-	err = markIndexDeletion(db, idxKey)
-	if err != nil {
-		return err
 	}
 
 	// Remove the index tip, index bucket, and in-progress drop flag.  Removing
