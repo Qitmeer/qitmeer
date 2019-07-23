@@ -994,10 +994,5 @@ func NewAddrIndex(db database.DB, chainParams *params.Params) *AddrIndex {
 // DropAddrIndex drops the address index from the provided database if it
 // exists.
 func DropAddrIndex(db database.DB, interrupt <-chan struct{}) error {
-	return dropFlatIndex(db, addrIndexKey, addrIndexName, interrupt)
-}
-
-// DropIndex drops the address index from the provided database if it exists.
-func (*AddrIndex) DropIndex(db database.DB, interrupt <-chan struct{}) error {
-	return DropAddrIndex(db, interrupt)
+	return dropIndex(db, addrIndexKey, addrIndexName, interrupt)
 }

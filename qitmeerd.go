@@ -5,11 +5,13 @@
 package main
 
 import (
+	"fmt"
 	"github.com/HalalChain/qitmeer-lib/config"
 	"github.com/HalalChain/qitmeer-lib/log"
 	"github.com/HalalChain/qitmeer/database"
 	_ "github.com/HalalChain/qitmeer/database/ffldb"
 	"github.com/HalalChain/qitmeer/node"
+	"github.com/HalalChain/qitmeer/services/index"
 	"github.com/HalalChain/qitmeer/version"
 	"os"
 	"path/filepath"
@@ -50,7 +52,6 @@ func main() {
 // notified with the node once it is setup so it can gracefully stop it when
 // requested from the service control manager.
 func qitmeerdMain(nodeChan chan<- *node.Node) error {
-
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
 	tcfg, _, err := loadConfig()
@@ -86,6 +87,15 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 
 	// Return now if an interrupt signal was triggered.
 	if interruptRequested(interrupt) {
+		return nil
+	}
+	// Drop indexes and exit if requested.
+	if cfg.DropTxIndex {
+		if err := index.DropTxIndex(db, interrupt); err != nil {
+			log.Error(fmt.Sprintf("%v", err))
+			return err
+		}
+
 		return nil
 	}
 

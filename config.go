@@ -276,6 +276,16 @@ func loadConfig() (*config.Config, []string, error) {
 		log.PrintOrigins(true)
 	}
 
+	// --txindex and --droptxindex do not mix.
+	if cfg.TxIndex && cfg.DropTxIndex {
+		err := fmt.Errorf("%s: the --txindex and --droptxindex "+
+			"options may  not be activated at the same time",
+			funcName)
+		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, usageMessage)
+		return nil, nil, err
+	}
+
 	// Check mining addresses are valid and saved parsed versions.
 	for _, strAddr := range cfg.MiningAddrs {
 		addr, err := address.DecodeAddress(strAddr)
