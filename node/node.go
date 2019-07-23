@@ -205,7 +205,7 @@ func (n *Node) startRPC(services map[reflect.Type]Service) error {
 	}
 	// Generate the whitelist based on the allowed modules
 	whitelist := make(map[string]bool)
-	for _, module := range n.Config.HTTPModules {
+	for _, module := range n.Config.Modules {
 		whitelist[module] = true
 	}
 
