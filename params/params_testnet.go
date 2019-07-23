@@ -26,6 +26,7 @@ var TestNetParams = Params{
 		{"testnet-seed.qitmeer.io", true},
 		{"testnet-seed2.qitmeer.io", true},
 		{"testnet-seed3.qitmeer.io", true},
+		{"testnet-seed.hlcwallet.info", true},
 	},
 
 	// Chain parameters
