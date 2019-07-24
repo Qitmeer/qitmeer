@@ -614,7 +614,7 @@ func (a *AddrManager) AddressCache() []*types.NetAddress {
 	// Adjust length, we only deal with high quality addresses now.
 	addrLen = len(allAddr)
 
-	numAddresses := addrLen * getAddrPercent / 100
+	numAddresses := addrLen * a.getAddrPercent / 100
 	if numAddresses > getAddrMax {
 		numAddresses = getAddrMax
 	}
