@@ -214,13 +214,18 @@ func (b *BlockChain) findPrevTestNetDifficulty(startNode *blockNode) uint32 {
 	// the special rule applied.
 	blocksPerRetarget := uint64(b.params.WorkDiffWindowSize *
 		b.params.WorkDiffWindows)
-	iterNode := startNode
-	for iterNode != nil && iterNode.order%blocksPerRetarget != 0 &&
-		iterNode.bits == b.params.PowLimitBits {
-
-		iterNode = iterNode.GetForwardParent()
+	iterBlock:= b.bd.GetBlock(startNode.GetHash())
+	var iterNode *blockNode
+	for {
+		if iterBlock == nil ||
+			uint64(iterBlock.GetHeight())%blocksPerRetarget == 0{
+			break
+		}
+		iterNode=b.index.lookupNode(iterBlock.GetHash())
+		if iterNode.bits != b.params.PowLimitBits {
+			break
+		}
 	}
-
 	// Return the found difficulty or the minimum difficulty if no
 	// appropriate block was found.
 	lastBits := b.params.PowLimitBits
@@ -245,9 +250,9 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	// just return this.
 	oldDiff := curNode.bits
 	oldDiffBig := CompactToBig(curNode.bits)
-
+	curBlock:=b.bd.GetBlock(curNode.GetHash())
 	// We're not at a retarget point, return the oldDiff.
-	if int64(curNode.order+1)%b.params.WorkDiffWindowSize != 0 {
+	if int64(curBlock.GetHeight()+1)%b.params.WorkDiffWindowSize != 0 {
 		// For networks that support it, allow special reduction of the
 		// required difficulty once too much time has elapsed without
 		// mining a block.
@@ -360,7 +365,11 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 		// Get the previous node while staying at the genesis block as
 		// needed.
 		if oldNode.parents != nil {
-			oldNode = oldNode.GetForwardParent()
+			oldBlock:=b.bd.GetBlock(oldNode.GetHash())
+			oldMainParent:=b.bd.GetBlock(oldBlock.GetMainParent())
+			if oldMainParent != nil {
+				oldNode=b.index.lookupNode(oldMainParent.GetHash())
+			}
 		}
 	}
 
@@ -403,7 +412,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	// newTarget since conversion to the compact representation loses
 	// precision.
 	nextDiffBits := BigToCompact(nextDiffBig)
-	log.Debug("Difficulty retarget", "block height", curNode.order+1)
+	log.Debug("Difficulty retarget", "block main height", curBlock.GetHeight()+1)
 	log.Debug("Old target", "bits",fmt.Sprintf("%08x", curNode.bits),
 		"diff",fmt.Sprintf( "(%064x)",oldDiffBig))
 	log.Debug("New target", "bits",fmt.Sprintf("%08x", nextDiffBits),
@@ -432,7 +441,7 @@ func (b *BlockChain) CalcNextRequiredDiffFromNode(hash *hash.Hash, timestamp tim
 // This function is safe for concurrent access.
 func (b *BlockChain) CalcNextRequiredDifficulty(timestamp time.Time) (uint32, error) {
 	b.chainLock.Lock()
-	block:=b.bd.GetLastBlock()
+	block:=b.bd.GetMainChainTip()
 	node:=b.index.lookupNode(block.GetHash())
 	difficulty, err := b.calcNextRequiredDifficulty(node, timestamp)
 	b.chainLock.Unlock()

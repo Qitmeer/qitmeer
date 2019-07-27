@@ -103,7 +103,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	if !parents.IsEqual(tips) {
 		return fmt.Sprintf("The tips of block is expired."), nil
 	}
-
+	block.SetHeight(api.miner.blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight()+1)
 	// Process this block using the same rules as blocks coming from other
 	// nodes.  This will in turn relay it to the network like normal.
 	isOrphan, err := api.miner.blockManager.ProcessBlock(block, blockchain.BFNone)

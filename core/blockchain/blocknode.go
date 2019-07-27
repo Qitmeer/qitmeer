@@ -99,8 +99,11 @@ type blockNode struct {
 	// methods on blockIndex once the node has been added to the index.
 	status blockStatus
 
-	//order is in the position of whole block chain.(It is actually DAG order)
+	// order is in the position of whole block chain.(It is actually DAG order)
 	order    uint64
+
+	// height
+	height   uint
 }
 
 // newBlockNode returns a new block node for the given block header and parent
@@ -268,12 +271,22 @@ func (node *blockNode) GetOrder() uint64{
 	return node.order
 }
 
+func (node *blockNode) SetHeight(h uint) {
+	node.height=h
+}
+
+// return node height (Actually,it is order)
+func (node *blockNode) GetHeight() uint{
+	return node.height
+}
+
 func (node *blockNode) Clone() *blockNode{
 	header:=node.Header()
 	newNode := newBlockNode(&header,node.parents)
 	newNode.status = node.status
 	newNode.children=node.children
 	newNode.order=node.order
+	newNode.height=node.height
 	return newNode
 }
 

@@ -8,6 +8,7 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"time"
 	"math"
 	"math/big"
@@ -468,6 +469,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, prevNode *b
 	if prevNode == nil {
 		return nil
 	}
+	prevBlock:=b.bd.GetBlock(prevNode.GetHash())
 
 	// Perform all block header related validation checks.
 	header := &block.Block().Header
@@ -505,7 +507,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, prevNode *b
 
 		// The height of this block is one more than the referenced
 		// previous block.
-		blockHeight := uint64(b.BlockDAG().GetLayer(&prevNode.hash) + 1)
+		blockHeight := uint64(prevBlock.GetHeight() + 1)
 
 		// Ensure all transactions in the block are finalized and are
 		// not expired.
@@ -1226,7 +1228,9 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		return err
 	}
 	view := NewUtxoViewpoint()
-	view.SetBestHash(b.index.GetMaxOrderFromList(block.Block().Parents))
+	parentsSet:=dag.NewHashSet()
+	parentsSet.AddList(block.Block().Parents)
+	view.SetBestHash(b.bd.GetMainParent(parentsSet).GetHash())
 	tipsNode:=[]*blockNode{}
 
 	for _,v:=range block.Block().Parents{
@@ -1241,6 +1245,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	header := &block.Block().Header
 	newNode := newBlockNode(header, tipsNode)
 	newNode.order=block.Order()
+	newNode.SetHeight(block.Height())
 	err=b.checkConnectBlock(newNode, block, view, nil)
 	if err!=nil{
 		return err

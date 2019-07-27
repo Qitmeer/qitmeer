@@ -70,6 +70,9 @@ type IBlockDAG interface {
 
 	// return the tip of main chain
 	GetMainChainTip() IBlock
+
+	// return the main parent in the parents
+	GetMainParent(parents *dag.HashSet) IBlock
 }
 
 // The general foundation framework of DAG
@@ -338,6 +341,11 @@ func (bd *BlockDAG) IsOnMainChain(h *hash.Hash) bool {
 // return the tip of main chain
 func (bd *BlockDAG) GetMainChainTip() IBlock {
 	return bd.instance.GetMainChainTip()
+}
+
+// return the main parent in the parents
+func (bd *BlockDAG) GetMainParent(parents *dag.HashSet) IBlock {
+	return bd.instance.GetMainParent(parents)
 }
 
 // Return the layer of block,it is stable.

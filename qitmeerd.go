@@ -59,7 +59,11 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 		return err
 	}
 	cfg = tcfg
-
+	defer func() {
+		if logWrite != nil {
+			logWrite.Close()
+		}
+	}()
 	// Get a channel that will be closed when a shutdown signal has been
 	// triggered either from an OS signal such as SIGINT (Ctrl+C) or from
 	// another subsystem such as the RPC server.

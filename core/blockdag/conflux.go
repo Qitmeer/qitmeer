@@ -347,3 +347,8 @@ func (con *Conflux) IsOnMainChain(b IBlock) bool {
 func (con *Conflux) GetMainChainTip() IBlock {
 	return nil
 }
+
+// return the main parent in the parents
+func (con *Conflux) GetMainParent(parents *dag.HashSet) IBlock {
+	return nil
+}

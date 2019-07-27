@@ -9,6 +9,7 @@ package blockchain
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer/database"
@@ -131,11 +132,20 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		}
 		parentsNode = append(parentsNode, prevNode)
 	}
+	parentsSet:=dag.NewHashSet()
+	parentsSet.AddList(block.Block().Parents)
+	mainParent:=b.bd.GetMainParent(parentsSet)
+	if mainParent == nil {
+		return false,fmt.Errorf("Can't find main parent")
+	}
 	blockHeader := &block.Block().Header
 	newNode := newBlockNode(blockHeader, parentsNode)
+	newNode.SetHeight(mainParent.GetHeight())
+
+	block.SetHeight(newNode.GetHeight()+1)
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
-	err := b.checkBlockContext(block, newNode.GetBackParent(), flags)
+	err := b.checkBlockContext(block,b.index.lookupNode(mainParent.GetHash()), flags)
 	if err != nil {
 		return false, err
 	}
