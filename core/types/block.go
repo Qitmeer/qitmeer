@@ -384,6 +384,7 @@ type SerializedBlock struct {
 	transactions          []*Tx           // Transactions
 	txnsGenerated         bool            // ALL wrapped transactions generated
 	order                 uint64          //order is in the position of whole block chain.
+	height                uint            //height is in the main chain.
 }
 
 // NewBlock returns a new instance of the serialized block given an underlying Block.
@@ -520,8 +521,17 @@ func (sb *SerializedBlock) TxLoc() ([]TxLoc, error) {
 func (sb *SerializedBlock) Order() uint64 {
 	return sb.order
 }
+
 func (sb *SerializedBlock) SetOrder(order uint64) {
 	sb.order=order
+}
+
+func (sb *SerializedBlock) Height() uint {
+	return sb.height
+}
+
+func (sb *SerializedBlock) SetHeight(height uint) {
+	sb.height=height
 }
 
 // Transactions returns a slice of wrapped transactions for all
