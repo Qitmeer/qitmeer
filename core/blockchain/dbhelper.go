@@ -241,6 +241,7 @@ func (b *BlockChain) createChainState() error {
 	node.status = statusDataStored | statusValid
 	b.bd.AddBlock(node)
 	node.SetOrder(0)
+	node.SetHeight(0)
 	b.index.addNode(node)
 	// Initialize the state related to the best block.  Since it is the
 	// genesis block, use its timestamp for the median time.

@@ -434,3 +434,8 @@ func(ph *Phantom_v2) updateAntipastColoring() {
 func (ph *Phantom_v2) GetMainChainTip() IBlock {
 	return nil
 }
+
+// return the main parent in the parents
+func (ph *Phantom_v2) GetMainParent(parents *dag.HashSet) IBlock {
+	return nil
+}

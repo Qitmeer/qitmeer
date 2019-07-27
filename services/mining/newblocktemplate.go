@@ -111,9 +111,8 @@ func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Param
 	// Extend the most recently known best block.
 	// The most recently known best block is the top block that has the most
 	// TODO,refactor the poolsize & finalstate
-
-	best := blockManager.GetChain().BestSnapshot()
-	nextBlockHeight := best.Order + 1
+	best:=blockManager.GetChain().BestSnapshot()
+	nextBlockHeight := uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
 
 	// Get the current source transactions and create a priority queue to
 	// hold the transactions which are ready for inclusion into a block
@@ -640,8 +639,10 @@ mempoolLoop:
 	// Finally, perform a full check on the created block against the chain
 	// consensus rules to ensure it properly connects to the current best
 	// chain with no issues.
+
 	sblock := types.NewBlockDeepCopyCoinbase(&block)
-	sblock.SetOrder(nextBlockHeight)
+	sblock.SetOrder(best.Order+1)
+	sblock.SetHeight(uint(nextBlockHeight))
 	err = blockManager.GetChain().CheckConnectBlockTemplate(sblock)
 	if err != nil {
 		str := fmt.Sprintf("failed to do final check for check connect "+

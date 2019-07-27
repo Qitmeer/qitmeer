@@ -805,3 +805,8 @@ func (sp *Spectre) IsOnMainChain(b IBlock) bool {
 func (sp *Spectre) GetMainChainTip() IBlock {
 	return nil
 }
+
+// return the main parent in the parents
+func (sp *Spectre) GetMainParent(parents *dag.HashSet) IBlock {
+	return nil
+}

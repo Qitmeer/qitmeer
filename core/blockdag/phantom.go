@@ -479,6 +479,17 @@ func (ph *Phantom) GetMainChainTip() IBlock {
 	return ph.bd.GetBlock(ph.mainChain.tip)
 }
 
+// return the main parent in the parents
+func (ph *Phantom) GetMainParent(parents *dag.HashSet) IBlock {
+	if parents == nil || parents.IsEmpty() {
+		return nil
+	}
+	if parents.Size() == 1 {
+		return ph.getBlock(parents.List()[0])
+	}
+	return ph.getBluest(parents)
+}
+
 func (ph *Phantom) getBlock(h *hash.Hash) *PhantomBlock {
 	return ph.bd.GetBlock(h).(*PhantomBlock)
 }

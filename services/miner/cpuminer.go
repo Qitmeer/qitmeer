@@ -196,6 +196,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 		// true a solution was found, so submit the solved block.
 		if m.solveBlock(template.Block, ticker, nil) {
 			block := types.NewBlock(template.Block)
+			block.SetHeight(uint(template.Height))
 			m.submitBlock(block)
 			blockHashes[i] = block.Hash()
 			i++
@@ -403,7 +404,7 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 		coinbaseTxGenerated += out.Amount
 	}
 	log.Info("Block submitted accepted","hash",block.Hash(),
-		"height", block.Order(),"amount",coinbaseTxGenerated)
+		"order", block.Order(),"height", block.Height(),"amount",coinbaseTxGenerated)
 	return true
 }
 
@@ -657,6 +658,7 @@ out:
 		// true a solution was found, so submit the solved block.
 		if m.solveBlock(template.Block, ticker, quit) {
 			block := types.NewBlock(template.Block)
+			block.SetHeight(uint(template.Height))
 			m.submitBlock(block)
 			m.minedOnParents[template.Block.Header.ParentRoot]++
 		}
@@ -782,7 +784,7 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 		// true a solution was found, so submit the solved block.
 		if m.solveBlock(template.Block, ticker, nil) {
 			block := types.NewBlock(template.Block)
-			block.SetOrder(template.Height)
+			block.SetHeight(uint(template.Height))
 			//
 			_, err := m.blockManager.ProcessBlock(block, blockchain.BFNone)
 			if err == nil {
