@@ -10,7 +10,7 @@ import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 )
 
-func EcPubKeyToAddress2(version []byte, pubkey string) {
+func EcPubKeyToAddress(version []byte, pubkey string) {
 	data, err :=hex.DecodeString(pubkey)
 	if err != nil {
 		ErrExit(err)

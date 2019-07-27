@@ -990,7 +990,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecToAddrCmd.Usage()
 			}else{
-				qx.EcPubKeyToAddress2(base58checkVersion.Ver,os.Args[len(os.Args)-1])
+				qx.EcPubKeyToAddress(base58checkVersion.Ver,os.Args[len(os.Args)-1])
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -998,7 +998,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.EcPubKeyToAddress2(base58checkVersion.Ver,str)
+			qx.EcPubKeyToAddress(base58checkVersion.Ver,str)
 		}
 	}
 
