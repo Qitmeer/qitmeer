@@ -216,6 +216,11 @@ function get_peer_info(){
   get_result "$data"
 }
 
+function get_orphans_total(){
+  local data='{"jsonrpc":"2.0","method":"getOrphansTotal","params":[],"id":null}'
+  get_result "$data"
+}
+
 function get_result(){
   local proto="https"
   if [ $notls -eq 1 ]; then
@@ -276,6 +281,7 @@ function usage(){
   echo "  blockrange <start,end>"
   echo "  mainHeight"
   echo "  weight <hash>"
+  echo "  orphanstotal"
   echo "tx     :"
   echo "  tx <hash>"
   echo "  txSign <rawTx>"
@@ -552,6 +558,10 @@ elif [ "$1" == "nodeinfo" ]; then
 elif [ "$1" == "peerinfo" ]; then
   shift
   get_peer_info | jq .
+
+elif [ "$1" == "orphanstotal" ]; then
+  shift
+  get_orphans_total | jq .
 
 ## Tx
 elif [ "$1" == "tx" ]; then

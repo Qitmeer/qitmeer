@@ -252,3 +252,9 @@ func (api *PublicBlockAPI) GetBlockWeight(h hash.Hash) (interface{}, error){
 	}
 	return strconv.FormatInt(int64(types.GetBlockWeight(block.Block())),10),nil
 }
+
+// Return the total of orphans
+func (api *PublicBlockAPI) GetOrphansTotal() (interface{}, error) {
+	return api.bm.GetChain().GetOrphansTotal(),nil
+}
+
