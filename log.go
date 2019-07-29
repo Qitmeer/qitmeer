@@ -57,15 +57,15 @@ func (lw *logWriter) IsUseColor() bool {
 }
 
 func (lw *logWriter) Write(p []byte) (n int, err error) {
-	os.Stderr.Write(p)
 	if lw.logRotator != nil {
 		lw.logRotator.Write(p)
 	}
 
 	if lw.colorableWrite != nil {
 		lw.colorableWrite.Write(p)
+	}else{
+		os.Stderr.Write(p)
 	}
-
 	return len(p), nil
 }
 
