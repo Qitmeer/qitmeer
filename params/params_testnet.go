@@ -25,8 +25,8 @@ var TestNetParams = Params{
 	DNSSeeds: []DNSSeed{
 		{"testnet-seed.qitmeer.io", true},
 		{"testnet-seed2.qitmeer.io", true},
-		{"testnet-seed3.qitmeer.io", true},
 		{"testnet-seed.hlcwallet.info", true},
+		{"testnet-seed.qitmeer.xyz", true},
 	},
 
 	// Chain parameters
