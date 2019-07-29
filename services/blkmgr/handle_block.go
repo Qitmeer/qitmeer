@@ -24,6 +24,11 @@ const(
 // handleBlockMsg handles block messages from all peers.
 func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	log.Trace("handleBlockMsg called", "bmsg",bmsg)
+	sp, exists := b.peers[bmsg.peer.Peer]
+	if !exists {
+		log.Warn(fmt.Sprintf("Received block message from unknown peer %s", sp))
+		return
+	}
 	// If we didn't ask for this block then the peer is misbehaving.
 	blockHash := bmsg.block.Hash()
 	if _, exists := bmsg.peer.RequestedBlocks[*blockHash]; !exists {

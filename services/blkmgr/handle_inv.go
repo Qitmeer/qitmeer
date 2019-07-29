@@ -1,6 +1,7 @@
 package blkmgr
 
 import (
+	"fmt"
 	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 )
@@ -17,6 +18,11 @@ const (
 // handleInvMsg handles inv messages from all peers.
 // We examine the inventory advertised by the remote peer and act accordingly.
 func (b *BlockManager) handleInvMsg(imsg *invMsg) {
+	sp, exists := b.peers[imsg.peer.Peer]
+	if !exists {
+		log.Warn(fmt.Sprintf("Received inv message from unknown peer %s", sp))
+		return
+	}
 	// Attempt to find the final block in the inventory list.  There may
 	// not be one.
 	lastBlock := -1
