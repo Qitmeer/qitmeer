@@ -98,6 +98,7 @@ var testNetGenesisMerkleRoot = testNetGenesisCoinbaseTx.TxHashFull()
 // serves as the public transaction ledger for the test network (version 3).
 var testNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
+		Version:      2,
 		ParentRoot:   hash.Hash{},
 		TxRoot:       testNetGenesisMerkleRoot,
 		Timestamp:    time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
