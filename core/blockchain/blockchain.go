@@ -426,6 +426,9 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			if err!=nil {
 				return err
 			}
+			if i==0 && !blockHash.IsEqual(b.params.GenesisHash) {
+				return fmt.Errorf("The dag block is not match current genesis block(%s).  you can cleanup your block data base by '--cleanup'.",b.params.GenesisHash)
+			}
 			block, err := dbFetchBlockByHash(dbTx, blockHash)
 			if err != nil {
 				return err
