@@ -8,13 +8,11 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/config"
 	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer/database"
 	_ "github.com/HalalChain/qitmeer/database/ffldb"
 	"github.com/HalalChain/qitmeer/node"
 	"github.com/HalalChain/qitmeer/services/index"
 	"github.com/HalalChain/qitmeer/version"
 	"os"
-	"path/filepath"
 	"runtime"
 	"runtime/debug"
 )
@@ -31,6 +29,7 @@ var (
 )
 
 func main() {
+
 	// Initialize the goroutine count,  Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -103,6 +102,12 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 		return nil
 	}
 
+	// Cleanup the block database
+	if cfg.Cleanup {
+		cleanupBlockDB()
+		return nil
+	}
+
 	// Create node and start it.
 	n, err := node.NewNode(cfg,db,activeNetParams.Params)
 	if err != nil {
@@ -135,46 +140,4 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	// server.
 	<-interrupt
 	return nil
-}
-
-// loadBlockDB loads (or creates when needed) the block database taking into
-// account the selected database backend and returns a handle to it.  It also
-// contains additional logic such warning the user if there are multiple
-// databases which consume space on the file system and ensuring the regression
-// test database is clean when in regression test mode.
-func loadBlockDB() (database.DB, error) {
-
-	// The database name is based on the database type.
-	dbPath := blockDbPath(cfg.DbType)
-
-	log.Info("Loading block database", "dbPath", dbPath)
-	db, err := database.Open(cfg.DbType, dbPath, activeNetParams.Net)
-	if err != nil {
-		// Return the error if it's not because the database doesn't
-		// exist.
-		if dbErr, ok := err.(database.Error); !ok || dbErr.ErrorCode !=
-			database.ErrDbDoesNotExist {
-
-			return nil, err
-		}
-		// Create the db if it does not exist.
-		err = os.MkdirAll(cfg.DataDir, 0700)
-		if err != nil {
-			return nil, err
-		}
-		db, err = database.Create(cfg.DbType, dbPath, activeNetParams.Net)
-		if err != nil {
-			return nil, err
-		}
-	}
-	log.Info("Block database loaded")
-	return db, nil
-}
-
-// blockDbPath returns the path to the block database given a database type.
-func blockDbPath(dbType string) string {
-	// The database name is based on the database type.
-	dbName := blockDbNamePrefix + "_" + dbType
-	dbPath := filepath.Join(cfg.DataDir, dbName)
-	return dbPath
 }

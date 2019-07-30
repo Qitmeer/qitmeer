@@ -6,12 +6,12 @@
 package blkmgr
 
 import (
-	"container/list"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	"github.com/HalalChain/qitmeer/p2p/peer"
+	"math/rand"
 	"sync/atomic"
 	"time"
 )
@@ -19,7 +19,7 @@ import (
 // handleNewPeerMsg deals with new peers that have signalled they may
 // be considered as a sync peer (they have already successfully negotiated).  It
 // also starts syncing if needed.  It is invoked from the syncHandler goroutine.
-func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
+func (b *BlockManager) handleNewPeerMsg(sp *peer.ServerPeer) {
 	// Ignore if in the process of shutting down.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		return
@@ -27,16 +27,11 @@ func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
 
 	log.Info(fmt.Sprintf("New valid peer: %s,user-agent:%s",sp,sp.UserAgent()))
 
-	// Ignore the peer if it's not a sync candidate.
-	if !b.isSyncCandidate(sp) {
-		return
-	}
-
-	// Add the peer as a candidate to sync from.
-	peers.PushBack(sp)
+	sp.SyncCandidate=b.isSyncCandidate(sp)
+	b.peers[sp.Peer]=sp
 
 	// Start syncing by choosing the best candidate if needed.
-	if b.syncPeer == nil {
+	if sp.SyncCandidate && b.syncPeer == nil {
 		b.startSync()
 	}
 	// Grab the mining state from this peer after we're synced.
@@ -49,20 +44,14 @@ func (b *BlockManager) handleNewPeerMsg(peers *list.List, sp *peer.ServerPeer) {
 // removes the peer as a candidate for syncing and in the case where it was
 // the current sync peer, attempts to select a new best peer to sync from.  It
 // is invoked from the syncHandler goroutine.
-func (b *BlockManager) handleDonePeerMsg(peers *list.List, sp *peer.ServerPeer) {
+func (b *BlockManager) handleDonePeerMsg(sp *peer.ServerPeer) {
 	// Remove the peer from the list of candidate peers.
-	hasRemove:=false
-	for e := peers.Front(); e != nil; e = e.Next() {
-		if e.Value == sp {
-			peers.Remove(e)
-			hasRemove=true
-			break
-		}
-	}
-	if !hasRemove {
+	peer, exists := b.peers[sp.Peer]
+	if !exists {
 		log.Warn(fmt.Sprintf("Received done peer message for unknown peer %s", sp))
 		return
 	}
+	delete(b.peers, peer.Peer)
 	log.Info("Lost peer", "peer",sp)
 
 	b.clearRequestedState(sp)
@@ -118,11 +107,12 @@ func (b *BlockManager) startSync() {
 
 	best := b.chain.BestSnapshot()
 	var bestPeer *peer.ServerPeer
-	var enext *list.Element
-	for e := b.candidatePeers.Front(); e != nil; e = enext {
-		enext = e.Next()
-		sp := e.Value.(*peer.ServerPeer)
+	equalPeers:=[]*peer.ServerPeer{}
 
+	for _,sp:=range b.peers {
+		if !sp.SyncCandidate {
+			continue
+		}
 		// Remove sync candidate peers that are no longer candidates due
 		// to passing their latest known block.  NOTE: The < is
 		// intentional as opposed to <=.  While techcnically the peer
@@ -130,19 +120,27 @@ func (b *BlockManager) startSync() {
 		// have one soon so it is a reasonable choice.  It also allows
 		// the case where both are at 0 such as during regression test.
 		if best.GraphState.IsExcellent(sp.LastGS()) {
-			b.candidatePeers.Remove(e)
+			sp.SyncCandidate=false
 			continue
 		}
-
 		// the best sync candidate is the most updated peer
 		if bestPeer == nil {
 			bestPeer = sp
+			continue
 		}
 		if sp.LastGS().IsExcellent(bestPeer.LastGS()) {
 			bestPeer = sp
+			if len(equalPeers)>0 {
+				equalPeers=equalPeers[0:0]
+			}
+		}else if sp.LastGS().IsEqual(bestPeer.LastGS()) {
+			equalPeers=append(equalPeers,sp)
 		}
 	}
-
+	if len(equalPeers)>0 {
+		equalPeers=append(equalPeers,bestPeer)
+		bestPeer = equalPeers[rand.Intn(len(equalPeers))]
+	}
 	// Start syncing from the best peer if one was selected.
 	if bestPeer != nil {
 		// Clear the requestedBlocks if the sync peer changes, otherwise

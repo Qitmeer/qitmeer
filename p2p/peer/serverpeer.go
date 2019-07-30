@@ -21,6 +21,7 @@ type ServerPeer struct {
 	RequestedBlocks map[hash.Hash]struct{}
 	RequestedTxns   map[hash.Hash]struct{}
 	RequestQueue    []*message.InvVect
+	SyncCandidate   bool
 }
 
 type UpdatePeerHeightsMsg struct {

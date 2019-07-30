@@ -58,7 +58,7 @@ type BlockManager struct {
 	requestedEverBlocks map[hash.Hash]uint8
 	progressLogger      *progresslog.BlockProgressLogger
 
-	candidatePeers      *list.List
+	peers               map[*peer.Peer]*peer.ServerPeer
 	syncPeer            *peer.ServerPeer
 	msgChan             chan interface{}
 
@@ -101,6 +101,7 @@ func NewBlockManager(ntmgr notify.Notify,indexManager blockchain.IndexManager,db
 		requestedEverTxns:   make(map[hash.Hash]uint8),
 		requestedBlocks:     make(map[hash.Hash]struct{}),
 		requestedEverBlocks: make(map[hash.Hash]uint8),
+		peers:               make(map[*peer.Peer]*peer.ServerPeer),
 		progressLogger:      progresslog.NewBlockProgressLogger("Processed", log),
 		msgChan:             make(chan interface{}, cfg.MaxPeers*3),
 		headerList:          list.New(),
@@ -526,7 +527,6 @@ func (b *BlockManager) blockHandler() {
 	stallTicker := time.NewTicker(StallSampleInterval)
 	defer stallTicker.Stop()
 
-	b.candidatePeers = list.New()
 out:
 	for {
 		select {
@@ -535,7 +535,7 @@ out:
 			switch msg := m.(type) {
 			case *newPeerMsg:
 				log.Trace("blkmgr msgChan newPeer", "msg", msg)
-				b.handleNewPeerMsg(b.candidatePeers, msg.peer)
+				b.handleNewPeerMsg(msg.peer)
 			case *blockMsg:
 				log.Trace("blkmgr msgChan blockMsg", "msg", msg)
 				b.handleBlockMsg(msg)
@@ -546,7 +546,7 @@ out:
 				b.handleInvMsg(msg)
 			case *donePeerMsg:
 				log.Trace("blkmgr msgChan donePeerMsg", "msg", msg)
-				b.handleDonePeerMsg(b.candidatePeers, msg.peer)
+				b.handleDonePeerMsg(msg.peer)
 
 			case getSyncPeerMsg:
 				log.Trace("blkmgr msgChan getSyncPeerMsg", "msg", msg)
@@ -961,6 +961,11 @@ func (b *BlockManager) handleStallSample() {
 
 	// If the stall timeout has not elapsed, exit early.
 	if time.Since(b.lastProgressTime) <= MaxStallDuration {
+		return
+	}
+
+	_, exists := b.peers[b.syncPeer.Peer]
+	if !exists {
 		return
 	}
 

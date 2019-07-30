@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/protocol"
@@ -636,4 +637,26 @@ func (p *Peer) LastPingNonce() uint64 {
 	p.statsMtx.RUnlock()
 
 	return lastPingNonce
+}
+
+// pingHandler periodically pings the peer.  It must be run as a goroutine.
+func (p *Peer) pingHandler() {
+	pingTicker := time.NewTicker(pingInterval)
+	defer pingTicker.Stop()
+
+out:
+	for {
+		select {
+		case <-pingTicker.C:
+			nonce, err := wire.RandomUint64()
+			if err != nil {
+				log.Error(fmt.Sprintf("Not sending ping to %s: %v", p, err))
+				continue
+			}
+			p.QueueMessage(message.NewMsgPing(nonce), nil)
+
+		case <-p.quit:
+			break out
+		}
+	}
 }

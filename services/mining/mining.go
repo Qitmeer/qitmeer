@@ -42,7 +42,7 @@ const (
 	// generatedBlockVersionTest is the version of the block being generated
 	// for networks other than the main network.
 	// TODO, refactor the location of generatedBlockVersionTest const
-	generatedBlockVersionTest = 1
+	generatedBlockVersionTest = 2
 
 )
 

@@ -8,7 +8,6 @@ package peer
 import (
 	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 	"io"
 	"net"
 	"sync/atomic"
@@ -19,10 +18,6 @@ import (
 // goroutine.  It uses a buffered channel to serialize output messages while
 // allowing the sender to continue running asynchronously.
 func (p *Peer) outHandler() {
-	// pingTicker is used to periodically send pings to the remote peer.
-	pingTicker := time.NewTicker(pingInterval)
-	defer pingTicker.Stop()
-
 out:
 	for {
 		select {
@@ -58,14 +53,6 @@ out:
 				msg.doneChan <- struct{}{}
 			}
 			p.sendDoneQueue <- struct{}{}
-
-		case <-pingTicker.C:
-			nonce, err := wire.RandomUint64()
-			if err != nil {
-				log.Error("Not sending ping", "peer",p,"error",err)
-				continue
-			}
-			p.QueueMessage(message.NewMsgPing(nonce), nil)
 
 		case <-p.quit:
 			break out

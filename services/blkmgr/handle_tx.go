@@ -15,6 +15,11 @@ const (
 
 // handleTxMsg handles transaction messages from all peers.
 func (b *BlockManager) handleTxMsg(tmsg *txMsg) {
+	sp, exists := b.peers[tmsg.peer.Peer]
+	if !exists {
+		log.Warn(fmt.Sprintf("Received tx message from unknown peer %s", sp))
+		return
+	}
 	// NOTE:  BitcoinJ, and possibly other wallets, don't follow the spec of
 	// sending an inventory message and allowing the remote peer to decide
 	// whether or not they want to request the transaction via a getdata
