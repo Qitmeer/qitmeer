@@ -220,6 +220,19 @@ func addrStringToNetAddr(addr string) (net.Addr, error) {
 		return nil, err
 	}
 
+	port, err := strconv.Atoi(strPort)
+	if err != nil {
+		return nil, err
+	}
+
+	// Skip if host is already an IP address.
+	if ip := net.ParseIP(host); ip != nil {
+		return &net.TCPAddr{
+			IP:   ip,
+			Port: port,
+		}, nil
+	}
+
 	// Attempt to look up an IP address associated with the parsed host.
 	ips, err := net.LookupIP(host)
 	if err != nil {
@@ -227,11 +240,6 @@ func addrStringToNetAddr(addr string) (net.Addr, error) {
 	}
 	if len(ips) == 0 {
 		return nil, fmt.Errorf("no addresses found for %s", host)
-	}
-
-	port, err := strconv.Atoi(strPort)
-	if err != nil {
-		return nil, err
 	}
 
 	return &net.TCPAddr{
