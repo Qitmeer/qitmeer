@@ -426,6 +426,7 @@ func (p *Peer) start() error {
 	go p.inHandler()
 	go p.queueHandler()
 	go p.outHandler()
+	go p.pingHandler()
 
 	// Send our verack message now that the IO processing machinery has started.
 	p.QueueMessage(message.NewMsgVerAck(), nil)

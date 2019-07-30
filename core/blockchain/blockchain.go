@@ -925,8 +925,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 			return false, err
 		}
 		// TODO, validating previous block
-		log.Debug("Block connected to the main chain", "hash", node.hash, "order",
-			node.order, "operation")
+		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
 
 		// The fork length is zero since the block is now the tip of the
 		// best chain.
