@@ -70,6 +70,7 @@ type Config struct {
 	GetAddrPercent       int           `short:"T" long:"getaddrpercent" description:"It is the percentage of total addresses known that we will share with a call to AddressCache."`
 
 	DAGType              string        `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
+	Cleanup              bool          `short:"L" long:"cleanup" description:"Cleanup the block database "`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {
