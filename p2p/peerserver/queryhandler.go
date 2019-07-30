@@ -68,7 +68,12 @@ func (s *PeerServer) handleQuery(state *peerState, querymsg interface{}) {
 	case removeNodeMsg:
 		msg.reply <- errors.New("not support")
 	case getOutboundGroup:
-		msg.reply <- 0
+		count, ok := state.outboundGroups[msg.key]
+		if ok {
+			msg.reply <- count
+		} else {
+			msg.reply <- 0
+		}
 	case getAddedNodesMsg:
 		peers := make([]*serverPeer, 0)
 		msg.reply <- peers
