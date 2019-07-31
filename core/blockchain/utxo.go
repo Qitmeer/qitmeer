@@ -61,18 +61,18 @@ func (view *UtxoViewpoint) Entries() map[hash.Hash]*UtxoEntry {
 // unspendable to the view.  When the view already has entries for any of the
 // outputs, they are simply marked unspent.  All fields will be updated for
 // existing entries since it's possible it has changed during a reorg.
-func (view *UtxoViewpoint) AddTxOuts(theTx *types.Tx, blockHeight int64, blockIndex uint32) {
+func (view *UtxoViewpoint) AddTxOuts(theTx *types.Tx, blockOrder int64, blockIndex uint32) {
 	tx := theTx.Transaction()
 	// When there are not already any utxos associated with the transaction,
 	// add a new entry for it to the view.
 	entry := view.LookupEntry(theTx.Hash())
 	if entry == nil {
 		txType := types.DetermineTxType(tx)
-		entry = newUtxoEntry(tx.Version, uint32(blockHeight),
+		entry = newUtxoEntry(tx.Version, uint32(blockOrder),
 			blockIndex, tx.IsCoinBaseTx(), tx.Expire != 0, txType)
 		view.entries[*theTx.Hash()] = entry
 	} else {
-		entry.height = uint32(blockHeight)
+		entry.order = uint32(blockOrder)
 		entry.index = blockIndex
 	}
 	entry.modified = true
@@ -266,11 +266,11 @@ func dbFetchUtxoEntry(dbTx database.Tx, hash *hash.Hash) (*UtxoEntry, error) {
 
 // newUtxoEntry returns a new unspent transaction output entry with the provided
 // coinbase flag and block height ready to have unspent outputs added.
-func newUtxoEntry(txVersion uint32, height uint32, index uint32, isCoinBase bool, hasExpiry bool, tt types.TxType) *UtxoEntry {
+func newUtxoEntry(txVersion uint32, order uint32, index uint32, isCoinBase bool, hasExpiry bool, tt types.TxType) *UtxoEntry {
 	return &UtxoEntry{
 		sparseOutputs: make(map[uint32]*utxoOutput),
 		txVersion:     txVersion,
-		height:        height,
+		order:         order,
 		index:         index,
 		isCoinBase:    isCoinBase,
 		hasExpiry:     hasExpiry,
@@ -373,12 +373,12 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 // spent.  In addition, when the 'stxos' argument is not nil, it will be updated
 // to append an entry for each spent txout.  An error will be returned if the
 // view does not contain the required utxos.
-func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, blockIndex uint32, stxos *[]spentTxOut) error {
+func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockOrder uint64, blockIndex uint32, stxos *[]spentTxOut) error {
 	msgTx := tx.Transaction()
 	// Coinbase transactions don't have any inputs to spend.
 	if msgTx.IsCoinBaseTx() {
 		// Add the transaction's outputs as available utxos.
-		view.AddTxOuts(tx, int64(blockHeight), blockIndex) //TODO, remove type conversion
+		view.AddTxOuts(tx, int64(blockOrder), blockIndex) //TODO, remove type conversion
 		return nil
 	}
 
@@ -416,7 +416,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, 
 			inIndex:       uint32(inIndex),
 		}
 		stxo.txVersion = entry.TxVersion()
-		stxo.height = uint32(entry.BlockHeight())
+		stxo.height = uint32(entry.BlockOrder())
 		stxo.isCoinBase = entry.IsCoinBase()
 		stxo.hasExpiry = entry.HasExpiry()
 		stxo.txType = entry.txType
@@ -427,7 +427,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, blockHeight uint64, 
 	}
 
 	// Add the transaction's outputs as available utxos.
-	view.AddTxOuts(tx, int64(blockHeight), blockIndex) //TODO, remove type conversion
+	view.AddTxOuts(tx, int64(blockOrder), blockIndex) //TODO, remove type conversion
 
 	return nil
 }

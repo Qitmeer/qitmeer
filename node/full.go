@@ -140,7 +140,8 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 		FetchUtxoView:    bm.GetChain().FetchUtxoView,  //TODO, duplicated dependence of miner
 		BlockByHash:      bm.GetChain().FetchBlockByHash,
 		BestHash:         func() *hash.Hash { return &bm.GetChain().BestSnapshot().Hash },
-		BestHeight:       func() uint64 { return bm.GetChain().BestSnapshot().Order },
+		BestHeight:       func() uint64 { return uint64(bm.GetChain().BestSnapshot().GraphState.GetMainHeight()) },
+		BestOrder:       func() uint64 { return bm.GetChain().BestSnapshot().Order },
 		CalcSequenceLock: bm.GetChain().CalcSequenceLock,
 		SubsidyCache:     bm.GetChain().FetchSubsidyCache(),
 		SigCache:         qm.sigCache,

@@ -195,7 +195,7 @@ type BestState struct {
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
 	TotalSubsidy int64                // The total subsidy for the chain.
-	GraphState   *dag.GraphState //The graph state of dag
+	GraphState   *dag.GraphState      //The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
@@ -427,7 +427,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				return err
 			}
 			if i==0 && !blockHash.IsEqual(b.params.GenesisHash) {
-				return fmt.Errorf("The dag block is not match current genesis block(%s).  you can cleanup your block data base by '--cleanup'.",b.params.GenesisHash)
+				return fmt.Errorf("The dag block is not match current genesis block. you can cleanup your block data base by '--cleanup'.")
 			}
 			block, err := dbFetchBlockByHash(dbTx, blockHash)
 			if err != nil {
@@ -456,6 +456,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				refblock := b.bd.GetBlock(refHash)
 				refnode := b.index.lookupNode(refHash)
 				refnode.SetOrder(uint64(refblock.GetOrder()))
+				refnode.SetHeight(refblock.GetHeight())
 
 				/*if node.GetHash().IsEqual(refHash) {
 					block.SetOrder(uint64(refblock.GetOrder()))
@@ -480,11 +481,13 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
+		mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
+
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 		b.stateSnapshot = newBestState(tip, blockSize, numTxns,
-			tip.CalcPastMedianTime(), state.totalTxns, state.totalSubsidy, b.bd.GetGraphState())
+			mainTip.CalcPastMedianTime(b), state.totalTxns, state.totalSubsidy, b.bd.GetGraphState())
 
 		return nil
 	})
@@ -1007,7 +1010,8 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	*/
 	blockSize := uint64(block.Block().SerializeSize())
 
-	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns), *b.bd.GetLastTime(), curTotalTxns+numTxns,
+	mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
+	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns), mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
 		curTotalSubsidy+subsidy, b.bd.GetGraphState())
 
 	// Atomically insert info into the database.
@@ -1339,6 +1343,11 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 		if refHash.IsEqual(&newNode.hash) {
 			refnode=newNode
 			block.SetOrder(uint64(refblock.GetOrder()))
+			if refblock.GetHeight() != newNode.GetHeight() {
+				log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d",newNode.GetHash(),newNode.GetHeight(),refblock.GetHeight()))
+				newNode.SetHeight(refblock.GetHeight())
+				block.SetHeight(refblock.GetHeight())
+			}
 		}else{
 			refnode=b.index.lookupNode(refHash)
 			oldOrdersTemp=append(oldOrdersTemp,refnode.Clone())

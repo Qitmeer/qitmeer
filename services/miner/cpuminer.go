@@ -329,7 +329,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 					return false
 				}
 
-				err := mining.UpdateBlockTime(msgBlock, m.blockManager, m.blockManager.GetChain(), m.timeSource, m.params, m.config)
+				err := mining.UpdateBlockTime(msgBlock, m.blockManager.GetChain(), m.timeSource, m.params)
 				if err != nil {
 					log.Warn("CPU miner unable to update block template "+
 						"time: %v", err)

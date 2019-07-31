@@ -171,7 +171,7 @@ func (node *blockNode) Header() types.BlockHeader {
 // prior to, and including, the block node.
 //
 // This function is safe for concurrent access.
-func (node *blockNode) CalcPastMedianTime() time.Time {
+func (node *blockNode) CalcPastMedianTime(b *BlockChain) time.Time {
 	// Create a slice of the previous few block timestamps used to calculate
 	// the median per the number defined by the constant medianTimeBlocks.
 	timestamps := make([]int64, medianTimeBlocks)
@@ -181,7 +181,7 @@ func (node *blockNode) CalcPastMedianTime() time.Time {
 		timestamps[i] = iterNode.timestamp
 		numNodes++
 
-		iterNode = iterNode.GetForwardParent()
+		iterNode = iterNode.GetMainParent(b)
 	}
 
 	// Prune the slice to the actual number of available timestamps which
@@ -326,4 +326,19 @@ func (node *blockNode) GetHash() *hash.Hash {
 //return the timestamp of node
 func (node *blockNode) GetTimestamp() int64 {
 	return node.timestamp
+}
+
+// Return the main parent
+func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
+	parents:=node.GetParents()
+	if len(parents) == 0 {
+		return nil
+	}
+	parentsSet:=dag.NewHashSet()
+	parentsSet.AddList(parents)
+	mainParent:=b.bd.GetMainParent(parentsSet)
+	if mainParent == nil {
+		return nil
+	}
+	return b.index.lookupNode(mainParent.GetHash())
 }

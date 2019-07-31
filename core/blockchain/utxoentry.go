@@ -13,7 +13,7 @@ type UtxoEntry struct {
 	sparseOutputs map[uint32]*utxoOutput // Sparse map of unspent outputs.
 
 	txType    types.TxType // The stake type of the transaction.
-	height    uint32       // Height of block containing tx.
+	order    uint32       // Order of block containing tx.
 	index     uint32       // Index of containing tx in block.
 	txVersion uint32       // The tx version of this tx.
 
@@ -88,10 +88,10 @@ func (entry *UtxoEntry) IsOutputSpent(outputIndex uint32) bool {
 	return output.spent
 }
 
-// BlockHeight returns the height of the block containing the transaction the
+// BlockOrder returns the order of the block containing the transaction the
 // utxo entry represents.
-func (entry *UtxoEntry) BlockHeight() uint64 {
-	return uint64(entry.height) //TODO, remove type conversion
+func (entry *UtxoEntry) BlockOrder() uint64 {
+	return uint64(entry.order) //TODO, remove type conversion
 }
 
 // AmountByIndex returns the amount of the provided output index.

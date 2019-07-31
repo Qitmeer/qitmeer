@@ -71,6 +71,19 @@ type TxSource interface {
 }
 
 // Allowed timestamp for a block building on the end of the provided best chain.
-func MinimumMedianTime(chainState *blockchain.BestState) time.Time {
-	return chainState.MedianTime.Add(time.Second)
+func MinimumMedianTime(bc *blockchain.BlockChain) time.Time {
+	mainTip:=bc.BlockIndex().LookupNode(bc.BlockDAG().GetMainChainTip().GetHash())
+	mainTipTime:=time.Unix(mainTip.GetTimestamp(), 0)
+	return mainTipTime.Add(time.Second)
+}
+
+// medianAdjustedTime returns the current time adjusted
+func MedianAdjustedTime(bc *blockchain.BlockChain, timeSource blockchain.MedianTimeSource) time.Time {
+	newTimestamp := timeSource.AdjustedTime()
+	minTimestamp := MinimumMedianTime(bc)
+	if newTimestamp.Before(minTimestamp) {
+		newTimestamp = minTimestamp
+	}
+
+	return newTimestamp
 }

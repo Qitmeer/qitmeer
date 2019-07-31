@@ -142,8 +142,8 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	for _, out := range coinbaseTxOuts {
 		coinbaseTxGenerated += out.Amount
 	}
-	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, amount %d", block.Hash().String(),
-		 block.Order(), coinbaseTxGenerated), nil
+	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, order %d amount %d", block.Hash().String(),
+		 block.Height(),block.Order(), coinbaseTxGenerated), nil
 
 }
 
@@ -292,8 +292,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 		// Get the minimum allowed timestamp for the block based on the
 		// median timestamp of the last several blocks per the chain
 		// consensus rules.
-		best := m.blockManager.GetChain().BestSnapshot()
-		minTimestamp := mining.MinimumMedianTime(best)
+		minTimestamp := mining.MinimumMedianTime(m.blockManager.GetChain())
 
 		// Update work state to ensure another block template isn't
 		// generated until needed.
@@ -317,7 +316,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 		// Update the time of the block template to the current time
 		// while accounting for the median time of the past several
 		// blocks per the chain consensus rules.
-		mining.UpdateBlockTime(msgBlock,m.blockManager,m.blockManager.GetChain(),m.timeSource,m.params,m.config)
+		mining.UpdateBlockTime(msgBlock,m.blockManager.GetChain(),m.timeSource,m.params)
 		msgBlock.Header.Nonce = 0
 
 		log.Debug(fmt.Sprintf("Updated block template (timestamp %v, "+

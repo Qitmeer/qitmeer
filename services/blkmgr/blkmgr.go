@@ -62,9 +62,6 @@ type BlockManager struct {
 	syncPeer            *peer.ServerPeer
 	msgChan             chan interface{}
 
-	//TODO remove chainState
-	chainState          ChainState
-
 	wg                  sync.WaitGroup
 	quit                chan struct{}
 
@@ -143,10 +140,6 @@ func NewBlockManager(ntmgr notify.Notify,indexManager blockchain.IndexManager,db
 
 		return nil, fmt.Errorf("closing after dumping blockchain")
 	}
-
-	// Retrieve the current previous block hash and next stake difficulty.
-
-	bm.GetChainState().UpdateChainState(&best.Hash,best.Order,best.MedianTime)
 
 	bm.syncGSMtx.Lock()
 	bm.syncGS = best.GraphState
@@ -590,17 +583,8 @@ out:
 				// If the block added to the dag chain, then we need to
 				// update the tip locally on block manager.
 				if !isOrphan {
-					// Query the chain for the latest best block
-					// since the block that was processed and add
-					// to the DAG
-					best := b.chain.BestSnapshot()
-
 					// TODO, decoupling mempool with bm
 					b.txMemPool.PruneExpiredTx()
-
-					log.Trace("update chain state when blkmgr read processBlockMsg msgchan")
-					b.GetChainState().UpdateChainState(&best.Hash,
-						best.Order, best.MedianTime)
 				}
 
 				// Allow any clients performing long polling via the
@@ -1016,4 +1000,11 @@ func (b *BlockManager) updateSyncPeer(dcSyncPeer bool) {
 
 	b.syncPeer = nil
 	b.startSync()
+}
+
+// headerNode is used as a node in a list of headers that are linked together
+// between checkpoints.
+type headerNode struct {
+	height uint64
+	hash   *hash.Hash
 }

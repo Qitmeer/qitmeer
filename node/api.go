@@ -187,7 +187,7 @@ func createVinList(mtx *types.Transaction) []json.Vin {
 		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
 		vinEntry.Sequence = txIn.Sequence
 		vinEntry.AmountIn = types.Amount(txIn.AmountIn).ToCoin()
-		vinEntry.BlockHeight = txIn.BlockHeight
+		vinEntry.BlockHeight = txIn.BlockOrder
 		vinEntry.TxIndex = txIn.TxIndex
 		return vinList
 	}
@@ -203,7 +203,7 @@ func createVinList(mtx *types.Transaction) []json.Vin {
 		vinEntry.Vout = txIn.PreviousOut.OutIndex
 		vinEntry.Sequence = txIn.Sequence
 		vinEntry.AmountIn = types.Amount(txIn.AmountIn).ToCoin()
-		vinEntry.BlockHeight = txIn.BlockHeight
+		vinEntry.BlockHeight = txIn.BlockOrder
 		vinEntry.TxIndex = txIn.TxIndex
 		vinEntry.ScriptSig = &json.ScriptSig{
 			Asm: disbuf,
@@ -498,7 +498,7 @@ func (api *PublicBlockChainAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMe
 		}
 		best := api.node.blockManager.GetChain().BestSnapshot()
 		bestBlockHash = best.Hash.String()
-		confirmations = 1 + int64(best.Order-entry.BlockHeight())
+		confirmations = 1 + int64(best.Order-entry.BlockOrder())
 		txVersion = entry.TxVersion()
 		amount = entry.AmountByIndex(vout)
 		pkScript = entry.PkScriptByIndex(vout)
