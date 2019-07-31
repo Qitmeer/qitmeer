@@ -319,7 +319,7 @@ out:
 				connReq.updateState(ConnEstablished)
 				connReq.conn = msg.conn
 				conns[connReq.id] = connReq
-				log.Debug("Connected to %v",connReq)
+				log.Debug(fmt.Sprintf("Connected to %v",connReq))
 				connReq.retryCount = 0
 				cm.failedAttempts = 0
 

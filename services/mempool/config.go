@@ -50,6 +50,8 @@ type Config struct {
 	// the current best chain.
 	BestHeight func() uint64
 
+	BestOrder func() uint64
+
 	// PastMedianTime defines the function to use in order to access the
 	// median time calculated from the point-of-view of the current chain
 	// tip within the best chain.

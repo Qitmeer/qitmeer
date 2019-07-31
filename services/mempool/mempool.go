@@ -81,7 +81,7 @@ func (mp *TxPool) TxDescs() []*TxDesc {
 //
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *TxPool) removeTransaction(theTx *types.Tx, removeRedeemers bool) {
-	log.Trace("Removing transaction %v", theTx.Hash())
+	log.Trace(fmt.Sprintf("Removing transaction %v", theTx.Hash()))
 
 	tx := theTx.Transaction()
 	txHash := theTx.Hash()
@@ -150,7 +150,7 @@ func (mp *TxPool) RemoveDoubleSpends(tx *types.Tx) {
 //
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
-	tx *types.Tx, txType types.TxType, height uint64, fee int64) {
+	tx *types.Tx, txType types.TxType, order uint64, fee int64) {
 
 	// Add the transaction to the pool and mark the referenced outpoints
 	// as spent by the pool.
@@ -160,10 +160,10 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 			Tx:     tx,
 			Type:   txType,
 			Added:  time.Now(),
-			Height: int64(height),  //todo: fix type conversion
+			Height: int64(order),  //todo: fix type conversion
 			Fee:    fee,
 		},
-		StartingPriority: CalcPriority(msgTx, utxoView, height),
+		StartingPriority: CalcPriority(msgTx, utxoView, order),
 	}
 	for _, txIn := range msgTx.TxIn {
 		mp.outpoints[txIn.PreviousOut] = tx
@@ -233,8 +233,9 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Get the current height of the main chain.  A standalone transaction
 	// will be mined into the next block at best, so its height is at least
 	// one more than the current height.
-	bestHeight := mp.cfg.BestHeight()
-	nextBlockHeight := bestHeight + 1
+	bestOrder := mp.cfg.BestOrder()
+	nextBlockOrder := bestOrder + 1
+	nextBlockHeight := mp.cfg.BestHeight() + 1
 
 	// Don't accept transactions that will be expired as of the next block.
 	if blockchain.IsExpired(tx, nextBlockHeight) {
@@ -345,7 +346,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, err
 	}
 	// TODO fix type conversion
-	if !blockchain.SequenceLockActive(seqLock, int64(nextBlockHeight), medianTime) {
+	if !blockchain.SequenceLockActive(seqLock, int64(nextBlockOrder), medianTime) {
 		return nil, txRuleError(message.RejectNonstandard,
 			"transaction sequence locks on inputs not met")
 	}
@@ -356,7 +357,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// used later.  The fraud proof is not checked because it will be
 	// filled in by the miner.
 	txFee, err := blockchain.CheckTransactionInputs(mp.cfg.SubsidyCache,
-		tx, int64(nextBlockHeight), utxoView, false, mp.cfg.ChainParams) //TODO fix type conversion
+		tx, int64(nextBlockOrder), utxoView, false, mp.cfg.ChainParams) //TODO fix type conversion
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
 			return nil, chainRuleError(cerr)
@@ -429,7 +430,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		txType == types.TxTypeRegular {
 
 		currentPriority := CalcPriority(msgTx, utxoView,
-			nextBlockHeight)
+			nextBlockOrder)
 		if currentPriority <= MinHighPriority {
 			str := fmt.Sprintf("transaction %v has insufficient "+
 				"priority (%g <= %g)", txHash,
@@ -493,7 +494,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	// Add to transaction pool.
-	mp.addTransaction(utxoView, tx, txType, bestHeight, txFee)
+	mp.addTransaction(utxoView, tx, txType, bestOrder, txFee)
 
 	log.Debug("Accepted transaction","txHash", txHash,"pool size", len(mp.pool))
 
@@ -646,7 +647,7 @@ func (mp *TxPool) MaybeAcceptTransaction(tx *types.Tx, isNew, rateLimit bool) ([
 //
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *TxPool) removeOrphan(txHash *hash.Hash) {
-	log.Trace("Removing orphan transaction %v", txHash)
+	log.Trace(fmt.Sprintf("Removing orphan transaction %v", txHash))
 
 	// Nothing to do if passed tx is not an orphan.
 	tx, exists := mp.orphans[*txHash]

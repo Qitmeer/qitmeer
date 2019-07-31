@@ -100,12 +100,6 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 
 	blockHash := block.Hash()
 	log.Trace("Processing block ","hash", blockHash)
-	currentTime := time.Now()
-	defer func() {
-		elapsedTime := time.Since(currentTime)
-		log.Debug(fmt.Sprintf("Finished block processing"),
-			"hash",blockHash,"height",block.Height(),"order",block.Order(),"elapsed time", elapsedTime)
-	}()
 
 	// The block must not already exist in the main chain or side chains.
 	if b.index.HaveBlock(blockHash) {

@@ -278,7 +278,7 @@ func makeUtxoView(dbTx database.Tx, block *types.SerializedBlock, interrupt <-ch
 			}
 
 			view.AddTxOuts(types.NewTx(originTx),
-				int64(types.NullBlockHeight), types.NullTxIndex)
+				int64(types.NullBlockOrder), types.NullTxIndex)
 		}
 
 		if interruptRequested(interrupt) {

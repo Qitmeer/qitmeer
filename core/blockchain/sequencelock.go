@@ -20,7 +20,7 @@ import (
 // that it will not prevent a transaction from being included due to the
 // sequence lock, which is the desired behavior.
 type SequenceLock struct {
-	MinHeight int64
+	MinOrder int64
 	MinTime   int64
 }
 
@@ -32,7 +32,7 @@ type SequenceLock struct {
 func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoViewpoint, isActive bool) (*SequenceLock, error) {
 	// A value of -1 for each lock type allows a transaction to be included
 	// in a block at any given height or time.
-	sequenceLock := &SequenceLock{MinHeight: -1, MinTime: -1}
+	sequenceLock := &SequenceLock{MinOrder: -1, MinTime: -1}
 
 	// Sequence locks do not apply if they are not yet active, the tx
 	// version is less than 2, or the tx is a coinbase or stakebase, so
@@ -66,9 +66,9 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 
 		// Calculate the sequence locks from the point of view of the
 		// next block for inputs that are in the mempool.
-		inputHeight := utxo.BlockHeight()
-		if inputHeight == 0x7fffffff {
-			inputHeight = node.order + 1
+		inputOrder := utxo.BlockOrder()
+		if inputOrder == 0x7fffffff {
+			inputOrder = node.order + 1
 		}
 
 		// Mask off the value portion of the sequence number to obtain
@@ -88,12 +88,12 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			// associated with them anyways).  Therefore, the block
 			// prior to the one in which the referenced output was
 			// included is needed to compute its past median time.
-			prevInputHeight := inputHeight - 1
-			if prevInputHeight < 0 {
-				prevInputHeight = 0
+			prevInputOrder := inputOrder - 1
+			if prevInputOrder < 0 {
+				prevInputOrder = 0
 			}
-			blockNode := b.index.LookupNode(b.bd.GetBlockByOrder(uint(prevInputHeight)))
-			medianTime := blockNode.CalcPastMedianTime()
+			blockNode := b.index.LookupNode(b.bd.GetBlockByOrder(uint(prevInputOrder)))
+			medianTime := blockNode.CalcPastMedianTime(b)
 
 			// Calculate the minimum required timestamp based on the
 			// sum of the aforementioned past median time and
@@ -115,9 +115,9 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			// input height and required relative number of blocks.
 			// Also, subtract one from the relative lock in order to
 			// maintain the original lock time semantics.
-			minHeight := int64(inputHeight) + relativeLock - 1  //TODO,remove type conversion
-			if minHeight > sequenceLock.MinHeight {
-				sequenceLock.MinHeight = minHeight
+			minHeight := int64(inputOrder) + relativeLock - 1  //TODO,remove type conversion
+			if minHeight > sequenceLock.MinOrder {
+				sequenceLock.MinOrder = minHeight
 			}
 		}
 	}
@@ -125,7 +125,7 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 	return sequenceLock, nil
 }
 
-// CalcSequenceLock computes the minimum block height and time after which the
+// CalcSequenceLock computes the minimum block order and time after which the
 // passed transaction can be included into a block while satisfying the relative
 // lock times of all of its input sequence numbers.  The passed view is used to
 // obtain the past median time and block heights of the blocks in which the

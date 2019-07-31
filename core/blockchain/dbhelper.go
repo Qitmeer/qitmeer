@@ -869,7 +869,7 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 	// Calculate the size needed to serialize the entry.
 	flags := encodeFlags(entry.isCoinBase, entry.hasExpiry, entry.txType, false)
 	size := serializeSizeVLQ(uint64(entry.txVersion)) +
-		serializeSizeVLQ(uint64(entry.height)) +
+		serializeSizeVLQ(uint64(entry.order)) +
 		serializeSizeVLQ(uint64(entry.index)) +
 		serializeSizeVLQ(uint64(flags)) +
 		serializeSizeVLQ(headerCode) + numBitmapBytes
@@ -887,7 +887,7 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 	// of spentness.
 	serialized := make([]byte, size)
 	offset := putVLQ(serialized, uint64(entry.txVersion))
-	offset += putVLQ(serialized[offset:], uint64(entry.height))
+	offset += putVLQ(serialized[offset:], uint64(entry.order))
 	offset += putVLQ(serialized[offset:], uint64(entry.index))
 	offset += putVLQ(serialized[offset:], uint64(flags))
 	offset += putVLQ(serialized[offset:], headerCode)

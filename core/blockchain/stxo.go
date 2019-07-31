@@ -277,7 +277,7 @@ func deserializeSpendJournalEntry(serialized []byte, txns []*types.Transaction) 
 		tx := txns[stxo.index-1]
 		txIn := tx.TxIn[stxo.inIndex]
 
-		stxo.height=txIn.BlockHeight
+		stxo.height=txIn.BlockOrder
 		//stxo.amount=txIn.AmountIn
 		//
 		indexStr:=fmt.Sprintf("%d-%d",stxo.index,stxo.inIndex)

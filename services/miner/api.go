@@ -142,8 +142,8 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	for _, out := range coinbaseTxOuts {
 		coinbaseTxGenerated += out.Amount
 	}
-	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, amount %d", block.Hash().String(),
-		 block.Order(), coinbaseTxGenerated), nil
+	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, order %d amount %d", block.Hash().String(),
+		 block.Height(),block.Order(), coinbaseTxGenerated), nil
 
 }
 

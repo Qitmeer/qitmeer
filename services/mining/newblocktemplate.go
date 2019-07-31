@@ -113,7 +113,7 @@ func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Param
 	// TODO,refactor the poolsize & finalstate
 	best:=blockManager.GetChain().BestSnapshot()
 	nextBlockHeight := uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
-
+	nextBlockOrder:=best.Order+1
 	// Get the current source transactions and create a priority queue to
 	// hold the transactions which are ready for inclusion into a block
 	// along with some priority related and fee metadata.  Reserve the same
@@ -235,7 +235,7 @@ mempoolLoop:
 		// value age sum as well as the adjusted transaction size.  The
 		// formula is: sum(inputValue * inputAge) / adjustedTxSize
 		prioItem.priority = mempool.CalcPriority(tx.Transaction(), utxos,
-			nextBlockHeight)
+			nextBlockOrder)
 
 		// Calculate the fee in Atoms/KB.
 		// NOTE: This is a more precise value than the one calculated
@@ -377,7 +377,7 @@ mempoolLoop:
 		// The fraud proof is not checked because it will be filled in
 		// by the miner.
 		_, err = blockchain.CheckTransactionInputs(subsidyCache, tx,
-			int64(nextBlockHeight), blockUtxos, false, params ) //TODO, remove the params dependence
+			int64(nextBlockOrder), blockUtxos, false, params ) //TODO, remove the params dependence
 		if err != nil {
 			log.Trace("Skipping tx %s due to error in "+
 				"CheckTransactionInputs: %v", tx.Hash(), err)
@@ -397,7 +397,7 @@ mempoolLoop:
 		// an entry for it to ensure any transactions which reference
 		// this one have it available as an input and can ensure they
 		// aren't double spending.
-		err = spendTransaction(blockUtxos, tx, int64(nextBlockHeight)) //TODO, remove type conversion
+		err = spendTransaction(blockUtxos, tx, int64(nextBlockOrder)) //TODO, remove type conversion
 		if err != nil {
 			log.Warn("Unable to spend transaction %v in the preliminary "+
 				"UTXO view for the block template: %v",
@@ -458,6 +458,7 @@ mempoolLoop:
 		coinbaseScript,
 		opReturnPkScript,
 		int64(nextBlockHeight),    //TODO remove type conversion
+		int64(nextBlockOrder),
 		payToAddress,
 		uint16(voters),
 		params)
@@ -503,7 +504,7 @@ mempoolLoop:
 	// Now that the actual transactions have been selected, update the
 	// block size for the real transaction count and coinbase value with
 	// the total fees accordingly.
-	if nextBlockHeight > 1 {
+	if nextBlockOrder > 1 {
 		blockSize -= s.MaxVarIntPayload -
 			uint32(s.VarIntSerializeSize(uint64(len(blockTxnsRegular))))
 		coinbaseTx.Transaction().TxOut[2].Amount += uint64(totalFees)
@@ -529,7 +530,7 @@ mempoolLoop:
 	for i, tx := range blockTxnsRegular {
 		// No need to check any of the transactions in the custom first
 		// block.
-		if nextBlockHeight == 1 {
+		if nextBlockOrder == 1 {
 			break
 		}
 
@@ -555,7 +556,7 @@ mempoolLoop:
 			} else {
 				originIdx := txIn.PreviousOut.OutIndex
 				txIn.AmountIn = utx.AmountByIndex(originIdx)
-				txIn.BlockHeight = uint32(utx.BlockHeight())
+				txIn.BlockOrder = uint32(utx.BlockOrder())
 				txIn.TxIndex = utx.TxIndex()
 			}
 		}
@@ -585,7 +586,7 @@ mempoolLoop:
 					originIdx := txIn.PreviousOut.OutIndex
 					amt := blockTxnsRegular[idx].Transaction().TxOut[originIdx].Amount
 					txIn.AmountIn = amt
-					txIn.BlockHeight = uint32(nextBlockHeight)   //TODO,remove type conversion
+					txIn.BlockOrder = uint32(nextBlockOrder)   //TODO,remove type conversion
 					txIn.TxIndex = uint32(idx)
 				} else {
 					str := fmt.Sprintf("failed find hash in tx list "+
@@ -641,7 +642,7 @@ mempoolLoop:
 	// chain with no issues.
 
 	sblock := types.NewBlockDeepCopyCoinbase(&block)
-	sblock.SetOrder(best.Order+1)
+	sblock.SetOrder(nextBlockOrder)
 	sblock.SetHeight(uint(nextBlockHeight))
 	err = blockManager.GetChain().CheckConnectBlockTemplate(sblock)
 	if err != nil {
@@ -735,7 +736,7 @@ func logSkippedDeps(tx *types.Tx, deps map[hash.Hash]*txPrioItem) {
 // spendTransaction updates the passed view by marking the inputs to the passed
 // transaction as spent.  It also adds all outputs in the passed transaction
 // which are not provably unspendable as available unspent transaction outputs.
-func spendTransaction(utxoView *blockchain.UtxoViewpoint, tx *types.Tx, height int64) error {
+func spendTransaction(utxoView *blockchain.UtxoViewpoint, tx *types.Tx, order int64) error {
 	for _, txIn := range tx.Transaction().TxIn {
 		originHash := &txIn.PreviousOut.Hash
 		originIndex := txIn.PreviousOut.OutIndex
@@ -746,7 +747,7 @@ func spendTransaction(utxoView *blockchain.UtxoViewpoint, tx *types.Tx, height i
 
 	}
 
-	utxoView.AddTxOuts(tx, height, types.NullTxIndex)
+	utxoView.AddTxOuts(tx, order, types.NullTxIndex)
 	return nil
 }
 
@@ -769,7 +770,7 @@ func standardCoinbaseOpReturn(height uint32, extraNonce uint64) ([]byte, error) 
 //
 // See the comment for NewBlockTemplate for more information about why the nil
 // address handling is useful.
-func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, opReturnPkScript []byte, nextBlockHeight int64, addr types.Address, voters uint16, params *params.Params) (*types.Tx, error) {
+func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, opReturnPkScript []byte, nextBlockHeight,nextBlockOrder int64, addr types.Address, voters uint16, params *params.Params) (*types.Tx, error) {
 	tx := types.NewTransaction()
 	tx.AddTxIn(&types.TxInput{
 		// Coinbase transactions have no inputs, so previous outpoint is
@@ -777,13 +778,13 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 		PreviousOut: *types.NewOutPoint(&hash.Hash{},
 			types.MaxPrevOutIndex ),
 		Sequence:        types.MaxTxInSequenceNum,
-		BlockHeight:     types.NullBlockHeight,
+		BlockOrder:      types.NullBlockOrder,
 		TxIndex:         types.NullTxIndex,
 		SignScript:      coinbaseScript,
 	})
 
 	// Block one is a special block that might pay out tokens to a ledger.
-	if nextBlockHeight == 1 && len(params.BlockOneLedger) != 0 {
+	if nextBlockOrder == 1 && len(params.BlockOneLedger) != 0 {
 		// Convert the addresses in the ledger into useable format.
 		addrs := make([]types.Address, len(params.BlockOneLedger))
 		for i, payout := range params.BlockOneLedger {

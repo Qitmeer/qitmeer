@@ -369,7 +369,7 @@ func (bd *BlockDAG) GetGraphState() *dag.GraphState {
 		}
 	}
 	gs.SetTotal(bd.GetBlockTotal())
-
+	gs.SetMainHeight(bd.GetMainChainTip().GetHeight())
 	return gs
 }
 

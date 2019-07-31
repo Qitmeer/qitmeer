@@ -8,15 +8,14 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/core/dag"
-	"time"
-	"math"
-	"math/big"
-	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer/core/merkle"
-	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"math"
+	"math/big"
+	"time"
 )
 
 // This function only differs from IsExpired in that it works with a raw wire
@@ -416,7 +415,7 @@ func isNullOutpoint(outpoint *types.TxOutPoint) bool {
 // proof is set.
 func isNullFraudProof(txIn *types.TxInput) bool {
 	switch {
-	case txIn.BlockHeight != types.NullBlockHeight:
+	case txIn.BlockOrder != types.NullBlockOrder:
 		return false
 	case txIn.TxIndex != types.NullTxIndex:
 		return false
@@ -572,7 +571,7 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 
 		// Ensure the timestamp for the block header is after the
 		// median time of the last several blocks (medianTimeBlocks).
-		medianTime := prevNode.CalcPastMedianTime()
+		medianTime := prevNode.CalcPastMedianTime(b)
 		if !header.Timestamp.After(medianTime) {
 			str := "block timestamp of %v is not after expected %v"
 			str = fmt.Sprintf(str, header.Timestamp, medianTime)
@@ -657,12 +656,12 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// transaction tree once the stake vote for the agenda is active.
 
 	// Use the past median time of the *previous* block in order
-		// to determine if the transactions in the current block are
-		// final.
-	var prevMedianTime time.Time = node.GetBackParent().CalcPastMedianTime()
+	// to determine if the transactions in the current block are
+	// final.
+	var prevMedianTime time.Time = node.GetMainParent(b).CalcPastMedianTime(b)
 
-		// Skip the coinbase since it does not have any inputs and thus
-		// lock times do not apply.
+	// Skip the coinbase since it does not have any inputs and thus
+	// lock times do not apply.
 	for _, tx := range block.Transactions()[1:] {
 		sequenceLock, err := b.calcSequenceLock(node, tx,
 			utxoView, true)
@@ -898,11 +897,11 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 // sequence lock is sufficient because the calculated lock selects the minimum
 // required time and block height from all of the non-disabled inputs after
 // which the transaction can be included.
-func SequenceLockActive(lock *SequenceLock, blockHeight int64, medianTime time.Time) bool {
+func SequenceLockActive(lock *SequenceLock, blockOrder int64, medianTime time.Time) bool {
 	// The transaction is not yet mature if it has not yet reached the
 	// required minimum time and block height according to its sequence
 	// locks.
-	if blockHeight <= lock.MinHeight || medianTime.Unix() <= lock.MinTime {
+	if blockOrder <= lock.MinOrder || medianTime.Unix() <= lock.MinTime {
 		return false
 	}
 
@@ -940,8 +939,8 @@ func (b *BlockChain) checkDupTxs(txSet []*types.Tx, view *UtxoViewpoint) error {
 		txEntry := view.LookupEntry(tx.Hash())
 		if txEntry != nil && !txEntry.IsFullySpent() {
 			str := fmt.Sprintf("tried to overwrite transaction %v "+
-				"at block height %d that is not fully spent",
-				tx.Hash(), txEntry.BlockHeight())
+				"at block order %d that is not fully spent",
+				tx.Hash(), txEntry.BlockOrder())
 			return ruleError(ErrOverwriteTx, str)
 		}
 	}
@@ -1051,7 +1050,7 @@ func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool,utxoView *UtxoViewpoint) (i
 //
 // NOTE: The transaction MUST have already been sanity checked with the
 // CheckTransactionSanity function prior to calling this function.
-func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txHeight int64, utxoView *UtxoViewpoint, checkFraudProof bool, chainParams *params.Params) (int64, error) {
+func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txOrder int64, utxoView *UtxoViewpoint, checkFraudProof bool, chainParams *params.Params) (int64, error) {
 	msgTx := tx.Transaction()
 
 	txHash := tx.Hash()
@@ -1117,15 +1116,15 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txHeight i
 		// Ensure the transaction is not spending coins which have not
 		// yet reached the required coinbase maturity.
 		coinbaseMaturity := int64(chainParams.CoinbaseMaturity)
-		originHeight := utxoEntry.BlockHeight()
+		originHeight := utxoEntry.BlockOrder()
 		if utxoEntry.IsCoinBase() {
-			blocksSincePrev := txHeight - int64(originHeight) //TODO,remove type conversion
+			blocksSincePrev := txOrder - int64(originHeight) //TODO,remove type conversion
 			if blocksSincePrev < coinbaseMaturity {
 				str := fmt.Sprintf("tx %v tried to spend "+
 					"coinbase transaction %v from height "+
 					"%v at height %v before required "+
 					"maturity of %v blocks", txHash,
-					txInHash, originHeight, txHeight,
+					txInHash, originHeight, txOrder,
 					coinbaseMaturity)
 				return 0, ruleError(ErrImmatureSpend, str)
 			}
@@ -1135,15 +1134,15 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txHeight i
 		// transaction that included an expiry but which has not yet
 		// reached coinbase maturity many blocks.
 		if utxoEntry.HasExpiry() {
-			originHeight := utxoEntry.BlockHeight()
-			blocksSincePrev := txHeight - int64(originHeight) //TODO, remove type conversion
+			originHeight := utxoEntry.BlockOrder()
+			blocksSincePrev := txOrder - int64(originHeight) //TODO, remove type conversion
 			if blocksSincePrev < coinbaseMaturity {
 				str := fmt.Sprintf("tx %v tried to spend "+
 					"transaction %v including an expiry "+
 					"from height %v at height %v before "+
 					"required maturity of %v blocks",
 					txHash, txInHash, originHeight,
-					txHeight, coinbaseMaturity)
+					txOrder, coinbaseMaturity)
 				return 0, ruleError(ErrExpiryTxSpentEarly, str)
 			}
 		}
@@ -1228,9 +1227,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		return err
 	}
 	view := NewUtxoViewpoint()
-	parentsSet:=dag.NewHashSet()
-	parentsSet.AddList(block.Block().Parents)
-	view.SetBestHash(b.bd.GetMainParent(parentsSet).GetHash())
+	view.SetBestHash(b.index.GetMaxOrderFromList(block.Block().Parents))
 	tipsNode:=[]*blockNode{}
 
 	for _,v:=range block.Block().Parents{
@@ -1244,7 +1241,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	}
 	header := &block.Block().Header
 	newNode := newBlockNode(header, tipsNode)
-	newNode.order=block.Order()
+	newNode.SetOrder(block.Order())
 	newNode.SetHeight(block.Height())
 	err=b.checkConnectBlock(newNode, block, view, nil)
 	if err!=nil{
