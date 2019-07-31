@@ -28,7 +28,7 @@ var genesisCoinbaseTx = types.Transaction{
 			SignScript: []byte{
 				0x00, 0x00,
 			},
-			BlockHeight: types.NullBlockHeight,
+			BlockOrder:  types.NullBlockOrder,
 			TxIndex:     types.NullTxIndex,
 			AmountIn:    types.NullValueIn,
 			Sequence:    0xffffffff,

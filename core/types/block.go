@@ -384,7 +384,7 @@ type SerializedBlock struct {
 	transactions          []*Tx           // Transactions
 	txnsGenerated         bool            // ALL wrapped transactions generated
 	order                 uint64          //order is in the position of whole block chain.
-	height                uint            //height is in the main chain.
+	height                uint            //height is in the sub dag chain.
 }
 
 // NewBlock returns a new instance of the serialized block given an underlying Block.

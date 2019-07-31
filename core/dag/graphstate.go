@@ -20,6 +20,9 @@ type GraphState struct {
 
 	// At present, the whole graph nodes has the last layer level.
 	layer uint
+
+	// The height of main chain
+	mainHeight uint
 }
 
 // Return the DAG layer
@@ -49,12 +52,23 @@ func (gs *GraphState) SetTips(tips *HashSet) {
 	gs.tips=tips
 }
 
+// Return the height of main chain
+func (gs *GraphState) GetMainHeight() uint {
+	return gs.mainHeight
+}
+
+func (gs *GraphState) SetMainHeight(mainHeight uint) {
+	gs.mainHeight=mainHeight
+}
+
 // Judging whether it is equal to other
 func (gs *GraphState) IsEqual(other *GraphState) bool {
 	if gs==other {
 		return true
 	}
-	if gs.layer!=other.layer || gs.total != other.total {
+	if gs.layer != other.layer ||
+		gs.total != other.total ||
+		gs.mainHeight != other.mainHeight {
 		return false
 	}
 	return gs.tips.IsEqual(other.tips)
@@ -68,6 +82,7 @@ func (gs *GraphState) Equal(other *GraphState) {
 	gs.tips=other.tips.Clone()
 	gs.layer=other.layer
 	gs.total=other.total
+	gs.mainHeight=other.mainHeight
 }
 
 // Copy self and return
@@ -92,6 +107,11 @@ func (gs *GraphState) IsExcellent(other *GraphState) bool {
 	}else if gs.total>other.total {
 		return true
 	}
+	if gs.mainHeight<other.mainHeight {
+		return false
+	}else if gs.mainHeight>other.mainHeight {
+		return true
+	}
 	if gs.layer<other.layer {
 		return false
 	}else if gs.layer>other.layer {
@@ -107,6 +127,10 @@ func (gs *GraphState) Encode(w io.Writer,pver uint32) error {
 		return err
 	}
 	err= s.WriteVarInt(w, pver, uint64(gs.layer))
+	if err != nil {
+		return err
+	}
+	err= s.WriteVarInt(w, pver, uint64(gs.mainHeight))
 	if err != nil {
 		return err
 	}
@@ -139,6 +163,12 @@ func (gs *GraphState) Decode(r io.Reader,pver uint32) error {
 	}
 	gs.layer=uint(layer)
 
+	mainHeight, err := s.ReadVarInt(r,pver)
+	if err != nil {
+		return err
+	}
+	gs.mainHeight=uint(mainHeight)
+
 	count, err := s.ReadVarInt(r,pver)
 	if count==0 {
 		return fmt.Errorf("GraphState.Decode:tips count is zero.")
@@ -157,7 +187,7 @@ func (gs *GraphState) Decode(r io.Reader,pver uint32) error {
 }
 
 func (gs *GraphState) MaxPayloadLength() uint32 {
-	return 8 + 4 + (MaxTips * hash.HashSize)
+	return 8 + 4 + 4 + (MaxTips * hash.HashSize)
 }
 
 // Create a new GraphState
@@ -166,6 +196,7 @@ func NewGraphState() *GraphState {
 		tips:NewHashSet(),
 		total:0,
 		layer:0,
+		mainHeight:0,
 	}
 }
 
