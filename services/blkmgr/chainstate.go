@@ -3,11 +3,9 @@
 package blkmgr
 
 import (
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"sync"
 	"time"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer-lib/config"
 )
 
 func (b *BlockManager) GetChainState() *ChainState{
@@ -27,41 +25,6 @@ func (c *ChainState) UpdateChainState(newestHash *hash.Hash,
 	c.newestHash = newestHash
 	c.newestHeight = newestHeight
 	c.pastMedianTime = bestMedianTime
-}
-
-//TODO revisit concurrent lock/unclock
-func (c *ChainState) GetPastMedianTime() time.Time{
-	c.RLock()
-	defer c.RUnlock()
-	medianTime := c.pastMedianTime
-	return medianTime
-}
-
-// MedianAdjustedTime returns the current time adjusted to ensure it is at least
-// one second after the median timestamp of the last several blocks per the
-// chain consensus rules.
-func (c *ChainState) MedianAdjustedTime(timeSource blockchain.MedianTimeSource, cfg *config.Config) (time.Time, error) {
-	c.RLock()
-	defer c.RUnlock()
-
-	// The timestamp for the block must not be before the median timestamp
-	// of the last several blocks.  Thus, choose the maximum between the
-	// current time and one second after the past median time.  The current
-	// timestamp is truncated to a second boundary before comparison since a
-	// block timestamp does not supported a precision greater than one
-	// second.
-	newTimestamp := timeSource.AdjustedTime()
-	pastMedianTime := c.pastMedianTime
-	minTimestamp := pastMedianTime.Add(time.Second)
-	if newTimestamp.Before(minTimestamp) {
-		newTimestamp = minTimestamp
-	}
-	//TODO, refactor the config dependence
-	// Adjust by the amount requested from the command line argument.
-	newTimestamp = newTimestamp.Add(
-		time.Duration(-cfg.MiningTimeOffset) * time.Second)
-
-	return newTimestamp, nil
 }
 
 // chainState tracks the state of the best chain as blocks are inserted.  This

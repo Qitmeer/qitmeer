@@ -93,7 +93,6 @@ func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Param
 	txSource := source
 	blockManager := blkMgr
 	timeSource := tsource
-	chainState := blockManager.GetChainState()
 	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
 
 
@@ -103,10 +102,6 @@ func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Param
 	if err != nil {
 		return nil, err
 	}
-
-	// Lock times are relative to the past median time of the block this
-	// template is building on.
-	medianTime := chainState.GetPastMedianTime()
 
 	// Extend the most recently known best block.
 	// The most recently known best block is the top block that has the most
@@ -166,8 +161,7 @@ mempoolLoop:
 			log.Trace("Skipping coinbase tx %s", tx.Hash())
 			continue
 		}
-		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight,
-			medianTime) {
+		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight,tsource.AdjustedTime()) {
 
 			log.Trace("Skipping non-finalized tx %s", tx.Hash())
 			continue
@@ -514,10 +508,7 @@ mempoolLoop:
 	// Calculate the required difficulty for the block.  The timestamp
 	// is potentially adjusted to ensure it comes after the median time of
 	// the last several blocks per the chain consensus rules.
-	ts, err := chainState.MedianAdjustedTime(timeSource,config)
-	if err != nil {
-		return nil, miningRuleError(ErrGettingMedianTime, err.Error())
-	}
+	ts:= MedianAdjustedTime(blockManager.GetChain(),timeSource)
 	reqDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts)
 
 	if err != nil {
@@ -676,19 +667,13 @@ mempoolLoop:
 // consensus rules.  Finally, it will update the target difficulty if needed
 // based on the new time for the test networks since their target difficulty can
 // change based upon time.
-func UpdateBlockTime(msgBlock *types.Block, bManager *blkmgr.BlockManager,
-	chain *blockchain.BlockChain, timeSource blockchain.MedianTimeSource,
-	activeNetParams *params.Params, config *config.Config ) error {
+func UpdateBlockTime(msgBlock *types.Block, chain *blockchain.BlockChain, timeSource blockchain.MedianTimeSource,
+	activeNetParams *params.Params) error {
 
 	// The new timestamp is potentially adjusted to ensure it comes after
 	// the median time of the last several blocks per the chain consensus
 	// rules.
-	// TODO, refactor the config dependence
-	newTimestamp, err := bManager.GetChainState().MedianAdjustedTime(
-		timeSource, config)
-	if err != nil {
-		return miningRuleError(ErrGettingMedianTime, err.Error())
-	}
+	newTimestamp:=MedianAdjustedTime(chain,timeSource)
 	msgBlock.Header.Timestamp = newTimestamp
 
 	// If running on a network that requires recalculating the difficulty,

@@ -574,7 +574,7 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 		medianTime := prevNode.CalcPastMedianTime(b)
 		if !header.Timestamp.After(medianTime) {
 			str := "block timestamp of %v is not after expected %v"
-			str = fmt.Sprintf(str, header.Timestamp, medianTime)
+			str = fmt.Sprintf(str, header.Timestamp.Unix(), medianTime.Unix())
 			return ruleError(ErrTimeTooOld, str)
 		}
 	}
