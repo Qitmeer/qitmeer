@@ -62,9 +62,6 @@ type BlockManager struct {
 	syncPeer            *peer.ServerPeer
 	msgChan             chan interface{}
 
-	//TODO remove chainState
-	chainState          ChainState
-
 	wg                  sync.WaitGroup
 	quit                chan struct{}
 
@@ -1003,4 +1000,11 @@ func (b *BlockManager) updateSyncPeer(dcSyncPeer bool) {
 
 	b.syncPeer = nil
 	b.startSync()
+}
+
+// headerNode is used as a node in a list of headers that are linked together
+// between checkpoints.
+type headerNode struct {
+	height uint64
+	hash   *hash.Hash
 }
