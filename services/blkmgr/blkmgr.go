@@ -957,6 +957,9 @@ func (b *BlockManager) handleStallSample() {
 
 	best := b.chain.BestSnapshot()
 	disconnectSyncPeer := b.syncPeer.LastGS().IsExcellent(best.GraphState)
+	if !disconnectSyncPeer && b.syncPeer.LastGS().IsEqual(best.GraphState) {
+		disconnectSyncPeer=true
+	}
 	b.updateSyncPeer(disconnectSyncPeer)
 }
 
