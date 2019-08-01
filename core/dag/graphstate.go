@@ -94,7 +94,7 @@ func (gs *GraphState) Clone() *GraphState {
 
 // Return one string contain info
 func (gs *GraphState) String() string {
-	return fmt.Sprintf("(%d,%d,%d)",gs.tips.Size(),gs.total,gs.layer)
+	return fmt.Sprintf("(%d,%d,%d,%d)",gs.tips.Size(),gs.total,gs.layer,gs.mainHeight)
 }
 
 // Judging whether it is better than other

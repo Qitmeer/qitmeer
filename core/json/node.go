@@ -41,4 +41,5 @@ type GetGraphStateResult struct {
 	Tips []string `json:"tips"`
 	Total uint32 `json:"total"`
 	Layer uint32 `json:"layer"`
+	MainHeight uint32 `json:"mainheight"`
 }
