@@ -659,6 +659,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 				Tips:tips,
 				Total:uint32(statsSnap.GraphState.GetTotal()),
 				Layer:uint32(statsSnap.GraphState.GetLayer()),
+				MainHeight:uint32(statsSnap.GraphState.GetMainHeight()),
 			}
 		}
 		if p.LastPingNonce() != 0 {
