@@ -7,16 +7,12 @@
 package addmgr
 
 import (
-	crand "crypto/rand"
 	"container/list"
+	crand "crypto/rand"
 	"encoding/base32"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/core/protocol"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/log"
 	"io"
 	"math/rand"
 	"net"
@@ -27,6 +23,11 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/log"
 )
 
 // PeersFilename is the default filename to store serialized peers.
@@ -207,7 +208,7 @@ func (a *AddrManager) updateAddress(netAddr, srcAddr *types.NetAddress) {
 	a.addrNew[bucket][addr] = ka
 	a.addrChanged = true
 
-	log.Trace("Added new address", "addr",addr, "total",
+	log.Trace("Added new address", "addr", addr, "total",
 		a.nTried+a.nNew)
 }
 
@@ -414,11 +415,11 @@ func (a *AddrManager) loadPeers() {
 
 	err := a.deserializePeers(a.peersFile)
 	if err != nil {
-		log.Error("Failed to parse file", "file", a.peersFile, "error",err)
+		log.Error("Failed to parse file", "file", a.peersFile, "error", err)
 		// if it is invalid we nuke the old one unconditionally.
 		err = os.Remove(a.peersFile)
 		if err != nil {
-			log.Warn("Failed to remove corrupt peers file","file",a.peersFile, "error",err)
+			log.Warn("Failed to remove corrupt peers file", "file", a.peersFile, "error", err)
 		}
 		a.reset()
 		return
@@ -613,8 +614,11 @@ func (a *AddrManager) AddressCache() []*types.NetAddress {
 
 	// Adjust length, we only deal with high quality addresses now.
 	addrLen = len(allAddr)
+	numAddresses := addrLen
+	if numAddresses > 5 {
+		numAddresses = addrLen * a.getAddrPercent / 100
+	}
 
-	numAddresses := addrLen * a.getAddrPercent / 100
 	if numAddresses > getAddrMax {
 		numAddresses = getAddrMax
 	}
@@ -759,7 +763,7 @@ func (a *AddrManager) GetAddress() *KnownAddress {
 			}
 			randval := a.rand.Intn(large)
 			if float64(randval) < (factor * ka.chance() * float64(large)) {
-				log.Trace(fmt.Sprintf("Selected from new bucket addr %s",NetAddressKey(ka.na)))
+				log.Trace(fmt.Sprintf("Selected from new bucket addr %s", NetAddressKey(ka.na)))
 				return ka
 			}
 			factor *= 1.2
@@ -1073,9 +1077,9 @@ func (a *AddrManager) GetBestLocalAddress(remoteAddr *types.NetAddress) *types.N
 // New returns a new address manager.
 // Use Start to begin processing asynchronous address updates.
 // The address manager uses lookupFunc for necessary DNS lookups.
-func New(dataDir string,getAddrPer int, lookupFunc func(string) ([]net.IP, error)) *AddrManager {
-	if getAddrPer<=0 {
-		getAddrPer=getAddrPercent
+func New(dataDir string, getAddrPer int, lookupFunc func(string) ([]net.IP, error)) *AddrManager {
+	if getAddrPer <= 0 {
+		getAddrPer = getAddrPercent
 	}
 	am := AddrManager{
 		peersFile:      filepath.Join(dataDir, PeersFilename),
