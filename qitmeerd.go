@@ -93,6 +93,14 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 		return nil
 	}
 	// Drop indexes and exit if requested.
+	if cfg.DropAddrIndex {
+		if err := index.DropAddrIndex(db, interrupt); err != nil {
+			log.Error("%v", err)
+			return err
+		}
+
+		return nil
+	}
 	if cfg.DropTxIndex {
 		if err := index.DropTxIndex(db, interrupt); err != nil {
 			log.Error(fmt.Sprintf("%v", err))

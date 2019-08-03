@@ -286,6 +286,28 @@ func loadConfig() (*config.Config, []string, error) {
 		return nil, nil, err
 	}
 
+	// --addrindex and --dropaddrindex do not mix.
+	if cfg.AddrIndex && cfg.DropAddrIndex {
+		err := fmt.Errorf("%s: the --addrindex and --dropaddrindex "+
+			"options may not be activated at the same time",
+			funcName)
+		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, usageMessage)
+		return nil, nil, err
+	}
+
+	// --addrindex and --droptxindex do not mix.
+	if cfg.AddrIndex && cfg.DropTxIndex {
+		err := fmt.Errorf("%s: the --addrindex and --droptxindex "+
+			"options may not be activated at the same time "+
+			"because the address index relies on the transaction "+
+			"index",
+			funcName)
+		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, usageMessage)
+		return nil, nil, err
+	}
+
 	// Check mining addresses are valid and saved parsed versions.
 	for _, strAddr := range cfg.MiningAddrs {
 		addr, err := address.DecodeAddress(strAddr)

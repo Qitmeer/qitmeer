@@ -157,16 +157,17 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			if err != nil {
 				return err
 			}
-			log.Debug(fmt.Sprintf("Current %s tip", indexer.Name()),
-				"order", order, "hash", h)
-
+			orderShow:=int64(order)
 			if order == math.MaxUint32 {
 				lowestOrder = -1
 				indexerOrders[i] = -1
+				orderShow=-1
 			}else if int64(order) < lowestOrder {
 				lowestOrder = int64(order)
 				indexerOrders[i] = int64(order)
 			}
+			log.Debug(fmt.Sprintf("Current %s tip", indexer.Name()),
+				"order", orderShow, "hash", h)
 		}
 		return nil
 	})
@@ -243,49 +244,6 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 
 	log.Info(fmt.Sprintf("Indexes caught up to order %d", bestOrder))
 	return nil
-}
-
-// makeUtxoView creates a mock unspent transaction output view by using the
-// transaction index in order to look up all inputs referenced by the
-// transactions in the block.  This is sometimes needed when catching indexes up
-// because many of the txouts could actually already be spent however the
-// associated scripts are still required to index them.
-func makeUtxoView(dbTx database.Tx, block *types.SerializedBlock, interrupt <-chan struct{}) (*blockchain.UtxoViewpoint, error) {
-	view := blockchain.NewUtxoViewpoint()
-	parentRegularTxs:= block.Transactions()
-
-	for txIdx, tx := range parentRegularTxs {
-		// Coinbases do not reference any inputs.  Since the block is
-		// required to have already gone through full validation, it has
-		// already been proven on the first transaction in the block is
-		// a coinbase.
-		if txIdx == 0 {
-			continue
-		}
-
-		// Use the transaction index to load all of the referenced
-		// inputs and add their outputs to the view.
-		for _, txIn := range tx.Transaction().TxIn {
-			// Skip already fetched outputs.
-			originOut := &txIn.PreviousOut
-			if view.LookupEntry(&originOut.Hash) != nil {
-				continue
-			}
-
-			originTx, err := dbFetchTx(dbTx, &originOut.Hash)
-			if err != nil {
-				return nil, err
-			}
-
-			view.AddTxOuts(types.NewTx(originTx),
-				int64(types.NullBlockOrder), types.NullTxIndex)
-		}
-
-		if interruptRequested(interrupt) {
-			return nil, errInterruptRequested
-		}
-	}
-	return view, nil
 }
 
 // maybeFinishDrops determines if each of the enabled indexes are in the middle
