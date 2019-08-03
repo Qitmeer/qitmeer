@@ -39,6 +39,9 @@ type QitmeerFull struct {
 	cpuMiner             *miner.CPUMiner
 	// tx index
 	txIndex              *index.TxIndex
+
+	// addr index
+	addrIndex            *index.AddrIndex
 	// clock time service
 	timeSource    		 blockchain.MedianTimeSource
 	// signature cache
@@ -100,10 +103,21 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 	var indexes []index.Indexer
 	cfg := node.Config
 
-	if cfg.TxIndex {
-		log.Info("Transaction index is enabled")
+	if cfg.TxIndex || cfg.AddrIndex {
+		if !cfg.TxIndex {
+			log.Info("Transaction index enabled because it " +
+				"is required by the address index")
+			cfg.TxIndex = true
+		} else {
+			log.Info("Transaction index is enabled")
+		}
 		qm.txIndex = index.NewTxIndex(qm.db)
 		indexes = append(indexes, qm.txIndex)
+	}
+	if cfg.AddrIndex {
+		log.Info("Address index is enabled")
+		qm.addrIndex = index.NewAddrIndex(qm.db, node.Params)
+		indexes = append(indexes, qm.addrIndex)
 	}
 	// index-manager
 	var indexManager blockchain.IndexManager
