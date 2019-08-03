@@ -910,7 +910,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		view := NewUtxoViewpoint()
 		view.SetBestHash(b.bd.GetPrevious(&node.hash))
 
-		stxos := []spentTxOut{}
+		stxos := []SpentTxOut{}
 		err := b.checkConnectBlock(node, block, view, &stxos)
 		if err != nil {
 			b.RemoveBadTx(block.Hash())
@@ -1053,7 +1053,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 // it would be inefficient to repeat it.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []spentTxOut) error {
+func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// Add the block hash and height to the block index.
@@ -1080,7 +1080,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 		// optional indexes with the block being connected so they can
 		// update themselves accordingly.
 		if b.indexManager != nil {
-			err := b.indexManager.ConnectBlock(dbTx, block, view)
+			err := b.indexManager.ConnectBlock(dbTx, block, stxos)
 			if err != nil {
 				return err
 			}
@@ -1102,7 +1102,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 // the main (best) chain.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint) error {
+func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint,stxos []SpentTxOut) error {
 
 	// Calculate the exact subsidy produced by adding the block.
 	err := b.db.Update(func(dbTx database.Tx) error {
@@ -1130,7 +1130,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 		// optional indexes with the block being disconnected so they
 		// can update themselves accordingly.
 		if b.indexManager != nil {
-			err := b.indexManager.DisconnectBlock(dbTx, block, view)
+			err := b.indexManager.DisconnectBlock(dbTx, block, stxos)
 			if err != nil {
 				return err
 			}
@@ -1202,7 +1202,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 
 		// Load all of the spent txos for the block from the spend
 		// journal.
-		var stxos map[string]spentTxOut
+		var stxos []SpentTxOut
 		err = b.db.View(func(dbTx database.Tx) error {
 			stxos, err = dbFetchSpendJournalEntry(dbTx, block)
 			return err
@@ -1216,7 +1216,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		if err != nil {
 			return err
 		}
-		err = b.disconnectBlock(n, block, view)
+		err = b.disconnectBlock(n, block,view, stxos)
 		if err != nil {
 			return err
 		}
@@ -1242,7 +1242,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 
 		view := NewUtxoViewpoint()
 		view.SetBestHash(b.bd.GetPrevious(&n.hash))
-		stxos := []spentTxOut{}
+		stxos := []SpentTxOut{}
 		err = b.checkConnectBlock(n, block, view, &stxos)
 		if err != nil {
 			return err
@@ -1393,4 +1393,23 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 		node := e.Value.(*blockNode)
 		*oldOrders=append(*oldOrders,node.Clone())
 	}
+}
+
+// FetchSpendJournal can return the set of outputs spent for the target block.
+func (b *BlockChain) FetchSpendJournal(targetBlock *types.SerializedBlock) ([]SpentTxOut, error) {
+	b.chainLock.RLock()
+	defer b.chainLock.RUnlock()
+
+	var spendEntries []SpentTxOut
+	err := b.db.View(func(dbTx database.Tx) error {
+		var err error
+
+		spendEntries, err = dbFetchSpendJournalEntry(dbTx, targetBlock)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return spendEntries, nil
 }

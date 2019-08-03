@@ -617,9 +617,7 @@ func deserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 		// 'true' below instructs the method to deserialize a stored
 		// amount.
 		// TODO script version is omit
-		amount, _, compScript, bytesRead, err :=
-			decodeCompressedTxOut(serialized[offset:], currentCompressionVersion,
-				true)
+		amount, _, script, bytesRead, err := decodeCompressedTxOut(serialized[offset:])
 		if err != nil {
 			return nil, errDeserialize(fmt.Sprintf("unable to "+
 				"decode utxo at index %d: %v", i, err))
@@ -628,8 +626,7 @@ func deserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 
 		entry.sparseOutputs[outputIndex] = &utxoOutput{
 			spent:      false,
-			compressed: true,
-			pkScript:   compScript,
+			pkScript:   script,
 			amount:     uint64(amount), //TODO, remove type conversion
 		}
 	}
@@ -878,8 +875,7 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 		if out.spent {
 			continue
 		}
-		size += compressedTxOutSize(uint64(out.amount), out.scriptVersion,
-			out.pkScript, currentCompressionVersion, out.compressed, true)
+		size += compressedTxOutSize(uint64(out.amount), out.scriptVersion, out.pkScript)
 	}
 
 	// Serialize the version, block height, block index, and flags of the
@@ -915,8 +911,7 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 		}
 
 		offset += putCompressedTxOut(serialized[offset:],
-			uint64(out.amount), out.scriptVersion, out.pkScript,
-			currentCompressionVersion, out.compressed, true)
+			uint64(out.amount), out.scriptVersion, out.pkScript)
 	}
 	return serialized, nil
 }
