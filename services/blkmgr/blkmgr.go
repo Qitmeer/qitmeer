@@ -1005,6 +1005,11 @@ func (b *BlockManager) updateSyncPeer(dcSyncPeer bool) {
 	b.startSync()
 }
 
+// Return chain params
+func (b *BlockManager) ChainParams() *params.Params {
+	return b.params
+}
+
 // headerNode is used as a node in a list of headers that are linked together
 // between checkpoints.
 type headerNode struct {
