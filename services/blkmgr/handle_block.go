@@ -163,7 +163,8 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 			rpcServer.gbtWorkState.NotifyBlockConnected(blockHash)
 		}
 		*/
-		if !b.current()&&bmsg.peer==b.syncPeer {
+		isCurrent:=b.current()
+		if !isCurrent&&bmsg.peer==b.syncPeer {
 			if len(bmsg.peer.RequestedBlocks)==0 {
 				b.PushGetBlocksMsg(bmsg.peer)
 			}
@@ -172,6 +173,14 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// reset last progress time
 		if bmsg.peer == b.syncPeer {
 			b.lastProgressTime = time.Now()
+			if len(bmsg.peer.RequestedBlocks)==0 {
+				if isCurrent {
+					log.Info(fmt.Sprintf("Your synchronization has been completed. "))
+				}else{
+					b.PushGetBlocksMsg(bmsg.peer)
+				}
+			}
+
 		}
 	}
 
