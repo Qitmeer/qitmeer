@@ -117,3 +117,34 @@ type GetUtxoResult struct {
 	Coinbase      bool               `json:"coinbase"`
 }
 
+// GetRawTransactionsResult models the data from the getrawtransactions
+// command.
+type GetRawTransactionsResult struct {
+	Hex           string       `json:"hex,omitempty"`
+	Txid          string       `json:"txid"`
+	Hash          string       `json:"hash"`
+	Size          string       `json:"size"`
+	Vsize         string       `json:"vsize"`
+	Version       uint32        `json:"version"`
+	LockTime      uint32       `json:"locktime"`
+	Vin           []VinPrevOut `json:"vin"`
+	Vout          []Vout       `json:"vout"`
+	BlockHash     string       `json:"blockhash,omitempty"`
+	Confirmations uint64       `json:"confirmations,omitempty"`
+	Time          int64        `json:"time,omitempty"`
+	Blocktime     int64        `json:"blocktime,omitempty"`
+}
+
+type VinPrevOut struct {
+	Coinbase  string     `json:"coinbase"`
+	Txid      string     `json:"txid"`
+	Vout      uint32     `json:"vout"`
+	ScriptSig *ScriptSig `json:"scriptSig"`
+	PrevOut   *PrevOut   `json:"prevOut"`
+	Sequence  uint32     `json:"sequence"`
+}
+
+type PrevOut struct {
+	Addresses []string `json:"addresses,omitempty"`
+	Value     float64  `json:"value"`
+}
