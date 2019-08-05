@@ -957,6 +957,9 @@ func (b *BlockManager) handleStallSample() {
 
 	best := b.chain.BestSnapshot()
 	disconnectSyncPeer := b.syncPeer.LastGS().IsExcellent(best.GraphState)
+	if !disconnectSyncPeer && b.syncPeer.LastGS().IsEqual(best.GraphState) {
+		disconnectSyncPeer=true
+	}
 	b.updateSyncPeer(disconnectSyncPeer)
 }
 
@@ -1000,6 +1003,11 @@ func (b *BlockManager) updateSyncPeer(dcSyncPeer bool) {
 
 	b.syncPeer = nil
 	b.startSync()
+}
+
+// Return chain params
+func (b *BlockManager) ChainParams() *params.Params {
+	return b.params
 }
 
 // headerNode is used as a node in a list of headers that are linked together

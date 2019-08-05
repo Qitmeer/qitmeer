@@ -251,8 +251,7 @@ func isPubKey(script []byte) (bool, []byte) {
 
 // compressedScriptSize returns the number of bytes the passed script would take
 // when encoded with the domain specific compression algorithm described above.
-func compressedScriptSize(scriptVersion uint16, pkScript []byte,
-	compressionVersion uint32) int {
+func compressedScriptSize(pkScript []byte) int {
 	// Pay-to-pubkey-hash script.
 	if valid, _ := isPubKeyHash(pkScript); valid {
 		return 21
@@ -279,7 +278,7 @@ func compressedScriptSize(scriptVersion uint16, pkScript []byte,
 // script, possibly followed by other data, and returns the number of bytes it
 // occupies taking into account the special encoding of the script size by the
 // domain specific compression algorithm described above.
-func decodeCompressedScriptSize(serialized []byte, compressionVersion uint32) int {
+func decodeCompressedScriptSize(serialized []byte) int {
 	scriptSize, bytesRead := deserializeVLQ(serialized)
 	if bytesRead == 0 {
 		return 0
@@ -307,8 +306,7 @@ func decodeCompressedScriptSize(serialized []byte, compressionVersion uint32) in
 // target byte slice.  The target byte slice must be at least large enough to
 // handle the number of bytes returned by the compressedScriptSize function or
 // it will panic.
-func putCompressedScript(target []byte, scriptVersion uint16, pkScript []byte,
-	compressionVersion uint32) int {
+func putCompressedScript(target []byte, pkScript []byte) int {
 	if len(target) == 0 {
 		target[0] = 0x00
 		return 1
@@ -369,8 +367,7 @@ func putCompressedScript(target []byte, scriptVersion uint16, pkScript []byte,
 // NOTE: The script parameter must already have been proven to be long enough
 // to contain the number of bytes returned by decodeCompressedScriptSize or it
 // will panic.  This is acceptable since it is only an internal function.
-func decompressScript(compressedPkScript []byte,
-	compressionVersion uint32) []byte {
+func decompressScript(compressedPkScript []byte) []byte {
 	// Empty scripts, specified by 0x00, are considered nil.
 	if len(compressedPkScript) == 0 {
 		return nil
@@ -576,24 +573,10 @@ func decompressTxOutAmount(amount uint64) uint64 {
 // preCompressed flag indicates the provided amount and script are already
 // compressed.  This is useful since loaded utxo entries are not decompressed
 // until the output is accessed.
-func compressedTxOutSize(amount uint64, scriptVersion uint16, pkScript []byte,
-	compressionVersion uint32, preCompressed bool, hasAmount bool) int {
+func compressedTxOutSize(amount uint64, scriptVersion uint16, pkScript []byte) int {
 	scriptVersionSize := serializeSizeVLQ(uint64(scriptVersion))
-	if preCompressed && !hasAmount {
-		return scriptVersionSize + len(pkScript)
-	}
-	if preCompressed && hasAmount {
-		return scriptVersionSize + serializeSizeVLQ(compressTxOutAmount(amount)) +
-			len(pkScript)
-	}
-	if !preCompressed && !hasAmount {
-		return scriptVersionSize + compressedScriptSize(scriptVersion,
-			pkScript, compressionVersion)
-	}
-
-	// if !preCompressed && hasAmount
 	return scriptVersionSize + serializeSizeVLQ(compressTxOutAmount(amount)) +
-		compressedScriptSize(scriptVersion, pkScript, compressionVersion)
+		compressedScriptSize(pkScript)
 }
 
 // putCompressedTxOut potentially compresses the passed amount and script
@@ -604,55 +587,30 @@ func compressedTxOutSize(amount uint64, scriptVersion uint16, pkScript []byte,
 // loaded utxo entries are not decompressed until the output is accessed.  The
 // target byte slice must be at least large enough to handle the number of bytes
 // returned by the compressedTxOutSize function or it will panic.
-func putCompressedTxOut(target []byte, amount uint64, scriptVersion uint16,
-	pkScript []byte, compressionVersion uint32, preCompressed bool,
-	hasAmount bool) int {
-	if preCompressed && hasAmount {
-		offset := putVLQ(target, compressTxOutAmount(amount))
-		offset += putVLQ(target[offset:], uint64(scriptVersion))
-		copy(target[offset:], pkScript)
-		return offset + len(pkScript)
-	}
-	if preCompressed && !hasAmount {
-		offset := putVLQ(target, uint64(scriptVersion))
-		copy(target[offset:], pkScript)
-		return offset + len(pkScript)
-	}
-	if !preCompressed && !hasAmount {
-		offset := putVLQ(target, uint64(scriptVersion))
-		offset += putCompressedScript(target[offset:], scriptVersion, pkScript,
-			compressionVersion)
-		return offset
-	}
-
-	// if !preCompressed && hasAmount
+func putCompressedTxOut(target []byte, amount uint64, scriptVersion uint16, pkScript []byte) int {
 	offset := putVLQ(target, compressTxOutAmount(amount))
 	offset += putVLQ(target[offset:], uint64(scriptVersion))
-	offset += putCompressedScript(target[offset:], scriptVersion, pkScript,
-		compressionVersion)
+	offset += putCompressedScript(target[offset:], pkScript)
 	return offset
 }
 
 // decodeCompressedTxOut decodes the passed compressed txout, possibly followed
 // by other data, into its compressed amount and compressed script and returns
 // them along with the number of bytes they occupied.
-func decodeCompressedTxOut(serialized []byte, compressionVersion uint32,
-	hasAmount bool) (int64, uint16, []byte, int, error) {
+func decodeCompressedTxOut(serialized []byte) (int64, uint16, []byte, int, error) {
 	var amount int64
 	var bytesRead int
 	var offset int
-	if hasAmount {
-		// Deserialize the compressed amount and ensure there are bytes
-		// remaining for the compressed script.
-		var compressedAmount uint64
-		compressedAmount, bytesRead = deserializeVLQ(serialized)
-		if bytesRead >= len(serialized) {
-			return 0, 0, nil, bytesRead, errDeserialize("unexpected end of " +
-				"data after compressed amount")
-		}
-		amount = int64(decompressTxOutAmount(compressedAmount))
-		offset += bytesRead
+	// Deserialize the compressed amount and ensure there are bytes
+	// remaining for the compressed script.
+	var compressedAmount uint64
+	compressedAmount, bytesRead = deserializeVLQ(serialized)
+	if bytesRead >= len(serialized) {
+		return 0, 0, nil, bytesRead, errDeserialize("unexpected end of " +
+			"data after compressed amount")
 	}
+	amount = int64(decompressTxOutAmount(compressedAmount))
+	offset += bytesRead
 
 	// Decode the script version.
 	var scriptVersion uint64
@@ -661,8 +619,7 @@ func decodeCompressedTxOut(serialized []byte, compressionVersion uint32,
 
 	// Decode the compressed script size and ensure there are enough bytes
 	// left in the slice for it.
-	scriptSize := decodeCompressedScriptSize(serialized[offset:],
-		compressionVersion)
+	scriptSize := decodeCompressedScriptSize(serialized[offset:])
 	if scriptSize < 0 {
 		return 0, 0, nil, offset, errDeserialize("negative script size")
 	}
@@ -672,13 +629,8 @@ func decodeCompressedTxOut(serialized []byte, compressionVersion uint32,
 			scriptSize))
 	}
 
-	// Make a copy of the compressed script so the original serialized data
-	// can be released as soon as possible.
-	compressedScript := make([]byte, scriptSize)
-	copy(compressedScript, serialized[offset:offset+scriptSize])
-
-	return amount, uint16(scriptVersion), compressedScript,
-		offset + scriptSize, nil
+	script := decompressScript(serialized[offset : offset+scriptSize])
+	return amount, uint16(scriptVersion), script, offset + scriptSize, nil
 }
 
 // -----------------------------------------------------------------------------

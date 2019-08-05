@@ -11,15 +11,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer-lib/core/address"
+	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer-lib/core/address"
-	"github.com/HalalChain/qitmeer-lib/engine/txscript"
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
+	"github.com/HalalChain/qitmeer/database"
 )
 
 const (
@@ -710,30 +709,19 @@ func (idx *AddrIndex) indexPkScript(data writeIndexData, scriptVersion uint16, p
 // in the parent of the passed block (if they were valid) and all of the stake
 // transactions in the passed block, and maps each of them to the associated
 // transaction using the passed map.
-func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) {
-	parentRegularTxs := block.Transactions()
-	for txIdx, tx := range parentRegularTxs {
+func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) {
+	for txIdx, tx := range block.Transactions() {
 		// Coinbases do not reference any inputs.  Since the block is
 		// required to have already gone through full validation, it has
 		// already been proven on the first transaction in the block is
 		// a coinbase.
 		if txIdx != 0 {
-			for _, txIn := range tx.Transaction().TxIn {
-				// The view should always have the input since
-				// the index contract requires it, however, be
-				// safe and simply ignore any missing entries.
-				origin := &txIn.PreviousOut
-				entry := view.LookupEntry(&origin.Hash)
-				if entry == nil {
-					log.Warn("Missing input %v for tx %v while "+
-						"indexing block %v (height %v)\n", origin.Hash,
-						tx.Hash(), block.Hash(), block.Order())
+			for inIndex:= range tx.Transaction().TxIn {
+				stxo:=blockchain.GetSpentTxOut(uint(txIdx),uint(inIndex),stxos)
+				if stxo==nil {
 					continue
 				}
-
-				version := uint16(0)
-				pkScript := entry.PkScriptByIndex(origin.OutIndex)
-				idx.indexPkScript(data, version, pkScript, txIdx)
+				idx.indexPkScript(data,stxo.ScriptVersion(), stxo.PKScript(), txIdx)
 			}
 		}
 
@@ -749,7 +737,7 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlo
 // the transactions in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,stxos []blockchain.SpentTxOut) error {
 	// The offset and length of the transactions within the serialized
 	// block.
 	txLocs, err := block.TxLoc()
@@ -765,7 +753,7 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBloc
 
 	// Build all of the address to transaction mappings in a local map.
 	addrsToTxns := make(writeIndexData)
-	idx.indexBlock(addrsToTxns, block, view)
+	idx.indexBlock(addrsToTxns, block, stxos)
 
 	// Add all of the index entries for each address.
 	addrIdxBucket := dbTx.Metadata().Bucket(addrIndexKey)
@@ -790,10 +778,10 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBloc
 // each transaction in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock,stxos []blockchain.SpentTxOut) error {
 	// Build all of the address to transaction mappings in a local map.
 	addrsToTxns := make(writeIndexData)
-	idx.indexBlock(addrsToTxns, block, view)
+	idx.indexBlock(addrsToTxns, block, stxos)
 
 	// Remove all of the index entries for each address.
 	bucket := dbTx.Metadata().Bucket(addrIndexKey)
@@ -912,15 +900,14 @@ func (idx *AddrIndex) AddUnconfirmedTx(tx *types.Tx, utxoView *blockchain.UtxoVi
 			// call out all inputs must be available.
 			continue
 		}
-		version := uint16(0)
 		pkScript := entry.PkScriptByIndex(txIn.PreviousOut.OutIndex)
 		//txType := entry.TransactionType()
-		idx.indexUnconfirmedAddresses(version, pkScript,tx)
+		idx.indexUnconfirmedAddresses(txscript.DefaultScriptVersion, pkScript,tx)
 	}
 
 	// Index addresses of all created outputs.
 	for _, txOut := range msgTx.TxOut {
-		idx.indexUnconfirmedAddresses(0, txOut.PkScript, tx)
+		idx.indexUnconfirmedAddresses(txscript.DefaultScriptVersion, txOut.PkScript, tx)
 	}
 }
 

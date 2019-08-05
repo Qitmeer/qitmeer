@@ -134,9 +134,6 @@ func (entry *UtxoEntry) PkScriptByIndex(outputIndex uint32) []byte {
 	if !ok {
 		return nil
 	}
-
-	// Ensure the output is decompressed before returning the script.
-	output.maybeDecompress(currentCompressionVersion)
 	return output.pkScript
 }
 

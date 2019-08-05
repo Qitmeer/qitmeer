@@ -91,6 +91,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 	// This is fairly unlikely, but it can happen if the chain is
 	// reorganized while the index is disabled.  This has to be done in
 	// reverse order because later indexes can depend on earlier ones.
+	var spentTxos []blockchain.SpentTxOut
 	for i := len(m.enabledIndexes); i > 0; i-- {
 		indexer := m.enabledIndexes[i-1]
 
@@ -110,7 +111,6 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			continue
 		}
 		var block *types.SerializedBlock
-		var view *blockchain.UtxoViewpoint
 		for order>bestOrder {
 			err = m.db.Update(func(dbTx database.Tx) error {
 				// Load the block for the height since it is required to index
@@ -119,13 +119,14 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 				if err != nil {
 					return err
 				}
+				spentTxos=nil
 				if indexNeedsInputs(indexer) {
-					view, err = makeUtxoView(dbTx, block, interrupt)
+					spentTxos, err = chain.FetchSpendJournal(block)
 					if err != nil {
 						return err
 					}
 				}
-				err=m.dbIndexDisconnectBlock(dbTx,indexer,block,view)
+				err=m.dbIndexDisconnectBlock(dbTx,indexer,block,spentTxos)
 				if err != nil {
 					return err
 				}
@@ -156,16 +157,17 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			if err != nil {
 				return err
 			}
-			log.Debug(fmt.Sprintf("Current %s tip", indexer.Name()),
-				"order", order, "hash", h)
-
+			orderShow:=int64(order)
 			if order == math.MaxUint32 {
 				lowestOrder = -1
 				indexerOrders[i] = -1
+				orderShow=-1
 			}else if int64(order) < lowestOrder {
 				lowestOrder = int64(order)
 				indexerOrders[i] = int64(order)
 			}
+			log.Debug(fmt.Sprintf("Current %s tip", indexer.Name()),
+				"order", orderShow, "hash", h)
 		}
 		return nil
 	})
@@ -206,7 +208,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			}
 
 			// Connect the block for all indexes that need it.
-			var view *blockchain.UtxoViewpoint
+			spentTxos=nil
 			for i, indexer := range m.enabledIndexes {
 				// Skip indexes that don't need to be updated with this
 				// block.
@@ -218,14 +220,13 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 				// txouts and they haven't been loaded yet, they
 				// need to be retrieved from the transaction
 				// index.
-				if view == nil && indexNeedsInputs(indexer) {
-					var errMakeView error
-					view, errMakeView = makeUtxoView(dbTx, block, interrupt)
-					if errMakeView != nil {
-						return errMakeView
+				if spentTxos == nil && indexNeedsInputs(indexer) {
+					spentTxos,err=chain.FetchSpendJournal(block)
+					if err != nil {
+						return err
 					}
 				}
-				err = dbIndexConnectBlock(dbTx, indexer, block, view)
+				err = dbIndexConnectBlock(dbTx, indexer, block, spentTxos)
 				if err != nil {
 					return err
 				}
@@ -243,49 +244,6 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 
 	log.Info(fmt.Sprintf("Indexes caught up to order %d", bestOrder))
 	return nil
-}
-
-// makeUtxoView creates a mock unspent transaction output view by using the
-// transaction index in order to look up all inputs referenced by the
-// transactions in the block.  This is sometimes needed when catching indexes up
-// because many of the txouts could actually already be spent however the
-// associated scripts are still required to index them.
-func makeUtxoView(dbTx database.Tx, block *types.SerializedBlock, interrupt <-chan struct{}) (*blockchain.UtxoViewpoint, error) {
-	view := blockchain.NewUtxoViewpoint()
-	parentRegularTxs:= block.Transactions()
-
-	for txIdx, tx := range parentRegularTxs {
-		// Coinbases do not reference any inputs.  Since the block is
-		// required to have already gone through full validation, it has
-		// already been proven on the first transaction in the block is
-		// a coinbase.
-		if txIdx == 0 {
-			continue
-		}
-
-		// Use the transaction index to load all of the referenced
-		// inputs and add their outputs to the view.
-		for _, txIn := range tx.Transaction().TxIn {
-			// Skip already fetched outputs.
-			originOut := &txIn.PreviousOut
-			if view.LookupEntry(&originOut.Hash) != nil {
-				continue
-			}
-
-			originTx, err := dbFetchTx(dbTx, &originOut.Hash)
-			if err != nil {
-				return nil, err
-			}
-
-			view.AddTxOuts(types.NewTx(originTx),
-				int64(types.NullBlockOrder), types.NullTxIndex)
-		}
-
-		if interruptRequested(interrupt) {
-			return nil, errInterruptRequested
-		}
-	}
-	return view, nil
 }
 
 // maybeFinishDrops determines if each of the enabled indexes are in the middle
@@ -381,11 +339,11 @@ func (m *Manager) maybeCreateIndexes(dbTx database.Tx) error {
 // checks, and invokes each indexer.
 //
 // This is part of the blockchain.IndexManager interface.
-func (m *Manager) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (m *Manager) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) error {
 	// Call each of the currently active optional indexes with the block
 	// being connected so they can update accordingly.
 	for _, index := range m.enabledIndexes {
-		err := dbIndexConnectBlock(dbTx, index, block, view)
+		err := dbIndexConnectBlock(dbTx, index, block, stxos)
 		if err != nil {
 			return err
 		}
@@ -399,11 +357,11 @@ func (m *Manager) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock, v
 // the index entries associated with the block.
 //
 // This is part of the blockchain.IndexManager interface.
-func (m *Manager) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (m *Manager) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) error {
 	// Call each of the currently active optional indexes with the block
 	// being disconnected so they can update accordingly.
 	for _, index := range m.enabledIndexes {
-		err := m.dbIndexDisconnectBlock(dbTx, index, block, view)
+		err := m.dbIndexDisconnectBlock(dbTx, index, block, stxos)
 		if err != nil {
 			return err
 		}
@@ -443,7 +401,7 @@ func dbFetchTx(dbTx database.Tx, hash *hash.Hash) (*types.Transaction, error) {
 // given block using the provided indexer and updates the tip of the indexer
 // accordingly.  An error will be returned if the current tip for the indexer is
 // not the passed block.
-func (m *Manager) dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func (m *Manager) dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) error {
 	// Assert that the block being disconnected is the current tip of the
 	// index.
 	idxKey := indexer.Key()
@@ -464,7 +422,7 @@ func (m *Manager) dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, bloc
 	}
 	// Notify the indexer with the disconnected block so it can remove all
 	// of the appropriate entries.
-	if err := indexer.DisconnectBlock(dbTx, block, view); err != nil {
+	if err := indexer.DisconnectBlock(dbTx, block, stxos); err != nil {
 		return err
 	}
 
@@ -489,7 +447,7 @@ func (m *Manager) dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, bloc
 // given block using the provided indexer and updates the tip of the indexer
 // accordingly.  An error will be returned if the current tip for the indexer is
 // not the previous block for the passed block.
-func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.SerializedBlock, view *blockchain.UtxoViewpoint) error {
+func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) error {
 	// Assert that the block being connected properly connects to the
 	// current tip of the index.
 	idxKey := indexer.Key()
@@ -508,7 +466,7 @@ func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seriali
 	}
 
 	// Notify the indexer with the connected block so it can index it.
-	if err := indexer.ConnectBlock(dbTx, block, view); err != nil {
+	if err := indexer.ConnectBlock(dbTx, block, stxos); err != nil {
 		return err
 	}
 

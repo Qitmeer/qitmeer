@@ -2,23 +2,21 @@
 package node
 
 import (
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
-	"github.com/HalalChain/qitmeer/node/notify"
-	"github.com/HalalChain/qitmeer/p2p/peerserver"
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer-lib/rpc"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/database"
+	"github.com/HalalChain/qitmeer/node/notify"
+	"github.com/HalalChain/qitmeer/p2p/peerserver"
 	"github.com/HalalChain/qitmeer/services/acct"
 	"github.com/HalalChain/qitmeer/services/blkmgr"
+	"github.com/HalalChain/qitmeer/services/common"
 	"github.com/HalalChain/qitmeer/services/index"
-	"github.com/HalalChain/qitmeer/services/mempool"
 	"github.com/HalalChain/qitmeer/services/miner"
 	"github.com/HalalChain/qitmeer/services/mining"
 	"github.com/HalalChain/qitmeer/services/notifymgr"
-	"time"
+	"github.com/HalalChain/qitmeer/services/tx"
 )
 
 // QitmeerFull implements the qitmeer full node service.
@@ -33,12 +31,12 @@ type QitmeerFull struct {
 	acctmanager          *acct.AccountManager
 	// block manager handles all incoming blocks.
 	blockManager         *blkmgr.BlockManager
-	// mempool hold tx that need to be mined into blocks and relayed to other peers.
-	txMemPool            *mempool.TxPool
+	// tx manager
+	txManager            *tx.TxManager
+
 	// miner service
 	cpuMiner             *miner.CPUMiner
-	// tx index
-	txIndex              *index.TxIndex
+
 	// clock time service
 	timeSource    		 blockchain.MedianTimeSource
 	// signature cache
@@ -54,6 +52,7 @@ func (qm *QitmeerFull) Start(server *peerserver.PeerServer) error {
 	}
 
 	qm.blockManager.Start()
+	qm.txManager.Start()
 	return nil
 }
 
@@ -64,6 +63,8 @@ func (qm *QitmeerFull) Stop() error {
 
 	qm.blockManager.Stop()
 	qm.blockManager.WaitForStop()
+
+	qm.txManager.Stop()
 
 	log.Info("try stop cpu miner")
 	// Stop the CPU miner if needed.
@@ -78,7 +79,7 @@ func (qm *QitmeerFull)	APIs() []rpc.API {
 	apis := qm.acctmanager.APIs()
 	apis = append(apis,qm.cpuMiner.APIs()...)
 	apis = append(apis,qm.blockManager.API())
-	apis = append(apis,qm.txMemPool.API())
+	apis = append(apis,qm.txManager.APIs()...)
 	apis = append(apis,qm.API())
 	return apis
 }
@@ -100,10 +101,23 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 	var indexes []index.Indexer
 	cfg := node.Config
 
-	if cfg.TxIndex {
-		log.Info("Transaction index is enabled")
-		qm.txIndex = index.NewTxIndex(qm.db)
-		indexes = append(indexes, qm.txIndex)
+	var txIndex *index.TxIndex
+	var addrIndex *index.AddrIndex
+	if cfg.TxIndex || cfg.AddrIndex {
+		if !cfg.TxIndex {
+			log.Info("Transaction index enabled because it " +
+				"is required by the address index")
+			cfg.TxIndex = true
+		} else {
+			log.Info("Transaction index is enabled")
+		}
+		txIndex = index.NewTxIndex(qm.db)
+		indexes = append(indexes, txIndex)
+	}
+	if cfg.AddrIndex {
+		log.Info("Address index is enabled")
+		addrIndex = index.NewAddrIndex(qm.db, node.Params)
+		indexes = append(indexes, addrIndex)
 	}
 	// index-manager
 	var indexManager blockchain.IndexManager
@@ -121,41 +135,20 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 	}
 	qm.blockManager = bm
 
-	// mem-pool
-	txC := mempool.Config{
-		Policy: mempool.Policy{
-			MaxTxVersion:         2,
-			DisableRelayPriority: cfg.NoRelayPriority,
-			AcceptNonStd:         cfg.AcceptNonStd,
-			FreeTxRelayLimit:     cfg.FreeTxRelayLimit,
-			MaxOrphanTxs:         cfg.MaxOrphanTxs,
-			MaxOrphanTxSize:      mempool.DefaultMaxOrphanTxSize,
-			MaxSigOpsPerTx:       blockchain.MaxSigOpsPerBlock / 5,
-			MinRelayTxFee:        types.Amount(cfg.MinTxFee),
-			StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
-				return standardScriptVerifyFlags(bm.GetChain())
-			},
-		},
-		ChainParams:      node.Params,
-		FetchUtxoView:    bm.GetChain().FetchUtxoView,  //TODO, duplicated dependence of miner
-		BlockByHash:      bm.GetChain().FetchBlockByHash,
-		BestHash:         func() *hash.Hash { return &bm.GetChain().BestSnapshot().Hash },
-		BestHeight:       func() uint64 { return uint64(bm.GetChain().BestSnapshot().GraphState.GetMainHeight()) },
-		BestOrder:       func() uint64 { return bm.GetChain().BestSnapshot().Order },
-		CalcSequenceLock: bm.GetChain().CalcSequenceLock,
-		SubsidyCache:     bm.GetChain().FetchSubsidyCache(),
-		SigCache:         qm.sigCache,
-		PastMedianTime:   func() time.Time { return bm.GetChain().BestSnapshot().MedianTime },
+	// txmanager
+	tm,err:=tx.NewTxManager(bm,txIndex,addrIndex,cfg,qm.nfManager,qm.sigCache,node.DB)
+	if err != nil {
+		return nil, err
 	}
-	qm.txMemPool = mempool.New(&txC)
+	qm.txManager=tm
 
 	// set mempool to bm
-	bm.SetMemPool(qm.txMemPool)
+	bm.SetMemPool(qm.txManager.MemPool())
 
 	// prepare peerServer
 	node.peerServer.BlockManager = bm
 	node.peerServer.TimeSource = qm.timeSource
-	node.peerServer.TxMemPool = qm.txMemPool
+	node.peerServer.TxMemPool = qm.txManager.MemPool()
 
 	// Cpu Miner
 	// Create the mining policy based on the configuration options.
@@ -167,7 +160,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 		BlockPrioritySize: cfg.BlockPrioritySize,
 		TxMinFreeFee:      cfg.MinTxFee,    //TODO, duplicated config item with mem-pool
 		StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
-				return standardScriptVerifyFlags(bm.GetChain())
+				return common.StandardScriptVerifyFlags()
 		}, //TODO, duplicated config item with mem-pool
 	}
 	// defaultNumWorkers is the default number of workers to use for mining
@@ -176,18 +169,9 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 	defaultNumWorkers := uint32(params.CPUMinerThreads) //TODO, move to config
 
 	qm.cpuMiner = miner.NewCPUMiner(cfg,node.Params,&policy,qm.sigCache,
-		qm.txMemPool,qm.timeSource,qm.blockManager,defaultNumWorkers)
+		qm.txManager.MemPool(),qm.timeSource,qm.blockManager,defaultNumWorkers)
 
 	return &qm, nil
-}
-
-// standardScriptVerifyFlags returns the script flags that should be used when
-// executing transaction scripts to enforce additional checks which are required
-// for the script to be considered standard.  Note these flags are different
-// than what is required for the consensus rules in that they are more strict.
-func standardScriptVerifyFlags(chain *blockchain.BlockChain) (txscript.ScriptFlags, error) {
-	scriptFlags := mempool.BaseStandardVerifyFlags
-	return scriptFlags, nil
 }
 
 // return block manager
