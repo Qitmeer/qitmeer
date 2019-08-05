@@ -738,7 +738,7 @@ func (api *PublicTxAPI) GetRawTransactions(addre string,vinext *bool,count *uint
 				return nil, fmt.Errorf("%s %s",err.Error(), context)
 			}
 		} else {
-			mtx = &message.MsgTx{rtx.tx.Tx}
+			mtx = &message.MsgTx{Tx:rtx.tx.Tx}
 		}
 
 		result := &srtList[i]

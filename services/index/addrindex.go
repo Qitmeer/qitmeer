@@ -716,7 +716,7 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlo
 		// already been proven on the first transaction in the block is
 		// a coinbase.
 		if txIdx != 0 {
-			for inIndex,_:= range tx.Transaction().TxIn {
+			for inIndex:= range tx.Transaction().TxIn {
 				stxo:=blockchain.GetSpentTxOut(uint(txIdx),uint(inIndex),stxos)
 				if stxo==nil {
 					continue
