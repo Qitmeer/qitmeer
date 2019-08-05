@@ -900,15 +900,14 @@ func (idx *AddrIndex) AddUnconfirmedTx(tx *types.Tx, utxoView *blockchain.UtxoVi
 			// call out all inputs must be available.
 			continue
 		}
-		version := uint16(0)
 		pkScript := entry.PkScriptByIndex(txIn.PreviousOut.OutIndex)
 		//txType := entry.TransactionType()
-		idx.indexUnconfirmedAddresses(version, pkScript,tx)
+		idx.indexUnconfirmedAddresses(txscript.DefaultScriptVersion, pkScript,tx)
 	}
 
 	// Index addresses of all created outputs.
 	for _, txOut := range msgTx.TxOut {
-		idx.indexUnconfirmedAddresses(0, txOut.PkScript, tx)
+		idx.indexUnconfirmedAddresses(txscript.DefaultScriptVersion, txOut.PkScript, tx)
 	}
 }
 

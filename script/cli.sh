@@ -221,6 +221,33 @@ function get_orphans_total(){
   get_result "$data"
 }
 
+function get_rawtxs(){
+  local address=$1
+  local param2=$2
+  local param3=$3
+  local param4=$4
+  local param5=$5
+  local param6=$6
+
+  if [ "$param2" == "" ]; then
+      param2=false
+  fi
+  if [ "$param3" == "" ]; then
+      param3=100
+  fi
+  if [ "$param4" == "" ]; then
+      param4=0
+  fi
+  if [ "$param5" == "" ]; then
+      param5=false
+  fi
+  if [ "$param6" == "" ]; then
+      param6=true
+  fi
+  local data='{"jsonrpc":"2.0","method":"getRawTransactions","params":["'$address'",'$param2','$param3','$param4','$param5','$param6'],"id":null}'
+  get_result "$data"
+}
+
 function get_result(){
   local proto="https"
   if [ $notls -eq 1 ]; then
@@ -286,6 +313,7 @@ function usage(){
   echo "  tx <hash>"
   echo "  txSign <rawTx>"
   echo "  sendRawTx <signedRawTx>"
+  echo "  getrawtxs <address>"
   echo "utxo   :"
   echo "  getutxo <tx_id> <index> <include_mempool,default=true>"
   echo "miner  :"
@@ -583,6 +611,10 @@ elif [ "$1" == "decodeRawTx" ]; then
 elif [ "$1" == "sendRawTx" ]; then
   shift
   send_raw_tx $@
+
+elif [ "$1" == "getrawtxs" ]; then
+  shift
+  get_rawtxs $@
 
 elif [ "$1" == "get_tx_by_block_and_index" ]; then
   shift

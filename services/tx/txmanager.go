@@ -74,6 +74,7 @@ func NewTxManager(bm *blkmgr.BlockManager,txIndex *index.TxIndex,
 		SubsidyCache:     bm.GetChain().FetchSubsidyCache(),
 		SigCache:         sigCache,
 		PastMedianTime:   func() time.Time { return bm.GetChain().BestSnapshot().MedianTime },
+		AddrIndex:        addrIndex,
 	}
 	txMemPool := mempool.New(&txC)
 

@@ -100,7 +100,9 @@ func (mp *TxPool) removeTransaction(theTx *types.Tx, removeRedeemers bool) {
 		// Remove unconfirmed address index entries associated with the
 		// transaction if enabled.
 		// TODO address index
-
+		if mp.cfg.AddrIndex != nil {
+			mp.cfg.AddrIndex.RemoveUnconfirmedTx(txHash)
+		}
 		// Mark the referenced outpoints as unspent by the pool.
 
 		for _, txIn := range txDesc.Tx.Transaction().TxIn {
@@ -819,32 +821,17 @@ func (mp *TxPool) ProcessOrphans(hash *hash.Hash) []*types.Tx {
 // orphans.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) FetchTransaction(txHash *hash.Hash, includeRecentBlock bool) (*types.Tx,bool, error) {
+func (mp *TxPool) FetchTransaction(txHash *hash.Hash) (*types.Tx, error) {
 	// Protect concurrent access.
 	mp.mtx.RLock()
 	txDesc, exists := mp.pool[*txHash]
 	mp.mtx.RUnlock()
 
 	if exists {
-		return txDesc.Tx,false, nil
+		return txDesc.Tx, nil
 	}
 
-	// the latest block is considered "unconfirmed"
-	// for the regular transaction tree. Search that if the
-	// user indicates too, as well.
-	if includeRecentBlock {
-		bl, err := mp.cfg.BlockByHash(mp.cfg.BestHash())
-		if err != nil {
-			return nil, false,err
-		}
-
-		for _, tx := range bl.Transactions() {
-			if tx.Hash().IsEqual(txHash) {
-				return tx,true, nil
-			}
-		}
-	}
-	return nil,false,fmt.Errorf("transaction is not in the pool, neither included in the recent block")
+	return nil,fmt.Errorf("transaction is not in the pool")
 }
 
 // HaveAllTransactions returns whether or not all of the passed transaction
