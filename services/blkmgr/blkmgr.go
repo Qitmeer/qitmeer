@@ -572,7 +572,7 @@ out:
 				_, isOrphan, err := b.chain.ProcessBlock(
 					msg.block, msg.flags)
 				if err != nil {
-					b.chain.RemoveBadTx(msg.block.Hash())
+					b.chain.RemoveInvalidTx(msg.block.Hash())
 					msg.reply <- processBlockResponse{
 						isOrphan: isOrphan,
 						err:      err,

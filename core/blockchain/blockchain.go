@@ -107,8 +107,8 @@ type BlockChain struct {
 
 	//block dag
 	bd *blockdag.BlockDAG
-	//badTx hash->block hash
-	badTx map[hash.Hash]*dag.HashSet
+	//invalidTx hash->block hash
+	invalidTx map[hash.Hash]*dag.HashSet
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -260,7 +260,7 @@ func New(config *Config) (*BlockChain, error) {
 	}
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType)
-	b.badTx = make(map[hash.Hash]*dag.HashSet)
+	b.invalidTx = make(map[hash.Hash]*dag.HashSet)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -913,7 +913,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		stxos := []SpentTxOut{}
 		err := b.checkConnectBlock(node, block, view, &stxos)
 		if err != nil {
-			b.RemoveBadTx(block.Hash())
+			b.RemoveInvalidTx(block.Hash())
 			return false, err
 		}
 		// In the fast add case the code to check the block connection
@@ -924,7 +924,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// Connect the block to the main chain.
 		err = b.connectBlock(node, block, view, stxos)
 		if err != nil {
-			b.RemoveBadTx(block.Hash())
+			b.RemoveInvalidTx(block.Hash())
 			return false, err
 		}
 		// TODO, validating previous block
@@ -980,7 +980,7 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode, block *types.Serializ
 					continue
 				}
 				if ret {
-					b.AddBadTx(tx.Hash(),block.Hash())
+					b.AddInvalidTx(tx.Hash(),block.Hash())
 				}
 			}
 		}
@@ -1145,7 +1145,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	b.RemoveBadTx(&node.hash)
+	b.RemoveInvalidTx(&node.hash)
 
 	return nil
 }
@@ -1271,14 +1271,14 @@ func countSpentOutputs(block, parent *types.SerializedBlock) int {
 	return numSpent
 }
 
-func (b *BlockChain) IsBadTx(txh *hash.Hash) bool {
-	_, ok := b.badTx[*txh]
+func (b *BlockChain) IsInvalidTx(txh *hash.Hash) bool {
+	_, ok := b.invalidTx[*txh]
 	return ok
 }
 
-func (b *BlockChain) GetBadTxFromBlock(bh *hash.Hash) []*hash.Hash {
+func (b *BlockChain) GetInvalidTxFromBlock(bh *hash.Hash) []*hash.Hash {
 	result := []*hash.Hash{}
-	for k, v := range b.badTx {
+	for k, v := range b.invalidTx {
 		if v.Has(bh) {
 			txHash := k
 			result = append(result, &txHash)
@@ -1287,31 +1287,31 @@ func (b *BlockChain) GetBadTxFromBlock(bh *hash.Hash) []*hash.Hash {
 	return result
 }
 
-func (b *BlockChain) AddBadTx(txh *hash.Hash, bh *hash.Hash) {
-	if b.IsBadTx(txh) {
-		b.badTx[*txh].Add(bh)
+func (b *BlockChain) AddInvalidTx(txh *hash.Hash, bh *hash.Hash) {
+	if b.IsInvalidTx(txh) {
+		b.invalidTx[*txh].Add(bh)
 	} else {
 		set := dag.NewHashSet()
 		set.Add(bh)
-		b.badTx[*txh] = set
+		b.invalidTx[*txh] = set
 	}
 }
 
-func (b *BlockChain) AddBadTxArray(txha []*hash.Hash, bh *hash.Hash) {
+func (b *BlockChain) AddInvalidTxArray(txha []*hash.Hash, bh *hash.Hash) {
 	if len(txha) == 0 {
 		return
 	}
 	for _, v := range txha {
-		b.AddBadTx(v, bh)
+		b.AddInvalidTx(v, bh)
 	}
 }
 
-func (b *BlockChain) RemoveBadTx(bh *hash.Hash) {
-	for k, v := range b.badTx {
+func (b *BlockChain) RemoveInvalidTx(bh *hash.Hash) {
+	for k, v := range b.invalidTx {
 		if v.Has(bh) {
 			v.Remove(bh)
 			if v.IsEmpty() {
-				delete(b.badTx, k)
+				delete(b.invalidTx, k)
 			}
 		}
 	}

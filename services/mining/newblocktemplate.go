@@ -185,7 +185,7 @@ mempoolLoop:
 		for _, txIn := range tx.Transaction().TxIn {
 
 			originHash := &txIn.PreviousOut.Hash
-			if blockManager.GetChain().IsBadTx(originHash) {
+			if blockManager.GetChain().IsInvalidTx(originHash) {
 				log.Trace("Skipping tx %s because it "+
 					"references bad output %s "+
 					"which is not available",

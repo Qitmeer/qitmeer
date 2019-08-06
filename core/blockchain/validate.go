@@ -322,13 +322,13 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 		if atom < 0 {
 			str := fmt.Sprintf("transaction output has negative "+
 				"value of %v", atom)
-			return ruleError(ErrBadTxOutValue, str)
+			return ruleError(ErrInvalidTxOutValue, str)
 		}
 		if atom > types.MaxAmount {
 			str := fmt.Sprintf("transaction output value of %v is "+
 				"higher than max allowed value of %v", atom,
 				types.MaxAmount)
-			return ruleError(ErrBadTxOutValue, str)
+			return ruleError(ErrInvalidTxOutValue, str)
 		}
 
 		// Two's complement int64 overflow guarantees that any overflow
@@ -339,14 +339,14 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 			str := fmt.Sprintf("total value of all transaction "+
 				"outputs exceeds max allowed value of %v",
 				types.MaxAmount)
-			return ruleError(ErrBadTxOutValue, str)
+			return ruleError(ErrInvalidTxOutValue, str)
 		}
 		if totalAtom > types.MaxAmount {
 			str := fmt.Sprintf("total value of all transaction "+
 				"outputs is %v which is higher than max "+
 				"allowed value of %v", totalAtom,
 				types.MaxAmount)
-			return ruleError(ErrBadTxOutValue, str)
+			return ruleError(ErrInvalidTxOutValue, str)
 		}
 	}
 
@@ -381,7 +381,7 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 		for _, txIn := range tx.TxIn {
 			prevOut := &txIn.PreviousOut
 			if isNullOutpoint(prevOut) {
-				return ruleError(ErrBadTxInput, "transaction "+
+				return ruleError(ErrInvalidTxInput, "transaction "+
 					"input refers to previous output that "+
 					"is null")
 			}
@@ -788,7 +788,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 	totalFees := int64(inputFees) // Stake tx tree carry forward
 	var cumulativeSigOps int
 	for idx, tx := range txs {
-		if b.IsBadTx(tx.Hash()) {
+		if b.IsInvalidTx(tx.Hash()) {
 			continue
 		}
 		// Ensure that the number of signature operations is not beyond
@@ -800,7 +800,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			log.Trace("checkNumSigOps failed","err", err)
 			//return err
 
-			b.AddBadTx(tx.Hash(),&node.hash)
+			b.AddInvalidTx(tx.Hash(),&node.hash)
 			continue
 		}
 
@@ -812,7 +812,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		if err != nil {
 			log.Trace("CheckTransactionInputs failed","err", err)
 			//return err
-			b.AddBadTx(tx.Hash(),&node.hash)
+			b.AddInvalidTx(tx.Hash(),&node.hash)
 			continue
 		}
 
@@ -825,7 +825,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			//	"overflows accumulator")
 			log.Trace("total fees for block overflows accumulator")
 
-			b.AddBadTx(tx.Hash(),&node.hash)
+			b.AddInvalidTx(tx.Hash(),&node.hash)
 			continue
 		}
 
@@ -837,7 +837,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			log.Trace("connectTransaction failed","err", err)
 			//return err
 
-			b.AddBadTx(tx.Hash(),&node.hash)
+			b.AddInvalidTx(tx.Hash(),&node.hash)
 			continue
 		}
 	}
@@ -1157,13 +1157,13 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txOrder in
 		if originTxAtom < 0 {
 			str := fmt.Sprintf("transaction output has negative "+
 				"value of %v", originTxAtom)
-			return 0, ruleError(ErrBadTxOutValue, str)
+			return 0, ruleError(ErrInvalidTxOutValue, str)
 		}
 		if originTxAtom > types.MaxAmount {
 			str := fmt.Sprintf("transaction output value of %v is "+
 				"higher than max allowed value of %v",
 				originTxAtom, types.MaxAmount)
-			return 0, ruleError(ErrBadTxOutValue, str)
+			return 0, ruleError(ErrInvalidTxOutValue, str)
 		}
 
 		// The total of all outputs must not be more than the max
@@ -1177,7 +1177,7 @@ func CheckTransactionInputs(subsidyCache *SubsidyCache, tx *types.Tx, txOrder in
 				"inputs is %v which is higher than max "+
 				"allowed value of %v", totalAtomIn,
 				types.MaxAmount)
-			return 0, ruleError(ErrBadTxOutValue, str)
+			return 0, ruleError(ErrInvalidTxOutValue, str)
 		}
 	}
 
@@ -1247,10 +1247,10 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	if err!=nil{
 		return err
 	}
-	badTxArr:=b.GetBadTxFromBlock(block.Hash())
-	if len(badTxArr)>0 {
+	invalidTxArr:=b.GetInvalidTxFromBlock(block.Hash())
+	if len(invalidTxArr)>0 {
 		str :=fmt.Sprintf("some bad transactions:")
-		for _,v:=range badTxArr{
+		for _,v:=range invalidTxArr{
 			str+="\n"
 			str+=v.String()
 		}
