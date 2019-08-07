@@ -671,10 +671,10 @@ type writeIndexData map[[addrKeySize]byte][]int
 // indexPkScript extracts all standard addresses from the passed public key
 // script and maps each of them to the associated transaction using the passed
 // map.
-func (idx *AddrIndex) indexPkScript(data writeIndexData, scriptVersion uint16, pkScript []byte, txIdx int) {
+func (idx *AddrIndex) indexPkScript(data writeIndexData, pkScript []byte, txIdx int) {
 	// Nothing to index if the script is non-standard or otherwise doesn't
 	// contain any addresses.
-	_, addrs, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, pkScript,
+	_, addrs, _, err := txscript.ExtractPkScriptAddrs(pkScript,
 		idx.chainParams)
 	if err != nil {
 		return
@@ -721,12 +721,12 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlo
 				if stxo==nil {
 					continue
 				}
-				idx.indexPkScript(data,stxo.ScriptVersion(), stxo.PKScript(), txIdx)
+				idx.indexPkScript(data,stxo.PKScript(), txIdx)
 			}
 		}
 
 		for _, txOut := range tx.Transaction().TxOut {
-			idx.indexPkScript(data, 0, txOut.PkScript, txIdx)
+			idx.indexPkScript(data, txOut.PkScript, txIdx)
 		}
 	}
 
@@ -838,12 +838,11 @@ func (idx *AddrIndex) TxRegionsForAddress(dbTx database.Tx, addr types.Address, 
 // script to the transaction.
 //
 // This function is safe for concurrent access.
-func (idx *AddrIndex) indexUnconfirmedAddresses(scriptVersion uint16, pkScript []byte, tx *types.Tx) {
+func (idx *AddrIndex) indexUnconfirmedAddresses(pkScript []byte, tx *types.Tx) {
 	// The error is ignored here since the only reason it can fail is if the
 	// script fails to parse and it was already validated before being
 	// admitted to the mempool.
-	_, addresses, _, _ := txscript.ExtractPkScriptAddrs(scriptVersion,
-		pkScript, idx.chainParams)
+	_, addresses, _, _ := txscript.ExtractPkScriptAddrs(pkScript, idx.chainParams)
 
 	for _, addr := range addresses {
 		// Ignore unsupported address types.
@@ -902,12 +901,12 @@ func (idx *AddrIndex) AddUnconfirmedTx(tx *types.Tx, utxoView *blockchain.UtxoVi
 		}
 		pkScript := entry.PkScriptByIndex(txIn.PreviousOut.OutIndex)
 		//txType := entry.TransactionType()
-		idx.indexUnconfirmedAddresses(txscript.DefaultScriptVersion, pkScript,tx)
+		idx.indexUnconfirmedAddresses(pkScript,tx)
 	}
 
 	// Index addresses of all created outputs.
 	for _, txOut := range msgTx.TxOut {
-		idx.indexUnconfirmedAddresses(txscript.DefaultScriptVersion, txOut.PkScript, tx)
+		idx.indexUnconfirmedAddresses(txOut.PkScript, tx)
 	}
 }
 

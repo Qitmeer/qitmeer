@@ -232,8 +232,7 @@ func createVoutList(mtx *types.Transaction, params *params.Params, filterAddrMap
 		// couldn't parse and there is no additional information
 		// about it anyways.
 		var sc txscript.ScriptClass
-		sc, addrs, reqSigs, _ = txscript.ExtractPkScriptAddrs(
-			txscript.DefaultScriptVersion, v.PkScript, params)
+		sc, addrs, reqSigs, _ = txscript.ExtractPkScriptAddrs(v.PkScript, params)
 		scriptClass = sc.String()
 
 		// Encode the addresses while checking if the address passes the
@@ -504,8 +503,7 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 	// Get further info about the script.  Ignore the error here since an
 	// error means the script couldn't parse and there is no additional
 	// information about it anyways.
-	scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion,
-		script, api.txManager.bm.ChainParams())
+	scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(script, api.txManager.bm.ChainParams())
 	addresses := make([]string, len(addrs))
 	for i, addr := range addrs {
 		addresses[i] = addr.Encode()
@@ -890,8 +888,7 @@ func (api *PublicTxAPI) createVinListPrevOut(mtx *message.MsgTx, chainParams *pa
 		// Ignore the error here since an error means the script
 		// couldn't parse and there is no additional information about
 		// it anyways.
-		_, addrs, _, _ := txscript.ExtractPkScriptAddrs(0,
-			originTxOut.PkScript, chainParams)
+		_, addrs, _, _ := txscript.ExtractPkScriptAddrs(originTxOut.PkScript, chainParams)
 
 		// Encode the addresses while checking if the address passes the
 		// filter when needed.
