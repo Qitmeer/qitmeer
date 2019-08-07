@@ -1187,11 +1187,8 @@ func GetMultisigMandN(script []byte) (uint8, uint8, error) {
 // signatures associated with the passed PkScript.  Note that it only works for
 // 'standard' transaction script types.  Any data such as public keys which are
 // invalid are omitted from the results.
-func ExtractPkScriptAddrs(version uint16, pkScript []byte,
+func ExtractPkScriptAddrs(pkScript []byte,
 	chainParams *params.Params) (ScriptClass, []types.Address, int, error) {
-	if version != DefaultScriptVersion {
-		return NonStandardTy, nil, 0, fmt.Errorf("invalid script version")
-	}
 
 	var addrs []types.Address
 	var requiredSigs int
@@ -1271,7 +1268,7 @@ func ExtractPkScriptAddrs(version uint16, pkScript []byte,
 		//  OP_SSTX ... P2PKH or P2SH
 		var localAddrs []types.Address
 		_, localAddrs, requiredSigs, err =
-			ExtractPkScriptAddrs(version, getStakeOutSubscript(pkScript),
+			ExtractPkScriptAddrs(getStakeOutSubscript(pkScript),
 				chainParams)
 		if err == nil {
 			addrs = append(addrs, localAddrs...)
@@ -1281,7 +1278,7 @@ func ExtractPkScriptAddrs(version uint16, pkScript []byte,
 		// A pay-to-stake-generation-hash script is of the form:
 		//  OP_SSGEN  ... P2PKH or P2SH
 		var localAddrs []types.Address
-		_, localAddrs, requiredSigs, err = ExtractPkScriptAddrs(version,
+		_, localAddrs, requiredSigs, err = ExtractPkScriptAddrs(
 			getStakeOutSubscript(pkScript), chainParams)
 		if err == nil {
 			addrs = append(addrs, localAddrs...)
@@ -1292,7 +1289,7 @@ func ExtractPkScriptAddrs(version uint16, pkScript []byte,
 		//  OP_SSRTX  ... P2PKH or P2SH
 		var localAddrs []types.Address
 		_, localAddrs, requiredSigs, err =
-			ExtractPkScriptAddrs(version, getStakeOutSubscript(pkScript),
+			ExtractPkScriptAddrs(getStakeOutSubscript(pkScript),
 				chainParams)
 		if err == nil {
 			addrs = append(addrs, localAddrs...)
@@ -1303,7 +1300,7 @@ func ExtractPkScriptAddrs(version uint16, pkScript []byte,
 		// OP_SSTXCHANGE ... P2PKH or P2SH
 		var localAddrs []types.Address
 		_, localAddrs, requiredSigs, err =
-			ExtractPkScriptAddrs(version, getStakeOutSubscript(pkScript),
+			ExtractPkScriptAddrs(getStakeOutSubscript(pkScript),
 				chainParams)
 		if err == nil {
 			addrs = append(addrs, localAddrs...)

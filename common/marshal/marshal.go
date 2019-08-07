@@ -117,7 +117,7 @@ func  MarshJsonVout(tx *types.Transaction,filterAddrMap map[string]struct{}, par
 		// Ignore the error here since an error means the script
 		// couldn't parse and there is no additional information
 		// about it anyways.
-		sc , addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(0,
+		sc , addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(
 				v.PkScript, params)
 		scriptClass := sc.String()
 
