@@ -17,16 +17,9 @@ type ServerPeer struct {
 	*Peer
 	TxProcessed    chan struct{}
 	BlockProcessed chan struct{}
-	RequiredUpdatePeerHeights chan UpdatePeerHeightsMsg
 	RequestedBlocks map[hash.Hash]struct{}
 	RequestedTxns   map[hash.Hash]struct{}
 	RequestQueue    []*message.InvVect
 	SyncCandidate   bool
 }
-
-type UpdatePeerHeightsMsg struct {
-	Hash    *hash.Hash
-	Height  uint64
-}
-
 

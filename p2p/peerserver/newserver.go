@@ -29,7 +29,6 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 		query:                make(chan interface{}),
 		relayInv:             make(chan relayMsg, cfg.MaxPeers),
 		broadcast:            make(chan broadcastMsg, cfg.MaxPeers),
-		peerHeightsUpdate:    make(chan updatePeerHeightsMsg),
 		quit:                 make(chan struct{}),
 	}
 
