@@ -21,9 +21,9 @@ then
 fi
 
 project_name="qitmeer"
-image_name="halalchain/qitmeer"
+image_name="qitmeer/qitmeerd"
 image_label="" #future
-baseimage_name="halalchain/golang:1.12.5-alpine3.9"
+baseimage_name="qitmeer/golang:1.12.5-alpine3.9"
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin && \
 docker pull $baseimage_name
