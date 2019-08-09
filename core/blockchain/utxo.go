@@ -309,7 +309,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 	// which has no inputs) collecting them into sets of what is needed and
 	// what is already known (in-flight).
 	for i, tx := range transactions[1:] {
-		if bc.IsInvalidTx(tx.Hash()) {
+		if bc.txManager.IsInvalidTx(tx.Hash()) {
 			continue
 		}
 		for _, txIn := range tx.Transaction().TxIn {
@@ -325,8 +325,8 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 			// than the actual position of the transaction within
 			// the block due to skipping the coinbase.
 			originHash := &txIn.PreviousOut.Hash
-			if bc.IsInvalidTx(originHash) {
-				bc.AddInvalidTx(tx.Hash(), block.Hash())
+			if bc.txManager.IsInvalidTx(originHash) {
+				bc.txManager.AddInvalidTx(tx.Hash(), block.Hash())
 				break
 			}
 			if inFlightIndex, ok := txInFlight[*originHash]; ok &&

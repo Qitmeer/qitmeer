@@ -3,6 +3,7 @@ package tx
 import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/config"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer/core/blockchain"
@@ -30,6 +31,9 @@ type TxManager struct {
 
 	// db
 	db                   database.DB
+
+	//invalidTx hash->block hash
+	invalidTx map[hash.Hash]*dag.HashSet
 }
 
 func (tm *TxManager) Start() error {
@@ -44,6 +48,52 @@ func (tm *TxManager) Stop() error {
 
 func (tm *TxManager) MemPool() *mempool.TxPool {
 	return tm.txMemPool
+}
+
+func (tm *TxManager) IsInvalidTx(txh *hash.Hash) bool {
+	_, ok := tm.invalidTx[*txh]
+	return ok
+}
+
+func (tm *TxManager) GetInvalidTxFromBlock(bh *hash.Hash) []*hash.Hash {
+	result := []*hash.Hash{}
+	for k, v := range tm.invalidTx {
+		if v.Has(bh) {
+			txHash := k
+			result = append(result, &txHash)
+		}
+	}
+	return result
+}
+
+func (tm *TxManager) AddInvalidTx(txh *hash.Hash, bh *hash.Hash) {
+	if tm.IsInvalidTx(txh) {
+		tm.invalidTx[*txh].Add(bh)
+	} else {
+		set := dag.NewHashSet()
+		set.Add(bh)
+		tm.invalidTx[*txh] = set
+	}
+}
+
+func (tm *TxManager) AddInvalidTxArray(txha []*hash.Hash, bh *hash.Hash) {
+	if len(txha) == 0 {
+		return
+	}
+	for _, v := range txha {
+		tm.AddInvalidTx(v, bh)
+	}
+}
+
+func (tm *TxManager) RemoveInvalidTx(bh *hash.Hash) {
+	for k, v := range tm.invalidTx {
+		if v.Has(bh) {
+			v.Remove(bh)
+			if v.IsEmpty() {
+				delete(tm.invalidTx, k)
+			}
+		}
+	}
 }
 
 func NewTxManager(bm *blkmgr.BlockManager,txIndex *index.TxIndex,
@@ -77,6 +127,8 @@ func NewTxManager(bm *blkmgr.BlockManager,txIndex *index.TxIndex,
 		AddrIndex:        addrIndex,
 	}
 	txMemPool := mempool.New(&txC)
-
-	return &TxManager{bm,txIndex,addrIndex,txMemPool,ntmgr,db},nil
+	invalidTx := make(map[hash.Hash]*dag.HashSet)
+	return &TxManager{bm,txIndex,addrIndex,txMemPool,ntmgr,db,invalidTx},nil
 }
+
+

@@ -141,7 +141,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 		return nil, err
 	}
 	qm.txManager=tm
-
+	bm.GetChain().SetTxManager(tm)
 	// set mempool to bm
 	bm.SetMemPool(qm.txManager.MemPool())
 

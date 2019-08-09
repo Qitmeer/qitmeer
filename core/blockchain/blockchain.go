@@ -107,8 +107,9 @@ type BlockChain struct {
 
 	//block dag
 	bd *blockdag.BlockDAG
-	//invalidTx hash->block hash
-	invalidTx map[hash.Hash]*dag.HashSet
+
+	//tx manager
+	txManager TxManager
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -260,7 +261,6 @@ func New(config *Config) (*BlockChain, error) {
 	}
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType)
-	b.invalidTx = make(map[hash.Hash]*dag.HashSet)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -913,7 +913,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		stxos := []SpentTxOut{}
 		err := b.checkConnectBlock(node, block, view, &stxos)
 		if err != nil {
-			b.RemoveInvalidTx(block.Hash())
+			b.txManager.RemoveInvalidTx(block.Hash())
 			return false, err
 		}
 		// In the fast add case the code to check the block connection
@@ -924,7 +924,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// Connect the block to the main chain.
 		err = b.connectBlock(node, block, view, stxos)
 		if err != nil {
-			b.RemoveInvalidTx(block.Hash())
+			b.txManager.RemoveInvalidTx(block.Hash())
 			return false, err
 		}
 		// TODO, validating previous block
@@ -1145,7 +1145,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	b.RemoveInvalidTx(&node.hash)
+	b.txManager.RemoveInvalidTx(&node.hash)
 
 	return nil
 }
@@ -1271,52 +1271,6 @@ func countSpentOutputs(block, parent *types.SerializedBlock) int {
 	return numSpent
 }
 
-func (b *BlockChain) IsInvalidTx(txh *hash.Hash) bool {
-	_, ok := b.invalidTx[*txh]
-	return ok
-}
-
-func (b *BlockChain) GetInvalidTxFromBlock(bh *hash.Hash) []*hash.Hash {
-	result := []*hash.Hash{}
-	for k, v := range b.invalidTx {
-		if v.Has(bh) {
-			txHash := k
-			result = append(result, &txHash)
-		}
-	}
-	return result
-}
-
-func (b *BlockChain) AddInvalidTx(txh *hash.Hash, bh *hash.Hash) {
-	if b.IsInvalidTx(txh) {
-		b.invalidTx[*txh].Add(bh)
-	} else {
-		set := dag.NewHashSet()
-		set.Add(bh)
-		b.invalidTx[*txh] = set
-	}
-}
-
-func (b *BlockChain) AddInvalidTxArray(txha []*hash.Hash, bh *hash.Hash) {
-	if len(txha) == 0 {
-		return
-	}
-	for _, v := range txha {
-		b.AddInvalidTx(v, bh)
-	}
-}
-
-func (b *BlockChain) RemoveInvalidTx(bh *hash.Hash) {
-	for k, v := range b.invalidTx {
-		if v.Has(bh) {
-			v.Remove(bh)
-			if v.IsEmpty() {
-				delete(b.invalidTx, k)
-			}
-		}
-	}
-}
-
 // Return the dag instance
 func (b *BlockChain) BlockDAG() *blockdag.BlockDAG {
 	return b.bd
@@ -1412,4 +1366,12 @@ func (b *BlockChain) FetchSpendJournal(targetBlock *types.SerializedBlock) ([]Sp
 	}
 
 	return spendEntries, nil
+}
+
+func (b *BlockChain) SetTxManager(txManager TxManager) {
+	b.txManager=txManager
+}
+
+func (b *BlockChain) GetTxManager() TxManager {
+	return b.txManager
 }

@@ -788,7 +788,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 	totalFees := int64(inputFees) // Stake tx tree carry forward
 	var cumulativeSigOps int
 	for idx, tx := range txs {
-		if b.IsInvalidTx(tx.Hash()) {
+		if b.txManager.IsInvalidTx(tx.Hash()) {
 			continue
 		}
 		// Ensure that the number of signature operations is not beyond
@@ -800,7 +800,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			log.Trace("checkNumSigOps failed","err", err)
 			//return err
 
-			b.AddInvalidTx(tx.Hash(),&node.hash)
+			b.txManager.AddInvalidTx(tx.Hash(),&node.hash)
 			continue
 		}
 
@@ -812,7 +812,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 		if err != nil {
 			log.Trace("CheckTransactionInputs failed","err", err)
 			//return err
-			b.AddInvalidTx(tx.Hash(),&node.hash)
+			b.txManager.AddInvalidTx(tx.Hash(),&node.hash)
 			continue
 		}
 
@@ -825,7 +825,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			//	"overflows accumulator")
 			log.Trace("total fees for block overflows accumulator")
 
-			b.AddInvalidTx(tx.Hash(),&node.hash)
+			b.txManager.AddInvalidTx(tx.Hash(),&node.hash)
 			continue
 		}
 
@@ -837,7 +837,7 @@ func (b *BlockChain) checkTransactionsAndConnect(subsidyCache *SubsidyCache, inp
 			log.Trace("connectTransaction failed","err", err)
 			//return err
 
-			b.AddInvalidTx(tx.Hash(),&node.hash)
+			b.txManager.AddInvalidTx(tx.Hash(),&node.hash)
 			continue
 		}
 	}
@@ -1247,7 +1247,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	if err!=nil{
 		return err
 	}
-	invalidTxArr:=b.GetInvalidTxFromBlock(block.Hash())
+	invalidTxArr:=b.txManager.GetInvalidTxFromBlock(block.Hash())
 	if len(invalidTxArr)>0 {
 		str :=fmt.Sprintf("some bad transactions:")
 		for _,v:=range invalidTxArr{

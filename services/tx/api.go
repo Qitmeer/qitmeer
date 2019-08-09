@@ -995,5 +995,5 @@ func (api *PublicTxAPI) fetchInputTxos(tx *message.MsgTx) (map[types.TxOutPoint]
 
 // IsInvalidTx
 func (api *PublicTxAPI) IsInvalidTx(h hash.Hash) (interface{}, error) {
-	return strconv.FormatBool(api.txManager.bm.GetChain().IsInvalidTx(&h)),nil
+	return strconv.FormatBool(api.txManager.IsInvalidTx(&h)),nil
 }
