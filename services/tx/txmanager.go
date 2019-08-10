@@ -46,7 +46,7 @@ func (tm *TxManager) Stop() error {
 	return nil
 }
 
-func (tm *TxManager) MemPool() *mempool.TxPool {
+func (tm *TxManager) MemPool() blockchain.TxPool {
 	return tm.txMemPool
 }
 

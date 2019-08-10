@@ -4,7 +4,6 @@ package blkmgr
 
 import (
 	"container/list"
-	"errors"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/config"
@@ -19,7 +18,6 @@ import (
 	"github.com/HalalChain/qitmeer/node/notify"
 	"github.com/HalalChain/qitmeer/p2p/peer"
 	"github.com/HalalChain/qitmeer/services/common/progresslog"
-	"github.com/HalalChain/qitmeer/services/mempool"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -45,9 +43,6 @@ type BlockManager struct {
 	params              *params.Params
 
 	notify              notify.Notify
-
-	//TODO, decoupling mempool with bm
-	txMemPool			*mempool.TxPool
 
 	chain               *blockchain.BlockChain
 
@@ -147,23 +142,6 @@ func NewBlockManager(ntmgr notify.Notify,indexManager blockchain.IndexManager,db
 	return &bm, nil
 }
 
-// Set the tx mem-pool to the block manager, It should call before the block manager
-// getting started otherwise an error thrown
-// TODO, decoupling mempool with bm
-func (b *BlockManager) SetMemPool(pool *mempool.TxPool) error {
-	if b.started == 1 {
-		return errors.New("BlockManager already started, can't set mem pool")
-	}
-	b.txMemPool = pool
-	return nil
-}
-
-//return mempool
-func (b *BlockManager) GetMemPool() *mempool.TxPool {
-	return b.txMemPool
-}
-
-
 // handleNotifyMsg handles notifications from blockchain.  It does things such
 // as request orphan block parents and relay accepted blocks to connected peers.
 func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
@@ -241,10 +219,10 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		// transaction are NOT removed recursively because they are still
 		// valid.
 		for _, tx := range block.Transactions()[1:] {
-			b.txMemPool.RemoveTransaction(tx, false)
-			b.txMemPool.RemoveDoubleSpends(tx)
-			b.txMemPool.RemoveOrphan(tx.Hash())
-			acceptedTxs := b.txMemPool.ProcessOrphans(tx.Hash())
+			b.chain.GetTxManager().MemPool().RemoveTransaction(tx, false)
+			b.chain.GetTxManager().MemPool().RemoveDoubleSpends(tx)
+			b.chain.GetTxManager().MemPool().RemoveOrphan(tx.Hash())
+			acceptedTxs := b.chain.GetTxManager().MemPool().ProcessOrphans(tx.Hash())
 			b.notify.AnnounceNewTransactions(acceptedTxs)
 		}
 
@@ -274,13 +252,13 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		// Reinsert all of the transactions (except the coinbase) into
 		// the transaction pool.
 		for _, tx := range block.Transactions()[1:] {
-			_, err := b.txMemPool.MaybeAcceptTransaction(tx,
+			_, err := b.chain.GetTxManager().MemPool().MaybeAcceptTransaction(tx,
 				false, false)
 			if err != nil {
 				// Remove the transaction and all transactions
 				// that depend on it if it wasn't accepted into
 				// the transaction pool.
-				b.txMemPool.RemoveTransaction(tx, true)
+				b.chain.GetTxManager().MemPool().RemoveTransaction(tx, true)
 			}
 		}
 
@@ -449,7 +427,7 @@ func (b *BlockManager) haveInventory(invVect *message.InvVect) (bool, error) {
 	case message.InvTypeTx:
 		// Ask the transaction memory pool if the transaction is known
 		// to it in any form (main pool or orphan).
-		if b.txMemPool.HaveTransaction(&invVect.Hash) {
+		if b.chain.GetTxManager().MemPool().HaveTransaction(&invVect.Hash) {
 			return true, nil
 		}
 
@@ -584,7 +562,7 @@ out:
 				// update the tip locally on block manager.
 				if !isOrphan {
 					// TODO, decoupling mempool with bm
-					b.txMemPool.PruneExpiredTx()
+					b.chain.GetTxManager().MemPool().PruneExpiredTx()
 				}
 
 				// Allow any clients performing long polling via the
@@ -605,7 +583,7 @@ out:
 
 			case processTransactionMsg:
 				log.Trace("blkmgr msgChan processTransactionMsg", "msg", msg)
-				acceptedTxs, err := b.txMemPool.ProcessTransaction(msg.tx,
+				acceptedTxs, err := b.chain.GetTxManager().MemPool().ProcessTransaction(msg.tx,
 					msg.allowOrphans, msg.rateLimit, msg.allowHighFees)
 				msg.reply <- processTransactionResponse{
 					acceptedTxs: acceptedTxs,

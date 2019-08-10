@@ -13,6 +13,7 @@ import (
 	"github.com/HalalChain/qitmeer/services/blkmgr"
 	"github.com/HalalChain/qitmeer/services/common"
 	"github.com/HalalChain/qitmeer/services/index"
+	"github.com/HalalChain/qitmeer/services/mempool"
 	"github.com/HalalChain/qitmeer/services/miner"
 	"github.com/HalalChain/qitmeer/services/mining"
 	"github.com/HalalChain/qitmeer/services/notifymgr"
@@ -142,13 +143,11 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 	}
 	qm.txManager=tm
 	bm.GetChain().SetTxManager(tm)
-	// set mempool to bm
-	bm.SetMemPool(qm.txManager.MemPool())
 
 	// prepare peerServer
 	node.peerServer.BlockManager = bm
 	node.peerServer.TimeSource = qm.timeSource
-	node.peerServer.TxMemPool = qm.txManager.MemPool()
+	node.peerServer.TxMemPool = qm.txManager.MemPool().(*mempool.TxPool)
 
 	// Cpu Miner
 	// Create the mining policy based on the configuration options.
@@ -169,7 +168,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 	defaultNumWorkers := uint32(params.CPUMinerThreads) //TODO, move to config
 
 	qm.cpuMiner = miner.NewCPUMiner(cfg,node.Params,&policy,qm.sigCache,
-		qm.txManager.MemPool(),qm.timeSource,qm.blockManager,defaultNumWorkers)
+		qm.txManager.MemPool().(*mempool.TxPool),qm.timeSource,qm.blockManager,defaultNumWorkers)
 
 	return &qm, nil
 }
