@@ -119,16 +119,16 @@ func NewBlockManager(ntmgr notify.Notify,indexManager blockchain.IndexManager,db
 	bm.chain.DisableCheckpoints(cfg.DisableCheckpoints)
 	if !cfg.DisableCheckpoints {
 		// Initialize the next checkpoint based on the current height.
-		bm.nextCheckpoint = bm.findNextHeaderCheckpoint(best.Order)
+		bm.nextCheckpoint = bm.findNextHeaderCheckpoint(uint64(best.GraphState.GetMainHeight()))
 		if bm.nextCheckpoint != nil {
-			bm.resetHeaderState(&best.Hash, best.Order)
+			bm.resetHeaderState(&best.Hash,uint64(best.GraphState.GetMainHeight()))
 		}
 	} else {
 		log.Info("Checkpoints are disabled")
 	}
 
 	if cfg.DumpBlockchain != "" {
-		err = bm.chain.DumpBlockChain(cfg.DumpBlockchain, par, best.Order)
+		err = bm.chain.DumpBlockChain(cfg.DumpBlockchain, par, uint64(best.GraphState.GetTotal())-1)
 		if err != nil {
 			return nil, err
 		}
@@ -976,7 +976,7 @@ func (b *BlockManager) updateSyncPeer(dcSyncPeer bool) {
 	// Reset any header state before we choose our next active sync peer.
 	if b.headersFirstMode {
 		best := b.chain.BestSnapshot()
-		b.resetHeaderState(&best.Hash, best.Order)
+		b.resetHeaderState(&best.Hash, uint64(best.GraphState.GetMainHeight()))
 	}
 
 	b.syncPeer = nil

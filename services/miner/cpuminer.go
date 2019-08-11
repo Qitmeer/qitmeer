@@ -624,7 +624,7 @@ out:
 		rindex :=rand.Intn(len(miningaddrs))
 		payToAddr := miningaddrs[rindex]
 
-		currentOrder := m.blockManager.GetChain().BestSnapshot().Order
+		currentOrder := m.blockManager.GetChain().BestSnapshot().GraphState.GetTotal()-1
 		if currentOrder != 0 && !m.blockManager.IsCurrent() {
 			log.Warn("Client in initial download, qitmeer is downloading blocks...")
 			return

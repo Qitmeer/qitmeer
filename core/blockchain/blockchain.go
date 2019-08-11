@@ -188,23 +188,21 @@ type orphanBlock struct {
 // However, the returned snapshot must be treated as immutable since it is
 // shared by all callers.
 type BestState struct {
-	Hash         hash.Hash            // The hash of the block.
-	Order        uint64               // The order of the block.
-	Bits         uint32               // The difficulty bits of the block.
-	BlockSize    uint64               // The size of the block.
-	NumTxns      uint64               // The number of txns in the block.
+	Hash     hash.Hash                // The hash of the last block.
+	Bits         uint32               // The difficulty bits of the main chain tip.
+	BlockSize    uint64               // The size of the main chain tip.
+	NumTxns      uint64               // The number of txns in the main chain tip.
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
 	TotalSubsidy int64                // The total subsidy for the chain.
-	GraphState   *dag.GraphState      //The graph state of dag
+	GraphState   *dag.GraphState      // The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64, gs *dag.GraphState) *BestState {
+func newBestState(lastHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64, gs *dag.GraphState) *BestState {
 	return &BestState{
-		Hash:         node.hash,
-		Order:        node.order,
-		Bits:         node.bits,
+		Hash:         *lastHash,
+		Bits:         bits,
 		BlockSize:    blockSize,
 		NumTxns:      numTxns,
 		MedianTime:   medianTime,
@@ -278,14 +276,14 @@ func New(config *Config) (*BlockChain, error) {
 	}
 
 	b.pruner = newChainPruner(&b)
-	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Order), b.params)
+	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().GraphState.GetMainHeight()), b.params)
 
 	log.Info(fmt.Sprintf("DAG Type:%s", b.bd.GetName()))
 	log.Info("Blockchain database version", "chain", b.dbInfo.version, "compression", b.dbInfo.compVer,
 		"index", b.dbInfo.bidxVer)
 
 	tips := b.bd.GetTipsList()
-	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d blockTotal=%d", b.stateSnapshot.TotalTxns, len(tips), b.bd.GetBlockTotal()))
+	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d blockTotal=%d", b.BestSnapshot().TotalTxns, len(tips), b.bd.GetBlockTotal()))
 
 	for _, v := range tips {
 		tnode := b.index.lookupNode(v.GetHash())
@@ -414,14 +412,15 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %v",state.hash.String(),state.order,state.totalTxns,state.totalSubsidy,state.workSum))
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %v",state.hash.String(),state.total,state.totalTxns,state.totalSubsidy,state.workSum))
 		log.Info("Loading block index...")
 		bidxStart := time.Now()
 
 		// Determine how many blocks will be loaded into the index in order to
 		// allocate the right amount as a single alloc versus a whole bunch of
 		// littles ones to reduce pressure on the GC.
-		for i:=uint(0);i<=uint(state.order) ;i++ {
+		var block *types.SerializedBlock
+		for i:=uint(0);i<uint(state.total) ;i++ {
 			blockHash,err:=blockdag.DBGetDAGBlock(dbTx,i)
 			if err!=nil {
 				return err
@@ -429,7 +428,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			if i==0 && !blockHash.IsEqual(b.params.GenesisHash) {
 				return fmt.Errorf("The dag block is not match current genesis block. you can cleanup your block data base by '--cleanup'.")
 			}
-			block, err := dbFetchBlockByHash(dbTx, blockHash)
+			block, err = dbFetchBlockByHash(dbTx, blockHash)
 			if err != nil {
 				return err
 			}
@@ -470,23 +469,17 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		}*/
 		// Set the best chain view to the stored best state.
 		lastBlock := b.bd.GetLastBlock()
-		tip := b.index.lookupNode(lastBlock.GetHash())
-		if tip == nil {
+		if lastBlock == nil {
 			return AssertError(fmt.Sprintf("initChainState: cannot find "+
 				"chain last %s in block index", lastBlock.GetHash()))
 		}
 
 		// Load the raw block bytes for the best block.
-		block, err := dbFetchBlockByHash(dbTx, lastBlock.GetHash())
-		if err != nil {
-			return err
-		}
 		mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
-
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
-		b.stateSnapshot = newBestState(tip, blockSize, numTxns,
+		b.stateSnapshot = newBestState(lastBlock.GetHash(),mainTip.bits, blockSize, numTxns,
 			mainTip.CalcPastMedianTime(b), state.totalTxns, state.totalSubsidy, b.bd.GetGraphState())
 
 		return nil
@@ -604,8 +597,8 @@ func (b *BlockChain) isCurrent() bool {
 	// Not current if the latest main (best) chain height is before the
 	// latest known good checkpoint (when checkpoints are enabled).
 	checkpoint := b.latestCheckpoint()
-	lastBlock := b.bd.GetLastBlock()
-	if checkpoint != nil && uint64(lastBlock.GetOrder()) < checkpoint.Height {
+	lastBlock := b.bd.GetMainChainTip()
+	if checkpoint != nil && uint64(lastBlock.GetHeight()) < checkpoint.Height {
 		return false
 	}
 
@@ -998,20 +991,18 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	curTotalSubsidy := b.stateSnapshot.TotalSubsidy
 	b.stateLock.RUnlock()
 
+	// Calculate the exact subsidy produced by adding the block.
+	subsidy := CalculateAddedSubsidy(block)
+
 	// Calculate the number of transactions that would be added by adding
 	// this block.
 	numTxns := uint64(len(block.Block().Transactions))
 
-	// Calculate the exact subsidy produced by adding the block.
-	subsidy := CalculateAddedSubsidy(block)
-
-	/* TODO, revisit block size in block header
-	blockSize := uint64(block.Block().Header.Size)
-	*/
 	blockSize := uint64(block.Block().SerializeSize())
 
 	mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
-	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns), mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
+
+	state := newBestState(lastTip.GetHash(),mainTip.bits,blockSize,numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
 		curTotalSubsidy+subsidy, b.bd.GetGraphState())
 
 	// Atomically insert info into the database.

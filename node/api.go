@@ -7,6 +7,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"github.com/HalalChain/qitmeer-lib/core/json"
 	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	"github.com/HalalChain/qitmeer-lib/params"
@@ -40,13 +41,13 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	ret := &json.InfoNodeResult{
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
 		ProtocolVersion: int32(protocol.ProtocolVersion),
-		Blocks:          uint32(best.Order+1),
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
 		Connections:     api.node.node.peerServer.ConnectedCount(),
 		Difficulty:      getDifficultyRatio(best.Bits,api.node.node.Params),
 		TestNet:         api.node.node.Config.TestNet,
 		Modules:         []string{rpc.DefaultServiceNameSpace,rpc.MinerNameSpace},
 	}
+	ret.GraphState=*getGraphStateResult(best.GraphState)
 	return ret, nil
 }
 
@@ -97,16 +98,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 			SyncNode:       statsSnap.ID == syncPeerID,
 		}
 		if statsSnap.GraphState!=nil {
-			tips:=[]string{}
-			for k:=range statsSnap.GraphState.GetTips().GetMap(){
-				tips=append(tips,k.String())
-			}
-			info.GraphState=json.GetGraphStateResult{
-				Tips:tips,
-				Total:uint32(statsSnap.GraphState.GetTotal()),
-				Layer:uint32(statsSnap.GraphState.GetLayer()),
-				MainHeight:uint32(statsSnap.GraphState.GetMainHeight()),
-			}
+			info.GraphState=*getGraphStateResult(statsSnap.GraphState)
 		}
 		if p.LastPingNonce() != 0 {
 			wait := float64(time.Since(statsSnap.LastPingTime).Nanoseconds())
@@ -116,4 +108,20 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 		infos = append(infos, info)
 	}
 	return infos, nil
+}
+
+func getGraphStateResult(gs *dag.GraphState) *json.GetGraphStateResult{
+	if gs!=nil {
+		tips:=[]string{}
+		for k:=range gs.GetTips().GetMap(){
+			tips=append(tips,k.String())
+		}
+		return &json.GetGraphStateResult{
+			Tips:tips,
+			Total:uint32(gs.GetTotal()),
+			Layer:uint32(gs.GetLayer()),
+			MainHeight:uint32(gs.GetMainHeight()),
+		}
+	}
+	return nil
 }

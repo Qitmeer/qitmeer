@@ -85,7 +85,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		}
 	}
 
-	bestOrder := uint32(chain.BestSnapshot().Order)
+	bestOrder := uint32(chain.BestSnapshot().GraphState.GetTotal()-1)
 
 	// Rollback indexes to the main chain if their tip is an orphaned fork.
 	// This is fairly unlikely, but it can happen if the chain is

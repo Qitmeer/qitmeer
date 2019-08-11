@@ -400,7 +400,7 @@ func (sp *serverPeer) OnGetMiningState(p *peer.Peer, msg *message.MsgGetMiningSt
 		blockHashes = blockHashes[:message.MaxMSBlocksAtHeadPerMsg]
 	}
 
-	err = sp.pushMiningStateMsg(uint32(best.Order), blockHashes)
+	err = sp.pushMiningStateMsg(uint32(best.GraphState.GetTotal()), blockHashes)
 	if err != nil {
 		log.Warn(fmt.Sprintf("unexpected error while pushing data for "+
 			"mining state request: %v", err.Error()))
