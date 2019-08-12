@@ -59,18 +59,6 @@ func newServerPeer(s *PeerServer, isPersistent bool) *serverPeer {
 	}}
 }
 
-func (sp *serverPeer) syncPeerHandler() {
-log.Trace("start syncPeerHandler")
-out:
-	for {
-		select {
-			case <-sp.quit:
-				break out
-		}
-	}
-log.Trace("stop syncPeerHandler done")
-}
-
 // pushAddrMsg sends an addr message to the connected peer using the provided
 // addresses.
 func (sp *serverPeer) pushAddrMsg(addresses []*types.NetAddress) {

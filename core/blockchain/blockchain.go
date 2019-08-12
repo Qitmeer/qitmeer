@@ -470,8 +470,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		// Set the best chain view to the stored best state.
 		lastBlock := b.bd.GetLastBlock()
 		if lastBlock == nil {
-			return AssertError(fmt.Sprintf("initChainState: cannot find "+
-				"chain last %s in block index", lastBlock.GetHash()))
+			return AssertError("initChainState: cannot find last block")
 		}
 
 		// Load the raw block bytes for the best block.

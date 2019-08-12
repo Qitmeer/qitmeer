@@ -122,7 +122,6 @@ func (s *PeerServer) inboundPeerConnected(conn net.Conn) {
 	sp.syncPeer.Peer = sp.Peer
 	sp.AssociateConnection(conn)
 	go s.peerDoneHandler(sp)
-	go sp.syncPeerHandler()
 }
 
 // outboundPeerConnected is invoked by the connection manager when a new
@@ -143,7 +142,6 @@ func (s *PeerServer) outboundPeerConnected(c *connmgr.ConnReq, conn net.Conn) {
 	sp.isWhitelisted = isWhitelisted(s.cfg, conn.RemoteAddr())
 	sp.AssociateConnection(conn)
 	go s.peerDoneHandler(sp)
-	go sp.syncPeerHandler()
 	s.addrManager.Attempt(sp.NA())
 }
 
