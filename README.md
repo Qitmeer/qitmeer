@@ -5,7 +5,14 @@
 
 The guardian of trust. The core network of the Halachain
 
-##  Prerequisites
+
+## Installation
+### Binary archives
+* Binary archives are published at [releases](https://github.com/HalalChain/qitmeer/releases "releases").
+
+
+### How to build
+####  Prerequisites
 
 - Update Go to version at least 1.12 (required >= **1.12**)
 
@@ -15,9 +22,6 @@ Check your golang version
 ~ go version
 go version go1.12 darwin/amd64
 ```
-
-## How to build
-
 ```bash
 ~ mkdir -p /tmp/work
 ~ cd /tmp/work
