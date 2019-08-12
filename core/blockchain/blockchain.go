@@ -412,7 +412,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %v",state.hash.String(),state.total,state.totalTxns,state.totalSubsidy,state.workSum))
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d",state.hash.String(),state.total,state.totalTxns,state.totalSubsidy))
 		log.Info("Loading block index...")
 		bidxStart := time.Now()
 
