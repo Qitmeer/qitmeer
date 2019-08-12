@@ -101,7 +101,7 @@ func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool) (json.Orde
 	best := api.bm.chain.BestSnapshot()
 
 	// Get next block hash unless there are none.
-	confirmations := 1 + int64(best.Order) - int64(order)
+	confirmations := int64(best.GraphState.GetTotal()) - int64(order)
 	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
 	if cs!=nil {
@@ -147,7 +147,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 
 	//blockHeader := &blk.Block().Header
 	order := blk.Order()
-	confirmations := 1 + int64(best.Order) - int64(order)
+	confirmations := int64(best.GraphState.GetTotal()) - int64(order)
 	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
 	if cs!=nil {
@@ -169,7 +169,7 @@ func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error){
 
 func (api *PublicBlockAPI) GetBlockCount() (interface{}, error){
 	best := api.bm.chain.BestSnapshot()
-	return best.Order, nil
+	return best.GraphState.GetTotal(), nil
 }
 
 // GetBlockHeader implements the getblockheader command.
@@ -199,13 +199,11 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 	}
 
 	best := api.bm.chain.BestSnapshot()
-	bestNode:=api.bm.chain.BlockIndex().LookupNode(&best.Hash)
-
 	// Get next block hash unless there are none.
 	confirmations := int64(-1)
 	layer := api.bm.chain.BlockDAG().GetLayer(node.GetHash())
-	if bestNode!=nil {
-		confirmations=1+int64(api.bm.chain.BlockDAG().GetLayer(bestNode.GetHash()))-int64(layer)
+	if best!=nil {
+		confirmations=1+int64(best.GraphState.GetLayer()-layer)
 		if confirmations<1 {
 			confirmations=1
 		}

@@ -107,8 +107,9 @@ type BlockChain struct {
 
 	//block dag
 	bd *blockdag.BlockDAG
-	//badTx hash->block hash
-	badTx map[hash.Hash]*dag.HashSet
+
+	//tx manager
+	txManager TxManager
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -187,23 +188,21 @@ type orphanBlock struct {
 // However, the returned snapshot must be treated as immutable since it is
 // shared by all callers.
 type BestState struct {
-	Hash         hash.Hash            // The hash of the block.
-	Order        uint64               // The order of the block.
-	Bits         uint32               // The difficulty bits of the block.
-	BlockSize    uint64               // The size of the block.
-	NumTxns      uint64               // The number of txns in the block.
+	Hash     hash.Hash                // The hash of the last block.
+	Bits         uint32               // The difficulty bits of the main chain tip.
+	BlockSize    uint64               // The size of the main chain tip.
+	NumTxns      uint64               // The number of txns in the main chain tip.
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
 	TotalSubsidy int64                // The total subsidy for the chain.
-	GraphState   *dag.GraphState      //The graph state of dag
+	GraphState   *dag.GraphState      // The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(node *blockNode, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64, gs *dag.GraphState) *BestState {
+func newBestState(lastHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64, gs *dag.GraphState) *BestState {
 	return &BestState{
-		Hash:         node.hash,
-		Order:        node.order,
-		Bits:         node.bits,
+		Hash:         *lastHash,
+		Bits:         bits,
 		BlockSize:    blockSize,
 		NumTxns:      numTxns,
 		MedianTime:   medianTime,
@@ -260,7 +259,6 @@ func New(config *Config) (*BlockChain, error) {
 	}
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType)
-	b.badTx = make(map[hash.Hash]*dag.HashSet)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -278,14 +276,14 @@ func New(config *Config) (*BlockChain, error) {
 	}
 
 	b.pruner = newChainPruner(&b)
-	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().Order), b.params)
+	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().GraphState.GetMainHeight()), b.params)
 
 	log.Info(fmt.Sprintf("DAG Type:%s", b.bd.GetName()))
 	log.Info("Blockchain database version", "chain", b.dbInfo.version, "compression", b.dbInfo.compVer,
 		"index", b.dbInfo.bidxVer)
 
 	tips := b.bd.GetTipsList()
-	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d blockTotal=%d", b.stateSnapshot.TotalTxns, len(tips), b.bd.GetBlockTotal()))
+	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d blockTotal=%d", b.BestSnapshot().TotalTxns, len(tips), b.bd.GetBlockTotal()))
 
 	for _, v := range tips {
 		tnode := b.index.lookupNode(v.GetHash())
@@ -414,14 +412,15 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %v",state.hash.String(),state.order,state.totalTxns,state.totalSubsidy,state.workSum))
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %v",state.hash.String(),state.total,state.totalTxns,state.totalSubsidy,state.workSum))
 		log.Info("Loading block index...")
 		bidxStart := time.Now()
 
 		// Determine how many blocks will be loaded into the index in order to
 		// allocate the right amount as a single alloc versus a whole bunch of
 		// littles ones to reduce pressure on the GC.
-		for i:=uint(0);i<=uint(state.order) ;i++ {
+		var block *types.SerializedBlock
+		for i:=uint(0);i<uint(state.total) ;i++ {
 			blockHash,err:=blockdag.DBGetDAGBlock(dbTx,i)
 			if err!=nil {
 				return err
@@ -429,7 +428,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			if i==0 && !blockHash.IsEqual(b.params.GenesisHash) {
 				return fmt.Errorf("The dag block is not match current genesis block. you can cleanup your block data base by '--cleanup'.")
 			}
-			block, err := dbFetchBlockByHash(dbTx, blockHash)
+			block, err = dbFetchBlockByHash(dbTx, blockHash)
 			if err != nil {
 				return err
 			}
@@ -470,23 +469,16 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		}*/
 		// Set the best chain view to the stored best state.
 		lastBlock := b.bd.GetLastBlock()
-		tip := b.index.lookupNode(lastBlock.GetHash())
-		if tip == nil {
-			return AssertError(fmt.Sprintf("initChainState: cannot find "+
-				"chain last %s in block index", lastBlock.GetHash()))
+		if lastBlock == nil {
+			return AssertError("initChainState: cannot find last block")
 		}
 
 		// Load the raw block bytes for the best block.
-		block, err := dbFetchBlockByHash(dbTx, lastBlock.GetHash())
-		if err != nil {
-			return err
-		}
 		mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
-
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
-		b.stateSnapshot = newBestState(tip, blockSize, numTxns,
+		b.stateSnapshot = newBestState(lastBlock.GetHash(),mainTip.bits, blockSize, numTxns,
 			mainTip.CalcPastMedianTime(b), state.totalTxns, state.totalSubsidy, b.bd.GetGraphState())
 
 		return nil
@@ -604,8 +596,8 @@ func (b *BlockChain) isCurrent() bool {
 	// Not current if the latest main (best) chain height is before the
 	// latest known good checkpoint (when checkpoints are enabled).
 	checkpoint := b.latestCheckpoint()
-	lastBlock := b.bd.GetLastBlock()
-	if checkpoint != nil && uint64(lastBlock.GetOrder()) < checkpoint.Height {
+	lastBlock := b.bd.GetMainChainTip()
+	if checkpoint != nil && uint64(lastBlock.GetHeight()) < checkpoint.Height {
 		return false
 	}
 
@@ -913,7 +905,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		stxos := []SpentTxOut{}
 		err := b.checkConnectBlock(node, block, view, &stxos)
 		if err != nil {
-			b.RemoveBadTx(block.Hash())
+			b.txManager.RemoveInvalidTx(block.Hash())
 			return false, err
 		}
 		// In the fast add case the code to check the block connection
@@ -924,7 +916,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// Connect the block to the main chain.
 		err = b.connectBlock(node, block, view, stxos)
 		if err != nil {
-			b.RemoveBadTx(block.Hash())
+			b.txManager.RemoveInvalidTx(block.Hash())
 			return false, err
 		}
 		// TODO, validating previous block
@@ -980,7 +972,7 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode, block *types.Serializ
 					continue
 				}
 				if ret {
-					b.AddBadTx(tx.Hash(),block.Hash())
+					b.AddInvalidTx(tx.Hash(),block.Hash())
 				}
 			}
 		}
@@ -998,20 +990,18 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	curTotalSubsidy := b.stateSnapshot.TotalSubsidy
 	b.stateLock.RUnlock()
 
+	// Calculate the exact subsidy produced by adding the block.
+	subsidy := CalculateAddedSubsidy(block)
+
 	// Calculate the number of transactions that would be added by adding
 	// this block.
 	numTxns := uint64(len(block.Block().Transactions))
 
-	// Calculate the exact subsidy produced by adding the block.
-	subsidy := CalculateAddedSubsidy(block)
-
-	/* TODO, revisit block size in block header
-	blockSize := uint64(block.Block().Header.Size)
-	*/
 	blockSize := uint64(block.Block().SerializeSize())
 
 	mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
-	state := newBestState(lastTip, uint64(blockSize), uint64(numTxns), mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
+
+	state := newBestState(lastTip.GetHash(),mainTip.bits,blockSize,numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
 		curTotalSubsidy+subsidy, b.bd.GetGraphState())
 
 	// Atomically insert info into the database.
@@ -1145,7 +1135,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	b.RemoveBadTx(&node.hash)
+	b.txManager.RemoveInvalidTx(&node.hash)
 
 	return nil
 }
@@ -1271,52 +1261,6 @@ func countSpentOutputs(block, parent *types.SerializedBlock) int {
 	return numSpent
 }
 
-func (b *BlockChain) IsBadTx(txh *hash.Hash) bool {
-	_, ok := b.badTx[*txh]
-	return ok
-}
-
-func (b *BlockChain) GetBadTxFromBlock(bh *hash.Hash) []*hash.Hash {
-	result := []*hash.Hash{}
-	for k, v := range b.badTx {
-		if v.Has(bh) {
-			txHash := k
-			result = append(result, &txHash)
-		}
-	}
-	return result
-}
-
-func (b *BlockChain) AddBadTx(txh *hash.Hash, bh *hash.Hash) {
-	if b.IsBadTx(txh) {
-		b.badTx[*txh].Add(bh)
-	} else {
-		set := dag.NewHashSet()
-		set.Add(bh)
-		b.badTx[*txh] = set
-	}
-}
-
-func (b *BlockChain) AddBadTxArray(txha []*hash.Hash, bh *hash.Hash) {
-	if len(txha) == 0 {
-		return
-	}
-	for _, v := range txha {
-		b.AddBadTx(v, bh)
-	}
-}
-
-func (b *BlockChain) RemoveBadTx(bh *hash.Hash) {
-	for k, v := range b.badTx {
-		if v.Has(bh) {
-			v.Remove(bh)
-			if v.IsEmpty() {
-				delete(b.badTx, k)
-			}
-		}
-	}
-}
-
 // Return the dag instance
 func (b *BlockChain) BlockDAG() *blockdag.BlockDAG {
 	return b.bd
@@ -1412,4 +1356,12 @@ func (b *BlockChain) FetchSpendJournal(targetBlock *types.SerializedBlock) ([]Sp
 	}
 
 	return spendEntries, nil
+}
+
+func (b *BlockChain) SetTxManager(txManager TxManager) {
+	b.txManager=txManager
+}
+
+func (b *BlockChain) GetTxManager() TxManager {
+	return b.txManager
 }

@@ -223,7 +223,7 @@ func (idx *ExistsAddrIndex) ConnectBlock(dbTx database.Tx, block *types.Serializ
 				}
 
 				class, addrs, _, err := txscript.ExtractPkScriptAddrs(
-					txscript.DefaultScriptVersion, rs, idx.chainParams)
+					rs, idx.chainParams)
 				if err != nil {
 					// Non-standard outputs are skipped.
 					continue
@@ -246,7 +246,7 @@ func (idx *ExistsAddrIndex) ConnectBlock(dbTx database.Tx, block *types.Serializ
 
 		for _, txOut := range tx.Transaction().TxOut {
 			_, addrs, _, err := txscript.ExtractPkScriptAddrs(
-				txscript.DefaultScriptVersion, txOut.PkScript, idx.chainParams)
+				txOut.PkScript, idx.chainParams)
 			if err != nil {
 				// Non-standard outputs are skipped.
 				continue
@@ -315,8 +315,7 @@ func (idx *ExistsAddrIndex) addUnconfirmedTx(tx *types.Transaction) {
 				continue
 			}
 
-			class, addrs, _, err := txscript.ExtractPkScriptAddrs(
-				txscript.DefaultScriptVersion, rs, idx.chainParams)
+			class, addrs, _, err := txscript.ExtractPkScriptAddrs(rs, idx.chainParams)
 			if err != nil {
 				// Non-standard outputs are skipped.
 				continue
@@ -340,7 +339,7 @@ func (idx *ExistsAddrIndex) addUnconfirmedTx(tx *types.Transaction) {
 	}
 
 	for _, txOut := range tx.TxOut {
-		_, addrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion,
+		_, addrs, _, err := txscript.ExtractPkScriptAddrs(
 			txOut.PkScript, idx.chainParams)
 		if err != nil {
 			// Non-standard outputs are skipped.

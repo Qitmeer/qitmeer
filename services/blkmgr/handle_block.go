@@ -147,7 +147,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// update the chain state.
 		b.progressLogger.LogBlockHeight(bmsg.block)
 
-		b.txMemPool.PruneExpiredTx()
+		b.chain.GetTxManager().MemPool().PruneExpiredTx()
 
 
 		// Clear the rejected transactions.

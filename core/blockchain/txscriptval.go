@@ -77,7 +77,7 @@ out:
 					"transaction %s:%d",
 					txIn.PreviousOut, txVI.tx.Hash(),
 					txVI.txInIndex)
-				err := ruleError(ErrBadTxInput, str)
+				err := ruleError(ErrInvalidTxInput, str)
 				v.sendResult(err)
 				break out
 			}
@@ -239,7 +239,7 @@ func checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint, tx
 
 	for _, tx := range txs {
 		hash := tx.Hash()
-		if bc.IsBadTx(hash) {
+		if bc.txManager.IsInvalidTx(hash) {
 			continue
 		}
 		numInputs += len(tx.Transaction().TxIn)
@@ -247,7 +247,7 @@ func checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint, tx
 	txValItems := make([]*txValidateItem, 0, numInputs)
 	for _, tx := range txs {
 		hash := tx.Hash()
-		if bc.IsBadTx(hash) {
+		if bc.txManager.IsInvalidTx(hash) {
 			continue
 		}
 		for txInIdx, txIn := range tx.Transaction().TxIn {

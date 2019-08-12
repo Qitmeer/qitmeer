@@ -70,36 +70,6 @@ func (s *PeerServer) handleAddPeerMsg(state *peerState, sp *serverPeer) bool {
 	return true
 }
 
-// handleUpdatePeerHeight updates the heights of all peers who were known to
-// announce a block we recently accepted.
-func (s *PeerServer) handleUpdatePeerHeights(state *peerState, umsg updatePeerHeightsMsg) {
-	log.Trace("handleUpdatePeerHeights", "state",state, "umsg", umsg)
-	state.forAllPeers(func(sp *serverPeer) {
-		// The origin peer should already have the updated height.
-		if sp == umsg.originPeer {
-			return
-		}
-
-		// This is a pointer to the underlying memory which doesn't
-		// change.
-		latestBlkHash := sp.LastAnnouncedBlock()
-
-		// Skip this peer if it hasn't recently announced any new blocks.
-		if latestBlkHash == nil {
-			return
-		}
-
-		// If the peer has recently announced a block, and this block
-		// matches our newly accepted block, then update their block
-		// height.
-		if *latestBlkHash == *umsg.newHash {
-			//sp.UpdateLastBlockHeight(umsg.newHeight)
-			sp.UpdateLastAnnouncedBlock(nil)
-		}
-	})
-}
-
-
 // handleDonePeerMsg deals with peers that have signalled they are done.  It is
 // invoked from the peerHandler goroutine.
 func (s *PeerServer) handleDonePeerMsg(state *peerState, sp *serverPeer) {

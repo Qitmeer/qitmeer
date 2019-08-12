@@ -54,26 +54,9 @@ func newServerPeer(s *PeerServer, isPersistent bool) *serverPeer {
 		syncPeer : &peer.ServerPeer{
 			TxProcessed:     make(chan struct{}, 1),
 			BlockProcessed:  make(chan struct{}, 1),
-			RequiredUpdatePeerHeights: make(chan peer.UpdatePeerHeightsMsg,1),
 			RequestedBlocks: make(map[hash.Hash]struct{}),
 			RequestedTxns:   make(map[hash.Hash]struct{}),
 	}}
-}
-
-func (sp *serverPeer) syncPeerHandler() {
-log.Trace("start syncPeerHandler")
-out:
-	for {
-		select {
-
-			case msg := <-sp.syncPeer.RequiredUpdatePeerHeights:
-				sp.server.UpdatePeerHeights(msg.Hash, msg.Height,sp)
-
-			case <-sp.quit:
-				break out
-		}
-	}
-log.Trace("stop syncPeerHandler done")
 }
 
 // pushAddrMsg sends an addr message to the connected peer using the provided

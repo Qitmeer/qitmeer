@@ -133,18 +133,18 @@ const (
 	// when serialized.
 	ErrTxTooBig
 
-	// ErrBadTxOutValue indicates an output value for a transaction is
+	// ErrInvalidTxOutValue indicates an output value for a transaction is
 	// invalid in some way such as being out of range.
-	ErrBadTxOutValue
+	ErrInvalidTxOutValue
 
 	// ErrDuplicateTxInputs indicates a transaction references the same
 	// input more than once.
 	ErrDuplicateTxInputs
 
-	// ErrBadTxInput indicates a transaction input is invalid in some way
+	// ErrInvalidTxInput indicates a transaction input is invalid in some way
 	// such as referencing a previous transaction outpoint which is out of
 	// range or not referencing one at all.
-	ErrBadTxInput
+	ErrInvalidTxInput
 
 	// ErrMissingTxOut indicates a transaction output referenced by an input
 	// either does not exist or has already been spent.
@@ -338,9 +338,9 @@ var errorCodeStrings = map[ErrorCode]string{
 	ErrNoTxInputs:             "ErrNoTxInputs",
 	ErrNoTxOutputs:            "ErrNoTxOutputs",
 	ErrTxTooBig:               "ErrTxTooBig",
-	ErrBadTxOutValue:          "ErrBadTxOutValue",
+	ErrInvalidTxOutValue:          "ErrInvalidTxOutValue",
 	ErrDuplicateTxInputs:      "ErrDuplicateTxInputs",
-	ErrBadTxInput:             "ErrBadTxInput",
+	ErrInvalidTxInput:             "ErrInvalidTxInput",
 	ErrMissingTxOut:           "ErrMissingTxOut",
 	ErrUnfinalizedTx:          "ErrUnfinalizedTx",
 	ErrDuplicateTx:            "ErrDuplicateTx",

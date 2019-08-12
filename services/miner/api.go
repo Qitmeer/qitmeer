@@ -185,7 +185,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI,request *json.TemplateReq
 	}
 
 	// No point in generating or accepting work before the chain is synced.
-	currentOrder := api.miner.blockManager.GetChain().BestSnapshot().Order
+	currentOrder := api.miner.blockManager.GetChain().BestSnapshot().GraphState.GetTotal()-1
 	if currentOrder != 0 && !api.miner.blockManager.IsCurrent() {
 		return nil, rpc.RPCClientInInitialDownloadError("Client in initial download ",
 			"qitmeer is downloading blocks...")

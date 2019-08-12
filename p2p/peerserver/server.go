@@ -8,22 +8,21 @@ package peerserver
 import (
 	"errors"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/core/dag"
-	"net"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/config"
-	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/core/dag"
 	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer/p2p/addmgr"
 	"github.com/HalalChain/qitmeer/p2p/connmgr"
 	"github.com/HalalChain/qitmeer/p2p/peer"
-	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer/services/blkmgr"
 	"github.com/HalalChain/qitmeer/services/mempool"
 	"github.com/HalalChain/qitmeer/version"
+	"net"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -89,7 +88,6 @@ type PeerServer struct {
 	// peer handler chan
 	relayInv          chan relayMsg
 	broadcast         chan broadcastMsg
-	peerHeightsUpdate chan updatePeerHeightsMsg
 	query             chan interface{}
 	quit              chan struct{}
 
@@ -124,7 +122,6 @@ func (s *PeerServer) inboundPeerConnected(conn net.Conn) {
 	sp.syncPeer.Peer = sp.Peer
 	sp.AssociateConnection(conn)
 	go s.peerDoneHandler(sp)
-	go sp.syncPeerHandler()
 }
 
 // outboundPeerConnected is invoked by the connection manager when a new
@@ -145,7 +142,6 @@ func (s *PeerServer) outboundPeerConnected(c *connmgr.ConnReq, conn net.Conn) {
 	sp.isWhitelisted = isWhitelisted(s.cfg, conn.RemoteAddr())
 	sp.AssociateConnection(conn)
 	go s.peerDoneHandler(sp)
-	go sp.syncPeerHandler()
 	s.addrManager.Attempt(sp.NA())
 }
 
@@ -366,10 +362,6 @@ out:
 			log.Trace("read peer from donePeers and do handleDonePeerMsg")
 			s.handleDonePeerMsg(state, p)
 
-		// Block accepted in mainchain or orphan, update peer height.
-		case umsg := <-s.peerHeightsUpdate:
-			s.handleUpdatePeerHeights(state, umsg)
-
 		// Peer to ban.
 		case p := <-s.banPeers:
 			s.handleBanPeerMsg(state, p)
@@ -406,7 +398,6 @@ cleanup:
 		select {
 		case <-s.newPeers:
 		case <-s.donePeers:
-		case <-s.peerHeightsUpdate:
 		case <-s.relayInv:
 		case <-s.broadcast:
 		case <-s.query:
@@ -423,18 +414,6 @@ cleanup:
 // that are not already known to have it.
 func (s *PeerServer) RelayInventory(invVect *message.InvVect, data interface{}) {
 	s.relayInv <- relayMsg{invVect: invVect, data: data}
-}
-
-// UpdatePeerHeights updates the heights of all peers who have have announced
-// the latest connected main chain block, or a recognized orphan. These height
-// updates allow us to dynamically refresh peer heights, ensuring sync peer
-// selection has access to the latest block heights for each peer.
-func (s *PeerServer) UpdatePeerHeights(latestBlkHash *hash.Hash, latestHeight uint64, updateSource *serverPeer) {
-	s.peerHeightsUpdate <- updatePeerHeightsMsg{
-		newHash:    latestBlkHash,
-		newHeight:  latestHeight,
-		originPeer: updateSource,
-	}
 }
 
 // handleGetBlocksMsg use to get some blocks from neighbor peers

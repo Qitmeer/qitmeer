@@ -91,7 +91,7 @@ type databaseInfo struct {
 // best chain state.
 type bestChainState struct {
 	hash         hash.Hash
-	order        uint64
+	total        uint64
 	totalTxns    uint64
 	totalSubsidy int64
 	workSum      *big.Int
@@ -247,7 +247,7 @@ func (b *BlockChain) createChainState() error {
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
-	b.stateSnapshot = newBestState(node, blockSize, numTxns,
+	b.stateSnapshot = newBestState(node.GetHash(), node.bits,blockSize, numTxns,
 		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState())
 
 	// Create the initial the database chain state including creating the
@@ -441,7 +441,7 @@ func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) err
 	// Serialize the current best chain state.
 	serializedData := serializeBestChainState(bestChainState{
 		hash:      snapshot.Hash,
-		order:     snapshot.Order,
+		total:     uint64(snapshot.GraphState.GetTotal()),
 		totalTxns: snapshot.TotalTxns,
 	})
 
@@ -459,7 +459,7 @@ func serializeBestChainState(state bestChainState) []byte {
 	serializedData := make([]byte, serializedLen)
 	copy(serializedData[0:hash.HashSize], state.hash[:])
 	offset := uint32(hash.HashSize)
-	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.order)
+	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.total)
 	offset += 8
 	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.totalTxns)
 	offset += 8
@@ -487,7 +487,7 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	state := bestChainState{}
 	copy(state.hash[:], serializedData[0:hash.HashSize])
 	offset := uint32(hash.HashSize)
-	state.order = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
+	state.total = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
 	offset += 8
 	state.totalTxns = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
 	offset += 8

@@ -7,20 +7,20 @@
 package miner
 
 import (
-	"sync"
+	"errors"
+	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/config"
-	"math/rand"
-	"time"
-	"fmt"
-	"errors"
-	"github.com/HalalChain/qitmeer-lib/params"
-	"github.com/HalalChain/qitmeer/services/blkmgr"
-	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
-	"github.com/HalalChain/qitmeer/services/mining"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer/core/merkle"
+	"github.com/HalalChain/qitmeer/services/blkmgr"
+	"github.com/HalalChain/qitmeer/services/mining"
+	"math/rand"
+	"sync"
+	"time"
 )
 
 const (
@@ -624,6 +624,11 @@ out:
 		rindex :=rand.Intn(len(miningaddrs))
 		payToAddr := miningaddrs[rindex]
 
+		currentOrder := m.blockManager.GetChain().BestSnapshot().GraphState.GetTotal()-1
+		if currentOrder != 0 && !m.blockManager.IsCurrent() {
+			log.Warn("Client in initial download, qitmeer is downloading blocks...")
+			return
+		}
 		// Create a new block template using the available transactions
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.

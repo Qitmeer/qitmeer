@@ -18,6 +18,7 @@ import (
 	"github.com/HalalChain/qitmeer-lib/rpc"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/services/mempool"
+	"strconv"
 )
 
 func (tm *TxManager) APIs() []rpc.API {
@@ -231,8 +232,7 @@ func createVoutList(mtx *types.Transaction, params *params.Params, filterAddrMap
 		// couldn't parse and there is no additional information
 		// about it anyways.
 		var sc txscript.ScriptClass
-		sc, addrs, reqSigs, _ = txscript.ExtractPkScriptAddrs(
-			txscript.DefaultScriptVersion, v.PkScript, params)
+		sc, addrs, reqSigs, _ = txscript.ExtractPkScriptAddrs(v.PkScript, params)
 		scriptClass = sc.String()
 
 		// Encode the addresses while checking if the address passes the
@@ -418,7 +418,7 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 	if tx != nil {
 		confirmations = 0
 	} else {
-		confirmations = 1 + int64(api.txManager.bm.GetChain().BestSnapshot().Order-blkOrder)
+		confirmations = int64(api.txManager.bm.GetChain().BestSnapshot().GraphState.GetTotal())-int64(blkOrder)
 	}
 
 	return marshal.MarshalJsonTransaction(mtx, api.txManager.bm.ChainParams(), blkOrder, blkHashStr, confirmations)
@@ -487,7 +487,7 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 		}
 		best := api.txManager.bm.GetChain().BestSnapshot()
 		bestBlockHash = best.Hash.String()
-		confirmations = 1 + int64(best.Order-entry.BlockOrder())
+		confirmations = int64(best.GraphState.GetTotal())-int64(entry.BlockOrder())
 		txVersion = entry.TxVersion()
 		amount = entry.AmountByIndex(vout)
 		pkScript = entry.PkScriptByIndex(vout)
@@ -503,8 +503,7 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 	// Get further info about the script.  Ignore the error here since an
 	// error means the script couldn't parse and there is no additional
 	// information about it anyways.
-	scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion,
-		script, api.txManager.bm.ChainParams())
+	scriptClass, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(script, api.txManager.bm.ChainParams())
 	addresses := make([]string, len(addrs))
 	for i, addr := range addrs {
 		addresses[i] = addr.Encode()
@@ -787,7 +786,7 @@ func (api *PublicTxAPI) GetRawTransactions(addre string,vinext *bool,count *uint
 			result.Time = blkHeader.Timestamp.Unix()
 			result.Blocktime = blkHeader.Timestamp.Unix()
 			result.BlockHash = blkHashStr
-			result.Confirmations = uint64(1 + best.Order - blkOrder)
+			result.Confirmations = uint64(best.GraphState.GetTotal()) - uint64(blkOrder)
 		}
 	}
 
@@ -889,8 +888,7 @@ func (api *PublicTxAPI) createVinListPrevOut(mtx *message.MsgTx, chainParams *pa
 		// Ignore the error here since an error means the script
 		// couldn't parse and there is no additional information about
 		// it anyways.
-		_, addrs, _, _ := txscript.ExtractPkScriptAddrs(0,
-			originTxOut.PkScript, chainParams)
+		_, addrs, _, _ := txscript.ExtractPkScriptAddrs(originTxOut.PkScript, chainParams)
 
 		// Encode the addresses while checking if the address passes the
 		// filter when needed.
@@ -993,4 +991,9 @@ func (api *PublicTxAPI) fetchInputTxos(tx *message.MsgTx) (map[types.TxOutPoint]
 	}
 
 	return originOutputs, nil
+}
+
+// IsInvalidTx
+func (api *PublicTxAPI) IsInvalidTx(h hash.Hash) (interface{}, error) {
+	return strconv.FormatBool(api.txManager.IsInvalidTx(&h)),nil
 }
