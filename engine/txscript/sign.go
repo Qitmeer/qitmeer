@@ -237,7 +237,7 @@ func sign(chainParams *params.Params, tx *types.Transaction, idx int,
 	sigType sigTypes) ([]byte,
 	ScriptClass, []types.Address, int, error) {
 
-	class, addresses, nrequired, err := ExtractPkScriptAddrs(DefaultScriptVersion,
+	class, addresses, nrequired, err := ExtractPkScriptAddrs(
 		subScript, chainParams)
 	if err != nil {
 		return nil, NonStandardTy, nil, 0, err
@@ -390,7 +390,7 @@ func mergeScripts(chainParams *params.Params, tx *types.Transaction, idx int,
 		// We already know this information somewhere up the stack,
 		// therefore the error is ignored.
 		class, addresses, nrequired, _ :=
-			ExtractPkScriptAddrs(DefaultScriptVersion, script, chainParams)
+			ExtractPkScriptAddrs(script, chainParams)
 
 		// regenerate scripts.
 		sigScript, _ := unparseScript(sigPops)
