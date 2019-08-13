@@ -1,23 +1,21 @@
 package mining
 
 import (
-
-	"fmt"
-	"encoding/binary"
 	"container/heap"
-	"github.com/HalalChain/qitmeer-lib/core/protocol"
-	"github.com/HalalChain/qitmeer/core/merkle"
-	"github.com/HalalChain/qitmeer-lib/config"
-	"github.com/HalalChain/qitmeer-lib/params"
+	"encoding/binary"
+	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer-lib/core/address"
+	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	s "github.com/HalalChain/qitmeer-lib/core/serialization"
+	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/HalalChain/qitmeer/core/merkle"
 	"github.com/HalalChain/qitmeer/services/blkmgr"
 	"github.com/HalalChain/qitmeer/services/mempool"
-	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/core/address"
-	s "github.com/HalalChain/qitmeer-lib/core/serialization"
 )
 
 
@@ -87,7 +85,7 @@ import (
 //  This function returns nil, nil if there are not enough voters on any of
 //  the current top blocks to create a new block template.
 // TODO, refactor NewBlockTemplate input dependencies
-func NewBlockTemplate(policy *Policy,config *config.Config, params *params.Params,
+func NewBlockTemplate(policy *Policy, params *params.Params,
 	sigCache *txscript.SigCache, source TxSource, tsource blockchain.MedianTimeSource,
 	blkMgr *blkmgr.BlockManager,  payToAddress types.Address,parents []*hash.Hash) (*types.BlockTemplate, error) {
 	txSource := source
