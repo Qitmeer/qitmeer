@@ -430,9 +430,10 @@ mempoolLoop:
 	// ensure the transaction is not a duplicate transaction (paying the
 	// same value to the same public key address would otherwise be an
 	// identical transaction for block version 1).
-	coinbaseScript := []byte{0x00, 0x00}
-	coinbaseScript = append(coinbaseScript, []byte(coinbaseFlags)...)
-
+	coinbaseScript,err:=standardCoinbaseScript(nextBlockHeight,0)
+	if err != nil {
+		return nil,err
+	}
 	// Add a random coinbase nonce to ensure that tx prefix hash
 	// so that our merkle root is unique for lookups needed for
 	// getwork, etc.

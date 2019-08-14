@@ -8,6 +8,7 @@ package mining
 
 import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer/core/blockchain"
 	s "github.com/HalalChain/qitmeer-lib/core/serialization"
 	"github.com/HalalChain/qitmeer-lib/core/types"
@@ -86,4 +87,10 @@ func MedianAdjustedTime(bc *blockchain.BlockChain, timeSource blockchain.MedianT
 	}
 
 	return newTimestamp
+}
+
+func standardCoinbaseScript(nextBlockHeight uint64, extraNonce uint64) ([]byte, error) {
+	return txscript.NewScriptBuilder().AddInt64(int64(nextBlockHeight)).
+		AddInt64(int64(extraNonce)).AddData([]byte(coinbaseFlags)).
+		Script()
 }
