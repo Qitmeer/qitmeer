@@ -63,16 +63,6 @@ func NewSubsidyCache(height int64, params *params.Params) *SubsidyCache {
 //
 // Safe for concurrent access.
 func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
-	// TODO, impl ICO using block-one subsidy
-	// Block height 1 subsidy is 'special' and used to
-	// distribute initial tokens, if any.
-	/*
-	if height == 1 {
-		return s.params.BlockOneSubsidy()
-
-	}
-	*/
-
 	iteration := uint64(height / s.params.SubsidyReductionInterval)
 
 	if iteration == 0 {
@@ -123,7 +113,7 @@ func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
 // CalcBlockWorkSubsidy calculates the proof of work subsidy for a block as a
 // proportion of the total subsidy. (aka, the coinbase subsidy)
 // TODO refactor CalcBlockWorkSubsidy
-func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, height int64, voters uint16, params *params.Params) uint64 {
+func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, height int64, params *params.Params) uint64 {
 
 	subsidy := subsidyCache.CalcBlockSubsidy(height)
 	proportionWork := int64(params.WorkRewardProportion)
@@ -146,7 +136,7 @@ func CalculateAddedSubsidy(block *types.SerializedBlock) int64 {
 // CalcBlockTaxSubsidy calculates the subsidy for the organization address in the
 // coinbase.
 // TODO refactor CalcBlockTaxSubsidy
-func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, voters uint16, params *params.Params) int64 {
+func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, params *params.Params) int64 {
 
 	subsidy := subsidyCache.CalcBlockSubsidy(height)
 	proportionTax := int64(params.BlockTaxProportion)

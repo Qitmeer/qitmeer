@@ -2,10 +2,8 @@ package mining
 
 import (
 	"container/heap"
-	"encoding/binary"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/core/address"
 	"github.com/HalalChain/qitmeer-lib/core/protocol"
 	s "github.com/HalalChain/qitmeer-lib/core/serialization"
 	"github.com/HalalChain/qitmeer-lib/core/types"
@@ -422,6 +420,13 @@ mempoolLoop:
 		}
 	}
 
+	// Add a random coinbase nonce to ensure that tx prefix hash
+	// so that our merkle root is unique for lookups needed for
+	// getwork, etc.
+	rand, err := s.RandomUint64()
+	if err != nil {
+		return nil, err
+	}
 	// Create a standard coinbase transaction paying to the provided
 	// address.  NOTE: The coinbase value will be updated to include the
 	// fees from the selected transactions later after they have actually
@@ -430,30 +435,20 @@ mempoolLoop:
 	// ensure the transaction is not a duplicate transaction (paying the
 	// same value to the same public key address would otherwise be an
 	// identical transaction for block version 1).
-	coinbaseScript,err:=standardCoinbaseScript(nextBlockHeight,0)
+	coinbaseScript,err:=standardCoinbaseScript(nextBlockHeight,rand)
 	if err != nil {
 		return nil,err
 	}
-	// Add a random coinbase nonce to ensure that tx prefix hash
-	// so that our merkle root is unique for lookups needed for
-	// getwork, etc.
-	rand, err := s.RandomUint64()
+
+	opReturnPkScript, err := standardCoinbaseOpReturn([]byte{})
 	if err != nil {
 		return nil, err
 	}
-	opReturnPkScript, err := standardCoinbaseOpReturn(uint32(nextBlockHeight),
-		rand)
-	if err != nil {
-		return nil, err
-	}
-	voters := 0  //TODO remove voters
 	coinbaseTx, err := createCoinbaseTx(subsidyCache,
 		coinbaseScript,
 		opReturnPkScript,
 		int64(nextBlockHeight),    //TODO remove type conversion
-		int64(nextBlockOrder),
 		payToAddress,
-		uint16(voters),
 		params)
 	if err != nil {
 		return nil, err
@@ -733,130 +728,6 @@ func spendTransaction(utxoView *blockchain.UtxoViewpoint, tx *types.Tx, order in
 
 	utxoView.AddTxOuts(tx, order, types.NullTxIndex)
 	return nil
-}
-
-// standardCoinbaseOpReturn creates a standard OP_RETURN output to insert into
-// coinbase to use as extranonces. The OP_RETURN pushes 32 bytes.
-func standardCoinbaseOpReturn(height uint32, extraNonce uint64) ([]byte, error) {
-	enData := make([]byte, 12)
-	binary.LittleEndian.PutUint32(enData[0:4], height)
-	binary.LittleEndian.PutUint64(enData[4:12], extraNonce)
-	extraNonceScript, err := txscript.GenerateProvablyPruneableOut(enData)
-	if err != nil {
-		return nil, err
-	}
-
-	return extraNonceScript, nil
-}
-// createCoinbaseTx returns a coinbase transaction paying an appropriate subsidy
-// based on the passed block height to the provided address.  When the address
-// is nil, the coinbase transaction will instead be redeemable by anyone.
-//
-// See the comment for NewBlockTemplate for more information about why the nil
-// address handling is useful.
-func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, opReturnPkScript []byte, nextBlockHeight,nextBlockOrder int64, addr types.Address, voters uint16, params *params.Params) (*types.Tx, error) {
-	tx := types.NewTransaction()
-	tx.AddTxIn(&types.TxInput{
-		// Coinbase transactions have no inputs, so previous outpoint is
-		// zero hash and max index.
-		PreviousOut: *types.NewOutPoint(&hash.Hash{},
-			types.MaxPrevOutIndex ),
-		Sequence:        types.MaxTxInSequenceNum,
-		BlockOrder:      types.NullBlockOrder,
-		TxIndex:         types.NullTxIndex,
-		SignScript:      coinbaseScript,
-	})
-
-	// Block one is a special block that might pay out tokens to a ledger.
-	if nextBlockOrder == 1 && len(params.BlockOneLedger) != 0 {
-		// Convert the addresses in the ledger into useable format.
-		addrs := make([]types.Address, len(params.BlockOneLedger))
-		for i, payout := range params.BlockOneLedger {
-			addr, err := address.DecodeAddress(payout.Address)
-			if err != nil {
-				return nil, err
-			}
-			addrs[i] = addr
-		}
-
-		for i, payout := range params.BlockOneLedger {
-			// Make payout to this address.
-			pks, err := txscript.PayToAddrScript(addrs[i])
-			if err != nil {
-				return nil, err
-			}
-			tx.AddTxOut(&types.TxOutput{
-				Amount:   payout.Amount,
-				PkScript: pks,
-			})
-		}
-
-		tx.TxIn[0].AmountIn = params.BlockOneSubsidy()
-
-		return types.NewTx(tx), nil
-	}
-
-	// Create a coinbase with correct block subsidy and extranonce.
-	subsidy := blockchain.CalcBlockWorkSubsidy(subsidyCache,
-		nextBlockHeight,
-		voters,
-		params)
-	tax := blockchain.CalcBlockTaxSubsidy(subsidyCache,
-		nextBlockHeight,
-		voters,
-		params)
-
-	// Tax output.
-	if params.BlockTaxProportion > 0 {
-		tx.AddTxOut(&types.TxOutput{
-			Amount:    uint64(tax),
-			PkScript: params.OrganizationPkScript,
-		})
-	} else {
-		// Tax disabled.
-		scriptBuilder := txscript.NewScriptBuilder()
-		trueScript, err := scriptBuilder.AddOp(txscript.OP_TRUE).Script()
-		if err != nil {
-			return nil, err
-		}
-		tx.AddTxOut(&types.TxOutput{
-			Amount:    uint64(tax),
-			PkScript: trueScript,
-		})
-	}
-	// Extranonce.
-	tx.AddTxOut(&types.TxOutput{
-		Amount:    0,
-		PkScript: opReturnPkScript,
-	})
-	// AmountIn.
-	tx.TxIn[0].AmountIn = subsidy + uint64(tax)  //TODO, remove type conversion
-
-	// Create the script to pay to the provided payment address if one was
-	// specified.  Otherwise create a script that allows the coinbase to be
-	// redeemable by anyone.
-	var pksSubsidy []byte
-	if addr != nil {
-		var err error
-		pksSubsidy, err = txscript.PayToAddrScript(addr)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		var err error
-		scriptBuilder := txscript.NewScriptBuilder()
-		pksSubsidy, err = scriptBuilder.AddOp(txscript.OP_TRUE).Script()
-		if err != nil {
-			return nil, err
-		}
-	}
-	// Subsidy paid to miner.
-	tx.AddTxOut(&types.TxOutput{
-		Amount:    subsidy,
-		PkScript: pksSubsidy,
-	})
-
-	return types.NewTx(tx), nil
 }
 
 // txIndexFromTxList returns a transaction's index in a list, or -1 if it
