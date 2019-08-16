@@ -194,12 +194,12 @@ type BestState struct {
 	NumTxns      uint64               // The number of txns in the main chain tip.
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
-	TotalSubsidy int64                // The total subsidy for the chain.
+	Subsidy int64                     // The total subsidy for the chain.
 	GraphState   *dag.GraphState      // The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(lastHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64, gs *dag.GraphState) *BestState {
+func newBestState(lastHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, subsidy int64, gs *dag.GraphState) *BestState {
 	return &BestState{
 		Hash:         *lastHash,
 		Bits:         bits,
@@ -207,7 +207,7 @@ func newBestState(lastHash *hash.Hash, bits uint32,blockSize, numTxns uint64, me
 		NumTxns:      numTxns,
 		MedianTime:   medianTime,
 		TotalTxns:    totalTxns,
-		TotalSubsidy: totalSubsidy,
+		Subsidy:      subsidy,
 		GraphState:   gs,
 	}
 }
@@ -412,7 +412,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d",state.hash.String(),state.total,state.totalTxns,state.totalSubsidy))
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d",state.hash.String(),state.total,state.totalTxns,state.subsidy))
 		log.Info("Loading block index...")
 		bidxStart := time.Now()
 
@@ -479,7 +479,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 		b.stateSnapshot = newBestState(lastBlock.GetHash(),mainTip.bits, blockSize, numTxns,
-			mainTip.CalcPastMedianTime(b), state.totalTxns, state.totalSubsidy, b.bd.GetGraphState())
+			mainTip.CalcPastMedianTime(b), state.totalTxns,state.subsidy, b.bd.GetGraphState())
 
 		return nil
 	})
@@ -987,11 +987,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()
 	curTotalTxns := b.stateSnapshot.TotalTxns
-	curTotalSubsidy := b.stateSnapshot.TotalSubsidy
 	b.stateLock.RUnlock()
-
-	// Calculate the exact subsidy produced by adding the block.
-	subsidy := CalculateAddedSubsidy(block)
 
 	// Calculate the number of transactions that would be added by adding
 	// this block.
@@ -1001,8 +997,10 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 
 	mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
 
+	subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(mainTip.GetHeight()))
+
 	state := newBestState(lastTip.GetHash(),mainTip.bits,blockSize,numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
-		curTotalSubsidy+subsidy, b.bd.GetGraphState())
+		subsidy, b.bd.GetGraphState())
 
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {

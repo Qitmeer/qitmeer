@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/HalalChain/qitmeer-lib/params"
-	"github.com/HalalChain/qitmeer-lib/core/types"
 )
 
 // The number of values to precalculate on initialization of the subsidy
@@ -112,38 +111,26 @@ func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
 
 // CalcBlockWorkSubsidy calculates the proof of work subsidy for a block as a
 // proportion of the total subsidy. (aka, the coinbase subsidy)
-// TODO refactor CalcBlockWorkSubsidy
 func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, height int64, params *params.Params) uint64 {
-
-	subsidy := subsidyCache.CalcBlockSubsidy(height)
-	proportionWork := int64(params.WorkRewardProportion)
-	proportions := int64(params.TotalSubsidyProportions())
-	subsidy *= proportionWork
-	subsidy /= proportions
-
-	return uint64(subsidy) //TODO remove type conversion
-}
-
-// CalculateAddedSubsidy calculates the amount of subsidy added by a block
-// and its parent. The blocks passed to this function MUST be valid blocks
-// that have already been confirmed to abide by the consensus rules of the
-// network, or the function might panic.
-// TODO refactor CalculateAddedSubsidy
-func CalculateAddedSubsidy(block *types.SerializedBlock) int64 {
-	return 0
+	work,_,_:=calcBlockProportion(subsidyCache,height,params)
+	return work
 }
 
 // CalcBlockTaxSubsidy calculates the subsidy for the organization address in the
 // coinbase.
-// TODO refactor CalcBlockTaxSubsidy
-func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, params *params.Params) int64 {
-
-	subsidy := subsidyCache.CalcBlockSubsidy(height)
-	proportionTax := int64(params.BlockTaxProportion)
-	proportions := int64(params.TotalSubsidyProportions())
-	subsidy *= proportionTax
-	subsidy /= proportions
-
-	return subsidy
+func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, params *params.Params) uint64 {
+	_,_,tax:=calcBlockProportion(subsidyCache,height,params)
+	return tax
 }
 
+func calcBlockProportion(subsidyCache *SubsidyCache, height int64, params *params.Params) (uint64,uint64,uint64) {
+	subsidy := uint64(subsidyCache.CalcBlockSubsidy(height))
+	workPro := float64(params.WorkRewardProportion)
+	stakePro:= float64(params.StakeRewardProportion)
+	proportions := float64(params.TotalSubsidyProportions())
+
+	work:=uint64(workPro/proportions*float64(subsidy))
+	stake:=uint64(stakePro/proportions*float64(subsidy))
+	tax:=subsidy-work-stake
+	return work,stake,tax
+}
