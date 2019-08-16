@@ -6,17 +6,18 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"math/rand"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer-lib/core/json"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
 	"github.com/HalalChain/qitmeer-lib/rpc"
+	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer/services/mining"
 )
 
@@ -50,12 +51,17 @@ func (c *CPUMiner) APIs() []rpc.API {
 type PublicMinerAPI struct {
 	miner *CPUMiner
 	gbtWorkState *gbtWorkState
+	gbtCoinbaseAux *json.GetBlockTemplateResultAux
 }
 
 func NewPublicMinerAPI(c *CPUMiner) *PublicMinerAPI {
 	pmAPI:=&PublicMinerAPI{miner:c}
 	pmAPI.gbtWorkState=&gbtWorkState{timeSource:c.timeSource}
 
+	pmAPI.gbtCoinbaseAux = &json.GetBlockTemplateResultAux{
+		Flags: hex.EncodeToString(builderScript(txscript.NewScriptBuilder().
+			AddData([]byte(mining.CoinbaseFlags)))),
+	}
 	return pmAPI
 }
 
@@ -455,11 +461,8 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 	}
 
 	if useCoinbaseValue {
-		//reply.CoinbaseValue = &template.Block.Transactions[0].TxOut[0].Amount
-
-		// coinbaseValue = all coinbase value
-		var coinbaseValue uint64= uint64(api.miner.blockManager.GetChain().FetchSubsidyCache().CalcBlockSubsidy(int64(template.Height)))
-		reply.CoinbaseValue = &coinbaseValue
+		reply.CoinbaseAux = api.gbtCoinbaseAux
+		reply.CoinbaseValue = &msgBlock.Transactions[0].TxOut[0].Amount
 	} else {
 		// Ensure the template has a valid payment address associated
 		// with it when a full coinbase is requested.
@@ -469,6 +472,23 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 				"been configured with any payment " +
 				"addresses via --miningaddr")
 		}
+		// Serialize the transaction for conversion to hex.
+		tx := msgBlock.Transactions[0]
+		txBuf, err := tx.Serialize(types.TxSerializeFull)
+		if err != nil {
+			context := "Failed to serialize transaction"
+			return nil, rpc.RpcInvalidError("%s %s",err.Error(), context)
+		}
+
+		resultTx := json.GetBlockTemplateResultTx{
+			Data:    hex.EncodeToString(txBuf),
+			Hash:    tx.TxHash().String(),
+			Depends: []int64{},
+			Fee:     template.Fees[0],
+			SigOps:  template.SigOpCounts[0],
+		}
+
+		reply.CoinbaseTxn = &resultTx
 	}
 	return &reply, nil
 }
@@ -514,4 +534,12 @@ func (api *PrivateMinerAPI) Generate(numBlocks uint32) ([]string, error) {
 	}
 
 	return reply, nil
+}
+
+func builderScript(builder *txscript.ScriptBuilder) []byte {
+	script, err := builder.Script()
+	if err != nil {
+		panic(err)
+	}
+	return script
 }

@@ -7,6 +7,7 @@
 package blockchain
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer-lib/core/types"
@@ -103,15 +104,6 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 			"max %d", serializedSize, types.MaxBlockPayload)
 		return ruleError(ErrBlockTooBig, str)
 	}
-	// TODO header-size check, why
-	/*
-	if header.Size != uint32(serializedSize) {
-		str := fmt.Sprintf("serialized block is not size indicated in "+
-			"header - got %d, expected %d", header.Size,
-			serializedSize)
-		return ruleError(ErrWrongBlockSize, str)
-	}
-	*/
 
 	// The first transaction in a block's regular tree must be a coinbase.
 	transactions := block.Transactions()
@@ -350,22 +342,18 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 		}
 	}
 
+	// Check for duplicate transaction inputs.
+	existingTxOut := make(map[types.TxOutPoint]struct{})
+	for _, txIn := range tx.TxIn {
+		if _, exists := existingTxOut[txIn.PreviousOut]; exists {
+			return ruleError(ErrDuplicateTxInputs, "transaction "+
+				"contains duplicate inputs")
+		}
+		existingTxOut[txIn.PreviousOut] = struct{}{}
+	}
+
 	// Coinbase script length must be between min and max length.
 	if tx.IsCoinBaseTx() {
-		// The referenced outpoint should be null.
-		if !isNullOutpoint(&tx.TxIn[0].PreviousOut) {
-			str := fmt.Sprintf("coinbase transaction did not use " +
-				"a null outpoint")
-			return ruleError(ErrBadCoinbaseOutpoint, str)
-		}
-
-		// The fraud proof should also be null.
-		if !isNullFraudProof(tx.TxIn[0]) {
-			str := fmt.Sprintf("coinbase transaction fraud proof " +
-				"was non-null")
-			return ruleError(ErrBadCoinbaseFraudProof, str)
-		}
-
 		slen := len(tx.TxIn[0].SignScript)
 		if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
 			str := fmt.Sprintf("coinbase transaction script "+
@@ -374,6 +362,19 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 				MaxCoinbaseScriptLen)
 			return ruleError(ErrBadCoinbaseScriptLen, str)
 		}
+		if len(tx.TxOut) >= 3 {
+			// Coinbase TxOut[2] is op return
+			nullDataOut := tx.TxOut[2]
+			// The first 4 bytes of the null data output must be the encoded height
+			// of the block, so that every coinbase created has a unique transaction
+			// hash.
+			nullData, err := txscript.ExtractCoinbaseNullData(nullDataOut.PkScript)
+			if err != nil {
+				str := fmt.Sprintf("coinbase output 2:bad nulldata %v",nullData)
+				return ruleError(ErrBadCoinbaseOutpoint, str)
+			}
+		}
+
 	} else {
 		// Previous transaction outputs referenced by the inputs to
 		// this transaction must not be null except in the case of
@@ -387,17 +388,6 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 			}
 		}
 	}
-
-	// Check for duplicate transaction inputs.
-	existingTxOut := make(map[types.TxOutPoint]struct{})
-	for _, txIn := range tx.TxIn {
-		if _, exists := existingTxOut[txIn.PreviousOut]; exists {
-			return ruleError(ErrDuplicateTxInputs, "transaction "+
-				"contains duplicate inputs")
-		}
-		existingTxOut[txIn.PreviousOut] = struct{}{}
-	}
-
 	return nil
 }
 
@@ -409,19 +399,6 @@ func isNullOutpoint(outpoint *types.TxOutPoint) bool {
 		return true
 	}
 	return false
-}
-
-// isNullFraudProof determines whether or not a previous transaction fraud
-// proof is set.
-func isNullFraudProof(txIn *types.TxInput) bool {
-	switch {
-	case txIn.BlockOrder != types.NullBlockOrder:
-		return false
-	case txIn.TxIndex != types.NullTxIndex:
-		return false
-	}
-
-	return true
 }
 
 // CountSigOps returns the number of signature operations for all transaction
@@ -1399,4 +1376,36 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	// be generated.  This is done because the state will not be written to the
 	// database, so it is not needed.
 	return b.checkConnectBlock(newNode, block, parent, view, nil)*/
+}
+
+func ExtractCoinbaseHeight(coinbaseTx *types.Transaction) (uint64, error) {
+	sigScript := coinbaseTx.TxIn[0].SignScript
+	if len(sigScript) < 1 {
+		str := "It has not the coinbase signature script for blocks"
+		return 0, ruleError(ErrMissingCoinbaseHeight, str)
+	}
+
+	// Detect the case when the block height is a small integer encoded with
+	// as single byte.
+	opcode := int(sigScript[0])
+	if opcode == txscript.OP_0 {
+		return 0, nil
+	}
+	if opcode >= txscript.OP_1 && opcode <= txscript.OP_16 {
+		return uint64(opcode - (txscript.OP_1 - 1)), nil
+	}
+
+	// Otherwise, the opcode is the length of the following bytes which
+	// encode in the block height.
+	serializedLen := int(sigScript[0])
+	if len(sigScript[1:]) < serializedLen {
+		str := "It has not the coinbase signature script for blocks"
+		return 0, ruleError(ErrMissingCoinbaseHeight, str)
+	}
+
+	serializedHeightBytes := make([]byte, 8)
+	copy(serializedHeightBytes, sigScript[1:serializedLen+1])
+	serializedHeight := binary.LittleEndian.Uint64(serializedHeightBytes)
+
+	return serializedHeight, nil
 }

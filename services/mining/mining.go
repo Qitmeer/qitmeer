@@ -30,7 +30,7 @@ const (
 	// coinbaseFlags is some extra data appended to the coinbase script
 	// sig.
 	// TODO, refactor the location of coinbaseFlags const
-	coinbaseFlags = "/qitmeer/"
+	CoinbaseFlags = "/qitmeer/"
 
 	// generatedBlockVersion is the version of the block being generated for
 	// the main network.  It is defined as a constant here rather than using
@@ -92,7 +92,7 @@ func MedianAdjustedTime(bc *blockchain.BlockChain, timeSource blockchain.MedianT
 
 func standardCoinbaseScript(nextBlockHeight uint64, extraNonce uint64) ([]byte, error) {
 	return txscript.NewScriptBuilder().AddInt64(int64(nextBlockHeight)).
-		AddInt64(int64(extraNonce)).AddData([]byte(coinbaseFlags)).
+		AddInt64(int64(extraNonce)).AddData([]byte(CoinbaseFlags)).
 		Script()
 }
 
@@ -175,7 +175,7 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 				PkScript: params.OrganizationPkScript,
 			})
 	}
-	// Extranonce.
+	// nulldata.
 	if opReturnPkScript != nil {
 		tx.AddTxOut(&types.TxOutput{
 			Amount:    0,
