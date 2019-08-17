@@ -139,7 +139,7 @@ func (bi *blockIndex) UnsetStatusFlags(node *blockNode, flags blockStatus) {
 }
 
 // This function can get backward block hash from list.
-func (bi *blockIndex)GetMaxOrderFromList(list []*hash.Hash) *hash.Hash{
+func (bi *blockIndex)GetMaxOrderFromList(list []*hash.Hash) *hash.Hash {
 	var maxOrder uint64=0
 	var maxHash *hash.Hash=nil
 	for _,v:=range list{
@@ -153,4 +153,14 @@ func (bi *blockIndex)GetMaxOrderFromList(list []*hash.Hash) *hash.Hash{
 		}
 	}
 	return maxHash
+}
+
+func GetMaxLayerFromList(list []*blockNode) uint {
+	var maxLayer uint=0
+	for _,v:=range list{
+		if maxLayer==0||maxLayer<v.GetLayer() {
+			maxLayer=v.GetLayer()
+		}
+	}
+	return maxLayer
 }

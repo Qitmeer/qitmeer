@@ -105,6 +105,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	best:=blockManager.GetChain().BestSnapshot()
 	nextBlockHeight := uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
 	nextBlockOrder:=uint64(best.GraphState.GetTotal())
+	nextBlockLayer:=uint64(best.GraphState.GetLayer())
 	// Get the current source transactions and create a priority queue to
 	// hold the transactions which are ready for inclusion into a block
 	// along with some priority related and fee metadata.  Reserve the same
@@ -179,19 +180,9 @@ mempoolLoop:
 		// ordered below.
 		prioItem := &txPrioItem{tx: txDesc.Tx, txType: txDesc.Type}
 		for _, txIn := range tx.Transaction().TxIn {
-
 			originHash := &txIn.PreviousOut.Hash
-			if blockManager.GetChain().GetTxManager().IsInvalidTx(originHash) {
-				log.Trace("Skipping tx %s because it "+
-					"references bad output %s "+
-					"which is not available",
-					tx.Hash(), txIn.PreviousOut)
-				continue mempoolLoop
-			}
-
-			originIndex := txIn.PreviousOut.OutIndex
-			utxoEntry := utxos.LookupEntry(originHash)
-			if utxoEntry == nil || utxoEntry.IsOutputSpent(originIndex) {
+			utxoEntry := utxos.LookupEntry(txIn.PreviousOut)
+			if utxoEntry == nil || utxoEntry.IsSpent() {
 				if !txSource.HaveTransaction(originHash) {
 					log.Trace("Skipping tx %s because "+
 						"it references unspent output "+
@@ -225,7 +216,7 @@ mempoolLoop:
 		// value age sum as well as the adjusted transaction size.  The
 		// formula is: sum(inputValue * inputAge) / adjustedTxSize
 		prioItem.priority = mempool.CalcPriority(tx.Transaction(), utxos,
-			nextBlockOrder)
+			nextBlockLayer,blockManager.GetChain().BlockDAG())
 
 		// Calculate the fee in Atoms/KB.
 		// NOTE: This is a more precise value than the one calculated
@@ -289,7 +280,7 @@ mempoolLoop:
 
 		// Enforce maximum signature operations per block.  Also check
 		// for overflow.
-		numSigOps := int64(blockchain.CountSigOps(tx, false))
+		numSigOps := int64(blockchain.CountSigOps(tx))
 		if blockSigOps+numSigOps < blockSigOps ||
 			blockSigOps+numSigOps > blockchain.MaxSigOpsPerBlock {
 			log.Trace("Skipping tx %s because it would "+
@@ -366,8 +357,8 @@ mempoolLoop:
 		// preconditions before allowing it to be added to the block.
 		// The fraud proof is not checked because it will be filled in
 		// by the miner.
-		_, err = blockchain.CheckTransactionInputs(subsidyCache, tx,
-			int64(nextBlockOrder), blockUtxos, false, params ) //TODO, remove the params dependence
+		_, err = blockchain.CheckTransactionInputs(tx,
+			int64(nextBlockOrder), blockUtxos, params,blockManager.GetChain().BlockDAG()) //TODO, remove the params dependence
 		if err != nil {
 			log.Trace("Skipping tx %s due to error in "+
 				"CheckTransactionInputs: %v", tx.Hash(), err)
@@ -387,7 +378,7 @@ mempoolLoop:
 		// an entry for it to ensure any transactions which reference
 		// this one have it available as an input and can ensure they
 		// aren't double spending.
-		err = spendTransaction(blockUtxos, tx, int64(nextBlockOrder)) //TODO, remove type conversion
+		err = spendTransaction(blockUtxos, tx, &hash.ZeroHash) //TODO, remove type conversion
 		if err != nil {
 			log.Warn("Unable to spend transaction %v in the preliminary "+
 				"UTXO view for the block template: %v",
@@ -454,7 +445,7 @@ mempoolLoop:
 		return nil, err
 	}
 
-	numCoinbaseSigOps := int64(blockchain.CountSigOps(coinbaseTx, true))
+	numCoinbaseSigOps := int64(blockchain.CountSigOps(coinbaseTx))
 	blockSize += uint32(coinbaseTx.Transaction().SerializeSize())
 	blockSigOps += numCoinbaseSigOps
 	txFeesMap[*coinbaseTx.Hash()] = 0
@@ -492,10 +483,10 @@ mempoolLoop:
 	// Now that the actual transactions have been selected, update the
 	// block size for the real transaction count and coinbase value with
 	// the total fees accordingly.
-	if nextBlockOrder > 1 {
+	if nextBlockOrder >= 1 {
 		blockSize -= s.MaxVarIntPayload -
 			uint32(s.VarIntSerializeSize(uint64(len(blockTxnsRegular))))
-		coinbaseTx.Transaction().TxOut[2].Amount += uint64(totalFees)
+		coinbaseTx.Transaction().TxOut[0].Amount += uint64(totalFees)
 		txFees[0] = -totalFees
 	}
 
@@ -507,80 +498,6 @@ mempoolLoop:
 
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
-	}
-
-	// Correct transaction index fraud proofs for any transactions that
-	// are chains. maybeInsertStakeTx fills this in for stake transactions
-	// already, so only do it for regular transactions.
-	for i, tx := range blockTxnsRegular {
-		// No need to check any of the transactions in the custom first
-		// block.
-		if nextBlockOrder == 1 {
-			break
-		}
-
-		utxs, err := blockManager.GetChain().FetchUtxoView(tx)
-		if err != nil {
-			str := fmt.Sprintf("failed to fetch input utxs for tx %v: %s",
-				tx.Hash(), err.Error())
-			return nil, miningRuleError(ErrFetchTxStore, str)
-		}
-
-		// Copy the transaction and swap the pointer.
-		txCopy := types.NewTxDeepTxIns(tx.Transaction())
-		blockTxnsRegular[i] = txCopy
-		tx = txCopy
-
-		for _, txIn := range tx.Transaction().TxIn {
-			originHash := &txIn.PreviousOut.Hash
-			utx := utxs.LookupEntry(originHash)
-			if utx == nil {
-				// Set a flag with the index so we can properly set
-				// the fraud proof below.
-				txIn.TxIndex = types.NullTxIndex
-			} else {
-				originIdx := txIn.PreviousOut.OutIndex
-				txIn.AmountIn = utx.AmountByIndex(originIdx)
-				txIn.BlockOrder = uint32(utx.BlockOrder())
-				txIn.TxIndex = utx.TxIndex()
-			}
-		}
-	}
-
-	// Fill in locally referenced inputs.
-	for i, tx := range blockTxnsRegular {
-		// Skip coinbase.
-		if i == 0 {
-			continue
-		}
-
-		// Copy the transaction and swap the pointer.
-		txCopy := types.NewTxDeepTxIns(tx.Transaction())
-		blockTxnsRegular[i] = txCopy
-		tx = txCopy
-
-		for _, txIn := range tx.Transaction().TxIn {
-			// This tx was at some point 0-conf and now requires the
-			// correct block height and index. Set it here.
-			if txIn.TxIndex == types.NullTxIndex {
-				idx := txIndexFromTxList(txIn.PreviousOut.Hash,
-					blockTxnsRegular)
-
-				// The input is in the block, set it accordingly.
-				if idx != -1 {
-					originIdx := txIn.PreviousOut.OutIndex
-					amt := blockTxnsRegular[idx].Transaction().TxOut[originIdx].Amount
-					txIn.AmountIn = amt
-					txIn.BlockOrder = uint32(nextBlockOrder)   //TODO,remove type conversion
-					txIn.TxIndex = uint32(idx)
-				} else {
-					str := fmt.Sprintf("failed find hash in tx list "+
-						"for fraud proof; tx in hash %v",
-						txIn.PreviousOut.Hash)
-					return nil, miningRuleError(ErrFraudProofIndex, str)
-				}
-			}
-		}
 	}
 
 	// Choose the block version to generate based on the network.
@@ -690,10 +607,11 @@ func UpdateBlockTime(msgBlock *types.Block, chain *blockchain.BlockChain, timeSo
 // if the entry in viewA is fully spent.
 func mergeUtxoView(viewA *blockchain.UtxoViewpoint, viewB *blockchain.UtxoViewpoint) {
 	viewAEntries := viewA.Entries()
-	for h, entryB := range viewB.Entries() {
-		if entryA, exists := viewAEntries[h]; !exists ||
-			entryA == nil || entryA.IsFullySpent() {
-			viewAEntries[h] = entryB
+	for outpoint, entryB := range viewB.Entries() {
+		if entryA, exists := viewAEntries[outpoint]; !exists ||
+			entryA == nil || entryA.IsSpent() {
+
+			viewAEntries[outpoint] = entryB
 		}
 	}
 }
@@ -715,18 +633,16 @@ func logSkippedDeps(tx *types.Tx, deps map[hash.Hash]*txPrioItem) {
 // spendTransaction updates the passed view by marking the inputs to the passed
 // transaction as spent.  It also adds all outputs in the passed transaction
 // which are not provably unspendable as available unspent transaction outputs.
-func spendTransaction(utxoView *blockchain.UtxoViewpoint, tx *types.Tx, order int64) error {
+func spendTransaction(utxoView *blockchain.UtxoViewpoint, tx *types.Tx, blockHash *hash.Hash) error {
 	for _, txIn := range tx.Transaction().TxIn {
-		originHash := &txIn.PreviousOut.Hash
-		originIndex := txIn.PreviousOut.OutIndex
-		entry := utxoView.LookupEntry(originHash)
+		entry := utxoView.LookupEntry(txIn.PreviousOut)
 		if entry != nil {
-			entry.SpendOutput(originIndex)
+			entry.Spend()
 		}
 
 	}
 
-	utxoView.AddTxOuts(tx, order, types.NullTxIndex)
+	utxoView.AddTxOuts(tx, blockHash)
 	return nil
 }
 

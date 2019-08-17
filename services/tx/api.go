@@ -481,16 +481,28 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 
 	// otherwise try to lookup utxo set
 	if bestBlockHash == "" {
-		entry, _ := api.txManager.bm.GetChain().FetchUtxoEntry(&txHash)
-		if entry == nil || entry.IsOutputSpent(vout) {
+		out := types.TxOutPoint{Hash: txHash, OutIndex: vout}
+		entry,err:= api.txManager.bm.GetChain().FetchUtxoEntry(out)
+		if err != nil {
+			return nil, rpc.RpcNoTxInfoError(&txHash)
+		}
+		if entry == nil || entry.IsSpent() {
 			return nil, nil
 		}
 		best := api.txManager.bm.GetChain().BestSnapshot()
 		bestBlockHash = best.Hash.String()
-		confirmations = int64(best.GraphState.GetTotal())-int64(entry.BlockOrder())
-		txVersion = entry.TxVersion()
-		amount = entry.AmountByIndex(vout)
-		pkScript = entry.PkScriptByIndex(vout)
+		if hash.ZeroHash.IsEqual(entry.BlockHash()) {
+			confirmations=0
+		}else {
+			block:=api.txManager.bm.GetChain().BlockDAG().GetBlock(entry.BlockHash())
+			if block == nil {
+				confirmations=0
+			}else {
+				confirmations=int64(best.GraphState.GetLayer()-block.GetLayer())
+			}
+		}
+		amount = entry.Amount()
+		pkScript = entry.PkScript()
 		isCoinbase = entry.IsCoinBase()
 	}
 

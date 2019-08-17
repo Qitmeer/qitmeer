@@ -73,30 +73,20 @@ import (
 //
 // The struct is aligned for memory efficiency.
 type SpentTxOut struct {
-	pkScript   []byte // The public key script for the output.
-	stakeExtra []byte // Extra information for the staking system.
+	Amount     uint64       // The amount of the output.
+	PkScript   []byte // The public key script for the output.
+	BlockHash  hash.Hash
+	IsCoinBase   bool // Whether creating tx is a coinbase.
 
-	amount        uint64       // The amount of the output.
+	stakeExtra []byte // Extra information for the staking system.
 	txType        types.TxType // The tx type of the transaction.
 	order         uint32       // order of the the block containing the tx.
 	txIndex       uint32     // txIndex in the block of the transaction.
 	inIndex       uint32       // Index in the txIn
-	scriptVersion uint16       // The version of the scripting language.
 	txVersion     uint32       // The version of creating tx.
-
 	txFullySpent bool // Whether or not the transaction is fully spent.
-	isCoinBase   bool // Whether creating tx is a coinbase.
+
 	hasExpiry    bool // The expiry of the creating tx.
-}
-
-// Can get the pkScript of SpentTxOut
-func (st *SpentTxOut) PKScript() []byte {
-	return st.pkScript
-}
-
-// Can get the scriptVersion of SpentTxOut
-func (st *SpentTxOut) ScriptVersion() uint16 {
-	return st.scriptVersion
 }
 
 // SpentTxOutSerializeSize returns the number of bytes it would take to
@@ -105,12 +95,12 @@ func (st *SpentTxOut) ScriptVersion() uint16 {
 // they're already encoded into the transactions, so skip them when
 // determining the serialization size.
 func spentTxOutSerializeSize(stxo *SpentTxOut) int {
-	flags := encodeFlags(stxo.isCoinBase, stxo.hasExpiry, stxo.txType,
+	flags := encodeFlags(stxo.IsCoinBase, stxo.hasExpiry, stxo.txType,
 		stxo.txFullySpent)
 	size := serializeSizeVLQ(uint64(flags))
 
 	// false below indicates that the txOut does not specify an amount.
-	size += compressedTxOutSize(uint64(stxo.amount), stxo.scriptVersion, stxo.pkScript)
+	size += compressedTxOutSize(uint64(stxo.Amount), stxo.PkScript)
 
 	// The transaction was fully spent, so we need to store some extra
 	// data for UTX resurrection.
@@ -126,12 +116,12 @@ func spentTxOutSerializeSize(stxo *SpentTxOut) int {
 // be at least large enough to handle the number of bytes returned by the
 // SpentTxOutSerializeSize function or it will panic.
 func putSpentTxOut(target []byte, stxo *SpentTxOut) int {
-	flags := encodeFlags(stxo.isCoinBase, stxo.hasExpiry, stxo.txType,
+	flags := encodeFlags(stxo.IsCoinBase, stxo.hasExpiry, stxo.txType,
 		stxo.txFullySpent)
 	offset := putVLQ(target, uint64(flags))
 
 	// false below indicates that the txOut does not specify an amount.
-	offset += putCompressedTxOut(target[offset:], stxo.amount, stxo.scriptVersion,stxo.pkScript)
+	offset += putCompressedTxOut(target[offset:], stxo.Amount,stxo.PkScript)
 
 	// The transaction was fully spent, so we need to store some extra
 	// data for UTX resurrection.
@@ -185,7 +175,7 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 	// Decode the flags. If the flags are non-zero, it means that the
 	// transaction was fully spent at this spend.
 	isCoinBase, hasExpiry, txType, txFullySpent := decodeFlags(byte(flags))
-	stxo.isCoinBase = isCoinBase
+	stxo.IsCoinBase = isCoinBase
 	stxo.hasExpiry = hasExpiry
 	stxo.txType = txType
 	stxo.txFullySpent = txFullySpent
@@ -193,15 +183,14 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 	// Decode the compressed txout. We pass false for the amount flag,
 	// since we only need pkScript at most due to fraud proofs already
 	// storing the decompressed amount.
-	amount, scriptVersion, script, bytesRead, err := decodeCompressedTxOut(serialized[offset:])
+	amount, script, bytesRead, err := decodeCompressedTxOut(serialized[offset:])
 	offset += bytesRead
 	if err != nil {
 		return offset, errDeserialize(fmt.Sprintf("unable to decode "+
 			"txout: %v", err))
 	}
-	stxo.scriptVersion = scriptVersion
-	stxo.amount = uint64(amount)
-	stxo.pkScript = script
+	stxo.Amount = uint64(amount)
+	stxo.PkScript = script
 
 	// Deserialize the containing transaction if the flags indicate that
 	// the transaction has been fully spent.

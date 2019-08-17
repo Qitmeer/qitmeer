@@ -1200,7 +1200,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		}
 		// Store the loaded block and spend journal entry for later.
 
-		err = b.disconnectTransactions(view, block, stxos)
+		err = view.disconnectTransactions(block, stxos)
 		if err != nil {
 			return err
 		}
@@ -1250,7 +1250,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 
 // countSpentOutputs returns the number of utxos the passed block spends.
 // TODO, revisit the design of stxos count
-func countSpentOutputs(block, parent *types.SerializedBlock) int {
+func countSpentOutputs(block *types.SerializedBlock) int {
 	// Exclude the coinbase transaction since it can't spend anything.
 	var numSpent int
 	for _, tx := range block.Transactions()[1:] {
@@ -1283,6 +1283,7 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 		refHash := e.Value.(*hash.Hash)
 		refblock := b.bd.GetBlock(refHash)
 		if refHash.IsEqual(&newNode.hash) {
+			newNode.SetLayer(refblock.GetLayer())
 			refnode=newNode
 			block.SetOrder(uint64(refblock.GetOrder()))
 			if refblock.GetHeight() != newNode.GetHeight() {

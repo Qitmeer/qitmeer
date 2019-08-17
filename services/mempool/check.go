@@ -200,7 +200,7 @@ func checkPkScriptStandard(version uint16, pkScript []byte,
 // minimum transaction relay fee, it is considered dust.
 func isDust(txOut *types.TxOutput, minRelayTxFee types.Amount) bool {
 	// Unspendable outputs are considered dust.
-	if txscript.IsUnspendable(txOut.Amount, txOut.PkScript) {
+	if txscript.IsUnspendable(txOut.PkScript) {
 		return true
 	}
 
@@ -307,10 +307,9 @@ func checkInputsStandard(tx *types.Tx, txType types.TxType, utxoView *blockchain
 		// they have already been checked prior to calling this
 		// function.
 		prevOut := txIn.PreviousOut
-		entry := utxoView.LookupEntry(&prevOut.Hash)
-		originPkScriptVer := entry.ScriptVersionByIndex(prevOut.OutIndex)
-		originPkScript := entry.PkScriptByIndex(prevOut.OutIndex)
-		switch txscript.GetScriptClass(originPkScriptVer, originPkScript) {
+		entry := utxoView.LookupEntry(prevOut)
+		originPkScript := entry.PkScript()
+		switch txscript.GetScriptClass(txscript.DefaultScriptVersion, originPkScript) {
 		case txscript.ScriptHashTy:
 			numSigOps := txscript.GetPreciseSigOpCount(
 				txIn.SignScript, originPkScript, true)

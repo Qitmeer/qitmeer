@@ -6,6 +6,7 @@
 package mempool
 
 import (
+	"github.com/HalalChain/qitmeer/core/blockdag"
 	"time"
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
@@ -78,6 +79,8 @@ type Config struct {
 	// This can be nil if the address index is not enabled.
 	ExistsAddrIndex *index.ExistsAddrIndex
 
+	// block dag
+	BD *blockdag.BlockDAG
 }
 
 

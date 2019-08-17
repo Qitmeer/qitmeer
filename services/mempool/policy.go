@@ -86,10 +86,10 @@ const (
 	maxNullDataOutputs = 4
 
 
-	// UnminedHeight is the height used for the "block" height field of the
+	// UnminedLayer is the layer used for the "block" layer field of the
 	// contextual transaction information provided in a transaction store
 	// when it has not yet been mined into a block.
-	UnminedHeight = 0x7fffffff
+	UnminedLayer = 0x7fffffff
 
 	// MinHighPriority is the minimum priority value that allows a
 	// transaction to be considered high priority.

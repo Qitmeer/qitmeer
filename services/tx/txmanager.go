@@ -125,6 +125,7 @@ func NewTxManager(bm *blkmgr.BlockManager,txIndex *index.TxIndex,
 		SigCache:         sigCache,
 		PastMedianTime:   func() time.Time { return bm.GetChain().BestSnapshot().MedianTime },
 		AddrIndex:        addrIndex,
+		BD:bm.GetChain().BlockDAG(),
 	}
 	txMemPool := mempool.New(&txC)
 	invalidTx := make(map[hash.Hash]*dag.HashSet)

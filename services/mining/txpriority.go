@@ -104,3 +104,13 @@ func txPQByFee(pq *txPriorityQueue, i, j int) bool {
 	// per KB.
 	return pq.items[i].feePerKB > pq.items[j].feePerKB
 }
+
+func txPQByPriority(pq *txPriorityQueue, i, j int) bool {
+	// Using > here so that pop gives the highest priority item as opposed
+	// to the lowest.  Sort by priority first, then fee.
+	if pq.items[i].priority == pq.items[j].priority {
+		return pq.items[i].feePerKB > pq.items[j].feePerKB
+	}
+	return pq.items[i].priority > pq.items[j].priority
+
+}
