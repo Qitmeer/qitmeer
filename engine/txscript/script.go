@@ -380,12 +380,7 @@ func GetPreciseSigOpCount(scriptSig, scriptPubKey []byte, bip16 bool) int {
 // guaranteed to fail at execution.  This allows inputs to be pruned instantly
 // when entering the UTXO set.
 // TODO, refactor the output spendable
-func IsUnspendable(amount uint64, pkScript []byte) bool {
-	// all zero value outputs are unspendable, it's different with btc
-	if amount == 0 {
-		return true
-	}
-
+func IsUnspendable(pkScript []byte) bool {
 	pops, err := parseScript(pkScript)
 	if err != nil {
 		return true

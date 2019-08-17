@@ -1097,6 +1097,8 @@ func NewOutPoint(hash *hash.Hash, index uint32) *TxOutPoint {
 
 type TxInput struct {
 	PreviousOut TxOutPoint
+	//the signature script (or witness script? or redeem script?)
+	SignScript       []byte
 	// This number has more historical significance than relevant usage;
 	// however, its most relevant purpose is to enable “locking” of payments
 	// so that they cannot be redeemed until a certain time.
@@ -1108,9 +1110,6 @@ type TxInput struct {
 	AmountIn         uint64
 	BlockOrder      uint32
 	TxIndex          uint32
-
-	//the signature script (or witness script? or redeem script?)
-	SignScript       []byte
 }
 
 // NewTxIn returns a new transaction input with the provided  previous outpoint
