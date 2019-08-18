@@ -154,7 +154,7 @@ mempoolLoop:
 		// non-finalized transactions.
 		tx := txDesc.Tx
 		msgTx := tx.Transaction()
-		if msgTx.IsCoinBaseTx() {
+		if msgTx.IsCoinBase() {
 			log.Trace("Skipping coinbase tx %s", tx.Hash())
 			continue
 		}

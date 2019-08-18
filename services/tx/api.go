@@ -178,7 +178,7 @@ func (api *PublicTxAPI) DecodeRawTransaction(hexTx string) (interface{}, error) 
 func createVinList(mtx *types.Transaction) []json.Vin {
 	// Coinbase transactions only have a single txin by definition.
 	vinList := make([]json.Vin, len(mtx.TxIn))
-	if mtx.IsCoinBaseTx() {
+	if mtx.IsCoinBase() {
 		txIn := mtx.TxIn[0]
 		vinEntry := &vinList[0]
 		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
@@ -475,7 +475,7 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 			txVersion = tx.Version
 			amount = txOut.Amount
 			pkScript = txOut.PkScript
-			isCoinbase = tx.IsCoinBaseTx()
+			isCoinbase = tx.IsCoinBase()
 		}
 	}
 
@@ -831,7 +831,7 @@ type retrievedTx struct {
 
 func (api *PublicTxAPI) createVinListPrevOut(mtx *message.MsgTx, chainParams *params.Params, vinExtra bool, filterAddrMap map[string]struct{}) ([]json.VinPrevOut, error) {
 	// Coinbase transactions only have a single txin by definition.
-	if mtx.Tx.IsCoinBaseTx() {
+	if mtx.Tx.IsCoinBase() {
 		// Only include the transaction if the filter map is empty
 		// because a coinbase input has no addresses and so would never
 		// match a non-empty filter.

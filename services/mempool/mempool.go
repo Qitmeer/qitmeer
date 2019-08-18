@@ -216,7 +216,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	// A standalone transaction must not be a coinbase transaction.
-	if tx.Tx.IsCoinBaseTx() {
+	if tx.Tx.IsCoinBase() {
 		str := fmt.Sprintf("transaction %v is an individual coinbase",
 			txHash)
 		return nil, txRuleError(message.RejectInvalid, str)

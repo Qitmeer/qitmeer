@@ -108,14 +108,14 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 
 	// The first transaction in a block's regular tree must be a coinbase.
 	transactions := block.Transactions()
-	if !transactions[0].Transaction().IsCoinBaseTx() {
+	if !transactions[0].Transaction().IsCoinBase() {
 		return ruleError(ErrFirstTxNotCoinbase, "first transaction in "+
 			"block is not a coinbase")
 	}
 
 	// A block must not have more than one coinbase.
 	for i, tx := range transactions[1:] {
-		if tx.Transaction().IsCoinBaseTx() {
+		if tx.Transaction().IsCoinBase() {
 			str := fmt.Sprintf("block contains second coinbase at "+
 				"index %d", i+1)
 			return ruleError(ErrMultipleCoinbases, str)
@@ -351,7 +351,7 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 	}
 
 	// Coinbase script length must be between min and max length.
-	if tx.IsCoinBaseTx() {
+	if tx.IsCoinBase() {
 		slen := len(tx.TxIn[0].SignScript)
 		if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
 			str := fmt.Sprintf("coinbase transaction script "+
@@ -947,7 +947,7 @@ func CheckTransactionInputs(tx *types.Tx, txOrder int64, utxoView *UtxoViewpoint
 	var totalAtomIn int64
 
 	// Coinbase transactions have no inputs.
-	if msgTx.IsCoinBaseTx() {
+	if msgTx.IsCoinBase() {
 		return 0, nil
 	}
 	// -------------------------------------------------------------------

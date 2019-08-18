@@ -148,7 +148,7 @@ func (view *UtxoViewpoint) AddTxOut(tx *types.Tx, txOutIdx uint32, blockHash *ha
 	// is allowed so long as the previous transaction is fully spent.
 	prevOut := types.TxOutPoint{Hash: *tx.Hash(), OutIndex: txOutIdx}
 	txOut := tx.Tx.TxOut[txOutIdx]
-	view.addTxOut(prevOut, txOut, tx.Tx.IsCoinBaseTx(), blockHash)
+	view.addTxOut(prevOut, txOut, tx.Tx.IsCoinBase(), blockHash)
 }
 
 // AddTxOuts adds all outputs in the passed transaction which are not provably
@@ -158,7 +158,7 @@ func (view *UtxoViewpoint) AddTxOut(tx *types.Tx, txOutIdx uint32, blockHash *ha
 func (view *UtxoViewpoint) AddTxOuts(tx *types.Tx, blockHash *hash.Hash) {
 	// Loop all of the transaction outputs and add those which are not
 	// provably unspendable.
-	isCoinBase := tx.Tx.IsCoinBaseTx()
+	isCoinBase := tx.Tx.IsCoinBase()
 	prevOut := types.TxOutPoint{Hash: *tx.Hash()}
 	for txOutIdx, txOut := range tx.Tx.TxOut {
 		// Update existing entries.  All fields are updated because it's
@@ -320,7 +320,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blockIndex uint32, stxos *[]SpentTxOut) error {
 	msgTx := tx.Transaction()
 	// Coinbase transactions don't have any inputs to spend.
-	if msgTx.IsCoinBaseTx() {
+	if msgTx.IsCoinBase() {
 		// Add the transaction's outputs as available utxos.
 		view.AddTxOuts(tx,node.GetHash()) //TODO, remove type conversion
 		return nil
@@ -397,7 +397,7 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 		prevOut.OutIndex = uint32(txOutIdx)
 		neededSet[prevOut] = struct{}{}
 	}
-	if !tx.Tx.IsCoinBaseTx() {
+	if !tx.Tx.IsCoinBase() {
 		for _, txIn := range tx.Tx.TxIn {
 			neededSet[txIn.PreviousOut] = struct{}{}
 		}

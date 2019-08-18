@@ -43,7 +43,7 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 	msgTx := tx.Transaction()
 	//TODO, revisit the tx version for lock time
 	enforce := isActive && msgTx.Version >= 2
-	if !enforce || msgTx.IsCoinBaseTx() {
+	if !enforce || msgTx.IsCoinBase() {
 		return sequenceLock, nil
 
 	}
