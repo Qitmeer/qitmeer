@@ -931,7 +931,7 @@ func writeTxInWitness(w io.Writer, pver uint32, ti *TxInput) error {
 //
 // This function only differs from IsCoinBase in that it works with a raw wire
 // transaction as opposed to a higher level util transaction.
-func (tx *Transaction) IsCoinBaseTx() bool {
+func (tx *Transaction) IsCoinBase() bool {
 	// A coin base must only have one transaction input.
 	if len(tx.TxIn) != 1 {
 		return false
