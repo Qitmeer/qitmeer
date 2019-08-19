@@ -1,7 +1,6 @@
 package mempool
 
 import (
-	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/log"
 	"github.com/HalalChain/qitmeer-lib/rpc"
 	"sort"
@@ -30,12 +29,7 @@ func (api *PublicMempoolAPI) GetMempool(txType *string , verbose bool) (interfac
 	// verbose flag is not set.
 	descs := api.txPool.TxDescs()
 	hashStrings := make([]string, 0, len(descs))
-	// TODO filterType
-	filterType := types.TxTypeRegular
 	for i := range descs {
-		if descs[i].Type != filterType {
-			continue
-		}
 		hashStrings = append(hashStrings, descs[i].Tx.Hash().String())
 	}
 	sort.Strings(hashStrings)

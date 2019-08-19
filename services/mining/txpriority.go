@@ -11,10 +11,9 @@ import (
 // which have not been mined into a block yet.
 type txPrioItem struct {
 	tx       *types.Tx
-	txType   types.TxType
 	fee      int64
 	priority float64
-	feePerKB float64
+	feePerKB int64
 
 	// dependsOn holds a map of transaction hashes which this one depends
 	// on.  It will only be set when the transaction references other

@@ -160,10 +160,10 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 	mp.pool[*tx.Hash()] = &TxDesc{
 		TxDesc: types.TxDesc{
 			Tx:     tx,
-			Type:   txType,
 			Added:  time.Now(),
 			Height: int64(order),  //todo: fix type conversion
 			Fee:    fee,
+			FeePerKB: fee * 1000 / int64(tx.Tx.SerializeSize()),
 		},
 		StartingPriority: CalcPriority(msgTx, utxoView, order,mp.cfg.BD),
 	}

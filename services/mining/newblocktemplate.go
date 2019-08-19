@@ -83,14 +83,16 @@ import (
 //  This function returns nil, nil if there are not enough voters on any of
 //  the current top blocks to create a new block template.
 // TODO, refactor NewBlockTemplate input dependencies
+
 func NewBlockTemplate(policy *Policy, params *params.Params,
-	sigCache *txscript.SigCache, source TxSource, tsource blockchain.MedianTimeSource,
-	blkMgr *blkmgr.BlockManager,  payToAddress types.Address,parents []*hash.Hash) (*types.BlockTemplate, error) {
-	txSource := source
-	blockManager := blkMgr
-	timeSource := tsource
+	sigCache *txscript.SigCache, txSource TxSource, timeSource blockchain.MedianTimeSource,
+	blockManager *blkmgr.BlockManager,  payToAddress types.Address,parents []*hash.Hash) (*types.BlockTemplate, error) {
 	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
 
+	best:=blockManager.GetChain().BestSnapshot()
+	nextBlockHeight := uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
+	nextBlockOrder:=uint64(best.GraphState.GetTotal())
+	nextBlockLayer:=uint64(best.GraphState.GetLayer()+1)
 
 	// All transaction scripts are verified using the more strict standarad
 	// flags.
@@ -99,13 +101,35 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		return nil, err
 	}
 
-	// Extend the most recently known best block.
-	// The most recently known best block is the top block that has the most
-	// TODO,refactor the poolsize & finalstate
-	best:=blockManager.GetChain().BestSnapshot()
-	nextBlockHeight := uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
-	nextBlockOrder:=uint64(best.GraphState.GetTotal())
-	nextBlockLayer:=uint64(best.GraphState.GetLayer())
+	// Add a random coinbase nonce to ensure that tx prefix hash
+	// so that our merkle root is unique for lookups needed for
+	// getwork, etc.
+	extraNonce, err := s.RandomUint64()
+	if err != nil {
+		return nil, err
+	}
+
+	coinbaseScript, err := standardCoinbaseScript(nextBlockHeight, extraNonce)
+	if err != nil {
+		return nil, err
+	}
+	opReturnPkScript, err := standardCoinbaseOpReturn([]byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	coinbaseTx, err := createCoinbaseTx(subsidyCache,
+		coinbaseScript,
+		opReturnPkScript,
+		int64(nextBlockHeight),    //TODO remove type conversion
+		payToAddress,
+		params)
+	if err != nil {
+		return nil, err
+	}
+
+
+	coinbaseSigOpCost := int64(blockchain.CountSigOps(coinbaseTx))
 	// Get the current source transactions and create a priority queue to
 	// hold the transactions which are ready for inclusion into a block
 	// along with some priority related and fee metadata.  Reserve the same
@@ -118,23 +142,23 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	lessFunc := txPQByFee
 	if sortedByFee {
 		lessFunc = txPQByFee
+	}else {
+		lessFunc = txPQByPriority
 	}
 	priorityQueue := newTxPriorityQueue(len(sourceTxns), lessFunc)
-
 	// Create a slice to hold the transactions to be included in the
 	// generated block with reserved space.  Also create a utxo view to
 	// house all of the input transactions so multiple lookups can be
 	// avoided.
 	blockTxns := make([]*types.Tx, 0, len(sourceTxns))
+	blockTxns = append(blockTxns, coinbaseTx)
 	blockUtxos := blockchain.NewUtxoViewpoint()
-
 	// dependers is used to track transactions which depend on another
 	// transaction in the source pool.  This, in conjunction with the
 	// dependsOn map kept with each dependent transaction helps quickly
 	// determine which dependent transactions are now eligible for inclusion
 	// in the block once each transaction has been included.
 	dependers := make(map[hash.Hash]map[hash.Hash]*txPrioItem)
-
 	// Create slices to hold the fees and number of signature operations
 	// for each of the selected transactions and add an entry for the
 	// coinbase.  This allows the code below to simply append details about
@@ -142,10 +166,9 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	// However, since the total fees aren't known yet, use a dummy value for
 	// the coinbase fee which will be updated later.
 	txFees := make([]int64, 0, len(sourceTxns))
-	txFeesMap := make(map[hash.Hash]int64)
-	txSigOpCounts := make([]int64, 0, len(sourceTxns))
-	txSigOpCountsMap := make(map[hash.Hash]int64)
+	txSigOpCosts := make([]int64, 0, len(sourceTxns))
 	txFees = append(txFees, -1) // Updated once known
+	txSigOpCosts = append(txSigOpCosts, coinbaseSigOpCost)
 
 	log.Debug("Inclusion to new block", "transactions",len(sourceTxns))
 mempoolLoop:
@@ -153,12 +176,12 @@ mempoolLoop:
 		// A block can't have more than one coinbase or contain
 		// non-finalized transactions.
 		tx := txDesc.Tx
-		msgTx := tx.Transaction()
-		if msgTx.IsCoinBase() {
+		if tx.Tx.IsCoinBase() {
 			log.Trace("Skipping coinbase tx %s", tx.Hash())
 			continue
 		}
-		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight,tsource.AdjustedTime()) {
+		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight,
+			timeSource.AdjustedTime()) {
 
 			log.Trace("Skipping non-finalized tx %s", tx.Hash())
 			continue
@@ -168,25 +191,26 @@ mempoolLoop:
 		// NOTE: This intentionally does not fetch inputs from the
 		// mempool since a transaction which depends on other
 		// transactions in the mempool must come after those
+		// dependencies in the final generated block.
 		utxos, err := blockManager.GetChain().FetchUtxoView(tx)
 		if err != nil {
-			log.Warn("Unable to fetch utxo view for tx %s: "+
-				"%v", tx.Hash(), err)
+			log.Warn(fmt.Sprintf("Unable to fetch utxo view for tx %s: %v",
+				tx.Hash(), err))
 			continue
 		}
 
 		// Setup dependencies for any transactions which reference
 		// other transactions in the mempool so they can be properly
 		// ordered below.
-		prioItem := &txPrioItem{tx: txDesc.Tx, txType: txDesc.Type}
-		for _, txIn := range tx.Transaction().TxIn {
+		prioItem := &txPrioItem{tx: tx}
+		for _, txIn := range tx.Tx.TxIn {
 			originHash := &txIn.PreviousOut.Hash
-			utxoEntry := utxos.LookupEntry(txIn.PreviousOut)
-			if utxoEntry == nil || utxoEntry.IsSpent() {
+			entry := utxos.LookupEntry(txIn.PreviousOut)
+			if entry == nil || entry.IsSpent() {
 				if !txSource.HaveTransaction(originHash) {
-					log.Trace("Skipping tx %s because "+
-						"it references unspent output "+
-						"%s which is not available",
+					log.Trace("Skipping tx %s because it "+
+						"references unspent output %s "+
+						"which is not available",
 						tx.Hash(), txIn.PreviousOut)
 					continue mempoolLoop
 				}
@@ -215,17 +239,11 @@ mempoolLoop:
 		// Calculate the final transaction priority using the input
 		// value age sum as well as the adjusted transaction size.  The
 		// formula is: sum(inputValue * inputAge) / adjustedTxSize
-		prioItem.priority = mempool.CalcPriority(tx.Transaction(), utxos,
+		prioItem.priority = mempool.CalcPriority(tx.Tx, utxos,
 			nextBlockLayer,blockManager.GetChain().BlockDAG())
 
-		// Calculate the fee in Atoms/KB.
-		// NOTE: This is a more precise value than the one calculated
-		// during calcMinRelayFee which rounds up to the nearest full
-		// kilobyte boundary.  This is beneficial since it provides an
-		// incentive to create smaller transactions.
-		txSize := tx.Transaction().SerializeSize()
-		prioItem.feePerKB = (float64(txDesc.Fee) * float64(kilobyte)) /
-			float64(txSize)
+		// Calculate the fee in Satoshi/kB.
+		prioItem.feePerKB = txDesc.FeePerKB
 		prioItem.fee = txDesc.Fee
 
 		// Add the transaction to the priority queue to mark it ready
@@ -240,22 +258,14 @@ mempoolLoop:
 		mergeUtxoView(blockUtxos, utxos)
 	}
 
-	log.Trace("Priority queue","queue len", priorityQueue.Len(),
-		"dependers len", len(dependers))
+	log.Trace(fmt.Sprintf("Priority queue len %d, dependers len %d",
+		priorityQueue.Len(), len(dependers)))
 
-	// The starting block size is the size of the block header plus the max
-	// possible transaction count size, plus the size of the coinbase
-	// transaction.
-	blockSize := uint32(blockHeaderOverhead)
+	blockSize := uint32(blockHeaderOverhead)+uint32(coinbaseTx.Transaction().SerializeSize())
 
-	// Guesstimate for sigops based on valid txs in loop below. This number
-	// tends to overestimate sigops because of the way the loop below is
-	// coded and the fact that tx can sometimes be removed from the tx
-	// trees if they fail one of the stake checks below the priorityQueue
-	// pop loop. This is buggy, but not catastrophic behaviour. A future
-	// release should fix it. TODO
-	blockSigOps := int64(0)
+	blockSigOpCost := coinbaseSigOpCost
 	totalFees := int64(0)
+
 	// Choose which transactions make it into the block.
 	for priorityQueue.Len() > 0 {
 		// Grab the highest priority (or highest fee per kilobyte
@@ -263,7 +273,7 @@ mempoolLoop:
 		prioItem := heap.Pop(priorityQueue).(*txPrioItem)
 		tx := prioItem.tx
 
-		// Grab the list of transactions which depend on this one (if any).
+		// Grab any transactions which depend on this one.
 		deps := dependers[*tx.Hash()]
 
 		// Enforce maximum block size.  Also check for overflow.
@@ -278,43 +288,22 @@ mempoolLoop:
 			continue
 		}
 
-		// Enforce maximum signature operations per block.  Also check
-		// for overflow.
-		numSigOps := int64(blockchain.CountSigOps(tx))
-		if blockSigOps+numSigOps < blockSigOps ||
-			blockSigOps+numSigOps > blockchain.MaxSigOpsPerBlock {
-			log.Trace("Skipping tx %s because it would "+
-				"exceed the maximum sigops per block", tx.Hash())
-			logSkippedDeps(tx, deps)
-			continue
-		}
-
-		// This isn't very expensive, but we do this check a number of times.
-		// Consider caching this in the mempool in the future.
-		numP2SHSigOps, err := blockchain.CountP2SHSigOps(tx, false,
-			blockUtxos)
-		if err != nil {
-			log.Trace("Skipping tx %s due to error in "+
-				"CountP2SHSigOps: %v", tx.Hash(), err)
-			logSkippedDeps(tx, deps)
-			continue
-		}
-		numSigOps += int64(numP2SHSigOps)
-		if blockSigOps+numSigOps < blockSigOps ||
-			blockSigOps+numSigOps > blockchain.MaxSigOpsPerBlock {
-			log.Trace("Skipping tx %s because it would "+
-				"exceed the maximum sigops per block (p2sh)",
-				tx.Hash())
+		// Enforce maximum signature operation cost per block.  Also
+		// check for overflow.
+		sigOpCost:= blockchain.CountSigOps(tx)
+		if blockSigOpCost+int64(sigOpCost) < blockSigOpCost ||
+			blockSigOpCost+int64(sigOpCost) > blockchain.MaxSigOpsPerBlock {
+			log.Trace(fmt.Sprintf("Skipping tx %s because it would "+
+				"exceed the maximum sigops per block", tx.Hash()))
 			logSkippedDeps(tx, deps)
 			continue
 		}
 
 		// Skip free transactions once the block is larger than the
-		// minimum block size, except for stake transactions.
+		// minimum block size.
 		if sortedByFee &&
-			(prioItem.feePerKB < float64(policy.TxMinFreeFee)) &&
+			prioItem.feePerKB < int64(policy.TxMinFreeFee) &&
 			(blockPlusTxSize >= policy.BlockMinSize) {
-
 			log.Trace("Skipping tx %s with feePerKB %.2f "+
 				"< TxMinFreeFee %d and block size %d >= "+
 				"minBlockSize %d", tx.Hash(), prioItem.feePerKB,
@@ -329,16 +318,14 @@ mempoolLoop:
 		// transactions.
 		if !sortedByFee && (blockPlusTxSize >= policy.BlockPrioritySize ||
 			prioItem.priority <= mempool.MinHighPriority) {
-
-			log.Trace("Switching to sort by fees per "+
+			log.Trace(fmt.Sprintf("Switching to sort by fees per "+
 				"kilobyte blockSize %d >= BlockPrioritySize "+
 				"%d || priority %.2f <= minHighPriority %.2f",
 				blockPlusTxSize, policy.BlockPrioritySize,
-				prioItem.priority,mempool.MinHighPriority)
+				prioItem.priority,mempool.MinHighPriority))
 
 			sortedByFee = true
-			priorityQueue.SetLessFunc(txPQByFee)  //TODO, revisit the PQ func
-
+			priorityQueue.SetLessFunc(txPQByFee)
 			// Put the transaction back into the priority queue and
 			// skip it so it is re-priortized by fees if it won't
 			// fit into the high-priority section or the priority is
@@ -355,21 +342,19 @@ mempoolLoop:
 
 		// Ensure the transaction inputs pass all of the necessary
 		// preconditions before allowing it to be added to the block.
-		// The fraud proof is not checked because it will be filled in
-		// by the miner.
 		_, err = blockchain.CheckTransactionInputs(tx,
-			int64(nextBlockOrder), blockUtxos, params,blockManager.GetChain().BlockDAG()) //TODO, remove the params dependence
+			int64(nextBlockOrder), blockUtxos, params,blockManager.GetChain().BlockDAG())
 		if err != nil {
-			log.Trace("Skipping tx %s due to error in "+
-				"CheckTransactionInputs: %v", tx.Hash(), err)
+			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
+				"CheckTransactionInputs: %v", tx.Hash(), err))
 			logSkippedDeps(tx, deps)
 			continue
 		}
 		err = blockchain.ValidateTransactionScripts(tx, blockUtxos,
 			scriptFlags, sigCache)
 		if err != nil {
-			log.Trace("Skipping tx %s due to error in "+
-				"ValidateTransactionScripts: %v", tx.Hash(), err)
+			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
+				"ValidateTransactionScripts: %v", tx.Hash(), err))
 			logSkippedDeps(tx, deps)
 			continue
 		}
@@ -378,25 +363,24 @@ mempoolLoop:
 		// an entry for it to ensure any transactions which reference
 		// this one have it available as an input and can ensure they
 		// aren't double spending.
-		err = spendTransaction(blockUtxos, tx, &hash.ZeroHash) //TODO, remove type conversion
+		err = spendTransaction(blockUtxos, tx, &hash.ZeroHash)
 		if err != nil {
 			log.Warn("Unable to spend transaction %v in the preliminary "+
 				"UTXO view for the block template: %v",
 				tx.Hash(), err)
 		}
-
 		// Add the transaction to the block, increment counters, and
 		// save the fees and signature operation counts to the block
 		// template.
 		blockTxns = append(blockTxns, tx)
 		blockSize += txSize
-		blockSigOps += numSigOps
+		blockSigOpCost += int64(sigOpCost)
+		totalFees += prioItem.fee
+		txFees = append(txFees, prioItem.fee)
+		txSigOpCosts = append(txSigOpCosts, int64(sigOpCost))
 
-		txFeesMap[*tx.Hash()] = prioItem.fee
-		txSigOpCountsMap[*tx.Hash()] = numSigOps
-
-		log.Trace(fmt.Sprintf("Adding tx %s (priority %.2f, feePerKB %.2f)",
-			prioItem.tx.Hash(), prioItem.priority, prioItem.feePerKB))
+		log.Trace("Adding tx %s (priority %.2f, feePerKB %.2f)",
+			prioItem.tx.Hash(), prioItem.priority, prioItem.feePerKB)
 
 		// Add transactions which depend on this one (and also do not
 		// have any other unsatisified dependencies) to the priority
@@ -411,88 +395,10 @@ mempoolLoop:
 		}
 	}
 
-	// Add a random coinbase nonce to ensure that tx prefix hash
-	// so that our merkle root is unique for lookups needed for
-	// getwork, etc.
-	rand, err := s.RandomUint64()
-	if err != nil {
-		return nil, err
-	}
-	// Create a standard coinbase transaction paying to the provided
-	// address.  NOTE: The coinbase value will be updated to include the
-	// fees from the selected transactions later after they have actually
-	// been selected.  It is created here to detect any errors early
-	// before potentially doing a lot of work below.  The extra nonce helps
-	// ensure the transaction is not a duplicate transaction (paying the
-	// same value to the same public key address would otherwise be an
-	// identical transaction for block version 1).
-	coinbaseScript,err:=standardCoinbaseScript(nextBlockHeight,rand)
-	if err != nil {
-		return nil,err
-	}
 
-	opReturnPkScript, err := standardCoinbaseOpReturn([]byte{})
-	if err != nil {
-		return nil, err
-	}
-	coinbaseTx, err := createCoinbaseTx(subsidyCache,
-		coinbaseScript,
-		opReturnPkScript,
-		int64(nextBlockHeight),    //TODO remove type conversion
-		payToAddress,
-		params)
-	if err != nil {
-		return nil, err
-	}
+	coinbaseTx.Tx.TxOut[0].Amount += uint64(totalFees)
+	txFees[0] = -totalFees
 
-	numCoinbaseSigOps := int64(blockchain.CountSigOps(coinbaseTx))
-	blockSize += uint32(coinbaseTx.Transaction().SerializeSize())
-	blockSigOps += numCoinbaseSigOps
-	txFeesMap[*coinbaseTx.Hash()] = 0
-	txSigOpCountsMap[*coinbaseTx.Hash()] = numCoinbaseSigOps
-
-	// Build tx lists for regular tx.
-	blockTxnsRegular := make([]*types.Tx, 0, len(blockTxns)+1)
-
-	// Append coinbase.
-	blockTxnsRegular = append(blockTxnsRegular, coinbaseTx)
-
-	// Append regular tx
-	blockTxnsRegular = append(blockTxnsRegular, blockTxns...)
-
-	for _, tx := range blockTxnsRegular {
-		fee, ok := txFeesMap[*tx.Hash()]
-		if !ok {
-			return nil, fmt.Errorf("couldn't find fee for tx %v",
-				*tx.Hash())
-		}
-		totalFees += fee
-		txFees = append(txFees, fee)
-
-		tsos, ok := txSigOpCountsMap[*tx.Hash()]
-		if !ok {
-			return nil, fmt.Errorf("couldn't find sig ops count for tx %v",
-				*tx.Hash())
-		}
-		txSigOpCounts = append(txSigOpCounts, tsos)
-	}
-
-
-	txSigOpCounts = append(txSigOpCounts, numCoinbaseSigOps)
-
-	// Now that the actual transactions have been selected, update the
-	// block size for the real transaction count and coinbase value with
-	// the total fees accordingly.
-	if nextBlockOrder >= 1 {
-		blockSize -= s.MaxVarIntPayload -
-			uint32(s.VarIntSerializeSize(uint64(len(blockTxnsRegular))))
-		coinbaseTx.Transaction().TxOut[0].Amount += uint64(totalFees)
-		txFees[0] = -totalFees
-	}
-
-	// Calculate the required difficulty for the block.  The timestamp
-	// is potentially adjusted to ensure it comes after the median time of
-	// the last several blocks per the chain consensus rules.
 	ts:= MedianAdjustedTime(blockManager.GetChain(),timeSource)
 	reqDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts)
 
@@ -507,7 +413,7 @@ mempoolLoop:
 	}
 
 	// Create a new block ready to be solved.
-	merkles := merkle.BuildMerkleTreeStore(blockTxnsRegular)
+	merkles := merkle.BuildMerkleTreeStore(blockTxns)
 	if parents==nil {
 		parents=blockManager.GetChain().BlockDAG().GetTips().SortList(false)
 	}
@@ -528,22 +434,14 @@ mempoolLoop:
 			return nil, err
 		}
 	}
-	for _, tx := range blockTxnsRegular {
+	for _, tx := range blockTxns {
 		if err := block.AddTransaction(tx.Transaction()); err != nil {
 			return nil, miningRuleError(ErrTransactionAppend, err.Error())
 		}
 	}
 
-	//TODO revisit the size in block header
-	/*
-	msgBlock.Header.Size = uint32(msgBlock.SerializeSize())
-	*/
 
-	// Finally, perform a full check on the created block against the chain
-	// consensus rules to ensure it properly connects to the current best
-	// chain with no issues.
-
-	sblock := types.NewBlockDeepCopyCoinbase(&block)
+	sblock := types.NewBlock(&block)
 	sblock.SetOrder(nextBlockOrder)
 	sblock.SetHeight(uint(nextBlockHeight))
 	err = blockManager.GetChain().CheckConnectBlockTemplate(sblock)
@@ -557,7 +455,7 @@ mempoolLoop:
 	log.Debug("Created new block template",
 		"transactions", len(block.Transactions),
 		"fees",totalFees,
-		"signOp",blockSigOps,
+		"signOp",blockSigOpCost,
 		"bytes", blockSize,
 		"target",
 		fmt.Sprintf("%064x",blockchain.CompactToBig(block.Header.Difficulty)))
@@ -565,7 +463,7 @@ mempoolLoop:
 	blockTemplate := &types.BlockTemplate{
 		Block:           &block,
 		Fees:            txFees,
-		SigOpCounts:     txSigOpCounts,
+		SigOpCounts:     txSigOpCosts,
 		Height:          nextBlockHeight,
 		ValidPayAddress: payToAddress != nil,
 	}
