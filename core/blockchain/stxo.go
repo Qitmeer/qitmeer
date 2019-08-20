@@ -338,4 +338,3 @@ func dbRemoveSpendJournalEntry(dbTx database.Tx, blockHash *hash.Hash) error {
 	spendBucket := dbTx.Metadata().Bucket(dbnamespace.SpendJournalBucketName)
 	return spendBucket.Delete(blockHash[:])
 }
-

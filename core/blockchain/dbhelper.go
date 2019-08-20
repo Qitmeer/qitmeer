@@ -308,7 +308,7 @@ func (b *BlockChain) createChainState() error {
 		}
 
 		// Add the genesis block to the block index.
-		err=blockdag.DBPutDAGBlock(dbTx,b.bd.GetBlock(&node.hash))
+		err=blockdag.DBPutDAGBlock(dbTx,b.bd.GetBlock(&node.hash),byte(node.status))
 		if err != nil {
 			return err
 		}

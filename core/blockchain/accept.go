@@ -120,13 +120,17 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	//dag
 	newOrders := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 {
-		log.Debug(fmt.Sprintf("Irreparable error![%s]", newNode.hash.String()))
-		return false, nil
+		return false, fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
 	oldOrders:=BlockNodeList{}
 	b.getReorganizeNodes(newNode,block,newOrders,&oldOrders)
-	b.index.addNode(newNode)
-
+	b.index.AddNode(newNode)
+	b.index.SetStatusFlags(newNode, statusDataStored)
+	err = b.index.flushToDB(b.bd)
+	if err != nil {
+		b.updateBestState(newNode, block)
+		return true, nil
+	}
 	// Insert the block into the database if it's not already there.  Even
 	// though it is possible the block will ultimately fail to connect, it
 	// has already passed all proof-of-work and validity tests which means
@@ -142,12 +146,11 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		if err := dbMaybeStoreBlock(dbTx, block); err != nil {
 			return err
 		}
-		b.index.SetStatusFlags(newNode, statusDataStored)
 		return nil
 	})
 	if err != nil {
-		b.index.SetStatusFlags(newNode, statusValidateFailed)
-		return false, err
+		b.updateBestState(newNode, block)
+		return true, nil
 	}
 
 	// Connect the passed block to the chain while respecting proper chain
@@ -155,18 +158,15 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// also handles validation of the transaction scripts.
 	success, err := b.connectDagChain(newNode, block, newOrders,oldOrders)
 	if !success || err != nil {
-		b.index.SetStatusFlags(newNode, statusValidateFailed)
-		return false, err
+		b.updateBestState(newNode, block)
+		return true, nil
 	}
 
-	b.index.SetStatusFlags(newNode, statusValid)
+	b.updateBestState(newNode, block)
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
 	b.chainLock.Unlock()
-
-	b.sendNotification(BlockConnected, []*types.SerializedBlock{block})
-
 	//TODO, refactor to event subscript/publish
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
 		BestHeight: block.Order(),
@@ -174,6 +174,11 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		Block:      block,
 	})
 	b.chainLock.Lock()
+
+	err = b.index.flushToDB(b.bd)
+	if err != nil {
+		return true, nil
+	}
 
 	return true, nil
 }
