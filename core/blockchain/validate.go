@@ -79,9 +79,6 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 			&header.ParentRoot, paMerkleRoot)
 		return ruleError(ErrBadParentsMerkleRoot, str)
 	}
-
-
-
 	// A block must have at least one regular transaction.
 	numTx := len(msgBlock.Transactions)
 	if numTx == 0 {
@@ -192,13 +189,6 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 	}
 
 	return nil
-}
-
-// CheckBlockSanity performs some preliminary checks on a block to ensure it is
-// sane before continuing with block processing.  These checks are context
-// free.
-func CheckBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource, chainParams *params.Params) error {
-	return checkBlockSanity(block, timeSource, BFNone, chainParams)
 }
 
 // checkBlockHeaderSanity performs some preliminary checks on a block header to

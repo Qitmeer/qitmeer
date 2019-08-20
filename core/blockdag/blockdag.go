@@ -30,6 +30,9 @@ const MaxTips=100
 // Maximum order of the DAG block
 const MaxBlockOrder=uint(^uint32(0))
 
+// MaxTipLayerGap
+const MaxTipLayerGap=10
+
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {

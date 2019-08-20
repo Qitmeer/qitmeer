@@ -186,3 +186,4 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	tx.TxIn[0].AmountIn = subsidy + uint64(tax)  //TODO, remove type conversion
 	return types.NewTx(tx), nil
 }
+

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer/core/blockdag"
 	"github.com/HalalChain/qitmeer/database"
 	"math"
 	"time"
@@ -96,6 +97,11 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		parentsNode = append(parentsNode, prevNode)
 	}
 
+	err:=b.checkLayerGap(parentsNode)
+	if err != nil {
+		return false,err
+	}
+
 	blockHeader := &block.Block().Header
 	newNode := newBlockNode(blockHeader, parentsNode)
 	mainParent:=newNode.GetMainParent(b)
@@ -108,7 +114,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	block.SetHeight(newNode.GetHeight())
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
-	err := b.checkBlockContext(block,mainParent, flags)
+	err = b.checkBlockContext(block,mainParent, flags)
 	if err != nil {
 		return false, err
 	}
@@ -181,4 +187,35 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	}
 
 	return true, nil
+}
+
+func (b *BlockChain) checkLayerGap(parentsNode []*blockNode) error {
+	pLen:=len(parentsNode)
+	if pLen == 0 {
+		return fmt.Errorf("No parents")
+	}
+	var gap float64
+	if pLen == 1 {
+		return nil
+	}else if pLen == 2 {
+		gap=math.Abs(float64(parentsNode[0].GetLayer())-float64(parentsNode[1].GetLayer()))
+	}else{
+		var minLayer int64=-1
+		var maxLayer int64=-1
+		for i:=0;i<pLen ;i++  {
+			parentLayer:=int64(parentsNode[i].GetLayer())
+			if maxLayer ==-1 || parentLayer > maxLayer {
+				maxLayer=parentLayer
+			}
+			if minLayer == -1 || parentLayer < minLayer {
+				minLayer=parentLayer
+			}
+		}
+		gap=math.Abs(float64(maxLayer)-float64(minLayer))
+	}
+	if gap > blockdag.MaxTipLayerGap {
+		return fmt.Errorf("Parents gap is %f which is more than %d",gap,blockdag.MaxTipLayerGap)
+	}
+
+	return nil
 }

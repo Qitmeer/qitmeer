@@ -415,7 +415,7 @@ mempoolLoop:
 	// Create a new block ready to be solved.
 	merkles := merkle.BuildMerkleTreeStore(blockTxns)
 	if parents==nil {
-		parents=blockManager.GetChain().BlockDAG().GetTips().SortList(false)
+		parents=blockManager.GetChain().GetMiningTips()
 	}
 
 	paMerkles :=merkle.BuildParentsMerkleTreeStore(parents)

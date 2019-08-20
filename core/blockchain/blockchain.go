@@ -15,6 +15,7 @@ import (
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer/services/common/progresslog"
+	"math"
 	"os"
 	"sort"
 	"sync"
@@ -1388,4 +1389,18 @@ func (b *BlockChain) SetTxManager(txManager TxManager) {
 
 func (b *BlockChain) GetTxManager() TxManager {
 	return b.txManager
+}
+
+func (b *BlockChain) GetMiningTips() []*hash.Hash {
+	best:=b.BestSnapshot()
+	parents:=b.BlockDAG().GetTips().SortList(false)
+	tips:=[]*hash.Hash{}
+	for i:=0;i<len(parents);i++ {
+		node:=b.index.lookupNode(parents[i])
+		if math.Abs(float64(node.GetLayer())-float64(best.GraphState.GetLayer()))>blockdag.MaxTipLayerGap {
+			continue
+		}
+		tips=append(tips,node.GetHash())
+	}
+	return tips
 }
