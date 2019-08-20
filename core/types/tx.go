@@ -1189,9 +1189,6 @@ type TxDesc struct {
 	// Tx is the transaction associated with the entry.
 	Tx *Tx
 
-	// Type is the type of the transaction associated with the entry.
-	Type TxType
-
 	// Added is the time when the entry was added to the source pool.
 	Added time.Time
 
@@ -1201,6 +1198,9 @@ type TxDesc struct {
 
 	// Fee is the total fee the transaction associated with the entry pays.
 	Fee int64
+
+	// FeePerKB is the fee the transaction pays in meer per 1000 bytes.
+	FeePerKB int64
 }
 
 // TxLoc holds locator data for the offset and length of where a transaction is
