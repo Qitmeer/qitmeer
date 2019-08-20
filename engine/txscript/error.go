@@ -190,4 +190,7 @@ var (
 
 	// ErrP2SHStakeOpCodes indicates a P2SH script contained stake op codes.
 	ErrP2SHStakeOpCodes = errors.New("stake opcodes were found in a p2sh script")
+
+	// ErrTooMuchNullData
+	ErrTooMuchNullData = errors.New("data exceeds MaxDataCarrierSize.")
 )

@@ -931,7 +931,7 @@ func writeTxInWitness(w io.Writer, pver uint32, ti *TxInput) error {
 //
 // This function only differs from IsCoinBase in that it works with a raw wire
 // transaction as opposed to a higher level util transaction.
-func (tx *Transaction) IsCoinBaseTx() bool {
+func (tx *Transaction) IsCoinBase() bool {
 	// A coin base must only have one transaction input.
 	if len(tx.TxIn) != 1 {
 		return false
@@ -1097,6 +1097,8 @@ func NewOutPoint(hash *hash.Hash, index uint32) *TxOutPoint {
 
 type TxInput struct {
 	PreviousOut TxOutPoint
+	//the signature script (or witness script? or redeem script?)
+	SignScript       []byte
 	// This number has more historical significance than relevant usage;
 	// however, its most relevant purpose is to enable “locking” of payments
 	// so that they cannot be redeemed until a certain time.
@@ -1108,9 +1110,6 @@ type TxInput struct {
 	AmountIn         uint64
 	BlockOrder      uint32
 	TxIndex          uint32
-
-	//the signature script (or witness script? or redeem script?)
-	SignScript       []byte
 }
 
 // NewTxIn returns a new transaction input with the provided  previous outpoint
@@ -1190,9 +1189,6 @@ type TxDesc struct {
 	// Tx is the transaction associated with the entry.
 	Tx *Tx
 
-	// Type is the type of the transaction associated with the entry.
-	Type TxType
-
 	// Added is the time when the entry was added to the source pool.
 	Added time.Time
 
@@ -1202,6 +1198,9 @@ type TxDesc struct {
 
 	// Fee is the total fee the transaction associated with the entry pays.
 	Fee int64
+
+	// FeePerKB is the fee the transaction pays in meer per 1000 bytes.
+	FeePerKB int64
 }
 
 // TxLoc holds locator data for the offset and length of where a transaction is

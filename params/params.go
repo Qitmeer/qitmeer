@@ -253,39 +253,13 @@ type Params struct {
 	// TODO revisit the org-pkscript design
 	OrganizationPkScript        []byte
 
-	// BlockOneLedger specifies the list of payouts in the coinbase of
-	// block height 1. If there are no payouts to be given, set this
-	// to an empty slice.
-	// TODO revisit the block one ICO design
-	BlockOneLedger []*TokenPayout
-
 	//DAG
 	BlockDelay    float64
 	BlockRate     float64
 	SecurityLevel float64
 }
 
-// TokenPayout is a payout for block 1 which specifies an address and an amount
-// to pay to that address in a transaction output.
-type TokenPayout struct {
-	Address string
-	Amount  uint64
-}
 
-// BlockOneSubsidy returns the total subsidy of block height 1 for the
-// network.
-func (p *Params) BlockOneSubsidy() uint64 {
-	if len(p.BlockOneLedger) == 0 {
-		return 0
-	}
-
-	sum := uint64(0)
-	for _, output := range p.BlockOneLedger {
-		sum += output.Amount
-	}
-
-	return sum
-}
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax
 // proportions.

@@ -74,7 +74,7 @@ func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHei
 func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
 	// Coinbase transactions only have a single txin by definition.
 	vinList := make([]json.Vin, len(tx.TxIn))
-	if tx.IsCoinBaseTx() {
+	if tx.IsCoinBase() {
 		txIn := tx.TxIn[0]
 		vinEntry := &vinList[0]
 		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
