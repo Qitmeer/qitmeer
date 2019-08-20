@@ -441,6 +441,7 @@ mempoolLoop:
 	}
 
 
+
 	sblock := types.NewBlock(&block)
 	sblock.SetOrder(nextBlockOrder)
 	sblock.SetHeight(uint(nextBlockHeight))
