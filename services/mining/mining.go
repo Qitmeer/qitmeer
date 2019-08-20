@@ -8,9 +8,11 @@ package mining
 
 import (
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/blockchain"
 	s "github.com/HalalChain/qitmeer-lib/core/serialization"
 	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/HalalChain/qitmeer/core/blockchain"
 	"time"
 )
 
@@ -28,7 +30,7 @@ const (
 	// coinbaseFlags is some extra data appended to the coinbase script
 	// sig.
 	// TODO, refactor the location of coinbaseFlags const
-	coinbaseFlags = "/qitmeer/"
+	CoinbaseFlags = "/qitmeer/"
 
 	// generatedBlockVersion is the version of the block being generated for
 	// the main network.  It is defined as a constant here rather than using
@@ -42,7 +44,7 @@ const (
 	// generatedBlockVersionTest is the version of the block being generated
 	// for networks other than the main network.
 	// TODO, refactor the location of generatedBlockVersionTest const
-	generatedBlockVersionTest = 3
+	generatedBlockVersionTest = 4
 
 )
 
@@ -87,3 +89,101 @@ func MedianAdjustedTime(bc *blockchain.BlockChain, timeSource blockchain.MedianT
 
 	return newTimestamp
 }
+
+func standardCoinbaseScript(nextBlockHeight uint64, extraNonce uint64) ([]byte, error) {
+	return txscript.NewScriptBuilder().AddInt64(int64(nextBlockHeight)).
+		AddInt64(int64(extraNonce)).AddData([]byte(CoinbaseFlags)).
+		Script()
+}
+
+// standardCoinbaseOpReturn creates a standard OP_RETURN output to insert into
+// coinbase to use as extranonces. The OP_RETURN pushes 32 bytes.
+func standardCoinbaseOpReturn(enData []byte) ([]byte, error) {
+	if len(enData) == 0 {
+		return nil,nil
+	}
+	extraNonceScript, err := txscript.GenerateProvablyPruneableOut(enData)
+	if err != nil {
+		return nil, err
+	}
+	return extraNonceScript, nil
+}
+
+
+// createCoinbaseTx returns a coinbase transaction paying an appropriate subsidy
+// based on the passed block height to the provided address.  When the address
+// is nil, the coinbase transaction will instead be redeemable by anyone.
+//
+// See the comment for NewBlockTemplate for more information about why the nil
+// address handling is useful.
+func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, opReturnPkScript []byte, nextBlockHeight int64, addr types.Address, params *params.Params) (*types.Tx, error) {
+	tx := types.NewTransaction()
+	tx.AddTxIn(&types.TxInput{
+		// Coinbase transactions have no inputs, so previous outpoint is
+		// zero hash and max index.
+		PreviousOut: *types.NewOutPoint(&hash.Hash{},
+			types.MaxPrevOutIndex ),
+		Sequence:        types.MaxTxInSequenceNum,
+		BlockOrder:      types.NullBlockOrder,
+		TxIndex:         types.NullTxIndex,
+		SignScript:      coinbaseScript,
+	})
+
+	hasTax:=false
+	if params.BlockTaxProportion > 0 &&
+		len(params.OrganizationPkScript) > 0{
+		hasTax=true
+	}
+	// Create a coinbase with correct block subsidy and extranonce.
+	subsidy := blockchain.CalcBlockWorkSubsidy(subsidyCache,
+		nextBlockHeight, params)
+	tax := blockchain.CalcBlockTaxSubsidy(subsidyCache,
+		nextBlockHeight, params)
+
+	// output
+	// Create the script to pay to the provided payment address if one was
+	// specified.  Otherwise create a script that allows the coinbase to be
+	// redeemable by anyone.
+	var pksSubsidy []byte
+	var err error
+	if addr != nil {
+		pksSubsidy, err = txscript.PayToAddrScript(addr)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		scriptBuilder := txscript.NewScriptBuilder()
+		pksSubsidy, err = scriptBuilder.AddOp(txscript.OP_TRUE).Script()
+		if err != nil {
+			return nil, err
+		}
+	}
+	if !hasTax {
+		subsidy+=uint64(tax)
+		tax=0
+	}
+	// Subsidy paid to miner.
+	tx.AddTxOut(&types.TxOutput{
+		Amount:   subsidy,
+		PkScript: pksSubsidy,
+	})
+
+	// Tax output.
+	if hasTax {
+		tx.AddTxOut(&types.TxOutput{
+				Amount:    uint64(tax),
+				PkScript: params.OrganizationPkScript,
+			})
+	}
+	// nulldata.
+	if opReturnPkScript != nil {
+		tx.AddTxOut(&types.TxOutput{
+			Amount:    0,
+			PkScript: opReturnPkScript,
+		})
+	}
+	// AmountIn.
+	tx.TxIn[0].AmountIn = subsidy + uint64(tax)  //TODO, remove type conversion
+	return types.NewTx(tx), nil
+}
+

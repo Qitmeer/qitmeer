@@ -11,10 +11,9 @@ import (
 // which have not been mined into a block yet.
 type txPrioItem struct {
 	tx       *types.Tx
-	txType   types.TxType
 	fee      int64
 	priority float64
-	feePerKB float64
+	feePerKB int64
 
 	// dependsOn holds a map of transaction hashes which this one depends
 	// on.  It will only be set when the transaction references other
@@ -103,4 +102,14 @@ func txPQByFee(pq *txPriorityQueue, i, j int) bool {
 	// The stake priorities are equal, so return based on fees
 	// per KB.
 	return pq.items[i].feePerKB > pq.items[j].feePerKB
+}
+
+func txPQByPriority(pq *txPriorityQueue, i, j int) bool {
+	// Using > here so that pop gives the highest priority item as opposed
+	// to the lowest.  Sort by priority first, then fee.
+	if pq.items[i].priority == pq.items[j].priority {
+		return pq.items[i].feePerKB > pq.items[j].feePerKB
+	}
+	return pq.items[i].priority > pq.items[j].priority
+
 }

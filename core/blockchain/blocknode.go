@@ -104,6 +104,9 @@ type blockNode struct {
 
 	// height
 	height   uint
+
+	// layer
+	layer    uint
 }
 
 // newBlockNode returns a new block node for the given block header and parent
@@ -262,8 +265,8 @@ func (node *blockNode) GetChildren() *dag.HashSet{
 	return result
 }
 
-func (node *blockNode) SetOrder(h uint64) {
-	node.order=h
+func (node *blockNode) SetOrder(o uint64) {
+	node.order=o
 }
 
 // return node height (Actually,it is order)
@@ -280,6 +283,15 @@ func (node *blockNode) GetHeight() uint{
 	return node.height
 }
 
+func (node *blockNode) SetLayer(l uint) {
+	node.layer=l
+}
+
+// return node height (Actually,it is order)
+func (node *blockNode) GetLayer() uint {
+	return node.layer
+}
+
 func (node *blockNode) Clone() *blockNode{
 	header:=node.Header()
 	newNode := newBlockNode(&header,node.parents)
@@ -287,6 +299,7 @@ func (node *blockNode) Clone() *blockNode{
 	newNode.children=node.children
 	newNode.order=node.order
 	newNode.height=node.height
+	newNode.layer=node.layer
 	return newNode
 }
 

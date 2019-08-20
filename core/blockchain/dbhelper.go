@@ -10,7 +10,6 @@ import (
 	"github.com/HalalChain/qitmeer/core/dbnamespace"
 	"github.com/HalalChain/qitmeer/database"
 	"math/big"
-	"sort"
 	"time"
 )
 
@@ -93,7 +92,7 @@ type bestChainState struct {
 	hash         hash.Hash
 	total        uint64
 	totalTxns    uint64
-	totalSubsidy int64
+	subsidy      int64
 	workSum      *big.Int
 }
 
@@ -242,13 +241,14 @@ func (b *BlockChain) createChainState() error {
 	b.bd.AddBlock(node)
 	node.SetOrder(0)
 	node.SetHeight(0)
+	node.SetLayer(0)
 	b.index.addNode(node)
 	// Initialize the state related to the best block.  Since it is the
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
 	b.stateSnapshot = newBestState(node.GetHash(), node.bits,blockSize, numTxns,
-		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState())
+		time.Unix(node.timestamp, 0), numTxns, b.params.BaseSubsidy, b.bd.GetGraphState())
 
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.
@@ -308,7 +308,7 @@ func (b *BlockChain) createChainState() error {
 		}
 
 		// Add the genesis block to the block index.
-		err=blockdag.DBPutDAGBlock(dbTx,b.bd.GetBlock(&node.hash))
+		err=blockdag.DBPutDAGBlock(dbTx,b.bd.GetBlock(&node.hash),byte(node.status))
 		if err != nil {
 			return err
 		}
@@ -513,127 +513,6 @@ func dbFetchBlockByHash(dbTx database.Tx, hash *hash.Hash) (*types.SerializedBlo
 	return block, nil
 }
 
-// deserializeUtxoEntry decodes a utxo entry from the passed serialized byte
-// slice into a new UtxoEntry using a format that is suitable for long-term
-// storage.  The format is described in detail above.
-func deserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
-	// Deserialize the version.
-	version, bytesRead := deserializeVLQ(serialized)
-	offset := bytesRead
-	if offset >= len(serialized) {
-		return nil, errDeserialize("unexpected end of data after version")
-	}
-
-	// Deserialize the block height.
-	blockHeight, bytesRead := deserializeVLQ(serialized[offset:])
-	offset += bytesRead
-	if offset >= len(serialized) {
-		return nil, errDeserialize("unexpected end of data after height")
-	}
-
-	// Deserialize the block index.
-	blockIndex, bytesRead := deserializeVLQ(serialized[offset:])
-	offset += bytesRead
-	if offset >= len(serialized) {
-		return nil, errDeserialize("unexpected end of data after index")
-	}
-
-	// Deserialize the flags.
-	flags, bytesRead := deserializeVLQ(serialized[offset:])
-	offset += bytesRead
-	if offset >= len(serialized) {
-		return nil, errDeserialize("unexpected end of data after flags")
-	}
-	isCoinBase, hasExpiry, txType, _ := decodeFlags(byte(flags))
-
-	// Deserialize the header code.
-	code, bytesRead := deserializeVLQ(serialized[offset:])
-	offset += bytesRead
-	if offset >= len(serialized) {
-		return nil, errDeserialize("unexpected end of data after header")
-	}
-
-	// Decode the header code.
-	//
-	// Bit 0 indicates output 0 is unspent.
-	// Bit 1 indicates output 1 is unspent.
-	// Bits 2-x encodes the number of non-zero unspentness bitmap bytes that
-	// follow.  When both output 0 and 1 are spent, it encodes N-1.
-	output0Unspent := code&0x01 != 0
-	output1Unspent := code&0x02 != 0
-	numBitmapBytes := code >> 2
-	if !output0Unspent && !output1Unspent {
-		numBitmapBytes++
-	}
-
-	// Ensure there are enough bytes left to deserialize the unspentness
-	// bitmap.
-	if uint64(len(serialized[offset:])) < numBitmapBytes {
-		return nil, errDeserialize("unexpected end of data for " +
-			"unspentness bitmap")
-	}
-
-	// Create a new utxo entry with the details deserialized above to house
-	// all of the utxos.
-	//TODO, remove type conversion
-	entry := newUtxoEntry(uint32(version), uint32(blockHeight),
-		uint32(blockIndex), isCoinBase, hasExpiry, txType)
-
-	// Add sparse output for unspent outputs 0 and 1 as needed based on the
-	// details provided by the header code.
-	var outputIndexes []uint32
-	if output0Unspent {
-		outputIndexes = append(outputIndexes, 0)
-	}
-	if output1Unspent {
-		outputIndexes = append(outputIndexes, 1)
-	}
-
-	// Decode the unspentness bitmap adding a sparse output for each unspent
-	// output.
-	for i := uint32(0); i < uint32(numBitmapBytes); i++ {
-		unspentBits := serialized[offset]
-		for j := uint32(0); j < 8; j++ {
-			if unspentBits&0x01 != 0 {
-				// The first 2 outputs are encoded via the
-				// header code, so adjust the output number
-				// accordingly.
-				outputNum := 2 + i*8 + j
-				outputIndexes = append(outputIndexes, outputNum)
-			}
-			unspentBits >>= 1
-		}
-		offset++
-	}
-
-	// Decode and add all of the utxos.
-	for i, outputIndex := range outputIndexes {
-		// Decode the next utxo.  The script and amount fields of the
-		// utxo output are left compressed so decompression can be
-		// avoided on those that are not accessed.  This is done since
-		// it is quite common for a redeeming transaction to only
-		// reference a single utxo from a referenced transaction.
-		//
-		// 'true' below instructs the method to deserialize a stored
-		// amount.
-		// TODO script version is omit
-		amount, _, script, bytesRead, err := decodeCompressedTxOut(serialized[offset:])
-		if err != nil {
-			return nil, errDeserialize(fmt.Sprintf("unable to "+
-				"decode utxo at index %d: %v", i, err))
-		}
-		offset += bytesRead
-
-		entry.sparseOutputs[outputIndex] = &utxoOutput{
-			spent:      false,
-			pkScript:   script,
-			amount:     uint64(amount), //TODO, remove type conversion
-		}
-	}
-
-	return entry, nil
-}
-
 // BlockOrderByHash returns the order of the block with the given hash in the
 // chain.
 //
@@ -703,215 +582,4 @@ func dbMaybeStoreBlock(dbTx database.Tx, block *types.SerializedBlock) error {
 	}
 
 	return dbTx.StoreBlock(block)
-}
-
-// dbPutUtxoView uses an existing database transaction to update the utxo set
-// in the database based on the provided utxo view contents and state.  In
-// particular, only the entries that have been marked as modified are written
-// to the database.
-func dbPutUtxoView(dbTx database.Tx, view *UtxoViewpoint) error {
-	utxoBucket := dbTx.Metadata().Bucket(dbnamespace.UtxoSetBucketName)
-	for txHashIter, entry := range view.entries {
-		// No need to update the database if the entry was not modified.
-		if entry == nil || !entry.modified {
-			continue
-		}
-
-		// Serialize the utxo entry without any entries that have been
-		// spent.
-		//TODO, move serializeUtxoEntry to serialization package
-		serialized, err := serializeUtxoEntry(entry)
-		if err != nil {
-			return err
-		}
-
-		// Make a copy of the hash because the iterator changes on each
-		// loop iteration and thus slicing it directly would cause the
-		// data to change out from under the put/delete funcs below.
-		txHash := txHashIter
-
-		// Remove the utxo entry if it is now fully spent.
-		if serialized == nil {
-			if err := utxoBucket.Delete(txHash[:]); err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		// At this point the utxo entry is not fully spent, so store its
-		// serialization in the database.
-		err = utxoBucket.Put(txHash[:], serialized)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-//TODO, refactor & move serializeUtxoEntry to serialization package
-// -----------------------------------------------------------------------------
-// The unspent transaction output (utxo) set consists of an entry for each
-// transaction which contains a utxo serialized using a format that is highly
-// optimized to reduce space using domain specific compression algorithms.  This
-// format is a slightly modified version of the format used in Bitcoin Core.
-//
-// The serialized format is:
-//
-//   <version><height><header code><unspentness bitmap>[<compressed txouts>,...]
-//
-//   Field                 Type     Size
-//   transaction version   VLQ      variable
-//   block height          VLQ      variable
-//   block index           VLQ      variable
-//   flags                 VLQ      variable (currently 1 byte)
-//   header code           VLQ      variable
-//   unspentness bitmap    []byte   variable
-//   compressed txouts
-//     compressed amount   VLQ      variable
-//     compressed version  VLQ      variable
-//     compressed script   []byte   variable
-//
-// The serialized flags code format is:
-//   bit  0   - containing transaction is a coinbase
-//   bit  1   - containing transaction has an expiry
-//   bits 2-3 - transaction type
-//   bits 4-7 - unused
-//
-// The serialized header code format is:
-//   bit 0 - output zero is unspent
-//   bit 1 - output one is unspent
-//   bits 2-x - number of bytes in unspentness bitmap.  When both bits 1 and 2
-//     are unset, it encodes N-1 since there must be at least one unspent
-//     output.
-//
-// The rationale for the header code scheme is as follows:
-//   - Transactions which only pay to a single output and a change output are
-//     extremely common, thus an extra byte for the unspentness bitmap can be
-//     avoided for them by encoding those two outputs in the low order bits.
-//   - Given it is encoded as a VLQ which can encode values up to 127 with a
-//     single byte, that leaves 4 bits to represent the number of bytes in the
-//     unspentness bitmap while still only consuming a single byte for the
-//     header code.  In other words, an unspentness bitmap with up to 120
-//     transaction outputs can be encoded with a single-byte header code.
-//     This covers the vast majority of transactions.
-//   - Encoding N-1 bytes when both bits 0 and 1 are unset allows an additional
-//     8 outpoints to be encoded before causing the header code to require an
-//     additional byte.
-//
-// -----------------------------------------------------------------------------
-
-// utxoEntryHeaderCode returns the calculated header code to be used when
-// serializing the provided utxo entry and the number of bytes needed to encode
-// the unspentness bitmap.
-func utxoEntryHeaderCode(entry *UtxoEntry, highestOutputIndex uint32) (uint64, int, error) {
-	// The first two outputs are encoded separately, so offset the index
-	// accordingly to calculate the correct number of bytes needed to encode
-	// up to the highest unspent output index.
-	numBitmapBytes := int((highestOutputIndex + 6) / 8)
-
-	// As previously described, one less than the number of bytes is encoded
-	// when both output 0 and 1 are spent because there must be at least one
-	// unspent output.  Adjust the number of bytes to encode accordingly and
-	// encode the value by shifting it over 2 bits.
-	output0Unspent := !entry.IsOutputSpent(0)
-	output1Unspent := !entry.IsOutputSpent(1)
-	var numBitmapBytesAdjustment int
-	if !output0Unspent && !output1Unspent {
-		if numBitmapBytes == 0 {
-			return 0, 0, AssertError("attempt to serialize utxo " +
-				"header for fully spent transaction")
-		}
-		numBitmapBytesAdjustment = 1
-	}
-	headerCode := uint64(numBitmapBytes-numBitmapBytesAdjustment) << 2
-
-	// Set the output 0 and output 1 bits in the header code
-	// accordingly.
-	if output0Unspent {
-		headerCode |= 0x01 // bit 0
-	}
-	if output1Unspent {
-		headerCode |= 0x02 // bit 1
-	}
-
-	return headerCode, numBitmapBytes, nil
-}
-
-//TODO, move serializeUtxoEntry to serialization package
-// serializeUtxoEntry returns the entry serialized to a format that is suitable
-// for long-term storage.  The format is described in detail above.
-func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
-	// Fully spent entries have no serialization.
-	if entry.IsFullySpent() {
-		return nil, nil
-	}
-
-	// Determine the output order by sorting the sparse output index keys.
-	outputOrder := make([]int, 0, len(entry.sparseOutputs))
-	for outputIndex := range entry.sparseOutputs {
-		outputOrder = append(outputOrder, int(outputIndex))
-	}
-	sort.Ints(outputOrder)
-
-	// Encode the header code and determine the number of bytes the
-	// unspentness bitmap needs.
-	highIndex := uint32(outputOrder[len(outputOrder)-1])
-	headerCode, numBitmapBytes, err := utxoEntryHeaderCode(entry, highIndex)
-	if err != nil {
-		return nil, err
-	}
-
-	// Calculate the size needed to serialize the entry.
-	flags := encodeFlags(entry.isCoinBase, entry.hasExpiry, entry.txType, false)
-	size := serializeSizeVLQ(uint64(entry.txVersion)) +
-		serializeSizeVLQ(uint64(entry.order)) +
-		serializeSizeVLQ(uint64(entry.index)) +
-		serializeSizeVLQ(uint64(flags)) +
-		serializeSizeVLQ(headerCode) + numBitmapBytes
-	for _, outputIndex := range outputOrder {
-		out := entry.sparseOutputs[uint32(outputIndex)]
-		if out.spent {
-			continue
-		}
-		size += compressedTxOutSize(uint64(out.amount), out.scriptVersion, out.pkScript)
-	}
-
-	// Serialize the version, block height, block index, and flags of the
-	// containing transaction, and "header code" which is a complex bitmap
-	// of spentness.
-	serialized := make([]byte, size)
-	offset := putVLQ(serialized, uint64(entry.txVersion))
-	offset += putVLQ(serialized[offset:], uint64(entry.order))
-	offset += putVLQ(serialized[offset:], uint64(entry.index))
-	offset += putVLQ(serialized[offset:], uint64(flags))
-	offset += putVLQ(serialized[offset:], headerCode)
-
-	// Serialize the unspentness bitmap.
-	for i := uint32(0); i < uint32(numBitmapBytes); i++ {
-		unspentBits := byte(0)
-		for j := uint32(0); j < 8; j++ {
-			// The first 2 outputs are encoded via the header code,
-			// so adjust the output index accordingly.
-			if !entry.IsOutputSpent(2 + i*8 + j) {
-				unspentBits |= 1 << uint8(j)
-			}
-		}
-		serialized[offset] = unspentBits
-		offset++
-	}
-
-	// Serialize the compressed unspent transaction outputs.  Outputs that
-	// are already compressed are serialized without modifications.
-	for _, outputIndex := range outputOrder {
-		out := entry.sparseOutputs[uint32(outputIndex)]
-		if out.spent {
-			continue
-		}
-
-		offset += putCompressedTxOut(serialized[offset:],
-			uint64(out.amount), out.scriptVersion, out.pkScript)
-	}
-	return serialized, nil
 }

@@ -55,10 +55,10 @@ func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
 			}
 			if allExists {
 
+				b.removeOrphanBlock(v)
 				//
 				exists := b.index.HaveBlock(v.block.Hash())
 				if exists {
-					b.removeOrphanBlock(v)
 					continue
 				}
 				// Potentially accept the block into the block chain.
@@ -66,7 +66,6 @@ func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
 				if err != nil {
 					return err
 				}
-				b.removeOrphanBlock(v)
 				needLoop=true
 				break
 			}
@@ -174,8 +173,8 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 
 	// The block has passed all context independent checks and appears sane
 	// enough to potentially accept it into the block chain.
-	_, err = b.maybeAcceptBlock(block, flags)
-	if err != nil {
+	result, err := b.maybeAcceptBlock(block, flags)
+	if !result && err != nil {
 		return false, false, err
 	}
 

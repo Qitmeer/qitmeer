@@ -15,6 +15,7 @@ import (
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
 	"github.com/HalalChain/qitmeer-lib/params"
 	"github.com/HalalChain/qitmeer/services/common/progresslog"
+	"math"
 	"os"
 	"sort"
 	"sync"
@@ -194,12 +195,12 @@ type BestState struct {
 	NumTxns      uint64               // The number of txns in the main chain tip.
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
-	TotalSubsidy int64                // The total subsidy for the chain.
+	Subsidy int64                     // The total subsidy for the chain.
 	GraphState   *dag.GraphState      // The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(lastHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalSubsidy int64, gs *dag.GraphState) *BestState {
+func newBestState(lastHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, subsidy int64, gs *dag.GraphState) *BestState {
 	return &BestState{
 		Hash:         *lastHash,
 		Bits:         bits,
@@ -207,7 +208,7 @@ func newBestState(lastHash *hash.Hash, bits uint32,blockSize, numTxns uint64, me
 		NumTxns:      numTxns,
 		MedianTime:   medianTime,
 		TotalTxns:    totalTxns,
-		TotalSubsidy: totalSubsidy,
+		Subsidy:      subsidy,
 		GraphState:   gs,
 	}
 }
@@ -412,7 +413,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %v",state.hash.String(),state.total,state.totalTxns,state.totalSubsidy,state.workSum))
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d",state.hash.String(),state.total,state.totalTxns,state.subsidy))
 		log.Info("Loading block index...")
 		bidxStart := time.Now()
 
@@ -421,7 +422,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		// littles ones to reduce pressure on the GC.
 		var block *types.SerializedBlock
 		for i:=uint(0);i<uint(state.total) ;i++ {
-			blockHash,err:=blockdag.DBGetDAGBlock(dbTx,i)
+			blockHash,status,err:=blockdag.DBGetDAGBlock(dbTx,i)
 			if err!=nil {
 				return err
 			}
@@ -445,6 +446,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			initBlockNode(node, &block.Block().Header, parents)
 			list := b.bd.AddBlock(node)
 			b.index.addNode(node)
+			node.status=blockStatus(status)
 			if list == nil || list.Len() == 0 {
 				log.Error("Irreparable error!")
 				return AssertError(fmt.Sprintf("initChainState: Could "+
@@ -479,11 +481,14 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 		b.stateSnapshot = newBestState(lastBlock.GetHash(),mainTip.bits, blockSize, numTxns,
-			mainTip.CalcPastMedianTime(b), state.totalTxns, state.totalSubsidy, b.bd.GetGraphState())
+			mainTip.CalcPastMedianTime(b), state.totalTxns,state.subsidy, b.bd.GetGraphState())
 
 		return nil
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	return b.index.flushToDB(b.bd)
 }
 
 // HaveBlock returns whether or not the chain instance has the block represented
@@ -902,11 +907,11 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		view := NewUtxoViewpoint()
 		view.SetBestHash(b.bd.GetPrevious(&node.hash))
 
-		stxos := []SpentTxOut{}
+		stxos := make([]SpentTxOut, 0, countSpentOutputs(block))
 		err := b.checkConnectBlock(node, block, view, &stxos)
 		if err != nil {
-			b.txManager.RemoveInvalidTx(block.Hash())
-			return false, err
+			b.index.SetStatusFlags(node, statusValidateFailed)
+			//return false, err
 		}
 		// In the fast add case the code to check the block connection
 		// was skipped, so the utxo view needs to load the referenced
@@ -916,15 +921,16 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// Connect the block to the main chain.
 		err = b.connectBlock(node, block, view, stxos)
 		if err != nil {
-			b.txManager.RemoveInvalidTx(block.Hash())
+			b.index.SetStatusFlags(node, statusValidateFailed)
 			return false, err
 		}
+		b.index.SetStatusFlags(node, statusValid)
 		// TODO, validating previous block
 		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
-
 		// The fork length is zero since the block is now the tip of the
 		// best chain.
-		b.updateBestState(node, block)
+		//b.updateBestState(node, block)
+
 		return true, nil
 	}
 
@@ -942,7 +948,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 	if err != nil {
 		return false, err
 	}
-	b.updateBestState(node, block)
+	//b.updateBestState(node, block)
 	return true, nil
 }
 
@@ -987,11 +993,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()
 	curTotalTxns := b.stateSnapshot.TotalTxns
-	curTotalSubsidy := b.stateSnapshot.TotalSubsidy
 	b.stateLock.RUnlock()
-
-	// Calculate the exact subsidy produced by adding the block.
-	subsidy := CalculateAddedSubsidy(block)
 
 	// Calculate the number of transactions that would be added by adding
 	// this block.
@@ -1001,8 +1003,10 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 
 	mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
 
+	subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(mainTip.GetHeight()))
+
 	state := newBestState(lastTip.GetHash(),mainTip.bits,blockSize,numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
-		curTotalSubsidy+subsidy, b.bd.GetGraphState())
+		subsidy, b.bd.GetGraphState())
 
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
@@ -1011,12 +1015,9 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 		if err != nil {
 			return err
 		}
-		err = blockdag.DBPutDAGBlock(dbTx,b.bd.GetBlock(node.GetHash()))
-		if err != nil {
-			return err
-		}
 		return nil
 	})
+
 	if err != nil {
 		return err
 	}
@@ -1044,8 +1045,12 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
+	err := b.index.flushToDB(b.bd)
+	if err != nil {
+		return err
+	}
 	// Atomically insert info into the database.
-	err := b.db.Update(func(dbTx database.Tx) error {
+	err = b.db.Update(func(dbTx database.Tx) error {
 		// Add the block hash and height to the block index.
 		err := dbPutBlockIndex(dbTx, block.Hash(), node.order)
 		if err != nil {
@@ -1055,16 +1060,20 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 		// Update the utxo set using the state of the utxo view.  This
 		// entails removing all of the utxos spent and adding the new
 		// ones created by the block.
-		err = dbPutUtxoView(dbTx, view)
-		if err != nil {
-			return err
+		if b.index.NodeStatus(node).KnownValid() {
+			err = dbPutUtxoView(dbTx, view)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Update the transaction spend journal by adding a record for
 		// the block that contains all txos spent by it.
-		err = dbPutSpendJournalEntry(dbTx, block.Hash(), stxos)
-		if err != nil {
-			return err
+		if b.index.NodeStatus(node).KnownValid() {
+			err = dbPutSpendJournalEntry(dbTx, block.Hash(), stxos)
+			if err != nil {
+				return err
+			}
 		}
 		// Allow the index manager to call each of the currently active
 		// optional indexes with the block being connected so they can
@@ -1085,6 +1094,10 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	// now that the modifications have been committed to the database.
 	view.commit()
 
+
+	b.chainLock.Unlock()
+	b.sendNotification(BlockConnected, []*types.SerializedBlock{block})
+	b.chainLock.Lock()
 	return nil
 }
 
@@ -1093,9 +1106,12 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint,stxos []SpentTxOut) error {
-
+	err := b.index.flushToDB(b.bd)
+	if err != nil {
+		return err
+	}
 	// Calculate the exact subsidy produced by adding the block.
-	err := b.db.Update(func(dbTx database.Tx) error {
+	err = b.db.Update(func(dbTx database.Tx) error {
 		// Remove the block hash and order from the block index.
 		err := dbRemoveBlockIndex(dbTx, block.Hash(), int64(node.order)) //TODO, remove type conversion
 		if err != nil {
@@ -1105,16 +1121,19 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 		// Update the utxo set using the state of the utxo view.  This
 		// entails restoring all of the utxos spent and removing the new
 		// ones created by the block.
-		err = dbPutUtxoView(dbTx, view)
-		if err != nil {
-			return err
+		if b.index.NodeStatus(node).KnownValid() {
+			err = dbPutUtxoView(dbTx, view)
+			if err != nil {
+				return err
+			}
 		}
-
 		// Update the transaction spend journal by removing the record
 		// that contains all txos spent by the block .
-		err = dbRemoveSpendJournalEntry(dbTx, block.Hash())
-		if err != nil {
-			return err
+		if b.index.NodeStatus(node).KnownValid() {
+			err = dbRemoveSpendJournalEntry(dbTx, block.Hash())
+			if err != nil {
+				return err
+			}
 		}
 		// Allow the index manager to call each of the currently active
 		// optional indexes with the block being disconnected so they
@@ -1135,7 +1154,10 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	b.txManager.RemoveInvalidTx(&node.hash)
+
+	b.chainLock.Unlock()
+	b.sendNotification(BlockDisconnected, block)
+	b.chainLock.Lock()
 
 	return nil
 }
@@ -1173,7 +1195,6 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		n = detachNodes[i]
 
 		block, err = b.fetchBlockByHash(&n.hash)
-
 		if err != nil {
 			return err
 		}
@@ -1183,34 +1204,36 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		block.SetOrder(n.order)
 		// Load all of the utxos referenced by the block that aren't
 		// already in the view.
-		view := NewUtxoViewpoint()
-		view.SetBestHash(block.Hash())
-		err = view.fetchInputUtxos(b.db, block, b)
-		if err != nil {
-			return err
-		}
-
-		// Load all of the spent txos for the block from the spend
-		// journal.
 		var stxos []SpentTxOut
-		err = b.db.View(func(dbTx database.Tx) error {
-			stxos, err = dbFetchSpendJournalEntry(dbTx, block)
-			return err
-		})
-		if err != nil {
-			return err
-		}
-		// Store the loaded block and spend journal entry for later.
+		view := NewUtxoViewpoint()
+		if b.index.NodeStatus(n).KnownValid() {
+			view.SetBestHash(block.Hash())
+			err = view.fetchInputUtxos(b.db, block, b)
+			if err != nil {
+				return err
+			}
 
-		err = b.disconnectTransactions(view, block, stxos)
-		if err != nil {
-			return err
+			// Load all of the spent txos for the block from the spend
+			// journal.
+
+			err = b.db.View(func(dbTx database.Tx) error {
+				stxos, err = dbFetchSpendJournalEntry(dbTx, block)
+				return err
+			})
+			if err != nil {
+				return err
+			}
+			// Store the loaded block and spend journal entry for later.
+			err = view.disconnectTransactions(block, stxos)
+			if err != nil {
+				return err
+			}
 		}
 		err = b.disconnectBlock(n, block,view, stxos)
 		if err != nil {
 			return err
 		}
-
+		b.index.SetStatusFlags(n, statusValidateFailed)
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
@@ -1231,16 +1254,17 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		}
 
 		view := NewUtxoViewpoint()
-		view.SetBestHash(b.bd.GetPrevious(&n.hash))
+		view.SetBestHash(n.GetHash())
 		stxos := []SpentTxOut{}
 		err = b.checkConnectBlock(n, block, view, &stxos)
 		if err != nil {
-			return err
+			b.index.SetStatusFlags(n, statusValidateFailed)
 		}
 		err = b.connectBlock(n, block, view, stxos)
 		if err != nil {
 			return err
 		}
+		b.index.SetStatusFlags(n, statusValid)
 	}
 
 	// Log the point where the chain forked and old and new best chain
@@ -1252,7 +1276,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 
 // countSpentOutputs returns the number of utxos the passed block spends.
 // TODO, revisit the design of stxos count
-func countSpentOutputs(block, parent *types.SerializedBlock) int {
+func countSpentOutputs(block *types.SerializedBlock) int {
 	// Exclude the coinbase transaction since it can't spend anything.
 	var numSpent int
 	for _, tx := range block.Transactions()[1:] {
@@ -1285,6 +1309,7 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 		refHash := e.Value.(*hash.Hash)
 		refblock := b.bd.GetBlock(refHash)
 		if refHash.IsEqual(&newNode.hash) {
+			newNode.SetLayer(refblock.GetLayer())
 			refnode=newNode
 			block.SetOrder(uint64(refblock.GetOrder()))
 			if refblock.GetHeight() != newNode.GetHeight() {
@@ -1364,4 +1389,18 @@ func (b *BlockChain) SetTxManager(txManager TxManager) {
 
 func (b *BlockChain) GetTxManager() TxManager {
 	return b.txManager
+}
+
+func (b *BlockChain) GetMiningTips() []*hash.Hash {
+	best:=b.BestSnapshot()
+	parents:=b.BlockDAG().GetTips().SortList(false)
+	tips:=[]*hash.Hash{}
+	for i:=0;i<len(parents);i++ {
+		node:=b.index.lookupNode(parents[i])
+		if math.Abs(float64(node.GetLayer())-float64(best.GraphState.GetLayer()))>blockdag.MaxTipLayerGap {
+			continue
+		}
+		tips=append(tips,node.GetHash())
+	}
+	return tips
 }

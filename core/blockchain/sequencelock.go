@@ -7,6 +7,8 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"time"
 
 	"github.com/HalalChain/qitmeer-lib/core/types"
 )
@@ -20,8 +22,8 @@ import (
 // that it will not prevent a transaction from being included due to the
 // sequence lock, which is the desired behavior.
 type SequenceLock struct {
-	MinOrder int64
-	MinTime   int64
+	BlockLayer int64
+	Time   int64
 }
 
 
@@ -32,7 +34,7 @@ type SequenceLock struct {
 func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoViewpoint, isActive bool) (*SequenceLock, error) {
 	// A value of -1 for each lock type allows a transaction to be included
 	// in a block at any given height or time.
-	sequenceLock := &SequenceLock{MinOrder: -1, MinTime: -1}
+	sequenceLock := &SequenceLock{BlockLayer: -1, Time: -1}
 
 	// Sequence locks do not apply if they are not yet active, the tx
 	// version is less than 2, or the tx is a coinbase or stakebase, so
@@ -41,7 +43,7 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 	msgTx := tx.Transaction()
 	//TODO, revisit the tx version for lock time
 	enforce := isActive && msgTx.Version >= 2
-	if !enforce || msgTx.IsCoinBaseTx() {
+	if !enforce || msgTx.IsCoinBase() {
 		return sequenceLock, nil
 
 	}
@@ -55,7 +57,7 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			continue
 		}
 
-		utxo := view.LookupEntry(&txIn.PreviousOut.Hash)
+		utxo := view.LookupEntry(txIn.PreviousOut)
 		if utxo == nil {
 			str := fmt.Sprintf("output %v referenced from "+
 				"transaction %s:%d either does not exist or "+
@@ -64,19 +66,12 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			return sequenceLock, ruleError(ErrMissingTxOut, str)
 		}
 
-		// Calculate the sequence locks from the point of view of the
-		// next block for inputs that are in the mempool.
-		inputOrder := utxo.BlockOrder()
-		if inputOrder == 0x7fffffff {
-			inputOrder = node.order + 1
-		}
-
 		// Mask off the value portion of the sequence number to obtain
 		// the time lock delta required before this input can be spent.
 		// The relative lock can be time based or block based.
 		relativeLock := int64(sequenceNum & types.SequenceLockTimeMask)
 
-		if sequenceNum&types.SequenceLockTimeIsSeconds != 0 {
+		if sequenceNum&types.SequenceLockTimeIsSeconds == types.SequenceLockTimeIsSeconds {
 			// This input requires a time based relative lock
 			// expressed in seconds before it can be spent and time
 			// based locks are calculated relative to the earliest
@@ -88,13 +83,16 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			// associated with them anyways).  Therefore, the block
 			// prior to the one in which the referenced output was
 			// included is needed to compute its past median time.
-			prevInputOrder := inputOrder - 1
-			if prevInputOrder < 0 {
-				prevInputOrder = 0
+			var medianTime time.Time
+			if hash.ZeroHash.IsEqual(utxo.BlockHash()) {
+				medianTime=b.BestSnapshot().MedianTime
+			}else{
+				blockNode := b.index.LookupNode(utxo.BlockHash())
+				if blockNode == nil {
+					return sequenceLock,nil
+				}
+				medianTime = blockNode.CalcPastMedianTime(b)
 			}
-			blockNode := b.index.LookupNode(b.bd.GetBlockByOrder(uint(prevInputOrder)))
-			medianTime := blockNode.CalcPastMedianTime(b)
-
 			// Calculate the minimum required timestamp based on the
 			// sum of the aforementioned past median time and
 			// required relative number of seconds.  Since time
@@ -105,8 +103,8 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			// original lock time semantics.
 			relativeSecs := relativeLock << types.SequenceLockTimeGranularity
 			minTime := medianTime.Unix() + relativeSecs - 1
-			if minTime > sequenceLock.MinTime {
-				sequenceLock.MinTime = minTime
+			if minTime > sequenceLock.Time {
+				sequenceLock.Time = minTime
 			}
 		} else {
 			// This input requires a relative lock expressed in
@@ -115,9 +113,20 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			// input height and required relative number of blocks.
 			// Also, subtract one from the relative lock in order to
 			// maintain the original lock time semantics.
-			minHeight := int64(inputOrder) + relativeLock - 1  //TODO,remove type conversion
-			if minHeight > sequenceLock.MinOrder {
-				sequenceLock.MinOrder = minHeight
+			var inputLayer uint
+			if hash.ZeroHash.IsEqual(utxo.BlockHash()) {
+				inputLayer=b.BestSnapshot().GraphState.GetLayer()
+			}else{
+				block:=b.bd.GetBlock(utxo.BlockHash())
+				if block == nil {
+					return sequenceLock,nil
+				}
+				inputLayer = block.GetLayer()
+			}
+
+			minLayer := int64(inputLayer) + relativeLock - 1  //TODO,remove type conversion
+			if minLayer > sequenceLock.BlockLayer {
+				sequenceLock.BlockLayer = minLayer
 			}
 		}
 	}

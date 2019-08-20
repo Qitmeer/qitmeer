@@ -6,8 +6,10 @@
 package mempool
 
 import (
+	"github.com/HalalChain/qitmeer-lib/common/hash"
 	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/HalalChain/qitmeer/core/blockdag"
 )
 
 // minInt is a helper function to return the minimum of two ints.  This avoids
@@ -25,29 +27,29 @@ func minInt(a, b int) int {
 // age is the sum of this value for each txin.  Any inputs to the transaction
 // which are currently in the mempool and hence not mined into a block yet,
 // contribute no additional input age to the transaction.
-func calcInputValueAge(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint, nextBlockOrder uint64) float64 {
+func calcInputValueAge(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint, nextBlockLayer uint64,bd *blockdag.BlockDAG) float64 {
 	var totalInputAge float64
 	for _, txIn := range tx.TxIn {
 		// Don't attempt to accumulate the total input age if the
 		// referenced transaction output doesn't exist.
-		originHash := &txIn.PreviousOut.Hash
-		originIndex := txIn.PreviousOut.OutIndex
-		txEntry := utxoView.LookupEntry(originHash)
-		if txEntry != nil && !txEntry.IsOutputSpent(originIndex) {
+		txEntry := utxoView.LookupEntry(txIn.PreviousOut)
+		if txEntry != nil && !txEntry.IsSpent() {
 			// Inputs with dependencies currently in the mempool
 			// have their block height set to a special constant.
 			// Their input age should be computed as zero since
 			// their parent hasn't made it into a block yet.
 			var inputAge uint64
-			originOrder := txEntry.BlockOrder()
-			if originOrder == UnminedHeight {
+			if txEntry.BlockHash().IsEqual(&hash.ZeroHash) {
 				inputAge = 0
-			} else {
-				inputAge = nextBlockOrder - originOrder
+			}else {
+				block:=bd.GetBlock(txEntry.BlockHash())
+				if block == nil {
+					return 0
+				}
+				inputAge = nextBlockLayer - uint64(block.GetLayer())
 			}
-
 			// Sum the input value times age.
-			inputValue := txEntry.AmountByIndex(originIndex)
+			inputValue := txEntry.Amount()
 			totalInputAge += float64(inputValue * inputAge)
 		}
 	}
@@ -59,7 +61,7 @@ func calcInputValueAge(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint
 // of each of its input values multiplied by their age (# of confirmations).
 // Thus, the final formula for the priority is:
 // sum(inputValue * inputAge) / adjustedTxSize
-func CalcPriority(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint, nextBlockOrder uint64) float64 {
+func CalcPriority(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint, nextBlockLayer uint64,bd *blockdag.BlockDAG) float64 {
 	// In order to encourage spending multiple old unspent transaction
 	// outputs thereby reducing the total set, don't count the constant
 	// overhead for each input as well as enough bytes of the signature
@@ -91,7 +93,7 @@ func CalcPriority(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint, nex
 		return 0.0
 	}
 
-	inputValueAge := calcInputValueAge(tx, utxoView, nextBlockOrder)
+	inputValueAge := calcInputValueAge(tx, utxoView, nextBlockLayer,bd)
 	return inputValueAge / float64(serializedTxSize-overhead)
 }
 

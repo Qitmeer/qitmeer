@@ -18,7 +18,6 @@ import (
 	"github.com/HalalChain/qitmeer-lib/rpc"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/services/mempool"
-	"strconv"
 )
 
 func (tm *TxManager) APIs() []rpc.API {
@@ -178,7 +177,7 @@ func (api *PublicTxAPI) DecodeRawTransaction(hexTx string) (interface{}, error) 
 func createVinList(mtx *types.Transaction) []json.Vin {
 	// Coinbase transactions only have a single txin by definition.
 	vinList := make([]json.Vin, len(mtx.TxIn))
-	if mtx.IsCoinBaseTx() {
+	if mtx.IsCoinBase() {
 		txIn := mtx.TxIn[0]
 		vinEntry := &vinList[0]
 		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
@@ -475,22 +474,34 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 			txVersion = tx.Version
 			amount = txOut.Amount
 			pkScript = txOut.PkScript
-			isCoinbase = tx.IsCoinBaseTx()
+			isCoinbase = tx.IsCoinBase()
 		}
 	}
 
 	// otherwise try to lookup utxo set
 	if bestBlockHash == "" {
-		entry, _ := api.txManager.bm.GetChain().FetchUtxoEntry(&txHash)
-		if entry == nil || entry.IsOutputSpent(vout) {
+		out := types.TxOutPoint{Hash: txHash, OutIndex: vout}
+		entry,err:= api.txManager.bm.GetChain().FetchUtxoEntry(out)
+		if err != nil {
+			return nil, rpc.RpcNoTxInfoError(&txHash)
+		}
+		if entry == nil || entry.IsSpent() {
 			return nil, nil
 		}
 		best := api.txManager.bm.GetChain().BestSnapshot()
 		bestBlockHash = best.Hash.String()
-		confirmations = int64(best.GraphState.GetTotal())-int64(entry.BlockOrder())
-		txVersion = entry.TxVersion()
-		amount = entry.AmountByIndex(vout)
-		pkScript = entry.PkScriptByIndex(vout)
+		if hash.ZeroHash.IsEqual(entry.BlockHash()) {
+			confirmations=0
+		}else {
+			block:=api.txManager.bm.GetChain().BlockDAG().GetBlock(entry.BlockHash())
+			if block == nil {
+				confirmations=0
+			}else {
+				confirmations=int64(best.GraphState.GetLayer()-block.GetLayer())
+			}
+		}
+		amount = entry.Amount()
+		pkScript = entry.PkScript()
 		isCoinbase = entry.IsCoinBase()
 	}
 
@@ -819,7 +830,7 @@ type retrievedTx struct {
 
 func (api *PublicTxAPI) createVinListPrevOut(mtx *message.MsgTx, chainParams *params.Params, vinExtra bool, filterAddrMap map[string]struct{}) ([]json.VinPrevOut, error) {
 	// Coinbase transactions only have a single txin by definition.
-	if mtx.Tx.IsCoinBaseTx() {
+	if mtx.Tx.IsCoinBase() {
 		// Only include the transaction if the filter map is empty
 		// because a coinbase input has no addresses and so would never
 		// match a non-empty filter.
@@ -991,9 +1002,4 @@ func (api *PublicTxAPI) fetchInputTxos(tx *message.MsgTx) (map[types.TxOutPoint]
 	}
 
 	return originOutputs, nil
-}
-
-// IsInvalidTx
-func (api *PublicTxAPI) IsInvalidTx(h hash.Hash) (interface{}, error) {
-	return strconv.FormatBool(api.txManager.IsInvalidTx(&h)),nil
 }

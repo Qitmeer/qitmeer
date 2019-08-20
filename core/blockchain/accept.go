@@ -7,10 +7,10 @@
 package blockchain
 
 import (
-	"encoding/binary"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/HalalChain/qitmeer/core/blockdag"
 	"github.com/HalalChain/qitmeer/database"
 	"math"
 	"time"
@@ -20,52 +20,17 @@ import (
 // coinbase contains the height encoding to make coinbase hash collisions
 // impossible.
 func checkCoinbaseUniqueHeight(blockHeight uint64, block *types.SerializedBlock) error {
-	// Coinbase TxOut[0] is always tax, TxOut[1] is always
-	// height + extranonce, so at least two outputs must
-	// exist.
-	if len(block.Block().Transactions[0].TxOut) < 2 {
-		str := fmt.Sprintf("block %v is missing necessary coinbase "+
-			"outputs", block.Hash())
-		return ruleError(ErrFirstTxNotCoinbase, str)
-	}
-
-	// Only version 0 scripts are currently valid.
-	nullDataOut := block.Block().Transactions[0].TxOut[1]
-	// TODO, revisit version & check should go to validation
-	/*
-		if nullDataOut.Version != 0 {
-			str := fmt.Sprintf("block %v output 1 has wrong script version",
-				block.Hash())
-			return ruleError(ErrFirstTxNotCoinbase, str)
-		}
-	*/
-
-	// The first 4 bytes of the null data output must be the encoded height
-	// of the block, so that every coinbase created has a unique transaction
-	// hash.
-	nullData, err := txscript.ExtractCoinbaseNullData(nullDataOut.PkScript)
+	// check height
+	serializedHeight, err := ExtractCoinbaseHeight(block.Block().Transactions[0])
 	if err != nil {
-		str := fmt.Sprintf("block %v output 1 has wrong script type",
-			block.Hash())
-		return ruleError(ErrFirstTxNotCoinbase, str)
+		return err
 	}
-	if len(nullData) < 4 {
-		str := fmt.Sprintf("block %v output 1 data push too short to "+
-			"contain height", block.Hash())
-		return ruleError(ErrFirstTxNotCoinbase, str)
-	}
-
-	// Check the height and ensure it is correct.
-	cbHeight := binary.LittleEndian.Uint32(nullData[0:4])
-	if cbHeight < uint32(blockHeight) {
-		prevBlock := block.Block().Header.ParentRoot
-		str := fmt.Sprintf("block %v output 1 has wrong order in "+
-			"coinbase; want %v, got %v; prevBlock %v, header order %v",
-			block.Hash(), blockHeight, cbHeight, prevBlock,
-			block.Order())
+	if uint64(serializedHeight) != blockHeight {
+		str := fmt.Sprintf("the coinbase signature script serialized "+
+			"block height is %d when %d was expected",
+			serializedHeight, blockHeight)
 		return ruleError(ErrCoinbaseHeight, str)
 	}
-
 	return nil
 }
 
@@ -132,6 +97,11 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		parentsNode = append(parentsNode, prevNode)
 	}
 
+	err:=b.checkLayerGap(parentsNode)
+	if err != nil {
+		return false,err
+	}
+
 	blockHeader := &block.Block().Header
 	newNode := newBlockNode(blockHeader, parentsNode)
 	mainParent:=newNode.GetMainParent(b)
@@ -144,7 +114,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	block.SetHeight(newNode.GetHeight())
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
-	err := b.checkBlockContext(block,mainParent, flags)
+	err = b.checkBlockContext(block,mainParent, flags)
 	if err != nil {
 		return false, err
 	}
@@ -156,13 +126,17 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	//dag
 	newOrders := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 {
-		log.Debug(fmt.Sprintf("Irreparable error![%s]", newNode.hash.String()))
-		return false, nil
+		return false, fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
 	oldOrders:=BlockNodeList{}
 	b.getReorganizeNodes(newNode,block,newOrders,&oldOrders)
-	b.index.addNode(newNode)
-
+	b.index.AddNode(newNode)
+	b.index.SetStatusFlags(newNode, statusDataStored)
+	err = b.index.flushToDB(b.bd)
+	if err != nil {
+		b.updateBestState(newNode, block)
+		return true, nil
+	}
 	// Insert the block into the database if it's not already there.  Even
 	// though it is possible the block will ultimately fail to connect, it
 	// has already passed all proof-of-work and validity tests which means
@@ -178,12 +152,11 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		if err := dbMaybeStoreBlock(dbTx, block); err != nil {
 			return err
 		}
-		b.index.SetStatusFlags(newNode, statusDataStored)
 		return nil
 	})
 	if err != nil {
-		b.index.SetStatusFlags(newNode, statusValidateFailed)
-		return false, err
+		b.updateBestState(newNode, block)
+		return true, nil
 	}
 
 	// Connect the passed block to the chain while respecting proper chain
@@ -191,18 +164,15 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// also handles validation of the transaction scripts.
 	success, err := b.connectDagChain(newNode, block, newOrders,oldOrders)
 	if !success || err != nil {
-		b.index.SetStatusFlags(newNode, statusValidateFailed)
-		return false, err
+		b.updateBestState(newNode, block)
+		return true, nil
 	}
 
-	b.index.SetStatusFlags(newNode, statusValid)
+	b.updateBestState(newNode, block)
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
 	b.chainLock.Unlock()
-
-	b.sendNotification(BlockConnected, []*types.SerializedBlock{block})
-
 	//TODO, refactor to event subscript/publish
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
 		BestHeight: block.Order(),
@@ -211,5 +181,41 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	})
 	b.chainLock.Lock()
 
+	err = b.index.flushToDB(b.bd)
+	if err != nil {
+		return true, nil
+	}
+
 	return true, nil
+}
+
+func (b *BlockChain) checkLayerGap(parentsNode []*blockNode) error {
+	pLen:=len(parentsNode)
+	if pLen == 0 {
+		return fmt.Errorf("No parents")
+	}
+	var gap float64
+	if pLen == 1 {
+		return nil
+	}else if pLen == 2 {
+		gap=math.Abs(float64(parentsNode[0].GetLayer())-float64(parentsNode[1].GetLayer()))
+	}else{
+		var minLayer int64=-1
+		var maxLayer int64=-1
+		for i:=0;i<pLen ;i++  {
+			parentLayer:=int64(parentsNode[i].GetLayer())
+			if maxLayer ==-1 || parentLayer > maxLayer {
+				maxLayer=parentLayer
+			}
+			if minLayer == -1 || parentLayer < minLayer {
+				minLayer=parentLayer
+			}
+		}
+		gap=math.Abs(float64(maxLayer)-float64(minLayer))
+	}
+	if gap > blockdag.MaxTipLayerGap {
+		return fmt.Errorf("Parents gap is %f which is more than %d",gap,blockdag.MaxTipLayerGap)
+	}
+
+	return nil
 }

@@ -721,7 +721,7 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlo
 				if stxo==nil {
 					continue
 				}
-				idx.indexPkScript(data,stxo.PKScript(), txIdx)
+				idx.indexPkScript(data,stxo.PkScript, txIdx)
 			}
 		}
 
@@ -887,19 +887,15 @@ func (idx *AddrIndex) AddUnconfirmedTx(tx *types.Tx, utxoView *blockchain.UtxoVi
 	// transaction has already been validated and thus all inputs are
 	// already known to exist.
 	msgTx := tx.Transaction()
-	for i, txIn := range msgTx.TxIn {
-		if i == 0 {
-			continue
-		}
-
-		entry := utxoView.LookupEntry(&txIn.PreviousOut.Hash)
+	for _, txIn := range msgTx.TxIn {
+		entry := utxoView.LookupEntry(txIn.PreviousOut)
 		if entry == nil {
 			// Ignore missing entries.  This should never happen
 			// in practice since the function comments specifically
 			// call out all inputs must be available.
 			continue
 		}
-		pkScript := entry.PkScriptByIndex(txIn.PreviousOut.OutIndex)
+		pkScript := entry.PkScript()
 		//txType := entry.TransactionType()
 		idx.indexUnconfirmedAddresses(pkScript,tx)
 	}

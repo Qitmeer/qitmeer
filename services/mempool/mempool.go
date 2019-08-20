@@ -9,10 +9,10 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/blockchain"
 	"github.com/HalalChain/qitmeer-lib/core/message"
 	"github.com/HalalChain/qitmeer-lib/core/types"
 	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/HalalChain/qitmeer/core/blockchain"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -160,12 +160,12 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 	mp.pool[*tx.Hash()] = &TxDesc{
 		TxDesc: types.TxDesc{
 			Tx:     tx,
-			Type:   txType,
 			Added:  time.Now(),
 			Height: int64(order),  //todo: fix type conversion
 			Fee:    fee,
+			FeePerKB: fee * 1000 / int64(tx.Tx.SerializeSize()),
 		},
-		StartingPriority: CalcPriority(msgTx, utxoView, order),
+		StartingPriority: CalcPriority(msgTx, utxoView, order,mp.cfg.BD),
 	}
 	for _, txIn := range msgTx.TxIn {
 		mp.outpoints[txIn.PreviousOut] = tx
@@ -216,7 +216,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	// A standalone transaction must not be a coinbase transaction.
-	if tx.Tx.IsCoinBaseTx() {
+	if tx.Tx.IsCoinBase() {
 		str := fmt.Sprintf("transaction %v is an individual coinbase",
 			txHash)
 		return nil, txRuleError(message.RejectInvalid, str)
@@ -296,40 +296,30 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 
 	// Don't allow the transaction if it exists in the main chain and is not
 	// not already fully spent.
-	txEntry := utxoView.LookupEntry(txHash)
-	if txEntry != nil && !txEntry.IsFullySpent() {
-		return nil, txRuleError(message.RejectDuplicate,
-			"transaction already exists")
+	prevOut := types.TxOutPoint{Hash: *txHash}
+	for txOutIdx := range tx.Tx.TxOut {
+		prevOut.OutIndex = uint32(txOutIdx)
+		entry := utxoView.LookupEntry(prevOut)
+		if entry != nil && !entry.IsSpent() {
+			return nil, txRuleError(message.RejectDuplicate,
+				"transaction already exists")
+		}
+		utxoView.RemoveEntry(prevOut)
 	}
-	delete(utxoView.Entries(), *txHash)
 
 	// Transaction is an orphan if any of the inputs don't exist.
 	var missingParents []*hash.Hash
 	for _, txIn := range msgTx.TxIn {
 
 		log.Trace("Looking up UTXO", "txIn",txIn,"PrevOutput",&txIn.PreviousOut.Hash)
-		entry := utxoView.LookupEntry(&txIn.PreviousOut.Hash)
-		if entry == nil || entry.IsFullySpent() {
+		entry := utxoView.LookupEntry(txIn.PreviousOut)
+		if entry == nil || entry.IsSpent() {
 			// Must make a copy of the hash here since the iterator
 			// is replaced and taking its address directly would
 			// result in all of the entries pointing to the same
 			// memory location and thus all be the final hash.
 			hashCopy := txIn.PreviousOut.Hash
 			missingParents = append(missingParents, &hashCopy)
-
-			// Prevent a panic in the logger by continuing here if the
-			// transaction input is nil.
-			if entry == nil {
-				log.Trace(fmt.Sprintf("Transaction %v uses unknown input %v "+
-					"and will be considered an orphan", txHash,
-					txIn.PreviousOut.Hash))
-				continue
-			}
-			if entry.IsFullySpent() {
-				log.Trace(fmt.Sprintf("Transaction %v uses full spent input %v "+
-					"and will be considered an orphan", txHash,
-					txIn.PreviousOut.Hash))
-			}
 		}
 	}
 
@@ -358,8 +348,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Also returns the fees associated with the transaction which will be
 	// used later.  The fraud proof is not checked because it will be
 	// filled in by the miner.
-	txFee, err := blockchain.CheckTransactionInputs(mp.cfg.SubsidyCache,
-		tx, int64(nextBlockOrder), utxoView, false, mp.cfg.ChainParams) //TODO fix type conversion
+	txFee, err := blockchain.CheckTransactionInputs(tx, int64(nextBlockOrder), utxoView, mp.cfg.ChainParams,mp.cfg.BD) //TODO fix type conversion
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
 			return nil, chainRuleError(cerr)
@@ -402,7 +391,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, err
 	}
 
-	numSigOps += blockchain.CountSigOps(tx, false)
+	numSigOps += blockchain.CountSigOps(tx)
 	if numSigOps > mp.cfg.Policy.MaxSigOpsPerTx {
 		str := fmt.Sprintf("transaction %v has too many sigops: %d > %d",
 			txHash, numSigOps, mp.cfg.Policy.MaxSigOpsPerTx)
@@ -432,7 +421,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		txType == types.TxTypeRegular {
 
 		currentPriority := CalcPriority(msgTx, utxoView,
-			nextBlockOrder)
+			nextBlockOrder,mp.cfg.BD)
 		if currentPriority <= MinHighPriority {
 			str := fmt.Sprintf("transaction %v has insufficient "+
 				"priority (%g <= %g)", txHash,
@@ -516,19 +505,22 @@ func (mp *TxPool) fetchInputUtxos(tx *types.Tx) (*blockchain.UtxoViewpoint, erro
 	}
 
 	// Attempt to populate any missing inputs from the transaction pool.
-	for originHash, entry := range utxoView.Entries() {
-		if entry != nil && !entry.IsFullySpent() {
+	for _, txIn := range tx.Tx.TxIn {
+		prevOut := &txIn.PreviousOut
+		entry := utxoView.LookupEntry(*prevOut)
+		if entry != nil && !entry.IsSpent() {
 			continue
 		}
 
-		if poolTxDesc, exists := mp.pool[originHash]; exists {
-			utxoView.AddTxOuts(poolTxDesc.Tx, UnminedHeight,
-				types.NullTxIndex)
+		if poolTxDesc, exists := mp.pool[prevOut.Hash]; exists {
+			// AddTxOut ignores out of range index values, so it is
+			// safe to call without bounds checking here.
+			utxoView.AddTxOut(poolTxDesc.Tx, prevOut.OutIndex,&hash.ZeroHash)
 		}
 	}
+
 	return utxoView, nil
 }
-
 // ProcessTransaction is the main workhorse for handling insertion of new
 // free-standing transactions into the memory pool.  It includes functionality
 // such as rejecting duplicate transactions, ensuring transactions follow all

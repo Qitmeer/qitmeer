@@ -431,13 +431,18 @@ func (b *BlockManager) haveInventory(invVect *message.InvVect) (bool, error) {
 			return true, nil
 		}
 
-		// Check if the transaction exists from the point of view of the
-		// end of the main chain.
-		entry, err := b.chain.FetchUtxoEntry(&invVect.Hash)
-		if err != nil {
-			return false, err
+		prevOut := types.TxOutPoint{Hash: invVect.Hash}
+		for i := uint32(0); i < 2; i++ {
+			prevOut.OutIndex = i
+			entry, err := b.chain.FetchUtxoEntry(prevOut)
+			if err != nil {
+				return false, err
+			}
+			if entry != nil && !entry.IsSpent() {
+				return true, nil
+			}
 		}
-		return entry != nil && !entry.IsFullySpent(), nil
+		return false, nil
 	}
 
 	// The requested inventory is is an unsupported type, so just claim
@@ -550,7 +555,6 @@ out:
 				_, isOrphan, err := b.chain.ProcessBlock(
 					msg.block, msg.flags)
 				if err != nil {
-					b.chain.GetTxManager().RemoveInvalidTx(msg.block.Hash())
 					msg.reply <- processBlockResponse{
 						isOrphan: isOrphan,
 						err:      err,
