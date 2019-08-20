@@ -18,7 +18,6 @@ import (
 	"github.com/HalalChain/qitmeer-lib/rpc"
 	"github.com/HalalChain/qitmeer/database"
 	"github.com/HalalChain/qitmeer/services/mempool"
-	"strconv"
 )
 
 func (tm *TxManager) APIs() []rpc.API {
@@ -1003,9 +1002,4 @@ func (api *PublicTxAPI) fetchInputTxos(tx *message.MsgTx) (map[types.TxOutPoint]
 	}
 
 	return originOutputs, nil
-}
-
-// IsInvalidTx
-func (api *PublicTxAPI) IsInvalidTx(h hash.Hash) (interface{}, error) {
-	return strconv.FormatBool(api.txManager.IsInvalidTx(&h)),nil
 }

@@ -905,7 +905,6 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		stxos := []SpentTxOut{}
 		err := b.checkConnectBlock(node, block, view, &stxos)
 		if err != nil {
-			b.txManager.RemoveInvalidTx(block.Hash())
 			return false, err
 		}
 		// In the fast add case the code to check the block connection
@@ -916,7 +915,6 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// Connect the block to the main chain.
 		err = b.connectBlock(node, block, view, stxos)
 		if err != nil {
-			b.txManager.RemoveInvalidTx(block.Hash())
 			return false, err
 		}
 		// TODO, validating previous block
@@ -1132,8 +1130,6 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	// Prune fully spent entries and mark all entries in the view unmodified
 	// now that the modifications have been committed to the database.
 	view.commit()
-
-	b.txManager.RemoveInvalidTx(&node.hash)
 
 	return nil
 }
