@@ -1,18 +1,18 @@
 package tx
 
 import (
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/config"
-	"github.com/HalalChain/qitmeer-lib/core/dag"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/engine/txscript"
-	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer/node/notify"
-	"github.com/HalalChain/qitmeer/services/blkmgr"
-	"github.com/HalalChain/qitmeer/services/common"
-	"github.com/HalalChain/qitmeer/services/index"
-	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/config"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/node/notify"
+	"github.com/Qitmeer/qitmeer/services/blkmgr"
+	"github.com/Qitmeer/qitmeer/services/common"
+	"github.com/Qitmeer/qitmeer/services/index"
+	"github.com/Qitmeer/qitmeer/services/mempool"
 	"time"
 )
 

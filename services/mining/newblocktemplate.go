@@ -3,17 +3,17 @@ package mining
 import (
 	"container/heap"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/core/protocol"
-	s "github.com/HalalChain/qitmeer-lib/core/serialization"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/engine/txscript"
-	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer-lib/params"
-	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/core/merkle"
-	"github.com/HalalChain/qitmeer/services/blkmgr"
-	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/protocol"
+	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/merkle"
+	"github.com/Qitmeer/qitmeer/services/blkmgr"
+	"github.com/Qitmeer/qitmeer/services/mempool"
 )
 
 

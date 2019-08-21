@@ -4,11 +4,11 @@ package blockchain
 import (
 	"bytes"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer/core/blockdag"
-	"github.com/HalalChain/qitmeer/core/dbnamespace"
-	"github.com/HalalChain/qitmeer/database"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/database"
 	"math/big"
 	"time"
 )

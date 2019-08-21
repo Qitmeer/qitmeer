@@ -3,7 +3,7 @@
 package blkmgr
 
 import (
-	l "github.com/HalalChain/qitmeer-lib/log"
+	l "github.com/Qitmeer/qitmeer-lib/log"
 )
 
 // log is a logger that is initialized with no output filters.  This

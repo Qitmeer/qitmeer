@@ -2,11 +2,11 @@
 package blockchain
 
 import (
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/common/util"
-	"github.com/HalalChain/qitmeer-lib/core/dag"
-	"github.com/HalalChain/qitmeer/core/merkle"
-	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/common/util"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/core/merkle"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
 	"math/big"
 	"sort"
 	"time"

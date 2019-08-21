@@ -15,7 +15,7 @@ golangci-lint run -v --deadline=2m --disable-all --enable=govet --tests=false --
 linter_targets=$(go list ./...) && \
 go test $linter_targets
 
-if [[ $TRAVIS_PULL_REQUEST != 'false' || $TRAVIS_REPO_SLUG != 'HalalChain/qitmeer' || $TRAVIS_BRANCH != 'master' ]];
+if [[ $TRAVIS_PULL_REQUEST != 'false' || $TRAVIS_REPO_SLUG != 'Qitmeer/qitmeer' || $TRAVIS_BRANCH != 'master' ]];
 then
     exit 0
 fi

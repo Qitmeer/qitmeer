@@ -1,8 +1,8 @@
 package mempool
 
 import (
-	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer-lib/rpc"
 	"sort"
 )
 

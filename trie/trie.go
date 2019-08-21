@@ -21,9 +21,9 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer/metrics"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/metrics"
 )
 
 var (

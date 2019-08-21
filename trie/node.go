@@ -19,8 +19,8 @@ package trie
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/encode/rlp"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/common/encode/rlp"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"io"
 	"strings"
 

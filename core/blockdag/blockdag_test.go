@@ -3,12 +3,12 @@ package blockdag
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"io"
 	"math/rand"
 	"os"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	l "github.com/HalalChain/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	l "github.com/Qitmeer/qitmeer-lib/log"
 	"time"
 )
 

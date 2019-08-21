@@ -2,8 +2,8 @@ package blkmgr
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
-	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/Qitmeer/qitmeer-lib/params/dcr/types"
+	"github.com/Qitmeer/qitmeer/services/mempool"
 )
 
 const (

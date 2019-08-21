@@ -2,10 +2,10 @@
 package node
 
 import (
-	"github.com/HalalChain/qitmeer-lib/config"
-	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer-lib/rpc"
-	"github.com/HalalChain/qitmeer/p2p/peerserver"
+	"github.com/Qitmeer/qitmeer-lib/config"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/p2p/peerserver"
 )
 
 // QitmeerLight implements the qitmeer light node service.

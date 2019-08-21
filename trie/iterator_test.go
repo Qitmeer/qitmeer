@@ -20,9 +20,9 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/common/util"
-	"github.com/HalalChain/qitmeer/database/statedb"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/common/util"
+	"github.com/Qitmeer/qitmeer/database/statedb"
 	"math/rand"
 	"testing"
 )

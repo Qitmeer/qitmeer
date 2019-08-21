@@ -8,8 +8,8 @@ package blockchain
 import (
 	"fmt"
 	"time"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
 )
 
 // BehaviorFlags is a bitmask defining tweaks to the normal behavior when

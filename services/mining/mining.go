@@ -7,12 +7,12 @@
 package mining
 
 import (
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	s "github.com/HalalChain/qitmeer-lib/core/serialization"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/engine/txscript"
-	"github.com/HalalChain/qitmeer-lib/params"
-	"github.com/HalalChain/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"time"
 )
 

@@ -8,10 +8,10 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/engine/txscript"
-	"github.com/HalalChain/qitmeer/core/blockdag"
-	"github.com/HalalChain/qitmeer/database"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/database"
 	"math"
 	"time"
 )

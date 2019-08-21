@@ -2,8 +2,8 @@ package blockdag
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"strconv"
 	"testing"
 )

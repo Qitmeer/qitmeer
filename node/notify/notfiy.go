@@ -1,8 +1,8 @@
 package notify
 
 import (
-	"github.com/HalalChain/qitmeer-lib/core/message"
-	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/core/message"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
 )
 
 // Notify interface manage message announce & relay & notification between mempool, websocket, gbt long pull

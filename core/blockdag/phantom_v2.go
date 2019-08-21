@@ -3,9 +3,9 @@ package blockdag
 import (
 	"container/list"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/core/dag"
-	"github.com/HalalChain/qitmeer/core/blockdag/anticone"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
 )
 
 type Phantom_v2 struct {

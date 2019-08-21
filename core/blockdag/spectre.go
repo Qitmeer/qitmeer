@@ -2,10 +2,10 @@ package blockdag
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"github.com/golang-collections/collections/stack"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/common/util"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/common/util"
 	"strconv"
 	"container/list"
 )

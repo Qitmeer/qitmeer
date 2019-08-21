@@ -1,9 +1,9 @@
 package blockchain
 
 import (
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/core/dag"
-	"github.com/HalalChain/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 )
 
 // BlockLocator is used to help locate a specific block.  The algorithm for

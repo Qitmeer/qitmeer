@@ -6,10 +6,10 @@
 package mempool
 
 import (
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 )
 
 // minInt is a helper function to return the minimum of two ints.  This avoids

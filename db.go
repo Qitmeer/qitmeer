@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer/database"
+	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/database"
 	"os"
 	"path/filepath"
 )

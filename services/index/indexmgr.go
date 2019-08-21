@@ -5,15 +5,15 @@ package index
 import (
 	"bytes"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/common/math"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer-lib/params"
-	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/core/dbnamespace"
-	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer/services/common/progresslog"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/common/math"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/services/common/progresslog"
 )
 
 // Manager defines an index manager that manages multiple optional indexes and

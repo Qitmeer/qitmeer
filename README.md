@@ -8,7 +8,7 @@ The guardian of trust. The core network of the Halachain
 
 ## Installation
 ### Binary archives
-* Binary archives are published at [releases](https://github.com/HalalChain/qitmeer/releases "releases").
+* Binary archives are published at [releases](https://github.com/Qitmeer/qitmeer/releases "releases").
 
 
 ### How to build
@@ -25,7 +25,7 @@ go version go1.12 darwin/amd64
 ```bash
 ~ mkdir -p /tmp/work
 ~ cd /tmp/work
-~ git clone https://github.com/HalalChain/qitmeer.git
+~ git clone https://github.com/Qitmeer/qitmeer.git
 ~ cd qitmeer
 ~ go build
 ~ ./qitmeerd --version
@@ -57,6 +57,6 @@ replace (
 
 ## qitmeer-cli
 
-[qitmeer rpc tools](https://github.com/HalalChain/qitmeer-cli)
+[qitmeer rpc tools](https://github.com/Qitmeer/qitmeer-cli)
 
 **happy hacking!**

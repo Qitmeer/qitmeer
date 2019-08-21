@@ -6,12 +6,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/config"
-	"github.com/HalalChain/qitmeer-lib/log"
-	_ "github.com/HalalChain/qitmeer/database/ffldb"
-	"github.com/HalalChain/qitmeer/node"
-	"github.com/HalalChain/qitmeer/services/index"
-	"github.com/HalalChain/qitmeer/version"
+	"github.com/Qitmeer/qitmeer-lib/config"
+	"github.com/Qitmeer/qitmeer-lib/log"
+	_ "github.com/Qitmeer/qitmeer/database/ffldb"
+	"github.com/Qitmeer/qitmeer/node"
+	"github.com/Qitmeer/qitmeer/services/index"
+	"github.com/Qitmeer/qitmeer/version"
 	"os"
 	"runtime"
 	"runtime/debug"

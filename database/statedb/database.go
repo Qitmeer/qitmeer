@@ -18,8 +18,8 @@
 package statedb
 
 import (
-	"github.com/HalalChain/qitmeer-lib/log"
-	"github.com/HalalChain/qitmeer/metrics"
+	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/metrics"
 	"strconv"
 	"strings"
 	"sync"

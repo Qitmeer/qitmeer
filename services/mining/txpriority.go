@@ -2,8 +2,8 @@ package mining
 
 import (
 	"container/heap"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
 )
 
 // txPrioItem houses a transaction along with extra information that allows the
