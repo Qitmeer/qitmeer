@@ -6,14 +6,14 @@ package core
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/encode/base58"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/crypto/bip32"
-	"github.com/HalalChain/qitmeer-lib/crypto/bip39"
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
-	"github.com/HalalChain/qitmeer-lib/crypto/seed"
-	"github.com/HalalChain/qitmeer-lib/qx"
-	"github.com/HalalChain/qitmeer-lib/wallet"
+	"github.com/Qitmeer/qitmeer-lib/common/encode/base58"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/crypto/bip32"
+	"github.com/Qitmeer/qitmeer-lib/crypto/bip39"
+	"github.com/Qitmeer/qitmeer-lib/crypto/ecc"
+	"github.com/Qitmeer/qitmeer-lib/crypto/seed"
+	"github.com/Qitmeer/qitmeer-lib/qx"
+	"github.com/Qitmeer/qitmeer-lib/wallet"
 	"strconv"
 )
 

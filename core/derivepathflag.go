@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 package core
 
-import "github.com/HalalChain/qitmeer-lib/wallet"
+import "github.com/Qitmeer/qitmeer-lib/wallet"
 
 type DerivePathFlag struct {
 	Path wallet.DerivationPath

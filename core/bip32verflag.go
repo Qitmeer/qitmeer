@@ -5,8 +5,8 @@ package core
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/crypto/bip32"
-	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer-lib/crypto/bip32"
+	"github.com/Qitmeer/qitmeer-lib/params"
 )
 
 var (
