@@ -4,8 +4,8 @@ set -e
 cd ./../../../
 
 project_name="qitmeer"
-image_name="halalchain/qitmeer"
-baseimage_name="halalchain/golang:1.12.5-alpine3.9"
+image_name="qitmeer/qitmeerd"
+baseimage_name="qitmeer/golang:1.12.5-alpine3.9"
 
 docker pull $baseimage_name
 
