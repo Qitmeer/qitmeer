@@ -9,7 +9,7 @@ package base58_test
 import (
 	"testing"
 
-	"github.com/HalalChain/qitmeer-lib/common/encode/base58"
+	"github.com/Qitmeer/qitmeer-lib/common/encode/base58"
 )
 
 var checkEncodingStringTests = []struct {

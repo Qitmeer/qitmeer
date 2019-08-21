@@ -6,7 +6,7 @@
 package dcr
 
 import (
-	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
+	"github.com/Qitmeer/qitmeer-lib/params/dcr/types"
 	"time"
 
 )

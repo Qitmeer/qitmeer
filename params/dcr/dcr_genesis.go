@@ -7,8 +7,8 @@ package dcr
 
 import (
 	"time"
-	"github.com/HalalChain/qitmeer-lib/params/dcr/types"
-	chainhash "github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/params/dcr/types"
+	chainhash "github.com/Qitmeer/qitmeer-lib/common/hash"
 )
 
 // MainNet ------------------------------------------------------------------------

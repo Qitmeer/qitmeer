@@ -2,7 +2,7 @@ package message
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
 	"strings"
 	"time"
 )

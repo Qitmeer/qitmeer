@@ -16,8 +16,8 @@ import (
 	"math/big"
 
 
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc/ed25519/internal"
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc/ed25519/internal/edwards25519"
+	"github.com/Qitmeer/qitmeer-lib/crypto/ecc/ed25519/internal"
+	"github.com/Qitmeer/qitmeer-lib/crypto/ecc/ed25519/internal/edwards25519"
 )
 
 // BIG CAVEAT

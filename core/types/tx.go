@@ -3,10 +3,10 @@
 package types
 
 import (
-	"github.com/HalalChain/qitmeer-lib/common/math"
+	"github.com/Qitmeer/qitmeer-lib/common/math"
 	"io"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	s "github.com/HalalChain/qitmeer-lib/core/serialization"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
 	"fmt"
 	"bytes"
 	"encoding/binary"

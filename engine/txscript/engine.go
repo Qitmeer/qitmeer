@@ -8,10 +8,10 @@ package txscript
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/params/btc/types"
+	"github.com/Qitmeer/qitmeer-lib/params/btc/types"
 	"math/big"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/crypto/ecc"
 )
 
 // ScriptFlags is a bitmask defining additional operations or tests that will be

@@ -1,6 +1,6 @@
 package dag
 
-import "github.com/HalalChain/qitmeer-lib/common/hash"
+import "github.com/Qitmeer/qitmeer-lib/common/hash"
 
 // HashList is used to sort hash list
 type HashList []*hash.Hash

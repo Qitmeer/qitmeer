@@ -3,10 +3,10 @@ package serialization
 
 import (
 	"io"
-	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	"encoding/binary"
 	"time"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
 )
 
 // ReadElements reads multiple items from r.  It is equivalent to multiple

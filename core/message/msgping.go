@@ -7,7 +7,7 @@ package message
 
 import (
 	"io"
-	s "github.com/HalalChain/qitmeer-lib/core/serialization"
+	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
 )
 
 // MsgPing implements the Message interface and represents a ping message.

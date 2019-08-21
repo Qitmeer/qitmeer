@@ -9,8 +9,8 @@ package params
 import (
 	"time"
 	"math/big"
-	"github.com/HalalChain/qitmeer-lib/common"
-	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/Qitmeer/qitmeer-lib/common"
+	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 )
 
 // mainPowLimit is the highest proof of work value a block can

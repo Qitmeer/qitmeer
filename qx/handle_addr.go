@@ -2,9 +2,9 @@ package qx
 
 import (
 	"encoding/hex"
-	"github.com/HalalChain/qitmeer-lib/common/encode/base58"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer-lib/common/encode/base58"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/params"
 )
 
 func EcPubKeyToAddress(version string, pubkey string) (string, error) {

@@ -9,13 +9,13 @@ package types
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/HalalChain/qitmeer-lib/common/network"
-	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/Qitmeer/qitmeer-lib/common/network"
+	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	"io"
 	"net"
 	"strconv"
 	"time"
-	s "github.com/HalalChain/qitmeer-lib/core/serialization"
+	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
 )
 
 // ErrInvalidNetAddr describes an error that indicates the caller didn't specify

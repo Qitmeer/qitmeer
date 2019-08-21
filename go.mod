@@ -1,4 +1,4 @@
-module github.com/HalalChain/qitmeer-lib
+module github.com/Qitmeer/qitmeer-lib
 
 go 1.12
 
