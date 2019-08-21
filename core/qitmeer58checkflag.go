@@ -5,7 +5,7 @@ package core
 
 import (
 	"encoding/hex"
-	"github.com/HalalChain/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer-lib/params"
 )
 
 type QitmeerBase58checkVersionFlag struct {

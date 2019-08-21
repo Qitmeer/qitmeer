@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/encode/base58"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/common/hash/btc"
-	"github.com/HalalChain/qitmeer-lib/core/serialization"
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc/secp256k1"
+	"github.com/Qitmeer/qitmeer-lib/common/encode/base58"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/common/hash/btc"
+	"github.com/Qitmeer/qitmeer-lib/core/serialization"
+	"github.com/Qitmeer/qitmeer-lib/crypto/ecc"
+	"github.com/Qitmeer/qitmeer-lib/crypto/ecc/secp256k1"
 	"reflect"
 )
 
