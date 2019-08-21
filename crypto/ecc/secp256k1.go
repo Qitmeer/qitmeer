@@ -11,7 +11,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc/secp256k1"
+	"github.com/Qitmeer/qitmeer-lib/crypto/ecc/secp256k1"
 )
 
 type secp256k1DSA struct {

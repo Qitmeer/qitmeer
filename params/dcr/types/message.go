@@ -11,7 +11,7 @@ import (
 	"io"
 	"unicode/utf8"
 
-	chainhash "github.com/HalalChain/qitmeer-lib/common/hash"
+	chainhash "github.com/Qitmeer/qitmeer-lib/common/hash"
 )
 
 // MessageHeaderSize is the number of bytes in a Decred message header.

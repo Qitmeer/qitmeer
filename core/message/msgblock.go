@@ -8,7 +8,7 @@ package message
 
 import (
 	"bytes"
-	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
 	"io"
 )
 

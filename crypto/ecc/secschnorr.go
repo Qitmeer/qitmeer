@@ -10,8 +10,8 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc/secp256k1"
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc/schnorr"
+	"github.com/Qitmeer/qitmeer-lib/crypto/ecc/secp256k1"
+	"github.com/Qitmeer/qitmeer-lib/crypto/ecc/schnorr"
 )
 
 type secSchnorrDSA struct {

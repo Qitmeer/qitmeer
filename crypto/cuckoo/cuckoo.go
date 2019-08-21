@@ -2,7 +2,7 @@ package cuckoo
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/crypto/cuckoo/siphash"
+	"github.com/Qitmeer/qitmeer-lib/crypto/cuckoo/siphash"
 	"github.com/pkg/errors"
 	"runtime"
 	"sort"

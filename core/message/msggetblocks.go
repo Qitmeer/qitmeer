@@ -8,11 +8,11 @@ package message
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/core/dag"
-	"github.com/HalalChain/qitmeer-lib/core/protocol"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	"io"
-	s "github.com/HalalChain/qitmeer-lib/core/serialization"
+	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
 
 )
 

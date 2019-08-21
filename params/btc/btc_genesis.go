@@ -8,8 +8,8 @@ package btc
 import (
 	"time"
 
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
 )
 
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for

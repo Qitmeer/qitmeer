@@ -8,9 +8,9 @@ package base58
 
 import (
 	"errors"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/common/hash/btc"
-	"github.com/HalalChain/qitmeer-lib/common/hash/dcr"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/common/hash/btc"
+	"github.com/Qitmeer/qitmeer-lib/common/hash/dcr"
 	"reflect"
 )
 

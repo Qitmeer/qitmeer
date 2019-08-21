@@ -1,7 +1,7 @@
 package dcr
 
 import (
-	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/dchest/blake256"
 )
 

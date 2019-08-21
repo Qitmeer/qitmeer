@@ -1,7 +1,7 @@
 package params
 
 import (
-	"github.com/HalalChain/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
 )
 
 // TokenPayout is a payout for block 1 which specifies an address and an amount

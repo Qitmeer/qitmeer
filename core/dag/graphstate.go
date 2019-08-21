@@ -2,8 +2,8 @@ package dag
 
 import (
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	s "github.com/HalalChain/qitmeer-lib/core/serialization"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
 	"io"
 )
 

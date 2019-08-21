@@ -16,11 +16,11 @@ import (
 	hhash "hash"
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/HalalChain/qitmeer-lib/params"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/crypto/ecc"
-	"github.com/HalalChain/qitmeer-lib/common/hash/btc"
+	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/crypto/ecc"
+	"github.com/Qitmeer/qitmeer-lib/common/hash/btc"
 )
 
 var optimizeSigVerification = params.SigHashOptimization
