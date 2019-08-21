@@ -5,13 +5,13 @@ package blkmgr
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer-lib/core/json"
-	"github.com/HalalChain/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer-lib/core/json"
+	"github.com/Qitmeer/qitmeer-lib/rpc"
 	"fmt"
-	"github.com/HalalChain/qitmeer-lib/common/marshal"
+	"github.com/Qitmeer/qitmeer-lib/common/marshal"
 	"strconv"
 )
 

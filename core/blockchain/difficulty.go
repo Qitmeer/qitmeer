@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"time"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
 )
 
 var (

@@ -2,22 +2,22 @@
 package node
 
 import (
-	"github.com/HalalChain/qitmeer-lib/engine/txscript"
-	"github.com/HalalChain/qitmeer-lib/params"
-	"github.com/HalalChain/qitmeer-lib/rpc"
-	"github.com/HalalChain/qitmeer/core/blockchain"
-	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer/node/notify"
-	"github.com/HalalChain/qitmeer/p2p/peerserver"
-	"github.com/HalalChain/qitmeer/services/acct"
-	"github.com/HalalChain/qitmeer/services/blkmgr"
-	"github.com/HalalChain/qitmeer/services/common"
-	"github.com/HalalChain/qitmeer/services/index"
-	"github.com/HalalChain/qitmeer/services/mempool"
-	"github.com/HalalChain/qitmeer/services/miner"
-	"github.com/HalalChain/qitmeer/services/mining"
-	"github.com/HalalChain/qitmeer/services/notifymgr"
-	"github.com/HalalChain/qitmeer/services/tx"
+	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/node/notify"
+	"github.com/Qitmeer/qitmeer/p2p/peerserver"
+	"github.com/Qitmeer/qitmeer/services/acct"
+	"github.com/Qitmeer/qitmeer/services/blkmgr"
+	"github.com/Qitmeer/qitmeer/services/common"
+	"github.com/Qitmeer/qitmeer/services/index"
+	"github.com/Qitmeer/qitmeer/services/mempool"
+	"github.com/Qitmeer/qitmeer/services/miner"
+	"github.com/Qitmeer/qitmeer/services/mining"
+	"github.com/Qitmeer/qitmeer/services/notifymgr"
+	"github.com/Qitmeer/qitmeer/services/tx"
 )
 
 // QitmeerFull implements the qitmeer full node service.

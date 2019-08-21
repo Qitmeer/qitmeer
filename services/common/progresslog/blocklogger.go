@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	"github.com/HalalChain/qitmeer-lib/core/types"
-	"github.com/HalalChain/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/log"
 )
 
 // BlockProgressLogger provides periodic logging for other services in order

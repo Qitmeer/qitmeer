@@ -18,9 +18,9 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"github.com/HalalChain/qitmeer/database"
-	"github.com/HalalChain/qitmeer-lib/core/protocol"
-	"github.com/HalalChain/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer-lib/core/protocol"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
 )
 
 const (

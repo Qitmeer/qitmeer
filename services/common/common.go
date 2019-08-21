@@ -1,8 +1,8 @@
 package common
 
 import (
-	"github.com/HalalChain/qitmeer-lib/engine/txscript"
-	"github.com/HalalChain/qitmeer/services/mempool"
+	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer/services/mempool"
 )
 
 // standardScriptVerifyFlags returns the script flags that should be used when
