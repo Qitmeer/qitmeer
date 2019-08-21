@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/crypto/seed"
 	"github.com/Qitmeer/qitmeer-lib/wallet"
-	"github.com/HalalChain/qx/core"
+	"github.com/Qitmeer/qx/core"
 	"io/ioutil"
 	"os"
 	"strings"

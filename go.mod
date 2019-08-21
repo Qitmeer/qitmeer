@@ -1,4 +1,4 @@
-module github.com/HalalChain/qx
+module github.com/Qitmeer/qx
 
 go 1.12
 
