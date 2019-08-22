@@ -361,7 +361,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 	txIndex := make(map[hash.Hash]int64, numTx)
 	for i, tx := range template.Block.Transactions {
 		//txHash := tx.TxHash()
-		txHash := tx.TxHashFull()
+		txHash := tx.TxHash()
 		txIndex[txHash] = int64(i)
 
 		// Skip the coinbase transaction.
@@ -387,7 +387,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 		}
 
 		// Serialize the transaction for later conversion to hex.
-		txBuf, err := tx.Serialize(types.TxSerializeFull)
+		txBuf, err := tx.Serialize()
 		if err != nil {
 			context := "Failed to serialize transaction"
 			m.Lock()
@@ -474,7 +474,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 		}
 		// Serialize the transaction for conversion to hex.
 		tx := msgBlock.Transactions[0]
-		txBuf, err := tx.Serialize(types.TxSerializeFull)
+		txBuf, err := tx.Serialize()
 		if err != nil {
 			context := "Failed to serialize transaction"
 			return nil, rpc.RpcInvalidError("%s %s",err.Error(), context)

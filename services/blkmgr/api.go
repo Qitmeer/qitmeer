@@ -105,8 +105,8 @@ func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool) (json.Orde
 		children=cs.List()
 	}
 	//TODO, refactor marshal api
-
-	fields, err := marshal.MarshalJsonBlock(block, true, fullTx, api.bm.params, int64(confirmations),children)
+	fields, err := marshal.MarshalJsonBlock(block, true, fullTx, api.bm.params, int64(confirmations),children,
+		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid())
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,8 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 		children=cs.List()
 	}
 	//TODO, refactor marshal api
-	fields, err := marshal.MarshalJsonBlock(blk, true, verbose, api.bm.params, confirmations,children)
+	fields, err := marshal.MarshalJsonBlock(blk, true, verbose, api.bm.params, confirmations,children,
+		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid())
 	if err != nil {
 		return nil, err
 	}
