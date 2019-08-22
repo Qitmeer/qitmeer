@@ -97,11 +97,8 @@ func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool) (json.Orde
 	}
 	// Update the source block order
 	block.SetOrder(node.GetOrder())
-
-	best := api.bm.chain.BestSnapshot()
-
 	// Get next block hash unless there are none.
-	confirmations := int64(best.GraphState.GetTotal()) - int64(order)
+	confirmations := api.bm.chain.BlockDAG().GetConfirmations(block.Hash())
 	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
 	if cs!=nil {
@@ -109,7 +106,7 @@ func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool) (json.Orde
 	}
 	//TODO, refactor marshal api
 
-	fields, err := marshal.MarshalJsonBlock(block, true, fullTx, api.bm.params, confirmations,children)
+	fields, err := marshal.MarshalJsonBlock(block, true, fullTx, api.bm.params, int64(confirmations),children)
 	if err != nil {
 		return nil, err
 	}
@@ -143,11 +140,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 		}
 		return hex.EncodeToString(blkBytes), nil
 	}
-	best := api.bm.chain.BestSnapshot()
-
-	//blockHeader := &blk.Block().Header
-	order := blk.Order()
-	confirmations := int64(best.GraphState.GetTotal()) - int64(order)
+	confirmations := int64(api.bm.chain.BlockDAG().GetConfirmations(&h))
 	cs:=node.GetChildren()
 	children:=[]*hash.Hash{}
 	if cs!=nil {
@@ -197,17 +190,9 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 		}
 		return hex.EncodeToString(headerBuf.Bytes()), nil
 	}
-
-	best := api.bm.chain.BestSnapshot()
 	// Get next block hash unless there are none.
-	confirmations := int64(-1)
+	confirmations := int64(api.bm.chain.BlockDAG().GetConfirmations(node.GetHash()))
 	layer := api.bm.chain.BlockDAG().GetLayer(node.GetHash())
-	if best!=nil {
-		confirmations=1+int64(best.GraphState.GetLayer()-layer)
-		if confirmations<1 {
-			confirmations=1
-		}
-	}
 	blockHeaderReply := json.GetBlockHeaderVerboseResult{
 		Hash:          hash.String(),
 		Confirmations: confirmations,

@@ -706,10 +706,11 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.Se
 		}
 	}
 
+	nodeConf:=b.bd.GetConfirmations(node.GetHash())
 	var totalFees int64
 	for idx, tx := range transactions {
 		txFee, err := CheckTransactionInputs(tx,
-			int64(node.order), utxoView,b.params,b.bd)
+			int64(nodeConf), utxoView,b.params,b.bd)
 		if err != nil {
 			return err
 		}
@@ -869,7 +870,7 @@ func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool,utxoView *UtxoViewpoint) (i
 //
 // NOTE: The transaction MUST have already been sanity checked with the
 // CheckTransactionSanity function prior to calling this function.
-func CheckTransactionInputs(tx *types.Tx, txOrder int64, utxoView *UtxoViewpoint, chainParams *params.Params,bd *blockdag.BlockDAG) (int64, error) {
+func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoViewpoint, chainParams *params.Params,bd *blockdag.BlockDAG) (int64, error) {
 	msgTx := tx.Transaction()
 
 	txHash := tx.Hash()
@@ -897,26 +898,19 @@ func CheckTransactionInputs(tx *types.Tx, txOrder int64, utxoView *UtxoViewpoint
 		// yet reached the required coinbase maturity.
 		coinbaseMaturity := int64(chainParams.CoinbaseMaturity)
 		if utxoEntry.IsCoinBase() {
-			var originOrder int64
+			var originConf int64
 			if hash.ZeroHash.IsEqual(utxoEntry.BlockHash()) {
-				originOrder=int64(bd.GetBlockTotal()-1)
+				originConf=0
 			}else{
-				block:=bd.GetBlock(utxoEntry.BlockHash())
-				if block == nil {
-					str := fmt.Sprintf("tx %v tried to spend "+
-						"coinbase transaction %v from %s",txHash,
-						txInHash, utxoEntry.BlockHash())
-					return 0,ruleError(ErrImmatureSpend, str)
-				}
-				originOrder=int64(block.GetOrder())
+				originConf=int64(bd.GetConfirmations(utxoEntry.BlockHash()))
 			}
-			blocksSincePrev := txOrder - originOrder
+			blocksSincePrev := originConf-confirmations
 			if blocksSincePrev < coinbaseMaturity {
 				str := fmt.Sprintf("tx %v tried to spend "+
-					"coinbase transaction %v from height "+
-					"%v at height %v before required "+
+					"coinbase transaction %v from "+
+					"%v at %v before required "+
 					"maturity of %v blocks", txHash,
-					txInHash, originOrder, txOrder,
+					txInHash, confirmations, originConf,
 					coinbaseMaturity)
 				return 0, ruleError(ErrImmatureSpend, str)
 			}

@@ -183,7 +183,7 @@ func createVinList(mtx *types.Transaction) []json.Vin {
 		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
 		vinEntry.Sequence = txIn.Sequence
 		vinEntry.AmountIn = types.Amount(txIn.AmountIn).ToCoin()
-		vinEntry.BlockHeight = txIn.BlockOrder
+		vinEntry.BlockOrder = txIn.BlockOrder
 		vinEntry.TxIndex = txIn.TxIndex
 		return vinList
 	}
@@ -199,7 +199,7 @@ func createVinList(mtx *types.Transaction) []json.Vin {
 		vinEntry.Vout = txIn.PreviousOut.OutIndex
 		vinEntry.Sequence = txIn.Sequence
 		vinEntry.AmountIn = types.Amount(txIn.AmountIn).ToCoin()
-		vinEntry.BlockHeight = txIn.BlockOrder
+		vinEntry.BlockOrder = txIn.BlockOrder
 		vinEntry.TxIndex = txIn.TxIndex
 		vinEntry.ScriptSig = &json.ScriptSig{
 			Asm: disbuf,
