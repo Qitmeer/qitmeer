@@ -128,12 +128,6 @@ const (
 	// TxSerializeFull indicates a transaction be serialized with the prefix
 	// and all witness data.
 	TxSerializeFull TxSerializeType = iota
-	// TxSerializeNoWitness indicates a transaction be serialized with only
-	// the prefix.
-	TxSerializeNoWitness
-	// TxSerializeOnlyWitness indicates a transaction be serialized with
-	// only the witness data.
-	TxSerializeOnlyWitness
 )
 
 type Input interface{
@@ -158,14 +152,14 @@ const (
 )
 
 type Transaction struct {
-	CachedHash *hash.Hash
 	Version   uint32
-	LockTime  uint32
-	Expire    uint32
-	Type      TxType
 	TxIn 	  []*TxInput
 	TxOut 	  []*TxOutput
+	LockTime  uint32
+	Expire    uint32
+
 	Message   []byte     //a unencrypted/encrypted message if user pay additional fee & limit the max length
+	CachedHash *hash.Hash
 }
 
 // NewMsgTx returns a new tx message that conforms to the Message interface.
@@ -238,48 +232,14 @@ func (tx *Transaction) SerializeSize() int {
 	// varint size for the number of transaction inputs (x2) and
 	// outputs. The number of inputs is added twice because it's
 	// encoded once in both the witness and the prefix.
-	n = 12 + s.VarIntSerializeSize(uint64(len(tx.TxIn))) +
-		s.VarIntSerializeSize(uint64(len(tx.TxIn))) +
+	n = 8 + s.VarIntSerializeSize(uint64(len(tx.TxIn))) +
 		s.VarIntSerializeSize(uint64(len(tx.TxOut)))
 
 	for _, txIn := range tx.TxIn {
-		n += txIn.SerializeSizePrefix()
-	}
-	for _, txIn := range tx.TxIn {
-		n += txIn.SerializeSizeWitness()
+		n += txIn.SerializeSize()
 	}
 	for _, txOut := range tx.TxOut {
 		n += txOut.SerializeSize()
-	}
-	return n
-}
-func (tx *Transaction) SerializeSizeNoWitness() int {
-	// Unknown type return 0.
-	n := 0
-	// Version 4 bytes + LockTime 4 bytes + Expiry 4 bytes +
-	// Serialized varint size for the number of transaction
-	// inputs and outputs.
-	n = 12 + s.VarIntSerializeSize(uint64(len(tx.TxIn))) +
-			s.VarIntSerializeSize(uint64(len(tx.TxOut)))
-
-	for _, txIn := range tx.TxIn {
-		n += txIn.SerializeSizePrefix()
-	}
-	for _, txOut := range tx.TxOut {
-		n += txOut.SerializeSize()
-	}
-	return n
-}
-func (tx *Transaction) SerializeSizeOnlyWitness() int {
-	// Unknown type return 0.
-	n := 0
-
-	// Version 4 bytes + Serialized varint size for the
-	// number of transaction signatures.
-	n = 4 + s.VarIntSerializeSize(uint64(len(tx.TxIn)))
-
-	for _, txIn := range tx.TxIn {
-		n += txIn.SerializeSizeWitness()
 	}
 	return n
 }
@@ -287,72 +247,105 @@ func (tx *Transaction) SerializeSizeOnlyWitness() int {
 // mustSerialize returns the serialization of the transaction for the provided
 // serialization type without modifying the original transaction.  It will panic
 // if any errors occur.
-func (tx *Transaction) mustSerialize(serType TxSerializeType) []byte {
-	serialized, err := tx.Serialize(serType)
+func (tx *Transaction) mustSerialize() []byte {
+	serialized, err := tx.Serialize()
 	if err != nil {
-		panic(fmt.Sprintf("MsgTx failed serializing for type %v",
-			serType))
+		panic("tx failed serializing")
 	}
 	return serialized
 }
 
 // serialize returns the serialization of the transaction for the provided
 // serialization type without modifying the original transaction.
-func (tx *Transaction) Serialize(serType TxSerializeType) ([]byte, error) {
-	// Shallow copy so the serialization type can be changed without
-	// modifying the original transaction.
-	txCopy := *tx
-	switch serType {
-	case TxSerializeNoWitness:
-		buf := bytes.NewBuffer(make([]byte, 0, txCopy.SerializeSizeNoWitness()))
-		serializedVersion := uint32(txCopy.Version) | uint32(serType)<<16
-		err := s.BinarySerializer.PutUint32(buf, binary.LittleEndian, serializedVersion)
-		if err != nil {
-			return nil,err
-		}
-		err = tx.encodePrefix(buf,0)
-		if err != nil {
-			return nil,err
-		}
-		return buf.Bytes(), nil
-	case TxSerializeOnlyWitness:
-		buf := bytes.NewBuffer(make([]byte, 0, txCopy.SerializeSizeOnlyWitness()))
-		serializedVersion := uint32(txCopy.Version) | uint32(serType)<<16
-		err := s.BinarySerializer.PutUint32(buf, binary.LittleEndian, serializedVersion)
-		if err != nil {
-			return nil,err
-		}
-		err = tx.encodeWitness(buf, 0)
-		if err != nil {
-			return nil,err
-		}
-		return buf.Bytes(), nil
-	case TxSerializeFull:
-		buf := bytes.NewBuffer(make([]byte, 0, txCopy.SerializeSize()))
-		serializedVersion := uint32(txCopy.Version) | uint32(serType)<<16
-		err := s.BinarySerializer.PutUint32(buf, binary.LittleEndian, serializedVersion)
-		if err != nil {
-			return nil,err
-		}
-		err = tx.encodePrefix(buf,0)
-		if err != nil {
-			return nil,err
-		}
-		err = tx.encodeWitness(buf,0)
-		if err != nil {
-			return nil,err
-		}
-		return buf.Bytes(), nil
-	default:
-		return nil, fmt.Errorf("unknown TxSerializeType")
+func (tx *Transaction) Serialize() ([]byte, error) {
+	buf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
+	err:=tx.Encode(buf,0)
+	return buf.Bytes(),err
+}
+
+
+func (tx *Transaction) Encode(w io.Writer, pver uint32) error {
+	// serialize version using Full
+	serializedVersion := uint32(tx.Version) | uint32(TxSerializeFull)<<16
+	err := s.BinarySerializer.PutUint32(w, binary.LittleEndian, serializedVersion)
+	if err != nil {
+		return err
 	}
+
+	count := uint64(len(tx.TxIn))
+	err = s.WriteVarInt(w, pver, count)
+	if err != nil {
+		return err
+	}
+
+	for _, ti := range tx.TxIn {
+		err = writeTxIn(w, pver, tx.Version, ti)
+		if err != nil {
+			return err
+		}
+	}
+
+	count = uint64(len(tx.TxOut))
+	err = s.WriteVarInt(w, pver, count)
+	if err != nil {
+		return err
+	}
+
+	for _, to := range tx.TxOut {
+		err = writeTxOut(w, pver, to)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = s.BinarySerializer.PutUint32(w, binary.LittleEndian, tx.LockTime)
+	if err != nil {
+		return err
+	}
+
+	return s.BinarySerializer.PutUint32(w, binary.LittleEndian, tx.Expire)
+}
+
+// writeTxInPrefixs encodes for a transaction input (TxIn) prefix to w.
+func writeTxIn(w io.Writer, pver uint32, version uint32, ti *TxInput) error {
+	err := WriteOutPoint(w, pver, version, &ti.PreviousOut)
+	if err != nil {
+		return err
+	}
+	err =s.WriteVarBytes(w, pver, ti.SignScript)
+	if err != nil {
+		return err
+	}
+	return s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.Sequence)
+}
+
+// WriteOutPoint encodes for an OutPoint to w.
+func WriteOutPoint(w io.Writer, pver uint32, version uint32, op *TxOutPoint) error {
+	_, err := w.Write(op.Hash[:])
+	if err != nil {
+		return err
+	}
+
+	return s.BinarySerializer.PutUint32(w, binary.LittleEndian, op.OutIndex)
+}
+
+// writeTxOut encodes for a transaction output (TxOut) to w.
+func writeTxOut(w io.Writer, pver uint32, to *TxOutput) error {
+	err := s.BinarySerializer.PutUint64(w, binary.LittleEndian, uint64(to.Amount))
+	if err != nil {
+		return err
+	}
+	return s.WriteVarBytes(w, pver, to.PkScript)
 }
 
 // Deserialize decodes a transaction from r into the receiver using a format
 // that is suitable for long-term storage such as a database while respecting
 // the Version field in the transaction.
 func (tx *Transaction) Deserialize(r io.Reader) error {
+	return tx.Decode(r,0)
+}
 
+func (tx *Transaction) Decode(r io.Reader, pver uint32) error {
 	// The serialized encoding of the version includes the real transaction
 	// version in the lower 16 bits and the transaction serialization type
 	// in the upper 16 bits.
@@ -361,7 +354,22 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 		return err
 	}
 	tx.Version = uint32(version & 0xffff)
-	serType := TxSerializeType(version >> 16)
+	//serType := TxSerializeType(version >> 16)
+
+	count, err := s.ReadVarInt(r,0)
+	if err != nil {
+		return err
+	}
+
+	// Prevent more input transactions than could possibly fit into a
+	// message.  It would be possible to cause memory exhaustion and panics
+	// without a sane upper bound on this count.
+	if count > uint64(maxTxInPerMessage) {
+		return fmt.Errorf("Tx.decodePrefix: too many input " +
+			"transactions to fit into max message size [count %d, max %d]",
+			count,
+			maxTxInPerMessage)
+	}
 
 	// returnScriptBuffers is a closure that returns any script buffers that
 	// were borrowed from the pool when there are any deserialization
@@ -382,122 +390,9 @@ func (tx *Transaction) Deserialize(r io.Reader) error {
 			scriptPool.Return(txOut.PkScript)
 		}
 	}
-	switch serType {
-	case TxSerializeFull:
-		totalScriptSizeIns, err := tx.decodePrefix(r)
-		if err != nil {
-			returnScriptBuffers()
-			return err
-		}
-		totalScriptSizeOuts, err := tx.decodeWitness(r)
-		if err != nil {
-			returnScriptBuffers()
-			return err
-		}
-		writeTxScriptsToMsgTx(tx, totalScriptSizeIns+
-			totalScriptSizeOuts, TxSerializeFull)
-	case TxSerializeNoWitness:
-		_, err := tx.decodePrefix(r)
-		if err != nil {
-			returnScriptBuffers()
-			return err
-		}
-	case TxSerializeOnlyWitness:
-		_, err := tx.decodeOnlyWitness(r)
-		if err != nil {
-			returnScriptBuffers()
-			return err
-		}
-	default:
-		return fmt.Errorf("Transaction.Deserialize : wrong transaction serializetion type [%d]",serType)
-	}
-	return nil
-}
 
-// writeTxScriptsToMsgTx allocates the memory for variable length fields in a
-// Tx TxIns, TxOuts, or both as a contiguous chunk of memory, then fills
-// in these fields for the Tx by copying to a contiguous piece of memory
-// and setting the pointer.
-//
-// NOTE: It is no longer valid to return any previously borrowed script
-// buffers after this function has run because it is already done and the
-// scripts in the transaction inputs and outputs no longer point to the
-// buffers.
-func writeTxScriptsToMsgTx(tx *Transaction, totalScriptSize uint64, serType TxSerializeType) {
-	// Create a single allocation to house all of the scripts and set each
-	// input signature scripts and output public key scripts to the
-	// appropriate subslice of the overall contiguous buffer.  Then, return
-	// each individual script buffer back to the pool so they can be reused
-	// for future deserialization.  This is done because it significantly
-	// reduces the number of allocations the garbage collector needs to track,
-	// which in turn improves performance and drastically reduces the amount
-	// of runtime overhead that would otherwise be needed to keep track of
-	// millions of small allocations.
-	//
-	// using Closures to write the TxIn and TxOut scripts because, depending
-	// on the serialization type desired, only input or output scripts may
-	// be required.
-	var offset uint64
-	scripts := make([]byte, totalScriptSize)
-	writeTxIns := func() {
-		for i := 0; i < len(tx.TxIn); i++ {
-			// Copy the signature script into the contiguous buffer at the
-			// appropriate offset.
-			signatureScript := tx.TxIn[i].SignScript
-			copy(scripts[offset:], signatureScript)
-
-			// Reset the signature script of the transaction input to the
-			// slice of the contiguous buffer where the script lives.
-			scriptSize := uint64(len(signatureScript))
-			end := offset + scriptSize
-			tx.TxIn[i].SignScript = scripts[offset:end:end]
-			offset += scriptSize
-
-			// Return the temporary script buffer to the pool.
-			scriptPool.Return(signatureScript)
-		}
-	}
-	writeTxOuts := func() {
-		for i := 0; i < len(tx.TxOut); i++ {
-			// Copy the public key script into the contiguous buffer at the
-			// appropriate offset.
-			pkScript := tx.TxOut[i].PkScript
-			copy(scripts[offset:], pkScript)
-
-			// Reset the public key script of the transaction output to the
-			// slice of the contiguous buffer where the script lives.
-			scriptSize := uint64(len(pkScript))
-			end := offset + scriptSize
-			tx.TxOut[i].PkScript = scripts[offset:end:end]
-			offset += scriptSize
-
-			// Return the temporary script buffer to the pool.
-			scriptPool.Return(pkScript)
-		}
-	}
-
-	// Handle the serialization types accordingly.
-	writeTxIns()
-	writeTxOuts()
-
-}
-
-func (tx *Transaction) decodeOnlyWitness(r io.Reader) (uint64, error) {
-	// Witness only; generate the TxIn list and fill out only the
-	// sigScripts.
+	// Deserialize the inputs.
 	var totalScriptSize uint64
-	count, err := s.ReadVarInt(r, 0)
-	if err != nil {
-		return 0, err
-	}
-	// Prevent more input transactions than could possibly fit into a
-	// message.  It would be possible to cause memory exhaustion and panics
-	// without a sane upper bound on this count.
-	if count > uint64(maxTxInPerMessage) {
-		return 0, fmt.Errorf("MsgTx.decodeWitness:too many input transactions to fit into "+
-			"max message size [count %d, max %d]", count,
-			maxTxInPerMessage)
-	}
 	txIns := make([]TxInput, count)
 	tx.TxIn = make([]*TxInput, count)
 	for i := uint64(0); i < count; i++ {
@@ -505,127 +400,18 @@ func (tx *Transaction) decodeOnlyWitness(r io.Reader) (uint64, error) {
 		// and needs to be returned to the pool on error.
 		ti := &txIns[i]
 		tx.TxIn[i] = ti
-		err = readTxInWitness(r,ti)
+		err = readTxIn(r, tx.Version, ti)
 		if err != nil {
-			return 0, err
+			returnScriptBuffers()
+			return err
 		}
 		totalScriptSize += uint64(len(ti.SignScript))
-	}
-	tx.TxOut = make([]*TxOutput, 0)
-	return totalScriptSize, nil
-
-}
-
-func (tx *Transaction) decodeWitness(r io.Reader) (uint64, error) {
-	// Witness only; generate the TxIn list and fill out only the
-	// sigScripts.
-	var totalScriptSize uint64
-
-	// We're decoding witnesses from a full transaction, so read in
-	// the number of signature scripts, check to make sure it's the
-	// same as the number of TxIns we currently have, then fill in
-	// the signature scripts.
-	count, err := s.ReadVarInt(r, 0)
-	if err != nil {
-		return 0, err
-	}
-
-	// Don't allow the deserializer to panic by accessing memory
-	// that doesn't exist.
-	if int(count) != len(tx.TxIn) {
-		return 0, fmt.Errorf("Tx.decodeWitness: non equal witness and prefix txin quantities "+
-			"(witness %v, prefix %v)", count,
-			len(tx.TxIn))
-	}
-
-	// Prevent more input transactions than could possibly fit into a
-	// message.  It would be possible to cause memory exhaustion and panics
-	// without a sane upper bound on this count.
-	if count > uint64(maxTxInPerMessage) {
-		return 0, fmt.Errorf("MsgTx.decodeWitness:too many input transactions to fit into "+
-			"max message size [count %d, max %d]", count,
-			maxTxInPerMessage)
-	}
-
-	// Read in the witnesses, and copy them into the already generated
-	// by decodePrefix TxIns.
-	txIns := make([]TxInput, count)
-	for i := uint64(0); i < count; i++ {
-		ti := &txIns[i]
-		err = readTxInWitness(r, ti)
-		if err != nil {
-			return 0, err
-		}
-		totalScriptSize += uint64(len(ti.SignScript))
-
-		tx.TxIn[i].AmountIn = ti.AmountIn
-		tx.TxIn[i].BlockOrder = ti.BlockOrder
-		tx.TxIn[i].TxIndex = ti.TxIndex
-		tx.TxIn[i].SignScript = ti.SignScript
-	}
-	return totalScriptSize, nil
-}
-
-// readTxInWitness reads the next sequence of bytes from r as a transaction input
-// (TxIn) in the transaction witness.
-func readTxInWitness(r io.Reader, ti *TxInput) error {
-	// ValueIn.
-	valueIn, err := s.BinarySerializer.Uint64(r, binary.LittleEndian)
-	if err != nil {
-		return err
-	}
-	ti.AmountIn = uint64(valueIn)
-
-	// BlockHeight.
-	ti.BlockOrder, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
-	if err != nil {
-		return err
-	}
-
-	// TxIndex.
-	ti.TxIndex, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
-	if err != nil {
-		return err
-	}
-
-	// Signature script.
-	ti.SignScript, err = readScript(r)
-	return err
-}
-
-// decodePrefix decodes a transaction prefix and stores the contents
-// in the embedded msgTx.
-func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
-
-	count, err := s.ReadVarInt(r,0)
-
-	// Prevent more input transactions than could possibly fit into a
-	// message.  It would be possible to cause memory exhaustion and panics
-	// without a sane upper bound on this count.
-	if count > uint64(maxTxInPerMessage) {
-		return 0, fmt.Errorf("Tx.decodePrefix: too many input " +
-			"transactions to fit into max message size [count %d, max %d]",
-			count,
-			maxTxInPerMessage)
-	}
-
-	// TxIns.
-	txIns := make([]TxInput, count)
-	tx.TxIn = make([]*TxInput, count)
-	for i := uint64(0); i < count; i++ {
-		// The pointer is set now in case a script buffer is borrowed
-		// and needs to be returned to the pool on error.
-		ti := &txIns[i]
-		tx.TxIn[i] = ti
-		err = readTxInPrefix(r,tx.Version, ti)
-		if err != nil {
-			return 0, err
-		}
 	}
 
 	count, err = s.ReadVarInt(r, 0)
 	if err != nil {
-		return 0, err
+		returnScriptBuffers()
+		return err
 	}
 
 	// Prevent more output transactions than could possibly fit into a
@@ -633,13 +419,13 @@ func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
 	// without a sane upper bound on this count.
 	if count > uint64(maxTxOutPerMessage) {
 
-		return 0, fmt.Errorf("Tx.decodePrefix too many output transactions" +
+		return fmt.Errorf("Tx.decodePrefix too many output transactions" +
 			" to fit into max message size [count %d, max %d]", count,
 			maxTxOutPerMessage)
 	}
 
-	// TxOuts.
-	var totalScriptSize uint64
+
+	// Deserialize the outputs.
 	txOuts := make([]TxOutput, count)
 	tx.TxOut = make([]*TxOutput, count)
 	for i := uint64(0); i < count; i++ {
@@ -649,7 +435,8 @@ func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
 		tx.TxOut[i] = to
 		err = readTxOut(r, to)
 		if err != nil {
-			return 0, err
+			returnScriptBuffers()
+			return err
 		}
 		totalScriptSize += uint64(len(to.PkScript))
 	}
@@ -657,27 +444,78 @@ func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
 	// Locktime and expiry.
 	tx.LockTime, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
 	if err != nil {
-		return 0, err
+		returnScriptBuffers()
+		return err
 	}
 
 	tx.Expire, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
 	if err != nil {
-		return 0, err
+		returnScriptBuffers()
+		return err
 	}
 
-	return totalScriptSize, nil
+	// Create a single allocation to house all of the scripts and set each
+	// input signature script and output public key script to the
+	// appropriate subslice of the overall contiguous buffer.  Then, return
+	// each individual script buffer back to the pool so they can be reused
+	// for future deserializations.  This is done because it significantly
+	// reduces the number of allocations the garbage collector needs to
+	// track, which in turn improves performance and drastically reduces the
+	// amount of runtime overhead that would otherwise be needed to keep
+	// track of millions of small allocations.
+	//
+	// NOTE: It is no longer valid to call the returnScriptBuffers closure
+	// after these blocks of code run because it is already done and the
+	// scripts in the transaction inputs and outputs no longer point to the
+	// buffers.
+	var offset uint64
+	scripts := make([]byte, totalScriptSize)
+	for i := 0; i < len(tx.TxIn); i++ {
+		// Copy the signature script into the contiguous buffer at the
+		// appropriate offset.
+		signatureScript := tx.TxIn[i].SignScript
+		copy(scripts[offset:], signatureScript)
+
+		// Reset the signature script of the transaction input to the
+		// slice of the contiguous buffer where the script lives.
+		scriptSize := uint64(len(signatureScript))
+		end := offset + scriptSize
+		tx.TxIn[i].SignScript = scripts[offset:end:end]
+		offset += scriptSize
+
+		// Return the temporary script buffer to the pool.
+		scriptPool.Return(signatureScript)
+
+	}
+	for i := 0; i < len(tx.TxOut); i++ {
+		// Copy the public key script into the contiguous buffer at the
+		// appropriate offset.
+		pkScript := tx.TxOut[i].PkScript
+		copy(scripts[offset:], pkScript)
+
+		// Reset the public key script of the transaction output to the
+		// slice of the contiguous buffer where the script lives.
+		scriptSize := uint64(len(pkScript))
+		end := offset + scriptSize
+		tx.TxOut[i].PkScript = scripts[offset:end:end]
+		offset += scriptSize
+
+		// Return the temporary script buffer to the pool.
+		scriptPool.Return(pkScript)
+	}
+	return nil
 }
 
-// readTxInPrefix reads the next sequence of bytes from r as a transaction input
-// (TxIn) in the transaction prefix.
-func readTxInPrefix(r io.Reader, version uint32, ti *TxInput) error {
-
+func readTxIn(r io.Reader, version uint32, ti *TxInput) error {
 	// Outpoint.
 	err := ReadOutPoint(r,version, &ti.PreviousOut)
 	if err != nil {
 		return err
 	}
-
+	ti.SignScript, err = readScript(r)
+	if err != nil {
+		return err
+	}
 	// Sequence.
 	ti.Sequence, err = s.BinarySerializer.Uint32(r, binary.LittleEndian)
 	return err
@@ -764,163 +602,7 @@ func (t *Transaction) RecacheTxHash() *hash.Hash {
 // use in unconfirmed transaction chains.
 func (tx *Transaction) TxHash() hash.Hash {
 	// TxHash should always calculate a non-witnessed hash.
-	return hash.DoubleHashH(tx.mustSerialize(TxSerializeNoWitness))
-}
-
-// TxHashWitness generates the hash for the transaction witness.
-func (tx *Transaction) TxHashWitness() hash.Hash {
-	// TxHashWitness should always calculate a witnessed hash.
-	return hash.DoubleHashH(tx.mustSerialize(TxSerializeOnlyWitness))
-}
-
-// TxHashFull generates the hash for the transaction prefix || witness. It first
-// obtains the hashes for both the transaction prefix and witness, then
-// concatenates them and hashes the result.
-func (tx *Transaction) TxHashFull() hash.Hash {
-	// Note that the inputs to the hashes, the serialized prefix and
-	// witness, have different serialized versions because the serialized
-	// encoding of the version includes the real transaction version in the
-	// lower 16 bits and the transaction serialization type in the upper 16
-	// bits.  The real transaction version (lower 16 bits) will be the same
-	// in both serializations.
-	concat := make([]byte, hash.HashSize*2)
-	prefixHash := tx.TxHash()
-	witnessHash := tx.TxHashWitness()
-	copy(concat[0:], prefixHash[:])
-	copy(concat[hash.HashSize:], witnessHash[:])
-
-	return hash.DoubleHashH(concat)
-}
-
-func (tx *Transaction) Encode(w io.Writer, pver uint32) error {
-	// serialize version using Full
-	serializedVersion := uint32(tx.Version) | uint32(TxSerializeFull)<<16
-	err := s.BinarySerializer.PutUint32(w, binary.LittleEndian, serializedVersion)
-	if err != nil {
-		return err
-	}
-
-	//TODO, make sure the segwit work
-	//full serialization here (with witness)
-
-	err = tx.encodePrefix(w, pver)
-	if err != nil {
-		return err
-	}
-
-	err = tx.encodeWitness(w, pver)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// encodePrefix encodes a transaction prefix into a writer.
-func (tx *Transaction) encodePrefix(w io.Writer, pver uint32) error {
-	count := uint64(len(tx.TxIn))
-	err := s.WriteVarInt(w, pver, count)
-	if err != nil {
-		return err
-	}
-
-	for _, ti := range tx.TxIn {
-		err = writeTxInPrefix(w, pver, tx.Version, ti)
-		if err != nil {
-			return err
-		}
-	}
-
-	count = uint64(len(tx.TxOut))
-	err = s.WriteVarInt(w, pver, count)
-	if err != nil {
-		return err
-	}
-
-	for _, to := range tx.TxOut {
-		err = writeTxOut(w, pver, to)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = s.BinarySerializer.PutUint32(w, binary.LittleEndian, tx.LockTime)
-	if err != nil {
-		return err
-	}
-
-	return s.BinarySerializer.PutUint32(w, binary.LittleEndian, tx.Expire)
-}
-
-// encodeWitness encodes a transaction witness into a writer.
-func (tx *Transaction) encodeWitness(w io.Writer, pver uint32) error {
-	count := uint64(len(tx.TxIn))
-	err := s.WriteVarInt(w, pver, count)
-	if err != nil {
-		return err
-	}
-
-	for _, ti := range tx.TxIn {
-		err = writeTxInWitness(w, tx.Version, ti)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// writeTxInPrefixs encodes for a transaction input (TxIn) prefix to w.
-func writeTxInPrefix(w io.Writer, pver uint32, version uint32, ti *TxInput) error {
-	err := WriteOutPoint(w, pver, version, &ti.PreviousOut)
-	if err != nil {
-		return err
-	}
-
-	return s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.Sequence)
-}
-
-// WriteOutPoint encodes for an OutPoint to w.
-func WriteOutPoint(w io.Writer, pver uint32, version uint32, op *TxOutPoint) error {
-	_, err := w.Write(op.Hash[:])
-	if err != nil {
-		return err
-	}
-
-	return s.BinarySerializer.PutUint32(w, binary.LittleEndian, op.OutIndex)
-}
-
-// writeTxOut encodes for a transaction output (TxOut) to w.
-func writeTxOut(w io.Writer, pver uint32, to *TxOutput) error {
-	err := s.BinarySerializer.PutUint64(w, binary.LittleEndian, uint64(to.Amount))
-	if err != nil {
-		return err
-	}
-	return s.WriteVarBytes(w, pver, to.PkScript)
-}
-
-// writeTxWitness encodes for a transaction input (TxIn) witness to w.
-func writeTxInWitness(w io.Writer, pver uint32, ti *TxInput) error {
-	// ValueIn.
-	err := s.BinarySerializer.PutUint64(w, binary.LittleEndian, uint64(ti.AmountIn))
-	if err != nil {
-		return err
-	}
-
-	// BlockHeight.
-	err = s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.BlockOrder)
-	if err != nil {
-		return err
-	}
-
-	// TxIndex.
-	err=s.BinarySerializer.PutUint32(w, binary.LittleEndian, ti.TxIndex)
-	if err != nil {
-		return err
-	}
-
-	// Write the signature script.
-	return s.WriteVarBytes(w, pver, ti.SignScript)
+	return hash.DoubleHashH(tx.mustSerialize())
 }
 
 // IsCoinBaseTx determines whether or not a transaction is a coinbase.  A
@@ -988,9 +670,6 @@ func NewTxDeep(msgTx *Transaction) *Tx {
 				OutIndex: txin.PreviousOut.OutIndex,
 			},
 			Sequence:        txin.Sequence,
-			AmountIn:        txin.AmountIn,
-			BlockOrder:     txin.BlockOrder,
-			TxIndex:         txin.TxIndex,
 			SignScript:      sigScript,
 		}
 	}
@@ -1048,9 +727,6 @@ func NewTxDeepTxIns(msgTx *Transaction) *Tx {
 		txInCopy.PreviousOut.OutIndex = txIn.PreviousOut.OutIndex
 
 		txInCopy.Sequence = txIn.Sequence
-		txInCopy.AmountIn = txIn.AmountIn
-		txInCopy.BlockOrder = txIn.BlockOrder
-		txInCopy.TxIndex = txIn.TxIndex
 
 		txInCopy.SignScript = sigScrCopy
 
@@ -1103,45 +779,29 @@ type TxInput struct {
 	// however, its most relevant purpose is to enable “locking” of payments
 	// so that they cannot be redeemed until a certain time.
 	Sequence         uint32     //work with LockTime (disable use 0xffffffff, bitcoin historical)
-
-	// Witness part
-	// the Fraud proof, input exist to block/tx, useful for SPV
-	// see also https://gist.github.com/justusranvier/451616fa4697b5f25f60#invalid-transaction-input-already-spent
-	AmountIn         uint64
-	BlockOrder      uint32
-	TxIndex          uint32
 }
 
 // NewTxIn returns a new transaction input with the provided  previous outpoint
 // point and signature script with a default sequence of MaxTxInSequenceNum.
-func NewTxInput(prevOut *TxOutPoint, amountIn uint64, signScript []byte) *TxInput {
+func NewTxInput(prevOut *TxOutPoint,  signScript []byte) *TxInput {
 	return &TxInput{
 		PreviousOut:   *prevOut,
 		Sequence:      MaxTxInSequenceNum,
 		SignScript:    signScript,
-		AmountIn:      amountIn,
-		BlockOrder:    NullBlockOrder,
-		TxIndex:       NullTxIndex,
 	}
 }
 
 func (ti *TxInput) GetSignScript() []byte{
 	return ti.SignScript
 }
-// SerializeSizePrefix returns the number of bytes it would take to serialize
-// the transaction input for a prefix.
-func (ti *TxInput) SerializeSizePrefix() int {
-	// Outpoint Hash 32 bytes + Outpoint Index 4 bytes + Sequence 4 bytes.
-	return 40
-}
 
 // SerializeSizeWitness returns the number of bytes it would take to serialize the
 // transaction input for a witness.
-func (ti *TxInput) SerializeSizeWitness() int {
-	// ValueIn (8 bytes) + BlockHeight (4 bytes) + BlockTxIndex (4 bytes) +
-	// serialized varint size for the length of SignScript +
-	// SignScript bytes.
-	return 8 + 4 + 4 + s.VarIntSerializeSize(uint64(len(ti.SignScript))) +
+func (ti *TxInput) SerializeSize() int {
+	// Outpoint Hash 32 bytes + Outpoint Index 4 bytes + Sequence 4 bytes +
+	// serialized varint size for the length of SignatureScript +
+	// SignatureScript bytes.
+	return 40 + s.VarIntSerializeSize(uint64(len(ti.SignScript))) +
 		len(ti.SignScript)
 }
 

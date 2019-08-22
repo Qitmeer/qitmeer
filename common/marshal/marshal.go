@@ -28,47 +28,40 @@ func MessageToHex(msg message.Message) (string, error) {
 	return hex.EncodeToString(buf.Bytes()), nil
 }
 
-func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHeight uint64,blkHashStr string,
+func MarshalJsonTx(tx *types.Tx, params *params.Params, blkOrder uint64,blkHashStr string,
 	confirmations int64) (json.TxRawResult, error){
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
-	return MarshalJsonTransaction(tx.Transaction(), params, blkHeight,blkHashStr, confirmations)
+	return MarshalJsonTransaction(tx.Transaction(), params, blkOrder,blkHashStr, confirmations)
 }
 
 
-func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHeight uint64,blkHashStr string,
+func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkOrder uint64,blkHashStr string,
 	confirmations int64) (json.TxRawResult, error){
 
 	hexStr, err := MessageToHex(&message.MsgTx{Tx:tx})
 	if err!=nil {
 		return json.TxRawResult{}, err
 	}
-
-	bufWit,_ :=tx.Serialize(types.TxSerializeOnlyWitness)
-	hexStrWit:=hex.EncodeToString(bufWit)
-
-	bufNoWit,_:=tx.Serialize(types.TxSerializeNoWitness)
-	hexStrNoWit:=hex.EncodeToString(bufNoWit)
-
-	//TODO, handle the blkHeight/blkHash
-
-	return json.TxRawResult{
+	txr:=json.TxRawResult{
 		Hex : hexStr,
-		HexNoWit: hexStrNoWit,
-		HexWit : hexStrWit,
 		Txid : tx.TxHash().String(),
-		TxHash : tx.TxHashFull().String(),
+		TxHash : tx.TxHash().String(),
+		Size:int32(tx.SerializeSize()),
 		Version:tx.Version,
 		LockTime:tx.LockTime,
 		Expire:tx.Expire,
 		Vin: MarshJsonVin(tx),
 		Vout:MarshJsonVout(tx,nil, params),
-		BlockHash:blkHashStr,
-		BlockHeight:blkHeight,
-		Confirmations: confirmations,
-	},nil
+	}
 
+	if blkHashStr != "" {
+		txr.BlockOrder=blkOrder
+		txr.BlockHash=blkHashStr
+		txr.Confirmations=confirmations
+	}
+	return txr,nil
 }
 
 func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
@@ -79,9 +72,6 @@ func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
 		vinEntry := &vinList[0]
 		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
 		vinEntry.Sequence = txIn.Sequence
-		vinEntry.AmountIn = float64(txIn.AmountIn) //TODO coin conversion
-		vinEntry.BlockHeight = txIn.BlockOrder
-		vinEntry.TxIndex = txIn.TxIndex
 		return vinList
 	}
 
@@ -95,9 +85,6 @@ func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
 		vinEntry.Txid = txIn.PreviousOut.Hash.String()
 		vinEntry.Vout = txIn.PreviousOut.OutIndex
 		vinEntry.Sequence = txIn.Sequence
-		vinEntry.AmountIn = float64(txIn.AmountIn) //TODO coin conversion
-		vinEntry.BlockHeight = txIn.BlockOrder
-		vinEntry.TxIndex = txIn.TxIndex
 		vinEntry.ScriptSig = &json.ScriptSig{
 			Asm: disbuf,
 			Hex: hex.EncodeToString(txIn.SignScript),
@@ -144,8 +131,8 @@ func  MarshJsonVout(tx *types.Transaction,filterAddrMap map[string]struct{}, par
 		}
 
 		var vout json.Vout
-		vout.Amount = float64(v.Amount) //TODO coin conversion
 		voutSPK := &vout.ScriptPubKey
+		vout.Amount = types.Amount(v.Amount).ToCoin()
 		voutSPK.Addresses = encodedAddrs
 		voutSPK.Asm = disbuf
 		voutSPK.Hex = hex.EncodeToString(v.PkScript)
@@ -161,7 +148,7 @@ func  MarshJsonVout(tx *types.Transaction,filterAddrMap map[string]struct{}, par
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
 func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
-	params *params.Params, confirmations int64,children []*hash.Hash) (json.OrderedResult, error) {
+	params *params.Params, confirmations int64,children []*hash.Hash,state bool) (json.OrderedResult, error) {
 
 	head := b.Block().Header // copies the header once
 	// Get next block hash unless there are none.
@@ -169,6 +156,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 
 	fields := json.OrderedResult{
 		{Key:"hash",         Val:b.Hash().String()},
+		{Key:"txsvalid",     Val:state},
 		{Key:"confirmations",Val:confirmations},
 		{Key:"version",      Val:head.Version},
 		{Key:"weight",        Val:types.GetBlockWeight(b.Block())},
