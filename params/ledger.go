@@ -46,6 +46,5 @@ func Ledger(tx *types.Transaction) {
 				PkScript: payout.PkScript,
 			})
 		}
-		tx.TxIn[0].AmountIn = BlockOneSubsidy()
 	}
 }

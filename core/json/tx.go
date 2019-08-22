@@ -7,10 +7,9 @@ import "encoding/json"
 // TxRawResult models the data from the getrawtransaction command.
 type TxRawResult struct {
 	Hex           string `json:"hex"`
-	HexNoWit      string `json:"hexnowit"`
-	HexWit        string `json:"hexwit"`
 	Txid          string `json:"txid"`
 	TxHash        string `json:"txhash"`
+	Size          int32  `json:"size,omitempty"`
 	Version       uint32 `json:"version"`
 	LockTime      uint32 `json:"locktime"`
 	Expire        uint32 `json:"expire"`
@@ -32,9 +31,6 @@ type Vin struct {
 	Txid        string     `json:"txid"`
 	Vout        uint32     `json:"vout"`
 	Sequence    uint32     `json:"sequence"`
-	AmountIn    float64    `json:"amountin"`
-	BlockOrder uint32      `json:"blockorder"`
-	TxIndex     uint32     `json:"txindex"`
 	ScriptSig   *ScriptSig `json:"scriptSig"`
 }
 
@@ -47,15 +43,9 @@ func (v *Vin) IsCoinBase() bool {
 func (v *Vin) MarshalJSON() ([]byte, error) {
 	if v.IsCoinBase() {
 		coinbaseStruct := struct {
-			AmountIn    float64 `json:"amountin"`
-			BlockOrder  uint32  `json:"blockorder"`
-			TxIndex     uint32  `json:"txindex"`
 			Coinbase    string  `json:"coinbase"`
 			Sequence    uint32  `json:"sequence"`
 		}{
-			AmountIn:    v.AmountIn,
-			BlockOrder: v.BlockOrder,
-			TxIndex:     v.TxIndex,
 			Coinbase:    v.Coinbase,
 			Sequence:    v.Sequence,
 		}
@@ -66,17 +56,11 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 		Txid        string     `json:"txid"`
 		Vout        uint32     `json:"vout"`
 		Sequence    uint32     `json:"sequence"`
-		AmountIn    float64    `json:"amountin"`
-		BlockOrder  uint32     `json:"blockorder"`
-		TxIndex     uint32     `json:"txindex"`
 		ScriptSig   *ScriptSig `json:"scriptSig"`
 	}{
 		Txid:        v.Txid,
 		Vout:        v.Vout,
 		Sequence:    v.Sequence,
-		AmountIn:    v.AmountIn,
-		BlockOrder:  v.BlockOrder,
-		TxIndex:     v.TxIndex,
 		ScriptSig:   v.ScriptSig,
 	}
 	return json.Marshal(txStruct)
