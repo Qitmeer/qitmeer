@@ -17,7 +17,7 @@ type TxRawResult struct {
 	Vin           []Vin  `json:"vin"`
 	Vout          []Vout `json:"vout"`
 	BlockHash     string `json:"blockhash,omitempty"`
-	BlockHeight   uint64 `json:"blockheight"`
+	BlockOrder    uint64 `json:"blockorder"`
 	TxIndex       uint32 `json:"txindex,omitempty"`
 	Confirmations int64  `json:"confirmations"`
 	Time          int64  `json:"time,omitempty"`
@@ -33,7 +33,7 @@ type Vin struct {
 	Vout        uint32     `json:"vout"`
 	Sequence    uint32     `json:"sequence"`
 	AmountIn    float64    `json:"amountin"`
-	BlockHeight uint32     `json:"blockheight"`
+	BlockOrder uint32      `json:"blockorder"`
 	TxIndex     uint32     `json:"txindex"`
 	ScriptSig   *ScriptSig `json:"scriptSig"`
 }
@@ -48,13 +48,13 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 	if v.IsCoinBase() {
 		coinbaseStruct := struct {
 			AmountIn    float64 `json:"amountin"`
-			BlockHeight uint32  `json:"blockheight"`
-			TxIndex  uint32     `json:"txindex"`
+			BlockOrder  uint32  `json:"blockorder"`
+			TxIndex     uint32  `json:"txindex"`
 			Coinbase    string  `json:"coinbase"`
 			Sequence    uint32  `json:"sequence"`
 		}{
 			AmountIn:    v.AmountIn,
-			BlockHeight: v.BlockHeight,
+			BlockOrder: v.BlockOrder,
 			TxIndex:     v.TxIndex,
 			Coinbase:    v.Coinbase,
 			Sequence:    v.Sequence,
@@ -67,7 +67,7 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 		Vout        uint32     `json:"vout"`
 		Sequence    uint32     `json:"sequence"`
 		AmountIn    float64    `json:"amountin"`
-		BlockHeight uint32     `json:"blockheight"`
+		BlockOrder  uint32     `json:"blockorder"`
 		TxIndex     uint32     `json:"txindex"`
 		ScriptSig   *ScriptSig `json:"scriptSig"`
 	}{
@@ -75,7 +75,7 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 		Vout:        v.Vout,
 		Sequence:    v.Sequence,
 		AmountIn:    v.AmountIn,
-		BlockHeight: v.BlockHeight,
+		BlockOrder:  v.BlockOrder,
 		TxIndex:     v.TxIndex,
 		ScriptSig:   v.ScriptSig,
 	}

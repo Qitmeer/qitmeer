@@ -28,16 +28,16 @@ func MessageToHex(msg message.Message) (string, error) {
 	return hex.EncodeToString(buf.Bytes()), nil
 }
 
-func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHeight uint64,blkHashStr string,
+func MarshalJsonTx(tx *types.Tx, params *params.Params, blkOrder uint64,blkHashStr string,
 	confirmations int64) (json.TxRawResult, error){
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
-	return MarshalJsonTransaction(tx.Transaction(), params, blkHeight,blkHashStr, confirmations)
+	return MarshalJsonTransaction(tx.Transaction(), params, blkOrder,blkHashStr, confirmations)
 }
 
 
-func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHeight uint64,blkHashStr string,
+func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkOrder uint64,blkHashStr string,
 	confirmations int64) (json.TxRawResult, error){
 
 	hexStr, err := MessageToHex(&message.MsgTx{Tx:tx})
@@ -65,7 +65,7 @@ func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHei
 		Vin: MarshJsonVin(tx),
 		Vout:MarshJsonVout(tx,nil, params),
 		BlockHash:blkHashStr,
-		BlockHeight:blkHeight,
+		BlockOrder:blkOrder,
 		Confirmations: confirmations,
 	},nil
 
@@ -80,7 +80,7 @@ func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
 		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
 		vinEntry.Sequence = txIn.Sequence
 		vinEntry.AmountIn = float64(txIn.AmountIn) //TODO coin conversion
-		vinEntry.BlockHeight = txIn.BlockOrder
+		vinEntry.BlockOrder = txIn.BlockOrder
 		vinEntry.TxIndex = txIn.TxIndex
 		return vinList
 	}
@@ -96,7 +96,7 @@ func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
 		vinEntry.Vout = txIn.PreviousOut.OutIndex
 		vinEntry.Sequence = txIn.Sequence
 		vinEntry.AmountIn = float64(txIn.AmountIn) //TODO coin conversion
-		vinEntry.BlockHeight = txIn.BlockOrder
+		vinEntry.BlockOrder = txIn.BlockOrder
 		vinEntry.TxIndex = txIn.TxIndex
 		vinEntry.ScriptSig = &json.ScriptSig{
 			Asm: disbuf,
