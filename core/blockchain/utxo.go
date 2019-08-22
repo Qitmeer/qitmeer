@@ -235,12 +235,36 @@ func (view *UtxoViewpoint) fetchUtxosMain(db database.DB, outpoints map[types.Tx
 			if err != nil {
 				return err
 			}
-
 			view.entries[outpoint] = entry
 		}
 
 		return nil
 	})
+}
+
+func (view *UtxoViewpoint) FilterInvalidOut(bc *BlockChain) {
+	for outpoint, entry := range view.entries {
+		if !bc.IsInvalidOut(entry) {
+			continue
+		}
+		delete(view.entries,outpoint)
+	}
+}
+
+func (bc *BlockChain) IsInvalidOut(entry *UtxoEntry) bool {
+	if entry == nil {
+		return true
+	}
+	if entry.blockHash.IsEqual(&hash.ZeroHash) {
+		return false
+	}
+	node:=bc.index.lookupNode(&entry.blockHash)
+	if node != nil {
+		if bc.index.NodeStatus(node).KnownValid() {
+			return false
+		}
+	}
+	return true
 }
 
 // LookupEntry returns information about a given transaction according to the
@@ -306,9 +330,13 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 			txNeededSet[txIn.PreviousOut] = struct{}{}
 		}
 	}
-
+	err:=view.fetchUtxosMain(db, txNeededSet)
+	if err!=nil {
+		return err
+	}
+	view.FilterInvalidOut(bc)
 	// Request the input utxos from the database.
-	return view.fetchUtxosMain(db, txNeededSet)
+	return nil
 
 }
 
@@ -409,6 +437,10 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	b.chainLock.RLock()
 	err := view.fetchUtxosMain(b.db, neededSet)
 	b.chainLock.RUnlock()
+	if err!=nil {
+		return view,err
+	}
+	view.FilterInvalidOut(b)
 	return view, err
 }
 
@@ -435,7 +467,9 @@ func (b *BlockChain) FetchUtxoEntry(outpoint types.TxOutPoint) (*UtxoEntry, erro
 	if err != nil {
 		return nil, err
 	}
-
+	if b.IsInvalidOut(entry) {
+		entry=nil
+	}
 	return entry, nil
 }
 

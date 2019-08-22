@@ -650,8 +650,8 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	}
 
 	if runScripts {
-		err = checkBlockScripts(block, utxoView, true,
-			scriptFlags, b.sigCache,b)
+		err = checkBlockScripts(block, utxoView,
+			scriptFlags, b.sigCache)
 		if err != nil {
 			log.Trace("checkBlockScripts failed; error returned "+
 				"on txtreeregular of cur block: %v", err)
