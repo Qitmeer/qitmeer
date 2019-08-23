@@ -1392,12 +1392,16 @@ func (b *BlockChain) GetTxManager() TxManager {
 }
 
 func (b *BlockChain) GetMiningTips() []*hash.Hash {
-	best:=b.BestSnapshot()
 	parents:=b.BlockDAG().GetTips().SortList(false)
+	mainParent:=b.bd.GetMainChainTip()
 	tips:=[]*hash.Hash{}
 	for i:=0;i<len(parents);i++ {
+		if mainParent.GetHash().IsEqual(parents[i]) {
+			tips=append(tips,parents[i])
+			continue
+		}
 		node:=b.index.lookupNode(parents[i])
-		if math.Abs(float64(node.GetLayer())-float64(best.GraphState.GetLayer()))>blockdag.MaxTipLayerGap {
+		if math.Abs(float64(node.GetLayer())-float64(mainParent.GetLayer()))>blockdag.MaxTipLayerGap {
 			continue
 		}
 		tips=append(tips,node.GetHash())
