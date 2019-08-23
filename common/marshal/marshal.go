@@ -47,7 +47,7 @@ func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkOrd
 	txr:=json.TxRawResult{
 		Hex : hexStr,
 		Txid : tx.TxHash().String(),
-		TxHash : tx.TxHash().String(),
+		//TxHash : tx.TxHash().String(),
 		Size:int32(tx.SerializeSize()),
 		Version:tx.Version,
 		LockTime:tx.LockTime,
@@ -170,7 +170,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		}
 		if fullTx {
 			formatTx = func(tx *types.Tx) (interface{}, error) {
-				return MarshalJsonTx(tx,params,order,"",confirmations)
+				return MarshalJsonTx(tx,params,order,b.Hash().String(),confirmations)
 			}
 		}
 		txs := b.Transactions()

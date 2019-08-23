@@ -8,7 +8,7 @@ import "encoding/json"
 type TxRawResult struct {
 	Hex           string `json:"hex"`
 	Txid          string `json:"txid"`
-	TxHash        string `json:"txhash"`
+	TxHash        string `json:"txhash,omitempty"`
 	Size          int32  `json:"size,omitempty"`
 	Version       uint32 `json:"version"`
 	LockTime      uint32 `json:"locktime"`
@@ -16,7 +16,7 @@ type TxRawResult struct {
 	Vin           []Vin  `json:"vin"`
 	Vout          []Vout `json:"vout"`
 	BlockHash     string `json:"blockhash,omitempty"`
-	BlockOrder    uint64 `json:"blockorder"`
+	BlockOrder    uint64 `json:"blockorder,omitempty"`
 	TxIndex       uint32 `json:"txindex,omitempty"`
 	Confirmations int64  `json:"confirmations"`
 	Time          int64  `json:"time,omitempty"`

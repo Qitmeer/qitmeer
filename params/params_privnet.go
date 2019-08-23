@@ -81,10 +81,10 @@ var PrivNetParams = Params{
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
 	// TODO coin type
-	HDCoinType: 115, // ASCII for s
+	HDCoinType: 223, // ASCII for s
 
 	// TODO replace the test pkh
-	OrganizationPkScript:  hexMustDecode("76a914699e7e705893b4e7b3f9742ca55a743c7167288a88ac"),
+	OrganizationPkScript:  hexMustDecode("76a91408ff3106060bf8d7d61a25d8108ec977698729f788ac"),
 
 	CoinbaseMaturity: 16,
 }
