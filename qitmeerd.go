@@ -29,11 +29,6 @@ var (
 )
 
 func main() {
-	params.TestNetParams.GenesisBlock.Header.Difficulty=0x207fffff
-	testNetGenesisHash:=params.TestNetParams.GenesisBlock.BlockHash()
-	params.TestNetParams.GenesisHash=&testNetGenesisHash
-	params.TestNetParams.PowLimit=new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 255), common.Big1)
-	params.TestNetParams.PowLimitBits=0x207fffff
 	// Initialize the goroutine count,  Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
