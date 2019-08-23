@@ -511,8 +511,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 
 		hasTax:=false
 		if b.params.BlockTaxProportion > 0 &&
-			len(b.params.OrganizationPkScript) > 0 &&
-			len(transactions[0].Tx.TxOut) >= 2 {
+			len(b.params.OrganizationPkScript) > 0 {
 			hasTax=true
 		}
 
@@ -522,6 +521,11 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 		var totalAmountOut int64=0
 
 		if hasTax {
+			if len(transactions[0].Tx.TxOut) < 2 {
+				str := fmt.Sprintf("coinbase transaction is illegal",
+					totalAmountOut, subsidy)
+				return ruleError(ErrBadCoinbaseValue, str)
+			}
 			work = int64(CalcBlockWorkSubsidy(b.subsidyCache,
 				int64(blockHeight), b.params))
 			tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
