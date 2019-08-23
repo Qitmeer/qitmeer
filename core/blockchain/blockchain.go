@@ -893,7 +893,7 @@ func panicf(format string, args ...interface{}) {
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlock, newOrders *list.List,oldOrders BlockNodeList) (bool, error) {
 	if newOrders.Len() == 0 {
-		return false, nil
+		return true, nil
 	}
 	//Fast double spent check
 	b.fastDoubleSpentCheck(node, block)
@@ -910,8 +910,10 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		stxos := make([]SpentTxOut, 0, countSpentOutputs(block))
 		err := b.checkConnectBlock(node, block, view, &stxos)
 		if err != nil {
+			b.index.UnsetStatusFlags(node,statusValid)
 			b.index.SetStatusFlags(node, statusValidateFailed)
-			//return false, err
+			b.connectBlock(node, block, view, stxos)
+			return true, err
 		}
 		// In the fast add case the code to check the block connection
 		// was skipped, so the utxo view needs to load the referenced
@@ -921,10 +923,12 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// Connect the block to the main chain.
 		err = b.connectBlock(node, block, view, stxos)
 		if err != nil {
+			b.index.UnsetStatusFlags(node,statusValid)
 			b.index.SetStatusFlags(node, statusValidateFailed)
-			return false, err
+			return true, err
 		}
 		b.index.SetStatusFlags(node, statusValid)
+		b.index.UnsetStatusFlags(node,statusValidateFailed)
 		// TODO, validating previous block
 		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
 		// The fork length is zero since the block is now the tip of the
@@ -1226,7 +1230,9 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 			// Store the loaded block and spend journal entry for later.
 			err = view.disconnectTransactions(block, stxos)
 			if err != nil {
-				return err
+				b.index.SetStatusFlags(n, statusValidateFailed)
+				b.index.UnsetStatusFlags(n,statusValid)
+				log.Warn(fmt.Sprintf("%s",err))
 			}
 		}
 		err = b.disconnectBlock(n, block,view, stxos)
@@ -1234,6 +1240,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 			return err
 		}
 		b.index.UnsetStatusFlags(n, statusValid)
+		b.index.UnsetStatusFlags(n,statusValidateFailed)
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
@@ -1259,12 +1266,18 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		err = b.checkConnectBlock(n, block, view, &stxos)
 		if err != nil {
 			b.index.SetStatusFlags(n, statusValidateFailed)
+			b.index.UnsetStatusFlags(n,statusValid)
+			log.Warn(fmt.Sprintf("%s",err))
 		}
 		err = b.connectBlock(n, block, view, stxos)
 		if err != nil {
-			return err
+			b.index.SetStatusFlags(n, statusValidateFailed)
+			b.index.UnsetStatusFlags(n,statusValid)
+			log.Warn(fmt.Sprintf("%s",err))
+			continue
 		}
 		b.index.SetStatusFlags(n, statusValid)
+		b.index.UnsetStatusFlags(n,statusValidateFailed)
 	}
 
 	// Log the point where the chain forked and old and new best chain

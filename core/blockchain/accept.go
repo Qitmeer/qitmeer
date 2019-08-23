@@ -162,12 +162,10 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This
 	// also handles validation of the transaction scripts.
-	success, err := b.connectDagChain(newNode, block, newOrders,oldOrders)
-	if !success || err != nil {
-		b.updateBestState(newNode, block)
-		return true, nil
+	_, err = b.connectDagChain(newNode, block, newOrders,oldOrders)
+	if err != nil {
+		log.Warn(fmt.Sprintf("%s",err))
 	}
-
 	b.updateBestState(newNode, block)
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the

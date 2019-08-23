@@ -20,6 +20,9 @@ type TxManager interface {
 
 type TxPool interface {
 
+	AddTransaction(utxoView *UtxoViewpoint,
+		tx *types.Tx, txType types.TxType, height uint64, fee int64)
+
 	RemoveTransaction(tx *types.Tx, removeRedeemers bool)
 
 	RemoveDoubleSpends(tx *types.Tx)

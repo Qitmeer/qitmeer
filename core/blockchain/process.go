@@ -174,10 +174,12 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	// The block has passed all context independent checks and appears sane
 	// enough to potentially accept it into the block chain.
 	result, err := b.maybeAcceptBlock(block, flags)
-	if !result && err != nil {
+	if err != nil {
 		return false, false, err
 	}
-
+	if !result {
+		return false, true, nil
+	}
 	// Accept any orphan blocks that depend on this block (they are no
 	// longer orphans) and repeat for those accepted blocks until there are
 	// no more.

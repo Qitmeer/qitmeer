@@ -351,3 +351,7 @@ func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
 	}
 	return b.index.lookupNode(mainParent.GetHash())
 }
+
+func (node *blockNode) GetStatus() blockStatus {
+	return node.status
+}
