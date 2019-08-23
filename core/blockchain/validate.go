@@ -351,7 +351,16 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 				MaxCoinbaseScriptLen)
 			return ruleError(ErrBadCoinbaseScriptLen, str)
 		}
-		if len(tx.TxOut) >= 3 {
+		if len(tx.TxOut) >= 2 {
+			slen = len(tx.TxIn[1].SignScript)
+			if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
+				str := fmt.Sprintf("coinbase transaction script "+
+					"length of %d is out of range (min: %d, max: "+
+					"%d)", slen, MinCoinbaseScriptLen,
+					MaxCoinbaseScriptLen)
+				return ruleError(ErrBadCoinbaseScriptLen, str)
+			}
+		}else if len(tx.TxOut) >= 3 {
 			// Coinbase TxOut[2] is op return
 			nullDataOut := tx.TxOut[2]
 			// The first 4 bytes of the null data output must be the encoded height
@@ -493,6 +502,39 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 		if err != nil {
 			return err
 		}
+
+		// check subsidy
+		transactions:=block.Transactions()
+		workAmountOut:=int64(transactions[0].Tx.TxOut[0].Amount)
+		work := int64(CalcBlockWorkSubsidy(b.subsidyCache,
+			int64(blockHeight), b.params))
+		tax := int64(CalcBlockTaxSubsidy(b.subsidyCache,
+			int64(blockHeight), b.params))
+
+		var taxAmountOut int64=0
+		var totalAmountOut int64=0
+		if len(transactions[0].Tx.TxOut) >= 2 {
+			taxAmountOut=int64(transactions[0].Tx.TxOut[1].Amount)
+		}else{
+			work+=tax
+			tax=0
+		}
+
+		totalAmountOut=workAmountOut+taxAmountOut
+
+		subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(blockHeight))
+		if subsidy != totalAmountOut {
+			str := fmt.Sprintf("coinbase transaction for block pays %v which is not the subsidy %v",
+				totalAmountOut, subsidy)
+			return ruleError(ErrBadCoinbaseValue, str)
+		}
+
+		if work != workAmountOut ||
+			tax != taxAmountOut {
+			str := fmt.Sprintf("coinbase transaction for block pays %d  %d  which is not the %d  %d",
+				workAmountOut,taxAmountOut,work,tax)
+			return ruleError(ErrBadCoinbaseValue, str)
+		}
 	}
 
 	return nil
@@ -576,6 +618,11 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		return ruleError(ErrMissingTxOut, str)
 	}
 
+	err := b.checkUtxoDuplicate(block, utxoView)
+	if err != nil {
+		return err
+	}
+
 	// Check that the coinbase pays the tax, if applicable.
 	// TODO tax pay
 
@@ -591,7 +638,6 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	if checkpoint != nil && node.order <= checkpoint.Height {
 		runScripts = false
 	}
-	var err error
 	var scriptFlags txscript.ScriptFlags
 	if runScripts {
 		scriptFlags, err = b.consensusScriptVerifyFlags(node)
@@ -613,10 +659,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		return err
 	}
 
-	//TODO, refactor/remove staketreefee
-	stakeTreeFees:=int64(0)
-
-	err = b.checkTransactionsAndConnect(node,block,b.subsidyCache, stakeTreeFees,utxoView, stxos)
+	err = b.checkTransactionsAndConnect(node,block,b.subsidyCache,utxoView, stxos)
 	if err != nil {
 		log.Trace("checkTransactionsAndConnect failed","err", err)
 		return err
@@ -688,7 +731,7 @@ func (b *BlockChain) consensusScriptVerifyFlags(node *blockNode) (txscript.Scrip
 // transaction inputs for a transaction list given a predetermined TxStore.
 // After ensuring the transaction is valid, the transaction is connected to the
 // UTXO viewpoint.  TxTree true == Regular, false == Stake
-func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.SerializedBlock,subsidyCache *SubsidyCache, inputFees int64,utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
+func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.SerializedBlock,subsidyCache *SubsidyCache,utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
 	transactions := block.Transactions()
 	totalSigOpCost := 0
 	for _, tx := range transactions {
@@ -729,27 +772,6 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.Se
 			return err
 		}
 	}
-
-	mainParent:=node.GetMainParent(b)
-	// check subsidy
-	var totalAmountOut int64
-	for _, txOut := range transactions[0].Tx.TxOut {
-		totalAmountOut += int64(txOut.Amount)
-	}
-	subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(mainParent.GetHeight()))
-	if subsidy != totalAmountOut {
-		str := fmt.Sprintf("coinbase transaction for block pays %v which is not the subsidy %v",
-			totalAmountOut, subsidy)
-		return ruleError(ErrBadCoinbaseValue, str)
-	}
-	expectedAmountOut :=subsidy + totalFees
-	if totalAmountOut > expectedAmountOut {
-		str := fmt.Sprintf("coinbase transaction for block pays %v "+
-			"which is more than expected value of %v",
-			totalAmountOut, expectedAmountOut)
-		return ruleError(ErrBadCoinbaseValue, str)
-	}
-
 	return nil
 }
 
