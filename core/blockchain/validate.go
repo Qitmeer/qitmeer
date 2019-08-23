@@ -8,6 +8,7 @@ package blockchain
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
@@ -352,7 +353,7 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 			return ruleError(ErrBadCoinbaseScriptLen, str)
 		}
 		if len(tx.TxOut) >= 2 {
-			slen = len(tx.TxIn[1].SignScript)
+			slen = len(tx.TxOut[1].PkScript)
 			if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
 				str := fmt.Sprintf("coinbase transaction script "+
 					"length of %d is out of range (min: %d, max: "+
@@ -505,24 +506,37 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 
 		// check subsidy
 		transactions:=block.Transactions()
+		subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(blockHeight))
 		workAmountOut:=int64(transactions[0].Tx.TxOut[0].Amount)
-		work := int64(CalcBlockWorkSubsidy(b.subsidyCache,
-			int64(blockHeight), b.params))
-		tax := int64(CalcBlockTaxSubsidy(b.subsidyCache,
-			int64(blockHeight), b.params))
 
+		hasTax:=false
+		if b.params.BlockTaxProportion > 0 &&
+			len(b.params.OrganizationPkScript) > 0 &&
+			len(transactions[0].Tx.TxOut) >= 2 {
+			hasTax=true
+		}
+
+		var work int64
+		var tax int64
 		var taxAmountOut int64=0
 		var totalAmountOut int64=0
-		if len(transactions[0].Tx.TxOut) >= 2 {
+
+		if hasTax {
+			work = int64(CalcBlockWorkSubsidy(b.subsidyCache,
+				int64(blockHeight), b.params))
+			tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
+				int64(blockHeight), b.params))
+
 			taxAmountOut=int64(transactions[0].Tx.TxOut[1].Amount)
-		}else{
-			work+=tax
+		}else {
+			work=subsidy
 			tax=0
+			taxAmountOut=0
 		}
 
 		totalAmountOut=workAmountOut+taxAmountOut
 
-		subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(blockHeight))
+
 		if subsidy != totalAmountOut {
 			str := fmt.Sprintf("coinbase transaction for block pays %v which is not the subsidy %v",
 				totalAmountOut, subsidy)
@@ -534,6 +548,16 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 			str := fmt.Sprintf("coinbase transaction for block pays %d  %d  which is not the %d  %d",
 				workAmountOut,taxAmountOut,work,tax)
 			return ruleError(ErrBadCoinbaseValue, str)
+		}
+
+		if hasTax {
+			orgPkScriptStr:=hex.EncodeToString(b.params.OrganizationPkScript)
+			curPkScriptStr:=hex.EncodeToString(transactions[0].Tx.TxOut[1].PkScript)
+			if orgPkScriptStr != curPkScriptStr {
+				str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
+					orgPkScriptStr,curPkScriptStr)
+				return ruleError(ErrBadCoinbaseValue, str)
+			}
 		}
 	}
 
