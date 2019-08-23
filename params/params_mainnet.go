@@ -82,4 +82,6 @@ var MainNetParams = Params{
 	HDCoinType: 223,
 
 	CoinbaseMaturity:        256,
+
+	OrganizationPkScript:  hexMustDecode("76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac"),
 }
