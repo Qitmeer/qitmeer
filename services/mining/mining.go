@@ -124,8 +124,6 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 		PreviousOut: *types.NewOutPoint(&hash.Hash{},
 			types.MaxPrevOutIndex ),
 		Sequence:        types.MaxTxInSequenceNum,
-		BlockOrder:      types.NullBlockOrder,
-		TxIndex:         types.NullTxIndex,
 		SignScript:      coinbaseScript,
 	})
 
@@ -182,8 +180,6 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 			PkScript: opReturnPkScript,
 		})
 	}
-	// AmountIn.
-	tx.TxIn[0].AmountIn = subsidy + uint64(tax)  //TODO, remove type conversion
 	return types.NewTx(tx), nil
 }
 

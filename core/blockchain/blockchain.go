@@ -1233,7 +1233,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		if err != nil {
 			return err
 		}
-		b.index.SetStatusFlags(n, statusValidateFailed)
+		b.index.UnsetStatusFlags(n, statusValid)
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {

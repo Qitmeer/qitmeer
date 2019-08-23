@@ -235,12 +235,20 @@ func (view *UtxoViewpoint) fetchUtxosMain(db database.DB, outpoints map[types.Tx
 			if err != nil {
 				return err
 			}
-
 			view.entries[outpoint] = entry
 		}
 
 		return nil
 	})
+}
+
+func (view *UtxoViewpoint) FilterInvalidOut(bc *BlockChain) {
+	for outpoint, entry := range view.entries {
+		if !bc.IsInvalidOut(entry) {
+			continue
+		}
+		delete(view.entries,outpoint)
+	}
 }
 
 // LookupEntry returns information about a given transaction according to the
@@ -306,10 +314,38 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 			txNeededSet[txIn.PreviousOut] = struct{}{}
 		}
 	}
+	err:=view.fetchUtxosMain(db, txNeededSet)
+	if err!=nil {
+		return err
+	}
+	view.FilterInvalidOut(bc)
+	// Request the input utxos from the database.
+	return nil
+
+}
+
+// fetchUtxos loads the unspent transaction outputs for the provided set of
+// outputs into the view from the database as needed unless they already exist
+// in the view in which case they are ignored.
+func (view *UtxoViewpoint) fetchUtxos(db database.DB, outpoints map[types.TxOutPoint]struct{}) error {
+	// Nothing to do if there are no requested outputs.
+	if len(outpoints) == 0 {
+		return nil
+	}
+
+	// Filter entries that are already in the view.
+	neededSet := make(map[types.TxOutPoint]struct{})
+	for outpoint := range outpoints {
+		// Already loaded into the current view.
+		if _, ok := view.entries[outpoint]; ok {
+			continue
+		}
+
+		neededSet[outpoint] = struct{}{}
+	}
 
 	// Request the input utxos from the database.
-	return view.fetchUtxosMain(db, txNeededSet)
-
+	return view.fetchUtxosMain(db, neededSet)
 }
 
 // connectTransaction updates the view by adding all new utxos created by the
@@ -364,79 +400,6 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 	view.AddTxOuts(tx, node.GetHash()) //TODO, remove type conversion
 
 	return nil
-}
-
-
-// commit prunes all entries marked modified that are now fully spent and marks
-// all entries as unmodified.
-func (view *UtxoViewpoint) commit() {
-	for outpoint, entry := range view.entries {
-		if entry == nil || (entry.isModified() && entry.IsSpent()) {
-			delete(view.entries, outpoint)
-			continue
-		}
-
-		entry.packedFlags ^= tfModified
-	}
-}
-
-// FetchUtxoView loads utxo details about the input transactions referenced by
-// the passed transaction from the point of view of the end of the main chain.
-// It also attempts to fetch the utxo details for the transaction itself so the
-// returned view can be examined for duplicate unspent transaction outputs.
-//
-// This function is safe for concurrent access however the returned view is NOT.
-func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
-	// Create a set of needed transactions based on those referenced by the
-	// inputs of the passed transaction.  Also, add the passed transaction
-	// itself as a way for the caller to detect duplicates that are not
-	// fully spent.
-	neededSet := make(map[types.TxOutPoint]struct{})
-	prevOut := types.TxOutPoint{Hash: *tx.Hash()}
-	for txOutIdx := range tx.Tx.TxOut {
-		prevOut.OutIndex = uint32(txOutIdx)
-		neededSet[prevOut] = struct{}{}
-	}
-	if !tx.Tx.IsCoinBase() {
-		for _, txIn := range tx.Tx.TxIn {
-			neededSet[txIn.PreviousOut] = struct{}{}
-		}
-	}
-
-	// Request the utxos from the point of view of the end of the main
-	// chain.
-	view := NewUtxoViewpoint()
-	b.chainLock.RLock()
-	err := view.fetchUtxosMain(b.db, neededSet)
-	b.chainLock.RUnlock()
-	return view, err
-}
-
-// FetchUtxoEntry loads and returns the unspent transaction output entry for the
-// passed hash from the point of view of the end of the main chain.
-//
-// NOTE: Requesting a hash for which there is no data will NOT return an error.
-// Instead both the entry and the error will be nil.  This is done to allow
-// pruning of fully spent transactions.  In practice this means the caller must
-// check if the returned entry is nil before invoking methods on it.
-//
-// This function is safe for concurrent access however the returned entry (if
-// any) is NOT.
-func (b *BlockChain) FetchUtxoEntry(outpoint types.TxOutPoint) (*UtxoEntry, error) {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
-
-	var entry *UtxoEntry
-	err := b.db.View(func(dbTx database.Tx) error {
-		var err error
-		entry, err = dbFetchUtxoEntry(dbTx, outpoint)
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return entry, nil
 }
 
 // disconnectTransactions updates the view by removing all of the transactions
@@ -512,6 +475,131 @@ func (view *UtxoViewpoint) disconnectTransactions(block *types.SerializedBlock, 
 	}
 
 	view.SetBestHash(&hash.ZeroHash)
+	return nil
+}
+
+// commit prunes all entries marked modified that are now fully spent and marks
+// all entries as unmodified.
+func (view *UtxoViewpoint) commit() {
+	for outpoint, entry := range view.entries {
+		if entry == nil || (entry.isModified() && entry.IsSpent()) {
+			delete(view.entries, outpoint)
+			continue
+		}
+
+		entry.packedFlags ^= tfModified
+	}
+}
+
+func (bc *BlockChain) IsInvalidOut(entry *UtxoEntry) bool {
+	if entry == nil {
+		return true
+	}
+	if entry.blockHash.IsEqual(&hash.ZeroHash) {
+		return false
+	}
+	node:=bc.index.lookupNode(&entry.blockHash)
+	if node != nil {
+		if bc.index.NodeStatus(node).KnownValid() {
+			return false
+		}
+	}
+	return true
+}
+
+// FetchUtxoView loads utxo details about the input transactions referenced by
+// the passed transaction from the point of view of the end of the main chain.
+// It also attempts to fetch the utxo details for the transaction itself so the
+// returned view can be examined for duplicate unspent transaction outputs.
+//
+// This function is safe for concurrent access however the returned view is NOT.
+func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
+	// Create a set of needed transactions based on those referenced by the
+	// inputs of the passed transaction.  Also, add the passed transaction
+	// itself as a way for the caller to detect duplicates that are not
+	// fully spent.
+	neededSet := make(map[types.TxOutPoint]struct{})
+	prevOut := types.TxOutPoint{Hash: *tx.Hash()}
+	for txOutIdx := range tx.Tx.TxOut {
+		prevOut.OutIndex = uint32(txOutIdx)
+		neededSet[prevOut] = struct{}{}
+	}
+	if !tx.Tx.IsCoinBase() {
+		for _, txIn := range tx.Tx.TxIn {
+			neededSet[txIn.PreviousOut] = struct{}{}
+		}
+	}
+
+	// Request the utxos from the point of view of the end of the main
+	// chain.
+	view := NewUtxoViewpoint()
+	b.chainLock.RLock()
+	err := view.fetchUtxosMain(b.db, neededSet)
+	b.chainLock.RUnlock()
+	if err!=nil {
+		return view,err
+	}
+	view.FilterInvalidOut(b)
+	return view, err
+}
+
+// FetchUtxoEntry loads and returns the unspent transaction output entry for the
+// passed hash from the point of view of the end of the main chain.
+//
+// NOTE: Requesting a hash for which there is no data will NOT return an error.
+// Instead both the entry and the error will be nil.  This is done to allow
+// pruning of fully spent transactions.  In practice this means the caller must
+// check if the returned entry is nil before invoking methods on it.
+//
+// This function is safe for concurrent access however the returned entry (if
+// any) is NOT.
+func (b *BlockChain) FetchUtxoEntry(outpoint types.TxOutPoint) (*UtxoEntry, error) {
+	b.chainLock.RLock()
+	defer b.chainLock.RUnlock()
+
+	var entry *UtxoEntry
+	err := b.db.View(func(dbTx database.Tx) error {
+		var err error
+		entry, err = dbFetchUtxoEntry(dbTx, outpoint)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	if b.IsInvalidOut(entry) {
+		entry=nil
+	}
+	return entry, nil
+}
+
+func (b *BlockChain) checkUtxoDuplicate(block *types.SerializedBlock, view *UtxoViewpoint) error {
+	// Fetch utxos for all of the transaction ouputs in this block.
+	// Typically, there will not be any utxos for any of the outputs.
+	fetchSet := make(map[types.TxOutPoint]struct{})
+	for _, tx := range block.Transactions() {
+		prevOut := types.TxOutPoint{Hash: *tx.Hash()}
+		for txOutIdx := range tx.Tx.TxOut {
+			prevOut.OutIndex = uint32(txOutIdx)
+			fetchSet[prevOut] = struct{}{}
+		}
+	}
+	err := view.fetchUtxos(b.db, fetchSet)
+	if err != nil {
+		return err
+	}
+
+	// Duplicate transactions are only allowed if the previous transaction
+	// is fully spent.
+	for outpoint := range fetchSet {
+		utxo := view.LookupEntry(outpoint)
+		if utxo != nil && !utxo.IsSpent() {
+			str := fmt.Sprintf("tried to overwrite transaction %v "+
+				"at block %s that is not fully spent",
+				outpoint.Hash, utxo.blockHash)
+			return ruleError(ErrOverwriteTx, str)
+		}
+	}
+
 	return nil
 }
 

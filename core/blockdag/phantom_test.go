@@ -177,3 +177,20 @@ func Test_LocateMaxBlocks(t *testing.T) {
 	}
 }
 
+func Test_Confirmations(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig2-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	mainTip:=bd.GetMainChainTip()
+	mainChain:=[]*hash.Hash{}
+	for cur:=mainTip; cur != nil; cur = bd.GetBlock(cur.GetMainParent()) {
+		mainChain=append(mainChain,cur.GetHash())
+	}
+	printBlockChainTag(reverseBlockList(mainChain),tbMap)
+
+	for i:=uint(0);i<bd.GetBlockTotal();i++ {
+		blockHash:=bd.GetBlockByOrder(i)
+		fmt.Printf("%s : %d\n",getBlockTag(blockHash,tbMap),bd.GetConfirmations(blockHash))
+	}
+}

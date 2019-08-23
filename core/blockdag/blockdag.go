@@ -515,3 +515,39 @@ func (bd *BlockDAG) SortBlock(src []*hash.Hash) []*hash.Hash {
 	}
 	return result
 }
+
+// GetConfirmations
+func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
+	block:=bd.GetBlock(h)
+	if block == nil {
+		return 0
+	}
+	mainTip:=bd.GetMainChainTip()
+	if bd.IsOnMainChain(h) {
+		return mainTip.GetHeight()-block.GetHeight()
+	}
+	if !block.HasChildren() {
+		return 0
+	}
+	//
+	queue := []IBlock{}
+	queue=append(queue,block)
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		if bd.IsOnMainChain(cur.GetHash()) {
+			return 1+mainTip.GetHeight()-cur.GetHeight()
+		}
+		if !cur.HasChildren() {
+			return 0
+		}else {
+			for _,v := range cur.GetChildren().GetMap() {
+				ib:=v.(IBlock)
+				queue=append(queue,ib)
+			}
+		}
+	}
+	return 0
+}

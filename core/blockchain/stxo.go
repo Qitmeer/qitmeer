@@ -80,7 +80,6 @@ type SpentTxOut struct {
 
 	stakeExtra []byte // Extra information for the staking system.
 	txType        types.TxType // The tx type of the transaction.
-	order         uint32       // order of the the block containing the tx.
 	txIndex       uint32     // txIndex in the block of the transaction.
 	inIndex       uint32       // Index in the txIn
 	txVersion     uint32       // The version of creating tx.
@@ -242,13 +241,6 @@ func deserializeSpendJournalEntry(serialized []byte, txns []*types.Transaction) 
 				offset, err))
 		}
 		//
-		tx := txns[stxo.txIndex]
-		txIn := tx.TxIn[stxo.inIndex]
-
-		stxo.order=txIn.BlockOrder
-		//stxo.amount=txIn.AmountIn
-		//
-		//indexStr:=fmt.Sprintf("%d-%d",stxo.index,stxo.inIndex)
 		stxos=append(stxos,stxo)
 	}
 

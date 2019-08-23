@@ -31,10 +31,6 @@ const (
 
 	// statusValidateFailed indicates that the block has failed validation.
 	statusValidateFailed blockStatus = 1 << 2
-
-	// statusInvalidAncestor indicates that one of the ancestors of the block
-	// has failed validation, thus the block is also invalid.
-	statusInvalidAncestor = 1 << 3
 )
 
 // HaveData returns whether the full block data is stored in the database.  This
@@ -53,7 +49,7 @@ func (status blockStatus) KnownValid() bool {
 // KnownInvalid returns whether the block is known to be invalid.  This will
 // return false for invalid blocks that have not been proven invalid yet.
 func (status blockStatus) KnownInvalid() bool {
-	return status&(statusValidateFailed|statusInvalidAncestor) != 0
+	return status&(statusValidateFailed) != 0
 }
 
 

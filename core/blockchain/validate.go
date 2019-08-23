@@ -8,6 +8,7 @@ package blockchain
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
@@ -351,7 +352,16 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 				MaxCoinbaseScriptLen)
 			return ruleError(ErrBadCoinbaseScriptLen, str)
 		}
-		if len(tx.TxOut) >= 3 {
+		if len(tx.TxOut) >= 2 {
+			slen = len(tx.TxOut[1].PkScript)
+			if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
+				str := fmt.Sprintf("coinbase transaction script "+
+					"length of %d is out of range (min: %d, max: "+
+					"%d)", slen, MinCoinbaseScriptLen,
+					MaxCoinbaseScriptLen)
+				return ruleError(ErrBadCoinbaseScriptLen, str)
+			}
+		}else if len(tx.TxOut) >= 3 {
 			// Coinbase TxOut[2] is op return
 			nullDataOut := tx.TxOut[2]
 			// The first 4 bytes of the null data output must be the encoded height
@@ -493,6 +503,62 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 		if err != nil {
 			return err
 		}
+
+		// check subsidy
+		transactions:=block.Transactions()
+		subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(blockHeight))
+		workAmountOut:=int64(transactions[0].Tx.TxOut[0].Amount)
+
+		hasTax:=false
+		if b.params.BlockTaxProportion > 0 &&
+			len(b.params.OrganizationPkScript) > 0 &&
+			len(transactions[0].Tx.TxOut) >= 2 {
+			hasTax=true
+		}
+
+		var work int64
+		var tax int64
+		var taxAmountOut int64=0
+		var totalAmountOut int64=0
+
+		if hasTax {
+			work = int64(CalcBlockWorkSubsidy(b.subsidyCache,
+				int64(blockHeight), b.params))
+			tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
+				int64(blockHeight), b.params))
+
+			taxAmountOut=int64(transactions[0].Tx.TxOut[1].Amount)
+		}else {
+			work=subsidy
+			tax=0
+			taxAmountOut=0
+		}
+
+		totalAmountOut=workAmountOut+taxAmountOut
+
+
+		if subsidy != totalAmountOut {
+			str := fmt.Sprintf("coinbase transaction for block pays %v which is not the subsidy %v",
+				totalAmountOut, subsidy)
+			return ruleError(ErrBadCoinbaseValue, str)
+		}
+
+		if work != workAmountOut ||
+			tax != taxAmountOut {
+			str := fmt.Sprintf("coinbase transaction for block pays %d  %d  which is not the %d  %d",
+				workAmountOut,taxAmountOut,work,tax)
+			return ruleError(ErrBadCoinbaseValue, str)
+		}
+
+		if hasTax {
+			orgPkScriptStr:=hex.EncodeToString(b.params.OrganizationPkScript)
+			curPkScriptStr:=hex.EncodeToString(transactions[0].Tx.TxOut[1].PkScript)
+			if orgPkScriptStr != curPkScriptStr {
+				str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
+					orgPkScriptStr,curPkScriptStr)
+				return ruleError(ErrBadCoinbaseValue, str)
+			}
+		}
 	}
 
 	return nil
@@ -576,6 +642,11 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		return ruleError(ErrMissingTxOut, str)
 	}
 
+	err := b.checkUtxoDuplicate(block, utxoView)
+	if err != nil {
+		return err
+	}
+
 	// Check that the coinbase pays the tax, if applicable.
 	// TODO tax pay
 
@@ -591,7 +662,6 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	if checkpoint != nil && node.order <= checkpoint.Height {
 		runScripts = false
 	}
-	var err error
 	var scriptFlags txscript.ScriptFlags
 	if runScripts {
 		scriptFlags, err = b.consensusScriptVerifyFlags(node)
@@ -613,10 +683,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		return err
 	}
 
-	//TODO, refactor/remove staketreefee
-	stakeTreeFees:=int64(0)
-
-	err = b.checkTransactionsAndConnect(node,block,b.subsidyCache, stakeTreeFees,utxoView, stxos)
+	err = b.checkTransactionsAndConnect(node,block,b.subsidyCache,utxoView, stxos)
 	if err != nil {
 		log.Trace("checkTransactionsAndConnect failed","err", err)
 		return err
@@ -650,8 +717,8 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	}
 
 	if runScripts {
-		err = checkBlockScripts(block, utxoView, true,
-			scriptFlags, b.sigCache,b)
+		err = checkBlockScripts(block, utxoView,
+			scriptFlags, b.sigCache)
 		if err != nil {
 			log.Trace("checkBlockScripts failed; error returned "+
 				"on txtreeregular of cur block: %v", err)
@@ -688,7 +755,7 @@ func (b *BlockChain) consensusScriptVerifyFlags(node *blockNode) (txscript.Scrip
 // transaction inputs for a transaction list given a predetermined TxStore.
 // After ensuring the transaction is valid, the transaction is connected to the
 // UTXO viewpoint.  TxTree true == Regular, false == Stake
-func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.SerializedBlock,subsidyCache *SubsidyCache, inputFees int64,utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
+func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.SerializedBlock,subsidyCache *SubsidyCache,utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
 	transactions := block.Transactions()
 	totalSigOpCost := 0
 	for _, tx := range transactions {
@@ -706,10 +773,11 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.Se
 		}
 	}
 
+	nodeConf:=b.bd.GetConfirmations(node.GetHash())
 	var totalFees int64
 	for idx, tx := range transactions {
 		txFee, err := CheckTransactionInputs(tx,
-			int64(node.order), utxoView,b.params,b.bd)
+			int64(nodeConf), utxoView,b.params,b.bd)
 		if err != nil {
 			return err
 		}
@@ -728,27 +796,6 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.Se
 			return err
 		}
 	}
-
-	mainParent:=node.GetMainParent(b)
-	// check subsidy
-	var totalAmountOut int64
-	for _, txOut := range transactions[0].Tx.TxOut {
-		totalAmountOut += int64(txOut.Amount)
-	}
-	subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(mainParent.GetHeight()))
-	if subsidy != totalAmountOut {
-		str := fmt.Sprintf("coinbase transaction for block pays %v which is not the subsidy %v",
-			totalAmountOut, subsidy)
-		return ruleError(ErrBadCoinbaseValue, str)
-	}
-	expectedAmountOut :=subsidy + totalFees
-	if totalAmountOut > expectedAmountOut {
-		str := fmt.Sprintf("coinbase transaction for block pays %v "+
-			"which is more than expected value of %v",
-			totalAmountOut, expectedAmountOut)
-		return ruleError(ErrBadCoinbaseValue, str)
-	}
-
 	return nil
 }
 
@@ -869,7 +916,7 @@ func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool,utxoView *UtxoViewpoint) (i
 //
 // NOTE: The transaction MUST have already been sanity checked with the
 // CheckTransactionSanity function prior to calling this function.
-func CheckTransactionInputs(tx *types.Tx, txOrder int64, utxoView *UtxoViewpoint, chainParams *params.Params,bd *blockdag.BlockDAG) (int64, error) {
+func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoViewpoint, chainParams *params.Params,bd *blockdag.BlockDAG) (int64, error) {
 	msgTx := tx.Transaction()
 
 	txHash := tx.Hash()
@@ -897,26 +944,19 @@ func CheckTransactionInputs(tx *types.Tx, txOrder int64, utxoView *UtxoViewpoint
 		// yet reached the required coinbase maturity.
 		coinbaseMaturity := int64(chainParams.CoinbaseMaturity)
 		if utxoEntry.IsCoinBase() {
-			var originOrder int64
+			var originConf int64
 			if hash.ZeroHash.IsEqual(utxoEntry.BlockHash()) {
-				originOrder=int64(bd.GetBlockTotal()-1)
+				originConf=0
 			}else{
-				block:=bd.GetBlock(utxoEntry.BlockHash())
-				if block == nil {
-					str := fmt.Sprintf("tx %v tried to spend "+
-						"coinbase transaction %v from %s",txHash,
-						txInHash, utxoEntry.BlockHash())
-					return 0,ruleError(ErrImmatureSpend, str)
-				}
-				originOrder=int64(block.GetOrder())
+				originConf=int64(bd.GetConfirmations(utxoEntry.BlockHash()))
 			}
-			blocksSincePrev := txOrder - originOrder
+			blocksSincePrev := originConf-confirmations
 			if blocksSincePrev < coinbaseMaturity {
 				str := fmt.Sprintf("tx %v tried to spend "+
-					"coinbase transaction %v from height "+
-					"%v at height %v before required "+
+					"coinbase transaction %v from "+
+					"%v at %v before required "+
 					"maturity of %v blocks", txHash,
-					txInHash, originOrder, txOrder,
+					txInHash, confirmations, originConf,
 					coinbaseMaturity)
 				return 0, ruleError(ErrImmatureSpend, str)
 			}

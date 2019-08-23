@@ -29,7 +29,6 @@ var (
 )
 
 func main() {
-
 	// Initialize the goroutine count,  Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 

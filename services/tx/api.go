@@ -68,7 +68,7 @@ func (api *PublicTxAPI) CreateRawTransaction(inputs []TransactionInput,
 			return nil, rpc.RpcDecodeHexError(input.Txid)
 		}
 		prevOut := types.NewOutPoint(txHash, input.Vout)
-		txIn := types.NewTxInput(prevOut, types.NullValueIn, []byte{})
+		txIn := types.NewTxInput(prevOut, []byte{})
 		if lockTime != nil && *lockTime != 0 {
 			txIn.Sequence = types.MaxTxInSequenceNum - 1
 		}
@@ -163,112 +163,13 @@ func (api *PublicTxAPI) DecodeRawTransaction(hexTx string) (interface{}, error) 
 	// Create and return the result.
 	txReply := &json.OrderedResult{
 		{Key:"txid", Val:mtx.TxHash().String()},
-		{Key:"txhash", Val:mtx.TxHashFull().String()},
+		{Key:"txhash", Val:mtx.TxHash().String()},
 		{Key:"version", Val:int32(mtx.Version)},
 		{Key:"locktime", Val:mtx.LockTime},
-		{Key:"vin", Val:createVinList(&mtx)},
-		{Key:"vout", Val:createVoutList(&mtx, api.txManager.bm.ChainParams(), nil)},
+		{Key:"vin", Val:marshal.MarshJsonVin(&mtx)},
+		{Key:"vout", Val:marshal.MarshJsonVout(&mtx, nil,api.txManager.bm.ChainParams())},
 	}
 	return txReply, nil
-}
-
-// createVinList returns a slice of JSON objects for the inputs of the passed
-// transaction.
-func createVinList(mtx *types.Transaction) []json.Vin {
-	// Coinbase transactions only have a single txin by definition.
-	vinList := make([]json.Vin, len(mtx.TxIn))
-	if mtx.IsCoinBase() {
-		txIn := mtx.TxIn[0]
-		vinEntry := &vinList[0]
-		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
-		vinEntry.Sequence = txIn.Sequence
-		vinEntry.AmountIn = types.Amount(txIn.AmountIn).ToCoin()
-		vinEntry.BlockHeight = txIn.BlockOrder
-		vinEntry.TxIndex = txIn.TxIndex
-		return vinList
-	}
-
-	for i, txIn := range mtx.TxIn {
-		// The disassembled string will contain [error] inline
-		// if the script doesn't fully parse, so ignore the
-		// error here.
-		disbuf, _ := txscript.DisasmString(txIn.SignScript)
-
-		vinEntry := &vinList[i]
-		vinEntry.Txid = txIn.PreviousOut.Hash.String()
-		vinEntry.Vout = txIn.PreviousOut.OutIndex
-		vinEntry.Sequence = txIn.Sequence
-		vinEntry.AmountIn = types.Amount(txIn.AmountIn).ToCoin()
-		vinEntry.BlockHeight = txIn.BlockOrder
-		vinEntry.TxIndex = txIn.TxIndex
-		vinEntry.ScriptSig = &json.ScriptSig{
-			Asm: disbuf,
-			Hex: hex.EncodeToString(txIn.SignScript),
-		}
-	}
-
-	return vinList
-}
-
-// createVoutList returns a slice of JSON objects for the outputs of the passed
-// transaction.
-func createVoutList(mtx *types.Transaction, params *params.Params, filterAddrMap map[string]struct{}) []json.Vout {
-
-	voutList := make([]json.Vout, 0, len(mtx.TxOut))
-	for _, v := range mtx.TxOut {
-		// The disassembled string will contain [error] inline if the
-		// script doesn't fully parse, so ignore the error here.
-		disbuf, _ := txscript.DisasmString(v.PkScript)
-		// Attempt to extract addresses from the public key script.  In
-		// the case of stake submission transactions, the odd outputs
-		// contain a commitment address, so detect that case
-		// accordingly.
-		var addrs []types.Address
-		var scriptClass string
-		var reqSigs int
-
-		// Ignore the error here since an error means the script
-		// couldn't parse and there is no additional information
-		// about it anyways.
-		var sc txscript.ScriptClass
-		sc, addrs, reqSigs, _ = txscript.ExtractPkScriptAddrs(v.PkScript, params)
-		scriptClass = sc.String()
-
-		// Encode the addresses while checking if the address passes the
-		// filter when needed.
-		passesFilter := len(filterAddrMap) == 0
-		encodedAddrs := make([]string, len(addrs))
-		for j, addr := range addrs {
-			encodedAddr := addr.Encode()
-			encodedAddrs[j] = encodedAddr
-
-			// No need to check the map again if the filter already
-			// passes.
-			if passesFilter {
-				continue
-			}
-			if _, exists := filterAddrMap[encodedAddr]; exists {
-				passesFilter = true
-			}
-		}
-
-		if !passesFilter {
-			continue
-		}
-
-		var vout json.Vout
-		voutSPK := &vout.ScriptPubKey
-		vout.Amount = types.Amount(v.Amount).ToCoin()
-		voutSPK.Addresses = encodedAddrs
-		voutSPK.Asm = disbuf
-		voutSPK.Hex = hex.EncodeToString(v.PkScript)
-		voutSPK.Type = scriptClass
-		voutSPK.ReqSigs = int32(reqSigs)
-
-		voutList = append(voutList, vout)
-	}
-
-	return voutList
 }
 
 func (api *PublicTxAPI) SendRawTransaction(hexTx string, allowHighFees *bool) (interface{}, error) {
@@ -413,13 +314,11 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 
 	if blkHash != nil {
 		blkHashStr = blkHash.String()
+		confirmations=int64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(blkHash))
 	}
 	if tx != nil {
 		confirmations = 0
-	} else {
-		confirmations = int64(api.txManager.bm.GetChain().BestSnapshot().GraphState.GetTotal())-int64(blkOrder)
 	}
-
 	return marshal.MarshalJsonTransaction(mtx, api.txManager.bm.ChainParams(), blkOrder, blkHashStr, confirmations)
 }
 
@@ -759,7 +658,7 @@ func (api *PublicTxAPI) GetRawTransactions(addre string,vinext *bool,count *uint
 		if err != nil {
 			return nil, err
 		}
-		result.Vout = createVoutList(mtx.Tx, params, filterAddrMap)
+		result.Vout = marshal.MarshJsonVout(mtx.Tx, filterAddrMap,params)
 		result.Version = mtx.Tx.Version
 		result.LockTime = mtx.Tx.LockTime
 
