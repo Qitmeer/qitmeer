@@ -269,8 +269,9 @@ func dbRemoveTxIndexEntry(dbTx database.Tx, txHash *hash.Hash) error {
 	txIndex := dbTx.Metadata().Bucket(txIndexKey)
 	serializedData := txIndex.Get(txHash[:])
 	if len(serializedData) == 0 {
-		return fmt.Errorf("can't remove non-existent transaction %s "+
-			"from the transaction index", txHash)
+		/*log.Warn(fmt.Errorf("can't remove non-existent transaction %s "+
+			"from the transaction index", txHash).Error())*/
+		return nil
 	}
 
 	return txIndex.Delete(txHash[:])
@@ -300,6 +301,8 @@ func dbRemoveTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock) erro
 type TxIndex struct {
 	db         database.DB
 	curBlockID uint32
+
+	chain *blockchain.BlockChain
 }
 
 // Ensure the TxIndex type implements the Indexer interface.
@@ -408,8 +411,14 @@ func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,
 	// Increment the internal block ID to use for the block being connected
 	// and add all of the transactions in the block to the index.
 	newBlockID := idx.curBlockID + 1
-	if err := dbAddTxIndexEntries(dbTx, block, newBlockID); err != nil {
-		return err
+	node:=idx.chain.BlockIndex().LookupNode(block.Hash())
+	if node == nil {
+		return fmt.Errorf("no node %s",block.Hash())
+	}
+	if node.GetStatus().KnownValid() {
+		if err := dbAddTxIndexEntries(dbTx, block, newBlockID); err != nil {
+			return err
+		}
 	}
 
 	// Add the new block ID index entry for the block being connected and
@@ -428,9 +437,15 @@ func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,
 //
 // This is part of the Indexer interface.
 func (idx *TxIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) error {
-	// Remove all of the transactions in the block from the index.
-	if err := dbRemoveTxIndexEntries(dbTx, block); err != nil {
-		return err
+	node:=idx.chain.BlockIndex().LookupNode(block.Hash())
+	if node == nil {
+		return fmt.Errorf("no node %s",block.Hash())
+	}
+	if node.GetStatus().KnownValid() {
+		// Remove all of the transactions in the block from the index.
+		if err := dbRemoveTxIndexEntries(dbTx, block); err != nil {
+			return err
+		}
 	}
 
 	// Remove the block ID index entry for the block being disconnected and
