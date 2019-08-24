@@ -209,7 +209,7 @@ mempoolLoop:
 			if entry == nil || entry.IsSpent() {
 				if !txSource.HaveTransaction(originHash) {
 					log.Trace(fmt.Sprintf("Skipping tx %s because it "+
-						"references unspent output %s "+
+						"references unspent output %v "+
 						"which is not available",
 						tx.Hash(), txIn.PreviousOut))
 					continue mempoolLoop
@@ -304,7 +304,7 @@ mempoolLoop:
 		if sortedByFee &&
 			prioItem.feePerKB < int64(policy.TxMinFreeFee) &&
 			(blockPlusTxSize >= policy.BlockMinSize) {
-			log.Trace(fmt.Sprintf("Skipping tx %s with feePerKB %.2f "+
+			log.Trace(fmt.Sprintf("Skipping tx %s with feePerKB %.2d "+
 				"< TxMinFreeFee %d and block size %d >= "+
 				"minBlockSize %d", tx.Hash(), prioItem.feePerKB,
 				policy.TxMinFreeFee, blockPlusTxSize,
@@ -379,7 +379,7 @@ mempoolLoop:
 		txFees = append(txFees, prioItem.fee)
 		txSigOpCosts = append(txSigOpCosts, int64(sigOpCost))
 
-		log.Trace(fmt.Sprintf("Adding tx %s (priority %.2f, feePerKB %.2f)",
+		log.Trace(fmt.Sprintf("Adding tx %s (priority %.2f, feePerKB %.2d)",
 			prioItem.tx.Hash(), prioItem.priority, prioItem.feePerKB))
 
 		// Add transactions which depend on this one (and also do not

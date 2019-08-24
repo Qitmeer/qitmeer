@@ -531,8 +531,7 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock,blockHeight 
 
 	if hasTax {
 		if len(transactions[0].Tx.TxOut) < 2 {
-			str := fmt.Sprintf("coinbase transaction is illegal",
-				totalAmountOut, subsidy)
+			str := fmt.Sprintf("coinbase transaction is illegal")
 			return ruleError(ErrBadCoinbaseValue, str)
 		}
 		work = int64(CalcBlockWorkSubsidy(b.subsidyCache,
