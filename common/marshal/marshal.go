@@ -189,6 +189,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		{Key:"difficulty", Val:head.Difficulty},
 		{Key:"nonce", Val:head.Nonce},
 		{Key:"timestamp", Val:head.Timestamp.Format("2006-01-02 15:04:05.0000")},
+		{Key:"parentroot",       Val:head.ParentRoot.String()},
 	}...)
 	tempArr:=[]string{}
 	if b.Block().Parents!=nil&&len(b.Block().Parents)>0 {
