@@ -351,3 +351,17 @@ func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
 	}
 	return b.index.lookupNode(mainParent.GetHash())
 }
+
+func (node *blockNode) GetStatus() blockStatus {
+	return node.status
+}
+
+func (node *blockNode) Valid(b *BlockChain) {
+	b.index.SetStatusFlags(node, statusValid)
+	b.index.UnsetStatusFlags(node,statusValidateFailed)
+}
+
+func (node *blockNode) Invalid(b *BlockChain) {
+	b.index.UnsetStatusFlags(node,statusValid)
+	b.index.SetStatusFlags(node, statusValidateFailed)
+}

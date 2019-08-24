@@ -236,18 +236,13 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 	// A block has been disconnected from the main block chain.
 	case blockchain.BlockDisconnected:
 		log.Trace("Chain disconnected notification.")
-		blockSlice, ok := notification.Data.([]*types.SerializedBlock)
+		blockSlice, ok := notification.Data.(*types.SerializedBlock)
 		if !ok {
 			log.Warn("Chain disconnected notification is not a block slice.")
 			break
 		}
 
-		if len(blockSlice) != 1 {
-			log.Warn("Chain disconnected notification is wrong size slice.")
-			break
-		}
-
-		block := blockSlice[0]
+		block := blockSlice
 
 		// Reinsert all of the transactions (except the coinbase) into
 		// the transaction pool.

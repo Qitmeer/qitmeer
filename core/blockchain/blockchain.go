@@ -893,7 +893,7 @@ func panicf(format string, args ...interface{}) {
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlock, newOrders *list.List,oldOrders BlockNodeList) (bool, error) {
 	if newOrders.Len() == 0 {
-		return false, nil
+		return true, nil
 	}
 	//Fast double spent check
 	b.fastDoubleSpentCheck(node, block)
@@ -910,8 +910,9 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		stxos := make([]SpentTxOut, 0, countSpentOutputs(block))
 		err := b.checkConnectBlock(node, block, view, &stxos)
 		if err != nil {
-			b.index.SetStatusFlags(node, statusValidateFailed)
-			//return false, err
+			node.Invalid(b)
+			stxos=[]SpentTxOut{}
+			view.Clean()
 		}
 		// In the fast add case the code to check the block connection
 		// was skipped, so the utxo view needs to load the referenced
@@ -921,16 +922,14 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// Connect the block to the main chain.
 		err = b.connectBlock(node, block, view, stxos)
 		if err != nil {
-			b.index.SetStatusFlags(node, statusValidateFailed)
-			return false, err
+			node.Invalid(b)
+			return true, err
 		}
-		b.index.SetStatusFlags(node, statusValid)
+		if !node.GetStatus().KnownInvalid() {
+			node.Valid(b)
+		}
 		// TODO, validating previous block
 		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
-		// The fork length is zero since the block is now the tip of the
-		// best chain.
-		//b.updateBestState(node, block)
-
 		return true, nil
 	}
 
@@ -1060,20 +1059,16 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 		// Update the utxo set using the state of the utxo view.  This
 		// entails removing all of the utxos spent and adding the new
 		// ones created by the block.
-		if b.index.NodeStatus(node).KnownValid() {
-			err = dbPutUtxoView(dbTx, view)
-			if err != nil {
-				return err
-			}
+		err = dbPutUtxoView(dbTx, view)
+		if err != nil {
+			return err
 		}
 
 		// Update the transaction spend journal by adding a record for
 		// the block that contains all txos spent by it.
-		if b.index.NodeStatus(node).KnownValid() {
-			err = dbPutSpendJournalEntry(dbTx, block.Hash(), stxos)
-			if err != nil {
-				return err
-			}
+		err = dbPutSpendJournalEntry(dbTx, block.Hash(), stxos)
+		if err != nil {
+			return err
 		}
 		// Allow the index manager to call each of the currently active
 		// optional indexes with the block being connected so they can
@@ -1121,19 +1116,15 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 		// Update the utxo set using the state of the utxo view.  This
 		// entails restoring all of the utxos spent and removing the new
 		// ones created by the block.
-		if b.index.NodeStatus(node).KnownValid() {
-			err = dbPutUtxoView(dbTx, view)
-			if err != nil {
-				return err
-			}
+		err = dbPutUtxoView(dbTx, view)
+		if err != nil {
+			return err
 		}
 		// Update the transaction spend journal by removing the record
 		// that contains all txos spent by the block .
-		if b.index.NodeStatus(node).KnownValid() {
-			err = dbRemoveSpendJournalEntry(dbTx, block.Hash())
-			if err != nil {
-				return err
-			}
+		err = dbRemoveSpendJournalEntry(dbTx, block.Hash())
+		if err != nil {
+			return err
 		}
 		// Allow the index manager to call each of the currently active
 		// optional indexes with the block being disconnected so they
@@ -1193,7 +1184,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 	dl:=len(detachNodes)
 	for i:=dl-1;i>=0;i-- {
 		n = detachNodes[i]
-
+		newn:=b.index.lookupNode(n.GetHash())
 		block, err = b.fetchBlockByHash(&n.hash)
 		if err != nil {
 			return err
@@ -1226,14 +1217,20 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 			// Store the loaded block and spend journal entry for later.
 			err = view.disconnectTransactions(block, stxos)
 			if err != nil {
-				return err
+				n.Invalid(b)
+				newn.Invalid(b)
+				log.Info(fmt.Sprintf("%s",err))
 			}
 		}
 		err = b.disconnectBlock(n, block,view, stxos)
 		if err != nil {
 			return err
 		}
-		b.index.UnsetStatusFlags(n, statusValid)
+		b.index.UnsetStatusFlags(n,statusValid)
+		b.index.UnsetStatusFlags(n,statusValidateFailed)
+
+		b.index.UnsetStatusFlags(newn,statusValid)
+		b.index.UnsetStatusFlags(newn,statusValidateFailed)
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
@@ -1252,19 +1249,25 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 			}
 			block.SetOrder(n.GetOrder())
 		}
-
 		view := NewUtxoViewpoint()
 		view.SetBestHash(n.GetHash())
 		stxos := []SpentTxOut{}
 		err = b.checkConnectBlock(n, block, view, &stxos)
 		if err != nil {
-			b.index.SetStatusFlags(n, statusValidateFailed)
+			n.Invalid(b)
+			stxos=[]SpentTxOut{}
+			view.Clean()
+			log.Info(fmt.Sprintf("%s",err))
 		}
 		err = b.connectBlock(n, block, view, stxos)
 		if err != nil {
-			return err
+			n.Invalid(b)
+			log.Info(fmt.Sprintf("%s",err))
+			continue
 		}
-		b.index.SetStatusFlags(n, statusValid)
+		if !n.GetStatus().KnownInvalid() {
+			n.Valid(b)
+		}
 	}
 
 	// Log the point where the chain forked and old and new best chain
@@ -1392,12 +1395,16 @@ func (b *BlockChain) GetTxManager() TxManager {
 }
 
 func (b *BlockChain) GetMiningTips() []*hash.Hash {
-	best:=b.BestSnapshot()
 	parents:=b.BlockDAG().GetTips().SortList(false)
+	mainParent:=b.bd.GetMainChainTip()
 	tips:=[]*hash.Hash{}
 	for i:=0;i<len(parents);i++ {
+		if mainParent.GetHash().IsEqual(parents[i]) {
+			tips=append(tips,parents[i])
+			continue
+		}
 		node:=b.index.lookupNode(parents[i])
-		if math.Abs(float64(node.GetLayer())-float64(best.GraphState.GetLayer()))>blockdag.MaxTipLayerGap {
+		if math.Abs(float64(node.GetLayer())-float64(mainParent.GetLayer()))>blockdag.MaxTipLayerGap {
 			continue
 		}
 		tips=append(tips,node.GetHash())

@@ -227,7 +227,7 @@ type gbtWorkState struct {
 	sync.Mutex
 	lastTxUpdate  time.Time
 	lastGenerated time.Time
-	prevHash      *hash.Hash
+	parentsSet    *dag.HashSet
 	minTimestamp  time.Time
 	template      *types.BlockTemplate
 	timeSource    blockchain.MedianTimeSource
@@ -259,11 +259,11 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 	// generated.
 	var targetDifficulty string
 	rand.Seed(time.Now().UnixNano())
-	merkles:=m.blockManager.GetChain().BlockDAG().BuildMerkleTreeStoreFromTips()
-	parentRoot:=merkles[len(merkles)-1]
+	parentsSet:=dag.NewHashSet()
+	parentsSet.AddList(m.blockManager.GetChain().GetMiningTips())
 	template := state.template
-	if template == nil || state.prevHash == nil ||
-		!state.prevHash.IsEqual(parentRoot) ||
+	if template == nil || state.parentsSet == nil ||
+		!state.parentsSet.IsEqual(parentsSet) ||
 		(state.lastTxUpdate != lastTxUpdate &&
 			time.Now().After(state.lastGenerated.Add(time.Second*
 				gbtRegenerateSeconds))) {
@@ -271,7 +271,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 		// Reset the previous best hash the block template was generated
 		// against so any errors below cause the next invocation to try
 		// again.
-		state.prevHash = nil
+		state.parentsSet=dag.NewHashSet()
 
 		// Choose a payment address at random if the caller requests a
 		// full coinbase as opposed to only the pertinent details needed
@@ -305,7 +305,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 		state.template = template
 		state.lastGenerated = time.Now()
 		state.lastTxUpdate = lastTxUpdate
-		state.prevHash = &msgBlock.Header.ParentRoot
+		state.parentsSet.AddList(msgBlock.Parents)
 		state.minTimestamp = minTimestamp
 
 		log.Debug(fmt.Sprintf("Generated block template (timestamp %v, "+

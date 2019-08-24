@@ -177,13 +177,13 @@ mempoolLoop:
 		// non-finalized transactions.
 		tx := txDesc.Tx
 		if tx.Tx.IsCoinBase() {
-			log.Trace("Skipping coinbase tx %s", tx.Hash())
+			log.Trace(fmt.Sprintf("Skipping coinbase tx %s", tx.Hash()))
 			continue
 		}
 		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight,
 			timeSource.AdjustedTime()) {
 
-			log.Trace("Skipping non-finalized tx %s", tx.Hash())
+			log.Trace(fmt.Sprintf("Skipping non-finalized tx %s", tx.Hash()))
 			continue
 		}
 
@@ -208,10 +208,10 @@ mempoolLoop:
 			entry := utxos.LookupEntry(txIn.PreviousOut)
 			if entry == nil || entry.IsSpent() {
 				if !txSource.HaveTransaction(originHash) {
-					log.Trace("Skipping tx %s because it "+
-						"references unspent output %s "+
+					log.Trace(fmt.Sprintf("Skipping tx %s because it "+
+						"references unspent output %v "+
 						"which is not available",
-						tx.Hash(), txIn.PreviousOut)
+						tx.Hash(), txIn.PreviousOut))
 					continue mempoolLoop
 				}
 
@@ -304,11 +304,11 @@ mempoolLoop:
 		if sortedByFee &&
 			prioItem.feePerKB < int64(policy.TxMinFreeFee) &&
 			(blockPlusTxSize >= policy.BlockMinSize) {
-			log.Trace("Skipping tx %s with feePerKB %.2f "+
+			log.Trace(fmt.Sprintf("Skipping tx %s with feePerKB %.2d "+
 				"< TxMinFreeFee %d and block size %d >= "+
 				"minBlockSize %d", tx.Hash(), prioItem.feePerKB,
 				policy.TxMinFreeFee, blockPlusTxSize,
-				policy.BlockMinSize)
+				policy.BlockMinSize))
 			logSkippedDeps(tx, deps)
 			continue
 		}
@@ -365,9 +365,9 @@ mempoolLoop:
 		// aren't double spending.
 		err = spendTransaction(blockUtxos, tx, &hash.ZeroHash)
 		if err != nil {
-			log.Warn("Unable to spend transaction %v in the preliminary "+
+			log.Warn(fmt.Sprintf("Unable to spend transaction %v in the preliminary "+
 				"UTXO view for the block template: %v",
-				tx.Hash(), err)
+				tx.Hash(), err))
 		}
 		// Add the transaction to the block, increment counters, and
 		// save the fees and signature operation counts to the block
@@ -379,8 +379,8 @@ mempoolLoop:
 		txFees = append(txFees, prioItem.fee)
 		txSigOpCosts = append(txSigOpCosts, int64(sigOpCost))
 
-		log.Trace("Adding tx %s (priority %.2f, feePerKB %.2f)",
-			prioItem.tx.Hash(), prioItem.priority, prioItem.feePerKB)
+		log.Trace(fmt.Sprintf("Adding tx %s (priority %.2f, feePerKB %.2d)",
+			prioItem.tx.Hash(), prioItem.priority, prioItem.feePerKB))
 
 		// Add transactions which depend on this one (and also do not
 		// have any other unsatisified dependencies) to the priority
@@ -524,8 +524,8 @@ func logSkippedDeps(tx *types.Tx, deps map[hash.Hash]*txPrioItem) {
 	}
 
 	for _, item := range deps {
-		log.Trace("Skipping tx %s since it depends on %s\n",
-			item.tx.Hash(), tx.Hash())
+		log.Trace(fmt.Sprintf("Skipping tx %s since it depends on %s\n",
+			item.tx.Hash(), tx.Hash()))
 	}
 }
 

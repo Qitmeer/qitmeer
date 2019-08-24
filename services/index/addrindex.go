@@ -710,17 +710,20 @@ func (idx *AddrIndex) indexPkScript(data writeIndexData, pkScript []byte, txIdx 
 // transactions in the passed block, and maps each of them to the associated
 // transaction using the passed map.
 func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) {
+	index:=0
 	for txIdx, tx := range block.Transactions() {
 		// Coinbases do not reference any inputs.  Since the block is
 		// required to have already gone through full validation, it has
 		// already been proven on the first transaction in the block is
 		// a coinbase.
 		if txIdx != 0 {
-			for inIndex:= range tx.Transaction().TxIn {
-				stxo:=blockchain.GetSpentTxOut(uint(txIdx),uint(inIndex),stxos)
-				if stxo==nil {
-					continue
+
+			for range tx.Transaction().TxIn {
+				if index >= len(stxos) {
+					return
 				}
+				stxo:=stxos[index]
+				index++
 				idx.indexPkScript(data,stxo.PkScript, txIdx)
 			}
 		}
@@ -738,6 +741,9 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlo
 //
 // This is part of the Indexer interface.
 func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,stxos []blockchain.SpentTxOut) error {
+	if len(stxos)==0 {
+		return nil
+	}
 	// The offset and length of the transactions within the serialized
 	// block.
 	txLocs, err := block.TxLoc()
@@ -779,6 +785,9 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBloc
 //
 // This is part of the Indexer interface.
 func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock,stxos []blockchain.SpentTxOut) error {
+	if len(stxos)==0 {
+		return nil
+	}
 	// Build all of the address to transaction mappings in a local map.
 	addrsToTxns := make(writeIndexData)
 	idx.indexBlock(addrsToTxns, block, stxos)

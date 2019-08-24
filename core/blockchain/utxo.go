@@ -131,6 +131,10 @@ func (view *UtxoViewpoint) RemoveEntry(outpoint types.TxOutPoint) {
 	delete(view.entries, outpoint)
 }
 
+func (view *UtxoViewpoint) Clean() {
+	view.entries=map[types.TxOutPoint]*UtxoEntry{}
+}
+
 // Entries returns the underlying map that stores of all the utxo entries.
 func (view *UtxoViewpoint) Entries() map[types.TxOutPoint]*UtxoEntry {
 	return view.entries
@@ -365,7 +369,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 	// Spend the referenced utxos by marking them spent in the view and,
 	// if a slice was provided for the spent txout details, append an entry
 	// to it.
-	for inIndex, txIn := range msgTx.TxIn {
+	for _, txIn := range msgTx.TxIn {
 		entry := view.entries[txIn.PreviousOut]
 
 		// Ensure the referenced utxo exists in the view.  This should
@@ -388,8 +392,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 		var stxo = SpentTxOut{
 			Amount:        entry.Amount(),
 			PkScript:      entry.PkScript(),
-			txIndex:       blockIndex,
-			inIndex:       uint32(inIndex),
+			BlockHash:     entry.blockHash,
 		}
 		stxo.IsCoinBase = entry.IsCoinBase()
 		// Append the entry to the provided spent txouts slice.
@@ -602,22 +605,6 @@ func (b *BlockChain) checkUtxoDuplicate(block *types.SerializedBlock, view *Utxo
 
 	return nil
 }
-
-// GetSpentTxOut can return the spent transaction out
-func GetSpentTxOut(txIndex uint,inIndex uint,stxos []SpentTxOut) *SpentTxOut {
-	if len(stxos)==0 {
-		return nil
-	}
-	var result SpentTxOut
-	for _,stxo:=range stxos {
-		if stxo.txIndex==uint32(txIndex) && stxo.inIndex==uint32(inIndex) {
-			result=stxo
-			break
-		}
-	}
-	return &result
-}
-
 
 // dbFetchUtxoEntry uses an existing database transaction to fetch all unspent
 // outputs for the provided Bitcoin transaction hash from the utxo set.

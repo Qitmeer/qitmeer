@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
 	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
 	"github.com/Qitmeer/qitmeer-lib/params"
@@ -504,66 +503,83 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 			return err
 		}
 
-		// check subsidy
-		transactions:=block.Transactions()
-		subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(blockHeight))
-		workAmountOut:=int64(transactions[0].Tx.TxOut[0].Amount)
-
-		hasTax:=false
-		if b.params.BlockTaxProportion > 0 &&
-			len(b.params.OrganizationPkScript) > 0 &&
-			len(transactions[0].Tx.TxOut) >= 2 {
-			hasTax=true
-		}
-
-		var work int64
-		var tax int64
-		var taxAmountOut int64=0
-		var totalAmountOut int64=0
-
-		if hasTax {
-			work = int64(CalcBlockWorkSubsidy(b.subsidyCache,
-				int64(blockHeight), b.params))
-			tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
-				int64(blockHeight), b.params))
-
-			taxAmountOut=int64(transactions[0].Tx.TxOut[1].Amount)
-		}else {
-			work=subsidy
-			tax=0
-			taxAmountOut=0
-		}
-
-		totalAmountOut=workAmountOut+taxAmountOut
-
-
-		if subsidy != totalAmountOut {
-			str := fmt.Sprintf("coinbase transaction for block pays %v which is not the subsidy %v",
-				totalAmountOut, subsidy)
-			return ruleError(ErrBadCoinbaseValue, str)
-		}
-
-		if work != workAmountOut ||
-			tax != taxAmountOut {
-			str := fmt.Sprintf("coinbase transaction for block pays %d  %d  which is not the %d  %d",
-				workAmountOut,taxAmountOut,work,tax)
-			return ruleError(ErrBadCoinbaseValue, str)
-		}
-
-		if hasTax {
-			orgPkScriptStr:=hex.EncodeToString(b.params.OrganizationPkScript)
-			curPkScriptStr:=hex.EncodeToString(transactions[0].Tx.TxOut[1].PkScript)
-			if orgPkScriptStr != curPkScriptStr {
-				str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
-					orgPkScriptStr,curPkScriptStr)
-				return ruleError(ErrBadCoinbaseValue, str)
-			}
+		err = b.checkBlockSubsidy(block,int64(blockHeight),-1)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
+func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock,blockHeight int64,totalFee int64) error {
+	// check subsidy
+	transactions:=block.Transactions()
+	subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(blockHeight))
+	workAmountOut:=int64(transactions[0].Tx.TxOut[0].Amount)
+
+	hasTax:=false
+	if b.params.BlockTaxProportion > 0 &&
+		len(b.params.OrganizationPkScript) > 0 {
+		hasTax=true
+	}
+
+	var work int64
+	var tax int64
+	var taxAmountOut int64=0
+	var totalAmountOut int64=0
+
+	if hasTax {
+		if len(transactions[0].Tx.TxOut) < 2 {
+			str := fmt.Sprintf("coinbase transaction is illegal")
+			return ruleError(ErrBadCoinbaseValue, str)
+		}
+		work = int64(CalcBlockWorkSubsidy(b.subsidyCache,
+			int64(blockHeight), b.params))
+		tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
+			int64(blockHeight), b.params))
+
+		taxAmountOut=int64(transactions[0].Tx.TxOut[1].Amount)
+	}else {
+		work=subsidy
+		tax=0
+		taxAmountOut=0
+	}
+
+	totalAmountOut=workAmountOut+taxAmountOut
+
+
+	if totalAmountOut < subsidy {
+		str := fmt.Sprintf("coinbase transaction for block pays %v which is not the subsidy %v",
+			totalAmountOut, subsidy)
+		return ruleError(ErrBadCoinbaseValue, str)
+	}
+
+	if workAmountOut < work ||
+		tax != taxAmountOut {
+		str := fmt.Sprintf("coinbase transaction for block pays %d  %d  which is not the %d  %d",
+			workAmountOut,taxAmountOut,work,tax)
+		return ruleError(ErrBadCoinbaseValue, str)
+	}
+
+	if hasTax {
+		orgPkScriptStr:=hex.EncodeToString(b.params.OrganizationPkScript)
+		curPkScriptStr:=hex.EncodeToString(transactions[0].Tx.TxOut[1].PkScript)
+		if orgPkScriptStr != curPkScriptStr {
+			str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
+				orgPkScriptStr,curPkScriptStr)
+			return ruleError(ErrBadCoinbaseValue, str)
+		}
+	}
+	if totalFee != -1 {
+		if workAmountOut != (totalFee+work) {
+			str := fmt.Sprintf("coinbase transaction for block work pays for %d, but it is %d",
+				work,workAmountOut-totalFee)
+			return ruleError(ErrBadCoinbaseValue, str)
+		}
+	}
+	return nil
+}
 // checkBlockHeaderContext peforms several validation checks on the block
 // header which depend on its position within the block chain.
 //
@@ -695,7 +711,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// Use the past median time of the *previous* block in order
 	// to determine if the transactions in the current block are
 	// final.
-	var prevMedianTime time.Time = node.GetMainParent(b).CalcPastMedianTime(b)
+	prevMedianTime := node.GetMainParent(b).CalcPastMedianTime(b)
 
 	// Skip the coinbase since it does not have any inputs and thus
 	// lock times do not apply.
@@ -796,7 +812,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.Se
 			return err
 		}
 	}
-	return nil
+	return b.checkBlockSubsidy(block,int64(node.GetMainParent(b).GetHeight()),totalFees)
 }
 
 // SequenceLockActive determines if all of the inputs to a given transaction
@@ -1061,9 +1077,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	view := NewUtxoViewpoint()
 	view.SetBestHash(newNode.GetHash())
 
-	parentsSet:=dag.NewHashSet()
-	parentsSet.AddList(block.Block().Parents)
-	mainParent:=b.bd.GetMainParent(parentsSet)
+	mainParent:=newNode.GetMainParent(b)
 	mainParentNode:=b.index.lookupNode(mainParent.GetHash())
 
 	err = b.checkBlockContext(block,mainParentNode, flags)

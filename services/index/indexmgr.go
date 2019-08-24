@@ -83,6 +83,9 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		if err := indexer.Init(); err != nil {
 			return err
 		}
+		if indexer.Name()==txIndexName {
+			indexer.(*TxIndex).chain=chain
+		}
 	}
 
 	bestOrder := uint32(chain.BestSnapshot().GraphState.GetTotal()-1)
