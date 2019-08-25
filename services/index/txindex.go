@@ -415,7 +415,7 @@ func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,
 	if node == nil {
 		return fmt.Errorf("no node %s",block.Hash())
 	}
-	if node.GetStatus().KnownValid() {
+	if !node.GetStatus().KnownInvalid() {
 		if err := dbAddTxIndexEntries(dbTx, block, newBlockID); err != nil {
 			return err
 		}
@@ -441,13 +441,10 @@ func (idx *TxIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlo
 	if node == nil {
 		return fmt.Errorf("no node %s",block.Hash())
 	}
-	if node.GetStatus().KnownValid() {
-		// Remove all of the transactions in the block from the index.
-		if err := dbRemoveTxIndexEntries(dbTx, block); err != nil {
-			return err
-		}
+	// Remove all of the transactions in the block from the index.
+	if err := dbRemoveTxIndexEntries(dbTx, block); err != nil {
+		return err
 	}
-
 	// Remove the block ID index entry for the block being disconnected and
 	// decrement the current internal block ID to account for it.
 	if err := dbRemoveBlockIDIndexEntry(dbTx, block.Hash()); err != nil {

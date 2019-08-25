@@ -503,7 +503,7 @@ func (bc *BlockChain) IsInvalidOut(entry *UtxoEntry) bool {
 	}
 	node:=bc.index.lookupNode(&entry.blockHash)
 	if node != nil {
-		if bc.index.NodeStatus(node).KnownValid() {
+		if !bc.index.NodeStatus(node).KnownInvalid() {
 			return false
 		}
 	}
