@@ -1197,7 +1197,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		// already in the view.
 		var stxos []SpentTxOut
 		view := NewUtxoViewpoint()
-		if b.index.NodeStatus(n).KnownValid() {
+		if !b.index.NodeStatus(n).KnownInvalid() {
 			view.SetBestHash(block.Hash())
 			err = view.fetchInputUtxos(b.db, block, b)
 			if err != nil {
