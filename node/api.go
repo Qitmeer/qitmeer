@@ -76,8 +76,13 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 	peers := api.node.node.peerServer.ConnectedPeers()
 	syncPeerID := api.node.blockManager.SyncPeerID()
 	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
+	peersM:=map[string]bool{}
 	for _, p := range peers {
 		statsSnap := p.StatsSnapshot()
+		if _,ok:=peersM[statsSnap.Addr];ok {
+			continue
+		}
+		peersM[statsSnap.Addr]=true
 		info := &json.GetPeerInfoResult{
 			ID:             statsSnap.ID,
 			Addr:           statsSnap.Addr,
