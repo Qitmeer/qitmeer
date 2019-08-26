@@ -66,13 +66,14 @@ func NewPublicMinerAPI(c *CPUMiner) *PublicMinerAPI {
 }
 
 //func (api *PublicMinerAPI) GetBlockTemplate(request *mining.TemplateRequest) (interface{}, error){
-func (api *PublicMinerAPI) GetBlockTemplate() (interface{}, error) {
+func (api *PublicMinerAPI) GetBlockTemplate(capabilities []string) (interface{}, error) {
 	// Set the default mode and override it if supplied.
 	mode := "template"
-
+	request:=json.TemplateRequest{Mode:mode,Capabilities:capabilities}
+	fmt.Printf("%v\n\n",request)
 	switch mode {
 	case "template":
-		return handleGetBlockTemplateRequest(api,nil)
+		return handleGetBlockTemplateRequest(api,&request)
 	case "proposal":
 		//TODO LL, will be added
 		//return handleGetBlockTemplateProposal(s, request)

@@ -181,7 +181,8 @@ function is_on_mainchain(){
 }
 
 function get_block_template(){
-  local data='{"jsonrpc":"2.0","method":"getBlockTemplate","params":[],"id":1}'
+  local capabilities=$1
+  local data='{"jsonrpc":"2.0","method":"getBlockTemplate","params":[["'$capabilities'"]],"id":1}'
   get_result "$data"
 }
 
@@ -565,7 +566,7 @@ elif [ "$1" == "main" ]; then
 
 elif [ "$1" == "template" ]; then
     shift
-    get_block_template | jq .
+    get_block_template $1 | jq .
 
 elif [ "$1" == "mainHeight" ]; then
     shift
