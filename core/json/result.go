@@ -52,6 +52,15 @@ func (ores OrderedResult) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func (ores *OrderedResult) GetValue(key string) interface{} {
+	for _, kv := range *ores {
+		if kv.Key == key {
+			return kv.Val
+		}
+	}
+	return nil
+}
+
 func isEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
