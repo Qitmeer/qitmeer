@@ -47,7 +47,7 @@ type TransactionInput struct {
 	Vout uint32 `json:"vout"`
 }
 
-type Amounts map[string]float64 //{\"address\":amount,...}
+type Amounts map[string]uint64 //{\"address\":amount,...}
 
 
 func (api *PublicTxAPI) CreateRawTransaction(inputs []TransactionInput,
@@ -112,14 +112,7 @@ func (api *PublicTxAPI) CreateRawTransaction(inputs []TransactionInput,
 				"Pay to address script")
 		}
 
-		atomic, err := types.NewAmount(amount)
-		if err != nil {
-			return nil, rpc.RpcInternalError(err.Error(),
-				"New amount")
-		}
-
-		//TODO fix type conversion
-		txOut := types.NewTxOutput(uint64(atomic), pkScript)
+		txOut := types.NewTxOutput(amount, pkScript)
 		mtx.AddTxOut(txOut)
 	}
 
@@ -163,7 +156,6 @@ func (api *PublicTxAPI) DecodeRawTransaction(hexTx string) (interface{}, error) 
 	// Create and return the result.
 	txReply := &json.OrderedResult{
 		{Key:"txid", Val:mtx.TxHash().String()},
-		{Key:"txhash", Val:mtx.TxHash().String()},
 		{Key:"version", Val:int32(mtx.Version)},
 		{Key:"locktime", Val:mtx.LockTime},
 		{Key:"vin", Val:marshal.MarshJsonVin(&mtx)},

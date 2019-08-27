@@ -312,6 +312,7 @@ function usage(){
   echo "  orphanstotal"
   echo "tx     :"
   echo "  tx <hash>"
+  echo "  createRawTx"
   echo "  txSign <rawTx>"
   echo "  sendRawTx <signedRawTx>"
   echo "  getrawtxs <address>"
