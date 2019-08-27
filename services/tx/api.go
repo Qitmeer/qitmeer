@@ -112,12 +112,6 @@ func (api *PublicTxAPI) CreateRawTransaction(inputs []TransactionInput,
 				"Pay to address script")
 		}
 
-		if err != nil {
-			return nil, rpc.RpcInternalError(err.Error(),
-				"New amount")
-		}
-
-		//TODO fix type conversion
 		txOut := types.NewTxOutput(amount, pkScript)
 		mtx.AddTxOut(txOut)
 	}
