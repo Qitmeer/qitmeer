@@ -69,7 +69,7 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 // Vout models parts of the tx data.  It is defined separately since both
 // getrawtransaction and decoderawtransaction use the same structure.
 type Vout struct {
-	Amount       float64            `json:"amount"`
+	Amount       uint64            `json:"amount"`
 	ScriptPubKey ScriptPubKeyResult `json:"scriptPubKey"`
 }
 
