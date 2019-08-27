@@ -16,6 +16,7 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
 	"github.com/Qitmeer/qitmeer-lib/params"
 	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 )
@@ -428,52 +429,108 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 	return txOutReply, nil
 }
 
-//TODO: I will remove it soon
 func (api *PublicTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}, error) {
 	privkeyByte, err := hex.DecodeString(privkeyStr)
 	if err != nil {
+		return nil,err
 	}
 	if len(privkeyByte) != 32 {
+		return nil,fmt.Errorf("error:%d",len(privkeyByte))
 	}
 	privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
 	h160 := hash.Hash160(pubKey.SerializeCompressed())
 
-	var param *params.Params= &params.PrivNetParams
+	param := api.txManager.bm.ChainParams()
 	addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
 	if err != nil {
+		return nil,err
 	}
 	// Create a new script which pays to the provided address.
 	pkScript, err := txscript.PayToAddrScript(addr)
 	if err != nil {
+		return nil,err
 	}
 
 	if len(rawTxStr)%2 != 0 {
+		return nil,fmt.Errorf("rawTxStr:%d",len(rawTxStr))
 	}
+
 	serializedTx, err := hex.DecodeString(rawTxStr)
 	if err != nil {
+		return nil,err
 	}
 
 	var redeemTx types.Transaction
 	err = redeemTx.Deserialize(bytes.NewReader(serializedTx))
 	if err != nil {
+		return nil,err
 	}
 	var kdb txscript.KeyClosure= func(types.Address) (ecc.PrivateKey, bool, error) {
 		return privateKey, true, nil // compressed is true
 	}
-	var sigScripts [][]byte
-	for i:= range redeemTx.TxIn {
+	//
+	txIndex := api.txManager.txIndex
+	if txIndex == nil {
+		return nil, fmt.Errorf("the transaction index " +
+			"must be enabled to query the blockchain (specify --txindex in configuration)")
+	}
+	confirmationsM:=map[hash.Hash]uint{}
+
+	for i:=0;i<len(redeemTx.TxIn);i++ {
+		txHash:=redeemTx.TxIn[i].PreviousOut.Hash
+		// Look up the location of the transaction.
+		blockRegion, err := txIndex.TxBlockRegion(txHash)
+		if err != nil {
+			return nil, errors.New("Failed to retrieve transaction location")
+		}
+		if blockRegion == nil {
+			return nil, rpc.RpcNoTxInfoError(&txHash)
+		}
+
+		// Load the raw transaction bytes from the database.
+		var txBytes []byte
+		err = api.txManager.db.View(func(dbTx database.Tx) error {
+			var err error
+			txBytes, err = dbTx.FetchBlockRegion(blockRegion)
+			return err
+		})
+		if err != nil {
+			return nil, rpc.RpcNoTxInfoError(&txHash)
+		}
+		// Deserialize the transaction.
+		var prevTx types.Transaction
+		err = prevTx.Deserialize(bytes.NewReader(txBytes))
+		if err != nil {
+			return nil, err
+		}
+
+		if redeemTx.TxIn[i].PreviousOut.OutIndex>=uint32(len(prevTx.TxOut)) {
+			return nil,fmt.Errorf("index:%d",redeemTx.TxIn[i].PreviousOut.OutIndex)
+		}
+
+		//
+		blockNode:=api.txManager.bm.GetChain().BlockIndex().LookupNode(blockRegion.Hash)
+		if blockNode == nil {
+			return nil,fmt.Errorf("Can't find block %s",blockRegion.Hash)
+		}
+
+		if _,ok:=confirmationsM[*blockRegion.Hash];!ok {
+			confirmationsM[*blockRegion.Hash]= api.txManager.bm.GetChain().BlockDAG().GetConfirmations(blockRegion.Hash)
+		}
+
+		if blockNode.GetStatus().KnownInvalid() || confirmationsM[*blockRegion.Hash] < blockdag.StableConfirmations {
+			return nil,fmt.Errorf("Vin is  illegal %s",blockRegion.Hash)
+		}
 		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
 		if err != nil {
+			return nil,err
 		}
-		sigScripts = append(sigScripts, sigScript)
-	}
-
-	for i2:= range sigScripts {
-		redeemTx.TxIn[i2].SignScript = sigScripts[i2]
+		redeemTx.TxIn[i].SignScript=sigScript
 	}
 
 	mtxHex, err := marshal.MessageToHex(&message.MsgTx{Tx:&redeemTx})
 	if err != nil {
+		return nil,err
 	}
 	return mtxHex, nil
 }

@@ -21,7 +21,7 @@ import (
 // finalized, conforming to more stringent size constraints, having scripts
 // of recognized forms, and not containing "dust" outputs (those that are
 // so small it costs more to process them than they are worth).
-func checkTransactionStandard(tx *types.Tx, txType types.TxType, height int64,
+func checkTransactionStandard(tx *types.Tx,  height uint64,
 	medianTime time.Time, minRelayTxFee types.Amount,
 	maxTxVersion uint16) error {
 
@@ -45,7 +45,7 @@ func checkTransactionStandard(tx *types.Tx, txType types.TxType, height int64,
 	// The transaction must be finalized to be standard and therefore
 	// considered for inclusion in a block.
 	// TODO fix type conversion
-	if !blockchain.IsFinalizedTransaction(tx, uint64(height), medianTime) {
+	if !blockchain.IsFinalizedTransaction(tx, height, medianTime) {
 		return txRuleError(message.RejectNonstandard,
 			"transaction is not finalized")
 	}
@@ -90,7 +90,7 @@ func checkTransactionStandard(tx *types.Tx, txType types.TxType, height int64,
 	for i, txOut := range msgTx.TxOut {
 		//TODO the tx version
 		scriptClass := txscript.GetScriptClass(txscript.DefaultScriptVersion, txOut.PkScript)
-		err := checkPkScriptStandard(txscript.DefaultScriptVersion, txOut.PkScript, scriptClass)
+		err := checkPkScriptStandard(txOut.PkScript, scriptClass)
 		if err != nil {
 			// Attempt to extract a reject code from the error so
 			// it can be retained.  When not possible, fall back to
@@ -109,7 +109,7 @@ func checkTransactionStandard(tx *types.Tx, txType types.TxType, height int64,
 		// TODO DUST decision (may careful about reject Dust for token base tx)
 		if scriptClass == txscript.NullDataTy {
 			numNullDataOutputs++
-		} else if txType == types.TxTypeRegular && isDust(txOut, minRelayTxFee) {
+		} else if isDust(txOut, minRelayTxFee) {
 			str := fmt.Sprintf("transaction output %d: payment "+
 				"of %d is dust", i, txOut.Amount)
 			return txRuleError(message.RejectDust, str)
@@ -120,7 +120,7 @@ func checkTransactionStandard(tx *types.Tx, txType types.TxType, height int64,
 	// only carries data. However, certain types of standard stake transactions
 	// are allowed to have multiple OP_RETURN outputs, so only throw an error here
 	// if the tx is TxTypeRegular.
-	if numNullDataOutputs > maxNullDataOutputs && txType == types.TxTypeRegular {
+	if numNullDataOutputs > maxNullDataOutputs {
 		str := "more than one transaction output in a nulldata script for a " +
 			"regular type tx"
 		return txRuleError(message.RejectNonstandard, str)
@@ -134,7 +134,7 @@ func checkTransactionStandard(tx *types.Tx, txType types.TxType, height int64,
 // A standard public key script is one that is a recognized form, and for
 // multi-signature scripts, only contains from 1 to maxStandardMultiSigKeys
 // public keys.
-func checkPkScriptStandard(version uint16, pkScript []byte,
+func checkPkScriptStandard(pkScript []byte,
 	scriptClass txscript.ScriptClass) error {
 
 	// TODO the DefaultPkScriptVersion check
@@ -274,7 +274,7 @@ func isDust(txOut *types.TxOutput, minRelayTxFee types.Amount) bool {
 // main chain.
 //
 // This function MUST be called with the mempool lock held (for reads).
-func (mp *TxPool) checkPoolDoubleSpend(tx *types.Tx, txType types.TxType) error {
+func (mp *TxPool) checkPoolDoubleSpend(tx *types.Tx) error {
 	for _, txIn := range tx.Transaction().TxIn {
 		if txR, exists := mp.outpoints[txIn.PreviousOut]; exists {
 			str := fmt.Sprintf("transaction %v in the pool "+
@@ -295,7 +295,7 @@ func (mp *TxPool) checkPoolDoubleSpend(tx *types.Tx, txType types.TxType) error 
 // not perform those checks because the script engine already does this more
 // accurately and concisely via the txscript.ScriptVerifyCleanStack and
 // txscript.ScriptVerifySigPushOnly flags.
-func checkInputsStandard(tx *types.Tx, txType types.TxType, utxoView *blockchain.UtxoViewpoint) error {
+func checkInputsStandard(tx *types.Tx, utxoView *blockchain.UtxoViewpoint) error {
 
 	// NOTE: The reference implementation also does a coinbase check here,
 	// but coinbases have already been rejected prior to calling this

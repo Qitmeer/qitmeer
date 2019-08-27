@@ -374,7 +374,7 @@ func (m *Manager) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock
 
 // dbFetchTx looks up the passed transaction hash in the transaction index and
 // loads it from the database.
-func dbFetchTx(dbTx database.Tx, hash *hash.Hash) (*types.Transaction, error) {
+func DBFetchTx(dbTx database.Tx, hash *hash.Hash) (*types.Transaction, error) {
 	// Look up the location of the transaction.
 	blockRegion, err := dbFetchTxIndexEntry(dbTx, hash)
 	if err != nil {
