@@ -85,9 +85,8 @@ func (api *PublicBlockAPI) GetBlockhashByRange(start uint,end uint) ([]string, e
 }
 
 //TODO, refactor BlkMgr API
-func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool,amountAtom *bool) (json.OrderedResult, error){
+func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool) (json.OrderedResult, error){
 	block,err := api.bm.chain.BlockByOrder(order)
-
  	if err!=nil {
  		return nil,err
 	}
@@ -109,18 +108,6 @@ func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool,amountAtom 
 		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid())
 	if err != nil {
 		return nil, err
-	}
-	if amountAtom !=nil && *amountAtom {
-		txs:=fields.GetValue("transactions")
-		if txs != nil {
-			txsR:=txs.([]interface{})
-			for i:=0;i<len(txsR);i++ {
-				for j:=0;j<len(txsR[i].(json.TxRawResult).Vout);j++{
-					aa,_:=types.NewAmount(txsR[i].(json.TxRawResult).Vout[j].Amount)
-					txsR[i].(json.TxRawResult).Vout[j].Amount=float64(aa)
-				}
-			}
-		}
 	}
 	return fields,nil
 }
