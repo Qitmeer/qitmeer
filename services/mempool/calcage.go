@@ -27,7 +27,7 @@ func minInt(a, b int) int {
 // age is the sum of this value for each txin.  Any inputs to the transaction
 // which are currently in the mempool and hence not mined into a block yet,
 // contribute no additional input age to the transaction.
-func calcInputValueAge(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint, nextBlockLayer uint64,bd *blockdag.BlockDAG) float64 {
+func calcInputValueAge(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint, nextBlockHeight uint64,bd *blockdag.BlockDAG) float64 {
 	var totalInputAge float64
 	for _, txIn := range tx.TxIn {
 		// Don't attempt to accumulate the total input age if the
@@ -46,7 +46,7 @@ func calcInputValueAge(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint
 				if block == nil {
 					return 0
 				}
-				inputAge = nextBlockLayer - uint64(block.GetLayer())
+				inputAge = nextBlockHeight - uint64(block.GetHeight())
 			}
 			// Sum the input value times age.
 			inputValue := txEntry.Amount()
@@ -61,7 +61,7 @@ func calcInputValueAge(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint
 // of each of its input values multiplied by their age (# of confirmations).
 // Thus, the final formula for the priority is:
 // sum(inputValue * inputAge) / adjustedTxSize
-func CalcPriority(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint, nextBlockLayer uint64,bd *blockdag.BlockDAG) float64 {
+func CalcPriority(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint, nextBlockHeight uint64,bd *blockdag.BlockDAG) float64 {
 	// In order to encourage spending multiple old unspent transaction
 	// outputs thereby reducing the total set, don't count the constant
 	// overhead for each input as well as enough bytes of the signature
@@ -93,7 +93,7 @@ func CalcPriority(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint, nex
 		return 0.0
 	}
 
-	inputValueAge := calcInputValueAge(tx, utxoView, nextBlockLayer,bd)
+	inputValueAge := calcInputValueAge(tx, utxoView, nextBlockHeight,bd)
 	return inputValueAge / float64(serializedTxSize-overhead)
 }
 

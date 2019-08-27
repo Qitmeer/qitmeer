@@ -92,7 +92,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	best:=blockManager.GetChain().BestSnapshot()
 	nextBlockHeight := uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
 	nextBlockOrder:=uint64(best.GraphState.GetTotal())
-	nextBlockLayer:=uint64(best.GraphState.GetLayer()+1)
+	//nextBlockLayer:=uint64(best.GraphState.GetLayer()+1)
 
 	// All transaction scripts are verified using the more strict standarad
 	// flags.
@@ -240,7 +240,7 @@ mempoolLoop:
 		// value age sum as well as the adjusted transaction size.  The
 		// formula is: sum(inputValue * inputAge) / adjustedTxSize
 		prioItem.priority = mempool.CalcPriority(tx.Tx, utxos,
-			nextBlockLayer,blockManager.GetChain().BlockDAG())
+			nextBlockHeight,blockManager.GetChain().BlockDAG())
 
 		// Calculate the fee in Satoshi/kB.
 		prioItem.feePerKB = txDesc.FeePerKB

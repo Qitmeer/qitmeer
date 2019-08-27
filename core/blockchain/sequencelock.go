@@ -22,7 +22,7 @@ import (
 // that it will not prevent a transaction from being included due to the
 // sequence lock, which is the desired behavior.
 type SequenceLock struct {
-	BlockLayer int64
+	BlockHeight int64
 	Time   int64
 }
 
@@ -34,7 +34,7 @@ type SequenceLock struct {
 func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoViewpoint, isActive bool) (*SequenceLock, error) {
 	// A value of -1 for each lock type allows a transaction to be included
 	// in a block at any given height or time.
-	sequenceLock := &SequenceLock{BlockLayer: -1, Time: -1}
+	sequenceLock := &SequenceLock{BlockHeight: -1, Time: -1}
 
 	// Sequence locks do not apply if they are not yet active, the tx
 	// version is less than 2, or the tx is a coinbase or stakebase, so
@@ -113,20 +113,20 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			// input height and required relative number of blocks.
 			// Also, subtract one from the relative lock in order to
 			// maintain the original lock time semantics.
-			var inputLayer uint
+			var inputHeight uint
 			if hash.ZeroHash.IsEqual(utxo.BlockHash()) {
-				inputLayer=b.BestSnapshot().GraphState.GetLayer()
+				inputHeight=b.BestSnapshot().GraphState.GetMainHeight()
 			}else{
 				block:=b.bd.GetBlock(utxo.BlockHash())
 				if block == nil {
 					return sequenceLock,nil
 				}
-				inputLayer = block.GetLayer()
+				inputHeight = block.GetHeight()
 			}
 
-			minLayer := int64(inputLayer) + relativeLock - 1  //TODO,remove type conversion
-			if minLayer > sequenceLock.BlockLayer {
-				sequenceLock.BlockLayer = minLayer
+			minLayer := int64(inputHeight) + relativeLock - 1  //TODO,remove type conversion
+			if minLayer > sequenceLock.BlockHeight {
+				sequenceLock.BlockHeight = minLayer
 			}
 		}
 	}

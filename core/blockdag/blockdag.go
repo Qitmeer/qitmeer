@@ -33,6 +33,9 @@ const MaxBlockOrder=uint(^uint32(0))
 // MaxTipLayerGap
 const MaxTipLayerGap=10
 
+// StableConfirmations
+const StableConfirmations=10
+
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {

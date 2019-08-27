@@ -152,7 +152,7 @@ func (mp *TxPool) RemoveDoubleSpends(tx *types.Tx) {
 //
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
-	tx *types.Tx, txType types.TxType, order uint64, fee int64) {
+	tx *types.Tx, height uint64, fee int64) {
 
 	// Add the transaction to the pool and mark the referenced outpoints
 	// as spent by the pool.
@@ -161,11 +161,11 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 		TxDesc: types.TxDesc{
 			Tx:     tx,
 			Added:  time.Now(),
-			Height: int64(order),  //todo: fix type conversion
+			Height: int64(height),  //todo: fix type conversion
 			Fee:    fee,
 			FeePerKB: fee * 1000 / int64(tx.Tx.SerializeSize()),
 		},
-		StartingPriority: CalcPriority(msgTx, utxoView, order,mp.cfg.BD),
+		StartingPriority: CalcPriority(msgTx, utxoView, height,mp.cfg.BD),
 	}
 	for _, txIn := range msgTx.TxIn {
 		mp.outpoints[txIn.PreviousOut] = tx
@@ -184,8 +184,8 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 
 //Call addTransaction
 func (mp *TxPool) AddTransaction(utxoView *blockchain.UtxoViewpoint,
-	tx *types.Tx, txType types.TxType, height uint64, fee int64) {
-		mp.addTransaction(utxoView,tx,txType,height,fee)
+	tx *types.Tx, height uint64, fee int64) {
+		mp.addTransaction(utxoView,tx,height,fee)
 }
 // maybeAcceptTransaction is the internal function which implements the public
 // MaybeAcceptTransaction.  See the comment for MaybeAcceptTransaction for
@@ -235,8 +235,6 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Get the current height of the main chain.  A standalone transaction
 	// will be mined into the next block at best, so its height is at least
 	// one more than the current height.
-	bestOrder := mp.cfg.BestOrder()
-	nextBlockOrder := bestOrder + 1
 	nextBlockHeight := mp.cfg.BestHeight() + 1
 
 	// Don't accept transactions that will be expired as of the next block.
@@ -245,14 +243,11 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 			txHash, msgTx.Expire)
 		return nil, txRuleError(message.RejectInvalid, str)
 	}
-	// Determine what type of transaction we're dealing with.
-	txType := types.DetermineTxType(msgTx)
-
 	// Don't allow non-standard transactions if the mempool config forbids
 	// their acceptance and relaying.
 	medianTime := mp.cfg.PastMedianTime()
 	if !mp.cfg.Policy.AcceptNonStd {
-		err := checkTransactionStandard(tx, txType, int64(nextBlockHeight), //TODO fix type conversion
+		err := checkTransactionStandard(tx,nextBlockHeight,
 			medianTime, mp.cfg.Policy.MinRelayTxFee,
 			mp.cfg.Policy.MaxTxVersion)
 		if err != nil {
@@ -277,7 +272,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// at this point.  There is a more in-depth check that happens later
 	// after fetching the referenced transaction inputs from the main chain
 	// which examines the actual spend data and prevents double spends.
-	err = mp.checkPoolDoubleSpend(tx, txType)
+	err = mp.checkPoolDoubleSpend(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +333,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, err
 	}
 	// TODO fix type conversion
-	if !blockchain.SequenceLockActive(seqLock, int64(nextBlockOrder), medianTime) {
+	if !blockchain.SequenceLockActive(seqLock, int64(nextBlockHeight), medianTime) {
 		return nil, txRuleError(message.RejectNonstandard,
 			"transaction sequence locks on inputs not met")
 	}
@@ -359,7 +354,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Don't allow transactions with non-standard inputs if the mempool config
 	// forbids their acceptance and relaying.
 	if !mp.cfg.Policy.AcceptNonStd {
-		err := checkInputsStandard(tx, txType, utxoView)
+		err := checkInputsStandard(tx, utxoView)
 		if err != nil {
 			// Attempt to extract a reject code from the error so
 			// it can be retained.  When not possible, fall back to
@@ -402,13 +397,11 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	serializedSize := int64(msgTx.SerializeSize())
 	minFee := calcMinRequiredTxRelayFee(serializedSize,
 		mp.cfg.Policy.MinRelayTxFee)
-	if txType == types.TxTypeRegular { // regular tx only
-		if txFee < minFee {
-			str := fmt.Sprintf("transaction %v has %v fees which "+
-				"is under the required amount of %v", txHash,
-				txFee, minFee)
-			return nil, txRuleError(message.RejectInsufficientFee, str)
-		}
+	if txFee < minFee {
+		str := fmt.Sprintf("transaction %v has %v fees which "+
+			"is under the required amount of %v", txHash,
+			txFee, minFee)
+		return nil, txRuleError(message.RejectInsufficientFee, str)
 	}
 
 	// Require that free transactions have sufficient priority to be mined
@@ -417,11 +410,10 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// are exempted.
 	//
 	// This applies to non-stake transactions only.
-	if isNew && !mp.cfg.Policy.DisableRelayPriority && txFee < minFee &&
-		txType == types.TxTypeRegular {
+	if isNew && !mp.cfg.Policy.DisableRelayPriority && txFee < minFee {
 
 		currentPriority := CalcPriority(msgTx, utxoView,
-			nextBlockOrder,mp.cfg.BD)
+			nextBlockHeight,mp.cfg.BD)
 		if currentPriority <= MinHighPriority {
 			str := fmt.Sprintf("transaction %v has insufficient "+
 				"priority (%g <= %g)", txHash,
@@ -433,7 +425,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Free-to-relay transactions are rate limited here to prevent
 	// penny-flooding with tiny transactions as a form of attack.
 	// This applies to non-stake transactions only.
-	if rateLimit && txFee < minFee && txType == types.TxTypeRegular {
+	if rateLimit && txFee < minFee {
 		nowUnix := time.Now().Unix()
 		// Decay passed data with an exponentially decaying ~10 minute
 		// window.
@@ -485,7 +477,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	// Add to transaction pool.
-	mp.addTransaction(utxoView, tx, txType, bestOrder, txFee)
+	mp.addTransaction(utxoView, tx, nextBlockHeight, txFee)
 
 	log.Debug("Accepted transaction","txHash", txHash,"pool size", len(mp.pool))
 

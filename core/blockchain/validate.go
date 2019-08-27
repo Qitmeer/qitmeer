@@ -360,6 +360,14 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 					MaxCoinbaseScriptLen)
 				return ruleError(ErrBadCoinbaseScriptLen, str)
 			}
+			orgPkScriptStr:=hex.EncodeToString(params.OrganizationPkScript)
+			curPkScriptStr:=hex.EncodeToString(tx.TxOut[1].PkScript)
+			if orgPkScriptStr != curPkScriptStr {
+				str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
+					orgPkScriptStr,curPkScriptStr)
+				return ruleError(ErrBadCoinbaseValue, str)
+			}
+
 		}else if len(tx.TxOut) >= 3 {
 			// Coinbase TxOut[2] is op return
 			nullDataOut := tx.TxOut[2]
@@ -722,7 +730,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 			return err
 		}
 
-		if !SequenceLockActive(sequenceLock,int64(node.GetLayer()),  //TODO, remove type conversion
+		if !SequenceLockActive(sequenceLock,int64(node.GetHeight()),  //TODO, remove type conversion
 			prevMedianTime) {
 
 			str := fmt.Sprintf("block contains " +
@@ -821,11 +829,11 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.Se
 // sequence lock is sufficient because the calculated lock selects the minimum
 // required time and block height from all of the non-disabled inputs after
 // which the transaction can be included.
-func SequenceLockActive(lock *SequenceLock, blockLayer int64, medianTime time.Time) bool {
+func SequenceLockActive(lock *SequenceLock, blockHeight int64, medianTime time.Time) bool {
 	// The transaction is not yet mature if it has not yet reached the
 	// required minimum time and block height according to its sequence
 	// locks.
-	if blockLayer <= lock.BlockLayer || medianTime.Unix() <= lock.Time {
+	if blockHeight <= lock.BlockHeight || medianTime.Unix() <= lock.Time {
 		return false
 	}
 
