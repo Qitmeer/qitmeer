@@ -820,7 +820,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.Se
 			return err
 		}
 	}
-	return b.checkBlockSubsidy(block,int64(node.GetMainParent(b).GetHeight()),totalFees)
+	return b.checkBlockSubsidy(block,int64(node.GetMainParent(b).GetHeight()+1),totalFees)
 }
 
 // SequenceLockActive determines if all of the inputs to a given transaction
