@@ -5,13 +5,13 @@ package blkmgr
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer-lib/core/json"
-	"github.com/Qitmeer/qitmeer-lib/rpc"
 	"fmt"
+	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/common/marshal"
+	"github.com/Qitmeer/qitmeer-lib/core/json"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"strconv"
 )
 
@@ -239,5 +239,17 @@ func (api *PublicBlockAPI) GetBlockWeight(h hash.Hash) (interface{}, error){
 // Return the total of orphans
 func (api *PublicBlockAPI) GetOrphansTotal() (interface{}, error) {
 	return api.bm.GetChain().GetOrphansTotal(),nil
+}
+
+func (api *PublicBlockAPI) GetBlockByID(id uint64,verbose *bool) (interface{}, error) {
+	blockHash:= api.bm.GetChain().BlockDAG().GetBlockHash(uint(id))
+	if blockHash == nil {
+		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", id))
+	}
+	vb:=false
+	if verbose != nil {
+		vb=*verbose
+	}
+	return api.GetBlock(*blockHash,vb)
 }
 
