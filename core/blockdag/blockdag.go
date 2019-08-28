@@ -104,6 +104,9 @@ type BlockDAG struct {
 	// Current dag instance used. Different algorithms work according to
 	// different dag types config.
 	instance IBlockDAG
+
+	// Use block id to save all blocks with mapping
+	blockids map[uint]*hash.Hash
 }
 
 // Acquire the name of DAG instance
@@ -171,6 +174,12 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	if bd.GetBlockTotal() == 0 {
 		bd.genesis = *block.GetHash()
 	}
+	//
+	if bd.blockids == nil {
+		bd.blockids = map[uint]*hash.Hash{}
+	}
+	bd.blockids[block.GetID()]=block.GetHash()
+	//
 	bd.blockTotal++
 	//
 	bd.updateTips(&block)
@@ -553,4 +562,8 @@ func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
 		}
 	}
 	return 0
+}
+
+func (bd *BlockDAG) GetBlockHash(id uint) *hash.Hash {
+	return bd.blockids[id]
 }

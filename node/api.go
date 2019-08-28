@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/params"
 	"github.com/Qitmeer/qitmeer-lib/rpc"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/version"
 	"math/big"
 	"strconv"
@@ -45,6 +46,8 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		Connections:     api.node.node.peerServer.ConnectedCount(),
 		Difficulty:      getDifficultyRatio(best.Bits,api.node.node.Params),
 		TestNet:         api.node.node.Config.TestNet,
+		Confirmations:   blockdag.StableConfirmations,
+		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
 		Modules:         []string{rpc.DefaultServiceNameSpace,rpc.MinerNameSpace},
 	}
 	ret.GraphState=*getGraphStateResult(best.GraphState)

@@ -61,6 +61,16 @@ function get_block(){
   get_result "$data"
 }
 
+function get_block_by_id(){
+  local id=$1
+  local verbose=$2
+  if [ "$verbose" == "" ]; then
+    verbose="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockByID","params":['$id','$verbose'],"id":1}'
+  get_result "$data"
+}
+
 function get_block_number(){
   local data='{"jsonrpc":"2.0","method":"getBlockCount","params":[],"id":1}'
   get_result "$data"
@@ -536,6 +546,9 @@ if [ "$1" == "block" ]; then
   else
     call_get_block $@
   fi
+elif [ "$1" == "blockid" ]; then
+  shift
+  get_block_by_id $@
 elif [ "$1" == "block_count" ]; then
    shift
    get_block_number
