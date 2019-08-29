@@ -159,8 +159,9 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		{Key:"txsvalid",     Val:state},
 		{Key:"confirmations",Val:confirmations},
 		{Key:"version",      Val:head.Version},
-		{Key:"weight",        Val:types.GetBlockWeight(b.Block())},
+		{Key:"weight",       Val:types.GetBlockWeight(b.Block())},
 		{Key:"order",        Val:order},
+		{Key:"height",       Val:b.Height()},
 		{Key:"txRoot",       Val:head.TxRoot.String()},
 	}
 
