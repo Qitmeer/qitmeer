@@ -70,7 +70,6 @@ func (api *PublicMinerAPI) GetBlockTemplate(capabilities []string) (interface{},
 	// Set the default mode and override it if supplied.
 	mode := "template"
 	request:=json.TemplateRequest{Mode:mode,Capabilities:capabilities}
-	fmt.Printf("%v\n\n",request)
 	switch mode {
 	case "template":
 		return handleGetBlockTemplateRequest(api,&request)
