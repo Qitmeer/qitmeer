@@ -57,7 +57,15 @@ function get_block(){
   if [ "$verbose" == "" ]; then
     verbose="true"
   fi
-  local data='{"jsonrpc":"2.0","method":"getBlockByOrder","params":['$order','$verbose'],"id":1}'
+  local inclTx=$3
+  if [ "$inclTx" == "" ]; then
+    inclTx="true"
+  fi
+  local fullTx=$4
+  if [ "$fullTx" == "" ]; then
+    fullTx="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockByOrder","params":['$order','$verbose','$inclTx','$fullTx'],"id":1}'
   get_result "$data"
 }
 
@@ -67,7 +75,15 @@ function get_block_by_id(){
   if [ "$verbose" == "" ]; then
     verbose="true"
   fi
-  local data='{"jsonrpc":"2.0","method":"getBlockByID","params":['$id','$verbose'],"id":1}'
+    local inclTx=$3
+  if [ "$inclTx" == "" ]; then
+    inclTx="true"
+  fi
+  local fullTx=$4
+  if [ "$fullTx" == "" ]; then
+    fullTx="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockByID","params":['$id','$verbose','$inclTx','$fullTx'],"id":1}'
   get_result "$data"
 }
 
@@ -315,6 +331,7 @@ function usage(){
   echo "  main  <hash>"
   echo "block  :"
   echo "  block <num|hash>"
+  echo "  blockid <id>"
   echo "  block_count"
   echo "  blockrange <start,end>"
   echo "  mainHeight"

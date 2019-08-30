@@ -36,11 +36,11 @@ func NewPublicBlockAPI(bm *BlockManager) *PublicBlockAPI {
 
 //TODO, refactor BlkMgr API
 func (api *PublicBlockAPI) GetBlockhash(order uint) (string, error){
- 	block,err := api.bm.chain.BlockByOrder(uint64(order))
+ 	blockHash,err := api.bm.chain.BlockHashByOrder(uint64(order))
  	if err!=nil {
  		return "",err
 	}
-	return block.Hash().String(),nil
+	return blockHash.String(),nil
 }
 
 // Return the hash range of block from 'start' to 'end'(exclude self)
@@ -84,36 +84,41 @@ func (api *PublicBlockAPI) GetBlockhashByRange(start uint,end uint) ([]string, e
 	return result,nil
 }
 
-//TODO, refactor BlkMgr API
-func (api *PublicBlockAPI) GetBlockByOrder(order uint64, fullTx bool) (json.OrderedResult, error){
-	block,err := api.bm.chain.BlockByOrder(order)
+func (api *PublicBlockAPI) GetBlockByOrder(order uint64,verbose *bool,inclTx *bool, fullTx *bool) (interface{}, error){
+	blockHash,err := api.bm.chain.BlockHashByOrder(order)
  	if err!=nil {
  		return nil,err
 	}
-	node:=api.bm.chain.BlockIndex().LookupNode(block.Hash())
-	if node==nil {
-		return nil,fmt.Errorf("no node")
+	vb:=false
+	if verbose != nil {
+		vb=*verbose
 	}
-	// Update the source block order
-	block.SetOrder(node.GetOrder())
-	// Get next block hash unless there are none.
-	confirmations := api.bm.chain.BlockDAG().GetConfirmations(block.Hash())
-	cs:=node.GetChildren()
-	children:=[]*hash.Hash{}
-	if cs!=nil {
-		children=cs.List()
+	iTx:=true
+	if inclTx != nil {
+		iTx=*inclTx
 	}
-	//TODO, refactor marshal api
-	fields, err := marshal.MarshalJsonBlock(block, true, fullTx, api.bm.params, int64(confirmations),children,
-		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid())
-	if err != nil {
-		return nil, err
+	fTx:=true
+	if fullTx != nil {
+		fTx=*fullTx
 	}
-	return fields,nil
+	return api.GetBlock(*blockHash,&vb,&iTx,&fTx)
 }
 
 
-func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, error){
+func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool,inclTx *bool, fullTx *bool) (interface{}, error){
+
+	vb:=false
+	if verbose != nil {
+		vb=*verbose
+	}
+	iTx:=true
+	if inclTx != nil {
+		iTx=*inclTx
+	}
+	fTx:=true
+	if fullTx != nil {
+		fTx=*fullTx
+	}
 
 	// Load the raw block bytes from the database.
 	// Note :
@@ -129,9 +134,10 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 	}
 	// Update the source block order
 	blk.SetOrder(node.GetOrder())
+	blk.SetHeight(node.GetHeight())
 	// When the verbose flag isn't set, simply return the
 	// network-serialized block as a hex-encoded string.
-	if !verbose {
+	if !vb {
 		blkBytes, err := blk.Bytes()
 		if err != nil {
 			return nil, rpc.RpcInternalError(err.Error(),
@@ -146,7 +152,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose bool) (interface{}, err
 		children=cs.List()
 	}
 	//TODO, refactor marshal api
-	fields, err := marshal.MarshalJsonBlock(blk, true, verbose, api.bm.params, confirmations,children,
+	fields, err := marshal.MarshalJsonBlock(blk,iTx, fTx, api.bm.params, confirmations,children,
 		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid())
 	if err != nil {
 		return nil, err
@@ -241,7 +247,7 @@ func (api *PublicBlockAPI) GetOrphansTotal() (interface{}, error) {
 	return api.bm.GetChain().GetOrphansTotal(),nil
 }
 
-func (api *PublicBlockAPI) GetBlockByID(id uint64,verbose *bool) (interface{}, error) {
+func (api *PublicBlockAPI) GetBlockByID(id uint64,verbose *bool,inclTx *bool, fullTx *bool) (interface{}, error) {
 	blockHash:= api.bm.GetChain().BlockDAG().GetBlockHash(uint(id))
 	if blockHash == nil {
 		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", id))
@@ -250,6 +256,14 @@ func (api *PublicBlockAPI) GetBlockByID(id uint64,verbose *bool) (interface{}, e
 	if verbose != nil {
 		vb=*verbose
 	}
-	return api.GetBlock(*blockHash,vb)
+	iTx:=true
+	if inclTx != nil {
+		iTx=*inclTx
+	}
+	fTx:=true
+	if fullTx != nil {
+		fTx=*fullTx
+	}
+	return api.GetBlock(*blockHash,&vb,&iTx,&fTx)
 }
 
