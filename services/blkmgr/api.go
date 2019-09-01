@@ -168,6 +168,11 @@ func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error){
 
 func (api *PublicBlockAPI) GetBlockCount() (interface{}, error){
 	best := api.bm.chain.BestSnapshot()
+	return best.GraphState.GetMainOrder()+1, nil
+}
+
+func (api *PublicBlockAPI) GetBlockTotal() (interface{}, error){
+	best := api.bm.chain.BestSnapshot()
 	return best.GraphState.GetTotal(), nil
 }
 

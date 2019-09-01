@@ -385,6 +385,7 @@ func (bd *BlockDAG) GetGraphState() *dag.GraphState {
 	}
 	gs.SetTotal(bd.GetBlockTotal())
 	gs.SetMainHeight(bd.GetMainChainTip().GetHeight())
+	gs.SetMainOrder(bd.GetMainChainTip().GetOrder())
 	return gs
 }
 

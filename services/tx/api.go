@@ -678,7 +678,6 @@ func (api *PublicTxAPI) GetRawTransactions(addre string,vinext *bool,count *uint
 	}
 
 	// The verbose flag is set, so generate the JSON object and return it.
-	best := api.txManager.bm.GetChain().BestSnapshot()
 	srtList := make([]json.GetRawTransactionsResult, len(addressTxns))
 	for i := range addressTxns {
 		// The deserialized transaction is needed, so deserialize the
@@ -717,25 +716,14 @@ func (api *PublicTxAPI) GetRawTransactions(addre string,vinext *bool,count *uint
 		// confirmations or block information).
 		var blkHeader *types.BlockHeader
 		var blkHashStr string
-		var blkOrder uint64
 		if blkHash := rtx.blkHash; blkHash != nil {
 			// Fetch the header from chain.
 			header, err := api.txManager.bm.GetChain().HeaderByHash(blkHash)
 			if err != nil {
 				return nil, rpc.RpcInternalError("Block not found","")
 			}
-
-			// Get the block height from chain.
-
-			order, err := api.txManager.bm.GetChain().BlockOrderByHash(blkHash)
-			if err != nil {
-				context := "Failed to obtain block height"
-				return nil, rpc.RpcInternalError(err.Error(), context)
-			}
-
 			blkHeader = &header
 			blkHashStr = blkHash.String()
-			blkOrder = order
 		}
 
 		// Add the block information to the result if there is any.
@@ -745,7 +733,7 @@ func (api *PublicTxAPI) GetRawTransactions(addre string,vinext *bool,count *uint
 			result.Time = blkHeader.Timestamp.Unix()
 			result.Blocktime = blkHeader.Timestamp.Unix()
 			result.BlockHash = blkHashStr
-			result.Confirmations = uint64(best.GraphState.GetTotal()) - uint64(blkOrder)
+			result.Confirmations = uint64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(rtx.blkHash))
 		}
 	}
 
