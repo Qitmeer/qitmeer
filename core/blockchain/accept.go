@@ -134,7 +134,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.index.SetStatusFlags(newNode, statusDataStored)
 	err = b.index.flushToDB(b.bd)
 	if err != nil {
-		b.updateBestState(newNode, block)
+		panic(err.Error())
 		return true, nil
 	}
 	// Insert the block into the database if it's not already there.  Even
@@ -155,7 +155,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		return nil
 	})
 	if err != nil {
-		b.updateBestState(newNode, block)
+		panic(err.Error())
 		return true, nil
 	}
 
