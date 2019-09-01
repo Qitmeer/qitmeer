@@ -535,6 +535,9 @@ func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
 	if block == nil {
 		return 0
 	}
+	if block.GetOrder() > bd.GetMainChainTip().GetOrder() {
+		return 0
+	}
 	mainTip:=bd.GetMainChainTip()
 	if bd.IsOnMainChain(h) {
 		return mainTip.GetHeight()-block.GetHeight()

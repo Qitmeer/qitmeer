@@ -226,7 +226,7 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 
 	var mtx *types.Transaction
 	var blkHash *hash.Hash
-	var blkOrder uint64
+	//var blkOrder uint64
 	var blkHashStr string
 	var confirmations int64
 
@@ -270,11 +270,11 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 
 		// Grab the block height.
 		blkHash = blockRegion.Hash
-		blkOrder, err = api.txManager.bm.GetChain().BlockOrderByHash(blkHash)
+		/*blkOrder, err = api.txManager.bm.GetChain().BlockOrderByHash(blkHash)
 		if err != nil {
 			context := "Failed to retrieve block height"
 			return nil, rpc.RpcInternalError(err.Error(), context)
-		}
+		}*/
 
 		// Deserialize the transaction
 		var msgTx types.Transaction
@@ -312,7 +312,7 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 	if tx != nil {
 		confirmations = 0
 	}
-	return marshal.MarshalJsonTransaction(mtx, api.txManager.bm.ChainParams(), blkOrder, blkHashStr, confirmations)
+	return marshal.MarshalJsonTransaction(mtx, api.txManager.bm.ChainParams(), blkHashStr, confirmations)
 }
 
 // Returns information about an unspent transaction output
