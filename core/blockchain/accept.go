@@ -135,7 +135,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	err = b.index.flushToDB(b.bd)
 	if err != nil {
 		panic(err.Error())
-		return true, nil
 	}
 	// Insert the block into the database if it's not already there.  Even
 	// though it is possible the block will ultimately fail to connect, it
@@ -156,7 +155,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	})
 	if err != nil {
 		panic(err.Error())
-		return true, nil
 	}
 
 	// Connect the passed block to the chain while respecting proper chain

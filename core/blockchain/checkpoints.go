@@ -148,7 +148,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
 	// When there is a next checkpoint and the height of the current best
 	// chain does not exceed it, the current checkpoint lockin is still
 	// the latest known checkpoint.
-	if uint64(b.bd.GetLastBlock().GetOrder()) < b.nextCheckpoint.Height {
+	if uint64(b.bd.GetMainChainTip().GetHeight()) < b.nextCheckpoint.Height {
 		return b.checkpointNode, nil
 	}
 

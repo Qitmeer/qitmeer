@@ -464,11 +464,6 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				}*/
 			}
 		}
-		for i:=b.bd.GetMainChainTip().GetOrder()+1;i<b.bd.GetBlockTotal() ;i++  {
-			blockHash:=b.bd.GetBlockByOrder(i)
-			refnode := b.index.lookupNode(blockHash)
-			refnode.SetOrder(uint64(blockdag.MaxBlockOrder))
-		}
 		log.Debug("Block index loaded", "loadTime", time.Since(bidxStart))
 		/*if !b.dag.GetLastBlock().hash.IsEqual(&state.hash) {
 			return AssertError(fmt.Sprintf("initChainState:Data damage"))
@@ -907,7 +902,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// to the main chain without violating any rules and without
 		// actually connecting the block.
 		view := NewUtxoViewpoint()
-		view.SetBestHash(b.bd.GetPrevious(&node.hash))
+		view.SetBestHash(&node.hash)
 
 		stxos := make([]SpentTxOut, 0, countSpentOutputs(block))
 		err := b.checkConnectBlock(node, block, view, &stxos)
@@ -1188,7 +1183,6 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		block, err = b.fetchBlockByHash(&n.hash)
 		if err != nil || n == nil {
 			panic(err.Error())
-			return err
 		}
 		if !n.IsOrdered() {
 			panic("no ordered")
@@ -1308,7 +1302,6 @@ func (b *BlockChain) TimeSource() MedianTimeSource {
 func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.SerializedBlock, newOrders *list.List,oldOrders *BlockNodeList) {
 	var refnode *blockNode
 	var oldOrdersTemp BlockNodeList
-	mainTip:=b.bd.GetMainChainTip()
 
 	for e := newOrders.Front(); e != nil; e = e.Next() {
 		refHash := e.Value.(*hash.Hash)
@@ -1316,11 +1309,7 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 		if refHash.IsEqual(&newNode.hash) {
 			newNode.SetLayer(refblock.GetLayer())
 			refnode=newNode
-			if refblock.GetOrder() > mainTip.GetOrder() {
-				block.SetOrder(uint64(blockdag.MaxBlockOrder))
-			}else{
-				block.SetOrder(uint64(refblock.GetOrder()))
-			}
+			block.SetOrder(uint64(refblock.GetOrder()))
 
 			if refblock.GetHeight() != newNode.GetHeight() {
 				log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d",newNode.GetHash(),newNode.GetHeight(),refblock.GetHeight()))
@@ -1333,11 +1322,7 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 				oldOrdersTemp=append(oldOrdersTemp,refnode.Clone())
 			}
 		}
-		if refblock.GetOrder() > mainTip.GetOrder() {
-			refnode.SetOrder(uint64(blockdag.MaxBlockOrder))
-		}else{
-			refnode.SetOrder(uint64(refblock.GetOrder()))
-		}
+		refnode.SetOrder(uint64(refblock.GetOrder()))
 	}
 	if newOrders.Len()<=1 || len(oldOrdersTemp)==0 {
 		return

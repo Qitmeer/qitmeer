@@ -88,7 +88,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 	endHash:=hashStop
 	if hashStop.IsEqual(&hash.ZeroHash) {
 		// If the stop block is zero, that means it doesn't end until last tip.
-		endHash=b.bd.GetLastBlock().GetHash()
+		endHash=b.bd.GetMainChainTip().GetHash()
 	}else if hashStop.IsEqual(locator[0]) {
 		// In this case, we're going back to what block we need.
 		for _,v:=range locator{
@@ -163,7 +163,7 @@ func (b *BlockChain) BlockLocatorFromHash(hash *hash.Hash) BlockLocator {
 func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 	// Use the current tip if requested.
 	if node == nil {
-		lb:=b.bd.GetLastBlock()
+		lb:=b.bd.GetMainChainTip()
 		node = b.index.lookupNode(lb.GetHash())
 		if node == nil {
 			return nil

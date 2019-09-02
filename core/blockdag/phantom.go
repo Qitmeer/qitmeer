@@ -64,7 +64,7 @@ func (ph *Phantom) AddBlock(ib IBlock) *list.List {
 
 	changeBlock:=pb
 	changeBlock0:=ph.updateMainChain(ph.getBluest(ph.bd.GetTips()),pb)
-	changeBlock1:=ph.updateVirtualBlockOrder()
+	changeBlock1:=ph.preUpdateVirtualBlock()
 	if changeBlock0!=nil && changeBlock0.GetOrder()<changeBlock.GetOrder() {
 		changeBlock=changeBlock0
 	}
@@ -402,6 +402,18 @@ func (ph *Phantom) updateVirtualBlockOrder() *PhantomBlock {
 	return ph.getBlock(ph.mainChain.tip)
 }
 
+func (ph *Phantom) preUpdateVirtualBlock() *PhantomBlock {
+	if ph.diffAnticone.IsEmpty() ||
+		ph.virtualBlock.GetOrder()!=MaxBlockOrder {
+		return nil
+	}
+	for k:=range ph.diffAnticone.GetMap(){
+		dab:=ph.getBlock(&k)
+		dab.SetOrder(MaxBlockOrder)
+	}
+	return nil
+}
+
 func (ph *Phantom) GetDiffBlueSet() *dag.HashSet {
 	if ph.mainChain.tip==nil {
 		return nil
@@ -430,8 +442,7 @@ func (ph *Phantom) GetTipsList() []IBlock {
 
 // Find block hash by order, this is very fast.
 func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash {
-	ph.updateVirtualBlockOrder()
-	if order>=uint(len(ph.bd.order)) {
+	if order>=ph.GetMainChainTip().GetOrder() {
 		return nil
 	}
 	return ph.bd.order[order]
@@ -465,11 +476,15 @@ func (ph *Phantom) getOrderChangeList(pb *PhantomBlock) *list.List {
 		return refNodes
 	}
 	////
-	for i:=ph.bd.GetBlockTotal()-1;i>=0;i-- {
+	for i:=ph.bd.GetMainChainTip().GetOrder();i>=0;i-- {
 		refNodes.PushFront(ph.bd.order[i])
 		if ph.bd.order[i].IsEqual(pb.GetHash()) {
 			break
 		}
+	}
+	for k:=range ph.diffAnticone.GetMap(){
+		dk:=k
+		refNodes.PushFront(dk)
 	}
 	return refNodes
 }

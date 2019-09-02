@@ -295,7 +295,7 @@ func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash{
 	if result!=nil {
 		return result
 	}
-	if order>=uint(len(bd.order)) {
+	if order>=bd.GetBlockTotal() {
 		return nil
 	}
 	return bd.order[order]
@@ -303,14 +303,8 @@ func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash{
 
 // Return the last order block
 func (bd *BlockDAG) GetLastBlock() IBlock{
-	if bd.GetBlockTotal()==0 {
-		return nil
-	}
-	result:=bd.GetBlockByOrder(bd.GetBlockTotal()-1)
-	if result==nil {
-		return nil
-	}
-	return bd.GetBlock(result)
+	// TODO
+	return bd.GetMainChainTip()
 }
 
 // This function need a stable sequence,so call it before sorting the DAG.
@@ -329,6 +323,7 @@ func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 	if b.GetOrder()==0{
 		return nil
 	}
+	// TODO
 	return bd.GetBlockByOrder(b.GetOrder()-1)
 }
 
