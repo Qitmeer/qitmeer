@@ -3,8 +3,7 @@
 [![Build Status](https://travis-ci.com/Qitmeer/qitmeer.svg?token=DzCFNC6nhEqPc89sq1nd&branch=master)](https://travis-ci.com/Qitmeer/qitmeer)
 
 
-The guardian of trust. The core network of the Halachain
-
+The guardian of trust. The core backend of the qitmeer network.
 
 ## Installation
 ### Binary archives
