@@ -464,7 +464,11 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				}*/
 			}
 		}
-
+		for i:=b.bd.GetMainChainTip().GetOrder()+1;i<b.bd.GetBlockTotal() ;i++  {
+			blockHash:=b.bd.GetBlockByOrder(i)
+			refnode := b.index.lookupNode(blockHash)
+			refnode.SetOrder(uint64(blockdag.MaxBlockOrder))
+		}
 		log.Debug("Block index loaded", "loadTime", time.Since(bidxStart))
 		/*if !b.dag.GetLastBlock().hash.IsEqual(&state.hash) {
 			return AssertError(fmt.Sprintf("initChainState:Data damage"))
