@@ -85,7 +85,7 @@ func Test_OrderFig2(t *testing.T) {
 	ph:=ibd.(*Phantom)
 	order:=[]*hash.Hash{}
 	var i uint
-	ph.updateVirtualBlockOrder()
+	ph.UpdateVirtualBlockOrder()
 	for i=0;i<bd.GetBlockTotal() ;i++  {
 		order=append(order,bd.order[i])
 	}
@@ -110,7 +110,7 @@ func Test_OrderFig4(t *testing.T) {
 	ph:=ibd.(*Phantom)
 	order:=[]*hash.Hash{}
 	var i uint
-	ph.updateVirtualBlockOrder()
+	ph.UpdateVirtualBlockOrder()
 	for i=0;i<bd.GetBlockTotal() ;i++  {
 		order=append(order,bd.order[i])
 	}
@@ -135,7 +135,7 @@ func Test_GetLayer(t *testing.T) {
 	var result string=""
 	var i uint
 	ph:=ibd.(*Phantom)
-	ph.updateVirtualBlockOrder()
+	ph.UpdateVirtualBlockOrder()
 	for i=0;i<bd.GetBlockTotal() ;i++  {
 		l:=bd.GetLayer(bd.order[i])
 		result=fmt.Sprintf("%s%d",result,l)
@@ -204,7 +204,7 @@ func Test_Confirmations(t *testing.T) {
 	printBlockChainTag(reverseBlockList(mainChain),tbMap)
 
 	ph:=ibd.(*Phantom)
-	ph.updateVirtualBlockOrder()
+	ph.UpdateVirtualBlockOrder()
 	for i:=uint(0);i<bd.GetBlockTotal();i++ {
 		blockHash:=bd.order[i]
 		fmt.Printf("%s : %d\n",getBlockTag(blockHash,tbMap),bd.GetConfirmations(blockHash))

@@ -115,6 +115,11 @@ func (bd *BlockDAG) GetName() string {
 	return bd.instance.GetName()
 }
 
+// GetInstance
+func (bd *BlockDAG) GetInstance() IBlockDAG {
+	return bd.instance
+}
+
 // Initialize self, the function to be invoked at the beginning
 func (bd *BlockDAG) Init(dagType string) IBlockDAG{
 	bd.instance=NewBlockDAG(dagType)

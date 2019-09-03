@@ -350,7 +350,7 @@ func (ph *Phantom) updateMainOrder(path []*hash.Hash,intersection *hash.Hash) {
 	//
 }
 
-func (ph *Phantom) updateVirtualBlockOrder() *PhantomBlock {
+func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	if ph.diffAnticone.IsEmpty() ||
 		ph.virtualBlock.GetOrder()!=MaxBlockOrder {
 		return nil
@@ -410,7 +410,7 @@ func (ph *Phantom) GetDiffBlueSet() *dag.HashSet {
 	if ph.mainChain.tip==nil {
 		return nil
 	}
-	ph.updateVirtualBlockOrder()
+	ph.UpdateVirtualBlockOrder()
 	result:=dag.NewHashSet()
 	curPb:=ph.getBlock(ph.mainChain.tip)
 	for  {
