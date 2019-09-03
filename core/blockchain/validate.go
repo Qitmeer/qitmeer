@@ -683,7 +683,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// portion of block handling.
 	checkpoint := b.latestCheckpoint()
 	runScripts := !b.noVerify
-	if checkpoint != nil && node.order <= checkpoint.Height {
+	if checkpoint != nil && uint64(node.GetHeight()) <= checkpoint.Height {
 		runScripts = false
 	}
 	var scriptFlags txscript.ScriptFlags

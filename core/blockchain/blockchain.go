@@ -287,7 +287,7 @@ func New(config *Config) (*BlockChain, error) {
 
 	for _, v := range tips {
 		tnode := b.index.lookupNode(v.GetHash())
-		log.Info(fmt.Sprintf("hash=%v,order=%d,work=%v", tnode.hash, tnode.order, tnode.workSum))
+		log.Info(fmt.Sprintf("hash=%v,order=%d,work=%v", tnode.hash, blockdag.GetOrderLogStr(uint(tnode.GetOrder())), tnode.workSum))
 	}
 
 	return &b, nil

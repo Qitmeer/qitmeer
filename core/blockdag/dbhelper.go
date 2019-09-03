@@ -47,3 +47,10 @@ func DBGetDAGBlock(dbTx database.Tx,id uint) (*hash.Hash,byte,error) {
 
 	return &h,status[0],nil
 }
+
+func GetOrderLogStr(order uint) string {
+	if order == MaxBlockOrder {
+		return "uncertainty"
+	}
+	return fmt.Sprintf("%d",order)
+}

@@ -15,6 +15,7 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
 	"github.com/Qitmeer/qitmeer-lib/params"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/mining"
@@ -404,7 +405,7 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 		coinbaseTxGenerated += out.Amount
 	}
 	log.Info("Block submitted accepted","hash",block.Hash(),
-		"order", block.Order(),"height", block.Height(),"amount",coinbaseTxGenerated)
+		"order", blockdag.GetOrderLogStr(uint(block.Order())),"height", block.Height(),"amount",coinbaseTxGenerated)
 	return true
 }
 
@@ -800,7 +801,7 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 					coinbaseTxGenerated += out.Amount
 				}
 				log.Info("Block submitted accepted","hash",block.Hash(),
-					"height", block.Order(),"amount",coinbaseTxGenerated)
+					"height", block.Height(),"amount",coinbaseTxGenerated)
 			}else{
 				return nil,err
 			}

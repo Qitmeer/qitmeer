@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -151,8 +152,8 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	for _, out := range coinbaseTxOuts {
 		coinbaseTxGenerated += out.Amount
 	}
-	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, order %d amount %d", block.Hash().String(),
-		 block.Height(),block.Order(), coinbaseTxGenerated), nil
+	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, order %s amount %d", block.Hash().String(),
+		 block.Height(),blockdag.GetOrderLogStr(uint(block.Order())), coinbaseTxGenerated), nil
 
 }
 

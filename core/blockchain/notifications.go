@@ -63,11 +63,6 @@ func (n NotificationType) String() string {
 // that was accepted extended the best chain as it might have created or
 // extended a side chain.
 type BlockAcceptedNotifyData struct {
-	// BestHeight is the height of the current best chain.  Since the accepted
-	// block might be on a side chain, this is not necessarily the same as the
-	// height of the accepted block.
-	BestHeight uint64
-
 	// ForkLen is the length of the side chain the block extended or zero in the
 	// case the block extended the main chain.
 	//

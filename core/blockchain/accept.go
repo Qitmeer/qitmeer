@@ -171,7 +171,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.chainLock.Unlock()
 	//TODO, refactor to event subscript/publish
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
-		BestHeight: block.Order(),
 		ForkLen:    0,
 		Block:      block,
 	})
