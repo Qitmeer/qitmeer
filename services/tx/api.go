@@ -518,7 +518,7 @@ func (api *PublicTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{},
 			confirmationsM[*blockRegion.Hash]= api.txManager.bm.GetChain().BlockDAG().GetConfirmations(blockRegion.Hash)
 		}
 
-		if blockNode.GetStatus().KnownInvalid() || confirmationsM[*blockRegion.Hash] < blockdag.StableConfirmations {
+		if !blockNode.GetStatus().KnownValid() || confirmationsM[*blockRegion.Hash] < blockdag.StableConfirmations {
 			return nil,fmt.Errorf("Vin is  illegal %s",blockRegion.Hash)
 		}
 		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)

@@ -29,6 +29,10 @@ const (
 
 	// statusValid indicates that the block has been fully validated.
 	statusValid blockStatus = 1 << 1
+
+	// statusInvalid indicates that the block has failed validation.
+	statusInvalid blockStatus = 1 << 2
+
 )
 
 // HaveData returns whether the full block data is stored in the database.  This
@@ -47,9 +51,8 @@ func (status blockStatus) KnownValid() bool {
 // KnownInvalid returns whether the block is known to be invalid.  This will
 // return false for invalid blocks that have not been proven invalid yet.
 func (status blockStatus) KnownInvalid() bool {
-	return !status.KnownValid()
+	return status&statusInvalid != 0
 }
-
 
 // blockNode represents a block within the block chain and is primarily used to
 // aid in selecting the best chain to be the main chain.  The main chain is
@@ -356,9 +359,11 @@ func (node *blockNode) GetStatus() blockStatus {
 
 func (node *blockNode) Valid(b *BlockChain) {
 	b.index.SetStatusFlags(node, statusValid)
+	b.index.UnsetStatusFlags(node,statusInvalid)
 }
 
 func (node *blockNode) Invalid(b *BlockChain) {
+	b.index.SetStatusFlags(node, statusInvalid)
 	b.index.UnsetStatusFlags(node,statusValid)
 }
 
