@@ -41,7 +41,7 @@ type GetPeerInfoResult struct {
 // GetGraphStateResult data
 type GetGraphStateResult struct {
 	Tips []string `json:"tips"`
-	Total uint32 `json:"total"`
-	Layer uint32 `json:"layer"`
+	MainOrder uint32 `json:"mainorder"`
 	MainHeight uint32 `json:"mainheight"`
+	Layer uint32 `json:"layer"`
 }

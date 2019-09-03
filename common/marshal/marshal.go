@@ -28,16 +28,16 @@ func MessageToHex(msg message.Message) (string, error) {
 	return hex.EncodeToString(buf.Bytes()), nil
 }
 
-func MarshalJsonTx(tx *types.Tx, params *params.Params, blkOrder uint64,blkHashStr string,
+func MarshalJsonTx(tx *types.Tx, params *params.Params,blkHashStr string,
 	confirmations int64) (json.TxRawResult, error){
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
-	return MarshalJsonTransaction(tx.Transaction(), params, blkOrder,blkHashStr, confirmations)
+	return MarshalJsonTransaction(tx.Transaction(), params,blkHashStr, confirmations)
 }
 
 
-func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkOrder uint64,blkHashStr string,
+func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHashStr string,
 	confirmations int64) (json.TxRawResult, error){
 
 	hexStr, err := MessageToHex(&message.MsgTx{Tx:tx})
@@ -57,7 +57,6 @@ func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkOrd
 	}
 
 	if blkHashStr != "" {
-		txr.BlockOrder=blkOrder
 		txr.BlockHash=blkHashStr
 		txr.Confirmations=confirmations
 	}
@@ -148,29 +147,29 @@ func  MarshJsonVout(tx *types.Transaction,filterAddrMap map[string]struct{}, par
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
 func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
-	params *params.Params, confirmations int64,children []*hash.Hash,state bool) (json.OrderedResult, error) {
+	params *params.Params, confirmations int64,children []*hash.Hash,state bool,isOrdered bool) (json.OrderedResult, error) {
 
 	head := b.Block().Header // copies the header once
 	// Get next block hash unless there are none.
-	order := uint64(b.Order())
-
 	fields := json.OrderedResult{
 		{Key:"hash",         Val:b.Hash().String()},
 		{Key:"txsvalid",     Val:state},
 		{Key:"confirmations",Val:confirmations},
 		{Key:"version",      Val:head.Version},
-		{Key:"weight",        Val:types.GetBlockWeight(b.Block())},
-		{Key:"order",        Val:order},
+		{Key:"weight",       Val:types.GetBlockWeight(b.Block())},
+		{Key:"height",       Val:b.Height()},
 		{Key:"txRoot",       Val:head.TxRoot.String()},
 	}
-
+	if isOrdered {
+		fields = append(fields, json.KV{Key:"order", Val:b.Order()})
+	}
 	if inclTx {
 		formatTx := func(tx *types.Tx) (interface{}, error) {
 			return tx.Hash().String(), nil
 		}
 		if fullTx {
 			formatTx = func(tx *types.Tx) (interface{}, error) {
-				return MarshalJsonTx(tx,params,order,b.Hash().String(),confirmations)
+				return MarshalJsonTx(tx,params,b.Hash().String(),confirmations)
 			}
 		}
 		txs := b.Transactions()

@@ -23,6 +23,9 @@ type GraphState struct {
 
 	// The height of main chain
 	mainHeight uint
+
+	// The order of main chain tip
+	mainOrder uint
 }
 
 // Return the DAG layer
@@ -41,6 +44,14 @@ func (gs *GraphState) GetTotal() uint {
 
 func (gs *GraphState) SetTotal(total uint) {
 	gs.total=total
+}
+
+func (gs *GraphState) GetMainOrder() uint {
+	return gs.mainOrder
+}
+
+func (gs *GraphState) SetMainOrder(order uint) {
+	gs.mainOrder=order
 }
 
 // Return all tips of DAG
@@ -67,7 +78,7 @@ func (gs *GraphState) IsEqual(other *GraphState) bool {
 		return true
 	}
 	if gs.layer != other.layer ||
-		gs.total != other.total ||
+		gs.mainOrder != other.mainOrder ||
 		gs.mainHeight != other.mainHeight {
 		return false
 	}
@@ -83,6 +94,7 @@ func (gs *GraphState) Equal(other *GraphState) {
 	gs.layer=other.layer
 	gs.total=other.total
 	gs.mainHeight=other.mainHeight
+	gs.mainOrder=other.mainOrder
 }
 
 // Copy self and return
@@ -94,7 +106,7 @@ func (gs *GraphState) Clone() *GraphState {
 
 // Return one string contain info
 func (gs *GraphState) String() string {
-	return fmt.Sprintf("(%d,%d,%d,%d)",gs.tips.Size(),gs.total,gs.layer,gs.mainHeight)
+	return fmt.Sprintf("(%d,%d,%d,%d,%d)",gs.mainOrder,gs.mainHeight,gs.layer,gs.total,gs.tips.Size())
 }
 
 // Judging whether it is better than other
@@ -102,9 +114,9 @@ func (gs *GraphState) IsExcellent(other *GraphState) bool {
 	if gs.IsEqual(other) {
 		return false
 	}
-	if gs.total<other.total {
+	if gs.mainOrder<other.mainOrder {
 		return false
-	}else if gs.total>other.total {
+	}else if gs.mainOrder>other.mainOrder {
 		return true
 	}
 	if gs.mainHeight<other.mainHeight {
@@ -115,6 +127,11 @@ func (gs *GraphState) IsExcellent(other *GraphState) bool {
 	if gs.layer<other.layer {
 		return false
 	}else if gs.layer>other.layer {
+		return true
+	}
+	if gs.total<other.total {
+		return false
+	}else if gs.total>other.total {
 		return true
 	}
 	return false
@@ -131,6 +148,10 @@ func (gs *GraphState) Encode(w io.Writer,pver uint32) error {
 		return err
 	}
 	err= s.WriteVarInt(w, pver, uint64(gs.mainHeight))
+	if err != nil {
+		return err
+	}
+	err= s.WriteVarInt(w, pver, uint64(gs.mainOrder))
 	if err != nil {
 		return err
 	}
@@ -169,6 +190,12 @@ func (gs *GraphState) Decode(r io.Reader,pver uint32) error {
 	}
 	gs.mainHeight=uint(mainHeight)
 
+	mainOrder, err := s.ReadVarInt(r,pver)
+	if err != nil {
+		return err
+	}
+	gs.mainOrder=uint(mainOrder)
+
 	count, err := s.ReadVarInt(r,pver)
 	if count==0 {
 		return fmt.Errorf("GraphState.Decode:tips count is zero.")
@@ -187,7 +214,7 @@ func (gs *GraphState) Decode(r io.Reader,pver uint32) error {
 }
 
 func (gs *GraphState) MaxPayloadLength() uint32 {
-	return 8 + 4 + 4 + (MaxTips * hash.HashSize)
+	return 8 + 4 + 4 + 4 + (MaxTips * hash.HashSize)
 }
 
 // Create a new GraphState
@@ -197,6 +224,7 @@ func NewGraphState() *GraphState {
 		total:0,
 		layer:0,
 		mainHeight:0,
+		mainOrder:0,
 	}
 }
 
