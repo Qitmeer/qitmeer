@@ -5,6 +5,7 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
+	"math"
 	"sort"
 	"time"
 )
@@ -147,7 +148,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		return nil
 	}
 	//
-	block := Block{id:bd.GetBlockTotal(),hash: *b.GetHash(), weight: 1, layer:0}
+	block := Block{id:bd.GetBlockTotal(),hash: *b.GetHash(), weight: 1, layer:0,status:StatusNone}
 	if parents != nil {
 		block.parents = dag.NewHashSet()
 		var maxLayer uint=0
@@ -384,8 +385,9 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState,maxHashes uint) []*hash.Hash
 	}
 	queue := []IBlock{}
 	fs:=dag.NewHashSet()
-	for _,v:=range bd.GetTips().GetMap(){
-		ib:=v.(IBlock)
+	tips:=bd.GetValidTips()
+	for _,v:=range tips {
+		ib:=bd.GetBlock(v)
 		queue=append(queue,ib)
 		fs.AddPair(ib.GetHash(),ib)
 	}
@@ -401,7 +403,7 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState,maxHashes uint) []*hash.Hash
 		if cur.HasChildren() {
 			for _,v := range cur.GetChildren().GetMap() {
 				ib:=v.(IBlock)
-				if gs.GetTips().Has(ib.GetHash()) || !fs.Has(ib.GetHash()) {
+				if gs.GetTips().Has(ib.GetHash()) || !fs.Has(ib.GetHash())&&ib.IsOrdered() {
 					needRec=false
 					break
 				}
@@ -558,4 +560,22 @@ func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
 
 func (bd *BlockDAG) GetBlockHash(id uint) *hash.Hash {
 	return bd.blockids[id]
+}
+
+func (bd *BlockDAG) GetValidTips() []*hash.Hash {
+	parents:=bd.GetTips().SortList(false)
+	mainParent:=bd.GetMainChainTip()
+	tips:=[]*hash.Hash{}
+	for i:=0;i<len(parents);i++ {
+		if mainParent.GetHash().IsEqual(parents[i]) {
+			tips=append(tips,parents[i])
+			continue
+		}
+		block:=bd.GetBlock(parents[i])
+		if math.Abs(float64(block.GetLayer())-float64(mainParent.GetLayer()))>MaxTipLayerGap {
+			continue
+		}
+		tips=append(tips,block.GetHash())
+	}
+	return tips
 }

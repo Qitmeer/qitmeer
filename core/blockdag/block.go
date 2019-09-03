@@ -84,6 +84,7 @@ type Block struct {
 	order      uint
 	layer      uint
 	height     uint
+	status     BlockStatus
 }
 
 // Return block ID
@@ -374,4 +375,31 @@ func (b *Block) Decode(r io.Reader) error {
 	b.height=uint(height)
 
 	return nil
+}
+
+func (b *Block) GetStatus() BlockStatus {
+	return b.status
+}
+
+func (b *Block) SetStatus(flags BlockStatus) {
+	b.status |= flags
+}
+
+func (b *Block) UnsetStatus(flags BlockStatus) {
+	b.status &^= flags
+}
+
+// BlockStatus
+type BlockStatus byte
+
+const (
+	// StatusNone
+	StatusNone BlockStatus = 0
+
+	// StatusBadSide
+	StatusBadSide BlockStatus = 1 << 0
+)
+
+func (status BlockStatus) IsBadSide() bool {
+	return status&StatusBadSide != 0
 }

@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
 	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
-	"math"
 	"os"
 	"sort"
 	"sync"
@@ -1393,19 +1392,5 @@ func (b *BlockChain) GetTxManager() TxManager {
 }
 
 func (b *BlockChain) GetMiningTips() []*hash.Hash {
-	parents:=b.BlockDAG().GetTips().SortList(false)
-	mainParent:=b.bd.GetMainChainTip()
-	tips:=[]*hash.Hash{}
-	for i:=0;i<len(parents);i++ {
-		if mainParent.GetHash().IsEqual(parents[i]) {
-			tips=append(tips,parents[i])
-			continue
-		}
-		node:=b.index.lookupNode(parents[i])
-		if math.Abs(float64(node.GetLayer())-float64(mainParent.GetLayer()))>blockdag.MaxTipLayerGap {
-			continue
-		}
-		tips=append(tips,node.GetHash())
-	}
-	return tips
+	return b.BlockDAG().GetValidTips()
 }

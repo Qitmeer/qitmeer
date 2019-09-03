@@ -511,6 +511,7 @@ func (ph *Phantom) getBlock(h *hash.Hash) *PhantomBlock {
 func (ph *Phantom) GetDiffAnticone() *dag.HashSet {
 	return ph.diffAnticone
 }
+
 // The main chain of DAG is support incremental expansion
 type MainChain struct {
 	blocks *dag.HashSet
