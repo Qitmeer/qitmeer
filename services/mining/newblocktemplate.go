@@ -4,7 +4,6 @@ import (
 	"container/heap"
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
 	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
@@ -407,10 +406,7 @@ mempoolLoop:
 	}
 
 	// Choose the block version to generate based on the network.
-	blockVersion := uint32(generatedBlockVersion)
-	if params.Net != protocol.MainNet {
-		blockVersion = generatedBlockVersionTest
-	}
+	blockVersion :=BlockVersion(params.Net)
 
 	// Create a new block ready to be solved.
 	merkles := merkle.BuildMerkleTreeStore(blockTxns)

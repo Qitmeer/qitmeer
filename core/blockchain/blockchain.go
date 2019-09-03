@@ -110,6 +110,9 @@ type BlockChain struct {
 
 	//tx manager
 	txManager TxManager
+
+	// block version
+	BlockVersion uint32
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -168,6 +171,9 @@ type Config struct {
 
 	// Setting different dag types will use different consensus
 	DAGType string
+
+	// block version
+	BlockVersion uint32
 }
 
 // orphanBlock represents a block that we don't yet have the parent for.  It
@@ -256,6 +262,7 @@ func New(config *Config) (*BlockChain, error) {
 		index:               newBlockIndex(config.DB, par),
 		orphans:             make(map[hash.Hash]*orphanBlock),
 		prevOrphans:         make(map[hash.Hash][]*orphanBlock),
+		BlockVersion:        config.BlockVersion,
 	}
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType)
@@ -283,11 +290,11 @@ func New(config *Config) (*BlockChain, error) {
 		"index", b.dbInfo.bidxVer)
 
 	tips := b.bd.GetTipsList()
-	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d blockTotal=%d", b.BestSnapshot().TotalTxns, len(tips), b.bd.GetBlockTotal()))
+	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d mainOrder=%d total=%d", b.BestSnapshot().TotalTxns, len(tips),b.bd.GetMainChainTip().GetOrder(),b.bd.GetBlockTotal()))
 
 	for _, v := range tips {
 		tnode := b.index.lookupNode(v.GetHash())
-		log.Info(fmt.Sprintf("hash=%v,order=%d,work=%v", tnode.hash, blockdag.GetOrderLogStr(uint(tnode.GetOrder())), tnode.workSum))
+		log.Info(fmt.Sprintf("hash=%v,order=%s,work=%v", tnode.hash, blockdag.GetOrderLogStr(uint(tnode.GetOrder())), tnode.workSum))
 	}
 
 	return &b, nil
@@ -431,6 +438,9 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			block, err = dbFetchBlockByHash(dbTx, blockHash)
 			if err != nil {
 				return err
+			}
+			if i!=0 && block.Block().Header.Version != b.BlockVersion {
+				return fmt.Errorf("The dag block is not match current genesis block. you can cleanup your block data base by '--cleanup'.")
 			}
 			parents := []*blockNode{}
 			for _, pb := range block.Block().Parents {

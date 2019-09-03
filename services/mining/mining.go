@@ -8,6 +8,7 @@ package mining
 
 import (
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
 	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
@@ -39,12 +40,12 @@ const (
 	// for generated block version could allow creation of invalid blocks
 	// for the updated version.
 	// TODO, refactor the location of generatedBlockVersion const
-	generatedBlockVersion = 0
+	GeneratedBlockVersion = 0
 
 	// generatedBlockVersionTest is the version of the block being generated
 	// for networks other than the main network.
 	// TODO, refactor the location of generatedBlockVersionTest const
-	generatedBlockVersionTest = 4
+	GeneratedBlockVersionTest = 5
 
 )
 
@@ -183,3 +184,10 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	return types.NewTx(tx), nil
 }
 
+func BlockVersion(net protocol.Network) uint32  {
+	blockVersion := uint32(GeneratedBlockVersion)
+	if net != protocol.MainNet {
+		blockVersion = GeneratedBlockVersionTest
+	}
+	return blockVersion
+}
