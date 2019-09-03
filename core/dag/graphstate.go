@@ -78,7 +78,7 @@ func (gs *GraphState) IsEqual(other *GraphState) bool {
 		return true
 	}
 	if gs.layer != other.layer ||
-		gs.total != other.total ||
+		gs.mainOrder != other.mainOrder ||
 		gs.mainHeight != other.mainHeight {
 		return false
 	}
@@ -94,6 +94,7 @@ func (gs *GraphState) Equal(other *GraphState) {
 	gs.layer=other.layer
 	gs.total=other.total
 	gs.mainHeight=other.mainHeight
+	gs.mainOrder=other.mainOrder
 }
 
 // Copy self and return
