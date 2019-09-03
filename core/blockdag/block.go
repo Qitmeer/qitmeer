@@ -35,6 +35,9 @@ type IBlock interface {
 	// Acquire the order of block
 	GetOrder() uint
 
+	// IsOrdered
+	IsOrdered() bool
+
 	// Get all parents set,the dag block has more than one parent
 	GetParents() *dag.HashSet
 
@@ -50,6 +53,7 @@ type IBlock interface {
 	// Detecting the presence of child nodes
 	HasChildren() bool
 
+	// GetMainParent
 	GetMainParent() *hash.Hash
 
 	// Setting the weight of block
@@ -194,6 +198,11 @@ func (b *Block) SetOrder(o uint) {
 // Acquire the order of block
 func (b *Block) GetOrder() uint {
 	return b.order
+}
+
+// IsOrdered
+func (b *Block) IsOrdered() bool {
+	return b.GetOrder()!=MaxBlockOrder
 }
 
 // Setting the height of block in main chain

@@ -82,11 +82,12 @@ func Test_OrderFig2(t *testing.T) {
 	if ibd==nil {
 		t.FailNow()
 	}
-	//ph:=ibd.(*Phantom)
+	ph:=ibd.(*Phantom)
 	order:=[]*hash.Hash{}
 	var i uint
+	ph.updateVirtualBlockOrder()
 	for i=0;i<bd.GetBlockTotal() ;i++  {
-		order=append(order,bd.GetBlockByOrder(i))
+		order=append(order,bd.order[i])
 	}
 	fmt.Printf("The Fig.2 Order: ")
 	printBlockChainTag(order,tbMap)
@@ -94,6 +95,11 @@ func Test_OrderFig2(t *testing.T) {
 	if !processResult(order, changeToHashList(testData.PH_OrderFig2.Output, tbMap)) {
 		t.FailNow()
 	}
+
+	//
+	da:=ph.GetDiffAnticone()
+	fmt.Printf("The diffanticoner: ")
+	printBlockSetTag(da,tbMap)
 }
 
 func Test_OrderFig4(t *testing.T) {
@@ -101,11 +107,12 @@ func Test_OrderFig4(t *testing.T) {
 	if ibd==nil {
 		t.FailNow()
 	}
-	//ph:=ibd.(*Phantom)
+	ph:=ibd.(*Phantom)
 	order:=[]*hash.Hash{}
 	var i uint
+	ph.updateVirtualBlockOrder()
 	for i=0;i<bd.GetBlockTotal() ;i++  {
-		order=append(order,bd.GetBlockByOrder(i))
+		order=append(order,bd.order[i])
 	}
 	fmt.Printf("The Fig.4 Order: ")
 	printBlockChainTag(order,tbMap)
@@ -113,6 +120,11 @@ func Test_OrderFig4(t *testing.T) {
 	if !processResult(order, changeToHashList(testData.PH_OrderFig4.Output, tbMap)) {
 		t.FailNow()
 	}
+
+	//
+	da:=ph.GetDiffAnticone()
+	fmt.Printf("The diffanticoner: ")
+	printBlockSetTag(da,tbMap)
 }
 
 func Test_GetLayer(t *testing.T) {
@@ -122,8 +134,10 @@ func Test_GetLayer(t *testing.T) {
 	}
 	var result string=""
 	var i uint
+	ph:=ibd.(*Phantom)
+	ph.updateVirtualBlockOrder()
 	for i=0;i<bd.GetBlockTotal() ;i++  {
-		l:=bd.GetLayer(bd.GetBlockByOrder(i))
+		l:=bd.GetLayer(bd.order[i])
 		result=fmt.Sprintf("%s%d",result,l)
 	}
 	if result != testData.PH_GetLayer.Output[0] {
@@ -189,8 +203,10 @@ func Test_Confirmations(t *testing.T) {
 	}
 	printBlockChainTag(reverseBlockList(mainChain),tbMap)
 
+	ph:=ibd.(*Phantom)
+	ph.updateVirtualBlockOrder()
 	for i:=uint(0);i<bd.GetBlockTotal();i++ {
-		blockHash:=bd.GetBlockByOrder(i)
+		blockHash:=bd.order[i]
 		fmt.Printf("%s : %d\n",getBlockTag(blockHash,tbMap),bd.GetConfirmations(blockHash))
 	}
 }

@@ -87,7 +87,10 @@ func (ph *Phantom_v2) GetTipsList() []IBlock {
 // Find block hash by order, this is very fast.
 func (ph *Phantom_v2) GetBlockByOrder(order uint) *hash.Hash {
 	ph.updateAntipastColoring()
-	return nil
+	if order>=ph.bd.GetBlockTotal() {
+		return nil
+	}
+	return ph.bd.order[order]
 }
 
 // Query whether a given block is on the main chain.

@@ -450,7 +450,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			if list == nil || list.Len() == 0 {
 				log.Error("Irreparable error!")
 				return AssertError(fmt.Sprintf("initChainState: Could "+
-					"not add %s", node.hash.String()))
+					"not add %s  %d", node.hash.String(),i))
 			}
 			for e := list.Front(); e != nil; e = e.Next() {
 				refHash := e.Value.(*hash.Hash)

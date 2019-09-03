@@ -62,16 +62,8 @@ func (ph *Phantom) AddBlock(ib IBlock) *list.List {
 	ph.updateBlockColor(pb)
 	ph.updateBlockOrder(pb)
 
-	changeBlock:=pb
-	changeBlock0:=ph.updateMainChain(ph.getBluest(ph.bd.GetTips()),pb)
-	changeBlock1:=ph.preUpdateVirtualBlock()
-	if changeBlock0!=nil && changeBlock0.GetOrder()<changeBlock.GetOrder() {
-		changeBlock=changeBlock0
-	}
-	if changeBlock1!=nil && changeBlock1.GetOrder()<changeBlock.GetOrder() {
-		changeBlock=changeBlock1
-	}
-
+	changeBlock:=ph.updateMainChain(ph.getBluest(ph.bd.GetTips()),pb)
+	ph.preUpdateVirtualBlock()
 	return ph.getOrderChangeList(changeBlock)
 }
 
@@ -263,7 +255,7 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock,pb *PhantomBlock) *Pha
 	ph.virtualBlock.SetOrder(MaxBlockOrder)
 	if !ph.isMaxMainTip(buestTip) {
 		ph.diffAnticone.Add(pb.GetHash())
-		return pb
+		return nil
 	}
 	if ph.mainChain.tip==nil {
 		ph.mainChain.tip=buestTip.GetHash()
@@ -277,7 +269,7 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock,pb *PhantomBlock) *Pha
 
 	intersection,path:=ph.getIntersectionPathWithMainChain(buestTip)
 	if intersection==nil {
-		log.Error("DAG can't find intersection!")
+		panic("DAG can't find intersection!")
 	}
 	ph.rollBackMainChain(intersection)
 
@@ -470,21 +462,28 @@ func (ph *Phantom) getOrderChangeList(pb *PhantomBlock) *list.List {
 		refNodes.PushBack(ph.bd.GetGenesisHash())
 		return refNodes
 	}
-	tips:=ph.bd.GetTips()
-	if tips.HasOnly(pb.GetHash()) || pb.GetOrder()==ph.bd.GetBlockTotal()-1 {
-		refNodes.PushBack(pb.GetHash())
-		return refNodes
-	}
-	////
-	for i:=ph.bd.GetMainChainTip().GetOrder();i>=0;i-- {
-		refNodes.PushFront(ph.bd.order[i])
-		if ph.bd.order[i].IsEqual(pb.GetHash()) {
-			break
+	if pb != nil {
+		tips:=ph.bd.GetTips()
+		if tips.HasOnly(pb.GetHash()) {
+			refNodes.PushBack(pb.GetHash())
+			return refNodes
+		}
+		if pb.GetHash().IsEqual(ph.GetMainChainTip().GetHash()) {
+			refNodes.PushBack(pb.GetHash())
+		}else if pb.IsOrdered() && pb.GetOrder() <=ph.bd.GetMainChainTip().GetOrder() {
+			for i:=ph.bd.GetMainChainTip().GetOrder();i>=0;i-- {
+				refNodes.PushFront(ph.bd.order[i])
+				if ph.bd.order[i].IsEqual(pb.GetHash()) {
+					break
+				}
+			}
 		}
 	}
-	for k:=range ph.diffAnticone.GetMap(){
-		dk:=k
-		refNodes.PushFront(dk)
+	if !ph.diffAnticone.IsEmpty() {
+		for k:=range ph.diffAnticone.GetMap(){
+			dk:=k
+			refNodes.PushBack(&dk)
+		}
 	}
 	return refNodes
 }

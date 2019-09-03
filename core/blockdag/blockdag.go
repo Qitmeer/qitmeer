@@ -291,14 +291,7 @@ func (bd *BlockDAG) GetOrder() map[uint]*hash.Hash {
 
 // Obtain block hash by global order
 func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash{
-	result:=bd.instance.GetBlockByOrder(order)
-	if result!=nil {
-		return result
-	}
-	if order>=bd.GetBlockTotal() {
-		return nil
-	}
-	return bd.order[order]
+	return bd.instance.GetBlockByOrder(order)
 }
 
 // Return the last order block
