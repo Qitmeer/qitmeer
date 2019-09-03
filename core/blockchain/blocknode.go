@@ -5,6 +5,7 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/common/util"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
 	"math/big"
@@ -28,9 +29,6 @@ const (
 
 	// statusValid indicates that the block has been fully validated.
 	statusValid blockStatus = 1 << 1
-
-	// statusValidateFailed indicates that the block has failed validation.
-	statusValidateFailed blockStatus = 1 << 2
 )
 
 // HaveData returns whether the full block data is stored in the database.  This
@@ -49,7 +47,7 @@ func (status blockStatus) KnownValid() bool {
 // KnownInvalid returns whether the block is known to be invalid.  This will
 // return false for invalid blocks that have not been proven invalid yet.
 func (status blockStatus) KnownInvalid() bool {
-	return status&(statusValidateFailed) != 0
+	return !status.KnownValid()
 }
 
 
@@ -125,7 +123,7 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 	*node = blockNode{
 		hash:         blockHeader.BlockHash(),
 		workSum:      CalcWork(blockHeader.Difficulty),
-		order:       0,
+		order:        uint64(blockdag.MaxBlockOrder),
 		blockVersion: blockHeader.Version,
 		bits:         blockHeader.Difficulty,
 		timestamp:    blockHeader.Timestamp.Unix(),
@@ -358,10 +356,12 @@ func (node *blockNode) GetStatus() blockStatus {
 
 func (node *blockNode) Valid(b *BlockChain) {
 	b.index.SetStatusFlags(node, statusValid)
-	b.index.UnsetStatusFlags(node,statusValidateFailed)
 }
 
 func (node *blockNode) Invalid(b *BlockChain) {
 	b.index.UnsetStatusFlags(node,statusValid)
-	b.index.SetStatusFlags(node, statusValidateFailed)
+}
+
+func (node *blockNode) IsOrdered() bool {
+	return uint(node.order)!=blockdag.MaxBlockOrder
 }

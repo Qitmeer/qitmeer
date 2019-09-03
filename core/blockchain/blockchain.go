@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
 	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
-	"math"
 	"os"
 	"sort"
 	"sync"
@@ -111,6 +110,9 @@ type BlockChain struct {
 
 	//tx manager
 	txManager TxManager
+
+	// block version
+	BlockVersion uint32
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -169,6 +171,9 @@ type Config struct {
 
 	// Setting different dag types will use different consensus
 	DAGType string
+
+	// block version
+	BlockVersion uint32
 }
 
 // orphanBlock represents a block that we don't yet have the parent for.  It
@@ -189,7 +194,7 @@ type orphanBlock struct {
 // However, the returned snapshot must be treated as immutable since it is
 // shared by all callers.
 type BestState struct {
-	Hash     hash.Hash                // The hash of the last block.
+	Hash     hash.Hash                // The hash of the main chain tip.
 	Bits         uint32               // The difficulty bits of the main chain tip.
 	BlockSize    uint64               // The size of the main chain tip.
 	NumTxns      uint64               // The number of txns in the main chain tip.
@@ -200,9 +205,9 @@ type BestState struct {
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(lastHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, subsidy int64, gs *dag.GraphState) *BestState {
+func newBestState(tipHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, subsidy int64, gs *dag.GraphState) *BestState {
 	return &BestState{
-		Hash:         *lastHash,
+		Hash:         *tipHash,
 		Bits:         bits,
 		BlockSize:    blockSize,
 		NumTxns:      numTxns,
@@ -257,6 +262,7 @@ func New(config *Config) (*BlockChain, error) {
 		index:               newBlockIndex(config.DB, par),
 		orphans:             make(map[hash.Hash]*orphanBlock),
 		prevOrphans:         make(map[hash.Hash][]*orphanBlock),
+		BlockVersion:        config.BlockVersion,
 	}
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType)
@@ -284,11 +290,11 @@ func New(config *Config) (*BlockChain, error) {
 		"index", b.dbInfo.bidxVer)
 
 	tips := b.bd.GetTipsList()
-	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d blockTotal=%d", b.BestSnapshot().TotalTxns, len(tips), b.bd.GetBlockTotal()))
+	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d mainOrder=%d total=%d", b.BestSnapshot().TotalTxns, len(tips),b.bd.GetMainChainTip().GetOrder(),b.bd.GetBlockTotal()))
 
 	for _, v := range tips {
 		tnode := b.index.lookupNode(v.GetHash())
-		log.Info(fmt.Sprintf("hash=%v,order=%d,work=%v", tnode.hash, tnode.order, tnode.workSum))
+		log.Info(fmt.Sprintf("hash=%v,order=%s,work=%v", tnode.hash, blockdag.GetOrderLogStr(uint(tnode.GetOrder())), tnode.workSum))
 	}
 
 	return &b, nil
@@ -433,6 +439,9 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			if err != nil {
 				return err
 			}
+			if i!=0 && block.Block().Header.Version != b.BlockVersion {
+				return fmt.Errorf("The dag block is not match current genesis block. you can cleanup your block data base by '--cleanup'.")
+			}
 			parents := []*blockNode{}
 			for _, pb := range block.Block().Parents {
 				parent := b.index.LookupNode(pb)
@@ -450,7 +459,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			if list == nil || list.Len() == 0 {
 				log.Error("Irreparable error!")
 				return AssertError(fmt.Sprintf("initChainState: Could "+
-					"not add %s", node.hash.String()))
+					"not add %s  %d", node.hash.String(),i))
 			}
 			for e := list.Front(); e != nil; e = e.Next() {
 				refHash := e.Value.(*hash.Hash)
@@ -464,23 +473,17 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				}*/
 			}
 		}
-
 		log.Debug("Block index loaded", "loadTime", time.Since(bidxStart))
 		/*if !b.dag.GetLastBlock().hash.IsEqual(&state.hash) {
 			return AssertError(fmt.Sprintf("initChainState:Data damage"))
 		}*/
 		// Set the best chain view to the stored best state.
-		lastBlock := b.bd.GetLastBlock()
-		if lastBlock == nil {
-			return AssertError("initChainState: cannot find last block")
-		}
-
 		// Load the raw block bytes for the best block.
 		mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
-		b.stateSnapshot = newBestState(lastBlock.GetHash(),mainTip.bits, blockSize, numTxns,
+		b.stateSnapshot = newBestState(mainTip.GetHash(),mainTip.bits, blockSize, numTxns,
 			mainTip.CalcPastMedianTime(b), state.totalTxns,state.subsidy, b.bd.GetGraphState())
 
 		return nil
@@ -901,11 +904,14 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 	// We are extending the main (best) chain with a new block.  This is the
 	// most common case.
 	if newOrders.Len() == 1 {
+		if !node.IsOrdered() {
+			return true,nil
+		}
 		// Perform several checks to verify the block can be connected
 		// to the main chain without violating any rules and without
 		// actually connecting the block.
 		view := NewUtxoViewpoint()
-		view.SetBestHash(b.bd.GetPrevious(&node.hash))
+		view.SetBestHash(&node.hash)
 
 		stxos := make([]SpentTxOut, 0, countSpentOutputs(block))
 		err := b.checkConnectBlock(node, block, view, &stxos)
@@ -986,8 +992,6 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode, block *types.Serializ
 
 func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlock) error {
 	// Must be end node of sequence in dag
-	lastBlock := b.bd.GetLastBlock()
-	lastTip := b.index.lookupNode(lastBlock.GetHash())
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()
@@ -1004,7 +1008,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 
 	subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(mainTip.GetHeight()))
 
-	state := newBestState(lastTip.GetHash(),mainTip.bits,blockSize,numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
+	state := newBestState(mainTip.GetHash(),mainTip.bits,blockSize,numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
 		subsidy, b.bd.GetGraphState())
 
 	// Atomically insert info into the database.
@@ -1186,11 +1190,11 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		n = detachNodes[i]
 		newn:=b.index.lookupNode(n.GetHash())
 		block, err = b.fetchBlockByHash(&n.hash)
-		if err != nil {
-			return err
+		if err != nil || n == nil {
+			panic(err.Error())
 		}
-		if n == nil {
-			return fmt.Errorf("no node")
+		if !n.IsOrdered() {
+			panic("no ordered")
 		}
 		block.SetOrder(n.order)
 		// Load all of the utxos referenced by the block that aren't
@@ -1227,10 +1231,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 			return err
 		}
 		b.index.UnsetStatusFlags(n,statusValid)
-		b.index.UnsetStatusFlags(n,statusValidateFailed)
-
 		b.index.UnsetStatusFlags(newn,statusValid)
-		b.index.UnsetStatusFlags(newn,statusValidateFailed)
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
@@ -1248,6 +1249,9 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 				return err
 			}
 			block.SetOrder(n.GetOrder())
+		}
+		if !n.IsOrdered() {
+			continue
 		}
 		view := NewUtxoViewpoint()
 		view.SetBestHash(n.GetHash())
@@ -1315,6 +1319,7 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 			newNode.SetLayer(refblock.GetLayer())
 			refnode=newNode
 			block.SetOrder(uint64(refblock.GetOrder()))
+
 			if refblock.GetHeight() != newNode.GetHeight() {
 				log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d",newNode.GetHash(),newNode.GetHeight(),refblock.GetHeight()))
 				newNode.SetHeight(refblock.GetHeight())
@@ -1322,7 +1327,9 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 			}
 		}else{
 			refnode=b.index.lookupNode(refHash)
-			oldOrdersTemp=append(oldOrdersTemp,refnode.Clone())
+			if refnode.IsOrdered() {
+				oldOrdersTemp=append(oldOrdersTemp,refnode.Clone())
+			}
 		}
 		refnode.SetOrder(uint64(refblock.GetOrder()))
 	}
@@ -1395,19 +1402,5 @@ func (b *BlockChain) GetTxManager() TxManager {
 }
 
 func (b *BlockChain) GetMiningTips() []*hash.Hash {
-	parents:=b.BlockDAG().GetTips().SortList(false)
-	mainParent:=b.bd.GetMainChainTip()
-	tips:=[]*hash.Hash{}
-	for i:=0;i<len(parents);i++ {
-		if mainParent.GetHash().IsEqual(parents[i]) {
-			tips=append(tips,parents[i])
-			continue
-		}
-		node:=b.index.lookupNode(parents[i])
-		if math.Abs(float64(node.GetLayer())-float64(mainParent.GetLayer()))>blockdag.MaxTipLayerGap {
-			continue
-		}
-		tips=append(tips,node.GetHash())
-	}
-	return tips
+	return b.BlockDAG().GetValidTips()
 }

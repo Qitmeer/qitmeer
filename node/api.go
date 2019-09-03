@@ -126,7 +126,7 @@ func getGraphStateResult(gs *dag.GraphState) *json.GetGraphStateResult{
 		}
 		return &json.GetGraphStateResult{
 			Tips:tips,
-			Total:uint32(gs.GetTotal()),
+			MainOrder:uint32(gs.GetMainOrder()),
 			Layer:uint32(gs.GetLayer()),
 			MainHeight:uint32(gs.GetMainHeight()),
 		}

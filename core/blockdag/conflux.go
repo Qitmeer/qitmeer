@@ -327,7 +327,10 @@ func (con *Conflux) isVirtualBlock(b IBlock) bool {
 }
 
 func (con *Conflux) GetBlockByOrder(order uint) *hash.Hash {
-	return nil
+	if order>=con.bd.GetBlockTotal() {
+		return nil
+	}
+	return con.bd.order[order]
 }
 
 // Query whether a given block is on the main chain.

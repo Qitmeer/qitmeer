@@ -85,6 +85,9 @@ func (api *PublicBlockAPI) GetBlockhashByRange(start uint,end uint) ([]string, e
 }
 
 func (api *PublicBlockAPI) GetBlockByOrder(order uint64,verbose *bool,inclTx *bool, fullTx *bool) (interface{}, error){
+	if uint(order) > api.bm.chain.BestSnapshot().GraphState.GetMainOrder() {
+		return nil,fmt.Errorf("Order is too big")
+	}
 	blockHash,err := api.bm.chain.BlockHashByOrder(order)
  	if err!=nil {
  		return nil,err
@@ -153,7 +156,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool,inclTx *bool, ful
 	}
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk,iTx, fTx, api.bm.params, confirmations,children,
-		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid())
+		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(),node.IsOrdered())
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +170,11 @@ func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error){
 }
 
 func (api *PublicBlockAPI) GetBlockCount() (interface{}, error){
+	best := api.bm.chain.BestSnapshot()
+	return best.GraphState.GetMainOrder()+1, nil
+}
+
+func (api *PublicBlockAPI) GetBlockTotal() (interface{}, error){
 	best := api.bm.chain.BestSnapshot()
 	return best.GraphState.GetTotal(), nil
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
+	"math"
 	"sort"
 	"time"
 )
@@ -147,7 +148,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		return nil
 	}
 	//
-	block := Block{id:bd.GetBlockTotal(),hash: *b.GetHash(), weight: 1, layer:0}
+	block := Block{id:bd.GetBlockTotal(),hash: *b.GetHash(), weight: 1, layer:0,status:StatusNone}
 	if parents != nil {
 		block.parents = dag.NewHashSet()
 		var maxLayer uint=0
@@ -291,26 +292,13 @@ func (bd *BlockDAG) GetOrder() map[uint]*hash.Hash {
 
 // Obtain block hash by global order
 func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash{
-	result:=bd.instance.GetBlockByOrder(order)
-	if result!=nil {
-		return result
-	}
-	if order>=uint(len(bd.order)) {
-		return nil
-	}
-	return bd.order[order]
+	return bd.instance.GetBlockByOrder(order)
 }
 
 // Return the last order block
 func (bd *BlockDAG) GetLastBlock() IBlock{
-	if bd.GetBlockTotal()==0 {
-		return nil
-	}
-	result:=bd.GetBlockByOrder(bd.GetBlockTotal()-1)
-	if result==nil {
-		return nil
-	}
-	return bd.GetBlock(result)
+	// TODO
+	return bd.GetMainChainTip()
 }
 
 // This function need a stable sequence,so call it before sorting the DAG.
@@ -329,6 +317,7 @@ func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 	if b.GetOrder()==0{
 		return nil
 	}
+	// TODO
 	return bd.GetBlockByOrder(b.GetOrder()-1)
 }
 
@@ -385,6 +374,7 @@ func (bd *BlockDAG) GetGraphState() *dag.GraphState {
 	}
 	gs.SetTotal(bd.GetBlockTotal())
 	gs.SetMainHeight(bd.GetMainChainTip().GetHeight())
+	gs.SetMainOrder(bd.GetMainChainTip().GetOrder())
 	return gs
 }
 
@@ -395,8 +385,9 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState,maxHashes uint) []*hash.Hash
 	}
 	queue := []IBlock{}
 	fs:=dag.NewHashSet()
-	for _,v:=range bd.GetTips().GetMap(){
-		ib:=v.(IBlock)
+	tips:=bd.GetValidTips()
+	for _,v:=range tips {
+		ib:=bd.GetBlock(v)
 		queue=append(queue,ib)
 		fs.AddPair(ib.GetHash(),ib)
 	}
@@ -412,7 +403,7 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState,maxHashes uint) []*hash.Hash
 		if cur.HasChildren() {
 			for _,v := range cur.GetChildren().GetMap() {
 				ib:=v.(IBlock)
-				if gs.GetTips().Has(ib.GetHash()) || !fs.Has(ib.GetHash()) {
+				if gs.GetTips().Has(ib.GetHash()) || !fs.Has(ib.GetHash())&&ib.IsOrdered() {
 					needRec=false
 					break
 				}
@@ -534,6 +525,9 @@ func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
 	if block == nil {
 		return 0
 	}
+	if block.GetOrder() > bd.GetMainChainTip().GetOrder() {
+		return 0
+	}
 	mainTip:=bd.GetMainChainTip()
 	if bd.IsOnMainChain(h) {
 		return mainTip.GetHeight()-block.GetHeight()
@@ -566,4 +560,22 @@ func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
 
 func (bd *BlockDAG) GetBlockHash(id uint) *hash.Hash {
 	return bd.blockids[id]
+}
+
+func (bd *BlockDAG) GetValidTips() []*hash.Hash {
+	parents:=bd.GetTips().SortList(false)
+	mainParent:=bd.GetMainChainTip()
+	tips:=[]*hash.Hash{}
+	for i:=0;i<len(parents);i++ {
+		if mainParent.GetHash().IsEqual(parents[i]) {
+			tips=append(tips,parents[i])
+			continue
+		}
+		block:=bd.GetBlock(parents[i])
+		if math.Abs(float64(block.GetLayer())-float64(mainParent.GetLayer()))>MaxTipLayerGap {
+			continue
+		}
+		tips=append(tips,block.GetHash())
+	}
+	return tips
 }

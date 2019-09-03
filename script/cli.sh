@@ -92,6 +92,11 @@ function get_block_number(){
   get_result "$data"
 }
 
+function get_block_local(){
+  local data='{"jsonrpc":"2.0","method":"getBlockTotal","params":[],"id":1}'
+  get_result "$data"
+}
+
 # qitmeer mempool
 
 function get_mempool(){
@@ -333,6 +338,7 @@ function usage(){
   echo "  block <num|hash>"
   echo "  blockid <id>"
   echo "  block_count"
+  echo "  block_local"
   echo "  blockrange <start,end>"
   echo "  mainHeight"
   echo "  weight <hash>"
@@ -569,6 +575,9 @@ elif [ "$1" == "blockid" ]; then
 elif [ "$1" == "block_count" ]; then
    shift
    get_block_number
+elif [ "$1" == "block_local" ]; then
+   shift
+   get_block_local
 
 elif [ "$1" == "get_syncing_info" ]; then
   shift

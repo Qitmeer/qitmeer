@@ -134,8 +134,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.index.SetStatusFlags(newNode, statusDataStored)
 	err = b.index.flushToDB(b.bd)
 	if err != nil {
-		b.updateBestState(newNode, block)
-		return true, nil
+		panic(err.Error())
 	}
 	// Insert the block into the database if it's not already there.  Even
 	// though it is possible the block will ultimately fail to connect, it
@@ -155,8 +154,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		return nil
 	})
 	if err != nil {
-		b.updateBestState(newNode, block)
-		return true, nil
+		panic(err.Error())
 	}
 
 	// Connect the passed block to the chain while respecting proper chain
@@ -173,7 +171,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.chainLock.Unlock()
 	//TODO, refactor to event subscript/publish
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
-		BestHeight: block.Order(),
 		ForkLen:    0,
 		Block:      block,
 	})

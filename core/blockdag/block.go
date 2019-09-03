@@ -35,6 +35,9 @@ type IBlock interface {
 	// Acquire the order of block
 	GetOrder() uint
 
+	// IsOrdered
+	IsOrdered() bool
+
 	// Get all parents set,the dag block has more than one parent
 	GetParents() *dag.HashSet
 
@@ -50,6 +53,7 @@ type IBlock interface {
 	// Detecting the presence of child nodes
 	HasChildren() bool
 
+	// GetMainParent
 	GetMainParent() *hash.Hash
 
 	// Setting the weight of block
@@ -80,6 +84,7 @@ type Block struct {
 	order      uint
 	layer      uint
 	height     uint
+	status     BlockStatus
 }
 
 // Return block ID
@@ -194,6 +199,11 @@ func (b *Block) SetOrder(o uint) {
 // Acquire the order of block
 func (b *Block) GetOrder() uint {
 	return b.order
+}
+
+// IsOrdered
+func (b *Block) IsOrdered() bool {
+	return b.GetOrder()!=MaxBlockOrder
 }
 
 // Setting the height of block in main chain
@@ -365,4 +375,31 @@ func (b *Block) Decode(r io.Reader) error {
 	b.height=uint(height)
 
 	return nil
+}
+
+func (b *Block) GetStatus() BlockStatus {
+	return b.status
+}
+
+func (b *Block) SetStatus(flags BlockStatus) {
+	b.status |= flags
+}
+
+func (b *Block) UnsetStatus(flags BlockStatus) {
+	b.status &^= flags
+}
+
+// BlockStatus
+type BlockStatus byte
+
+const (
+	// StatusNone
+	StatusNone BlockStatus = 0
+
+	// StatusBadSide
+	StatusBadSide BlockStatus = 1 << 0
+)
+
+func (status BlockStatus) IsBadSide() bool {
+	return status&StatusBadSide != 0
 }

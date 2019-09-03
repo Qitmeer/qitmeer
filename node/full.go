@@ -130,7 +130,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 
 	// block-manager
 	bm, err := blkmgr.NewBlockManager(qm.nfManager,indexManager,node.DB, qm.timeSource, qm.sigCache, node.Config, node.Params,
-		node.quit)
+		mining.BlockVersion(node.Params.Net),node.quit)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,6 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 	}
 	qm.txManager=tm
 	bm.GetChain().SetTxManager(tm)
-
 	// prepare peerServer
 	node.peerServer.BlockManager = bm
 	node.peerServer.TimeSource = qm.timeSource
