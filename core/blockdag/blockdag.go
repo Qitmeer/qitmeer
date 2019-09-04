@@ -2,6 +2,7 @@ package blockdag
 
 import (
 	"container/list"
+	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
@@ -210,6 +211,11 @@ func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 
 // If the block is illegal dag,will return false.
 func (bd *BlockDAG) IsDAG(b IBlockData) bool {
+	err:=bd.CheckLayerGap(b.GetParents())
+	if err != nil {
+		log.Warn(err.Error())
+		return false
+	}
 	return true
 }
 
@@ -600,4 +606,47 @@ func (bd *BlockDAG) GetValidTips() []*hash.Hash {
 		tips=append(tips,block.GetHash())
 	}
 	return tips
+}
+
+func (bd *BlockDAG) CheckLayerGap(parents []*hash.Hash) error {
+	if len(parents)==0 {
+		return nil
+	}
+	parentsNode:=[]IBlock{}
+	for _,v:=range parents{
+		ib:=bd.GetBlock(v)
+		if ib == nil {
+			continue
+		}
+		parentsNode=append(parentsNode,ib)
+	}
+
+	pLen:=len(parentsNode)
+	if pLen==0 {
+		return nil
+	}
+	var gap float64
+	if pLen == 1 {
+		return nil
+	}else if pLen == 2 {
+		gap=math.Abs(float64(parentsNode[0].GetLayer())-float64(parentsNode[1].GetLayer()))
+	}else{
+		var minLayer int64=-1
+		var maxLayer int64=-1
+		for i:=0;i<pLen ;i++  {
+			parentLayer:=int64(parentsNode[i].GetLayer())
+			if maxLayer ==-1 || parentLayer > maxLayer {
+				maxLayer=parentLayer
+			}
+			if minLayer == -1 || parentLayer < minLayer {
+				minLayer=parentLayer
+			}
+		}
+		gap=math.Abs(float64(maxLayer)-float64(minLayer))
+	}
+	if gap > MaxTipLayerGap {
+		return fmt.Errorf("Parents gap is %f which is more than %d",gap,MaxTipLayerGap)
+	}
+
+	return nil
 }
