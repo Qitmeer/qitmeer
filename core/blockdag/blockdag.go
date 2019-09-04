@@ -430,7 +430,8 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState,maxHashes uint) []*hash.Hash
 
 	fsSlice:=BlockSlice{}
 	for _,v:=range fs.GetMap(){
-		ib:=v.(IBlock)
+		value:=v.(IBlock)
+		ib:=value
 		if gs.GetTips().Has(ib.GetHash()) {
 			continue
 		}
