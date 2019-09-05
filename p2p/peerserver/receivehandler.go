@@ -241,21 +241,29 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 			hashSlice=chain.BlockDAG().SortBlock(hashSlice)
 		}
 	}else {
-		hashSlice = chain.LocateBlocks(msg.GS,message.MaxBlocksPerMsg)
+		hashSlice = chain.LocateBlocks(msg.GS,0)
 	}
-
-	if len(hashSlice)==0 {
+	hsLen:=len(hashSlice)
+	if hsLen==0 {
+		log.Trace("Sorry, there are not these blocks for %s",p.String())
 		return
 	}
-	// Generate inventory message.
+
 	invMsg := message.NewMsgInv()
 	invMsg.GS=chain.BestSnapshot().GraphState
-	for i := range hashSlice {
+	for i:=0;i<hsLen;i++ {
 		iv := message.NewInvVect(message.InvTypeBlock, hashSlice[i])
 		invMsg.AddInvVect(iv)
-	}
+		if i == 0 || i % message.MaxBlockLocatorsPerMsg != 0 {
+			continue
+		}
+		if len(invMsg.InvList) > 0 {
+			p.QueueMessage(invMsg, nil)
 
-	// Send the inventory message if there is anything to send.
+			invMsg = message.NewMsgInv()
+			invMsg.GS=chain.BestSnapshot().GraphState
+		}
+	}
 	if len(invMsg.InvList) > 0 {
 		p.QueueMessage(invMsg, nil)
 	}

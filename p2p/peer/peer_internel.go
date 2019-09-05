@@ -80,12 +80,8 @@ type Peer struct {
 	// Inv
 	knownInventory     *invcache.InventoryCache
 
-	prevGetBlocksMtx   sync.Mutex
-	prevGetGS          *dag.GraphState
-	prevGetBlocks      *dag.HashSet
-	prevGetHdrsMtx     sync.Mutex
-	prevGetHdrsBegin   *hash.Hash
-	prevGetHdrsStop    *hash.Hash
+	// prevget
+	prevGet            PrevGet
 
 	// These fields keep track of statistics for the peer and are protected
 	// by the statsMtx mutex.
@@ -477,5 +473,6 @@ func newPeerBase(cfg *Config, inbound bool) *Peer {
 		protocolVersion: protocolVersion,
 		lastGS:          dag.NewGraphState(),
 	}
+	p.prevGet.Init(&p)
 	return &p
 }
