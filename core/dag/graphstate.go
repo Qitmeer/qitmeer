@@ -79,7 +79,8 @@ func (gs *GraphState) IsEqual(other *GraphState) bool {
 	}
 	if gs.layer != other.layer ||
 		gs.mainOrder != other.mainOrder ||
-		gs.mainHeight != other.mainHeight {
+		gs.mainHeight != other.mainHeight ||
+		gs.total != other.total {
 		return false
 	}
 	return gs.tips.IsEqual(other.tips)

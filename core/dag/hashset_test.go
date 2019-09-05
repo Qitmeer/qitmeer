@@ -84,3 +84,16 @@ func Test_SortList(t *testing.T) {
 		}
 	}
 }
+
+func Test_For(t *testing.T) {
+	hs:=NewHashSet()
+	var hashNum int=5
+	for i:=0;i<hashNum;i++ {
+		hashStr:=fmt.Sprintf("%d",i)
+		h:=hash.MustHexToDecodedHash(hashStr)
+		hs.AddPair(&h,hashStr)
+	}
+	for k,v:=range hs.GetMap() {
+		fmt.Printf("%s - %s\n",v.(string),k)
+	}
+}
