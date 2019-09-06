@@ -344,8 +344,8 @@ func (p *Peer) Services() protocol.ServiceFlag {
 // and stop hash.  It will ignore back-to-back duplicate requests.
 //
 // This function is safe for concurrent access.
-func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
-
+func (p *Peer) PushGetBlocksMsg(sgs *dag.GraphState,blocks []*hash.Hash) error {
+	gs:=sgs.Clone()
 	ok,bs:=p.prevGet.Check(p,gs,blocks)
 	if !ok {
 		return nil
@@ -354,8 +354,10 @@ func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
 	msg := message.NewMsgGetBlocks(gs)
 	if !bs.IsEmpty() {
 		for k:=range bs.GetMap(){
-			msg.AddBlockLocatorHash(&k)
+			ha:=k
+			msg.AddBlockLocatorHash(&ha)
 		}
+
 	}
 	p.QueueMessage(msg, nil)
 
