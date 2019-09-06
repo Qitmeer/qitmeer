@@ -633,3 +633,9 @@ out:
 func (p *Peer) Cfg() *Config {
 	return &p.cfg
 }
+
+func (p *Peer) PushGraphStateMsg(gs *dag.GraphState) error {
+	msg := message.NewMsgGraphState(gs)
+	p.QueueMessage(msg, nil)
+	return nil
+}

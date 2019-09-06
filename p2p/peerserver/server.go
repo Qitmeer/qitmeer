@@ -163,6 +163,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			OnGetMiningState: sp.OnGetMiningState,
 			OnMiningState:    sp.OnMiningState,
 			OnTx:             sp.OnTx,
+			OnGraphState:     sp.OnGraphState,
 			//OnMemPool:        sp.OnMemPool,
 			//OnHeaders:        sp.OnHeaders,
 			//OnGetHeaders:     sp.OnGetHeaders,

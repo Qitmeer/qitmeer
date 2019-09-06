@@ -83,6 +83,9 @@ type MessageListeners struct {
 	// message.
 	OnMiningState func(p *Peer, msg *message.MsgMiningState)
 
+	// OnGraphState
+	OnGraphState func(p *Peer, msg *message.MsgGraphState)
+
 	/*
 	// OnSendHeaders is invoked when a peer receives a sendheaders message.
 	OnSendHeaders func(p *Peer, msg *message.MsgSendHeaders)

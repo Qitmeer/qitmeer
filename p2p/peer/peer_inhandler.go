@@ -143,6 +143,10 @@ out:
 				p.cfg.Listeners.OnNotFound(p, msg)
 			}
 
+		case *message.MsgGraphState:
+			if p.cfg.Listeners.OnGraphState != nil {
+				p.cfg.Listeners.OnGraphState(p, msg)
+			}
 		/*
 		case *message.MsgMemPool:
 			if p.cfg.Listeners.OnMemPool != nil {

@@ -451,3 +451,8 @@ func (sp *serverPeer) OnTx(p *peer.Peer, msg *message.MsgTx) {
 	sp.server.BlockManager.QueueTx(tx, sp.syncPeer)
 	<-sp.syncPeer.TxProcessed
 }
+
+// OnGraphState
+func (sp *serverPeer) OnGraphState(p *peer.Peer, msg *message.MsgGraphState) {
+	p.UpdateLastGS(msg.GS)
+}
