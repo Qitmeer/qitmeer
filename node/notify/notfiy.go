@@ -10,5 +10,6 @@ import (
 type Notify interface {
 	AnnounceNewTransactions(newTxs []*types.Tx)
 	RelayInventory(invVect *message.InvVect, data interface{})
+	BroadcastMessage(msg message.Message)
 }
 

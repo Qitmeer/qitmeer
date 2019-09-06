@@ -6,7 +6,6 @@
 package peerserver
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/message"
 )
 
@@ -33,10 +32,4 @@ type relayMsg struct {
 	invVect   *message.InvVect
 	data      interface{}
 	immediate bool
-}
-
-// GetBlocksMsg
-type GetBlocksMsg struct {
-	Layer uint
-	Blocks []*hash.Hash
 }
