@@ -164,12 +164,6 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		}
 		*/
 		isCurrent:=b.current()
-		if !isCurrent&&bmsg.peer==b.syncPeer {
-			if len(bmsg.peer.RequestedBlocks)==0 {
-				b.PushGetBlocksMsg(bmsg.peer)
-			}
-		}
-
 		// reset last progress time
 		if bmsg.peer == b.syncPeer {
 			b.lastProgressTime = time.Now()

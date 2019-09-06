@@ -51,7 +51,7 @@ const (
 
 	// trickleTimeout is the duration of the ticker which trickles down the
 	// inventory to a peer.
-	trickleTimeout = 500 * time.Millisecond
+	trickleTimeout = 10 * time.Second
 )
 
 // HashFunc is a function which returns a block hash, height and error

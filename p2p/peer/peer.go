@@ -345,34 +345,10 @@ func (p *Peer) Services() protocol.ServiceFlag {
 //
 // This function is safe for concurrent access.
 func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
-	p.prevGetBlocksMtx.Lock()
-	defer p.prevGetBlocksMtx.Unlock()
 
-	bs:=dag.NewHashSet()
-	// Filter duplicate getblocks requests.
-	if len(blocks)>0 {
-		if p.prevGetBlocks==nil {
-			p.prevGetBlocks=dag.NewHashSet()
-			bs.AddList(blocks)
-		}else {
-			for _,v:=range blocks{
-				if !p.prevGetBlocks.Has(v) {
-					bs.Add(v)
-				}
-			}
-		}
-		if bs.IsEmpty() {
-			log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: blocks=%d",len(blocks)))
-			return nil
-		}
-		//isDuplicate=false
-	}else {
-		if p.prevGetGS!=nil {
-			if gs.IsEqual(p.prevGetGS) {
-				log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: gs=%s",gs.String()))
-				return nil
-			}
-		}
+	ok,bs:=p.prevGet.Check(p,gs,blocks)
+	if !ok {
+		return nil
 	}
 	// Construct the getblocks request and queue it to be sent.
 	msg := message.NewMsgGetBlocks(gs)
@@ -385,12 +361,7 @@ func (p *Peer) PushGetBlocksMsg(gs *dag.GraphState,blocks []*hash.Hash) error {
 
 	// Update the previous getblocks request information for filtering
 	// duplicates.
-	if len(blocks)>0 {
-		p.prevGetBlocks.AddSet(bs)
-	}else{
-		p.prevGetGS=gs
-	}
-
+	p.prevGet.Update(gs,blocks)
 	return nil
 }
 
@@ -407,11 +378,11 @@ func (p *Peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *hash
 	}
 
 	// Filter duplicate getheaders requests.
-	p.prevGetHdrsMtx.Lock()
-	isDuplicate := p.prevGetHdrsStop != nil && p.prevGetHdrsBegin != nil &&
-		beginHash != nil && stopHash.IsEqual(p.prevGetHdrsStop) &&
-		beginHash.IsEqual(p.prevGetHdrsBegin)
-	p.prevGetHdrsMtx.Unlock()
+	p.prevGet.HdrsMtx.Lock()
+	isDuplicate := p.prevGet.HdrsStop != nil && p.prevGet.HdrsBegin != nil &&
+		beginHash != nil && stopHash.IsEqual(p.prevGet.HdrsStop) &&
+		beginHash.IsEqual(p.prevGet.HdrsBegin)
+	p.prevGet.HdrsMtx.Unlock()
 
 	if isDuplicate {
 		log.Trace(fmt.Sprintf("Filtering duplicate [getheaders] with begin hash %v",
@@ -432,10 +403,10 @@ func (p *Peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *hash
 
 	// Update the previous getheaders request information for filtering
 	// duplicates.
-	p.prevGetHdrsMtx.Lock()
-	p.prevGetHdrsBegin = beginHash
-	p.prevGetHdrsStop = stopHash
-	p.prevGetHdrsMtx.Unlock()
+	p.prevGet.HdrsMtx.Lock()
+	p.prevGet.HdrsBegin = beginHash
+	p.prevGet.HdrsStop = stopHash
+	p.prevGet.HdrsMtx.Unlock()
 	return nil
 }
 
@@ -547,9 +518,7 @@ func (p *Peer) LastAnnouncedBlock() *hash.Hash {
 
 func (p*Peer) CleanGetBlocksSet() {
 	p.statsMtx.RLock()
-	if p.prevGetBlocks!=nil {
-		p.prevGetBlocks.Clean()
-	}
+	p.prevGet.Clean()
 	p.statsMtx.RUnlock()
 }
 
@@ -659,4 +628,14 @@ out:
 			break out
 		}
 	}
+}
+
+func (p *Peer) Cfg() *Config {
+	return &p.cfg
+}
+
+func (p *Peer) PushGraphStateMsg(gs *dag.GraphState) error {
+	msg := message.NewMsgGraphState(gs)
+	p.QueueMessage(msg, nil)
+	return nil
 }

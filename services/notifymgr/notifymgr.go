@@ -3,8 +3,8 @@ package notifymgr
 import (
 	"github.com/Qitmeer/qitmeer-lib/core/message"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer/p2p/peerserver"
 	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/p2p/peerserver"
 )
 
 // NotifyMgr manage message announce & relay & notification between mempool, websocket, gbt long pull
@@ -45,4 +45,8 @@ func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.Tx) {
 // that are not already known to have it.
 func (ntmgr *NotifyMgr) RelayInventory(invVect *message.InvVect, data interface{}) {
 	ntmgr.Server.RelayInventory(invVect,data)
+}
+
+func (ntmgr *NotifyMgr) BroadcastMessage(msg message.Message) {
+	ntmgr.Server.BroadcastMessage(msg)
 }

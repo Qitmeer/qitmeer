@@ -163,6 +163,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			OnGetMiningState: sp.OnGetMiningState,
 			OnMiningState:    sp.OnMiningState,
 			OnTx:             sp.OnTx,
+			OnGraphState:     sp.OnGraphState,
 			//OnMemPool:        sp.OnMemPool,
 			//OnHeaders:        sp.OnHeaders,
 			//OnGetHeaders:     sp.OnGetHeaders,
@@ -416,9 +417,9 @@ func (s *PeerServer) RelayInventory(invVect *message.InvVect, data interface{}) 
 	s.relayInv <- relayMsg{invVect: invVect, data: data}
 }
 
-// handleGetBlocksMsg use to get some blocks from neighbor peers
-func (s *PeerServer) handleGetBlocksMsg(state *peerState, msg *GetBlocksMsg) {
-
+func (s *PeerServer) BroadcastMessage(msg message.Message, exclPeers ...*serverPeer) {
+	bmsg := broadcastMsg{message: msg, excludePeers: exclPeers}
+	s.broadcast <- bmsg
 }
 
 // Dial connects to the address on the named network.

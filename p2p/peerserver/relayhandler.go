@@ -48,7 +48,7 @@ func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 		//
 		// It will be ignored in either case if the peer is already
 		// known to have the inventory.
-		if msg.immediate {
+		if msg.immediate || msg.invVect.Type == message.InvTypeBlock {
 			if msg.invVect.Type == message.InvTypeBlock {
 				gs=s.BlockManager.GetChain().BestSnapshot().GraphState
 			}

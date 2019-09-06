@@ -390,7 +390,7 @@ func (bd *BlockDAG) GetGraphState() *dag.GraphState {
 }
 
 // Locate all eligible block by current graph state.
-func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState,maxHashes uint) []*hash.Hash {
+func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState, maxHashes uint) []*hash.Hash {
 	if gs.IsExcellent(bd.GetGraphState()) {
 		return nil
 	}
@@ -463,7 +463,7 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState,maxHashes uint) []*hash.Hash
 	}
 
 	for i:=0;i<len(fsSlice) ;i++  {
-		if i>=int(maxHashes) {
+		if maxHashes>0 && i>=int(maxHashes) {
 			break
 		}
 		result=append(result,fsSlice[i].GetHash())
