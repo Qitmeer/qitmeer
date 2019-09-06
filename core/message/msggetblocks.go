@@ -48,8 +48,8 @@ func (msg *MsgGetBlocks) AddBlockLocatorHash(hash *hash.Hash) error {
 			MaxBlockLocatorsPerMsg)
 		return messageError("MsgGetBlocks.AddBlockLocatorHash", str)
 	}
-
-	msg.BlockLocatorHashes = append(msg.BlockLocatorHashes, hash)
+	hashValue:=*hash
+	msg.BlockLocatorHashes = append(msg.BlockLocatorHashes,&hashValue)
 	return nil
 }
 
@@ -73,6 +73,7 @@ func (msg *MsgGetBlocks) Decode(r io.Reader, pver uint32) error {
 
 	// Create a contiguous slice of hashes to deserialize into in order to
 	// reduce the number of allocations.
+	fmt.Println()
 	locatorHashes := make([]hash.Hash, count)
 	msg.BlockLocatorHashes = make([]*hash.Hash, 0, count)
 	for i := uint64(0); i < count; i++ {
@@ -83,6 +84,7 @@ func (msg *MsgGetBlocks) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddBlockLocatorHash(hash)
 	}
+	fmt.Println()
 	msg.GS=dag.NewGraphState()
 	err=msg.GS.Decode(r,pver)
 	if err != nil {
