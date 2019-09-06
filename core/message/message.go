@@ -59,6 +59,7 @@ const (
 	CmdGetMiningState = "getminings"
 
 	CmdMemPool        = "mempool"
+	CmdGraphState     = "graphstate"
 	CmdSendHeaders    = "sendheaders"
 	CmdFeeFilter      = "feefilter"
 	CmdGetCFilter     = "getcfilter"
@@ -67,6 +68,8 @@ const (
 	CmdCFilter        = "cfilter"
 	CmdCFHeaders      = "cfheaders"
 	CmdCFTypes        = "cftypes"
+
+
 )
 
 // Message is an interface that describes a qitmeer message.  A type that
@@ -119,7 +122,8 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgMiningState{}
 	case CmdGetMiningState:
 		msg = &MsgGetMiningState{}
-
+	case CmdGraphState:
+		msg = &MsgGraphState{}
 	/*
 
 	case CmdMemPool:

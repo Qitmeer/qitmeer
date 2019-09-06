@@ -82,7 +82,11 @@ func (gs *GraphState) IsEqual(other *GraphState) bool {
 		gs.mainHeight != other.mainHeight {
 		return false
 	}
-	return gs.tips.IsEqual(other.tips)
+	if gs.tips.Contain(other.tips) ||
+		other.tips.Contain(gs.tips) {
+		return true
+	}
+	return false
 }
 
 // Setting vaules from other
