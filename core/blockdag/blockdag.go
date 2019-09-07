@@ -400,12 +400,14 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState, maxHashes uint) []*hash.Has
 	for _,v:=range tips {
 		ib:=bd.GetBlock(v)
 		queue=append(queue,ib)
-		fs.AddPair(ib.GetHash(),ib)
 	}
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
 
+		if fs.Has(cur.GetHash()) {
+			continue
+		}
 		if gs.GetTips().Has(cur.GetHash()) || cur.GetHash().IsEqual(&bd.genesis) {
 			continue
 		}
@@ -420,6 +422,7 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState, maxHashes uint) []*hash.Has
 			}
 		}
 		if needRec {
+			fs.AddPair(cur.GetHash(),cur)
 			if cur.HasParents() {
 				for _,v := range cur.GetParents().GetMap() {
 					value:=v.(IBlock)
@@ -428,7 +431,7 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState, maxHashes uint) []*hash.Has
 						continue
 					}
 					queue=append(queue,ib)
-					fs.AddPair(ib.GetHash(),ib)
+
 				}
 			}
 		}
@@ -461,7 +464,6 @@ func (bd *BlockDAG) LocateBlocks(gs *dag.GraphState, maxHashes uint) []*hash.Has
 	if len(fsSlice)>=2 {
 		sort.Sort(fsSlice)
 	}
-
 	for i:=0;i<len(fsSlice) ;i++  {
 		if maxHashes>0 && i>=int(maxHashes) {
 			break
