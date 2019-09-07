@@ -50,7 +50,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 	// we already have and request more blocks to prevent them.
 	gs:=b.chain.BestSnapshot().GraphState
 
-	for _, iv := range invVects {
+	for i, iv := range invVects {
 		// Ignore unsupported inventory types.
 		if iv.Type != message.InvTypeBlock && iv.Type != message.InvTypeTx {
 			continue
@@ -114,9 +114,9 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				}
 				continue
 			}
-			/*if i == lastBlock {
+			if i == lastBlock {
 				b.PushGetBlocksMsg(imsg.peer)
-			}*/
+			}
 		}
 	}
 

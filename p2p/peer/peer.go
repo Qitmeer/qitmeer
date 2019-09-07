@@ -360,7 +360,6 @@ func (p *Peer) PushGetBlocksMsg(sgs *dag.GraphState,blocks []*hash.Hash) error {
 
 	}
 	p.QueueMessage(msg, nil)
-
 	// Update the previous getblocks request information for filtering
 	// duplicates.
 	p.prevGet.Update(gs,blocks)

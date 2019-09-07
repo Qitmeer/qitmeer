@@ -241,7 +241,7 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 			hashSlice=chain.BlockDAG().SortBlock(hashSlice)
 		}
 	}else {
-		hashSlice = chain.LocateBlocks(msg.GS,0)
+		hashSlice = chain.LocateBlocks(msg.GS,message.MaxBlockLocatorsPerMsg)
 	}
 	hsLen:=len(hashSlice)
 	if hsLen==0 {
@@ -254,19 +254,11 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	for i:=0;i<hsLen;i++ {
 		iv := message.NewInvVect(message.InvTypeBlock, hashSlice[i])
 		invMsg.AddInvVect(iv)
-		if i == 0 || i % message.MaxBlockLocatorsPerMsg != 0 {
-			continue
-		}
-		if len(invMsg.InvList) > 0 {
-			p.QueueMessage(invMsg, nil)
-
-			invMsg = message.NewMsgInv()
-			invMsg.GS=chain.BestSnapshot().GraphState
-		}
 	}
 	if len(invMsg.InvList) > 0 {
 		p.QueueMessage(invMsg, nil)
 	}
+
 }
 
 // OnInv is invoked when a peer receives an inv  message and is used to
