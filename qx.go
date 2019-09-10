@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	QX_VERSION = "0.0.2"
+	QX_VERSION = "0.0.3"
 	TX_VERION = 1 //default version is 1
 )
 
