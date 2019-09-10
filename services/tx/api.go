@@ -156,7 +156,8 @@ func (api *PublicTxAPI) DecodeRawTransaction(hexTx string) (interface{}, error) 
 
 	// Create and return the result.
 	txReply := &json.OrderedResult{
-		{Key:"txid", Val:mtx.TxHash().String()},
+		{Key:"txhashfull", Val:mtx.TxHashFull().String()},
+		{Key:"txhash", Val:mtx.TxHash().String()},
 		{Key:"version", Val:int32(mtx.Version)},
 		{Key:"locktime", Val:mtx.LockTime},
 		{Key:"vin", Val:marshal.MarshJsonVin(&mtx)},
@@ -700,7 +701,7 @@ func (api *PublicTxAPI) GetRawTransactions(addre string,vinext *bool,count *uint
 
 		result := &srtList[i]
 		result.Hex = hexTxns[i]
-		result.Txid = mtx.Tx.TxHash().String()
+		result.HashFull = mtx.Tx.TxHashFull().String()
 		result.Vin, err = api.createVinListPrevOut(mtx, params, vinExtra,
 			filterAddrMap)
 		if err != nil {
@@ -891,7 +892,7 @@ func (api *PublicTxAPI) fetchInputTxos(tx *message.MsgTx) (map[types.TxOutPoint]
 			if origin.OutIndex >= uint32(len(txOuts)) {
 				return nil, fmt.Errorf("unable to find output "+
 					"%v referenced from transaction %s:%d",
-					origin, tx.Tx.TxHash(), txInIndex)
+					origin, tx.Tx.TxHashFull(), txInIndex)
 			}
 
 			originOutputs[*origin] = *txOuts[origin.OutIndex]
@@ -931,7 +932,7 @@ func (api *PublicTxAPI) fetchInputTxos(tx *message.MsgTx) (map[types.TxOutPoint]
 		if origin.OutIndex >= uint32(len(msgTx.Tx.TxOut)) {
 			errStr := fmt.Sprintf("unable to find output %v "+
 				"referenced from transaction %s:%d", origin,
-				tx.Tx.TxHash(), txInIndex)
+				tx.Tx.TxHashFull(), txInIndex)
 			return nil, rpc.RpcInternalError(errStr, "")
 		}
 		originOutputs[*origin] = *msgTx.Tx.TxOut[origin.OutIndex]
