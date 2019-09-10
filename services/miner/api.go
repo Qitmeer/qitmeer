@@ -365,7 +365,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 	txIndex := make(map[hash.Hash]int64, numTx)
 	for i, tx := range template.Block.Transactions {
 		//txHash := tx.TxHash()
-		txHash := tx.TxHash()
+		txHash := tx.TxHashFull()
 		txIndex[txHash] = int64(i)
 
 		// Skip the coinbase transaction.
@@ -486,7 +486,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 
 		resultTx := json.GetBlockTemplateResultTx{
 			Data:    hex.EncodeToString(txBuf),
-			Hash:    tx.TxHash().String(),
+			Hash:    tx.TxHashFull().String(),
 			Depends: []int64{},
 			Fee:     template.Fees[0],
 			SigOps:  template.SigOpCounts[0],

@@ -61,7 +61,7 @@ func BuildMerkleTreeStore(transactions []*types.Tx) []*hash.Hash {
 	// Create the base transaction hashes and populate the array with them.
 	for i, tx := range transactions {
 		Tx := tx.Transaction()
-		txHashFull := Tx.TxHash()
+		txHashFull := Tx.TxHashFull()
 		merkles[i] = &txHashFull
 	}
 
