@@ -47,8 +47,8 @@ func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHas
 	}
 	txr:=json.TxRawResult{
 		Hex : hexStr,
-		Txid : tx.TxHash().String(),
-		//TxHash : tx.TxHash().String(),
+		TxHashFull : tx.TxHashFull().String(),
+		TxHash : tx.TxHash().String(),
 		Size:int32(tx.SerializeSize()),
 		Version:tx.Version,
 		LockTime:tx.LockTime,

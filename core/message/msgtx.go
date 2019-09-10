@@ -48,5 +48,5 @@ func (msg *MsgTx) Encode(w io.Writer, pver uint32) error {
 	// The serialized encoding of the version includes the real transaction
 	// version in the lower 16 bits and the transaction serialization type
 	// in the upper 16 bits.
-	return msg.Tx.Encode(w,pver)
+	return msg.Tx.Encode(w,pver,types.TxSerializeFull)
 }

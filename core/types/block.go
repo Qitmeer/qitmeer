@@ -230,7 +230,7 @@ func (block *Block) Encode(w io.Writer, pver uint32) error {
 	}
 
 	for _, tx := range block.Transactions {
-		err = tx.Encode(w, pver)
+		err = tx.Encode(w, pver,TxSerializeFull)
 		if err != nil {
 			return err
 		}

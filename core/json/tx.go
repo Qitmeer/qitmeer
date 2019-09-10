@@ -7,7 +7,7 @@ import "encoding/json"
 // TxRawResult models the data from the getrawtransaction command.
 type TxRawResult struct {
 	Hex           string `json:"hex"`
-	Txid          string `json:"txid"`
+	TxHashFull    string `json:"txhashfull"`
 	TxHash        string `json:"txhash,omitempty"`
 	Size          int32  `json:"size,omitempty"`
 	Version       uint32 `json:"version"`
@@ -105,7 +105,7 @@ type GetUtxoResult struct {
 // command.
 type GetRawTransactionsResult struct {
 	Hex           string       `json:"hex,omitempty"`
-	Txid          string       `json:"txid"`
+	HashFull      string       `json:"hashfull"`
 	Hash          string       `json:"hash"`
 	Size          string       `json:"size"`
 	Vsize         string       `json:"vsize"`
