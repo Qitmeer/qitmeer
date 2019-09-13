@@ -43,7 +43,7 @@ func CalcMerkleRoot(nodes []hash.Hash) (root hash.Hash, err error) {
 // are calculated by concatenating the left node with itself before hashing.
 // Since this function uses nodes that are pointers to the hashes, empty nodes
 // will be nil.
-func BuildMerkleTreeStore(transactions []*types.Tx) []*hash.Hash {
+func BuildMerkleTreeStore(transactions []*types.Tx, witness bool) []*hash.Hash {
 	// If there's an empty stake tree, return totally zeroed out merkle tree root
 	// only.
 	if len(transactions) == 0 {
@@ -60,9 +60,16 @@ func BuildMerkleTreeStore(transactions []*types.Tx) []*hash.Hash {
 
 	// Create the base transaction hashes and populate the array with them.
 	for i, tx := range transactions {
-		Tx := tx.Transaction()
-		txHashFull := Tx.TxHashFull()
-		merkles[i] = &txHashFull
+		switch {
+		case witness && i == 0:
+			merkles[i] = &hash.ZeroHash
+		case witness:
+			wSha := tx.Tx.TxHashFull()
+			merkles[i] = &wSha
+		default:
+			txH:=tx.Tx.TxHash()
+			merkles[i] = &txH
+		}
 	}
 
 	// Start the array offset after the last transaction and adjusted to the
@@ -99,7 +106,7 @@ func calcMerkleRoot(txns []*types.Transaction) hash.Hash {
 	for _, tx := range txns {
 		utilTxns = append(utilTxns, types.NewTx(tx))
 	}
-	merkles := BuildMerkleTreeStore(utilTxns)
+	merkles := BuildMerkleTreeStore(utilTxns,false)
 	return *merkles[len(merkles)-1]
 }
 

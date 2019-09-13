@@ -398,6 +398,12 @@ mempoolLoop:
 	coinbaseTx.Tx.TxOut[0].Amount += uint64(totalFees)
 	txFees[0] = -totalFees
 
+	// Fill witness
+	err=fillWitnessToCoinBase(blockTxns)
+	if err != nil {
+		return nil, miningRuleError(ErrCreatingCoinbase, err.Error())
+	}
+
 	ts:= MedianAdjustedTime(blockManager.GetChain(),timeSource)
 	reqDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts)
 
@@ -409,11 +415,11 @@ mempoolLoop:
 	blockVersion :=BlockVersion(params.Net)
 
 	// Create a new block ready to be solved.
-	merkles := merkle.BuildMerkleTreeStore(blockTxns)
+	merkles := merkle.BuildMerkleTreeStore(blockTxns,false)
+
 	if parents==nil {
 		parents=blockManager.GetChain().GetMiningTips()
 	}
-
 	paMerkles :=merkle.BuildParentsMerkleTreeStore(parents)
 	var block types.Block
 	block.Header = types.BlockHeader{
@@ -435,8 +441,6 @@ mempoolLoop:
 			return nil, miningRuleError(ErrTransactionAppend, err.Error())
 		}
 	}
-
-
 
 	sblock := types.NewBlock(&block)
 	sblock.SetOrder(nextBlockOrder)
