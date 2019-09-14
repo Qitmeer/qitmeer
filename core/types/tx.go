@@ -744,7 +744,7 @@ func (t *Transaction) CachedTxHash() *hash.Hash {
 // result so future calls to CachedTxHash will return this newly calculated
 // hash.
 func (t *Transaction) RecacheTxHash() *hash.Hash {
-	h := t.TxHashFull()
+	h := t.TxHash()
 	t.CachedHash = &h
 	return t.CachedHash
 }
@@ -780,7 +780,7 @@ func (tx *Transaction) IsCoinBase() bool {
 	// The previous output of a coin base must have a max value index and a
 	// zero hash.
 	prevOut := &tx.TxIn[0].PreviousOut
-	if prevOut.OutIndex != math.MaxUint32 || !prevOut.Hash.IsEqual(&hash.ZeroHash) {
+	if prevOut.OutIndex != math.MaxUint32 /*|| !prevOut.Hash.IsEqual(&hash.ZeroHash)*/ {
 		return false
 	}
 	return true
@@ -801,11 +801,28 @@ func (t *Tx) Transaction() *Transaction {
 	// Return the cached transaction.
 	return t.Tx
 }
+
+// Hash returns the hash of the transaction.  This is equivalent to
+// calling TxHash on the underlying wire.MsgTx, however it caches the
+// result so subsequent calls are more efficient.
+func (t *Tx) Hash() *hash.Hash {
+	return &t.hash
+}
+
+func (t *Tx) RefreshHash() {
+	t.hash=t.Tx.TxHash()
+}
+
+// SetIndex sets the index of the transaction in within a block.
+func (t *Tx) SetIndex(index int) {
+	t.txIndex = index
+}
+
 // NewTx returns a new instance of a transaction given an underlying
 // wire.MsgTx.  See Tx.
 func NewTx(t *Transaction) *Tx {
 	return &Tx{
-		hash:    t.TxHashFull(),
+		hash:    t.TxHash(),
 		Tx:   t,
 		txIndex: TxIndexUnknown,
 	}
@@ -853,7 +870,7 @@ func NewTxDeep(msgTx *Transaction) *Tx {
 	}
 
 	return &Tx{
-		hash:    mtx.TxHashFull(),
+		hash:    mtx.TxHash(),
 		Tx:      mtx,
 		txIndex: TxIndexUnknown,
 	}
@@ -898,22 +915,10 @@ func NewTxDeepTxIns(msgTx *Transaction) *Tx {
 	}
 
 	return &Tx{
-		hash:    msgTx.TxHashFull(),
+		hash:    msgTx.TxHash(),
 		Tx:   msgTx,
 		txIndex: TxIndexUnknown,
 	}
-}
-
-// Hash returns the hash of the transaction.  This is equivalent to
-// calling TxHash on the underlying wire.MsgTx, however it caches the
-// result so subsequent calls are more efficient.
-func (t *Tx) Hash() *hash.Hash {
-	return &t.hash
-}
-
-// SetIndex sets the index of the transaction in within a block.
-func (t *Tx) SetIndex(index int) {
-	t.txIndex = index
 }
 
 type TxOutPoint struct {
