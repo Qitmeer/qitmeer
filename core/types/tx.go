@@ -647,9 +647,8 @@ func (tx *Transaction) decodeWitness(r io.Reader) (uint64, error) {
 
 	// Read in the witnesses, and copy them into the already generated
 	// by decodePrefix TxIns.
-	txIns := make([]TxInput, count)
 	for i := uint64(0); i < count; i++ {
-		ti := &txIns[i]
+		ti := tx.TxIn[i]
 
 		// Signature script.
 		ti.SignScript, err = readScript(r)
