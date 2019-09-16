@@ -780,10 +780,10 @@ func (tx *Transaction) IsCoinBase() bool {
 	// The previous output of a coin base must have a max value index and a
 	// zero hash.
 	prevOut := &tx.TxIn[0].PreviousOut
-	if prevOut.OutIndex != math.MaxUint32 /*|| !prevOut.Hash.IsEqual(&hash.ZeroHash)*/ {
+	/*if prevOut.OutIndex != math.MaxUint32 || !prevOut.Hash.IsEqual(&hash.ZeroHash) {
 		return false
-	}
-	return true
+	}*/
+	return prevOut.OutIndex == math.MaxUint32
 }
 
 // Tx defines a transaction that provides easier and more efficient manipulation
