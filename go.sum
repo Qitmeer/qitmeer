@@ -1,5 +1,7 @@
 github.com/Qitmeer/qitmeer-lib v0.0.0-20190910085745-2d3d9b8d3e06 h1:wWGSXLcy7XdwK/pmBFachJ4hJLxQfBH/DdZHyXgeGQc=
 github.com/Qitmeer/qitmeer-lib v0.0.0-20190910085745-2d3d9b8d3e06/go.mod h1:qQJR7/HBuObR1j4+dt6hLCQ8ZxiyuXjaK8ePeptriJk=
+github.com/Qitmeer/qitmeer-lib v0.0.0-20190917032326-4895c14ecdc4 h1:d4qpyVwWlXvH8vuUxuaSrV4+DYXeDfJxQU+ozKBKlQ8=
+github.com/Qitmeer/qitmeer-lib v0.0.0-20190917032326-4895c14ecdc4/go.mod h1:qQJR7/HBuObR1j4+dt6hLCQ8ZxiyuXjaK8ePeptriJk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dchest/blake256 v1.0.0/go.mod h1:xXNWCE1jsAP8DAjP+rKw2MbeqLczjI3TRx2VK+9OEYY=
