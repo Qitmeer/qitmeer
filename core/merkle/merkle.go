@@ -3,9 +3,10 @@
 package merkle
 
 import (
-	"math"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"math"
 )
 
 //TODO refactoing the merkle root calculation to support abstract merkle node
@@ -210,4 +211,37 @@ func BuildParentsMerkleTreeStore(parents []*hash.Hash) []*hash.Hash {
 	}
 
 	return merkles
+}
+
+func ValidateWitnessCommitment(blk *types.SerializedBlock) error {
+	if len(blk.Transactions()) == 0 {
+		str := "cannot validate witness commitment of block without " +
+			"transactions"
+		return fmt.Errorf(str)
+	}
+
+	coinbaseTx := blk.Transactions()[0]
+	if len(coinbaseTx.Tx.TxIn) == 0 {
+		return fmt.Errorf("transaction has no inputs")
+	}
+
+	witnessCommitment:=coinbaseTx.Tx.TxIn[0].PreviousOut.Hash
+	if witnessCommitment.IsEqual(&hash.ZeroHash) {
+		return fmt.Errorf("Coinbase inputs has no witness commitment")
+	}
+
+	coinbase := coinbaseTx.Tx.TxIn[0].SignScript
+	witnessMerkleTree := BuildMerkleTreeStore(blk.Transactions(), true)
+	witnessMerkleRoot := witnessMerkleTree[len(witnessMerkleTree)-1]
+
+	witnessPreimage:=append(witnessMerkleRoot.Bytes(),coinbase...)
+	computedCommitment := hash.DoubleHashH(witnessPreimage[:])
+
+	if !computedCommitment.IsEqual(&witnessCommitment) {
+		str := fmt.Sprintf("witness commitment does not match: "+
+			"computed %s, coinbase includes %s", computedCommitment,
+			witnessCommitment)
+		return fmt.Errorf(str)
+	}
+	return nil
 }

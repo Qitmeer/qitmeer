@@ -515,6 +515,11 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 		if err != nil {
 			return err
 		}
+
+		err = merkle.ValidateWitnessCommitment(block)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
