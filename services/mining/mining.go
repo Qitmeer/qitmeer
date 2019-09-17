@@ -14,6 +14,7 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
 	"github.com/Qitmeer/qitmeer-lib/params"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/merkle"
 	"time"
 )
 
@@ -45,7 +46,7 @@ const (
 	// generatedBlockVersionTest is the version of the block being generated
 	// for networks other than the main network.
 	// TODO, refactor the location of generatedBlockVersionTest const
-	GeneratedBlockVersionTest = 6
+	GeneratedBlockVersionTest = 7
 
 )
 
@@ -190,4 +191,14 @@ func BlockVersion(net protocol.Network) uint32  {
 		blockVersion = GeneratedBlockVersionTest
 	}
 	return blockVersion
+}
+
+func fillWitnessToCoinBase(blockTxns []*types.Tx) error {
+	merkles := merkle.BuildMerkleTreeStore(blockTxns,true)
+    txWitnessRoot:=merkles[len(merkles)-1]
+	witnessPreimage:=append(txWitnessRoot.Bytes(),blockTxns[0].Tx.TxIn[0].SignScript...)
+	witnessCommitment := hash.DoubleHashH(witnessPreimage[:])
+	blockTxns[0].Tx.TxIn[0].PreviousOut.Hash=witnessCommitment
+	blockTxns[0].RefreshHash()
+	return nil
 }

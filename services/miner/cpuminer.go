@@ -699,7 +699,7 @@ func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) er
 
 	// Recalculate the merkle root with the updated extra nonce.
 	block := types.NewBlock(msgBlock)
-	merkles := merkle.BuildMerkleTreeStore(block.Transactions())
+	merkles := merkle.BuildMerkleTreeStore(block.Transactions(),false)
 	msgBlock.Header.TxRoot = *merkles[len(merkles)-1]
 	return nil
 }

@@ -146,7 +146,7 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 	// checks.  Bitcoind builds the tree here and checks the merkle root
 	// after the following checks, but there is no reason not to check the
 	// merkle root matches here.
-	merkles := merkle.BuildMerkleTreeStore(block.Transactions())
+	merkles := merkle.BuildMerkleTreeStore(block.Transactions(),false)
 	calculatedMerkleRoot := merkles[len(merkles)-1]
 	if !header.TxRoot.IsEqual(calculatedMerkleRoot) {
 		str := fmt.Sprintf("block merkle root is invalid - block "+
@@ -512,6 +512,11 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 		}
 
 		err = b.checkBlockSubsidy(block,int64(blockHeight),-1)
+		if err != nil {
+			return err
+		}
+
+		err = merkle.ValidateWitnessCommitment(block)
 		if err != nil {
 			return err
 		}

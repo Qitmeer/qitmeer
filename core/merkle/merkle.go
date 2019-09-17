@@ -3,9 +3,10 @@
 package merkle
 
 import (
-	"math"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"math"
 )
 
 //TODO refactoing the merkle root calculation to support abstract merkle node
@@ -43,7 +44,7 @@ func CalcMerkleRoot(nodes []hash.Hash) (root hash.Hash, err error) {
 // are calculated by concatenating the left node with itself before hashing.
 // Since this function uses nodes that are pointers to the hashes, empty nodes
 // will be nil.
-func BuildMerkleTreeStore(transactions []*types.Tx) []*hash.Hash {
+func BuildMerkleTreeStore(transactions []*types.Tx, witness bool) []*hash.Hash {
 	// If there's an empty stake tree, return totally zeroed out merkle tree root
 	// only.
 	if len(transactions) == 0 {
@@ -60,9 +61,16 @@ func BuildMerkleTreeStore(transactions []*types.Tx) []*hash.Hash {
 
 	// Create the base transaction hashes and populate the array with them.
 	for i, tx := range transactions {
-		Tx := tx.Transaction()
-		txHashFull := Tx.TxHashFull()
-		merkles[i] = &txHashFull
+		switch {
+		case witness && i == 0:
+			merkles[i] = &hash.ZeroHash
+		case witness:
+			wSha := tx.Tx.TxHashFull()
+			merkles[i] = &wSha
+		default:
+			txH:=tx.Tx.TxHash()
+			merkles[i] = &txH
+		}
 	}
 
 	// Start the array offset after the last transaction and adjusted to the
@@ -99,7 +107,7 @@ func calcMerkleRoot(txns []*types.Transaction) hash.Hash {
 	for _, tx := range txns {
 		utilTxns = append(utilTxns, types.NewTx(tx))
 	}
-	merkles := BuildMerkleTreeStore(utilTxns)
+	merkles := BuildMerkleTreeStore(utilTxns,false)
 	return *merkles[len(merkles)-1]
 }
 
@@ -203,4 +211,37 @@ func BuildParentsMerkleTreeStore(parents []*hash.Hash) []*hash.Hash {
 	}
 
 	return merkles
+}
+
+func ValidateWitnessCommitment(blk *types.SerializedBlock) error {
+	if len(blk.Transactions()) == 0 {
+		str := "cannot validate witness commitment of block without " +
+			"transactions"
+		return fmt.Errorf(str)
+	}
+
+	coinbaseTx := blk.Transactions()[0]
+	if len(coinbaseTx.Tx.TxIn) == 0 {
+		return fmt.Errorf("transaction has no inputs")
+	}
+
+	witnessCommitment:=coinbaseTx.Tx.TxIn[0].PreviousOut.Hash
+	if witnessCommitment.IsEqual(&hash.ZeroHash) {
+		return fmt.Errorf("Coinbase inputs has no witness commitment")
+	}
+
+	coinbase := coinbaseTx.Tx.TxIn[0].SignScript
+	witnessMerkleTree := BuildMerkleTreeStore(blk.Transactions(), true)
+	witnessMerkleRoot := witnessMerkleTree[len(witnessMerkleTree)-1]
+
+	witnessPreimage:=append(witnessMerkleRoot.Bytes(),coinbase...)
+	computedCommitment := hash.DoubleHashH(witnessPreimage[:])
+
+	if !computedCommitment.IsEqual(&witnessCommitment) {
+		str := fmt.Sprintf("witness commitment does not match: "+
+			"computed %s, coinbase includes %s", computedCommitment,
+			witnessCommitment)
+		return fmt.Errorf(str)
+	}
+	return nil
 }

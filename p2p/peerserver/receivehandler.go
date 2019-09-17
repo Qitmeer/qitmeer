@@ -424,7 +424,7 @@ func (sp *serverPeer) OnTx(p *peer.Peer, msg *message.MsgTx) {
 	log.Trace("OnTx called, peer received tx message", "peer",p, "msg",msg)
 	if sp.server.cfg.BlocksOnly {
 		log.Trace(fmt.Sprintf("Ignoring tx %v from %v - blocksonly enabled",
-			msg.Tx.TxHashFull(), p))
+			msg.Tx.TxHash(), p))
 		return
 	}
 
