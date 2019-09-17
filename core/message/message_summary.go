@@ -38,7 +38,7 @@ func Summary(msg Message) string {
 
 	case *MsgTx:
 		return fmt.Sprintf("hash %s, %d inputs, %d outputs, lock %s",
-			msg.Tx.TxHashFull(), len(msg.Tx.TxIn), len(msg.Tx.TxOut),
+			msg.Tx.TxHash(), len(msg.Tx.TxIn), len(msg.Tx.TxOut),
 			formatLockTime(msg.Tx.LockTime))
 	/*
 	case *MsgMemPool:
