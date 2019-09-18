@@ -3,9 +3,11 @@ package blockdag
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/database"
 	"github.com/golang-collections/collections/stack"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/common/util"
+	"io"
 	"strconv"
 	"container/list"
 )
@@ -808,5 +810,19 @@ func (sp *Spectre) GetMainChainTip() IBlock {
 
 // return the main parent in the parents
 func (sp *Spectre) GetMainParent(parents *dag.HashSet) IBlock {
+	return nil
+}
+
+// encode
+func (sp *Spectre) Encode(w io.Writer) error {
+	return nil
+}
+
+// decode
+func (sp *Spectre) Decode(r io.Reader) error {
+	return nil
+}
+
+func (sp *Spectre) Load(dbTx database.Tx) error {
 	return nil
 }

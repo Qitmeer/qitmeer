@@ -420,21 +420,26 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			return err
 		}
 		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d",state.hash.String(),state.total,state.totalTxns,state.subsidy))
-		log.Info("Loading block index...")
+
+		log.Info("Loading dag ...")
 		bidxStart := time.Now()
+
+		err = b.bd.Load(dbTx,uint(state.total),b.params.GenesisHash)
+		if err != nil {
+			return err
+		}
+		if !b.bd.GetMainChainTip().GetHash().IsEqual(&state.hash) {
+			return fmt.Errorf("The dag main tip %s is not the same. %s",state.hash.String(),b.bd.GetMainChainTip().GetHash().String())
+		}
+		log.Info(fmt.Sprintf("Dag loaded:loadTime=%v", time.Since(bidxStart)))
+
 
 		// Determine how many blocks will be loaded into the index in order to
 		// allocate the right amount as a single alloc versus a whole bunch of
 		// littles ones to reduce pressure on the GC.
 		var block *types.SerializedBlock
 		for i:=uint(0);i<uint(state.total) ;i++ {
-			blockHash,status,err:=blockdag.DBGetDAGBlock(dbTx,i)
-			if err!=nil {
-				return err
-			}
-			if i==0 && !blockHash.IsEqual(b.params.GenesisHash) {
-				return fmt.Errorf("The dag block is not match current genesis block. you can cleanup your block data base by '--cleanup'.")
-			}
+			blockHash:=b.bd.GetBlockHash(i)
 			block, err = dbFetchBlockByHash(dbTx, blockHash)
 			if err != nil {
 				return err
@@ -450,33 +455,17 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				}
 				parents = append(parents, parent)
 			}
+			refblock := b.bd.GetBlock(blockHash)
 			//
 			node := &blockNode{}
 			initBlockNode(node, &block.Block().Header, parents)
-			list := b.bd.AddBlock(node)
 			b.index.addNode(node)
-			node.status=blockStatus(status)
-			if list == nil || list.Len() == 0 {
-				log.Error("Irreparable error!")
-				return AssertError(fmt.Sprintf("initChainState: Could "+
-					"not add %s  %d", node.hash.String(),i))
-			}
-			for e := list.Front(); e != nil; e = e.Next() {
-				refHash := e.Value.(*hash.Hash)
-				refblock := b.bd.GetBlock(refHash)
-				refnode := b.index.lookupNode(refHash)
-				refnode.SetOrder(uint64(refblock.GetOrder()))
-				refnode.SetHeight(refblock.GetHeight())
+			node.status=blockStatus(refblock.GetStatus())
+			node.SetOrder(uint64(refblock.GetOrder()))
+			node.SetHeight(refblock.GetHeight())
 
-				/*if node.GetHash().IsEqual(refHash) {
-					block.SetOrder(uint64(refblock.GetOrder()))
-				}*/
-			}
 		}
-		log.Debug("Block index loaded", "loadTime", time.Since(bidxStart))
-		/*if !b.dag.GetLastBlock().hash.IsEqual(&state.hash) {
-			return AssertError(fmt.Sprintf("initChainState:Data damage"))
-		}*/
+
 		// Set the best chain view to the stored best state.
 		// Load the raw block bytes for the best block.
 		mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())

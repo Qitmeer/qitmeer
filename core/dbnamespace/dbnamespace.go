@@ -63,4 +63,8 @@ var (
 	// IndexTipsBucketName is the name of the db bucket used to house the
 	// current tip of each index.
 	IndexTipsBucketName = []byte("idxtips")
+
+	// DagInfoBucketName is the name of the db bucket used to house the
+	// dag information
+	DagInfoBucketName = []byte("daginfo")
 )
