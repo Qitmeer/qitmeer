@@ -4,6 +4,8 @@ import (
 	"container/list"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/database"
+	"io"
 )
 
 
@@ -353,5 +355,19 @@ func (con *Conflux) GetMainChainTip() IBlock {
 
 // return the main parent in the parents
 func (con *Conflux) GetMainParent(parents *dag.HashSet) IBlock {
+	return nil
+}
+
+// encode
+func (con *Conflux) Encode(w io.Writer) error {
+	return nil
+}
+
+// decode
+func (con *Conflux) Decode(r io.Reader) error {
+	return nil
+}
+
+func (con *Conflux) Load(dbTx database.Tx) error {
 	return nil
 }

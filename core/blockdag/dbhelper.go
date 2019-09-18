@@ -1,51 +1,41 @@
 package blockdag
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/database"
 )
 
 // DBPutDAGBlock stores the information needed to reconstruct the provided
 // block in the block index according to the format described above.
-func DBPutDAGBlock(dbTx database.Tx, block IBlock,status byte) error {
-	// TODO save DAG block to accelerating Reconfiguration
-	/*var w bytes.Buffer
-	err:=block.Encode(&w)
-	if err != nil {
-		return err
-	}*/
+func DBPutDAGBlock(dbTx database.Tx, block IBlock) error {
 	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIndexBucketName)
 	var serializedID [4]byte
 	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
 
 	key := serializedID[:]
 
-	blockHash:=*block.GetHash()
-	value:=blockHash.Bytes()
-	value=append(value,status)
-	if len(value) != hash.HashSize+1 {
-		return fmt.Errorf("len is error")
+	var buff bytes.Buffer
+	err := block.Encode(&buff)
+	if err != nil {
+		return err
 	}
-	return bucket.Put(key,value)
+	return bucket.Put(key,buff.Bytes())
 }
 
 // DBGetDAGBlock get dag block data by resouce ID
-func DBGetDAGBlock(dbTx database.Tx,id uint) (*hash.Hash,byte,error) {
+func DBGetDAGBlock(dbTx database.Tx,block IBlock) error {
 	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIndexBucketName)
 	var serializedID [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
 
 	data:=bucket.Get(serializedID[:])
-	var h hash.Hash
-	err:=h.SetBytes(data[:hash.HashSize])
-	if err!=nil {
-		return nil,0,err
+	if data == nil {
+		return fmt.Errorf("get dag block error")
 	}
-	status:=data[hash.HashSize:]
 
-	return &h,status[0],nil
+	return block.Decode(bytes.NewReader(data))
 }
 
 func GetOrderLogStr(order uint) string {
@@ -53,4 +43,13 @@ func GetOrderLogStr(order uint) string {
 		return "uncertainty"
 	}
 	return fmt.Sprintf("%d",order)
+}
+
+func DBPutDAGInfo(dbTx database.Tx, bd *BlockDAG) error {
+	var buff bytes.Buffer
+	err := bd.Encode(&buff)
+	if err != nil {
+		return err
+	}
+	return dbTx.Metadata().Put(dbnamespace.DagInfoBucketName,buff.Bytes())
 }

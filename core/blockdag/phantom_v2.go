@@ -6,6 +6,8 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/database"
+	"io"
 )
 
 type Phantom_v2 struct {
@@ -440,5 +442,19 @@ func (ph *Phantom_v2) GetMainChainTip() IBlock {
 
 // return the main parent in the parents
 func (ph *Phantom_v2) GetMainParent(parents *dag.HashSet) IBlock {
+	return nil
+}
+
+// encode
+func (ph *Phantom_v2) Encode(w io.Writer) error {
+	return nil
+}
+
+// decode
+func (ph *Phantom_v2) Decode(r io.Reader) error {
+	return nil
+}
+
+func (ph *Phantom_v2) Load(dbTx database.Tx) error {
 	return nil
 }

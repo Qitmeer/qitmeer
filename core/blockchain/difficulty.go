@@ -245,7 +245,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	if curNode == nil {
 		return b.params.PowLimitBits, nil
 	}
-
+	return curNode.bits,nil
 	// Get the old difficulty; if we aren't at a block height where it changes,
 	// just return this.
 	oldDiff := curNode.bits

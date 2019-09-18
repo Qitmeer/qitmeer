@@ -75,6 +75,14 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 	if err != nil {
 		return err
 	}
+
+	var blueNum uint32
+	err=s.ReadElements(r,&blueNum)
+	if err != nil {
+		return err
+	}
+	pb.blueNum=uint(blueNum)
+
 	// blueDiffAnticone
 	var blueDiffAnticoneSize uint32
 	err=s.ReadElements(r,&blueDiffAnticoneSize)

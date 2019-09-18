@@ -65,6 +65,12 @@ type IBlock interface {
 	// Acquire the height of block in main chain
 	GetHeight() uint
 
+	// SetStatus
+	SetStatus(status BlockStatus)
+
+	// GetStatus
+	GetStatus() BlockStatus
+
 	// encode
 	Encode(w io.Writer) error
 
@@ -228,7 +234,7 @@ func (b *Block) Encode(w io.Writer) error {
 	}
 	// parents
 	parents:=[]*hash.Hash{}
-	if b.parents!=nil && b.parents.Size()>0 {
+	if b.HasParents() {
 		parents=b.parents.List()
 	}
 	parentsSize:=len(parents)
@@ -243,11 +249,11 @@ func (b *Block) Encode(w io.Writer) error {
 		}
 	}
 	// children
-	children:=[]*hash.Hash{}
-	if b.children!=nil && b.children.Size()>0 {
+	/*children:=[]*hash.Hash{}
+	if b.HasChildren() {
 		children=b.children.List()
 	}
-	childrenSize:=len(parents)
+	childrenSize:=len(children)
 	err=s.WriteElements(w,uint32(childrenSize))
 	if err != nil {
 		return err
@@ -257,7 +263,7 @@ func (b *Block) Encode(w io.Writer) error {
 		if err != nil {
 			return err
 		}
-	}
+	}*/
 	// mainParent
 	mainParent:=&hash.ZeroHash
 	if b.mainParent!=nil {
@@ -284,7 +290,7 @@ func (b *Block) Encode(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return s.WriteElements(w,byte(b.status))
 }
 
 // decode
@@ -318,7 +324,7 @@ func (b *Block) Decode(r io.Reader) error {
 		}
 	}
 	// children
-	var childrenSize uint32
+	/*var childrenSize uint32
 	err=s.ReadElements(r,&childrenSize)
 	if err != nil {
 		return err
@@ -333,7 +339,7 @@ func (b *Block) Decode(r io.Reader) error {
 			}
 			b.children.Add(&children)
 		}
-	}
+	}*/
 	// mainParent
 	var mainParent hash.Hash
 	err=s.ReadElements(r,&mainParent)
@@ -374,18 +380,29 @@ func (b *Block) Decode(r io.Reader) error {
 	}
 	b.height=uint(height)
 
+	var status byte
+	err=s.ReadElements(r,&status)
+	if err != nil {
+		return err
+	}
+	b.status=BlockStatus(status)
 	return nil
+}
+
+// SetStatus
+func (b *Block) SetStatus(status BlockStatus) {
+	b.status=status
 }
 
 func (b *Block) GetStatus() BlockStatus {
 	return b.status
 }
 
-func (b *Block) SetStatus(flags BlockStatus) {
+func (b *Block) SetStatusFlags(flags BlockStatus) {
 	b.status |= flags
 }
 
-func (b *Block) UnsetStatus(flags BlockStatus) {
+func (b *Block) UnsetStatusFlags(flags BlockStatus) {
 	b.status &^= flags
 }
 

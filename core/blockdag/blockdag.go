@@ -1,14 +1,19 @@
 package blockdag
 
 import (
+	"bytes"
 	"container/list"
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
+	"github.com/Qitmeer/qitmeer/database"
+	"io"
 	"math"
 	"sort"
 	"time"
+	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
 )
 
 // Some available DAG algorithm types
@@ -53,6 +58,34 @@ func NewBlockDAG(dagType string) IBlockDAG {
 	return nil
 }
 
+func GetDAGTypeIndex(dagType string) byte {
+	switch dagType {
+	case phantom:
+		return 0
+	case phantom_v2:
+		return 1
+	case conflux:
+		return 2
+	case spectre:
+		return 3
+	}
+	return 0
+}
+
+func GetDAGTypeByIndex(dagType byte) string {
+	switch dagType {
+	case 0:
+		return phantom
+	case 1:
+		return phantom_v2
+	case 2:
+		return conflux
+	case 3:
+		return spectre
+	}
+	return phantom
+}
+
 // The abstract inferface is used to build and manager DAG
 type IBlockDAG interface {
 	// Return the name
@@ -81,6 +114,15 @@ type IBlockDAG interface {
 
 	// return the main parent in the parents
 	GetMainParent(parents *dag.HashSet) IBlock
+
+	// encode
+	Encode(w io.Writer) error
+
+	// decode
+	Decode(r io.Reader) error
+
+	// load
+	Load(dbTx database.Tx) error
 }
 
 // The general foundation framework of DAG
@@ -651,4 +693,46 @@ func (bd *BlockDAG) CheckLayerGap(parents []*hash.Hash) error {
 	}
 
 	return nil
+}
+
+// Load from database
+func (bd *BlockDAG) Load(dbTx database.Tx,blockTotal uint,genesis *hash.Hash) error {
+	meta := dbTx.Metadata()
+	serializedData := meta.Get(dbnamespace.DagInfoBucketName)
+	if serializedData == nil {
+		return fmt.Errorf("dag load error")
+	}
+
+	err := bd.Decode(bytes.NewReader(serializedData))
+	if err != nil {
+		return err
+	}
+	bd.genesis=*genesis
+	bd.blockTotal=blockTotal
+	bd.blocks = map[hash.Hash]IBlock{}
+	bd.blockids = map[uint]*hash.Hash{}
+	bd.tips = dag.NewHashSet()
+	return bd.instance.Load(dbTx)
+}
+
+func (bd *BlockDAG) Encode(w io.Writer) error {
+	dagTypeIndex:=GetDAGTypeIndex(bd.instance.GetName())
+	err:=s.WriteElements(w,dagTypeIndex)
+	if err != nil {
+		return err
+	}
+	return bd.instance.Encode(w)
+}
+
+// decode
+func (bd *BlockDAG) Decode(r io.Reader) error {
+	var dagTypeIndex byte
+	err:=s.ReadElements(r,&dagTypeIndex)
+	if err != nil {
+		return err
+	}
+	if GetDAGTypeIndex(bd.instance.GetName()) != dagTypeIndex {
+		return fmt.Errorf("The dag type is %s, but read is %d",bd.instance.GetName(),GetDAGTypeByIndex(dagTypeIndex))
+	}
+	return bd.instance.Decode(r)
 }

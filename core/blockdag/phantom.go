@@ -3,9 +3,12 @@ package blockdag
 import (
 	"container/list"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
+	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
+	"github.com/Qitmeer/qitmeer/database"
+	"io"
 )
 
 const (
@@ -510,6 +513,78 @@ func (ph *Phantom) getBlock(h *hash.Hash) *PhantomBlock {
 
 func (ph *Phantom) GetDiffAnticone() *dag.HashSet {
 	return ph.diffAnticone
+}
+
+// encode
+func (ph *Phantom) Encode(w io.Writer) error {
+	err:=s.WriteElements(w,uint32(ph.anticoneSize))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// decode
+func (ph *Phantom) Decode(r io.Reader) error {
+	var anticoneSize uint32
+	err:=s.ReadElements(r,&anticoneSize)
+	if err != nil {
+		return err
+	}
+	if anticoneSize != uint32(ph.anticoneSize) {
+		return fmt.Errorf("The anticoneSize (%d) is not the same. (%d)",ph.anticoneSize,anticoneSize)
+	}
+	return nil
+}
+
+// load
+func (ph *Phantom) Load(dbTx database.Tx) error {
+
+	ph.mainChain.genesis=ph.bd.GetGenesisHash()
+
+	for i:=uint(0);i<ph.bd.GetBlockTotal() ;i++ {
+		block := Block{id:i}
+		ib:=ph.CreateBlock(&block)
+		err:=DBGetDAGBlock(dbTx,ib)
+		if err !=nil {
+			return err
+		}
+		if i==0 && !ib.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
+			return fmt.Errorf("genesis data mismatch")
+		}
+		// Make up for missing
+		if ib.HasParents() {
+			parentsSet:=dag.NewHashSet()
+			for k:=range ib.GetParents().GetMap(){
+				parentHash:=k
+				parent := ph.bd.GetBlock(&parentHash)
+				parentsSet.AddPair(&parentHash,parent)
+				parent.AddChild(&block)
+			}
+			ib.GetParents().Clean()
+			ib.GetParents().AddSet(parentsSet)
+		}
+		ph.bd.blocks[block.hash] = ib
+		ph.bd.blockids[block.GetID()]=block.GetHash()
+
+		ph.bd.updateTips(&block)
+		//
+		ph.bd.order[ib.GetOrder()]=ib.GetHash()
+
+		if !ib.IsOrdered() {
+			ph.diffAnticone.Add(ib.GetHash())
+		}
+	}
+
+	ph.mainChain.tip=ph.GetMainParent(ph.bd.tips).GetHash()
+
+	for cur:=ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
+		ph.mainChain.blocks.Add(cur.GetHash())
+		if cur.mainParent==nil {
+			break
+		}
+	}
+	return nil
 }
 
 // The main chain of DAG is support incremental expansion

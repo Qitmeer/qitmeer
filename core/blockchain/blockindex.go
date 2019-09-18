@@ -171,7 +171,8 @@ func (bi *blockIndex) flushToDB(bd *blockdag.BlockDAG) error {
 	err := bi.db.Update(func(dbTx database.Tx) error {
 		for node := range bi.dirty {
 			block:=bd.GetBlock(node.GetHash())
-			err := blockdag.DBPutDAGBlock(dbTx,block,byte(node.status))
+			block.SetStatus(blockdag.BlockStatus(node.status))
+			err := blockdag.DBPutDAGBlock(dbTx,block)
 			if err != nil {
 				return err
 			}
