@@ -42,8 +42,8 @@ func TxDecode(network string, rawTxStr string) {
 	}
 
 	jsonTx := &json.OrderedResult{
-		{Key: "txhashfull", Val: tx.TxHashFull().String()},
-		{Key: "txhash", Val: tx.TxHash().String()},
+		{Key: "txid", Val: tx.TxHash().String()},
+		{Key: "txhash", Val: tx.TxHashFull().String()},
 		{Key: "version", Val: int32(tx.Version)},
 		{Key: "locktime", Val: tx.LockTime},
 		{Key: "expire", Val: tx.Expire},
