@@ -732,7 +732,7 @@ func (bd *BlockDAG) Decode(r io.Reader) error {
 		return err
 	}
 	if GetDAGTypeIndex(bd.instance.GetName()) != dagTypeIndex {
-		return fmt.Errorf("The dag type is %s, but read is %d",bd.instance.GetName(),GetDAGTypeByIndex(dagTypeIndex))
+		return fmt.Errorf("The dag type is %s, but read is %s",bd.instance.GetName(),GetDAGTypeByIndex(dagTypeIndex))
 	}
 	return bd.instance.Decode(r)
 }
