@@ -133,3 +133,12 @@ func getGraphStateResult(gs *dag.GraphState) *json.GetGraphStateResult{
 	}
 	return nil
 }
+
+// Stop the node
+func (api *PublicBlockChainAPI) Stop() (interface{}, error) {
+	select {
+	case api.node.node.rpcServer.RequestedProcessShutdown() <- struct{}{}:
+	default:
+	}
+	return "Qitmeer stopping.", nil
+}
