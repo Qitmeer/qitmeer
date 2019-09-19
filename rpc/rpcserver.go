@@ -667,4 +667,6 @@ func (s *RpcServer) RegisterService(namespace string, regSvc interface{}) error 
 	return nil
 }
 
-
+func (s *RpcServer) RequestedProcessShutdown() chan struct{} {
+	return s.requestProcessShutdown
+}
