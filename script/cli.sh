@@ -253,6 +253,11 @@ function get_orphans_total(){
   get_result "$data"
 }
 
+function get_stop_node(){
+  local data='{"jsonrpc":"2.0","method":"stop","params":[],"id":null}'
+  get_result "$data"
+}
+
 function get_rawtxs(){
   local address=$1
   local param2=$2
@@ -334,6 +339,7 @@ function usage(){
   echo "  nodeinfo"
   echo "  peerinfo"
   echo "  main  <hash>"
+  echo "  stop"
   echo "block  :"
   echo "  block <num|hash>"
   echo "  blockid <id>"
@@ -631,6 +637,10 @@ elif [ "$1" == "peerinfo" ]; then
 elif [ "$1" == "orphanstotal" ]; then
   shift
   get_orphans_total | jq .
+
+elif [ "$1" == "stop" ]; then
+  shift
+  get_stop_node
 
 ## Tx
 elif [ "$1" == "tx" ]; then

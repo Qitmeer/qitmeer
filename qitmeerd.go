@@ -116,7 +116,7 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	}
 
 	// Create node and start it.
-	n, err := node.NewNode(cfg,db,activeNetParams.Params)
+	n, err := node.NewNode(cfg,db,activeNetParams.Params,shutdownRequestChannel)
 	if err != nil {
 		log.Error("Unable to start server","listeners",cfg.Listeners,"error", err)
 		return err

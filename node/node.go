@@ -48,7 +48,7 @@ type Node struct {
 
 }
 
-func NewNode(cfg *config.Config, database database.DB, chainParams *params.Params) (*Node,error) {
+func NewNode(cfg *config.Config, database database.DB, chainParams *params.Params, shutdownRequestChannel chan struct{}) (*Node,error) {
 
 	n := Node{
 		Config: cfg,
@@ -68,6 +68,10 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 		if err != nil {
 			return nil, err
 		}
+		go func() {
+			<-n.rpcServer.RequestedProcessShutdown()
+			shutdownRequestChannel <- struct{}{}
+		}()
 	}
 
     return &n, nil
