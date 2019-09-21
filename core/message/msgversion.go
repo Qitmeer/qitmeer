@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/satori/go.uuid"
 	"io"
 	"net"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
@@ -24,8 +25,8 @@ import (
 // version message (MsgVersion).
 const MaxUserAgentLen = 256
 
-// DefaultUserAgent for wire in the stack
-const DefaultUserAgent = "/qitmeerd:0.0.1/"
+// UUID for peer
+var UUID = uuid.NewV4()
 
 // MsgVersion implements the Message interface and represents a version message.
 // It is used for a peer to advertise itself as soon as an outbound connection
@@ -230,7 +231,7 @@ func NewMsgVersion(me *types.NetAddress, you *types.NetAddress, nonce uint64,
 		AddrYou:         *you,
 		AddrMe:          *me,
 		Nonce:           nonce,
-		UserAgent:       DefaultUserAgent,
+		UserAgent:       UUID.String(),
 		LastGS:          lastGS,
 		DisableRelayTx:  false,
 	}
@@ -279,7 +280,7 @@ func (msg *MsgVersion) AddUserAgent(name string, version string,
 		newUserAgent = fmt.Sprintf("%s(%s)", newUserAgent,
 			strings.Join(comments, "; "))
 	}
-	newUserAgent = fmt.Sprintf("%s%s/", msg.UserAgent, newUserAgent)
+	newUserAgent = fmt.Sprintf("%s@%s", msg.UserAgent, newUserAgent)
 	err := validateUserAgent(newUserAgent)
 	if err != nil {
 		return err
