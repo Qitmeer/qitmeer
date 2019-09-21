@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"github.com/Qitmeer/qitmeer-lib/core/json"
+	"github.com/Qitmeer/qitmeer-lib/core/message"
 	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	"github.com/Qitmeer/qitmeer-lib/params"
 	"github.com/Qitmeer/qitmeer-lib/rpc"
@@ -40,6 +41,7 @@ func NewPublicBlockChainAPI(node *QitmeerFull) *PublicBlockChainAPI {
 func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	best := api.node.blockManager.GetChain().BestSnapshot()
 	ret := &json.InfoNodeResult{
+		UUID:            message.UUID.String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
 		ProtocolVersion: int32(protocol.ProtocolVersion),
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
@@ -79,14 +81,10 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 	peers := api.node.node.peerServer.ConnectedPeers()
 	syncPeerID := api.node.blockManager.SyncPeerID()
 	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
-	peersM:=map[string]bool{}
 	for _, p := range peers {
 		statsSnap := p.StatsSnapshot()
-		if _,ok:=peersM[statsSnap.Addr];ok {
-			continue
-		}
-		peersM[statsSnap.Addr]=true
 		info := &json.GetPeerInfoResult{
+			UUID:           statsSnap.UUID.String(),
 			ID:             statsSnap.ID,
 			Addr:           statsSnap.Addr,
 			AddrLocal:      p.LocalAddr().String(),

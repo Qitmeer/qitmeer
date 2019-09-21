@@ -22,6 +22,7 @@ import (
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
+	"github.com/satori/go.uuid"
 	"net"
 	"strconv"
 	"sync"
@@ -440,5 +441,12 @@ func (s *PeerServer) ConnectedCount() int32 {
 func (s *PeerServer) ConnectedPeers() []*serverPeer {
 	replyChan := make(chan []*serverPeer)
 	s.query <- getPeersMsg{reply: replyChan}
+	return <-replyChan
+}
+
+// Whether it has peer.
+func (s *PeerServer) HasPeer(uuid uuid.UUID) bool {
+	replyChan := make(chan bool)
+	s.query <- getPeerMsg{uuid:uuid, reply: replyChan}
 	return <-replyChan
 }

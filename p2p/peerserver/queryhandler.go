@@ -5,7 +5,10 @@
 // license that can be found in the LICENSE file.
 package peerserver
 
-import "errors"
+import (
+	"errors"
+	"github.com/satori/go.uuid"
+)
 
 type getConnCountMsg struct {
 	reply chan int32
@@ -38,6 +41,11 @@ type connectNodeMsg struct {
 type removeNodeMsg struct {
 	cmp   func(*serverPeer) bool
 	reply chan error
+}
+
+type getPeerMsg struct {
+	uuid  uuid.UUID
+	reply chan bool
 }
 
 // handleQuery is the central handler for all queries and commands from other
@@ -79,5 +87,18 @@ func (s *PeerServer) handleQuery(state *peerState, querymsg interface{}) {
 		msg.reply <- peers
 	case disconnectNodeMsg:
 		msg.reply <- errors.New("not support")
+		
+	case getPeerMsg:
+		has:=false
+		state.forAllPeers(func(sp *serverPeer) {
+			if !sp.Connected() || has {
+				return
+			}
+			if uuid.Equal(sp.UUID(),msg.uuid) {
+				has=true
+				return
+			}
+		})
+		msg.reply <- has
 	}
 }
