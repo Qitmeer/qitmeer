@@ -15,6 +15,7 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
 	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/satori/go.uuid"
 	"math/rand"
 	"net"
 	"strconv"
@@ -24,6 +25,7 @@ import (
 
 // StatsSnap is a snapshot of peer stats at a point in time.
 type StatsSnap struct {
+	UUID           uuid.UUID
 	ID             int32
 	Addr           string
 	Services       protocol.ServiceFlag
@@ -51,6 +53,17 @@ func (p *Peer) ID() int32 {
 	p.flagsMtx.Unlock()
 
 	return id
+}
+
+// UUID returns the peer uuid.
+//
+// This function is safe for concurrent access.
+func (p *Peer) UUID() uuid.UUID {
+	p.flagsMtx.Lock()
+	uuid := p.uuid
+	p.flagsMtx.Unlock()
+
+	return uuid
 }
 
 // NA returns the peer network address.
@@ -570,6 +583,7 @@ func (p *Peer) StatsSnapshot() *StatsSnap {
 
 	p.flagsMtx.Lock()
 	id := p.id
+	uuid:=p.uuid
 	addr := p.addr
 	userAgent := p.userAgent
 	services := p.services
@@ -578,6 +592,7 @@ func (p *Peer) StatsSnapshot() *StatsSnap {
 
 	// Get a copy of all relevant flags and stats.
 	statsSnap := &StatsSnap{
+		UUID:           uuid,
 		ID:             id,
 		Addr:           addr,
 		UserAgent:      userAgent,

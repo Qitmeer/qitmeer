@@ -21,9 +21,11 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/peer/nounce"
 	"github.com/Qitmeer/qitmeer-lib/params"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+	"github.com/satori/go.uuid"
 )
 
 // outMsg is used to house a message to be sent along with a channel to signal
@@ -62,6 +64,8 @@ type Peer struct {
 	na                   *types.NetAddress
 	// - id
 	id                   int32
+	// - A universally unique identifier for peer
+	uuid                 uuid.UUID
 	// - user-agent
 	userAgent            string
 	// - version
@@ -257,7 +261,22 @@ func (p *Peer) readRemoteVersionMsg() error {
 	// Set the peer's ID and user agent.
 	p.flagsMtx.Lock()
 	p.id = atomic.AddInt32(&nodeCount, 1)
-	p.userAgent = msg.UserAgent
+
+	if strings.Contains(msg.UserAgent,"@") {
+		strs:=strings.Split(msg.UserAgent,"@")
+		if len(strs)==2 {
+			p.uuid,err=uuid.FromString(strs[0])
+			if err != nil {
+				return err
+			}
+			p.userAgent=strs[1]
+		}
+	}
+
+	if uuid.Equal(p.uuid,uuid.Nil) {
+		p.userAgent = msg.UserAgent
+	}
+
 	p.flagsMtx.Unlock()
 
 	// Invoke the callback if specified.  In the case the callback returns a

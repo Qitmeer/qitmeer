@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/config"
+	"github.com/Qitmeer/qitmeer-lib/core/message"
 	"github.com/Qitmeer/qitmeer-lib/log"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	"github.com/Qitmeer/qitmeer/node"
@@ -70,7 +71,9 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 
 	// Show version and home dir at startup.
 	log.Info("System info", "Qitmeer Version", version.String(), "Go version",runtime.Version())
+	log.Info("System info","UUID",message.UUID)
 	log.Info("System info", "Home dir", cfg.HomeDir)
+
 	if cfg.NoFileLogging {
 		log.Info("File logging disabled")
 	}

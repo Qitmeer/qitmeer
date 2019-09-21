@@ -15,6 +15,7 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/params/dcr/types"
 	"github.com/Qitmeer/qitmeer/p2p/addmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
+	"github.com/satori/go.uuid"
 	"time"
 )
 
@@ -32,6 +33,9 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 	// NOTE: This is done before rejecting peers that are too old to ensure
 	// it is updated regardless in the case a new minimum protocol version is
 	// enforced and the remote node has not upgraded yet.
+	if !uuid.Equal(p.UUID(),uuid.Nil) && sp.server.HasPeer(p.UUID()) {
+		return message.NewMsgReject(msg.Command(), message.RejectDuplicate, "duplicate peer version message")
+	}
 	isInbound := sp.Inbound()
 	remoteAddr := sp.NA()
 	addrManager := sp.server.addrManager
