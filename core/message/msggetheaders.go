@@ -8,6 +8,8 @@ package message
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	"io"
 	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
 )
@@ -30,7 +32,7 @@ import (
 type MsgGetHeaders struct {
 	ProtocolVersion    uint32
 	BlockLocatorHashes []*hash.Hash
-	HashStop           hash.Hash
+	GS                 *dag.GraphState
 }
 
 // AddBlockLocatorHash adds a new block locator hash to the message.
@@ -41,7 +43,8 @@ func (msg *MsgGetHeaders) AddBlockLocatorHash(hash *hash.Hash) error {
 		return messageError("MsgGetHeaders.AddBlockLocatorHash", str)
 	}
 
-	msg.BlockLocatorHashes = append(msg.BlockLocatorHashes, hash)
+	hashValue:=*hash
+	msg.BlockLocatorHashes = append(msg.BlockLocatorHashes,&hashValue)
 	return nil
 }
 
@@ -76,8 +79,12 @@ func (msg *MsgGetHeaders) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddBlockLocatorHash(hash)
 	}
-
-	return s.ReadElements(r, &msg.HashStop)
+	msg.GS=dag.NewGraphState()
+	err=msg.GS.Decode(r,pver)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Encode encodes the receiver to w using the protocol encoding.
@@ -108,7 +115,12 @@ func (msg *MsgGetHeaders) Encode(w io.Writer, pver uint32) error {
 		}
 	}
 
-	return s.WriteElements(w, &msg.HashStop)
+	err = msg.GS.Encode(w,pver)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 // Command returns the protocol command string for the message.  This is part
@@ -122,15 +134,15 @@ func (msg *MsgGetHeaders) Command() string {
 func (msg *MsgGetHeaders) MaxPayloadLength(pver uint32) uint32 {
 	// Version 4 bytes + num block locator hashes (varInt) + max allowed block
 	// locators + hash stop.
-	return 4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg *
-		hash.HashSize) + hash.HashSize
+	return 4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * hash.HashSize) + msg.GS.MaxPayloadLength()
 }
 
 // NewMsgGetHeaders returns a new  getheaders message that conforms to
 // the Message interface.  See MsgGetHeaders for details.
-func NewMsgGetHeaders() *MsgGetHeaders {
+func NewMsgGetHeaders(gs *dag.GraphState) *MsgGetHeaders {
 	return &MsgGetHeaders{
-		BlockLocatorHashes: make([]*hash.Hash, 0,
-			MaxBlockLocatorsPerMsg),
+		ProtocolVersion:    protocol.ProtocolVersion,
+		BlockLocatorHashes: make([]*hash.Hash, 0, MaxBlockLocatorsPerMsg),
+		GS:gs,
 	}
 }
