@@ -86,6 +86,7 @@ type Peer struct {
 
 	// prevget
 	prevGet            PrevGet
+	prevGetHdrs        PrevGet
 
 	// These fields keep track of statistics for the peer and are protected
 	// by the statsMtx mutex.
@@ -493,5 +494,6 @@ func newPeerBase(cfg *Config, inbound bool) *Peer {
 		lastGS:          dag.NewGraphState(),
 	}
 	p.prevGet.Init(&p)
+	p.prevGetHdrs.Init(&p)
 	return &p
 }

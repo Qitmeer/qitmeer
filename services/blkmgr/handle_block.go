@@ -195,27 +195,6 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		return
 	}
 
-	// This is headers-first mode and the block is a checkpoint.  When
-	// there is a next checkpoint, get the next round of headers by asking
-	// for headers starting from the block after this one up to the next
-	// checkpoint.
-	prevHeight := b.nextCheckpoint.Height
-	prevHash := b.nextCheckpoint.Hash
-	b.nextCheckpoint = b.findNextHeaderCheckpoint(prevHeight)
-	if b.nextCheckpoint != nil {
-		locator := blockchain.BlockLocator([]*hash.Hash{prevHash})
-		err := bmsg.peer.PushGetHeadersMsg(locator, b.nextCheckpoint.Hash)
-		if err != nil {
-			log.Warn("Failed to send getheaders message",
-				"peer", bmsg.peer.Addr(),"error",err)
-			return
-		}
-		log.Info(fmt.Sprintf("Downloading headers for blocks %d to %d from "+
-			"peer %s", prevHeight+1, b.nextCheckpoint.Height,
-			b.syncPeer.Addr()))
-		return
-	}
-
 	// This is headers-first mode, the block is a checkpoint, and there are
 	// no more checkpoints, so switch to normal mode by requesting blocks
 	// from the block after this one up to the end of the chain (zero hash).
