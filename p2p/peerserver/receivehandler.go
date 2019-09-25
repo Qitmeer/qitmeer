@@ -265,6 +265,49 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 
 }
 
+// OnGetHeaders is invoked when a peer receives a getheaders
+// message.
+func (sp *serverPeer) OnGetHeaders(p *peer.Peer, msg *message.MsgGetHeaders) {
+	// Ignore getheaders requests if not in sync.
+	if !sp.server.BlockManager.IsCurrent() {
+		return
+	}
+
+	p.UpdateLastGS(msg.GS)
+	chain := sp.server.BlockManager.GetChain()
+	hashSlice:=[]*hash.Hash{}
+	if len(msg.BlockLocatorHashes)>0 {
+		for _,v:=range msg.BlockLocatorHashes{
+			if chain.BlockDAG().HasBlock(v) {
+				hashSlice=append(hashSlice,v)
+			}
+		}
+		if len(hashSlice)>=2 {
+			hashSlice=chain.BlockDAG().SortBlock(hashSlice)
+		}
+	}else {
+		hashSlice = chain.LocateBlocks(msg.GS,message.MaxBlockHeadersPerMsg)
+	}
+	hsLen:=len(hashSlice)
+	if hsLen==0 {
+		log.Trace(fmt.Sprintf("Sorry, there are not these blocks for %s",p.String()))
+		return
+	}
+
+	headersMsg := message.NewMsgHeaders(chain.BestSnapshot().GraphState)
+	for i:=0;i<hsLen;i++ {
+		blockHead,err:=chain.HeaderByHash(hashSlice[i])
+		if err != nil {
+			log.Trace(fmt.Sprintf("Sorry, there are not these blocks %s for %s",hashSlice[i].String(),p.String()))
+			return
+		}
+		headersMsg.AddBlockHeader(&blockHead)
+	}
+	if len(headersMsg.Headers) > 0 {
+		p.QueueMessage(headersMsg, nil)
+	}
+}
+
 // OnInv is invoked when a peer receives an inv  message and is used to
 // examine the inventory being advertised by the remote peer and react
 // accordingly.  We pass the message down to blockmanager which will call
