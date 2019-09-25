@@ -7,6 +7,7 @@ package message
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer-lib/core/dag"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
 	"io"
 	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
@@ -23,6 +24,7 @@ const MaxBlockHeadersPerMsg = 2000
 // the headers.
 type MsgHeaders struct {
 	Headers []*types.BlockHeader
+	GS      *dag.GraphState
 }
 
 // AddBlockHeader adds a new block header to the message.
@@ -58,8 +60,28 @@ func (msg *MsgHeaders) Decode(r io.Reader, pver uint32) error {
 	msg.Headers = make([]*types.BlockHeader, 0, count)
 	for i := uint64(0); i < count; i++ {
 		bh := &headers[i]
-		bh.Deserialize(r)
+		err:=bh.Deserialize(r)
+		if err != nil {
+			return err
+		}
+
+		txCount, err := s.ReadVarInt(r, pver)
+		if err != nil {
+			return err
+		}
+
+		// Ensure the transaction count is zero for headers.
+		if txCount > 0 {
+			str := fmt.Sprintf("block headers may not contain "+
+				"transactions [count %v]", txCount)
+			return messageError("MsgHeaders.BtcDecode", str)
+		}
 		msg.AddBlockHeader(bh)
+	}
+	msg.GS=dag.NewGraphState()
+	err=msg.GS.Decode(r,pver)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -95,6 +117,10 @@ func (msg *MsgHeaders) Encode(w io.Writer, pver uint32) error {
 		}
 	}
 
+	err = msg.GS.Encode(w,pver)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -110,13 +136,18 @@ func (msg *MsgHeaders) MaxPayloadLength(pver uint32) uint32 {
 	// Num headers (varInt) + max allowed headers (header length + 1 byte
 	// for the number of transactions which is always 0).
 	return MaxVarIntPayload + ((types.MaxBlockHeaderPayload + 1) *
-		MaxBlockHeadersPerMsg)
+		MaxBlockHeadersPerMsg + msg.GS.MaxPayloadLength())
+}
+
+func (msg *MsgHeaders) String() string {
+	return fmt.Sprintf("Headers:%d GS:%s",len(msg.Headers),msg.GS.String())
 }
 
 // NewMsgHeaders returns a new  headers message that conforms to the
 // Message interface.  See MsgHeaders for details.
-func NewMsgHeaders() *MsgHeaders {
+func NewMsgHeaders(gs *dag.GraphState) *MsgHeaders {
 	return &MsgHeaders{
 		Headers: make([]*types.BlockHeader, 0, MaxBlockHeadersPerMsg),
+		GS:gs,
 	}
 }

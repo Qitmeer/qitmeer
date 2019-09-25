@@ -137,6 +137,10 @@ func (msg *MsgGetHeaders) MaxPayloadLength(pver uint32) uint32 {
 	return 4 + MaxVarIntPayload + (MaxBlockLocatorsPerMsg * hash.HashSize) + msg.GS.MaxPayloadLength()
 }
 
+func (msg *MsgGetHeaders) String() string {
+	return fmt.Sprintf("ProtocolVersion:%d Blocks:%d GS:%s",msg.ProtocolVersion,len(msg.BlockLocatorHashes),msg.GS.String())
+}
+
 // NewMsgGetHeaders returns a new  getheaders message that conforms to
 // the Message interface.  See MsgGetHeaders for details.
 func NewMsgGetHeaders(gs *dag.GraphState) *MsgGetHeaders {
