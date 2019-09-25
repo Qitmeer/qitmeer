@@ -147,6 +147,11 @@ out:
 			if p.cfg.Listeners.OnGraphState != nil {
 				p.cfg.Listeners.OnGraphState(p, msg)
 			}
+
+		case *message.MsgGetHeaders:
+			if p.cfg.Listeners.OnGetHeaders != nil {
+				p.cfg.Listeners.OnGetHeaders(p, msg)
+			}
 		/*
 		case *message.MsgMemPool:
 			if p.cfg.Listeners.OnMemPool != nil {
@@ -156,11 +161,6 @@ out:
 		case *message.MsgHeaders:
 			if p.cfg.Listeners.OnHeaders != nil {
 				p.cfg.Listeners.OnHeaders(p, msg)
-			}
-
-		case *message.MsgGetHeaders:
-			if p.cfg.Listeners.OnGetHeaders != nil {
-				p.cfg.Listeners.OnGetHeaders(p, msg)
 			}
 
 		case *message.MsgGetCFilter:

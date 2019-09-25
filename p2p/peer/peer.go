@@ -9,12 +9,11 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
 	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer-lib/params/dcr/types"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer-lib/core/message"
 	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
 	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer-lib/params/dcr/types"
 	"github.com/satori/go.uuid"
 	"math/rand"
 	"net"
@@ -379,48 +378,28 @@ func (p *Peer) PushGetBlocksMsg(sgs *dag.GraphState,blocks []*hash.Hash) error {
 	return nil
 }
 
-// PushGetHeadersMsg sends a getblocks message for the provided block locator
-// and stop hash.  It will ignore back-to-back duplicate requests.
+// PushGetHeadersMsg sends a getblocks message
 //
 // This function is safe for concurrent access.
-func (p *Peer) PushGetHeadersMsg(locator blockchain.BlockLocator, stopHash *hash.Hash) error {
-	// Extract the begin hash from the block locator, if one was specified,
-	// to use for filtering duplicate getheaders requests.
-	var beginHash *hash.Hash
-	if len(locator) > 0 {
-		beginHash = locator[0]
-	}
-
-	// Filter duplicate getheaders requests.
-	p.prevGet.HdrsMtx.Lock()
-	isDuplicate := p.prevGet.HdrsStop != nil && p.prevGet.HdrsBegin != nil &&
-		beginHash != nil && stopHash.IsEqual(p.prevGet.HdrsStop) &&
-		beginHash.IsEqual(p.prevGet.HdrsBegin)
-	p.prevGet.HdrsMtx.Unlock()
-
-	if isDuplicate {
-		log.Trace(fmt.Sprintf("Filtering duplicate [getheaders] with begin hash %v",
-			beginHash))
+func (p *Peer) PushGetHeadersMsg(sgs *dag.GraphState,blocks []*hash.Hash) error {
+	gs:=sgs.Clone()
+	ok,bs:=p.prevGetHdrs.Check(p,gs,blocks)
+	if !ok {
 		return nil
 	}
-
-	// Construct the getheaders request and queue it to be sent.
-	msg := message.NewMsgGetHeaders()
-	msg.HashStop = *stopHash
-	for _, hash := range locator {
-		err := msg.AddBlockLocatorHash(hash)
-		if err != nil {
-			return err
+	// Construct the getblocks request and queue it to be sent.
+	msg := message.NewMsgGetHeaders(gs)
+	if !bs.IsEmpty() {
+		for k:=range bs.GetMap(){
+			ha:=k
+			msg.AddBlockLocatorHash(&ha)
 		}
+
 	}
 	p.QueueMessage(msg, nil)
-
-	// Update the previous getheaders request information for filtering
+	// Update the previous getblocks request information for filtering
 	// duplicates.
-	p.prevGet.HdrsMtx.Lock()
-	p.prevGet.HdrsBegin = beginHash
-	p.prevGet.HdrsStop = stopHash
-	p.prevGet.HdrsMtx.Unlock()
+	p.prevGetHdrs.Update(gs,blocks)
 	return nil
 }
 
@@ -533,6 +512,7 @@ func (p *Peer) LastAnnouncedBlock() *hash.Hash {
 func (p*Peer) CleanGetBlocksSet() {
 	p.statsMtx.RLock()
 	p.prevGet.Clean()
+	p.prevGetHdrs.Clean()
 	p.statsMtx.RUnlock()
 }
 

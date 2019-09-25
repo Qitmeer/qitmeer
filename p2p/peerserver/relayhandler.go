@@ -26,7 +26,7 @@ func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 					" is not a block header")
 				return
 			}
-			msgHeaders := message.NewMsgHeaders()
+			msgHeaders := message.NewMsgHeaders(s.BlockManager.GetChain().BestSnapshot().GraphState)
 			if err := msgHeaders.AddBlockHeader(&blockHeader); err != nil {
 				log.Error("Failed to add block header","error", err)
 				return

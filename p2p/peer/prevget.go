@@ -11,12 +11,7 @@ import (
 type PrevGet struct {
 	BlocksMtx   sync.Mutex
 	GS          *dag.GraphState
-	//Locator     *dag.HashSet
 	Blocks      *dag.HashSet
-
-	HdrsMtx     sync.Mutex
-	HdrsBegin   *hash.Hash
-	HdrsStop    *hash.Hash
 }
 
 func (pg *PrevGet) Init(p *Peer) {
