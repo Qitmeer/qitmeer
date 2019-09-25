@@ -40,6 +40,7 @@ func Summary(msg Message) string {
 		return fmt.Sprintf("hash %s, %d inputs, %d outputs, lock %s",
 			msg.Tx.TxHash(), len(msg.Tx.TxIn), len(msg.Tx.TxOut),
 			formatLockTime(msg.Tx.LockTime))
+	// TODO
 	/*
 	case *MsgMemPool:
 		// No summary.
@@ -59,13 +60,13 @@ func Summary(msg Message) string {
 
 	case *MsgGetBlocks:
 		return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
-
+*/
 	case *MsgGetHeaders:
-		return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
+		return msg.String()
 
 	case *MsgHeaders:
-		return fmt.Sprintf("num %d", len(msg.Headers))
-	*/
+		return msg.String()
+
 	case *MsgReject:
 		// Ensure the variable length strings don't contain any
 		// characters which are even remotely dangerous such as HTML
