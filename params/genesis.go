@@ -8,15 +8,17 @@ package params
 
 import (
 	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	"github.com/Qitmeer/qitmeer-lib/core/types"
 	"time"
+	"github.com/Qitmeer/qitmeer/ledger"
 )
 
 // MainNet ------------------------------------------------------------------------
 
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for
 // the main network.
-var genesisCoinbaseTx = func() types.Transaction {
+func buildGenesisCoinbaseTx(net protocol.Network) types.Transaction {
 	tx:=types.Transaction{
 		Version: 1,
 		TxIn: []*types.TxInput{
@@ -35,11 +37,12 @@ var genesisCoinbaseTx = func() types.Transaction {
 		LockTime: 0,
 		Expire:   0,
 	}
-	Ledger(&tx)
+	ledger.Ledger(&tx,net)
 	return tx
-}()
+}
 
-// genesisMerkleRoot is the hash of the first transaction in the genesis block
+var genesisCoinbaseTx = buildGenesisCoinbaseTx(protocol.MainNet)
+// mainnetgenesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the main network.
 var genesisMerkleRoot = genesisCoinbaseTx.TxHash()
 
@@ -79,7 +82,7 @@ var genesisHash = genesisBlock.BlockHash()
 // TestNet ------------------------------------------------------------------------
 
 //
-var testNetGenesisCoinbaseTx = types.Transaction{}
+var testNetGenesisCoinbaseTx = buildGenesisCoinbaseTx(protocol.TestNet)
 
 // testNetGenesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the test network.

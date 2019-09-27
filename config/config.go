@@ -73,6 +73,8 @@ type Config struct {
 
 	DAGType              string        `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
 	Cleanup              bool          `short:"L" long:"cleanup" description:"Cleanup the block database "`
+	ShowLedger           bool          `long:"showledger" description:"List the genesis ledger address and amount list to be generated for the next qitmeer version."`
+	BuildLedger          bool          `long:"buildledger" description:"Generate the genesis ledger for the next qitmeer version."`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {
