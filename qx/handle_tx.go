@@ -14,6 +14,59 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/params"
 )
 
+func TxEncode(version uint32, lockTime uint32, inputs map[string]uint32, outputs map[string]uint64) (string, error) {
+	mtx := types.NewTransaction()
+	mtx.Version = uint32(version)
+	if lockTime != 0 {
+		mtx.LockTime = uint32(lockTime)
+	}
+
+	for txId, vout := range inputs {
+		txHash, err := hash.NewHashFromStr(txId)
+		if err != nil {
+			return "", err
+		}
+		prevOut := types.NewOutPoint(txHash, vout)
+		txIn := types.NewTxInput(prevOut, []byte{})
+		if lockTime != 0 {
+			txIn.Sequence = types.MaxTxInSequenceNum - 1
+		}
+		mtx.AddTxIn(txIn)
+	}
+
+	for encodedAddr, amount := range outputs {
+		if amount <= 0 || amount > types.MaxAmount {
+			return "", fmt.Errorf("invalid amount: 0 >= %v "+
+				"> %v", amount, types.MaxAmount)
+		}
+
+		addr, err := address.DecodeAddress(encodedAddr)
+		if err != nil {
+			return "", fmt.Errorf("could not decode "+
+				"address: %v", err)
+		}
+
+		switch addr.(type) {
+		case *address.PubKeyHashAddress:
+		case *address.ScriptHashAddress:
+		default:
+			return "", fmt.Errorf("invalid type: %T", addr)
+		}
+
+		pkScript, err := txscript.PayToAddrScript(addr)
+		if err != nil {
+			return "", err
+		}
+		txOut := types.NewTxOutput(amount, pkScript)
+		mtx.AddTxOut(txOut)
+	}
+	mtxHex, err := mtx.Serialize()
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(mtxHex), nil
+}
+
 func TxSign(privkeyStr string, rawTxStr string, network string) (string, error) {
 	privkeyByte, err := hex.DecodeString(privkeyStr)
 	if err != nil {
