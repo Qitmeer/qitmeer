@@ -43,7 +43,7 @@ func addPayout(addr string,amount uint64,pksStr string) {
 		return
 	}
 	GenesisLedger=append(GenesisLedger,&TokenPayout{addr,pks,amount})
-	fmt.Printf("Add payout (%d) - address:%s  amount:%d\n",len(GenesisLedger),addr,amount)
+	//fmt.Printf("Add payout (%d) - address:%s  amount:%d\n",len(GenesisLedger),addr,amount)
 }
 
 // pay out tokens to a ledger.

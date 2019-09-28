@@ -12,6 +12,7 @@ import (
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	"github.com/Qitmeer/qitmeer/node"
 	"github.com/Qitmeer/qitmeer/services/index"
+	"github.com/Qitmeer/qitmeer/tools/payledger"
 	"github.com/Qitmeer/qitmeer/version"
 	"os"
 	"runtime"
@@ -116,6 +117,11 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	if cfg.Cleanup {
 		cleanupBlockDB()
 		return nil
+	}
+
+	// ledger
+	if cfg.ShowLedger || cfg.BuildLedger {
+		return payledger.BuildLedger(cfg,db,activeNetParams.Params)
 	}
 
 	// Create node and start it.

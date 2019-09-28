@@ -29,11 +29,14 @@ func BuildLedger(cfg *config.Config,db database.DB,params *params.Params) error 
 		BlockVersion:  mining.BlockVersion(params.Net),
 	})
 	if err != nil {
+		log.Error(err.Error())
 		return err
 	}
 	
 	genesisLedger:=map[string]*ledger.TokenPayout{}
-	log.Info("Show Ledger:")
+	var totalAmount uint64
+
+	log.Info(fmt.Sprintf("Cur main tip:%s",bc.BlockDAG().GetMainChainTip().GetHash().String()))
 	err = db.View(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
 		utxoBucket := meta.Bucket(dbnamespace.UtxoSetBucketName)
@@ -50,7 +53,7 @@ func BuildLedger(cfg *config.Config,db database.DB,params *params.Params) error 
 				continue
 			}
 			confir:=bc.BlockDAG().GetConfirmations(entry.BlockHash())
-			if confir < blockdag.StableConfirmations {
+			if confir < blockdag.StableConfirmations && !entry.BlockHash().IsEqual(params.GenesisHash) {
 				continue
 			}
 			_, addr,_, err := txscript.ExtractPkScriptAddrs(entry.PkScript(), params)
@@ -72,19 +75,27 @@ func BuildLedger(cfg *config.Config,db database.DB,params *params.Params) error 
 				tp:=ledger.TokenPayout{Address:addrStr,PkScript:entry.PkScript(),Amount:entry.Amount()}
 				genesisLedger[addrStr]=&tp
 			}
-			log.Info(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s",addrStr,entry.Amount(),entry.BlockHash().String()))
+			totalAmount+=entry.Amount()
+			if cfg.ShowLedger {
+				log.Trace(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s",addrStr,entry.Amount(),entry.BlockHash().String()))
+			}
 		}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-
-	var totalAmount uint64
-	for k,v:=range genesisLedger {
-		totalAmount+=v.Amount
-		log.Info(fmt.Sprintf("Address:%s Amount:%d PkScript:%v",k,v.Amount,v.PkScript))
+	if len(genesisLedger)==0 {
+		log.Info("No payouts need to deal with.")
+		return nil
 	}
+	if cfg.ShowLedger {
+		fmt.Println("Show Ledger:")
+		for k,v:=range genesisLedger {
+			fmt.Printf("Address:%s Amount:%d PkScript:%v\n",k,v.Amount,v.PkScript)
+		}
+	}
+
 	log.Info(fmt.Sprintf("Total Ledger:%d   Amount:%d",len(genesisLedger),totalAmount))
 
 	if !cfg.BuildLedger {
@@ -95,7 +106,7 @@ func BuildLedger(cfg *config.Config,db database.DB,params *params.Params) error 
 
 func savePayoutsFile(cfg *config.Config,params *params.Params,genesisLedger map[string]*ledger.TokenPayout) error {
 	if len(genesisLedger)==0 {
-		log.Info("No payouts")
+		log.Info("No payouts need to deal with.")
 		return nil
 	}
 	netName:=""

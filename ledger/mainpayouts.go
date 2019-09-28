@@ -2,5 +2,5 @@ package ledger
 
 func initMain() {
 	// For example:
-	//addPayout("Tmgb3CyW7rGgn89MWEoAoMP47CwASc4KG4N",25000000000,"76a914c1777151516afe2b9f59bbd1479231aa2f250d2888ac")
+	//addPayout("NmZrMthHYXwAHN1Zf8gUidHAkDSNRG23iyn",25000000000,"76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac")
 }

@@ -330,6 +330,17 @@ func (b *BlockChain) createChainState() error {
 
 		blockdag.DBPutDAGInfo(dbTx,b.bd)
 
+		// Add genesis utxo
+		view := NewUtxoViewpoint()
+		view.SetBestHash(genesisBlock.Hash())
+		for _,tx:=range genesisBlock.Transactions() {
+			view.AddTxOuts(tx, genesisBlock.Hash())
+		}
+		err = dbPutUtxoView(dbTx, view)
+		if err != nil {
+			return err
+		}
+
 		// Store the genesis block into the database.
 		return dbTx.StoreBlock(genesisBlock)
 	})
