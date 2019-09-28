@@ -3,22 +3,23 @@
 package main
 
 import (
-	"github.com/Qitmeer/qitmeer/node"
-	"github.com/Qitmeer/qitmeer/services/tx"
-	"os"
-	"io"
-	"github.com/mattn/go-colorable"
-	"github.com/jrick/logrotate/rotator"
+	"fmt"
+	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
 	"github.com/Qitmeer/qitmeer-lib/log"
 	"github.com/Qitmeer/qitmeer-lib/log/term"
-	"path/filepath"
-	"fmt"
-	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
-	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/services/miner"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/node"
+	"github.com/Qitmeer/qitmeer/services/blkmgr"
+	"github.com/Qitmeer/qitmeer/services/miner"
+	"github.com/Qitmeer/qitmeer/services/tx"
+	"github.com/Qitmeer/qitmeer/tools/payledger"
+	"github.com/jrick/logrotate/rotator"
+	"github.com/mattn/go-colorable"
+	"io"
+	"os"
+	"path/filepath"
 )
 
 var (
@@ -88,6 +89,7 @@ func init() {
 	node.UseLogger(log.New(log.Ctx{"module": "node"}))
 	blockdag.UseLogger(log.New(log.Ctx{"module": "blockdag"}))
 	tx.UseLogger(log.New(log.Ctx{"module": "txmanager"}))
+	payledger.UseLogger(log.New(log.Ctx{"module": "ledger"}))
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and
