@@ -31,20 +31,6 @@ go version go1.12 darwin/amd64
 qitmeer version 0.3.0+dev (Go version go1.12)
 ```
 
-### How to generate ledger
-
-* You can use this command to generating ledger for the next qitmeerd version.
-```
-~ ./qitmeerd --buildledger
-~ go build
-```
-
-* You can also use this command to preview it before generating it.
-```
-./qitmeerd --showledger
-```
-
-
 ### How to fix `golang.org unrecognized` Issue
 
 If you got trouble to download the `golang.org` depends automatically
