@@ -1,24 +1,66 @@
-package payledger
+package main
 
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/util"
+	"github.com/Qitmeer/qitmeer-lib/config"
 	"github.com/Qitmeer/qitmeer-lib/core/protocol"
 	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer-lib/log"
 	"github.com/Qitmeer/qitmeer-lib/params"
-	"github.com/Qitmeer/qitmeer-lib/config"
+	conf "github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/database"
+	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	"github.com/Qitmeer/qitmeer/ledger"
+	logg "github.com/Qitmeer/qitmeer/log"
+	param "github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mining"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
-func BuildLedger(cfg *config.Config,db database.DB,params *params.Params) error {
+const (
+	defaultSuffixFilename        = "payouts.go"
+	defaultPayoutDirPath         = "./../../ledger/"
+)
+
+func main() {
+	logg.Init()
+	// Load configuration and parse command line.  This function also
+	// initializes logging and configures it accordingly.
+	cfg, _, err := conf.LoadConfig()
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	defer func() {
+		if logg.LogWrite() != nil {
+			logg.LogWrite().Close()
+		}
+	}()
+
+	// Load the block database.
+	db, err := database.LoadBlockDB(cfg)
+	if err != nil {
+		log.Error("load block database","error", err)
+		return
+	}
+	defer func() {
+		// Ensure the database is sync'd and closed on shutdown.
+		log.Info("Gracefully shutting down the database...")
+		db.Close()
+	}()
+
+	// ledger
+	buildLedger(cfg,db,param.ActiveNetParams.Params)
+}
+
+func buildLedger(cfg *config.Config,db database.DB,params *params.Params) error {
 
 	var err error
 	bc, err := blockchain.New(&blockchain.Config{
@@ -76,7 +118,7 @@ func BuildLedger(cfg *config.Config,db database.DB,params *params.Params) error 
 				genesisLedger[addrStr]=&tp
 			}
 			totalAmount+=entry.Amount()
-			if cfg.ShowLedger {
+			if !cfg.BuildLedger {
 				log.Trace(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s",addrStr,entry.Amount(),entry.BlockHash().String()))
 			}
 		}
@@ -89,7 +131,7 @@ func BuildLedger(cfg *config.Config,db database.DB,params *params.Params) error 
 		log.Info("No payouts need to deal with.")
 		return nil
 	}
-	if cfg.ShowLedger {
+	if !cfg.BuildLedger {
 		fmt.Println("Show Ledger:")
 		for k,v:=range genesisLedger {
 			fmt.Printf("Address:%s Amount:%d PkScript:%v\n",k,v.Amount,v.PkScript)
@@ -101,10 +143,10 @@ func BuildLedger(cfg *config.Config,db database.DB,params *params.Params) error 
 	if !cfg.BuildLedger {
 		return nil
 	}
-	return savePayoutsFile(cfg,params,genesisLedger)
+	return savePayoutsFile(params,genesisLedger)
 }
 
-func savePayoutsFile(cfg *config.Config,params *params.Params,genesisLedger map[string]*ledger.TokenPayout) error {
+func savePayoutsFile(params *params.Params,genesisLedger map[string]*ledger.TokenPayout) error {
 	if len(genesisLedger)==0 {
 		log.Info("No payouts need to deal with.")
 		return nil
@@ -119,12 +161,8 @@ func savePayoutsFile(cfg *config.Config,params *params.Params,genesisLedger map[
 		netName="priv"
 	}
 
-	dir:="./ledger/"
-	if !util.FileExists(dir) {
-		dir="./"
-	}
+	fileName:=filepath.Join(defaultPayoutDirPath,netName+defaultSuffixFilename)
 
-	fileName:=dir+netName+"payouts.go"
 	f,err:= os.Create(fileName)
 
 	if err != nil {
