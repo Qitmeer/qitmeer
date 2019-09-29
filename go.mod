@@ -3,7 +3,7 @@ module github.com/Qitmeer/qitmeer
 go 1.12
 
 require (
-	github.com/Qitmeer/qitmeer-lib v0.0.0-20190925051006-d44e99184a16
+	github.com/Qitmeer/qitmeer-lib v0.0.0-20190928033548-1aed0cf3e311
 	github.com/davecgh/go-spew v1.1.1
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
 	github.com/jessevdk/go-flags v1.4.0

@@ -630,7 +630,7 @@ func dbFetchUtxoEntry(dbTx database.Tx, outpoint types.TxOutPoint) (*UtxoEntry, 
 	}
 
 	// Deserialize the utxo entry and return it.
-	entry, err := deserializeUtxoEntry(serializedUtxo)
+	entry, err := DeserializeUtxoEntry(serializedUtxo)
 	if err != nil {
 		// Ensure any deserialization errors are returned as database
 		// corruption errors.
@@ -690,7 +690,7 @@ func dbPutUtxoView(dbTx database.Tx, view *UtxoViewpoint) error {
 // deserializeUtxoEntry decodes a utxo entry from the passed serialized byte
 // slice into a new UtxoEntry using a format that is suitable for long-term
 // storage.  The format is described in detail above.
-func deserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
+func DeserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 	// Deserialize the header code.
 	code, offset := deserializeVLQ(serialized)
 	if offset >= len(serialized) {

@@ -4,36 +4,36 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package main
+package params
 
 import "github.com/Qitmeer/qitmeer-lib/params"
 
 // activeNetParams is a pointer to the parameters specific to the
 // currently active network.
-var activeNetParams = &mainNetParams
+var ActiveNetParams = &MainNetParams
 
 // netParams is used to group parameters for various networks such as the main
 // network and test networks.
 type netParams struct {
 	*params.Params
-	rpcPort string
+	RpcPort string
 }
 
 // mainNetParams contains parameters specific to the main network
-var mainNetParams = netParams {
+var MainNetParams = netParams {
 	Params:  &params.MainNetParams,
-	rpcPort: "8131",
+	RpcPort: "8131",
 }
 
 // testNetParams contains parameters specific to the test network
-var testNetParams = netParams{
+var TestNetParams = netParams{
 	Params:  &params.TestNetParams,
-	rpcPort: "18131",
+	RpcPort: "18131",
 }
 
 // privNetParams contains parameters specific to the private test network
-var privNetParams = netParams{
+var PrivNetParams = netParams{
 	Params:  &params.PrivNetParams,
-	rpcPort: "28131",
+	RpcPort: "28131",
 }
 

@@ -2,10 +2,11 @@
 // Copyright (c) 2015-2016 The Decred developers
 // Copyright (c) 2013-2016 The btcsuite developers
 
-package main
+package config
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
 	"net"
@@ -18,6 +19,7 @@ import (
 	"github.com/Qitmeer/qitmeer-lib/log"
 	"github.com/Qitmeer/qitmeer-lib/config"
 	"github.com/Qitmeer/qitmeer-lib/core/address"
+	logg "github.com/Qitmeer/qitmeer/log"
 )
 
 const (
@@ -56,7 +58,7 @@ var (
 
 // loadConfig initializes and parses the config using a config file and command
 // line options.
-func loadConfig() (*config.Config, []string, error) {
+func LoadConfig() (*config.Config, []string, error) {
 
 	// Default config.
 	cfg := config.Config{
@@ -202,12 +204,12 @@ func loadConfig() (*config.Config, []string, error) {
 	numNets := 0
 	if cfg.TestNet {
 		numNets++
-		activeNetParams = &testNetParams
+		params.ActiveNetParams = &params.TestNetParams
 	}
 	if cfg.PrivNet {
 		numNets++
 		// Also disable dns seeding on the private test network.
-		activeNetParams = &privNetParams
+		params.ActiveNetParams = &params.PrivNetParams
 		cfg.DisableDNSSeed = true
 	}
 	// Multiple networks can't be selected simultaneously.
@@ -225,7 +227,7 @@ func loadConfig() (*config.Config, []string, error) {
 	// we are to connect to.
 	if len(cfg.Listeners) == 0 {
 		cfg.Listeners = []string{
-			net.JoinHostPort("", activeNetParams.DefaultPort),
+			net.JoinHostPort("", params.ActiveNetParams.DefaultPort),
 		}
 	}
 
@@ -237,7 +239,7 @@ func loadConfig() (*config.Config, []string, error) {
 		}
 		cfg.RPCListeners = make([]string, 0, len(addrs))
 		for _, addr := range addrs {
-			addr = net.JoinHostPort(addr, activeNetParams.rpcPort)
+			addr = net.JoinHostPort(addr, params.ActiveNetParams.RpcPort)
 			cfg.RPCListeners = append(cfg.RPCListeners, addr)
 		}
 	}
@@ -249,18 +251,18 @@ func loadConfig() (*config.Config, []string, error) {
 	// means each individual piece of serialized data does not have to
 	// worry about changing names per network and such.
 	cfg.DataDir = util.CleanAndExpandPath(cfg.DataDir)
-	cfg.DataDir = filepath.Join(cfg.DataDir, activeNetParams.Name)
+	cfg.DataDir = filepath.Join(cfg.DataDir, params.ActiveNetParams.Name)
 
 	// Set logging file if presented
 	if !cfg.NoFileLogging {
 		// Append the network type to the log directory so it is "namespaced"
 		// per network in the same fashion as the data directory.
 		cfg.LogDir = util.CleanAndExpandPath(cfg.LogDir)
-		cfg.LogDir = filepath.Join(cfg.LogDir, activeNetParams.Name)
+		cfg.LogDir = filepath.Join(cfg.LogDir, params.ActiveNetParams.Name)
 
 		// Initialize log rotation.  After log rotation has been initialized, the
 		// logger variables may be used.
-		initLogRotator(filepath.Join(cfg.LogDir, defaultLogFilename))
+		logg.InitLogRotator(filepath.Join(cfg.LogDir, defaultLogFilename))
 	}
 
 	// Parse, validate, and set debug log level(s).
@@ -320,7 +322,7 @@ func loadConfig() (*config.Config, []string, error) {
 		}
 		// TODO, check network by using IsForNetwork()
 
-		if !address.IsForNetwork(addr,activeNetParams.Params) {
+		if !address.IsForNetwork(addr,params.ActiveNetParams.Params) {
 			str := "%s: mining address '%s' is on the wrong network"
 			err := fmt.Errorf(str, funcName, strAddr)
 			fmt.Fprintln(os.Stderr, err)
@@ -401,7 +403,7 @@ func parseAndSetDebugLevels(debugLevel string) error {
 			return fmt.Errorf(str, debugLevel)
 		}
 		// Change the logging level for all subsystems.
-		glogger.Verbosity(lvl)
+		logg.Glogger().Verbosity(lvl)
 		return nil
 	}
 	// TODO support log for subsystem

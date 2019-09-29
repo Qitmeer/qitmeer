@@ -1,24 +1,24 @@
 // Copyright (c) 2017-2018 The qitmeer developers
 
-package main
+package log
 
 import (
-	"github.com/Qitmeer/qitmeer/node"
-	"github.com/Qitmeer/qitmeer/services/tx"
-	"os"
-	"io"
-	"github.com/mattn/go-colorable"
-	"github.com/jrick/logrotate/rotator"
+	"fmt"
+	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
 	"github.com/Qitmeer/qitmeer-lib/log"
 	"github.com/Qitmeer/qitmeer-lib/log/term"
-	"path/filepath"
-	"fmt"
-	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
-	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/services/miner"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/node"
+	"github.com/Qitmeer/qitmeer/services/blkmgr"
+	"github.com/Qitmeer/qitmeer/services/miner"
+	"github.com/Qitmeer/qitmeer/services/tx"
+	"github.com/jrick/logrotate/rotator"
+	"github.com/mattn/go-colorable"
+	"io"
+	"os"
+	"path/filepath"
 )
 
 var (
@@ -70,7 +70,7 @@ func (lw *logWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func init() {
+func Init() {
 	// output set to Stderr
 	// it's easier to handle when run as a daemon through systemd or supervisord,
 	// and Go runtime exceptions are printed to stderr as well.
@@ -79,7 +79,6 @@ func init() {
 	glogger = log.NewGlogHandler(log.StreamHandler(io.Writer(logWrite), log.TerminalFormat(logWrite.IsUseColor())))
 
 	log.Root().SetHandler(glogger)
-
 	database.UseLogger(log.New(log.Ctx{"module": "database"}))
 	txscript.UseLogger(log.New(log.Ctx{"module": "txscript"}))
 	blkmgr.UseLogger(log.New(log.Ctx{"module": "blkmanager"}))
@@ -93,7 +92,7 @@ func init() {
 // initLogRotator initializes the logging rotater to write logs to logFile and
 // create roll files in the same directory.  It must be called before the
 // package-global log rotater variables are used.
-func initLogRotator(logFile string) {
+func InitLogRotator(logFile string) {
 	logDir, _ := filepath.Split(logFile)
 	err := os.MkdirAll(logDir, 0700)
 	if err != nil {
@@ -107,4 +106,12 @@ func initLogRotator(logFile string) {
 	}
 
 	logWrite.logRotator = r
+}
+
+func LogWrite() *logWriter {
+	return logWrite
+}
+
+func Glogger() *log.GlogHandler {
+	return glogger
 }

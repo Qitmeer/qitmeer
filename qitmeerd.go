@@ -6,27 +6,20 @@ package main
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/config"
 	"github.com/Qitmeer/qitmeer-lib/core/message"
 	"github.com/Qitmeer/qitmeer-lib/log"
+	logg "github.com/Qitmeer/qitmeer/log"
+	conf "github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/database"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
+
 	"github.com/Qitmeer/qitmeer/node"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/index"
 	"github.com/Qitmeer/qitmeer/version"
 	"os"
 	"runtime"
 	"runtime/debug"
-)
-
-const (
-	// blockDbNamePrefix is the prefix for the block database name.  The
-	// database type is appended to this value to form the full block
-	// database name.
-	blockDbNamePrefix = "blocks"
-)
-
-var (
-	cfg *config.Config
 )
 
 func main() {
@@ -51,16 +44,17 @@ func main() {
 // notified with the node once it is setup so it can gracefully stop it when
 // requested from the service control manager.
 func qitmeerdMain(nodeChan chan<- *node.Node) error {
+	logg.Init()
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
-	tcfg, _, err := loadConfig()
+	cfg, _, err := conf.LoadConfig()
 	if err != nil {
 		return err
 	}
-	cfg = tcfg
+
 	defer func() {
-		if logWrite != nil {
-			logWrite.Close()
+		if logg.LogWrite() != nil {
+			logg.LogWrite().Close()
 		}
 	}()
 	// Get a channel that will be closed when a shutdown signal has been
@@ -79,7 +73,7 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	}
 
 	// Load the block database.
-	db, err := loadBlockDB()
+	db, err := database.LoadBlockDB(cfg)
 	if err != nil {
 		log.Error("load block database","error", err)
 		return err
@@ -114,12 +108,12 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 
 	// Cleanup the block database
 	if cfg.Cleanup {
-		cleanupBlockDB()
+		database.CleanupBlockDB(cfg)
 		return nil
 	}
 
 	// Create node and start it.
-	n, err := node.NewNode(cfg,db,activeNetParams.Params,shutdownRequestChannel)
+	n, err := node.NewNode(cfg,db,params.ActiveNetParams.Params,shutdownRequestChannel)
 	if err != nil {
 		log.Error("Unable to start server","listeners",cfg.Listeners,"error", err)
 		return err
