@@ -11,8 +11,8 @@ import (
 	"math/rand"
 	"testing"
 
-	chainhash "github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/crypto/ecc/secp256k1"
+	chainhash "github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 )
 
 type signerHex struct {

@@ -7,8 +7,8 @@ package peer
 
 import (
 	"container/list"
-	"github.com/Qitmeer/qitmeer-lib/core/message"
-	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/core/message"
+	"github.com/Qitmeer/qitmeer/log"
 	"sync/atomic"
 	"time"
 )

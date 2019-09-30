@@ -1,6 +1,6 @@
 package blockdag
 
-import "github.com/Qitmeer/qitmeer-lib/common/hash"
+import "github.com/Qitmeer/qitmeer/common/hash"
 
 type ISpectre interface {
 	Vote(x IBlock, y IBlock) int

@@ -3,7 +3,7 @@ package node
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/p2p/peerserver"
-	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/rpc"
 	"reflect"
 )
 

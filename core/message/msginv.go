@@ -7,10 +7,10 @@ package message
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/core/dag"
 	"io"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 )
 
 // defaultInvListAlloc is the default size used for the backing array for an

@@ -3,7 +3,7 @@
 package types
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/crypto/ecc"
+	"github.com/Qitmeer/qitmeer/crypto/ecc"
 )
 
 type Key struct {

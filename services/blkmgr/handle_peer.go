@@ -7,9 +7,9 @@ package blkmgr
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/message"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/message"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"math/rand"
 	"sync/atomic"

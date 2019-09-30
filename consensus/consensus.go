@@ -2,7 +2,7 @@ package consensus
 
 import (
 	"math/big"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 )
 

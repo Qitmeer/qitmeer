@@ -1,8 +1,8 @@
-package dag
+package blockdag
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"testing"
 )
 

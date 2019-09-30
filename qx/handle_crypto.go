@@ -3,9 +3,9 @@ package qx
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/crypto/bip32"
-	"github.com/Qitmeer/qitmeer-lib/crypto/ecc"
-	"github.com/Qitmeer/qitmeer-lib/crypto/seed"
+	"github.com/Qitmeer/qitmeer/crypto/bip32"
+	"github.com/Qitmeer/qitmeer/crypto/ecc"
+	"github.com/Qitmeer/qitmeer/crypto/seed"
 )
 
 func NewEntropy(size uint) (string, error) {

@@ -9,8 +9,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	chainhash "github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/crypto/ecc/secp256k1"
+	chainhash "github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 )
 
 // This example demonstrates signing a message with a secp256k1 private key that

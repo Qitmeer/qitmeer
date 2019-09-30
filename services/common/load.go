@@ -2,10 +2,12 @@
 // Copyright (c) 2015-2016 The Decred developers
 // Copyright (c) 2013-2016 The btcsuite developers
 
-package config
+package common
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
@@ -15,11 +17,8 @@ import (
 	"runtime"
 	"strings"
 	"github.com/jessevdk/go-flags"
-	"github.com/Qitmeer/qitmeer-lib/common/util"
-	"github.com/Qitmeer/qitmeer-lib/log"
-	"github.com/Qitmeer/qitmeer-lib/config"
-	"github.com/Qitmeer/qitmeer-lib/core/address"
-	logg "github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/core/address"
 )
 
 const (
@@ -204,12 +203,12 @@ func LoadConfig() (*config.Config, []string, error) {
 	numNets := 0
 	if cfg.TestNet {
 		numNets++
-		params.ActiveNetParams = &params.TestNetParams
+		params.ActiveNetParams = &params.TestNetParam
 	}
 	if cfg.PrivNet {
 		numNets++
 		// Also disable dns seeding on the private test network.
-		params.ActiveNetParams = &params.PrivNetParams
+		params.ActiveNetParams = &params.PrivNetParam
 		cfg.DisableDNSSeed = true
 	}
 	// Multiple networks can't be selected simultaneously.
@@ -262,7 +261,7 @@ func LoadConfig() (*config.Config, []string, error) {
 
 		// Initialize log rotation.  After log rotation has been initialized, the
 		// logger variables may be used.
-		logg.InitLogRotator(filepath.Join(cfg.LogDir, defaultLogFilename))
+		InitLogRotator(filepath.Join(cfg.LogDir, defaultLogFilename))
 	}
 
 	// Parse, validate, and set debug log level(s).
@@ -403,7 +402,7 @@ func parseAndSetDebugLevels(debugLevel string) error {
 			return fmt.Errorf(str, debugLevel)
 		}
 		// Change the logging level for all subsystems.
-		logg.Glogger().Verbosity(lvl)
+		Glogger().Verbosity(lvl)
 		return nil
 	}
 	// TODO support log for subsystem

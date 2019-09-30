@@ -6,8 +6,8 @@
 package peer
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/core/message"
-	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/core/message"
+	"github.com/Qitmeer/qitmeer/log"
 	"io"
 	"net"
 	"sync/atomic"

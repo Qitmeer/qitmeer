@@ -9,7 +9,7 @@ package base58_test
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/encode/base58"
+	"github.com/Qitmeer/qitmeer/common/encode/base58"
 )
 
 

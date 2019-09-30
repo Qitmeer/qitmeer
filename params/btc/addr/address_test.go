@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"golang.org/x/crypto/ripemd160"
-	btc "github.com/Qitmeer/qitmeer-lib/params/btc/addr"
-	btcparams "github.com/Qitmeer/qitmeer-lib/params/btc"
+	btc "github.com/Qitmeer/qitmeer/params/btc/addr"
+	btcparams "github.com/Qitmeer/qitmeer/params/btc"
 )
 
 func TestAddresses(t *testing.T) {

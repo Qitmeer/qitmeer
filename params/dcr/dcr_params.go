@@ -12,8 +12,8 @@ import (
 	"math/big"
 	"time"
 
-	chainhash "github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/params/dcr/types"
+	chainhash "github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/params/dcr/types"
 )
 
 // These variables are the chain proof-of-work limit parameters for each default

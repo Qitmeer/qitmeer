@@ -8,8 +8,8 @@ package params
 
 import (
 	"math/big"
-	"github.com/Qitmeer/qitmeer-lib/common"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
+	"github.com/Qitmeer/qitmeer/common"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	"time"
 )
 

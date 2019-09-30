@@ -1,7 +1,7 @@
-package dag
+package blockdag
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"sort"
 )
 

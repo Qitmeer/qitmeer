@@ -2,8 +2,8 @@ package blockdag
 
 import (
 	"container/list"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/dag"
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 )

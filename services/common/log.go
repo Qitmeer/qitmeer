@@ -1,19 +1,11 @@
 // Copyright (c) 2017-2018 The qitmeer developers
 
-package log
+package common
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
-	"github.com/Qitmeer/qitmeer-lib/log"
-	"github.com/Qitmeer/qitmeer-lib/log/term"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/node"
-	"github.com/Qitmeer/qitmeer/services/blkmgr"
-	"github.com/Qitmeer/qitmeer/services/miner"
-	"github.com/Qitmeer/qitmeer/services/tx"
+	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/log/term"
 	"github.com/jrick/logrotate/rotator"
 	"github.com/mattn/go-colorable"
 	"io"
@@ -70,7 +62,7 @@ func (lw *logWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func Init() {
+func init() {
 	// output set to Stderr
 	// it's easier to handle when run as a daemon through systemd or supervisord,
 	// and Go runtime exceptions are printed to stderr as well.
@@ -79,14 +71,14 @@ func Init() {
 	glogger = log.NewGlogHandler(log.StreamHandler(io.Writer(logWrite), log.TerminalFormat(logWrite.IsUseColor())))
 
 	log.Root().SetHandler(glogger)
-	database.UseLogger(log.New(log.Ctx{"module": "database"}))
+/*	database.UseLogger(log.New(log.Ctx{"module": "database"}))
 	txscript.UseLogger(log.New(log.Ctx{"module": "txscript"}))
 	blkmgr.UseLogger(log.New(log.Ctx{"module": "blkmanager"}))
 	blockchain.UseLogger(log.New(log.Ctx{"module": "blockchain"}))
 	miner.UseLogger(log.New(log.Ctx{"module": "cpuminer"}))
 	node.UseLogger(log.New(log.Ctx{"module": "node"}))
 	blockdag.UseLogger(log.New(log.Ctx{"module": "blockdag"}))
-	tx.UseLogger(log.New(log.Ctx{"module": "txmanager"}))
+	tx.UseLogger(log.New(log.Ctx{"module": "txmanager"}))*/
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and

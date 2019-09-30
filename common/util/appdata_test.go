@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"testing"
 	"unicode"
-	"github.com/Qitmeer/qitmeer-lib/common/util"
+	"github.com/Qitmeer/qitmeer/common/util"
 )
 
 // TestAppDataDir tests the API for AppDataDir to ensure it gives expected

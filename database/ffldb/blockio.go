@@ -19,8 +19,8 @@ import (
 	"path/filepath"
 	"sync"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/common/hash"
 )
 
 const (

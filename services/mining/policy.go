@@ -7,7 +7,7 @@
 package mining
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 )
 
 // Policy houses the policy (configuration parameters) which is used to control

@@ -9,8 +9,8 @@ package params
 import (
 	"time"
 	"math/big"
-	"github.com/Qitmeer/qitmeer-lib/common"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
+	"github.com/Qitmeer/qitmeer/common"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 )
 
 // testNetPowLimit is the highest proof of work value a block can

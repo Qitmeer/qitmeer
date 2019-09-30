@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/Qitmeer/qitmeer-lib/crypto/ecc/ed25519/internal/edwards25519"
+	"github.com/Qitmeer/qitmeer/crypto/ecc/ed25519/internal/edwards25519"
 )
 
 // Some notes on primitives in Ed25519:

@@ -8,8 +8,8 @@ package message
 import (
 	"fmt"
 	"io"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"github.com/Qitmeer/qitmeer/common/hash"
 )
 
 const (

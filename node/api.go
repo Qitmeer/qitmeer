@@ -7,12 +7,12 @@ package node
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer-lib/core/json"
-	"github.com/Qitmeer/qitmeer-lib/core/message"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
-	"github.com/Qitmeer/qitmeer-lib/params"
-	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qitmeer/core/message"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/version"

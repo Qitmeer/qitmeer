@@ -7,10 +7,10 @@ package message
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"io"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 )
 
 // MaxBlockHeadersPerMsg is the maximum number of block headers that can be in

@@ -2,7 +2,7 @@ package blockdag
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/core/dag"
 	"testing"
 )
 

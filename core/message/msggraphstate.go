@@ -1,7 +1,7 @@
 package message
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/core/dag"
 	"io"
 )
 

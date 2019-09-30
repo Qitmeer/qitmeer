@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/dag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/database"
@@ -13,7 +13,7 @@ import (
 	"math"
 	"sort"
 	"time"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 )
 
 // Some available DAG algorithm types

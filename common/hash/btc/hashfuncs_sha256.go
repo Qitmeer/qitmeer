@@ -8,7 +8,7 @@ package btc
 
 import (
 	"crypto/sha256"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/common/hash"
 )
 
 // HashB calculates hash(b) and returns the resulting bytes.

@@ -5,11 +5,11 @@ package address
 import (
 	"errors"
 	"golang.org/x/crypto/ripemd160"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/common/encode/base58"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/params"
-	"github.com/Qitmeer/qitmeer-lib/crypto/ecc"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/encode/base58"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/crypto/ecc"
 	"fmt"
 )
 

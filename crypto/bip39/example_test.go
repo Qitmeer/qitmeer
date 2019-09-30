@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/Qitmeer/qitmeer-lib/crypto/bip39"
+	"github.com/Qitmeer/qitmeer/crypto/bip39"
 )
 
 func ExampleNewMnemonic() {

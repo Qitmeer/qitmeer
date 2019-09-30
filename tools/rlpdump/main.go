@@ -27,7 +27,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"github.com/Qitmeer/qitmeer-lib/common/encode/rlp"
+	"github.com/Qitmeer/qitmeer/common/encode/rlp"
 	"strings"
 )
 

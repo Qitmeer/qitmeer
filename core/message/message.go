@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"io"
 	"unicode/utf8"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"encoding/hex"
 )
 

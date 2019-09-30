@@ -6,15 +6,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/message"
-	"github.com/Qitmeer/qitmeer-lib/log"
-	logg "github.com/Qitmeer/qitmeer/log"
-	conf "github.com/Qitmeer/qitmeer/config"
-	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/core/message"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
-
+	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/node"
 	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/services/index"
 	"github.com/Qitmeer/qitmeer/version"
 	"os"
@@ -44,17 +41,17 @@ func main() {
 // notified with the node once it is setup so it can gracefully stop it when
 // requested from the service control manager.
 func qitmeerdMain(nodeChan chan<- *node.Node) error {
-	logg.Init()
+	//log.Init()
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
-	cfg, _, err := conf.LoadConfig()
+	cfg, _, err := common.LoadConfig()
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		if logg.LogWrite() != nil {
-			logg.LogWrite().Close()
+		if common.LogWrite() != nil {
+			common.LogWrite().Close()
 		}
 	}()
 	// Get a channel that will be closed when a shutdown signal has been
@@ -73,7 +70,7 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	}
 
 	// Load the block database.
-	db, err := database.LoadBlockDB(cfg)
+	db, err := common.LoadBlockDB(cfg)
 	if err != nil {
 		log.Error("load block database","error", err)
 		return err
@@ -108,7 +105,7 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 
 	// Cleanup the block database
 	if cfg.Cleanup {
-		database.CleanupBlockDB(cfg)
+		common.CleanupBlockDB(cfg)
 		return nil
 	}
 

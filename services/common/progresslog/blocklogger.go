@@ -11,8 +11,8 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"sync"
 	"time"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/log"
 )
 
 // BlockProgressLogger provides periodic logging for other services in order

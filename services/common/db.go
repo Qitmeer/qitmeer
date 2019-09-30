@@ -1,9 +1,10 @@
-package database
+package common
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/config"
-	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"os"
 	"path/filepath"
@@ -21,17 +22,17 @@ const (
 // contains additional logic such warning the user if there are multiple
 // databases which consume space on the file system and ensuring the regression
 // test database is clean when in regression test mode.
-func LoadBlockDB(cfg *config.Config) (DB, error) {
+func LoadBlockDB(cfg *config.Config) (database.DB, error) {
 	// The database name is based on the database type.
 	dbPath := blockDbPath(cfg.DbType,cfg)
 
 	log.Info("Loading block database", "dbPath", dbPath)
-	db, err := Open(cfg.DbType, dbPath, params.ActiveNetParams.Net)
+	db, err := database.Open(cfg.DbType, dbPath, params.ActiveNetParams.Net)
 	if err != nil {
 		// Return the error if it's not because the database doesn't
 		// exist.
-		if dbErr, ok := err.(Error); !ok || dbErr.ErrorCode !=
-			ErrDbDoesNotExist {
+		if dbErr, ok := err.(database.Error); !ok || dbErr.ErrorCode !=
+			database.ErrDbDoesNotExist {
 
 			return nil, err
 		}
@@ -40,7 +41,7 @@ func LoadBlockDB(cfg *config.Config) (DB, error) {
 		if err != nil {
 			return nil, err
 		}
-		db, err = Create(cfg.DbType, dbPath, params.ActiveNetParams.Net)
+		db, err = database.Create(cfg.DbType, dbPath, params.ActiveNetParams.Net)
 		if err != nil {
 			return nil, err
 		}

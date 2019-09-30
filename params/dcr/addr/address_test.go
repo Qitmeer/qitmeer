@@ -9,12 +9,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/params/dcr/addr"
+	"github.com/Qitmeer/qitmeer/params/dcr/addr"
 	"reflect"
 	"testing"
 	"golang.org/x/crypto/ripemd160"
-	chainec "github.com/Qitmeer/qitmeer-lib/crypto/ecc"
-	chaincfg "github.com/Qitmeer/qitmeer-lib/params/dcr"
+	chainec "github.com/Qitmeer/qitmeer/crypto/ecc"
+	chaincfg "github.com/Qitmeer/qitmeer/params/dcr"
 )
 
 func TestAddresses(t *testing.T) {

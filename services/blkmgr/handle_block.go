@@ -2,9 +2,9 @@ package blkmgr
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer-lib/core/message"
+	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"time"

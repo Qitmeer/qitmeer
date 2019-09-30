@@ -21,8 +21,8 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/metrics"
 )
 

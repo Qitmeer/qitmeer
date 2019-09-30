@@ -7,7 +7,7 @@ package dcr
 
 import (
 	"time"
-	"github.com/Qitmeer/qitmeer-lib/params/dcr/types"
+	"github.com/Qitmeer/qitmeer/params/dcr/types"
 )
 
 // MainNetParams defines the network parameters for the main Decred network.

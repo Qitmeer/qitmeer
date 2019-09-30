@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	chainhash "github.com/Qitmeer/qitmeer-lib/common/hash"
+	chainhash "github.com/Qitmeer/qitmeer/common/hash"
 )
 
 // defaultTransactionAlloc is the default size used for the backing array

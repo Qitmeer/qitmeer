@@ -7,11 +7,11 @@ package message
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	"io"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 )
 
 // MsgGetHeaders implements the Message interface and represents a getheaders

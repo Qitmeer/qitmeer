@@ -12,7 +12,7 @@ import (
     _ "golang.org/x/crypto/blake2b"
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/json"
+	"github.com/Qitmeer/qitmeer/core/json"
 )
 
 const HashSize = 32

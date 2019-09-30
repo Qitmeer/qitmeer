@@ -3,8 +3,8 @@
 package address
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/params"
 )
 
 // IsForNetwork returns whether or not the address is associated with the

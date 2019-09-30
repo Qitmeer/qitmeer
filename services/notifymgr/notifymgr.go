@@ -1,9 +1,9 @@
 package notifymgr
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/core/message"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/core/message"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/p2p/peerserver"
 )
 

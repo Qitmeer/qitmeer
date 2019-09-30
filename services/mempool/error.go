@@ -7,7 +7,7 @@
 package mempool
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/core/message"
+	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 )
 

@@ -12,12 +12,12 @@ import (
 	"fmt"
 	"strings"
 	"golang.org/x/crypto/ripemd160"
-	"github.com/Qitmeer/qitmeer-lib/common/encode/base58"
-	"github.com/Qitmeer/qitmeer-lib/common/encode/bech32"
-	"github.com/Qitmeer/qitmeer-lib/crypto/ecc"
-	"github.com/Qitmeer/qitmeer-lib/common/hash/btc"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	btcparams "github.com/Qitmeer/qitmeer-lib/params/btc"
+	"github.com/Qitmeer/qitmeer/common/encode/base58"
+	"github.com/Qitmeer/qitmeer/common/encode/bech32"
+	"github.com/Qitmeer/qitmeer/crypto/ecc"
+	"github.com/Qitmeer/qitmeer/common/hash/btc"
+	"github.com/Qitmeer/qitmeer/core/types"
+	btcparams "github.com/Qitmeer/qitmeer/params/btc"
 
 )
 

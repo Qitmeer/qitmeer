@@ -20,8 +20,8 @@ package trie
 import (
 	"errors"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/common/prque"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/prque"
 	"github.com/Qitmeer/qitmeer/database/statedb"
 
 )

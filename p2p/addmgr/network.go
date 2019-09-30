@@ -8,7 +8,7 @@ package addmgr
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"net"
 )
 

@@ -10,7 +10,7 @@ import (
 	"io"
 	"time"
 
-	chainhash "github.com/Qitmeer/qitmeer-lib/common/hash"
+	chainhash "github.com/Qitmeer/qitmeer/common/hash"
 )
 
 // MaxBlockHeaderPayload is the maximum number of bytes a block header can be.

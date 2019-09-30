@@ -7,7 +7,7 @@ package database
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/log"
 )
 
 // Driver defines a structure for backend drivers to use when they register
@@ -45,6 +45,7 @@ func RegisterDriver(driver Driver) error {
 	}
 
 	drivers[driver.DbType] = &driver
+	driver.UseLogger(log.New(log.Ctx{"module": "database"}))
 	return nil
 }
 

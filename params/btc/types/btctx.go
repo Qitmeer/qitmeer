@@ -11,10 +11,10 @@ import (
 	"io"
 	"strconv"
 
-	chainhash "github.com/Qitmeer/qitmeer-lib/common/hash"
-    btchash "github.com/Qitmeer/qitmeer-lib/common/hash/btc"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
+	chainhash "github.com/Qitmeer/qitmeer/common/hash"
+    btchash "github.com/Qitmeer/qitmeer/common/hash/btc"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"github.com/Qitmeer/qitmeer/core/types"
 )
 
 const (

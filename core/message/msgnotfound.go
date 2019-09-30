@@ -8,7 +8,7 @@ package message
 import (
 	"fmt"
 	"io"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 )
 
 // MsgNotFound defines a notfound message which is sent in response to

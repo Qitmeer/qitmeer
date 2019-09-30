@@ -6,15 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"github.com/Qitmeer/qitmeer-lib/core/message"
+	"github.com/Qitmeer/qitmeer/core/message"
 	"strconv"
-	"github.com/Qitmeer/qitmeer-lib/core/json"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
-	"github.com/Qitmeer/qitmeer-lib/params"
-	"github.com/Qitmeer/qitmeer-lib/rpc"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/common/hash"
 )
 
 // messageToHex serializes a message to the wire protocol encoding using the

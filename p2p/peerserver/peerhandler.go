@@ -2,7 +2,7 @@ package peerserver
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p/addmgr"
 	"net"
 	"sync/atomic"

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	chainhash "github.com/Qitmeer/qitmeer-lib/common/hash"
+	chainhash "github.com/Qitmeer/qitmeer/common/hash"
 )
 
 // RejectCode represents a numeric value by which a remote peer indicates

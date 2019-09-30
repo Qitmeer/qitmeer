@@ -9,16 +9,16 @@ package message
 import (
 	"bytes"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/core/dag"
 	"github.com/satori/go.uuid"
 	"io"
 	"net"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"strings"
 	"time"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/core/types"
 )
 
 // MaxUserAgentLen is the maximum allowed length for the user agent field in a

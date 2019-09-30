@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Qitmeer/qitmeer-lib/common/encode/base58"
+	"github.com/Qitmeer/qitmeer/common/encode/base58"
 )
 
 func BenchmarkBase58Encode(b *testing.B) {
