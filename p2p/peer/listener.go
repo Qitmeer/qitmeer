@@ -6,7 +6,7 @@
 package peer
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/core/message"
+	"github.com/Qitmeer/qitmeer/core/message"
 )
 
 // MessageListeners defines callback function pointers to invoke with message

@@ -9,7 +9,7 @@ package main
 import (
 	"os"
 	"os/signal"
-	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/log"
 	"syscall"
 )
 

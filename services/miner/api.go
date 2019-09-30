@@ -5,19 +5,18 @@ package miner
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"math/rand"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/json"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/params/dcr/types"
-	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/params/dcr/types"
+	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/services/mining"
 )
@@ -105,9 +104,9 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
 	tipsList := api.miner.blockManager.GetChain().GetMiningTips()
-	tips:=dag.NewHashSet()
+	tips:=blockdag.NewHashSet()
 	tips.AddList(tipsList)
-	parents := dag.NewHashSet()
+	parents := blockdag.NewHashSet()
 	parents.AddList(block.Block().Parents)
 	if !parents.IsEqual(tips) {
 		return fmt.Sprintf("The tips of block is expired."), nil
@@ -231,7 +230,7 @@ type gbtWorkState struct {
 	sync.Mutex
 	lastTxUpdate  time.Time
 	lastGenerated time.Time
-	parentsSet    *dag.HashSet
+	parentsSet    *blockdag.HashSet
 	minTimestamp  time.Time
 	template      *types.BlockTemplate
 	timeSource    blockchain.MedianTimeSource
@@ -263,7 +262,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 	// generated.
 	var targetDifficulty string
 	rand.Seed(time.Now().UnixNano())
-	parentsSet:=dag.NewHashSet()
+	parentsSet:=blockdag.NewHashSet()
 	parentsSet.AddList(m.blockManager.GetChain().GetMiningTips())
 	template := state.template
 	if template == nil || state.parentsSet == nil ||
@@ -275,7 +274,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 		// Reset the previous best hash the block template was generated
 		// against so any errors below cause the next invocation to try
 		// again.
-		state.parentsSet=dag.NewHashSet()
+		state.parentsSet=blockdag.NewHashSet()
 
 		// Choose a payment address at random if the caller requests a
 		// full coinbase as opposed to only the pertinent details needed

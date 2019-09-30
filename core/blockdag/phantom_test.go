@@ -2,8 +2,7 @@ package blockdag
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"strconv"
 	"testing"
 )
@@ -16,7 +15,7 @@ func Test_GetFutureSet(t *testing.T) {
 
 	//ph:=ibd.(*Phantom)
 	anBlock := bd.GetBlock(tbMap[testData.PH_GetFutureSet.Input])
-	bset := dag.NewHashSet()
+	bset := NewHashSet()
 	bd.GetFutureSet(bset,anBlock)
 	fmt.Printf("Get %s future set：\n", testData.PH_GetFutureSet.Input)
 	printBlockSetTag(bset,tbMap)
@@ -160,12 +159,12 @@ func Test_LocateBlocks(t *testing.T) {
 	if ibd==nil {
 		t.FailNow()
 	}
-	gs:=dag.NewGraphState()
+	gs:=NewGraphState()
 	gs.GetTips().Add(bd.GetGenesisHash())
 	gs.SetTotal(1)
 	gs.SetLayer(0)
 	lb:=bd.LocateBlocks(gs,100)
-	lbhs:=dag.NewHashSet()
+	lbhs:=NewHashSet()
 	lbhs.AddList(lb)
 	if !processResult(lbhs,changeToHashList(testData.PH_LocateBlocks.Output, tbMap)) {
 		t.FailNow()
@@ -177,7 +176,7 @@ func Test_LocateMaxBlocks(t *testing.T) {
 	if ibd==nil {
 		t.FailNow()
 	}
-	gs:=dag.NewGraphState()
+	gs:=NewGraphState()
 	gs.GetTips().Add(bd.GetGenesisHash())
 	gs.GetTips().Add(tbMap["G"])
 	gs.SetTotal(4)

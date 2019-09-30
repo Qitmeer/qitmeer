@@ -6,12 +6,11 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
-	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
@@ -201,11 +200,11 @@ type BestState struct {
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
 	Subsidy int64                     // The total subsidy for the chain.
-	GraphState   *dag.GraphState      // The graph state of dag
+	GraphState   *blockdag.GraphState      // The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(tipHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, subsidy int64, gs *dag.GraphState) *BestState {
+func newBestState(tipHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, subsidy int64, gs *blockdag.GraphState) *BestState {
 	return &BestState{
 		Hash:         *tipHash,
 		Bits:         bits,
@@ -524,7 +523,7 @@ func (b *BlockChain) GetOrphansParents() []*hash.Hash {
 	b.orphanLock.RLock()
 	defer b.orphanLock.RUnlock()
 	//
-	result := dag.NewHashSet()
+	result := blockdag.NewHashSet()
 	for _, v := range b.orphans {
 		for _, h := range v.block.Block().Parents {
 			exists, err := b.HaveBlock(h)
@@ -548,7 +547,7 @@ func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash {
 	if !exists {
 		return nil
 	}
-	result := dag.NewHashSet()
+	result := blockdag.NewHashSet()
 	for _, h := range ob.block.Block().Parents {
 		exists, err := b.HaveBlock(h)
 		if err != nil || exists {

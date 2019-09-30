@@ -1,8 +1,7 @@
 package blockchain
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 )
 
@@ -64,7 +63,7 @@ func (b *BlockChain) LatestBlockLocator() (BlockLocator, error) {
 //   after the genesis block will be returned
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) LocateBlocks(gs *dag.GraphState, maxHashes uint32) []*hash.Hash {
+func (b *BlockChain) LocateBlocks(gs *blockdag.GraphState, maxHashes uint32) []*hash.Hash {
 	b.chainLock.RLock()
 	hashes := b.bd.LocateBlocks(gs, uint(maxHashes))
 	b.chainLock.RUnlock()
@@ -103,7 +102,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 		return nil
 	}
 	endBlock:=b.bd.GetBlock(endHash)
-	hashesSet:=dag.NewHashSet()
+	hashesSet:=blockdag.NewHashSet()
 
 	// First of all, we need to make sure we have the parents of block.
 	hashesSet.AddSet(endBlock.GetParents())

@@ -2,9 +2,9 @@
 package node
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/config"
+	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/p2p/peerserver"
 )
 

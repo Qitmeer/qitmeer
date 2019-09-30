@@ -9,8 +9,8 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/common/hash"
 )
 
 // NotificationType represents the type of a notification message.

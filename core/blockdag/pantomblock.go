@@ -1,9 +1,8 @@
 package blockdag
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"io"
 )
 
@@ -11,8 +10,8 @@ type PhantomBlock struct {
 	*Block
 	blueNum uint
 
-	blueDiffAnticone *dag.HashSet
-	redDiffAnticone *dag.HashSet
+	blueDiffAnticone *HashSet
+	redDiffAnticone *HashSet
 }
 
 func (pb *PhantomBlock) IsBluer(other *PhantomBlock) bool {
@@ -89,7 +88,7 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	pb.blueDiffAnticone = dag.NewHashSet()
+	pb.blueDiffAnticone = NewHashSet()
 	if blueDiffAnticoneSize>0 {
 		for i:=uint32(0);i<blueDiffAnticoneSize ;i++  {
 			var bda hash.Hash
@@ -107,7 +106,7 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	pb.redDiffAnticone = dag.NewHashSet()
+	pb.redDiffAnticone = NewHashSet()
 	if redDiffAnticoneSize>0 {
 		for i:=uint32(0);i<redDiffAnticoneSize ;i++  {
 			var bda hash.Hash

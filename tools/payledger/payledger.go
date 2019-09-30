@@ -3,20 +3,18 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/config"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
-	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
-	"github.com/Qitmeer/qitmeer-lib/log"
-	"github.com/Qitmeer/qitmeer-lib/params"
-	conf "github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/services/common"
+	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/database"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	"github.com/Qitmeer/qitmeer/ledger"
-	logg "github.com/Qitmeer/qitmeer/log"
-	param "github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mining"
 	"os"
 	"path/filepath"
@@ -29,23 +27,22 @@ const (
 )
 
 func main() {
-	logg.Init()
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
-	cfg, _, err := conf.LoadConfig()
+	cfg, _, err := common.LoadConfig()
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
 
 	defer func() {
-		if logg.LogWrite() != nil {
-			logg.LogWrite().Close()
+		if common.LogWrite() != nil {
+			common.LogWrite().Close()
 		}
 	}()
 
 	// Load the block database.
-	db, err := database.LoadBlockDB(cfg)
+	db, err := common.LoadBlockDB(cfg)
 	if err != nil {
 		log.Error("load block database","error", err)
 		return
@@ -57,7 +54,7 @@ func main() {
 	}()
 
 	// ledger
-	buildLedger(cfg,db,param.ActiveNetParams.Params)
+	buildLedger(cfg,db,params.ActiveNetParams.Params)
 }
 
 func buildLedger(cfg *config.Config,db database.DB,params *params.Params) error {

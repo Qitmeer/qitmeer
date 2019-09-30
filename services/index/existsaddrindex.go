@@ -9,10 +9,10 @@ import (
 	"sync"
 
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer-lib/params"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 
 )
 

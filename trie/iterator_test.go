@@ -20,8 +20,8 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/common/util"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/database/statedb"
 	"math/rand"
 	"testing"

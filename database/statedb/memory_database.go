@@ -19,7 +19,7 @@ package statedb
 
 import (
 	"errors"
-	"github.com/Qitmeer/qitmeer-lib/common/util"
+	"github.com/Qitmeer/qitmeer/common/util"
 	"sync"
 )
 

@@ -7,13 +7,13 @@ package peer
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer-lib/core/message"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/log"
-	"github.com/Qitmeer/qitmeer-lib/params/dcr/types"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/message"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/params/dcr/types"
 	"github.com/satori/go.uuid"
 	"math/rand"
 	"net"
@@ -40,7 +40,7 @@ type StatsSnap struct {
 	LastPingNonce  uint64
 	LastPingTime   time.Time
 	LastPingMicros int64
-	GraphState     *dag.GraphState
+	GraphState     *blockdag.GraphState
 }
 
 // ID returns the peer id.
@@ -79,7 +79,7 @@ func (p *Peer) NA() *types.NetAddress {
 // LastGS returns the last graph state of the peer.
 //
 // This function is safe for concurrent access.
-func (p *Peer) LastGS() *dag.GraphState {
+func (p *Peer) LastGS() *blockdag.GraphState {
 	p.statsMtx.RLock()
 	lastgs := p.lastGS
 	p.statsMtx.RUnlock()
@@ -356,7 +356,7 @@ func (p *Peer) Services() protocol.ServiceFlag {
 // and stop hash.  It will ignore back-to-back duplicate requests.
 //
 // This function is safe for concurrent access.
-func (p *Peer) PushGetBlocksMsg(sgs *dag.GraphState,blocks []*hash.Hash) error {
+func (p *Peer) PushGetBlocksMsg(sgs *blockdag.GraphState,blocks []*hash.Hash) error {
 	gs:=sgs.Clone()
 	ok,bs:=p.prevGet.Check(p,gs,blocks)
 	if !ok {
@@ -381,7 +381,7 @@ func (p *Peer) PushGetBlocksMsg(sgs *dag.GraphState,blocks []*hash.Hash) error {
 // PushGetHeadersMsg sends a getblocks message
 //
 // This function is safe for concurrent access.
-func (p *Peer) PushGetHeadersMsg(sgs *dag.GraphState,blocks []*hash.Hash) error {
+func (p *Peer) PushGetHeadersMsg(sgs *blockdag.GraphState,blocks []*hash.Hash) error {
 	gs:=sgs.Clone()
 	ok,bs:=p.prevGetHdrs.Check(p,gs,blocks)
 	if !ok {
@@ -414,7 +414,7 @@ func (p *Peer) AddKnownInventory(invVect *message.InvVect) {
 // UpdateLastGS updates the last known graph state for the peer.
 //
 // This function is safe for concurrent access.
-func (p *Peer) UpdateLastGS(newGS *dag.GraphState) {
+func (p *Peer) UpdateLastGS(newGS *blockdag.GraphState) {
 	p.statsMtx.Lock()
 	if !p.lastGS.IsEqual(newGS) {
 		log.Trace(fmt.Sprintf("Updating last graph state of peer %v from %v to %v",
@@ -477,7 +477,7 @@ func (p *Peer) QueueInventory(invVect *message.InvVect) {
 // batches.  Inventory that the peer is already known to have is ignored.
 //
 // This function is safe for concurrent access.
-func (p *Peer) QueueInventoryImmediate(invVect *message.InvVect,gs *dag.GraphState) {
+func (p *Peer) QueueInventoryImmediate(invVect *message.InvVect,gs *blockdag.GraphState) {
 	// Don't announce the inventory if the peer is already known to have it.
 	if p.knownInventory.Exists(invVect) {
 		return
@@ -630,7 +630,7 @@ func (p *Peer) Cfg() *Config {
 	return &p.cfg
 }
 
-func (p *Peer) PushGraphStateMsg(gs *dag.GraphState) error {
+func (p *Peer) PushGraphStateMsg(gs *blockdag.GraphState) error {
 	msg := message.NewMsgGraphState(gs)
 	p.QueueMessage(msg, nil)
 	return nil

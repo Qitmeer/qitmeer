@@ -1,11 +1,11 @@
 package tx
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/config"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/engine/txscript"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/node/notify"
@@ -33,7 +33,7 @@ type TxManager struct {
 	db                   database.DB
 
 	//invalidTx hash->block hash
-	invalidTx map[hash.Hash]*dag.HashSet
+	invalidTx map[hash.Hash]*blockdag.HashSet
 }
 
 func (tm *TxManager) Start() error {
@@ -70,7 +70,7 @@ func (tm *TxManager) AddInvalidTx(txh *hash.Hash, bh *hash.Hash) {
 	if tm.IsInvalidTx(txh) {
 		tm.invalidTx[*txh].Add(bh)
 	} else {
-		set := dag.NewHashSet()
+		set := blockdag.NewHashSet()
 		set.Add(bh)
 		tm.invalidTx[*txh] = set
 	}
@@ -127,7 +127,7 @@ func NewTxManager(bm *blkmgr.BlockManager,txIndex *index.TxIndex,
 		BD:bm.GetChain().BlockDAG(),
 	}
 	txMemPool := mempool.New(&txC)
-	invalidTx := make(map[hash.Hash]*dag.HashSet)
+	invalidTx := make(map[hash.Hash]*blockdag.HashSet)
 	return &TxManager{bm,txIndex,addrIndex,txMemPool,ntmgr,db,invalidTx},nil
 }
 

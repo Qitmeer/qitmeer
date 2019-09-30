@@ -3,7 +3,7 @@
 package blockdag
 
 import (
-	l "github.com/Qitmeer/qitmeer-lib/log"
+	l "github.com/Qitmeer/qitmeer/log"
 )
 
 // log is a logger that is initialized with no output filters.  This
@@ -14,4 +14,9 @@ var log l.Logger
 // UseLogger uses a specified Logger to output package logging info.
 func UseLogger(logger l.Logger) {
 	log = logger
+}
+
+// The default amount of logging is none.
+func init() {
+	UseLogger(l.New(l.Ctx{"module": "blockdag"}))
 }

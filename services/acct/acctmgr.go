@@ -1,8 +1,8 @@
 package acct
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/log"
-	"github.com/Qitmeer/qitmeer-lib/rpc"
+	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/rpc"
 )
 
 // account manager communicate with various backends for signing transactions.

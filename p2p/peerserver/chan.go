@@ -6,7 +6,7 @@
 package peerserver
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/core/message"
+	"github.com/Qitmeer/qitmeer/core/message"
 )
 
 // broadcastMsg provides the ability to house a  message to be broadcast

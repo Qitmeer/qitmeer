@@ -6,8 +6,8 @@
 package peer
 
 import (
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/message"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/message"
 )
 
 // ServerPeer extends the peer to maintain state shared by the p2p server and

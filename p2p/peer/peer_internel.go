@@ -9,17 +9,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/message"
-	"github.com/Qitmeer/qitmeer-lib/core/protocol"
-	s "github.com/Qitmeer/qitmeer-lib/core/serialization"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
-	"github.com/Qitmeer/qitmeer-lib/log"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/message"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p/peer/invcache"
 	"github.com/Qitmeer/qitmeer/p2p/peer/nounce"
-	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer/params"
 	"net"
 	"strings"
 	"sync"
@@ -93,7 +93,7 @@ type Peer struct {
 	statsMtx           sync.RWMutex
 
 	// - block
-	lastGS             *dag.GraphState
+	lastGS             *blockdag.GraphState
 	lastAnnouncedBlock *hash.Hash
 
 	// - Time
@@ -449,7 +449,7 @@ func (p *Peer) start() error {
 	return nil
 }
 
-func (p *Peer) GetGraphState() *dag.GraphState {
+func (p *Peer) GetGraphState() *blockdag.GraphState {
 	if p.cfg.NewestGS != nil {
 		gs, err := p.cfg.NewestGS()
 		if err != nil {
@@ -491,7 +491,7 @@ func newPeerBase(cfg *Config, inbound bool) *Peer {
 		cfg:             *cfg, // Copy so caller can't mutate.
 		services:        cfg.Services,
 		protocolVersion: protocolVersion,
-		lastGS:          dag.NewGraphState(),
+		lastGS:          blockdag.NewGraphState(),
 	}
 	p.prevGet.Init(&p)
 	p.prevGetHdrs.Init(&p)

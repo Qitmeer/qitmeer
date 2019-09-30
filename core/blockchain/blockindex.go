@@ -4,10 +4,10 @@ package blockchain
 import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"sync"
-	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/core/types"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/types"
 )
 
 // IndexManager provides a generic interface that the is called when blocks are
