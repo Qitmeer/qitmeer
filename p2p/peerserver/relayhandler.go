@@ -1,7 +1,7 @@
 package peerserver
 
 import (
-	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
@@ -11,7 +11,7 @@ import (
 // known to have it.  It is invoked from the peerHandler goroutine.
 func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 	log.Trace("handleRelayInvMsg", "msg",msg)
-	var gs *dag.GraphState
+	var gs *blockdag.GraphState
 	state.forAllPeers(func(sp *serverPeer) {
 		if !sp.Connected() {
 			return

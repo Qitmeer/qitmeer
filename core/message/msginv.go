@@ -7,10 +7,10 @@ package message
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/dag"
-	"io"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"io"
 )
 
 // defaultInvListAlloc is the default size used for the backing array for an
@@ -32,7 +32,7 @@ const defaultInvListAlloc = 1000
 // Use the AddInvVect function to build up the list of inventory vectors when
 // sending an inv message to another peer.
 type MsgInv struct {
-	GS *dag.GraphState
+	GS *blockdag.GraphState
 	InvList []*InvVect
 }
 
@@ -74,7 +74,7 @@ func (msg *MsgInv) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddInvVect(iv)
 	}
-	msg.GS=dag.NewGraphState()
+	msg.GS=blockdag.NewGraphState()
 	err = msg.GS.Decode(r,pver)
 	if err != nil {
 		return err
@@ -122,14 +122,14 @@ func (msg *MsgInv) Command() string {
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgInv) MaxPayloadLength(pver uint32) uint32 {
 	// Num inventory vectors (varInt) + max allowed inventory vectors.
-	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)+8 + 4 + (dag.MaxTips * hash.HashSize)
+	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)+8 + 4 + (blockdag.MaxTips * hash.HashSize)
 }
 
 // NewMsgInv returns a new inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgInv() *MsgInv {
 	return &MsgInv{
-		GS:dag.NewGraphState(),
+		GS:blockdag.NewGraphState(),
 		InvList: make([]*InvVect, 0, defaultInvListAlloc),
 	}
 }
@@ -151,7 +151,7 @@ func NewMsgInvSizeHint(sizeHint uint) *MsgInv {
 	}
 
 	return &MsgInv{
-		GS:dag.NewGraphState(),
+		GS:blockdag.NewGraphState(),
 		InvList: make([]*InvVect, 0, sizeHint),
 	}
 }

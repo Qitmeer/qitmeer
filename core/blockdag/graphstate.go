@@ -7,9 +7,6 @@ import (
 	"io"
 )
 
-// Maximum number of the DAG tip
-const MaxTips=100
-
 // A general description of the whole state of DAG
 type GraphState struct {
 	// The terminal block is in block dag,this block have not any connecting at present.

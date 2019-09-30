@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/config"
-	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -284,7 +284,7 @@ func (p *PeerServer) Stop() error {
 
 // newestBlock returns the current best block hash and height using the format
 // required by the configuration for the peer package.
-func (sp *serverPeer) newestGS() (*dag.GraphState, error) {
+func (sp *serverPeer) newestGS() (*blockdag.GraphState, error) {
 	best := sp.server.BlockManager.GetChain().BestSnapshot()
 	return best.GraphState, nil
 }

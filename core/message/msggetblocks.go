@@ -9,7 +9,7 @@ package message
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"io"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -38,7 +38,7 @@ const MaxBlockLocatorsPerMsg = 500
 type MsgGetBlocks struct {
 	ProtocolVersion    uint32
 	BlockLocatorHashes []*hash.Hash
-	GS                 *dag.GraphState
+	GS                 *blockdag.GraphState
 }
 
 // AddBlockLocatorHash adds a new block locator hash to the message.
@@ -83,7 +83,7 @@ func (msg *MsgGetBlocks) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddBlockLocatorHash(hash)
 	}
-	msg.GS=dag.NewGraphState()
+	msg.GS=blockdag.NewGraphState()
 	err=msg.GS.Decode(r,pver)
 	if err != nil {
 		return err
@@ -142,7 +142,7 @@ func (msg *MsgGetBlocks) MaxPayloadLength(pver uint32) uint32 {
 // NewMsgGetBlocks returns a new getblocks message that conforms to the
 // Message interface using the passed parameters and defaults for the remaining
 // fields.
-func NewMsgGetBlocks(gs *dag.GraphState) *MsgGetBlocks {
+func NewMsgGetBlocks(gs *blockdag.GraphState) *MsgGetBlocks {
 	return &MsgGetBlocks{
 		ProtocolVersion:    protocol.ProtocolVersion,
 		BlockLocatorHashes: make([]*hash.Hash, 0, MaxBlockLocatorsPerMsg),

@@ -1,16 +1,16 @@
 package message
 
 import (
-	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"io"
 )
 
 type MsgGraphState struct {
-	GS *dag.GraphState
+	GS *blockdag.GraphState
 }
 
 func (msg *MsgGraphState) Decode(r io.Reader, pver uint32) error {
-	msg.GS=dag.NewGraphState()
+	msg.GS=blockdag.NewGraphState()
 	err:=msg.GS.Decode(r,pver)
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func (msg *MsgGraphState) MaxPayloadLength(pver uint32) uint32 {
 	return msg.GS.MaxPayloadLength()
 }
 
-func NewMsgGraphState(gs *dag.GraphState) *MsgGraphState {
+func NewMsgGraphState(gs *blockdag.GraphState) *MsgGraphState {
 	return &MsgGraphState{
 		GS:gs,
 	}

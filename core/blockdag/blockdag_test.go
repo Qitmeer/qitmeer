@@ -3,7 +3,6 @@ package blockdag
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/dag"
 	"io"
 	"math/rand"
 	"os"
@@ -208,9 +207,9 @@ func processResult(calRet interface{}, theory []*hash.Hash) bool {
 				break
 			}
 		}
-	case *dag.HashSet:
-		result := calRet.(*dag.HashSet)
-		okResult := dag.NewHashSet()
+	case *HashSet:
+		result := calRet.(*HashSet)
+		okResult := NewHashSet()
 		okResult.AddList(theory)
 		if !result.IsEqual(okResult) {
 			ret = false
@@ -238,7 +237,7 @@ func printBlockChainTag(list []*hash.Hash, tbMap map[string]*hash.Hash) {
 	fmt.Println(result)
 }
 
-func printBlockSetTag(set *dag.HashSet, tbMap map[string]*hash.Hash) {
+func printBlockSetTag(set *HashSet, tbMap map[string]*hash.Hash) {
 	var result string="["
 	isFirst:=true
 	for k:=range set.GetMap(){

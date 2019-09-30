@@ -2,7 +2,6 @@ package blockdag
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/dag"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"io"
 )
@@ -39,7 +38,7 @@ type IBlock interface {
 	IsOrdered() bool
 
 	// Get all parents set,the dag block has more than one parent
-	GetParents() *dag.HashSet
+	GetParents() *HashSet
 
 	// Testing whether it has parents
 	HasParents() bool
@@ -48,7 +47,7 @@ type IBlock interface {
 	AddChild(child *Block)
 
     // Get all the children of block
-    GetChildren() *dag.HashSet
+    GetChildren() *HashSet
 
 	// Detecting the presence of child nodes
 	HasChildren() bool
@@ -82,8 +81,8 @@ type IBlock interface {
 type Block struct {
 	id         uint
 	hash       hash.Hash
-	parents    *dag.HashSet
-	children   *dag.HashSet
+	parents    *HashSet
+	children   *HashSet
 
 	mainParent *hash.Hash
 	weight     uint
@@ -104,7 +103,7 @@ func (b *Block) GetHash() *hash.Hash {
 }
 
 // Get all parents set,the dag block has more than one parent
-func (b *Block) GetParents() *dag.HashSet {
+func (b *Block) GetParents() *HashSet {
 	return b.parents
 }
 
@@ -156,13 +155,13 @@ func (b *Block) GetBackParent() *Block {
 // Add child nodes to block
 func (b *Block) AddChild(child *Block) {
 	if b.children == nil {
-		b.children = dag.NewHashSet()
+		b.children = NewHashSet()
 	}
 	b.children.AddPair(child.GetHash(),child)
 }
 
 // Get all the children of block
-func (b *Block) GetChildren() *dag.HashSet {
+func (b *Block) GetChildren() *HashSet {
 	return b.children
 }
 
@@ -313,7 +312,7 @@ func (b *Block) Decode(r io.Reader) error {
 		return err
 	}
 	if parentsSize>0 {
-		b.parents = dag.NewHashSet()
+		b.parents = NewHashSet()
 		for i:=uint32(0);i<parentsSize ;i++  {
 			var parent hash.Hash
 			err:=s.ReadElements(r,&parent)
@@ -330,7 +329,7 @@ func (b *Block) Decode(r io.Reader) error {
 		return err
 	}
 	if childrenSize>0 {
-		b.children = dag.NewHashSet()
+		b.children = NewHashSet()
 		for i:=uint32(0);i<childrenSize ;i++  {
 			var children hash.Hash
 			err:=s.ReadElements(r,&children)

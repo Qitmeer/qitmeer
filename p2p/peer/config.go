@@ -6,7 +6,7 @@
 package peer
 
 import (
-	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/params"
@@ -56,7 +56,7 @@ const (
 
 // HashFunc is a function which returns a block hash, height and error
 // It is used as a callback to get newest block details.
-type GSFunc func() (gs *dag.GraphState, err error)
+type GSFunc func() (gs *blockdag.GraphState, err error)
 
 // HostToNetAddrFunc is a func which takes a host, port, services and returns
 // the netaddress.

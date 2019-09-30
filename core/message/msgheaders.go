@@ -7,7 +7,7 @@ package message
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"io"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -24,7 +24,7 @@ const MaxBlockHeadersPerMsg = 2000
 // the headers.
 type MsgHeaders struct {
 	Headers []*types.BlockHeader
-	GS      *dag.GraphState
+	GS      *blockdag.GraphState
 }
 
 // AddBlockHeader adds a new block header to the message.
@@ -78,7 +78,7 @@ func (msg *MsgHeaders) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddBlockHeader(bh)
 	}
-	msg.GS=dag.NewGraphState()
+	msg.GS=blockdag.NewGraphState()
 	err=msg.GS.Decode(r,pver)
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func (msg *MsgHeaders) String() string {
 
 // NewMsgHeaders returns a new  headers message that conforms to the
 // Message interface.  See MsgHeaders for details.
-func NewMsgHeaders(gs *dag.GraphState) *MsgHeaders {
+func NewMsgHeaders(gs *blockdag.GraphState) *MsgHeaders {
 	return &MsgHeaders{
 		Headers: make([]*types.BlockHeader, 0, MaxBlockHeadersPerMsg),
 		GS:gs,

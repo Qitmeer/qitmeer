@@ -8,7 +8,7 @@ package message
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"io"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -32,7 +32,7 @@ import (
 type MsgGetHeaders struct {
 	ProtocolVersion    uint32
 	BlockLocatorHashes []*hash.Hash
-	GS                 *dag.GraphState
+	GS                 *blockdag.GraphState
 }
 
 // AddBlockLocatorHash adds a new block locator hash to the message.
@@ -79,7 +79,7 @@ func (msg *MsgGetHeaders) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddBlockLocatorHash(hash)
 	}
-	msg.GS=dag.NewGraphState()
+	msg.GS=blockdag.NewGraphState()
 	err=msg.GS.Decode(r,pver)
 	if err != nil {
 		return err
@@ -143,7 +143,7 @@ func (msg *MsgGetHeaders) String() string {
 
 // NewMsgGetHeaders returns a new  getheaders message that conforms to
 // the Message interface.  See MsgGetHeaders for details.
-func NewMsgGetHeaders(gs *dag.GraphState) *MsgGetHeaders {
+func NewMsgGetHeaders(gs *blockdag.GraphState) *MsgGetHeaders {
 	return &MsgGetHeaders{
 		ProtocolVersion:    protocol.ProtocolVersion,
 		BlockLocatorHashes: make([]*hash.Hash, 0, MaxBlockLocatorsPerMsg),

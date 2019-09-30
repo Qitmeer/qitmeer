@@ -41,7 +41,6 @@ func main() {
 // notified with the node once it is setup so it can gracefully stop it when
 // requested from the service control manager.
 func qitmeerdMain(nodeChan chan<- *node.Node) error {
-	//log.Init()
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
 	cfg, _, err := common.LoadConfig()

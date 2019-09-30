@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/log"
 	"fmt"
 	"sync"
@@ -10,13 +10,13 @@ import (
 
 type PrevGet struct {
 	BlocksMtx   sync.Mutex
-	GS          *dag.GraphState
-	Blocks      *dag.HashSet
+	GS          *blockdag.GraphState
+	Blocks      *blockdag.HashSet
 }
 
 func (pg *PrevGet) Init(p *Peer) {
-	pg.Blocks=dag.NewHashSet()
-/*	pg.Locator=dag.NewHashSet()
+	pg.Blocks=blockdag.NewHashSet()
+/*	pg.Locator=blockdag.NewHashSet()
 	pg.Locator.AddPair(p.cfg.ChainParams.GenesisHash,0)*/
 }
 
@@ -29,11 +29,11 @@ func (pg *PrevGet) Clean() {
 	}*/
 }
 
-func (pg *PrevGet) Check(p *Peer,gs *dag.GraphState,blocks []*hash.Hash) (bool,*dag.HashSet) {
+func (pg *PrevGet) Check(p *Peer,gs *blockdag.GraphState,blocks []*hash.Hash) (bool,*blockdag.HashSet) {
 	pg.BlocksMtx.Lock()
 	defer pg.BlocksMtx.Unlock()
 
-	bs:=dag.NewHashSet()
+	bs:=blockdag.NewHashSet()
 	// Filter duplicate getblocks requests.
 	if len(blocks)>0 {
 		for _,v:=range blocks{
@@ -57,7 +57,7 @@ func (pg *PrevGet) Check(p *Peer,gs *dag.GraphState,blocks []*hash.Hash) (bool,*
 	return true,bs
 }
 
-func (pg *PrevGet) Update(gs *dag.GraphState,blocks []*hash.Hash) {
+func (pg *PrevGet) Update(gs *blockdag.GraphState,blocks []*hash.Hash) {
 	pg.BlocksMtx.Lock()
 	defer pg.BlocksMtx.Unlock()
 

@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/dag"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer/database"
@@ -27,7 +26,7 @@ type Phantom struct {
 
 	mainChain *MainChain
 
-	diffAnticone *dag.HashSet
+	diffAnticone *HashSet
 
 	virtualBlock *PhantomBlock
 }
@@ -47,12 +46,12 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 
 	ph.bd.order = map[uint]*hash.Hash{}
 
-	ph.mainChain=&MainChain{dag.NewHashSet(),nil,nil}
-	ph.diffAnticone=dag.NewHashSet()
+	ph.mainChain=&MainChain{NewHashSet(),nil,nil}
+	ph.diffAnticone=NewHashSet()
 
 	//vb
 	vb:= &Block{hash: hash.ZeroHash, weight: 1, layer:0}
-	ph.virtualBlock=&PhantomBlock{vb,0,dag.NewHashSet(),dag.NewHashSet()}
+	ph.virtualBlock=&PhantomBlock{vb,0,NewHashSet(),NewHashSet()}
 
 	return true
 }
@@ -72,7 +71,7 @@ func (ph *Phantom) AddBlock(ib IBlock) *list.List {
 
 // Build self block
 func (ph *Phantom) CreateBlock(b *Block) IBlock {
-	return &PhantomBlock{b,0,dag.NewHashSet(),dag.NewHashSet()}
+	return &PhantomBlock{b,0,NewHashSet(),NewHashSet()}
 }
 
 func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
@@ -99,11 +98,11 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 
 }
 
-func (ph *Phantom) getBluest(bs *dag.HashSet) *PhantomBlock {
+func (ph *Phantom) getBluest(bs *HashSet) *PhantomBlock {
 	return ph.getExtremeBlue(bs,true)
 }
 
-func (ph *Phantom) getExtremeBlue(bs *dag.HashSet,bluest bool) *PhantomBlock {
+func (ph *Phantom) getExtremeBlue(bs *HashSet,bluest bool) *PhantomBlock {
 	if bs.IsEmpty() {
 		return nil
 	}
@@ -123,7 +122,7 @@ func (ph *Phantom) getExtremeBlue(bs *dag.HashSet,bluest bool) *PhantomBlock {
 	return result
 }
 
-func (ph *Phantom) calculateBlueSet(pb *PhantomBlock,diffAnticone *dag.HashSet) {
+func (ph *Phantom) calculateBlueSet(pb *PhantomBlock,diffAnticone *HashSet) {
 	kc:=ph.getKChain(pb)
 	for k:=range diffAnticone.GetMap(){
 		cur:=ph.getBlock(&k)
@@ -137,7 +136,7 @@ func (ph *Phantom) calculateBlueSet(pb *PhantomBlock,diffAnticone *dag.HashSet) 
 
 func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
 	var blueCount int=0
-	result:=&KChain{dag.NewHashSet(),0}
+	result:=&KChain{NewHashSet(),0}
 	curPb:=pb
 	for  {
 		result.blocks.AddPair(curPb.GetHash(),curPb)
@@ -151,7 +150,7 @@ func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
 	return result
 }
 
-func (ph *Phantom) colorBlock(kc *KChain,pb *PhantomBlock,blueOrder *dag.HashSet,redOrder *dag.HashSet) {
+func (ph *Phantom) colorBlock(kc *KChain,pb *PhantomBlock,blueOrder *HashSet,redOrder *HashSet) {
 	if ph.coloringRule(kc,pb) {
 		blueOrder.Add(pb.GetHash())
 	}else{
@@ -201,8 +200,8 @@ func (ph *Phantom) getDiffAnticoneOrder(pb *PhantomBlock) []*hash.Hash {
 	diffAnticone:=pb.blueDiffAnticone.Clone()
 	diffAnticone.AddSet(pb.redDiffAnticone)
 	toOrder:=ph.sortBlocks(pb.mainParent,pb.blueDiffAnticone,pb.GetParents(),diffAnticone)
-	ordered:=dag.HashList{}
-	orderedSet:=dag.NewHashSet()
+	ordered:=HashList{}
+	orderedSet:=NewHashSet()
 
 	for len(toOrder)>0 {
 		cur:=toOrder[0]
@@ -228,11 +227,11 @@ func (ph *Phantom) getDiffAnticoneOrder(pb *PhantomBlock) []*hash.Hash {
 	return ordered
 }
 
-func(ph *Phantom) sortBlocks(lastBlock *hash.Hash,blueDiffAnticone *dag.HashSet,toSort *dag.HashSet,diffAnticone *dag.HashSet) []*hash.Hash {
+func(ph *Phantom) sortBlocks(lastBlock *hash.Hash,blueDiffAnticone *HashSet,toSort *HashSet,diffAnticone *HashSet) []*hash.Hash {
 	if toSort==nil || toSort.IsEmpty() {
 		return []*hash.Hash{}
 	}
-	remaining:=dag.NewHashSet()
+	remaining:=NewHashSet()
 	remaining.AddSet(toSort)
 	remaining.Remove(lastBlock)
 	remaining=remaining.Intersection(diffAnticone)
@@ -358,7 +357,7 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 		ph.virtualBlock.GetOrder()!=MaxBlockOrder {
 		return nil
 	}
-	ph.virtualBlock.parents = dag.NewHashSet()
+	ph.virtualBlock.parents = NewHashSet()
 	var maxLayer uint=0
 	for k:= range ph.bd.GetTips().GetMap() {
 		parent := ph.bd.GetBlock(&k)
@@ -409,12 +408,12 @@ func (ph *Phantom) preUpdateVirtualBlock() *PhantomBlock {
 	return nil
 }
 
-func (ph *Phantom) GetDiffBlueSet() *dag.HashSet {
+func (ph *Phantom) GetDiffBlueSet() *HashSet {
 	if ph.mainChain.tip==nil {
 		return nil
 	}
 	ph.UpdateVirtualBlockOrder()
-	result:=dag.NewHashSet()
+	result:=NewHashSet()
 	curPb:=ph.getBlock(ph.mainChain.tip)
 	for  {
 		result.AddSet(curPb.blueDiffAnticone)
@@ -497,7 +496,7 @@ func (ph *Phantom) GetMainChainTip() IBlock {
 }
 
 // return the main parent in the parents
-func (ph *Phantom) GetMainParent(parents *dag.HashSet) IBlock {
+func (ph *Phantom) GetMainParent(parents *HashSet) IBlock {
 	if parents == nil || parents.IsEmpty() {
 		return nil
 	}
@@ -511,7 +510,7 @@ func (ph *Phantom) getBlock(h *hash.Hash) *PhantomBlock {
 	return ph.bd.GetBlock(h).(*PhantomBlock)
 }
 
-func (ph *Phantom) GetDiffAnticone() *dag.HashSet {
+func (ph *Phantom) GetDiffAnticone() *HashSet {
 	return ph.diffAnticone
 }
 
@@ -554,7 +553,7 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 		}
 		// Make up for missing
 		if ib.HasParents() {
-			parentsSet:=dag.NewHashSet()
+			parentsSet:=NewHashSet()
 			for k:=range ib.GetParents().GetMap(){
 				parentHash:=k
 				parent := ph.bd.GetBlock(&parentHash)
@@ -589,12 +588,12 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 
 // The main chain of DAG is support incremental expansion
 type MainChain struct {
-	blocks *dag.HashSet
+	blocks *HashSet
 	tip *hash.Hash
 	genesis *hash.Hash
 }
 
 type KChain struct {
-	blocks *dag.HashSet
+	blocks *HashSet
 	miniLayer uint
 }

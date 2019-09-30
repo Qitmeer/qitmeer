@@ -3,7 +3,6 @@ package blockdag
 import (
 	"container/list"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/dag"
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 )
@@ -135,10 +134,10 @@ func (con *Conflux) updatePrivot(b IBlock) {
 	}
 }
 
-func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *dag.HashSet) {
+func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *HashSet) {
 
 	if main == nil {
-		main = dag.NewHashSet()
+		main = NewHashSet()
 	}
 	main.Add(b.GetHash())
 
@@ -150,7 +149,7 @@ func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *dag.HashSet
 		con.privotTip = b
 		if con.bd.GetTips().Size() > 1 {
 			virtualBlock := Block{hash: hash.Hash{}, weight: 1}
-			virtualBlock.parents = dag.NewHashSet()
+			virtualBlock.parents = NewHashSet()
 			virtualBlock.parents.AddSet(con.bd.GetTips())
 			con.updateMainChain(&virtualBlock, curEpoch, main)
 		}
@@ -191,7 +190,7 @@ func (con *Conflux) GetMainChain() []*hash.Hash {
 	return result
 }
 
-func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *dag.HashSet) *Epoch {
+func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch {
 	var result *Epoch
 	if preEpoch == nil {
 		b.SetOrder( 0)
@@ -204,7 +203,7 @@ func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *dag.HashSet) *E
 			if dependsNum == 1 {
 				result.depends[0].SetOrder(preEpoch.main.GetOrder() + 1)
 			} else {
-				es := dag.NewHashSet()
+				es := NewHashSet()
 				for _, dep := range result.depends {
 					es.Add(dep.GetHash())
 				}
@@ -242,10 +241,10 @@ func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *dag.HashSet) *E
 	return result
 }
 
-func (con *Conflux) getEpoch(b IBlock, preEpoch *Epoch, main *dag.HashSet) *Epoch {
+func (con *Conflux) getEpoch(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch {
 
 	result := Epoch{main: b}
-	var dependsS *dag.HashSet
+	var dependsS *HashSet
 
 	chain := list.New()
 	chain.PushBack(b)
@@ -264,7 +263,7 @@ func (con *Conflux) getEpoch(b IBlock, preEpoch *Epoch, main *dag.HashSet) *Epoc
 				}
 				if result.depends == nil {
 					result.depends = []IBlock{}
-					dependsS = dag.NewHashSet()
+					dependsS = NewHashSet()
 				}
 				if dependsS.Has(&h) {
 					continue
@@ -279,9 +278,9 @@ func (con *Conflux) getEpoch(b IBlock, preEpoch *Epoch, main *dag.HashSet) *Epoc
 	return &result
 }
 
-func (con *Conflux) getForwardBlocks(bs *dag.HashSet) []IBlock {
+func (con *Conflux) getForwardBlocks(bs *HashSet) []IBlock {
 	result := []IBlock{}
-	rs := dag.NewHashSet()
+	rs := NewHashSet()
 	for h := range bs.GetMap() {
 		block := con.bd.GetBlock(&h)
 
@@ -354,7 +353,7 @@ func (con *Conflux) GetMainChainTip() IBlock {
 }
 
 // return the main parent in the parents
-func (con *Conflux) GetMainParent(parents *dag.HashSet) IBlock {
+func (con *Conflux) GetMainParent(parents *HashSet) IBlock {
 	return nil
 }
 

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/config"
-	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -73,7 +73,7 @@ type BlockManager struct {
 	// The following fields are used to track the height being synced to from
 	// peers.
 	syncGSMtx sync.Mutex
-	syncGS    *dag.GraphState
+	syncGS    *blockdag.GraphState
 
 	lastProgressTime time.Time
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -18,7 +19,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/Qitmeer/qitmeer/common/util"
 )
 
 const (
@@ -27,23 +27,22 @@ const (
 )
 
 func main() {
-	log.Init()
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
-	cfg, _, err := util.LoadConfig()
+	cfg, _, err := common.LoadConfig()
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
 
 	defer func() {
-		if log.LogWrite() != nil {
-			log.LogWrite().Close()
+		if common.LogWrite() != nil {
+			common.LogWrite().Close()
 		}
 	}()
 
 	// Load the block database.
-	db, err := util.LoadBlockDB(cfg)
+	db, err := common.LoadBlockDB(cfg)
 	if err != nil {
 		log.Error("load block database","error", err)
 		return

@@ -4,7 +4,6 @@ package blockchain
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/util"
-	"github.com/Qitmeer/qitmeer/core/dag"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -251,11 +250,11 @@ func (node *blockNode) HasChild(child *blockNode) bool{
 }
 
 // For the moment,In order to match the DAG
-func (node *blockNode) GetChildren() *dag.HashSet{
+func (node *blockNode) GetChildren() *blockdag.HashSet{
 	if node.children==nil||len(node.children)==0 {
 		return nil
 	}
-	result:=dag.NewHashSet()
+	result:=blockdag.NewHashSet()
 	for _,v:=range node.children{
 		result.Add(&v.hash)
 	}
@@ -344,7 +343,7 @@ func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
 	if len(parents) == 0 {
 		return nil
 	}
-	parentsSet:=dag.NewHashSet()
+	parentsSet:=blockdag.NewHashSet()
 	parentsSet.AddList(parents)
 	mainParent:=b.bd.GetMainParent(parentsSet)
 	if mainParent == nil {

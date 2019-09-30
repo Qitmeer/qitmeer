@@ -9,16 +9,16 @@ package message
 import (
 	"bytes"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/dag"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/satori/go.uuid"
 	"io"
 	"net"
-	"github.com/Qitmeer/qitmeer/common/hash"
 	"strings"
 	"time"
-	s "github.com/Qitmeer/qitmeer/core/serialization"
-	"github.com/Qitmeer/qitmeer/core/protocol"
-	"github.com/Qitmeer/qitmeer/core/types"
 )
 
 // MaxUserAgentLen is the maximum allowed length for the user agent field in a
@@ -60,7 +60,7 @@ type MsgVersion struct {
 	UserAgent string
 
 	// Last DAG graph state seen by the generator of the version message.
-	LastGS *dag.GraphState
+	LastGS *blockdag.GraphState
 
 	// Don't announce transactions to peer.
 	DisableRelayTx bool
@@ -133,7 +133,7 @@ func (msg *MsgVersion) Decode(r io.Reader, pver uint32) error {
 	// Protocol versions >= 209 added a last known block field.  It is only
 	// considered present if there are bytes remaining in the message.
 	if buf.Len() > 0 {
-		msg.LastGS=dag.NewGraphState()
+		msg.LastGS=blockdag.NewGraphState()
 		err=msg.LastGS.Decode(buf,pver)
 		if err != nil {
 			return err
@@ -214,14 +214,14 @@ func (msg *MsgVersion) MaxPayloadLength(pver uint32) uint32 {
 	// agent (varInt) + max allowed useragent length + last block 4 bytes +
 	// relay transactions flag 1 byte.
 	return 29 + (types.MaxNetAddressPayload(pver) * 2) + s.MaxVarIntPayload +
-		MaxUserAgentLen+8 + 4 + (dag.MaxTips * hash.HashSize)
+		MaxUserAgentLen+8 + 4 + (blockdag.MaxTips * hash.HashSize)
 }
 
 // NewMsgVersion returns a new Version message that conforms to the Message
 // interface using the passed parameters and defaults for the remaining
 // fields.
 func NewMsgVersion(me *types.NetAddress, you *types.NetAddress, nonce uint64,
-	lastGS *dag.GraphState) *MsgVersion {
+	lastGS *blockdag.GraphState) *MsgVersion {
 
 	// Limit the timestamp to one second precision since the protocol
 	// doesn't support better.
@@ -241,7 +241,7 @@ func NewMsgVersion(me *types.NetAddress, you *types.NetAddress, nonce uint64,
 // and local address from conn and returns a new version message that
 // conforms to the Message interface.  See NewMsgVersion.
 func NewMsgVersionFromConn(conn net.Conn, nonce uint64,
-	lastGS *dag.GraphState) (*MsgVersion, error) {
+	lastGS *blockdag.GraphState) (*MsgVersion, error) {
 
 	// TODO, should define unknown flag instead of using hard-coding 0
 	// Don't assume any services until we know otherwise.
