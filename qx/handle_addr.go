@@ -2,6 +2,7 @@ package qx
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/encode/base58"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/params"
@@ -33,4 +34,15 @@ func EcPubKeyToAddress(version string, pubkey string) (string, error) {
 
 	address := base58.QitmeerCheckEncode(h, ver[:])
 	return address, nil
+}
+
+func EcPubKeyToAddressSTDO(version []byte, pubkey string) {
+	data, err :=hex.DecodeString(pubkey)
+	if err != nil {
+		ErrExit(err)
+	}
+	h := hash.Hash160(data)
+
+	address := base58.QitmeerCheckEncode(h, version[:])
+	fmt.Printf("%s\n",address)
 }
