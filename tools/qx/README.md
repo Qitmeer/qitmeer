@@ -1,19 +1,13 @@
 # qx
 
-[![Build Status](https://travis-ci.com/Qitmeer/qx.svg?branch=master)](https://travis-ci.com/Qitmeer/qx)
-
 qx is a command-line tool that provides a variety of commands for key management and transaction construction, such as random "seed" generation, public/private key encoding etc. qx cab be built and distributed as a single file binary, which works like the swiss army knife of qitmeer
 
 
 ## Installation
-### Binary archives
-* Binary archives are published at [releases](https://github.com/Qitmeer/qx/releases "releases").
 
 ### How to build
 
 ```shell
-~ git clone https://github.com/Qitmeer/qx.git
-~ cd qx
 ~ go build
 ~ ./qx
 ```
