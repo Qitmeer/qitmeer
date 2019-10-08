@@ -1,14 +1,14 @@
 // Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
-package qx
+package main
 
 import (
 	"encoding/hex"
 	"github.com/stretchr/testify/assert"
-	"github.com/Qitmeer/qitmeer-lib/common/encode/base58"
-	"github.com/Qitmeer/qitmeer-lib/crypto/bip32"
-	"github.com/Qitmeer/qitmeer-lib/crypto/bip39"
+	"github.com/Qitmeer/qitmeer/common/encode/base58"
+	"github.com/Qitmeer/qitmeer/crypto/bip32"
+	"github.com/Qitmeer/qitmeer/crypto/bip39"
 	"testing"
 )
 

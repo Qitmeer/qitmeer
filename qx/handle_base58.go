@@ -1,14 +1,14 @@
 // Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
-package core
+package qx
 
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/encode/base58"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/common/util"
+	"github.com/Qitmeer/qitmeer/common/encode/base58"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/pkg/errors"
 	"strconv"
 )

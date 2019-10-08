@@ -1,12 +1,12 @@
 // Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
-package core
+package qx
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/crypto/bip32"
-	"github.com/Qitmeer/qitmeer-lib/params"
+	"github.com/Qitmeer/qitmeer/crypto/bip32"
+	"github.com/Qitmeer/qitmeer/params"
 )
 
 var (

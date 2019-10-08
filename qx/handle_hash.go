@@ -1,15 +1,15 @@
 // Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
-package core
+package qx
 
 import (
 	"crypto"
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/hash"
-	"github.com/Qitmeer/qitmeer-lib/common/hash/btc"
-	"github.com/Qitmeer/qitmeer-lib/common/hash/dcr"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/hash/btc"
+	"github.com/Qitmeer/qitmeer/common/hash/dcr"
 )
 
 func Sha256(input string){

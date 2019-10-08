@@ -1,14 +1,14 @@
 // Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
-package core
+package qx
 
 import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/Qitmeer/qitmeer-lib/common/encode/rlp"
+	"github.com/Qitmeer/qitmeer/common/encode/rlp"
 	"io"
 	"strings"
 )

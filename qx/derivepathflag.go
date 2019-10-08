@@ -1,9 +1,9 @@
 // Copyright 2017-2018 The qitmeer developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
-package core
+package qx
 
-import "github.com/Qitmeer/qitmeer-lib/wallet"
+import "github.com/Qitmeer/qitmeer/wallet"
 
 type DerivePathFlag struct {
 	Path wallet.DerivationPath

@@ -7,11 +7,13 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/marshal"
 	"github.com/Qitmeer/qitmeer/core/address"
+	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/ecc"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
+	"github.com/pkg/errors"
 	"sort"
 )
 
@@ -146,4 +148,74 @@ func TxSign(privkeyStr string, rawTxStr string, network string) (string, error) 
 		return "", err
 	}
 	return mtxHex, nil
+}
+
+
+func TxDecode(network string, rawTxStr string) {
+	var param *params.Params
+	switch network {
+	case "mainnet":
+		param = &params.MainNetParams
+	case "testnet":
+		param = &params.TestNetParams
+	case "privnet":
+		param = &params.PrivNetParams
+	}
+	if len(rawTxStr)%2 != 0 {
+		ErrExit(fmt.Errorf("invaild raw transaction : %s", rawTxStr))
+	}
+	serializedTx, err := hex.DecodeString(rawTxStr)
+	if err != nil {
+		ErrExit(err)
+	}
+	var tx types.Transaction
+	err = tx.Deserialize(bytes.NewReader(serializedTx))
+	if err != nil {
+		ErrExit(err)
+	}
+
+	jsonTx := &json.OrderedResult{
+		{Key: "txid", Val: tx.TxHash().String()},
+		{Key: "txhash", Val: tx.TxHashFull().String()},
+		{Key: "version", Val: int32(tx.Version)},
+		{Key: "locktime", Val: tx.LockTime},
+		{Key: "expire", Val: tx.Expire},
+		{Key: "vin", Val: marshal.MarshJsonVin(&tx)},
+		{Key: "vout", Val: marshal.MarshJsonVout(&tx, nil, param)},
+	}
+	marshaledTx, err := jsonTx.MarshalJSON()
+	if err != nil {
+		ErrExit(err)
+	}
+
+	fmt.Printf("%s", marshaledTx)
+}
+
+func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsFlag, txOut TxOutputsFlag) {
+	txInputs := make(map[string]uint32)
+	txOutputs := make(map[string]uint64)
+	for _, input := range txIn.inputs {
+		txInputs[hex.EncodeToString(input.txhash)] = input.index
+	}
+	for _, output := range txOut.outputs {
+		atomic, err := types.NewAmount(output.amount)
+		if err != nil {
+			ErrExit(errors.Wrapf(err, "fail to create the currency amount from a "+
+				"floating point value %f", output.amount))
+		}
+		txOutputs[output.target] = uint64(atomic)
+	}
+	mtxHex, err := TxEncode(uint32(version), uint32(lockTime), txInputs, txOutputs)
+	if err != nil {
+		ErrExit(err)
+	}
+	fmt.Printf("%s\n", mtxHex)
+}
+
+func TxSignSTDO(privkeyStr string, rawTxStr string, network string) {
+	mtxHex, err := TxSign(privkeyStr, rawTxStr, network)
+	if err != nil {
+		ErrExit(err)
+	}
+	fmt.Printf("%s\n", mtxHex)
 }
