@@ -16,7 +16,7 @@ func Test_GetFutureSet(t *testing.T) {
 	//ph:=ibd.(*Phantom)
 	anBlock := bd.GetBlock(tbMap[testData.PH_GetFutureSet.Input])
 	bset := NewHashSet()
-	bd.GetFutureSet(bset,anBlock)
+	bd.getFutureSet(bset,anBlock)
 	fmt.Printf("Get %s future set：\n", testData.PH_GetFutureSet.Input)
 	printBlockSetTag(bset,tbMap)
 	//
@@ -35,7 +35,7 @@ func Test_GetAnticone(t *testing.T) {
 	anBlock := bd.GetBlock(tbMap[testData.PH_GetAnticone.Input])
 
 	////////////
-	bset := ph.bd.GetAnticone(anBlock, nil)
+	bset := ph.bd.getAnticone(anBlock, nil)
 	fmt.Printf("Get %s anticone set：\n", testData.PH_GetAnticone.Input)
 	printBlockSetTag(bset,tbMap)
 	//
