@@ -64,7 +64,7 @@ func (ph *Phantom) AddBlock(ib IBlock) *list.List {
 	ph.updateBlockColor(pb)
 	ph.updateBlockOrder(pb)
 
-	changeBlock:=ph.updateMainChain(ph.getBluest(ph.bd.GetTips()),pb)
+	changeBlock:=ph.updateMainChain(ph.getBluest(ph.bd.tips),pb)
 	ph.preUpdateVirtualBlock()
 	return ph.getOrderChangeList(changeBlock)
 }
@@ -82,8 +82,8 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		pb.blueNum=tp.blueNum+1
 		pb.height=tp.height+1
 
-		pbAnticone:=ph.bd.GetAnticone(pb.Block,nil)
-		tpAnticone:=ph.bd.GetAnticone(tp.Block,nil)
+		pbAnticone:=ph.bd.getAnticone(pb.Block,nil)
+		tpAnticone:=ph.bd.getAnticone(tp.Block,nil)
 		diffAnticone:=tpAnticone.Clone()
 		diffAnticone.RemoveSet(pbAnticone)
 
@@ -278,9 +278,9 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock,pb *PhantomBlock) *Pha
 	ph.updateMainOrder(path,intersection)
 	ph.mainChain.tip=buestTip.GetHash()
 
-	ph.diffAnticone=ph.bd.GetAnticone(ph.bd.GetBlock(ph.mainChain.tip),nil)
+	ph.diffAnticone=ph.bd.getAnticone(ph.bd.getBlock(ph.mainChain.tip),nil)
 
-	changeOrder:=ph.bd.GetBlock(intersection).GetOrder()+1
+	changeOrder:=ph.bd.getBlock(intersection).GetOrder()+1
 	return ph.getBlock(ph.bd.order[changeOrder])
 }
 
@@ -359,8 +359,8 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	}
 	ph.virtualBlock.parents = NewHashSet()
 	var maxLayer uint=0
-	for k:= range ph.bd.GetTips().GetMap() {
-		parent := ph.bd.GetBlock(&k)
+	for k:= range ph.bd.tips.GetMap() {
+		parent := ph.bd.getBlock(&k)
 		ph.virtualBlock.parents.AddPair(&k,parent)
 
 		if maxLayer==0 || maxLayer < parent.GetLayer() {
@@ -391,7 +391,7 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 		ph.bd.order[dab.GetOrder()]=dab.GetHash()
 	}
 
-	ph.virtualBlock.SetOrder(ph.bd.GetBlockTotal()+1)
+	ph.virtualBlock.SetOrder(ph.bd.blockTotal+1)
 
 	return ph.getBlock(ph.mainChain.tip)
 }
@@ -460,20 +460,20 @@ func (ph *Phantom) IsOnMainChain(b IBlock) bool {
 
 func (ph *Phantom) getOrderChangeList(pb *PhantomBlock) *list.List {
 	refNodes:=list.New()
-	if ph.bd.GetBlockTotal() == 1 {
+	if ph.bd.blockTotal == 1 {
 		refNodes.PushBack(ph.bd.GetGenesisHash())
 		return refNodes
 	}
 	if pb != nil {
-		tips:=ph.bd.GetTips()
+		tips:=ph.bd.tips
 		if tips.HasOnly(pb.GetHash()) {
 			refNodes.PushBack(pb.GetHash())
 			return refNodes
 		}
 		if pb.GetHash().IsEqual(ph.GetMainChainTip().GetHash()) {
 			refNodes.PushBack(pb.GetHash())
-		}else if pb.IsOrdered() && pb.GetOrder() <=ph.bd.GetMainChainTip().GetOrder() {
-			for i:=ph.bd.GetMainChainTip().GetOrder();i>=0;i-- {
+		}else if pb.IsOrdered() && pb.GetOrder() <=ph.GetMainChainTip().GetOrder() {
+			for i:=ph.GetMainChainTip().GetOrder();i>=0;i-- {
 				refNodes.PushFront(ph.bd.order[i])
 				if ph.bd.order[i].IsEqual(pb.GetHash()) {
 					break
@@ -492,7 +492,7 @@ func (ph *Phantom) getOrderChangeList(pb *PhantomBlock) *list.List {
 
 // return the tip of main chain
 func (ph *Phantom) GetMainChainTip() IBlock {
-	return ph.bd.GetBlock(ph.mainChain.tip)
+	return ph.bd.getBlock(ph.mainChain.tip)
 }
 
 // return the main parent in the parents
@@ -507,7 +507,7 @@ func (ph *Phantom) GetMainParent(parents *HashSet) IBlock {
 }
 
 func (ph *Phantom) getBlock(h *hash.Hash) *PhantomBlock {
-	return ph.bd.GetBlock(h).(*PhantomBlock)
+	return ph.bd.getBlock(h).(*PhantomBlock)
 }
 
 func (ph *Phantom) GetDiffAnticone() *HashSet {
@@ -541,7 +541,7 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 
 	ph.mainChain.genesis=ph.bd.GetGenesisHash()
 
-	for i:=uint(0);i<ph.bd.GetBlockTotal() ;i++ {
+	for i:=uint(0);i<ph.bd.blockTotal ;i++ {
 		block := Block{id:i}
 		ib:=ph.CreateBlock(&block)
 		err:=DBGetDAGBlock(dbTx,ib)
@@ -556,7 +556,7 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 			parentsSet:=NewHashSet()
 			for k:=range ib.GetParents().GetMap(){
 				parentHash:=k
-				parent := ph.bd.GetBlock(&parentHash)
+				parent := ph.bd.getBlock(&parentHash)
 				parentsSet.AddPair(&parentHash,parent)
 				parent.AddChild(&block)
 			}

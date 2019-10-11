@@ -11,6 +11,7 @@ import (
 	"io"
 	"math"
 	"sort"
+	"sync"
 	"time"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 )
@@ -150,6 +151,9 @@ type BlockDAG struct {
 
 	// Use block id to save all blocks with mapping
 	blockids map[uint]*hash.Hash
+
+	// state lock
+	stateLock sync.RWMutex
 }
 
 // Acquire the name of DAG instance
@@ -175,32 +179,35 @@ func (bd *BlockDAG) Init(dagType string) IBlockDAG{
 // This is an entry for update the block dag,you need pass in a block parameter,
 // If add block have failure,it will return false.
 func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	if b == nil {
 		return nil
 	}
-	if bd.HasBlock(b.GetHash()) {
+	if bd.hasBlock(b.GetHash()) {
 		return nil
 	}
 	var parents []*hash.Hash
-	if bd.GetBlockTotal() > 0 {
+	if bd.blockTotal > 0 {
 		parents = b.GetParents()
 		if len(parents) == 0 {
 			return nil
 		}
-		if !bd.HasBlocks(parents) {
+		if !bd.hasBlocks(parents) {
 			return nil
 		}
 	}
-	if !bd.IsDAG(b) {
+	if !bd.isDAG(b) {
 		return nil
 	}
 	//
-	block := Block{id:bd.GetBlockTotal(),hash: *b.GetHash(), weight: 1, layer:0,status:StatusNone}
+	block := Block{id:bd.blockTotal,hash: *b.GetHash(), weight: 1, layer:0,status:StatusNone}
 	if parents != nil {
 		block.parents = NewHashSet()
 		var maxLayer uint=0
 		for k, h := range parents {
-			parent := bd.GetBlock(h)
+			parent := bd.getBlock(h)
 			block.parents.AddPair(h,parent)
 			parent.AddChild(&block)
 			if k == 0 {
@@ -219,7 +226,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	}
 	ib:=bd.instance.CreateBlock(&block)
 	bd.blocks[block.hash] = ib
-	if bd.GetBlockTotal() == 0 {
+	if bd.blockTotal == 0 {
 		bd.genesis = *block.GetHash()
 	}
 	//
@@ -241,8 +248,8 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 }
 
 // Acquire the genesis block of chain
-func (bd *BlockDAG) GetGenesis() IBlock {
-	return bd.GetBlock(&bd.genesis)
+func (bd *BlockDAG) getGenesis() IBlock {
+	return bd.getBlock(&bd.genesis)
 }
 
 // Acquire the genesis block hash of chain
@@ -251,8 +258,8 @@ func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 }
 
 // If the block is illegal dag,will return false.
-func (bd *BlockDAG) IsDAG(b IBlockData) bool {
-	err:=bd.CheckLayerGap(b.GetParents())
+func (bd *BlockDAG) isDAG(b IBlockData) bool {
+	err:=bd.checkLayerGap(b.GetParents())
 	if err != nil {
 		log.Warn(err.Error())
 		return false
@@ -261,14 +268,19 @@ func (bd *BlockDAG) IsDAG(b IBlockData) bool {
 }
 
 // Is there a block in DAG?
+func (bd *BlockDAG) hasBlock(h *hash.Hash) bool {
+	return bd.getBlock(h) != nil
+}
+
+// Is there a block in DAG?
 func (bd *BlockDAG) HasBlock(h *hash.Hash) bool {
 	return bd.GetBlock(h) != nil
 }
 
 // Is there some block in DAG?
-func (bd *BlockDAG) HasBlocks(hs []*hash.Hash) bool {
+func (bd *BlockDAG) hasBlocks(hs []*hash.Hash) bool {
 	for _, h := range hs {
-		if !bd.HasBlock(h) {
+		if !bd.hasBlock(h) {
 			return false
 		}
 	}
@@ -277,6 +289,14 @@ func (bd *BlockDAG) HasBlocks(hs []*hash.Hash) bool {
 
 // Acquire one block by hash
 func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.getBlock(h)
+}
+
+// Acquire one block by hash
+func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
 	if h == nil {
 		return nil
 	}
@@ -289,23 +309,31 @@ func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
 
 // Total number of blocks
 func (bd *BlockDAG) GetBlockTotal() uint {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
 	return bd.blockTotal
 }
 
 // return the terminal blocks, because there maybe more than one, so this is a set.
 func (bd *BlockDAG) GetTips() *HashSet {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	return bd.tips
 }
 
 // Acquire the tips array of DAG
 func (bd *BlockDAG) GetTipsList() []IBlock {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	result:=bd.instance.GetTipsList()
 	if result!=nil {
 		return result
 	}
 	result=[]IBlock{}
 	for k:=range bd.tips.GetMap(){
-		result=append(result,bd.GetBlock(&k))
+		result=append(result,bd.getBlock(&k))
 	}
 	return result
 }
@@ -324,7 +352,7 @@ func (bd *BlockDAG) updateTips(b *Block) {
 		return
 	}
 	for k := range bd.tips.GetMap() {
-		block := bd.GetBlock(&k)
+		block := bd.getBlock(&k)
 		if block.HasChildren() {
 			bd.tips.Remove(&k)
 		}
@@ -334,16 +362,25 @@ func (bd *BlockDAG) updateTips(b *Block) {
 
 // The last time is when add one block to DAG.
 func (bd *BlockDAG) GetLastTime() *time.Time{
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	return &bd.lastTime
 }
 
 // Return the full sequence array.
 func (bd *BlockDAG) GetOrder() map[uint]*hash.Hash {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	return bd.order
 }
 
 // Obtain block hash by global order
 func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash{
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	return bd.instance.GetBlockByOrder(order)
 }
 
@@ -356,13 +393,16 @@ func (bd *BlockDAG) GetLastBlock() IBlock{
 // This function need a stable sequence,so call it before sorting the DAG.
 // If the h is invalid,the function will become a little inefficient.
 func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	if h==nil {
 		return nil
 	}
 	if h.IsEqual(bd.GetGenesisHash()) {
 		return nil
 	}
-	b:=bd.GetBlock(h)
+	b:=bd.getBlock(h)
 	if b==nil {
 		return nil
 	}
@@ -370,12 +410,12 @@ func (bd *BlockDAG) GetPrevious(h *hash.Hash) *hash.Hash{
 		return nil
 	}
 	// TODO
-	return bd.GetBlockByOrder(b.GetOrder()-1)
+	return bd.instance.GetBlockByOrder(b.GetOrder()-1)
 }
 
 // Returns a future collection of block. This function is a recursively called function
 // So we should consider its efficiency.
-func (bd *BlockDAG) GetFutureSet(fs *HashSet, b IBlock) {
+func (bd *BlockDAG) getFutureSet(fs *HashSet, b IBlock) {
 	children := b.GetChildren()
 	if children == nil || children.IsEmpty() {
 		return
@@ -383,7 +423,7 @@ func (bd *BlockDAG) GetFutureSet(fs *HashSet, b IBlock) {
 	for k:= range children.GetMap() {
 		if !fs.Has(&k) {
 			fs.Add(&k)
-			bd.GetFutureSet(fs, bd.GetBlock(&k))
+			bd.getFutureSet(fs, bd.getBlock(&k))
 		}
 	}
 }
@@ -391,16 +431,36 @@ func (bd *BlockDAG) GetFutureSet(fs *HashSet, b IBlock) {
 // Query whether a given block is on the main chain.
 // Note that some DAG protocols may not support this feature.
 func (bd *BlockDAG) IsOnMainChain(h *hash.Hash) bool {
-	return bd.instance.IsOnMainChain(bd.GetBlock(h))
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.isOnMainChain(h)
+}
+
+// Query whether a given block is on the main chain.
+// Note that some DAG protocols may not support this feature.
+func (bd *BlockDAG) isOnMainChain(h *hash.Hash) bool {
+	return bd.instance.IsOnMainChain(bd.getBlock(h))
 }
 
 // return the tip of main chain
 func (bd *BlockDAG) GetMainChainTip() IBlock {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.getMainChainTip()
+}
+
+// return the tip of main chain
+func (bd *BlockDAG) getMainChainTip() IBlock {
 	return bd.instance.GetMainChainTip()
 }
 
 // return the main parent in the parents
 func (bd *BlockDAG) GetMainParent(parents *HashSet) IBlock {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	return bd.instance.GetMainParent(parents)
 }
 
@@ -412,6 +472,13 @@ func (bd *BlockDAG) GetLayer(h *hash.Hash) uint {
 
 // Return current general description of the whole state of DAG
 func (bd *BlockDAG) GetGraphState() *GraphState {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+	return bd.getGraphState()
+}
+
+// Return current general description of the whole state of DAG
+func (bd *BlockDAG) getGraphState() *GraphState {
 	gs:=NewGraphState()
 	if bd.tips!=nil && !bd.tips.IsEmpty() {
 		gs.GetTips().AddList(bd.tips.List())
@@ -424,22 +491,25 @@ func (bd *BlockDAG) GetGraphState() *GraphState {
 			}
 		}
 	}
-	gs.SetTotal(bd.GetBlockTotal())
-	gs.SetMainHeight(bd.GetMainChainTip().GetHeight())
-	gs.SetMainOrder(bd.GetMainChainTip().GetOrder())
+	gs.SetTotal(bd.blockTotal)
+	gs.SetMainHeight(bd.getMainChainTip().GetHeight())
+	gs.SetMainOrder(bd.getMainChainTip().GetOrder())
 	return gs
 }
 
 // Locate all eligible block by current graph state.
 func (bd *BlockDAG) LocateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
-	if gs.IsExcellent(bd.GetGraphState()) {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	if gs.IsExcellent(bd.getGraphState()) {
 		return nil
 	}
 	queue := []IBlock{}
 	fs:=NewHashSet()
-	tips:=bd.GetValidTips()
+	tips:=bd.getValidTips()
 	for _,v:=range tips {
-		ib:=bd.GetBlock(v)
+		ib:=bd.getBlock(v)
 		queue=append(queue,ib)
 	}
 	for len(queue) > 0 {
@@ -532,7 +602,7 @@ func (bd *BlockDAG) recAnticone(b IBlock, futureSet *HashSet, anticone *HashSet,
 	if h.IsEqual(b.GetHash()) {
 		return
 	}
-	node:=bd.GetBlock(h)
+	node:=bd.getBlock(h)
 	children := node.GetChildren()
 	needRecursion := false
 	if children == nil || children.Size() == 0 {
@@ -555,9 +625,9 @@ func (bd *BlockDAG) recAnticone(b IBlock, futureSet *HashSet, anticone *HashSet,
 
 // This function can get anticone set for an block that you offered in the block dag,If
 // the exclude set is not empty,the final result will exclude set that you passed in.
-func (bd *BlockDAG) GetAnticone(b IBlock, exclude *HashSet) *HashSet {
+func (bd *BlockDAG) getAnticone(b IBlock, exclude *HashSet) *HashSet {
 	futureSet := NewHashSet()
-	bd.GetFutureSet(futureSet, b)
+	bd.getFutureSet(futureSet, b)
 	anticone := NewHashSet()
 	for k:= range bd.tips.GetMap() {
 		bd.recAnticone(b, futureSet, anticone, &k)
@@ -570,12 +640,15 @@ func (bd *BlockDAG) GetAnticone(b IBlock, exclude *HashSet) *HashSet {
 
 // Sort block by id
 func (bd *BlockDAG) SortBlock(src []*hash.Hash) []*hash.Hash {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	if len(src)<=1 {
 		return src
 	}
 	srcBlockS:=BlockSlice{}
 	for i:=0;i<len(src) ;i++  {
-		ib:=bd.GetBlock(src[i])
+		ib:=bd.getBlock(src[i])
 		if ib!=nil {
 			srcBlockS=append(srcBlockS,ib)
 		}
@@ -592,15 +665,18 @@ func (bd *BlockDAG) SortBlock(src []*hash.Hash) []*hash.Hash {
 
 // GetConfirmations
 func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
-	block:=bd.GetBlock(h)
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	block:=bd.getBlock(h)
 	if block == nil {
 		return 0
 	}
-	if block.GetOrder() > bd.GetMainChainTip().GetOrder() {
+	if block.GetOrder() > bd.getMainChainTip().GetOrder() {
 		return 0
 	}
-	mainTip:=bd.GetMainChainTip()
-	if bd.IsOnMainChain(h) {
+	mainTip:=bd.getMainChainTip()
+	if bd.isOnMainChain(h) {
 		return mainTip.GetHeight()-block.GetHeight()
 	}
 	if !block.HasChildren() {
@@ -614,7 +690,7 @@ func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
 		cur := queue[0]
 		queue = queue[1:]
 
-		if bd.IsOnMainChain(cur.GetHash()) {
+		if bd.isOnMainChain(cur.GetHash()) {
 			return 1+mainTip.GetHeight()-cur.GetHeight()
 		}
 		if !cur.HasChildren() {
@@ -630,19 +706,28 @@ func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
 }
 
 func (bd *BlockDAG) GetBlockHash(id uint) *hash.Hash {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	return bd.blockids[id]
 }
 
 func (bd *BlockDAG) GetValidTips() []*hash.Hash {
-	parents:=bd.GetTips().SortList(false)
-	mainParent:=bd.GetMainChainTip()
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+	return bd.getValidTips()
+}
+
+func (bd *BlockDAG) getValidTips() []*hash.Hash {
+	parents:=bd.tips.SortList(false)
+	mainParent:=bd.getMainChainTip()
 	tips:=[]*hash.Hash{}
 	for i:=0;i<len(parents);i++ {
 		if mainParent.GetHash().IsEqual(parents[i]) {
 			tips=append(tips,parents[i])
 			continue
 		}
-		block:=bd.GetBlock(parents[i])
+		block:=bd.getBlock(parents[i])
 		if math.Abs(float64(block.GetLayer())-float64(mainParent.GetLayer()))>MaxTipLayerGap {
 			continue
 		}
@@ -652,12 +737,19 @@ func (bd *BlockDAG) GetValidTips() []*hash.Hash {
 }
 
 func (bd *BlockDAG) CheckLayerGap(parents []*hash.Hash) error {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.checkLayerGap(parents)
+}
+
+func (bd *BlockDAG) checkLayerGap(parents []*hash.Hash) error {
 	if len(parents)==0 {
 		return nil
 	}
 	parentsNode:=[]IBlock{}
 	for _,v:=range parents{
-		ib:=bd.GetBlock(v)
+		ib:=bd.getBlock(v)
 		if ib == nil {
 			continue
 		}
