@@ -70,11 +70,11 @@ func (con *Conflux) AddBlock(b IBlock) *list.List {
 	con.updatePrivot(b)
 	oldOrder:=con.bd.order
 	con.bd.order = map[uint]*hash.Hash{}
-	con.updateMainChain(con.bd.GetGenesis(), nil, nil)
+	con.updateMainChain(con.bd.getGenesis(), nil, nil)
 
 	var result *list.List
 	var i uint
-	for i=0;i<con.bd.GetBlockTotal();i++ {
+	for i=0;i<con.bd.blockTotal;i++ {
 		if result==nil {
 			if len(oldOrder)==0||
 				i>=uint(len(oldOrder))||
@@ -110,7 +110,7 @@ func (con *Conflux) GetTipsList() []IBlock {
 	tipsList := tips.List()
 	result := []IBlock{con.privotTip}
 	for _, h := range tipsList {
-		result = append(result, con.bd.GetBlock(h))
+		result = append(result, con.bd.getBlock(h))
 	}
 	return result
 }
@@ -119,10 +119,10 @@ func (con *Conflux) updatePrivot(b IBlock) {
 	if b.GetMainParent() == nil {
 		return
 	}
-	parent := con.bd.GetBlock(b.GetMainParent())
+	parent := con.bd.getBlock(b.GetMainParent())
 	var newWeight uint = 0
 	for h := range parent.GetChildren().GetMap() {
-		block := con.bd.GetBlock(&h)
+		block := con.bd.getBlock(&h)
 		if block.GetMainParent().IsEqual(parent.GetHash()) {
 			newWeight += block.GetWeight()
 		}
@@ -147,22 +147,22 @@ func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *HashSet) {
 	}
 	if !b.HasChildren() {
 		con.privotTip = b
-		if con.bd.GetTips().Size() > 1 {
+		if con.bd.tips.Size() > 1 {
 			virtualBlock := Block{hash: hash.Hash{}, weight: 1}
 			virtualBlock.parents = NewHashSet()
-			virtualBlock.parents.AddSet(con.bd.GetTips())
+			virtualBlock.parents.AddSet(con.bd.tips)
 			con.updateMainChain(&virtualBlock, curEpoch, main)
 		}
 		return
 	}
 	children := b.GetChildren().List()
 	if len(children) == 1 {
-		con.updateMainChain(con.bd.GetBlock(children[0]), curEpoch, main)
+		con.updateMainChain(con.bd.getBlock(children[0]), curEpoch, main)
 		return
 	}
 	var nextMain IBlock = nil
 	for _, h := range children {
-		child := con.bd.GetBlock(h)
+		child := con.bd.getBlock(h)
 
 		if nextMain == nil {
 			nextMain = child
@@ -184,7 +184,7 @@ func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *HashSet) {
 
 func (con *Conflux) GetMainChain() []*hash.Hash {
 	result := []*hash.Hash{}
-	for p := con.privotTip; p != nil; p = con.bd.GetBlock(p.GetMainParent()) {
+	for p := con.privotTip; p != nil; p = con.bd.getBlock(p.GetMainParent()) {
 		result = append(result, p.GetHash())
 	}
 	return result
@@ -268,7 +268,7 @@ func (con *Conflux) getEpoch(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch {
 				if dependsS.Has(&h) {
 					continue
 				}
-				parent := con.bd.GetBlock(&h)
+				parent := con.bd.getBlock(&h)
 				result.depends = append(result.depends, parent)
 				chain.PushBack(parent)
 				dependsS.Add(&h)
@@ -282,7 +282,7 @@ func (con *Conflux) getForwardBlocks(bs *HashSet) []IBlock {
 	result := []IBlock{}
 	rs := NewHashSet()
 	for h := range bs.GetMap() {
-		block := con.bd.GetBlock(&h)
+		block := con.bd.getBlock(&h)
 
 		isParentsExit := false
 		if block.HasParents() {
@@ -298,7 +298,7 @@ func (con *Conflux) getForwardBlocks(bs *HashSet) []IBlock {
 		}
 	}
 	if rs.Size() == 1 {
-		result = append(result, con.bd.GetBlock(rs.List()[0]))
+		result = append(result, con.bd.getBlock(rs.List()[0]))
 	} else if rs.Size() > 1 {
 		for {
 			if rs.IsEmpty() {
@@ -315,7 +315,7 @@ func (con *Conflux) getForwardBlocks(bs *HashSet) []IBlock {
 					minHash = &h
 				}
 			}
-			result = append(result, con.bd.GetBlock(minHash))
+			result = append(result, con.bd.getBlock(minHash))
 			rs.Remove(minHash)
 		}
 	}
@@ -328,7 +328,7 @@ func (con *Conflux) isVirtualBlock(b IBlock) bool {
 }
 
 func (con *Conflux) GetBlockByOrder(order uint) *hash.Hash {
-	if order>=con.bd.GetBlockTotal() {
+	if order>=con.bd.blockTotal {
 		return nil
 	}
 	return con.bd.order[order]
@@ -336,7 +336,7 @@ func (con *Conflux) GetBlockByOrder(order uint) *hash.Hash {
 
 // Query whether a given block is on the main chain.
 func (con *Conflux) IsOnMainChain(b IBlock) bool {
-	for p := con.privotTip; p != nil; p = con.bd.GetBlock(p.GetMainParent()) {
+	for p := con.privotTip; p != nil; p = con.bd.getBlock(p.GetMainParent()) {
 		if p.GetHash().IsEqual(b.GetHash()) {
 			return true
 		}
