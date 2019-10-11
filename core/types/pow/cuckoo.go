@@ -110,8 +110,5 @@ func (this *Cuckoo)Bytes() PowBytes {
 // compare the target
 // wether target match the target diff
 func (this *Cuckoo) CompareDiff(newTarget *big.Int,target *big.Int) bool{
-    if newTarget.Cmp(target) < 0{
-        return false
-    }
-    return true
+    return newTarget.Cmp(target) >= 0
 }

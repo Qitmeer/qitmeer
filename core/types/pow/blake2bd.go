@@ -81,10 +81,7 @@ func (this *Blake2bd) GetSafeDiff(param *PowConfig,cur_reduce_diff uint64) uint6
 // compare the target
 // wether target match the target diff
 func (this *Blake2bd) CompareDiff(newTarget *big.Int,target *big.Int) bool{
-    if newTarget.Cmp(target) > 0{
-        return false
-    }
-    return true
+    return newTarget.Cmp(target) <= 0
 }
 
 // pow bytes

@@ -99,10 +99,10 @@ type Pow struct {
 
 func (this *Pow)GetPowResult() json.PowResult {
     return json.PowResult{
-        this.GetNonce(),
-        PowMapString[this.GetPowType()].(string),
-        uint8(this.GetPowType()),
-        this.GetProofData(),
+        Nonce:this.GetNonce(),
+        PowName:PowMapString[this.GetPowType()].(string),
+        PowType:uint8(this.GetPowType()),
+        ProofData:this.GetProofData(),
     }
 }
 

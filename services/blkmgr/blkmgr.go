@@ -667,7 +667,7 @@ func (b *BlockManager) ProcessBlock(block *types.SerializedBlock, flags blockcha
 	if block.Block().Header.Pow.PowPercent(b.params.PowConfig).Cmp(big.NewInt(0)) <=0 {
 		str := fmt.Sprintf("pow type:%d is invalid in this chain", block.Block().Header.Pow.GetPowType())
 		return false,blockchain.RuleError{
-			blockchain.ErrInValidPowType,str}
+			ErrorCode:blockchain.ErrInValidPowType,Description:str}
 	}
 	reply := make(chan processBlockResponse, 1)
 	b.msgChan <- processBlockMsg{block: block, flags: flags, reply: reply}
