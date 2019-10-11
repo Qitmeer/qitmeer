@@ -217,7 +217,7 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 		Difficulty:    blockHeader.Difficulty,
 		Layer:         uint32(layer),
 		Time:          blockHeader.Timestamp.Unix(),
-		Nonce:         blockHeader.Nonce,
+		PowResult:         blockHeader.Pow.GetPowResult(),
 	}
 
 	return blockHeaderReply, nil

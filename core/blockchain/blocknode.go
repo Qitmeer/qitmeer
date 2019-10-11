@@ -7,6 +7,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/types"
+	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"math/big"
 	"sort"
 	"time"
@@ -84,8 +85,6 @@ type blockNode struct {
 	timestamp    int64
 	txRoot   	 hash.Hash
 	stateRoot    hash.Hash
-	nonce        uint64
-	exNonce      uint64
 	extraData    [32]byte
 
 	// status is a bitfield representing the validation state of the block.
@@ -103,6 +102,9 @@ type blockNode struct {
 
 	// layer
 	layer    uint
+
+	// pow
+	pow pow.IPow
 }
 
 // newBlockNode returns a new block node for the given block header and parent
@@ -124,16 +126,15 @@ func newBlockNode(blockHeader *types.BlockHeader, parents []*blockNode) *blockNo
 func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*blockNode) {
 	*node = blockNode{
 		hash:         blockHeader.BlockHash(),
-		workSum:      CalcWork(blockHeader.Difficulty),
+		workSum:      pow.CalcWork(blockHeader.Difficulty,blockHeader.Pow.GetPowType()),
 		order:        uint64(blockdag.MaxBlockOrder),
 		blockVersion: blockHeader.Version,
 		bits:         blockHeader.Difficulty,
 		timestamp:    blockHeader.Timestamp.Unix(),
 		txRoot:       blockHeader.TxRoot,
-		nonce:        blockHeader.Nonce,
-		exNonce:      blockHeader.ExNonce,
 		stateRoot:    blockHeader.StateRoot,
 		status:       statusNone,
+		pow:          blockHeader.Pow,
 	}
 	if len(parents)>0 {
 		node.parents = parents
@@ -160,10 +161,13 @@ func (node *blockNode) Header() types.BlockHeader {
 		TxRoot:   	node.txRoot,
 		StateRoot:  node.stateRoot,
 		Difficulty: node.bits,
-		ExNonce:    node.exNonce,
 		Timestamp:  time.Unix(node.timestamp, 0),
-		Nonce:      node.nonce,
+		Pow:        node.pow,
 	}
+}
+
+func (node *blockNode) GetPowType() pow.PowType {
+	return node.pow.GetPowType()
 }
 
 // CalcPastMedianTime calculates the median time of the previous few blocks

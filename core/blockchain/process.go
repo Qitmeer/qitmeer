@@ -7,6 +7,7 @@ package blockchain
 
 import (
 	"fmt"
+	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"time"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/common/hash"
@@ -147,9 +148,9 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 			// expected based on elapsed time since the last checkpoint and
 			// maximum adjustment allowed by the retarget rules.
 			duration := blockHeader.Timestamp.Sub(checkpointTime)
-			requiredTarget := CompactToBig(b.calcEasiestDifficulty(
-				checkpointNode.bits, duration))
-			currentTarget := CompactToBig(blockHeader.Difficulty)
+			requiredTarget := pow.CompactToBig(b.calcEasiestDifficulty(
+				checkpointNode.bits, duration,block.Block().Header.Pow.GetPowType()))
+			currentTarget := pow.CompactToBig(blockHeader.Difficulty)
 			if currentTarget.Cmp(requiredTarget) > 0 {
 				str := fmt.Sprintf("block target difficulty of %064x "+
 					"is too low when compared to the previous "+

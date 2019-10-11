@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
+	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"time"
 	"github.com/Qitmeer/qitmeer/ledger"
 )
@@ -69,7 +70,7 @@ var genesisBlock = types.Block{
 		StateRoot:	 hash.Hash{},
 		Timestamp:    time.Unix(1561939200, 0), // 2019-07-01 00:00:00 GMT
 		Difficulty:         0x1b01ffff,               // Difficulty 32767
-		Nonce:        0x00000000,
+		Pow:&pow.Blake2bd{},
 	},
 	Transactions: []*types.Transaction{&genesisCoinbaseTx},
 }
@@ -97,7 +98,7 @@ var testNetGenesisBlock = types.Block{
 		TxRoot:       testNetGenesisMerkleRoot,
 		Timestamp:    time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
 		Difficulty:   0x1e00ffff,
-		Nonce:        0x00000000,
+		Pow:&pow.Blake2bd{},
 	},
 	Transactions: []*types.Transaction{&testNetGenesisCoinbaseTx},
 }
@@ -172,7 +173,7 @@ var privNetGenesisBlock = types.Block{
 		}),
 		Timestamp:    time.Unix(1530833717, 0), // 2018-07-05 23:35:17 GMT
 		Difficulty:   0x207fffff, // 545259519
-		Nonce:        0,
+		Pow:&pow.Blake2bd{},
 	},
 	Transactions:  []*types.Transaction{&privNetGenesisCoinbaseTx},
 }
@@ -180,4 +181,32 @@ var privNetGenesisBlock = types.Block{
 // privNetGenesisHash is the hash of the first block in the block chain for the
 // private test network.
 var privNetGenesisHash = privNetGenesisBlock.BlockHash()
+
+
+// TestMixNet ------------------------------------------------------------------------
+
+//
+var testPowNetGenesisCoinbaseTx = types.Transaction{}
+
+// testNetGenesisMerkleRoot is the hash of the first transaction in the genesis block
+// for the test network.
+var testPowNetGenesisMerkleRoot = testPowNetGenesisCoinbaseTx.TxHash()
+
+// testNetGenesisBlock defines the genesis block of the block chain which
+// serves as the public transaction ledger for the test network (version 3).
+var testPowNetGenesisBlock = types.Block{
+	Header: types.BlockHeader{
+		Version:      16,
+		ParentRoot:   hash.Hash{},
+		TxRoot:       testPowNetGenesisMerkleRoot,
+		Timestamp:    time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
+		Difficulty:   0x1e00ffff,
+		Pow:&pow.Blake2bd{},
+	},
+	Transactions: []*types.Transaction{&testPowNetGenesisCoinbaseTx},
+	Parents: []*hash.Hash{},
+}
+// testNetGenesisHash is the hash of the first block in the block chain for the
+// test network.
+var testPowNetGenesisHash = testPowNetGenesisBlock.BlockHash()
 

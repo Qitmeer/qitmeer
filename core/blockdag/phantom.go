@@ -548,6 +548,8 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 		if err !=nil {
 			return err
 		}
+		fmt.Println(ph.bd.GetGenesisHash())
+		fmt.Println(ib.GetHash())
 		if i==0 && !ib.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
 			return fmt.Errorf("genesis data mismatch")
 		}

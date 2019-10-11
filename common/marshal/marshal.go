@@ -187,7 +187,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		{Key:"stateRoot", Val:head.StateRoot.String()},
 		{Key:"bits", Val:strconv.FormatUint(uint64(head.Difficulty), 16)},
 		{Key:"difficulty", Val:head.Difficulty},
-		{Key:"nonce", Val:head.Nonce},
+		{Key:"pow", Val : head.Pow.GetPowResult()},
 		{Key:"timestamp", Val:head.Timestamp.Format(time.RFC3339)},
 		{Key:"parentroot",       Val:head.ParentRoot.String()},
 	}...)

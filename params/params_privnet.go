@@ -7,6 +7,7 @@
 package params
 
 import (
+	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"math/big"
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
@@ -34,8 +35,17 @@ var PrivNetParams = Params{
 	// Chain parameters
 	GenesisBlock:             &privNetGenesisBlock,
 	GenesisHash:              &privNetGenesisHash,
-	PowLimit:                 privNetPowLimit,
-	PowLimitBits:             0x207fffff,
+	PowConfig :&pow.PowConfig{
+		Blake2bdPowLimit:                 privNetPowLimit,
+		Blake2bdPowLimitBits:             0x207fffff,
+		Blake2bDPercent:          34,
+		CuckarooPercent:          33,
+		CuckatooPercent:          33,
+		CuckarooDiffScale:            1856,
+		CuckatooDiffScale:            1856,
+		CuckarooMinDifficulty:     1000,
+		CuckatooMinDifficulty:     1000,
+	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        true,

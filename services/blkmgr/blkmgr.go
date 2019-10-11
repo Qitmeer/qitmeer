@@ -7,17 +7,18 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
-	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/params/dcr/types"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
+	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/params/dcr/types"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
+	`math/big`
 	"sync"
 	"sync/atomic"
 	"time"
@@ -662,6 +663,12 @@ type processBlockMsg struct {
 // chain.  It is funneled through the block manager since blockchain is not safe
 // for concurrent access.
 func (b *BlockManager) ProcessBlock(block *types.SerializedBlock, flags blockchain.BehaviorFlags) (bool, error) {
+	//check pow type percent if percent <= 0 is invalid
+	if block.Block().Header.Pow.PowPercent(b.params.PowConfig).Cmp(big.NewInt(0)) <=0 {
+		str := fmt.Sprintf("pow type:%d is invalid in this chain", block.Block().Header.Pow.GetPowType())
+		return false,blockchain.RuleError{
+			blockchain.ErrInValidPowType,str}
+	}
 	reply := make(chan processBlockResponse, 1)
 	b.msgChan <- processBlockMsg{block: block, flags: flags, reply: reply}
 	response := <-reply

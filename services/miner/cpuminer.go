@@ -12,6 +12,8 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/types"
+	`github.com/Qitmeer/qitmeer/core/types/pow`
+	`github.com/Qitmeer/qitmeer/crypto/cuckoo`
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
@@ -26,7 +28,7 @@ import (
 
 const (
 	// maxNonce is the maximum value a nonce can be in a block header.
-	maxNonce = ^uint64(0) // 2^64 - 1
+	maxNonce = ^uint32(0) // 2^32 - 1
 
 	// TODO, decided if th extra nonce for coinbase-tx need
 	// maxExtraNonce is the maximum value an extra nonce used in a coinbase
@@ -113,7 +115,7 @@ func NewCPUMiner(cfg *config.Config,par *params.Params, policy *mining.Policy,
 // detecting when it is performing stale work and reacting accordingly by
 // generating a new block template.  When a block is solved, it is submitted.
 // The function returns a list of the hashes of generated blocks.
-func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
+func (m *CPUMiner) GenerateNBlocks(n uint32,powType pow.PowType) ([]*hash.Hash, error) {
 	m.Lock()
 
 	// Respond with an error if there's virtually 0 chance of CPU-mining a block.
@@ -191,14 +193,40 @@ func (m *CPUMiner) GenerateNBlocks(n uint32) ([]*hash.Hash, error) {
 			continue //might try again?
 		}
 
+		var result = false
+		switch powType {
+		case pow.BLAKE2BD:
+			template.Block.Header.Difficulty = uint32(template.PowDiffData.Blake2bDTarget)
+			result = m.solveBlock(template.Block, ticker, nil)
+		case pow.CUCKAROO:
+			template.Block.Header.Difficulty = uint32(template.PowDiffData.CuckarooBaseDiff)
+			result = m.solveCuckarooBlock(template.Block, ticker, nil,template.PowDiffData.CuckarooDiffScale)
+		default:
+			m.Lock()
+			close(m.speedMonitorQuit)
+			m.wg.Wait()
+			m.started = false
+			m.discreteMining = false
+			m.Unlock()
+			return nil, errors.New("pow not found!")  //should miner if error
+		}
+
 		// Attempt to solve the block.  The function will exit early
 		// with false when conditions that trigger a stale block, so
 		// a new block template can be generated.  When the return is
 		// true a solution was found, so submit the solved block.
-		if m.solveBlock(template.Block, ticker, nil) {
+		if result {
 			block := types.NewBlock(template.Block)
 			block.SetHeight(uint(template.Height))
-			m.submitBlock(block)
+			if !m.submitBlock(block){
+				m.Lock()
+				close(m.speedMonitorQuit)
+				m.wg.Wait()
+				m.started = false
+				m.discreteMining = false
+				m.Unlock()
+				return nil, errors.New("submit Block Error!")  //should miner if error
+			}
 			blockHashes[i] = block.Hash()
 			i++
 			if i == n {
@@ -284,13 +312,12 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 
 	// Create a couple of convenience variables.
 	header := &msgBlock.Header
-	targetDifficulty := blockchain.CompactToBig(header.Difficulty)
 
 	// Initial state.
 	lastGenerated := time.Now()
 	lastTxUpdate := m.txSource.LastUpdated()
 	hashesCompleted := uint64(0)
-
+	target := pow.CompactToBig(uint32(header.Difficulty))
 	// TODO, decided if need extra nonce for coinbase-tx
 	// Note that the entire extra nonce range is iterated and the offset is
 	// added relying on the fact that overflow will wrap around 0 as
@@ -310,7 +337,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 		// Search through the entire nonce range for a solution while
 		// periodically checking for early quit and stale block
 		// conditions along with updates to the speed monitor.
-		for i := uint64(0); i <= maxNonce; i++ {
+		for i := uint32(0); i <= maxNonce; i++ {
 			select {
 			case <-quit:
 				return false
@@ -340,22 +367,82 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 			default:
 				// Non-blocking select to fall through
 			}
-
+			instance := pow.GetInstance(pow.BLAKE2BD,0,[]byte{})
+			powStruct := instance.(*pow.Blake2bd)
 			// Update the nonce and hash the block header.
-			header.Nonce = i
-			h := header.BlockHash()
+			powStruct.Nonce = i
+
+			header.Pow = powStruct
+
 			// Each hash is actually a double hash (tow hashes), so
 			// increment the number of hashes by 2
 			hashesCompleted += 2
+			h := hash.DoubleHashH(header.BlockData())
+			hashNum := pow.HashToBig(&h)
 
+			if hashNum.Cmp(target) > 0 {
+				str := fmt.Sprintf("block hash of %064x is higher than"+
+					" expected max of %064x", hashNum, target)
+				log.Debug(str)
+				continue
+			}
 			// The block is solved when the new block hash is less
 			// than the target difficulty.  Yay!
-			if blockchain.HashToBig(&h).Cmp(targetDifficulty) <= 0 {
-				m.updateHashes <- hashesCompleted
-				return true
-			}
+			m.updateHashes <- hashesCompleted
+			return true
 		}
 	//}
+	return false
+}
+
+// solveBlock attempts to find 42 circles that hash match the target diff
+func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{},scale uint64) bool {
+
+	// Create a couple of convenience variables.
+	header := &msgBlock.Header
+	// Initial state.
+	hashesCompleted := uint64(0)
+	// Search through the entire nonce range for a solution while
+	// periodically checking for early quit and stale block
+	// conditions along with updates to the speed monitor.
+	for i := uint32(0); i <= maxNonce; i++ {
+		select {
+		case <-quit:
+			return false
+
+		case <-ticker.C:
+			m.updateHashes <- hashesCompleted
+			return true
+		default:
+			// Non-blocking select to fall through
+		}
+		instance := pow.GetInstance(pow.CUCKAROO,0,[]byte{})
+		powStruct := instance.(*pow.Cuckaroo)
+		powStruct.Nonce = i
+		// Update the nonce and hash the block header.
+		header.Pow = powStruct
+		powStruct.SetEdgeBits(uint8(cuckoo.Edgebits))
+		sipH := hash.HashH(header.BlockData())
+		c:= cuckoo.NewCuckoo()
+		cycleNonces, isFound := c.PoW(sipH[:])
+		if !isFound {
+			continue
+		}
+		powStruct.SetCircleEdges(cycleNonces)
+		powStruct.SetScale(uint32(scale))
+		err := cuckoo.VerifyCuckaroo(sipH[:],cycleNonces[:],uint(cuckoo.Edgebits))
+		if err != nil{
+			log.Debug(err.Error())
+			continue
+		}
+		if pow.CalcCuckooDiff(int64(scale),powStruct.GetBlockHash([]byte{})) < uint64(header.Difficulty){
+			log.Debug("cuckoo hash difficulty is too easy!")
+			continue
+		}
+		hashesCompleted += 2
+		m.updateHashes <- hashesCompleted
+		return true
+	}
 	return false
 }
 
@@ -665,7 +752,10 @@ out:
 		if m.solveBlock(template.Block, ticker, quit) {
 			block := types.NewBlock(template.Block)
 			block.SetHeight(uint(template.Height))
-			m.submitBlock(block)
+			if !m.submitBlock(block){
+				log.Error("Failed to submit new block ","err")
+				continue
+			}
 			m.minedOnParents[template.Block.Header.ParentRoot]++
 		}
 	}

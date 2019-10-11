@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"math/rand"
 	"strconv"
@@ -296,7 +297,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 		}
 		msgBlock := template.Block
 		targetDifficulty = fmt.Sprintf("%064x",
-			blockchain.CompactToBig(msgBlock.Header.Difficulty))
+			pow.CompactToBig(msgBlock.Header.Difficulty))
 
 		// Get the minimum allowed timestamp for the block based on the
 		// median timestamp of the last several blocks per the chain
@@ -320,13 +321,12 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 		// Set locals for convenience.
 		msgBlock := template.Block
 		targetDifficulty = fmt.Sprintf("%064x",
-			blockchain.CompactToBig(msgBlock.Header.Difficulty))
+			pow.CompactToBig(msgBlock.Header.Difficulty))
 
 		// Update the time of the block template to the current time
 		// while accounting for the median time of the past several
 		// blocks per the chain consensus rules.
 		mining.UpdateBlockTime(msgBlock,m.blockManager.GetChain(),m.timeSource,m.params)
-		msgBlock.Header.Nonce = 0
 
 		log.Debug(fmt.Sprintf("Updated block template (timestamp %v, "+
 			"target %s)", msgBlock.Header.Timestamp,
@@ -432,11 +432,12 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 		"time", "transactions/add", "prevblock", "coinbase/append",
 	}
 	gbtCapabilities := []string{"proposal"}
-
-	targetDifficulty := fmt.Sprintf("%064x", blockchain.CompactToBig(header.Difficulty))
+	blake2bdBig := pow.CompactToBig(template.PowDiffData.Blake2bDTarget)
+	targetBlake2bDDifficulty := fmt.Sprintf("%064x", blake2bdBig)
+	targetCuckarooDDifficulty := template.PowDiffData.CuckarooBaseDiff
+	targetCuckatooDDifficulty := template.PowDiffData.CuckatooBaseDiff
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, state.lastGenerated)
 	reply := json.GetBlockTemplateResult{
-		Bits:         strconv.FormatInt(int64(template.Block.Header.Difficulty), 16),
 		StateRoot:    template.Block.Header.StateRoot.String(),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
 		Height:       int64(template.Height),
@@ -452,7 +453,17 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 		LongPollID:   longPollID,
 		//TODO, submitOld
 		SubmitOld: submitOld,
-		Target:    targetDifficulty,
+		PowDiffReference:json.PowDiffReference{
+			Blake2bDBits: strconv.FormatInt(int64(template.PowDiffData.Blake2bDTarget), 16),
+			//blake2bd hash diff compare target
+			Blake2bTarget : targetBlake2bDDifficulty,
+			//cuckoo mining min diff
+			CuckarooMinDiff         : targetCuckarooDDifficulty,
+			CuckatooMinDiff         : targetCuckatooDDifficulty,
+			//cuckoo hash calc diff scale
+			CuckarooDiffScale         : template.PowDiffData.CuckarooDiffScale,
+			CuckatooDiffScale         : template.PowDiffData.CuckatooDiffScale,
+		},
 		MinTime:   state.minTimestamp.Unix(),
 		MaxTime:   maxTime.Unix(),
 		// gbtMutableFields
@@ -505,7 +516,7 @@ func NewPrivateMinerAPI(c *CPUMiner) *PrivateMinerAPI {
 	return pmAPI
 }
 
-func (api *PrivateMinerAPI) Generate(numBlocks uint32) ([]string, error) {
+func (api *PrivateMinerAPI) Generate(numBlocks uint32,powType pow.PowType) ([]string, error) {
 	// Respond with an error if there are no addresses to pay the
 	// created blocks to.
 	if len(api.miner.config.GetMinningAddrs()) == 0 {
@@ -521,7 +532,7 @@ func (api *PrivateMinerAPI) Generate(numBlocks uint32) ([]string, error) {
 	if numBlocks > 3000 {
 		return nil, fmt.Errorf("error, more than 1000")
 	}
-	blockHashes, err := api.miner.GenerateNBlocks(numBlocks)
+	blockHashes, err := api.miner.GenerateNBlocks(numBlocks,powType)
 	if err != nil {
 		return nil, rpc.RpcInternalError("Could not generate blocks,"+err.Error(),
 			"miner")

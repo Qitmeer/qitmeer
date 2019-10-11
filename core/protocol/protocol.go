@@ -35,6 +35,10 @@ const (
 
 	// PrivNet represents the private test network.
 	PrivNet Network = 0xf1eb0001
+
+	// MixTestNet represents the private test network.
+	//md5(MixTestNet) first 4 bytes
+	MixTestNet Network = 0xc459b247
 )
 
 // bnStrings is a map of networks back to their constant names for
@@ -43,6 +47,7 @@ var bnStrings = map[Network]string{
 	MainNet:  "MainNet",
 	TestNet:  "TestNet",
 	PrivNet:  "PirvNet",
+	MixTestNet:  "MixTestNet",
 }
 
 // String returns the CurrencyNet in human-readable form.

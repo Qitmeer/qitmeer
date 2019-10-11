@@ -35,6 +35,7 @@ type Config struct {
 	SigCacheMaxSize      uint          `long:"sigcachemaxsize" description:"The maximum number of entries in the signature verification cache"`
 	DumpBlockchain       string        `long:"dumpblockchain" description:"Write blockchain as a flat file of blocks for use with addblock, to the specified filename"`
 	TestNet              bool          `long:"testnet" description:"Use the test network"`
+	TestPowNet           bool          `long:"testmixnet" description:"Use the test mix pow network"`
 	PrivNet              bool          `long:"privnet" description:"Use the private network"`
 	DbType               string        `long:"dbtype" description:"Database backend to use for the Block Chain"`
 	Profile              string        `long:"profile" description:"Enable HTTP profiling on given [addr:]port -- NOTE port must be between 1024 and 65536"`

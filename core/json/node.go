@@ -1,5 +1,12 @@
 package json
 
+// for pow diff
+type PowDiff struct{
+	Blake2bdDiff float64 `json:"blake2bd_diff"`
+	CuckarooDiff float64 `json:"cuckaroo_diff"`
+	CuckatooDiff float64 `json:"cuckatoo_diff"`
+}
+
 // InfoNodeResult models the data returned by the node server getnodeinfo command.
 type InfoNodeResult struct {
 	UUID            string  `json:"UUID"`
@@ -8,7 +15,7 @@ type InfoNodeResult struct {
 	GraphState      GetGraphStateResult `json:"graphstate"`
 	TimeOffset      int64   `json:"timeoffset"`
 	Connections     int32   `json:"connections"`
-	Difficulty      float64 `json:"difficulty"`
+	PowDiff      PowDiff `json:"pow_diff"`
 	TestNet         bool    `json:"testnet"`
 	Confirmations   int32   `json:"confirmations"`
 	CoinbaseMaturity int32  `json:"coinbasematurity"`

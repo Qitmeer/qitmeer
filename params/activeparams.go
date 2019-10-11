@@ -35,3 +35,8 @@ var PrivNetParam = netParams{
 	RpcPort: "28131",
 }
 
+// MixTestParams contains parameters specific to the mix pow test network
+var MixTestParams = netParams{
+	Params:  &TestPowNetParams,
+	RpcPort: "28132",
+}
