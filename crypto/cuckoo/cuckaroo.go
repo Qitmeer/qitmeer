@@ -2,7 +2,6 @@
 package cuckoo
 
 import (
-	"fmt"
 	"github.com/Qitmeer/qitmeer/crypto/cuckoo/siphash"
 	"github.com/pkg/errors"
 )
@@ -27,7 +26,6 @@ func VerifyCuckaroo(sipkey []byte, nonces []uint32,edgeBits uint) error {
 
 	for n := 0; n < ProofSize; n++ {
 		if n > 0 && nonces[n] <= nonces[n-1] {
-			fmt.Printf("n=%d\n", n)
 			return errors.New("nonces are not in order")
 		}
 		u00 := siphash.SiphashPRF(&sip.V, uint64(nonces[n]<<1))

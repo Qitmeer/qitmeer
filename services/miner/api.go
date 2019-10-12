@@ -16,7 +16,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/params/dcr/types"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/services/mining"
@@ -444,7 +443,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 		PreviousHash: template.Block.Header.ParentRoot.String(),
 		WeightLimit:  types.MaxBlockWeight,
 		SigOpLimit:   types.MaxBlockSigOpsCost,
-		SizeLimit:    wire.MaxBlockPayload,
+		SizeLimit:    types.MaxBlockPayload,
 		//TODO，transactions
 		// make([]json.GetBlockTemplateResultTx, 0, 1)
 		Parents:      parents,

@@ -81,7 +81,7 @@ func VerifyCuckatoo(sipkey []byte, nonces []uint32,edgeBits uint) error {
         }
     }
     if n != ProofSize {
-        return fmt.Errorf("【%d】 cycle is too short",n)
+        return fmt.Errorf("%d cycle is too short",n)
     }
     return nil
 }

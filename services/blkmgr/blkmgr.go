@@ -16,7 +16,6 @@ import (
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/params/dcr/types"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
 	`math/big`
 	"sync"
@@ -403,7 +402,7 @@ func (b *BlockManager) fetchHeaderBlocks() {
 			numRequested++
 		}
 		b.startHeader = e.Next()
-		if numRequested >= wire.MaxInvPerMsg {
+		if numRequested >= message.MaxInvPerMsg {
 			break
 		}
 	}

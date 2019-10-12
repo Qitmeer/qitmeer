@@ -2582,7 +2582,9 @@ func opcodeCheckSig(op *ParsedOpcode, vm *Engine) error {
 	// TODO, remove the hardcoded BTC handing
 	var h []byte
 	if vm.scriptTx!=nil && vm.scriptTx.GetType() == types.BtcScriptTx {
-		h = calcSignatureHash_btc(subScript, hashType, vm.scriptTx, vm.txIdx)
+		log.Debug("btc script not support")
+		vm.dstack.PushBool(false)
+		return nil
 	}else {
 		h, err = calcSignatureHash(subScript, hashType, &vm.tx, vm.txIdx,
 			prefixHash)

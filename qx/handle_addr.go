@@ -18,6 +18,8 @@ func EcPubKeyToAddress(version string, pubkey string) (string, error) {
 		ver = append(ver, params.PrivNetParams.PubKeyHashAddrID[0:]...)
 	case "testnet":
 		ver = append(ver, params.TestNetParams.PubKeyHashAddrID[0:]...)
+	case "mixnet":
+		ver = append(ver, params.MixTestParams.PubKeyHashAddrID[0:]...)
 	default:
 		v, err := hex.DecodeString(version)
 		if err != nil {

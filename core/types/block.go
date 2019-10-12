@@ -14,13 +14,12 @@ import (
 )
 
 // MaxBlockHeaderPayload is the maximum number of bytes a block header can be.
-// Version 4 bytes + ParentRoot 32 bytes + TxRoot 32 bytes + StateRoot 32 bytes
-// Difficulty 4 bytes   + Timestamp 4 bytes
-// --> pow Total 174 bytes. nonce 4 bytes + powType 1 bytes + edges_bits 1 bytes + circle nonces 42*4 168
+// Version 4 bytes + ParentRoot 32 bytes + TxRoot 32 bytes + StateRoot 32 bytes + Difficulty 4 bytes + Timestamp 4 bytes
+// + powType 1 byte + nonce 4 bytes + edges_bits 1 byte + 42circles 42*4 bytes
 //total 113 + 169 = 282
 //blake2bd only need 113 bytes
 //cuckoo need 282 bytes
-const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 4 + 1 + 4 + 169
+const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 4 + 1 + 4 + 1 + 42*4
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
 const MaxBlockPayload = 1048576 // 1024*1024 (1MB)

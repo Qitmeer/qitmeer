@@ -52,7 +52,7 @@ func TestCreateAddress(t *testing.T) {
 	s, _ := NewEntropy(32)
 	k, _ := EcNew("secp256k1", s)
 	p, _ := EcPrivateKeyToEcPublicKey(false, k)
-	a, _ := EcPubKeyToAddress("testnet", p)
+	a, _ := EcPubKeyToAddress("mixnet", p)
 	fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-	assert.Contains(t, a, "Tm")
+	assert.Contains(t, a, "Xm")
 }

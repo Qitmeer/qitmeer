@@ -36,7 +36,7 @@ const (
 	// PrivNet represents the private test network.
 	PrivNet Network = 0xf1eb0001
 
-	// MixTestNet represents the private test network.
+	// MixTestNet represents the Mix Pow network.
 	//md5(MixTestNet) first 4 bytes
 	MixTestNet Network = 0xc459b247
 )

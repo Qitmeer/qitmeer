@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/params/dcr/types"
 	"time"
 )
 
@@ -81,14 +80,14 @@ out:
 				// one of a group of responses, remove
 				// everything in the expected group accordingly.
 				switch msgCmd := msg.message.Command(); msgCmd {
-				case wire.CmdBlock:
+				case message.CmdBlock:
 					fallthrough
-				case wire.CmdTx:
+				case message.CmdTx:
 					fallthrough
-				case wire.CmdNotFound:
-					delete(pendingResponses, wire.CmdBlock)
-					delete(pendingResponses, wire.CmdTx)
-					delete(pendingResponses, wire.CmdNotFound)
+				case message.CmdNotFound:
+					delete(pendingResponses, message.CmdBlock)
+					delete(pendingResponses, message.CmdTx)
+					delete(pendingResponses, message.CmdNotFound)
 
 				default:
 					delete(pendingResponses, msgCmd)
@@ -146,7 +145,7 @@ out:
 					continue
 				}
 
-				if command != wire.CmdMiningState {
+				if command != message.CmdMiningState {
 					log.Info(fmt.Sprintf("Peer %s appears to be stalled or "+
 						"misbehaving, %s timeout -- "+
 						"disconnecting", p, command))
@@ -205,31 +204,31 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 	switch msgCmd {
 	case message.CmdVersion:
 		// Expects a verack message.
-		pendingResponses[wire.CmdVerAck] = deadline
+		pendingResponses[message.CmdVerAck] = deadline
 
 	case message.CmdMemPool:
 		// Expects an inv message.
-		pendingResponses[wire.CmdInv] = deadline
+		pendingResponses[message.CmdInv] = deadline
 
 	case message.CmdGetBlocks:
 		// Expects an inv message.
-		pendingResponses[wire.CmdInv] = deadline
+		pendingResponses[message.CmdInv] = deadline
 
 	case message.CmdGetData:
 		// Expects a block, tx, or notfound message.
-		pendingResponses[wire.CmdBlock] = deadline
-		pendingResponses[wire.CmdTx] = deadline
-		pendingResponses[wire.CmdNotFound] = deadline
+		pendingResponses[message.CmdBlock] = deadline
+		pendingResponses[message.CmdTx] = deadline
+		pendingResponses[message.CmdNotFound] = deadline
 
 	case message.CmdGetHeaders:
 		// Expects a headers message.  Use a longer deadline since it
 		// can take a while for the remote peer to load all of the
 		// headers.
 		deadline = time.Now().Add(stallResponseTimeout * 3)
-		pendingResponses[wire.CmdHeaders] = deadline
+		pendingResponses[message.CmdHeaders] = deadline
 
 	case message.CmdGetMiningState:
-		pendingResponses[wire.CmdMiningState] = deadline
+		pendingResponses[message.CmdMiningState] = deadline
 
 	}
 }

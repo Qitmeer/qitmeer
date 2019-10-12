@@ -61,9 +61,9 @@ var TestPowNetParams = Params{
     MulSubsidy:               100,
     DivSubsidy:               101,
     SubsidyReductionInterval: 2048,
-    WorkRewardProportion:     9,
+    WorkRewardProportion:     10,
     StakeRewardProportion:    0,
-    BlockTaxProportion:       1,
+    BlockTaxProportion:       0,
 
     // Checkpoints ordered from oldest to newest.
     Checkpoints: []Checkpoint{
@@ -75,17 +75,17 @@ var TestPowNetParams = Params{
     },
 
     // Address encoding magics
-    NetworkAddressPrefix: "T",
-    PubKeyAddrID:         [2]byte{0x0f, 0x0f}, // starts with Tk
-    PubKeyHashAddrID:     [2]byte{0x0f, 0x12}, // starts with Tm
-    PKHEdwardsAddrID:     [2]byte{0x0f, 0x01}, // starts with Te
-    PKHSchnorrAddrID:     [2]byte{0x0f, 0x1e}, // starts with Tr
-    ScriptHashAddrID:     [2]byte{0x0e, 0xe2}, // starts with TS
-    PrivateKeyID:         [2]byte{0x0c, 0xe2}, // starts with Pt
+    NetworkAddressPrefix: "X",
+    PubKeyAddrID:         [2]byte{0x11, 0x6e}, // starts with Xx
+    PubKeyHashAddrID:     [2]byte{0x11, 0x53}, // starts with Xm
+    PKHEdwardsAddrID:     [2]byte{0x11, 0x42}, // starts with Xe
+    PKHSchnorrAddrID:     [2]byte{0x11, 0x5f}, // starts with Xr
+    ScriptHashAddrID:     [2]byte{0x11, 0x24}, // starts with XS
+    PrivateKeyID:         [2]byte{0x11, 0x64}, // starts with Xt
 
     // BIP32 hierarchical deterministic extended key magics
-    HDPrivateKeyID: [4]byte{0x04, 0x35, 0x83, 0x97}, // starts with tprv
-    HDPublicKeyID:  [4]byte{0x04, 0x35, 0x87, 0xd1}, // starts with tpub
+    HDPrivateKeyID: [4]byte{0x01, 0x9d, 0x0b, 0xe1}, // starts with xprv
+    HDPublicKeyID:  [4]byte{0x01, 0x9d, 0x0d, 0x62}, // starts with xpub
 
     // BIP44 coin type used in the hierarchical deterministic path for
     // address generation.

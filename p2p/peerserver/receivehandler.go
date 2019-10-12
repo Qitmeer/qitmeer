@@ -12,7 +12,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/params/dcr/types"
 	"github.com/Qitmeer/qitmeer/p2p/addmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/satori/go.uuid"
@@ -360,7 +359,7 @@ func (sp *serverPeer) OnGetData(p *peer.Peer, msg *message.MsgGetData) {
 	// bursts of small requests are not penalized as that would potentially ban
 	// peers performing IBD.
 	// This incremental score decays each minute to half of its value.
-	sp.addBanScore(0, uint32(length)*99/wire.MaxInvPerMsg, "getdata")
+	sp.addBanScore(0, uint32(length)*99/message.MaxInvPerMsg, "getdata")
 
 	// We wait on this wait channel periodically to prevent queuing
 	// far more data than we can send in a reasonable time, wasting memory.

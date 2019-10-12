@@ -21,6 +21,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/mining"
+	`math/big`
 	"math/rand"
 	"sync"
 	"time"
@@ -199,7 +200,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32,powType pow.PowType) ([]*hash.Hash, 
 			template.Block.Header.Difficulty = uint32(template.PowDiffData.Blake2bDTarget)
 			result = m.solveBlock(template.Block, ticker, nil)
 		case pow.CUCKAROO:
-			template.Block.Header.Difficulty = uint32(template.PowDiffData.CuckarooBaseDiff)
+			template.Block.Header.Difficulty = pow.BigToCompact(new(big.Int).SetUint64(template.PowDiffData.CuckarooBaseDiff))
 			result = m.solveCuckarooBlock(template.Block, ticker, nil,template.PowDiffData.CuckarooDiffScale)
 		default:
 			m.Lock()
@@ -380,16 +381,12 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 			h := hash.DoubleHashH(header.BlockData())
 			hashNum := pow.HashToBig(&h)
 
-			if hashNum.Cmp(target) > 0 {
-				str := fmt.Sprintf("block hash of %064x is higher than"+
-					" expected max of %064x", hashNum, target)
-				log.Debug(str)
-				continue
+			if hashNum.Cmp(target) <= 0 {
+				// The block is solved when the new block hash is less
+				// than the target difficulty.  Yay!
+				m.updateHashes <- hashesCompleted
+				return true
 			}
-			// The block is solved when the new block hash is less
-			// than the target difficulty.  Yay!
-			m.updateHashes <- hashesCompleted
-			return true
 		}
 	//}
 	return false
@@ -410,9 +407,6 @@ func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker
 		case <-quit:
 			return false
 
-		case <-ticker.C:
-			m.updateHashes <- hashesCompleted
-			return true
 		default:
 			// Non-blocking select to fall through
 		}
@@ -432,16 +426,14 @@ func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker
 		powStruct.SetScale(uint32(scale))
 		err := cuckoo.VerifyCuckaroo(sipH[:],cycleNonces[:],uint(cuckoo.Edgebits))
 		if err != nil{
-			log.Debug(err.Error())
-			continue
-		}
-		if pow.CalcCuckooDiff(int64(scale),powStruct.GetBlockHash([]byte{})) < uint64(header.Difficulty){
-			log.Debug("cuckoo hash difficulty is too easy!")
 			continue
 		}
 		hashesCompleted += 2
-		m.updateHashes <- hashesCompleted
-		return true
+		targetDiff := pow.CompactToBig(header.Difficulty)
+		if pow.CalcCuckooDiff(int64(scale),powStruct.GetBlockHash([]byte{})) >= targetDiff.Uint64(){
+			m.updateHashes <- hashesCompleted
+			return true
+		}
 	}
 	return false
 }
@@ -460,8 +452,7 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 		// so log that error as an internal error.
 		rErr, ok := err.(blockchain.RuleError)
 		if !ok {
-			log.Error("Unexpected error while processing "+
-				"block submitted via CPU miner: %v", err)
+			log.Error(fmt.Sprintf("Unexpected error while processing block submitted via CPU miner: %v", err))
 			return false
 		}
 		// Occasionally errors are given out for timing errors with

@@ -45,7 +45,7 @@ func TestCuckooMining(t *testing.T) {
 
 		log.Println(fmt.Sprintf("Current Nonce:%d",nonce))
 		log.Println(fmt.Sprintf("Found %d Cycles Nonces:",ProofSize),cycleNonces)
-		fmt.Println("【Found Hash】",hex.EncodeToString(cycleNoncesHash))
+		fmt.Println("Found Hash ",hex.EncodeToString(cycleNoncesHash))
 		break
 	}
 }
