@@ -3,6 +3,8 @@ package peerserver
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/log"
+	"net"
+	"time"
 )
 
 // BanPeer bans a peer that has already been connected to the server by ip.
@@ -13,7 +15,15 @@ func (s *PeerServer) BanPeer(sp *serverPeer) {
 // handleBanPeerMsg deals with banning peers.  It is invoked from the
 // peerHandler goroutine.
 func (s *PeerServer) handleBanPeerMsg(state *peerState, sp *serverPeer) {
-	log.Error("TODO handleBanPeerMsg()")
+	host, _, err := net.SplitHostPort(sp.Addr())
+	if err != nil {
+		log.Debug(fmt.Sprintf("can't split ban peer %s %v", sp.Addr(), err))
+		return
+	}
+	direction := directionString(sp.Inbound())
+	log.Info(fmt.Sprintf("Banned peer %s (%s) for %v", host, direction,
+		s.cfg.BanDuration))
+	state.banned[host] = time.Now().Add(s.cfg.BanDuration)
 }
 
 // addBanScore increases the persistent and decaying ban score fields by the
@@ -54,6 +64,14 @@ func (sp *serverPeer) addBanScore(persistent, transient uint32, reason string) {
 	}
 }
 
+// directionString is a helper function that returns a string that represents
+// the direction of a connection (inbound or outbound).
+func directionString(inbound bool) string {
+	if inbound {
+		return "inbound"
+	}
+	return "outbound"
+}
 
 
 
