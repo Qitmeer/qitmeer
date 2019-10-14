@@ -207,3 +207,25 @@ func Test_Confirmations(t *testing.T) {
 		fmt.Printf("%s : %d\n",getBlockTag(blockHash,tbMap),bd.GetConfirmations(blockHash))
 	}
 }
+
+func Test_IsDAG(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom,"PH_fig2-blocks")
+	if ibd==nil {
+		t.FailNow()
+	}
+	//ph:=ibd.(*Phantom)
+	//
+	parentsTag:=[]string{"I","G"}
+	parents := []*hash.Hash{}
+	for _, parent := range parentsTag {
+		parents = append(parents, tbMap[parent])
+	}
+	block := buildBlock("L",parents,&tbMap)
+	l:=bd.AddBlock(block)
+	if l!=nil&&l.Len()>0 {
+		tbMap["L"] = block.GetHash()
+	}else{
+		t.Fatalf("Error:%d  L\n",tempHash)
+	}
+
+}

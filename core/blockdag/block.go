@@ -22,6 +22,7 @@ type IBlockData interface {
 type IBlock interface {
 	// Return block ID
 	GetID() uint
+
 	// Return the hash of block. It will be a pointer.
 	GetHash() *hash.Hash
 
