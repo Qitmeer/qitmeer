@@ -96,11 +96,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		parentsNode = append(parentsNode, prevNode)
 	}
 
-	err:=b.bd.CheckLayerGap(block.Block().Parents)
-	if err != nil {
-		return false,err
-	}
-
 	blockHeader := &block.Block().Header
 	newNode := newBlockNode(blockHeader, parentsNode)
 	mainParent:=newNode.GetMainParent(b)
@@ -113,7 +108,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	block.SetHeight(newNode.GetHeight())
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
-	err = b.checkBlockContext(block,mainParent, flags)
+	err := b.checkBlockContext(block,mainParent, flags)
 	if err != nil {
 		return false, err
 	}

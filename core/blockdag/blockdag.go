@@ -197,9 +197,9 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		if !bd.hasBlocks(parents) {
 			return nil
 		}
-	}
-	if !bd.isDAG(b) {
-		return nil
+		if !bd.isDAG(b.GetParents()) {
+			return nil
+		}
 	}
 	//
 	block := Block{id:bd.blockTotal,hash: *b.GetHash(), weight: 1, layer:0,status:StatusNone}
@@ -258,13 +258,10 @@ func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 }
 
 // If the block is illegal dag,will return false.
-func (bd *BlockDAG) isDAG(b IBlockData) bool {
-	err:=bd.checkLayerGap(b.GetParents())
-	if err != nil {
-		log.Warn(err.Error())
-		return false
-	}
-	return true
+// Exclude genesis block
+func (bd *BlockDAG) isDAG(parents []*hash.Hash) bool {
+	return bd.checkLayerGap(parents) &&
+		   bd.checkLegality(parents)
 }
 
 // Is there a block in DAG?
@@ -736,33 +733,27 @@ func (bd *BlockDAG) getValidTips() []*hash.Hash {
 	return tips
 }
 
-func (bd *BlockDAG) CheckLayerGap(parents []*hash.Hash) error {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.checkLayerGap(parents)
-}
-
-func (bd *BlockDAG) checkLayerGap(parents []*hash.Hash) error {
-	if len(parents)==0 {
-		return nil
+// Checking the layer grap of block
+func (bd *BlockDAG) checkLayerGap(parents []*hash.Hash) bool {
+	if len(parents) == 0 {
+		return false
 	}
 	parentsNode:=[]IBlock{}
 	for _,v:=range parents{
 		ib:=bd.getBlock(v)
 		if ib == nil {
-			continue
+			return false
 		}
 		parentsNode=append(parentsNode,ib)
 	}
 
 	pLen:=len(parentsNode)
-	if pLen==0 {
-		return nil
+	if pLen == 0 {
+		return false
 	}
 	var gap float64
 	if pLen == 1 {
-		return nil
+		return true
 	}else if pLen == 2 {
 		gap=math.Abs(float64(parentsNode[0].GetLayer())-float64(parentsNode[1].GetLayer()))
 	}else{
@@ -780,10 +771,65 @@ func (bd *BlockDAG) checkLayerGap(parents []*hash.Hash) error {
 		gap=math.Abs(float64(maxLayer)-float64(minLayer))
 	}
 	if gap > MaxTipLayerGap {
-		return fmt.Errorf("Parents gap is %f which is more than %d",gap,MaxTipLayerGap)
+		log.Error(fmt.Sprintf("Parents gap is %f which is more than %d",gap,MaxTipLayerGap))
+		return false
 	}
 
-	return nil
+	return true
+}
+
+// Checking the parents of block legitimacy
+func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
+	if len(parents) == 0 {
+		return false
+	}
+	parentsNode:=[]IBlock{}
+	for _,v:=range parents{
+		ib:=bd.getBlock(v)
+		if ib == nil {
+			return false
+		}
+		parentsNode=append(parentsNode,ib)
+	}
+
+	pLen:=len(parentsNode)
+	if pLen==0 {
+		return false
+	}else if pLen == 1 {
+		return true
+	}else{
+		parentsSet:=NewHashSet()
+		parentsSet.AddList(parents)
+		// Belonging to close relatives
+		for _,p:=range parentsNode{
+			if p.HasParents() {
+				inSet:=p.GetParents().Intersection(parentsSet)
+				if !inSet.IsEmpty() {
+					return false
+				}
+			}
+			if p.HasChildren() {
+				inSet:=p.GetChildren().Intersection(parentsSet)
+				if !inSet.IsEmpty() {
+					return false
+				}
+			}
+		}
+		// In the past set
+		for _,p:=range parentsNode{
+			pAnticone:=bd.getAnticone(p,nil)
+			if pAnticone.IsEmpty() {
+				return false
+			}
+			inSet:=pAnticone.Intersection(parentsSet)
+			if inSet.IsEmpty() {
+				return false
+			}
+		}
+	}
+
+
+	return true
 }
 
 // Load from database

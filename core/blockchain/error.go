@@ -112,10 +112,15 @@ const (
 	// ErrNoTransactions indicates the block does not have a least one
 	// transaction.  A valid block must have at least the coinbase
 	// transaction.
+
 	ErrNoTransactions
 	// ErrNoParents indicates the block does not have a least one
 	// parent.
 	ErrNoParents
+
+	// ErrDuplicateParent indicates the block does not have a least one
+	// parent.
+	ErrDuplicateParent
 
 	// ErrTooManyTransactions indicates the block has more transactions than
 	// are allowed.

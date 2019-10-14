@@ -79,6 +79,15 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 			&header.ParentRoot, paMerkleRoot)
 		return ruleError(ErrBadParentsMerkleRoot, str)
 	}
+
+	// Repeated parents
+	parentsSet:=blockdag.NewHashSet()
+	parentsSet.AddList(msgBlock.Parents)
+	if len(msgBlock.Parents) != parentsSet.Size() {
+		str := fmt.Sprintf("parents:%v",msgBlock.Parents)
+		return ruleError(ErrDuplicateParent,str)
+	}
+
 	// A block must have at least one regular transaction.
 	numTx := len(msgBlock.Transactions)
 	if numTx == 0 {
