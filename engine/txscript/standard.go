@@ -14,7 +14,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/ecc"
-	"github.com/Qitmeer/qitmeer/params/btc/addr"
 )
 
 const (
@@ -1094,12 +1093,6 @@ func PayToAddrScript(addr types.Address) ([]byte, error) {
 		case ecc.ECDSA_SecpSchnorr:
 			return payToPubKeyHashSchnorrScript(addr.ScriptAddress())
 		}
-	case *btcaddr.AddressPubKeyHash:
-		//TODO remove the hardcoding type wire here (remove dependence of btc addr)
-		if addr == nil {
-			return nil, ErrUnsupportedAddress
-		}
-		return payToPubKeyHashScript(addr.ScriptAddress())
 	case *address.ScriptHashAddress:
 		if addr == nil {
 			return nil, ErrUnsupportedAddress

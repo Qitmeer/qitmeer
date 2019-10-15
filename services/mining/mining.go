@@ -48,6 +48,10 @@ const (
 	// TODO, refactor the location of generatedBlockVersionTest const
 	GeneratedBlockVersionTest = 8
 
+	// generatedBlockVersionTestMixPow is the version of the block being generated
+	// for networks other than the main network.
+	// TODO, refactor the location of generatedBlockVersionTestPow const
+	generatedBlockVersionTestMixPow = 16
 )
 
 // TxSource represents a source of transactions to consider for inclusion in
@@ -189,6 +193,10 @@ func BlockVersion(net protocol.Network) uint32  {
 	blockVersion := uint32(GeneratedBlockVersion)
 	if net != protocol.MainNet {
 		blockVersion = GeneratedBlockVersionTest
+	}
+	// block version for mix test net,discriminate other net
+	if net == protocol.MixNet {
+		blockVersion = generatedBlockVersionTestMixPow
 	}
 	return blockVersion
 }

@@ -3,7 +3,6 @@ package blkmgr
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/message"
-	"github.com/Qitmeer/qitmeer/params/dcr/types"
 )
 const (
 	// maxRequestedBlocks is the maximum number of requested block
@@ -156,7 +155,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 			}
 		}
 
-		if numRequested >= wire.MaxInvPerMsg {
+		if numRequested >= message.MaxInvPerMsg {
 			break
 		}
 	}

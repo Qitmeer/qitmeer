@@ -1,14 +1,14 @@
+// Copyright (c) 2017-2018 The qitmeer developers
 package cuckoo
 
 import (
-	"encoding/binary"
-	"encoding/hex"
-	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"log"
-	"math/big"
+	`encoding/hex`
+	`fmt`
+	`github.com/Qitmeer/qitmeer/common/hash`
+	`log`
+	`math/big`
 	"runtime"
-	"testing"
+	`testing`
 )
 
 const targetBits = 1
@@ -36,29 +36,16 @@ func TestCuckooMining(t *testing.T) {
 		if !isFound {
 			continue
 		}
-		if err := Verify(siphashKey[:16], cycleNonces); err != nil {
+		if err := VerifyCuckaroo(siphashKey[:16], cycleNonces,Edgebits); err != nil {
+			fmt.Println(err)
 			continue
 		}
 		cycleNoncesHash := hash.DoubleHashB(Uint32ToBytes(cycleNonces))
 		cycleNoncesHashInt.SetBytes(cycleNoncesHash[:])
 
-		// The block is solved when the new block hash is less
-		// than the target difficulty.  Yay!
-		if cycleNoncesHashInt.Cmp(targetDifficulty) <= 0 {
-			log.Println(fmt.Sprintf("Current Nonce:%d",nonce))
-			log.Println(fmt.Sprintf("Found %d Cycles Nonces:",ProofSize),cycleNonces)
-			fmt.Println("【Found Hash】",hex.EncodeToString(cycleNoncesHash))
-			break
-		}
+		log.Println(fmt.Sprintf("Current Nonce:%d",nonce))
+		log.Println(fmt.Sprintf("Found %d Cycles Nonces:",ProofSize),cycleNonces)
+		fmt.Println("Found Hash ",hex.EncodeToString(cycleNoncesHash))
+		break
 	}
-}
-
-// HashToBig converts a hash.Hash into a big.Int that can be used to
-// perform math comparisons.
-func Uint32ToBytes(v []uint32) []byte {
-	var buf = make([]byte, 4*len(v))
-	for i, x := range v {
-		binary.LittleEndian.PutUint32(buf[4*i:], x)
-	}
-	return buf
 }

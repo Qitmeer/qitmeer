@@ -11,9 +11,9 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	`github.com/Qitmeer/qitmeer/core/serialization`
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/params/dcr/types"
 	"github.com/satori/go.uuid"
 	"math/rand"
 	"net"
@@ -613,7 +613,7 @@ out:
 	for {
 		select {
 		case <-pingTicker.C:
-			nonce, err := wire.RandomUint64()
+			nonce, err := serialization.RandomUint64()
 			if err != nil {
 				log.Error(fmt.Sprintf("Not sending ping to %s: %v", p, err))
 				continue

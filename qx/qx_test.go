@@ -56,3 +56,21 @@ func TestCreateAddress(t *testing.T) {
 	fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
 	assert.Contains(t, a, "Tm")
 }
+
+func TestCreateMixParamsAddress(t *testing.T) {
+	s, _ := NewEntropy(32)
+	k, _ := EcNew("secp256k1", s)
+	p, _ := EcPrivateKeyToEcPublicKey(false, k)
+	a, _ := EcPubKeyToAddress("mixnet", p)
+	fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
+	assert.Contains(t, a, "Xm")
+}
+
+func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
+	s, _ := NewEntropy(32)
+	k, _ := EcNew("secp256k1", s)
+	p, _ := EcPrivateKeyToEcPublicKey(false, k)
+	a, _ := EcScriptKeyToAddress("mixnet", p)
+	fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
+	assert.Contains(t, a, "XS")
+}

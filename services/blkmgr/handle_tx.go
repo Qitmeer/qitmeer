@@ -2,7 +2,7 @@ package blkmgr
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/params/dcr/types"
+	`github.com/Qitmeer/qitmeer/core/message`
 	"github.com/Qitmeer/qitmeer/services/mempool"
 )
 
@@ -73,7 +73,7 @@ func (b *BlockManager) handleTxMsg(tmsg *txMsg) {
 		// Convert the error into an appropriate reject message and
 		// send it.
 		code, reason := mempool.ErrToRejectErr(err)
-		tmsg.peer.PushRejectMsg(wire.CmdTx, code, reason, txHash,
+		tmsg.peer.PushRejectMsg(message.CmdTx, code, reason, txHash,
 			false)
 		return
 	}

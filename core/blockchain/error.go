@@ -322,6 +322,12 @@ const (
 
 	// ErrMissingCoinbaseHeight
 	ErrMissingCoinbaseHeight
+
+	//ErrBadCuckooNonces
+	ErrBadCuckooNonces
+
+	// ErrValidPowType
+	ErrInValidPowType
 )
 
 // Map of ErrorCode values back to their constant names for pretty printing.
@@ -388,6 +394,9 @@ var errorCodeStrings = map[ErrorCode]string{
 	ErrInvalidAncestorBlock:   "ErrInvalidAncestorBlock",
 	ErrInvalidTemplateParent:  "ErrInvalidTemplateParent",
 	ErrMissingCoinbaseHeight:  "ErrMissingCoinbaseHeight",
+	//cuckoo,begin
+	ErrBadCuckooNonces: "ErrBadCuckooNonces",
+	ErrInValidPowType: "ErrInValidPowType",
 }
 
 // String returns the ErrorCode as a human-readable name.

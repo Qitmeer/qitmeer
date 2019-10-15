@@ -8,7 +8,6 @@ package txscript
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/params/btc/types"
 	"math/big"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/ecc"
@@ -103,7 +102,6 @@ type Engine struct {
 	dstack      stack // data stack
 	astack      stack // alt stack
 	tx          types.Transaction
-	btctx       btctypes.BtcTx
 	scriptTx    types.ScriptTx
 	txIdx       int
 	condStack   []int
@@ -764,9 +762,6 @@ func NewEngine2(scriptPubKey []byte, tx types.ScriptTx, txIdx int,
 	case types.QitmeerScriptTx:
 		qitmeertx,_ := tx.(*types.Transaction)
 		vm.tx = *qitmeertx
-	case types.BtcScriptTx:
-		btctx, _:= tx.(*btctypes.BtcTx)
-		vm.btctx = *btctx
 	}
 	vm.txIdx = txIdx
 

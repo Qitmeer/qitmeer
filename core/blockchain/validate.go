@@ -11,13 +11,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
-	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
+	"github.com/Qitmeer/qitmeer/core/types"
+	`github.com/Qitmeer/qitmeer/core/types/pow`
+	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/params"
 	"math"
-	"math/big"
 	"time"
 )
 
@@ -211,7 +211,7 @@ func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSour
 	// Ensure the proof of work bits in the block header is in min/max
 	// range and the block hash is less than the target value described by
 	// the bits.
-	err := checkProofOfWork(header, chainParams.PowLimit, flags)
+	err := checkProofOfWork(header, chainParams.PowConfig, flags)
 	if err != nil {
 		return err
 	}
@@ -246,33 +246,13 @@ func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSour
 // The flags modify the behavior of this function as follows:
 //  - BFNoPoWCheck: The check to ensure the block hash is less than the target
 //    difficulty is not performed.
-func checkProofOfWork(header *types.BlockHeader, powLimit *big.Int, flags BehaviorFlags) error {
-	// The target difficulty must be larger than zero.
-	target := CompactToBig(header.Difficulty)
-	if target.Sign() <= 0 {
-		str := fmt.Sprintf("block target difficulty of %064x is too "+
-			"low", target)
-		return ruleError(ErrUnexpectedDifficulty, str)
-	}
-
-	// The target difficulty must be less than the maximum allowed.
-	if target.Cmp(powLimit) > 0 {
-		str := fmt.Sprintf("block target difficulty of %064x is "+
-			"higher than max of %064x", target, powLimit)
-		return ruleError(ErrUnexpectedDifficulty, str)
-	}
+func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags BehaviorFlags) error {
 
 	// The block hash must be less than the claimed target unless the flag
 	// to avoid proof of work checks is set.
 	if flags&BFNoPoWCheck != BFNoPoWCheck {
 		// The block hash must be less than the claimed target.
-		h := header.BlockHash()
-		hashNum := HashToBig(&h)
-		if hashNum.Cmp(target) > 0 {
-			str := fmt.Sprintf("block hash of %064x is higher than"+
-				" expected max of %064x", hashNum, target)
-			return ruleError(ErrHighHash, str)
-		}
+		return header.Pow.Verify(header.BlockData(),header.Difficulty,powConfig)
 	}
 
 	return nil
@@ -622,7 +602,7 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 		// the calculated difficulty based on the previous block and
 		// difficulty retarget rules.
 		expDiff, err := b.calcNextRequiredDifficulty(prevNode,
-			header.Timestamp)
+			header.Timestamp,header.Pow.GetPowType())
 		if err != nil {
 			return err
 		}

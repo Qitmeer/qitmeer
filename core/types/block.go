@@ -7,16 +7,19 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
+	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"io"
 	"math/big"
 	"time"
 )
 
 // MaxBlockHeaderPayload is the maximum number of bytes a block header can be.
-// Version 4 bytes + ParentRoot 32 bytes + TxRoot 32 bytes + StateRoot 32 bytes
-// Difficulty 4 bytes   + Timestamp 8 bytes + Nonce 8 bytes +ExNonce 8 bytes
-// --> Total 128 bytes.
-const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 8 + 8 +8
+// Version 4 bytes + ParentRoot 32 bytes + TxRoot 32 bytes + StateRoot 32 bytes + Difficulty 4 bytes + Timestamp 4 bytes
+// + powType 1 byte + nonce 4 bytes + edges_bits 1 byte + 42circles 42*4 bytes
+//total 113 + 169 = 282
+//blake2bd only need 113 bytes
+//cuckoo need 282 bytes
+const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 4 + 1 + 4 + 1 + 42*4
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
 const MaxBlockPayload = 1048576 // 1024*1024 (1MB)
@@ -29,8 +32,8 @@ const maxTxPerBlock = (MaxBlockPayload / minTxPayload) + 1
 const MaxParentsPerBlock=50
 
 // blockHeaderLen is a constant that represents the number of bytes for a block
-// header.
-const blockHeaderLen = 180
+// header. common header need 113 bytes , proof data need extra 169 bytes
+const blockHeaderLen = 113 + 169
 
 // MaxBlocksPerMsg is the maximum number of blocks allowed per message.
 const MaxBlocksPerMsg = 500
@@ -69,14 +72,11 @@ type BlockHeader struct {
 	// Difficulty target for tx
 	Difficulty  uint32
 
-	// extra nonce for miner
-	ExNonce     uint64
-
 	// TimeStamp
 	Timestamp   time.Time
 
-	// Nonce
-	Nonce       uint64
+	// pow blake2bd | cuckaroo | cuckatoo
+	Pow pow.IPow
 
 	//might extra data here
 
@@ -94,12 +94,29 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 	// transactions.  Ignore the error returns since there is no way the
 	// encode could fail except being out of memory which would cause a
 	// run-time panic.
-	buf := bytes.NewBuffer(make([]byte, 0, MaxBlockHeaderPayload))
+	return h.Pow.GetBlockHash(h.BlockData())
+}
+
+// BlockData computes the block data for hash.
+//this data useful for blake2b hash
+//cuckoo hash will use circle nonces to generate,but need this data to verify cuckoo circles
+func (h *BlockHeader) BlockData() []byte {
+	// Encode the header and hash256 everything prior to the number of
+	// transactions.  Ignore the error returns since there is no way the
+	// encode could fail except being out of memory which would cause a
+	// run-time panic.
+	buf := bytes.NewBuffer(make([]byte, 0, MaxBlockHeaderPayload-pow.PROOFDATA_LENGTH))
 	// TODO, redefine the protocol version and storage
-	_ = writeBlockHeader(buf,0, h)
-	// TODO, add an abstract layer of hash func
-	// TODO, double sha256 or other crypto hash
-	return hash.DoubleHashH(buf.Bytes())
+	_ = writeBlockHeaderWithoutProofData(buf,0, h)
+	return buf.Bytes()
+}
+
+// write header data without proof data
+func writeBlockHeaderWithoutProofData(w io.Writer, pver uint32, bh *BlockHeader) error {
+	// TODO fix time ambiguous
+	sec := uint32(bh.Timestamp.Unix())
+	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
+	&bh.StateRoot,bh.Difficulty, sec, bh.Pow.GetNonce(),bh.Pow.GetPowType())
 }
 
 // readBlockHeader reads a block header from io reader.  See Deserialize for
@@ -109,8 +126,8 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
 	return s.ReadElements(r, &bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, &bh.Difficulty,&bh.ExNonce, (*s.Int64Time)(&bh.Timestamp),
-		&bh.Nonce)
+		&bh.StateRoot, &bh.Difficulty, (*s.Uint32Time)(&bh.Timestamp),
+		&bh.Pow)
 }
 
 // writeBlockHeader writes a block header to w.  See Serialize for
@@ -119,9 +136,9 @@ func readBlockHeader(r io.Reader,pver uint32, bh *BlockHeader) error {
 // TODO, redefine the protocol version and storage
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
-	sec := bh.Timestamp.Unix()
+	sec := uint32(bh.Timestamp.Unix())
 	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, bh.Difficulty,bh.ExNonce, sec, bh.Nonce)
+		&bh.StateRoot, bh.Difficulty, sec, &bh.Pow)
 }
 
 // This function get the simple hash use each parents string, so it can't use to

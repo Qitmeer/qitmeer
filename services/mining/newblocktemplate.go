@@ -6,6 +6,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
+	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
@@ -405,7 +406,15 @@ mempoolLoop:
 	}
 
 	ts:= MedianAdjustedTime(blockManager.GetChain(),timeSource)
-	reqDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts)
+	reqBlake2bDDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts,pow.BLAKE2BD)
+	if err != nil {
+		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
+	}
+	reqCuckarooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts,pow.CUCKAROO)
+	if err != nil {
+		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
+	}
+	reqCuckatooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts,pow.CUCKATOO)
 
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
@@ -428,7 +437,8 @@ mempoolLoop:
 		TxRoot:       *merkles[len(merkles)-1],
 		StateRoot:    hash.Hash{}, //TODO, state root
 		Timestamp:    ts,
-		Difficulty:   reqDifficulty,
+		Difficulty:reqBlake2bDDifficulty,
+		Pow:pow.GetInstance(pow.BLAKE2BD,0,[]byte{}),
 		// Size declared below
 	}
 	for _,pb:=range parents{
@@ -459,7 +469,7 @@ mempoolLoop:
 		"signOp",blockSigOpCost,
 		"bytes", blockSize,
 		"target",
-		fmt.Sprintf("%064x",blockchain.CompactToBig(block.Header.Difficulty)))
+		fmt.Sprintf("%064x",pow.CompactToBig(block.Header.Difficulty)))
 
 	blockTemplate := &types.BlockTemplate{
 		Block:           &block,
@@ -467,6 +477,13 @@ mempoolLoop:
 		SigOpCounts:     txSigOpCosts,
 		Height:          nextBlockHeight,
 		ValidPayAddress: payToAddress != nil,
+		PowDiffData: types.PowDiffStandard {
+			Blake2bDTarget    :reqBlake2bDDifficulty,
+			CuckarooBaseDiff  :pow.CompactToBig(reqCuckarooDifficulty).Uint64(),
+			CuckatooBaseDiff  :pow.CompactToBig(reqCuckatooDifficulty).Uint64(),
+			CuckarooDiffScale :params.PowConfig.CuckarooDiffScale,
+			CuckatooDiffScale :params.PowConfig.CuckatooDiffScale,
+		},
 	}
 	return handleCreatedBlockTemplate(blockTemplate, blockManager)
 }
@@ -490,7 +507,7 @@ func UpdateBlockTime(msgBlock *types.Block, chain *blockchain.BlockChain, timeSo
 	// do so now.
 	if activeNetParams.ReduceMinDifficulty {
 		difficulty, err := chain.CalcNextRequiredDifficulty(
-			newTimestamp)
+			newTimestamp,msgBlock.Header.Pow.GetPowType())
 		if err != nil {
 			return miningRuleError(ErrGettingDifficulty, err.Error())
 		}

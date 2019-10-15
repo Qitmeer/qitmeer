@@ -6,13 +6,13 @@
 package params
 
 import (
+	"encoding/hex"
 	"errors"
-	"math/big"
-	"time"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/protocol"
-	"encoding/hex"
+	"github.com/Qitmeer/qitmeer/core/types"
+	`github.com/Qitmeer/qitmeer/core/types/pow`
+	"time"
 )
 
 // CheckForDuplicateHashes checks for duplicate hashes when validating blocks.
@@ -98,13 +98,8 @@ type Params struct {
 	// GenesisHash is the starting block hash.
 	GenesisHash *hash.Hash
 
-	// PowLimit defines the highest allowed proof of work value for a block
-	// as a uint256.
-	PowLimit *big.Int
-
-	// PowLimitBits defines the highest allowed proof of work value for a
-	// block in compact form.
-	PowLimitBits uint32
+	// PowConfig defines the highest allowed proof of work value for a block or lowest difficulty for a block
+	PowConfig *pow.PowConfig
 
 	// WorkDiffAlpha is the stake difficulty EMA calculation alpha (smoothing)
 	// value. It is different from a normal EMA alpha. Closer to 1 --> smoother.
@@ -325,6 +320,7 @@ func init() {
 	mustRegister(&MainNetParams)
 	mustRegister(&TestNetParams)
 	mustRegister(&PrivNetParams)
+	mustRegister(&MixNetParams)
 }
 
 // TODO, move to hex util

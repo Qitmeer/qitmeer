@@ -2,6 +2,18 @@
 
 package json
 
+type ProofData struct {
+	EdgeBits int `json:"edge_bits"`
+	CircleNonces []uint32 `json:"circle_nonces"`
+}
+
+// pow json result
+type PowResult struct {
+	Nonce     uint32     `json:"nonce"`
+	PowName   string     `json:"pow_name"`
+	PowType   uint8     `json:"pow_type"`
+	ProofData ProofData     `json:"proof_data"`
+}
 
 // BlockVerboseResult models the data from the getblock command when the
 // verbose flag is set.  When the verbose flag is not set, getblock returns a
@@ -17,9 +29,8 @@ type BlockVerboseResult struct {
 	Tx            []string      `json:"tx,omitempty"`
 	RawTx         []TxRawResult `json:"rawtx,omitempty"`
 	Time          int64         `json:"time"`
-	Nonce         uint32        `json:"nonce"`
-	Bits          string        `json:"bits"`
-	Difficulty    float64       `json:"difficulty"`
+	PowResult     PowResult  `json:"pow_result"`
+	Difficulty    uint32       `json:"difficulty"`
 	PreviousHash  string        `json:"previousblockhash"`
 	NextHash      string        `json:"nextblockhash,omitempty"`
 }
@@ -37,5 +48,5 @@ type GetBlockHeaderVerboseResult struct {
 	Difficulty    uint32  `json:"difficulty"`
 	Layer         uint32  `json:"layer"`
 	Time          int64   `json:"time"`
-	Nonce         uint64  `json:"nonce"`
+	PowResult     PowResult  `json:"pow_result"`
 }

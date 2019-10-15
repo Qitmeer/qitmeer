@@ -13,6 +13,7 @@ var (
 	QitmeerMainnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.MainNetParams.HDPrivateKeyID[:], PubKeyVersion: params.MainNetParams.HDPublicKeyID[:]}
 	QitmeerTestnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.TestNetParams.HDPrivateKeyID[:], PubKeyVersion: params.TestNetParams.HDPublicKeyID[:]}
 	QitmeerPrivnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.PrivNetParams.HDPrivateKeyID[:], PubKeyVersion: params.PrivNetParams.HDPublicKeyID[:]}
+	QitmeerMixnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.MixNetParam.HDPrivateKeyID[:], PubKeyVersion: params.MixNetParam.HDPublicKeyID[:]}
 )
 
 type Bip32VersionFlag struct {
@@ -50,6 +51,8 @@ func GetBip32NetworkInfo(rawVersionByte []byte) string {
 		return "qx testnet"
 	} else if QitmeerPrivnetBip32Version.IsPrivkeyVersion(rawVersionByte) || QitmeerPrivnetBip32Version.IsPubkeyVersion(rawVersionByte) {
 		return "qx privnet"
+	} else if QitmeerMixnetBip32Version.IsPrivkeyVersion(rawVersionByte) || QitmeerMixnetBip32Version.IsPubkeyVersion(rawVersionByte) {
+		return "qx mixnet"
 	} else if bip32.DefaultBip32Version.IsPrivkeyVersion(rawVersionByte) || bip32.DefaultBip32Version.IsPubkeyVersion(rawVersionByte) {
 		return "btc mainnet"
 	} else {

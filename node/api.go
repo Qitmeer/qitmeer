@@ -11,9 +11,9 @@ import (
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/version"
 	"math/big"
 	"strconv"
@@ -45,7 +45,11 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		ProtocolVersion: int32(protocol.ProtocolVersion),
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
 		Connections:     api.node.node.peerServer.ConnectedCount(),
-		Difficulty:      getDifficultyRatio(best.Bits,api.node.node.Params),
+		PowDiff:      json.PowDiff{
+			Blake2bdDiff: getDifficultyRatio(best.Bits,api.node.node.Params,pow.BLAKE2BD),
+			CuckarooDiff:getDifficultyRatio(best.Bits,api.node.node.Params,pow.CUCKAROO) ,
+			CuckatooDiff: getDifficultyRatio(best.Bits,api.node.node.Params,pow.CUCKATOO),
+		},
 		TestNet:         api.node.node.Config.TestNet,
 		Confirmations:   blockdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
@@ -57,13 +61,16 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 
 // getDifficultyRatio returns the proof-of-work difficulty as a multiple of the
 // minimum difficulty using the passed bits field from the header of a block.
-func getDifficultyRatio(bits uint32, params *params.Params) float64 {
+func getDifficultyRatio(bits uint32, params *params.Params,powType pow.PowType) float64 {
+	instance := pow.GetInstance(powType,0,[]byte{})
 	// The minimum difficulty is the max possible proof-of-work limit bits
 	// converted back to a number.  Note this is not the same as the proof of
 	// work limit directly because the block difficulty is encoded in a block
 	// with the compact form which loses precision.
-	max := blockchain.CompactToBig(params.PowLimitBits)
-	target := blockchain.CompactToBig(bits)
+	limitBase := instance.GetSafeDiff(params.PowConfig,0)
+	max := &big.Int{}
+	max.SetUint64(limitBase)
+	target := pow.CompactToBig(bits)
 
 	difficulty := new(big.Rat).SetFrac(max, target)
 	outString := difficulty.FloatString(8)

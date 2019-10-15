@@ -2,6 +2,8 @@
 package serialization
 
 import (
+	`fmt`
+	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"io"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"encoding/binary"
@@ -152,6 +154,31 @@ func readElement(r io.Reader, element interface{}) error {
 		*e = protocol.Network(rv)
 		return nil
 
+	case *pow.IPow:
+		//pow 5 bytes for powtype 1 byte
+		// nonce 4 bytes
+		b := make([]byte,pow.POW_LENGTH-pow.PROOFDATA_LENGTH)
+		_, err := io.ReadFull(r,b)
+		if err != nil {
+			return err
+		}
+		powType := pow.PowType(b[0:1][0])
+		if _,ok := pow.PowMapString[powType];!ok{
+			return fmt.Errorf("powType:%d don't supported!",powType)
+		}
+		leftBytes := make([]byte,pow.PROOFDATA_LENGTH)
+		// different pow store different bytes
+		if powType != pow.BLAKE2BD{
+			//if cuckoo read left proof data bytes
+			_, err := io.ReadFull(r,leftBytes)
+			if err != nil {
+				return err
+			}
+		}
+		//set pow type 1 bytes nonce 4 bytes and proof data except types
+		*e = pow.GetInstance(powType,littleEndian.Uint32(b[1:5]),leftBytes)
+		return nil
+
 	}
 
 	// Fall back to the slower binary.Read if a fast path was not available
@@ -176,6 +203,12 @@ func writeElement(w io.Writer, element interface{}) error {
 	// Attempt to write the element based on the concrete type via fast
 	// type assertions first.
 	switch e := element.(type) {
+	case pow.PowType:
+		err := BinarySerializer.PutUint8(w, uint8(e))
+		if err != nil {
+			return err
+		}
+		return nil
 	case int32:
 		err := BinarySerializer.PutUint32(w, littleEndian, uint32(e))
 		if err != nil {
@@ -241,6 +274,14 @@ func writeElement(w io.Writer, element interface{}) error {
 
 	case protocol.Network:
 		err := BinarySerializer.PutUint32(w, littleEndian, uint32(e))
+		if err != nil {
+			return err
+		}
+		return nil
+		//pow bytes
+	case *pow.IPow:
+		b := (*e).Bytes()
+		_, err := w.Write(b[:])
 		if err != nil {
 			return err
 		}

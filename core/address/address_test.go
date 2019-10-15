@@ -6,13 +6,13 @@
 package address
 
 import (
-	// "fmt"
-	"reflect"
 	"bytes"
 	"github.com/Qitmeer/qitmeer/common/encode/base58"
 	"github.com/Qitmeer/qitmeer/core/types"
+	`github.com/Qitmeer/qitmeer/crypto/ecc`
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/crypto/ecc"
+	// "fmt"
+	"reflect"
 	// "fmt"
 	// "qitmeer/params"
 	"encoding/hex"
@@ -26,6 +26,7 @@ func TestAddress(t *testing.T){
 	mainNetParams := &params.MainNetParams
 	testNetParams := &params.TestNetParams
 	privNetParams := &params.PrivNetParams
+	mixNetParams := &params.MixNetParams
 	tests:=[]struct{
 		name string
 		addr  string
@@ -37,6 +38,28 @@ func TestAddress(t *testing.T){
 		f   func() (types.Address,error)
 		net *params.Params
 	}{
+		{
+			// prikey 7e445aa5ffd834cb2d3b2db50f8997dd21af29bec3d296aaa066d902b93f484b
+			name:"privNet p2pkh NewPubKeyHashAddress",
+			addr :"Xmmtg1PwEaMyM8VbFjPrz2ppo17Z5wmHUmG",
+			pubkeystr:"0354455a60d86273d322eebb913d87f428988ce97922a366f0a0867a426df78bc9",
+			encoded:"Xmmtg1PwEaMyM8VbFjPrz2ppo17Z5wmHUmG",
+			valid :true,
+			result:&PubKeyHashAddress{
+				net:mixNetParams,
+				netID:mixNetParams.PubKeyHashAddrID,
+				hash:[ripemd160.Size]byte{
+					0x8d,0xc2,0x68,0xa8,0xe2,0x87,0x6b,0x94,0x1b,0x95,
+					0xf3,0xbd,0x3b,0x71,0x05,0x0f,0x00,0x3c,0x53,0x83},
+			},
+			f:func()(types.Address,error){
+				pushData :=[]byte{
+					0x8d,0xc2,0x68,0xa8,0xe2,0x87,0x6b,0x94,0x1b,0x95,
+					0xf3,0xbd,0x3b,0x71,0x05,0x0f,0x00,0x3c,0x53,0x83}
+				return NewPubKeyHashAddress(pushData,mixNetParams,ecc.ECDSA_Secp256k1)
+			},
+			net:mixNetParams,
+		},
 		{
 			// prikey 7e445aa5ffd834cb2d3b2db50f8997dd21af29bec3d296aaa066d902b93f484b
 			name:"privNet p2pkh NewPubKeyHashAddress",
@@ -178,6 +201,26 @@ func TestAddress(t *testing.T){
 				return NewAddressScriptHashFromHash(pushData,testNetParams)
 			},
 			net:testNetParams,
+		},
+		{
+			name:"mixNet p2sh NewAddressScriptHashFromHash",
+			addr :"XSq1AX1W79R5kWEsXUbdfjZqf1ei1pwEVfQ",
+			encoded:"XSq1AX1W79R5kWEsXUbdfjZqf1ei1pwEVfQ",
+			valid :true,
+			result:&ScriptHashAddress{
+				net:mixNetParams,
+				netID:mixNetParams.ScriptHashAddrID,
+				hash:[ripemd160.Size]byte{
+					0x77,0xca,0x77,0xb8,0x27,0x72,0xbb,0xf6,0x86,0x27,
+					0xe5,0x00,0x44,0xa0,0x82,0x3e,0xa9,0xaf,0x4f,0x30},
+			},
+			f:func()(types.Address,error){
+				pushData :=[]byte{
+					0x77,0xca,0x77,0xb8,0x27,0x72,0xbb,0xf6,0x86,0x27,
+					0xe5,0x00,0x44,0xa0,0x82,0x3e,0xa9,0xaf,0x4f,0x30}
+				return NewAddressScriptHashFromHash(pushData,mixNetParams)
+			},
+			net:mixNetParams,
 		},
 	}
 	for _,test:= range tests{
