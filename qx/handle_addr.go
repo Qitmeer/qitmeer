@@ -19,7 +19,37 @@ func EcPubKeyToAddress(version string, pubkey string) (string, error) {
 	case "testnet":
 		ver = append(ver, params.TestNetParams.PubKeyHashAddrID[0:]...)
 	case "mixnet":
-		ver = append(ver, params.MixTestParams.PubKeyHashAddrID[0:]...)
+		ver = append(ver, params.MixNetParam.PubKeyHashAddrID[0:]...)
+	default:
+		v, err := hex.DecodeString(version)
+		if err != nil {
+			return "", err
+		}
+		ver = append(ver, v...)
+	}
+
+	data, err := hex.DecodeString(pubkey)
+	if err != nil {
+		return "", err
+	}
+	h := hash.Hash160(data)
+
+	address := base58.QitmeerCheckEncode(h, ver[:])
+	return address, nil
+}
+
+func EcScriptKeyToAddress(version string, pubkey string) (string, error) {
+	ver := []byte{}
+
+	switch version {
+	case "mainnet":
+		ver = append(ver, params.MainNetParams.ScriptHashAddrID[0:]...)
+	case "privnet":
+		ver = append(ver, params.PrivNetParams.ScriptHashAddrID[0:]...)
+	case "testnet":
+		ver = append(ver, params.TestNetParams.ScriptHashAddrID[0:]...)
+	case "mixnet":
+		ver = append(ver, params.MixNetParam.ScriptHashAddrID[0:]...)
 	default:
 		v, err := hex.DecodeString(version)
 		if err != nil {

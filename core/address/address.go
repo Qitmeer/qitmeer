@@ -4,13 +4,13 @@ package address
 
 import (
 	"errors"
-	"golang.org/x/crypto/ripemd160"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/encode/base58"
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/crypto/ecc"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/encode/base58"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/crypto/ecc"
+	"github.com/Qitmeer/qitmeer/params"
+	"golang.org/x/crypto/ripemd160"
 )
 
 // encodeAddress returns a human-readable payment address given a ripemd160 hash
@@ -574,8 +574,8 @@ func detectNetworkForAddress(addr string) (*params.Params, error) {
 		return &params.TestNetParams, nil
 	case params.PrivNetParams.NetworkAddressPrefix:
 		return &params.PrivNetParams, nil
-	case params.MixTestParams.NetworkAddressPrefix:
-		return &params.TestPowNetParams, nil
+	case params.MixNetParam.NetworkAddressPrefix:
+		return &params.MixNetParams, nil
 	}
 
 	return nil, fmt.Errorf("unknown network type in string encoded address")

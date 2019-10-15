@@ -211,9 +211,9 @@ func LoadConfig() (*config.Config, []string, error) {
 		params.ActiveNetParams = &params.PrivNetParam
 		cfg.DisableDNSSeed = true
 	}
-	if cfg.TestPowNet {
+	if cfg.MixNet {
 		numNets++
-		params.ActiveNetParams = &params.MixTestParams
+		params.ActiveNetParams = &params.MixNetParam
 	}
 	// Multiple networks can't be selected simultaneously.
 	if numNets > 1 {

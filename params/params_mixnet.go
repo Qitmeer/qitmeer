@@ -14,14 +14,14 @@ import (
     "time"
 )
 
-// testPowNetPowLimit is the highest proof of work value a block can
+// testMixNetPowLimit is the highest proof of work value a block can
 // have for the test network. It is the value 2^232 - 1.
-var	testPowNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1)
+var	testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1)
 
 // testPowNetParams defines the network parameters for the test network.
-var TestPowNetParams = Params{
-    Name:        "testmixnet",
-    Net:         protocol.MixTestNet,
+var MixNetParams = Params{
+    Name:        "mixnet",
+    Net:         protocol.MixNet,
     DefaultPort: "18132",
     DNSSeeds: []DNSSeed{
         {"testPowNet-seed.hlcwallet.info", true},
@@ -36,15 +36,15 @@ var TestPowNetParams = Params{
     MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
     GenerateSupported:        true,
     PowConfig :&pow.PowConfig{
-        Blake2bdPowLimit:                 testPowNetPowLimit,
-        Blake2bdPowLimitBits:             0x1e00ffff,
-        Blake2bDPercent:          34,
-        CuckarooPercent:          33,
-        CuckatooPercent:          33,
-        CuckarooDiffScale:            1856,
-        CuckatooDiffScale:            1856,
-        CuckarooMinDifficulty:     1000,
-        CuckatooMinDifficulty:     1000,
+        Blake2bdPowLimit:      testMixNetPowLimit,
+        Blake2bdPowLimitBits:  0x1e00ffff,
+        Blake2bDPercent:       34,
+        CuckarooPercent:       33,
+        CuckatooPercent:       33,
+        CuckarooDiffScale:     1856,
+        CuckatooDiffScale:     1856,
+        CuckarooMinDifficulty: 1000,
+        CuckatooMinDifficulty: 1000,
     },
 
     WorkDiffAlpha:            1,

@@ -103,6 +103,8 @@ func TxSign(privkeyStr string, rawTxStr string, network string) (string, error) 
 		param = &params.TestNetParams
 	case "privnet":
 		param = &params.PrivNetParams
+	case "mixnet":
+		param = &params.MixNetParams
 	}
 	addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
 	if err != nil {
@@ -160,6 +162,8 @@ func TxDecode(network string, rawTxStr string) {
 		param = &params.TestNetParams
 	case "privnet":
 		param = &params.PrivNetParams
+	case "mixnet":
+		param = &params.MixNetParams
 	}
 	if len(rawTxStr)%2 != 0 {
 		ErrExit(fmt.Errorf("invaild raw transaction : %s", rawTxStr))

@@ -42,14 +42,21 @@ func (this *Cuckoo) SetCircleEdges (edges []uint32) {
 }
 
 func (this *Cuckoo) GetCircleNonces () (nonces [cuckoo.ProofSize]uint32) {
-    nonces = [cuckoo.ProofSize]uint32{}
+    arr := ConvertBytesToUint32Array(this.ProofData[PROOF_DATA_EDGE_BITS_END:PROOF_DATA_CIRCLE_NONCE_END])
+    copy(nonces[:cuckoo.ProofSize],arr[:cuckoo.ProofSize])
+    return
+}
+
+func ConvertBytesToUint32Array(data []byte) []uint32 {
+    nonces := make([]uint32,0)
     j := 0
-    for i :=PROOF_DATA_EDGE_BITS_END;i<PROOF_DATA_CIRCLE_NONCE_END;i+=4{
-        nonceBytes := this.ProofData[i:i+4]
-        nonces[j] = binary.LittleEndian.Uint32(nonceBytes)
+    l := len(data)
+    for i :=0;i<l;i+=4{
+        nonceBytes := data[i:i+4]
+        nonces = append(nonces,binary.LittleEndian.Uint32(nonceBytes))
         j++
     }
-    return
+    return nonces
 }
 
 // set scale ,the diff scale of circle

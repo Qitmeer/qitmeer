@@ -21,6 +21,8 @@ func (n *QitmeerBase58checkVersionFlag) Set(s string) error {
 		n.Ver = append(n.Ver, params.PrivNetParams.PubKeyHashAddrID[0:]...)
 	case "testnet":
 		n.Ver = append(n.Ver, params.TestNetParams.PubKeyHashAddrID[0:]...)
+	case "mixnet":
+		n.Ver = append(n.Ver, params.MixNetParams.PubKeyHashAddrID[0:]...)
 	default:
 		v, err := hex.DecodeString(s)
 		if err!=nil {

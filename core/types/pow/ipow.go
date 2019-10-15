@@ -102,7 +102,10 @@ func (this *Pow)GetPowResult() json.PowResult {
         Nonce:this.GetNonce(),
         PowName:PowMapString[this.GetPowType()].(string),
         PowType:uint8(this.GetPowType()),
-        ProofData:this.GetProofData(),
+        ProofData:json.ProofData{
+            EdgeBits:int(this.ProofData[0:1][0]),
+            CircleNonces:ConvertBytesToUint32Array(this.ProofData[1:168]),
+        },
     }
 }
 

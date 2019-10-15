@@ -320,6 +320,7 @@ func init() {
 	mustRegister(&MainNetParams)
 	mustRegister(&TestNetParams)
 	mustRegister(&PrivNetParams)
+	mustRegister(&MixNetParams)
 }
 
 // TODO, move to hex util

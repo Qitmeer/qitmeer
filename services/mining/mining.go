@@ -195,7 +195,7 @@ func BlockVersion(net protocol.Network) uint32  {
 		blockVersion = GeneratedBlockVersionTest
 	}
 	// block version for mix test net,discriminate other net
-	if net == protocol.MixTestNet{
+	if net == protocol.MixNet {
 		blockVersion = generatedBlockVersionTestMixPow
 	}
 	return blockVersion
