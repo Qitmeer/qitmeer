@@ -191,11 +191,11 @@ function send_raw_tx(){
 
 function generate() {
   local count=$1
-  local block_num=$2
-  if [ "$block_num" == "" ]; then
-    block_num="latest"
+  local powtype=$2
+  if [ "$powtype" == "" ]; then
+    powtype=0
   fi
-  local data='{"jsonrpc":"2.0","method":"miner_generate","params":['$count'],"id":null}'
+  local data='{"jsonrpc":"2.0","method":"miner_generate","params":['$count','$powtype'],"id":null}'
   get_result "$data"
 }
 
