@@ -200,7 +200,7 @@ func (ph *Phantom) getDiffAnticoneOrder(pb *PhantomBlock) []*hash.Hash {
 	diffAnticone:=pb.blueDiffAnticone.Clone()
 	diffAnticone.AddSet(pb.redDiffAnticone)
 	toOrder:=ph.sortBlocks(pb.mainParent,pb.blueDiffAnticone,pb.GetParents(),diffAnticone)
-	ordered:=HashList{}
+	ordered:=HashSlice{}
 	orderedSet:=NewHashSet()
 
 	for len(toOrder)>0 {

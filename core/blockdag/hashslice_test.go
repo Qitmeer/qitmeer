@@ -6,7 +6,7 @@ import (
 )
 
 func Test_Has(t *testing.T) {
-	hl:=HashList{}
+	hl:=HashSlice{}
 	hl=append(hl,&hash.ZeroHash)
 
 	if !hl.Has(&hash.ZeroHash) {
