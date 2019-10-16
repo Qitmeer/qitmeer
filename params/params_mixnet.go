@@ -22,11 +22,11 @@ var	testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), co
 var MixNetParams = Params{
     Name:        "mixnet",
     Net:         protocol.MixNet,
-    DefaultPort: "18132",
+    DefaultPort: "28132",
     DNSSeeds: []DNSSeed{
-        {"testPowNet-seed.hlcwallet.info", true},
-        {"testPowNet-seed.qitmeer.xyz", true},
-        {"testPowNet-seed.qitmeer.top", true},
+        {"mixnet-seed.hlcwallet.info", true},
+        {"mixnet-seed.qitmeer.xyz", true},
+        {"mixnet-seed.qitmeer.top", true},
     },
 
     // Chain parameters

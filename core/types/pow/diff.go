@@ -5,10 +5,10 @@ package pow
 
 import (
     `encoding/binary`
+    `fmt`
     `github.com/Qitmeer/qitmeer/common/hash`
     `github.com/Qitmeer/qitmeer/common/util`
     `github.com/Qitmeer/qitmeer/log`
-    `golang.org/x/exp/errors/fmt`
     `math/big`
 )
 var (
