@@ -80,7 +80,7 @@ func IsFinalizedTransaction(tx *types.Tx, blockHeight uint64, blockTime time.Tim
 // their documentation for how the flags modify their behavior.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags BehaviorFlags) (bool, error) {
+func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags BehaviorFlags) error {
 	// This function should never be called with orphan blocks or the
 	// genesis block.
 
@@ -89,9 +89,9 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		prevHash := pb
 		prevNode := b.index.LookupNode(prevHash)
 		if prevNode == nil {
-			str := fmt.Sprintf("Parents block %s is unknown", prevHash)
-			log.Debug(str)
-			return false, nil
+			err := fmt.Errorf("Parents block %s is unknown", prevHash)
+			log.Debug(err.Error())
+			return err
 		}
 		parentsNode = append(parentsNode, prevNode)
 	}
@@ -100,7 +100,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	newNode := newBlockNode(blockHeader, parentsNode)
 	mainParent:=newNode.GetMainParent(b)
 	if mainParent == nil {
-		return false,fmt.Errorf("Can't find main parent")
+		return fmt.Errorf("Can't find main parent")
 	}
 
 	newNode.SetHeight(mainParent.GetHeight()+1)
@@ -110,7 +110,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// position of the block within the block chain.
 	err := b.checkBlockContext(block,mainParent, flags)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// Prune stake nodes which are no longer needed before creating a new
@@ -120,7 +120,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	//dag
 	newOrders := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 {
-		return false, fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
+		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
 	oldOrders:=BlockNodeList{}
 	b.getReorganizeNodes(newNode,block,newOrders,&oldOrders)
@@ -172,8 +172,8 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 
 	err = b.index.flushToDB(b.bd)
 	if err != nil {
-		return true, nil
+		log.Warn("blockNode flush to db failed")
+		return nil
 	}
-
-	return true, nil
+	return nil
 }
