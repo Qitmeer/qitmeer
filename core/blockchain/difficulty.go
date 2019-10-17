@@ -175,7 +175,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	nodesToTraverse := (b.params.WorkDiffWindowSize *
 		b.params.WorkDiffWindows)
 	//calc pow block count in last nodesToTraverse blocks
-	currentPowBlockCount := b.calcCurrentPowCount(curNode,nodesToTraverse,powType)
+	currentPowBlockCount := b.calcCurrentPowCount(originCurrentNode,nodesToTraverse,powType)
 
 	// Initialize bigInt slice for the percentage changes for each window period
 	// above or below the target.
