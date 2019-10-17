@@ -16,7 +16,7 @@ type Cuckaroo struct {
     Cuckoo
 }
 
-const MIN_CUCKAROOEDGEBITS = 20
+const MIN_CUCKAROOEDGEBITS = 24
 const MAX_CUCKAROOEDGEBITS = 32
 func (this *Cuckaroo) Verify(headerWithoutProofData []byte,targetDiffBits uint32,powConfig *PowConfig) error{
     targetDiff := CompactToBig(targetDiffBits)
