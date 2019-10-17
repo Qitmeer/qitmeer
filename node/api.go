@@ -67,9 +67,7 @@ func getDifficultyRatio(bits uint32, params *params.Params,powType pow.PowType) 
 	// converted back to a number.  Note this is not the same as the proof of
 	// work limit directly because the block difficulty is encoded in a block
 	// with the compact form which loses precision.
-	limitBase := instance.GetSafeDiff(params.PowConfig,0)
-	max := &big.Int{}
-	max.SetUint64(limitBase)
+	max := instance.GetSafeDiff(params.PowConfig,0)
 	target := pow.CompactToBig(bits)
 
 	difficulty := new(big.Rat).SetFrac(max, target)
