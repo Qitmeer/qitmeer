@@ -10,9 +10,6 @@ type PowDiffReference struct {
 	//cuckoo mining min diff
 	CuckarooMinDiff         uint64 `json:"cuckaroo_min_diff,omitempty"`
 	CuckatooMinDiff         uint64 `json:"cuckatoo_min_diff,omitempty"`
-	//cuckoo hash calc diff scale
-	CuckarooDiffScale         uint64 `json:"cuckaroo_diff_scale,omitempty"`
-	CuckatooDiffScale         uint64 `json:"cuckatoo_diff_scale,omitempty"`
 }
 
 //LL(getblocktemplate RPC) 2018-10-28

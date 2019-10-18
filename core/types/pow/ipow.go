@@ -52,9 +52,6 @@ type PowConfig struct {
     // cuckoo difficulty calc params  min difficulty
     CuckarooMinDifficulty uint32
     CuckatooMinDifficulty uint32
-    // solotion difficulty diff = (scale * 1<<64) u128 / cuckoohash as u128
-    CuckarooDiffScale uint64
-    CuckatooDiffScale uint64
 
     //percent of every pow sum of them must be 100
     CuckarooPercent int

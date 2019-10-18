@@ -460,8 +460,6 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 			CuckarooMinDiff         : targetCuckarooDDifficulty,
 			CuckatooMinDiff         : targetCuckatooDDifficulty,
 			//cuckoo hash calc diff scale
-			CuckarooDiffScale         : template.PowDiffData.CuckarooDiffScale,
-			CuckatooDiffScale         : template.PowDiffData.CuckatooDiffScale,
 		},
 		MinTime:   state.minTimestamp.Unix(),
 		MaxTime:   maxTime.Unix(),
