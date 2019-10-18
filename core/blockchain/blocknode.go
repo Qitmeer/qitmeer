@@ -300,6 +300,7 @@ func (node *blockNode) Clone() *blockNode{
 	newNode.order=node.order
 	newNode.height=node.height
 	newNode.layer=node.layer
+	newNode.pow=node.pow
 	return newNode
 }
 
