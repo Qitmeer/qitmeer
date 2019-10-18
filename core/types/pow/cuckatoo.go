@@ -46,7 +46,7 @@ func (this *Cuckatoo) Verify(headerWithoutProofData []byte,targetDiffBits uint32
             "less than min diff :%d", targetDiff, powConfig.CuckarooMinDifficulty)
         return errors.New(str)
     }
-    if CalcCuckooDiff(this.GetScale(),this.GetBlockHash([]byte{})).Cmp(targetDiff) < 0 {
+    if CalcCuckooDiff(GraphWeight(uint32(edgeBits)),this.GetBlockHash([]byte{})).Cmp(targetDiff) < 0 {
         return errors.New("difficulty is too easy!")
     }
     return nil
@@ -56,9 +56,16 @@ func (this *Cuckatoo) GetNextDiffBig(weightedSumDiv *big.Int,oldDiffBig *big.Int
     oldDiffBig.Lsh(oldDiffBig,32)
     nextDiffBig := oldDiffBig.Div(oldDiffBig, weightedSumDiv)
     targetPercent := this.PowPercent(param)
-    if currentPowPercent.Cmp(targetPercent) > 0{
-        currentPowPercent.Div(currentPowPercent,targetPercent)
+    if targetPercent.Cmp(big.NewInt(0)) <= 0{
+        return nextDiffBig
+    }
+    currentPowPercent.Mul(currentPowPercent,big.NewInt(100))
+    if currentPowPercent.Cmp(targetPercent) > 0 {
+        nextDiffBig.Mul(nextDiffBig,targetPercent)
+        nextDiffBig.Div(nextDiffBig,currentPowPercent)
+    } else {
         nextDiffBig.Mul(nextDiffBig,currentPowPercent)
+        nextDiffBig.Div(nextDiffBig,targetPercent)
     }
     return nextDiffBig
 }

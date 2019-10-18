@@ -41,12 +41,11 @@ var MixNetParams = Params{
         Blake2bDPercent:       34,
         CuckarooPercent:       33,
         CuckatooPercent:       33,
-        CuckarooDiffScale:     1856,
-        CuckatooDiffScale:     1856,
-        // Uniform field type uint64 value is 1000 . bigToCompact the uint32 value
-        //hash 7fff000000000000000000000000000000000000000000000000000000000000 corresponding difficulty is 3712
-        CuckarooMinDifficulty:     33810432,
-        CuckatooMinDifficulty:     33810432,
+        //hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
+        // Uniform field type uint64 value is 48 . bigToCompact the uint32 value
+        // 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 2 ≈ 1min find once
+        CuckarooMinDifficulty:     0x1300000 * 2,
+        CuckatooMinDifficulty:     0x1300000 * 2,
     },
 
     WorkDiffAlpha:            1,

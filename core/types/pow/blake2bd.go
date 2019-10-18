@@ -49,12 +49,22 @@ func (this *Blake2bd)GetBlockHash (data []byte) hash.Hash {
 
 func (this *Blake2bd) GetNextDiffBig(weightedSumDiv *big.Int,oldDiffBig *big.Int,currentPowPercent *big.Int,param *PowConfig) *big.Int{
     nextDiffBig := weightedSumDiv.Mul(weightedSumDiv, oldDiffBig)
+    defer func() {
+        nextDiffBig = nextDiffBig.Rsh(nextDiffBig, 32)
+
+    }()
     targetPercent := this.PowPercent(param)
+    if targetPercent.Cmp(big.NewInt(0)) <= 0{
+        return nextDiffBig
+    }
+    currentPowPercent.Mul(currentPowPercent,big.NewInt(100))
     if currentPowPercent.Cmp(targetPercent) > 0{
-       currentPowPercent.Div(currentPowPercent,targetPercent)
+      nextDiffBig.Mul(nextDiffBig,currentPowPercent)
+      nextDiffBig.Div(nextDiffBig,targetPercent)
+    } else {
+       nextDiffBig.Mul(nextDiffBig,targetPercent)
        nextDiffBig.Div(nextDiffBig,currentPowPercent)
     }
-    nextDiffBig = nextDiffBig.Rsh(nextDiffBig, 32)
     return nextDiffBig
 }
 
