@@ -43,8 +43,10 @@ var PrivNetParams = Params{
 		CuckatooPercent:          33,
 		CuckarooDiffScale:            1856,
 		CuckatooDiffScale:            1856,
-		CuckarooMinDifficulty:     1000,
-		CuckatooMinDifficulty:     1000,
+		// Uniform field type uint64 value is 1000 . bigToCompact the uint32 value
+		//hash 7fff000000000000000000000000000000000000000000000000000000000000 corresponding difficulty is 3712
+		CuckarooMinDifficulty:     33810432,
+		CuckatooMinDifficulty:     33810432,
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
@@ -63,9 +65,9 @@ var PrivNetParams = Params{
 	MulSubsidy:               100,
 	DivSubsidy:               101,
 	SubsidyReductionInterval: 128,
-	WorkRewardProportion:     9,
+	WorkRewardProportion:     10,
 	StakeRewardProportion:    0,
-	BlockTaxProportion:       1,
+	BlockTaxProportion:       0,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: nil,
@@ -94,7 +96,7 @@ var PrivNetParams = Params{
 	HDCoinType: 223, // ASCII for s
 
 	// TODO replace the test pkh
-	OrganizationPkScript:  hexMustDecode("76a91408ff3106060bf8d7d61a25d8108ec977698729f788ac"),
+	//OrganizationPkScript:  hexMustDecode("76a91408ff3106060bf8d7d61a25d8108ec977698729f788ac"),
 
 	CoinbaseMaturity: 16,
 }

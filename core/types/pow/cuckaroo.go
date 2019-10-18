@@ -19,7 +19,8 @@ type Cuckaroo struct {
 const MIN_CUCKAROOEDGEBITS = 24
 const MAX_CUCKAROOEDGEBITS = 32
 func (this *Cuckaroo) Verify(headerWithoutProofData []byte,targetDiffBits uint32,powConfig *PowConfig) error{
-    targetDiff := CompactToBig(targetDiffBits).Uint64()
+    targetDiff := CompactToBig(targetDiffBits)
+    baseDiff := CompactToBig(powConfig.CuckarooMinDifficulty)
     if !this.CheckAvailable(this.PowPercent(powConfig)){
         str := fmt.Sprintf("cuckaroo is not supported")
         return errors.New(str)
@@ -38,24 +39,26 @@ func (this *Cuckaroo) Verify(headerWithoutProofData []byte,targetDiffBits uint32
         log.Debug("Verify Error!",err)
         return err
     }
+
     //The target difficulty must be more than the min diff.
-    if targetDiff < uint64(powConfig.CuckarooMinDifficulty) {
+    if targetDiff.Cmp(baseDiff) < 0 {
         str := fmt.Sprintf("block target difficulty of %d is "+
             "less than min diff :%d", targetDiff, powConfig.CuckarooMinDifficulty)
         return errors.New(str)
     }
-    if CalcCuckooDiff(this.GetScale(),this.GetBlockHash([]byte{})) < targetDiff{
+    if CalcCuckooDiff(this.GetScale(),this.GetBlockHash([]byte{})).Cmp(targetDiff) < 0 {
         return errors.New("difficulty is too easy!")
     }
     return nil
 }
 
 func (this *Cuckaroo) GetNextDiffBig(weightedSumDiv *big.Int,oldDiffBig *big.Int,currentPowPercent *big.Int,param *PowConfig) *big.Int{
+    oldDiffBig.Lsh(oldDiffBig,32)
     nextDiffBig := oldDiffBig.Div(oldDiffBig, weightedSumDiv)
     targetPercent := this.PowPercent(param)
     if currentPowPercent.Cmp(targetPercent) > 0{
-        currentPowPercent.Div(currentPowPercent,targetPercent)
-        nextDiffBig.Mul(nextDiffBig,currentPowPercent)
+       currentPowPercent.Div(currentPowPercent,targetPercent)
+       nextDiffBig.Mul(nextDiffBig,currentPowPercent)
     }
     return nextDiffBig
 }
@@ -66,13 +69,16 @@ func (this *Cuckaroo) PowPercent(param *PowConfig) *big.Int{
     return targetPercent
 }
 
-func (this *Cuckaroo) GetSafeDiff(param *PowConfig,cur_reduce_diff uint64) uint64{
-    minDiff := uint64(param.CuckarooMinDifficulty)
+func (this *Cuckaroo) GetSafeDiff(param *PowConfig,cur_reduce_diff uint64) *big.Int{
+    minDiffBig := CompactToBig(param.CuckarooMinDifficulty)
     if cur_reduce_diff <= 0{
-        return minDiff
+       return minDiffBig
     }
-    if cur_reduce_diff > minDiff{
-        return cur_reduce_diff
+    newTarget := &big.Int{}
+    newTarget = newTarget.SetUint64(cur_reduce_diff)
+    // Limit new value to the proof of work limit.
+    if newTarget.Cmp(minDiffBig) < 0 {
+        newTarget.Set(minDiffBig)
     }
-    return minDiff
+    return newTarget
 }

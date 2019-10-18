@@ -5,10 +5,10 @@ package pow
 
 import (
     `encoding/binary`
+    `fmt`
     `github.com/Qitmeer/qitmeer/common/hash`
     `github.com/Qitmeer/qitmeer/common/util`
     `github.com/Qitmeer/qitmeer/log`
-    `golang.org/x/exp/errors/fmt`
     `math/big`
 )
 var (
@@ -193,7 +193,7 @@ func mergeDifficulty(oldDiff int64, newDiff1 int64, newDiff2 int64) int64 {
 }
 
 //calc cuckoo diff
-func CalcCuckooDiff(scale int64,blockHash hash.Hash) uint64 {
+func CalcCuckooDiff(scale int64,blockHash hash.Hash) *big.Int {
     c := &big.Int{}
     util.ReverseBytes(blockHash[:])
     c.SetUint64(binary.BigEndian.Uint64(blockHash[:8]))
@@ -203,5 +203,5 @@ func CalcCuckooDiff(scale int64,blockHash hash.Hash) uint64 {
     a.Mul(a,d)
     e := a.Div(a,c)
     log.Debug(fmt.Sprintf("solution difficulty:%d",e.Uint64()))
-    return e.Uint64()
+    return e
 }

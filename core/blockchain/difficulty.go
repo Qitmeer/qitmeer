@@ -8,10 +8,10 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"math/big"
 	"time"
-	"github.com/Qitmeer/qitmeer/common/hash"
 )
 
 // bigZero is 0 represented as a big.Int.  It is defined here to avoid
@@ -32,9 +32,7 @@ func (b *BlockChain) calcEasiestDifficulty(bits uint32, duration time.Duration,p
 	adjustmentFactor := big.NewInt(b.params.RetargetAdjustmentFactor)
 	maxRetargetTimespan := int64(b.params.TargetTimespan) *
 		b.params.RetargetAdjustmentFactor
-	limitPowBits := b.getMinPowBits(powType)
-	target := &big.Int{}
-	target.SetUint64(limitPowBits)
+	target := b.getMinPowBits(powType)
 	// The test network rules allow minimum difficulty blocks once too much
 	// time has elapsed without mining a block.
 	if b.params.ReduceMinDifficulty {
@@ -75,9 +73,7 @@ func (b *BlockChain) findPrevTestNetDifficulty(startNode *blockNode,powType pow.
 		b.params.WorkDiffWindows)
 	iterBlock:= b.bd.GetBlock(startNode.GetHash())
 	var iterNode *blockNode
-	limitPowBits := b.getMinPowBits(powType)
-	target := &big.Int{}
-	target.SetUint64(limitPowBits)
+	target := b.getMinPowBits(powType)
 	for {
 		if iterBlock == nil ||
 			uint64(iterBlock.GetHeight())%blocksPerRetarget == 0{
@@ -103,14 +99,14 @@ func (b *BlockChain) findPrevTestNetDifficulty(startNode *blockNode,powType pow.
 // the exported version uses the current best chain as the previous block node
 // while this function accepts any block node.
 func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime time.Time,powType pow.PowType) (uint32, error) {
-	limitPowBits := b.getMinPowBits(powType)
-	baseTarget := &big.Int{}
-	baseTarget.SetUint64(limitPowBits)
+	baseTarget := b.getMinPowBits(powType)
+	originCurrentNode := curNode
 	instance := pow.GetInstance(powType,0,[]byte{})
 	// Genesis block.
 	if curNode == nil {
 		return pow.BigToCompact(baseTarget), nil
 	}
+
 	curNode = b.getPowTypeNode(curNode,powType)
 	curBlock:=b.bd.GetBlock(curNode.GetHash())
 	if curBlock == nil{
@@ -166,7 +162,6 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 
 		return oldDiff, nil
 	}
-
 	// Declare some useful variables.
 	RAFBig := big.NewInt(b.params.RetargetAdjustmentFactor)
 	nextDiffBigMin := pow.CompactToBig(curNode.bits)
@@ -179,6 +174,8 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	// Number of nodes to traverse while calculating difficulty.
 	nodesToTraverse := (b.params.WorkDiffWindowSize *
 		b.params.WorkDiffWindows)
+	//calc pow block count in last nodesToTraverse blocks
+	currentPowBlockCount := b.calcCurrentPowCount(originCurrentNode,nodesToTraverse,powType)
 
 	// Initialize bigInt slice for the percentage changes for each window period
 	// above or below the target.
@@ -190,28 +187,21 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	var weights uint64
 	oldNode := curNode
 	recentTime := curNode.timestamp
-	currentPowBlockCount := 0
 	for i := uint64(0); ; i++ {
 		// Store and reset after reaching the end of every window period.
 		if i%uint64(b.params.WorkDiffWindowSize) == 0 && i != 0 {
 			olderTime = oldNode.timestamp
 			timeDifference := recentTime - olderTime
-
 			// Just assume we're at the target (no change) if we've
 			// gone all the way back to the genesis block.
 			if oldNode.order == 0 {
 				timeDifference = int64(b.params.TargetTimespan /
 					time.Second)
-			}  else{
-				//if currentPowBlock count ++
-				currentPowBlockCount++
 			}
-
 			timeDifBig := big.NewInt(timeDifference)
 			timeDifBig.Lsh(timeDifBig, 32) // Add padding
 			targetTemp := big.NewInt(int64(b.params.TargetTimespan /
 				time.Second))
-
 			windowAdjusted := targetTemp.Div(timeDifBig, targetTemp)
 
 			// Weight it exponentially. Be aware that this could at some point
@@ -234,7 +224,6 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 		if i == uint64(nodesToTraverse) {
 			break // Exit for loop when we hit the end.
 		}
-
 		// Get the previous node while staying at the genesis block as
 		// needed.
 		if oldNode.parents != nil {
@@ -256,7 +245,6 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	// Divide by the sum of all weights.
 	weightsBig := big.NewInt(int64(weights))
 	weightedSumDiv := weightedSum.Div(weightedSum, weightsBig)
-
 	// if current pow count is zero , set 1 min 1
 	if currentPowBlockCount <= 0{
 		currentPowBlockCount = 1
@@ -267,13 +255,9 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	currentPowPercent.Lsh(currentPowPercent,32)
 	nodesToTraverseBig := big.NewInt(nodesToTraverse)
 	currentPowPercent = currentPowPercent.Div(currentPowPercent,nodesToTraverseBig)
-
 	// Multiply by the old diff.
 	nextDiffBig := instance.GetNextDiffBig(weightedSumDiv,oldDiffBig,currentPowPercent,b.params.PowConfig)
-
 	// Right shift to restore the original padding (restore non-fixed point).
-	nextDiffBig = nextDiffBig.Rsh(nextDiffBig, 32)
-
 	// Check to see if we're over the limits for the maximum allowable retarget;
 	// if we are, return the maximum or minimum except in the case that oldDiff
 	// is zero.
@@ -291,7 +275,6 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	if !instance.CompareDiff(nextDiffBig,baseTarget) {
 		nextDiffBig.Set(baseTarget)
 	}
-
 	// Log new target difficulty and return it.  The new target logging is
 	// intentionally converting the bits back to a number instead of using
 	// newTarget since conversion to the compact representation loses
@@ -301,9 +284,40 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	log.Debug("Old target", "bits",fmt.Sprintf("%08x", curNode.bits),
 		"diff",fmt.Sprintf( "(%064x)",oldDiffBig))
 	log.Debug("New target", "bits",fmt.Sprintf("%08x", nextDiffBits),
-		"diff",fmt.Sprintf( "(%064x)",pow.CompactToBig(nextDiffBits)))
+		"diff",fmt.Sprintf( "(%064x)",nextDiffBig))
 
 	return nextDiffBits, nil
+}
+
+// stats current pow count in nodesToTraverse
+func (b *BlockChain) calcCurrentPowCount(curNode *blockNode, nodesToTraverse int64,powType pow.PowType) int64 {
+	// Genesis block.
+	if curNode == nil {
+		return 0
+	}
+	currentPowBlockCount := nodesToTraverse
+	// Regress through all of the previous blocks and store the percent changes
+	// per window period; use bigInts to emulate 64.32 bit fixed point.
+	oldNode := curNode
+	for i := int64(0) ;i <= nodesToTraverse ; i++ {
+		// Get the previous node while staying at the genesis block as
+		// needed.
+		if oldNode.order == 0 {
+			currentPowBlockCount--
+		}
+		if oldNode.parents != nil {
+			oldBlock:=b.bd.GetBlock(oldNode.GetHash())
+			oldMainParent:=b.bd.GetBlock(oldBlock.GetMainParent())
+			if oldMainParent != nil {
+				oldNode=b.index.lookupNode(oldMainParent.GetHash())
+				if oldNode.GetPowType() != powType{
+					currentPowBlockCount--
+				}
+			}
+		}
+	}
+
+	return currentPowBlockCount
 }
 
 // CalcNextRequiredDiffFromNode calculates the required difficulty for the block
@@ -359,7 +373,7 @@ func (b *BlockChain) getPowTypeNode(curNode *blockNode, powType pow.PowType) *bl
 }
 
 // find base difficulty by pow type
-func (b *BlockChain) getMinPowBits(powType pow.PowType) uint64 {
+func (b *BlockChain) getMinPowBits(powType pow.PowType) *big.Int {
 	instance := pow.GetInstance(powType,0,[]byte{})
 	return instance.GetSafeDiff(b.params.PowConfig,0)
 }

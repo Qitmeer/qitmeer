@@ -430,7 +430,7 @@ func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker
 		}
 		hashesCompleted += 2
 		targetDiff := pow.CompactToBig(header.Difficulty)
-		if pow.CalcCuckooDiff(int64(scale),powStruct.GetBlockHash([]byte{})) >= targetDiff.Uint64(){
+		if pow.CalcCuckooDiff(int64(scale),powStruct.GetBlockHash([]byte{})).Cmp(targetDiff) >= 0{
 			m.updateHashes <- hashesCompleted
 			return true
 		}

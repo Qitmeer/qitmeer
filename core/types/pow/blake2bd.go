@@ -51,9 +51,10 @@ func (this *Blake2bd) GetNextDiffBig(weightedSumDiv *big.Int,oldDiffBig *big.Int
     nextDiffBig := weightedSumDiv.Mul(weightedSumDiv, oldDiffBig)
     targetPercent := this.PowPercent(param)
     if currentPowPercent.Cmp(targetPercent) > 0{
-        currentPowPercent.Div(currentPowPercent,targetPercent)
-        nextDiffBig.Div(nextDiffBig,currentPowPercent)
+       currentPowPercent.Div(currentPowPercent,targetPercent)
+       nextDiffBig.Div(nextDiffBig,currentPowPercent)
     }
+    nextDiffBig = nextDiffBig.Rsh(nextDiffBig, 32)
     return nextDiffBig
 }
 
@@ -63,10 +64,11 @@ func (this *Blake2bd) PowPercent(param *PowConfig) *big.Int{
     return targetPercent
 }
 
-func (this *Blake2bd) GetSafeDiff(param *PowConfig,cur_reduce_diff uint64) uint64{
-    limitBits := uint64(param.Blake2bdPowLimitBits)
+func (this *Blake2bd) GetSafeDiff(param *PowConfig,cur_reduce_diff uint64) *big.Int{
+    limitBits := param.Blake2bdPowLimitBits
+    limitBitsBig := CompactToBig(limitBits)
     if cur_reduce_diff <= 0{
-        return limitBits
+        return limitBitsBig
     }
     newTarget := &big.Int{}
     newTarget = newTarget.SetUint64(cur_reduce_diff)
@@ -75,7 +77,7 @@ func (this *Blake2bd) GetSafeDiff(param *PowConfig,cur_reduce_diff uint64) uint6
         newTarget.Set(param.Blake2bdPowLimit)
     }
 
-    return uint64(BigToCompact(newTarget))
+    return newTarget
 }
 
 // compare the target
