@@ -481,8 +481,6 @@ mempoolLoop:
 			Blake2bDTarget    :reqBlake2bDDifficulty,
 			CuckarooBaseDiff  :pow.CompactToBig(reqCuckarooDifficulty).Uint64(),
 			CuckatooBaseDiff  :pow.CompactToBig(reqCuckatooDifficulty).Uint64(),
-			CuckarooDiffScale :params.PowConfig.CuckarooDiffScale,
-			CuckatooDiffScale :params.PowConfig.CuckatooDiffScale,
 		},
 	}
 	return handleCreatedBlockTemplate(blockTemplate, blockManager)

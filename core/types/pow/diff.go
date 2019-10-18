@@ -193,15 +193,49 @@ func mergeDifficulty(oldDiff int64, newDiff1 int64, newDiff2 int64) int64 {
 }
 
 //calc cuckoo diff
-func CalcCuckooDiff(scale int64,blockHash hash.Hash) *big.Int {
+func CalcCuckooDiff(scale uint64,blockHash hash.Hash) *big.Int {
     c := &big.Int{}
     util.ReverseBytes(blockHash[:])
     c.SetUint64(binary.BigEndian.Uint64(blockHash[:8]))
-    a := big.NewInt(scale)
+    a := &big.Int{}
+    a.SetUint64(scale)
     d := big.NewInt(1)
     d.Lsh(d,64)
     a.Mul(a,d)
     e := a.Div(a,c)
     log.Debug(fmt.Sprintf("solution difficulty:%d",e.Uint64()))
     return e
+}
+
+//calc cuckoo diff convert to target hash like 7fff000000000000000000000000000000000000000000000000000000000000
+func CuckooDiffToTarget(scale uint64,diff *big.Int) string {
+    a := &big.Int{}
+    a.SetUint64(scale)
+    d := big.NewInt(1)
+    d.Lsh(d,64)
+    a.Mul(a,d)
+    a.Div(a,diff)
+    m := make([]byte,8)
+    binary.BigEndian.PutUint64(m,a.Uint64())
+    h := hash.Hash{}
+    util.ReverseBytes(m)
+    copy(h[24:32],m)
+    return h.String()
+}
+
+//calc scale
+//the edge_bits is bigger ,then scale is bigger
+//Reference resources https://eprint.iacr.org/2014/059.pdf 9. Difficulty control page 6
+//while the average number of cycles found increases slowly with size; from 2 at 2^20 to 3 at 2^30
+//Less times of hash calculation with the same difficulty
+// 24 => 48 25 => 100 26 => 208 27 => 432 28 => 896 29 => 1856 30 => 3840 31 => 7936
+//assume init difficulty is 1000
+//24 target is 0c49ba5e353f7ced000000000000000000000000000000000000000000000000
+//（The meaning of difficulty needs to be found 1000/48 * 50 ≈ 1000 times in edge_bits 24, and the answer may be obtained once.）
+// why * 50 , because the when edge_count/nodes = 1/2,to find 42 cycles the probality is 2.2%
+//29 target is db22d0e560418937000000000000000000000000000000000000000000000000
+//（The difficulty needs to be found 1000/1856 * 50 ≈ 26 times in edge_bits 29, and the answer may be obtained once.）
+//so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
+func GraphWeight(edge_bits uint32) uint64 {
+    return (2 << (edge_bits - MIN_CUCKAROOEDGEBITS)) * uint64(edge_bits)
 }
