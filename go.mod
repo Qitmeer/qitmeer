@@ -17,7 +17,6 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
-	golang.org/x/exp/errors v0.0.0-20191014171548-69215a2ee97e
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
 	golang.org/x/sys v0.0.0-20190412213103-97732733099d
 	golang.org/x/tools v0.0.0-20190511041617-99f201b6807e

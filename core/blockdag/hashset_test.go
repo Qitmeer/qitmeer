@@ -61,7 +61,7 @@ func Test_RemoveSet(t *testing.T) {
 
 func Test_SortList(t *testing.T) {
 	hs:=NewHashSet()
-	hl:=HashList{}
+	hl:=HashSlice{}
 	var hashNum int=5
 	for i:=0;i<hashNum;i++ {
 		hashStr:=fmt.Sprintf("%d",i)

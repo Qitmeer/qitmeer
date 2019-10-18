@@ -1081,6 +1081,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 
 	mainParent:=newNode.GetMainParent(b)
 	mainParentNode:=b.index.lookupNode(mainParent.GetHash())
+	newNode.CalcWorkSum(mainParentNode)
 
 	err = b.checkBlockContext(block,mainParentNode, flags)
 	if err != nil {
