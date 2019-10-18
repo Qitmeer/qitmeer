@@ -322,10 +322,7 @@ func (b *BlockChain) calcCurrentPowCount(curNode *blockNode, nodesToTraverse int
 // whether need ajust Pow Difficulty
 func (b *BlockChain) needAjustPowDifficulty(curNode *blockNode, powType pow.PowType) bool {
 	distanceFromLastAdjustment := b.getDistanceFromLastAdjustment(curNode,powType)
-	if int64(distanceFromLastAdjustment+1)%b.params.WorkDiffWindowSize != 0{
-		return false
-	}
-	return true
+	return int64(distanceFromLastAdjustment+1)%b.params.WorkDiffWindowSize == 0
 }
 
 // Distance from last adjustment
