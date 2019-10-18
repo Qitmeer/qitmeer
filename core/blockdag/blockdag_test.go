@@ -90,6 +90,11 @@ func (tb *TestBlock) GetTimestamp() int64 {
 	return tb.timeStamp
 }
 
+// Acquire the weight of block
+func (tb *TestBlock) GetWeight() uint {
+	return 1
+}
+
 // This is the interface for Block DAG,can use to call public function.
 var bd BlockDAG
 

@@ -458,6 +458,7 @@ func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) err
 		hash:      snapshot.Hash,
 		total:     uint64(snapshot.GraphState.GetTotal()),
 		totalTxns: snapshot.TotalTxns,
+		workSum:workSum,
 	})
 
 	// Store the current best chain state into the database.
@@ -468,7 +469,9 @@ func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) err
 // chain state.  This is data to be stored in the chain state bucket.
 func serializeBestChainState(state bestChainState) []byte {
 	// Calculate the full size needed to serialize the chain state.
-	serializedLen := hash.HashSize + 8 + 8
+	workSumBytes := state.workSum.Bytes()
+	workSumBytesLen := uint32(len(workSumBytes))
+	serializedLen := hash.HashSize + 8 + 8 + 4 + workSumBytesLen
 
 	// Serialize the chain state.
 	serializedData := make([]byte, serializedLen)
@@ -478,7 +481,9 @@ func serializeBestChainState(state bestChainState) []byte {
 	offset += 8
 	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.totalTxns)
 	offset += 8
-
+	dbnamespace.ByteOrder.PutUint32(serializedData[offset:], workSumBytesLen)
+	offset += 4
+	copy(serializedData[offset:], workSumBytes)
 	return serializedData[:]
 }
 
@@ -488,9 +493,9 @@ func serializeBestChainState(state bestChainState) []byte {
 // block.
 func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	// Ensure the serialized data has enough bytes to properly deserialize
-	// the hash, height, total transactions, total subsidy, current subsidy,
+	// the hash, total, total transactions, total subsidy, current subsidy,
 	// and work sum length.
-	expectedMinLen := hash.HashSize + 8 + 8
+	expectedMinLen := hash.HashSize + 8 + 8 + 4
 	if len(serializedData) < expectedMinLen {
 		return bestChainState{}, database.Error{
 			ErrorCode: database.ErrCorruption,
@@ -506,6 +511,18 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	offset += 8
 	state.totalTxns = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
 	offset += 8
+	workSumBytesLen := dbnamespace.ByteOrder.Uint32(serializedData[offset : offset+4])
+	offset += 4
+	// Ensure the serialized data has enough bytes to deserialize the work
+	// sum.
+	if uint32(len(serializedData[offset:])) < workSumBytesLen {
+		return bestChainState{}, database.Error{
+			ErrorCode:   database.ErrCorruption,
+			Description: "corrupt best chain state",
+		}
+	}
+	workSumBytes := serializedData[offset : offset+workSumBytesLen]
+	state.workSum = new(big.Int).SetBytes(workSumBytes)
 	return state, nil
 }
 

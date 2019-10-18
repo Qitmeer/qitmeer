@@ -202,7 +202,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		}
 	}
 	//
-	block := Block{id:bd.blockTotal,hash: *b.GetHash(), weight: 1, layer:0,status:StatusNone}
+	block := Block{id:bd.blockTotal,hash: *b.GetHash(), weight: b.GetWeight(), layer:0,status:StatusNone}
 	if parents != nil {
 		block.parents = NewHashSet()
 		var maxLayer uint=0

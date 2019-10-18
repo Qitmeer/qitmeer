@@ -138,8 +138,6 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 	}
 	if len(parents)>0 {
 		node.parents = parents
-
-		node.workSum = node.workSum.Add(node.GetParentsWorkSum(), node.workSum)
 	}else {
 		node.order=0
 	}
@@ -209,12 +207,8 @@ func (node *blockNode) CalcPastMedianTime(b *BlockChain) time.Time {
 	return time.Unix(medianTimestamp, 0)
 }
 
-func (node *blockNode) GetParentsWorkSum() *big.Int {
-	var workSum *big.Int=&big.Int{}
-	for _,v:=range node.parents{
-		workSum.Add(v.workSum, workSum)
-	}
-	return workSum
+func (node *blockNode) CalcWorkSum(mbn *blockNode) {
+	node.workSum=node.workSum.Add(mbn.workSum,node.workSum)
 }
 
 // Include all parents for set
@@ -301,6 +295,7 @@ func (node *blockNode) Clone() *blockNode{
 	newNode.height=node.height
 	newNode.layer=node.layer
 	newNode.pow=node.pow
+	newNode.workSum=node.workSum
 	return newNode
 }
 
@@ -373,4 +368,9 @@ func (node *blockNode) Invalid(b *BlockChain) {
 
 func (node *blockNode) IsOrdered() bool {
 	return uint(node.order)!=blockdag.MaxBlockOrder
+}
+
+// Acquire the weight of block
+func (node *blockNode) GetWeight() uint {
+	return uint(node.workSum.BitLen())
 }

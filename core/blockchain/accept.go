@@ -102,7 +102,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	if mainParent == nil {
 		return fmt.Errorf("Can't find main parent")
 	}
-
+	newNode.CalcWorkSum(b.index.lookupNode(mainParent.GetHash()))
 	newNode.SetHeight(mainParent.GetHeight()+1)
 
 	block.SetHeight(newNode.GetHeight())

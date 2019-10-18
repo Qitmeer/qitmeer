@@ -16,6 +16,9 @@ type IBlockData interface {
 
 	// Timestamp
 	GetTimestamp() int64
+
+	// Acquire the weight of block
+	GetWeight() uint
 }
 
 //The interface of block

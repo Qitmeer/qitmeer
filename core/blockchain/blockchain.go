@@ -418,7 +418,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d",state.hash.String(),state.total,state.totalTxns,state.subsidy))
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %s",state.hash.String(),state.total,state.totalTxns,state.subsidy,state.workSum.Text(16)))
 
 		log.Info("Loading dag ...")
 		bidxStart := time.Now()
@@ -462,7 +462,9 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			node.status=blockStatus(refblock.GetStatus())
 			node.SetOrder(uint64(refblock.GetOrder()))
 			node.SetHeight(refblock.GetHeight())
-
+			if i != 0 {
+				node.CalcWorkSum(node.GetMainParent(b))
+			}
 		}
 
 		// Set the best chain view to the stored best state.
@@ -1002,7 +1004,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// Update best block state.
-		err := dbPutBestState(dbTx, state, node.workSum)
+		err := dbPutBestState(dbTx, state, mainTip.workSum)
 		if err != nil {
 			return err
 		}
