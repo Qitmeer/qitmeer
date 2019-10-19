@@ -53,15 +53,6 @@ func EcPrivateKeyToEcPublicKey(uncompressed bool, privateKeyStr string) (string,
 	return fmt.Sprintf("%x", key[:]), nil
 }
 
-
-func NewEntropySTDO(size uint) {
-	s, err := seed.GenerateSeed(uint16(size))
-	if err != nil {
-		ErrExit(err)
-	}
-	fmt.Printf("%x\n", s)
-}
-
 func HdNewMasterPrivateKey(version bip32.Bip32Version, entropyStr string) {
 	entropy, err := hex.DecodeString(entropyStr)
 	if err != nil {
