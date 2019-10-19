@@ -5,7 +5,6 @@ package pow
 
 import (
     "encoding/hex"
-    "github.com/Qitmeer/qitmeer/common/hash"
     `github.com/Qitmeer/qitmeer/core/json`
     "math/big"
 )
@@ -73,7 +72,7 @@ type IPow interface {
     GetProofData() string
     //set proof data
     SetProofData([]byte)
-    GetBlockHash(data []byte) hash.Hash
+    GetBlockData(data []byte) []byte
     Bytes() PowBytes
     //if cur_reduce_diff > 0 compare cur_reduce_diff with powLimitBits or minDiff ，the cur_reduce_diff should less than powLimitBits , and should more than min diff
     //if cur_reduce_diff <=0 return powLimit or min diff

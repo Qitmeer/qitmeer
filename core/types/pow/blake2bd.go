@@ -43,8 +43,8 @@ func (this *Blake2bd) Verify(headerWithoutProofData []byte,targetDiffBits uint32
     return nil
 }
 
-func (this *Blake2bd)GetBlockHash (data []byte) hash.Hash {
-    return hash.DoubleHashH(data)
+func (this *Blake2bd)GetBlockData (data []byte) []byte {
+    return data
 }
 
 func (this *Blake2bd) GetNextDiffBig(weightedSumDiv *big.Int,oldDiffBig *big.Int,currentPowPercent *big.Int,param *PowConfig) *big.Int{

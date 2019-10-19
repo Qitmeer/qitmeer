@@ -5,7 +5,6 @@ package pow
 
 import (
     "encoding/binary"
-    "github.com/Qitmeer/qitmeer/common/hash"
     "github.com/Qitmeer/qitmeer/common/util"
     "github.com/Qitmeer/qitmeer/crypto/cuckoo"
     `math/big`
@@ -59,29 +58,19 @@ func ConvertBytesToUint32Array(data []byte) []uint32 {
     return nonces
 }
 
-// set scale ,the diff scale of circle
-func (this *Cuckoo) SetScale (scale uint32) {
-
-}
-
-//get scale ,the diff scale of circle
-func (this *Cuckoo) GetScale () int64 {
-    return 1856
-}
-
 //get cuckoo block hash bitarray with 42 circle nonces
 //then blake2b
-func (this *Cuckoo)GetBlockHash (data []byte) hash.Hash {
+func (this *Cuckoo)GetBlockData (data []byte) []byte {
     circlNonces := [cuckoo.ProofSize]uint64{}
     nonces := this.GetCircleNonces()
     for i:=0;i<len(nonces);i++{
         circlNonces[i] = uint64(nonces[i])
     }
-    return this.CuckooHash(circlNonces[:],int(this.GetEdgeBits()))
+    return this.CuckooHashData(circlNonces[:],int(this.GetEdgeBits()))
 }
 
 //calc cuckoo hash
-func (this *Cuckoo)CuckooHash(nonces []uint64,nonce_bits int) hash.Hash {
+func (this *Cuckoo)CuckooHashData(nonces []uint64,nonce_bits int) []byte {
     sort.Slice(nonces, func(i, j int) bool {
         return nonces[i] < nonces[j]
     })
@@ -95,9 +84,7 @@ func (this *Cuckoo)CuckooHash(nonces []uint64,nonce_bits int) hash.Hash {
             }
         }
     }
-    h := hash.HashH(bitvec.Bytes())
-    util.ReverseBytes(h[:])
-    return h
+    return bitvec.Bytes()
 }
 
 
