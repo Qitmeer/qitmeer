@@ -46,7 +46,7 @@ func (this *Cuckatoo) Verify(headerWithoutProofData []byte,targetDiffBits uint32
             "less than min diff :%d", targetDiff, powConfig.CuckarooMinDifficulty)
         return errors.New(str)
     }
-    if CalcCuckooDiff(GraphWeight(uint32(edgeBits)),hash.DoubleHashH(this.GetBlockData([]byte{}))).Cmp(targetDiff) < 0 {
+    if CalcCuckooDiff(GraphWeight(uint32(edgeBits)),this.GetBlockHash(headerWithoutProofData)).Cmp(targetDiff) < 0 {
         return errors.New("difficulty is too easy!")
     }
     return nil

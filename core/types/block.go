@@ -94,7 +94,7 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 	// transactions.  Ignore the error returns since there is no way the
 	// encode could fail except being out of memory which would cause a
 	// run-time panic.
-	return hash.DoubleHashH(h.Pow.GetBlockData(h.BlockData()))
+	return h.Pow.GetBlockHash(h.BlockData())
 }
 
 // BlockData computes the block data for hash.

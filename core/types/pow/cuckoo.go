@@ -58,26 +58,22 @@ func ConvertBytesToUint32Array(data []byte) []uint32 {
     return nonces
 }
 
-//get cuckoo block hash bitarray with 42 circle nonces
-//then blake2b
+//get cuckoo bitarray bytes by 42 circle nonces and edge bits
+//get fingerprints edgebits with nonces
 func (this *Cuckoo)GetBlockData (data []byte) []byte {
     circlNonces := [cuckoo.ProofSize]uint64{}
     nonces := this.GetCircleNonces()
     for i:=0;i<len(nonces);i++{
         circlNonces[i] = uint64(nonces[i])
     }
-    return this.CuckooHashData(circlNonces[:],int(this.GetEdgeBits()))
-}
-
-//calc cuckoo hash
-func (this *Cuckoo)CuckooHashData(nonces []uint64,nonce_bits int) []byte {
-    sort.Slice(nonces, func(i, j int) bool {
-        return nonces[i] < nonces[j]
+    sort.Slice(circlNonces, func(i, j int) bool {
+        return circlNonces[i] < circlNonces[j]
     })
+    nonce_bits := int(this.GetEdgeBits())
     bitvec,_ := util.New(nonce_bits*cuckoo.ProofSize)
     for i:=41;i>=0;i--{
         n := i
-        nonce := nonces[i]
+        nonce := circlNonces[i]
         for bit:= 0;bit < nonce_bits;bit++{
             if nonce & (1 << uint(bit)) != 0 {
                 bitvec.SetBitAt(n * nonce_bits + bit)
@@ -86,7 +82,6 @@ func (this *Cuckoo)CuckooHashData(nonces []uint64,nonce_bits int) []byte {
     }
     return bitvec.Bytes()
 }
-
 
 func (this *Cuckoo)Bytes() PowBytes {
     r := make(PowBytes,0)

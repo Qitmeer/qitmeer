@@ -7,7 +7,6 @@ import (
     `encoding/binary`
     "errors"
     "fmt"
-    "github.com/Qitmeer/qitmeer/common/hash"
     "math/big"
 )
 
@@ -33,7 +32,7 @@ func (this *Blake2bd) Verify(headerWithoutProofData []byte,targetDiffBits uint32
             "higher than max of %064x", target, powConfig.Blake2bdPowLimit)
         return errors.New(str)
     }
-    h := hash.DoubleHashH(headerWithoutProofData)
+    h := this.GetBlockHash(headerWithoutProofData)
     hashNum := HashToBig(&h)
     if hashNum.Cmp(target) > 0 {
         str := fmt.Sprintf("block hash of %064x is higher than"+
@@ -41,10 +40,6 @@ func (this *Blake2bd) Verify(headerWithoutProofData []byte,targetDiffBits uint32
         return errors.New(str)
     }
     return nil
-}
-
-func (this *Blake2bd)GetBlockData (data []byte) []byte {
-    return data
 }
 
 func (this *Blake2bd) GetNextDiffBig(weightedSumDiv *big.Int,oldDiffBig *big.Int,currentPowPercent *big.Int,param *PowConfig) *big.Int{
