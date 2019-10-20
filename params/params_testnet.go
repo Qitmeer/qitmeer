@@ -41,8 +41,8 @@ var TestNetParams = Params{
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 = 1min find once
-		CuckarooMinDifficulty:     0x1300000 * 4,
-		CuckatooMinDifficulty:     0x1300000 * 4,
+		CuckarooMinDifficulty:     0x1600000,
+		CuckatooMinDifficulty:     0x1600000,
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false

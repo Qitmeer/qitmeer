@@ -7,7 +7,7 @@ import (
     `encoding/binary`
     "errors"
     "fmt"
-    "github.com/Qitmeer/qitmeer/common/hash"
+    `github.com/Qitmeer/qitmeer/common/hash`
     "math/big"
 )
 
@@ -15,7 +15,7 @@ type Blake2bd struct {
     Pow
 }
 
-func (this *Blake2bd) Verify(headerWithoutProofData []byte,targetDiffBits uint32,powConfig *PowConfig) error{
+func (this *Blake2bd) Verify(headerData []byte,blockHash hash.Hash,targetDiffBits uint32,powConfig *PowConfig) error{
     if !this.CheckAvailable(this.PowPercent(powConfig)){
         str := fmt.Sprintf("blake2bd is not supported")
         return errors.New(str)
@@ -33,18 +33,13 @@ func (this *Blake2bd) Verify(headerWithoutProofData []byte,targetDiffBits uint32
             "higher than max of %064x", target, powConfig.Blake2bdPowLimit)
         return errors.New(str)
     }
-    h := hash.DoubleHashH(headerWithoutProofData)
-    hashNum := HashToBig(&h)
+    hashNum := HashToBig(&blockHash)
     if hashNum.Cmp(target) > 0 {
         str := fmt.Sprintf("block hash of %064x is higher than"+
             " expected max of %064x", hashNum, target)
         return errors.New(str)
     }
     return nil
-}
-
-func (this *Blake2bd)GetBlockHash (data []byte) hash.Hash {
-    return hash.DoubleHashH(data)
 }
 
 func (this *Blake2bd) GetNextDiffBig(weightedSumDiv *big.Int,oldDiffBig *big.Int,currentPowPercent *big.Int,param *PowConfig) *big.Int{
@@ -86,7 +81,6 @@ func (this *Blake2bd) GetSafeDiff(param *PowConfig,cur_reduce_diff uint64) *big.
     if newTarget.Cmp(param.Blake2bdPowLimit) > 0 {
         newTarget.Set(param.Blake2bdPowLimit)
     }
-
     return newTarget
 }
 
@@ -96,16 +90,17 @@ func (this *Blake2bd) CompareDiff(newTarget *big.Int,target *big.Int) bool{
     return newTarget.Cmp(target) <= 0
 }
 
-// pow bytes
+// pow proof data
 func (this *Blake2bd)Bytes() PowBytes {
     r := make(PowBytes,0)
-    t := make([]byte,1)
-    //write pow type 1 byte
-    t[0] = uint8(this.PowType)
-    r = append(r,t...)
     //write nonce 4 bytes
     n := make([]byte,4)
     binary.LittleEndian.PutUint32(n,this.Nonce)
     r = append(r,n...)
+
+    t := make([]byte,1)
+    //write pow type 1 byte
+    t[0] = uint8(this.PowType)
+    r = append(r,t...)
     return PowBytes(r)
 }

@@ -162,7 +162,8 @@ func readElement(r io.Reader, element interface{}) error {
 		if err != nil {
 			return err
 		}
-		powType := pow.PowType(b[0:1][0])
+		//nonce 4 bytes + powType 1 bytes
+		powType := pow.PowType(b[4:5][0])
 		if _,ok := pow.PowMapString[powType];!ok{
 			return fmt.Errorf("powType:%d don't supported!",powType)
 		}
@@ -176,7 +177,7 @@ func readElement(r io.Reader, element interface{}) error {
 			}
 		}
 		//set pow type 1 bytes nonce 4 bytes and proof data except types
-		*e = pow.GetInstance(powType,littleEndian.Uint32(b[1:5]),leftBytes)
+		*e = pow.GetInstance(powType,littleEndian.Uint32(b[0:4]),leftBytes)
 		return nil
 
 	}

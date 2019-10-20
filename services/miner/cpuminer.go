@@ -416,21 +416,20 @@ func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker
 		// Update the nonce and hash the block header.
 		header.Pow = powStruct
 		powStruct.SetEdgeBits(uint8(cuckoo.Edgebits))
-		sipH := hash.HashH(header.BlockData())
+		sipH := powStruct.GetSipHash(header.BlockData())
 		c:= cuckoo.NewCuckoo()
 		cycleNonces, isFound := c.PoW(sipH[:])
 		if !isFound {
 			continue
 		}
 		powStruct.SetCircleEdges(cycleNonces)
-		powStruct.SetScale(uint32(scale))
 		err := cuckoo.VerifyCuckaroo(sipH[:],cycleNonces[:],uint(cuckoo.Edgebits))
 		if err != nil{
 			continue
 		}
 		hashesCompleted += 2
 		targetDiff := pow.CompactToBig(header.Difficulty)
-		if pow.CalcCuckooDiff(pow.GraphWeight(uint32(cuckoo.Edgebits)),powStruct.GetBlockHash([]byte{})).Cmp(targetDiff) >= 0{
+		if pow.CalcCuckooDiff(pow.GraphWeight(uint32(cuckoo.Edgebits)),header.BlockHash()).Cmp(targetDiff) >= 0{
 			m.updateHashes <- hashesCompleted
 			return true
 		}

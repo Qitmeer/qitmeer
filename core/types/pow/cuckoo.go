@@ -5,11 +5,9 @@ package pow
 
 import (
     "encoding/binary"
-    "github.com/Qitmeer/qitmeer/common/hash"
-    "github.com/Qitmeer/qitmeer/common/util"
+    `github.com/Qitmeer/qitmeer/common/hash`
     "github.com/Qitmeer/qitmeer/crypto/cuckoo"
     `math/big`
-    "sort"
 )
 
 type Cuckoo struct {
@@ -59,56 +57,24 @@ func ConvertBytesToUint32Array(data []byte) []uint32 {
     return nonces
 }
 
-// set scale ,the diff scale of circle
-func (this *Cuckoo) SetScale (scale uint32) {
-
+//get sip hash
+//first header data 113 bytes hash
+func (this *Cuckoo)GetSipHash (headerData []byte) hash.Hash {
+    return hash.HashH(headerData[:len(headerData)-PROOF_DATA_CIRCLE_NONCE_END])
 }
 
-//get scale ,the diff scale of circle
-func (this *Cuckoo) GetScale () int64 {
-    return 1856
-}
-
-//get cuckoo block hash bitarray with 42 circle nonces
-//then blake2b
-func (this *Cuckoo)GetBlockHash (data []byte) hash.Hash {
-    circlNonces := [cuckoo.ProofSize]uint64{}
-    nonces := this.GetCircleNonces()
-    for i:=0;i<len(nonces);i++{
-        circlNonces[i] = uint64(nonces[i])
-    }
-    return this.CuckooHash(circlNonces[:],int(this.GetEdgeBits()))
-}
-
-//calc cuckoo hash
-func (this *Cuckoo)CuckooHash(nonces []uint64,nonce_bits int) hash.Hash {
-    sort.Slice(nonces, func(i, j int) bool {
-        return nonces[i] < nonces[j]
-    })
-    bitvec,_ := util.New(nonce_bits*cuckoo.ProofSize)
-    for i:=41;i>=0;i--{
-        n := i
-        nonce := nonces[i]
-        for bit:= 0;bit < nonce_bits;bit++{
-            if nonce & (1 << uint(bit)) != 0 {
-                bitvec.SetBitAt(n * nonce_bits + bit)
-            }
-        }
-    }
-    h := hash.HashH(bitvec.Bytes())
-    util.ReverseBytes(h[:])
-    return h
-}
-
-
+//cuckoo pow proof data
 func (this *Cuckoo)Bytes() PowBytes {
     r := make(PowBytes,0)
-    //write pow type 1 byte
-    r = append(r,[]byte{byte(this.PowType)}...)
+
     //write nonce 4 bytes
     n := make([]byte,4)
     binary.LittleEndian.PutUint32(n,this.Nonce)
     r = append(r,n...)
+
+    //write pow type 1 byte
+    r = append(r,[]byte{byte(this.PowType)}...)
+
     //write ProofData 169 bytes
     r = append(r,this.ProofData[:]...)
     return PowBytes(r)
