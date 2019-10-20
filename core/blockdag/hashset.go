@@ -126,7 +126,7 @@ func (s *HashSet) List() []*hash.Hash {
 }
 
 func (s *HashSet) SortList(reverse bool) []*hash.Hash {
-	list := HashList(s.List())
+	list := HashSlice(s.List())
 	if reverse {
 		sort.Sort(sort.Reverse(list))
 	}else{

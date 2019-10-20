@@ -368,7 +368,7 @@ func (ph *Phantom_v2) calculateTopologicalOrder(pb *PhantomBlock) []*hash.Hash {
 	unordered:=pb.blueDiffAnticone.Clone()
 	unordered.AddSet(pb.redDiffAnticone)
 	toOrder:=ph.sortBlocks(pb.mainParent,pb.blueDiffAnticone,pb.GetParents(),unordered)
-	ordered:=HashList{}
+	ordered:=HashSlice{}
 	orderedSet:=NewHashSet()
 
 	for len(toOrder)>0 {

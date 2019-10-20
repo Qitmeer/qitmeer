@@ -86,7 +86,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 
 	// Process the block to include validation, best chain selection, orphan
 	// handling, etc.
-	_, isOrphan, err := b.chain.ProcessBlock(bmsg.block,
+	isOrphan, err := b.chain.ProcessBlock(bmsg.block,
 		behaviorFlags)
 
 	if err != nil {

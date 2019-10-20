@@ -743,7 +743,11 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				if seedSize % 8 > 0	{
 					errExit(fmt.Errorf("seed (entropy) length must be Must be divisible by 8"))
 				}
-				qx.NewEntropy(seedSize/8)
+				s, err := qx.NewEntropy(seedSize/8)
+				if err != nil {
+					qx.ErrExit(err)
+				}
+				fmt.Printf("%s\n", s)
 			}
 		}else {
 			entropyCmd.Usage()
@@ -900,7 +904,11 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecNewCmd.Usage()
 			}else{
-				qx.EcNew(curve,os.Args[len(os.Args)-1])
+				pk, err := qx.EcNew(curve,os.Args[len(os.Args)-1])
+				if err != nil {
+					qx.ErrExit(err)
+				}
+				fmt.Printf("%s\n", pk)
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -908,7 +916,11 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.EcNew(curve, str)
+			pk, err := qx.EcNew(curve, str)
+			if err != nil {
+				qx.ErrExit(err)
+			}
+			fmt.Printf("%s\n", pk)
 		}
 	}
 
@@ -918,7 +930,12 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				ecToPubCmd.Usage()
 			}else{
-				qx.EcPrivateKeyToEcPublicKey(uncompressedPKFormat,os.Args[len(os.Args)-1])
+				key, err := qx.EcPrivateKeyToEcPublicKey(uncompressedPKFormat,os.Args[len(os.Args)-1])
+				if err != nil {
+					qx.ErrExit(err)
+				}
+				fmt.Printf("%s\n", key)
+
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -926,7 +943,11 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.EcPrivateKeyToEcPublicKey(uncompressedPKFormat,str)
+			key, err := qx.EcPrivateKeyToEcPublicKey(uncompressedPKFormat,str)
+			if err != nil {
+				qx.ErrExit(err)
+			}
+			fmt.Printf("%s\n", key)
 		}
 	}
 
@@ -1037,7 +1058,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				txSignCmd.Usage()
 			}else{
-				qx.TxSign(privateKey,os.Args[len(os.Args)-1],network)
+				qx.TxSignSTDO(privateKey,os.Args[len(os.Args)-1],network)
 			}
 		}else {  //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -1045,7 +1066,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.TxSign(privateKey, str,network)
+			qx.TxSignSTDO(privateKey, str,network)
 		}
 	}
 

@@ -32,3 +32,8 @@ func (sd *SpectreBlockData) GetParents() []*hash.Hash {
 func (sd *SpectreBlockData) GetTimestamp() int64 {
 	return sd.timestamp
 }
+
+// Acquire the weight of block
+func (sd *SpectreBlockData) GetWeight() uint {
+	return 1
+}

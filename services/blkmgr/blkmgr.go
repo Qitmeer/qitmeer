@@ -551,7 +551,7 @@ out:
 
 			case processBlockMsg:
 				log.Trace("blkmgr msgChan processBlockMsg", "msg", msg)
-				_, isOrphan, err := b.chain.ProcessBlock(
+				isOrphan, err := b.chain.ProcessBlock(
 					msg.block, msg.flags)
 				if err != nil {
 					msg.reply <- processBlockResponse{
