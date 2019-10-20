@@ -19,7 +19,7 @@ type Cuckatoo struct {
 const MIN_CUCKATOOEDGEBITS = 29
 const MAX_CUCKATOOEDGEBITS = 32
 
-func (this *Cuckatoo) Verify(headerWithoutProofData []byte,targetDiffBits uint32,powConfig * PowConfig) error{
+func (this *Cuckatoo) Verify(headerWithoutProofData []byte,blockHash hash.Hash,targetDiffBits uint32,powConfig * PowConfig) error{
     targetDiff := CompactToBig(targetDiffBits)
     baseDiff := CompactToBig(powConfig.CuckarooMinDifficulty)
     if !this.CheckAvailable(this.PowPercent(powConfig)){
@@ -46,7 +46,7 @@ func (this *Cuckatoo) Verify(headerWithoutProofData []byte,targetDiffBits uint32
             "less than min diff :%d", targetDiff, powConfig.CuckarooMinDifficulty)
         return errors.New(str)
     }
-    if CalcCuckooDiff(GraphWeight(uint32(edgeBits)),this.GetBlockHash(headerWithoutProofData)).Cmp(targetDiff) < 0 {
+    if CalcCuckooDiff(GraphWeight(uint32(edgeBits)),blockHash).Cmp(targetDiff) < 0 {
         return errors.New("difficulty is too easy!")
     }
     return nil

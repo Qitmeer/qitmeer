@@ -252,7 +252,7 @@ func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags
 	// to avoid proof of work checks is set.
 	if flags&BFNoPoWCheck != BFNoPoWCheck {
 		// The block hash must be less than the claimed target.
-		return header.Pow.Verify(header.BlockData(),header.Difficulty,powConfig)
+		return header.Pow.Verify(header.BlockData(),header.BlockHash(),header.Difficulty,powConfig)
 	}
 
 	return nil

@@ -7,6 +7,7 @@ import (
     `encoding/binary`
     "errors"
     "fmt"
+    `github.com/Qitmeer/qitmeer/common/hash`
     "math/big"
 )
 
@@ -14,7 +15,7 @@ type Blake2bd struct {
     Pow
 }
 
-func (this *Blake2bd) Verify(headerWithoutProofData []byte,targetDiffBits uint32,powConfig *PowConfig) error{
+func (this *Blake2bd) Verify(headerWithoutProofData []byte,blockHash hash.Hash,targetDiffBits uint32,powConfig *PowConfig) error{
     if !this.CheckAvailable(this.PowPercent(powConfig)){
         str := fmt.Sprintf("blake2bd is not supported")
         return errors.New(str)
@@ -32,8 +33,7 @@ func (this *Blake2bd) Verify(headerWithoutProofData []byte,targetDiffBits uint32
             "higher than max of %064x", target, powConfig.Blake2bdPowLimit)
         return errors.New(str)
     }
-    h := this.GetBlockHash(headerWithoutProofData)
-    hashNum := HashToBig(&h)
+    hashNum := HashToBig(&blockHash)
     if hashNum.Cmp(target) > 0 {
         str := fmt.Sprintf("block hash of %064x is higher than"+
             " expected max of %064x", hashNum, target)

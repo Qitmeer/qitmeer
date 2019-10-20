@@ -61,10 +61,10 @@ func ConvertBytesToUint32Array(data []byte) []uint32 {
 //get cuckoo bitarray bytes by 42 circle nonces and edge bits
 //get fingerprints edgebits with nonces
 func (this *Cuckoo)GetBlockData (data []byte) []byte {
-    circlNonces := [cuckoo.ProofSize]uint64{}
+    circlNonces := make([]uint64,0)
     nonces := this.GetCircleNonces()
     for i:=0;i<len(nonces);i++{
-        circlNonces[i] = uint64(nonces[i])
+        circlNonces = append(circlNonces,uint64(nonces[i]))
     }
     sort.Slice(circlNonces, func(i, j int) bool {
         return circlNonces[i] < circlNonces[j]
