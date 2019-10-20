@@ -15,7 +15,7 @@ type Blake2bd struct {
     Pow
 }
 
-func (this *Blake2bd) Verify(headerWithoutProofData []byte,blockHash hash.Hash,targetDiffBits uint32,powConfig *PowConfig) error{
+func (this *Blake2bd) Verify(headerData []byte,blockHash hash.Hash,targetDiffBits uint32,powConfig *PowConfig) error{
     if !this.CheckAvailable(this.PowPercent(powConfig)){
         str := fmt.Sprintf("blake2bd is not supported")
         return errors.New(str)
@@ -81,7 +81,6 @@ func (this *Blake2bd) GetSafeDiff(param *PowConfig,cur_reduce_diff uint64) *big.
     if newTarget.Cmp(param.Blake2bdPowLimit) > 0 {
         newTarget.Set(param.Blake2bdPowLimit)
     }
-
     return newTarget
 }
 
@@ -91,16 +90,17 @@ func (this *Blake2bd) CompareDiff(newTarget *big.Int,target *big.Int) bool{
     return newTarget.Cmp(target) <= 0
 }
 
-// pow bytes
+// pow proof data
 func (this *Blake2bd)Bytes() PowBytes {
     r := make(PowBytes,0)
-    t := make([]byte,1)
-    //write pow type 1 byte
-    t[0] = uint8(this.PowType)
-    r = append(r,t...)
     //write nonce 4 bytes
     n := make([]byte,4)
     binary.LittleEndian.PutUint32(n,this.Nonce)
     r = append(r,n...)
+
+    t := make([]byte,1)
+    //write pow type 1 byte
+    t[0] = uint8(this.PowType)
+    r = append(r,t...)
     return PowBytes(r)
 }

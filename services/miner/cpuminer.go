@@ -416,7 +416,7 @@ func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker
 		// Update the nonce and hash the block header.
 		header.Pow = powStruct
 		powStruct.SetEdgeBits(uint8(cuckoo.Edgebits))
-		sipH := hash.HashH(header.BlockData())
+		sipH := powStruct.GetSipHash(header.BlockData())
 		c:= cuckoo.NewCuckoo()
 		cycleNonces, isFound := c.PoW(sipH[:])
 		if !isFound {

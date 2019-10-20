@@ -19,14 +19,14 @@ type Cuckatoo struct {
 const MIN_CUCKATOOEDGEBITS = 29
 const MAX_CUCKATOOEDGEBITS = 32
 
-func (this *Cuckatoo) Verify(headerWithoutProofData []byte,blockHash hash.Hash,targetDiffBits uint32,powConfig * PowConfig) error{
+func (this *Cuckatoo) Verify(headerData []byte,blockHash hash.Hash,targetDiffBits uint32,powConfig * PowConfig) error{
     targetDiff := CompactToBig(targetDiffBits)
     baseDiff := CompactToBig(powConfig.CuckarooMinDifficulty)
     if !this.CheckAvailable(this.PowPercent(powConfig)){
         str := fmt.Sprintf("cuckatoo is not supported")
         return errors.New(str)
     }
-    h := hash.HashH(headerWithoutProofData)
+    h := this.GetSipHash(headerData)
     nonces := this.GetCircleNonces()
     edgeBits := this.GetEdgeBits()
     if edgeBits < MIN_CUCKATOOEDGEBITS{

@@ -61,7 +61,7 @@ type PowConfig struct {
 
 type IPow interface {
     // verify result difficulty
-    Verify(headerWithoutProofData []byte,blockHash hash.Hash,targetDiff uint32,powConfig *PowConfig) error
+    Verify(headerData []byte,blockHash hash.Hash,targetDiff uint32,powConfig *PowConfig) error
     //set header nonce
     SetNonce(nonce uint32)
     //calc next diff
@@ -73,7 +73,6 @@ type IPow interface {
     GetProofData() string
     //set proof data
     SetProofData([]byte)
-    GetBlockData(data []byte) []byte
     Bytes() PowBytes
     //if cur_reduce_diff > 0 compare cur_reduce_diff with powLimitBits or minDiff ，the cur_reduce_diff should less than powLimitBits , and should more than min diff
     //if cur_reduce_diff <=0 return powLimit or min diff
@@ -154,10 +153,4 @@ func (this *Pow) SetProofData (data []byte) {
 //check pow is available
 func (this *Pow) CheckAvailable (powPercent *big.Int) bool {
     return powPercent.Cmp(big.NewInt(0)) >0
-}
-
-
-//block data
-func (this *Pow) GetBlockData(data []byte) []byte {
-    return data
 }

@@ -5,10 +5,9 @@ package pow
 
 import (
     "encoding/binary"
-    "github.com/Qitmeer/qitmeer/common/util"
+    `github.com/Qitmeer/qitmeer/common/hash`
     "github.com/Qitmeer/qitmeer/crypto/cuckoo"
     `math/big`
-    "sort"
 )
 
 type Cuckoo struct {
@@ -58,39 +57,24 @@ func ConvertBytesToUint32Array(data []byte) []uint32 {
     return nonces
 }
 
-//get cuckoo bitarray bytes by 42 circle nonces and edge bits
-//get fingerprints edgebits with nonces
-func (this *Cuckoo)GetBlockData (data []byte) []byte {
-    circlNonces := make([]uint64,0)
-    nonces := this.GetCircleNonces()
-    for i:=0;i<len(nonces);i++{
-        circlNonces = append(circlNonces,uint64(nonces[i]))
-    }
-    sort.Slice(circlNonces, func(i, j int) bool {
-        return circlNonces[i] < circlNonces[j]
-    })
-    nonce_bits := int(this.GetEdgeBits())
-    bitvec,_ := util.New(nonce_bits*cuckoo.ProofSize)
-    for i:=41;i>=0;i--{
-        n := i
-        nonce := circlNonces[i]
-        for bit:= 0;bit < nonce_bits;bit++{
-            if nonce & (1 << uint(bit)) != 0 {
-                bitvec.SetBitAt(n * nonce_bits + bit)
-            }
-        }
-    }
-    return bitvec.Bytes()
+//get sip hash
+//first header data 113 bytes hash
+func (this *Cuckoo)GetSipHash (headerData []byte) hash.Hash {
+    return hash.HashH(headerData[:len(headerData)-PROOF_DATA_CIRCLE_NONCE_END])
 }
 
+//cuckoo pow proof data
 func (this *Cuckoo)Bytes() PowBytes {
     r := make(PowBytes,0)
-    //write pow type 1 byte
-    r = append(r,[]byte{byte(this.PowType)}...)
+
     //write nonce 4 bytes
     n := make([]byte,4)
     binary.LittleEndian.PutUint32(n,this.Nonce)
     r = append(r,n...)
+
+    //write pow type 1 byte
+    r = append(r,[]byte{byte(this.PowType)}...)
+
     //write ProofData 169 bytes
     r = append(r,this.ProofData[:]...)
     return PowBytes(r)

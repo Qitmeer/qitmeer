@@ -15,11 +15,11 @@ import (
 
 // MaxBlockHeaderPayload is the maximum number of bytes a block header can be.
 // Version 4 bytes + ParentRoot 32 bytes + TxRoot 32 bytes + StateRoot 32 bytes + Difficulty 4 bytes + Timestamp 4 bytes
-// + powType 1 byte + nonce 4 bytes + edges_bits 1 byte + 42circles 42*4 bytes
+// + nonce 4 bytes + powType 1 byte +  edges_bits 1 byte + 42circles 42*4 bytes
 //total 113 + 169 = 282
 //blake2bd only need 113 bytes
 //cuckoo need 282 bytes
-const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 4 + 1 + 4 + 1 + 42*4
+const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 4 + 4 + 1 + 1 + 42*4
 
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
 const MaxBlockPayload = 1048576 // 1024*1024 (1MB)
@@ -94,7 +94,7 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 	// transactions.  Ignore the error returns since there is no way the
 	// encode could fail except being out of memory which would cause a
 	// run-time panic.
-	return hash.DoubleHashH(h.Pow.GetBlockData(h.BlockData()))
+	return hash.DoubleHashH(h.BlockData())
 }
 
 // BlockData computes the block data for hash.
@@ -105,18 +105,10 @@ func (h *BlockHeader) BlockData() []byte {
 	// transactions.  Ignore the error returns since there is no way the
 	// encode could fail except being out of memory which would cause a
 	// run-time panic.
-	buf := bytes.NewBuffer(make([]byte, 0, MaxBlockHeaderPayload-pow.PROOFDATA_LENGTH))
+	buf := bytes.NewBuffer(make([]byte, 0, MaxBlockHeaderPayload))
 	// TODO, redefine the protocol version and storage
-	_ = writeBlockHeaderWithoutProofData(buf,0, h)
+	_ = writeBlockHeader(buf,0, h)
 	return buf.Bytes()
-}
-
-// write header data without proof data
-func writeBlockHeaderWithoutProofData(w io.Writer, pver uint32, bh *BlockHeader) error {
-	// TODO fix time ambiguous
-	sec := uint32(bh.Timestamp.Unix())
-	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
-	&bh.StateRoot,bh.Difficulty, sec, bh.Pow.GetNonce(),bh.Pow.GetPowType())
 }
 
 // readBlockHeader reads a block header from io reader.  See Deserialize for
