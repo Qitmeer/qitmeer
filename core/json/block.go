@@ -4,15 +4,15 @@ package json
 
 type ProofData struct {
 	EdgeBits int `json:"edge_bits"`
-	CircleNonces []uint32 `json:"circle_nonces"`
+	CircleNonces string `json:"circle_nonces"`
 }
 
 // pow json result
 type PowResult struct {
-	Nonce     uint32     `json:"nonce"`
 	PowName   string     `json:"pow_name"`
 	PowType   uint8     `json:"pow_type"`
-	ProofData ProofData     `json:"proof_data"`
+	Nonce     uint32     `json:"nonce"`
+	ProofData *ProofData     `json:"proof_data,omitempty"`
 }
 
 // BlockVerboseResult models the data from the getblock command when the
