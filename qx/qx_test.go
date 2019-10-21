@@ -1,7 +1,9 @@
 package qx
 
 import (
+	`encoding/hex`
 	"fmt"
+	`github.com/Qitmeer/qitmeer/common/encode/base58`
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -57,20 +59,134 @@ func TestCreateAddress(t *testing.T) {
 	assert.Contains(t, a, "Tm")
 }
 
-func TestCreateMixParamsAddress(t *testing.T) {
-	s, _ := NewEntropy(32)
-	k, _ := EcNew("secp256k1", s)
-	p, _ := EcPrivateKeyToEcPublicKey(false, k)
-	a, _ := EcPubKeyToAddress("mixnet", p)
-	fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-	assert.Contains(t, a, "Xm")
+func TestDecodeAddr(t *testing.T) {
+	addrStr := "TmbCBKbZF8PeSdj5Chm22T4hZRMJY5D8XyX"
+	_, netID, err := base58.QitmeerCheckDecode(addrStr)
+	if err != nil{
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(hex.EncodeToString(netID[:]))
+
 }
 
-func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
+func TestEncodeAddr(t *testing.T) {
 	s, _ := NewEntropy(32)
 	k, _ := EcNew("secp256k1", s)
 	p, _ := EcPrivateKeyToEcPublicKey(false, k)
 	a, _ := EcScriptKeyToAddress("mixnet", p)
 	fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-	assert.Contains(t, a, "XS")
+
+}
+
+func TestCreateMixParamsAddressPublicKey(t *testing.T) {
+	times := 0
+	for{
+		if times > 20000 {
+			break
+		}
+		s, _ := NewEntropy(32)
+		k, _ := EcNew("secp256k1", s)
+		p, _ := EcPrivateKeyToEcPublicKey(false, k)
+		a, _ := EcPublicKeyToAddress("mixnet", p)
+		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
+		if !assert.Contains(t, a, "Xx"){
+			break
+		}
+		times++
+	}
+}
+
+func TestCreateMixParamsAddressPublicKeyHash(t *testing.T) {
+	times := 0
+	for{
+		if times > 20000 {
+			break
+		}
+		s, _ := NewEntropy(32)
+		k, _ := EcNew("secp256k1", s)
+		p, _ := EcPrivateKeyToEcPublicKey(false, k)
+		a, _ := EcPubKeyToAddress("mixnet", p)
+		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
+		if !assert.Contains(t, a, "Xm"){
+			break
+		}
+		times++
+	}
+}
+
+func TestCreateMixParamsPKHEdwardsAddrIDAddress(t *testing.T) {
+	times := 0
+	for{
+		if times > 20000 {
+			break
+		}
+		s, _ := NewEntropy(32)
+		k, _ := EcNew("secp256k1", s)
+		p, _ := EcPrivateKeyToEcPublicKey(false, k)
+		a, _ := PKHEdwardsAddrIDToAddress("mixnet", p)
+		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
+		if !assert.Contains(t, a, "Xc"){
+			break
+		}
+		times++
+	}
+
+}
+
+func TestCreateMixParamsPKHSchnorrAddrIDAddress(t *testing.T) {
+	times := 0
+	for{
+		if times > 20000 {
+			break
+		}
+		s, _ := NewEntropy(32)
+		k, _ := EcNew("secp256k1", s)
+		p, _ := EcPrivateKeyToEcPublicKey(false, k)
+		a, _ := PKHSchnorrAddrIDToAddress("mixnet", p)
+		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
+		if !assert.Contains(t, a, "Xr"){
+			break
+		}
+		times++
+	}
+
+}
+
+func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
+	times := 0
+	for{
+		if times > 20000 {
+			break
+		}
+		s, _ := NewEntropy(32)
+		k, _ := EcNew("secp256k1", s)
+		p, _ := EcPrivateKeyToEcPublicKey(false, k)
+		a, _ := EcScriptKeyToAddress("mixnet", p)
+		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
+		if !assert.Contains(t, a, "Xd"){
+			break
+		}
+		times++
+	}
+
+}
+
+func TestCreateMixParamsPrivateKeyIDAddress(t *testing.T) {
+	times := 0
+	for{
+		if times > 20000 {
+			break
+		}
+		s, _ := NewEntropy(32)
+		k, _ := EcNew("secp256k1", s)
+		p, _ := EcPrivateKeyToEcPublicKey(false, k)
+		a, _ := PrivateKeyIDToAddress("mixnet", p)
+		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
+		if !assert.Contains(t, a, "Xt"){
+			break
+		}
+		times++
+	}
+
 }

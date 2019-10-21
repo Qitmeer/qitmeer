@@ -5,6 +5,7 @@ package main
 
 import (
 	"encoding/hex"
+	`github.com/Qitmeer/qitmeer/qx`
 	"github.com/stretchr/testify/assert"
 	"github.com/Qitmeer/qitmeer/common/encode/base58"
 	"github.com/Qitmeer/qitmeer/crypto/bip32"
@@ -109,4 +110,37 @@ func TestQitmeerHd(t *testing.T) {
 		"xprv9s21ZrQH143K3eKjeMrovhEdqzX9mzxsAxXxY3rYEPRzs7o3hXnD6ja2YgxgvppmxFTYjEpE32yYsyxdnWbBBt3wSiRD1rqN1FFdnQJdnzF")
 	assert.Equal(t,publicKey.String(),
 		"xpub661MyMwAqRbcG8QCkPPpHqBNQ2MeBTgiYBTZLSG9nixyjv8CF56TeXtWPx3tiZTfPc92cbZFtFhZpBuSgpNxvFpDAQKX47DdyYcofRNJYT2")
+}
+
+func TestQitmeerHdMixnet(t *testing.T) {
+	//
+	// 1.) Use bx to verify the result
+	//
+	// $ echo 0c891ae06b952c7c30d741590068aa6ca63b4c9d39846da1|bx mnemonic-new
+	//   arrive emotion retreat strong fan dignity select trial flip addict clever sun glove play insane correct horror area
+	//
+	// $ echo 0c891ae06b952c7c30d741590068aa6ca63b4c9d39846da1|bx mnemonic-new|bx mnemonic-to-seed
+	//   17d2225306c59147d199e626bd322aaad6297225b39c720b5f59e99fe7fb872ff52705859851ad794aecb666e98fbe34a1d235f80a27b69daf486d23281e9567
+	//
+	// $ echo 0c891ae06b952c7c30d741590068aa6ca63b4c9d39846da1|bx mnemonic-new|bx mnemonic-to-seed|bx hd-new
+	//   xprv9s21ZrQH143K3eKjeMrovhEdqzX9mzxsAxXxY3rYEPRzs7o3hXnD6ja2YgxgvppmxFTYjEpE32yYsyxdnWbBBt3wSiRD1rqN1FFdnQJdnzF
+	//
+	// $ echo 0c891ae06b952c7c30d741590068aa6ca63b4c9d39846da1|bx mnemonic-new|bx mnemonic-to-seed|bx hd-new|bx hd-to-public
+	//   xpub661MyMwAqRbcG8QCkPPpHqBNQ2MeBTgiYBTZLSG9nixyjv8CF56TeXtWPx3tiZTfPc92cbZFtFhZpBuSgpNxvFpDAQKX47DdyYcofRNJYT2
+	//
+	// 2.) And double check at https://iancoleman.io/bip39/
+	//
+	var mnemonic = "insane correct horror area select emotion arrive retreat strong fan dignity trial flip addict clever sun glove play"
+	// Generate a Bip32 HD wallet for the mnemonic and a user supplied password
+	seed := bip39.NewSeed(mnemonic, "")
+	bip32.DefaultBip32Version = qx.QitmeerMixnetBip32Version
+	masterKey, _ := bip32.NewMasterKey(seed)
+	publicKey := masterKey.PublicKey()
+
+	assert.Equal(t, hex.EncodeToString(seed),
+		"318b5226b5b0967cbc1bfe21fd291eb1b729c3b454c72d33b8435a06e21f522178270674723ea4b3b72206df57ec0b4f8b6d8b3f61eaeff68ff5d517038af799")
+	assert.Equal(t,masterKey.String(),
+		"LsFCdDQq16vs5HYfwTDySCFs9Vz9pTsquKNMPuUfmswvwNCwYYKy8ySdVxfq6tSmmzyPLVDXRLFHF5n5kMDDfxiYxpNvrH6D3PzA76jwfwkWjxx")
+	assert.Equal(t,publicKey.String(),
+		"LsG9kiUcodkga8VXhWTgH2cpDofJRLhp7JxeawZGWYUXQaWzCZGVMbBx5U52JHxnFedAAtxav2AhcxCv85yNTtk9PnPkqaYsaEef4Y9HYFcuArb")
 }

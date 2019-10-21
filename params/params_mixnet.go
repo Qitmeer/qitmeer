@@ -79,14 +79,14 @@ var MixNetParams = Params{
     NetworkAddressPrefix: "X",
     PubKeyAddrID:         [2]byte{0x11, 0x6e}, // starts with Xx
     PubKeyHashAddrID:     [2]byte{0x11, 0x53}, // starts with Xm
-    PKHEdwardsAddrID:     [2]byte{0x11, 0x42}, // starts with Xe
+    PKHEdwardsAddrID:     [2]byte{0x11, 0x3c}, // starts with Xc
     PKHSchnorrAddrID:     [2]byte{0x11, 0x5f}, // starts with Xr
-    ScriptHashAddrID:     [2]byte{0x11, 0x24}, // starts with XS
+    ScriptHashAddrID:     [2]byte{0x11, 0x3e}, // starts with Xd
     PrivateKeyID:         [2]byte{0x11, 0x64}, // starts with Xt
 
     // BIP32 hierarchical deterministic extended key magics
-    HDPrivateKeyID: [4]byte{0x01, 0x9d, 0x0b, 0xe1}, // starts with xprv
-    HDPublicKeyID:  [4]byte{0x01, 0x9d, 0x0d, 0x62}, // starts with xpub
+    HDPrivateKeyID: [4]byte{0x01, 0x9d, 0x0b, 0xe1}, // starts with LsFC
+    HDPublicKeyID:  [4]byte{0x01, 0x9d, 0x0d, 0x62}, // starts with LsG9
 
     // BIP44 coin type used in the hierarchical deterministic path for
     // address generation.
