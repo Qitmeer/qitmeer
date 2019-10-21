@@ -41,6 +41,7 @@ const (
 const (
 	DefaultServiceNameSpace  = "qitmeer"
 	MinerNameSpace           = "miner"
+	TestNameSpace            = "test"
 )
 
 
