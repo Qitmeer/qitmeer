@@ -53,7 +53,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		TestNet:         api.node.node.Config.TestNet,
 		Confirmations:   blockdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
-		Modules:         []string{rpc.DefaultServiceNameSpace,rpc.MinerNameSpace},
+		Modules:         []string{rpc.DefaultServiceNameSpace,rpc.MinerNameSpace,rpc.TestNameSpace},
 	}
 	ret.GraphState=*getGraphStateResult(best.GraphState)
 	return ret, nil
