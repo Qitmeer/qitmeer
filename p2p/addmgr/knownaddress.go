@@ -6,6 +6,7 @@
 package addmgr
 
 import (
+	"fmt"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"sync"
 	"time"
@@ -106,4 +107,16 @@ func (ka *KnownAddress) isBad() bool {
 	}
 
 	return false
+}
+
+func (ka *KnownAddress) String() string {
+	ka.mtx.Lock()
+	defer ka.mtx.Unlock()
+	return fmt.Sprintf("%s %s %d %s %s %v %d",ka.na.IP,ka.srcAddr.IP,ka.attempts,ka.lastattempt,ka.lastsuccess,ka.tried,ka.refs)
+}
+
+func (ka *KnownAddress) GetAttempts() int {
+	ka.mtx.Lock()
+	defer ka.mtx.Unlock()
+	return ka.attempts
 }

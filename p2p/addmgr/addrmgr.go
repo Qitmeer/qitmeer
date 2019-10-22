@@ -462,7 +462,7 @@ func (a *AddrManager) deserializePeers(filePath string) error {
 			return fmt.Errorf("failed to deserialize netaddress "+
 				"%s: %v", v.Src, err)
 		}
-		ka.attempts = v.Attempts
+		//ka.attempts = v.Attempts
 		ka.lastattempt = time.Unix(v.LastAttempt, 0)
 		ka.lastsuccess = time.Unix(v.LastSuccess, 0)
 		a.addrIndex[NetAddressKey(ka.na)] = ka
