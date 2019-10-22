@@ -288,6 +288,7 @@ func (cm *ConnManager) handleFailedConn(c *ConnReq) {
 			retryDuration:=cm.cfg.RetryDuration*2
 			log.Trace(fmt.Sprintf("Retrying ban connection in: %v", retryDuration))
 			time.AfterFunc(retryDuration, func() {
+				c.Ban=false
 				cm.NewConnReq()
 			})
 		} else if cm.failedAttempts >= maxFailedAttempts {
