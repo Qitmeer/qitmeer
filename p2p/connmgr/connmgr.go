@@ -145,6 +145,8 @@ type ConnReq struct {
 	conn       net.Conn
 	Addr       net.Addr
 	Permanent  bool
+	// This connect is illegal
+	Ban        bool
 }
 
 // updateState updates the state of the connection request.
@@ -170,6 +172,19 @@ func (c *ConnReq) String() string {
 	return fmt.Sprintf("%s (reqid %d)", c.Addr, atomic.LoadUint64(&c.id))
 }
 
+// conn
+func (c *ConnReq) Conn() net.Conn {
+	return c.conn
+}
+
+// NewConnReq
+func NewConnReq() *ConnReq {
+	c:=ConnReq{}
+	c.id=0
+	c.Ban=false
+	return &c
+}
+
 // Config holds the configuration options related to the connection manager.
 type Config struct {
 	// Listeners defines a slice of listeners for which the connection
@@ -193,7 +208,7 @@ type Config struct {
 	// This field will not have any effect if the Listeners field is not
 	// also specified since there couldn't possibly be any accepted
 	// connections in that case.
-	OnAccept func(net.Conn)
+	OnAccept func(*ConnReq)
 
 	// TargetOutbound is the number of outbound network connections to
 	// maintain. Defaults to 8.
@@ -205,7 +220,7 @@ type Config struct {
 
 	// OnConnection is a callback that is fired when a new outbound
 	// connection is established.
-	OnConnection func(*ConnReq, net.Conn)
+	OnConnection func(*ConnReq)
 
 	// OnDisconnection is a callback that is fired when an outbound
 	// connection is disconnected.
@@ -269,7 +284,14 @@ func (cm *ConnManager) handleFailedConn(c *ConnReq) {
 		})
 	} else if cm.cfg.GetNewAddress != nil {
 		cm.failedAttempts++
-		if cm.failedAttempts >= maxFailedAttempts {
+		if c.Ban {
+			retryDuration:=cm.cfg.RetryDuration*2
+			log.Trace(fmt.Sprintf("Retrying ban connection in: %v", retryDuration))
+			time.AfterFunc(retryDuration, func() {
+				c.Ban=false
+				cm.NewConnReq()
+			})
+		} else if cm.failedAttempts >= maxFailedAttempts {
 			log.Trace(fmt.Sprintf("Max %d failed connection attempts reached", maxFailedAttempts))
 			log.Trace(fmt.Sprintf("Retrying connection in: %v", cm.cfg.RetryDuration),
 				"failed",cm.failedAttempts)
@@ -326,7 +348,7 @@ out:
 				delete(pending, connReq.id)
 
 				if cm.cfg.OnConnection != nil {
-					go cm.cfg.OnConnection(connReq, msg.conn)
+					go cm.cfg.OnConnection(connReq)
 				}
 
 			case handleDisconnected:
@@ -418,7 +440,7 @@ func (cm *ConnManager) NewConnReq() {
 		return
 	}
 
-	c := &ConnReq{}
+	c := NewConnReq()
 	atomic.StoreUint64(&c.id, atomic.AddUint64(&cm.connReqCount, 1))
 	// Submit a request of a pending connection attempt to the connection
 	// manager. By registering the id before the connection is even
@@ -537,7 +559,9 @@ func (cm *ConnManager) listenHandler(listener net.Listener) {
 			}
 			continue
 		}
-		go cm.cfg.OnAccept(conn)
+		c:=NewConnReq()
+		c.conn=conn
+		go cm.cfg.OnAccept(c)
 	}
 
 	cm.wg.Done()

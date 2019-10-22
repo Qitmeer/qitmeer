@@ -2,7 +2,6 @@ package peerserver
 
 import (
 	"errors"
-	"fmt"
 	"github.com/Qitmeer/qitmeer/common/network"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -162,40 +161,29 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 	var newAddressFunc func() (net.Addr, error)
 	if !cfg.PrivNet && len(cfg.ConnectPeers) == 0 {
 		newAddressFunc = func() (net.Addr, error) {
-			for tries := 0; tries < 100; tries++ {
-				addr := s.addrManager.GetAddress()
-				if addr == nil {
-					break
-				}
-
-				// Address will not be invalid, local or unroutable
-				// because addrmanager rejects those on addition.
-				// Just check that we don't already have an address
-				// in the same group so that we are not connecting
-				// to the same network segment at the expense of
-				// others.
-				key := addmgr.GroupKey(addr.NetAddress())
-				if s.OutboundGroupCount(key) != 0 {
-					continue
-				}
-
-				// only allow recent nodes (10mins) after we failed 30
-				// times
-				if tries < 30 && time.Since(addr.LastAttempt()) < 10*time.Minute {
-					continue
-				}
-
-				// allow nondefault ports after 50 failed tries.
-				if fmt.Sprintf("%d", addr.NetAddress().Port) !=
-					chainParams.DefaultPort && tries < 50 {
-					continue
-				}
-
-				addrString := addmgr.NetAddressKey(addr.NetAddress())
-				return addrStringToNetAddr(addrString)
+			addr := s.addrManager.GetAddress()
+			if addr == nil {
+				//break
+				return nil, errors.New("no valid connect address")
+			}
+			// Address will not be invalid, local or unroutable
+			// because addrmanager rejects those on addition.
+			// Just check that we don't already have an address
+			// in the same group so that we are not connecting
+			// to the same network segment at the expense of
+			// others.
+			key := addmgr.GroupKey(addr.NetAddress())
+			if s.OutboundGroupCount(key) != 0 {
+				return nil, errors.New("no valid connect address")
 			}
 
-			return nil, errors.New("no valid connect address")
+			// only allow recent nodes (10mins) after we failed 30
+			// times
+			if addr.GetAttempts() > 1 && time.Since(addr.LastAttempt()) < 10*time.Minute {
+				return nil, errors.New("no valid connect address")
+			}
+			addrString := addmgr.NetAddressKey(addr.NetAddress())
+			return addrStringToNetAddr(addrString)
 		}
 	}
 	// Create a connection manager.

@@ -116,12 +116,13 @@ func (s *PeerServer) OutboundGroupCount(key string) int {
 // connection is established.  It initializes a new inbound server peer
 // instance, associates it with the connection, and starts a goroutine to wait
 // for disconnection.
-func (s *PeerServer) inboundPeerConnected(conn net.Conn) {
+func (s *PeerServer) inboundPeerConnected(c *connmgr.ConnReq) {
 	sp := newServerPeer(s,false)
-	sp.isWhitelisted = isWhitelisted(s.cfg, conn.RemoteAddr())
+	sp.isWhitelisted = isWhitelisted(s.cfg, c.Conn().RemoteAddr())
 	sp.Peer = peer.NewInboundPeer(newPeerConfig(sp))
 	sp.syncPeer.Peer = sp.Peer
-	sp.AssociateConnection(conn)
+	sp.connReq = c
+	sp.AssociateConnection(c)
 	go s.peerDoneHandler(sp)
 }
 
@@ -130,7 +131,7 @@ func (s *PeerServer) inboundPeerConnected(conn net.Conn) {
 // peer instance, associates it with the relevant state such as the connection
 // request instance and the connection itself, and finally notifies the address
 // manager of the attempt.
-func (s *PeerServer) outboundPeerConnected(c *connmgr.ConnReq, conn net.Conn) {
+func (s *PeerServer) outboundPeerConnected(c *connmgr.ConnReq) {
 	sp := newServerPeer(s, c.Permanent)
 	p, err := peer.NewOutboundPeer(newPeerConfig(sp), c.Addr.String())
 	if err != nil {
@@ -140,8 +141,8 @@ func (s *PeerServer) outboundPeerConnected(c *connmgr.ConnReq, conn net.Conn) {
 	sp.Peer = p
 	sp.syncPeer.Peer = sp.Peer
 	sp.connReq = c
-	sp.isWhitelisted = isWhitelisted(s.cfg, conn.RemoteAddr())
-	sp.AssociateConnection(conn)
+	sp.isWhitelisted = isWhitelisted(s.cfg, c.Conn().RemoteAddr())
+	sp.AssociateConnection(c)
 	go s.peerDoneHandler(sp)
 	s.addrManager.Attempt(sp.NA())
 }
@@ -315,7 +316,7 @@ func (s *PeerServer) peerDoneHandler(sp *serverPeer) {
 	s.donePeers <- sp
 
 	// Only tell block manager we are gone if we ever told it we existed.
-	if sp.VersionKnown() {
+	if sp.VersionKnown() && !sp.connReq.Ban {
 		log.Trace("peerDoneHandler send blkmgr donePeerMsg ")
 		s.BlockManager.DonePeer(sp.syncPeer)
 	}

@@ -248,7 +248,7 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	}
 	hsLen:=len(hashSlice)
 	if hsLen==0 {
-		log.Trace("Sorry, there are not these blocks for %s",p.String())
+		log.Trace(fmt.Sprintf("Sorry, there are not these blocks for %s",p.String()))
 		return
 	}
 

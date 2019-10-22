@@ -93,7 +93,7 @@ func (s *PeerServer) handleDonePeerMsg(state *peerState, sp *serverPeer) {
 		return
 	}
 
-	if sp.connReq != nil {
+	if sp.connReq != nil && sp.connReq.ID() != 0 {
 		s.connManager.Disconnect(sp.connReq.ID())
 	}
 

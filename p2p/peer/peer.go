@@ -14,6 +14,7 @@ import (
 	`github.com/Qitmeer/qitmeer/core/serialization`
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/satori/go.uuid"
 	"math/rand"
 	"net"
@@ -119,13 +120,13 @@ func (p *Peer) Disconnect() {
 // AssociateConnection associates the given conn to the peer.
 // Calling this function when the peer is already connected will
 // have no effect.
-func (p *Peer) AssociateConnection(conn net.Conn) {
+func (p *Peer) AssociateConnection(c *connmgr.ConnReq) {
 	// Already connected?
 	if !atomic.CompareAndSwapInt32(&p.connected, 0, 1) {
 		return
 	}
 
-	p.conn = conn
+	p.conn = c.Conn()
 	p.timeConnected = time.Now()
 
 	if p.inbound {
@@ -146,6 +147,7 @@ func (p *Peer) AssociateConnection(conn net.Conn) {
 	go func(peer *Peer) {
 		if err := peer.start(); err != nil {
 			log.Debug("Cannot start peer", "peer",peer.addr, "error",err)
+			c.Ban=true
 			peer.Disconnect()
 		}
 	}(p)
