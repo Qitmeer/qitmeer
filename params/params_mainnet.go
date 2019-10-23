@@ -92,7 +92,7 @@ var MainNetParams = Params{
 	// https://github.com/satoshilabs/slips/blob/master/slip-0044.md
 	HDCoinType: 223,
 
-	CoinbaseMaturity:        256,
+	CoinbaseMaturity:        512,
 
 	OrganizationPkScript:  hexMustDecode("76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac"),
 }
