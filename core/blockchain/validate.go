@@ -978,6 +978,15 @@ func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoVie
 					coinbaseMaturity)
 				return 0, ruleError(ErrImmatureSpend, str)
 			}
+			if !bd.IsOnMainChain(utxoEntry.BlockHash()) {
+				str := fmt.Sprintf("tx %v tried to spend "+
+					"coinbase transaction %v from "+
+					"%v at %v before required "+
+					"maturity of %v blocks, but it is't in the main chain of dag", txHash,
+					txInHash, confirmations, originConf,
+					coinbaseMaturity)
+				return 0, ruleError(ErrNoMainChainCoinbase, str)
+			}
 		}
 
 		// Ensure the transaction amounts are in range.  Each of the

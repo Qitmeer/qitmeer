@@ -91,6 +91,9 @@ func buildLedger(cfg *config.Config,db database.DB,params *params.Params) error 
 			if entry.IsSpent() {
 				continue
 			}
+			if entry.IsCoinBase() && !bc.BlockDAG().IsOnMainChain(entry.BlockHash()) {
+				continue
+			}
 			confir:=bc.BlockDAG().GetConfirmations(entry.BlockHash())
 			if confir < blockdag.StableConfirmations && !entry.BlockHash().IsEqual(params.GenesisHash) {
 				continue
