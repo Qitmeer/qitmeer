@@ -18,8 +18,8 @@ func TestScaleToTarget(t *testing.T) {
 	diff := uint64(1000)
 	diffBig := &big.Int{}
 	diffBig.SetUint64(diff)
-	assert.Equal(t, "0c49ba5e353f7ced000000000000000000000000000000000000000000000000", CuckooDiffToTarget(GraphWeight(24), diffBig))
-	assert.Equal(t, "db22d0e560418937000000000000000000000000000000000000000000000000", CuckooDiffToTarget(GraphWeight(29), diffBig))
+	assert.Equal(t, "0c49ba5e353f7ced916872b020c49ba5e353f7ced916872b020c49ba5e353f7c", CuckooDiffToTarget(GraphWeight(24), diffBig))
+	assert.Equal(t, "01db22d0e5604189374bc6a7ef9db22d0e5604189374bc6a7ef9db22d0e56041", CuckooDiffToTarget(GraphWeight(29), diffBig))
 }
 
 // scale * 2^ 64 / diff is target
