@@ -331,7 +331,8 @@ func (b *BlockChain) needAjustPowDifficulty(curNode *blockNode, powType pow.PowT
 	needAjustCount := int64(windowsSizeBig.Uint64())
 
 	countFromLastAdjustment := b.getDistanceFromLastAdjustment(curNode,powType,needAjustCount)
-
+	// countFromLastAdjustment stats b.params.WorkDiffWindows Multiple count
+	countFromLastAdjustment /= b.params.WorkDiffWindows
 	return countFromLastAdjustment > 0 && countFromLastAdjustment % needAjustCount == 0
 }
 
