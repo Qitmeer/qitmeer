@@ -119,8 +119,9 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	// just return this.
 	oldDiff := curNode.bits
 	oldDiffBig := pow.CompactToBig(curNode.bits)
+
 	// We're not at a retarget point, return the oldDiff.
-	if !b.needAjustPowDifficulty(curNode,powType) {
+	if !b.needAjustPowDifficulty(curNode,powType,instance.PowPercent(b.params.PowConfig)) {
 		// For networks that support it, allow special reduction of the
 		// required difficulty once too much time has elapsed without
 		// mining a block.
@@ -248,7 +249,6 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	if currentPowBlockCount <= 0{
 		currentPowBlockCount = 1
 	}
-
 	//percent calculate
 	currentPowPercent := big.NewInt(int64(currentPowBlockCount))
 	currentPowPercent.Lsh(currentPowPercent,32)
@@ -320,19 +320,30 @@ func (b *BlockChain) calcCurrentPowCount(curNode *blockNode, nodesToTraverse int
 }
 
 // whether need ajust Pow Difficulty
-func (b *BlockChain) needAjustPowDifficulty(curNode *blockNode, powType pow.PowType) bool {
-	distanceFromLastAdjustment := b.getDistanceFromLastAdjustment(curNode,powType)
-	return int64(distanceFromLastAdjustment+1)%b.params.WorkDiffWindowSize == 0
+// recent b.params.WorkDiffWindowSize blocks
+// if current count arrived target block count . need ajustment difficulty
+func (b *BlockChain) needAjustPowDifficulty(curNode *blockNode, powType pow.PowType,targetPercent *big.Int) bool {
+	windowsSizeBig := big.NewInt(b.params.WorkDiffWindowSize)
+	// percent is *100 * 2^32
+	windowsSizeBig.Mul(windowsSizeBig,targetPercent)
+	windowsSizeBig.Div(windowsSizeBig,big.NewInt(100))
+	windowsSizeBig.Rsh(windowsSizeBig,32)
+	needAjustCount := int64(windowsSizeBig.Uint64())
+
+	countFromLastAdjustment := b.getDistanceFromLastAdjustment(curNode,powType,needAjustCount)
+
+	return countFromLastAdjustment > 0 && countFromLastAdjustment % needAjustCount == 0
 }
 
-// Distance from last adjustment
-func (b *BlockChain) getDistanceFromLastAdjustment(curNode *blockNode, powType pow.PowType) int64 {
+// Distance block count from last adjustment
+func (b *BlockChain) getDistanceFromLastAdjustment(curNode *blockNode, powType pow.PowType,needAjustCount int64) int64 {
 	if curNode == nil{
 		return 0
 	}
 	//calculate
 	oldBits := curNode.bits
 	count := int64(0)
+	currentTime := curNode.timestamp
 	for{
 		if curNode.pow.GetPowType() == powType{
 			if oldBits != curNode.bits{
@@ -340,7 +351,12 @@ func (b *BlockChain) getDistanceFromLastAdjustment(curNode *blockNode, powType p
 			}
 			count++
 		}
-
+		if count == 2{
+			// if TargetTimespan have only one pow block need ajustment difficulty
+			if currentTime - curNode.timestamp > int64(b.params.TargetTimespan /time.Second){
+				return needAjustCount
+			}
+		}
 		if curNode.parents == nil{
 			return count
 		}
