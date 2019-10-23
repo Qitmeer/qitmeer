@@ -352,11 +352,9 @@ func (b *BlockChain) getDistanceFromLastAdjustment(curNode *blockNode, powType p
 			}
 			count++
 		}
-		if count == 2{
-			// if TargetTimespan have only one pow block need ajustment difficulty
-			if currentTime - curNode.timestamp > int64(b.params.TargetTimespan /time.Second){
-				return needAjustCount
-			}
+		// if TargetTimespan have only one pow block need ajustment difficulty
+		if count > 1 && currentTime - curNode.timestamp > (count-1)*int64(b.params.TargetTimespan /time.Second){
+			return needAjustCount
 		}
 		if curNode.parents == nil{
 			return count
