@@ -169,12 +169,9 @@ func readElement(r io.Reader, element interface{}) error {
 		}
 		leftBytes := make([]byte,pow.PROOFDATA_LENGTH)
 		// different pow store different bytes
-		if powType != pow.BLAKE2BD{
-			//if cuckoo read left proof data bytes
-			_, err := io.ReadFull(r,leftBytes)
-			if err != nil {
-				return err
-			}
+		_, err = io.ReadFull(r,leftBytes)
+		if err != nil {
+			return err
 		}
 		//set pow type 1 bytes nonce 4 bytes and proof data except types
 		*e = pow.GetInstance(powType,littleEndian.Uint32(b[0:4]),leftBytes)

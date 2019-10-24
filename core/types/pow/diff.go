@@ -4,10 +4,8 @@
 package pow
 
 import (
-	"encoding/binary"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/log"
 	"math/big"
 )
@@ -195,14 +193,17 @@ func mergeDifficulty(oldDiff int64, newDiff1 int64, newDiff2 int64) int64 {
 
 //calc cuckoo diff
 func CalcCuckooDiff(scale uint64, blockHash hash.Hash) *big.Int {
-	c := &big.Int{}
-	util.ReverseBytes(blockHash[:])
-	c.SetUint64(binary.BigEndian.Uint64(blockHash[:8]))
+	c := HashToBig(&blockHash)
+	max := big.NewInt(1).Lsh(bigOne,256)
+	if c.Cmp(big.NewInt(0)) <= 0{
+		return max
+	}
 	a := &big.Int{}
 	a.SetUint64(scale)
-	d := big.NewInt(1)
-	d.Lsh(d, 64)
-	a.Mul(a, d)
+	if a.Cmp(c) >= 0{
+		return max
+	}
+	a.Mul(a, max)
 	e := a.Div(a, c)
 	log.Debug(fmt.Sprintf("solution difficulty:%d", e.Uint64()))
 	return e
@@ -212,16 +213,16 @@ func CalcCuckooDiff(scale uint64, blockHash hash.Hash) *big.Int {
 func CuckooDiffToTarget(scale uint64, diff *big.Int) string {
 	a := &big.Int{}
 	a.SetUint64(scale)
-	d := big.NewInt(1)
-	d.Lsh(d, 64)
-	a.Mul(a, d)
+	max := big.NewInt(1).Lsh(bigOne,256)
+	if a.Cmp(diff) >= 0 {
+		return fmt.Sprintf("%x",max.Sub(max,bigOne))
+	}
+	a.Mul(a, max)
 	a.Div(a, diff)
-	m := make([]byte, 8)
-	binary.BigEndian.PutUint64(m, a.Uint64())
-	h := hash.Hash{}
-	util.ReverseBytes(m)
-	copy(h[24:32], m)
-	return h.String()
+	b := a.Bytes()
+	c := make([]byte,32)
+	copy(c[:],b)
+	return fmt.Sprintf("%x",c)
 }
 
 //calc scale

@@ -378,7 +378,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 			// Each hash is actually a double hash (tow hashes), so
 			// increment the number of hashes by 2
 			hashesCompleted += 2
-			h := hash.DoubleHashH(header.BlockData())
+			h := header.BlockHash()
 			hashNum := pow.HashToBig(&h)
 
 			if hashNum.Cmp(target) <= 0 {

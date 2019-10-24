@@ -112,5 +112,7 @@ func (this *Blake2bd) Bytes() PowBytes {
 	//write pow type 1 byte
 	t[0] = uint8(this.PowType)
 	r = append(r, t...)
+	//write ProofData 169 bytes
+	r = append(r, this.ProofData[:]...)
 	return PowBytes(r)
 }
