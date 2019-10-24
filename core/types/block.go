@@ -105,7 +105,7 @@ func (h *BlockHeader) BlockData() []byte {
 	// transactions.  Ignore the error returns since there is no way the
 	// encode could fail except being out of memory which would cause a
 	// run-time panic.
-	buf := bytes.NewBuffer(make([]byte, 0, MaxBlockHeaderPayload))
+	buf := bytes.NewBuffer(make([]byte, 0, MaxBlockHeaderPayload-pow.PROOFDATA_LENGTH))
 	// TODO, redefine the protocol version and storage
 	_ = writeBlockHeader(buf,0, h)
 	return buf.Bytes()

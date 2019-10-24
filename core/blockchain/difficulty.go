@@ -353,8 +353,10 @@ func (b *BlockChain) getDistanceFromLastAdjustment(curNode *blockNode, powType p
 			count++
 		}
 		// if TargetTimespan have only one pow block need ajustment difficulty
-		if count > 1 && currentTime - curNode.timestamp > (count-1)*int64(b.params.TargetTimespan /time.Second){
-			return needAjustCount
+		// or count >= needAjustCount
+		if ( count > 1 && currentTime - curNode.timestamp > (count-1)*int64(b.params.TargetTimespan /time.Second) ) ||
+			count >= needAjustCount{
+			return needAjustCount * b.params.WorkDiffWindows
 		}
 		if curNode.parents == nil{
 			return count
