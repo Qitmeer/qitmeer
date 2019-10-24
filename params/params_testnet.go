@@ -15,8 +15,8 @@ import (
 )
 
 // testNetPowLimit is the highest proof of work value a block can
-// have for the test network. It is the value 2^232 - 1.
-var	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1)
+// have for the test network. It is the value 2^221 - 1.
+var	testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 221), common.Big1)
 
 // TestNetParams defines the network parameters for the test network.
 var TestNetParams = Params{
@@ -34,36 +34,39 @@ var TestNetParams = Params{
 	GenesisHash:              &testNetGenesisHash,
 	PowConfig :&pow.PowConfig{
 		Blake2bdPowLimit:                 testNetPowLimit,
-		Blake2bdPowLimitBits:             0x1e00ffff,
-		Blake2bDPercent:          34,
-		CuckarooPercent:          33,
-		CuckatooPercent:          33,
+		Blake2bdPowLimitBits:             0x1c1fffff,       // compact from of testNetPowLimit (2^221-1)
+		Blake2bDPercent:          10,
+		CuckarooPercent:          70,
+		CuckatooPercent:          20,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 = 1min find once
-		CuckarooMinDifficulty:     0x1600000,
-		CuckatooMinDifficulty:     0x1600000,
+		CuckarooMinDifficulty:     0x1600000,               // 96
+		CuckatooMinDifficulty:     0x2074000,               // 1856
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        true,
 	WorkDiffAlpha:            1,
-	WorkDiffWindowSize:       144,
+	WorkDiffWindowSize:       120,                   // Difficulty check interval is about 120*30 = 1 hour
 	WorkDiffWindows:          20,
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
-	TargetTimePerBlock:       time.Minute * 2,
-	TargetTimespan:           time.Minute * 2 * 144, // TimePerBlock * WindowSize
-	RetargetAdjustmentFactor: 4,
+	TargetTimePerBlock:       time.Second * 30,
+	TargetTimespan:           time.Second * 30 * 120, // TimePerBlock * WindowSize
+	RetargetAdjustmentFactor: 2,                      // equal to 2 hour vs. 4
 
 	// Subsidy parameters.
-	BaseSubsidy:              2500000000, // 25 Coin
+	BaseSubsidy:              12000000000,    // 120 Coin * (1575360) * DAG factor (1.1 ~ 1.5) = 207947520 (20M) ~ 283564800 (28M)
 	MulSubsidy:               100,
-	DivSubsidy:               101,
-	SubsidyReductionInterval: 2048,
+	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at height 1575360
+	SubsidyReductionInterval: 1575360,        // 18 months is almost 1575360 = (365+182) * 24 * 60 * 2
 	WorkRewardProportion:     10,
 	StakeRewardProportion:    0,
 	BlockTaxProportion:       0,
+
+	// Maturity
+	CoinbaseMaturity:         720,            // coinbase required 720 * 30 = 6 hours before repent
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{
@@ -91,7 +94,6 @@ var TestNetParams = Params{
 	// address generation.
 	HDCoinType: 223,
 
-	CoinbaseMaturity:        16,
 
 	//OrganizationPkScript:  hexMustDecode("76a914868b9b6bc7e4a9c804ad3d3d7a2a6be27476941e88ac"),
 }
