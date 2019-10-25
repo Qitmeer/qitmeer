@@ -177,6 +177,11 @@ func (c *ConnReq) Conn() net.Conn {
 	return c.conn
 }
 
+// set conn
+func (c *ConnReq) SetConn(conn net.Conn) {
+	c.conn=conn
+}
+
 // NewConnReq
 func NewConnReq() *ConnReq {
 	c:=ConnReq{}
