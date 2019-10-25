@@ -1,7 +1,11 @@
 package pow
 
 import (
+	`encoding/hex`
+	`fmt`
 	"github.com/Qitmeer/qitmeer/common"
+	`github.com/Qitmeer/qitmeer/common/hash`
+	`github.com/Qitmeer/qitmeer/common/util`
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
@@ -11,6 +15,7 @@ func TestCalcScale(t *testing.T) {
 	assert.Equal(t, uint64(48), GraphWeight(24))
 	assert.Equal(t, uint64(100), GraphWeight(25))
 	assert.Equal(t, uint64(208), GraphWeight(26))
+	assert.Equal(t, uint64(1856), GraphWeight(29))
 	assert.Equal(t, uint64(7936), GraphWeight(31))
 }
 
@@ -18,8 +23,36 @@ func TestScaleToTarget(t *testing.T) {
 	diff := uint64(1000)
 	diffBig := &big.Int{}
 	diffBig.SetUint64(diff)
-	assert.Equal(t, "0c49ba5e353f7ced000000000000000000000000000000000000000000000000", CuckooDiffToTarget(GraphWeight(24), diffBig))
-	assert.Equal(t, "db22d0e560418937000000000000000000000000000000000000000000000000", CuckooDiffToTarget(GraphWeight(29), diffBig))
+	assert.Equal(t, "0c49ba5e353f7ced916872b020c49ba5e353f7ced916872b020c49ba5e353f7c", CuckooDiffToTarget(GraphWeight(24), diffBig))
+	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(GraphWeight(29), diffBig))
+}
+
+func TestDiffCompare(t *testing.T) {
+	str := "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+	b,_ := hex.DecodeString(str)
+	h := hash.Hash{}
+	util.ReverseBytes(b)
+	copy(h[:],b)
+	fmt.Println(h)
+	fmt.Println(CalcCuckooDiff(1856,h))
+	str = "000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+	b,_ = hex.DecodeString(str)
+	util.ReverseBytes(b)
+	copy(h[:],b)
+	fmt.Println(h)
+	fmt.Println(CalcCuckooDiff(1856,h))
+	str = "0000000000000000000000ffffffffffffffffffffffffffffffffffffffffff"
+	b,_ = hex.DecodeString(str)
+	util.ReverseBytes(b)
+	copy(h[:],b)
+	fmt.Println(h)
+	fmt.Println(CalcCuckooDiff(1856,h))
+	str = "0000000000000000000000000000000000000000000000000000000000000000"
+	b,_ = hex.DecodeString(str)
+	util.ReverseBytes(b)
+	copy(h[:],b)
+	fmt.Println(h)
+	fmt.Println(CalcCuckooDiff(1856,h))
 }
 
 // scale * 2^ 64 / diff is target

@@ -8,11 +8,21 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	`github.com/Qitmeer/qitmeer/core/json`
 	"math/big"
 )
 
 type Blake2bd struct {
 	Pow
+}
+
+func (this *Blake2bd) GetPowResult() json.PowResult {
+	return json.PowResult{
+		PowName: PowMapString[this.GetPowType()].(string),
+		PowType: uint8(this.GetPowType()),
+		Nonce:   this.GetNonce(),
+		ProofData:nil,
+	}
 }
 
 func (this *Blake2bd) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits uint32, powConfig *PowConfig) error {
@@ -102,5 +112,7 @@ func (this *Blake2bd) Bytes() PowBytes {
 	//write pow type 1 byte
 	t[0] = uint8(this.PowType)
 	r = append(r, t...)
+	//write ProofData 169 bytes
+	r = append(r, this.ProofData[:]...)
 	return PowBytes(r)
 }

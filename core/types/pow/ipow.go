@@ -93,18 +93,6 @@ type Pow struct {
 	ProofData ProofDataType // 1 edge_bits  168  bytes circle length total 169 bytes
 }
 
-func (this *Pow) GetPowResult() json.PowResult {
-	return json.PowResult{
-		Nonce:   this.GetNonce(),
-		PowName: PowMapString[this.GetPowType()].(string),
-		PowType: uint8(this.GetPowType()),
-		ProofData: json.ProofData{
-			EdgeBits:     int(this.ProofData[0:1][0]),
-			CircleNonces: ConvertBytesToUint32Array(this.ProofData[1:168]),
-		},
-	}
-}
-
 //get pow instance
 func GetInstance(powType PowType, nonce uint32, proofData []byte) IPow {
 	var instance IPow

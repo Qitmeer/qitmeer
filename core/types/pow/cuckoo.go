@@ -5,7 +5,9 @@ package pow
 
 import (
 	"encoding/binary"
+	`encoding/hex`
 	"github.com/Qitmeer/qitmeer/common/hash"
+	`github.com/Qitmeer/qitmeer/core/json`
 	"github.com/Qitmeer/qitmeer/crypto/cuckoo"
 	"math/big"
 )
@@ -19,6 +21,18 @@ const (
 	PROOF_DATA_EDGE_BITS_END    = 1
 	PROOF_DATA_CIRCLE_NONCE_END = 169
 )
+
+func (this *Cuckoo) GetPowResult() json.PowResult {
+	return json.PowResult{
+		PowName: PowMapString[this.GetPowType()].(string),
+		PowType: uint8(this.GetPowType()),
+		Nonce:   this.GetNonce(),
+		ProofData: &json.ProofData{
+			EdgeBits:int(this.ProofData[PROOF_DATA_EDGE_BITS_START:PROOF_DATA_EDGE_BITS_END][0]),
+			CircleNonces: hex.EncodeToString(this.ProofData[PROOF_DATA_EDGE_BITS_END:PROOF_DATA_CIRCLE_NONCE_END]),
+		},
+	}
+}
 
 // set edge bits
 func (this *Cuckoo) SetEdgeBits(edge_bits uint8) {
