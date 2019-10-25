@@ -17,7 +17,6 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
-	`math/big`
 	"sync"
 	"sync/atomic"
 	"time"
@@ -663,11 +662,11 @@ type processBlockMsg struct {
 // for concurrent access.
 func (b *BlockManager) ProcessBlock(block *types.SerializedBlock, flags blockchain.BehaviorFlags) (bool, error) {
 	//check pow type percent if percent <= 0 is invalid
-	if block.Block().Header.Pow.PowPercent(b.params.PowConfig).Cmp(big.NewInt(0)) <=0 {
-		str := fmt.Sprintf("pow type:%d is invalid in this chain", block.Block().Header.Pow.GetPowType())
-		return false,blockchain.RuleError{
-			ErrorCode:blockchain.ErrInValidPowType,Description:str}
-	}
+	//if block.Block().Header.Pow.PowPercent(b.params.PowConfig).Cmp(big.NewInt(0)) <=0 {
+	//	str := fmt.Sprintf("pow type:%d is invalid in this chain", block.Block().Header.Pow.GetPowType())
+	//	return false,blockchain.RuleError{
+	//		ErrorCode:blockchain.ErrInValidPowType,Description:str}
+	//}
 	reply := make(chan processBlockResponse, 1)
 	b.msgChan <- processBlockMsg{block: block, flags: flags, reply: reply}
 	response := <-reply

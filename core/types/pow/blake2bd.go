@@ -25,11 +25,7 @@ func (this *Blake2bd) GetPowResult() json.PowResult {
 	}
 }
 
-func (this *Blake2bd) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits uint32, powConfig *PowConfig) error {
-	if !this.CheckAvailable(this.PowPercent(powConfig)) {
-		str := fmt.Sprintf("blake2bd is not supported")
-		return errors.New(str)
-	}
+func (this *Blake2bd) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) error {
 	target := CompactToBig(targetDiffBits)
 	if target.Sign() <= 0 {
 		str := fmt.Sprintf("block target difficulty of %064x is too "+
@@ -38,9 +34,9 @@ func (this *Blake2bd) Verify(headerData []byte, blockHash hash.Hash, targetDiffB
 	}
 
 	//The target difficulty must be less than the maximum allowed.
-	if target.Cmp(powConfig.Blake2bdPowLimit) > 0 {
+	if target.Cmp(this.params.Blake2bdPowLimit) > 0 {
 		str := fmt.Sprintf("block target difficulty of %064x is "+
-			"higher than max of %064x", target, powConfig.Blake2bdPowLimit)
+			"higher than max of %064x", target, this.params.Blake2bdPowLimit)
 		return errors.New(str)
 	}
 	hashNum := HashToBig(&blockHash)
@@ -52,13 +48,13 @@ func (this *Blake2bd) Verify(headerData []byte, blockHash hash.Hash, targetDiffB
 	return nil
 }
 
-func (this *Blake2bd) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int, param *PowConfig) *big.Int {
+func (this *Blake2bd) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int) *big.Int {
 	nextDiffBig := weightedSumDiv.Mul(weightedSumDiv, oldDiffBig)
 	defer func() {
 		nextDiffBig = nextDiffBig.Rsh(nextDiffBig, 32)
 
 	}()
-	targetPercent := this.PowPercent(param)
+	targetPercent := this.PowPercent()
 	if targetPercent.Cmp(big.NewInt(0)) <= 0 {
 		return nextDiffBig
 	}
@@ -73,14 +69,14 @@ func (this *Blake2bd) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 	return nextDiffBig
 }
 
-func (this *Blake2bd) PowPercent(param *PowConfig) *big.Int {
-	targetPercent := big.NewInt(int64(param.Blake2bDPercent))
+func (this *Blake2bd) PowPercent() *big.Int {
+	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.height).Blake2bDPercent))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
 }
 
-func (this *Blake2bd) GetSafeDiff(param *PowConfig, cur_reduce_diff uint64) *big.Int {
-	limitBits := param.Blake2bdPowLimitBits
+func (this *Blake2bd) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
+	limitBits := this.params.Blake2bdPowLimitBits
 	limitBitsBig := CompactToBig(limitBits)
 	if cur_reduce_diff <= 0 {
 		return limitBitsBig
@@ -88,8 +84,8 @@ func (this *Blake2bd) GetSafeDiff(param *PowConfig, cur_reduce_diff uint64) *big
 	newTarget := &big.Int{}
 	newTarget = newTarget.SetUint64(cur_reduce_diff)
 	// Limit new value to the proof of work limit.
-	if newTarget.Cmp(param.Blake2bdPowLimit) > 0 {
-		newTarget.Set(param.Blake2bdPowLimit)
+	if newTarget.Cmp(this.params.Blake2bdPowLimit) > 0 {
+		newTarget.Set(this.params.Blake2bdPowLimit)
 	}
 	return newTarget
 }
@@ -115,4 +111,8 @@ func (this *Blake2bd) Bytes() PowBytes {
 	//write ProofData 169 bytes
 	r = append(r, this.ProofData[:]...)
 	return PowBytes(r)
+}
+//check pow is available
+func (this *Blake2bd) CheckAvailable() bool {
+	return this.params.GetPercentByHeight(this.height).Blake2bDPercent > 0
 }

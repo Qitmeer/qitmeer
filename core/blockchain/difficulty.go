@@ -26,13 +26,13 @@ const maxShift = uint(256)
 // can have given starting difficulty bits and a duration.  It is mainly used to
 // verify that claimed proof of work by a block is sane as compared to a
 // known good checkpoint.
-func (b *BlockChain) calcEasiestDifficulty(bits uint32, duration time.Duration,powType pow.PowType) uint32 {
+func (b *BlockChain) calcEasiestDifficulty(bits uint32, duration time.Duration,powInstance pow.IPow) uint32 {
 	// Convert types used in the calculations below.
 	durationVal := int64(duration)
 	adjustmentFactor := big.NewInt(b.params.RetargetAdjustmentFactor)
 	maxRetargetTimespan := int64(b.params.TargetTimespan) *
 		b.params.RetargetAdjustmentFactor
-	target := b.getMinPowBits(powType)
+	target := powInstance.GetSafeDiff(0)
 	// The test network rules allow minimum difficulty blocks once too much
 	// time has elapsed without mining a block.
 	if b.params.ReduceMinDifficulty {
@@ -46,16 +46,15 @@ func (b *BlockChain) calcEasiestDifficulty(bits uint32, duration time.Duration,p
 	// the number of retargets for the duration and starting difficulty
 	// multiplied by the max adjustment factor.
 	newTarget := pow.CompactToBig(bits)
-	instance := pow.GetInstance(powType,0,[]byte{})
 
-	for durationVal > 0 && instance.CompareDiff(newTarget,target) {
+	for durationVal > 0 && powInstance.CompareDiff(newTarget,target) {
 		newTarget.Mul(newTarget, adjustmentFactor)
-		newTarget = instance.GetNextDiffBig(adjustmentFactor,newTarget,big.NewInt(0),b.params.PowConfig)
+		newTarget = powInstance.GetNextDiffBig(adjustmentFactor,newTarget,big.NewInt(0))
 		durationVal -= maxRetargetTimespan
 	}
 
 	// Limit new value to the proof of work limit.
-	if !instance.CompareDiff(newTarget,target) {
+	if !powInstance.CompareDiff(newTarget,target) {
 		newTarget.Set(target)
 	}
 
@@ -66,14 +65,14 @@ func (b *BlockChain) calcEasiestDifficulty(bits uint32, duration time.Duration,p
 // did not have the special testnet minimum difficulty rule applied.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) findPrevTestNetDifficulty(startNode *blockNode,powType pow.PowType) uint32 {
+func (b *BlockChain) findPrevTestNetDifficulty(startNode *blockNode,powInstance pow.IPow) uint32 {
 	// Search backwards through the chain for the last block without
 	// the special rule applied.
 	blocksPerRetarget := uint64(b.params.WorkDiffWindowSize *
 		b.params.WorkDiffWindows)
 	iterBlock:= b.bd.GetBlock(startNode.GetHash())
 	var iterNode *blockNode
-	target := b.getMinPowBits(powType)
+	target := powInstance.GetSafeDiff(0)
 	for {
 		if iterBlock == nil ||
 			uint64(iterBlock.GetHeight())%blocksPerRetarget == 0{
@@ -98,10 +97,9 @@ func (b *BlockChain) findPrevTestNetDifficulty(startNode *blockNode,powType pow.
 // This function differs from the exported CalcNextRequiredDifficulty in that
 // the exported version uses the current best chain as the previous block node
 // while this function accepts any block node.
-func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime time.Time,powType pow.PowType) (uint32, error) {
-	baseTarget := b.getMinPowBits(powType)
+func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime time.Time,powInstance pow.IPow) (uint32, error) {
+	baseTarget := powInstance.GetSafeDiff(0)
 	originCurrentNode := curNode
-	instance := pow.GetInstance(powType,0,[]byte{})
 	// Genesis block.
 	if curNode == nil {
 		return pow.BigToCompact(baseTarget), nil
@@ -109,7 +107,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	// Number of nodes to traverse while calculating difficulty.
 	nodesToTraverse := b.params.WorkDiffWindowSize * b.params.WorkDiffWindows
 
-	curNode = b.getPowTypeNode(curNode,powType)
+	curNode = b.getPowTypeNode(curNode,powInstance.GetPowType())
 	curBlock:=b.bd.GetBlock(curNode.GetHash())
 	if curBlock == nil{
 		return pow.BigToCompact(baseTarget),nil
@@ -121,7 +119,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	oldDiffBig := pow.CompactToBig(curNode.bits)
 
 	// We're not at a retarget point, return the oldDiff.
-	if !b.needAjustPowDifficulty(curNode,powType,instance.PowPercent(b.params.PowConfig)) {
+	if !b.needAjustPowDifficulty(curNode,powInstance.GetPowType(),powInstance.PowPercent()) {
 		// For networks that support it, allow special reduction of the
 		// required difficulty once too much time has elapsed without
 		// mining a block.
@@ -150,7 +148,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 				}
 
 				// Limit new value to the proof of work limit.
-				if instance.CompareDiff(newTarget,baseTarget) {
+				if powInstance.CompareDiff(newTarget,baseTarget) {
 					newTarget.Set(baseTarget)
 				}
 
@@ -160,7 +158,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 			// The block was mined within the desired timeframe, so
 			// return the difficulty for the last block which did
 			// not have the special minimum difficulty rule applied.
-			return b.findPrevTestNetDifficulty(curNode,powType), nil
+			return b.findPrevTestNetDifficulty(curNode,powInstance), nil
 		}
 
 		return oldDiff, nil
@@ -175,7 +173,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	alpha := b.params.WorkDiffAlpha
 
 	//calc pow block count in last nodesToTraverse blocks
-	currentPowBlockCount := b.calcCurrentPowCount(originCurrentNode,nodesToTraverse,powType)
+	currentPowBlockCount := b.calcCurrentPowCount(originCurrentNode,nodesToTraverse,powInstance.GetPowType())
 
 	// Initialize bigInt slice for the percentage changes for each window period
 	// above or below the target.
@@ -231,7 +229,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 			oldMainParent:=b.bd.GetBlock(oldBlock.GetMainParent())
 			if oldMainParent != nil {
 				oldNode=b.index.lookupNode(oldMainParent.GetHash())
-				oldNode = b.getPowTypeNode(oldNode,powType)
+				oldNode = b.getPowTypeNode(oldNode,powInstance.GetPowType())
 			}
 		}
 	}
@@ -255,7 +253,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	nodesToTraverseBig := big.NewInt(nodesToTraverse)
 	currentPowPercent = currentPowPercent.Div(currentPowPercent,nodesToTraverseBig)
 	// Multiply by the old diff.
-	nextDiffBig := instance.GetNextDiffBig(weightedSumDiv,oldDiffBig,currentPowPercent,b.params.PowConfig)
+	nextDiffBig := powInstance.GetNextDiffBig(weightedSumDiv,oldDiffBig,currentPowPercent)
 	// Right shift to restore the original padding (restore non-fixed point).
 	// Check to see if we're over the limits for the maximum allowable retarget;
 	// if we are, return the maximum or minimum except in the case that oldDiff
@@ -271,7 +269,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	}
 
 	// Limit new value to the proof of work limit.
-	if !instance.CompareDiff(nextDiffBig,baseTarget) {
+	if !powInstance.CompareDiff(nextDiffBig,baseTarget) {
 		nextDiffBig.Set(baseTarget)
 	}
 	// Log new target difficulty and return it.  The new target logging is
@@ -381,8 +379,10 @@ func (b *BlockChain) CalcNextRequiredDiffFromNode(hash *hash.Hash, timestamp tim
 	if node == nil {
 		return 0, fmt.Errorf("block %s is not known", hash)
 	}
-
-	return b.calcNextRequiredDifficulty(node, timestamp,powType)
+	instance := pow.GetInstance(powType,0,[]byte{})
+	instance.SetParams(b.params.PowConfig)
+	instance.SetHeight(int64(node.height+1))
+	return b.calcNextRequiredDifficulty(node, timestamp,instance)
 }
 
 // CalcNextRequiredDifficulty calculates the required difficulty for the block
@@ -394,7 +394,10 @@ func (b *BlockChain) CalcNextRequiredDifficulty(timestamp time.Time,powType pow.
 	b.chainLock.Lock()
 	block:=b.bd.GetMainChainTip()
 	node:=b.index.lookupNode(block.GetHash())
-	difficulty, err := b.calcNextRequiredDifficulty(node, timestamp,powType)
+	instance := pow.GetInstance(powType,0,[]byte{})
+	instance.SetParams(b.params.PowConfig)
+	instance.SetHeight(int64(node.height+1))
+	difficulty, err := b.calcNextRequiredDifficulty(node, timestamp,instance)
 	b.chainLock.Unlock()
 	return difficulty, err
 }
@@ -422,10 +425,4 @@ func (b *BlockChain) getPowTypeNode(curNode *blockNode, powType pow.PowType) *bl
 			}
 		}
 	}
-}
-
-// find base difficulty by pow type
-func (b *BlockChain) getMinPowBits(powType pow.PowType) *big.Int {
-	instance := pow.GetInstance(powType,0,[]byte{})
-	return instance.GetSafeDiff(b.params.PowConfig,0)
 }
