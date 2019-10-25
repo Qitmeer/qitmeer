@@ -47,6 +47,7 @@ func GetPowConfig() *PowConfig{
 func (this *PowConfig) Set(p *PowConfig) *PowConfig{
 	if !this.init{
 		this = p
+		this.init = true
 	}
 	return this
 }
