@@ -661,12 +661,6 @@ type processBlockMsg struct {
 // chain.  It is funneled through the block manager since blockchain is not safe
 // for concurrent access.
 func (b *BlockManager) ProcessBlock(block *types.SerializedBlock, flags blockchain.BehaviorFlags) (bool, error) {
-	//check pow type percent if percent <= 0 is invalid
-	//if block.Block().Header.Pow.PowPercent(b.params.PowConfig).Cmp(big.NewInt(0)) <=0 {
-	//	str := fmt.Sprintf("pow type:%d is invalid in this chain", block.Block().Header.Pow.GetPowType())
-	//	return false,blockchain.RuleError{
-	//		ErrorCode:blockchain.ErrInValidPowType,Description:str}
-	//}
 	reply := make(chan processBlockResponse, 1)
 	b.msgChan <- processBlockMsg{block: block, flags: flags, reply: reply}
 	response := <-reply
