@@ -51,6 +51,18 @@ var PrivNetParams = Params{
 				CuckatooPercent:          20,
 				Height:0,
 			},
+			{
+				Blake2bDPercent:          30,
+				CuckarooPercent:          30,
+				CuckatooPercent:          40,
+				Height:50,
+			},
+			{
+				Blake2bDPercent:          80,
+				CuckarooPercent:          10,
+				CuckatooPercent:          10,
+				Height:100,
+			},
 		},
 	},
 	ReduceMinDifficulty:      false,
@@ -63,7 +75,7 @@ var PrivNetParams = Params{
 	WorkDiffWindows:          20,
 	TargetTimePerBlock:       time.Second * 30,
 	TargetTimespan:           time.Second * 30 * 16, // TimePerBlock * WindowSize
-	RetargetAdjustmentFactor: 4,
+	RetargetAdjustmentFactor: 2,
 
 	// Subsidy parameters.
 	BaseSubsidy:              50000000000,

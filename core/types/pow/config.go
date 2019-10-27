@@ -54,10 +54,8 @@ func (this *PowConfig) Set(p *PowConfig) *PowConfig{
 
 // get Percent By height
 func (this *PowConfig) GetPercentByHeight(h int64) (res Percent){
-	tmpHeight := int64(0)
 	for _,p := range this.Percent{
-		if p.Height >= tmpHeight{
-			tmpHeight = p.Height
+		if h >= p.Height {
 			res = p
 		}
 	}
