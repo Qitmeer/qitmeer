@@ -229,14 +229,3 @@ func Test_IsDAG(t *testing.T) {
 	}
 
 }
-
-func Test_BlockPastNum(t *testing.T) {
-	ibd, _ := InitBlockDAG(phantom, "PH_fig2-blocks")
-	if ibd == nil {
-		t.FailNow()
-	}
-	ph:=ibd.(*Phantom)
-	if ph.bd.getMainChainTip().GetOrder() != ph.bd.getMainChainTip().GetWeight() {
-		t.Fatal()
-	}
-}

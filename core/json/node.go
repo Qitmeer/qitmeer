@@ -12,12 +12,13 @@ type InfoNodeResult struct {
 	UUID            string  `json:"UUID"`
 	Version         int32   `json:"version"`
 	ProtocolVersion int32   `json:"protocolversion"`
+	TotalSubsidy    uint64  `json:"totalsubsidy"`
 	GraphState      GetGraphStateResult `json:"graphstate"`
 	TimeOffset      int64   `json:"timeoffset"`
 	Connections     int32   `json:"connections"`
-	PowDiff      PowDiff `json:"pow_diff"`
+	PowDiff      PowDiff    `json:"pow_diff"`
 	TestNet         bool    `json:"testnet"`
-	MixNet         bool    `json:"mixnet"`
+	MixNet         bool     `json:"mixnet"`
 	Confirmations   int32   `json:"confirmations"`
 	CoinbaseMaturity int32  `json:"coinbasematurity"`
 	Errors          string  `json:"errors"`

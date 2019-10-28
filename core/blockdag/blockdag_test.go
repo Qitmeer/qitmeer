@@ -91,7 +91,7 @@ func (tb *TestBlock) GetTimestamp() int64 {
 }
 
 // Acquire the weight of block
-func (tb *TestBlock) GetWeight() uint {
+func (tb *TestBlock) GetWeight() uint64 {
 	return 1
 }
 
@@ -141,7 +141,7 @@ func InitBlockDAG(dagType string,graph string) (IBlockDAG, map[string]*hash.Hash
 		return nil, nil
 	}
 	bd=BlockDAG{}
-	instance:=bd.Init(dagType)
+	instance:=bd.Init(dagType,CalcBlockWeight)
 	tbMap := map[string]*hash.Hash{}
 	for i := 0; i < blen; i++ {
 		parents := []*hash.Hash{}
@@ -266,3 +266,11 @@ func reverseBlockList(s []*hash.Hash) []*hash.Hash {
 	return s
 }
 
+func CalcBlockWeight(height int64) int64 {
+	if height == 0 {
+		return 0
+	} else if height < 3 {
+		return 2
+	}
+	return 1
+}

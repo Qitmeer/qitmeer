@@ -92,7 +92,7 @@ type bestChainState struct {
 	hash         hash.Hash
 	total        uint64
 	totalTxns    uint64
-	subsidy      int64
+	totalsubsidy uint64
 	workSum      *big.Int
 }
 
@@ -248,7 +248,7 @@ func (b *BlockChain) createChainState() error {
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
 	b.stateSnapshot = newBestState(node.GetHash(), node.bits,blockSize, numTxns,
-		time.Unix(node.timestamp, 0), numTxns, b.params.BaseSubsidy, b.bd.GetGraphState())
+		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState())
 
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.

@@ -7,13 +7,13 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 	"math"
 	"sort"
 	"sync"
 	"time"
-	s "github.com/Qitmeer/qitmeer/core/serialization"
 )
 
 // Some available DAG algorithm types
@@ -125,6 +125,9 @@ type IBlockDAG interface {
 	Load(dbTx database.Tx) error
 }
 
+// CalcWeight
+type CalcWeight func(int64) int64
+
 // The general foundation framework of DAG
 type BlockDAG struct {
 	// The genesis of block dag
@@ -154,6 +157,9 @@ type BlockDAG struct {
 
 	// state lock
 	stateLock sync.RWMutex
+
+	//
+	calcWeight CalcWeight
 }
 
 // Acquire the name of DAG instance
@@ -167,12 +173,13 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 }
 
 // Initialize self, the function to be invoked at the beginning
-func (bd *BlockDAG) Init(dagType string) IBlockDAG{
+func (bd *BlockDAG) Init(dagType string,calcWeight CalcWeight) IBlockDAG{
 	bd.instance=NewBlockDAG(dagType)
 	bd.instance.Init(bd)
 
 	bd.lastTime=time.Unix(time.Now().Unix(), 0)
 
+	bd.calcWeight=calcWeight
 	return bd.instance
 }
 
@@ -202,7 +209,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		}
 	}
 	//
-	block := Block{id:bd.blockTotal,hash: *b.GetHash(), weight: 0, layer:0,status:StatusNone}
+	block := Block{id:bd.blockTotal,hash: *b.GetHash(), layer:0,status:StatusNone}
 	if parents != nil {
 		block.parents = NewHashSet()
 		var maxLayer uint=0

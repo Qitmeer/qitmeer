@@ -50,7 +50,7 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 	ph.diffAnticone=NewHashSet()
 
 	//vb
-	vb:= &Block{hash: hash.ZeroHash, weight: 0, layer:0}
+	vb:= &Block{hash: hash.ZeroHash, layer:0}
 	ph.virtualBlock=&PhantomBlock{vb,0,NewHashSet(),NewHashSet()}
 
 	return true
@@ -81,7 +81,7 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		pb.mainParent=tp.GetHash()
 		pb.blueNum=tp.blueNum+1
 		pb.height=tp.height+1
-		pb.weight=tp.GetWeight()+1
+		pb.weight=tp.GetWeight()+uint64(ph.bd.calcWeight(int64(pb.GetHeight())))
 
 		pbAnticone:=ph.bd.getAnticone(pb.Block,nil)
 		tpAnticone:=ph.bd.getAnticone(tp.Block,nil)
@@ -89,7 +89,6 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		diffAnticone.RemoveSet(pbAnticone)
 
 		ph.calculateBlueSet(pb,diffAnticone)
-		pb.weight+=uint(diffAnticone.Size())
 	}else{
 		//It is genesis
 		if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
@@ -134,6 +133,10 @@ func (ph *Phantom) calculateBlueSet(pb *PhantomBlock,diffAnticone *HashSet) {
 		log.Error(fmt.Sprintf("error blue set"))
 	}
 	pb.blueNum+=uint(pb.blueDiffAnticone.Size())
+
+	for k:=range pb.blueDiffAnticone.GetMap() {
+		pb.weight+=uint64(ph.bd.calcWeight(int64(ph.getBlock(&k).GetHeight())))
+	}
 }
 
 func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
@@ -374,6 +377,8 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	tp:=ph.getBlock(ph.mainChain.tip)
 	ph.virtualBlock.mainParent=ph.mainChain.tip
 	ph.virtualBlock.blueNum=tp.blueNum+1
+	ph.virtualBlock.height=tp.height+1
+	ph.virtualBlock.weight=tp.GetWeight()
 
 	ph.virtualBlock.blueDiffAnticone.Clean()
 	ph.virtualBlock.redDiffAnticone.Clean()
@@ -394,7 +399,6 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	}
 
 	ph.virtualBlock.SetOrder(ph.bd.blockTotal+1)
-	ph.virtualBlock.weight=tp.weight+1+uint(ph.diffAnticone.Size())
 
 	return ph.getBlock(ph.mainChain.tip)
 }

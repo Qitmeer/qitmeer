@@ -62,6 +62,10 @@ func NewSubsidyCache(height int64, params *params.Params) *SubsidyCache {
 //
 // Safe for concurrent access.
 func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
+	if height == 0 {
+		return 0
+	}
+
 	iteration := uint64(height / s.params.SubsidyReductionInterval)
 
 	if iteration == 0 {

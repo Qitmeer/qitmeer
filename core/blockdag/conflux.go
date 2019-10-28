@@ -120,7 +120,7 @@ func (con *Conflux) updatePrivot(b IBlock) {
 		return
 	}
 	parent := con.bd.getBlock(b.GetMainParent())
-	var newWeight uint = 0
+	var newWeight uint64 = 0
 	for h := range parent.GetChildren().GetMap() {
 		block := con.bd.getBlock(&h)
 		if block.GetMainParent().IsEqual(parent.GetHash()) {
@@ -148,7 +148,7 @@ func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *HashSet) {
 	if !b.HasChildren() {
 		con.privotTip = b
 		if con.bd.tips.Size() > 1 {
-			virtualBlock := Block{hash: hash.Hash{}, weight: 1}
+			virtualBlock := Block{hash: hash.Hash{}}
 			virtualBlock.parents = NewHashSet()
 			virtualBlock.parents.AddSet(con.bd.tips)
 			con.updateMainChain(&virtualBlock, curEpoch, main)
