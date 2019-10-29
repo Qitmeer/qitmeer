@@ -1,6 +1,7 @@
 package pow
 
 import (
+	`errors`
 	`math/big`
 )
 
@@ -11,7 +12,7 @@ type Percent struct {
 	CuckarooPercent int
 	CuckatooPercent int
 	Blake2bDPercent int
-	Height int64
+	MainHeight      int64
 }
 
 type PowConfig struct {
@@ -55,9 +56,26 @@ func (this *PowConfig) Set(p *PowConfig) *PowConfig{
 // get Percent By height
 func (this *PowConfig) GetPercentByHeight(h int64) (res Percent){
 	for _,p := range this.Percent{
-		if h >= p.Height {
+		if h >= p.MainHeight {
 			res = p
 		}
 	}
 	return
+}
+
+// check percent
+func (this *PowConfig) Check() error{
+	allPercent := 0
+	heightArr := map[int64]int{}
+	for _,p := range this.Percent{
+		if _,ok := heightArr[p.MainHeight];ok{
+			return errors.New("pow config error, mainHeight set repeat!")
+		}
+		heightArr[p.MainHeight] = 1
+		allPercent = p.CuckarooPercent + p.Blake2bDPercent + p.CuckatooPercent
+		if allPercent != 100{
+			return errors.New("pow config error, all pow not equal 100%!")
+		}
+	}
+	return nil
 }

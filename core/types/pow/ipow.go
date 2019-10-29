@@ -67,7 +67,7 @@ type IPow interface {
 	//SetParams
 	SetParams(params *PowConfig)
 	//SetHeight
-	SetHeight(height int64)
+	SetMainHeight(height int64)
 	CheckAvailable() bool
 	CompareDiff(newtarget *big.Int, target *big.Int) bool
 }
@@ -77,7 +77,7 @@ type Pow struct {
 	Nonce     uint32        //header nonce 4 bytes
 	ProofData ProofDataType // 1 edge_bits  168  bytes circle length total 169 bytes
 	params    *PowConfig
-	height    int64
+	mainHeight    int64
 }
 
 //get pow instance
@@ -107,8 +107,8 @@ func (this *Pow) SetParams(params *PowConfig){
 	this.params = GetPowConfig().Set(params)
 }
 
-func (this *Pow) SetHeight(height int64){
-	this.height = height
+func (this *Pow) SetMainHeight(mainHeight int64){
+	this.mainHeight = mainHeight
 }
 
 func (this *Pow) GetPowType() PowType {

@@ -43,10 +43,10 @@ var MainNetParams = Params{
 
 		Percent:[]pow.Percent{
 			{
-				Blake2bDPercent:          10,
-				CuckarooPercent:          70,
-				CuckatooPercent:          20,
-				Height:0,
+				Blake2bDPercent: 10,
+				CuckarooPercent: 70,
+				CuckatooPercent: 20,
+				MainHeight:      0,
 			},
 		},
 	},

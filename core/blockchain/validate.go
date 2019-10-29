@@ -603,7 +603,7 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	if !fastAdd {
 		instance := pow.GetInstance(header.Pow.GetPowType(),0,[]byte{})
-		instance.SetHeight(int64(prevNode.height+1))
+		instance.SetMainHeight(int64(prevNode.height+1))
 		instance.SetParams(b.params.PowConfig)
 		// Ensure the difficulty specified in the block header matches
 		// the calculated difficulty based on the previous block and

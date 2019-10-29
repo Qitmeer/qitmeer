@@ -104,7 +104,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		return fmt.Errorf("Can't find main parent")
 	}
 	instance := pow.GetInstance(block.Block().Header.Pow.GetPowType(),0,[]byte{})
-	instance.SetHeight(int64(mainParent.GetHeight()+1))
+	instance.SetMainHeight(int64(mainParent.GetHeight()+1))
 	instance.SetParams(b.params.PowConfig)
 	if !instance.CheckAvailable() {
 		str := fmt.Sprintf("pow type : %d is not available!",block.Block().Header.Pow.GetPowType())

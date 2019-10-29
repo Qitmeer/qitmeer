@@ -66,7 +66,7 @@ func (this *Cuckatoo) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 	return nextDiffBig
 }
 func (this *Cuckatoo) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.height).CuckatooPercent))
+	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).CuckatooPercent))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
 }
@@ -86,5 +86,5 @@ func (this *Cuckatoo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 }
 //check pow is available
 func (this *Cuckatoo) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.height).CuckatooPercent > 0
+	return this.params.GetPercentByHeight(this.mainHeight).CuckatooPercent > 0
 }
