@@ -68,6 +68,9 @@ func (this *PowConfig) Check() error{
 	allPercent := 0
 	heightArr := map[int64]int{}
 	for _,p := range this.Percent{
+		if p.MainHeight < 0{
+			return errors.New("pow config error, must greater than or equal to 0!")
+		}
 		if _,ok := heightArr[p.MainHeight];ok{
 			return errors.New("pow config error, mainHeight set repeat!")
 		}
