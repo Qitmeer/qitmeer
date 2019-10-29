@@ -57,10 +57,10 @@ var TestNetParams = Params{
 	RetargetAdjustmentFactor: 2,                      // equal to 2 hour vs. 4
 
 	// Subsidy parameters.
-	BaseSubsidy:              12000000000,    // 120 Coin * (1575360) * DAG factor (1.1 ~ 1.5) = 207947520 (20M) ~ 283564800 (28M)
+	BaseSubsidy:              12000000000,    // 120 Coin * (4726080-2) = 567129360 (5.67亿)
 	MulSubsidy:               100,
-	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at height 1575360
-	SubsidyReductionInterval: 1575360,        // 18 months is almost 1575360 = (365+182) * 24 * 60 * 2
+	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at blue blocks 4726080
+	SubsidyReductionInterval: 4726080,        // 18 months is almost 4726080 = (365+182) * 24 * 60 * 2 * k(=3)
 	WorkRewardProportion:     10,
 	StakeRewardProportion:    0,
 	BlockTaxProportion:       0,

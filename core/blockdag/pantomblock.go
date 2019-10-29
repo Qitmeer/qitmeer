@@ -128,3 +128,8 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 
 	return nil
 }
+
+// GetBlueNum
+func (pb *PhantomBlock) GetBlueNum() uint {
+	return pb.blueNum
+}

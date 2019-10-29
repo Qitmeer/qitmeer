@@ -266,10 +266,10 @@ func reverseBlockList(s []*hash.Hash) []*hash.Hash {
 	return s
 }
 
-func CalcBlockWeight(height int64) int64 {
-	if height == 0 {
+func CalcBlockWeight(blocks int64) int64 {
+	if blocks == 0 {
 		return 0
-	} else if height < 3 {
+	} else if blocks < 3 {
 		return 2
 	}
 	return 1

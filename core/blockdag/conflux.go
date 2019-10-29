@@ -148,7 +148,7 @@ func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *HashSet) {
 	if !b.HasChildren() {
 		con.privotTip = b
 		if con.bd.tips.Size() > 1 {
-			virtualBlock := Block{hash: hash.Hash{}}
+			virtualBlock := Block{hash: hash.Hash{},weight:1}
 			virtualBlock.parents = NewHashSet()
 			virtualBlock.parents.AddSet(con.bd.tips)
 			con.updateMainChain(&virtualBlock, curEpoch, main)

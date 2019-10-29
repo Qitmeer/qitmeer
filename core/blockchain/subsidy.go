@@ -28,17 +28,17 @@ type SubsidyCache struct {
 	params           *params.Params
 }
 
-// NewSubsidyCache initializes a new subsidy cache for a given height. It
+// NewSubsidyCache initializes a new subsidy cache for a given blocks. It
 // precalculates the values of the subsidy that are most likely to be seen by
 // the client when it connects to the network.
-func NewSubsidyCache(height int64, params *params.Params) *SubsidyCache {
+func NewSubsidyCache(blocks int64, params *params.Params) *SubsidyCache {
 	scm := make(map[uint64]int64)
 	sc := SubsidyCache{
 		subsidyCache: scm,
 		params:       params,
 	}
 
-	iteration := uint64(height / params.SubsidyReductionInterval)
+	iteration := uint64(blocks / params.SubsidyReductionInterval)
 	if iteration < subsidyCacheInitWidth {
 		return &sc
 	}
@@ -50,7 +50,7 @@ func NewSubsidyCache(height int64, params *params.Params) *SubsidyCache {
 	return &sc
 }
 
-// CalcBlockSubsidy returns the subsidy amount a block at the provided height
+// CalcBlockSubsidy returns the subsidy amount a block at the provided blocks
 // should have. This is mainly used for determining how much the coinbase for
 // newly generated blocks awards as well as validating the coinbase for blocks
 // has the expected value.
@@ -61,12 +61,12 @@ func NewSubsidyCache(height int64, params *params.Params) *SubsidyCache {
 // 2     subsidy /= DivSubsidy
 //
 // Safe for concurrent access.
-func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
-	if height == 0 {
+func (s *SubsidyCache) CalcBlockSubsidy(blocks int64) int64 {
+	if blocks == 0 {
 		return 0
 	}
 
-	iteration := uint64(height / s.params.SubsidyReductionInterval)
+	iteration := uint64(blocks / s.params.SubsidyReductionInterval)
 
 	if iteration == 0 {
 		return s.params.BaseSubsidy
@@ -115,20 +115,20 @@ func (s *SubsidyCache) CalcBlockSubsidy(height int64) int64 {
 
 // CalcBlockWorkSubsidy calculates the proof of work subsidy for a block as a
 // proportion of the total subsidy. (aka, the coinbase subsidy)
-func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, height int64, params *params.Params) uint64 {
-	work,_,_:=calcBlockProportion(subsidyCache,height,params)
+func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, blocks int64, params *params.Params) uint64 {
+	work,_,_:=calcBlockProportion(subsidyCache,blocks,params)
 	return work
 }
 
 // CalcBlockTaxSubsidy calculates the subsidy for the organization address in the
 // coinbase.
-func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, height int64, params *params.Params) uint64 {
-	_,_,tax:=calcBlockProportion(subsidyCache,height,params)
+func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, blocks int64, params *params.Params) uint64 {
+	_,_,tax:=calcBlockProportion(subsidyCache,blocks,params)
 	return tax
 }
 
-func calcBlockProportion(subsidyCache *SubsidyCache, height int64, params *params.Params) (uint64,uint64,uint64) {
-	subsidy := uint64(subsidyCache.CalcBlockSubsidy(height))
+func calcBlockProportion(subsidyCache *SubsidyCache, blocks int64, params *params.Params) (uint64,uint64,uint64) {
+	subsidy := uint64(subsidyCache.CalcBlockSubsidy(blocks))
 	workPro := float64(params.WorkRewardProportion)
 	stakePro:= float64(params.StakeRewardProportion)
 	proportions := float64(params.TotalSubsidyProportions())
