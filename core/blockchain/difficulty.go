@@ -106,8 +106,6 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	if curNode == nil {
 		return pow.BigToCompact(baseTarget), nil
 	}
-	// Number of nodes to traverse while calculating difficulty.
-	nodesToTraverse := b.params.WorkDiffWindowSize * b.params.WorkDiffWindows
 
 	curNode = b.getPowTypeNode(curNode,powType)
 	curBlock:=b.bd.GetBlock(curNode.GetHash())
@@ -119,9 +117,14 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	// just return this.
 	oldDiff := curNode.bits
 	oldDiffBig := pow.CompactToBig(curNode.bits)
-
+	windowsSizeBig := big.NewInt(b.params.WorkDiffWindowSize)
+	// percent is *100 * 2^32
+	windowsSizeBig.Mul(windowsSizeBig,instance.PowPercent(b.params.PowConfig))
+	windowsSizeBig.Div(windowsSizeBig,big.NewInt(100))
+	windowsSizeBig.Rsh(windowsSizeBig,32)
+	needAjustCount := int64(windowsSizeBig.Uint64())
 	// We're not at a retarget point, return the oldDiff.
-	if !b.needAjustPowDifficulty(curNode,powType,instance.PowPercent(b.params.PowConfig)) {
+	if !b.needAjustPowDifficulty(curNode,powType,needAjustCount) {
 		// For networks that support it, allow special reduction of the
 		// required difficulty once too much time has elapsed without
 		// mining a block.
@@ -174,6 +177,9 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 
 	alpha := b.params.WorkDiffAlpha
 
+	// Number of nodes to traverse while calculating difficulty.
+	nodesToTraverse := needAjustCount * b.params.WorkDiffWindows
+
 	//calc pow block count in last nodesToTraverse blocks
 	currentPowBlockCount := b.calcCurrentPowCount(originCurrentNode,nodesToTraverse,powType)
 
@@ -189,7 +195,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	recentTime := curNode.timestamp
 	for i := uint64(0); ; i++ {
 		// Store and reset after reaching the end of every window period.
-		if i%uint64(b.params.WorkDiffWindowSize) == 0 && i != 0 {
+		if i%uint64(needAjustCount) == 0 && i != 0 {
 			olderTime = oldNode.timestamp
 			timeDifference := recentTime - olderTime
 			// Just assume we're at the target (no change) if we've
@@ -235,7 +241,6 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 			}
 		}
 	}
-
 	// Sum up the weighted window periods.
 	weightedSum := big.NewInt(0)
 	for i := int64(0); i < b.params.WorkDiffWindows; i++ {
@@ -322,14 +327,7 @@ func (b *BlockChain) calcCurrentPowCount(curNode *blockNode, nodesToTraverse int
 // whether need ajust Pow Difficulty
 // recent b.params.WorkDiffWindowSize blocks
 // if current count arrived target block count . need ajustment difficulty
-func (b *BlockChain) needAjustPowDifficulty(curNode *blockNode, powType pow.PowType,targetPercent *big.Int) bool {
-	windowsSizeBig := big.NewInt(b.params.WorkDiffWindowSize)
-	// percent is *100 * 2^32
-	windowsSizeBig.Mul(windowsSizeBig,targetPercent)
-	windowsSizeBig.Div(windowsSizeBig,big.NewInt(100))
-	windowsSizeBig.Rsh(windowsSizeBig,32)
-	needAjustCount := int64(windowsSizeBig.Uint64())
-
+func (b *BlockChain) needAjustPowDifficulty(curNode *blockNode, powType pow.PowType,needAjustCount int64) bool {
 	countFromLastAdjustment := b.getDistanceFromLastAdjustment(curNode,powType,needAjustCount)
 	// countFromLastAdjustment stats b.params.WorkDiffWindows Multiple count
 	countFromLastAdjustment /= b.params.WorkDiffWindows
@@ -351,6 +349,10 @@ func (b *BlockChain) getDistanceFromLastAdjustment(curNode *blockNode, powType p
 				return count
 			}
 			count++
+		}
+		if curNode.order == 0{
+			//geniess block
+			return count
 		}
 		// if TargetTimespan have only one pow block need ajustment difficulty
 		// or count >= needAjustCount

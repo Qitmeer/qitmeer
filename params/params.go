@@ -113,7 +113,7 @@ type Params struct {
 	// of the exponentially weighted average.
 	WorkDiffWindows int64
 
-
+	
 	// CoinbaseMaturity is the number of blocks required before newly mined
 	// coins (coinbase transactions) can be spent.
 	CoinbaseMaturity uint16
