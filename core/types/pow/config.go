@@ -3,6 +3,7 @@ package pow
 import (
 	`errors`
 	`math/big`
+	`sort`
 )
 
 var PowConfigInstance *PowConfig
@@ -55,9 +56,14 @@ func (this *PowConfig) Set(p *PowConfig) *PowConfig{
 
 // get Percent By height
 func (this *PowConfig) GetPercentByHeight(h int64) (res Percent){
-	for _,p := range this.Percent{
-		if h >= p.MainHeight {
-			res = p
+	//sort by main height asc
+	sort.Slice(this.Percent, func(i, j int) bool {
+		return this.Percent[i].MainHeight < this.Percent[j].MainHeight
+	})
+	// get best match percent
+	for i := 0;i<len(this.Percent);i++{
+		if h >= this.Percent[i].MainHeight {
+			res = this.Percent[i]
 		}
 	}
 	return
