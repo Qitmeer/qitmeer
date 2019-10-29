@@ -328,6 +328,10 @@ const (
 
 	// ErrValidPowType
 	ErrInValidPowType
+
+	// ErrNoBlueCoinbase indicates a transaction is attempting to spend a
+	// coinbase that is not in blue set
+	ErrNoBlueCoinbase
 )
 
 // Map of ErrorCode values back to their constant names for pretty printing.
@@ -395,8 +399,10 @@ var errorCodeStrings = map[ErrorCode]string{
 	ErrInvalidTemplateParent:  "ErrInvalidTemplateParent",
 	ErrMissingCoinbaseHeight:  "ErrMissingCoinbaseHeight",
 	//cuckoo,begin
-	ErrBadCuckooNonces: "ErrBadCuckooNonces",
-	ErrInValidPowType: "ErrInValidPowType",
+	ErrBadCuckooNonces:        "ErrBadCuckooNonces",
+	ErrInValidPowType:         "ErrInValidPowType",
+
+	ErrNoBlueCoinbase:         "ErrNoBlueCoinbase",
 }
 
 // String returns the ErrorCode as a human-readable name.

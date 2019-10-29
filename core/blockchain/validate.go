@@ -501,7 +501,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 			return err
 		}
 
-		err = b.checkBlockSubsidy(block,int64(blockHeight),-1)
+		err = b.checkBlockSubsidy(block,-1)
 		if err != nil {
 			return err
 		}
@@ -515,10 +515,13 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 	return nil
 }
 
-func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock,blockHeight int64,totalFee int64) error {
+func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock,totalFee int64) error {
+	parents:=blockdag.NewHashSet()
+	parents.AddList(block.Block().Parents)
+	blocks:=b.bd.GetBlues(parents)
 	// check subsidy
 	transactions:=block.Transactions()
-	subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(blockHeight))
+	subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(blocks))
 	workAmountOut:=int64(transactions[0].Tx.TxOut[0].Amount)
 
 	hasTax:=false
@@ -538,9 +541,9 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock,blockHeight 
 			return ruleError(ErrBadCoinbaseValue, str)
 		}
 		work = int64(CalcBlockWorkSubsidy(b.subsidyCache,
-			int64(blockHeight), b.params))
+			int64(blocks), b.params))
 		tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
-			int64(blockHeight), b.params))
+			int64(blocks), b.params))
 
 		taxAmountOut=int64(transactions[0].Tx.TxOut[1].Amount)
 	}else {
@@ -818,7 +821,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.Se
 			return err
 		}
 	}
-	return b.checkBlockSubsidy(block,int64(node.GetMainParent(b).GetHeight()+1),totalFees)
+	return b.checkBlockSubsidy(block,totalFees)
 }
 
 // SequenceLockActive determines if all of the inputs to a given transaction
@@ -981,6 +984,16 @@ func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoVie
 					txInHash, confirmations, originConf,
 					coinbaseMaturity)
 				return 0, ruleError(ErrImmatureSpend, str)
+			}
+
+			if !bd.IsBlue(utxoEntry.BlockHash()) {
+				str := fmt.Sprintf("tx %v tried to spend "+
+					"coinbase transaction %v from "+
+					"%v at %v before required "+
+					"maturity of %v blocks, but it is't in blue set", txHash,
+					txInHash, confirmations, originConf,
+					coinbaseMaturity)
+				return 0, ruleError(ErrNoBlueCoinbase, str)
 			}
 		}
 

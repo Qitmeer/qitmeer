@@ -18,7 +18,7 @@ type IBlockData interface {
 	GetTimestamp() int64
 
 	// Acquire the weight of block
-	GetWeight() uint
+	GetWeight() uint64
 }
 
 //The interface of block
@@ -60,10 +60,10 @@ type IBlock interface {
 	GetMainParent() *hash.Hash
 
 	// Setting the weight of block
-	SetWeight(weight uint)
+	SetWeight(weight uint64)
 
     // Acquire the weight of block
-    GetWeight() uint
+    GetWeight() uint64
 
 	// Acquire the height of block in main chain
 	GetHeight() uint
@@ -89,7 +89,7 @@ type Block struct {
 	children   *HashSet
 
 	mainParent *hash.Hash
-	weight     uint
+	weight     uint64
 	order      uint
 	layer      uint
 	height     uint
@@ -181,12 +181,12 @@ func (b *Block) HasChildren() bool {
 }
 
 // Setting the weight of block
-func (b *Block) SetWeight(weight uint) {
+func (b *Block) SetWeight(weight uint64) {
 	b.weight = weight
 }
 
-// Acquire the weight of block
-func (b *Block) GetWeight() uint {
+// Acquire the weight of blue blocks
+func (b *Block) GetWeight() uint64 {
 	return b.weight
 }
 
@@ -277,7 +277,7 @@ func (b *Block) Encode(w io.Writer) error {
 		return err
 	}
 
-	err=s.WriteElements(w,uint32(b.weight))
+	err=s.WriteElements(w,uint64(b.weight))
 	if err != nil {
 		return err
 	}
@@ -355,12 +355,12 @@ func (b *Block) Decode(r io.Reader) error {
 		b.mainParent=&mainParent
 	}
 
-	var weight uint32
+	var weight uint64
 	err=s.ReadElements(r,&weight)
 	if err != nil {
 		return err
 	}
-	b.weight=uint(weight)
+	b.weight=uint64(weight)
 
 	var order uint32
 	err=s.ReadElements(r,&order)

@@ -318,7 +318,7 @@
     "out":["Gen","A","C","E","H"]
   },
   "CO_GetOrder":{
-    "out":["Gen","A","B","C","D","F","E","G","J","I","H","K"]
+    "out":["Gen","B","F","J","A","C","I","D","G","E","H","K"]
   },
   "SP_Blocks":[
     {

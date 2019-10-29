@@ -43,6 +43,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		UUID:            message.UUID.String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
 		ProtocolVersion: int32(protocol.ProtocolVersion),
+		TotalSubsidy:best.TotalSubsidy,
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
 		Connections:     api.node.node.peerServer.ConnectedCount(),
 		PowDiff:      json.PowDiff{

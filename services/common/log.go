@@ -71,14 +71,6 @@ func init() {
 	glogger = log.NewGlogHandler(log.StreamHandler(io.Writer(logWrite), log.TerminalFormat(logWrite.IsUseColor())))
 
 	log.Root().SetHandler(glogger)
-/*	database.UseLogger(log.New(log.Ctx{"module": "database"}))
-	txscript.UseLogger(log.New(log.Ctx{"module": "txscript"}))
-	blkmgr.UseLogger(log.New(log.Ctx{"module": "blkmanager"}))
-	blockchain.UseLogger(log.New(log.Ctx{"module": "blockchain"}))
-	miner.UseLogger(log.New(log.Ctx{"module": "cpuminer"}))
-	node.UseLogger(log.New(log.Ctx{"module": "node"}))
-	blockdag.UseLogger(log.New(log.Ctx{"module": "blockdag"}))
-	tx.UseLogger(log.New(log.Ctx{"module": "txmanager"}))*/
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and

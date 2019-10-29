@@ -199,12 +199,12 @@ type BestState struct {
 	NumTxns      uint64               // The number of txns in the main chain tip.
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
-	Subsidy int64                     // The total subsidy for the chain.
+	TotalSubsidy      uint64                     // The total subsidy for the chain.
 	GraphState   *blockdag.GraphState      // The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(tipHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, subsidy int64, gs *blockdag.GraphState) *BestState {
+func newBestState(tipHash *hash.Hash, bits uint32,blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalsubsidy uint64, gs *blockdag.GraphState) *BestState {
 	return &BestState{
 		Hash:         *tipHash,
 		Bits:         bits,
@@ -212,7 +212,7 @@ func newBestState(tipHash *hash.Hash, bits uint32,blockSize, numTxns uint64, med
 		NumTxns:      numTxns,
 		MedianTime:   medianTime,
 		TotalTxns:    totalTxns,
-		Subsidy:      subsidy,
+		TotalSubsidy: totalsubsidy,
 		GraphState:   gs,
 	}
 }
@@ -263,8 +263,10 @@ func New(config *Config) (*BlockChain, error) {
 		prevOrphans:         make(map[hash.Hash][]*orphanBlock),
 		BlockVersion:        config.BlockVersion,
 	}
+	b.subsidyCache = NewSubsidyCache(0, b.params)
+
 	b.bd = &blockdag.BlockDAG{}
-	b.bd.Init(config.DAGType)
+	b.bd.Init(config.DAGType,b.subsidyCache.CalcBlockSubsidy)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -282,7 +284,6 @@ func New(config *Config) (*BlockChain, error) {
 	}
 
 	b.pruner = newChainPruner(&b)
-	b.subsidyCache = NewSubsidyCache(int64(b.BestSnapshot().GraphState.GetMainHeight()), b.params)
 
 	log.Info(fmt.Sprintf("DAG Type:%s", b.bd.GetName()))
 	log.Info("Blockchain database version", "chain", b.dbInfo.version, "compression", b.dbInfo.compVer,
@@ -418,7 +419,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %s",state.hash.String(),state.total,state.totalTxns,state.subsidy,state.workSum.Text(16)))
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %s",state.hash.String(),state.total,state.totalTxns,state.totalsubsidy,state.workSum.Text(16)))
 
 		log.Info("Loading dag ...")
 		bidxStart := time.Now()
@@ -474,7 +475,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 		b.stateSnapshot = newBestState(mainTip.GetHash(),mainTip.bits, blockSize, numTxns,
-			mainTip.CalcPastMedianTime(b), state.totalTxns,state.subsidy, b.bd.GetGraphState())
+			mainTip.CalcPastMedianTime(b), state.totalTxns,b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState())
 
 		return nil
 	})
@@ -996,10 +997,8 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 
 	mainTip:=b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
 
-	subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(mainTip.GetHeight()))
-
 	state := newBestState(mainTip.GetHash(),mainTip.bits,blockSize,numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
-		subsidy, b.bd.GetGraphState())
+		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState())
 
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
