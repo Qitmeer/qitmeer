@@ -1,9 +1,7 @@
 package qx
 
 import (
-	`encoding/hex`
 	"fmt"
-	`github.com/Qitmeer/qitmeer/common/encode/base58`
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -57,26 +55,6 @@ func TestCreateAddress(t *testing.T) {
 	a, _ := EcPubKeyToAddress("testnet", p)
 	fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
 	assert.Contains(t, a, "Tm")
-}
-
-func TestDecodeAddr(t *testing.T) {
-	addrStr := "TmbCBKbZF8PeSdj5Chm22T4hZRMJY5D8XyX"
-	_, netID, err := base58.QitmeerCheckDecode(addrStr)
-	if err != nil{
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(hex.EncodeToString(netID[:]))
-
-}
-
-func TestEncodeAddr(t *testing.T) {
-	s, _ := NewEntropy(32)
-	k, _ := EcNew("secp256k1", s)
-	p, _ := EcPrivateKeyToEcPublicKey(false, k)
-	a, _ := EcScriptKeyToAddress("mixnet", p)
-	fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-
 }
 
 func TestCreateMixParamsAddressPublicKeyHash(t *testing.T) {
