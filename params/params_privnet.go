@@ -115,5 +115,5 @@ var PrivNetParams = Params{
 	// TODO replace the test pkh
 	//OrganizationPkScript:  hexMustDecode("76a91408ff3106060bf8d7d61a25d8108ec977698729f788ac"),
 
-	CoinbaseMaturity: 512,
+	CoinbaseMaturity: 16,
 }
