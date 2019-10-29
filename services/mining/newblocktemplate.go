@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	`github.com/Qitmeer/qitmeer/core/types/pow`
@@ -118,10 +119,17 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		return nil, err
 	}
 
+	if parents==nil {
+		parents=blockManager.GetChain().GetMiningTips()
+	}
+
+	parentsSet:=blockdag.NewHashSet()
+	parentsSet.AddList(parents)
+
 	coinbaseTx, err := createCoinbaseTx(subsidyCache,
 		coinbaseScript,
 		opReturnPkScript,
-		int64(nextBlockHeight),    //TODO remove type conversion
+		int64(blockManager.GetChain().BlockDAG().GetBlues(parentsSet)),
 		payToAddress,
 		params)
 	if err != nil {
@@ -427,9 +435,7 @@ mempoolLoop:
 	// Create a new block ready to be solved.
 	merkles := merkle.BuildMerkleTreeStore(blockTxns,false)
 
-	if parents==nil {
-		parents=blockManager.GetChain().GetMiningTips()
-	}
+
 	paMerkles :=merkle.BuildParentsMerkleTreeStore(parents)
 	var block types.Block
 	block.Header = types.BlockHeader{
