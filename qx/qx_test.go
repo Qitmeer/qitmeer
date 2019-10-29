@@ -79,24 +79,6 @@ func TestEncodeAddr(t *testing.T) {
 
 }
 
-func TestCreateMixParamsAddressPublicKey(t *testing.T) {
-	times := 0
-	for{
-		if times > 20000 {
-			break
-		}
-		s, _ := NewEntropy(32)
-		k, _ := EcNew("secp256k1", s)
-		p, _ := EcPrivateKeyToEcPublicKey(false, k)
-		a, _ := EcPublicKeyToAddress("mixnet", p)
-		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-		if !assert.Contains(t, a, "Xx"){
-			break
-		}
-		times++
-	}
-}
-
 func TestCreateMixParamsAddressPublicKeyHash(t *testing.T) {
 	times := 0
 	for{
@@ -115,44 +97,6 @@ func TestCreateMixParamsAddressPublicKeyHash(t *testing.T) {
 	}
 }
 
-func TestCreateMixParamsPKHEdwardsAddrIDAddress(t *testing.T) {
-	times := 0
-	for{
-		if times > 20000 {
-			break
-		}
-		s, _ := NewEntropy(32)
-		k, _ := EcNew("secp256k1", s)
-		p, _ := EcPrivateKeyToEcPublicKey(false, k)
-		a, _ := PKHEdwardsAddrIDToAddress("mixnet", p)
-		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-		if !assert.Contains(t, a, "Xc"){
-			break
-		}
-		times++
-	}
-
-}
-
-func TestCreateMixParamsPKHSchnorrAddrIDAddress(t *testing.T) {
-	times := 0
-	for{
-		if times > 20000 {
-			break
-		}
-		s, _ := NewEntropy(32)
-		k, _ := EcNew("secp256k1", s)
-		p, _ := EcPrivateKeyToEcPublicKey(false, k)
-		a, _ := PKHSchnorrAddrIDToAddress("mixnet", p)
-		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-		if !assert.Contains(t, a, "Xr"){
-			break
-		}
-		times++
-	}
-
-}
-
 func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
 	times := 0
 	for{
@@ -165,25 +109,6 @@ func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
 		a, _ := EcScriptKeyToAddress("mixnet", p)
 		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
 		if !assert.Contains(t, a, "Xd"){
-			break
-		}
-		times++
-	}
-
-}
-
-func TestCreateMixParamsPrivateKeyIDAddress(t *testing.T) {
-	times := 0
-	for{
-		if times > 20000 {
-			break
-		}
-		s, _ := NewEntropy(32)
-		k, _ := EcNew("secp256k1", s)
-		p, _ := EcPrivateKeyToEcPublicKey(false, k)
-		a, _ := PrivateKeyIDToAddress("mixnet", p)
-		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-		if !assert.Contains(t, a, "Xt"){
 			break
 		}
 		times++
