@@ -72,6 +72,9 @@ func (this *PowConfig) Check() error{
 			return errors.New("pow config error, mainHeight set repeat!")
 		}
 		heightArr[p.MainHeight] = 1
+		if p.CuckarooPercent < 0 || p.Blake2bDPercent < 0 || p.CuckatooPercent < 0{
+			return errors.New("pow config error, all percent must greater than or equal to 0!")
+		}
 		allPercent = p.CuckarooPercent + p.Blake2bDPercent + p.CuckatooPercent
 		if allPercent != 100{
 			return errors.New("pow config error, all pow not equal 100%!")
