@@ -371,6 +371,6 @@ func (node *blockNode) IsOrdered() bool {
 }
 
 // Acquire the weight of block
-func (node *blockNode) GetWeight() uint {
-	return uint(node.workSum.BitLen())
+func (node *blockNode) GetWeight() uint64 {
+	return uint64(node.workSum.BitLen())
 }

@@ -34,6 +34,6 @@ func (sd *SpectreBlockData) GetTimestamp() int64 {
 }
 
 // Acquire the weight of block
-func (sd *SpectreBlockData) GetWeight() uint {
+func (sd *SpectreBlockData) GetWeight() uint64 {
 	return 1
 }

@@ -7,13 +7,13 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 	"math"
 	"sort"
 	"sync"
 	"time"
-	s "github.com/Qitmeer/qitmeer/core/serialization"
 )
 
 // Some available DAG algorithm types
@@ -125,6 +125,9 @@ type IBlockDAG interface {
 	Load(dbTx database.Tx) error
 }
 
+// CalcWeight
+type CalcWeight func(int64) int64
+
 // The general foundation framework of DAG
 type BlockDAG struct {
 	// The genesis of block dag
@@ -154,6 +157,9 @@ type BlockDAG struct {
 
 	// state lock
 	stateLock sync.RWMutex
+
+	//
+	calcWeight CalcWeight
 }
 
 // Acquire the name of DAG instance
@@ -167,12 +173,13 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 }
 
 // Initialize self, the function to be invoked at the beginning
-func (bd *BlockDAG) Init(dagType string) IBlockDAG{
+func (bd *BlockDAG) Init(dagType string,calcWeight CalcWeight) IBlockDAG{
 	bd.instance=NewBlockDAG(dagType)
 	bd.instance.Init(bd)
 
 	bd.lastTime=time.Unix(time.Now().Unix(), 0)
 
+	bd.calcWeight=calcWeight
 	return bd.instance
 }
 
@@ -202,7 +209,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		}
 	}
 	//
-	block := Block{id:bd.blockTotal,hash: *b.GetHash(), weight: b.GetWeight(), layer:0,status:StatusNone}
+	block := Block{id:bd.blockTotal,hash: *b.GetHash(), layer:0,status:StatusNone}
 	if parents != nil {
 		block.parents = NewHashSet()
 		var maxLayer uint=0
@@ -582,9 +589,9 @@ func (bd *BlockDAG) LocateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
 }
 
 // Judging whether block is the virtual tip that it have not future set.
-func isVirtualTip(b IBlock, futureSet *HashSet, anticone *HashSet, children *HashSet) bool {
+func isVirtualTip(bs *HashSet, futureSet *HashSet, anticone *HashSet, children *HashSet) bool {
 	for k:= range children.GetMap() {
-		if k.IsEqual(b.GetHash()) {
+		if bs.Has(&k) {
 			return false
 		}
 		if !futureSet.Has(&k) && !anticone.Has(&k) {
@@ -595,8 +602,8 @@ func isVirtualTip(b IBlock, futureSet *HashSet, anticone *HashSet, children *Has
 }
 
 // This function is used to GetAnticone recursion
-func (bd *BlockDAG) recAnticone(b IBlock, futureSet *HashSet, anticone *HashSet, h *hash.Hash) {
-	if h.IsEqual(b.GetHash()) {
+func (bd *BlockDAG) recAnticone(bs *HashSet, futureSet *HashSet, anticone *HashSet, h *hash.Hash) {
+	if bs.Has(h) {
 		return
 	}
 	node:=bd.getBlock(h)
@@ -605,7 +612,7 @@ func (bd *BlockDAG) recAnticone(b IBlock, futureSet *HashSet, anticone *HashSet,
 	if children == nil || children.Size() == 0 {
 		needRecursion = true
 	} else {
-		needRecursion = isVirtualTip(b, futureSet, anticone, children)
+		needRecursion = isVirtualTip(bs, futureSet, anticone, children)
 	}
 	if needRecursion {
 		if !futureSet.Has(h) {
@@ -615,7 +622,7 @@ func (bd *BlockDAG) recAnticone(b IBlock, futureSet *HashSet, anticone *HashSet,
 
 		//Because parents can not be empty, so there is no need to judge.
 		for k:= range parents.GetMap() {
-			bd.recAnticone(b, futureSet, anticone, &k)
+			bd.recAnticone(bs, futureSet, anticone, &k)
 		}
 	}
 }
@@ -626,11 +633,22 @@ func (bd *BlockDAG) getAnticone(b IBlock, exclude *HashSet) *HashSet {
 	futureSet := NewHashSet()
 	bd.getFutureSet(futureSet, b)
 	anticone := NewHashSet()
+	bs:=NewHashSet()
+	bs.AddPair(b.GetHash(),b)
 	for k:= range bd.tips.GetMap() {
-		bd.recAnticone(b, futureSet, anticone, &k)
+		bd.recAnticone(bs, futureSet, anticone, &k)
 	}
 	if exclude != nil {
 		anticone.Exclude(exclude)
+	}
+	return anticone
+}
+
+// getParentsAnticone
+func (bd *BlockDAG) getParentsAnticone(parents *HashSet) *HashSet {
+	anticone := NewHashSet()
+	for k:= range bd.tips.GetMap() {
+		bd.recAnticone(parents, NewHashSet(), anticone, &k)
 	}
 	return anticone
 }
@@ -872,4 +890,20 @@ func (bd *BlockDAG) Decode(r io.Reader) error {
 		return fmt.Errorf("The dag type is %s, but read is %s",bd.instance.GetName(),GetDAGTypeByIndex(dagTypeIndex))
 	}
 	return bd.instance.Decode(r)
+}
+
+// GetBlues
+func (bd *BlockDAG) GetBlues(parents *HashSet) uint {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.instance.(*Phantom).GetBlues(parents)
+}
+
+// IsBlue
+func (bd *BlockDAG) IsBlue(h *hash.Hash) bool {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.instance.(*Phantom).IsBlue(h)
 }

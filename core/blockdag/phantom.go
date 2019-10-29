@@ -50,7 +50,7 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 	ph.diffAnticone=NewHashSet()
 
 	//vb
-	vb:= &Block{hash: hash.ZeroHash, weight: 1, layer:0}
+	vb:= &Block{hash: hash.ZeroHash, layer:0}
 	ph.virtualBlock=&PhantomBlock{vb,0,NewHashSet(),NewHashSet()}
 
 	return true
@@ -81,6 +81,7 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		pb.mainParent=tp.GetHash()
 		pb.blueNum=tp.blueNum+1
 		pb.height=tp.height+1
+		pb.weight=tp.GetWeight()
 
 		pbAnticone:=ph.bd.getAnticone(pb.Block,nil)
 		tpAnticone:=ph.bd.getAnticone(tp.Block,nil)
@@ -88,6 +89,8 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		diffAnticone.RemoveSet(pbAnticone)
 
 		ph.calculateBlueSet(pb,diffAnticone)
+
+		pb.weight+=uint64(ph.bd.calcWeight(int64(pb.blueNum+1)))
 	}else{
 		//It is genesis
 		if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
@@ -132,6 +135,10 @@ func (ph *Phantom) calculateBlueSet(pb *PhantomBlock,diffAnticone *HashSet) {
 		log.Error(fmt.Sprintf("error blue set"))
 	}
 	pb.blueNum+=uint(pb.blueDiffAnticone.Size())
+
+	for k:=range pb.blueDiffAnticone.GetMap() {
+		pb.weight+=uint64(ph.bd.calcWeight(int64(ph.getBlock(&k).blueNum+1)))
+	}
 }
 
 func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
@@ -372,6 +379,8 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	tp:=ph.getBlock(ph.mainChain.tip)
 	ph.virtualBlock.mainParent=ph.mainChain.tip
 	ph.virtualBlock.blueNum=tp.blueNum+1
+	ph.virtualBlock.height=tp.height+1
+	ph.virtualBlock.weight=tp.GetWeight()
 
 	ph.virtualBlock.blueDiffAnticone.Clean()
 	ph.virtualBlock.redDiffAnticone.Clean()
@@ -584,6 +593,58 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 		}
 	}
 	return nil
+}
+
+func (ph *Phantom) GetBlues(parents *HashSet) uint {
+	if parents == nil || parents.IsEmpty() {
+		return 0
+	}
+	for k:=range parents.GetMap() {
+		if !ph.bd.hasBlock(&k) {
+			return 0
+		}
+	}
+
+	//vb
+	vb:= &Block{hash: hash.ZeroHash, layer:0}
+	pb:=&PhantomBlock{vb,0,NewHashSet(),NewHashSet()}
+
+	tp:=ph.GetMainParent(parents).(*PhantomBlock)
+	pb.mainParent=tp.GetHash()
+	pb.blueNum=tp.blueNum+1
+	pb.height=tp.height+1
+
+	pbAnticone:=ph.bd.getParentsAnticone(parents)
+	tpAnticone:=ph.bd.getAnticone(tp.Block,nil)
+	diffAnticone:=tpAnticone.Clone()
+	diffAnticone.RemoveSet(pbAnticone)
+
+	ph.calculateBlueSet(pb,diffAnticone)
+
+	return pb.blueNum
+}
+
+func (ph *Phantom) IsBlue(h *hash.Hash) bool {
+	b:=ph.getBlock(h)
+	if b == nil {
+		return false
+	}
+	if ph.diffAnticone.Has(h) {
+		return false
+	}
+	for cur:=ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
+		if cur.GetHash().IsEqual(b.GetHash()) ||
+			cur.blueDiffAnticone.Has(b.GetHash()) {
+			return true
+		}
+		if cur.GetLayer() < b.GetLayer() {
+			break
+		}
+		if cur.mainParent==nil {
+			break
+		}
+	}
+	return false
 }
 
 // The main chain of DAG is support incremental expansion
