@@ -204,8 +204,8 @@ func TestAddress(t *testing.T){
 		},
 		{
 			name:"mixNet p2sh NewAddressScriptHashFromHash",
-			addr :"XSq1AX1W79R5kWEsXUbdfjZqf1ei1pwEVfQ",
-			encoded:"XSq1AX1W79R5kWEsXUbdfjZqf1ei1pwEVfQ",
+			addr :"XdHnr7qFbc78XmWVn7WHxLpv7NmQYJRz6Rx",
+			encoded:"XdHnr7qFbc78XmWVn7WHxLpv7NmQYJRz6Rx",
 			valid :true,
 			result:&ScriptHashAddress{
 				net:mixNetParams,
