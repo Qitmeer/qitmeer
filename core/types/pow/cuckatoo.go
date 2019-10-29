@@ -19,13 +19,9 @@ type Cuckatoo struct {
 const MIN_CUCKATOOEDGEBITS = 29
 const MAX_CUCKATOOEDGEBITS = 32
 
-func (this *Cuckatoo) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits uint32, powConfig *PowConfig) error {
+func (this *Cuckatoo) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) error {
 	targetDiff := CompactToBig(targetDiffBits)
-	baseDiff := CompactToBig(powConfig.CuckarooMinDifficulty)
-	if !this.CheckAvailable(this.PowPercent(powConfig)) {
-		str := fmt.Sprintf("cuckatoo is not supported")
-		return errors.New(str)
-	}
+	baseDiff := CompactToBig(this.params.CuckarooMinDifficulty)
 	h := this.GetSipHash(headerData)
 	nonces := this.GetCircleNonces()
 	edgeBits := this.GetEdgeBits()
@@ -43,7 +39,7 @@ func (this *Cuckatoo) Verify(headerData []byte, blockHash hash.Hash, targetDiffB
 	//The target difficulty must be more than the min diff.
 	if targetDiff.Cmp(baseDiff) < 0 {
 		str := fmt.Sprintf("block target difficulty of %d is "+
-			"less than min diff :%d", targetDiff, powConfig.CuckarooMinDifficulty)
+			"less than min diff :%d", targetDiff, this.params.CuckarooMinDifficulty)
 		return errors.New(str)
 	}
 	if CalcCuckooDiff(GraphWeight(uint32(edgeBits)), blockHash).Cmp(targetDiff) < 0 {
@@ -52,10 +48,10 @@ func (this *Cuckatoo) Verify(headerData []byte, blockHash hash.Hash, targetDiffB
 	return nil
 }
 
-func (this *Cuckatoo) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int, param *PowConfig) *big.Int {
+func (this *Cuckatoo) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int) *big.Int {
 	oldDiffBig.Lsh(oldDiffBig, 32)
 	nextDiffBig := oldDiffBig.Div(oldDiffBig, weightedSumDiv)
-	targetPercent := this.PowPercent(param)
+	targetPercent := this.PowPercent()
 	if targetPercent.Cmp(big.NewInt(0)) <= 0 {
 		return nextDiffBig
 	}
@@ -69,14 +65,14 @@ func (this *Cuckatoo) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 	}
 	return nextDiffBig
 }
-func (this *Cuckatoo) PowPercent(param *PowConfig) *big.Int {
-	targetPercent := big.NewInt(int64(param.CuckatooPercent))
+func (this *Cuckatoo) PowPercent() *big.Int {
+	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).CuckatooPercent))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
 }
 
-func (this *Cuckatoo) GetSafeDiff(param *PowConfig, cur_reduce_diff uint64) *big.Int {
-	minDiffBig := CompactToBig(param.CuckatooMinDifficulty)
+func (this *Cuckatoo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
+	minDiffBig := CompactToBig(this.params.CuckatooMinDifficulty)
 	if cur_reduce_diff <= 0 {
 		return minDiffBig
 	}
@@ -87,4 +83,8 @@ func (this *Cuckatoo) GetSafeDiff(param *PowConfig, cur_reduce_diff uint64) *big
 		newTarget.Set(minDiffBig)
 	}
 	return newTarget
+}
+//check pow is available
+func (this *Cuckatoo) CheckAvailable() bool {
+	return this.params.GetPercentByHeight(this.mainHeight).CuckatooPercent > 0
 }

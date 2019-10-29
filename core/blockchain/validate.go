@@ -251,8 +251,9 @@ func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags
 	// The block hash must be less than the claimed target unless the flag
 	// to avoid proof of work checks is set.
 	if flags&BFNoPoWCheck != BFNoPoWCheck {
+		header.Pow.SetParams(powConfig)
 		// The block hash must be less than the claimed target.
-		return header.Pow.Verify(header.BlockData(),header.BlockHash(),header.Difficulty,powConfig)
+		return header.Pow.Verify(header.BlockData(),header.BlockHash(),header.Difficulty)
 	}
 
 	return nil
@@ -601,11 +602,14 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	if !fastAdd {
+		instance := pow.GetInstance(header.Pow.GetPowType(),0,[]byte{})
+		instance.SetMainHeight(int64(prevNode.height+1))
+		instance.SetParams(b.params.PowConfig)
 		// Ensure the difficulty specified in the block header matches
 		// the calculated difficulty based on the previous block and
 		// difficulty retarget rules.
 		expDiff, err := b.calcNextRequiredDifficulty(prevNode,
-			header.Timestamp,header.Pow.GetPowType())
+			header.Timestamp,instance)
 		if err != nil {
 			return err
 		}

@@ -38,14 +38,20 @@ var MixNetParams = Params{
     PowConfig :&pow.PowConfig{
         Blake2bdPowLimit:      testMixNetPowLimit,
         Blake2bdPowLimitBits:  0x1e00ffff,
-        Blake2bDPercent:       34,
-        CuckarooPercent:       33,
-        CuckatooPercent:       33,
         //hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
         // Uniform field type uint64 value is 48 . bigToCompact the uint32 value
         // 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 2 ≈ 1min find once
         CuckarooMinDifficulty:     0x1600000,
         CuckatooMinDifficulty:     0x1600000,
+
+        Percent:[]pow.Percent{
+            {
+                Blake2bDPercent: 10,
+                CuckarooPercent: 70,
+                CuckatooPercent: 20,
+                MainHeight:      0,
+            },
+        },
     },
 
     WorkDiffAlpha:            1,

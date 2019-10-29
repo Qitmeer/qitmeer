@@ -149,7 +149,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 			// maximum adjustment allowed by the retarget rules.
 			duration := blockHeader.Timestamp.Sub(checkpointTime)
 			requiredTarget := pow.CompactToBig(b.calcEasiestDifficulty(
-				checkpointNode.bits, duration,block.Block().Header.Pow.GetPowType()))
+				checkpointNode.bits, duration,block.Block().Header.Pow))
 			currentTarget := pow.CompactToBig(blockHeader.Difficulty)
 			if !block.Block().Header.Pow.CompareDiff(currentTarget,requiredTarget) {
 				str := fmt.Sprintf("block target difficulty of %064x "+

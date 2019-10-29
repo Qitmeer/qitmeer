@@ -38,14 +38,32 @@ var PrivNetParams = Params{
 	PowConfig :&pow.PowConfig{
 		Blake2bdPowLimit:                 privNetPowLimit,
 		Blake2bdPowLimitBits:             0x207fffff,
-		Blake2bDPercent:          34,
-		CuckarooPercent:          33,
-		CuckatooPercent:          33,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1 times use for privnet if GPS is 2. need 50 /2 = 25s find once
 		CuckarooMinDifficulty:     0x1300000,
 		CuckatooMinDifficulty:     0x1300000,
+
+		Percent:[]pow.Percent{
+			{
+				Blake2bDPercent: 10,
+				CuckarooPercent: 70,
+				CuckatooPercent: 20,
+				MainHeight:      0,
+			},
+			{
+				Blake2bDPercent: 30,
+				CuckarooPercent: 30,
+				CuckatooPercent: 40,
+				MainHeight:      50,
+			},
+			{
+				Blake2bDPercent: 80,
+				CuckarooPercent: 10,
+				CuckatooPercent: 10,
+				MainHeight:      100,
+			},
+		},
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
@@ -57,7 +75,7 @@ var PrivNetParams = Params{
 	WorkDiffWindows:          20,
 	TargetTimePerBlock:       time.Second * 30,
 	TargetTimespan:           time.Second * 30 * 16, // TimePerBlock * WindowSize
-	RetargetAdjustmentFactor: 4,
+	RetargetAdjustmentFactor: 2,
 
 	// Subsidy parameters.
 	BaseSubsidy:              50000000000,

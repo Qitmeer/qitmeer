@@ -225,6 +225,11 @@ func LoadConfig() (*config.Config, []string, error) {
 		return nil, nil, err
 	}
 
+	if err := params.ActiveNetParams.PowConfig.Check();err != nil{
+		fmt.Fprintln(os.Stderr, err)
+		return nil, nil, err
+	}
+
 	// Add the default listener if none were specified. The default
 	// listener is all addresses on the listen port for the network
 	// we are to connect to.

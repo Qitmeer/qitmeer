@@ -42,32 +42,13 @@ func (this *ProofDataType) Bytes() []byte {
 	return this[:]
 }
 
-type PowConfig struct {
-	// PowLimit defines the highest allowed proof of work value for a block
-	// as a uint256.
-	Blake2bdPowLimit *big.Int
-	// PowLimitBits defines the highest allowed proof of work value for a
-	// block in compact form.
-	// highest value is mean min difficulty
-	Blake2bdPowLimitBits uint32
-
-	// cuckoo difficulty calc params  min difficulty
-	CuckarooMinDifficulty uint32
-	CuckatooMinDifficulty uint32
-
-	//percent of every pow sum of them must be 100
-	CuckarooPercent int
-	CuckatooPercent int
-	Blake2bDPercent int
-}
-
 type IPow interface {
 	// verify result difficulty
-	Verify(headerData []byte, blockHash hash.Hash, targetDiff uint32, powConfig *PowConfig) error
+	Verify(headerData []byte, blockHash hash.Hash, targetDiff uint32) error
 	//set header nonce
 	SetNonce(nonce uint32)
 	//calc next diff
-	GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int, param *PowConfig) *big.Int
+	GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int) *big.Int
 	GetNonce() uint32
 	GetPowType() PowType
 	//set pow type
@@ -78,12 +59,16 @@ type IPow interface {
 	Bytes() PowBytes
 	//if cur_reduce_diff > 0 compare cur_reduce_diff with powLimitBits or minDiff ，the cur_reduce_diff should less than powLimitBits , and should more than min diff
 	//if cur_reduce_diff <=0 return powLimit or min diff
-	GetSafeDiff(param *PowConfig, cur_reduce_diff uint64) *big.Int
+	GetSafeDiff(cur_reduce_diff uint64) *big.Int
 	// pow percent
-	PowPercent(param *PowConfig) *big.Int
+	PowPercent() *big.Int
 	//pow result
 	GetPowResult() json.PowResult
-
+	//SetParams
+	SetParams(params *PowConfig)
+	//SetHeight
+	SetMainHeight(height int64)
+	CheckAvailable() bool
 	CompareDiff(newtarget *big.Int, target *big.Int) bool
 }
 
@@ -91,6 +76,8 @@ type Pow struct {
 	PowType   PowType       //header pow type 1 bytes
 	Nonce     uint32        //header nonce 4 bytes
 	ProofData ProofDataType // 1 edge_bits  168  bytes circle length total 169 bytes
+	params    *PowConfig
+	mainHeight    int64
 }
 
 //get pow instance
@@ -116,6 +103,14 @@ func (this *Pow) SetPowType(powType PowType) {
 	this.PowType = powType
 }
 
+func (this *Pow) SetParams(params *PowConfig){
+	this.params = GetPowConfig().Set(params)
+}
+
+func (this *Pow) SetMainHeight(mainHeight int64){
+	this.mainHeight = mainHeight
+}
+
 func (this *Pow) GetPowType() PowType {
 	return this.PowType
 }
@@ -136,9 +131,4 @@ func (this *Pow) GetProofData() string {
 func (this *Pow) SetProofData(data []byte) {
 	l := len(data)
 	copy(this.ProofData[0:l], data[:])
-}
-
-//check pow is available
-func (this *Pow) CheckAvailable(powPercent *big.Int) bool {
-	return powPercent.Cmp(big.NewInt(0)) > 0
 }
