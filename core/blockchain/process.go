@@ -151,7 +151,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 			requiredTarget := pow.CompactToBig(b.calcEasiestDifficulty(
 				checkpointNode.bits, duration,block.Block().Header.Pow.GetPowType()))
 			currentTarget := pow.CompactToBig(blockHeader.Difficulty)
-			if currentTarget.Cmp(requiredTarget) > 0 {
+			if !block.Block().Header.Pow.CompareDiff(currentTarget,requiredTarget) {
 				str := fmt.Sprintf("block target difficulty of %064x "+
 					"is too low when compared to the previous "+
 					"checkpoint", currentTarget)

@@ -36,6 +36,8 @@ func (v *Bip32VersionFlag) Set(versionFlag string) error {
 		version = QitmeerTestnetBip32Version
 	case "privnet":
 		version = QitmeerPrivnetBip32Version
+	case "mixnet":
+		version = QitmeerMixnetBip32Version
 	default:
 		return fmt.Errorf("unknown bip32 version flag %s", versionFlag)
 	}
