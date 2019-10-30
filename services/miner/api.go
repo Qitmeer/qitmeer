@@ -440,6 +440,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI,useCoinbaseVa
 		StateRoot:    template.Block.Header.StateRoot.String(),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
 		Height:       int64(template.Height),
+		Blues:        template.Blues,
 		PreviousHash: template.Block.Header.ParentRoot.String(),
 		WeightLimit:  types.MaxBlockWeight,
 		SigOpLimit:   types.MaxBlockSigOpsCost,
