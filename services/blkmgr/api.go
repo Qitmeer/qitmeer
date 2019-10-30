@@ -275,3 +275,18 @@ func (api *PublicBlockAPI) GetBlockByID(id uint64,verbose *bool,inclTx *bool, fu
 	return api.GetBlock(*blockHash,&vb,&iTx,&fTx)
 }
 
+// IsBlue:0:not blue;  1：blue  2：Cannot confirm
+func (api *PublicBlockAPI) IsBlue(h hash.Hash) (interface{}, error){
+	ib:=api.bm.chain.BlockDAG().GetBlock(&h)
+	if ib == nil {
+		return 2, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %s", h.String()))
+	}
+	confirmations := api.bm.chain.BlockDAG().GetConfirmations(&h)
+	if confirmations ==0 {
+		return 2,nil
+	}
+	if api.bm.chain.BlockDAG().IsBlue(&h) {
+		return 1,nil
+	}
+	return 0,nil
+}
