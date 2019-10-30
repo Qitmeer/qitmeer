@@ -40,6 +40,10 @@ type BlockTemplate struct {
 	// chain.
 	Height uint64
 
+	// Blues is the count of the blue set in the block past set to
+	// the DAG
+	Blues int64
+
 	// ValidPayAddress indicates whether or not the template coinbase pays
 	// to an address or is redeemable by anyone.  See the documentation on
 	// NewBlockTemplate for details on which this can be useful to generate

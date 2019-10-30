@@ -125,6 +125,7 @@ func deepCopyBlockTemplate(blockTemplate *types.BlockTemplate) *types.BlockTempl
 		Fees:            fees,
 		SigOpCounts:     sigOps,
 		Height:          blockTemplate.Height,
+		Blues:           blockTemplate.Blues,
 		ValidPayAddress: blockTemplate.ValidPayAddress,
 	}
 }
