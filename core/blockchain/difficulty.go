@@ -177,9 +177,9 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 
 	// Number of nodes to traverse while calculating difficulty.
 	nodesToTraverse := needAjustCount * b.params.WorkDiffWindows
-
+	percentStatsRecentCount := b.params.WorkDiffWindowSize * b.params.WorkDiffWindows
 	//calc pow block count in last nodesToTraverse blocks
-	currentPowBlockCount := b.calcCurrentPowCount(originCurrentNode,nodesToTraverse,powInstance.GetPowType())
+	currentPowBlockCount := b.calcCurrentPowCount(originCurrentNode,percentStatsRecentCount,powInstance.GetPowType())
 
 	// Initialize bigInt slice for the percentage changes for each window period
 	// above or below the target.
@@ -255,7 +255,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	//percent calculate
 	currentPowPercent := big.NewInt(int64(currentPowBlockCount))
 	currentPowPercent.Lsh(currentPowPercent,32)
-	nodesToTraverseBig := big.NewInt(nodesToTraverse)
+	nodesToTraverseBig := big.NewInt(percentStatsRecentCount)
 	currentPowPercent = currentPowPercent.Div(currentPowPercent,nodesToTraverseBig)
 	// Multiply by the old diff.
 	nextDiffBig := powInstance.GetNextDiffBig(weightedSumDiv,oldDiffBig,currentPowPercent)
