@@ -126,10 +126,11 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	parentsSet:=blockdag.NewHashSet()
 	parentsSet.AddList(parents)
 
+	blues:=int64(blockManager.GetChain().BlockDAG().GetBlues(parentsSet))
 	coinbaseTx, err := createCoinbaseTx(subsidyCache,
 		coinbaseScript,
 		opReturnPkScript,
-		int64(blockManager.GetChain().BlockDAG().GetBlues(parentsSet)),
+		blues,
 		payToAddress,
 		params)
 	if err != nil {
@@ -483,6 +484,7 @@ mempoolLoop:
 		Fees:            txFees,
 		SigOpCounts:     txSigOpCosts,
 		Height:          nextBlockHeight,
+		Blues:           blues,
 		ValidPayAddress: payToAddress != nil,
 		PowDiffData: types.PowDiffStandard {
 			Blake2bDTarget    :reqBlake2bDDifficulty,
