@@ -29,7 +29,7 @@ type BlockVerboseResult struct {
 	Tx            []string      `json:"tx,omitempty"`
 	RawTx         []TxRawResult `json:"rawtx,omitempty"`
 	Time          int64         `json:"time"`
-	PowResult     PowResult  `json:"pow_result"`
+	PowResult     PowResult  `json:"pow"`
 	Difficulty    uint32       `json:"difficulty"`
 	PreviousHash  string        `json:"previousblockhash"`
 	NextHash      string        `json:"nextblockhash,omitempty"`
@@ -48,5 +48,5 @@ type GetBlockHeaderVerboseResult struct {
 	Difficulty    uint32  `json:"difficulty"`
 	Layer         uint32  `json:"layer"`
 	Time          int64   `json:"time"`
-	PowResult     PowResult  `json:"pow_result"`
+	PowResult     PowResult  `json:"pow"`
 }
