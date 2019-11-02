@@ -112,6 +112,12 @@ func (this *Blake2bd) Bytes() PowBytes {
 	r = append(r, this.ProofData[:]...)
 	return PowBytes(r)
 }
+
+// pow proof data
+func (this *Blake2bd) BlockData() PowBytes {
+	l := len(this.Bytes())
+	return PowBytes(this.Bytes()[:l-PROOFDATA_LENGTH])
+}
 //check pow is available
 func (this *Blake2bd) CheckAvailable() bool {
 	return this.params.GetPercentByHeight(this.mainHeight).Blake2bDPercent > 0

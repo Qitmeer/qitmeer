@@ -99,3 +99,7 @@ func (this *Cuckoo) Bytes() PowBytes {
 func (this *Cuckoo) CompareDiff(newTarget *big.Int, target *big.Int) bool {
 	return newTarget.Cmp(target) >= 0
 }
+// pow proof data
+func (this *Cuckoo) BlockData() PowBytes {
+	return this.Bytes()
+}
