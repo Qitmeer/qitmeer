@@ -82,6 +82,9 @@ func removeBlockDB(dbPath string) error {
 
 func CleanupBlockDB(cfg *config.Config) {
 	dbPath := blockDbPath(cfg.DbType,cfg)
-	removeBlockDB(dbPath)
+	err:=removeBlockDB(dbPath)
+	if err != nil {
+		log.Error(err.Error())
+	}
 	log.Info("Finished cleanup")
 }
