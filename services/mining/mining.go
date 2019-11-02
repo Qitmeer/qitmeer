@@ -122,7 +122,7 @@ func standardCoinbaseOpReturn(enData []byte) ([]byte, error) {
 //
 // See the comment for NewBlockTemplate for more information about why the nil
 // address handling is useful.
-func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, opReturnPkScript []byte, nextBlockHeight int64, addr types.Address, params *params.Params) (*types.Tx, error) {
+func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, opReturnPkScript []byte, nextBlocks int64, addr types.Address, params *params.Params) (*types.Tx, error) {
 	tx := types.NewTransaction()
 	tx.AddTxIn(&types.TxInput{
 		// Coinbase transactions have no inputs, so previous outpoint is
@@ -140,9 +140,9 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	}
 	// Create a coinbase with correct block subsidy and extranonce.
 	subsidy := blockchain.CalcBlockWorkSubsidy(subsidyCache,
-		nextBlockHeight, params)
+		nextBlocks, params)
 	tax := blockchain.CalcBlockTaxSubsidy(subsidyCache,
-		nextBlockHeight, params)
+		nextBlocks, params)
 
 	// output
 	// Create the script to pay to the provided payment address if one was

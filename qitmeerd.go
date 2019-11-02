@@ -104,6 +104,7 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 
 	// Cleanup the block database
 	if cfg.Cleanup {
+		db.Close()
 		common.CleanupBlockDB(cfg)
 		return nil
 	}

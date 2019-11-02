@@ -285,6 +285,12 @@ function get_rawtxs(){
   get_result "$data"
 }
 
+function is_blue(){
+  local block_hash=$1
+  local data='{"jsonrpc":"2.0","method":"isBlue","params":["'$block_hash'"],"id":1}'
+  get_result "$data"
+}
+
 function get_result(){
   local proto="https"
   if [ $notls -eq 1 ]; then
@@ -349,6 +355,7 @@ function usage(){
   echo "  mainHeight"
   echo "  weight <hash>"
   echo "  orphanstotal"
+  echo "  isblue <hash>   ;return [0:not blue;  1：blue  2：Cannot confirm]"
   echo "tx     :"
   echo "  tx <hash>"
   echo "  createRawTx"
@@ -625,6 +632,10 @@ elif [ "$1" == "weight" ]; then
 elif [ "$1" == "blockrange" ]; then
   shift
   get_blockhash_range $@
+
+elif [ "$1" == "isblue" ]; then
+  shift
+  is_blue $@
 
 elif [ "$1" == "nodeinfo" ]; then
   shift

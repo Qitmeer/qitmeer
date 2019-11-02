@@ -71,6 +71,8 @@ func init() {
 	glogger = log.NewGlogHandler(log.StreamHandler(io.Writer(logWrite), log.TerminalFormat(logWrite.IsUseColor())))
 
 	log.Root().SetHandler(glogger)
+
+	glogger.Verbosity(log.LvlInfo)
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and

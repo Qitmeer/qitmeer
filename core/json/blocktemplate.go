@@ -69,6 +69,7 @@ type GetBlockTemplateResult struct {
 	StateRoot     string                     `json:"stateroot"`
 	CurTime       int64                      `json:"curtime"`
 	Height        int64                      `json:"height"`
+	Blues         int64                      `json:"blues"`
 	PreviousHash  string                     `json:"previousblockhash"`
 	SigOpLimit    int64                      `json:"sigoplimit,omitempty"`
 	SizeLimit     int64                      `json:"sizelimit,omitempty"`
