@@ -2,13 +2,13 @@
 package serialization
 
 import (
+	"encoding/binary"
 	`fmt`
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	`github.com/Qitmeer/qitmeer/core/types/pow`
 	"io"
-	"github.com/Qitmeer/qitmeer/core/protocol"
-	"encoding/binary"
 	"time"
-	"github.com/Qitmeer/qitmeer/common/hash"
 )
 
 // ReadElements reads multiple items from r.  It is equivalent to multiple
@@ -277,13 +277,13 @@ func writeElement(w io.Writer, element interface{}) error {
 		}
 		return nil
 		//pow bytes
-	case *pow.IPow:
-		b := (*e).Bytes()
-		_, err := w.Write(b[:])
+	case pow.PowBytes:
+		_, err := w.Write(e[:])
 		if err != nil {
 			return err
 		}
 		return nil
+		//pow Result
 	}
 	// Fall back to the slower binary.Write if a fast path was not available
 	// above.

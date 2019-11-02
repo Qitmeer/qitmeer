@@ -94,20 +94,23 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 	// transactions.  Ignore the error returns since there is no way the
 	// encode could fail except being out of memory which would cause a
 	// run-time panic.
-	return hash.DoubleHashH(h.BlockData()[:MaxBlockHeaderPayload-pow.PROOFDATA_LENGTH])
+	return hash.DoubleHashH(h.BlockData())
 }
 
-// BlockData computes the block data for hash.
-//this data useful for blake2b hash
-//cuckoo hash will use circle nonces to generate,but need this data to verify cuckoo circles
-func (h *BlockHeader) BlockData() []byte {
+// BlockData computes the block data for block hash.
+// Block data has the dynamic length.
+//   - blake2bd data is 113 bytes .
+//   - cuckoo data is 282 bytes .
+func (bh *BlockHeader) BlockData() []byte {
 	// Encode the header and hash256 everything prior to the number of
 	// transactions.  Ignore the error returns since there is no way the
 	// encode could fail except being out of memory which would cause a
 	// run-time panic.
 	buf := bytes.NewBuffer(make([]byte, 0, MaxBlockHeaderPayload))
 	// TODO, redefine the protocol version and storage
-	_ = writeBlockHeader(buf,0, h)
+	sec := uint32(bh.Timestamp.Unix())
+	_ = s.WriteElements(buf, bh.Version, &bh.ParentRoot, &bh.TxRoot,
+		&bh.StateRoot, bh.Difficulty, sec, bh.Pow.BlockData())
 	return buf.Bytes()
 }
 
@@ -130,7 +133,7 @@ func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	// TODO fix time ambiguous
 	sec := uint32(bh.Timestamp.Unix())
 	return s.WriteElements(w, bh.Version, &bh.ParentRoot, &bh.TxRoot,
-		&bh.StateRoot, bh.Difficulty, sec, &bh.Pow)
+		&bh.StateRoot, bh.Difficulty, sec, bh.Pow.Bytes())
 }
 
 // This function get the simple hash use each parents string, so it can't use to

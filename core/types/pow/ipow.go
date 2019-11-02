@@ -57,6 +57,7 @@ type IPow interface {
 	//set proof data
 	SetProofData([]byte)
 	Bytes() PowBytes
+	BlockData() PowBytes
 	//if cur_reduce_diff > 0 compare cur_reduce_diff with powLimitBits or minDiff ，the cur_reduce_diff should less than powLimitBits , and should more than min diff
 	//if cur_reduce_diff <=0 return powLimit or min diff
 	GetSafeDiff(cur_reduce_diff uint64) *big.Int
@@ -132,3 +133,4 @@ func (this *Pow) SetProofData(data []byte) {
 	l := len(data)
 	copy(this.ProofData[0:l], data[:])
 }
+
