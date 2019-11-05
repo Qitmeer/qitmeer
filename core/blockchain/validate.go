@@ -631,6 +631,25 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 		}
 	}
 
+	// checkpoint
+	blockHeight := prevNode.height + 1
+	blockHash := header.BlockHash()
+	if !b.verifyCheckpoint(uint64(blockHeight), &blockHash) {
+		str := fmt.Sprintf("block at height %d does not match "+
+			"checkpoint hash", blockHeight)
+		return ruleError(ErrBadCheckpoint, str)
+	}
+
+	checkpointNode, err := b.findPreviousCheckpoint()
+	if err != nil {
+		return err
+	}
+	if checkpointNode != nil && blockHeight < checkpointNode.height {
+		str := fmt.Sprintf("block at height %d forks the main chain "+
+			"before the previous checkpoint at height %d",
+			blockHeight, checkpointNode.height)
+		return ruleError(ErrForkTooOld, str)
+	}
 
 	return nil
 }
@@ -682,7 +701,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// will therefore be detected by the next checkpoint).  This is a huge
 	// optimization because running the scripts is the most time consuming
 	// portion of block handling.
-	checkpoint := b.latestCheckpoint()
+	checkpoint := b.LatestCheckpoint()
 	runScripts := !b.noVerify
 	if checkpoint != nil && uint64(node.GetHeight()) <= checkpoint.Height {
 		runScripts = false

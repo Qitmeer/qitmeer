@@ -242,11 +242,17 @@ func New(config *Config) (*BlockChain, error) {
 	// Generate a checkpoint by height map from the provided checkpoints.
 	par := config.ChainParams
 	var checkpointsByHeight map[uint64]*params.Checkpoint
+	var prevCheckpointHeight uint64
 	if len(par.Checkpoints) > 0 {
 		checkpointsByHeight = make(map[uint64]*params.Checkpoint)
 		for i := range par.Checkpoints {
 			checkpoint := &par.Checkpoints[i]
+			if checkpoint.Height <= prevCheckpointHeight {
+				return nil, AssertError("blockchain.New " +
+					"checkpoints are not sorted by height")
+			}
 			checkpointsByHeight[checkpoint.Height] = checkpoint
+			prevCheckpointHeight = checkpoint.Height
 		}
 	}
 
@@ -594,7 +600,7 @@ func (b *BlockChain) IsCurrent() bool {
 func (b *BlockChain) isCurrent() bool {
 	// Not current if the latest main (best) chain height is before the
 	// latest known good checkpoint (when checkpoints are enabled).
-	checkpoint := b.latestCheckpoint()
+	checkpoint := b.LatestCheckpoint()
 	lastBlock := b.bd.GetMainChainTip()
 	if checkpoint != nil && uint64(lastBlock.GetHeight()) < checkpoint.Height {
 		return false

@@ -196,6 +196,7 @@ type Params struct {
 	// Special case: disable taxes with a value of 0
 	BlockTaxProportion uint16
 
+	// It must be hourglass block.
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints []Checkpoint
 

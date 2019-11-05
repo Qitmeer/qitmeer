@@ -35,28 +35,17 @@ func (b *BlockChain) DisableCheckpoints(disable bool) {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) Checkpoints() []params.Checkpoint {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
-
-	if b.noCheckpoints || len(b.params.Checkpoints) == 0 {
+	if !b.HasCheckpoints() {
 		return nil
 	}
-
 	return b.params.Checkpoints
 }
 
-// latestCheckpoint returns the most recent checkpoint (regardless of whether it
-// is already known).  When checkpoints are disabled or there are no checkpoints
-// for the active network, it will return nil.
-//
-// This function MUST be called with the chain state lock held (for reads).
-func (b *BlockChain) latestCheckpoint() *params.Checkpoint {
-	if b.noCheckpoints || len(b.params.Checkpoints) == 0 {
-		return nil
+func (b *BlockChain) HasCheckpoints() bool {
+	if b.noCheckpoints {
+		return false
 	}
-
-	checkpoints := b.params.Checkpoints
-	return &checkpoints[len(checkpoints)-1]
+	return len(b.params.Checkpoints) > 0
 }
 
 // LatestCheckpoint returns the most recent checkpoint (regardless of whether it
@@ -65,10 +54,11 @@ func (b *BlockChain) latestCheckpoint() *params.Checkpoint {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) LatestCheckpoint() *params.Checkpoint {
-	b.chainLock.RLock()
-	checkpoint := b.latestCheckpoint()
-	b.chainLock.RUnlock()
-	return checkpoint
+	if !b.HasCheckpoints() {
+		return nil
+	}
+	checkpoints := b.params.Checkpoints
+	return &checkpoints[len(checkpoints)-1]
 }
 
 // verifyCheckpoint returns whether the passed block height and hash combination
@@ -77,7 +67,7 @@ func (b *BlockChain) LatestCheckpoint() *params.Checkpoint {
 //
 // This function MUST be called with the chain lock held (for reads).
 func (b *BlockChain) verifyCheckpoint(height uint64, hash *hash.Hash) bool {
-	if b.noCheckpoints || len(b.params.Checkpoints) == 0 {
+	if !b.HasCheckpoints() {
 		return true
 	}
 
@@ -103,7 +93,7 @@ func (b *BlockChain) verifyCheckpoint(height uint64, hash *hash.Hash) bool {
 //
 // This function MUST be called with the chain lock held (for reads).
 func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
-	if b.noCheckpoints || len(b.params.Checkpoints) == 0 {
+	if !b.HasCheckpoints() {
 		return nil, nil
 	}
 
