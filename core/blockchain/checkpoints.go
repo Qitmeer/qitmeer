@@ -64,8 +64,6 @@ func (b *BlockChain) LatestCheckpoint() *params.Checkpoint {
 // verifyCheckpoint returns whether the passed block height and hash combination
 // match the hard-coded checkpoint data.  It also returns true if there is no
 // checkpoint data for the passed block height.
-//
-// This function MUST be called with the chain lock held (for reads).
 func (b *BlockChain) verifyCheckpoint(height uint64, hash *hash.Hash) bool {
 	if !b.HasCheckpoints() {
 		return true
