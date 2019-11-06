@@ -32,6 +32,16 @@ func Newsip(siphashKey []byte) *SipHash {
 	return s
 }
 
+func Siphash(k0, k1, b uint64) uint64 {
+	// Initialization.
+	var v [4]uint64
+	v[0] = k0 ^ 0x736f6d6570736575
+	v[1] = k1 ^ 0x646f72616e646f6d
+	v[2] = k0 ^ 0x6c7967656e657261
+	v[3] = k1 ^ 0x7465646279746573
+	return SiphashPRF(&v, b)
+}
+
 func SiphashPRF(v *[4]uint64, b uint64) uint64 {
 	v0 := v[0]
 	v1 := v[1]
