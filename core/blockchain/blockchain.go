@@ -43,7 +43,7 @@ type BlockChain struct {
 	// The following fields are set when the instance is created and can't
 	// be changed afterwards, so there is no need to protect them with a
 	// separate mutex.
-	checkpointsByHeight map[uint64]*params.Checkpoint
+	checkpointsByLayer map[uint64]*params.Checkpoint
 
 	db            database.DB
 	dbInfo        *databaseInfo
@@ -241,23 +241,23 @@ func New(config *Config) (*BlockChain, error) {
 
 	// Generate a checkpoint by height map from the provided checkpoints.
 	par := config.ChainParams
-	var checkpointsByHeight map[uint64]*params.Checkpoint
-	var prevCheckpointHeight uint64
+	var checkpointsByLayer map[uint64]*params.Checkpoint
+	var prevCheckpointLayer uint64
 	if len(par.Checkpoints) > 0 {
-		checkpointsByHeight = make(map[uint64]*params.Checkpoint)
+		checkpointsByLayer = make(map[uint64]*params.Checkpoint)
 		for i := range par.Checkpoints {
 			checkpoint := &par.Checkpoints[i]
-			if checkpoint.Height <= prevCheckpointHeight {
+			if checkpoint.Layer <= prevCheckpointLayer {
 				return nil, AssertError("blockchain.New " +
 					"checkpoints are not sorted by height")
 			}
-			checkpointsByHeight[checkpoint.Height] = checkpoint
-			prevCheckpointHeight = checkpoint.Height
+			checkpointsByLayer[checkpoint.Layer] = checkpoint
+			prevCheckpointLayer = checkpoint.Layer
 		}
 	}
 
 	b := BlockChain{
-		checkpointsByHeight: checkpointsByHeight,
+		checkpointsByLayer:  checkpointsByLayer,
 		db:                  config.DB,
 		params:              par,
 		timeSource:          config.TimeSource,
@@ -602,7 +602,7 @@ func (b *BlockChain) isCurrent() bool {
 	// latest known good checkpoint (when checkpoints are enabled).
 	checkpoint := b.LatestCheckpoint()
 	lastBlock := b.bd.GetMainChainTip()
-	if checkpoint != nil && uint64(lastBlock.GetHeight()) < checkpoint.Height {
+	if checkpoint != nil && uint64(lastBlock.GetLayer()) < checkpoint.Layer {
 		return false
 	}
 

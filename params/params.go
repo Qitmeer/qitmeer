@@ -45,7 +45,7 @@ var CPUMinerThreads = 1
 // documentation for blockchain.IsCheckpointCandidate for details on the
 // selection criteria.
 type Checkpoint struct {
-	Height uint64
+	Layer  uint64
 	Hash   *hash.Hash
 }
 

@@ -9,9 +9,11 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
+	"time"
 )
 
 // CheckpointConfirmations is the number of blocks before the end of the current
@@ -61,16 +63,16 @@ func (b *BlockChain) LatestCheckpoint() *params.Checkpoint {
 	return &checkpoints[len(checkpoints)-1]
 }
 
-// verifyCheckpoint returns whether the passed block height and hash combination
+// verifyCheckpoint returns whether the passed block layer and hash combination
 // match the hard-coded checkpoint data.  It also returns true if there is no
 // checkpoint data for the passed block height.
-func (b *BlockChain) verifyCheckpoint(height uint64, hash *hash.Hash) bool {
+func (b *BlockChain) verifyCheckpoint(layer uint64, hash *hash.Hash) bool {
 	if !b.HasCheckpoints() {
 		return true
 	}
 
 	// Nothing to check if there is no checkpoint data for the block height.
-	checkpoint, exists := b.checkpointsByHeight[height]
+	checkpoint, exists := b.checkpointsByLayer[layer]
 	if !exists {
 		return true
 	}
@@ -79,7 +81,7 @@ func (b *BlockChain) verifyCheckpoint(height uint64, hash *hash.Hash) bool {
 		return false
 	}
 
-	log.Info(fmt.Sprintf("Verified checkpoint at height %d/block %s", checkpoint.Height,
+	log.Info(fmt.Sprintf("Verified checkpoint at layer %d/block %s", checkpoint.Layer,
 		checkpoint.Hash))
 	return true
 }
@@ -133,10 +135,10 @@ func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
 		return b.checkpointNode, nil
 	}
 
-	// When there is a next checkpoint and the height of the current best
+	// When there is a next checkpoint and the layer of the current best
 	// chain does not exceed it, the current checkpoint lockin is still
 	// the latest known checkpoint.
-	if uint64(b.bd.GetMainChainTip().GetHeight()) < b.nextCheckpoint.Height {
+	if uint64(b.bd.GetMainChainTip().GetLayer()) < b.nextCheckpoint.Layer {
 		return b.checkpointNode, nil
 	}
 
@@ -204,70 +206,69 @@ func isNonstandardTransaction(tx *types.Tx) bool {
 // decision and then manually added to the list of checkpoints for a network.
 //
 // This function is safe for concurrent access.
-/*func (b *BlockChain) IsCheckpointCandidate(block *types.SerializedBlock) (bool, error) {
+func (b *BlockChain) IsCheckpointCandidate(preBlock,block blockdag.IBlock) (bool, error) {
 	b.chainLock.RLock()
 	defer b.chainLock.RUnlock()
 
-	// Checkpoints must be enabled.
-	if b.noCheckpoints {
-		return false, fmt.Errorf("checkpoints are disabled")
+	if preBlock.GetHash().IsEqual(block.GetHash()) {
+		return false,nil
 	}
 
-	// A checkpoint must be in the main chain.
-	node := b.index.LookupNode(block.Hash())
-	if node == nil {
+	// A checkpoint must be at least CheckpointConfirmations blocks
+	// before the end of the main chain.
+	mainChainLayer := b.BlockDAG().GetMainChainTip().GetLayer()
+	if block.GetLayer() > (mainChainLayer - CheckpointConfirmations) {
 		return false, nil
 	}
-
-	// Ensure the height of the passed block and the entry for the block in
-	// the main chain match.  This should always be the case unless the
-	// caller provided an invalid block.
-	if node.height != block.Height() {
-		return false, fmt.Errorf("passed block height of %d does not "+
-			"match the main chain height of %d", block.Height(),
-			node.height)
-	}
-
-		// A checkpoint must be at least CheckpointConfirmations blocks
-		// before the end of the main chain.
-		mainChainHeight := uint64(b.bd.GetLastBlock().GetOrder())
-		if blockHeight > (mainChainHeight - CheckpointConfirmations) {
-			return nil
-		}
 
 	// A checkpoint must be have at least one block after it.
 	//
 	// This should always succeed since the check above already made sure it
 	// is CheckpointConfirmations back, but be safe in case the constant
 	// changes.
-	nextNode := b.bestChain.Next(node)
+	if block == nil {
+		return false, nil
+	}
+	nextBlockH := block.GetMainParent()
+	if nextBlockH == nil {
+		return false, nil
+	}
+	nextNode := b.index.lookupNode(nextBlockH)
 	if nextNode == nil {
 		return false, nil
 	}
 
-	// A checkpoint must be have at least one block before it.
-	if node.parent == nil {
+	preNode := b.index.lookupNode(preBlock.GetHash())
+	if preNode == nil {
+		return false, nil
+	}
+
+	node := b.index.lookupNode(block.GetHash())
+	if node == nil {
 		return false, nil
 	}
 
 	// A checkpoint must have timestamps for the block and the blocks on
 	// either side of it in order (due to the median time allowance this is
 	// not always the case).
-	prevTime := time.Unix(node.parent.timestamp, 0)
-	curTime := block.Block().Header.Timestamp
-	nextTime := time.Unix(nextNode.timestamp, 0)
+	prevTime := time.Unix(nextNode.timestamp, 0)
+	curTime := time.Unix(node.timestamp,0)
+	nextTime := time.Unix(preNode.timestamp, 0)
 	if prevTime.After(curTime) || nextTime.Before(curTime) {
 		return false, nil
 	}
 
 	// A checkpoint must have transactions that only contain standard
 	// scripts.
-	for _, tx := range block.Transactions() {
+	serblock,err:=b.fetchBlockByHash(block.GetHash())
+	if err != nil {
+		return false, err
+	}
+	for _, tx := range serblock.Transactions() {
 		if isNonstandardTransaction(tx) {
 			return false, nil
 		}
 	}
 
-	// All of the checks passed, so the block is a candidate.
-	return true, nil
-}*/
+	return b.BlockDAG().IsHourglass(block.GetHash()), nil
+}
