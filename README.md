@@ -7,7 +7,20 @@ The guardian of trust. The core backend of the qitmeer network.
 
 ## Installation
 ### Binary archives
-* Binary archives are published at [releases](https://github.com/Qitmeer/qitmeer/releases "releases").
+[![Releases](https://img.shields.io/github/downloads/Qitmeer/qitmeer/total.svg)][Releases]
+
+Standalone installation archive for *Linux*, *macOS* and *Windows* are provided in
+the [Releases] section. 
+Please download an archive for your operating system and unpack the content to a place
+accessible from command line. 
+
+| Builds | Release | Date |
+| ------ | ------- | ---- |
+| Last   | [![GitHub release](https://img.shields.io/github/release/Qitmeer/qitmeer/all.svg)][Releases] | [![GitHub Release Date](https://img.shields.io/github/release-date-pre/Qitmeer/qitmeer.svg)][Releases] |
+| Stable | [![GitHub release](https://img.shields.io/github/release/Qitmeer/qitmeer.svg)][Latest] | [![GitHub Release Date](https://img.shields.io/github/release-date/Qitmeer/qitmeer.svg)][Latest] |
+
+[Releases]: https://github.com/Qitmeer/qitmeer/releases
+[Latest]: https://github.com/Qitmeer/qitmeer/releases/latest
 
 
 ### How to build
