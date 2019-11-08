@@ -22,9 +22,9 @@ const (
 var (
 	DefaultBip32Version = Bip32Version{
 		// The default bip32 version flag for serialized private keys
-		[]byte{0x04,0x88,0xad,0xe4},
+		[]byte{0x04, 0x88, 0xad, 0xe4},
 		// The default bip32 version flag for serialized public keys
-		[]byte{0x04,0x88,0xb2,0x1e},
+		[]byte{0x04, 0x88, 0xb2, 0x1e},
 	}
 	// ErrSerializedKeyWrongSize is returned when trying to deserialize a key that
 	// has an incorrect length
@@ -47,13 +47,13 @@ var (
 
 // Key represents a bip32 extended key
 type Key struct {
-	Key         []byte // 33 bytes
-	Version     []byte // 4 bytes
-	ChildNumber []byte // 4 bytes
-	FingerPrint []byte // 4 bytes
-	ChainCode   []byte // 32 bytes
-	Depth       byte   // 1 bytes
-	IsPrivate   bool   // unserialized
+	Key         []byte       // 33 bytes
+	Version     []byte       // 4 bytes
+	ChildNumber []byte       // 4 bytes
+	FingerPrint []byte       // 4 bytes
+	ChainCode   []byte       // 32 bytes
+	Depth       byte         // 1 bytes
+	IsPrivate   bool         // unserialized
 	Bip32Ver    Bip32Version //unserialized
 }
 
@@ -61,19 +61,20 @@ type Bip32Version struct {
 	PrivKeyVersion []byte
 	PubKeyVersion  []byte
 }
+
 func (v Bip32Version) isEmpty() bool {
-	return len(v.PubKeyVersion) + len(v.PrivKeyVersion) == 0
+	return len(v.PubKeyVersion)+len(v.PrivKeyVersion) == 0
 }
 func (v Bip32Version) IsPrivkeyVersion(privKeyVer []byte) bool {
-	return reflect.DeepEqual(v.PrivKeyVersion,privKeyVer)
+	return reflect.DeepEqual(v.PrivKeyVersion, privKeyVer)
 }
 func (v Bip32Version) IsPubkeyVersion(pukKeyVer []byte) bool {
-	return reflect.DeepEqual(v.PubKeyVersion,pukKeyVer)
+	return reflect.DeepEqual(v.PubKeyVersion, pukKeyVer)
 }
 
 // NewMasterKey creates a new master extended key from a seed
 func NewMasterKey(seed []byte) (*Key, error) {
-	return NewMasterKey2(seed,DefaultBip32Version)
+	return NewMasterKey2(seed, DefaultBip32Version)
 }
 
 func NewMasterKey2(seed []byte, version Bip32Version) (*Key, error) {
@@ -262,6 +263,7 @@ func (key *Key) String() string {
 func Deserialize(data []byte) (*Key, error) {
 	return Deserialize2(data, DefaultBip32Version)
 }
+
 // Deserialize a byte slice into a Key
 func Deserialize2(data []byte, version Bip32Version) (*Key, error) {
 	if len(data) != 82 {
@@ -272,8 +274,8 @@ func Deserialize2(data []byte, version Bip32Version) (*Key, error) {
 	if version.IsPrivkeyVersion(data[0:4]) || version.IsPubkeyVersion(data[0:4]) {
 		key.Version = data[0:4]
 		key.Bip32Ver = version
-	}else {
-		return nil, fmt.Errorf("fail to derserilize, unmatched version data %x with {%x,%x}",data[0:4],version.PrivKeyVersion,version.PubKeyVersion)
+	} else {
+		return nil, fmt.Errorf("fail to derserilize, unmatched version data %x with {%x,%x}", data[0:4], version.PrivKeyVersion, version.PubKeyVersion)
 	}
 	key.Depth = data[4]
 	key.FingerPrint = data[5:9]
@@ -309,7 +311,7 @@ func B58Deserialize(data string, version Bip32Version) (*Key, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Deserialize2(b,version)
+	return Deserialize2(b, version)
 }
 
 // NewSeed returns a cryptographically secure seed

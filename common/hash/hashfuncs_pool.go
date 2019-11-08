@@ -3,9 +3,9 @@
 package hash
 
 import (
-	"sync"
 	"golang.org/x/crypto/blake2b"
 	"hash"
+	"sync"
 )
 
 // Warning !!!: Testing only, don't use it in the production
@@ -22,12 +22,13 @@ import (
 // TODO revisit cached hasher in sync.pool
 
 var pool = &sync.Pool{New: func() interface{} {
-	h,err := blake2b.New256(nil)
-	if err!= nil {
+	h, err := blake2b.New256(nil)
+	if err != nil {
 		panic(err)
 	}
 	h.Reset()
-	return h}}
+	return h
+}}
 
 func getFromPool() hash.Hash {
 	return pool.Get().(hash.Hash)
@@ -48,15 +49,15 @@ func HashB_pool(b []byte) []byte {
 	return h[:]
 }
 
-func HashH_pool(b []byte) Hash{
+func HashH_pool(b []byte) Hash {
 	var h [32]byte
-	copy(h[:],HashB(b))
+	copy(h[:], HashB(b))
 	return Hash(h)
 }
 
 func DoubleHashH_pool(b []byte) Hash {
 	var h [32]byte
-	copy(h[:],DoubleHashB_pool(b))
+	copy(h[:], DoubleHashB_pool(b))
 	return Hash(h)
 }
 
@@ -70,4 +71,3 @@ func DoubleHashB_pool(b []byte) []byte {
 	second := cached.Sum(nil)
 	return second[:]
 }
-

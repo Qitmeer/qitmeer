@@ -8,14 +8,14 @@ package message
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
-	"io"
-	"unicode/utf8"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
-	"encoding/hex"
+	"io"
+	"unicode/utf8"
 )
 
 // MessageHeaderSize is the number of bytes in a message header.
@@ -31,7 +31,6 @@ const CommandSize = 12
 // individual limits imposed by messages themselves.
 const MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 
-
 // MaxVarIntPayload is the maximum payload size for a variable length integer.
 const MaxVarIntPayload = 9
 
@@ -39,37 +38,35 @@ const MaxVarIntPayload = 9
 
 // Commands used in message headers which describe the type of message.
 const (
-	CmdVersion        = "version"
-	CmdVerAck         = "verack"
-	CmdGetAddr        = "getaddr"
-	CmdAddr           = "addr"
-	CmdReject         = "reject"
-	CmdPing           = "ping"
-	CmdPong           = "pong"
-	CmdInv            = "inv"
-	CmdBlock          = "block"
-	CmdGetBlocks      = "getblocks"
-	CmdHeaders        = "headers"
-	CmdGetHeaders     = "getheaders"
-	CmdTx             = "tx"
-	CmdGetData        = "getdata"
-	CmdNotFound       = "notfound"
+	CmdVersion    = "version"
+	CmdVerAck     = "verack"
+	CmdGetAddr    = "getaddr"
+	CmdAddr       = "addr"
+	CmdReject     = "reject"
+	CmdPing       = "ping"
+	CmdPong       = "pong"
+	CmdInv        = "inv"
+	CmdBlock      = "block"
+	CmdGetBlocks  = "getblocks"
+	CmdHeaders    = "headers"
+	CmdGetHeaders = "getheaders"
+	CmdTx         = "tx"
+	CmdGetData    = "getdata"
+	CmdNotFound   = "notfound"
 
 	CmdMiningState    = "miningstate"
 	CmdGetMiningState = "getminings"
 
-	CmdMemPool        = "mempool"
-	CmdGraphState     = "graphstate"
-	CmdSendHeaders    = "sendheaders"
-	CmdFeeFilter      = "feefilter"
-	CmdGetCFilter     = "getcfilter"
-	CmdGetCFHeaders   = "getcfheaders"
-	CmdGetCFTypes     = "getcftypes"
-	CmdCFilter        = "cfilter"
-	CmdCFHeaders      = "cfheaders"
-	CmdCFTypes        = "cftypes"
-
-
+	CmdMemPool      = "mempool"
+	CmdGraphState   = "graphstate"
+	CmdSendHeaders  = "sendheaders"
+	CmdFeeFilter    = "feefilter"
+	CmdGetCFilter   = "getcfilter"
+	CmdGetCFHeaders = "getcfheaders"
+	CmdGetCFTypes   = "getcftypes"
+	CmdCFilter      = "cfilter"
+	CmdCFHeaders    = "cfheaders"
+	CmdCFTypes      = "cftypes"
 )
 
 // Message is an interface that describes a qitmeer message.  A type that
@@ -126,32 +123,32 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgGraphState{}
 	/*
 
-	case CmdMemPool:
-		msg = &MsgMemPool{}
+		case CmdMemPool:
+			msg = &MsgMemPool{}
 
-	case CmdSendHeaders:
-		msg = &MsgSendHeaders{}
+		case CmdSendHeaders:
+			msg = &MsgSendHeaders{}
 
-	case CmdFeeFilter:
-		msg = &MsgFeeFilter{}
+		case CmdFeeFilter:
+			msg = &MsgFeeFilter{}
 
-	case CmdGetCFilter:
-		msg = &MsgGetCFilter{}
+		case CmdGetCFilter:
+			msg = &MsgGetCFilter{}
 
-	case CmdGetCFHeaders:
-		msg = &MsgGetCFHeaders{}
+		case CmdGetCFHeaders:
+			msg = &MsgGetCFHeaders{}
 
-	case CmdGetCFTypes:
-		msg = &MsgGetCFTypes{}
+		case CmdGetCFTypes:
+			msg = &MsgGetCFTypes{}
 
-	case CmdCFilter:
-		msg = &MsgCFilter{}
+		case CmdCFilter:
+			msg = &MsgCFilter{}
 
-	case CmdCFHeaders:
-		msg = &MsgCFHeaders{}
+		case CmdCFHeaders:
+			msg = &MsgCFHeaders{}
 
-	case CmdCFTypes:
-		msg = &MsgCFTypes{}
+		case CmdCFTypes:
+			msg = &MsgCFTypes{}
 	*/
 
 	default:
@@ -163,9 +160,9 @@ func makeEmptyMessage(command string) (Message, error) {
 // messageHeader defines the header structure for all qitmeer protocol messages.
 type messageHeader struct {
 	magic    protocol.Network // 4 bytes
-	command  string         // 12 bytes
-	length   uint32         // 4 bytes
-	checksum [4]byte        // 4 bytes
+	command  string           // 12 bytes
+	length   uint32           // 4 bytes
+	checksum [4]byte          // 4 bytes
 }
 
 // readMessageHeader reads a message header from r.

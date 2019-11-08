@@ -3,17 +3,17 @@
 package types
 
 import (
-	"testing"
-	"strings"
 	"encoding/json"
 	"fmt"
-	"os"
 	"github.com/stretchr/testify/assert"
 	"math/big"
+	"os"
+	"strings"
+	"testing"
 )
 
 func TestConfig_UnmarshalJSON(t *testing.T) {
-	for _,input := range []string{
+	for _, input := range []string{
 		`{"Id":10}  `,
 		`{"Id":"0xa"} `,
 	} {
@@ -22,7 +22,7 @@ func TestConfig_UnmarshalJSON(t *testing.T) {
 		if err := json.NewDecoder(r).Decode(&conf); err != nil {
 			t.Fatal(err)
 		}
-		raw, err := conf.MarshalJSON();
+		raw, err := conf.MarshalJSON()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -37,6 +37,6 @@ func TestConfigIdShouldNotLessThan(t *testing.T) {
 	r := strings.NewReader(input)
 	conf := new(Config)
 	err := json.NewDecoder(r).Decode(&conf)
-	assert.NotNil(t,err)
-	assert.EqualError(t,err,"error field 'Id' for Config, minimal is 0")
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "error field 'Id' for Config, minimal is 0")
 }

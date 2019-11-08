@@ -4,8 +4,8 @@ package util
 
 import (
 	"encoding/hex"
-	"math/big"
 	"log"
+	"math/big"
 )
 
 func HasHexPrefix(str string) bool {
@@ -23,7 +23,7 @@ func FromHex(hex string) *big.Int {
 // MustHex2Bytes returns the bytes represented by the hexadecimal string str. Must means panic when err
 func MustHex2Bytes(str string) []byte {
 	h, err := hex.DecodeString(str)
-	if err !=nil {
+	if err != nil {
 		panic(err)
 	}
 	return h

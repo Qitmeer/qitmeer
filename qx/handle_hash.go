@@ -12,78 +12,77 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash/dcr"
 )
 
-func Sha256(input string){
-	data, err :=hex.DecodeString(input)
+func Sha256(input string) {
+	data, err := hex.DecodeString(input)
 	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",btc.HashB(data))
+	fmt.Printf("%x\n", btc.HashB(data))
 }
 
-func Blake256(input string){
-	data, err :=hex.DecodeString(input)
+func Blake256(input string) {
+	data, err := hex.DecodeString(input)
 	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",dcr.HashB(data))
+	fmt.Printf("%x\n", dcr.HashB(data))
 }
 
-func Blake2b256(input string){
-	data, err :=hex.DecodeString(input)
+func Blake2b256(input string) {
+	data, err := hex.DecodeString(input)
 	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",hash.HashB(data))
+	fmt.Printf("%x\n", hash.HashB(data))
 }
 
-func Blake2b512(input string){
-	data, err :=hex.DecodeString(input)
+func Blake2b512(input string) {
+	data, err := hex.DecodeString(input)
 	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",hash.Hash512B(data))
+	fmt.Printf("%x\n", hash.Hash512B(data))
 }
 
-func Sha3_256(input string){
-	data, err :=hex.DecodeString(input)
+func Sha3_256(input string) {
+	data, err := hex.DecodeString(input)
 	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",hash.CalcHash(data,hash.GetHasher(hash.SHA3_256)))
+	fmt.Printf("%x\n", hash.CalcHash(data, hash.GetHasher(hash.SHA3_256)))
 }
 
-func Keccak256(input string){
-	data, err :=hex.DecodeString(input)
+func Keccak256(input string) {
+	data, err := hex.DecodeString(input)
 	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",hash.CalcHash(data,hash.GetHasher(hash.Keccak_256)))
+	fmt.Printf("%x\n", hash.CalcHash(data, hash.GetHasher(hash.Keccak_256)))
 }
 
-func Ripemd160(input string){
-	data, err :=hex.DecodeString(input)
+func Ripemd160(input string) {
+	data, err := hex.DecodeString(input)
 	if err != nil {
 		ErrExit(err)
 	}
 	hasher := crypto.RIPEMD160.New()
 	hasher.Write(data)
 	hash := hasher.Sum(nil)
-	fmt.Printf("%x\n",hash[:])
+	fmt.Printf("%x\n", hash[:])
 }
 
-func Bitcoin160(input string){
-	data, err :=hex.DecodeString(input)
+func Bitcoin160(input string) {
+	data, err := hex.DecodeString(input)
 	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",btc.Hash160(data))
+	fmt.Printf("%x\n", btc.Hash160(data))
 }
 
-func Hash160(input string){
-	data, err :=hex.DecodeString(input)
+func Hash160(input string) {
+	data, err := hex.DecodeString(input)
 	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",hash.Hash160(data))
+	fmt.Printf("%x\n", hash.Hash160(data))
 }
-

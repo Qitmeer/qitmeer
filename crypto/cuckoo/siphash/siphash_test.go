@@ -21,7 +21,7 @@
 package siphash
 
 import (
-	`math/rand`
+	"math/rand"
 	"testing"
 )
 

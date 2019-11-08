@@ -2,62 +2,60 @@
 package node
 
 import (
+	"fmt"
+	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/p2p/peerserver"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
-	"github.com/Qitmeer/qitmeer/common/util"
-	"github.com/Qitmeer/qitmeer/p2p/peerserver"
 	"reflect"
-	"fmt"
-	"github.com/Qitmeer/qitmeer/config"
-	"sync/atomic"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // Node works as a server container for all service can be registered.
 // such as p2p, rpc, ws etc.
 type Node struct {
+	started  int32
+	shutdown int32
+	wg       util.WaitGroupWrapper
+	quit     chan struct{}
+	lock     sync.RWMutex
 
-	started       int32
-	shutdown      int32
-	wg            util.WaitGroupWrapper
-	quit          chan struct{}
-	lock          sync.RWMutex
-
-	startupTime   int64
+	startupTime int64
 
 	// config
-	Config        *config.Config
-	Params        *params.Params
+	Config *config.Config
+	Params *params.Params
 
 	// database layer
-	DB            database.DB
+	DB database.DB
 
 	// network server
-	peerServer    *peerserver.PeerServer
+	peerServer *peerserver.PeerServer
 
 	// service layer
 	// Service constructors (in dependency order)
-	svcConstructors   []ServiceConstructor
-    // Currently registered & running services
-	runningSvcs   map[reflect.Type]Service
+	svcConstructors []ServiceConstructor
+	// Currently registered & running services
+	runningSvcs map[reflect.Type]Service
 
 	// api server
-	rpcServer     *rpc.RpcServer
-
+	rpcServer *rpc.RpcServer
 }
 
-func NewNode(cfg *config.Config, database database.DB, chainParams *params.Params, shutdownRequestChannel chan struct{}) (*Node,error) {
+func NewNode(cfg *config.Config, database database.DB, chainParams *params.Params, shutdownRequestChannel chan struct{}) (*Node, error) {
 
 	n := Node{
 		Config: cfg,
-		DB    : database,
+		DB:     database,
 		Params: chainParams,
 		quit:   make(chan struct{}),
 	}
 
-	server, err := peerserver.NewPeerServer(cfg,chainParams)
+	server, err := peerserver.NewPeerServer(cfg, chainParams)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +72,7 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 		}()
 	}
 
-    return &n, nil
+	return &n, nil
 }
 
 func (n *Node) Stop() error {
@@ -93,7 +91,7 @@ func (n *Node) Stop() error {
 		if err := service.Stop(); err != nil {
 			failure.Services[kind] = err
 		}
-		log.Debug("Service stopped", "service",kind)
+		log.Debug("Service stopped", "service", kind)
 	}
 	// Signal the node quit.
 	close(n.quit)
@@ -136,7 +134,7 @@ func (n *Node) Start() error {
 		}
 		kind := reflect.TypeOf(service)
 		if _, exists := services[kind]; exists {
-			return fmt.Errorf("duplicate Service, kind=%s}",kind)
+			return fmt.Errorf("duplicate Service, kind=%s}", kind)
 		}
 		services[kind] = service
 	}
@@ -152,17 +150,17 @@ func (n *Node) Start() error {
 		}
 		// Mark the service has been started
 		startedSvs = append(startedSvs, kind)
-		log.Debug("Node service started", "service",kind)
+		log.Debug("Node service started", "service", kind)
 	}
 	n.runningSvcs = services
 
 	// start p2p server
-	if err :=n.peerServer.Start(); err != nil {
+	if err := n.peerServer.Start(); err != nil {
 		return err
 	}
 	// start RPC by service
 	if !n.Config.DisableRPC {
-		if err:= n.startRPC(services); err != nil {
+		if err := n.startRPC(services); err != nil {
 			for _, service := range services {
 				service.Stop()
 			}
@@ -179,7 +177,6 @@ func (n *Node) Start() error {
 	return nil
 }
 
-
 func (n *Node) register(sc ServiceConstructor) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
@@ -188,7 +185,7 @@ func (n *Node) register(sc ServiceConstructor) error {
 		return fmt.Errorf("node has already been started")
 	}
 	n.svcConstructors = append(n.svcConstructors, sc)
-	log.Debug("Register service to node","service",sc)
+	log.Debug("Register service to node", "service", sc)
 	return nil
 }
 
@@ -198,6 +195,7 @@ func (n *Node) RegisterService() error {
 	}
 	return n.registerQitmeerFull()
 }
+
 // startRPC is a helper method to start all the various RPC endpoint during node
 // startup. It's not meant to be called at any time afterwards as it makes certain
 // assumptions about the state of the node.
@@ -219,7 +217,7 @@ func (n *Node) startRPC(services map[reflect.Type]Service) error {
 			if err := n.rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
 				return err
 			}
-			log.Debug(fmt.Sprintf("RPC Service API registered. NameSpace:%s     %s",api.NameSpace,reflect.TypeOf(api.Service)))
+			log.Debug(fmt.Sprintf("RPC Service API registered. NameSpace:%s     %s", api.NameSpace, reflect.TypeOf(api.Service)))
 		}
 	}
 	if err := n.rpcServer.Start(); err != nil {
@@ -229,17 +227,17 @@ func (n *Node) startRPC(services map[reflect.Type]Service) error {
 }
 
 // register services as qitmeer Full node
-func (n *Node) registerQitmeerFull() error{
+func (n *Node) registerQitmeerFull() error {
 	err := n.register(NewServiceConstructor("qitmeer",
 		func(ctx *ServiceContext) (Service, error) {
-		fullNode, err := newQitmeerFullNode(n)
-		return fullNode, err
-	}))
+			fullNode, err := newQitmeerFullNode(n)
+			return fullNode, err
+		}))
 	return err
 }
 
 // register services as the qitmeer Light node
-func (n *Node)registerQitmeerLight() error{
+func (n *Node) registerQitmeerLight() error {
 	err := n.register(NewServiceConstructor("qitmeer-light",
 		func(ctx *ServiceContext) (Service, error) {
 			lightNode, err := newQitmeerLight(n)
@@ -249,10 +247,10 @@ func (n *Node)registerQitmeerLight() error{
 }
 
 // return qitmeer full
-func (n *Node) GetQitmeerFull() *QitmeerFull{
-	for _,server:=range n.runningSvcs{
-		fullqm:=server.(*QitmeerFull)
-		if fullqm!=nil {
+func (n *Node) GetQitmeerFull() *QitmeerFull {
+	for _, server := range n.runningSvcs {
+		fullqm := server.(*QitmeerFull)
+		if fullqm != nil {
 			return fullqm
 		}
 	}

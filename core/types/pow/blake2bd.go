@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	`github.com/Qitmeer/qitmeer/core/json`
+	"github.com/Qitmeer/qitmeer/core/json"
 	"math/big"
 )
 
@@ -18,10 +18,10 @@ type Blake2bd struct {
 
 func (this *Blake2bd) GetPowResult() json.PowResult {
 	return json.PowResult{
-		PowName: PowMapString[this.GetPowType()].(string),
-		PowType: uint8(this.GetPowType()),
-		Nonce:   this.GetNonce(),
-		ProofData:nil,
+		PowName:   PowMapString[this.GetPowType()].(string),
+		PowType:   uint8(this.GetPowType()),
+		Nonce:     this.GetNonce(),
+		ProofData: nil,
 	}
 }
 
@@ -118,6 +118,7 @@ func (this *Blake2bd) BlockData() PowBytes {
 	l := len(this.Bytes())
 	return PowBytes(this.Bytes()[:l-PROOFDATA_LENGTH])
 }
+
 //check pow is available
 func (this *Blake2bd) CheckAvailable() bool {
 	return this.params.GetPercentByHeight(this.mainHeight).Blake2bDPercent > 0

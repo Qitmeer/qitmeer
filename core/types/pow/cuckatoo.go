@@ -84,6 +84,7 @@ func (this *Cuckatoo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	}
 	return newTarget
 }
+
 //check pow is available
 func (this *Cuckatoo) CheckAvailable() bool {
 	return this.params.GetPercentByHeight(this.mainHeight).CuckatooPercent > 0

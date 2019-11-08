@@ -3,21 +3,21 @@
 package hash
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
 	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 // Ensure same result with the normal way
-func TestHashWithPoolGotSameResult(t *testing.T){
+func TestHashWithPoolGotSameResult(t *testing.T) {
 	data := []byte("Test data")
 	h := HashB(data)
-	h2 :=HashB_pool(data)
-	assert.Equal(t, h,h2)
+	h2 := HashB_pool(data)
+	assert.Equal(t, h, h2)
 
 	dh := DoubleHashB(data)
 	dh2 := DoubleHashB_pool(data)
-	assert.Equal(t,dh,dh2)
+	assert.Equal(t, dh, dh2)
 }
 
 // TODO revisit the cached hasher pool
@@ -37,15 +37,14 @@ func TestHashWithPoolGotSameResult(t *testing.T){
 
 func BenchmarkHashWithPool(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		data := util.ReadSizedRand(nil,32)
+		data := util.ReadSizedRand(nil, 32)
 		DoubleHashB_pool(data)
 	}
 }
 
 func BenchmarkHashWithoutPool(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		data := util.ReadSizedRand(nil,32)
+		data := util.ReadSizedRand(nil, 32)
 		DoubleHashB(data)
 	}
 }
-

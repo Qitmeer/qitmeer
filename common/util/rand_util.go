@@ -3,15 +3,15 @@
 package util
 
 import (
-	"io"
 	cryptorand "crypto/rand"
-	"math/big"
 	"encoding/hex"
+	"io"
+	"math/big"
 )
 
 // ReadRand read size bytes from input rand
 // if input rand is nil, use crypto/rand
-func ReadSizedRand (rand io.Reader,size uint) []byte {
+func ReadSizedRand(rand io.Reader, size uint) []byte {
 	readBuff := make([]byte, size)
 	if rand == nil {
 		rand = cryptorand.Reader
@@ -61,7 +61,6 @@ func LeftPadBytes(slice []byte, l int) []byte {
 	return padded
 }
 
-
 // PaddedBytes encodes a big integer as a big-endian byte slice, if the length of
 // byte slice is smaller than the passed size, leading zero bytes will be added.
 // Example :
@@ -72,7 +71,7 @@ func PaddedBytes(size uint, n *big.Int) []byte {
 	if n.BitLen()/8 >= int(size) {
 		return n.Bytes()
 	}
-	return PaddedAppend(size,nil,n.Bytes())
+	return PaddedAppend(size, nil, n.Bytes())
 }
 
 // MustDecodeHex wrap the calling to hex.DecodeString() method to return the bytes
@@ -85,13 +84,3 @@ func MustDecodeHexString(hexStr string) []byte {
 	}
 	return bytes
 }
-
-
-
-
-
-
-
-
-
-

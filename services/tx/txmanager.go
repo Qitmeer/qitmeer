@@ -3,11 +3,11 @@ package tx
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/common"
@@ -17,20 +17,20 @@ import (
 )
 
 type TxManager struct {
-	bm                   *blkmgr.BlockManager
+	bm *blkmgr.BlockManager
 	// tx index
-	txIndex              *index.TxIndex
+	txIndex *index.TxIndex
 
 	// addr index
-	addrIndex            *index.AddrIndex
+	addrIndex *index.AddrIndex
 	// mempool hold tx that need to be mined into blocks and relayed to other peers.
-	txMemPool            *mempool.TxPool
+	txMemPool *mempool.TxPool
 
 	// notify
-	ntmgr                notify.Notify
+	ntmgr notify.Notify
 
 	// db
-	db                   database.DB
+	db database.DB
 
 	//invalidTx hash->block hash
 	invalidTx map[hash.Hash]*blockdag.HashSet
@@ -96,9 +96,9 @@ func (tm *TxManager) RemoveInvalidTx(bh *hash.Hash) {
 	}
 }
 
-func NewTxManager(bm *blkmgr.BlockManager,txIndex *index.TxIndex,
-	addrIndex *index.AddrIndex,cfg *config.Config,ntmgr notify.Notify,
-	sigCache *txscript.SigCache,db database.DB) (*TxManager,error) {
+func NewTxManager(bm *blkmgr.BlockManager, txIndex *index.TxIndex,
+	addrIndex *index.AddrIndex, cfg *config.Config, ntmgr notify.Notify,
+	sigCache *txscript.SigCache, db database.DB) (*TxManager, error) {
 	// mem-pool
 	txC := mempool.Config{
 		Policy: mempool.Policy{
@@ -115,7 +115,7 @@ func NewTxManager(bm *blkmgr.BlockManager,txIndex *index.TxIndex,
 			},
 		},
 		ChainParams:      bm.ChainParams(),
-		FetchUtxoView:    bm.GetChain().FetchUtxoView,  //TODO, duplicated dependence of miner
+		FetchUtxoView:    bm.GetChain().FetchUtxoView, //TODO, duplicated dependence of miner
 		BlockByHash:      bm.GetChain().FetchBlockByHash,
 		BestHash:         func() *hash.Hash { return &bm.GetChain().BestSnapshot().Hash },
 		BestHeight:       func() uint64 { return uint64(bm.GetChain().BestSnapshot().GraphState.GetMainHeight()) },
@@ -124,11 +124,9 @@ func NewTxManager(bm *blkmgr.BlockManager,txIndex *index.TxIndex,
 		SigCache:         sigCache,
 		PastMedianTime:   func() time.Time { return bm.GetChain().BestSnapshot().MedianTime },
 		AddrIndex:        addrIndex,
-		BD:bm.GetChain().BlockDAG(),
+		BD:               bm.GetChain().BlockDAG(),
 	}
 	txMemPool := mempool.New(&txC)
 	invalidTx := make(map[hash.Hash]*blockdag.HashSet)
-	return &TxManager{bm,txIndex,addrIndex,txMemPool,ntmgr,db,invalidTx},nil
+	return &TxManager{bm, txIndex, addrIndex, txMemPool, ntmgr, db, invalidTx}, nil
 }
-
-

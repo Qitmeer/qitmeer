@@ -53,4 +53,3 @@ type BlockTemplate struct {
 	//pow diff standard
 	PowDiffData PowDiffStandard
 }
-

@@ -7,9 +7,9 @@
 package ffldb
 
 import (
+	"github.com/Qitmeer/qitmeer/database/ffldb/treap"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"github.com/Qitmeer/qitmeer/database/ffldb/treap"
 )
 
 // ldbTreapIter wraps a treap iterator to provide the additional functionality

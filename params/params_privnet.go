@@ -7,17 +7,16 @@
 package params
 
 import (
-	`github.com/Qitmeer/qitmeer/core/types/pow`
-	"math/big"
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"math/big"
 	"time"
 )
 
-
 // privNetPowLimit is the highest proof of work value a block can
 // have for the private test network. It is the value 2^255 - 1.
-var	privNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 255), common.Big1)
+var privNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 255), common.Big1)
 
 // PirvNetParams defines the network parameters for the private test network.
 // This network is similar to the normal test network except it is
@@ -33,18 +32,18 @@ var PrivNetParams = Params{
 	DNSSeeds:    []DNSSeed{}, // NOTE: There must NOT be any seeds.
 
 	// Chain parameters
-	GenesisBlock:             &privNetGenesisBlock,
-	GenesisHash:              &privNetGenesisHash,
-	PowConfig :&pow.PowConfig{
-		Blake2bdPowLimit:                 privNetPowLimit,
-		Blake2bdPowLimitBits:             0x207fffff,
+	GenesisBlock: &privNetGenesisBlock,
+	GenesisHash:  &privNetGenesisHash,
+	PowConfig: &pow.PowConfig{
+		Blake2bdPowLimit:     privNetPowLimit,
+		Blake2bdPowLimitBits: 0x207fffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1 times use for privnet if GPS is 2. need 50 /2 = 25s find once
-		CuckarooMinDifficulty:     0x1300000,
-		CuckatooMinDifficulty:     0x1300000,
+		CuckarooMinDifficulty: 0x1300000,
+		CuckatooMinDifficulty: 0x1300000,
 
-		Percent:[]pow.Percent{
+		Percent: []pow.Percent{
 			{
 				Blake2bDPercent: 10,
 				CuckarooPercent: 70,
@@ -90,8 +89,7 @@ var PrivNetParams = Params{
 	Checkpoints: nil,
 
 	// Consensus rule change deployments.
-	Deployments: map[uint32][]ConsensusDeployment{
-	},
+	Deployments: map[uint32][]ConsensusDeployment{},
 
 	// Address encoding magics
 	NetworkAddressPrefix: "R",
@@ -101,7 +99,6 @@ var PrivNetParams = Params{
 	PKHSchnorrAddrID:     [2]byte{0x0d, 0xfd}, // starts with Rr
 	ScriptHashAddrID:     [2]byte{0x0d, 0xc2}, // starts with RS
 	PrivateKeyID:         [2]byte{0x0c, 0xdd}, // starts with Pr
-
 
 	// BIP32 hierarchical deterministic extended key magics
 	HDPrivateKeyID: [4]byte{0x04, 0x0b, 0xee, 0x6e}, // starts with rprv

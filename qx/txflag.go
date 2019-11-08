@@ -8,15 +8,16 @@ import (
 	"strconv"
 	"strings"
 )
+
 type TxVersionFlag uint32
 type TxLockTimeFlag uint32
 
 func (ver TxVersionFlag) String() string {
-	return fmt.Sprintf("%d",ver)
+	return fmt.Sprintf("%d", ver)
 }
 func (ver *TxVersionFlag) Set(s string) error {
-	v, err :=strconv.ParseUint(s, 10, 32)
-	if err !=nil {
+	v, err := strconv.ParseUint(s, 10, 32)
+	if err != nil {
 		return err
 	}
 	*ver = TxVersionFlag(uint32(v))
@@ -24,27 +25,27 @@ func (ver *TxVersionFlag) Set(s string) error {
 }
 
 func (lt TxLockTimeFlag) String() string {
-	return fmt.Sprintf("%d",lt)
+	return fmt.Sprintf("%d", lt)
 }
 func (lt *TxLockTimeFlag) Set(s string) error {
-	v, err :=strconv.ParseUint(s, 10, 32)
-	if err !=nil {
+	v, err := strconv.ParseUint(s, 10, 32)
+	if err != nil {
 		return err
 	}
 	*lt = TxLockTimeFlag(uint32(v))
 	return nil
 }
 
-type TxInputsFlag struct{
- 	inputs []txInput
+type TxInputsFlag struct {
+	inputs []txInput
 }
-type TxOutputsFlag struct{
+type TxOutputsFlag struct {
 	outputs []txOutput
 }
 
 type txInput struct {
-	txhash []byte
-	index uint32
+	txhash   []byte
+	index    uint32
 	sequence uint32
 }
 type txOutput struct {
@@ -53,26 +54,26 @@ type txOutput struct {
 }
 
 func (i txInput) String() string {
-	return fmt.Sprintf("%x:%d:%d",i.txhash[:],i.index,i.sequence)
+	return fmt.Sprintf("%x:%d:%d", i.txhash[:], i.index, i.sequence)
 }
 func (o txOutput) String() string {
-	return fmt.Sprintf("%s:%f",o.target,o.amount)
+	return fmt.Sprintf("%s:%f", o.target, o.amount)
 }
 
 func (v TxInputsFlag) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString("{")
-	for _,input := range v.inputs{
+	for _, input := range v.inputs {
 		buffer.WriteString(input.String())
 	}
 	buffer.WriteString("}")
 	return buffer.String()
 }
 
-func(of TxOutputsFlag) String() string {
+func (of TxOutputsFlag) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString("{")
-	for _,o := range of.outputs{
+	for _, o := range of.outputs {
 		buffer.WriteString(o.String())
 	}
 	buffer.WriteString("}")
@@ -80,12 +81,12 @@ func(of TxOutputsFlag) String() string {
 }
 
 func (v *TxInputsFlag) Set(s string) error {
-	input := strings.Split(s,":")
+	input := strings.Split(s, ":")
 	if len(input) < 2 {
-		return fmt.Errorf("error to parse tx input : %s",s)
+		return fmt.Errorf("error to parse tx input : %s", s)
 	}
-	data, err :=hex.DecodeString(input[0])
-	if err!=nil{
+	data, err := hex.DecodeString(input[0])
+	if err != nil {
 		return err
 	}
 	if len(data) != 32 {
@@ -99,7 +100,7 @@ func (v *TxInputsFlag) Set(s string) error {
 	var seq = uint32(math.MaxUint32)
 	if len(input) == 3 {
 		s, err := strconv.ParseUint(input[2], 10, 32)
-		if err!= nil {
+		if err != nil {
 			return err
 		}
 		seq = uint32(s)
@@ -109,22 +110,21 @@ func (v *TxInputsFlag) Set(s string) error {
 		uint32(index),
 		uint32(seq),
 	}
-	v.inputs = append(v.inputs,i)
+	v.inputs = append(v.inputs, i)
 	return nil
 }
 
 func (of *TxOutputsFlag) Set(s string) error {
-	output := strings.Split(s,":")
+	output := strings.Split(s, ":")
 	if len(output) < 2 {
-		return fmt.Errorf("error to parse tx output : %s",s)
+		return fmt.Errorf("error to parse tx output : %s", s)
 	}
-	target:=output[0]
-    amount, err := strconv.ParseFloat(output[1],64)
+	target := output[0]
+	amount, err := strconv.ParseFloat(output[1], 64)
 	if err != nil {
 		return err
 	}
-    of.outputs = append(of.outputs,txOutput{
-    	target,amount })
+	of.outputs = append(of.outputs, txOutput{
+		target, amount})
 	return nil
 }
-

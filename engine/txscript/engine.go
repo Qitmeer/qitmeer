@@ -8,9 +8,9 @@ package txscript
 
 import (
 	"fmt"
-	"math/big"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/ecc"
+	"math/big"
 )
 
 // ScriptFlags is a bitmask defining additional operations or tests that will be
@@ -355,7 +355,7 @@ func (vm *Engine) Execute() (err error) {
 
 	done := false
 	for !done {
-		log.Trace("tx-engine executing","step", newLogClosure(func() string {
+		log.Trace("tx-engine executing", "step", newLogClosure(func() string {
 			dis, err := vm.DisasmPC()
 			if err != nil {
 				return fmt.Sprintf("stepping (%v)", err)
@@ -598,7 +598,6 @@ func (vm *Engine) SetAltStack(data [][]byte) {
 	setStack(&vm.astack, data)
 }
 
-
 // NewEngine returns a new script engine for the provided public key script,
 // transaction, and input index.  The flags modify the behavior of the script
 // engine according to the description provided by each flag.
@@ -760,7 +759,7 @@ func NewEngine2(scriptPubKey []byte, tx types.ScriptTx, txIdx int,
 	vm.scriptTx = tx
 	switch tx.GetType() {
 	case types.QitmeerScriptTx:
-		qitmeertx,_ := tx.(*types.Transaction)
+		qitmeertx, _ := tx.(*types.Transaction)
 		vm.tx = *qitmeertx
 	}
 	vm.txIdx = txIdx

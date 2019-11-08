@@ -13,14 +13,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	hhash "hash"
 	"golang.org/x/crypto/ripemd160"
+	hhash "hash"
 
-	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/crypto/ecc"
 	"github.com/Qitmeer/qitmeer/common/hash/btc"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/crypto/ecc"
+	"github.com/Qitmeer/qitmeer/params"
 )
 
 var optimizeSigVerification = params.SigHashOptimization
@@ -638,11 +638,9 @@ func (c *ParsedOpcode) GetData() []byte {
 	return c.data
 }
 
-func (c *ParsedOpcode) GetOpcode() *Opcode{
+func (c *ParsedOpcode) GetOpcode() *Opcode {
 	return c.opcode
 }
-
-
 
 // isDisabled returns whether or not the opcode is disabled and thus is always
 // bad to see in the instruction stream (even if turned off by a conditional).
@@ -2487,7 +2485,7 @@ func opcodeHash160(op *ParsedOpcode, vm *Engine) error {
 
 	h := hash.HashB(buf)
 	// TODO, remove hard coding
-	if vm.scriptTx!=nil && vm.scriptTx.GetType() == types.BtcScriptTx {
+	if vm.scriptTx != nil && vm.scriptTx.GetType() == types.BtcScriptTx {
 		h = btc.HashB(buf)
 	}
 	vm.dstack.PushByteArray(calcHash(h[:], ripemd160.New()))
@@ -2581,11 +2579,11 @@ func opcodeCheckSig(op *ParsedOpcode, vm *Engine) error {
 	}
 	// TODO, remove the hardcoded BTC handing
 	var h []byte
-	if vm.scriptTx!=nil && vm.scriptTx.GetType() == types.BtcScriptTx {
+	if vm.scriptTx != nil && vm.scriptTx.GetType() == types.BtcScriptTx {
 		log.Debug("btc script not support")
 		vm.dstack.PushBool(false)
 		return nil
-	}else {
+	} else {
 		h, err = calcSignatureHash(subScript, hashType, &vm.tx, vm.txIdx,
 			prefixHash)
 		if err != nil {

@@ -66,7 +66,7 @@ func Example_verifySignature() {
 	}
 
 	// Decode hex-encoded serialized signature.
-	sigBytes, err := hex.DecodeString( "3044022065e32e6741a0d14ce677ce4fc" +
+	sigBytes, err := hex.DecodeString("3044022065e32e6741a0d14ce677ce4fc" +
 		"63aa14239e5495527931faf74a608986a15acde0220212388535bf58d151c7839590" +
 		"0ccb88c2da63a408a61af62b62a32fdb0eda5ce")
 

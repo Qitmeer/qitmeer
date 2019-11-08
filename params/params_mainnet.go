@@ -7,16 +7,16 @@
 package params
 
 import (
-	`github.com/Qitmeer/qitmeer/core/types/pow`
-	"time"
-	"math/big"
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"math/big"
+	"time"
 )
 
 // mainPowLimit is the highest proof of work value a block can
 // have for the main network. It is the value 2^224 - 1.
-var mainPowLimit    = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 224), common.Big1)
+var mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 224), common.Big1)
 
 // MainNetParams defines the network parameters for the main network.
 var MainNetParams = Params{
@@ -30,18 +30,18 @@ var MainNetParams = Params{
 	},
 
 	// Chain parameters
-	GenesisBlock:             &genesisBlock,
-	GenesisHash:              &genesisHash,
-	PowConfig :&pow.PowConfig{
-		Blake2bdPowLimit:                 mainPowLimit,
-		Blake2bdPowLimitBits:             0x1d00ffff,
+	GenesisBlock: &genesisBlock,
+	GenesisHash:  &genesisHash,
+	PowConfig: &pow.PowConfig{
+		Blake2bdPowLimit:     mainPowLimit,
+		Blake2bdPowLimitBits: 0x1d00ffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 find once
-		CuckarooMinDifficulty:     0x1300000 * 4,
-		CuckatooMinDifficulty:     0x1300000 * 4,
+		CuckarooMinDifficulty: 0x1300000 * 4,
+		CuckatooMinDifficulty: 0x1300000 * 4,
 
-		Percent:[]pow.Percent{
+		Percent: []pow.Percent{
 			{
 				Blake2bDPercent: 10,
 				CuckarooPercent: 70,
@@ -62,7 +62,6 @@ var MainNetParams = Params{
 	TargetTimespan:           time.Minute * 5 * 144, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 4,
 
-
 	// Subsidy parameters.
 	BaseSubsidy:              3119582664, // 21m
 	MulSubsidy:               100,
@@ -73,11 +72,9 @@ var MainNetParams = Params{
 	BlockTaxProportion:       1,
 
 	// Checkpoints ordered from oldest to newest.
-	Checkpoints: []Checkpoint{
-	},
+	Checkpoints: []Checkpoint{},
 
-	Deployments: map[uint32][]ConsensusDeployment{
-	},
+	Deployments: map[uint32][]ConsensusDeployment{},
 
 	// Address encoding magics
 	NetworkAddressPrefix: "N",
@@ -98,7 +95,7 @@ var MainNetParams = Params{
 	// https://github.com/satoshilabs/slips/blob/master/slip-0044.md
 	HDCoinType: 223,
 
-	CoinbaseMaturity:        512,
+	CoinbaseMaturity: 512,
 
-	OrganizationPkScript:  hexMustDecode("76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac"),
+	OrganizationPkScript: hexMustDecode("76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac"),
 }

@@ -4,15 +4,15 @@ package node
 import (
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/p2p/peerserver"
+	"github.com/Qitmeer/qitmeer/rpc"
 )
 
 // QitmeerLight implements the qitmeer light node service.
 type QitmeerLight struct {
 	// database
-	db               database.DB
-	config           *config.Config
+	db     database.DB
+	config *config.Config
 }
 
 func (light *QitmeerLight) Start(server *peerserver.PeerServer) error {
@@ -25,14 +25,14 @@ func (light *QitmeerLight) Stop() error {
 	return nil
 }
 
-func (light *QitmeerLight)	APIs() []rpc.API {
+func (light *QitmeerLight) APIs() []rpc.API {
 	return []rpc.API{}
 }
 
-func newQitmeerLight(n *Node) (*QitmeerLight, error){
+func newQitmeerLight(n *Node) (*QitmeerLight, error) {
 	light := QitmeerLight{
-		config : n.Config,
-		db : n.DB,
+		config: n.Config,
+		db:     n.DB,
 	}
 	return &light, nil
 }

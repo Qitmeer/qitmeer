@@ -15,7 +15,6 @@ func CalcMerkleRoot(nodes []hash.Hash) (root hash.Hash, err error) {
 	return hash.Hash{}, nil
 }
 
-
 // buildMerkleTreeStore creates a merkle tree from a slice of transactions,
 // stores it using a linear array, and returns a slice of the backing array.  A
 // linear array was chosen as opposed to an actual tree structure since it uses
@@ -68,7 +67,7 @@ func BuildMerkleTreeStore(transactions []*types.Tx, witness bool) []*hash.Hash {
 			wSha := tx.Tx.TxHashFull()
 			merkles[i] = &wSha
 		default:
-			txH:=tx.Tx.TxHash()
+			txH := tx.Tx.TxHash()
 			merkles[i] = &txH
 		}
 	}
@@ -107,7 +106,7 @@ func calcMerkleRoot(txns []*types.Transaction) hash.Hash {
 	for _, tx := range txns {
 		utilTxns = append(utilTxns, types.NewTx(tx))
 	}
-	merkles := BuildMerkleTreeStore(utilTxns,false)
+	merkles := BuildMerkleTreeStore(utilTxns, false)
 	return *merkles[len(merkles)-1]
 }
 
@@ -184,7 +183,7 @@ func BuildParentsMerkleTreeStore(parents []*hash.Hash) []*hash.Hash {
 	merkles := make([]*hash.Hash, arraySize)
 
 	// Populate the array with hashs.
-	copy(merkles,parents)
+	copy(merkles, parents)
 
 	// Start the array offset after the last parent and adjusted to the
 	// next power of two.
@@ -225,7 +224,7 @@ func ValidateWitnessCommitment(blk *types.SerializedBlock) error {
 		return fmt.Errorf("transaction has no inputs")
 	}
 
-	witnessCommitment:=coinbaseTx.Tx.TxIn[0].PreviousOut.Hash
+	witnessCommitment := coinbaseTx.Tx.TxIn[0].PreviousOut.Hash
 	if witnessCommitment.IsEqual(&hash.ZeroHash) {
 		return fmt.Errorf("Coinbase inputs has no witness commitment")
 	}
@@ -234,7 +233,7 @@ func ValidateWitnessCommitment(blk *types.SerializedBlock) error {
 	witnessMerkleTree := BuildMerkleTreeStore(blk.Transactions(), true)
 	witnessMerkleRoot := witnessMerkleTree[len(witnessMerkleTree)-1]
 
-	witnessPreimage:=append(witnessMerkleRoot.Bytes(),coinbase...)
+	witnessPreimage := append(witnessMerkleRoot.Bytes(), coinbase...)
 	computedCommitment := hash.DoubleHashH(witnessPreimage[:])
 
 	if !computedCommitment.IsEqual(&witnessCommitment) {

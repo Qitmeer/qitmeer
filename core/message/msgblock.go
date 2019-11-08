@@ -50,14 +50,13 @@ func (msg *MsgBlock) ClearTransactions() {
 	msg.Block.Transactions = make([]*types.Transaction, 0, defaultTransactionAlloc)
 }
 
-
 // Decode decodes r using the protocol encoding into the receiver.
 // This is part of the Message interface implementation.
 // See Deserialize for decoding blocks stored to disk, such as in a database, as
 // opposed to decoding blocks from the wire.
 func (msg *MsgBlock) Decode(r io.Reader, pver uint32) error {
 	msg.Block = &types.Block{}
-	return msg.Block.Decode(r,pver)
+	return msg.Block.Decode(r, pver)
 }
 
 // FromBytes deserializes a transaction byte slice.
@@ -65,7 +64,6 @@ func (msg *MsgBlock) FromBytes(b []byte) error {
 	r := bytes.NewReader(b)
 	return msg.Deserialize(r)
 }
-
 
 // Encode encodes the receiver to w using the protocol encoding.
 // This is part of the Message interface implementation.
@@ -108,8 +106,8 @@ func (msg *MsgBlock) Command() string {
 // Message interface.  See MsgBlock for details.
 func NewMsgBlock(blockHeader *types.BlockHeader) *MsgBlock {
 	block := types.Block{
-		Header:        *blockHeader,
-		Transactions:  make([]*types.Transaction, 0, defaultTransactionAlloc),
+		Header:       *blockHeader,
+		Transactions: make([]*types.Transaction, 0, defaultTransactionAlloc),
 	}
 	return &MsgBlock{&block}
 }

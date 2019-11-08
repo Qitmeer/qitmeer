@@ -14,4 +14,3 @@ func NewPublicAccountManagerAPI(a *AccountManager) *PublicAccountManagerAPI {
 func (api *PublicAccountManagerAPI) GetBalance() int32 {
 	return 0
 }
-

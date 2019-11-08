@@ -2,10 +2,10 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/common/hash"
 )
 
 // -----------------------------------------------------------------------------
@@ -73,10 +73,10 @@ import (
 //
 // The struct is aligned for memory efficiency.
 type SpentTxOut struct {
-	Amount     uint64       // The amount of the output.
+	Amount     uint64 // The amount of the output.
 	PkScript   []byte // The public key script for the output.
 	BlockHash  hash.Hash
-	IsCoinBase   bool // Whether creating tx is a coinbase.
+	IsCoinBase bool // Whether creating tx is a coinbase.
 }
 
 func spentTxOutHeaderCode(stxo *SpentTxOut) uint64 {
@@ -98,7 +98,7 @@ func spentTxOutHeaderCode(stxo *SpentTxOut) uint64 {
 // determining the serialization size.
 func spentTxOutSerializeSize(stxo *SpentTxOut) int {
 	size := serializeSizeVLQ(spentTxOutHeaderCode(stxo))
-	size+=hash.HashSize
+	size += hash.HashSize
 	return size + compressedTxOutSize(uint64(stxo.Amount), stxo.PkScript)
 }
 
@@ -109,8 +109,8 @@ func spentTxOutSerializeSize(stxo *SpentTxOut) int {
 func putSpentTxOut(target []byte, stxo *SpentTxOut) int {
 	headerCode := spentTxOutHeaderCode(stxo)
 	offset := putVLQ(target, headerCode)
-	copy(target[offset:],stxo.BlockHash.Bytes())
-	offset+=hash.HashSize
+	copy(target[offset:], stxo.BlockHash.Bytes())
+	offset += hash.HashSize
 	return offset + putCompressedTxOut(target[offset:], uint64(stxo.Amount), stxo.PkScript)
 }
 
@@ -145,8 +145,8 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 	// Bits 1-x encode height of containing transaction.
 	stxo.IsCoinBase = code&0x01 != 0
 
-	stxo.BlockHash.SetBytes(serialized[offset:offset+hash.HashSize])
-	offset+=hash.HashSize
+	stxo.BlockHash.SetBytes(serialized[offset : offset+hash.HashSize])
+	offset += hash.HashSize
 
 	// Decode the compressed txout.
 	amount, pkScript, bytesRead, err := decodeCompressedTxOut(

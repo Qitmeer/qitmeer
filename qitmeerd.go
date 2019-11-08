@@ -60,8 +60,8 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	defer log.Info("Shutdown complete")
 
 	// Show version and home dir at startup.
-	log.Info("System info", "Qitmeer Version", version.String(), "Go version",runtime.Version())
-	log.Info("System info","UUID",message.UUID)
+	log.Info("System info", "Qitmeer Version", version.String(), "Go version", runtime.Version())
+	log.Info("System info", "UUID", message.UUID)
 	log.Info("System info", "Home dir", cfg.HomeDir)
 
 	if cfg.NoFileLogging {
@@ -71,7 +71,7 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	// Load the block database.
 	db, err := common.LoadBlockDB(cfg)
 	if err != nil {
-		log.Error("load block database","error", err)
+		log.Error("load block database", "error", err)
 		return err
 	}
 	defer func() {
@@ -110,9 +110,9 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	}
 
 	// Create node and start it.
-	n, err := node.NewNode(cfg,db,params.ActiveNetParams.Params,shutdownRequestChannel)
+	n, err := node.NewNode(cfg, db, params.ActiveNetParams.Params, shutdownRequestChannel)
 	if err != nil {
-		log.Error("Unable to start server","listeners",cfg.Listeners,"error", err)
+		log.Error("Unable to start server", "listeners", cfg.Listeners, "error", err)
 		return err
 	}
 	err = n.RegisterService()
@@ -122,14 +122,14 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	defer func() {
 		log.Info("Gracefully shutting down the server...")
 		err := n.Stop()
-		if err!=nil{
-			log.Warn("node stop error","error",err)
+		if err != nil {
+			log.Warn("node stop error", "error", err)
 		}
 		n.WaitForShutdown()
 	}()
 	err = n.Start()
 	if err != nil {
-		log.Error("Uable to start server", "error",err)
+		log.Error("Uable to start server", "error", err)
 		return err
 	}
 

@@ -10,8 +10,8 @@ type MsgGraphState struct {
 }
 
 func (msg *MsgGraphState) Decode(r io.Reader, pver uint32) error {
-	msg.GS=blockdag.NewGraphState()
-	err:=msg.GS.Decode(r,pver)
+	msg.GS = blockdag.NewGraphState()
+	err := msg.GS.Decode(r, pver)
 	if err != nil {
 		return err
 	}
@@ -19,7 +19,7 @@ func (msg *MsgGraphState) Decode(r io.Reader, pver uint32) error {
 }
 
 func (msg *MsgGraphState) Encode(w io.Writer, pver uint32) error {
-	err := msg.GS.Encode(w,pver)
+	err := msg.GS.Encode(w, pver)
 	if err != nil {
 		return err
 	}
@@ -36,6 +36,6 @@ func (msg *MsgGraphState) MaxPayloadLength(pver uint32) uint32 {
 
 func NewMsgGraphState(gs *blockdag.GraphState) *MsgGraphState {
 	return &MsgGraphState{
-		GS:gs,
+		GS: gs,
 	}
 }

@@ -9,16 +9,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/p2p/addmgr"
 	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
@@ -32,7 +32,7 @@ import (
 
 const (
 	// the default services supported by the node
-	defaultServices = protocol.Full| protocol.CF
+	defaultServices = protocol.Full | protocol.CF
 
 	// the default services that are required to be supported
 	defaultRequiredServices = protocol.Full
@@ -50,7 +50,7 @@ const (
 	maxProtocolVersion = peer.MaxProtocolVersion
 
 	// connection timeout setting
-	defaultConnectTimeout        = time.Second * 30
+	defaultConnectTimeout = time.Second * 30
 )
 
 var (
@@ -64,7 +64,6 @@ var (
 		version.Patch)
 )
 
-
 // Use start to begin accepting connections from peers.
 // peer server handling communications to and from qitmeer peers.
 type PeerServer struct {
@@ -72,10 +71,10 @@ type PeerServer struct {
 	bytesReceived uint64 // Total bytes received from all peers since start.
 	bytesSent     uint64 // Total bytes sent by all peers since start.
 
-	started       int32  // p2p server start flag
-	shutdown      int32  // p2p server stop flag
+	started  int32 // p2p server start flag
+	shutdown int32 // p2p server stop flag
 
-    // address manager caching the peers
+	// address manager caching the peers
 	addrManager *addmgr.AddrManager
 
 	// conn manager handles network connections.
@@ -87,10 +86,10 @@ type PeerServer struct {
 	banPeers  chan *serverPeer
 
 	// peer handler chan
-	relayInv          chan relayMsg
-	broadcast         chan broadcastMsg
-	query             chan interface{}
-	quit              chan struct{}
+	relayInv  chan relayMsg
+	broadcast chan broadcastMsg
+	query     chan interface{}
+	quit      chan struct{}
 
 	wg sync.WaitGroup
 
@@ -101,7 +100,7 @@ type PeerServer struct {
 	BlockManager *blkmgr.BlockManager
 	TxMemPool    *mempool.TxPool
 
-	services             protocol.ServiceFlag
+	services protocol.ServiceFlag
 }
 
 // OutboundGroupCount returns the number of peers connected to the given
@@ -117,7 +116,7 @@ func (s *PeerServer) OutboundGroupCount(key string) int {
 // instance, associates it with the connection, and starts a goroutine to wait
 // for disconnection.
 func (s *PeerServer) inboundPeerConnected(c *connmgr.ConnReq) {
-	sp := newServerPeer(s,false)
+	sp := newServerPeer(s, false)
 	sp.isWhitelisted = isWhitelisted(s.cfg, c.Conn().RemoteAddr())
 	sp.Peer = peer.NewInboundPeer(newPeerConfig(sp))
 	sp.syncPeer.Peer = sp.Peer
@@ -147,7 +146,6 @@ func (s *PeerServer) outboundPeerConnected(c *connmgr.ConnReq) {
 	s.addrManager.Attempt(sp.NA())
 }
 
-
 // newPeerConfig returns the configuration for the given serverPeer.
 func newPeerConfig(sp *serverPeer) *peer.Config {
 
@@ -173,14 +171,14 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			//OnGetCFHeaders:   sp.OnGetCFHeaders,
 			//OnGetCFTypes:     sp.OnGetCFTypes,
 		},
-		NewestGS:          sp.newestGS,
-		HostToNetAddress:  sp.server.addrManager.HostToNetAddress,
-		UserAgentName:     userAgentName,
-		UserAgentVersion:  userAgentVersion,
-		ChainParams:       sp.server.chainParams,
-		Services:          sp.server.services,
-		DisableRelayTx:    sp.server.cfg.BlocksOnly,
-		ProtocolVersion:   maxProtocolVersion,
+		NewestGS:         sp.newestGS,
+		HostToNetAddress: sp.server.addrManager.HostToNetAddress,
+		UserAgentName:    userAgentName,
+		UserAgentVersion: userAgentVersion,
+		ChainParams:      sp.server.chainParams,
+		Services:         sp.server.services,
+		DisableRelayTx:   sp.server.cfg.BlocksOnly,
+		ProtocolVersion:  maxProtocolVersion,
 	}
 }
 
@@ -307,7 +305,6 @@ func (s *PeerServer) AddBytesSent(bytesSent uint64) {
 	atomic.AddUint64(&s.bytesSent, bytesSent)
 }
 
-
 // peerDoneHandler handles peer disconnects by notifiying the server that it's
 // done.
 func (s *PeerServer) peerDoneHandler(sp *serverPeer) {
@@ -323,6 +320,7 @@ func (s *PeerServer) peerDoneHandler(sp *serverPeer) {
 	close(sp.quit)
 	log.Trace("stop peerDoneHandler")
 }
+
 // peerHandler is used to handle peer operations such as adding and removing
 // peers to and from the server, banning peers, and broadcasting messages to
 // peers.  It must be run in a goroutine.
@@ -384,7 +382,7 @@ out:
 		case <-s.quit:
 			// Disconnect all peers on server shutdown.
 			state.forAllPeers(func(sp *serverPeer) {
-				log.Trace("Shutdown peer", "peer",sp)
+				log.Trace("Shutdown peer", "peer", sp)
 				sp.Disconnect()
 			})
 			break out
@@ -411,7 +409,6 @@ cleanup:
 	s.wg.Done()
 	log.Trace("Peer handler done")
 }
-
 
 // RelayInventory relays the passed inventory vector to all connected peers
 // that are not already known to have it.
@@ -448,6 +445,6 @@ func (s *PeerServer) ConnectedPeers() []*serverPeer {
 // Whether it has peer.
 func (s *PeerServer) HasPeer(uuid uuid.UUID) bool {
 	replyChan := make(chan bool)
-	s.query <- getPeerMsg{uuid:uuid, reply: replyChan}
+	s.query <- getPeerMsg{uuid: uuid, reply: replyChan}
 	return <-replyChan
 }

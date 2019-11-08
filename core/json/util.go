@@ -18,10 +18,10 @@
 package json
 
 import (
-	"fmt"
 	"encoding/hex"
-	"reflect"
 	"encoding/json"
+	"fmt"
+	"reflect"
 )
 
 const uintBits = 32 << (uint64(^uint(0)) >> 63)
@@ -160,4 +160,3 @@ func wrapTypeError(err error, typ reflect.Type) error {
 func errNonString(typ reflect.Type) error {
 	return &json.UnmarshalTypeError{Value: "non-string", Type: typ}
 }
-

@@ -27,7 +27,7 @@ var (
 	// ErrInvalidSeedLen describes an error in which the provided seed or
 	// seed length is not in the allowed range.
 	ErrInvalidSeedLen = fmt.Errorf("seed length must be between %d and %d "+
-	"bits", MinSeedBytes*8, MaxSeedBytes*8)
+		"bits", MinSeedBytes*8, MaxSeedBytes*8)
 )
 
 // GenerateSeed returns a cryptographically secure random seed

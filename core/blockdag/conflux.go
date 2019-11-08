@@ -7,7 +7,6 @@ import (
 	"io"
 )
 
-
 type Epoch struct {
 	main    IBlock
 	depends []IBlock
@@ -58,7 +57,7 @@ func (con *Conflux) GetName() string {
 }
 
 func (con *Conflux) Init(bd *BlockDAG) bool {
-	con.bd=bd
+	con.bd = bd
 	return true
 }
 
@@ -68,21 +67,21 @@ func (con *Conflux) AddBlock(b IBlock) *list.List {
 	}
 	//
 	con.updatePrivot(b)
-	oldOrder:=con.bd.order
+	oldOrder := con.bd.order
 	con.bd.order = map[uint]*hash.Hash{}
 	con.updateMainChain(con.bd.getGenesis(), nil, nil)
 
 	var result *list.List
 	var i uint
-	for i=0;i<con.bd.blockTotal;i++ {
-		if result==nil {
-			if len(oldOrder)==0||
-				i>=uint(len(oldOrder))||
+	for i = 0; i < con.bd.blockTotal; i++ {
+		if result == nil {
+			if len(oldOrder) == 0 ||
+				i >= uint(len(oldOrder)) ||
 				!oldOrder[i].IsEqual(con.bd.order[i]) {
-				result=list.New()
+				result = list.New()
 				result.PushBack(con.bd.order[i])
 			}
-		}else{
+		} else {
 			result.PushBack(con.bd.order[i])
 		}
 
@@ -148,7 +147,7 @@ func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *HashSet) {
 	if !b.HasChildren() {
 		con.privotTip = b
 		if con.bd.tips.Size() > 1 {
-			virtualBlock := Block{hash: hash.Hash{},weight:1}
+			virtualBlock := Block{hash: hash.Hash{}, weight: 1}
 			virtualBlock.parents = NewHashSet()
 			virtualBlock.parents.AddSet(con.bd.tips)
 			con.updateMainChain(&virtualBlock, curEpoch, main)
@@ -193,7 +192,7 @@ func (con *Conflux) GetMainChain() []*hash.Hash {
 func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch {
 	var result *Epoch
 	if preEpoch == nil {
-		b.SetOrder( 0)
+		b.SetOrder(0)
 		result = &Epoch{main: b}
 	} else {
 		result = con.getEpoch(b, preEpoch, main)
@@ -216,7 +215,7 @@ func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch
 					fbs := con.getForwardBlocks(es)
 					for _, fb := range fbs {
 						order++
-						fb.SetOrder( preEpoch.main.GetOrder() + uint(order))
+						fb.SetOrder(preEpoch.main.GetOrder() + uint(order))
 						es.Remove(fb.GetHash())
 					}
 					result.depends = append(result.depends, fbs...)
@@ -234,7 +233,7 @@ func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch
 			panic("epoch order error")
 		}
 		if !con.isVirtualBlock(block) {
-			con.bd.order[block.GetOrder()]=block.GetHash()
+			con.bd.order[block.GetOrder()] = block.GetHash()
 		}
 	}
 
@@ -328,7 +327,7 @@ func (con *Conflux) isVirtualBlock(b IBlock) bool {
 }
 
 func (con *Conflux) GetBlockByOrder(order uint) *hash.Hash {
-	if order>=con.bd.blockTotal {
+	if order >= con.bd.blockTotal {
 		return nil
 	}
 	return con.bd.order[order]

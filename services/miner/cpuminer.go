@@ -11,17 +11,17 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/config"
-	"github.com/Qitmeer/qitmeer/core/types"
-	`github.com/Qitmeer/qitmeer/core/types/pow`
-	`github.com/Qitmeer/qitmeer/crypto/cuckoo`
-	"github.com/Qitmeer/qitmeer/engine/txscript"
-	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/crypto/cuckoo"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/mining"
-	`math/big`
+	"math/big"
 	"math/rand"
 	"sync"
 	"time"
@@ -52,7 +52,6 @@ const (
 	// some reason run out during simulations.
 	maxSimnetToMine uint8 = 4
 )
-
 
 // CPUMiner provides facilities for solving blocks (mining) using the CPU in
 // a concurrency-safe manner.  It consists of two main goroutines -- a speed
@@ -92,9 +91,9 @@ type CPUMiner struct {
 // newCPUMiner returns a new instance of a CPU miner for the provided server.
 // Use Start to begin the mining process.  See the documentation for CPUMiner
 // type for more details.
-func NewCPUMiner(cfg *config.Config,par *params.Params, policy *mining.Policy,
+func NewCPUMiner(cfg *config.Config, par *params.Params, policy *mining.Policy,
 	cache *txscript.SigCache,
-	source mining.TxSource,tsource blockchain.MedianTimeSource,blkMgr *blkmgr.BlockManager,   numWorkers uint32) *CPUMiner {
+	source mining.TxSource, tsource blockchain.MedianTimeSource, blkMgr *blkmgr.BlockManager, numWorkers uint32) *CPUMiner {
 	return &CPUMiner{
 		config:            cfg,
 		params:            par,
@@ -116,7 +115,7 @@ func NewCPUMiner(cfg *config.Config,par *params.Params, policy *mining.Policy,
 // detecting when it is performing stale work and reacting accordingly by
 // generating a new block template.  When a block is solved, it is submitted.
 // The function returns a list of the hashes of generated blocks.
-func (m *CPUMiner) GenerateNBlocks(n uint32,powType pow.PowType) ([]*hash.Hash, error) {
+func (m *CPUMiner) GenerateNBlocks(n uint32, powType pow.PowType) ([]*hash.Hash, error) {
 	m.Lock()
 
 	// Respond with an error if there's virtually 0 chance of CPU-mining a block.
@@ -143,7 +142,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32,powType pow.PowType) ([]*hash.Hash, 
 
 	m.Unlock()
 
-	log.Trace("Generating blocks","num", n)
+	log.Trace("Generating blocks", "num", n)
 
 	i := uint32(0)
 	blockHashes := make([]*hash.Hash, n)
@@ -175,11 +174,11 @@ func (m *CPUMiner) GenerateNBlocks(n uint32,powType pow.PowType) ([]*hash.Hash, 
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.
 		// TODO, refactor NewBlockTemplate input dependencies
-		template, err := mining.NewBlockTemplate(m.policy,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr,nil)
+		template, err := mining.NewBlockTemplate(m.policy, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil)
 		m.submitBlockLock.Unlock()
 		if err != nil {
 			errStr := fmt.Sprintf("template: %v", err)
-			log.Error("Failed to create new block ","err",errStr)
+			log.Error("Failed to create new block ", "err", errStr)
 			//TODO refactor the quit logic
 			m.Lock()
 			close(m.speedMonitorQuit)
@@ -187,10 +186,10 @@ func (m *CPUMiner) GenerateNBlocks(n uint32,powType pow.PowType) ([]*hash.Hash, 
 			m.started = false
 			m.discreteMining = false
 			m.Unlock()
-			return nil, err  //should miner if error
+			return nil, err //should miner if error
 		}
-		if template == nil {  // should not go here
-			log.Debug("Failed to create new block template","err","but error=nil")
+		if template == nil { // should not go here
+			log.Debug("Failed to create new block template", "err", "but error=nil")
 			continue //might try again?
 		}
 
@@ -201,7 +200,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32,powType pow.PowType) ([]*hash.Hash, 
 			result = m.solveBlock(template.Block, ticker, nil)
 		case pow.CUCKAROO:
 			template.Block.Header.Difficulty = pow.BigToCompact(new(big.Int).SetUint64(template.PowDiffData.CuckarooBaseDiff))
-			result = m.solveCuckarooBlock(template.Block, ticker, nil,template.PowDiffData.CuckarooDiffScale)
+			result = m.solveCuckarooBlock(template.Block, ticker, nil, template.PowDiffData.CuckarooDiffScale)
 		default:
 			m.Lock()
 			close(m.speedMonitorQuit)
@@ -209,7 +208,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32,powType pow.PowType) ([]*hash.Hash, 
 			m.started = false
 			m.discreteMining = false
 			m.Unlock()
-			return nil, errors.New("pow not found!")  //should miner if error
+			return nil, errors.New("pow not found!") //should miner if error
 		}
 
 		// Attempt to solve the block.  The function will exit early
@@ -219,14 +218,14 @@ func (m *CPUMiner) GenerateNBlocks(n uint32,powType pow.PowType) ([]*hash.Hash, 
 		if result {
 			block := types.NewBlock(template.Block)
 			block.SetHeight(uint(template.Height))
-			if !m.submitBlock(block){
+			if !m.submitBlock(block) {
 				m.Lock()
 				close(m.speedMonitorQuit)
 				m.wg.Wait()
 				m.started = false
 				m.discreteMining = false
 				m.Unlock()
-				return nil, errors.New("submit Block Error!")  //should miner if error
+				return nil, errors.New("submit Block Error!") //should miner if error
 			}
 			blockHashes[i] = block.Hash()
 			i++
@@ -303,12 +302,12 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 	// Choose a random extra nonce offset for this block template and
 	// worker.
 	/*
-	enOffset, err := s.RandomUint64()
-	if err != nil {
-		log.Error("Unexpected error while generating random "+
-			"extra nonce offset: %v", err)
-		enOffset = 0
-	}
+		enOffset, err := s.RandomUint64()
+		if err != nil {
+			log.Error("Unexpected error while generating random "+
+				"extra nonce offset: %v", err)
+			enOffset = 0
+		}
 	*/
 
 	// Create a couple of convenience variables.
@@ -325,75 +324,75 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 	// provided by the Go spec.
 	// for extraNonce := uint64(0); extraNonce < maxExtraNonce; extraNonce++ {
 
-		// Update the extra nonce in the block template with the
-		// new value by regenerating the coinbase script and
-		// setting the merkle root to the new value.
-		// TODO, decided if need extra nonce for coinbase-tx
-		// updateExtraNonce(msgBlock, extraNonce+enOffset)
+	// Update the extra nonce in the block template with the
+	// new value by regenerating the coinbase script and
+	// setting the merkle root to the new value.
+	// TODO, decided if need extra nonce for coinbase-tx
+	// updateExtraNonce(msgBlock, extraNonce+enOffset)
 
-		// Update the extra nonce in the block template header with the
-		// new value.
-		// binary.LittleEndian.PutUint64(header.ExtraData[:], extraNonce+enOffset)
+	// Update the extra nonce in the block template header with the
+	// new value.
+	// binary.LittleEndian.PutUint64(header.ExtraData[:], extraNonce+enOffset)
 
-		// Search through the entire nonce range for a solution while
-		// periodically checking for early quit and stale block
-		// conditions along with updates to the speed monitor.
-		for i := uint32(0); i <= maxNonce; i++ {
-			select {
-			case <-quit:
+	// Search through the entire nonce range for a solution while
+	// periodically checking for early quit and stale block
+	// conditions along with updates to the speed monitor.
+	for i := uint32(0); i <= maxNonce; i++ {
+		select {
+		case <-quit:
+			return false
+
+		case <-ticker.C:
+			m.updateHashes <- hashesCompleted
+			hashesCompleted = 0
+
+			// The current block is stale if the memory pool
+			// has been updated since the block template was
+			// generated and it has been at least 3 seconds,
+			// or if it's been one minute.
+			if (lastTxUpdate != m.txSource.LastUpdated() &&
+				time.Now().After(lastGenerated.Add(3*time.Second))) ||
+				time.Now().After(lastGenerated.Add(60*time.Second)) {
+
 				return false
-
-			case <-ticker.C:
-				m.updateHashes <- hashesCompleted
-				hashesCompleted = 0
-
-				// The current block is stale if the memory pool
-				// has been updated since the block template was
-				// generated and it has been at least 3 seconds,
-				// or if it's been one minute.
-				if (lastTxUpdate != m.txSource.LastUpdated() &&
-					time.Now().After(lastGenerated.Add(3*time.Second))) ||
-					time.Now().After(lastGenerated.Add(60*time.Second)) {
-
-					return false
-				}
-
-				err := mining.UpdateBlockTime(msgBlock, m.blockManager.GetChain(), m.timeSource, m.params)
-				if err != nil {
-					log.Warn("CPU miner unable to update block template "+
-						"time: %v", err)
-					return false
-				}
-
-			default:
-				// Non-blocking select to fall through
 			}
-			instance := pow.GetInstance(pow.BLAKE2BD,0,[]byte{})
-			powStruct := instance.(*pow.Blake2bd)
-			// Update the nonce and hash the block header.
-			powStruct.Nonce = i
 
-			header.Pow = powStruct
-
-			// Each hash is actually a double hash (tow hashes), so
-			// increment the number of hashes by 2
-			hashesCompleted += 2
-			h := header.BlockHash()
-			hashNum := pow.HashToBig(&h)
-
-			if hashNum.Cmp(target) <= 0 {
-				// The block is solved when the new block hash is less
-				// than the target difficulty.  Yay!
-				m.updateHashes <- hashesCompleted
-				return true
+			err := mining.UpdateBlockTime(msgBlock, m.blockManager.GetChain(), m.timeSource, m.params)
+			if err != nil {
+				log.Warn("CPU miner unable to update block template "+
+					"time: %v", err)
+				return false
 			}
+
+		default:
+			// Non-blocking select to fall through
 		}
+		instance := pow.GetInstance(pow.BLAKE2BD, 0, []byte{})
+		powStruct := instance.(*pow.Blake2bd)
+		// Update the nonce and hash the block header.
+		powStruct.Nonce = i
+
+		header.Pow = powStruct
+
+		// Each hash is actually a double hash (tow hashes), so
+		// increment the number of hashes by 2
+		hashesCompleted += 2
+		h := header.BlockHash()
+		hashNum := pow.HashToBig(&h)
+
+		if hashNum.Cmp(target) <= 0 {
+			// The block is solved when the new block hash is less
+			// than the target difficulty.  Yay!
+			m.updateHashes <- hashesCompleted
+			return true
+		}
+	}
 	//}
 	return false
 }
 
 // solveBlock attempts to find 42 circles that hash match the target diff
-func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{},scale uint64) bool {
+func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}, scale uint64) bool {
 
 	// Create a couple of convenience variables.
 	header := &msgBlock.Header
@@ -410,26 +409,26 @@ func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker
 		default:
 			// Non-blocking select to fall through
 		}
-		instance := pow.GetInstance(pow.CUCKAROO,0,[]byte{})
+		instance := pow.GetInstance(pow.CUCKAROO, 0, []byte{})
 		powStruct := instance.(*pow.Cuckaroo)
 		powStruct.Nonce = i
 		// Update the nonce and hash the block header.
 		header.Pow = powStruct
 		powStruct.SetEdgeBits(uint8(cuckoo.Edgebits))
 		sipH := powStruct.GetSipHash(header.BlockData())
-		c:= cuckoo.NewCuckoo()
+		c := cuckoo.NewCuckoo()
 		cycleNonces, isFound := c.PoW(sipH[:])
 		if !isFound {
 			continue
 		}
 		powStruct.SetCircleEdges(cycleNonces)
-		err := cuckoo.VerifyCuckaroo(sipH[:],cycleNonces[:],uint(cuckoo.Edgebits))
-		if err != nil{
+		err := cuckoo.VerifyCuckaroo(sipH[:], cycleNonces[:], uint(cuckoo.Edgebits))
+		if err != nil {
 			continue
 		}
 		hashesCompleted += 2
 		targetDiff := pow.CompactToBig(header.Difficulty)
-		if pow.CalcCuckooDiff(pow.GraphWeight(uint32(cuckoo.Edgebits)),header.BlockHash()).Cmp(targetDiff) >= 0{
+		if pow.CalcCuckooDiff(pow.GraphWeight(uint32(cuckoo.Edgebits)), header.BlockHash()).Cmp(targetDiff) >= 0 {
 			m.updateHashes <- hashesCompleted
 			return true
 		}
@@ -481,8 +480,8 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 	for _, out := range coinbaseTxOuts {
 		coinbaseTxGenerated += out.Amount
 	}
-	log.Info("Block submitted accepted","hash",block.Hash(),
-		"order", blockdag.GetOrderLogStr(uint(block.Order())),"height", block.Height(),"amount",coinbaseTxGenerated)
+	log.Info("Block submitted accepted", "hash", block.Hash(),
+		"order", blockdag.GetOrderLogStr(uint(block.Order())), "height", block.Height(), "amount", coinbaseTxGenerated)
 	return true
 }
 
@@ -661,7 +660,6 @@ func (m *CPUMiner) NumWorkers() int32 {
 	return int32(m.numWorkers)
 }
 
-
 // generateBlocks is a worker that is controlled by the miningWorkerController.
 // It is self contained in that it creates block templates and attempts to solve
 // them while detecting when it is performing stale work and reacting
@@ -697,12 +695,12 @@ out:
 
 		// Choose a payment address at random.
 		rand.Seed(time.Now().UnixNano())
-		miningaddrs :=m.config.GetMinningAddrs()
-		fmt.Printf("why %v, %d \n",miningaddrs,len(miningaddrs))
-		rindex :=rand.Intn(len(miningaddrs))
+		miningaddrs := m.config.GetMinningAddrs()
+		fmt.Printf("why %v, %d \n", miningaddrs, len(miningaddrs))
+		rindex := rand.Intn(len(miningaddrs))
 		payToAddr := miningaddrs[rindex]
 
-		currentOrder := m.blockManager.GetChain().BestSnapshot().GraphState.GetTotal()-1
+		currentOrder := m.blockManager.GetChain().BestSnapshot().GraphState.GetTotal() - 1
 		if currentOrder != 0 && !m.blockManager.IsCurrent() {
 			log.Warn("Client in initial download, qitmeer is downloading blocks...")
 			return
@@ -710,12 +708,12 @@ out:
 		// Create a new block template using the available transactions
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.
-		template, err := mining.NewBlockTemplate(m.policy,m.params,m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr,nil)
+		template, err := mining.NewBlockTemplate(m.policy, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil)
 		m.submitBlockLock.Unlock()
 		if err != nil {
-			errStr := fmt.Sprintf( "template: %v", err)
-			log.Error("Failed to create new block ","err",errStr)
-			continue  //TODO do we still continue?
+			errStr := fmt.Sprintf("template: %v", err)
+			log.Error("Failed to create new block ", "err", errStr)
+			continue //TODO do we still continue?
 		}
 
 		// Not enough voters.
@@ -742,8 +740,8 @@ out:
 		if m.solveBlock(template.Block, ticker, quit) {
 			block := types.NewBlock(template.Block)
 			block.SetHeight(uint(template.Height))
-			if !m.submitBlock(block){
-				log.Error("Failed to submit new block ","err")
+			if !m.submitBlock(block) {
+				log.Error("Failed to submit new block ", "err")
 				continue
 			}
 			m.minedOnParents[template.Block.Header.ParentRoot]++
@@ -757,9 +755,9 @@ out:
 func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) error {
 	// TODO, decided if need extra nonce for coinbase-tx
 	// do nothing for now
-	blockHash:=msgBlock.BlockHash()
-	order,err:=m.blockManager.GetChain().BlockOrderByHash(&blockHash)
-	if err!=nil {
+	blockHash := msgBlock.BlockHash()
+	order, err := m.blockManager.GetChain().BlockOrderByHash(&blockHash)
+	if err != nil {
 		return err
 	}
 	coinbaseScript, err := txscript.NewScriptBuilder().AddInt64(int64(order)).
@@ -776,17 +774,16 @@ func (m *CPUMiner) updateExtraNonce(msgBlock *types.Block, extraNonce uint64) er
 	}
 	msgBlock.Transactions[0].TxIn[0].SignScript = coinbaseScript
 
-
 	// Recalculate the merkle root with the updated extra nonce.
 	block := types.NewBlock(msgBlock)
-	merkles := merkle.BuildMerkleTreeStore(block.Transactions(),false)
+	merkles := merkle.BuildMerkleTreeStore(block.Transactions(), false)
 	msgBlock.Header.TxRoot = *merkles[len(merkles)-1]
 	return nil
 }
 
 func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, error) {
-	if len(parents)==0 {
-		return nil,errors.New("Parents is invalid")
+	if len(parents) == 0 {
+		return nil, errors.New("Parents is invalid")
 	}
 
 	m.Lock()
@@ -844,12 +841,12 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.
 		// TODO, refactor NewBlockTemplate input dependencies
-		template, err := mining.NewBlockTemplate(m.policy,m.params,
-			m.sigCache,m.txSource,m.timeSource,m.blockManager,payToAddr,parents)
+		template, err := mining.NewBlockTemplate(m.policy, m.params,
+			m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, parents)
 		m.submitBlockLock.Unlock()
 		if err != nil {
 			errStr := fmt.Sprintf("template: %v", err)
-			log.Error("Failed to create new block ","err",errStr)
+			log.Error("Failed to create new block ", "err", errStr)
 			//TODO refactor the quit logic
 			m.Lock()
 			close(m.speedMonitorQuit)
@@ -857,10 +854,10 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 			m.started = false
 			m.discreteMining = false
 			m.Unlock()
-			return nil, err  //should miner if error
+			return nil, err //should miner if error
 		}
-		if template == nil {  // should not go here
-			log.Debug("Failed to create new block template","err","but error=nil")
+		if template == nil { // should not go here
+			log.Debug("Failed to create new block template", "err", "but error=nil")
 			continue //might try again?
 		}
 
@@ -880,14 +877,14 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 				for _, out := range coinbaseTxOuts {
 					coinbaseTxGenerated += out.Amount
 				}
-				log.Info("Block submitted accepted","hash",block.Hash(),
-					"height", block.Height(),"amount",coinbaseTxGenerated)
-			}else{
-				return nil,err
+				log.Info("Block submitted accepted", "hash", block.Hash(),
+					"height", block.Height(), "amount", coinbaseTxGenerated)
+			} else {
+				return nil, err
 			}
 
 			//
-			blockHashes:= block.Hash()
+			blockHashes := block.Hash()
 			log.Trace(fmt.Sprintf("Generated blocks"))
 			m.Lock()
 			close(m.speedMonitorQuit)
@@ -902,16 +899,16 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 }
 
 //return time source
-func (m *CPUMiner)GetTimeSource() blockchain.MedianTimeSource {
+func (m *CPUMiner) GetTimeSource() blockchain.MedianTimeSource {
 	return m.timeSource
 }
 
 //return policy
-func (m *CPUMiner)GetPolicy() *mining.Policy {
+func (m *CPUMiner) GetPolicy() *mining.Policy {
 	return m.policy
 }
 
 //return sig cache
-func (m *CPUMiner)GetSigCache() *txscript.SigCache {
+func (m *CPUMiner) GetSigCache() *txscript.SigCache {
 	return m.sigCache
 }

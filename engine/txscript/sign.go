@@ -10,11 +10,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/address"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/ecc"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/common/hash"
 )
 
 // RawTxInSignature returns the serialized ECDSA signature for the input idx of
@@ -643,12 +643,12 @@ func sign2(tx types.ScriptTx, idx int,
 	sigType sigTypes) ([]byte,
 	ScriptClass, []types.Address, int, error) {
 
-	s,err :=ParsePkScript(subScript)
+	s, err := ParsePkScript(subScript)
 
 	if err != nil {
 		return nil, NonStandardTy, nil, 0, err
 	}
-	class :=s.GetClass()
+	class := s.GetClass()
 	addresses := s.GetAddresses()
 	nrequired := 0
 	if s.RequiredSigs() {
@@ -679,7 +679,7 @@ func sign2(tx types.ScriptTx, idx int,
 	case MultiSigTy:
 		// TODO
 		return nil, class, nil, 0,
-			fmt.Errorf("NOT support %s transactions",class)
+			fmt.Errorf("NOT support %s transactions", class)
 	case NullDataTy:
 		return nil, class, nil, 0,
 			errors.New("can't sign NULLDATA transactions")
@@ -689,7 +689,7 @@ func sign2(tx types.ScriptTx, idx int,
 	}
 	//TODO should not go here
 	return nil, class, nil, 0,
-		fmt.Errorf("NOT support %s transactions",class)
+		fmt.Errorf("NOT support %s transactions", class)
 }
 
 // SignatureScript2, ( refactor of SignatureScript)
@@ -724,8 +724,8 @@ func RawTxInSignature2(tx types.ScriptTx, idx int, subScript []byte,
 	var h []byte
 	// TODO, need to abstract SignatureHash calculator, instead of switch by type
 	switch tx.GetType() {
-		case types.QitmeerScriptTx:
-			h, err = calcSignatureHash2(parsedScript, hashType, tx, idx, nil)
+	case types.QitmeerScriptTx:
+		h, err = calcSignatureHash2(parsedScript, hashType, tx, idx, nil)
 	}
 	if err != nil {
 		return nil, err
@@ -744,7 +744,7 @@ func RawTxInSignature2(tx types.ScriptTx, idx int, subScript []byte,
 // 2 -> normal
 func calcSignatureHash2(prevOutScript []ParsedOpcode, hashType SigHashType, txScript types.ScriptTx, idx int, cachedPrefix *hash.Hash) ([]byte, error) {
 	// TODO, error handling
-	tx,_ := txScript.(*types.Transaction)
+	tx, _ := txScript.(*types.Transaction)
 
 	// The SigHashSingle signature type signs only the corresponding input
 	// and output (the output with the same index number as the input).
@@ -991,7 +991,6 @@ func shallowCopyTx(tx types.ScriptTx) (types.Transaction,error){
 }
 */
 
-
 // mergeScripts2 (refactor mergeScript)
 func mergeScripts2(tx types.ScriptTx, idx int,
 	pkScript []byte, class ScriptClass, addresses []types.Address,
@@ -1020,11 +1019,11 @@ func mergeScripts2(tx types.ScriptTx, idx int,
 
 		// We already know this information somewhere up the stack,
 		// therefore the error is ignored.
-		s,_:= ParsePkScript(script)
+		s, _ := ParsePkScript(script)
 		class := s.GetClass()
 		addresses := s.GetAddresses()
 		nrequired := 0
-		if (s.RequiredSigs()) {
+		if s.RequiredSigs() {
 			nrequired = 1
 		}
 		// regenerate scripts.
@@ -1058,6 +1057,7 @@ func mergeScripts2(tx types.ScriptTx, idx int,
 		return prevScript
 	}
 }
+
 // mergeMultiSig2 (refactor of mergeMultiSig)
 func mergeMultiSig2(tx types.ScriptTx, idx int, addresses []types.Address,
 	nRequired int, pkScript, sigScript, prevScript []byte) []byte {
@@ -1120,10 +1120,10 @@ sigLoop:
 		// would make the transaction nonstandard and thus not
 		// MultiSigTy, so we just need to hash the full thing.
 		var h []byte
-			// TODO, need to abstract SignatureHash calculator, instead of switch by type
-			switch tx.GetType() {
-			case types.QitmeerScriptTx:
-				h, err = calcSignatureHash2(pkPops, hashType, tx, idx, nil)
+		// TODO, need to abstract SignatureHash calculator, instead of switch by type
+		switch tx.GetType() {
+		case types.QitmeerScriptTx:
+			h, err = calcSignatureHash2(pkPops, hashType, tx, idx, nil)
 		}
 		if err != nil {
 			// is this the right handling for SIGHASH_SINGLE error ?

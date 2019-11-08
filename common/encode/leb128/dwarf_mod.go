@@ -82,7 +82,7 @@ func Uleb128FromInt64(v int64) []byte {
 }
 
 // Sleb128FromInt64 encode int64 v to []byte using signed LEB128 encoding.
-func Sleb128FromInt64(v int64) []byte{
+func Sleb128FromInt64(v int64) []byte {
 	b := sevenBitS(v)
 	if b == nil {
 		var encbuf [20]byte
@@ -90,7 +90,6 @@ func Sleb128FromInt64(v int64) []byte{
 	}
 	return b
 }
-
 
 // Note
 // The two Decode methods copied & modified from

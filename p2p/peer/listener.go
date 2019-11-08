@@ -91,39 +91,38 @@ type MessageListeners struct {
 	OnGraphState func(p *Peer, msg *message.MsgGraphState)
 
 	/*
-	// OnSendHeaders is invoked when a peer receives a sendheaders message.
-	OnSendHeaders func(p *Peer, msg *message.MsgSendHeaders)
+		// OnSendHeaders is invoked when a peer receives a sendheaders message.
+		OnSendHeaders func(p *Peer, msg *message.MsgSendHeaders)
 
-	// OnMemPool is invoked when a peer receives a mempool wire message.
-	OnMemPool func(p *Peer, msg *message.MsgMemPool)
+		// OnMemPool is invoked when a peer receives a mempool wire message.
+		OnMemPool func(p *Peer, msg *message.MsgMemPool)
 
-	// OnCFilter is invoked when a peer receives a cfilter wire message.
-	OnCFilter func(p *Peer, msg *message.MsgCFilter)
+		// OnCFilter is invoked when a peer receives a cfilter wire message.
+		OnCFilter func(p *Peer, msg *message.MsgCFilter)
 
-	// OnCFHeaders is invoked when a peer receives a cfheaders wire
-	// message.
-	OnCFHeaders func(p *Peer, msg *message.MsgCFHeaders)
+		// OnCFHeaders is invoked when a peer receives a cfheaders wire
+		// message.
+		OnCFHeaders func(p *Peer, msg *message.MsgCFHeaders)
 
-	// OnCFTypes is invoked when a peer receives a cftypes wire message.
-	OnCFTypes func(p *Peer, msg *message.MsgCFTypes)
+		// OnCFTypes is invoked when a peer receives a cftypes wire message.
+		OnCFTypes func(p *Peer, msg *message.MsgCFTypes)
 
-	// OnHeaders is invoked when a peer receives a headers wire message.
-	OnHeaders func(p *Peer, msg *message.MsgHeaders)
+		// OnHeaders is invoked when a peer receives a headers wire message.
+		OnHeaders func(p *Peer, msg *message.MsgHeaders)
 
-	// OnGetCFilter is invoked when a peer receives a getcfilter wire
-	// message.
-	OnGetCFilter func(p *Peer, msg *message.MsgGetCFilter)
+		// OnGetCFilter is invoked when a peer receives a getcfilter wire
+		// message.
+		OnGetCFilter func(p *Peer, msg *message.MsgGetCFilter)
 
-	// OnGetCFHeaders is invoked when a peer receives a getcfheaders
-	// wire message.
-	OnGetCFHeaders func(p *Peer, msg *message.MsgGetCFHeaders)
+		// OnGetCFHeaders is invoked when a peer receives a getcfheaders
+		// wire message.
+		OnGetCFHeaders func(p *Peer, msg *message.MsgGetCFHeaders)
 
-	// OnGetCFTypes is invoked when a peer receives a getcftypes wire
-	// message.
-	OnGetCFTypes func(p *Peer, msg *message.MsgGetCFTypes)
+		// OnGetCFTypes is invoked when a peer receives a getcftypes wire
+		// message.
+		OnGetCFTypes func(p *Peer, msg *message.MsgGetCFTypes)
 
-	// OnFeeFilter is invoked when a peer receives a feefilter wire message.
-	OnFeeFilter func(p *Peer, msg *message.MsgFeeFilter)
+		// OnFeeFilter is invoked when a peer receives a feefilter wire message.
+		OnFeeFilter func(p *Peer, msg *message.MsgFeeFilter)
 	*/
 }
-

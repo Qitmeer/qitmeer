@@ -3,10 +3,10 @@ package serialization
 
 import (
 	"encoding/binary"
-	`fmt`
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/protocol"
-	`github.com/Qitmeer/qitmeer/core/types/pow`
+	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"io"
 	"time"
 )
@@ -157,24 +157,24 @@ func readElement(r io.Reader, element interface{}) error {
 	case *pow.IPow:
 		//pow 5 bytes for powtype 1 byte
 		// nonce 4 bytes
-		b := make([]byte,pow.POW_LENGTH-pow.PROOFDATA_LENGTH)
-		_, err := io.ReadFull(r,b)
+		b := make([]byte, pow.POW_LENGTH-pow.PROOFDATA_LENGTH)
+		_, err := io.ReadFull(r, b)
 		if err != nil {
 			return err
 		}
 		//nonce 4 bytes + powType 1 bytes
 		powType := pow.PowType(b[4:5][0])
-		if _,ok := pow.PowMapString[powType];!ok{
-			return fmt.Errorf("powType:%d don't supported!",powType)
+		if _, ok := pow.PowMapString[powType]; !ok {
+			return fmt.Errorf("powType:%d don't supported!", powType)
 		}
-		leftBytes := make([]byte,pow.PROOFDATA_LENGTH)
+		leftBytes := make([]byte, pow.PROOFDATA_LENGTH)
 		// different pow store different bytes
-		_, err = io.ReadFull(r,leftBytes)
+		_, err = io.ReadFull(r, leftBytes)
 		if err != nil {
 			return err
 		}
 		//set pow type 1 bytes nonce 4 bytes and proof data except types
-		*e = pow.GetInstance(powType,littleEndian.Uint32(b[0:4]),leftBytes)
+		*e = pow.GetInstance(powType, littleEndian.Uint32(b[0:4]), leftBytes)
 		return nil
 
 	}
@@ -289,4 +289,3 @@ func writeElement(w io.Writer, element interface{}) error {
 	// above.
 	return binary.Write(w, littleEndian, element)
 }
-

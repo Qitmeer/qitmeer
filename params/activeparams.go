@@ -18,7 +18,7 @@ type netParams struct {
 }
 
 // mainNetParams contains parameters specific to the main network
-var MainNetParam = netParams {
+var MainNetParam = netParams{
 	Params:  &MainNetParams,
 	RpcPort: "8131",
 }

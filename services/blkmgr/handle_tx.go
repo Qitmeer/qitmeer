@@ -2,7 +2,7 @@ package blkmgr
 
 import (
 	"fmt"
-	`github.com/Qitmeer/qitmeer/core/message`
+	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 )
 

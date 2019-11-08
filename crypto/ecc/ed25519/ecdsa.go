@@ -15,7 +15,6 @@ import (
 	"io"
 	"math/big"
 
-
 	"github.com/Qitmeer/qitmeer/crypto/ecc/ed25519/internal"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/ed25519/internal/edwards25519"
 )
@@ -46,7 +45,7 @@ func GenerateKey(curve *TwistedEdwardsCurve, rand io.Reader) (priv []byte, x,
 	var pubArray [PubKeyBytesLen]byte
 	var privArray [PrivKeyBytesLen]byte
 	copy(pubArray[:], pub)
-	copy(privArray[:],priv)
+	copy(privArray[:], priv)
 	if err != nil {
 		return nil, nil, nil, err
 	}

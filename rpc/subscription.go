@@ -20,8 +20,8 @@ package rpc
 import (
 	"context"
 	"errors"
-	"sync"
 	"reflect"
+	"sync"
 )
 
 var (

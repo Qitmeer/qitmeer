@@ -2,13 +2,13 @@
 package node
 
 import (
-	"github.com/Qitmeer/qitmeer/engine/txscript"
-	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/p2p/peerserver"
+	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/services/acct"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/common"
@@ -23,25 +23,25 @@ import (
 // QitmeerFull implements the qitmeer full node service.
 type QitmeerFull struct {
 	// under node
-	node                 *Node
+	node *Node
 	// msg notifier
-	nfManager            notify.Notify
+	nfManager notify.Notify
 	// database
-	db                   database.DB
+	db database.DB
 	// account/wallet service
-	acctmanager          *acct.AccountManager
+	acctmanager *acct.AccountManager
 	// block manager handles all incoming blocks.
-	blockManager         *blkmgr.BlockManager
+	blockManager *blkmgr.BlockManager
 	// tx manager
-	txManager            *tx.TxManager
+	txManager *tx.TxManager
 
 	// miner service
-	cpuMiner             *miner.CPUMiner
+	cpuMiner *miner.CPUMiner
 
 	// clock time service
-	timeSource    		 blockchain.MedianTimeSource
+	timeSource blockchain.MedianTimeSource
 	// signature cache
-	sigCache             *txscript.SigCache
+	sigCache *txscript.SigCache
 }
 
 func (qm *QitmeerFull) Start(server *peerserver.PeerServer) error {
@@ -76,27 +76,27 @@ func (qm *QitmeerFull) Stop() error {
 	return nil
 }
 
-func (qm *QitmeerFull)	APIs() []rpc.API {
+func (qm *QitmeerFull) APIs() []rpc.API {
 	apis := qm.acctmanager.APIs()
-	apis = append(apis,qm.cpuMiner.APIs()...)
-	apis = append(apis,qm.blockManager.API())
-	apis = append(apis,qm.txManager.APIs()...)
-	apis = append(apis,qm.API())
+	apis = append(apis, qm.cpuMiner.APIs()...)
+	apis = append(apis, qm.blockManager.API())
+	apis = append(apis, qm.txManager.APIs()...)
+	apis = append(apis, qm.API())
 	return apis
 }
-func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
+func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 
 	// account manager
 	acctmgr, err := acct.New()
-	if err != nil{
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
 	qm := QitmeerFull{
-		node:         node,
-		db:           node.DB,
-		acctmanager:  acctmgr,
-		timeSource:   blockchain.NewMedianTime(),
-		sigCache:     txscript.NewSigCache(node.Config.SigCacheMaxSize),
+		node:        node,
+		db:          node.DB,
+		acctmanager: acctmgr,
+		timeSource:  blockchain.NewMedianTime(),
+		sigCache:    txscript.NewSigCache(node.Config.SigCacheMaxSize),
 	}
 	// Create the transaction and address indexes if needed.
 	var indexes []index.Indexer
@@ -123,25 +123,25 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 	// index-manager
 	var indexManager blockchain.IndexManager
 	if len(indexes) > 0 {
-		indexManager = index.NewManager(qm.db,indexes,node.Params)
+		indexManager = index.NewManager(qm.db, indexes, node.Params)
 	}
 
-	qm.nfManager = &notifymgr.NotifyMgr{Server:node.peerServer, RpcServer:node.rpcServer}
+	qm.nfManager = &notifymgr.NotifyMgr{Server: node.peerServer, RpcServer: node.rpcServer}
 
 	// block-manager
-	bm, err := blkmgr.NewBlockManager(qm.nfManager,indexManager,node.DB, qm.timeSource, qm.sigCache, node.Config, node.Params,
-		mining.BlockVersion(node.Params.Net),node.quit)
+	bm, err := blkmgr.NewBlockManager(qm.nfManager, indexManager, node.DB, qm.timeSource, qm.sigCache, node.Config, node.Params,
+		mining.BlockVersion(node.Params.Net), node.quit)
 	if err != nil {
 		return nil, err
 	}
 	qm.blockManager = bm
 
 	// txmanager
-	tm,err:=tx.NewTxManager(bm,txIndex,addrIndex,cfg,qm.nfManager,qm.sigCache,node.DB)
+	tm, err := tx.NewTxManager(bm, txIndex, addrIndex, cfg, qm.nfManager, qm.sigCache, node.DB)
 	if err != nil {
 		return nil, err
 	}
-	qm.txManager=tm
+	qm.txManager = tm
 	bm.GetChain().SetTxManager(tm)
 	// prepare peerServer
 	node.peerServer.BlockManager = bm
@@ -156,9 +156,9 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 		BlockMinSize:      cfg.BlockMinSize,
 		BlockMaxSize:      cfg.BlockMaxSize,
 		BlockPrioritySize: cfg.BlockPrioritySize,
-		TxMinFreeFee:      cfg.MinTxFee,    //TODO, duplicated config item with mem-pool
+		TxMinFreeFee:      cfg.MinTxFee, //TODO, duplicated config item with mem-pool
 		StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
-				return common.StandardScriptVerifyFlags()
+			return common.StandardScriptVerifyFlags()
 		}, //TODO, duplicated config item with mem-pool
 	}
 	// defaultNumWorkers is the default number of workers to use for mining
@@ -166,19 +166,19 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error){
 	// system stays reasonably responsive under heavy load.
 	defaultNumWorkers := uint32(params.CPUMinerThreads) //TODO, move to config
 
-	qm.cpuMiner = miner.NewCPUMiner(cfg,node.Params,&policy,qm.sigCache,
-		qm.txManager.MemPool().(*mempool.TxPool),qm.timeSource,qm.blockManager,defaultNumWorkers)
+	qm.cpuMiner = miner.NewCPUMiner(cfg, node.Params, &policy, qm.sigCache,
+		qm.txManager.MemPool().(*mempool.TxPool), qm.timeSource, qm.blockManager, defaultNumWorkers)
 
 	return &qm, nil
 }
 
 // return block manager
-func (qm *QitmeerFull) GetBlockManager() *blkmgr.BlockManager{
+func (qm *QitmeerFull) GetBlockManager() *blkmgr.BlockManager {
 	return qm.blockManager
 }
 
 // return cpu miner
-func (qm *QitmeerFull) GetCpuMiner() *miner.CPUMiner{
+func (qm *QitmeerFull) GetCpuMiner() *miner.CPUMiner {
 	return qm.cpuMiner
 }
 

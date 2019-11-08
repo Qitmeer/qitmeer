@@ -3,8 +3,8 @@
 package ecc
 
 import (
-	"math/big"
 	"io"
+	"math/big"
 )
 
 // DSA is an encapsulating interface for all the functions of a digital
@@ -139,5 +139,3 @@ var Ed25519 = newEdwardsDSA()
 // SecSchnorr is a Schnorr signature scheme about the secp256k1 curve
 // implemented in libsecp256k1.
 var SecSchnorr = newSecSchnorrDSA()
-
-
