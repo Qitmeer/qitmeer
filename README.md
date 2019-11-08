@@ -1,6 +1,7 @@
 # Qitmeer
 
 [![Build Status](https://travis-ci.com/Qitmeer/qitmeer.svg?token=DzCFNC6nhEqPc89sq1nd&branch=master)](https://travis-ci.com/Qitmeer/qitmeer)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer?ref=badge_shield)
 
 
 The guardian of trust. The core backend of the qitmeer network.
@@ -72,3 +73,7 @@ replace (
 [qitmeer rpc tools](https://github.com/Qitmeer/qitmeer-cli)
 
 **happy hacking!**
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer?ref=badge_large)
