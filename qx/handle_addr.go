@@ -69,12 +69,12 @@ func EcScriptKeyToAddress(version string, pubkey string) (string, error) {
 }
 
 func EcPubKeyToAddressSTDO(version []byte, pubkey string) {
-	data, err :=hex.DecodeString(pubkey)
+	data, err := hex.DecodeString(pubkey)
 	if err != nil {
 		ErrExit(err)
 	}
 	h := hash.Hash160(data)
 
 	address := base58.QitmeerCheckEncode(h, version[:])
-	fmt.Printf("%s\n",address)
+	fmt.Printf("%s\n", address)
 }

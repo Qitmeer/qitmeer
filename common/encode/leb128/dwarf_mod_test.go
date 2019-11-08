@@ -3,10 +3,10 @@
 package leb128
 
 import (
-	"testing"
-	"reflect"
 	"fmt"
+	"reflect"
 	"strings"
+	"testing"
 )
 
 func TestInt64(t *testing.T) {
@@ -36,8 +36,8 @@ func TestInt64(t *testing.T) {
 				t.Errorf("Uleb128FromInt64(%v) = %0x, want %0x", tt.n, got, tt.want)
 			}
 		})
-		t.Run("TestToInt64", func (t *testing.T) {
-			if got,_ := Uleb128ToUint64(tt.want); !reflect.DeepEqual(int64(got), tt.n) {
+		t.Run("TestToInt64", func(t *testing.T) {
+			if got, _ := Uleb128ToUint64(tt.want); !reflect.DeepEqual(int64(got), tt.n) {
 				t.Errorf("Uleb128ToUint64(%v) = %0x, want %0x", tt.want, got, tt.n)
 			}
 		})

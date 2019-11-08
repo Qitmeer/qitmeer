@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-func ErrExit(err error){
-	fmt.Fprintf(os.Stderr, "Qx Error : %q\n",err)
+func ErrExit(err error) {
+	fmt.Fprintf(os.Stderr, "Qx Error : %q\n", err)
 	os.Exit(1)
 }

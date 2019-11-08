@@ -10,9 +10,9 @@ import (
 // TokenPayout is a payout for block 1 which specifies an address and an amount
 // to pay to that address in a transaction output.
 type TokenPayout struct {
-	Address string
+	Address  string
 	PkScript []byte
-	Amount  uint64
+	Amount   uint64
 }
 
 // GenesisLedger specifies the list of payouts in the coinbase of
@@ -36,18 +36,18 @@ func GenesisLedgerSubsidy() uint64 {
 	return sum
 }
 
-func addPayout(addr string,amount uint64,pksStr string) {
-	pks,err:=hex.DecodeString(pksStr)
+func addPayout(addr string, amount uint64, pksStr string) {
+	pks, err := hex.DecodeString(pksStr)
 	if err != nil {
-		fmt.Printf("Error %v - address:%s  amount:%d\n",err,addr,amount)
+		fmt.Printf("Error %v - address:%s  amount:%d\n", err, addr, amount)
 		return
 	}
-	GenesisLedger=append(GenesisLedger,&TokenPayout{addr,pks,amount})
+	GenesisLedger = append(GenesisLedger, &TokenPayout{addr, pks, amount})
 	//fmt.Printf("Add payout (%d) - address:%s  amount:%d\n",len(GenesisLedger),addr,amount)
 }
 
 // pay out tokens to a ledger.
-func Ledger(tx *types.Transaction,netType protocol.Network) {
+func Ledger(tx *types.Transaction, netType protocol.Network) {
 	switch netType {
 	case protocol.MainNet:
 		initMain()

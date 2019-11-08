@@ -21,7 +21,7 @@ func (s *HashSet) Add(elem *hash.Hash) {
 }
 
 // Add one pair of data
-func (s *HashSet) AddPair(elem *hash.Hash,data interface{}) {
+func (s *HashSet) AddPair(elem *hash.Hash, data interface{}) {
 	s.m[*elem] = data
 }
 
@@ -36,7 +36,7 @@ func (s *HashSet) AddSet(other *HashSet) {
 		return
 	}
 	for k, v := range other.GetMap() {
-		s.AddPair(&k,v)
+		s.AddPair(&k, v)
 	}
 }
 
@@ -44,7 +44,7 @@ func (s *HashSet) RemoveSet(other *HashSet) {
 	if other == nil || other.Size() == 0 {
 		return
 	}
-	for k:= range other.GetMap() {
+	for k := range other.GetMap() {
 		s.Remove(&k)
 	}
 }
@@ -53,7 +53,7 @@ func (s *HashSet) AddList(list []*hash.Hash) {
 	if len(list) == 0 {
 		return
 	}
-	for _,v:= range list {
+	for _, v := range list {
 		s.Add(v)
 	}
 }
@@ -75,7 +75,7 @@ func (s *HashSet) Intersection(other *HashSet) *HashSet {
 		result.AddSet(s)
 	} else {
 		if other != nil && other.Size() > 0 {
-			for k:= range other.GetMap() {
+			for k := range other.GetMap() {
 				if s.Has(&k) {
 					result.Add(&k)
 				}
@@ -87,7 +87,7 @@ func (s *HashSet) Intersection(other *HashSet) *HashSet {
 
 func (s *HashSet) Exclude(other *HashSet) {
 	if other != nil && other.Size() > 0 {
-		for k:= range other.GetMap() {
+		for k := range other.GetMap() {
 			if s.Has(&k) {
 				s.Remove(&k)
 			}
@@ -113,13 +113,13 @@ func (s *HashSet) Size() int {
 }
 
 func (s *HashSet) IsEmpty() bool {
-	return s.Size()==0
+	return s.Size() == 0
 }
 
 func (s *HashSet) List() []*hash.Hash {
 	list := []*hash.Hash{}
-	for item:= range s.m {
-		kv:=item
+	for item := range s.m {
+		kv := item
 		list = append(list, &kv)
 	}
 	return list
@@ -129,7 +129,7 @@ func (s *HashSet) SortList(reverse bool) []*hash.Hash {
 	list := HashSlice(s.List())
 	if reverse {
 		sort.Sort(sort.Reverse(list))
-	}else{
+	} else {
 		sort.Sort(list)
 	}
 	return []*hash.Hash(list)
@@ -137,12 +137,12 @@ func (s *HashSet) SortList(reverse bool) []*hash.Hash {
 
 func (s *HashSet) IsEqual(other *HashSet) bool {
 	var k hash.Hash
-	for k= range s.m {
+	for k = range s.m {
 		if !other.Has(&k) {
 			return false
 		}
 	}
-	for k= range other.m {
+	for k = range other.m {
 		if !s.Has(&k) {
 			return false
 		}
@@ -155,7 +155,7 @@ func (s *HashSet) Contain(other *HashSet) bool {
 	if other.IsEmpty() {
 		return false
 	}
-	for k:= range other.GetMap() {
+	for k := range other.GetMap() {
 		if !s.Has(&k) {
 			return false
 		}
@@ -171,7 +171,7 @@ func (s *HashSet) Clone() *HashSet {
 }
 
 func (s *HashSet) Clean() {
-	s.m=map[hash.Hash]interface{}{}
+	s.m = map[hash.Hash]interface{}{}
 }
 
 // Create a new HashSet
@@ -205,4 +205,4 @@ func GetMaxLenHashSet(bsm map[hash.Hash]*HashSet) *hash.Hash {
 }
 
 // This struct is empty
-type Empty struct {}
+type Empty struct{}

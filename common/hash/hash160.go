@@ -15,5 +15,3 @@ func CalcHash(buf []byte, hasher h.Hash) []byte {
 func Hash160(buf []byte) []byte {
 	return CalcHash(HashB(buf), GetHasher(Ripemd160))
 }
-
-

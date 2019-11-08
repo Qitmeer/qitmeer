@@ -111,7 +111,7 @@ func reconcileDB(pdb *db, create bool) (database.DB, error) {
 		str := fmt.Sprintf("metadata claims file %d, offset %d, but "+
 			"block data is at file %d, offset %d", curFileNum,
 			curOffset, wc.curFileNum, wc.curOffset)
-		dblog.Warn("***Database corruption detected***: ","err", str)
+		dblog.Warn("***Database corruption detected***: ", "err", str)
 		return nil, makeDbErr(database.ErrCorruption, str, nil)
 	}
 

@@ -5,15 +5,16 @@ package rpc
 import (
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"mime"
 	"net/http"
-	"github.com/Qitmeer/qitmeer/core/types"
 )
 
 const (
 	contentType             = "application/json"
 	maxRequestContentLength = types.MaxBlockPayload
 )
+
 // validateRequest returns a non-zero response code and error message if the
 // request is invalid.
 func validateRequest(r *http.Request) (int, error) {

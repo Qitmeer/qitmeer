@@ -13,4 +13,3 @@ type Uint32Time time.Time
 // a way to signal the readElement function how to decode a timestamp into a Go
 // time.Time since it is otherwise ambiguous.
 type Int64Time time.Time
-

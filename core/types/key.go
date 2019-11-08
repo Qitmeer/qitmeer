@@ -7,7 +7,7 @@ import (
 )
 
 type Key struct {
-	Address Address
+	Address    Address
 	PrivateKey *ecc.PrivateKey
 }
 

@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-    "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 	"github.com/rcrowley/go-metrics/exp"
 )
 
@@ -123,10 +123,9 @@ func CollectProcessMetrics(refresh time.Duration) {
 }
 
 func NewRegisteredMeter(name string, r metrics.Registry) metrics.Meter {
-	return metrics.NewRegisteredMeter(name,r)
+	return metrics.NewRegisteredMeter(name, r)
 }
 
 func NewRegisteredCounter(name string, r metrics.Registry) metrics.Counter {
-	return metrics.NewRegisteredCounter(name,r)
+	return metrics.NewRegisteredCounter(name, r)
 }
-

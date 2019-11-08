@@ -3,24 +3,25 @@
 package ecc
 
 import (
-	"math/big"
 	"crypto/ecdsa"
+	"math/big"
 )
 
 // The Ec Type
 type EcType int
+
 const (
 	// the secp256k1 curve and ECDSA system used in Bitcoin and Ethereum
-	ECDSA_Secp256k1 EcType = iota      // 0
+	ECDSA_Secp256k1 EcType = iota // 0
 
 	// the Ed25519 ECDSA signature system.
-	EdDSA_Ed25519                   // 1
+	EdDSA_Ed25519 // 1
 
 	// the Schnorr signature scheme
 	// TODO
 	// 1.) the secp256k1 curve implemented in libsecp256k1
 	// 2.) the Schnorr signatures over Curve25519
-	ECDSA_SecpSchnorr               // 2
+	ECDSA_SecpSchnorr // 2
 
 	// the Sm2 ecdsa, SM2-P-256
 	// TODO, try github.com/tjfoc/gmsm/sm2
@@ -40,7 +41,6 @@ type Key interface {
 // PublicKey is an interface representing a public key and its associated
 // functions.
 type PublicKey interface {
-
 	Key
 
 	// SerializeUncompressed serializes to the uncompressed format (if
@@ -62,8 +62,6 @@ type PublicKey interface {
 
 	// GetY returns the point's Y value.
 	GetY() *big.Int
-
-
 }
 
 // PrivateKey is an interface representing a private key and its associated
@@ -94,5 +92,4 @@ type Signature interface {
 
 	// GetS gets the S value of the signature.
 	GetS() *big.Int
-
 }

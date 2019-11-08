@@ -18,7 +18,7 @@ func (sh HashSlice) Swap(i, j int) {
 }
 
 func (sh HashSlice) Has(h *hash.Hash) bool {
-	for _,v:=range sh{
+	for _, v := range sh {
 		if v.IsEqual(h) {
 			return true
 		}

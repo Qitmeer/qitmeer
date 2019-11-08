@@ -2,12 +2,12 @@
 package blockchain
 
 import (
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"sync"
-	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/params"
+	"sync"
 )
 
 // IndexManager provides a generic interface that the is called when blocks are
@@ -39,12 +39,12 @@ type blockIndex struct {
 	// The following fields are set when the instance is created and can't
 	// be changed afterwards, so there is no need to protect them with a
 	// separate mutex.
-	db          database.DB
-	params      *params.Params
+	db     database.DB
+	params *params.Params
 
 	sync.RWMutex
-	index     map[hash.Hash]*blockNode
-	dirty     map[*blockNode]struct{}
+	index map[hash.Hash]*blockNode
+	dirty map[*blockNode]struct{}
 }
 
 // newBlockIndex returns a new empty instance of a block index.  The index will
@@ -52,10 +52,10 @@ type blockIndex struct {
 // manually added.
 func newBlockIndex(db database.DB, par *params.Params) *blockIndex {
 	return &blockIndex{
-		db:          db,
-		params:      par,
-		index:       make(map[hash.Hash]*blockNode),
-		dirty:       make(map[*blockNode]struct{}),
+		db:     db,
+		params: par,
+		index:  make(map[hash.Hash]*blockNode),
+		dirty:  make(map[*blockNode]struct{}),
 	}
 }
 
@@ -84,12 +84,13 @@ func (bi *blockIndex) LookupNode(hash *hash.Hash) *blockNode {
 // This function MUST be called with the block index lock held (for writes).
 func (bi *blockIndex) addNode(node *blockNode) {
 	bi.index[node.hash] = node
-	if node.parents!=nil&&len(node.parents)>0 {
-		for _,v:=range node.parents{
+	if node.parents != nil && len(node.parents) > 0 {
+		for _, v := range node.parents {
 			v.AddChild(node)
 		}
 	}
 }
+
 // AddNode adds the provided node to the block index.  Duplicate entries are not
 // checked so it is up to caller to avoid adding them.
 //
@@ -100,7 +101,6 @@ func (bi *blockIndex) AddNode(node *blockNode) {
 	bi.dirty[node] = struct{}{}
 	bi.Unlock()
 }
-
 
 // HaveBlock returns whether or not the block index contains the provided hash.
 //
@@ -145,17 +145,17 @@ func (bi *blockIndex) UnsetStatusFlags(node *blockNode, flags blockStatus) {
 }
 
 // This function can get backward block hash from list.
-func (bi *blockIndex)GetMaxOrderFromList(list []*hash.Hash) *hash.Hash {
-	var maxOrder uint64=0
-	var maxHash *hash.Hash=nil
-	for _,v:=range list{
-		node:=bi.LookupNode(v)
-		if node==nil {
+func (bi *blockIndex) GetMaxOrderFromList(list []*hash.Hash) *hash.Hash {
+	var maxOrder uint64 = 0
+	var maxHash *hash.Hash = nil
+	for _, v := range list {
+		node := bi.LookupNode(v)
+		if node == nil {
 			continue
 		}
-		if maxOrder==0||maxOrder<node.order {
-			maxOrder=node.order
-			maxHash=v
+		if maxOrder == 0 || maxOrder < node.order {
+			maxOrder = node.order
+			maxHash = v
 		}
 	}
 	return maxHash
@@ -170,9 +170,9 @@ func (bi *blockIndex) flushToDB(bd *blockdag.BlockDAG) error {
 
 	err := bi.db.Update(func(dbTx database.Tx) error {
 		for node := range bi.dirty {
-			block:=bd.GetBlock(node.GetHash())
+			block := bd.GetBlock(node.GetHash())
 			block.SetStatus(blockdag.BlockStatus(node.status))
-			err := blockdag.DBPutDAGBlock(dbTx,block)
+			err := blockdag.DBPutDAGBlock(dbTx, block)
 			if err != nil {
 				return err
 			}
@@ -190,10 +190,10 @@ func (bi *blockIndex) flushToDB(bd *blockdag.BlockDAG) error {
 }
 
 func GetMaxLayerFromList(list []*blockNode) uint {
-	var maxLayer uint=0
-	for _,v:=range list{
-		if maxLayer==0||maxLayer<v.GetLayer() {
-			maxLayer=v.GetLayer()
+	var maxLayer uint = 0
+	for _, v := range list {
+		if maxLayer == 0 || maxLayer < v.GetLayer() {
+			maxLayer = v.GetLayer()
 		}
 	}
 	return maxLayer

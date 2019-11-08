@@ -8,13 +8,13 @@ package mining
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/merkle"
 	"time"
 )
 
@@ -75,13 +75,12 @@ type TxSource interface {
 	// HaveAllTransactions returns whether or not all of the passed
 	// transaction hashes exist in the source pool.
 	HaveAllTransactions(hashes []hash.Hash) bool
-
 }
 
 // Allowed timestamp for a block building on the end of the provided best chain.
 func MinimumMedianTime(bc *blockchain.BlockChain) time.Time {
-	mainTip:=bc.BlockIndex().LookupNode(bc.BlockDAG().GetMainChainTip().GetHash())
-	mainTipTime:=time.Unix(mainTip.GetTimestamp(), 0)
+	mainTip := bc.BlockIndex().LookupNode(bc.BlockDAG().GetMainChainTip().GetHash())
+	mainTipTime := time.Unix(mainTip.GetTimestamp(), 0)
 	return mainTipTime.Add(time.Second)
 }
 
@@ -106,7 +105,7 @@ func standardCoinbaseScript(nextBlockHeight uint64, extraNonce uint64) ([]byte, 
 // coinbase to use as extranonces. The OP_RETURN pushes 32 bytes.
 func standardCoinbaseOpReturn(enData []byte) ([]byte, error) {
 	if len(enData) == 0 {
-		return nil,nil
+		return nil, nil
 	}
 	extraNonceScript, err := txscript.GenerateProvablyPruneableOut(enData)
 	if err != nil {
@@ -114,7 +113,6 @@ func standardCoinbaseOpReturn(enData []byte) ([]byte, error) {
 	}
 	return extraNonceScript, nil
 }
-
 
 // createCoinbaseTx returns a coinbase transaction paying an appropriate subsidy
 // based on the passed block height to the provided address.  When the address
@@ -128,15 +126,15 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 		// Coinbase transactions have no inputs, so previous outpoint is
 		// zero hash and max index.
 		PreviousOut: *types.NewOutPoint(&hash.Hash{},
-			types.MaxPrevOutIndex ),
-		Sequence:        types.MaxTxInSequenceNum,
-		SignScript:      coinbaseScript,
+			types.MaxPrevOutIndex),
+		Sequence:   types.MaxTxInSequenceNum,
+		SignScript: coinbaseScript,
 	})
 
-	hasTax:=false
+	hasTax := false
 	if params.BlockTaxProportion > 0 &&
-		len(params.OrganizationPkScript) > 0{
-		hasTax=true
+		len(params.OrganizationPkScript) > 0 {
+		hasTax = true
 	}
 	// Create a coinbase with correct block subsidy and extranonce.
 	subsidy := blockchain.CalcBlockWorkSubsidy(subsidyCache,
@@ -163,8 +161,8 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 		}
 	}
 	if !hasTax {
-		subsidy+=uint64(tax)
-		tax=0
+		subsidy += uint64(tax)
+		tax = 0
 	}
 	// Subsidy paid to miner.
 	tx.AddTxOut(&types.TxOutput{
@@ -175,21 +173,21 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	// Tax output.
 	if hasTax {
 		tx.AddTxOut(&types.TxOutput{
-				Amount:    uint64(tax),
-				PkScript: params.OrganizationPkScript,
-			})
+			Amount:   uint64(tax),
+			PkScript: params.OrganizationPkScript,
+		})
 	}
 	// nulldata.
 	if opReturnPkScript != nil {
 		tx.AddTxOut(&types.TxOutput{
-			Amount:    0,
+			Amount:   0,
 			PkScript: opReturnPkScript,
 		})
 	}
 	return types.NewTx(tx), nil
 }
 
-func BlockVersion(net protocol.Network) uint32  {
+func BlockVersion(net protocol.Network) uint32 {
 	blockVersion := uint32(GeneratedBlockVersion)
 	if net != protocol.MainNet {
 		blockVersion = GeneratedBlockVersionTest
@@ -202,11 +200,11 @@ func BlockVersion(net protocol.Network) uint32  {
 }
 
 func fillWitnessToCoinBase(blockTxns []*types.Tx) error {
-	merkles := merkle.BuildMerkleTreeStore(blockTxns,true)
-    txWitnessRoot:=merkles[len(merkles)-1]
-	witnessPreimage:=append(txWitnessRoot.Bytes(),blockTxns[0].Tx.TxIn[0].SignScript...)
+	merkles := merkle.BuildMerkleTreeStore(blockTxns, true)
+	txWitnessRoot := merkles[len(merkles)-1]
+	witnessPreimage := append(txWitnessRoot.Bytes(), blockTxns[0].Tx.TxIn[0].SignScript...)
 	witnessCommitment := hash.DoubleHashH(witnessPreimage[:])
-	blockTxns[0].Tx.TxIn[0].PreviousOut.Hash=witnessCommitment
+	blockTxns[0].Tx.TxIn[0].PreviousOut.Hash = witnessCommitment
 	blockTxns[0].RefreshHash()
 	return nil
 }

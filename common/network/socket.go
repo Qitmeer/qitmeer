@@ -90,7 +90,6 @@ func (c *proxiedConn) SetWriteDeadline(t time.Time) error {
 	return c.conn.SetWriteDeadline(t)
 }
 
-
 const (
 	protocolVersion = 5
 

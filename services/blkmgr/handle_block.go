@@ -9,7 +9,8 @@ import (
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"time"
 )
-const(
+
+const (
 
 	// maxResendLimit is the maximum number of times a node can resend a
 	// block or transaction before it is dropped.
@@ -23,7 +24,7 @@ const(
 
 // handleBlockMsg handles block messages from all peers.
 func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
-	log.Trace("handleBlockMsg called", "bmsg",bmsg)
+	log.Trace("handleBlockMsg called", "bmsg", bmsg)
 	sp, exists := b.peers[bmsg.peer.Peer]
 	if !exists {
 		log.Warn(fmt.Sprintf("Received block message from unknown peer %s", sp))
@@ -95,15 +96,15 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// it as such.  Otherwise, something really did go wrong, so log
 		// it as an actual error.
 		if _, ok := err.(blockchain.RuleError); ok {
-			log.Info("Rejected block", "hash",blockHash, "peer",
-				bmsg.peer, "error",err)
+			log.Info("Rejected block", "hash", blockHash, "peer",
+				bmsg.peer, "error", err)
 		} else {
 			log.Error("Failed to process block", "hash",
-				blockHash, "error",err)
+				blockHash, "error", err)
 		}
 		if dbErr, ok := err.(database.Error); ok && dbErr.ErrorCode ==
 			database.ErrCorruption {
-			log.Error("Critical failure", "error",dbErr.Error())
+			log.Error("Critical failure", "error", dbErr.Error())
 		}
 
 		// Convert the error into an appropriate reject message and
@@ -135,11 +136,11 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// Extraction is only attempted if the block's version is
 		// high enough (ver 2+).
 
-		locator:=b.chain.GetOrphanParents(blockHash)
-		if len(locator)>0 {
-			err = bmsg.peer.PushGetBlocksMsg(best.GraphState,locator)
+		locator := b.chain.GetOrphanParents(blockHash)
+		if len(locator) > 0 {
+			err = bmsg.peer.PushGetBlocksMsg(best.GraphState, locator)
 			if err != nil {
-				log.Warn("Failed to push getblocksmsg for the orphan block", "error",err)
+				log.Warn("Failed to push getblocksmsg for the orphan block", "error", err)
 			}
 		}
 	} else {
@@ -149,7 +150,6 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 
 		b.chain.GetTxManager().MemPool().PruneExpiredTx()
 
-
 		// Clear the rejected transactions.
 		b.rejectedTxns = make(map[hash.Hash]struct{})
 
@@ -158,19 +158,19 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// their old block template to become stale.
 		// TODO, refactor how bm work with rpc-server
 		/*
-		rpcServer := b.server.rpcServer
-		if rpcServer != nil {
-			rpcServer.gbtWorkState.NotifyBlockConnected(blockHash)
-		}
+			rpcServer := b.server.rpcServer
+			if rpcServer != nil {
+				rpcServer.gbtWorkState.NotifyBlockConnected(blockHash)
+			}
 		*/
-		isCurrent:=b.current()
+		isCurrent := b.current()
 		// reset last progress time
 		if bmsg.peer == b.syncPeer {
 			b.lastProgressTime = time.Now()
-			if len(bmsg.peer.RequestedBlocks)==0 {
+			if len(bmsg.peer.RequestedBlocks) == 0 {
 				if isCurrent {
 					log.Info(fmt.Sprintf("Your synchronization has been completed. "))
-				}else{
+				} else {
 					b.PushGetBlocksMsg(bmsg.peer)
 				}
 			}
@@ -201,10 +201,10 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	b.headersFirstMode = false
 	b.headerList.Init()
 	log.Info("Reached the final checkpoint -- switching to normal mode")
-	err = bmsg.peer.PushGetBlocksMsg(best.GraphState,nil)
+	err = bmsg.peer.PushGetBlocksMsg(best.GraphState, nil)
 	if err != nil {
 		log.Warn("Failed to send getblocks message",
-			"peer",bmsg.peer.Addr(), "error",err)
+			"peer", bmsg.peer.Addr(), "error", err)
 		return
 	}
 }

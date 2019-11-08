@@ -24,7 +24,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/database/statedb"
 	"github.com/Qitmeer/qitmeer/log"
-
 )
 
 // Prove constructs a merkle proof for key. The result contains all encoded nodes
@@ -79,7 +78,7 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb statedb.Putter) error {
 			} else {
 				enc, _ := rlp.EncodeToBytes(n)
 				if !ok {
-					h = hash.CalcHash(enc,hash.GetHasher(hash.Keccak_256))
+					h = hash.CalcHash(enc, hash.GetHasher(hash.Keccak_256))
 				}
 				proofDb.Put(h, enc)
 			}

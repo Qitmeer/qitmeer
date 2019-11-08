@@ -12,7 +12,7 @@ func (s *PeerServer) pushBlockMsg(sp *serverPeer, hash *hash.Hash, doneChan chan
 
 	block, err := sp.server.BlockManager.GetChain().FetchBlockByHash(hash)
 	if err != nil {
-		log.Trace("Unable to fetch requested block hash", "hash",hash,
+		log.Trace("Unable to fetch requested block hash", "hash", hash,
 			"error", err)
 
 		if doneChan != nil {
@@ -28,7 +28,7 @@ func (s *PeerServer) pushBlockMsg(sp *serverPeer, hash *hash.Hash, doneChan chan
 
 	// We only send the channel for this message if we aren't sending
 	// an inv straight after.
-	sp.QueueMessage(&message.MsgBlock{Block:block.Block()}, doneChan)
+	sp.QueueMessage(&message.MsgBlock{Block: block.Block()}, doneChan)
 
 	return nil
 }

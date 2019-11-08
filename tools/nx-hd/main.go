@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"os"
 	"github.com/Qitmeer/qitmeer/crypto/bip32"
 	"github.com/Qitmeer/qitmeer/crypto/bip39"
+	"os"
 )
 
 func main() {

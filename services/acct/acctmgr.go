@@ -7,7 +7,6 @@ import (
 
 // account manager communicate with various backends for signing transactions.
 type AccountManager struct {
-
 }
 
 func (a *AccountManager) Start() error {
@@ -20,7 +19,7 @@ func (a *AccountManager) Stop() error {
 	return nil
 }
 
-func (a AccountManager)	APIs() []rpc.API {
+func (a AccountManager) APIs() []rpc.API {
 	return []rpc.API{
 		{
 			NameSpace: rpc.DefaultServiceNameSpace,
@@ -30,10 +29,7 @@ func (a AccountManager)	APIs() []rpc.API {
 	}
 }
 
-func New() (*AccountManager, error){
+func New() (*AccountManager, error) {
 	a := AccountManager{}
-	return &a,nil
+	return &a, nil
 }
-
-
-

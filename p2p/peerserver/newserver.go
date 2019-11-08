@@ -14,24 +14,24 @@ import (
 	"time"
 )
 
-func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, error){
+func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer, error) {
 
 	services := defaultServices
 
 	s := PeerServer{
-		services: services,
-		cfg: cfg,
-		chainParams:          chainParams,
-		newPeers:             make(chan *serverPeer, cfg.MaxPeers),
-		donePeers:            make(chan *serverPeer, cfg.MaxPeers),
-		banPeers:             make(chan *serverPeer, cfg.MaxPeers),
-		query:                make(chan interface{}),
-		relayInv:             make(chan relayMsg, cfg.MaxPeers),
-		broadcast:            make(chan broadcastMsg, cfg.MaxPeers),
-		quit:                 make(chan struct{}),
+		services:    services,
+		cfg:         cfg,
+		chainParams: chainParams,
+		newPeers:    make(chan *serverPeer, cfg.MaxPeers),
+		donePeers:   make(chan *serverPeer, cfg.MaxPeers),
+		banPeers:    make(chan *serverPeer, cfg.MaxPeers),
+		query:       make(chan interface{}),
+		relayInv:    make(chan relayMsg, cfg.MaxPeers),
+		broadcast:   make(chan broadcastMsg, cfg.MaxPeers),
+		quit:        make(chan struct{}),
 	}
 
-	amgr := addmgr.New(cfg.DataDir,cfg.GetAddrPercent,net.LookupIP)
+	amgr := addmgr.New(cfg.DataDir, cfg.GetAddrPercent, net.LookupIP)
 	var listeners []net.Listener
 	var nat NAT
 	if !cfg.DisableListen {
@@ -58,14 +58,14 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 					port, err := strconv.ParseUint(
 						portstr, 10, 16)
 					if err != nil {
-						log.Warn("Can not parse port for externalip","ip",sip,"error",err)
+						log.Warn("Can not parse port for externalip", "ip", sip, "error", err)
 						continue
 					}
 					eport = uint16(port)
 				}
 				na, err := amgr.HostToNetAddress(host, eport, services)
 				if err != nil {
-					log.Warn("Not adding as externalip","ip", sip, "error",err)
+					log.Warn("Not adding as externalip", "ip", sip, "error", err)
 					continue
 				}
 
@@ -105,7 +105,7 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 				if discover {
 					err = amgr.AddLocalAddress(na, addmgr.InterfacePrio)
 					if err != nil {
-						log.Debug("Skipping local address", "error",err)
+						log.Debug("Skipping local address", "error", err)
 					}
 				}
 			}
@@ -115,7 +115,7 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 		for _, addr := range ipv4Addrs {
 			listener, err := net.Listen("tcp4", addr)
 			if err != nil {
-				log.Warn("Can't listen on","addr",addr, "error",err)
+				log.Warn("Can't listen on", "addr", addr, "error", err)
 				continue
 			}
 			listeners = append(listeners, listener)
@@ -124,7 +124,7 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 				if na, err := amgr.DeserializeNetAddress(addr); err == nil {
 					err = amgr.AddLocalAddress(na, addmgr.BoundPrio)
 					if err != nil {
-						log.Warn("Skipping bound address", "addr",addr, "error",err)
+						log.Warn("Skipping bound address", "addr", addr, "error", err)
 					}
 				}
 			}
@@ -133,7 +133,7 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 		for _, addr := range ipv6Addrs {
 			listener, err := net.Listen("tcp6", addr)
 			if err != nil {
-				log.Warn("Can't listen on", "addr",addr, "error",err)
+				log.Warn("Can't listen on", "addr", addr, "error", err)
 				continue
 			}
 			listeners = append(listeners, listener)
@@ -141,7 +141,7 @@ func NewPeerServer(cfg *config.Config,chainParams *params.Params) (*PeerServer, 
 				if na, err := amgr.DeserializeNetAddress(addr); err == nil {
 					err = amgr.AddLocalAddress(na, addmgr.BoundPrio)
 					if err != nil {
-						log.Debug("Skipping bound address", "error",err)
+						log.Debug("Skipping bound address", "error", err)
 					}
 				}
 			}

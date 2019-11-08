@@ -32,7 +32,7 @@ const defaultInvListAlloc = 1000
 // Use the AddInvVect function to build up the list of inventory vectors when
 // sending an inv message to another peer.
 type MsgInv struct {
-	GS *blockdag.GraphState
+	GS      *blockdag.GraphState
 	InvList []*InvVect
 }
 
@@ -74,8 +74,8 @@ func (msg *MsgInv) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddInvVect(iv)
 	}
-	msg.GS=blockdag.NewGraphState()
-	err = msg.GS.Decode(r,pver)
+	msg.GS = blockdag.NewGraphState()
+	err = msg.GS.Decode(r, pver)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (msg *MsgInv) Encode(w io.Writer, pver uint32) error {
 		}
 	}
 
-	err = msg.GS.Encode(w,pver)
+	err = msg.GS.Encode(w, pver)
 	if err != nil {
 		return err
 	}
@@ -122,14 +122,14 @@ func (msg *MsgInv) Command() string {
 // receiver.  This is part of the Message interface implementation.
 func (msg *MsgInv) MaxPayloadLength(pver uint32) uint32 {
 	// Num inventory vectors (varInt) + max allowed inventory vectors.
-	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload)+8 + 4 + (blockdag.MaxTips * hash.HashSize)
+	return MaxVarIntPayload + (MaxInvPerMsg * maxInvVectPayload) + 8 + 4 + (blockdag.MaxTips * hash.HashSize)
 }
 
 // NewMsgInv returns a new inv message that conforms to the Message
 // interface.  See MsgInv for details.
 func NewMsgInv() *MsgInv {
 	return &MsgInv{
-		GS:blockdag.NewGraphState(),
+		GS:      blockdag.NewGraphState(),
 		InvList: make([]*InvVect, 0, defaultInvListAlloc),
 	}
 }
@@ -151,7 +151,7 @@ func NewMsgInvSizeHint(sizeHint uint) *MsgInv {
 	}
 
 	return &MsgInv{
-		GS:blockdag.NewGraphState(),
+		GS:      blockdag.NewGraphState(),
 		InvList: make([]*InvVect, 0, sizeHint),
 	}
 }

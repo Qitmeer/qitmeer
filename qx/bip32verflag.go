@@ -13,7 +13,7 @@ var (
 	QitmeerMainnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.MainNetParams.HDPrivateKeyID[:], PubKeyVersion: params.MainNetParams.HDPublicKeyID[:]}
 	QitmeerTestnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.TestNetParams.HDPrivateKeyID[:], PubKeyVersion: params.TestNetParams.HDPublicKeyID[:]}
 	QitmeerPrivnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.PrivNetParams.HDPrivateKeyID[:], PubKeyVersion: params.PrivNetParams.HDPublicKeyID[:]}
-	QitmeerMixnetBip32Version = bip32.Bip32Version{PrivKeyVersion: params.MixNetParam.HDPrivateKeyID[:], PubKeyVersion: params.MixNetParam.HDPublicKeyID[:]}
+	QitmeerMixnetBip32Version  = bip32.Bip32Version{PrivKeyVersion: params.MixNetParam.HDPrivateKeyID[:], PubKeyVersion: params.MixNetParam.HDPublicKeyID[:]}
 )
 
 type Bip32VersionFlag struct {

@@ -8,10 +8,10 @@ package txscript
 
 import (
 	"encoding/binary"
-	"math"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/params"
+	"math"
 )
 
 // SigHashType represents hash type bits at the end of a signature.

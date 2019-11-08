@@ -9,9 +9,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -20,12 +19,13 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/peer/invcache"
 	"github.com/Qitmeer/qitmeer/p2p/peer/nounce"
 	"github.com/Qitmeer/qitmeer/params"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/satori/go.uuid"
 	"net"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-	"github.com/satori/go.uuid"
 )
 
 // outMsg is used to house a message to be sent along with a channel to signal
@@ -38,7 +38,6 @@ type outMsg struct {
 
 // Peer represents a connected p2p network remote node.
 type Peer struct {
-
 	conn net.Conn
 
 	// These fields are set at creation time and never modified, so they are
@@ -48,78 +47,76 @@ type Peer struct {
 	inbound bool
 
 	// These fields are variables must only be used atomically.
-	connected     int32   //connected flag
-	disconnect    int32   //disconnect flag
+	connected  int32 //connected flag
+	disconnect int32 //disconnect flag
 
-	bytesReceived uint64  //msg bytes read from
-	bytesSent     uint64  //msg bytes write to
+	bytesReceived uint64 //msg bytes read from
+	bytesSent     uint64 //msg bytes write to
 
-	lastRecv      int64  //last recv time
-	lastSend      int64  //last sent time
-
+	lastRecv int64 //last recv time
+	lastSend int64 //last sent time
 
 	// These fields protects by the flagsMtx mutex
-	flagsMtx             sync.Mutex
+	flagsMtx sync.Mutex
 	// - address
-	na                   *types.NetAddress
+	na *types.NetAddress
 	// - id
-	id                   int32
+	id int32
 	// - A universally unique identifier for peer
-	uuid                 uuid.UUID
+	uuid uuid.UUID
 	// - user-agent
-	userAgent            string
+	userAgent string
 	// - version
-	versionKnown         bool
+	versionKnown bool
 	// - services flag
-	services             protocol.ServiceFlag
+	services protocol.ServiceFlag
 	// - advertised protocol version by remote
-	advertisedProtoVer   uint32
+	advertisedProtoVer uint32
 	// - negotiated protocol version
-	protocolVersion      uint32
+	protocolVersion uint32
 
-	versionSent          bool  // peer sent the version msg
-	verAckReceived       bool  // peer received the version ack msg
-	sendHeadersPreferred bool  // peer wants header instead of block
+	versionSent          bool // peer sent the version msg
+	verAckReceived       bool // peer received the version ack msg
+	sendHeadersPreferred bool // peer wants header instead of block
 
 	// Inv
-	knownInventory     *invcache.InventoryCache
+	knownInventory *invcache.InventoryCache
 
 	// prevget
-	prevGet            PrevGet
-	prevGetHdrs        PrevGet
+	prevGet     PrevGet
+	prevGetHdrs PrevGet
 
 	// These fields keep track of statistics for the peer and are protected
 	// by the statsMtx mutex.
-	statsMtx           sync.RWMutex
+	statsMtx sync.RWMutex
 
 	// - block
 	lastGS             *blockdag.GraphState
 	lastAnnouncedBlock *hash.Hash
 
 	// - Time
-	timeOffset         int64
-	timeConnected      time.Time
+	timeOffset    int64
+	timeConnected time.Time
 
 	// - Ping/Pong
-	lastPingNonce      uint64    // Set to nonce if we have a pending ping.
-	lastPingTime       time.Time // Time we sent last ping.
-	lastPingMicros     int64     // Time for last ping to return.
+	lastPingNonce  uint64    // Set to nonce if we have a pending ping.
+	lastPingTime   time.Time // Time we sent last ping.
+	lastPingMicros int64     // Time for last ping to return.
 
 	// These fields are chans for peer msg handling
 	//  - quit
-	quit          chan struct{}
+	quit chan struct{}
 	//  - stall
-	stallControl  chan stallControlMsg
+	stallControl chan stallControlMsg
 	//  - in
-	inQuit        chan struct{}
-	queueQuit     chan struct{}
-	outQuit       chan struct{}
+	inQuit    chan struct{}
+	queueQuit chan struct{}
+	outQuit   chan struct{}
 	//  - query
 	outputQueue   chan outMsg
 	sendQueue     chan outMsg
 	sendDoneQueue chan struct{}
 	outputInvChan chan *message.InvVect
-
 }
 
 var (
@@ -151,7 +148,7 @@ func (p *Peer) readMessage() (message.Message, []byte, error) {
 
 	// Use closures to log expensive operations so they are only run when
 	// the logging level requires it.
-	log.Debug(fmt.Sprintf("%v",log.LogClosure(func() string {
+	log.Debug(fmt.Sprintf("%v", log.LogClosure(func() string {
 		// Debug summary of message.
 		summary := message.Summary(msg)
 		if len(summary) > 0 {
@@ -160,10 +157,10 @@ func (p *Peer) readMessage() (message.Message, []byte, error) {
 		return fmt.Sprintf("Received %v%s from %s",
 			msg.Command(), summary, p.addr)
 	})))
-	log.Trace(fmt.Sprintf("%v",log.LogClosure(func() string {
+	log.Trace(fmt.Sprintf("%v", log.LogClosure(func() string {
 		return spew.Sdump(msg)
 	})))
-	log.Trace(fmt.Sprintf("%v",log.LogClosure(func() string {
+	log.Trace(fmt.Sprintf("%v", log.LogClosure(func() string {
 		return spew.Sdump(buf)
 	})))
 
@@ -242,14 +239,14 @@ func (p *Peer) readRemoteVersionMsg() error {
 	p.flagsMtx.Lock()
 	p.advertisedProtoVer = uint32(msg.ProtocolVersion)
 	// negotiated protocol version is the minor version of remote version and local version
-	if (p.protocolVersion > p.advertisedProtoVer) {
+	if p.protocolVersion > p.advertisedProtoVer {
 		p.protocolVersion = p.advertisedProtoVer
 	}
 	p.versionKnown = true
 	p.services = msg.Services
 	p.na.Services = msg.Services
 	p.flagsMtx.Unlock()
-	log.Debug("Negotiated protocol version", "ver",p.protocolVersion,"peer", p.addr)
+	log.Debug("Negotiated protocol version", "ver", p.protocolVersion, "peer", p.addr)
 
 	// Updating a bunch of stats.
 	p.statsMtx.Lock()
@@ -263,18 +260,18 @@ func (p *Peer) readRemoteVersionMsg() error {
 	p.flagsMtx.Lock()
 	p.id = atomic.AddInt32(&nodeCount, 1)
 
-	if strings.Contains(msg.UserAgent,"@") {
-		strs:=strings.Split(msg.UserAgent,"@")
-		if len(strs)==2 {
-			p.uuid,err=uuid.FromString(strs[0])
+	if strings.Contains(msg.UserAgent, "@") {
+		strs := strings.Split(msg.UserAgent, "@")
+		if len(strs) == 2 {
+			p.uuid, err = uuid.FromString(strs[0])
 			if err != nil {
 				return err
 			}
-			p.userAgent=strs[1]
+			p.userAgent = strs[1]
 		}
 	}
 
-	if uuid.Equal(p.uuid,uuid.Nil) {
+	if uuid.Equal(p.uuid, uuid.Nil) {
 		p.userAgent = msg.UserAgent
 	}
 
@@ -310,9 +307,9 @@ func (p *Peer) readRemoteVersionMsg() error {
 // localVersionMsg creates a version message that can be used to send to the
 // remote peer.
 func (p *Peer) localVersionMsg() (*message.MsgVersion, error) {
-	gs:=p.GetGraphState()
-	if gs==nil {
-		return nil,fmt.Errorf("no GS")
+	gs := p.GetGraphState()
+	if gs == nil {
+		return nil, fmt.Errorf("no GS")
 	}
 
 	theirNA := p.na
@@ -434,7 +431,7 @@ func (p *Peer) start() error {
 		p.Disconnect()
 		return errors.New("protocol negotiation timeout")
 	}
-	log.Debug("Connected to ", "peer",p.Addr())
+	log.Debug("Connected to ", "peer", p.Addr())
 
 	// The protocol has been negotiated successfully so start processing input
 	// and output messages.

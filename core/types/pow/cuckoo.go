@@ -5,9 +5,9 @@ package pow
 
 import (
 	"encoding/binary"
-	`encoding/hex`
+	"encoding/hex"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	`github.com/Qitmeer/qitmeer/core/json`
+	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/crypto/cuckoo"
 	"math/big"
 )
@@ -28,7 +28,7 @@ func (this *Cuckoo) GetPowResult() json.PowResult {
 		PowType: uint8(this.GetPowType()),
 		Nonce:   this.GetNonce(),
 		ProofData: &json.ProofData{
-			EdgeBits:int(this.ProofData[PROOF_DATA_EDGE_BITS_START:PROOF_DATA_EDGE_BITS_END][0]),
+			EdgeBits:     int(this.ProofData[PROOF_DATA_EDGE_BITS_START:PROOF_DATA_EDGE_BITS_END][0]),
 			CircleNonces: hex.EncodeToString(this.ProofData[PROOF_DATA_EDGE_BITS_END:PROOF_DATA_CIRCLE_NONCE_END]),
 		},
 	}
@@ -99,6 +99,7 @@ func (this *Cuckoo) Bytes() PowBytes {
 func (this *Cuckoo) CompareDiff(newTarget *big.Int, target *big.Int) bool {
 	return newTarget.Cmp(target) >= 0
 }
+
 // pow proof data
 func (this *Cuckoo) BlockData() PowBytes {
 	return this.Bytes()

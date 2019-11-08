@@ -90,7 +90,7 @@ out:
 				}
 
 				invMsg.AddInvVect(iv)
-				invMsg.GS=p.GetGraphState()
+				invMsg.GS = p.GetGraphState()
 				if len(invMsg.InvList) >= maxInvTrickleSize {
 					waiting = queuePacket(
 						outMsg{msg: invMsg},

@@ -7,9 +7,9 @@ package message
 
 import (
 	"fmt"
-	"io"
-	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"io"
 )
 
 const (
@@ -53,7 +53,7 @@ func (invtype InvType) String() string {
 // as specified by the Type field, that a peer wants, has, or does not have to
 // another peer.
 type InvVect struct {
-	Type InvType        // Type of data
+	Type InvType   // Type of data
 	Hash hash.Hash // Hash of the data
 }
 

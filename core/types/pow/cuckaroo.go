@@ -73,7 +73,7 @@ func (this *Cuckaroo) PowPercent() *big.Int {
 	return targetPercent
 }
 
-func (this *Cuckaroo) GetSafeDiff( cur_reduce_diff uint64) *big.Int {
+func (this *Cuckaroo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	minDiffBig := CompactToBig(this.params.CuckarooMinDifficulty)
 	if cur_reduce_diff <= 0 {
 		return minDiffBig
@@ -86,6 +86,7 @@ func (this *Cuckaroo) GetSafeDiff( cur_reduce_diff uint64) *big.Int {
 	}
 	return newTarget
 }
+
 //check pow is available
 func (this *Cuckaroo) CheckAvailable() bool {
 	return this.params.GetPercentByHeight(this.mainHeight).CuckarooPercent > 0

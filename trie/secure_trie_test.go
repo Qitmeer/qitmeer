@@ -96,7 +96,7 @@ func TestSecureGetKey(t *testing.T) {
 
 	key := []byte("foo")
 	value := []byte("bar")
-	seckey := hash.CalcHash(key,hash.GetHasher(hash.Keccak_256))
+	seckey := hash.CalcHash(key, hash.GetHasher(hash.Keccak_256))
 
 	if !bytes.Equal(trie.Get(key), value) {
 		t.Errorf("Get did not return bar")

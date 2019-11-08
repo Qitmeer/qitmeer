@@ -26,14 +26,14 @@ out:
 			listenPort, err := s.nat.AddPortMapping("tcp", int(lport), int(lport),
 				"dcrd listen port", 20*60)
 			if err != nil {
-				log.Warn("can't add UPnP port mapping", "error",err)
+				log.Warn("can't add UPnP port mapping", "error", err)
 			}
 			if first && err == nil {
 				// TODO: look this up periodically to see if upnp domain changed
 				// and so did ip.
 				externalip, err := s.nat.GetExternalAddress()
 				if err != nil {
-					log.Warn("UPnP can't get external address","error", err)
+					log.Warn("UPnP can't get external address", "error", err)
 					continue out
 				}
 				na := types.NewNetAddressIPPort(externalip, uint16(listenPort),
@@ -43,7 +43,7 @@ out:
 					log.Warn("Failed to add UPnP local address %s: %v",
 						na.IP.String(), err)
 				} else {
-					log.Warn("Successfully bound via UPnP","addr",addmgr.NetAddressKey(na))
+					log.Warn("Successfully bound via UPnP", "addr", addmgr.NetAddressKey(na))
 					first = false
 				}
 			}
@@ -56,7 +56,7 @@ out:
 	timer.Stop()
 
 	if err := s.nat.DeletePortMapping("tcp", int(lport), int(lport)); err != nil {
-		log.Warn("unable to remove UPnP port mapping","error", err)
+		log.Warn("unable to remove UPnP port mapping", "error", err)
 	} else {
 		log.Debug("successfully disestablished UPnP port mapping")
 	}

@@ -20,7 +20,7 @@ import (
 type InventoryCache struct {
 	invMtx   sync.Mutex
 	invCache map[message.InvVect]*list.Element // nearly O(1) lookups
-	invList  *list.List                     // O(1) insert, update, delete
+	invList  *list.List                        // O(1) insert, update, delete
 	limit    uint
 }
 

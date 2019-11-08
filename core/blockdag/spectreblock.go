@@ -7,7 +7,7 @@ type ISpectre interface {
 }
 
 type SpectreBlock struct {
-	hash hash.Hash
+	hash           hash.Hash
 	Votes1, Votes2 int // votes in future set, -1 means not voted yet
 }
 
@@ -16,8 +16,8 @@ func (sb *SpectreBlock) GetHash() *hash.Hash {
 }
 
 type SpectreBlockData struct {
-	hash hash.Hash
-	parents []*hash.Hash
+	hash      hash.Hash
+	parents   []*hash.Hash
 	timestamp int64
 }
 

@@ -133,8 +133,8 @@ func (msg *MsgVersion) Decode(r io.Reader, pver uint32) error {
 	// Protocol versions >= 209 added a last known block field.  It is only
 	// considered present if there are bytes remaining in the message.
 	if buf.Len() > 0 {
-		msg.LastGS=blockdag.NewGraphState()
-		err=msg.LastGS.Decode(buf,pver)
+		msg.LastGS = blockdag.NewGraphState()
+		err = msg.LastGS.Decode(buf, pver)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func (msg *MsgVersion) Encode(w io.Writer, pver uint32) error {
 		return err
 	}
 
-	err = s.WriteElements(w, msg.ProtocolVersion,msg.Services,
+	err = s.WriteElements(w, msg.ProtocolVersion, msg.Services,
 		msg.Timestamp.Unix())
 	if err != nil {
 		return err
@@ -190,7 +190,7 @@ func (msg *MsgVersion) Encode(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
-	err = msg.LastGS.Encode(w,pver)
+	err = msg.LastGS.Encode(w, pver)
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func (msg *MsgVersion) MaxPayloadLength(pver uint32) uint32 {
 	// agent (varInt) + max allowed useragent length + last block 4 bytes +
 	// relay transactions flag 1 byte.
 	return 29 + (types.MaxNetAddressPayload(pver) * 2) + s.MaxVarIntPayload +
-		MaxUserAgentLen+8 + 4 + (blockdag.MaxTips * hash.HashSize)
+		MaxUserAgentLen + 8 + 4 + (blockdag.MaxTips * hash.HashSize)
 }
 
 // NewMsgVersion returns a new Version message that conforms to the Message
@@ -245,13 +245,13 @@ func NewMsgVersionFromConn(conn net.Conn, nonce uint64,
 
 	// TODO, should define unknown flag instead of using hard-coding 0
 	// Don't assume any services until we know otherwise.
-	lna, err := types.NewNetAddress(conn.LocalAddr(),0)
+	lna, err := types.NewNetAddress(conn.LocalAddr(), 0)
 	if err != nil {
 		return nil, err
 	}
 
 	// Don't assume any services until we know otherwise.
-	rna, err := types.NewNetAddress(conn.RemoteAddr(),0)
+	rna, err := types.NewNetAddress(conn.RemoteAddr(), 0)
 	if err != nil {
 		return nil, err
 	}

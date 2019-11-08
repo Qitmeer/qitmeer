@@ -4,10 +4,10 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"sync"
 )
 
@@ -43,10 +43,10 @@ const (
 //
 // The struct is aligned for memory efficiency.
 type UtxoEntry struct {
-	amount        uint64 // The amount of the output.
-	pkScript      []byte // The public key script for the output.
-	blockHash     hash.Hash
-	packedFlags   txoFlags
+	amount      uint64 // The amount of the output.
+	pkScript    []byte // The public key script for the output.
+	blockHash   hash.Hash
+	packedFlags txoFlags
 }
 
 // isModified returns whether or not the output has been modified since it was
@@ -132,7 +132,7 @@ func (view *UtxoViewpoint) RemoveEntry(outpoint types.TxOutPoint) {
 }
 
 func (view *UtxoViewpoint) Clean() {
-	view.entries=map[types.TxOutPoint]*UtxoEntry{}
+	view.entries = map[types.TxOutPoint]*UtxoEntry{}
 }
 
 // Entries returns the underlying map that stores of all the utxo entries.
@@ -235,7 +235,7 @@ func (view *UtxoViewpoint) fetchUtxosMain(db database.DB, outpoints map[types.Tx
 	// utxos that the caller needs access to.
 	return db.View(func(dbTx database.Tx) error {
 		for outpoint := range outpoints {
-			entry, err := dbFetchUtxoEntry(dbTx,outpoint)
+			entry, err := dbFetchUtxoEntry(dbTx, outpoint)
 			if err != nil {
 				return err
 			}
@@ -251,7 +251,7 @@ func (view *UtxoViewpoint) FilterInvalidOut(bc *BlockChain) {
 		if !bc.IsInvalidOut(entry) {
 			continue
 		}
-		delete(view.entries,outpoint)
+		delete(view.entries, outpoint)
 	}
 }
 
@@ -305,7 +305,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 				i >= inFlightIndex {
 
 				originTx := transactions[inFlightIndex]
-				view.AddTxOuts(originTx,block.Hash())
+				view.AddTxOuts(originTx, block.Hash())
 				continue
 			}
 
@@ -318,8 +318,8 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 			txNeededSet[txIn.PreviousOut] = struct{}{}
 		}
 	}
-	err:=view.fetchUtxosMain(db, txNeededSet)
-	if err!=nil {
+	err := view.fetchUtxosMain(db, txNeededSet)
+	if err != nil {
 		return err
 	}
 	view.FilterInvalidOut(bc)
@@ -362,7 +362,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 	// Coinbase transactions don't have any inputs to spend.
 	if msgTx.IsCoinBase() {
 		// Add the transaction's outputs as available utxos.
-		view.AddTxOuts(tx,node.GetHash()) //TODO, remove type conversion
+		view.AddTxOuts(tx, node.GetHash()) //TODO, remove type conversion
 		return nil
 	}
 
@@ -390,9 +390,9 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 		// accordingly since those details will no longer be available
 		// in the utxo set.
 		var stxo = SpentTxOut{
-			Amount:        entry.Amount(),
-			PkScript:      entry.PkScript(),
-			BlockHash:     entry.blockHash,
+			Amount:    entry.Amount(),
+			PkScript:  entry.PkScript(),
+			BlockHash: entry.blockHash,
 		}
 		stxo.IsCoinBase = entry.IsCoinBase()
 		// Append the entry to the provided spent txouts slice.
@@ -501,7 +501,7 @@ func (bc *BlockChain) IsInvalidOut(entry *UtxoEntry) bool {
 	if entry.blockHash.IsEqual(&hash.ZeroHash) {
 		return false
 	}
-	node:=bc.index.lookupNode(&entry.blockHash)
+	node := bc.index.lookupNode(&entry.blockHash)
 	if node != nil {
 		if !bc.index.NodeStatus(node).KnownInvalid() {
 			return false
@@ -539,8 +539,8 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	b.chainLock.RLock()
 	err := view.fetchUtxosMain(b.db, neededSet)
 	b.chainLock.RUnlock()
-	if err!=nil {
-		return view,err
+	if err != nil {
+		return view, err
 	}
 	view.FilterInvalidOut(b)
 	return view, err
@@ -570,7 +570,7 @@ func (b *BlockChain) FetchUtxoEntry(outpoint types.TxOutPoint) (*UtxoEntry, erro
 		return nil, err
 	}
 	if b.IsInvalidOut(entry) {
-		entry=nil
+		entry = nil
 	}
 	return entry, nil
 }
@@ -703,12 +703,12 @@ func DeserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 	// Bits 1-x encode id of containing transaction.
 	isCoinBase := code&0x01 != 0
 
-	blockHash,err:=hash.NewHash(serialized[offset:offset+hash.HashSize])
+	blockHash, err := hash.NewHash(serialized[offset : offset+hash.HashSize])
 	if err != nil {
 		return nil, errDeserialize(fmt.Sprintf("unable to decode "+
 			"utxo: %v", err))
 	}
-	offset+=hash.HashSize
+	offset += hash.HashSize
 	// Decode the compressed unspent transaction output.
 	amount, pkScript, _, err := decodeCompressedTxOut(serialized[offset:])
 	if err != nil {
@@ -742,15 +742,15 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 	}
 
 	// Calculate the size needed to serialize the entry.
-	size := serializeSizeVLQ(headerCode) + hash.HashSize+
+	size := serializeSizeVLQ(headerCode) + hash.HashSize +
 		compressedTxOutSize(uint64(entry.Amount()), entry.PkScript())
 
 	// Serialize the header code followed by the compressed unspent
 	// transaction output.
 	serialized := make([]byte, size)
 	offset := putVLQ(serialized, headerCode)
-	copy(serialized[offset:offset+hash.HashSize],entry.blockHash.Bytes())
-	offset+=hash.HashSize
+	copy(serialized[offset:offset+hash.HashSize], entry.blockHash.Bytes())
+	offset += hash.HashSize
 	offset += putCompressedTxOut(serialized[offset:], uint64(entry.Amount()),
 		entry.PkScript())
 

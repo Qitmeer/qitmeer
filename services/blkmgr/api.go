@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/marshal"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/rpc"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"strconv"
 )
 
-func (b *BlockManager) GetChain() *blockchain.BlockChain{
+func (b *BlockManager) GetChain() *blockchain.BlockChain {
 	return b.chain
 }
 func (b *BlockManager) API() rpc.API {
@@ -26,7 +26,7 @@ func (b *BlockManager) API() rpc.API {
 	}
 }
 
-type PublicBlockAPI struct{
+type PublicBlockAPI struct {
 	bm *BlockManager
 }
 
@@ -35,92 +35,91 @@ func NewPublicBlockAPI(bm *BlockManager) *PublicBlockAPI {
 }
 
 //TODO, refactor BlkMgr API
-func (api *PublicBlockAPI) GetBlockhash(order uint) (string, error){
- 	blockHash,err := api.bm.chain.BlockHashByOrder(uint64(order))
- 	if err!=nil {
- 		return "",err
+func (api *PublicBlockAPI) GetBlockhash(order uint) (string, error) {
+	blockHash, err := api.bm.chain.BlockHashByOrder(uint64(order))
+	if err != nil {
+		return "", err
 	}
-	return blockHash.String(),nil
+	return blockHash.String(), nil
 }
 
 // Return the hash range of block from 'start' to 'end'(exclude self)
 // if 'end' is equal to zero, 'start' is the number that from the last block to the Gen
 // if 'start' is greater than or equal to 'end', it will just return the hash of 'start'
-func (api *PublicBlockAPI) GetBlockhashByRange(start uint,end uint) ([]string, error){
-	totalOrder:=api.bm.chain.BlockDAG().GetBlockTotal()
-	if start>=totalOrder {
-		return nil,fmt.Errorf("startOrder(%d) is greater than or equal to the totalOrder(%d)",start,totalOrder)
+func (api *PublicBlockAPI) GetBlockhashByRange(start uint, end uint) ([]string, error) {
+	totalOrder := api.bm.chain.BlockDAG().GetBlockTotal()
+	if start >= totalOrder {
+		return nil, fmt.Errorf("startOrder(%d) is greater than or equal to the totalOrder(%d)", start, totalOrder)
 	}
-	result:=[]string{}
-	if start>=end && end != 0 {
-		block,err := api.bm.chain.BlockByOrder(uint64(start))
-		if err!=nil {
-			return nil,err
+	result := []string{}
+	if start >= end && end != 0 {
+		block, err := api.bm.chain.BlockByOrder(uint64(start))
+		if err != nil {
+			return nil, err
 		}
-		result=append(result,block.Hash().String())
-	}else if end==0 {
-		for i:=totalOrder-1;i>=0 ;i--  {
-			if uint(len(result))>=start {
+		result = append(result, block.Hash().String())
+	} else if end == 0 {
+		for i := totalOrder - 1; i >= 0; i-- {
+			if uint(len(result)) >= start {
 				break
 			}
-			block,err := api.bm.chain.BlockByOrder(uint64(i))
-			if err!=nil {
-				return nil,err
+			block, err := api.bm.chain.BlockByOrder(uint64(i))
+			if err != nil {
+				return nil, err
 			}
-			result=append(result,block.Hash().String())
+			result = append(result, block.Hash().String())
 		}
-	}else {
-		for i:=start;i<totalOrder ;i++  {
-			if i>=end {
+	} else {
+		for i := start; i < totalOrder; i++ {
+			if i >= end {
 				break
 			}
-			block,err := api.bm.chain.BlockByOrder(uint64(i))
-			if err!=nil {
-				return nil,err
+			block, err := api.bm.chain.BlockByOrder(uint64(i))
+			if err != nil {
+				return nil, err
 			}
-			result=append(result,block.Hash().String())
+			result = append(result, block.Hash().String())
 		}
 	}
-	return result,nil
+	return result, nil
 }
 
-func (api *PublicBlockAPI) GetBlockByOrder(order uint64,verbose *bool,inclTx *bool, fullTx *bool) (interface{}, error){
+func (api *PublicBlockAPI) GetBlockByOrder(order uint64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
 	if uint(order) > api.bm.chain.BestSnapshot().GraphState.GetMainOrder() {
-		return nil,fmt.Errorf("Order is too big")
+		return nil, fmt.Errorf("Order is too big")
 	}
-	blockHash,err := api.bm.chain.BlockHashByOrder(order)
- 	if err!=nil {
- 		return nil,err
+	blockHash, err := api.bm.chain.BlockHashByOrder(order)
+	if err != nil {
+		return nil, err
 	}
-	vb:=false
+	vb := false
 	if verbose != nil {
-		vb=*verbose
+		vb = *verbose
 	}
-	iTx:=true
+	iTx := true
 	if inclTx != nil {
-		iTx=*inclTx
+		iTx = *inclTx
 	}
-	fTx:=true
+	fTx := true
 	if fullTx != nil {
-		fTx=*fullTx
+		fTx = *fullTx
 	}
-	return api.GetBlock(*blockHash,&vb,&iTx,&fTx)
+	return api.GetBlock(*blockHash, &vb, &iTx, &fTx)
 }
 
+func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
 
-func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool,inclTx *bool, fullTx *bool) (interface{}, error){
-
-	vb:=false
+	vb := false
 	if verbose != nil {
-		vb=*verbose
+		vb = *verbose
 	}
-	iTx:=true
+	iTx := true
 	if inclTx != nil {
-		iTx=*inclTx
+		iTx = *inclTx
 	}
-	fTx:=true
+	fTx := true
 	if fullTx != nil {
-		fTx=*fullTx
+		fTx = *fullTx
 	}
 
 	// Load the raw block bytes from the database.
@@ -129,11 +128,11 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool,inclTx *bool, ful
 	// that are not part of the main chain (if they are known).
 	blk, err := api.bm.chain.FetchBlockByHash(&h)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	node:=api.bm.chain.BlockIndex().LookupNode(&h)
-	if node==nil {
-		return nil,fmt.Errorf("no node")
+	node := api.bm.chain.BlockIndex().LookupNode(&h)
+	if node == nil {
+		return nil, fmt.Errorf("no node")
 	}
 	// Update the source block order
 	blk.SetOrder(node.GetOrder())
@@ -149,32 +148,32 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool,inclTx *bool, ful
 		return hex.EncodeToString(blkBytes), nil
 	}
 	confirmations := int64(api.bm.chain.BlockDAG().GetConfirmations(&h))
-	cs:=node.GetChildren()
-	children:=[]*hash.Hash{}
-	if cs!=nil {
-		children=cs.List()
+	cs := node.GetChildren()
+	children := []*hash.Hash{}
+	if cs != nil {
+		children = cs.List()
 	}
 	//TODO, refactor marshal api
-	fields, err := marshal.MarshalJsonBlock(blk,iTx, fTx, api.bm.params, confirmations,children,
-		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(),node.IsOrdered())
+	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
+		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered())
 	if err != nil {
 		return nil, err
 	}
-	return fields,nil
+	return fields, nil
 
 }
 
-func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error){
+func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error) {
 	best := api.bm.chain.BestSnapshot()
 	return best.Hash.String(), nil
 }
 
-func (api *PublicBlockAPI) GetBlockCount() (interface{}, error){
+func (api *PublicBlockAPI) GetBlockCount() (interface{}, error) {
 	best := api.bm.chain.BestSnapshot()
-	return best.GraphState.GetMainOrder()+1, nil
+	return best.GraphState.GetMainOrder() + 1, nil
 }
 
-func (api *PublicBlockAPI) GetBlockTotal() (interface{}, error){
+func (api *PublicBlockAPI) GetBlockTotal() (interface{}, error) {
 	best := api.bm.chain.BestSnapshot()
 	return best.GraphState.GetTotal(), nil
 }
@@ -183,8 +182,8 @@ func (api *PublicBlockAPI) GetBlockTotal() (interface{}, error){
 func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interface{}, error) {
 
 	// Fetch the block node
-	node:=api.bm.chain.BlockIndex().LookupNode(&hash)
-	if node==nil {
+	node := api.bm.chain.BlockIndex().LookupNode(&hash)
+	if node == nil {
 		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", hash))
 	}
 	// Fetch the header from chain.
@@ -217,7 +216,7 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 		Difficulty:    blockHeader.Difficulty,
 		Layer:         uint32(layer),
 		Time:          blockHeader.Timestamp.Unix(),
-		PowResult:         blockHeader.Pow.GetPowResult(),
+		PowResult:     blockHeader.Pow.GetPowResult(),
 	}
 
 	return blockHeaderReply, nil
@@ -226,67 +225,67 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 
 // Query whether a given block is on the main chain.
 // Note that some DAG protocols may not support this feature.
-func (api *PublicBlockAPI) IsOnMainChain(h hash.Hash) (interface{}, error){
-	node:=api.bm.chain.BlockIndex().LookupNode(&h)
-	if node==nil {
+func (api *PublicBlockAPI) IsOnMainChain(h hash.Hash) (interface{}, error) {
+	node := api.bm.chain.BlockIndex().LookupNode(&h)
+	if node == nil {
 		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
 	}
-	isOn:=api.bm.chain.BlockDAG().IsOnMainChain(&h)
+	isOn := api.bm.chain.BlockDAG().IsOnMainChain(&h)
 
-	return strconv.FormatBool(isOn),nil
+	return strconv.FormatBool(isOn), nil
 }
 
 // Return the current height of DAG main chain
-func (api *PublicBlockAPI) GetMainChainHeight() (interface{}, error){
-	return strconv.FormatUint(uint64(api.bm.GetChain().BlockDAG().GetMainChainTip().GetHeight()),10),nil
+func (api *PublicBlockAPI) GetMainChainHeight() (interface{}, error) {
+	return strconv.FormatUint(uint64(api.bm.GetChain().BlockDAG().GetMainChainTip().GetHeight()), 10), nil
 }
 
 // Return the weight of block
-func (api *PublicBlockAPI) GetBlockWeight(h hash.Hash) (interface{}, error){
-	block,err:=api.bm.chain.FetchBlockByHash(&h)
+func (api *PublicBlockAPI) GetBlockWeight(h hash.Hash) (interface{}, error) {
+	block, err := api.bm.chain.FetchBlockByHash(&h)
 	if err != nil {
 		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
 	}
-	return strconv.FormatInt(int64(types.GetBlockWeight(block.Block())),10),nil
+	return strconv.FormatInt(int64(types.GetBlockWeight(block.Block())), 10), nil
 }
 
 // Return the total of orphans
 func (api *PublicBlockAPI) GetOrphansTotal() (interface{}, error) {
-	return api.bm.GetChain().GetOrphansTotal(),nil
+	return api.bm.GetChain().GetOrphansTotal(), nil
 }
 
-func (api *PublicBlockAPI) GetBlockByID(id uint64,verbose *bool,inclTx *bool, fullTx *bool) (interface{}, error) {
-	blockHash:= api.bm.GetChain().BlockDAG().GetBlockHash(uint(id))
+func (api *PublicBlockAPI) GetBlockByID(id uint64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
+	blockHash := api.bm.GetChain().BlockDAG().GetBlockHash(uint(id))
 	if blockHash == nil {
 		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", id))
 	}
-	vb:=false
+	vb := false
 	if verbose != nil {
-		vb=*verbose
+		vb = *verbose
 	}
-	iTx:=true
+	iTx := true
 	if inclTx != nil {
-		iTx=*inclTx
+		iTx = *inclTx
 	}
-	fTx:=true
+	fTx := true
 	if fullTx != nil {
-		fTx=*fullTx
+		fTx = *fullTx
 	}
-	return api.GetBlock(*blockHash,&vb,&iTx,&fTx)
+	return api.GetBlock(*blockHash, &vb, &iTx, &fTx)
 }
 
 // IsBlue:0:not blue;  1：blue  2：Cannot confirm
-func (api *PublicBlockAPI) IsBlue(h hash.Hash) (interface{}, error){
-	ib:=api.bm.chain.BlockDAG().GetBlock(&h)
+func (api *PublicBlockAPI) IsBlue(h hash.Hash) (interface{}, error) {
+	ib := api.bm.chain.BlockDAG().GetBlock(&h)
 	if ib == nil {
 		return 2, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %s", h.String()))
 	}
 	confirmations := api.bm.chain.BlockDAG().GetConfirmations(&h)
-	if confirmations ==0 {
-		return 2,nil
+	if confirmations == 0 {
+		return 2, nil
 	}
 	if api.bm.chain.BlockDAG().IsBlue(&h) {
-		return 1,nil
+		return 1, nil
 	}
-	return 0,nil
+	return 0, nil
 }

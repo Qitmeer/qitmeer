@@ -7,7 +7,6 @@ package addmgr
 
 import "time"
 
-
 const (
 	// needAddressThreshold is the number of addresses under which the
 	// address manager will claim to need more addresses.

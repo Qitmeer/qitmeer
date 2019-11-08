@@ -7,9 +7,9 @@ import (
 
 // Map of service flags back to their constant names for pretty printing.
 var sfStrings = map[ServiceFlag]string{
-	Full: "Full",
-	Bloom:   "Bloom",
-	CF:      "CF",
+	Full:  "Full",
+	Bloom: "Bloom",
+	CF:    "CF",
 }
 
 // orderedSFStrings is an ordered list of service flags from highest to
@@ -53,6 +53,6 @@ func HasServices(advertised, desired ServiceFlag) bool {
 
 // MissingServices returns what missing service flags from the advertised flags
 // to the desired flags set
-func MissingServices(advertised, desired ServiceFlag) ServiceFlag  {
+func MissingServices(advertised, desired ServiceFlag) ServiceFlag {
 	return desired & ^advertised
 }

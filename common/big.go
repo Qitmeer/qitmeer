@@ -3,33 +3,31 @@
 package common
 
 import (
-	"math/big"
 	"fmt"
+	"math/big"
 )
 
 var (
-	Big0   = big.NewInt(0)
+	Big0 = big.NewInt(0)
 
 	// bigOne is 1 represented as a big.Int.  It is defined here to avoid
 	// the overhead of creating it multiple times.
-	Big1   = big.NewInt(1)
+	Big1 = big.NewInt(1)
 
 	Big2   = big.NewInt(2)
 	Big256 = big.NewInt(0xff)
 
-
-	tt256 = new(big.Int).Lsh(big.NewInt(1), 256)   //2^256
-	tt256m1 = new(big.Int).Sub(tt256, big.NewInt(1))  //2^256-1
+	tt256     = new(big.Int).Lsh(big.NewInt(1), 256)   //2^256
+	tt256m1   = new(big.Int).Sub(tt256, big.NewInt(1)) //2^256-1
 	MaxBig256 = new(big.Int).Set(tt256m1)
 
-
 	// to remove
-    tt255 = new(big.Int).Lsh(big.NewInt(1), 255)
-	tt255_     = BigPow(2, 255)
-	tt256_     = BigPow(2, 256)
-	tt256m1_   = new(big.Int).Sub(tt256, big.NewInt(1))
-	tt63      = BigPow(2, 63)
-	MaxBig63  = new(big.Int).Sub(tt63, big.NewInt(1))
+	tt255    = new(big.Int).Lsh(big.NewInt(1), 255)
+	tt255_   = BigPow(2, 255)
+	tt256_   = BigPow(2, 256)
+	tt256m1_ = new(big.Int).Sub(tt256, big.NewInt(1))
+	tt63     = BigPow(2, 63)
+	MaxBig63 = new(big.Int).Sub(tt63, big.NewInt(1))
 )
 
 const (
@@ -66,39 +64,39 @@ func BigPow(a, b int) *big.Int {
 // https://en.wikipedia.org/wiki/Exponentiation_by_squaring#Montgomery's_ladder_technique
 // Montgomery, Peter L. (1987). "Speeding the Pollard and Elliptic Curve Methods of Factorization"
 //
-func Pow(x, n int) (uint64,error) {
-	input_x :=x
-	input_n :=n
-	result := uint64(1);
+func Pow(x, n int) (uint64, error) {
+	input_x := x
+	input_n := n
+	result := uint64(1)
 	for n != 0 {
-		if n & 1 != 0 {
+		if n&1 != 0 {
 			//tmp := result*uint64(x)
-			if x!=0 && result < ((1<<64)-1)/uint64(x) {
-				result *= uint64(x);  //odd, multiple
-			}else{
+			if x != 0 && result < ((1<<64)-1)/uint64(x) {
+				result *= uint64(x) //odd, multiple
+			} else {
 				if x == 0 {
 					const MaxUint = 18446744073709551616
-					return 0,fmt.Errorf("Pow(%d,%d) overfollow to do %v * %v",input_x,input_n,result,0)
+					return 0, fmt.Errorf("Pow(%d,%d) overfollow to do %v * %v", input_x, input_n, result, 0)
 				}
-				return 0,fmt.Errorf("Pow(%d,%d) overfollow to do %d * %d",input_x,input_n,result,x)
+				return 0, fmt.Errorf("Pow(%d,%d) overfollow to do %d * %d", input_x, input_n, result, x)
 			}
 		}
-		n >>= 1;          //halve n
-		x *= x;           //even, square
+		n >>= 1 //halve n
+		x *= x  //even, square
 	}
-	return result,nil;
+	return result, nil
 }
 
 // only for showing algorithm
 // compare to use BigPow
 // 1000000	      1621 ns/op   BigPow
 // 300000	      4200 ns/op   PowBig
-func PowBig(x, n int) *big.Int{
+func PowBig(x, n int) *big.Int {
 	tmp := big.NewInt(int64(x))
 	res := Big1
 	for n != 0 {
 		temp := new(big.Int)
-		if n & 1 != 0 {
+		if n&1 != 0 {
 
 			temp.Mul(res, tmp)
 			res = temp
@@ -110,6 +108,7 @@ func PowBig(x, n int) *big.Int{
 	}
 	return res
 }
+
 /*
 func Pow(a, b int) int {
 	result := 1
@@ -130,7 +129,7 @@ func PowMod(x, n, m int) int {
 	result := 1 % m
 	x = x % m
 	for n != 0 {
-		if n & 1 != 0 {
+		if n&1 != 0 {
 			result = (result * x) % m
 		}
 		n >>= 1

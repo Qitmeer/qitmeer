@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/math"
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
 )
 
@@ -83,8 +83,8 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		if err := indexer.Init(); err != nil {
 			return err
 		}
-		if indexer.Name()==txIndexName {
-			indexer.(*TxIndex).chain=chain
+		if indexer.Name() == txIndexName {
+			indexer.(*TxIndex).chain = chain
 		}
 	}
 
@@ -114,7 +114,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			continue
 		}
 		var block *types.SerializedBlock
-		for order>bestOrder {
+		for order > bestOrder {
 			err = m.db.Update(func(dbTx database.Tx) error {
 				// Load the block for the height since it is required to index
 				// it.
@@ -122,18 +122,18 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 				if err != nil {
 					return err
 				}
-				spentTxos=nil
+				spentTxos = nil
 				if indexNeedsInputs(indexer) {
 					spentTxos, err = chain.FetchSpendJournal(block)
 					if err != nil {
 						return err
 					}
 				}
-				err=m.dbIndexDisconnectBlock(dbTx,indexer,block,spentTxos)
+				err = m.dbIndexDisconnectBlock(dbTx, indexer, block, spentTxos)
 				if err != nil {
 					return err
 				}
-				log.Trace(fmt.Sprintf("%s rollback order= %d",indexer.Name(),order))
+				log.Trace(fmt.Sprintf("%s rollback order= %d", indexer.Name(), order))
 				order--
 				return nil
 			})
@@ -160,12 +160,12 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			if err != nil {
 				return err
 			}
-			orderShow:=int64(order)
+			orderShow := int64(order)
 			if order == math.MaxUint32 {
 				lowestOrder = -1
 				indexerOrders[i] = -1
-				orderShow=-1
-			}else if int64(order) < lowestOrder {
+				orderShow = -1
+			} else if int64(order) < lowestOrder {
 				lowestOrder = int64(order)
 				indexerOrders[i] = int64(order)
 			}
@@ -201,7 +201,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		err = m.db.Update(func(dbTx database.Tx) error {
 			// Load the block for the height since it is required to index
 			// it.
-			block, err = blockchain.DBFetchBlockByOrder(dbTx,uint64(order))
+			block, err = blockchain.DBFetchBlockByOrder(dbTx, uint64(order))
 			if err != nil {
 				return err
 			}
@@ -211,7 +211,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			}
 
 			// Connect the block for all indexes that need it.
-			spentTxos=nil
+			spentTxos = nil
 			for i, indexer := range m.enabledIndexes {
 				// Skip indexes that don't need to be updated with this
 				// block.
@@ -224,7 +224,7 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 				// need to be retrieved from the transaction
 				// index.
 				if spentTxos == nil && indexNeedsInputs(indexer) {
-					spentTxos,err=chain.FetchSpendJournal(block)
+					spentTxos, err = chain.FetchSpendJournal(block)
 					if err != nil {
 						return err
 					}
@@ -408,7 +408,7 @@ func (m *Manager) dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, bloc
 	// Assert that the block being disconnected is the current tip of the
 	// index.
 	idxKey := indexer.Key()
-	curTipHash,order, err := dbFetchIndexerTip(dbTx, idxKey)
+	curTipHash, order, err := dbFetchIndexerTip(dbTx, idxKey)
 	if err != nil {
 		return err
 	}
@@ -419,7 +419,7 @@ func (m *Manager) dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, bloc
 			curTipHash, block.Hash()))
 		return nil
 	}
-	if order==math.MaxUint32 {
+	if order == math.MaxUint32 {
 		log.Warn(fmt.Sprintf("Can't disconnect root index tip"))
 		return nil
 	}
@@ -432,18 +432,18 @@ func (m *Manager) dbIndexDisconnectBlock(dbTx database.Tx, indexer Indexer, bloc
 	// Update the current index tip.
 	var prevHash *hash.Hash
 	var preOrder uint32
-	if order==0 {
-		prevHash=&hash.ZeroHash
-		preOrder=math.MaxUint32
-	}else{
-		prevHash,err=dbFetchBlockHashByID(dbTx,order)
+	if order == 0 {
+		prevHash = &hash.ZeroHash
+		preOrder = math.MaxUint32
+	} else {
+		prevHash, err = dbFetchBlockHashByID(dbTx, order)
 		if err != nil {
 			return err
 		}
-		preOrder=uint32(order-1)
+		preOrder = uint32(order - 1)
 	}
 
-	return dbPutIndexerTip(dbTx, idxKey, prevHash,preOrder)
+	return dbPutIndexerTip(dbTx, idxKey, prevHash, preOrder)
 }
 
 // dbIndexConnectBlock adds all of the index entries associated with the
@@ -454,7 +454,7 @@ func dbIndexConnectBlock(dbTx database.Tx, indexer Indexer, block *types.Seriali
 	// Assert that the block being connected properly connects to the
 	// current tip of the index.
 	idxKey := indexer.Key()
-	_,order, err := dbFetchIndexerTip(dbTx, idxKey)
+	_, order, err := dbFetchIndexerTip(dbTx, idxKey)
 	if err != nil {
 		return err
 	}

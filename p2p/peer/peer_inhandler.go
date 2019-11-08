@@ -22,7 +22,7 @@ func (p *Peer) inHandler() {
 	// timeframe than a general idle timeout.  The timer is then reset below
 	// to idleTimeout for all future messages.
 	idleTimer := time.AfterFunc(idleTimeout, func() {
-		log.Warn(fmt.Sprintf("Peer no answer for %s -- disconnecting", idleTimeout), "peer",p )
+		log.Warn(fmt.Sprintf("Peer no answer for %s -- disconnecting", idleTimeout), "peer", p)
 		p.Disconnect()
 	})
 
@@ -70,7 +70,7 @@ out:
 			// No read lock is necessary because verAckReceived is not written
 			// to in any other goroutine.
 			if p.verAckReceived {
-				log.Info(fmt.Sprintf("Already received 'verack' from peer %v -- " +
+				log.Info(fmt.Sprintf("Already received 'verack' from peer %v -- "+
 					"disconnecting", p))
 				break out
 			}
@@ -121,12 +121,12 @@ out:
 		case *message.MsgInv:
 			if p.cfg.Listeners.OnInv != nil {
 				p.cfg.Listeners.OnInv(p, msg)
-		}
+			}
 
 		case *message.MsgGetData:
 			if p.cfg.Listeners.OnGetData != nil {
 				p.cfg.Listeners.OnGetData(p, msg)
-		}
+			}
 
 		case *message.MsgGetMiningState:
 			if p.cfg.Listeners.OnGetMiningState != nil {
@@ -153,66 +153,66 @@ out:
 				p.cfg.Listeners.OnGetHeaders(p, msg)
 			}
 		/*
-		case *message.MsgMemPool:
-			if p.cfg.Listeners.OnMemPool != nil {
-				p.cfg.Listeners.OnMemPool(p, msg)
-			}
+			case *message.MsgMemPool:
+				if p.cfg.Listeners.OnMemPool != nil {
+					p.cfg.Listeners.OnMemPool(p, msg)
+				}
 
-		case *message.MsgHeaders:
-			if p.cfg.Listeners.OnHeaders != nil {
-				p.cfg.Listeners.OnHeaders(p, msg)
-			}
+			case *message.MsgHeaders:
+				if p.cfg.Listeners.OnHeaders != nil {
+					p.cfg.Listeners.OnHeaders(p, msg)
+				}
 
-		case *message.MsgGetCFilter:
-			if p.cfg.Listeners.OnGetCFilter != nil {
-				p.cfg.Listeners.OnGetCFilter(p, msg)
-			}
+			case *message.MsgGetCFilter:
+				if p.cfg.Listeners.OnGetCFilter != nil {
+					p.cfg.Listeners.OnGetCFilter(p, msg)
+				}
 
-		case *message.MsgGetCFHeaders:
-			if p.cfg.Listeners.OnGetCFHeaders != nil {
-				p.cfg.Listeners.OnGetCFHeaders(p, msg)
-			}
+			case *message.MsgGetCFHeaders:
+				if p.cfg.Listeners.OnGetCFHeaders != nil {
+					p.cfg.Listeners.OnGetCFHeaders(p, msg)
+				}
 
-		case *message.MsgGetCFTypes:
-			if p.cfg.Listeners.OnGetCFTypes != nil {
-				p.cfg.Listeners.OnGetCFTypes(p, msg)
-			}
+			case *message.MsgGetCFTypes:
+				if p.cfg.Listeners.OnGetCFTypes != nil {
+					p.cfg.Listeners.OnGetCFTypes(p, msg)
+				}
 
-		case *message.MsgCFilter:
-			if p.cfg.Listeners.OnCFilter != nil {
-				p.cfg.Listeners.OnCFilter(p, msg)
-			}
+			case *message.MsgCFilter:
+				if p.cfg.Listeners.OnCFilter != nil {
+					p.cfg.Listeners.OnCFilter(p, msg)
+				}
 
-		case *message.MsgCFHeaders:
-			if p.cfg.Listeners.OnCFHeaders != nil {
-				p.cfg.Listeners.OnCFHeaders(p, msg)
-			}
+			case *message.MsgCFHeaders:
+				if p.cfg.Listeners.OnCFHeaders != nil {
+					p.cfg.Listeners.OnCFHeaders(p, msg)
+				}
 
-		case *message.MsgCFTypes:
-			if p.cfg.Listeners.OnCFTypes != nil {
-				p.cfg.Listeners.OnCFTypes(p, msg)
-			}
+			case *message.MsgCFTypes:
+				if p.cfg.Listeners.OnCFTypes != nil {
+					p.cfg.Listeners.OnCFTypes(p, msg)
+				}
 
-		case *message.MsgFeeFilter:
-			if p.cfg.Listeners.OnFeeFilter != nil {
-				p.cfg.Listeners.OnFeeFilter(p, msg)
-			}
+			case *message.MsgFeeFilter:
+				if p.cfg.Listeners.OnFeeFilter != nil {
+					p.cfg.Listeners.OnFeeFilter(p, msg)
+				}
 
-		case *message.MsgSendHeaders:
-			p.flagsMtx.Lock()
-			p.sendHeadersPreferred = true
-			p.flagsMtx.Unlock()
+			case *message.MsgSendHeaders:
+				p.flagsMtx.Lock()
+				p.sendHeadersPreferred = true
+				p.flagsMtx.Unlock()
 
-			if p.cfg.Listeners.OnSendHeaders != nil {
-				p.cfg.Listeners.OnSendHeaders(p, msg)
-			}
+				if p.cfg.Listeners.OnSendHeaders != nil {
+					p.cfg.Listeners.OnSendHeaders(p, msg)
+				}
 		*/
 		case *message.MsgReject:
 			if p.cfg.Listeners.OnReject != nil {
 				p.cfg.Listeners.OnReject(p, msg)
 			}
 		default:
-			log.Debug("Received unhandled message", "command",rmsg.Command(),"peer", p)
+			log.Debug("Received unhandled message", "command", rmsg.Command(), "peer", p)
 		}
 		p.stallControl <- stallControlMsg{sccHandlerDone, rmsg}
 
@@ -227,7 +227,7 @@ out:
 	p.Disconnect()
 
 	close(p.inQuit)
-	log.Trace("Peer input handler done", "peer",p.addr)
+	log.Trace("Peer input handler done", "peer", p.addr)
 }
 
 // shouldHandleReadError returns whether or not the passed error, which is

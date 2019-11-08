@@ -35,7 +35,7 @@ out:
 			if err := p.writeMessage(msg.msg); err != nil {
 				p.Disconnect()
 				if p.shouldLogWriteError(err) {
-					log.Error("Failed to send message","peer", p, "error", err)
+					log.Error("Failed to send message", "peer", p, "error", err)
 				}
 				if msg.doneChan != nil {
 					msg.doneChan <- struct{}{}
@@ -78,7 +78,7 @@ cleanup:
 		}
 	}
 	close(p.outQuit)
-	log.Trace("Peer output handler done", "peer",p.addr)
+	log.Trace("Peer output handler done", "peer", p.addr)
 }
 
 // shouldLogWriteError returns whether or not the passed error, which is
