@@ -7,11 +7,11 @@ import (
 )
 
 //Verify cuckaroo nonces.
-func VerifyCuckaroo(sipkey []byte, nonces []uint32,edgeBits uint) error {
-	nedge     := (1 << edgeBits)    //number of edges：
-	nnode     := 2 * nedge        //
-	easiness  := uint32(nnode * 50 / 100) //
-	edgemask  := uint64(nedge - 1)
+func VerifyCuckaroo(sipkey []byte, nonces []uint32, edgeBits uint) error {
+	nedge := (1 << edgeBits)             //number of edges：
+	nnode := 2 * nedge                   //
+	easiness := uint32(nnode * 50 / 100) //
+	edgemask := uint64(nedge - 1)
 	sip := siphash.Newsip(sipkey)
 	var uvs [2 * ProofSize]uint32
 	var xor0, xor1 uint32

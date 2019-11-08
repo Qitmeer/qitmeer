@@ -2,13 +2,13 @@
 package cuckoo
 
 import (
-	`encoding/hex`
-	`fmt`
-	`github.com/Qitmeer/qitmeer/common/hash`
-	`log`
-	`math/big`
+	"encoding/hex"
+	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"log"
+	"math/big"
 	"runtime"
-	`testing`
+	"testing"
 )
 
 const targetBits = 1
@@ -30,22 +30,22 @@ func TestCuckooMining(t *testing.T) {
 	header := "helloworld"
 
 	for nonce = 0; ; nonce++ {
-		headerBytes := []byte(fmt.Sprintf("%s%d",header,nonce))
+		headerBytes := []byte(fmt.Sprintf("%s%d", header, nonce))
 		siphashKey = hash.DoubleHashB(headerBytes)
 		cycleNonces, isFound = c.PoW(siphashKey[:16])
 		if !isFound {
 			continue
 		}
-		if err := VerifyCuckaroo(siphashKey[:16], cycleNonces,Edgebits); err != nil {
+		if err := VerifyCuckaroo(siphashKey[:16], cycleNonces, Edgebits); err != nil {
 			fmt.Println(err)
 			continue
 		}
 		cycleNoncesHash := hash.DoubleHashB(Uint32ToBytes(cycleNonces))
 		cycleNoncesHashInt.SetBytes(cycleNoncesHash[:])
 
-		log.Println(fmt.Sprintf("Current Nonce:%d",nonce))
-		log.Println(fmt.Sprintf("Found %d Cycles Nonces:",ProofSize),cycleNonces)
-		fmt.Println("Found Hash ",hex.EncodeToString(cycleNoncesHash))
+		log.Println(fmt.Sprintf("Current Nonce:%d", nonce))
+		log.Println(fmt.Sprintf("Found %d Cycles Nonces:", ProofSize), cycleNonces)
+		fmt.Println("Found Hash ", hex.EncodeToString(cycleNoncesHash))
 		break
 	}
 }

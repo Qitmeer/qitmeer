@@ -10,8 +10,8 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
-	"io"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"io"
 )
 
 // MsgGetHeaders implements the Message interface and represents a getheaders
@@ -43,8 +43,8 @@ func (msg *MsgGetHeaders) AddBlockLocatorHash(hash *hash.Hash) error {
 		return messageError("MsgGetHeaders.AddBlockLocatorHash", str)
 	}
 
-	hashValue:=*hash
-	msg.BlockLocatorHashes = append(msg.BlockLocatorHashes,&hashValue)
+	hashValue := *hash
+	msg.BlockLocatorHashes = append(msg.BlockLocatorHashes, &hashValue)
 	return nil
 }
 
@@ -79,8 +79,8 @@ func (msg *MsgGetHeaders) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddBlockLocatorHash(hash)
 	}
-	msg.GS=blockdag.NewGraphState()
-	err=msg.GS.Decode(r,pver)
+	msg.GS = blockdag.NewGraphState()
+	err = msg.GS.Decode(r, pver)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (msg *MsgGetHeaders) Encode(w io.Writer, pver uint32) error {
 		}
 	}
 
-	err = msg.GS.Encode(w,pver)
+	err = msg.GS.Encode(w, pver)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (msg *MsgGetHeaders) MaxPayloadLength(pver uint32) uint32 {
 }
 
 func (msg *MsgGetHeaders) String() string {
-	return fmt.Sprintf("ProtocolVersion:%d Blocks:%d GS:%s",msg.ProtocolVersion,len(msg.BlockLocatorHashes),msg.GS.String())
+	return fmt.Sprintf("ProtocolVersion:%d Blocks:%d GS:%s", msg.ProtocolVersion, len(msg.BlockLocatorHashes), msg.GS.String())
 }
 
 // NewMsgGetHeaders returns a new  getheaders message that conforms to
@@ -147,6 +147,6 @@ func NewMsgGetHeaders(gs *blockdag.GraphState) *MsgGetHeaders {
 	return &MsgGetHeaders{
 		ProtocolVersion:    protocol.ProtocolVersion,
 		BlockLocatorHashes: make([]*hash.Hash, 0, MaxBlockLocatorsPerMsg),
-		GS:gs,
+		GS:                 gs,
 	}
 }

@@ -3,19 +3,20 @@
 package hash
 
 import (
-	"golang.org/x/crypto/sha3"
-	"hash"
 	"crypto"
 	_ "crypto/sha256"
-    _ "golang.org/x/crypto/sha3"
-    _ "golang.org/x/crypto/ripemd160"
-    _ "golang.org/x/crypto/blake2b"
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/json"
+	_ "golang.org/x/crypto/blake2b"
+	_ "golang.org/x/crypto/ripemd160"
+	"golang.org/x/crypto/sha3"
+	_ "golang.org/x/crypto/sha3"
+	"hash"
 )
 
 const HashSize = 32
+
 // MaxHashStringSize is the maximum length of a Hash hash string.
 const MaxHashStringSize = HashSize * 2
 
@@ -29,16 +30,16 @@ type Hash256 [32]byte
 
 type Hash512 [64]byte
 
-type Hasher interface{
+type Hasher interface {
 	hash.Hash
 }
 
 var ZeroHash = Hash([32]byte{ // Make go vet happy.
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		})
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+})
 
 type HashType byte
 
@@ -54,7 +55,7 @@ const (
 	Blake2b_512
 )
 
-func GetHasher(ht HashType) Hasher{
+func GetHasher(ht HashType) Hasher {
 	switch ht {
 	case SHA256:
 		return crypto.SHA256.New()
@@ -84,7 +85,6 @@ func (hash Hash) String() string {
 }
 
 func (h Hash) Bytes() []byte { return h[:] }
-
 
 // CloneBytes returns a copy of the bytes which represent the hash as a byte
 // slice.
@@ -165,10 +165,11 @@ func MustHexToHash(i string) Hash {
 	}
 	return nh
 }
+
 // convert hex string to a byte-reversed hash, Must means it panics for invalid input.
 func MustHexToDecodedHash(i string) Hash {
 	h, err := NewHashFromStr(i)
-	if err!=nil {
+	if err != nil {
 		panic(err)
 	}
 	return *h
@@ -182,7 +183,7 @@ func MustBytesToHash(b []byte) Hash {
 	}
 	copy(h[HashSize-len(b):], b)
 
-	hh, err :=NewHash(h[:])
+	hh, err := NewHash(h[:])
 	if err != nil {
 		panic(err)
 	}
@@ -230,18 +231,17 @@ func Decode(dst *Hash, src string) error {
 	return nil
 }
 
-
 // UnmarshalText decodes the hash from hex. The 0x prefix is optional.
 // TODO clean-up the byte-reverse hash
 func (h *Hash) UnmarshalText(input []byte) error {
- 	var inputStr [HashSize]byte
+	var inputStr [HashSize]byte
 	err := json.UnmarshalFixedUnprefixedText("UnprefixedHash", input, inputStr[:])
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	//TODO, remove the need to reverse byte
 	err = Decode(h, hex.EncodeToString(inputStr[:]))
-	if err!=nil{
+	if err != nil {
 		return err
 	}
 	return nil

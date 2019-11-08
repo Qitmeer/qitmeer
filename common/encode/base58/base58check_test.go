@@ -15,45 +15,44 @@ import (
 var checkEncodingStringTests = []struct {
 	version0 byte
 	version1 byte
-	in      string
-	out     string
+	in       string
+	out      string
 }{
-	{0x42, 20,"", "3MNQE1X"},
-	{0x42, 20," ", "B2Kr6dBE"},
-	{0x42, 20,"-", "B3jv1Aft"},
-	{0x42, 20,"0", "B482yuaX"},
-	{0x42, 20,"1", "B4CmeGAC"},
-	{0x42, 20,"-1", "mM7eUf6kB"},
-	{0x42, 20,"11", "mP7BMTDVH"},
-	{0x42, 20,"abc", "4QiVtDjUdeq"},
-	{0x42, 20,"1234598760", "ZmNb8uQn5zvnUohNCEPP"},
-	{0x42, 20,"abcdefghijklmnopqrstuvwxyz", "K2RYDcKfupxwXdWhSAxQPCeiULntKm63UXyx5MvEH2"},
-	{0x42, 20,"00000000000000000000000000000000000000000000000000000000000000", "bi1EWXwJay2udZVxLJozuTb8Meg4W9c6xnmJaRDjg6pri5MBAxb9XwrpQXbtnqEoRV5U2pixnFfwyXC8tRAVC8XxnjK"},
+	{0x42, 20, "", "3MNQE1X"},
+	{0x42, 20, " ", "B2Kr6dBE"},
+	{0x42, 20, "-", "B3jv1Aft"},
+	{0x42, 20, "0", "B482yuaX"},
+	{0x42, 20, "1", "B4CmeGAC"},
+	{0x42, 20, "-1", "mM7eUf6kB"},
+	{0x42, 20, "11", "mP7BMTDVH"},
+	{0x42, 20, "abc", "4QiVtDjUdeq"},
+	{0x42, 20, "1234598760", "ZmNb8uQn5zvnUohNCEPP"},
+	{0x42, 20, "abcdefghijklmnopqrstuvwxyz", "K2RYDcKfupxwXdWhSAxQPCeiULntKm63UXyx5MvEH2"},
+	{0x42, 20, "00000000000000000000000000000000000000000000000000000000000000", "bi1EWXwJay2udZVxLJozuTb8Meg4W9c6xnmJaRDjg6pri5MBAxb9XwrpQXbtnqEoRV5U2pixnFfwyXC8tRAVC8XxnjK"},
 
 	{0x44, 20, "", "auJfeHwC"}, // test 11
 	{0x44, 20, " ", "3adhVZxihM"},
 	{0x44, 20, "-", "3adj1TRkKZ"},
 	{0x44, 20, "0", "3adjJWGj89"},
 	{0x44, 20, "1", "3adjR6HCdi"},
-	{0x44, 20,"-1", "CPT64YbXmzR"},
+	{0x44, 20, "-1", "CPT64YbXmzR"},
 	{0x44, 20, "11", "CPT84AuHhM1"},
-	{0x44, 20,"abc", "sG884ALZzrd4"},
-	{0x44, 20,"1234598760", "9Qb3AD8psZVrjGEfEVMKkM"},
-	{0x44, 20,"abcdefghijklmnopqrstuvwxyz", "5akkPDZM6XaNjyht71YXqR4kFNtkoVFQo2SvDDAikLYE"},
-	{0x44, 20,"00000000000000000000000000000000000000000000000000000000000000", "9uayvqtptCkt9inFUhW4t68L1YBZMsZZjqLmmfszj3kx4uLDEJPZ65wGAbxmnY9hZiK74ggerwV7ga9HCUHkhMUchLPf4"},
+	{0x44, 20, "abc", "sG884ALZzrd4"},
+	{0x44, 20, "1234598760", "9Qb3AD8psZVrjGEfEVMKkM"},
+	{0x44, 20, "abcdefghijklmnopqrstuvwxyz", "5akkPDZM6XaNjyht71YXqR4kFNtkoVFQo2SvDDAikLYE"},
+	{0x44, 20, "00000000000000000000000000000000000000000000000000000000000000", "9uayvqtptCkt9inFUhW4t68L1YBZMsZZjqLmmfszj3kx4uLDEJPZ65wGAbxmnY9hZiK74ggerwV7ga9HCUHkhMUchLPf4"},
 
-	{0x4e, 20,"", "ft9ZcnPM"},  // test 22
-	{0x4e, 20," ", "3xcWA3JEKm"},
-	{0x4e, 20,"-", "3xcXdqa1XB"},
-	{0x4e, 20,"0", "3xcY2te4UB"},
-	{0x4e, 20,"1", "3xcY4hggyU"},
-	{0x4e, 20,"-1", "E4TpCcMT8Yy"},
-	{0x4e, 20,"11", "E4TrCCzXwtL"},
-	{0x4e, 20,"abc", "zeKL3ntPqDcf"},
-	{0x4e, 20,"1234598760", "AeD3mvFdyCt8akCaar1Muf"},
-	{0x4e, 20,"abcdefghijklmnopqrstuvwxyz", "6FnprApC2tXWptudC4CzngX2qUYTrzGUdhXoFAK53LFq"},
-	{0x4e, 20,"00000000000000000000000000000000000000000000000000000000000000", "BDU3ycLHFvYhCRqEXvg2qH8WqUs1scJiQVz86VNAmeq5JuiarpT7TQAvgWikTdeMfuW7EofPmHmMru7JYzSJZxAedRZE8"},
-
+	{0x4e, 20, "", "ft9ZcnPM"}, // test 22
+	{0x4e, 20, " ", "3xcWA3JEKm"},
+	{0x4e, 20, "-", "3xcXdqa1XB"},
+	{0x4e, 20, "0", "3xcY2te4UB"},
+	{0x4e, 20, "1", "3xcY4hggyU"},
+	{0x4e, 20, "-1", "E4TpCcMT8Yy"},
+	{0x4e, 20, "11", "E4TrCCzXwtL"},
+	{0x4e, 20, "abc", "zeKL3ntPqDcf"},
+	{0x4e, 20, "1234598760", "AeD3mvFdyCt8akCaar1Muf"},
+	{0x4e, 20, "abcdefghijklmnopqrstuvwxyz", "6FnprApC2tXWptudC4CzngX2qUYTrzGUdhXoFAK53LFq"},
+	{0x4e, 20, "00000000000000000000000000000000000000000000000000000000000000", "BDU3ycLHFvYhCRqEXvg2qH8WqUs1scJiQVz86VNAmeq5JuiarpT7TQAvgWikTdeMfuW7EofPmHmMru7JYzSJZxAedRZE8"},
 }
 
 func TestBase58Check(t *testing.T) {
@@ -64,14 +63,14 @@ func TestBase58Check(t *testing.T) {
 		// test encoding
 		var eRes string
 		switch ver[0] {
-		case 0x42 :
-			eRes = base58.BtcCheckEncode([]byte(test.in), ver[1]);
-		case 0x44 :
-			eRes = base58.DcrCheckEncode([]byte(test.in), ver);
+		case 0x42:
+			eRes = base58.BtcCheckEncode([]byte(test.in), ver[1])
+		case 0x44:
+			eRes = base58.DcrCheckEncode([]byte(test.in), ver)
 		default:
-			eRes = base58.QitmeerCheckEncode([]byte(test.in), ver[:]);
+			eRes = base58.QitmeerCheckEncode([]byte(test.in), ver[:])
 		}
-		if  eRes != test.out {
+		if eRes != test.out {
 			t.Errorf("CheckEncode test #%d failed: got %s, want: %s", x, eRes, test.out)
 		}
 		var res []byte
@@ -79,12 +78,12 @@ func TestBase58Check(t *testing.T) {
 		var err error
 		// test decoding
 		switch ver[0] {
-		case 0x42 :
+		case 0x42:
 			version[0] = 0x42
 			res, version[1], err = base58.BtcCheckDecode(test.out)
-		case 0x44 :
+		case 0x44:
 			res, version, err = base58.DcrCheckDecode(test.out)
-		default :
+		default:
 			res, version, err = base58.QitmeerCheckDecode(test.out)
 
 		}

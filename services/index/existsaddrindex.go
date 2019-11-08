@@ -8,12 +8,11 @@ package index
 import (
 	"sync"
 
-	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
-
+	"github.com/Qitmeer/qitmeer/params"
 )
 
 var (
@@ -196,7 +195,6 @@ func (idx *ExistsAddrIndex) ExistsAddresses(addrs []types.Address) ([]bool, erro
 
 	return exists, nil
 }
-
 
 // ConnectBlock is invoked by the index manager when a new block has been
 // connected to the main chain.  This indexer adds a key for each address

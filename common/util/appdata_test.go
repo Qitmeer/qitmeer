@@ -7,13 +7,13 @@
 package util_test
 
 import (
+	"github.com/Qitmeer/qitmeer/common/util"
 	"os"
 	"os/user"
 	"path/filepath"
 	"runtime"
 	"testing"
 	"unicode"
-	"github.com/Qitmeer/qitmeer/common/util"
 )
 
 // TestAppDataDir tests the API for AppDataDir to ensure it gives expected

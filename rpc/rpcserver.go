@@ -7,10 +7,10 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
-	"github.com/deckarep/golang-set"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/log"
+	"github.com/deckarep/golang-set"
 	"golang.org/x/net/context"
 	"io"
 	"net"
@@ -32,32 +32,30 @@ type API struct {
 
 // RpcServer provides a concurrent safe RPC server to a chain server.
 type RpcServer struct {
+	run        int32
+	wg         util.WaitGroupWrapper
+	quit       chan int
+	statusLock sync.RWMutex
 
-	run                    int32
-	wg                     util.WaitGroupWrapper
-	quit                   chan int
-	statusLock             sync.RWMutex
+	config *config.Config
 
-	config                  *config.Config
+	rpcSvcRegistry serviceRegistry
 
-	rpcSvcRegistry         serviceRegistry
-
-	codecsMu               sync.Mutex
-	codecs                 mapset.Set
+	codecsMu sync.Mutex
+	codecs   mapset.Set
 
 	authsha                [sha256.Size]byte
 	numClients             int32
 	statusLines            map[int]string
 	requestProcessShutdown chan struct{}
-
 }
 
 // service represents a registered object
 type service struct {
-	svcNamespace     string        //the name space for service
-	svcType          reflect.Type  // receiver type
-	callbacks        callbacks     // registered service method
-	subscriptions    subscriptions // available subscriptions/notifications
+	svcNamespace  string        //the name space for service
+	svcType       reflect.Type  // receiver type
+	callbacks     callbacks     // registered service method
+	subscriptions subscriptions // available subscriptions/notifications
 }
 
 // callback is a method callback which was registered in the server
@@ -72,8 +70,10 @@ type callback struct {
 
 // serviceRegistry is the collection of services by namespace
 type serviceRegistry map[string]*service
+
 // callbacks is the collection of RPC callbacks
 type callbacks map[string]*callback
+
 // subscriptions is the collection of subscription callbacks
 type subscriptions map[string]*callback
 
@@ -97,19 +97,18 @@ type serverRequest struct {
 	err           Error
 }
 
-
 // newRPCServer returns a new instance of the rpcServer struct.
 func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 	rpc := RpcServer{
 
-		config:                 cfg,
+		config: cfg,
 
-		rpcSvcRegistry:         make(serviceRegistry),
-		codecs:                 mapset.NewSet(),
+		rpcSvcRegistry: make(serviceRegistry),
+		codecs:         mapset.NewSet(),
 
 		statusLines:            make(map[int]string),
 		requestProcessShutdown: make(chan struct{}),
-		quit: make(chan int),
+		quit:                   make(chan int),
 	}
 
 	if cfg.RPCUser != "" && cfg.RPCPass != "" {
@@ -123,7 +122,7 @@ func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 
 func (s *RpcServer) Start() error {
 	//TODO control by config
-	if err := s.startHTTP(s.config.RPCListeners); err!=nil {
+	if err := s.startHTTP(s.config.RPCListeners); err != nil {
 		return err
 	}
 	s.run = 1
@@ -151,7 +150,7 @@ const (
 	rpcAuthTimeoutSeconds = 10
 )
 
-func (s *RpcServer) startHTTP(listenAddrs []string) error{
+func (s *RpcServer) startHTTP(listenAddrs []string) error {
 
 	rpcServeMux := http.NewServeMux()
 	httpServer := &http.Server{
@@ -182,8 +181,8 @@ func (s *RpcServer) startHTTP(listenAddrs []string) error{
 		// Read and respond to the request.
 		s.jsonRPCRead(w, r)
 	})
-	listeners, err := parseListeners(s.config,listenAddrs);
-	if err!=nil {
+	listeners, err := parseListeners(s.config, listenAddrs)
+	if err != nil {
 		return err
 	}
 	for _, listener := range listeners {
@@ -204,8 +203,8 @@ func (s *RpcServer) startHTTP(listenAddrs []string) error{
 // This function is safe for concurrent access.
 func (s *RpcServer) limitConnections(w http.ResponseWriter, remoteAddr string) bool {
 	if int(atomic.LoadInt32(&s.numClients)+1) > s.config.RPCMaxClients {
-		log.Info("RPC clients exceeded","max",s.config.RPCMaxClients,
-			"client",remoteAddr)
+		log.Info("RPC clients exceeded", "max", s.config.RPCMaxClients,
+			"client", remoteAddr)
 		http.Error(w, "503 Too busy.  Try again later.",
 			http.StatusServiceUnavailable)
 		return true
@@ -242,7 +241,7 @@ func (s *RpcServer) checkAuth(r *http.Request, require bool) (bool, error) {
 	if len(authhdr) <= 0 {
 		if require {
 			log.Warn("RPC authentication failure", "from", r.RemoteAddr,
-				"error","no authorization header")
+				"error", "no authorization header")
 			return false, fmt.Errorf("auth failure")
 		}
 
@@ -286,7 +285,7 @@ func (s *RpcServer) jsonRPCRead(w http.ResponseWriter, r *http.Request) {
 	}
 	// discard dumb empty requests
 	if emptyRequest(r) {
-		log.Trace("Discard empty request", "from",r.RemoteAddr, "request",r)
+		log.Trace("Discard empty request", "from", r.RemoteAddr, "request", r)
 		return
 	}
 	// validate request
@@ -307,7 +306,7 @@ func (s *RpcServer) jsonRPCRead(w http.ResponseWriter, r *http.Request) {
 	codec := NewJSONCodec(&httpReadWriteNopCloser{body, w})
 	defer codec.Close()
 
-	log.Trace("jsonRPCRead", "body",body, "codec",codec)
+	log.Trace("jsonRPCRead", "body", body, "codec", codec)
 
 	s.ServeSingleRequest(ctx, codec, OptionMethodInvocation)
 }
@@ -626,7 +625,6 @@ func (s *RpcServer) createSubscription(ctx context.Context, c ServerCodec, req *
 	return reply[0].Interface().(*Subscription).ID, nil
 }
 
-
 // RegisterService will create a service for the given type under the given namespace.
 // When no methods on the given type match the criteria to be either a RPC method or
 // a subscription an error is returned. Otherwise a new service is created and added
@@ -658,10 +656,10 @@ func (s *RpcServer) RegisterService(namespace string, regSvc interface{}) error 
 
 	// create new service with callbacks/subscriptions & add to registry
 	svc := service{
-		svcNamespace:namespace,
-		svcType:typ,
-		callbacks:calls,
-		subscriptions:subs,
+		svcNamespace:  namespace,
+		svcType:       typ,
+		callbacks:     calls,
+		subscriptions: subs,
 	}
 	s.rpcSvcRegistry[svc.svcNamespace] = &svc
 	return nil

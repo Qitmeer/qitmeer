@@ -4,4 +4,3 @@ package types
 
 /// An identifier for an authority in the consensus algorithm.
 type AuthorityId Address
-

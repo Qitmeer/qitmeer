@@ -215,7 +215,7 @@ func checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint,
 	// Collect all of the transaction inputs and required information for
 	// validation for all transactions in the block into a single slice.
 	numInputs := 0
-	txs:= block.Transactions()
+	txs := block.Transactions()
 
 	for _, tx := range txs {
 		numInputs += len(tx.Transaction().TxIn)

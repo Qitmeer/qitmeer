@@ -11,11 +11,11 @@ import (
 	"errors"
 	"github.com/Qitmeer/qitmeer/common/network"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"io"
 	"net"
 	"strconv"
 	"time"
-	s "github.com/Qitmeer/qitmeer/core/serialization"
 )
 
 // ErrInvalidNetAddr describes an error that indicates the caller didn't specify

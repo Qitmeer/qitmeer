@@ -28,7 +28,7 @@ func (ores OrderedResult) MarshalJSON() ([]byte, error) {
 	buf.WriteString("{")
 	for i, kv := range ores {
 		if isEmptyValue(reflect.ValueOf(kv.Val)) {
-			continue  //omit empty
+			continue //omit empty
 		}
 		if i != 0 {
 			buf.WriteString(",")

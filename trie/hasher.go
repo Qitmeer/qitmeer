@@ -18,11 +18,11 @@
 package trie
 
 import (
+	"github.com/Qitmeer/qitmeer/common/encode/rlp"
+	nh "github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/util"
+	hh "hash"
 	"sync"
-     "github.com/Qitmeer/qitmeer/common/encode/rlp"
-     nh "github.com/Qitmeer/qitmeer/common/hash"
-     "github.com/Qitmeer/qitmeer/common/util"
-     hh "hash"
 )
 
 type hasher struct {

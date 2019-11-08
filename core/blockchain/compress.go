@@ -576,7 +576,7 @@ func decompressTxOutAmount(amount uint64) uint64 {
 // preCompressed flag indicates the provided amount and script are already
 // compressed.  This is useful since loaded utxo entries are not decompressed
 // until the output is accessed.
-func compressedTxOutSize(amount uint64,pkScript []byte) int {
+func compressedTxOutSize(amount uint64, pkScript []byte) int {
 	return serializeSizeVLQ(compressTxOutAmount(amount)) +
 		compressedScriptSize(pkScript)
 }
@@ -611,7 +611,7 @@ func decodeCompressedTxOut(serialized []byte) (uint64, []byte, int, error) {
 	// left in the slice for it.
 	scriptSize := decodeCompressedScriptSize(serialized[bytesRead:])
 	if scriptSize < 0 {
-		return 0, nil,bytesRead, errDeserialize("negative script size")
+		return 0, nil, bytesRead, errDeserialize("negative script size")
 	}
 	if len(serialized[bytesRead:]) < scriptSize {
 		return 0, nil, bytesRead, errDeserialize("unexpected end of " +

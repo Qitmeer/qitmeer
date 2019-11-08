@@ -21,7 +21,7 @@ import (
 // finalized, conforming to more stringent size constraints, having scripts
 // of recognized forms, and not containing "dust" outputs (those that are
 // so small it costs more to process them than they are worth).
-func checkTransactionStandard(tx *types.Tx,  height uint64,
+func checkTransactionStandard(tx *types.Tx, height uint64,
 	medianTime time.Time, minRelayTxFee types.Amount,
 	maxTxVersion uint16) error {
 
@@ -33,7 +33,7 @@ func checkTransactionStandard(tx *types.Tx,  height uint64,
 
 	if serType != types.TxSerializeFull {
 		str := fmt.Sprintf("transaction is not serialized with all "+
-			"required data -- type %v",serType)
+			"required data -- type %v", serType)
 		return txRuleError(message.RejectNonstandard, str)
 	}
 	if msgTx.Version > uint32(maxTxVersion) || msgTx.Version < 1 {
@@ -141,12 +141,12 @@ func checkPkScriptStandard(pkScript []byte,
 	// Only default Bitcoin-style script is standard except for
 	// null data outputs.
 	/*
-	if version != message.DefaultPkScriptVersion {
-		str := fmt.Sprintf("versions other than default pkscript version " +
-			"are currently non-standard except for provably unspendable " +
-			"outputs")
-		return txRuleError(message.RejectNonstandard, str)
-	}
+		if version != message.DefaultPkScriptVersion {
+			str := fmt.Sprintf("versions other than default pkscript version " +
+				"are currently non-standard except for provably unspendable " +
+				"outputs")
+			return txRuleError(message.RejectNonstandard, str)
+		}
 	*/
 
 	switch scriptClass {

@@ -5,7 +5,7 @@ import (
 	"github.com/Qitmeer/qitmeer/crypto/ecc"
 )
 
-type Address interface{
+type Address interface {
 	// String returns the string encoding of the transaction output
 	// destination.
 	//
@@ -14,16 +14,16 @@ type Address interface{
 	// EncodeAddress may convert destination types (for example,
 	// converting pubkeys to P2PKH addresses) before encoding as a
 	// payment address string.
-	String() 		string
+	String() string
 
 	// with encode
-	Encode()        string
+	Encode() string
 
 	// Hash160 returns the Hash160(data) where data is the data normally
 	// hashed to 160 bits from the respective address type.
-	Hash160()       *[20]byte
+	Hash160() *[20]byte
 
-	EcType()        ecc.EcType
+	EcType() ecc.EcType
 
 	// raw byte in script, aka the hash in the most case
 	ScriptAddress() []byte
@@ -37,8 +37,6 @@ type Address interface{
 type AddressType byte
 
 const (
-	LegerAddress AddressType = 0x01
+	LegerAddress    AddressType = 0x01
 	ContractAddress AddressType = 0x02
 )
-
-

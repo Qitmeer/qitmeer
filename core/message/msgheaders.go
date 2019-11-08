@@ -8,9 +8,9 @@ package message
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"io"
-	s "github.com/Qitmeer/qitmeer/core/serialization"
 )
 
 // MaxBlockHeadersPerMsg is the maximum number of block headers that can be in
@@ -60,7 +60,7 @@ func (msg *MsgHeaders) Decode(r io.Reader, pver uint32) error {
 	msg.Headers = make([]*types.BlockHeader, 0, count)
 	for i := uint64(0); i < count; i++ {
 		bh := &headers[i]
-		err:=bh.Deserialize(r)
+		err := bh.Deserialize(r)
 		if err != nil {
 			return err
 		}
@@ -78,8 +78,8 @@ func (msg *MsgHeaders) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddBlockHeader(bh)
 	}
-	msg.GS=blockdag.NewGraphState()
-	err=msg.GS.Decode(r,pver)
+	msg.GS = blockdag.NewGraphState()
+	err = msg.GS.Decode(r, pver)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (msg *MsgHeaders) Encode(w io.Writer, pver uint32) error {
 		}
 	}
 
-	err = msg.GS.Encode(w,pver)
+	err = msg.GS.Encode(w, pver)
 	if err != nil {
 		return err
 	}
@@ -135,12 +135,12 @@ func (msg *MsgHeaders) Command() string {
 func (msg *MsgHeaders) MaxPayloadLength(pver uint32) uint32 {
 	// Num headers (varInt) + max allowed headers (header length + 1 byte
 	// for the number of transactions which is always 0).
-	return MaxVarIntPayload + ((types.MaxBlockHeaderPayload + 1) *
+	return MaxVarIntPayload + ((types.MaxBlockHeaderPayload+1)*
 		MaxBlockHeadersPerMsg + msg.GS.MaxPayloadLength())
 }
 
 func (msg *MsgHeaders) String() string {
-	return fmt.Sprintf("Headers:%d GS:%s",len(msg.Headers),msg.GS.String())
+	return fmt.Sprintf("Headers:%d GS:%s", len(msg.Headers), msg.GS.String())
 }
 
 // NewMsgHeaders returns a new  headers message that conforms to the
@@ -148,6 +148,6 @@ func (msg *MsgHeaders) String() string {
 func NewMsgHeaders(gs *blockdag.GraphState) *MsgHeaders {
 	return &MsgHeaders{
 		Headers: make([]*types.BlockHeader, 0, MaxBlockHeadersPerMsg),
-		GS:gs,
+		GS:      gs,
 	}
 }

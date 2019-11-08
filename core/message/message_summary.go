@@ -42,25 +42,25 @@ func Summary(msg Message) string {
 			formatLockTime(msg.Tx.LockTime))
 	// TODO
 	/*
-	case *MsgMemPool:
-		// No summary.
-	case *MsgBlock:
-		header := &msg.Header
-		return fmt.Sprintf("hash %s, ver %d, %d tx, %s", msg.BlockHash(),
-			header.Version, len(msg.Transactions), header.Timestamp)
+		case *MsgMemPool:
+			// No summary.
+		case *MsgBlock:
+			header := &msg.Header
+			return fmt.Sprintf("hash %s, ver %d, %d tx, %s", msg.BlockHash(),
+				header.Version, len(msg.Transactions), header.Timestamp)
 
-	case *MsgInv:
-		return invSummary(msg.InvList)
+		case *MsgInv:
+			return invSummary(msg.InvList)
 
-	case *MsgNotFound:
-		return invSummary(msg.InvList)
+		case *MsgNotFound:
+			return invSummary(msg.InvList)
 
-	case *MsgGetData:
-		return invSummary(msg.InvList)
+		case *MsgGetData:
+			return invSummary(msg.InvList)
 
-	case *MsgGetBlocks:
-		return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
-*/
+		case *MsgGetBlocks:
+			return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
+	*/
 	case *MsgGetHeaders:
 		return msg.String()
 

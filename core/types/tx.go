@@ -3,27 +3,27 @@
 package types
 
 import (
-	"github.com/Qitmeer/qitmeer/common/math"
-	"io"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	s "github.com/Qitmeer/qitmeer/core/serialization"
-	"fmt"
 	"bytes"
 	"encoding/binary"
+	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/math"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"io"
 	"time"
 )
 
 type TxType byte
 
 const (
-	CoinBase         TxType = 0x01
-	Leger            TxType = 0x02
-	TxTypeRegular    TxType = 0x03
-	AssetIssue       TxType = 0xa0
-	AssetRevoke      TxType = 0xa1
-	ContractCreate   TxType = 0xc0
-	ContractDestroy  TxType = 0xc1
-	ContractUpdate   TxType = 0xc2
+	CoinBase        TxType = 0x01
+	Leger           TxType = 0x02
+	TxTypeRegular   TxType = 0x03
+	AssetIssue      TxType = 0xa0
+	AssetRevoke     TxType = 0xa1
+	ContractCreate  TxType = 0xc0
+	ContractDestroy TxType = 0xc1
+	ContractUpdate  TxType = 0xc2
 )
 
 const (
@@ -113,7 +113,6 @@ const (
 	// NoExpiryValue is the value of expiry that indicates the transaction
 	// has no expiry.
 	NoExpiryValue uint32 = 0
-
 )
 
 // TxIndexUnknown is the value returned for a transaction index that is unknown.
@@ -133,19 +132,19 @@ const (
 	TxSerializeNoWitness
 )
 
-type Input interface{
+type Input interface {
 	GetSignScript() []byte
 }
 
-type Output interface{
+type Output interface {
 	GetPkScript() []byte
 }
 type ScriptTx interface {
-	GetInput()     []Input
-	GetOutput()    []Output
-	GetVersion()   uint32
-	GetLockTime()  uint32
-	GetType()      ScriptTxType
+	GetInput() []Input
+	GetOutput() []Output
+	GetVersion() uint32
+	GetLockTime() uint32
+	GetType() ScriptTxType
 }
 type ScriptTxType int
 
@@ -155,13 +154,13 @@ const (
 )
 
 type Transaction struct {
-	Version   uint32
-	TxIn 	  []*TxInput
-	TxOut 	  []*TxOutput
-	LockTime  uint32
-	Expire    uint32
+	Version  uint32
+	TxIn     []*TxInput
+	TxOut    []*TxOutput
+	LockTime uint32
+	Expire   uint32
 
-	Message   []byte     //a unencrypted/encrypted message if user pay additional fee & limit the max length
+	Message    []byte //a unencrypted/encrypted message if user pay additional fee & limit the max length
 	CachedHash *hash.Hash
 }
 
@@ -184,25 +183,25 @@ func MaxTxPerTxTree(pver uint32) uint64 {
 	return ((MaxBlockPayload / minTxPayload) / 2) + 1
 }
 
- func (t *Transaction) GetInput() []Input {
-	txIns := make([]Input,len(t.TxIn))
+func (t *Transaction) GetInput() []Input {
+	txIns := make([]Input, len(t.TxIn))
 	for i, txIn := range t.TxIn {
 		txIns[i] = txIn
 	}
 	return txIns
 }
-func (t *Transaction) GetVersion() uint32{
+func (t *Transaction) GetVersion() uint32 {
 	return uint32(t.Version)
 }
-func (t *Transaction) GetLockTime() uint32{
+func (t *Transaction) GetLockTime() uint32 {
 	return t.LockTime
 }
-func (t *Transaction) GetType() ScriptTxType{
+func (t *Transaction) GetType() ScriptTxType {
 	return QitmeerScriptTx
 }
-func (t *Transaction) GetOutput() []Output{
-	txOuts := make([]Output,len(t.TxOut))
-	for i, txOut := range t.TxOut{
+func (t *Transaction) GetOutput() []Output {
+	txOuts := make([]Output, len(t.TxOut))
+	for i, txOut := range t.TxOut {
 		txOuts[i] = txOut
 	}
 	return txOuts
@@ -236,7 +235,7 @@ func (tx *Transaction) SerializeSize() int {
 	// outputs. The number of inputs is added twice because it's
 	// encoded once in both the witness and the prefix.
 	n = 12 + s.VarIntSerializeSize(uint64(len(tx.TxIn))) +
-		s.VarIntSerializeSize(uint64(len(tx.TxOut)))+
+		s.VarIntSerializeSize(uint64(len(tx.TxOut))) +
 		s.VarIntSerializeSize(uint64(len(tx.TxIn)))
 
 	for _, txIn := range tx.TxIn {
@@ -294,31 +293,31 @@ func (tx *Transaction) mustSerialize(serType TxSerializeType) []byte {
 // serialization type without modifying the original transaction.
 func (tx *Transaction) Serialize() ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
-	err:=tx.Encode(buf,0,TxSerializeFull)
-	return buf.Bytes(),err
+	err := tx.Encode(buf, 0, TxSerializeFull)
+	return buf.Bytes(), err
 }
 
 func (tx *Transaction) SerializeNoWitness() ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
-	err:=tx.Encode(buf,0,TxSerializeNoWitness)
-	return buf.Bytes(),err
+	err := tx.Encode(buf, 0, TxSerializeNoWitness)
+	return buf.Bytes(), err
 }
 
-func (tx *Transaction) Encode(w io.Writer, pver uint32,serType TxSerializeType) error {
+func (tx *Transaction) Encode(w io.Writer, pver uint32, serType TxSerializeType) error {
 	// serialize version using Full
 	serializedVersion := uint32(tx.Version) | uint32(serType)<<16
 	err := s.BinarySerializer.PutUint32(w, binary.LittleEndian, serializedVersion)
 	if err != nil {
 		return err
 	}
-	err = tx.encodePrefix(w,0)
+	err = tx.encodePrefix(w, 0)
 	if err != nil {
 		return err
 	}
 	if serType != TxSerializeFull {
 		return nil
 	}
-	return tx.encodeWitness(w,0)
+	return tx.encodeWitness(w, 0)
 }
 
 // encodePrefix encodes a transaction prefix into a writer.
@@ -395,7 +394,7 @@ func (tx *Transaction) encodeWitness(w io.Writer, pver uint32) error {
 	}
 
 	for _, ti := range tx.TxIn {
-		err =s.WriteVarBytes(w, pver, ti.SignScript)
+		err = s.WriteVarBytes(w, pver, ti.SignScript)
 		if err != nil {
 			return err
 		}
@@ -407,7 +406,7 @@ func (tx *Transaction) encodeWitness(w io.Writer, pver uint32) error {
 // that is suitable for long-term storage such as a database while respecting
 // the Version field in the transaction.
 func (tx *Transaction) Deserialize(r io.Reader) error {
-	return tx.Decode(r,0)
+	return tx.Decode(r, 0)
 }
 
 func (tx *Transaction) Decode(r io.Reader, pver uint32) error {
@@ -464,7 +463,7 @@ func (tx *Transaction) Decode(r io.Reader, pver uint32) error {
 		writeTxScriptsToMsgTx(tx,
 			totalScriptSizeOuts, TxSerializeNoWitness)
 	default:
-		return fmt.Errorf("Transaction.Deserialize : wrong transaction serializetion type [%d]",serType)
+		return fmt.Errorf("Transaction.Deserialize : wrong transaction serializetion type [%d]", serType)
 	}
 	return nil
 }
@@ -473,13 +472,13 @@ func (tx *Transaction) Decode(r io.Reader, pver uint32) error {
 // in the embedded msgTx.
 func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
 
-	count, err := s.ReadVarInt(r,0)
+	count, err := s.ReadVarInt(r, 0)
 
 	// Prevent more input transactions than could possibly fit into a
 	// message.  It would be possible to cause memory exhaustion and panics
 	// without a sane upper bound on this count.
 	if count > uint64(maxTxInPerMessage) {
-		return 0, fmt.Errorf("Tx.decodePrefix: too many input " +
+		return 0, fmt.Errorf("Tx.decodePrefix: too many input "+
 			"transactions to fit into max message size [count %d, max %d]",
 			count,
 			maxTxInPerMessage)
@@ -493,7 +492,7 @@ func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
 		// and needs to be returned to the pool on error.
 		ti := &txIns[i]
 		tx.TxIn[i] = ti
-		err = readTxInPrefix(r,tx.Version, ti)
+		err = readTxInPrefix(r, tx.Version, ti)
 		if err != nil {
 			return 0, err
 		}
@@ -509,7 +508,7 @@ func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
 	// without a sane upper bound on this count.
 	if count > uint64(maxTxOutPerMessage) {
 
-		return 0, fmt.Errorf("Tx.decodePrefix too many output transactions" +
+		return 0, fmt.Errorf("Tx.decodePrefix too many output transactions"+
 			" to fit into max message size [count %d, max %d]", count,
 			maxTxOutPerMessage)
 	}
@@ -548,7 +547,7 @@ func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
 // (TxIn) in the transaction prefix.
 func readTxInPrefix(r io.Reader, version uint32, ti *TxInput) error {
 	// Outpoint.
-	err := ReadOutPoint(r,version, &ti.PreviousOut)
+	err := ReadOutPoint(r, version, &ti.PreviousOut)
 	if err != nil {
 		return err
 	}
@@ -559,7 +558,7 @@ func readTxInPrefix(r io.Reader, version uint32, ti *TxInput) error {
 }
 
 // ReadOutPoint reads the next sequence of bytes from r as an OutPoint.
-func ReadOutPoint(r io.Reader,version uint32, op *TxOutPoint) error {
+func ReadOutPoint(r io.Reader, version uint32, op *TxOutPoint) error {
 	_, err := io.ReadFull(r, op.Hash[:])
 	if err != nil {
 		return err
@@ -600,7 +599,7 @@ func readScript(r io.Reader) ([]byte, error) {
 	// be possible to cause memory exhaustion and panics without a sane
 	// upper bound on this count.
 	if count > uint64(MaxMessagePayload) {
-		return nil,fmt.Errorf("readScript: larger than the max allowed size "+
+		return nil, fmt.Errorf("readScript: larger than the max allowed size "+
 			"[count %d, max %d]", count, MaxMessagePayload)
 	}
 
@@ -612,7 +611,6 @@ func readScript(r io.Reader) ([]byte, error) {
 	}
 	return b, nil
 }
-
 
 func (tx *Transaction) decodeWitness(r io.Reader) (uint64, error) {
 	// Witness only; generate the TxIn list and fill out only the
@@ -790,9 +788,9 @@ func (tx *Transaction) IsCoinBase() bool {
 // first access so subsequent accesses don't have to repeat the relatively
 // expensive hashing operations.
 type Tx struct {
-	Tx      *Transaction   // Underlying Transaction
-	hash    hash.Hash      // Cached transaction hash
-	txIndex int            // Position within a block or TxIndexUnknown
+	Tx      *Transaction // Underlying Transaction
+	hash    hash.Hash    // Cached transaction hash
+	txIndex int          // Position within a block or TxIndexUnknown
 }
 
 // Transaction() returns the underlying Tx for the transaction.
@@ -809,7 +807,7 @@ func (t *Tx) Hash() *hash.Hash {
 }
 
 func (t *Tx) RefreshHash() {
-	t.hash=t.Tx.TxHash()
+	t.hash = t.Tx.TxHash()
 }
 
 // SetIndex sets the index of the transaction in within a block.
@@ -822,7 +820,7 @@ func (t *Tx) SetIndex(index int) {
 func NewTx(t *Transaction) *Tx {
 	return &Tx{
 		hash:    t.TxHash(),
-		Tx:   t,
+		Tx:      t,
 		txIndex: TxIndexUnknown,
 	}
 }
@@ -844,8 +842,8 @@ func NewTxDeep(msgTx *Transaction) *Tx {
 				Hash:     txin.PreviousOut.Hash,
 				OutIndex: txin.PreviousOut.OutIndex,
 			},
-			Sequence:        txin.Sequence,
-			SignScript:      sigScript,
+			Sequence:   txin.Sequence,
+			SignScript: sigScript,
 		}
 	}
 
@@ -874,7 +872,6 @@ func NewTxDeep(msgTx *Transaction) *Tx {
 		txIndex: TxIndexUnknown,
 	}
 }
-
 
 // NewTxDeepTxIns is used to deep copy a transaction, maintaining the old
 // pointers to the TxOuts while replacing the old pointers to the TxIns with
@@ -915,21 +912,21 @@ func NewTxDeepTxIns(msgTx *Transaction) *Tx {
 
 	return &Tx{
 		hash:    msgTx.TxHash(),
-		Tx:   msgTx,
+		Tx:      msgTx,
 		txIndex: TxIndexUnknown,
 	}
 }
 
 type TxOutPoint struct {
-	Hash       hash.Hash       //txid
-	OutIndex   uint32          //vout
+	Hash     hash.Hash //txid
+	OutIndex uint32    //vout
 }
 
 // NewOutPoint returns a new transaction outpoint point with the
 // provided hash and index.
 func NewOutPoint(hash *hash.Hash, index uint32) *TxOutPoint {
 	return &TxOutPoint{
-		Hash:  *hash,
+		Hash:     *hash,
 		OutIndex: index,
 	}
 }
@@ -937,24 +934,24 @@ func NewOutPoint(hash *hash.Hash, index uint32) *TxOutPoint {
 type TxInput struct {
 	PreviousOut TxOutPoint
 	//the signature script (or witness script? or redeem script?)
-	SignScript       []byte
+	SignScript []byte
 	// This number has more historical significance than relevant usage;
 	// however, its most relevant purpose is to enable “locking” of payments
 	// so that they cannot be redeemed until a certain time.
-	Sequence         uint32     //work with LockTime (disable use 0xffffffff, bitcoin historical)
+	Sequence uint32 //work with LockTime (disable use 0xffffffff, bitcoin historical)
 }
 
 // NewTxIn returns a new transaction input with the provided  previous outpoint
 // point and signature script with a default sequence of MaxTxInSequenceNum.
-func NewTxInput(prevOut *TxOutPoint,  signScript []byte) *TxInput {
+func NewTxInput(prevOut *TxOutPoint, signScript []byte) *TxInput {
 	return &TxInput{
-		PreviousOut:   *prevOut,
-		Sequence:      MaxTxInSequenceNum,
-		SignScript:    signScript,
+		PreviousOut: *prevOut,
+		Sequence:    MaxTxInSequenceNum,
+		SignScript:  signScript,
 	}
 }
 
-func (ti *TxInput) GetSignScript() []byte{
+func (ti *TxInput) GetSignScript() []byte {
 	return ti.SignScript
 }
 
@@ -985,15 +982,15 @@ func (ti *TxInput) SerializeSizeWitness() int {
 }
 
 type TxOutput struct {
-	Amount     uint64
-	PkScript   []byte    //Here, asm/type -> OP_XXX OP_RETURN
+	Amount   uint64
+	PkScript []byte //Here, asm/type -> OP_XXX OP_RETURN
 }
 
 // NewTxOutput returns a new bitcoin transaction output with the provided
 // transaction value and public key script.
 func NewTxOutput(amount uint64, pkScript []byte) *TxOutput {
 	return &TxOutput{
-		Amount:    amount,
+		Amount:   amount,
 		PkScript: pkScript,
 	}
 }
@@ -1011,16 +1008,15 @@ func (to *TxOutput) SerializeSize() int {
 }
 
 type ContractTransaction struct {
-	From         Account
-	To           Account
-	Value        uint64
-	GasPrice     uint64
-	GasLimit     uint64
-	Nonce        uint64
-	Input        []byte
-	Signature    []byte
+	From      Account
+	To        Account
+	Value     uint64
+	GasPrice  uint64
+	GasLimit  uint64
+	Nonce     uint64
+	Input     []byte
+	Signature []byte
 }
-
 
 // TxDesc is a descriptor about a transaction in a transaction source along with
 // additional metadata.
@@ -1049,7 +1045,6 @@ type TxLoc struct {
 	TxLen   int
 }
 
-
 const (
 	// freeListMaxScriptSize is the size of each buffer in the free list
 	// that	is used for deserializing scripts from the wire before they are
@@ -1066,6 +1061,7 @@ const (
 	// 6,400,000 bytes.
 	freeListMaxItems = 12500
 )
+
 // scriptFreeList defines a free list of byte slices (up to the maximum number
 // defined by the freeListMaxItems constant) that have a cap according to the
 // freeListMaxScriptSize constant.  It is used to provide temporary buffers for

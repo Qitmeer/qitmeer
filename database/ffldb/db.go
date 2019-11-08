@@ -16,6 +16,11 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/database/ffldb/treap"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/comparer"
 	ldberrors "github.com/syndtr/goleveldb/leveldb/errors"
@@ -23,11 +28,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/database/ffldb/treap"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/protocol"
 )
 
 const (
@@ -1186,7 +1186,7 @@ func (tx *transaction) StoreBlock(block *types.SerializedBlock) error {
 		hash:  blockHash,
 		bytes: blockBytes,
 	})
-	dblog.Trace("Added block to pending blocks", "hash",blockHash)
+	dblog.Trace("Added block to pending blocks", "hash", blockHash)
 
 	return nil
 }
@@ -1697,7 +1697,7 @@ func (tx *transaction) writePendingAndCommit() error {
 
 	// Loop through all of the pending blocks to store and write them.
 	for _, blockData := range tx.pendingBlockData {
-		dblog.Trace("Storing block ","hash", blockData.hash)
+		dblog.Trace("Storing block ", "hash", blockData.hash)
 		location, err := tx.db.store.writeBlock(blockData.bytes)
 		if err != nil {
 			rollback()

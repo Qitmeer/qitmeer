@@ -21,16 +21,16 @@ func DBPutDAGBlock(dbTx database.Tx, block IBlock) error {
 	if err != nil {
 		return err
 	}
-	return bucket.Put(key,buff.Bytes())
+	return bucket.Put(key, buff.Bytes())
 }
 
 // DBGetDAGBlock get dag block data by resouce ID
-func DBGetDAGBlock(dbTx database.Tx,block IBlock) error {
+func DBGetDAGBlock(dbTx database.Tx, block IBlock) error {
 	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIndexBucketName)
 	var serializedID [4]byte
 	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
 
-	data:=bucket.Get(serializedID[:])
+	data := bucket.Get(serializedID[:])
 	if data == nil {
 		return fmt.Errorf("get dag block error")
 	}
@@ -42,7 +42,7 @@ func GetOrderLogStr(order uint) string {
 	if order == MaxBlockOrder {
 		return "uncertainty"
 	}
-	return fmt.Sprintf("%d",order)
+	return fmt.Sprintf("%d", order)
 }
 
 func DBPutDAGInfo(dbTx database.Tx, bd *BlockDAG) error {
@@ -51,5 +51,5 @@ func DBPutDAGInfo(dbTx database.Tx, bd *BlockDAG) error {
 	if err != nil {
 		return err
 	}
-	return dbTx.Metadata().Put(dbnamespace.DagInfoBucketName,buff.Bytes())
+	return dbTx.Metadata().Put(dbnamespace.DagInfoBucketName, buff.Bytes())
 }

@@ -13,14 +13,14 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/database"
 	"hash/crc32"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
-	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/core/protocol"
-	"github.com/Qitmeer/qitmeer/common/hash"
 )
 
 const (
@@ -681,7 +681,7 @@ func (s *blockStore) handleRollback(oldBlockFileNum, oldBlockOffset uint32) {
 	for ; wc.curFileNum > oldBlockFileNum; wc.curFileNum-- {
 		if err := s.deleteFileFunc(wc.curFileNum); err != nil {
 			dblog.Warn("ROLLBACK: Failed to delete block file ",
-				"fileNum", wc.curFileNum,"error", err)
+				"fileNum", wc.curFileNum, "error", err)
 			return
 		}
 	}
@@ -692,7 +692,7 @@ func (s *blockStore) handleRollback(oldBlockFileNum, oldBlockOffset uint32) {
 		obf, err := s.openWriteFileFunc(wc.curFileNum)
 		if err != nil {
 			wc.curFile.Unlock()
-			dblog.Warn("ROLLBACK ", "error",err)
+			dblog.Warn("ROLLBACK ", "error", err)
 			return
 		}
 		wc.curFile.file = obf
@@ -701,8 +701,8 @@ func (s *blockStore) handleRollback(oldBlockFileNum, oldBlockOffset uint32) {
 	// Truncate the to the provided rollback offset.
 	if err := wc.curFile.file.Truncate(int64(oldBlockOffset)); err != nil {
 		wc.curFile.Unlock()
-		dblog.Warn("ROLLBACK: Failed to truncate file","fileNum",
-			wc.curFileNum, "error",err)
+		dblog.Warn("ROLLBACK: Failed to truncate file", "fileNum",
+			wc.curFileNum, "error", err)
 		return
 	}
 
@@ -710,7 +710,7 @@ func (s *blockStore) handleRollback(oldBlockFileNum, oldBlockOffset uint32) {
 	err := wc.curFile.file.Sync()
 	wc.curFile.Unlock()
 	if err != nil {
-		dblog.Warn("ROLLBACK: Failed to sync file","fileNum",wc.curFileNum,"error",err)
+		dblog.Warn("ROLLBACK: Failed to sync file", "fileNum", wc.curFileNum, "error", err)
 		return
 	}
 }
@@ -734,8 +734,8 @@ func scanBlockFiles(dbPath string) (int, uint32) {
 		fileLen = uint32(st.Size())
 	}
 
-	dblog.Trace("Scan found latest block file ","lastFile",lastFile,
-		"length",fileLen)
+	dblog.Trace("Scan found latest block file ", "lastFile", lastFile,
+		"length", fileLen)
 	return lastFile, fileLen
 }
 

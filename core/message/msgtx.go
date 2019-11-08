@@ -14,7 +14,7 @@ import (
 // inputs and outputs.
 
 type MsgTx struct {
- 	Tx *types.Transaction
+	Tx *types.Transaction
 }
 
 // Command returns the protocol command string for the message.  This is part
@@ -35,7 +35,7 @@ func (msg *MsgTx) MaxPayloadLength(pver uint32) uint32 {
 // See Deserialize for decoding transactions stored to disk, such as in a
 // database, as opposed to decoding transactions from the wire.
 func (msg *MsgTx) Decode(r io.Reader, pver uint32) error {
-	msg.Tx =  &types.Transaction{}
+	msg.Tx = &types.Transaction{}
 	return msg.Tx.Deserialize(r)
 }
 
@@ -48,5 +48,5 @@ func (msg *MsgTx) Encode(w io.Writer, pver uint32) error {
 	// The serialized encoding of the version includes the real transaction
 	// version in the lower 16 bits and the transaction serialization type
 	// in the upper 16 bits.
-	return msg.Tx.Encode(w,pver,types.TxSerializeFull)
+	return msg.Tx.Encode(w, pver, types.TxSerializeFull)
 }

@@ -37,7 +37,7 @@ func (sp *serverPeer) addBanScore(persistent, transient uint32, reason string) {
 		return
 	}
 	if sp.isWhitelisted {
-		log.Debug("Misbehaving whitelisted peer", "sp",sp, "reason",reason)
+		log.Debug("Misbehaving whitelisted peer", "sp", sp, "reason", reason)
 		return
 	}
 
@@ -57,7 +57,7 @@ func (sp *serverPeer) addBanScore(persistent, transient uint32, reason string) {
 		log.Warn("Misbehaving peer %s: %s -- ban score increased to %d",
 			sp, reason, score)
 		if score > sp.server.cfg.BanThreshold {
-			log.Warn("Misbehaving peer -- banning and disconnecting","peer", sp)
+			log.Warn("Misbehaving peer -- banning and disconnecting", "peer", sp)
 			sp.server.BanPeer(sp)
 			sp.Disconnect()
 		}
@@ -72,7 +72,3 @@ func directionString(inbound bool) string {
 	}
 	return "outbound"
 }
-
-
-
-

@@ -7,8 +7,8 @@
 package mempool
 
 import (
-	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/message"
 )
 
 // RuleError identifies a rule violation.  It is used to indicate that
@@ -36,7 +36,7 @@ func (e RuleError) Error() string {
 // ascertain the specific reason for the rule violation.
 type TxRuleError struct {
 	RejectCode  message.RejectCode // The code to send with reject messages
-	Description string          // Human readable description of the issue
+	Description string             // Human readable description of the issue
 }
 
 // Error satisfies the error interface and prints human-readable errors.

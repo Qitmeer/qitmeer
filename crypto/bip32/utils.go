@@ -5,11 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/encode/base58"
+	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
+	"golang.org/x/crypto/ripemd160"
 	"io"
 	"math/big"
-	"golang.org/x/crypto/ripemd160"
-	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
-	"github.com/Qitmeer/qitmeer/common/encode/base58"
 )
 
 var (
@@ -93,7 +93,7 @@ func base58Encode(data []byte) string {
 
 func base58Decode(data string) ([]byte, error) {
 	result := base58.Decode(data)
-	return result,nil
+	return result, nil
 }
 
 // Keys

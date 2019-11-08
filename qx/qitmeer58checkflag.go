@@ -9,12 +9,13 @@ import (
 )
 
 type QitmeerBase58checkVersionFlag struct {
-	Ver []byte
+	Ver  []byte
 	flag string
 }
+
 func (n *QitmeerBase58checkVersionFlag) Set(s string) error {
 	n.Ver = []byte{}
-	switch (s) {
+	switch s {
 	case "mainnet":
 		n.Ver = append(n.Ver, params.MainNetParams.PubKeyHashAddrID[0:]...)
 	case "privnet":
@@ -25,15 +26,15 @@ func (n *QitmeerBase58checkVersionFlag) Set(s string) error {
 		n.Ver = append(n.Ver, params.MixNetParams.PubKeyHashAddrID[0:]...)
 	default:
 		v, err := hex.DecodeString(s)
-		if err!=nil {
+		if err != nil {
 			return err
 		}
-		n.Ver = append(n.Ver,v...)
+		n.Ver = append(n.Ver, v...)
 	}
 	n.flag = s
 	return nil
 }
 
-func (n *QitmeerBase58checkVersionFlag) String() string{
+func (n *QitmeerBase58checkVersionFlag) String() string {
 	return n.flag
 }

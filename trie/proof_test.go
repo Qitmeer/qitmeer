@@ -48,7 +48,7 @@ func makeProvers(trie *Trie) []func(key []byte) *statedb.MemDatabase {
 		proof := statedb.NewMemDatabase()
 		if it := NewIterator(trie.NodeIterator(key)); it.Next() && bytes.Equal(key, it.Key) {
 			for _, p := range it.Prove() {
-				proof.Put(hash.CalcHash(p,hash.GetHasher(hash.Keccak_256)), p)
+				proof.Put(hash.CalcHash(p, hash.GetHasher(hash.Keccak_256)), p)
 			}
 		}
 		return proof
@@ -111,7 +111,7 @@ func TestBadProof(t *testing.T) {
 			proof.Delete(key)
 
 			mutateByte(val)
-			proof.Put(hash.CalcHash(val,hash.GetHasher(hash.Keccak_256)), val)
+			proof.Put(hash.CalcHash(val, hash.GetHasher(hash.Keccak_256)), val)
 
 			if _, _, err := VerifyProof(root, kv.k, proof); err == nil {
 				t.Fatalf("prover %d: expected proof to fail for key %x", i, kv.k)

@@ -70,8 +70,8 @@ type Database struct {
 	oldest hash.Hash                 // Oldest tracked node, flush-list head
 	newest hash.Hash                 // Newest tracked node, flush-list tail
 
-	preimages map[hash.Hash][]byte // Preimages of nodes from the secure trie
-	seckeybuf [secureKeyLength]byte  // Ephemeral buffer for calculating preimage keys
+	preimages map[hash.Hash][]byte  // Preimages of nodes from the secure trie
+	seckeybuf [secureKeyLength]byte // Ephemeral buffer for calculating preimage keys
 
 	gctime  time.Duration      // Time spent on garbage collection since last commit
 	gcnodes uint64             // Nodes garbage collected since last commit
@@ -136,7 +136,7 @@ type cachedNode struct {
 	node node   // Cached collapsed trie node, or raw rlp data
 	size uint16 // Byte size of the useful cached data
 
-	parents  uint16                 // Number of live nodes referencing this one
+	parents  uint16               // Number of live nodes referencing this one
 	children map[hash.Hash]uint16 // External children referenced by this node
 
 	flushPrev hash.Hash // Previous node in the flush-list
@@ -315,7 +315,7 @@ func (db *Database) insert(h hash.Hash, blob []byte, node node) {
 	if db.oldest == (hash.Hash{}) {
 		db.oldest, db.newest = h, h
 	} else {
-		db.nodes[db.newest].flushNext, db.newest = h,h
+		db.nodes[db.newest].flushNext, db.newest = h, h
 	}
 	db.nodesSize += common.StorageSize(hash.HashSize + entry.size)
 }

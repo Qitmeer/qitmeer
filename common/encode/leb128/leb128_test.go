@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"fmt"
 	"encoding/hex"
+	"fmt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFromUInt64(t *testing.T) {
@@ -143,32 +143,32 @@ func TestLEB128BigIntRoundTrip(t *testing.T) {
 
 // It's the test case of the overflow for FromUInt64
 // TODO fix the overflow
-func TestOverflowFromUInt64(t *testing.T){
+func TestOverflowFromUInt64(t *testing.T) {
 
 	assert := assert.New(t)
 
 	// The normal case
 	// The longest LEB128 encoded sequence is 10-bytes long (9 0xff's and 1 0x7f)
-	input := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01}  // 10 bytes
+	input := []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01} // 10 bytes
 	got := ToUInt64(input)
-	assert.Equal(^uint64(0),got)  // the uint64 max -> 8 0xff's
+	assert.Equal(^uint64(0), got) // the uint64 max -> 8 0xff's
 	output := FromUInt64(^uint64(0))
-	assert.Equal(output,input[:])
-	fmt.Printf("%x = %x \n", output,input)
+	assert.Equal(output, input[:])
+	fmt.Printf("%x = %x \n", output, input)
 
 	// case 1 : incorrect result
 	input = []byte{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01}
-	assert.True(len(input)>20,"len=%d",len(input))
+	assert.True(len(input) > 20, "len=%d", len(input))
 	got = ToUInt64(input)
-	assert.Equal(^uint64(0),got)   // not correct, wrong input
+	assert.Equal(^uint64(0), got) // not correct, wrong input
 	output = FromUInt64(^uint64(0))
-	assert.NotEqual(output,input[:])
-	fmt.Printf("%x != %x \n",FromUInt64(^uint64(0)),input) //max
+	assert.NotEqual(output, input[:])
+	fmt.Printf("%x != %x \n", FromUInt64(^uint64(0)), input) //max
 
 	// case 2 : panic when bad input
-	bad,_ := hex.DecodeString("ffffffffffffffffffff")
+	bad, _ := hex.DecodeString("ffffffffffffffffffff")
 	bad = append([]byte(nil), bad...)
-	assert.Panics(func(){ToUInt64(bad)},"should overflow with bad input :%s",bad)
+	assert.Panics(func() { ToUInt64(bad) }, "should overflow with bad input :%s", bad)
 }

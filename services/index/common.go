@@ -4,16 +4,15 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-
 // Package indexers implements optional block chain indexes.
 package index
 
 import (
 	"encoding/binary"
-	"github.com/Qitmeer/qitmeer/database"
+	"errors"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
-	"errors"
+	"github.com/Qitmeer/qitmeer/database"
 )
 
 var (

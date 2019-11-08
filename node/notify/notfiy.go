@@ -12,4 +12,3 @@ type Notify interface {
 	RelayInventory(invVect *message.InvVect, data interface{})
 	BroadcastMessage(msg message.Message)
 }
-

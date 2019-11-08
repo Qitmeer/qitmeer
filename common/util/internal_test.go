@@ -18,5 +18,3 @@ package util
 func TstAppDataDir(goos, appName string, roaming bool) string {
 	return appDataDir(goos, appName, roaming)
 }
-
-

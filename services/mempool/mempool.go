@@ -9,10 +9,10 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -159,13 +159,13 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 	msgTx := tx.Transaction()
 	mp.pool[*tx.Hash()] = &TxDesc{
 		TxDesc: types.TxDesc{
-			Tx:     tx,
-			Added:  time.Now(),
-			Height: int64(height),  //todo: fix type conversion
-			Fee:    fee,
+			Tx:       tx,
+			Added:    time.Now(),
+			Height:   int64(height), //todo: fix type conversion
+			Fee:      fee,
 			FeePerKB: fee * 1000 / int64(tx.Tx.SerializeSize()),
 		},
-		StartingPriority: CalcPriority(msgTx, utxoView, height,mp.cfg.BD),
+		StartingPriority: CalcPriority(msgTx, utxoView, height, mp.cfg.BD),
 	}
 	for _, txIn := range msgTx.TxIn {
 		mp.outpoints[txIn.PreviousOut] = tx
@@ -185,8 +185,9 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 //Call addTransaction
 func (mp *TxPool) AddTransaction(utxoView *blockchain.UtxoViewpoint,
 	tx *types.Tx, height uint64, fee int64) {
-		mp.addTransaction(utxoView,tx,height,fee)
+	mp.addTransaction(utxoView, tx, height, fee)
 }
+
 // maybeAcceptTransaction is the internal function which implements the public
 // MaybeAcceptTransaction.  See the comment for MaybeAcceptTransaction for
 // more details.
@@ -247,7 +248,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// their acceptance and relaying.
 	medianTime := mp.cfg.PastMedianTime()
 	if !mp.cfg.Policy.AcceptNonStd {
-		err := checkTransactionStandard(tx,nextBlockHeight,
+		err := checkTransactionStandard(tx, nextBlockHeight,
 			medianTime, mp.cfg.Policy.MinRelayTxFee,
 			mp.cfg.Policy.MaxTxVersion)
 		if err != nil {
@@ -306,7 +307,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	var missingParents []*hash.Hash
 	for _, txIn := range msgTx.TxIn {
 
-		log.Trace("Looking up UTXO", "txIn",txIn,"PrevOutput",&txIn.PreviousOut.Hash)
+		log.Trace("Looking up UTXO", "txIn", txIn, "PrevOutput", &txIn.PreviousOut.Hash)
 		entry := utxoView.LookupEntry(txIn.PreviousOut)
 		if entry == nil || entry.IsSpent() {
 			// Must make a copy of the hash here since the iterator
@@ -343,7 +344,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Also returns the fees associated with the transaction which will be
 	// used later.  The fraud proof is not checked because it will be
 	// filled in by the miner.
-	txFee, err := blockchain.CheckTransactionInputs(tx, 0, utxoView, mp.cfg.ChainParams,mp.cfg.BD) //TODO fix type conversion
+	txFee, err := blockchain.CheckTransactionInputs(tx, 0, utxoView, mp.cfg.ChainParams, mp.cfg.BD) //TODO fix type conversion
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
 			return nil, chainRuleError(cerr)
@@ -413,7 +414,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	if isNew && !mp.cfg.Policy.DisableRelayPriority && txFee < minFee {
 
 		currentPriority := CalcPriority(msgTx, utxoView,
-			nextBlockHeight,mp.cfg.BD)
+			nextBlockHeight, mp.cfg.BD)
 		if currentPriority <= MinHighPriority {
 			str := fmt.Sprintf("transaction %v has insufficient "+
 				"priority (%g <= %g)", txHash,
@@ -479,7 +480,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Add to transaction pool.
 	mp.addTransaction(utxoView, tx, nextBlockHeight, txFee)
 
-	log.Debug("Accepted transaction","txHash", txHash,"pool size", len(mp.pool))
+	log.Debug("Accepted transaction", "txHash", txHash, "pool size", len(mp.pool))
 
 	return nil, nil
 }
@@ -507,12 +508,13 @@ func (mp *TxPool) fetchInputUtxos(tx *types.Tx) (*blockchain.UtxoViewpoint, erro
 		if poolTxDesc, exists := mp.pool[prevOut.Hash]; exists {
 			// AddTxOut ignores out of range index values, so it is
 			// safe to call without bounds checking here.
-			utxoView.AddTxOut(poolTxDesc.Tx, prevOut.OutIndex,&hash.ZeroHash)
+			utxoView.AddTxOut(poolTxDesc.Tx, prevOut.OutIndex, &hash.ZeroHash)
 		}
 	}
 
 	return utxoView, nil
 }
+
 // ProcessTransaction is the main workhorse for handling insertion of new
 // free-standing transactions into the memory pool.  It includes functionality
 // such as rejecting duplicate transactions, ensuring transactions follow all
@@ -531,7 +533,7 @@ func (mp *TxPool) ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allow
 	var err error
 	defer func() {
 		if err != nil {
-			log.Trace("Failed to process transaction","tx",tx.Hash(),"err", err.Error())
+			log.Trace("Failed to process transaction", "tx", tx.Hash(), "err", err.Error())
 		}
 	}()
 
@@ -658,6 +660,7 @@ func (mp *TxPool) removeOrphan(txHash *hash.Hash) {
 	// Remove the transaction from the orphan pool.
 	delete(mp.orphans, *txHash)
 }
+
 // RemoveOrphan removes the passed orphan transaction from the orphan pool and
 // previous orphan index.
 //
@@ -759,24 +762,24 @@ func (mp *TxPool) processOrphans(h *hash.Hash) []*types.Tx {
 func (mp *TxPool) addOrphan(tx *types.Tx) {
 	// TODO addOrphan
 	/*
-	// Nothing to do if no orphans are allowed.
-	if mp.cfg.Policy.MaxOrphanTxs <= 0 {
-		return
-	}
-
-	// Limit the number orphan transactions to prevent memory exhaustion.  A
-	// random orphan is evicted to make room if needed.
-	mp.limitNumOrphans()
-
-	mp.orphans[*tx.Hash()] = tx
-	for _, txIn := range tx.MsgTx().TxIn {
-		originTxHash := txIn.PreviousOutPoint.Hash
-		if _, exists := mp.orphansByPrev[originTxHash]; !exists {
-			mp.orphansByPrev[originTxHash] =
-				make(map[chainhash.Hash]*dcrutil.Tx)
+		// Nothing to do if no orphans are allowed.
+		if mp.cfg.Policy.MaxOrphanTxs <= 0 {
+			return
 		}
-		mp.orphansByPrev[originTxHash][*tx.Hash()] = tx
-	}
+
+		// Limit the number orphan transactions to prevent memory exhaustion.  A
+		// random orphan is evicted to make room if needed.
+		mp.limitNumOrphans()
+
+		mp.orphans[*tx.Hash()] = tx
+		for _, txIn := range tx.MsgTx().TxIn {
+			originTxHash := txIn.PreviousOutPoint.Hash
+			if _, exists := mp.orphansByPrev[originTxHash]; !exists {
+				mp.orphansByPrev[originTxHash] =
+					make(map[chainhash.Hash]*dcrutil.Tx)
+			}
+			mp.orphansByPrev[originTxHash][*tx.Hash()] = tx
+		}
 	*/
 
 	log.Debug(fmt.Sprintf("Stored orphan transaction %v (total: %d)", tx.Hash(),
@@ -815,7 +818,7 @@ func (mp *TxPool) FetchTransaction(txHash *hash.Hash) (*types.Tx, error) {
 		return txDesc.Tx, nil
 	}
 
-	return nil,fmt.Errorf("transaction is not in the pool")
+	return nil, fmt.Errorf("transaction is not in the pool")
 }
 
 // HaveAllTransactions returns whether or not all of the passed transaction
@@ -958,4 +961,3 @@ func (mp *TxPool) PruneExpiredTx() {
 	mp.pruneExpiredTx()
 	mp.mtx.Unlock()
 }
-

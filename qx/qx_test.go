@@ -59,7 +59,7 @@ func TestCreateAddress(t *testing.T) {
 
 func TestCreateMixParamsAddressPublicKeyHash(t *testing.T) {
 	times := 0
-	for{
+	for {
 		if times > 20000 {
 			break
 		}
@@ -68,7 +68,7 @@ func TestCreateMixParamsAddressPublicKeyHash(t *testing.T) {
 		p, _ := EcPrivateKeyToEcPublicKey(false, k)
 		a, _ := EcPubKeyToAddress("mixnet", p)
 		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-		if !assert.Contains(t, a, "Xm"){
+		if !assert.Contains(t, a, "Xm") {
 			break
 		}
 		times++
@@ -77,7 +77,7 @@ func TestCreateMixParamsAddressPublicKeyHash(t *testing.T) {
 
 func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
 	times := 0
-	for{
+	for {
 		if times > 20000 {
 			break
 		}
@@ -86,7 +86,7 @@ func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
 		p, _ := EcPrivateKeyToEcPublicKey(false, k)
 		a, _ := EcScriptKeyToAddress("mixnet", p)
 		fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-		if !assert.Contains(t, a, "Xd"){
+		if !assert.Contains(t, a, "Xd") {
 			break
 		}
 		times++

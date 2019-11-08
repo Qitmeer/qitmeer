@@ -9,10 +9,10 @@ package progresslog
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"sync"
-	"time"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
+	"sync"
+	"time"
 )
 
 // BlockProgressLogger provides periodic logging for other services in order
@@ -49,7 +49,6 @@ func (b *BlockProgressLogger) LogBlockHeightByParent(block, parent *types.Serial
 	b.receivedLogBlocks++
 	b.receivedLogTx += int64(len(parent.Transactions()))
 
-
 	now := time.Now()
 	duration := now.Sub(b.lastBlockLogTime)
 	if duration < time.Second*10 {
@@ -70,7 +69,6 @@ func (b *BlockProgressLogger) LogBlockHeightByParent(block, parent *types.Serial
 		txStr = "transaction"
 	}
 
-
 	b.subsystemLogger.Info("%s %d %s in the last %s (%d %s, height %d, %s)",
 		b.progressAction, b.receivedLogBlocks, blockStr, tDuration,
 		b.receivedLogTx, txStr, block.Height(),
@@ -80,7 +78,6 @@ func (b *BlockProgressLogger) LogBlockHeightByParent(block, parent *types.Serial
 	b.receivedLogTx = 0
 	b.lastBlockLogTime = now
 }
-
 
 // logBlockHeight logs a new block height as an information message to show
 // progress to the user. In order to prevent spam, it limits logging to one

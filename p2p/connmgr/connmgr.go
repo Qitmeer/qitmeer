@@ -8,11 +8,11 @@ package connmgr
 import (
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/log"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
-	"github.com/Qitmeer/qitmeer/log"
 )
 
 // ConnManager provides a manager to handle network connections.
@@ -146,7 +146,7 @@ type ConnReq struct {
 	Addr       net.Addr
 	Permanent  bool
 	// This connect is illegal
-	Ban        bool
+	Ban bool
 }
 
 // updateState updates the state of the connection request.
@@ -179,14 +179,14 @@ func (c *ConnReq) Conn() net.Conn {
 
 // set conn
 func (c *ConnReq) SetConn(conn net.Conn) {
-	c.conn=conn
+	c.conn = conn
 }
 
 // NewConnReq
 func NewConnReq() *ConnReq {
-	c:=ConnReq{}
-	c.id=0
-	c.Ban=false
+	c := ConnReq{}
+	c.id = 0
+	c.Ban = false
 	return &c
 }
 
@@ -266,8 +266,6 @@ type handleFailed struct {
 	err error
 }
 
-
-
 // handleFailedConn handles a connection failed due to a disconnect or any
 // other failure. If permanent, it retries the connection after the configured
 // retry duration. Otherwise, if required, it makes a new connection request.
@@ -283,28 +281,28 @@ func (cm *ConnManager) handleFailedConn(c *ConnReq) {
 		if d > maxRetryDuration {
 			d = maxRetryDuration
 		}
-		log.Debug("Retrying connection", "conn req",c, "wait time",d)
+		log.Debug("Retrying connection", "conn req", c, "wait time", d)
 		time.AfterFunc(d, func() {
 			cm.Connect(c)
 		})
 	} else if cm.cfg.GetNewAddress != nil {
 		cm.failedAttempts++
 		if c.Ban {
-			retryDuration:=cm.cfg.RetryDuration*2
+			retryDuration := cm.cfg.RetryDuration * 2
 			log.Trace(fmt.Sprintf("Retrying ban connection in: %v", retryDuration))
 			time.AfterFunc(retryDuration, func() {
-				c.Ban=false
+				c.Ban = false
 				cm.NewConnReq()
 			})
 		} else if cm.failedAttempts >= maxFailedAttempts {
 			log.Trace(fmt.Sprintf("Max %d failed connection attempts reached", maxFailedAttempts))
 			log.Trace(fmt.Sprintf("Retrying connection in: %v", cm.cfg.RetryDuration),
-				"failed",cm.failedAttempts)
+				"failed", cm.failedAttempts)
 			time.AfterFunc(cm.cfg.RetryDuration, func() {
 				cm.NewConnReq()
 			})
 		} else {
-			log.Trace("Trying new connection","failed",cm.failedAttempts)
+			log.Trace("Trying new connection", "failed", cm.failedAttempts)
 			go cm.NewConnReq()
 		}
 	}
@@ -346,7 +344,7 @@ out:
 				connReq.updateState(ConnEstablished)
 				connReq.conn = msg.conn
 				conns[connReq.id] = connReq
-				log.Debug(fmt.Sprintf("Connected to %v",connReq))
+				log.Debug(fmt.Sprintf("Connected to %v", connReq))
 				connReq.retryCount = 0
 				cm.failedAttempts = 0
 
@@ -421,7 +419,7 @@ out:
 					continue
 				}
 				connReq.updateState(ConnFailing)
-				log.Debug("Failed to connect", "con",connReq, "error",msg.err)
+				log.Debug("Failed to connect", "con", connReq, "error", msg.err)
 				cm.handleFailedConn(connReq)
 			}
 
@@ -516,7 +514,7 @@ func (cm *ConnManager) Connect(c *ConnReq) {
 			return
 		}
 	}
-	log.Debug(fmt.Sprintf("Attempting to connect to %v",c))
+	log.Debug(fmt.Sprintf("Attempting to connect to %v", c))
 	conn, err := cm.cfg.Dial(c.Addr.Network(), c.Addr.String())
 	if err != nil {
 		select {
@@ -554,7 +552,7 @@ func (cm *ConnManager) Remove(id uint64) {
 // listenHandler accepts incoming connections on a given listener.  It must be
 // run as a goroutine.
 func (cm *ConnManager) listenHandler(listener net.Listener) {
-	log.Info("P2P Server listening on", "addr",listener.Addr())
+	log.Info("P2P Server listening on", "addr", listener.Addr())
 	for atomic.LoadInt32(&cm.stop) == 0 {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -564,8 +562,8 @@ func (cm *ConnManager) listenHandler(listener net.Listener) {
 			}
 			continue
 		}
-		c:=NewConnReq()
-		c.conn=conn
+		c := NewConnReq()
+		c.conn = conn
 		go cm.cfg.OnAccept(c)
 	}
 

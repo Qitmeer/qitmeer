@@ -11,9 +11,8 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
-	"io"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
-
+	"io"
 )
 
 // MaxBlockLocatorsPerMsg is the maximum number of block locator hashes allowed
@@ -48,8 +47,8 @@ func (msg *MsgGetBlocks) AddBlockLocatorHash(hash *hash.Hash) error {
 			MaxBlockLocatorsPerMsg)
 		return messageError("MsgGetBlocks.AddBlockLocatorHash", str)
 	}
-	hashValue:=*hash
-	msg.BlockLocatorHashes = append(msg.BlockLocatorHashes,&hashValue)
+	hashValue := *hash
+	msg.BlockLocatorHashes = append(msg.BlockLocatorHashes, &hashValue)
 	return nil
 }
 
@@ -83,8 +82,8 @@ func (msg *MsgGetBlocks) Decode(r io.Reader, pver uint32) error {
 		}
 		msg.AddBlockLocatorHash(hash)
 	}
-	msg.GS=blockdag.NewGraphState()
-	err=msg.GS.Decode(r,pver)
+	msg.GS = blockdag.NewGraphState()
+	err = msg.GS.Decode(r, pver)
 	if err != nil {
 		return err
 	}
@@ -117,7 +116,7 @@ func (msg *MsgGetBlocks) Encode(w io.Writer, pver uint32) error {
 		}
 	}
 
-	err = msg.GS.Encode(w,pver)
+	err = msg.GS.Encode(w, pver)
 	if err != nil {
 		return err
 	}
@@ -146,6 +145,6 @@ func NewMsgGetBlocks(gs *blockdag.GraphState) *MsgGetBlocks {
 	return &MsgGetBlocks{
 		ProtocolVersion:    protocol.ProtocolVersion,
 		BlockLocatorHashes: make([]*hash.Hash, 0, MaxBlockLocatorsPerMsg),
-		GS:gs,
+		GS:                 gs,
 	}
 }

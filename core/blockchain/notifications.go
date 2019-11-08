@@ -9,8 +9,8 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/types"
 )
 
 // NotificationType represents the type of a notification message.
@@ -38,16 +38,15 @@ const (
 	// Reorganization indicates that a blockchain reorganization is in
 	// progress.
 	Reorganization
-
 )
 
 // notificationTypeStrings is a map of notification types back to their constant
 // names for pretty printing.
 var notificationTypeStrings = map[NotificationType]string{
-	BlockAccepted:         "BlockAccepted",
-	BlockConnected:        "BlockConnected",
-	BlockDisconnected:     "BlockDisconnected",
-	Reorganization:        "Reorganization",
+	BlockAccepted:     "BlockAccepted",
+	BlockConnected:    "BlockConnected",
+	BlockDisconnected: "BlockDisconnected",
+	Reorganization:    "Reorganization",
 }
 
 // String returns the NotificationType in human-readable form.
@@ -108,6 +107,6 @@ func (b *BlockChain) sendNotification(typ NotificationType, data interface{}) {
 
 	// Generate and send the notification.
 	n := Notification{Type: typ, Data: data}
-	log.Trace("send blkmgr notification", "type",n.Type, "data",n.Data)
+	log.Trace("send blkmgr notification", "type", n.Type, "data", n.Data)
 	b.notifications(&n)
 }

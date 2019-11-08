@@ -185,7 +185,7 @@ cleanup:
 			break cleanup
 		}
 	}
-	log.Trace("Peer stall handler done", "peer",p.addr)
+	log.Trace("Peer stall handler done", "peer", p.addr)
 }
 
 // maybeAddDeadline potentially adds a deadline for the appropriate expected

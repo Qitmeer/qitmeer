@@ -21,12 +21,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/log"
 	"io"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
-	"github.com/Qitmeer/qitmeer/log"
 )
 
 const (
@@ -39,11 +39,10 @@ const (
 
 // These are all service namespace in node
 const (
-	DefaultServiceNameSpace  = "qitmeer"
-	MinerNameSpace           = "miner"
-	TestNameSpace            = "test"
+	DefaultServiceNameSpace = "qitmeer"
+	MinerNameSpace          = "miner"
+	TestNameSpace           = "test"
 )
-
 
 type jsonRequest struct {
 	Method  string          `json:"method"`
@@ -226,10 +225,10 @@ func parseRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) {
 		}
 		if elem := strings.Split(r.Method, serviceMethodSeparator); len(elem) == 2 {
 			requests[i].service, requests[i].method = elem[0], elem[1]
-		}else if len(elem) == 1{
+		} else if len(elem) == 1 {
 			requests[i].service, requests[i].method = DefaultServiceNameSpace, elem[0]
-		}else {
-			requests[i].err = &methodNotFoundError{"",r.Method}
+		} else {
+			requests[i].err = &methodNotFoundError{"", r.Method}
 		}
 	}
 

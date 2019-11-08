@@ -22,7 +22,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/util"
 	"math/big"
 	"testing"
-
 )
 
 func TestHexOrDecimal256(t *testing.T) {

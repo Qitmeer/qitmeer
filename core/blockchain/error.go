@@ -240,7 +240,6 @@ const (
 	// than were allowed.
 	ErrTooManyRevocations
 
-
 	// ErrInvalidFinalState indicates that the final state of the PRNG included
 	// in the the block differed from the calculated final state.
 	ErrInvalidFinalState
@@ -356,9 +355,9 @@ var errorCodeStrings = map[ErrorCode]string{
 	ErrNoTxInputs:             "ErrNoTxInputs",
 	ErrNoTxOutputs:            "ErrNoTxOutputs",
 	ErrTxTooBig:               "ErrTxTooBig",
-	ErrInvalidTxOutValue:          "ErrInvalidTxOutValue",
+	ErrInvalidTxOutValue:      "ErrInvalidTxOutValue",
 	ErrDuplicateTxInputs:      "ErrDuplicateTxInputs",
-	ErrInvalidTxInput:             "ErrInvalidTxInput",
+	ErrInvalidTxInput:         "ErrInvalidTxInput",
 	ErrMissingTxOut:           "ErrMissingTxOut",
 	ErrUnfinalizedTx:          "ErrUnfinalizedTx",
 	ErrDuplicateTx:            "ErrDuplicateTx",
@@ -399,10 +398,10 @@ var errorCodeStrings = map[ErrorCode]string{
 	ErrInvalidTemplateParent:  "ErrInvalidTemplateParent",
 	ErrMissingCoinbaseHeight:  "ErrMissingCoinbaseHeight",
 	//cuckoo,begin
-	ErrBadCuckooNonces:        "ErrBadCuckooNonces",
-	ErrInValidPowType:         "ErrInValidPowType",
+	ErrBadCuckooNonces: "ErrBadCuckooNonces",
+	ErrInValidPowType:  "ErrInValidPowType",
 
-	ErrNoBlueCoinbase:         "ErrNoBlueCoinbase",
+	ErrNoBlueCoinbase: "ErrNoBlueCoinbase",
 }
 
 // String returns the ErrorCode as a human-readable name.

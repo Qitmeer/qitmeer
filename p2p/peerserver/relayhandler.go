@@ -10,7 +10,7 @@ import (
 // handleRelayInvMsg deals with relaying inventory to peers that are not already
 // known to have it.  It is invoked from the peerHandler goroutine.
 func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
-	log.Trace("handleRelayInvMsg", "msg",msg)
+	log.Trace("handleRelayInvMsg", "msg", msg)
 	var gs *blockdag.GraphState
 	state.forAllPeers(func(sp *serverPeer) {
 		if !sp.Connected() {
@@ -28,7 +28,7 @@ func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 			}
 			msgHeaders := message.NewMsgHeaders(s.BlockManager.GetChain().BestSnapshot().GraphState)
 			if err := msgHeaders.AddBlockHeader(&blockHeader); err != nil {
-				log.Error("Failed to add block header","error", err)
+				log.Error("Failed to add block header", "error", err)
 				return
 			}
 			sp.QueueMessage(msgHeaders, nil)
@@ -50,14 +50,12 @@ func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 		// known to have the inventory.
 		if msg.immediate || msg.invVect.Type == message.InvTypeBlock {
 			if msg.invVect.Type == message.InvTypeBlock {
-				gs=s.BlockManager.GetChain().BestSnapshot().GraphState
+				gs = s.BlockManager.GetChain().BestSnapshot().GraphState
 			}
-			sp.QueueInventoryImmediate(msg.invVect,gs)
+			sp.QueueInventoryImmediate(msg.invVect, gs)
 		} else {
 			sp.QueueInventory(msg.invVect)
 		}
 	})
 	log.Trace("handleRelayInvMsg done")
 }
-
-

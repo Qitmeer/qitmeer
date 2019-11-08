@@ -7,9 +7,9 @@
 package main
 
 import (
+	"github.com/Qitmeer/qitmeer/log"
 	"os"
 	"os/signal"
-	"github.com/Qitmeer/qitmeer/log"
 	"syscall"
 )
 
@@ -19,7 +19,7 @@ var shutdownRequestChannel = make(chan struct{})
 
 // interruptSignals defines the default signals to catch in order to do a proper
 // shutdown.  This may be modified during init depending on the platform.
-var interruptSignals = []os.Signal{os.Interrupt, os.Kill,syscall.SIGINT,syscall.SIGTERM}
+var interruptSignals = []os.Signal{os.Interrupt, os.Kill, syscall.SIGINT, syscall.SIGTERM}
 
 // interruptListener listens for OS Signals such as SIGINT (Ctrl+C) and shutdown
 // requests from shutdownRequestChannel.  It returns a channel that is closed
@@ -34,7 +34,7 @@ func interruptListener() <-chan struct{} {
 		// channel to notify the caller.
 		select {
 		case sig := <-interruptChannel:
-			log.Info("Shutting down...","Received signal", sig)
+			log.Info("Shutting down...", "Received signal", sig)
 
 		case <-shutdownRequestChannel:
 			log.Info("Shutdown requested. Shutting down...")
@@ -47,7 +47,7 @@ func interruptListener() <-chan struct{} {
 		for {
 			select {
 			case sig := <-interruptChannel:
-				log.Info("Already shutting down...","Received signal",sig)
+				log.Info("Already shutting down...", "Received signal", sig)
 			case <-shutdownRequestChannel:
 				log.Info("Shutdown requested.  Already shutting down...")
 			}

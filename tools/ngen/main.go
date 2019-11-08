@@ -884,7 +884,7 @@ func (me Declare) Statement() ast.Stmt {
 			Specs: []ast.Spec{
 				&ast.ValueSpec{
 					Names: []*ast.Ident{
-						&ast.Ident{
+						{
 							Name: me.Name,
 							Obj: &ast.Object{
 								Kind: ast.Var,
@@ -929,7 +929,7 @@ func (me Function) Declaration() ast.Decl {
 		var names []*ast.Ident
 		if param.Name != "" {
 			names = []*ast.Ident{
-				&ast.Ident{
+				{
 					Name: param.Name,
 					Obj: &ast.Object{
 						Kind: ast.Var,
@@ -950,7 +950,7 @@ func (me Function) Declaration() ast.Decl {
 		var names []*ast.Ident
 		if ret.Name != "" {
 			names = []*ast.Ident{
-				&ast.Ident{
+				{
 					Name: ret.Name,
 					Obj: &ast.Object{
 						Kind: ast.Var,
@@ -1057,7 +1057,7 @@ func (me Field) Ast() *ast.Field {
 	names := []*ast.Ident{}
 	if me.Name != "" {
 		names = []*ast.Ident{
-			&ast.Ident{
+			{
 				Name: me.Name,
 				Obj: &ast.Object{
 					Kind: ast.Var,
@@ -1150,9 +1150,9 @@ func (me Receiver) Ast() *ast.FieldList {
 	}
 	return &ast.FieldList{
 		List: []*ast.Field{
-			&ast.Field{
+			{
 				Names: []*ast.Ident{
-					&ast.Ident{
+					{
 						Name: me.Name,
 						Obj: &ast.Object{
 							Kind: ast.Var,

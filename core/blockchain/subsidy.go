@@ -25,7 +25,7 @@ type SubsidyCache struct {
 	subsidyCache     map[uint64]int64
 	subsidyCacheLock sync.RWMutex
 
-	params           *params.Params
+	params *params.Params
 }
 
 // NewSubsidyCache initializes a new subsidy cache for a given blocks. It
@@ -116,25 +116,25 @@ func (s *SubsidyCache) CalcBlockSubsidy(blocks int64) int64 {
 // CalcBlockWorkSubsidy calculates the proof of work subsidy for a block as a
 // proportion of the total subsidy. (aka, the coinbase subsidy)
 func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, blocks int64, params *params.Params) uint64 {
-	work,_,_:=calcBlockProportion(subsidyCache,blocks,params)
+	work, _, _ := calcBlockProportion(subsidyCache, blocks, params)
 	return work
 }
 
 // CalcBlockTaxSubsidy calculates the subsidy for the organization address in the
 // coinbase.
 func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, blocks int64, params *params.Params) uint64 {
-	_,_,tax:=calcBlockProportion(subsidyCache,blocks,params)
+	_, _, tax := calcBlockProportion(subsidyCache, blocks, params)
 	return tax
 }
 
-func calcBlockProportion(subsidyCache *SubsidyCache, blocks int64, params *params.Params) (uint64,uint64,uint64) {
+func calcBlockProportion(subsidyCache *SubsidyCache, blocks int64, params *params.Params) (uint64, uint64, uint64) {
 	subsidy := uint64(subsidyCache.CalcBlockSubsidy(blocks))
 	workPro := float64(params.WorkRewardProportion)
-	stakePro:= float64(params.StakeRewardProportion)
+	stakePro := float64(params.StakeRewardProportion)
 	proportions := float64(params.TotalSubsidyProportions())
 
-	work:=uint64(workPro/proportions*float64(subsidy))
-	stake:=uint64(stakePro/proportions*float64(subsidy))
-	tax:=subsidy-work-stake
-	return work,stake,tax
+	work := uint64(workPro / proportions * float64(subsidy))
+	stake := uint64(stakePro / proportions * float64(subsidy))
+	tax := subsidy - work - stake
+	return work, stake, tax
 }

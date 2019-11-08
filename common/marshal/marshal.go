@@ -5,16 +5,16 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"time"
-	"github.com/Qitmeer/qitmeer/core/message"
-	"strconv"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
-	"github.com/Qitmeer/qitmeer/common/hash"
+	"strconv"
+	"time"
 )
 
 // messageToHex serializes a message to the wire protocol encoding using the
@@ -29,42 +29,41 @@ func MessageToHex(msg message.Message) (string, error) {
 	return hex.EncodeToString(buf.Bytes()), nil
 }
 
-func MarshalJsonTx(tx *types.Tx, params *params.Params,blkHashStr string,
-	confirmations int64) (json.TxRawResult, error){
+func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHashStr string,
+	confirmations int64) (json.TxRawResult, error) {
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
-	return MarshalJsonTransaction(tx.Transaction(), params,blkHashStr, confirmations)
+	return MarshalJsonTransaction(tx.Transaction(), params, blkHashStr, confirmations)
 }
 
-
 func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHashStr string,
-	confirmations int64) (json.TxRawResult, error){
+	confirmations int64) (json.TxRawResult, error) {
 
-	hexStr, err := MessageToHex(&message.MsgTx{Tx:tx})
-	if err!=nil {
+	hexStr, err := MessageToHex(&message.MsgTx{Tx: tx})
+	if err != nil {
 		return json.TxRawResult{}, err
 	}
-	txr:=json.TxRawResult{
-		Hex : hexStr,
-		Txid : tx.TxHash().String(),
-		TxHash : tx.TxHashFull().String(),
-		Size:int32(tx.SerializeSize()),
-		Version:tx.Version,
-		LockTime:tx.LockTime,
-		Expire:tx.Expire,
-		Vin: MarshJsonVin(tx),
-		Vout:MarshJsonVout(tx,nil, params),
+	txr := json.TxRawResult{
+		Hex:      hexStr,
+		Txid:     tx.TxHash().String(),
+		TxHash:   tx.TxHashFull().String(),
+		Size:     int32(tx.SerializeSize()),
+		Version:  tx.Version,
+		LockTime: tx.LockTime,
+		Expire:   tx.Expire,
+		Vin:      MarshJsonVin(tx),
+		Vout:     MarshJsonVout(tx, nil, params),
 	}
 
 	if blkHashStr != "" {
-		txr.BlockHash=blkHashStr
-		txr.Confirmations=confirmations
+		txr.BlockHash = blkHashStr
+		txr.Confirmations = confirmations
 	}
-	return txr,nil
+	return txr, nil
 }
 
-func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
+func MarshJsonVin(tx *types.Transaction) []json.Vin {
 	// Coinbase transactions only have a single txin by definition.
 	vinList := make([]json.Vin, len(tx.TxIn))
 	if tx.IsCoinBase() {
@@ -93,19 +92,18 @@ func  MarshJsonVin(tx *types.Transaction)([]json.Vin) {
 	return vinList
 }
 
-func  MarshJsonVout(tx *types.Transaction,filterAddrMap map[string]struct{}, params *params.Params)([]json.Vout) {
+func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, params *params.Params) []json.Vout {
 	voutList := make([]json.Vout, 0, len(tx.TxOut))
 	for _, v := range tx.TxOut {
 		// The disassembled string will contain [error] inline if the
 		// script doesn't fully parse, so ignore the error here.
 		disbuf, _ := txscript.DisasmString(v.PkScript)
 
-
 		// Ignore the error here since an error means the script
 		// couldn't parse and there is no additional information
 		// about it anyways.
-		sc , addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(
-				v.PkScript, params)
+		sc, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(
+			v.PkScript, params)
 		scriptClass := sc.String()
 
 		// Encode the addresses while checking if the address passes the
@@ -148,21 +146,21 @@ func  MarshJsonVout(tx *types.Transaction,filterAddrMap map[string]struct{}, par
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
 func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
-	params *params.Params, confirmations int64,children []*hash.Hash,state bool,isOrdered bool) (json.OrderedResult, error) {
+	params *params.Params, confirmations int64, children []*hash.Hash, state bool, isOrdered bool) (json.OrderedResult, error) {
 
 	head := b.Block().Header // copies the header once
 	// Get next block hash unless there are none.
 	fields := json.OrderedResult{
-		{Key:"hash",         Val:b.Hash().String()},
-		{Key:"txsvalid",     Val:state},
-		{Key:"confirmations",Val:confirmations},
-		{Key:"version",      Val:head.Version},
-		{Key:"weight",       Val:types.GetBlockWeight(b.Block())},
-		{Key:"height",       Val:b.Height()},
-		{Key:"txRoot",       Val:head.TxRoot.String()},
+		{Key: "hash", Val: b.Hash().String()},
+		{Key: "txsvalid", Val: state},
+		{Key: "confirmations", Val: confirmations},
+		{Key: "version", Val: head.Version},
+		{Key: "weight", Val: types.GetBlockWeight(b.Block())},
+		{Key: "height", Val: b.Height()},
+		{Key: "txRoot", Val: head.TxRoot.String()},
 	}
 	if isOrdered {
-		fields = append(fields, json.KV{Key:"order", Val:b.Order()})
+		fields = append(fields, json.KV{Key: "order", Val: b.Order()})
 	}
 	if inclTx {
 		formatTx := func(tx *types.Tx) (interface{}, error) {
@@ -170,7 +168,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		}
 		if fullTx {
 			formatTx = func(tx *types.Tx) (interface{}, error) {
-				return MarshalJsonTx(tx,params,b.Hash().String(),confirmations)
+				return MarshalJsonTx(tx, params, b.Hash().String(), confirmations)
 			}
 		}
 		txs := b.Transactions()
@@ -181,37 +179,37 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 				return nil, err
 			}
 		}
-		fields = append(fields, json.KV{Key:"transactions", Val:transactions})
+		fields = append(fields, json.KV{Key: "transactions", Val: transactions})
 	}
 	fields = append(fields, json.OrderedResult{
-		{Key:"stateRoot", Val:head.StateRoot.String()},
-		{Key:"bits", Val:strconv.FormatUint(uint64(head.Difficulty), 16)},
-		{Key:"difficulty", Val:head.Difficulty},
-		{Key:"pow", Val : head.Pow.GetPowResult()},
-		{Key:"timestamp", Val:head.Timestamp.Format(time.RFC3339)},
-		{Key:"parentroot",       Val:head.ParentRoot.String()},
+		{Key: "stateRoot", Val: head.StateRoot.String()},
+		{Key: "bits", Val: strconv.FormatUint(uint64(head.Difficulty), 16)},
+		{Key: "difficulty", Val: head.Difficulty},
+		{Key: "pow", Val: head.Pow.GetPowResult()},
+		{Key: "timestamp", Val: head.Timestamp.Format(time.RFC3339)},
+		{Key: "parentroot", Val: head.ParentRoot.String()},
 	}...)
-	tempArr:=[]string{}
-	if b.Block().Parents!=nil&&len(b.Block().Parents)>0 {
+	tempArr := []string{}
+	if b.Block().Parents != nil && len(b.Block().Parents) > 0 {
 
-		for i:=0;i<len(b.Block().Parents);i++  {
-			tempArr=append(tempArr,b.Block().Parents[i].String())
+		for i := 0; i < len(b.Block().Parents); i++ {
+			tempArr = append(tempArr, b.Block().Parents[i].String())
 		}
-	}else {
-		tempArr=append(tempArr,"null")
+	} else {
+		tempArr = append(tempArr, "null")
 	}
-	fields = append(fields, json.KV{Key:"parents", Val:tempArr})
+	fields = append(fields, json.KV{Key: "parents", Val: tempArr})
 
-	tempArr=[]string{}
-	if len(children)>0 {
+	tempArr = []string{}
+	if len(children) > 0 {
 
-		for i:=0;i<len(children);i++  {
-			tempArr=append(tempArr,children[i].String())
+		for i := 0; i < len(children); i++ {
+			tempArr = append(tempArr, children[i].String())
 		}
-	}else {
-		tempArr=append(tempArr,"null")
+	} else {
+		tempArr = append(tempArr, "null")
 	}
-	fields = append(fields, json.KV{Key:"children", Val:tempArr})
+	fields = append(fields, json.KV{Key: "children", Val: tempArr})
 
 	return fields, nil
 }

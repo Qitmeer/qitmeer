@@ -35,5 +35,3 @@ func DoubleHashH(b []byte) Hash {
 	first := blake2b.Sum256(b)
 	return Hash(blake2b.Sum256(first[:]))
 }
-
-

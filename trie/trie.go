@@ -40,8 +40,9 @@ var (
 )
 
 func init() {
-	emptyState.SetBytes(hash.CalcHash(emptyState[:0],hash.GetHasher(hash.Keccak_256)))
+	emptyState.SetBytes(hash.CalcHash(emptyState[:0], hash.GetHasher(hash.Keccak_256)))
 }
+
 // CacheMisses retrieves a global counter measuring the number of cache misses
 // the trie had since process startup. This isn't useful for anything apart from
 // trie debugging purposes.

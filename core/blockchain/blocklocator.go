@@ -79,63 +79,63 @@ func (b *BlockChain) LocateBlocks(gs *blockdag.GraphState, maxHashes uint32) []*
 // This function MUST be called with the chain state lock held (for reads).
 func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, maxHashes uint32) []hash.Hash {
 	// It must be not empty
-	loLen:=len(locator)
-	if loLen==0 {
+	loLen := len(locator)
+	if loLen == 0 {
 		return nil
 	}
-	hashes:=[]hash.Hash{}
-	endHash:=hashStop
+	hashes := []hash.Hash{}
+	endHash := hashStop
 	if hashStop.IsEqual(&hash.ZeroHash) {
 		// If the stop block is zero, that means it doesn't end until last tip.
-		endHash=b.bd.GetMainChainTip().GetHash()
-	}else if hashStop.IsEqual(locator[0]) {
+		endHash = b.bd.GetMainChainTip().GetHash()
+	} else if hashStop.IsEqual(locator[0]) {
 		// In this case, we're going back to what block we need.
-		for _,v:=range locator{
+		for _, v := range locator {
 			if !b.index.HaveBlock(v) {
 				continue
 			}
-			hashes=append(hashes,hash.Hash(*v))
+			hashes = append(hashes, hash.Hash(*v))
 		}
 		return hashes
 	}
 	if !b.bd.HasBlock(endHash) {
 		return nil
 	}
-	endBlock:=b.bd.GetBlock(endHash)
-	hashesSet:=blockdag.NewHashSet()
+	endBlock := b.bd.GetBlock(endHash)
+	hashesSet := blockdag.NewHashSet()
 
 	// First of all, we need to make sure we have the parents of block.
 	hashesSet.AddSet(endBlock.GetParents())
-	curNum:=uint32(hashesSet.Size())
+	curNum := uint32(hashesSet.Size())
 
 	// Because of chain forking, a common forking point must be found.
 	// It's the real starting point.
 	var curBlock blockdag.IBlock
-	for i:=0;i<loLen;i++{
+	for i := 0; i < loLen; i++ {
 		if b.bd.HasBlock(locator[i]) {
-			curBlock=b.bd.GetBlock(locator[0])
+			curBlock = b.bd.GetBlock(locator[0])
 			break
 		}
 	}
 
-	for curBlock!=nil {
-		curBlockH:=b.bd.GetBlockByOrder(curBlock.GetOrder()+1)
-		if curBlockH==nil {
+	for curBlock != nil {
+		curBlockH := b.bd.GetBlockByOrder(curBlock.GetOrder() + 1)
+		if curBlockH == nil {
 			break
 		}
-		curBlock=b.bd.GetBlock(curBlockH)
+		curBlock = b.bd.GetBlock(curBlockH)
 		hashesSet.Add(curBlock.GetHash())
 		curNum++
 
-		if curNum>=maxHashes||
-			curBlock==endBlock||
-			curBlock.GetOrder()>=endBlock.GetOrder() {
+		if curNum >= maxHashes ||
+			curBlock == endBlock ||
+			curBlock.GetOrder() >= endBlock.GetOrder() {
 			break
 		}
 	}
 
-	for k:=range hashesSet.GetMap(){
-		hashes=append(hashes,hash.Hash(k))
+	for k := range hashesSet.GetMap() {
+		hashes = append(hashes, hash.Hash(k))
 	}
 	return hashes
 }
@@ -162,7 +162,7 @@ func (b *BlockChain) BlockLocatorFromHash(hash *hash.Hash) BlockLocator {
 func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 	// Use the current tip if requested.
 	if node == nil {
-		lb:=b.bd.GetMainChainTip()
+		lb := b.bd.GetMainChainTip()
 		node = b.index.lookupNode(lb.GetHash())
 		if node == nil {
 			return nil
@@ -214,4 +214,3 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 
 	return locator
 }
-
