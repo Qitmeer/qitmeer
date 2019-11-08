@@ -632,10 +632,13 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	}
 
 	// checkpoint
+	if !b.HasCheckpoints() {
+		return nil
+	}
 	parents:=blockdag.NewHashSet()
 	parents.AddList(block.Block().Parents)
 	blockLayer,ok:=b.BlockDAG().GetParentsMaxLayer(parents)
-	if ok {
+	if !ok {
 		str := fmt.Sprintf("bad parents:%v", block.Block().Parents)
 		return ruleError(ErrMissingParent, str)
 	}
