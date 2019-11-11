@@ -228,3 +228,13 @@ func Test_IsDAG(t *testing.T) {
 	}
 
 }
+
+func Test_IsHourglass(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom, "CP_Blocks")
+	if ibd == nil {
+		t.FailNow()
+	}
+	if !bd.IsHourglass(tbMap["J"]) {
+		t.Fatal()
+	}
+}

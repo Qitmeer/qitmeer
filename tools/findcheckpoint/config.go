@@ -18,24 +18,24 @@ const (
 )
 
 var (
-	defaultHomeDir     = util.AppDataDir("qitmeerd", false)
-	defaultDataDir     = filepath.Join(defaultHomeDir, defaultDataDirname)
-	defaultDbType      = "ffldb"
-	defaultDAGType     = "phantom"
+	defaultHomeDir = util.AppDataDir("qitmeerd", false)
+	defaultDataDir = filepath.Join(defaultHomeDir, defaultDataDirname)
+	defaultDbType  = "ffldb"
+	defaultDAGType = "phantom"
 )
 
 type Config struct {
-	HomeDir              string        `short:"A" long:"appdata" description:"Path to application home directory"`
-	DataDir              string        `short:"b" long:"datadir" description:"Directory to store data"`
-	TestNet              bool          `long:"testnet" description:"Use the test network"`
-	MixNet               bool          `long:"mixnet" description:"Use the test mix pow network"`
-	PrivNet              bool          `long:"privnet" description:"Use the private network"`
-	DbType               string        `long:"dbtype" description:"Database backend to use for the Block Chain"`
-	DAGType              string        `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
-	NumCandidates  	     int    	   `short:"n" long:"numcandidates" description:"Max num of checkpoint candidates to show {1-20}"`
-	UseGoOutput          bool          `short:"g" long:"gooutput" description:"Display the candidates using Go syntax that is ready to insert into the qitmeer checkpoint list"`
+	HomeDir       string `short:"A" long:"appdata" description:"Path to application home directory"`
+	DataDir       string `short:"b" long:"datadir" description:"Directory to store data"`
+	TestNet       bool   `long:"testnet" description:"Use the test network"`
+	MixNet        bool   `long:"mixnet" description:"Use the test mix pow network"`
+	PrivNet       bool   `long:"privnet" description:"Use the private network"`
+	DbType        string `long:"dbtype" description:"Database backend to use for the Block Chain"`
+	DAGType       string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
+	NumCandidates int    `short:"n" long:"numcandidates" description:"Max num of checkpoint candidates to show {1-20}"`
+	UseGoOutput   bool   `short:"g" long:"gooutput" description:"Display the candidates using Go syntax that is ready to insert into the qitmeer checkpoint list"`
+	IsCheckPoint  string `short:"I" long:"ischeckpoint" description:"Determine if it's a check point"`
 }
-
 
 // loadConfig initializes and parses the config using a config file and command
 // line options.
@@ -43,12 +43,12 @@ func LoadConfig() (*Config, []string, error) {
 
 	// Default config.
 	cfg := Config{
-		HomeDir:              defaultHomeDir,
-		DataDir:              defaultDataDir,
-		DbType:               defaultDbType,
-		DAGType:              defaultDAGType,
-		TestNet:              true,
-		NumCandidates:        defaultNumCandidates,
+		HomeDir:       defaultHomeDir,
+		DataDir:       defaultDataDir,
+		DbType:        defaultDbType,
+		DAGType:       defaultDAGType,
+		TestNet:       true,
+		NumCandidates: defaultNumCandidates,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -83,6 +83,7 @@ func LoadConfig() (*Config, []string, error) {
 		} else {
 			cfg.DataDir = preCfg.DataDir
 		}
+		cfg.IsCheckPoint = preCfg.IsCheckPoint
 	}
 
 	// Create the home directory if it doesn't already exist.
@@ -135,7 +136,7 @@ func LoadConfig() (*Config, []string, error) {
 		return nil, nil, err
 	}
 
-	if err := params.ActiveNetParams.PowConfig.Check();err != nil{
+	if err := params.ActiveNetParams.PowConfig.Check(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, nil, err
 	}
