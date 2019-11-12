@@ -126,7 +126,6 @@ func findCandidates(chain *blockchain.BlockChain, cfg *Config) ([]*params.Checkp
 		if numTested%progressInterval == 0 {
 			fmt.Print(".")
 		}
-		fmt.Printf("%d  %d %d\n", block.GetID(), block.GetLayer(), requiredLayer)
 		// Determine if this block is a checkpoint candidate.
 		isCandidate, err := chain.IsCheckpointCandidate(preblock, block)
 		if err != nil {
