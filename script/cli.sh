@@ -75,7 +75,7 @@ function get_block_by_id(){
   if [ "$verbose" == "" ]; then
     verbose="true"
   fi
-    local inclTx=$3
+  local inclTx=$3
   if [ "$inclTx" == "" ]; then
     inclTx="true"
   fi
@@ -120,7 +120,15 @@ function get_block_by_hash(){
   if [ "$verbose" == "" ]; then
     verbose="true"
   fi
-  local data='{"jsonrpc":"2.0","method":"getBlock","params":["'$block_hash'",'$verbose'],"id":1}'
+  local inclTx=$3
+  if [ "$inclTx" == "" ]; then
+    inclTx="true"
+  fi
+  local fullTx=$4
+  if [ "$fullTx" == "" ]; then
+    fullTx="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlock","params":["'$block_hash'",'$verbose','$inclTx','$fullTx'],"id":1}'
   get_result "$data"
 }
 
@@ -313,7 +321,12 @@ function get_result(){
     echo "$current_result" >> "./cli.debug"
   fi
 
-  echo $result
+  local hashjson=$(echo $result |grep "{")
+  if [ "$hashjson" == "" ]; then
+      echo $result
+  else
+      echo $result |jq .
+  fi
 }
 
 # -------------------------
@@ -608,6 +621,9 @@ elif [ "$1" == "get_highest_block" ]; then
 elif [ "$1" == "blockhash" ]; then
   shift
   get_blockhash $1
+elif [ "$1" == "blockbyhash" ]; then
+  shift
+  get_block_by_hash $@
 
 elif [ "$1" == "header" ]; then
   shift
@@ -639,15 +655,15 @@ elif [ "$1" == "isblue" ]; then
 
 elif [ "$1" == "nodeinfo" ]; then
   shift
-  get_node_info | jq .
+  get_node_info
 
 elif [ "$1" == "peerinfo" ]; then
   shift
-  get_peer_info | jq .
+  get_peer_info
 
 elif [ "$1" == "orphanstotal" ]; then
   shift
-  get_orphans_total | jq .
+  get_orphans_total
 
 elif [ "$1" == "stop" ]; then
   shift
@@ -659,7 +675,7 @@ elif [ "$1" == "tx" ]; then
   if [ "$2" == "false" ]; then
     get_tx_by_hash $@
   else
-    get_tx_by_hash $@|jq .
+    get_tx_by_hash $@
   fi
 
 elif [ "$1" == "createRawTx" ]; then
@@ -668,7 +684,7 @@ elif [ "$1" == "createRawTx" ]; then
 
 elif [ "$1" == "decodeRawTx" ]; then
   shift
-  decode_raw_tx $@|jq .
+  decode_raw_tx $@
 
 elif [ "$1" == "sendRawTx" ]; then
   shift
@@ -686,7 +702,7 @@ elif [ "$1" == "get_tx_by_block_and_index" ]; then
 ## MemPool
 elif [ "$1" == "mempool" ]; then
   shift
-  get_mempool $@|jq .
+  get_mempool $@
 
 
 elif [ "$1" == "txSign" ]; then
@@ -698,7 +714,7 @@ elif [ "$1" == "txSign" ]; then
 ## UTXO
 elif [ "$1" == "getutxo" ]; then
   shift
-  get_utxo $@|jq .
+  get_utxo $@
 
 ## Accounts
 elif [ "$1" == "newaccount" ]; then
@@ -800,7 +816,7 @@ elif [ "$1" == "send_tx" ]; then
 
 elif [ "$1" == "receipt" ]; then
   shift
-  get_receipt $@ |jq .
+  get_receipt $@
 
 elif [ "$1" == "contractaddr" ]; then
   shift
@@ -809,13 +825,13 @@ elif [ "$1" == "contractaddr" ]; then
 ## TXPOOL
 elif [ "$1" == "txpool" ]; then
   shift
-  txpool $@ |jq .
+  txpool $@
 
 
 ## DEBUG Moduls
 elif [ "$1" == "dump_state" ]; then
   shift
-  dump_block $@|jq .
+  dump_block $@
 
 elif [ "$1" == "rlp_block" ]; then
   shift
@@ -823,11 +839,11 @@ elif [ "$1" == "rlp_block" ]; then
 
 elif [ "$1" == "trace_block" ]; then
   shift
-  trace_block $@|jq .
+  trace_block $@
 
 elif [ "$1" == "trace_tx" ]; then
   shift
-  trace_tx $@|jq .
+  trace_tx $@
 
 
 ## UTILS
