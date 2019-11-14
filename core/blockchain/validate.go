@@ -439,12 +439,11 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 	prevBlock := b.bd.GetBlock(mainParent.GetHash())
 
 	// Perform all block header related validation checks.
-	header := &block.Block().Header
-	err := b.checkBlockHeaderContext(header, mainParent, flags)
+	err := b.checkBlockHeaderContext(block, mainParent, flags)
 	if err != nil {
 		return err
 	}
-
+	header := &block.Block().Header
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	if !fastAdd {
 		// A block must not exceed the maximum allowed size as defined
@@ -594,12 +593,13 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock, totalFee in
 //    the checkpoints are not performed.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode *blockNode, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevNode *blockNode, flags BehaviorFlags) error {
 	// The genesis block is valid by definition.
 	if prevNode == nil {
 		return nil
 	}
 
+	header := &block.Block().Header
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	if !fastAdd {
 		instance := pow.GetInstance(header.Pow.GetPowType(), 0, []byte{})
@@ -629,6 +629,36 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 			str = fmt.Sprintf(str, header.Timestamp.Unix(), medianTime.Unix())
 			return ruleError(ErrTimeTooOld, str)
 		}
+	}
+
+	// checkpoint
+	if !b.HasCheckpoints() {
+		return nil
+	}
+	parents:=blockdag.NewHashSet()
+	parents.AddList(block.Block().Parents)
+	blockLayer,ok:=b.BlockDAG().GetParentsMaxLayer(parents)
+	if !ok {
+		str := fmt.Sprintf("bad parents:%v", block.Block().Parents)
+		return ruleError(ErrMissingParent, str)
+	}
+	blockLayer += 1
+	blockHash := header.BlockHash()
+	if !b.verifyCheckpoint(uint64(blockLayer), &blockHash) {
+		str := fmt.Sprintf("block at layer %d does not match "+
+			"checkpoint hash", blockLayer)
+		return ruleError(ErrBadCheckpoint, str)
+	}
+
+	checkpointNode, err := b.findPreviousCheckpoint()
+	if err != nil {
+		return err
+	}
+	if checkpointNode != nil && blockLayer < checkpointNode.layer {
+		str := fmt.Sprintf("block at layer %d forks the main chain "+
+			"before the previous checkpoint at layer %d",
+			blockLayer, checkpointNode.layer)
+		return ruleError(ErrForkTooOld, str)
 	}
 
 	return nil
@@ -680,9 +710,9 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// will therefore be detected by the next checkpoint).  This is a huge
 	// optimization because running the scripts is the most time consuming
 	// portion of block handling.
-	checkpoint := b.latestCheckpoint()
+	checkpoint := b.LatestCheckpoint()
 	runScripts := !b.noVerify
-	if checkpoint != nil && uint64(node.GetHeight()) <= checkpoint.Height {
+	if checkpoint != nil && uint64(node.GetLayer()) <= checkpoint.Layer {
 		runScripts = false
 	}
 	var scriptFlags txscript.ScriptFlags

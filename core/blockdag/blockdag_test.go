@@ -41,6 +41,7 @@ type TestData struct {
 	SP_Blocks          []TestBlocksData
 	PH_LocateBlocks    TestInOutData
 	PH_LocateMaxBlocks TestInOutData
+	CP_Blocks          []TestBlocksData
 }
 
 // Load some data that phantom test need,it can use to build the dag ;This is the
@@ -133,6 +134,8 @@ func InitBlockDAG(dagType string, graph string) (IBlockDAG, map[string]*hash.Has
 		tbd = testData.CO_Blocks
 	} else if graph == "SP_Blocks" {
 		tbd = testData.SP_Blocks
+	} else if graph == "CP_Blocks" {
+		tbd = testData.CP_Blocks
 	} else {
 		return nil, nil
 	}

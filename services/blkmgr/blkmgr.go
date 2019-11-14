@@ -448,11 +448,11 @@ func (b *BlockManager) haveInventory(invVect *message.InvVect) (bool, error) {
 	return true, nil
 }
 
-// findNextHeaderCheckpoint returns the next checkpoint after the passed height.
+// findNextHeaderCheckpoint returns the next checkpoint after the passed layer.
 // It returns nil when there is not one either because the height is already
 // later than the final checkpoint or some other reason such as disabled
 // checkpoints.
-func (b *BlockManager) findNextHeaderCheckpoint(height uint64) *params.Checkpoint {
+func (b *BlockManager) findNextHeaderCheckpoint(layer uint64) *params.Checkpoint {
 	// There is no next checkpoint if checkpoints are disabled or there are
 	// none for this current network.
 	if b.config.DisableCheckpoints {
@@ -466,14 +466,14 @@ func (b *BlockManager) findNextHeaderCheckpoint(height uint64) *params.Checkpoin
 	// There is no next checkpoint if the height is already after the final
 	// checkpoint.
 	finalCheckpoint := &checkpoints[len(checkpoints)-1]
-	if height >= finalCheckpoint.Height {
+	if layer >= finalCheckpoint.Layer {
 		return nil
 	}
 
 	// Find the next checkpoint.
 	nextCheckpoint := finalCheckpoint
 	for i := len(checkpoints) - 2; i >= 0; i-- {
-		if height >= checkpoints[i].Height {
+		if layer >= checkpoints[i].Layer {
 			break
 		}
 		nextCheckpoint = &checkpoints[i]

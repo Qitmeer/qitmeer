@@ -906,3 +906,67 @@ func (bd *BlockDAG) IsBlue(h *hash.Hash) bool {
 
 	return bd.instance.(*Phantom).IsBlue(h)
 }
+
+func (bd *BlockDAG) IsHourglass(h *hash.Hash) bool {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	if !bd.hasBlock(h) {
+		return false
+	}
+	if !bd.isOnMainChain(h) {
+		return false
+	}
+	block:=bd.getBlock(h)
+	if block == nil {
+		return false
+	}
+	//
+	queueSet:=NewHashSet()
+	queue := []IBlock{}
+	for _,v:=range bd.tips.GetMap() {
+		ib:=v.(IBlock)
+		queue=append(queue,ib)
+		queueSet.Add(ib.GetHash())
+	}
+
+	num:=0
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		if cur.GetHash().IsEqual(h) {
+			num++
+			continue
+		}
+		if cur.GetLayer() <= block.GetLayer() {
+			num++
+			continue
+		}
+		if !cur.HasParents() {
+			continue
+		}
+		for _,v:=range cur.GetParents().GetMap() {
+			ib:=v.(IBlock)
+			if queueSet.Has(ib.GetHash()) {
+				continue
+			}
+			queue=append(queue,ib)
+			queueSet.Add(ib.GetHash())
+		}
+	}
+	return num==1
+}
+
+func (bd *BlockDAG) GetParentsMaxLayer(parents *HashSet) (uint,bool) {
+	maxLayer:=uint(0)
+	for k:=range parents.GetMap() {
+		ib:=bd.getBlock(&k)
+		if ib == nil {
+			return 0,false
+		}
+		if maxLayer == 0 || maxLayer < ib.GetLayer() {
+			maxLayer=ib.GetLayer()
+		}
+	}
+	return maxLayer,true
+}
