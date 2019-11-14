@@ -15,7 +15,7 @@
 | **Data CleanUp**   | NO |
 | **CleanUP Reason** | NO |
 | **Ledger recovery**| NO NEED|
-| **Remarks**        | the destory finished |
+| **Remarks**        | the destroy finished |
 
 ### v0.8.0 2019/11/14
 
