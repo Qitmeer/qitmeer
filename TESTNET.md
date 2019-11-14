@@ -2,6 +2,21 @@
 
 ## Qitmeer Internal Testnet
 
+### v0.8.1 2019/11/19 (Planed)
+
+| Internal Testnet   |     Info             |
+| -------------------|----------------------|
+| **Testnet Type**   | Internal             |
+| **Version**        | *0.8.1*              |
+| **Source**         | |
+| **Start Date**     | 2019/11/19 (Planned) |
+| **End Date**       | |
+| **blockOne Hash**  | 2b9a36bb6fd1fa47a19cf822d93eca7df0a9f5000937e2ab87eb30b2b803c4d7|
+| **Data CleanUp**   | NO |
+| **CleanUP Reason** | NO |
+| **Ledger recovery**| NO NEED|
+| **Remarks**        | the destory finished |
+
 ### v0.8.0 2019/11/14
 
 | Internal Testnet   |     Info             |
