@@ -45,8 +45,8 @@ var CPUMinerThreads = 1
 // documentation for blockchain.IsCheckpointCandidate for details on the
 // selection criteria.
 type Checkpoint struct {
-	Layer  uint64
-	Hash   *hash.Hash
+	Layer uint64
+	Hash  *hash.Hash
 }
 
 // DNSSeed identifies a DNS seed.

@@ -56,7 +56,6 @@ func (cm *ConnManager) Start() {
 	if atomic.AddInt32(&cm.start, 1) != 1 {
 		return
 	}
-
 	log.Info("Connection manager started")
 	cm.wg.Add(1)
 	go cm.connHandler()

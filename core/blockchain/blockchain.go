@@ -25,7 +25,6 @@ const (
 	// maxOrphanBlocks is the maximum number of orphan blocks that can be
 	// queued.
 	MaxOrphanBlocks = 500
-
 	// minMemoryNodes is the minimum number of consecutive nodes needed
 	// in memory in order to perform all necessary validation.  It is used
 	// to determine when it's safe to prune nodes from memory without
@@ -257,17 +256,17 @@ func New(config *Config) (*BlockChain, error) {
 	}
 
 	b := BlockChain{
-		checkpointsByLayer:  checkpointsByLayer,
-		db:                  config.DB,
-		params:              par,
-		timeSource:          config.TimeSource,
-		notifications:       config.Notifications,
-		sigCache:            config.SigCache,
-		indexManager:        config.IndexManager,
-		index:               newBlockIndex(config.DB, par),
-		orphans:             make(map[hash.Hash]*orphanBlock),
-		prevOrphans:         make(map[hash.Hash][]*orphanBlock),
-		BlockVersion:        config.BlockVersion,
+		checkpointsByLayer: checkpointsByLayer,
+		db:                 config.DB,
+		params:             par,
+		timeSource:         config.TimeSource,
+		notifications:      config.Notifications,
+		sigCache:           config.SigCache,
+		indexManager:       config.IndexManager,
+		index:              newBlockIndex(config.DB, par),
+		orphans:            make(map[hash.Hash]*orphanBlock),
+		prevOrphans:        make(map[hash.Hash][]*orphanBlock),
+		BlockVersion:       config.BlockVersion,
 	}
 	b.subsidyCache = NewSubsidyCache(0, b.params)
 
@@ -484,10 +483,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-	return b.index.flushToDB(b.bd)
+	return err
 }
 
 // HaveBlock returns whether or not the chain instance has the block represented
@@ -907,7 +903,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// to the main chain without violating any rules and without
 		// actually connecting the block.
 		view := NewUtxoViewpoint()
-		view.SetBestHash(&node.hash)
+		view.SetViewpoints([]*hash.Hash{&node.hash})
 
 		stxos := make([]SpentTxOut, 0, countSpentOutputs(block))
 		err := b.checkConnectBlock(node, block, view, &stxos)
@@ -1042,12 +1038,8 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
-	err := b.index.flushToDB(b.bd)
-	if err != nil {
-		return err
-	}
 	// Atomically insert info into the database.
-	err = b.db.Update(func(dbTx database.Tx) error {
+	err := b.db.Update(func(dbTx database.Tx) error {
 		// Add the block hash and height to the block index.
 		err := dbPutBlockIndex(dbTx, block.Hash(), node.order)
 		if err != nil {
@@ -1098,12 +1090,8 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
-	err := b.index.flushToDB(b.bd)
-	if err != nil {
-		return err
-	}
 	// Calculate the exact subsidy produced by adding the block.
-	err = b.db.Update(func(dbTx database.Tx) error {
+	err := b.db.Update(func(dbTx database.Tx) error {
 		// Remove the block hash and order from the block index.
 		err := dbRemoveBlockIndex(dbTx, block.Hash(), int64(node.order)) //TODO, remove type conversion
 		if err != nil {
@@ -1193,8 +1181,8 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		// already in the view.
 		var stxos []SpentTxOut
 		view := NewUtxoViewpoint()
+		view.SetViewpoints([]*hash.Hash{block.Hash()})
 		if !b.index.NodeStatus(n).KnownInvalid() {
-			view.SetBestHash(block.Hash())
 			err = view.fetchInputUtxos(b.db, block, b)
 			if err != nil {
 				return err
@@ -1218,14 +1206,17 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 				log.Info(fmt.Sprintf("%s", err))
 			}
 		}
+
+		n.UnsetStatusFlags(statusValid)
+		newn.UnsetStatusFlags(statusValid)
+		n.UnsetStatusFlags(statusInvalid)
+		newn.UnsetStatusFlags(statusInvalid)
+		newn.FlushToDB(b)
+
 		err = b.disconnectBlock(n, block, view, stxos)
 		if err != nil {
 			return err
 		}
-		b.index.UnsetStatusFlags(n, statusValid)
-		b.index.UnsetStatusFlags(newn, statusValid)
-		b.index.UnsetStatusFlags(n, statusInvalid)
-		b.index.UnsetStatusFlags(newn, statusInvalid)
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
@@ -1248,7 +1239,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 			continue
 		}
 		view := NewUtxoViewpoint()
-		view.SetBestHash(n.GetHash())
+		view.SetViewpoints([]*hash.Hash{n.GetHash()})
 		stxos := []SpentTxOut{}
 		err = b.checkConnectBlock(n, block, view, &stxos)
 		if err != nil {
@@ -1313,7 +1304,6 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 			newNode.SetLayer(refblock.GetLayer())
 			refnode = newNode
 			block.SetOrder(uint64(refblock.GetOrder()))
-
 			if refblock.GetHeight() != newNode.GetHeight() {
 				log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d", newNode.GetHash(), newNode.GetHeight(), refblock.GetHeight()))
 				newNode.SetHeight(refblock.GetHeight())
@@ -1364,7 +1354,7 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 	//
 	for e := oldOrdersList.Front(); e != nil; e = e.Next() {
 		node := e.Value.(*blockNode)
-		*oldOrders = append(*oldOrders, node.Clone())
+		*oldOrders = append(*oldOrders, node)
 	}
 }
 

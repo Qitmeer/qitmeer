@@ -3,7 +3,6 @@ package blockchain
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/params"
@@ -122,28 +121,6 @@ func (bi *blockIndex) NodeStatus(node *blockNode) blockStatus {
 	return status
 }
 
-// SetStatusFlags sets the provided status flags for the given block node
-// regardless of their previous state.  It does not unset any flags.
-//
-// This function is safe for concurrent access.
-func (bi *blockIndex) SetStatusFlags(node *blockNode, flags blockStatus) {
-	bi.Lock()
-	node.status |= flags
-	bi.dirty[node] = struct{}{}
-	bi.Unlock()
-}
-
-// UnsetStatusFlags unsets the provided status flags for the given block node
-// regardless of their previous state.
-//
-// This function is safe for concurrent access.
-func (bi *blockIndex) UnsetStatusFlags(node *blockNode, flags blockStatus) {
-	bi.Lock()
-	node.status &^= flags
-	bi.dirty[node] = struct{}{}
-	bi.Unlock()
-}
-
 // This function can get backward block hash from list.
 func (bi *blockIndex) GetMaxOrderFromList(list []*hash.Hash) *hash.Hash {
 	var maxOrder uint64 = 0
@@ -159,34 +136,6 @@ func (bi *blockIndex) GetMaxOrderFromList(list []*hash.Hash) *hash.Hash {
 		}
 	}
 	return maxHash
-}
-
-func (bi *blockIndex) flushToDB(bd *blockdag.BlockDAG) error {
-	bi.Lock()
-	if len(bi.dirty) == 0 {
-		bi.Unlock()
-		return nil
-	}
-
-	err := bi.db.Update(func(dbTx database.Tx) error {
-		for node := range bi.dirty {
-			block := bd.GetBlock(node.GetHash())
-			block.SetStatus(blockdag.BlockStatus(node.status))
-			err := blockdag.DBPutDAGBlock(dbTx, block)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-
-	// If write was successful, clear the dirty set.
-	if err == nil {
-		bi.dirty = make(map[*blockNode]struct{})
-	}
-
-	bi.Unlock()
-	return err
 }
 
 func GetMaxLayerFromList(list []*blockNode) uint {

@@ -134,8 +134,8 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	oldOrders := BlockNodeList{}
 	b.getReorganizeNodes(newNode, block, newOrders, &oldOrders)
 	b.index.AddNode(newNode)
-	b.index.SetStatusFlags(newNode, statusDataStored)
-	err = b.index.flushToDB(b.bd)
+	newNode.SetStatusFlags(statusDataStored)
+	err = newNode.FlushToDB(b)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -178,11 +178,5 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		Block:   block,
 	})
 	b.chainLock.Lock()
-
-	err = b.index.flushToDB(b.bd)
-	if err != nil {
-		log.Warn("blockNode flush to db failed")
-		return nil
-	}
 	return nil
 }
