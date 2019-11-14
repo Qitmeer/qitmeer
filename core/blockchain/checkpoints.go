@@ -206,12 +206,12 @@ func isNonstandardTransaction(tx *types.Tx) bool {
 // decision and then manually added to the list of checkpoints for a network.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) IsCheckpointCandidate(preBlock,block blockdag.IBlock) (bool, error) {
+func (b *BlockChain) IsCheckpointCandidate(preBlock, block blockdag.IBlock) (bool, error) {
 	b.chainLock.RLock()
 	defer b.chainLock.RUnlock()
 
 	if preBlock.GetHash().IsEqual(block.GetHash()) {
-		return false,nil
+		return false, nil
 	}
 
 	// A checkpoint must be at least CheckpointConfirmations blocks
@@ -252,7 +252,7 @@ func (b *BlockChain) IsCheckpointCandidate(preBlock,block blockdag.IBlock) (bool
 	// either side of it in order (due to the median time allowance this is
 	// not always the case).
 	prevTime := time.Unix(nextNode.timestamp, 0)
-	curTime := time.Unix(node.timestamp,0)
+	curTime := time.Unix(node.timestamp, 0)
 	nextTime := time.Unix(preNode.timestamp, 0)
 	if prevTime.After(curTime) || nextTime.Before(curTime) {
 		return false, nil
@@ -260,7 +260,7 @@ func (b *BlockChain) IsCheckpointCandidate(preBlock,block blockdag.IBlock) (bool
 
 	// A checkpoint must have transactions that only contain standard
 	// scripts.
-	serblock,err:=b.fetchBlockByHash(block.GetHash())
+	serblock, err := b.fetchBlockByHash(block.GetHash())
 	if err != nil {
 		return false, err
 	}

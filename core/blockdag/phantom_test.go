@@ -244,7 +244,7 @@ func Test_GetMaturity(t *testing.T) {
 	if ibd == nil {
 		t.FailNow()
 	}
-	if bd.GetMaturity(tbMap["D"],[]*hash.Hash{tbMap["I"]}) != 2 {
+	if bd.GetMaturity(tbMap["D"], []*hash.Hash{tbMap["I"]}) != 2 {
 		t.Fatal()
 	}
 }

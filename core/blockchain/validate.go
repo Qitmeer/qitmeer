@@ -824,7 +824,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 
 	var totalFees int64
 	for idx, tx := range transactions {
-		txFee, err := CheckTransactionInputs(tx,utxoView, b.params, b.bd)
+		txFee, err := CheckTransactionInputs(tx, utxoView, b.params, b.bd)
 		if err != nil {
 			return err
 		}
@@ -994,10 +994,10 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 
 		if utxoEntry.IsCoinBase() {
 			if len(utxoView.viewpoints) == 0 {
-				str := fmt.Sprintf("transaction %s has no viewpoints",txHash)
+				str := fmt.Sprintf("transaction %s has no viewpoints", txHash)
 				return 0, ruleError(ErrNoViewpoint, str)
 			}
-			maturity:=int64(bd.GetMaturity(utxoEntry.BlockHash(),utxoView.viewpoints))
+			maturity := int64(bd.GetMaturity(utxoEntry.BlockHash(), utxoView.viewpoints))
 
 			if maturity < coinbaseMaturity {
 				str := fmt.Sprintf("tx %v tried to spend "+

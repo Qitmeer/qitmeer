@@ -116,7 +116,7 @@ func (entry *UtxoEntry) Clone() *UtxoEntry {
 // The unspent outputs are needed by other transactions for things such as
 // script validation and double spend prevention.
 type UtxoViewpoint struct {
-	entries  map[types.TxOutPoint]*UtxoEntry
+	entries    map[types.TxOutPoint]*UtxoEntry
 	viewpoints []*hash.Hash
 }
 
@@ -209,7 +209,7 @@ func (view *UtxoViewpoint) Viewpoints() []*hash.Hash {
 // SetViewpoints sets the hash of the viewpoint block in the chain the view currently
 // respresents.
 func (view *UtxoViewpoint) SetViewpoints(views []*hash.Hash) {
-	view.viewpoints=views
+	view.viewpoints = views
 }
 
 // fetchUtxosMain fetches unspent transaction output data about the provided

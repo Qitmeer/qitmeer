@@ -404,8 +404,8 @@ var errorCodeStrings = map[ErrorCode]string{
 	ErrBadCuckooNonces: "ErrBadCuckooNonces",
 	ErrInValidPowType:  "ErrInValidPowType",
 
-	ErrNoBlueCoinbase:         "ErrNoBlueCoinbase",
-	ErrNoViewpoint:            "ErrNoViewpoint",
+	ErrNoBlueCoinbase: "ErrNoBlueCoinbase",
+	ErrNoViewpoint:    "ErrNoViewpoint",
 }
 
 // String returns the ErrorCode as a human-readable name.
