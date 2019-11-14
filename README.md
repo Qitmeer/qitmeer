@@ -5,6 +5,16 @@
 
 The guardian of trust. The core backend of the qitmeer network.
 
+## Qitmeer Testnet Notice
+
+**WARNING!!!** &nbsp;&nbsp;*Please Notice : The Qitmeer Internal Testnet is only for Qitmeer Dev internal test purpose. The data will be **Clean UP** regularly, we will **NOT** guarantee to recovery the user's ledger balance to next internal test. The Public Testnet is **NOT OPEN** yet* 
+
+| Latest Testnet            | Compatible Qitmeer Vesion | Start Date | Type            |
+| ------------------------- |-------------------------- | ---------- | --------------- |
+| [v0.8.0 TestNet](TESTNET.md#v080-20191114)| v0.8.0     | 2019/11/14 | Internal Test   |
+
+Please know more details from the [Qitmeer Testnet](TESTNET.md)
+
 ## Installation
 ### Binary archives
 [![Releases](https://img.shields.io/github/downloads/Qitmeer/qitmeer/total.svg)][Releases]
@@ -21,7 +31,6 @@ accessible from command line.
 
 [Releases]: https://github.com/Qitmeer/qitmeer/releases
 [Latest]: https://github.com/Qitmeer/qitmeer/releases/latest
-
 
 ### How to build
 ####  Prerequisites
