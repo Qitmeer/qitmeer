@@ -32,7 +32,7 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 	// NOTE: This is done before rejecting peers that are too old to ensure
 	// it is updated regardless in the case a new minimum protocol version is
 	// enforced and the remote node has not upgraded yet.
-	if !uuid.Equal(p.UUID(),uuid.Nil) && sp.server.HasPeer(p.UUID()) {
+	if !uuid.Equal(p.UUID(), uuid.Nil) && sp.server.HasPeer(p.UUID()) {
 		return message.NewMsgReject(msg.Command(), message.RejectDuplicate, "duplicate peer version message")
 	}
 	isInbound := sp.Inbound()
@@ -152,7 +152,7 @@ func (sp *serverPeer) OnAddr(p *peer.Peer, msg *message.MsgAddr) {
 	// A message that has no addresses is invalid.
 	if len(msg.AddrList) == 0 {
 		log.Error("Command does not contain any addresses",
-			"command",msg.Command(),"peer", p)
+			"command", msg.Command(), "peer", p)
 		p.Disconnect()
 		return
 	}
@@ -197,7 +197,7 @@ func (sp *serverPeer) OnWrite(p *peer.Peer, bytesWritten int, msg message.Messag
 // OnBlock is invoked when a peer receives a block wire message.  It blocks
 // until the network block has been fully processed.
 func (sp *serverPeer) OnBlock(p *peer.Peer, msg *message.MsgBlock, buf []byte) {
-	log.Trace("OnBlock called", "peer",p,  "block", msg)
+	log.Trace("OnBlock called", "peer", p, "block", msg)
 	// Convert the raw MsgBlock to a types.Block which provides some
 	// convenience methods and things such as hash caching.
 
@@ -233,28 +233,28 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	// provided locator are known.  This does mean the client will start
 	// over with the genesis block if unknown block locators are provided.
 	chain := sp.server.BlockManager.GetChain()
-	hashSlice:=[]*hash.Hash{}
-	if len(msg.BlockLocatorHashes)>0 {
-		for _,v:=range msg.BlockLocatorHashes{
+	hashSlice := []*hash.Hash{}
+	if len(msg.BlockLocatorHashes) > 0 {
+		for _, v := range msg.BlockLocatorHashes {
 			if chain.BlockDAG().HasBlock(v) {
-				hashSlice=append(hashSlice,v)
+				hashSlice = append(hashSlice, v)
 			}
 		}
-		if len(hashSlice)>=2 {
-			hashSlice=chain.BlockDAG().SortBlock(hashSlice)
+		if len(hashSlice) >= 2 {
+			hashSlice = chain.BlockDAG().SortBlock(hashSlice)
 		}
-	}else {
-		hashSlice = chain.LocateBlocks(msg.GS,message.MaxBlockLocatorsPerMsg)
+	} else {
+		hashSlice = chain.LocateBlocks(msg.GS, message.MaxBlockLocatorsPerMsg)
 	}
-	hsLen:=len(hashSlice)
-	if hsLen==0 {
-		log.Trace(fmt.Sprintf("Sorry, there are not these blocks for %s",p.String()))
+	hsLen := len(hashSlice)
+	if hsLen == 0 {
+		log.Trace(fmt.Sprintf("Sorry, there are not these blocks for %s", p.String()))
 		return
 	}
 
 	invMsg := message.NewMsgInv()
-	invMsg.GS=chain.BestSnapshot().GraphState
-	for i:=0;i<hsLen;i++ {
+	invMsg.GS = chain.BestSnapshot().GraphState
+	for i := 0; i < hsLen; i++ {
 		iv := message.NewInvVect(message.InvTypeBlock, hashSlice[i])
 		invMsg.AddInvVect(iv)
 	}
@@ -274,30 +274,30 @@ func (sp *serverPeer) OnGetHeaders(p *peer.Peer, msg *message.MsgGetHeaders) {
 
 	p.UpdateLastGS(msg.GS)
 	chain := sp.server.BlockManager.GetChain()
-	hashSlice:=[]*hash.Hash{}
-	if len(msg.BlockLocatorHashes)>0 {
-		for _,v:=range msg.BlockLocatorHashes{
+	hashSlice := []*hash.Hash{}
+	if len(msg.BlockLocatorHashes) > 0 {
+		for _, v := range msg.BlockLocatorHashes {
 			if chain.BlockDAG().HasBlock(v) {
-				hashSlice=append(hashSlice,v)
+				hashSlice = append(hashSlice, v)
 			}
 		}
-		if len(hashSlice)>=2 {
-			hashSlice=chain.BlockDAG().SortBlock(hashSlice)
+		if len(hashSlice) >= 2 {
+			hashSlice = chain.BlockDAG().SortBlock(hashSlice)
 		}
-	}else {
-		hashSlice = chain.LocateBlocks(msg.GS,message.MaxBlockHeadersPerMsg)
+	} else {
+		hashSlice = chain.LocateBlocks(msg.GS, message.MaxBlockHeadersPerMsg)
 	}
-	hsLen:=len(hashSlice)
-	if hsLen==0 {
-		log.Trace(fmt.Sprintf("Sorry, there are not these blocks for %s",p.String()))
+	hsLen := len(hashSlice)
+	if hsLen == 0 {
+		log.Trace(fmt.Sprintf("Sorry, there are not these blocks for %s", p.String()))
 		return
 	}
 
 	headersMsg := message.NewMsgHeaders(chain.BestSnapshot().GraphState)
-	for i:=0;i<hsLen;i++ {
-		blockHead,err:=chain.HeaderByHash(hashSlice[i])
+	for i := 0; i < hsLen; i++ {
+		blockHead, err := chain.HeaderByHash(hashSlice[i])
 		if err != nil {
-			log.Trace(fmt.Sprintf("Sorry, there are not these blocks %s for %s",hashSlice[i].String(),p.String()))
+			log.Trace(fmt.Sprintf("Sorry, there are not these blocks %s for %s", hashSlice[i].String(), p.String()))
 			return
 		}
 		headersMsg.AddBlockHeader(&blockHead)
@@ -320,7 +320,7 @@ func (sp *serverPeer) OnInv(p *peer.Peer, msg *message.MsgInv) {
 	}
 
 	newInv := message.NewMsgInvSizeHint(uint(len(msg.InvList)))
-	newInv.GS=msg.GS
+	newInv.GS = msg.GS
 	for _, invVect := range msg.InvList {
 		if invVect.Type == message.InvTypeTx {
 			log.Info(fmt.Sprintf("Peer %v is announcing transactions -- "+
@@ -330,7 +330,7 @@ func (sp *serverPeer) OnInv(p *peer.Peer, msg *message.MsgInv) {
 		}
 		err := newInv.AddInvVect(invVect)
 		if err != nil {
-			log.Error("Failed to add inventory vector", "error",err)
+			log.Error("Failed to add inventory vector", "error", err)
 			break
 		}
 	}
@@ -383,7 +383,7 @@ func (sp *serverPeer) OnGetData(p *peer.Peer, msg *message.MsgGetData) {
 		case message.InvTypeBlock:
 			err = sp.server.pushBlockMsg(sp, &iv.Hash, c, waitChan)
 		default:
-			log.Warn("Unknown type in inventory request", "type",iv.Type)
+			log.Warn("Unknown type in inventory request", "type", iv.Type)
 			continue
 		}
 		if err != nil {
@@ -437,7 +437,7 @@ func (sp *serverPeer) OnGetMiningState(p *peer.Peer, msg *message.MsgGetMiningSt
 	// per mining state message.  There is nothing to send when there are no
 	// eligible blocks.
 
-	blockHashes := children   // TODO, the children should be sorted by rules
+	blockHashes := children // TODO, the children should be sorted by rules
 	numBlocks := len(blockHashes)
 	if numBlocks == 0 {
 		return
@@ -458,7 +458,7 @@ func (sp *serverPeer) OnGetMiningState(p *peer.Peer, msg *message.MsgGetMiningSt
 func (sp *serverPeer) OnMiningState(p *peer.Peer, msg *message.MsgMiningState) {
 	err := sp.server.BlockManager.RequestFromPeer(sp.syncPeer, msg.BlockHashes)
 	if err != nil {
-		log.Warn("couldn't handle mining state message", "error",err.Error())
+		log.Warn("couldn't handle mining state message", "error", err.Error())
 	}
 }
 
@@ -467,7 +467,7 @@ func (sp *serverPeer) OnMiningState(p *peer.Peer, msg *message.MsgMiningState) {
 // serialize all transactions through a single thread transactions don't rely on
 // the previous one in a linear fashion like blocks.
 func (sp *serverPeer) OnTx(p *peer.Peer, msg *message.MsgTx) {
-	log.Trace("OnTx called, peer received tx message", "peer",p, "msg",msg)
+	log.Trace("OnTx called, peer received tx message", "peer", p, "msg", msg)
 	if sp.server.cfg.BlocksOnly {
 		log.Trace(fmt.Sprintf("Ignoring tx %v from %v - blocksonly enabled",
 			msg.Tx.TxHash(), p))

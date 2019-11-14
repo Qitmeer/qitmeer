@@ -10,7 +10,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"sync"
 	"time"
-
 )
 
 // KnownAddress tracks information about a known network address that is used
@@ -112,7 +111,7 @@ func (ka *KnownAddress) isBad() bool {
 func (ka *KnownAddress) String() string {
 	ka.mtx.Lock()
 	defer ka.mtx.Unlock()
-	return fmt.Sprintf("%s %s %d %s %s %v %d",ka.na.IP,ka.srcAddr.IP,ka.attempts,ka.lastattempt,ka.lastsuccess,ka.tried,ka.refs)
+	return fmt.Sprintf("%s %s %d %s %s %v %d", ka.na.IP, ka.srcAddr.IP, ka.attempts, ka.lastattempt, ka.lastsuccess, ka.tried, ka.refs)
 }
 
 func (ka *KnownAddress) GetAttempts() int {

@@ -25,10 +25,10 @@ func (b *BlockManager) handleNewPeerMsg(sp *peer.ServerPeer) {
 		return
 	}
 
-	log.Info(fmt.Sprintf("New valid peer: %s,user-agent:%s",sp,sp.UserAgent()))
+	log.Info(fmt.Sprintf("New valid peer: %s,user-agent:%s", sp, sp.UserAgent()))
 
-	sp.SyncCandidate=b.isSyncCandidate(sp)
-	b.peers[sp.Peer]=sp
+	sp.SyncCandidate = b.isSyncCandidate(sp)
+	b.peers[sp.Peer] = sp
 
 	// Start syncing by choosing the best candidate if needed.
 	if sp.SyncCandidate && b.syncPeer == nil {
@@ -52,7 +52,7 @@ func (b *BlockManager) handleDonePeerMsg(sp *peer.ServerPeer) {
 		return
 	}
 	delete(b.peers, peer.Peer)
-	log.Info("Lost peer", "peer",sp)
+	log.Info("Lost peer", "peer", sp)
 
 	b.clearRequestedState(sp)
 
@@ -107,9 +107,9 @@ func (b *BlockManager) startSync() {
 
 	best := b.chain.BestSnapshot()
 	var bestPeer *peer.ServerPeer
-	equalPeers:=[]*peer.ServerPeer{}
+	equalPeers := []*peer.ServerPeer{}
 
-	for _,sp:=range b.peers {
+	for _, sp := range b.peers {
 		if !sp.SyncCandidate {
 			continue
 		}
@@ -120,7 +120,7 @@ func (b *BlockManager) startSync() {
 		// have one soon so it is a reasonable choice.  It also allows
 		// the case where both are at 0 such as during regression test.
 		if best.GraphState.IsExcellent(sp.LastGS()) {
-			sp.SyncCandidate=false
+			sp.SyncCandidate = false
 			continue
 		}
 		// the best sync candidate is the most updated peer
@@ -130,15 +130,15 @@ func (b *BlockManager) startSync() {
 		}
 		if sp.LastGS().IsExcellent(bestPeer.LastGS()) {
 			bestPeer = sp
-			if len(equalPeers)>0 {
-				equalPeers=equalPeers[0:0]
+			if len(equalPeers) > 0 {
+				equalPeers = equalPeers[0:0]
 			}
-		}else if sp.LastGS().IsEqual(bestPeer.LastGS()) {
-			equalPeers=append(equalPeers,sp)
+		} else if sp.LastGS().IsEqual(bestPeer.LastGS()) {
+			equalPeers = append(equalPeers, sp)
 		}
 	}
-	if len(equalPeers)>0 {
-		equalPeers=append(equalPeers,bestPeer)
+	if len(equalPeers) > 0 {
+		equalPeers = append(equalPeers, bestPeer)
 		bestPeer = equalPeers[rand.Intn(len(equalPeers))]
 	}
 	// Start syncing from the best peer if one was selected.
@@ -148,7 +148,7 @@ func (b *BlockManager) startSync() {
 		// to send.
 		b.requestedBlocks = make(map[hash.Hash]struct{})
 
-		log.Info(fmt.Sprintf("Syncing to state %s from peer %s cur graph state:%s",bestPeer.LastGS().String(), bestPeer.Addr(),best.GraphState.String()))
+		log.Info(fmt.Sprintf("Syncing to state %s from peer %s cur graph state:%s", bestPeer.LastGS().String(), bestPeer.Addr(), best.GraphState.String()))
 
 		// When the current height is less than a known checkpoint we
 		// can use block headers to learn about which blocks comprise
@@ -167,7 +167,7 @@ func (b *BlockManager) startSync() {
 		// and fully validate them.  Finally, regression test mode does
 		// not support the headers-first approach so do normal block
 		// downloads when in regression test mode.
-		err := bestPeer.PushGetBlocksMsg(best.GraphState,nil)
+		err := bestPeer.PushGetBlocksMsg(best.GraphState, nil)
 		if err != nil {
 			log.Error(fmt.Sprintf("Failed to push getblocksmsg for the "+
 				"latest GS: %v", err))
@@ -186,4 +186,3 @@ func (b *BlockManager) startSync() {
 		log.Warn("No sync peer candidates available")
 	}
 }
-

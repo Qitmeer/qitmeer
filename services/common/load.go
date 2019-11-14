@@ -8,38 +8,38 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/address"
+	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
+	"github.com/jessevdk/go-flags"
 	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"github.com/jessevdk/go-flags"
-	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/core/address"
 )
 
 const (
-	defaultConfigFilename        = "qitmeerd.conf"
-	defaultDataDirname           = "data"
-	defaultLogLevel              = "info"
-	defaultDebugPrintOrigins     = false
-	defaultLogDirname            = "logs"
-	defaultLogFilename           = "qitmeerd.log"
-	defaultGenerate              = false
-	defaultBlockMinSize          = 0
-	defaultBlockMaxSize          = 375000
-	defaultMaxRPCClients         = 10
-	defaultMaxPeers              = 125
-	defaultMiningStateSync       = false
+	defaultConfigFilename    = "qitmeerd.conf"
+	defaultDataDirname       = "data"
+	defaultLogLevel          = "info"
+	defaultDebugPrintOrigins = false
+	defaultLogDirname        = "logs"
+	defaultLogFilename       = "qitmeerd.log"
+	defaultGenerate          = false
+	defaultBlockMinSize      = 0
+	defaultBlockMaxSize      = 375000
+	defaultMaxRPCClients     = 10
+	defaultMaxPeers          = 125
+	defaultMiningStateSync   = false
 )
 const (
-	defaultSigCacheMaxSize       = 100000
+	defaultSigCacheMaxSize = 100000
 )
 const (
-	defaultMaxOrphanTxSize       = 5000
+	defaultMaxOrphanTxSize = 5000
 )
 
 var (
@@ -53,32 +53,30 @@ var (
 	defaultDAGType     = "phantom"
 )
 
-
-
 // loadConfig initializes and parses the config using a config file and command
 // line options.
 func LoadConfig() (*config.Config, []string, error) {
 
 	// Default config.
 	cfg := config.Config{
-		HomeDir:              defaultHomeDir,
-		ConfigFile:           defaultConfigFile,
-		DebugLevel:           defaultLogLevel,
-		DebugPrintOrigins:    defaultDebugPrintOrigins,
-		DataDir:              defaultDataDir,
-		LogDir:               defaultLogDir,
-		DbType:               defaultDbType,
-		RPCKey:               defaultRPCKeyFile,
-		RPCCert:              defaultRPCCertFile,
-		RPCMaxClients:        defaultMaxRPCClients,
-		Generate:             defaultGenerate,
-		MaxPeers:             defaultMaxPeers,
-		MinTxFee:             mempool.DefaultMinRelayTxFee,
-		BlockMinSize:         defaultBlockMinSize,
-		BlockMaxSize:         defaultBlockMaxSize,
-		SigCacheMaxSize:      defaultSigCacheMaxSize,
-		MiningStateSync:      defaultMiningStateSync,
-		DAGType:              defaultDAGType,
+		HomeDir:           defaultHomeDir,
+		ConfigFile:        defaultConfigFile,
+		DebugLevel:        defaultLogLevel,
+		DebugPrintOrigins: defaultDebugPrintOrigins,
+		DataDir:           defaultDataDir,
+		LogDir:            defaultLogDir,
+		DbType:            defaultDbType,
+		RPCKey:            defaultRPCKeyFile,
+		RPCCert:           defaultRPCCertFile,
+		RPCMaxClients:     defaultMaxRPCClients,
+		Generate:          defaultGenerate,
+		MaxPeers:          defaultMaxPeers,
+		MinTxFee:          mempool.DefaultMinRelayTxFee,
+		BlockMinSize:      defaultBlockMinSize,
+		BlockMaxSize:      defaultBlockMaxSize,
+		SigCacheMaxSize:   defaultSigCacheMaxSize,
+		MiningStateSync:   defaultMiningStateSync,
+		DAGType:           defaultDAGType,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -154,7 +152,6 @@ func LoadConfig() (*config.Config, []string, error) {
 	// not specify an override.
 	// TODO
 
-
 	// Load additional config from file.
 	var configFileError error
 	parser := newConfigParser(&cfg, flags.Default)
@@ -225,7 +222,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		return nil, nil, err
 	}
 
-	if err := params.ActiveNetParams.PowConfig.Check();err != nil{
+	if err := params.ActiveNetParams.PowConfig.Check(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, nil, err
 	}
@@ -330,7 +327,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		}
 		// TODO, check network by using IsForNetwork()
 
-		if !address.IsForNetwork(addr,params.ActiveNetParams.Params) {
+		if !address.IsForNetwork(addr, params.ActiveNetParams.Params) {
 			str := "%s: mining address '%s' is on the wrong network"
 			err := fmt.Errorf(str, funcName, strAddr)
 			fmt.Fprintln(os.Stderr, err)
@@ -385,7 +382,7 @@ func LoadConfig() (*config.Config, []string, error) {
 	// done.  This prevents the warning on help messages and invalid
 	// options.  Note this should go directly before the return.
 	if configFileError != nil {
-		log.Warn("missing config file", "error",configFileError)
+		log.Warn("missing config file", "error", configFileError)
 	}
 	return &cfg, remainingArgs, nil
 }
@@ -417,4 +414,3 @@ func parseAndSetDebugLevels(debugLevel string) error {
 	// TODO support log for subsystem
 	return nil
 }
-

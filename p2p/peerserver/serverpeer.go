@@ -21,42 +21,40 @@ import (
 type serverPeer struct {
 	*peer.Peer
 
-	connReq         *connmgr.ConnReq
-	server          *PeerServer
-	persistent      bool
-	relayMtx        sync.Mutex
-	disableRelayTx  bool
-	isWhitelisted   bool
-	requestQueue    []*message.InvVect
-	requestedTxns   map[hash.Hash]struct{}
-	knownAddresses  map[string]struct{}
-	banScore        connmgr.DynamicBanScore
-	quit            chan struct{}
+	connReq        *connmgr.ConnReq
+	server         *PeerServer
+	persistent     bool
+	relayMtx       sync.Mutex
+	disableRelayTx bool
+	isWhitelisted  bool
+	requestQueue   []*message.InvVect
+	requestedTxns  map[hash.Hash]struct{}
+	knownAddresses map[string]struct{}
+	banScore       connmgr.DynamicBanScore
+	quit           chan struct{}
 
 	// addrsSent tracks whether or not the peer has responded to a getaddr
 	// request.  It is used to prevent more than one response per connection.
 	addrsSent bool
 
 	// The following chans are used to sync blockmanager and server.
-	syncPeer        *peer.ServerPeer
+	syncPeer *peer.ServerPeer
 }
-
-
 
 // newServerPeer returns a new serverPeer instance. The peer needs to be set by
 // the caller.
 func newServerPeer(s *PeerServer, isPersistent bool) *serverPeer {
 	return &serverPeer{
-		server:          s,
-		persistent:      isPersistent,
-		knownAddresses:  make(map[string]struct{}),
-		quit:            make(chan struct{}),
-		syncPeer : &peer.ServerPeer{
+		server:         s,
+		persistent:     isPersistent,
+		knownAddresses: make(map[string]struct{}),
+		quit:           make(chan struct{}),
+		syncPeer: &peer.ServerPeer{
 			TxProcessed:     make(chan struct{}, 1),
 			BlockProcessed:  make(chan struct{}, 1),
 			RequestedBlocks: make(map[hash.Hash]struct{}),
 			RequestedTxns:   make(map[hash.Hash]struct{}),
-	}}
+		}}
 }
 
 // pushAddrMsg sends an addr message to the connected peer using the provided

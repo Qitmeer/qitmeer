@@ -7,11 +7,11 @@
 package serialization
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
-	"crypto/rand"
 )
 
 const (
@@ -24,9 +24,8 @@ const (
 
 	// MaxMessagePayload is the maximum bytes a message can be regardless of other
 	// individual limits imposed by messages themselves.
-    MaxMessagePayload = (1024 * 1024 * 32) // 32MB
+	MaxMessagePayload = (1024 * 1024 * 32) // 32MB
 )
-
 
 // TODO unify endian
 var (
@@ -201,7 +200,7 @@ func ReadVarInt(r io.Reader, pver uint32) (uint64, error) {
 		// encoded using fewer bytes.
 		min := uint64(0x100000000)
 		if rv < min {
-			return 0, fmt.Errorf("messageError %v: %v","ReadVarInt", fmt.Sprintf(
+			return 0, fmt.Errorf("messageError %v: %v", "ReadVarInt", fmt.Sprintf(
 				errNonCanonicalVarInt, rv, discriminant, min))
 		}
 
@@ -216,7 +215,7 @@ func ReadVarInt(r io.Reader, pver uint32) (uint64, error) {
 		// encoded using fewer bytes.
 		min := uint64(0x10000)
 		if rv < min {
-			return 0, fmt.Errorf("messageError %v: %v","ReadVarInt", fmt.Sprintf(
+			return 0, fmt.Errorf("messageError %v: %v", "ReadVarInt", fmt.Sprintf(
 				errNonCanonicalVarInt, rv, discriminant, min))
 		}
 
@@ -231,7 +230,7 @@ func ReadVarInt(r io.Reader, pver uint32) (uint64, error) {
 		// encoded using fewer bytes.
 		min := uint64(0xfd)
 		if rv < min {
-			return 0, fmt.Errorf("messageError %v: %v","ReadVarInt", fmt.Sprintf(
+			return 0, fmt.Errorf("messageError %v: %v", "ReadVarInt", fmt.Sprintf(
 				errNonCanonicalVarInt, rv, discriminant, min))
 		}
 
@@ -313,7 +312,7 @@ func ReadVarString(r io.Reader, pver uint32) (string, error) {
 	if count > MaxMessagePayload {
 		str := fmt.Sprintf("variable length string is too long "+
 			"[count %d, max %d]", count, MaxMessagePayload)
-		return "", fmt.Errorf("messageError %v: %v","ReadVarString", str)
+		return "", fmt.Errorf("messageError %v: %v", "ReadVarString", str)
 	}
 
 	buf := make([]byte, count)
@@ -357,7 +356,7 @@ func ReadVarBytes(r io.Reader, pver uint32, maxAllowed uint32,
 	if count > uint64(maxAllowed) {
 		str := fmt.Sprintf("%s is larger than the max allowed size "+
 			"[count %d, max %d]", fieldName, count, maxAllowed)
-		return nil, fmt.Errorf("messageError ReadVarBytes: %v",str)
+		return nil, fmt.Errorf("messageError ReadVarBytes: %v", str)
 	}
 
 	b := make([]byte, count)

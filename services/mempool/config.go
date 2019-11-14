@@ -6,24 +6,21 @@
 package mempool
 
 import (
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"time"
-	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/index"
+	"time"
 )
 
 const (
 
 	//TODO, refactor config item
-	DefaultMaxOrphanTxSize       = 5000
-
-
+	DefaultMaxOrphanTxSize = 5000
 )
-
 
 // Config is a descriptor containing the memory pool configuration.
 type Config struct {
@@ -80,5 +77,3 @@ type Config struct {
 	// block dag
 	BD *blockdag.BlockDAG
 }
-
-

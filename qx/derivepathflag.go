@@ -11,7 +11,7 @@ type DerivePathFlag struct {
 
 func (d *DerivePathFlag) Set(s string) error {
 	path, err := wallet.ParseDerivationPath(s)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	d.Path = path
@@ -21,4 +21,3 @@ func (d *DerivePathFlag) Set(s string) error {
 func (d *DerivePathFlag) String() string {
 	return d.Path.String()
 }
-

@@ -21,7 +21,7 @@ var (
 
 // logWriter implements an io.Writer that outputs to both standard output and
 // the write-end pipe of an initialized log rotator.
-type logWriter struct{
+type logWriter struct {
 	// logRotator is one of the logging outputs.  It should be closed on
 	// application shutdown.
 	logRotator *rotator.Rotator
@@ -56,7 +56,7 @@ func (lw *logWriter) Write(p []byte) (n int, err error) {
 
 	if lw.colorableWrite != nil {
 		lw.colorableWrite.Write(p)
-	}else{
+	} else {
 		os.Stderr.Write(p)
 	}
 	return len(p), nil
@@ -66,7 +66,7 @@ func init() {
 	// output set to Stderr
 	// it's easier to handle when run as a daemon through systemd or supervisord,
 	// and Go runtime exceptions are printed to stderr as well.
-	logWrite=&logWriter{}
+	logWrite = &logWriter{}
 	logWrite.Init()
 	glogger = log.NewGlogHandler(log.StreamHandler(io.Writer(logWrite), log.TerminalFormat(logWrite.IsUseColor())))
 

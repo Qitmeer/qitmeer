@@ -26,7 +26,7 @@ func (s *PeerServer) handleAddPeerMsg(state *peerState, sp *serverPeer) bool {
 	// Disconnect banned peers.
 	host, _, err := net.SplitHostPort(sp.Addr())
 	if err != nil {
-		log.Debug("can't split hostport", "error",err)
+		log.Debug("can't split hostport", "error", err)
 		sp.Disconnect()
 		return false
 	}
@@ -38,7 +38,7 @@ func (s *PeerServer) handleAddPeerMsg(state *peerState, sp *serverPeer) bool {
 			return false
 		}
 
-		log.Info("Peer is no longer banned","peer", host)
+		log.Info("Peer is no longer banned", "peer", host)
 		delete(state.banned, host)
 	}
 
@@ -55,7 +55,7 @@ func (s *PeerServer) handleAddPeerMsg(state *peerState, sp *serverPeer) bool {
 	}
 
 	// Add the new peer and start it.
-	log.Debug("New peer", "peer",sp)
+	log.Debug("New peer", "peer", sp)
 	if sp.Inbound() {
 		state.inboundPeers[sp.ID()] = sp
 	} else {
@@ -89,7 +89,7 @@ func (s *PeerServer) handleDonePeerMsg(state *peerState, sp *serverPeer) {
 			s.connManager.Disconnect(sp.connReq.ID())
 		}
 		delete(list, sp.ID())
-		log.Debug("Removed peer", "peer",sp)
+		log.Debug("Removed peer", "peer", sp)
 		return
 	}
 

@@ -9,9 +9,9 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/types"
-	`github.com/Qitmeer/qitmeer/core/types/pow`
-	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"math"
 	"time"
 )
@@ -99,25 +99,25 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 
 	blockHeader := &block.Block().Header
 	newNode := newBlockNode(blockHeader, parentsNode)
-	mainParent:=newNode.GetMainParent(b)
+	mainParent := newNode.GetMainParent(b)
 	if mainParent == nil {
 		return fmt.Errorf("Can't find main parent")
 	}
-	instance := pow.GetInstance(block.Block().Header.Pow.GetPowType(),0,[]byte{})
-	instance.SetMainHeight(int64(mainParent.GetHeight()+1))
+	instance := pow.GetInstance(block.Block().Header.Pow.GetPowType(), 0, []byte{})
+	instance.SetMainHeight(int64(mainParent.GetHeight() + 1))
 	instance.SetParams(b.params.PowConfig)
 	if !instance.CheckAvailable() {
-		str := fmt.Sprintf("pow type : %d is not available!",block.Block().Header.Pow.GetPowType())
+		str := fmt.Sprintf("pow type : %d is not available!", block.Block().Header.Pow.GetPowType())
 		return ruleError(ErrInValidPowType, str)
 	}
 
 	newNode.CalcWorkSum(b.index.lookupNode(mainParent.GetHash()))
-	newNode.SetHeight(mainParent.GetHeight()+1)
+	newNode.SetHeight(mainParent.GetHeight() + 1)
 
 	block.SetHeight(newNode.GetHeight())
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
-	err := b.checkBlockContext(block,mainParent, flags)
+	err := b.checkBlockContext(block, mainParent, flags)
 	if err != nil {
 		return err
 	}
@@ -131,8 +131,8 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	if newOrders == nil || newOrders.Len() == 0 {
 		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
-	oldOrders:=BlockNodeList{}
-	b.getReorganizeNodes(newNode,block,newOrders,&oldOrders)
+	oldOrders := BlockNodeList{}
+	b.getReorganizeNodes(newNode, block, newOrders, &oldOrders)
 	b.index.AddNode(newNode)
 	b.index.SetStatusFlags(newNode, statusDataStored)
 	err = b.index.flushToDB(b.bd)
@@ -163,9 +163,9 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This
 	// also handles validation of the transaction scripts.
-	_, err = b.connectDagChain(newNode, block, newOrders,oldOrders)
+	_, err = b.connectDagChain(newNode, block, newOrders, oldOrders)
 	if err != nil {
-		log.Warn(fmt.Sprintf("%s",err))
+		log.Warn(fmt.Sprintf("%s", err))
 	}
 	b.updateBestState(newNode, block)
 	// Notify the caller that the new block was accepted into the block
@@ -174,8 +174,8 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.chainLock.Unlock()
 	//TODO, refactor to event subscript/publish
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
-		ForkLen:    0,
-		Block:      block,
+		ForkLen: 0,
+		Block:   block,
 	})
 	b.chainLock.Lock()
 

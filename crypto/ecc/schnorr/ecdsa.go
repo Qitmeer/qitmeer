@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"math/big"
 	chainhash "github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
+	"math/big"
 )
 
 // scalarSize is the size of an encoded big endian scalar.

@@ -412,5 +412,76 @@
         "b11"
       ]
     }
+  ],
+  "CP_Blocks":[
+    {
+      "tag":"A",
+      "parents": [
+      ]
+    },
+    {
+      "tag":"B",
+      "parents": [
+        "A"
+      ]
+    },
+    {
+      "tag":"C",
+      "parents": [
+        "A"
+      ]
+    },
+    {
+      "tag":"D",
+      "parents": [
+        "A"
+      ]
+    },
+    {
+      "tag":"E",
+      "parents": [
+        "A"
+      ]
+    },
+    {
+      "tag":"G",
+      "parents": [
+        "C",
+        "D"
+      ]
+    },
+    {
+      "tag":"J",
+      "parents": [
+        "B",
+        "G",
+        "E"
+      ]
+    },
+    {
+      "tag":"F",
+      "parents": [
+        "J"
+      ]
+    },
+    {
+      "tag":"I",
+      "parents": [
+        "J"
+      ]
+    },
+    {
+      "tag":"H",
+      "parents": [
+        "F",
+        "I"
+      ]
+    },
+    {
+      "tag":"K",
+      "parents": [
+        "H"
+      ]
+    }
   ]
 }

@@ -9,16 +9,16 @@ import (
 	"fmt"
 )
 
-func Base64Encode(input string){
+func Base64Encode(input string) {
 	data, err := hex.DecodeString(input)
-	if err!=nil {
+	if err != nil {
 		ErrExit(err)
 	}
 	encoded := base64.StdEncoding.EncodeToString(data)
-	fmt.Printf("%s\n",encoded)
+	fmt.Printf("%s\n", encoded)
 }
 
-func Base64Decode(input string){
+func Base64Decode(input string) {
 	data, err := base64.StdEncoding.DecodeString(input)
 	if err != nil {
 		ErrExit(err)

@@ -8,8 +8,8 @@ type PowDiffReference struct {
 	Blake2bTarget string `json:"blake2bd_target"`
 
 	//cuckoo mining min diff
-	CuckarooMinDiff         uint64 `json:"cuckaroo_min_diff,omitempty"`
-	CuckatooMinDiff         uint64 `json:"cuckatoo_min_diff,omitempty"`
+	CuckarooMinDiff uint64 `json:"cuckaroo_min_diff,omitempty"`
+	CuckatooMinDiff uint64 `json:"cuckatoo_min_diff,omitempty"`
 }
 
 //LL(getblocktemplate RPC) 2018-10-28
@@ -52,8 +52,8 @@ type GetBlockTemplateResultTx struct {
 // GetBlockTemplateResultPt models the parents field of the
 // getblocktemplate command.
 type GetBlockTemplateResultPt struct {
-	Data    string  `json:"data"`
-	Hash    string  `json:"hash"`
+	Data string `json:"data"`
+	Hash string `json:"hash"`
 }
 
 // GetBlockTemplateResultAux models the coinbaseaux field of the
@@ -91,7 +91,7 @@ type GetBlockTemplateResult struct {
 	SubmitOld   *bool  `json:"submitold,omitempty"`
 
 	// Basic pool extension from BIP 0023.
-	Expires int64  `json:"expires,omitempty"`
+	Expires          int64            `json:"expires,omitempty"`
 	PowDiffReference PowDiffReference `json:"pow_diff_reference"`
 	// Mutations from BIP 0023.
 	MaxTime    int64    `json:"maxtime,omitempty"`

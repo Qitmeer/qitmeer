@@ -30,8 +30,8 @@ func TxEncode(version uint32, lockTime uint32, inputs map[string]uint32, outputs
 	}
 	sort.Strings(inputsSlice)
 
-	for _,txId := range inputsSlice {
-		vout:=inputs[txId]
+	for _, txId := range inputsSlice {
+		vout := inputs[txId]
 		txHash, err := hash.NewHashFromStr(txId)
 		if err != nil {
 			return "", err
@@ -50,8 +50,8 @@ func TxEncode(version uint32, lockTime uint32, inputs map[string]uint32, outputs
 	}
 	sort.Strings(outputsSlice)
 
-	for _,encodedAddr:= range outputsSlice {
-		amount:=outputs[encodedAddr]
+	for _, encodedAddr := range outputsSlice {
+		amount := outputs[encodedAddr]
 		if amount <= 0 || amount > types.MaxAmount {
 			return "", fmt.Errorf("invalid amount: 0 >= %v "+
 				"> %v", amount, types.MaxAmount)
@@ -151,7 +151,6 @@ func TxSign(privkeyStr string, rawTxStr string, network string) (string, error) 
 	}
 	return mtxHex, nil
 }
-
 
 func TxDecode(network string, rawTxStr string) {
 	var param *params.Params

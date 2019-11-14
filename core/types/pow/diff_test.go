@@ -1,11 +1,11 @@
 package pow
 
 import (
-	`encoding/hex`
-	`fmt`
+	"encoding/hex"
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common"
-	`github.com/Qitmeer/qitmeer/common/hash`
-	`github.com/Qitmeer/qitmeer/common/util`
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
@@ -29,30 +29,30 @@ func TestScaleToTarget(t *testing.T) {
 
 func TestDiffCompare(t *testing.T) {
 	str := "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-	b,_ := hex.DecodeString(str)
+	b, _ := hex.DecodeString(str)
 	h := hash.Hash{}
 	util.ReverseBytes(b)
-	copy(h[:],b)
+	copy(h[:], b)
 	fmt.Println(h)
-	fmt.Println(CalcCuckooDiff(1856,h))
+	fmt.Println(CalcCuckooDiff(1856, h))
 	str = "000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-	b,_ = hex.DecodeString(str)
+	b, _ = hex.DecodeString(str)
 	util.ReverseBytes(b)
-	copy(h[:],b)
+	copy(h[:], b)
 	fmt.Println(h)
-	fmt.Println(CalcCuckooDiff(1856,h))
+	fmt.Println(CalcCuckooDiff(1856, h))
 	str = "0000000000000000000000ffffffffffffffffffffffffffffffffffffffffff"
-	b,_ = hex.DecodeString(str)
+	b, _ = hex.DecodeString(str)
 	util.ReverseBytes(b)
-	copy(h[:],b)
+	copy(h[:], b)
 	fmt.Println(h)
-	fmt.Println(CalcCuckooDiff(1856,h))
+	fmt.Println(CalcCuckooDiff(1856, h))
 	str = "0000000000000000000000000000000000000000000000000000000000000000"
-	b,_ = hex.DecodeString(str)
+	b, _ = hex.DecodeString(str)
 	util.ReverseBytes(b)
-	copy(h[:],b)
+	copy(h[:], b)
 	fmt.Println(h)
-	fmt.Println(CalcCuckooDiff(1856,h))
+	fmt.Println(CalcCuckooDiff(1856, h))
 }
 
 // scale * 2^ 64 / diff is target
@@ -70,7 +70,7 @@ func TestCalcNextDiff(t *testing.T) {
 	p := &PowConfig{
 		Blake2bdPowLimit:     new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1),
 		Blake2bdPowLimitBits: 0x1e00ffff,
-		Percent:[]Percent{
+		Percent: []Percent{
 			{
 				Blake2bDPercent: 34,
 				CuckarooPercent: 33,
@@ -108,7 +108,7 @@ func TestCalcCuckarooNextDiff(t *testing.T) {
 	p := &PowConfig{
 		Blake2bdPowLimit:     new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1),
 		Blake2bdPowLimitBits: 0x1e00ffff,
-		Percent:[]Percent{
+		Percent: []Percent{
 			{
 				Blake2bDPercent: 34,
 				CuckarooPercent: 33,
@@ -150,7 +150,7 @@ func TestCalcCuckatooNextDiff(t *testing.T) {
 	p := &PowConfig{
 		Blake2bdPowLimit:     new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1),
 		Blake2bdPowLimitBits: 0x1e00ffff,
-		Percent:[]Percent{
+		Percent: []Percent{
 			{
 				Blake2bDPercent: 34,
 				CuckarooPercent: 33,

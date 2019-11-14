@@ -23,9 +23,8 @@ import (
 // sequence lock, which is the desired behavior.
 type SequenceLock struct {
 	BlockHeight int64
-	Time   int64
+	Time        int64
 }
-
 
 // calcSequenceLock computes the relative lock times for the passed transaction
 // from the point of view of the block node passed in as the first argument.
@@ -85,11 +84,11 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			// included is needed to compute its past median time.
 			var medianTime time.Time
 			if hash.ZeroHash.IsEqual(utxo.BlockHash()) {
-				medianTime=b.BestSnapshot().MedianTime
-			}else{
+				medianTime = b.BestSnapshot().MedianTime
+			} else {
 				blockNode := b.index.LookupNode(utxo.BlockHash())
 				if blockNode == nil {
-					return sequenceLock,nil
+					return sequenceLock, nil
 				}
 				medianTime = blockNode.CalcPastMedianTime(b)
 			}
@@ -115,16 +114,16 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			// maintain the original lock time semantics.
 			var inputHeight uint
 			if hash.ZeroHash.IsEqual(utxo.BlockHash()) {
-				inputHeight=b.BestSnapshot().GraphState.GetMainHeight()
-			}else{
-				block:=b.bd.GetBlock(utxo.BlockHash())
+				inputHeight = b.BestSnapshot().GraphState.GetMainHeight()
+			} else {
+				block := b.bd.GetBlock(utxo.BlockHash())
 				if block == nil {
-					return sequenceLock,nil
+					return sequenceLock, nil
 				}
 				inputHeight = block.GetHeight()
 			}
 
-			minLayer := int64(inputHeight) + relativeLock - 1  //TODO,remove type conversion
+			minLayer := int64(inputHeight) + relativeLock - 1 //TODO,remove type conversion
 			if minLayer > sequenceLock.BlockHeight {
 				sequenceLock.BlockHeight = minLayer
 			}
@@ -151,8 +150,8 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 // This function is safe for concurrent access.
 func (b *BlockChain) CalcSequenceLock(tx *types.Tx, view *UtxoViewpoint) (*SequenceLock, error) {
 	b.chainLock.Lock()
-	block:=b.bd.GetMainChainTip()
-	node:=b.index.lookupNode(block.GetHash())
+	block := b.bd.GetMainChainTip()
+	node := b.index.lookupNode(block.GetHash())
 	seqLock, err := b.calcSequenceLock(node, tx, view, true)
 	b.chainLock.Unlock()
 	return seqLock, err

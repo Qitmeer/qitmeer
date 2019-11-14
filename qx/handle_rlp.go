@@ -23,19 +23,19 @@ func RlpEncode(input string) {
 	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",b)
+	fmt.Printf("%x\n", b)
 }
 
 func RlpDecode(input string) {
 	data, err := hex.DecodeString(input)
-	if err!=nil {
+	if err != nil {
 		ErrExit(err)
 	}
 	r := bytes.NewReader(data)
 	s := rlp.NewStream(r, 0)
 	var buffer bytes.Buffer
 	for {
-		if _, err := Dump(s,0,&buffer); err != nil {
+		if _, err := Dump(s, 0, &buffer); err != nil {
 			if err != io.EOF {
 				ErrExit(err)
 			}
@@ -48,13 +48,13 @@ func RlpDecode(input string) {
 func Dump(s *rlp.Stream, depth int, buffer *bytes.Buffer) (*bytes.Buffer, error) {
 	kind, size, err := s.Kind()
 	if err != nil {
-		return buffer,err
+		return buffer, err
 	}
 	switch kind {
 	case rlp.Byte, rlp.String:
 		str, err := s.Bytes()
 		if err != nil {
-			return buffer,err
+			return buffer, err
 		}
 		if len(str) == 0 || IsASCII(str) {
 
@@ -70,12 +70,12 @@ func Dump(s *rlp.Stream, depth int, buffer *bytes.Buffer) (*bytes.Buffer, error)
 		} else {
 			buffer.WriteString(fmt.Sprintln(Ws(depth) + "["))
 			for i := 0; ; i++ {
-				if buff, err := Dump(s, depth+1,buffer); err == rlp.EOL {
-					buff.Truncate(buff.Len() - 2)  //remove the last comma
+				if buff, err := Dump(s, depth+1, buffer); err == rlp.EOL {
+					buff.Truncate(buff.Len() - 2) //remove the last comma
 					buff.WriteString("\n")
 					break
 				} else if err != nil {
-					return buff,err
+					return buff, err
 				} else {
 					buff.WriteString(",\n")
 				}
@@ -83,7 +83,7 @@ func Dump(s *rlp.Stream, depth int, buffer *bytes.Buffer) (*bytes.Buffer, error)
 			buffer.WriteString(fmt.Sprint(Ws(depth) + "]"))
 		}
 	}
-	return buffer,nil
+	return buffer, nil
 }
 
 func IsASCII(b []byte) bool {

@@ -1,19 +1,10 @@
-// Copyright 2017-2018 The qitmeer developers
-// Copyright 2014 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright (c) 2017-2019 The Qitmeer developers
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
+// The parts code inspired & originated from
+// https://github.com/ethereum/go-ethereum/trie
 
 package trie
 
@@ -577,14 +568,14 @@ func BenchmarkHash(b *testing.B) {
 			nonce   = uint64(random.Int63())
 			balance = new(big.Int).Rand(random, new(big.Int).Exp(common.Big2, common.Big256, nil))
 			root    = emptyRoot
-			code    = hash.CalcHash(nil,hash.GetHasher(hash.Keccak_256))
+			code    = hash.CalcHash(nil, hash.GetHasher(hash.Keccak_256))
 		)
 		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
 	for i := 0; i < len(addresses); i++ {
-		trie.Update(hash.CalcHash(addresses[i][:],hash.GetHasher(hash.Keccak_256)), accounts[i])
+		trie.Update(hash.CalcHash(addresses[i][:], hash.GetHasher(hash.Keccak_256)), accounts[i])
 	}
 	b.ResetTimer()
 	b.ReportAllocs()

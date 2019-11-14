@@ -7,8 +7,8 @@ package message
 
 import (
 	"fmt"
-	"io"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"io"
 )
 
 // MsgGetData implements the Message interface and represents a getdata message.

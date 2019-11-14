@@ -38,5 +38,3 @@ var goldenTest = []_Golden{
 	{0x00000000, "The fugacity of a constituent in a mixture of gases at a given temperature is proportional to its mole fraction.  Lewis-Randall Rule"},
 	{0x00000000, "How can you write a big system without C++?  -Paul Glick"},
 }
-
-

@@ -7,7 +7,6 @@ import (
 	"reflect"
 )
 
-
 // Service is a service can be registered into & running in a Node
 type Service interface {
 
@@ -38,20 +37,19 @@ func (e *ServiceStopError) Error() string {
 // the protocol stack, that is passed to all constructors to be optionally used;
 // as well as utility methods to operate on the service environment.
 type ServiceContext struct {
-
 }
 
 // ServiceConstructor is the function signature of the constructors needed to be
 // registered for service instantiation.
 type ServiceConstructor struct {
-	service string
+	service  string
 	initFunc func(ctx *ServiceContext) (Service, error)
 }
 
-func NewServiceConstructor(name string, constructor func(ctx *ServiceContext) (Service, error)) ServiceConstructor{
+func NewServiceConstructor(name string, constructor func(ctx *ServiceContext) (Service, error)) ServiceConstructor {
 	sc := ServiceConstructor{
-		initFunc:constructor,
-		service:name,
+		initFunc: constructor,
+		service:  name,
 	}
 	return sc
 }

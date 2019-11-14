@@ -13,12 +13,12 @@ import (
 
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/address"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/ecc"
+	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/database"
 )
 
 const (
@@ -710,7 +710,7 @@ func (idx *AddrIndex) indexPkScript(data writeIndexData, pkScript []byte, txIdx 
 // transactions in the passed block, and maps each of them to the associated
 // transaction using the passed map.
 func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) {
-	index:=0
+	index := 0
 	for txIdx, tx := range block.Transactions() {
 		// Coinbases do not reference any inputs.  Since the block is
 		// required to have already gone through full validation, it has
@@ -722,9 +722,9 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlo
 				if index >= len(stxos) {
 					return
 				}
-				stxo:=stxos[index]
+				stxo := stxos[index]
 				index++
-				idx.indexPkScript(data,stxo.PkScript, txIdx)
+				idx.indexPkScript(data, stxo.PkScript, txIdx)
 			}
 		}
 
@@ -740,8 +740,8 @@ func (idx *AddrIndex) indexBlock(data writeIndexData, block *types.SerializedBlo
 // the transactions in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,stxos []blockchain.SpentTxOut) error {
-	if len(stxos)==0 {
+func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) error {
+	if len(stxos) == 0 {
 		return nil
 	}
 	// The offset and length of the transactions within the serialized
@@ -784,8 +784,8 @@ func (idx *AddrIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBloc
 // each transaction in the block involve.
 //
 // This is part of the Indexer interface.
-func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock,stxos []blockchain.SpentTxOut) error {
-	if len(stxos)==0 {
+func (idx *AddrIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) error {
+	if len(stxos) == 0 {
 		return nil
 	}
 	// Build all of the address to transaction mappings in a local map.
@@ -906,7 +906,7 @@ func (idx *AddrIndex) AddUnconfirmedTx(tx *types.Tx, utxoView *blockchain.UtxoVi
 		}
 		pkScript := entry.PkScript()
 		//txType := entry.TransactionType()
-		idx.indexUnconfirmedAddresses(pkScript,tx)
+		idx.indexUnconfirmedAddresses(pkScript, tx)
 	}
 
 	// Index addresses of all created outputs.

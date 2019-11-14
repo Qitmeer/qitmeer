@@ -27,11 +27,11 @@ type TxRawResult struct {
 // getrawtransaction, decoderawtransaction, and searchrawtransaction use the
 // same structure.
 type Vin struct {
-	Coinbase    string     `json:"coinbase"`
-	Txid        string     `json:"txid"`
-	Vout        uint32     `json:"vout"`
-	Sequence    uint32     `json:"sequence"`
-	ScriptSig   *ScriptSig `json:"scriptSig"`
+	Coinbase  string     `json:"coinbase"`
+	Txid      string     `json:"txid"`
+	Vout      uint32     `json:"vout"`
+	Sequence  uint32     `json:"sequence"`
+	ScriptSig *ScriptSig `json:"scriptSig"`
 }
 
 // IsCoinBase returns a bool to show if a Vin is a Coinbase one or not.
@@ -43,25 +43,25 @@ func (v *Vin) IsCoinBase() bool {
 func (v *Vin) MarshalJSON() ([]byte, error) {
 	if v.IsCoinBase() {
 		coinbaseStruct := struct {
-			Coinbase    string  `json:"coinbase"`
-			Sequence    uint32  `json:"sequence"`
+			Coinbase string `json:"coinbase"`
+			Sequence uint32 `json:"sequence"`
 		}{
-			Coinbase:    v.Coinbase,
-			Sequence:    v.Sequence,
+			Coinbase: v.Coinbase,
+			Sequence: v.Sequence,
 		}
 		return json.Marshal(coinbaseStruct)
 	}
 
 	txStruct := struct {
-		Txid        string     `json:"txid"`
-		Vout        uint32     `json:"vout"`
-		Sequence    uint32     `json:"sequence"`
-		ScriptSig   *ScriptSig `json:"scriptSig"`
+		Txid      string     `json:"txid"`
+		Vout      uint32     `json:"vout"`
+		Sequence  uint32     `json:"sequence"`
+		ScriptSig *ScriptSig `json:"scriptSig"`
 	}{
-		Txid:        v.Txid,
-		Vout:        v.Vout,
-		Sequence:    v.Sequence,
-		ScriptSig:   v.ScriptSig,
+		Txid:      v.Txid,
+		Vout:      v.Vout,
+		Sequence:  v.Sequence,
+		ScriptSig: v.ScriptSig,
 	}
 	return json.Marshal(txStruct)
 }
@@ -69,7 +69,7 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 // Vout models parts of the tx data.  It is defined separately since both
 // getrawtransaction and decoderawtransaction use the same structure.
 type Vout struct {
-	Amount       uint64            `json:"amount"`
+	Amount       uint64             `json:"amount"`
 	ScriptPubKey ScriptPubKeyResult `json:"scriptPubKey"`
 }
 
@@ -109,7 +109,7 @@ type GetRawTransactionsResult struct {
 	Hash          string       `json:"hash"`
 	Size          string       `json:"size"`
 	Vsize         string       `json:"vsize"`
-	Version       uint32        `json:"version"`
+	Version       uint32       `json:"version"`
 	LockTime      uint32       `json:"locktime"`
 	Vin           []VinPrevOut `json:"vin"`
 	Vout          []Vout       `json:"vout"`

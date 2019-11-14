@@ -127,7 +127,7 @@ func TerminalFormat(usecolor bool) Format {
 			}
 		} else {
 			if color > 0 {
-				fmt.Fprintf(b, "%s [\x1b[%dm%s\x1b[0m] %s ",r.Time.Format(termTimeFormat), color, lvl, r.Msg)
+				fmt.Fprintf(b, "%s [\x1b[%dm%s\x1b[0m] %s ", r.Time.Format(termTimeFormat), color, lvl, r.Msg)
 			} else {
 				fmt.Fprintf(b, "%s [%s] %s ", r.Time.Format(termTimeFormat), lvl, r.Msg)
 			}

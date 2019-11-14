@@ -194,13 +194,13 @@ func mergeDifficulty(oldDiff int64, newDiff1 int64, newDiff2 int64) int64 {
 //calc cuckoo diff
 func CalcCuckooDiff(scale uint64, blockHash hash.Hash) *big.Int {
 	c := HashToBig(&blockHash)
-	max := big.NewInt(1).Lsh(bigOne,256)
-	if c.Cmp(big.NewInt(0)) <= 0{
+	max := big.NewInt(1).Lsh(bigOne, 256)
+	if c.Cmp(big.NewInt(0)) <= 0 {
 		return max
 	}
 	a := &big.Int{}
 	a.SetUint64(scale)
-	if a.Cmp(c) >= 0{
+	if a.Cmp(c) >= 0 {
 		return max
 	}
 	a.Mul(a, max)
@@ -213,16 +213,16 @@ func CalcCuckooDiff(scale uint64, blockHash hash.Hash) *big.Int {
 func CuckooDiffToTarget(scale uint64, diff *big.Int) string {
 	a := &big.Int{}
 	a.SetUint64(scale)
-	max := big.NewInt(1).Lsh(bigOne,256)
+	max := big.NewInt(1).Lsh(bigOne, 256)
 	if a.Cmp(diff) >= 0 {
-		return fmt.Sprintf("%x",max.Sub(max,bigOne))
+		return fmt.Sprintf("%x", max.Sub(max, bigOne))
 	}
 	a.Mul(a, max)
 	a.Div(a, diff)
 	b := a.Bytes()
-	c := make([]byte,32)
-	copy(c[:],b)
-	return fmt.Sprintf("%x",c)
+	c := make([]byte, 32)
+	copy(c[:], b)
+	return fmt.Sprintf("%x", c)
 }
 
 //calc scale

@@ -5,7 +5,6 @@ import (
 	"github.com/dchest/blake256"
 )
 
-
 func HashFunc(data []byte) [blake256.Size]byte {
 	var outB [blake256.Size]byte
 	a := blake256.New()
@@ -17,6 +16,7 @@ func HashFunc(data []byte) [blake256.Size]byte {
 
 	return outB
 }
+
 // HashB using blake256 to calculates hash(b) and returns the resulting bytes.
 func HashB(b []byte) []byte {
 	a := blake256.New()
@@ -53,5 +53,6 @@ func HashH(b []byte) hash.Hash {
 func Hash160(buf []byte) []byte {
 	return hash.CalcHash(HashB(buf), hash.GetHasher(hash.Ripemd160))
 }
+
 // HashBlockSize is the block size of the hash algorithm in bytes.
 const HashBlockSize = blake256.BlockSize

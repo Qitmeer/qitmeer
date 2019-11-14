@@ -4,10 +4,10 @@ package util
 
 import (
 	"os"
-	"strings"
+	"os/user"
 	"path/filepath"
 	"runtime"
-	"os/user"
+	"strings"
 )
 
 // CleanAndExpandPath expands environment variables and leading ~ in the
@@ -63,5 +63,3 @@ func CleanAndExpandPath(path string) string {
 
 	return filepath.Join(homeDir, path)
 }
-
-

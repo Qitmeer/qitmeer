@@ -60,14 +60,14 @@ func encodePKAddress(serializedPK []byte, netID [2]byte, algo ecc.EcType) string
 // PubKeyHashAddress is an Address for a pay-to-pubkey-hash (P2PKH)
 // transaction.
 type PubKeyHashAddress struct {
-	net       *params.Params
-	netID     [2]byte
-	hash      [ripemd160.Size]byte
+	net   *params.Params
+	netID [2]byte
+	hash  [ripemd160.Size]byte
 }
 
 // NewAddressPubKeyHash returns a new AddressPubKeyHash.  pkHash must
 // be 20 bytes.
-func NewPubKeyHashAddress(pkHash []byte, net *params.Params, algo ecc.EcType ) (*PubKeyHashAddress, error) {
+func NewPubKeyHashAddress(pkHash []byte, net *params.Params, algo ecc.EcType) (*PubKeyHashAddress, error) {
 	var addrID [2]byte
 	switch algo {
 	case ecc.ECDSA_Secp256k1:
@@ -96,6 +96,7 @@ func NewPubKeyHashAddressByNetId(pkHash []byte, netID [2]byte) (*PubKeyHashAddre
 	}
 	return apkh, nil
 }
+
 // newPubKeyHashAddress is the internal API to create a pubkey hash address
 // with a known leading identifier byte for a network, rather than looking
 // it up through its parameters.  This is useful when creating a new address
@@ -141,8 +142,8 @@ func (a *PubKeyHashAddress) Hash160() *[ripemd160.Size]byte {
 	return &a.hash
 }
 
-type PubKeyAddress struct{
-	pk      []byte
+type PubKeyAddress struct {
+	pk       []byte
 	addrType types.AddressType
 }
 
@@ -245,8 +246,6 @@ func (a *ScriptHashAddress) EcType() ecc.EcType {
 func (a *ScriptHashAddress) ScriptAddress() []byte {
 	return a.hash[:]
 }
-
-
 
 // PubKeyFormat describes what format to use for a pay-to-pubkey address.
 type PubKeyFormat int
@@ -368,10 +367,10 @@ func (a *SecpPubKeyAddress) PubKey() ecc.PublicKey {
 // pay-to-pubkey-hash is a hash of the serialized public key which obviously
 // differs with the format.
 func (a *SecpPubKeyAddress) PKHAddress() *PubKeyHashAddress {
-	return toPKHAddress(a.net,a.pubKeyHashID,a.serialize())
+	return toPKHAddress(a.net, a.pubKeyHashID, a.serialize())
 }
 
-func toPKHAddress(net  *params.Params, netID  [2]byte, b []byte) *PubKeyHashAddress{
+func toPKHAddress(net *params.Params, netID [2]byte, b []byte) *PubKeyHashAddress {
 	addr := &PubKeyHashAddress{net: net, netID: netID}
 	copy(addr.hash[:], hash.Hash160(b))
 	return addr
@@ -414,6 +413,7 @@ func (a *EdwardsPubKeyAddress) EcType() ecc.EcType {
 func (a *EdwardsPubKeyAddress) Encode() string {
 	return encodeAddress(hash.Hash160(a.serialize()), a.pubKeyHashID)
 }
+
 // String returns the hex-encoded human-readable string for the pay-to-pubkey
 // address.  This is not the same as calling EncodeAddress.
 func (a *EdwardsPubKeyAddress) String() string {
@@ -437,7 +437,7 @@ func (a *EdwardsPubKeyAddress) Hash160() *[ripemd160.Size]byte {
 }
 
 func (a *EdwardsPubKeyAddress) PKHAddress() *PubKeyHashAddress {
-	return toPKHAddress(a.net,a.pubKeyHashID,a.serialize())
+	return toPKHAddress(a.net, a.pubKeyHashID, a.serialize())
 }
 
 // ScriptAddress returns the bytes to be included in a txout script to pay
@@ -500,7 +500,7 @@ func (a *SecSchnorrPubKeyAddress) Hash160() *[ripemd160.Size]byte {
 }
 
 func (a *SecSchnorrPubKeyAddress) PKHAddress() *PubKeyHashAddress {
-	return toPKHAddress(a.net,a.pubKeyHashID,a.serialize())
+	return toPKHAddress(a.net, a.pubKeyHashID, a.serialize())
 }
 
 // ScriptAddress returns the bytes to be included in a txout script to pay
@@ -510,11 +510,10 @@ func (a *SecSchnorrPubKeyAddress) ScriptAddress() []byte {
 	return a.serialize()
 }
 
-type ContractAddress struct{
-	pk      []byte
+type ContractAddress struct {
+	pk       []byte
 	addrType types.AddressType
 }
-
 
 // DecodeAddress decodes the string encoding of an address and returns
 // the Address if addr is a valid encoding for a known address type
@@ -580,6 +579,3 @@ func detectNetworkForAddress(addr string) (*params.Params, error) {
 
 	return nil, fmt.Errorf("unknown network type in string encoded address")
 }
-
-
-

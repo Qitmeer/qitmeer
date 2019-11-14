@@ -11,7 +11,7 @@ type PhantomBlock struct {
 	blueNum uint
 
 	blueDiffAnticone *HashSet
-	redDiffAnticone *HashSet
+	redDiffAnticone  *HashSet
 }
 
 func (pb *PhantomBlock) IsBluer(other *PhantomBlock) bool {
@@ -32,43 +32,43 @@ func (pb *PhantomBlock) IsBluer(other *PhantomBlock) bool {
 
 // encode
 func (pb *PhantomBlock) Encode(w io.Writer) error {
-	err:=pb.Block.Encode(w)
+	err := pb.Block.Encode(w)
 	if err != nil {
 		return err
 	}
-	err=s.WriteElements(w,uint32(pb.blueNum))
+	err = s.WriteElements(w, uint32(pb.blueNum))
 	if err != nil {
 		return err
 	}
 
 	// blueDiffAnticone
-	blueDiffAnticone:=[]*hash.Hash{}
-	if pb.blueDiffAnticone!=nil && pb.blueDiffAnticone.Size()>0 {
-		blueDiffAnticone=pb.blueDiffAnticone.List()
+	blueDiffAnticone := []*hash.Hash{}
+	if pb.blueDiffAnticone != nil && pb.blueDiffAnticone.Size() > 0 {
+		blueDiffAnticone = pb.blueDiffAnticone.List()
 	}
-	blueDiffAnticoneSize:=len(blueDiffAnticone)
-	err=s.WriteElements(w,uint32(blueDiffAnticoneSize))
+	blueDiffAnticoneSize := len(blueDiffAnticone)
+	err = s.WriteElements(w, uint32(blueDiffAnticoneSize))
 	if err != nil {
 		return err
 	}
-	for i:=0;i<blueDiffAnticoneSize ;i++  {
-		err=s.WriteElements(w,blueDiffAnticone[i])
+	for i := 0; i < blueDiffAnticoneSize; i++ {
+		err = s.WriteElements(w, blueDiffAnticone[i])
 		if err != nil {
 			return err
 		}
 	}
 	// redDiffAnticone
-	redDiffAnticone:=[]*hash.Hash{}
-	if pb.redDiffAnticone!=nil && pb.redDiffAnticone.Size()>0 {
-		redDiffAnticone=pb.redDiffAnticone.List()
+	redDiffAnticone := []*hash.Hash{}
+	if pb.redDiffAnticone != nil && pb.redDiffAnticone.Size() > 0 {
+		redDiffAnticone = pb.redDiffAnticone.List()
 	}
-	redDiffAnticoneSize:=len(redDiffAnticone)
-	err=s.WriteElements(w,uint32(redDiffAnticoneSize))
+	redDiffAnticoneSize := len(redDiffAnticone)
+	err = s.WriteElements(w, uint32(redDiffAnticoneSize))
 	if err != nil {
 		return err
 	}
-	for i:=0;i<redDiffAnticoneSize ;i++  {
-		err=s.WriteElements(w,redDiffAnticone[i])
+	for i := 0; i < redDiffAnticoneSize; i++ {
+		err = s.WriteElements(w, redDiffAnticone[i])
 		if err != nil {
 			return err
 		}
@@ -78,29 +78,29 @@ func (pb *PhantomBlock) Encode(w io.Writer) error {
 
 // decode
 func (pb *PhantomBlock) Decode(r io.Reader) error {
-	err:=pb.Block.Decode(r)
+	err := pb.Block.Decode(r)
 	if err != nil {
 		return err
 	}
 
 	var blueNum uint32
-	err=s.ReadElements(r,&blueNum)
+	err = s.ReadElements(r, &blueNum)
 	if err != nil {
 		return err
 	}
-	pb.blueNum=uint(blueNum)
+	pb.blueNum = uint(blueNum)
 
 	// blueDiffAnticone
 	var blueDiffAnticoneSize uint32
-	err=s.ReadElements(r,&blueDiffAnticoneSize)
+	err = s.ReadElements(r, &blueDiffAnticoneSize)
 	if err != nil {
 		return err
 	}
 	pb.blueDiffAnticone = NewHashSet()
-	if blueDiffAnticoneSize>0 {
-		for i:=uint32(0);i<blueDiffAnticoneSize ;i++  {
+	if blueDiffAnticoneSize > 0 {
+		for i := uint32(0); i < blueDiffAnticoneSize; i++ {
 			var bda hash.Hash
-			err:=s.ReadElements(r,&bda)
+			err := s.ReadElements(r, &bda)
 			if err != nil {
 				return err
 			}
@@ -110,15 +110,15 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 
 	// blueDiffAnticone
 	var redDiffAnticoneSize uint32
-	err=s.ReadElements(r,&redDiffAnticoneSize)
+	err = s.ReadElements(r, &redDiffAnticoneSize)
 	if err != nil {
 		return err
 	}
 	pb.redDiffAnticone = NewHashSet()
-	if redDiffAnticoneSize>0 {
-		for i:=uint32(0);i<redDiffAnticoneSize ;i++  {
+	if redDiffAnticoneSize > 0 {
+		for i := uint32(0); i < redDiffAnticoneSize; i++ {
 			var bda hash.Hash
-			err:=s.ReadElements(r,&bda)
+			err := s.ReadElements(r, &bda)
 			if err != nil {
 				return err
 			}

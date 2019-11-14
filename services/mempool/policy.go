@@ -85,7 +85,6 @@ const (
 	// pushes in a transaction, after which it is considered non-standard.
 	maxNullDataOutputs = 4
 
-
 	// UnminedLayer is the layer used for the "block" layer field of the
 	// contextual transaction information provided in a transaction store
 	// when it has not yet been mined into a block.
@@ -94,7 +93,6 @@ const (
 	// MinHighPriority is the minimum priority value that allows a
 	// transaction to be considered high priority.
 	MinHighPriority = types.AtomsPerCoin * 144.0 / 250
-
 )
 
 // Policy houses the policy (configuration parameters) which is used to

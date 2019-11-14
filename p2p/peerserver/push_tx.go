@@ -18,7 +18,7 @@ func (s *PeerServer) pushTxMsg(sp *serverPeer, hash *hash.Hash, doneChan chan<- 
 	tx, err := s.TxMemPool.FetchTransaction(hash)
 	if err != nil {
 		log.Trace("Unable to fetch tx %v from transaction pool",
-			"tx hash",hash, "error", err)
+			"tx hash", hash, "error", err)
 
 		if doneChan != nil {
 			doneChan <- struct{}{}
@@ -31,7 +31,7 @@ func (s *PeerServer) pushTxMsg(sp *serverPeer, hash *hash.Hash, doneChan chan<- 
 		<-waitChan
 	}
 
-	sp.QueueMessage(&message.MsgTx{Tx:tx.Tx}, doneChan)
+	sp.QueueMessage(&message.MsgTx{Tx: tx.Tx}, doneChan)
 
 	return nil
 }

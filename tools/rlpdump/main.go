@@ -24,10 +24,10 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/encode/rlp"
 	"io"
 	"io/ioutil"
 	"os"
-	"github.com/Qitmeer/qitmeer/common/encode/rlp"
 	"strings"
 )
 

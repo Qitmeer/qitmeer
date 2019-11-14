@@ -74,11 +74,11 @@ type IPow interface {
 }
 
 type Pow struct {
-	PowType   PowType       //header pow type 1 bytes
-	Nonce     uint32        //header nonce 4 bytes
-	ProofData ProofDataType // 1 edge_bits  168  bytes circle length total 169 bytes
-	params    *PowConfig
-	mainHeight    int64
+	PowType    PowType       //header pow type 1 bytes
+	Nonce      uint32        //header nonce 4 bytes
+	ProofData  ProofDataType // 1 edge_bits  168  bytes circle length total 169 bytes
+	params     *PowConfig
+	mainHeight int64
 }
 
 //get pow instance
@@ -104,11 +104,11 @@ func (this *Pow) SetPowType(powType PowType) {
 	this.PowType = powType
 }
 
-func (this *Pow) SetParams(params *PowConfig){
+func (this *Pow) SetParams(params *PowConfig) {
 	this.params = GetPowConfig().Set(params)
 }
 
-func (this *Pow) SetMainHeight(mainHeight int64){
+func (this *Pow) SetMainHeight(mainHeight int64) {
 	this.mainHeight = mainHeight
 }
 
@@ -133,4 +133,3 @@ func (this *Pow) SetProofData(data []byte) {
 	l := len(data)
 	copy(this.ProofData[0:l], data[:])
 }
-

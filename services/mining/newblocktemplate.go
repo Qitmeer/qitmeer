@@ -4,19 +4,18 @@ import (
 	"container/heap"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/merkle"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
-	`github.com/Qitmeer/qitmeer/core/types/pow`
+	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 )
-
 
 // NewBlockTemplate returns a new block template that is ready to be solved
 // using the transactions from the passed transaction source pool and a coinbase
@@ -87,12 +86,12 @@ import (
 
 func NewBlockTemplate(policy *Policy, params *params.Params,
 	sigCache *txscript.SigCache, txSource TxSource, timeSource blockchain.MedianTimeSource,
-	blockManager *blkmgr.BlockManager,  payToAddress types.Address,parents []*hash.Hash) (*types.BlockTemplate, error) {
+	blockManager *blkmgr.BlockManager, payToAddress types.Address, parents []*hash.Hash) (*types.BlockTemplate, error) {
 	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
 
-	best:=blockManager.GetChain().BestSnapshot()
+	best := blockManager.GetChain().BestSnapshot()
 	nextBlockHeight := uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
-	nextBlockOrder:=uint64(best.GraphState.GetTotal())
+	nextBlockOrder := uint64(best.GraphState.GetTotal())
 	//nextBlockLayer:=uint64(best.GraphState.GetLayer()+1)
 
 	// All transaction scripts are verified using the more strict standarad
@@ -119,14 +118,14 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		return nil, err
 	}
 
-	if parents==nil {
-		parents=blockManager.GetChain().GetMiningTips()
+	if parents == nil {
+		parents = blockManager.GetChain().GetMiningTips()
 	}
 
-	parentsSet:=blockdag.NewHashSet()
+	parentsSet := blockdag.NewHashSet()
 	parentsSet.AddList(parents)
 
-	blues:=int64(blockManager.GetChain().BlockDAG().GetBlues(parentsSet))
+	blues := int64(blockManager.GetChain().BlockDAG().GetBlues(parentsSet))
 	coinbaseTx, err := createCoinbaseTx(subsidyCache,
 		coinbaseScript,
 		opReturnPkScript,
@@ -136,7 +135,6 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	if err != nil {
 		return nil, err
 	}
-
 
 	coinbaseSigOpCost := int64(blockchain.CountSigOps(coinbaseTx))
 	// Get the current source transactions and create a priority queue to
@@ -151,7 +149,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	lessFunc := txPQByFee
 	if sortedByFee {
 		lessFunc = txPQByFee
-	}else {
+	} else {
 		lessFunc = txPQByPriority
 	}
 	priorityQueue := newTxPriorityQueue(len(sourceTxns), lessFunc)
@@ -179,7 +177,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	txFees = append(txFees, -1) // Updated once known
 	txSigOpCosts = append(txSigOpCosts, coinbaseSigOpCost)
 
-	log.Debug("Inclusion to new block", "transactions",len(sourceTxns))
+	log.Debug("Inclusion to new block", "transactions", len(sourceTxns))
 mempoolLoop:
 	for _, txDesc := range sourceTxns {
 		// A block can't have more than one coinbase or contain
@@ -249,7 +247,7 @@ mempoolLoop:
 		// value age sum as well as the adjusted transaction size.  The
 		// formula is: sum(inputValue * inputAge) / adjustedTxSize
 		prioItem.priority = mempool.CalcPriority(tx.Tx, utxos,
-			nextBlockHeight,blockManager.GetChain().BlockDAG())
+			nextBlockHeight, blockManager.GetChain().BlockDAG())
 
 		// Calculate the fee in Satoshi/kB.
 		prioItem.feePerKB = txDesc.FeePerKB
@@ -270,7 +268,7 @@ mempoolLoop:
 	log.Trace(fmt.Sprintf("Priority queue len %d, dependers len %d",
 		priorityQueue.Len(), len(dependers)))
 
-	blockSize := uint32(blockHeaderOverhead)+uint32(coinbaseTx.Transaction().SerializeSize())
+	blockSize := uint32(blockHeaderOverhead) + uint32(coinbaseTx.Transaction().SerializeSize())
 
 	blockSigOpCost := coinbaseSigOpCost
 	totalFees := int64(0)
@@ -299,7 +297,7 @@ mempoolLoop:
 
 		// Enforce maximum signature operation cost per block.  Also
 		// check for overflow.
-		sigOpCost:= blockchain.CountSigOps(tx)
+		sigOpCost := blockchain.CountSigOps(tx)
 		if blockSigOpCost+int64(sigOpCost) < blockSigOpCost ||
 			blockSigOpCost+int64(sigOpCost) > blockchain.MaxSigOpsPerBlock {
 			log.Trace(fmt.Sprintf("Skipping tx %s because it would "+
@@ -331,7 +329,7 @@ mempoolLoop:
 				"kilobyte blockSize %d >= BlockPrioritySize "+
 				"%d || priority %.2f <= minHighPriority %.2f",
 				blockPlusTxSize, policy.BlockPrioritySize,
-				prioItem.priority,mempool.MinHighPriority))
+				prioItem.priority, mempool.MinHighPriority))
 
 			sortedByFee = true
 			priorityQueue.SetLessFunc(txPQByFee)
@@ -352,7 +350,7 @@ mempoolLoop:
 		// Ensure the transaction inputs pass all of the necessary
 		// preconditions before allowing it to be added to the block.
 		_, err = blockchain.CheckTransactionInputs(tx,
-			0, blockUtxos, params,blockManager.GetChain().BlockDAG())
+			0, blockUtxos, params, blockManager.GetChain().BlockDAG())
 		if err != nil {
 			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
 				"CheckTransactionInputs: %v", tx.Hash(), err))
@@ -404,52 +402,50 @@ mempoolLoop:
 		}
 	}
 
-
 	coinbaseTx.Tx.TxOut[0].Amount += uint64(totalFees)
 	txFees[0] = -totalFees
 
 	// Fill witness
-	err=fillWitnessToCoinBase(blockTxns)
+	err = fillWitnessToCoinBase(blockTxns)
 	if err != nil {
 		return nil, miningRuleError(ErrCreatingCoinbase, err.Error())
 	}
 
-	ts:= MedianAdjustedTime(blockManager.GetChain(),timeSource)
+	ts := MedianAdjustedTime(blockManager.GetChain(), timeSource)
 
-	reqBlake2bDDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts,pow.BLAKE2BD)
+	reqBlake2bDDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.BLAKE2BD)
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
-	reqCuckarooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts,pow.CUCKAROO)
+	reqCuckarooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKAROO)
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
-	reqCuckatooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts,pow.CUCKATOO)
+	reqCuckatooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKATOO)
 
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
 
 	// Choose the block version to generate based on the network.
-	blockVersion :=BlockVersion(params.Net)
+	blockVersion := BlockVersion(params.Net)
 
 	// Create a new block ready to be solved.
-	merkles := merkle.BuildMerkleTreeStore(blockTxns,false)
+	merkles := merkle.BuildMerkleTreeStore(blockTxns, false)
 
-
-	paMerkles :=merkle.BuildParentsMerkleTreeStore(parents)
+	paMerkles := merkle.BuildParentsMerkleTreeStore(parents)
 	var block types.Block
 	block.Header = types.BlockHeader{
-		Version:      blockVersion,
-		ParentRoot:   *paMerkles[len(paMerkles)-1],
-		TxRoot:       *merkles[len(merkles)-1],
-		StateRoot:    hash.Hash{}, //TODO, state root
-		Timestamp:    ts,
-		Difficulty:reqBlake2bDDifficulty,
-		Pow:pow.GetInstance(pow.BLAKE2BD,0,[]byte{}),
+		Version:    blockVersion,
+		ParentRoot: *paMerkles[len(paMerkles)-1],
+		TxRoot:     *merkles[len(merkles)-1],
+		StateRoot:  hash.Hash{}, //TODO, state root
+		Timestamp:  ts,
+		Difficulty: reqBlake2bDDifficulty,
+		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
 		// Size declared below
 	}
-	for _,pb:=range parents{
+	for _, pb := range parents {
 		if err := block.AddParent(pb); err != nil {
 			return nil, err
 		}
@@ -473,11 +469,11 @@ mempoolLoop:
 
 	log.Debug("Created new block template",
 		"transactions", len(block.Transactions),
-		"fees",totalFees,
-		"signOp",blockSigOpCost,
+		"fees", totalFees,
+		"signOp", blockSigOpCost,
 		"bytes", blockSize,
 		"target",
-		fmt.Sprintf("%064x",pow.CompactToBig(block.Header.Difficulty)))
+		fmt.Sprintf("%064x", pow.CompactToBig(block.Header.Difficulty)))
 
 	blockTemplate := &types.BlockTemplate{
 		Block:           &block,
@@ -486,10 +482,10 @@ mempoolLoop:
 		Height:          nextBlockHeight,
 		Blues:           blues,
 		ValidPayAddress: payToAddress != nil,
-		PowDiffData: types.PowDiffStandard {
-			Blake2bDTarget    :reqBlake2bDDifficulty,
-			CuckarooBaseDiff  :pow.CompactToBig(reqCuckarooDifficulty).Uint64(),
-			CuckatooBaseDiff  :pow.CompactToBig(reqCuckatooDifficulty).Uint64(),
+		PowDiffData: types.PowDiffStandard{
+			Blake2bDTarget:   reqBlake2bDDifficulty,
+			CuckarooBaseDiff: pow.CompactToBig(reqCuckarooDifficulty).Uint64(),
+			CuckatooBaseDiff: pow.CompactToBig(reqCuckatooDifficulty).Uint64(),
 		},
 	}
 	return handleCreatedBlockTemplate(blockTemplate, blockManager)
@@ -507,14 +503,14 @@ func UpdateBlockTime(msgBlock *types.Block, chain *blockchain.BlockChain, timeSo
 	// The new timestamp is potentially adjusted to ensure it comes after
 	// the median time of the last several blocks per the chain consensus
 	// rules.
-	newTimestamp:=MedianAdjustedTime(chain,timeSource)
+	newTimestamp := MedianAdjustedTime(chain, timeSource)
 	msgBlock.Header.Timestamp = newTimestamp
 
 	// If running on a network that requires recalculating the difficulty,
 	// do so now.
 	if activeNetParams.ReduceMinDifficulty {
 		difficulty, err := chain.CalcNextRequiredDifficulty(
-			newTimestamp,msgBlock.Header.Pow.GetPowType())
+			newTimestamp, msgBlock.Header.Pow.GetPowType())
 		if err != nil {
 			return miningRuleError(ErrGettingDifficulty, err.Error())
 		}

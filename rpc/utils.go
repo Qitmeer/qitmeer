@@ -1,21 +1,12 @@
-// Copyright (c) 2017-2018 The qitmeer developers
+// Copyright (c) 2017-2019 The qitmeer developers
 // Copyright (c) 2013-2014 The btcsuite developers
 // Copyright (c) 2015-2017 The Decred developers
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
+// The parts code inspired by
+// https://github.com/ethereum/go-ethereum/rpc
 
 package rpc
 
@@ -246,8 +237,8 @@ func NewID() ID {
 // both slices.
 func parseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) {
 
-	ipv4ListenAddrs,ipv6ListenAddrs,_,err := network.ParseListeners(addrs)
-	if err!=nil {
+	ipv4ListenAddrs, ipv6ListenAddrs, _, err := network.ParseListeners(addrs)
+	if err != nil {
 		return nil, err
 	}
 	listenFunc := net.Listen
@@ -281,7 +272,7 @@ func parseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) 
 	for _, addr := range ipv4ListenAddrs {
 		listener, err := listenFunc("tcp4", addr)
 		if err != nil {
-			log.Warn("Can't listen on", "addr",addr, "error",err)
+			log.Warn("Can't listen on", "addr", addr, "error", err)
 			continue
 		}
 		listeners = append(listeners, listener)
@@ -290,7 +281,7 @@ func parseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) 
 	for _, addr := range ipv6ListenAddrs {
 		listener, err := listenFunc("tcp6", addr)
 		if err != nil {
-			log.Warn("Can't listen on", "addr",addr, "error",err)
+			log.Warn("Can't listen on", "addr", addr, "error", err)
 			continue
 		}
 		listeners = append(listeners, listener)

@@ -87,15 +87,15 @@ func (s *PeerServer) handleQuery(state *peerState, querymsg interface{}) {
 		msg.reply <- peers
 	case disconnectNodeMsg:
 		msg.reply <- errors.New("not support")
-		
+
 	case getPeerMsg:
-		has:=false
+		has := false
 		state.forAllPeers(func(sp *serverPeer) {
 			if !sp.Connected() || has {
 				return
 			}
-			if uuid.Equal(sp.UUID(),msg.uuid) {
-				has=true
+			if uuid.Equal(sp.UUID(), msg.uuid) {
+				has = true
 				return
 			}
 		})

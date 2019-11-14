@@ -14,7 +14,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/types"
-	`github.com/Qitmeer/qitmeer/core/types/pow`
+	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
 	"math"
@@ -25,7 +25,7 @@ import (
 // transaction as opposed to a higher level util transaction.
 func IsExpiredTx(tx *types.Transaction, blockHeight uint64) bool {
 	expiry := tx.Expire
-	return expiry != types.NoExpiryValue && blockHeight >= uint64(expiry)  //TODO, remove type conversion
+	return expiry != types.NoExpiryValue && blockHeight >= uint64(expiry) //TODO, remove type conversion
 }
 
 // IsExpired returns where or not the passed transaction is expired according to
@@ -81,11 +81,11 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 	}
 
 	// Repeated parents
-	parentsSet:=blockdag.NewHashSet()
+	parentsSet := blockdag.NewHashSet()
 	parentsSet.AddList(msgBlock.Parents)
 	if len(msgBlock.Parents) != parentsSet.Size() {
-		str := fmt.Sprintf("parents:%v",msgBlock.Parents)
-		return ruleError(ErrDuplicateParent,str)
+		str := fmt.Sprintf("parents:%v", msgBlock.Parents)
+		return ruleError(ErrDuplicateParent, str)
 	}
 
 	// A block must have at least one regular transaction.
@@ -155,7 +155,7 @@ func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource,
 	// checks.  Bitcoind builds the tree here and checks the merkle root
 	// after the following checks, but there is no reason not to check the
 	// merkle root matches here.
-	merkles := merkle.BuildMerkleTreeStore(block.Transactions(),false)
+	merkles := merkle.BuildMerkleTreeStore(block.Transactions(), false)
 	calculatedMerkleRoot := merkles[len(merkles)-1]
 	if !header.TxRoot.IsEqual(calculatedMerkleRoot) {
 		str := fmt.Sprintf("block merkle root is invalid - block "+
@@ -253,7 +253,7 @@ func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags
 	if flags&BFNoPoWCheck != BFNoPoWCheck {
 		header.Pow.SetParams(powConfig)
 		// The block hash must be less than the claimed target.
-		return header.Pow.Verify(header.BlockData(),header.BlockHash(),header.Difficulty)
+		return header.Pow.Verify(header.BlockData(), header.BlockHash(), header.Difficulty)
 	}
 
 	return nil
@@ -350,15 +350,15 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 					MaxCoinbaseScriptLen)
 				return ruleError(ErrBadCoinbaseScriptLen, str)
 			}
-			orgPkScriptStr:=hex.EncodeToString(params.OrganizationPkScript)
-			curPkScriptStr:=hex.EncodeToString(tx.TxOut[1].PkScript)
+			orgPkScriptStr := hex.EncodeToString(params.OrganizationPkScript)
+			curPkScriptStr := hex.EncodeToString(tx.TxOut[1].PkScript)
 			if orgPkScriptStr != curPkScriptStr {
 				str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
-					orgPkScriptStr,curPkScriptStr)
+					orgPkScriptStr, curPkScriptStr)
 				return ruleError(ErrBadCoinbaseValue, str)
 			}
 
-		}else if len(tx.TxOut) >= 3 {
+		} else if len(tx.TxOut) >= 3 {
 			// Coinbase TxOut[2] is op return
 			nullDataOut := tx.TxOut[2]
 			// The first 4 bytes of the null data output must be the encoded height
@@ -366,7 +366,7 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 			// hash.
 			nullData, err := txscript.ExtractCoinbaseNullData(nullDataOut.PkScript)
 			if err != nil {
-				str := fmt.Sprintf("coinbase output 2:bad nulldata %v",nullData)
+				str := fmt.Sprintf("coinbase output 2:bad nulldata %v", nullData)
 				return ruleError(ErrBadCoinbaseOutpoint, str)
 			}
 		}
@@ -436,15 +436,14 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 	if mainParent == nil {
 		return nil
 	}
-	prevBlock:=b.bd.GetBlock(mainParent.GetHash())
+	prevBlock := b.bd.GetBlock(mainParent.GetHash())
 
 	// Perform all block header related validation checks.
-	header := &block.Block().Header
-	err := b.checkBlockHeaderContext(header, mainParent, flags)
+	err := b.checkBlockHeaderContext(block, mainParent, flags)
 	if err != nil {
 		return err
 	}
-
+	header := &block.Block().Header
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	if !fastAdd {
 		// A block must not exceed the maximum allowed size as defined
@@ -456,9 +455,9 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 		}
 		//TODO, revisit block size in header
 		/*
-		serializedSize := int64(block.Block().Header.Size)
+			serializedSize := int64(block.Block().Header.Size)
 		*/
-		blockBytes,_ :=block.Bytes()
+		blockBytes, _ := block.Bytes()
 		serializedSize := int64(len(blockBytes))
 		if serializedSize > maxBlockSize {
 			str := fmt.Sprintf("serialized block is too big - "+
@@ -501,7 +500,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 			return err
 		}
 
-		err = b.checkBlockSubsidy(block,-1)
+		err = b.checkBlockSubsidy(block, -1)
 		if err != nil {
 			return err
 		}
@@ -515,25 +514,25 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 	return nil
 }
 
-func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock,totalFee int64) error {
-	parents:=blockdag.NewHashSet()
+func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock, totalFee int64) error {
+	parents := blockdag.NewHashSet()
 	parents.AddList(block.Block().Parents)
-	blocks:=b.bd.GetBlues(parents)
+	blocks := b.bd.GetBlues(parents)
 	// check subsidy
-	transactions:=block.Transactions()
-	subsidy:=b.subsidyCache.CalcBlockSubsidy(int64(blocks))
-	workAmountOut:=int64(transactions[0].Tx.TxOut[0].Amount)
+	transactions := block.Transactions()
+	subsidy := b.subsidyCache.CalcBlockSubsidy(int64(blocks))
+	workAmountOut := int64(transactions[0].Tx.TxOut[0].Amount)
 
-	hasTax:=false
+	hasTax := false
 	if b.params.BlockTaxProportion > 0 &&
 		len(b.params.OrganizationPkScript) > 0 {
-		hasTax=true
+		hasTax = true
 	}
 
 	var work int64
 	var tax int64
-	var taxAmountOut int64=0
-	var totalAmountOut int64=0
+	var taxAmountOut int64 = 0
+	var totalAmountOut int64 = 0
 
 	if hasTax {
 		if len(transactions[0].Tx.TxOut) < 2 {
@@ -545,15 +544,14 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock,totalFee int
 		tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
 			int64(blocks), b.params))
 
-		taxAmountOut=int64(transactions[0].Tx.TxOut[1].Amount)
-	}else {
-		work=subsidy
-		tax=0
-		taxAmountOut=0
+		taxAmountOut = int64(transactions[0].Tx.TxOut[1].Amount)
+	} else {
+		work = subsidy
+		tax = 0
+		taxAmountOut = 0
 	}
 
-	totalAmountOut=workAmountOut+taxAmountOut
-
+	totalAmountOut = workAmountOut + taxAmountOut
 
 	if totalAmountOut < subsidy {
 		str := fmt.Sprintf("coinbase transaction for block pays %v which is not the subsidy %v",
@@ -564,28 +562,29 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock,totalFee int
 	if workAmountOut < work ||
 		tax != taxAmountOut {
 		str := fmt.Sprintf("coinbase transaction for block pays %d  %d  which is not the %d  %d",
-			workAmountOut,taxAmountOut,work,tax)
+			workAmountOut, taxAmountOut, work, tax)
 		return ruleError(ErrBadCoinbaseValue, str)
 	}
 
 	if hasTax {
-		orgPkScriptStr:=hex.EncodeToString(b.params.OrganizationPkScript)
-		curPkScriptStr:=hex.EncodeToString(transactions[0].Tx.TxOut[1].PkScript)
+		orgPkScriptStr := hex.EncodeToString(b.params.OrganizationPkScript)
+		curPkScriptStr := hex.EncodeToString(transactions[0].Tx.TxOut[1].PkScript)
 		if orgPkScriptStr != curPkScriptStr {
 			str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
-				orgPkScriptStr,curPkScriptStr)
+				orgPkScriptStr, curPkScriptStr)
 			return ruleError(ErrBadCoinbaseValue, str)
 		}
 	}
 	if totalFee != -1 {
-		if workAmountOut != (totalFee+work) {
+		if workAmountOut != (totalFee + work) {
 			str := fmt.Sprintf("coinbase transaction for block work pays for %d, but it is %d",
-				work,workAmountOut-totalFee)
+				work, workAmountOut-totalFee)
 			return ruleError(ErrBadCoinbaseValue, str)
 		}
 	}
 	return nil
 }
+
 // checkBlockHeaderContext peforms several validation checks on the block
 // header which depend on its position within the block chain.
 //
@@ -594,22 +593,23 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock,totalFee int
 //    the checkpoints are not performed.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode *blockNode, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevNode *blockNode, flags BehaviorFlags) error {
 	// The genesis block is valid by definition.
 	if prevNode == nil {
 		return nil
 	}
 
+	header := &block.Block().Header
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	if !fastAdd {
-		instance := pow.GetInstance(header.Pow.GetPowType(),0,[]byte{})
-		instance.SetMainHeight(int64(prevNode.height+1))
+		instance := pow.GetInstance(header.Pow.GetPowType(), 0, []byte{})
+		instance.SetMainHeight(int64(prevNode.height + 1))
 		instance.SetParams(b.params.PowConfig)
 		// Ensure the difficulty specified in the block header matches
 		// the calculated difficulty based on the previous block and
 		// difficulty retarget rules.
 		expDiff, err := b.calcNextRequiredDifficulty(prevNode,
-			header.Timestamp,instance)
+			header.Timestamp, instance)
 		if err != nil {
 			return err
 		}
@@ -631,6 +631,35 @@ func (b *BlockChain) checkBlockHeaderContext(header *types.BlockHeader, prevNode
 		}
 	}
 
+	// checkpoint
+	if !b.HasCheckpoints() {
+		return nil
+	}
+	parents:=blockdag.NewHashSet()
+	parents.AddList(block.Block().Parents)
+	blockLayer,ok:=b.BlockDAG().GetParentsMaxLayer(parents)
+	if !ok {
+		str := fmt.Sprintf("bad parents:%v", block.Block().Parents)
+		return ruleError(ErrMissingParent, str)
+	}
+	blockLayer += 1
+	blockHash := header.BlockHash()
+	if !b.verifyCheckpoint(uint64(blockLayer), &blockHash) {
+		str := fmt.Sprintf("block at layer %d does not match "+
+			"checkpoint hash", blockLayer)
+		return ruleError(ErrBadCheckpoint, str)
+	}
+
+	checkpointNode, err := b.findPreviousCheckpoint()
+	if err != nil {
+		return err
+	}
+	if checkpointNode != nil && blockLayer < checkpointNode.layer {
+		str := fmt.Sprintf("block at layer %d forks the main chain "+
+			"before the previous checkpoint at layer %d",
+			blockLayer, checkpointNode.layer)
+		return ruleError(ErrForkTooOld, str)
+	}
 
 	return nil
 }
@@ -675,16 +704,15 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// Check that the coinbase pays the tax, if applicable.
 	// TODO tax pay
 
-
 	// Don't run scripts if this node is before the latest known good
 	// checkpoint since the validity is verified via the checkpoints (all
 	// transactions are included in the merkle root hash and any changes
 	// will therefore be detected by the next checkpoint).  This is a huge
 	// optimization because running the scripts is the most time consuming
 	// portion of block handling.
-	checkpoint := b.latestCheckpoint()
+	checkpoint := b.LatestCheckpoint()
 	runScripts := !b.noVerify
-	if checkpoint != nil && uint64(node.GetHeight()) <= checkpoint.Height {
+	if checkpoint != nil && uint64(node.GetLayer()) <= checkpoint.Layer {
 		runScripts = false
 	}
 	var scriptFlags txscript.ScriptFlags
@@ -703,14 +731,14 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// scripts.
 	// Do this for all TxTrees.
 
-	err = utxoView.fetchInputUtxos(b.db, block,b)
+	err = utxoView.fetchInputUtxos(b.db, block, b)
 	if err != nil {
 		return err
 	}
 
-	err = b.checkTransactionsAndConnect(node,block,b.subsidyCache,utxoView, stxos)
+	err = b.checkTransactionsAndConnect(node, block, b.subsidyCache, utxoView, stxos)
 	if err != nil {
-		log.Trace("checkTransactionsAndConnect failed","err", err)
+		log.Trace("checkTransactionsAndConnect failed", "err", err)
 		return err
 	}
 
@@ -731,7 +759,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 			return err
 		}
 
-		if !SequenceLockActive(sequenceLock,int64(node.GetHeight()),  //TODO, remove type conversion
+		if !SequenceLockActive(sequenceLock, int64(node.GetHeight()), //TODO, remove type conversion
 			prevMedianTime) {
 
 			str := fmt.Sprintf("block contains " +
@@ -780,7 +808,7 @@ func (b *BlockChain) consensusScriptVerifyFlags(node *blockNode) (txscript.Scrip
 // transaction inputs for a transaction list given a predetermined TxStore.
 // After ensuring the transaction is valid, the transaction is connected to the
 // UTXO viewpoint.  TxTree true == Regular, false == Stake
-func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.SerializedBlock,subsidyCache *SubsidyCache,utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
+func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.SerializedBlock, subsidyCache *SubsidyCache, utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
 	transactions := block.Transactions()
 	totalSigOpCost := 0
 	for _, tx := range transactions {
@@ -798,11 +826,11 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.Se
 		}
 	}
 
-	nodeConf:=b.bd.GetConfirmations(node.GetHash())
+	nodeConf := b.bd.GetConfirmations(node.GetHash())
 	var totalFees int64
 	for idx, tx := range transactions {
 		txFee, err := CheckTransactionInputs(tx,
-			int64(nodeConf), utxoView,b.params,b.bd)
+			int64(nodeConf), utxoView, b.params, b.bd)
 		if err != nil {
 			return err
 		}
@@ -821,7 +849,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode,block *types.Se
 			return err
 		}
 	}
-	return b.checkBlockSubsidy(block,totalFees)
+	return b.checkBlockSubsidy(block, totalFees)
 }
 
 // SequenceLockActive determines if all of the inputs to a given transaction
@@ -856,7 +884,7 @@ func checkNumSigOps(tx *types.Tx, utxoView *UtxoViewpoint, index int, txTree boo
 	// full coinbase check again.
 	numP2SHSigOps, err := CountP2SHSigOps(tx, (index == 0) && txTree, utxoView)
 	if err != nil {
-		log.Trace("CountP2SHSigOps failed","error", err)
+		log.Trace("CountP2SHSigOps failed", "error", err)
 		return 0, err
 	}
 
@@ -881,7 +909,7 @@ func checkNumSigOps(tx *types.Tx, utxoView *UtxoViewpoint, index int, txTree boo
 // transactions which are of the pay-to-script-hash type.  This uses the
 // precise, signature operation counting mechanism from the script engine which
 // requires access to the input transaction scripts.
-func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool,utxoView *UtxoViewpoint) (int, error) {
+func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool, utxoView *UtxoViewpoint) (int, error) {
 	// Coinbase transactions have no interesting inputs.
 	if isCoinBaseTx {
 		return 0, nil
@@ -941,7 +969,7 @@ func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool,utxoView *UtxoViewpoint) (i
 //
 // NOTE: The transaction MUST have already been sanity checked with the
 // CheckTransactionSanity function prior to calling this function.
-func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoViewpoint, chainParams *params.Params,bd *blockdag.BlockDAG) (int64, error) {
+func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoViewpoint, chainParams *params.Params, bd *blockdag.BlockDAG) (int64, error) {
 	msgTx := tx.Transaction()
 
 	txHash := tx.Hash()
@@ -971,11 +999,11 @@ func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoVie
 		if utxoEntry.IsCoinBase() {
 			var originConf int64
 			if hash.ZeroHash.IsEqual(utxoEntry.BlockHash()) {
-				originConf=0
-			}else{
-				originConf=int64(bd.GetConfirmations(utxoEntry.BlockHash()))
+				originConf = 0
+			} else {
+				originConf = int64(bd.GetConfirmations(utxoEntry.BlockHash()))
 			}
-			blocksSincePrev := originConf-confirmations
+			blocksSincePrev := originConf - confirmations
 			if blocksSincePrev < coinbaseMaturity {
 				str := fmt.Sprintf("tx %v tried to spend "+
 					"coinbase transaction %v from "+
@@ -1020,7 +1048,7 @@ func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoVie
 		// allowed per transaction.  Also, we could potentially
 		// overflow the accumulator so check for overflow.
 		lastAtomIn := totalAtomIn
-		totalAtomIn += int64(originTxAtom)  //TODO, remove type conversion
+		totalAtomIn += int64(originTxAtom) //TODO, remove type conversion
 		if totalAtomIn < lastAtomIn ||
 			totalAtomIn > types.MaxAmount {
 			str := fmt.Sprintf("total value of all transaction "+
@@ -1036,7 +1064,7 @@ func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoVie
 	// conditions would have already been caught by checkTransactionSanity.
 	var totalAtomOut int64
 	for _, txOut := range tx.Transaction().TxOut {
-		totalAtomOut += int64(txOut.Amount)  //TODO, remove type conversion
+		totalAtomOut += int64(txOut.Amount) //TODO, remove type conversion
 	}
 
 	// Ensure the transaction does not spend more than its inputs.
@@ -1077,35 +1105,35 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		return err
 	}
 
-	tipsNode:=[]*blockNode{}
-	for _,v:=range block.Block().Parents{
-		bn:=b.index.LookupNode(v)
-		if bn!=nil {
-			tipsNode=append(tipsNode,bn)
+	tipsNode := []*blockNode{}
+	for _, v := range block.Block().Parents {
+		bn := b.index.LookupNode(v)
+		if bn != nil {
+			tipsNode = append(tipsNode, bn)
 		}
 	}
-	if len(tipsNode)==0 {
+	if len(tipsNode) == 0 {
 		return ruleError(ErrPrevBlockNotBest, "tipsNode")
 	}
 	header := &block.Block().Header
 	newNode := newBlockNode(header, tipsNode)
 	newNode.SetOrder(block.Order())
 	newNode.SetHeight(block.Height())
-	newNode.SetLayer(GetMaxLayerFromList(tipsNode)+1)
+	newNode.SetLayer(GetMaxLayerFromList(tipsNode) + 1)
 
 	view := NewUtxoViewpoint()
 	view.SetBestHash(newNode.GetHash())
 
-	mainParent:=newNode.GetMainParent(b)
-	mainParentNode:=b.index.lookupNode(mainParent.GetHash())
+	mainParent := newNode.GetMainParent(b)
+	mainParentNode := b.index.lookupNode(mainParent.GetHash())
 	newNode.CalcWorkSum(mainParentNode)
 
-	err = b.checkBlockContext(block,mainParentNode, flags)
+	err = b.checkBlockContext(block, mainParentNode, flags)
 	if err != nil {
 		return err
 	}
-	err=b.checkConnectBlock(newNode, block, view, nil)
-	if err!=nil{
+	err = b.checkConnectBlock(newNode, block, view, nil)
+	if err != nil {
 		return err
 	}
 	return nil

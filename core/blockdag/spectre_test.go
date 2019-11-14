@@ -1,9 +1,9 @@
 package blockdag
 
 import (
-	"testing"
 	"fmt"
 	"sort"
+	"testing"
 )
 
 func Log(sp *Spectre) {
@@ -22,13 +22,13 @@ func Log(sp *Spectre) {
 }
 
 func TestSpectre1(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(spectre,"SP_Blocks")
-	if ibd==nil {
+	ibd, tbMap := InitBlockDAG(spectre, "SP_Blocks")
+	if ibd == nil {
 		t.FailNow()
 	}
-	sp:=ibd.(*Spectre)
-	b4h:=tbMap["b4"]
-	b6h:=tbMap["b6"]
+	sp := ibd.(*Spectre)
+	b4h := tbMap["b4"]
+	b6h := tbMap["b6"]
 	b4, b6 := sp.bd.GetBlock(b4h), sp.bd.GetBlock(b6h)
 
 	if ret, err := sp.Vote(b4, b6); err != nil {

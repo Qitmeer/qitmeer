@@ -6,8 +6,8 @@
 package message
 
 import (
-	"io"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"io"
 )
 
 // MsgPong implements the Message interface and represents a pong message

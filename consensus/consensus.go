@@ -1,9 +1,9 @@
 package consensus
 
 import (
-	"math/big"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"math/big"
 )
 
 // Any ConsensusState
@@ -22,7 +22,7 @@ type Consensus interface {
 }
 
 type Operation interface {
-	ApplyTo(state ConsensusState)(ConsensusState, error)
+	ApplyTo(state ConsensusState) (ConsensusState, error)
 }
 
 // agree on a operation that update the consensus state
@@ -31,7 +31,6 @@ type Agreement interface {
 	GetHeadState() (ConsensusState, error)
 	Rollback(state ConsensusState) error
 }
-
 
 // the algorithm agnostic consensus engine.
 type BlockChainConsensue interface {
@@ -53,12 +52,11 @@ type BlockChainConsensue interface {
 	// Generates a new block for the given input block with the local miner's
 	// seal place on top.
 	Generate(chain blockchain.BlockChain, block *types.Block, stop <-chan struct{}) (*types.Block, error)
-
 }
+
 // PoW is a consensus engine based on proof-of-work.
 type PoW interface {
-
-  	BlockChainConsensue
+	BlockChainConsensue
 	// CalcDifficulty is the difficulty adjustment algorithm. It returns the difficulty
 	// that a new block should have.
 	CalcDifficulty(chain blockchain.BlockChain, time uint64, parent *types.BlockHeader) *big.Int

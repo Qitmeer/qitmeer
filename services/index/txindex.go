@@ -8,11 +8,11 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/log"
 )
 
 const (
@@ -270,7 +270,7 @@ func dbRemoveTxIndexEntry(dbTx database.Tx, txHash *hash.Hash) error {
 	serializedData := txIndex.Get(txHash[:])
 	if len(serializedData) == 0 {
 		/*log.Warn(fmt.Errorf("can't remove non-existent transaction %s "+
-			"from the transaction index", txHash).Error())*/
+		"from the transaction index", txHash).Error())*/
 		return nil
 	}
 
@@ -283,7 +283,7 @@ func dbRemoveTxIndexEntry(dbTx database.Tx, txHash *hash.Hash) error {
 func dbRemoveTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock) error {
 	removeEntries := func(txns []*types.Tx) error {
 		for _, tx := range txns {
-			if err := dbRemoveTxIndexEntry(dbTx, tx.Hash()); err!=nil{
+			if err := dbRemoveTxIndexEntry(dbTx, tx.Hash()); err != nil {
 				return err
 			}
 		}
@@ -336,7 +336,7 @@ func (idx *TxIndex) Init() error {
 			testBlockID += increment
 		}
 		log.Trace("Forward scan ...",
-			"highest known",highestKnown, "next unknown",nextUnknown)
+			"highest known", highestKnown, "next unknown", nextUnknown)
 
 		// No used block IDs due to new database.
 		if nextUnknown == 1 {
@@ -354,7 +354,7 @@ func (idx *TxIndex) Init() error {
 				highestKnown = testBlockID
 			}
 			log.Trace("Binary scan ...",
-				"highest known",highestKnown, "next unknown", nextUnknown)
+				"highest known", highestKnown, "next unknown", nextUnknown)
 			if highestKnown+1 == nextUnknown {
 				break
 			}
@@ -367,7 +367,7 @@ func (idx *TxIndex) Init() error {
 		return err
 	}
 
-	log.Debug("Current internal block ", "block id",idx.curBlockID)
+	log.Debug("Current internal block ", "block id", idx.curBlockID)
 	return nil
 }
 
@@ -411,9 +411,9 @@ func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,
 	// Increment the internal block ID to use for the block being connected
 	// and add all of the transactions in the block to the index.
 	newBlockID := idx.curBlockID + 1
-	node:=idx.chain.BlockIndex().LookupNode(block.Hash())
+	node := idx.chain.BlockIndex().LookupNode(block.Hash())
 	if node == nil {
-		return fmt.Errorf("no node %s",block.Hash())
+		return fmt.Errorf("no node %s", block.Hash())
 	}
 	if !node.GetStatus().KnownInvalid() {
 		if err := dbAddTxIndexEntries(dbTx, block, newBlockID); err != nil {
@@ -437,9 +437,9 @@ func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,
 //
 // This is part of the Indexer interface.
 func (idx *TxIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock, stxos []blockchain.SpentTxOut) error {
-	node:=idx.chain.BlockIndex().LookupNode(block.Hash())
+	node := idx.chain.BlockIndex().LookupNode(block.Hash())
 	if node == nil {
-		return fmt.Errorf("no node %s",block.Hash())
+		return fmt.Errorf("no node %s", block.Hash())
 	}
 	// Remove all of the transactions in the block from the index.
 	if err := dbRemoveTxIndexEntries(dbTx, block); err != nil {

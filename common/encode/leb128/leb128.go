@@ -157,7 +157,6 @@ import (
 //		}
 //
 
-
 // FromUInt64 encodes n with LEB128 and returns the encoded bytes.
 func FromUInt64(n uint64) (out []byte) {
 	more := true
