@@ -332,7 +332,7 @@ func (b *BlockChain) createChainState() error {
 
 		// Add genesis utxo
 		view := NewUtxoViewpoint()
-		view.SetBestHash(genesisBlock.Hash())
+		view.SetViewpoints([]*hash.Hash{genesisBlock.Hash()})
 		for _, tx := range genesisBlock.Transactions() {
 			view.AddTxOuts(tx, genesisBlock.Hash())
 		}

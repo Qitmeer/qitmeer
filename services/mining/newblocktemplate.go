@@ -160,6 +160,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	blockTxns := make([]*types.Tx, 0, len(sourceTxns))
 	blockTxns = append(blockTxns, coinbaseTx)
 	blockUtxos := blockchain.NewUtxoViewpoint()
+	blockUtxos.SetViewpoints(parents)
 	// dependers is used to track transactions which depend on another
 	// transaction in the source pool.  This, in conjunction with the
 	// dependsOn map kept with each dependent transaction helps quickly
@@ -349,8 +350,7 @@ mempoolLoop:
 
 		// Ensure the transaction inputs pass all of the necessary
 		// preconditions before allowing it to be added to the block.
-		_, err = blockchain.CheckTransactionInputs(tx,
-			0, blockUtxos, params, blockManager.GetChain().BlockDAG())
+		_, err = blockchain.CheckTransactionInputs(tx, blockUtxos, params, blockManager.GetChain().BlockDAG())
 		if err != nil {
 			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
 				"CheckTransactionInputs: %v", tx.Hash(), err))

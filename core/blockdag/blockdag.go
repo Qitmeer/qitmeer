@@ -970,3 +970,63 @@ func (bd *BlockDAG) GetParentsMaxLayer(parents *HashSet) (uint, bool) {
 	}
 	return maxLayer, true
 }
+
+// GetMaturity
+func (bd *BlockDAG) GetMaturity(target *hash.Hash,views []*hash.Hash) uint {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	if target == nil {
+		return 0
+	}
+	targetBlock:=bd.getBlock(target)
+	if targetBlock == nil {
+		return 0
+	}
+
+	//
+	maxLayer := targetBlock.GetLayer()
+	queueSet := NewHashSet()
+	queue := []IBlock{}
+	for _, v := range views {
+		ib:=bd.getBlock(v)
+		if ib != nil && ib.GetLayer() > targetBlock.GetLayer() {
+			queue = append(queue, ib)
+			queueSet.Add(ib.GetHash())
+
+			if maxLayer < ib.GetLayer() {
+				maxLayer=ib.GetLayer()
+			}
+		}
+	}
+
+	connected:=false
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		if cur.GetHash().IsEqual(target) {
+			connected=true
+			break
+		}
+		if !cur.HasParents() {
+			continue
+		}
+		if cur.GetLayer() <= targetBlock.GetLayer() {
+			continue
+		}
+
+		for _, v := range cur.GetParents().GetMap() {
+			ib := v.(IBlock)
+			if queueSet.Has(ib.GetHash()) {
+				continue
+			}
+			queue = append(queue, ib)
+			queueSet.Add(ib.GetHash())
+		}
+	}
+
+	if connected {
+		return maxLayer-targetBlock.GetLayer()
+	}
+	return 0
+}

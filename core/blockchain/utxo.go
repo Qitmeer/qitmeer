@@ -117,7 +117,7 @@ func (entry *UtxoEntry) Clone() *UtxoEntry {
 // script validation and double spend prevention.
 type UtxoViewpoint struct {
 	entries  map[types.TxOutPoint]*UtxoEntry
-	bestHash hash.Hash
+	viewpoints []*hash.Hash
 }
 
 // NewUtxoViewpoint returns a new empty unspent transaction output view.
@@ -200,16 +200,16 @@ func (view *UtxoViewpoint) addTxOut(outpoint types.TxOutPoint, txOut *types.TxOu
 	}
 }
 
-// BestHash returns the hash of the best block in the chain the view currently
+// Viewpoints returns the hash of the viewpoint block in the chain the view currently
 // respresents.
-func (view *UtxoViewpoint) BestHash() *hash.Hash {
-	return &view.bestHash
+func (view *UtxoViewpoint) Viewpoints() []*hash.Hash {
+	return view.viewpoints
 }
 
-// SetBestHash sets the hash of the best block in the chain the view currently
+// SetViewpoints sets the hash of the viewpoint block in the chain the view currently
 // respresents.
-func (view *UtxoViewpoint) SetBestHash(hash *hash.Hash) {
-	view.bestHash = *hash
+func (view *UtxoViewpoint) SetViewpoints(views []*hash.Hash) {
+	view.viewpoints=views
 }
 
 // fetchUtxosMain fetches unspent transaction output data about the provided
@@ -477,7 +477,7 @@ func (view *UtxoViewpoint) disconnectTransactions(block *types.SerializedBlock, 
 		}
 	}
 
-	view.SetBestHash(&hash.ZeroHash)
+	view.SetViewpoints(nil)
 	return nil
 }
 
@@ -536,6 +536,7 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	// Request the utxos from the point of view of the end of the main
 	// chain.
 	view := NewUtxoViewpoint()
+	view.SetViewpoints(b.GetMiningTips())
 	b.chainLock.RLock()
 	err := view.fetchUtxosMain(b.db, neededSet)
 	b.chainLock.RUnlock()

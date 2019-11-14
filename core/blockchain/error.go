@@ -307,9 +307,6 @@ const (
 	// block that is either not the current best chain tip or its parent.
 	ErrInvalidTemplateParent
 
-	// numErrorCodes is the maximum error code number used in tests.
-	numErrorCodes
-
 	// ErrPrevBlockNotBest indicates that the block's previous block is not the
 	// current chain tip. This is not a block validation rule, but is required
 	// for block proposals submitted via getblocktemplate RPC.
@@ -331,6 +328,12 @@ const (
 	// ErrNoBlueCoinbase indicates a transaction is attempting to spend a
 	// coinbase that is not in blue set
 	ErrNoBlueCoinbase
+
+	// ErrNoViewpoint
+	ErrNoViewpoint
+
+	// numErrorCodes is the maximum error code number used in tests.
+	numErrorCodes
 )
 
 // Map of ErrorCode values back to their constant names for pretty printing.
@@ -401,7 +404,8 @@ var errorCodeStrings = map[ErrorCode]string{
 	ErrBadCuckooNonces: "ErrBadCuckooNonces",
 	ErrInValidPowType:  "ErrInValidPowType",
 
-	ErrNoBlueCoinbase: "ErrNoBlueCoinbase",
+	ErrNoBlueCoinbase:         "ErrNoBlueCoinbase",
+	ErrNoViewpoint:            "ErrNoViewpoint",
 }
 
 // String returns the ErrorCode as a human-readable name.

@@ -8,6 +8,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/database"
 	"math/big"
 	"sort"
 	"time"
@@ -104,6 +105,9 @@ type blockNode struct {
 
 	// pow
 	pow pow.IPow
+
+	// dirty
+	dirty bool
 }
 
 // newBlockNode returns a new block node for the given block header and parent
@@ -134,6 +138,7 @@ func initBlockNode(node *blockNode, blockHeader *types.BlockHeader, parents []*b
 		stateRoot:    blockHeader.StateRoot,
 		status:       statusNone,
 		pow:          blockHeader.Pow,
+		dirty:        false,
 	}
 	if len(parents) > 0 {
 		node.parents = parents
@@ -295,6 +300,7 @@ func (node *blockNode) Clone() *blockNode {
 	newNode.layer = node.layer
 	newNode.pow = node.pow
 	newNode.workSum = node.workSum
+	newNode.dirty = node.dirty
 	return newNode
 }
 
@@ -356,13 +362,15 @@ func (node *blockNode) GetStatus() blockStatus {
 }
 
 func (node *blockNode) Valid(b *BlockChain) {
-	b.index.SetStatusFlags(node, statusValid)
-	b.index.UnsetStatusFlags(node, statusInvalid)
+	node.SetStatusFlags(statusValid)
+	node.UnsetStatusFlags(statusInvalid)
+	node.FlushToDB(b)
 }
 
 func (node *blockNode) Invalid(b *BlockChain) {
-	b.index.SetStatusFlags(node, statusInvalid)
-	b.index.UnsetStatusFlags(node, statusValid)
+	node.SetStatusFlags(statusInvalid)
+	node.UnsetStatusFlags(statusValid)
+	node.FlushToDB(b)
 }
 
 func (node *blockNode) IsOrdered() bool {
@@ -372,4 +380,34 @@ func (node *blockNode) IsOrdered() bool {
 // Acquire the weight of block
 func (node *blockNode) GetWeight() uint64 {
 	return uint64(node.workSum.BitLen())
+}
+
+func (node *blockNode) SetStatusFlags(flags blockStatus) {
+	node.status |= flags
+	node.dirty = true
+}
+
+func (node *blockNode) UnsetStatusFlags(flags blockStatus) {
+	node.status &^= flags
+	node.dirty = true
+}
+
+func (node *blockNode) FlushToDB(b *BlockChain) error {
+	if !node.dirty {
+		return nil
+	}
+	err := b.db.Update(func(dbTx database.Tx) error {
+		block := b.bd.GetBlock(node.GetHash())
+		block.SetStatus(blockdag.BlockStatus(node.status))
+		err := blockdag.DBPutDAGBlock(dbTx, block)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	// If write was successful, clear the dirty set.
+	if err == nil {
+		node.dirty = false
+	}
+	return err
 }

@@ -635,9 +635,9 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	if !b.HasCheckpoints() {
 		return nil
 	}
-	parents:=blockdag.NewHashSet()
+	parents := blockdag.NewHashSet()
 	parents.AddList(block.Block().Parents)
-	blockLayer,ok:=b.BlockDAG().GetParentsMaxLayer(parents)
+	blockLayer, ok := b.BlockDAG().GetParentsMaxLayer(parents)
 	if !ok {
 		str := fmt.Sprintf("bad parents:%v", block.Block().Parents)
 		return ruleError(ErrMissingParent, str)
@@ -779,10 +779,6 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		}
 	}
 
-	// Update the best hash for view to include this block since all of its
-	// transactions have been connected.
-	utxoView.SetBestHash(&node.hash)
-
 	return nil
 }
 
@@ -826,11 +822,9 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 		}
 	}
 
-	nodeConf := b.bd.GetConfirmations(node.GetHash())
 	var totalFees int64
 	for idx, tx := range transactions {
-		txFee, err := CheckTransactionInputs(tx,
-			int64(nodeConf), utxoView, b.params, b.bd)
+		txFee, err := CheckTransactionInputs(tx,utxoView, b.params, b.bd)
 		if err != nil {
 			return err
 		}
@@ -969,7 +963,7 @@ func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool, utxoView *UtxoViewpoint) (
 //
 // NOTE: The transaction MUST have already been sanity checked with the
 // CheckTransactionSanity function prior to calling this function.
-func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoViewpoint, chainParams *params.Params, bd *blockdag.BlockDAG) (int64, error) {
+func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *params.Params, bd *blockdag.BlockDAG) (int64, error) {
 	msgTx := tx.Transaction()
 
 	txHash := tx.Hash()
@@ -979,6 +973,7 @@ func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoVie
 	if msgTx.IsCoinBase() {
 		return 0, nil
 	}
+
 	// -------------------------------------------------------------------
 	// General transaction testing.
 	// -------------------------------------------------------------------
@@ -996,31 +991,29 @@ func CheckTransactionInputs(tx *types.Tx, confirmations int64, utxoView *UtxoVie
 		// Ensure the transaction is not spending coins which have not
 		// yet reached the required coinbase maturity.
 		coinbaseMaturity := int64(chainParams.CoinbaseMaturity)
+
 		if utxoEntry.IsCoinBase() {
-			var originConf int64
-			if hash.ZeroHash.IsEqual(utxoEntry.BlockHash()) {
-				originConf = 0
-			} else {
-				originConf = int64(bd.GetConfirmations(utxoEntry.BlockHash()))
+			if len(utxoView.viewpoints) == 0 {
+				str := fmt.Sprintf("transaction %s has no viewpoints",txHash)
+				return 0, ruleError(ErrNoViewpoint, str)
 			}
-			blocksSincePrev := originConf - confirmations
-			if blocksSincePrev < coinbaseMaturity {
+			maturity:=int64(bd.GetMaturity(utxoEntry.BlockHash(),utxoView.viewpoints))
+
+			if maturity < coinbaseMaturity {
 				str := fmt.Sprintf("tx %v tried to spend "+
 					"coinbase transaction %v from "+
-					"%v at %v before required "+
+					"at %v before required "+
 					"maturity of %v blocks", txHash,
-					txInHash, confirmations, originConf,
-					coinbaseMaturity)
+					txInHash, maturity, coinbaseMaturity)
 				return 0, ruleError(ErrImmatureSpend, str)
 			}
 
 			if !bd.IsBlue(utxoEntry.BlockHash()) {
 				str := fmt.Sprintf("tx %v tried to spend "+
 					"coinbase transaction %v from "+
-					"%v at %v before required "+
+					"at %v before required "+
 					"maturity of %v blocks, but it is't in blue set", txHash,
-					txInHash, confirmations, originConf,
-					coinbaseMaturity)
+					txInHash, maturity, coinbaseMaturity)
 				return 0, ruleError(ErrNoBlueCoinbase, str)
 			}
 		}
@@ -1108,9 +1101,10 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	tipsNode := []*blockNode{}
 	for _, v := range block.Block().Parents {
 		bn := b.index.LookupNode(v)
-		if bn != nil {
-			tipsNode = append(tipsNode, bn)
+		if bn == nil {
+			return ruleError(ErrPrevBlockNotBest, "tipsNode")
 		}
+		tipsNode = append(tipsNode, bn)
 	}
 	if len(tipsNode) == 0 {
 		return ruleError(ErrPrevBlockNotBest, "tipsNode")
@@ -1122,7 +1116,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	newNode.SetLayer(GetMaxLayerFromList(tipsNode) + 1)
 
 	view := NewUtxoViewpoint()
-	view.SetBestHash(newNode.GetHash())
+	view.SetViewpoints(block.Block().Parents)
 
 	mainParent := newNode.GetMainParent(b)
 	mainParentNode := b.index.lookupNode(mainParent.GetHash())

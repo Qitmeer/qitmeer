@@ -238,3 +238,13 @@ func Test_IsHourglass(t *testing.T) {
 		t.Fatal()
 	}
 }
+
+func Test_GetMaturity(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	if ibd == nil {
+		t.FailNow()
+	}
+	if bd.GetMaturity(tbMap["D"],[]*hash.Hash{tbMap["I"]}) != 2 {
+		t.Fatal()
+	}
+}
