@@ -1304,7 +1304,6 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 			newNode.SetLayer(refblock.GetLayer())
 			refnode = newNode
 			block.SetOrder(uint64(refblock.GetOrder()))
-			//fmt.Printf("%d %s\n", refblock.GetID(), refHash)
 			if refblock.GetHeight() != newNode.GetHeight() {
 				log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d", newNode.GetHash(), newNode.GetHeight(), refblock.GetHeight()))
 				newNode.SetHeight(refblock.GetHeight())
@@ -1355,7 +1354,7 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 	//
 	for e := oldOrdersList.Front(); e != nil; e = e.Next() {
 		node := e.Value.(*blockNode)
-		*oldOrders = append(*oldOrders, node.Clone())
+		*oldOrders = append(*oldOrders, node)
 	}
 }
 
