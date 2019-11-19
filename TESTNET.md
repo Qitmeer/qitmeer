@@ -56,7 +56,34 @@ Genesis block will send 130 PMEER to the owner of coinbase address of the 100 Bl
 | **Ledger recovery**| NO NEED|
 | **Remarks**        | the destroy finished |
 
+#### HLC Token destroyed result
 
+| Token Destroyed Result  |     Info                     |
+| ------------------------|------------------------------|
+| Sum of Destroyed        | **200287911**                |
+| Sum of 0x00...00 Holder | [200287911][etherscan2]      |
+| Tx                      | 1266                         |
+| Destroyed Tx            | 633                          |
+| Token Holder            | 580                          |
+| ALL HLC Hodlers         | [1745][hlc]                  |
+| *Result mirror 1*       | [qitmeer.io](https://activity.qitmeer.io/) |
+| *Result mirror 2*       | [etherscan.io][etherscan1]|
+| *Result mirror 3*       | [hlc-token-destroyed.csv](./hlc-token-destroyed.csv)|
+
+```bash
+cat hlc-token-destroyed.csv |grep 0x000000000|cut -d, -f 7|awk '{print substr($0,2,(length($0)-3))}'|python -c "import sys; print(sum(int(l) for l in sys.stdin))"
+200287911
+cat hlc-token-destroyed.csv |wc -l
+    1266
+cat hlc-token-destroyed.csv |grep 0x000000000|wc -l
+     633
+cat hlc-token-destroyed.csv |grep -v 0x000000000|cut -d, -f 5|uniq|wc -l
+     580
+```
+
+[hlc]:https://etherscan.io/token/0x58c69ed6cd6887c0225d1fccecc055127843c69b
+[etherscan1]:https://etherscan.io/token/0x58c69ed6cd6887c0225d1fccecc055127843c69b?a=0x126720ec10f5afbf2184146621f183cae317f573
+[etherscan2]:https://etherscan.io/token/0x58c69ed6cd6887c0225d1fccecc055127843c69b?a=0x0000000000000000000000000000000000000000
 
 ### v0.8.0 2019/11/14
 
