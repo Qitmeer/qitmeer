@@ -2,20 +2,61 @@
 
 ## Qitmeer Internal Testnet
 
-### v0.8.1 2019/11/19 (Planed)
+### v0.8.2 2019/11/25 (Planed)
+
+| Internal Testnet   |     Info             |
+| -------------------|----------------------|
+| **Testnet Type**   | Internal             |
+| **Version**        | *0.8.2*              |
+| **Source**         | |
+| **Start Date**     | 2019/11/25 (Planned) |
+| **End Date**       | |
+| **blockOne Hash**  | UNKNOWN |
+| **Data CleanUp**   | YES |
+| **CleanUP Reason** | community mining reward |
+| **Ledger recovery**| YES|
+| **Remarks**        | txsvaild test finished & the community mining reward|
+
+#### Reward Plan
+
+##### The 100 block number from 15800 to 30000
+
+https://www.random.org/integer-sets/?sets=1&num=100&min=15800&max=30000&seqnos=on&commas=on&sort=on&order=index&format=plain&rnd=id.2b9a36bb6fd1fa47a19cf822d93eca7df0a9f5000937e2ab87eb30b2b803c4d7
+
+```
+15978, 16375, 16445, 16988, 17167, 17264, 17273, 17506, 17524, 17553,
+17567, 17570, 17575, 17612, 17774, 18017, 18120, 18299, 18434, 18460,
+18539, 18584, 18760, 18952, 19071, 19103, 19396, 19703, 19708, 19881,
+20098, 20116, 20252, 20637, 20663, 21014, 21073, 21109, 21286, 21380,
+21558, 21623, 21923, 22004, 22041, 22511, 22748, 23296, 23568, 23847,
+23959, 24120, 24209, 24229, 24256, 24279, 24290, 24464, 24593, 24700,
+24804, 24808, 24855, 24897, 25060, 25157, 25197, 25662, 25747, 25815,
+25822, 25912, 25945, 26264, 26273, 26506, 26559, 26635, 26813, 26912,
+27492, 27564, 27743, 27762, 27767, 27880, 28138, 28520, 28618, 28810,
+28985, 29172, 29214, 29504, 29528, 29696, 29726, 29784, 29821, 29991
+```
+
+##### The Ledger recovery
+
+Genesis block will send 130 PMEER to the owner of coinbase address of the 100 Blocks of the previous internal testnet (0.8.0&0.8.1)
+
+
+### v0.8.1 2019/11/20 (Planed)
 
 | Internal Testnet   |     Info             |
 | -------------------|----------------------|
 | **Testnet Type**   | Internal             |
 | **Version**        | *0.8.1*              |
 | **Source**         | |
-| **Start Date**     | 2019/11/19 (Planned) |
+| **Start Date**     | 2019/11/20 (Planned) |
 | **End Date**       | |
 | **blockOne Hash**  | 2b9a36bb6fd1fa47a19cf822d93eca7df0a9f5000937e2ab87eb30b2b803c4d7|
 | **Data CleanUp**   | NO |
 | **CleanUP Reason** | NO |
 | **Ledger recovery**| NO NEED|
 | **Remarks**        | the destroy finished |
+
+
 
 ### v0.8.0 2019/11/14
 
