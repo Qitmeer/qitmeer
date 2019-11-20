@@ -47,15 +47,15 @@ func (sp *serverPeer) addBanScore(persistent, transient uint32, reason string) {
 		// logged if the score is above the warn threshold.
 		score := sp.banScore.Int()
 		if score > warnThreshold {
-			log.Warn(fmt.Sprintf("Misbehaving peer %s: %s -- ban score is %d, "+
-				"it was not increased this time", sp, reason, score))
+			log.Warn(fmt.Sprintf("Misbehaving peer %s: %s -- ban score is %d, it was not increased this time",
+				sp, reason, score))
 		}
 		return
 	}
 	score := sp.banScore.Increase(persistent, transient)
 	if score > warnThreshold {
-		log.Warn("Misbehaving peer %s: %s -- ban score increased to %d",
-			sp, reason, score)
+		log.Warn(fmt.Sprintf("Misbehaving peer %s: %s -- ban score increased to %d",
+			sp, reason, score))
 		if score > sp.server.cfg.BanThreshold {
 			log.Warn("Misbehaving peer -- banning and disconnecting", "peer", sp)
 			sp.server.BanPeer(sp)
