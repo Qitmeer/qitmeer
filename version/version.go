@@ -27,18 +27,18 @@ const (
 const (
 	Major uint = 0
 	Minor uint = 8
-	Patch uint = 1
+	Patch uint = 2
 )
 
 var (
 	// PreRelease is defined as a variable so it can be overridden during
-	// the build process with '-ldflags "-X main.PreRelease=foo"' if
+	// the build process with '-ldflags "-X github.com/Qitmeer/qitmeer/version.PreRelease=foo"' if
 	// needed.  It MUST only contain characters from semanticAlphabet per
 	// the semantic versioning spec.
 	PreRelease = ""
 
 	// appBuild is defined as a variable so it can be overridden during the
-	// build process with '-ldflags "-X main.Build=foo"' if needed.  It
+	// build process with '-ldflags "-X github.com/Qitmeer/qitmeer/version.Build=foo"' if needed.  It
 	// MUST only contain characters from semanticBuildAlphabet per the
 	// semantic versioning spec.
 	Build = "dev"
