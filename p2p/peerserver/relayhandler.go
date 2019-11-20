@@ -41,6 +41,10 @@ func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 			if sp.relayTxDisabled() {
 				return
 			}
+		} else if msg.invVect.Type == message.InvTypeBlock {
+			gs = s.BlockManager.GetChain().BestSnapshot().GraphState
+			sp.QueueInventoryImmediate(msg.invVect, gs)
+			return
 		}
 
 		// Either queue the inventory to be relayed immediately or with
@@ -48,10 +52,7 @@ func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 		//
 		// It will be ignored in either case if the peer is already
 		// known to have the inventory.
-		if msg.immediate || msg.invVect.Type == message.InvTypeBlock {
-			if msg.invVect.Type == message.InvTypeBlock {
-				gs = s.BlockManager.GetChain().BestSnapshot().GraphState
-			}
+		if msg.immediate {
 			sp.QueueInventoryImmediate(msg.invVect, gs)
 		} else {
 			sp.QueueInventory(msg.invVect)
