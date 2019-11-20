@@ -1,9 +1,19 @@
 # Qitmeer
 
 [![Build Status](https://travis-ci.com/Qitmeer/qitmeer.svg?token=DzCFNC6nhEqPc89sq1nd&branch=master)](https://travis-ci.com/Qitmeer/qitmeer) [![Go Report Card](https://goreportcard.com/badge/github.com/Qitmeer/qitmeer)](https://goreportcard.com/report/github.com/Qitmeer/qitmeer)
-
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer?ref=badge_shield)
 
 The guardian of trust. The core backend of the qitmeer network.
+
+## Qitmeer Testnet Notice
+
+**WARNING!!!** &nbsp;&nbsp;*Please Notice : The Qitmeer Internal Testnet is only for Qitmeer Dev internal test purpose. The data will be **Clean UP** regularly, we will **NOT** guarantee to recovery the user's ledger balance to next internal test. The Public Testnet is **NOT OPEN** yet* 
+
+| Latest Testnet            | Compatible Qitmeer Vesion | Start Date | Type            |
+| ------------------------- |-------------------------- | ---------- | --------------- |
+| [v0.8.0 TestNet](TESTNET.md#v080-20191114)| v0.8.0     | 2019/11/14 | Internal Test   |
+
+Please know more details from the [Qitmeer Testnet](TESTNET.md)
 
 ## Installation
 ### Binary archives
@@ -21,7 +31,6 @@ accessible from command line.
 
 [Releases]: https://github.com/Qitmeer/qitmeer/releases
 [Latest]: https://github.com/Qitmeer/qitmeer/releases/latest
-
 
 ### How to build
 ####  Prerequisites
@@ -72,3 +81,7 @@ replace (
 [qitmeer rpc tools](https://github.com/Qitmeer/qitmeer-cli)
 
 **happy hacking!**
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer?ref=badge_large)
