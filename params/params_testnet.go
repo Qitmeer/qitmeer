@@ -66,7 +66,7 @@ var TestNetParams = Params{
 	BaseSubsidy:              13000000000, // 130 Coin , daily supply is 130*2*60*24 = 374400 ~ 374400 * 3(DAG factor)
 	MulSubsidy:               100,
 	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1538462 blocks created
-	SubsidyReductionInterval: 1538462,        // 130 * 1538462(blocks) = 200000060 (200M) -> 534 ~ 178 days
+	SubsidyReductionInterval: 1540677,        // 130 * 1540677 (blocks) *= 200287911 (200M) -> 534 ~ 178 days
 	WorkRewardProportion:     10,
 	StakeRewardProportion:    0,
 	BlockTaxProportion:       0,
