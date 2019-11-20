@@ -53,14 +53,14 @@ https://www.random.org/integer-sets/?sets=1&num=162&min=18800&max=35000&seqnos=o
  - One special block will be choosed from nubmer 18800 to 35000 according to the hash sum of all the 162 minded blocks' hash.
  - Genesis block will send ??? PMEER to the owner of the speical block.
 
-### v0.8.1 2019/11/20 (Planed)
+### v0.8.1 2019/11/20
 
 | Internal Testnet   |     Info             |
 | -------------------|----------------------|
 | **Testnet Type**   | Internal             |
 | **Version**        | *0.8.1*              |
 | **Source**         | |
-| **Start Date**     | 2019/11/20 (Planned) |
+| **Start Date**     | 2019/11/20 Wed Nov 20 20:00:00 CST|
 | **End Date**       | |
 | **blockOne Hash**  | 2b9a36bb6fd1fa47a19cf822d93eca7df0a9f5000937e2ab87eb30b2b803c4d7|
 | **Data CleanUp**   | NO |
