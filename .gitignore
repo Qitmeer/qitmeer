@@ -17,6 +17,7 @@ bin
 # Binaries
 qitmeer
 qitmeer.exe
+*.zip
 
 # Go
 go.sum
