@@ -46,6 +46,11 @@ const (
 
 	// MaxCoinbaseScriptLen is the maximum length a coinbase script can be.
 	MaxCoinbaseScriptLen = 100
+
+	// MaxOrphanTimeOffsetSeconds is the maximum number of seconds a orphan block time
+	// is allowed to be ahead of the current time.  This is currently 10
+	// minute.
+	MaxOrphanTimeOffsetSeconds = 10 * 60
 )
 
 var (

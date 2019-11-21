@@ -102,7 +102,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				// Request blocks starting at the latest known
 				// up to the root of the orphan that just came
 				// in.
-				locator := b.chain.GetOrphanParents(&iv.Hash)
+				locator := b.chain.GetRecentOrphanParents(&iv.Hash)
 				if len(locator) == 0 {
 					log.Error("Failed to get block locator for the orphan block")
 					continue

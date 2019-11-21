@@ -136,7 +136,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// Extraction is only attempted if the block's version is
 		// high enough (ver 2+).
 
-		locator := b.chain.GetOrphanParents(blockHash)
+		locator := b.chain.GetRecentOrphanParents(blockHash)
 		if len(locator) > 0 {
 			err = bmsg.peer.PushGetBlocksMsg(best.GraphState, locator)
 			if err != nil {

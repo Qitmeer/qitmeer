@@ -517,7 +517,7 @@ func (b *BlockChain) IsOrphan(hash *hash.Hash) bool {
 
 // Whether it is connected by all parents
 func (b *BlockChain) IsUnconnectedOrphan(hash *hash.Hash) bool {
-	op := b.GetOrphanParents(hash)
+	op := b.GetRecentOrphanParents(hash)
 	return len(op) > 0
 }
 
@@ -543,7 +543,7 @@ func (b *BlockChain) GetOrphansParents() []*hash.Hash {
 
 // GetOrphansParents returns the parents for the provided hash from the
 // map of orphan blocks.
-func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash {
+func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 	b.orphanLock.RLock()
 	defer b.orphanLock.RUnlock()
 	//
@@ -551,6 +551,12 @@ func (b *BlockChain) GetOrphanParents(h *hash.Hash) []*hash.Hash {
 	if !exists {
 		return nil
 	}
+	maxTimestamp := b.timeSource.AdjustedTime().Add(time.Second *
+		MaxOrphanTimeOffsetSeconds)
+	if ob.block.Block().Header.Timestamp.After(maxTimestamp) {
+		return nil
+	}
+
 	result := blockdag.NewHashSet()
 	for _, h := range ob.block.Block().Parents {
 		exists, err := b.HaveBlock(h)
@@ -569,6 +575,30 @@ func (b *BlockChain) GetOrphansTotal() int {
 	ol := len(b.orphans)
 	b.orphanLock.RUnlock()
 	return ol
+}
+
+func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
+	b.orphanLock.RLock()
+	defer b.orphanLock.RUnlock()
+	//
+	maxTimestamp := b.timeSource.AdjustedTime().Add(time.Second *
+		MaxOrphanTimeOffsetSeconds)
+	//
+	result := blockdag.NewHashSet()
+	for _, v := range b.orphans {
+		if v.block.Block().Header.Timestamp.After(maxTimestamp) {
+			continue
+		}
+		for _, h := range v.block.Block().Parents {
+			exists, err := b.HaveBlock(h)
+			if err != nil || exists {
+				continue
+			}
+			result.Add(h)
+		}
+
+	}
+	return result.List()
 }
 
 // IsCurrent returns whether or not the chain believes it is current.  Several
