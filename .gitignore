@@ -17,6 +17,7 @@ bin
 # Binaries
 qitmeer
 qitmeer.exe
+tools/payledger/payledger
 *.zip
 
 # Go
