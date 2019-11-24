@@ -25,6 +25,9 @@ func TestScaleToTarget(t *testing.T) {
 	diffBig.SetUint64(diff)
 	assert.Equal(t, "0c49ba5e353f7ced916872b020c49ba5e353f7ced916872b020c49ba5e353f7c", CuckooDiffToTarget(GraphWeight(24), diffBig))
 	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(GraphWeight(29), diffBig))
+	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(GraphWeight(24), big.NewInt(48)))
+	assert.Equal(t, "8000000000000000000000000000000000000000000000000000000000000000", CuckooDiffToTarget(GraphWeight(24), big.NewInt(96)))
+	assert.Equal(t, "17b5dbd6151319c5e8a604ddc87e903df63f7e7512ea5a30f9dab794f2be0000", CuckooDiffToTarget(GraphWeight(24), big.NewInt(33964288)))
 }
 
 func TestDiffCompare(t *testing.T) {
