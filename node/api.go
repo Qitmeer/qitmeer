@@ -39,6 +39,10 @@ func NewPublicBlockChainAPI(node *QitmeerFull) *PublicBlockChainAPI {
 // Return the node info
 func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	best := api.node.blockManager.GetChain().BestSnapshot()
+	node := api.node.blockManager.GetChain().BlockIndex().LookupNode(&best.Hash)
+	blake2bdNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node,pow.BLAKE2BD)
+	cuckarooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node,pow.CUCKAROO)
+	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node,pow.CUCKATOO)
 	ret := &json.InfoNodeResult{
 		UUID:            message.UUID.String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
@@ -47,9 +51,9 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
 		Connections:     api.node.node.peerServer.ConnectedCount(),
 		PowDiff: json.PowDiff{
-			Blake2bdDiff: getDifficultyRatio(best.Bits, api.node.node.Params, pow.BLAKE2BD),
-			CuckarooDiff: getDifficultyRatio(best.Bits, api.node.node.Params, pow.CUCKAROO),
-			CuckatooDiff: getDifficultyRatio(best.Bits, api.node.node.Params, pow.CUCKATOO),
+			Blake2bdDiff: getDifficultyRatio(blake2bdNodes, api.node.node.Params, pow.BLAKE2BD),
+			CuckarooDiff: getDifficultyRatio(cuckarooNodes, api.node.node.Params, pow.CUCKAROO),
+			CuckatooDiff: getDifficultyRatio(cuckatooNodes, api.node.node.Params, pow.CUCKATOO),
 		},
 		TestNet:          api.node.node.Config.TestNet,
 		Confirmations:    blockdag.StableConfirmations,
@@ -62,17 +66,21 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 
 // getDifficultyRatio returns the proof-of-work difficulty as a multiple of the
 // minimum difficulty using the passed bits field from the header of a block.
-func getDifficultyRatio(bits uint32, params *params.Params, powType pow.PowType) float64 {
+func getDifficultyRatio(target *big.Int, params *params.Params, powType pow.PowType) float64 {
 	instance := pow.GetInstance(powType, 0, []byte{})
 	instance.SetParams(params.PowConfig)
 	// The minimum difficulty is the max possible proof-of-work limit bits
 	// converted back to a number.  Note this is not the same as the proof of
 	// work limit directly because the block difficulty is encoded in a block
 	// with the compact form which loses precision.
-	max := instance.GetSafeDiff(0)
-	target := pow.CompactToBig(bits)
+	base := instance.GetSafeDiff(0)
+	var difficulty *big.Rat
+	if powType == pow.BLAKE2BD{
+		difficulty = new(big.Rat).SetFrac(base, target)
+	} else {
+		difficulty = new(big.Rat).SetFrac(target, base)
+	}
 
-	difficulty := new(big.Rat).SetFrac(max, target)
 	outString := difficulty.FloatString(8)
 	diff, err := strconv.ParseFloat(outString, 64)
 	if err != nil {
