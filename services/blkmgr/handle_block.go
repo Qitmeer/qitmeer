@@ -33,26 +33,10 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	// If we didn't ask for this block then the peer is misbehaving.
 	blockHash := bmsg.block.Hash()
 	if _, exists := bmsg.peer.RequestedBlocks[*blockHash]; !exists {
-		// Check to see if we ever requested this block, since it may
-		// have been accidentally sent in duplicate. If it was,
-		// increment the counter in the ever requested map and make
-		// sure that the node isn't spamming us with these blocks.
-		received, exists := b.requestedEverBlocks[*blockHash]
-		if exists {
-			if received > maxResendLimit {
-				log.Warn(fmt.Sprintf("Got duplicate block %v from %s -- "+
-					"too many times, disconnecting",
-					blockHash, bmsg.peer.Addr()))
-				bmsg.peer.Disconnect()
-				return
-			}
-			b.requestedEverBlocks[*blockHash]++
-		} else {
-			log.Warn(fmt.Sprintf("Got unrequested block %v from %s -- "+
-				"disconnecting", blockHash, bmsg.peer.Addr()))
-			bmsg.peer.Disconnect()
-			return
-		}
+		log.Warn(fmt.Sprintf("Got unrequested block %v from %s -- disconnecting",
+			blockHash, bmsg.peer.Addr()))
+		bmsg.peer.Disconnect()
+		return
 	}
 
 	// When in headers-first mode, if the block matches the hash of the

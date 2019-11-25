@@ -485,7 +485,7 @@ func (p *Peer) QueueInventoryImmediate(invVect *message.InvVect, gs *blockdag.Gr
 	// Avoid risk of deadlock if goroutine already exited.  The goroutine
 	// we will be sending to hangs around until it knows for a fact that
 	// it is marked as disconnected and *then* it drains the channels.
-	if !p.Connected() {
+	if !p.Connected() || gs == nil {
 		return
 	}
 

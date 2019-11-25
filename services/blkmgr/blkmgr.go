@@ -45,12 +45,11 @@ type BlockManager struct {
 
 	chain *blockchain.BlockChain
 
-	rejectedTxns        map[hash.Hash]struct{}
-	requestedTxns       map[hash.Hash]struct{}
-	requestedEverTxns   map[hash.Hash]uint8
-	requestedBlocks     map[hash.Hash]struct{}
-	requestedEverBlocks map[hash.Hash]uint8
-	progressLogger      *progresslog.BlockProgressLogger
+	rejectedTxns      map[hash.Hash]struct{}
+	requestedTxns     map[hash.Hash]struct{}
+	requestedEverTxns map[hash.Hash]uint8
+	requestedBlocks   map[hash.Hash]struct{}
+	progressLogger    *progresslog.BlockProgressLogger
 
 	peers    map[*peer.Peer]*peer.ServerPeer
 	syncPeer *peer.ServerPeer
@@ -84,19 +83,18 @@ func NewBlockManager(ntmgr notify.Notify, indexManager blockchain.IndexManager, 
 	cfg *config.Config, par *params.Params, blockVersion uint32,
 	interrupt <-chan struct{}) (*BlockManager, error) {
 	bm := BlockManager{
-		config:              cfg,
-		params:              par,
-		notify:              ntmgr,
-		rejectedTxns:        make(map[hash.Hash]struct{}),
-		requestedTxns:       make(map[hash.Hash]struct{}),
-		requestedEverTxns:   make(map[hash.Hash]uint8),
-		requestedBlocks:     make(map[hash.Hash]struct{}),
-		requestedEverBlocks: make(map[hash.Hash]uint8),
-		peers:               make(map[*peer.Peer]*peer.ServerPeer),
-		progressLogger:      progresslog.NewBlockProgressLogger("Processed", log),
-		msgChan:             make(chan interface{}, cfg.MaxPeers*3),
-		headerList:          list.New(),
-		quit:                make(chan struct{}),
+		config:            cfg,
+		params:            par,
+		notify:            ntmgr,
+		rejectedTxns:      make(map[hash.Hash]struct{}),
+		requestedTxns:     make(map[hash.Hash]struct{}),
+		requestedEverTxns: make(map[hash.Hash]uint8),
+		requestedBlocks:   make(map[hash.Hash]struct{}),
+		peers:             make(map[*peer.Peer]*peer.ServerPeer),
+		progressLogger:    progresslog.NewBlockProgressLogger("Processed", log),
+		msgChan:           make(chan interface{}, cfg.MaxPeers*3),
+		headerList:        list.New(),
+		quit:              make(chan struct{}),
 	}
 
 	// Create a new block chain instance with the appropriate configuration.
@@ -191,7 +189,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		blockHash := block.Hash()
 
 		// Generate the inventory vector and relay it.
-		iv := message.NewInvVect(message.InvTypeBlock, blockHash)
+		iv := message.NewInvVect(message.InvTypeAiringBlock, blockHash)
 		log.Trace("relay inv", "inv", iv)
 
 		b.notify.RelayInventory(iv, block.Block().Header)
@@ -391,7 +389,6 @@ func (b *BlockManager) fetchHeaderBlocks() {
 		}
 		if !haveInv {
 			b.requestedBlocks[*node.hash] = struct{}{}
-			b.requestedEverBlocks[*node.hash] = 0
 			b.syncPeer.RequestedBlocks[*node.hash] = struct{}{}
 			err = gdmsg.AddInvVect(iv)
 			if err != nil {
@@ -879,7 +876,6 @@ func (b *BlockManager) requestFromPeer(p *peer.ServerPeer, blocks []*hash.Hash) 
 
 		p.RequestedBlocks[*bh] = struct{}{}
 		b.requestedBlocks[*bh] = struct{}{}
-		b.requestedEverBlocks[*bh] = 0
 	}
 
 	if len(msgResp.InvList) > 0 {

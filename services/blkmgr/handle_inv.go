@@ -136,7 +136,6 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 			// request.
 			if _, exists := b.requestedBlocks[iv.Hash]; !exists {
 				b.requestedBlocks[iv.Hash] = struct{}{}
-				b.requestedEverBlocks[iv.Hash] = 0
 				b.limitMap(b.requestedBlocks, maxRequestedBlocks)
 				imsg.peer.RequestedBlocks[iv.Hash] = struct{}{}
 				gdmsg.AddInvVect(iv)
