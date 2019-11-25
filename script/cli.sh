@@ -362,6 +362,7 @@ function usage(){
   echo "block  :"
   echo "  block <num|hash>"
   echo "  blockid <id>"
+  echo "  blockhash <order>"
   echo "  block_count"
   echo "  block_local"
   echo "  blockrange <start,end>"
