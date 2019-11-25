@@ -144,13 +144,23 @@ function get_blockheader_by_hash(){
 
 
 # return tx by hash
-function get_tx_by_hash(){
+function get_tx_by_id(){
   local tx_hash=$1
   local verbose=$2
   if [ "$verbose" == "" ]; then
     verbose="true"
   fi
   local data='{"jsonrpc":"2.0","method":"getRawTransaction","params":["'$tx_hash'",'$verbose'],"id":1}'
+  get_result "$data"
+}
+
+function get_tx_by_hash(){
+  local tx_hash=$1
+  local verbose=$2
+  if [ "$verbose" == "" ]; then
+    verbose="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getRawTransactionByHash","params":["'$tx_hash'",'$verbose'],"id":1}'
   get_result "$data"
 }
 
@@ -371,7 +381,8 @@ function usage(){
   echo "  orphanstotal"
   echo "  isblue <hash>   ;return [0:not blue;  1：blue  2：Cannot confirm]"
   echo "tx     :"
-  echo "  tx <hash>"
+  echo "  tx <id>"
+  echo "  txbyhash <hash>"
   echo "  createRawTx"
   echo "  txSign <rawTx>"
   echo "  sendRawTx <signedRawTx>"
@@ -673,11 +684,10 @@ elif [ "$1" == "stop" ]; then
 ## Tx
 elif [ "$1" == "tx" ]; then
   shift
-  if [ "$2" == "false" ]; then
-    get_tx_by_hash $@
-  else
-    get_tx_by_hash $@
-  fi
+  get_tx_by_id $@
+elif [ "$1" == "txbyhash" ]; then
+  shift
+  get_tx_by_hash $@
 
 elif [ "$1" == "createRawTx" ]; then
   shift

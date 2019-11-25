@@ -837,6 +837,19 @@ func (api *PublicTxAPI) fetchInputTxos(tx *message.MsgTx) (map[types.TxOutPoint]
 	return originOutputs, nil
 }
 
+func (api *PublicTxAPI) GetRawTransactionByHash(txHash hash.Hash, verbose bool) (interface{}, error) {
+	txIndex := api.txManager.txIndex
+	if txIndex == nil {
+		return nil, fmt.Errorf("the transaction index " +
+			"must be enabled to query the blockchain (specify --txindex in configuration)")
+	}
+	txid, err := txIndex.GetTxIdByHash(txHash)
+	if err != nil {
+		return nil, fmt.Errorf("no tx")
+	}
+	return api.GetRawTransaction(*txid, verbose)
+}
+
 type PrivateTxAPI struct {
 	txManager *TxManager
 }
