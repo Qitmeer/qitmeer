@@ -54,25 +54,25 @@ var TestNetParams = Params{
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        true,
 	WorkDiffAlpha:            1,
-	WorkDiffWindowSize:       120, // Difficulty check interval is about 120*30 = 1 hour
+	WorkDiffWindowSize:       240, // Difficulty check interval is about 240*15 = 1 hour
 	WorkDiffWindows:          20,
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
-	TargetTimePerBlock:       time.Second * 30,
-	TargetTimespan:           time.Second * 30 * 120, // TimePerBlock * WindowSize
+	TargetTimePerBlock:       time.Second * 15,       // Target Block Time is 15s
+	TargetTimespan:           time.Second * 15 * 240, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 2,                      // equal to 2 hour vs. 4
 
 	// Subsidy parameters.
-	BaseSubsidy:              13000000000, // 130 Coin , daily supply is 130*2*60*24 = 374400 ~ 374400 * 3(DAG factor)
+	BaseSubsidy:              6500000000, // 65 Coin , daily supply is 65*4*60*24 = 374400 ~ 374400 * 3(DAG factor)
 	MulSubsidy:               100,
-	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1538462 blocks created
-	SubsidyReductionInterval: 1540677,        // 130 * 1540677 (blocks) *= 200287911 (200M) -> 534 ~ 178 days
+	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 3081353 blocks created
+	SubsidyReductionInterval: 3081353,        // 65 * 3081353 (blocks) *= 200287911 (200M) -> 534 ~ 178 days
 	WorkRewardProportion:     10,
 	StakeRewardProportion:    0,
 	BlockTaxProportion:       0,
 
 	// Maturity
-	CoinbaseMaturity: 720, // coinbase required 720 * 30 = 6 hours before repent
+	CoinbaseMaturity: 720, // coinbase required 720 * 15 = 3 hours before repent
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{},
