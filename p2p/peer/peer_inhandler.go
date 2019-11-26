@@ -152,12 +152,12 @@ out:
 			if p.cfg.Listeners.OnGetHeaders != nil {
 				p.cfg.Listeners.OnGetHeaders(p, msg)
 			}
-		/*
-			case *message.MsgMemPool:
-				if p.cfg.Listeners.OnMemPool != nil {
-					p.cfg.Listeners.OnMemPool(p, msg)
-				}
 
+		case *message.MsgMemPool:
+			if p.cfg.Listeners.OnMemPool != nil {
+				p.cfg.Listeners.OnMemPool(p, msg)
+			}
+		/*
 			case *message.MsgHeaders:
 				if p.cfg.Listeners.OnHeaders != nil {
 					p.cfg.Listeners.OnHeaders(p, msg)

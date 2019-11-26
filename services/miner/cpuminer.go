@@ -499,7 +499,10 @@ func (m *CPUMiner) Start() {
 	if m.started || m.discreteMining {
 		return
 	}
-
+	if len(m.config.GetMinningAddrs()) == 0 {
+		log.Error("Please configure minning address")
+		return
+	}
 	m.quit = make(chan struct{})
 	m.speedMonitorQuit = make(chan struct{})
 	m.wg.Add(2)
