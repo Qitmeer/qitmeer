@@ -121,11 +121,9 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgGetMiningState{}
 	case CmdGraphState:
 		msg = &MsgGraphState{}
+	case CmdMemPool:
+		msg = &MsgMemPool{}
 	/*
-
-		case CmdMemPool:
-			msg = &MsgMemPool{}
-
 		case CmdSendHeaders:
 			msg = &MsgSendHeaders{}
 

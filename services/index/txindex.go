@@ -33,9 +33,17 @@ var (
 	// the block hash -> block id index.
 	hashByIDIndexBucketName = []byte("hashbyididx")
 
+	// txidByTxhashBucketName is the name of the db bucket used to house
+	// the tx hash -> tx id.
+	txidByTxhashBucketName = []byte("txidbytxhash")
+
 	// errNoBlockIDEntry is an error that indicates a requested entry does
 	// not exist in the block ID index.
 	errNoBlockIDEntry = errors.New("no entry in the block ID index")
+
+	// errNoTxHashEntry is an error that indicates a requested entry does
+	// not exist in the tx hash
+	errNoTxHashEntry = errors.New("no entry in the tx hash")
 )
 
 // -----------------------------------------------------------------------------
@@ -186,10 +194,10 @@ func dbPutTxIndexEntry(dbTx database.Tx, txHash *hash.Hash, serializedData []byt
 // region for the provided transaction hash from the transaction index.  When
 // there is no entry for the provided hash, nil will be returned for the both
 // the region and the error.
-func dbFetchTxIndexEntry(dbTx database.Tx, txHash *hash.Hash) (*database.BlockRegion, error) {
+func dbFetchTxIndexEntry(dbTx database.Tx, txid *hash.Hash) (*database.BlockRegion, error) {
 	// Load the record from the database and return now if it doesn't exist.
 	txIndex := dbTx.Metadata().Bucket(txIndexKey)
-	serializedData := txIndex.Get(txHash[:])
+	serializedData := txIndex.Get(txid[:])
 	if len(serializedData) == 0 {
 		return nil, nil
 	}
@@ -199,7 +207,7 @@ func dbFetchTxIndexEntry(dbTx database.Tx, txHash *hash.Hash) (*database.BlockRe
 		return nil, database.Error{
 			ErrorCode: database.ErrCorruption,
 			Description: fmt.Sprintf("corrupt transaction index "+
-				"entry for %s", txHash),
+				"entry for %s", txid),
 		}
 	}
 
@@ -209,7 +217,7 @@ func dbFetchTxIndexEntry(dbTx database.Tx, txHash *hash.Hash) (*database.BlockRe
 		return nil, database.Error{
 			ErrorCode: database.ErrCorruption,
 			Description: fmt.Sprintf("corrupt transaction index "+
-				"entry for %s: %v", txHash, err),
+				"entry for %s: %v", txid, err),
 		}
 	}
 
@@ -240,6 +248,9 @@ func dbAddTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock, blockID
 			endOffset := offset + txEntrySize
 			if err := dbPutTxIndexEntry(dbTx, tx.Hash(),
 				serializedValues[offset:endOffset:endOffset]); err != nil {
+				return err
+			}
+			if err := dbPutTxIdByHash(dbTx, tx.Tx.TxHashFull(), tx.Hash()); err != nil {
 				return err
 			}
 			offset += txEntrySize
@@ -286,6 +297,9 @@ func dbRemoveTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock) erro
 			if err := dbRemoveTxIndexEntry(dbTx, tx.Hash()); err != nil {
 				return err
 			}
+			if err := dbRemoveTxIdByHash(dbTx, tx.Tx.TxHashFull()); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -294,6 +308,33 @@ func dbRemoveTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock) erro
 		return err
 	}
 	return nil
+}
+
+// dbPutTxIdByHash
+func dbPutTxIdByHash(dbTx database.Tx, txHash hash.Hash, txId *hash.Hash) error {
+	txidByTxhash := dbTx.Metadata().Bucket(txidByTxhashBucketName)
+	return txidByTxhash.Put(txHash[:], txId[:])
+}
+
+func dbFetchTxIdByHash(dbTx database.Tx, txhash hash.Hash) (*hash.Hash, error) {
+	txidByTxhash := dbTx.Metadata().Bucket(txidByTxhashBucketName)
+	serializedData := txidByTxhash.Get(txhash[:])
+	if serializedData == nil {
+		return nil, errNoTxHashEntry
+	}
+	txId := hash.Hash{}
+	txId.SetBytes(serializedData[:])
+
+	return &txId, nil
+}
+
+func dbRemoveTxIdByHash(dbTx database.Tx, txhash hash.Hash) error {
+	txidByTxhash := dbTx.Metadata().Bucket(txidByTxhashBucketName)
+	serializedData := txidByTxhash.Get(txhash[:])
+	if len(serializedData) == 0 {
+		return nil
+	}
+	return txidByTxhash.Delete(txhash[:])
 }
 
 // TxIndex implements a transaction by hash index.  That is to say, it supports
@@ -398,6 +439,9 @@ func (idx *TxIndex) Create(dbTx database.Tx) error {
 	if _, err := meta.CreateBucket(hashByIDIndexBucketName); err != nil {
 		return err
 	}
+	if _, err := meta.CreateBucket(txidByTxhashBucketName); err != nil {
+		return err
+	}
 	_, err := meta.CreateBucket(txIndexKey)
 	return err
 }
@@ -460,14 +504,42 @@ func (idx *TxIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlo
 // will be returned for the both the entry and the error.
 //
 // This function is safe for concurrent access.
-func (idx *TxIndex) TxBlockRegion(hash hash.Hash) (*database.BlockRegion, error) {
+func (idx *TxIndex) TxBlockRegion(id hash.Hash) (*database.BlockRegion, error) {
 	var region *database.BlockRegion
 	err := idx.db.View(func(dbTx database.Tx) error {
 		var err error
-		region, err = dbFetchTxIndexEntry(dbTx, &hash)
+		region, err = dbFetchTxIndexEntry(dbTx, &id)
 		return err
 	})
 	return region, err
+}
+
+func (idx *TxIndex) TxBlockRegionByHash(hash hash.Hash) (*database.BlockRegion, error) {
+	var region *database.BlockRegion
+	err := idx.db.View(func(dbTx database.Tx) error {
+		var err error
+		id, err := dbFetchTxIdByHash(dbTx, hash)
+		if err != nil {
+			return err
+		}
+		region, err = dbFetchTxIndexEntry(dbTx, id)
+		return err
+	})
+	return region, err
+}
+
+func (idx *TxIndex) GetTxIdByHash(txhash hash.Hash) (*hash.Hash, error) {
+	var txid *hash.Hash
+	err := idx.db.View(func(dbTx database.Tx) error {
+		var err error
+		id, err := dbFetchTxIdByHash(dbTx, txhash)
+		if err != nil {
+			return err
+		}
+		txid = id
+		return nil
+	})
+	return txid, err
 }
 
 // NewTxIndex returns a new instance of an indexer that is used to create a
@@ -489,7 +561,10 @@ func dropBlockIDIndex(db database.DB) error {
 		if err != nil {
 			return err
 		}
-
+		err = meta.DeleteBucket(txidByTxhashBucketName)
+		if err != nil {
+			return err
+		}
 		return meta.DeleteBucket(hashByIDIndexBucketName)
 	})
 }

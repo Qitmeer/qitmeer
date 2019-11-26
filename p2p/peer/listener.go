@@ -90,12 +90,11 @@ type MessageListeners struct {
 	// OnGraphState
 	OnGraphState func(p *Peer, msg *message.MsgGraphState)
 
+	// OnMemPool is invoked when a peer receives a mempool wire message.
+	OnMemPool func(p *Peer, msg *message.MsgMemPool)
 	/*
 		// OnSendHeaders is invoked when a peer receives a sendheaders message.
 		OnSendHeaders func(p *Peer, msg *message.MsgSendHeaders)
-
-		// OnMemPool is invoked when a peer receives a mempool wire message.
-		OnMemPool func(p *Peer, msg *message.MsgMemPool)
 
 		// OnCFilter is invoked when a peer receives a cfilter wire message.
 		OnCFilter func(p *Peer, msg *message.MsgCFilter)

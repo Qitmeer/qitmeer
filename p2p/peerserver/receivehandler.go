@@ -494,3 +494,30 @@ func (sp *serverPeer) OnTx(p *peer.Peer, msg *message.MsgTx) {
 func (sp *serverPeer) OnGraphState(p *peer.Peer, msg *message.MsgGraphState) {
 	p.UpdateLastGS(msg.GS)
 }
+
+// OnMemPool
+func (sp *serverPeer) OnMemPool(_ *peer.Peer, msg *message.MsgMemPool) {
+	if sp.server.services&protocol.Bloom != protocol.Bloom {
+		log.Debug(fmt.Sprintf("peer %v sent mempool request with bloom filtering disabled -- disconnecting", sp))
+		sp.Disconnect()
+		return
+	}
+
+	sp.addBanScore(0, 33, "mempool")
+
+	txMemPool := sp.server.TxMemPool
+	txDescs := txMemPool.TxDescs()
+	invMsg := message.NewMsgInvSizeHint(uint(len(txDescs)))
+
+	for _, txDesc := range txDescs {
+		iv := message.NewInvVect(message.InvTypeTx, txDesc.Tx.Hash())
+		invMsg.AddInvVect(iv)
+		if len(invMsg.InvList)+1 > message.MaxInvPerMsg {
+			break
+		}
+	}
+
+	if len(invMsg.InvList) > 0 {
+		sp.QueueMessage(invMsg, nil)
+	}
+}
