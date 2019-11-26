@@ -796,6 +796,27 @@ func (bd *BlockDAG) checkLayerGap(parents []*hash.Hash) bool {
 	return true
 }
 
+// Checking the layer grap of block
+func (bd *BlockDAG) CheckLayerGapToTips(parents []*hash.Hash) bool {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	if len(parents) == 0 {
+		return false
+	}
+	minLayer := uint(0)
+	for _, v := range parents {
+		ib := bd.getBlock(v)
+		if ib == nil {
+			return false
+		}
+		if minLayer == 0 || minLayer > ib.GetLayer() {
+			minLayer = ib.GetLayer()
+		}
+	}
+	return (minLayer + MaxTipLayerGap) >= bd.getMainChainTip().GetLayer()
+}
+
 // Checking the parents of block legitimacy
 func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
 	if len(parents) == 0 {
