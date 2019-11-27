@@ -103,13 +103,11 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	}
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
-	if !api.miner.blockManager.GetChain().BlockDAG().CheckLayerGapToTips(block.Block().Parents) {
+	height, ok := api.miner.blockManager.GetChain().BlockDAG().CheckSubMainChainTip(block.Block().Parents)
+	if !ok {
 		return fmt.Sprintf("The tips of block is expired."), nil
 	}
-	parents := blockdag.NewHashSet()
-	parents.AddList(block.Block().Parents)
-	mainParent := api.miner.blockManager.GetChain().BlockDAG().GetMainParent(parents)
-	block.SetHeight(mainParent.GetHeight() + 1)
+	block.SetHeight(height)
 	// Process this block using the same rules as blocks coming from other
 	// nodes.  This will in turn relay it to the network like normal.
 	isOrphan, err := api.miner.blockManager.ProcessBlock(block, blockchain.BFNone)
