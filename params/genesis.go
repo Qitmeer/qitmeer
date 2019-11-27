@@ -46,7 +46,7 @@ var genesisCoinbaseTx = buildGenesisCoinbaseTx(protocol.MainNet)
 
 // mainnetgenesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the main network.
-var genesisMerkleRoot = genesisCoinbaseTx.TxHash()
+var genesisMerkleRoot = genesisCoinbaseTx.TxHashFull()
 
 // genesisBlock defines the genesis block of the block chain which serves as the
 // public transaction ledger for the main network.
@@ -82,12 +82,47 @@ var genesisHash = genesisBlock.BlockHash()
 
 // TestNet ------------------------------------------------------------------------
 
+// testNetGenesisCoinbaseTx is the coinbase transaction for the genesis blocks for
+// the test network.
+func buildTestNetGenesisCoinbaseTx(net protocol.Network) types.Transaction {
+	tx := types.Transaction{
+		Version: 1,
+		TxIn: []*types.TxInput{
+			{
+				// Fully null.
+				PreviousOut: types.TxOutPoint{
+					Hash:     hash.Hash{},
+					OutIndex: 0xffffffff,
+				},
+				SignScript: []byte{
+					// xxd -p hlc-token-destroyed.csv |tr -d '\n'|qx blake2b256
+					// 7d3846ab16dfa5110796f6b5f3136edfdc6d9fdd7b336b067ff8435356c08d6a
+					// echo -n "The HLC Token Destroyed 200287911 7d3846ab16dfa5110796f6b5f3136edfdc6d9fdd7b336b067ff8435356c08d6a"|xxd -i
+					0x54, 0x68, 0x65, 0x20, 0x48, 0x4c, 0x43, 0x20, 0x54, 0x6f, 0x6b, 0x65,
+					0x6e, 0x20, 0x44, 0x65, 0x73, 0x74, 0x72, 0x6f, 0x79, 0x65, 0x64, 0x20,
+					0x32, 0x30, 0x30, 0x32, 0x38, 0x37, 0x39, 0x31, 0x31, 0x20, 0x37, 0x64,
+					0x33, 0x38, 0x34, 0x36, 0x61, 0x62, 0x31, 0x36, 0x64, 0x66, 0x61, 0x35,
+					0x31, 0x31, 0x30, 0x37, 0x39, 0x36, 0x66, 0x36, 0x62, 0x35, 0x66, 0x33,
+					0x31, 0x33, 0x36, 0x65, 0x64, 0x66, 0x64, 0x63, 0x36, 0x64, 0x39, 0x66,
+					0x64, 0x64, 0x37, 0x62, 0x33, 0x33, 0x36, 0x62, 0x30, 0x36, 0x37, 0x66,
+					0x66, 0x38, 0x34, 0x33, 0x35, 0x33, 0x35, 0x36, 0x63, 0x30, 0x38, 0x64,
+					0x36, 0x61,
+				},
+				Sequence: 0xffffffff,
+			},
+		},
+		LockTime: 0,
+		Expire:   0,
+	}
+	ledger.Ledger(&tx, net)
+	return tx
+}
 //
-var testNetGenesisCoinbaseTx = buildGenesisCoinbaseTx(protocol.TestNet)
+var testNetGenesisCoinbaseTx = buildTestNetGenesisCoinbaseTx(protocol.TestNet)
 
 // testNetGenesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the test network.
-var testNetGenesisMerkleRoot = testNetGenesisCoinbaseTx.TxHash()
+var testNetGenesisMerkleRoot = testNetGenesisCoinbaseTx.TxHashFull()
 
 // testNetGenesisBlock defines the genesis block of the block chain which
 // serves as the public transaction ledger for the test network (version 3).
@@ -96,7 +131,7 @@ var testNetGenesisBlock = types.Block{
 		Version:    2,
 		ParentRoot: hash.Hash{},
 		TxRoot:     testNetGenesisMerkleRoot,
-		Timestamp:  time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
+		Timestamp:  time.Unix(1574726400, 0), // 2019-11-26 00:00:00 GMT
 		Difficulty: 0x1c1fffff,
 		Pow:        &pow.Blake2bd{},
 	},
@@ -155,7 +190,7 @@ var privNetGenesisCoinbaseTx = types.Transaction{
 // privNetGenesisMerkleRoot is the hash of the first transaction in the genesis
 // block for the simulation test network.  It is the same as the merkle root for
 // the main network.
-var privNetGenesisMerkleRoot = privNetGenesisCoinbaseTx.TxHash()
+var privNetGenesisMerkleRoot = privNetGenesisCoinbaseTx.TxHashFull()
 
 var zeroHash = hash.ZeroHash
 
@@ -189,7 +224,7 @@ var testPowNetGenesisCoinbaseTx = types.Transaction{}
 
 // testNetGenesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the test network.
-var testPowNetGenesisMerkleRoot = testPowNetGenesisCoinbaseTx.TxHash()
+var testPowNetGenesisMerkleRoot = testPowNetGenesisCoinbaseTx.TxHashFull()
 
 // testNetGenesisBlock defines the genesis block of the block chain which
 // serves as the public transaction ledger for the test network (version 3).
