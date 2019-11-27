@@ -796,6 +796,26 @@ func (bd *BlockDAG) checkLayerGap(parents []*hash.Hash) bool {
 	return true
 }
 
+// Checking the sub main chain for the parents of tip
+func (bd *BlockDAG) CheckSubMainChainTip(parents []*hash.Hash) (uint, bool) {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	if len(parents) == 0 {
+		return 0, false
+	}
+
+	parentsSet := NewHashSet()
+	parentsSet.AddList(parents)
+	mainParent := bd.instance.GetMainParent(parentsSet)
+	virtualHeight := mainParent.GetHeight() + 1
+
+	if virtualHeight >= bd.getMainChainTip().GetHeight() {
+		return virtualHeight, true
+	}
+	return 0, false
+}
+
 // Checking the parents of block legitimacy
 func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
 	if len(parents) == 0 {
