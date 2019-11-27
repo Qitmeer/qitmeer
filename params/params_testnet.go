@@ -63,7 +63,7 @@ var TestNetParams = Params{
 	RetargetAdjustmentFactor: 2,                      // equal to 2 hour vs. 4
 
 	// Subsidy parameters.
-	BaseSubsidy:              6500000000, // 65 Coin , daily supply is 65*4*60*24 = 374400 ~ 374400 * 3(DAG factor)
+	BaseSubsidy:              6500000000, // 65 Coin , daily supply is 65*4*60*24 = 374400 ~ 374400 * 6(DAG factor)
 	MulSubsidy:               100,
 	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 3081353 blocks created
 	SubsidyReductionInterval: 3081353,        // 65 * 3081353 (blocks) *= 200287911 (200M) -> 534 ~ 178 days
