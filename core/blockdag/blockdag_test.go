@@ -144,7 +144,7 @@ func InitBlockDAG(dagType string, graph string) (IBlockDAG, map[string]*hash.Has
 		return nil, nil
 	}
 	bd = BlockDAG{}
-	instance := bd.Init(dagType, CalcBlockWeight)
+	instance := bd.Init(dagType, CalcBlockWeight, -1)
 	tbMap := map[string]*hash.Hash{}
 	for i := 0; i < blen; i++ {
 		parents := []*hash.Hash{}

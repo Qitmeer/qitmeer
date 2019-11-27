@@ -271,7 +271,8 @@ func New(config *Config) (*BlockChain, error) {
 	b.subsidyCache = NewSubsidyCache(0, b.params)
 
 	b.bd = &blockdag.BlockDAG{}
-	b.bd.Init(config.DAGType, b.subsidyCache.CalcBlockSubsidy)
+	b.bd.Init(config.DAGType, b.subsidyCache.CalcBlockSubsidy,
+		1.0/float64(par.TargetTimePerBlock/time.Second))
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.

@@ -11,9 +11,13 @@ import (
 )
 
 const (
-	BlockDelay    = 15
-	BlockRate     = 0.02
-	SecurityLevel = 0.01
+	BlockDelay       = 15
+	DefaultBlockRate = 0.02
+	SecurityLevel    = 0.01
+)
+
+var (
+	BlockRate = DefaultBlockRate
 )
 
 type Phantom struct {
@@ -37,8 +41,7 @@ func (ph *Phantom) GetName() string {
 
 func (ph *Phantom) Init(bd *BlockDAG) bool {
 	ph.bd = bd
-
-	ph.anticoneSize = anticone.GetSize(BlockDelay, BlockRate, SecurityLevel)
+	ph.anticoneSize = anticone.GetSize(BlockDelay, bd.blockRate, SecurityLevel)
 
 	if log != nil {
 		log.Info(fmt.Sprintf("anticone size:%d", ph.anticoneSize))

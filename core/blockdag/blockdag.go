@@ -160,6 +160,9 @@ type BlockDAG struct {
 
 	//
 	calcWeight CalcWeight
+
+	// blocks per second
+	blockRate float64
 }
 
 // Acquire the name of DAG instance
@@ -173,13 +176,17 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 }
 
 // Initialize self, the function to be invoked at the beginning
-func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight) IBlockDAG {
-	bd.instance = NewBlockDAG(dagType)
-	bd.instance.Init(bd)
-
+func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64) IBlockDAG {
 	bd.lastTime = time.Unix(time.Now().Unix(), 0)
 
 	bd.calcWeight = calcWeight
+
+	bd.blockRate = blockRate
+	if bd.blockRate < 0 {
+		bd.blockRate = DefaultBlockRate
+	}
+	bd.instance = NewBlockDAG(dagType)
+	bd.instance.Init(bd)
 	return bd.instance
 }
 

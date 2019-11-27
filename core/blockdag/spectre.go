@@ -260,7 +260,7 @@ func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 	}
 	sb := &SpectreBlockData{hash: vh}
 	vp := &BlockDAG{}
-	vp.Init(spectre, nil)
+	vp.Init(spectre, nil, -1)
 	vp.AddBlock(sb)
 	visited = NewHashSet()
 
