@@ -13,12 +13,20 @@
 # Folders
 vendor
 bin
+build
 
 # Binaries
 qitmeer
 qitmeer.exe
-tools/payledger/payledger
 *.zip
+*.tar.gz
+cmd/findcheckpoint/findcheckpoint
+cmd/ngen/ngen
+cmd/nx-eth/nx-eth
+cmd/nx-hd/nx-hd
+cmd/payledger/payledger
+cmd/qitmeerd/qitmeerd
+cmd/rlpdump/rlpdump
 
 # Go
 go.sum

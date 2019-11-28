@@ -40,17 +40,17 @@ accessible from command line.
 Check your golang version
 
 ```bash
-~ go version
-go version go1.12 darwin/amd64
+$ go version
+go version go1.13.4 darwin/amd64
 ```
 ```bash
 ~ mkdir -p /tmp/work
 ~ cd /tmp/work
 ~ git clone https://github.com/Qitmeer/qitmeer.git
 ~ cd qitmeer
-~ go build
-~ ./qitmeerd --version
-qitmeer version 0.3.0+dev (Go version go1.12)
+~ make
+~ ./build/bin/qitmeer --version
+qitmeer version 0.8.2+dev-f45bcf8 (Go version go1.13.4)
 ```
 
 ### How to fix `golang.org unrecognized` Issue
