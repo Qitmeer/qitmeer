@@ -9,6 +9,8 @@ GOFLAGS_DEV = -ldflags "$(LDFLAG_DEV)"
 GOFLAGS_RELEASE = -ldflags "$(LDFLAG_RELEASE)"
 VERSION=$(shell ./build/bin/qitmeer --version | grep ^qitmeer | cut -d' ' -f3|cut -d'+' -f1)
 
+GOBIN = ./build/bin
+
 #target-dash=$(word $2,$(subst /, ,$1))
 
 
@@ -26,25 +28,29 @@ RELEASE_TARGETS=$(EXECUTABLES) $(COMPRESSED_EXECUTABLES)
 
 .PHONY: qitmeer qx release
 
-qitmeer: 
-	@go build -o ./build/bin/qitmeer $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
+qitmeer: qitmeer-build
+	@echo "Done building."
+	@echo "  $(shell $(GOBIN)/qitmeer --version))"
+	@echo "Run \"$(GOBIN)/qitmeer\" to launch."
 
+qitmeer-build:
+	@go build -o $(GOBIN)/qitmeer $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
 qx:
-	@go build -o ./build/bin/qx "github.com/Qitmeer/qitmeer/cmd/qx"
+	@go build -o $(GOBIN)/qx "github.com/Qitmeer/qitmeer/cmd/qx"
 
-checkversion: qitmeer 
-	@echo version $(VERSION)
+checkversion: qitmeer-build
+#	@echo version $(VERSION)
 
-all : qitmeer qx 
+all: qitmeer-build qx
 
 # amd64 release
 build/release/%: OS=$(word 3,$(subst /, ,$(@)))
 build/release/%: ARCH=$(word 4,$(subst /, ,$(@)))
 build/release/%/$(EXECUTABLE):
-	@echo build $(@) 
+	@echo Build $(@)
 	@GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS_RELEASE) -o $(@) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
 build/release/%/$(EXECUTABLE).exe:
-	@echo build $(@) 
+	@echo Build $(@)
 	@GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS_RELEASE) -o $(@) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
 
 #build/release/linux/amd64/bin/$(EXECUTABLE):
@@ -73,7 +79,7 @@ build/release/%/$(EXECUTABLE).exe:
 	@echo tar $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH)
 	@tar -zcvf $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH).tar.gz "$<"
 release: clean checkversion
-#	@echo $(RELEASE_TARGETS)
+	@echo "Build release version : $(VERSION)"
 	@$(MAKE) $(RELEASE_TARGETS)
 	@shasum -a 512 $(EXECUTABLES)
 	@shasum -a 512 qitmeer-*
