@@ -83,6 +83,8 @@ release: clean checkversion
 	@$(MAKE) $(RELEASE_TARGETS)
 	@shasum -a 512 $(EXECUTABLES)
 	@shasum -a 512 qitmeer-*
+checksum: checkversion
+	@cat RELEASE.md |grep "$(VERSION) SHA512" -A 8|tail -6|shasum -c
 clean:
 	@rm -f *.zip
 	@rm -f *.tar.gz
