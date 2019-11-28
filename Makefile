@@ -8,11 +8,7 @@ LDFLAG_RELEASE = -X github.com/Qitmeer/qitmeer/version.Build=$(RELEASE)
 GOFLAGS_DEV = -ldflags "$(LDFLAG_DEV)"
 GOFLAGS_RELEASE = -ldflags "$(LDFLAG_RELEASE)"
 VERSION=$(shell ./build/bin/qitmeer --version | grep ^qitmeer | cut -d' ' -f3|cut -d'+' -f1)
-
 GOBIN = ./build/bin
-
-#target-dash=$(word $2,$(subst /, ,$1))
-
 
 UNIX_EXECUTABLES := \
 	build/release/darwin/amd64/bin/$(EXECUTABLE) \
@@ -53,29 +49,10 @@ build/release/%/$(EXECUTABLE).exe:
 	@echo Build $(@)
 	@GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS_RELEASE) -o $(@) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
 
-#build/release/linux/amd64/bin/$(EXECUTABLE):
-#	GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS_RELEASE) -o $(@) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
-#build/release/windows/amd64/bin/$(EXECUTABLE).exe:
-#	GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS_RELEASE) -o $(@) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
-#
-#
-#qitmeer-%: OS=$(call target-dash,$(*),1)
-#qitmeer-%: ARCH=$(call target-dash,$(*),2)
-#qitmeer-%: OUT=./build/$(RELEASE)/$(OS)/$(ARCH)/bin/qitmeer
-#qitmeer-%:
-#	GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS_RELEASE) -o $(OUT) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
-#qitmeer-all: qitmeer-darwin-amd64 qitmeer-windows-amd64 qitmeer-linux-amd64
-#	@echo "Full cross compilation done"
-
 %.zip: %.exe
-#	@echo target=$(@)
-#	@echo OS=$(OS)
-#	@echo ARCH=$(ARCH)
-#	@echo VERSION=$(VERSION)
 	@echo zip $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH)
 	@zip $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH).zip "$<"
 %.tar.gz : %
-#	@echo target=$(@)
 	@echo tar $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH)
 	@tar -zcvf $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH).tar.gz "$<"
 release: clean checkversion
