@@ -320,8 +320,13 @@ function get_result(){
   if [ -z "$port" ]; then
      port=1234
   fi
-  local user="test"
-  local pass="test"
+  if [ -z "$user" ]; then
+     user="test"
+  fi
+  if [ -z "$pass" ]; then
+     pass="test"
+  fi
+
   local data=$1
   local current_result=$(curl -s -k -u "$user:$pass" -X POST -H 'Content-Type: application/json' --data $data $proto://$host:$port)
   local result=$(echo $current_result|jq -r -M '.result')
@@ -587,6 +592,14 @@ while [ $# -gt 0 ] ;do
     -p)
       port=$2
       #echo "port is $port"
+      shift;;
+    --user)
+      user=$2
+      #echo "user is $user"
+      shift;;
+    --password)
+      pass=$2
+      #echo "pass is $pass"
       shift;;
     -D)
       DEBUG=1
