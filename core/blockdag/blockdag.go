@@ -811,6 +811,12 @@ func (bd *BlockDAG) CheckSubMainChainTip(parents []*hash.Hash) (uint, bool) {
 	if len(parents) == 0 {
 		return 0, false
 	}
+	for _, v := range parents {
+		ib := bd.getBlock(v)
+		if ib == nil {
+			return 0, false
+		}
+	}
 
 	parentsSet := NewHashSet()
 	parentsSet.AddList(parents)
