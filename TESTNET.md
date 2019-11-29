@@ -1,11 +1,13 @@
 Table of Contents
 =================
+
    * [Qitmeer Testnet](#qitmeer-testnet)
-      * [v0.8.2 2019/11/26 (Planed)](#v082-20191126-planed)
-         * [Reward Plan](#reward-plan)
+      * [v0.8.2 2019/11/29](#v082-20191129)
+         * [0.8.2 Reward Plan](#082-reward-plan)
+      * [v0.8.1 2019/11/20](#v081-20191120)
+         * [0.8.1 Reward](#081-reward)
             * [Reward 162 blocks from 18800 to 35000 of 0.8.0 &amp; 0.8.1 testnet](#reward-162-blocks-from-18800-to-35000-of-080--081-testnet)
             * [The Ledger recovery](#the-ledger-recovery)
-      * [v0.8.1 2019/11/20](#v081-20191120)
          * [HLC Token destroyed result](#hlc-token-destroyed-result)
       * [v0.8.0 2019/11/14](#v080-20191114)
          * [TxsVaild Status](#txsvaild-status)
@@ -14,14 +16,14 @@ Table of Contents
 
 # Qitmeer Testnet
 
-## v0.8.2 2019/11/26 (Planed)
+## v0.8.2 2019/11/29
 
 | Internal Testnet   |     Info             |
 | -------------------|----------------------|
-| **Testnet Type**   | Internal             |
+| **Testnet Type**   | Public               |
 | **Version**        | *0.8.2*              |
 | **Source**         | |
-| **Start Date**     | 2019/11/26 (Planned) |
+| **Start Date**     | 2019/11/29 Fri Nov 29 18:00:00 CST|
 | **End Date**       | |
 | **blockOne Hash**  | UNKNOWN |
 | **Data CleanUp**   | YES |
@@ -29,7 +31,27 @@ Table of Contents
 | **Ledger recovery**| YES|
 | **Remarks**        | txsvaild test finished & the community mining reward|
 
-### Reward Plan
+### 0.8.2 Reward Plan
+  - There are 5% reward blocks of the block 1 to block 60000, 65 PMEER/Block.
+  - The miner who minered block amount larger than 20 will be rewarded,  one block for every 20 mined blocks.
+  - The reward will be sent by the genesis block when the offical testnet launched.
+
+## v0.8.1 2019/11/20
+
+| Internal Testnet   |     Info             |
+| -------------------|----------------------|
+| **Testnet Type**   | Internal             |
+| **Version**        | *0.8.1*              |
+| **Source**         | |
+| **Start Date**     | 2019/11/20 Wed Nov 20 20:00:00 CST|
+| **End Date**       | |
+| **blockOne Hash**  | 2b9a36bb6fd1fa47a19cf822d93eca7df0a9f5000937e2ab87eb30b2b803c4d7|
+| **Data CleanUp**   | NO |
+| **CleanUP Reason** | NO |
+| **Ledger recovery**| NO NEED|
+| **Remarks**        | the destroy finished |
+
+### 0.8.1 Reward
 
 #### Reward 162 blocks from 18800 to 35000 of 0.8.0 & 0.8.1 testnet
 
@@ -70,21 +92,6 @@ The 162 blocks are mined in the 0.8.0 & 0.8.1 testnet, Please [see here for deta
  - ~Genesis block will send ??? PMEER to the owner of the special block.~
 
 [vote]:https://www.qitmeertalk.org/t/qitmeer-0-8-1/949/24
-
-## v0.8.1 2019/11/20
-
-| Internal Testnet   |     Info             |
-| -------------------|----------------------|
-| **Testnet Type**   | Internal             |
-| **Version**        | *0.8.1*              |
-| **Source**         | |
-| **Start Date**     | 2019/11/20 Wed Nov 20 20:00:00 CST|
-| **End Date**       | |
-| **blockOne Hash**  | 2b9a36bb6fd1fa47a19cf822d93eca7df0a9f5000937e2ab87eb30b2b803c4d7|
-| **Data CleanUp**   | NO |
-| **CleanUP Reason** | NO |
-| **Ledger recovery**| NO NEED|
-| **Remarks**        | the destroy finished |
 
 ### HLC Token destroyed result
 
