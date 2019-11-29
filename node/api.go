@@ -20,11 +20,18 @@ import (
 	"time"
 )
 
-func (nf *QitmeerFull) API() rpc.API {
-	return rpc.API{
-		NameSpace: rpc.DefaultServiceNameSpace,
-		Service:   NewPublicBlockChainAPI(nf),
-		Public:    true,
+func (nf *QitmeerFull) apis() []rpc.API {
+	return []rpc.API{
+		{
+			NameSpace: rpc.DefaultServiceNameSpace,
+			Service:   NewPublicBlockChainAPI(nf),
+			Public:    true,
+		},
+		{
+			NameSpace: rpc.TestNameSpace,
+			Service:   NewPrivateBlockChainAPI(nf),
+			Public:    false,
+		},
 	}
 }
 
@@ -40,9 +47,9 @@ func NewPublicBlockChainAPI(node *QitmeerFull) *PublicBlockChainAPI {
 func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	best := api.node.blockManager.GetChain().BestSnapshot()
 	node := api.node.blockManager.GetChain().BlockIndex().LookupNode(&best.Hash)
-	blake2bdNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node,pow.BLAKE2BD)
-	cuckarooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node,pow.CUCKAROO)
-	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node,pow.CUCKATOO)
+	blake2bdNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.BLAKE2BD)
+	cuckarooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKAROO)
+	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKATOO)
 	ret := &json.InfoNodeResult{
 		UUID:            message.UUID.String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
@@ -75,7 +82,7 @@ func getDifficultyRatio(target *big.Int, params *params.Params, powType pow.PowT
 	// with the compact form which loses precision.
 	base := instance.GetSafeDiff(0)
 	var difficulty *big.Rat
-	if powType == pow.BLAKE2BD{
+	if powType == pow.BLAKE2BD {
 		difficulty = new(big.Rat).SetFrac(base, target)
 	} else {
 		difficulty = new(big.Rat).SetFrac(target, base)
@@ -146,8 +153,16 @@ func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 	return nil
 }
 
+type PrivateBlockChainAPI struct {
+	node *QitmeerFull
+}
+
+func NewPrivateBlockChainAPI(node *QitmeerFull) *PrivateBlockChainAPI {
+	return &PrivateBlockChainAPI{node}
+}
+
 // Stop the node
-func (api *PublicBlockChainAPI) Stop() (interface{}, error) {
+func (api *PrivateBlockChainAPI) Stop() (interface{}, error) {
 	select {
 	case api.node.node.rpcServer.RequestedProcessShutdown() <- struct{}{}:
 	default:

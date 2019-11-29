@@ -81,7 +81,7 @@ func (qm *QitmeerFull) APIs() []rpc.API {
 	apis = append(apis, qm.cpuMiner.APIs()...)
 	apis = append(apis, qm.blockManager.API())
 	apis = append(apis, qm.txManager.APIs()...)
-	apis = append(apis, qm.API())
+	apis = append(apis, qm.apis()...)
 	return apis
 }
 func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {

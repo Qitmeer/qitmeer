@@ -272,7 +272,7 @@ function get_orphans_total(){
 }
 
 function get_stop_node(){
-  local data='{"jsonrpc":"2.0","method":"stop","params":[],"id":null}'
+  local data='{"jsonrpc":"2.0","method":"test_stop","params":[],"id":null}'
   get_result "$data"
 }
 
