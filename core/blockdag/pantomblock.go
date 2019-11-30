@@ -56,6 +56,11 @@ func (pb *PhantomBlock) Encode(w io.Writer) error {
 		if err != nil {
 			return err
 		}
+		order := pb.blueDiffAnticone.Get(blueDiffAnticone[i]).(uint)
+		err = s.WriteElements(w, uint32(order))
+		if err != nil {
+			return err
+		}
 	}
 	// redDiffAnticone
 	redDiffAnticone := []*hash.Hash{}
@@ -69,6 +74,11 @@ func (pb *PhantomBlock) Encode(w io.Writer) error {
 	}
 	for i := 0; i < redDiffAnticoneSize; i++ {
 		err = s.WriteElements(w, redDiffAnticone[i])
+		if err != nil {
+			return err
+		}
+		order := pb.redDiffAnticone.Get(redDiffAnticone[i]).(uint)
+		err = s.WriteElements(w, uint32(order))
 		if err != nil {
 			return err
 		}
@@ -104,7 +114,14 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 			if err != nil {
 				return err
 			}
-			pb.blueDiffAnticone.Add(&bda)
+
+			var order uint32
+			err = s.ReadElements(r, &order)
+			if err != nil {
+				return err
+			}
+
+			pb.blueDiffAnticone.AddPair(&bda, order)
 		}
 	}
 
@@ -122,7 +139,13 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 			if err != nil {
 				return err
 			}
-			pb.redDiffAnticone.Add(&bda)
+			var order uint32
+			err = s.ReadElements(r, &order)
+			if err != nil {
+				return err
+			}
+
+			pb.redDiffAnticone.AddPair(&bda, order)
 		}
 	}
 
