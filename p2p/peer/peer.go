@@ -357,9 +357,9 @@ func (p *Peer) Services() protocol.ServiceFlag {
 // This function is safe for concurrent access.
 func (p *Peer) PushGetBlocksMsg(sgs *blockdag.GraphState, blocks []*hash.Hash) error {
 	gs := sgs.Clone()
-	ok, bs := p.prevGet.Check(p, gs, blocks)
+	ok, bs := p.PrevGet.CheckBlocks(p, gs, blocks)
 	if !ok {
-		return nil
+		return fmt.Errorf("duplicate")
 	}
 	// Construct the getblocks request and queue it to be sent.
 	msg := message.NewMsgGetBlocks(gs)
@@ -373,7 +373,7 @@ func (p *Peer) PushGetBlocksMsg(sgs *blockdag.GraphState, blocks []*hash.Hash) e
 	p.QueueMessage(msg, nil)
 	// Update the previous getblocks request information for filtering
 	// duplicates.
-	p.prevGet.Update(gs, blocks)
+	p.PrevGet.UpdateBlocks(blocks)
 	return nil
 }
 
@@ -382,7 +382,7 @@ func (p *Peer) PushGetBlocksMsg(sgs *blockdag.GraphState, blocks []*hash.Hash) e
 // This function is safe for concurrent access.
 func (p *Peer) PushGetHeadersMsg(sgs *blockdag.GraphState, blocks []*hash.Hash) error {
 	gs := sgs.Clone()
-	ok, bs := p.prevGetHdrs.Check(p, gs, blocks)
+	ok, bs := p.prevGetHdrs.CheckBlocks(p, gs, blocks)
 	if !ok {
 		return nil
 	}
@@ -398,7 +398,7 @@ func (p *Peer) PushGetHeadersMsg(sgs *blockdag.GraphState, blocks []*hash.Hash) 
 	p.QueueMessage(msg, nil)
 	// Update the previous getblocks request information for filtering
 	// duplicates.
-	p.prevGetHdrs.Update(gs, blocks)
+	p.prevGetHdrs.UpdateBlocks(blocks)
 	return nil
 }
 
@@ -510,7 +510,7 @@ func (p *Peer) LastAnnouncedBlock() *hash.Hash {
 
 func (p *Peer) CleanGetBlocksSet() {
 	p.statsMtx.RLock()
-	p.prevGet.Clean()
+	p.PrevGet.Clean()
 	p.prevGetHdrs.Clean()
 	p.statsMtx.RUnlock()
 }
@@ -632,5 +632,13 @@ func (p *Peer) Cfg() *Config {
 func (p *Peer) PushGraphStateMsg(gs *blockdag.GraphState) error {
 	msg := message.NewMsgGraphState(gs)
 	p.QueueMessage(msg, nil)
+	return nil
+}
+
+func (p *Peer) PushSyncDAGMsg(sgs *blockdag.GraphState, mainLocator []*hash.Hash) error {
+	gs := sgs.Clone()
+	msg := message.NewMsgSyncDAG(gs, mainLocator)
+	p.QueueMessage(msg, nil)
+	p.PrevGet.UpdateGS(gs, mainLocator)
 	return nil
 }

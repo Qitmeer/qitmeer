@@ -59,6 +59,9 @@ const (
 
 	CmdMemPool      = "mempool"
 	CmdGraphState   = "graphstate"
+	CmdSyncResult   = "syncresult"
+	CmdSyncDAG      = "syncdag"
+	CmdSyncPoint    = "syncpoint"
 	CmdSendHeaders  = "sendheaders"
 	CmdFeeFilter    = "feefilter"
 	CmdGetCFilter   = "getcfilter"
@@ -123,6 +126,12 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgGraphState{}
 	case CmdMemPool:
 		msg = &MsgMemPool{}
+	case CmdSyncResult:
+		msg = &MsgSyncResult{}
+	case CmdSyncDAG:
+		msg = &MsgSyncDAG{}
+	case CmdSyncPoint:
+		msg = &MsgSyncPoint{}
 	/*
 		case CmdSendHeaders:
 			msg = &MsgSendHeaders{}
