@@ -5,7 +5,6 @@
 package message
 
 import (
-	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -21,7 +20,6 @@ func (msg *MsgSyncDAG) Decode(r io.Reader, pver uint32) error {
 	var count uint64
 	err := s.ReadElements(r, &count)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	msg.MainLocator = []*hash.Hash{}
@@ -42,7 +40,6 @@ func (msg *MsgSyncDAG) Decode(r io.Reader, pver uint32) error {
 }
 
 func (msg *MsgSyncDAG) Encode(w io.Writer, pver uint32) error {
-	fmt.Println(uint64(len(msg.MainLocator)))
 	err := s.WriteElements(w, uint64(len(msg.MainLocator)))
 	if err != nil {
 		return err
