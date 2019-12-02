@@ -50,26 +50,6 @@ func (b *BlockChain) LatestBlockLocator() (BlockLocator, error) {
 	return locator, nil
 }
 
-// LocateBlocks returns the hashes of the blocks after the first known block in
-// the locator until the provided stop hash is reached, or up to the provided
-// max number of block hashes.
-//
-// In addition, there are two special cases:
-//
-// - When no locators are provided, the stop hash is treated as a request for
-//   that block, so it will either return the stop hash itself if it is known,
-//   or nil if it is unknown
-// - When locators are provided, but none of them are known, hashes starting
-//   after the genesis block will be returned
-//
-// This function is safe for concurrent access.
-func (b *BlockChain) LocateBlocks(gs *blockdag.GraphState, maxHashes uint32) []*hash.Hash {
-	b.chainLock.RLock()
-	hashes := b.bd.LocateBlocks(gs, uint(maxHashes))
-	b.chainLock.RUnlock()
-	return hashes
-}
-
 // locateBlocks returns the hashes of the blocks after the first known block in
 // the locator until the provided stop hash is nearby, or up to the provided
 // max number of block hashes.

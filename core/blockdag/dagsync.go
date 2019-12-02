@@ -26,14 +26,14 @@ type DAGSync struct {
 }
 
 // CalcSyncBlocks
-func (ds *DAGSync) CalcSyncBlocks(gs *GraphState, locator []*hash.Hash, mode SyncMode, maxHashes uint) []*hash.Hash {
+func (ds *DAGSync) CalcSyncBlocks(gs *GraphState, locator []*hash.Hash, mode SyncMode, maxHashes uint) ([]*hash.Hash, *hash.Hash) {
 	ds.bd.stateLock.Lock()
 	defer ds.bd.stateLock.Unlock()
 
-	result := []*hash.Hash{}
 	if mode == DirectMode {
+		result := []*hash.Hash{}
 		if len(locator) == 0 {
-			return result
+			return result, nil
 		}
 		for _, v := range locator {
 			if ds.bd.hasBlock(v) {
@@ -43,11 +43,39 @@ func (ds *DAGSync) CalcSyncBlocks(gs *GraphState, locator []*hash.Hash, mode Syn
 		if len(result) >= 2 {
 			result = ds.bd.sortBlock(result)
 		}
-	} else {
-		//result = ds.bd.LocateBlocks(gs, message.MaxBlockLocatorsPerMsg)
+		return result, nil
 	}
 
-	return result
+	var point IBlock
+	for i := len(locator) - 1; i >= 0; i-- {
+		mainBlock := ds.bd.getBlock(locator[i])
+		if mainBlock == nil {
+			continue
+		}
+		if !ds.bd.isOnMainChain(mainBlock.GetHash()) {
+			continue
+		}
+		point = mainBlock
+		break
+	}
+
+	if point == nil {
+		point = ds.bd.getGenesis()
+	}
+	//
+	isSubDAG := false
+	for k, _ := range gs.tips.GetMap() {
+		gst := ds.bd.getBlock(&k)
+		if gst == nil || !gst.IsOrdered() {
+			continue
+		}
+		isSubDAG = true
+		break
+	}
+	if isSubDAG {
+		return ds.bd.locateBlocks(gs, maxHashes), point.GetHash()
+	}
+	return ds.getBlockChainFromMain(point, maxHashes), point.GetHash()
 }
 
 // GetMainLocator
@@ -136,6 +164,22 @@ func (ds *DAGSync) GetMainLocator(point *hash.Hash) []*hash.Hash {
 	}
 
 	return locator
+}
+
+func (ds *DAGSync) getBlockChainFromMain(point IBlock, maxHashes uint) []*hash.Hash {
+	mainTip := ds.bd.getMainChainTip()
+	result := []*hash.Hash{}
+	for i := point.GetOrder() + 1; i <= mainTip.GetOrder(); i++ {
+		block := ds.bd.instance.GetBlockByOrder(i)
+		if block == nil {
+			continue
+		}
+		result = append(result, block)
+		if uint(len(result)) >= maxHashes {
+			break
+		}
+	}
+	return result
 }
 
 // NewDAGSync

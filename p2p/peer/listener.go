@@ -92,6 +92,15 @@ type MessageListeners struct {
 
 	// OnMemPool is invoked when a peer receives a mempool wire message.
 	OnMemPool func(p *Peer, msg *message.MsgMemPool)
+
+	// OnSyncResult is invoked when a peer receives a getblocks wire message.
+	OnSyncResult func(p *Peer, msg *message.MsgSyncResult)
+
+	// OnSyncDAG
+	OnSyncDAG func(p *Peer, msg *message.MsgSyncDAG)
+
+	// OnSyncPoint
+	OnSyncPoint func(p *Peer, msg *message.MsgSyncPoint)
 	/*
 		// OnSendHeaders is invoked when a peer receives a sendheaders message.
 		OnSendHeaders func(p *Peer, msg *message.MsgSendHeaders)
