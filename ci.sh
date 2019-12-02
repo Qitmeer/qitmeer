@@ -17,6 +17,9 @@ go test $linter_targets
 
 if [[ $TRAVIS_PULL_REQUEST != 'false' || $TRAVIS_REPO_SLUG != 'Qitmeer/qitmeer' || $TRAVIS_BRANCH != 'master' ]];
 then
+    cd ./cmd/qitmeerd && \
+    go build && \
+    ./qitmeerd --version && \
     exit 0
 fi
 
@@ -36,7 +39,7 @@ fi
 
 mkdir -p bin/build
 
-docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name -e GO111MODULE=on $baseimage_name go build -o ./bin/build/qitmeerd && \
+docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name/cmd/qitmeerd -e GO111MODULE=on $baseimage_name go build -o ./../../bin/build/qitmeerd && \
 
 # create launch
 
