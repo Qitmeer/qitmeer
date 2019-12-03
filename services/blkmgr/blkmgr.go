@@ -299,10 +299,16 @@ func (b *BlockManager) current() bool {
 		return true
 	}
 
+
+	if b.syncPeer.LastGS().IsSame(b.chain.BestSnapshot().GraphState) {
+		log.Info("comparing the current best vs. sync last, they are same",
+			"current.best", b.chain.BestSnapshot().GraphState.String(), "sync.last", b.syncPeer.LastGS().String())
+		return true
+	}
 	// No matter what chain thinks, if we are below the block we are syncing
 	// to we are not current.
 	if b.syncPeer.LastGS().IsExcellent(b.chain.BestSnapshot().GraphState) {
-		log.Trace("comparing the current best vs sync last",
+		log.Info("comparing the current best vs sync last, sync is excel than current best",
 			"current.best", b.chain.BestSnapshot().GraphState.String(), "sync.last", b.syncPeer.LastGS().String())
 		return false
 	}
@@ -414,6 +420,10 @@ func (b *BlockManager) fetchHeaderBlocks() {
 func (b *BlockManager) haveInventory(invVect *message.InvVect) (bool, error) {
 	switch invVect.Type {
 	case message.InvTypeBlock:
+		// Ask chain if the block is known to it in any form (main
+		// chain, side chain, or orphan).
+		return b.chain.HaveBlock(&invVect.Hash)
+	case message.InvTypeAiringBlock:
 		// Ask chain if the block is known to it in any form (main
 		// chain, side chain, or orphan).
 		return b.chain.HaveBlock(&invVect.Hash)

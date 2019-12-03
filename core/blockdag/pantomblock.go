@@ -121,7 +121,7 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 				return err
 			}
 
-			pb.blueDiffAnticone.AddPair(&bda, order)
+			pb.blueDiffAnticone.AddPair(&bda, uint(order))
 		}
 	}
 
@@ -145,7 +145,7 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 				return err
 			}
 
-			pb.redDiffAnticone.AddPair(&bda, order)
+			pb.redDiffAnticone.AddPair(&bda, uint(order))
 		}
 	}
 

@@ -550,11 +550,13 @@ func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 	//
 	ob, exists := b.orphans[*h]
 	if !exists {
+		log.Info(fmt.Sprintf("GetRecentOrphanParents not found hash %v in the orphans list",h))
 		return nil
 	}
 	maxTimestamp := b.timeSource.AdjustedTime().Add(time.Second *
 		MaxOrphanTimeOffsetSeconds)
 	if ob.block.Block().Header.Timestamp.After(maxTimestamp) {
+		log.Info(fmt.Sprintf("GetRecentOrphanParents found hash %v in the orphans list, but %v after %v",h, maxTimestamp, ob.block.Block().Header.Timestamp))
 		return nil
 	}
 
@@ -566,7 +568,7 @@ func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 		}
 		result.Add(h)
 	}
-
+	log.Info(fmt.Sprintf("GetRecentOrphanParents result list %v",result))
 	return result.List()
 }
 
