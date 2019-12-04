@@ -299,7 +299,7 @@ func New(config *Config) (*BlockChain, error) {
 	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d mainOrder=%d total=%d", b.BestSnapshot().TotalTxns, len(tips), b.bd.GetMainChainTip().GetOrder(), b.bd.GetBlockTotal()))
 
 	for _, v := range tips {
-		tnode := b.index.lookupNode(v.GetHash())
+		tnode := b.index.LookupNode(v.GetHash())
 		log.Info(fmt.Sprintf("hash=%v,order=%s,work=%v", tnode.hash, blockdag.GetOrderLogStr(uint(tnode.GetOrder())), tnode.workSum))
 	}
 
@@ -475,7 +475,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 
 		// Set the best chain view to the stored best state.
 		// Load the raw block bytes for the best block.
-		mainTip := b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
+		mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
@@ -638,7 +638,7 @@ func (b *BlockChain) isCurrent() bool {
 	// The chain appears to be current if none of the checks reported
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
-	lastNode := b.index.lookupNode(lastBlock.GetHash())
+	lastNode := b.index.LookupNode(lastBlock.GetHash())
 	return lastNode.timestamp >= minus24Hours
 }
 
@@ -1027,7 +1027,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 
 	blockSize := uint64(block.Block().SerializeSize())
 
-	mainTip := b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
+	mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
 
 	state := newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
 		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState())
@@ -1199,7 +1199,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 	dl := len(detachNodes)
 	for i := dl - 1; i >= 0; i-- {
 		n = detachNodes[i]
-		newn := b.index.lookupNode(n.GetHash())
+		newn := b.index.LookupNode(n.GetHash())
 		block, err = b.fetchBlockByHash(&n.hash)
 		if err != nil || n == nil {
 			panic(err.Error())
@@ -1341,7 +1341,7 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 				block.SetHeight(refblock.GetHeight())
 			}
 		} else {
-			refnode = b.index.lookupNode(refHash)
+			refnode = b.index.LookupNode(refHash)
 			if refnode.IsOrdered() {
 				oldOrdersTemp = append(oldOrdersTemp, refnode.Clone())
 			}

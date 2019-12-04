@@ -143,7 +143,7 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 	// Use the current tip if requested.
 	if node == nil {
 		lb := b.bd.GetMainChainTip()
-		node = b.index.lookupNode(lb.GetHash())
+		node = b.index.LookupNode(lb.GetHash())
 		if node == nil {
 			return nil
 		}
@@ -184,7 +184,7 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 		}
 
 		nodeH := b.bd.GetBlockByOrder(uint(height))
-		node = b.index.lookupNode(nodeH)
+		node = b.index.LookupNode(nodeH)
 		// Once 11 entries have been included, start doubling the
 		// distance between included hashes.
 		if len(locator) > 10 {

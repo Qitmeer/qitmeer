@@ -233,17 +233,17 @@ func (b *BlockChain) IsCheckpointCandidate(preBlock, block blockdag.IBlock) (boo
 	if nextBlockH == nil {
 		return false, nil
 	}
-	nextNode := b.index.lookupNode(nextBlockH)
+	nextNode := b.index.LookupNode(nextBlockH)
 	if nextNode == nil {
 		return false, nil
 	}
 
-	preNode := b.index.lookupNode(preBlock.GetHash())
+	preNode := b.index.LookupNode(preBlock.GetHash())
 	if preNode == nil {
 		return false, nil
 	}
 
-	node := b.index.lookupNode(block.GetHash())
+	node := b.index.LookupNode(block.GetHash())
 	if node == nil {
 		return false, nil
 	}

@@ -1119,7 +1119,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	view.SetViewpoints(block.Block().Parents)
 
 	mainParent := newNode.GetMainParent(b)
-	mainParentNode := b.index.lookupNode(mainParent.GetHash())
+	mainParentNode := b.index.LookupNode(mainParent.GetHash())
 	newNode.CalcWorkSum(mainParentNode)
 
 	err = b.checkBlockContext(block, mainParentNode, flags)

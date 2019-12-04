@@ -111,7 +111,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		return ruleError(ErrInValidPowType, str)
 	}
 
-	newNode.CalcWorkSum(b.index.lookupNode(mainParent.GetHash()))
+	newNode.CalcWorkSum(b.index.LookupNode(mainParent.GetHash()))
 	newNode.SetHeight(mainParent.GetHeight() + 1)
 
 	block.SetHeight(newNode.GetHeight())

@@ -78,7 +78,7 @@ func (b *BlockChain) findPrevTestNetDifficulty(startNode *blockNode, powInstance
 			uint64(iterBlock.GetHeight())%blocksPerRetarget == 0 {
 			break
 		}
-		iterNode = b.index.lookupNode(iterBlock.GetHash())
+		iterNode = b.index.LookupNode(iterBlock.GetHash())
 		if iterNode.bits != pow.BigToCompact(target) {
 			break
 		}
@@ -234,7 +234,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 			oldBlock := b.bd.GetBlock(oldNode.GetHash())
 			oldMainParent := b.bd.GetBlock(oldBlock.GetMainParent())
 			if oldMainParent != nil {
-				oldNode = b.index.lookupNode(oldMainParent.GetHash())
+				oldNode = b.index.LookupNode(oldMainParent.GetHash())
 				oldNode = b.getPowTypeNode(oldNode, powInstance.GetPowType())
 			}
 		}
@@ -311,7 +311,7 @@ func (b *BlockChain) calcCurrentPowCount(curNode *blockNode, nodesToTraverse int
 			oldBlock := b.bd.GetBlock(oldNode.GetHash())
 			oldMainParent := b.bd.GetBlock(oldBlock.GetMainParent())
 			if oldMainParent != nil {
-				oldNode = b.index.lookupNode(oldMainParent.GetHash())
+				oldNode = b.index.LookupNode(oldMainParent.GetHash())
 				if oldNode.order != 0 && oldNode.GetPowType() != powType {
 					currentPowBlockCount--
 				}
@@ -365,7 +365,7 @@ func (b *BlockChain) getDistanceFromLastAdjustment(curNode *blockNode, powType p
 		oldBlock := b.bd.GetBlock(curNode.GetHash())
 		oldMainParent := b.bd.GetBlock(oldBlock.GetMainParent())
 		if oldMainParent != nil {
-			curNode = b.index.lookupNode(oldMainParent.GetHash())
+			curNode = b.index.LookupNode(oldMainParent.GetHash())
 		} else {
 			return count
 		}
@@ -395,7 +395,7 @@ func (b *BlockChain) CalcNextRequiredDiffFromNode(hash *hash.Hash, timestamp tim
 func (b *BlockChain) CalcNextRequiredDifficulty(timestamp time.Time, powType pow.PowType) (uint32, error) {
 	b.chainLock.Lock()
 	block := b.bd.GetMainChainTip()
-	node := b.index.lookupNode(block.GetHash())
+	node := b.index.LookupNode(block.GetHash())
 	instance := pow.GetInstance(powType, 0, []byte{})
 	instance.SetParams(b.params.PowConfig)
 	instance.SetMainHeight(int64(node.height + 1))
@@ -420,7 +420,7 @@ func (b *BlockChain) getPowTypeNode(curNode *blockNode, powType pow.PowType) *bl
 		oldBlock := b.bd.GetBlock(curNode.GetHash())
 		oldMainParent := b.bd.GetBlock(oldBlock.GetMainParent())
 		if oldMainParent != nil {
-			curNode = b.index.lookupNode(oldMainParent.GetHash())
+			curNode = b.index.LookupNode(oldMainParent.GetHash())
 		} else {
 			return &blockNode{
 				pow: pow.GetInstance(powType, 0, []byte{}),
@@ -446,7 +446,7 @@ func (b *BlockChain) GetCurrentPowDiff(curNode blockNode, powType pow.PowType) *
 		oldBlock := b.bd.GetBlock(curNode.GetHash())
 		oldMainParent := b.bd.GetBlock(oldBlock.GetMainParent())
 		if oldMainParent != nil {
-			curNode = *b.index.lookupNode(oldMainParent.GetHash())
+			curNode = *b.index.LookupNode(oldMainParent.GetHash())
 		} else {
 			return safeBigDiff
 		}
