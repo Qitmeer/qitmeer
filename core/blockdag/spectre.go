@@ -825,3 +825,8 @@ func (sp *Spectre) Decode(r io.Reader) error {
 func (sp *Spectre) Load(dbTx database.Tx) error {
 	return nil
 }
+
+// IsDAG
+func (sp *Spectre) IsDAG(parents []*hash.Hash) bool {
+	return true
+}

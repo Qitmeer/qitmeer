@@ -369,3 +369,8 @@ func (con *Conflux) Decode(r io.Reader) error {
 func (con *Conflux) Load(dbTx database.Tx) error {
 	return nil
 }
+
+// IsDAG
+func (con *Conflux) IsDAG(parents []*hash.Hash) bool {
+	return true
+}

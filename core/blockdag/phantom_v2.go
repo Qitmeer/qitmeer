@@ -456,3 +456,8 @@ func (ph *Phantom_v2) Decode(r io.Reader) error {
 func (ph *Phantom_v2) Load(dbTx database.Tx) error {
 	return nil
 }
+
+// IsDAG
+func (ph *Phantom_v2) IsDAG(parents []*hash.Hash) bool {
+	return true
+}

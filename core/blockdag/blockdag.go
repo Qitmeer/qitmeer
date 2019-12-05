@@ -123,6 +123,9 @@ type IBlockDAG interface {
 
 	// load
 	Load(dbTx database.Tx) error
+
+	// IsDAG
+	IsDAG(parents []*hash.Hash) bool
 }
 
 // CalcWeight
@@ -275,7 +278,8 @@ func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 // Exclude genesis block
 func (bd *BlockDAG) isDAG(parents []*hash.Hash) bool {
 	return bd.checkLayerGap(parents) &&
-		bd.checkLegality(parents)
+		bd.checkLegality(parents) &&
+		bd.instance.IsDAG(parents)
 }
 
 // Is there a block in DAG?
@@ -967,10 +971,6 @@ func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
 		parentsSet := NewHashSet()
 		parentsSet.AddList(parents)
 
-		vb := &Block{hash: hash.ZeroHash, layer: 0}
-		pb := &PhantomBlock{vb, 0, NewHashSet(), NewHashSet()}
-		pb.parents = NewHashSet()
-
 		// Belonging to close relatives
 		for _, p := range parentsNode {
 			if p.HasParents() {
@@ -985,23 +985,6 @@ func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
 					return false
 				}
 			}
-
-			pb.parents.AddPair(p.GetHash(), p)
-		}
-		// In the past set
-		//vb
-		tp := bd.instance.GetMainParent(parentsSet).(*PhantomBlock)
-		pb.mainParent = tp.GetHash()
-		pb.blueNum = tp.blueNum + 1
-		pb.height = tp.height + 1
-
-		diffAnticone := bd.getDiffAnticone(pb)
-		if diffAnticone == nil {
-			diffAnticone = NewHashSet()
-		}
-		inSet := diffAnticone.Intersection(parentsSet)
-		if inSet.IsEmpty() {
-			return false
 		}
 	}
 
