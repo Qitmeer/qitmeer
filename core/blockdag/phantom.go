@@ -86,10 +86,10 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		pb.height = tp.height + 1
 		pb.weight = tp.GetWeight()
 
-		pbAnticone := ph.bd.getAnticone(pb.Block, nil)
-		tpAnticone := ph.bd.getAnticone(tp.Block, nil)
-		diffAnticone := tpAnticone.Clone()
-		diffAnticone.RemoveSet(pbAnticone)
+		diffAnticone := ph.bd.getDiffAnticone(pb)
+		if diffAnticone == nil {
+			diffAnticone = NewHashSet()
+		}
 
 		ph.calculateBlueSet(pb, diffAnticone)
 
@@ -616,10 +616,10 @@ func (ph *Phantom) GetBlues(parents *HashSet) uint {
 	pb.blueNum = tp.blueNum + 1
 	pb.height = tp.height + 1
 
-	pbAnticone := ph.bd.getParentsAnticone(parents)
-	tpAnticone := ph.bd.getAnticone(tp.Block, nil)
-	diffAnticone := tpAnticone.Clone()
-	diffAnticone.RemoveSet(pbAnticone)
+	diffAnticone := ph.bd.getDiffAnticone(pb)
+	if diffAnticone == nil {
+		diffAnticone = NewHashSet()
+	}
 
 	ph.calculateBlueSet(pb, diffAnticone)
 

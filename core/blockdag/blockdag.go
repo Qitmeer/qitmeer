@@ -657,6 +657,118 @@ func (bd *BlockDAG) getParentsAnticone(parents *HashSet) *HashSet {
 	return anticone
 }
 
+// getTreeTips
+func getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *HashSet) *HashSet {
+	allmainsubdag := mainsubdag.Clone()
+	queue := []IBlock{}
+	for _, v := range root.GetParents().GetMap() {
+		ib := v.(IBlock)
+		queue = append(queue, ib)
+		if genealogy != nil {
+			genealogy.Add(ib.GetHash())
+		}
+	}
+	tips := NewHashSet()
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		if allmainsubdag.Has(cur.GetHash()) {
+			allmainsubdag.AddSet(cur.GetParents())
+		} else {
+			if !cur.HasParents() {
+				tips.AddPair(cur.GetHash(), cur)
+			}
+			if genealogy != nil {
+				genealogy.Add(cur.GetHash())
+			}
+		}
+		if !cur.HasParents() {
+			continue
+		}
+		for _, v := range cur.GetParents().GetMap() {
+			ib := v.(IBlock)
+			queue = append(queue, ib)
+		}
+	}
+	return tips
+}
+
+// getDiffAnticone
+func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
+	if b.GetMainParent() == nil {
+		return nil
+	}
+	parents := b.GetParents()
+	if parents == nil || parents.Size() <= 1 {
+		return nil
+	}
+	num := uint(0)
+	rootBlock := &Block{id: num, hash: *b.GetHash(), parents: NewHashSet()}
+	// find anticone
+	anticone := NewHashSet()
+	mainsubdag := NewHashSet()
+	mainsubdag.Add(bd.GetGenesisHash())
+	mainsubdagTips := NewHashSet()
+
+	for _, v := range parents.GetMap() {
+		ib := v.(IBlock)
+		num++
+		cur := &Block{id: num, hash: *ib.GetHash(), parents: NewHashSet()}
+		if ib.GetHash().IsEqual(b.GetMainParent()) {
+			mainsubdag.Add(ib.GetHash())
+			mainsubdagTips.AddPair(ib.GetHash(), ib)
+		} else {
+			rootBlock.parents.AddPair(cur.GetHash(), cur)
+			anticone.AddPair(cur.GetHash(), cur)
+		}
+	}
+
+	anticoneTips := getTreeTips(rootBlock, mainsubdag, nil)
+
+	for anticoneTips.Size() > 0 {
+		for _, v := range mainsubdagTips.GetMap() {
+			ib := v.(IBlock)
+			if ib.HasParents() {
+				for _, pv := range ib.GetParents().GetMap() {
+					pib := pv.(IBlock)
+					if mainsubdag.Has(pib.GetHash()) {
+						continue
+					}
+					mainsubdag.Add(pib.GetHash())
+					mainsubdagTips.AddPair(pib.GetHash(), pib)
+				}
+			}
+			mainsubdagTips.Remove(ib.GetHash())
+		}
+		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
+		//
+		for _, v := range anticoneTips.GetMap() {
+			tb := v.(*Block)
+			realib := bd.getBlock(tb.GetHash())
+			if realib.HasParents() {
+				for _, pv := range realib.GetParents().GetMap() {
+					pib := pv.(IBlock)
+					var cur *Block
+					if anticone.Has(pib.GetHash()) {
+						cur = anticone.Get(pib.GetHash()).(*Block)
+					} else {
+						num++
+						cur = &Block{id: num, hash: *pib.GetHash(), parents: NewHashSet()}
+						anticone.AddPair(cur.GetHash(), cur)
+					}
+					tb.parents.AddPair(cur.GetHash(), cur)
+				}
+			}
+		}
+		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
+	}
+	result := NewHashSet()
+	getTreeTips(rootBlock, mainsubdag, result)
+	return result
+}
+
 // Sort block by id
 func (bd *BlockDAG) sortBlock(src []*hash.Hash) []*hash.Hash {
 
@@ -854,6 +966,11 @@ func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
 	} else {
 		parentsSet := NewHashSet()
 		parentsSet.AddList(parents)
+
+		vb := &Block{hash: hash.ZeroHash, layer: 0}
+		pb := &PhantomBlock{vb, 0, NewHashSet(), NewHashSet()}
+		pb.parents = NewHashSet()
+
 		// Belonging to close relatives
 		for _, p := range parentsNode {
 			if p.HasParents() {
@@ -868,17 +985,23 @@ func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
 					return false
 				}
 			}
+
+			pb.parents.AddPair(p.GetHash(), p)
 		}
 		// In the past set
-		for _, p := range parentsNode {
-			pAnticone := bd.getAnticone(p, nil)
-			if pAnticone.IsEmpty() {
-				return false
-			}
-			inSet := pAnticone.Intersection(parentsSet)
-			if inSet.IsEmpty() {
-				return false
-			}
+		//vb
+		tp := bd.instance.GetMainParent(parentsSet).(*PhantomBlock)
+		pb.mainParent = tp.GetHash()
+		pb.blueNum = tp.blueNum + 1
+		pb.height = tp.height + 1
+
+		diffAnticone := bd.getDiffAnticone(pb)
+		if diffAnticone == nil {
+			diffAnticone = NewHashSet()
+		}
+		inSet := diffAnticone.Intersection(parentsSet)
+		if inSet.IsEmpty() {
+			return false
 		}
 	}
 
