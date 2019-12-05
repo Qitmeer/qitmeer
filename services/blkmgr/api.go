@@ -289,3 +289,8 @@ func (api *PublicBlockAPI) IsBlue(h hash.Hash) (interface{}, error) {
 	}
 	return 0, nil
 }
+
+// Return IsCurrent
+func (api *PublicBlockAPI) IsCurrent() (interface{}, error) {
+	return api.bm.IsCurrent(), nil
+}

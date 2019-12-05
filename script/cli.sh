@@ -271,8 +271,13 @@ function get_orphans_total(){
   get_result "$data"
 }
 
-function get_stop_node(){
+function stop_node(){
   local data='{"jsonrpc":"2.0","method":"test_stop","params":[],"id":null}'
+  get_result "$data"
+}
+
+function is_current(){
+  local data='{"jsonrpc":"2.0","method":"isCurrent","params":[],"id":null}'
   get_result "$data"
 }
 
@@ -385,6 +390,7 @@ function usage(){
   echo "  weight <hash>"
   echo "  orphanstotal"
   echo "  isblue <hash>   ;return [0:not blue;  1：blue  2：Cannot confirm]"
+  echo "  iscurrent"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txbyhash <hash>"
@@ -692,7 +698,11 @@ elif [ "$1" == "orphanstotal" ]; then
 
 elif [ "$1" == "stop" ]; then
   shift
-  get_stop_node
+  stop_node
+
+elif [ "$1" == "iscurrent" ]; then
+  shift
+  is_current
 
 ## Tx
 elif [ "$1" == "tx" ]; then
