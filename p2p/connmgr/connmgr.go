@@ -294,14 +294,14 @@ func (cm *ConnManager) handleFailedConn(c *ConnReq) {
 				cm.NewConnReq()
 			})
 		} else if cm.failedAttempts >= maxFailedAttempts {
-			log.Trace(fmt.Sprintf("Max %d failed connection attempts reached", maxFailedAttempts))
-			log.Trace(fmt.Sprintf("Retrying connection in: %v", cm.cfg.RetryDuration),
-				"failed", cm.failedAttempts)
+			//log.Trace(fmt.Sprintf("Max %d failed connection attempts reached", maxFailedAttempts))
+			//log.Trace(fmt.Sprintf("Retrying connection in: %v", cm.cfg.RetryDuration),
+			//	"failed", cm.failedAttempts)
 			time.AfterFunc(cm.cfg.RetryDuration, func() {
 				cm.NewConnReq()
 			})
 		} else {
-			log.Trace("Trying new connection", "failed", cm.failedAttempts)
+			//log.Trace("Trying new connection", "failed", cm.failedAttempts)
 			go cm.NewConnReq()
 		}
 	}
@@ -418,7 +418,7 @@ out:
 					continue
 				}
 				connReq.updateState(ConnFailing)
-				log.Debug("Failed to connect", "con", connReq, "error", msg.err)
+				//log.Debug("Failed to connect", "con", connReq, "error", msg.err)
 				cm.handleFailedConn(connReq)
 			}
 
@@ -434,7 +434,7 @@ out:
 // NewConnReq creates a new connection request and connects to the
 // corresponding address.
 func (cm *ConnManager) NewConnReq() {
-	log.Trace("Open new Connection")
+	//log.Trace("Open new Connection")
 	if atomic.LoadInt32(&cm.stop) != 0 {
 		return
 	}
