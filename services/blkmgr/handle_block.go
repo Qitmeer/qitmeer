@@ -148,17 +148,20 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 			}
 		*/
 		isCurrent := b.current()
+		if isCurrent {
+			log.Info(fmt.Sprintf("Your synchronization has been completed. "))
+		}
 		// reset last progress time
+		if len(b.requestedBlocks) == 0 {
+			if isCurrent {
+				if b.syncPeer != nil {
+					b.clearRequestedState(b.syncPeer)
+				}
+				b.updateSyncPeer(false)
+			}
+		}
 		if bmsg.peer == b.syncPeer {
 			b.lastProgressTime = time.Now()
-			if len(bmsg.peer.RequestedBlocks) == 0 {
-				if isCurrent {
-					log.Info(fmt.Sprintf("Your synchronization has been completed. "))
-				} else {
-					b.IntellectSyncBlocks(bmsg.peer)
-				}
-			}
-
 		}
 	}
 

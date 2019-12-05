@@ -29,7 +29,7 @@ const (
 
 	// stallSampleInterval the interval at which we will check to see if our
 	// sync has stalled.
-	StallSampleInterval = 30 * time.Second
+	StallSampleInterval = 3 * time.Second
 )
 
 // BlockManager provides a concurrency safe block manager for handling all
@@ -188,7 +188,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		blockHash := block.Hash()
 
 		// Generate the inventory vector and relay it.
-		iv := message.NewInvVect(message.InvTypeAiringBlock, blockHash)
+		iv := message.NewInvVect(message.InvTypeBlock, blockHash)
 		log.Trace("relay inv", "inv", iv)
 
 		b.notify.RelayInventory(iv, block.Block().Header)
@@ -920,7 +920,25 @@ func (b *BlockManager) handleStallSample() {
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		return
 	}
+	if len(b.peers) > 0 {
+		if b.syncPeer == nil {
+			b.updateSyncPeer(false)
+			return
+		} else {
+			if len(b.requestedBlocks) == 0 && len(b.peers) > 1 {
+				bestPeer := b.getBestPeer(false)
+				if bestPeer != nil && bestPeer != b.syncPeer {
+					b.updateSyncPeer(false)
+					return
+				}
+			}
+		}
+	}
 
+	b.checkSyncPeer()
+}
+
+func (b *BlockManager) checkSyncPeer() {
 	// If we don't have an active sync peer, exit early.
 	if b.syncPeer == nil {
 		return
@@ -974,7 +992,7 @@ func (b *BlockManager) updateSyncPeer(dcSyncPeer bool) {
 		time.Since(b.lastProgressTime)))
 
 	// First, disconnect the current sync peer if requested.
-	if dcSyncPeer {
+	if dcSyncPeer && b.syncPeer != nil {
 		b.syncPeer.Disconnect()
 	}
 
