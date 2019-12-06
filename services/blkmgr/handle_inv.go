@@ -107,11 +107,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 					log.Error("Failed to get block locator for the orphan block")
 					continue
 				}
-				err = imsg.peer.PushGetBlocksMsg(gs, locator)
-				if err != nil {
-					log.Error("Failed to push getblocksmsg for orphan chain",
-						"error", err)
-				}
+				imsg.peer.PushGetBlocksMsg(gs, locator)
 				continue
 			}
 			if i == lastBlock {
