@@ -14,6 +14,7 @@ type Config struct {
 	LogDir             string   `long:"logdir" description:"Directory to log output."`
 	NoFileLogging      bool     `long:"nofilelogging" description:"Disable file logging."`
 	Listeners          []string `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8130, testnet: 18130)"`
+	DefaultPort        string   `long:"port" description:"Default p2p port."`
 	RPCListeners       []string `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 8131 , testnet: 18131)"`
 	MaxPeers           int      `long:"maxpeers" description:"Max number of inbound and outbound peers"`
 	DisableListen      bool     `long:"nolisten" description:"Disable listening for incoming connections"`
@@ -26,6 +27,7 @@ type Config struct {
 	DisableTLS         bool     `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
 	Modules            []string `long:"modules" description:"Modules is a list of API modules(See GetNodeInfo) to expose via the HTTP RPC interface. If the module list is empty, all RPC API endpoints designated public will be exposed."`
 	DisableDNSSeed     bool     `long:"nodnsseed" description:"Disable DNS seeding for peers"`
+	CustomDNSSeed      []string `short:"E" long:"customdns" description:"Seed customized by users."`
 	DisableCheckpoints bool     `long:"nocheckpoints" description:"Disable built-in checkpoints.  Don't do this unless you know what you're doing."`
 	TxIndex            bool     `long:"txindex" description:"Maintain a full hash-based transaction index which makes all transactions available via the getrawtransaction RPC"`
 	DropTxIndex        bool     `long:"droptxindex" description:"Deletes the hash-based transaction index from the database on start up and then exits."`
