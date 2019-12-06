@@ -568,7 +568,7 @@ func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 		}
 		result.Add(h)
 	}
-	log.Info(fmt.Sprintf("GetRecentOrphanParents result list %v",result))
+	log.Trace(fmt.Sprintf("GetRecentOrphanParents result list %v",result))
 	return result.List()
 }
 

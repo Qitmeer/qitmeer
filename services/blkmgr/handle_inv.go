@@ -54,7 +54,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 	gs := b.chain.BestSnapshot().GraphState
 
 	for i, iv := range invVects {
-		log.Info(fmt.Sprintf("Received inv type is %v,type= %v",iv, iv.Type))
+		log.Trace(fmt.Sprintf("Received inv type is %v,type= %v",iv, iv.Type))
 		// Ignore unsupported inventory types.
 		if iv.Type != message.InvTypeBlock && iv.Type != message.InvTypeAiringBlock && iv.Type != message.InvTypeTx {
 			continue
@@ -77,7 +77,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				"processing", "error", err)
 			continue
 		}
-		log.Info(fmt.Sprintf("the inventory we already have it = %v. %v, %v ",haveInv,iv, iv.Type))
+		log.Trace(fmt.Sprintf("the inventory we already have it = %v. %v, %v ",haveInv,iv, iv.Type))
 		if !haveInv {
 			if iv.Type == message.InvTypeTx {
 				// Skip the transaction if it has already been
@@ -92,7 +92,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 			continue
 		}
 		if iv.Type == message.InvTypeBlock {
-			log.Info(fmt.Sprintf("Received inv message is an orphan block %v",iv.Hash))
+			log.Trace(fmt.Sprintf("Received inv message is an orphan block %v",iv.Hash))
 			// The block is an orphan block that we already have.
 			// When the existing orphan was processed, it requested
 			// the missing parent blocks.  When this scenario
