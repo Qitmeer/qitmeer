@@ -431,7 +431,7 @@ func parseAndSetDebugLevels(debugLevel string) error {
 func processCustomizedDNSSeed(param *params.Params, seed []string) {
 	dnsseed := []params.DNSSeed{}
 	for _, v := range seed {
-		dnsseed = append(dnsseed, params.DNSSeed{v, true})
+		dnsseed = append(dnsseed, params.DNSSeed{Host: v, HasFiltering: true})
 	}
 	param.DNSSeeds = dnsseed
 }
