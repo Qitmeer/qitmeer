@@ -537,9 +537,9 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	// chain.
 	view := NewUtxoViewpoint()
 	view.SetViewpoints(b.GetMiningTips())
-	b.chainLock.RLock()
+	b.ChainRLock()
 	err := view.fetchUtxosMain(b.db, neededSet)
-	b.chainLock.RUnlock()
+	b.ChainRUnlock()
 	if err != nil {
 		return view, err
 	}
@@ -558,8 +558,8 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 // This function is safe for concurrent access however the returned entry (if
 // any) is NOT.
 func (b *BlockChain) FetchUtxoEntry(outpoint types.TxOutPoint) (*UtxoEntry, error) {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
+	b.ChainRLock()
+	defer b.ChainRUnlock()
 
 	var entry *UtxoEntry
 	err := b.db.View(func(dbTx database.Tx) error {

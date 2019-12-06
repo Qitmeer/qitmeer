@@ -44,9 +44,9 @@ func fastLog2Floor(n uint32) uint8 {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) LatestBlockLocator() (BlockLocator, error) {
-	b.chainLock.RLock()
+	b.ChainRLock()
 	locator := b.blockLocator(nil)
-	b.chainLock.RUnlock()
+	b.ChainRUnlock()
 	return locator, nil
 }
 
@@ -128,10 +128,10 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) BlockLocatorFromHash(hash *hash.Hash) BlockLocator {
-	b.chainLock.RLock()
+	b.ChainRLock()
 	node := b.index.LookupNode(hash)
 	locator := b.blockLocator(node)
-	b.chainLock.RUnlock()
+	b.ChainRUnlock()
 	return locator
 }
 

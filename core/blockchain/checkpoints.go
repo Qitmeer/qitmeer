@@ -26,9 +26,9 @@ const CheckpointConfirmations = 4096
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) DisableCheckpoints(disable bool) {
-	b.chainLock.Lock()
+	b.ChainLock()
 	b.noCheckpoints = disable
-	b.chainLock.Unlock()
+	b.ChainUnlock()
 }
 
 // Checkpoints returns a slice of checkpoints (regardless of whether they are
@@ -207,8 +207,8 @@ func isNonstandardTransaction(tx *types.Tx) bool {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) IsCheckpointCandidate(preBlock, block blockdag.IBlock) (bool, error) {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
+	b.ChainRLock()
+	defer b.ChainRUnlock()
 
 	if preBlock.GetHash().IsEqual(block.GetHash()) {
 		return false, nil

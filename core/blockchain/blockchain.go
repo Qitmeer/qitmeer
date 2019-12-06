@@ -610,9 +610,6 @@ func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) IsCurrent() bool {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
-
 	return b.isCurrent()
 }
 
@@ -647,7 +644,6 @@ func (b *BlockChain) isCurrent() bool {
 //
 // The function is safe for concurrent access.
 func (b *BlockChain) TipGeneration() ([]hash.Hash, error) {
-	b.chainLock.Lock()
 	b.index.RLock()
 	tips := b.bd.GetTipsList()
 	tiphashs := []hash.Hash{}
@@ -655,7 +651,6 @@ func (b *BlockChain) TipGeneration() ([]hash.Hash, error) {
 		tiphashs = append(tiphashs, *block.GetHash())
 	}
 	b.index.RUnlock()
-	b.chainLock.Unlock()
 	return tiphashs, nil
 }
 
@@ -722,8 +717,8 @@ func (b *BlockChain) DumpBlockChain(dumpFile string, params *params.Params, orde
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) BlockByHash(hash *hash.Hash) (*types.SerializedBlock, error) {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
+	b.ChainRLock()
+	defer b.ChainRUnlock()
 
 	return b.fetchMainChainBlockByHash(hash)
 }
@@ -1110,9 +1105,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	b.chainLock.Unlock()
 	b.sendNotification(BlockConnected, []*types.SerializedBlock{block})
-	b.chainLock.Lock()
 	return nil
 }
 
@@ -1161,9 +1154,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	b.chainLock.Unlock()
 	b.sendNotification(BlockDisconnected, block)
-	b.chainLock.Lock()
 
 	return nil
 }
@@ -1391,8 +1382,8 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 
 // FetchSpendJournal can return the set of outputs spent for the target block.
 func (b *BlockChain) FetchSpendJournal(targetBlock *types.SerializedBlock) ([]SpentTxOut, error) {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
+	b.ChainRLock()
+	defer b.ChainRUnlock()
 
 	var spendEntries []SpentTxOut
 	err := b.db.View(func(dbTx database.Tx) error {
@@ -1418,4 +1409,21 @@ func (b *BlockChain) GetTxManager() TxManager {
 
 func (b *BlockChain) GetMiningTips() []*hash.Hash {
 	return b.BlockDAG().GetValidTips()
+}
+
+func (b *BlockChain) ChainLock() {
+	b.chainLock.Lock()
+
+}
+
+func (b *BlockChain) ChainUnlock() {
+	b.chainLock.Unlock()
+}
+
+func (b *BlockChain) ChainRLock() {
+	b.chainLock.RLock()
+}
+
+func (b *BlockChain) ChainRUnlock() {
+	b.chainLock.RUnlock()
 }

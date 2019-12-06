@@ -84,6 +84,8 @@ func IsFinalizedTransaction(tx *types.Tx, blockHeight uint64, blockTime time.Tim
 func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags BehaviorFlags) error {
 	// This function should never be called with orphan blocks or the
 	// genesis block.
+	b.ChainLock()
+	defer b.ChainUnlock()
 
 	parentsNode := []*blockNode{}
 	for _, pb := range block.Block().Parents {
@@ -168,15 +170,14 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		log.Warn(fmt.Sprintf("%s", err))
 	}
 	b.updateBestState(newNode, block)
+
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
-	b.chainLock.Unlock()
 	//TODO, refactor to event subscript/publish
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
 		ForkLen: 0,
 		Block:   block,
 	})
-	b.chainLock.Lock()
 	return nil
 }

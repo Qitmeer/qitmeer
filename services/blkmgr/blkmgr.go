@@ -310,6 +310,12 @@ func (b *BlockManager) current() bool {
 	return true
 }
 
+func (b *BlockManager) IsCurrent() bool {
+	b.chain.ChainRLock()
+	defer b.chain.ChainRUnlock()
+	return b.current()
+}
+
 // Start begins the core block handler which processes block and inv messages.
 func (b *BlockManager) Start() {
 	// Already started?
@@ -589,7 +595,7 @@ out:
 				}
 			case isCurrentMsg:
 				log.Trace("blkmgr msgChan isCurrentMsg", "msg", msg)
-				msg.isCurrentReply <- b.current()
+				msg.isCurrentReply <- b.IsCurrent()
 				/*
 					case pauseMsg:
 						// Wait until the sender unpauses the manager.
@@ -749,7 +755,7 @@ type isCurrentMsg struct {
 
 // IsCurrent returns whether or not the block manager believes it is synced with
 // the connected peers.
-func (b *BlockManager) IsCurrent() bool {
+func (b *BlockManager) Current() bool {
 	reply := make(chan bool)
 	log.Trace("send isCurrentMsg to blkmgr msgChan")
 	b.msgChan <- isCurrentMsg{isCurrentReply: reply}

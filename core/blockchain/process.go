@@ -93,8 +93,7 @@ func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFlags) (bool, error) {
-	b.chainLock.Lock()
-	defer b.chainLock.Unlock()
+	b.ChainRLock()
 
 	fastAdd := flags&BFFastAdd == BFFastAdd
 
@@ -104,18 +103,21 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	// The block must not already exist in the main chain or side chains.
 	if b.index.HaveBlock(blockHash) {
 		str := fmt.Sprintf("already have block %v", blockHash)
+		b.ChainRUnlock()
 		return false, ruleError(ErrDuplicateBlock, str)
 	}
 
 	// The block must not already exist as an orphan.
 	if _, exists := b.orphans[*blockHash]; exists {
 		str := fmt.Sprintf("already have block (orphan) %v", blockHash)
+		b.ChainRUnlock()
 		return false, ruleError(ErrDuplicateBlock, str)
 	}
 
 	// Perform preliminary sanity checks on the block and its transactions.
 	err := checkBlockSanity(block, b.timeSource, flags, b.params)
 	if err != nil {
+		b.ChainRUnlock()
 		return false, err
 	}
 
@@ -128,6 +130,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	blockHeader := &block.Block().Header
 	checkpointNode, err := b.findPreviousCheckpoint()
 	if err != nil {
+		b.ChainRUnlock()
 		return false, err
 	}
 	if checkpointNode != nil {
@@ -137,6 +140,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 			str := fmt.Sprintf("block %v has timestamp %v before "+
 				"last checkpoint timestamp %v", blockHash,
 				blockHeader.Timestamp, checkpointTime)
+			b.ChainRUnlock()
 			return false, ruleError(ErrCheckpointTimeTooOld, str)
 		}
 
@@ -155,6 +159,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 				str := fmt.Sprintf("block target difficulty of %064x "+
 					"is too low when compared to the previous "+
 					"checkpoint", currentTarget)
+				b.ChainRUnlock()
 				return false, ruleError(ErrDifficultyTooLow, str)
 			}
 		}
@@ -168,10 +173,11 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 
 			// The fork length of orphans is unknown since they, by definition, do
 			// not connect to the best chain.
+			b.ChainRUnlock()
 			return true, nil
 		}
 	}
-
+	b.ChainRUnlock()
 	// The block has passed all context independent checks and appears sane
 	// enough to potentially accept it into the block chain.
 	err = b.maybeAcceptBlock(block, flags)
