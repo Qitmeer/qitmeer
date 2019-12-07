@@ -429,6 +429,9 @@ func parseAndSetDebugLevels(debugLevel string) error {
 }
 
 func processCustomizedDNSSeed(param *params.Params, seed []string) {
+	if seed == nil || len(seed) == 0 {
+		return
+	}
 	dnsseed := []params.DNSSeed{}
 	for _, v := range seed {
 		dnsseed = append(dnsseed, params.DNSSeed{Host: v, HasFiltering: true})
