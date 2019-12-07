@@ -294,3 +294,16 @@ func (api *PublicBlockAPI) IsBlue(h hash.Hash) (interface{}, error) {
 func (api *PublicBlockAPI) IsCurrent() (interface{}, error) {
 	return api.bm.IsCurrent(), nil
 }
+
+// Return tips
+func (api *PublicBlockAPI) Tips() (interface{}, error) {
+	tipsList, err := api.bm.TipGeneration()
+	if err != nil {
+		return nil, err
+	}
+	tips := []string{}
+	for _, v := range tipsList {
+		tips = append(tips, v.String())
+	}
+	return tips, nil
+}
