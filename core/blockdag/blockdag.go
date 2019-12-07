@@ -495,8 +495,9 @@ func (bd *BlockDAG) GetGraphState() *GraphState {
 // Return current general description of the whole state of DAG
 func (bd *BlockDAG) getGraphState() *GraphState {
 	gs := NewGraphState()
+	tips := bd.getValidTips()
 	if bd.tips != nil && !bd.tips.IsEmpty() {
-		gs.GetTips().AddList(bd.tips.List())
+		gs.GetTips().AddList(tips)
 
 		gs.SetLayer(0)
 		for _, v := range bd.tips.GetMap() {
@@ -860,12 +861,14 @@ func (bd *BlockDAG) GetValidTips() []*hash.Hash {
 }
 
 func (bd *BlockDAG) getValidTips() []*hash.Hash {
-	parents := bd.tips.SortList(false)
+	temp := bd.tips.Clone()
 	mainParent := bd.getMainChainTip()
-	tips := []*hash.Hash{}
+	temp.Remove(mainParent.GetHash())
+	parents := temp.SortList(false)
+
+	tips := []*hash.Hash{mainParent.GetHash()}
 	for i := 0; i < len(parents); i++ {
 		if mainParent.GetHash().IsEqual(parents[i]) {
-			tips = append(tips, parents[i])
 			continue
 		}
 		block := bd.getBlock(parents[i])

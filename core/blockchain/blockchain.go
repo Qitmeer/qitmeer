@@ -644,13 +644,11 @@ func (b *BlockChain) isCurrent() bool {
 //
 // The function is safe for concurrent access.
 func (b *BlockChain) TipGeneration() ([]hash.Hash, error) {
-	b.index.RLock()
 	tips := b.bd.GetTipsList()
 	tiphashs := []hash.Hash{}
 	for _, block := range tips {
 		tiphashs = append(tiphashs, *block.GetHash())
 	}
-	b.index.RUnlock()
 	return tiphashs, nil
 }
 

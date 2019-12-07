@@ -281,6 +281,11 @@ function is_current(){
   get_result "$data"
 }
 
+function tips(){
+  local data='{"jsonrpc":"2.0","method":"tips","params":[],"id":null}'
+  get_result "$data"
+}
+
 function get_rawtxs(){
   local address=$1
   local param2=$2
@@ -391,6 +396,7 @@ function usage(){
   echo "  orphanstotal"
   echo "  isblue <hash>   ;return [0:not blue;  1：blue  2：Cannot confirm]"
   echo "  iscurrent"
+  echo "  tips"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txbyhash <hash>"
@@ -703,6 +709,10 @@ elif [ "$1" == "stop" ]; then
 elif [ "$1" == "iscurrent" ]; then
   shift
   is_current
+
+elif [ "$1" == "tips" ]; then
+  shift
+  tips | jq .
 
 ## Tx
 elif [ "$1" == "tx" ]; then
