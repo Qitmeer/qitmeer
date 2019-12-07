@@ -429,7 +429,7 @@ func parseAndSetDebugLevels(debugLevel string) error {
 }
 
 func processCustomizedDNSSeed(param *params.Params, seed []string) {
-	if seed == nil || len(seed) == 0 {
+	if len(seed) == 0 {
 		return
 	}
 	dnsseed := []params.DNSSeed{}
