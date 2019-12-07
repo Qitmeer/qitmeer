@@ -193,9 +193,6 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 
 		b.notify.RelayInventory(iv, block.Block().Header)
 
-		gsm := message.NewMsgGraphState(b.chain.BestSnapshot().GraphState)
-		b.notify.BroadcastMessage(gsm)
-
 	// A block has been connected to the main block chain.
 	case blockchain.BlockConnected:
 		log.Trace("Chain connected notification.")
