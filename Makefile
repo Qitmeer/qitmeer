@@ -4,7 +4,7 @@ GITVERSION := $(shell git rev-parse --short HEAD)
 DEV=dev
 RELEASE=release
 LDFLAG_DEV = -X github.com/Qitmeer/qitmeer/version.Build=$(DEV)-$(GITVERSION)
-LDFLAG_RELEASE = -X github.com/Qitmeer/qitmeer/version.Build=$(RELEASE)
+LDFLAG_RELEASE = -X github.com/Qitmeer/qitmeer/version.Build=$(RELEASE)-$(GITVERSION)
 GOFLAGS_DEV = -ldflags "$(LDFLAG_DEV)"
 GOFLAGS_RELEASE = -ldflags "$(LDFLAG_RELEASE)"
 VERSION=$(shell ./build/bin/qitmeer --version | grep ^qitmeer | cut -d' ' -f3|cut -d'+' -f1)
