@@ -19,10 +19,10 @@ const (
 // handleInvMsg handles inv messages from all peers.
 // We examine the inventory advertised by the remote peer and act accordingly.
 func (b *BlockManager) handleInvMsg(imsg *invMsg) {
-	log.Info(fmt.Sprintf("Received inv message from %v", imsg.peer))
+	log.Debug(fmt.Sprintf("Received inv message from %v", imsg.peer))
 	sp, exists := b.peers[imsg.peer.Peer]
 	if !exists {
-		log.Warn(fmt.Sprintf("Received inv message from unknown peer %s", sp))
+		log.Debug(fmt.Sprintf("Received inv message from unknown peer %s", sp))
 		return
 	}
 	// Attempt to find the final block in the inventory list.  There may
@@ -124,7 +124,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 			}
 		}
 		if iv.Type == message.InvTypeAiringBlock {
-			log.Info(fmt.Sprintf("Received inv message is an airing block %v",iv.Hash))
+			log.Debug(fmt.Sprintf("Received inv message is an airing block %v",iv.Hash))
 			locator := blockdag.NewHashSet()
 			locator.Add(&iv.Hash)
 			err = imsg.peer.PushGetBlocksMsg(gs, locator.List())

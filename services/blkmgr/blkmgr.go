@@ -301,14 +301,14 @@ func (b *BlockManager) current() bool {
 
 
 	if b.syncPeer.LastGS().IsSame(b.chain.BestSnapshot().GraphState) {
-		log.Info("comparing the current best vs. sync last, they are same",
+		log.Debug("comparing the current best vs. sync last, they are same",
 			"current.best", b.chain.BestSnapshot().GraphState.String(), "sync.last", b.syncPeer.LastGS().String())
 		return true
 	}
 	// No matter what chain thinks, if we are below the block we are syncing
 	// to we are not current.
 	if b.syncPeer.LastGS().IsExcellent(b.chain.BestSnapshot().GraphState) {
-		log.Info("comparing the current best vs sync last, sync is excel than current best",
+		log.Debug("comparing the current best vs sync last, sync is excel than current best",
 			"current.best", b.chain.BestSnapshot().GraphState.String(), "sync.last", b.syncPeer.LastGS().String())
 		return false
 	}
