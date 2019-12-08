@@ -673,15 +673,30 @@ func getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *HashSet) *HashSet 
 			genealogy.Add(ib.GetHash())
 		}
 	}
-	tips := NewHashSet()
-
+	startQueue := queue
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
 
 		if allmainsubdag.Has(cur.GetHash()) {
 			allmainsubdag.AddSet(cur.GetParents())
-		} else {
+		}
+		if !cur.HasParents() {
+			continue
+		}
+		for _, v := range cur.GetParents().GetMap() {
+			ib := v.(IBlock)
+			queue = append(queue, ib)
+		}
+	}
+
+	queue = startQueue
+	tips := NewHashSet()
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		if !allmainsubdag.Has(cur.GetHash()) {
 			if !cur.HasParents() {
 				tips.AddPair(cur.GetHash(), cur)
 			}
@@ -731,8 +746,10 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 	}
 
 	anticoneTips := getTreeTips(rootBlock, mainsubdag, nil)
+	newmainsubdagTips := NewHashSet()
 
-	for anticoneTips.Size() > 0 {
+	for i := 0; i <= MaxTipLayerGap+1; i++ {
+
 		for _, v := range mainsubdagTips.GetMap() {
 			ib := v.(IBlock)
 			if ib.HasParents() {
@@ -742,11 +759,36 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 						continue
 					}
 					mainsubdag.Add(pib.GetHash())
-					mainsubdagTips.AddPair(pib.GetHash(), pib)
+					newmainsubdagTips.AddPair(pib.GetHash(), pib)
 				}
 			}
 			mainsubdagTips.Remove(ib.GetHash())
 		}
+		mainsubdagTips.AddSet(newmainsubdagTips)
+
+		if mainsubdagTips.Size() == 0 {
+			break
+		}
+	}
+
+	for anticoneTips.Size() > 0 {
+
+		for _, v := range mainsubdagTips.GetMap() {
+			ib := v.(IBlock)
+			if ib.HasParents() {
+				for _, pv := range ib.GetParents().GetMap() {
+					pib := pv.(IBlock)
+					if mainsubdag.Has(pib.GetHash()) {
+						continue
+					}
+					mainsubdag.Add(pib.GetHash())
+					newmainsubdagTips.AddPair(pib.GetHash(), pib)
+				}
+			}
+			mainsubdagTips.Remove(ib.GetHash())
+		}
+		mainsubdagTips.AddSet(newmainsubdagTips)
+
 		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
 		//
 		for _, v := range anticoneTips.GetMap() {
