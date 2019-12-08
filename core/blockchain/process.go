@@ -115,7 +115,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	}
 
 	// Perform preliminary sanity checks on the block and its transactions.
-	err := checkBlockSanity(block, b.timeSource, flags, b.params)
+	err := b.checkBlockSanity(block, b.timeSource, flags, b.params)
 	if err != nil {
 		b.ChainRUnlock()
 		return false, err

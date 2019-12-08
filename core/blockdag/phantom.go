@@ -447,7 +447,7 @@ func (ph *Phantom) GetTipsList() []IBlock {
 
 // Find block hash by order, this is very fast.
 func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash {
-	if order >= ph.GetMainChainTip().GetOrder() {
+	if order > ph.GetMainChainTip().GetOrder() {
 		return nil
 	}
 	return ph.bd.order[order]
