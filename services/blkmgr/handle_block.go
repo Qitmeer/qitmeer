@@ -155,7 +155,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 				if isCurrent {
 					log.Info(fmt.Sprintf("Your synchronization has been completed. "))
 				} else {
-					b.PushGetBlocksMsg(bmsg.peer)
+					b.IntellectSyncBlocks(bmsg.peer)
 				}
 			}
 
@@ -185,10 +185,5 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	b.headersFirstMode = false
 	b.headerList.Init()
 	log.Info("Reached the final checkpoint -- switching to normal mode")
-	err = bmsg.peer.PushGetBlocksMsg(best.GraphState, nil)
-	if err != nil {
-		log.Warn("Failed to send getblocks message",
-			"peer", bmsg.peer.Addr(), "error", err)
-		return
-	}
+	b.PushSyncDAGMsg(bmsg.peer)
 }

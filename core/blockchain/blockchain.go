@@ -550,11 +550,13 @@ func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 	//
 	ob, exists := b.orphans[*h]
 	if !exists {
+		log.Debug(fmt.Sprintf("GetRecentOrphanParents not found hash %v in the orphans list",h))
 		return nil
 	}
 	maxTimestamp := b.timeSource.AdjustedTime().Add(time.Second *
 		MaxOrphanTimeOffsetSeconds)
 	if ob.block.Block().Header.Timestamp.After(maxTimestamp) {
+		log.Debug(fmt.Sprintf("GetRecentOrphanParents found hash %v in the orphans list, but %v after %v",h, maxTimestamp, ob.block.Block().Header.Timestamp))
 		return nil
 	}
 
@@ -566,7 +568,7 @@ func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 		}
 		result.Add(h)
 	}
-
+	log.Trace(fmt.Sprintf("GetRecentOrphanParents result list %v",result))
 	return result.List()
 }
 
@@ -629,6 +631,7 @@ func (b *BlockChain) isCurrent() bool {
 	checkpoint := b.LatestCheckpoint()
 	lastBlock := b.bd.GetMainChainTip()
 	if checkpoint != nil && uint64(lastBlock.GetLayer()) < checkpoint.Layer {
+		log.Debug(fmt.Sprintf("Not current because lastBlock.GetLayer() %v less than checkpoint.Layer  %v",lastBlock.GetLayer(), checkpoint.Layer ))
 		return false
 	}
 
@@ -639,6 +642,7 @@ func (b *BlockChain) isCurrent() bool {
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
 	lastNode := b.index.lookupNode(lastBlock.GetHash())
+	log.Debug(fmt.Sprintf("lastNode.timestamp - minus24Hours %v should > 0 ", lastNode.timestamp-minus24Hours))
 	return lastNode.timestamp >= minus24Hours
 }
 

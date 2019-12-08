@@ -83,7 +83,7 @@ type Peer struct {
 	knownInventory *invcache.InventoryCache
 
 	// prevget
-	prevGet     PrevGet
+	PrevGet     PrevGet
 	prevGetHdrs PrevGet
 
 	// These fields keep track of statistics for the peer and are protected
@@ -490,7 +490,7 @@ func newPeerBase(cfg *Config, inbound bool) *Peer {
 		protocolVersion: protocolVersion,
 		lastGS:          blockdag.NewGraphState(),
 	}
-	p.prevGet.Init(&p)
+	p.PrevGet.Init(&p)
 	p.prevGetHdrs.Init(&p)
 	return &p
 }

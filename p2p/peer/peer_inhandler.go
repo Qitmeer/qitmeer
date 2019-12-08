@@ -157,6 +157,21 @@ out:
 			if p.cfg.Listeners.OnMemPool != nil {
 				p.cfg.Listeners.OnMemPool(p, msg)
 			}
+
+		case *message.MsgSyncResult:
+			if p.cfg.Listeners.OnSyncResult != nil {
+				p.cfg.Listeners.OnSyncResult(p, msg)
+			}
+
+		case *message.MsgSyncDAG:
+			if p.cfg.Listeners.OnSyncDAG != nil {
+				p.cfg.Listeners.OnSyncDAG(p, msg)
+			}
+
+		case *message.MsgSyncPoint:
+			if p.cfg.Listeners.OnSyncPoint != nil {
+				p.cfg.Listeners.OnSyncPoint(p, msg)
+			}
 		/*
 			case *message.MsgHeaders:
 				if p.cfg.Listeners.OnHeaders != nil {

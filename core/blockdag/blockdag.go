@@ -509,10 +509,7 @@ func (bd *BlockDAG) getGraphState() *GraphState {
 }
 
 // Locate all eligible block by current graph state.
-func (bd *BlockDAG) LocateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
+func (bd *BlockDAG) locateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
 	if gs.IsExcellent(bd.getGraphState()) {
 		return nil
 	}
@@ -661,9 +658,7 @@ func (bd *BlockDAG) getParentsAnticone(parents *HashSet) *HashSet {
 }
 
 // Sort block by id
-func (bd *BlockDAG) SortBlock(src []*hash.Hash) []*hash.Hash {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
+func (bd *BlockDAG) sortBlock(src []*hash.Hash) []*hash.Hash {
 
 	if len(src) <= 1 {
 		return src
@@ -683,6 +678,14 @@ func (bd *BlockDAG) SortBlock(src []*hash.Hash) []*hash.Hash {
 		result = append(result, srcBlockS[i].GetHash())
 	}
 	return result
+}
+
+// Sort block by id
+func (bd *BlockDAG) SortBlock(src []*hash.Hash) []*hash.Hash {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.sortBlock(src)
 }
 
 // GetConfirmations

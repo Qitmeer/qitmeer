@@ -68,12 +68,10 @@ type BlockManager struct {
 	cachedCurrentTemplate *types.BlockTemplate
 	cachedParentTemplate  *types.BlockTemplate
 
-	// The following fields are used to track the height being synced to from
-	// peers.
-	syncGSMtx sync.Mutex
-	syncGS    *blockdag.GraphState
-
 	lastProgressTime time.Time
+
+	// dag sync
+	dagSync *blockdag.DAGSync
 }
 
 // NewBlockManager returns a new block manager.
@@ -113,6 +111,7 @@ func NewBlockManager(ntmgr notify.Notify, indexManager blockchain.IndexManager, 
 	if err != nil {
 		return nil, err
 	}
+	bm.dagSync = blockdag.NewDAGSync(bm.chain.BlockDAG())
 	best := bm.chain.BestSnapshot()
 	bm.chain.DisableCheckpoints(cfg.DisableCheckpoints)
 	if !cfg.DisableCheckpoints {
@@ -134,9 +133,9 @@ func NewBlockManager(ntmgr notify.Notify, indexManager blockchain.IndexManager, 
 		return nil, fmt.Errorf("closing after dumping blockchain")
 	}
 
-	bm.syncGSMtx.Lock()
-	bm.syncGS = best.GraphState
-	bm.syncGSMtx.Unlock()
+	bm.dagSync.GSMtx.Lock()
+	bm.dagSync.GS = best.GraphState
+	bm.dagSync.GSMtx.Unlock()
 	return &bm, nil
 }
 
@@ -300,10 +299,16 @@ func (b *BlockManager) current() bool {
 		return true
 	}
 
+
+	if b.syncPeer.LastGS().IsSame(b.chain.BestSnapshot().GraphState) {
+		log.Debug("comparing the current best vs. sync last, they are same",
+			"current.best", b.chain.BestSnapshot().GraphState.String(), "sync.last", b.syncPeer.LastGS().String())
+		return true
+	}
 	// No matter what chain thinks, if we are below the block we are syncing
 	// to we are not current.
 	if b.syncPeer.LastGS().IsExcellent(b.chain.BestSnapshot().GraphState) {
-		log.Trace("comparing the current best vs sync last",
+		log.Debug("comparing the current best vs sync last, sync is excel than current best",
 			"current.best", b.chain.BestSnapshot().GraphState.String(), "sync.last", b.syncPeer.LastGS().String())
 		return false
 	}
@@ -415,6 +420,10 @@ func (b *BlockManager) fetchHeaderBlocks() {
 func (b *BlockManager) haveInventory(invVect *message.InvVect) (bool, error) {
 	switch invVect.Type {
 	case message.InvTypeBlock:
+		// Ask chain if the block is known to it in any form (main
+		// chain, side chain, or orphan).
+		return b.chain.HaveBlock(&invVect.Hash)
+	case message.InvTypeAiringBlock:
 		// Ask chain if the block is known to it in any form (main
 		// chain, side chain, or orphan).
 		return b.chain.HaveBlock(&invVect.Hash)
@@ -892,16 +901,25 @@ func (b *BlockManager) SyncPeerID() int32 {
 	return <-reply
 }
 
-// Selective execution PushGetBlocksMsg to peer
-func (b *BlockManager) PushGetBlocksMsg(peer *peer.ServerPeer) {
+func (b *BlockManager) IntellectSyncBlocks(peer *peer.ServerPeer) {
 	gs := b.chain.BestSnapshot().GraphState
 	allOrphan := b.chain.GetRecentOrphansParents()
 
 	if len(allOrphan) > blockchain.MaxOrphanBlocks && len(allOrphan) > 0 {
-		peer.PushGetBlocksMsg(gs, allOrphan)
+		err := peer.PushGetBlocksMsg(gs, allOrphan)
+		if err != nil {
+			b.PushSyncDAGMsg(peer)
+		}
 	} else {
-		peer.PushGetBlocksMsg(gs, nil)
+		b.PushSyncDAGMsg(peer)
 	}
+}
+
+func (b *BlockManager) PushSyncDAGMsg(peer *peer.ServerPeer) {
+	gs := b.chain.BestSnapshot().GraphState
+	mainLocator := b.DAGSync().GetMainLocator(peer.PrevGet.Point)
+
+	peer.PushSyncDAGMsg(gs, mainLocator)
 }
 
 // handleStallSample will switch to a new sync peer if the current one has
@@ -983,6 +1001,11 @@ func (b *BlockManager) updateSyncPeer(dcSyncPeer bool) {
 // Return chain params
 func (b *BlockManager) ChainParams() *params.Params {
 	return b.params
+}
+
+// DAGSync
+func (b *BlockManager) DAGSync() *blockdag.DAGSync {
+	return b.dagSync
 }
 
 // headerNode is used as a node in a list of headers that are linked together

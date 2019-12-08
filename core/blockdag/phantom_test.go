@@ -162,7 +162,7 @@ func Test_LocateBlocks(t *testing.T) {
 	gs.GetTips().Add(bd.GetGenesisHash())
 	gs.SetTotal(1)
 	gs.SetLayer(0)
-	lb := bd.LocateBlocks(gs, 100)
+	lb := bd.locateBlocks(gs, 100)
 	lbhs := NewHashSet()
 	lbhs.AddList(lb)
 	if !processResult(lbhs, changeToHashList(testData.PH_LocateBlocks.Output, tbMap)) {
@@ -180,7 +180,7 @@ func Test_LocateMaxBlocks(t *testing.T) {
 	gs.GetTips().Add(tbMap["G"])
 	gs.SetTotal(4)
 	gs.SetLayer(2)
-	lb := bd.LocateBlocks(gs, 4)
+	lb := bd.locateBlocks(gs, 4)
 	//printBlockChainTag(lb,tbMap)
 	if !processResult(lb, changeToHashList(testData.PH_LocateMaxBlocks.Output, tbMap)) {
 		t.FailNow()

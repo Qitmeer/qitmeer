@@ -9,9 +9,11 @@ import (
 )
 
 type PrevGet struct {
-	BlocksMtx sync.Mutex
-	GS        *blockdag.GraphState
-	Blocks    *blockdag.HashSet
+	sync.Mutex
+	GS      *blockdag.GraphState
+	Locator []*hash.Hash
+	Point   *hash.Hash
+	Blocks  *blockdag.HashSet
 }
 
 func (pg *PrevGet) Init(p *Peer) {
@@ -21,6 +23,9 @@ func (pg *PrevGet) Init(p *Peer) {
 }
 
 func (pg *PrevGet) Clean() {
+	pg.Lock()
+	defer pg.Unlock()
+
 	if pg.Blocks != nil {
 		pg.Blocks.Clean()
 	}
@@ -29,9 +34,9 @@ func (pg *PrevGet) Clean() {
 	}*/
 }
 
-func (pg *PrevGet) Check(p *Peer, gs *blockdag.GraphState, blocks []*hash.Hash) (bool, *blockdag.HashSet) {
-	pg.BlocksMtx.Lock()
-	defer pg.BlocksMtx.Unlock()
+func (pg *PrevGet) CheckBlocks(p *Peer, gs *blockdag.GraphState, blocks []*hash.Hash) (bool, *blockdag.HashSet) {
+	pg.Lock()
+	defer pg.Unlock()
 
 	bs := blockdag.NewHashSet()
 	// Filter duplicate getblocks requests.
@@ -46,32 +51,29 @@ func (pg *PrevGet) Check(p *Peer, gs *blockdag.GraphState, blocks []*hash.Hash) 
 			return false, nil
 		}
 		//isDuplicate=false
-	} else {
-		if pg.GS != nil {
-			if gs.IsEqual(pg.GS) {
-				log.Trace(fmt.Sprintf("Filtering duplicate [getblocks]: gs=%s", gs.String()))
-				return false, nil
-			}
-		}
 	}
 	return true, bs
 }
 
-func (pg *PrevGet) Update(gs *blockdag.GraphState, blocks []*hash.Hash) {
-	pg.BlocksMtx.Lock()
-	defer pg.BlocksMtx.Unlock()
+func (pg *PrevGet) UpdateBlocks(blocks []*hash.Hash) {
+	pg.Lock()
+	defer pg.Unlock()
 
 	// Filter duplicate getblocks requests.
 	if len(blocks) > 0 {
 		pg.Blocks.AddList(blocks)
-	} else {
-		pg.GS = gs
 	}
 }
 
-/*func (pg *PrevGet) GetLocatorHeight() uint64 {
-	for _,h:=range pg.Locator.GetMap() {
-		return h.(uint64)
-	}
-	return 0
-}*/
+func (pg *PrevGet) UpdateGS(gs *blockdag.GraphState, locator []*hash.Hash) {
+	pg.Lock()
+	defer pg.Unlock()
+	pg.GS = gs
+	pg.Locator = locator
+}
+
+func (pg *PrevGet) UpdatePoint(point *hash.Hash) {
+	pg.Lock()
+	defer pg.Unlock()
+	pg.Point = point
+}

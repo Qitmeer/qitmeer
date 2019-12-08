@@ -8,6 +8,7 @@ package peerserver
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -233,29 +234,22 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	// provided locator are known.  This does mean the client will start
 	// over with the genesis block if unknown block locators are provided.
 	chain := sp.server.BlockManager.GetChain()
-	hashSlice := []*hash.Hash{}
-	if len(msg.BlockLocatorHashes) > 0 {
-		for _, v := range msg.BlockLocatorHashes {
-			if chain.BlockDAG().HasBlock(v) {
-				hashSlice = append(hashSlice, v)
-			}
-		}
-		if len(hashSlice) >= 2 {
-			hashSlice = chain.BlockDAG().SortBlock(hashSlice)
-		}
-	} else {
-		hashSlice = chain.LocateBlocks(msg.GS, message.MaxBlockLocatorsPerMsg)
-	}
-	hsLen := len(hashSlice)
+	dagSync := sp.server.BlockManager.DAGSync()
+	gs := chain.BestSnapshot().GraphState
+	blocks, _ := dagSync.CalcSyncBlocks(msg.GS, msg.BlockLocatorHashes, blockdag.DirectMode, message.MaxBlockLocatorsPerMsg)
+	hsLen := len(blocks)
 	if hsLen == 0 {
 		log.Trace(fmt.Sprintf("Sorry, there are not these blocks for %s", p.String()))
+
+		rMsg := message.NewMsgSyncResult(gs.Clone(), blockdag.SubDAGMode)
+		p.QueueMessage(rMsg, nil)
 		return
 	}
 
 	invMsg := message.NewMsgInv()
-	invMsg.GS = chain.BestSnapshot().GraphState
+	invMsg.GS = gs
 	for i := 0; i < hsLen; i++ {
-		iv := message.NewInvVect(message.InvTypeBlock, hashSlice[i])
+		iv := message.NewInvVect(message.InvTypeBlock, blocks[i])
 		invMsg.AddInvVect(iv)
 	}
 	if len(invMsg.InvList) > 0 {
@@ -284,8 +278,6 @@ func (sp *serverPeer) OnGetHeaders(p *peer.Peer, msg *message.MsgGetHeaders) {
 		if len(hashSlice) >= 2 {
 			hashSlice = chain.BlockDAG().SortBlock(hashSlice)
 		}
-	} else {
-		hashSlice = chain.LocateBlocks(msg.GS, message.MaxBlockHeadersPerMsg)
 	}
 	hsLen := len(hashSlice)
 	if hsLen == 0 {
@@ -488,11 +480,6 @@ func (sp *serverPeer) OnTx(p *peer.Peer, msg *message.MsgTx) {
 	// being disconnected) and wasting memory.
 	sp.server.BlockManager.QueueTx(tx, sp.syncPeer)
 	<-sp.syncPeer.TxProcessed
-}
-
-// OnGraphState
-func (sp *serverPeer) OnGraphState(p *peer.Peer, msg *message.MsgGraphState) {
-	p.UpdateLastGS(msg.GS)
 }
 
 // OnMemPool
