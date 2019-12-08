@@ -126,6 +126,7 @@ func buildTestNetGenesisCoinbaseTx(net protocol.Network) types.Transaction {
 	ledger.Ledger(&tx, net)
 	return tx
 }
+
 //
 var testNetGenesisCoinbaseTx = buildTestNetGenesisCoinbaseTx(protocol.TestNet)
 
@@ -137,7 +138,7 @@ var testNetGenesisMerkleRoot = testNetGenesisCoinbaseTx.TxHashFull()
 // serves as the public transaction ledger for the test network (version 3).
 var testNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
-		Version:    2,
+		Version:    3,
 		ParentRoot: hash.Hash{},
 		TxRoot:     testNetGenesisMerkleRoot,
 		Timestamp:  time.Unix(1574726400, 0), // 2019-11-26 00:00:00 GMT
