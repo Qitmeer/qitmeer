@@ -43,9 +43,15 @@ func IsExpired(tx *types.Tx, blockHeight uint64) bool {
 //
 // The flags do not modify the behavior of this function directly, however they
 // are needed to pass along to checkBlockHeaderSanity.
-func checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *params.Params) error {
+func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *params.Params) error {
 	msgBlock := block.Block()
 	header := &msgBlock.Header
+
+	// TODO It can be considered to delete in the future when it is officially launched
+	if header.Version != b.BlockVersion {
+		return ruleError(ErrBlockVersionTooOld, "block version too old")
+	}
+
 	err := checkBlockHeaderSanity(header, timeSource, flags, chainParams)
 	if err != nil {
 		return err
@@ -1093,7 +1099,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	// or its parent.
 
 	// Perform context-free sanity checks on the block and its transactions.
-	err := checkBlockSanity(block, b.timeSource, flags, b.params)
+	err := b.checkBlockSanity(block, b.timeSource, flags, b.params)
 	if err != nil {
 		return err
 	}
