@@ -142,7 +142,7 @@ func (b *BlockManager) startSync() {
 		b.dagSync.GS = bestPeer.LastGS()
 		b.dagSync.GSMtx.Unlock()
 	} else {
-		log.Warn("No sync peer candidates available")
+		log.Trace("No sync peer candidates available")
 	}
 }
 
