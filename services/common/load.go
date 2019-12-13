@@ -23,12 +23,12 @@ import (
 )
 
 const (
-	defaultConfigFilename    = "qitmeerd.conf"
+	defaultConfigFilename    = "qitmeer.conf"
 	defaultDataDirname       = "data"
 	defaultLogLevel          = "info"
 	defaultDebugPrintOrigins = false
 	defaultLogDirname        = "logs"
-	defaultLogFilename       = "qitmeerd.log"
+	defaultLogFilename       = "qitmeer.log"
 	defaultGenerate          = false
 	defaultBlockMinSize      = 0
 	defaultBlockMaxSize      = 375000

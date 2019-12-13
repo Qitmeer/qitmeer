@@ -112,11 +112,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 					log.Error("Failed to get block locator for the orphan block")
 					continue
 				}
-				err = imsg.peer.PushGetBlocksMsg(gs, locator)
-				if err != nil {
-					log.Error("Failed to push getblocksmsg for orphan chain",
-						"error", err)
-				}
+				imsg.peer.PushGetBlocksMsg(gs, locator)
 				continue
 			}
 			if i == lastBlock {
@@ -127,11 +123,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 			log.Debug(fmt.Sprintf("Received inv message is an airing block %v",iv.Hash))
 			locator := blockdag.NewHashSet()
 			locator.Add(&iv.Hash)
-			err = imsg.peer.PushGetBlocksMsg(gs, locator.List())
-			if err != nil {
-				log.Error("Failed to push getblocksmsg for orphan chain",
-					"error", err)
-			}
+			imsg.peer.PushGetBlocksMsg(gs, locator.List())
 			continue
 		}
 	}

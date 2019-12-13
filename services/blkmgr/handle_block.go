@@ -122,10 +122,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 
 		locator := b.chain.GetRecentOrphanParents(blockHash)
 		if len(locator) > 0 {
-			err = bmsg.peer.PushGetBlocksMsg(best.GraphState, locator)
-			if err != nil {
-				log.Warn("Failed to push getblocksmsg for the orphan block", "error", err)
-			}
+			bmsg.peer.PushGetBlocksMsg(best.GraphState, locator)
 		}
 	} else {
 		// When the block is not an orphan, log information about it and
