@@ -631,7 +631,6 @@ func (b *BlockChain) isCurrent() bool {
 	checkpoint := b.LatestCheckpoint()
 	lastBlock := b.bd.GetMainChainTip()
 	if checkpoint != nil && uint64(lastBlock.GetLayer()) < checkpoint.Layer {
-		log.Debug(fmt.Sprintf("Not current because lastBlock.GetLayer() %v less than checkpoint.Layer  %v",lastBlock.GetLayer(), checkpoint.Layer ))
 		return false
 	}
 
@@ -642,7 +641,6 @@ func (b *BlockChain) isCurrent() bool {
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
 	lastNode := b.index.lookupNode(lastBlock.GetHash())
-	log.Debug(fmt.Sprintf("lastNode.timestamp - minus24Hours %v should > 0 ", lastNode.timestamp-minus24Hours))
 	return lastNode.timestamp >= minus24Hours
 }
 
