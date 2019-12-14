@@ -161,7 +161,16 @@ func (gs *GraphState) Encode(w io.Writer, pver uint32) error {
 		return err
 	}
 
+	mainChainTip := gs.GetMainChainTip()
+	err = s.WriteElements(w, mainChainTip)
+	if err != nil {
+		return err
+	}
+
 	for k := range gs.tips.GetMap() {
+		if k.IsEqual(mainChainTip) {
+			continue
+		}
 		err = s.WriteElements(w, &k)
 		if err != nil {
 			return err
@@ -209,13 +218,29 @@ func (gs *GraphState) Decode(r io.Reader, pver uint32) error {
 		if err != nil {
 			return err
 		}
-		gs.tips.Add(h)
+		if i == 0 {
+			gs.tips.AddPair(h, true)
+		} else {
+			gs.tips.Add(h)
+		}
+
 	}
 	return nil
 }
 
 func (gs *GraphState) MaxPayloadLength() uint32 {
 	return 8 + 4 + 4 + 4 + (MaxTips * hash.HashSize)
+}
+
+func (gs *GraphState) GetMainChainTip() *hash.Hash {
+	for k, v := range gs.tips.GetMap() {
+		_, ok := v.(bool)
+		if ok {
+			tip := k
+			return &tip
+		}
+	}
+	return nil
 }
 
 // Create a new GraphState
