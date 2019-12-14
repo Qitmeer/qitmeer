@@ -43,6 +43,10 @@ hash :
     bitcoin160            calculate ripemd160(sha256(data))   
     hash160               calculate ripemd160(blake2b256(data))
 
+difficulty :
+    compactToUint64            convert cuckoo compact difficulty to uint64.
+    uint64ToCompact            convert cuckoo uint64 difficulty to compact.
+
 entropy (seed) & mnemoic & hd & ec 
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
     hd-new                create a new HD(BIP32) private key from an entropy (seed)
@@ -143,6 +147,16 @@ func main() {
 	base58DecodeCmd := flag.NewFlagSet("base58-decode", flag.ExitOnError)
 	base58DecodeCmd.Usage = func() {
 		cmdUsage(base58DecodeCmd, "Usage: qx base58-decode [hexstring]\n")
+	}
+
+
+	compactToUint64Cmd := flag.NewFlagSet("compact-to-uint64", flag.ExitOnError)
+	compactToUint64Cmd.Usage = func() {
+		cmdUsage(compactToUint64Cmd, "Usage: qx compact-to-uint64 [uint32 value]\n")
+	}
+	uint64ToCompactCmd := flag.NewFlagSet("uint64-to-compact", flag.ExitOnError)
+	uint64ToCompactCmd.Usage = func() {
+		cmdUsage(uint64ToCompactCmd, "Usage: qx uint64-compact [uint64 number]\n")
 	}
 
 	base64EncodeCmd := flag.NewFlagSet("base64-encode", flag.ExitOnError)
@@ -360,6 +374,8 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		base58CheckDecodeCommand,
 		base58EncodeCmd,
 		base58DecodeCmd,
+		compactToUint64Cmd,
+		uint64ToCompactCmd,
 		base64EncodeCmd,
 		base64DecodeCmd,
 		rlpEncodeCmd,
@@ -476,6 +492,44 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			}
 			str := strings.TrimSpace(string(src))
 			qx.Base58Encode(str)
+		}
+	}
+
+	// Handle compact-to-uint64
+	if compactToUint64Cmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				compactToUint64Cmd.Usage()
+			} else {
+				qx.CompactToUint64(os.Args[len(os.Args)-1])
+			}
+		} else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.CompactToUint64(str)
+		}
+	}
+
+	// Handle uint64-to-compact
+	if uint64ToCompactCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				compactToUint64Cmd.Usage()
+			} else {
+				qx.Uint64ToCompact(os.Args[len(os.Args)-1])
+			}
+		} else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.Uint64ToCompact(str)
 		}
 	}
 	// Handle base58-decode
