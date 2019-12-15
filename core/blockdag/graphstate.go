@@ -240,7 +240,7 @@ func (gs *GraphState) GetMainChainTip() *hash.Hash {
 			return &tip
 		}
 	}
-	return nil
+	return gs.tips.List()[0]
 }
 
 // Create a new GraphState

@@ -139,8 +139,12 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 
 func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 	if gs != nil {
-		tips := []string{}
+		mainTip := gs.GetMainChainTip()
+		tips := []string{mainTip.String() + " main"}
 		for k := range gs.GetTips().GetMap() {
+			if k.IsEqual(mainTip) {
+				continue
+			}
 			tips = append(tips, k.String())
 		}
 		return &json.GetGraphStateResult{
