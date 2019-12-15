@@ -911,7 +911,6 @@ func (b *BlockManager) IntellectSyncBlocks(peer *peer.ServerPeer) {
 func (b *BlockManager) PushSyncDAGMsg(peer *peer.ServerPeer) {
 	gs := b.chain.BestSnapshot().GraphState
 	mainLocator := b.DAGSync().GetMainLocator(peer.PrevGet.Point)
-
 	peer.PushSyncDAGMsg(gs, mainLocator)
 }
 
