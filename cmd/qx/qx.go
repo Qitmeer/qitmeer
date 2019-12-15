@@ -47,6 +47,7 @@ difficulty :
     compact-to-uint64            convert cuckoo compact difficulty to uint64.
     uint64-to-compact            convert cuckoo uint64 difficulty to compact.
     diff-to-gps          		convert cuckoo uint64 difficulty to GPS.
+    gps-to-diff          		convert cuckoo GPS to uint64 difficulty.
 
 entropy (seed) & mnemoic & hd & ec 
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
@@ -167,6 +168,13 @@ func main() {
 	diffToHashrateCmd.IntVar(&blocktime, "t", 15, "blocktime")
 	diffToHashrateCmd.Usage = func() {
 		cmdUsage(diffToHashrateCmd, "Usage: qx diff-to-gps -e 24 -t 15 [difficulty uint64]\n")
+	}
+
+	gpsToDiffCmd := flag.NewFlagSet("gps-to-diff", flag.ExitOnError)
+	gpsToDiffCmd.IntVar(&edgeBits, "e", 24, "edgebits")
+	gpsToDiffCmd.IntVar(&blocktime, "t", 15, "blocktime")
+	gpsToDiffCmd.Usage = func() {
+		cmdUsage(gpsToDiffCmd, "Usage: qx gps-to-diff -e 24 -t 15 [GPS float64]\n")
 	}
 
 	base64EncodeCmd := flag.NewFlagSet("base64-encode", flag.ExitOnError)
@@ -387,6 +395,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		compactToUint64Cmd,
 		uint64ToCompactCmd,
 		diffToHashrateCmd,
+		gpsToDiffCmd,
 		base64EncodeCmd,
 		base64DecodeCmd,
 		rlpEncodeCmd,
@@ -560,6 +569,25 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			}
 			str := strings.TrimSpace(string(src))
 			qx.CompactToGPS(str,edgeBits,blocktime)
+		}
+	}
+
+	// Handle gps-to-diff
+	if gpsToDiffCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				gpsToDiffCmd.Usage()
+			} else {
+				qx.GPSToDiff(os.Args[len(os.Args)-1],edgeBits,blocktime)
+			}
+		}else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.GPSToDiff(str,edgeBits,blocktime)
 		}
 	}
 	// Handle base58-decode

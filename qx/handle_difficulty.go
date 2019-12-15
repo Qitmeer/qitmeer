@@ -48,5 +48,18 @@ func CompactToGPS(diff string,edgeBits ,blockTime int) {
 		ErrExit(errors.New("blockTime must bigger than 0"))
 	}
 	needGPS := float64(u64) / float64(scale) * 50.00 / float64(blockTime)
-	fmt.Printf("The difficulty at least need hashrate :%f GPS\n", needGPS)
+	fmt.Printf("%f\n", needGPS)
+}
+
+func GPSToDiff(gps string,edgeBits ,blockTime int) {
+	f64,err := strconv.ParseFloat(gps,64)
+	if err != nil{
+		ErrExit(err)
+	}
+	scale := pow.GraphWeight(uint32(edgeBits))
+	if scale <= 0{
+		ErrExit(errors.New("edgeBits must between 24-32"))
+	}
+	diff := f64 * float64(blockTime) / 50 * float64(scale)
+	fmt.Printf("%d\n", uint64(diff))
 }
