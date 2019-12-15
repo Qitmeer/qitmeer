@@ -413,23 +413,19 @@ mempoolLoop:
 
 	ts := MedianAdjustedTime(blockManager.GetChain(), timeSource)
 	//
-	log.Info("=========================difficulty1")
 	reqBlake2bDDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.BLAKE2BD)
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
-	log.Info("=========================difficulty2")
 	reqCuckarooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKAROO)
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
-	log.Info("=========================difficulty3")
 	reqCuckatooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKATOO)
 
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
-	log.Info("=========================difficulty4")
 	// Choose the block version to generate based on the network.
 	blockVersion := BlockVersion(params.Net)
 
