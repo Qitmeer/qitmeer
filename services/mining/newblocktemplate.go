@@ -412,6 +412,7 @@ mempoolLoop:
 	}
 
 	ts := MedianAdjustedTime(blockManager.GetChain(), timeSource)
+	
 	//
 	reqBlake2bDDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.BLAKE2BD)
 	if err != nil {
@@ -426,6 +427,7 @@ mempoolLoop:
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
+
 	// Choose the block version to generate based on the network.
 	blockVersion := BlockVersion(params.Net)
 
