@@ -40,8 +40,9 @@ hash :
     hash160               calculate ripemd160(blake2b256(data))
 
 difficulty :
-    compactToUint64            convert cuckoo compact difficulty to uint64.
-    uint64ToCompact            convert cuckoo uint64 difficulty to compact.
+    compact-to-uint64       convert cuckoo compact difficulty to uint64.
+    uint64-to-compact       convert cuckoo uint64 difficulty to compact.
+    compact-to-gps          convert cuckoo compact difficulty to GPS.
 
 entropy (seed) & mnemoic & hd & ec
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
