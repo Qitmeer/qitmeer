@@ -31,27 +31,22 @@ func Uint64ToCompact(input string) {
 	fmt.Printf("%d\n", diffCompact)
 }
 
-func CompactToGPS(compact string,edgeBits string,blockTime string) {
-	u32,err := strconv.ParseUint(compact,10,32)
-	if err != nil {
+func CompactToGPS(diff string,edgeBits ,blockTime int) {
+	u64,err := strconv.ParseUint(diff,10,64)
+	if err != nil{
 		ErrExit(err)
 	}
-	diffBig := pow.CompactToBig(uint32(u32))
-	edgeBitsU32,err := strconv.ParseUint(edgeBits,10,32)
-	if err != nil {
-		ErrExit(err)
+
+	if u64 <= 0 {
+		ErrExit(errors.New("diff must bigger than 0"))
 	}
-	scale := pow.GraphWeight(uint32(edgeBitsU32))
+	scale := pow.GraphWeight(uint32(edgeBits))
 	if scale <= 0{
 		ErrExit(errors.New("edgeBits must between 24-32"))
 	}
-	blockTimeU32,err := strconv.ParseUint(blockTime,10,32)
-	if err != nil {
-		ErrExit(err)
-	}
-	if blockTimeU32 <= 0{
+	if blockTime <= 0{
 		ErrExit(errors.New("blockTime must bigger than 0"))
 	}
-	needGPS := float64(diffBig.Uint64()) / float64(scale) * 50.00 / float64(blockTimeU32)
+	needGPS := float64(u64) / float64(scale) * 50.00 / float64(blockTime)
 	fmt.Printf("The difficulty at least need hashrate :%f GPS\n", needGPS)
 }

@@ -42,7 +42,7 @@ hash :
 difficulty :
     compact-to-uint64       convert cuckoo compact difficulty to uint64.
     uint64-to-compact       convert cuckoo uint64 difficulty to compact.
-    compact-to-gps          convert cuckoo compact difficulty to GPS.
+    diff-to-gps          convert cuckoo compact difficulty to GPS.
 
 entropy (seed) & mnemoic & hd & ec
     entropy               generate a cryptographically secure pseudorandom entropy (seed)

@@ -46,7 +46,7 @@ hash :
 difficulty :
     compact-to-uint64            convert cuckoo compact difficulty to uint64.
     uint64-to-compact            convert cuckoo uint64 difficulty to compact.
-    compact-to-gps          convert cuckoo compact difficulty to GPS.
+    diff-to-gps          		convert cuckoo uint64 difficulty to GPS.
 
 entropy (seed) & mnemoic & hd & ec 
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
@@ -95,6 +95,8 @@ func errExit(err error) {
 var base58checkVersion qx.QitmeerBase58checkVersionFlag
 var base58checkVersionSize int
 var base58checkMode string
+var edgeBits int
+var blocktime int
 var showDetails bool
 var base58checkHasher string
 var base58checkCksumSize int
@@ -159,9 +161,12 @@ func main() {
 	uint64ToCompactCmd.Usage = func() {
 		cmdUsage(uint64ToCompactCmd, "Usage: qx uint64-to-compact [uint64 number]\n")
 	}
-	compactToHashrateCmd := flag.NewFlagSet("compact-to-gps", flag.ExitOnError)
-	compactToHashrateCmd.Usage = func() {
-		cmdUsage(compactToHashrateCmd, "Usage: qx compact-to-gps [difficulty compact uint32] [edgebits uint32] [blocktime uint32]\n")
+
+	diffToHashrateCmd := flag.NewFlagSet("diff-to-gps", flag.ExitOnError)
+	diffToHashrateCmd.IntVar(&edgeBits, "e", 24, "edgebits")
+	diffToHashrateCmd.IntVar(&blocktime, "t", 15, "blocktime")
+	diffToHashrateCmd.Usage = func() {
+		cmdUsage(diffToHashrateCmd, "Usage: qx diff-to-gps -e 24 -t 15 [difficulty uint64]\n")
 	}
 
 	base64EncodeCmd := flag.NewFlagSet("base64-encode", flag.ExitOnError)
@@ -381,7 +386,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		base58DecodeCmd,
 		compactToUint64Cmd,
 		uint64ToCompactCmd,
-		compactToHashrateCmd,
+		diffToHashrateCmd,
 		base64EncodeCmd,
 		base64DecodeCmd,
 		rlpEncodeCmd,
@@ -540,14 +545,21 @@ MEER is the 64 bit spend amount in qitmeer.`)
 	}
 
 	// Handle compact-to-gps
-	if compactToHashrateCmd.Parsed() {
+	if diffToHashrateCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
-				compactToHashrateCmd.Usage()
+				diffToHashrateCmd.Usage()
 			} else {
-				qx.CompactToGPS(os.Args[len(os.Args)-3],os.Args[len(os.Args)-2],os.Args[len(os.Args)-1])
+				qx.CompactToGPS(os.Args[len(os.Args)-1],edgeBits,blocktime)
 			}
+		}else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.CompactToGPS(str,edgeBits,blocktime)
 		}
 	}
 	// Handle base58-decode
