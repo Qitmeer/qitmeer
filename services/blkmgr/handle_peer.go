@@ -11,7 +11,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
-	"math/rand"
 	"sync/atomic"
 	"time"
 )
@@ -104,43 +103,8 @@ func (b *BlockManager) startSync() {
 	if b.syncPeer != nil {
 		return
 	}
-
 	best := b.chain.BestSnapshot()
-	var bestPeer *peer.ServerPeer
-	equalPeers := []*peer.ServerPeer{}
-
-	for _, sp := range b.peers {
-		if !sp.SyncCandidate {
-			continue
-		}
-		// Remove sync candidate peers that are no longer candidates due
-		// to passing their latest known block.  NOTE: The < is
-		// intentional as opposed to <=.  While techcnically the peer
-		// doesn't have a later block when it's equal, it will likely
-		// have one soon so it is a reasonable choice.  It also allows
-		// the case where both are at 0 such as during regression test.
-		if best.GraphState.IsExcellent(sp.LastGS()) {
-			sp.SyncCandidate = false
-			continue
-		}
-		// the best sync candidate is the most updated peer
-		if bestPeer == nil {
-			bestPeer = sp
-			continue
-		}
-		if sp.LastGS().IsExcellent(bestPeer.LastGS()) {
-			bestPeer = sp
-			if len(equalPeers) > 0 {
-				equalPeers = equalPeers[0:0]
-			}
-		} else if sp.LastGS().IsEqual(bestPeer.LastGS()) {
-			equalPeers = append(equalPeers, sp)
-		}
-	}
-	if len(equalPeers) > 0 {
-		equalPeers = append(equalPeers, bestPeer)
-		bestPeer = equalPeers[rand.Intn(len(equalPeers))]
-	}
+	bestPeer := b.getBestPeer(true)
 	// Start syncing from the best peer if one was selected.
 	if bestPeer != nil {
 		// Clear the requestedBlocks if the sync peer changes, otherwise
@@ -178,6 +142,54 @@ func (b *BlockManager) startSync() {
 		b.dagSync.GS = bestPeer.LastGS()
 		b.dagSync.GSMtx.Unlock()
 	} else {
-		log.Warn("No sync peer candidates available")
+		log.Trace("No sync peer candidates available")
 	}
+}
+
+// getBestPeer
+func (b *BlockManager) getBestPeer(candidate bool) *peer.ServerPeer {
+	best := b.chain.BestSnapshot()
+	var bestPeer *peer.ServerPeer
+	equalPeers := []*peer.ServerPeer{}
+	for _, sp := range b.peers {
+		if !sp.SyncCandidate {
+			continue
+		}
+		// Remove sync candidate peers that are no longer candidates due
+		// to passing their latest known block.  NOTE: The < is
+		// intentional as opposed to <=.  While techcnically the peer
+		// doesn't have a later block when it's equal, it will likely
+		// have one soon so it is a reasonable choice.  It also allows
+		// the case where both are at 0 such as during regression test.
+		if best.GraphState.IsExcellent(sp.LastGS()) {
+			if candidate {
+				sp.SyncCandidate = false
+			}
+			continue
+		}
+		// the best sync candidate is the most updated peer
+		if bestPeer == nil {
+			bestPeer = sp
+			continue
+		}
+		if sp.LastGS().IsExcellent(bestPeer.LastGS()) {
+			bestPeer = sp
+			if len(equalPeers) > 0 {
+				equalPeers = equalPeers[0:0]
+			}
+		} else if sp.LastGS().IsEqual(bestPeer.LastGS()) {
+			equalPeers = append(equalPeers, sp)
+		}
+	}
+	if bestPeer == nil {
+		return nil
+	}
+	if len(equalPeers) > 0 {
+		for _, sp := range equalPeers {
+			if sp.UUID().String() > bestPeer.UUID().String() {
+				bestPeer = sp
+			}
+		}
+	}
+	return bestPeer
 }

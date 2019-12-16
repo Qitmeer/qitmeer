@@ -68,7 +68,6 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	// will fail the insert and thus we'll retry next time we get an inv.
 	delete(bmsg.peer.RequestedBlocks, *blockHash)
 	delete(b.requestedBlocks, *blockHash)
-
 	// Process the block to include validation, best chain selection, orphan
 	// handling, etc.
 	isOrphan, err := b.chain.ProcessBlock(bmsg.block,
@@ -144,19 +143,22 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 				rpcServer.gbtWorkState.NotifyBlockConnected(blockHash)
 			}
 		*/
-		isCurrent := b.current()
+		isCurrent := b.IsCurrent()
+		if isCurrent {
+			log.Info(fmt.Sprintf("Your synchronization has been completed. "))
+		}
 		// reset last progress time
 		if bmsg.peer == b.syncPeer {
 			b.lastProgressTime = time.Now()
-			if len(bmsg.peer.RequestedBlocks) == 0 {
-				if isCurrent {
-					log.Info(fmt.Sprintf("Your synchronization has been completed. "))
-				} else {
-					b.IntellectSyncBlocks(bmsg.peer)
-				}
-			}
-
 		}
+	}
+
+	if len(b.requestedBlocks) == 0 ||
+		(len(bmsg.peer.RequestedBlocks) == 0 && bmsg.peer == b.syncPeer) {
+		if b.syncPeer != nil {
+			b.clearRequestedState(b.syncPeer)
+		}
+		b.updateSyncPeer(false)
 	}
 
 	// Nothing more to do if we aren't in headers-first mode.

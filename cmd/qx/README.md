@@ -39,6 +39,11 @@ hash :
     bitcion160            calculate ripemd160(sha256(data))
     hash160               calculate ripemd160(blake2b256(data))
 
+difficulty :
+    compact-to-uint64       convert cuckoo compact difficulty to uint64.
+    uint64-to-compact       convert cuckoo uint64 difficulty to compact.
+    diff-to-gps          convert cuckoo compact difficulty to GPS.
+
 entropy (seed) & mnemoic & hd & ec
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
     hd-new                create a new HD(BIP32) private key from an entropy (seed)

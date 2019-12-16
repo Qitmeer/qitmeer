@@ -299,7 +299,7 @@ func New(config *Config) (*BlockChain, error) {
 	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d mainOrder=%d total=%d", b.BestSnapshot().TotalTxns, len(tips), b.bd.GetMainChainTip().GetOrder(), b.bd.GetBlockTotal()))
 
 	for _, v := range tips {
-		tnode := b.index.lookupNode(v.GetHash())
+		tnode := b.index.LookupNode(v.GetHash())
 		log.Info(fmt.Sprintf("hash=%v,order=%s,work=%v", tnode.hash, blockdag.GetOrderLogStr(uint(tnode.GetOrder())), tnode.workSum))
 	}
 
@@ -475,7 +475,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 
 		// Set the best chain view to the stored best state.
 		// Load the raw block bytes for the best block.
-		mainTip := b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
+		mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
@@ -553,13 +553,9 @@ func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 		log.Debug(fmt.Sprintf("GetRecentOrphanParents not found hash %v in the orphans list",h))
 		return nil
 	}
-	maxTimestamp := b.timeSource.AdjustedTime().Add(time.Second *
-		MaxOrphanTimeOffsetSeconds)
-	if ob.block.Block().Header.Timestamp.After(maxTimestamp) {
-		log.Debug(fmt.Sprintf("GetRecentOrphanParents found hash %v in the orphans list, but %v after %v",h, maxTimestamp, ob.block.Block().Header.Timestamp))
+	if !b.IsOrphanNear(ob) {
 		return nil
 	}
-
 	result := blockdag.NewHashSet()
 	for _, h := range ob.block.Block().Parents {
 		exists, err := b.HaveBlock(h)
@@ -583,13 +579,10 @@ func (b *BlockChain) GetOrphansTotal() int {
 func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 	b.orphanLock.RLock()
 	defer b.orphanLock.RUnlock()
-	//
-	maxTimestamp := b.timeSource.AdjustedTime().Add(time.Second *
-		MaxOrphanTimeOffsetSeconds)
-	//
+
 	result := blockdag.NewHashSet()
 	for _, v := range b.orphans {
-		if v.block.Block().Header.Timestamp.After(maxTimestamp) {
+		if !b.IsOrphanNear(v) {
 			continue
 		}
 		for _, h := range v.block.Block().Parents {
@@ -604,6 +597,21 @@ func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 	return result.List()
 }
 
+func (b *BlockChain) IsOrphanNear(ob *orphanBlock) bool {
+	serializedHeight, err := ExtractCoinbaseHeight(ob.block.Block().Transactions[0])
+	if err != nil {
+		return false
+	}
+	dist := int64(serializedHeight) - int64(blockdag.StableConfirmations)
+	if dist <= 0 {
+		return true
+	}
+	if uint(dist) > b.BestSnapshot().GraphState.GetMainHeight() {
+		return false
+	}
+	return true
+}
+
 // IsCurrent returns whether or not the chain believes it is current.  Several
 // factors are used to guess, but the key factors that allow the chain to
 // believe it is current are:
@@ -612,9 +620,6 @@ func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) IsCurrent() bool {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
-
 	return b.isCurrent()
 }
 
@@ -640,7 +645,7 @@ func (b *BlockChain) isCurrent() bool {
 	// The chain appears to be current if none of the checks reported
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
-	lastNode := b.index.lookupNode(lastBlock.GetHash())
+	lastNode := b.index.LookupNode(lastBlock.GetHash())
 	return lastNode.timestamp >= minus24Hours
 }
 
@@ -649,15 +654,11 @@ func (b *BlockChain) isCurrent() bool {
 //
 // The function is safe for concurrent access.
 func (b *BlockChain) TipGeneration() ([]hash.Hash, error) {
-	b.chainLock.Lock()
-	b.index.RLock()
 	tips := b.bd.GetTipsList()
 	tiphashs := []hash.Hash{}
 	for _, block := range tips {
 		tiphashs = append(tiphashs, *block.GetHash())
 	}
-	b.index.RUnlock()
-	b.chainLock.Unlock()
 	return tiphashs, nil
 }
 
@@ -724,8 +725,8 @@ func (b *BlockChain) DumpBlockChain(dumpFile string, params *params.Params, orde
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) BlockByHash(hash *hash.Hash) (*types.SerializedBlock, error) {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
+	b.ChainRLock()
+	defer b.ChainRUnlock()
 
 	return b.fetchMainChainBlockByHash(hash)
 }
@@ -1029,7 +1030,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 
 	blockSize := uint64(block.Block().SerializeSize())
 
-	mainTip := b.index.lookupNode(b.bd.GetMainChainTip().GetHash())
+	mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
 
 	state := newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
 		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState())
@@ -1112,9 +1113,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	b.chainLock.Unlock()
 	b.sendNotification(BlockConnected, []*types.SerializedBlock{block})
-	b.chainLock.Lock()
 	return nil
 }
 
@@ -1163,9 +1162,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlo
 	// now that the modifications have been committed to the database.
 	view.commit()
 
-	b.chainLock.Unlock()
 	b.sendNotification(BlockDisconnected, block)
-	b.chainLock.Lock()
 
 	return nil
 }
@@ -1201,7 +1198,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 	dl := len(detachNodes)
 	for i := dl - 1; i >= 0; i-- {
 		n = detachNodes[i]
-		newn := b.index.lookupNode(n.GetHash())
+		newn := b.index.LookupNode(n.GetHash())
 		block, err = b.fetchBlockByHash(&n.hash)
 		if err != nil || n == nil {
 			panic(err.Error())
@@ -1343,7 +1340,7 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 				block.SetHeight(refblock.GetHeight())
 			}
 		} else {
-			refnode = b.index.lookupNode(refHash)
+			refnode = b.index.LookupNode(refHash)
 			if refnode.IsOrdered() {
 				oldOrdersTemp = append(oldOrdersTemp, refnode.Clone())
 			}
@@ -1393,8 +1390,8 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 
 // FetchSpendJournal can return the set of outputs spent for the target block.
 func (b *BlockChain) FetchSpendJournal(targetBlock *types.SerializedBlock) ([]SpentTxOut, error) {
-	b.chainLock.RLock()
-	defer b.chainLock.RUnlock()
+	b.ChainRLock()
+	defer b.ChainRUnlock()
 
 	var spendEntries []SpentTxOut
 	err := b.db.View(func(dbTx database.Tx) error {
@@ -1420,4 +1417,21 @@ func (b *BlockChain) GetTxManager() TxManager {
 
 func (b *BlockChain) GetMiningTips() []*hash.Hash {
 	return b.BlockDAG().GetValidTips()
+}
+
+func (b *BlockChain) ChainLock() {
+	b.chainLock.Lock()
+
+}
+
+func (b *BlockChain) ChainUnlock() {
+	b.chainLock.Unlock()
+}
+
+func (b *BlockChain) ChainRLock() {
+	b.chainLock.RLock()
+}
+
+func (b *BlockChain) ChainRUnlock() {
+	b.chainLock.RUnlock()
 }

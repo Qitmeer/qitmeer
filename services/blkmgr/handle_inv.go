@@ -43,8 +43,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 	}
 	// Ignore invs from peers that aren't the sync if we are not current.
 	// Helps prevent fetching a mass of orphans.
-	if imsg.peer != b.syncPeer && !b.current() {
-		log.Trace(fmt.Sprintf("Received inv message peer %v != syncpeer %v",imsg.peer, b.syncPeer))
+	if imsg.peer != b.syncPeer && !b.IsCurrent() {
 		return
 	}
 	// Request the advertised inventory if we don't already have it.  Also,

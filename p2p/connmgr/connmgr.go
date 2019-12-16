@@ -296,7 +296,7 @@ func (cm *ConnManager) handleFailedConn(c *ConnReq) {
 		} else if cm.failedAttempts >= maxFailedAttempts {
 			//log.Trace(fmt.Sprintf("Max %d failed connection attempts reached", maxFailedAttempts))
 			//log.Trace(fmt.Sprintf("Retrying connection in: %v", cm.cfg.RetryDuration),
-		//		"failed", cm.failedAttempts)
+			//	"failed", cm.failedAttempts)
 			time.AfterFunc(cm.cfg.RetryDuration, func() {
 				cm.NewConnReq()
 			})

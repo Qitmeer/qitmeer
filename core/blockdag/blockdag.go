@@ -123,6 +123,9 @@ type IBlockDAG interface {
 
 	// load
 	Load(dbTx database.Tx) error
+
+	// IsDAG
+	IsDAG(parents []*hash.Hash) bool
 }
 
 // CalcWeight
@@ -275,7 +278,8 @@ func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 // Exclude genesis block
 func (bd *BlockDAG) isDAG(parents []*hash.Hash) bool {
 	return bd.checkLayerGap(parents) &&
-		bd.checkLegality(parents)
+		bd.checkLegality(parents) &&
+		bd.instance.IsDAG(parents)
 }
 
 // Is there a block in DAG?
@@ -491,15 +495,18 @@ func (bd *BlockDAG) GetGraphState() *GraphState {
 // Return current general description of the whole state of DAG
 func (bd *BlockDAG) getGraphState() *GraphState {
 	gs := NewGraphState()
-	if bd.tips != nil && !bd.tips.IsEmpty() {
-		gs.GetTips().AddList(bd.tips.List())
+	gs.SetLayer(0)
 
-		gs.SetLayer(0)
-		for _, v := range bd.tips.GetMap() {
-			tip := v.(*Block)
-			if tip.GetLayer() > gs.GetLayer() {
-				gs.SetLayer(tip.GetLayer())
-			}
+	tips := bd.getValidTips()
+	for i := 0; i < len(tips); i++ {
+		tip := bd.getBlock(tips[i])
+		if i == 0 {
+			gs.GetTips().AddPair(tip.GetHash(), true)
+		} else {
+			gs.GetTips().Add(tip.GetHash())
+		}
+		if tip.GetLayer() > gs.GetLayer() {
+			gs.SetLayer(tip.GetLayer())
 		}
 	}
 	gs.SetTotal(bd.blockTotal)
@@ -657,6 +664,160 @@ func (bd *BlockDAG) getParentsAnticone(parents *HashSet) *HashSet {
 	return anticone
 }
 
+// getTreeTips
+func getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *HashSet) *HashSet {
+	allmainsubdag := mainsubdag.Clone()
+	queue := []IBlock{}
+	for _, v := range root.GetParents().GetMap() {
+		ib := v.(IBlock)
+		queue = append(queue, ib)
+		if genealogy != nil {
+			genealogy.Add(ib.GetHash())
+		}
+	}
+	startQueue := queue
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		if allmainsubdag.Has(cur.GetHash()) {
+			allmainsubdag.AddSet(cur.GetParents())
+		}
+		if !cur.HasParents() {
+			continue
+		}
+		for _, v := range cur.GetParents().GetMap() {
+			ib := v.(IBlock)
+			queue = append(queue, ib)
+		}
+	}
+
+	queue = startQueue
+	tips := NewHashSet()
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		if !allmainsubdag.Has(cur.GetHash()) {
+			if !cur.HasParents() {
+				tips.AddPair(cur.GetHash(), cur)
+			}
+			if genealogy != nil {
+				genealogy.Add(cur.GetHash())
+			}
+		}
+		if !cur.HasParents() {
+			continue
+		}
+		for _, v := range cur.GetParents().GetMap() {
+			ib := v.(IBlock)
+			queue = append(queue, ib)
+		}
+	}
+	return tips
+}
+
+// getDiffAnticone
+func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
+	if b.GetMainParent() == nil {
+		return nil
+	}
+	parents := b.GetParents()
+	if parents == nil || parents.Size() <= 1 {
+		return nil
+	}
+	num := uint(0)
+	rootBlock := &Block{id: num, hash: *b.GetHash(), parents: NewHashSet()}
+	// find anticone
+	anticone := NewHashSet()
+	mainsubdag := NewHashSet()
+	mainsubdag.Add(bd.GetGenesisHash())
+	mainsubdagTips := NewHashSet()
+
+	for _, v := range parents.GetMap() {
+		ib := v.(IBlock)
+		num++
+		cur := &Block{id: num, hash: *ib.GetHash(), parents: NewHashSet()}
+		if ib.GetHash().IsEqual(b.GetMainParent()) {
+			mainsubdag.Add(ib.GetHash())
+			mainsubdagTips.AddPair(ib.GetHash(), ib)
+		} else {
+			rootBlock.parents.AddPair(cur.GetHash(), cur)
+			anticone.AddPair(cur.GetHash(), cur)
+		}
+	}
+
+	anticoneTips := getTreeTips(rootBlock, mainsubdag, nil)
+	newmainsubdagTips := NewHashSet()
+
+	for i := 0; i <= MaxTipLayerGap+1; i++ {
+
+		for _, v := range mainsubdagTips.GetMap() {
+			ib := v.(IBlock)
+			if ib.HasParents() {
+				for _, pv := range ib.GetParents().GetMap() {
+					pib := pv.(IBlock)
+					if mainsubdag.Has(pib.GetHash()) {
+						continue
+					}
+					mainsubdag.Add(pib.GetHash())
+					newmainsubdagTips.AddPair(pib.GetHash(), pib)
+				}
+			}
+			mainsubdagTips.Remove(ib.GetHash())
+		}
+		mainsubdagTips.AddSet(newmainsubdagTips)
+
+		if mainsubdagTips.Size() == 0 {
+			break
+		}
+	}
+
+	for anticoneTips.Size() > 0 {
+
+		for _, v := range mainsubdagTips.GetMap() {
+			ib := v.(IBlock)
+			if ib.HasParents() {
+				for _, pv := range ib.GetParents().GetMap() {
+					pib := pv.(IBlock)
+					if mainsubdag.Has(pib.GetHash()) {
+						continue
+					}
+					mainsubdag.Add(pib.GetHash())
+					newmainsubdagTips.AddPair(pib.GetHash(), pib)
+				}
+			}
+			mainsubdagTips.Remove(ib.GetHash())
+		}
+		mainsubdagTips.AddSet(newmainsubdagTips)
+
+		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
+		//
+		for _, v := range anticoneTips.GetMap() {
+			tb := v.(*Block)
+			realib := bd.getBlock(tb.GetHash())
+			if realib.HasParents() {
+				for _, pv := range realib.GetParents().GetMap() {
+					pib := pv.(IBlock)
+					var cur *Block
+					if anticone.Has(pib.GetHash()) {
+						cur = anticone.Get(pib.GetHash()).(*Block)
+					} else {
+						num++
+						cur = &Block{id: num, hash: *pib.GetHash(), parents: NewHashSet()}
+						anticone.AddPair(cur.GetHash(), cur)
+					}
+					tb.parents.AddPair(cur.GetHash(), cur)
+				}
+			}
+		}
+		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
+	}
+	result := NewHashSet()
+	getTreeTips(rootBlock, mainsubdag, result)
+	return result
+}
+
 // Sort block by id
 func (bd *BlockDAG) sortBlock(src []*hash.Hash) []*hash.Hash {
 
@@ -744,12 +905,19 @@ func (bd *BlockDAG) GetValidTips() []*hash.Hash {
 }
 
 func (bd *BlockDAG) getValidTips() []*hash.Hash {
-	parents := bd.tips.SortList(false)
+	temp := bd.tips.Clone()
 	mainParent := bd.getMainChainTip()
-	tips := []*hash.Hash{}
+	temp.Remove(mainParent.GetHash())
+	var parents []*hash.Hash
+	if temp.Size() > 1 {
+		parents = temp.SortList(false)
+	} else {
+		parents = temp.List()
+	}
+
+	tips := []*hash.Hash{mainParent.GetHash()}
 	for i := 0; i < len(parents); i++ {
 		if mainParent.GetHash().IsEqual(parents[i]) {
-			tips = append(tips, parents[i])
 			continue
 		}
 		block := bd.getBlock(parents[i])
@@ -854,6 +1022,7 @@ func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
 	} else {
 		parentsSet := NewHashSet()
 		parentsSet.AddList(parents)
+
 		// Belonging to close relatives
 		for _, p := range parentsNode {
 			if p.HasParents() {
@@ -867,17 +1036,6 @@ func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
 				if !inSet.IsEmpty() {
 					return false
 				}
-			}
-		}
-		// In the past set
-		for _, p := range parentsNode {
-			pAnticone := bd.getAnticone(p, nil)
-			if pAnticone.IsEmpty() {
-				return false
-			}
-			inSet := pAnticone.Intersection(parentsSet)
-			if inSet.IsEmpty() {
-				return false
 			}
 		}
 	}

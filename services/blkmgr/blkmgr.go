@@ -29,7 +29,7 @@ const (
 
 	// stallSampleInterval the interval at which we will check to see if our
 	// sync has stalled.
-	StallSampleInterval = 30 * time.Second
+	StallSampleInterval = 3 * time.Second
 )
 
 // BlockManager provides a concurrency safe block manager for handling all
@@ -188,13 +188,10 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		blockHash := block.Hash()
 
 		// Generate the inventory vector and relay it.
-		iv := message.NewInvVect(message.InvTypeAiringBlock, blockHash)
+		iv := message.NewInvVect(message.InvTypeBlock, blockHash)
 		log.Trace("relay inv", "inv", iv)
 
 		b.notify.RelayInventory(iv, block.Block().Header)
-
-		gsm := message.NewMsgGraphState(b.chain.BestSnapshot().GraphState)
-		b.notify.BroadcastMessage(gsm)
 
 	// A block has been connected to the main block chain.
 	case blockchain.BlockConnected:
@@ -314,6 +311,12 @@ func (b *BlockManager) current() bool {
 	}
 
 	return true
+}
+
+func (b *BlockManager) IsCurrent() bool {
+	b.chain.ChainRLock()
+	defer b.chain.ChainRUnlock()
+	return b.current()
 }
 
 // Start begins the core block handler which processes block and inv messages.
@@ -599,7 +602,7 @@ out:
 				}
 			case isCurrentMsg:
 				log.Trace("blkmgr msgChan isCurrentMsg", "msg", msg)
-				msg.isCurrentReply <- b.current()
+				msg.isCurrentReply <- b.IsCurrent()
 				/*
 					case pauseMsg:
 						// Wait until the sender unpauses the manager.
@@ -759,7 +762,7 @@ type isCurrentMsg struct {
 
 // IsCurrent returns whether or not the block manager believes it is synced with
 // the connected peers.
-func (b *BlockManager) IsCurrent() bool {
+func (b *BlockManager) Current() bool {
 	reply := make(chan bool)
 	log.Trace("send isCurrentMsg to blkmgr msgChan")
 	b.msgChan <- isCurrentMsg{isCurrentReply: reply}
@@ -918,7 +921,6 @@ func (b *BlockManager) IntellectSyncBlocks(peer *peer.ServerPeer) {
 func (b *BlockManager) PushSyncDAGMsg(peer *peer.ServerPeer) {
 	gs := b.chain.BestSnapshot().GraphState
 	mainLocator := b.DAGSync().GetMainLocator(peer.PrevGet.Point)
-
 	peer.PushSyncDAGMsg(gs, mainLocator)
 }
 
@@ -930,7 +932,25 @@ func (b *BlockManager) handleStallSample() {
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		return
 	}
+	if len(b.peers) > 0 {
+		if b.syncPeer == nil {
+			b.updateSyncPeer(false)
+			return
+		} else {
+			if len(b.requestedBlocks) == 0 && len(b.peers) > 1 {
+				bestPeer := b.getBestPeer(false)
+				if bestPeer != nil && bestPeer != b.syncPeer {
+					b.updateSyncPeer(false)
+					return
+				}
+			}
+		}
+	}
 
+	b.checkSyncPeer()
+}
+
+func (b *BlockManager) checkSyncPeer() {
 	// If we don't have an active sync peer, exit early.
 	if b.syncPeer == nil {
 		return
@@ -984,7 +1004,7 @@ func (b *BlockManager) updateSyncPeer(dcSyncPeer bool) {
 		time.Since(b.lastProgressTime)))
 
 	// First, disconnect the current sync peer if requested.
-	if dcSyncPeer {
+	if dcSyncPeer && b.syncPeer != nil {
 		b.syncPeer.Disconnect()
 	}
 

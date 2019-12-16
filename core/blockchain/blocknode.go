@@ -354,7 +354,7 @@ func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
 	if mainParent == nil {
 		return nil
 	}
-	return b.index.lookupNode(mainParent.GetHash())
+	return b.index.LookupNode(mainParent.GetHash())
 }
 
 func (node *blockNode) GetStatus() blockStatus {

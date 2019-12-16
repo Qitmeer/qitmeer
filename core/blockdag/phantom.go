@@ -86,10 +86,10 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		pb.height = tp.height + 1
 		pb.weight = tp.GetWeight()
 
-		pbAnticone := ph.bd.getAnticone(pb.Block, nil)
-		tpAnticone := ph.bd.getAnticone(tp.Block, nil)
-		diffAnticone := tpAnticone.Clone()
-		diffAnticone.RemoveSet(pbAnticone)
+		diffAnticone := ph.bd.getDiffAnticone(pb)
+		if diffAnticone == nil {
+			diffAnticone = NewHashSet()
+		}
 
 		ph.calculateBlueSet(pb, diffAnticone)
 
@@ -447,7 +447,7 @@ func (ph *Phantom) GetTipsList() []IBlock {
 
 // Find block hash by order, this is very fast.
 func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash {
-	if order >= ph.GetMainChainTip().GetOrder() {
+	if order > ph.GetMainChainTip().GetOrder() {
 		return nil
 	}
 	return ph.bd.order[order]
@@ -616,10 +616,10 @@ func (ph *Phantom) GetBlues(parents *HashSet) uint {
 	pb.blueNum = tp.blueNum + 1
 	pb.height = tp.height + 1
 
-	pbAnticone := ph.bd.getParentsAnticone(parents)
-	tpAnticone := ph.bd.getAnticone(tp.Block, nil)
-	diffAnticone := tpAnticone.Clone()
-	diffAnticone.RemoveSet(pbAnticone)
+	diffAnticone := ph.bd.getDiffAnticone(pb)
+	if diffAnticone == nil {
+		diffAnticone = NewHashSet()
+	}
 
 	ph.calculateBlueSet(pb, diffAnticone)
 
@@ -647,6 +647,43 @@ func (ph *Phantom) IsBlue(h *hash.Hash) bool {
 		}
 	}
 	return false
+}
+
+// IsDAG
+func (ph *Phantom) IsDAG(parents []*hash.Hash) bool {
+	if len(parents) == 0 {
+		return false
+	} else if len(parents) == 1 {
+		return true
+	} else {
+		parentsSet := NewHashSet()
+		parentsSet.AddList(parents)
+
+		vb := &Block{hash: hash.ZeroHash, layer: 0}
+		pb := &PhantomBlock{vb, 0, NewHashSet(), NewHashSet()}
+		pb.parents = NewHashSet()
+
+		// Belonging to close relatives
+		for _, p := range parents {
+			pb.parents.AddPair(p, ph.getBlock(p))
+		}
+		// In the past set
+		//vb
+		tp := ph.GetMainParent(parentsSet).(*PhantomBlock)
+		pb.mainParent = tp.GetHash()
+		pb.blueNum = tp.blueNum + 1
+		pb.height = tp.height + 1
+
+		diffAnticone := ph.bd.getDiffAnticone(pb)
+		if diffAnticone == nil {
+			diffAnticone = NewHashSet()
+		}
+		inSet := diffAnticone.Intersection(parentsSet)
+		if inSet.IsEmpty() {
+			return false
+		}
+	}
+	return true
 }
 
 // The main chain of DAG is support incremental expansion

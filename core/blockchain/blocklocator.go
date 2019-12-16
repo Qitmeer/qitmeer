@@ -44,9 +44,9 @@ func fastLog2Floor(n uint32) uint8 {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) LatestBlockLocator() (BlockLocator, error) {
-	b.chainLock.RLock()
+	b.ChainRLock()
 	locator := b.blockLocator(nil)
-	b.chainLock.RUnlock()
+	b.ChainRUnlock()
 	return locator, nil
 }
 
@@ -128,10 +128,10 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) BlockLocatorFromHash(hash *hash.Hash) BlockLocator {
-	b.chainLock.RLock()
+	b.ChainRLock()
 	node := b.index.LookupNode(hash)
 	locator := b.blockLocator(node)
-	b.chainLock.RUnlock()
+	b.ChainRUnlock()
 	return locator
 }
 
@@ -143,7 +143,7 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 	// Use the current tip if requested.
 	if node == nil {
 		lb := b.bd.GetMainChainTip()
-		node = b.index.lookupNode(lb.GetHash())
+		node = b.index.LookupNode(lb.GetHash())
 		if node == nil {
 			return nil
 		}
@@ -184,7 +184,7 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 		}
 
 		nodeH := b.bd.GetBlockByOrder(uint(height))
-		node = b.index.lookupNode(nodeH)
+		node = b.index.LookupNode(nodeH)
 		// Once 11 entries have been included, start doubling the
 		// distance between included hashes.
 		if len(locator) > 10 {
