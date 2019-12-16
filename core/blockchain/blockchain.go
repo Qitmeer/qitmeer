@@ -550,6 +550,7 @@ func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 	//
 	ob, exists := b.orphans[*h]
 	if !exists {
+		log.Debug(fmt.Sprintf("GetRecentOrphanParents not found hash %v in the orphans list",h))
 		return nil
 	}
 	if !b.IsOrphanNear(ob) {
@@ -563,7 +564,7 @@ func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 		}
 		result.Add(h)
 	}
-
+	log.Trace(fmt.Sprintf("GetRecentOrphanParents result list %v",result))
 	return result.List()
 }
 

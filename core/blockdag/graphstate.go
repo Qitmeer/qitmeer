@@ -86,6 +86,18 @@ func (gs *GraphState) IsEqual(other *GraphState) bool {
 	return false
 }
 
+func (gs *GraphState) IsSame(other *GraphState) bool {
+	if gs == other {
+		return true
+	}
+	if gs.layer == other.layer &&
+		gs.mainOrder == other.mainOrder &&
+		gs.mainHeight == other.mainHeight {
+		return true
+	}
+	return false
+}
+
 // Setting vaules from other
 func (gs *GraphState) Equal(other *GraphState) {
 	if gs.IsEqual(other) {

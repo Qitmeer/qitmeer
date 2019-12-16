@@ -2,8 +2,10 @@ Table of Contents
 =================
 
    * [Qitmeer Testnet](#qitmeer-testnet)
+      * [v0.8.3 2019/12/08](#v083-20191208)
+         * [0.8.3 Reward Plan](#083-reward-plan)
       * [v0.8.2 2019/11/29](#v082-20191129)
-         * [0.8.2 Reward Plan](#082-reward-plan)
+         * [<del>0.8.2 Reward Plan</del>](#082-reward-plan)
       * [v0.8.1 2019/11/20](#v081-20191120)
          * [0.8.1 Reward](#081-reward)
             * [Reward 162 blocks from 18800 to 35000 of 0.8.0 &amp; 0.8.1 testnet](#reward-162-blocks-from-18800-to-35000-of-080--081-testnet)
@@ -15,6 +17,25 @@ Table of Contents
       * [v0.7.8](#v078)
 
 # Qitmeer Testnet
+
+## v0.8.3 2019/12/08
+
+| Internal Testnet   |     Info             |
+| -------------------|----------------------|
+| **Testnet Type**   | Public               |
+| **Version**        | *0.8.3*              |
+| **Source**         | |
+| **Start Date**     | 2019/12/08           |
+| **End Date**       | |
+| **blockOne Hash**  | *4deb00f5872384c497b17dfcd753f521e436822728457e7b8f683f94ab5c941e* |
+| **Data CleanUp**   | YES |
+| **CleanUP Reason** | community mining reward |
+| **Ledger recovery**| YES|
+| **Remarks**        | v0.8.2 testnet fail to start, v0.8.3 reloaded|
+
+### 0.8.3 Reward Plan
+ - TODO
+
 
 ## v0.8.2 2019/11/29
 
@@ -31,10 +52,10 @@ Table of Contents
 | **Ledger recovery**| YES|
 | **Remarks**        | txsvaild test finished & the community mining reward|
 
-### 0.8.2 Reward Plan
-  - There are 5% reward blocks of the block 1 to block 60000, 65 PMEER/Block.
-  - The miner who minered block amount larger than 20 will be rewarded,  one block for every 20 mined blocks.
-  - The reward will be sent by the genesis block when the offical testnet launched.
+### ~0.8.2 Reward Plan~
+  - ~There are 5% reward blocks of the block 1 to block 60000, 65 PMEER/Block.~
+  - ~The miner who minered block amount larger than 20 will be rewarded,  one block for every 20 mined blocks.~
+  - ~The reward will be sent by the genesis block when the offical testnet launched.~
 
 ## v0.8.1 2019/11/20
 
