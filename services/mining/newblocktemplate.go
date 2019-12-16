@@ -412,7 +412,7 @@ mempoolLoop:
 	}
 
 	ts := MedianAdjustedTime(blockManager.GetChain(), timeSource)
-	
+
 	//
 	reqBlake2bDDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.BLAKE2BD)
 	if err != nil {
