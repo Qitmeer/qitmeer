@@ -2,7 +2,6 @@ package blkmgr
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 )
 
@@ -19,10 +18,9 @@ const (
 // handleInvMsg handles inv messages from all peers.
 // We examine the inventory advertised by the remote peer and act accordingly.
 func (b *BlockManager) handleInvMsg(imsg *invMsg) {
-	log.Debug(fmt.Sprintf("Received inv message from %v", imsg.peer))
 	sp, exists := b.peers[imsg.peer.Peer]
 	if !exists {
-		log.Debug(fmt.Sprintf("Received inv message from unknown peer %s", sp))
+		log.Warn(fmt.Sprintf("Received inv message from unknown peer %s", sp))
 		return
 	}
 	// Attempt to find the final block in the inventory list.  There may
@@ -53,9 +51,8 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 	gs := b.chain.BestSnapshot().GraphState
 
 	for i, iv := range invVects {
-		log.Trace(fmt.Sprintf("Received inv type is %v,type= %v",iv, iv.Type))
 		// Ignore unsupported inventory types.
-		if iv.Type != message.InvTypeBlock && iv.Type != message.InvTypeAiringBlock && iv.Type != message.InvTypeTx {
+		if iv.Type != message.InvTypeBlock && iv.Type != message.InvTypeTx {
 			continue
 		}
 
@@ -76,7 +73,6 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				"processing", "error", err)
 			continue
 		}
-		log.Trace(fmt.Sprintf("the inventory we already have it = %v. %v, %v ",haveInv,iv, iv.Type))
 		if !haveInv {
 			if iv.Type == message.InvTypeTx {
 				// Skip the transaction if it has already been
@@ -90,8 +86,8 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 			imsg.peer.RequestQueue = append(imsg.peer.RequestQueue, iv)
 			continue
 		}
+
 		if iv.Type == message.InvTypeBlock {
-			log.Trace(fmt.Sprintf("Received inv message is an orphan block %v",iv.Hash))
 			// The block is an orphan block that we already have.
 			// When the existing orphan was processed, it requested
 			// the missing parent blocks.  When this scenario
@@ -118,13 +114,6 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				b.IntellectSyncBlocks(imsg.peer)
 			}
 		}
-		if iv.Type == message.InvTypeAiringBlock {
-			log.Debug(fmt.Sprintf("Received inv message is an airing block %v",iv.Hash))
-			locator := blockdag.NewHashSet()
-			locator.Add(&iv.Hash)
-			imsg.peer.PushGetBlocksMsg(gs, locator.List())
-			continue
-		}
 	}
 
 	// Request as much as possible at once.  Anything that won't fit into
@@ -146,17 +135,6 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				b.limitMap(b.requestedBlocks, maxRequestedBlocks)
 				imsg.peer.RequestedBlocks[iv.Hash] = struct{}{}
 				gdmsg.AddInvVect(iv)
-				numRequested++
-			}
-		case message.InvTypeAiringBlock:
-			// Request the block if there is not already a pending
-			// request.
-			if _, exists := b.requestedBlocks[iv.Hash]; !exists {
-				b.requestedBlocks[iv.Hash] = struct{}{}
-				b.limitMap(b.requestedBlocks, maxRequestedBlocks)
-				imsg.peer.RequestedBlocks[iv.Hash] = struct{}{}
-
-				gdmsg.AddInvVect(message.NewInvVect(message.InvTypeBlock,&iv.Hash))
 				numRequested++
 			}
 
