@@ -98,6 +98,7 @@ var base58checkVersionSize int
 var base58checkMode string
 var edgeBits int
 var blocktime int
+var mheight int
 var showDetails bool
 var base58checkHasher string
 var base58checkCksumSize int
@@ -166,6 +167,7 @@ func main() {
 	diffToHashrateCmd := flag.NewFlagSet("diff-to-gps", flag.ExitOnError)
 	diffToHashrateCmd.IntVar(&edgeBits, "e", 24, "edgebits")
 	diffToHashrateCmd.IntVar(&blocktime, "t", 15, "blocktime")
+	diffToHashrateCmd.IntVar(&blocktime, "m", 1, "mheight")
 	diffToHashrateCmd.Usage = func() {
 		cmdUsage(diffToHashrateCmd, "Usage: qx diff-to-gps -e 24 -t 15 [difficulty uint64]\n")
 	}
@@ -173,6 +175,7 @@ func main() {
 	gpsToDiffCmd := flag.NewFlagSet("gps-to-diff", flag.ExitOnError)
 	gpsToDiffCmd.IntVar(&edgeBits, "e", 24, "edgebits")
 	gpsToDiffCmd.IntVar(&blocktime, "t", 15, "blocktime")
+	gpsToDiffCmd.IntVar(&blocktime, "m", 1, "mheight")
 	gpsToDiffCmd.Usage = func() {
 		cmdUsage(gpsToDiffCmd, "Usage: qx gps-to-diff -e 24 -t 15 [GPS float64]\n")
 	}
@@ -560,7 +563,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				diffToHashrateCmd.Usage()
 			} else {
-				qx.CompactToGPS(os.Args[len(os.Args)-1],edgeBits,blocktime)
+				qx.CompactToGPS(os.Args[len(os.Args)-1],edgeBits,blocktime,mheight)
 			}
 		}else { //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -568,7 +571,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.CompactToGPS(str,edgeBits,blocktime)
+			qx.CompactToGPS(str,edgeBits,blocktime,mheight)
 		}
 	}
 
@@ -579,7 +582,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				gpsToDiffCmd.Usage()
 			} else {
-				qx.GPSToDiff(os.Args[len(os.Args)-1],edgeBits,blocktime)
+				qx.GPSToDiff(os.Args[len(os.Args)-1],edgeBits,blocktime,mheight)
 			}
 		}else { //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -587,7 +590,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.GPSToDiff(str,edgeBits,blocktime)
+			qx.GPSToDiff(str,edgeBits,blocktime,mheight)
 		}
 	}
 	// Handle base58-decode
