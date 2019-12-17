@@ -10,10 +10,10 @@ import (
 	"math/big"
 )
 
-//45 days c29 will be the main pow graph
+// after 45 days c29 will be the main pow graph
 // before 45 days will be c24
-// if 30 s per block
-const BIG_GRAPH_START_HEIGHT = 45 * 1440 * 2
+// if 15s per block
+const BIG_GRAPH_START_HEIGHT = 3 * 1440 * 2 * 2
 var (
 	// bigOne is 1 represented as a big.Int.  It is defined here to avoid
 	// the overhead of creating it multiple times.
