@@ -2,6 +2,7 @@ Table of Contents
 =================
 
    * [Qitmeer Testnet](#qitmeer-testnet)
+      * [v0.8.4 2019/12/17](#v084-20191217)
       * [v0.8.3 2019/12/08](#v083-20191208)
          * [0.8.3 Reward Plan](#083-reward-plan)
       * [v0.8.2 2019/11/29](#v082-20191129)
@@ -18,16 +19,31 @@ Table of Contents
 
 # Qitmeer Testnet
 
-## v0.8.3 2019/12/08
+## v0.8.4 2019/12/17
+
+| Internal Testnet   |     Info             |
+| -------------------|----------------------|
+| **Testnet Type**   | Public               |
+| **Version**        | *0.8.4*              |
+| **Source**         | |
+| **Start Date**     | 2019-12-17 09:00:00 GMT |
+| **End Date**       | |
+| **Genesis Hash**   | *0403c7c1f4770acb8cb7e84d9b615c3b615cd8b0d637922f2ae126bdc5e88185*|
+| **Data CleanUp**   | YES |
+| **CleanUP Reason** | community mining reward |
+| **Ledger recovery**| YES|
+| **Remarks**        | preview the public testnet official launch |
+
+## v0.8.3 2019/12/06
 
 | Internal Testnet   |     Info             |
 | -------------------|----------------------|
 | **Testnet Type**   | Public               |
 | **Version**        | *0.8.3*              |
 | **Source**         | |
-| **Start Date**     | 2019/12/08           |
+| **Start Date**     | 2019/12/06 21:36:30 GMT |
 | **End Date**       | |
-| **blockOne Hash**  | *4deb00f5872384c497b17dfcd753f521e436822728457e7b8f683f94ab5c941e* |
+| **Genesis Hash**   | *4deb00f5872384c497b17dfcd753f521e436822728457e7b8f683f94ab5c941e* |
 | **Data CleanUp**   | YES |
 | **CleanUP Reason** | community mining reward |
 | **Ledger recovery**| YES|
