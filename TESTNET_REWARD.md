@@ -1,11 +1,71 @@
 # Qitmeer Testnet Mining Reward
 
 ## Table of Contents
-   * [0.8.0 &amp; 0.8.1 Testnet](#080--081-testnet)
+   * [0.8.3 Testnet Reward](#083-testnet-reward)
+      * [0.8.3 rewards](#083-rewards)
+   * [0.8.0 &amp; 0.8.1 Testnet Reward](#080--081-testnet-reward)
       * [The 162 Mined Blocks List](#the-162-mined-blocks-list)
       * [Reward Ranking](#reward-ranking)
 
-## 0.8.0 & 0.8.1 Testnet
+## 0.8.3 Testnet Reward
+
+### 0.8.3 rewards
+
+for the block mined from order `38000` to `110000`, if block is valid (`blue block & txvalid=true`),  and valid minded block `count` > 30 , the reward is `(count%30) * 65` PMEER.
+see (https://github.com/Qitmeer/083testnet-data) for details
+
+```bash
+$ ./check-block-reward.sh -l
+TmgWMUZtDcBe36bxXG8FBCu8C3KFuy3F9jC 9868 21320 PMEER = (9868/30) * 65
+TmPvQaAAtHWDhzGdsd8gQ2q3rkuzfKJeaws 7990 17290 PMEER = (7990/30) * 65
+TmPK4WJRLqPjhjGEpVmofZ19apjD2rsnSoF 7777 16835 PMEER = (7777/30) * 65
+TmUBfuZVNB4DemaPaqVsLofYiJJjbbf6226 5937 12805 PMEER = (5937/30) * 65
+Tmc87uCQXqUaa7UPA6ESwe7P9L6ZV921UAh 4808 10400 PMEER = (4808/30) * 65
+TmUquGBdL1PgCuq7t29yJQ6DLC2teb1U8AS 2801 6045 PMEER = (2801/30) * 65
+TmcwnXt3d3bMxp7p2KY4jWJnZ3RALX8cABH 2237 4810 PMEER = (2237/30) * 65
+TmjM2Vrf8tV3hmpKLkqyd5cNyL5JLisDSm9 2150 4615 PMEER = (2150/30) * 65
+TmRZH8a4nQhBkfYnq28x1HdTNQ5wMJLWPh4 1945 4160 PMEER = (1945/30) * 65
+TmYL7UUoFQNkZedhYWP4SbhtHtYVzgLjmis 1917 4095 PMEER = (1917/30) * 65
+TmTr6FyJeBWq8LHdj1ZbH84nKxDiz3tQGJG 1457 3120 PMEER = (1457/30) * 65
+TmhBGnH35LSwPecZ9tCqL88UTfo28Q3PUi6 1346 2860 PMEER = (1346/30) * 65
+TmfLjksDFTTwaPiNv6zBTGS8tkqMt6ci2Cj 1337 2860 PMEER = (1337/30) * 65
+TmYphgQo9AtCAoyeZqFMY7qRdkJTtSHh2TD 1281 2730 PMEER = (1281/30) * 65
+TmdynELSnV85MivyKsHWGjh3d6gSyDxjooD 1244 2665 PMEER = (1244/30) * 65
+TmRXN84v3XB2E1HZmCuTSHgCeYRs3MV7q9A 1160 2470 PMEER = (1160/30) * 65
+TmZkkmz8t1KR8uvvnuHcXr7LMXs1AArTbHX 1032 2210 PMEER = (1032/30) * 65
+TmUWxxq66VCdAJtf5kxPVGwHN8LzXyqRk8L 860 1820 PMEER = (860/30) * 65
+Tmcubtx2XRRQMoBa4Cb2LHJhWnR1TLXEEjB 843 1820 PMEER = (843/30) * 65
+TmUvv3cYB4TDtqSo47kKBvkvGn7JjgWwuGe 766 1625 PMEER = (766/30) * 65
+TmfEem5qkmqggTFBshbwPyTTqNERgbD4EPn 737 1560 PMEER = (737/30) * 65
+TmQ67Hr2hfHpYEU4ThKPRnVE62h8aBMY3DT 734 1560 PMEER = (734/30) * 65
+TmkuVRGjxor5iNJKThmkoRMKe4cBX8DRc6e 697 1495 PMEER = (697/30) * 65
+Tme9dVJ4GeWRninBygrA6oDwCAGYbBvNxY7 688 1430 PMEER = (688/30) * 65
+TmhSc9QZsruv8PCeDgBsY3ew5EPbrgUrAhY 647 1365 PMEER = (647/30) * 65
+TmRxANuoKN9xPvtAaLe1SA77B279pQC9Wbo 647 1365 PMEER = (647/30) * 65
+TmjTooPeHr27TLkJzvXM9NabbyTEqXY2Bay 628 1300 PMEER = (628/30) * 65
+TmcWTAY3mM7pQEzsWudtRnZNmHuWNgdhfeC 603 1300 PMEER = (603/30) * 65
+Tmj8PCEms1fAT9SYEWuxfHjbppataAM7rP2 420 910 PMEER = (420/30) * 65
+Tmgw6ttQsrWRsWfXPw6BgWRcviLarZUca48 384 780 PMEER = (384/30) * 65
+Tmgi1VwHrAG9bb9hXSeEUv76uchPQGgt5pj 364 780 PMEER = (364/30) * 65
+TmWMuY9q5dUutUTGikhqTVKrnDMG34dEgb5 355 715 PMEER = (355/30) * 65
+TmjpmECxxekaLjZA61f6T32cmmPmvjUr7iD 340 715 PMEER = (340/30) * 65
+TmRzxNU7QxxSq9ErvWPZ9bjqABchVehSYUL 307 650 PMEER = (307/30) * 65
+TmRShC5EEhKp9njDyH465xDdpoQY4bA3DpW 282 585 PMEER = (282/30) * 65
+TmUtMdS8gd6QCCVeQvJ3kk1Ah28c59vw2SE 267 520 PMEER = (267/30) * 65
+TmZjUjatt9yixCxWX7bwyB2DbM8PpPWSLPb 237 455 PMEER = (237/30) * 65
+TmkVvov4MEgCLKjty4D5zFevy4cftaiRwCW 203 390 PMEER = (203/30) * 65
+Tmin7cp5Bn2bTfpFq9my6bsecQGJdTHcFCg 180 390 PMEER = (180/30) * 65
+TmcCoVxM457qo1dtchcjsm9z8rr7YCedAKo 123 260 PMEER = (123/30) * 65
+TmgpqUCHq2ibCTKsn2hDxqQ5i7RyyaqrA66 102 195 PMEER = (102/30) * 65
+TmdbCb3MMdK8AxW1P74oPTZfEa4YCq14wLV 90 195 PMEER = (90/30) * 65
+TmeGMabPcGPZLBXWXAuD9o1oEyfXU3ucMKh 63 130 PMEER = (63/30) * 65
+TmVPSevet6ejiFVfYiuhi5CDhLhqLPPVudZ 39 65 PMEER = (39/30) * 65
+Tmbz9mNaiuWKJdvpid9XQLHbFcUXPHSFY3j 31 65 PMEER = (31/30) * 65
+The totol reward is :  145730 PMEER
+```
+
+
+## 0.8.0 & 0.8.1 Testnet Reward
 
 ### The 162 Mined Blocks List
 
