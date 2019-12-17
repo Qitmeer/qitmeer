@@ -52,7 +52,7 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		return ruleError(ErrBlockVersionTooOld, "block version too old")
 	}
 
-	err := checkBlockHeaderSanity(header, timeSource, flags, chainParams)
+	err := checkBlockHeaderSanity(header, timeSource, flags, chainParams,block.Height())
 	if err != nil {
 		return err
 	}
@@ -212,12 +212,12 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 //
 // The flags do not modify the behavior of this function directly, however they
 // are needed to pass along to checkProofOfWork.
-func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *params.Params) error {
+func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *params.Params,mHeight uint) error {
 
 	// Ensure the proof of work bits in the block header is in min/max
 	// range and the block hash is less than the target value described by
 	// the bits.
-	err := checkProofOfWork(header, chainParams.PowConfig, flags)
+	err := checkProofOfWork(header, chainParams.PowConfig, flags,mHeight)
 	if err != nil {
 		return err
 	}
@@ -252,12 +252,13 @@ func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSour
 // The flags modify the behavior of this function as follows:
 //  - BFNoPoWCheck: The check to ensure the block hash is less than the target
 //    difficulty is not performed.
-func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags BehaviorFlags) error {
+func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags BehaviorFlags,mHeight uint) error {
 
 	// The block hash must be less than the claimed target unless the flag
 	// to avoid proof of work checks is set.
 	if flags&BFNoPoWCheck != BFNoPoWCheck {
 		header.Pow.SetParams(powConfig)
+		header.Pow.SetMainHeight(int64(mHeight))
 		// The block hash must be less than the claimed target.
 		return header.Pow.Verify(header.BlockData(), header.BlockHash(), header.Difficulty)
 	}
