@@ -28,7 +28,7 @@ Table of Contents
 | **Source**         | |
 | **Start Date**     | 2019-12-17 09:00:00 GMT |
 | **End Date**       | |
-| **Genesis Hash**   | *7a9bf2d7d7035279b261c78698fcaaac8c61e4b9438077d3aa362bc2faa4a07d*|
+| **Genesis Hash**   | *0403c7c1f4770acb8cb7e84d9b615c3b615cd8b0d637922f2ae126bdc5e88185*|
 | **Data CleanUp**   | YES |
 | **CleanUP Reason** | community mining reward |
 | **Ledger recovery**| YES|
