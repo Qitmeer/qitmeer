@@ -6,32 +6,32 @@ import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/util"
-	`github.com/Qitmeer/qitmeer/params`
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 )
 
 func TestCalcScale(t *testing.T) {
-	assert.Equal(t, uint64(48), GraphWeight(24,2,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO))
-	assert.Equal(t, uint64(100), GraphWeight(25,params.TestNetParams.PowConfig.BigGraphStartHeight,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO))
-	assert.Equal(t, uint64(208), GraphWeight(26,params.TestNetParams.PowConfig.BigGraphStartHeight,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO))
-	assert.Equal(t, uint64(1), GraphWeight(29,2,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO))
-	assert.Equal(t, uint64(1856), GraphWeight(29,params.TestNetParams.PowConfig.BigGraphStartHeight,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO))
-	assert.Equal(t, uint64(7936), GraphWeight(31,params.TestNetParams.PowConfig.BigGraphStartHeight,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO))
+	// 259200 is 15s per block 45 days main height
+	assert.Equal(t, uint64(48), GraphWeight(24,2,259200,CUCKAROO))
+	assert.Equal(t, uint64(100), GraphWeight(25,259200,259200,CUCKAROO))
+	assert.Equal(t, uint64(208), GraphWeight(26,259200,259200,CUCKAROO))
+	assert.Equal(t, uint64(1), GraphWeight(29,2,259200,CUCKAROO))
+	assert.Equal(t, uint64(1856), GraphWeight(29,259200,259200,CUCKAROO))
+	assert.Equal(t, uint64(7936), GraphWeight(31,259200,259200,CUCKAROO))
 }
 
 func TestScaleToTarget(t *testing.T) {
 	diff := uint64(1000)
 	diffBig := &big.Int{}
 	diffBig.SetUint64(diff)
-	assert.Equal(t, "0c49ba5e353f7ced916872b020c49ba5e353f7ced916872b020c49ba5e353f7c", CuckooDiffToTarget(GraphWeight(24,params.TestNetParams.PowConfig.BigGraphStartHeight,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO), diffBig))
-	assert.Equal(t, "004189374bc6a7ef9db22d0e5604189374bc6a7ef9db22d0e5604189374bc6a7", CuckooDiffToTarget(GraphWeight(29,2,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO), diffBig))
-	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(GraphWeight(29,params.TestNetParams.PowConfig.BigGraphStartHeight,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO), diffBig))
+	assert.Equal(t, "0c49ba5e353f7ced916872b020c49ba5e353f7ced916872b020c49ba5e353f7c", CuckooDiffToTarget(GraphWeight(24,259200,259200,CUCKAROO), diffBig))
+	assert.Equal(t, "004189374bc6a7ef9db22d0e5604189374bc6a7ef9db22d0e5604189374bc6a7", CuckooDiffToTarget(GraphWeight(29,2,259200,CUCKAROO), diffBig))
+	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(GraphWeight(29,259200,259200,CUCKAROO), diffBig))
 
-	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(GraphWeight(24,params.TestNetParams.PowConfig.BigGraphStartHeight,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO), big.NewInt(48)))
-	assert.Equal(t, "8000000000000000000000000000000000000000000000000000000000000000", CuckooDiffToTarget(GraphWeight(24,params.TestNetParams.PowConfig.BigGraphStartHeight,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO), big.NewInt(96)))
-	assert.Equal(t, "000017b5dbd6151319c5e8a604ddc87e903df63f7e7512ea5a30f9dab794f2be", CuckooDiffToTarget(GraphWeight(24,params.TestNetParams.PowConfig.BigGraphStartHeight,params.TestNetParams.PowConfig.BigGraphStartHeight,CUCKAROO), big.NewInt(33964288)))
+	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(GraphWeight(24,259200,259200,CUCKAROO), big.NewInt(48)))
+	assert.Equal(t, "8000000000000000000000000000000000000000000000000000000000000000", CuckooDiffToTarget(GraphWeight(24,259200,259200,CUCKAROO), big.NewInt(96)))
+	assert.Equal(t, "000017b5dbd6151319c5e8a604ddc87e903df63f7e7512ea5a30f9dab794f2be", CuckooDiffToTarget(GraphWeight(24,259200,259200,CUCKAROO), big.NewInt(33964288)))
 }
 
 func TestDiffCompare(t *testing.T) {
