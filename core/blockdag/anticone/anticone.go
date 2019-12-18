@@ -1,12 +1,10 @@
 package anticone
 
 import (
-	"log"
+	"fmt"
 	"math"
-	"os"
+	"github.com/Qitmeer/qitmeer/log"
 )
-
-var myLog = log.New(os.Stdout, "", 0)
 
 // Calculate  AntiCone size, which means when some miner has just created a block,
 // how many blocks at most are there created by other miners.
@@ -18,12 +16,10 @@ var myLog = log.New(os.Stdout, "", 0)
 func GetSize(_delay, _rate, _security float64) int {
 	expect := 2 * _delay * _rate
 	if expect > 999 {
-		myLog.Fatalf("keep expect:%v = 2 * _delay:%v * _rate:%v under 1000!", expect, _delay, _rate)
+		log.Error(fmt.Sprintf("keep expect:%v = 2 * _delay:%v * _rate:%v under 1000!", expect, _delay, _rate))
 	}
 
 	coef := 1 / math.Pow(math.E, expect)
-
-	myLog.Printf("_delay:%v _rate:%v  _security:%v expect:%v coef:%v\n\n", _delay, _rate, _security, expect, coef)
 
 	end := 1000
 
@@ -35,7 +31,7 @@ func GetSize(_delay, _rate, _security float64) int {
 			part *= expect / float64(j)
 		}
 		sum -= part * coef
-		myLog.Printf("k=%v sum=%v", k, sum)
+		log.Debug(fmt.Sprintf("k=%v sum=%v", k, sum))
 		if sum < _security {
 			return k
 		}
