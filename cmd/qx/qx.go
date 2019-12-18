@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/crypto/seed"
+	`github.com/Qitmeer/qitmeer/params`
 	"github.com/Qitmeer/qitmeer/qx"
 	"github.com/Qitmeer/qitmeer/wallet"
 	"io/ioutil"
@@ -168,6 +169,7 @@ func main() {
 	diffToHashrateCmd.IntVar(&edgeBits, "e", 24, "edgebits")
 	diffToHashrateCmd.IntVar(&blocktime, "t", 15, "blocktime")
 	diffToHashrateCmd.IntVar(&blocktime, "m", 1, "mheight")
+	diffToHashrateCmd.StringVar(&network, "n", "testnet", "decode rawtx for the target network. (mainnet, testnet, privnet,mixnet)")
 	diffToHashrateCmd.Usage = func() {
 		cmdUsage(diffToHashrateCmd, "Usage: qx diff-to-gps -e 24 -t 15 [difficulty uint64]\n")
 	}
@@ -176,6 +178,7 @@ func main() {
 	gpsToDiffCmd.IntVar(&edgeBits, "e", 24, "edgebits")
 	gpsToDiffCmd.IntVar(&blocktime, "t", 15, "blocktime")
 	gpsToDiffCmd.IntVar(&blocktime, "m", 1, "mheight")
+	gpsToDiffCmd.StringVar(&network, "n", "testnet", "decode rawtx for the target network. (mainnet, testnet, privnet,mixnet)")
 	gpsToDiffCmd.Usage = func() {
 		cmdUsage(gpsToDiffCmd, "Usage: qx gps-to-diff -e 24 -t 15 [GPS float64]\n")
 	}
@@ -555,15 +558,29 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			qx.Uint64ToCompact(str)
 		}
 	}
-
+	getNetWork := func(network string) *params.Params{
+		switch network {
+		case "testnet":
+			return &params.TestNetParams
+		case "privnet":
+			return &params.PrivNetParams
+		case "mainnet":
+			return &params.MainNetParams
+		case "mixnet":
+			return &params.MixNetParams
+		default:
+			return &params.TestNetParams
+		}
+	}
 	// Handle compact-to-gps
 	if diffToHashrateCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
+		p := getNetWork(network)
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				diffToHashrateCmd.Usage()
 			} else {
-				qx.CompactToGPS(os.Args[len(os.Args)-1],edgeBits,blocktime,mheight)
+				qx.CompactToGPS(os.Args[len(os.Args)-1],edgeBits,blocktime,mheight,p)
 			}
 		}else { //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -571,18 +588,19 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.CompactToGPS(str,edgeBits,blocktime,mheight)
+			qx.CompactToGPS(str,edgeBits,blocktime,mheight,p)
 		}
 	}
 
 	// Handle gps-to-diff
 	if gpsToDiffCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
+		p := getNetWork(network)
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				gpsToDiffCmd.Usage()
 			} else {
-				qx.GPSToDiff(os.Args[len(os.Args)-1],edgeBits,blocktime,mheight)
+				qx.GPSToDiff(os.Args[len(os.Args)-1],edgeBits,blocktime,mheight,p)
 			}
 		}else { //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -590,7 +608,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.GPSToDiff(str,edgeBits,blocktime,mheight)
+			qx.GPSToDiff(str,edgeBits,blocktime,mheight,p)
 		}
 	}
 	// Handle base58-decode

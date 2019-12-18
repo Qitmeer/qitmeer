@@ -427,7 +427,7 @@ func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker
 		}
 		hashesCompleted += 2
 		targetDiff := pow.CompactToBig(header.Difficulty)
-		if pow.CalcCuckooDiff(pow.GraphWeight(uint32(cuckoo.Edgebits),int64(height),pow.CUCKAROO), header.BlockHash()).Cmp(targetDiff) >= 0 {
+		if pow.CalcCuckooDiff(pow.GraphWeight(uint32(cuckoo.Edgebits),int64(height),m.params.PowConfig.BigGraphStartHeight,pow.CUCKAROO), header.BlockHash()).Cmp(targetDiff) >= 0 {
 			m.updateHashes <- hashesCompleted
 			return true
 		}

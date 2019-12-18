@@ -52,6 +52,8 @@ var MixNetParams = Params{
 				MainHeight:      0,
 			},
 		},
+		// after this height the big graph will be the main pow graph
+		BigGraphStartHeight:45 * 1440 / 1,
 	},
 
 	WorkDiffAlpha:            1,

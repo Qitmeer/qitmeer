@@ -10,10 +10,6 @@ import (
 	"math/big"
 )
 
-// after 45 days c29 will be the main pow graph
-// before 45 days will be c24
-// if 15s per block
-const BIG_GRAPH_START_HEIGHT = 3 * 1440 * 2 * 2
 var (
 	// bigOne is 1 represented as a big.Int.  It is defined here to avoid
 	// the overhead of creating it multiple times.
@@ -240,14 +236,14 @@ func CuckooDiffToTarget(scale uint64, diff *big.Int) string {
 //29 target is db22d0e560418937000000000000000000000000000000000000000000000000
 //（The difficulty needs to be found 1000/1856 * 50 ≈ 26 times in edge_bits 29, and the answer may be obtained once.）
 //so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
-func GraphWeight(edge_bits uint32,height int64,powType PowType) uint64 {
+func GraphWeight(edge_bits uint32,height ,bigGraphStartHeight int64,powType PowType) uint64 {
 	// 30s a block
 	switch powType {
 	case CUCKATOO:
 		return (2 << (edge_bits - MIN_CUCKAROOEDGEBITS)) * uint64(edge_bits)
 	default:
 		//45 days
-		bigScale := BIG_GRAPH_START_HEIGHT - height
+		bigScale := bigGraphStartHeight - height
 		bigScale = bigScale * 40
 		if bigScale <= 0 || int(edge_bits) == MIN_CUCKAROOEDGEBITS {
 			bigScale = 1

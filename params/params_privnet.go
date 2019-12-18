@@ -63,6 +63,8 @@ var PrivNetParams = Params{
 				MainHeight:      100,
 			},
 		},
+		// after this height the big graph will be the main pow graph
+		BigGraphStartHeight:45 * 1440 * 2,
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
