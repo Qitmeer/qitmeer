@@ -42,6 +42,9 @@ _qx()
         tx-sign
         msg-sign
         msg-verify
+        compact-to-uint64
+        uint64-to-compact
+        diff-to-gps
     "
 
     if [[ $COMP_CWORD == 1 ]]; then

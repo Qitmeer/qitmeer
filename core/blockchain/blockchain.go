@@ -552,12 +552,9 @@ func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 	if !exists {
 		return nil
 	}
-	maxTimestamp := b.timeSource.AdjustedTime().Add(time.Second *
-		MaxOrphanTimeOffsetSeconds)
-	if ob.block.Block().Header.Timestamp.After(maxTimestamp) {
+	if !b.IsOrphanNear(ob) {
 		return nil
 	}
-
 	result := blockdag.NewHashSet()
 	for _, h := range ob.block.Block().Parents {
 		exists, err := b.HaveBlock(h)
@@ -581,13 +578,10 @@ func (b *BlockChain) GetOrphansTotal() int {
 func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 	b.orphanLock.RLock()
 	defer b.orphanLock.RUnlock()
-	//
-	maxTimestamp := b.timeSource.AdjustedTime().Add(time.Second *
-		MaxOrphanTimeOffsetSeconds)
-	//
+
 	result := blockdag.NewHashSet()
 	for _, v := range b.orphans {
-		if v.block.Block().Header.Timestamp.After(maxTimestamp) {
+		if !b.IsOrphanNear(v) {
 			continue
 		}
 		for _, h := range v.block.Block().Parents {
@@ -600,6 +594,21 @@ func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 
 	}
 	return result.List()
+}
+
+func (b *BlockChain) IsOrphanNear(ob *orphanBlock) bool {
+	serializedHeight, err := ExtractCoinbaseHeight(ob.block.Block().Transactions[0])
+	if err != nil {
+		return false
+	}
+	dist := int64(serializedHeight) - int64(blockdag.StableConfirmations)
+	if dist <= 0 {
+		return true
+	}
+	if uint(dist) > b.BestSnapshot().GraphState.GetMainHeight() {
+		return false
+	}
+	return true
 }
 
 // IsCurrent returns whether or not the chain believes it is current.  Several

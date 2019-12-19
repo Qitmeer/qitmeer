@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -186,7 +187,7 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 
 	bd.blockRate = blockRate
 	if bd.blockRate < 0 {
-		bd.blockRate = DefaultBlockRate
+		bd.blockRate = anticone.DefaultBlockRate
 	}
 	bd.instance = NewBlockDAG(dagType)
 	bd.instance.Init(bd)
@@ -495,16 +496,18 @@ func (bd *BlockDAG) GetGraphState() *GraphState {
 // Return current general description of the whole state of DAG
 func (bd *BlockDAG) getGraphState() *GraphState {
 	gs := NewGraphState()
-	tips := bd.getValidTips()
-	if bd.tips != nil && !bd.tips.IsEmpty() {
-		gs.GetTips().AddList(tips)
+	gs.SetLayer(0)
 
-		gs.SetLayer(0)
-		for _, v := range bd.tips.GetMap() {
-			tip := v.(*Block)
-			if tip.GetLayer() > gs.GetLayer() {
-				gs.SetLayer(tip.GetLayer())
-			}
+	tips := bd.getValidTips()
+	for i := 0; i < len(tips); i++ {
+		tip := bd.getBlock(tips[i])
+		if i == 0 {
+			gs.GetTips().AddPair(tip.GetHash(), true)
+		} else {
+			gs.GetTips().Add(tip.GetHash())
+		}
+		if tip.GetLayer() > gs.GetLayer() {
+			gs.SetLayer(tip.GetLayer())
 		}
 	}
 	gs.SetTotal(bd.blockTotal)
@@ -906,7 +909,12 @@ func (bd *BlockDAG) getValidTips() []*hash.Hash {
 	temp := bd.tips.Clone()
 	mainParent := bd.getMainChainTip()
 	temp.Remove(mainParent.GetHash())
-	parents := temp.SortList(false)
+	var parents []*hash.Hash
+	if temp.Size() > 1 {
+		parents = temp.SortList(false)
+	} else {
+		parents = temp.List()
+	}
 
 	tips := []*hash.Hash{mainParent.GetHash()}
 	for i := 0; i < len(parents); i++ {
