@@ -43,7 +43,7 @@ func (ph *Phantom_v2) GetName() string {
 func (ph *Phantom_v2) Init(bd *BlockDAG) bool {
 	ph.bd = bd
 
-	ph.anticoneSize = anticone.GetSize(BlockDelay, BlockRate, SecurityLevel)
+	ph.anticoneSize = anticone.GetSize(anticone.BlockDelay, BlockRate, anticone.SecurityLevel)
 
 	if log != nil {
 		log.Info(fmt.Sprintf("anticone size:%d", ph.anticoneSize))

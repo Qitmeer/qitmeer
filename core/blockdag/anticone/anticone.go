@@ -2,8 +2,14 @@ package anticone
 
 import (
 	"fmt"
-	"math"
 	"github.com/Qitmeer/qitmeer/log"
+	"math"
+)
+
+const (
+	BlockDelay       = 15
+	DefaultBlockRate = 0.02
+	SecurityLevel    = 0.01
 )
 
 // Calculate  AntiCone size, which means when some miner has just created a block,

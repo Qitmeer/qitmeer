@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -186,7 +187,7 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 
 	bd.blockRate = blockRate
 	if bd.blockRate < 0 {
-		bd.blockRate = DefaultBlockRate
+		bd.blockRate = anticone.DefaultBlockRate
 	}
 	bd.instance = NewBlockDAG(dagType)
 	bd.instance.Init(bd)
