@@ -1,7 +1,9 @@
-package anticone
+package anticone_test
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer/params"
 	"log"
 	"testing"
@@ -29,7 +31,7 @@ func TestAntiCone(t *testing.T) {
 	index := 0
 	for i := 5; i < 100; i += 5 {
 		rate := 1.0 / float64(i)
-		if GetSize(15, rate, 0.01) != result[index] {
+		if anticone.GetSize(15, rate, 0.01) != result[index] {
 			t.Fatal()
 		}
 		index++
@@ -38,5 +40,5 @@ func TestAntiCone(t *testing.T) {
 
 func TestShowParamsAntiCone(t *testing.T) {
 	rate := 1.0 / float64(params.TestNetParams.TargetTimePerBlock/time.Second)
-	fmt.Println(GetSize(15, rate, 0.1))
+	fmt.Println(anticone.GetSize(blockdag.BlockDelay, rate, blockdag.SecurityLevel))
 }
