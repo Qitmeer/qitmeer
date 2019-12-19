@@ -1,8 +1,11 @@
 package anticone
 
 import (
+	"fmt"
+	"github.com/Qitmeer/qitmeer/params"
 	"log"
 	"testing"
+	"time"
 )
 
 func TestSigma(t *testing.T) {
@@ -31,4 +34,9 @@ func TestAntiCone(t *testing.T) {
 		}
 		index++
 	}
+}
+
+func TestShowParamsAntiCone(t *testing.T) {
+	rate := 1.0 / float64(params.TestNetParams.TargetTimePerBlock/time.Second)
+	fmt.Println(GetSize(15, rate, 0.1))
 }

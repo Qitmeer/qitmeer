@@ -145,7 +145,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		*/
 		isCurrent := b.IsCurrent()
 		if isCurrent {
-			log.Debug("Your synchronization has been completed. ")
+			log.Info("Your synchronization has been completed. ")
 		}
 		// reset last progress time
 		if bmsg.peer == b.syncPeer {
