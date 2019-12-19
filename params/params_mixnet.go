@@ -17,6 +17,8 @@ import (
 // testMixNetPowLimit is the highest proof of work value a block can
 // have for the test network. It is the value 2^232 - 1.
 var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1)
+// target time per block unit second(s)
+const mixTargetTimePerBlock = 60
 
 // testPowNetParams defines the network parameters for the test network.
 var MixNetParams = Params{
@@ -53,7 +55,7 @@ var MixNetParams = Params{
 			},
 		},
 		// after this height the big graph will be the main pow graph
-		BigGraphStartHeight:45 * 1440 / 1,
+		AdjustmentStartMainHeight: 45 * 1440 * 60 / mixTargetTimePerBlock,
 	},
 
 	WorkDiffAlpha:            1,
@@ -61,8 +63,8 @@ var MixNetParams = Params{
 	WorkDiffWindows:          20,
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
-	TargetTimePerBlock:       time.Minute * 1,
-	TargetTimespan:           time.Minute * 1 * 1, // TimePerBlock * WindowSize
+	TargetTimePerBlock:       time.Second * mixTargetTimePerBlock,
+	TargetTimespan:           time.Second * mixTargetTimePerBlock * 1, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 3,
 
 	// Subsidy parameters.

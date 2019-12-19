@@ -41,7 +41,7 @@ func CompactToGPS(diff string,edgeBits ,blockTime ,height int,p *params.Params) 
 	if u64 <= 0 {
 		ErrExit(errors.New("diff must bigger than 0"))
 	}
-	scale := pow.GraphWeight(uint32(edgeBits),int64(height),p.PowConfig.BigGraphStartHeight,pow.CUCKAROO)
+	scale := pow.GraphWeight(uint32(edgeBits),int64(height),p.PowConfig.AdjustmentStartMainHeight,pow.CUCKAROO)
 	if scale <= 0{
 		ErrExit(errors.New("edgeBits must between 24-32"))
 	}
@@ -57,7 +57,7 @@ func GPSToDiff(gps string,edgeBits ,blockTime,height int,p *params.Params) {
 	if err != nil{
 		ErrExit(err)
 	}
-	scale := pow.GraphWeight(uint32(edgeBits),int64(height),p.PowConfig.BigGraphStartHeight,pow.CUCKAROO)
+	scale := pow.GraphWeight(uint32(edgeBits),int64(height),p.PowConfig.AdjustmentStartMainHeight,pow.CUCKAROO)
 	if scale <= 0{
 		ErrExit(errors.New("edgeBits must between 24-32"))
 	}

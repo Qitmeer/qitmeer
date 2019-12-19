@@ -31,7 +31,7 @@ type PowConfig struct {
 
 	Percent []Percent
 
-	BigGraphStartHeight int64
+	AdjustmentStartMainHeight int64
 
 	//is init
 	init bool
