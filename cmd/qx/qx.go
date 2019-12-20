@@ -177,7 +177,7 @@ func main() {
 		cmdUsage(diffToHashrateCmd, "Usage: qx diff-to-gps -e 24 -t 15 [difficulty uint64]\n")
 	}
 
-	 := flag.NewFlagSet("gps-to-diff", flag.ExitOnError)
+	gpsToDiffCmd := flag.NewFlagSet("gps-to-diff", flag.ExitOnError)
 	gpsToDiffCmd.IntVar(&edgeBits, "e", 24, "edgebits")
 	gpsToDiffCmd.IntVar(&blocktime, "t", 15, "blocktime")
 	gpsToDiffCmd.IntVar(&mheight, "m", 1, "mheight")
