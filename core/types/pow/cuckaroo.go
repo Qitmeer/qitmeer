@@ -43,7 +43,7 @@ func (this *Cuckaroo) Verify(headerData []byte, blockHash hash.Hash, targetDiffB
 			"less than min diff :%d", targetDiff, this.params.CuckarooMinDifficulty)
 		return errors.New(str)
 	}
-	if CalcCuckooDiff(GraphWeight(uint32(edgeBits),this.mainHeight,this.params.AdjustmentStartMainHeight,CUCKAROO), blockHash).Cmp(targetDiff) < 0 {
+	if CalcCuckooDiff(this.GraphWeight(), blockHash).Cmp(targetDiff) < 0 {
 		return errors.New("difficulty is too easy!")
 	}
 	return nil
@@ -90,4 +90,31 @@ func (this *Cuckaroo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 //check pow is available
 func (this *Cuckaroo) CheckAvailable() bool {
 	return this.params.GetPercentByHeight(this.mainHeight).CuckarooPercent > 0
+}
+//calc scale
+//the edge_bits is bigger ,then scale is bigger
+//Reference resources https://eprint.iacr.org/2014/059.pdf 9. Difficulty control page 6
+//while the average number of cycles found increases slowly with size; from 2 at 2^20 to 3 at 2^30
+//Less times of hash calculation with the same difficulty
+// 24 => 48 25 => 100 26 => 208 27 => 432 28 => 896 29 => 1856 30 => 3840 31 => 7936
+//assume init difficulty is 1000
+//24 target is 0c49ba5e353f7ced000000000000000000000000000000000000000000000000
+//（The meaning of difficulty needs to be found 1000/48 * 50 ≈ 1000 times in edge_bits 24, and the answer may be obtained once.）
+// why * 50 , because the when edge_count/nodes = 1/2,to find 42 cycles the probality is 2.2%
+//29 target is db22d0e560418937000000000000000000000000000000000000000000000000
+//（The difficulty needs to be found 1000/1856 * 50 ≈ 26 times in edge_bits 29, and the answer may be obtained once.）
+//so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
+func (this *Cuckaroo)GraphWeight() uint64 {
+	//45 days
+	bigScale := this.params.AdjustmentStartMainHeight - this.mainHeight
+	bigScale = bigScale * 40
+	if bigScale <= 0 || int(this.GetEdgeBits()) == MIN_CUCKAROOEDGEBITS {
+		bigScale = 1
+	}
+
+	scale := (2 << (this.GetEdgeBits() - MIN_CUCKAROOEDGEBITS)) * uint64(this.GetEdgeBits()) / uint64(bigScale)
+	if scale <= 0{
+		scale = 1
+	}
+	return scale
 }

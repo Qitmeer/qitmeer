@@ -7,7 +7,6 @@ import (
 	`errors`
 	"fmt"
 	`github.com/Qitmeer/qitmeer/core/types/pow`
-	`github.com/Qitmeer/qitmeer/params`
 	`math/big`
 	"strconv"
 )
@@ -32,7 +31,7 @@ func Uint64ToCompact(input string) {
 	fmt.Printf("%d\n", diffCompact)
 }
 
-func CompactToGPS(diff string,edgeBits ,blockTime ,height int,p *params.Params) {
+func CompactToGPS(diff string ,blockTime ,scale int) {
 	u64,err := strconv.ParseUint(diff,10,64)
 	if err != nil{
 		ErrExit(err)
@@ -41,7 +40,6 @@ func CompactToGPS(diff string,edgeBits ,blockTime ,height int,p *params.Params) 
 	if u64 <= 0 {
 		ErrExit(errors.New("diff must bigger than 0"))
 	}
-	scale := pow.GraphWeight(uint32(edgeBits),int64(height),p.PowConfig.AdjustmentStartMainHeight,pow.CUCKAROO)
 	if scale <= 0{
 		ErrExit(errors.New("edgeBits must between 24-32"))
 	}
@@ -52,12 +50,11 @@ func CompactToGPS(diff string,edgeBits ,blockTime ,height int,p *params.Params) 
 	fmt.Printf("%f\n", needGPS)
 }
 
-func GPSToDiff(gps string,edgeBits ,blockTime,height int,p *params.Params) {
+func GPSToDiff(gps string ,blockTime,scale int) {
 	f64,err := strconv.ParseFloat(gps,64)
 	if err != nil{
 		ErrExit(err)
 	}
-	scale := pow.GraphWeight(uint32(edgeBits),int64(height),p.PowConfig.AdjustmentStartMainHeight,pow.CUCKAROO)
 	if scale <= 0{
 		ErrExit(errors.New("edgeBits must between 24-32"))
 	}

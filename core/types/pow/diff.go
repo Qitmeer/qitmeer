@@ -222,38 +222,3 @@ func CuckooDiffToTarget(scale uint64, diff *big.Int) string {
 	b := a.Bytes()
 	return fmt.Sprintf("%064x", b)
 }
-
-//calc scale
-//the edge_bits is bigger ,then scale is bigger
-//Reference resources https://eprint.iacr.org/2014/059.pdf 9. Difficulty control page 6
-//while the average number of cycles found increases slowly with size; from 2 at 2^20 to 3 at 2^30
-//Less times of hash calculation with the same difficulty
-// 24 => 48 25 => 100 26 => 208 27 => 432 28 => 896 29 => 1856 30 => 3840 31 => 7936
-//assume init difficulty is 1000
-//24 target is 0c49ba5e353f7ced000000000000000000000000000000000000000000000000
-//（The meaning of difficulty needs to be found 1000/48 * 50 ≈ 1000 times in edge_bits 24, and the answer may be obtained once.）
-// why * 50 , because the when edge_count/nodes = 1/2,to find 42 cycles the probality is 2.2%
-//29 target is db22d0e560418937000000000000000000000000000000000000000000000000
-//（The difficulty needs to be found 1000/1856 * 50 ≈ 26 times in edge_bits 29, and the answer may be obtained once.）
-//so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
-func GraphWeight(edge_bits uint32,height ,bigGraphStartHeight int64,powType PowType) uint64 {
-	// 30s a block
-	switch powType {
-	case CUCKATOO:
-		return (2 << (edge_bits - MIN_CUCKAROOEDGEBITS)) * uint64(edge_bits)
-	default:
-		//45 days
-		bigScale := bigGraphStartHeight - height
-		bigScale = bigScale * 40
-		if bigScale <= 0 || int(edge_bits) == MIN_CUCKAROOEDGEBITS {
-			bigScale = 1
-		}
-
-		scale := (2 << (edge_bits - MIN_CUCKAROOEDGEBITS)) * uint64(edge_bits) / uint64(bigScale)
-		if scale <= 0{
-			scale = 1
-		}
-		return scale
-	}
-
-}
