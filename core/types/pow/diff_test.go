@@ -12,6 +12,7 @@ import (
 )
 
 func TestCalcScale(t *testing.T) {
+
 	// 259200 is 15s per block 45 days main height
 	assert.Equal(t, uint64(48), GraphWeight(24,2,259200,CUCKAROO))
 	assert.Equal(t, uint64(100), GraphWeight(25,259200,259200,CUCKAROO))
