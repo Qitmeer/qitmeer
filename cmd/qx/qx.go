@@ -171,7 +171,7 @@ func main() {
 	diffToHashrateCmd.IntVar(&edgeBits, "e", 24, "edgebits")
 	diffToHashrateCmd.IntVar(&blocktime, "t", 15, "blocktime")
 	diffToHashrateCmd.IntVar(&mheight, "m", 1, "mheight")
-	diffToHashrateCmd.StringVar(&network, "n", "testnet", "decode rawtx for the target network. (mainnet, testnet, privnet,mixnet)")
+	diffToHashrateCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
 	diffToHashrateCmd.StringVar(&powType, "p", "cuckaroo", "the target cuckoo pow. ( cuckaroo, cuckatoo)")
 	diffToHashrateCmd.Usage = func() {
 		cmdUsage(diffToHashrateCmd, "Usage: qx diff-to-gps -e 24 -t 15 [difficulty uint64]\n")
@@ -181,7 +181,7 @@ func main() {
 	gpsToDiffCmd.IntVar(&edgeBits, "e", 24, "edgebits")
 	gpsToDiffCmd.IntVar(&blocktime, "t", 15, "blocktime")
 	gpsToDiffCmd.IntVar(&mheight, "m", 1, "mheight")
-	gpsToDiffCmd.StringVar(&network, "n", "testnet", "decode rawtx for the target network. (mainnet, testnet, privnet,mixnet)")
+	gpsToDiffCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
 	gpsToDiffCmd.StringVar(&powType, "p", "cuckaroo", "the target cuckoo pow. (cuckaroo, cuckatoo)")
 	gpsToDiffCmd.Usage = func() {
 		cmdUsage(gpsToDiffCmd, "Usage: qx gps-to-diff -e 24 -t 15 [GPS float64]\n")
