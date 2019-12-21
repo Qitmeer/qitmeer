@@ -108,5 +108,7 @@ func (b *BlockChain) sendNotification(typ NotificationType, data interface{}) {
 	// Generate and send the notification.
 	n := Notification{Type: typ, Data: data}
 	log.Trace("send blkmgr notification", "type", n.Type, "data", n.Data)
+	b.ChainUnlock()
 	b.notifications(&n)
+	b.ChainLock()
 }
