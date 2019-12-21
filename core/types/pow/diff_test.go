@@ -12,27 +12,43 @@ import (
 )
 
 func TestCalcScale(t *testing.T) {
-
+	powInstance := GetInstance(CUCKAROO,0,[]byte{})
+	powInstance.SetMainHeight(10)
+	conf := &PowConfig{
+	}
+	conf.AdjustmentStartMainHeight = 10
+	powInstance.SetParams(conf)
+	powInstance.(*Cuckaroo).SetEdgeBits(24)
 	// 259200 is 15s per block 45 days main height
-	assert.Equal(t, uint64(48), GraphWeight(24,2,259200,CUCKAROO))
-	assert.Equal(t, uint64(100), GraphWeight(25,259200,259200,CUCKAROO))
-	assert.Equal(t, uint64(208), GraphWeight(26,259200,259200,CUCKAROO))
-	assert.Equal(t, uint64(1), GraphWeight(29,2,259200,CUCKAROO))
-	assert.Equal(t, uint64(1856), GraphWeight(29,259200,259200,CUCKAROO))
-	assert.Equal(t, uint64(7936), GraphWeight(31,259200,259200,CUCKAROO))
+	assert.Equal(t, uint64(48), powInstance.(*Cuckaroo).GraphWeight())
+	powInstance.(*Cuckaroo).SetEdgeBits(25)
+	assert.Equal(t, uint64(100), powInstance.(*Cuckaroo).GraphWeight())
+	powInstance.(*Cuckaroo).SetEdgeBits(26)
+	assert.Equal(t, uint64(208), powInstance.(*Cuckaroo).GraphWeight())
+	powInstance.(*Cuckaroo).SetEdgeBits(29)
+	assert.Equal(t, uint64(1856), powInstance.(*Cuckaroo).GraphWeight())
+	powInstance.(*Cuckaroo).SetEdgeBits(31)
+	assert.Equal(t, uint64(7936), powInstance.(*Cuckaroo).GraphWeight())
 }
 
 func TestScaleToTarget(t *testing.T) {
+	powInstance := GetInstance(CUCKAROO,0,[]byte{})
+	powInstance.SetMainHeight(10)
+	conf := &PowConfig{
+	}
+	conf.AdjustmentStartMainHeight = 10
+	powInstance.SetParams(conf)
 	diff := uint64(1000)
 	diffBig := &big.Int{}
 	diffBig.SetUint64(diff)
-	assert.Equal(t, "0c49ba5e353f7ced916872b020c49ba5e353f7ced916872b020c49ba5e353f7c", CuckooDiffToTarget(GraphWeight(24,259200,259200,CUCKAROO), diffBig))
-	assert.Equal(t, "004189374bc6a7ef9db22d0e5604189374bc6a7ef9db22d0e5604189374bc6a7", CuckooDiffToTarget(GraphWeight(29,2,259200,CUCKAROO), diffBig))
-	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(GraphWeight(29,259200,259200,CUCKAROO), diffBig))
-
-	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(GraphWeight(24,259200,259200,CUCKAROO), big.NewInt(48)))
-	assert.Equal(t, "8000000000000000000000000000000000000000000000000000000000000000", CuckooDiffToTarget(GraphWeight(24,259200,259200,CUCKAROO), big.NewInt(96)))
-	assert.Equal(t, "000017b5dbd6151319c5e8a604ddc87e903df63f7e7512ea5a30f9dab794f2be", CuckooDiffToTarget(GraphWeight(24,259200,259200,CUCKAROO), big.NewInt(33964288)))
+	powInstance.(*Cuckaroo).SetEdgeBits(24)
+	assert.Equal(t, "0c49ba5e353f7ced916872b020c49ba5e353f7ced916872b020c49ba5e353f7c", CuckooDiffToTarget(powInstance.(*Cuckaroo).GraphWeight(), diffBig))
+	powInstance.(*Cuckaroo).SetEdgeBits(29)
+	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(powInstance.(*Cuckaroo).GraphWeight(), diffBig))
+	powInstance.(*Cuckaroo).SetEdgeBits(30)
+	assert.Equal(t, "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", CuckooDiffToTarget(powInstance.(*Cuckaroo).GraphWeight(), big.NewInt(48)))
+	powInstance.(*Cuckaroo).SetEdgeBits(24)
+	assert.Equal(t, "000017b5dbd6151319c5e8a604ddc87e903df63f7e7512ea5a30f9dab794f2be", CuckooDiffToTarget(powInstance.(*Cuckaroo).GraphWeight(), big.NewInt(33964288)))
 }
 
 func TestDiffCompare(t *testing.T) {
