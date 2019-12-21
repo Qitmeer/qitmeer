@@ -392,7 +392,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 }
 
 // solveBlock attempts to find 42 circles that hash match the target diff
-func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}, scale ,height uint64) bool {
+func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}, scale ,mheight uint64) bool {
 	// Create a couple of convenience variables.
 	header := &msgBlock.Header
 	// Initial state.
@@ -421,13 +421,15 @@ func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker
 			continue
 		}
 		powStruct.SetCircleEdges(cycleNonces)
+		powStruct.SetMainHeight(int64(mheight))
+		powStruct.SetParams(m.params.PowConfig)
 		err := cuckoo.VerifyCuckaroo(sipH[:], cycleNonces[:], uint(cuckoo.Edgebits))
 		if err != nil {
 			continue
 		}
 		hashesCompleted += 2
 		targetDiff := pow.CompactToBig(header.Difficulty)
-		if pow.CalcCuckooDiff(pow.GraphWeight(uint32(cuckoo.Edgebits),int64(height),pow.CUCKAROO), header.BlockHash()).Cmp(targetDiff) >= 0 {
+		if pow.CalcCuckooDiff(powStruct.GraphWeight(), header.BlockHash()).Cmp(targetDiff) >= 0 {
 			m.updateHashes <- hashesCompleted
 			return true
 		}

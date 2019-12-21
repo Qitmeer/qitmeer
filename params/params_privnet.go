@@ -17,6 +17,8 @@ import (
 // privNetPowLimit is the highest proof of work value a block can
 // have for the private test network. It is the value 2^255 - 1.
 var privNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 255), common.Big1)
+// target time per block unit second(s)
+const privTargetTimePerBlock = 30
 
 // PirvNetParams defines the network parameters for the private test network.
 // This network is similar to the normal test network except it is
@@ -63,6 +65,8 @@ var PrivNetParams = Params{
 				MainHeight:      100,
 			},
 		},
+		// after this height the big graph will be the main pow graph
+		AdjustmentStartMainHeight: 45 * 1440 * 60 / privTargetTimePerBlock,
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
@@ -72,8 +76,8 @@ var PrivNetParams = Params{
 	WorkDiffAlpha:            1,
 	WorkDiffWindowSize:       16,
 	WorkDiffWindows:          20,
-	TargetTimePerBlock:       time.Second * 30,
-	TargetTimespan:           time.Second * 30 * 16, // TimePerBlock * WindowSize
+	TargetTimePerBlock:       time.Second * privTargetTimePerBlock,
+	TargetTimespan:           time.Second * privTargetTimePerBlock * 16, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 2,
 
 	// Subsidy parameters.

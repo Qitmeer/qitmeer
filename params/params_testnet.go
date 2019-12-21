@@ -18,6 +18,9 @@ import (
 // have for the test network. It is the value 2^221 - 1.
 var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 221), common.Big1)
 
+// target time per block unit second(s)
+const testTargetTimePerBlock = 15
+
 // TestNetParams defines the network parameters for the test network.
 var TestNetParams = Params{
 	Name:        "testnet",
@@ -49,6 +52,8 @@ var TestNetParams = Params{
 				MainHeight:      0,
 			},
 		},
+		// after this height the big graph will be the main pow graph
+		AdjustmentStartMainHeight: 45 * 1440 * 60 / testTargetTimePerBlock,
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
@@ -58,8 +63,8 @@ var TestNetParams = Params{
 	WorkDiffWindows:          20,
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
-	TargetTimePerBlock:       time.Second * 15,       // Target Block Time is 15s
-	TargetTimespan:           time.Second * 15 * 240, // TimePerBlock * WindowSize
+	TargetTimePerBlock:       time.Second * testTargetTimePerBlock,       // Target Block Time is 15s
+	TargetTimespan:           time.Second * testTargetTimePerBlock * 240, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 2,                      // equal to 2 hour vs. 4
 
 	// Subsidy parameters.
