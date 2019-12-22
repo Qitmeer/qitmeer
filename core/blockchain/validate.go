@@ -58,9 +58,8 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		prevHash := pb
 		prevNode := b.index.LookupNode(prevHash)
 		if prevNode == nil {
-			err := fmt.Errorf("Parents block %s is unknown", prevHash)
-			log.Debug(err.Error())
-			return err
+			str := fmt.Sprintf("Parents block %s is unknown", prevHash)
+			return ruleError(ErrParentsBlockUnknown, str)
 		}
 		parentsNode = append(parentsNode, prevNode)
 	}
