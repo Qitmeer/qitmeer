@@ -4,7 +4,7 @@ GITVERSION := $(shell git rev-parse --short HEAD)
 DEV=dev
 RELEASE=release
 LDFLAG_DEV = -X github.com/Qitmeer/qitmeer/version.Build=$(DEV)-$(GITVERSION)
-LDFLAG_RELEASE = -X github.com/Qitmeer/qitmeer/version.Build=$(RELEASE)
+LDFLAG_RELEASE = -X github.com/Qitmeer/qitmeer/version.Build=$(RELEASE)-$(GITVERSION)
 GOFLAGS_DEV = -ldflags "$(LDFLAG_DEV)"
 GOFLAGS_RELEASE = -ldflags "$(LDFLAG_RELEASE)"
 VERSION=$(shell ./build/bin/qitmeer --version | grep ^qitmeer | cut -d' ' -f3|cut -d'+' -f1)
@@ -18,7 +18,7 @@ WIN_EXECUTABLES := \
 
 EXECUTABLES=$(UNIX_EXECUTABLES) $(WIN_EXECUTABLES)
 	
-COMPRESSED_EXECUTABLES=$(UNIX_EXECUTABLES:%=%.tar.gz) $(WIN_EXECUTABLES:%.exe=%.zip)
+COMPRESSED_EXECUTABLES=$(UNIX_EXECUTABLES:%=%.tar.gz) $(WIN_EXECUTABLES:%.exe=%.zip) $(WIN_EXECUTABLES:%.exe=%.cn.zip)
 
 RELEASE_TARGETS=$(EXECUTABLES) $(COMPRESSED_EXECUTABLES)
 
@@ -52,16 +52,22 @@ build/release/%/$(EXECUTABLE).exe:
 %.zip: %.exe
 	@echo zip $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH)
 	@zip $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH).zip "$<"
+
+%.cn.zip: %.exe
+	@echo Build $(@).cn.zip
+	@echo zip $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH)
+	@zip -j $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH).cn.zip "$<" script/win/start.bat
+
 %.tar.gz : %
 	@echo tar $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH)
 	@tar -zcvf $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH).tar.gz "$<"
 release: clean checkversion
 	@echo "Build release version : $(VERSION)"
 	@$(MAKE) $(RELEASE_TARGETS)
-	@shasum -a 512 $(EXECUTABLES)
-	@shasum -a 512 qitmeer-*
+	@shasum -a 512 $(EXECUTABLES) > $(EXECUTABLE)-$(VERSION)_checksum.txt
+	@shasum -a 512 $(EXECUTABLE)-$(VERSION)-* >> $(EXECUTABLE)-$(VERSION)_checksum.txt
 checksum: checkversion
-	@cat RELEASE.md |grep "$(VERSION) SHA512" -A 8|tail -6|shasum -c
+	@cat $(EXECUTABLE)-$(VERSION)_checksum.txt|shasum -c
 clean:
 	@rm -f *.zip
 	@rm -f *.tar.gz

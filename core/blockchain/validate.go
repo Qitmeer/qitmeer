@@ -52,7 +52,24 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		return ruleError(ErrBlockVersionTooOld, "block version too old")
 	}
 
-	err := checkBlockHeaderSanity(header, timeSource, flags, chainParams,block.Height())
+	/** get current block mainHeight start **/
+	parentsNode := []*blockNode{}
+	for _, pb := range block.Block().Parents {
+		prevHash := pb
+		prevNode := b.index.LookupNode(prevHash)
+		if prevNode == nil {
+			str := fmt.Sprintf("Parents block %s is unknown", prevHash)
+			return ruleError(ErrParentsBlockUnknown, str)
+		}
+		parentsNode = append(parentsNode, prevNode)
+	}
+
+	blockHeader := &block.Block().Header
+	newNode := newBlockNode(blockHeader, parentsNode)
+	mainParent := newNode.GetMainParent(b)
+	/** get current block mainHeight end **/
+
+	err := checkBlockHeaderSanity(header, timeSource, flags, chainParams,mainParent.GetHeight()+1)
 	if err != nil {
 		return err
 	}

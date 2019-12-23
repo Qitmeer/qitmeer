@@ -31,6 +31,8 @@ type PowConfig struct {
 
 	Percent []Percent
 
+	AdjustmentStartMainHeight int64
+
 	//is init
 	init bool
 }

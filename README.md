@@ -11,7 +11,7 @@ The guardian of trust. The core backend of the qitmeer network.
 
 | Latest Testnet            | Compatible Qitmeer Vesion | Start Date | Type            |
 | ------------------------- |-------------------------- | ---------- | --------------- |
-| [v0.8.2 TestNet](TESTNET.md#v081-20191129)| v0.8.2    | 2019/11/29 | Public Test     |
+| [v0.8.4 TestNet](TESTNET.md#v084-20191217)| v0.8.4    | 2019/12/17 | Public Test     |
 
 Please know more details from the [Qitmeer Testnet](TESTNET.md)
 
