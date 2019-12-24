@@ -53,7 +53,7 @@ var TestNetParams = Params{
 			},
 		},
 		// after this height the big graph will be the main pow graph
-		AdjustmentStartMainHeight: 3 * 1440 * 60 / testTargetTimePerBlock,
+		AdjustmentStartMainHeight: 1 * 1440 * 60 / testTargetTimePerBlock,
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
