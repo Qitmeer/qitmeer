@@ -881,10 +881,11 @@ func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
 			return 1 + mainTip.GetHeight() - cur.GetHeight()
 		}
 		if !cur.HasChildren() {
-			return 0
+			continue
 		} else {
-			for _, v := range cur.GetChildren().GetMap() {
-				ib := v.(IBlock)
+			childList := cur.GetChildren().SortList(false)
+			for _, v := range childList {
+				ib := cur.GetChildren().Get(v).(IBlock)
 				queue = append(queue, ib)
 			}
 		}
