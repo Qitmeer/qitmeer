@@ -233,34 +233,11 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 	// A block has been disconnected from the main block chain.
 	case blockchain.BlockDisconnected:
 		log.Trace("Chain disconnected notification.")
-		blockSlice, ok := notification.Data.(*types.SerializedBlock)
+		_, ok := notification.Data.(*types.SerializedBlock)
 		if !ok {
 			log.Warn("Chain disconnected notification is not a block slice.")
 			break
 		}
-
-		block := blockSlice
-
-		// Reinsert all of the transactions (except the coinbase) into
-		// the transaction pool.
-		for _, tx := range block.Transactions()[1:] {
-			_, err := b.chain.GetTxManager().MemPool().MaybeAcceptTransaction(tx,
-				false, false)
-			if err != nil {
-				// Remove the transaction and all transactions
-				// that depend on it if it wasn't accepted into
-				// the transaction pool.
-				b.chain.GetTxManager().MemPool().RemoveTransaction(tx, true)
-			}
-		}
-
-		/*
-			// Notify registered websocket clients.
-			if r := b.server.rpcServer; r != nil {
-				r.ntfnMgr.NotifyBlockDisconnected(block)
-			}
-		*/
-
 	// The blockchain is reorganizing.
 	case blockchain.Reorganization:
 		log.Trace("Chain reorganization notification")
