@@ -141,7 +141,7 @@ var testNetGenesisBlock = types.Block{
 		Version:    3,
 		ParentRoot: hash.Hash{},
 		TxRoot:     testNetGenesisMerkleRoot,
-		Timestamp:  time.Unix(1576573200,0), // 2019-12-17 09:00:00 GMT
+		Timestamp:  time.Unix(1577264400,0), // 2019-12-25 09:00:00 GMT
 		Difficulty: 0x1c1fffff,
 		Pow:        &pow.Blake2bd{},
 	},
