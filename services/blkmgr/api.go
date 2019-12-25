@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"strconv"
 )
@@ -306,4 +307,28 @@ func (api *PublicBlockAPI) Tips() (interface{}, error) {
 		tips = append(tips, v.String())
 	}
 	return tips, nil
+}
+
+// GetCoinbase
+func (api *PublicBlockAPI) GetCoinbase(h hash.Hash, verbose *bool) (interface{}, error) {
+	vb := false
+	if verbose != nil {
+		vb = *verbose
+	}
+	blk, err := api.bm.chain.FetchBlockByHash(&h)
+	if err != nil {
+		return nil, err
+	}
+	signDatas, err := txscript.ExtractCoinbaseData(blk.Block().Transactions[0].TxIn[0].SignScript)
+	if err != nil {
+		return nil, err
+	}
+	result := []string{}
+	for k, v := range signDatas {
+		if k < 2 && !vb {
+			continue
+		}
+		result = append(result, hex.EncodeToString(v))
+	}
+	return result, nil
 }
