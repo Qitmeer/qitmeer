@@ -11,6 +11,7 @@ type PowDiff struct {
 type InfoNodeResult struct {
 	UUID             string              `json:"UUID"`
 	Version          int32               `json:"version"`
+	BuildVersion     string              `json:"buildversion"`
 	ProtocolVersion  int32               `json:"protocolversion"`
 	TotalSubsidy     uint64              `json:"totalsubsidy"`
 	GraphState       GetGraphStateResult `json:"graphstate"`
