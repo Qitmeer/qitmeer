@@ -90,7 +90,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
 
 	best := blockManager.GetChain().BestSnapshot()
-	nextBlockHeight := uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
+	nextBlockHeight := uint64(0)
 	nextBlockOrder := uint64(best.GraphState.GetTotal())
 	//nextBlockLayer:=uint64(best.GraphState.GetLayer()+1)
 
@@ -109,6 +109,17 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		return nil, err
 	}
 
+	parentsSet := blockdag.NewHashSet()
+	if parents == nil {
+		parents = blockManager.GetChain().GetMiningTips()
+		parentsSet.AddList(parents)
+		nextBlockHeight = uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
+	} else {
+		parentsSet.AddList(parents)
+		mainp := blockManager.GetChain().BlockDAG().GetMainParent(parentsSet)
+		nextBlockHeight = uint64(mainp.GetHeight() + 1)
+	}
+
 	coinbaseScript, err := standardCoinbaseScript(nextBlockHeight, extraNonce)
 	if err != nil {
 		return nil, err
@@ -117,13 +128,6 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	if err != nil {
 		return nil, err
 	}
-
-	if parents == nil {
-		parents = blockManager.GetChain().GetMiningTips()
-	}
-
-	parentsSet := blockdag.NewHashSet()
-	parentsSet.AddList(parents)
 
 	blues := int64(blockManager.GetChain().BlockDAG().GetBlues(parentsSet))
 	coinbaseTx, err := createCoinbaseTx(subsidyCache,

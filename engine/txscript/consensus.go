@@ -57,3 +57,22 @@ func ExtractCoinbaseNullData(pkScript []byte) ([]byte, error) {
 
 	return nil, fmt.Errorf("not a properly-formed nulldata script")
 }
+
+// ExtractCoinbaseData
+func ExtractCoinbaseData(pkScript []byte) ([][]byte, error) {
+	pops, err := parseScript(pkScript)
+	if err != nil {
+		return nil, fmt.Errorf("script parse failure")
+	}
+	result := [][]byte{}
+	for _, v := range pops {
+		if v.opcode.value == OP_0 {
+			result = append(result, []byte{0})
+		} else if v.opcode.value >= OP_1 && v.opcode.value <= OP_16 {
+			result = append(result, []byte{v.opcode.value - (OP_1 - 1)})
+		} else {
+			result = append(result, v.GetData())
+		}
+	}
+	return result, nil
+}

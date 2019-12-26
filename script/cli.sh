@@ -286,6 +286,16 @@ function tips(){
   get_result "$data"
 }
 
+function get_coinbase(){
+  local block_hash=$1
+  local verbose=$2
+  if [ "$verbose" == "" ]; then
+    verbose="false"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getCoinbase","params":["'$block_hash'",'$verbose'],"id":1}'
+  get_result "$data"
+}
+
 function get_rawtxs(){
   local address=$1
   local param2=$2
@@ -397,6 +407,7 @@ function usage(){
   echo "  isblue <hash>   ;return [0:not blue;  1：blue  2：Cannot confirm]"
   echo "  iscurrent"
   echo "  tips"
+  echo "  coinbase <hash>"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txbyhash <hash>"
@@ -713,6 +724,10 @@ elif [ "$1" == "iscurrent" ]; then
 elif [ "$1" == "tips" ]; then
   shift
   tips | jq .
+
+elif [ "$1" == "coinbase" ]; then
+  shift
+  get_coinbase $@
 
 ## Tx
 elif [ "$1" == "tx" ]; then
