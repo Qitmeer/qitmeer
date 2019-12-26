@@ -52,24 +52,19 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		return ruleError(ErrBlockVersionTooOld, "block version too old")
 	}
 
-	/** get current block mainHeight start **/
-	parentsNode := []*blockNode{}
-	for _, pb := range block.Block().Parents {
-		prevHash := pb
-		prevNode := b.index.LookupNode(prevHash)
-		if prevNode == nil {
-			str := fmt.Sprintf("Parents block %s is unknown", prevHash)
-			return ruleError(ErrParentsBlockUnknown, str)
-		}
-		parentsNode = append(parentsNode, prevNode)
+	// A block must have at least one regular transaction.
+	numTx := len(msgBlock.Transactions)
+	if numTx == 0 {
+		return ruleError(ErrNoTransactions, "block does not contain "+
+			"any transactions")
 	}
 
-	blockHeader := &block.Block().Header
-	newNode := newBlockNode(blockHeader, parentsNode)
-	mainParent := newNode.GetMainParent(b)
-	/** get current block mainHeight end **/
+	height, err := ExtractCoinbaseHeight(block.Block().Transactions[0])
+	if err != nil {
+		return err
+	}
 
-	err := checkBlockHeaderSanity(header, timeSource, flags, chainParams,mainParent.GetHeight()+1)
+	err = checkBlockHeaderSanity(header, timeSource, flags, chainParams, uint(height))
 	if err != nil {
 		return err
 	}
@@ -109,13 +104,6 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 	if len(msgBlock.Parents) != parentsSet.Size() {
 		str := fmt.Sprintf("parents:%v", msgBlock.Parents)
 		return ruleError(ErrDuplicateParent, str)
-	}
-
-	// A block must have at least one regular transaction.
-	numTx := len(msgBlock.Transactions)
-	if numTx == 0 {
-		return ruleError(ErrNoTransactions, "block does not contain "+
-			"any transactions")
 	}
 
 	// A block must not exceed the maximum allowed block payload when
@@ -229,12 +217,12 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 //
 // The flags do not modify the behavior of this function directly, however they
 // are needed to pass along to checkProofOfWork.
-func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *params.Params,mHeight uint) error {
+func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *params.Params, mHeight uint) error {
 
 	// Ensure the proof of work bits in the block header is in min/max
 	// range and the block hash is less than the target value described by
 	// the bits.
-	err := checkProofOfWork(header, chainParams.PowConfig, flags,mHeight)
+	err := checkProofOfWork(header, chainParams.PowConfig, flags, mHeight)
 	if err != nil {
 		return err
 	}
@@ -269,7 +257,7 @@ func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSour
 // The flags modify the behavior of this function as follows:
 //  - BFNoPoWCheck: The check to ensure the block hash is less than the target
 //    difficulty is not performed.
-func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags BehaviorFlags,mHeight uint) error {
+func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags BehaviorFlags, mHeight uint) error {
 
 	// The block hash must be less than the claimed target unless the flag
 	// to avoid proof of work checks is set.
