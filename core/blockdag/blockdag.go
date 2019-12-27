@@ -9,6 +9,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 	"math"
@@ -927,6 +928,9 @@ func (bd *BlockDAG) getValidTips() []*hash.Hash {
 			continue
 		}
 		tips = append(tips, block.GetHash())
+		if len(tips) >= types.MaxParentsPerBlock {
+			break
+		}
 	}
 	return tips
 }
