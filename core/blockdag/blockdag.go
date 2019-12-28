@@ -499,7 +499,7 @@ func (bd *BlockDAG) getGraphState() *GraphState {
 	gs := NewGraphState()
 	gs.SetLayer(0)
 
-	tips := bd.getValidTips()
+	tips := bd.getValidTips(false)
 	for i := 0; i < len(tips); i++ {
 		tip := bd.getBlock(tips[i])
 		if i == 0 {
@@ -524,7 +524,7 @@ func (bd *BlockDAG) locateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
 	}
 	queue := []IBlock{}
 	fs := NewHashSet()
-	tips := bd.getValidTips()
+	tips := bd.getValidTips(false)
 	for _, v := range tips {
 		ib := bd.getBlock(v)
 		queue = append(queue, ib)
@@ -904,10 +904,10 @@ func (bd *BlockDAG) GetBlockHash(id uint) *hash.Hash {
 func (bd *BlockDAG) GetValidTips() []*hash.Hash {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
-	return bd.getValidTips()
+	return bd.getValidTips(true)
 }
 
-func (bd *BlockDAG) getValidTips() []*hash.Hash {
+func (bd *BlockDAG) getValidTips(limit bool) []*hash.Hash {
 	temp := bd.tips.Clone()
 	mainParent := bd.getMainChainTip()
 	temp.Remove(mainParent.GetHash())
@@ -928,7 +928,7 @@ func (bd *BlockDAG) getValidTips() []*hash.Hash {
 			continue
 		}
 		tips = append(tips, block.GetHash())
-		if len(tips) >= types.MaxParentsPerBlock {
+		if limit && len(tips) >= bd.getMaxParents() {
 			break
 		}
 	}
@@ -1229,4 +1229,13 @@ func (bd *BlockDAG) GetMaturity(target *hash.Hash, views []*hash.Hash) uint {
 		return maxLayer - targetBlock.GetLayer()
 	}
 	return 0
+}
+
+// MaxParentsPerBlock
+func (bd *BlockDAG) getMaxParents() int {
+	dagMax := bd.instance.(*Phantom).anticoneSize + 1
+	if dagMax < types.MaxParentsPerBlock {
+		return dagMax
+	}
+	return types.MaxParentsPerBlock
 }
