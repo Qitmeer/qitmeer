@@ -322,8 +322,11 @@ const (
 	//ErrBadCuckooNonces
 	ErrBadCuckooNonces
 
-	// ErrValidPowType
+	// ErrInValidPowType
 	ErrInValidPowType
+
+	// ErrInValidPow
+	ErrInvalidPow
 
 	// ErrNoBlueCoinbase indicates a transaction is attempting to spend a
 	// coinbase that is not in blue set
@@ -403,6 +406,7 @@ var errorCodeStrings = map[ErrorCode]string{
 	//cuckoo,begin
 	ErrBadCuckooNonces: "ErrBadCuckooNonces",
 	ErrInValidPowType:  "ErrInValidPowType",
+	ErrInvalidPow: "ErrInvalidPow",
 
 	ErrNoBlueCoinbase: "ErrNoBlueCoinbase",
 	ErrNoViewpoint:    "ErrNoViewpoint",
