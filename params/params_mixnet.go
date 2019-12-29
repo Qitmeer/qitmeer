@@ -18,7 +18,9 @@ import (
 // have for the test network. It is the value 2^232 - 1.
 var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1)
 // target time per block unit second(s)
-const mixTargetTimePerBlock = 60
+const mixTargetTimePerBlock = 15
+// Difficulty check interval is about 60*15 = 15 mins
+const mixWorkDiffWindowSize = 60
 
 // testPowNetParams defines the network parameters for the test network.
 var MixNetParams = Params{
@@ -43,8 +45,8 @@ var MixNetParams = Params{
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 2 ≈ 1min find once
-		CuckarooMinDifficulty: 0x1600000,
-		CuckatooMinDifficulty: 0x1600000,
+		CuckarooMinDifficulty: 0x1600000, // 96
+		CuckatooMinDifficulty: 0x1600000, // 96
 
 		Percent: []pow.Percent{
 			{
@@ -55,23 +57,23 @@ var MixNetParams = Params{
 			},
 		},
 		// after this height the big graph will be the main pow graph
-		AdjustmentStartMainHeight: 45 * 1440 * 60 / mixTargetTimePerBlock,
+		AdjustmentStartMainHeight: 1440 * 15 / mixTargetTimePerBlock,
 	},
 
 	WorkDiffAlpha:            1,
-	WorkDiffWindowSize:       60,
+	WorkDiffWindowSize:       mixWorkDiffWindowSize,
 	WorkDiffWindows:          20,
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
 	TargetTimePerBlock:       time.Second * mixTargetTimePerBlock,
-	TargetTimespan:           time.Second * mixTargetTimePerBlock * 1, // TimePerBlock * WindowSize
+	TargetTimespan:           time.Second * mixTargetTimePerBlock * mixWorkDiffWindowSize, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 3,
 
 	// Subsidy parameters.
-	BaseSubsidy:              2500000000, // 25 Coin
+	BaseSubsidy:              12000000000,    // 120 Coin, stay same with testnet
 	MulSubsidy:               100,
-	DivSubsidy:               101,
-	SubsidyReductionInterval: 2048,
+	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
+	SubsidyReductionInterval: 1669066,        // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days
 	WorkRewardProportion:     10,
 	StakeRewardProportion:    0,
 	BlockTaxProportion:       0,
@@ -98,7 +100,7 @@ var MixNetParams = Params{
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
-	HDCoinType: 11,
+	HDCoinType: 223,
 
 	CoinbaseMaturity: 512,
 	//OrganizationPkScript:  hexMustDecode("76a914868b9b6bc7e4a9c804ad3d3d7a2a6be27476941e88ac"),
