@@ -24,7 +24,7 @@ const mixTargetTimePerBlock = 60
 var MixNetParams = Params{
 	Name:        "mixnet",
 	Net:         protocol.MixNet,
-	DefaultPort: "28132",
+	DefaultPort: "28130",
 	DNSSeeds: []DNSSeed{
 		{"mixnet-seed.hlcwallet.info", true},
 		{"mixnet-seed.qitmeer.xyz", true},

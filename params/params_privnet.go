@@ -30,7 +30,7 @@ const privTargetTimePerBlock = 30
 var PrivNetParams = Params{
 	Name:        "privnet",
 	Net:         protocol.PrivNet,
-	DefaultPort: "28130",
+	DefaultPort: "38130",
 	DNSSeeds:    []DNSSeed{}, // NOTE: There must NOT be any seeds.
 
 	// Chain parameters
