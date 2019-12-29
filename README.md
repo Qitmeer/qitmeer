@@ -7,7 +7,7 @@ The guardian of trust. The core backend of the qitmeer network.
 
 ## Qitmeer Testnet Notice
 
- The Qitmeer Official Public Testnet is **OPEN** Now. The Code name is the *Medina Network*. Please Join Medina testnet !
+ The Qitmeer Official Public Testnet is **OPEN** Now. The Code name is the *Medina Network*. Please Join the Medina Network !
 
 | Latest Testnet            | Compatible Qitmeer Vesion | Start Date | Type            |
 | ------------------------- |-------------------------- | ---------- | --------------- |
