@@ -2,6 +2,7 @@ Table of Contents
 =================
 
    * [Qitmeer Testnet](#qitmeer-testnet)
+      * [v0.8.5 2019/12/30 (Medina)](#v085-20191230-medina)
       * [v0.8.4 2019/12/17](#v084-20191217)
       * [v0.8.3 2019/12/08](#v083-20191208)
          * [0.8.3 Reward Plan](#083-reward-plan)
@@ -18,6 +19,10 @@ Table of Contents
       * [v0.7.8](#v078)
 
 # Qitmeer Testnet
+
+## v0.8.5 2019/12/30 (Medina)
+
+The Official Public Testnet : The Medina Network
 
 ## v0.8.4 2019/12/17
 
