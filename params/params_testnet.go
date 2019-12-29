@@ -20,6 +20,8 @@ var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 221), commo
 
 // target time per block unit second(s)
 const testTargetTimePerBlock = 30
+// Difficulty check interval is about 60*30 = 30 mins
+const testWorkDiffWindowSize = 60
 
 // TestNetParams defines the network parameters for the test network.
 var TestNetParams = Params{
@@ -59,12 +61,12 @@ var TestNetParams = Params{
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        true,
 	WorkDiffAlpha:            1,
-	WorkDiffWindowSize:       60, // Difficulty check interval is about 60*30 = 30 mins
+	WorkDiffWindowSize:       testWorkDiffWindowSize,
 	WorkDiffWindows:          20,
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
-	TargetTimePerBlock:       time.Second * testTargetTimePerBlock,       // Target Block Time is 30s
-	TargetTimespan:           time.Second * testTargetTimePerBlock * 120, // TimePerBlock * WindowSize
+	TargetTimePerBlock:       time.Second * testTargetTimePerBlock,
+	TargetTimespan:           time.Second * testTargetTimePerBlock * testWorkDiffWindowSize,  // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 2,                      // equal to 2 hour vs. 4
 
 	// Subsidy parameters.
