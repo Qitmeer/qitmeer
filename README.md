@@ -7,11 +7,12 @@ The guardian of trust. The core backend of the qitmeer network.
 
 ## Qitmeer Testnet Notice
 
-**WARNING!!!** &nbsp;&nbsp;*Please Notice : The Qitmeer Internal Testnet is only for Qitmeer Dev internal test purpose. The data will be **Clean UP** regularly, we will **NOT** guarantee to recovery the user's ledger balance to next internal test. The Public Testnet is **NOT OPEN** yet* 
+ The Qitmeer Official Public Testnet is **OPEN** Now. The Code name is the *Medina Network*. Please Join the Medina Network !
 
 | Latest Testnet            | Compatible Qitmeer Vesion | Start Date | Type            |
 | ------------------------- |-------------------------- | ---------- | --------------- |
-| [v0.8.4 TestNet](TESTNET.md#v084-20191217)| v0.8.4    | 2019/12/17 | Public Test     |
+|[Medina Network](TESTNET.md#v085-20191230-medina)| v0.8.5    | 2019/12/30 | Official Public Testnet |
+
 
 Please know more details from the [Qitmeer Testnet](TESTNET.md)
 

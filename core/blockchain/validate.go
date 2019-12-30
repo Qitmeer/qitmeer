@@ -224,7 +224,7 @@ func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSour
 	// the bits.
 	err := checkProofOfWork(header, chainParams.PowConfig, flags, mHeight)
 	if err != nil {
-		return err
+		return ruleError(ErrInvalidPow, err.Error())
 	}
 
 	// A block timestamp must not have a greater precision than one second.

@@ -19,7 +19,9 @@ import (
 var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 221), common.Big1)
 
 // target time per block unit second(s)
-const testTargetTimePerBlock = 15
+const testTargetTimePerBlock = 30
+// Difficulty check interval is about 60*30 = 30 mins
+const testWorkDiffWindowSize = 60
 
 // TestNetParams defines the network parameters for the test network.
 var TestNetParams = Params{
@@ -30,6 +32,7 @@ var TestNetParams = Params{
 		{"testnet-seed.hlcwallet.info", true},
 		{"testnet-seed.qitmeer.xyz", true},
 		{"testnet-seed.qitmeer.top", true},
+		{"seed.qitmir.info", true},
 	},
 
 	// Chain parameters
@@ -41,43 +44,43 @@ var TestNetParams = Params{
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 = 1min find once
-		CuckarooMinDifficulty: 0x1600000, // 96
+		CuckarooMinDifficulty: 0x2018000, // 96 * 4 = 384
 		CuckatooMinDifficulty: 0x2074000, // 1856
 
 		Percent: []pow.Percent{
 			{
-				Blake2bDPercent: 10,
-				CuckarooPercent: 70,
-				CuckatooPercent: 20,
+				Blake2bDPercent: 0,
+				CuckarooPercent: 100,
+				CuckatooPercent: 0,
 				MainHeight:      0,
 			},
 		},
 		// after this height the big graph will be the main pow graph
-		AdjustmentStartMainHeight: 3 * 1440 * 60 / testTargetTimePerBlock,
+		AdjustmentStartMainHeight: 365 * 1440 * 60 / testTargetTimePerBlock,
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        true,
 	WorkDiffAlpha:            1,
-	WorkDiffWindowSize:       240, // Difficulty check interval is about 240*15 = 1 hour
+	WorkDiffWindowSize:       testWorkDiffWindowSize,
 	WorkDiffWindows:          20,
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
-	TargetTimePerBlock:       time.Second * testTargetTimePerBlock,       // Target Block Time is 15s
-	TargetTimespan:           time.Second * testTargetTimePerBlock * 240, // TimePerBlock * WindowSize
+	TargetTimePerBlock:       time.Second * testTargetTimePerBlock,
+	TargetTimespan:           time.Second * testTargetTimePerBlock * testWorkDiffWindowSize,  // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 2,                      // equal to 2 hour vs. 4
 
 	// Subsidy parameters.
-	BaseSubsidy:              6500000000, // 65 Coin , daily supply is 65*4*60*24 = 374400 ~ 374400 * 6(DAG factor)
+	BaseSubsidy:              12000000000,    // 120 Coin , daily supply is 120*2*60*24 = 345600 ~ 345600 * 2 (DAG factor)
 	MulSubsidy:               100,
-	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 3081353 blocks created
-	SubsidyReductionInterval: 3081353,        // 65 * 3081353 (blocks) *= 200287911 (200M) -> 534 ~ 178 days
+	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
+	SubsidyReductionInterval: 1669066,        // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days
 	WorkRewardProportion:     10,
 	StakeRewardProportion:    0,
 	BlockTaxProportion:       0,
 
 	// Maturity
-	CoinbaseMaturity: 720, // coinbase required 720 * 15 = 3 hours before repent
+	CoinbaseMaturity: 720, // coinbase required 720 * 30 = 6 hours before repent
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{},

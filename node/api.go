@@ -53,6 +53,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	ret := &json.InfoNodeResult{
 		UUID:            message.UUID.String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
+		BuildVersion:    version.String(),
 		ProtocolVersion: int32(protocol.ProtocolVersion),
 		TotalSubsidy:    best.TotalSubsidy,
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
