@@ -454,3 +454,20 @@ func (s *PeerServer) HasPeer(uuid uuid.UUID) bool {
 	s.query <- getPeerMsg{uuid: uuid, reply: replyChan}
 	return <-replyChan
 }
+
+func (s *PeerServer) GetBanlist() map[string]time.Time {
+	return s.state.banned
+}
+
+func (s *PeerServer) RemoveBan(host string) {
+	if len(host) == 0 {
+		s.state.banned = map[string]time.Time{}
+		log.Trace("Remove all ban")
+		return
+	}
+	_, ok := s.state.banned[host]
+	if ok {
+		delete(s.state.banned, host)
+		log.Trace(fmt.Sprintf("RemoveBan:%s", host))
+	}
+}
