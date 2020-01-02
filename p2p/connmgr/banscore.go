@@ -18,5 +18,5 @@ const (
 	ExcessiveScore = 50
 
 	// Serious
-	SeriousScore = 500
+	SeriousScore = 100
 )

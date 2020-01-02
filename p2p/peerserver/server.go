@@ -83,7 +83,7 @@ type PeerServer struct {
 
 	newPeers  chan *serverPeer
 	donePeers chan *serverPeer
-	banPeers  chan *serverPeer
+	banPeers  chan *BanPeerMsg
 
 	// peer handler chan
 	relayInv  chan relayMsg
