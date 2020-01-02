@@ -5,6 +5,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 )
 
@@ -27,6 +28,11 @@ func (sp *serverPeer) OnSyncResult(p *peer.Peer, msg *message.MsgSyncResult) {
 }
 
 func (sp *serverPeer) OnSyncDAG(p *peer.Peer, msg *message.MsgSyncDAG) {
+	if msg.GS.IsGenesis() && !msg.GS.GetTips().HasOnly(sp.server.chainParams.GenesisHash) {
+		sp.addBanScore(0, connmgr.SeriousScore, "onsyncdag")
+		return
+	}
+
 	p.UpdateLastGS(msg.GS)
 
 	chain := sp.server.BlockManager.GetChain()

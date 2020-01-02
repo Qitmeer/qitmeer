@@ -101,6 +101,8 @@ type PeerServer struct {
 	TxMemPool    *mempool.TxPool
 
 	services protocol.ServiceFlag
+
+	state *peerState
 }
 
 // OutboundGroupCount returns the number of peers connected to the given
@@ -340,6 +342,7 @@ func (s *PeerServer) peerHandler() {
 		banned:          make(map[string]time.Time),
 		outboundGroups:  make(map[string]int),
 	}
+	s.state = state
 
 	if !s.cfg.DisableDNSSeed {
 		// Add peers discovered through DNS to the address manager.

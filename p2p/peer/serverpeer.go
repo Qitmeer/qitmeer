@@ -16,7 +16,7 @@ type ServerPeer struct {
 	// The following chans are used to sync blockmanager and server.
 	*Peer
 	TxProcessed     chan struct{}
-	BlockProcessed  chan struct{}
+	BlockProcessed  chan int
 	RequestedBlocks map[hash.Hash]struct{}
 	RequestedTxns   map[hash.Hash]struct{}
 	RequestQueue    []*message.InvVect

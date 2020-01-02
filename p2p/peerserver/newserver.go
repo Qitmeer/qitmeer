@@ -182,6 +182,9 @@ func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer,
 			if addr.GetAttempts() > 1 && time.Since(addr.LastAttempt()) < 10*time.Minute {
 				return nil, errors.New("no valid connect address")
 			}
+			if s.state.IsBanPeer(addr.NetAddress().IP.String()) {
+				return nil, errors.New("no valid connect address")
+			}
 			addrString := addmgr.NetAddressKey(addr.NetAddress())
 			return addrStringToNetAddr(addrString)
 		}
