@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 )
 
 const (
@@ -35,8 +34,6 @@ const (
 	defaultMaxRPCClients     = 10
 	defaultMaxPeers          = 125
 	defaultMiningStateSync   = false
-	defaultBanDuration       = time.Hour * 24
-	defaultBanThreshold      = 100
 )
 const (
 	defaultSigCacheMaxSize = 100000
@@ -80,8 +77,6 @@ func LoadConfig() (*config.Config, []string, error) {
 		SigCacheMaxSize:   defaultSigCacheMaxSize,
 		MiningStateSync:   defaultMiningStateSync,
 		DAGType:           defaultDAGType,
-		BanDuration:       defaultBanDuration,
-		BanThreshold:      defaultBanThreshold,
 	}
 
 	// Pre-parse the command line options to see if an alternative config

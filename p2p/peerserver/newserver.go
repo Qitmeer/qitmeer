@@ -30,7 +30,12 @@ func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer,
 		broadcast:   make(chan broadcastMsg, cfg.MaxPeers),
 		quit:        make(chan struct{}),
 	}
-
+	if cfg.BanDuration > 0 {
+		connmgr.BanDuration = cfg.BanDuration
+	}
+	if cfg.BanThreshold > 0 {
+		connmgr.BanThreshold = cfg.BanThreshold
+	}
 	amgr := addmgr.New(cfg.DataDir, cfg.GetAddrPercent, net.LookupIP)
 	var listeners []net.Listener
 	var nat NAT

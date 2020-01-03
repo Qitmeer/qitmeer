@@ -50,7 +50,7 @@ func (code RejectCode) String() string {
 		return s
 	}
 
-	return fmt.Sprintf("Unknown RejectCode (%d)", uint8(code))
+	return fmt.Sprintf("Unknown RejectCode (0x%x)", uint8(code))
 }
 
 // MsgReject implements the Message interface and represents an reject message.

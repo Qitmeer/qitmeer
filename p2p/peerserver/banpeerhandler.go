@@ -3,6 +3,7 @@ package peerserver
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"net"
 	"time"
 )
@@ -27,7 +28,7 @@ func (s *PeerServer) handleBanPeerMsg(state *peerState, msg *BanPeerMsg) {
 	}
 	direction := directionString(msg.sp.Inbound())
 	log.Info(fmt.Sprintf("Banned peer %s (%s) for %v", host, direction,
-		s.cfg.BanDuration))
+		connmgr.BanDuration))
 	state.banned[host] = time.Now().Add(msg.dur)
 }
 
@@ -46,7 +47,7 @@ func (sp *serverPeer) addBanScore(persistent, transient uint32, reason string) {
 		return
 	}
 
-	warnThreshold := sp.server.cfg.BanThreshold >> 1
+	warnThreshold := connmgr.BanThreshold >> 1
 	if transient == 0 && persistent == 0 {
 		// The score is not being increased, but a warning message is still
 		// logged if the score is above the warn threshold.
@@ -61,13 +62,13 @@ func (sp *serverPeer) addBanScore(persistent, transient uint32, reason string) {
 	if score > warnThreshold {
 		log.Warn(fmt.Sprintf("Misbehaving peer %s: %s -- ban score increased to %d",
 			sp, reason, score))
-		if score >= sp.server.cfg.BanThreshold {
+		if score >= connmgr.BanThreshold {
 			log.Warn("Misbehaving peer -- banning and disconnecting", "peer", sp)
-			dur := float64(transient) / float64(sp.server.cfg.BanThreshold)
-			dur *= float64(sp.server.cfg.BanDuration)
+			dur := float64(transient) / float64(connmgr.BanThreshold)
+			dur *= float64(connmgr.BanDuration)
 			msg := BanPeerMsg{sp: sp, dur: time.Duration(dur)}
-			if msg.dur > sp.server.cfg.BanDuration {
-				msg.dur = sp.server.cfg.BanDuration
+			if msg.dur > connmgr.BanDuration {
+				msg.dur = connmgr.BanDuration
 			}
 			sp.server.BanPeer(&msg)
 			sp.Disconnect()

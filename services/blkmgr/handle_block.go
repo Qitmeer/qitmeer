@@ -24,7 +24,7 @@ const (
 )
 
 // handleBlockMsg handles block messages from all peers.
-func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) int {
+func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) connmgr.BanScore {
 	log.Trace("handleBlockMsg called", "bmsg", bmsg)
 	sp, exists := b.peers[bmsg.peer.Peer]
 	if !exists {
