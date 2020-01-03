@@ -77,7 +77,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		SigCacheMaxSize:   defaultSigCacheMaxSize,
 		MiningStateSync:   defaultMiningStateSync,
 		DAGType:           defaultDAGType,
-		DisableBanning:    true,
+		Banning:           false,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -393,6 +393,7 @@ func LoadConfig() (*config.Config, []string, error) {
 	if configFileError != nil {
 		log.Warn("missing config file", "error", configFileError)
 	}
+
 	return &cfg, remainingArgs, nil
 }
 

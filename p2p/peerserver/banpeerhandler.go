@@ -39,7 +39,7 @@ func (s *PeerServer) handleBanPeerMsg(state *peerState, msg *BanPeerMsg) {
 // disconnected.
 func (sp *serverPeer) addBanScore(persistent, transient uint32, reason string) {
 	// No warning is logged and no score is calculated if banning is disabled.
-	if sp.server.cfg.DisableBanning {
+	if !sp.server.cfg.Banning {
 		return
 	}
 	if sp.isWhitelisted {
