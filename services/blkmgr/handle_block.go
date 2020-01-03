@@ -80,7 +80,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) connmgr.BanScore {
 		// it as such.  Otherwise, something really did go wrong, so log
 		// it as an actual error.
 		if _, ok := err.(blockchain.RuleError); ok {
-			log.Info("Rejected block", "hash", blockHash, "peer",
+			log.Warn("Rejected block", "hash", blockHash, "peer",
 				bmsg.peer, "error", err)
 		} else {
 			log.Error("Failed to process block", "hash",
