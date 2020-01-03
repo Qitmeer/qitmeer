@@ -30,7 +30,7 @@ func (sp *serverPeer) OnSyncResult(p *peer.Peer, msg *message.MsgSyncResult) {
 func (sp *serverPeer) OnSyncDAG(p *peer.Peer, msg *message.MsgSyncDAG) {
 	if msg.GS.IsGenesis() && !msg.GS.GetTips().HasOnly(sp.server.chainParams.GenesisHash) {
 		sp.addBanScore(0, connmgr.SeriousScore, "onsyncdag")
-		log.Warn(fmt.Sprintf("Wrong genesis(%s) from peer(%s),your genesis is %d",
+		log.Warn(fmt.Sprintf("Wrong genesis(%s) from peer(%s),your genesis is %s",
 			msg.GS.GetTips().List()[0].String(), p.String(), sp.server.chainParams.GenesisHash.String()))
 		return
 	}

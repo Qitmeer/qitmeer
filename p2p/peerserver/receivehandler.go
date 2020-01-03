@@ -233,7 +233,7 @@ func (sp *serverPeer) OnBlock(p *peer.Peer, msg *message.MsgBlock, buf []byte) {
 func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	if msg.GS.IsGenesis() && !msg.GS.GetTips().HasOnly(sp.server.chainParams.GenesisHash) {
 		sp.addBanScore(0, connmgr.SeriousScore, "ongetblocks")
-		log.Warn(fmt.Sprintf("Wrong genesis(%s) from peer(%s),your genesis is %d",
+		log.Warn(fmt.Sprintf("Wrong genesis(%s) from peer(%s),your genesis is %s",
 			msg.GS.GetTips().List()[0].String(), p.String(), sp.server.chainParams.GenesisHash.String()))
 		return
 	}
