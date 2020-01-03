@@ -77,6 +77,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		SigCacheMaxSize:   defaultSigCacheMaxSize,
 		MiningStateSync:   defaultMiningStateSync,
 		DAGType:           defaultDAGType,
+		DisableBanning:    true,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
