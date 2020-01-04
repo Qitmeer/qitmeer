@@ -6,7 +6,6 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/addmgr"
 	"net"
 	"sync/atomic"
-	"time"
 )
 
 // handleAddPeerMsg deals with adding new peers.  It is invoked from the
@@ -30,16 +29,9 @@ func (s *PeerServer) handleAddPeerMsg(state *peerState, sp *serverPeer) bool {
 		sp.Disconnect()
 		return false
 	}
-	if banEnd, ok := state.banned[host]; ok {
-		if time.Now().Before(banEnd) {
-			log.Debug(fmt.Sprintf("Peer %s is banned for another %v - disconnecting",
-				host, time.Until(banEnd)))
-			sp.Disconnect()
-			return false
-		}
-
-		log.Info("Peer is no longer banned", "peer", host)
-		delete(state.banned, host)
+	if state.IsBanPeer(host) {
+		sp.Disconnect()
+		return false
 	}
 
 	// TODO: Check for max peers from a single IP.

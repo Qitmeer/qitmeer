@@ -8,6 +8,7 @@ package peer
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/message"
+	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 )
 
 // ServerPeer extends the peer to maintain state shared by the p2p server and
@@ -16,7 +17,7 @@ type ServerPeer struct {
 	// The following chans are used to sync blockmanager and server.
 	*Peer
 	TxProcessed     chan struct{}
-	BlockProcessed  chan struct{}
+	BlockProcessed  chan connmgr.BanScore
 	RequestedBlocks map[hash.Hash]struct{}
 	RequestedTxns   map[hash.Hash]struct{}
 	RequestQueue    []*message.InvVect

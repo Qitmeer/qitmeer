@@ -243,6 +243,17 @@ func (gs *GraphState) GetMainChainTip() *hash.Hash {
 	return gs.tips.List()[0]
 }
 
+func (gs *GraphState) IsGenesis() bool {
+	if gs.tips.Size() == 1 &&
+		gs.total == 1 &&
+		gs.mainHeight == 0 &&
+		gs.mainOrder == 0 &&
+		gs.layer == 0 {
+		return true
+	}
+	return false
+}
+
 // Create a new GraphState
 func NewGraphState() *GraphState {
 	return &GraphState{

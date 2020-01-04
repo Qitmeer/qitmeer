@@ -6,6 +6,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"time"
 )
@@ -23,12 +24,12 @@ const (
 )
 
 // handleBlockMsg handles block messages from all peers.
-func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
+func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) connmgr.BanScore {
 	log.Trace("handleBlockMsg called", "bmsg", bmsg)
 	sp, exists := b.peers[bmsg.peer.Peer]
 	if !exists {
 		log.Warn(fmt.Sprintf("Received block message from unknown peer %s", sp))
-		return
+		return connmgr.SlightScore
 	}
 	// If we didn't ask for this block then the peer is misbehaving.
 	blockHash := bmsg.block.Hash()
@@ -36,7 +37,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		log.Warn(fmt.Sprintf("Got unrequested block %v from %s -- disconnecting",
 			blockHash, bmsg.peer.Addr()))
 		bmsg.peer.Disconnect()
-		return
+		return connmgr.FewScore
 	}
 
 	// When in headers-first mode, if the block matches the hash of the
@@ -79,7 +80,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		// it as such.  Otherwise, something really did go wrong, so log
 		// it as an actual error.
 		if _, ok := err.(blockchain.RuleError); ok {
-			log.Info("Rejected block", "hash", blockHash, "peer",
+			log.Warn("Rejected block", "hash", blockHash, "peer",
 				bmsg.peer, "error", err)
 		} else {
 			log.Error("Failed to process block", "hash",
@@ -95,7 +96,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 		code, reason := mempool.ErrToRejectErr(err)
 		bmsg.peer.PushRejectMsg(message.CmdBlock, code, reason,
 			blockHash, false)
-		return
+		return connmgr.ManyScore
 	}
 
 	// Meta-data about the new block this peer is reporting. We use this
@@ -164,7 +165,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	// Nothing more to do if we aren't in headers-first mode.
 	if !b.headersFirstMode {
 		log.Trace("handleBlockMsg done", "headerFist", b.headersFirstMode)
-		return
+		return connmgr.NoneScore
 	}
 
 	// This is headers-first mode, so if the block is not a checkpoint
@@ -175,7 +176,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 			len(bmsg.peer.RequestedBlocks) < minInFlightBlocks {
 			b.fetchHeaderBlocks()
 		}
-		return
+		return connmgr.NoneScore
 	}
 
 	// This is headers-first mode, the block is a checkpoint, and there are
@@ -185,4 +186,6 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) {
 	b.headerList.Init()
 	log.Info("Reached the final checkpoint -- switching to normal mode")
 	b.PushSyncDAGMsg(bmsg.peer)
+
+	return connmgr.NoneScore
 }

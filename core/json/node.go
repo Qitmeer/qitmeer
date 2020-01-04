@@ -57,3 +57,8 @@ type GetGraphStateResult struct {
 	MainHeight uint32   `json:"mainheight"`
 	Layer      uint32   `json:"layer"`
 }
+
+type GetBanlistResult struct {
+	Host   string `json:"host"`
+	Expire string `json:"expire"`
+}

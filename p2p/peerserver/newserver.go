@@ -24,13 +24,18 @@ func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer,
 		chainParams: chainParams,
 		newPeers:    make(chan *serverPeer, cfg.MaxPeers),
 		donePeers:   make(chan *serverPeer, cfg.MaxPeers),
-		banPeers:    make(chan *serverPeer, cfg.MaxPeers),
+		banPeers:    make(chan *BanPeerMsg, cfg.MaxPeers),
 		query:       make(chan interface{}),
 		relayInv:    make(chan relayMsg, cfg.MaxPeers),
 		broadcast:   make(chan broadcastMsg, cfg.MaxPeers),
 		quit:        make(chan struct{}),
 	}
-
+	if cfg.BanDuration > 0 {
+		connmgr.BanDuration = cfg.BanDuration
+	}
+	if cfg.BanThreshold > 0 {
+		connmgr.BanThreshold = cfg.BanThreshold
+	}
 	amgr := addmgr.New(cfg.DataDir, cfg.GetAddrPercent, net.LookupIP)
 	var listeners []net.Listener
 	var nat NAT
@@ -180,6 +185,9 @@ func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer,
 			// only allow recent nodes (10mins) after we failed 30
 			// times
 			if addr.GetAttempts() > 1 && time.Since(addr.LastAttempt()) < 10*time.Minute {
+				return nil, errors.New("no valid connect address")
+			}
+			if s.state.IsBanPeer(addr.NetAddress().IP.String()) {
 				return nil, errors.New("no valid connect address")
 			}
 			addrString := addmgr.NetAddressKey(addr.NetAddress())
