@@ -54,3 +54,24 @@ func (ps *peerState) IsBanPeer(host string) bool {
 	}
 	return false
 }
+
+func (ps *peerState) IsMaxInboundPeer(sp *serverPeer) bool {
+	if !sp.Inbound() {
+		return false
+	}
+	host := sp.NA().IP.String()
+	inshost := map[string]int{}
+	for _, e := range ps.inboundPeers {
+		_, ok := inshost[e.NA().IP.String()]
+		if ok {
+			inshost[e.NA().IP.String()]++
+			continue
+		}
+		inshost[e.NA().IP.String()] = 1
+	}
+	total, ok := inshost[host]
+	if !ok {
+		return false
+	}
+	return total >= maxInboundPeersPerHost
+}
