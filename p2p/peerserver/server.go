@@ -52,8 +52,8 @@ const (
 	// connection timeout setting
 	defaultConnectTimeout = time.Second * 30
 
-	// The max total of inbound peer for host
-	maxInboundPeersPerHost = 10
+	// The default max total of inbound peer for host
+	defaultMaxInboundPeersPerHost = 10
 )
 
 var (

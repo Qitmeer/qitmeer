@@ -37,7 +37,7 @@ func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer,
 		connmgr.BanThreshold = cfg.BanThreshold
 	}
 	if cfg.MaxInbound <= 0 {
-		cfg.MaxInbound = maxInboundPeersPerHost
+		cfg.MaxInbound = defaultMaxInboundPeersPerHost
 	}
 	amgr := addmgr.New(cfg.DataDir, cfg.GetAddrPercent, net.LookupIP)
 	var listeners []net.Listener
