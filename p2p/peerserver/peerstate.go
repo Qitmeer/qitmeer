@@ -73,5 +73,5 @@ func (ps *peerState) IsMaxInboundPeer(sp *serverPeer) bool {
 	if !ok {
 		return false
 	}
-	return total >= maxInboundPeersPerHost
+	return total >= sp.server.cfg.MaxInbound
 }
