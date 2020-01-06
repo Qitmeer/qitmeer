@@ -68,6 +68,7 @@ type Config struct {
 	Upnp            bool     `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
 	Whitelists      []string `long:"whitelist" description:"Add an IP network or IP that will not be banned. (eg. 192.168.1.0/24 or ::1)"`
 	whitelists      []*net.IPNet
+	MaxInbound      int `long:"maxinbound" description:"The max total of inbound peer for host"`
 	//P2P - server ban
 	Banning        bool          `long:"banning" description:"Enable banning of misbehaving peers"`
 	BanDuration    time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`

@@ -42,6 +42,9 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 	if sp.server.state.IsBanPeer(remoteAddr.IP.String()) {
 		return message.NewMsgReject(msg.Command(), message.RejectBan, "ban peer version message")
 	}
+	if sp.server.state.IsMaxInboundPeer(sp) {
+		return message.NewMsgReject(msg.Command(), message.RejectMaxInbound, "max inbound peer version message")
+	}
 	addrManager := sp.server.addrManager
 	if !sp.server.cfg.PrivNet && !isInbound {
 		addrManager.SetServices(remoteAddr, msg.Services)
@@ -52,7 +55,6 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 	if msg.ProtocolVersion < int32(protocol.InitialProcotolVersion) {
 		return nil
 	}
-
 	// Reject outbound peers that are not full nodes.
 	wantServices := protocol.Full
 	if !isInbound && !protocol.HasServices(msg.Services, wantServices) {

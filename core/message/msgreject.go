@@ -29,6 +29,7 @@ const (
 	RejectInsufficientFee RejectCode = 0x42
 	RejectCheckpoint      RejectCode = 0x43
 	RejectBan             RejectCode = 0x50
+	RejectMaxInbound      RejectCode = 0x51
 )
 
 // Map of reject codes back strings for pretty printing.
@@ -42,6 +43,7 @@ var rejectCodeStrings = map[RejectCode]string{
 	RejectInsufficientFee: "REJECT_INSUFFICIENTFEE",
 	RejectCheckpoint:      "REJECT_CHECKPOINT",
 	RejectBan:             "REJECT_BAN",
+	RejectMaxInbound:      "REJECT_MAXINBOUND",
 }
 
 // String returns the RejectCode in human-readable form.
