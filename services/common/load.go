@@ -22,18 +22,19 @@ import (
 )
 
 const (
-	defaultConfigFilename    = "qitmeer.conf"
-	defaultDataDirname       = "data"
-	defaultLogLevel          = "info"
-	defaultDebugPrintOrigins = false
-	defaultLogDirname        = "logs"
-	defaultLogFilename       = "qitmeer.log"
-	defaultGenerate          = false
-	defaultBlockMinSize      = 0
-	defaultBlockMaxSize      = 375000
-	defaultMaxRPCClients     = 10
-	defaultMaxPeers          = 125
-	defaultMiningStateSync   = false
+	defaultConfigFilename         = "qitmeer.conf"
+	defaultDataDirname            = "data"
+	defaultLogLevel               = "info"
+	defaultDebugPrintOrigins      = false
+	defaultLogDirname             = "logs"
+	defaultLogFilename            = "qitmeer.log"
+	defaultGenerate               = false
+	defaultBlockMinSize           = 0
+	defaultBlockMaxSize           = 375000
+	defaultMaxRPCClients          = 10
+	defaultMaxPeers               = 125
+	defaultMiningStateSync        = false
+	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
 )
 const (
 	defaultSigCacheMaxSize = 100000
@@ -78,6 +79,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		MiningStateSync:   defaultMiningStateSync,
 		DAGType:           defaultDAGType,
 		Banning:           false,
+		MaxInbound:        defaultMaxInboundPeersPerHost,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
