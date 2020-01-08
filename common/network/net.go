@@ -13,28 +13,36 @@ import (
 	"strings"
 )
 
+type ListenAddr struct {
+	net, addr string
+}
+
+func (a ListenAddr) String() string {
+	return a.addr
+}
+
+func (a ListenAddr) Network() string {
+	return a.net
+}
+
 // parseListeners splits the list of listen addresses passed in addrs into
 // IPv4 and IPv6 slices and returns them.  This allows easy creation of the
 // listeners on the correct interface "tcp4" and "tcp6".  It also properly
 // detects addresses which apply to "all interfaces" and adds the address to
 // both slices.
-func ParseListeners(addrs []string) ([]string, []string, bool, error) {
-	ipv4ListenAddrs := make([]string, 0, len(addrs)*2)
-	ipv6ListenAddrs := make([]string, 0, len(addrs)*2)
-	haveWildcard := false
-
+func ParseListeners(addrs []string) ([]net.Addr, error) {
+	netAddrs := make([]net.Addr, 0, len(addrs)*2)
 	for _, addr := range addrs {
 		host, _, err := net.SplitHostPort(addr)
 		if err != nil {
 			// Shouldn't happen due to already being normalized.
-			return nil, nil, false, err
+			return nil, err
 		}
 
 		// Empty host or host of * on plan9 is both IPv4 and IPv6.
 		if host == "" || (host == "*" && runtime.GOOS == "plan9") {
-			ipv4ListenAddrs = append(ipv4ListenAddrs, addr)
-			ipv6ListenAddrs = append(ipv6ListenAddrs, addr)
-			haveWildcard = true
+			netAddrs = append(netAddrs, ListenAddr{net: "tcp4", addr: addr})
+			netAddrs = append(netAddrs, ListenAddr{net: "tcp6", addr: addr})
 			continue
 		}
 
@@ -48,17 +56,16 @@ func ParseListeners(addrs []string) ([]string, []string, bool, error) {
 		// Parse the IP.
 		ip := net.ParseIP(host)
 		if ip == nil {
-			return nil, nil, false, fmt.Errorf("'%s' is not a "+
-				"valid IP address", host)
+			return nil, fmt.Errorf("'%s' is not a valid IP address", host)
 		}
 
 		// To4 returns nil when the IP is not an IPv4 address, so use
 		// this determine the address type.
 		if ip.To4() == nil {
-			ipv6ListenAddrs = append(ipv6ListenAddrs, addr)
+			netAddrs = append(netAddrs, ListenAddr{net: "tcp6", addr: addr})
 		} else {
-			ipv4ListenAddrs = append(ipv4ListenAddrs, addr)
+			netAddrs = append(netAddrs, ListenAddr{net: "tcp4", addr: addr})
 		}
 	}
-	return ipv4ListenAddrs, ipv6ListenAddrs, haveWildcard, nil
+	return netAddrs, nil
 }
