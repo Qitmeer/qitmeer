@@ -218,7 +218,13 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 // The flags do not modify the behavior of this function directly, however they
 // are needed to pass along to checkProofOfWork.
 func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *params.Params, mHeight uint) error {
-
+	instance := pow.GetInstance(header.Pow.GetPowType(), 0, []byte{})
+	instance.SetMainHeight(int64(mHeight))
+	instance.SetParams(chainParams.PowConfig)
+	if !instance.CheckAvailable() {
+		str := fmt.Sprintf("pow type : %d is not available!", header.Pow.GetPowType())
+		return ruleError(ErrInValidPowType, str)
+	}
 	// Ensure the proof of work bits in the block header is in min/max
 	// range and the block hash is less than the target value described by
 	// the bits.
