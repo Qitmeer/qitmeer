@@ -294,6 +294,10 @@ func dbRemoveTxIndexEntry(dbTx database.Tx, txHash *hash.Hash) error {
 func dbRemoveTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock) error {
 	removeEntries := func(txns []*types.Tx) error {
 		for _, tx := range txns {
+			region, _ := dbFetchTxIndexEntry(dbTx, tx.Hash())
+			if region != nil && !region.Hash.IsEqual(block.Hash()) {
+				continue
+			}
 			if err := dbRemoveTxIndexEntry(dbTx, tx.Hash()); err != nil {
 				return err
 			}
