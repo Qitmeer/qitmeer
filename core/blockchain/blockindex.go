@@ -27,6 +27,9 @@ type IndexManager interface {
 	// DisconnectBlock is invoked when a block has been disconnected from
 	// the main chain.
 	DisconnectBlock(tx database.Tx, block *types.SerializedBlock, stxos []SpentTxOut) error
+
+	// HasTransaction
+	HasTransaction(tx database.Tx, txid *hash.Hash, blockHash *hash.Hash) bool
 }
 
 // blockIndex provides facilities for keeping track of an in-memory index of the

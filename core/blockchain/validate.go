@@ -518,7 +518,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 			return err
 		}
 
-		err = b.checkBlockSubsidy(block, -1)
+		err = b.checkBlockSubsidy(block)
 		if err != nil {
 			return err
 		}
@@ -532,7 +532,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 	return nil
 }
 
-func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock, totalFee int64) error {
+func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	parents := blockdag.NewHashSet()
 	parents.AddList(block.Block().Parents)
 	blocks := b.bd.GetBlues(parents)
@@ -571,13 +571,13 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock, totalFee in
 
 	totalAmountOut = workAmountOut + taxAmountOut
 
-	if totalAmountOut < subsidy {
+	if totalAmountOut != subsidy {
 		str := fmt.Sprintf("coinbase transaction for block pays %v which is not the subsidy %v",
 			totalAmountOut, subsidy)
 		return ruleError(ErrBadCoinbaseValue, str)
 	}
 
-	if workAmountOut < work ||
+	if workAmountOut != work ||
 		tax != taxAmountOut {
 		str := fmt.Sprintf("coinbase transaction for block pays %d  %d  which is not the %d  %d",
 			workAmountOut, taxAmountOut, work, tax)
@@ -590,13 +590,6 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock, totalFee in
 		if orgPkScriptStr != curPkScriptStr {
 			str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
 				orgPkScriptStr, curPkScriptStr)
-			return ruleError(ErrBadCoinbaseValue, str)
-		}
-	}
-	if totalFee != -1 {
-		if workAmountOut != (totalFee + work) {
-			str := fmt.Sprintf("coinbase transaction for block work pays for %d, but it is %d",
-				work, workAmountOut-totalFee)
 			return ruleError(ErrBadCoinbaseValue, str)
 		}
 	}
@@ -714,14 +707,6 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		return ruleError(ErrMissingTxOut, str)
 	}
 
-	err := b.checkUtxoDuplicate(block, utxoView)
-	if err != nil {
-		return err
-	}
-
-	// Check that the coinbase pays the tax, if applicable.
-	// TODO tax pay
-
 	// Don't run scripts if this node is before the latest known good
 	// checkpoint since the validity is verified via the checkpoints (all
 	// transactions are included in the merkle root hash and any changes
@@ -734,12 +719,16 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		runScripts = false
 	}
 	var scriptFlags txscript.ScriptFlags
+	var err error
 	if runScripts {
 		scriptFlags, err = b.consensusScriptVerifyFlags(node)
 		if err != nil {
 			return err
 		}
 	}
+
+	// At first, we must calculate the dag duplicate tx for block.
+	b.calculateDAGDuplicateTxs(block)
 
 	// The number of signature operations must be less than the maximum
 	// allowed per block.  Note that the preliminary sanity checks on a
@@ -789,7 +778,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 
 	if runScripts {
 		err = checkBlockScripts(block, utxoView,
-			scriptFlags, b.sigCache)
+			scriptFlags, b.sigCache, b)
 		if err != nil {
 			log.Trace("checkBlockScripts failed; error returned "+
 				"on txtreeregular of cur block: %v", err)
@@ -842,6 +831,9 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 
 	var totalFees int64
 	for idx, tx := range transactions {
+		if tx.IsDuplicate {
+			continue
+		}
 		txFee, err := CheckTransactionInputs(tx, utxoView, b.params, b.bd)
 		if err != nil {
 			return err
@@ -861,7 +853,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 			return err
 		}
 	}
-	return b.checkBlockSubsidy(block, totalFees)
+	return b.checkBlockSubsidy(block)
 }
 
 // SequenceLockActive determines if all of the inputs to a given transaction
@@ -999,6 +991,7 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 		txInHash := &txIn.PreviousOut.Hash
 		utxoEntry := utxoView.LookupEntry(txIn.PreviousOut)
 		if utxoEntry == nil || utxoEntry.IsSpent() {
+
 			str := fmt.Sprintf("output %v referenced from "+
 				"transaction %s:%d either does not exist or "+
 				"has already been spent", txIn.PreviousOut,

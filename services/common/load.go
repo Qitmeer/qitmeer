@@ -80,6 +80,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		DAGType:           defaultDAGType,
 		Banning:           false,
 		MaxInbound:        defaultMaxInboundPeersPerHost,
+		TxIndex:           true,
 	}
 
 	// Pre-parse the command line options to see if an alternative config

@@ -788,9 +788,10 @@ func (tx *Transaction) IsCoinBase() bool {
 // first access so subsequent accesses don't have to repeat the relatively
 // expensive hashing operations.
 type Tx struct {
-	Tx      *Transaction // Underlying Transaction
-	hash    hash.Hash    // Cached transaction hash
-	txIndex int          // Position within a block or TxIndexUnknown
+	Tx          *Transaction // Underlying Transaction
+	hash        hash.Hash    // Cached transaction hash
+	txIndex     int          // Position within a block or TxIndexUnknown
+	IsDuplicate bool         // Whether duplicate tx.
 }
 
 // Transaction() returns the underlying Tx for the transaction.
@@ -815,13 +816,18 @@ func (t *Tx) SetIndex(index int) {
 	t.txIndex = index
 }
 
+func (t *Tx) Index() int {
+	return t.txIndex
+}
+
 // NewTx returns a new instance of a transaction given an underlying
 // wire.MsgTx.  See Tx.
 func NewTx(t *Transaction) *Tx {
 	return &Tx{
-		hash:    t.TxHash(),
-		Tx:      t,
-		txIndex: TxIndexUnknown,
+		hash:        t.TxHash(),
+		Tx:          t,
+		txIndex:     TxIndexUnknown,
+		IsDuplicate: false,
 	}
 }
 
