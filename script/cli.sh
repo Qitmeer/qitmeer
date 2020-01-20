@@ -296,6 +296,17 @@ function get_coinbase(){
   get_result "$data"
 }
 
+function ban_list(){
+  local data='{"jsonrpc":"2.0","method":"test_banlist","params":[],"id":null}'
+  get_result "$data"
+}
+
+function remove_ban(){
+  local bhost=$1
+  local data='{"jsonrpc":"2.0","method":"test_removeBan","params":["'$bhost'"],"id":1}'
+  get_result "$data"
+}
+
 function get_rawtxs(){
   local address=$1
   local param2=$2
@@ -394,6 +405,8 @@ function usage(){
   echo "  peerinfo"
   echo "  main  <hash>"
   echo "  stop"
+  echo "  banlist"
+  echo "  removeban"
   echo "block  :"
   echo "  block <num|hash>"
   echo "  blockid <id>"
@@ -728,6 +741,14 @@ elif [ "$1" == "tips" ]; then
 elif [ "$1" == "coinbase" ]; then
   shift
   get_coinbase $@
+
+elif [ "$1" == "banlist" ]; then
+  shift
+  ban_list | jq .
+
+elif [ "$1" == "removeban" ]; then
+  shift
+  remove_ban $@
 
 ## Tx
 elif [ "$1" == "tx" ]; then

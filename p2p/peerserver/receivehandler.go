@@ -14,6 +14,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p/addmgr"
+	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/satori/go.uuid"
 	"time"
@@ -38,6 +39,12 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 	}
 	isInbound := sp.Inbound()
 	remoteAddr := sp.NA()
+	if sp.server.state.IsBanPeer(remoteAddr.IP.String()) {
+		return message.NewMsgReject(msg.Command(), message.RejectBan, "ban peer version message")
+	}
+	if sp.server.state.IsMaxInboundPeer(sp) {
+		return message.NewMsgReject(msg.Command(), message.RejectMaxInbound, "max inbound peer version message")
+	}
 	addrManager := sp.server.addrManager
 	if !sp.server.cfg.PrivNet && !isInbound {
 		addrManager.SetServices(remoteAddr, msg.Services)
@@ -48,7 +55,6 @@ func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.
 	if msg.ProtocolVersion < int32(protocol.InitialProcotolVersion) {
 		return nil
 	}
-
 	// Reject outbound peers that are not full nodes.
 	wantServices := protocol.Full
 	if !isInbound && !protocol.HasServices(msg.Services, wantServices) {
@@ -218,12 +224,21 @@ func (sp *serverPeer) OnBlock(p *peer.Peer, msg *message.MsgBlock, buf []byte) {
 	// therefore blocks further messages until the network block has been
 	// fully processed.
 	sp.server.BlockManager.QueueBlock(block, sp.syncPeer)
-	<-sp.syncPeer.BlockProcessed
+	score := <-sp.syncPeer.BlockProcessed
+	if score > connmgr.NoneScore {
+		sp.addBanScore(0, uint32(score), "onblock")
+	}
 	log.Trace("OnBlock done, sp.syncPeer.BlockProcessed")
 }
 
 // OnGetBlocks is invoked when a peer receives a getblocks wire message.
 func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
+	if msg.GS.IsGenesis() && !msg.GS.GetTips().HasOnly(sp.server.chainParams.GenesisHash) {
+		sp.addBanScore(0, connmgr.SeriousScore, "ongetblocks")
+		log.Warn(fmt.Sprintf("Wrong genesis(%s) from peer(%s),your genesis is %s",
+			msg.GS.GetTips().List()[0].String(), p.String(), sp.server.chainParams.GenesisHash.String()))
+		return
+	}
 	// Find the most recent known block in the best chain based on the block
 	// locator and fetch all of the block hashes after it until either
 	// wire.MaxBlocksPerMsg have been fetched or the provided stop hash is

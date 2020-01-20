@@ -19,24 +19,22 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 )
 
 const (
-	defaultConfigFilename    = "qitmeer.conf"
-	defaultDataDirname       = "data"
-	defaultLogLevel          = "info"
-	defaultDebugPrintOrigins = false
-	defaultLogDirname        = "logs"
-	defaultLogFilename       = "qitmeer.log"
-	defaultGenerate          = false
-	defaultBlockMinSize      = 0
-	defaultBlockMaxSize      = 375000
-	defaultMaxRPCClients     = 10
-	defaultMaxPeers          = 125
-	defaultMiningStateSync   = false
-	defaultBanDuration       = time.Hour * 24
-	defaultBanThreshold      = 100
+	defaultConfigFilename         = "qitmeer.conf"
+	defaultDataDirname            = "data"
+	defaultLogLevel               = "info"
+	defaultDebugPrintOrigins      = false
+	defaultLogDirname             = "logs"
+	defaultLogFilename            = "qitmeer.log"
+	defaultGenerate               = false
+	defaultBlockMinSize           = 0
+	defaultBlockMaxSize           = 375000
+	defaultMaxRPCClients          = 10
+	defaultMaxPeers               = 125
+	defaultMiningStateSync        = false
+	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
 )
 const (
 	defaultSigCacheMaxSize = 100000
@@ -80,8 +78,8 @@ func LoadConfig() (*config.Config, []string, error) {
 		SigCacheMaxSize:   defaultSigCacheMaxSize,
 		MiningStateSync:   defaultMiningStateSync,
 		DAGType:           defaultDAGType,
-		BanDuration:       defaultBanDuration,
-		BanThreshold:      defaultBanThreshold,
+		Banning:           false,
+		MaxInbound:        defaultMaxInboundPeersPerHost,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -397,6 +395,7 @@ func LoadConfig() (*config.Config, []string, error) {
 	if configFileError != nil {
 		log.Warn("missing config file", "error", configFileError)
 	}
+
 	return &cfg, remainingArgs, nil
 }
 
