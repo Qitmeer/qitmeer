@@ -154,6 +154,8 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 	if cs != nil {
 		children = cs.List()
 	}
+	api.bm.chain.CalculateDAGDuplicateTxs(blk)
+	blk.Transactions()[0].Tx.TxOut[0].Amount += uint64(api.bm.chain.CalculateFees(blk))
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
 		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered())
@@ -331,4 +333,9 @@ func (api *PublicBlockAPI) GetCoinbase(h hash.Hash, verbose *bool) (interface{},
 		result = append(result, hex.EncodeToString(v))
 	}
 	return result, nil
+}
+
+// GetCoinbase
+func (api *PublicBlockAPI) GetFees(h hash.Hash) (interface{}, error) {
+	return api.bm.chain.GetFees(&h), nil
 }

@@ -311,6 +311,9 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 	if blkHash != nil {
 		blkHashStr = blkHash.String()
 		confirmations = int64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(blkHash))
+		if mtx.IsCoinBase() {
+			mtx.TxOut[0].Amount += uint64(api.txManager.bm.GetChain().GetFees(blkHash))
+		}
 	}
 	if tx != nil {
 		confirmations = 0
@@ -385,6 +388,8 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 		}
 		best := api.txManager.bm.GetChain().BestSnapshot()
 		bestBlockHash = best.Hash.String()
+
+		amount = entry.Amount()
 		if hash.ZeroHash.IsEqual(entry.BlockHash()) {
 			confirmations = 0
 		} else {
@@ -394,8 +399,9 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 			} else {
 				confirmations = int64(best.GraphState.GetLayer() - block.GetLayer())
 			}
+			amount += uint64(api.txManager.bm.GetChain().GetFees(block.GetHash()))
 		}
-		amount = entry.Amount()
+
 		pkScript = entry.PkScript()
 		isCoinbase = entry.IsCoinBase()
 	}
@@ -602,6 +608,9 @@ func (api *PublicTxAPI) GetRawTransactions(addre string, vinext *bool, count *ui
 			filterAddrMap)
 		if err != nil {
 			return nil, err
+		}
+		if mtx.Tx.IsCoinBase() {
+			mtx.Tx.TxOut[0].Amount += uint64(api.txManager.bm.GetChain().GetFees(rtx.blkHash))
 		}
 		result.Vout = marshal.MarshJsonVout(mtx.Tx, filterAddrMap, params)
 		result.Version = mtx.Tx.Version

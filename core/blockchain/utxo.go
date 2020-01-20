@@ -239,6 +239,9 @@ func (view *UtxoViewpoint) fetchUtxosMain(db database.DB, outpoints map[types.Tx
 			if err != nil {
 				return err
 			}
+			if entry == nil {
+				continue
+			}
 			view.entries[outpoint] = entry
 		}
 
@@ -268,6 +271,10 @@ func (view *UtxoViewpoint) LookupEntry(outpoint types.TxOutPoint) *UtxoEntry {
 	return entry
 }
 
+func (view *UtxoViewpoint) FetchInputUtxos(db database.DB, block *types.SerializedBlock, bc *BlockChain) error {
+	return view.fetchInputUtxos(db, block, bc)
+}
+
 // fetchInputUtxos loads utxo details about the input transactions referenced
 // by the transactions in the given block into the view from the database as
 // needed.  In particular, referenced entries that are earlier in the block are
@@ -280,6 +287,9 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 	txInFlight := map[hash.Hash]int{}
 	transactions := block.Transactions()
 	for i, tx := range transactions {
+		if tx.IsDuplicate {
+			continue
+		}
 		txInFlight[*tx.Hash()] = i
 	}
 
@@ -288,6 +298,9 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 	// what is already known (in-flight).
 	txNeededSet := make(map[types.TxOutPoint]struct{})
 	for i, tx := range transactions[1:] {
+		if tx.IsDuplicate {
+			continue
+		}
 		for _, txIn := range tx.Transaction().TxIn {
 			// It is acceptable for a transaction input to reference
 			// the output of another transaction in this block only
@@ -357,7 +370,7 @@ func (view *UtxoViewpoint) fetchUtxos(db database.DB, outpoints map[types.TxOutP
 // spent.  In addition, when the 'stxos' argument is not nil, it will be updated
 // to append an entry for each spent txout.  An error will be returned if the
 // view does not contain the required utxos.
-func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blockIndex uint32, stxos *[]SpentTxOut) error {
+func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blockIndex uint32, stxos *[]SpentTxOut, bc *BlockChain) error {
 	msgTx := tx.Transaction()
 	// Coinbase transactions don't have any inputs to spend.
 	if msgTx.IsCoinBase() {
@@ -369,7 +382,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 	// Spend the referenced utxos by marking them spent in the view and,
 	// if a slice was provided for the spent txout details, append an entry
 	// to it.
-	for _, txIn := range msgTx.TxIn {
+	for txInIndex, txIn := range msgTx.TxIn {
 		entry := view.entries[txIn.PreviousOut]
 
 		// Ensure the referenced utxo exists in the view.  This should
@@ -390,11 +403,16 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 		// accordingly since those details will no longer be available
 		// in the utxo set.
 		var stxo = SpentTxOut{
-			Amount:    entry.Amount(),
-			PkScript:  entry.PkScript(),
-			BlockHash: entry.blockHash,
+			Amount:     entry.Amount(),
+			PkScript:   entry.PkScript(),
+			BlockHash:  entry.blockHash,
+			IsCoinBase: entry.IsCoinBase(),
+			TxIndex:    uint32(tx.Index()),
+			TxInIndex:  uint32(txInIndex),
 		}
-		stxo.IsCoinBase = entry.IsCoinBase()
+		if stxo.IsCoinBase {
+			stxo.Amount += uint64(bc.GetFees(&stxo.BlockHash))
+		}
 		// Append the entry to the provided spent txouts slice.
 		*stxos = append(*stxos, stxo)
 	}
@@ -412,9 +430,9 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 //
 // This function will ONLY work correctly for a single transaction tree at a
 // time because of index tracking.
-func (view *UtxoViewpoint) disconnectTransactions(block *types.SerializedBlock, stxos []SpentTxOut) error {
+func (view *UtxoViewpoint) disconnectTransactions(block *types.SerializedBlock, stxos []SpentTxOut, bc *BlockChain) error {
 	// Sanity check the correct number of stxos are provided.
-	if len(stxos) != countSpentOutputs(block) {
+	if len(stxos) != bc.countSpentOutputs(block) {
 		return AssertError("disconnectTransactions called with bad " +
 			"spent transaction out information")
 	}
@@ -423,7 +441,9 @@ func (view *UtxoViewpoint) disconnectTransactions(block *types.SerializedBlock, 
 	transactions := block.Transactions()
 	for txIdx := len(transactions) - 1; txIdx > -1; txIdx-- {
 		tx := transactions[txIdx]
-
+		if tx.IsDuplicate {
+			continue
+		}
 		var packedFlags txoFlags
 		isCoinBase := txIdx == 0
 		if isCoinBase {
@@ -574,37 +594,6 @@ func (b *BlockChain) FetchUtxoEntry(outpoint types.TxOutPoint) (*UtxoEntry, erro
 		entry = nil
 	}
 	return entry, nil
-}
-
-func (b *BlockChain) checkUtxoDuplicate(block *types.SerializedBlock, view *UtxoViewpoint) error {
-	// Fetch utxos for all of the transaction ouputs in this block.
-	// Typically, there will not be any utxos for any of the outputs.
-	fetchSet := make(map[types.TxOutPoint]struct{})
-	for _, tx := range block.Transactions() {
-		prevOut := types.TxOutPoint{Hash: *tx.Hash()}
-		for txOutIdx := range tx.Tx.TxOut {
-			prevOut.OutIndex = uint32(txOutIdx)
-			fetchSet[prevOut] = struct{}{}
-		}
-	}
-	err := view.fetchUtxos(b.db, fetchSet)
-	if err != nil {
-		return err
-	}
-
-	// Duplicate transactions are only allowed if the previous transaction
-	// is fully spent.
-	for outpoint := range fetchSet {
-		utxo := view.LookupEntry(outpoint)
-		if utxo != nil && !utxo.IsSpent() {
-			str := fmt.Sprintf("tried to overwrite transaction %v "+
-				"at block %s that is not fully spent",
-				outpoint.Hash, utxo.blockHash)
-			return ruleError(ErrOverwriteTx, str)
-		}
-	}
-
-	return nil
 }
 
 // dbFetchUtxoEntry uses an existing database transaction to fetch all unspent

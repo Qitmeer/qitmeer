@@ -728,7 +728,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	}
 
 	// At first, we must calculate the dag duplicate tx for block.
-	b.calculateDAGDuplicateTxs(block)
+	b.CalculateDAGDuplicateTxs(block)
 
 	// The number of signature operations must be less than the maximum
 	// allowed per block.  Note that the preliminary sanity checks on a
@@ -778,7 +778,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 
 	if runScripts {
 		err = checkBlockScripts(block, utxoView,
-			scriptFlags, b.sigCache, b)
+			scriptFlags, b.sigCache)
 		if err != nil {
 			log.Trace("checkBlockScripts failed; error returned "+
 				"on txtreeregular of cur block: %v", err)
@@ -834,7 +834,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 		if tx.IsDuplicate {
 			continue
 		}
-		txFee, err := CheckTransactionInputs(tx, utxoView, b.params, b.bd)
+		txFee, err := CheckTransactionInputs(tx, utxoView, b.params, b)
 		if err != nil {
 			return err
 		}
@@ -848,7 +848,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 				"overflows accumulator")
 		}
 
-		err = utxoView.connectTransaction(tx, node, uint32(idx), stxos)
+		err = utxoView.connectTransaction(tx, node, uint32(idx), stxos, b)
 		if err != nil {
 			return err
 		}
@@ -973,7 +973,7 @@ func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool, utxoView *UtxoViewpoint) (
 //
 // NOTE: The transaction MUST have already been sanity checked with the
 // CheckTransactionSanity function prior to calling this function.
-func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *params.Params, bd *blockdag.BlockDAG) (int64, error) {
+func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *params.Params, bc *BlockChain) (int64, error) {
 	msgTx := tx.Transaction()
 
 	txHash := tx.Hash()
@@ -983,7 +983,7 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 	if msgTx.IsCoinBase() {
 		return 0, nil
 	}
-
+	bd := bc.bd
 	// -------------------------------------------------------------------
 	// General transaction testing.
 	// -------------------------------------------------------------------
@@ -1035,7 +1035,10 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 		// in a transaction are in a unit value known as an atom.  One
 		// Coin is a quantity of atoms as defined by the AtomPerCoin
 		// constant.
-		originTxAtom := utxoEntry.Amount()
+		originTxAtom := int64(utxoEntry.Amount())
+		if utxoEntry.IsCoinBase() {
+			originTxAtom += bc.GetFees(utxoEntry.BlockHash())
+		}
 		if originTxAtom < 0 {
 			str := fmt.Sprintf("transaction output has negative "+
 				"value of %v", originTxAtom)
@@ -1052,7 +1055,7 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 		// allowed per transaction.  Also, we could potentially
 		// overflow the accumulator so check for overflow.
 		lastAtomIn := totalAtomIn
-		totalAtomIn += int64(originTxAtom) //TODO, remove type conversion
+		totalAtomIn += originTxAtom
 		if totalAtomIn < lastAtomIn ||
 			totalAtomIn > types.MaxAmount {
 			str := fmt.Sprintf("total value of all transaction "+

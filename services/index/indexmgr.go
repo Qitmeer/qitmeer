@@ -372,6 +372,21 @@ func (m *Manager) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlock
 	return nil
 }
 
+// HasTransaction
+func (m *Manager) IsDuplicateTx(dbTx database.Tx, txid *hash.Hash, blockHash *hash.Hash) bool {
+	blockRegion, err := dbFetchTxIndexEntry(dbTx, txid)
+	if err != nil {
+		return false
+	}
+	if blockRegion == nil {
+		return false
+	}
+	if blockRegion.Hash.IsEqual(blockHash) {
+		return false
+	}
+	return true
+}
+
 // dbFetchTx looks up the passed transaction hash in the transaction index and
 // loads it from the database.
 func DBFetchTx(dbTx database.Tx, hash *hash.Hash) (*types.Transaction, error) {

@@ -340,6 +340,12 @@ function is_blue(){
   get_result "$data"
 }
 
+function get_fees(){
+  local block_hash=$1
+  local data='{"jsonrpc":"2.0","method":"getFees","params":["'$block_hash'"],"id":1}'
+  get_result "$data"
+}
+
 function get_result(){
   local proto="https"
   if [ $notls -eq 1 ]; then
@@ -421,6 +427,7 @@ function usage(){
   echo "  iscurrent"
   echo "  tips"
   echo "  coinbase <hash>"
+  echo "  fees <hash>"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txbyhash <hash>"
@@ -713,6 +720,10 @@ elif [ "$1" == "blockrange" ]; then
 elif [ "$1" == "isblue" ]; then
   shift
   is_blue $@
+
+elif [ "$1" == "fees" ]; then
+  shift
+  get_fees $@
 
 elif [ "$1" == "nodeinfo" ]; then
   shift

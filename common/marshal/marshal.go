@@ -34,7 +34,11 @@ func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHashStr string,
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
-	return MarshalJsonTransaction(tx.Transaction(), params, blkHashStr, confirmations)
+	txr, err := MarshalJsonTransaction(tx.Transaction(), params, blkHashStr, confirmations)
+	if err == nil {
+		txr.Duplicate = tx.IsDuplicate
+	}
+	return txr, err
 }
 
 func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHashStr string,

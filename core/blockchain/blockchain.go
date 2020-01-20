@@ -938,7 +938,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		view := NewUtxoViewpoint()
 		view.SetViewpoints([]*hash.Hash{&node.hash})
 
-		stxos := make([]SpentTxOut, 0, countSpentOutputs(block))
+		stxos := []SpentTxOut{}
 		err := b.checkConnectBlock(node, block, view, &stxos)
 		if err != nil {
 			node.Invalid(b)
@@ -1212,6 +1212,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		view := NewUtxoViewpoint()
 		view.SetViewpoints([]*hash.Hash{block.Hash()})
 		if !b.index.NodeStatus(n).KnownInvalid() {
+			b.CalculateDAGDuplicateTxs(block)
 			err = view.fetchInputUtxos(b.db, block, b)
 			if err != nil {
 				return err
@@ -1228,7 +1229,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 				return err
 			}
 			// Store the loaded block and spend journal entry for later.
-			err = view.disconnectTransactions(block, stxos)
+			err = view.disconnectTransactions(block, stxos, b)
 			if err != nil {
 				n.Invalid(b)
 				newn.Invalid(b)
@@ -1296,11 +1297,13 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 }
 
 // countSpentOutputs returns the number of utxos the passed block spends.
-// TODO, revisit the design of stxos count
-func countSpentOutputs(block *types.SerializedBlock) int {
+func (b *BlockChain) countSpentOutputs(block *types.SerializedBlock) int {
 	// Exclude the coinbase transaction since it can't spend anything.
 	var numSpent int
 	for _, tx := range block.Transactions()[1:] {
+		if tx.IsDuplicate {
+			continue
+		}
 		numSpent += len(tx.Transaction().TxIn)
 	}
 	return numSpent
@@ -1392,6 +1395,10 @@ func (b *BlockChain) FetchSpendJournal(targetBlock *types.SerializedBlock) ([]Sp
 	b.ChainRLock()
 	defer b.ChainRUnlock()
 
+	return b.fetchSpendJournal(targetBlock)
+}
+
+func (b *BlockChain) fetchSpendJournal(targetBlock *types.SerializedBlock) ([]SpentTxOut, error) {
 	var spendEntries []SpentTxOut
 	err := b.db.View(func(dbTx database.Tx) error {
 		var err error
@@ -1433,4 +1440,63 @@ func (b *BlockChain) ChainRLock() {
 
 func (b *BlockChain) ChainRUnlock() {
 	b.chainLock.RUnlock()
+}
+
+func (b *BlockChain) IsDuplicateTx(txid *hash.Hash, blockHash *hash.Hash) bool {
+	err := b.db.Update(func(dbTx database.Tx) error {
+		if b.indexManager != nil {
+			if b.indexManager.IsDuplicateTx(dbTx, txid, blockHash) {
+				return nil
+			}
+		}
+		return fmt.Errorf("null")
+	})
+	return err == nil
+}
+
+func (b *BlockChain) CalculateDAGDuplicateTxs(block *types.SerializedBlock) {
+	txs := block.Transactions()
+	for _, tx := range txs {
+		tx.IsDuplicate = b.IsDuplicateTx(tx.Hash(), block.Hash())
+	}
+}
+
+func (b *BlockChain) CalculateFees(block *types.SerializedBlock) int64 {
+	transactions := block.Transactions()
+	var totalAtomOut int64
+	for i, tx := range transactions {
+		if i == 0 || tx.Tx.IsCoinBase() || tx.IsDuplicate {
+			continue
+		}
+		for _, txOut := range tx.Transaction().TxOut {
+			totalAtomOut += int64(txOut.Amount)
+		}
+	}
+	spentTxos, err := b.fetchSpendJournal(block)
+	if err != nil {
+		return 0
+	}
+	var totalAtomIn int64
+	if spentTxos != nil {
+		for _, st := range spentTxos {
+			totalAtomIn += int64(st.Amount)
+		}
+		totalFees := totalAtomIn - totalAtomOut
+		if totalFees < 0 {
+			totalFees = 0
+		}
+		return totalFees
+	}
+	return 0
+}
+
+// GetFees
+func (b *BlockChain) GetFees(h *hash.Hash) int64 {
+	block, err := b.FetchBlockByHash(h)
+	if err != nil {
+		return 0
+	}
+	b.CalculateDAGDuplicateTxs(block)
+
+	return b.CalculateFees(block)
 }
