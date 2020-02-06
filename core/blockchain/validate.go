@@ -376,9 +376,14 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 					return ruleError(ErrBadCoinbaseValue, str)
 				}
 			}
-		} else if len(tx.TxOut) >= 3 {
+		}
+		if len(tx.TxOut) >= 3 {
 			// Coinbase TxOut[2] is op return
 			nullDataOut := tx.TxOut[2]
+			if nullDataOut.Amount != 0 {
+				str := fmt.Sprintf("coinbase output 2:bad nulldata")
+				return ruleError(ErrBadCoinbaseOutpoint, str)
+			}
 			// The first 4 bytes of the null data output must be the encoded height
 			// of the block, so that every coinbase created has a unique transaction
 			// hash.
