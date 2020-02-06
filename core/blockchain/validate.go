@@ -355,21 +355,27 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 		}
 		if len(tx.TxOut) >= 2 {
 			slen = len(tx.TxOut[1].PkScript)
-			if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
-				str := fmt.Sprintf("coinbase transaction script "+
-					"length of %d is out of range (min: %d, max: "+
-					"%d)", slen, MinCoinbaseScriptLen,
-					MaxCoinbaseScriptLen)
-				return ruleError(ErrBadCoinbaseScriptLen, str)
+			if params.HasTax() {
+				if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
+					str := fmt.Sprintf("coinbase transaction script "+
+						"length of %d is out of range (min: %d, max: "+
+						"%d)", slen, MinCoinbaseScriptLen,
+						MaxCoinbaseScriptLen)
+					return ruleError(ErrBadCoinbaseScriptLen, str)
+				}
+				orgPkScriptStr := hex.EncodeToString(params.OrganizationPkScript)
+				curPkScriptStr := hex.EncodeToString(tx.TxOut[1].PkScript)
+				if orgPkScriptStr != curPkScriptStr {
+					str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
+						orgPkScriptStr, curPkScriptStr)
+					return ruleError(ErrBadCoinbaseValue, str)
+				}
+			} else {
+				if slen != 0 || tx.TxOut[1].Amount != 0 {
+					str := fmt.Sprintf("coinbase transaction error:no tax.")
+					return ruleError(ErrBadCoinbaseValue, str)
+				}
 			}
-			orgPkScriptStr := hex.EncodeToString(params.OrganizationPkScript)
-			curPkScriptStr := hex.EncodeToString(tx.TxOut[1].PkScript)
-			if orgPkScriptStr != curPkScriptStr {
-				str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
-					orgPkScriptStr, curPkScriptStr)
-				return ruleError(ErrBadCoinbaseValue, str)
-			}
-
 		} else if len(tx.TxOut) >= 3 {
 			// Coinbase TxOut[2] is op return
 			nullDataOut := tx.TxOut[2]
@@ -533,12 +539,12 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock, totalFee in
 	// check subsidy
 	transactions := block.Transactions()
 	subsidy := b.subsidyCache.CalcBlockSubsidy(int64(blocks))
-	workAmountOut := int64(transactions[0].Tx.TxOut[0].Amount)
-
-	hasTax := false
-	if b.params.BlockTaxProportion > 0 &&
-		len(b.params.OrganizationPkScript) > 0 {
-		hasTax = true
+	workAmountOut := int64(0)
+	for k, v := range transactions[0].Tx.TxOut {
+		if k == 1 || k == 2 {
+			continue
+		}
+		workAmountOut += int64(v.Amount)
 	}
 
 	var work int64
@@ -546,7 +552,7 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock, totalFee in
 	var taxAmountOut int64 = 0
 	var totalAmountOut int64 = 0
 
-	if hasTax {
+	if b.params.HasTax() {
 		if len(transactions[0].Tx.TxOut) < 2 {
 			str := fmt.Sprintf("coinbase transaction is illegal")
 			return ruleError(ErrBadCoinbaseValue, str)
@@ -578,7 +584,7 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock, totalFee in
 		return ruleError(ErrBadCoinbaseValue, str)
 	}
 
-	if hasTax {
+	if b.params.HasTax() {
 		orgPkScriptStr := hex.EncodeToString(b.params.OrganizationPkScript)
 		curPkScriptStr := hex.EncodeToString(transactions[0].Tx.TxOut[1].PkScript)
 		if orgPkScriptStr != curPkScriptStr {

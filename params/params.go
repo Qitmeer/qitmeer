@@ -257,6 +257,15 @@ func (p *Params) TotalSubsidyProportions() uint16 {
 	return p.WorkRewardProportion + p.StakeRewardProportion + p.BlockTaxProportion
 }
 
+// has tax
+func (p *Params) HasTax() bool {
+	if p.BlockTaxProportion > 0 &&
+		len(p.OrganizationPkScript) > 0 {
+		return true
+	}
+	return false
+}
+
 var (
 	// ErrDuplicateNet describes an error where the parameters for a network
 	// could not be set due to the network already being a standard
