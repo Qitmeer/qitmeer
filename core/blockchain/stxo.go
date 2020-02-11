@@ -11,6 +11,12 @@ import (
 
 var byteOrder = binary.LittleEndian
 
+// The bytes of TxIndex
+const SpentTxOutTxIndexSize = 4
+
+// The bytes of TxInIndex
+const SpentTxOutTxInIndexSize = 4
+
 // -----------------------------------------------------------------------------
 // The transaction spend journal consists of an entry for each block connected
 // to the main chain which contains the transaction outputs the block spends
@@ -104,7 +110,7 @@ func spentTxOutHeaderCode(stxo *SpentTxOut) uint64 {
 func spentTxOutSerializeSize(stxo *SpentTxOut) int {
 	size := serializeSizeVLQ(spentTxOutHeaderCode(stxo))
 	size += hash.HashSize
-	size += 8
+	size += SpentTxOutTxIndexSize + SpentTxOutTxInIndexSize
 	return size + compressedTxOutSize(uint64(stxo.Amount), stxo.PkScript)
 }
 
@@ -119,9 +125,9 @@ func putSpentTxOut(target []byte, stxo *SpentTxOut) int {
 	offset += hash.HashSize
 
 	byteOrder.PutUint32(target[offset:], uint32(stxo.TxIndex))
-	offset += 4
+	offset += SpentTxOutTxIndexSize
 	byteOrder.PutUint32(target[offset:], uint32(stxo.TxInIndex))
-	offset += 4
+	offset += SpentTxOutTxInIndexSize
 
 	return offset + putCompressedTxOut(target[offset:], uint64(stxo.Amount), stxo.PkScript)
 }
@@ -161,9 +167,9 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 	offset += hash.HashSize
 
 	stxo.TxIndex = uint32(byteOrder.Uint32(serialized[offset : offset+4]))
-	offset += 4
+	offset += SpentTxOutTxIndexSize
 	stxo.TxInIndex = uint32(byteOrder.Uint32(serialized[offset : offset+4]))
-	offset += 4
+	offset += SpentTxOutTxInIndexSize
 
 	// Decode the compressed txout.
 	amount, pkScript, bytesRead, err := decodeCompressedTxOut(
