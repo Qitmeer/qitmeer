@@ -79,9 +79,9 @@ type SpentTxOut struct {
 	Amount     uint64 // The amount of the output.
 	PkScript   []byte // The public key script for the output.
 	BlockHash  hash.Hash
-	IsCoinBase bool // Whether creating tx is a coinbase.
-	TxIndex    uint32
-	TxInIndex  uint32
+	IsCoinBase bool   // Whether creating tx is a coinbase.
+	TxIndex    uint32 // The index of tx in block.
+	TxInIndex  uint32 // The index of TxInput in the tx.
 }
 
 func spentTxOutHeaderCode(stxo *SpentTxOut) uint64 {
