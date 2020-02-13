@@ -361,47 +361,14 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 				MaxCoinbaseScriptLen)
 			return ruleError(ErrBadCoinbaseScriptLen, str)
 		}
-		if len(tx.TxOut) > CoinbaseOutput_tax {
-			slen = len(tx.TxOut[CoinbaseOutput_tax].PkScript)
-			if params.HasTax() {
-				if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
-					str := fmt.Sprintf("coinbase transaction script "+
-						"length of %d is out of range (min: %d, max: "+
-						"%d)", slen, MinCoinbaseScriptLen,
-						MaxCoinbaseScriptLen)
-					return ruleError(ErrBadCoinbaseScriptLen, str)
-				}
-				orgPkScriptStr := hex.EncodeToString(params.OrganizationPkScript)
-				curPkScriptStr := hex.EncodeToString(tx.TxOut[CoinbaseOutput_tax].PkScript)
-				if orgPkScriptStr != curPkScriptStr {
-					str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
-						orgPkScriptStr, curPkScriptStr)
-					return ruleError(ErrBadCoinbaseValue, str)
-				}
-			} else {
-				if slen != 0 || tx.TxOut[CoinbaseOutput_tax].Amount != 0 {
-					str := fmt.Sprintf("coinbase transaction error:no tax.")
-					return ruleError(ErrBadCoinbaseValue, str)
-				}
-			}
+		err := validateCoinbaseTax(tx, params)
+		if err != nil {
+			return err
 		}
-		if len(tx.TxOut) > CoinbaseOutput_data {
-			// Coinbase TxOut[2] is op return
-			nullDataOut := tx.TxOut[CoinbaseOutput_data]
-			if nullDataOut.Amount != 0 {
-				str := fmt.Sprintf("coinbase output 2:bad nulldata")
-				return ruleError(ErrBadCoinbaseOutpoint, str)
-			}
-			// The first 4 bytes of the null data output must be the encoded height
-			// of the block, so that every coinbase created has a unique transaction
-			// hash.
-			nullData, err := txscript.ExtractCoinbaseNullData(nullDataOut.PkScript)
-			if err != nil {
-				str := fmt.Sprintf("coinbase output 2:bad nulldata %v", nullData)
-				return ruleError(ErrBadCoinbaseOutpoint, str)
-			}
+		err = validateCoinbaseCustomData(tx, params)
+		if err != nil {
+			return err
 		}
-
 	} else {
 		// Previous transaction outputs referenced by the inputs to
 		// this transaction must not be null except in the case of
@@ -413,6 +380,56 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 					"input refers to previous output that "+
 					"is null")
 			}
+		}
+	}
+	return nil
+}
+
+// Validate the tax in coinbase transaction. Prevent miners from attacking.
+func validateCoinbaseTax(tx *types.Transaction, params *params.Params) error {
+	if len(tx.TxOut) > CoinbaseOutput_tax {
+		slen := len(tx.TxOut[CoinbaseOutput_tax].PkScript)
+		if params.HasTax() {
+			if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
+				str := fmt.Sprintf("coinbase transaction script "+
+					"length of %d is out of range (min: %d, max: "+
+					"%d)", slen, MinCoinbaseScriptLen,
+					MaxCoinbaseScriptLen)
+				return ruleError(ErrBadCoinbaseScriptLen, str)
+			}
+			orgPkScriptStr := hex.EncodeToString(params.OrganizationPkScript)
+			curPkScriptStr := hex.EncodeToString(tx.TxOut[CoinbaseOutput_tax].PkScript)
+			if orgPkScriptStr != curPkScriptStr {
+				str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
+					orgPkScriptStr, curPkScriptStr)
+				return ruleError(ErrBadCoinbaseValue, str)
+			}
+		} else {
+			if slen != 0 || tx.TxOut[CoinbaseOutput_tax].Amount != 0 {
+				str := fmt.Sprintf("coinbase transaction error:no tax.")
+				return ruleError(ErrBadCoinbaseValue, str)
+			}
+		}
+	}
+	return nil
+}
+
+// Although it's the interface of the future, we have to deal with it specially.
+func validateCoinbaseCustomData(tx *types.Transaction, params *params.Params) error {
+	if len(tx.TxOut) > CoinbaseOutput_data {
+		// Coinbase TxOut[2] is op return
+		nullDataOut := tx.TxOut[CoinbaseOutput_data]
+		if nullDataOut.Amount != 0 {
+			str := fmt.Sprintf("coinbase output 2:bad nulldata")
+			return ruleError(ErrBadCoinbaseOutpoint, str)
+		}
+		// The first 4 bytes of the null data output must be the encoded height
+		// of the block, so that every coinbase created has a unique transaction
+		// hash.
+		nullData, err := txscript.ExtractCoinbaseNullData(nullDataOut.PkScript)
+		if err != nil {
+			str := fmt.Sprintf("coinbase output 2:bad nulldata %v", nullData)
+			return ruleError(ErrBadCoinbaseOutpoint, str)
 		}
 	}
 	return nil
