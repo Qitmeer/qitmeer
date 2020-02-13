@@ -22,24 +22,46 @@ func Test_CheckTransactionSanity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	err = CheckTransactionSanity(&tx, &params.TestNetParams)
+	err = checkTransactionSanityForAllNet(&tx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = CheckTransactionSanity(&tx, &params.PrivNetParams)
+	// We create an attack transacton data
+	attackerPkScript, err := hex.DecodeString("76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac")
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
+	}
+	tx.AddTxOut(&types.TxOutput{
+		Amount:   999999999999,
+		PkScript: attackerPkScript,
+	})
+
+	err = checkTransactionSanityForAllNet(&tx)
+	if err == nil {
+		t.Fatal("Successful attack")
+	}
+}
+
+func checkTransactionSanityForAllNet(tx *types.Transaction) error {
+	err := CheckTransactionSanity(tx, &params.TestNetParams)
+	if err != nil {
+		return err
 	}
 
-	err = CheckTransactionSanity(&tx, &params.MixNetParams)
+	err = CheckTransactionSanity(tx, &params.PrivNetParams)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 
-	err = CheckTransactionSanity(&tx, &params.MainNetParams)
+	err = CheckTransactionSanity(tx, &params.MixNetParams)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
+
+	err = CheckTransactionSanity(tx, &params.MainNetParams)
+	if err != nil {
+		return err
+	}
+	return nil
 }
