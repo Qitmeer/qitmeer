@@ -831,7 +831,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 
 	var totalFees int64
 	for idx, tx := range transactions {
-		if tx.IsDuplicate {
+		if tx.IsDuplicate && !tx.Tx.IsCoinBase() {
 			continue
 		}
 		txFee, err := CheckTransactionInputs(tx, utxoView, b.params, b)
