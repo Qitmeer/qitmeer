@@ -15,13 +15,17 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/pkg/errors"
 	"sort"
+	"time"
 )
 
-func TxEncode(version uint32, lockTime uint32, inputs map[string]uint32, outputs map[string]uint64) (string, error) {
+func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[string]uint32, outputs map[string]uint64) (string, error) {
 	mtx := types.NewTransaction()
 	mtx.Version = uint32(version)
 	if lockTime != 0 {
 		mtx.LockTime = uint32(lockTime)
+	}
+	if timestamp != nil {
+		mtx.Timestamp = *timestamp
 	}
 
 	inputsSlice := []string{}
@@ -208,7 +212,7 @@ func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsF
 		}
 		txOutputs[output.target] = uint64(atomic)
 	}
-	mtxHex, err := TxEncode(uint32(version), uint32(lockTime), txInputs, txOutputs)
+	mtxHex, err := TxEncode(uint32(version), uint32(lockTime), nil, txInputs, txOutputs)
 	if err != nil {
 		ErrExit(err)
 	}
