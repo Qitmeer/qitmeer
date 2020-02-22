@@ -343,7 +343,7 @@ func (rs *RequestStatus) AddRequst(sReq *serverRequest) {
 func (rs *RequestStatus) RemoveRequst(sReq *serverRequest) {
 	for i := 0; i < len(rs.Requests); i++ {
 		if rs.Requests[i] == sReq {
-			rs.TotalTime += time.Now().Sub(sReq.time)
+			rs.TotalTime += time.Since(sReq.time)
 			rs.Requests = append(rs.Requests[:i], rs.Requests[i+1:]...)
 			return
 		}
