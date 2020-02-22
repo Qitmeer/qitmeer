@@ -138,6 +138,16 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 	return infos, nil
 }
 
+// Return the RPC info
+func (api *PublicBlockChainAPI) GetRpcInfo() (interface{}, error) {
+	rs := api.node.node.rpcServer.ReqStatus
+	jrs := []*rpc.JsonRequestStatus{}
+	for _, v := range rs {
+		jrs = append(jrs, v.ToJson())
+	}
+	return jrs, nil
+}
+
 func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 	if gs != nil {
 		mainTip := gs.GetMainChainTip()

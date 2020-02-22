@@ -266,6 +266,11 @@ function get_peer_info(){
   get_result "$data"
 }
 
+function get_rpc_info(){
+  local data='{"jsonrpc":"2.0","method":"getRpcInfo","params":[],"id":null}'
+  get_result "$data"
+}
+
 function get_orphans_total(){
   local data='{"jsonrpc":"2.0","method":"getOrphansTotal","params":[],"id":null}'
   get_result "$data"
@@ -403,6 +408,7 @@ function usage(){
   echo "chain  :"
   echo "  nodeinfo"
   echo "  peerinfo"
+  echo "  rpcinfo"
   echo "  main  <hash>"
   echo "  stop"
   echo "  banlist"
@@ -721,6 +727,10 @@ elif [ "$1" == "nodeinfo" ]; then
 elif [ "$1" == "peerinfo" ]; then
   shift
   get_peer_info
+
+elif [ "$1" == "rpcinfo" ]; then
+  shift
+  get_rpc_info
 
 elif [ "$1" == "orphanstotal" ]; then
   shift
