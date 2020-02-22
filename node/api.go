@@ -204,3 +204,13 @@ func (api *PrivateBlockChainAPI) RemoveBan(host *string) (interface{}, error) {
 	api.node.node.peerServer.RemoveBan(ho)
 	return true, nil
 }
+
+// SetRpcMaxClients
+func (api *PrivateBlockChainAPI) SetRpcMaxClients(max int) (interface{}, error) {
+	if max <= 0 {
+		err := fmt.Errorf("error:Must greater than 0 (cur max =%d)", api.node.node.Config.RPCMaxClients)
+		return api.node.node.Config.RPCMaxClients, err
+	}
+	api.node.node.Config.RPCMaxClients = max
+	return api.node.node.Config.RPCMaxClients, nil
+}

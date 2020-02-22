@@ -312,6 +312,12 @@ function remove_ban(){
   get_result "$data"
 }
 
+function set_rpc_maxclients(){
+  local max=$1
+  local data='{"jsonrpc":"2.0","method":"test_setRpcMaxClients","params":['$max'],"id":null}'
+  get_result "$data"
+}
+
 function get_rawtxs(){
   local address=$1
   local param2=$2
@@ -409,6 +415,7 @@ function usage(){
   echo "  nodeinfo"
   echo "  peerinfo"
   echo "  rpcinfo"
+  echo "  rpcmax <max>"
   echo "  main  <hash>"
   echo "  stop"
   echo "  banlist"
@@ -731,6 +738,10 @@ elif [ "$1" == "peerinfo" ]; then
 elif [ "$1" == "rpcinfo" ]; then
   shift
   get_rpc_info
+
+elif [ "$1" == "rpcmax" ]; then
+  shift
+  set_rpc_maxclients $@
 
 elif [ "$1" == "orphanstotal" ]; then
   shift
