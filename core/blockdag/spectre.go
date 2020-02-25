@@ -830,3 +830,8 @@ func (sp *Spectre) Load(dbTx database.Tx) error {
 func (sp *Spectre) IsDAG(parents []*hash.Hash) bool {
 	return true
 }
+
+// The main parent concurrency of block
+func (sp *Spectre) GetMainParentConcurrency(b IBlock) int {
+	return 0
+}

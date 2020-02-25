@@ -128,6 +128,9 @@ type IBlockDAG interface {
 
 	// IsDAG
 	IsDAG(parents []*hash.Hash) bool
+
+	// The main parent concurrency of block
+	GetMainParentConcurrency(b IBlock) int
 }
 
 // CalcWeight
@@ -1238,4 +1241,9 @@ func (bd *BlockDAG) getMaxParents() int {
 		return dagMax
 	}
 	return types.MaxParentsPerBlock
+}
+
+// GetBlockConcurrency
+func (bd *BlockDAG) GetMainParentConcurrency(b IBlock) int {
+	return bd.instance.GetMainParentConcurrency(b)
 }

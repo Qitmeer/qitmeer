@@ -680,6 +680,13 @@ func (ph *Phantom) IsDAG(parents []*hash.Hash) bool {
 	return true
 }
 
+// The main parent concurrency of block
+func (ph *Phantom) GetMainParentConcurrency(b IBlock) int {
+	pblock := b.(*PhantomBlock)
+	result := pblock.redDiffAnticone.Size() + pblock.blueDiffAnticone.Size() + 1
+	return result
+}
+
 // The main chain of DAG is support incremental expansion
 type MainChain struct {
 	blocks  *HashSet

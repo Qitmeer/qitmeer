@@ -461,3 +461,8 @@ func (ph *Phantom_v2) Load(dbTx database.Tx) error {
 func (ph *Phantom_v2) IsDAG(parents []*hash.Hash) bool {
 	return true
 }
+
+// The main parent concurrency of block
+func (ph *Phantom_v2) GetMainParentConcurrency(b IBlock) int {
+	return 0
+}
