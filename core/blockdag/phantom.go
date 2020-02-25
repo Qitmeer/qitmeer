@@ -682,6 +682,9 @@ func (ph *Phantom) IsDAG(parents []*hash.Hash) bool {
 
 // The main parent concurrency of block
 func (ph *Phantom) GetMainParentConcurrency(b IBlock) int {
+	if !b.HasParents() {
+		return 0
+	}
 	pblock := b.(*PhantomBlock)
 	result := pblock.redDiffAnticone.Size() + pblock.blueDiffAnticone.Size() + 1
 	return result

@@ -23,6 +23,12 @@ type TestInOutData struct {
 	Output []string `json:"out"`
 }
 
+// Test input and output structure2
+type TestInOutData2 struct {
+	Input  string `json:"in"`
+	Output int    `json:"out"`
+}
+
 // Structure of test data
 type TestData struct {
 	PH_Fig2Blocks      []TestBlocksData `json:"PH_fig2-blocks"`
@@ -42,6 +48,7 @@ type TestData struct {
 	PH_LocateBlocks    TestInOutData
 	PH_LocateMaxBlocks TestInOutData
 	CP_Blocks          []TestBlocksData
+	PH_MPConcurrency   TestInOutData2
 }
 
 // Load some data that phantom test need,it can use to build the dag ;This is the
