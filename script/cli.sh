@@ -266,6 +266,11 @@ function get_peer_info(){
   get_result "$data"
 }
 
+function get_rpc_info(){
+  local data='{"jsonrpc":"2.0","method":"getRpcInfo","params":[],"id":null}'
+  get_result "$data"
+}
+
 function get_orphans_total(){
   local data='{"jsonrpc":"2.0","method":"getOrphansTotal","params":[],"id":null}'
   get_result "$data"
@@ -304,6 +309,12 @@ function ban_list(){
 function remove_ban(){
   local bhost=$1
   local data='{"jsonrpc":"2.0","method":"test_removeBan","params":["'$bhost'"],"id":1}'
+  get_result "$data"
+}
+
+function set_rpc_maxclients(){
+  local max=$1
+  local data='{"jsonrpc":"2.0","method":"test_setRpcMaxClients","params":['$max'],"id":null}'
   get_result "$data"
 }
 
@@ -403,6 +414,8 @@ function usage(){
   echo "chain  :"
   echo "  nodeinfo"
   echo "  peerinfo"
+  echo "  rpcinfo"
+  echo "  rpcmax <max>"
   echo "  main  <hash>"
   echo "  stop"
   echo "  banlist"
@@ -721,6 +734,14 @@ elif [ "$1" == "nodeinfo" ]; then
 elif [ "$1" == "peerinfo" ]; then
   shift
   get_peer_info
+
+elif [ "$1" == "rpcinfo" ]; then
+  shift
+  get_rpc_info
+
+elif [ "$1" == "rpcmax" ]; then
+  shift
+  set_rpc_maxclients $@
 
 elif [ "$1" == "orphanstotal" ]; then
   shift

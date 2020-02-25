@@ -48,6 +48,9 @@ type RpcServer struct {
 	numClients             int32
 	statusLines            map[int]string
 	requestProcessShutdown chan struct{}
+
+	ReqStatus     map[string]*RequestStatus
+	reqStatusLock sync.RWMutex
 }
 
 // service represents a registered object
@@ -95,6 +98,7 @@ type serverRequest struct {
 	args          []reflect.Value
 	isUnsubscribe bool
 	err           Error
+	time          time.Time
 }
 
 // newRPCServer returns a new instance of the rpcServer struct.
@@ -109,6 +113,7 @@ func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 		statusLines:            make(map[int]string),
 		requestProcessShutdown: make(chan struct{}),
 		quit:                   make(chan int),
+		ReqStatus:              map[string]*RequestStatus{},
 	}
 
 	if cfg.RPCUser != "" && cfg.RPCPass != "" {
@@ -596,8 +601,10 @@ func (s *RpcServer) handle(ctx context.Context, codec ServerCodec, req *serverRe
 		arguments = append(arguments, req.args...)
 	}
 
+	s.AddRequstStatus(req)
 	// execute RPC method and return result
 	reply := req.callb.method.Func.Call(arguments)
+	s.RemoveRequstStatus(req)
 	if len(reply) == 0 {
 		return codec.CreateResponse(req.id, nil), nil
 	}
@@ -667,4 +674,29 @@ func (s *RpcServer) RegisterService(namespace string, regSvc interface{}) error 
 
 func (s *RpcServer) RequestedProcessShutdown() chan struct{} {
 	return s.requestProcessShutdown
+}
+
+func (s *RpcServer) AddRequstStatus(sReq *serverRequest) {
+	s.reqStatusLock.Lock()
+	defer s.reqStatusLock.Unlock()
+	key := fmt.Sprintf("%s_%s", sReq.svcname, sReq.callb.method.Name)
+	rs, ok := s.ReqStatus[key]
+	if !ok {
+		rs, _ = NewRequestStatus(sReq)
+		s.ReqStatus[rs.GetName()] = rs
+	} else {
+		rs.AddRequst(sReq)
+	}
+}
+
+func (s *RpcServer) RemoveRequstStatus(sReq *serverRequest) {
+	s.reqStatusLock.Lock()
+	defer s.reqStatusLock.Unlock()
+	key := fmt.Sprintf("%s_%s", sReq.svcname, sReq.callb.method.Name)
+	rs, ok := s.ReqStatus[key]
+	if !ok {
+		return
+	} else {
+		rs.RemoveRequst(sReq)
+	}
 }
