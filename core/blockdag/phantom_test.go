@@ -262,3 +262,19 @@ func Test_GetMainParentConcurrency(t *testing.T) {
 		t.Fatal()
 	}
 }
+
+func Test_GetBlockConcurrency(t *testing.T) {
+	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	if ibd == nil {
+		t.FailNow()
+	}
+
+	//ph:=ibd.(*Phantom)
+	blueNum, err := bd.GetBlockConcurrency(tbMap[testData.PH_MPConcurrency.Input])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if blueNum != uint(testData.PH_BConcurrency.Output) {
+		t.Fatal()
+	}
+}

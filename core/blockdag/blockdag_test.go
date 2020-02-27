@@ -49,6 +49,7 @@ type TestData struct {
 	PH_LocateMaxBlocks TestInOutData
 	CP_Blocks          []TestBlocksData
 	PH_MPConcurrency   TestInOutData2
+	PH_BConcurrency    TestInOutData2
 }
 
 // Load some data that phantom test need,it can use to build the dag ;This is the
