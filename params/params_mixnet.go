@@ -17,8 +17,10 @@ import (
 // testMixNetPowLimit is the highest proof of work value a block can
 // have for the test network. It is the value 2^232 - 1.
 var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1)
+
 // target time per block unit second(s)
 const mixTargetTimePerBlock = 15
+
 // Difficulty check interval is about 60*15 = 15 mins
 const mixWorkDiffWindowSize = 60
 
@@ -59,7 +61,12 @@ var MixNetParams = Params{
 		// after this height the big graph will be the main pow graph
 		AdjustmentStartMainHeight: 1440 * 15 / mixTargetTimePerBlock,
 	},
-
+	DagDiffAdjustmentConfig: &DagDiffAdjustmentConfig{
+		WorkDiffWindowSize:       5,
+		RetargetAdjustmentFactor: 3,
+		MaxConcurrencyCount:      3,
+		FaultTolerantBlockSize:   1024 * 100, //fault 100k
+	},
 	WorkDiffAlpha:            1,
 	WorkDiffWindowSize:       mixWorkDiffWindowSize,
 	WorkDiffWindows:          20,
@@ -70,7 +77,7 @@ var MixNetParams = Params{
 	RetargetAdjustmentFactor: 3,
 
 	// Subsidy parameters.
-	BaseSubsidy:              12000000000,    // 120 Coin, stay same with testnet
+	BaseSubsidy:              12000000000, // 120 Coin, stay same with testnet
 	MulSubsidy:               100,
 	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
 	SubsidyReductionInterval: 1669066,        // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days

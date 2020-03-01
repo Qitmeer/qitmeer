@@ -31,3 +31,4 @@ cmd/rlpdump/rlpdump
 
 # Go
 go.sum
+start2.sh

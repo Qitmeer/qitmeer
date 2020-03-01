@@ -17,8 +17,10 @@ import (
 // mainPowLimit is the highest proof of work value a block can
 // have for the main network. It is the value 2^224 - 1.
 var mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 224), common.Big1)
+
 // target time per block unit second(s)
 const mainTargetTimePerBlock = 60 * 5
+
 // MainNetParams defines the network parameters for the main network.
 var MainNetParams = Params{
 	Name:        "mainnet",
@@ -52,6 +54,12 @@ var MainNetParams = Params{
 		},
 		// after this height the big graph will be the main pow graph
 		AdjustmentStartMainHeight: 45 * 1440 * 60 / mainTargetTimePerBlock,
+	},
+	DagDiffAdjustmentConfig: &DagDiffAdjustmentConfig{
+		WorkDiffWindowSize:       5,
+		RetargetAdjustmentFactor: 3,
+		MaxConcurrencyCount:      3,
+		FaultTolerantBlockSize:   1024 * 100, //fault 100k
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false

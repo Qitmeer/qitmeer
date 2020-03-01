@@ -75,6 +75,13 @@ type ConsensusDeployment struct {
 	ExpireTime uint64
 }
 
+type DagDiffAdjustmentConfig struct {
+	WorkDiffWindowSize       int64
+	RetargetAdjustmentFactor int64
+	MaxConcurrencyCount      int64
+	FaultTolerantBlockSize   int64 //block may not more than the max block size
+}
+
 // Params defines a qitmeer network by its parameters.  These parameters may be
 // used by qitmeer applications to differentiate networks as well as addresses
 // and keys for one network from those intended for use on another network.
@@ -100,7 +107,8 @@ type Params struct {
 
 	// PowConfig defines the highest allowed proof of work value for a block or lowest difficulty for a block
 	PowConfig *pow.PowConfig
-
+	//Dag difficulty ajustment config
+	DagDiffAdjustmentConfig *DagDiffAdjustmentConfig
 	// WorkDiffAlpha is the stake difficulty EMA calculation alpha (smoothing)
 	// value. It is different from a normal EMA alpha. Closer to 1 --> smoother.
 	WorkDiffAlpha int64

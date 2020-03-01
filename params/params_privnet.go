@@ -17,6 +17,7 @@ import (
 // privNetPowLimit is the highest proof of work value a block can
 // have for the private test network. It is the value 2^255 - 1.
 var privNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 255), common.Big1)
+
 // target time per block unit second(s)
 const privTargetTimePerBlock = 30
 
@@ -67,6 +68,12 @@ var PrivNetParams = Params{
 		},
 		// after this height the big graph will be the main pow graph
 		AdjustmentStartMainHeight: 45 * 1440 * 60 / privTargetTimePerBlock,
+	},
+	DagDiffAdjustmentConfig: &DagDiffAdjustmentConfig{
+		WorkDiffWindowSize:       5,
+		RetargetAdjustmentFactor: 3,
+		MaxConcurrencyCount:      3,
+		FaultTolerantBlockSize:   1024 * 100, //fault 100k
 	},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false

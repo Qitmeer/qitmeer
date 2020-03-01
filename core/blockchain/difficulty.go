@@ -113,7 +113,6 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 
 	// Get the old difficulty; if we aren't at a block height where it changes,
 	// just return this.
-	oldDiff := curNode.bits
 	oldDiffBig := pow.CompactToBig(curNode.bits)
 	windowsSizeBig := big.NewInt(b.params.WorkDiffWindowSize)
 	// percent is *100 * 2^32
@@ -163,8 +162,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 			// not have the special minimum difficulty rule applied.
 			return b.findPrevTestNetDifficulty(curNode, powInstance), nil
 		}
-
-		return oldDiff, nil
+		return b.GetDagDiff(originCurrentNode, powInstance, oldDiffBig, false)
 	}
 	// Declare some useful variables.
 	RAFBig := big.NewInt(b.params.RetargetAdjustmentFactor)
@@ -281,14 +279,12 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	// intentionally converting the bits back to a number instead of using
 	// newTarget since conversion to the compact representation loses
 	// precision.
-	nextDiffBits := pow.BigToCompact(nextDiffBig)
 	log.Debug("Difficulty retarget", "block main height", curBlock.GetHeight()+1)
 	log.Debug("Old target", "bits", fmt.Sprintf("%08x", curNode.bits),
 		"diff", fmt.Sprintf("(%064x)", oldDiffBig))
-	log.Debug("New target", "bits", fmt.Sprintf("%08x", nextDiffBits),
+	log.Debug("New target", "bits", fmt.Sprintf("%08x", pow.BigToCompact(nextDiffBig)),
 		"diff", fmt.Sprintf("(%064x)", nextDiffBig))
-
-	return nextDiffBits, nil
+	return b.GetDagDiff(originCurrentNode, powInstance, nextDiffBig, true)
 }
 
 // stats current pow count in nodesToTraverse

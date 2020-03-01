@@ -20,6 +20,7 @@ var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 221), commo
 
 // target time per block unit second(s)
 const testTargetTimePerBlock = 30
+
 // Difficulty check interval is about 60*30 = 30 mins
 const testWorkDiffWindowSize = 60
 
@@ -67,11 +68,16 @@ var TestNetParams = Params{
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
 	TargetTimePerBlock:       time.Second * testTargetTimePerBlock,
-	TargetTimespan:           time.Second * testTargetTimePerBlock * testWorkDiffWindowSize,  // TimePerBlock * WindowSize
-	RetargetAdjustmentFactor: 2,                      // equal to 2 hour vs. 4
-
+	TargetTimespan:           time.Second * testTargetTimePerBlock * testWorkDiffWindowSize, // TimePerBlock * WindowSize
+	RetargetAdjustmentFactor: 2,                                                             // equal to 2 hour vs. 4
+	DagDiffAdjustmentConfig: &DagDiffAdjustmentConfig{
+		WorkDiffWindowSize:       5,
+		RetargetAdjustmentFactor: 3,
+		MaxConcurrencyCount:      3,
+		FaultTolerantBlockSize:   1024 * 100, //fault 100k
+	},
 	// Subsidy parameters.
-	BaseSubsidy:              12000000000,    // 120 Coin , daily supply is 120*2*60*24 = 345600 ~ 345600 * 2 (DAG factor)
+	BaseSubsidy:              12000000000, // 120 Coin , daily supply is 120*2*60*24 = 345600 ~ 345600 * 2 (DAG factor)
 	MulSubsidy:               100,
 	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
 	SubsidyReductionInterval: 1669066,        // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days
