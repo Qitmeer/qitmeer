@@ -830,3 +830,11 @@ func (sp *Spectre) Load(dbTx database.Tx) error {
 func (sp *Spectre) IsDAG(parents []*hash.Hash) bool {
 	return true
 }
+
+func (sp *Spectre) getBlock(h *hash.Hash) IBlock {
+	b, ok := sp.bd.blocks[*h]
+	if !ok {
+		return nil
+	}
+	return b
+}

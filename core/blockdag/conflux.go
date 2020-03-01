@@ -374,3 +374,11 @@ func (con *Conflux) Load(dbTx database.Tx) error {
 func (con *Conflux) IsDAG(parents []*hash.Hash) bool {
 	return true
 }
+
+func (con *Conflux) getBlock(h *hash.Hash) IBlock {
+	b, ok := con.bd.blocks[*h]
+	if !ok {
+		return nil
+	}
+	return b
+}

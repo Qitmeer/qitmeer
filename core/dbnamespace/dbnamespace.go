@@ -60,6 +60,10 @@ var (
 	// block which consists of metadata for all known blocks in DAG.
 	BlockIndexBucketName = []byte("blockidx")
 
+	// BlockHashBucketName is the name of the db bucket used to house the
+	// block id for DAG:block hash -> block id.
+	BlockHashBucketName = []byte("blockhash")
+
 	// IndexTipsBucketName is the name of the db bucket used to house the
 	// current tip of each index.
 	IndexTipsBucketName = []byte("idxtips")

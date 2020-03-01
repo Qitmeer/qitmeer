@@ -128,6 +128,9 @@ type IBlockDAG interface {
 
 	// IsDAG
 	IsDAG(parents []*hash.Hash) bool
+
+	// get block
+	getBlock(h *hash.Hash) IBlock
 }
 
 // CalcWeight
@@ -168,6 +171,9 @@ type BlockDAG struct {
 
 	// blocks per second
 	blockRate float64
+
+	// data base
+	dbTx database.Tx
 }
 
 // Acquire the name of DAG instance
@@ -317,11 +323,7 @@ func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
 	if h == nil {
 		return nil
 	}
-	block, ok := bd.blocks[*h]
-	if !ok {
-		return nil
-	}
-	return block
+	return bd.instance.getBlock(h)
 }
 
 // Total number of blocks
@@ -1061,6 +1063,7 @@ func (bd *BlockDAG) Load(dbTx database.Tx, blockTotal uint, genesis *hash.Hash) 
 	if err != nil {
 		return err
 	}
+	bd.dbTx = dbTx
 	bd.genesis = *genesis
 	bd.blockTotal = blockTotal
 	bd.blocks = map[hash.Hash]IBlock{}
