@@ -17,7 +17,8 @@ func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDif
 	if !b.needAjustPowDifficulty(curNode, powInstance.GetPowType(), b.params.DagDiffAdjustmentConfig.WorkDiffWindowSize) {
 		return pow.BigToCompact(curDiff), nil
 	}
-	oldDiff := big.NewInt(0).Add(big.NewInt(0), curDiff)
+	oldDiffMax := big.NewInt(0).Add(big.NewInt(0), curDiff)
+	oldDiffMin := big.NewInt(0).Add(big.NewInt(0), curDiff)
 	curBlock := b.bd.GetBlock(curNode.GetHash())
 	if curBlock == nil {
 		return pow.BigToCompact(curDiff), nil
@@ -74,10 +75,14 @@ func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDif
 	}
 	curDiff = curDiff.Mul(curDiff, big.NewInt(targetAllowMaxBlockCount))
 	curDiff = curDiff.Div(curDiff, big.NewInt(allBlockDagCount))
-	oldDiff = oldDiff.Mul(oldDiff, big.NewInt(b.params.DagDiffAdjustmentConfig.RetargetAdjustmentFactor))
+	maxDiff := oldDiffMax.Mul(oldDiffMax, big.NewInt(b.params.DagDiffAdjustmentConfig.RetargetAdjustmentFactor))
+	minDiff := oldDiffMin.Div(oldDiffMin, big.NewInt(b.params.DagDiffAdjustmentConfig.RetargetAdjustmentFactor))
 	if changed {
-		if oldDiff.Cmp(oldDiff) > 0 {
-			curDiff.Set(oldDiff)
+		if curDiff.Cmp(maxDiff) > 0 {
+			curDiff.Set(maxDiff)
+		}
+		if curDiff.Cmp(minDiff) < 0 {
+			curDiff.Set(minDiff)
 		}
 	}
 	return pow.BigToCompact(curDiff), nil
