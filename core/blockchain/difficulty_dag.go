@@ -14,7 +14,7 @@ import (
 
 // find block node by pow type
 func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDiff *big.Int, changed bool) (uint32, error) {
-	if !b.needAjustPowDagDifficulty(curNode, powInstance.GetPowType(), b.params.DagDiffAdjustmentConfig.WorkDiffWindowSize) {
+	if !b.needAjustPowDifficulty(curNode, powInstance.GetPowType(), b.params.DagDiffAdjustmentConfig.WorkDiffWindowSize) {
 		return pow.BigToCompact(curDiff), nil
 	}
 	oldDiff := big.NewInt(0).Add(big.NewInt(0), curDiff)
@@ -81,14 +81,4 @@ func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDif
 		}
 	}
 	return pow.BigToCompact(curDiff), nil
-}
-
-// whether need adjust Pow dag Difficulty
-// recent b.params.WorkDiffWindowSize blocks
-// if current count arrived target block count . need ajustment difficulty
-func (b *BlockChain) needAjustPowDagDifficulty(curNode *blockNode, powType pow.PowType, needAdjustCount int64) bool {
-	countFromLastAdjustment := b.getDistanceFromLastAdjustment(curNode, powType, needAdjustCount)
-	// countFromLastAdjustment stats b.params.WorkDiffWindows Multiple count
-	countFromLastAdjustment /= b.params.WorkDiffWindows
-	return countFromLastAdjustment > 0 && countFromLastAdjustment%needAdjustCount == 0
 }
