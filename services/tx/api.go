@@ -18,6 +18,7 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/services/mempool"
+	"time"
 )
 
 func (tm *TxManager) APIs() []rpc.API {
@@ -162,6 +163,7 @@ func (api *PublicTxAPI) DecodeRawTransaction(hexTx string) (interface{}, error) 
 		{Key: "txhash", Val: mtx.TxHashFull().String()},
 		{Key: "version", Val: int32(mtx.Version)},
 		{Key: "locktime", Val: mtx.LockTime},
+		{Key: "timestamp", Val: mtx.Timestamp.Format(time.RFC3339)},
 		{Key: "vin", Val: marshal.MarshJsonVin(&mtx)},
 		{Key: "vout", Val: marshal.MarshJsonVout(&mtx, nil, api.txManager.bm.ChainParams())},
 	}

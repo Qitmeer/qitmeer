@@ -49,15 +49,16 @@ func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHas
 		return json.TxRawResult{}, err
 	}
 	txr := json.TxRawResult{
-		Hex:      hexStr,
-		Txid:     tx.TxHash().String(),
-		TxHash:   tx.TxHashFull().String(),
-		Size:     int32(tx.SerializeSize()),
-		Version:  tx.Version,
-		LockTime: tx.LockTime,
-		Expire:   tx.Expire,
-		Vin:      MarshJsonVin(tx),
-		Vout:     MarshJsonVout(tx, nil, params),
+		Hex:       hexStr,
+		Txid:      tx.TxHash().String(),
+		TxHash:    tx.TxHashFull().String(),
+		Size:      int32(tx.SerializeSize()),
+		Version:   tx.Version,
+		LockTime:  tx.LockTime,
+		Timestamp: tx.Timestamp.Format(time.RFC3339),
+		Expire:    tx.Expire,
+		Vin:       MarshJsonVin(tx),
+		Vout:      MarshJsonVout(tx, nil, params),
 	}
 
 	if blkHashStr != "" {
