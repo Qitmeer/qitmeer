@@ -374,3 +374,8 @@ func (con *Conflux) Load(dbTx database.Tx) error {
 func (con *Conflux) IsDAG(parents []*hash.Hash) bool {
 	return true
 }
+
+// The main parent concurrency of block
+func (con *Conflux) GetMainParentConcurrency(b IBlock) int {
+	return 0
+}

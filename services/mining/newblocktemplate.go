@@ -354,7 +354,7 @@ mempoolLoop:
 
 		// Ensure the transaction inputs pass all of the necessary
 		// preconditions before allowing it to be added to the block.
-		_, err = blockchain.CheckTransactionInputs(tx, blockUtxos, params, blockManager.GetChain().BlockDAG())
+		_, err = blockchain.CheckTransactionInputs(tx, blockUtxos, params, blockManager.GetChain())
 		if err != nil {
 			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
 				"CheckTransactionInputs: %v", tx.Hash(), err))
@@ -406,7 +406,7 @@ mempoolLoop:
 		}
 	}
 
-	coinbaseTx.Tx.TxOut[0].Amount += uint64(totalFees)
+	//coinbaseTx.Tx.TxOut[0].Amount += uint64(totalFees)
 	txFees[0] = -totalFees
 
 	// Fill witness
@@ -474,7 +474,7 @@ mempoolLoop:
 
 	log.Debug("Created new block template",
 		"transactions", len(block.Transactions),
-		"fees", totalFees,
+		"expect fees", totalFees,
 		"signOp", blockSigOpCost,
 		"bytes", blockSize,
 		"target",

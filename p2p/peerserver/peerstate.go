@@ -1,6 +1,8 @@
 package peerserver
 
 import (
+	"fmt"
+	"github.com/Qitmeer/qitmeer/log"
 	"time"
 )
 
@@ -38,4 +40,38 @@ func (ps *peerState) forAllOutboundPeers(closure func(sp *serverPeer)) {
 	for _, e := range ps.persistentPeers {
 		closure(e)
 	}
+}
+
+func (ps *peerState) IsBanPeer(host string) bool {
+	if banEnd, ok := ps.banned[host]; ok {
+		if time.Now().Before(banEnd) {
+			log.Debug(fmt.Sprintf("Peer %s is banned for another %v - disconnecting",
+				host, time.Until(banEnd)))
+			return true
+		}
+		log.Info("Peer is no longer banned", "peer", host)
+		delete(ps.banned, host)
+	}
+	return false
+}
+
+func (ps *peerState) IsMaxInboundPeer(sp *serverPeer) bool {
+	if !sp.Inbound() {
+		return false
+	}
+	host := sp.NA().IP.String()
+	inshost := map[string]int{}
+	for _, e := range ps.inboundPeers {
+		_, ok := inshost[e.NA().IP.String()]
+		if ok {
+			inshost[e.NA().IP.String()]++
+			continue
+		}
+		inshost[e.NA().IP.String()] = 1
+	}
+	total, ok := inshost[host]
+	if !ok {
+		return false
+	}
+	return total >= sp.server.cfg.MaxInbound
 }

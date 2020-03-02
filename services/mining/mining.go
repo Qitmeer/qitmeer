@@ -41,17 +41,17 @@ const (
 	// for generated block version could allow creation of invalid blocks
 	// for the updated version.
 	// TODO, refactor the location of generatedBlockVersion const
-	GeneratedBlockVersion = 0
+	GeneratedBlockVersion = 1
 
 	// generatedBlockVersionTest is the version of the block being generated
 	// for networks other than the main network.
 	// TODO, refactor the location of generatedBlockVersionTest const
-	GeneratedBlockVersionTest = 11
+	GeneratedBlockVersionTest = 12
 
 	// generatedBlockVersionTestMixPow is the version of the block being generated
 	// for networks other than the main network.
 	// TODO, refactor the location of generatedBlockVersionTestPow const
-	generatedBlockVersionTestMixPow = 17
+	generatedBlockVersionTestMixPow = 18
 )
 
 // TxSource represents a source of transactions to consider for inclusion in

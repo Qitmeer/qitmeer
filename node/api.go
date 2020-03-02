@@ -174,3 +174,23 @@ func (api *PrivateBlockChainAPI) Stop() (interface{}, error) {
 	}
 	return "Qitmeer stopping.", nil
 }
+
+// Banlist
+func (api *PrivateBlockChainAPI) Banlist() (interface{}, error) {
+	bl := api.node.node.peerServer.GetBanlist()
+	bls := []*json.GetBanlistResult{}
+	for k, v := range bl {
+		bls = append(bls, &json.GetBanlistResult{Host: k, Expire: v.String()})
+	}
+	return bls, nil
+}
+
+// RemoveBan
+func (api *PrivateBlockChainAPI) RemoveBan(host *string) (interface{}, error) {
+	ho := ""
+	if host != nil {
+		ho = *host
+	}
+	api.node.node.peerServer.RemoveBan(ho)
+	return true, nil
+}

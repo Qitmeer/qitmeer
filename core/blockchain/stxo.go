@@ -1,12 +1,21 @@
 package blockchain
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 )
+
+var byteOrder = binary.LittleEndian
+
+// The bytes of TxIndex
+const SpentTxOutTxIndexSize = 4
+
+// The bytes of TxInIndex
+const SpentTxOutTxInIndexSize = 4
 
 // -----------------------------------------------------------------------------
 // The transaction spend journal consists of an entry for each block connected
@@ -76,7 +85,9 @@ type SpentTxOut struct {
 	Amount     uint64 // The amount of the output.
 	PkScript   []byte // The public key script for the output.
 	BlockHash  hash.Hash
-	IsCoinBase bool // Whether creating tx is a coinbase.
+	IsCoinBase bool   // Whether creating tx is a coinbase.
+	TxIndex    uint32 // The index of tx in block.
+	TxInIndex  uint32 // The index of TxInput in the tx.
 }
 
 func spentTxOutHeaderCode(stxo *SpentTxOut) uint64 {
@@ -99,6 +110,7 @@ func spentTxOutHeaderCode(stxo *SpentTxOut) uint64 {
 func spentTxOutSerializeSize(stxo *SpentTxOut) int {
 	size := serializeSizeVLQ(spentTxOutHeaderCode(stxo))
 	size += hash.HashSize
+	size += SpentTxOutTxIndexSize + SpentTxOutTxInIndexSize
 	return size + compressedTxOutSize(uint64(stxo.Amount), stxo.PkScript)
 }
 
@@ -111,6 +123,12 @@ func putSpentTxOut(target []byte, stxo *SpentTxOut) int {
 	offset := putVLQ(target, headerCode)
 	copy(target[offset:], stxo.BlockHash.Bytes())
 	offset += hash.HashSize
+
+	byteOrder.PutUint32(target[offset:], uint32(stxo.TxIndex))
+	offset += SpentTxOutTxIndexSize
+	byteOrder.PutUint32(target[offset:], uint32(stxo.TxInIndex))
+	offset += SpentTxOutTxInIndexSize
+
 	return offset + putCompressedTxOut(target[offset:], uint64(stxo.Amount), stxo.PkScript)
 }
 
@@ -148,6 +166,11 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 	stxo.BlockHash.SetBytes(serialized[offset : offset+hash.HashSize])
 	offset += hash.HashSize
 
+	stxo.TxIndex = uint32(byteOrder.Uint32(serialized[offset : offset+4]))
+	offset += SpentTxOutTxIndexSize
+	stxo.TxInIndex = uint32(byteOrder.Uint32(serialized[offset : offset+4]))
+	offset += SpentTxOutTxInIndexSize
+
 	// Decode the compressed txout.
 	amount, pkScript, bytesRead, err := decodeCompressedTxOut(
 		serialized[offset:])
@@ -170,48 +193,25 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 // txouts and a utxo view that contains any remaining existing utxos in the
 // transactions referenced by the inputs to the passed transasctions.
 func deserializeSpendJournalEntry(serialized []byte, txns []*types.Transaction) ([]SpentTxOut, error) {
-	// Calculate the total number of stxos.
-	var numStxos int
-	for _, tx := range txns {
-		numStxos += len(tx.TxIn)
-	}
-
 	// When a block has no spent txouts there is nothing to serialize.
 	if len(serialized) == 0 {
-		// Ensure the block actually has no stxos.  This should never
-		// happen unless there is database corruption or an empty entry
-		// erroneously made its way into the database.
-		if numStxos != 0 {
-			return nil, AssertError(fmt.Sprintf("mismatched spend "+
-				"journal serialization - no serialization for "+
-				"expected %d stxos", numStxos))
-		}
-
 		return nil, nil
 	}
-
+	numStxos := int(byteOrder.Uint32(serialized[0:4]))
 	// Loop backwards through all transactions so everything is read in
 	// reverse order to match the serialization order.
-	stxoIdx := numStxos - 1
-	offset := 0
+
+	offset := 4
 	stxos := make([]SpentTxOut, numStxos)
-	for txIdx := len(txns) - 1; txIdx > -1; txIdx-- {
-		tx := txns[txIdx]
+	for stxoIdx := numStxos - 1; stxoIdx > -1; stxoIdx-- {
+		stxo := &stxos[stxoIdx]
 
-		// Loop backwards through all of the transaction inputs and read
-		// the associated stxo.
-		for txInIdx := len(tx.TxIn) - 1; txInIdx > -1; txInIdx-- {
-			txIn := tx.TxIn[txInIdx]
-			stxo := &stxos[stxoIdx]
-			stxoIdx--
-
-			n, err := decodeSpentTxOut(serialized[offset:], stxo)
-			offset += n
-			if err != nil {
-				return nil, errDeserialize(fmt.Sprintf("unable "+
-					"to decode stxo for %v: %v",
-					txIn.PreviousOut, err))
-			}
+		n, err := decodeSpentTxOut(serialized[offset:], stxo)
+		offset += n
+		if err != nil {
+			return nil, errDeserialize(fmt.Sprintf("unable "+
+				"to decode stxo for %v: %v",
+				stxoIdx, err))
 		}
 	}
 	return stxos, nil
@@ -225,7 +225,7 @@ func serializeSpendJournalEntry(stxos []SpentTxOut) ([]byte, error) {
 	}
 
 	// Calculate the size needed to serialize the entire journal entry.
-	var size int
+	var size int = 4
 	var sizes []int
 	for i := range stxos {
 		sz := spentTxOutSerializeSize(&stxos[i])
@@ -237,6 +237,9 @@ func serializeSpendJournalEntry(stxos []SpentTxOut) ([]byte, error) {
 	// Serialize each individual stxo directly into the slice in reverse
 	// order one after the other.
 	var offset int
+	byteOrder.PutUint32(serialized[offset:], uint32(len(stxos)))
+	offset += 4
+
 	for i := len(stxos) - 1; i > -1; i-- {
 		oldOffset := offset
 		offset += putSpentTxOut(serialized[offset:], &stxos[i])
@@ -288,6 +291,7 @@ func dbPutSpendJournalEntry(dbTx database.Tx, blockHash *hash.Hash, stxos []Spen
 	if len(stxos) == 0 {
 		return nil
 	}
+	fmt.Printf("dbPutSpendJournalEntry:%s %d\n", blockHash, len(stxos))
 	spendBucket := dbTx.Metadata().Bucket(dbnamespace.SpendJournalBucketName)
 	serialized, err := serializeSpendJournalEntry(stxos)
 	if err != nil {
@@ -301,4 +305,14 @@ func dbPutSpendJournalEntry(dbTx database.Tx, blockHash *hash.Hash, stxos []Spen
 func dbRemoveSpendJournalEntry(dbTx database.Tx, blockHash *hash.Hash) error {
 	spendBucket := dbTx.Metadata().Bucket(dbnamespace.SpendJournalBucketName)
 	return spendBucket.Delete(blockHash[:])
+}
+
+func GetStxo(txIndex uint32, txInIndex uint32, stxos []SpentTxOut) *SpentTxOut {
+	for _, stxo := range stxos {
+		if stxo.TxIndex == txIndex &&
+			stxo.TxInIndex == txInIndex {
+			return &stxo
+		}
+	}
+	return nil
 }

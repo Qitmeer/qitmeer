@@ -18,6 +18,7 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/services/mempool"
+	"time"
 )
 
 func (tm *TxManager) APIs() []rpc.API {
@@ -162,6 +163,7 @@ func (api *PublicTxAPI) DecodeRawTransaction(hexTx string) (interface{}, error) 
 		{Key: "txhash", Val: mtx.TxHashFull().String()},
 		{Key: "version", Val: int32(mtx.Version)},
 		{Key: "locktime", Val: mtx.LockTime},
+		{Key: "timestamp", Val: mtx.Timestamp.Format(time.RFC3339)},
 		{Key: "vin", Val: marshal.MarshJsonVin(&mtx)},
 		{Key: "vout", Val: marshal.MarshJsonVout(&mtx, nil, api.txManager.bm.ChainParams())},
 	}
@@ -311,6 +313,9 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 	if blkHash != nil {
 		blkHashStr = blkHash.String()
 		confirmations = int64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(blkHash))
+		if mtx.IsCoinBase() {
+			mtx.TxOut[0].Amount += uint64(api.txManager.bm.GetChain().GetFees(blkHash))
+		}
 	}
 	if tx != nil {
 		confirmations = 0
@@ -385,6 +390,8 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 		}
 		best := api.txManager.bm.GetChain().BestSnapshot()
 		bestBlockHash = best.Hash.String()
+
+		amount = entry.Amount()
 		if hash.ZeroHash.IsEqual(entry.BlockHash()) {
 			confirmations = 0
 		} else {
@@ -394,8 +401,9 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 			} else {
 				confirmations = int64(best.GraphState.GetLayer() - block.GetLayer())
 			}
+			amount += uint64(api.txManager.bm.GetChain().GetFees(block.GetHash()))
 		}
-		amount = entry.Amount()
+
 		pkScript = entry.PkScript()
 		isCoinbase = entry.IsCoinBase()
 	}
@@ -602,6 +610,9 @@ func (api *PublicTxAPI) GetRawTransactions(addre string, vinext *bool, count *ui
 			filterAddrMap)
 		if err != nil {
 			return nil, err
+		}
+		if mtx.Tx.IsCoinBase() {
+			mtx.Tx.TxOut[0].Amount += uint64(api.txManager.bm.GetChain().GetFees(rtx.blkHash))
 		}
 		result.Vout = marshal.MarshJsonVout(mtx.Tx, filterAddrMap, params)
 		result.Version = mtx.Tx.Version

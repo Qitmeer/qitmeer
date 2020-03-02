@@ -81,8 +81,6 @@ func (mp *TxPool) TxDescs() []*TxDesc {
 //
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *TxPool) removeTransaction(theTx *types.Tx, removeRedeemers bool) {
-	log.Trace(fmt.Sprintf("Removing transaction %v", theTx.Hash()))
-
 	tx := theTx.Transaction()
 	txHash := theTx.Hash()
 	if removeRedeemers {
@@ -153,7 +151,6 @@ func (mp *TxPool) RemoveDoubleSpends(tx *types.Tx) {
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 	tx *types.Tx, height uint64, fee int64) {
-
 	// Add the transaction to the pool and mark the referenced outpoints
 	// as spent by the pool.
 	msgTx := tx.Transaction()
@@ -344,7 +341,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Also returns the fees associated with the transaction which will be
 	// used later.  The fraud proof is not checked because it will be
 	// filled in by the miner.
-	txFee, err := blockchain.CheckTransactionInputs(tx, utxoView, mp.cfg.ChainParams, mp.cfg.BD) //TODO fix type conversion
+	txFee, err := blockchain.CheckTransactionInputs(tx, utxoView, mp.cfg.ChainParams, mp.cfg.BC) //TODO fix type conversion
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
 			return nil, chainRuleError(cerr)

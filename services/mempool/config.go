@@ -76,4 +76,7 @@ type Config struct {
 
 	// block dag
 	BD *blockdag.BlockDAG
+
+	// block chain
+	BC *blockchain.BlockChain
 }

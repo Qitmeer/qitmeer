@@ -128,6 +128,9 @@ type IBlockDAG interface {
 
 	// IsDAG
 	IsDAG(parents []*hash.Hash) bool
+
+	// The main parent concurrency of block
+	GetMainParentConcurrency(b IBlock) int
 }
 
 // CalcWeight
@@ -1238,4 +1241,23 @@ func (bd *BlockDAG) getMaxParents() int {
 		return dagMax
 	}
 	return types.MaxParentsPerBlock
+}
+
+// The main parent concurrency of block
+func (bd *BlockDAG) GetMainParentConcurrency(b IBlock) int {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+	return bd.instance.GetMainParentConcurrency(b)
+}
+
+// GetBlockConcurrency : Temporarily use blue set of the past blocks as the criterion
+func (bd *BlockDAG) GetBlockConcurrency(h *hash.Hash) (uint, error) {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	ib := bd.getBlock(h)
+	if ib == nil {
+		return 0, fmt.Errorf("No find block")
+	}
+	return ib.(*PhantomBlock).GetBlueNum(), nil
 }

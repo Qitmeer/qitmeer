@@ -83,7 +83,7 @@ type PeerServer struct {
 
 	newPeers  chan *serverPeer
 	donePeers chan *serverPeer
-	banPeers  chan *serverPeer
+	banPeers  chan *BanPeerMsg
 
 	// peer handler chan
 	relayInv  chan relayMsg
@@ -101,6 +101,8 @@ type PeerServer struct {
 	TxMemPool    *mempool.TxPool
 
 	services protocol.ServiceFlag
+
+	state *peerState
 }
 
 // OutboundGroupCount returns the number of peers connected to the given
@@ -340,6 +342,7 @@ func (s *PeerServer) peerHandler() {
 		banned:          make(map[string]time.Time),
 		outboundGroups:  make(map[string]int),
 	}
+	s.state = state
 
 	if !s.cfg.DisableDNSSeed {
 		// Add peers discovered through DNS to the address manager.
@@ -450,4 +453,21 @@ func (s *PeerServer) HasPeer(uuid uuid.UUID) bool {
 	replyChan := make(chan bool)
 	s.query <- getPeerMsg{uuid: uuid, reply: replyChan}
 	return <-replyChan
+}
+
+func (s *PeerServer) GetBanlist() map[string]time.Time {
+	return s.state.banned
+}
+
+func (s *PeerServer) RemoveBan(host string) {
+	if len(host) == 0 {
+		s.state.banned = map[string]time.Time{}
+		log.Trace("Remove all ban")
+		return
+	}
+	_, ok := s.state.banned[host]
+	if ok {
+		delete(s.state.banned, host)
+		log.Trace(fmt.Sprintf("RemoveBan:%s", host))
+	}
 }

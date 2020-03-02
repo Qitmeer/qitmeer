@@ -296,6 +296,17 @@ function get_coinbase(){
   get_result "$data"
 }
 
+function ban_list(){
+  local data='{"jsonrpc":"2.0","method":"test_banlist","params":[],"id":null}'
+  get_result "$data"
+}
+
+function remove_ban(){
+  local bhost=$1
+  local data='{"jsonrpc":"2.0","method":"test_removeBan","params":["'$bhost'"],"id":1}'
+  get_result "$data"
+}
+
 function get_rawtxs(){
   local address=$1
   local param2=$2
@@ -326,6 +337,12 @@ function get_rawtxs(){
 function is_blue(){
   local block_hash=$1
   local data='{"jsonrpc":"2.0","method":"isBlue","params":["'$block_hash'"],"id":1}'
+  get_result "$data"
+}
+
+function get_fees(){
+  local block_hash=$1
+  local data='{"jsonrpc":"2.0","method":"getFees","params":["'$block_hash'"],"id":1}'
   get_result "$data"
 }
 
@@ -394,6 +411,8 @@ function usage(){
   echo "  peerinfo"
   echo "  main  <hash>"
   echo "  stop"
+  echo "  banlist"
+  echo "  removeban"
   echo "block  :"
   echo "  block <num|hash>"
   echo "  blockid <id>"
@@ -408,6 +427,7 @@ function usage(){
   echo "  iscurrent"
   echo "  tips"
   echo "  coinbase <hash>"
+  echo "  fees <hash>"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txbyhash <hash>"
@@ -701,6 +721,10 @@ elif [ "$1" == "isblue" ]; then
   shift
   is_blue $@
 
+elif [ "$1" == "fees" ]; then
+  shift
+  get_fees $@
+
 elif [ "$1" == "nodeinfo" ]; then
   shift
   get_node_info
@@ -728,6 +752,14 @@ elif [ "$1" == "tips" ]; then
 elif [ "$1" == "coinbase" ]; then
   shift
   get_coinbase $@
+
+elif [ "$1" == "banlist" ]; then
+  shift
+  ban_list | jq .
+
+elif [ "$1" == "removeban" ]; then
+  shift
+  remove_ban $@
 
 ## Tx
 elif [ "$1" == "tx" ]; then

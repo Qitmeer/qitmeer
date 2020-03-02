@@ -14,6 +14,7 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
+	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
@@ -488,9 +489,9 @@ out:
 				b.handleNewPeerMsg(msg.peer)
 			case *blockMsg:
 				log.Trace("blkmgr msgChan blockMsg", "msg", msg)
-				b.handleBlockMsg(msg)
+				score := b.handleBlockMsg(msg)
 				log.Trace("notify syncPeer BlockProcessed done")
-				msg.peer.BlockProcessed <- struct{}{}
+				msg.peer.BlockProcessed <- score
 			case *invMsg:
 				log.Trace("blkmgr msgChan invMsg", "msg", msg)
 				b.handleInvMsg(msg)
@@ -747,7 +748,7 @@ type blockMsg struct {
 func (b *BlockManager) QueueBlock(block *types.SerializedBlock, sp *peer.ServerPeer) {
 	// Don't accept more blocks if we're shutting down.
 	if atomic.LoadInt32(&b.shutdown) != 0 {
-		sp.BlockProcessed <- struct{}{}
+		sp.BlockProcessed <- connmgr.NoneScore
 		return
 	}
 	log.Trace("send blockMsg to blkmgr msgChan", "block", block, "peer", sp)

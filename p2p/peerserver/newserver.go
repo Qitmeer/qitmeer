@@ -2,8 +2,10 @@ package peerserver
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/network"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p/addmgr"
@@ -24,26 +26,43 @@ func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer,
 		chainParams: chainParams,
 		newPeers:    make(chan *serverPeer, cfg.MaxPeers),
 		donePeers:   make(chan *serverPeer, cfg.MaxPeers),
-		banPeers:    make(chan *serverPeer, cfg.MaxPeers),
+		banPeers:    make(chan *BanPeerMsg, cfg.MaxPeers),
 		query:       make(chan interface{}),
 		relayInv:    make(chan relayMsg, cfg.MaxPeers),
 		broadcast:   make(chan broadcastMsg, cfg.MaxPeers),
 		quit:        make(chan struct{}),
 	}
+	if cfg.BanDuration > 0 {
+		connmgr.BanDuration = cfg.BanDuration
+	}
 
+	if cfg.BanThreshold > 0 {
+		connmgr.BanThreshold = cfg.BanThreshold
+	}
 	amgr := addmgr.New(cfg.DataDir, cfg.GetAddrPercent, net.LookupIP)
 	var listeners []net.Listener
 	var nat NAT
 	if !cfg.DisableListen {
-		ipv4Addrs, ipv6Addrs, wildcard, err :=
-			network.ParseListeners(cfg.Listeners)
+		netAddrs, err := network.ParseListeners(cfg.Listeners)
 		if err != nil {
 			return nil, err
 		}
-		listeners = make([]net.Listener, 0, len(ipv4Addrs)+len(ipv6Addrs))
-		discover := true
+
+		listeners = make([]net.Listener, 0, len(netAddrs))
+		for _, addr := range netAddrs {
+			listener, err := net.Listen(addr.Network(), addr.String())
+			if err != nil {
+				log.Warn("Can't listen on", "addr", addr, "error", err)
+				continue
+			}
+			listeners = append(listeners, listener)
+		}
+
+		if len(listeners) == 0 {
+			return nil, errors.New("no valid listen address")
+		}
+
 		if len(cfg.ExternalIPs) != 0 {
-			discover = false
 			// if this fails we have real issues.
 			port, _ := strconv.ParseUint(
 				chainParams.DefaultPort, 10, 16)
@@ -74,81 +93,22 @@ func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer,
 					log.Warn("Skipping specified external IP", "error", err)
 				}
 			}
-		} else if discover && cfg.Upnp {
-			nat, err = Discover()
-			if err != nil {
-				log.Warn("Can't discover upnp", "error", err)
-			}
-			// nil nat here is fine, just means no upnp on network.
-		}
-
-		// TODO: nonstandard port...
-		if wildcard {
-			port, err :=
-				strconv.ParseUint(chainParams.DefaultPort,
-					10, 16)
-			if err != nil {
-				// I can't think of a cleaner way to do this...
-				goto nowc
-			}
-			addrs, err := net.InterfaceAddrs()
-			if err != nil {
-				log.Warn("Unable to get interface addresses", "error", err)
-			}
-			for _, a := range addrs {
-				ip, _, err := net.ParseCIDR(a.String())
+		} else {
+			if cfg.Upnp {
+				nat, err = Discover()
 				if err != nil {
-					continue
+					log.Warn("Can't discover upnp", "error", err)
 				}
-				na := types.NewNetAddressIPPort(ip,
-					uint16(port), services)
-				if discover {
-					err = amgr.AddLocalAddress(na, addmgr.InterfacePrio)
-					if err != nil {
-						log.Debug("Skipping local address", "error", err)
-					}
-				}
+				// nil nat here is fine, just means no upnp on network.
 			}
-		}
-	nowc:
-
-		for _, addr := range ipv4Addrs {
-			listener, err := net.Listen("tcp4", addr)
-			if err != nil {
-				log.Warn("Can't listen on", "addr", addr, "error", err)
-				continue
-			}
-			listeners = append(listeners, listener)
-
-			if discover {
-				if na, err := amgr.DeserializeNetAddress(addr); err == nil {
-					err = amgr.AddLocalAddress(na, addmgr.BoundPrio)
-					if err != nil {
-						log.Warn("Skipping bound address", "addr", addr, "error", err)
-					}
+			// Add bound addresses to address manager to be advertised to peers.
+			for _, listener := range listeners {
+				addr := listener.Addr().String()
+				err := addLocalAddress(amgr, addr, services)
+				if err != nil {
+					log.Warn(fmt.Sprintf("Skipping bound address %s: %v", addr, err))
 				}
 			}
-		}
-
-		for _, addr := range ipv6Addrs {
-			listener, err := net.Listen("tcp6", addr)
-			if err != nil {
-				log.Warn("Can't listen on", "addr", addr, "error", err)
-				continue
-			}
-			listeners = append(listeners, listener)
-			if discover {
-				if na, err := amgr.DeserializeNetAddress(addr); err == nil {
-					err = amgr.AddLocalAddress(na, addmgr.BoundPrio)
-					if err != nil {
-						log.Debug("Skipping bound address", "error", err)
-					}
-				}
-			}
-		}
-
-		if len(listeners) == 0 {
-			return nil, errors.New("no valid listen address")
 		}
 	}
 
@@ -180,6 +140,9 @@ func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer,
 			// only allow recent nodes (10mins) after we failed 30
 			// times
 			if addr.GetAttempts() > 1 && time.Since(addr.LastAttempt()) < 10*time.Minute {
+				return nil, errors.New("no valid connect address")
+			}
+			if s.state.IsBanPeer(addr.NetAddress().IP.String()) {
 				return nil, errors.New("no valid connect address")
 			}
 			addrString := addmgr.NetAddressKey(addr.NetAddress())
@@ -226,4 +189,48 @@ func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer,
 	}
 
 	return &s, nil
+}
+
+func addLocalAddress(addrMgr *addmgr.AddrManager, addr string, services protocol.ServiceFlag) error {
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		return err
+	}
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return err
+	}
+
+	if ip := net.ParseIP(host); ip != nil && ip.IsUnspecified() {
+		// If bound to unspecified address, advertise all local interfaces
+		addrs, err := net.InterfaceAddrs()
+		if err != nil {
+			return err
+		}
+
+		for _, addr := range addrs {
+			ifaceIP, _, err := net.ParseCIDR(addr.String())
+			if err != nil {
+				continue
+			}
+
+			// If bound to 0.0.0.0, do not add IPv6 interfaces and if bound to
+			// ::, do not add IPv4 interfaces.
+			if (ip.To4() == nil) != (ifaceIP.To4() == nil) {
+				continue
+			}
+
+			netAddr := types.NewNetAddressIPPort(ifaceIP, uint16(port), services)
+			addrMgr.AddLocalAddress(netAddr, addmgr.BoundPrio)
+		}
+	} else {
+		netAddr, err := addrMgr.HostToNetAddress(host, uint16(port), services)
+		if err != nil {
+			return err
+		}
+
+		addrMgr.AddLocalAddress(netAddr, addmgr.BoundPrio)
+	}
+
+	return nil
 }
