@@ -17,7 +17,9 @@ func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDif
 	if !b.needAjustPowDifficulty(curNode, powInstance.GetPowType(), b.params.DagDiffAdjustmentConfig.WorkDiffWindowSize) {
 		return pow.BigToCompact(curDiff), nil
 	}
+	// adjust max value
 	oldDiffMax := big.NewInt(0).Add(big.NewInt(0), curDiff)
+	// adjust min value
 	oldDiffMin := big.NewInt(0).Add(big.NewInt(0), curDiff)
 	curBlock := b.bd.GetBlock(curNode.GetHash())
 	if curBlock == nil {
@@ -52,6 +54,7 @@ func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDif
 		return pow.BigToCompact(curDiff), nil
 	}
 	firstPastBlockCount := b.bd.GetMainParentConcurrency(curBlock)
+	//get all blocks between b.params.DagDiffAdjustmentConfig.MaxConcurrencyCount blocks
 	allBlockDagCount := int64(lastPastBlockCount - firstPastBlockCount)
 	targetAllowMaxBlockCount := b.params.DagDiffAdjustmentConfig.WorkDiffWindowSize * b.params.DagDiffAdjustmentConfig.MaxConcurrencyCount
 	if allBlockDagCount == targetAllowMaxBlockCount {
