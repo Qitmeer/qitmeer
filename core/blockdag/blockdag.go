@@ -161,7 +161,7 @@ type BlockDAG struct {
 	instance IBlockDAG
 
 	// Use block id to save all blocks with mapping
-	blockids map[uint]*hash.Hash
+	blockids map[uint]hash.Hash
 
 	// state lock
 	stateLock sync.RWMutex
@@ -256,9 +256,9 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	}
 	//
 	if bd.blockids == nil {
-		bd.blockids = map[uint]*hash.Hash{}
+		bd.blockids = map[uint]hash.Hash{}
 	}
-	bd.blockids[block.GetID()] = block.GetHash()
+	bd.blockids[block.GetID()] = *block.GetHash()
 	//
 	bd.blockTotal++
 	//
@@ -900,7 +900,8 @@ func (bd *BlockDAG) GetBlockHash(id uint) *hash.Hash {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
-	return bd.blockids[id]
+	h := bd.blockids[id]
+	return &h
 }
 
 func (bd *BlockDAG) GetValidTips() []*hash.Hash {
@@ -1067,7 +1068,7 @@ func (bd *BlockDAG) Load(dbTx database.Tx, blockTotal uint, genesis *hash.Hash) 
 	bd.genesis = *genesis
 	bd.blockTotal = blockTotal
 	bd.blocks = map[hash.Hash]IBlock{}
-	bd.blockids = map[uint]*hash.Hash{}
+	bd.blockids = map[uint]hash.Hash{}
 	bd.tips = NewHashSet()
 	return bd.instance.Load(dbTx)
 }

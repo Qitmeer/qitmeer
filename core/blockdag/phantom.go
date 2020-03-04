@@ -595,7 +595,7 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 		ph.bd.blocks[block.hash] = ib
 
 		blockHash := block.hash
-		ph.bd.blockids[block.GetID()] = &blockHash
+		ph.bd.blockids[block.GetID()] = blockHash
 
 		ph.bd.updateTips(&block)
 		//
