@@ -516,6 +516,8 @@ func (ph *Phantom) getBlock(h *hash.Hash) IBlock {
 	if ok {
 		return b
 	}
+	// TODO open this
+	return nil
 	blockId, err := DBGetDAGBlockId(ph.bd.dbTx, h)
 	if err != nil {
 		return nil
@@ -591,11 +593,11 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 			ib.GetParents().Clean()
 			ib.GetParents().AddSet(parentsSet)
 		}
+		blockHash := block.Hash()
 		// TODO optimize
 		ph.bd.blocks[block.hash] = ib
 
-		blockHash := block.hash
-		ph.bd.blockids[block.GetID()] = blockHash
+		ph.bd.blockids[block.GetID()] = &blockHash
 
 		ph.bd.updateTips(&block)
 		//

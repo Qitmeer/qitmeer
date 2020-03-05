@@ -26,8 +26,13 @@ type IBlock interface {
 	// Return block ID
 	GetID() uint
 
-	// Return the hash of block. It will be a pointer.
+	// Return the strong reference hash of block. It will be a pointer.
+	// Please remember to release,
+	// If not for local use, use weak reference Hash()
 	GetHash() *hash.Hash
+
+	// Return the weak reference hash of block.
+	Hash() hash.Hash
 
 	// Acquire the layer of block
 	GetLayer() uint
@@ -104,6 +109,11 @@ func (b *Block) GetID() uint {
 // Return the hash of block. It will be a pointer.
 func (b *Block) GetHash() *hash.Hash {
 	return &b.hash
+}
+
+// Return the weak reference hash of block.
+func (b *Block) Hash() hash.Hash {
+	return b.hash
 }
 
 // Get all parents set,the dag block has more than one parent
