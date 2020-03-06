@@ -279,6 +279,12 @@ func (b *BlockChain) createChainState() error {
 			return err
 		}
 
+		// Create the bucket that houses the block hash data.
+		_, err = meta.CreateBucket(dbnamespace.BlockHashBucketName)
+		if err != nil {
+			return err
+		}
+
 		// Create the bucket that houses the chain block hash to height
 		// index.
 		_, err = meta.CreateBucket(dbnamespace.HashIndexBucketName)

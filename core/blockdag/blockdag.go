@@ -45,6 +45,9 @@ const MaxTipLayerGap = 10
 // StableConfirmations
 const StableConfirmations = 10
 
+// block pool size
+const MaxBlockPoolSize = 10
+
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
@@ -142,7 +145,8 @@ type BlockDAG struct {
 	genesis hash.Hash
 
 	// Use block hash pool to save blocks with mapping
-	blocks map[hash.Hash]IBlock
+	//blocks map[hash.Hash]IBlock
+	blocks []IBlock
 
 	// The total number blocks that this dag currently owned
 	blockTotal uint
@@ -245,20 +249,25 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		}
 		block.SetLayer(maxLayer + 1)
 	}
-
+	blockHash := block.Hash()
 	if bd.blocks == nil {
-		bd.blocks = map[hash.Hash]IBlock{}
+		bd.blocks = []IBlock{}
 	}
 	ib := bd.instance.CreateBlock(&block)
-	bd.blocks[block.hash] = ib
+
+	bd.blocks = append(bd.blocks, ib)
+	if len(bd.blocks) > MaxBlockPoolSize {
+		bd.blocks = bd.blocks[1:]
+	}
+
 	if bd.blockTotal == 0 {
-		bd.genesis = *block.GetHash()
+		bd.genesis = blockHash
 	}
 	//
 	if bd.blockids == nil {
 		bd.blockids = map[uint]*hash.Hash{}
 	}
-	blockHash := block.Hash()
+
 	bd.blockids[block.GetID()] = &blockHash
 	//
 	bd.blockTotal++
@@ -1067,9 +1076,10 @@ func (bd *BlockDAG) Load(dbTx database.Tx, blockTotal uint, genesis *hash.Hash) 
 	bd.dbTx = dbTx
 	bd.genesis = *genesis
 	bd.blockTotal = blockTotal
-	bd.blocks = map[hash.Hash]IBlock{}
+	bd.blocks = []IBlock{}
 	bd.blockids = map[uint]*hash.Hash{}
 	bd.tips = NewHashSet()
+
 	return bd.instance.Load(dbTx)
 }
 

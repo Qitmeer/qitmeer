@@ -512,12 +512,11 @@ func (ph *Phantom) GetMainParent(parents *HashSet) IBlock {
 }
 
 func (ph *Phantom) getBlock(h *hash.Hash) IBlock {
-	b, ok := ph.bd.blocks[*h]
-	if ok {
-		return b
+	for _, v := range ph.bd.blocks {
+		if v.GetHash().IsEqual(h) {
+			return v
+		}
 	}
-	// TODO open this
-	return nil
 	blockId, err := DBGetDAGBlockId(ph.bd.dbTx, h)
 	if err != nil {
 		return nil
@@ -528,7 +527,6 @@ func (ph *Phantom) getBlock(h *hash.Hash) IBlock {
 	if err != nil {
 		return nil
 	}
-	//ph.bd.blocks[block.hash] = ib
 	return ib
 }
 
@@ -594,8 +592,10 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 			ib.GetParents().AddSet(parentsSet)
 		}
 		blockHash := block.Hash()
-		// TODO optimize
-		ph.bd.blocks[block.hash] = ib
+
+		if ph.bd.blockTotal <= MaxBlockPoolSize || i >= ph.bd.blockTotal-MaxBlockPoolSize {
+			ph.bd.blocks = append(ph.bd.blocks, ib)
+		}
 
 		ph.bd.blockids[block.GetID()] = &blockHash
 
