@@ -738,9 +738,9 @@ func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) IBlock {
 		}
 	}
 	if votedPast.blocks == nil {
-		votedPast.blocks = map[hash.Hash]IBlock{}
+		votedPast.blocks = []IBlock{}
 	}
-	votedPast.blocks[block.hash] = &block
+	votedPast.blocks = append(votedPast.blocks, &block)
 	if votedPast.blockTotal == 0 {
 		votedPast.genesis = *block.GetHash()
 	}
@@ -829,12 +829,4 @@ func (sp *Spectre) Load(dbTx database.Tx) error {
 // IsDAG
 func (sp *Spectre) IsDAG(parents []*hash.Hash) bool {
 	return true
-}
-
-func (sp *Spectre) getBlock(h *hash.Hash) IBlock {
-	b, ok := sp.bd.blocks[*h]
-	if !ok {
-		return nil
-	}
-	return b
 }

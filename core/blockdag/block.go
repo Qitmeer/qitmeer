@@ -137,13 +137,13 @@ func (b *Block) HasParents() bool {
 }
 
 // Parent with order in front.
-func (b *Block) GetForwardParent() *Block {
+func (b *Block) GetForwardParent(bd *BlockDAG) IBlock {
 	if b.parents == nil || b.parents.IsEmpty() {
 		return nil
 	}
-	var result *Block = nil
-	for _, v := range b.parents.GetMap() {
-		parent := v.(*Block)
+	var result IBlock = nil
+	for k := range b.parents.GetMap() {
+		parent := bd.getBlock(&k)
 		if result == nil || parent.GetOrder() < result.GetOrder() {
 			result = parent
 		}
@@ -152,13 +152,13 @@ func (b *Block) GetForwardParent() *Block {
 }
 
 // Parent with order in back.
-func (b *Block) GetBackParent() *Block {
+func (b *Block) GetBackParent(bd *BlockDAG) IBlock {
 	if b == nil || b.parents == nil || b.parents.IsEmpty() {
 		return nil
 	}
-	var result *Block = nil
-	for _, v := range b.parents.GetMap() {
-		parent := v.(*Block)
+	var result IBlock = nil
+	for k := range b.parents.GetMap() {
+		parent := bd.getBlock(&k)
 		if result == nil || parent.GetOrder() > result.GetOrder() {
 			result = parent
 		}

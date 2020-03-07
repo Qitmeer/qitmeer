@@ -131,9 +131,6 @@ type IBlockDAG interface {
 
 	// IsDAG
 	IsDAG(parents []*hash.Hash) bool
-
-	// get block
-	getBlock(h *hash.Hash) IBlock
 }
 
 // CalcWeight
@@ -237,7 +234,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		var maxLayer uint = 0
 		for k, h := range parents {
 			parent := bd.getBlock(h)
-			block.parents.AddPair(h, parent)
+			block.parents.Add(h)
 			parent.AddChild(&block)
 			if k == 0 {
 				block.mainParent = parent.GetHash()
@@ -330,10 +327,22 @@ func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
 
 // Acquire one block by hash
 func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
-	if h == nil {
+	for _, v := range bd.blocks {
+		if v.GetHash().IsEqual(h) {
+			return v
+		}
+	}
+	blockId, err := DBGetDAGBlockId(bd.dbTx, h)
+	if err != nil {
 		return nil
 	}
-	return bd.instance.getBlock(h)
+	block := Block{id: uint(blockId)}
+	ib := bd.instance.CreateBlock(&block)
+	err = DBGetDAGBlock(bd.dbTx, ib)
+	if err != nil {
+		return nil
+	}
+	return ib
 }
 
 // Total number of blocks
@@ -564,8 +573,8 @@ func (bd *BlockDAG) locateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
 		if needRec {
 			fs.AddPair(cur.GetHash(), cur)
 			if cur.HasParents() {
-				for _, v := range cur.GetParents().GetMap() {
-					value := v.(IBlock)
+				for k := range cur.GetParents().GetMap() {
+					value := bd.getBlock(&k)
 					ib := value
 					if fs.Has(ib.GetHash()) {
 						continue
@@ -679,11 +688,11 @@ func (bd *BlockDAG) getParentsAnticone(parents *HashSet) *HashSet {
 }
 
 // getTreeTips
-func getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *HashSet) *HashSet {
+func (bd *BlockDAG) getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *HashSet) *HashSet {
 	allmainsubdag := mainsubdag.Clone()
 	queue := []IBlock{}
-	for _, v := range root.GetParents().GetMap() {
-		ib := v.(IBlock)
+	for k := range root.GetParents().GetMap() {
+		ib := bd.getBlock(&k)
 		queue = append(queue, ib)
 		if genealogy != nil {
 			genealogy.Add(ib.GetHash())
@@ -700,8 +709,8 @@ func getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *HashSet) *HashSet 
 		if !cur.HasParents() {
 			continue
 		}
-		for _, v := range cur.GetParents().GetMap() {
-			ib := v.(IBlock)
+		for k := range cur.GetParents().GetMap() {
+			ib := bd.getBlock(&k)
 			queue = append(queue, ib)
 		}
 	}
@@ -723,8 +732,8 @@ func getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *HashSet) *HashSet 
 		if !cur.HasParents() {
 			continue
 		}
-		for _, v := range cur.GetParents().GetMap() {
-			ib := v.(IBlock)
+		for k := range cur.GetParents().GetMap() {
+			ib := bd.getBlock(&k)
 			queue = append(queue, ib)
 		}
 	}
@@ -756,12 +765,12 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 			mainsubdag.Add(ib.GetHash())
 			mainsubdagTips.AddPair(ib.GetHash(), ib)
 		} else {
-			rootBlock.parents.AddPair(cur.GetHash(), cur)
+			rootBlock.parents.Add(cur.GetHash())
 			anticone.AddPair(cur.GetHash(), cur)
 		}
 	}
 
-	anticoneTips := getTreeTips(rootBlock, mainsubdag, nil)
+	anticoneTips := bd.getTreeTips(rootBlock, mainsubdag, nil)
 	newmainsubdagTips := NewHashSet()
 
 	for i := 0; i <= MaxTipLayerGap+1; i++ {
@@ -769,8 +778,8 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 		for _, v := range mainsubdagTips.GetMap() {
 			ib := v.(IBlock)
 			if ib.HasParents() {
-				for _, pv := range ib.GetParents().GetMap() {
-					pib := pv.(IBlock)
+				for pk := range ib.GetParents().GetMap() {
+					pib := bd.getBlock(&pk)
 					if mainsubdag.Has(pib.GetHash()) {
 						continue
 					}
@@ -792,8 +801,8 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 		for _, v := range mainsubdagTips.GetMap() {
 			ib := v.(IBlock)
 			if ib.HasParents() {
-				for _, pv := range ib.GetParents().GetMap() {
-					pib := pv.(IBlock)
+				for pk := range ib.GetParents().GetMap() {
+					pib := bd.getBlock(&pk)
 					if mainsubdag.Has(pib.GetHash()) {
 						continue
 					}
@@ -805,14 +814,14 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 		}
 		mainsubdagTips.AddSet(newmainsubdagTips)
 
-		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
+		anticoneTips = bd.getTreeTips(rootBlock, mainsubdag, nil)
 		//
 		for _, v := range anticoneTips.GetMap() {
 			tb := v.(*Block)
 			realib := bd.getBlock(tb.GetHash())
 			if realib.HasParents() {
-				for _, pv := range realib.GetParents().GetMap() {
-					pib := pv.(IBlock)
+				for pk := range realib.GetParents().GetMap() {
+					pib := bd.getBlock(&pk)
 					var cur *Block
 					if anticone.Has(pib.GetHash()) {
 						cur = anticone.Get(pib.GetHash()).(*Block)
@@ -821,14 +830,14 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 						cur = &Block{id: num, hash: *pib.GetHash(), parents: NewHashSet()}
 						anticone.AddPair(cur.GetHash(), cur)
 					}
-					tb.parents.AddPair(cur.GetHash(), cur)
+					tb.parents.Add(cur.GetHash())
 				}
 			}
 		}
-		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
+		anticoneTips = bd.getTreeTips(rootBlock, mainsubdag, nil)
 	}
 	result := NewHashSet()
-	getTreeTips(rootBlock, mainsubdag, result)
+	bd.getTreeTips(rootBlock, mainsubdag, result)
 	return result
 }
 
@@ -1159,8 +1168,8 @@ func (bd *BlockDAG) IsHourglass(h *hash.Hash) bool {
 		if !cur.HasParents() {
 			continue
 		}
-		for _, v := range cur.GetParents().GetMap() {
-			ib := v.(IBlock)
+		for k := range cur.GetParents().GetMap() {
+			ib := bd.getBlock(&k)
 			if queueSet.Has(ib.GetHash()) {
 				continue
 			}
@@ -1229,8 +1238,8 @@ func (bd *BlockDAG) GetMaturity(target *hash.Hash, views []*hash.Hash) uint {
 			continue
 		}
 
-		for _, v := range cur.GetParents().GetMap() {
-			ib := v.(IBlock)
+		for k := range cur.GetParents().GetMap() {
+			ib := bd.getBlock(&k)
 			if queueSet.Has(ib.GetHash()) {
 				continue
 			}

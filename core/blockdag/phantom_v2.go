@@ -461,11 +461,3 @@ func (ph *Phantom_v2) Load(dbTx database.Tx) error {
 func (ph *Phantom_v2) IsDAG(parents []*hash.Hash) bool {
 	return true
 }
-
-func (ph *Phantom_v2) getBlock(h *hash.Hash) IBlock {
-	b, ok := ph.bd.blocks[*h]
-	if !ok {
-		return nil
-	}
-	return b
-}

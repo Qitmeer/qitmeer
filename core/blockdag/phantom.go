@@ -333,7 +333,7 @@ func (ph *Phantom) rollBackMainChain(intersection *hash.Hash) {
 }
 
 func (ph *Phantom) updateMainOrder(path []*hash.Hash, intersection *hash.Hash) {
-	startOrder := ph.getBlock(intersection).GetOrder()
+	startOrder := ph.bd.getBlock(intersection).GetOrder()
 	l := len(path)
 	for i := l - 1; i >= 0; i-- {
 		curBlock := ph.getPhantomBlock(path[i])
@@ -364,7 +364,7 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	var maxLayer uint = 0
 	for k := range ph.bd.tips.GetMap() {
 		parent := ph.bd.getBlock(&k)
-		ph.virtualBlock.parents.AddPair(&k, parent)
+		ph.virtualBlock.parents.Add(&k)
 
 		if maxLayer == 0 || maxLayer < parent.GetLayer() {
 			maxLayer = parent.GetLayer()
@@ -384,14 +384,14 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	ph.calculateBlueSet(ph.virtualBlock, ph.diffAnticone)
 	ph.updateBlockOrder(ph.virtualBlock)
 
-	startOrder := ph.getBlock(ph.mainChain.tip).GetOrder()
+	startOrder := ph.bd.getBlock(ph.mainChain.tip).GetOrder()
 	for k, v := range ph.virtualBlock.blueDiffAnticone.GetMap() {
-		dab := ph.getBlock(&k)
+		dab := ph.bd.getBlock(&k)
 		dab.SetOrder(startOrder + v.(uint))
 		ph.bd.order[dab.GetOrder()] = dab.GetHash()
 	}
 	for k, v := range ph.virtualBlock.redDiffAnticone.GetMap() {
-		dab := ph.getBlock(&k)
+		dab := ph.bd.getBlock(&k)
 		dab.SetOrder(startOrder + v.(uint))
 		ph.bd.order[dab.GetOrder()] = dab.GetHash()
 	}
@@ -407,7 +407,7 @@ func (ph *Phantom) preUpdateVirtualBlock() *PhantomBlock {
 		return nil
 	}
 	for k := range ph.diffAnticone.GetMap() {
-		dab := ph.getBlock(&k)
+		dab := ph.bd.getBlock(&k)
 		dab.SetOrder(MaxBlockOrder)
 	}
 	return nil
@@ -506,32 +506,13 @@ func (ph *Phantom) GetMainParent(parents *HashSet) IBlock {
 		return nil
 	}
 	if parents.Size() == 1 {
-		return ph.getBlock(parents.List()[0])
+		return ph.bd.getBlock(parents.List()[0])
 	}
 	return ph.getBluest(parents)
 }
 
-func (ph *Phantom) getBlock(h *hash.Hash) IBlock {
-	for _, v := range ph.bd.blocks {
-		if v.GetHash().IsEqual(h) {
-			return v
-		}
-	}
-	blockId, err := DBGetDAGBlockId(ph.bd.dbTx, h)
-	if err != nil {
-		return nil
-	}
-	block := Block{id: uint(blockId)}
-	ib := ph.CreateBlock(&block)
-	err = DBGetDAGBlock(ph.bd.dbTx, ib)
-	if err != nil {
-		return nil
-	}
-	return ib
-}
-
 func (ph *Phantom) getPhantomBlock(h *hash.Hash) *PhantomBlock {
-	ib := ph.getBlock(h)
+	ib := ph.bd.getBlock(h)
 	if ib != nil {
 		return ib.(*PhantomBlock)
 	}
@@ -687,7 +668,7 @@ func (ph *Phantom) IsDAG(parents []*hash.Hash) bool {
 
 		// Belonging to close relatives
 		for _, p := range parents {
-			pb.parents.AddPair(p, ph.getBlock(p))
+			pb.parents.Add(p)
 		}
 		// In the past set
 		//vb
