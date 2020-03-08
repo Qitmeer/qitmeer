@@ -21,11 +21,10 @@ func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDif
 	oldDiffMax := big.NewInt(0).Add(big.NewInt(0), curDiff)
 	// adjust min value
 	oldDiffMin := big.NewInt(0).Add(big.NewInt(0), curDiff)
-	curBlock := b.bd.GetBlock(curNode.GetHash())
-	if curBlock == nil {
-		return pow.BigToCompact(curDiff), nil
+	lastPastBlockCount, err := b.bd.GetBlockConcurrency(curNode.GetHash())
+	if err != nil {
+		return 0, err
 	}
-	lastPastBlockCount := b.bd.GetMainParentConcurrency(curBlock)
 	i := int64(0)
 	allBlockSize := 0
 	for {
@@ -49,11 +48,10 @@ func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDif
 	if i < b.params.DagDiffAdjustmentConfig.WorkDiffWindowSize {
 		return pow.BigToCompact(curDiff), nil
 	}
-	curBlock = b.bd.GetBlock(curNode.GetHash())
-	if curBlock == nil {
-		return pow.BigToCompact(curDiff), nil
+	firstPastBlockCount, err := b.bd.GetBlockConcurrency(curNode.GetHash())
+	if err != nil {
+		return 0, err
 	}
-	firstPastBlockCount := b.bd.GetMainParentConcurrency(curBlock)
 	//get all blocks between b.params.DagDiffAdjustmentConfig.MaxConcurrencyCount blocks
 	allBlockDagCount := int64(lastPastBlockCount - firstPastBlockCount)
 	targetAllowMaxBlockCount := b.params.DagDiffAdjustmentConfig.WorkDiffWindowSize * b.params.DagDiffAdjustmentConfig.MaxConcurrencyCount
