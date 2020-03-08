@@ -757,8 +757,8 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 	mainsubdag.Add(bd.GetGenesisHash())
 	mainsubdagTips := NewHashSet()
 
-	for _, v := range parents.GetMap() {
-		ib := v.(IBlock)
+	for k := range parents.GetMap() {
+		ib := bd.getBlock(&k)
 		num++
 		cur := &Block{id: num, hash: *ib.GetHash(), parents: NewHashSet()}
 		if ib.GetHash().IsEqual(b.GetMainParent()) {
