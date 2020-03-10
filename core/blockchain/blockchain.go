@@ -428,7 +428,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		log.Info("Loading dag ...")
 		bidxStart := time.Now()
 
-		err = b.bd.Load(dbTx, uint(state.total), b.params.GenesisHash)
+		err = b.bd.Load(uint(state.total), b.params.GenesisHash)
 		if err != nil {
 			return fmt.Errorf("The dag data was damaged (%s). you can cleanup your block data base by '--cleanup'.", err)
 		}

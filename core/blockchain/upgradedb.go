@@ -9,11 +9,12 @@ import (
 
 // update db to new version
 func (b *BlockChain) upgradeDB() error {
+	b.bd.SetDBTx(b.db)
 	if b.dbInfo.version == currentDatabaseVersion {
 		return nil
 	}
 	log.Info(fmt.Sprintf("Update cur db to new version: version(%d) -> version(%d)", b.dbInfo.version, currentDatabaseVersion))
-	err := b.db.View(func(dbTx database.Tx) error {
+	err := b.db.Update(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
 		bidxStart := time.Now()
 

@@ -75,7 +75,8 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 
 	if pb.HasParents() {
 		tp := ph.getBluest(pb.GetParents())
-		pb.mainParent = tp.GetHash()
+		tpHash := tp.Hash()
+		pb.mainParent = &tpHash
 		pb.blueNum = tp.blueNum + 1
 		pb.height = tp.height + 1
 		pb.weight = tp.GetWeight()
@@ -263,12 +264,13 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *Ph
 		return nil
 	}
 	if ph.mainChain.tip == nil {
-		ph.mainChain.tip = buestTip.GetHash()
+		btHash := buestTip.Hash()
+		ph.mainChain.tip = &btHash
 		ph.mainChain.genesis = buestTip.GetHash()
 		ph.mainChain.blocks.Add(buestTip.GetHash())
 		ph.diffAnticone.Clean()
 		buestTip.SetOrder(0)
-		ph.bd.order[0] = buestTip.GetHash()
+		ph.bd.order[0] = &btHash
 		return buestTip
 	}
 
@@ -279,7 +281,8 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *Ph
 	ph.rollBackMainChain(intersection)
 
 	ph.updateMainOrder(path, intersection)
-	ph.mainChain.tip = buestTip.GetHash()
+	btHash := buestTip.Hash()
+	ph.mainChain.tip = &btHash
 
 	ph.diffAnticone = ph.bd.getAnticone(ph.bd.getBlock(ph.mainChain.tip), nil)
 
@@ -338,17 +341,20 @@ func (ph *Phantom) updateMainOrder(path []*hash.Hash, intersection *hash.Hash) {
 	for i := l - 1; i >= 0; i-- {
 		curBlock := ph.getPhantomBlock(path[i])
 		curBlock.SetOrder(startOrder + uint(curBlock.blueDiffAnticone.Size()+curBlock.redDiffAnticone.Size()+1))
-		ph.bd.order[curBlock.GetOrder()] = curBlock.GetHash()
+		curBlockHash := curBlock.Hash()
+		ph.bd.order[curBlock.GetOrder()] = &curBlockHash
 		ph.mainChain.blocks.Add(curBlock.GetHash())
 		for k, v := range curBlock.blueDiffAnticone.GetMap() {
 			dab := ph.getPhantomBlock(&k)
 			dab.SetOrder(startOrder + v.(uint))
-			ph.bd.order[dab.GetOrder()] = dab.GetHash()
+			dabHash := dab.Hash()
+			ph.bd.order[dab.GetOrder()] = &dabHash
 		}
 		for k, v := range curBlock.redDiffAnticone.GetMap() {
 			dab := ph.getPhantomBlock(&k)
 			dab.SetOrder(startOrder + v.(uint))
-			ph.bd.order[dab.GetOrder()] = dab.GetHash()
+			dabHash := dab.Hash()
+			ph.bd.order[dab.GetOrder()] = &dabHash
 		}
 		startOrder = curBlock.GetOrder()
 	}
@@ -388,12 +394,14 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	for k, v := range ph.virtualBlock.blueDiffAnticone.GetMap() {
 		dab := ph.bd.getBlock(&k)
 		dab.SetOrder(startOrder + v.(uint))
-		ph.bd.order[dab.GetOrder()] = dab.GetHash()
+		dabHash := dab.Hash()
+		ph.bd.order[dab.GetOrder()] = &dabHash
 	}
 	for k, v := range ph.virtualBlock.redDiffAnticone.GetMap() {
 		dab := ph.bd.getBlock(&k)
 		dab.SetOrder(startOrder + v.(uint))
-		ph.bd.order[dab.GetOrder()] = dab.GetHash()
+		dabHash := dab.Hash()
+		ph.bd.order[dab.GetOrder()] = &dabHash
 	}
 
 	ph.virtualBlock.SetOrder(ph.bd.blockTotal + 1)
@@ -560,25 +568,8 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 		if i == 0 && !ib.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
 			return fmt.Errorf("genesis data mismatch")
 		}
-		// Make up for missing
-		if ib.HasParents() {
-			parentsSet := NewHashSet()
-			for k := range ib.GetParents().GetMap() {
-				parentHash := k
-				parent := ph.bd.getBlock(&parentHash)
-				parentsSet.AddPair(&parentHash, parent)
-				parent.AddChild(&block)
-			}
-			ib.GetParents().Clean()
-			ib.GetParents().AddSet(parentsSet)
-		}
+
 		blockHash := block.Hash()
-
-		if ph.bd.blockTotal <= MaxBlockPoolSize || i >= ph.bd.blockTotal-MaxBlockPoolSize {
-			ph.bd.blocks = append(ph.bd.blocks, ib)
-		}
-
-		ph.bd.blockids[block.GetID()] = &blockHash
 
 		ph.bd.updateTips(&block)
 		//
@@ -589,7 +580,8 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 		}
 	}
 
-	ph.mainChain.tip = ph.GetMainParent(ph.bd.tips).GetHash()
+	mpHash := ph.GetMainParent(ph.bd.tips).Hash()
+	ph.mainChain.tip = &mpHash
 
 	for cur := ph.getPhantomBlock(ph.mainChain.tip); cur != nil; cur = ph.getPhantomBlock(cur.mainParent) {
 		ph.mainChain.blocks.Add(cur.GetHash())

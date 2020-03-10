@@ -171,7 +171,7 @@ func (b *Block) AddChild(child *Block) {
 	if b.children == nil {
 		b.children = NewHashSet()
 	}
-	b.children.AddPair(child.GetHash(), child)
+	b.children.Add(child.GetHash())
 }
 
 // Get all the children of block
@@ -262,21 +262,21 @@ func (b *Block) Encode(w io.Writer) error {
 		}
 	}
 	// children
-	/*children:=[]*hash.Hash{}
+	children := []*hash.Hash{}
 	if b.HasChildren() {
-		children=b.children.List()
+		children = b.children.List()
 	}
-	childrenSize:=len(children)
-	err=s.WriteElements(w,uint32(childrenSize))
+	childrenSize := len(children)
+	err = s.WriteElements(w, uint32(childrenSize))
 	if err != nil {
 		return err
 	}
-	for i:=0;i<childrenSize ;i++  {
-		err=s.WriteElements(w,children[i])
+	for i := 0; i < childrenSize; i++ {
+		err = s.WriteElements(w, children[i])
 		if err != nil {
 			return err
 		}
-	}*/
+	}
 	// mainParent
 	mainParent := &hash.ZeroHash
 	if b.mainParent != nil {
@@ -337,22 +337,22 @@ func (b *Block) Decode(r io.Reader) error {
 		}
 	}
 	// children
-	/*var childrenSize uint32
-	err=s.ReadElements(r,&childrenSize)
+	var childrenSize uint32
+	err = s.ReadElements(r, &childrenSize)
 	if err != nil {
 		return err
 	}
-	if childrenSize>0 {
+	if childrenSize > 0 {
 		b.children = NewHashSet()
-		for i:=uint32(0);i<childrenSize ;i++  {
+		for i := uint32(0); i < childrenSize; i++ {
 			var children hash.Hash
-			err:=s.ReadElements(r,&children)
+			err := s.ReadElements(r, &children)
 			if err != nil {
 				return err
 			}
 			b.children.Add(&children)
 		}
-	}*/
+	}
 	// mainParent
 	var mainParent hash.Hash
 	err = s.ReadElements(r, &mainParent)

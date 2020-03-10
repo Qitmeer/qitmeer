@@ -243,6 +243,8 @@ func (b *BlockChain) createChainState() error {
 	node.SetHeight(0)
 	node.SetLayer(0)
 	b.index.addNode(node)
+
+	b.bd.SetDBTx(b.db)
 	// Initialize the state related to the best block.  Since it is the
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.Block().Transactions))

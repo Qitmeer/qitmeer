@@ -34,7 +34,6 @@ func DBPutDAGBlock(dbTx database.Tx, block IBlock) error {
 func DBPutDAGBlockId(dbTx database.Tx, block IBlock) error {
 	var serializedID [4]byte
 	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
-
 	// block hash -> block id
 	hashId := dbTx.Metadata().Bucket(dbnamespace.BlockHashBucketName)
 	err := hashId.Put(block.GetHash()[:], serializedID[:])
