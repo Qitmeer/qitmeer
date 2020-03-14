@@ -106,6 +106,9 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	}
 
 	curNode = b.getPowTypeNode(curNode, powInstance.GetPowType())
+	if curNode == nil || curNode.GetHash().IsEqual(&hash.ZeroHash) {
+		return pow.BigToCompact(baseTarget), nil
+	}
 	curBlock := b.bd.GetBlock(curNode.GetHash())
 	if curBlock == nil {
 		return pow.BigToCompact(baseTarget), nil
