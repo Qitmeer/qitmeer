@@ -71,9 +71,9 @@ var TestNetParams = Params{
 	TargetTimespan:           time.Second * testTargetTimePerBlock * testWorkDiffWindowSize, // TimePerBlock * WindowSize
 	RetargetAdjustmentFactor: 2,                                                             // equal to 2 hour vs. 4
 	DagDiffAdjustmentConfig: &DagDiffAdjustmentConfig{
-		WorkDiffWindowSize:       5,
+		WorkDiffWindowSize:       144,
 		RetargetAdjustmentFactor: 3,
-		MaxConcurrencyCount:      3,
+		MaxConcurrencyCount:      1,
 		FaultTolerantBlockSize:   1024 * 100, //fault 100k
 	},
 	// Subsidy parameters.

@@ -9,18 +9,15 @@ package blockchain
 import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/params"
 	"math/big"
 )
 
 // find block node by pow type
-func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDiff *big.Int, changed bool) (uint32, error) {
+func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDiff *big.Int) (uint32, error) {
 	if !b.needAjustPowDifficulty(curNode, powInstance.GetPowType(), b.params.DagDiffAdjustmentConfig.WorkDiffWindowSize) {
 		return pow.BigToCompact(curDiff), nil
 	}
-	// adjust max value
-	oldDiffMax := big.NewInt(0).Add(big.NewInt(0), curDiff)
-	// adjust min value
-	oldDiffMin := big.NewInt(0).Add(big.NewInt(0), curDiff)
 	lastPastBlockCount, err := b.bd.GetBlockConcurrency(curNode.GetHash())
 	if err != nil {
 		return 0, err
@@ -52,39 +49,43 @@ func (b *BlockChain) GetDagDiff(curNode *blockNode, powInstance pow.IPow, curDif
 	if err != nil {
 		return 0, err
 	}
+	return CalcDagDiff(powInstance, curDiff, uint(lastPastBlockCount), uint(firstPastBlockCount), allBlockSize, b.params)
+}
+
+// find block node by pow type
+func CalcDagDiff(powInstance pow.IPow, curDiff *big.Int,
+	lastPastBlockCount, firstPastBlockCount uint, allBlockSize int, p *params.Params) (uint32, error) {
+	// adjust max value
+	oldDiffMax := big.NewInt(0).Add(big.NewInt(0), curDiff)
+	// adjust min value
+	oldDiffMin := big.NewInt(0).Add(big.NewInt(0), curDiff)
 	//get all blocks between b.params.DagDiffAdjustmentConfig.MaxConcurrencyCount blocks
 	allBlockDagCount := int64(lastPastBlockCount - firstPastBlockCount)
-	targetAllowMaxBlockCount := b.params.DagDiffAdjustmentConfig.WorkDiffWindowSize * b.params.DagDiffAdjustmentConfig.MaxConcurrencyCount
+	targetAllowMaxBlockCount := p.DagDiffAdjustmentConfig.WorkDiffWindowSize * p.DagDiffAdjustmentConfig.MaxConcurrencyCount
 	if allBlockDagCount == targetAllowMaxBlockCount {
 		return pow.BigToCompact(curDiff), nil
 	}
-	baseTarget := powInstance.GetSafeDiff(0)
+	needChangeWeight := big.NewInt(0)
 	// fault-tolerant
-	allAllowMaxBLockSize := b.params.DagDiffAdjustmentConfig.MaxConcurrencyCount * (types.MaxBlockPayload - b.params.DagDiffAdjustmentConfig.FaultTolerantBlockSize)
+	allAllowMaxBLockSize := p.DagDiffAdjustmentConfig.MaxConcurrencyCount * p.DagDiffAdjustmentConfig.WorkDiffWindowSize * (types.MaxBlockPayload - p.DagDiffAdjustmentConfig.FaultTolerantBlockSize)
 	if allBlockDagCount < targetAllowMaxBlockCount {
 		if int64(allBlockSize) < allAllowMaxBLockSize {
 			return pow.BigToCompact(curDiff), nil
 		}
-		curDiff = curDiff.Mul(curDiff, big.NewInt(allBlockDagCount))
-		curDiff = curDiff.Div(curDiff, big.NewInt(targetAllowMaxBlockCount))
-		// Limit new value to the proof of work limit.
-		if powInstance.CompareDiff(curDiff, baseTarget) {
-			curDiff.Set(baseTarget)
-		}
-
-		return pow.BigToCompact(curDiff), nil
 	}
-	curDiff = curDiff.Mul(curDiff, big.NewInt(targetAllowMaxBlockCount))
-	curDiff = curDiff.Div(curDiff, big.NewInt(allBlockDagCount))
-	maxDiff := oldDiffMax.Mul(oldDiffMax, big.NewInt(b.params.DagDiffAdjustmentConfig.RetargetAdjustmentFactor))
-	minDiff := oldDiffMin.Div(oldDiffMin, big.NewInt(b.params.DagDiffAdjustmentConfig.RetargetAdjustmentFactor))
-	if changed {
-		if curDiff.Cmp(maxDiff) > 0 {
-			curDiff.Set(maxDiff)
-		}
-		if curDiff.Cmp(minDiff) < 0 {
-			curDiff.Set(minDiff)
-		}
+	targetAllowMaxBlockCountWei := big.NewInt(targetAllowMaxBlockCount).Lsh(big.NewInt(targetAllowMaxBlockCount), 32)
+	needChangeWeight = needChangeWeight.Add(needChangeWeight, targetAllowMaxBlockCountWei.Div(targetAllowMaxBlockCountWei, big.NewInt(allBlockDagCount)))
+	percent := big.NewInt(1).Lsh(big.NewInt(1), 32)
+	curDiff = powInstance.GetNextDiffBig(needChangeWeight, curDiff, percent)
+	maxDiff := oldDiffMax.Mul(oldDiffMax, big.NewInt(p.DagDiffAdjustmentConfig.RetargetAdjustmentFactor))
+	minDiff := oldDiffMin.Div(oldDiffMin, big.NewInt(p.DagDiffAdjustmentConfig.RetargetAdjustmentFactor))
+	if curDiff.Cmp(maxDiff) > 0 {
+		curDiff.Set(maxDiff)
 	}
+	if curDiff.Cmp(minDiff) < 0 {
+		curDiff.Set(minDiff)
+	}
+	// Limit new value to the proof of work limit.
+	curDiff = powInstance.GetSafeDiff(curDiff.Uint64())
 	return pow.BigToCompact(curDiff), nil
 }

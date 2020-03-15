@@ -162,7 +162,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 			// not have the special minimum difficulty rule applied.
 			return b.findPrevTestNetDifficulty(curNode, powInstance), nil
 		}
-		return b.GetDagDiff(originCurrentNode, powInstance, oldDiffBig, false)
+		return b.GetDagDiff(originCurrentNode, powInstance, oldDiffBig)
 	}
 	// Declare some useful variables.
 	RAFBig := big.NewInt(b.params.RetargetAdjustmentFactor)
@@ -284,7 +284,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 		"diff", fmt.Sprintf("(%064x)", oldDiffBig))
 	log.Debug("New target", "bits", fmt.Sprintf("%08x", pow.BigToCompact(nextDiffBig)),
 		"diff", fmt.Sprintf("(%064x)", nextDiffBig))
-	return b.GetDagDiff(originCurrentNode, powInstance, nextDiffBig, true)
+	return b.GetDagDiff(originCurrentNode, powInstance, nextDiffBig)
 }
 
 // stats current pow count in nodesToTraverse
