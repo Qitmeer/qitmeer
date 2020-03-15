@@ -738,9 +738,9 @@ func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) IBlock {
 		}
 	}
 	if votedPast.blocks == nil {
-		votedPast.blocks = []IBlock{}
+		votedPast.blocks = map[hash.Hash]IBlock{}
 	}
-	votedPast.blocks = append(votedPast.blocks, &block)
+	votedPast.blocks[block.hash] = &block
 	if votedPast.blockTotal == 0 {
 		votedPast.genesis = *block.GetHash()
 	}

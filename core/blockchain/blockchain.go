@@ -302,7 +302,7 @@ func New(config *Config) (*BlockChain, error) {
 		tnode := b.index.LookupNode(v.GetHash())
 		log.Info(fmt.Sprintf("hash=%v,order=%s,work=%v", tnode.hash, blockdag.GetOrderLogStr(uint(tnode.GetOrder())), tnode.workSum))
 	}
-
+	b.bd.EnableBlockPool(true)
 	return &b, nil
 }
 

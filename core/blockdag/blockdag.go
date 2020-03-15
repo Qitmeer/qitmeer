@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 	"math"
+	"runtime"
 	"sort"
 	"sync"
 	"time"
@@ -143,7 +144,10 @@ type BlockDAG struct {
 
 	// Use block hash pool to save blocks with mapping
 	//blocks map[hash.Hash]IBlock
-	blocks []IBlock
+	blocks map[hash.Hash]IBlock
+
+	// enablePool
+	enablePool bool
 
 	// The total number blocks that this dag currently owned
 	blockTotal uint
@@ -186,7 +190,7 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 
 // Initialize self, the function to be invoked at the beginning
 func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64) IBlockDAG {
-
+	bd.enablePool = false
 	bd.lastTime = time.Unix(time.Now().Unix(), 0)
 
 	bd.calcWeight = calcWeight
@@ -252,14 +256,11 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	}
 	blockHash := block.Hash()
 	if bd.blocks == nil {
-		bd.blocks = []IBlock{}
+		bd.blocks = map[hash.Hash]IBlock{}
 	}
 	ib := bd.instance.CreateBlock(&block)
 
-	bd.blocks = append(bd.blocks, ib)
-	if len(bd.blocks) > int(MaxBlockPoolSize) {
-		bd.blocks = bd.blocks[1:]
-	}
+	bd.blocks[ib.Hash()] = ib
 
 	if bd.blockTotal == 0 {
 		bd.genesis = blockHash
@@ -325,16 +326,16 @@ func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
 
 // Acquire one block by hash
 func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
-	for _, v := range bd.blocks {
-		if v.GetHash().IsEqual(h) {
-			return v
-		}
+	var ib IBlock
+	ib, ok := bd.blocks[*h]
+	if ok {
+		return ib
 	}
 	if bd.db == nil {
 		fmt.Printf("dbtx is nil:%s\n", h.String())
 		return nil
 	}
-	var ib IBlock
+
 	err := bd.db.View(func(dbTx database.Tx) error {
 		blockId, err := DBGetDAGBlockId(dbTx, h)
 		if err != nil {
@@ -349,8 +350,10 @@ func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
 		return nil
 	})
 	if err != nil {
-		fmt.Println(err)
 		return nil
+	}
+	if bd.enablePool {
+		bd.blocks[*h] = ib
 	}
 	return ib
 }
@@ -1106,7 +1109,7 @@ func (bd *BlockDAG) Load(blockTotal uint, genesis *hash.Hash) error {
 		}
 		bd.genesis = *genesis
 		bd.blockTotal = blockTotal
-		bd.blocks = []IBlock{}
+		bd.blocks = map[hash.Hash]IBlock{}
 		bd.tips = NewHashSet()
 
 		return bd.instance.Load(dbTx)
@@ -1287,4 +1290,27 @@ func (bd *BlockDAG) getMaxParents() int {
 // SetDBTx
 func (bd *BlockDAG) SetDBTx(db database.DB) {
 	bd.db = db
+}
+
+// GetBlockPoolSize
+func (bd *BlockDAG) GetBlockPoolSize() int {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+	return len(bd.blocks)
+}
+
+// EnableBlockPool
+func (bd *BlockDAG) EnableBlockPool(enable bool) {
+	bd.enablePool = enable
+}
+
+// HasBlockPool
+func (bd *BlockDAG) HasBlockPool() bool {
+	return bd.enablePool
+}
+
+// CleanBlockPool
+func (bd *BlockDAG) CleanBlockPool() {
+	bd.blocks = map[hash.Hash]IBlock{}
+	runtime.GC()
 }
