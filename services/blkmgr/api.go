@@ -149,9 +149,10 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 		return hex.EncodeToString(blkBytes), nil
 	}
 	confirmations := int64(api.bm.chain.BlockDAG().GetConfirmations(&h))
-	cs := node.GetChildren()
+	ib := api.bm.chain.BlockDAG().GetBlock(&h)
+	cs := ib.GetChildren()
 	children := []*hash.Hash{}
-	if cs != nil {
+	if cs != nil && !cs.IsEmpty() {
 		children = cs.List()
 	}
 	//TODO, refactor marshal api
