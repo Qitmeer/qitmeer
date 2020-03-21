@@ -461,3 +461,18 @@ func (ph *Phantom_v2) Load(dbTx database.Tx) error {
 func (ph *Phantom_v2) IsDAG(parents []*hash.Hash) bool {
 	return true
 }
+
+// GetBlues
+func (ph *Phantom_v2) GetBlues(parents *HashSet) uint {
+	return 0
+}
+
+// IsBlue
+func (ph *Phantom_v2) IsBlue(h *hash.Hash) bool {
+	return false
+}
+
+// getMaxParents
+func (ph *Phantom_v2) getMaxParents() int {
+	return 0
+}

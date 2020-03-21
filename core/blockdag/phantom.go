@@ -6,6 +6,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 )
@@ -678,6 +679,14 @@ func (ph *Phantom) IsDAG(parents []*hash.Hash) bool {
 		}
 	}
 	return true
+}
+
+func (ph *Phantom) getMaxParents() int {
+	dagMax := ph.anticoneSize + 1
+	if dagMax < types.MaxParentsPerBlock {
+		return dagMax
+	}
+	return types.MaxParentsPerBlock
 }
 
 // The main chain of DAG is support incremental expansion

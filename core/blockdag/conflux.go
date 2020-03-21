@@ -374,3 +374,18 @@ func (con *Conflux) Load(dbTx database.Tx) error {
 func (con *Conflux) IsDAG(parents []*hash.Hash) bool {
 	return true
 }
+
+// GetBlues
+func (con *Conflux) GetBlues(parents *HashSet) uint {
+	return 0
+}
+
+// IsBlue
+func (con *Conflux) IsBlue(h *hash.Hash) bool {
+	return false
+}
+
+// getMaxParents
+func (con *Conflux) getMaxParents() int {
+	return 0
+}

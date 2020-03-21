@@ -9,7 +9,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 	"math"
@@ -128,6 +127,15 @@ type IBlockDAG interface {
 
 	// IsDAG
 	IsDAG(parents []*hash.Hash) bool
+
+	// GetBlues
+	GetBlues(parents *HashSet) uint
+
+	// IsBlue
+	IsBlue(h *hash.Hash) bool
+
+	// getMaxParents
+	getMaxParents() int
 }
 
 // CalcWeight
@@ -1096,7 +1104,7 @@ func (bd *BlockDAG) GetBlues(parents *HashSet) uint {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
-	return bd.instance.(*Phantom).GetBlues(parents)
+	return bd.instance.GetBlues(parents)
 }
 
 // IsBlue
@@ -1104,7 +1112,7 @@ func (bd *BlockDAG) IsBlue(h *hash.Hash) bool {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
-	return bd.instance.(*Phantom).IsBlue(h)
+	return bd.instance.IsBlue(h)
 }
 
 func (bd *BlockDAG) IsHourglass(h *hash.Hash) bool {
@@ -1233,9 +1241,5 @@ func (bd *BlockDAG) GetMaturity(target *hash.Hash, views []*hash.Hash) uint {
 
 // MaxParentsPerBlock
 func (bd *BlockDAG) getMaxParents() int {
-	dagMax := bd.instance.(*Phantom).anticoneSize + 1
-	if dagMax < types.MaxParentsPerBlock {
-		return dagMax
-	}
-	return types.MaxParentsPerBlock
+	return bd.instance.getMaxParents()
 }
