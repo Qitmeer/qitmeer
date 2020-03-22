@@ -17,20 +17,24 @@ type WeightedRandTx struct {
 	dependsOn map[hash.Hash]struct{}
 }
 
+// The Queue for weighted rand tx
 type WeightedRandQueue struct {
 	totalFee int64
 	items    []*WeightedRandTx
 }
 
+// The length of WeightedRandQueue
 func (wq *WeightedRandQueue) Len() int {
 	return len(wq.items)
 }
 
+// Push item to WeightedRandQueue
 func (wq *WeightedRandQueue) Push(tx *WeightedRandTx) {
 	wq.items = append(wq.items, tx)
 	wq.totalFee += tx.fee + 1
 }
 
+// Pop item from WeightedRandQueue
 func (wq *WeightedRandQueue) Pop() *WeightedRandTx {
 	if wq.Len() <= 0 {
 		return nil
@@ -52,6 +56,7 @@ func (wq *WeightedRandQueue) Pop() *WeightedRandTx {
 	return item
 }
 
+// Build WeightedRandQueue
 func newWeightedRandQueue(reserve int) *WeightedRandQueue {
 	rand.Seed(time.Now().Unix())
 	wq := &WeightedRandQueue{
