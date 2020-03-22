@@ -206,7 +206,7 @@ mempoolLoop:
 		// Setup dependencies for any transactions which reference
 		// other transactions in the mempool so they can be properly
 		// ordered below.
-		prioItem := &WeightedRandTx{tx: tx}
+		weirandItem := &WeightedRandTx{tx: tx}
 		for _, txIn := range tx.Tx.TxIn {
 			originHash := &txIn.PreviousOut.Hash
 			entry := utxos.LookupEntry(txIn.PreviousOut)
@@ -227,12 +227,12 @@ mempoolLoop:
 					deps = make(map[hash.Hash]*WeightedRandTx)
 					dependers[*originHash] = deps
 				}
-				deps[*prioItem.tx.Hash()] = prioItem
-				if prioItem.dependsOn == nil {
-					prioItem.dependsOn = make(
+				deps[*weirandItem.tx.Hash()] = weirandItem
+				if weirandItem.dependsOn == nil {
+					weirandItem.dependsOn = make(
 						map[hash.Hash]struct{})
 				}
-				prioItem.dependsOn[*originHash] = struct{}{}
+				weirandItem.dependsOn[*originHash] = struct{}{}
 
 				// Skip the check below. We already know the
 				// referenced transaction is available.
@@ -243,17 +243,17 @@ mempoolLoop:
 		// Calculate the final transaction priority using the input
 		// value age sum as well as the adjusted transaction size.  The
 		// formula is: sum(inputValue * inputAge) / adjustedTxSize
-		prioItem.priority = mempool.CalcPriority(tx.Tx, utxos,
+		weirandItem.priority = mempool.CalcPriority(tx.Tx, utxos,
 			nextBlockHeight, blockManager.GetChain().BlockDAG())
 
 		// Calculate the fee in Satoshi/kB.
-		prioItem.feePerKB = txDesc.FeePerKB
-		prioItem.fee = txDesc.Fee
+		weirandItem.feePerKB = txDesc.FeePerKB
+		weirandItem.fee = txDesc.Fee
 
 		// Add the transaction to the priority queue to mark it ready
 		// for inclusion in the block unless it has dependencies.
-		if prioItem.dependsOn == nil {
-			weightedRandQueue.Push(prioItem)
+		if weirandItem.dependsOn == nil {
+			weightedRandQueue.Push(weirandItem)
 		}
 
 		// Merge the referenced outputs from the input transactions to
@@ -274,8 +274,8 @@ mempoolLoop:
 	for weightedRandQueue.Len() > 0 {
 		// Grab the highest priority (or highest fee per kilobyte
 		// depending on the sort order) transaction.
-		prioItem := weightedRandQueue.Pop()
-		tx := prioItem.tx
+		weirandItem := weightedRandQueue.Pop()
+		tx := weirandItem.tx
 
 		// Grab any transactions which depend on this one.
 		deps := dependers[*tx.Hash()]
@@ -306,11 +306,11 @@ mempoolLoop:
 		// Skip free transactions once the block is larger than the
 		// minimum block size.
 		if sortedByFee &&
-			prioItem.feePerKB < int64(policy.TxMinFreeFee) &&
+			weirandItem.feePerKB < int64(policy.TxMinFreeFee) &&
 			(blockPlusTxSize >= policy.BlockMinSize) {
 			log.Trace(fmt.Sprintf("Skipping tx %s with feePerKB %.2d "+
 				"< TxMinFreeFee %d and block size %d >= "+
-				"minBlockSize %d", tx.Hash(), prioItem.feePerKB,
+				"minBlockSize %d", tx.Hash(), weirandItem.feePerKB,
 				policy.TxMinFreeFee, blockPlusTxSize,
 				policy.BlockMinSize))
 			logSkippedDeps(tx, deps)
@@ -351,12 +351,12 @@ mempoolLoop:
 		blockTxns = append(blockTxns, tx)
 		blockSize += txSize
 		blockSigOpCost += int64(sigOpCost)
-		totalFees += prioItem.fee
-		txFees = append(txFees, prioItem.fee)
+		totalFees += weirandItem.fee
+		txFees = append(txFees, weirandItem.fee)
 		txSigOpCosts = append(txSigOpCosts, int64(sigOpCost))
 
 		log.Trace(fmt.Sprintf("Adding tx %s (priority %.2f, feePerKB %.2d)",
-			prioItem.tx.Hash(), prioItem.priority, prioItem.feePerKB))
+			weirandItem.tx.Hash(), weirandItem.priority, weirandItem.feePerKB))
 
 		// Add transactions which depend on this one (and also do not
 		// have any other unsatisified dependencies) to the priority
