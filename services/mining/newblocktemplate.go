@@ -1,7 +1,6 @@
 package mining
 
 import (
-	"container/heap"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
@@ -149,14 +148,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	// or not there is an area allocated for high-priority transactions.
 	sourceTxns := txSource.MiningDescs()
 	sortedByFee := policy.BlockPrioritySize == 0
-	// TODO, impl more general priority func
-	lessFunc := txPQByFee
-	if sortedByFee {
-		lessFunc = txPQByFee
-	} else {
-		lessFunc = txPQByPriority
-	}
-	priorityQueue := newTxPriorityQueue(len(sourceTxns), lessFunc)
+	weightedRandQueue := newWeightedRandQueue(len(sourceTxns))
 	// Create a slice to hold the transactions to be included in the
 	// generated block with reserved space.  Also create a utxo view to
 	// house all of the input transactions so multiple lookups can be
@@ -170,7 +162,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	// dependsOn map kept with each dependent transaction helps quickly
 	// determine which dependent transactions are now eligible for inclusion
 	// in the block once each transaction has been included.
-	dependers := make(map[hash.Hash]map[hash.Hash]*txPrioItem)
+	dependers := make(map[hash.Hash]map[hash.Hash]*WeightedRandTx)
 	// Create slices to hold the fees and number of signature operations
 	// for each of the selected transactions and add an entry for the
 	// coinbase.  This allows the code below to simply append details about
@@ -214,7 +206,7 @@ mempoolLoop:
 		// Setup dependencies for any transactions which reference
 		// other transactions in the mempool so they can be properly
 		// ordered below.
-		prioItem := &txPrioItem{tx: tx}
+		prioItem := &WeightedRandTx{tx: tx}
 		for _, txIn := range tx.Tx.TxIn {
 			originHash := &txIn.PreviousOut.Hash
 			entry := utxos.LookupEntry(txIn.PreviousOut)
@@ -232,7 +224,7 @@ mempoolLoop:
 				// ordering dependency.
 				deps, exists := dependers[*originHash]
 				if !exists {
-					deps = make(map[hash.Hash]*txPrioItem)
+					deps = make(map[hash.Hash]*WeightedRandTx)
 					dependers[*originHash] = deps
 				}
 				deps[*prioItem.tx.Hash()] = prioItem
@@ -261,7 +253,7 @@ mempoolLoop:
 		// Add the transaction to the priority queue to mark it ready
 		// for inclusion in the block unless it has dependencies.
 		if prioItem.dependsOn == nil {
-			heap.Push(priorityQueue, prioItem)
+			weightedRandQueue.Push(prioItem)
 		}
 
 		// Merge the referenced outputs from the input transactions to
@@ -270,8 +262,8 @@ mempoolLoop:
 		mergeUtxoView(blockUtxos, utxos)
 	}
 
-	log.Trace(fmt.Sprintf("Priority queue len %d, dependers len %d",
-		priorityQueue.Len(), len(dependers)))
+	log.Trace(fmt.Sprintf("Weighted random queue len %d, dependers len %d",
+		weightedRandQueue.Len(), len(dependers)))
 
 	blockSize := uint32(blockHeaderOverhead) + uint32(coinbaseTx.Transaction().SerializeSize())
 
@@ -279,10 +271,10 @@ mempoolLoop:
 	totalFees := int64(0)
 
 	// Choose which transactions make it into the block.
-	for priorityQueue.Len() > 0 {
+	for weightedRandQueue.Len() > 0 {
 		// Grab the highest priority (or highest fee per kilobyte
 		// depending on the sort order) transaction.
-		prioItem := heap.Pop(priorityQueue).(*txPrioItem)
+		prioItem := weightedRandQueue.Pop()
 		tx := prioItem.tx
 
 		// Grab any transactions which depend on this one.
@@ -323,33 +315,6 @@ mempoolLoop:
 				policy.BlockMinSize))
 			logSkippedDeps(tx, deps)
 			continue
-		}
-
-		// Prioritize by fee per kilobyte once the block is larger than
-		// the priority size or there are no more high-priority
-		// transactions.
-		if !sortedByFee && (blockPlusTxSize >= policy.BlockPrioritySize ||
-			prioItem.priority <= mempool.MinHighPriority) {
-			log.Trace(fmt.Sprintf("Switching to sort by fees per "+
-				"kilobyte blockSize %d >= BlockPrioritySize "+
-				"%d || priority %.2f <= minHighPriority %.2f",
-				blockPlusTxSize, policy.BlockPrioritySize,
-				prioItem.priority, mempool.MinHighPriority))
-
-			sortedByFee = true
-			priorityQueue.SetLessFunc(txPQByFee)
-			// Put the transaction back into the priority queue and
-			// skip it so it is re-priortized by fees if it won't
-			// fit into the high-priority section or the priority is
-			// too low.  Otherwise this transaction will be the
-			// final one in the high-priority section, so just fall
-			// though to the code below so it is added now.
-			if blockPlusTxSize > policy.BlockPrioritySize ||
-				prioItem.priority < mempool.MinHighPriority {
-
-				heap.Push(priorityQueue, prioItem)
-				continue
-			}
 		}
 
 		// Ensure the transaction inputs pass all of the necessary
@@ -401,7 +366,7 @@ mempoolLoop:
 			// are no more dependencies after this one.
 			delete(item.dependsOn, *tx.Hash())
 			if len(item.dependsOn) == 0 {
-				heap.Push(priorityQueue, item)
+				weightedRandQueue.Push(item)
 			}
 		}
 	}
@@ -543,7 +508,7 @@ func mergeUtxoView(viewA *blockchain.UtxoViewpoint, viewB *blockchain.UtxoViewpo
 // TODO, move the log logic
 // logSkippedDeps logs any dependencies which are also skipped as a result of
 // skipping a transaction while generating a block template at the trace level.
-func logSkippedDeps(tx *types.Tx, deps map[hash.Hash]*txPrioItem) {
+func logSkippedDeps(tx *types.Tx, deps map[hash.Hash]*WeightedRandTx) {
 	if deps == nil {
 		return
 	}
