@@ -12,7 +12,6 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 	"math"
-	"runtime"
 	"sort"
 	"sync"
 	"time"
@@ -44,9 +43,6 @@ const MaxTipLayerGap = 10
 
 // StableConfirmations
 const StableConfirmations = 10
-
-// block pool size
-var MaxBlockPoolSize uint = 10
 
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
@@ -150,12 +146,8 @@ type BlockDAG struct {
 	// The genesis of block dag
 	genesis hash.Hash
 
-	// Use block hash pool to save blocks with mapping
-	//blocks map[hash.Hash]IBlock
-	blocks map[hash.Hash]IBlock
-
-	// enablePool
-	enablePool bool
+	// Use block hash to save all blocks with mapping
+	blocks map[uint]IBlock
 
 	// The total number blocks that this dag currently owned
 	blockTotal uint
@@ -173,6 +165,9 @@ type BlockDAG struct {
 	// different dag types config.
 	instance IBlockDAG
 
+	// Use block id to save all blocks with mapping
+	blockids map[uint]*hash.Hash
+
 	// state lock
 	stateLock sync.RWMutex
 
@@ -181,9 +176,6 @@ type BlockDAG struct {
 
 	// blocks per second
 	blockRate float64
-
-	// data base
-	db database.DB
 }
 
 // Acquire the name of DAG instance
@@ -198,7 +190,6 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 
 // Initialize self, the function to be invoked at the beginning
 func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64) IBlockDAG {
-	bd.enablePool = false
 	bd.lastTime = time.Unix(time.Now().Unix(), 0)
 
 	bd.calcWeight = calcWeight
@@ -244,16 +235,10 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		var maxLayer uint = 0
 		for k, h := range parents {
 			parent := bd.getBlock(h)
-			block.parents.Add(h)
+			block.parents.AddPair(h, parent)
 			parent.AddChild(&block)
-
-			bd.db.Update(func(dbTx database.Tx) error {
-				return DBPutDAGBlock(dbTx, parent)
-			})
-
 			if k == 0 {
-				pbHash := parent.Hash()
-				block.mainParent = &pbHash
+				block.mainParent = parent.GetHash()
 			}
 
 			if maxLayer == 0 || maxLayer < parent.GetLayer() {
@@ -262,17 +247,20 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		}
 		block.SetLayer(maxLayer + 1)
 	}
-	blockHash := block.Hash()
+
 	if bd.blocks == nil {
-		bd.blocks = map[hash.Hash]IBlock{}
+		bd.blocks = map[uint]IBlock{}
 	}
 	ib := bd.instance.CreateBlock(&block)
-
-	bd.blocks[ib.Hash()] = ib
-
+	bd.blocks[block.id] = ib
 	if bd.blockTotal == 0 {
-		bd.genesis = blockHash
+		bd.genesis = *block.GetHash()
 	}
+	//
+	if bd.blockids == nil {
+		bd.blockids = map[uint]*hash.Hash{}
+	}
+	bd.blockids[block.GetID()] = block.GetHash()
 	//
 	bd.blockTotal++
 	//
@@ -324,7 +312,7 @@ func (bd *BlockDAG) hasBlocks(hs []*hash.Hash) bool {
 	return true
 }
 
-// Acquire one block by hash
+/*// Acquire one block by hash
 func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
@@ -334,36 +322,27 @@ func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
 
 // Acquire one block by hash
 func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
-	var ib IBlock
-	ib, ok := bd.blocks[*h]
-	if ok {
-		return ib
-	}
-	if bd.db == nil {
-		fmt.Printf("dbtx is nil:%s\n", h.String())
+	if h == nil {
 		return nil
 	}
+	return nil
+}*/
 
-	err := bd.db.View(func(dbTx database.Tx) error {
-		blockId, err := DBGetDAGBlockId(dbTx, h)
-		if err != nil {
-			return err
-		}
-		block := Block{id: uint(blockId)}
-		ib = bd.instance.CreateBlock(&block)
-		err = DBGetDAGBlock(dbTx, ib)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
+// Acquire one block by id
+func (bd *BlockDAG) GetBlockById(id uint) IBlock {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.getBlockById(id)
+}
+
+// Acquire one block by id
+func (bd *BlockDAG) getBlockById(id uint) IBlock {
+	block, ok := bd.blocks[id]
+	if !ok {
 		return nil
 	}
-	if bd.enablePool {
-		bd.blocks[*h] = ib
-	}
-	return ib
+	return block
 }
 
 // Total number of blocks
@@ -544,11 +523,10 @@ func (bd *BlockDAG) getGraphState() *GraphState {
 	tips := bd.getValidTips(false)
 	for i := 0; i < len(tips); i++ {
 		tip := bd.getBlock(tips[i])
-		tipHash := tip.Hash()
 		if i == 0 {
-			gs.GetTips().AddPair(&tipHash, true)
+			gs.GetTips().AddPair(tip.GetHash(), true)
 		} else {
-			gs.GetTips().Add(&tipHash)
+			gs.GetTips().Add(tip.GetHash())
 		}
 		if tip.GetLayer() > gs.GetLayer() {
 			gs.SetLayer(tip.GetLayer())
@@ -584,8 +562,8 @@ func (bd *BlockDAG) locateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
 		}
 		needRec := true
 		if cur.HasChildren() {
-			for k := range cur.GetChildren().GetMap() {
-				ib := bd.getBlock(&k)
+			for _, v := range cur.GetChildren().GetMap() {
+				ib := v.(IBlock)
 				if gs.GetTips().Has(ib.GetHash()) || !fs.Has(ib.GetHash()) && ib.IsOrdered() {
 					needRec = false
 					break
@@ -595,8 +573,8 @@ func (bd *BlockDAG) locateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
 		if needRec {
 			fs.AddPair(cur.GetHash(), cur)
 			if cur.HasParents() {
-				for k := range cur.GetParents().GetMap() {
-					value := bd.getBlock(&k)
+				for _, v := range cur.GetParents().GetMap() {
+					value := v.(IBlock)
 					ib := value
 					if fs.Has(ib.GetHash()) {
 						continue
@@ -617,8 +595,8 @@ func (bd *BlockDAG) locateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
 		}
 		if ib.HasChildren() {
 			need := true
-			for k := range ib.GetChildren().GetMap() {
-				ib := bd.getBlock(&k)
+			for _, v := range ib.GetChildren().GetMap() {
+				ib := v.(IBlock)
 				if gs.GetTips().Has(ib.GetHash()) {
 					need = false
 					break
@@ -639,8 +617,7 @@ func (bd *BlockDAG) locateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
 		if maxHashes > 0 && i >= int(maxHashes) {
 			break
 		}
-		fsSliceHash := fsSlice[i].Hash()
-		result = append(result, &fsSliceHash)
+		result = append(result, fsSlice[i].GetHash())
 	}
 	return result
 }
@@ -691,7 +668,7 @@ func (bd *BlockDAG) getAnticone(b IBlock, exclude *HashSet) *HashSet {
 	bd.getFutureSet(futureSet, b)
 	anticone := NewHashSet()
 	bs := NewHashSet()
-	bs.Add(b.GetHash())
+	bs.AddPair(b.GetHash(), b)
 	for k := range bd.tips.GetMap() {
 		bd.recAnticone(bs, futureSet, anticone, &k)
 	}
@@ -711,11 +688,11 @@ func (bd *BlockDAG) getParentsAnticone(parents *HashSet) *HashSet {
 }
 
 // getTreeTips
-func (bd *BlockDAG) getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *HashSet) *HashSet {
+func getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *HashSet) *HashSet {
 	allmainsubdag := mainsubdag.Clone()
 	queue := []IBlock{}
-	for k := range root.GetParents().GetMap() {
-		ib := bd.getBlock(&k)
+	for _, v := range root.GetParents().GetMap() {
+		ib := v.(IBlock)
 		queue = append(queue, ib)
 		if genealogy != nil {
 			genealogy.Add(ib.GetHash())
@@ -732,8 +709,8 @@ func (bd *BlockDAG) getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *Has
 		if !cur.HasParents() {
 			continue
 		}
-		for k := range cur.GetParents().GetMap() {
-			ib := bd.getBlock(&k)
+		for _, v := range cur.GetParents().GetMap() {
+			ib := v.(IBlock)
 			queue = append(queue, ib)
 		}
 	}
@@ -755,8 +732,8 @@ func (bd *BlockDAG) getTreeTips(root IBlock, mainsubdag *HashSet, genealogy *Has
 		if !cur.HasParents() {
 			continue
 		}
-		for k := range cur.GetParents().GetMap() {
-			ib := bd.getBlock(&k)
+		for _, v := range cur.GetParents().GetMap() {
+			ib := v.(IBlock)
 			queue = append(queue, ib)
 		}
 	}
@@ -780,20 +757,20 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 	mainsubdag.Add(bd.GetGenesisHash())
 	mainsubdagTips := NewHashSet()
 
-	for k := range parents.GetMap() {
-		ib := bd.getBlock(&k)
+	for _, v := range parents.GetMap() {
+		ib := v.(IBlock)
 		num++
 		cur := &Block{id: num, hash: *ib.GetHash(), parents: NewHashSet()}
 		if ib.GetHash().IsEqual(b.GetMainParent()) {
 			mainsubdag.Add(ib.GetHash())
 			mainsubdagTips.AddPair(ib.GetHash(), ib)
 		} else {
-			rootBlock.parents.Add(cur.GetHash())
+			rootBlock.parents.AddPair(cur.GetHash(), cur)
 			anticone.AddPair(cur.GetHash(), cur)
 		}
 	}
 
-	anticoneTips := bd.getTreeTips(rootBlock, mainsubdag, nil)
+	anticoneTips := getTreeTips(rootBlock, mainsubdag, nil)
 	newmainsubdagTips := NewHashSet()
 
 	for i := 0; i <= MaxTipLayerGap+1; i++ {
@@ -801,8 +778,8 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 		for _, v := range mainsubdagTips.GetMap() {
 			ib := v.(IBlock)
 			if ib.HasParents() {
-				for pk := range ib.GetParents().GetMap() {
-					pib := bd.getBlock(&pk)
+				for _, pv := range ib.GetParents().GetMap() {
+					pib := pv.(IBlock)
 					if mainsubdag.Has(pib.GetHash()) {
 						continue
 					}
@@ -824,8 +801,8 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 		for _, v := range mainsubdagTips.GetMap() {
 			ib := v.(IBlock)
 			if ib.HasParents() {
-				for pk := range ib.GetParents().GetMap() {
-					pib := bd.getBlock(&pk)
+				for _, pv := range ib.GetParents().GetMap() {
+					pib := pv.(IBlock)
 					if mainsubdag.Has(pib.GetHash()) {
 						continue
 					}
@@ -837,14 +814,14 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 		}
 		mainsubdagTips.AddSet(newmainsubdagTips)
 
-		anticoneTips = bd.getTreeTips(rootBlock, mainsubdag, nil)
+		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
 		//
 		for _, v := range anticoneTips.GetMap() {
 			tb := v.(*Block)
 			realib := bd.getBlock(tb.GetHash())
 			if realib.HasParents() {
-				for pk := range realib.GetParents().GetMap() {
-					pib := bd.getBlock(&pk)
+				for _, pv := range realib.GetParents().GetMap() {
+					pib := pv.(IBlock)
 					var cur *Block
 					if anticone.Has(pib.GetHash()) {
 						cur = anticone.Get(pib.GetHash()).(*Block)
@@ -853,14 +830,14 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *HashSet {
 						cur = &Block{id: num, hash: *pib.GetHash(), parents: NewHashSet()}
 						anticone.AddPair(cur.GetHash(), cur)
 					}
-					tb.parents.Add(cur.GetHash())
+					tb.parents.AddPair(cur.GetHash(), cur)
 				}
 			}
 		}
-		anticoneTips = bd.getTreeTips(rootBlock, mainsubdag, nil)
+		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
 	}
 	result := NewHashSet()
-	bd.getTreeTips(rootBlock, mainsubdag, result)
+	getTreeTips(rootBlock, mainsubdag, result)
 	return result
 }
 
@@ -930,7 +907,7 @@ func (bd *BlockDAG) GetConfirmations(h *hash.Hash) uint {
 		} else {
 			childList := cur.GetChildren().SortList(false)
 			for _, v := range childList {
-				ib := bd.getBlock(v)
+				ib := cur.GetChildren().Get(v).(IBlock)
 				queue = append(queue, ib)
 			}
 		}
@@ -942,16 +919,7 @@ func (bd *BlockDAG) GetBlockHash(id uint) *hash.Hash {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
-	block := Block{id: id}
-	ib := bd.instance.CreateBlock(&block)
-
-	err := bd.db.View(func(dbTx database.Tx) error {
-		return DBGetDAGBlock(dbTx, ib)
-	})
-	if err != nil {
-		return nil
-	}
-	return ib.GetHash()
+	return bd.blockids[id]
 }
 
 func (bd *BlockDAG) GetValidTips() []*hash.Hash {
@@ -1103,25 +1071,23 @@ func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
 }
 
 // Load from database
-func (bd *BlockDAG) Load(blockTotal uint, genesis *hash.Hash) error {
-	return bd.db.View(func(dbTx database.Tx) error {
-		meta := dbTx.Metadata()
-		serializedData := meta.Get(dbnamespace.DagInfoBucketName)
-		if serializedData == nil {
-			return fmt.Errorf("dag load error")
-		}
+func (bd *BlockDAG) Load(dbTx database.Tx, blockTotal uint, genesis *hash.Hash) error {
+	meta := dbTx.Metadata()
+	serializedData := meta.Get(dbnamespace.DagInfoBucketName)
+	if serializedData == nil {
+		return fmt.Errorf("dag load error")
+	}
 
-		err := bd.Decode(bytes.NewReader(serializedData))
-		if err != nil {
-			return err
-		}
-		bd.genesis = *genesis
-		bd.blockTotal = blockTotal
-		bd.blocks = map[hash.Hash]IBlock{}
-		bd.tips = NewHashSet()
-
-		return bd.instance.Load(dbTx)
-	})
+	err := bd.Decode(bytes.NewReader(serializedData))
+	if err != nil {
+		return err
+	}
+	bd.genesis = *genesis
+	bd.blockTotal = blockTotal
+	bd.blocks = map[hash.Hash]IBlock{}
+	bd.blockids = map[uint]*hash.Hash{}
+	bd.tips = NewHashSet()
+	return bd.instance.Load(dbTx)
 }
 
 func (bd *BlockDAG) Encode(w io.Writer) error {
@@ -1200,8 +1166,8 @@ func (bd *BlockDAG) IsHourglass(h *hash.Hash) bool {
 		if !cur.HasParents() {
 			continue
 		}
-		for k := range cur.GetParents().GetMap() {
-			ib := bd.getBlock(&k)
+		for _, v := range cur.GetParents().GetMap() {
+			ib := v.(IBlock)
 			if queueSet.Has(ib.GetHash()) {
 				continue
 			}
@@ -1270,8 +1236,8 @@ func (bd *BlockDAG) GetMaturity(target *hash.Hash, views []*hash.Hash) uint {
 			continue
 		}
 
-		for k := range cur.GetParents().GetMap() {
-			ib := bd.getBlock(&k)
+		for _, v := range cur.GetParents().GetMap() {
+			ib := v.(IBlock)
 			if queueSet.Has(ib.GetHash()) {
 				continue
 			}
@@ -1289,32 +1255,4 @@ func (bd *BlockDAG) GetMaturity(target *hash.Hash, views []*hash.Hash) uint {
 // MaxParentsPerBlock
 func (bd *BlockDAG) getMaxParents() int {
 	return bd.instance.getMaxParents()
-}
-
-// SetDBTx
-func (bd *BlockDAG) SetDBTx(db database.DB) {
-	bd.db = db
-}
-
-// GetBlockPoolSize
-func (bd *BlockDAG) GetBlockPoolSize() int {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-	return len(bd.blocks)
-}
-
-// EnableBlockPool
-func (bd *BlockDAG) EnableBlockPool(enable bool) {
-	bd.enablePool = enable
-}
-
-// HasBlockPool
-func (bd *BlockDAG) HasBlockPool() bool {
-	return bd.enablePool
-}
-
-// CleanBlockPool
-func (bd *BlockDAG) CleanBlockPool() {
-	bd.blocks = map[hash.Hash]IBlock{}
-	runtime.GC()
 }

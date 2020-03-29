@@ -243,8 +243,6 @@ func (b *BlockChain) createChainState() error {
 	node.SetHeight(0)
 	node.SetLayer(0)
 	b.index.addNode(node)
-
-	b.bd.SetDBTx(b.db)
 	// Initialize the state related to the best block.  Since it is the
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
@@ -277,12 +275,6 @@ func (b *BlockChain) createChainState() error {
 
 		// Create the bucket that houses the block index data.
 		_, err = meta.CreateBucket(dbnamespace.BlockIndexBucketName)
-		if err != nil {
-			return err
-		}
-
-		// Create the bucket that houses the block hash data.
-		_, err = meta.CreateBucket(dbnamespace.BlockHashBucketName)
 		if err != nil {
 			return err
 		}

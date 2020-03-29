@@ -26,13 +26,8 @@ type IBlock interface {
 	// Return block ID
 	GetID() uint
 
-	// Return the strong reference hash of block. It will be a pointer.
-	// Please remember to release,
-	// If not for local use, use weak reference Hash()
+	// Return the hash of block. It will be a pointer.
 	GetHash() *hash.Hash
-
-	// Return the weak reference hash of block.
-	Hash() hash.Hash
 
 	// Acquire the layer of block
 	GetLayer() uint
@@ -111,11 +106,6 @@ func (b *Block) GetHash() *hash.Hash {
 	return &b.hash
 }
 
-// Return the weak reference hash of block.
-func (b *Block) Hash() hash.Hash {
-	return b.hash
-}
-
 // Get all parents set,the dag block has more than one parent
 func (b *Block) GetParents() *HashSet {
 	return b.parents
@@ -137,13 +127,13 @@ func (b *Block) HasParents() bool {
 }
 
 // Parent with order in front.
-func (b *Block) GetForwardParent(bd *BlockDAG) IBlock {
+func (b *Block) GetForwardParent() *Block {
 	if b.parents == nil || b.parents.IsEmpty() {
 		return nil
 	}
-	var result IBlock = nil
-	for k := range b.parents.GetMap() {
-		parent := bd.getBlock(&k)
+	var result *Block = nil
+	for _, v := range b.parents.GetMap() {
+		parent := v.(*Block)
 		if result == nil || parent.GetOrder() < result.GetOrder() {
 			result = parent
 		}
@@ -152,13 +142,13 @@ func (b *Block) GetForwardParent(bd *BlockDAG) IBlock {
 }
 
 // Parent with order in back.
-func (b *Block) GetBackParent(bd *BlockDAG) IBlock {
+func (b *Block) GetBackParent() *Block {
 	if b == nil || b.parents == nil || b.parents.IsEmpty() {
 		return nil
 	}
-	var result IBlock = nil
-	for k := range b.parents.GetMap() {
-		parent := bd.getBlock(&k)
+	var result *Block = nil
+	for _, v := range b.parents.GetMap() {
+		parent := v.(*Block)
 		if result == nil || parent.GetOrder() > result.GetOrder() {
 			result = parent
 		}
@@ -171,7 +161,7 @@ func (b *Block) AddChild(child *Block) {
 	if b.children == nil {
 		b.children = NewHashSet()
 	}
-	b.children.Add(child.GetHash())
+	b.children.AddPair(child.GetHash(), child)
 }
 
 // Get all the children of block
@@ -262,21 +252,21 @@ func (b *Block) Encode(w io.Writer) error {
 		}
 	}
 	// children
-	children := []*hash.Hash{}
+	/*children:=[]*hash.Hash{}
 	if b.HasChildren() {
-		children = b.children.List()
+		children=b.children.List()
 	}
-	childrenSize := len(children)
-	err = s.WriteElements(w, uint32(childrenSize))
+	childrenSize:=len(children)
+	err=s.WriteElements(w,uint32(childrenSize))
 	if err != nil {
 		return err
 	}
-	for i := 0; i < childrenSize; i++ {
-		err = s.WriteElements(w, children[i])
+	for i:=0;i<childrenSize ;i++  {
+		err=s.WriteElements(w,children[i])
 		if err != nil {
 			return err
 		}
-	}
+	}*/
 	// mainParent
 	mainParent := &hash.ZeroHash
 	if b.mainParent != nil {
@@ -337,22 +327,22 @@ func (b *Block) Decode(r io.Reader) error {
 		}
 	}
 	// children
-	var childrenSize uint32
-	err = s.ReadElements(r, &childrenSize)
+	/*var childrenSize uint32
+	err=s.ReadElements(r,&childrenSize)
 	if err != nil {
 		return err
 	}
-	if childrenSize > 0 {
+	if childrenSize>0 {
 		b.children = NewHashSet()
-		for i := uint32(0); i < childrenSize; i++ {
+		for i:=uint32(0);i<childrenSize ;i++  {
 			var children hash.Hash
-			err := s.ReadElements(r, &children)
+			err:=s.ReadElements(r,&children)
 			if err != nil {
 				return err
 			}
 			b.children.Add(&children)
 		}
-	}
+	}*/
 	// mainParent
 	var mainParent hash.Hash
 	err = s.ReadElements(r, &mainParent)

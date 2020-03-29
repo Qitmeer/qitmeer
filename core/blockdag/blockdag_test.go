@@ -113,7 +113,6 @@ var testData *TestData
 var testDataFilePath string = "./testData.json"
 
 func InitBlockDAG(dagType string, graph string) (IBlockDAG, map[string]*hash.Hash) {
-	MaxBlockPoolSize *= MaxBlockPoolSize
 	output := io.Writer(os.Stdout)
 	glogger := l.NewGlogHandler(l.StreamHandler(output, l.TerminalFormat(false)))
 	glogger.Verbosity(l.LvlError)
