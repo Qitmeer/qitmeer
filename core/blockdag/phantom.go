@@ -570,7 +570,6 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 			ib.GetParents().AddSet(parentsSet)
 		}
 		ph.bd.blocks[block.id] = ib
-		ph.bd.blockids[block.GetID()] = block.GetHash()
 
 		ph.bd.updateTips(&block)
 		//

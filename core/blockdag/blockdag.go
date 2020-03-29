@@ -153,20 +153,17 @@ type BlockDAG struct {
 	blockTotal uint
 
 	// The terminal block is in block dag,this block have not any connecting at present.
-	tips *HashSet
+	tips *IdSet
 
 	// This is time when the last block have added
 	lastTime time.Time
 
 	// The full sequence of dag, please note that the order starts at zero.
-	order map[uint]*hash.Hash
+	order map[uint]uint
 
 	// Current dag instance used. Different algorithms work according to
 	// different dag types config.
 	instance IBlockDAG
-
-	// Use block id to save all blocks with mapping
-	blockids map[uint]*hash.Hash
 
 	// state lock
 	stateLock sync.RWMutex
@@ -212,16 +209,17 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	if b == nil {
 		return nil
 	}
-	if bd.hasBlock(b.GetHash()) {
+	// Must keep no block in outside.
+	/*	if bd.hasBlock(b.GetHash()) {
 		return nil
-	}
-	var parents []*hash.Hash
+	}*/
+	var parents *IdSet
 	if bd.blockTotal > 0 {
 		parents = b.GetParents()
-		if len(parents) == 0 {
+		if parents.IsEmpty() {
 			return nil
 		}
-		if !bd.hasBlocks(parents) {
+		if !bd.hasBlocks(parents.List()) {
 			return nil
 		}
 		if !bd.isDAG(b.GetParents()) {
@@ -231,14 +229,14 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	//
 	block := Block{id: bd.blockTotal, hash: *b.GetHash(), layer: 0, status: StatusNone}
 	if parents != nil {
-		block.parents = NewHashSet()
+		block.parents = NewIdSet()
 		var maxLayer uint = 0
 		for k, h := range parents {
 			parent := bd.getBlock(h)
-			block.parents.AddPair(h, parent)
+			block.parents.AddPair(parent.GetID(), parent)
 			parent.AddChild(&block)
 			if k == 0 {
-				block.mainParent = parent.GetHash()
+				block.mainParent = parent.GetID()
 			}
 
 			if maxLayer == 0 || maxLayer < parent.GetLayer() {
@@ -257,11 +255,6 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		bd.genesis = *block.GetHash()
 	}
 	//
-	if bd.blockids == nil {
-		bd.blockids = map[uint]*hash.Hash{}
-	}
-	bd.blockids[block.GetID()] = block.GetHash()
-	//
 	bd.blockTotal++
 	//
 	bd.updateTips(&block)
@@ -276,7 +269,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 
 // Acquire the genesis block of chain
 func (bd *BlockDAG) getGenesis() IBlock {
-	return bd.getBlock(&bd.genesis)
+	return bd.getBlockById(0)
 }
 
 // Acquire the genesis block hash of chain
@@ -286,13 +279,13 @@ func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 
 // If the block is illegal dag,will return false.
 // Exclude genesis block
-func (bd *BlockDAG) isDAG(parents []*hash.Hash) bool {
+func (bd *BlockDAG) isDAG(parents []uint) bool {
 	return bd.checkLayerGap(parents) &&
 		bd.checkLegality(parents) &&
 		bd.instance.IsDAG(parents)
 }
 
-// Is there a block in DAG?
+/*// Is there a block in DAG?
 func (bd *BlockDAG) hasBlock(h *hash.Hash) bool {
 	return bd.getBlock(h) != nil
 }
@@ -310,6 +303,29 @@ func (bd *BlockDAG) hasBlocks(hs []*hash.Hash) bool {
 		}
 	}
 	return true
+}*/
+
+// Is there a block in DAG?
+func (bd *BlockDAG) hasBlockById(id uint) bool {
+	return bd.getBlockById(id) != nil
+}
+
+// Is there a block in DAG?
+func (bd *BlockDAG) HasBlockById(id uint) bool {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.hasBlockById(id)
+}
+
+// Is there some block in DAG?
+func (bd *BlockDAG) hasBlocks(ids []uint) bool {
+	for _, id := range ids {
+		if !bd.hasBlockById(id) {
+			return false
+		}
+	}
+	return true
 }
 
 /*// Acquire one block by hash
@@ -321,13 +337,19 @@ func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
 }
 
 // Acquire one block by hash
+// Be careful, this is inefficient and cannot be called frequently
 func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
 	if h == nil {
 		return nil
 	}
+	for _, v := range bd.blocks {
+		if v.GetHash().IsEqual(h) {
+			return v
+		}
+	}
 	return nil
-}*/
-
+}
+*/
 // Acquire one block by id
 func (bd *BlockDAG) GetBlockById(id uint) IBlock {
 	bd.stateLock.Lock()
@@ -919,7 +941,11 @@ func (bd *BlockDAG) GetBlockHash(id uint) *hash.Hash {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
-	return bd.blockids[id]
+	ib := bd.getBlockById(id)
+	if ib != nil {
+		return ib.GetHash()
+	}
+	return nil
 }
 
 func (bd *BlockDAG) GetValidTips() []*hash.Hash {
@@ -957,13 +983,13 @@ func (bd *BlockDAG) getValidTips(limit bool) []*hash.Hash {
 }
 
 // Checking the layer grap of block
-func (bd *BlockDAG) checkLayerGap(parents []*hash.Hash) bool {
+func (bd *BlockDAG) checkLayerGap(parents []uint) bool {
 	if len(parents) == 0 {
 		return false
 	}
 	parentsNode := []IBlock{}
 	for _, v := range parents {
-		ib := bd.getBlock(v)
+		ib := bd.getBlockById(v)
 		if ib == nil {
 			return false
 		}
@@ -1028,13 +1054,13 @@ func (bd *BlockDAG) CheckSubMainChainTip(parents []*hash.Hash) (uint, bool) {
 }
 
 // Checking the parents of block legitimacy
-func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
+func (bd *BlockDAG) checkLegality(parents []uint) bool {
 	if len(parents) == 0 {
 		return false
 	}
 	parentsNode := []IBlock{}
 	for _, v := range parents {
-		ib := bd.getBlock(v)
+		ib := bd.getBlockById(v)
 		if ib == nil {
 			return false
 		}
@@ -1047,7 +1073,7 @@ func (bd *BlockDAG) checkLegality(parents []*hash.Hash) bool {
 	} else if pLen == 1 {
 		return true
 	} else {
-		parentsSet := NewHashSet()
+		parentsSet := NewIdSet()
 		parentsSet.AddList(parents)
 
 		// Belonging to close relatives
@@ -1084,8 +1110,7 @@ func (bd *BlockDAG) Load(dbTx database.Tx, blockTotal uint, genesis *hash.Hash) 
 	}
 	bd.genesis = *genesis
 	bd.blockTotal = blockTotal
-	bd.blocks = map[hash.Hash]IBlock{}
-	bd.blockids = map[uint]*hash.Hash{}
+	bd.blocks = map[uint]IBlock{}
 	bd.tips = NewHashSet()
 	return bd.instance.Load(dbTx)
 }
