@@ -210,9 +210,9 @@ func processIsCheckpoint(chain *blockchain.BlockChain, cfg *Config) bool {
 
 	var preblock blockdag.IBlock
 	if block.HasChildren() {
-		for k, v := range block.GetChildren().GetMap() {
+		for k := range block.GetChildren().GetMap() {
 			if chain.BlockDAG().IsOnMainChain(&k) {
-				preblock = v.(blockdag.IBlock)
+				preblock = chain.BlockDAG().GetBlock(&k)
 				break
 			}
 		}

@@ -302,7 +302,7 @@ func New(config *Config) (*BlockChain, error) {
 		tnode := b.index.LookupNode(v.GetHash())
 		log.Info(fmt.Sprintf("hash=%v,order=%s,work=%v", tnode.hash, blockdag.GetOrderLogStr(uint(tnode.GetOrder())), tnode.workSum))
 	}
-
+	b.bd.EnableBlockPool(true)
 	return &b, nil
 }
 
@@ -401,13 +401,11 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		return b.createChainState()
 	}
 
-	//  TODO: Upgrade the database as needed.
-	/*
-		err = upgradeDB(b.db, b.chainParams, b.dbInfo, interrupt)
-		if err != nil {
-			return err
-		}
-	*/
+	//   Upgrade the database as needed.
+	err = b.upgradeDB()
+	if err != nil {
+		return err
+	}
 
 	// Attempt to load the chain state from the database.
 	err = b.db.View(func(dbTx database.Tx) error {
@@ -430,7 +428,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		log.Info("Loading dag ...")
 		bidxStart := time.Now()
 
-		err = b.bd.Load(dbTx, uint(state.total), b.params.GenesisHash)
+		err = b.bd.Load(uint(state.total), b.params.GenesisHash)
 		if err != nil {
 			return fmt.Errorf("The dag data was damaged (%s). you can cleanup your block data base by '--cleanup'.", err)
 		}
