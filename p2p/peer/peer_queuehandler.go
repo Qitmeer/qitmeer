@@ -20,7 +20,7 @@ import (
 func (p *Peer) queueHandler() {
 	pendingMsgs := list.New()
 	invSendQueue := list.New()
-	trickleTicker := time.NewTicker(trickleTimeout)
+	trickleTicker := time.NewTicker(p.cfg.TrickleInterval)
 	defer trickleTicker.Stop()
 
 	// We keep the waiting flag so that we know if we have a message queued

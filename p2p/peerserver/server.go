@@ -184,6 +184,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 		Services:         sp.server.services,
 		DisableRelayTx:   sp.server.cfg.BlocksOnly,
 		ProtocolVersion:  maxProtocolVersion,
+		TrickleInterval:  sp.server.cfg.TrickleInterval,
 	}
 }
 

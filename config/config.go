@@ -70,10 +70,11 @@ type Config struct {
 	whitelists      []*net.IPNet
 	MaxInbound      int `long:"maxinbound" description:"The max total of inbound peer for host"`
 	//P2P - server ban
-	Banning        bool          `long:"banning" description:"Enable banning of misbehaving peers"`
-	BanDuration    time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
-	BanThreshold   uint32        `long:"banthreshold" description:"Maximum allowed ban score before disconnecting and banning misbehaving peers."`
-	GetAddrPercent int           `short:"T" long:"getaddrpercent" description:"It is the percentage of total addresses known that we will share with a call to AddressCache."`
+	Banning         bool          `long:"banning" description:"Enable banning of misbehaving peers"`
+	BanDuration     time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
+	BanThreshold    uint32        `long:"banthreshold" description:"Maximum allowed ban score before disconnecting and banning misbehaving peers."`
+	GetAddrPercent  int           `short:"T" long:"getaddrpercent" description:"It is the percentage of total addresses known that we will share with a call to AddressCache."`
+	TrickleInterval time.Duration `long:"trickleinterval" description:"Minimum time between attempts to send new inventory to a connected peer"`
 
 	DAGType     string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
 	Cleanup     bool   `short:"L" long:"cleanup" description:"Cleanup the block database "`
