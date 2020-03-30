@@ -315,7 +315,7 @@ func (node *blockNode) GetTimestamp() int64 {
 // Return the main parent
 func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
 	parents := node.GetParents()
-	if parents.IsEmpty() {
+	if parents == nil || parents.IsEmpty() {
 		return nil
 	}
 	mainParent := b.bd.GetMainParent(parents)

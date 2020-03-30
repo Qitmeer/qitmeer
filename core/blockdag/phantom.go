@@ -471,20 +471,20 @@ func (ph *Phantom) IsOnMainChain(b IBlock) bool {
 func (ph *Phantom) getOrderChangeList(pb *PhantomBlock) *list.List {
 	refNodes := list.New()
 	if ph.bd.blockTotal == 1 {
-		refNodes.PushBack(ph.bd.GetGenesisHash())
+		refNodes.PushBack(ph.bd.getGenesis())
 		return refNodes
 	}
 	if pb != nil {
 		tips := ph.bd.tips
 		if tips.HasOnly(pb.GetID()) {
-			refNodes.PushBack(pb.GetHash())
+			refNodes.PushBack(pb)
 			return refNodes
 		}
 		if pb.GetID() == ph.mainChain.tip {
-			refNodes.PushBack(pb.GetHash())
+			refNodes.PushBack(pb)
 		} else if pb.IsOrdered() && pb.GetOrder() <= ph.GetMainChainTip().GetOrder() {
 			for i := ph.GetMainChainTip().GetOrder(); i >= 0; i-- {
-				refNodes.PushFront(ph.bd.order[i])
+				refNodes.PushFront(ph.getBlock(ph.bd.order[i]))
 				if ph.bd.order[i] == pb.GetID() {
 					break
 				}
@@ -493,7 +493,7 @@ func (ph *Phantom) getOrderChangeList(pb *PhantomBlock) *list.List {
 	}
 	if !ph.diffAnticone.IsEmpty() {
 		for k := range ph.diffAnticone.GetMap() {
-			refNodes.PushBack(k)
+			refNodes.PushBack(ph.getBlock(k))
 		}
 	}
 	return refNodes

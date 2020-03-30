@@ -226,7 +226,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	var parents *IdSet
 	if bd.blockTotal > 0 {
 		parents = b.GetParents()
-		if parents.IsEmpty() {
+		if parents == nil || parents.IsEmpty() {
 			return nil, nil
 		}
 		if !bd.hasBlocks(parents.List()) {

@@ -1249,12 +1249,12 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
-		nodeHash := e.Value.(*hash.Hash)
-		if nodeHash.IsEqual(newBlock.Hash()) {
+		nodeBlock := e.Value.(blockdag.IBlock)
+		if nodeBlock.GetID() == node.GetID() {
 			n = node
 			block = newBlock
 		} else {
-			n = b.index.LookupNode(nodeHash)
+			n = b.index.LookupNode(nodeBlock.GetHash())
 			// If any previous nodes in attachNodes failed validation,
 			// mark this one as having an invalid ancestor.
 			block, err = b.FetchBlockByHash(&n.hash)
@@ -1327,19 +1327,11 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 	var oldOrdersTemp BlockNodeList
 
 	for e := newOrders.Front(); e != nil; e = e.Next() {
-		refHash := e.Value.(*hash.Hash)
-		refblock := b.bd.GetBlock(refHash)
-		if refHash.IsEqual(&newNode.hash) {
-			newNode.SetLayer(refblock.GetLayer())
+		refblock := e.Value.(blockdag.IBlock)
+		if refblock.GetID() == newNode.GetID() {
 			refnode = newNode
-			block.SetOrder(uint64(refblock.GetOrder()))
-			if refblock.GetHeight() != newNode.GetHeight() {
-				log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d", newNode.GetHash(), newNode.GetHeight(), refblock.GetHeight()))
-				newNode.SetHeight(refblock.GetHeight())
-				block.SetHeight(refblock.GetHeight())
-			}
 		} else {
-			refnode = b.index.LookupNode(refHash)
+			refnode = b.index.LookupNode(refblock.GetHash())
 			if refnode.IsOrdered() {
 				oldOrdersTemp = append(oldOrdersTemp, refnode.Clone())
 			}
@@ -1368,9 +1360,9 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 		neNext := ne.Next()
 		oeNext := oe.Next()
 
-		neHash := ne.Value.(*hash.Hash)
+		neBlock := ne.Value.(blockdag.IBlock)
 		oeNode := oe.Value.(*blockNode)
-		if neHash.IsEqual(oeNode.GetHash()) {
+		if neBlock.GetID() == oeNode.GetID() {
 			newOrders.Remove(ne)
 			oldOrdersList.Remove(oe)
 		} else {
