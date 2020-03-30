@@ -401,13 +401,11 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		return b.createChainState()
 	}
 
-	//  TODO: Upgrade the database as needed.
-	/*
-		err = upgradeDB(b.db, b.chainParams, b.dbInfo, interrupt)
-		if err != nil {
-			return err
-		}
-	*/
+	//   Upgrade the database as needed.
+	err = b.upgradeDB()
+	if err != nil {
+		return err
+	}
 
 	// Attempt to load the chain state from the database.
 	err = b.db.View(func(dbTx database.Tx) error {
