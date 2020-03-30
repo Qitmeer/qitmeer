@@ -1282,3 +1282,12 @@ func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
 func (bd *BlockDAG) getMaxParents() int {
 	return bd.instance.getMaxParents()
 }
+
+// GetIdSet
+func (bd *BlockDAG) GetIdSet(hs []*hash.Hash) *IdSet {
+	result := NewIdSet()
+	for _, v := range hs {
+		result.Add(bd.getBlockId(v))
+	}
+	return result
+}

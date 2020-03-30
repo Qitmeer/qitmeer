@@ -563,8 +563,10 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 }
 
 func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock, totalFee int64) error {
-	parents := blockdag.NewHashSet()
-	parents.AddList(block.Block().Parents)
+	parents := blockdag.NewIdSet()
+	for _, v := range block.Block().Parents {
+		parents.Add(b.index.GetDAGBlockID(v))
+	}
 	blocks := b.bd.GetBlues(parents)
 	// check subsidy
 	transactions := block.Transactions()

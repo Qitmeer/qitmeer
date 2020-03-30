@@ -116,7 +116,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		nextBlockHeight = uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
 	} else {
 		parentsSet.AddList(parents)
-		mainp := blockManager.GetChain().BlockDAG().GetMainParent(parentsSet)
+		mainp := blockManager.GetChain().BlockDAG().GetMainParent(blockManager.GetChain().BlockDAG().GetIdSet(parents))
 		nextBlockHeight = uint64(mainp.GetHeight() + 1)
 	}
 
@@ -129,7 +129,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		return nil, err
 	}
 
-	blues := int64(blockManager.GetChain().BlockDAG().GetBlues(parentsSet))
+	blues := int64(blockManager.GetChain().BlockDAG().GetBlues(blockManager.GetChain().BlockDAG().GetIdSet(parents)))
 	coinbaseTx, err := createCoinbaseTx(subsidyCache,
 		coinbaseScript,
 		opReturnPkScript,
