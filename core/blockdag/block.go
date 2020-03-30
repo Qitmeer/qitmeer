@@ -57,7 +57,7 @@ type IBlock interface {
 	HasChildren() bool
 
 	// GetMainParent
-	GetMainParent() *hash.Hash
+	GetMainParent() uint
 
 	// Setting the weight of block
 	SetWeight(weight uint64)
@@ -268,8 +268,8 @@ func (b *Block) Encode(w io.Writer) error {
 		}
 	}*/
 	// mainParent
-	mainParent := uint32(0)
-	if b.mainParent != 0 {
+	mainParent := uint32(MaxId)
+	if b.mainParent != MaxId {
 		mainParent = uint32(b.mainParent)
 	}
 	err = s.WriteElements(w, mainParent)

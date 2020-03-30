@@ -1,7 +1,6 @@
 package blockdag
 
 import (
-	"github.com/Qitmeer/qitmeer/common/hash"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"io"
 )
@@ -131,10 +130,10 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	pb.redDiffAnticone = NewHashSet()
+	pb.redDiffAnticone = NewIdSet()
 	if redDiffAnticoneSize > 0 {
 		for i := uint32(0); i < redDiffAnticoneSize; i++ {
-			var bda hash.Hash
+			var bda uint32
 			err := s.ReadElements(r, &bda)
 			if err != nil {
 				return err
@@ -145,7 +144,7 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 				return err
 			}
 
-			pb.redDiffAnticone.AddPair(&bda, uint(order))
+			pb.redDiffAnticone.AddPair(uint(bda), uint(order))
 		}
 	}
 
