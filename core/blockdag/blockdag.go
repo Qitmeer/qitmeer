@@ -52,12 +52,12 @@ func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
 	case phantom:
 		return &Phantom{}
-	case phantom_v2:
-		return &Phantom_v2{}
-	case conflux:
-		return &Conflux{}
-	case spectre:
-		return &Spectre{}
+		/*	case phantom_v2:
+				return &Phantom_v2{}
+			case conflux:
+				return &Conflux{}
+			case spectre:
+				return &Spectre{}*/
 	}
 	return nil
 }
@@ -132,10 +132,10 @@ type IBlockDAG interface {
 	IsDAG(parents []uint) bool
 
 	// GetBlues
-	GetBlues(parents *HashSet) uint
+	GetBlues(parents *IdSet) uint
 
 	// IsBlue
-	IsBlue(h *hash.Hash) bool
+	IsBlue(id uint) bool
 
 	// getMaxParents
 	getMaxParents() int
@@ -143,6 +143,9 @@ type IBlockDAG interface {
 
 // CalcWeight
 type CalcWeight func(int64) int64
+
+// GetBlockId
+type GetBlockId func(*hash.Hash) uint
 
 // The general foundation framework of DAG
 type BlockDAG struct {
@@ -176,6 +179,9 @@ type BlockDAG struct {
 
 	// blocks per second
 	blockRate float64
+
+	// getBlockId
+	getBlockId GetBlockId
 }
 
 // Acquire the name of DAG instance
@@ -189,10 +195,11 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 }
 
 // Initialize self, the function to be invoked at the beginning
-func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64) IBlockDAG {
+func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, getBlockId GetBlockId) IBlockDAG {
 	bd.lastTime = time.Unix(time.Now().Unix(), 0)
 
 	bd.calcWeight = calcWeight
+	bd.getBlockId = getBlockId
 
 	bd.blockRate = blockRate
 	if bd.blockRate < 0 {
@@ -205,12 +212,12 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 
 // This is an entry for update the block dag,you need pass in a block parameter,
 // If add block have failure,it will return false.
-func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
+func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
 	if b == nil {
-		return nil
+		return nil, nil
 	}
 	// Must keep no block in outside.
 	/*	if bd.hasBlock(b.GetHash()) {
@@ -220,13 +227,13 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 	if bd.blockTotal > 0 {
 		parents = b.GetParents()
 		if parents.IsEmpty() {
-			return nil
+			return nil, nil
 		}
 		if !bd.hasBlocks(parents.List()) {
-			return nil
+			return nil, nil
 		}
 		if !bd.isDAG(parents.List()) {
-			return nil
+			return nil, nil
 		}
 	}
 	//
@@ -267,7 +274,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) *list.List {
 		bd.lastTime = t
 	}
 	//
-	return bd.instance.AddBlock(ib)
+	return bd.instance.AddBlock(ib), ib
 }
 
 // Acquire the genesis block of chain
@@ -331,7 +338,7 @@ func (bd *BlockDAG) hasBlocks(ids []uint) bool {
 	return true
 }
 
-/*// Acquire one block by hash
+// Acquire one block by hash
 func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
@@ -345,15 +352,14 @@ func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
 	if h == nil {
 		return nil
 	}
-	for _, v := range bd.blocks {
-		if v.GetHash().IsEqual(h) {
-			return v
-		}
+	id := bd.getBlockId(h)
+	if id == MaxId {
+		return nil
 	}
-	return nil
+	return bd.getBlockById(id)
 }
-*/
-// Acquire one block by id
+
+// Acquire one block by hash
 func (bd *BlockDAG) GetBlockById(id uint) IBlock {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
@@ -583,7 +589,7 @@ func (bd *BlockDAG) locateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
 		if fs.Has(cur.GetHash()) {
 			continue
 		}
-		if gs.GetTips().Has(cur.GetHash()) || cur.GetHash().IsEqual(&bd.genesis) {
+		if gs.GetTips().Has(cur.GetHash()) || cur.GetID() == 0 {
 			continue
 		}
 		needRec := true
@@ -682,7 +688,7 @@ func (bd *BlockDAG) recAnticone(bs *IdSet, futureSet *IdSet, anticone *IdSet, id
 
 		//Because parents can not be empty, so there is no need to judge.
 		for k := range parents.GetMap() {
-			bd.recAnticone(bs, futureSet, anticone, &k)
+			bd.recAnticone(bs, futureSet, anticone, k)
 		}
 	}
 }
@@ -867,7 +873,6 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *IdSet {
 	return result
 }
 
-/*
 // Sort block by id
 func (bd *BlockDAG) sortBlock(src []*hash.Hash) []*hash.Hash {
 
@@ -897,7 +902,7 @@ func (bd *BlockDAG) SortBlock(src []*hash.Hash) []*hash.Hash {
 	defer bd.stateLock.Unlock()
 
 	return bd.sortBlock(src)
-}*/
+}
 
 // GetConfirmations
 func (bd *BlockDAG) GetConfirmations(id uint) uint {
@@ -1149,7 +1154,7 @@ func (bd *BlockDAG) Decode(r io.Reader) error {
 }
 
 // GetBlues
-func (bd *BlockDAG) GetBlues(parents *HashSet) uint {
+func (bd *BlockDAG) GetBlues(parents *IdSet) uint {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
@@ -1157,11 +1162,11 @@ func (bd *BlockDAG) GetBlues(parents *HashSet) uint {
 }
 
 // IsBlue
-func (bd *BlockDAG) IsBlue(h *hash.Hash) bool {
+func (bd *BlockDAG) IsBlue(id uint) bool {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
-	return bd.instance.IsBlue(h)
+	return bd.instance.IsBlue(id)
 }
 
 func (bd *BlockDAG) IsHourglass(id uint) bool {
