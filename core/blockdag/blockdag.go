@@ -52,12 +52,12 @@ func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
 	case phantom:
 		return &Phantom{}
-		/*	case phantom_v2:
-				return &Phantom_v2{}
-			case conflux:
-				return &Conflux{}
-			case spectre:
-				return &Spectre{}*/
+	case phantom_v2:
+		return &Phantom_v2{}
+	case conflux:
+		return &Conflux{}
+	case spectre:
+		return &Spectre{}
 	}
 	return nil
 }
@@ -567,9 +567,7 @@ func (bd *BlockDAG) locateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
 	queue := []IBlock{}
 	fs := NewHashSet()
 	tips := bd.getValidTips(false)
-	for _, v := range tips {
-		queue = append(queue, v)
-	}
+	queue = append(queue, tips...)
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
