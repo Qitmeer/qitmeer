@@ -3,6 +3,7 @@ package blockchain
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/params"
@@ -131,6 +132,14 @@ func (bi *blockIndex) GetMaxOrderFromList(list []*hash.Hash) *hash.Hash {
 		}
 	}
 	return maxHash
+}
+
+func (bi *blockIndex) GetDAGBlockID(h *hash.Hash) uint {
+	bn := bi.LookupNode(h)
+	if bn == nil {
+		return blockdag.MaxId
+	}
+	return bn.dagID
 }
 
 func GetMaxLayerFromList(list []*blockNode) uint {

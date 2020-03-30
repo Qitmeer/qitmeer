@@ -129,10 +129,11 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.pruner.pruneChainIfNeeded()
 
 	//dag
-	newOrders := b.bd.AddBlock(newNode)
+	newOrders, ib := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 {
 		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
+	newNode.dagID = ib.GetID()
 	oldOrders := BlockNodeList{}
 	b.getReorganizeNodes(newNode, block, newOrders, &oldOrders)
 	b.index.AddNode(newNode)

@@ -295,25 +295,10 @@ func (bd *BlockDAG) isDAG(parents []uint) bool {
 		bd.instance.IsDAG(parents)
 }
 
-/*// Is there a block in DAG?
-func (bd *BlockDAG) hasBlock(h *hash.Hash) bool {
-	return bd.getBlock(h) != nil
-}
-
 // Is there a block in DAG?
 func (bd *BlockDAG) HasBlock(h *hash.Hash) bool {
 	return bd.GetBlock(h) != nil
 }
-
-// Is there some block in DAG?
-func (bd *BlockDAG) hasBlocks(hs []*hash.Hash) bool {
-	for _, h := range hs {
-		if !bd.hasBlock(h) {
-			return false
-		}
-	}
-	return true
-}*/
 
 // Is there a block in DAG?
 func (bd *BlockDAG) hasBlockById(id uint) bool {
@@ -369,6 +354,9 @@ func (bd *BlockDAG) GetBlockById(id uint) IBlock {
 
 // Acquire one block by id
 func (bd *BlockDAG) getBlockById(id uint) IBlock {
+	if id == MaxId {
+		return nil
+	}
 	block, ok := bd.blocks[id]
 	if !ok {
 		return nil

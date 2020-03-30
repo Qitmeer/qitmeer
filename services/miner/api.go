@@ -103,7 +103,11 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	}
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
-	height, ok := api.miner.blockManager.GetChain().BlockDAG().CheckSubMainChainTip(block.Block().Parents)
+	parents := blockdag.NewIdSet()
+	for _, v := range block.Block().Parents {
+		parents.Add(api.miner.blockManager.GetChain().BlockIndex().GetDAGBlockID(v))
+	}
+	height, ok := api.miner.blockManager.GetChain().BlockDAG().CheckSubMainChainTip(parents.List())
 	if !ok {
 		return fmt.Sprintf("The tips of block is expired."), nil
 	}

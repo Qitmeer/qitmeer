@@ -106,6 +106,9 @@ type blockNode struct {
 
 	// dirty
 	dirty bool
+
+	// dag block id
+	dagID uint
 }
 
 // newBlockNode returns a new block node for the given block header and parent
@@ -152,7 +155,13 @@ func (node *blockNode) Header() types.BlockHeader {
 	// No lock is needed because all accessed fields are immutable.
 	var parentRoot hash.Hash
 	if node.parents != nil {
-		paMerkles := merkle.BuildParentsMerkleTreeStore(node.GetParents())
+		parentsSet := node.GetParents()
+		parents := []*hash.Hash{}
+		for _, v := range parentsSet.GetMap() {
+			n := v.(*blockNode)
+			parents = append(parents, n.GetHash())
+		}
+		paMerkles := merkle.BuildParentsMerkleTreeStore(parents)
 		parentRoot = *paMerkles[len(paMerkles)-1]
 	}
 	return types.BlockHeader{
@@ -214,13 +223,13 @@ func (node *blockNode) CalcWorkSum(mbn *blockNode) {
 }
 
 // Include all parents for set
-func (node *blockNode) GetParents() []*hash.Hash {
+func (node *blockNode) GetParents() *blockdag.IdSet {
 	if node.parents == nil || len(node.parents) == 0 {
 		return nil
 	}
-	result := []*hash.Hash{}
+	result := blockdag.NewIdSet()
 	for _, v := range node.parents {
-		result = append(result, &v.hash)
+		result.AddPair(v.dagID, v)
 	}
 	return result
 }
@@ -306,12 +315,10 @@ func (node *blockNode) GetTimestamp() int64 {
 // Return the main parent
 func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
 	parents := node.GetParents()
-	if len(parents) == 0 {
+	if parents.IsEmpty() {
 		return nil
 	}
-	parentsSet := blockdag.NewHashSet()
-	parentsSet.AddList(parents)
-	mainParent := b.bd.GetMainParent(parentsSet)
+	mainParent := b.bd.GetMainParent(parents)
 	if mainParent == nil {
 		return nil
 	}
@@ -371,4 +378,9 @@ func (node *blockNode) FlushToDB(b *BlockChain) error {
 		node.dirty = false
 	}
 	return err
+}
+
+// return node ID
+func (node *blockNode) GetID() uint {
+	return node.dagID
 }

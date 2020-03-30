@@ -272,7 +272,7 @@ func New(config *Config) (*BlockChain, error) {
 
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType, b.subsidyCache.CalcBlockSubsidy,
-		1.0/float64(par.TargetTimePerBlock/time.Second))
+		1.0/float64(par.TargetTimePerBlock/time.Second), b.index.GetDAGBlockID)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -460,7 +460,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				}
 				parents = append(parents, parent)
 			}
-			refblock := b.bd.GetBlock(blockHash)
+			refblock := b.bd.GetBlockById(i)
 			//
 			node := &blockNode{}
 			initBlockNode(node, &block.Block().Header, parents)

@@ -270,5 +270,5 @@ func (b *BlockChain) IsCheckpointCandidate(preBlock, block blockdag.IBlock) (boo
 		}
 	}
 
-	return b.BlockDAG().IsHourglass(block.GetHash()), nil
+	return b.BlockDAG().IsHourglass(block.GetID()), nil
 }
