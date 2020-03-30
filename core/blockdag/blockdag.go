@@ -781,8 +781,7 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *IdSet {
 	if parents == nil || parents.Size() <= 1 {
 		return nil
 	}
-	num := uint(0)
-	rootBlock := &Block{id: num, hash: *b.GetHash(), parents: NewIdSet(), mainParent: MaxId}
+	rootBlock := &Block{id: b.GetID(), hash: *b.GetHash(), parents: NewIdSet(), mainParent: MaxId}
 	// find anticone
 	anticone := NewIdSet()
 	mainsubdag := NewIdSet()
@@ -791,8 +790,7 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *IdSet {
 
 	for _, v := range parents.GetMap() {
 		ib := v.(IBlock)
-		num++
-		cur := &Block{id: num, hash: *ib.GetHash(), parents: NewIdSet(), mainParent: MaxId}
+		cur := &Block{id: ib.GetID(), hash: *ib.GetHash(), parents: NewIdSet(), mainParent: MaxId}
 		if ib.GetID() == b.GetMainParent() {
 			mainsubdag.Add(ib.GetID())
 			mainsubdagTips.AddPair(ib.GetID(), ib)
@@ -858,8 +856,7 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *IdSet {
 					if anticone.Has(pib.GetID()) {
 						cur = anticone.Get(pib.GetID()).(*Block)
 					} else {
-						num++
-						cur = &Block{id: num, hash: *pib.GetHash(), parents: NewIdSet(), mainParent: MaxId}
+						cur = &Block{id: pib.GetID(), hash: *pib.GetHash(), parents: NewIdSet(), mainParent: MaxId}
 						anticone.AddPair(cur.GetID(), cur)
 					}
 					tb.parents.AddPair(cur.GetID(), cur)
