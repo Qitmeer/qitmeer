@@ -155,11 +155,9 @@ func (node *blockNode) Header() types.BlockHeader {
 	// No lock is needed because all accessed fields are immutable.
 	var parentRoot hash.Hash
 	if node.parents != nil {
-		parentsSet := node.GetParents()
 		parents := []*hash.Hash{}
-		for _, v := range parentsSet.GetMap() {
-			n := v.(*blockNode)
-			parents = append(parents, n.GetHash())
+		for _, v := range node.parents {
+			parents = append(parents, v.GetHash())
 		}
 		paMerkles := merkle.BuildParentsMerkleTreeStore(parents)
 		parentRoot = *paMerkles[len(paMerkles)-1]
@@ -271,6 +269,7 @@ func (node *blockNode) Clone() *blockNode {
 	newNode.pow = node.pow
 	newNode.workSum = node.workSum
 	newNode.dirty = node.dirty
+	newNode.dagID = node.dagID
 	return newNode
 }
 

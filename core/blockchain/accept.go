@@ -130,7 +130,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 
 	//dag
 	newOrders, ib := b.bd.AddBlock(newNode)
-	if newOrders == nil || newOrders.Len() == 0 {
+	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
 		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
 	newNode.dagID = ib.GetID()

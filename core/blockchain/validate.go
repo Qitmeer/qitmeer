@@ -1176,6 +1176,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	newNode.SetOrder(block.Order())
 	newNode.SetHeight(block.Height())
 	newNode.SetLayer(GetMaxLayerFromList(tipsNode) + 1)
+	newNode.dagID = b.bd.GetBlockTotal()
 
 	view := NewUtxoViewpoint()
 	view.SetViewpoints(block.Block().Parents)

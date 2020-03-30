@@ -468,6 +468,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			node.status = blockStatus(refblock.GetStatus())
 			node.SetOrder(uint64(refblock.GetOrder()))
 			node.SetHeight(refblock.GetHeight())
+			node.dagID = i
 			if i != 0 {
 				node.CalcWorkSum(node.GetMainParent(b))
 			}
@@ -1184,7 +1185,6 @@ func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 // This function MUST be called with the chain state lock held (for writes).
 
 func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *list.List, newBlock *types.SerializedBlock) error {
-
 	node := b.index.LookupNode(newBlock.Hash())
 	// Why the old order is the order that was removed by the new block, because the new block
 	// must be one of the tip of the dag.This is very important for the following understanding.
