@@ -83,11 +83,6 @@ func (bi *blockIndex) LookupNode(hash *hash.Hash) *blockNode {
 // This function MUST be called with the block index lock held (for writes).
 func (bi *blockIndex) addNode(node *blockNode) {
 	bi.index[node.hash] = node
-	if node.parents != nil && len(node.parents) > 0 {
-		for _, v := range node.parents {
-			v.AddChild(node)
-		}
-	}
 }
 
 // AddNode adds the provided node to the block index.  Duplicate entries are not

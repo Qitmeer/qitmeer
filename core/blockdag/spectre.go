@@ -830,3 +830,18 @@ func (sp *Spectre) Load(dbTx database.Tx) error {
 func (sp *Spectre) IsDAG(parents []*hash.Hash) bool {
 	return true
 }
+
+// GetBlues
+func (sp *Spectre) GetBlues(parents *HashSet) uint {
+	return 0
+}
+
+// IsBlue
+func (sp *Spectre) IsBlue(h *hash.Hash) bool {
+	return false
+}
+
+// getMaxParents
+func (sp *Spectre) getMaxParents() int {
+	return 0
+}

@@ -736,12 +736,12 @@ func (b *BlockChain) BlockByHash(hash *hash.Hash) (*types.SerializedBlock, error
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) HeaderByHash(hash *hash.Hash) (types.BlockHeader, error) {
-	node := b.index.LookupNode(hash)
-	if node == nil {
+	block, err := b.fetchBlockByHash(hash)
+	if err != nil || block == nil {
 		return types.BlockHeader{}, fmt.Errorf("block %s is not known", hash)
 	}
 
-	return node.Header(), nil
+	return block.Block().Header, nil
 }
 
 // FetchBlockByHash searches the internal chain block stores and the database

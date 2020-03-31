@@ -67,8 +67,6 @@ type blockNode struct {
 
 	// parents is all the parents block for this node.
 	parents []*blockNode
-	// children is all the children block for this node.
-	children []*blockNode
 	// hash is the hash of the block this node represents.
 	hash hash.Hash
 
@@ -227,42 +225,6 @@ func (node *blockNode) GetParents() []*hash.Hash {
 	return result
 }
 
-// node has children in DAG
-func (node *blockNode) AddChild(child *blockNode) {
-	if node.HasChild(child) {
-		return
-	}
-	if node.children == nil {
-		node.children = []*blockNode{}
-	}
-	node.children = append(node.children, child)
-}
-
-// check is there any child
-func (node *blockNode) HasChild(child *blockNode) bool {
-	if node.children == nil || len(node.children) == 0 {
-		return false
-	}
-	for _, v := range node.children {
-		if v == child {
-			return true
-		}
-	}
-	return false
-}
-
-// For the moment,In order to match the DAG
-func (node *blockNode) GetChildren() *blockdag.HashSet {
-	if node.children == nil || len(node.children) == 0 {
-		return nil
-	}
-	result := blockdag.NewHashSet()
-	for _, v := range node.children {
-		result.Add(&v.hash)
-	}
-	return result
-}
-
 func (node *blockNode) SetOrder(o uint64) {
 	node.order = o
 }
@@ -294,7 +256,6 @@ func (node *blockNode) Clone() *blockNode {
 	header := node.Header()
 	newNode := newBlockNode(&header, node.parents)
 	newNode.status = node.status
-	newNode.children = node.children
 	newNode.order = node.order
 	newNode.height = node.height
 	newNode.layer = node.layer
