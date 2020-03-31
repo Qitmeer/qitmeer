@@ -12,7 +12,7 @@ type IBlockData interface {
 	GetHash() *hash.Hash
 
 	// Get all parents set,the dag block has more than one parent
-	GetParents() *IdSet
+	GetParents() []uint
 
 	// Timestamp
 	GetTimestamp() int64

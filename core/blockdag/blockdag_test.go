@@ -83,8 +83,8 @@ func (tb *TestBlock) GetHash() *hash.Hash {
 }
 
 // Get all parents set,the dag block has more than one parent
-func (tb *TestBlock) GetParents() *IdSet {
-	return tb.parents
+func (tb *TestBlock) GetParents() []uint {
+	return tb.parents.List()
 }
 
 func (tb *TestBlock) GetTimestamp() int64 {
