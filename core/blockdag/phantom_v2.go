@@ -91,7 +91,7 @@ func (ph *Phantom_v2) GetBlockByOrder(order uint) *hash.Hash {
 	if order >= ph.bd.blockTotal {
 		return nil
 	}
-	return ph.bd.order[order]
+	return ph.bd.GetBlockHash(ph.bd.order[order])
 }
 
 // Query whether a given block is on the main chain.
@@ -100,61 +100,61 @@ func (ph *Phantom_v2) IsOnMainChain(b IBlock) bool {
 }
 
 func (ph *Phantom_v2) updateColoringIncrementally(pb *PhantomBlock) {
-	if pb.HasParents() {
-		cp := ph.getBluest(pb.GetParents())
-		pb.mainParent = cp.GetHash()
-		pb.blueNum = cp.blueNum
-	} else {
-		//It is genesis
-		if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
-			log.Error("Error genesis")
+	/*	if pb.HasParents() {
+			cp := ph.getBluest(pb.GetParents())
+			pb.mainParent = cp.GetHash()
+			pb.blueNum = cp.blueNum
+		} else {
+			//It is genesis
+			if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
+				log.Error("Error genesis")
+			}
 		}
-	}
-	pb.blueDiffAnticone = NewHashSet()
-	pb.redDiffAnticone = NewHashSet()
+		pb.blueDiffAnticone = NewHashSet()
+		pb.redDiffAnticone = NewHashSet()
 
-	ph.uncoloredUnorderedAntipast.AddPair(pb.GetHash(), pb)
+		ph.uncoloredUnorderedAntipast.AddPair(pb.GetHash(), pb)
 
-	ph.updateDiffColoringOfBlock(pb)
-	ph.updateMaxColoring(pb)
+		ph.updateDiffColoringOfBlock(pb)
+		ph.updateMaxColoring(pb)*/
 }
 
 func (ph *Phantom_v2) updateDiffColoringOfBlock(pb *PhantomBlock) {
-	blueDiffPastOrder := NewHashSet()
-	redDiffPastOrder := NewHashSet()
+	/*	blueDiffPastOrder := NewHashSet()
+		redDiffPastOrder := NewHashSet()
 
-	if pb.HasParents() {
-		kchain := ph.getKChain(pb)
-		parentAntipast := ph.getAntipast(pb.mainParent)
-		diffPastQueue := []*PhantomBlock{}
-		for k := range pb.GetParents().GetMap() {
-			diffPastQueue = append(diffPastQueue, ph.blocks[k])
-		}
-		filter := NewHashSet()
-		filter.Add(pb.GetHash())
-
-		for len(diffPastQueue) > 0 {
-			cur := diffPastQueue[0]
-			diffPastQueue = diffPastQueue[1:]
-			//
-			if blueDiffPastOrder.Has(cur.GetHash()) ||
-				redDiffPastOrder.Has(cur.GetHash()) ||
-				parentAntipast.Has(cur.GetHash()) ||
-				filter.Has(cur.GetHash()) {
-				continue
-			}
-			ph.colorBlock(kchain, cur, blueDiffPastOrder, redDiffPastOrder)
-			filter.Add(cur.GetHash())
-
-			for k := range cur.GetParents().GetMap() {
+		if pb.HasParents() {
+			kchain := ph.getKChain(pb)
+			parentAntipast := ph.getAntipast(pb.mainParent)
+			diffPastQueue := []*PhantomBlock{}
+			for k := range pb.GetParents().GetMap() {
 				diffPastQueue = append(diffPastQueue, ph.blocks[k])
-				filter.Add(&k)
+			}
+			filter := NewHashSet()
+			filter.Add(pb.GetHash())
+
+			for len(diffPastQueue) > 0 {
+				cur := diffPastQueue[0]
+				diffPastQueue = diffPastQueue[1:]
+				//
+				if blueDiffPastOrder.Has(cur.GetHash()) ||
+					redDiffPastOrder.Has(cur.GetHash()) ||
+					parentAntipast.Has(cur.GetHash()) ||
+					filter.Has(cur.GetHash()) {
+					continue
+				}
+				ph.colorBlock(kchain, cur, blueDiffPastOrder, redDiffPastOrder)
+				filter.Add(cur.GetHash())
+
+				for k := range cur.GetParents().GetMap() {
+					diffPastQueue = append(diffPastQueue, ph.blocks[k])
+					filter.Add(&k)
+				}
 			}
 		}
-	}
-	pb.blueDiffAnticone = blueDiffPastOrder
-	pb.redDiffAnticone = redDiffPastOrder
-	pb.blueNum += uint(pb.blueDiffAnticone.Size())
+		pb.blueDiffAnticone = blueDiffPastOrder
+		pb.redDiffAnticone = redDiffPastOrder
+		pb.blueNum += uint(pb.blueDiffAnticone.Size())*/
 
 }
 
@@ -183,19 +183,20 @@ func (ph *Phantom_v2) getExtremeBlue(bs *HashSet, bluest bool) *PhantomBlock {
 }
 
 func (ph *Phantom_v2) getKChain(pb *PhantomBlock) *KChain {
-	var blueCount int = 0
-	result := &KChain{NewHashSet(), 0}
-	curPb := pb
-	for {
-		result.blocks.AddPair(curPb.GetHash(), curPb)
-		result.miniLayer = curPb.GetLayer()
-		blueCount += curPb.blueDiffAnticone.Size()
-		if blueCount > ph.anticoneSize || curPb.mainParent == nil {
-			break
+	return nil
+	/*	var blueCount int = 0
+		result := &KChain{NewHashSet(), 0}
+		curPb := pb
+		for {
+			result.blocks.AddPair(curPb.GetHash(), curPb)
+			result.miniLayer = curPb.GetLayer()
+			blueCount += curPb.blueDiffAnticone.Size()
+			if blueCount > ph.anticoneSize || curPb.mainParent == nil {
+				break
+			}
+			curPb = ph.blocks[*curPb.mainParent]
 		}
-		curPb = ph.blocks[*curPb.mainParent]
-	}
-	return result
+		return result*/
 }
 
 func (ph *Phantom_v2) getAntipast(h *hash.Hash) *HashSet {
@@ -207,8 +208,8 @@ func (ph *Phantom_v2) getAntipast(h *hash.Hash) *HashSet {
 	if h.IsEqual(ph.coloringTip) {
 		return result
 	}
-
-	curPb := ph.blocks[*h]
+	return nil
+	/*curPb := ph.blocks[*h]
 	var intersection *hash.Hash
 	positive := NewHashSet()
 	negative := NewHashSet()
@@ -246,7 +247,7 @@ func (ph *Phantom_v2) getAntipast(h *hash.Hash) *HashSet {
 	result.AddSet(positive)
 	result.RemoveSet(negative)
 
-	return result
+	return result*/
 }
 
 func (ph *Phantom_v2) colorBlock(kc *KChain, pb *PhantomBlock, blueOrder *HashSet, redOrder *HashSet) {
@@ -258,20 +259,21 @@ func (ph *Phantom_v2) colorBlock(kc *KChain, pb *PhantomBlock, blueOrder *HashSe
 }
 
 func (ph *Phantom_v2) coloringRule2(kc *KChain, pb *PhantomBlock) bool {
-	curPb := pb
-	for {
-		if curPb.GetLayer() < kc.miniLayer {
-			return false
-		}
-		if kc.blocks.Has(curPb.GetHash()) {
-			return true
-		}
-		if curPb.mainParent == nil {
-			break
-		}
-		curPb = ph.blocks[*curPb.mainParent]
-	}
 	return false
+	/*	curPb := pb
+		for {
+			if curPb.GetLayer() < kc.miniLayer {
+				return false
+			}
+			if kc.blocks.Has(curPb.GetHash()) {
+				return true
+			}
+			if curPb.mainParent == nil {
+				break
+			}
+			curPb = ph.blocks[*curPb.mainParent]
+		}
+		return false*/
 }
 
 func (ph *Phantom_v2) updateMaxColoring(pb *PhantomBlock) {
@@ -292,7 +294,7 @@ func (ph *Phantom_v2) isMaxColoringTip(pb *PhantomBlock) bool {
 }
 
 func (ph *Phantom_v2) updatePastColoringAccordingTo(pb *PhantomBlock) {
-	ph.uncoloredUnorderedAntipast.AddSet(ph.blueAntipastOrder)
+	/*ph.uncoloredUnorderedAntipast.AddSet(ph.blueAntipastOrder)
 	ph.uncoloredUnorderedAntipast.AddSet(ph.redAntipastOrder)
 	ph.uncoloredUnorderedAntipast.Add(pb.GetHash())
 	ph.blueAntipastOrder.Clean()
@@ -339,7 +341,7 @@ func (ph *Phantom_v2) updatePastColoringAccordingTo(pb *PhantomBlock) {
 		ph.uncoloredUnorderedAntipast.RemoveSet(v.redDiffAnticone)
 	}
 
-	ph.coloringTip = pb.GetHash()
+	ph.coloringTip = pb.GetHash()*/
 }
 
 func (ph *Phantom_v2) updateTopologicalOrderIncrementally(pb *PhantomBlock) {
@@ -348,23 +350,24 @@ func (ph *Phantom_v2) updateTopologicalOrderIncrementally(pb *PhantomBlock) {
 }
 
 func (ph *Phantom_v2) updateTopologicalOrderInDicts(pb *PhantomBlock) {
-	var startOrder uint = 0
-	if pb.mainParent != nil && ph.blocks[*pb.mainParent].GetOrder() != MaxBlockOrder {
-		startOrder = ph.blocks[*pb.mainParent].GetOrder()
-	}
-	ordered := ph.calculateTopologicalOrder(pb)
-	for i, v := range ordered {
-		newLOrder := uint(i) + startOrder
-		if pb.blueDiffAnticone.Has(v) {
-			pb.blueDiffAnticone.AddPair(v, newLOrder)
-		} else {
-			pb.redDiffAnticone.AddPair(v, newLOrder)
+	/*	var startOrder uint = 0
+		if pb.mainParent != nil && ph.blocks[*pb.mainParent].GetOrder() != MaxBlockOrder {
+			startOrder = ph.blocks[*pb.mainParent].GetOrder()
 		}
-	}
+		ordered := ph.calculateTopologicalOrder(pb)
+		for i, v := range ordered {
+			newLOrder := uint(i) + startOrder
+			if pb.blueDiffAnticone.Has(v) {
+				pb.blueDiffAnticone.AddPair(v, newLOrder)
+			} else {
+				pb.redDiffAnticone.AddPair(v, newLOrder)
+			}
+		}*/
 }
 
 func (ph *Phantom_v2) calculateTopologicalOrder(pb *PhantomBlock) []*hash.Hash {
-	unordered := pb.blueDiffAnticone.Clone()
+	return nil
+	/*unordered := pb.blueDiffAnticone.Clone()
 	unordered.AddSet(pb.redDiffAnticone)
 	toOrder := ph.sortBlocks(pb.mainParent, pb.blueDiffAnticone, pb.GetParents(), unordered)
 	ordered := HashSlice{}
@@ -390,7 +393,7 @@ func (ph *Phantom_v2) calculateTopologicalOrder(pb *PhantomBlock) []*hash.Hash {
 		ordered = append(ordered, cur)
 		orderedSet.Add(cur)
 	}
-	return ordered
+	return ordered*/
 }
 
 func (ph *Phantom_v2) sortBlocks(lastBlock *hash.Hash, laterBlocks *HashSet, toSort *HashSet, unsorted *HashSet) []*hash.Hash {
@@ -420,10 +423,10 @@ func (ph *Phantom_v2) sortBlocks(lastBlock *hash.Hash, laterBlocks *HashSet, toS
 }
 
 func (ph *Phantom_v2) updateOrder(pb *PhantomBlock) {
-	pb.order = uint(pb.blueDiffAnticone.Size() + pb.redDiffAnticone.Size())
-	if pb.mainParent != nil && ph.blocks[*pb.mainParent].GetOrder() != MaxBlockOrder {
-		pb.order += ph.blocks[*pb.mainParent].GetOrder()
-	}
+	/*	pb.order = uint(pb.blueDiffAnticone.Size() + pb.redDiffAnticone.Size())
+		if pb.mainParent != nil && ph.blocks[*pb.mainParent].GetOrder() != MaxBlockOrder {
+			pb.order += ph.blocks[*pb.mainParent].GetOrder()
+		}*/
 }
 
 func (ph *Phantom_v2) updateAntipastColoring() {
@@ -439,7 +442,7 @@ func (ph *Phantom_v2) GetMainChainTip() IBlock {
 }
 
 // return the main parent in the parents
-func (ph *Phantom_v2) GetMainParent(parents *HashSet) IBlock {
+func (ph *Phantom_v2) GetMainParent(parents *IdSet) IBlock {
 	return nil
 }
 
@@ -458,17 +461,17 @@ func (ph *Phantom_v2) Load(dbTx database.Tx) error {
 }
 
 // IsDAG
-func (ph *Phantom_v2) IsDAG(parents []*hash.Hash) bool {
+func (ph *Phantom_v2) IsDAG(parents []uint) bool {
 	return true
 }
 
 // GetBlues
-func (ph *Phantom_v2) GetBlues(parents *HashSet) uint {
+func (ph *Phantom_v2) GetBlues(parents *IdSet) uint {
 	return 0
 }
 
 // IsBlue
-func (ph *Phantom_v2) IsBlue(h *hash.Hash) bool {
+func (ph *Phantom_v2) IsBlue(id uint) bool {
 	return false
 }
 

@@ -62,31 +62,32 @@ func (con *Conflux) Init(bd *BlockDAG) bool {
 }
 
 func (con *Conflux) AddBlock(b IBlock) *list.List {
-	if b == nil {
+	return nil
+	/*if b == nil {
 		return nil
 	}
 	//
-	con.updatePrivot(b)
-	oldOrder := con.bd.order
-	con.bd.order = map[uint]*hash.Hash{}
-	con.updateMainChain(con.bd.getGenesis(), nil, nil)
+		con.updatePrivot(b)
+		oldOrder := con.bd.order
+		con.bd.order = map[uint]*hash.Hash{}
+		con.updateMainChain(con.bd.getGenesis(), nil, nil)
 
-	var result *list.List
-	var i uint
-	for i = 0; i < con.bd.blockTotal; i++ {
-		if result == nil {
-			if len(oldOrder) == 0 ||
-				i >= uint(len(oldOrder)) ||
-				!oldOrder[i].IsEqual(con.bd.order[i]) {
-				result = list.New()
+		var result *list.List
+		var i uint
+		for i = 0; i < con.bd.blockTotal; i++ {
+			if result == nil {
+				if len(oldOrder) == 0 ||
+					i >= uint(len(oldOrder)) ||
+					!oldOrder[i].IsEqual(con.bd.order[i]) {
+					result = list.New()
+					result.PushBack(con.bd.order[i])
+				}
+			} else {
 				result.PushBack(con.bd.order[i])
 			}
-		} else {
-			result.PushBack(con.bd.order[i])
-		}
 
-	}
-	return result
+		}
+		return result*/
 }
 
 // Build self block
@@ -95,7 +96,8 @@ func (con *Conflux) CreateBlock(b *Block) IBlock {
 }
 
 func (con *Conflux) GetTipsList() []IBlock {
-	if con.bd.tips.IsEmpty() || con.privotTip == nil {
+	return nil
+	/*if con.bd.tips.IsEmpty() || con.privotTip == nil {
 		return nil
 	}
 	if con.bd.tips.HasOnly(con.privotTip.GetHash()) {
@@ -111,11 +113,11 @@ func (con *Conflux) GetTipsList() []IBlock {
 	for _, h := range tipsList {
 		result = append(result, con.bd.getBlock(h))
 	}
-	return result
+	return result*/
 }
 
 func (con *Conflux) updatePrivot(b IBlock) {
-	if b.GetMainParent() == nil {
+	/*if b.GetMainParent() == nil {
 		return
 	}
 	parent := con.bd.getBlock(b.GetMainParent())
@@ -130,67 +132,68 @@ func (con *Conflux) updatePrivot(b IBlock) {
 	parent.SetWeight(newWeight + 1)
 	if parent.GetMainParent() != nil {
 		con.updatePrivot(parent)
-	}
+	}*/
 }
 
 func (con *Conflux) updateMainChain(b IBlock, preEpoch *Epoch, main *HashSet) {
-
-	if main == nil {
-		main = NewHashSet()
-	}
-	main.Add(b.GetHash())
-
-	curEpoch := con.updateOrder(b, preEpoch, main)
-	if con.isVirtualBlock(b) {
-		return
-	}
-	if !b.HasChildren() {
-		con.privotTip = b
-		if con.bd.tips.Size() > 1 {
-			virtualBlock := Block{hash: hash.Hash{}, weight: 1}
-			virtualBlock.parents = NewHashSet()
-			virtualBlock.parents.AddSet(con.bd.tips)
-			con.updateMainChain(&virtualBlock, curEpoch, main)
+	/*
+		if main == nil {
+			main = NewHashSet()
 		}
-		return
-	}
-	children := b.GetChildren().List()
-	if len(children) == 1 {
-		con.updateMainChain(con.bd.getBlock(children[0]), curEpoch, main)
-		return
-	}
-	var nextMain IBlock = nil
-	for _, h := range children {
-		child := con.bd.getBlock(h)
+		main.Add(b.GetHash())
 
-		if nextMain == nil {
-			nextMain = child
-		} else {
-			if child.GetWeight() > nextMain.GetWeight() {
+		curEpoch := con.updateOrder(b, preEpoch, main)
+		if con.isVirtualBlock(b) {
+			return
+		}
+		if !b.HasChildren() {
+			con.privotTip = b
+			if con.bd.tips.Size() > 1 {
+				virtualBlock := Block{hash: hash.Hash{}, weight: 1}
+				virtualBlock.parents = NewHashSet()
+				virtualBlock.parents.AddSet(con.bd.tips)
+				con.updateMainChain(&virtualBlock, curEpoch, main)
+			}
+			return
+		}
+		children := b.GetChildren().List()
+		if len(children) == 1 {
+			con.updateMainChain(con.bd.getBlock(children[0]), curEpoch, main)
+			return
+		}
+		var nextMain IBlock = nil
+		for _, h := range children {
+			child := con.bd.getBlock(h)
+
+			if nextMain == nil {
 				nextMain = child
-			} else if child.GetWeight() == nextMain.GetWeight() {
-				if child.GetHash().String() < nextMain.GetHash().String() {
+			} else {
+				if child.GetWeight() > nextMain.GetWeight() {
 					nextMain = child
+				} else if child.GetWeight() == nextMain.GetWeight() {
+					if child.GetHash().String() < nextMain.GetHash().String() {
+						nextMain = child
+					}
 				}
 			}
-		}
 
-	}
-	if nextMain != nil {
-		con.updateMainChain(nextMain, curEpoch, main)
-	}
+		}
+		if nextMain != nil {
+			con.updateMainChain(nextMain, curEpoch, main)
+		}*/
 }
 
 func (con *Conflux) GetMainChain() []*hash.Hash {
 	result := []*hash.Hash{}
-	for p := con.privotTip; p != nil; p = con.bd.getBlock(p.GetMainParent()) {
+	/*	for p := con.privotTip; p != nil; p = con.bd.getBlock(p.GetMainParent()) {
 		result = append(result, p.GetHash())
-	}
+	}*/
 	return result
 }
 
 func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch {
-	var result *Epoch
+	return nil
+	/*var result *Epoch
 	if preEpoch == nil {
 		b.SetOrder(0)
 		result = &Epoch{main: b}
@@ -237,49 +240,49 @@ func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch
 		}
 	}
 
-	return result
+	return result*/
 }
 
 func (con *Conflux) getEpoch(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch {
+	return nil /*
+		result := Epoch{main: b}
+		var dependsS *HashSet
 
-	result := Epoch{main: b}
-	var dependsS *HashSet
-
-	chain := list.New()
-	chain.PushBack(b)
-	for {
-		if chain.Len() == 0 {
-			break
-		}
-		ele := chain.Back()
-		block := ele.Value.(IBlock)
-		chain.Remove(ele)
-		//
-		if block.HasParents() {
-			for h := range block.GetParents().GetMap() {
-				if main.Has(&h) || preEpoch.HasBlock(&h) {
-					continue
+		chain := list.New()
+		chain.PushBack(b)
+		for {
+			if chain.Len() == 0 {
+				break
+			}
+			ele := chain.Back()
+			block := ele.Value.(IBlock)
+			chain.Remove(ele)
+			//
+			if block.HasParents() {
+				for h := range block.GetParents().GetMap() {
+					if main.Has(&h) || preEpoch.HasBlock(&h) {
+						continue
+					}
+					if result.depends == nil {
+						result.depends = []IBlock{}
+						dependsS = NewHashSet()
+					}
+					if dependsS.Has(&h) {
+						continue
+					}
+					parent := con.bd.getBlock(&h)
+					result.depends = append(result.depends, parent)
+					chain.PushBack(parent)
+					dependsS.Add(&h)
 				}
-				if result.depends == nil {
-					result.depends = []IBlock{}
-					dependsS = NewHashSet()
-				}
-				if dependsS.Has(&h) {
-					continue
-				}
-				parent := con.bd.getBlock(&h)
-				result.depends = append(result.depends, parent)
-				chain.PushBack(parent)
-				dependsS.Add(&h)
 			}
 		}
-	}
-	return &result
+		return &result*/
 }
 
 func (con *Conflux) getForwardBlocks(bs *HashSet) []IBlock {
 	result := []IBlock{}
-	rs := NewHashSet()
+	/*rs := NewHashSet()
 	for h := range bs.GetMap() {
 		block := con.bd.getBlock(&h)
 
@@ -317,7 +320,7 @@ func (con *Conflux) getForwardBlocks(bs *HashSet) []IBlock {
 			result = append(result, con.bd.getBlock(minHash))
 			rs.Remove(minHash)
 		}
-	}
+	}*/
 
 	return result
 }
@@ -327,15 +330,16 @@ func (con *Conflux) isVirtualBlock(b IBlock) bool {
 }
 
 func (con *Conflux) GetBlockByOrder(order uint) *hash.Hash {
-	if order >= con.bd.blockTotal {
+	return nil
+	/*if order >= con.bd.blockTotal {
 		return nil
 	}
-	return con.bd.order[order]
+	return con.bd.order[order]*/
 }
 
 // Query whether a given block is on the main chain.
 func (con *Conflux) IsOnMainChain(b IBlock) bool {
-	for p := con.privotTip; p != nil; p = con.bd.getBlock(p.GetMainParent()) {
+	for p := con.privotTip; p != nil; p = con.bd.getBlockById(p.GetMainParent()) {
 		if p.GetHash().IsEqual(b.GetHash()) {
 			return true
 		}
@@ -352,7 +356,7 @@ func (con *Conflux) GetMainChainTip() IBlock {
 }
 
 // return the main parent in the parents
-func (con *Conflux) GetMainParent(parents *HashSet) IBlock {
+func (con *Conflux) GetMainParent(parents *IdSet) IBlock {
 	return nil
 }
 
@@ -371,17 +375,17 @@ func (con *Conflux) Load(dbTx database.Tx) error {
 }
 
 // IsDAG
-func (con *Conflux) IsDAG(parents []*hash.Hash) bool {
+func (con *Conflux) IsDAG(parents []uint) bool {
 	return true
 }
 
 // GetBlues
-func (con *Conflux) GetBlues(parents *HashSet) uint {
+func (con *Conflux) GetBlues(parents *IdSet) uint {
 	return 0
 }
 
 // IsBlue
-func (con *Conflux) IsBlue(h *hash.Hash) bool {
+func (con *Conflux) IsBlue(id uint) bool {
 	return false
 }
 

@@ -272,7 +272,7 @@ func New(config *Config) (*BlockChain, error) {
 
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType, b.subsidyCache.CalcBlockSubsidy,
-		1.0/float64(par.TargetTimePerBlock/time.Second))
+		1.0/float64(par.TargetTimePerBlock/time.Second), b.index.GetDAGBlockID)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -401,13 +401,11 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		return b.createChainState()
 	}
 
-	//  TODO: Upgrade the database as needed.
-	/*
-		err = upgradeDB(b.db, b.chainParams, b.dbInfo, interrupt)
-		if err != nil {
-			return err
-		}
-	*/
+	//   Upgrade the database as needed.
+	err = b.upgradeDB()
+	if err != nil {
+		return err
+	}
 
 	// Attempt to load the chain state from the database.
 	err = b.db.View(func(dbTx database.Tx) error {
@@ -460,7 +458,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 				}
 				parents = append(parents, parent)
 			}
-			refblock := b.bd.GetBlock(blockHash)
+			refblock := b.bd.GetBlockById(i)
 			//
 			node := &blockNode{}
 			initBlockNode(node, &block.Block().Header, parents)
@@ -468,6 +466,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			node.status = blockStatus(refblock.GetStatus())
 			node.SetOrder(uint64(refblock.GetOrder()))
 			node.SetHeight(refblock.GetHeight())
+			node.dagID = i
 			if i != 0 {
 				node.CalcWorkSum(node.GetMainParent(b))
 			}
@@ -1184,7 +1183,6 @@ func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 // This function MUST be called with the chain state lock held (for writes).
 
 func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *list.List, newBlock *types.SerializedBlock) error {
-
 	node := b.index.LookupNode(newBlock.Hash())
 	// Why the old order is the order that was removed by the new block, because the new block
 	// must be one of the tip of the dag.This is very important for the following understanding.
@@ -1249,12 +1247,12 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 	}
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
-		nodeHash := e.Value.(*hash.Hash)
-		if nodeHash.IsEqual(newBlock.Hash()) {
+		nodeBlock := e.Value.(blockdag.IBlock)
+		if nodeBlock.GetID() == node.GetID() {
 			n = node
 			block = newBlock
 		} else {
-			n = b.index.LookupNode(nodeHash)
+			n = b.index.LookupNode(nodeBlock.GetHash())
 			// If any previous nodes in attachNodes failed validation,
 			// mark this one as having an invalid ancestor.
 			block, err = b.FetchBlockByHash(&n.hash)
@@ -1327,19 +1325,11 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 	var oldOrdersTemp BlockNodeList
 
 	for e := newOrders.Front(); e != nil; e = e.Next() {
-		refHash := e.Value.(*hash.Hash)
-		refblock := b.bd.GetBlock(refHash)
-		if refHash.IsEqual(&newNode.hash) {
-			newNode.SetLayer(refblock.GetLayer())
+		refblock := e.Value.(blockdag.IBlock)
+		if refblock.GetID() == newNode.GetID() {
 			refnode = newNode
-			block.SetOrder(uint64(refblock.GetOrder()))
-			if refblock.GetHeight() != newNode.GetHeight() {
-				log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d", newNode.GetHash(), newNode.GetHeight(), refblock.GetHeight()))
-				newNode.SetHeight(refblock.GetHeight())
-				block.SetHeight(refblock.GetHeight())
-			}
 		} else {
-			refnode = b.index.LookupNode(refHash)
+			refnode = b.index.LookupNode(refblock.GetHash())
 			if refnode.IsOrdered() {
 				oldOrdersTemp = append(oldOrdersTemp, refnode.Clone())
 			}
@@ -1368,9 +1358,9 @@ func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.Seriali
 		neNext := ne.Next()
 		oeNext := oe.Next()
 
-		neHash := ne.Value.(*hash.Hash)
+		neBlock := ne.Value.(blockdag.IBlock)
 		oeNode := oe.Value.(*blockNode)
-		if neHash.IsEqual(oeNode.GetHash()) {
+		if neBlock.GetID() == oeNode.GetID() {
 			newOrders.Remove(ne)
 			oldOrdersList.Remove(oe)
 		} else {

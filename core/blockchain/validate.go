@@ -563,8 +563,10 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 }
 
 func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock, totalFee int64) error {
-	parents := blockdag.NewHashSet()
-	parents.AddList(block.Block().Parents)
+	parents := blockdag.NewIdSet()
+	for _, v := range block.Block().Parents {
+		parents.Add(b.index.GetDAGBlockID(v))
+	}
 	blocks := b.bd.GetBlues(parents)
 	// check subsidy
 	transactions := block.Transactions()
@@ -683,8 +685,10 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	if !b.HasCheckpoints() {
 		return nil
 	}
-	parents := blockdag.NewHashSet()
-	parents.AddList(block.Block().Parents)
+	parents := blockdag.NewIdSet()
+	for _, v := range block.Block().Parents {
+		parents.Add(b.index.GetDAGBlockID(v))
+	}
 	blockLayer, ok := b.BlockDAG().GetParentsMaxLayer(parents)
 	if !ok {
 		str := fmt.Sprintf("bad parents:%v", block.Block().Parents)
@@ -1045,7 +1049,17 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 				str := fmt.Sprintf("transaction %s has no viewpoints", txHash)
 				return 0, ruleError(ErrNoViewpoint, str)
 			}
-			maturity := int64(bd.GetMaturity(utxoEntry.BlockHash(), utxoView.viewpoints))
+			ubhIB := bd.GetBlock(utxoEntry.BlockHash())
+			if ubhIB == nil {
+				str := fmt.Sprintf("utxoEntry blockhash error:%s", utxoEntry.BlockHash())
+				return 0, ruleError(ErrNoViewpoint, str)
+			}
+			viewpoints := blockdag.NewIdSet()
+			for _, v := range utxoView.viewpoints {
+				vib := bd.GetBlock(v)
+				viewpoints.Add(vib.GetID())
+			}
+			maturity := int64(bd.GetMaturity(ubhIB.GetID(), viewpoints.List()))
 
 			if maturity < coinbaseMaturity {
 				str := fmt.Sprintf("tx %v tried to spend "+
@@ -1056,7 +1070,7 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 				return 0, ruleError(ErrImmatureSpend, str)
 			}
 
-			if !bd.IsBlue(utxoEntry.BlockHash()) {
+			if !bd.IsBlue(ubhIB.GetID()) {
 				str := fmt.Sprintf("tx %v tried to spend "+
 					"coinbase transaction %v from "+
 					"at %v before required "+
@@ -1162,6 +1176,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	newNode.SetOrder(block.Order())
 	newNode.SetHeight(block.Height())
 	newNode.SetLayer(GetMaxLayerFromList(tipsNode) + 1)
+	newNode.dagID = b.bd.GetBlockTotal()
 
 	view := NewUtxoViewpoint()
 	view.SetViewpoints(block.Block().Parents)

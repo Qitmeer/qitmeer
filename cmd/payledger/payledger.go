@@ -91,7 +91,7 @@ func buildLedger(cfg *config.Config, db database.DB, params *params.Params) erro
 			if entry.IsSpent() {
 				continue
 			}
-			confir := bc.BlockDAG().GetConfirmations(entry.BlockHash())
+			confir := bc.BlockDAG().GetConfirmations(bc.BlockIndex().GetDAGBlockID(entry.BlockHash()))
 			if confir < blockdag.StableConfirmations && !entry.BlockHash().IsEqual(params.GenesisHash) {
 				continue
 			}
