@@ -48,7 +48,7 @@ type IBlock interface {
 	HasParents() bool
 
 	// Add child nodes to block
-	AddChild(child *Block)
+	AddChild(child IBlock)
 
 	// Get all the children of block
 	GetChildren() *IdSet
@@ -157,7 +157,7 @@ func (b *Block) GetBackParent() *Block {
 }
 
 // Add child nodes to block
-func (b *Block) AddChild(child *Block) {
+func (b *Block) AddChild(child IBlock) {
 	if b.children == nil {
 		b.children = NewIdSet()
 	}

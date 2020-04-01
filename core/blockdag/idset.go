@@ -83,9 +83,9 @@ func (s *IdSet) Intersection(other *IdSet) *IdSet {
 		result.AddSet(s)
 	} else {
 		if other != nil && other.Size() > 0 {
-			for k := range other.GetMap() {
+			for k, v := range other.GetMap() {
 				if s.Has(k) {
-					result.Add(k)
+					result.AddPair(k, v)
 				}
 			}
 		}
@@ -141,6 +141,26 @@ func (s *IdSet) SortList(reverse bool) []uint {
 		sort.Sort(list)
 	}
 	return []uint(list)
+}
+
+// Value must be ensured
+func (s *IdSet) SortHashList(reverse bool) []uint {
+	list := BlockHashSlice{}
+	for _, v := range s.m {
+		item := v.(IBlock)
+		list = append(list, item)
+	}
+	if reverse {
+		sort.Sort(sort.Reverse(list))
+	} else {
+		sort.Sort(list)
+	}
+
+	result := []uint{}
+	for _, v := range list {
+		result = append(result, v.GetID())
+	}
+	return result
 }
 
 func (s *IdSet) IsEqual(other *IdSet) bool {
