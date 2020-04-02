@@ -226,7 +226,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	var parents []uint
 	if bd.blockTotal > 0 {
 		parents = b.GetParents()
-		if parents == nil || len(parents) == 0 {
+		if len(parents) == 0 {
 			return nil, nil
 		}
 		if !bd.hasBlocks(parents) {
@@ -238,7 +238,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	}
 	//
 	block := Block{id: bd.blockTotal, hash: *b.GetHash(), layer: 0, status: StatusNone, mainParent: MaxId}
-	if parents != nil && len(parents) > 0 {
+	if len(parents) > 0 {
 		block.parents = NewIdSet()
 		var maxLayer uint = 0
 		for k, v := range parents {
