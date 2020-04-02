@@ -11,6 +11,7 @@ package blockdag
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"testing"
 )
 
@@ -86,6 +87,33 @@ func Test_SortListId(t *testing.T) {
 
 	for i := uint(0); i < hashNum; i++ {
 		if hl[i] != rshs[hashNum-i-1] {
+			t.FailNow()
+		}
+	}
+}
+
+func Test_SortListHash(t *testing.T) {
+	hs := NewIdSet()
+	hl := BlockHashSlice{}
+	var hashNum uint = 5
+	for i := uint(0); i < hashNum; i++ {
+		hashStr := fmt.Sprintf("%d", i)
+		h := hash.MustHexToDecodedHash(hashStr)
+		block := &Block{id: i, hash: h}
+		hs.AddPair(block.GetID(), block)
+		hl = append(hl, block)
+	}
+	shs := hs.SortHashList(false)
+
+	for i := uint(0); i < hashNum; i++ {
+		if hl[i].GetID() != shs[i] {
+			t.FailNow()
+		}
+	}
+	rshs := hs.SortHashList(true)
+
+	for i := uint(0); i < hashNum; i++ {
+		if hl[i].GetID() != rshs[hashNum-i-1] {
 			t.FailNow()
 		}
 	}
