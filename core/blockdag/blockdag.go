@@ -920,7 +920,7 @@ func (bd *BlockDAG) GetConfirmations(id uint) uint {
 		if !cur.HasChildren() {
 			continue
 		} else {
-			childList := cur.GetChildren().SortList(false)
+			childList := cur.GetChildren().SortHashList(false)
 			for _, v := range childList {
 				ib := cur.GetChildren().Get(v).(IBlock)
 				queue = append(queue, ib)
@@ -959,7 +959,7 @@ func (bd *BlockDAG) getValidTips(limit bool) []IBlock {
 	temp.Remove(mainParent.GetID())
 	var parents []uint
 	if temp.Size() > 1 {
-		parents = temp.SortList(false)
+		parents = temp.SortHashList(false)
 	} else {
 		parents = temp.List()
 	}
