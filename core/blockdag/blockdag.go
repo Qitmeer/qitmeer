@@ -223,26 +223,26 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	/*	if bd.hasBlock(b.GetHash()) {
 		return nil
 	}*/
-	var parents *IdSet
+	var parents []uint
 	if bd.blockTotal > 0 {
 		parents = b.GetParents()
-		if parents == nil || parents.IsEmpty() {
+		if len(parents) == 0 {
 			return nil, nil
 		}
-		if !bd.hasBlocks(parents.List()) {
+		if !bd.hasBlocks(parents) {
 			return nil, nil
 		}
-		if !bd.isDAG(parents.List()) {
+		if !bd.isDAG(parents) {
 			return nil, nil
 		}
 	}
 	//
 	block := Block{id: bd.blockTotal, hash: *b.GetHash(), layer: 0, status: StatusNone, mainParent: MaxId}
-	if parents != nil {
+	if len(parents) > 0 {
 		block.parents = NewIdSet()
 		var maxLayer uint = 0
-		for k := range parents.GetMap() {
-			parent := bd.getBlockById(k)
+		for k, v := range parents {
+			parent := bd.getBlockById(v)
 			block.parents.AddPair(parent.GetID(), parent)
 			parent.AddChild(&block)
 			if k == 0 {
@@ -920,7 +920,7 @@ func (bd *BlockDAG) GetConfirmations(id uint) uint {
 		if !cur.HasChildren() {
 			continue
 		} else {
-			childList := cur.GetChildren().SortList(false)
+			childList := cur.GetChildren().SortHashList(false)
 			for _, v := range childList {
 				ib := cur.GetChildren().Get(v).(IBlock)
 				queue = append(queue, ib)
@@ -959,7 +959,7 @@ func (bd *BlockDAG) getValidTips(limit bool) []IBlock {
 	temp.Remove(mainParent.GetID())
 	var parents []uint
 	if temp.Size() > 1 {
-		parents = temp.SortList(false)
+		parents = temp.SortHashList(false)
 	} else {
 		parents = temp.List()
 	}

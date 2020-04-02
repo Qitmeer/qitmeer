@@ -221,13 +221,13 @@ func (node *blockNode) CalcWorkSum(mbn *blockNode) {
 }
 
 // Include all parents for set
-func (node *blockNode) GetParents() *blockdag.IdSet {
+func (node *blockNode) GetParents() []uint {
 	if node.parents == nil || len(node.parents) == 0 {
 		return nil
 	}
-	result := blockdag.NewIdSet()
+	result := []uint{}
 	for _, v := range node.parents {
-		result.AddPair(v.dagID, v)
+		result = append(result, v.dagID)
 	}
 	return result
 }
@@ -313,7 +313,8 @@ func (node *blockNode) GetTimestamp() int64 {
 
 // Return the main parent
 func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
-	parents := node.GetParents()
+	parents := blockdag.NewIdSet()
+	parents.AddList(node.GetParents())
 	if parents == nil || parents.IsEmpty() {
 		return nil
 	}

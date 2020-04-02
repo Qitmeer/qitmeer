@@ -201,9 +201,11 @@ func (ph *Phantom) updateBlockOrder(pb *PhantomBlock) {
 }
 
 func (ph *Phantom) getDiffAnticoneOrder(pb *PhantomBlock) []uint {
-	diffAnticone := pb.blueDiffAnticone.Clone()
-	diffAnticone.AddSet(pb.redDiffAnticone)
-	toOrder := ph.sortBlocks(pb.mainParent, pb.blueDiffAnticone, pb.GetParents(), diffAnticone)
+	blueDiffAnticone := ph.buildSortDiffAnticone(pb.blueDiffAnticone)
+	redDiffAnticone := ph.buildSortDiffAnticone(pb.redDiffAnticone)
+	diffAnticone := blueDiffAnticone.Clone()
+	diffAnticone.AddSet(redDiffAnticone)
+	toOrder := ph.sortBlocks(pb.mainParent, blueDiffAnticone, pb.GetParents(), diffAnticone)
 	ordered := IdSlice{}
 	orderedSet := NewIdSet()
 
@@ -219,7 +221,7 @@ func (ph *Phantom) getDiffAnticoneOrder(pb *PhantomBlock) []uint {
 			curParents := curBlock.GetParents().Intersection(diffAnticone)
 			if !curParents.IsEmpty() && !orderedSet.Contain(curParents) {
 				curParents.RemoveSet(orderedSet)
-				toOrderP := ph.sortBlocks(curBlock.mainParent, pb.blueDiffAnticone, curParents, diffAnticone)
+				toOrderP := ph.sortBlocks(curBlock.mainParent, blueDiffAnticone, curParents, diffAnticone)
 				toOrder = append([]uint{cur}, toOrder...)
 				toOrder = append(toOrderP, toOrder...)
 				continue
@@ -241,11 +243,11 @@ func (ph *Phantom) sortBlocks(lastBlock uint, blueDiffAnticone *IdSet, toSort *I
 	remaining = remaining.Intersection(diffAnticone)
 
 	blueSet := remaining.Intersection(blueDiffAnticone)
-	blueList := blueSet.SortList(false)
+	blueList := blueSet.SortHashList(false)
 
 	redSet := remaining.Clone()
 	redSet.RemoveSet(blueSet)
-	redList := redSet.SortList(false)
+	redList := redSet.SortHashList(false)
 
 	result := []uint{}
 	if lastBlock != MaxId && diffAnticone.Has(lastBlock) && toSort.Has(lastBlock) {
@@ -254,6 +256,17 @@ func (ph *Phantom) sortBlocks(lastBlock uint, blueDiffAnticone *IdSet, toSort *I
 	result = append(result, blueList...)
 	result = append(result, redList...)
 
+	return result
+}
+
+func (ph *Phantom) buildSortDiffAnticone(diffAn *IdSet) *IdSet {
+	result := NewIdSet()
+	for k := range diffAn.GetMap() {
+		ib := ph.getBlock(k)
+		if ib != nil {
+			result.AddPair(k, ib)
+		}
+	}
 	return result
 }
 
