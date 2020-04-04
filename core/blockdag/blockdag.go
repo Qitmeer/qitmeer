@@ -413,8 +413,8 @@ func (bd *BlockDAG) updateTips(b *Block) {
 		bd.tips.AddPair(b.GetID(), b)
 		return
 	}
-	for k := range bd.tips.GetMap() {
-		block := bd.getBlockById(k)
+	for k, v := range bd.tips.GetMap() {
+		block := v.(IBlock)
 		if block.HasChildren() {
 			bd.tips.Remove(k)
 		}
