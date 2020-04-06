@@ -375,7 +375,7 @@ func (con *Conflux) Load(dbTx database.Tx) error {
 }
 
 // IsDAG
-func (con *Conflux) IsDAG(parents []uint) bool {
+func (con *Conflux) IsDAG(parents []IBlock) bool {
 	return true
 }
 

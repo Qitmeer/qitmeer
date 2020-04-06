@@ -829,7 +829,7 @@ func (sp *Spectre) Load(dbTx database.Tx) error {
 }
 
 // IsDAG
-func (sp *Spectre) IsDAG(parents []uint) bool {
+func (sp *Spectre) IsDAG(parents []IBlock) bool {
 	return true
 }
 
