@@ -461,7 +461,7 @@ func (ph *Phantom_v2) Load(dbTx database.Tx) error {
 }
 
 // IsDAG
-func (ph *Phantom_v2) IsDAG(parents []uint) bool {
+func (ph *Phantom_v2) IsDAG(parents []IBlock) bool {
 	return true
 }
 

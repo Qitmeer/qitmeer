@@ -129,7 +129,7 @@ type IBlockDAG interface {
 	Load(dbTx database.Tx) error
 
 	// IsDAG
-	IsDAG(parents []uint) bool
+	IsDAG(parents []IBlock) bool
 
 	// GetBlues
 	GetBlues(parents *IdSet) uint
@@ -223,15 +223,20 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	/*	if bd.hasBlock(b.GetHash()) {
 		return nil
 	}*/
-	var parents []uint
+	parents := []IBlock{}
 	if bd.blockTotal > 0 {
-		parents = b.GetParents()
-		if len(parents) == 0 {
+		parentsIds := b.GetParents()
+		if len(parentsIds) == 0 {
 			return nil, nil
 		}
-		if !bd.hasBlocks(parents) {
-			return nil, nil
+		for _, v := range parentsIds {
+			pib := bd.getBlockById(v)
+			if pib == nil {
+				return nil, nil
+			}
+			parents = append(parents, pib)
 		}
+
 		if !bd.isDAG(parents) {
 			return nil, nil
 		}
@@ -242,7 +247,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 		block.parents = NewIdSet()
 		var maxLayer uint = 0
 		for k, v := range parents {
-			parent := bd.getBlockById(v)
+			parent := v.(IBlock)
 			block.parents.AddPair(parent.GetID(), parent)
 			parent.AddChild(&block)
 			if k == 0 {
@@ -289,7 +294,7 @@ func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 
 // If the block is illegal dag,will return false.
 // Exclude genesis block
-func (bd *BlockDAG) isDAG(parents []uint) bool {
+func (bd *BlockDAG) isDAG(parents []IBlock) bool {
 	return bd.checkLayerGap(parents) &&
 		bd.checkLegality(parents) &&
 		bd.instance.IsDAG(parents)
@@ -413,8 +418,8 @@ func (bd *BlockDAG) updateTips(b *Block) {
 		bd.tips.AddPair(b.GetID(), b)
 		return
 	}
-	for k := range bd.tips.GetMap() {
-		block := bd.getBlockById(k)
+	for k, v := range bd.tips.GetMap() {
+		block := v.(IBlock)
 		if block.HasChildren() {
 			bd.tips.Remove(k)
 		}
@@ -982,17 +987,9 @@ func (bd *BlockDAG) getValidTips(limit bool) []IBlock {
 }
 
 // Checking the layer grap of block
-func (bd *BlockDAG) checkLayerGap(parents []uint) bool {
-	if len(parents) == 0 {
+func (bd *BlockDAG) checkLayerGap(parentsNode []IBlock) bool {
+	if len(parentsNode) == 0 {
 		return false
-	}
-	parentsNode := []IBlock{}
-	for _, v := range parents {
-		ib := bd.getBlockById(v)
-		if ib == nil {
-			return false
-		}
-		parentsNode = append(parentsNode, ib)
 	}
 
 	pLen := len(parentsNode)
@@ -1053,17 +1050,9 @@ func (bd *BlockDAG) CheckSubMainChainTip(parents []uint) (uint, bool) {
 }
 
 // Checking the parents of block legitimacy
-func (bd *BlockDAG) checkLegality(parents []uint) bool {
-	if len(parents) == 0 {
+func (bd *BlockDAG) checkLegality(parentsNode []IBlock) bool {
+	if len(parentsNode) == 0 {
 		return false
-	}
-	parentsNode := []IBlock{}
-	for _, v := range parents {
-		ib := bd.getBlockById(v)
-		if ib == nil {
-			return false
-		}
-		parentsNode = append(parentsNode, ib)
 	}
 
 	pLen := len(parentsNode)
@@ -1073,7 +1062,9 @@ func (bd *BlockDAG) checkLegality(parents []uint) bool {
 		return true
 	} else {
 		parentsSet := NewIdSet()
-		parentsSet.AddList(parents)
+		for _, v := range parentsNode {
+			parentsSet.Add(v.GetID())
+		}
 
 		// Belonging to close relatives
 		for _, p := range parentsNode {

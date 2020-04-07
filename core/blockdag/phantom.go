@@ -659,23 +659,22 @@ func (ph *Phantom) IsBlue(id uint) bool {
 }
 
 // IsDAG
-func (ph *Phantom) IsDAG(parents []uint) bool {
+func (ph *Phantom) IsDAG(parents []IBlock) bool {
 	if len(parents) == 0 {
 		return false
 	} else if len(parents) == 1 {
 		return true
 	} else {
 		parentsSet := NewIdSet()
-		parentsSet.AddList(parents)
+		for _, v := range parents {
+			ib := v.(IBlock)
+			parentsSet.AddPair(v.GetID(), ib)
+		}
 
 		vb := &Block{hash: hash.ZeroHash, layer: 0}
 		pb := &PhantomBlock{vb, 0, NewIdSet(), NewIdSet()}
-		pb.parents = NewIdSet()
+		pb.parents = parentsSet.Clone()
 
-		// Belonging to close relatives
-		for _, p := range parents {
-			pb.parents.AddPair(p, ph.getBlock(p))
-		}
 		// In the past set
 		//vb
 		tp := ph.GetMainParent(parentsSet).(*PhantomBlock)
