@@ -243,23 +243,6 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	}
 	//
 	block := Block{id: bd.blockTotal, hash: *b.GetHash(), layer: 0, status: StatusNone, mainParent: MaxId}
-	if len(parents) > 0 {
-		block.parents = NewIdSet()
-		var maxLayer uint = 0
-		for k, v := range parents {
-			parent := v.(IBlock)
-			block.parents.AddPair(parent.GetID(), parent)
-			parent.AddChild(&block)
-			if k == 0 {
-				block.mainParent = parent.GetID()
-			}
-
-			if maxLayer == 0 || maxLayer < parent.GetLayer() {
-				maxLayer = parent.GetLayer()
-			}
-		}
-		block.SetLayer(maxLayer + 1)
-	}
 
 	if bd.blocks == nil {
 		bd.blocks = map[uint]IBlock{}
@@ -271,8 +254,27 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	}
 	//
 	bd.blockTotal++
+
+	if len(parents) > 0 {
+		block.parents = NewIdSet()
+		var maxLayer uint = 0
+		for k, v := range parents {
+			parent := v.(IBlock)
+			block.parents.AddPair(parent.GetID(), parent)
+			parent.AddChild(ib)
+			if k == 0 {
+				block.mainParent = parent.GetID()
+			}
+
+			if maxLayer == 0 || maxLayer < parent.GetLayer() {
+				maxLayer = parent.GetLayer()
+			}
+		}
+		block.SetLayer(maxLayer + 1)
+	}
+
 	//
-	bd.updateTips(&block)
+	bd.updateTips(ib)
 	//
 	t := time.Unix(b.GetTimestamp(), 0)
 	if bd.lastTime.Before(t) {
@@ -412,7 +414,7 @@ func (bd *BlockDAG) BuildMerkleTreeStoreFromTips() []*hash.Hash {
 }
 
 // Refresh the dag tip whith new block,it will cause changes in tips set.
-func (bd *BlockDAG) updateTips(b *Block) {
+func (bd *BlockDAG) updateTips(b IBlock) {
 	if bd.tips == nil {
 		bd.tips = NewIdSet()
 		bd.tips.AddPair(b.GetID(), b)
@@ -484,10 +486,11 @@ func (bd *BlockDAG) getFutureSet(fs *IdSet, b IBlock) {
 	if children == nil || children.IsEmpty() {
 		return
 	}
-	for k := range children.GetMap() {
+	for k, v := range children.GetMap() {
+		ib := v.(IBlock)
 		if !fs.Has(k) {
-			fs.Add(k)
-			bd.getFutureSet(fs, bd.getBlockById(k))
+			fs.AddPair(k, ib)
+			bd.getFutureSet(fs, ib)
 		}
 	}
 }
@@ -659,12 +662,11 @@ func isVirtualTip(bs *IdSet, futureSet *IdSet, anticone *IdSet, children *IdSet)
 }
 
 // This function is used to GetAnticone recursion
-func (bd *BlockDAG) recAnticone(bs *IdSet, futureSet *IdSet, anticone *IdSet, id uint) {
-	if bs.Has(id) || anticone.Has(id) {
+func (bd *BlockDAG) recAnticone(bs *IdSet, futureSet *IdSet, anticone *IdSet, ib IBlock) {
+	if bs.Has(ib.GetID()) || anticone.Has(ib.GetID()) {
 		return
 	}
-	node := bd.getBlockById(id)
-	children := node.GetChildren()
+	children := ib.GetChildren()
 	needRecursion := false
 	if children == nil || children.Size() == 0 {
 		needRecursion = true
@@ -672,14 +674,15 @@ func (bd *BlockDAG) recAnticone(bs *IdSet, futureSet *IdSet, anticone *IdSet, id
 		needRecursion = isVirtualTip(bs, futureSet, anticone, children)
 	}
 	if needRecursion {
-		if !futureSet.Has(id) {
-			anticone.Add(id)
+		if !futureSet.Has(ib.GetID()) {
+			anticone.AddPair(ib.GetID(), ib)
 		}
-		parents := node.GetParents()
+		parents := ib.GetParents()
 
 		//Because parents can not be empty, so there is no need to judge.
-		for k := range parents.GetMap() {
-			bd.recAnticone(bs, futureSet, anticone, k)
+		for _, v := range parents.GetMap() {
+			pib := v.(IBlock)
+			bd.recAnticone(bs, futureSet, anticone, pib)
 		}
 	}
 }
@@ -692,8 +695,9 @@ func (bd *BlockDAG) getAnticone(b IBlock, exclude *IdSet) *IdSet {
 	anticone := NewIdSet()
 	bs := NewIdSet()
 	bs.AddPair(b.GetID(), b)
-	for k := range bd.tips.GetMap() {
-		bd.recAnticone(bs, futureSet, anticone, k)
+	for _, v := range bd.tips.GetMap() {
+		ib := v.(IBlock)
+		bd.recAnticone(bs, futureSet, anticone, ib)
 	}
 	if exclude != nil {
 		anticone.Exclude(exclude)
@@ -704,8 +708,9 @@ func (bd *BlockDAG) getAnticone(b IBlock, exclude *IdSet) *IdSet {
 // getParentsAnticone
 func (bd *BlockDAG) getParentsAnticone(parents *IdSet) *IdSet {
 	anticone := NewIdSet()
-	for k := range bd.tips.GetMap() {
-		bd.recAnticone(parents, NewIdSet(), anticone, k)
+	for _, v := range bd.tips.GetMap() {
+		ib := v.(IBlock)
+		bd.recAnticone(parents, NewIdSet(), anticone, ib)
 	}
 	return anticone
 }
@@ -764,7 +769,7 @@ func getTreeTips(root IBlock, mainsubdag *IdSet, genealogy *IdSet) *IdSet {
 }
 
 // getDiffAnticone
-func (bd *BlockDAG) getDiffAnticone(b IBlock) *IdSet {
+func (bd *BlockDAG) getDiffAnticone(b IBlock, verbose bool) *IdSet {
 	if b.GetMainParent() == MaxId {
 		return nil
 	}
@@ -858,6 +863,15 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock) *IdSet {
 	}
 	result := NewIdSet()
 	getTreeTips(rootBlock, mainsubdag, result)
+
+	//
+	if verbose && !result.IsEmpty() {
+		optimizeDiffAnt := NewIdSet()
+		for k := range result.GetMap() {
+			optimizeDiffAnt.AddPair(k, bd.getBlockById(k))
+		}
+		return optimizeDiffAnt
+	}
 	return result
 }
 

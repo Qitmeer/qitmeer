@@ -81,7 +81,7 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		pb.height = tp.height + 1
 		pb.weight = tp.GetWeight()
 
-		diffAnticone := ph.bd.getDiffAnticone(pb)
+		diffAnticone := ph.bd.getDiffAnticone(pb, true)
 		if diffAnticone == nil {
 			diffAnticone = NewIdSet()
 		}
@@ -124,8 +124,11 @@ func (ph *Phantom) getExtremeBlue(bs *IdSet, bluest bool) *PhantomBlock {
 
 func (ph *Phantom) calculateBlueSet(pb *PhantomBlock, diffAnticone *IdSet) {
 	kc := ph.getKChain(pb)
-	for k := range diffAnticone.GetMap() {
-		cur := ph.getBlock(k)
+	for _, v := range diffAnticone.GetMap() {
+		cur, ok := v.(*PhantomBlock)
+		if !ok {
+			panic("phantom block type is error.")
+		}
 		ph.colorBlock(kc, cur, pb.blueDiffAnticone, pb.redDiffAnticone)
 	}
 	if diffAnticone.Size() != pb.blueDiffAnticone.Size()+pb.redDiffAnticone.Size() {
@@ -273,7 +276,7 @@ func (ph *Phantom) buildSortDiffAnticone(diffAn *IdSet) *IdSet {
 func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *PhantomBlock {
 	ph.virtualBlock.SetOrder(MaxBlockOrder)
 	if !ph.isMaxMainTip(buestTip) {
-		ph.diffAnticone.Add(pb.GetID())
+		ph.diffAnticone.AddPair(pb.GetID(), pb)
 		return nil
 	}
 	if ph.mainChain.tip == MaxId {
@@ -579,19 +582,19 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 			for k := range ib.GetParents().GetMap() {
 				parent := ph.bd.getBlockById(k)
 				parentsSet.AddPair(k, parent)
-				parent.AddChild(&block)
+				parent.AddChild(ib)
 			}
 			ib.GetParents().Clean()
 			ib.GetParents().AddSet(parentsSet)
 		}
-		ph.bd.blocks[block.id] = ib
+		ph.bd.blocks[ib.GetID()] = ib
 
-		ph.bd.updateTips(&block)
+		ph.bd.updateTips(ib)
 		//
 		ph.bd.order[ib.GetOrder()] = ib.GetID()
 
 		if !ib.IsOrdered() {
-			ph.diffAnticone.Add(ib.GetID())
+			ph.diffAnticone.AddPair(ib.GetID(), ib)
 		}
 	}
 
@@ -625,7 +628,7 @@ func (ph *Phantom) GetBlues(parents *IdSet) uint {
 	pb.blueNum = tp.blueNum + 1
 	pb.height = tp.height + 1
 
-	diffAnticone := ph.bd.getDiffAnticone(pb)
+	diffAnticone := ph.bd.getDiffAnticone(pb, true)
 	if diffAnticone == nil {
 		diffAnticone = NewIdSet()
 	}
@@ -682,7 +685,7 @@ func (ph *Phantom) IsDAG(parents []IBlock) bool {
 		pb.blueNum = tp.blueNum + 1
 		pb.height = tp.height + 1
 
-		diffAnticone := ph.bd.getDiffAnticone(pb)
+		diffAnticone := ph.bd.getDiffAnticone(pb, false)
 		if diffAnticone == nil {
 			diffAnticone = NewIdSet()
 		}
