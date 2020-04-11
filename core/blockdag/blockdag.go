@@ -1208,6 +1208,9 @@ func (bd *BlockDAG) IsHourglass(id uint) bool {
 }
 
 func (bd *BlockDAG) GetParentsMaxLayer(parents *IdSet) (uint, bool) {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
 	maxLayer := uint(0)
 	for k := range parents.GetMap() {
 		ib := bd.getBlockById(k)
