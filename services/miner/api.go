@@ -429,6 +429,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 	blake2bdBig := pow.CompactToBig(template.PowDiffData.Blake2bDTarget)
 	targetBlake2bDDifficulty := fmt.Sprintf("%064x", blake2bdBig)
 	targetCuckarooDDifficulty := template.PowDiffData.CuckarooBaseDiff
+	targetCuckaroomDifficulty := template.PowDiffData.CuckaroomBaseDiff
 	targetCuckatooDDifficulty := template.PowDiffData.CuckatooBaseDiff
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, state.lastGenerated)
 	reply := json.GetBlockTemplateResult{
@@ -453,8 +454,9 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 			//blake2bd hash diff compare target
 			Blake2bTarget: targetBlake2bDDifficulty,
 			//cuckoo mining min diff
-			CuckarooMinDiff: targetCuckarooDDifficulty,
-			CuckatooMinDiff: targetCuckatooDDifficulty,
+			CuckarooMinDiff:  targetCuckarooDDifficulty,
+			CuckaroomMinDiff: targetCuckaroomDifficulty,
+			CuckatooMinDiff:  targetCuckatooDDifficulty,
 			//cuckoo hash calc diff scale
 		},
 		MinTime: state.minTimestamp.Unix(),
