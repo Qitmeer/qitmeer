@@ -426,6 +426,10 @@ mempoolLoop:
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
+	reqCuckaroomDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKAROOM)
+	if err != nil {
+		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
+	}
 	reqCuckatooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKATOO)
 
 	if err != nil {
@@ -488,9 +492,10 @@ mempoolLoop:
 		Blues:           blues,
 		ValidPayAddress: payToAddress != nil,
 		PowDiffData: types.PowDiffStandard{
-			Blake2bDTarget:   reqBlake2bDDifficulty,
-			CuckarooBaseDiff: pow.CompactToBig(reqCuckarooDifficulty).Uint64(),
-			CuckatooBaseDiff: pow.CompactToBig(reqCuckatooDifficulty).Uint64(),
+			Blake2bDTarget:    reqBlake2bDDifficulty,
+			CuckarooBaseDiff:  pow.CompactToBig(reqCuckarooDifficulty).Uint64(),
+			CuckaroomBaseDiff: pow.CompactToBig(reqCuckaroomDifficulty).Uint64(),
+			CuckatooBaseDiff:  pow.CompactToBig(reqCuckatooDifficulty).Uint64(),
 		},
 	}
 	return handleCreatedBlockTemplate(blockTemplate, blockManager)
