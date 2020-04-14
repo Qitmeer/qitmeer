@@ -307,3 +307,51 @@ func genCertPair(certFile, keyFile string) error {
 	log.Info("Done generating TLS certificates")
 	return nil
 }
+
+type RequestStatus struct {
+	Service    string
+	Method     string
+	TotalCalls uint
+	TotalTime  time.Duration
+	Requests   []*serverRequest
+}
+
+func (rs *RequestStatus) GetName() string {
+	return rs.Service + "_" + rs.Method
+}
+
+func (rs *RequestStatus) AddRequst(sReq *serverRequest) {
+	for _, v := range rs.Requests {
+		if v == sReq {
+			return
+		}
+	}
+	rs.Requests = append(rs.Requests, sReq)
+	rs.TotalCalls++
+	sReq.time = time.Now()
+}
+
+func (rs *RequestStatus) RemoveRequst(sReq *serverRequest) {
+	for i := 0; i < len(rs.Requests); i++ {
+		if rs.Requests[i] == sReq {
+			rs.TotalTime += time.Since(sReq.time)
+			rs.Requests = append(rs.Requests[:i], rs.Requests[i+1:]...)
+			return
+		}
+	}
+}
+
+func (rs *RequestStatus) ToJson() *JsonRequestStatus {
+	rsj := JsonRequestStatus{rs.GetName(), int(rs.TotalCalls),
+		rs.TotalTime.String(), "", len(rs.Requests)}
+	aTime := rs.TotalTime / time.Duration(rs.TotalCalls)
+	rsj.AverageTime = aTime.String()
+	return &rsj
+}
+
+func NewRequestStatus(sReq *serverRequest) (*RequestStatus, error) {
+	rs := RequestStatus{sReq.svcname, sReq.callb.method.Name, 1,
+		0, []*serverRequest{sReq}}
+	sReq.time = time.Now()
+	return &rs, nil
+}

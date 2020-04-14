@@ -1,7 +1,6 @@
 package blockdag
 
 import (
-	"github.com/Qitmeer/qitmeer/common/hash"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"io"
 )
@@ -10,8 +9,8 @@ type PhantomBlock struct {
 	*Block
 	blueNum uint
 
-	blueDiffAnticone *HashSet
-	redDiffAnticone  *HashSet
+	blueDiffAnticone *IdSet
+	redDiffAnticone  *IdSet
 }
 
 func (pb *PhantomBlock) IsBluer(other *PhantomBlock) bool {
@@ -42,7 +41,7 @@ func (pb *PhantomBlock) Encode(w io.Writer) error {
 	}
 
 	// blueDiffAnticone
-	blueDiffAnticone := []*hash.Hash{}
+	blueDiffAnticone := []uint{}
 	if pb.blueDiffAnticone != nil && pb.blueDiffAnticone.Size() > 0 {
 		blueDiffAnticone = pb.blueDiffAnticone.List()
 	}
@@ -52,7 +51,7 @@ func (pb *PhantomBlock) Encode(w io.Writer) error {
 		return err
 	}
 	for i := 0; i < blueDiffAnticoneSize; i++ {
-		err = s.WriteElements(w, blueDiffAnticone[i])
+		err = s.WriteElements(w, uint32(blueDiffAnticone[i]))
 		if err != nil {
 			return err
 		}
@@ -63,7 +62,7 @@ func (pb *PhantomBlock) Encode(w io.Writer) error {
 		}
 	}
 	// redDiffAnticone
-	redDiffAnticone := []*hash.Hash{}
+	redDiffAnticone := []uint{}
 	if pb.redDiffAnticone != nil && pb.redDiffAnticone.Size() > 0 {
 		redDiffAnticone = pb.redDiffAnticone.List()
 	}
@@ -73,7 +72,7 @@ func (pb *PhantomBlock) Encode(w io.Writer) error {
 		return err
 	}
 	for i := 0; i < redDiffAnticoneSize; i++ {
-		err = s.WriteElements(w, redDiffAnticone[i])
+		err = s.WriteElements(w, uint32(redDiffAnticone[i]))
 		if err != nil {
 			return err
 		}
@@ -106,10 +105,10 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	pb.blueDiffAnticone = NewHashSet()
+	pb.blueDiffAnticone = NewIdSet()
 	if blueDiffAnticoneSize > 0 {
 		for i := uint32(0); i < blueDiffAnticoneSize; i++ {
-			var bda hash.Hash
+			var bda uint32
 			err := s.ReadElements(r, &bda)
 			if err != nil {
 				return err
@@ -121,20 +120,20 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 				return err
 			}
 
-			pb.blueDiffAnticone.AddPair(&bda, uint(order))
+			pb.blueDiffAnticone.AddPair(uint(bda), uint(order))
 		}
 	}
 
-	// blueDiffAnticone
+	// redDiffAnticone
 	var redDiffAnticoneSize uint32
 	err = s.ReadElements(r, &redDiffAnticoneSize)
 	if err != nil {
 		return err
 	}
-	pb.redDiffAnticone = NewHashSet()
+	pb.redDiffAnticone = NewIdSet()
 	if redDiffAnticoneSize > 0 {
 		for i := uint32(0); i < redDiffAnticoneSize; i++ {
-			var bda hash.Hash
+			var bda uint32
 			err := s.ReadElements(r, &bda)
 			if err != nil {
 				return err
@@ -145,7 +144,7 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 				return err
 			}
 
-			pb.redDiffAnticone.AddPair(&bda, uint(order))
+			pb.redDiffAnticone.AddPair(uint(bda), uint(order))
 		}
 	}
 

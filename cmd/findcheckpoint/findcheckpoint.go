@@ -142,11 +142,11 @@ func findCandidates(chain *blockchain.BlockChain, cfg *Config) ([]*params.Checkp
 			candidates = append(candidates, &checkpoint)
 		}
 
-		if block.GetMainParent() == nil {
+		if block.GetMainParent() == blockdag.MaxId {
 			break
 		}
 		preblock = block
-		block = chain.BlockDAG().GetBlock(block.GetMainParent())
+		block = chain.BlockDAG().GetBlockById(block.GetMainParent())
 		if block == nil {
 			return nil, fmt.Errorf("Can't find block")
 		}
@@ -211,7 +211,7 @@ func processIsCheckpoint(chain *blockchain.BlockChain, cfg *Config) bool {
 	var preblock blockdag.IBlock
 	if block.HasChildren() {
 		for k, v := range block.GetChildren().GetMap() {
-			if chain.BlockDAG().IsOnMainChain(&k) {
+			if chain.BlockDAG().IsOnMainChain(k) {
 				preblock = v.(blockdag.IBlock)
 				break
 			}

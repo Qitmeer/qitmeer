@@ -3,7 +3,6 @@ package blockdag
 import (
 	"fmt"
 	"sort"
-	"testing"
 )
 
 func Log(sp *Spectre) {
@@ -21,6 +20,7 @@ func Log(sp *Spectre) {
 	fmt.Println(votes2)
 }
 
+/*
 func TestSpectre1(t *testing.T) {
 	ibd, tbMap := InitBlockDAG(spectre, "SP_Blocks")
 	if ibd == nil {
@@ -39,4 +39,4 @@ func TestSpectre1(t *testing.T) {
 			t.Error(ret)
 		}
 	}
-}
+}*/

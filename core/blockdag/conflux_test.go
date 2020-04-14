@@ -1,12 +1,6 @@
 package blockdag
 
-import (
-	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"testing"
-)
-
-func Test_GetMainChain(t *testing.T) {
+/*func Test_GetMainChain(t *testing.T) {
 	ibd, tbMap := InitBlockDAG(conflux, "CO_Blocks")
 	if ibd == nil {
 		t.FailNow()
@@ -37,4 +31,4 @@ func Test_GetOrder(t *testing.T) {
 	if !processResult(order, changeToHashList(testData.CO_GetOrder.Output, tbMap)) {
 		t.FailNow()
 	}
-}
+}*/

@@ -85,7 +85,10 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 	hashesSet := blockdag.NewHashSet()
 
 	// First of all, we need to make sure we have the parents of block.
-	hashesSet.AddSet(endBlock.GetParents())
+	for _, v := range endBlock.GetParents().GetMap() {
+		hashesSet.Add(v.(blockdag.IBlock).GetHash())
+	}
+
 	curNum := uint32(hashesSet.Size())
 
 	// Because of chain forking, a common forking point must be found.

@@ -230,10 +230,14 @@ func (b *BlockChain) IsCheckpointCandidate(preBlock, block blockdag.IBlock) (boo
 		return false, nil
 	}
 	nextBlockH := block.GetMainParent()
-	if nextBlockH == nil {
+	if nextBlockH == blockdag.MaxId {
 		return false, nil
 	}
-	nextNode := b.index.LookupNode(nextBlockH)
+	nextBlock := b.BlockDAG().GetBlockById(nextBlockH)
+	if nextBlock == nil {
+		return false, nil
+	}
+	nextNode := b.index.LookupNode(nextBlock.GetHash())
 	if nextNode == nil {
 		return false, nil
 	}
@@ -270,5 +274,5 @@ func (b *BlockChain) IsCheckpointCandidate(preBlock, block blockdag.IBlock) (boo
 		}
 	}
 
-	return b.BlockDAG().IsHourglass(block.GetHash()), nil
+	return b.BlockDAG().IsHourglass(block.GetID()), nil
 }

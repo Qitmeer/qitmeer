@@ -67,8 +67,6 @@ type blockNode struct {
 
 	// parents is all the parents block for this node.
 	parents []*blockNode
-	// children is all the children block for this node.
-	children []*blockNode
 	// hash is the hash of the block this node represents.
 	hash hash.Hash
 
@@ -108,6 +106,9 @@ type blockNode struct {
 
 	// dirty
 	dirty bool
+
+	// dag block id
+	dagID uint
 }
 
 // newBlockNode returns a new block node for the given block header and parent
@@ -154,7 +155,11 @@ func (node *blockNode) Header() types.BlockHeader {
 	// No lock is needed because all accessed fields are immutable.
 	var parentRoot hash.Hash
 	if node.parents != nil {
-		paMerkles := merkle.BuildParentsMerkleTreeStore(node.GetParents())
+		parents := []*hash.Hash{}
+		for _, v := range node.parents {
+			parents = append(parents, v.GetHash())
+		}
+		paMerkles := merkle.BuildParentsMerkleTreeStore(parents)
 		parentRoot = *paMerkles[len(paMerkles)-1]
 	}
 	return types.BlockHeader{
@@ -216,49 +221,13 @@ func (node *blockNode) CalcWorkSum(mbn *blockNode) {
 }
 
 // Include all parents for set
-func (node *blockNode) GetParents() []*hash.Hash {
+func (node *blockNode) GetParents() []uint {
 	if node.parents == nil || len(node.parents) == 0 {
 		return nil
 	}
-	result := []*hash.Hash{}
+	result := []uint{}
 	for _, v := range node.parents {
-		result = append(result, &v.hash)
-	}
-	return result
-}
-
-// node has children in DAG
-func (node *blockNode) AddChild(child *blockNode) {
-	if node.HasChild(child) {
-		return
-	}
-	if node.children == nil {
-		node.children = []*blockNode{}
-	}
-	node.children = append(node.children, child)
-}
-
-// check is there any child
-func (node *blockNode) HasChild(child *blockNode) bool {
-	if node.children == nil || len(node.children) == 0 {
-		return false
-	}
-	for _, v := range node.children {
-		if v == child {
-			return true
-		}
-	}
-	return false
-}
-
-// For the moment,In order to match the DAG
-func (node *blockNode) GetChildren() *blockdag.HashSet {
-	if node.children == nil || len(node.children) == 0 {
-		return nil
-	}
-	result := blockdag.NewHashSet()
-	for _, v := range node.children {
-		result.Add(&v.hash)
+		result = append(result, v.dagID)
 	}
 	return result
 }
@@ -294,13 +263,13 @@ func (node *blockNode) Clone() *blockNode {
 	header := node.Header()
 	newNode := newBlockNode(&header, node.parents)
 	newNode.status = node.status
-	newNode.children = node.children
 	newNode.order = node.order
 	newNode.height = node.height
 	newNode.layer = node.layer
 	newNode.pow = node.pow
 	newNode.workSum = node.workSum
 	newNode.dirty = node.dirty
+	newNode.dagID = node.dagID
 	return newNode
 }
 
@@ -344,13 +313,12 @@ func (node *blockNode) GetTimestamp() int64 {
 
 // Return the main parent
 func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
-	parents := node.GetParents()
-	if len(parents) == 0 {
+	parents := blockdag.NewIdSet()
+	parents.AddList(node.GetParents())
+	if parents == nil || parents.IsEmpty() {
 		return nil
 	}
-	parentsSet := blockdag.NewHashSet()
-	parentsSet.AddList(parents)
-	mainParent := b.bd.GetMainParent(parentsSet)
+	mainParent := b.bd.GetMainParent(parents)
 	if mainParent == nil {
 		return nil
 	}
@@ -410,4 +378,9 @@ func (node *blockNode) FlushToDB(b *BlockChain) error {
 		node.dirty = false
 	}
 	return err
+}
+
+// return node ID
+func (node *blockNode) GetID() uint {
+	return node.dagID
 }

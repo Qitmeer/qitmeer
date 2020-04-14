@@ -138,6 +138,16 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 	return infos, nil
 }
 
+// Return the RPC info
+func (api *PublicBlockChainAPI) GetRpcInfo() (interface{}, error) {
+	rs := api.node.node.rpcServer.ReqStatus
+	jrs := []*rpc.JsonRequestStatus{}
+	for _, v := range rs {
+		jrs = append(jrs, v.ToJson())
+	}
+	return jrs, nil
+}
+
 func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 	if gs != nil {
 		mainTip := gs.GetMainChainTip()
@@ -193,4 +203,14 @@ func (api *PrivateBlockChainAPI) RemoveBan(host *string) (interface{}, error) {
 	}
 	api.node.node.peerServer.RemoveBan(ho)
 	return true, nil
+}
+
+// SetRpcMaxClients
+func (api *PrivateBlockChainAPI) SetRpcMaxClients(max int) (interface{}, error) {
+	if max <= 0 {
+		err := fmt.Errorf("error:Must greater than 0 (cur max =%d)", api.node.node.Config.RPCMaxClients)
+		return api.node.node.Config.RPCMaxClients, err
+	}
+	api.node.node.Config.RPCMaxClients = max
+	return api.node.node.Config.RPCMaxClients, nil
 }

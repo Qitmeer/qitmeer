@@ -12,7 +12,7 @@ type IBlockData interface {
 	GetHash() *hash.Hash
 
 	// Get all parents set,the dag block has more than one parent
-	GetParents() []*hash.Hash
+	GetParents() []uint
 
 	// Timestamp
 	GetTimestamp() int64
@@ -42,22 +42,22 @@ type IBlock interface {
 	IsOrdered() bool
 
 	// Get all parents set,the dag block has more than one parent
-	GetParents() *HashSet
+	GetParents() *IdSet
 
 	// Testing whether it has parents
 	HasParents() bool
 
 	// Add child nodes to block
-	AddChild(child *Block)
+	AddChild(child IBlock)
 
 	// Get all the children of block
-	GetChildren() *HashSet
+	GetChildren() *IdSet
 
 	// Detecting the presence of child nodes
 	HasChildren() bool
 
 	// GetMainParent
-	GetMainParent() *hash.Hash
+	GetMainParent() uint
 
 	// Setting the weight of block
 	SetWeight(weight uint64)
@@ -85,10 +85,10 @@ type IBlock interface {
 type Block struct {
 	id       uint
 	hash     hash.Hash
-	parents  *HashSet
-	children *HashSet
+	parents  *IdSet
+	children *IdSet
 
-	mainParent *hash.Hash
+	mainParent uint
 	weight     uint64
 	order      uint
 	layer      uint
@@ -107,11 +107,11 @@ func (b *Block) GetHash() *hash.Hash {
 }
 
 // Get all parents set,the dag block has more than one parent
-func (b *Block) GetParents() *HashSet {
+func (b *Block) GetParents() *IdSet {
 	return b.parents
 }
 
-func (b *Block) GetMainParent() *hash.Hash {
+func (b *Block) GetMainParent() uint {
 	return b.mainParent
 }
 
@@ -157,15 +157,15 @@ func (b *Block) GetBackParent() *Block {
 }
 
 // Add child nodes to block
-func (b *Block) AddChild(child *Block) {
+func (b *Block) AddChild(child IBlock) {
 	if b.children == nil {
-		b.children = NewHashSet()
+		b.children = NewIdSet()
 	}
-	b.children.AddPair(child.GetHash(), child)
+	b.children.AddPair(child.GetID(), child)
 }
 
 // Get all the children of block
-func (b *Block) GetChildren() *HashSet {
+func (b *Block) GetChildren() *IdSet {
 	return b.children
 }
 
@@ -236,7 +236,7 @@ func (b *Block) Encode(w io.Writer) error {
 		return err
 	}
 	// parents
-	parents := []*hash.Hash{}
+	parents := []uint{}
 	if b.HasParents() {
 		parents = b.parents.List()
 	}
@@ -246,7 +246,7 @@ func (b *Block) Encode(w io.Writer) error {
 		return err
 	}
 	for i := 0; i < parentsSize; i++ {
-		err = s.WriteElements(w, parents[i])
+		err = s.WriteElements(w, uint32(parents[i]))
 		if err != nil {
 			return err
 		}
@@ -268,9 +268,9 @@ func (b *Block) Encode(w io.Writer) error {
 		}
 	}*/
 	// mainParent
-	mainParent := &hash.ZeroHash
-	if b.mainParent != nil {
-		mainParent = b.mainParent
+	mainParent := uint32(MaxId)
+	if b.mainParent != MaxId {
+		mainParent = uint32(b.mainParent)
 	}
 	err = s.WriteElements(w, mainParent)
 	if err != nil {
@@ -316,14 +316,14 @@ func (b *Block) Decode(r io.Reader) error {
 		return err
 	}
 	if parentsSize > 0 {
-		b.parents = NewHashSet()
+		b.parents = NewIdSet()
 		for i := uint32(0); i < parentsSize; i++ {
-			var parent hash.Hash
+			var parent uint32
 			err := s.ReadElements(r, &parent)
 			if err != nil {
 				return err
 			}
-			b.parents.Add(&parent)
+			b.parents.Add(uint(parent))
 		}
 	}
 	// children
@@ -344,16 +344,12 @@ func (b *Block) Decode(r io.Reader) error {
 		}
 	}*/
 	// mainParent
-	var mainParent hash.Hash
+	var mainParent uint32
 	err = s.ReadElements(r, &mainParent)
 	if err != nil {
 		return err
 	}
-	if mainParent.IsEqual(&hash.ZeroHash) {
-		b.mainParent = nil
-	} else {
-		b.mainParent = &mainParent
-	}
+	b.mainParent = uint(mainParent)
 
 	var weight uint64
 	err = s.ReadElements(r, &weight)

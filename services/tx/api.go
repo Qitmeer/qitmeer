@@ -312,7 +312,9 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 
 	if blkHash != nil {
 		blkHashStr = blkHash.String()
-		confirmations = int64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(blkHash))
+		confirmations = int64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(
+			api.txManager.bm.GetChain().BlockIndex().GetDAGBlockID(blkHash)))
+
 		if mtx.IsCoinBase() {
 			mtx.TxOut[0].Amount += uint64(api.txManager.bm.GetChain().GetFees(blkHash))
 		}
@@ -641,7 +643,8 @@ func (api *PublicTxAPI) GetRawTransactions(addre string, vinext *bool, count *ui
 			result.Time = blkHeader.Timestamp.Unix()
 			result.Blocktime = blkHeader.Timestamp.Unix()
 			result.BlockHash = blkHashStr
-			result.Confirmations = uint64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(rtx.blkHash))
+			result.Confirmations = uint64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(
+				api.txManager.bm.GetChain().BlockIndex().GetDAGBlockID(rtx.blkHash)))
 		}
 	}
 
