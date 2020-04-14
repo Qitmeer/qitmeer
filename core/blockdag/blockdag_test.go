@@ -81,7 +81,7 @@ func loadTestData(fileName string, testData *TestData) error {
 // DAG block data
 type TestBlock struct {
 	hash      hash.Hash
-	parents   []*hash.Hash
+	parents   *IdSet
 	timeStamp int64
 }
 
@@ -91,8 +91,8 @@ func (tb *TestBlock) GetHash() *hash.Hash {
 }
 
 // Get all parents set,the dag block has more than one parent
-func (tb *TestBlock) GetParents() []*hash.Hash {
-	return tb.parents
+func (tb *TestBlock) GetParents() []uint {
+	return tb.parents.List()
 }
 
 func (tb *TestBlock) GetTimestamp() int64 {
@@ -120,7 +120,9 @@ var testData *TestData
 // This is the test data file name
 var testDataFilePath string = "./testData.json"
 
-func InitBlockDAG(dagType string, graph string) (IBlockDAG, map[string]*hash.Hash) {
+var tbMap map[string]IBlock
+
+func InitBlockDAG(dagType string, graph string) IBlockDAG {
 	output := io.Writer(os.Stdout)
 	glogger := l.NewGlogHandler(l.StreamHandler(output, l.TerminalFormat(false)))
 	glogger.Verbosity(l.LvlError)
@@ -131,7 +133,7 @@ func InitBlockDAG(dagType string, graph string) (IBlockDAG, map[string]*hash.Has
 	testData = &TestData{}
 	err := loadTestData(testDataFilePath, testData)
 	if err != nil {
-		return nil, nil
+		return nil
 	}
 	var tbd []TestBlocksData
 	if graph == "PH_fig2-blocks" {
@@ -145,35 +147,35 @@ func InitBlockDAG(dagType string, graph string) (IBlockDAG, map[string]*hash.Has
 	} else if graph == "CP_Blocks" {
 		tbd = testData.CP_Blocks
 	} else {
-		return nil, nil
+		return nil
 	}
 	blen := len(tbd)
 	if blen < 2 {
-		return nil, nil
+		return nil
 	}
 	bd = BlockDAG{}
-	instance := bd.Init(dagType, CalcBlockWeight, -1)
-	tbMap := map[string]*hash.Hash{}
+	instance := bd.Init(dagType, CalcBlockWeight, -1, onGetBlockId)
+	tbMap = map[string]IBlock{}
 	for i := 0; i < blen; i++ {
-		parents := []*hash.Hash{}
+		parents := NewIdSet()
 		for _, parent := range tbd[i].Parents {
-			parents = append(parents, tbMap[parent])
+			parents.Add(tbMap[parent].GetID())
 		}
-		block := buildBlock(tbd[i].Tag, parents, &tbMap)
-		l := bd.AddBlock(block)
+		block := buildBlock(parents)
+		l, ib := bd.AddBlock(block)
 		if l != nil && l.Len() > 0 {
-			tbMap[tbd[i].Tag] = block.GetHash()
+			tbMap[tbd[i].Tag] = ib
 		} else {
 			fmt.Printf("Error:%d  %s\n", tempHash, tbd[i].Tag)
-			return nil, nil
+			return nil
 		}
 
 	}
 
-	return instance, tbMap
+	return instance
 }
 
-func buildBlock(tag string, parents []*hash.Hash, tbMap *map[string]*hash.Hash) *TestBlock {
+func buildBlock(parents *IdSet) *TestBlock {
 	tempHash++
 	hashStr := fmt.Sprintf("%d", tempHash)
 	h := hash.MustHexToDecodedHash(hashStr)
@@ -185,47 +187,47 @@ func buildBlock(tag string, parents []*hash.Hash, tbMap *map[string]*hash.Hash) 
 	return tBlock
 }
 
-func getBlockTag(h *hash.Hash, tbMap map[string]*hash.Hash) string {
+func getBlockTag(id uint) string {
 	for k, v := range tbMap {
-		if v.IsEqual(h) {
+		if v.GetID() == id {
 			return k
 		}
 	}
 	return ""
 }
 
-func changeToHashList(list []string, tbMap map[string]*hash.Hash) []*hash.Hash {
+func changeToIDList(list []string) []uint {
 	length := len(list)
 	if length == 0 {
 		return nil
 	}
-	result := []*hash.Hash{}
+	result := []uint{}
 	for i := 0; i < length; i++ {
-		result = append(result, tbMap[list[i]])
+		result = append(result, tbMap[list[i]].GetID())
 	}
 	return result
 }
 
-func processResult(calRet interface{}, theory []*hash.Hash) bool {
+func processResult(calRet interface{}, theory []uint) bool {
 
 	var ret bool = true
 	switch calRet.(type) {
-	case []*hash.Hash:
-		result := calRet.([]*hash.Hash)
+	case []uint:
+		result := calRet.([]uint)
 		rLen := len(result)
 
 		if rLen != len(theory) {
 			ret = false
 		}
 		for i := 0; i < rLen; i++ {
-			if !result[i].IsEqual(theory[i]) {
+			if result[i] != theory[i] {
 				ret = false
 				break
 			}
 		}
-	case *HashSet:
-		result := calRet.(*HashSet)
-		okResult := NewHashSet()
+	case *IdSet:
+		result := calRet.(*IdSet)
+		okResult := NewIdSet()
 		okResult.AddList(theory)
 		if !result.IsEqual(okResult) {
 			ret = false
@@ -240,10 +242,10 @@ func processResult(calRet interface{}, theory []*hash.Hash) bool {
 	return ret
 }
 
-func printBlockChainTag(list []*hash.Hash, tbMap map[string]*hash.Hash) {
+func printBlockChainTag(list []uint) {
 	var result string
 	for i := 0; i < len(list); i++ {
-		name := getBlockTag(list[i], tbMap)
+		name := getBlockTag(list[i])
 		if i == 0 {
 			result += name
 		} else {
@@ -253,11 +255,11 @@ func printBlockChainTag(list []*hash.Hash, tbMap map[string]*hash.Hash) {
 	fmt.Println(result)
 }
 
-func printBlockSetTag(set *HashSet, tbMap map[string]*hash.Hash) {
+func printBlockSetTag(set *IdSet) {
 	var result string = "["
 	isFirst := true
 	for k := range set.GetMap() {
-		name := getBlockTag(&k, tbMap)
+		name := getBlockTag(k)
 		if isFirst {
 			result += name
 			isFirst = false
@@ -270,7 +272,7 @@ func printBlockSetTag(set *HashSet, tbMap map[string]*hash.Hash) {
 	fmt.Println(result)
 }
 
-func reverseBlockList(s []*hash.Hash) []*hash.Hash {
+func reverseBlockList(s []uint) []uint {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
@@ -284,4 +286,13 @@ func CalcBlockWeight(blocks int64) int64 {
 		return 2
 	}
 	return 1
+}
+
+func onGetBlockId(h *hash.Hash) uint {
+	for _, v := range tbMap {
+		if v.GetHash().IsEqual(h) {
+			return v.GetID()
+		}
+	}
+	return MaxId
 }

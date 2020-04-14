@@ -121,10 +121,19 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.pruner.pruneChainIfNeeded()
 
 	//dag
-	newOrders := b.bd.AddBlock(newNode)
-	if newOrders == nil || newOrders.Len() == 0 {
+	newOrders, ib := b.bd.AddBlock(newNode)
+	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
 		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
+	newNode.dagID = ib.GetID()
+	newNode.SetLayer(ib.GetLayer())
+	block.SetOrder(uint64(ib.GetOrder()))
+	if ib.GetHeight() != newNode.GetHeight() {
+		log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d", newNode.GetHash(), newNode.GetHeight(), ib.GetHeight()))
+		newNode.SetHeight(ib.GetHeight())
+		block.SetHeight(ib.GetHeight())
+	}
+
 	oldOrders := BlockNodeList{}
 	b.getReorganizeNodes(newNode, block, newOrders, &oldOrders)
 	b.index.AddNode(newNode)

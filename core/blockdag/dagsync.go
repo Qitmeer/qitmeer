@@ -35,15 +35,7 @@ func (ds *DAGSync) CalcSyncBlocks(gs *GraphState, locator []*hash.Hash, mode Syn
 		if len(locator) == 0 {
 			return result, nil
 		}
-		for _, v := range locator {
-			if ds.bd.hasBlock(v) {
-				result = append(result, v)
-			}
-		}
-		if len(result) >= 2 {
-			result = ds.bd.sortBlock(result)
-		}
-		return result, nil
+		return ds.bd.sortBlock(locator), nil
 	}
 
 	var point IBlock
@@ -52,7 +44,7 @@ func (ds *DAGSync) CalcSyncBlocks(gs *GraphState, locator []*hash.Hash, mode Syn
 		if mainBlock == nil {
 			continue
 		}
-		if !ds.bd.isOnMainChain(mainBlock.GetHash()) {
+		if !ds.bd.isOnMainChain(mainBlock.GetID()) {
 			continue
 		}
 		point = mainBlock
@@ -90,11 +82,11 @@ func (ds *DAGSync) GetMainLocator(point *hash.Hash) []*hash.Hash {
 	if endBlock == nil {
 		endBlock = ds.bd.getGenesis()
 	} else {
-		for !ds.bd.isOnMainChain(endBlock.GetHash()) {
-			if endBlock.GetMainParent() == nil {
+		for !ds.bd.isOnMainChain(endBlock.GetID()) {
+			if endBlock.GetMainParent() == MaxId {
 				break
 			}
-			endBlock = ds.bd.getBlock(endBlock.GetMainParent())
+			endBlock = ds.bd.getBlockById(endBlock.GetMainParent())
 			if endBlock == nil {
 				endBlock = ds.bd.getGenesis()
 				break
@@ -106,15 +98,15 @@ func (ds *DAGSync) GetMainLocator(point *hash.Hash) []*hash.Hash {
 	locator := []*hash.Hash{}
 	cur := startBlock
 	if dist <= MaxMainLocatorNum {
-		for !cur.GetHash().IsEqual(endBlock.GetHash()) {
-			if cur.GetHash().IsEqual(ds.bd.GetGenesisHash()) {
+		for cur.GetID() != endBlock.GetID() {
+			if cur.GetID() == 0 {
 				break
 			}
 			locator = append(locator, cur.GetHash())
-			if cur.GetMainParent() == nil {
+			if cur.GetMainParent() == MaxId {
 				break
 			}
-			cur = ds.bd.getBlock(cur.GetMainParent())
+			cur = ds.bd.getBlockById(cur.GetMainParent())
 			if cur == nil {
 				break
 			}
@@ -123,7 +115,7 @@ func (ds *DAGSync) GetMainLocator(point *hash.Hash) []*hash.Hash {
 		const DefaultMainLocatorNum = 10
 		deep := uint(1)
 		for len(locator) < MaxMainLocatorNum {
-			if cur.GetHash().IsEqual(ds.bd.GetGenesisHash()) {
+			if cur.GetID() == 0 {
 				break
 			}
 			if len(locator) < DefaultMainLocatorNum {
@@ -139,12 +131,12 @@ func (ds *DAGSync) GetMainLocator(point *hash.Hash) []*hash.Hash {
 				}
 			}
 
-			if cur.GetMainParent() == nil {
+			if cur.GetMainParent() == MaxId {
 				break
 			}
 
-			next := ds.bd.getBlock(cur.GetMainParent())
-			if next.GetHash().IsEqual(endBlock.GetHash()) {
+			next := ds.bd.getBlockById(cur.GetMainParent())
+			if next.GetID() == endBlock.GetID() {
 				locator = append(locator, cur.GetHash())
 				break
 			}

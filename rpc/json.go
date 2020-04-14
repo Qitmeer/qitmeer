@@ -71,6 +71,14 @@ type jsonNotification struct {
 	Params  jsonSubscription `json:"params"`
 }
 
+type JsonRequestStatus struct {
+	Name        string `json:"name"`
+	TotalCalls  int    `json:"totalcalls"`
+	TotalTime   string `json:"totaltime"`
+	AverageTime string `json:"averagetime"`
+	RunningNum  int    `json:"runningnum"`
+}
+
 // jsonCodec reads and writes JSON-RPC messages to the underlying connection. It
 // also has support for parsing arguments and serializing (result) objects.
 type jsonCodec struct {

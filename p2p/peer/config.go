@@ -51,7 +51,7 @@ const (
 
 	// trickleTimeout is the duration of the ticker which trickles down the
 	// inventory to a peer.
-	trickleTimeout = 10 * time.Second
+	TrickleTimeout = 10 * time.Second
 )
 
 // HashFunc is a function which returns a block hash, height and error
@@ -114,4 +114,8 @@ type Config struct {
 	// Listeners houses callback functions to be invoked on receiving peer
 	// messages.
 	Listeners MessageListeners
+
+	// TrickleInterval is the duration of the ticker which trickles down the
+	// inventory to a peer.
+	TrickleInterval time.Duration
 }

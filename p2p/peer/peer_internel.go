@@ -473,6 +473,11 @@ func newPeerBase(cfg *Config, inbound bool) *Peer {
 		cfg.ChainParams = &params.TestNetParams
 	}
 
+	// Set the trickle interval if a non-positive value is specified.
+	if cfg.TrickleInterval <= 0 {
+		cfg.TrickleInterval = TrickleTimeout
+	}
+
 	p := Peer{
 		inbound:         inbound,
 		knownInventory:  invcache.NewLruInventoryCache(maxKnownInventory),
