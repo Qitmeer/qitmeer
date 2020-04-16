@@ -18,6 +18,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
+	"github.com/Qitmeer/qitmeer/services/zmq"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -73,6 +74,9 @@ type BlockManager struct {
 
 	// dag sync
 	dagSync *blockdag.DAGSync
+
+	// zmq notification
+	zmqNotify zmq.IZMQNotification
 }
 
 // NewBlockManager returns a new block manager.
@@ -137,6 +141,8 @@ func NewBlockManager(ntmgr notify.Notify, indexManager blockchain.IndexManager, 
 	bm.dagSync.GSMtx.Lock()
 	bm.dagSync.GS = best.GraphState
 	bm.dagSync.GSMtx.Unlock()
+
+	bm.zmqNotify = zmq.NewZMQNotification(cfg)
 	return &bm, nil
 }
 
@@ -147,14 +153,6 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 	// A block has been accepted into the block chain.  Relay it to other peers
 	// and possibly notify RPC clients with the winning tickets.
 	case blockchain.BlockAccepted:
-		// Don't relay if we are not current. Other peers that are current
-		// should already know about it
-		if !b.current() {
-			log.Trace("we are not current")
-			return
-		}
-		log.Trace("we are current, can do relay")
-
 		band, ok := notification.Data.(*blockchain.BlockAcceptedNotifyData)
 		if !ok {
 			log.Warn("Chain accepted notification is not " +
@@ -162,6 +160,14 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			break
 		}
 		block := band.Block
+		b.zmqNotify.BlockAccepted(block)
+		// Don't relay if we are not current. Other peers that are current
+		// should already know about it
+		if !b.current() {
+			log.Trace("we are not current")
+			return
+		}
+		log.Trace("we are current, can do relay")
 
 		// Send a winning tickets notification as needed.  The notification will
 		// only be sent when the following conditions hold:
@@ -231,14 +237,17 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			}
 		*/
 
+		b.zmqNotify.BlockConnected(block)
+
 	// A block has been disconnected from the main block chain.
 	case blockchain.BlockDisconnected:
 		log.Trace("Chain disconnected notification.")
-		_, ok := notification.Data.(*types.SerializedBlock)
+		block, ok := notification.Data.(*types.SerializedBlock)
 		if !ok {
 			log.Warn("Chain disconnected notification is not a block slice.")
 			break
 		}
+		b.zmqNotify.BlockDisconnected(block)
 	// The blockchain is reorganizing.
 	case blockchain.Reorganization:
 		log.Trace("Chain reorganization notification")

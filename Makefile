@@ -22,6 +22,8 @@ COMPRESSED_EXECUTABLES=$(UNIX_EXECUTABLES:%=%.tar.gz) $(WIN_EXECUTABLES:%.exe=%.
 
 RELEASE_TARGETS=$(EXECUTABLES) $(COMPRESSED_EXECUTABLES)
 
+ZMQ = FALSE
+
 .PHONY: qitmeer qx release
 
 qitmeer: qitmeer-build
@@ -30,7 +32,12 @@ qitmeer: qitmeer-build
 	@echo "Run \"$(GOBIN)/qitmeer\" to launch."
 
 qitmeer-build:
-	@go build -o $(GOBIN)/qitmeer $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
+    ifeq ($(ZMQ),TRUE)
+		@echo "Enalbe ZMQ"
+		@go build -o $(GOBIN)/qitmeer $(GOFLAGS_DEV) -tags=zmq "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
+    else
+		@go build -o $(GOBIN)/qitmeer $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
+    endif
 qx:
 	@go build -o $(GOBIN)/qx "github.com/Qitmeer/qitmeer/cmd/qx"
 
