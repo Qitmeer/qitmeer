@@ -9,15 +9,22 @@ import (
 )
 
 type ZMQNotification struct {
-	cfg             *config.Config
-	publishNotifier *ZMQPublishNotifier
+	cfg              *config.Config
+	publishNotifiers []IZMQPublishNotifier
 }
 
 func (zn *ZMQNotification) Init(cfg *config.Config) {
 	log.Info("ZMQ:Supported")
 	zn.cfg = cfg
 
-	zn.publishNotifier = NewZMQPublishNotifier(cfg)
+	zn.publishNotifiers = []IZMQPublishNotifier{}
+	notiTypeArr := []string{BlockHash, BlockRaw, TxHash, TxRaw}
+	for _, notiType := range notiTypeArr {
+		publishNotifier := NewZMQPublishNotifier(cfg, notiType)
+		if publishNotifier != nil {
+			zn.publishNotifiers = append(zn.publishNotifiers, publishNotifier)
+		}
+	}
 }
 
 func (zn *ZMQNotification) IsEnable() bool {
@@ -27,6 +34,10 @@ func (zn *ZMQNotification) IsEnable() bool {
 // block accepted
 func (zn *ZMQNotification) BlockAccepted(block *types.SerializedBlock) {
 	log.Info(fmt.Sprintf("BlockAccepted:%s", block.Hash().String()))
+
+	for _, notifier := range zn.publishNotifiers {
+		notifier.NotifyBlock()
+	}
 }
 
 // block connected
