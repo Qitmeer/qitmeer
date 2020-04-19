@@ -415,8 +415,8 @@ mempoolLoop:
 		TxRoot:     *merkles[len(merkles)-1],
 		StateRoot:  hash.Hash{}, //TODO, state root
 		Timestamp:  ts,
-		Difficulty: reqBlake2bDDifficulty,
-		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
+		Difficulty: reqCuckaroomDifficulty,
+		Pow:        pow.GetInstance(pow.CUCKAROOM, 0, []byte{}),
 		// Size declared below
 	}
 	for _, pb := range parents {
