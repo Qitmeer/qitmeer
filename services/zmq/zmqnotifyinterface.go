@@ -21,6 +21,9 @@ type IZMQNotification interface {
 
 	// block connected
 	BlockDisconnected(block *types.SerializedBlock)
+
+	// Shutdown
+	Shutdown()
 }
 
 // New ZMQ Notification

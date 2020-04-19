@@ -320,6 +320,9 @@ func (b *BlockManager) Stop() error {
 	}
 	log.Info("Block manager shutting down")
 	close(b.quit)
+
+	// shutdown zmq
+	b.zmqNotify.Shutdown()
 	return nil
 }
 

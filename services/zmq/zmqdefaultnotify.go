@@ -32,3 +32,8 @@ func (zn *ZMQNotification) BlockConnected(block *types.SerializedBlock) {
 func (zn *ZMQNotification) BlockDisconnected(block *types.SerializedBlock) {
 
 }
+
+// Shutdown
+func (zn *ZMQNotification) Shutdown() {
+
+}

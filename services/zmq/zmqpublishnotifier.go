@@ -5,6 +5,7 @@ package zmq
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/zeromq/goczmq"
 )
 
@@ -13,12 +14,17 @@ const (
 	BlockRaw  = "BlockRaw"
 	TxHash    = "TxHash"
 	TxRaw     = "TxRaw"
+
+	defaultBlockHashEndpoint = "tcp://*:8230"
+	defaultBlockRawEndpoint  = "tcp://*:8231"
+	defaultTxHashEndpoint    = "tcp://*:8232"
+	defaultTxRawEndpoint     = "tcp://*:8233"
 )
 
 type IZMQPublishNotifier interface {
 	Init(cfg *config.Config) error
-	NotifyBlock()
-	NotifyTransaction()
+	NotifyBlock(block *types.SerializedBlock) error
+	NotifyTransaction(transaction []*types.Tx) error
 	Shutdown()
 }
 
@@ -28,25 +34,37 @@ type ZMQPublishNotifier struct {
 	pub       *goczmq.Sock
 }
 
-func (zp *ZMQPublishNotifier) initialization(name string, endpoints string) error {
-	zp.name = name
+func (zp *ZMQPublishNotifier) initialization(endpoints string) error {
 	zp.endpoints = endpoints
-	log.Info(fmt.Sprintf("Initialize ZMQ public notifier:%s %s", name, endpoints))
+	log.Info(fmt.Sprintf("Initialize ZMQ public notifier:%s %s", zp.name, endpoints))
 
 	pub, err := goczmq.NewPub(endpoints)
 	if err != nil {
+		log.Error(fmt.Sprintf("%s ZMQ Publish Notifier can't initialization:%v", zp.name, err))
 		return err
 	}
 	zp.pub = pub
 	return nil
 }
 
-func (zp *ZMQPublishNotifier) sendMessage() {
-
+func (zp *ZMQPublishNotifier) sendMessage(data []byte, more bool) error {
+	if zp.pub == nil {
+		return fmt.Errorf("No pub")
+	}
+	flags := goczmq.FlagNone
+	if more {
+		flags = goczmq.FlagMore
+	}
+	err := zp.pub.SendFrame(data, flags)
+	if err != nil {
+		fmt.Errorf("Send message error:%v", err)
+		return err
+	}
+	return nil
 }
 
 func (zp *ZMQPublishNotifier) shutdown() {
-	log.Info("Shutdown ZMQ:%s")
+	log.Info(fmt.Sprintf("Shutdown:ZMQPublishNotifier [%s ---> %s]", zp.name, zp.endpoints))
 	if zp.pub != nil {
 		zp.pub.Destroy()
 	}
@@ -58,13 +76,13 @@ func NewZMQPublishNotifier(cfg *config.Config, notifierType string) IZMQPublishN
 	var zmq IZMQPublishNotifier
 	switch notifierType {
 	case BlockHash:
-		zmq = &ZMQBlockHashPublishNotifier{}
+		zmq = &ZMQBlockHashPublishNotifier{&ZMQPublishNotifier{name: notifierType}}
 	case BlockRaw:
-		zmq = &ZMQBlockRawPublishNotifier{}
+		zmq = &ZMQBlockRawPublishNotifier{&ZMQPublishNotifier{name: notifierType}}
 	case TxHash:
-		zmq = &ZMQTxHashPublishNotifier{}
+		zmq = &ZMQTxHashPublishNotifier{&ZMQPublishNotifier{name: notifierType}}
 	case TxRaw:
-		zmq = &ZMQTxRawPublishNotifier{}
+		zmq = &ZMQTxRawPublishNotifier{&ZMQPublishNotifier{name: notifierType}}
 	}
 	if zmq == nil {
 		return nil
@@ -72,7 +90,6 @@ func NewZMQPublishNotifier(cfg *config.Config, notifierType string) IZMQPublishN
 
 	err := zmq.Init(cfg)
 	if err != nil {
-		log.Info(fmt.Sprintf("ZMQPublishNotifier can't init:%s", err))
 		return nil
 	}
 	return zmq

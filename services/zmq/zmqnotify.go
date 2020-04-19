@@ -35,17 +35,50 @@ func (zn *ZMQNotification) IsEnable() bool {
 func (zn *ZMQNotification) BlockAccepted(block *types.SerializedBlock) {
 	log.Info(fmt.Sprintf("BlockAccepted:%s", block.Hash().String()))
 
-	for _, notifier := range zn.publishNotifiers {
-		notifier.NotifyBlock()
+	for i := 0; i < len(zn.publishNotifiers); {
+		err := zn.publishNotifiers[i].NotifyBlock(block)
+		if err != nil {
+			zn.publishNotifiers[i].Shutdown()
+			zn.publishNotifiers = append(zn.publishNotifiers[:i], zn.publishNotifiers[i+1:]...)
+		} else {
+			i++
+		}
 	}
 }
 
 // block connected
 func (zn *ZMQNotification) BlockConnected(block *types.SerializedBlock) {
 	log.Info(fmt.Sprintf("BlockConnected:%s", block.Hash().String()))
+	for i := 0; i < len(zn.publishNotifiers); {
+		err := zn.publishNotifiers[i].NotifyTransaction(block.Transactions())
+		if err != nil {
+			zn.publishNotifiers[i].Shutdown()
+			zn.publishNotifiers = append(zn.publishNotifiers[:i], zn.publishNotifiers[i+1:]...)
+		} else {
+			i++
+		}
+	}
 }
 
 // block connected
 func (zn *ZMQNotification) BlockDisconnected(block *types.SerializedBlock) {
 	log.Info(fmt.Sprintf("BlockDisconnected:%s", block.Hash().String()))
+	for i := 0; i < len(zn.publishNotifiers); {
+		err := zn.publishNotifiers[i].NotifyTransaction(block.Transactions())
+		if err != nil {
+			zn.publishNotifiers[i].Shutdown()
+			zn.publishNotifiers = append(zn.publishNotifiers[:i], zn.publishNotifiers[i+1:]...)
+		} else {
+			i++
+		}
+	}
+}
+
+// Shutdown
+func (zn *ZMQNotification) Shutdown() {
+	log.Info("ZMQ: Shutdown...")
+	for _, notifier := range zn.publishNotifiers {
+		notifier.Shutdown()
+	}
+	zn.publishNotifiers = []IZMQPublishNotifier{}
 }
