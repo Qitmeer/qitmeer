@@ -9,6 +9,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/marshal"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -148,11 +149,14 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 		}
 		return hex.EncodeToString(blkBytes), nil
 	}
-	confirmations := int64(api.bm.chain.BlockDAG().GetConfirmations(&h))
-	cs := node.GetChildren()
+	confirmations := int64(api.bm.chain.BlockDAG().GetConfirmations(node.GetID()))
+	ib := api.bm.chain.BlockDAG().GetBlock(&h)
+	cs := ib.GetChildren()
 	children := []*hash.Hash{}
-	if cs != nil {
-		children = cs.List()
+	if cs != nil && !cs.IsEmpty() {
+		for _, v := range cs.GetMap() {
+			children = append(children, v.(blockdag.IBlock).GetHash())
+		}
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)
 	blk.Transactions()[0].Tx.TxOut[0].Amount += uint64(api.bm.chain.CalculateFees(blk))
@@ -207,8 +211,8 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 		return hex.EncodeToString(headerBuf.Bytes()), nil
 	}
 	// Get next block hash unless there are none.
-	confirmations := int64(api.bm.chain.BlockDAG().GetConfirmations(node.GetHash()))
-	layer := api.bm.chain.BlockDAG().GetLayer(node.GetHash())
+	confirmations := int64(api.bm.chain.BlockDAG().GetConfirmations(node.GetID()))
+	layer := api.bm.chain.BlockDAG().GetLayer(node.GetID())
 	blockHeaderReply := json.GetBlockHeaderVerboseResult{
 		Hash:          hash.String(),
 		Confirmations: confirmations,
@@ -233,7 +237,7 @@ func (api *PublicBlockAPI) IsOnMainChain(h hash.Hash) (interface{}, error) {
 	if node == nil {
 		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
 	}
-	isOn := api.bm.chain.BlockDAG().IsOnMainChain(&h)
+	isOn := api.bm.chain.BlockDAG().IsOnMainChain(node.GetID())
 
 	return strconv.FormatBool(isOn), nil
 }
@@ -283,11 +287,11 @@ func (api *PublicBlockAPI) IsBlue(h hash.Hash) (interface{}, error) {
 	if ib == nil {
 		return 2, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %s", h.String()))
 	}
-	confirmations := api.bm.chain.BlockDAG().GetConfirmations(&h)
+	confirmations := api.bm.chain.BlockDAG().GetConfirmations(ib.GetID())
 	if confirmations == 0 {
 		return 2, nil
 	}
-	if api.bm.chain.BlockDAG().IsBlue(&h) {
+	if api.bm.chain.BlockDAG().IsBlue(ib.GetID()) {
 		return 1, nil
 	}
 	return 0, nil

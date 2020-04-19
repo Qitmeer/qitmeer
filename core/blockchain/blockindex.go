@@ -3,6 +3,7 @@ package blockchain
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/params"
@@ -86,11 +87,6 @@ func (bi *blockIndex) LookupNode(hash *hash.Hash) *blockNode {
 // This function MUST be called with the block index lock held (for writes).
 func (bi *blockIndex) addNode(node *blockNode) {
 	bi.index[node.hash] = node
-	if node.parents != nil && len(node.parents) > 0 {
-		for _, v := range node.parents {
-			v.AddChild(node)
-		}
-	}
 }
 
 // AddNode adds the provided node to the block index.  Duplicate entries are not
@@ -139,6 +135,14 @@ func (bi *blockIndex) GetMaxOrderFromList(list []*hash.Hash) *hash.Hash {
 		}
 	}
 	return maxHash
+}
+
+func (bi *blockIndex) GetDAGBlockID(h *hash.Hash) uint {
+	bn := bi.LookupNode(h)
+	if bn == nil {
+		return blockdag.MaxId
+	}
+	return bn.dagID
 }
 
 func GetMaxLayerFromList(list []*blockNode) uint {

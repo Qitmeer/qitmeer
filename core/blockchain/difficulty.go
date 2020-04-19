@@ -106,6 +106,9 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 	}
 
 	curNode = b.getPowTypeNode(curNode, powInstance.GetPowType())
+	if curNode == nil || curNode.GetHash().IsEqual(&hash.ZeroHash) {
+		return pow.BigToCompact(baseTarget), nil
+	}
 	curBlock := b.bd.GetBlock(curNode.GetHash())
 	if curBlock == nil {
 		return pow.BigToCompact(baseTarget), nil
@@ -231,8 +234,8 @@ func (b *BlockChain) calcNextRequiredDifficulty(curNode *blockNode, newBlockTime
 		// Get the previous node while staying at the genesis block as
 		// needed.
 		if oldNode.parents != nil {
-			oldBlock := b.bd.GetBlock(oldNode.GetHash())
-			oldMainParent := b.bd.GetBlock(oldBlock.GetMainParent())
+			oldBlock := b.bd.GetBlockById(oldNode.GetID())
+			oldMainParent := b.bd.GetBlockById(oldBlock.GetMainParent())
 			if oldMainParent != nil {
 				oldNode = b.index.LookupNode(oldMainParent.GetHash())
 				oldNode = b.getPowTypeNode(oldNode, powInstance.GetPowType())
@@ -308,8 +311,8 @@ func (b *BlockChain) calcCurrentPowCount(curNode *blockNode, nodesToTraverse int
 			currentPowBlockCount--
 		}
 		if oldNode.parents != nil {
-			oldBlock := b.bd.GetBlock(oldNode.GetHash())
-			oldMainParent := b.bd.GetBlock(oldBlock.GetMainParent())
+			oldBlock := b.bd.GetBlockById(oldNode.GetID())
+			oldMainParent := b.bd.GetBlockById(oldBlock.GetMainParent())
 			if oldMainParent != nil {
 				oldNode = b.index.LookupNode(oldMainParent.GetHash())
 				if oldNode.order != 0 && oldNode.GetPowType() != powType {
@@ -362,8 +365,8 @@ func (b *BlockChain) getDistanceFromLastAdjustment(curNode *blockNode, powType p
 			return count
 		}
 
-		oldBlock := b.bd.GetBlock(curNode.GetHash())
-		oldMainParent := b.bd.GetBlock(oldBlock.GetMainParent())
+		oldBlock := b.bd.GetBlockById(curNode.GetID())
+		oldMainParent := b.bd.GetBlockById(oldBlock.GetMainParent())
 		if oldMainParent != nil {
 			curNode = b.index.LookupNode(oldMainParent.GetHash())
 		} else {
@@ -417,8 +420,8 @@ func (b *BlockChain) getPowTypeNode(curNode *blockNode, powType pow.PowType) *bl
 			}
 		}
 
-		oldBlock := b.bd.GetBlock(curNode.GetHash())
-		oldMainParent := b.bd.GetBlock(oldBlock.GetMainParent())
+		oldBlock := b.bd.GetBlockById(curNode.GetID())
+		oldMainParent := b.bd.GetBlockById(oldBlock.GetMainParent())
 		if oldMainParent != nil {
 			curNode = b.index.LookupNode(oldMainParent.GetHash())
 		} else {
@@ -443,8 +446,8 @@ func (b *BlockChain) GetCurrentPowDiff(curNode blockNode, powType pow.PowType) *
 			return safeBigDiff
 		}
 
-		oldBlock := b.bd.GetBlock(curNode.GetHash())
-		oldMainParent := b.bd.GetBlock(oldBlock.GetMainParent())
+		oldBlock := b.bd.GetBlockById(curNode.GetID())
+		oldMainParent := b.bd.GetBlockById(oldBlock.GetMainParent())
 		if oldMainParent != nil {
 			curNode = *b.index.LookupNode(oldMainParent.GetHash())
 		} else {

@@ -131,11 +131,6 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 		SignScript: coinbaseScript,
 	})
 
-	hasTax := false
-	if params.BlockTaxProportion > 0 &&
-		len(params.OrganizationPkScript) > 0 {
-		hasTax = true
-	}
 	// Create a coinbase with correct block subsidy and extranonce.
 	subsidy := blockchain.CalcBlockWorkSubsidy(subsidyCache,
 		nextBlocks, params)
@@ -160,7 +155,7 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 			return nil, err
 		}
 	}
-	if !hasTax {
+	if !params.HasTax() {
 		subsidy += uint64(tax)
 		tax = 0
 	}
@@ -171,7 +166,7 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	})
 
 	// Tax output.
-	if hasTax {
+	if params.HasTax() {
 		tx.AddTxOut(&types.TxOutput{
 			Amount:   uint64(tax),
 			PkScript: params.OrganizationPkScript,

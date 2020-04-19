@@ -2,51 +2,50 @@ package blockdag
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
 	"strconv"
 	"testing"
 )
 
 func Test_GetFutureSet(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
 
 	//ph:=ibd.(*Phantom)
-	anBlock := bd.GetBlock(tbMap[testData.PH_GetFutureSet.Input])
-	bset := NewHashSet()
+	anBlock := tbMap[testData.PH_GetFutureSet.Input]
+	bset := NewIdSet()
 	bd.getFutureSet(bset, anBlock)
 	fmt.Printf("Get %s future set：\n", testData.PH_GetFutureSet.Input)
-	printBlockSetTag(bset, tbMap)
+	printBlockSetTag(bset)
 	//
-	if !processResult(bset, changeToHashList(testData.PH_GetFutureSet.Output, tbMap)) {
+	if !processResult(bset, changeToIDList(testData.PH_GetFutureSet.Output)) {
 		t.FailNow()
 	}
 }
 
 func Test_GetAnticone(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
 	ph := ibd.(*Phantom)
 	//
-	anBlock := bd.GetBlock(tbMap[testData.PH_GetAnticone.Input])
+	anBlock := tbMap[testData.PH_GetAnticone.Input]
 
 	////////////
 	bset := ph.bd.getAnticone(anBlock, nil)
 	fmt.Printf("Get %s anticone set：\n", testData.PH_GetAnticone.Input)
-	printBlockSetTag(bset, tbMap)
+	printBlockSetTag(bset)
 	//
-	if !processResult(bset, changeToHashList(testData.PH_GetAnticone.Output, tbMap)) {
+	if !processResult(bset, changeToIDList(testData.PH_GetAnticone.Output)) {
 		t.FailNow()
 	}
 
 }
 
 func Test_BlueSetFig2(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
@@ -54,14 +53,14 @@ func Test_BlueSetFig2(t *testing.T) {
 	//
 	blueSet := ph.GetDiffBlueSet()
 	fmt.Println("Fig2 diff blue set：")
-	printBlockSetTag(blueSet, tbMap)
-	if !processResult(blueSet, changeToHashList(testData.PH_BlueSetFig2.Output, tbMap)) {
+	printBlockSetTag(blueSet)
+	if !processResult(blueSet, changeToIDList(testData.PH_BlueSetFig2.Output)) {
 		t.FailNow()
 	}
 }
 
 func Test_BlueSetFig4(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig4-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig4-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
@@ -69,64 +68,64 @@ func Test_BlueSetFig4(t *testing.T) {
 	//
 	blueSet := ph.GetDiffBlueSet()
 	fmt.Println("Fig4 diff blue set：")
-	printBlockSetTag(blueSet, tbMap)
-	if !processResult(blueSet, changeToHashList(testData.PH_BlueSetFig4.Output, tbMap)) {
+	printBlockSetTag(blueSet)
+	if !processResult(blueSet, changeToIDList(testData.PH_BlueSetFig4.Output)) {
 		t.FailNow()
 	}
 }
 
 func Test_OrderFig2(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
 	ph := ibd.(*Phantom)
-	order := []*hash.Hash{}
+	order := []uint{}
 	var i uint
 	ph.UpdateVirtualBlockOrder()
 	for i = 0; i < bd.GetBlockTotal(); i++ {
 		order = append(order, bd.order[i])
 	}
 	fmt.Printf("The Fig.2 Order: ")
-	printBlockChainTag(order, tbMap)
+	printBlockChainTag(order)
 
-	if !processResult(order, changeToHashList(testData.PH_OrderFig2.Output, tbMap)) {
+	if !processResult(order, changeToIDList(testData.PH_OrderFig2.Output)) {
 		t.FailNow()
 	}
 
 	//
 	da := ph.GetDiffAnticone()
 	fmt.Printf("The diffanticoner: ")
-	printBlockSetTag(da, tbMap)
+	printBlockSetTag(da)
 }
 
 func Test_OrderFig4(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig4-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig4-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
 	ph := ibd.(*Phantom)
-	order := []*hash.Hash{}
+	order := []uint{}
 	var i uint
 	ph.UpdateVirtualBlockOrder()
 	for i = 0; i < bd.GetBlockTotal(); i++ {
 		order = append(order, bd.order[i])
 	}
 	fmt.Printf("The Fig.4 Order: ")
-	printBlockChainTag(order, tbMap)
+	printBlockChainTag(order)
 
-	if !processResult(order, changeToHashList(testData.PH_OrderFig4.Output, tbMap)) {
+	if !processResult(order, changeToIDList(testData.PH_OrderFig4.Output)) {
 		t.FailNow()
 	}
 
 	//
 	da := ph.GetDiffAnticone()
 	fmt.Printf("The diffanticoner: ")
-	printBlockSetTag(da, tbMap)
+	printBlockSetTag(da)
 }
 
 func Test_GetLayer(t *testing.T) {
-	ibd, _ := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
@@ -144,17 +143,17 @@ func Test_GetLayer(t *testing.T) {
 }
 
 func Test_IsOnMainChain(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
-	if strconv.FormatBool(bd.IsOnMainChain(tbMap[testData.PH_IsOnMainChain.Input])) != testData.PH_IsOnMainChain.Output[0] {
+	if strconv.FormatBool(bd.IsOnMainChain(tbMap[testData.PH_IsOnMainChain.Input].GetID())) != testData.PH_IsOnMainChain.Output[0] {
 		t.FailNow()
 	}
 }
 
 func Test_LocateBlocks(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
@@ -165,64 +164,64 @@ func Test_LocateBlocks(t *testing.T) {
 	lb := bd.locateBlocks(gs, 100)
 	lbhs := NewHashSet()
 	lbhs.AddList(lb)
-	if !processResult(lbhs, changeToHashList(testData.PH_LocateBlocks.Output, tbMap)) {
+	if !processResult(lbhs, changeToIDList(testData.PH_LocateBlocks.Output)) {
 		t.FailNow()
 	}
 }
 
 func Test_LocateMaxBlocks(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
 	gs := NewGraphState()
 	gs.GetTips().Add(bd.GetGenesisHash())
-	gs.GetTips().Add(tbMap["G"])
+	gs.GetTips().Add(tbMap["G"].GetHash())
 	gs.SetTotal(4)
 	gs.SetLayer(2)
 	lb := bd.locateBlocks(gs, 4)
 	//printBlockChainTag(lb,tbMap)
-	if !processResult(lb, changeToHashList(testData.PH_LocateMaxBlocks.Output, tbMap)) {
+	if !processResult(lb, changeToIDList(testData.PH_LocateMaxBlocks.Output)) {
 		t.FailNow()
 	}
 }
 
 func Test_Confirmations(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
 	mainTip := bd.GetMainChainTip()
-	mainChain := []*hash.Hash{}
-	for cur := mainTip; cur != nil; cur = bd.GetBlock(cur.GetMainParent()) {
-		mainChain = append(mainChain, cur.GetHash())
+	mainChain := []uint{}
+	for cur := mainTip; cur != nil; cur = bd.GetBlockById(cur.GetMainParent()) {
+		mainChain = append(mainChain, cur.GetID())
 	}
-	printBlockChainTag(reverseBlockList(mainChain), tbMap)
+	printBlockChainTag(reverseBlockList(mainChain))
 
 	ph := ibd.(*Phantom)
 	ph.UpdateVirtualBlockOrder()
 	for i := uint(0); i < bd.GetBlockTotal(); i++ {
 		blockHash := bd.order[i]
-		fmt.Printf("%s : %d\n", getBlockTag(blockHash, tbMap), bd.GetConfirmations(blockHash))
+		fmt.Printf("%s : %d\n", getBlockTag(blockHash), bd.GetConfirmations(blockHash))
 	}
 }
 
 func Test_IsDAG(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
 	//ph:=ibd.(*Phantom)
 	//
 	parentsTag := []string{"I", "G"}
-	parents := []*hash.Hash{}
+	parents := NewIdSet()
 	for _, parent := range parentsTag {
-		parents = append(parents, tbMap[parent])
+		parents.Add(tbMap[parent].GetID())
 	}
-	block := buildBlock("L", parents, &tbMap)
-	l := bd.AddBlock(block)
+	block := buildBlock(parents)
+	l, ib := bd.AddBlock(block)
 	if l != nil && l.Len() > 0 {
-		tbMap["L"] = block.GetHash()
+		tbMap["L"] = ib
 	} else {
 		t.Fatalf("Error:%d  L\n", tempHash)
 	}
@@ -230,33 +229,33 @@ func Test_IsDAG(t *testing.T) {
 }
 
 func Test_IsHourglass(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "CP_Blocks")
+	ibd := InitBlockDAG(phantom, "CP_Blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
-	if !bd.IsHourglass(tbMap["J"]) {
+	if !bd.IsHourglass(tbMap["J"].GetID()) {
 		t.Fatal()
 	}
 }
 
 func Test_GetMaturity(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
-	if bd.GetMaturity(tbMap["D"], []*hash.Hash{tbMap["I"]}) != 2 {
+	if bd.GetMaturity(tbMap["D"].GetID(), []uint{tbMap["I"].GetID()}) != 2 {
 		t.Fatal()
 	}
 }
 
 func Test_GetMainParentConcurrency(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
 
 	//ph:=ibd.(*Phantom)
-	anBlock := bd.GetBlock(tbMap[testData.PH_MPConcurrency.Input])
+	anBlock := bd.GetBlock(tbMap[testData.PH_MPConcurrency.Input].GetHash())
 	//fmt.Println(bd.GetMainParentConcurrency(anBlock))
 	if bd.GetMainParentConcurrency(anBlock) != testData.PH_MPConcurrency.Output {
 		t.Fatal()
@@ -264,13 +263,13 @@ func Test_GetMainParentConcurrency(t *testing.T) {
 }
 
 func Test_GetBlockConcurrency(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(phantom, "PH_fig2-blocks")
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
 
 	//ph:=ibd.(*Phantom)
-	blueNum, err := bd.GetBlockConcurrency(tbMap[testData.PH_MPConcurrency.Input])
+	blueNum, err := bd.GetBlockConcurrency(tbMap[testData.PH_MPConcurrency.Input].GetHash())
 	if err != nil {
 		t.Fatal(err)
 	}

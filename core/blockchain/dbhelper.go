@@ -177,7 +177,7 @@ func (b *BlockChain) BlockHashByOrder(blockOrder uint64) (*hash.Hash, error) {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) MainChainHasBlock(hash *hash.Hash) bool {
-	return b.bd.IsOnMainChain(hash)
+	return b.bd.IsOnMainChain(b.index.GetDAGBlockID(hash))
 }
 
 // dbFetchDatabaseInfo uses an existing database transaction to fetch the
@@ -242,6 +242,7 @@ func (b *BlockChain) createChainState() error {
 	node.SetOrder(0)
 	node.SetHeight(0)
 	node.SetLayer(0)
+	node.dagID = 0
 	b.index.addNode(node)
 	// Initialize the state related to the best block.  Since it is the
 	// genesis block, use its timestamp for the median time.
