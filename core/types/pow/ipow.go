@@ -91,7 +91,7 @@ func GetInstance(powType PowType, nonce uint32, proofData []byte) IPow {
 	case CUCKAROO:
 		instance = &Cuckaroo{}
 	case CUCKAROOM:
-		instance = &Cuckaroo{}
+		instance = &Cuckaroom{}
 	case CUCKATOO:
 		instance = &Cuckatoo{}
 	default:

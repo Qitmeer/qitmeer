@@ -146,9 +146,9 @@ var testNetGenesisBlock = types.Block{
 		Version:    3,
 		ParentRoot: hash.Hash{},
 		TxRoot:     testNetGenesisMerkleRoot,
-		Timestamp:  time.Unix(1577692345,0), // 2019-12-30 3:52:25 PM GMT+08:00
+		Timestamp:  time.Unix(1577692345, 0), // 2019-12-30 3:52:25 PM GMT+08:00
 		Difficulty: 0x1c1fffff,
-		Pow:        &pow.Blake2bd{},
+		Pow:        &pow.Cuckaroom{},
 	},
 	Transactions: []*types.Transaction{&testNetGenesisCoinbaseTx},
 }
