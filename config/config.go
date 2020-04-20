@@ -80,10 +80,11 @@ type Config struct {
 	Cleanup     bool   `short:"L" long:"cleanup" description:"Cleanup the block database "`
 	BuildLedger bool   `long:"buildledger" description:"Generate the genesis ledger for the next qitmeer version."`
 
-	Zmqpubhashtx    string `long:"zmqpubhashtx" description:"Enable publish hash block in <address>"`
-	Zmqpubhashblock string `long:"zmqpubhashblock" description:"Enable publish hash transaction in <address>"`
+	Zmqpubhashblock string `long:"zmqpubhashblock" description:"Enable publish hash block  in <address>"`
 	Zmqpubrawblock  string `long:"zmqpubrawblock" description:"Enable publish raw block in <address>"`
-	Zmqpubrawtx     string `long:"zmqpubrawtx" description:"Enable publish raw transaction in <address>"`
+
+	Zmqpubhashtx string `long:"zmqpubhashtx" description:"Enable publish hash transaction in <address>"`
+	Zmqpubrawtx  string `long:"zmqpubrawtx" description:"Enable publish raw transaction in <address>"`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {

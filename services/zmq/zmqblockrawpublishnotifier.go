@@ -31,7 +31,7 @@ func (zp *ZMQBlockRawPublishNotifier) NotifyBlock(block *types.SerializedBlock) 
 	return zp.sendMessage(blockBytes, false)
 }
 
-func (zp *ZMQBlockRawPublishNotifier) NotifyTransaction(block []*types.Tx) error {
+func (zp *ZMQBlockRawPublishNotifier) NotifyTransaction(txs []*types.Tx) error {
 	return nil
 }
 

@@ -27,7 +27,7 @@ func (zp *ZMQBlockHashPublishNotifier) NotifyBlock(block *types.SerializedBlock)
 	return zp.sendMessage(block.Hash().Bytes(), false)
 }
 
-func (zp *ZMQBlockHashPublishNotifier) NotifyTransaction(block []*types.Tx) error {
+func (zp *ZMQBlockHashPublishNotifier) NotifyTransaction(txs []*types.Tx) error {
 	return nil
 }
 

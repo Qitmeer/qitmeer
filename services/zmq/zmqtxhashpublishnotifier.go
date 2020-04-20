@@ -26,7 +26,17 @@ func (zp *ZMQTxHashPublishNotifier) NotifyBlock(block *types.SerializedBlock) er
 	return nil
 }
 
-func (zp *ZMQTxHashPublishNotifier) NotifyTransaction(block []*types.Tx) error {
+func (zp *ZMQTxHashPublishNotifier) NotifyTransaction(txs []*types.Tx) error {
+	txsLen := len(txs) - 1
+	if txsLen < 0 {
+		return nil
+	}
+	for k, transaction := range txs {
+		err := zp.sendMessage(transaction.Hash().Bytes(), k < txsLen)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
