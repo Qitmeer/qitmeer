@@ -1,4 +1,4 @@
-// +build zmq
+// +build !zmq
 
 package zmq
 
@@ -7,9 +7,12 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 )
 
+// This ZeroMQ notification is default for Qitmeer
+// If you want to enable ZMQ for Qitmeer, you must use 'zmq' tags when go building
 type ZMQNotification struct {
 }
 
+// Initialization notification
 func (zn *ZMQNotification) Init(cfg *config.Config) {
 	log.Info("ZMQ:Not Supported")
 }

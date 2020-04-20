@@ -6,6 +6,7 @@ import (
 	_ "log"
 )
 
+// The interface for ZeroMQ notificaion
 type IZMQNotification interface {
 	// init
 	Init(cfg *config.Config)

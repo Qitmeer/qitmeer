@@ -1,4 +1,4 @@
-// +build !zmq
+// +build zmq
 
 package zmq
 
