@@ -8,6 +8,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 )
 
+// The ZeroMQ public notifier  block hash
 type ZMQBlockHashPublishNotifier struct {
 	*ZMQPublishNotifier
 }

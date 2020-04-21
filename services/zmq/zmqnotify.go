@@ -8,11 +8,14 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 )
 
+// This ZeroMQ notification is for Qitmeer
+// If you want to enable ZMQ for Qitmeer, you must use 'zmq' tags when go building
 type ZMQNotification struct {
 	cfg              *config.Config
 	publishNotifiers []IZMQPublishNotifier
 }
 
+// Initialization notification
 func (zn *ZMQNotification) Init(cfg *config.Config) {
 	log.Info("ZMQ:Supported")
 	zn.cfg = cfg
@@ -27,6 +30,7 @@ func (zn *ZMQNotification) Init(cfg *config.Config) {
 	}
 }
 
+// return enable for ZMQ
 func (zn *ZMQNotification) IsEnable() bool {
 	return true
 }
