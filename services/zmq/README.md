@@ -31,6 +31,17 @@ Because ZeroMQ is message oriented, subscribers receive transactions
 and blocks all-at-once and do not need to implement any sort of
 buffering or reassembly.
 
+## Prerequisites
+If you want to open it, you must install some dependency libraries:
+
+* Mac:
+```
+    brew install czmq libsodium
+```
+* Ubuntu:
+```
+    apt install czmq libsodium
+```
 ## Enabling
 
 By default, the ZeroMQ is disable.  To enable, use ZMQ=TRUE
