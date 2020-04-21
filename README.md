@@ -81,6 +81,9 @@ replace (
 
 [qitmeer rpc tools](https://github.com/Qitmeer/qitmeer-cli)
 
+## ZeroMQ
+[Block and Transaction Broadcasting with ZeroMQ](services/zmq/README.md) for details on how this works.
+
 **happy hacking!**
 
 

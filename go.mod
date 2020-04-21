@@ -15,6 +15,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.0
+	github.com/zeromq/goczmq v4.1.0+incompatible
 	golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
 	golang.org/x/sys v0.0.0-20190412213103-97732733099d

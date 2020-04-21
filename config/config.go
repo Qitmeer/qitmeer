@@ -79,6 +79,12 @@ type Config struct {
 	DAGType     string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
 	Cleanup     bool   `short:"L" long:"cleanup" description:"Cleanup the block database "`
 	BuildLedger bool   `long:"buildledger" description:"Generate the genesis ledger for the next qitmeer version."`
+
+	Zmqpubhashblock string `long:"zmqpubhashblock" description:"Enable publish hash block  in <address>"`
+	Zmqpubrawblock  string `long:"zmqpubrawblock" description:"Enable publish raw block in <address>"`
+
+	Zmqpubhashtx string `long:"zmqpubhashtx" description:"Enable publish hash transaction in <address>"`
+	Zmqpubrawtx  string `long:"zmqpubrawtx" description:"Enable publish raw transaction in <address>"`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {
