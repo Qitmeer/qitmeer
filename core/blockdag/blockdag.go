@@ -261,11 +261,11 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	if len(parents) > 0 {
 		block.parents = NewIdSet()
 		var maxLayer uint = 0
-		for k, v := range parents {
+		for _, v := range parents {
 			parent := v.(IBlock)
 			block.parents.AddPair(parent.GetID(), parent)
 			parent.AddChild(ib)
-			if k == 0 {
+			if block.mainParent > parent.GetID() {
 				block.mainParent = parent.GetID()
 			}
 
