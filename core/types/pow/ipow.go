@@ -28,9 +28,10 @@ const (
 )
 
 var PowMapString = map[PowType]interface{}{
-	BLAKE2BD: "blake2bd",
-	CUCKAROO: "cuckaroo",
-	CUCKATOO: "cuckatoo",
+	BLAKE2BD:  "blake2bd",
+	CUCKAROO:  "cuckaroo",
+	CUCKATOO:  "cuckatoo",
+	CUCKAROOM: "cuckaroom",
 }
 
 type ProofDataType [PROOFDATA_LENGTH]byte

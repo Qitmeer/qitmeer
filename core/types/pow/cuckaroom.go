@@ -16,7 +16,7 @@ type Cuckaroom struct {
 	Cuckoo
 }
 
-const MIN_CUCKAROOMMEDGEBITS = 19
+const MIN_CUCKAROOMMEDGEBITS = 29
 const MAX_CUCKAROOMMEDGEBITS = 29
 
 func (this *Cuckaroom) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) error {
