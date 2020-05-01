@@ -38,9 +38,14 @@ const blockHeaderLen = 113 + 169
 // MaxBlocksPerMsg is the maximum number of blocks allowed per message.
 const MaxBlocksPerMsg = 500
 
+//max version value .
+// because only has 2 bytes
+const MaxBlockVersionValue = 65535
+
 type BlockHeader struct {
 
 	// block version
+	// first 2 bytes, so this value can't more than 65535
 	Version uint32
 
 	// The merkle root of the previous parent blocks (the dag layer)
