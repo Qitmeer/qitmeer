@@ -14,6 +14,7 @@ type Percent struct {
 	CuckatooPercent int
 	Blake2bDPercent int
 	MainHeight      int64
+	X16rv3Percent   int
 }
 
 type PowConfig struct {
@@ -24,6 +25,9 @@ type PowConfig struct {
 	// block in compact form.
 	// highest value is mean min difficulty
 	Blake2bdPowLimitBits uint32
+
+	X16rv3PowLimit     *big.Int
+	X16rv3PowLimitBits uint32
 
 	// cuckoo difficulty calc params  min difficulty
 	CuckarooMinDifficulty uint32
@@ -87,7 +91,7 @@ func (this *PowConfig) Check() error {
 		if p.CuckarooPercent < 0 || p.Blake2bDPercent < 0 || p.CuckatooPercent < 0 {
 			return errors.New("pow config error, all percent must greater than or equal to 0!")
 		}
-		allPercent = p.CuckarooPercent + p.Blake2bDPercent + p.CuckatooPercent
+		allPercent = p.CuckarooPercent + p.Blake2bDPercent + p.CuckatooPercent + p.X16rv3Percent
 		if allPercent != 100 {
 			return errors.New("pow config error, all pow not equal 100%!")
 		}

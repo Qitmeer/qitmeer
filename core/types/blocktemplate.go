@@ -7,6 +7,7 @@ package types
 type PowDiffStandard struct {
 	//blake2b diff hash target
 	Blake2bDTarget uint32
+	X16rv3DTarget  uint32
 
 	//cuckoo base difficultuy
 	CuckarooBaseDiff uint64

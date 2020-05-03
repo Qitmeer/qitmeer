@@ -387,6 +387,12 @@ mempoolLoop:
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
+
+	//
+	reqX16rv3Difficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.X16RV3)
+	if err != nil {
+		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
+	}
 	reqCuckarooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKAROO)
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
@@ -411,8 +417,8 @@ mempoolLoop:
 		TxRoot:     *merkles[len(merkles)-1],
 		StateRoot:  hash.Hash{}, //TODO, state root
 		Timestamp:  ts,
-		Difficulty: reqBlake2bDDifficulty,
-		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
+		Difficulty: reqX16rv3Difficulty,
+		Pow:        pow.GetInstance(pow.X16RV3, 0, []byte{}),
 		// Size declared below
 	}
 	for _, pb := range parents {
@@ -454,6 +460,7 @@ mempoolLoop:
 		ValidPayAddress: payToAddress != nil,
 		PowDiffData: types.PowDiffStandard{
 			Blake2bDTarget:   reqBlake2bDDifficulty,
+			X16rv3DTarget:    reqX16rv3Difficulty,
 			CuckarooBaseDiff: pow.CompactToBig(reqCuckarooDifficulty).Uint64(),
 			CuckatooBaseDiff: pow.CompactToBig(reqCuckatooDifficulty).Uint64(),
 		},
