@@ -1,15 +1,5 @@
 package aes
 
-import (
-	//	"encoding/binary"
-	"log"
-	//	"unsafe"
-	//	"bytes"
-	//	"reflect"
-	//	"strconv"
-	//	"fmt"
-)
-
 var sbox = []uint8{
 	0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
 	0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
@@ -120,32 +110,4 @@ var golden = [...]uint64{
 	0x102d0fdce373c5b4, 0x511bb6f35a6b317b, 0xa45ca5dfd74fbb77, 0x3498fde8c3a30596,
 	0x5329922fbb5afb0f, 0xe34d04f3b419762c, 0x7d5f8b3a9517f2ff, 0x4f580029960cd4d8,
 	0xaeeafc470fe9aa58, 0xfac6b37fbb53ea22, 0xbd5ce80e23867cc4, 0xc70fadfbbd0bb20b,
-}
-
-func main() {
-	out := make([]uint64, 24)
-
-	log.Println("do aes test...")
-
-	for i := 0; i < 12; i++ {
-		Aes_enc_soft(out[i*2:], input[i*2:], key[i*2:])
-	}
-
-	var pass bool = true
-
-	for i := 0; i < 24; i++ {
-		if out[i] != golden[i] {
-			pass = false
-			break
-		}
-	}
-
-	if pass {
-		log.Println("test OK!!!")
-	} else {
-		log.Println("test ERROR!!!")
-	}
-
-	log.Println("==============================================\n")
-
 }

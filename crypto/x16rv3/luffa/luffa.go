@@ -1699,7 +1699,6 @@ func (ref *digest) Close(dst []byte, bits uint8, bcnt uint8) error {
 		switch i {
 		case 0:
 			memset(buf[:], 0)
-			break
 		case 1:
 			encUInt32be(dst[0:], V00^V10^V20^V30^V40)
 			encUInt32be(dst[4:], V01^V11^V21^V31^V41)
@@ -1709,7 +1708,6 @@ func (ref *digest) Close(dst []byte, bits uint8, bcnt uint8) error {
 			encUInt32be(dst[20:], V05^V15^V25^V35^V45)
 			encUInt32be(dst[24:], V06^V16^V26^V36^V46)
 			encUInt32be(dst[28:], V07^V17^V27^V37^V47)
-			break
 		case 2:
 			encUInt32be(dst[32:], V00^V10^V20^V30^V40)
 			encUInt32be(dst[36:], V01^V11^V21^V31^V41)
@@ -1719,7 +1717,6 @@ func (ref *digest) Close(dst []byte, bits uint8, bcnt uint8) error {
 			encUInt32be(dst[52:], V05^V15^V25^V35^V45)
 			encUInt32be(dst[56:], V06^V16^V26^V36^V46)
 			encUInt32be(dst[60:], V07^V17^V27^V37^V47)
-			break
 		}
 	}
 
