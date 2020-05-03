@@ -323,9 +323,7 @@ func slMutateBasic(r uint64, hi, lo []uint64) {
 }
 
 func slMutateExtend(r, ro uint64, hi, lo []uint64) {
-	var tmp uint64
-
-	tmp = kSpec[(r<<2)+0]
+	var tmp = kSpec[(r<<2)+0]
 	hi[6] = ^hi[6]
 	hi[0] ^= tmp & ^hi[4]
 	tmp = tmp ^ (hi[0] & hi[2])

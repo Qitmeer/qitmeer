@@ -78,8 +78,7 @@ func get_x16rv3_order(inp []byte) []byte {
 	for j := 0; j < 8; j++ {
 		aesdata[j] = FromIntsArray(aes.Aes_enc_soft(aesdata[j].ToUint64(), data_in[j].ToUint64(), ek[j].ToUint64()))
 	}
-	var xor_out Uint128
-	xor_out = Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[0])
+	var xor_out = Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[0])
 	aesdata[8] = FromIntsArray(aes.Aes_enc_soft(aesdata[8].ToUint64(), xor_out.ToUint64(), ek[8].ToUint64()))
 	xor_out = Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[1])
 	aesdata[9] = FromIntsArray(aes.Aes_enc_soft(aesdata[9].ToUint64(), xor_out.ToUint64(), ek[9].ToUint64()))
