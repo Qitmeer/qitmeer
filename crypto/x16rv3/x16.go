@@ -145,82 +145,66 @@ func (ref *Hash) Hash(src []byte, dst []byte) {
 			ref.blake.Write(in)
 			ref.blake.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case BMW:
 			ref.bmw.Write(in)
 			ref.bmw.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case GROESTL:
 			ref.groestl.Write(in)
 			ref.groestl.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case SKEIN:
 			ref.skein.Write(in)
 			ref.skein.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case JH:
 			ref.jh.Write(in)
 			ref.jh.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case KECCAK:
 			ref.keccak.Write(in)
 			ref.keccak.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case LUFFA:
 			ref.luffa.Write(in)
 			ref.luffa.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case CUBEHASH:
 			ref.cubehash.Write(in)
 			ref.cubehash.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case SHAVITE:
 			ref.shavite.Write(in)
 			ref.shavite.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case SIMD:
 			ref.simd.Write(in)
 			ref.simd.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case ECHO:
 			ref.echo.Write(in)
 			ref.echo.Close(out, 0, 0)
 			copy(in, out)
-			break
 		case HAMSI:
 			hamsi.Sph_hamsi512_process(in[:], out[:], 64)
 			copy(in, out)
-			break
 		case FUGUE:
 			fugue.Sph_fugue512_process(in[:], out[:], 64)
 			copy(in, out)
 			in = out
-			break
 		case SHABAL:
 			shabal.Shabal_512_process(in[:], out[:], 64)
 			copy(in, out)
-			break
 		case WHIRLPOOL:
 			wh := whirlpool.New()
 			wh.Write(in)
 			out = wh.Sum(nil)
 			copy(in, out)
-			break
 		case SHA512:
 			sha := sha512.New()
 			sha.Write(in)
 			out = sha.Sum(nil)
 			copy(in, out)
-			break
 		}
 	}
 	copy(dst, in[:len(dst)])

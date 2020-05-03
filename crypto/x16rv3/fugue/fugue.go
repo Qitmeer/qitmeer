@@ -405,8 +405,7 @@ func SMIX(x0, x1, x2, x3 *uint32) {
 	var r1 uint32
 	var r2 uint32
 	var r3 uint32
-	var tmp uint32
-	tmp = mixtab0[*x0>>24]
+	var tmp = mixtab0[*x0>>24]
 	c0 ^= tmp
 	tmp = mixtab1[(*x0>>16)&0xFF]
 	c0 ^= tmp

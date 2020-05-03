@@ -2109,8 +2109,7 @@ var alpha_f = [...]uint32{
 	(0xcaf9f9c0), (0x0ff0639c)}
 
 func SBOX(a, b, c, d *uint32) {
-	var t uint32
-	t = (*a)
+	var t = (*a)
 	(*a) &= (*c)
 	(*a) ^= (*d)
 	(*c) ^= (*b)
@@ -2173,8 +2172,7 @@ func hamsi_big_c_code(buf []uint8, num uint) {
 	for i := 0; uint(i) < num; i++ {
 		var m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, mA, mB, mC, mD, mE, mF uint32
 
-		var acc uint
-		acc = uint(buf[0])
+		var acc = uint(buf[0])
 		m0 = T512_0[acc][0]
 		m1 = T512_0[acc][1]
 		m2 = T512_0[acc][2]
