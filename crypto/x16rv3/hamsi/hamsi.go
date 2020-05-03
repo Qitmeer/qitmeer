@@ -2441,8 +2441,7 @@ func hamsi_big_final_c_code(buf []uint8) {
 	cE = h[0xE]
 	cF = h[0xF]
 
-	var acc uint
-	acc = uint(buf[0])
+	var acc = uint(buf[0])
 	m0 = T512_0[acc][0]
 	m1 = T512_0[acc][1]
 	m2 = T512_0[acc][2]
@@ -2699,9 +2698,7 @@ func hamsi_big_init_c_code(iv []uint32) {
 
 func hamsi_big_core_c_code(data []uint8, length uint) {
 	if partial_len != 0 {
-		var mlen uint
-
-		mlen = 8 - partial_len
+		var mlen = 8 - partial_len
 		if length < mlen {
 			for i := 0; uint(i) < length; i++ {
 				partial[partial_len+uint(i)] = data[i]

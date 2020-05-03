@@ -235,9 +235,7 @@ func encUInt64be(dst []byte, src uint64) {
 }
 
 func slMutateBasic(r uint64, hi, lo []uint64) {
-	var tmp uint64
-
-	tmp = kSpec[(r<<2)+0]
+	var tmp = kSpec[(r<<2)+0]
 	hi[6] = ^hi[6]
 	hi[0] ^= tmp & ^hi[4]
 	tmp = tmp ^ (hi[0] & hi[2])
