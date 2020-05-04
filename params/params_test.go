@@ -9,7 +9,7 @@ import (
 
 //test blake2bd percent params
 func TestPercent(t *testing.T) {
-	types := []pow.PowType{pow.BLAKE2BD, pow.CUCKAROO, pow.CUCKATOO}
+	types := []pow.PowType{pow.BLAKE2BD, pow.CUCKAROO, pow.CUCKATOO, pow.CUCKAROOM}
 	for _, powType := range types {
 		instance := pow.GetInstance(powType, 0, []byte{})
 		instance.SetParams(PrivNetParam.PowConfig)
@@ -23,9 +23,11 @@ func TestPercent(t *testing.T) {
 				percent.SetInt64(int64(p.CuckarooPercent))
 			case pow.CUCKATOO:
 				percent.SetInt64(int64(p.CuckatooPercent))
+			case pow.CUCKAROOM:
+				percent.SetInt64(int64(p.CuckaroomPercent))
 			}
 			percent.Lsh(percent, 32)
-			assert.Equal(t, percent, instance.PowPercent())
+			assert.Equal(t, percent.Uint64(), instance.PowPercent().Uint64())
 		}
 	}
 
