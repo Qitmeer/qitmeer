@@ -4,6 +4,7 @@ package types
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -115,6 +116,17 @@ func (bh *BlockHeader) BlockData() []byte {
 	_ = s.WriteElements(buf, bh.Version, &bh.ParentRoot, &bh.TxRoot,
 		&bh.StateRoot, bh.Difficulty, sec, bh.Pow.BlockData())
 	return buf.Bytes()
+}
+
+//To maintain version
+//use the first 2 bytes for version
+//last 2 bytes use for rand nonce
+func (bh *BlockHeader) GetVersion() uint32 {
+	b := make([]byte, 4)
+	newVersionData := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, bh.Version)
+	copy(newVersionData[:2], b[:2])
+	return binary.LittleEndian.Uint32(newVersionData)
 }
 
 // readBlockHeader reads a block header from io reader.  See Deserialize for

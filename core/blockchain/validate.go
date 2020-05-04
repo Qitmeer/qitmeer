@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
@@ -57,7 +56,7 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 	header := &msgBlock.Header
 
 	// TODO It can be considered to delete in the future when it is officially launched
-	if common.GetQitmeerBlockVersion(header.Version) != b.BlockVersion {
+	if header.GetVersion() != b.BlockVersion {
 		return ruleError(ErrBlockVersionTooOld, "block version too old")
 	}
 
