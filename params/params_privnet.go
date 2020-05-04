@@ -49,8 +49,25 @@ var PrivNetParams = Params{
 
 		Percent: []pow.Percent{
 			{
-				CuckaroomPercent: 100,
+				Blake2bDPercent:  10,
+				CuckarooPercent:  60,
+				CuckatooPercent:  20,
+				CuckaroomPercent: 10,
 				MainHeight:       0,
+			},
+			{
+				Blake2bDPercent:  20,
+				CuckarooPercent:  30,
+				CuckatooPercent:  40,
+				CuckaroomPercent: 10,
+				MainHeight:       50,
+			},
+			{
+				Blake2bDPercent:  0,
+				CuckarooPercent:  30,
+				CuckatooPercent:  0,
+				CuckaroomPercent: 70,
+				MainHeight:       100,
 			},
 		},
 		// after this height the big graph will be the main pow graph
