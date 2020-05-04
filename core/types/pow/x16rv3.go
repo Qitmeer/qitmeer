@@ -39,7 +39,8 @@ func (this *X16rv3) Verify(headerData []byte, blockHash hash.Hash, targetDiffBit
 			"higher than max of %064x", target, this.params.X16rv3PowLimit)
 		return errors.New(str)
 	}
-	hashNum := HashToBig(&blockHash)
+	h := hash.HashX16rv3(this.BlockData())
+	hashNum := HashToBig(&h)
 	if hashNum.Cmp(target) > 0 {
 		str := fmt.Sprintf("block hash of %064x is higher than"+
 			" expected max of %064x", hashNum, target)

@@ -92,12 +92,7 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 	// transactions.  Ignore the error returns since there is no way the
 	// encode could fail except being out of memory which would cause a
 	// run-time panic.
-	switch h.Pow.GetPowType() {
-	case pow.X16RV3:
-		return hash.HashX16rv3(h.BlockData())
-	default:
-		return hash.DoubleHashH(h.BlockData())
-	}
+	return hash.DoubleHashH(h.BlockData())
 
 }
 

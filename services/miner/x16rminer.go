@@ -1,6 +1,7 @@
 package miner
 
 import (
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/services/mining"
@@ -88,7 +89,7 @@ func (m *CPUMiner) solveX16rv3Block(msgBlock *types.Block, ticker *time.Ticker, 
 		// Each hash is actually a double hash (tow hashes), so
 		// increment the number of hashes by 2
 		hashesCompleted += 2
-		h := header.BlockHash()
+		h := hash.HashX16rv3(powStruct.BlockData())
 		hashNum := pow.HashToBig(&h)
 
 		if hashNum.Cmp(target) <= 0 {
