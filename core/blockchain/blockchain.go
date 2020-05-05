@@ -76,7 +76,6 @@ type BlockChain struct {
 	// protected by a combination of the chain lock and the orphan lock.
 	orphanLock   sync.RWMutex
 	orphans      map[hash.Hash]*orphanBlock
-	prevOrphans  map[hash.Hash][]*orphanBlock
 	oldestOrphan *orphanBlock
 
 	// These fields are related to checkpoint handling.  They are protected
@@ -265,7 +264,6 @@ func New(config *Config) (*BlockChain, error) {
 		indexManager:       config.IndexManager,
 		index:              newBlockIndex(config.DB, par),
 		orphans:            make(map[hash.Hash]*orphanBlock),
-		prevOrphans:        make(map[hash.Hash][]*orphanBlock),
 		BlockVersion:       config.BlockVersion,
 	}
 	b.subsidyCache = NewSubsidyCache(0, b.params)
@@ -780,29 +778,6 @@ func (b *BlockChain) removeOrphanBlock(orphan *orphanBlock) {
 	// Remove the orphan block from the orphan pool.
 	orphanHash := orphan.block.Hash()
 	delete(b.orphans, *orphanHash)
-
-	// Remove the reference from the previous orphan index too.  An indexing
-	// for loop is intentionally used over a range here as range does not
-	// reevaluate the slice on each iteration nor does it adjust the index
-	// for the modified slice.
-	prevHash := &orphan.block.Block().Header.ParentRoot
-	orphans := b.prevOrphans[*prevHash]
-	for i := 0; i < len(orphans); i++ {
-		h := orphans[i].block.Hash()
-		if h.IsEqual(orphanHash) {
-			copy(orphans[i:], orphans[i+1:])
-			orphans[len(orphans)-1] = nil
-			orphans = orphans[:len(orphans)-1]
-			i--
-		}
-	}
-	b.prevOrphans[*prevHash] = orphans
-
-	// Remove the map entry altogether if there are no longer any orphans
-	// which depend on the parent hash.
-	if len(b.prevOrphans[*prevHash]) == 0 {
-		delete(b.prevOrphans, *prevHash)
-	}
 }
 
 // addOrphanBlock adds the passed block (which is already determined to be
@@ -848,11 +823,6 @@ func (b *BlockChain) addOrphanBlock(block *types.SerializedBlock) {
 		expiration: expiration,
 	}
 	b.orphans[*block.Hash()] = oBlock
-
-	// Add to previous hash lookup index for faster dependency lookups.
-	prevHash := &block.Block().Header.ParentRoot
-	b.prevOrphans[*prevHash] = append(b.prevOrphans[*prevHash], oBlock)
-
 }
 
 // MaximumBlockSize returns the maximum permitted block size for the block
