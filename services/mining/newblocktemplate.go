@@ -391,6 +391,10 @@ mempoolLoop:
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
+	reqCuckaroomDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKAROOM)
+	if err != nil {
+		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
+	}
 	reqCuckatooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKATOO)
 
 	if err != nil {
@@ -411,8 +415,8 @@ mempoolLoop:
 		TxRoot:     *merkles[len(merkles)-1],
 		StateRoot:  hash.Hash{}, //TODO, state root
 		Timestamp:  ts,
-		Difficulty: reqBlake2bDDifficulty,
-		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
+		Difficulty: reqCuckaroomDifficulty,
+		Pow:        pow.GetInstance(pow.CUCKAROOM, 0, []byte{}),
 		// Size declared below
 	}
 	for _, pb := range parents {
@@ -453,9 +457,10 @@ mempoolLoop:
 		Blues:           blues,
 		ValidPayAddress: payToAddress != nil,
 		PowDiffData: types.PowDiffStandard{
-			Blake2bDTarget:   reqBlake2bDDifficulty,
-			CuckarooBaseDiff: pow.CompactToBig(reqCuckarooDifficulty).Uint64(),
-			CuckatooBaseDiff: pow.CompactToBig(reqCuckatooDifficulty).Uint64(),
+			Blake2bDTarget:    reqBlake2bDDifficulty,
+			CuckarooBaseDiff:  pow.CompactToBig(reqCuckarooDifficulty).Uint64(),
+			CuckaroomBaseDiff: pow.CompactToBig(reqCuckaroomDifficulty).Uint64(),
+			CuckatooBaseDiff:  pow.CompactToBig(reqCuckatooDifficulty).Uint64(),
 		},
 	}
 	return handleCreatedBlockTemplate(blockTemplate, blockManager)

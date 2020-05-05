@@ -21,15 +21,17 @@ type PowBytes []byte
 
 const (
 	//pow type enum
-	BLAKE2BD PowType = 0
-	CUCKAROO PowType = 1
-	CUCKATOO PowType = 2
+	BLAKE2BD  PowType = 0
+	CUCKAROO  PowType = 1
+	CUCKATOO  PowType = 2
+	CUCKAROOM PowType = 3
 )
 
 var PowMapString = map[PowType]interface{}{
-	BLAKE2BD: "blake2bd",
-	CUCKAROO: "cuckaroo",
-	CUCKATOO: "cuckatoo",
+	BLAKE2BD:  "blake2bd",
+	CUCKAROO:  "cuckaroo",
+	CUCKATOO:  "cuckatoo",
+	CUCKAROOM: "cuckaroom",
 }
 
 type ProofDataType [PROOFDATA_LENGTH]byte
@@ -89,6 +91,8 @@ func GetInstance(powType PowType, nonce uint32, proofData []byte) IPow {
 		instance = &Blake2bd{}
 	case CUCKAROO:
 		instance = &Cuckaroo{}
+	case CUCKAROOM:
+		instance = &Cuckaroom{}
 	case CUCKATOO:
 		instance = &Cuckatoo{}
 	default:
