@@ -254,6 +254,10 @@ func New(config *Config) (*BlockChain, error) {
 		}
 	}
 
+	if config.BlockVersion > types.MaxBlockVersionValue {
+		return nil, AssertError(fmt.Sprintf("BlockVersion Can not bigger than %d", types.MaxBlockVersionValue))
+	}
+
 	b := BlockChain{
 		checkpointsByLayer: checkpointsByLayer,
 		db:                 config.DB,
@@ -445,7 +449,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			if err != nil {
 				return err
 			}
-			if i != 0 && block.Block().Header.Version != b.BlockVersion {
+			if i != 0 && block.Block().Header.GetVersion() != b.BlockVersion {
 				return fmt.Errorf("The dag block is not match current genesis block. you can cleanup your block data base by '--cleanup'.")
 			}
 			parents := []*blockNode{}
