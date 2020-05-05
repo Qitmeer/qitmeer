@@ -71,7 +71,7 @@ var genesisBlock = types.Block{
 		StateRoot:  hash.Hash{},
 		Timestamp:  time.Unix(1561939200, 0), // 2019-07-01 00:00:00 GMT
 		Difficulty: 0x1b01ffff,               // Difficulty 32767
-		Pow:        &pow.Blake2bd{},
+		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
 	},
 	Transactions: []*types.Transaction{&genesisCoinbaseTx},
 }
@@ -223,7 +223,7 @@ var privNetGenesisBlock = types.Block{
 		}),
 		Timestamp:  time.Unix(1530833717, 0), // 2018-07-05 23:35:17 GMT
 		Difficulty: 0x207fffff,               // 545259519
-		Pow:        &pow.Blake2bd{},
+		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
 	},
 	Transactions: []*types.Transaction{&privNetGenesisCoinbaseTx},
 }
@@ -250,7 +250,7 @@ var testPowNetGenesisBlock = types.Block{
 		TxRoot:     testPowNetGenesisMerkleRoot,
 		Timestamp:  time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
 		Difficulty: 0x1e00ffff,
-		Pow:        &pow.Blake2bd{},
+		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
 	},
 	Transactions: []*types.Transaction{&testPowNetGenesisCoinbaseTx},
 	Parents:      []*hash.Hash{},
