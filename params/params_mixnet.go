@@ -17,8 +17,10 @@ import (
 // testMixNetPowLimit is the highest proof of work value a block can
 // have for the test network. It is the value 2^232 - 1.
 var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1)
+
 // target time per block unit second(s)
 const mixTargetTimePerBlock = 15
+
 // Difficulty check interval is about 60*15 = 15 mins
 const mixWorkDiffWindowSize = 60
 
@@ -42,11 +44,14 @@ var MixNetParams = Params{
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:     testMixNetPowLimit,
 		Blake2bdPowLimitBits: 0x1e00ffff,
+		X16rv3PowLimit:       testMixNetPowLimit,
+		X16rv3PowLimitBits:   0x1e00ffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 2 ≈ 1min find once
-		CuckarooMinDifficulty: 0x1600000, // 96
-		CuckatooMinDifficulty: 0x1600000, // 96
+		CuckarooMinDifficulty:  0x1600000, // 96
+		CuckatooMinDifficulty:  0x1600000, // 96
+		CuckaroomMinDifficulty: 0x1600000, // 96
 
 		Percent: []pow.Percent{
 			{
@@ -70,7 +75,7 @@ var MixNetParams = Params{
 	RetargetAdjustmentFactor: 3,
 
 	// Subsidy parameters.
-	BaseSubsidy:              12000000000,    // 120 Coin, stay same with testnet
+	BaseSubsidy:              12000000000, // 120 Coin, stay same with testnet
 	MulSubsidy:               100,
 	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
 	SubsidyReductionInterval: 1669066,        // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days
