@@ -431,6 +431,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 	targetBlake2bDDifficulty := fmt.Sprintf("%064x", blake2bdBig)
 	x16rv3iDifficulty := fmt.Sprintf("%064x", x16rv3big)
 	targetCuckarooDDifficulty := template.PowDiffData.CuckarooBaseDiff
+	targetCuckaroomDifficulty := template.PowDiffData.CuckaroomBaseDiff
 	targetCuckatooDDifficulty := template.PowDiffData.CuckatooBaseDiff
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, state.lastGenerated)
 	reply := json.GetBlockTemplateResult{
@@ -457,8 +458,9 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 			X16rv3Bits:    strconv.FormatInt(int64(template.PowDiffData.X16rv3DTarget), 16),
 			X16rv3Target:  x16rv3iDifficulty,
 			//cuckoo mining min diff
-			CuckarooMinDiff: targetCuckarooDDifficulty,
-			CuckatooMinDiff: targetCuckatooDDifficulty,
+			CuckarooMinDiff:  targetCuckarooDDifficulty,
+			CuckaroomMinDiff: targetCuckaroomDifficulty,
+			CuckatooMinDiff:  targetCuckatooDDifficulty,
 			//cuckoo hash calc diff scale
 		},
 		MinTime: state.minTimestamp.Unix(),

@@ -56,7 +56,7 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 	header := &msgBlock.Header
 
 	// TODO It can be considered to delete in the future when it is officially launched
-	if header.Version != b.BlockVersion {
+	if header.GetVersion() != b.BlockVersion {
 		return ruleError(ErrBlockVersionTooOld, "block version too old")
 	}
 

@@ -10,8 +10,9 @@ type PowDiffReference struct {
 	X16rv3Target  string `json:"x_16_rv_3_target"`
 
 	//cuckoo mining min diff
-	CuckarooMinDiff uint64 `json:"cuckaroo_min_diff,omitempty"`
-	CuckatooMinDiff uint64 `json:"cuckatoo_min_diff,omitempty"`
+	CuckarooMinDiff  uint64 `json:"cuckaroo_min_diff,omitempty"`
+	CuckaroomMinDiff uint64 `json:"cuckaroom_min_diff,omitempty"`
+	CuckatooMinDiff  uint64 `json:"cuckatoo_min_diff,omitempty"`
 }
 
 //LL(getblocktemplate RPC) 2018-10-28

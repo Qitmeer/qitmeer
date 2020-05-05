@@ -1,7 +1,12 @@
 package blockdag
 
-/*func Test_GetMainChain(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(conflux, "CO_Blocks")
+import (
+	"fmt"
+	"testing"
+)
+
+func Test_GetMainChain(t *testing.T) {
+	ibd := InitBlockDAG(conflux, "CO_Blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
@@ -9,26 +14,26 @@ package blockdag
 	fmt.Println("Conflux main chain ：")
 	mainChain := con.GetMainChain()
 	mainChain = reverseBlockList(mainChain)
-	printBlockChainTag(mainChain, tbMap)
-	if !processResult(mainChain, changeToHashList(testData.CO_GetMainChain.Output, tbMap)) {
+	printBlockChainTag(mainChain)
+	if !processResult(mainChain, changeToIDList(testData.CO_GetMainChain.Output)) {
 		t.FailNow()
 	}
 }
 
 func Test_GetOrder(t *testing.T) {
-	ibd, tbMap := InitBlockDAG(conflux, "CO_Blocks")
+	ibd := InitBlockDAG(conflux, "CO_Blocks")
 	if ibd == nil {
 		t.FailNow()
 	}
 	//con:=ibd.(*Conflux)
 	fmt.Println("Conflux order ：")
-	order := []*hash.Hash{}
+	order := []uint{}
 	var i uint
 	for i = 0; i < bd.GetBlockTotal(); i++ {
-		order = append(order, bd.GetBlockByOrder(i))
+		order = append(order, bd.order[i])
 	}
-	printBlockChainTag(order, tbMap)
-	if !processResult(order, changeToHashList(testData.CO_GetOrder.Output, tbMap)) {
+	printBlockChainTag(order)
+	if !processResult(order, changeToIDList(testData.CO_GetOrder.Output)) {
 		t.FailNow()
 	}
-}*/
+}

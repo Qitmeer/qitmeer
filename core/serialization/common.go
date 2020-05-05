@@ -25,6 +25,7 @@ const (
 	// MaxMessagePayload is the maximum bytes a message can be regardless of other
 	// individual limits imposed by messages themselves.
 	MaxMessagePayload = (1024 * 1024 * 32) // 32MB
+
 )
 
 // TODO unify endian

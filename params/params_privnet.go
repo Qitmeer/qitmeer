@@ -45,15 +45,34 @@ var PrivNetParams = Params{
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1 times use for privnet if GPS is 2. need 50 /2 = 25s find once
-		CuckarooMinDifficulty: 0x1300000,
-		CuckatooMinDifficulty: 0x1300000,
+		CuckarooMinDifficulty:  0x1300000,
+		CuckatooMinDifficulty:  0x1300000,
+		CuckaroomMinDifficulty: 0x1300000,
 
 		Percent: []pow.Percent{
 			{
-				X16rv3Percent:   30,
-				CuckarooPercent: 70,
-				CuckatooPercent: 0,
-				MainHeight:      0,
+				Blake2bDPercent:  10,
+				CuckarooPercent:  10,
+				CuckatooPercent:  20,
+				CuckaroomPercent: 10,
+				X16rv3Percent:    50,
+				MainHeight:       0,
+			},
+			{
+				Blake2bDPercent:  0,
+				CuckarooPercent:  30,
+				CuckatooPercent:  0,
+				CuckaroomPercent: 30,
+				X16rv3Percent:    40,
+				MainHeight:       50,
+			},
+			{
+				Blake2bDPercent:  0,
+				CuckarooPercent:  0,
+				CuckatooPercent:  0,
+				CuckaroomPercent: 70,
+				X16rv3Percent:    30,
+				MainHeight:       100,
 			},
 		},
 		// after this height the big graph will be the main pow graph
