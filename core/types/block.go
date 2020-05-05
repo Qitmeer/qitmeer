@@ -99,6 +99,7 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 	// encode could fail except being out of memory which would cause a
 	// run-time panic.
 	return hash.DoubleHashH(h.BlockData())
+
 }
 
 // BlockData computes the block data for block hash.

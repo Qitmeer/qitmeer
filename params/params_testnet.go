@@ -20,6 +20,7 @@ var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 221), commo
 
 // target time per block unit second(s)
 const testTargetTimePerBlock = 30
+
 // Difficulty check interval is about 60*30 = 30 mins
 const testWorkDiffWindowSize = 60
 
@@ -41,6 +42,8 @@ var TestNetParams = Params{
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:     testNetPowLimit,
 		Blake2bdPowLimitBits: 0x1c1fffff, // compact from of testNetPowLimit (2^221-1)
+		X16rv3PowLimit:       testNetPowLimit,
+		X16rv3PowLimitBits:   0x1c1fffff, // compact from of testNetPowLimit (2^221-1)
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 = 1min find once
@@ -50,7 +53,8 @@ var TestNetParams = Params{
 		Percent: []pow.Percent{
 			{
 				Blake2bDPercent: 0,
-				CuckarooPercent: 100,
+				X16rv3Percent:   30,
+				CuckarooPercent: 70,
 				CuckatooPercent: 0,
 				MainHeight:      0,
 			},
@@ -67,11 +71,11 @@ var TestNetParams = Params{
 	MaximumBlockSizes:        []int{1310720},
 	MaxTxSize:                1000000,
 	TargetTimePerBlock:       time.Second * testTargetTimePerBlock,
-	TargetTimespan:           time.Second * testTargetTimePerBlock * testWorkDiffWindowSize,  // TimePerBlock * WindowSize
-	RetargetAdjustmentFactor: 2,                      // equal to 2 hour vs. 4
+	TargetTimespan:           time.Second * testTargetTimePerBlock * testWorkDiffWindowSize, // TimePerBlock * WindowSize
+	RetargetAdjustmentFactor: 2,                                                             // equal to 2 hour vs. 4
 
 	// Subsidy parameters.
-	BaseSubsidy:              12000000000,    // 120 Coin , daily supply is 120*2*60*24 = 345600 ~ 345600 * 2 (DAG factor)
+	BaseSubsidy:              12000000000, // 120 Coin , daily supply is 120*2*60*24 = 345600 ~ 345600 * 2 (DAG factor)
 	MulSubsidy:               100,
 	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
 	SubsidyReductionInterval: 1669066,        // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days
