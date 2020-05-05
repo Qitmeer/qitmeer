@@ -102,7 +102,9 @@ func (this *Cuckoo) CompareDiff(newTarget *big.Int, target *big.Int) bool {
 
 // pow proof data
 func (this *Cuckoo) BlockData() PowBytes {
-	return this.Bytes()
+	bytes := this.Bytes()
+	l := len(bytes)
+	return PowBytes(bytes[:l-PROOFDATA_LENGTH])
 }
 
-func (this *Cuckoo)GraphWeight() uint64 { return 0}
+func (this *Cuckoo) GraphWeight() uint64 { return 0 }

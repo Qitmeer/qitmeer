@@ -115,8 +115,9 @@ func (this *Blake2bd) Bytes() PowBytes {
 
 // pow proof data
 func (this *Blake2bd) BlockData() PowBytes {
-	l := len(this.Bytes())
-	return PowBytes(this.Bytes()[:l-PROOFDATA_LENGTH])
+	bytes := this.Bytes()
+	l := len(bytes)
+	return PowBytes(bytes[:l-PROOFDATA_LENGTH])
 }
 
 //check pow is available
