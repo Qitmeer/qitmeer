@@ -107,10 +107,5 @@ func (this *Cuckaroom) CheckAvailable() bool {
 //（The difficulty needs to be found 1000/1856 * 50 ≈ 26 times in edge_bits 29, and the answer may be obtained once.）
 //so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
 func (this *Cuckaroom) GraphWeight() uint64 {
-	//45 days
-	scale := (2 << (this.GetEdgeBits() - MIN_CUCKAROOMMEDGEBITS)) * uint64(this.GetEdgeBits())
-	if scale <= 0 {
-		scale = 1
-	}
-	return scale
+	return (2 << (this.GetEdgeBits() - MIN_CUCKAROOEDGEBITS)) * uint64(this.GetEdgeBits())
 }
