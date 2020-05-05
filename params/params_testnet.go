@@ -52,11 +52,11 @@ var TestNetParams = Params{
 
 		Percent: []pow.Percent{
 			{
-				Blake2bDPercent: 0,
-				X16rv3Percent:   30,
-				CuckarooPercent: 70,
-				CuckatooPercent: 0,
-				MainHeight:      0,
+				Blake2bDPercent:  0,
+				X16rv3Percent:    30,
+				CuckaroomPercent: 70,
+				CuckatooPercent:  0,
+				MainHeight:       0,
 			},
 		},
 		// after this height the big graph will be the main pow graph
