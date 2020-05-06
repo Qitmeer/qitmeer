@@ -1,15 +1,11 @@
-package fugue
+// Copyright (c) 2020 The qitmeer developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
 
-/*#include <string.h>*/
-import "C"
+package fugue
 
 import (
 	"encoding/binary"
-	// 	"unsafe"
-	// 	"bytes"
-	// 	"reflect"
-	// 	"strconv"
-	// 	"fmt"
 )
 
 var mixtab0 = [...]uint32{
@@ -364,6 +360,8 @@ var mixtab3 = [...]uint32{
 	(0xb03df6b0), (0x54b74b54), (0xbb0cdabb),
 	(0x16625816)}
 
+// https://researcher.watson.ibm.com/researcher/files/us-csjutla/fugue_Oct09.pdf
+// F-512 IV
 var IV512 = [...]uint32{
 	(0x8807a57e), (0xe616af75), (0xc5d3e4db),
 	(0xac9ab027), (0xd915f117), (0xb6eecc54),
@@ -692,7 +690,3 @@ func Sph_fugue512_process(data []uint8, dst []uint8, length uint) {
 	fugue4_close_c_code(0, 0, dst)
 }
 
-var input = [...]uint32{
-	0x02000000, 0x8d870b41, 0x404883ac, 0x195d9920, 0x1225a41d, 0xd77969a6, 0x8374e68e, 0xc8ee7500,
-	0x00000000, 0xa2123af0, 0x394e7606, 0xb5fec3cb, 0x96ddeea4, 0xd1d376ac, 0xc0daeb20, 0x2c5fc670,
-	0x6c5bb067, 0xc7044a53, 0xe3e6001c, 0x00104d49}
