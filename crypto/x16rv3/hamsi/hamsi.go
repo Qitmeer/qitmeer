@@ -1,12 +1,11 @@
+// Copyright (c) 2020 The qitmeer developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package hamsi
 
 import (
 	"encoding/binary"
-	// 	"unsafe"
-	// 	"bytes"
-	// 	"reflect"
-	// 	"strconv"
-	// 	"fmt"
 )
 
 var T512_0 = [256][16]uint32{
@@ -2766,8 +2765,3 @@ func Sph_hamsi512_process(data []uint8, dst []uint8, length uint) {
 	hamsi_big_core_c_code(data, length)
 	hamsi_big_close_c_code(0, 0, dst, 16)
 }
-
-var input = [...]uint32{
-	0x02000000, 0x8d870b41, 0x404883ac, 0x195d9920, 0x1225a41d, 0xd77969a6, 0x8374e68e, 0xc8ee7500,
-	0x00000000, 0xa2123af0, 0x394e7606, 0xb5fec3cb, 0x96ddeea4, 0xd1d376ac, 0xc0daeb20, 0x2c5fc670,
-	0x6c5bb067, 0xc7044a53, 0xe3e6001c, 0x00104d49}
