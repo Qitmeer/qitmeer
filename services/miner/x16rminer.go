@@ -80,7 +80,7 @@ func (m *CPUMiner) solveX16rv3Block(msgBlock *types.Block, ticker *time.Ticker, 
 			// Non-blocking select to fall through
 		}
 		instance := pow.GetInstance(pow.X16RV3, 0, []byte{})
-		powStruct := instance.(*pow.X16rv3)
+		powStruct := instance.(*pow.X8r16)
 		// Update the nonce and hash the block header.
 		powStruct.Nonce = i
 

@@ -33,7 +33,7 @@ var PowMapString = map[PowType]interface{}{
 	CUCKAROO:  "cuckaroo",
 	CUCKATOO:  "cuckatoo",
 	CUCKAROOM: "cuckaroom",
-	X16RV3:    "x16rv3",
+	X16RV3:    "x8r16",
 }
 
 type ProofDataType [PROOFDATA_LENGTH]byte
@@ -92,7 +92,7 @@ func GetInstance(powType PowType, nonce uint32, proofData []byte) IPow {
 	case BLAKE2BD:
 		instance = &Blake2bd{}
 	case X16RV3:
-		instance = &X16rv3{}
+		instance = &X8r16{}
 	case CUCKAROO:
 		instance = &Cuckaroo{}
 	case CUCKAROOM:
