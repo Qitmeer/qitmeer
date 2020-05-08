@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func (m *CPUMiner) solveX16rv3Block(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}) bool {
+func (m *CPUMiner) solveX8r16Block(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}) bool {
 
 	// TODO, decided if need extra nonce for coinbase-tx
 	// Choose a random extra nonce offset for this block template and
@@ -79,7 +79,7 @@ func (m *CPUMiner) solveX16rv3Block(msgBlock *types.Block, ticker *time.Ticker, 
 		default:
 			// Non-blocking select to fall through
 		}
-		instance := pow.GetInstance(pow.X16RV3, 0, []byte{})
+		instance := pow.GetInstance(pow.X8R16, 0, []byte{})
 		powStruct := instance.(*pow.X8r16)
 		// Update the nonce and hash the block header.
 		powStruct.Nonce = i
@@ -89,7 +89,7 @@ func (m *CPUMiner) solveX16rv3Block(msgBlock *types.Block, ticker *time.Ticker, 
 		// Each hash is actually a double hash (tow hashes), so
 		// increment the number of hashes by 2
 		hashesCompleted += 2
-		h := hash.HashX16rv3(powStruct.BlockData())
+		h := hash.HashX8r16(powStruct.BlockData())
 		hashNum := pow.HashToBig(&h)
 
 		if hashNum.Cmp(target) <= 0 {

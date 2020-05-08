@@ -389,7 +389,7 @@ mempoolLoop:
 	}
 
 	//
-	reqX16rv3Difficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.X16RV3)
+	reqX16rv3Difficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.X8R16)
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}

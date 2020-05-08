@@ -25,7 +25,7 @@ const (
 	CUCKAROO  PowType = 1
 	CUCKATOO  PowType = 2
 	CUCKAROOM PowType = 3
-	X16RV3    PowType = 4
+	X8R16     PowType = 4
 )
 
 var PowMapString = map[PowType]interface{}{
@@ -33,7 +33,7 @@ var PowMapString = map[PowType]interface{}{
 	CUCKAROO:  "cuckaroo",
 	CUCKATOO:  "cuckatoo",
 	CUCKAROOM: "cuckaroom",
-	X16RV3:    "x8r16",
+	X8R16:     "x8r16",
 }
 
 type ProofDataType [PROOFDATA_LENGTH]byte
@@ -91,7 +91,7 @@ func GetInstance(powType PowType, nonce uint32, proofData []byte) IPow {
 	switch powType {
 	case BLAKE2BD:
 		instance = &Blake2bd{}
-	case X16RV3:
+	case X8R16:
 		instance = &X8r16{}
 	case CUCKAROO:
 		instance = &Cuckaroo{}

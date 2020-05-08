@@ -24,7 +24,7 @@ func HashH(b []byte) Hash {
 }
 
 // HashH calculates hash(b) and returns the resulting bytes as a Hash.
-func HashX16rv3(b []byte) Hash {
+func HashX8r16(b []byte) Hash {
 	return Hash(x8r16.Sum256(b))
 }
 
