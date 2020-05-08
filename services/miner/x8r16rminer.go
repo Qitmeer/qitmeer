@@ -89,7 +89,7 @@ func (m *CPUMiner) solveX8r16Block(msgBlock *types.Block, ticker *time.Ticker, q
 		// Each hash is actually a double hash (tow hashes), so
 		// increment the number of hashes by 2
 		hashesCompleted += 2
-		h := hash.HashX8r16(powStruct.BlockData())
+		h := hash.HashX8r16(header.BlockData())
 		hashNum := pow.HashToBig(&h)
 
 		if hashNum.Cmp(target) <= 0 {
