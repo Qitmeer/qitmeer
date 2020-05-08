@@ -34,9 +34,9 @@ func (this *X8r16) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits
 	}
 
 	//The target difficulty must be less than the maximum allowed.
-	if target.Cmp(this.params.X16rv3PowLimit) > 0 {
+	if target.Cmp(this.params.X8r16PowLimit) > 0 {
 		str := fmt.Sprintf("block target difficulty of %064x is "+
-			"higher than max of %064x", target, this.params.X16rv3PowLimit)
+			"higher than max of %064x", target, this.params.X8r16PowLimit)
 		return errors.New(str)
 	}
 	h := hash.HashX8r16(headerData)
@@ -71,13 +71,13 @@ func (this *X8r16) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, 
 }
 
 func (this *X8r16) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).X16rv3Percent))
+	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).X8r16Percent))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
 }
 
 func (this *X8r16) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
-	limitBits := this.params.X16rv3PowLimitBits
+	limitBits := this.params.X8r16PowLimitBits
 	limitBitsBig := CompactToBig(limitBits)
 	if cur_reduce_diff <= 0 {
 		return limitBitsBig
@@ -85,8 +85,8 @@ func (this *X8r16) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	newTarget := &big.Int{}
 	newTarget = newTarget.SetUint64(cur_reduce_diff)
 	// Limit new value to the proof of work limit.
-	if newTarget.Cmp(this.params.X16rv3PowLimit) > 0 {
-		newTarget.Set(this.params.X16rv3PowLimit)
+	if newTarget.Cmp(this.params.X8r16PowLimit) > 0 {
+		newTarget.Set(this.params.X8r16PowLimit)
 	}
 	return newTarget
 }
@@ -122,5 +122,5 @@ func (this *X8r16) BlockData() PowBytes {
 
 //check pow is available
 func (this *X8r16) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.mainHeight).X16rv3Percent > 0
+	return this.params.GetPercentByHeight(this.mainHeight).X8r16Percent > 0
 }

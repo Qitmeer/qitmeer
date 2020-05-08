@@ -427,9 +427,9 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 	}
 	gbtCapabilities := []string{"proposal"}
 	blake2bdBig := pow.CompactToBig(template.PowDiffData.Blake2bDTarget)
-	x16rv3big := pow.CompactToBig(template.PowDiffData.X16rv3DTarget)
+	x8r16big := pow.CompactToBig(template.PowDiffData.X8r16DTarget)
 	targetBlake2bDDifficulty := fmt.Sprintf("%064x", blake2bdBig)
-	x16rv3iDifficulty := fmt.Sprintf("%064x", x16rv3big)
+	x8r16Difficulty := fmt.Sprintf("%064x", x8r16big)
 	targetCuckarooDDifficulty := template.PowDiffData.CuckarooBaseDiff
 	targetCuckaroomDifficulty := template.PowDiffData.CuckaroomBaseDiff
 	targetCuckatooDDifficulty := template.PowDiffData.CuckatooBaseDiff
@@ -455,8 +455,8 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 			Blake2bDBits: strconv.FormatInt(int64(template.PowDiffData.Blake2bDTarget), 16),
 			//blake2bd hash diff compare target
 			Blake2bTarget: targetBlake2bDDifficulty,
-			X16rv3Bits:    strconv.FormatInt(int64(template.PowDiffData.X16rv3DTarget), 16),
-			X16rv3Target:  x16rv3iDifficulty,
+			X8r16Bits:     strconv.FormatInt(int64(template.PowDiffData.X8r16DTarget), 16),
+			X8r16Target:   x8r16Difficulty,
 			//cuckoo mining min diff
 			CuckarooMinDiff:  targetCuckarooDDifficulty,
 			CuckaroomMinDiff: targetCuckaroomDifficulty,

@@ -40,8 +40,8 @@ var PrivNetParams = Params{
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:     privNetPowLimit,
 		Blake2bdPowLimitBits: 0x207fffff,
-		X16rv3PowLimit:       privNetPowLimit,
-		X16rv3PowLimitBits:   0x207fffff,
+		X8r16PowLimit:        privNetPowLimit,
+		X8r16PowLimitBits:    0x207fffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1 times use for privnet if GPS is 2. need 50 /2 = 25s find once
@@ -55,7 +55,7 @@ var PrivNetParams = Params{
 				CuckarooPercent:  10,
 				CuckatooPercent:  20,
 				CuckaroomPercent: 10,
-				X16rv3Percent:    50,
+				X8r16Percent:     50,
 				MainHeight:       0,
 			},
 			{
@@ -63,7 +63,7 @@ var PrivNetParams = Params{
 				CuckarooPercent:  30,
 				CuckatooPercent:  0,
 				CuckaroomPercent: 30,
-				X16rv3Percent:    40,
+				X8r16Percent:     40,
 				MainHeight:       50,
 			},
 			{
@@ -71,7 +71,7 @@ var PrivNetParams = Params{
 				CuckarooPercent:  0,
 				CuckatooPercent:  0,
 				CuckaroomPercent: 70,
-				X16rv3Percent:    30,
+				X8r16Percent:     30,
 				MainHeight:       100,
 			},
 		},

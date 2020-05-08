@@ -42,8 +42,8 @@ var TestNetParams = Params{
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:     testNetPowLimit,
 		Blake2bdPowLimitBits: 0x1c1fffff, // compact from of testNetPowLimit (2^221-1)
-		X16rv3PowLimit:       testNetPowLimit,
-		X16rv3PowLimitBits:   0x1c1fffff, // compact from of testNetPowLimit (2^221-1)
+		X8r16PowLimit:        testNetPowLimit,
+		X8r16PowLimitBits:    0x1c1fffff, // compact from of testNetPowLimit (2^221-1)
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 = 1min find once
@@ -54,7 +54,7 @@ var TestNetParams = Params{
 		Percent: []pow.Percent{
 			{
 				Blake2bDPercent:  0,
-				X16rv3Percent:    30,
+				X8r16Percent:     30,
 				CuckaroomPercent: 70,
 				CuckatooPercent:  0,
 				MainHeight:       0,

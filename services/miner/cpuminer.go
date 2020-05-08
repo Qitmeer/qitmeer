@@ -199,7 +199,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32, powType pow.PowType) ([]*hash.Hash,
 			template.Block.Header.Difficulty = uint32(template.PowDiffData.Blake2bDTarget)
 			result = m.solveBlock(template.Block, ticker, nil)
 		case pow.X8R16:
-			template.Block.Header.Difficulty = uint32(template.PowDiffData.X16rv3DTarget)
+			template.Block.Header.Difficulty = uint32(template.PowDiffData.X8r16DTarget)
 			result = m.solveX8r16Block(template.Block, ticker, nil)
 		case pow.CUCKAROO:
 			template.Block.Header.Difficulty = pow.BigToCompact(new(big.Int).SetUint64(template.PowDiffData.CuckarooBaseDiff))

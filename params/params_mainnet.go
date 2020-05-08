@@ -38,8 +38,8 @@ var MainNetParams = Params{
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:     mainPowLimit,
 		Blake2bdPowLimitBits: 0x1d00ffff,
-		X16rv3PowLimit:       mainPowLimit,
-		X16rv3PowLimitBits:   0x1d00ffff,
+		X8r16PowLimit:        mainPowLimit,
+		X8r16PowLimitBits:    0x1d00ffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 find once
