@@ -190,7 +190,6 @@ func (ref *Hash) Hash(src []byte, dst []byte) {
 		case FUGUE:
 			fugue.Sph_fugue512_process(in[:], out[:], 64)
 			copy(in, out)
-			in = out
 		case SHABAL:
 			shabal.Shabal_512_process(in[:], out[:], 64)
 			copy(in, out)
