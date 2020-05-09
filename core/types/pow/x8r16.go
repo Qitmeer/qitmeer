@@ -12,11 +12,11 @@ import (
 	"math/big"
 )
 
-type X16rv3 struct {
+type X8r16 struct {
 	Pow
 }
 
-func (this *X16rv3) GetPowResult() json.PowResult {
+func (this *X8r16) GetPowResult() json.PowResult {
 	return json.PowResult{
 		PowName:   PowMapString[this.GetPowType()].(string),
 		PowType:   uint8(this.GetPowType()),
@@ -25,7 +25,7 @@ func (this *X16rv3) GetPowResult() json.PowResult {
 	}
 }
 
-func (this *X16rv3) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) error {
+func (this *X8r16) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) error {
 	target := CompactToBig(targetDiffBits)
 	if target.Sign() <= 0 {
 		str := fmt.Sprintf("block target difficulty of %064x is too "+
@@ -34,12 +34,12 @@ func (this *X16rv3) Verify(headerData []byte, blockHash hash.Hash, targetDiffBit
 	}
 
 	//The target difficulty must be less than the maximum allowed.
-	if target.Cmp(this.params.X16rv3PowLimit) > 0 {
+	if target.Cmp(this.params.X8r16PowLimit) > 0 {
 		str := fmt.Sprintf("block target difficulty of %064x is "+
-			"higher than max of %064x", target, this.params.X16rv3PowLimit)
+			"higher than max of %064x", target, this.params.X8r16PowLimit)
 		return errors.New(str)
 	}
-	h := hash.HashX16rv3(headerData)
+	h := hash.HashX8r16(headerData)
 	hashNum := HashToBig(&h)
 	if hashNum.Cmp(target) > 0 {
 		str := fmt.Sprintf("block hash of %064x is higher than"+
@@ -49,7 +49,7 @@ func (this *X16rv3) Verify(headerData []byte, blockHash hash.Hash, targetDiffBit
 	return nil
 }
 
-func (this *X16rv3) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int) *big.Int {
+func (this *X8r16) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int) *big.Int {
 	nextDiffBig := weightedSumDiv.Mul(weightedSumDiv, oldDiffBig)
 	defer func() {
 		nextDiffBig = nextDiffBig.Rsh(nextDiffBig, 32)
@@ -70,14 +70,14 @@ func (this *X16rv3) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int,
 	return nextDiffBig
 }
 
-func (this *X16rv3) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).X16rv3Percent))
+func (this *X8r16) PowPercent() *big.Int {
+	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).X8r16Percent))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
 }
 
-func (this *X16rv3) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
-	limitBits := this.params.X16rv3PowLimitBits
+func (this *X8r16) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
+	limitBits := this.params.X8r16PowLimitBits
 	limitBitsBig := CompactToBig(limitBits)
 	if cur_reduce_diff <= 0 {
 		return limitBitsBig
@@ -85,20 +85,20 @@ func (this *X16rv3) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	newTarget := &big.Int{}
 	newTarget = newTarget.SetUint64(cur_reduce_diff)
 	// Limit new value to the proof of work limit.
-	if newTarget.Cmp(this.params.X16rv3PowLimit) > 0 {
-		newTarget.Set(this.params.X16rv3PowLimit)
+	if newTarget.Cmp(this.params.X8r16PowLimit) > 0 {
+		newTarget.Set(this.params.X8r16PowLimit)
 	}
 	return newTarget
 }
 
 // compare the target
 // wether target match the target diff
-func (this *X16rv3) CompareDiff(newTarget *big.Int, target *big.Int) bool {
+func (this *X8r16) CompareDiff(newTarget *big.Int, target *big.Int) bool {
 	return newTarget.Cmp(target) <= 0
 }
 
 // pow proof data
-func (this *X16rv3) Bytes() PowBytes {
+func (this *X8r16) Bytes() PowBytes {
 	r := make(PowBytes, 0)
 	//write nonce 4 bytes
 	n := make([]byte, 4)
@@ -115,12 +115,12 @@ func (this *X16rv3) Bytes() PowBytes {
 }
 
 // pow proof data
-func (this *X16rv3) BlockData() PowBytes {
+func (this *X8r16) BlockData() PowBytes {
 	l := len(this.Bytes())
 	return PowBytes(this.Bytes()[:l-PROOFDATA_LENGTH])
 }
 
 //check pow is available
-func (this *X16rv3) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.mainHeight).X16rv3Percent > 0
+func (this *X8r16) CheckAvailable() bool {
+	return this.params.GetPercentByHeight(this.mainHeight).X8r16Percent > 0
 }
