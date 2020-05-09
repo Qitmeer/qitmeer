@@ -1,6 +1,7 @@
 package x8r16
 
 import (
+	"github.com/Qitmeer/qitmeer/crypto/x16rv3"
 	"github.com/Qitmeer/qitmeer/crypto/x16rv3/aes"
 	"github.com/Qitmeer/qitmeer/crypto/x16rv3/blake"
 	"github.com/Qitmeer/qitmeer/crypto/x16rv3/bmw"
@@ -34,19 +35,19 @@ const X8R16_LOOP_CNT = 16
 
 var x8r16_hashOrder = [X8R16_LOOP_CNT]uint{}
 
-func aes_expand_key_soft(header []byte) [12]Uint128 {
+func aes_expand_key_soft(header []byte) [12]x16rv3.Uint128 {
 	var keyData = make([]byte, 192)
 	copy(keyData[:96], header[:96])
-	var key = [12]Uint128{}
+	var key = [12]x16rv3.Uint128{}
 	for i := 0; i < 12; i++ {
-		key[i] = FromBytes(keyData[i*16 : i*16+16])
+		key[i] = x16rv3.FromBytes(keyData[i*16 : i*16+16])
 	}
-	key[6] = Xor128(key[0], key[2])
-	key[7] = Xor128(key[1], key[3])
-	key[8] = Xor128(key[0], key[4])
-	key[9] = Xor128(key[1], key[5])
-	key[10] = Xor128(key[2], key[4])
-	key[11] = Xor128(key[3], key[5])
+	key[6] = x16rv3.Xor128(key[0], key[2])
+	key[7] = x16rv3.Xor128(key[1], key[3])
+	key[8] = x16rv3.Xor128(key[0], key[4])
+	key[9] = x16rv3.Xor128(key[1], key[5])
+	key[10] = x16rv3.Xor128(key[2], key[4])
+	key[11] = x16rv3.Xor128(key[3], key[5])
 	return key
 }
 
@@ -57,27 +58,27 @@ func get_x8r16_order(inp []byte) []byte {
 		size = len(inp)
 	}
 	copy(input[:size], inp[:size])
-	var ek [12]Uint128
+	var ek [12]x16rv3.Uint128
 	var endiandata [128]byte
 	copy(endiandata[:113], input[:113])
 	ek = aes_expand_key_soft(input[4:])
-	var aesdata = [12]Uint128{}
-	var data_in [8]Uint128
+	var aesdata = [12]x16rv3.Uint128{}
+	var data_in [8]x16rv3.Uint128
 	for i := 0; i < 8; i++ {
-		data_in[i] = FromBytes(endiandata[i*16 : i*16+16])
+		data_in[i] = x16rv3.FromBytes(endiandata[i*16 : i*16+16])
 	}
 	for j := 0; j < 8; j++ {
-		aesdata[j] = FromIntsArray(aes.Aes_enc_soft(aesdata[j].ToUint64(), data_in[j].ToUint64(), ek[j].ToUint64()))
+		aesdata[j] = x16rv3.FromIntsArray(aes.Aes_enc_soft(aesdata[j].ToUint64(), data_in[j].ToUint64(), ek[j].ToUint64()))
 	}
-	var xor_out = Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[0])
-	aesdata[8] = FromIntsArray(aes.Aes_enc_soft(aesdata[8].ToUint64(), xor_out.ToUint64(), ek[8].ToUint64()))
-	xor_out = Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[1])
-	aesdata[9] = FromIntsArray(aes.Aes_enc_soft(aesdata[9].ToUint64(), xor_out.ToUint64(), ek[9].ToUint64()))
-	xor_out = Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[2])
-	aesdata[10] = FromIntsArray(aes.Aes_enc_soft(aesdata[10].ToUint64(), xor_out.ToUint64(), ek[10].ToUint64()))
-	xor_out = Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[3])
-	aesdata[11] = FromIntsArray(aes.Aes_enc_soft(aesdata[11].ToUint64(), xor_out.ToUint64(), ek[11].ToUint64()))
-	outPut := ArrayToBytes(aesdata[8:])
+	var xor_out = x16rv3.Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[0])
+	aesdata[8] = x16rv3.FromIntsArray(aes.Aes_enc_soft(aesdata[8].ToUint64(), xor_out.ToUint64(), ek[8].ToUint64()))
+	xor_out = x16rv3.Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[1])
+	aesdata[9] = x16rv3.FromIntsArray(aes.Aes_enc_soft(aesdata[9].ToUint64(), xor_out.ToUint64(), ek[9].ToUint64()))
+	xor_out = x16rv3.Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[2])
+	aesdata[10] = x16rv3.FromIntsArray(aes.Aes_enc_soft(aesdata[10].ToUint64(), xor_out.ToUint64(), ek[10].ToUint64()))
+	xor_out = x16rv3.Ur128_5xor(aesdata[4], aesdata[5], aesdata[6], aesdata[7], aesdata[3])
+	aesdata[11] = x16rv3.FromIntsArray(aes.Aes_enc_soft(aesdata[11].ToUint64(), xor_out.ToUint64(), ek[11].ToUint64()))
+	outPut := x16rv3.ArrayToBytes(aesdata[8:])
 	aesData6 := aesdata[6].GetBytes()
 	for k := 0; k < X8R16_LOOP_CNT; k++ {
 		x8r16_hashOrder[k] = uint(aesData6[k] & 0x07)
