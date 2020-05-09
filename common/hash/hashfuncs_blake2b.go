@@ -23,8 +23,13 @@ func HashH(b []byte) Hash {
 	return Hash(blake2b.Sum256(b))
 }
 
-// HashH calculates hash(b) and returns the resulting bytes as a Hash.
+// HashX16rv3 calculates hash(b) and returns the resulting bytes as a Hash.
 func HashX16rv3(b []byte) Hash {
+	return Hash(x16rv3.Sum256(b))
+}
+
+// HashX8r16 calculates hash(b) and returns the resulting bytes as a Hash.
+func HashX8r16(b []byte) Hash {
 	return Hash(x16rv3.Sum256(b))
 }
 
