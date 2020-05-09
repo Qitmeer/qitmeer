@@ -3,6 +3,7 @@ package hash
 
 import (
 	"github.com/Qitmeer/qitmeer/crypto/x16rv3"
+	"github.com/Qitmeer/qitmeer/crypto/x8r16"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -30,7 +31,7 @@ func HashX16rv3(b []byte) Hash {
 
 // HashX8r16 calculates hash(b) and returns the resulting bytes as a Hash.
 func HashX8r16(b []byte) Hash {
-	return Hash(x16rv3.Sum256(b))
+	return Hash(x8r16.Sum256(b))
 }
 
 // DoubleHashB calculates hash(hash(b)) and returns the resulting bytes.
