@@ -86,12 +86,6 @@ func LoadConfig() (*Config, []string, error) {
 		} else {
 			cfg.DataDir = preCfg.DataDir
 		}
-
-		if preCfg.SrcDataDir == defaultSrcDataDir {
-			cfg.SrcDataDir = filepath.Join(cfg.HomeDir, defaultSrcDataDirname)
-		} else {
-			cfg.SrcDataDir = preCfg.SrcDataDir
-		}
 	}
 
 	cfg.DbType = preCfg.DbType
@@ -100,6 +94,10 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.ShowEndPoints = preCfg.ShowEndPoints
 	cfg.CheckEndPoint = preCfg.CheckEndPoint
 	cfg.EndPointSkips = preCfg.EndPointSkips
+
+	if len(preCfg.SrcDataDir) > 0 {
+		cfg.SrcDataDir = preCfg.SrcDataDir
+	}
 
 	// Create the home directory if it doesn't already exist.
 	funcName := "loadConfig"
@@ -158,6 +156,9 @@ func LoadConfig() (*Config, []string, error) {
 
 	cfg.DataDir = util.CleanAndExpandPath(cfg.DataDir)
 	cfg.DataDir = filepath.Join(cfg.DataDir, params.ActiveNetParams.Name)
+
+	cfg.SrcDataDir = util.CleanAndExpandPath(cfg.SrcDataDir)
+	cfg.SrcDataDir = filepath.Join(cfg.SrcDataDir, params.ActiveNetParams.Name)
 
 	if len(cfg.EndPoint) == 0 && len(cfg.CheckEndPoint) == 0 && cfg.ShowEndPoints == 0 {
 		err := fmt.Errorf("No Command")
