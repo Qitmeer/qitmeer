@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
@@ -14,8 +14,7 @@ import (
 	"github.com/Qitmeer/qitmeer/ledger"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/services/common"
-	"github.com/Qitmeer/qitmeer/services/mining"
+	_ "github.com/Qitmeer/qitmeer/services/common"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,56 +26,123 @@ const (
 )
 
 func main() {
+	//log.PrintOrigins(true)
 	// Load configuration and parse command line.  This function also
 	// initializes logging and configures it accordingly.
-	cfg, _, err := common.LoadConfig()
+	cfg, _, err := LoadConfig()
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	srcnode := &SrcNode{}
+	err = srcnode.init(cfg)
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
 
-	defer func() {
-		if common.LogWrite() != nil {
-			common.LogWrite().Close()
-		}
-	}()
-
-	// Load the block database.
-	db, err := common.LoadBlockDB(cfg)
-	if err != nil {
-		log.Error("load block database", "error", err)
+	if cfg.ShowEndPoints > 0 {
+		showEndBlocks(srcnode)
 		return
 	}
-	defer func() {
-		// Ensure the database is sync'd and closed on shutdown.
-		log.Info("Gracefully shutting down the database...")
-		db.Close()
-	}()
 
-	// ledger
-	buildLedger(cfg, db, params.ActiveNetParams.Params)
+	if len(cfg.CheckEndPoint) > 0 {
+		checkEndBlocks(srcnode)
+		return
+	}
+
+	if len(cfg.EndPoint) > 0 {
+		useWhole := false
+		var ib blockdag.IBlock
+		var blockHash *hash.Hash
+		if cfg.EndPoint == "*" {
+			// Use the whole UTXO database directly
+			useWhole = true
+		} else {
+			blockH, err := hash.NewHashFromStr(cfg.EndPoint)
+			if err != nil {
+				log.Error(err.Error())
+				return
+			}
+			blockHash = blockH
+			ib = srcnode.bc.BlockDAG().GetBlock(blockHash)
+			if ib == nil {
+				log.Error(fmt.Sprintf("Can't find block:%s", blockHash.String()))
+				return
+			}
+			mainIB := srcnode.bc.BlockDAG().GetMainChainTip()
+			if mainIB.GetHash().IsEqual(blockHash) {
+				useWhole = true
+			}
+		}
+		if useWhole {
+			buildLedger(srcnode)
+		} else if ib != nil {
+			if !srcnode.bc.BlockDAG().IsHourglass(ib.GetID()) {
+				log.Error(fmt.Sprintf("%s is not good\n", ib.GetHash()))
+				return
+			}
+			node := &Node{}
+			err = node.init(cfg, srcnode, ib)
+			if err != nil {
+				fmt.Println()
+				log.Error(err.Error())
+				return
+			}
+			buildLedger(node)
+		} else {
+			log.Error(fmt.Sprintf("%s is not good\n", blockHash))
+		}
+	}
+	return
 }
 
-func buildLedger(cfg *config.Config, db database.DB, params *params.Params) error {
+func showEndBlocks(node *SrcNode) {
+	fmt.Println("\nShow some recommended blocks for building ledger:")
+	skipNum := node.cfg.EndPointSkips
+	total := 0
+	for cur := node.bc.BlockDAG().GetMainChainTip(); cur != nil; cur = node.bc.BlockDAG().GetBlockById(cur.GetMainParent()) {
+		if skipNum > 0 {
+			skipNum--
+			continue
+		}
+		if !node.bc.BlockDAG().IsHourglass(cur.GetID()) {
+			continue
+		}
+		fmt.Println(fmt.Sprintf("order:%d  hash:%s  main_height:%d", cur.GetOrder(), cur.GetHash().String(), cur.GetHeight()))
+		total++
+		if total >= node.cfg.ShowEndPoints {
+			break
+		}
+	}
+	fmt.Printf("Total:%d\n\n", total)
+}
 
-	var err error
-	bc, err := blockchain.New(&blockchain.Config{
-		DB:           db,
-		ChainParams:  params,
-		TimeSource:   blockchain.NewMedianTime(),
-		DAGType:      cfg.DAGType,
-		BlockVersion: mining.BlockVersion(params.Net),
-	})
+func checkEndBlocks(node *SrcNode) {
+	blockHash, err := hash.NewHashFromStr(node.cfg.CheckEndPoint)
 	if err != nil {
 		log.Error(err.Error())
-		return err
+		return
 	}
+	ib := node.bc.BlockDAG().GetBlock(blockHash)
+	if ib == nil {
+		log.Error(fmt.Sprintf("Can't find block:%s", blockHash.String()))
+		return
+	}
+	if node.bc.BlockDAG().IsHourglass(ib.GetID()) {
+		fmt.Printf("%s is OK\n", node.cfg.CheckEndPoint)
+	} else {
+		fmt.Printf("%s is not good\n", node.cfg.CheckEndPoint)
+	}
+}
 
+func buildLedger(node INode) error {
+	params := params.ActiveNetParams.Params
 	genesisLedger := map[string]*ledger.TokenPayout{}
 	var totalAmount uint64
-
-	log.Info(fmt.Sprintf("Cur main tip:%s", bc.BlockDAG().GetMainChainTip().GetHash().String()))
-	err = db.View(func(dbTx database.Tx) error {
+	mainChainTip := node.BlockChain().BlockDAG().GetMainChainTip()
+	log.Info(fmt.Sprintf("Cur main tip:%s", mainChainTip.GetHash().String()))
+	err := node.DB().View(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
 		utxoBucket := meta.Bucket(dbnamespace.UtxoSetBucketName)
 		cursor := utxoBucket.Cursor()
@@ -91,8 +157,8 @@ func buildLedger(cfg *config.Config, db database.DB, params *params.Params) erro
 			if entry.IsSpent() {
 				continue
 			}
-			confir := bc.BlockDAG().GetConfirmations(bc.BlockIndex().GetDAGBlockID(entry.BlockHash()))
-			if confir < blockdag.StableConfirmations && !entry.BlockHash().IsEqual(params.GenesisHash) {
+			ib := node.BlockChain().BlockDAG().GetBlock(entry.BlockHash())
+			if ib.GetOrder() == blockdag.MaxBlockOrder {
 				continue
 			}
 			_, addr, _, err := txscript.ExtractPkScriptAddrs(entry.PkScript(), params)
@@ -115,9 +181,7 @@ func buildLedger(cfg *config.Config, db database.DB, params *params.Params) erro
 				genesisLedger[addrStr] = &tp
 			}
 			totalAmount += entry.Amount()
-			if !cfg.BuildLedger {
-				log.Trace(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s", addrStr, entry.Amount(), entry.BlockHash().String()))
-			}
+			log.Trace(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s", addrStr, entry.Amount(), entry.BlockHash().String()))
 		}
 		return nil
 	})
@@ -128,18 +192,13 @@ func buildLedger(cfg *config.Config, db database.DB, params *params.Params) erro
 		log.Info("No payouts need to deal with.")
 		return nil
 	}
-	if !cfg.BuildLedger {
-		fmt.Println("Show Ledger:")
-		for k, v := range genesisLedger {
-			fmt.Printf("Address:%s Amount:%d PkScript:%v\n", k, v.Amount, v.PkScript)
-		}
+	fmt.Println(fmt.Sprintf("Show Ledger:[Genesis------->%s]", mainChainTip.GetHash().String()))
+	for k, v := range genesisLedger {
+		fmt.Printf("Address:%s Amount:%d PkScript:%v\n", k, v.Amount, v.PkScript)
 	}
 
 	log.Info(fmt.Sprintf("Total Ledger:%d   Amount:%d", len(genesisLedger), totalAmount))
 
-	if !cfg.BuildLedger {
-		return nil
-	}
 	return savePayoutsFile(params, genesisLedger)
 }
 
