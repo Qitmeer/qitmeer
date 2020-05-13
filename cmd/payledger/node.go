@@ -35,10 +35,7 @@ func (node *Node) init(cfg *Config, srcnode *SrcNode, endPoint blockdag.IBlock) 
 		log.Error("load block database", "error", err)
 		return err
 	}
-	defer func() {
-		// Ensure the database is sync'd and closed on shutdown.
 
-	}()
 	node.db = db
 	//
 
@@ -84,19 +81,22 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 	}
 	common.Glogger().Verbosity(log.LvlCrit)
 	srcTotal := srcnode.bc.BlockDAG().GetBlockTotal()
-	i := uint(0)
+	i := uint(1)
 	bar := ProgressBar{}
-	bar.init()
+	bar.init("Process:")
 	bar.reset(int(node.endPoint.GetID() + 1))
-	bar.refresh()
+	bar.add()
+	defer func() {
+		fmt.Println()
+		common.Glogger().Verbosity(log.LvlInfo)
+		log.Info(fmt.Sprintf("End process block DAG:(%d/%d)", i, srcTotal))
+	}()
 	for ; i < srcTotal; i++ {
 		blockHash := srcnode.bc.BlockDAG().GetBlockHash(i)
 		if blockHash == nil {
 			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d)!", i))
 		}
-		if blockHash.IsEqual(srcgenesisHash) {
-			continue
-		}
+
 		block, err := srcnode.bc.FetchBlockByHash(blockHash)
 		if err != nil {
 			return err
@@ -106,16 +106,46 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 		if err != nil {
 			return err
 		}
+		bar.add()
 		if blockHash.IsEqual(node.endPoint.GetHash()) {
 			break
+		}
+	}
+	bar.setMax()
+	err := node.dataVerification(srcnode)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (node *Node) dataVerification(srcnode *SrcNode) error {
+	fmt.Println()
+	total := node.bc.BlockDAG().GetBlockTotal()
+	i := uint(1)
+	bar := ProgressBar{}
+	bar.init("Validate:")
+	bar.reset(int(node.endPoint.GetID() + 1))
+	bar.add()
+	for ; i < total; i++ {
+		srcIB := srcnode.bc.BlockDAG().GetBlockById(i)
+		if srcIB == nil {
+			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d) from src node!", i))
+		}
+		ib := node.bc.BlockDAG().GetBlockById(i)
+		if ib == nil {
+			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d) from node!", i))
+		}
+		if srcIB.GetStatus() != ib.GetStatus() ||
+			srcIB.GetHeight() != ib.GetHeight() ||
+			!srcIB.GetHash().IsEqual(ib.GetHash()) {
+			return fmt.Errorf(fmt.Sprintf("Validate fail (%s)!", srcIB.GetHash().String()))
 		}
 		bar.add()
 	}
 	bar.setMax()
 	fmt.Println()
-
-	common.Glogger().Verbosity(log.LvlInfo)
-	log.Info(fmt.Sprintf("End process block DAG:(%d/%d)", i, srcTotal))
 	return nil
 }
 

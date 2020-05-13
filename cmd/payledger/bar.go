@@ -20,12 +20,14 @@ type ProgressBar struct {
 	max       int
 	cur       int
 	startTime time.Time
+	name      string
 }
 
-func (bar *ProgressBar) init() {
+func (bar *ProgressBar) init(name string) {
 	bar.width = 100
 	bar.max = 100
 	bar.cur = 0
+	bar.name = name
 }
 
 func (bar *ProgressBar) reset(max int) {
@@ -51,7 +53,7 @@ func (bar *ProgressBar) setMax() {
 func (bar *ProgressBar) refresh() {
 	cur := float64(bar.cur*100) / float64(bar.max)
 	cost := time.Now().Sub(bar.startTime)
-	fmt.Fprintf(os.Stdout, "%d%% [%s] %s\r", int(cur), bar.getProgress(), cost.String())
+	fmt.Fprintf(os.Stdout, "%s %d%% [%s] %s\r", bar.name, int(cur), bar.getProgress(), cost.String())
 }
 
 func (bar *ProgressBar) getProgress() string {

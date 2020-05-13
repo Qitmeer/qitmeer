@@ -85,7 +85,6 @@ func main() {
 			node := &Node{}
 			err = node.init(cfg, srcnode, ib)
 			if err != nil {
-				fmt.Println()
 				log.Error(err.Error())
 				return
 			}
