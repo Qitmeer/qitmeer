@@ -105,11 +105,17 @@ func showEndBlocks(node *SrcNode) {
 			skipNum--
 			continue
 		}
-		if !node.bc.BlockDAG().IsHourglass(cur.GetID()) {
+
+		if node.bc.BlockDAG().IsHourglass(cur.GetID()) {
+			fmt.Println(fmt.Sprintf("Great! order:%d  hash:%s  main_height:%d", cur.GetOrder(), cur.GetHash().String(), cur.GetHeight()))
+			total++
+		} else if node.bc.BlockDAG().IsOnMainChain(cur.GetID()) {
+			fmt.Println(fmt.Sprintf("So-so! order:%d  hash:%s  main_height:%d", cur.GetOrder(), cur.GetHash().String(), cur.GetHeight()))
+			total++
+		} else {
 			continue
 		}
-		fmt.Println(fmt.Sprintf("order:%d  hash:%s  main_height:%d", cur.GetOrder(), cur.GetHash().String(), cur.GetHeight()))
-		total++
+
 		if total >= node.cfg.ShowEndPoints {
 			break
 		}
