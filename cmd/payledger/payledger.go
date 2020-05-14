@@ -76,7 +76,6 @@ func main() {
 				useWhole = true
 			}
 		}
-		fmt.Printf("build ledger 1 \n")
 		if useWhole {
 			buildLedger(srcnode, cfg)
 		} else if ib != nil {
@@ -144,7 +143,6 @@ func checkEndBlocks(node *SrcNode) {
 }
 
 func buildLedger(node INode, config *Config) error {
-	fmt.Printf("build ledger \n")
 	params := params.ActiveNetParams.Params
 	genesisLedger := map[string]*ledger.TokenPayoutReGen{}
 	var totalAmount uint64
