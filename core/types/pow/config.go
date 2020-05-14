@@ -15,6 +15,7 @@ type Percent struct {
 	CuckatooPercent  int
 	Blake2bDPercent  int
 	CuckaroomPercent int
+	Keccak256Percent int
 	X16rv3Percent    int
 	X8r16Percent     int
 	MainHeight       int64
@@ -34,6 +35,9 @@ type PowConfig struct {
 
 	X8r16PowLimit     *big.Int
 	X8r16PowLimitBits uint32
+
+	Keccak256PowLimit     *big.Int
+	Keccak256PowLimitBits uint32
 
 	// cuckoo difficulty calc params  min difficulty
 	CuckarooMinDifficulty  uint32
@@ -97,10 +101,12 @@ func (this *PowConfig) Check() error {
 		heightArr[p.MainHeight] = 1
 		if p.CuckarooPercent < 0 || p.Blake2bDPercent < 0 ||
 			p.CuckatooPercent < 0 || p.CuckaroomPercent < 0 ||
+			p.Keccak256Percent < 0 ||
 			p.X16rv3Percent < 0 || p.X8r16Percent < 0 {
 			return errors.New("pow config error, all percent must greater than or equal to 0!")
 		}
-		allPercent = p.CuckarooPercent + p.Blake2bDPercent + p.CuckatooPercent + p.CuckaroomPercent + p.X16rv3Percent + p.X8r16Percent
+		allPercent = p.CuckarooPercent + p.Blake2bDPercent +
+			p.CuckatooPercent + p.CuckaroomPercent + p.X16rv3Percent + p.X8r16Percent + p.Keccak256Percent
 		if allPercent != 100 {
 			return errors.New("pow config error, all pow not equal 100%!actual is " + fmt.Sprintf("%d", allPercent))
 		}
