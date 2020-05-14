@@ -17,6 +17,7 @@ import (
 	_ "github.com/Qitmeer/qitmeer/services/common"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -61,7 +62,7 @@ func main() {
 		} else {
 			blockH, err := hash.NewHashFromStr(cfg.EndPoint)
 			if err != nil {
-				log.Error(err.Error())
+				log.Error(fmt.Sprintf("Error load endPoint hash: %s",err.Error()))
 				return
 			}
 			blockHash = blockH
@@ -75,8 +76,9 @@ func main() {
 				useWhole = true
 			}
 		}
+		fmt.Printf("build ledger 1 \n")
 		if useWhole {
-			buildLedger(srcnode)
+			buildLedger(srcnode, cfg)
 		} else if ib != nil {
 			if !srcnode.bc.BlockDAG().IsHourglass(ib.GetID()) {
 				log.Error(fmt.Sprintf("%s is not good\n", ib.GetHash()))
@@ -88,7 +90,7 @@ func main() {
 				log.Error(err.Error())
 				return
 			}
-			buildLedger(node)
+			buildLedger(node, cfg)
 		} else {
 			log.Error(fmt.Sprintf("%s is not good\n", blockHash))
 		}
@@ -141,10 +143,12 @@ func checkEndBlocks(node *SrcNode) {
 	}
 }
 
-func buildLedger(node INode) error {
+func buildLedger(node INode, config *Config) error {
+	fmt.Printf("build ledger \n")
 	params := params.ActiveNetParams.Params
-	genesisLedger := map[string]*ledger.TokenPayout{}
+	genesisLedger := map[string]*ledger.TokenPayoutReGen{}
 	var totalAmount uint64
+	var genAmount uint64
 	mainChainTip := node.BlockChain().BlockDAG().GetMainChainTip()
 	log.Info(fmt.Sprintf("Cur main tip:%s", mainChainTip.GetHash().String()))
 	err := node.DB().View(func(dbTx database.Tx) error {
@@ -179,13 +183,19 @@ func buildLedger(node INode) error {
 					addrStr += addr[i].String()
 				}
 			}
-			if _, ok := genesisLedger[addrStr]; ok {
-				genesisLedger[addrStr].Amount += entry.Amount()
-			} else {
-				tp := ledger.TokenPayout{Address: addrStr, PkScript: entry.PkScript(), Amount: entry.Amount()}
-				genesisLedger[addrStr] = &tp
+			if _, ok := genesisLedger[addrStr]; !ok {
+				tp := ledger.TokenPayout{Address: addrStr, PkScript: entry.PkScript(), Amount: 0}
+				reTp := ledger.TokenPayoutReGen{tp, 0}
+				genesisLedger[addrStr] = &reTp
 			}
-			totalAmount += entry.Amount()
+
+			if params.GenesisHash.IsEqual(entry.BlockHash()){
+				genesisLedger[addrStr].GenAmount +=entry.Amount()
+				genAmount += entry.Amount()
+			} else {
+				genesisLedger[addrStr].Payout.Amount += entry.Amount()
+				totalAmount += entry.Amount()
+			}
 			log.Trace(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s", addrStr, entry.Amount(), entry.BlockHash().String()))
 		}
 		return nil
@@ -198,16 +208,26 @@ func buildLedger(node INode) error {
 		return nil
 	}
 	fmt.Println(fmt.Sprintf("Show Ledger:[Genesis------->%s]", mainChainTip.GetHash().String()))
-	for k, v := range genesisLedger {
-		fmt.Printf("Address:%s Amount:%d PkScript:%v\n", k, v.Amount, v.PkScript)
+	payList := make(ledger.PayoutList, len(genesisLedger))
+	i:=0
+	for _, v := range genesisLedger {
+		payList[i] = *v
+		i++
 	}
+	sort.Sort(sort.Reverse(payList))
+	for _, v := range payList {
+		fmt.Printf("Address:%s  GenAmount:%15d  Amount:%15d  Total:%15d\n", v.Payout.Address, v.GenAmount, v.Payout.Amount, v.GenAmount+v.Payout.Amount)
+	}
+	fmt.Printf("-----------------\n")
+	fmt.Printf("Total Ledger:%5d  GenAmount:%15d  Amount:%15d  Total:%15d\n", len(genesisLedger), genAmount, totalAmount, genAmount+totalAmount)
 
-	log.Info(fmt.Sprintf("Total Ledger:%d   Amount:%d", len(genesisLedger), totalAmount))
-
-	return savePayoutsFile(params, genesisLedger)
+	if config.SavePayoutsFile {
+		return savePayoutsFile(params, genesisLedger)
+	}
+	return nil
 }
 
-func savePayoutsFile(params *params.Params, genesisLedger map[string]*ledger.TokenPayout) error {
+func savePayoutsFile(params *params.Params, genesisLedger map[string]*ledger.TokenPayoutReGen) error {
 	if len(genesisLedger) == 0 {
 		log.Info("No payouts need to deal with.")
 		return nil
@@ -238,7 +258,7 @@ func savePayoutsFile(params *params.Params, genesisLedger map[string]*ledger.Tok
 	fileContent := fmt.Sprintf("package ledger\nfunc init%s() {\n", funName)
 
 	for k, v := range genesisLedger {
-		fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", k, v.Amount, hex.EncodeToString(v.PkScript))
+		fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", k, v.Payout.Amount, hex.EncodeToString(v.Payout.PkScript))
 	}
 	fileContent += "}"
 
