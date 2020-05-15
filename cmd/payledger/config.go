@@ -45,6 +45,7 @@ type Config struct {
 	CheckEndPoint string `long:"checkendpoint" description:"Check the end point"`
 	ShowEndPoints int    `long:"showendpoints" description:"Recommend some end blocks from main chain tip to genesis."`
 	EndPointSkips int    `long:"endpointskips" description:"Recommend some end blocks and skip some main chain blocks."`
+	SavePayoutsFile bool `long:"savefile"  description:"save result to the payouts file."`
 }
 
 func LoadConfig() (*Config, []string, error) {
@@ -56,6 +57,7 @@ func LoadConfig() (*Config, []string, error) {
 		DbType:     defaultDbType,
 		DAGType:    defaultDAGType,
 		SrcDataDir: defaultSrcDataDir,
+		SavePayoutsFile: false,
 	}
 
 	preCfg := cfg
