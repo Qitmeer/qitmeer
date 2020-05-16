@@ -401,7 +401,7 @@ mempoolLoop:
 	}
 
 	//
-	keccak256Difficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.KECCAK256)
+	keccak256Difficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.QITMEERKECCAK256)
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}

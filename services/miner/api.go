@@ -458,13 +458,13 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		PowDiffReference: json.PowDiffReference{
 			Blake2bDBits: strconv.FormatInt(int64(template.PowDiffData.Blake2bDTarget), 16),
 			//blake2bd hash diff compare target
-			Blake2bTarget:   targetBlake2bDDifficulty,
-			X16rv3Bits:      strconv.FormatInt(int64(template.PowDiffData.X16rv3DTarget), 16),
-			X16rv3Target:    x16rv3iDifficulty,
-			X8r16Bits:       strconv.FormatInt(int64(template.PowDiffData.X8r16DTarget), 16),
-			X8r16Target:     x8r16Difficulty,
-			Keccak256Bits:   strconv.FormatInt(int64(template.PowDiffData.Keccak256Target), 16),
-			Keccak256Target: keccak256Difficulty,
+			Blake2bTarget:          targetBlake2bDDifficulty,
+			X16rv3Bits:             strconv.FormatInt(int64(template.PowDiffData.X16rv3DTarget), 16),
+			X16rv3Target:           x16rv3iDifficulty,
+			X8r16Bits:              strconv.FormatInt(int64(template.PowDiffData.X8r16DTarget), 16),
+			X8r16Target:            x8r16Difficulty,
+			QitmeerKeccak256Bits:   strconv.FormatInt(int64(template.PowDiffData.Keccak256Target), 16),
+			QitmeerKeccak256Target: keccak256Difficulty,
 			//cuckoo mining min diff
 			CuckarooMinDiff:  targetCuckarooDDifficulty,
 			CuckaroomMinDiff: targetCuckaroomDifficulty,

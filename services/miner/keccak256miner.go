@@ -79,8 +79,8 @@ func (m *CPUMiner) solveKeccak256Block(msgBlock *types.Block, ticker *time.Ticke
 		default:
 			// Non-blocking select to fall through
 		}
-		instance := pow.GetInstance(pow.KECCAK256, 0, []byte{})
-		powStruct := instance.(*pow.Keccak256)
+		instance := pow.GetInstance(pow.QITMEERKECCAK256, 0, []byte{})
+		powStruct := instance.(*pow.QitmeerKeccak256)
 		// Update the nonce and hash the block header.
 		powStruct.Nonce = i
 
@@ -89,7 +89,7 @@ func (m *CPUMiner) solveKeccak256Block(msgBlock *types.Block, ticker *time.Ticke
 		// Each hash is actually a double hash (tow hashes), so
 		// increment the number of hashes by 2
 		hashesCompleted += 2
-		h := hash.HashKeccak256(header.BlockData())
+		h := hash.HashQitmeerKeccak256(header.BlockData())
 		hashNum := pow.HashToBig(&h)
 
 		if hashNum.Cmp(target) <= 0 {

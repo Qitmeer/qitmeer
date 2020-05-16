@@ -5,13 +5,13 @@ type PowDiffReference struct {
 	//blake2bd diff
 	Blake2bDBits string `json:"blake2bd_bits"`
 	//blake2bd hash diff compare target
-	Blake2bTarget   string `json:"blake2bd_target"`
-	X16rv3Bits      string `json:"x_16_rv_3_bits"`
-	X16rv3Target    string `json:"x_16_rv_3_target"`
-	X8r16Bits       string `json:"x8r16_bits"`
-	X8r16Target     string `json:"x8r16_target"`
-	Keccak256Bits   string `json:"keccak256_bits"`
-	Keccak256Target string `json:"keccak256_target"`
+	Blake2bTarget          string `json:"blake2bd_target"`
+	X16rv3Bits             string `json:"x_16_rv_3_bits"`
+	X16rv3Target           string `json:"x_16_rv_3_target"`
+	X8r16Bits              string `json:"x8r16_bits"`
+	X8r16Target            string `json:"x8r16_target"`
+	QitmeerKeccak256Bits   string `json:"qitmeer_keccak256_bits"`
+	QitmeerKeccak256Target string `json:"qitmeer_keccak256_target"`
 
 	//cuckoo mining min diff
 	CuckarooMinDiff  uint64 `json:"cuckaroo_min_diff,omitempty"`
