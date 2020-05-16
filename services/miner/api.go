@@ -429,7 +429,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 	blake2bdBig := pow.CompactToBig(template.PowDiffData.Blake2bDTarget)
 	x16rv3big := pow.CompactToBig(template.PowDiffData.X16rv3DTarget)
 	x8r16big := pow.CompactToBig(template.PowDiffData.X8r16DTarget)
-	keccak256big := pow.CompactToBig(template.PowDiffData.Keccak256Target)
+	keccak256big := pow.CompactToBig(template.PowDiffData.QitmeerKeccak256Target)
 	targetBlake2bDDifficulty := fmt.Sprintf("%064x", blake2bdBig)
 	x16rv3iDifficulty := fmt.Sprintf("%064x", x16rv3big)
 	x8r16Difficulty := fmt.Sprintf("%064x", x8r16big)
@@ -463,7 +463,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 			X16rv3Target:           x16rv3iDifficulty,
 			X8r16Bits:              strconv.FormatInt(int64(template.PowDiffData.X8r16DTarget), 16),
 			X8r16Target:            x8r16Difficulty,
-			QitmeerKeccak256Bits:   strconv.FormatInt(int64(template.PowDiffData.Keccak256Target), 16),
+			QitmeerKeccak256Bits:   strconv.FormatInt(int64(template.PowDiffData.QitmeerKeccak256Target), 16),
 			QitmeerKeccak256Target: keccak256Difficulty,
 			//cuckoo mining min diff
 			CuckarooMinDiff:  targetCuckarooDDifficulty,
