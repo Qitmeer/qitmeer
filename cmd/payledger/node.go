@@ -79,8 +79,12 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 	if !genesisHash.IsEqual(srcgenesisHash) {
 		return fmt.Errorf("Different genesis!")
 	}
-	common.Glogger().Verbosity(log.LvlCrit)
 	srcTotal := srcnode.bc.BlockDAG().GetBlockTotal()
+	if node.endPoint.GetHash().IsEqual(genesisHash) {
+		return nil
+	}
+
+	common.Glogger().Verbosity(log.LvlCrit)
 	i := uint(1)
 	bar := ProgressBar{}
 	bar.init("Process:")
