@@ -8,47 +8,16 @@ import (
 	"time"
 )
 
-func (m *CPUMiner) solveKeccak256Block(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}) bool {
+func (m *CPUMiner) solveQitmeerKeccak256Block(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}) bool {
 
-	// TODO, decided if need extra nonce for coinbase-tx
-	// Choose a random extra nonce offset for this block template and
-	// worker.
-	/*
-		enOffset, err := s.RandomUint64()
-		if err != nil {
-			log.Error("Unexpected error while generating random "+
-				"extra nonce offset: %v", err)
-			enOffset = 0
-		}
-	*/
-
-	// Create a couple of convenience variables.
 	header := &msgBlock.Header
-
 	// Initial state.
 	lastGenerated := time.Now()
 	lastTxUpdate := m.txSource.LastUpdated()
 	hashesCompleted := uint64(0)
 	target := pow.CompactToBig(uint32(header.Difficulty))
-	// TODO, decided if need extra nonce for coinbase-tx
-	// Note that the entire extra nonce range is iterated and the offset is
-	// added relying on the fact that overflow will wrap around 0 as
-	// provided by the Go spec.
-	// for extraNonce := uint64(0); extraNonce < maxExtraNonce; extraNonce++ {
-
-	// Update the extra nonce in the block template with the
-	// new value by regenerating the coinbase script and
-	// setting the merkle root to the new value.
-	// TODO, decided if need extra nonce for coinbase-tx
-	// updateExtraNonce(msgBlock, extraNonce+enOffset)
-
-	// Update the extra nonce in the block template header with the
-	// new value.
-	// binary.LittleEndian.PutUint64(header.ExtraData[:], extraNonce+enOffset)
 
 	// Search through the entire nonce range for a solution while
-	// periodically checking for early quit and stale block
-	// conditions along with updates to the speed monitor.
 	for i := uint32(0); i <= maxNonce; i++ {
 		select {
 		case <-quit:
@@ -79,6 +48,7 @@ func (m *CPUMiner) solveKeccak256Block(msgBlock *types.Block, ticker *time.Ticke
 		default:
 			// Non-blocking select to fall through
 		}
+		//Initial pow instance
 		instance := pow.GetInstance(pow.QITMEERKECCAK256, 0, []byte{})
 		powStruct := instance.(*pow.QitmeerKeccak256)
 		// Update the nonce and hash the block header.
@@ -99,6 +69,5 @@ func (m *CPUMiner) solveKeccak256Block(msgBlock *types.Block, ticker *time.Ticke
 			return true
 		}
 	}
-	//}
 	return false
 }
