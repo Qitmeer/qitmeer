@@ -1,15 +1,17 @@
-package x8r16
+package x8r16_test
 
 import (
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
-	"testing"
+	"fmt"
+	"github.com/Qitmeer/qitmeer/crypto/x8r16"
 )
 
-func TestHash(t *testing.T) {
+func ExampleNew() {
 	b := []byte("helloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhel")
-	x8r16 := New()
+	h := x8r16.New()
 	out := make([]byte, 32)
-	x8r16.Hash(b, out)
-	assert.Equal(t, hex.EncodeToString(out), "52ac0c51e33f308f838998528d492cb135162a90f235121a65033f143c214a16")
+	h.Hash(b, out)
+	fmt.Printf(hex.EncodeToString(out))
+	// output:
+	// 52ac0c51e33f308f838998528d492cb135162a90f235121a65033f143c214a16
 }
