@@ -61,9 +61,7 @@ func CompactToTarget(diffCompact string) {
 }
 
 func TargetToCompact(target string) {
-	if strings.HasPrefix(target, "0x") {
-		target = target[2:]
-	}
+	target = strings.TrimPrefix(target, "0x")
 	bigT, ok := new(big.Int).SetString(target, 16)
 	if !ok {
 		fmt.Println("target error")
