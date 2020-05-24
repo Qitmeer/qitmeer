@@ -96,3 +96,29 @@ func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
 	}
 
 }
+
+func TestCompactToTarget(t *testing.T) {
+	CompactToTarget("471859199")
+	// output :
+	// 0x000000001fffff00000000000000000000000000000000000000000000000000
+}
+
+func TestCompactToHashrate(t *testing.T) {
+	CompactToHashrate("471859199")
+	// output :
+	// 34.35975475 GH/s
+}
+
+func TestHashrateToCompact(t *testing.T) {
+	// 34.35975475 GH/s
+	hashrate := 34.35975475 * 1000 * 1000 * 1000
+	HashrateToCompact(fmt.Sprintf("%d", uint64(hashrate)))
+	// output :
+	// 471859199
+}
+
+func TestTargetToCompact(t *testing.T) {
+	TargetToCompact("0x000000001fffff00000000000000000000000000000000000000000000000000")
+	// output :
+	// 471859199
+}
