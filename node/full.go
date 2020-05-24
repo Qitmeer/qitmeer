@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/services/acct"
+	"github.com/Qitmeer/qitmeer/services/address"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/services/index"
@@ -37,6 +38,9 @@ type QitmeerFull struct {
 
 	// miner service
 	cpuMiner *miner.CPUMiner
+
+	// address service
+	addressApi *address.AddressApi
 
 	// clock time service
 	timeSource blockchain.MedianTimeSource
@@ -78,6 +82,7 @@ func (qm *QitmeerFull) Stop() error {
 
 func (qm *QitmeerFull) APIs() []rpc.API {
 	apis := qm.acctmanager.APIs()
+	apis = append(apis, qm.addressApi.APIs()...)
 	apis = append(apis, qm.cpuMiner.APIs()...)
 	apis = append(apis, qm.blockManager.API())
 	apis = append(apis, qm.txManager.APIs()...)
@@ -168,7 +173,8 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 
 	qm.cpuMiner = miner.NewCPUMiner(cfg, node.Params, &policy, qm.sigCache,
 		qm.txManager.MemPool().(*mempool.TxPool), qm.timeSource, qm.blockManager, defaultNumWorkers)
-
+	// init address api
+	qm.addressApi = address.NewAddressApi(cfg, node.Params, qm.blockManager)
 	return &qm, nil
 }
 
@@ -180,6 +186,11 @@ func (qm *QitmeerFull) GetBlockManager() *blkmgr.BlockManager {
 // return cpu miner
 func (qm *QitmeerFull) GetCpuMiner() *miner.CPUMiner {
 	return qm.cpuMiner
+}
+
+// return address api
+func (qm *QitmeerFull) GetAddressApi() *address.AddressApi {
+	return qm.addressApi
 }
 
 // return peer server
