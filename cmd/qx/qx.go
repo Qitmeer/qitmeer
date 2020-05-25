@@ -175,7 +175,7 @@ func main() {
 	diffToHashrateCmd.IntVar(&blocktime, "t", 15, "blocktime")
 	diffToHashrateCmd.IntVar(&mheight, "m", 1, "mheight")
 	diffToHashrateCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
-	diffToHashrateCmd.StringVar(&powType, "p", "cuckaroo", "the target cuckoo pow. ( cuckaroo, cuckatoo)")
+	diffToHashrateCmd.StringVar(&powType, "p", "cuckaroom", "the target cuckoo pow. ( cuckaroo, cuckatoo)")
 	diffToHashrateCmd.Usage = func() {
 		cmdUsage(diffToHashrateCmd, "Usage: qx diff-to-gps -e 24 -t 15 [difficulty uint64]\n")
 	}
@@ -607,6 +607,12 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		switch powType {
 		case "cuckaroo":
 			instance := &pow.Cuckaroo{}
+			instance.SetMainHeight(mheight)
+			instance.SetEdgeBits(uint8(edgeBits))
+			instance.SetParams(p.PowConfig)
+			return int(instance.GraphWeight())
+		case "cuckaroom":
+			instance := &pow.Cuckaroom{}
 			instance.SetMainHeight(mheight)
 			instance.SetEdgeBits(uint8(edgeBits))
 			instance.SetParams(p.PowConfig)
