@@ -57,13 +57,8 @@ func (this *Cuckaroo) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 		return nextDiffBig
 	}
 	currentPowPercent.Mul(currentPowPercent, big.NewInt(100))
-	if currentPowPercent.Cmp(targetPercent) > 0 {
-		nextDiffBig.Mul(nextDiffBig, targetPercent)
-		nextDiffBig.Div(nextDiffBig, currentPowPercent)
-	} else {
-		nextDiffBig.Mul(nextDiffBig, currentPowPercent)
-		nextDiffBig.Div(nextDiffBig, targetPercent)
-	}
+	nextDiffBig.Mul(nextDiffBig, currentPowPercent)
+	nextDiffBig.Div(nextDiffBig, targetPercent)
 	return nextDiffBig
 }
 
@@ -91,6 +86,7 @@ func (this *Cuckaroo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 func (this *Cuckaroo) CheckAvailable() bool {
 	return this.params.GetPercentByHeight(this.mainHeight).CuckarooPercent > 0
 }
+
 //calc scale
 //the edge_bits is bigger ,then scale is bigger
 //Reference resources https://eprint.iacr.org/2014/059.pdf 9. Difficulty control page 6
@@ -104,7 +100,7 @@ func (this *Cuckaroo) CheckAvailable() bool {
 //29 target is db22d0e560418937000000000000000000000000000000000000000000000000
 //（The difficulty needs to be found 1000/1856 * 50 ≈ 26 times in edge_bits 29, and the answer may be obtained once.）
 //so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
-func (this *Cuckaroo)GraphWeight() uint64 {
+func (this *Cuckaroo) GraphWeight() uint64 {
 	//45 days
 	bigScale := this.params.AdjustmentStartMainHeight - this.mainHeight
 	bigScale = bigScale * 40
@@ -113,7 +109,7 @@ func (this *Cuckaroo)GraphWeight() uint64 {
 	}
 
 	scale := (2 << (this.GetEdgeBits() - MIN_CUCKAROOEDGEBITS)) * uint64(this.GetEdgeBits()) / uint64(bigScale)
-	if scale <= 0{
+	if scale <= 0 {
 		scale = 1
 	}
 	return scale
