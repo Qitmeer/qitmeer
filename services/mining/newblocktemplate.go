@@ -85,7 +85,7 @@ import (
 
 func NewBlockTemplate(policy *Policy, params *params.Params,
 	sigCache *txscript.SigCache, txSource TxSource, timeSource blockchain.MedianTimeSource,
-	blockManager *blkmgr.BlockManager, payToAddress types.Address, parents []*hash.Hash) (*types.BlockTemplate, error) {
+	blockManager *blkmgr.BlockManager, payToAddress types.Address, parents []*hash.Hash, powType pow.PowType) (*types.BlockTemplate, error) {
 	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
 
 	best := blockManager.GetChain().BestSnapshot()
