@@ -60,13 +60,8 @@ func (this *QitmeerKeccak256) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig
 		return nextDiffBig
 	}
 	currentPowPercent.Mul(currentPowPercent, big.NewInt(100))
-	if currentPowPercent.Cmp(targetPercent) > 0 {
-		nextDiffBig.Mul(nextDiffBig, currentPowPercent)
-		nextDiffBig.Div(nextDiffBig, targetPercent)
-	} else {
-		nextDiffBig.Mul(nextDiffBig, targetPercent)
-		nextDiffBig.Div(nextDiffBig, currentPowPercent)
-	}
+	nextDiffBig.Mul(nextDiffBig, targetPercent)
+	nextDiffBig.Div(nextDiffBig, currentPowPercent)
 	return nextDiffBig
 }
 

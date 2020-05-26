@@ -56,13 +56,8 @@ func (this *Cuckatoo) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 		return nextDiffBig
 	}
 	currentPowPercent.Mul(currentPowPercent, big.NewInt(100))
-	if currentPowPercent.Cmp(targetPercent) > 0 {
-		nextDiffBig.Mul(nextDiffBig, targetPercent)
-		nextDiffBig.Div(nextDiffBig, currentPowPercent)
-	} else {
-		nextDiffBig.Mul(nextDiffBig, currentPowPercent)
-		nextDiffBig.Div(nextDiffBig, targetPercent)
-	}
+	nextDiffBig.Mul(nextDiffBig, currentPowPercent)
+	nextDiffBig.Div(nextDiffBig, targetPercent)
 	return nextDiffBig
 }
 func (this *Cuckatoo) PowPercent() *big.Int {
@@ -103,6 +98,6 @@ func (this *Cuckatoo) CheckAvailable() bool {
 //29 target is db22d0e560418937000000000000000000000000000000000000000000000000
 //（The difficulty needs to be found 1000/1856 * 50 ≈ 26 times in edge_bits 29, and the answer may be obtained once.）
 //so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
-func (this *Cuckatoo)GraphWeight() uint64 {
+func (this *Cuckatoo) GraphWeight() uint64 {
 	return (2 << (this.GetEdgeBits() - MIN_CUCKAROOEDGEBITS)) * uint64(this.GetEdgeBits())
 }
