@@ -427,13 +427,30 @@ mempoolLoop:
 
 	paMerkles := merkle.BuildParentsMerkleTreeStore(parents)
 	var block types.Block
+	var reqDiff uint32
+	switch powType {
+	case pow.BLAKE2BD:
+		reqDiff = reqBlake2bDDifficulty
+	case pow.CUCKAROO:
+		reqDiff = reqCuckarooDifficulty
+	case pow.CUCKATOO:
+		reqDiff = reqCuckatooDifficulty
+	case pow.CUCKAROOM:
+		reqDiff = reqCuckaroomDifficulty
+	case pow.X16RV3:
+		reqDiff = reqX16rv3Difficulty
+	case pow.X8R16:
+		reqDiff = reqX8r16Difficulty
+	case pow.QITMEERKECCAK256:
+		reqDiff = keccak256Difficulty
+	}
 	block.Header = types.BlockHeader{
 		Version:    blockVersion,
 		ParentRoot: *paMerkles[len(paMerkles)-1],
 		TxRoot:     *merkles[len(merkles)-1],
 		StateRoot:  hash.Hash{}, //TODO, state root
 		Timestamp:  ts,
-		Difficulty: reqCuckaroomDifficulty,
+		Difficulty: reqDiff,
 		Pow:        pow.GetInstance(powType, 0, []byte{}),
 		// Size declared below
 	}
