@@ -7,26 +7,23 @@ import (
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
-	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"sync"
 )
 
 type AddressApi struct {
 	sync.Mutex
-	params       *params.Params
-	config       *config.Config
-	blockManager *blkmgr.BlockManager
+	params *params.Params
+	config *config.Config
 }
 
 type PublicAddressAPI struct {
 	addressApi *AddressApi
 }
 
-func NewAddressApi(cfg *config.Config, par *params.Params, blkMgr *blkmgr.BlockManager) *AddressApi {
+func NewAddressApi(cfg *config.Config, par *params.Params) *AddressApi {
 	return &AddressApi{
-		config:       cfg,
-		params:       par,
-		blockManager: blkMgr,
+		config: cfg,
+		params: par,
 	}
 }
 

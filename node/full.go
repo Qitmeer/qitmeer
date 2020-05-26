@@ -174,7 +174,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 	qm.cpuMiner = miner.NewCPUMiner(cfg, node.Params, &policy, qm.sigCache,
 		qm.txManager.MemPool().(*mempool.TxPool), qm.timeSource, qm.blockManager, defaultNumWorkers)
 	// init address api
-	qm.addressApi = address.NewAddressApi(cfg, node.Params, qm.blockManager)
+	qm.addressApi = address.NewAddressApi(cfg, node.Params)
 	return &qm, nil
 }
 
