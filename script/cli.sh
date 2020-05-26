@@ -211,7 +211,7 @@ function generate() {
   local count=$1
   local powtype=$2
   if [ "$powtype" == "" ]; then
-    powtype=0
+    powtype=6
   fi
   local data='{"jsonrpc":"2.0","method":"miner_generate","params":['$count','$powtype'],"id":null}'
   get_result "$data"
@@ -906,7 +906,7 @@ elif [ "$1" == "mining" ]; then
   stop_mining
 elif [ "$1" == "generate" ]; then
   shift
-  generate $1|jq .
+  generate $@|jq .
 
 
 ## INFO & STATUS
