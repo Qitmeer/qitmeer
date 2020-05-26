@@ -170,14 +170,14 @@ func main() {
 		cmdUsage(uint64ToCompactCmd, "Usage: qx uint64-to-compact [uint64 number]\n")
 	}
 
-	diffToHashrateCmd := flag.NewFlagSet("diff-to-gps", flag.ExitOnError)
-	diffToHashrateCmd.IntVar(&edgeBits, "e", 24, "edgebits")
-	diffToHashrateCmd.IntVar(&blocktime, "t", 15, "blocktime")
-	diffToHashrateCmd.IntVar(&mheight, "m", 1, "mheight")
-	diffToHashrateCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
-	diffToHashrateCmd.StringVar(&powType, "p", "cuckaroom", "the target cuckoo pow. ( cuckaroo, cuckatoo)")
-	diffToHashrateCmd.Usage = func() {
-		cmdUsage(diffToHashrateCmd, "Usage: qx diff-to-gps -e 24 -t 15 [difficulty uint64]\n")
+	diffToGPSCmd := flag.NewFlagSet("diff-to-gps", flag.ExitOnError)
+	diffToGPSCmd.IntVar(&edgeBits, "e", 24, "edgebits")
+	diffToGPSCmd.IntVar(&blocktime, "t", 15, "blocktime")
+	diffToGPSCmd.IntVar(&mheight, "m", 1, "mheight")
+	diffToGPSCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
+	diffToGPSCmd.StringVar(&powType, "p", "cuckaroom", "the target cuckoo pow. ( cuckaroo, cuckatoo)")
+	diffToGPSCmd.Usage = func() {
+		cmdUsage(diffToGPSCmd, "Usage: qx diff-to-gps -e 24 -t 15 [difficulty uint64]\n")
 	}
 
 	diffToTargetCmd := flag.NewFlagSet("diff-to-target", flag.ExitOnError)
@@ -427,7 +427,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		base58DecodeCmd,
 		compactToUint64Cmd,
 		uint64ToCompactCmd,
-		diffToHashrateCmd,
+		diffToGPSCmd,
 		diffToTargetCmd,
 		targetToDiffCmd,
 		compactToHashrateCmd,
@@ -627,12 +627,12 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		return 0
 	}
 	// Handle compact-to-gps
-	if diffToHashrateCmd.Parsed() {
+	if diffToGPSCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
 		p := getNetWork(network)
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
-				diffToHashrateCmd.Usage()
+				diffToGPSCmd.Usage()
 			} else {
 				qx.CompactToGPS(os.Args[len(os.Args)-1], blocktime, getCuckooScale(powType, p, int64(edgeBits), int64(mheight)))
 			}
