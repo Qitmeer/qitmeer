@@ -58,8 +58,6 @@ func (this *Cuckaroom) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.I
 		return nextDiffBig
 	}
 	currentPowPercent.Mul(currentPowPercent, big.NewInt(100))
-	fmt.Println("currentPowPercent", currentPowPercent)
-	fmt.Println("targetPercent", targetPercent)
 	nextDiffBig.Mul(nextDiffBig, currentPowPercent)
 	nextDiffBig.Div(nextDiffBig, targetPercent)
 	return nextDiffBig
