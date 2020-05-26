@@ -29,11 +29,11 @@ var TestNetParams = Params{
 	Name:        "testnet",
 	Net:         protocol.TestNet,
 	DefaultPort: "18130",
-	DNSSeeds:    []DNSSeed{
-		// {"testnet-seed.hlcwallet.info", true},
-		// {"testnet-seed.qitmeer.xyz", true},
-		// {"testnet-seed.qitmeer.top", true},
-		// {"seed.qitmir.info", true},
+	DNSSeeds: []DNSSeed{
+		{"testnet-seed.hlcwallet.info", true},
+		{"testnet-seed.qitmeer.xyz", true},
+		{"testnet-seed.qitmeer.top", true},
+		{"seed.qitmir.info", true},
 	},
 
 	// Chain parameters
