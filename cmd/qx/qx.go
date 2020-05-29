@@ -46,14 +46,14 @@ hash :
     hash160               calculate ripemd160(blake2b256(data))
 
 difficulty :
-    compact-to-uint64     convert cuckoo compact difficulty to uint64.
-    uint64-to-compact     convert cuckoo uint64 difficulty to compact.
+    compact-to-diff     convert cuckoo compact difficulty to uint64 diff.
+    diff-to-compact     convert cuckoo uint64 difficulty to compact.
     diff-to-gps           convert cuckoo uint64 difficulty to GPS.
     gps-to-diff           convert cuckoo GPS to uint64 difficulty.
-    diff-to-target        convert diff to target (hash pow).
-    target-to-diff        convert target to diff (hash pow).
-    compact-to-hashrate      convert diff to hashrate (hash pow).
-    hashrate-to-compact      convert hashrate to difft (hash pow).
+    compact-to-target        convert diff to target (hash pow).
+    target-to-compact        convert target to diff (hash pow).
+    compact-to-hashrate      convert compact to hashrate (hash pow).
+    hashrate-to-compact      convert hashrate to compact (hash pow).
 
 entropy (seed) & mnemoic & hd & ec 
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
@@ -161,13 +161,13 @@ func main() {
 		cmdUsage(base58DecodeCmd, "Usage: qx base58-decode [hexstring]\n")
 	}
 
-	compactToUint64Cmd := flag.NewFlagSet("compact-to-uint64", flag.ExitOnError)
-	compactToUint64Cmd.Usage = func() {
-		cmdUsage(compactToUint64Cmd, "Usage: qx compact-to-uint64 [uint32 value]\n")
+	compactToDiffCmd := flag.NewFlagSet("compact-to-diff", flag.ExitOnError)
+	compactToDiffCmd.Usage = func() {
+		cmdUsage(compactToDiffCmd, "Usage: qx compact-to-diff [uint32 value]\n")
 	}
-	uint64ToCompactCmd := flag.NewFlagSet("uint64-to-compact", flag.ExitOnError)
-	uint64ToCompactCmd.Usage = func() {
-		cmdUsage(uint64ToCompactCmd, "Usage: qx uint64-to-compact [uint64 number]\n")
+	diffToCompactCmd := flag.NewFlagSet("diff-to-compact", flag.ExitOnError)
+	diffToCompactCmd.Usage = func() {
+		cmdUsage(diffToCompactCmd, "Usage: qx diff-to-compact [uint64 number]\n")
 	}
 
 	diffToGPSCmd := flag.NewFlagSet("diff-to-gps", flag.ExitOnError)
@@ -180,14 +180,14 @@ func main() {
 		cmdUsage(diffToGPSCmd, "Usage: qx diff-to-gps -e 24 -t 15 [difficulty uint64]\n")
 	}
 
-	diffToTargetCmd := flag.NewFlagSet("diff-to-target", flag.ExitOnError)
-	diffToTargetCmd.Usage = func() {
-		cmdUsage(diffToTargetCmd, "Usage: qx diff-to-target [difficulty compact]\n")
+	compactToTargetCmd := flag.NewFlagSet("compact-to-target", flag.ExitOnError)
+	compactToTargetCmd.Usage = func() {
+		cmdUsage(compactToTargetCmd, "Usage: qx compact-to-target [difficulty compact]\n")
 	}
 
-	targetToDiffCmd := flag.NewFlagSet("target-to-diff", flag.ExitOnError)
-	targetToDiffCmd.Usage = func() {
-		cmdUsage(targetToDiffCmd, "Usage: qx target-to-diff [target string]\n")
+	targetToCompactCmd := flag.NewFlagSet("target-to-compact", flag.ExitOnError)
+	targetToCompactCmd.Usage = func() {
+		cmdUsage(targetToCompactCmd, "Usage: qx target-to-compact [target string]\n")
 	}
 
 	compactToHashrateCmd := flag.NewFlagSet("compact-to-hashrate", flag.ExitOnError)
@@ -425,11 +425,11 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		base58CheckDecodeCommand,
 		base58EncodeCmd,
 		base58DecodeCmd,
-		compactToUint64Cmd,
-		uint64ToCompactCmd,
+		compactToDiffCmd,
+		diffToCompactCmd,
 		diffToGPSCmd,
-		diffToTargetCmd,
-		targetToDiffCmd,
+		compactToTargetCmd,
+		targetToCompactCmd,
 		compactToHashrateCmd,
 		HashrateToCompactCmd,
 		gpsToDiffCmd,
@@ -553,11 +553,11 @@ MEER is the 64 bit spend amount in qitmeer.`)
 	}
 
 	// Handle compact-to-uint64
-	if compactToUint64Cmd.Parsed() {
+	if compactToDiffCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
-				compactToUint64Cmd.Usage()
+				compactToDiffCmd.Usage()
 			} else {
 				qx.CompactToUint64(os.Args[len(os.Args)-1])
 			}
@@ -572,11 +572,11 @@ MEER is the 64 bit spend amount in qitmeer.`)
 	}
 
 	// Handle uint64-to-compact
-	if uint64ToCompactCmd.Parsed() {
+	if diffToCompactCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
-				compactToUint64Cmd.Usage()
+				compactToDiffCmd.Usage()
 			} else {
 				qx.Uint64ToCompact(os.Args[len(os.Args)-1])
 			}
@@ -646,11 +646,11 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		}
 	}
 	// Handle diff-to-target
-	if diffToTargetCmd.Parsed() {
+	if compactToTargetCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
-				diffToTargetCmd.Usage()
+				compactToTargetCmd.Usage()
 			} else {
 				qx.CompactToTarget(os.Args[len(os.Args)-1])
 			}
@@ -664,11 +664,11 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		}
 	}
 	// Handle target-to-diff
-	if targetToDiffCmd.Parsed() {
+	if targetToCompactCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
-				targetToDiffCmd.Usage()
+				targetToCompactCmd.Usage()
 			} else {
 				qx.TargetToCompact(os.Args[len(os.Args)-1])
 			}

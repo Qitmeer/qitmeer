@@ -37,9 +37,8 @@ const (
 const (
 
 	// MaxTimeOffsetSeconds is the maximum number of seconds a block time
-	// is allowed to be ahead of the current time.  This is currently 2
-	// hours.
-	MaxTimeOffsetSeconds = 2 * 60 * 60
+	// is allowed to be ahead of the current time.  This is currently 10 min
+	MaxTimeOffsetSeconds = 600
 
 	// MinCoinbaseScriptLen is the minimum length a coinbase script can be.
 	MinCoinbaseScriptLen = 2
