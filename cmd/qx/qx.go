@@ -191,6 +191,7 @@ func main() {
 	}
 
 	compactToHashrateCmd := flag.NewFlagSet("compact-to-hashrate", flag.ExitOnError)
+	compactToHashrateCmd.IntVar(&blocktime, "t", 100, "blocktime")
 	compactToHashrateCmd.Usage = func() {
 		cmdUsage(compactToHashrateCmd, "Usage: qx compact-to-hashrate [difficulty compact]\n")
 	}
@@ -688,7 +689,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				compactToHashrateCmd.Usage()
 			} else {
-				qx.CompactToHashrate(os.Args[len(os.Args)-1])
+				qx.CompactToHashrate(os.Args[len(os.Args)-1], blocktime)
 			}
 		} else { //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -696,7 +697,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.CompactToHashrate(str)
+			qx.CompactToHashrate(str, blocktime)
 		}
 	}
 	// Handle hashrate- to compact-

@@ -71,7 +71,7 @@ func TargetToCompact(target string) {
 	fmt.Printf("%d\n", difftarget)
 }
 
-func CompactToHashrate(diffCompact string) {
+func CompactToHashrate(diffCompact string, blocktime int) {
 	u64, err := strconv.ParseUint(diffCompact, 10, 64)
 	if err != nil {
 		ErrExit(err)
@@ -79,6 +79,7 @@ func CompactToHashrate(diffCompact string) {
 	diffBig := pow.CompactToBig(uint32(u64))
 	maxBig, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
 	needAtleasthashrate := maxBig.Div(maxBig, diffBig)
+	needAtleasthashrate = needAtleasthashrate.Div(needAtleasthashrate, big.NewInt(int64(blocktime)))
 	fmt.Printf("%s\n", GetHashrate(needAtleasthashrate))
 }
 
