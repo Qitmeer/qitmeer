@@ -37,8 +37,10 @@ const (
 const (
 
 	// MaxTimeOffsetSeconds is the maximum number of seconds a block time
-	// is allowed to be ahead of the current time.  This is currently 10 min
-	MaxTimeOffsetSeconds = 600
+	// is allowed to be ahead of the current time.
+	// 2 hours -> BTC settings (2 hours / 2016 block -> 2 weeks) = 0.6 %
+	// 360 sec -> Qitmeer settings ( 30*2016*6/1000 )
+	MaxTimeOffsetSeconds = 6 * 60  // 6 minutes
 
 	// MinCoinbaseScriptLen is the minimum length a coinbase script can be.
 	MinCoinbaseScriptLen = 2
