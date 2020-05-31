@@ -104,7 +104,7 @@ func TestCompactToTarget(t *testing.T) {
 }
 
 func TestCompactToHashrate(t *testing.T) {
-	CompactToHashrate("471859199")
+	CompactToHashrate("471859199", 1)
 	// output :
 	// 34.35975475 GH/s
 }
