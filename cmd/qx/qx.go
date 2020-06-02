@@ -54,6 +54,7 @@ difficulty :
     target-to-compact        convert target to diff (hash pow).
     compact-to-hashrate      convert compact to hashrate (hash pow).
     hashrate-to-compact      convert hashrate to compact (hash pow).
+	hash-compact-to-diff     convert hash compact diff to uint64 diff.
 
 entropy (seed) & mnemoic & hd & ec 
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
@@ -199,6 +200,11 @@ func main() {
 	HashrateToCompactCmd := flag.NewFlagSet("hashrate-to-compact", flag.ExitOnError)
 	HashrateToCompactCmd.Usage = func() {
 		cmdUsage(HashrateToCompactCmd, "Usage: qx hashrate-to-compact [hashrate h/s]\n")
+	}
+
+	HashCompactTDiffCmd := flag.NewFlagSet("hash-compact-to-diff", flag.ExitOnError)
+	HashCompactTDiffCmd.Usage = func() {
+		cmdUsage(HashCompactTDiffCmd, "Usage: qx hash-compact-to-diff [compact h/s]\n")
 	}
 
 	gpsToDiffCmd := flag.NewFlagSet("gps-to-diff", flag.ExitOnError)
@@ -433,6 +439,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		targetToCompactCmd,
 		compactToHashrateCmd,
 		HashrateToCompactCmd,
+		HashCompactTDiffCmd,
 		gpsToDiffCmd,
 		base64EncodeCmd,
 		base64DecodeCmd,
@@ -716,6 +723,24 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			}
 			str := strings.TrimSpace(string(src))
 			qx.HashrateToCompact(str)
+		}
+	}
+	// Handle hash compact- to diff
+	if HashCompactTDiffCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				HashCompactTDiffCmd.Usage()
+			} else {
+				qx.HashCompactToDiff(os.Args[len(os.Args)-1])
+			}
+		} else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.HashCompactToDiff(str)
 		}
 	}
 

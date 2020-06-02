@@ -21,6 +21,17 @@ func CompactToUint64(input string) {
 	fmt.Printf("%d\n", diffBig.Uint64())
 }
 
+func HashCompactToDiff(input string) {
+	u32, err := strconv.ParseUint(input, 10, 32)
+	if err != nil {
+		ErrExit(err)
+	}
+	diffBig := pow.CompactToBig(uint32(u32))
+	maxBig, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+	maxBig.Div(maxBig, diffBig)
+	fmt.Printf("%d\n", maxBig)
+}
+
 func Uint64ToCompact(input string) {
 	u64, err := strconv.ParseUint(input, 10, 64)
 	if err != nil {
