@@ -40,24 +40,26 @@ type Config struct {
 	DbType  string `long:"dbtype" description:"Database backend to use for the Block Chain"`
 	DAGType string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
 
-	SrcDataDir    string `long:"srcdatadir" description:"Original directory to store data"`
-	EndPoint      string `long:"endpoint" description:"The end point block hash when building ledger"`
-	CheckEndPoint string `long:"checkendpoint" description:"Check the end point"`
-	ShowEndPoints int    `long:"showendpoints" description:"Recommend some end blocks from main chain tip to genesis."`
-	EndPointSkips int    `long:"endpointskips" description:"Recommend some end blocks and skip some main chain blocks."`
-	SavePayoutsFile bool `long:"savefile"  description:"save result to the payouts file."`
+	SrcDataDir      string `long:"srcdatadir" description:"Original directory to store data"`
+	EndPoint        string `long:"endpoint" description:"The end point block hash when building ledger"`
+	CheckEndPoint   string `long:"checkendpoint" description:"Check the end point"`
+	ShowEndPoints   int    `long:"showendpoints" description:"Recommend some end blocks from main chain tip to genesis."`
+	EndPointSkips   int    `long:"endpointskips" description:"Recommend some end blocks and skip some main chain blocks."`
+	SavePayoutsFile bool   `long:"savefile"  description:"save result to the payouts file."`
+	DisableBar      bool   `long:"disablebar"  description:"Hide progress bar."`
 }
 
 func LoadConfig() (*Config, []string, error) {
 	// Default config.
 	cfg := Config{
-		HomeDir:    defaultHomeDir,
-		DataDir:    defaultDataDir,
-		TestNet:    true,
-		DbType:     defaultDbType,
-		DAGType:    defaultDAGType,
-		SrcDataDir: defaultSrcDataDir,
+		HomeDir:         defaultHomeDir,
+		DataDir:         defaultDataDir,
+		TestNet:         true,
+		DbType:          defaultDbType,
+		DAGType:         defaultDAGType,
+		SrcDataDir:      defaultSrcDataDir,
 		SavePayoutsFile: false,
+		DisableBar:      false,
 	}
 
 	preCfg := cfg
@@ -96,6 +98,8 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.ShowEndPoints = preCfg.ShowEndPoints
 	cfg.CheckEndPoint = preCfg.CheckEndPoint
 	cfg.EndPointSkips = preCfg.EndPointSkips
+	cfg.SavePayoutsFile = preCfg.SavePayoutsFile
+	cfg.DisableBar = preCfg.DisableBar
 
 	if len(preCfg.SrcDataDir) > 0 {
 		cfg.SrcDataDir = preCfg.SrcDataDir
