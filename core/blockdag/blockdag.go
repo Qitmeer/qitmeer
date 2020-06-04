@@ -1174,11 +1174,17 @@ func (bd *BlockDAG) IsHourglass(id uint) bool {
 	if block == nil {
 		return false
 	}
+	if !block.IsOrdered() {
+		return false
+	}
 	//
 	queueSet := NewIdSet()
 	queue := []IBlock{}
 	for _, v := range bd.tips.GetMap() {
 		ib := v.(IBlock)
+		if !ib.IsOrdered() {
+			continue
+		}
 		queue = append(queue, ib)
 		queueSet.Add(ib.GetID())
 	}
@@ -1200,7 +1206,7 @@ func (bd *BlockDAG) IsHourglass(id uint) bool {
 		}
 		for _, v := range cur.GetParents().GetMap() {
 			ib := v.(IBlock)
-			if queueSet.Has(ib.GetID()) {
+			if queueSet.Has(ib.GetID()) || !ib.IsOrdered() {
 				continue
 			}
 			queue = append(queue, ib)
