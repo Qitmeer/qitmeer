@@ -8,6 +8,7 @@ import (
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common"
+	"github.com/Qitmeer/qitmeer/services/index"
 	"github.com/Qitmeer/qitmeer/services/mining"
 	"os"
 	"path"
@@ -38,6 +39,11 @@ func (node *Node) init(cfg *Config, srcnode *SrcNode, endPoint blockdag.IBlock) 
 
 	node.db = db
 	//
+	var indexes []index.Indexer
+	txIndex := index.NewTxIndex(db)
+	indexes = append(indexes, txIndex)
+	// index-manager
+	indexManager := index.NewManager(db, indexes, params.ActiveNetParams.Params)
 
 	bc, err := blockchain.New(&blockchain.Config{
 		DB:           db,
@@ -45,6 +51,7 @@ func (node *Node) init(cfg *Config, srcnode *SrcNode, endPoint blockdag.IBlock) 
 		TimeSource:   blockchain.NewMedianTime(),
 		DAGType:      cfg.DAGType,
 		BlockVersion: mining.BlockVersion(params.ActiveNetParams.Params.Net),
+		IndexManager: indexManager,
 	})
 	if err != nil {
 		log.Error(err.Error())
