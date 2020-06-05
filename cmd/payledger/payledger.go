@@ -149,6 +149,7 @@ func checkEndBlocks(node *SrcNode) {
 func buildLedger(node INode, config *Config) error {
 	params := params.ActiveNetParams.Params
 	genesisLedger := map[string]*ledger.TokenPayoutReGen{}
+	blueMap := map[uint]bool{}
 	var totalAmount uint64
 	var genAmount uint64
 	mainChainTip := node.BlockChain().BlockDAG().GetMainChainTip()
@@ -171,6 +172,16 @@ func buildLedger(node INode, config *Config) error {
 			ib := node.BlockChain().BlockDAG().GetBlock(entry.BlockHash())
 			if ib.GetOrder() == blockdag.MaxBlockOrder {
 				continue
+			}
+			if entry.IsCoinBase() {
+				isblue, ok := blueMap[ib.GetID()]
+				if !ok {
+					isblue = node.BlockChain().BlockDAG().IsBlue(ib.GetID())
+					blueMap[ib.GetID()] = isblue
+				}
+				if !isblue {
+					continue
+				}
 			}
 			_, addr, _, err := txscript.ExtractPkScriptAddrs(entry.PkScript(), params)
 			if err != nil {

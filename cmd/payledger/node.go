@@ -101,7 +101,7 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 		bar.reset(int(node.endPoint.GetID() + 1))
 		bar.add()
 	} else {
-		fmt.Println("Process...")
+		log.Info("Process...")
 	}
 
 	defer func() {
@@ -156,7 +156,7 @@ func (node *Node) dataVerification(srcnode *SrcNode) error {
 		bar.reset(int(node.endPoint.GetID() + 1))
 		bar.add()
 	} else {
-		fmt.Println("Validate...")
+		log.Info("Validate...")
 	}
 
 	for ; i < total; i++ {
