@@ -85,14 +85,23 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 	}
 
 	common.Glogger().Verbosity(log.LvlCrit)
+	var bar *ProgressBar
 	i := uint(1)
-	bar := ProgressBar{}
-	bar.init("Process:")
-	bar.reset(int(node.endPoint.GetID() + 1))
-	bar.add()
+	if !node.cfg.DisableBar {
+
+		bar = &ProgressBar{}
+		bar.init("Process:")
+		bar.reset(int(node.endPoint.GetID() + 1))
+		bar.add()
+	} else {
+		fmt.Println("Process...")
+	}
+
 	defer func() {
-		fmt.Println()
 		common.Glogger().Verbosity(log.LvlInfo)
+		if bar != nil {
+			fmt.Println()
+		}
 		log.Info(fmt.Sprintf("End process block DAG:(%d/%d)", i, srcTotal))
 	}()
 	for ; i < srcTotal; i++ {
@@ -110,12 +119,16 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 		if err != nil {
 			return err
 		}
-		bar.add()
+		if bar != nil {
+			bar.add()
+		}
 		if blockHash.IsEqual(node.endPoint.GetHash()) {
 			break
 		}
 	}
-	bar.setMax()
+	if bar != nil {
+		bar.setMax()
+	}
 	err := node.dataVerification(srcnode)
 	if err != nil {
 		return err
@@ -127,11 +140,18 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 func (node *Node) dataVerification(srcnode *SrcNode) error {
 	fmt.Println()
 	total := node.bc.BlockDAG().GetBlockTotal()
+
+	var bar *ProgressBar
 	i := uint(1)
-	bar := ProgressBar{}
-	bar.init("Validate:")
-	bar.reset(int(node.endPoint.GetID() + 1))
-	bar.add()
+	if !node.cfg.DisableBar {
+		bar = &ProgressBar{}
+		bar.init("Validate:")
+		bar.reset(int(node.endPoint.GetID() + 1))
+		bar.add()
+	} else {
+		fmt.Println("Validate...")
+	}
+
 	for ; i < total; i++ {
 		srcIB := srcnode.bc.BlockDAG().GetBlockById(i)
 		if srcIB == nil {
@@ -146,10 +166,14 @@ func (node *Node) dataVerification(srcnode *SrcNode) error {
 			!srcIB.GetHash().IsEqual(ib.GetHash()) {
 			return fmt.Errorf(fmt.Sprintf("Validate fail (%s)!", srcIB.GetHash().String()))
 		}
-		bar.add()
+		if bar != nil {
+			bar.add()
+		}
 	}
-	bar.setMax()
-	fmt.Println()
+	if bar != nil {
+		bar.setMax()
+		fmt.Println()
+	}
 	return nil
 }
 
