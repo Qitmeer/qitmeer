@@ -47,6 +47,7 @@ type Config struct {
 	EndPointSkips   int    `long:"endpointskips" description:"Recommend some end blocks and skip some main chain blocks."`
 	SavePayoutsFile bool   `long:"savefile"  description:"save result to the payouts file."`
 	DisableBar      bool   `long:"disablebar"  description:"Hide progress bar."`
+	DebugAddress    string `long:"debugaddress"  description:"Debug address."`
 }
 
 func LoadConfig() (*Config, []string, error) {
@@ -100,6 +101,7 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.EndPointSkips = preCfg.EndPointSkips
 	cfg.SavePayoutsFile = preCfg.SavePayoutsFile
 	cfg.DisableBar = preCfg.DisableBar
+	cfg.DebugAddress = preCfg.DebugAddress
 
 	if len(preCfg.SrcDataDir) > 0 {
 		cfg.SrcDataDir = preCfg.SrcDataDir
@@ -166,7 +168,7 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.SrcDataDir = util.CleanAndExpandPath(cfg.SrcDataDir)
 	cfg.SrcDataDir = filepath.Join(cfg.SrcDataDir, params.ActiveNetParams.Name)
 
-	if len(cfg.EndPoint) == 0 && len(cfg.CheckEndPoint) == 0 && cfg.ShowEndPoints == 0 {
+	if len(cfg.EndPoint) == 0 && len(cfg.CheckEndPoint) == 0 && cfg.ShowEndPoints == 0 && len(cfg.DebugAddress) == 0 {
 		err := fmt.Errorf("No Command")
 		fmt.Fprintln(os.Stderr, err)
 		fmt.Fprintln(os.Stderr, usageMessage)

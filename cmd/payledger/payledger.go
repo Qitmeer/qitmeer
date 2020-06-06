@@ -35,6 +35,18 @@ func main() {
 		log.Error(err.Error())
 		return
 	}
+	fmt.Println(cfg.DebugAddress)
+	if len(cfg.DebugAddress) > 0 {
+		node := &DebugAddressNode{}
+		err = node.init(cfg)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		node.exit()
+		return
+	}
 	srcnode := &SrcNode{}
 	err = srcnode.init(cfg)
 	defer func() {
