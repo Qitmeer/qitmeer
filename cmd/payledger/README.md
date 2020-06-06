@@ -37,3 +37,8 @@
 ```
 ~ ./payledger --checkendpoint=000005fd233345570677bc257e7c35e300dfe9b6d384bd8a0659c6619ff7ab30
 ```
+
+### How to debug address
+```
+~ ./payledger --debugaddress=[Qitmeer Address]
+```
