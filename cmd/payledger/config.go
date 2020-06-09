@@ -48,6 +48,7 @@ type Config struct {
 	SavePayoutsFile bool   `long:"savefile"  description:"save result to the payouts file."`
 	DisableBar      bool   `long:"disablebar"  description:"Hide progress bar."`
 	DebugAddress    string `long:"debugaddress"  description:"Debug address."`
+	DebugAddrUTXO   bool   `long:"debugaddrutxo"  description:"Print only utxo about the address."`
 }
 
 func LoadConfig() (*Config, []string, error) {
@@ -61,6 +62,7 @@ func LoadConfig() (*Config, []string, error) {
 		SrcDataDir:      defaultSrcDataDir,
 		SavePayoutsFile: false,
 		DisableBar:      false,
+		DebugAddrUTXO:   false,
 	}
 
 	preCfg := cfg

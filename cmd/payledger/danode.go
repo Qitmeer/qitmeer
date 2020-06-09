@@ -68,7 +68,14 @@ func (node *DebugAddressNode) init(cfg *Config) error {
 
 	log.Info(fmt.Sprintf("Load Data:%s", cfg.DataDir))
 
-	return node.processAddress()
+	blueMap := map[uint]bool{}
+
+	err = node.processAddress(&blueMap)
+	if err != nil {
+		return err
+	}
+
+	return node.checkUTXO(&blueMap)
 }
 
 func (node *DebugAddressNode) exit() {
@@ -86,24 +93,23 @@ func (node *DebugAddressNode) DB() database.DB {
 	return node.db
 }
 
-func (node *DebugAddressNode) processAddress() error {
+func (node *DebugAddressNode) processAddress(blueM *map[uint]bool) error {
 	db := node.db
 	par := params.ActiveNetParams.Params
-	// 检测给定地址的账本记录
 	checkAddress := node.cfg.DebugAddress
 	tradeRecord := []*TradeRecord{}
 	tradeRecordMap := map[types.TxOutPoint]*TradeRecord{}
-	blueMap := map[uint]bool{}
+	blueMap := *blueM
 	mainTip := node.bc.BlockDAG().GetMainChainTip()
-	fmt.Printf("开始分析:%s  mainTip:%s mainOrder:%d total:%d \n", checkAddress, mainTip.GetHash(), mainTip.GetOrder(), node.bc.BlockDAG().GetBlockTotal())
+	fmt.Printf("Start analysis:%s  mainTip:%s mainOrder:%d total:%d \n", checkAddress, mainTip.GetHash(), mainTip.GetOrder(), node.bc.BlockDAG().GetBlockTotal())
 	for i := uint(0); i < node.bc.BlockDAG().GetBlockTotal(); i++ {
 		ib := node.bc.BlockDAG().GetBlockById(i)
 		if ib == nil {
-			return fmt.Errorf("出错了：%d", i)
+			return fmt.Errorf("Error：%d", i)
 		}
 		block, err := node.bc.FetchBlockByHash(ib.GetHash())
 		if err != nil {
-			return fmt.Errorf("找不到块：%s", err)
+			return fmt.Errorf("Can't find：%s", err)
 		}
 		confims := node.bc.BlockDAG().GetConfirmations(ib.GetID())
 
@@ -156,7 +162,7 @@ func (node *DebugAddressNode) processAddress() error {
 					return err
 				}
 				if len(addr) != 1 {
-					fmt.Printf("忽略多地址的情况：%d\n", len(addr))
+					fmt.Printf("Ignore multiple addresses：%d\n", len(addr))
 					continue
 				}
 				addrStr := addr[0].String()
@@ -216,15 +222,15 @@ func (node *DebugAddressNode) processAddress() error {
 			}
 		}
 
-		fmt.Printf("%d Block Hash:%s Id:%d Order:%d Confirm:%d Valid:%v Blue:%s Height:%d ; Tx Hash:%s FullHash:%s UIndex:%d IsIn:%v Valid:%v Amount:%d Coinbase:%v  当前余额:%d\n",
+		fmt.Printf("%d Block Hash:%s Id:%d Order:%d Confirm:%d Valid:%v Blue:%s Height:%d ; Tx Hash:%s FullHash:%s UIndex:%d IsIn:%v Valid:%v Amount:%d Coinbase:%v  Acc:%d\n",
 			i, tr.blockHash, tr.blockId, tr.blockOrder, tr.blockConfirm, !knownInvalid(tr.blockStatus), blueState(tr.blockBlue), tr.blockHeight, tr.txHash, tr.txFullHash, tr.txUIndex, tr.txIsIn, tr.txValid,
 			tr.amount, tr.isCoinbase, acc)
 
 	}
 
-	fmt.Printf("结论：%s 账本记录数:%d 总余额:%d\n", checkAddress, len(tradeRecord), acc)
+	fmt.Printf("Result：%s   Number of ledger records:%d    Total balance:%d\n", checkAddress, len(tradeRecord), acc)
 
-	return node.checkUTXO(db, checkAddress, par, blueMap)
+	return nil
 }
 
 func (node *DebugAddressNode) isTxValid(db database.DB, txHash *hash.Hash, txFullHash *hash.Hash, blockHash *hash.Hash) bool {
@@ -241,21 +247,25 @@ func (node *DebugAddressNode) isTxValid(db database.DB, txHash *hash.Hash, txFul
 	})
 
 	if err != nil {
-		//fmt.Printf("txFullHash:%s txHash:%s   error:%s\n", txFullHash.String(), txHash.String(), err.Error())
 		return false
 	}
 	ptxFullHash := preTx.TxHashFull()
 
 	if !preBlockH.IsEqual(blockHash) || !txFullHash.IsEqual(&ptxFullHash) {
-		//fmt.Printf("txFullHash:%s txHash:%s   error: 可能是重复交易\n", txFullHash.String(), txHash.String())
 		return false
 	}
 	return true
 }
 
-func (node *DebugAddressNode) checkUTXO(db database.DB, checkAddress string, par *params.Params, blueMap map[uint]bool) error {
+func (node *DebugAddressNode) checkUTXO(blueM *map[uint]bool) error {
 
-	fmt.Printf("分析UTXO:%s\n", checkAddress)
+	db := node.db
+	par := params.ActiveNetParams.Params
+	checkAddress := node.cfg.DebugAddress
+
+	blueMap := *blueM
+
+	fmt.Printf("Checking UTXO:%s\n", checkAddress)
 
 	var totalAmount uint64
 	var count int
@@ -316,7 +326,7 @@ func (node *DebugAddressNode) checkUTXO(db database.DB, checkAddress string, par
 	if err != nil {
 		return err
 	}
-	fmt.Printf("UTXO结论：总记录数：%d  总余额:%d\n", count, totalAmount)
+	fmt.Printf("UTXO Result： Number of ledger records：%d   Total balance:%d\n", count, totalAmount)
 	return nil
 }
 
@@ -328,9 +338,9 @@ func knownInvalid(status byte) bool {
 
 func blueState(blockBlue int) string {
 	if blockBlue == 0 {
-		return "否"
+		return "No"
 	} else if blockBlue == 1 {
-		return "是"
+		return "Yes"
 	}
 	return "?"
 }
