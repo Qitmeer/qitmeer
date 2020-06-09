@@ -55,7 +55,7 @@ func (node *SrcNode) init(cfg *Config) error {
 	node.bc = bc
 	node.name = path.Base(cfg.DataDir)
 
-	log.Info(fmt.Sprintf("Load Src Data:%s", cfg.DataDir))
+	log.Info(fmt.Sprintf("Load Src Data:%s", cfg.SrcDataDir))
 	return nil
 }
 

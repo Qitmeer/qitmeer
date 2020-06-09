@@ -37,6 +37,9 @@ func main() {
 	}
 	srcnode := &SrcNode{}
 	err = srcnode.init(cfg)
+	defer func() {
+		srcnode.exit()
+	}()
 	if err != nil {
 		log.Error(err.Error())
 		return
@@ -62,7 +65,7 @@ func main() {
 		} else {
 			blockH, err := hash.NewHashFromStr(cfg.EndPoint)
 			if err != nil {
-				log.Error(fmt.Sprintf("Error load endPoint hash: %s",err.Error()))
+				log.Error(fmt.Sprintf("Error load endPoint hash: %s", err.Error()))
 				return
 			}
 			blockHash = blockH
@@ -90,6 +93,7 @@ func main() {
 				return
 			}
 			buildLedger(node, cfg)
+			node.exit()
 		} else {
 			log.Error(fmt.Sprintf("%s is not good\n", blockHash))
 		}
@@ -145,6 +149,7 @@ func checkEndBlocks(node *SrcNode) {
 func buildLedger(node INode, config *Config) error {
 	params := params.ActiveNetParams.Params
 	genesisLedger := map[string]*ledger.TokenPayoutReGen{}
+	blueMap := map[uint]bool{}
 	var totalAmount uint64
 	var genAmount uint64
 	mainChainTip := node.BlockChain().BlockDAG().GetMainChainTip()
@@ -168,6 +173,16 @@ func buildLedger(node INode, config *Config) error {
 			if ib.GetOrder() == blockdag.MaxBlockOrder {
 				continue
 			}
+			if entry.IsCoinBase() {
+				isblue, ok := blueMap[ib.GetID()]
+				if !ok {
+					isblue = node.BlockChain().BlockDAG().IsBlue(ib.GetID())
+					blueMap[ib.GetID()] = isblue
+				}
+				if !isblue {
+					continue
+				}
+			}
 			_, addr, _, err := txscript.ExtractPkScriptAddrs(entry.PkScript(), params)
 			if err != nil {
 				return err
@@ -187,8 +202,8 @@ func buildLedger(node INode, config *Config) error {
 				genesisLedger[addrStr] = &reTp
 			}
 
-			if params.GenesisHash.IsEqual(entry.BlockHash()){
-				genesisLedger[addrStr].GenAmount +=entry.Amount()
+			if params.GenesisHash.IsEqual(entry.BlockHash()) {
+				genesisLedger[addrStr].GenAmount += entry.Amount()
 				genAmount += entry.Amount()
 			} else {
 				genesisLedger[addrStr].Payout.Amount += entry.Amount()
@@ -207,7 +222,7 @@ func buildLedger(node INode, config *Config) error {
 	}
 	fmt.Println(fmt.Sprintf("Show Ledger:[Genesis------->%s]", mainChainTip.GetHash().String()))
 	payList := make(ledger.PayoutList, len(genesisLedger))
-	i:=0
+	i := 0
 	for _, v := range genesisLedger {
 		payList[i] = *v
 		i++
