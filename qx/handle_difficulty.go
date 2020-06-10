@@ -21,7 +21,7 @@ func CompactToUint64(input string) {
 	fmt.Printf("%d\n", diffBig.Uint64())
 }
 
-func HashCompactToDiff(input string) {
+func HashCompactToDiff(input, mode string, blocktime int) {
 	u32, err := strconv.ParseUint(input, 10, 32)
 	if err != nil {
 		ErrExit(err)
@@ -29,28 +29,53 @@ func HashCompactToDiff(input string) {
 	diffBig := pow.CompactToBig(uint32(u32))
 	maxBig, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
 	maxBig.Div(maxBig, diffBig)
-	fmt.Printf("%d\n", maxBig)
+	maxBig.Div(maxBig, big.NewInt(int64(blocktime)))
+	switch mode {
+	case "diff":
+		fmt.Printf("%d\n", maxBig)
+	case "target":
+		fmt.Printf("0x%064x\n", diffBig.Mul(diffBig, big.NewInt(int64(blocktime))))
+	case "hashrate":
+		fmt.Printf("%s\n", GetHashrate(maxBig))
+	default:
+		ErrExit(errors.New("mode error!"))
+	}
 }
 
-func Uint64ToCompact(input string) {
-	u64, err := strconv.ParseUint(input, 10, 64)
+func DifficultyToCompact(difficulty, mode string, blocktime int) {
+	maxBig, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
+	switch mode {
+	case "diff":
+		fallthrough
+	case "hashrate":
+		diffBig, _ := new(big.Int).SetString(difficulty, 10)
+		maxBig.Div(maxBig, diffBig)
+		maxBig.Div(maxBig, new(big.Int).SetInt64(int64(blocktime)))
+		compact := pow.BigToCompact(maxBig)
+		fmt.Printf("%d\n", compact)
+	case "target":
+		difficulty = strings.TrimPrefix(difficulty, "0x")
+		bigT, ok := new(big.Int).SetString(difficulty, 16)
+		if !ok {
+			fmt.Println("target error")
+			return
+		}
+		bigT.Div(bigT, new(big.Int).SetInt64(int64(blocktime)))
+		compact := pow.BigToCompact(bigT)
+		fmt.Printf("%d\n", compact)
+	default:
+		ErrExit(errors.New("mode error!"))
+	}
+}
+
+func CompactToGPS(compactS string, blockTime, scale int) {
+	compact, err := strconv.ParseUint(compactS, 10, 64)
 	if err != nil {
 		ErrExit(err)
 	}
-	diffBig := &big.Int{}
-	diffBig.SetUint64(u64)
-	diffCompact := pow.BigToCompact(diffBig)
-	fmt.Printf("%d\n", diffCompact)
-}
-
-func CompactToGPS(diff string, blockTime, scale int) {
-	u64, err := strconv.ParseUint(diff, 10, 64)
-	if err != nil {
-		ErrExit(err)
-	}
-
-	if u64 <= 0 {
-		ErrExit(errors.New("diff must bigger than 0"))
+	u64Big := pow.CompactToBig(uint32(compact))
+	if u64Big.Uint64() <= 0 {
+		ErrExit(errors.New("compact must bigger than 0"))
 	}
 	if scale <= 0 {
 		ErrExit(errors.New("edgeBits must between 24-32"))
@@ -58,8 +83,32 @@ func CompactToGPS(diff string, blockTime, scale int) {
 	if blockTime <= 0 {
 		ErrExit(errors.New("blockTime must bigger than 0"))
 	}
-	needGPS := float64(u64) / float64(scale) * 50.00 / float64(blockTime)
+	//2.2% graph found rate
+	needGPS := float64(u64Big.Uint64()) / float64(scale) * 50.00 / float64(blockTime)
 	fmt.Printf("%f\n", needGPS)
+}
+
+func GPSToCompact(gps string, blockTime, scale int) {
+	needGPS, err := strconv.ParseFloat(gps, 64)
+	if err != nil {
+		ErrExit(err)
+	}
+	if needGPS <= 0 {
+		ErrExit(errors.New("gps must bigger than 0"))
+	}
+	if scale <= 0 {
+		ErrExit(errors.New("edgeBits must between 24-32"))
+	}
+	if blockTime <= 0 {
+		ErrExit(errors.New("blockTime must bigger than 0"))
+	}
+	//2.2% graph found rate
+	f64 := needGPS * float64(scale) * float64(blockTime) / 50.00
+	u64s := fmt.Sprintf("%.0f", f64)
+	u64, _ := strconv.Atoi(u64s)
+	u64Big := new(big.Int).SetInt64(int64(u64))
+	compact := pow.BigToCompact(u64Big)
+	fmt.Printf("%d\n", compact)
 }
 
 func CompactToTarget(diffCompact string) {
@@ -100,18 +149,6 @@ func HashrateToCompact(hashrate string) {
 	maxBig.Div(maxBig, hashrateBig)
 	compact := pow.BigToCompact(maxBig)
 	fmt.Printf("%d\n", compact)
-}
-
-func GPSToDiff(gps string, blockTime, scale int) {
-	f64, err := strconv.ParseFloat(gps, 64)
-	if err != nil {
-		ErrExit(err)
-	}
-	if scale <= 0 {
-		ErrExit(errors.New("edgeBits must between 24-32"))
-	}
-	diff := f64 * float64(blockTime) / 50 * float64(scale)
-	fmt.Printf("%d\n", uint64(diff))
 }
 
 func GetHashrate(hashBig *big.Int) string {
