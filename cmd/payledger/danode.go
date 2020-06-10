@@ -31,6 +31,8 @@ type DebugAddressNode struct {
 	db       database.DB
 	cfg      *Config
 	endPoint blockdag.IBlock
+
+	info []DebugAddrInfo
 }
 
 func (node *DebugAddressNode) init(cfg *Config) error {
@@ -68,8 +70,15 @@ func (node *DebugAddressNode) init(cfg *Config) error {
 
 	log.Info(fmt.Sprintf("Load Data:%s", cfg.DataDir))
 
+	err = node.LoadInfo()
+	if err != nil {
+		return err
+	}
+	if len(node.info) > 0 {
+		return node.showAddress()
+	}
+	// process address
 	blueMap := map[uint]bool{}
-
 	err = node.processAddress(&blueMap)
 	if err != nil {
 		return err
@@ -91,6 +100,29 @@ func (node *DebugAddressNode) BlockChain() *blockchain.BlockChain {
 
 func (node *DebugAddressNode) DB() database.DB {
 	return node.db
+}
+
+// Load from database
+func (node *DebugAddressNode) LoadInfo() error {
+	err := node.db.View(func(dbTx database.Tx) error {
+		meta := dbTx.Metadata()
+		serializedData := meta.Get(DebugAddrInfoBucketName)
+		if serializedData == nil {
+			log.Info("No Debug Address Data")
+			return nil
+		}
+
+		info, err := decodeDebugAddrInfo(serializedData)
+		if err != nil {
+			return err
+		}
+		node.info = info
+		return nil
+	})
+	if node.info != nil {
+		log.Info(fmt.Sprintf("Load Address info: total=%d", len(node.info)))
+	}
+	return err
 }
 
 func (node *DebugAddressNode) processAddress(blueM *map[uint]bool) error {
@@ -228,7 +260,7 @@ func (node *DebugAddressNode) processAddress(blueM *map[uint]bool) error {
 
 	}
 
-	fmt.Printf("Result：%s   Number of ledger records:%d    Total balance:%d\n", checkAddress, len(tradeRecord), acc)
+	fmt.Printf("Result：%s   Number of ledger records:%d    Total balance:%d\n\n", checkAddress, len(tradeRecord), acc)
 
 	return nil
 }
@@ -330,6 +362,10 @@ func (node *DebugAddressNode) checkUTXO(blueM *map[uint]bool) error {
 	return nil
 }
 
+func (node *DebugAddressNode) showAddress() error {
+	return nil
+}
+
 func knownInvalid(status byte) bool {
 	var statusInvalid byte
 	statusInvalid = 1 << 2
@@ -343,21 +379,4 @@ func blueState(blockBlue int) string {
 		return "Yes"
 	}
 	return "?"
-}
-
-type TradeRecord struct {
-	blockHash    *hash.Hash
-	blockId      uint
-	blockOrder   uint
-	blockConfirm uint
-	blockStatus  byte
-	blockBlue    int // 0:not blue;  1：blue  2：Cannot confirm
-	blockHeight  uint
-	txHash       *hash.Hash
-	txFullHash   *hash.Hash
-	txUIndex     int
-	txValid      bool
-	txIsIn       bool
-	amount       uint64
-	isCoinbase   bool
 }

@@ -13,6 +13,14 @@ const (
 	// database type is appended to this value to form the full block
 	// database name.
 	blockDbNamePrefix = "blocks"
+
+	// DebugAddrInfoBucketName is the name of the db bucket used to house the
+	// debug address info
+	DebugAddrInfoBucketName = []byte("debugaddrinfo")
+
+	// DebugAddrBucketName is the name of the db bucket used to house the
+	// debug address
+	DebugAddrBucketName = []byte("debugaddr")
 )
 
 // loadBlockDB loads (or creates when needed) the block database taking into
