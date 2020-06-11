@@ -49,6 +49,7 @@ type Config struct {
 	DisableBar      bool   `long:"disablebar"  description:"Hide progress bar."`
 	DebugAddress    string `long:"debugaddress"  description:"Debug address."`
 	DebugAddrUTXO   bool   `long:"debugaddrutxo"  description:"Print only utxo about the address."`
+	DebugAddrValid  bool   `long:"debugaddrvalid"  description:"Print only valid data about the address."`
 }
 
 func LoadConfig() (*Config, []string, error) {
@@ -63,6 +64,7 @@ func LoadConfig() (*Config, []string, error) {
 		SavePayoutsFile: false,
 		DisableBar:      false,
 		DebugAddrUTXO:   false,
+		DebugAddrValid:  false,
 	}
 
 	preCfg := cfg
@@ -104,6 +106,8 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.SavePayoutsFile = preCfg.SavePayoutsFile
 	cfg.DisableBar = preCfg.DisableBar
 	cfg.DebugAddress = preCfg.DebugAddress
+	cfg.DebugAddrUTXO = preCfg.DebugAddrUTXO
+	cfg.DebugAddrValid = preCfg.DebugAddrValid
 
 	if len(preCfg.SrcDataDir) > 0 {
 		cfg.SrcDataDir = preCfg.SrcDataDir

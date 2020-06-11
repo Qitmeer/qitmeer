@@ -70,18 +70,13 @@ func (node *DebugAddressNode) init(cfg *Config) error {
 
 	log.Info(fmt.Sprintf("Load Data:%s", cfg.DataDir))
 
-	err = node.LoadInfo()
-	if err != nil {
-		return err
-	}
-	if len(node.info) > 0 {
-		return node.showAddress()
-	}
 	// process address
 	blueMap := map[uint]bool{}
-	err = node.processAddress(&blueMap)
-	if err != nil {
-		return err
+	if !cfg.DebugAddrUTXO {
+		err = node.processAddress(&blueMap)
+		if err != nil {
+			return err
+		}
 	}
 
 	return node.checkUTXO(&blueMap)
@@ -150,6 +145,11 @@ func (node *DebugAddressNode) processAddress(blueM *map[uint]bool) error {
 			txFullHash := tx.Tx.TxHashFull()
 
 			txValid := node.isTxValid(db, txHash, &txFullHash, ib.GetHash())
+			if node.cfg.DebugAddrValid {
+				if !txValid {
+					continue
+				}
+			}
 			if !tx.Tx.IsCoinBase() {
 				for txInIndex, txIn := range tx.Tx.TxIn {
 					pretr, ok := tradeRecordMap[txIn.PreviousOut]
@@ -254,6 +254,12 @@ func (node *DebugAddressNode) processAddress(blueM *map[uint]bool) error {
 			}
 		}
 
+		if node.cfg.DebugAddrValid {
+			if !isValid || !tr.txValid {
+				continue
+			}
+		}
+
 		fmt.Printf("%d Block Hash:%s Id:%d Order:%d Confirm:%d Valid:%v Blue:%s Height:%d ; Tx Hash:%s FullHash:%s UIndex:%d IsIn:%v Valid:%v Amount:%d Coinbase:%v  Acc:%d\n",
 			i, tr.blockHash, tr.blockId, tr.blockOrder, tr.blockConfirm, !knownInvalid(tr.blockStatus), blueState(tr.blockBlue), tr.blockHeight, tr.txHash, tr.txFullHash, tr.txUIndex, tr.txIsIn, tr.txValid,
 			tr.amount, tr.isCoinbase, acc)
@@ -345,13 +351,20 @@ func (node *DebugAddressNode) checkUTXO(blueM *map[uint]bool) error {
 
 			}
 
-			fmt.Printf("BlockHash:%s Amount:%d Valid:%v Blue:%s\n", ib.GetHash(), entry.Amount(), isValid, blueState(blockBlue))
-
 			if isValid {
 				totalAmount += entry.Amount()
 			}
 
 			count++
+
+			if node.cfg.DebugAddrValid {
+				if !isValid {
+					continue
+				}
+			}
+
+			fmt.Printf("BlockHash:%s Amount:%d Valid:%v Blue:%s\n", ib.GetHash(), entry.Amount(), isValid, blueState(blockBlue))
+
 		}
 		return nil
 	})
@@ -359,10 +372,6 @@ func (node *DebugAddressNode) checkUTXO(blueM *map[uint]bool) error {
 		return err
 	}
 	fmt.Printf("UTXO Result： Number of ledger records：%d   Total balance:%d\n", count, totalAmount)
-	return nil
-}
-
-func (node *DebugAddressNode) showAddress() error {
 	return nil
 }
 
