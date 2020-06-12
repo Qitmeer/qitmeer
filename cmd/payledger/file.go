@@ -21,7 +21,6 @@ import (
 func GetFileInfo(path string) os.FileInfo {
 	fileInfo, e := os.Stat(path)
 	if e != nil {
-		log.Println(e)
 		return nil
 	}
 	return fileInfo
@@ -30,7 +29,6 @@ func GetFileInfo(path string) os.FileInfo {
 func Exists(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
-		log.Println(err)
 		return os.IsExist(err)
 	}
 	return true

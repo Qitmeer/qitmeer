@@ -50,6 +50,7 @@ type Config struct {
 	DebugAddress    string `long:"debugaddress"  description:"Debug address."`
 	DebugAddrUTXO   bool   `long:"debugaddrutxo"  description:"Print only utxo about the address."`
 	DebugAddrValid  bool   `long:"debugaddrvalid"  description:"Print only valid data about the address."`
+	Last            bool   `long:"last"  description:"Show ledger by last building data."`
 }
 
 func LoadConfig() (*Config, []string, error) {
@@ -65,6 +66,7 @@ func LoadConfig() (*Config, []string, error) {
 		DisableBar:      false,
 		DebugAddrUTXO:   false,
 		DebugAddrValid:  false,
+		Last:            false,
 	}
 
 	preCfg := cfg
@@ -108,6 +110,7 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.DebugAddress = preCfg.DebugAddress
 	cfg.DebugAddrUTXO = preCfg.DebugAddrUTXO
 	cfg.DebugAddrValid = preCfg.DebugAddrValid
+	cfg.Last = preCfg.Last
 
 	if len(preCfg.SrcDataDir) > 0 {
 		cfg.SrcDataDir = preCfg.SrcDataDir
@@ -174,7 +177,7 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.SrcDataDir = util.CleanAndExpandPath(cfg.SrcDataDir)
 	cfg.SrcDataDir = filepath.Join(cfg.SrcDataDir, params.ActiveNetParams.Name)
 
-	if len(cfg.EndPoint) == 0 && len(cfg.CheckEndPoint) == 0 && cfg.ShowEndPoints == 0 && len(cfg.DebugAddress) == 0 {
+	if len(cfg.EndPoint) == 0 && len(cfg.CheckEndPoint) == 0 && cfg.ShowEndPoints == 0 && len(cfg.DebugAddress) == 0 && !cfg.Last {
 		err := fmt.Errorf("No Command")
 		fmt.Fprintln(os.Stderr, err)
 		fmt.Fprintln(os.Stderr, usageMessage)
