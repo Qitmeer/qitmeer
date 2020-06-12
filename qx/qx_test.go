@@ -97,28 +97,23 @@ func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
 
 }
 
-func TestHashCompactToDiff(t *testing.T) {
-	HashCompactToDiff("471859199", "diff", 100)
-	HashCompactToDiff("471859199", "target", 100)
-	HashCompactToDiff("471859199", "hashrate", 100)
+func TestHashCompactToHashrate(t *testing.T) {
+	HashCompactToHashrate("471859199", "H", false, 100)
+	HashCompactToHashrate("471859199", "M", true, 100)
 	// output :
 	// 343597547
-	// 0x0000000c7fff9c00000000000000000000000000000000000000000000000000
 	// 343.597547 MH/s
 }
 
-func TestDifficultyToCompact(t *testing.T) {
-	DifficultyToCompact("343597547", "diff", 100)
-	DifficultyToCompact("0x0000000c7fff9c00000000000000000000000000000000000000000000000000", "target", 100)
-	DifficultyToCompact("343597547", "hashrate", 100)
+func TestHashrateToCompact(t *testing.T) {
+	HashrateToCompact("343597547", 100)
 	// output :
-	// 471859199
-	// 471859199
 	// 471859199
 }
 
 func TestCompactToGPS(t *testing.T) {
-	CompactToGPS("36284416", 43, 1856)
+	CompactToGPS("36284416", 43, 1856, false)
+	CompactToGPS("36284416", 43, 1856, true)
 	// output :
 	// 6.681034 GPS
 }

@@ -45,13 +45,16 @@ hash :
     bitcoin160            calculate ripemd160(sha256(data))   
     hash160               calculate ripemd160(blake2b256(data))
 
+compact :
+	compact-to-target      convert compact to target
+	target-to-compact      convert target to compact
 cuckoo-difficulty :
     compact-to-gps          convert cuckoo compact to gps.
     gps-to-compact          convert cuckoo gps to compact.
 
 hash-difficulty :
-    compact-to-difficulty          convert compact to difficulty.
-    difficulty-to-compact          convert difficulty to compact.
+    compact-to-hashrate          convert compact to hashrate.
+    hashrate-to-compact          convert hashrate to compact.
 
 entropy (seed) & mnemoic & hd & ec 
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
@@ -102,8 +105,11 @@ var base58checkVersionSize int
 var base58checkMode string
 var edgeBits int
 var blocktime int
+var unit string
 var cuckoo_blocktime int
 var mode string
+var printDetail bool
+var powtype string
 var mheight int
 var showDetails bool
 var base58checkHasher string
@@ -163,10 +169,11 @@ func main() {
 
 	compactToGPSCmd := flag.NewFlagSet("compact-to-gps", flag.ExitOnError)
 	compactToGPSCmd.IntVar(&edgeBits, "e", 29, "edgebits")
+	compactToGPSCmd.BoolVar(&printDetail, "p", false, "-p means print details")
 	compactToGPSCmd.IntVar(&cuckoo_blocktime, "t", 43, "blocktime")
 	compactToGPSCmd.IntVar(&mheight, "m", 1, "mheight")
 	compactToGPSCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
-	compactToGPSCmd.StringVar(&powType, "p", "cuckaroom", "the target cuckoo pow. ( cuckaroo,cuckaroom, cuckatoo)")
+	compactToGPSCmd.StringVar(&powType, "a", "cuckaroom", "-a means use the selected cuckoo pow algorithm (cuckaroo,cuckaroom, cuckatoo), default is cuckaroom")
 	compactToGPSCmd.Usage = func() {
 		cmdUsage(compactToGPSCmd, "Usage: qx compact-to-gps -e 24 -ct 43 [compact value]\n")
 	}
@@ -176,23 +183,35 @@ func main() {
 	gpsToCompactCmd.IntVar(&cuckoo_blocktime, "t", 43, "blocktime")
 	gpsToCompactCmd.IntVar(&mheight, "m", 1, "mheight")
 	gpsToCompactCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
-	gpsToCompactCmd.StringVar(&powType, "p", "cuckaroom", "the target cuckoo pow. (cuckaroo,cuckaroom, cuckatoo)")
+	gpsToCompactCmd.StringVar(&powType, "a", "cuckaroom", "-a means use the selected cuckoo pow algorithm (cuckaroo,cuckaroom, cuckatoo), default is cuckaroom")
 	gpsToCompactCmd.Usage = func() {
 		cmdUsage(gpsToCompactCmd, "Usage: qx gps-to-compact -e 29 -t 43 [GPS float64]\n")
 	}
 
-	difficultyToCompactCmd := flag.NewFlagSet("difficulty-to-compact", flag.ExitOnError)
-	difficultyToCompactCmd.StringVar(&mode, "mode", "diff", "mode (diff | hashrate | target )")
-	difficultyToCompactCmd.IntVar(&blocktime, "t", 100, "blocktime")
-	difficultyToCompactCmd.Usage = func() {
-		cmdUsage(difficultyToCompactCmd, "Usage: qx difficulty-to-compact [difficulty]\n")
+	hashrateToHashrateCmd := flag.NewFlagSet("hashrate-to-compact", flag.ExitOnError)
+	hashrateToHashrateCmd.IntVar(&blocktime, "t", 100, "blocktime")
+	hashrateToHashrateCmd.Usage = func() {
+		cmdUsage(hashrateToHashrateCmd, "Usage: qx hashrate-to-compact [Input unit should only be hash/s, no-integer input results a error]\n")
 	}
 
-	CompactTDifficultyCmd := flag.NewFlagSet("compact-to-difficulty", flag.ExitOnError)
-	CompactTDifficultyCmd.StringVar(&mode, "mode", "diff", "mode (diff | hashrate | target )")
-	CompactTDifficultyCmd.IntVar(&blocktime, "t", 100, "blocktime")
-	CompactTDifficultyCmd.Usage = func() {
-		cmdUsage(CompactTDifficultyCmd, "Usage: qx compact-to-difficulty [compact h/s]\n")
+	compactToHashrateCmd := flag.NewFlagSet("compact-to-hashrate", flag.ExitOnError)
+	compactToHashrateCmd.BoolVar(&printDetail, "p", false, "-p means print details")
+	compactToHashrateCmd.IntVar(&blocktime, "t", 100, "blocktime")
+	compactToHashrateCmd.StringVar(&unit, "u", "H", "-u mens unit, (H, K, M, G, T,P)  H means Hash/s, it's by default")
+	compactToHashrateCmd.Usage = func() {
+		cmdUsage(compactToHashrateCmd, "Usage: qx compact-to-hashrate [compact]\n")
+	}
+
+	targetToCompactCmd := flag.NewFlagSet("target-to-compact", flag.ExitOnError)
+	targetToCompactCmd.StringVar(&mode, "pow", "hash", "pow type (hash , cuckoo24,cuckoo29)")
+	targetToCompactCmd.Usage = func() {
+		cmdUsage(targetToCompactCmd, "Usage: qx target-to-compact [target]\n")
+	}
+
+	compactToTargetCmd := flag.NewFlagSet("compact-to-target", flag.ExitOnError)
+	compactToTargetCmd.StringVar(&powtype, "pow", "hash", "pow type (hash , cuckoo24,cuckoo29)")
+	compactToTargetCmd.Usage = func() {
+		cmdUsage(compactToTargetCmd, "Usage: qx compact-to-target [compact]\n")
 	}
 
 	base64EncodeCmd := flag.NewFlagSet("base64-encode", flag.ExitOnError)
@@ -412,8 +431,10 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		base58DecodeCmd,
 		gpsToCompactCmd,
 		compactToGPSCmd,
-		CompactTDifficultyCmd,
-		difficultyToCompactCmd,
+		compactToTargetCmd,
+		targetToCompactCmd,
+		compactToHashrateCmd,
+		hashrateToHashrateCmd,
 		base64EncodeCmd,
 		base64DecodeCmd,
 		rlpEncodeCmd,
@@ -578,7 +599,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				compactToGPSCmd.Usage()
 			} else {
-				qx.CompactToGPS(os.Args[len(os.Args)-1], cuckoo_blocktime, getCuckooScale(powType, p, int64(edgeBits), int64(mheight)))
+				qx.CompactToGPS(os.Args[len(os.Args)-1], cuckoo_blocktime, getCuckooScale(powType, p, int64(edgeBits), int64(mheight)), printDetail)
 			}
 		} else { //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -586,7 +607,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.CompactToGPS(str, cuckoo_blocktime, getCuckooScale(powType, p, int64(edgeBits), int64(mheight)))
+			qx.CompactToGPS(str, cuckoo_blocktime, getCuckooScale(powType, p, int64(edgeBits), int64(mheight)), printDetail)
 		}
 	}
 	// Handle gps-to-compact
@@ -610,13 +631,13 @@ MEER is the 64 bit spend amount in qitmeer.`)
 	}
 
 	// Handle hashrate- to compact-
-	if difficultyToCompactCmd.Parsed() {
+	if hashrateToHashrateCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
-				difficultyToCompactCmd.Usage()
+				hashrateToHashrateCmd.Usage()
 			} else {
-				qx.DifficultyToCompact(os.Args[len(os.Args)-1], mode, blocktime)
+				qx.HashrateToCompact(os.Args[len(os.Args)-1], blocktime)
 			}
 		} else { //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -624,17 +645,17 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.DifficultyToCompact(str, mode, blocktime)
+			qx.HashrateToCompact(str, blocktime)
 		}
 	}
 	// Handle hash compact- to difficulty
-	if CompactTDifficultyCmd.Parsed() {
+	if compactToHashrateCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
-				CompactTDifficultyCmd.Usage()
+				compactToHashrateCmd.Usage()
 			} else {
-				qx.HashCompactToDiff(os.Args[len(os.Args)-1], mode, blocktime)
+				qx.HashCompactToHashrate(os.Args[len(os.Args)-1], unit, printDetail, blocktime)
 			}
 		} else { //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -642,7 +663,43 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.HashCompactToDiff(str, mode, blocktime)
+			qx.HashCompactToHashrate(str, unit, printDetail, blocktime)
+		}
+	}
+	// Handle hash compact- to target
+	if compactToTargetCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				compactToTargetCmd.Usage()
+			} else {
+				qx.CompactToTarget(os.Args[len(os.Args)-1], powtype)
+			}
+		} else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.CompactToTarget(str, powtype)
+		}
+	}
+	// Handle hash target- to compact
+	if targetToCompactCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				targetToCompactCmd.Usage()
+			} else {
+				qx.TargetToCompact(os.Args[len(os.Args)-1], powtype)
+			}
+		} else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.TargetToCompact(str, powtype)
 		}
 	}
 

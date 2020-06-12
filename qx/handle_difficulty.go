@@ -6,22 +6,62 @@ package qx
 import (
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"math/big"
 	"strconv"
 	"strings"
 )
 
-func CompactToUint64(input string) {
+func CompactToTarget(input, powtype string) {
 	u32, err := strconv.ParseUint(input, 10, 32)
 	if err != nil {
 		ErrExit(err)
 	}
 	diffBig := pow.CompactToBig(uint32(u32))
-	fmt.Printf("%d\n", diffBig.Uint64())
+	switch powtype {
+	case "hash":
+		fmt.Printf("0x%064x\n", diffBig)
+	case "cuckoo24":
+		target := pow.CuckooDiffToTarget(48, diffBig)
+		fmt.Printf("0x%s\n", target)
+	case "cuckoo29":
+		target := pow.CuckooDiffToTarget(1856, diffBig)
+		fmt.Printf("0x%s\n", target)
+	default:
+		ErrExit(errors.New("mode error!"))
+	}
 }
 
-func HashCompactToDiff(input, mode string, blocktime int) {
+func TargetToCompact(input, powtype string) {
+	input = strings.TrimPrefix(input, "0x")
+	bigT, ok := new(big.Int).SetString(input, 16)
+	if !ok {
+		fmt.Println("error : invalid input, the target should be a hex string. ")
+		return
+	}
+	switch powtype {
+	case "hash":
+		compact := pow.BigToCompact(bigT)
+		fmt.Printf("%d\n", compact)
+	case "cuckoo24":
+		b := [32]byte{}
+		copy(b[:], bigT.Bytes()[:])
+		diffBig := pow.CalcCuckooDiff(48, hash.Hash(b))
+		compact := pow.BigToCompact(diffBig)
+		fmt.Printf("%d\n", compact)
+	case "cuckoo29":
+		b := [32]byte{}
+		copy(b[:], bigT.Bytes()[:])
+		diffBig := pow.CalcCuckooDiff(1856, hash.Hash(b))
+		compact := pow.BigToCompact(diffBig)
+		fmt.Printf("%d\n", compact)
+	default:
+		ErrExit(errors.New("mode error!"))
+	}
+}
+
+func HashCompactToHashrate(input, unit string, printDetail bool, blocktime int) {
 	u32, err := strconv.ParseUint(input, 10, 32)
 	if err != nil {
 		ErrExit(err)
@@ -30,45 +70,28 @@ func HashCompactToDiff(input, mode string, blocktime int) {
 	maxBig, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
 	maxBig.Div(maxBig, diffBig)
 	maxBig.Div(maxBig, big.NewInt(int64(blocktime)))
-	switch mode {
-	case "diff":
-		fmt.Printf("%d\n", maxBig)
-	case "target":
-		fmt.Printf("0x%064x\n", diffBig.Mul(diffBig, big.NewInt(int64(blocktime))))
-	case "hashrate":
-		fmt.Printf("%s\n", GetHashrate(maxBig))
-	default:
-		ErrExit(errors.New("mode error!"))
+	val, u := GetHashrate(maxBig, unit)
+	fmt.Printf("%s", val)
+	if printDetail {
+		fmt.Printf("%s", u)
 	}
+	fmt.Printf("\n")
 }
 
-func DifficultyToCompact(difficulty, mode string, blocktime int) {
+func HashrateToCompact(difficulty string, blocktime int) {
 	maxBig, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
-	switch mode {
-	case "diff":
-		fallthrough
-	case "hashrate":
-		diffBig, _ := new(big.Int).SetString(difficulty, 10)
-		maxBig.Div(maxBig, diffBig)
-		maxBig.Div(maxBig, new(big.Int).SetInt64(int64(blocktime)))
-		compact := pow.BigToCompact(maxBig)
-		fmt.Printf("%d\n", compact)
-	case "target":
-		difficulty = strings.TrimPrefix(difficulty, "0x")
-		bigT, ok := new(big.Int).SetString(difficulty, 16)
-		if !ok {
-			fmt.Println("target error")
-			return
-		}
-		bigT.Div(bigT, new(big.Int).SetInt64(int64(blocktime)))
-		compact := pow.BigToCompact(bigT)
-		fmt.Printf("%d\n", compact)
-	default:
-		ErrExit(errors.New("mode error!"))
+	diffBig, ok := new(big.Int).SetString(difficulty, 10)
+	if !ok {
+		fmt.Printf("error : invalid input %s, the hashrate should be a integer. \n", difficulty)
+		return
 	}
+	maxBig.Div(maxBig, diffBig)
+	maxBig.Div(maxBig, new(big.Int).SetInt64(int64(blocktime)))
+	compact := pow.BigToCompact(maxBig)
+	fmt.Printf("%d\n", compact)
 }
 
-func CompactToGPS(compactS string, blockTime, scale int) {
+func CompactToGPS(compactS string, blockTime, scale int, printDetail bool) {
 	compact, err := strconv.ParseUint(compactS, 10, 64)
 	if err != nil {
 		ErrExit(err)
@@ -85,7 +108,11 @@ func CompactToGPS(compactS string, blockTime, scale int) {
 	}
 	//2.2% graph found rate
 	needGPS := float64(u64Big.Uint64()) / float64(scale) * 50.00 / float64(blockTime)
-	fmt.Printf("%f\n", needGPS)
+	fmt.Printf("%f", needGPS)
+	if printDetail {
+		fmt.Printf(" GPS")
+	}
+	fmt.Printf("\n")
 }
 
 func GPSToCompact(gps string, blockTime, scale int) {
@@ -111,80 +138,40 @@ func GPSToCompact(gps string, blockTime, scale int) {
 	fmt.Printf("%d\n", compact)
 }
 
-func CompactToTarget(diffCompact string) {
-	u64, err := strconv.ParseUint(diffCompact, 10, 64)
-	if err != nil {
-		ErrExit(err)
+func GetHashrate(hashBig *big.Int, unit string) (string, string) {
+	if unit == "H" {
+		return fmt.Sprintf("%d", hashBig.Uint64()), " H/s"
 	}
-	diffBig := pow.CompactToBig(uint32(u64))
-	fmt.Printf("0x%064x\n", diffBig)
-}
-
-func TargetToCompact(target string) {
-	target = strings.TrimPrefix(target, "0x")
-	bigT, ok := new(big.Int).SetString(target, 16)
-	if !ok {
-		fmt.Println("target error")
-		return
-	}
-	difftarget := pow.BigToCompact(bigT)
-	fmt.Printf("%d\n", difftarget)
-}
-
-func CompactToHashrate(diffCompact string, blocktime int) {
-	u64, err := strconv.ParseUint(diffCompact, 10, 64)
-	if err != nil {
-		ErrExit(err)
-	}
-	diffBig := pow.CompactToBig(uint32(u64))
-	maxBig, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
-	needAtleasthashrate := maxBig.Div(maxBig, diffBig)
-	needAtleasthashrate = needAtleasthashrate.Div(needAtleasthashrate, big.NewInt(int64(blocktime)))
-	fmt.Printf("%s\n", GetHashrate(needAtleasthashrate))
-}
-
-func HashrateToCompact(hashrate string) {
-	hashrateBig, _ := new(big.Int).SetString(hashrate, 10)
-	maxBig, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
-	maxBig.Div(maxBig, hashrateBig)
-	compact := pow.BigToCompact(maxBig)
-	fmt.Printf("%d\n", compact)
-}
-
-func GetHashrate(hashBig *big.Int) string {
-	if hashBig.Cmp(big.NewInt(1000)) <= 0 {
-		return fmt.Sprintf("%d H/s", hashBig.Uint64())
-	}
-	if hashBig.Cmp(big.NewInt(1000000)) <= 0 {
+	if unit == "K" {
 		f := new(big.Float).SetInt(hashBig)
 		f.Quo(f, big.NewFloat(1000))
-		return fmt.Sprintf("%s KH/s", f.String())
+		return fmt.Sprintf("%s", f.String()), " KH/s"
 	}
-	if hashBig.Cmp(big.NewInt(1000000000)) <= 0 {
+	if unit == "M" {
 		f := new(big.Float).SetInt(hashBig)
 		f.Quo(f, big.NewFloat(1000000))
-		return fmt.Sprintf("%s MH/s", f.String())
+		return fmt.Sprintf("%s", f.String()), " MH/s"
 	}
-	if hashBig.Cmp(big.NewInt(1000000000000)) <= 0 {
+	if unit == "G" {
 		f := new(big.Float).SetInt(hashBig)
 		f.Quo(f, big.NewFloat(1000000000))
-		return fmt.Sprintf("%s GH/s", f.String())
+		return fmt.Sprintf("%s", f.String()), " GH/s"
 	}
 	base, _ := new(big.Int).SetString("1000000000000000", 10)
-	if hashBig.Cmp(base) <= 0 {
+	if unit == "T" {
 		f := new(big.Float).SetInt(hashBig)
 		base1, _ := new(big.Int).SetString("1000000000000", 10)
 		f.Quo(f, new(big.Float).SetInt(base1))
-		return fmt.Sprintf("%s TH/s", f.String())
+		return fmt.Sprintf("%s", f.String()), " TH/s"
 	}
 	base, _ = new(big.Int).SetString("1000000000000000000", 10)
-	if hashBig.Cmp(base) <= 0 {
+	if unit == "P" {
 		f := new(big.Float).SetInt(hashBig)
 		base1, _ := new(big.Int).SetString("1000000000000000", 10)
 		f.Quo(f, new(big.Float).SetInt(base1))
-		return fmt.Sprintf("%s PH/s", f.String())
+		return fmt.Sprintf("%s", f.String()), " PH/s"
 	}
 	f := new(big.Float).SetInt(hashBig)
 	f.Quo(f, new(big.Float).SetInt(base))
-	return fmt.Sprintf("%s EH/s", f.String())
+	return fmt.Sprintf("%s", f.String()), " EH/s"
 }
