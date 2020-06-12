@@ -145,33 +145,33 @@ func GetHashrate(hashBig *big.Int, unit string) (string, string) {
 	if unit == "K" {
 		f := new(big.Float).SetInt(hashBig)
 		f.Quo(f, big.NewFloat(1000))
-		return fmt.Sprintf("%s", f.String()), " KH/s"
+		return f.String(), " KH/s"
 	}
 	if unit == "M" {
 		f := new(big.Float).SetInt(hashBig)
 		f.Quo(f, big.NewFloat(1000000))
-		return fmt.Sprintf("%s", f.String()), " MH/s"
+		return f.String(), " MH/s"
 	}
 	if unit == "G" {
 		f := new(big.Float).SetInt(hashBig)
 		f.Quo(f, big.NewFloat(1000000000))
-		return fmt.Sprintf("%s", f.String()), " GH/s"
+		return f.String(), " GH/s"
 	}
 	base, _ := new(big.Int).SetString("1000000000000000", 10)
 	if unit == "T" {
 		f := new(big.Float).SetInt(hashBig)
 		base1, _ := new(big.Int).SetString("1000000000000", 10)
 		f.Quo(f, new(big.Float).SetInt(base1))
-		return fmt.Sprintf("%s", f.String()), " TH/s"
+		return f.String(), " TH/s"
 	}
 	base, _ = new(big.Int).SetString("1000000000000000000", 10)
 	if unit == "P" {
 		f := new(big.Float).SetInt(hashBig)
 		base1, _ := new(big.Int).SetString("1000000000000000", 10)
 		f.Quo(f, new(big.Float).SetInt(base1))
-		return fmt.Sprintf("%s", f.String()), " PH/s"
+		return f.String(), " PH/s"
 	}
 	f := new(big.Float).SetInt(hashBig)
 	f.Quo(f, new(big.Float).SetInt(base))
-	return fmt.Sprintf("%s", f.String()), " EH/s"
+	return f.String(), " EH/s"
 }
