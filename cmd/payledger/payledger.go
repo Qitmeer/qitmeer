@@ -35,6 +35,18 @@ func main() {
 		log.Error(err.Error())
 		return
 	}
+	fmt.Println(cfg.DebugAddress)
+	if len(cfg.DebugAddress) > 0 {
+		node := &DebugAddressNode{}
+		err = node.init(cfg)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		node.exit()
+		return
+	}
 	srcnode := &SrcNode{}
 	err = srcnode.init(cfg)
 	defer func() {
@@ -44,7 +56,11 @@ func main() {
 		log.Error(err.Error())
 		return
 	}
-
+	if cfg.Last {
+		// Just show last result
+		buildLedger(srcnode, cfg)
+		return
+	}
 	if cfg.ShowEndPoints > 0 {
 		showEndBlocks(srcnode)
 		return
@@ -81,6 +97,13 @@ func main() {
 		}
 		if useWhole {
 			buildLedger(srcnode, cfg)
+			// Must save data
+			if Exists(cfg.DataDir) {
+				RemovePath(cfg.DataDir)
+			}
+			if !CopyPath(cfg.SrcDataDir, cfg.DataDir) {
+				log.Error(fmt.Sprintf("Can't copy %s to %s.", cfg.SrcDataDir, cfg.DataDir))
+			}
 		} else if ib != nil {
 			if !srcnode.bc.BlockDAG().IsHourglass(ib.GetID()) {
 				log.Error(fmt.Sprintf("%s is not good\n", ib.GetHash()))

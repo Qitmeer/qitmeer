@@ -24,6 +24,11 @@
 ~ go build
 ```
 
+### How to show last result of generated ledger
+```
+~ ./payledger --last
+```
+
 ### How to find end point
 * You can print a list of recommendations when using `showendpoints` to set the specific number.
 ```
@@ -36,4 +41,13 @@
 * You can check if the end point works
 ```
 ~ ./payledger --checkendpoint=000005fd233345570677bc257e7c35e300dfe9b6d384bd8a0659c6619ff7ab30
+```
+
+### How to debug address
+```
+~ ./payledger --debugaddress=[Qitmeer Address]
+or
+~ ./payledger --debugaddress=[Qitmeer Address] --debugaddrutxo
+or
+~ ./payledger --debugaddress=[Qitmeer Address] --debugaddrvalid
 ```

@@ -29,7 +29,11 @@ type SrcNode struct {
 func (node *SrcNode) init(cfg *Config) error {
 	node.cfg = cfg
 	// Load the block database.
-	db, err := LoadBlockDB(cfg.DbType, cfg.SrcDataDir, false)
+	srcDataDir := cfg.SrcDataDir
+	if cfg.Last {
+		srcDataDir = cfg.DataDir
+	}
+	db, err := LoadBlockDB(cfg.DbType, srcDataDir, false)
 	if err != nil {
 		log.Error("load block database", "error", err)
 		return err
@@ -53,9 +57,9 @@ func (node *SrcNode) init(cfg *Config) error {
 		return err
 	}
 	node.bc = bc
-	node.name = path.Base(cfg.DataDir)
+	node.name = path.Base(srcDataDir)
 
-	log.Info(fmt.Sprintf("Load Src Data:%s", cfg.SrcDataDir))
+	log.Info(fmt.Sprintf("Load Src Data:%s", srcDataDir))
 	return nil
 }
 

@@ -15,6 +15,16 @@ const (
 	blockDbNamePrefix = "blocks"
 )
 
+var (
+	// DebugAddrInfoBucketName is the name of the db bucket used to house the
+	// debug address info
+	DebugAddrInfoBucketName = []byte("debugaddrinfo")
+
+	// DebugAddrBucketName is the name of the db bucket used to house the
+	// debug address
+	DebugAddrBucketName = []byte("debugaddr")
+)
+
 // loadBlockDB loads (or creates when needed) the block database taking into
 // account the selected database backend and returns a handle to it.  It also
 // contains additional logic such warning the user if there are multiple
