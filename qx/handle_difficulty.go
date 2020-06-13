@@ -61,7 +61,7 @@ func TargetToCompact(input, powtype string) {
 	}
 }
 
-func HashCompactToHashrate(input, unit string, printDetail bool, blocktime int) {
+func CompactToHashrate(input, unit string, printDetail bool, blocktime int) {
 	u32, err := strconv.ParseUint(input, 10, 32)
 	if err != nil {
 		ErrExit(err)

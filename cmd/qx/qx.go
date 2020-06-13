@@ -188,10 +188,10 @@ func main() {
 		cmdUsage(gpsToCompactCmd, "Usage: qx gps-to-compact -e 29 -t 43 [GPS float64]\n")
 	}
 
-	hashrateToHashrateCmd := flag.NewFlagSet("hashrate-to-compact", flag.ExitOnError)
-	hashrateToHashrateCmd.IntVar(&blocktime, "t", 100, "blocktime")
-	hashrateToHashrateCmd.Usage = func() {
-		cmdUsage(hashrateToHashrateCmd, "Usage: qx hashrate-to-compact [Input unit should only be hash/s, no-integer input results a error]\n")
+	hashrateToCompactCmd := flag.NewFlagSet("hashrate-to-compact", flag.ExitOnError)
+	hashrateToCompactCmd.IntVar(&blocktime, "t", 100, "blocktime")
+	hashrateToCompactCmd.Usage = func() {
+		cmdUsage(hashrateToCompactCmd, "Usage: qx hashrate-to-compact [Input unit should only be hash/s, no-integer input results a error]\n")
 	}
 
 	compactToHashrateCmd := flag.NewFlagSet("compact-to-hashrate", flag.ExitOnError)
@@ -434,7 +434,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		compactToTargetCmd,
 		targetToCompactCmd,
 		compactToHashrateCmd,
-		hashrateToHashrateCmd,
+		hashrateToCompactCmd,
 		base64EncodeCmd,
 		base64DecodeCmd,
 		rlpEncodeCmd,
@@ -631,11 +631,11 @@ MEER is the 64 bit spend amount in qitmeer.`)
 	}
 
 	// Handle hashrate- to compact-
-	if hashrateToHashrateCmd.Parsed() {
+	if hashrateToCompactCmd.Parsed() {
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeNamedPipe) == 0 {
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
-				hashrateToHashrateCmd.Usage()
+				hashrateToCompactCmd.Usage()
 			} else {
 				qx.HashrateToCompact(os.Args[len(os.Args)-1], blocktime)
 			}
@@ -655,7 +655,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				compactToHashrateCmd.Usage()
 			} else {
-				qx.HashCompactToHashrate(os.Args[len(os.Args)-1], unit, printDetail, blocktime)
+				qx.CompactToHashrate(os.Args[len(os.Args)-1], unit, printDetail, blocktime)
 			}
 		} else { //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -663,7 +663,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.HashCompactToHashrate(str, unit, printDetail, blocktime)
+			qx.CompactToHashrate(str, unit, printDetail, blocktime)
 		}
 	}
 	// Handle hash compact- to target

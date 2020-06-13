@@ -98,8 +98,8 @@ func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
 }
 
 func TestHashCompactToHashrate(t *testing.T) {
-	HashCompactToHashrate("471859199", "H", false, 100)
-	HashCompactToHashrate("471859199", "M", true, 100)
+	CompactToHashrate("471859199", "H", false, 100)
+	CompactToHashrate("471859199", "M", true, 100)
 	// output :
 	// 343597547
 	// 343.597547 MH/s
