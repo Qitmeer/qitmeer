@@ -226,12 +226,13 @@ func encodeTemplateID(prevHash hash.Hash, lastGenerated time.Time) string {
 // getblocktemplate.
 type gbtWorkState struct {
 	sync.Mutex
-	lastTxUpdate  time.Time
-	lastGenerated time.Time
-	parentsSet    *blockdag.HashSet
-	minTimestamp  time.Time
-	template      *types.BlockTemplate
-	timeSource    blockchain.MedianTimeSource
+	lastTxUpdate     time.Time
+	lastGenerated    time.Time
+	parentsSet       *blockdag.HashSet
+	minTimestamp     time.Time
+	coinbaseTemplate *types.BlockTemplate
+	template         *types.BlockTemplate
+	timeSource       blockchain.MedianTimeSource
 }
 
 // updateBlockTemplate creates or updates a block template for the work state.
@@ -261,7 +262,12 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 	rand.Seed(time.Now().UnixNano())
 	parentsSet := blockdag.NewHashSet()
 	parentsSet.AddList(m.blockManager.GetChain().GetMiningTips())
-	template := state.template
+	var template *types.BlockTemplate
+	if useCoinbaseValue {
+		template = state.template
+	} else {
+		template = state.coinbaseTemplate
+	}
 	if template == nil || state.parentsSet == nil ||
 		!state.parentsSet.IsEqual(parentsSet) ||
 		(state.lastTxUpdate != lastTxUpdate &&
@@ -302,7 +308,11 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 
 		// Update work state to ensure another block template isn't
 		// generated until needed.
-		state.template = template
+		if useCoinbaseValue {
+			state.template = template
+		} else {
+			state.coinbaseTemplate = template
+		}
 		state.lastGenerated = time.Now()
 		state.lastTxUpdate = lastTxUpdate
 		state.parentsSet.AddList(msgBlock.Parents)
@@ -343,7 +353,13 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 	// after the template is generated, but it's important to avoid serving
 	// invalid block templates.
 	m := api.miner
-	template := state.template
+	var template *types.BlockTemplate
+	if useCoinbaseValue {
+		template = state.template
+	} else {
+		template = state.coinbaseTemplate
+	}
+
 	msgBlock := template.Block
 	header := &msgBlock.Header
 	adjustedTime := state.timeSource.AdjustedTime()
