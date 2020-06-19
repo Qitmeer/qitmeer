@@ -6,7 +6,6 @@ package pow
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/log"
 	"math/big"
 )
 
@@ -205,7 +204,6 @@ func CalcCuckooDiff(scale uint64, blockHash hash.Hash) *big.Int {
 	}
 	a.Mul(a, max)
 	e := a.Div(a, c)
-	log.Debug(fmt.Sprintf("solution difficulty:%d", e.Uint64()))
 	return e
 }
 
