@@ -14,10 +14,11 @@ const (
 )
 
 var (
-	defaultHomeDir = util.AppDataDir(".", false)
-	defaultDataDir = filepath.Join(defaultHomeDir, defaultDataDirname)
-	defaultDbType  = "ffldb"
-	defaultDAGType = "phantom"
+	defaultHomeDir  = util.AppDataDir(".", false)
+	defaultDataDir  = filepath.Join(defaultHomeDir, defaultDataDirname)
+	defaultDbType   = "ffldb"
+	defaultDAGType  = "phantom"
+	defaultFileName = "blocks.ibd"
 )
 
 type Config struct {
@@ -31,6 +32,7 @@ type Config struct {
 
 	OutputPath string
 	InputPath  string
+	DisableBar bool
 }
 
 func (c *Config) load() error {
@@ -96,4 +98,16 @@ func (c *Config) load() error {
 	c.DataDir = filepath.Join(c.DataDir, params.ActiveNetParams.Name)
 
 	return nil
+}
+
+func GetIBDFilePath(path string) (string, error) {
+	if len(path) <= 0 {
+		return "", fmt.Errorf("Path error")
+	}
+	if len(path) >= 4 {
+		if path[len(path)-4:] == ".ibd" {
+			return path, nil
+		}
+	}
+	return strings.TrimRight(strings.TrimRight(path, "/"), "\\") + "/" + defaultFileName, nil
 }

@@ -12,11 +12,12 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/index"
 	"github.com/Qitmeer/qitmeer/services/mining"
+	"os"
 	"path"
 )
 
@@ -85,6 +86,69 @@ func (node *Node) DB() database.DB {
 }
 
 func (node *Node) Export() error {
+	mainTip := node.bc.BlockDAG().GetMainChainTip()
+	if mainTip.GetOrder() <= 0 {
+		return fmt.Errorf("No blocks in database")
+	}
+	outFilePath, err := GetIBDFilePath(node.cfg.OutputPath)
+	if err != nil {
+		return err
+	}
+
+	outFile, err := os.OpenFile(outFilePath, os.O_CREATE|os.O_TRUNC|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		outFile.Close()
+	}()
+
+	var bar *ProgressBar
+	if !node.cfg.DisableBar {
+
+		bar = &ProgressBar{}
+		bar.init("Process:")
+		bar.reset(int(mainTip.GetOrder()))
+		bar.add()
+	} else {
+		log.Info("Process...")
+	}
+
+	var maxOrder [4]byte
+	dbnamespace.ByteOrder.PutUint32(maxOrder[:], uint32(mainTip.GetOrder()))
+	_, err = outFile.Write(maxOrder[:])
+	if err != nil {
+		return err
+	}
+
+	for i := uint(1); i <= mainTip.GetOrder(); i++ {
+		blockHash := node.bc.BlockDAG().GetBlockByOrder(i)
+		if blockHash == nil {
+			return fmt.Errorf(fmt.Sprintf("Can't find block (%d)!", i))
+		}
+
+		block, err := node.bc.FetchBlockByHash(blockHash)
+		if err != nil {
+			return err
+		}
+		bytes, err := block.Bytes()
+		if err != nil {
+			return err
+		}
+		ibdb := &IBDBlock{length: uint32(len(bytes)), bytes: bytes}
+		err = ibdb.Encode(outFile)
+		if err != nil {
+			return err
+		}
+		if bar != nil {
+			bar.add()
+		}
+	}
+	if bar != nil {
+		bar.setMax()
+		fmt.Println()
+	}
+	log.Info(fmt.Sprintf("Finish: blocks(%d)    ------>File:%s", mainTip.GetOrder(), outFilePath))
 	return nil
 }
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"os"
 	"path/filepath"

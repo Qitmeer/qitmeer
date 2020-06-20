@@ -2,8 +2,8 @@ package main
 
 import (
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
+	_ "github.com/Qitmeer/qitmeer/services/common"
 	"github.com/urfave/cli/v2"
-	"log"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -14,7 +14,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	debug.SetGCPercent(20)
 	if err := fastIBD(); err != nil {
-		log.Println(err)
+		log.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -131,6 +131,12 @@ func fastIBD() error {
 				Usage:       "DAG type {phantom,conflux,spectre}",
 				Value:       defaultDAGType,
 				Destination: &cfg.DAGType,
+			},
+			&cli.BoolFlag{
+				Name:        "disablebar",
+				Usage:       "Hide progress bar",
+				Value:       false,
+				Destination: &cfg.DisableBar,
 			},
 		},
 		EnableBashCompletion: true,
