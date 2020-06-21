@@ -107,11 +107,11 @@ func (node *Node) Export() error {
 	if !node.cfg.DisableBar {
 
 		bar = &ProgressBar{}
-		bar.init("Process:")
+		bar.init("Export:")
 		bar.reset(int(mainTip.GetOrder()))
 		bar.add()
 	} else {
-		log.Info("Process...")
+		log.Info("Export...")
 	}
 
 	var maxOrder [4]byte
@@ -148,10 +148,60 @@ func (node *Node) Export() error {
 		bar.setMax()
 		fmt.Println()
 	}
-	log.Info(fmt.Sprintf("Finish: blocks(%d)    ------>File:%s", mainTip.GetOrder(), outFilePath))
+	log.Info(fmt.Sprintf("Finish export: blocks(%d)    ------>File:%s", mainTip.GetOrder(), outFilePath))
 	return nil
 }
 
 func (node *Node) Import() error {
+	mainTip := node.bc.BlockDAG().GetMainChainTip()
+	if mainTip.GetOrder() > 0 {
+		return fmt.Errorf("Your database is not empty, please empty the database.")
+	}
+	inputFilePath, err := GetIBDFilePath(node.cfg.InputPath)
+	if err != nil {
+		return err
+	}
+	blocksBytes, err := ReadFile(inputFilePath)
+	if err != nil {
+		return err
+	}
+	offset := 0
+	maxOrder := dbnamespace.ByteOrder.Uint32(blocksBytes[offset : offset+4])
+	offset += 4
+
+	var bar *ProgressBar
+	if !node.cfg.DisableBar {
+
+		bar = &ProgressBar{}
+		bar.init("Import:")
+		bar.reset(int(maxOrder))
+		bar.add()
+	} else {
+		log.Info("Import...")
+	}
+	for i := uint32(1); i <= maxOrder; i++ {
+		ibdb := &IBDBlock{}
+		err := ibdb.Decode(blocksBytes[offset:])
+		if err != nil {
+			return err
+		}
+		offset += 4 + int(ibdb.length)
+
+		err = node.bc.FastAcceptBlock(ibdb.blk)
+		if err != nil {
+			return err
+		}
+		if bar != nil {
+			bar.add()
+		}
+	}
+
+	if bar != nil {
+		bar.setMax()
+		fmt.Println()
+	}
+	mainTip = node.bc.BlockDAG().GetMainChainTip()
+	log.Info(fmt.Sprintf("Finish import: blocks(%d)    ------>File:%s", mainTip.GetOrder(), inputFilePath))
+	log.Info(fmt.Sprintf("New Info:%s  mainOrder=%d tips=%d", mainTip.GetHash().String(), mainTip.GetOrder(), node.bc.BlockDAG().GetTips().Size()))
 	return nil
 }
