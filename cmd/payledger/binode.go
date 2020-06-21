@@ -84,6 +84,8 @@ func (node *BINode) DB() database.DB {
 func (node *BINode) statistics() error {
 	total := node.bc.BlockDAG().GetBlockTotal()
 	validCount := 1
+	subsidyCount := 0
+	fmt.Printf("Process...   ")
 	for i := uint(1); i < total; i++ {
 		ib := node.bc.BlockDAG().GetBlockById(i)
 		if ib == nil {
@@ -91,17 +93,23 @@ func (node *BINode) statistics() error {
 		}
 		if !knownInvalid(byte(ib.GetStatus())) {
 			validCount++
+			if node.bc.BlockDAG().IsBlue(i) {
+				subsidyCount++
+			}
 		}
+
 	}
 	mainTip := node.bc.BlockDAG().GetMainChainTip().(*blockdag.PhantomBlock)
 	blues := mainTip.GetBlueNum() + 1
 	reds := mainTip.GetOrder() + 1 - blues
 	unconfirmed := total - (mainTip.GetOrder() + 1)
 
-	fmt.Printf("Total:%d   Valid:%d   BlueNum:%d   RedNum:%d   ", total, validCount, blues, reds)
+	fmt.Printf("Total:%d   Valid:%d   BlueNum:%d   RedNum:%d   SubsidyNum:%d", total, validCount, blues, reds, subsidyCount)
 	if unconfirmed > 0 {
 		fmt.Printf("Unconfirmed:%d", unconfirmed)
 	}
 	fmt.Println()
+	fmt.Println("(Note:SubsidyNum does not include genesis.)")
+
 	return nil
 }
