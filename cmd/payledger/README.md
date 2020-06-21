@@ -51,3 +51,9 @@ or
 or
 ~ ./payledger --debugaddress=[Qitmeer Address] --debugaddrvalid
 ```
+
+
+### How to show blocks info
+```
+~ ./payledger --blocksinfo
+```
