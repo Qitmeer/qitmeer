@@ -47,6 +47,9 @@ func main() {
 		node.exit()
 		return
 	}
+	if blockInfo(cfg) {
+		return
+	}
 	srcnode := &SrcNode{}
 	err = srcnode.init(cfg)
 	defer func() {
@@ -303,4 +306,19 @@ func savePayoutsFile(params *params.Params, genesisLedger map[string]*ledger.Tok
 	log.Info(fmt.Sprintf("Finish save %s", fileName))
 
 	return nil
+}
+
+func blockInfo(cfg *Config) bool {
+	if cfg.BlocksInfo {
+		node := &BINode{}
+		err := node.init(cfg)
+		defer func() {
+			node.exit()
+		}()
+		if err != nil {
+			log.Error(err.Error())
+		}
+		return true
+	}
+	return false
 }
