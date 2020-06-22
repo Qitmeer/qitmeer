@@ -52,7 +52,7 @@ func (bar *ProgressBar) setMax() {
 
 func (bar *ProgressBar) refresh() {
 	cur := float64(bar.cur*100) / float64(bar.max)
-	cost := time.Now().Sub(bar.startTime)
+	cost := time.Since(bar.startTime)
 	cost /= time.Second
 	cost *= time.Second
 	fmt.Fprintf(os.Stdout, "%s %d%% [%s] %s\r", bar.name, int(cur), bar.getProgress(), cost.String())
