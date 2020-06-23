@@ -182,3 +182,72 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	})
 	return nil
 }
+
+func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
+	b.ChainLock()
+	defer b.ChainUnlock()
+
+	parentsNode := []*blockNode{}
+	for _, pb := range block.Block().Parents {
+		prevHash := pb
+		prevNode := b.index.LookupNode(prevHash)
+		if prevNode == nil {
+			err := fmt.Errorf("Parents block %s is unknown", prevHash)
+			log.Debug(err.Error())
+			return err
+		}
+		parentsNode = append(parentsNode, prevNode)
+	}
+
+	blockHeader := &block.Block().Header
+	newNode := newBlockNode(blockHeader, parentsNode)
+	mainParent := newNode.GetMainParent(b)
+	if mainParent == nil {
+		return fmt.Errorf("Can't find main parent")
+	}
+
+	newNode.CalcWorkSum(b.index.LookupNode(mainParent.GetHash()))
+	newNode.SetHeight(mainParent.GetHeight() + 1)
+
+	block.SetHeight(newNode.GetHeight())
+
+	//dag
+	newOrders, ib := b.bd.AddBlock(newNode)
+	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
+		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
+	}
+	newNode.dagID = ib.GetID()
+	newNode.SetLayer(ib.GetLayer())
+	block.SetOrder(uint64(ib.GetOrder()))
+	if ib.GetHeight() != newNode.GetHeight() {
+		log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d", newNode.GetHash(), newNode.GetHeight(), ib.GetHeight()))
+		newNode.SetHeight(ib.GetHeight())
+		block.SetHeight(ib.GetHeight())
+	}
+
+	oldOrders := BlockNodeList{}
+	b.getReorganizeNodes(newNode, block, newOrders, &oldOrders)
+	b.index.AddNode(newNode)
+	newNode.SetStatusFlags(statusDataStored)
+	err := newNode.FlushToDB(b)
+	if err != nil {
+		return err
+	}
+	err = b.db.Update(func(dbTx database.Tx) error {
+		if err := dbMaybeStoreBlock(dbTx, block); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = b.connectDagChain(newNode, block, newOrders, oldOrders)
+	if err != nil {
+		log.Warn(fmt.Sprintf("%s", err))
+	}
+	b.updateBestState(newNode, block)
+
+	return nil
+}
