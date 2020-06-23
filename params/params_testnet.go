@@ -15,8 +15,8 @@ import (
 )
 
 // testNetPowLimit is the highest proof of work value a block can
-// have for the test network. It is the value 2^215 - 1.
-var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 215), common.Big1)
+// have for the test network. It is the value 2^208 - 1.
+var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 208), common.Big1)
 
 // target time per block unit second(s)
 const testTargetTimePerBlock = 30
@@ -47,13 +47,13 @@ var TestNetParams = Params{
 		X8r16PowLimit:                testNetPowLimit,
 		X8r16PowLimitBits:            0x1b7fffff, // compact from of testNetPowLimit (2^215-1)
 		QitmeerKeccak256PowLimit:     testNetPowLimit,
-		QitmeerKeccak256PowLimitBits: 0x1b7fffff, // compact from of testNetPowLimit (2^215-1)
+		QitmeerKeccak256PowLimitBits: 0x1b00ffff, // compact from of testNetPowLimit (2^208-1) 453050367
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 = 1min find once
 		CuckarooMinDifficulty:  0x2018000, // 96 * 4 = 384
 		CuckatooMinDifficulty:  0x2074000, // 1856
-		CuckaroomMinDifficulty: 0x2074000, // 1856
+		CuckaroomMinDifficulty: 0x34ad1ec, // compact : 55235052 diff : 4903404
 
 		Percent: []pow.Percent{
 			{
