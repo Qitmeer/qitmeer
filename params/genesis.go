@@ -125,8 +125,9 @@ func buildTestNetGenesisCoinbaseTx(net protocol.Network) types.Transaction {
 				Sequence: 0xffffffff,
 			},
 		},
-		LockTime: 0,
-		Expire:   0,
+		LockTime:  0,
+		Expire:    0,
+		Timestamp: time.Unix(1592964000, 0), // 2020/06/24 10:00:00 AM GMT+08:00
 	}
 	ledger.Ledger(&tx, net)
 	return tx
@@ -146,7 +147,7 @@ var testNetGenesisBlock = types.Block{
 		Version:    3,
 		ParentRoot: hash.Hash{},
 		TxRoot:     testNetGenesisMerkleRoot,
-		Timestamp:  time.Unix(1590574054, 0), // 2020 6:07:34 PM GMT+08:00
+		Timestamp:  testNetGenesisCoinbaseTx.Timestamp,   // same with the tx timestamp (added since 0.9)
 		Difficulty: 0x34ad1ec,                //4903404
 		Pow:        pow.GetInstance(pow.CUCKAROOM, 0, []byte{}),
 	},
