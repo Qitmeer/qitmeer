@@ -18,6 +18,7 @@ func (sb *SpectreBlock) GetHash() *hash.Hash {
 type SpectreBlockData struct {
 	hash      hash.Hash
 	parents   []*hash.Hash
+	parentsId []uint
 	timestamp int64
 }
 
@@ -25,8 +26,8 @@ func (sd *SpectreBlockData) GetHash() *hash.Hash {
 	return &sd.hash
 }
 
-func (sd *SpectreBlockData) GetParents() []*hash.Hash {
-	return sd.parents
+func (sd *SpectreBlockData) GetParents() []uint {
+	return sd.parentsId
 }
 
 func (sd *SpectreBlockData) GetTimestamp() int64 {

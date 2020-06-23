@@ -131,6 +131,9 @@ type IBlockDAG interface {
 	// IsDAG
 	IsDAG(parents []IBlock) bool
 
+	// The main parent concurrency of block
+	GetMainParentConcurrency(b IBlock) int
+
 	// GetBlues
 	GetBlues(parents *IdSet) uint
 
@@ -258,11 +261,11 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	if len(parents) > 0 {
 		block.parents = NewIdSet()
 		var maxLayer uint = 0
-		for k, v := range parents {
+		for _, v := range parents {
 			parent := v.(IBlock)
 			block.parents.AddPair(parent.GetID(), parent)
 			parent.AddChild(ib)
-			if k == 0 {
+			if block.mainParent > parent.GetID() {
 				block.mainParent = parent.GetID()
 			}
 
@@ -1302,4 +1305,23 @@ func (bd *BlockDAG) GetIdSet(hs []*hash.Hash) *IdSet {
 		result.Add(bd.getBlockId(v))
 	}
 	return result
+}
+
+// The main parent concurrency of block
+func (bd *BlockDAG) GetMainParentConcurrency(b IBlock) int {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+	return bd.instance.GetMainParentConcurrency(b)
+}
+
+// GetBlockConcurrency : Temporarily use blue set of the past blocks as the criterion
+func (bd *BlockDAG) GetBlockConcurrency(h *hash.Hash) (uint, error) {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	ib := bd.getBlock(h)
+	if ib == nil {
+		return 0, fmt.Errorf("No find block")
+	}
+	return ib.(*PhantomBlock).GetBlueNum(), nil
 }

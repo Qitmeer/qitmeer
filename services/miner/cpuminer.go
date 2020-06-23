@@ -174,7 +174,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32, powType pow.PowType) ([]*hash.Hash,
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.
 		// TODO, refactor NewBlockTemplate input dependencies
-		template, err := mining.NewBlockTemplate(m.policy, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil)
+		template, err := mining.NewBlockTemplate(m.policy, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil, powType)
 		m.submitBlockLock.Unlock()
 		if err != nil {
 			errStr := fmt.Sprintf("template: %v", err)
@@ -198,9 +198,18 @@ func (m *CPUMiner) GenerateNBlocks(n uint32, powType pow.PowType) ([]*hash.Hash,
 		case pow.BLAKE2BD:
 			template.Block.Header.Difficulty = uint32(template.PowDiffData.Blake2bDTarget)
 			result = m.solveBlock(template.Block, ticker, nil)
+		case pow.X16RV3:
+			template.Block.Header.Difficulty = uint32(template.PowDiffData.X16rv3DTarget)
+			result = m.solveX16rv3Block(template.Block, ticker, nil)
+		case pow.X8R16:
+			template.Block.Header.Difficulty = uint32(template.PowDiffData.X8r16DTarget)
+			result = m.solveX8r16Block(template.Block, ticker, nil)
+		case pow.QITMEERKECCAK256:
+			template.Block.Header.Difficulty = uint32(template.PowDiffData.QitmeerKeccak256Target)
+			result = m.solveQitmeerKeccak256Block(template.Block, ticker, nil)
 		case pow.CUCKAROO:
 			template.Block.Header.Difficulty = pow.BigToCompact(new(big.Int).SetUint64(template.PowDiffData.CuckarooBaseDiff))
-			result = m.solveCuckarooBlock(template.Block, ticker, nil, template.PowDiffData.CuckarooDiffScale,template.Height)
+			result = m.solveCuckarooBlock(template.Block, ticker, nil, template.PowDiffData.CuckarooDiffScale, template.Height)
 		default:
 			m.Lock()
 			close(m.speedMonitorQuit)
@@ -392,7 +401,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 }
 
 // solveBlock attempts to find 42 circles that hash match the target diff
-func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}, scale ,mheight uint64) bool {
+func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}, scale, mheight uint64) bool {
 	// Create a couple of convenience variables.
 	header := &msgBlock.Header
 	// Initial state.
@@ -712,7 +721,7 @@ out:
 		// Create a new block template using the available transactions
 		// in the memory pool as a source of transactions to potentially
 		// include in the block.
-		template, err := mining.NewBlockTemplate(m.policy, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil)
+		template, err := mining.NewBlockTemplate(m.policy, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil, pow.QITMEERKECCAK256)
 		m.submitBlockLock.Unlock()
 		if err != nil {
 			errStr := fmt.Sprintf("template: %v", err)
@@ -846,7 +855,7 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 		// include in the block.
 		// TODO, refactor NewBlockTemplate input dependencies
 		template, err := mining.NewBlockTemplate(m.policy, m.params,
-			m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, parents)
+			m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, parents, pow.QITMEERKECCAK256)
 		m.submitBlockLock.Unlock()
 		if err != nil {
 			errStr := fmt.Sprintf("template: %v", err)

@@ -247,3 +247,33 @@ func Test_GetMaturity(t *testing.T) {
 		t.Fatal()
 	}
 }
+
+func Test_GetMainParentConcurrency(t *testing.T) {
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
+	if ibd == nil {
+		t.FailNow()
+	}
+
+	//ph:=ibd.(*Phantom)
+	anBlock := bd.GetBlock(tbMap[testData.PH_MPConcurrency.Input].GetHash())
+	//fmt.Println(bd.GetMainParentConcurrency(anBlock))
+	if bd.GetMainParentConcurrency(anBlock) != testData.PH_MPConcurrency.Output {
+		t.Fatal()
+	}
+}
+
+func Test_GetBlockConcurrency(t *testing.T) {
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
+	if ibd == nil {
+		t.FailNow()
+	}
+
+	//ph:=ibd.(*Phantom)
+	blueNum, err := bd.GetBlockConcurrency(tbMap[testData.PH_MPConcurrency.Input].GetHash())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if blueNum != uint(testData.PH_BConcurrency.Output) {
+		t.Fatal()
+	}
+}

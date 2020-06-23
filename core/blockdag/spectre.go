@@ -2,9 +2,13 @@ package blockdag
 
 import (
 	"container/list"
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/golang-collections/collections/stack"
 	"io"
+	"strconv"
 )
 
 type Spectre struct {
@@ -84,12 +88,11 @@ func (sp *Spectre) Votes() map[hash.Hash]bool {
 }
 
 func (sp *Spectre) InitVote(b1 IBlock, b2 IBlock) (bool, error) {
-	return false, nil
-	/*sp.candidate1, sp.candidate2 = b1, b2
+	sp.candidate1, sp.candidate2 = b1, b2
 	tiebreak := sp.candidate1.GetHash().String() < sp.candidate2.GetHash().String()
 
-	exist1 := sp.bd.hasBlock(b1.GetHash())
-	exist2 := sp.bd.hasBlock(b2.GetHash())
+	exist1 := sp.bd.hasBlockById(b1.GetID())
+	exist2 := sp.bd.hasBlockById(b2.GetID())
 	if !exist1 && exist2 {
 		return false, fmt.Errorf("block  %v doesn't exist", b1.GetHash())
 	} else if exist1 && !exist2 {
@@ -108,12 +111,12 @@ func (sp *Spectre) InitVote(b1 IBlock, b2 IBlock) (bool, error) {
 	sp.voteBySelf(b1, b2)
 	sp.voteByUniqueFutureSet(b1, b2)
 
-	return tiebreak, nil*/
+	return tiebreak, nil
 }
 
 func (sp *Spectre) Vote(b1 IBlock, b2 IBlock) (bool, error) {
-	return false, nil
-	/*if v, err := sp.InitVote(b1, b2); err != nil {
+
+	if v, err := sp.InitVote(b1, b2); err != nil {
 		return v, err
 	}
 
@@ -129,8 +132,8 @@ func (sp *Spectre) Vote(b1 IBlock, b2 IBlock) (bool, error) {
 		if children == nil { // tips
 			outer.Enqueue(h)
 		} else { // haven't voted children
-			for ch := range children.GetMap() {
-				if !sp.hasVoted(ch) {
+			for _, ch := range children.GetMap() {
+				if !sp.hasVoted(*ch.(IBlock).GetHash()) {
 					outer.Enqueue(h)
 					break
 				}
@@ -153,22 +156,22 @@ func (sp *Spectre) Vote(b1 IBlock, b2 IBlock) (bool, error) {
 			continue
 		}
 
-		for ch := range children.GetMap() {
-			if sp.hasVoted(ch) {
+		for _, ch := range children.GetMap() {
+			if sp.hasVoted(*ch.(IBlock).GetHash()) {
 				continue
 			}
 			all := true // all parented voted
-			chParents := sp.bd.getBlock(&ch).GetParents()
-			for ph := range chParents.GetMap() {
+			chParents := sp.bd.getBlock(ch.(IBlock).GetHash()).GetParents()
+			for _, ph := range chParents.GetMap() {
 				// note: must ignore dangling parent,
 				// e.g. in figure ByteBall2, 7 is a dangling node, so once 17 and 21 are voted, 24 is able to vote
-				if !sp.hasVoted(ph) && !sp.dangling.Has(&ph) {
+				if !sp.hasVoted(*ph.(IBlock).GetHash()) && !sp.dangling.Has(ph.(IBlock).GetHash()) {
 					all = false
 					break
 				}
 			}
 			if all {
-				vb := sp.bd.getBlock(&ch)
+				vb := sp.bd.getBlock(ch.(IBlock).GetHash())
 				sp.VoteByBlock(vb)
 				outer.Enqueue(ch)
 			} else {
@@ -199,7 +202,7 @@ func (sp *Spectre) Vote(b1 IBlock, b2 IBlock) (bool, error) {
 		}
 	}
 
-	return sp.candidate1.GetHash().String() < sp.candidate2.GetHash().String(), nil*/
+	return sp.candidate1.GetHash().String() < sp.candidate2.GetHash().String(), nil
 }
 
 //  TODO: test if there is ancestor-descendant relationship between b1 and b2
@@ -210,8 +213,7 @@ func (sp *Spectre) IsInPastOf(b1 IBlock, b2 IBlock) bool {
 // intersection of virtual block (if not nil) with its past set and voted nodes,
 // note the DIRECTION IS REVERSED than the original graph, which means virtual block is genesis
 func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
-	return nil
-	/*q := util.NewIterativeQueue()
+	q := util.NewIterativeQueue()
 
 	if virtualBlock == nil {
 		for ht := range sp.bd.tips.GetMap() {
@@ -233,7 +235,8 @@ func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 			visited.Add(&h)
 		}
 		hParents := sp.bd.getBlock(&h).GetParents()
-		for ph := range hParents.GetMap() {
+		for _, ib := range hParents.GetMap() {
+			ph := *ib.(IBlock).GetHash()
 			if sp.dangling.Has(&ph) {
 				continue
 			}
@@ -245,10 +248,10 @@ func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 				// must cache block  due to children index
 				sb, ok := cache[ph]
 				if !ok {
-					sb = &Block{hash: ph, parents: NewHashSet()}
+					sb = &Block{hash: ph, parents: NewIdSet(), id: ib.(IBlock).GetID()}
 					cache[ph] = sb
 				}
-				sb.GetParents().Add(&h)
+				sb.GetParents().AddPair(sp.bd.getBlock(&h).GetID(), sp.bd.getBlock(&h))
 			}
 		}
 	}
@@ -259,14 +262,14 @@ func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 	}
 	sb := &SpectreBlockData{hash: vh}
 	vp := &BlockDAG{}
-	vp.Init(spectre, nil, -1)
+	vp.Init(spectre, nil, -1, nil)
 	vp.AddBlock(sb)
 	visited = NewHashSet()
 
 	q = util.NewIterativeQueue()
 	if virtualBlock == nil {
-		for th := range sp.bd.tips.GetMap() {
-			sb := &SpectreBlockData{hash: th}
+		for _, th := range sp.bd.tips.GetMap() {
+			sb := &SpectreBlockData{hash: *th.(IBlock).GetHash()}
 			sb.parents = []*hash.Hash{}
 			// create a virtual block as genesis
 			sb.parents = append(sb.parents, &vh)
@@ -280,7 +283,8 @@ func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 		pos := q.Dequeue().(hash.Hash)
 		visited.Add(&pos)
 		posParents := sp.bd.getBlock(&pos).GetParents()
-		for ph := range posParents.GetMap() {
+		for _, ib := range posParents.GetMap() {
+			ph := *ib.(IBlock).GetHash()
 			if !sp.hasVoted(ph) || sp.dangling.Has(&ph) {
 				continue
 			}
@@ -290,11 +294,11 @@ func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 
 			all := true
 			phChildren := sp.bd.getBlock(&ph).GetChildren()
-			for ch := range phChildren.GetMap() {
-				if _, ok := cache[ch]; !ok {
+			for _, ch := range phChildren.GetMap() {
+				if _, ok := cache[*ch.(IBlock).GetHash()]; !ok {
 					continue
 				}
-				if !visited.Has(&ch) {
+				if !visited.Has(ch.(IBlock).GetHash()) {
 					all = false
 				}
 			}
@@ -307,23 +311,22 @@ func (sp *Spectre) votedPast(virtualBlock IBlock) *BlockDAG {
 		}
 	}
 
-	return vp*/
+	return vp
 }
 
 // Update votes of any node in votedPast
 // Note: the ancestors of the node must have their votes updated since the node needs inherit those votes
 func (sp *Spectre) updateVotes(votedPast *BlockDAG, vh hash.Hash) bool {
-	return false
 	// test if all parents being voted
-	/*canUpdate := true
+	canUpdate := true
 	maxVotes := -1
 	maxParent := new(SpectreBlock)
 
 	// increase votedPast with new nodes, only happening on updating votes in candidates' past sets
-	if !votedPast.hasBlock(&vh) {
+	if !votedPast.hasBlockById(votedPast.getBlock(&vh).GetID()) {
 		vhChildren := sp.bd.getBlock(&vh).GetChildren()
-		for ch := range vhChildren.GetMap() {
-			if !votedPast.hasBlock(&ch) && !sp.hasVoted(ch) {
+		for id, ch := range vhChildren.GetMap() {
+			if !votedPast.hasBlockById(id) && !sp.hasVoted(*ch.(IBlock).GetHash()) {
 				canUpdate = false
 				break
 			}
@@ -341,11 +344,11 @@ func (sp *Spectre) updateVotes(votedPast *BlockDAG, vh hash.Hash) bool {
 	}
 
 	// max parent has more nodes in its future set, which means more votes to inherit
-	for ph := range parents.GetMap() {
-		if ph.IsEqual(votedPast.getGenesis().GetHash()) {
+	for id, ph := range parents.GetMap() {
+		if ph.(IBlock).GetHash().IsEqual(votedPast.getGenesis().GetHash()) {
 			continue
 		}
-		b := votedPast.getBlock(&ph)
+		b := votedPast.getBlockById(id)
 		sb := votedPast.instance.(*Spectre).sblocks[*b.GetHash()]
 		if sb.Votes1 < 0 || sb.Votes2 < 0 {
 			canUpdate = false
@@ -392,7 +395,7 @@ func (sp *Spectre) updateVotes(votedPast *BlockDAG, vh hash.Hash) bool {
 			sp.updateTipVotes(voter, maxParent, votedPast)
 		}
 	}
-	return canUpdate*/
+	return canUpdate
 }
 
 // once we have inherited votes from max parent (the tip with max votes), we need add votes from other tips
@@ -406,15 +409,15 @@ func (sp *Spectre) updateVotes(votedPast *BlockDAG, vh hash.Hash) bool {
 // outside 12 and 12's future set is 13, and 13 has voted c2. so the final votes of 10 would be 3 for c1 and 4 for c2
 
 func (sp *Spectre) updateTipVotes(voter *SpectreBlock, maxParent *SpectreBlock, votedPast *BlockDAG) {
-	/*vb := votedPast.getBlock(voter.GetHash())
+	vb := votedPast.getBlock(voter.GetHash())
 	voterParents := vb.GetParents()
 	tipStack := stack.New()
 	tipSet := NewHashSet()
 	// take out all other tips and add their votes to child
-	for h := range voterParents.GetMap() {
-		if !h.IsEqual(maxParent.GetHash()) && !h.IsEqual(votedPast.getGenesis().GetHash()) {
+	for _, h := range voterParents.GetMap() {
+		if !h.(IBlock).GetHash().IsEqual(maxParent.GetHash()) && !h.(IBlock).GetHash().IsEqual(votedPast.getGenesis().GetHash()) {
 			tipStack.Push(h)
-			tipSet.Add(&h)
+			tipSet.Add(h.(IBlock).GetHash())
 		}
 	}
 	for tipStack.Len() > 0 {
@@ -441,14 +444,15 @@ func (sp *Spectre) updateTipVotes(voter *SpectreBlock, maxParent *SpectreBlock, 
 		// e.g. in ByteBall2 with 21 as the virtual block, from 10's view, if we want to find 12's exclusive future,
 		// we save 12 into tipSet first, the 14 and 15 are 12's exclusive parents since all their children
 		// (just 12 in this case ) exist in tipSet
-		for tp := range tb.GetParents().GetMap() {
+		for _, ib := range tb.GetParents().GetMap() {
+			tp := *ib.(IBlock).GetHash()
 			if tipSet.Has(&tp) {
 				continue
 			}
 			only := true
 			tpChildren := votedPast.getBlock(&tp).GetChildren()
-			for tc := range tpChildren.GetMap() {
-				if !tipSet.Has(&tc) {
+			for _, tc := range tpChildren.GetMap() {
+				if !tipSet.Has(tc.(IBlock).GetHash()) {
 					only = false
 					break
 				}
@@ -458,20 +462,21 @@ func (sp *Spectre) updateTipVotes(voter *SpectreBlock, maxParent *SpectreBlock, 
 				tipSet.Add(&tp)
 			}
 		}
-	}*/
+	}
 }
 func (sp *Spectre) followParents(virtualBlock IBlock) (bool, bool, error) {
 	// if all parents have voted in consistence, then just follow them
-	/*consistent := true
+	consistent := true
 	last := 0
 
-	parents := NewHashSet()
+	parents := NewIdSet()
 	if virtualBlock == nil { // whole graph
 		parents = sp.bd.tips
 	} else { // past set of one node
 		parents = virtualBlock.GetParents()
 	}
-	for ph := range parents.GetMap() {
+	for _, id := range parents.GetMap() {
+		ph := *id.(IBlock).GetHash()
 		if sp.dangling.Has(&ph) {
 			continue
 		}
@@ -502,7 +507,7 @@ func (sp *Spectre) followParents(virtualBlock IBlock) (bool, bool, error) {
 		}
 		return true, firstWin, nil
 	}
-	*/
+
 	return false, false, nil
 }
 
@@ -542,76 +547,78 @@ func (sp *Spectre) VoteByBlock(virtualBlock IBlock) (bool, error) {
 // we need update them from genesis of votePast down to its tips
 func (sp *Spectre) voteFromFutureSet(votedPast *BlockDAG) *HashSet {
 	tips := NewHashSet()
-	/*
-		vb := votedPast.getGenesis()
-		unvisited := util.NewIterativeQueue()
-		visited := NewHashSet()
 
-		vChildren := votedPast.getBlock(vb.GetHash()).GetChildren()
-		for ch := range vChildren.GetMap() {
-			// only children with one parent (virtual block) will be selected as initial tips,
-			// because they are only dependent on their single parent and their votes can be updated directly
-			// e.g. note 22 in ByteBall2, 14, 20 can be initialized with 0 votes, but 15 cannot due to its multiple parents
-			if votedPast.getBlock(&ch).GetParents().Size() == 1 {
-				sb := votedPast.instance.(*Spectre).sblocks[ch]
-				sb.Votes1, sb.Votes2 = 0, 0
+	vb := votedPast.getGenesis()
+	unvisited := util.NewIterativeQueue()
+	visited := NewHashSet()
 
-				parents := sp.bd.getBlock(&ch).GetParents()
-				if parents != nil {
-					for ph := range parents.GetMap() {
-						if !votedPast.hasBlock(&ph) {
-							tips.Add(&ch)
-							break
-						}
-					}
-				} else {
-					if !ch.IsEqual(votedPast.getGenesis().GetHash()) {
-						log.Error("only virtual block can do without parents")
+	vChildren := votedPast.getBlock(vb.GetHash()).GetChildren()
+	for _, ib := range vChildren.GetMap() {
+		ch := *ib.(IBlock).GetHash()
+		// only children with one parent (virtual block) will be selected as initial tips,
+		// because they are only dependent on their single parent and their votes can be updated directly
+		// e.g. note 22 in ByteBall2, 14, 20 can be initialized with 0 votes, but 15 cannot due to its multiple parents
+		if votedPast.getBlock(&ch).GetParents().Size() == 1 {
+			sb := votedPast.instance.(*Spectre).sblocks[ch]
+			sb.Votes1, sb.Votes2 = 0, 0
+
+			parents := sp.bd.getBlock(&ch).GetParents()
+			if parents != nil {
+				for ph := range parents.GetMap() {
+					if !votedPast.hasBlockById(ph) {
+						tips.Add(&ch)
+						break
 					}
 				}
-				cChildren := votedPast.getBlock(&ch).GetChildren()
-				if cChildren != nil && cChildren.Size() > 0 {
-					unvisited.Enqueue(ch)
+			} else {
+				if !ch.IsEqual(votedPast.getGenesis().GetHash()) {
+					log.Error("only virtual block can do without parents")
+				}
+			}
+			cChildren := votedPast.getBlock(&ch).GetChildren()
+			if cChildren != nil && cChildren.Size() > 0 {
+				unvisited.Enqueue(ch)
+			}
+		}
+	}
+
+	// update votes with BFS order
+	for unvisited.Len() > 0 {
+		n := unvisited.Dequeue().(hash.Hash)
+		childrenUpdated := true
+		nChildren := votedPast.getBlock(&n).GetChildren()
+		for _, id := range nChildren.GetMap() {
+			ch := *id.(IBlock).GetHash()
+			if !visited.Has(&ch) {
+				if sp.updateVotes(votedPast, ch) {
+					visited.Add(&ch)
+
+					parents := sp.bd.getBlock(&ch).GetParents()
+					if parents != nil {
+						for ph := range parents.GetMap() {
+							if !votedPast.hasBlockById(ph) {
+								tips.Add(&ch)
+								break
+							}
+						}
+					} else {
+						if !ch.IsEqual(votedPast.getGenesis().GetHash()) {
+							log.Error("only virtual block can do without parents")
+						}
+					}
+					children := votedPast.getBlock(&ch).GetChildren()
+					if children != nil && children.Size() > 0 {
+						unvisited.Enqueue(ch)
+					}
+				} else {
+					childrenUpdated = false
 				}
 			}
 		}
-
-		// update votes with BFS order
-		for unvisited.Len() > 0 {
-			n := unvisited.Dequeue().(hash.Hash)
-			childrenUpdated := true
-			nChildren := votedPast.getBlock(&n).GetChildren()
-			for ch := range nChildren.GetMap() {
-				if !visited.Has(&ch) {
-					if sp.updateVotes(votedPast, ch) {
-						visited.Add(&ch)
-
-						parents := sp.bd.getBlock(&ch).GetParents()
-						if parents != nil {
-							for ph := range parents.GetMap() {
-								if !votedPast.hasBlock(&ph) {
-									tips.Add(&ch)
-									break
-								}
-							}
-						} else {
-							if !ch.IsEqual(votedPast.getGenesis().GetHash()) {
-								log.Error("only virtual block can do without parents")
-							}
-						}
-						children := votedPast.getBlock(&ch).GetChildren()
-						if children != nil && children.Size() > 0 {
-							unvisited.Enqueue(ch)
-						}
-					} else {
-						childrenUpdated = false
-					}
-				}
-			}
-			if !childrenUpdated {
-				unvisited.Enqueue(n)
-			}
-		}*/
+		if !childrenUpdated {
+			unvisited.Enqueue(n)
+		}
+	}
 
 	return tips
 }
@@ -625,15 +632,15 @@ func (sp *Spectre) voteFromFutureSet(votedPast *BlockDAG) *HashSet {
 // repeat this process until all the outer nodes votes for the same candidate, and VB will vote for him as well
 
 func (sp *Spectre) voteFromPastSet(votedPast *BlockDAG, tips *HashSet) bool {
-	return false
-	/*unvisited := util.NewIterativeQueue()
+	unvisited := util.NewIterativeQueue()
 	outerNodes := NewHashSet()
 	for h := range tips.GetMap() {
 		hParents := sp.bd.getBlock(&h).GetParents()
-		for ph := range hParents.GetMap() {
-			if !outerNodes.Has(&ph) && !votedPast.hasBlock(&ph) {
+		for _, ib := range hParents.GetMap() {
+			ph := *ib.(IBlock).GetHash()
+			if !outerNodes.Has(&ph) && !votedPast.hasBlockById(ib.(IBlock).GetID()) {
 				unvisited.Enqueue(ph)
-				outerNodes.Add(&ph)
+				outerNodes.AddPair(&ph, ib)
 			}
 		}
 	}
@@ -646,8 +653,8 @@ func (sp *Spectre) voteFromPastSet(votedPast *BlockDAG, tips *HashSet) bool {
 		} else {
 			lastVote := 0
 			consistent := true
-			for o := range outerNodes.GetMap() {
-				if !votedPast.hasBlock(&o) {
+			for o, ib := range outerNodes.GetMap() {
+				if !votedPast.hasBlockById(ib.(IBlock).GetID()) {
 					consistent = false
 					break
 				}
@@ -675,13 +682,14 @@ func (sp *Spectre) voteFromPastSet(votedPast *BlockDAG, tips *HashSet) bool {
 			} else {
 				removing := NewHashSet()
 				skip := NewHashSet()
-				for o := range outerNodes.GetMap() {
+				for o, ib := range outerNodes.GetMap() {
 					if skip.Has(&o) {
 						continue
 					}
-					allUpdated := votedPast.hasBlock(&o)
+					allUpdated := votedPast.hasBlockById(ib.(IBlock).GetID())
 					oParents := sp.bd.getBlock(&o).GetParents()
-					for ph := range oParents.GetMap() {
+					for _, oib := range oParents.GetMap() {
+						ph := *oib.(IBlock).GetHash()
 						if !sp.updateVotes(votedPast, ph) {
 							allUpdated = false
 							break
@@ -698,9 +706,9 @@ func (sp *Spectre) voteFromPastSet(votedPast *BlockDAG, tips *HashSet) bool {
 				for r := range removing.GetMap() {
 					outerNodes.Remove(&r)
 					rChildren := votedPast.getBlock(&r).GetChildren()
-					for c := range rChildren.GetMap() {
-						if !outerNodes.Has(&c) {
-							outerNodes.Add(&c)
+					for _, c := range rChildren.GetMap() {
+						if !outerNodes.Has(c.(IBlock).GetHash()) {
+							outerNodes.Add(c.(IBlock).GetHash())
 							unvisited.Enqueue(c)
 						}
 					}
@@ -710,46 +718,45 @@ func (sp *Spectre) voteFromPastSet(votedPast *BlockDAG, tips *HashSet) bool {
 	}
 
 	// break the tie
-	return sp.candidate1.GetHash().String() < sp.candidate2.GetHash().String()*/
+	return sp.candidate1.GetHash().String() < sp.candidate2.GetHash().String()
 }
 
 // add voter into voted past set
 func (sp *Spectre) newVoter(vh hash.Hash, votedPast *BlockDAG) IBlock {
-	return nil
-	/*sb := SpectreBlockData{hash: vh}
+	sb := SpectreBlockData{hash: vh}
 	sb.parents = []*hash.Hash{}
 	vhChildren := sp.bd.getBlock(&vh).GetChildren()
-	for h := range vhChildren.GetMap() {
-		hash := h
-		if votedPast.hasBlock(&hash) {
+	for _, ib := range vhChildren.GetMap() {
+		hash := *ib.(IBlock).GetHash()
+		if votedPast.hasBlockById(ib.(IBlock).GetID()) {
 			sb.parents = append(sb.parents, &hash)
 		}
 	}
-	if votedPast.hasBlock(&vh) {
+	if votedPast.hasBlockById(votedPast.getBlock(&vh).GetID()) {
 		log.Error("has already voter ", vh)
 	}
 	//votedPast.AddBlock(&sb)
 	block := Block{hash: *sb.GetHash(), weight: 1}
 	if sb.parents != nil {
-		block.parents = NewHashSet()
+		block.parents = NewIdSet()
 		for _, h := range sb.parents {
 			hash := *h
-			block.parents.Add(&hash)
+			block.parents.Add(votedPast.getBlock(&hash).GetID())
 			parent := votedPast.getBlock(&hash)
 			parent.AddChild(&block)
 		}
 	}
 	if votedPast.blocks == nil {
-		votedPast.blocks = map[hash.Hash]IBlock{}
+		votedPast.blocks = map[uint]IBlock{}
 	}
-	votedPast.blocks[block.hash] = &block
+	votedPast.blocks[block.id] = &block
 	if votedPast.blockTotal == 0 {
 		votedPast.genesis = *block.GetHash()
 	}
 	votedPast.blockTotal++
 	votedPast.updateTips(&block)
 	votedPast.instance.AddBlock(&block)
-	return &block*/
+	return &block
 }
 
 //5) finally, (for the case where z equals x or y ), z votes for itself to succeed any block in past (z) and to precede any block outside past (z).
@@ -760,43 +767,43 @@ func (sp *Spectre) voteBySelf(b1 IBlock, b2 IBlock) {
 
 // 1) if z ∈ G is in future (x) but not in future (y) then it will vote in favour of x (i.e., for x ≺y ).
 func (sp *Spectre) voteByUniqueFutureSet(b1 IBlock, b2 IBlock) {
-	/*fs1 := NewHashSet()
+	fs1 := NewIdSet()
 	sp.bd.getFutureSet(fs1, b1)
 
-	fs2 := NewHashSet()
+	fs2 := NewIdSet()
 	sp.bd.getFutureSet(fs2, b2)
 
-	for hf := range fs1.GetMap() {
-		hfParents := sp.bd.getBlock(&hf).GetParents()
-		for h := range hfParents.GetMap() {
-			if !fs1.Has(&h) && !fs2.Has(&h) {
-				sp.dangling.Add(&h)
+	for hf, ibf := range fs1.GetMap() {
+		hfParents := sp.bd.getBlockById(hf).GetParents()
+		for h, ib := range hfParents.GetMap() {
+			if !fs1.Has(h) && !fs2.Has(h) {
+				sp.dangling.Add(ib.(IBlock).GetHash())
 			}
 		}
-		if fs2.Has(&hf) {
-			fs2.Remove(&hf)
+		if fs2.Has(hf) {
+			fs2.Remove(hf)
 		} else {
-			sp.voteFirst(hf)
+			sp.voteFirst(*ibf.(IBlock).GetHash())
 		}
 	}
 
-	for hf := range fs2.GetMap() {
-		hfParents := sp.bd.getBlock(&hf).GetParents()
-		for h := range hfParents.GetMap() {
-			if !fs1.Has(&h) && !fs2.Has(&h) {
-				sp.dangling.Add(&h)
+	for _, ib := range fs2.GetMap() {
+		hfParents := ib.(IBlock).GetParents()
+		for h, ibp := range hfParents.GetMap() {
+			if !fs1.Has(h) && !fs2.Has(h) {
+				sp.dangling.Add(ibp.(IBlock).GetHash())
 			}
 		}
-		sp.voteSecond(hf)
+		sp.voteSecond(*ib.(IBlock).GetHash())
 	}
 	sp.dangling.Remove(b1.GetHash())
 	sp.dangling.Remove(b2.GetHash())
-	for h := range b1.GetParents().GetMap() {
-		sp.dangling.Remove(&h)
+	for _, ib := range b1.GetParents().GetMap() {
+		sp.dangling.Remove(ib.(IBlock).GetHash())
 	}
-	for h := range b2.GetParents().GetMap() {
-		sp.dangling.Remove(&h)
-	}*/
+	for _, ib := range b2.GetParents().GetMap() {
+		sp.dangling.Remove(ib.(IBlock).GetHash())
+	}
 }
 
 // Currently not supported
@@ -845,5 +852,10 @@ func (sp *Spectre) IsBlue(id uint) bool {
 
 // getMaxParents
 func (sp *Spectre) getMaxParents() int {
+	return 0
+}
+
+// The main parent concurrency of block
+func (sp *Spectre) GetMainParentConcurrency(b IBlock) int {
 	return 0
 }

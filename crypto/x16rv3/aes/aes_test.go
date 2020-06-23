@@ -1,0 +1,46 @@
+package aes
+
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+var input = [...]uint64{
+	0x020000008d870b41, 0x404883ac195d9920, 0x1225a41dd77969a6, 0x8374e68ec8ee7500,
+	0x00000000a2123af0, 0x394e7606b5fec3cb, 0x96ddeea4d1d376ac, 0xc0daeb202c5fc670,
+	0x6c5bb067c7044a53, 0xe3e6001c00104d49, 0x1c5bb367c7024a33, 0xb3e3003c40105d49,
+	0x020000008d870b41, 0x404883ac195d9920, 0x1225a41dd77969a6, 0x8374e68ec8ee7500,
+	0x00000000a2123af0, 0x394e7606b5fec3cb, 0x96ddeea4d1d376ac, 0xc0daeb202c5fc670,
+	0x6c5bb067c7044a53, 0xe3e6001c00104d49, 0x1c5bb367c7024a33, 0xb3e3003c40105d49,
+}
+
+var key = [...]uint64{
+	0xb3e3003c40105d49, 0x020000008d870b41, 0x404883ac195d9920, 0x1225a41dd77969a6,
+	0x8374e68ec8ee7500, 0x00000000a2123af0, 0x394e7606b5fec3cb, 0x96ddeea4d1d376ac,
+	0xc0daeb202c5fc670, 0x6c5bb067c7044a53, 0xe3e6001c00104d49, 0x1c5bb367c7024a33,
+	0xb3e3003c40105d49, 0x020000008d870b41, 0x404883ac195d9920, 0x1225a41dd77969a6,
+	0x8374e68ec8ee7500, 0x00000000a2123af0, 0x394e7606b5fec3cb, 0x96ddeea4d1d376ac,
+	0xc0daeb202c5fc670, 0x6c5bb067c7044a53, 0xe3e6001c00104d49, 0x1c5bb367c7024a33,
+}
+
+var golden = [...]uint64{
+	0x102d0fdce373c5b4, 0x511bb6f35a6b317b, 0xa45ca5dfd74fbb77, 0x3498fde8c3a30596,
+	0x5329922fbb5afb0f, 0xe34d04f3b419762c, 0x7d5f8b3a9517f2ff, 0x4f580029960cd4d8,
+	0xaeeafc470fe9aa58, 0xfac6b37fbb53ea22, 0xbd5ce80e23867cc4, 0xc70fadfbbd0bb20b,
+	0x102d0fdce373c5b4, 0x511bb6f35a6b317b, 0xa45ca5dfd74fbb77, 0x3498fde8c3a30596,
+	0x5329922fbb5afb0f, 0xe34d04f3b419762c, 0x7d5f8b3a9517f2ff, 0x4f580029960cd4d8,
+	0xaeeafc470fe9aa58, 0xfac6b37fbb53ea22, 0xbd5ce80e23867cc4, 0xc70fadfbbd0bb20b,
+}
+
+func TestAes_enc_soft(t *testing.T) {
+	out := make([]uint64, 24)
+
+	for i := 0; i < 12; i++ {
+		Aes_enc_soft(out[i*2:], input[i*2:], key[i*2:])
+	}
+
+	for i := 0; i < 24; i++ {
+		assert.Equal(t, out[i], golden[i])
+	}
+
+}

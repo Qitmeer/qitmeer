@@ -252,12 +252,12 @@ func (vm *Engine) CheckErrorCondition(finalScript bool) error {
 	}
 	if !v {
 		// Log interesting data.
-		log.Trace("%v", newLogClosure(func() string {
+		log.Trace(fmt.Sprintf("%v", newLogClosure(func() string {
 			dis0, _ := vm.DisasmScript(0)
 			dis1, _ := vm.DisasmScript(1)
 			return fmt.Sprintf("scripts failed: script0: %s\n"+
 				"script1: %s", dis0, dis1)
-		}))
+		})))
 		return ErrStackScriptFailed
 	}
 	return nil

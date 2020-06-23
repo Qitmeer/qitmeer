@@ -105,4 +105,4 @@ func (this *Cuckoo) BlockData() PowBytes {
 	return this.Bytes()
 }
 
-func (this *Cuckoo)GraphWeight() uint64 { return 0}
+func (this *Cuckoo) GraphWeight() uint64 { return 0 }

@@ -237,7 +237,7 @@ func NewID() ID {
 // both slices.
 func parseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) {
 
-	ipv4ListenAddrs, ipv6ListenAddrs, _, err := network.ParseListeners(addrs)
+	ipListenAddrs, err := network.ParseListeners(addrs)
 	if err != nil {
 		return nil, err
 	}
@@ -266,11 +266,10 @@ func parseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) 
 			return tls.Listen(net, laddr, &tlsConfig)
 		}
 	}
-	listeners := make([]net.Listener, 0,
-		len(ipv6ListenAddrs)+len(ipv4ListenAddrs))
+	listeners := make([]net.Listener, 0, len(ipListenAddrs))
 
-	for _, addr := range ipv4ListenAddrs {
-		listener, err := listenFunc("tcp4", addr)
+	for _, addr := range ipListenAddrs {
+		listener, err := listenFunc(addr.Network(), addr.String())
 		if err != nil {
 			log.Warn("Can't listen on", "addr", addr, "error", err)
 			continue
@@ -278,14 +277,6 @@ func parseListeners(cfg *config.Config, addrs []string) ([]net.Listener, error) 
 		listeners = append(listeners, listener)
 	}
 
-	for _, addr := range ipv6ListenAddrs {
-		listener, err := listenFunc("tcp6", addr)
-		if err != nil {
-			log.Warn("Can't listen on", "addr", addr, "error", err)
-			continue
-		}
-		listeners = append(listeners, listener)
-	}
 	if len(listeners) == 0 {
 		return nil, fmt.Errorf("No valid listen address")
 	}

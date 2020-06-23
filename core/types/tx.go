@@ -154,11 +154,12 @@ const (
 )
 
 type Transaction struct {
-	Version  uint32
-	TxIn     []*TxInput
-	TxOut    []*TxOutput
-	LockTime uint32
-	Expire   uint32
+	Version   uint32
+	TxIn      []*TxInput
+	TxOut     []*TxOutput
+	LockTime  uint32
+	Expire    uint32
+	Timestamp time.Time // When the transaction was created for extensibility
 
 	Message    []byte //a unencrypted/encrypted message if user pay additional fee & limit the max length
 	CachedHash *hash.Hash
@@ -171,9 +172,10 @@ type Transaction struct {
 // future.
 func NewTransaction() *Transaction {
 	return &Transaction{
-		Version: TxVersion,
-		TxIn:    make([]*TxInput, 0, defaultTxInOutAlloc),
-		TxOut:   make([]*TxOutput, 0, defaultTxInOutAlloc),
+		Version:   TxVersion,
+		TxIn:      make([]*TxInput, 0, defaultTxInOutAlloc),
+		TxOut:     make([]*TxOutput, 0, defaultTxInOutAlloc),
+		Timestamp: time.Now(),
 	}
 }
 
@@ -230,11 +232,11 @@ func (tx *Transaction) SerializeSize() int {
 	// Unknown type return 0.
 	n := 0
 
-	// Version 4 bytes + LockTime 4 bytes + Expire 4 bytes + Serialized
+	// Version 4 bytes + LockTime 4 bytes + Expire 4 bytes + Timestamp 4 bytes + Serialized
 	// varint size for the number of transaction inputs (x2) and
 	// outputs. The number of inputs is added twice because it's
 	// encoded once in both the witness and the prefix.
-	n = 12 + s.VarIntSerializeSize(uint64(len(tx.TxIn))) +
+	n = 16 + s.VarIntSerializeSize(uint64(len(tx.TxIn))) +
 		s.VarIntSerializeSize(uint64(len(tx.TxOut))) +
 		s.VarIntSerializeSize(uint64(len(tx.TxIn)))
 
@@ -253,7 +255,7 @@ func (tx *Transaction) SerializeSize() int {
 func (tx *Transaction) SerializeSizeNoWitness() int {
 	// Unknown type return 0.
 	n := 0
-	// Version 4 bytes + LockTime 4 bytes + Expiry 4 bytes +
+	// Version 4 bytes + LockTime 4 bytes + Expiry 4 bytes
 	// Serialized varint size for the number of transaction
 	// inputs and outputs.
 	n = 12 + s.VarIntSerializeSize(uint64(len(tx.TxIn))) +
@@ -317,6 +319,10 @@ func (tx *Transaction) Encode(w io.Writer, pver uint32, serType TxSerializeType)
 	if serType != TxSerializeFull {
 		return nil
 	}
+	err = s.BinarySerializer.PutUint32(w, binary.LittleEndian, uint32(tx.Timestamp.Unix()))
+	if err != nil {
+		return err
+	}
 	return tx.encodeWitness(w, 0)
 }
 
@@ -352,7 +358,6 @@ func (tx *Transaction) encodePrefix(w io.Writer, pver uint32) error {
 	if err != nil {
 		return err
 	}
-
 	return s.BinarySerializer.PutUint32(w, binary.LittleEndian, tx.Expire)
 }
 
@@ -447,6 +452,11 @@ func (tx *Transaction) Decode(r io.Reader, pver uint32) error {
 			returnScriptBuffers()
 			return err
 		}
+		sec, err := s.BinarySerializer.Uint32(r, binary.LittleEndian)
+		if err != nil {
+			return err
+		}
+		tx.Timestamp = time.Unix(int64(sec), 0)
 		totalScriptSizeIns, err := tx.decodeWitness(r)
 		if err != nil {
 			returnScriptBuffers()
@@ -539,7 +549,6 @@ func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-
 	return totalScriptSize, nil
 }
 
@@ -788,9 +797,10 @@ func (tx *Transaction) IsCoinBase() bool {
 // first access so subsequent accesses don't have to repeat the relatively
 // expensive hashing operations.
 type Tx struct {
-	Tx      *Transaction // Underlying Transaction
-	hash    hash.Hash    // Cached transaction hash
-	txIndex int          // Position within a block or TxIndexUnknown
+	Tx          *Transaction // Underlying Transaction
+	hash        hash.Hash    // Cached transaction hash
+	txIndex     int          // Position within a block or TxIndexUnknown
+	IsDuplicate bool         // Whether duplicate tx.
 }
 
 // Transaction() returns the underlying Tx for the transaction.
@@ -815,13 +825,18 @@ func (t *Tx) SetIndex(index int) {
 	t.txIndex = index
 }
 
+func (t *Tx) Index() int {
+	return t.txIndex
+}
+
 // NewTx returns a new instance of a transaction given an underlying
 // wire.MsgTx.  See Tx.
 func NewTx(t *Transaction) *Tx {
 	return &Tx{
-		hash:    t.TxHash(),
-		Tx:      t,
-		txIndex: TxIndexUnknown,
+		hash:        t.TxHash(),
+		Tx:          t,
+		txIndex:     TxIndexUnknown,
+		IsDuplicate: false,
 	}
 }
 
@@ -864,6 +879,7 @@ func NewTxDeep(msgTx *Transaction) *Tx {
 		TxOut:      txOuts,
 		LockTime:   msgTx.LockTime,
 		Expire:     msgTx.Expire,
+		Timestamp:  msgTx.Timestamp,
 	}
 
 	return &Tx{
@@ -888,6 +904,7 @@ func NewTxDeepTxIns(msgTx *Transaction) *Tx {
 	newMsgTx.Version = msgTx.Version
 	newMsgTx.LockTime = msgTx.LockTime
 	newMsgTx.Expire = msgTx.Expire
+	newMsgTx.Timestamp = msgTx.Timestamp
 
 	// Copy the TxIns deeply.
 	for _, txIn := range msgTx.TxIn {

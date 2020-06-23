@@ -698,6 +698,16 @@ func (ph *Phantom) IsDAG(parents []IBlock) bool {
 	return true
 }
 
+// The main parent concurrency of block
+func (ph *Phantom) GetMainParentConcurrency(b IBlock) int {
+	if !b.HasParents() {
+		return 0
+	}
+	pblock := b.(*PhantomBlock)
+	result := pblock.redDiffAnticone.Size() + pblock.blueDiffAnticone.Size() + 1
+	return result
+}
+
 func (ph *Phantom) getMaxParents() int {
 	dagMax := ph.anticoneSize + 1
 	if dagMax < types.MaxParentsPerBlock {

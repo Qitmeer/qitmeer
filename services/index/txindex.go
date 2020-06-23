@@ -246,12 +246,15 @@ func dbAddTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock, blockID
 			putTxIndexEntry(serializedValues[offset:], blockID,
 				txLocs[i])
 			endOffset := offset + txEntrySize
-			if err := dbPutTxIndexEntry(dbTx, tx.Hash(),
-				serializedValues[offset:endOffset:endOffset]); err != nil {
-				return err
-			}
-			if err := dbPutTxIdByHash(dbTx, tx.Tx.TxHashFull(), tx.Hash()); err != nil {
-				return err
+
+			if !tx.IsDuplicate {
+				if err := dbPutTxIndexEntry(dbTx, tx.Hash(),
+					serializedValues[offset:endOffset:endOffset]); err != nil {
+					return err
+				}
+				if err := dbPutTxIdByHash(dbTx, tx.Tx.TxHashFull(), tx.Hash()); err != nil {
+					return err
+				}
 			}
 			offset += txEntrySize
 		}

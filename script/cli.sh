@@ -211,7 +211,7 @@ function generate() {
   local count=$1
   local powtype=$2
   if [ "$powtype" == "" ]; then
-    powtype=0
+    powtype=6
   fi
   local data='{"jsonrpc":"2.0","method":"miner_generate","params":['$count','$powtype'],"id":null}'
   get_result "$data"
@@ -351,6 +351,12 @@ function is_blue(){
   get_result "$data"
 }
 
+function get_fees(){
+  local block_hash=$1
+  local data='{"jsonrpc":"2.0","method":"getFees","params":["'$block_hash'"],"id":1}'
+  get_result "$data"
+}
+
 function get_result(){
   local proto="https"
   if [ $notls -eq 1 ]; then
@@ -434,6 +440,7 @@ function usage(){
   echo "  iscurrent"
   echo "  tips"
   echo "  coinbase <hash>"
+  echo "  fees <hash>"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txbyhash <hash>"
@@ -727,6 +734,10 @@ elif [ "$1" == "isblue" ]; then
   shift
   is_blue $@
 
+elif [ "$1" == "fees" ]; then
+  shift
+  get_fees $@
+
 elif [ "$1" == "nodeinfo" ]; then
   shift
   get_node_info
@@ -895,7 +906,7 @@ elif [ "$1" == "mining" ]; then
   stop_mining
 elif [ "$1" == "generate" ]; then
   shift
-  generate $1|jq .
+  generate $@|jq .
 
 
 ## INFO & STATUS

@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
@@ -35,6 +36,7 @@ const (
 	defaultMaxPeers               = 125
 	defaultMiningStateSync        = false
 	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
+	defaultTrickleInterval        = peer.TrickleTimeout
 )
 const (
 	defaultSigCacheMaxSize = 100000
@@ -80,6 +82,8 @@ func LoadConfig() (*config.Config, []string, error) {
 		DAGType:           defaultDAGType,
 		Banning:           false,
 		MaxInbound:        defaultMaxInboundPeersPerHost,
+		TxIndex:           true,
+		TrickleInterval:   defaultTrickleInterval,
 	}
 
 	// Pre-parse the command line options to see if an alternative config

@@ -32,11 +32,11 @@ var TestNetParam = netParams{
 // privNetParams contains parameters specific to the private test network
 var PrivNetParam = netParams{
 	Params:  &PrivNetParams,
-	RpcPort: "28131",
+	RpcPort: "38131",
 }
 
 // MixNetParam contains parameters specific to the mix pow test network
 var MixNetParam = netParams{
 	Params:  &MixNetParams,
-	RpcPort: "28132",
+	RpcPort: "28131",
 }

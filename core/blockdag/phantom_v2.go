@@ -479,3 +479,8 @@ func (ph *Phantom_v2) IsBlue(id uint) bool {
 func (ph *Phantom_v2) getMaxParents() int {
 	return 0
 }
+
+// The main parent concurrency of block
+func (ph *Phantom_v2) GetMainParentConcurrency(b IBlock) int {
+	return 0
+}

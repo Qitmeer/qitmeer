@@ -43,39 +43,36 @@ const (
 //
 // This function MUST be called with the chain state lock held (for writes).
 func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
-	for {
-		needLoop := false
-		for _, v := range b.orphans {
-			allExists := true
-			for _, h := range v.block.Block().Parents {
-				exists := b.index.HaveBlock(h)
-				if !exists {
-					allExists = false
-					break
-				}
-			}
-			if allExists {
-
-				b.removeOrphanBlock(v)
-				//
-				exists := b.index.HaveBlock(v.block.Hash())
-				if exists {
-					continue
-				}
-				// Potentially accept the block into the block chain.
-				err := b.maybeAcceptBlock(v.block, flags)
-				if err != nil {
-					return err
-				}
-				needLoop = true
-				break
-			}
-		}
-		if !needLoop {
-			return nil
-		}
+	queue := []*orphanBlock{}
+	for _, v := range b.orphans {
+		queue = append(queue, v)
 	}
 
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		exists := b.index.HaveBlock(cur.block.Hash())
+		if exists {
+			b.removeOrphanBlock(cur)
+			continue
+		}
+
+		allExists := true
+		for _, h := range cur.block.Block().Parents {
+			exists := b.index.HaveBlock(h)
+			if !exists {
+				allExists = false
+			}
+
+		}
+		if !allExists {
+			continue
+		}
+		b.removeOrphanBlock(cur)
+		b.maybeAcceptBlock(cur.block, flags)
+	}
+	return nil
 }
 
 // ProcessBlock is the main workhorse for handling insertion of new blocks into

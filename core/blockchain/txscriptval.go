@@ -216,12 +216,17 @@ func checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint,
 	// validation for all transactions in the block into a single slice.
 	numInputs := 0
 	txs := block.Transactions()
-
 	for _, tx := range txs {
+		if tx.IsDuplicate {
+			continue
+		}
 		numInputs += len(tx.Transaction().TxIn)
 	}
 	txValItems := make([]*txValidateItem, 0, numInputs)
 	for _, tx := range txs {
+		if tx.IsDuplicate {
+			continue
+		}
 		for txInIdx, txIn := range tx.Transaction().TxIn {
 			// Skip coinbases.
 			if txIn.PreviousOut.OutIndex == math.MaxUint32 {

@@ -17,8 +17,10 @@ import (
 // mainPowLimit is the highest proof of work value a block can
 // have for the main network. It is the value 2^224 - 1.
 var mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 224), common.Big1)
+
 // target time per block unit second(s)
 const mainTargetTimePerBlock = 60 * 5
+
 // MainNetParams defines the network parameters for the main network.
 var MainNetParams = Params{
 	Name:        "mainnet",
@@ -34,20 +36,28 @@ var MainNetParams = Params{
 	GenesisBlock: &genesisBlock,
 	GenesisHash:  &genesisHash,
 	PowConfig: &pow.PowConfig{
-		Blake2bdPowLimit:     mainPowLimit,
-		Blake2bdPowLimitBits: 0x1d00ffff,
+		Blake2bdPowLimit:             mainPowLimit,
+		Blake2bdPowLimitBits:         0x1d00ffff,
+		X16rv3PowLimit:               mainPowLimit,
+		X16rv3PowLimitBits:           0x1d00ffff,
+		X8r16PowLimit:                mainPowLimit,
+		X8r16PowLimitBits:            0x1d00ffff,
+		QitmeerKeccak256PowLimit:     mainPowLimit,
+		QitmeerKeccak256PowLimitBits: 0x1d00ffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 find once
-		CuckarooMinDifficulty: 0x1300000 * 4,
-		CuckatooMinDifficulty: 0x1300000 * 4,
+		CuckarooMinDifficulty:  0x1300000 * 4,
+		CuckaroomMinDifficulty: 0x1300000 * 4,
+		CuckatooMinDifficulty:  0x1300000 * 4,
 
 		Percent: []pow.Percent{
 			{
-				Blake2bDPercent: 10,
-				CuckarooPercent: 70,
-				CuckatooPercent: 20,
-				MainHeight:      0,
+				Blake2bDPercent:         10,
+				CuckarooPercent:         60,
+				CuckatooPercent:         20,
+				QitmeerKeccak256Percent: 10,
+				MainHeight:              0,
 			},
 		},
 		// after this height the big graph will be the main pow graph

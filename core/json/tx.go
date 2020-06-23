@@ -12,6 +12,7 @@ type TxRawResult struct {
 	Size          int32  `json:"size,omitempty"`
 	Version       uint32 `json:"version"`
 	LockTime      uint32 `json:"locktime"`
+	Timestamp     string `json:"timestamp"`
 	Expire        uint32 `json:"expire"`
 	Vin           []Vin  `json:"vin"`
 	Vout          []Vout `json:"vout"`
@@ -21,6 +22,7 @@ type TxRawResult struct {
 	Confirmations int64  `json:"confirmations"`
 	Time          int64  `json:"time,omitempty"`
 	Blocktime     int64  `json:"blocktime,omitempty"`
+	Duplicate     bool   `json:"duplicate,omitempty"`
 }
 
 // Vin models parts of the tx data.  It is defined separately since
