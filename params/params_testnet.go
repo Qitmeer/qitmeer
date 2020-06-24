@@ -32,7 +32,6 @@ var TestNetParams = Params{
 	DNSSeeds: []DNSSeed{
 		{"testnet-seed.hlcwallet.info", true},
 		{"testnet-seed.qitmeer.xyz", true},
-		{"testnet-seed.qitmeer.top", true},
 		{"seed.qitmir.info", true},
 	},
 
