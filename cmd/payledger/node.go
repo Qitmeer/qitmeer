@@ -109,10 +109,11 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 		if bar != nil {
 			fmt.Println()
 		}
-		log.Info(fmt.Sprintf("End process block DAG:(%d/%d)", i, srcTotal))
+		log.Info(fmt.Sprintf("End process block DAG:(%d/%d)", i-1, srcTotal))
 	}()
-	for ; i < srcTotal; i++ {
-		blockHash := srcnode.bc.BlockDAG().GetBlockHash(i)
+	mainTip := srcnode.bc.BlockDAG().GetMainChainTip()
+	for ; i < mainTip.GetOrder(); i++ {
+		blockHash := srcnode.bc.BlockDAG().GetBlockByOrder(i)
 		if blockHash == nil {
 			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d)!", i))
 		}
