@@ -2,6 +2,7 @@ Table of Contents
 =================
 
    * [Qitmeer Testnet](#qitmeer-testnet)
+      * [v0.9.0 2020/06/24 (Medina2.0)](#v090-20200624-medina20)
       * [v0.8.5 2019/12/30 (Medina)](#v085-20191230-medina)
       * [v0.8.4 2019/12/17](#v084-20191217)
       * [v0.8.3 2019/12/08](#v083-20191208)
@@ -20,9 +21,30 @@ Table of Contents
 
 # Qitmeer Testnet
 
+## v0.9.0 2020/06/24 (Medina2.0)
+
+The Medina Network 2.0
+
+| Median 2.0         |     Info             |
+| -------------------|----------------------|
+| **Testnet Type**   | Public               |
+| **Version**        | *0.9.0*              |
+| **Start Date**     | 2020-6-24 10:00:00 GMT+8 |
+
 ## v0.8.5 2019/12/30 (Medina)
 
 The Official Public Testnet : The Medina Network
+
+| Median 1.0         |     Info             |
+| -------------------|----------------------|
+| **Testnet Type**   | Public               |
+| **Version**        | *0.8.5*              |
+| **Genesis Hash**   |```caf26cf7705c0917bfb157150ab29f196465daf83c8ac1c82553aa9f207bd584```|
+| **Final Block Order** | 542370               |
+| **Final Block Hash**  | ```000000b4aef80adc15ab993cd8291ca08fc3000ed42fe5f696dd7b4a59c244e6```|               |
+| **Total rewarded block** | 541195 |
+| **Start Date**     | 2019-12-30 15:52:25 GMT+8 |
+| **End Date**       | 2020-06-20 15:40:45 GMT+8 |
 
 ## v0.8.4 2019/12/17
 

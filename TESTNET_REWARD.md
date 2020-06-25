@@ -1,11 +1,84 @@
 # Qitmeer Testnet Mining Reward
 
 ## Table of Contents
+   * [0.9.0 Testnet Genesis Reward](#090-testnet-genesis-reward)
+   * [0.8.5 Testnet Genesis Reward](#085-testnet-genesis-reward)
+   * [0.8.4 Testnet Reward](#084-testnet-reward)
    * [0.8.3 Testnet Reward](#083-testnet-reward)
       * [0.8.3 rewards](#083-rewards)
    * [0.8.0 &amp; 0.8.1 Testnet Reward](#080--081-testnet-reward)
       * [The 162 Mined Blocks List](#the-162-mined-blocks-list)
       * [Reward Ranking](#reward-ranking)
+
+## 0.9.0 Testnet Genesis Reward
+
+```
+0.9.0 = 0.8.5_gensis_reword + 0.8.5_minging_reward
+      = 29965004366634 + 541194 * 12000000000
+      = 29965004366634 + 6494328000000000
+      = 6524293004366634
+```
+## 0.8.5 Testnet Genesis Reward
+
+```
+0.8.5 = 0.8.0 + 0.8.1 + 0.8.3 + 0.8.4
+      = 29965004366634
+```
+
+## 0.8.4 Testnet Reward
+
+```go
+	addPayout("TmmM6mx54w4naqvFdvGHhuVDrYcRgcaKoLp", 2015000000000, "76a914f5ad3a1a929699dff10a931fc52e14054302aad288ac")
+	addPayout("TmkPtQBid5EsB1oc1SttnzBQCyD9qMZ5MWZ", 1852500000000, "76a914eb3c04cb5f937e17ea23a2d53b9afd0f531ddf7188ac")
+	addPayout("TmegTyjYRdVt8EXY4BCUczrzXyxvsvtFUqX", 1443000000000, "76a914ac8df3038489ff322de2d9ad08250a8f5d881ef588ac")
+	addPayout("TmbFqCS3XWo6Q2DxgswBygVvn5D7Xep5pjD", 890500000000, "76a91486fce2b38fb911fb821b111b00d6f95e3e69bbb988ac")
+	addPayout("TmPvQaAAtHWDhzGdsd8gQ2q3rkuzfKJeaws", 793000000000, "76a9140aa70adacfa43a6391e01310eefaa602f7fb2d0288ac")
+	addPayout("TmipQ2TNjP3EQCqpSbreGDz48nYcSdorGgU", 767000000000, "76a914d9ee7af0b44334f3bf7451d62ca3874e175b72ab88ac")
+	addPayout("Tmh3je9zbnHAvPfwwHhQsFSJmKkeRTtKqmV", 403000000000, "76a914c68402a894795316d54635ac8193713a4e8a471a88ac")
+	addPayout("TmUBfuZVNB4DemaPaqVsLofYiJJjbbf6226", 403000000000, "76a914396a95e831c17075f3b7c7db0f52e0917207700a88ac")
+	addPayout("TmfEem5qkmqggTFBshbwPyTTqNERgbD4EPn", 364000000000, "76a914b2a442a48d7bcc7fe83bb205c4fa3027b1d4c05a88ac")
+	addPayout("TmhfrVtbyjRFSu79R6LNFrX6tXFbChfGWCZ", 305500000000, "76a914cd58b5986b82fe324e9e531855bb91b6b386f0d488ac")
+	addPayout("TmdynELSnV85MivyKsHWGjh3d6gSyDxjooD", 214500000000, "76a914a4dc2171668d2267957e0f59cd41de06503f5f0188ac")
+	addPayout("Tme9dVJ4GeWRninBygrA6oDwCAGYbBvNxY7", 195000000000, "76a914a6b8fe2348fad076b7fd1b34b7e5b35db96dc2a088ac")
+	addPayout("TmUydoYNPxk649eazAwchL7psMTLPfXrXFc", 188500000000, "76a914421bf6b2f8f8f5c8cb1dafa27d107a6f682fb5fa88ac")
+	addPayout("Tmcubtx2XRRQMoBa4Cb2LHJhWnR1TLXEEjB", 182000000000, "76a9149919b6e36f72f575faef0a53086bce0f8b482e4588ac")
+	addPayout("TmgtbbazEm6b28cjQeC8coMEpHUGpWSywTG", 182000000000, "76a914c4c98d3b8d80acb9f3fdf113266d476cf779c80988ac")
+	addPayout("TmUQjNKPA3dLBB6ZfcKd4YSDThQ9Cqzmk5S", 175500000000, "76a9143be2e1e7eaffe6ee4c90d5db043576df7f2e174b88ac")
+	addPayout("TmhBGnH35LSwPecZ9tCqL88UTfo28Q3PUi6", 162500000000, "76a914c7f0ea9fcbdfb7b37a5bb8c0dd4aedeba6d84b0f88ac")
+	addPayout("TmfLjksDFTTwaPiNv6zBTGS8tkqMt6ci2Cj", 143000000000, "76a914b3caed3f7cf96df47b662154bc2d2639a0afbab888ac")
+	addPayout("TmUquGBdL1PgCuq7t29yJQ6DLC2teb1U8AS", 136500000000, "76a91440a58a714092e320d44b5d792b1c24e10b1d91a288ac")
+	addPayout("TmjM2Vrf8tV3hmpKLkqyd5cNyL5JLisDSm9", 123500000000, "76a914dfb9679d8672d94e3be0d3fcaec1cd3a0d05b24688ac")
+	addPayout("TmhEDGfGAEuV5rWkVgC7Jka2HZYrRXnJXoH", 117000000000, "76a914c87f3bddfdf8f5a991171ecd506b436f56416f2b88ac")
+	addPayout("TmcwnXt3d3bMxp7p2KY4jWJnZ3RALX8cABH", 110500000000, "76a91499836ce9b7171fdb8b217b5e10da2a4da70c469588ac")
+	addPayout("TmjTooPeHr27TLkJzvXM9NabbyTEqXY2Bay", 91000000000, "76a914e101b78c6027cfe0818fe0b1d2f58cc0dacebda588ac")
+	addPayout("TmbNTwPm9aTN7TtStnJjrcjsaRJWm4gt3Fs", 78000000000, "76a914883e0d08cf453696b756baabadae1da8ab3f227888ac")
+	addPayout("TmUWxxq66VCdAJtf5kxPVGwHN8LzXyqRk8L", 78000000000, "76a9143d10ba0e5a0ecf10205da56e2e6287d95041e8ec88ac")
+	addPayout("TmgWMUZtDcBe36bxXG8FBCu8C3KFuy3F9jC", 78000000000, "76a914c0949ce6ebbb741d242b94a69691d3a5a823a7bf88ac")
+	addPayout("TmSrZGuXMTgNgb1ci47ZraNaCtr5CiRF9RX", 71500000000, "76a9142ad5053a61dcac095b0b1ccfbdbb9db5a9fdbe7788ac")
+	addPayout("TmUvv3cYB4TDtqSo47kKBvkvGn7JjgWwuGe", 71500000000, "76a9144198464193e97de7d5abfbdafa81bc92c5d553cb88ac")
+	addPayout("TmfTUZcZNrtvuyqfZym5LJ2sT2MN3p5WES8", 65000000000, "76a914b51127b89f9b704e7cfbc69286f0de2e00e7196988ac")
+	addPayout("TmRZH8a4nQhBkfYnq28x1HdTNQ5wMJLWPh4", 58500000000, "76a9141c9858e1a4eec5b55284452643c9ad667584745488ac")
+	addPayout("TmgpqUCHq2ibCTKsn2hDxqQ5i7RyyaqrA66", 58500000000, "76a914c41377d3cc961af1bbcc2ef9e7c51200cd78c2c888ac")
+	addPayout("Tmgi1VwHrAG9bb9hXSeEUv76uchPQGgt5pj", 58500000000, "76a914c2c8edd1fb50e671ac9e02df61c24ec7b34a946988ac")
+	addPayout("TmYL7UUoFQNkZedhYWP4SbhtHtYVzgLjmis", 52000000000, "76a91466e3c256cd99edecec9dab64331e5b31bc363f6988ac")
+	addPayout("TmkuVRGjxor5iNJKThmkoRMKe4cBX8DRc6e", 45500000000, "76a914f0d5505462b0ed67a8699ccdf7996f51dfa1ae9588ac")
+	addPayout("TmZKHhMmHHbaMHavyQ5BPGtC5tUVbkj8NVp", 45500000000, "76a91471b4007c21ea2981bf1f70c515a0aac25a51c5ed88ac")
+	addPayout("TmTr6FyJeBWq8LHdj1ZbH84nKxDiz3tQGJG", 45500000000, "76a91435b698232c8f4f6cbf041e39de7034f74d27a6be88ac")
+	addPayout("TmQ3GgoAPrtyoAENtsKJtt9VHNcep8wnSuB", 39000000000, "76a9140bf35f216a935ced787c9fbc4ff0120bb3bd5ba388ac")
+	addPayout("Tmc87uCQXqUaa7UPA6ESwe7P9L6ZV921UAh", 39000000000, "76a914907fa0608260e855962e1a012b148c81baf2944988ac")
+	addPayout("TmYMr6ducGkYqiigLqiBV3ZiAUnA6c7dHuN", 39000000000, "76a9146737c15c9bb816b324414504880abd1982236b8d88ac")
+	addPayout("TmSf8M4Tb4P1Z3mnH1mtiFDGH2qqLzinjfg", 32500000000, "76a91428aba2bbedcf675144d55956dc320fa723750fd088ac")
+	addPayout("TmZkkmz8t1KR8uvvnuHcXr7LMXs1AArTbHX", 32500000000, "76a91476850189256ff6034c969a4ca0734edc2c91858788ac")
+	addPayout("Tmgw6ttQsrWRsWfXPw6BgWRcviLarZUca48", 32500000000, "76a914c542d730d2c85beed2524442226dfeaa14e4426b88ac")
+	addPayout("TmWRM7fk8SzBWvuUQv2cJ4T7nWPnNmzrbxi", 26000000000, "76a91451f0f9769d35046223677248116f5ea6399d2f4c88ac")
+	addPayout("TmcCoVxM457qo1dtchcjsm9z8rr7YCedAKo", 26000000000, "76a9149162589b9fba1d4353ad566693099a72bb3195b888ac")
+	addPayout("TmiUTbeknVTaEPKDRq8rZsvQudXHjtLagKL", 26000000000, "76a914d629249ea7d3c4a9754b65b499152ae6eccd96d888ac")
+	addPayout("TmY1k7x8o1orjHDGdctVVsqz74a6j1eick3", 19500000000, "76a914636a724a9fc5074aef8381f45725f8d304f408b788ac")
+	addPayout("TmjpmECxxekaLjZA61f6T32cmmPmvjUr7iD", 13000000000, "76a914e4f84e19030a26d9090387e81cb569a06cbcabc088ac")
+	addPayout("TmQ67Hr2hfHpYEU4ThKPRnVE62h8aBMY3DT", 13000000000, "76a9140c7cc6bf257fc562e8c48cdcd7f87e02a6d1c97588ac")
+	addPayout("TmRShC5EEhKp9njDyH465xDdpoQY4bA3DpW", 13000000000, "76a9141b5985230159c1060a240affb863ac15ddb773b288ac")
+	addPayout("Tmin7cp5Bn2bTfpFq9my6bsecQGJdTHcFCg", 6500000000, "76a914d97ff3afeebcadad40288e9fe4a757adc4e93ae088ac")
+```
 
 ## 0.8.3 Testnet Reward
 
