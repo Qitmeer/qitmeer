@@ -43,8 +43,14 @@ func (sp *serverPeer) OnSyncDAG(p *peer.Peer, msg *message.MsgSyncDAG) {
 	blocks, point := dagSync.CalcSyncBlocks(msg.GS, msg.MainLocator, blockdag.SubDAGMode, message.MaxBlockLocatorsPerMsg)
 
 	if point != nil {
-		spmsg := message.NewMsgSyncPoint(gs.Clone(), point)
-		p.QueueMessage(spmsg, nil)
+		needSP := true
+		if len(msg.MainLocator) > 0 && point.IsEqual(msg.MainLocator[0]) {
+			needSP = false
+		}
+		if needSP {
+			spmsg := message.NewMsgSyncPoint(gs.Clone(), point)
+			p.QueueMessage(spmsg, nil)
+		}
 	}
 	hsLen := len(blocks)
 	if hsLen == 0 {
