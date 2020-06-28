@@ -82,7 +82,6 @@ func LoadConfig() (*config.Config, []string, error) {
 		DAGType:           defaultDAGType,
 		Banning:           false,
 		MaxInbound:        defaultMaxInboundPeersPerHost,
-		TxIndex:           true,
 		TrickleInterval:   defaultTrickleInterval,
 	}
 
@@ -302,6 +301,18 @@ func LoadConfig() (*config.Config, []string, error) {
 	if cfg.AddrIndex && cfg.DropAddrIndex {
 		err := fmt.Errorf("%s: the --addrindex and --dropaddrindex "+
 			"options may not be activated at the same time",
+			funcName)
+		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, usageMessage)
+		return nil, nil, err
+	}
+
+	// --addrindex and --droptxindex do not mix.
+	if cfg.AddrIndex && cfg.DropTxIndex {
+		err := fmt.Errorf("%s: the --addrindex and --droptxindex "+
+			"options may not be activated at the same time "+
+			"because the address index relies on the transaction "+
+			"index",
 			funcName)
 		fmt.Fprintln(os.Stderr, err)
 		fmt.Fprintln(os.Stderr, usageMessage)
