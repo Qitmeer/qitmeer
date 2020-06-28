@@ -953,6 +953,8 @@ func (b *BlockManager) checkSyncPeer() {
 	if !disconnectSyncPeer && b.syncPeer.LastGS().IsEqual(best.GraphState) {
 		disconnectSyncPeer = true
 	}
+	log.Debug(fmt.Sprintf("Because no progress for: %v, try to update sync peer...",
+		time.Since(b.lastProgressTime)))
 	b.updateSyncPeer(disconnectSyncPeer)
 }
 
@@ -980,8 +982,7 @@ func (b *BlockManager) clearRequestedState(sp *peer.ServerPeer) {
 // If we are in header first mode, any header state related to prefetching is
 // also reset in preparation for the next sync peer.
 func (b *BlockManager) updateSyncPeer(dcSyncPeer bool) {
-	log.Debug(fmt.Sprintf("Updating sync peer, no progress for: %v",
-		time.Since(b.lastProgressTime)))
+	log.Debug("Updating sync peer")
 
 	// First, disconnect the current sync peer if requested.
 	if dcSyncPeer && b.syncPeer != nil {
