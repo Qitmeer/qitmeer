@@ -82,7 +82,6 @@ func LoadConfig() (*config.Config, []string, error) {
 		DAGType:           defaultDAGType,
 		Banning:           false,
 		MaxInbound:        defaultMaxInboundPeersPerHost,
-		TxIndex:           true,
 		TrickleInterval:   defaultTrickleInterval,
 	}
 
@@ -296,16 +295,6 @@ func LoadConfig() (*config.Config, []string, error) {
 	// DebugPrintOrigins
 	if cfg.DebugPrintOrigins {
 		log.PrintOrigins(true)
-	}
-
-	// --txindex and --droptxindex do not mix.
-	if cfg.TxIndex && cfg.DropTxIndex {
-		err := fmt.Errorf("%s: the --txindex and --droptxindex "+
-			"options may  not be activated at the same time",
-			funcName)
-		fmt.Fprintln(os.Stderr, err)
-		fmt.Fprintln(os.Stderr, usageMessage)
-		return nil, nil, err
 	}
 
 	// --addrindex and --dropaddrindex do not mix.

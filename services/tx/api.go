@@ -309,20 +309,20 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 
 		mtx = tx.Transaction()
 	}
-
+	coinbaseAmout := uint64(0)
 	if blkHash != nil {
 		blkHashStr = blkHash.String()
 		confirmations = int64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(
 			api.txManager.bm.GetChain().BlockIndex().GetDAGBlockID(blkHash)))
 
 		if mtx.IsCoinBase() {
-			mtx.TxOut[0].Amount += uint64(api.txManager.bm.GetChain().GetFees(blkHash))
+			coinbaseAmout = mtx.TxOut[0].Amount + uint64(api.txManager.bm.GetChain().GetFees(blkHash))
 		}
 	}
 	if tx != nil {
 		confirmations = 0
 	}
-	return marshal.MarshalJsonTransaction(mtx, api.txManager.bm.ChainParams(), blkHashStr, confirmations)
+	return marshal.MarshalJsonTransaction(mtx, api.txManager.bm.ChainParams(), blkHashStr, confirmations, coinbaseAmout)
 }
 
 // Returns information about an unspent transaction output
@@ -613,10 +613,11 @@ func (api *PublicTxAPI) GetRawTransactions(addre string, vinext *bool, count *ui
 		if err != nil {
 			return nil, err
 		}
-		if mtx.Tx.IsCoinBase() {
-			mtx.Tx.TxOut[0].Amount += uint64(api.txManager.bm.GetChain().GetFees(rtx.blkHash))
-		}
+
 		result.Vout = marshal.MarshJsonVout(mtx.Tx, filterAddrMap, params)
+		if mtx.Tx.IsCoinBase() {
+			result.Vout[0].Amount = mtx.Tx.TxOut[0].Amount + uint64(api.txManager.bm.GetChain().GetFees(rtx.blkHash))
+		}
 		result.Version = mtx.Tx.Version
 		result.LockTime = mtx.Tx.LockTime
 
