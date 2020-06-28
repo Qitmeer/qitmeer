@@ -244,7 +244,7 @@ func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	// wire.MaxBlocksPerMsg have been fetched or the provided stop hash is
 	// encountered.
 	//
-	p.UpdateLastGS(msg.GS)
+	sp.UpdateLastGS(p, msg.GS)
 	// Use the block after the genesis block if no other blocks in the
 	// provided locator are known.  This does mean the client will start
 	// over with the genesis block if unknown block locators are provided.
@@ -281,7 +281,7 @@ func (sp *serverPeer) OnGetHeaders(p *peer.Peer, msg *message.MsgGetHeaders) {
 		return
 	}
 
-	p.UpdateLastGS(msg.GS)
+	sp.UpdateLastGS(p, msg.GS)
 	chain := sp.server.BlockManager.GetChain()
 	hashSlice := []*hash.Hash{}
 	if len(msg.BlockLocatorHashes) > 0 {

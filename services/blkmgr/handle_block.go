@@ -149,9 +149,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) connmgr.BanScore {
 			log.Info("Your synchronization has been completed. ")
 		}
 		// reset last progress time
-		if bmsg.peer == b.syncPeer {
-			b.lastProgressTime = time.Now()
-		}
+		b.lastProgressTime = time.Now()
 	}
 
 	if len(b.requestedBlocks) == 0 ||
