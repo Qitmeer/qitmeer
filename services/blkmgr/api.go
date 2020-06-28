@@ -159,10 +159,10 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 		}
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)
-	blk.Transactions()[0].Tx.TxOut[0].Amount += uint64(api.bm.chain.CalculateFees(blk))
+	coinbaseAmout := blk.Transactions()[0].Tx.TxOut[0].Amount + uint64(api.bm.chain.CalculateFees(blk))
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
-		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered())
+		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered(), coinbaseAmout)
 	if err != nil {
 		return nil, err
 	}
