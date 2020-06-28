@@ -291,7 +291,6 @@ func dbPutSpendJournalEntry(dbTx database.Tx, blockHash *hash.Hash, stxos []Spen
 	if len(stxos) == 0 {
 		return nil
 	}
-	fmt.Printf("dbPutSpendJournalEntry:%s %d\n", blockHash, len(stxos))
 	spendBucket := dbTx.Metadata().Bucket(dbnamespace.SpendJournalBucketName)
 	serialized, err := serializeSpendJournalEntry(stxos)
 	if err != nil {

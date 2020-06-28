@@ -15,6 +15,17 @@ type TokenPayout struct {
 	Amount   uint64
 }
 
+type TokenPayoutReGen struct {
+	Payout TokenPayout
+	GenAmount uint64
+}
+
+type PayoutList []TokenPayoutReGen
+func (p PayoutList) Len() int {return len(p)}
+func (p PayoutList) Less(i, j int) bool{
+	return ( p[i].GenAmount + p[i].Payout.Amount < p[j].GenAmount + p[j].Payout.Amount) }
+func (p PayoutList) Swap(i, j int) { p[i], p[j] = p[j], p[i]}
+
 // GenesisLedger specifies the list of payouts in the coinbase of
 // genesis. Must be a constant fixed in the code.
 // If there are no payouts to be given, set this

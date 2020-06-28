@@ -415,6 +415,32 @@ func DBFetchTx(dbTx database.Tx, hash *hash.Hash) (*types.Transaction, error) {
 	return &tx, nil
 }
 
+func DBFetchTxAndBlock(dbTx database.Tx, hash *hash.Hash) (*types.Transaction, *hash.Hash, error) {
+	// Look up the location of the transaction.
+	blockRegion, err := dbFetchTxIndexEntry(dbTx, hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	if blockRegion == nil {
+		return nil, nil, fmt.Errorf("transaction %v not found in the txindex", hash)
+	}
+
+	// Load the raw transaction bytes from the database.
+	txBytes, err := dbTx.FetchBlockRegion(blockRegion)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Deserialize the transaction.
+	var tx types.Transaction
+	err = tx.Deserialize(bytes.NewReader(txBytes))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &tx, blockRegion.Hash, nil
+}
+
 // dbIndexDisconnectBlock removes all of the index entries associated with the
 // given block using the provided indexer and updates the tip of the indexer
 // accordingly.  An error will be returned if the current tip for the indexer is
