@@ -65,7 +65,11 @@ function get_block(){
   if [ "$fullTx" == "" ]; then
     fullTx="true"
   fi
-  local data='{"jsonrpc":"2.0","method":"getBlockByOrder","params":['$order','$verbose','$inclTx','$fullTx'],"id":1}'
+  local addfees=$5
+  if [ "$addfees" == "" ]; then
+    addfees="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockByOrder","params":['$order','$verbose','$inclTx','$fullTx','$addfees'],"id":1}'
   get_result "$data"
 }
 
@@ -83,7 +87,11 @@ function get_block_by_id(){
   if [ "$fullTx" == "" ]; then
     fullTx="true"
   fi
-  local data='{"jsonrpc":"2.0","method":"getBlockByID","params":['$id','$verbose','$inclTx','$fullTx'],"id":1}'
+  local addfees=$5
+  if [ "$addfees" == "" ]; then
+    addfees="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockByID","params":['$id','$verbose','$inclTx','$fullTx','$addfees'],"id":1}'
   get_result "$data"
 }
 
@@ -427,7 +435,7 @@ function usage(){
   echo "  banlist"
   echo "  removeban"
   echo "block  :"
-  echo "  block <num|hash>"
+  echo "  block <order|hash>"
   echo "  blockid <id>"
   echo "  blockhash <order>"
   echo "  block_count"
@@ -441,6 +449,7 @@ function usage(){
   echo "  tips"
   echo "  coinbase <hash>"
   echo "  fees <hash>"
+  echo "  blockorder <order>"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txbyhash <hash>"
@@ -679,6 +688,9 @@ if [ "$1" == "block" ]; then
 elif [ "$1" == "blockid" ]; then
   shift
   get_block_by_id $@
+elif [ "$1" == "blockorder" ]; then
+  shift
+  get_block $@
 elif [ "$1" == "block_count" ]; then
    shift
    get_block_number

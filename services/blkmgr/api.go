@@ -86,7 +86,7 @@ func (api *PublicBlockAPI) GetBlockhashByRange(start uint, end uint) ([]string, 
 	return result, nil
 }
 
-func (api *PublicBlockAPI) GetBlockByOrder(order uint64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
+func (api *PublicBlockAPI) GetBlockByOrder(order uint64, verbose *bool, inclTx *bool, fullTx *bool, addFees *bool) (interface{}, error) {
 	if uint(order) > api.bm.chain.BestSnapshot().GraphState.GetMainOrder() {
 		return nil, fmt.Errorf("Order is too big")
 	}
@@ -106,10 +106,14 @@ func (api *PublicBlockAPI) GetBlockByOrder(order uint64, verbose *bool, inclTx *
 	if fullTx != nil {
 		fTx = *fullTx
 	}
-	return api.GetBlock(*blockHash, &vb, &iTx, &fTx)
+	afees := true
+	if addFees != nil {
+		afees = *addFees
+	}
+	return api.GetBlock(*blockHash, &vb, &iTx, &fTx, &afees)
 }
 
-func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
+func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fullTx *bool, addFees *bool) (interface{}, error) {
 
 	vb := false
 	if verbose != nil {
@@ -122,6 +126,11 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 	fTx := true
 	if fullTx != nil {
 		fTx = *fullTx
+	}
+
+	afees := true
+	if addFees != nil {
+		afees = *addFees
 	}
 
 	// Load the raw block bytes from the database.
@@ -159,7 +168,11 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 		}
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)
-	coinbaseAmout := blk.Transactions()[0].Tx.TxOut[0].Amount + uint64(api.bm.chain.CalculateFees(blk))
+	coinbaseAmout := blk.Transactions()[0].Tx.TxOut[0].Amount
+	if afees {
+		coinbaseAmout += uint64(api.bm.chain.CalculateFees(blk))
+	}
+
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
 		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered(), coinbaseAmout)
@@ -261,7 +274,7 @@ func (api *PublicBlockAPI) GetOrphansTotal() (interface{}, error) {
 	return api.bm.GetChain().GetOrphansTotal(), nil
 }
 
-func (api *PublicBlockAPI) GetBlockByID(id uint64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
+func (api *PublicBlockAPI) GetBlockByID(id uint64, verbose *bool, inclTx *bool, fullTx *bool, addFees *bool) (interface{}, error) {
 	blockHash := api.bm.GetChain().BlockDAG().GetBlockHash(uint(id))
 	if blockHash == nil {
 		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", id))
@@ -278,7 +291,11 @@ func (api *PublicBlockAPI) GetBlockByID(id uint64, verbose *bool, inclTx *bool, 
 	if fullTx != nil {
 		fTx = *fullTx
 	}
-	return api.GetBlock(*blockHash, &vb, &iTx, &fTx)
+	afees := true
+	if addFees != nil {
+		afees = *addFees
+	}
+	return api.GetBlock(*blockHash, &vb, &iTx, &fTx, &afees)
 }
 
 // IsBlue:0:not blue;  1：blue  2：Cannot confirm
