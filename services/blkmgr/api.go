@@ -160,11 +160,77 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)
 	coinbaseAmout := blk.Transactions()[0].Tx.TxOut[0].Amount + uint64(api.bm.chain.CalculateFees(blk))
+
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
 		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered(), coinbaseAmout)
 	if err != nil {
 		return nil, err
+	}
+	return fields, nil
+}
+
+func (api *PublicBlockAPI) GetBlockV2(h hash.Hash, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
+
+	vb := false
+	if verbose != nil {
+		vb = *verbose
+	}
+	iTx := true
+	if inclTx != nil {
+		iTx = *inclTx
+	}
+	fTx := true
+	if fullTx != nil {
+		fTx = *fullTx
+	}
+
+	// Load the raw block bytes from the database.
+	// Note :
+	// FetchBlockByHash differs from BlockByHash in that this one also returns blocks
+	// that are not part of the main chain (if they are known).
+	blk, err := api.bm.chain.FetchBlockByHash(&h)
+	if err != nil {
+		return nil, err
+	}
+	node := api.bm.chain.BlockIndex().LookupNode(&h)
+	if node == nil {
+		return nil, fmt.Errorf("no node")
+	}
+	// Update the source block order
+	blk.SetOrder(node.GetOrder())
+	blk.SetHeight(node.GetHeight())
+	// When the verbose flag isn't set, simply return the
+	// network-serialized block as a hex-encoded string.
+	if !vb {
+		blkBytes, err := blk.Bytes()
+		if err != nil {
+			return nil, rpc.RpcInternalError(err.Error(),
+				"Could not serialize block")
+		}
+		return hex.EncodeToString(blkBytes), nil
+	}
+	confirmations := int64(api.bm.chain.BlockDAG().GetConfirmations(node.GetID()))
+	ib := api.bm.chain.BlockDAG().GetBlock(&h)
+	cs := ib.GetChildren()
+	children := []*hash.Hash{}
+	if cs != nil && !cs.IsEmpty() {
+		for _, v := range cs.GetMap() {
+			children = append(children, v.(blockdag.IBlock).GetHash())
+		}
+	}
+	api.bm.chain.CalculateDAGDuplicateTxs(blk)
+	coinbaseAmout := blk.Transactions()[0].Tx.TxOut[0].Amount
+	coinbaseFee := uint64(api.bm.chain.CalculateFees(blk))
+
+	//TODO, refactor marshal api
+	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
+		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered(), coinbaseAmout)
+	if err != nil {
+		return nil, err
+	}
+	if coinbaseFee > 0 {
+		fields = append(fields, json.KV{Key: "coinbasefee", Val: coinbaseFee})
 	}
 	return fields, nil
 
