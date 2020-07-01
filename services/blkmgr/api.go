@@ -324,10 +324,17 @@ func (api *PublicBlockAPI) GetOrphansTotal() (interface{}, error) {
 	return api.bm.GetChain().GetOrphansTotal(), nil
 }
 
+// Obsoleted GetBlockByID Method, since the confused naming, replaced by GetBlockByNum method
 func (api *PublicBlockAPI) GetBlockByID(id uint64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
-	blockHash := api.bm.GetChain().BlockDAG().GetBlockHash(uint(id))
+	return api.GetBlockByNum(id,verbose,inclTx,fullTx)
+}
+
+// GetBlockByNum works like GetBlockByOrder, the different is the GetBlockByNum is return the order result from
+// the current node's DAG directly instead of according to the consensus of BlockDAG algorithm.
+func (api *PublicBlockAPI) GetBlockByNum(num uint64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
+	blockHash := api.bm.GetChain().BlockDAG().GetBlockHash(uint(num))
 	if blockHash == nil {
-		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", id))
+		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", num))
 	}
 	vb := false
 	if verbose != nil {
