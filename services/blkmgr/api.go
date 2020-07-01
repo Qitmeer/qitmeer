@@ -163,7 +163,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
-		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered(), coinbaseAmout)
+		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered(), coinbaseAmout, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -225,12 +225,9 @@ func (api *PublicBlockAPI) GetBlockV2(h hash.Hash, verbose *bool, inclTx *bool, 
 
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
-		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered(), coinbaseAmout)
+		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered(), coinbaseAmout, coinbaseFee)
 	if err != nil {
 		return nil, err
-	}
-	if coinbaseFee > 0 {
-		fields = append(fields, json.KV{Key: "coinbasefee", Val: coinbaseFee})
 	}
 	return fields, nil
 

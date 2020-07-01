@@ -155,7 +155,7 @@ func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, par
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
 func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
-	params *params.Params, confirmations int64, children []*hash.Hash, state bool, isOrdered bool, coinbaseAmout uint64) (json.OrderedResult, error) {
+	params *params.Params, confirmations int64, children []*hash.Hash, state bool, isOrdered bool, coinbaseAmout uint64, coinbaseFee uint64) (json.OrderedResult, error) {
 
 	head := b.Block().Header // copies the header once
 	// Get next block hash unless there are none.
@@ -189,6 +189,9 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 			}
 		}
 		fields = append(fields, json.KV{Key: "transactions", Val: transactions})
+	}
+	if coinbaseFee > 0 {
+		fields = append(fields, json.KV{Key: "transactionfee", Val: coinbaseFee})
 	}
 	fields = append(fields, json.OrderedResult{
 		{Key: "stateRoot", Val: head.StateRoot.String()},
