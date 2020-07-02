@@ -11,18 +11,20 @@ require (
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
+	github.com/libp2p/go-libp2p-core v0.6.0
 	github.com/magiconair/properties v1.8.1
 	github.com/mattn/go-colorable v0.1.1
+	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/pkg/errors v0.8.1
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 	github.com/satori/go.uuid v1.2.0
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeromq/goczmq v4.1.0+incompatible
 	golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
-	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
-	golang.org/x/sys v0.0.0-20190412213103-97732733099d
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
 	golang.org/x/tools v0.0.0-20190511041617-99f201b6807e
 	gonum.org/v1/gonum v0.0.0-20190608115022-c5f01565d866
 )
