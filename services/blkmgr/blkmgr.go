@@ -81,6 +81,8 @@ type BlockManager struct {
 
 	// zmq notification
 	zmqNotify zmq.IZMQNotification
+
+	sync.Mutex
 }
 
 // NewBlockManager returns a new block manager.
@@ -897,6 +899,9 @@ func (b *BlockManager) IntellectSyncBlocks(peer *peer.ServerPeer, refresh bool) 
 	if peer == nil {
 		return
 	}
+	b.Lock()
+	defer b.Unlock()
+
 	gs := b.chain.BestSnapshot().GraphState
 	if b.chain.GetOrphansTotal() >= blockchain.MaxOrphanBlocks || refresh {
 		b.chain.RefreshOrphans()
