@@ -72,6 +72,8 @@ type BlockAcceptedNotifyData struct {
 
 	// Block is the block that was accepted into the chain.
 	Block *types.SerializedBlock
+
+	Flags BehaviorFlags
 }
 
 // ReorganizationNotifyData is the structure for data indicating information

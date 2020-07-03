@@ -32,6 +32,10 @@ const (
 	// stallSampleInterval the interval at which we will check to see if our
 	// sync has stalled.
 	StallSampleInterval = 3 * time.Second
+
+	// maxStallDuration is the time after which we will disconnect our
+	// current sync peer if we haven't made progress.
+	MaxBlockStallDuration = 3 * time.Second
 )
 
 // BlockManager provides a concurrency safe block manager for handling all
@@ -77,6 +81,8 @@ type BlockManager struct {
 
 	// zmq notification
 	zmqNotify zmq.IZMQNotification
+
+	sync.Mutex
 }
 
 // NewBlockManager returns a new block manager.
@@ -160,6 +166,11 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			break
 		}
 		block := band.Block
+		if band.Flags&blockchain.BFP2PAdd == blockchain.BFP2PAdd {
+			b.progressLogger.LogBlockHeight(block)
+			// reset last progress time
+			b.lastProgressTime = time.Now()
+		}
 		b.zmqNotify.BlockAccepted(block)
 		// Don't relay if we are not current. Other peers that are current
 		// should already know about it
@@ -884,11 +895,20 @@ func (b *BlockManager) SyncPeerID() int32 {
 	return <-reply
 }
 
-func (b *BlockManager) IntellectSyncBlocks(peer *peer.ServerPeer) {
+func (b *BlockManager) IntellectSyncBlocks(peer *peer.ServerPeer, refresh bool) {
+	if peer == nil {
+		return
+	}
+	b.Lock()
+	defer b.Unlock()
+
 	gs := b.chain.BestSnapshot().GraphState
+	if b.chain.GetOrphansTotal() >= blockchain.MaxOrphanBlocks || refresh {
+		b.chain.RefreshOrphans()
+	}
 	allOrphan := b.chain.GetRecentOrphansParents()
 
-	if len(allOrphan) > blockchain.MaxOrphanBlocks && len(allOrphan) > 0 {
+	if len(allOrphan) > 0 {
 		err := peer.PushGetBlocksMsg(gs, allOrphan)
 		if err != nil {
 			b.PushSyncDAGMsg(peer)
@@ -912,12 +932,16 @@ func (b *BlockManager) handleStallSample() {
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		return
 	}
+	if b.checkSyncPeer() {
+		return
+	}
+	//
 	if len(b.peers) > 0 {
 		if b.syncPeer == nil {
 			b.updateSyncPeer(false)
 			return
 		} else {
-			if len(b.requestedBlocks) == 0 && len(b.peers) > 1 {
+			if (len(b.requestedBlocks) == 0 || len(b.syncPeer.RequestedBlocks) == 0) && len(b.peers) > 1 {
 				bestPeer := b.getBestPeer(false)
 				if bestPeer != nil && bestPeer != b.syncPeer {
 					b.updateSyncPeer(false)
@@ -927,23 +951,32 @@ func (b *BlockManager) handleStallSample() {
 		}
 	}
 
-	b.checkSyncPeer()
 }
 
-func (b *BlockManager) checkSyncPeer() {
+func (b *BlockManager) checkSyncPeer() bool {
 	// If we don't have an active sync peer, exit early.
 	if b.syncPeer == nil {
-		return
+		return false
 	}
 
 	// If the stall timeout has not elapsed, exit early.
 	if time.Since(b.lastProgressTime) <= MaxStallDuration {
-		return
+		if time.Since(b.lastProgressTime) <= MaxBlockStallDuration {
+			return false
+		}
+		if b.IsCurrent() {
+			return false
+		}
+		if len(b.requestedBlocks) == 0 || len(b.syncPeer.RequestedBlocks) == 0 {
+			b.IntellectSyncBlocks(b.syncPeer, true)
+		}
+
+		return true
 	}
 
 	_, exists := b.peers[b.syncPeer.Peer]
 	if !exists {
-		return
+		return false
 	}
 
 	b.clearRequestedState(b.syncPeer)
@@ -956,6 +989,7 @@ func (b *BlockManager) checkSyncPeer() {
 	log.Debug(fmt.Sprintf("Because no progress for: %v, try to update sync peer...",
 		time.Since(b.lastProgressTime)))
 	b.updateSyncPeer(disconnectSyncPeer)
+	return true
 }
 
 // clearRequestedState wipes all expected transactions and blocks from the sync
