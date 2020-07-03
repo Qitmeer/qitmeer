@@ -110,10 +110,7 @@ func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 
 func (b *BlockChain) IsOrphanNear(serializedHeight uint64) bool {
 	dist := serializedHeight + blockdag.StableConfirmations
-	if uint(dist) < b.BestSnapshot().GraphState.GetMainHeight() {
-		return false
-	}
-	return true
+	return uint(dist) >= b.BestSnapshot().GraphState.GetMainHeight()
 }
 
 // removeOrphanBlock removes the passed orphan block from the orphan pool and
