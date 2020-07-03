@@ -113,7 +113,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				continue
 			}
 			if i == lastBlock {
-				b.IntellectSyncBlocks(imsg.peer)
+				b.IntellectSyncBlocks(imsg.peer, false)
 			}
 		}
 	}

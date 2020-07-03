@@ -179,6 +179,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
 		ForkLen: 0,
 		Block:   block,
+		Flags:   flags,
 	})
 	return nil
 }
