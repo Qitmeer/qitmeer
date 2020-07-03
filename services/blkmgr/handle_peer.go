@@ -131,12 +131,8 @@ func (b *BlockManager) startSync() {
 		// and fully validate them.  Finally, regression test mode does
 		// not support the headers-first approach so do normal block
 		// downloads when in regression test mode.
-		b.PushSyncDAGMsg(bestPeer)
+		b.IntellectSyncBlocks(bestPeer, true)
 		b.syncPeer = bestPeer
-		// Reset the last progress time now that we have a non-nil
-		// syncPeer to avoid instantly detecting it as stalled in the
-		// event the progress time hasn't been updated recently.
-		b.lastProgressTime = time.Now()
 
 		b.dagSync.GSMtx.Lock()
 		b.dagSync.GS = bestPeer.LastGS()

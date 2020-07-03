@@ -173,14 +173,6 @@ type Config struct {
 	BlockVersion uint32
 }
 
-// orphanBlock represents a block that we don't yet have the parent for.  It
-// is a normal block plus an expiration time to prevent caching the orphan
-// forever.
-type orphanBlock struct {
-	block      *types.SerializedBlock
-	expiration time.Time
-}
-
 // BestState houses information about the current best block and other info
 // related to the state of the main chain as it exists from the point of view of
 // the current best block.
@@ -497,121 +489,6 @@ func (b *BlockChain) HaveBlock(hash *hash.Hash) (bool, error) {
 	return b.index.HaveBlock(hash) || b.IsOrphan(hash), nil
 }
 
-// IsKnownOrphan returns whether the passed hash is currently a known orphan.
-// Keep in mind that only a limited number of orphans are held onto for a
-// limited amount of time, so this function must not be used as an absolute
-// way to test if a block is an orphan block.  A full block (as opposed to just
-// its hash) must be passed to ProcessBlock for that purpose.  However, calling
-// ProcessBlock with an orphan that already exists results in an error, so this
-// function provides a mechanism for a caller to intelligently detect *recent*
-// duplicate orphans and react accordingly.
-//
-// This function is safe for concurrent access.
-func (b *BlockChain) IsOrphan(hash *hash.Hash) bool {
-	// Protect concurrent access.  Using a read lock only so multiple
-	// readers can query without blocking each other.
-	b.orphanLock.RLock()
-	_, exists := b.orphans[*hash]
-	b.orphanLock.RUnlock()
-
-	return exists
-}
-
-// Whether it is connected by all parents
-func (b *BlockChain) IsUnconnectedOrphan(hash *hash.Hash) bool {
-	op := b.GetRecentOrphanParents(hash)
-	return len(op) > 0
-}
-
-// GetOrphansParents returns the parents for the provided hash from the
-// map of orphan blocks.
-func (b *BlockChain) GetOrphansParents() []*hash.Hash {
-	b.orphanLock.RLock()
-	defer b.orphanLock.RUnlock()
-	//
-	result := blockdag.NewHashSet()
-	for _, v := range b.orphans {
-		for _, h := range v.block.Block().Parents {
-			exists, err := b.HaveBlock(h)
-			if err != nil || exists {
-				continue
-			}
-			result.Add(h)
-		}
-
-	}
-	return result.List()
-}
-
-// GetOrphansParents returns the parents for the provided hash from the
-// map of orphan blocks.
-func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
-	b.orphanLock.RLock()
-	defer b.orphanLock.RUnlock()
-	//
-	ob, exists := b.orphans[*h]
-	if !exists {
-		return nil
-	}
-	if !b.IsOrphanNear(ob) {
-		return nil
-	}
-	result := blockdag.NewHashSet()
-	for _, h := range ob.block.Block().Parents {
-		exists, err := b.HaveBlock(h)
-		if err != nil || exists {
-			continue
-		}
-		result.Add(h)
-	}
-
-	return result.List()
-}
-
-// Get the total of all orphans
-func (b *BlockChain) GetOrphansTotal() int {
-	b.orphanLock.RLock()
-	ol := len(b.orphans)
-	b.orphanLock.RUnlock()
-	return ol
-}
-
-func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
-	b.orphanLock.RLock()
-	defer b.orphanLock.RUnlock()
-
-	result := blockdag.NewHashSet()
-	for _, v := range b.orphans {
-		if !b.IsOrphanNear(v) {
-			continue
-		}
-		for _, h := range v.block.Block().Parents {
-			exists, err := b.HaveBlock(h)
-			if err != nil || exists {
-				continue
-			}
-			result.Add(h)
-		}
-
-	}
-	return result.List()
-}
-
-func (b *BlockChain) IsOrphanNear(ob *orphanBlock) bool {
-	serializedHeight, err := ExtractCoinbaseHeight(ob.block.Block().Transactions[0])
-	if err != nil {
-		return false
-	}
-	dist := int64(serializedHeight) - int64(blockdag.StableConfirmations)
-	if dist <= 0 {
-		return true
-	}
-	if uint(dist) > b.BestSnapshot().GraphState.GetMainHeight() {
-		return false
-	}
-	return true
-}
-
 // IsCurrent returns whether or not the chain believes it is current.  Several
 // factors are used to guess, but the key factors that allow the chain to
 // believe it is current are:
@@ -772,63 +649,6 @@ func (b *BlockChain) fetchMainChainBlockByHash(hash *hash.Hash) (*types.Serializ
 	return block, err
 }
 
-// removeOrphanBlock removes the passed orphan block from the orphan pool and
-// previous orphan index.
-func (b *BlockChain) removeOrphanBlock(orphan *orphanBlock) {
-	// Protect concurrent access.
-	b.orphanLock.Lock()
-	defer b.orphanLock.Unlock()
-
-	// Remove the orphan block from the orphan pool.
-	orphanHash := orphan.block.Hash()
-	delete(b.orphans, *orphanHash)
-}
-
-// addOrphanBlock adds the passed block (which is already determined to be
-// an orphan prior calling this function) to the orphan pool.  It lazily cleans
-// up any expired blocks so a separate cleanup poller doesn't need to be run.
-// It also imposes a maximum limit on the number of outstanding orphan
-// blocks and will remove the oldest received orphan block if the limit is
-// exceeded.
-func (b *BlockChain) addOrphanBlock(block *types.SerializedBlock) {
-	// Remove expired orphan blocks.
-	for _, oBlock := range b.orphans {
-		if time.Now().After(oBlock.expiration) {
-			b.removeOrphanBlock(oBlock)
-			continue
-		}
-
-		// Update the oldest orphan block pointer so it can be discarded
-		// in case the orphan pool fills up.
-		if b.oldestOrphan == nil ||
-			oBlock.expiration.Before(b.oldestOrphan.expiration) {
-			b.oldestOrphan = oBlock
-		}
-	}
-
-	// Limit orphan blocks to prevent memory exhaustion.
-	if len(b.orphans)+1 > MaxOrphanBlocks*2 {
-		// Remove the oldest orphan to make room for the new one.
-		b.removeOrphanBlock(b.oldestOrphan)
-		b.oldestOrphan = nil
-	}
-
-	// Protect concurrent access.  This is intentionally done here instead
-	// of near the top since removeOrphanBlock does its own locking and
-	// the range iterator is not invalidated by removing map entries.
-	b.orphanLock.Lock()
-	defer b.orphanLock.Unlock()
-
-	// Insert the block into the orphan map with an expiration time
-	// 1 hour from now.
-	expiration := time.Now().Add(time.Hour)
-	oBlock := &orphanBlock{
-		block:      block,
-		expiration: expiration,
-	}
-	b.orphans[*block.Hash()] = oBlock
-}
-
 // MaximumBlockSize returns the maximum permitted block size for the block
 // AFTER the given node.
 //
@@ -847,13 +667,11 @@ func (b *BlockChain) maxBlockSize(prevNode *blockNode) (int64, error) {
 // This function is safe for concurrent access.
 func (b *BlockChain) fetchBlockByHash(hash *hash.Hash) (*types.SerializedBlock, error) {
 	// Check orphan cache.
-	b.orphanLock.RLock()
-	orphan, existsOrphans := b.orphans[*hash]
-	b.orphanLock.RUnlock()
-	if existsOrphans {
-		return orphan.block, nil
+	block := b.GetOrphan(hash)
+	if block != nil {
+		return block, nil
 	}
-	var block *types.SerializedBlock
+
 	// Load the block from the database.
 	dbErr := b.db.View(func(dbTx database.Tx) error {
 		var err error
