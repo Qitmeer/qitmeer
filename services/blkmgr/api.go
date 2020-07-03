@@ -238,11 +238,13 @@ func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error) {
 	return best.Hash.String(), nil
 }
 
+// The total ordered Block count
 func (api *PublicBlockAPI) GetBlockCount() (interface{}, error) {
 	best := api.bm.chain.BestSnapshot()
 	return best.GraphState.GetMainOrder() + 1, nil
 }
 
+// The total Block count, included possible blocks have not ordered by BlockDAG consensus yet at the moments.
 func (api *PublicBlockAPI) GetBlockTotal() (interface{}, error) {
 	best := api.bm.chain.BestSnapshot()
 	return best.GraphState.GetTotal(), nil
@@ -319,7 +321,7 @@ func (api *PublicBlockAPI) GetBlockWeight(h hash.Hash) (interface{}, error) {
 	return strconv.FormatInt(int64(types.GetBlockWeight(block.Block())), 10), nil
 }
 
-// Return the total of orphans
+// Return the total number of orphan blocks, orphan block are the blocks have not been included into the DAG at this moment.
 func (api *PublicBlockAPI) GetOrphansTotal() (interface{}, error) {
 	return api.bm.GetChain().GetOrphansTotal(), nil
 }
@@ -372,7 +374,7 @@ func (api *PublicBlockAPI) IsCurrent() (interface{}, error) {
 	return api.bm.IsCurrent(), nil
 }
 
-// Return tips
+// Return a list hash of the tip blocks of the DAG at this moment.
 func (api *PublicBlockAPI) Tips() (interface{}, error) {
 	tipsList, err := api.bm.TipGeneration()
 	if err != nil {
