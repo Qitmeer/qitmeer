@@ -964,6 +964,9 @@ func (b *BlockManager) checkSyncPeer() bool {
 		if time.Since(b.lastProgressTime) <= MaxBlockStallDuration {
 			return false
 		}
+		if b.IsCurrent() {
+			return false
+		}
 		if len(b.requestedBlocks) == 0 || len(b.syncPeer.RequestedBlocks) == 0 {
 			b.IntellectSyncBlocks(b.syncPeer, true)
 		}
