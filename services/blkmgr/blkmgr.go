@@ -907,7 +907,6 @@ func (b *BlockManager) IntellectSyncBlocks(peer *peer.ServerPeer, refresh bool) 
 		b.chain.RefreshOrphans()
 	}
 	allOrphan := b.chain.GetRecentOrphansParents()
-
 	if len(allOrphan) > 0 {
 		err := peer.PushGetBlocksMsg(gs, allOrphan)
 		if err != nil {
