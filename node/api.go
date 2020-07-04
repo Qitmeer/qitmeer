@@ -14,6 +14,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/version"
 	"math/big"
 	"strconv"
@@ -146,6 +147,15 @@ func (api *PublicBlockChainAPI) GetRpcInfo() (interface{}, error) {
 		jrs = append(jrs, v.ToJson())
 	}
 	return jrs, nil
+}
+
+// set log
+func (api *PublicBlockChainAPI) SetLogLevel(level string) (interface{}, error) {
+	err := common.ParseAndSetDebugLevels(level)
+	if err != nil {
+		return nil, err
+	}
+	return level, nil
 }
 
 func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {

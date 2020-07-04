@@ -268,6 +268,12 @@ function get_block_weight(){
   get_result "$data"
 }
 
+function set_log_level(){
+  local level=$1
+  local data='{"jsonrpc":"2.0","method":"setLogLevel","params":["'$level'"],"id":1}'
+  get_result "$data"
+}
+
 function get_blockhash_range(){
   local blk_num0=$1
   local blk_num1=$2
@@ -448,6 +454,7 @@ function usage(){
   echo "  stop"
   echo "  banlist"
   echo "  removeban"
+  echo "  loglevel [trace, debug, info, warn, error, critical]"
   echo "block  :"
   echo "  block <order|hash>"
   echo "  blockid <id>"
@@ -702,6 +709,9 @@ if [ "$1" == "block" ]; then
 elif [ "$1" == "blockid" ]; then
   shift
   get_block_by_id $@
+elif [ "$1" == "loglevel" ]; then
+  shift
+  set_log_level $@
 elif [ "$1" == "blockv2" ]; then
   shift
   get_block_v2 $@
