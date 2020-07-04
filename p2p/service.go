@@ -11,6 +11,7 @@ package p2p
 import (
 	"context"
 	"crypto/ecdsa"
+	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -29,4 +30,20 @@ type Service struct {
 	host                  host.Host
 	genesisTime           time.Time
 	genesisValidatorsRoot []byte
+}
+
+func (s *Service) Start() error {
+	log.Info("P2P Service Start")
+	return nil
+}
+
+func (s *Service) Stop() error {
+	log.Info("P2P Service Stop")
+	return nil
+}
+
+func NewService(cfg *config.Config) (*Service, error) {
+	s := Service{}
+
+	return &s, nil
 }

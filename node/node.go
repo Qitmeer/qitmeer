@@ -6,7 +6,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/p2p/peerserver"
+	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"reflect"
@@ -34,7 +34,7 @@ type Node struct {
 	DB database.DB
 
 	// network server
-	peerServer *peerserver.PeerServer
+	peerServer *p2p.Service
 
 	// service layer
 	// Service constructors (in dependency order)
@@ -55,7 +55,7 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 		quit:   make(chan struct{}),
 	}
 
-	server, err := peerserver.NewPeerServer(cfg, chainParams)
+	server, err := p2p.NewService(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (n *Node) Start() error {
 	// start service one by one
 	startedSvs := []reflect.Type{}
 	for kind, service := range services {
-		if err := service.Start(n.peerServer); err != nil {
+		if err := service.Start(); err != nil {
 			// stopping all started service if upon failure
 			for _, kind := range startedSvs {
 				services[kind].Stop()

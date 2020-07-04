@@ -48,7 +48,7 @@ type QitmeerFull struct {
 	sigCache *txscript.SigCache
 }
 
-func (qm *QitmeerFull) Start(server *peerserver.PeerServer) error {
+func (qm *QitmeerFull) Start() error {
 	log.Debug("Starting Qitmeer full node service")
 
 	// Start the CPU miner if generation is enabled.
