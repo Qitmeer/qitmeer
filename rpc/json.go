@@ -33,6 +33,7 @@ const (
 	DefaultServiceNameSpace = "qitmeer"
 	MinerNameSpace          = "miner"
 	TestNameSpace           = "test"
+	LogNameSpace            = "log"
 )
 
 type jsonRequest struct {
