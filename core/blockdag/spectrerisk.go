@@ -68,7 +68,8 @@ func GetRisk(N int, alpha float64, lambda float64, delay float64, waitingTime ui
 		fmt.Println("eigen vector failed")
 		return 0
 	}
-	ceigenvectors := eig.LeftVectorsTo(nil)
+	var ceigenvectors mat.CDense
+	eig.LeftVectorsTo(&ceigenvectors)
 	r, _ := ceigenvectors.Dims()
 	vecData := []float64{}
 	var vecMod float64
