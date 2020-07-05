@@ -1,37 +1,22 @@
 module github.com/Qitmeer/qitmeer
 
-go 1.12
+go 1.14
 
 require (
-	github.com/Qitmeer/crypto v0.0.0-20200516043559-dd457edff06c
+	github.com/Qitmeer/crypto v0.0.0-20200630060824-4ff5dc9a91e4
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dchest/blake256 v1.0.0
+	github.com/dchest/blake256 v1.1.0
 	github.com/deckarep/golang-set v1.7.1
 	github.com/go-stack/stack v1.8.0
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
 	github.com/libp2p/go-libp2p-core v0.6.0
-	github.com/magiconair/properties v1.8.1
-	github.com/mattn/go-colorable v0.1.1
-	github.com/multiformats/go-multiaddr v0.2.2
-	github.com/pkg/errors v0.8.1
-	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
+	github.com/mattn/go-colorable v0.1.7
+	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
-	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/urfave/cli/v2 v2.2.0
-	github.com/zeromq/goczmq v4.1.0+incompatible
-	golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
+	golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
-	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
-	golang.org/x/tools v0.0.0-20190511041617-99f201b6807e
-	gonum.org/v1/gonum v0.0.0-20190608115022-c5f01565d866
-)
-
-replace (
-	golang.org/x/crypto v0.0.0-20181001203147-e3636079e1a4 => github.com/golang/crypto v0.0.0-20181001203147-e3636079e1a4
-	golang.org/x/net v0.0.0-20180906233101-161cd47e91fd => github.com/golang/net v0.0.0-20180906233101-161cd47e91fd
-	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 => github.com/golang/net v0.0.0-20181005035420-146acd28ed58
-	golang.org/x/tools v0.0.0-20181006002542-f60d9635b16a => github.com/golang/tools v0.0.0-20181006002542-f60d9635b16a
+	gonum.org/v1/gonum v0.7.0
 )

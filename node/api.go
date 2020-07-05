@@ -17,7 +17,6 @@ import (
 	"github.com/Qitmeer/qitmeer/version"
 	"math/big"
 	"strconv"
-	"time"
 )
 
 func (nf *QitmeerFull) apis() []rpc.API {
@@ -100,7 +99,7 @@ func getDifficultyRatio(target *big.Int, params *params.Params, powType pow.PowT
 
 // Return the peer info
 func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
-	peers := api.node.node.peerServer.ConnectedPeers()
+	/*peers := api.node.node.peerServer.ConnectedPeers()
 	syncPeerID := api.node.blockManager.SyncPeerID()
 	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
 	for _, p := range peers {
@@ -135,7 +134,8 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 		}
 		infos = append(infos, info)
 	}
-	return infos, nil
+	return infos, nil*/
+	return nil, nil
 }
 
 // Return the RPC info

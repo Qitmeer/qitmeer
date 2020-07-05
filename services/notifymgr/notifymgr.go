@@ -3,14 +3,14 @@ package notifymgr
 import (
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/p2p/peerserver"
+	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/rpc"
 )
 
 // NotifyMgr manage message announce & relay & notification between mempool, websocket, gbt long pull
 // and rpc server.
 type NotifyMgr struct {
-	Server    *peerserver.PeerServer
+	Server    *p2p.Service
 	RpcServer *rpc.RpcServer
 }
 

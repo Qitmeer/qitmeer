@@ -6,7 +6,7 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
-	"github.com/Qitmeer/qitmeer/p2p/peerserver"
+	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/services/acct"
@@ -186,6 +186,6 @@ func (qm *QitmeerFull) GetAddressApi() *address.AddressApi {
 }
 
 // return peer server
-func (qm *QitmeerFull) GetPeerServer() *peerserver.PeerServer {
+func (qm *QitmeerFull) GetPeerServer() *p2p.Service {
 	return qm.node.peerServer
 }
