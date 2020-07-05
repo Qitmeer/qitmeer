@@ -33,6 +33,11 @@ func (nf *QitmeerFull) apis() []rpc.API {
 			Service:   NewPrivateBlockChainAPI(nf),
 			Public:    false,
 		},
+		{
+			NameSpace: rpc.LogNameSpace,
+			Service:   NewPrivateLogAPI(nf),
+			Public:    false,
+		},
 	}
 }
 
@@ -67,7 +72,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		TestNet:          api.node.node.Config.TestNet,
 		Confirmations:    blockdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
-		Modules:          []string{rpc.DefaultServiceNameSpace, rpc.MinerNameSpace, rpc.TestNameSpace},
+		Modules:          []string{rpc.DefaultServiceNameSpace, rpc.MinerNameSpace, rpc.TestNameSpace, rpc.LogNameSpace},
 	}
 	ret.GraphState = *getGraphStateResult(best.GraphState)
 	return ret, nil
@@ -149,15 +154,6 @@ func (api *PublicBlockChainAPI) GetRpcInfo() (interface{}, error) {
 	return jrs, nil
 }
 
-// set log
-func (api *PublicBlockChainAPI) SetLogLevel(level string) (interface{}, error) {
-	err := common.ParseAndSetDebugLevels(level)
-	if err != nil {
-		return nil, err
-	}
-	return level, nil
-}
-
 func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 	if gs != nil {
 		mainTip := gs.GetMainChainTip()
@@ -223,4 +219,21 @@ func (api *PrivateBlockChainAPI) SetRpcMaxClients(max int) (interface{}, error) 
 	}
 	api.node.node.Config.RPCMaxClients = max
 	return api.node.node.Config.RPCMaxClients, nil
+}
+
+type PrivateLogAPI struct {
+	node *QitmeerFull
+}
+
+func NewPrivateLogAPI(node *QitmeerFull) *PrivateLogAPI {
+	return &PrivateLogAPI{node}
+}
+
+// set log
+func (api *PrivateLogAPI) SetLogLevel(level string) (interface{}, error) {
+	err := common.ParseAndSetDebugLevels(level)
+	if err != nil {
+		return nil, err
+	}
+	return level, nil
 }

@@ -270,7 +270,7 @@ function get_block_weight(){
 
 function set_log_level(){
   local level=$1
-  local data='{"jsonrpc":"2.0","method":"setLogLevel","params":["'$level'"],"id":1}'
+  local data='{"jsonrpc":"2.0","method":"log_setLogLevel","params":["'$level'"],"id":1}'
   get_result "$data"
 }
 
