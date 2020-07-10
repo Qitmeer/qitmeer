@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/p2p/enr"
+	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
@@ -42,7 +42,7 @@ func TestPeerExplicitAdd(t *testing.T) {
 		t.Fatalf("Failed to create address: %v", err)
 	}
 	direction := network.DirInbound
-	p.Add(new(enr.Record), id, address, direction)
+	p.Add(new(qnr.Record), id, address, direction)
 
 	resAddress, err := p.Address(id)
 	if err != nil {
@@ -66,7 +66,7 @@ func TestPeerExplicitAdd(t *testing.T) {
 		t.Fatalf("Failed to create address: %v", err)
 	}
 	direction2 := network.DirOutbound
-	p.Add(new(enr.Record), id, address2, direction2)
+	p.Add(new(qnr.Record), id, address2, direction2)
 
 	resAddress2, err := p.Address(id)
 	if err != nil {
@@ -85,7 +85,7 @@ func TestPeerExplicitAdd(t *testing.T) {
 	}
 }
 
-func TestPeerNoENR(t *testing.T) {
+func TestPeerNoQNR(t *testing.T) {
 	maxBadResponses := 2
 	p := peers.NewStatus(maxBadResponses)
 
@@ -100,16 +100,16 @@ func TestPeerNoENR(t *testing.T) {
 	direction := network.DirInbound
 	p.Add(nil, id, address, direction)
 
-	retrievedENR, err := p.ENR(id)
+	retrievedQNR, err := p.QNR(id)
 	if err != nil {
 		t.Fatalf("Could not retrieve chainstate: %v", err)
 	}
-	if retrievedENR != nil {
-		t.Error("Wanted a nil enr to be saved")
+	if retrievedQNR != nil {
+		t.Error("Wanted a nil qnr to be saved")
 	}
 }
 
-func TestPeerNoOverwriteENR(t *testing.T) {
+func TestPeerNoOverwriteQNR(t *testing.T) {
 	maxBadResponses := 2
 	p := peers.NewStatus(maxBadResponses)
 
@@ -122,18 +122,18 @@ func TestPeerNoOverwriteENR(t *testing.T) {
 		t.Fatalf("Failed to create address: %v", err)
 	}
 	direction := network.DirInbound
-	record := new(enr.Record)
-	record.Set(enr.WithEntry("test", []byte{'a'}))
+	record := new(qnr.Record)
+	record.Set(qnr.WithEntry("test", []byte{'a'}))
 	p.Add(record, id, address, direction)
 	// try to overwrite
 	p.Add(nil, id, address, direction)
 
-	retrievedENR, err := p.ENR(id)
+	retrievedQNR, err := p.QNR(id)
 	if err != nil {
 		t.Fatalf("Could not retrieve chainstate: %v", err)
 	}
-	if retrievedENR == nil {
-		t.Error("Wanted a non-nil enr")
+	if retrievedQNR == nil {
+		t.Error("Wanted a non-nil qnr")
 	}
 }
 
@@ -190,8 +190,8 @@ func TestPeerCommitteeIndices(t *testing.T) {
 		t.Fatalf("Failed to create address: %v", err)
 	}
 	direction := network.DirInbound
-	record := new(enr.Record)
-	record.Set(enr.WithEntry("test", []byte{'a'}))
+	record := new(qnr.Record)
+	record.Set(qnr.WithEntry("test", []byte{'a'}))
 	p.Add(record, id, address, direction)
 	bitV := bitfield.NewBitvector64()
 	for i := 0; i < 64; i++ {
@@ -300,7 +300,7 @@ func TestPeerChainState(t *testing.T) {
 		t.Fatalf("Failed to create address: %v", err)
 	}
 	direction := network.DirInbound
-	p.Add(new(enr.Record), id, address, direction)
+	p.Add(new(qnr.Record), id, address, direction)
 
 	oldChainStartLastUpdated, err := p.ChainStateLastUpdated(id)
 	if err != nil {
@@ -352,7 +352,7 @@ func TestPeerBadResponses(t *testing.T) {
 		t.Fatalf("Failed to create address: %v", err)
 	}
 	direction := network.DirInbound
-	p.Add(new(enr.Record), id, address, direction)
+	p.Add(new(qnr.Record), id, address, direction)
 
 	resBadResponses, err := p.BadResponses(id)
 	if err != nil {
@@ -637,7 +637,7 @@ func TestBestFinalized_returnsMaxValue(t *testing.T) {
 	p := peers.NewStatus(maxBadResponses)
 
 	for i := 0; i <= maxPeers+100; i++ {
-		p.Add(new(enr.Record), peer.ID(i), nil, network.DirOutbound)
+		p.Add(new(qnr.Record), peer.ID(i), nil, network.DirOutbound)
 		p.SetConnectionState(peer.ID(i), peers.PeerConnected)
 		p.SetChainState(peer.ID(i), &pb.Status{
 			FinalizedEpoch: 10,
@@ -687,7 +687,7 @@ func addPeer(t *testing.T, p *peers.Status, state peers.PeerConnectionState) pee
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	p.Add(new(enr.Record), id, nil, network.DirUnknown)
+	p.Add(new(qnr.Record), id, nil, network.DirUnknown)
 	p.SetConnectionState(id, state)
 	p.SetMetadata(id, &pb.MetaData{
 		SeqNumber: 0,

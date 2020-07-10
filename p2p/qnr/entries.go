@@ -168,9 +168,9 @@ type KeyError struct {
 // Error implements error.
 func (err *KeyError) Error() string {
 	if err.Err == errNotFound {
-		return fmt.Sprintf("missing ENR key %q", err.Key)
+		return fmt.Sprintf("missing QNR key %q", err.Key)
 	}
-	return fmt.Sprintf("ENR key %q: %v", err.Key, err.Err)
+	return fmt.Sprintf("QNR key %q: %v", err.Key, err.Err)
 }
 
 // IsNotFound reports whether the given error means that a key/value pair is

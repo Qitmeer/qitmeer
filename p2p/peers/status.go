@@ -3,7 +3,7 @@ package peers
 /*
 import (
 	"errors"
-	"github.com/ethereum/go-ethereum/p2p/enr"
+	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/libp2p/go-libp2p-core/introspection/pb"
 	"github.com/prysmaticlabs/go-bitfield"
 	"github.com/prysmaticlabs/prysm/beacon-chain/core/helpers"
@@ -72,7 +72,7 @@ func (p *Status) MaxBadResponses() int {
 
 // Add adds a peer.
 // If a peer already exists with this ID its address and direction are updated with the supplied data.
-func (p *Status) Add(record *enr.Record, pid peer.ID, address ma.Multiaddr, direction network.Direction) {
+func (p *Status) Add(record *qnr.Record, pid peer.ID, address ma.Multiaddr, direction network.Direction) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -81,7 +81,7 @@ func (p *Status) Add(record *enr.Record, pid peer.ID, address ma.Multiaddr, dire
 		status.address = address
 		status.direction = direction
 		if record != nil {
-			status.enr = record
+			status.qnr = record
 		}
 		return
 	}
@@ -92,7 +92,7 @@ func (p *Status) Add(record *enr.Record, pid peer.ID, address ma.Multiaddr, dire
 		peerState: PeerDisconnected,
 	}
 	if record != nil {
-		status.enr = record
+		status.qnr = record
 	}
 	p.status[pid] = status
 }
@@ -121,13 +121,13 @@ func (p *Status) Direction(pid peer.ID) (network.Direction, error) {
 	return network.DirUnknown, ErrPeerUnknown
 }
 
-// ENR returns the enr for the corresponding peer id.
-func (p *Status) ENR(pid peer.ID) (*enr.Record, error) {
+// QNR returns the qnr for the corresponding peer id.
+func (p *Status) QNR(pid peer.ID) (*qnr.Record, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
 	if status, ok := p.status[pid]; ok {
-		return status.enr, nil
+		return status.qnr, nil
 	}
 	return nil, ErrPeerUnknown
 }
@@ -191,7 +191,7 @@ func (p *Status) CommitteeIndices(pid peer.ID) ([]uint64, error) {
 	defer p.lock.RUnlock()
 
 	if status, ok := p.status[pid]; ok {
-		if status.enr == nil || status.metaData == nil {
+		if status.qnr == nil || status.metaData == nil {
 			return []uint64{}, nil
 		}
 		return retrieveIndicesFromBitfield(status.metaData.Attnets), nil
