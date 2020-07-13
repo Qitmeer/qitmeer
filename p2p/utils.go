@@ -12,6 +12,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
+	"github.com/prysmaticlabs/go-bitfield"
 	"io/ioutil"
 	"net"
 	"os"
@@ -115,7 +116,7 @@ func retrievePrivKeyFromFile(path string) (*ecdsa.PrivateKey, error) {
 
 // Retrieves node p2p metadata from a set of configuration values
 // from the p2p service.
-func metaDataFromConfig(cfg *Config) (*pbp2p.MetaData, error) {
+func metaDataFromConfig(cfg *Config) (*MetaData, error) {
 	defaultKeyPath := path.Join(cfg.DataDir, metaDataPath)
 	metaDataPath := cfg.MetaDataDir
 
@@ -125,7 +126,7 @@ func metaDataFromConfig(cfg *Config) (*pbp2p.MetaData, error) {
 		return nil, err
 	}
 	if metaDataPath == "" && !defaultMetadataExist {
-		metaData := &pbp2p.MetaData{
+		metaData := &MetaData{
 			SeqNumber: 0,
 			Attnets:   bitfield.NewBitvector64(),
 		}
@@ -143,10 +144,10 @@ func metaDataFromConfig(cfg *Config) (*pbp2p.MetaData, error) {
 	}
 	src, err := ioutil.ReadFile(metaDataPath)
 	if err != nil {
-		log.WithError(err).Error("Error reading metadata from file")
+		log.Error(fmt.Sprintf("Error reading metadata from file:%s", err.Error()))
 		return nil, err
 	}
-	metaData := &pbp2p.MetaData{}
+	metaData := &MetaData{}
 	if err := metaData.Unmarshal(src); err != nil {
 		return nil, err
 	}
