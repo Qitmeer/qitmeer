@@ -85,8 +85,11 @@ type Params struct {
 	// Net defines the magic bytes used to identify the network.
 	Net protocol.Network
 
-	// DefaultPort defines the default peer-to-peer port for the network.
+	// TCPPort defines the default peer-to-peer tcp port for the network.
 	DefaultPort string
+
+	// DefaultUDPPort defines the default peer-to-peer udp port for the network.
+	DefaultUDPPort int
 
 	// DNSSeeds defines a list of DNS seeds for the network that are used
 	// as one method to discover peers.

@@ -26,9 +26,10 @@ const mixWorkDiffWindowSize = 60
 
 // testPowNetParams defines the network parameters for the test network.
 var MixNetParams = Params{
-	Name:        "mixnet",
-	Net:         protocol.MixNet,
-	DefaultPort: "28130",
+	Name:           "mixnet",
+	Net:            protocol.MixNet,
+	DefaultPort:    "28130",
+	DefaultUDPPort: 28140,
 	DNSSeeds: []DNSSeed{
 		{"mixnet-seed.qitmeer.io", true},
 	},

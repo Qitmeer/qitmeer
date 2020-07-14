@@ -26,9 +26,10 @@ const testWorkDiffWindowSize = 60
 
 // TestNetParams defines the network parameters for the test network.
 var TestNetParams = Params{
-	Name:        "testnet",
-	Net:         protocol.TestNet,
-	DefaultPort: "18130",
+	Name:           "testnet",
+	Net:            protocol.TestNet,
+	DefaultPort:    "18130",
+	DefaultUDPPort: 18140,
 	DNSSeeds: []DNSSeed{
 		{"testnet-seed.hlcwallet.info", true},
 		{"testnet-seed.qitmeer.xyz", true},
@@ -82,12 +83,12 @@ var TestNetParams = Params{
 	// Subsidy parameters.
 	BaseSubsidy:              12000000000, // 120 Coin , daily supply is 120*2*60*24 = 345600 ~ 345600 * 2 (DAG factor)
 	MulSubsidy:               100,
-	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
-	SubsidyReductionInterval: 1669066-541194, // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days
-	                                          // && subsidy has to reduce the 0.8.5 mining_rewarded blocks (541194)
-	WorkRewardProportion:     10,
-	StakeRewardProportion:    0,
-	BlockTaxProportion:       0,
+	DivSubsidy:               10000000000000,   // Coin-base reward reduce to zero at 1540677 blocks created
+	SubsidyReductionInterval: 1669066 - 541194, // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days
+	// && subsidy has to reduce the 0.8.5 mining_rewarded blocks (541194)
+	WorkRewardProportion:  10,
+	StakeRewardProportion: 0,
+	BlockTaxProportion:    0,
 
 	// Maturity
 	CoinbaseMaturity: 720, // coinbase required 720 * 30 = 6 hours before repent
