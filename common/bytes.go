@@ -156,3 +156,9 @@ func TrimRightZeroes(s []byte) []byte {
 	}
 	return s[:idx]
 }
+
+func ToBytes32(x []byte) [32]byte {
+	var y [32]byte
+	copy(y[:], x)
+	return y
+}
