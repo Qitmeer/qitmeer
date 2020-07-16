@@ -21,12 +21,9 @@ type Config struct {
 	// EnableNoise enables the beacon node to use NOISE instead of SECIO when performing a handshake with another peer.
 	EnableNoise   bool
 	RelayNodeAddr string
-
-	//TODO
-
-	LocalIP     string
-	HostAddress string
-	HostDNS     string
-	PrivateKey  string
-	Encoding    string
+	LocalIP       string
+	HostAddress   string
+	HostDNS       string
+	PrivateKey    string
+	Encoding      string
 }

@@ -117,11 +117,7 @@ func (s *Service) createLocalNode(
 	localNode.SetFallbackIP(ipAddr)
 	localNode.SetFallbackUDP(udpPort)
 
-	localNode, err = addForkEntry(localNode, s.genesisTime, s.genesisValidatorsRoot)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not add eth2 fork version entry to qnr")
-	}
-	return intializeAttSubnets(localNode), nil
+	return localNode, nil
 }
 
 func (s *Service) startDiscoveryV5(
@@ -130,7 +126,7 @@ func (s *Service) startDiscoveryV5(
 ) (*discover.UDPv5, error) {
 	listener := s.createListener(addr, privKey)
 	record := listener.Self()
-	log.Info(fmt.Sprintf("QNR %s Started discovery v5", record.String()))
+	log.Info(fmt.Sprintf("Started discovery v5:QNR(%s)", record.String()))
 	return listener, nil
 }
 
@@ -142,8 +138,7 @@ func (s *Service) startDiscoveryV5(
 // 2) Peer has a valid IP and TCP port set in their qnr.
 // 3) Peer hasn't been marked as 'bad'
 // 4) Peer is not currently active or connected.
-// 5) Peer's fork digest in their QNR matches that of
-// 	  our localnodes.
+
 func (s *Service) filterPeer(node *qnode.Node) bool {
 	// ignore nodes with no ip address stored.
 	if node.IP() == nil {
@@ -171,14 +166,6 @@ func (s *Service) filterPeer(node *qnode.Node) bool {
 		return false
 	}
 	nodeQNR := node.Record()
-	// Decide whether or not to connect to peer that does not
-	// match the proper fork QNR data with our local node.
-	if s.genesisValidatorsRoot != nil {
-		if err := s.compareForkQNR(nodeQNR); err != nil {
-			log.Trace(fmt.Sprintf("%s Fork QNR mismatches between peer and local node", err))
-			return false
-		}
-	}
 	// Add peer to peer handler.
 	s.peers.Add(nodeQNR, peerData.ID, multiAddr, network.DirUnknown)
 	return true

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 	"github.com/Qitmeer/qitmeer/p2p/iputils"
+	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
@@ -116,7 +117,7 @@ func retrievePrivKeyFromFile(path string) (*ecdsa.PrivateKey, error) {
 
 // Retrieves node p2p metadata from a set of configuration values
 // from the p2p service.
-func metaDataFromConfig(cfg *Config) (*MetaData, error) {
+func metaDataFromConfig(cfg *Config) (*pb.MetaData, error) {
 	defaultKeyPath := path.Join(cfg.DataDir, metaDataPath)
 	metaDataPath := cfg.MetaDataDir
 
@@ -126,7 +127,7 @@ func metaDataFromConfig(cfg *Config) (*MetaData, error) {
 		return nil, err
 	}
 	if metaDataPath == "" && !defaultMetadataExist {
-		metaData := &MetaData{
+		metaData := &pb.MetaData{
 			SeqNumber: 0,
 			Attnets:   bitfield.NewBitvector64(),
 		}
@@ -147,9 +148,24 @@ func metaDataFromConfig(cfg *Config) (*MetaData, error) {
 		log.Error(fmt.Sprintf("Error reading metadata from file:%s", err.Error()))
 		return nil, err
 	}
-	metaData := &MetaData{}
+	metaData := &pb.MetaData{}
 	if err := metaData.Unmarshal(src); err != nil {
 		return nil, err
 	}
 	return metaData, nil
+}
+
+// Attempt to dial an address to verify its connectivity
+func verifyConnectivity(addr string, port uint, protocol string) {
+	if addr != "" {
+		a := fmt.Sprintf("%s:%d", addr, port)
+		conn, err := net.DialTimeout(protocol, a, dialTimeout)
+		if err != nil {
+			log.Warn(fmt.Sprintf("IP address is not accessible:protocol=%s address=%s error=%s", protocol, a, err))
+			return
+		}
+		if err := conn.Close(); err != nil {
+			log.Debug(fmt.Sprintf("Could not close connection:protocol=%s address=%s error=%s", protocol, a, err))
+		}
+	}
 }
