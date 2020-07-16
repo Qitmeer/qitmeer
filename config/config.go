@@ -88,6 +88,9 @@ type Config struct {
 	//net2.0
 	BootstrapNodes []string `long:"bootstrapnode" description:"The address of bootstrap node."`
 	NoDiscovery    bool     `long:"nodiscovery" description:"Enable only local network p2p and do not connect to cloud bootstrap nodes."`
+	MetaDataDir    string   `long:"metadatadir" description:"meta data dir for p2p"`
+	P2PUDPPort     int      `long:"p2pudpport" description:"The udp port used by P2P."`
+	P2PTCPPort     int      `long:"p2ptcpport" description:"The tcp port used by P2P."`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {

@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -33,7 +34,7 @@ const (
 	defaultBlockMinSize           = 0
 	defaultBlockMaxSize           = 375000
 	defaultMaxRPCClients          = 10
-	defaultMaxPeers               = 125
+	defaultMaxPeers               = 30
 	defaultMiningStateSync        = false
 	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
 	defaultTrickleInterval        = peer.TrickleTimeout
@@ -228,6 +229,18 @@ func LoadConfig() (*config.Config, []string, error) {
 		return nil, nil, err
 	}
 
+	if cfg.P2PTCPPort <= 0 {
+		P2PTCPPort, err := strconv.Atoi(params.ActiveNetParams.DefaultPort)
+		if err != nil {
+			return nil, nil, err
+		}
+		cfg.P2PTCPPort = P2PTCPPort
+	}
+
+	if cfg.P2PUDPPort <= 0 {
+		cfg.P2PUDPPort = params.ActiveNetParams.DefaultUDPPort
+	}
+	//
 	if err := params.ActiveNetParams.PowConfig.Check(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, nil, err
