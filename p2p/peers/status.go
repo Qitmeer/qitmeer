@@ -1,35 +1,16 @@
 package peers
 
-/*
 import (
 	"errors"
+	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
-	"github.com/libp2p/go-libp2p-core/introspection/pb"
-	"github.com/prysmaticlabs/go-bitfield"
-	"github.com/prysmaticlabs/prysm/beacon-chain/core/helpers"
-	"github.com/prysmaticlabs/prysm/shared/roughtime"
-	"sort"
-	"sync"
-	"time"
-
-	"github.com/Qitmeer/qitmeer/p2p/qnr"
+	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
-)
-
-// PeerConnectionState is the state of the connection.
-type PeerConnectionState int32
-
-const (
-	// PeerDisconnected means there is no connection to the peer.
-	PeerDisconnected PeerConnectionState = iota
-	// PeerDisconnecting means there is an on-going attempt to disconnect from the peer.
-	PeerDisconnecting
-	// PeerConnected means the peer has an active connection.
-	PeerConnected
-	// PeerConnecting means there is an on-going attempt to connect to the peer.
-	PeerConnecting
+	"github.com/prysmaticlabs/go-bitfield"
+	"sync"
+	"time"
 )
 
 var (
@@ -44,30 +25,51 @@ type Status struct {
 	status          map[peer.ID]*peerStatus
 }
 
-// peerStatus is the status of an individual peer at the protocol level.
-type peerStatus struct {
-	address   ma.Multiaddr
-	direction network.Direction
-	peerState PeerConnectionState
-
-	qnr *qnr.Record
-	//metaData              *pb.MetaData
-	chainStateLastUpdated time.Time
-	badResponses          int
-}
-
-
-// NewStatus creates a new status entity.
-func NewStatus(maxBadResponses int) *Status {
-	return &Status{
-		maxBadResponses: maxBadResponses,
-		status:          make(map[peer.ID]*peerStatus),
-	}
-}
-
 // MaxBadResponses returns the maximum number of bad responses a peer can provide before it is considered bad.
 func (p *Status) MaxBadResponses() int {
 	return p.maxBadResponses
+}
+
+// Bad returns the peers that are bad.
+func (p *Status) Bad() []peer.ID {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	peers := make([]peer.ID, 0)
+	for pid, status := range p.status {
+		if status.badResponses >= p.maxBadResponses {
+			peers = append(peers, pid)
+		}
+	}
+	return peers
+}
+
+// IsBad states if the peer is to be considered bad.
+// If the peer is unknown this will return `false`, which makes using this function easier than returning an error.
+func (p *Status) IsBad(pid peer.ID) bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	if status, ok := p.status[pid]; ok {
+		return status.badResponses >= p.maxBadResponses
+	}
+	return false
+}
+
+// IncrementBadResponses increments the number of bad responses we have received from the given remote peer.
+func (p *Status) IncrementBadResponses(pid peer.ID) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	status := p.fetch(pid)
+	status.badResponses++
+}
+
+// fetch is a helper function that fetches a peer status, possibly creating it.
+func (p *Status) fetch(pid peer.ID) *peerStatus {
+	if _, ok := p.status[pid]; !ok {
+		p.status[pid] = &peerStatus{}
+	}
+	return p.status[pid]
 }
 
 // Add adds a peer.
@@ -121,8 +123,8 @@ func (p *Status) Direction(pid peer.ID) (network.Direction, error) {
 	return network.DirUnknown, ErrPeerUnknown
 }
 
-// QNR returns the qnr for the corresponding peer id.
-func (p *Status) QNR(pid peer.ID) (*qnr.Record, error) {
+// ENR returns the enr for the corresponding peer id.
+func (p *Status) ENR(pid peer.ID) (*qnr.Record, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
@@ -133,26 +135,26 @@ func (p *Status) QNR(pid peer.ID) (*qnr.Record, error) {
 }
 
 // SetChainState sets the chain state of the given remote peer.
-func (p *Status) SetChainState(pid peer.ID, chainState *pb.Status) {
+func (p *Status) SetChainState(pid peer.ID, chainState string) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	status := p.fetch(pid)
 	status.chainState = chainState
-	status.chainStateLastUpdated = roughtime.Now()
+	status.chainStateLastUpdated = time.Now()
 }
 
 // ChainState gets the chain state of the given remote peer.
 // This can return nil if there is no known chain state for the peer.
 // This will error if the peer does not exist.
-func (p *Status) ChainState(pid peer.ID) (*pb.Status, error) {
+func (p *Status) ChainState(pid peer.ID) (string, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
 	if status, ok := p.status[pid]; ok {
 		return status.chainState, nil
 	}
-	return nil, ErrPeerUnknown
+	return "", ErrPeerUnknown
 }
 
 // IsActive checks if a peers is active and returns the result appropriately.
@@ -252,16 +254,7 @@ func (p *Status) ChainStateLastUpdated(pid peer.ID) (time.Time, error) {
 	if status, ok := p.status[pid]; ok {
 		return status.chainStateLastUpdated, nil
 	}
-	return roughtime.Now(), ErrPeerUnknown
-}
-
-// IncrementBadResponses increments the number of bad responses we have received from the given remote peer.
-func (p *Status) IncrementBadResponses(pid peer.ID) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	status := p.fetch(pid)
-	status.badResponses++
+	return time.Now(), ErrPeerUnknown
 }
 
 // BadResponses obtains the number of bad responses we have received from the given remote peer.
@@ -274,18 +267,6 @@ func (p *Status) BadResponses(pid peer.ID) (int, error) {
 		return status.badResponses, nil
 	}
 	return -1, ErrPeerUnknown
-}
-
-// IsBad states if the peer is to be considered bad.
-// If the peer is unknown this will return `false`, which makes using this function easier than returning an error.
-func (p *Status) IsBad(pid peer.ID) bool {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.status[pid]; ok {
-		return status.badResponses >= p.maxBadResponses
-	}
-	return false
 }
 
 // Connecting returns the peers that are connecting.
@@ -366,19 +347,6 @@ func (p *Status) Inactive() []peer.ID {
 	return peers
 }
 
-// Bad returns the peers that are bad.
-func (p *Status) Bad() []peer.ID {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-	peers := make([]peer.ID, 0)
-	for pid, status := range p.status {
-		if status.badResponses >= p.maxBadResponses {
-			peers = append(peers, pid)
-		}
-	}
-	return peers
-}
-
 // All returns all the peers regardless of state.
 func (p *Status) All() []peer.ID {
 	p.lock.RLock()
@@ -403,75 +371,12 @@ func (p *Status) Decay() {
 	}
 }
 
-// BestFinalized returns the highest finalized epoch equal to or higher than ours that is agreed upon by the majority of peers.
-// This method may not return the absolute highest finalized, but the finalized epoch in which most peers can serve blocks.
-// Ideally, all peers would be reporting the same finalized epoch but some may be behind due to their own latency, or because of
-// their finalized epoch at the time we queried them.
-// Returns the best finalized root, epoch number, and list of peers that are at or beyond that epoch.
-func (p *Status) BestFinalized(maxPeers int, ourFinalizedEpoch uint64) (uint64, []peer.ID) {
-	connected := p.Connected()
-	finalizedEpochVotes := make(map[uint64]uint64)
-	pidEpoch := make(map[peer.ID]uint64)
-	potentialPIDs := make([]peer.ID, 0, len(connected))
-	for _, pid := range connected {
-		peerChainState, err := p.ChainState(pid)
-		if err == nil && peerChainState != nil && peerChainState.FinalizedEpoch >= ourFinalizedEpoch {
-			finalizedEpochVotes[peerChainState.FinalizedEpoch]++
-			pidEpoch[pid] = peerChainState.FinalizedEpoch
-			potentialPIDs = append(potentialPIDs, pid)
-		}
+// NewStatus creates a new status entity.
+func NewStatus(maxBadResponses int) *Status {
+	return &Status{
+		maxBadResponses: maxBadResponses,
+		status:          make(map[peer.ID]*peerStatus),
 	}
-
-	// Select the target epoch, which is the epoch most peers agree upon.
-	var targetEpoch uint64
-	var mostVotes uint64
-	for epoch, count := range finalizedEpochVotes {
-		if count > mostVotes {
-			mostVotes = count
-			targetEpoch = epoch
-		}
-	}
-
-	// Sort PIDs by finalized epoch, in decreasing order.
-	sort.Slice(potentialPIDs, func(i, j int) bool {
-		return pidEpoch[potentialPIDs[i]] > pidEpoch[potentialPIDs[j]]
-	})
-
-	// Trim potential peers to those on or after target epoch.
-	for i, pid := range potentialPIDs {
-		if pidEpoch[pid] < targetEpoch {
-			potentialPIDs = potentialPIDs[:i]
-			break
-		}
-	}
-
-	// Trim potential peers to at most maxPeers.
-	if len(potentialPIDs) > maxPeers {
-		potentialPIDs = potentialPIDs[:maxPeers]
-	}
-
-	return targetEpoch, potentialPIDs
-}
-
-// fetch is a helper function that fetches a peer status, possibly creating it.
-func (p *Status) fetch(pid peer.ID) *peerStatus {
-	if _, ok := p.status[pid]; !ok {
-		p.status[pid] = &peerStatus{}
-	}
-	return p.status[pid]
-}
-
-// HighestEpoch returns the highest epoch reported epoch amongst peers.
-func (p *Status) HighestEpoch() uint64 {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-	var highestSlot uint64
-	for _, ps := range p.status {
-		if ps != nil && ps.chainState != nil && ps.chainState.HeadSlot > highestSlot {
-			highestSlot = ps.chainState.HeadSlot
-		}
-	}
-	return helpers.SlotToEpoch(highestSlot)
 }
 
 func retrieveIndicesFromBitfield(bitV bitfield.Bitvector64) []uint64 {
@@ -483,4 +388,3 @@ func retrieveIndicesFromBitfield(bitV bitfield.Bitvector64) []uint64 {
 	}
 	return committeeIdxs
 }
-*/
