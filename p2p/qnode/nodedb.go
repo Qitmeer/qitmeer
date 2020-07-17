@@ -51,7 +51,7 @@ const (
 const (
 	dbNodeExpiration = 24 * time.Hour // Time after which an unseen node should be dropped.
 	dbCleanupCycle   = time.Hour      // Time period for running the expiration task.
-	dbVersion        = 9
+	dbVersion        = 1
 )
 
 var zeroIP = make(net.IP, 16)
