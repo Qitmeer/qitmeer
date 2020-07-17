@@ -16,6 +16,7 @@ import (
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/message"
+	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
@@ -24,9 +25,12 @@ import (
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/dgraph-io/ristretto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/multiformats/go-multiaddr"
@@ -279,6 +283,105 @@ func (s *Service) pingPeers() {
 			}
 		}(pid)
 	}
+}
+
+// PubSub returns the p2p pubsub framework.
+func (s *Service) PubSub() *pubsub.PubSub {
+	return s.pubsub
+}
+
+// Host returns the currently running libp2p
+// host of the service.
+func (s *Service) Host() host.Host {
+	return s.host
+}
+
+// SetStreamHandler sets the protocol handler on the p2p host multiplexer.
+// This method is a pass through to libp2pcore.Host.SetStreamHandler.
+func (s *Service) SetStreamHandler(topic string, handler network.StreamHandler) {
+	s.host.SetStreamHandler(protocol.ID(topic), handler)
+}
+
+// PeerID returns the Peer ID of the local peer.
+func (s *Service) PeerID() peer.ID {
+	return s.host.ID()
+}
+
+// Disconnect from a peer.
+func (s *Service) Disconnect(pid peer.ID) error {
+	return s.host.Network().ClosePeer(pid)
+}
+
+// Connect to a specific peer.
+func (s *Service) Connect(pi peer.AddrInfo) error {
+	return s.host.Connect(s.ctx, pi)
+}
+
+// ENR returns the local node's current ENR.
+func (s *Service) QNR() *qnr.Record {
+	if s.dv5Listener == nil {
+		return nil
+	}
+	return s.dv5Listener.Self().Record()
+}
+
+// Metadata returns a copy of the peer's metadata.
+func (s *Service) Metadata() *pb.MetaData {
+	return proto.Clone(s.metaData).(*pb.MetaData)
+}
+
+// MetadataSeq returns the metadata sequence number.
+func (s *Service) MetadataSeq() uint64 {
+	return s.metaData.SeqNumber
+}
+
+// Encoding returns the configured networking encoding.
+func (s *Service) Encoding() encoder.NetworkEncoding {
+	encoding := s.cfg.Encoding
+	switch encoding {
+	case encoder.SSZ:
+		return &encoder.SszNetworkEncoder{}
+	case encoder.SSZSnappy:
+		return &encoder.SszNetworkEncoder{UseSnappyCompression: true}
+	default:
+		panic("Invalid Network Encoding Flag Provided")
+	}
+}
+
+// Send a message to a specific peer. The returned stream may be used for reading, but has been
+// closed for writing.
+func (s *Service) Send(ctx context.Context, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
+	topic := baseTopic + s.Encoding().ProtocolSuffix()
+
+	var deadline = ttfbTimeout + RespTimeout
+	ctx, cancel := context.WithTimeout(ctx, deadline)
+	defer cancel()
+
+	stream, err := s.host.NewStream(ctx, pid, protocol.ID(topic))
+	if err != nil {
+		return nil, err
+	}
+	if err := stream.SetReadDeadline(time.Now().Add(deadline)); err != nil {
+		return nil, err
+	}
+	if err := stream.SetWriteDeadline(time.Now().Add(deadline)); err != nil {
+		return nil, err
+	}
+	// do not encode anything if we are sending a metadata request
+	if baseTopic == RPCMetaDataTopic {
+		return stream, nil
+	}
+
+	if _, err := s.Encoding().EncodeWithMaxLength(stream, message); err != nil {
+		return nil, err
+	}
+
+	// Close stream for writing.
+	if err := stream.Close(); err != nil {
+		return nil, err
+	}
+
+	return stream, nil
 }
 
 func NewService(cfg *config.Config) (*Service, error) {

@@ -1,0 +1,149 @@
+package p2p
+
+import (
+	"context"
+	"fmt"
+	"github.com/Qitmeer/qitmeer/p2p/encoder"
+	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	libp2pcore "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/network"
+	"io"
+	"reflect"
+	"strings"
+	"time"
+)
+
+const (
+
+	// RPCGoodByeTopic defines the topic for the goodbye rpc method.
+	RPCGoodByeTopic = "/qitmeer/req/goodbye/1"
+	// RPCPingTopic defines the topic for the ping rpc method.
+	RPCPingTopic = "/qitmeer/req/ping/1"
+	// RPCMetaDataTopic defines the topic for the metadata rpc method.
+	RPCMetaDataTopic = "/qitmeer/req/metadata/1"
+)
+
+// Time to first byte timeout. The maximum time to wait for first byte of
+// request response (time-to-first-byte). The client is expected to give up if
+// they don't receive the first byte within 5 seconds.
+const ttfbTimeout = 5 * time.Second
+
+// rpcHandler is responsible for handling and responding to any incoming message.
+// This method may return an error to internal monitoring, but the error will
+// not be relayed to the peer.
+type rpcHandler func(context.Context, interface{}, libp2pcore.Stream) error
+
+//
+var responseCodeSuccess = byte(0x00)
+var responseCodeInvalidRequest = byte(0x01)
+var responseCodeServerError = byte(0x02)
+
+// RespTimeout is the maximum time for complete response transfer.
+const RespTimeout = 10 * time.Second
+
+func (s *Service) registerHandlers() {
+	s.registerRPCHandlers()
+	//s.registerSubscribers()
+}
+
+// registerRPCHandlers for p2p RPC.
+func (s *Service) registerRPCHandlers() {
+
+	s.registerRPC(
+		RPCGoodByeTopic,
+		new(uint64),
+		s.goodbyeRPCHandler,
+	)
+
+	s.registerRPC(
+		RPCPingTopic,
+		new(uint64),
+		s.pingHandler,
+	)
+
+	s.registerRPC(
+		RPCMetaDataTopic,
+		new(interface{}),
+		s.metaDataHandler,
+	)
+}
+
+// registerRPC for a given topic with an expected protobuf message type.
+func (s *Service) registerRPC(topic string, base interface{}, handle rpcHandler) {
+	topic += s.Encoding().ProtocolSuffix()
+	s.SetStreamHandler(topic, func(stream network.Stream) {
+		ctx, cancel := context.WithTimeout(context.Background(), ttfbTimeout)
+		defer cancel()
+		defer func() {
+			if err := stream.Close(); err != nil {
+				log.Error(fmt.Sprintf("topic:%s Failed to close stream:%v", topic, err))
+			}
+		}()
+		if err := stream.SetReadDeadline(time.Now().Add(ttfbTimeout)); err != nil {
+			log.Error(fmt.Sprintf("topic:%s peer:%s Could not set stream read deadline:%v",
+				topic, stream.Conn().RemotePeer().Pretty(), err))
+			return
+		}
+
+		// since metadata requests do not have any data in the payload, we
+		// do not decode anything.
+		if strings.Contains(topic, RPCMetaDataTopic) {
+			if err := handle(ctx, new(interface{}), stream); err != nil {
+				log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
+			}
+			return
+		}
+
+		// Given we have an input argument that can be pointer or [][32]byte, this gives us
+		// a way to check for its reflect.Kind and based on the result, we can decode
+		// accordingly.
+		t := reflect.TypeOf(base)
+		var ty reflect.Type
+		if t.Kind() == reflect.Ptr {
+			ty = t.Elem()
+		} else {
+			ty = t
+		}
+		msg := reflect.New(ty)
+		if err := s.Encoding().DecodeWithMaxLength(stream, msg.Interface()); err != nil {
+			// Debug logs for goodbye errors
+			if strings.Contains(topic, RPCGoodByeTopic) {
+				log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
+				return
+			}
+			log.Warn(fmt.Sprintf("Failed to decode stream message:%v", err))
+			return
+		}
+		if err := handle(ctx, msg.Interface(), stream); err != nil {
+			log.Warn("Failed to handle p2p RPC:%v", err)
+		}
+	})
+}
+
+func closeSteam(stream libp2pcore.Stream) {
+	if err := stream.Close(); err != nil {
+		log.Error(fmt.Sprintf("Failed to close stream:%v", err))
+	}
+}
+
+// ReadStatusCode response from a RPC stream.
+func ReadStatusCode(stream io.Reader, encoding encoder.NetworkEncoding) (uint8, string, error) {
+	b := make([]byte, 1)
+	_, err := stream.Read(b)
+	if err != nil {
+		return 0, "", err
+	}
+
+	if b[0] == responseCodeSuccess {
+		return 0, "", nil
+	}
+
+	msg := &pb.ErrorResponse{
+		Message: []byte{},
+	}
+	if err := encoding.DecodeWithMaxLength(stream, msg); err != nil {
+		return 0, "", err
+	}
+
+	return b[0], string(msg.Message), nil
+}
