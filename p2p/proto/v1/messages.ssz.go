@@ -18,6 +18,64 @@ var (
 	errSize                = fmt.Errorf("incorrect size")
 )
 
+// MarshalSSZ ssz marshals the ErrorResponse object
+func (e *ErrorResponse) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, e.SizeSSZ())
+	return e.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the ErrorResponse object to a target array
+func (e *ErrorResponse) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+	offset := int(4)
+
+	// Offset (0) 'Message'
+	dst = ssz.WriteOffset(dst, offset)
+	offset += len(e.Message)
+
+	// Field (0) 'Message'
+	if len(e.Message) > 256 {
+		return nil, errMarshalDynamicBytes
+	}
+	dst = append(dst, e.Message...)
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the ErrorResponse object
+func (e *ErrorResponse) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size < 4 {
+		return errSize
+	}
+
+	tail := buf
+	var o0 uint64
+
+	// Offset (0) 'Message'
+	if o0 = ssz.ReadOffset(buf[0:4]); o0 > size {
+		return errOffset
+	}
+
+	// Field (0) 'Message'
+	{
+		buf = tail[o0:]
+		e.Message = append(e.Message, buf...)
+	}
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the ErrorResponse object
+func (e *ErrorResponse) SizeSSZ() (size int) {
+	size = 4
+
+	// Field (0) 'Message'
+	size += len(e.Message)
+
+	return
+}
+
 // MarshalSSZ ssz marshals the MetaData object
 func (m *MetaData) MarshalSSZ() ([]byte, error) {
 	buf := make([]byte, m.SizeSSZ())
