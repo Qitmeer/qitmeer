@@ -411,7 +411,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 			TxIndex:    uint32(tx.Index()),
 			TxInIndex:  uint32(txInIndex),
 		}
-		if stxo.IsCoinBase {
+		if stxo.IsCoinBase && txIn.PreviousOut.OutIndex == 0 {
 			stxo.Amount += uint64(bc.GetFees(&stxo.BlockHash))
 		}
 		// Append the entry to the provided spent txouts slice.
