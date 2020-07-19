@@ -1086,7 +1086,7 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 		// Coin is a quantity of atoms as defined by the AtomPerCoin
 		// constant.
 		originTxAtom := int64(utxoEntry.Amount())
-		if utxoEntry.IsCoinBase() {
+		if utxoEntry.IsCoinBase() && txIn.PreviousOut.OutIndex == 0 {
 			originTxAtom += bc.GetFees(utxoEntry.BlockHash())
 		}
 		if originTxAtom < 0 {

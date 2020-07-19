@@ -4,6 +4,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"math"
 	"sort"
 	"time"
 )
@@ -96,8 +97,15 @@ func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 	defer b.orphanLock.RUnlock()
 
 	result := blockdag.NewHashSet()
+	mh := b.BestSnapshot().GraphState.GetMainHeight()
 	for _, v := range b.orphans {
 		for _, h := range v.block.Block().Parents {
+			if len(b.orphans) >= MaxOrphanBlocks {
+				dist := math.Abs(float64(v.height) - float64(mh))
+				if dist > float64(blockdag.StableConfirmations) {
+					continue
+				}
+			}
 			if b.index.HaveBlock(h) || b.isOrphan(h) {
 				continue
 			}
@@ -108,8 +116,8 @@ func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 	return result.List()
 }
 
-func (b *BlockChain) IsOrphanNear(serializedHeight uint64) bool {
-	dist := serializedHeight + blockdag.StableConfirmations
+func (b *BlockChain) IsOrphanOK(serializedHeight uint64) bool {
+	dist := serializedHeight + blockdag.StableConfirmations*2
 	return uint(dist) >= b.BestSnapshot().GraphState.GetMainHeight()
 }
 
@@ -139,7 +147,7 @@ func (b *BlockChain) addOrphanBlock(block *types.SerializedBlock) {
 	if err != nil {
 		return
 	}
-	if !b.IsOrphanNear(serializedHeight) {
+	if !b.IsOrphanOK(serializedHeight) {
 		return
 	}
 	// Protect concurrent access.  This is intentionally done here instead
@@ -244,7 +252,7 @@ func (b *BlockChain) refreshOrphans() {
 			b.removeOrphanBlock(oBlock)
 			continue
 		}
-		if !b.IsOrphanNear(oBlock.height) {
+		if !b.IsOrphanOK(oBlock.height) {
 			b.removeOrphanBlock(oBlock)
 			continue
 		}

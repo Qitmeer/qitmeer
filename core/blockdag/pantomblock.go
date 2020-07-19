@@ -155,3 +155,11 @@ func (pb *PhantomBlock) Decode(r io.Reader) error {
 func (pb *PhantomBlock) GetBlueNum() uint {
 	return pb.blueNum
 }
+
+func (pb *PhantomBlock) GetBlueDiffAnticone() *IdSet {
+	return pb.blueDiffAnticone
+}
+
+func (pb *PhantomBlock) GetRedDiffAnticone() *IdSet {
+	return pb.redDiffAnticone
+}

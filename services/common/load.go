@@ -298,7 +298,7 @@ func LoadConfig() (*config.Config, []string, error) {
 	}
 
 	// Parse, validate, and set debug log level(s).
-	if err := parseAndSetDebugLevels(cfg.DebugLevel); err != nil {
+	if err := ParseAndSetDebugLevels(cfg.DebugLevel); err != nil {
 		err := fmt.Errorf("%s: %v", funcName, err.Error())
 		fmt.Fprintln(os.Stderr, err)
 		fmt.Fprintln(os.Stderr, usageMessage)
@@ -414,7 +414,7 @@ func newConfigParser(cfg *config.Config, options flags.Options) *flags.Parser {
 // parseAndSetDebugLevels attempts to parse the specified debug level and set
 // the levels accordingly.  An appropriate error is returned if anything is
 // invalid.
-func parseAndSetDebugLevels(debugLevel string) error {
+func ParseAndSetDebugLevels(debugLevel string) error {
 
 	// When the specified string doesn't have any delimters, treat it as
 	// the log level for all subsystems.
