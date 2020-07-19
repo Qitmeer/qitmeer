@@ -325,6 +325,127 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 	return marshal.MarshalJsonTransaction(mtx, api.txManager.bm.ChainParams(), blkHashStr, confirmations, coinbaseAmout)
 }
 
+// Can get all of raw transaction. But it's very slow for invalid transactions.
+// TODO Need to continue optimization
+func (api *PublicTxAPI) GetRawTransactionV2(txHash hash.Hash, verbose bool) (interface{}, error) {
+
+	var mtx *types.Transaction
+	var blkHash *hash.Hash
+	//var blkOrder uint64
+	var blkHashStr string
+	var confirmations int64
+
+	// Try to fetch the transaction from the memory pool and if that fails,
+	// try the block database.
+	tx, _ := api.txManager.txMemPool.FetchTransaction(&txHash)
+
+	if tx == nil {
+		//not found from mem-pool, try db
+		txIndex := api.txManager.txIndex
+		if txIndex == nil {
+			return nil, fmt.Errorf("the transaction index " +
+				"must be enabled to query the blockchain (specify --txindex in configuration)")
+		}
+		// Look up the location of the transaction.
+		blockRegion, err := txIndex.TxBlockRegion(txHash)
+		if err != nil || blockRegion == nil {
+			bc := api.txManager.bm.GetChain()
+			bd := api.txManager.bm.GetChain().BlockDAG()
+			for i := uint(bd.GetBlockTotal() - 1); i >= 1; i-- {
+
+				ib := bd.GetBlockById(i)
+				if ib == nil {
+					return nil, fmt.Errorf("No block:%s", i)
+				}
+				block, err := bc.FetchBlockByHash(ib.GetHash())
+				if err != nil {
+					return nil, err
+				}
+				hasTx := false
+				for _, v := range block.Transactions() {
+					if v.Hash().IsEqual(&txHash) {
+						mtx = v.Tx
+						blkHashStr = ib.GetHash().String()
+						hasTx = true
+						break
+					}
+				}
+				if hasTx {
+					break
+				}
+			}
+		} else {
+			// Load the raw transaction bytes from the database.
+			var txBytes []byte
+			err = api.txManager.db.View(func(dbTx database.Tx) error {
+				var err error
+				txBytes, err = dbTx.FetchBlockRegion(blockRegion)
+				return err
+			})
+			if err != nil {
+				return nil, rpc.RpcNoTxInfoError(&txHash)
+			}
+
+			// When the verbose flag isn't set, simply return the serialized
+			// transaction as a hex-encoded string.  This is done here to
+			// avoid deserializing it only to reserialize it again later.
+			if !verbose {
+				return hex.EncodeToString(txBytes), nil
+			}
+
+			// Grab the block height.
+			blkHash = blockRegion.Hash
+			/*blkOrder, err = api.txManager.bm.GetChain().BlockOrderByHash(blkHash)
+			if err != nil {
+				context := "Failed to retrieve block height"
+				return nil, rpc.RpcInternalError(err.Error(), context)
+			}*/
+
+			// Deserialize the transaction
+			var msgTx types.Transaction
+			err = msgTx.Deserialize(bytes.NewReader(txBytes))
+			log.Trace("GetRawTx", "hex", hex.EncodeToString(txBytes))
+			if err != nil {
+				context := "Failed to deserialize transaction"
+				return nil, rpc.RpcInternalError(err.Error(), context)
+			}
+			mtx = &msgTx
+		}
+	} else {
+		// When the verbose flag isn't set, simply return the
+		// network-serialized transaction as a hex-encoded string.
+		if !verbose {
+			// Note that this is intentionally not directly
+			// returning because the first return value is a
+			// string and it would result in returning an empty
+			// string to the client instead of nothing (nil) in the
+			// case of an error.
+			hexStr, err := marshal.MessageToHex(&message.MsgTx{Tx: tx.Transaction()})
+			if err != nil {
+				return nil, err
+			}
+
+			return hexStr, nil
+		}
+
+		mtx = tx.Transaction()
+	}
+	coinbaseAmout := uint64(0)
+	if blkHash != nil {
+		blkHashStr = blkHash.String()
+		confirmations = int64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(
+			api.txManager.bm.GetChain().BlockIndex().GetDAGBlockID(blkHash)))
+
+		if mtx.IsCoinBase() {
+			coinbaseAmout = mtx.TxOut[0].Amount + uint64(api.txManager.bm.GetChain().GetFees(blkHash))
+		}
+	}
+	if tx != nil {
+		confirmations = 0
+	}
+	return marshal.MarshalJsonTransaction(mtx, api.txManager.bm.ChainParams(), blkHashStr, confirmations, coinbaseAmout)
+}
+
 // Returns information about an unspent transaction output
 // 1. txid           (string, required)                The hash of the transaction
 // 2. vout           (numeric, required)               The index of the output

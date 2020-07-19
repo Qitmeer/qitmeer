@@ -176,6 +176,17 @@ function get_tx_by_id(){
   get_result "$data"
 }
 
+# return tx by hash
+function get_tx_by_id_v2(){
+  local tx_hash=$1
+  local verbose=$2
+  if [ "$verbose" == "" ]; then
+    verbose="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getRawTransactionV2","params":["'$tx_hash'",'$verbose'],"id":1}'
+  get_result "$data"
+}
+
 function get_tx_by_hash(){
   local tx_hash=$1
   local verbose=$2
@@ -473,6 +484,7 @@ function usage(){
   echo "  blockv2 <hash>"
   echo "tx     :"
   echo "  tx <id>"
+  echo "  txv2 <id>"
   echo "  txbyhash <hash>"
   echo "  createRawTx"
   echo "  txSign <rawTx>"
@@ -822,6 +834,9 @@ elif [ "$1" == "removeban" ]; then
 elif [ "$1" == "tx" ]; then
   shift
   get_tx_by_id $@
+elif [ "$1" == "txv2" ]; then
+  shift
+  get_tx_by_id_v2 $@
 elif [ "$1" == "txbyhash" ]; then
   shift
   get_tx_by_hash $@
