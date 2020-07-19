@@ -355,7 +355,7 @@ func (api *PublicTxAPI) GetRawTransactionV2(txHash hash.Hash, verbose bool) (int
 
 				ib := bd.GetBlockById(i)
 				if ib == nil {
-					return nil, fmt.Errorf("No block:%s", i)
+					return nil, fmt.Errorf("No block:%d", i)
 				}
 				block, err := bc.FetchBlockByHash(ib.GetHash())
 				if err != nil {
