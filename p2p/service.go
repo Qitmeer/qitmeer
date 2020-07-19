@@ -473,6 +473,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 
 	s.peers = peers.NewStatus(maxBadResponses)
 
+	s.registerHandlers()
 	return s, nil
 }
 

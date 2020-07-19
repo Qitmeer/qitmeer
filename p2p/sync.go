@@ -46,6 +46,10 @@ func (s *Service) registerHandlers() {
 	//s.registerSubscribers()
 }
 
+func (s *Service) startSync() {
+
+}
+
 // registerRPCHandlers for p2p RPC.
 func (s *Service) registerRPCHandlers() {
 
