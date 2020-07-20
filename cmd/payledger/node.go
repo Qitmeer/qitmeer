@@ -165,14 +165,9 @@ func (node *Node) dataVerification(srcnode *SrcNode) error {
 		if srcIB == nil {
 			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d) from src node!", i))
 		}
-		ib := node.bc.BlockDAG().GetBlockById(i)
+		ib := node.bc.BlockDAG().GetBlock(srcIB.GetHash())
 		if ib == nil {
 			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d) from node!", i))
-		}
-		if srcIB.GetStatus() != ib.GetStatus() ||
-			srcIB.GetHeight() != ib.GetHeight() ||
-			!srcIB.GetHash().IsEqual(ib.GetHash()) {
-			return fmt.Errorf(fmt.Sprintf("Validate fail (%s)!", srcIB.GetHash().String()))
 		}
 		if bar != nil {
 			bar.add()
