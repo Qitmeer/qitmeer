@@ -186,7 +186,10 @@ func buildLedger(node INode, config *Config) error {
 		cursor := utxoBucket.Cursor()
 		for ok := cursor.First(); ok; ok = cursor.Next() {
 			serializedUtxo := utxoBucket.Get(cursor.Key())
-
+			txOutIdex, size := deserializeVLQ(cursor.Key()[hash.HashSize:])
+			if size <= 0 {
+				return fmt.Errorf("deserializeVLQ:%s %v", cursor.Key()[hash.HashSize:])
+			}
 			// Deserialize the utxo entry and return it.
 			entry, err := blockchain.DeserializeUtxoEntry(serializedUtxo)
 			if err != nil {
@@ -197,6 +200,9 @@ func buildLedger(node INode, config *Config) error {
 			}
 			ib := node.BlockChain().BlockDAG().GetBlock(entry.BlockHash())
 			if ib.GetOrder() == blockdag.MaxBlockOrder {
+				continue
+			}
+			if ib.GetStatus()&4 > 0 {
 				continue
 			}
 			if entry.IsCoinBase() {
@@ -232,8 +238,12 @@ func buildLedger(node INode, config *Config) error {
 				genesisLedger[addrStr].GenAmount += entry.Amount()
 				genAmount += entry.Amount()
 			} else {
-				genesisLedger[addrStr].Payout.Amount += entry.Amount()
-				totalAmount += entry.Amount()
+				eamount := entry.Amount()
+				if entry.IsCoinBase() && txOutIdex == 0 {
+					eamount += uint64(node.BlockChain().GetFees(ib.GetHash()))
+				}
+				genesisLedger[addrStr].Payout.Amount += eamount
+				totalAmount += eamount
 			}
 			log.Trace(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s", addrStr, entry.Amount(), entry.BlockHash().String()))
 		}
@@ -247,7 +257,7 @@ func buildLedger(node INode, config *Config) error {
 		return nil
 	}
 	fmt.Println(fmt.Sprintf("Show Ledger:[Genesis------->%s]", mainChainTip.GetHash().String()))
-	payList := make(ledger.PayoutList, len(genesisLedger))
+	payList := make(ledger.PayoutList2, len(genesisLedger))
 	i := 0
 	for _, v := range genesisLedger {
 		payList[i] = *v
@@ -321,4 +331,19 @@ func blockInfo(cfg *Config) bool {
 		return true
 	}
 	return false
+}
+
+func deserializeVLQ(serialized []byte) (uint64, int) {
+	var n uint64
+	var size int
+	for _, val := range serialized {
+		size++
+		n = (n << 7) | uint64(val&0x7f)
+		if val&0x80 != 0x80 {
+			break
+		}
+		n++
+	}
+
+	return n, size
 }
