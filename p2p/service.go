@@ -147,6 +147,7 @@ func (s *Service) Start() error {
 		logExternalDNSAddr(s.host.ID(), p2pHostDNS, p2pTCPPort)
 	}
 
+	s.startSync()
 	return nil
 }
 
