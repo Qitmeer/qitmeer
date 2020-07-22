@@ -110,6 +110,9 @@ type BlockChain struct {
 
 	// block version
 	BlockVersion uint32
+
+	// Cache Invalid tx
+	CacheInvalidTx bool
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -171,6 +174,9 @@ type Config struct {
 
 	// block version
 	BlockVersion uint32
+
+	// Cache Invalid tx
+	CacheInvalidTx bool
 }
 
 // BestState houses information about the current best block and other info
@@ -261,6 +267,7 @@ func New(config *Config) (*BlockChain, error) {
 		index:              newBlockIndex(config.DB, par),
 		orphans:            make(map[hash.Hash]*orphanBlock),
 		BlockVersion:       config.BlockVersion,
+		CacheInvalidTx:     config.CacheInvalidTx,
 	}
 	b.subsidyCache = NewSubsidyCache(0, b.params)
 

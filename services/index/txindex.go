@@ -466,7 +466,8 @@ func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,
 	if node == nil {
 		return fmt.Errorf("no node %s", block.Hash())
 	}
-	if !node.GetStatus().KnownInvalid() {
+
+	if idx.chain.CacheInvalidTx || !node.GetStatus().KnownInvalid() {
 		if err := dbAddTxIndexEntries(dbTx, block, newBlockID); err != nil {
 			return err
 		}

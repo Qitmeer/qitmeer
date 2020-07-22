@@ -109,15 +109,16 @@ func NewBlockManager(ntmgr notify.Notify, indexManager blockchain.IndexManager, 
 	// Create a new block chain instance with the appropriate configuration.
 	var err error
 	bm.chain, err = blockchain.New(&blockchain.Config{
-		DB:            db,
-		Interrupt:     interrupt,
-		ChainParams:   par,
-		TimeSource:    timeSource,
-		Notifications: bm.handleNotifyMsg,
-		SigCache:      sigCache,
-		IndexManager:  indexManager,
-		DAGType:       cfg.DAGType,
-		BlockVersion:  blockVersion,
+		DB:             db,
+		Interrupt:      interrupt,
+		ChainParams:    par,
+		TimeSource:     timeSource,
+		Notifications:  bm.handleNotifyMsg,
+		SigCache:       sigCache,
+		IndexManager:   indexManager,
+		DAGType:        cfg.DAGType,
+		BlockVersion:   blockVersion,
+		CacheInvalidTx: cfg.CacheInvalidTx,
 	})
 	if err != nil {
 		return nil, err

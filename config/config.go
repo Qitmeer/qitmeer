@@ -84,6 +84,9 @@ type Config struct {
 
 	Zmqpubhashtx string `long:"zmqpubhashtx" description:"Enable publish hash transaction in <address>"`
 	Zmqpubrawtx  string `long:"zmqpubrawtx" description:"Enable publish raw transaction in <address>"`
+
+	// Cache Invalid tx
+	CacheInvalidTx bool `long:"cacheinvalidtx" description:"Cache invalid transactions."`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {

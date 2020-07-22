@@ -37,6 +37,7 @@ const (
 	defaultMiningStateSync        = false
 	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
 	defaultTrickleInterval        = peer.TrickleTimeout
+	defaultCacheInvalidTx         = false
 )
 const (
 	defaultSigCacheMaxSize = 100000
@@ -83,6 +84,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		Banning:           false,
 		MaxInbound:        defaultMaxInboundPeersPerHost,
 		TrickleInterval:   defaultTrickleInterval,
+		CacheInvalidTx:    defaultCacheInvalidTx,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
