@@ -112,13 +112,13 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 		log.Info(fmt.Sprintf("End process block DAG:(%d/%d)", i-1, srcTotal))
 	}()
 	mainTip := srcnode.bc.BlockDAG().GetMainChainTip()
-	for ; i < mainTip.GetOrder(); i++ {
-		blockHash := srcnode.bc.BlockDAG().GetBlockByOrder(i)
-		if blockHash == nil {
+	for ; i < mainTip.GetID(); i++ {
+		ib := srcnode.bc.BlockDAG().GetBlockById(i)
+		if ib == nil {
 			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d)!", i))
 		}
 
-		block, err := srcnode.bc.FetchBlockByHash(blockHash)
+		block, err := srcnode.bc.FetchBlockByHash(ib.GetHash())
 		if err != nil {
 			return err
 		}
@@ -130,52 +130,12 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 		if bar != nil {
 			bar.add()
 		}
-		if blockHash.IsEqual(node.endPoint.GetHash()) {
+		if ib.GetHash().IsEqual(node.endPoint.GetHash()) {
 			break
 		}
 	}
 	if bar != nil {
 		bar.setMax()
-	}
-	err := node.dataVerification(srcnode)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (node *Node) dataVerification(srcnode *SrcNode) error {
-	fmt.Println()
-	total := node.bc.BlockDAG().GetBlockTotal()
-
-	var bar *ProgressBar
-	i := uint(1)
-	if !node.cfg.DisableBar {
-		bar = &ProgressBar{}
-		bar.init("Validate:")
-		bar.reset(int(node.endPoint.GetID() + 1))
-		bar.add()
-	} else {
-		log.Info("Validate...")
-	}
-
-	for ; i < total; i++ {
-		srcIB := srcnode.bc.BlockDAG().GetBlockById(i)
-		if srcIB == nil {
-			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d) from src node!", i))
-		}
-		ib := node.bc.BlockDAG().GetBlock(srcIB.GetHash())
-		if ib == nil {
-			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d) from node!", i))
-		}
-		if bar != nil {
-			bar.add()
-		}
-	}
-	if bar != nil {
-		bar.setMax()
-		fmt.Println()
 	}
 	return nil
 }
