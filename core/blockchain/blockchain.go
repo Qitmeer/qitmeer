@@ -464,7 +464,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			node := &blockNode{}
 			initBlockNode(node, &block.Block().Header, parents)
 			b.index.addNode(node)
-			node.status = blockStatus(refblock.GetStatus())
+			node.status = BlockStatus(refblock.GetStatus())
 			node.SetOrder(uint64(refblock.GetOrder()))
 			node.SetHeight(refblock.GetHeight())
 			node.dagID = i
@@ -1295,7 +1295,7 @@ func (b *BlockChain) GetFees(h *hash.Hash) int64 {
 }
 
 func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
-	status := blockStatus(state)
+	status := BlockStatus(state)
 	if status.KnownInvalid() {
 		return 0
 	}

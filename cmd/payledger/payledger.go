@@ -202,7 +202,7 @@ func buildLedger(node INode, config *Config) error {
 			if ib.GetOrder() == blockdag.MaxBlockOrder {
 				continue
 			}
-			if ib.GetStatus()&4 > 0 {
+			if blockchain.BlockStatus(ib.GetStatus()).KnownInvalid() {
 				continue
 			}
 			if entry.IsCoinBase() {

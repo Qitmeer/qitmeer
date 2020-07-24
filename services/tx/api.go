@@ -8,6 +8,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/marshal"
 	"github.com/Qitmeer/qitmeer/core/address"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
@@ -317,7 +318,7 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 		ib := api.txManager.bm.GetChain().BlockDAG().GetBlock(blkHash)
 		if ib != nil {
 			confirmations = int64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(ib.GetID()))
-			txsvalid = (ib.GetStatus()&4 == 0)
+			txsvalid = !blockchain.BlockStatus(ib.GetStatus()).KnownInvalid()
 		}
 
 		if mtx.Tx.IsCoinBase() {
