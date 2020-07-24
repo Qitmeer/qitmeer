@@ -170,7 +170,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	if err != nil {
 		log.Warn(fmt.Sprintf("%s", err))
 	}
-	b.updateBestState(newNode, block)
+	b.updateBestState(newNode, block, newOrders)
 
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
@@ -248,7 +248,7 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 	if err != nil {
 		log.Warn(fmt.Sprintf("%s", err))
 	}
-	b.updateBestState(newNode, block)
+	b.updateBestState(newNode, block, newOrders)
 
 	return nil
 }

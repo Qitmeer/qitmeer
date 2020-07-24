@@ -272,8 +272,8 @@ func New(config *Config) (*BlockChain, error) {
 	b.subsidyCache = NewSubsidyCache(0, b.params)
 
 	b.bd = &blockdag.BlockDAG{}
-	b.bd.Init(config.DAGType, b.subsidyCache.CalcBlockSubsidy,
-		1.0/float64(par.TargetTimePerBlock/time.Second), b.index.GetDAGBlockID)
+	b.bd.Init(config.DAGType, b.CalcWeight,
+		1.0/float64(par.TargetTimePerBlock/time.Second), b.index.GetDAGBlockID, b.db)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -813,13 +813,17 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode, block *types.Serializ
 	}*/
 }
 
-func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlock) error {
+func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlock, attachNodes *list.List) error {
 	// Must be end node of sequence in dag
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()
 	curTotalTxns := b.stateSnapshot.TotalTxns
 	b.stateLock.RUnlock()
+
+	for e := attachNodes.Front(); e != nil; e = e.Next() {
+		b.bd.UpdateWeight(e.Value.(blockdag.IBlock))
+	}
 
 	// Calculate the number of transactions that would be added by adding
 	// this block.
@@ -1288,4 +1292,20 @@ func (b *BlockChain) GetFees(h *hash.Hash) int64 {
 	b.CalculateDAGDuplicateTxs(block)
 
 	return b.CalculateFees(block)
+}
+
+func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
+	status := blockStatus(state)
+	if status.KnownInvalid() {
+		return 0
+	}
+	block, err := b.FetchBlockByHash(blockhash)
+	if err != nil {
+		log.Error(fmt.Sprintf("CalcWeight:%v", err))
+		return 0
+	}
+	if b.IsDuplicateTx(block.Transactions()[0].Hash(), blockhash) {
+		return 0
+	}
+	return b.subsidyCache.CalcBlockSubsidy(blocks)
 }

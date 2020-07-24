@@ -145,7 +145,7 @@ type IBlockDAG interface {
 }
 
 // CalcWeight
-type CalcWeight func(int64) int64
+type CalcWeight func(int64, *hash.Hash, byte) int64
 
 // GetBlockId
 type GetBlockId func(*hash.Hash) uint
@@ -185,6 +185,8 @@ type BlockDAG struct {
 
 	// getBlockId
 	getBlockId GetBlockId
+
+	db database.DB
 }
 
 // Acquire the name of DAG instance
@@ -198,12 +200,12 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 }
 
 // Initialize self, the function to be invoked at the beginning
-func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, getBlockId GetBlockId) IBlockDAG {
+func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, getBlockId GetBlockId, db database.DB) IBlockDAG {
 	bd.lastTime = time.Unix(time.Now().Unix(), 0)
 
 	bd.calcWeight = calcWeight
 	bd.getBlockId = getBlockId
-
+	bd.db = db
 	bd.blockRate = blockRate
 	if bd.blockRate < 0 {
 		bd.blockRate = anticone.DefaultBlockRate
@@ -1324,4 +1326,8 @@ func (bd *BlockDAG) GetBlockConcurrency(h *hash.Hash) (uint, error) {
 		return 0, fmt.Errorf("No find block")
 	}
 	return ib.(*PhantomBlock).GetBlueNum(), nil
+}
+
+func (bd *BlockDAG) UpdateWeight(ib IBlock) {
+	bd.instance.(*Phantom).UpdateWeight(ib)
 }

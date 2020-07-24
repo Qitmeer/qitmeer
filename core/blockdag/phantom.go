@@ -79,7 +79,6 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		pb.mainParent = tp.GetID()
 		pb.blueNum = tp.blueNum + 1
 		pb.height = tp.height + 1
-		pb.weight = tp.GetWeight()
 
 		diffAnticone := ph.bd.getDiffAnticone(pb, true)
 		if diffAnticone == nil {
@@ -87,8 +86,6 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		}
 
 		ph.calculateBlueSet(pb, diffAnticone)
-
-		pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum + 1)))
 	} else {
 		//It is genesis
 		if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
@@ -135,10 +132,6 @@ func (ph *Phantom) calculateBlueSet(pb *PhantomBlock, diffAnticone *IdSet) {
 		log.Error(fmt.Sprintf("error blue set"))
 	}
 	pb.blueNum += uint(pb.blueDiffAnticone.Size())
-
-	for k := range pb.blueDiffAnticone.GetMap() {
-		pb.weight += uint64(ph.bd.calcWeight(int64(ph.getBlock(k).blueNum + 1)))
-	}
 }
 
 func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
@@ -393,7 +386,7 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	ph.virtualBlock.mainParent = ph.mainChain.tip
 	ph.virtualBlock.blueNum = tp.blueNum + 1
 	ph.virtualBlock.height = tp.height + 1
-	ph.virtualBlock.weight = tp.GetWeight()
+	//ph.virtualBlock.weight = tp.GetWeight()
 
 	ph.virtualBlock.blueDiffAnticone.Clean()
 	ph.virtualBlock.redDiffAnticone.Clean()
@@ -714,6 +707,31 @@ func (ph *Phantom) getMaxParents() int {
 		return dagMax
 	}
 	return types.MaxParentsPerBlock
+}
+
+func (ph *Phantom) UpdateWeight(ib IBlock) {
+	pb := ib.(*PhantomBlock)
+	tp := ph.getBlock(pb.GetMainParent())
+	pb.weight = tp.GetWeight()
+	pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), byte(pb.status)))
+	for k := range pb.blueDiffAnticone.GetMap() {
+		bdpb := ph.getBlock(k)
+		pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), byte(bdpb.status)))
+	}
+
+	if ph.bd.db == nil {
+		return
+	}
+	err := ph.bd.db.Update(func(dbTx database.Tx) error {
+		err := DBPutDAGBlock(dbTx, ib)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
 
 // The main chain of DAG is support incremental expansion
