@@ -1272,6 +1272,9 @@ func (b *BlockChain) CalculateFees(block *types.SerializedBlock) int64 {
 	var totalAtomIn int64
 	if spentTxos != nil {
 		for _, st := range spentTxos {
+			if transactions[st.TxIndex].IsDuplicate {
+				continue
+			}
 			totalAtomIn += int64(st.Amount)
 		}
 		totalFees := totalAtomIn - totalAtomOut
@@ -1285,6 +1288,13 @@ func (b *BlockChain) CalculateFees(block *types.SerializedBlock) int64 {
 
 // GetFees
 func (b *BlockChain) GetFees(h *hash.Hash) int64 {
+	ib := b.bd.GetBlock(h)
+	if ib == nil {
+		return 0
+	}
+	if BlockStatus(ib.GetStatus()).KnownInvalid() {
+		return 0
+	}
 	block, err := b.FetchBlockByHash(h)
 	if err != nil {
 		return 0
