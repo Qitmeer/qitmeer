@@ -289,7 +289,10 @@ func New(config *Config) (*BlockChain, error) {
 			return nil, err
 		}
 	}
-
+	err := b.CheckCacheInvalidTxConfig()
+	if err != nil {
+		return nil, err
+	}
 	b.pruner = newChainPruner(&b)
 
 	log.Info(fmt.Sprintf("DAG Type:%s", b.bd.GetName()))
@@ -1318,4 +1321,23 @@ func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, state byte) 
 		return 0
 	}
 	return b.subsidyCache.CalcBlockSubsidy(blocks)
+}
+
+func (b *BlockChain) CheckCacheInvalidTxConfig() error {
+	if b.CacheInvalidTx {
+		hasConfig := true
+		b.db.View(func(dbTx database.Tx) error {
+			meta := dbTx.Metadata()
+			citData := meta.Get(dbnamespace.CacheInvalidTxName)
+			if citData == nil {
+				hasConfig = false
+			}
+			return nil
+		})
+		if hasConfig {
+			return nil
+		}
+		return fmt.Errorf("You must use --droptxindex before cache invalid tx.")
+	}
+	return nil
 }

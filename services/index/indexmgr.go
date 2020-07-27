@@ -85,6 +85,18 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		}
 		if indexer.Name() == txIndexName {
 			indexer.(*TxIndex).chain = chain
+			if indexer.(*TxIndex).curBlockID == 0 {
+				m.db.Update(func(dbTx database.Tx) error {
+					// Create the bucket for the current tips as needed.
+					meta := dbTx.Metadata()
+					if chain.CacheInvalidTx {
+						meta.Put(dbnamespace.CacheInvalidTxName, []byte{byte(0)})
+					} else {
+						meta.Delete(dbnamespace.CacheInvalidTxName)
+					}
+					return nil
+				})
+			}
 		}
 	}
 
