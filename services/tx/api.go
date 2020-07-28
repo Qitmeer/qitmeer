@@ -248,9 +248,19 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 				"must be enabled to query the blockchain (specify --txindex in configuration)")
 		}
 		// Look up the location of the transaction.
-		blockRegion, err := txIndex.TxBlockRegion(txHash)
+		var blockRegion *database.BlockRegion
+		var err error
+
+		blockRegion, err = txIndex.TxBlockRegion(txHash)
 		if err != nil {
-			return nil, errors.New("Failed to retrieve transaction location")
+			if api.txManager.bm.GetChain().CacheInvalidTx {
+				blockRegion, err = txIndex.InvalidTxBlockRegion(txHash)
+				if err != nil {
+					return nil, errors.New("Failed to retrieve transaction location")
+				}
+			} else {
+				return nil, errors.New("Failed to retrieve transaction location")
+			}
 		}
 		if blockRegion == nil {
 			return nil, rpc.RpcNoTxInfoError(&txHash)
@@ -864,9 +874,18 @@ func (api *PublicTxAPI) GetRawTransactionByHash(txHash hash.Hash, verbose bool) 
 		return nil, fmt.Errorf("the transaction index " +
 			"must be enabled to query the blockchain (specify --txindex in configuration)")
 	}
-	txid, err := txIndex.GetTxIdByHash(txHash)
+	var txid *hash.Hash
+	var err error
+	txid, err = txIndex.GetTxIdByHash(txHash)
 	if err != nil {
-		return nil, fmt.Errorf("no tx")
+		if api.txManager.bm.GetChain().CacheInvalidTx {
+			txid, err = txIndex.GetInvalidTxIdByHash(txHash)
+			if err != nil {
+				return nil, fmt.Errorf("no tx")
+			}
+		} else {
+			return nil, fmt.Errorf("no tx")
+		}
 	}
 	return api.GetRawTransaction(*txid, verbose)
 }

@@ -761,6 +761,10 @@ func dropIndex(db database.DB, idxKey []byte, idxName string, interrupt <-chan s
 		if err != nil {
 			return err
 		}
+		err = dropInvalidTx(db)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Remove the index tip, index bucket, and in-progress drop flag.  Removing
