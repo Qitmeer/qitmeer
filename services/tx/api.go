@@ -253,17 +253,17 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 
 		blockRegion, err = txIndex.TxBlockRegion(txHash)
 		if err != nil {
+			return nil, errors.New("Failed to retrieve transaction location")
+		}
+		if blockRegion == nil {
 			if api.txManager.bm.GetChain().CacheInvalidTx {
 				blockRegion, err = txIndex.InvalidTxBlockRegion(txHash)
 				if err != nil {
 					return nil, errors.New("Failed to retrieve transaction location")
 				}
 			} else {
-				return nil, errors.New("Failed to retrieve transaction location")
+				return nil, rpc.RpcNoTxInfoError(&txHash)
 			}
-		}
-		if blockRegion == nil {
-			return nil, rpc.RpcNoTxInfoError(&txHash)
 		}
 
 		// Load the raw transaction bytes from the database.
