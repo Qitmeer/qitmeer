@@ -1337,7 +1337,7 @@ func (b *BlockChain) CheckCacheInvalidTxConfig() error {
 		if hasConfig {
 			return nil
 		}
-		return fmt.Errorf("You must use --droptxindex before cache invalid tx.")
+		return fmt.Errorf("You must use --droptxindex before you use --cacheinvalidtx.")
 	}
 	return nil
 }
