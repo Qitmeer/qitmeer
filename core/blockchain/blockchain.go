@@ -824,9 +824,10 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	curTotalTxns := b.stateSnapshot.TotalTxns
 	b.stateLock.RUnlock()
 
-	for e := attachNodes.Front(); e != nil; e = e.Next() {
+	// TODO The next consensus version will be opened again
+	/*	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		b.bd.UpdateWeight(e.Value.(blockdag.IBlock))
-	}
+	}*/
 
 	// Calculate the number of transactions that would be added by adding
 	// this block.
@@ -1308,7 +1309,9 @@ func (b *BlockChain) GetFees(h *hash.Hash) int64 {
 }
 
 func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
-	status := BlockStatus(state)
+
+	// TODO The next consensus version will be opened again
+	/*status := BlockStatus(state)
 	if status.KnownInvalid() {
 		return 0
 	}
@@ -1319,7 +1322,7 @@ func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, state byte) 
 	}
 	if b.IsDuplicateTx(block.Transactions()[0].Hash(), blockhash) {
 		return 0
-	}
+	}*/
 	return b.subsidyCache.CalcBlockSubsidy(blocks)
 }
 
