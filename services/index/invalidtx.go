@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	itxIndexKey             = []byte("itxbyhashidx")
-	itxidByTxhashBucketName = []byte("itxidbytxhash")
+	itxIndexKey             = []byte("invalid_txbyhashidx")
+	itxidByTxhashBucketName = []byte("invalid_txidbytxhash")
 )
 
 func dbAddInvalidTxIndexEntries(dbTx database.Tx, block *types.SerializedBlock, blockID uint32) error {
