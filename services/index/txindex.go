@@ -594,12 +594,13 @@ func dropBlockIDIndex(db database.DB) error {
 func dropInvalidTx(db database.DB) error {
 	return db.Update(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
-		err := meta.DeleteBucket(itxIndexKey)
-		if err != nil {
-			return err
+		if meta.Bucket(itxIndexKey) != nil {
+			return meta.DeleteBucket(itxIndexKey)
 		}
-
-		return meta.DeleteBucket(itxidByTxhashBucketName)
+		if meta.Bucket(itxidByTxhashBucketName) != nil {
+			return meta.DeleteBucket(itxidByTxhashBucketName)
+		}
+		return nil
 	})
 }
 

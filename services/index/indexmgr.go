@@ -766,7 +766,7 @@ func dropIndex(db database.DB, idxKey []byte, idxName string, interrupt <-chan s
 		}
 		err = dropInvalidTx(db)
 		if err != nil {
-			log.Trace(err.Error())
+			return err
 		}
 	}
 
