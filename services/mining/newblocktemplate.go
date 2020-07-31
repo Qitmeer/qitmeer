@@ -317,8 +317,6 @@ mempoolLoop:
 			continue
 		}
 
-		// Ensure the transaction inputs pass all of the necessary
-		// preconditions before allowing it to be added to the block.
 		err = blockchain.ValidateTransactionScripts(tx, blockUtxos,
 			scriptFlags, sigCache)
 		if err != nil {
