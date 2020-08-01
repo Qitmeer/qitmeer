@@ -140,6 +140,9 @@ type IBlockDAG interface {
 	// IsBlue
 	IsBlue(id uint) bool
 
+	// IsBlue
+	BatchIsBlue(ids []uint) bool
+
 	// getMaxParents
 	getMaxParents() int
 }
@@ -1160,6 +1163,11 @@ func (bd *BlockDAG) IsBlue(id uint) bool {
 	return bd.instance.IsBlue(id)
 }
 
+// IsBlue
+func (bd *BlockDAG) BatchIsBlue(ids []uint) bool {
+	return bd.instance.BatchIsBlue(ids)
+}
+
 func (bd *BlockDAG) IsHourglass(id uint) bool {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
@@ -1232,12 +1240,17 @@ func (bd *BlockDAG) GetParentsMaxLayer(parents *IdSet) (uint, bool) {
 	}
 	return maxLayer, true
 }
+func (bd *BlockDAG) Lock() {
+	bd.stateLock.Lock()
+}
+func (bd *BlockDAG) UnLock() {
+	bd.stateLock.Unlock()
+}
 
 // GetMaturity
-func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
+func (bd *BlockDAG) GetMaturity(target uint, views []uint, result *sync.Map, wg *sync.WaitGroup) uint {
+	defer wg.Done()
+	result.LoadOrStore(target, 0)
 	if target == MaxId {
 		return 0
 	}
@@ -1245,7 +1258,6 @@ func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
 	if targetBlock == nil {
 		return 0
 	}
-
 	//
 	maxLayer := targetBlock.GetLayer()
 	queueSet := NewIdSet()
@@ -1261,7 +1273,6 @@ func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
 			}
 		}
 	}
-
 	connected := false
 	for len(queue) > 0 {
 		cur := queue[0]
@@ -1286,11 +1297,24 @@ func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
 			queueSet.Add(ib.GetID())
 		}
 	}
-
 	if connected {
-		return maxLayer - targetBlock.GetLayer()
+		matur := maxLayer - targetBlock.GetLayer()
+		result.Store(target, matur)
+		return matur
 	}
 	return 0
+}
+
+// GetMaturity
+func (bd *BlockDAG) BatchGetMaturity(targets map[uint][]uint) (result *sync.Map) {
+	result = &sync.Map{}
+	wg := sync.WaitGroup{}
+	for target, views := range targets {
+		wg.Add(1)
+		go bd.GetMaturity(target, views, result, &wg)
+	}
+	wg.Wait()
+	return result
 }
 
 // MaxParentsPerBlock

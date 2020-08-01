@@ -662,6 +662,46 @@ func (ph *Phantom) IsBlue(id uint) bool {
 	return false
 }
 
+func (ph *Phantom) BatchIsBlue(ids []uint) bool {
+	bs := map[uint]*PhantomBlock{}
+	minLayer := uint(0)
+	for _, id := range ids {
+		b := ph.getBlock(id)
+		if b == nil {
+			log.Error(fmt.Sprintf("order %d not existed in node", id))
+			return false
+		}
+		if ph.diffAnticone.Has(id) {
+			log.Error(fmt.Sprintf("order %d not existed in dag", id))
+			return false
+		}
+		if minLayer > b.GetLayer() {
+			minLayer = b.GetLayer()
+		}
+		bs[b.GetID()] = b
+	}
+
+	for cur := ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
+		if len(bs) < 1 {
+			return true
+		}
+		for id, pb := range bs {
+			if cur.GetHash().IsEqual(pb.GetHash()) ||
+				cur.blueDiffAnticone.Has(id) {
+				delete(bs, id)
+			}
+		}
+		if cur.GetLayer() < minLayer {
+			break
+		}
+		if cur.mainParent == MaxId {
+			break
+		}
+	}
+	log.Error("these orders not in blue blocks!", "orders", bs)
+	return false
+}
+
 // IsDAG
 func (ph *Phantom) IsDAG(parents []IBlock) bool {
 	if len(parents) == 0 {

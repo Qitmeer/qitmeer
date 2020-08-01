@@ -389,6 +389,11 @@ func (con *Conflux) IsBlue(id uint) bool {
 	return false
 }
 
+// BatchIsBlue
+func (con *Conflux) BatchIsBlue(ids []uint) bool {
+	return false
+}
+
 // getMaxParents
 func (con *Conflux) getMaxParents() int {
 	return 0

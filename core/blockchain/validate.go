@@ -1027,8 +1027,10 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 	// -------------------------------------------------------------------
 	// General transaction testing.
 	// -------------------------------------------------------------------
+	checkCoinbaseOrders := make([]uint, 0)
+	needCoinbaseMaturityChecks := map[uint][]uint{}
+	coinbaseMaturity := int64(b.params.CoinbaseMaturity)
 	for idx, txIn := range msgTx.TxIn {
-		txInHash := &txIn.PreviousOut.Hash
 		utxoEntry := utxoView.LookupEntry(txIn.PreviousOut)
 		if utxoEntry == nil || utxoEntry.IsSpent() {
 
@@ -1038,10 +1040,8 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 				txHash, idx)
 			return 0, ruleError(ErrMissingTxOut, str)
 		}
-
 		// Ensure the transaction is not spending coins which have not
 		// yet reached the required coinbase maturity.
-		coinbaseMaturity := int64(b.params.CoinbaseMaturity)
 
 		if utxoEntry.IsCoinBase() {
 			if len(utxoView.viewpoints) == 0 {
@@ -1058,27 +1058,9 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 				vib := bd.GetBlock(v)
 				viewpoints.Add(vib.GetID())
 			}
-			maturity := int64(bd.GetMaturity(ubhIB.GetID(), viewpoints.List()))
-
-			if maturity < coinbaseMaturity {
-				str := fmt.Sprintf("tx %v tried to spend "+
-					"coinbase transaction %v from "+
-					"at %v before required "+
-					"maturity of %v blocks", txHash,
-					txInHash, maturity, coinbaseMaturity)
-				return 0, ruleError(ErrImmatureSpend, str)
-			}
-
-			if !bd.IsBlue(ubhIB.GetID()) {
-				str := fmt.Sprintf("tx %v tried to spend "+
-					"coinbase transaction %v from "+
-					"at %v before required "+
-					"maturity of %v blocks, but it is't in blue set", txHash,
-					txInHash, maturity, coinbaseMaturity)
-				return 0, ruleError(ErrNoBlueCoinbase, str)
-			}
+			checkCoinbaseOrders = append(checkCoinbaseOrders, ubhIB.GetID())
+			needCoinbaseMaturityChecks[ubhIB.GetID()] = viewpoints.List()
 		}
-
 		// Ensure the transaction amounts are in range.  Each of the
 		// output values of the input transactions must not be negative
 		// or more than the max allowed per transaction.  All amounts
@@ -1113,6 +1095,31 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 				"allowed value of %v", totalAtomIn,
 				types.MaxAmount)
 			return 0, ruleError(ErrInvalidTxOutValue, str)
+		}
+	}
+	bd.Lock()
+	defer bd.UnLock()
+	if len(checkCoinbaseOrders) > 0 {
+		maturityResult := bd.BatchGetMaturity(needCoinbaseMaturityChecks)
+		for _, id := range checkCoinbaseOrders {
+			maturity, ok := maturityResult.Load(id)
+			str := fmt.Sprintf("tx tried to spend "+
+				"coinbase order %d transaction %v from "+
+				"at %v before required "+
+				"maturity of %v blocks", txHash, id,
+				maturity, coinbaseMaturity)
+			if !ok {
+				return 0, ruleError(ErrImmatureSpend, str)
+			}
+			if maturity.(uint) < uint(coinbaseMaturity) {
+				return 0, ruleError(ErrImmatureSpend, str)
+			}
+		}
+		if !bd.BatchIsBlue(checkCoinbaseOrders) {
+			str := fmt.Sprintf("tx %v tried to spend "+
+				"coinbase transaction before required "+
+				"maturity of blocks, but it is't in blue set ,see more error detail in node logs", txHash)
+			return 0, ruleError(ErrNoBlueCoinbase, str)
 		}
 	}
 

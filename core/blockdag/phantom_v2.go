@@ -475,6 +475,11 @@ func (ph *Phantom_v2) IsBlue(id uint) bool {
 	return false
 }
 
+// BatchIsBlue
+func (ph *Phantom_v2) BatchIsBlue(ids []uint) bool {
+	return false
+}
+
 // getMaxParents
 func (ph *Phantom_v2) getMaxParents() int {
 	return 0

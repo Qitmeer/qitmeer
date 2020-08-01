@@ -850,6 +850,11 @@ func (sp *Spectre) IsBlue(id uint) bool {
 	return false
 }
 
+// BatchIsBlue
+func (sp *Spectre) BatchIsBlue(ids []uint) bool {
+	return false
+}
+
 // getMaxParents
 func (sp *Spectre) getMaxParents() int {
 	return 0
