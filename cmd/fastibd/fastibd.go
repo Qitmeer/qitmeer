@@ -49,6 +49,12 @@ func fastIBD() error {
 						Value:       defaultHomeDir,
 						Destination: &cfg.OutputPath,
 					},
+					&cli.StringFlag{
+						Name:        "endpoint",
+						Aliases:     []string{"e"},
+						Usage:       "End point for output data",
+						Destination: &cfg.EndPoint,
+					},
 				},
 				Before: func(c *cli.Context) error {
 					return node.init(cfg)
