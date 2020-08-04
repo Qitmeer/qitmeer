@@ -3,7 +3,6 @@ package blockdag
 import (
 	"fmt"
 	"strconv"
-	"sync"
 	"testing"
 )
 
@@ -244,13 +243,9 @@ func Test_GetMaturity(t *testing.T) {
 	if ibd == nil {
 		t.FailNow()
 	}
-	result := &sync.Map{}
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	if bd.GetMaturity(tbMap["D"].GetID(), []uint{tbMap["I"].GetID()}, result, &wg) != 2 {
+	if bd.GetMaturity(tbMap["D"].GetID(), []uint{tbMap["I"].GetID()}) != 2 {
 		t.Fatal()
 	}
-	wg.Wait()
 }
 
 func Test_GetMainParentConcurrency(t *testing.T) {
