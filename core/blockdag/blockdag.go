@@ -1267,7 +1267,7 @@ func (bd *BlockDAG) getMaturity(target uint, views []uint) uint {
 			}
 		}
 	}
-	connected := true
+	connected := false
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
