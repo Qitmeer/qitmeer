@@ -8,6 +8,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/marshal"
 	"github.com/Qitmeer/qitmeer/core/address"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
@@ -229,7 +230,7 @@ func (api *PublicTxAPI) SendRawTransaction(hexTx string, allowHighFees *bool) (i
 
 func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (interface{}, error) {
 
-	var mtx *types.Transaction
+	var mtx *types.Tx
 	var blkHash *hash.Hash
 	//var blkOrder uint64
 	var blkHashStr string
@@ -247,12 +248,22 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 				"must be enabled to query the blockchain (specify --txindex in configuration)")
 		}
 		// Look up the location of the transaction.
-		blockRegion, err := txIndex.TxBlockRegion(txHash)
+		var blockRegion *database.BlockRegion
+		var err error
+
+		blockRegion, err = txIndex.TxBlockRegion(txHash)
 		if err != nil {
 			return nil, errors.New("Failed to retrieve transaction location")
 		}
 		if blockRegion == nil {
-			return nil, rpc.RpcNoTxInfoError(&txHash)
+			if api.txManager.bm.GetChain().CacheInvalidTx {
+				blockRegion, err = txIndex.InvalidTxBlockRegion(txHash)
+				if err != nil {
+					return nil, errors.New("Failed to retrieve transaction location")
+				}
+			} else {
+				return nil, rpc.RpcNoTxInfoError(&txHash)
+			}
 		}
 
 		// Load the raw transaction bytes from the database.
@@ -289,7 +300,8 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 			context := "Failed to deserialize transaction"
 			return nil, rpc.RpcInternalError(err.Error(), context)
 		}
-		mtx = &msgTx
+		mtx = types.NewTx(&msgTx)
+		mtx.IsDuplicate = api.txManager.bm.GetChain().IsDuplicateTx(mtx.Hash(), blkHash)
 	} else {
 		// When the verbose flag isn't set, simply return the
 		// network-serialized transaction as a hex-encoded string.
@@ -307,22 +319,26 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 			return hexStr, nil
 		}
 
-		mtx = tx.Transaction()
+		mtx = tx
 	}
+	txsvalid := true
 	coinbaseAmout := uint64(0)
 	if blkHash != nil {
 		blkHashStr = blkHash.String()
-		confirmations = int64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(
-			api.txManager.bm.GetChain().BlockIndex().GetDAGBlockID(blkHash)))
+		ib := api.txManager.bm.GetChain().BlockDAG().GetBlock(blkHash)
+		if ib != nil {
+			confirmations = int64(api.txManager.bm.GetChain().BlockDAG().GetConfirmations(ib.GetID()))
+			txsvalid = !blockchain.BlockStatus(ib.GetStatus()).KnownInvalid()
+		}
 
-		if mtx.IsCoinBase() {
-			coinbaseAmout = mtx.TxOut[0].Amount + uint64(api.txManager.bm.GetChain().GetFees(blkHash))
+		if mtx.Tx.IsCoinBase() {
+			coinbaseAmout = mtx.Tx.TxOut[0].Amount + uint64(api.txManager.bm.GetChain().GetFees(blkHash))
 		}
 	}
 	if tx != nil {
 		confirmations = 0
 	}
-	return marshal.MarshalJsonTransaction(mtx, api.txManager.bm.ChainParams(), blkHashStr, confirmations, coinbaseAmout)
+	return marshal.MarshalJsonTransaction(mtx, api.txManager.bm.ChainParams(), blkHashStr, confirmations, coinbaseAmout, txsvalid)
 }
 
 // Returns information about an unspent transaction output
@@ -858,9 +874,18 @@ func (api *PublicTxAPI) GetRawTransactionByHash(txHash hash.Hash, verbose bool) 
 		return nil, fmt.Errorf("the transaction index " +
 			"must be enabled to query the blockchain (specify --txindex in configuration)")
 	}
-	txid, err := txIndex.GetTxIdByHash(txHash)
+	var txid *hash.Hash
+	var err error
+	txid, err = txIndex.GetTxIdByHash(txHash)
 	if err != nil {
-		return nil, fmt.Errorf("no tx")
+		if api.txManager.bm.GetChain().CacheInvalidTx {
+			txid, err = txIndex.GetInvalidTxIdByHash(txHash)
+			if err != nil {
+				return nil, fmt.Errorf("no tx")
+			}
+		} else {
+			return nil, fmt.Errorf("no tx")
+		}
 	}
 	return api.GetRawTransaction(*txid, verbose)
 }
@@ -958,7 +983,7 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 			return nil, fmt.Errorf("Can't find block %s", blockRegion.Hash)
 		}
 
-		if !blockNode.GetStatus().KnownValid() {
+		if blockNode.GetStatus().KnownInvalid() {
 			return nil, fmt.Errorf("Vin is  illegal %s", blockRegion.Hash)
 		}
 		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)

@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-// blockStatus is a bit field representing the validation state of the block.
-type blockStatus byte
+// BlockStatus is a bit field representing the validation state of the block.
+type BlockStatus byte
 
 // The following constants specify possible status bit flags for a block.
 //
@@ -23,34 +23,34 @@ type blockStatus byte
 // serialized and must be stable for long-term storage.
 const (
 	// statusNone indicates that the block has no validation state flags set.
-	statusNone blockStatus = 0
+	statusNone BlockStatus = 0
 
 	// statusDataStored indicates that the block's payload is stored on disk.
-	statusDataStored blockStatus = 1 << 0
+	statusDataStored BlockStatus = 1 << 0
 
 	// statusValid indicates that the block has been fully validated.
-	statusValid blockStatus = 1 << 1
+	statusValid BlockStatus = 1 << 1
 
 	// statusInvalid indicates that the block has failed validation.
-	statusInvalid blockStatus = 1 << 2
+	statusInvalid BlockStatus = 1 << 2
 )
 
 // HaveData returns whether the full block data is stored in the database.  This
 // will return false for a block node where only the header is downloaded or
 // stored.
-func (status blockStatus) HaveData() bool {
+func (status BlockStatus) HaveData() bool {
 	return status&statusDataStored != 0
 }
 
 // KnownValid returns whether the block is known to be valid.  This will return
 // false for a valid block that has not been fully validated yet.
-func (status blockStatus) KnownValid() bool {
+func (status BlockStatus) KnownValid() bool {
 	return status&statusValid != 0
 }
 
 // KnownInvalid returns whether the block is known to be invalid.  This will
 // return false for invalid blocks that have not been proven invalid yet.
-func (status blockStatus) KnownInvalid() bool {
+func (status BlockStatus) KnownInvalid() bool {
 	return status&statusInvalid != 0
 }
 
@@ -90,7 +90,7 @@ type blockNode struct {
 	// node is created, so it must only be accessed or updated using the
 	// concurrent-safe NodeStatus, SetStatusFlags, and UnsetStatusFlags
 	// methods on blockIndex once the node has been added to the index.
-	status blockStatus
+	status BlockStatus
 
 	// order is in the position of whole block chain.(It is actually DAG order)
 	order uint64
@@ -325,7 +325,7 @@ func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
 	return b.index.LookupNode(mainParent.GetHash())
 }
 
-func (node *blockNode) GetStatus() blockStatus {
+func (node *blockNode) GetStatus() BlockStatus {
 	return node.status
 }
 
@@ -350,12 +350,12 @@ func (node *blockNode) GetWeight() uint64 {
 	return uint64(node.workSum.BitLen())
 }
 
-func (node *blockNode) SetStatusFlags(flags blockStatus) {
+func (node *blockNode) SetStatusFlags(flags BlockStatus) {
 	node.status |= flags
 	node.dirty = true
 }
 
-func (node *blockNode) UnsetStatusFlags(flags blockStatus) {
+func (node *blockNode) UnsetStatusFlags(flags BlockStatus) {
 	node.status &^= flags
 	node.dirty = true
 }

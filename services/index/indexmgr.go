@@ -85,6 +85,20 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 		}
 		if indexer.Name() == txIndexName {
 			indexer.(*TxIndex).chain = chain
+			if chain.CacheInvalidTx {
+				if indexer.(*TxIndex).curBlockID == 0 {
+					m.db.Update(func(dbTx database.Tx) error {
+						dbTx.Metadata().Put(dbnamespace.CacheInvalidTxName, []byte{byte(0)})
+						return nil
+					})
+				}
+			} else {
+				m.db.Update(func(dbTx database.Tx) error {
+					dbTx.Metadata().Delete(dbnamespace.CacheInvalidTxName)
+					return nil
+				})
+			}
+
 		}
 	}
 
@@ -205,43 +219,44 @@ func (m *Manager) Init(chain *blockchain.BlockChain, interrupt <-chan struct{}) 
 			if err != nil {
 				return err
 			}
-
-			if interruptRequested(interrupt) {
-				return errInterruptRequested
-			}
-
-			// Connect the block for all indexes that need it.
-			spentTxos = nil
-			for i, indexer := range m.enabledIndexes {
-				// Skip indexes that don't need to be updated with this
-				// block.
-				if indexerOrders[i] >= order {
-					continue
-				}
-
-				// When the index requires all of the referenced
-				// txouts and they haven't been loaded yet, they
-				// need to be retrieved from the transaction
-				// index.
-				if spentTxos == nil && indexNeedsInputs(indexer) {
-					spentTxos, err = chain.FetchSpendJournal(block)
-					if err != nil {
-						return err
-					}
-				}
-				err = dbIndexConnectBlock(dbTx, indexer, block, spentTxos)
-				if err != nil {
-					return err
-				}
-
-				indexerOrders[i] = order
-			}
-
 			return nil
 		})
 		if err != nil {
 			return err
 		}
+
+		if interruptRequested(interrupt) {
+			return errInterruptRequested
+		}
+		chain.CalculateDAGDuplicateTxs(block)
+		// Connect the block for all indexes that need it.
+		spentTxos = nil
+		for i, indexer := range m.enabledIndexes {
+			// Skip indexes that don't need to be updated with this
+			// block.
+			if indexerOrders[i] >= order {
+				continue
+			}
+
+			// When the index requires all of the referenced
+			// txouts and they haven't been loaded yet, they
+			// need to be retrieved from the transaction
+			// index.
+			if spentTxos == nil && indexNeedsInputs(indexer) {
+				spentTxos, err = chain.FetchSpendJournal(block)
+				if err != nil {
+					return err
+				}
+			}
+			err = m.db.Update(func(dbTx database.Tx) error {
+				return dbIndexConnectBlock(dbTx, indexer, block, spentTxos)
+			})
+			if err != nil {
+				return err
+			}
+			indexerOrders[i] = order
+		}
+
 		progressLogger.LogBlockHeight(block)
 	}
 
@@ -746,6 +761,10 @@ func dropIndex(db database.DB, idxKey []byte, idxName string, interrupt <-chan s
 	// Call extra index specific deinitialization for the transaction index.
 	if idxName == txIndexName {
 		err = dropBlockIDIndex(db)
+		if err != nil {
+			return err
+		}
+		err = dropInvalidTx(db)
 		if err != nil {
 			return err
 		}

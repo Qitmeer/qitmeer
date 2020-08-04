@@ -30,34 +30,32 @@ func MessageToHex(msg message.Message) (string, error) {
 }
 
 func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHashStr string,
-	confirmations int64, coinbaseAmout uint64) (json.TxRawResult, error) {
+	confirmations int64, coinbaseAmout uint64, state bool) (json.TxRawResult, error) {
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
-	txr, err := MarshalJsonTransaction(tx.Transaction(), params, blkHashStr, confirmations, coinbaseAmout)
-	if err == nil {
-		txr.Duplicate = tx.IsDuplicate
-	}
-	return txr, err
+	return MarshalJsonTransaction(tx, params, blkHashStr, confirmations, coinbaseAmout, state)
 }
 
-func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHashStr string,
-	confirmations int64, coinbaseAmout uint64) (json.TxRawResult, error) {
-
+func MarshalJsonTransaction(transaction *types.Tx, params *params.Params, blkHashStr string,
+	confirmations int64, coinbaseAmout uint64, state bool) (json.TxRawResult, error) {
+	tx := transaction.Tx
 	hexStr, err := MessageToHex(&message.MsgTx{Tx: tx})
 	if err != nil {
 		return json.TxRawResult{}, err
 	}
 	txr := json.TxRawResult{
-		Hex:      hexStr,
-		Txid:     tx.TxHash().String(),
-		TxHash:   tx.TxHashFull().String(),
-		Size:     int32(tx.SerializeSize()),
-		Version:  tx.Version,
-		LockTime: tx.LockTime,
-		Expire:   tx.Expire,
-		Vin:      MarshJsonVin(tx),
-		Vout:     MarshJsonVout(tx, nil, params),
+		Hex:       hexStr,
+		Txid:      tx.TxHash().String(),
+		TxHash:    tx.TxHashFull().String(),
+		Size:      int32(tx.SerializeSize()),
+		Version:   tx.Version,
+		LockTime:  tx.LockTime,
+		Expire:    tx.Expire,
+		Vin:       MarshJsonVin(tx),
+		Vout:      MarshJsonVout(tx, nil, params),
+		Duplicate: transaction.IsDuplicate,
+		Txsvalid:  state,
 	}
 	if tx.Timestamp.Unix() > 0 {
 		txr.Timestamp = tx.Timestamp.Format(time.RFC3339)
@@ -177,7 +175,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		}
 		if fullTx {
 			formatTx = func(tx *types.Tx) (interface{}, error) {
-				return MarshalJsonTx(tx, params, b.Hash().String(), confirmations, coinbaseAmout)
+				return MarshalJsonTx(tx, params, b.Hash().String(), confirmations, coinbaseAmout, state)
 			}
 		}
 		txs := b.Transactions()

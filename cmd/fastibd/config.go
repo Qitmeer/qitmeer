@@ -33,6 +33,7 @@ type Config struct {
 	OutputPath string
 	InputPath  string
 	DisableBar bool
+	EndPoint   string
 }
 
 func (c *Config) load() error {
