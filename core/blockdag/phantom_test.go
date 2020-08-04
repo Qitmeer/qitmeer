@@ -243,7 +243,14 @@ func Test_GetMaturity(t *testing.T) {
 	if ibd == nil {
 		t.FailNow()
 	}
-	if bd.GetMaturity(tbMap["D"].GetID(), []uint{tbMap["I"].GetID()}) != 2 {
+	targets := map[uint][]uint{}
+	targets[tbMap["D"].GetID()] = []uint{tbMap["I"].GetID()}
+	r := bd.BatchGetMaturity(targets)
+	c, ok := r.Load(tbMap["D"].GetID())
+	if !ok {
+		t.Fatal()
+	}
+	if c.(uint) != 2 {
 		t.Fatal()
 	}
 }

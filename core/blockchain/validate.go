@@ -1097,8 +1097,6 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 			return 0, ruleError(ErrInvalidTxOutValue, str)
 		}
 	}
-	bd.Lock()
-	defer bd.UnLock()
 	if len(checkCoinbaseOrders) > 0 {
 		maturityResult := bd.BatchGetMaturity(needCoinbaseMaturityChecks)
 		for _, id := range checkCoinbaseOrders {
@@ -1122,7 +1120,6 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 			return 0, ruleError(ErrNoBlueCoinbase, str)
 		}
 	}
-
 	// Calculate the total output amount for this transaction.  It is safe
 	// to ignore overflow and out of range errors here because those error
 	// conditions would have already been caught by checkTransactionSanity.

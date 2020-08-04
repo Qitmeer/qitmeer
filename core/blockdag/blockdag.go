@@ -1165,6 +1165,8 @@ func (bd *BlockDAG) IsBlue(id uint) bool {
 
 // IsBlue
 func (bd *BlockDAG) BatchIsBlue(ids []uint) bool {
+	bd.stateLock.RLock()
+	defer bd.stateLock.RUnlock()
 	return bd.instance.BatchIsBlue(ids)
 }
 
@@ -1240,15 +1242,9 @@ func (bd *BlockDAG) GetParentsMaxLayer(parents *IdSet) (uint, bool) {
 	}
 	return maxLayer, true
 }
-func (bd *BlockDAG) Lock() {
-	bd.stateLock.Lock()
-}
-func (bd *BlockDAG) UnLock() {
-	bd.stateLock.Unlock()
-}
 
 // GetMaturity
-func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
+func (bd *BlockDAG) getMaturity(target uint, views []uint) uint {
 	if target == MaxId {
 		return 0
 	}
@@ -1271,7 +1267,7 @@ func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
 			}
 		}
 	}
-	connected := false
+	connected := true
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
@@ -1303,6 +1299,8 @@ func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
 
 // BatchGetMaturity
 func (bd *BlockDAG) BatchGetMaturity(targets map[uint][]uint) (result *sync.Map) {
+	bd.stateLock.RLock()
+	defer bd.stateLock.RUnlock()
 	result = &sync.Map{}
 	wg := sync.WaitGroup{}
 	for target, views := range targets {
@@ -1310,7 +1308,7 @@ func (bd *BlockDAG) BatchGetMaturity(targets map[uint][]uint) (result *sync.Map)
 		go func(target uint, views []uint, result *sync.Map, wg *sync.WaitGroup) {
 			defer wg.Done()
 			result.LoadOrStore(target, 0)
-			matur := bd.GetMaturity(target, views)
+			matur := bd.getMaturity(target, views)
 			result.Store(target, matur)
 		}(target, views, result, &wg)
 	}
