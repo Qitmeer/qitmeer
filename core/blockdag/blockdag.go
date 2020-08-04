@@ -1165,8 +1165,8 @@ func (bd *BlockDAG) IsBlue(id uint) bool {
 
 // IsBlue
 func (bd *BlockDAG) BatchIsBlue(ids []uint) bool {
-	bd.stateLock.RLock()
-	defer bd.stateLock.RUnlock()
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
 	return bd.instance.BatchIsBlue(ids)
 }
 
@@ -1299,8 +1299,8 @@ func (bd *BlockDAG) getMaturity(target uint, views []uint) uint {
 
 // BatchGetMaturity
 func (bd *BlockDAG) BatchGetMaturity(targets map[uint][]uint) (result *sync.Map) {
-	bd.stateLock.RLock()
-	defer bd.stateLock.RUnlock()
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
 	result = &sync.Map{}
 	wg := sync.WaitGroup{}
 	for target, views := range targets {
