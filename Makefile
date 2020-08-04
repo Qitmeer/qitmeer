@@ -1,6 +1,8 @@
 
 EXECUTABLE := qitmeer
-GITVERSION := $(shell git rev-parse --short HEAD)
+GITVER := $(shell git rev-parse --short HEAD )
+GITDIRTY := $(shell git diff --quiet || echo '-dirty')
+GITVERSION = "$(GITVER)$(GITDIRTY)"
 DEV=dev
 RELEASE=release
 LDFLAG_DEV = -X github.com/Qitmeer/qitmeer/version.Build=$(DEV)-$(GITVERSION)

@@ -16,7 +16,7 @@ const (
 	InitialProcotolVersion uint32 = 20
 
 	// ProtocolVersion is the latest protocol version this package supports.
-	ProtocolVersion uint32 = 21
+	ProtocolVersion uint32 = 22
 )
 
 // Network represents which qitmeer network a message belongs to.
