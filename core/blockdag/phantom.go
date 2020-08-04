@@ -698,6 +698,9 @@ func (ph *Phantom) BatchIsBlue(ids []uint) bool {
 			break
 		}
 	}
+	if len(bs) < 1 {
+		return true
+	}
 	log.Error("these orders not in blue blocks!", "orders", bs)
 	return false
 }
