@@ -1295,6 +1295,49 @@ func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
 	return 0
 }
 
+func (bd *BlockDAG) getMainFork(ib IBlock, backward bool) IBlock {
+	if bd.instance.IsOnMainChain(ib) {
+		return ib
+	}
+
+	//
+	queue := []IBlock{}
+	queue = append(queue, ib)
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		if bd.instance.IsOnMainChain(cur) {
+			return cur
+		}
+
+		if backward {
+			if !cur.HasChildren() {
+				continue
+			} else {
+				childList := cur.GetChildren().SortHashList(false)
+				for _, v := range childList {
+					ib := cur.GetChildren().Get(v).(IBlock)
+					queue = append(queue, ib)
+				}
+			}
+		} else {
+			if !cur.HasParents() {
+				continue
+			} else {
+				parentsList := cur.GetParents().SortHashList(false)
+				for _, v := range parentsList {
+					ib := cur.GetParents().Get(v).(IBlock)
+					queue = append(queue, ib)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // MaxParentsPerBlock
 func (bd *BlockDAG) getMaxParents() int {
 	return bd.instance.getMaxParents()
