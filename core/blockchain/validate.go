@@ -1027,17 +1027,10 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 	// -------------------------------------------------------------------
 	// General transaction testing.
 	// -------------------------------------------------------------------
-	viewpoints := blockdag.NewIdSet()
-	for _, v := range utxoView.viewpoints {
-		vib := bd.GetBlock(v)
-		viewpoints.Add(vib.GetID())
-	}
 	targets := []uint{}
-	coinbaseMaturity := uint(chainParams.CoinbaseMaturity)
 	for idx, txIn := range msgTx.TxIn {
 		utxoEntry := utxoView.LookupEntry(txIn.PreviousOut)
 		if utxoEntry == nil || utxoEntry.IsSpent() {
-
 			str := fmt.Sprintf("output %v referenced from "+
 				"transaction %s:%d either does not exist or "+
 				"has already been spent", txIn.PreviousOut,
@@ -1098,11 +1091,8 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 	}
 
 	if len(targets) > 0 {
-		testSet := blockdag.NewIdSet()
-		testSet.AddList(targets)
-		fmt.Println(len(targets), testSet.Size())
-		if !bd.IsBluesAndMaturitys(targets, viewpoints.List(), coinbaseMaturity, true) {
-			str := fmt.Sprintf("The block is not maturity(%d) or not blue", coinbaseMaturity)
+		if !bd.IsBluesAndMaturitys(targets, utxoView.viewpoints, uint(chainParams.CoinbaseMaturity), true) {
+			str := fmt.Sprintf("The block is not maturity(%d) or not blue", uint(chainParams.CoinbaseMaturity))
 			return 0, ruleError(ErrImmatureSpend, str)
 		}
 	}

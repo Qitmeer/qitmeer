@@ -1,8 +1,11 @@
 package blockdag
 
-import "sync"
+import (
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"sync"
+)
 
-func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, multithreading bool) bool {
+func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []*hash.Hash, max uint, multithreading bool) bool {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
@@ -27,7 +30,7 @@ func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, 
 	var maxViewIB IBlock
 	var iviews []IBlock
 	for _, v := range views {
-		ib := bd.getBlockById(v)
+		ib := bd.getBlock(v)
 		if ib == nil {
 			return false
 		}
