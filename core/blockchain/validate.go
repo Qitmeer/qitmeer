@@ -1098,9 +1098,9 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 			str := fmt.Sprintf("transaction %s has no viewpoints", txHash)
 			return 0, ruleError(ErrNoViewpoint, str)
 		}
-		if !bd.IsBluesAndMaturitys(targets, viewpoints, uint(chainParams.CoinbaseMaturity), true) {
-			str := fmt.Sprintf("The block is not maturity(%d) or not blue", uint(chainParams.CoinbaseMaturity))
-			return 0, ruleError(ErrImmatureSpend, str)
+		err := bd.CheckBlueAndMatureMT(targets, viewpoints, uint(chainParams.CoinbaseMaturity))
+		if err != nil {
+			return 0, ruleError(ErrImmatureSpend, err.Error())
 		}
 	}
 

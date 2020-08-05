@@ -1,10 +1,24 @@
 package blockdag
 
 import (
+	"fmt"
 	"sync"
 )
 
-func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, multithreading bool) bool {
+const (
+	VMK_KEY = 1
+	RET_KEY = 2
+)
+
+func (bd *BlockDAG) CheckBlueAndMature(targets []uint, views []uint, max uint) error {
+	return bd.doCheckBlueAndMature(targets, views, max, false)
+}
+
+func (bd *BlockDAG) CheckBlueAndMatureMT(targets []uint, views []uint, max uint) error {
+	return bd.doCheckBlueAndMature(targets, views, max, true)
+}
+
+func (bd *BlockDAG) doCheckBlueAndMature(targets []uint, views []uint, max uint, multithreading bool) error {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
@@ -12,11 +26,11 @@ func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, 
 	maxTargetLayer := uint(0)
 	for _, target := range targets {
 		if target == MaxId {
-			return false
+			return fmt.Errorf("Target Block ID(%d) is invalid", target)
 		}
 		targetBlock := bd.getBlockById(target)
 		if targetBlock == nil {
-			return false
+			return fmt.Errorf("Target Block ID(%d) is invalid", target)
 		}
 		targetIBs = append(targetIBs, targetBlock)
 
@@ -31,10 +45,10 @@ func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, 
 	for _, v := range views {
 		ib := bd.getBlockById(v)
 		if ib == nil {
-			return false
+			return fmt.Errorf("View Block ID(%d) is invalid", v)
 		}
 		if maxTargetLayer >= ib.GetLayer() {
-			return false
+			return fmt.Errorf("View Block Hash(%s) is invalid", ib.GetHash().String())
 		}
 
 		if maxViewIB == nil || maxViewIB.GetLayer() < ib.GetLayer() {
@@ -49,11 +63,10 @@ func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, 
 	}
 
 	if multithreading {
-		const VMK_KEY = 1
-		const RET_KEY = 2
+
 		resultPro := sync.Map{}
 		resultPro.Store(VMK_KEY, nil)
-		resultPro.Store(RET_KEY, true)
+		resultPro.Store(RET_KEY, nil)
 		wg := sync.WaitGroup{}
 		for _, target := range targetIBs {
 			wg.Add(1)
@@ -68,7 +81,7 @@ func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, 
 					wg.Done()
 					return
 				}
-				if !r.(bool) {
+				if r != nil {
 					wg.Done()
 					return
 				}
@@ -80,11 +93,11 @@ func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, 
 				}
 				result, viewMainFork, targetMainFork = bd.processMaturity(t, iviews, mainViewIB, maxViewIB, viewMainFork, max)
 				if !result {
-					resultPro.Store(RET_KEY, false)
+					resultPro.Store(RET_KEY, fmt.Errorf("Target Block Hash(%s) is immature", t.GetHash().String()))
 				}
 
 				if !bd.instance.(*Phantom).doIsBlue(t, targetMainFork) {
-					resultPro.Store(RET_KEY, false)
+					resultPro.Store(RET_KEY, fmt.Errorf("Target Block Hash(%s) is not blue", t.GetHash().String()))
 				}
 				if viewMainFork != nil {
 					resultPro.Store(VMK_KEY, viewMainFork)
@@ -95,9 +108,12 @@ func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, 
 		wg.Wait()
 		r, ok := resultPro.Load(RET_KEY)
 		if !ok {
-			return false
+			return fmt.Errorf("unknown error")
 		}
-		return r.(bool)
+		if r != nil {
+			return r.(error)
+		}
+		return nil
 	} else {
 		var targetMainFork IBlock
 		var viewMainFork IBlock
@@ -106,13 +122,13 @@ func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, 
 
 			result, viewMainFork, targetMainFork = bd.processMaturity(target, iviews, mainViewIB, maxViewIB, viewMainFork, max)
 			if !result {
-				return false
+				return fmt.Errorf("Target Block Hash(%s) is immature", target.GetHash().String())
 			}
 			if !bd.instance.(*Phantom).doIsBlue(target, targetMainFork) {
-				return false
+				return fmt.Errorf("Target Block Hash(%s) is not blue", target.GetHash().String())
 			}
 		}
-		return result
+		return nil
 	}
 }
 
