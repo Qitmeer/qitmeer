@@ -60,13 +60,16 @@ func (bd *BlockDAG) IsBluesAndMaturitys(targets []uint, views []uint, max uint, 
 			go func(t IBlock) {
 				v, ok := resultPro.Load(VMK_KEY)
 				if !ok {
+					wg.Done()
 					return
 				}
 				r, ok := resultPro.Load(RET_KEY)
 				if !ok {
+					wg.Done()
 					return
 				}
 				if !r.(bool) {
+					wg.Done()
 					return
 				}
 				var viewMainFork IBlock
