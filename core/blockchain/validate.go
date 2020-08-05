@@ -1041,10 +1041,6 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 		// Ensure the transaction is not spending coins which have not
 		// yet reached the required coinbase maturity.
 		if utxoEntry.IsCoinBase() {
-			if len(utxoView.viewpoints) == 0 {
-				str := fmt.Sprintf("transaction %s has no viewpoints", txHash)
-				return 0, ruleError(ErrNoViewpoint, str)
-			}
 			ubhIB := bd.GetBlock(utxoEntry.BlockHash())
 			if ubhIB == nil {
 				str := fmt.Sprintf("utxoEntry blockhash error:%s", utxoEntry.BlockHash())
@@ -1091,7 +1087,18 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 	}
 
 	if len(targets) > 0 {
-		if !bd.IsBluesAndMaturitys(targets, utxoView.viewpoints, uint(chainParams.CoinbaseMaturity), true) {
+		viewpoints := []uint{}
+		for _, blockHash := range utxoView.viewpoints {
+			vIB := bd.GetBlock(blockHash)
+			if vIB != nil {
+				viewpoints = append(viewpoints, vIB.GetID())
+			}
+		}
+		if len(viewpoints) == 0 {
+			str := fmt.Sprintf("transaction %s has no viewpoints", txHash)
+			return 0, ruleError(ErrNoViewpoint, str)
+		}
+		if !bd.IsBluesAndMaturitys(targets, viewpoints, uint(chainParams.CoinbaseMaturity), true) {
 			str := fmt.Sprintf("The block is not maturity(%d) or not blue", uint(chainParams.CoinbaseMaturity))
 			return 0, ruleError(ErrImmatureSpend, str)
 		}
