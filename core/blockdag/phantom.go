@@ -649,7 +649,7 @@ func (ph *Phantom) doIsBlue(ib IBlock, fork IBlock) bool {
 	}
 	cur := fork.(*PhantomBlock)
 	if cur == nil {
-		cur := ph.bd.getMainFork(b, true).(*PhantomBlock)
+		cur = ph.bd.getMainFork(b, true).(*PhantomBlock)
 		if cur == nil {
 			cur = ph.getBlock(ph.mainChain.tip)
 		}
