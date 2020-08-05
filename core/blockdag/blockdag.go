@@ -1295,6 +1295,7 @@ func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
 	return 0
 }
 
+// Get path intersection from block to main chain.
 func (bd *BlockDAG) getMainFork(ib IBlock, backward bool) IBlock {
 	if bd.instance.IsOnMainChain(ib) {
 		return ib

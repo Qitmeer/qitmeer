@@ -10,10 +10,18 @@ const (
 	RET_KEY = 2
 )
 
+// Batch check the blue and mature properties of blocks in views perspective.
+// targets: Need check blocks
+// views: Block DAG perspective when calculate the result
+// max: Max maturity
 func (bd *BlockDAG) CheckBlueAndMature(targets []uint, views []uint, max uint) error {
 	return bd.doCheckBlueAndMature(targets, views, max, false)
 }
 
+// Batch check the blue and mature properties of blocks in views perspective, and enable multithreading mode.
+// targets: Need check blocks
+// views: Block DAG perspective when calculate the result
+// max: Max maturity
 func (bd *BlockDAG) CheckBlueAndMatureMT(targets []uint, views []uint, max uint) error {
 	return bd.doCheckBlueAndMature(targets, views, max, true)
 }
@@ -99,7 +107,7 @@ func (bd *BlockDAG) doCheckBlueAndMature(targets []uint, views []uint, max uint,
 				if !bd.instance.(*Phantom).doIsBlue(t, targetMainFork) {
 					resultPro.Store(RET_KEY, fmt.Errorf("Target Block Hash(%s) is not blue", t.GetHash().String()))
 				}
-				if viewMainFork != nil {
+				if v == nil && viewMainFork != nil {
 					resultPro.Store(VMK_KEY, viewMainFork)
 				}
 				wg.Done()

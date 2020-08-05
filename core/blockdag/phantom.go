@@ -642,6 +642,8 @@ func (ph *Phantom) IsBlue(id uint) bool {
 	return ph.doIsBlue(b, nil)
 }
 
+// Functions that really handle isblue.
+// fork: Path intersection from block to main chain.
 func (ph *Phantom) doIsBlue(ib IBlock, fork IBlock) bool {
 	b := ib.(*PhantomBlock)
 	if ph.diffAnticone.Has(b.GetID()) {
