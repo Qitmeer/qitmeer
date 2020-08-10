@@ -1027,11 +1027,10 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 	// -------------------------------------------------------------------
 	// General transaction testing.
 	// -------------------------------------------------------------------
+	targets := []uint{}
 	for idx, txIn := range msgTx.TxIn {
-		txInHash := &txIn.PreviousOut.Hash
 		utxoEntry := utxoView.LookupEntry(txIn.PreviousOut)
 		if utxoEntry == nil || utxoEntry.IsSpent() {
-
 			str := fmt.Sprintf("output %v referenced from "+
 				"transaction %s:%d either does not exist or "+
 				"has already been spent", txIn.PreviousOut,
@@ -1041,42 +1040,13 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 
 		// Ensure the transaction is not spending coins which have not
 		// yet reached the required coinbase maturity.
-		coinbaseMaturity := int64(chainParams.CoinbaseMaturity)
-
 		if utxoEntry.IsCoinBase() {
-			if len(utxoView.viewpoints) == 0 {
-				str := fmt.Sprintf("transaction %s has no viewpoints", txHash)
-				return 0, ruleError(ErrNoViewpoint, str)
-			}
 			ubhIB := bd.GetBlock(utxoEntry.BlockHash())
 			if ubhIB == nil {
 				str := fmt.Sprintf("utxoEntry blockhash error:%s", utxoEntry.BlockHash())
 				return 0, ruleError(ErrNoViewpoint, str)
 			}
-			viewpoints := blockdag.NewIdSet()
-			for _, v := range utxoView.viewpoints {
-				vib := bd.GetBlock(v)
-				viewpoints.Add(vib.GetID())
-			}
-			maturity := int64(bd.GetMaturity(ubhIB.GetID(), viewpoints.List()))
-
-			if maturity < coinbaseMaturity {
-				str := fmt.Sprintf("tx %v tried to spend "+
-					"coinbase transaction %v from "+
-					"at %v before required "+
-					"maturity of %v blocks", txHash,
-					txInHash, maturity, coinbaseMaturity)
-				return 0, ruleError(ErrImmatureSpend, str)
-			}
-
-			if !bd.IsBlue(ubhIB.GetID()) {
-				str := fmt.Sprintf("tx %v tried to spend "+
-					"coinbase transaction %v from "+
-					"at %v before required "+
-					"maturity of %v blocks, but it is't in blue set", txHash,
-					txInHash, maturity, coinbaseMaturity)
-				return 0, ruleError(ErrNoBlueCoinbase, str)
-			}
+			targets = append(targets, ubhIB.GetID())
 		}
 
 		// Ensure the transaction amounts are in range.  Each of the
@@ -1113,6 +1083,24 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 				"allowed value of %v", totalAtomIn,
 				types.MaxAmount)
 			return 0, ruleError(ErrInvalidTxOutValue, str)
+		}
+	}
+
+	if len(targets) > 0 {
+		viewpoints := []uint{}
+		for _, blockHash := range utxoView.viewpoints {
+			vIB := bd.GetBlock(blockHash)
+			if vIB != nil {
+				viewpoints = append(viewpoints, vIB.GetID())
+			}
+		}
+		if len(viewpoints) == 0 {
+			str := fmt.Sprintf("transaction %s has no viewpoints", txHash)
+			return 0, ruleError(ErrNoViewpoint, str)
+		}
+		err := bd.CheckBlueAndMatureMT(targets, viewpoints, uint(chainParams.CoinbaseMaturity))
+		if err != nil {
+			return 0, ruleError(ErrImmatureSpend, err.Error())
 		}
 	}
 
