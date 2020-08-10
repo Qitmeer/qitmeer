@@ -449,6 +449,7 @@ func (idx *TxIndex) Create(dbTx database.Tx) error {
 	if _, err := meta.CreateBucket(txidByTxhashBucketName); err != nil {
 		return err
 	}
+	idx.compatibleOldData(dbTx)
 	if _, err := meta.CreateBucket(itxIndexKey); err != nil {
 		return err
 	}
