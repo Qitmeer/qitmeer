@@ -649,12 +649,14 @@ func (ph *Phantom) doIsBlue(ib IBlock, fork IBlock) bool {
 	if ph.diffAnticone.Has(b.GetID()) {
 		return false
 	}
-	cur := fork.(*PhantomBlock)
-	if cur == nil {
+	var cur *PhantomBlock
+	if fork == nil {
 		cur = ph.bd.getMainFork(b, true).(*PhantomBlock)
 		if cur == nil {
 			cur = ph.getBlock(ph.mainChain.tip)
 		}
+	} else {
+		cur = fork.(*PhantomBlock)
 	}
 
 	for ; cur != nil; cur = ph.getBlock(cur.mainParent) {
