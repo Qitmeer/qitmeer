@@ -639,6 +639,13 @@ func incrementalFlatDrop(db database.DB, idxKey []byte, idxName string, interrup
 		bucket := dbTx.Metadata()
 		for _, subBucketName := range bucketName {
 			bucket = bucket.Bucket(subBucketName)
+			if bucket == nil {
+				return database.Error{
+					ErrorCode: database.ErrBucketNotFound,
+					Description: fmt.Sprintf("db bucket '%s' not found, your data is corrupted, please clean up your block database by using '--cleanup'",subBucketName),
+					Err: nil}
+			}
+
 		}
 		return bucket.ForEachBucket(func(k []byte) error {
 			return subBucketClosure(dbTx, k, bucketName)
@@ -650,7 +657,7 @@ func incrementalFlatDrop(db database.DB, idxKey []byte, idxName string, interrup
 		return subBucketClosure(dbTx, idxKey, nil)
 	})
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// Iterate through each sub-bucket in reverse, deepest-first, deleting
