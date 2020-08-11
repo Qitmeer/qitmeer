@@ -168,3 +168,15 @@ func (idx *TxIndex) GetInvalidTxIdByHash(txhash hash.Hash) (*hash.Hash, error) {
 	})
 	return txid, err
 }
+
+// Because there was a problem with the previous version[1234f -> 4f610] of droptxindex,
+// in order to be compatible with its data.
+func (idx *TxIndex) compatibleOldData(dbTx database.Tx) {
+	meta := dbTx.Metadata()
+	if meta.Bucket(itxIndexKey) != nil {
+		meta.DeleteBucket(itxIndexKey)
+	}
+	if meta.Bucket(itxidByTxhashBucketName) != nil {
+		meta.DeleteBucket(itxidByTxhashBucketName)
+	}
+}
