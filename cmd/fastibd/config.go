@@ -34,6 +34,7 @@ type Config struct {
 	InputPath  string
 	DisableBar bool
 	EndPoint   string
+	ByID       bool
 }
 
 func (c *Config) load() error {
