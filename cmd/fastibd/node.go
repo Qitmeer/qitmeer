@@ -106,7 +106,13 @@ func (node *Node) Export() error {
 	}()
 
 	var endPoint blockdag.IBlock
-	endNum := mainTip.GetOrder()
+	endNum := uint(0)
+	if node.cfg.ByID {
+		endNum = mainTip.GetID()
+	} else {
+		endNum = mainTip.GetOrder()
+	}
+
 	if len(node.cfg.EndPoint) > 0 {
 		ephash, err := hash.NewHashFromStr(node.cfg.EndPoint)
 		if err != nil {
@@ -114,8 +120,14 @@ func (node *Node) Export() error {
 		}
 		endPoint = node.bc.BlockDAG().GetBlock(ephash)
 		if endPoint != nil {
-			if endNum > endPoint.GetOrder() {
-				endNum = endPoint.GetOrder()
+			if node.cfg.ByID {
+				if endNum > endPoint.GetID() {
+					endNum = endPoint.GetID()
+				}
+			} else {
+				if endNum > endPoint.GetOrder() {
+					endNum = endPoint.GetOrder()
+				}
 			}
 
 			log.Info(fmt.Sprintf("End point:%s order:%d id:%d", ephash.String(), endPoint.GetOrder(), endPoint.GetID()))
@@ -142,8 +154,19 @@ func (node *Node) Export() error {
 		return err
 	}
 	var i uint
+	var blockHash *hash.Hash
 	for i = uint(1); i <= endNum; i++ {
-		blockHash := node.bc.BlockDAG().GetBlockByOrder(i)
+		if node.cfg.ByID {
+			ib := node.bc.BlockDAG().GetBlockById(i)
+			if ib != nil {
+				blockHash = ib.GetHash()
+			} else {
+				blockHash = nil
+			}
+		} else {
+			blockHash = node.bc.BlockDAG().GetBlockByOrder(i)
+		}
+
 		if blockHash == nil {
 			return fmt.Errorf(fmt.Sprintf("Can't find block (%d)!", i))
 		}

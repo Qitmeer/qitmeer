@@ -55,6 +55,12 @@ func fastIBD() error {
 						Usage:       "End point for output data",
 						Destination: &cfg.EndPoint,
 					},
+					&cli.BoolFlag{
+						Name:        "byid",
+						Aliases:     []string{"i"},
+						Usage:       "Export by block id",
+						Destination: &cfg.ByID,
+					},
 				},
 				Before: func(c *cli.Context) error {
 					return node.init(cfg)
