@@ -465,6 +465,9 @@ func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash {
 
 // Query whether a given block is on the main chain.
 func (ph *Phantom) IsOnMainChain(b IBlock) bool {
+	if ph.mainChain.blocks.Has(b.GetID()) {
+		return true
+	}
 	for cur := ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
 		if cur.GetHash().IsEqual(b.GetHash()) {
 			return true
