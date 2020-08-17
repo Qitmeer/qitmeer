@@ -101,6 +101,9 @@ type MessageListeners struct {
 
 	// OnSyncPoint
 	OnSyncPoint func(p *Peer, msg *message.MsgSyncPoint)
+
+	// OnFeeFilter
+	OnFeeFilter func(p *Peer, msg *message.MsgFeeFilter)
 	/*
 		// OnSendHeaders is invoked when a peer receives a sendheaders message.
 		OnSendHeaders func(p *Peer, msg *message.MsgSendHeaders)
