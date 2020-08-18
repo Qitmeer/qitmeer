@@ -6,6 +6,7 @@
 package peerserver
 
 import (
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -14,6 +15,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"sync"
+	"sync/atomic"
 )
 
 // serverPeer extends the peer to maintain state shared by the p2p server and
@@ -39,6 +41,9 @@ type serverPeer struct {
 
 	// The following chans are used to sync blockmanager and server.
 	syncPeer *peer.ServerPeer
+
+	// Use to fee filter
+	feeFilter int64
 }
 
 // newServerPeer returns a new serverPeer instance. The peer needs to be set by
@@ -119,4 +124,14 @@ func (sp *serverPeer) IsTxRelayDisabled() bool {
 // is to being banned.
 func (sp *serverPeer) BanScore() uint32 {
 	return sp.banScore.Int()
+}
+
+func (sp *serverPeer) OnFeeFilter(_ *peer.Peer, msg *message.MsgFeeFilter) {
+	if msg.MinFee < 0 || msg.MinFee > types.MaxAmount {
+		log.Debug(fmt.Sprintf("Peer %v sent an invalid feefilter '%v' -- "+
+			"disconnecting", sp, types.Amount(msg.MinFee)))
+		sp.Disconnect()
+		return
+	}
+	atomic.StoreInt64(&sp.feeFilter, msg.MinFee)
 }
