@@ -18,6 +18,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
+	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/services/zmq"
 	"sync"
 	"sync/atomic"
@@ -670,7 +671,7 @@ func (b *BlockManager) ProcessBlock(block *types.SerializedBlock, flags blockcha
 // processTransactionResponse is a response sent to the reply channel of a
 // processTransactionMsg.
 type processTransactionResponse struct {
-	acceptedTxs []*types.Tx
+	acceptedTxs []*mempool.TxDesc
 	err         error
 }
 
@@ -689,7 +690,7 @@ type processTransactionMsg struct {
 // a block chain.  It is funneled through the block manager since blockchain is
 // not safe for concurrent access.
 func (b *BlockManager) ProcessTransaction(tx *types.Tx, allowOrphans bool,
-	rateLimit bool, allowHighFees bool) ([]*types.Tx, error) {
+	rateLimit bool, allowHighFees bool) ([]*mempool.TxDesc, error) {
 	reply := make(chan processTransactionResponse, 1)
 	b.msgChan <- processTransactionMsg{tx, allowOrphans, rateLimit,
 		allowHighFees, reply}

@@ -3,6 +3,7 @@ package blockchain
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/services/mempool"
 )
 
 type TxManager interface {
@@ -27,5 +28,5 @@ type TxPool interface {
 
 	PruneExpiredTx()
 
-	ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*types.Tx, error)
+	ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*mempool.TxDesc, error)
 }

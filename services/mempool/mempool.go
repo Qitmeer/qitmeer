@@ -150,11 +150,11 @@ func (mp *TxPool) RemoveDoubleSpends(tx *types.Tx) {
 //
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
-	tx *types.Tx, height uint64, fee int64) {
+	tx *types.Tx, height uint64, fee int64) *TxDesc {
 	// Add the transaction to the pool and mark the referenced outpoints
 	// as spent by the pool.
 	msgTx := tx.Transaction()
-	mp.pool[*tx.Hash()] = &TxDesc{
+	txD := &TxDesc{
 		TxDesc: types.TxDesc{
 			Tx:       tx,
 			Added:    time.Now(),
@@ -164,6 +164,7 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 		},
 		StartingPriority: CalcPriority(msgTx, utxoView, height, mp.cfg.BD),
 	}
+	mp.pool[*tx.Hash()] = txD
 	for _, txIn := range msgTx.TxIn {
 		mp.outpoints[txIn.PreviousOut] = tx
 	}
@@ -177,6 +178,7 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 	if mp.cfg.ExistsAddrIndex != nil {
 		mp.cfg.ExistsAddrIndex.AddUnconfirmedTx(msgTx)
 	}
+	return txD
 }
 
 //Call addTransaction
@@ -190,7 +192,7 @@ func (mp *TxPool) AddTransaction(utxoView *blockchain.UtxoViewpoint,
 // more details.
 //
 // This function MUST be called with the mempool lock held (for writes).
-func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHighFees bool) ([]*hash.Hash, error) {
+func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHighFees bool) ([]*hash.Hash, *TxDesc, error) {
 	msgTx := tx.Transaction()
 	txHash := tx.Hash()
 
@@ -199,7 +201,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// be a quick check to weed out duplicates.
 	if mp.haveTransaction(txHash) {
 		str := fmt.Sprintf("already have transaction %v", txHash)
-		return nil, txRuleError(message.RejectDuplicate, str)
+		return nil, nil, txRuleError(message.RejectDuplicate, str)
 	}
 
 	// Perform preliminary sanity checks on the transaction.  This makes
@@ -208,16 +210,16 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	err := blockchain.CheckTransactionSanity(msgTx, mp.cfg.ChainParams)
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
-			return nil, chainRuleError(cerr)
+			return nil, nil, chainRuleError(cerr)
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
 	// A standalone transaction must not be a coinbase transaction.
 	if tx.Tx.IsCoinBase() {
 		str := fmt.Sprintf("transaction %v is an individual coinbase",
 			txHash)
-		return nil, txRuleError(message.RejectInvalid, str)
+		return nil, nil, txRuleError(message.RejectInvalid, str)
 	}
 
 	// Don't accept transactions with a lock time after the maximum int32
@@ -227,7 +229,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	if msgTx.LockTime > math.MaxInt32 {
 		str := fmt.Sprintf("transaction %v has a lock time after "+
 			"2038 which is not accepted yet", txHash)
-		return nil, txRuleError(message.RejectNonstandard, str)
+		return nil, nil, txRuleError(message.RejectNonstandard, str)
 	}
 
 	// Get the current height of the main chain.  A standalone transaction
@@ -239,7 +241,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	if blockchain.IsExpired(tx, nextBlockHeight) {
 		str := fmt.Sprintf("transaction %v expired at height %d",
 			txHash, msgTx.Expire)
-		return nil, txRuleError(message.RejectInvalid, str)
+		return nil, nil, txRuleError(message.RejectInvalid, str)
 	}
 	// Don't allow non-standard transactions if the mempool config forbids
 	// their acceptance and relaying.
@@ -258,7 +260,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 			}
 			str := fmt.Sprintf("transaction %v is not standard: %v",
 				txHash, err)
-			return nil, txRuleError(rejectCode, str)
+			return nil, nil, txRuleError(rejectCode, str)
 		}
 	}
 
@@ -272,7 +274,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// which examines the actual spend data and prevents double spends.
 	err = mp.checkPoolDoubleSpend(tx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Fetch all of the unspent transaction outputs referenced by the inputs
@@ -282,9 +284,9 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	utxoView, err := mp.fetchInputUtxos(tx)
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
-			return nil, chainRuleError(cerr)
+			return nil, nil, chainRuleError(cerr)
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Don't allow the transaction if it exists in the main chain and is not
@@ -294,7 +296,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		prevOut.OutIndex = uint32(txOutIdx)
 		entry := utxoView.LookupEntry(prevOut)
 		if entry != nil && !entry.IsSpent() {
-			return nil, txRuleError(message.RejectDuplicate,
+			return nil, nil, txRuleError(message.RejectDuplicate,
 				"transaction already exists")
 		}
 		utxoView.RemoveEntry(prevOut)
@@ -317,7 +319,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	if len(missingParents) > 0 {
-		return missingParents, nil
+		return missingParents, nil, nil
 	}
 
 	// Don't allow the transaction into the mempool unless its sequence
@@ -326,13 +328,13 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	seqLock, err := mp.cfg.CalcSequenceLock(tx, utxoView)
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
-			return nil, chainRuleError(cerr)
+			return nil, nil, chainRuleError(cerr)
 		}
-		return nil, err
+		return nil, nil, err
 	}
 	// TODO fix type conversion
 	if !blockchain.SequenceLockActive(seqLock, int64(nextBlockHeight), medianTime) {
-		return nil, txRuleError(message.RejectNonstandard,
+		return nil, nil, txRuleError(message.RejectNonstandard,
 			"transaction sequence locks on inputs not met")
 	}
 
@@ -344,9 +346,9 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	txFee, err := blockchain.CheckTransactionInputs(tx, utxoView, mp.cfg.ChainParams, mp.cfg.BC) //TODO fix type conversion
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
-			return nil, chainRuleError(cerr)
+			return nil, nil, chainRuleError(cerr)
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Don't allow transactions with non-standard inputs if the mempool config
@@ -363,7 +365,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 			}
 			str := fmt.Sprintf("transaction %v has a non-standard "+
 				"input: %v", txHash, err)
-			return nil, txRuleError(rejectCode, str)
+			return nil, nil, txRuleError(rejectCode, str)
 		}
 	}
 
@@ -379,16 +381,16 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	numSigOps, err := blockchain.CountP2SHSigOps(tx, false, utxoView)
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
-			return nil, chainRuleError(cerr)
+			return nil, nil, chainRuleError(cerr)
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
 	numSigOps += blockchain.CountSigOps(tx)
 	if numSigOps > mp.cfg.Policy.MaxSigOpsPerTx {
 		str := fmt.Sprintf("transaction %v has too many sigops: %d > %d",
 			txHash, numSigOps, mp.cfg.Policy.MaxSigOpsPerTx)
-		return nil, txRuleError(message.RejectNonstandard, str)
+		return nil, nil, txRuleError(message.RejectNonstandard, str)
 	}
 
 	// Don't allow transactions with fees too low to get into a mined block.
@@ -399,7 +401,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		str := fmt.Sprintf("transaction %v has %v fees which "+
 			"is under the required amount of %v", txHash,
 			txFee, minFee)
-		return nil, txRuleError(message.RejectInsufficientFee, str)
+		return nil, nil, txRuleError(message.RejectInsufficientFee, str)
 	}
 
 	// Require that free transactions have sufficient priority to be mined
@@ -416,7 +418,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 			str := fmt.Sprintf("transaction %v has insufficient "+
 				"priority (%g <= %g)", txHash,
 				currentPriority, MinHighPriority)
-			return nil, txRuleError(message.RejectInsufficientFee, str)
+			return nil, nil, txRuleError(message.RejectInsufficientFee, str)
 		}
 	}
 
@@ -435,7 +437,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		if mp.pennyTotal >= mp.cfg.Policy.FreeTxRelayLimit*10*1000 {
 			str := fmt.Sprintf("transaction %v has been rejected "+
 				"by the rate limiter due to low fees", txHash)
-			return nil, txRuleError(message.RejectInsufficientFee, str)
+			return nil, nil, txRuleError(message.RejectInsufficientFee, str)
 		}
 		oldTotal := mp.pennyTotal
 
@@ -455,7 +457,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 			err = fmt.Errorf("transaction %v has %v fee which is above the "+
 				"allowHighFee check threshold amount of %v (= %v byte * %v/kB * %v)", txHash,
 				txFee, maxFee, serializedSize, mp.cfg.Policy.MinRelayTxFee.Format(types.AmountAtom), maxRelayFeeMultiplier)
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -463,23 +465,23 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// any don't verify.
 	flags, err := mp.cfg.Policy.StandardVerifyFlags()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = blockchain.ValidateTransactionScripts(tx, utxoView, flags,
 		mp.cfg.SigCache)
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
-			return nil, chainRuleError(cerr)
+			return nil, nil, chainRuleError(cerr)
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Add to transaction pool.
-	mp.addTransaction(utxoView, tx, nextBlockHeight, txFee)
+	txD := mp.addTransaction(utxoView, tx, nextBlockHeight, txFee)
 
 	log.Debug("Accepted transaction", "txHash", txHash, "pool size", len(mp.pool))
 
-	return nil, nil
+	return nil, txD, nil
 }
 
 // fetchInputUtxos loads utxo details about the input transactions referenced by
@@ -523,7 +525,7 @@ func (mp *TxPool) fetchInputUtxos(tx *types.Tx) (*blockchain.UtxoViewpoint, erro
 // the passed one being accepted.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*types.Tx, error) {
+func (mp *TxPool) ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*TxDesc, error) {
 	// Protect concurrent access.
 	mp.mtx.Lock()
 	defer mp.mtx.Unlock()
@@ -536,7 +538,7 @@ func (mp *TxPool) ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allow
 
 	// Potentially accept the transaction to the memory pool.
 	var missingParents []*hash.Hash
-	missingParents, err = mp.maybeAcceptTransaction(tx, true, rateLimit,
+	missingParents, txD, err := mp.maybeAcceptTransaction(tx, true, rateLimit,
 		allowHighFees)
 	if err != nil {
 		return nil, err
@@ -549,11 +551,11 @@ func (mp *TxPool) ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allow
 		// now available) and repeat for those accepted transactions
 		// until there are no more.
 		newTxs := mp.processOrphans(tx.Hash())
-		acceptedTxs := make([]*types.Tx, len(newTxs)+1)
+		acceptedTxs := make([]*TxDesc, len(newTxs)+1)
 
 		// Add the parent transaction first so remote nodes
 		// do not add orphans.
-		acceptedTxs[0] = tx
+		acceptedTxs[0] = txD
 		copy(acceptedTxs[1:], newTxs)
 
 		return acceptedTxs, nil
@@ -621,7 +623,7 @@ func (mp *TxPool) maybeAddOrphan(tx *types.Tx) error {
 func (mp *TxPool) MaybeAcceptTransaction(tx *types.Tx, isNew, rateLimit bool) ([]*hash.Hash, error) {
 	// Protect concurrent access.
 	mp.mtx.Lock()
-	hashes, err := mp.maybeAcceptTransaction(tx, isNew, rateLimit, true)
+	hashes, _, err := mp.maybeAcceptTransaction(tx, isNew, rateLimit, true)
 	mp.mtx.Unlock()
 
 	return hashes, err
@@ -672,8 +674,8 @@ func (mp *TxPool) RemoveOrphan(txHash *hash.Hash) {
 // ProcessOrphans.  See the comment for ProcessOrphans for more details.
 //
 // This function MUST be called with the mempool lock held (for writes).
-func (mp *TxPool) processOrphans(h *hash.Hash) []*types.Tx {
-	var acceptedTxns []*types.Tx
+func (mp *TxPool) processOrphans(h *hash.Hash) []*TxDesc {
+	var acceptedTxns []*TxDesc
 
 	// Start with processing at least the passed hash.
 	processHashes := list.New()
@@ -712,7 +714,7 @@ func (mp *TxPool) processOrphans(h *hash.Hash) []*types.Tx {
 
 			// Potentially accept the transaction into the
 			// transaction pool.
-			missingParents, err := mp.maybeAcceptTransaction(tx,
+			missingParents, txD, err := mp.maybeAcceptTransaction(tx,
 				true, true, true)
 			if err != nil {
 				// TODO: Remove orphans that depend on this
@@ -731,7 +733,7 @@ func (mp *TxPool) processOrphans(h *hash.Hash) []*types.Tx {
 
 			// Add this transaction to the list of transactions
 			// that are no longer orphans.
-			acceptedTxns = append(acceptedTxns, tx)
+			acceptedTxns = append(acceptedTxns, txD)
 
 			// Add this transaction to the list of transactions to
 			// process so any orphans that depend on this one are
