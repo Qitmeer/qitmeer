@@ -105,9 +105,6 @@ type BlockChain struct {
 	//block dag
 	bd *blockdag.BlockDAG
 
-	//tx manager
-	txManager TxManager
-
 	// block version
 	BlockVersion uint32
 
@@ -1208,14 +1205,6 @@ func (b *BlockChain) fetchSpendJournal(targetBlock *types.SerializedBlock) ([]Sp
 	}
 
 	return spendEntries, nil
-}
-
-func (b *BlockChain) SetTxManager(txManager TxManager) {
-	b.txManager = txManager
-}
-
-func (b *BlockChain) GetTxManager() TxManager {
-	return b.txManager
 }
 
 func (b *BlockChain) GetMiningTips() []*hash.Hash {

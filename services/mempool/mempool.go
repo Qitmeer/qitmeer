@@ -795,7 +795,7 @@ func (mp *TxPool) addOrphan(tx *types.Tx) {
 // no transactions were moved from the orphan pool to the mempool.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) ProcessOrphans(hash *hash.Hash) []*types.Tx {
+func (mp *TxPool) ProcessOrphans(hash *hash.Hash) []*TxDesc {
 	mp.mtx.Lock()
 	acceptedTxns := mp.processOrphans(hash)
 	mp.mtx.Unlock()

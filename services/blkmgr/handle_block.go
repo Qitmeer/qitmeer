@@ -127,7 +127,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) connmgr.BanScore {
 		// When the block is not an orphan, log information about it and
 		// update the chain state.
 
-		b.chain.GetTxManager().MemPool().PruneExpiredTx()
+		b.GetTxManager().MemPool().PruneExpiredTx()
 
 		// Clear the rejected transactions.
 		b.rejectedTxns = make(map[hash.Hash]struct{})

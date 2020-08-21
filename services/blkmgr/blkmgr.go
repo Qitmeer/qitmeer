@@ -84,6 +84,9 @@ type BlockManager struct {
 	zmqNotify zmq.IZMQNotification
 
 	sync.Mutex
+
+	//tx manager
+	txManager TxManager
 }
 
 // NewBlockManager returns a new block manager.
@@ -236,10 +239,10 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		// transaction are NOT removed recursively because they are still
 		// valid.
 		for _, tx := range block.Transactions()[1:] {
-			b.chain.GetTxManager().MemPool().RemoveTransaction(tx, false)
-			b.chain.GetTxManager().MemPool().RemoveDoubleSpends(tx)
-			b.chain.GetTxManager().MemPool().RemoveOrphan(tx.Hash())
-			acceptedTxs := b.chain.GetTxManager().MemPool().ProcessOrphans(tx.Hash())
+			b.GetTxManager().MemPool().RemoveTransaction(tx, false)
+			b.GetTxManager().MemPool().RemoveDoubleSpends(tx)
+			b.GetTxManager().MemPool().RemoveOrphan(tx.Hash())
+			acceptedTxs := b.GetTxManager().MemPool().ProcessOrphans(tx.Hash())
 			b.notify.AnnounceNewTransactions(acceptedTxs)
 		}
 
@@ -427,7 +430,7 @@ func (b *BlockManager) haveInventory(invVect *message.InvVect) (bool, error) {
 	case message.InvTypeTx:
 		// Ask the transaction memory pool if the transaction is known
 		// to it in any form (main pool or orphan).
-		if b.chain.GetTxManager().MemPool().HaveTransaction(&invVect.Hash) {
+		if b.GetTxManager().MemPool().HaveTransaction(&invVect.Hash) {
 			return true, nil
 		}
 
@@ -566,7 +569,7 @@ out:
 				// update the tip locally on block manager.
 				if !isOrphan {
 					// TODO, decoupling mempool with bm
-					b.chain.GetTxManager().MemPool().PruneExpiredTx()
+					b.GetTxManager().MemPool().PruneExpiredTx()
 				}
 
 				// Allow any clients performing long polling via the
@@ -587,7 +590,7 @@ out:
 
 			case processTransactionMsg:
 				log.Trace("blkmgr msgChan processTransactionMsg", "msg", msg)
-				acceptedTxs, err := b.chain.GetTxManager().MemPool().ProcessTransaction(msg.tx,
+				acceptedTxs, err := b.GetTxManager().MemPool().ProcessTransaction(msg.tx,
 					msg.allowOrphans, msg.rateLimit, msg.allowHighFees)
 				msg.reply <- processTransactionResponse{
 					acceptedTxs: acceptedTxs,
@@ -1042,6 +1045,14 @@ func (b *BlockManager) ChainParams() *params.Params {
 // DAGSync
 func (b *BlockManager) DAGSync() *blockdag.DAGSync {
 	return b.dagSync
+}
+
+func (b *BlockManager) SetTxManager(txManager TxManager) {
+	b.txManager = txManager
+}
+
+func (b *BlockManager) GetTxManager() TxManager {
+	return b.txManager
 }
 
 // headerNode is used as a node in a list of headers that are linked together
