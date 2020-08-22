@@ -710,7 +710,6 @@ func (mp *TxPool) processOrphans(h *hash.Hash) []*TxDesc {
 			// leaving them in the orphan pool if not all parent
 			// transactions are known yet.
 			orphanHash := tx.Hash()
-			mp.removeOrphan(orphanHash)
 
 			// Potentially accept the transaction into the
 			// transaction pool.
@@ -721,20 +720,18 @@ func (mp *TxPool) processOrphans(h *hash.Hash) []*TxDesc {
 				// failed transaction.
 				log.Debug("Unable to move orphan transaction "+
 					"%v to mempool: %v", tx.Hash(), err)
+				mp.removeOrphan(orphanHash)
 				continue
 			}
 
 			if len(missingParents) > 0 {
-				// Transaction is still an orphan, so add it
-				// back.
-				mp.addOrphan(tx)
 				continue
 			}
 
 			// Add this transaction to the list of transactions
 			// that are no longer orphans.
 			acceptedTxns = append(acceptedTxns, txD)
-
+			mp.removeOrphan(orphanHash)
 			// Add this transaction to the list of transactions to
 			// process so any orphans that depend on this one are
 			// handled too.
@@ -759,27 +756,20 @@ func (mp *TxPool) processOrphans(h *hash.Hash) []*TxDesc {
 //
 // This function MUST be called with the mempool lock held (for writes).
 func (mp *TxPool) addOrphan(tx *types.Tx) {
-	// TODO addOrphan
-	/*
-		// Nothing to do if no orphans are allowed.
-		if mp.cfg.Policy.MaxOrphanTxs <= 0 {
-			return
-		}
+	// Nothing to do if no orphans are allowed.
+	if mp.cfg.Policy.MaxOrphanTxs <= 0 {
+		return
+	}
 
-		// Limit the number orphan transactions to prevent memory exhaustion.  A
-		// random orphan is evicted to make room if needed.
-		mp.limitNumOrphans()
-
-		mp.orphans[*tx.Hash()] = tx
-		for _, txIn := range tx.MsgTx().TxIn {
-			originTxHash := txIn.PreviousOutPoint.Hash
-			if _, exists := mp.orphansByPrev[originTxHash]; !exists {
-				mp.orphansByPrev[originTxHash] =
-					make(map[chainhash.Hash]*dcrutil.Tx)
-			}
-			mp.orphansByPrev[originTxHash][*tx.Hash()] = tx
+	mp.orphans[*tx.Hash()] = tx
+	for _, txIn := range tx.Tx.TxIn {
+		originTxHash := txIn.PreviousOut.Hash
+		if _, exists := mp.orphansByPrev[originTxHash]; !exists {
+			mp.orphansByPrev[originTxHash] =
+				make(map[hash.Hash]*types.Tx)
 		}
-	*/
+		mp.orphansByPrev[originTxHash][*tx.Hash()] = tx
+	}
 
 	log.Debug(fmt.Sprintf("Stored orphan transaction %v (total: %d)", tx.Hash(),
 		len(mp.orphans)))
