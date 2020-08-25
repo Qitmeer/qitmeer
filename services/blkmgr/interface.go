@@ -8,7 +8,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/services/mempool"
 )
 
 type TxManager interface {
@@ -25,7 +24,7 @@ type TxPool interface {
 
 	RemoveOrphan(txHash *hash.Hash)
 
-	ProcessOrphans(hash *hash.Hash) []*mempool.TxDesc
+	ProcessOrphans(hash *hash.Hash) []*types.TxDesc
 
 	MaybeAcceptTransaction(tx *types.Tx, isNew, rateLimit bool) ([]*hash.Hash, error)
 
@@ -33,5 +32,5 @@ type TxPool interface {
 
 	PruneExpiredTx()
 
-	ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*mempool.TxDesc, error)
+	ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*types.TxDesc, error)
 }

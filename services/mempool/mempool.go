@@ -525,7 +525,7 @@ func (mp *TxPool) fetchInputUtxos(tx *types.Tx) (*blockchain.UtxoViewpoint, erro
 // the passed one being accepted.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*TxDesc, error) {
+func (mp *TxPool) ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*types.TxDesc, error) {
 	// Protect concurrent access.
 	mp.mtx.Lock()
 	defer mp.mtx.Unlock()
@@ -551,12 +551,14 @@ func (mp *TxPool) ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allow
 		// now available) and repeat for those accepted transactions
 		// until there are no more.
 		newTxs := mp.processOrphans(tx.Hash())
-		acceptedTxs := make([]*TxDesc, len(newTxs)+1)
+		acceptedTxs := []*types.TxDesc{}
 
 		// Add the parent transaction first so remote nodes
 		// do not add orphans.
-		acceptedTxs[0] = txD
-		copy(acceptedTxs[1:], newTxs)
+		acceptedTxs = append(acceptedTxs, &txD.TxDesc)
+		for _, td := range newTxs {
+			acceptedTxs = append(acceptedTxs, &td.TxDesc)
+		}
 
 		return acceptedTxs, nil
 	}
@@ -785,11 +787,15 @@ func (mp *TxPool) addOrphan(tx *types.Tx) {
 // no transactions were moved from the orphan pool to the mempool.
 //
 // This function is safe for concurrent access.
-func (mp *TxPool) ProcessOrphans(hash *hash.Hash) []*TxDesc {
+func (mp *TxPool) ProcessOrphans(hash *hash.Hash) []*types.TxDesc {
 	mp.mtx.Lock()
 	acceptedTxns := mp.processOrphans(hash)
 	mp.mtx.Unlock()
-	return acceptedTxns
+	acceptedTxnsT := []*types.TxDesc{}
+	for _, td := range acceptedTxns {
+		acceptedTxnsT = append(acceptedTxnsT, &td.TxDesc)
+	}
+	return acceptedTxnsT
 }
 
 // FetchTransaction returns the requested transaction from the transaction pool.

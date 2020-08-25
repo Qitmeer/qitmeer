@@ -2,9 +2,9 @@ package notifymgr
 
 import (
 	"github.com/Qitmeer/qitmeer/core/message"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/peerserver"
 	"github.com/Qitmeer/qitmeer/rpc"
-	"github.com/Qitmeer/qitmeer/services/mempool"
 )
 
 // NotifyMgr manage message announce & relay & notification between mempool, websocket, gbt long pull
@@ -18,7 +18,7 @@ type NotifyMgr struct {
 // both websocket and getblocktemplate long poll clients of the passed
 // transactions.  This function should be called whenever new transactions
 // are added to the mempool.
-func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*mempool.TxDesc) {
+func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.TxDesc) {
 	// Generate and relay inventory vectors for all newly accepted
 	// transactions into the memory pool due to the original being
 	// accepted.
