@@ -1,7 +1,12 @@
-package blockchain
+// Copyright (c) 2020 The qitmeer developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
+package blkmgr
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
 )
 
@@ -10,7 +15,7 @@ type TxManager interface {
 }
 
 type TxPool interface {
-	AddTransaction(utxoView *UtxoViewpoint,
+	AddTransaction(utxoView *blockchain.UtxoViewpoint,
 		tx *types.Tx, height uint64, fee int64)
 
 	RemoveTransaction(tx *types.Tx, removeRedeemers bool)
@@ -19,7 +24,7 @@ type TxPool interface {
 
 	RemoveOrphan(txHash *hash.Hash)
 
-	ProcessOrphans(hash *hash.Hash) []*types.Tx
+	ProcessOrphans(hash *hash.Hash) []*types.TxDesc
 
 	MaybeAcceptTransaction(tx *types.Tx, isNew, rateLimit bool) ([]*hash.Hash, error)
 
@@ -27,5 +32,5 @@ type TxPool interface {
 
 	PruneExpiredTx()
 
-	ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*types.Tx, error)
+	ProcessTransaction(tx *types.Tx, allowOrphan, rateLimit, allowHighFees bool) ([]*types.TxDesc, error)
 }
