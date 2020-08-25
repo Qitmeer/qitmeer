@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/Qitmeer/crypto v0.0.0-20200516043559-dd457edff06c
-	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dchest/blake256 v1.0.0
 	github.com/deckarep/golang-set v1.7.1
