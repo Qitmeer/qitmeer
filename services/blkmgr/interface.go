@@ -1,11 +1,6 @@
-/*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:interface.go
- * Date:8/21/20 3:47 PM
- * Author:Jin
- * Email:lochjin@gmail.com
- */
+// Copyright (c) 2020 The qitmeer developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
 
 package blkmgr
 
