@@ -71,9 +71,9 @@ var TestNetParams = Params{
 				CuckatooPercent:         0,
 				// | time	| timestamp	| mainHeight |
 				// | ---| --- | --- |
-				// | 2020-08-30 10:32 | 1598754720 | 192266
-				// | 2020-09-15 12:00 | 1600142400 | 238522 (not accurate)
-				// The soft forking mainHeight was not calculated according to the average time of 30s
+				// | 2020-08-30 10:31:46 | 1598754706 | 192266
+				// | 2020-09-15 12:00 | 1600142400 | 238522
+				// The soft forking mainHeight was calculated according to the average time of 30s
 				// In other words, pmeer will be produced by the pow of QitmeerKeccak256 only after mainHeight arrived 238522
 				MainHeight: 238522,
 			},
