@@ -4,10 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/database"
 	l "github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/params"
 	"io"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -153,8 +158,23 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 	if blen < 2 {
 		return nil
 	}
+	var db database.DB
+	if dagType == phantom {
+		cfg := &config.Config{DbType: "ffldb", DataDir: "."}
+		db, err = loadBlockDB(cfg)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		db.Update(func(dbTx database.Tx) error {
+			meta := dbTx.Metadata()
+			_, err := meta.CreateBucket(dbnamespace.DagMainChainBucketName)
+			return err
+		})
+	}
+
 	bd = BlockDAG{}
-	instance := bd.Init(dagType, CalcBlockWeight, -1, onGetBlockId, nil)
+	instance := bd.Init(dagType, CalcBlockWeight, -1, onGetBlockId, db)
 	tbMap = map[string]IBlock{}
 	for i := 0; i < blen; i++ {
 		parents := NewIdSet()
@@ -295,4 +315,41 @@ func onGetBlockId(h *hash.Hash) uint {
 		}
 	}
 	return MaxId
+}
+
+func loadBlockDB(cfg *config.Config) (database.DB, error) {
+	dbName := "blocks_" + cfg.DbType
+	dbPath := filepath.Join(cfg.DataDir, dbName)
+	err := removeBlockDB(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	db, err := database.Create(cfg.DbType, dbPath, params.ActiveNetParams.Net)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+func removeBlockDB(dbPath string) error {
+	fi, err := os.Stat(dbPath)
+	if err == nil {
+		if fi.IsDir() {
+			err := os.RemoveAll(dbPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := os.Remove(dbPath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func exit() {
+	removeBlockDB("./blocks_ffldb")
 }
