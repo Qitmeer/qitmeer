@@ -409,7 +409,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 	}
 
 	// Attempt to load the chain state from the database.
-	err = b.db.View(func(dbTx database.Tx) error {
+	err = b.db.Update(func(dbTx database.Tx) error {
 		// Fetch the stored chain state from the database metadata.
 		// When it doesn't exist, it means the database hasn't been
 		// initialized for use with chain yet, so break out now to allow
@@ -432,6 +432,10 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		err = b.bd.Load(dbTx, uint(state.total), b.params.GenesisHash)
 		if err != nil {
 			return fmt.Errorf("The dag data was damaged (%s). you can cleanup your block data base by '--cleanup'.", err)
+		}
+		err = b.bd.UpgradeDB(dbTx)
+		if err != nil {
+			return err
 		}
 		if !b.bd.GetMainChainTip().GetHash().IsEqual(&state.hash) {
 			return fmt.Errorf("The dag main tip %s is not the same. %s", state.hash.String(), b.bd.GetMainChainTip().GetHash().String())
