@@ -5,21 +5,6 @@
 
 The guardian of trust. The core backend of the qitmeer network.
 
-### 0.9.x Testnet Update WARNING
-
-❗❗❗ Please update your qitmeer testnet node to the latest version [0.9.1+hotfix-release-6e0a73a](https://github.com/Qitmeer/qitmeer/releases/tag/v0.9.1-release-hotfix) immeditally. This release contains a hot-fix for the coinbase fee inconsistent bug [#338](https://github.com/Qitmeer/qitmeer/pull/338) which hides inside the 0.9.0/0.9.1 version of qitmeer. The bug results an inconsistent consensus for some transcation which try to spent an UTXO contains coinbase fee. Please update your qitmeer to the latest version and make sure to clean up your local block database and redo the block synchronization.   
-
-Please make sure you are using correct qitmeer version, see the commit tag `6e0a73a` for sure.
-```
-./qitmeer --version
-qitmeer version 0.9.1+hotfix-release-6e0a73a (Go version go1.14.4)
-```
-
-Please make sure to clean up your local block database before you start your qitmeer node.
-```
-./qitmeer --testnet --cleanup
-```
-
 ## Qitmeer Testnet Notice
 
  The Qitmeer Official Public Testnet is **OPEN** Now. The Code name is the *Medina Network*. Please Join the Medina Network !
