@@ -63,6 +63,20 @@ var TestNetParams = Params{
 				CuckatooPercent:         0,
 				MainHeight:              0,
 			},
+			{
+				Blake2bDPercent:         0,
+				X16rv3Percent:           0,
+				QitmeerKeccak256Percent: 100,
+				CuckaroomPercent:        0,
+				CuckatooPercent:         0,
+				// | time	| timestamp	| mainHeight |
+				// | ---| --- | --- |
+				// | 2020-08-30 10:31:46 | 1598754706 | 192266
+				// | 2020-09-15 12:00 | 1600142400 | 238522
+				// The soft forking mainHeight was calculated according to the average time of 30s
+				// In other words, pmeer will be produced by the pow of QitmeerKeccak256 only after mainHeight arrived 238522
+				MainHeight: 238522,
+			},
 		},
 		// after this height the big graph will be the main pow graph
 		AdjustmentStartMainHeight: 365 * 1440 * 60 / testTargetTimePerBlock,
@@ -82,12 +96,12 @@ var TestNetParams = Params{
 	// Subsidy parameters.
 	BaseSubsidy:              12000000000, // 120 Coin , daily supply is 120*2*60*24 = 345600 ~ 345600 * 2 (DAG factor)
 	MulSubsidy:               100,
-	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
-	SubsidyReductionInterval: 1669066-541194, // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days
-	                                          // && subsidy has to reduce the 0.8.5 mining_rewarded blocks (541194)
-	WorkRewardProportion:     10,
-	StakeRewardProportion:    0,
-	BlockTaxProportion:       0,
+	DivSubsidy:               10000000000000,   // Coin-base reward reduce to zero at 1540677 blocks created
+	SubsidyReductionInterval: 1669066 - 541194, // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days
+	// && subsidy has to reduce the 0.8.5 mining_rewarded blocks (541194)
+	WorkRewardProportion:  10,
+	StakeRewardProportion: 0,
+	BlockTaxProportion:    0,
 
 	// Maturity
 	CoinbaseMaturity: 720, // coinbase required 720 * 30 = 6 hours before repent
