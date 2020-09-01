@@ -2,7 +2,7 @@ package ledger
 
 func initTest() {
 	//
-	// ## The Qitmeer 0.9.0 testnet genesis reward is 6525433004366634
+	// ## The Qitmeer 0.9.0 testnet genesis reward is 6524293004366634
 	//
 	// 1.) 0.8.5_genesis_reward = 29965004366634
 	//   (check https://github.com/Qitmeer/qitmeer/blob/v0.8.5/ledger/testpayouts.go to verify)

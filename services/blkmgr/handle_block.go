@@ -8,7 +8,6 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/services/mempool"
-	"time"
 )
 
 const (
@@ -48,7 +47,7 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) connmgr.BanScore {
 	// since it is needed to verify the next round of headers links
 	// properly.
 	isCheckpointBlock := false
-	behaviorFlags := blockchain.BFNone
+	behaviorFlags := blockchain.BFP2PAdd
 	if b.headersFirstMode {
 		firstNodeEl := b.headerList.Front()
 		if firstNodeEl != nil {
@@ -127,9 +126,8 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) connmgr.BanScore {
 	} else {
 		// When the block is not an orphan, log information about it and
 		// update the chain state.
-		b.progressLogger.LogBlockHeight(bmsg.block)
 
-		b.chain.GetTxManager().MemPool().PruneExpiredTx()
+		b.GetTxManager().MemPool().PruneExpiredTx()
 
 		// Clear the rejected transactions.
 		b.rejectedTxns = make(map[hash.Hash]struct{})
@@ -148,18 +146,14 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) connmgr.BanScore {
 		if isCurrent {
 			log.Info("Your synchronization has been completed. ")
 		}
-		// reset last progress time
-		if bmsg.peer == b.syncPeer {
-			b.lastProgressTime = time.Now()
-		}
-	}
 
-	if len(b.requestedBlocks) == 0 ||
-		(len(bmsg.peer.RequestedBlocks) == 0 && bmsg.peer == b.syncPeer) {
-		if b.syncPeer != nil {
-			b.clearRequestedState(b.syncPeer)
+		if len(b.requestedBlocks) == 0 ||
+			(len(bmsg.peer.RequestedBlocks) == 0 && bmsg.peer == b.syncPeer) {
+			if b.syncPeer != nil {
+				b.clearRequestedState(b.syncPeer)
+			}
+			//b.IntellectSyncBlocks(b.syncPeer, false)
 		}
-		b.updateSyncPeer(false)
 	}
 
 	// Nothing more to do if we aren't in headers-first mode.

@@ -51,6 +51,10 @@ func (ds *DAGSync) CalcSyncBlocks(gs *GraphState, locator []*hash.Hash, mode Syn
 		break
 	}
 
+	if point == nil && len(locator) > 0 {
+		point = ds.bd.getBlock(locator[0])
+	}
+
 	if point == nil {
 		point = ds.bd.getGenesis()
 	}
@@ -79,19 +83,19 @@ func (ds *DAGSync) GetMainLocator(point *hash.Hash) []*hash.Hash {
 	if point != nil {
 		endBlock = ds.bd.getBlock(point)
 	}
-	if endBlock == nil {
-		endBlock = ds.bd.getGenesis()
-	} else {
+	if endBlock != nil {
 		for !ds.bd.isOnMainChain(endBlock.GetID()) {
 			if endBlock.GetMainParent() == MaxId {
 				break
 			}
 			endBlock = ds.bd.getBlockById(endBlock.GetMainParent())
 			if endBlock == nil {
-				endBlock = ds.bd.getGenesis()
 				break
 			}
 		}
+	}
+	if endBlock == nil {
+		endBlock = ds.bd.getGenesis()
 	}
 	startBlock := ds.bd.getMainChainTip()
 	dist := startBlock.GetHeight() - endBlock.GetHeight()
@@ -137,7 +141,6 @@ func (ds *DAGSync) GetMainLocator(point *hash.Hash) []*hash.Hash {
 
 			next := ds.bd.getBlockById(cur.GetMainParent())
 			if next.GetID() == endBlock.GetID() {
-				locator = append(locator, cur.GetHash())
 				break
 			}
 			cur = next
@@ -146,7 +149,7 @@ func (ds *DAGSync) GetMainLocator(point *hash.Hash) []*hash.Hash {
 			}
 		}
 	}
-
+	locator = append(locator, endBlock.GetHash())
 	if len(locator) >= 2 {
 		tempL := locator
 		locator = []*hash.Hash{}

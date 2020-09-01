@@ -79,7 +79,6 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		pb.mainParent = tp.GetID()
 		pb.blueNum = tp.blueNum + 1
 		pb.height = tp.height + 1
-		pb.weight = tp.GetWeight()
 
 		diffAnticone := ph.bd.getDiffAnticone(pb, true)
 		if diffAnticone == nil {
@@ -88,7 +87,7 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 
 		ph.calculateBlueSet(pb, diffAnticone)
 
-		pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum + 1)))
+		ph.UpdateWeight(pb)
 	} else {
 		//It is genesis
 		if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
@@ -135,10 +134,6 @@ func (ph *Phantom) calculateBlueSet(pb *PhantomBlock, diffAnticone *IdSet) {
 		log.Error(fmt.Sprintf("error blue set"))
 	}
 	pb.blueNum += uint(pb.blueDiffAnticone.Size())
-
-	for k := range pb.blueDiffAnticone.GetMap() {
-		pb.weight += uint64(ph.bd.calcWeight(int64(ph.getBlock(k).blueNum + 1)))
-	}
 }
 
 func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
@@ -393,7 +388,7 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	ph.virtualBlock.mainParent = ph.mainChain.tip
 	ph.virtualBlock.blueNum = tp.blueNum + 1
 	ph.virtualBlock.height = tp.height + 1
-	ph.virtualBlock.weight = tp.GetWeight()
+	//ph.virtualBlock.weight = tp.GetWeight()
 
 	ph.virtualBlock.blueDiffAnticone.Clean()
 	ph.virtualBlock.redDiffAnticone.Clean()
@@ -470,6 +465,9 @@ func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash {
 
 // Query whether a given block is on the main chain.
 func (ph *Phantom) IsOnMainChain(b IBlock) bool {
+	if ph.mainChain.blocks.Has(b.GetID()) {
+		return true
+	}
 	for cur := ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
 		if cur.GetHash().IsEqual(b.GetHash()) {
 			return true
@@ -644,10 +642,27 @@ func (ph *Phantom) IsBlue(id uint) bool {
 	if b == nil {
 		return false
 	}
-	if ph.diffAnticone.Has(id) {
+	return ph.doIsBlue(b, nil)
+}
+
+// Functions that really handle isblue.
+// fork: Path intersection from block to main chain.
+func (ph *Phantom) doIsBlue(ib IBlock, fork IBlock) bool {
+	b := ib.(*PhantomBlock)
+	if ph.diffAnticone.Has(b.GetID()) {
 		return false
 	}
-	for cur := ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
+	var cur *PhantomBlock
+	if fork == nil {
+		cur = ph.bd.getMainFork(b, true).(*PhantomBlock)
+		if cur == nil {
+			cur = ph.getBlock(ph.mainChain.tip)
+		}
+	} else {
+		cur = fork.(*PhantomBlock)
+	}
+
+	for ; cur != nil; cur = ph.getBlock(cur.mainParent) {
 		if cur.GetHash().IsEqual(b.GetHash()) ||
 			cur.blueDiffAnticone.Has(b.GetID()) {
 			return true
@@ -714,6 +729,34 @@ func (ph *Phantom) getMaxParents() int {
 		return dagMax
 	}
 	return types.MaxParentsPerBlock
+}
+
+func (ph *Phantom) UpdateWeight(ib IBlock) {
+	pb := ib.(*PhantomBlock)
+	tp := ph.getBlock(pb.GetMainParent())
+	pb.weight = tp.GetWeight()
+	pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), byte(pb.status)))
+	for k := range pb.blueDiffAnticone.GetMap() {
+		bdpb := ph.getBlock(k)
+		pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), byte(bdpb.status)))
+	}
+
+	// TODO The next consensus version will be opened again
+	/*
+		if ph.bd.db == nil {
+			return
+		}
+
+		err := ph.bd.db.Update(func(dbTx database.Tx) error {
+			err := DBPutDAGBlock(dbTx, ib)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			log.Error(err.Error())
+		}*/
 }
 
 // The main chain of DAG is support incremental expansion

@@ -159,10 +159,73 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 		}
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)
-	blk.Transactions()[0].Tx.TxOut[0].Amount += uint64(api.bm.chain.CalculateFees(blk))
+	coinbaseAmout := blk.Transactions()[0].Tx.TxOut[0].Amount + uint64(api.bm.chain.CalculateFees(blk))
+
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
-		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered())
+		!api.bm.chain.BlockIndex().NodeStatus(node).KnownInvalid(), node.IsOrdered(), coinbaseAmout, 0)
+	if err != nil {
+		return nil, err
+	}
+	return fields, nil
+}
+
+func (api *PublicBlockAPI) GetBlockV2(h hash.Hash, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
+
+	vb := false
+	if verbose != nil {
+		vb = *verbose
+	}
+	iTx := true
+	if inclTx != nil {
+		iTx = *inclTx
+	}
+	fTx := true
+	if fullTx != nil {
+		fTx = *fullTx
+	}
+
+	// Load the raw block bytes from the database.
+	// Note :
+	// FetchBlockByHash differs from BlockByHash in that this one also returns blocks
+	// that are not part of the main chain (if they are known).
+	blk, err := api.bm.chain.FetchBlockByHash(&h)
+	if err != nil {
+		return nil, err
+	}
+	node := api.bm.chain.BlockIndex().LookupNode(&h)
+	if node == nil {
+		return nil, fmt.Errorf("no node")
+	}
+	// Update the source block order
+	blk.SetOrder(node.GetOrder())
+	blk.SetHeight(node.GetHeight())
+	// When the verbose flag isn't set, simply return the
+	// network-serialized block as a hex-encoded string.
+	if !vb {
+		blkBytes, err := blk.Bytes()
+		if err != nil {
+			return nil, rpc.RpcInternalError(err.Error(),
+				"Could not serialize block")
+		}
+		return hex.EncodeToString(blkBytes), nil
+	}
+	confirmations := int64(api.bm.chain.BlockDAG().GetConfirmations(node.GetID()))
+	ib := api.bm.chain.BlockDAG().GetBlock(&h)
+	cs := ib.GetChildren()
+	children := []*hash.Hash{}
+	if cs != nil && !cs.IsEmpty() {
+		for _, v := range cs.GetMap() {
+			children = append(children, v.(blockdag.IBlock).GetHash())
+		}
+	}
+	api.bm.chain.CalculateDAGDuplicateTxs(blk)
+	coinbaseAmout := blk.Transactions()[0].Tx.TxOut[0].Amount
+	coinbaseFee := uint64(api.bm.chain.CalculateFees(blk))
+
+	//TODO, refactor marshal api
+	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
+		!api.bm.chain.BlockIndex().NodeStatus(node).KnownInvalid(), node.IsOrdered(), coinbaseAmout, coinbaseFee)
 	if err != nil {
 		return nil, err
 	}
@@ -175,11 +238,13 @@ func (api *PublicBlockAPI) GetBestBlockHash() (interface{}, error) {
 	return best.Hash.String(), nil
 }
 
+// The total ordered Block count
 func (api *PublicBlockAPI) GetBlockCount() (interface{}, error) {
 	best := api.bm.chain.BestSnapshot()
 	return best.GraphState.GetMainOrder() + 1, nil
 }
 
+// The total Block count, included possible blocks have not ordered by BlockDAG consensus yet at the moments.
 func (api *PublicBlockAPI) GetBlockTotal() (interface{}, error) {
 	best := api.bm.chain.BestSnapshot()
 	return best.GraphState.GetTotal(), nil
@@ -256,15 +321,22 @@ func (api *PublicBlockAPI) GetBlockWeight(h hash.Hash) (interface{}, error) {
 	return strconv.FormatInt(int64(types.GetBlockWeight(block.Block())), 10), nil
 }
 
-// Return the total of orphans
+// Return the total number of orphan blocks, orphan block are the blocks have not been included into the DAG at this moment.
 func (api *PublicBlockAPI) GetOrphansTotal() (interface{}, error) {
 	return api.bm.GetChain().GetOrphansTotal(), nil
 }
 
+// Obsoleted GetBlockByID Method, since the confused naming, replaced by GetBlockByNum method
 func (api *PublicBlockAPI) GetBlockByID(id uint64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
-	blockHash := api.bm.GetChain().BlockDAG().GetBlockHash(uint(id))
+	return api.GetBlockByNum(id, verbose, inclTx, fullTx)
+}
+
+// GetBlockByNum works like GetBlockByOrder, the different is the GetBlockByNum is return the order result from
+// the current node's DAG directly instead of according to the consensus of BlockDAG algorithm.
+func (api *PublicBlockAPI) GetBlockByNum(num uint64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
+	blockHash := api.bm.GetChain().BlockDAG().GetBlockHash(uint(num))
 	if blockHash == nil {
-		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", id))
+		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", num))
 	}
 	vb := false
 	if verbose != nil {
@@ -302,7 +374,7 @@ func (api *PublicBlockAPI) IsCurrent() (interface{}, error) {
 	return api.bm.IsCurrent(), nil
 }
 
-// Return tips
+// Return a list hash of the tip blocks of the DAG at this moment.
 func (api *PublicBlockAPI) Tips() (interface{}, error) {
 	tipsList, err := api.bm.TipGeneration()
 	if err != nil {

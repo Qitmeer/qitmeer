@@ -388,7 +388,7 @@ func main() {
 	txDecodeCmd.Usage = func() {
 		cmdUsage(txDecodeCmd, "Usage: qx tx-decode [base16_string] \n")
 	}
-	txDecodeCmd.StringVar(&network, "n", "privnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
+	txDecodeCmd.StringVar(&network, "n", "testnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
 
 	txEncodeCmd := flag.NewFlagSet("tx-encode", flag.ExitOnError)
 	txEncodeCmd.Usage = func() {

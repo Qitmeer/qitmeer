@@ -404,13 +404,14 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 		// in the utxo set.
 		var stxo = SpentTxOut{
 			Amount:     entry.Amount(),
+			OriAmount:  entry.Amount(),
 			PkScript:   entry.PkScript(),
 			BlockHash:  entry.blockHash,
 			IsCoinBase: entry.IsCoinBase(),
 			TxIndex:    uint32(tx.Index()),
 			TxInIndex:  uint32(txInIndex),
 		}
-		if stxo.IsCoinBase {
+		if stxo.IsCoinBase && txIn.PreviousOut.OutIndex == 0 {
 			stxo.Amount += uint64(bc.GetFees(&stxo.BlockHash))
 		}
 		// Append the entry to the provided spent txouts slice.
@@ -487,7 +488,7 @@ func (view *UtxoViewpoint) disconnectTransactions(block *types.SerializedBlock, 
 				view.entries[*originOut] = entry
 			}
 
-			entry.amount = stxo.Amount
+			entry.amount = stxo.OriAmount
 			entry.pkScript = stxo.PkScript
 			entry.blockHash = stxo.BlockHash
 			entry.packedFlags = tfModified

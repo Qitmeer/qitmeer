@@ -69,6 +69,28 @@ function get_block(){
   get_result "$data"
 }
 
+function get_block_v2(){
+  local block_hash=$1
+  local verbose=$2
+  if [ "$verbose" == "" ]; then
+    verbose="true"
+  fi
+  local inclTx=$3
+  if [ "$inclTx" == "" ]; then
+    inclTx="true"
+  fi
+  local fullTx=$4
+  if [ "$fullTx" == "" ]; then
+    fullTx="true"
+  fi
+  local addfees=$5
+  if [ "$addfees" == "" ]; then
+    addfees="true"
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockV2","params":["'$block_hash'",'$verbose','$inclTx','$fullTx'],"id":1}'
+  get_result "$data"
+}
+
 function get_block_by_id(){
   local id=$1
   local verbose=$2
@@ -243,6 +265,12 @@ function get_mainchain_height(){
 function get_block_weight(){
   local block_hash=$1
   local data='{"jsonrpc":"2.0","method":"getBlockWeight","params":["'$block_hash'"],"id":1}'
+  get_result "$data"
+}
+
+function set_log_level(){
+  local level=$1
+  local data='{"jsonrpc":"2.0","method":"log_setLogLevel","params":["'$level'"],"id":1}'
   get_result "$data"
 }
 
@@ -426,8 +454,9 @@ function usage(){
   echo "  stop"
   echo "  banlist"
   echo "  removeban"
+  echo "  loglevel [trace, debug, info, warn, error, critical]"
   echo "block  :"
-  echo "  block <num|hash>"
+  echo "  block <order|hash>"
   echo "  blockid <id>"
   echo "  blockhash <order>"
   echo "  block_count"
@@ -443,6 +472,7 @@ function usage(){
   echo "  fees <hash>"
   echo "tx     :"
   echo "  tx <id>"
+  echo "  txv2 <id>"
   echo "  txbyhash <hash>"
   echo "  createRawTx"
   echo "  txSign <rawTx>"
@@ -679,6 +709,12 @@ if [ "$1" == "block" ]; then
 elif [ "$1" == "blockid" ]; then
   shift
   get_block_by_id $@
+elif [ "$1" == "loglevel" ]; then
+  shift
+  set_log_level $@
+elif [ "$1" == "blockv2" ]; then
+  shift
+  get_block_v2 $@
 elif [ "$1" == "block_count" ]; then
    shift
    get_block_number

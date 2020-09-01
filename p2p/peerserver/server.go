@@ -171,6 +171,7 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			OnSyncResult:     sp.OnSyncResult,
 			OnSyncDAG:        sp.OnSyncDAG,
 			OnSyncPoint:      sp.OnSyncPoint,
+			OnFeeFilter:      sp.OnFeeFilter,
 			//OnHeaders:        sp.OnHeaders,
 			//OnGetCFilter:     sp.OnGetCFilter,
 			//OnGetCFHeaders:   sp.OnGetCFHeaders,

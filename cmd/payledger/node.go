@@ -109,15 +109,16 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 		if bar != nil {
 			fmt.Println()
 		}
-		log.Info(fmt.Sprintf("End process block DAG:(%d/%d)", i, srcTotal))
+		log.Info(fmt.Sprintf("End process block DAG:(%d/%d)", i-1, srcTotal))
 	}()
-	for ; i < srcTotal; i++ {
-		blockHash := srcnode.bc.BlockDAG().GetBlockHash(i)
-		if blockHash == nil {
+	mainTip := srcnode.bc.BlockDAG().GetMainChainTip()
+	for ; i < mainTip.GetID(); i++ {
+		ib := srcnode.bc.BlockDAG().GetBlockById(i)
+		if ib == nil {
 			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d)!", i))
 		}
 
-		block, err := srcnode.bc.FetchBlockByHash(blockHash)
+		block, err := srcnode.bc.FetchBlockByHash(ib.GetHash())
 		if err != nil {
 			return err
 		}
@@ -129,57 +130,12 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 		if bar != nil {
 			bar.add()
 		}
-		if blockHash.IsEqual(node.endPoint.GetHash()) {
+		if ib.GetHash().IsEqual(node.endPoint.GetHash()) {
 			break
 		}
 	}
 	if bar != nil {
 		bar.setMax()
-	}
-	err := node.dataVerification(srcnode)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (node *Node) dataVerification(srcnode *SrcNode) error {
-	fmt.Println()
-	total := node.bc.BlockDAG().GetBlockTotal()
-
-	var bar *ProgressBar
-	i := uint(1)
-	if !node.cfg.DisableBar {
-		bar = &ProgressBar{}
-		bar.init("Validate:")
-		bar.reset(int(node.endPoint.GetID() + 1))
-		bar.add()
-	} else {
-		log.Info("Validate...")
-	}
-
-	for ; i < total; i++ {
-		srcIB := srcnode.bc.BlockDAG().GetBlockById(i)
-		if srcIB == nil {
-			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d) from src node!", i))
-		}
-		ib := node.bc.BlockDAG().GetBlockById(i)
-		if ib == nil {
-			return fmt.Errorf(fmt.Sprintf("Can't find block id (%d) from node!", i))
-		}
-		if srcIB.GetStatus() != ib.GetStatus() ||
-			srcIB.GetHeight() != ib.GetHeight() ||
-			!srcIB.GetHash().IsEqual(ib.GetHash()) {
-			return fmt.Errorf(fmt.Sprintf("Validate fail (%s)!", srcIB.GetHash().String()))
-		}
-		if bar != nil {
-			bar.add()
-		}
-	}
-	if bar != nil {
-		bar.setMax()
-		fmt.Println()
 	}
 	return nil
 }

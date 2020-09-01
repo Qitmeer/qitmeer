@@ -7,7 +7,6 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"time"
@@ -29,51 +28,11 @@ const (
 	// not be performed.
 	BFNoPoWCheck
 
+	BFP2PAdd
+
 	// BFNone is a convenience value to specifically indicate no flags.
 	BFNone BehaviorFlags = 0
 )
-
-// processOrphans determines if there are any orphans which depend on the passed
-// block hash (they are no longer orphans if true) and potentially accepts them.
-// It repeats the process for the newly accepted blocks (to detect further
-// orphans which may no longer be orphans) until there are no more.
-//
-// The flags do not modify the behavior of this function directly, however they
-// are needed to pass along to maybeAcceptBlock.
-//
-// This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) processOrphans(h *hash.Hash, flags BehaviorFlags) error {
-	queue := []*orphanBlock{}
-	for _, v := range b.orphans {
-		queue = append(queue, v)
-	}
-
-	for len(queue) > 0 {
-		cur := queue[0]
-		queue = queue[1:]
-
-		exists := b.index.HaveBlock(cur.block.Hash())
-		if exists {
-			b.removeOrphanBlock(cur)
-			continue
-		}
-
-		allExists := true
-		for _, h := range cur.block.Block().Parents {
-			exists := b.index.HaveBlock(h)
-			if !exists {
-				allExists = false
-			}
-
-		}
-		if !allExists {
-			continue
-		}
-		b.removeOrphanBlock(cur)
-		b.maybeAcceptBlock(cur.block, flags)
-	}
-	return nil
-}
 
 // ProcessBlock is the main workhorse for handling insertion of new blocks into
 // the block chain.  It includes functionality such as rejecting duplicate
@@ -105,7 +64,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	}
 
 	// The block must not already exist as an orphan.
-	if _, exists := b.orphans[*blockHash]; exists {
+	if b.IsOrphan(blockHash) {
 		str := fmt.Sprintf("already have block (orphan) %v", blockHash)
 		b.ChainRUnlock()
 		return false, ruleError(ErrDuplicateBlock, str)
@@ -184,7 +143,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	// Accept any orphan blocks that depend on this block (they are no
 	// longer orphans) and repeat for those accepted blocks until there are
 	// no more.
-	err = b.processOrphans(blockHash, flags)
+	err = b.RefreshOrphans()
 	if err != nil {
 		return false, err
 	}

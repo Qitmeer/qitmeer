@@ -37,6 +37,7 @@ const (
 	defaultMiningStateSync        = false
 	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
 	defaultTrickleInterval        = peer.TrickleTimeout
+	defaultCacheInvalidTx         = false
 )
 const (
 	defaultSigCacheMaxSize = 100000
@@ -82,8 +83,8 @@ func LoadConfig() (*config.Config, []string, error) {
 		DAGType:           defaultDAGType,
 		Banning:           false,
 		MaxInbound:        defaultMaxInboundPeersPerHost,
-		TxIndex:           true,
 		TrickleInterval:   defaultTrickleInterval,
+		CacheInvalidTx:    defaultCacheInvalidTx,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -286,7 +287,7 @@ func LoadConfig() (*config.Config, []string, error) {
 	}
 
 	// Parse, validate, and set debug log level(s).
-	if err := parseAndSetDebugLevels(cfg.DebugLevel); err != nil {
+	if err := ParseAndSetDebugLevels(cfg.DebugLevel); err != nil {
 		err := fmt.Errorf("%s: %v", funcName, err.Error())
 		fmt.Fprintln(os.Stderr, err)
 		fmt.Fprintln(os.Stderr, usageMessage)
@@ -296,16 +297,6 @@ func LoadConfig() (*config.Config, []string, error) {
 	// DebugPrintOrigins
 	if cfg.DebugPrintOrigins {
 		log.PrintOrigins(true)
-	}
-
-	// --txindex and --droptxindex do not mix.
-	if cfg.TxIndex && cfg.DropTxIndex {
-		err := fmt.Errorf("%s: the --txindex and --droptxindex "+
-			"options may  not be activated at the same time",
-			funcName)
-		fmt.Fprintln(os.Stderr, err)
-		fmt.Fprintln(os.Stderr, usageMessage)
-		return nil, nil, err
 	}
 
 	// --addrindex and --dropaddrindex do not mix.
@@ -412,7 +403,7 @@ func newConfigParser(cfg *config.Config, options flags.Options) *flags.Parser {
 // parseAndSetDebugLevels attempts to parse the specified debug level and set
 // the levels accordingly.  An appropriate error is returned if anything is
 // invalid.
-func parseAndSetDebugLevels(debugLevel string) error {
+func ParseAndSetDebugLevels(debugLevel string) error {
 
 	// When the specified string doesn't have any delimters, treat it as
 	// the log level for all subsystems.

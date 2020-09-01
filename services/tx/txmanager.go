@@ -46,54 +46,8 @@ func (tm *TxManager) Stop() error {
 	return nil
 }
 
-func (tm *TxManager) MemPool() blockchain.TxPool {
+func (tm *TxManager) MemPool() blkmgr.TxPool {
 	return tm.txMemPool
-}
-
-func (tm *TxManager) IsInvalidTx(txh *hash.Hash) bool {
-	_, ok := tm.invalidTx[*txh]
-	return ok
-}
-
-func (tm *TxManager) GetInvalidTxFromBlock(bh *hash.Hash) []*hash.Hash {
-	result := []*hash.Hash{}
-	for k, v := range tm.invalidTx {
-		if v.Has(bh) {
-			txHash := k
-			result = append(result, &txHash)
-		}
-	}
-	return result
-}
-
-func (tm *TxManager) AddInvalidTx(txh *hash.Hash, bh *hash.Hash) {
-	if tm.IsInvalidTx(txh) {
-		tm.invalidTx[*txh].Add(bh)
-	} else {
-		set := blockdag.NewHashSet()
-		set.Add(bh)
-		tm.invalidTx[*txh] = set
-	}
-}
-
-func (tm *TxManager) AddInvalidTxArray(txha []*hash.Hash, bh *hash.Hash) {
-	if len(txha) == 0 {
-		return
-	}
-	for _, v := range txha {
-		tm.AddInvalidTx(v, bh)
-	}
-}
-
-func (tm *TxManager) RemoveInvalidTx(bh *hash.Hash) {
-	for k, v := range tm.invalidTx {
-		if v.Has(bh) {
-			v.Remove(bh)
-			if v.IsEmpty() {
-				delete(tm.invalidTx, k)
-			}
-		}
-	}
 }
 
 func NewTxManager(bm *blkmgr.BlockManager, txIndex *index.TxIndex,

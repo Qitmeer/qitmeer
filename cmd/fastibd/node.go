@@ -11,7 +11,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/params"
@@ -103,26 +105,68 @@ func (node *Node) Export() error {
 		outFile.Close()
 	}()
 
+	var endPoint blockdag.IBlock
+	endNum := uint(0)
+	if node.cfg.ByID {
+		endNum = mainTip.GetID()
+	} else {
+		endNum = mainTip.GetOrder()
+	}
+
+	if len(node.cfg.EndPoint) > 0 {
+		ephash, err := hash.NewHashFromStr(node.cfg.EndPoint)
+		if err != nil {
+			return err
+		}
+		endPoint = node.bc.BlockDAG().GetBlock(ephash)
+		if endPoint != nil {
+			if node.cfg.ByID {
+				if endNum > endPoint.GetID() {
+					endNum = endPoint.GetID()
+				}
+			} else {
+				if endNum > endPoint.GetOrder() {
+					endNum = endPoint.GetOrder()
+				}
+			}
+
+			log.Info(fmt.Sprintf("End point:%s order:%d id:%d", ephash.String(), endPoint.GetOrder(), endPoint.GetID()))
+		} else {
+			return fmt.Errorf("End point is error")
+		}
+
+	}
 	var bar *ProgressBar
 	if !node.cfg.DisableBar {
 
 		bar = &ProgressBar{}
 		bar.init("Export:")
-		bar.reset(int(mainTip.GetOrder()))
+		bar.reset(int(endNum))
 		bar.add()
 	} else {
 		log.Info("Export...")
 	}
 
-	var maxOrder [4]byte
-	dbnamespace.ByteOrder.PutUint32(maxOrder[:], uint32(mainTip.GetOrder()))
-	_, err = outFile.Write(maxOrder[:])
+	var maxNum [4]byte
+	dbnamespace.ByteOrder.PutUint32(maxNum[:], uint32(endNum))
+	_, err = outFile.Write(maxNum[:])
 	if err != nil {
 		return err
 	}
+	var i uint
+	var blockHash *hash.Hash
+	for i = uint(1); i <= endNum; i++ {
+		if node.cfg.ByID {
+			ib := node.bc.BlockDAG().GetBlockById(i)
+			if ib != nil {
+				blockHash = ib.GetHash()
+			} else {
+				blockHash = nil
+			}
+		} else {
+			blockHash = node.bc.BlockDAG().GetBlockByOrder(i)
+		}
 
-	for i := uint(1); i <= mainTip.GetOrder(); i++ {
-		blockHash := node.bc.BlockDAG().GetBlockByOrder(i)
 		if blockHash == nil {
 			return fmt.Errorf(fmt.Sprintf("Can't find block (%d)!", i))
 		}
@@ -143,12 +187,18 @@ func (node *Node) Export() error {
 		if bar != nil {
 			bar.add()
 		}
+
+		/*if endPoint != nil {
+			if endPoint.GetHash().IsEqual(blockHash) {
+				break
+			}
+		}*/
 	}
 	if bar != nil {
 		bar.setMax()
 		fmt.Println()
 	}
-	log.Info(fmt.Sprintf("Finish export: blocks(%d)    ------>File:%s", mainTip.GetOrder(), outFilePath))
+	log.Info(fmt.Sprintf("Finish export: blocks(%d)    ------>File:%s", endNum, outFilePath))
 	return nil
 }
 

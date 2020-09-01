@@ -109,17 +109,9 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 
 	var txIndex *index.TxIndex
 	var addrIndex *index.AddrIndex
-	if cfg.TxIndex || cfg.AddrIndex {
-		if !cfg.TxIndex {
-			log.Info("Transaction index enabled because it " +
-				"is required by the address index")
-			cfg.TxIndex = true
-		} else {
-			log.Info("Transaction index is enabled")
-		}
-		txIndex = index.NewTxIndex(qm.db)
-		indexes = append(indexes, txIndex)
-	}
+	log.Info("Transaction index is enabled")
+	txIndex = index.NewTxIndex(qm.db)
+	indexes = append(indexes, txIndex)
 	if cfg.AddrIndex {
 		log.Info("Address index is enabled")
 		addrIndex = index.NewAddrIndex(qm.db, node.Params)
@@ -147,7 +139,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 		return nil, err
 	}
 	qm.txManager = tm
-	bm.GetChain().SetTxManager(tm)
+	bm.SetTxManager(tm)
 	// prepare peerServer
 	node.peerServer.BlockManager = bm
 	node.peerServer.TimeSource = qm.timeSource

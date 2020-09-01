@@ -319,7 +319,7 @@ mempoolLoop:
 
 		// Ensure the transaction inputs pass all of the necessary
 		// preconditions before allowing it to be added to the block.
-		_, err = blockchain.CheckTransactionInputs(tx, blockUtxos, params, blockManager.GetChain())
+		_, err = blockManager.GetChain().CheckTransactionInputs(tx, blockUtxos)
 		if err != nil {
 			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
 				"CheckTransactionInputs: %v", tx.Hash(), err))

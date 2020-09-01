@@ -30,20 +30,16 @@ func MessageToHex(msg message.Message) (string, error) {
 }
 
 func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHashStr string,
-	confirmations int64) (json.TxRawResult, error) {
+	confirmations int64, coinbaseAmout uint64, state bool) (json.TxRawResult, error) {
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
-	txr, err := MarshalJsonTransaction(tx.Transaction(), params, blkHashStr, confirmations)
-	if err == nil {
-		txr.Duplicate = tx.IsDuplicate
-	}
-	return txr, err
+	return MarshalJsonTransaction(tx, params, blkHashStr, confirmations, coinbaseAmout, state)
 }
 
-func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHashStr string,
-	confirmations int64) (json.TxRawResult, error) {
-
+func MarshalJsonTransaction(transaction *types.Tx, params *params.Params, blkHashStr string,
+	confirmations int64, coinbaseAmout uint64, state bool) (json.TxRawResult, error) {
+	tx := transaction.Tx
 	hexStr, err := MessageToHex(&message.MsgTx{Tx: tx})
 	if err != nil {
 		return json.TxRawResult{}, err
@@ -55,12 +51,18 @@ func MarshalJsonTransaction(tx *types.Transaction, params *params.Params, blkHas
 		Size:      int32(tx.SerializeSize()),
 		Version:   tx.Version,
 		LockTime:  tx.LockTime,
-		Timestamp: tx.Timestamp.Format(time.RFC3339),
 		Expire:    tx.Expire,
 		Vin:       MarshJsonVin(tx),
 		Vout:      MarshJsonVout(tx, nil, params),
+		Duplicate: transaction.IsDuplicate,
+		Txsvalid:  state,
 	}
-
+	if tx.Timestamp.Unix() > 0 {
+		txr.Timestamp = tx.Timestamp.Format(time.RFC3339)
+	}
+	if tx.IsCoinBase() {
+		txr.Vout[0].Amount = coinbaseAmout
+	}
 	if blkHashStr != "" {
 		txr.BlockHash = blkHashStr
 		txr.Confirmations = confirmations
@@ -151,7 +153,7 @@ func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, par
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
 func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
-	params *params.Params, confirmations int64, children []*hash.Hash, state bool, isOrdered bool) (json.OrderedResult, error) {
+	params *params.Params, confirmations int64, children []*hash.Hash, state bool, isOrdered bool, coinbaseAmout uint64, coinbaseFee uint64) (json.OrderedResult, error) {
 
 	head := b.Block().Header // copies the header once
 	// Get next block hash unless there are none.
@@ -173,7 +175,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		}
 		if fullTx {
 			formatTx = func(tx *types.Tx) (interface{}, error) {
-				return MarshalJsonTx(tx, params, b.Hash().String(), confirmations)
+				return MarshalJsonTx(tx, params, b.Hash().String(), confirmations, coinbaseAmout, state)
 			}
 		}
 		txs := b.Transactions()
@@ -185,6 +187,9 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 			}
 		}
 		fields = append(fields, json.KV{Key: "transactions", Val: transactions})
+	}
+	if coinbaseFee > 0 {
+		fields = append(fields, json.KV{Key: "transactionfee", Val: coinbaseFee})
 	}
 	fields = append(fields, json.OrderedResult{
 		{Key: "stateRoot", Val: head.StateRoot.String()},

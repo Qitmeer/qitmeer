@@ -154,7 +154,7 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 		return nil
 	}
 	bd = BlockDAG{}
-	instance := bd.Init(dagType, CalcBlockWeight, -1, onGetBlockId)
+	instance := bd.Init(dagType, CalcBlockWeight, -1, onGetBlockId, nil)
 	tbMap = map[string]IBlock{}
 	for i := 0; i < blen; i++ {
 		parents := NewIdSet()
@@ -279,7 +279,7 @@ func reverseBlockList(s []uint) []uint {
 	return s
 }
 
-func CalcBlockWeight(blocks int64) int64 {
+func CalcBlockWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
 	if blocks == 0 {
 		return 0
 	} else if blocks < 3 {

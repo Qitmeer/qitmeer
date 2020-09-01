@@ -449,6 +449,13 @@ func (idx *TxIndex) Create(dbTx database.Tx) error {
 	if _, err := meta.CreateBucket(txidByTxhashBucketName); err != nil {
 		return err
 	}
+	idx.compatibleOldData(dbTx)
+	if _, err := meta.CreateBucket(itxIndexKey); err != nil {
+		return err
+	}
+	if _, err := meta.CreateBucket(itxidByTxhashBucketName); err != nil {
+		return err
+	}
 	_, err := meta.CreateBucket(txIndexKey)
 	return err
 }
@@ -466,9 +473,16 @@ func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,
 	if node == nil {
 		return fmt.Errorf("no node %s", block.Hash())
 	}
+
 	if !node.GetStatus().KnownInvalid() {
 		if err := dbAddTxIndexEntries(dbTx, block, newBlockID); err != nil {
 			return err
+		}
+	} else {
+		if idx.chain.CacheInvalidTx {
+			if err := dbAddInvalidTxIndexEntries(dbTx, block, newBlockID); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -492,6 +506,12 @@ func (idx *TxIndex) DisconnectBlock(dbTx database.Tx, block *types.SerializedBlo
 	if err := dbRemoveTxIndexEntries(dbTx, block); err != nil {
 		return err
 	}
+	if idx.chain.CacheInvalidTx {
+		if err := dbRemoveInvalidTxIndexEntries(dbTx, block); err != nil {
+			return err
+		}
+	}
+
 	// Remove the block ID index entry for the block being disconnected and
 	// decrement the current internal block ID to account for it.
 	if err := dbRemoveBlockIDIndexEntry(dbTx, block.Hash()); err != nil {
@@ -572,6 +592,22 @@ func dropBlockIDIndex(db database.DB) error {
 	})
 }
 
+func dropInvalidTx(db database.DB) error {
+	return db.Update(func(dbTx database.Tx) error {
+		meta := dbTx.Metadata()
+		if meta.Bucket(itxIndexKey) != nil {
+			err := meta.DeleteBucket(itxIndexKey)
+			if err != nil {
+				return err
+			}
+		}
+		if meta.Bucket(itxidByTxhashBucketName) != nil {
+			return meta.DeleteBucket(itxidByTxhashBucketName)
+		}
+		return nil
+	})
+}
+
 // DropTxIndex drops the transaction index from the provided database if it
 // exists.  Since the address index relies on it, the address index will also be
 // dropped when it exists.
@@ -581,5 +617,7 @@ func DropTxIndex(db database.DB, interrupt <-chan struct{}) error {
 		return err
 	}
 
-	return dropIndex(db, txIndexKey, txIndexName, interrupt)
+	derr := dropIndex(db, txIndexKey, txIndexName, interrupt)
+
+	return derr
 }

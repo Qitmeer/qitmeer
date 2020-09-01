@@ -84,6 +84,9 @@ func (node *BINode) DB() database.DB {
 func (node *BINode) statistics() error {
 	total := node.bc.BlockDAG().GetBlockTotal()
 	validCount := 1
+	subsidyCount := 0
+	subsidy := uint64(0)
+	fmt.Printf("Process...   ")
 	for i := uint(1); i < total; i++ {
 		ib := node.bc.BlockDAG().GetBlockById(i)
 		if ib == nil {
@@ -91,17 +94,35 @@ func (node *BINode) statistics() error {
 		}
 		if !knownInvalid(byte(ib.GetStatus())) {
 			validCount++
+
+			block, err := node.bc.FetchBlockByHash(ib.GetHash())
+			if err != nil {
+				return err
+			}
+
+			txfullHash := block.Transactions()[0].Tx.TxHashFull()
+
+			if isTxValid(node.db, block.Transactions()[0].Hash(), &txfullHash, ib.GetHash()) {
+				if node.bc.BlockDAG().IsBlue(i) {
+					subsidyCount++
+					subsidy += block.Transactions()[0].Tx.TxOut[0].Amount
+				}
+			}
 		}
+
 	}
 	mainTip := node.bc.BlockDAG().GetMainChainTip().(*blockdag.PhantomBlock)
 	blues := mainTip.GetBlueNum() + 1
 	reds := mainTip.GetOrder() + 1 - blues
 	unconfirmed := total - (mainTip.GetOrder() + 1)
 
-	fmt.Printf("Total:%d   Valid:%d   BlueNum:%d   RedNum:%d   ", total, validCount, blues, reds)
+	fmt.Println()
+	fmt.Printf("Total:%d   Valid:%d   BlueNum:%d   RedNum:%d   SubsidyNum:%d Subsidy:%d", total, validCount, blues, reds, subsidyCount, subsidy)
 	if unconfirmed > 0 {
-		fmt.Printf("Unconfirmed:%d", unconfirmed)
+		fmt.Printf(" Unconfirmed:%d", unconfirmed)
 	}
 	fmt.Println()
+	fmt.Println("(Note:SubsidyNum does not include genesis.)")
+
 	return nil
 }

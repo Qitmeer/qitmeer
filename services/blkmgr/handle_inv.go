@@ -33,11 +33,14 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 			break
 		}
 	}
-
+	gs := b.chain.BestSnapshot().GraphState
 	// If our chain is current and a peer announces a block we already
 	// know of, then update their current block height.
 	if lastBlock != -1 {
 		imsg.peer.UpdateLastGS(imsg.inv.GS)
+		if gs.IsEqual(imsg.inv.GS) {
+			imsg.peer.PrevGet.UpdatePoint(gs.GetMainChainTip())
+		}
 	}
 	// Ignore invs from peers that aren't the sync if we are not current.
 	// Helps prevent fetching a mass of orphans.
@@ -48,7 +51,6 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 	// request parent blocks of orphans if we receive one we already have.
 	// Finally, attempt to detect potential stalls due to long side chains
 	// we already have and request more blocks to prevent them.
-	gs := b.chain.BestSnapshot().GraphState
 
 	for i, iv := range invVects {
 		// Ignore unsupported inventory types.
@@ -111,7 +113,7 @@ func (b *BlockManager) handleInvMsg(imsg *invMsg) {
 				continue
 			}
 			if i == lastBlock {
-				b.IntellectSyncBlocks(imsg.peer)
+				b.IntellectSyncBlocks(imsg.peer, false)
 			}
 		}
 	}

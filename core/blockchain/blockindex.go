@@ -113,7 +113,7 @@ func (bi *blockIndex) HaveBlock(hash *hash.Hash) bool {
 // NodeStatus returns the status associated with the provided node.
 //
 // This function is safe for concurrent access.
-func (bi *blockIndex) NodeStatus(node *blockNode) blockStatus {
+func (bi *blockIndex) NodeStatus(node *blockNode) BlockStatus {
 	bi.RLock()
 	status := node.status
 	bi.RUnlock()

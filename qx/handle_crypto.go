@@ -224,9 +224,17 @@ func EcPrivateKeyToEcPublicKeySTDO(uncompressed bool, privateKeyStr string) {
 }
 
 func EcPrivateKeyToWif(uncompressed bool, privateKeyStr string) {
+	if encoded, err := EncodeWIF(uncompressed, privateKeyStr); err != nil {
+		ErrExit(err)
+	} else {
+		fmt.Printf("%s\n", encoded)
+	}
+}
+
+func EncodeWIF(uncompressed bool, privateKeyStr string) (string, error) {
 	data, err := hex.DecodeString(privateKeyStr)
 	if err != nil {
-		ErrExit(err)
+		return "", err
 	}
 	privkey, _ := ecc.Secp256k1.PrivKeyFromBytes(data)
 	var key []byte
@@ -238,7 +246,7 @@ func EcPrivateKeyToWif(uncompressed bool, privateKeyStr string) {
 	}
 	cksumfunc := base58.DoubleHashChecksumFunc(hash.GetHasher(hash.SHA256), 4)
 	encoded := base58.CheckEncode(key, []byte{0x80}, 4, cksumfunc)
-	fmt.Printf("%s\n", encoded)
+	return encoded, nil
 }
 
 func WifToEcPrivateKey(wif string) {

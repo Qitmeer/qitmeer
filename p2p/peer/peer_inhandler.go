@@ -172,6 +172,11 @@ out:
 			if p.cfg.Listeners.OnSyncPoint != nil {
 				p.cfg.Listeners.OnSyncPoint(p, msg)
 			}
+
+		case *message.MsgFeeFilter:
+			if p.cfg.Listeners.OnFeeFilter != nil {
+				p.cfg.Listeners.OnFeeFilter(p, msg)
+			}
 		/*
 			case *message.MsgHeaders:
 				if p.cfg.Listeners.OnHeaders != nil {
@@ -206,11 +211,6 @@ out:
 			case *message.MsgCFTypes:
 				if p.cfg.Listeners.OnCFTypes != nil {
 					p.cfg.Listeners.OnCFTypes(p, msg)
-				}
-
-			case *message.MsgFeeFilter:
-				if p.cfg.Listeners.OnFeeFilter != nil {
-					p.cfg.Listeners.OnFeeFilter(p, msg)
 				}
 
 			case *message.MsgSendHeaders:

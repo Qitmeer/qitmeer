@@ -50,7 +50,6 @@ net="--testnet"
 rpclisten="--rpclisten=0.0.0.0:18131"
 rpcuser="--rpcuser=test"
 rpcpass="--rpcpass=test"
-txindex="--txindex"
 debuglevel="--debuglevel=info"
 
 if [[ "\$@" =~ "miningaddr" ]]
