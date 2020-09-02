@@ -874,7 +874,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 		if tx.IsDuplicate && !tx.Tx.IsCoinBase() {
 			continue
 		}
-		txFee, err := CheckTransactionInputs(tx, utxoView, b.params, b)
+		txFee, err := b.CheckTransactionInputs(tx, utxoView)
 		if err != nil {
 			return err
 		}
@@ -1013,7 +1013,7 @@ func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool, utxoView *UtxoViewpoint) (
 //
 // NOTE: The transaction MUST have already been sanity checked with the
 // CheckTransactionSanity function prior to calling this function.
-func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *params.Params, bc *BlockChain) (int64, error) {
+func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint) (int64, error) {
 	msgTx := tx.Transaction()
 
 	txHash := tx.Hash()
@@ -1023,7 +1023,7 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 	if msgTx.IsCoinBase() {
 		return 0, nil
 	}
-	bd := bc.bd
+	bd := b.bd
 	// -------------------------------------------------------------------
 	// General transaction testing.
 	// -------------------------------------------------------------------
@@ -1057,7 +1057,7 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 		// constant.
 		originTxAtom := int64(utxoEntry.Amount())
 		if utxoEntry.IsCoinBase() && txIn.PreviousOut.OutIndex == 0 {
-			originTxAtom += bc.GetFees(utxoEntry.BlockHash())
+			originTxAtom += b.GetFees(utxoEntry.BlockHash())
 		}
 		if originTxAtom < 0 {
 			str := fmt.Sprintf("transaction output has negative "+
@@ -1098,7 +1098,7 @@ func CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint, chainParams *
 			str := fmt.Sprintf("transaction %s has no viewpoints", txHash)
 			return 0, ruleError(ErrNoViewpoint, str)
 		}
-		err := bd.CheckBlueAndMatureMT(targets, viewpoints, uint(chainParams.CoinbaseMaturity))
+		err := bd.CheckBlueAndMatureMT(targets, viewpoints, uint(b.params.CoinbaseMaturity))
 		if err != nil {
 			return 0, ruleError(ErrImmatureSpend, err.Error())
 		}

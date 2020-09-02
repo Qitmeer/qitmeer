@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.9.2] - 2020-09-01
+
+- Pmeer soft fork for pow proportion upgrade.
+  [#361](https://github.com/Qitmeer/qitmeer/pull/361)
+
+- Optimized Dag, Optmize maturity and blue for block DAG
+  [#360](https://github.com/Qitmeer/qitmeer/pull/360)
+  [#359](https://github.com/Qitmeer/qitmeer/pull/359)
+  [#348](https://github.com/Qitmeer/qitmeer/pull/348)
+
+- Added support of new option '--cacheinvalidtx', improve database compatibility with older versions
+  [#357](https://github.com/Qitmeer/qitmeer/pull/357)
+  [#356](https://github.com/Qitmeer/qitmeer/pull/356)
+  [#354](https://github.com/Qitmeer/qitmeer/pull/354)
+  [#352](https://github.com/Qitmeer/qitmeer/pull/352)
+  [#350](https://github.com/Qitmeer/qitmeer/pull/350)
+  [#349](https://github.com/Qitmeer/qitmeer/pull/349)
+  [#343](https://github.com/Qitmeer/qitmeer/pull/343)
+  [#339](https://github.com/Qitmeer/qitmeer/pull/339)
+
+- Improved GBT performance tremendously
+  [#345](https://github.com/Qitmeer/qitmeer/pull/345)
+  [#351](https://github.com/Qitmeer/qitmeer/pull/351)
+
+- Improved 'fastibd' tool
+  [#359](https://github.com/Qitmeer/qitmeer/pull/359)
+  [#358](https://github.com/Qitmeer/qitmeer/pull/350)
+
+- Fixed Bug: STXO calculation error
+  [#338](https://github.com/Qitmeer/qitmeer/pull/338)
+
 ## [0.9.1] - 2020-07-14
 
 - Optimized BlockDag network synchronization.
@@ -81,6 +112,7 @@
 ## [0.8.1] - 2019-11-20
 
 
+[0.9.2]: https://github.com/Qitmeer/qitmeer/releases/tag/v0.9.2-release
 [0.9.1]: https://github.com/Qitmeer/qitmeer/releases/tag/v0.9.1-release
 [0.9.0]: https://github.com/Qitmeer/qitmeer/releases/tag/v0.9.0-release
 [0.8.5]: https://github.com/Qitmeer/qitmeer/releases/tag/v0.8.5

@@ -343,7 +343,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Also returns the fees associated with the transaction which will be
 	// used later.  The fraud proof is not checked because it will be
 	// filled in by the miner.
-	txFee, err := blockchain.CheckTransactionInputs(tx, utxoView, mp.cfg.ChainParams, mp.cfg.BC) //TODO fix type conversion
+	txFee, err := mp.cfg.BC.CheckTransactionInputs(tx, utxoView) //TODO fix type conversion
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
 			return nil, nil, chainRuleError(cerr)
