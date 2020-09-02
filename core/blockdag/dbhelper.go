@@ -53,3 +53,30 @@ func DBPutDAGInfo(dbTx database.Tx, bd *BlockDAG) error {
 	}
 	return dbTx.Metadata().Put(dbnamespace.DagInfoBucketName, buff.Bytes())
 }
+
+func DBHasMainChainBlock(dbTx database.Tx, id uint) bool {
+	bucket := dbTx.Metadata().Bucket(dbnamespace.DagMainChainBucketName)
+	var serializedID [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+
+	data := bucket.Get(serializedID[:])
+	return data != nil
+}
+
+func DBPutMainChainBlock(dbTx database.Tx, id uint) error {
+	bucket := dbTx.Metadata().Bucket(dbnamespace.DagMainChainBucketName)
+	var serializedID [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+
+	key := serializedID[:]
+	return bucket.Put(key, []byte{0})
+}
+
+func DBRemoveMainChainBlock(dbTx database.Tx, id uint) error {
+	bucket := dbTx.Metadata().Bucket(dbnamespace.DagMainChainBucketName)
+	var serializedID [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+
+	key := serializedID[:]
+	return bucket.Delete(key)
+}

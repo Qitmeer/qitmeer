@@ -70,4 +70,7 @@ var (
 
 	// CacheInvalidTx is the name of the db bucket used to cache invalid tx
 	CacheInvalidTxName = []byte("cacheinvalidtx")
+
+	// DAG Main Chain Blocks
+	DagMainChainBucketName = []byte("dagmainchain")
 )
