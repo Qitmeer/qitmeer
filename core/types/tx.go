@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/math"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"io"
 	"time"
@@ -175,7 +176,7 @@ func NewTransaction() *Transaction {
 		Version:   TxVersion,
 		TxIn:      make([]*TxInput, 0, defaultTxInOutAlloc),
 		TxOut:     make([]*TxOutput, 0, defaultTxInOutAlloc),
-		Timestamp: time.Now(),
+		Timestamp: roughtime.Now(),
 	}
 }
 

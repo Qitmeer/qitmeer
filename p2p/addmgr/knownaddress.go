@@ -7,6 +7,7 @@ package addmgr
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"sync"
 	"time"
@@ -46,7 +47,7 @@ func (ka *KnownAddress) LastAttempt() time.Time {
 func (ka *KnownAddress) chance() float64 {
 	ka.mtx.Lock()
 	defer ka.mtx.Unlock()
-	now := time.Now()
+	now := roughtime.Now()
 	lastAttempt := now.Sub(ka.lastattempt)
 
 	if lastAttempt < 0 {
@@ -79,7 +80,7 @@ func (ka *KnownAddress) chance() float64 {
 func (ka *KnownAddress) isBad() bool {
 	ka.mtx.Lock()
 	defer ka.mtx.Unlock()
-	now := time.Now()
+	now := roughtime.Now()
 	if ka.lastattempt.After(now.Add(-1 * time.Minute)) {
 		return false
 	}

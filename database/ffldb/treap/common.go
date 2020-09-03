@@ -6,8 +6,8 @@
 package treap
 
 import (
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"math/rand"
-	"time"
 )
 
 const (
@@ -133,5 +133,5 @@ func (s *parentStack) Push(node *treapNode) {
 }
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(roughtime.Now().UnixNano())
 }

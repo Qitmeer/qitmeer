@@ -90,7 +90,7 @@ func (db *LDBDatabase) Path() string {
 func (db *LDBDatabase) Put(key []byte, value []byte) error {
 	// Measure the database put latency, if requested
 	if db.putTimer != nil {
-		defer db.putTimer.UpdateSince(time.Now())
+		defer db.putTimer.UpdateSince(roughtime.Now())
 	}
 	// Generate the data to write to disk, update the meter and write
 	//value = rle.Compress(value)
@@ -109,7 +109,7 @@ func (db *LDBDatabase) Has(key []byte) (bool, error) {
 func (db *LDBDatabase) Get(key []byte) ([]byte, error) {
 	// Measure the database get latency, if requested
 	if db.getTimer != nil {
-		defer db.getTimer.UpdateSince(time.Now())
+		defer db.getTimer.UpdateSince(roughtime.Now())
 	}
 	// Retrieve the key and increment the miss counter if not found
 	dat, err := db.db.Get(key, nil)
@@ -131,7 +131,7 @@ func (db *LDBDatabase) Get(key []byte) ([]byte, error) {
 func (db *LDBDatabase) Delete(key []byte) error {
 	// Measure the database delete latency, if requested
 	if db.delTimer != nil {
-		defer db.delTimer.UpdateSince(time.Now())
+		defer db.delTimer.UpdateSince(roughtime.Now())
 	}
 	// Execute the actual operation
 	return db.db.Delete(key, nil)

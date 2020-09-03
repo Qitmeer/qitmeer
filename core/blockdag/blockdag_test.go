@@ -116,7 +116,7 @@ var bd BlockDAG
 // we only care about the block DAG.
 var tempHash int = 0
 
-var randTool *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+var randTool *rand.Rand = rand.New(rand.NewSource(roughtime.Now().UnixNano()))
 
 // It contains all of test data. Convenient for you to use different input data
 // and output data.
@@ -201,7 +201,7 @@ func buildBlock(parents *IdSet) *TestBlock {
 	h := hash.MustHexToDecodedHash(hashStr)
 	tBlock := &TestBlock{hash: h}
 	tBlock.parents = parents
-	tBlock.timeStamp = time.Now().Unix()
+	tBlock.timeStamp = roughtime.Now().Unix()
 
 	//
 	return tBlock

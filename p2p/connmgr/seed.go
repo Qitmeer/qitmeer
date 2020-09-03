@@ -7,6 +7,7 @@ package connmgr
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
@@ -42,7 +43,7 @@ func SeedFromDNS(chainParams *params.Params, reqServices protocol.ServiceFlag, l
 		}
 
 		go func(host string) {
-			randSource := mrand.New(mrand.NewSource(time.Now().UnixNano()))
+			randSource := mrand.New(mrand.NewSource(roughtime.Now().UnixNano()))
 
 			seedpeers, err := lookupFn(host)
 			if err != nil {
@@ -64,7 +65,7 @@ func SeedFromDNS(chainParams *params.Params, reqServices protocol.ServiceFlag, l
 					// bitcoind seeds with addresses from
 					// a time randomly selected between 3
 					// and 7 days ago.
-					time.Now().Add(-1*time.Second*time.Duration(secondsIn3Days+
+					roughtime.Now().Add(-1*time.Second*time.Duration(secondsIn3Days+
 						randSource.Int31n(secondsIn4Days))),
 					0, peer, uint16(intPort))
 			}

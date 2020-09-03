@@ -9,6 +9,7 @@ package message
 import (
 	"bytes"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -213,12 +214,12 @@ func (msg *MsgVersion) MaxPayloadLength(pver uint32) uint32 {
 	// agent (varInt) + max allowed useragent length + last block 4 bytes +
 	// relay transactions flag 1 byte.
 	/*
-	return 29 + (types.MaxNetAddressPayload(pver) * 2) + s.MaxVarIntPayload +
-		MaxUserAgentLen + 8 + 4 + (blockdag.MaxTips * hash.HashSize)
+		return 29 + (types.MaxNetAddressPayload(pver) * 2) + s.MaxVarIntPayload +
+			MaxUserAgentLen + 8 + 4 + (blockdag.MaxTips * hash.HashSize)
 	*/
 	// here is the hotfix for the 0.8.3 release by workaround of the version msg oversize error
 	// the real fix should resolve the issue https://github.com/Qitmeer/qitmeer/issues/210
-	return 1024*512 // 512KB
+	return 1024 * 512 // 512KB
 }
 
 // NewMsgVersion returns a new Version message that conforms to the Message
@@ -231,7 +232,7 @@ func NewMsgVersion(me *types.NetAddress, you *types.NetAddress, nonce uint64,
 	// doesn't support better.
 	return &MsgVersion{
 		ProtocolVersion: int32(protocol.ProtocolVersion),
-		Timestamp:       time.Unix(time.Now().Unix(), 0),
+		Timestamp:       time.Unix(roughtime.Now().Unix(), 0),
 		AddrYou:         *you,
 		AddrMe:          *me,
 		Nonce:           nonce,

@@ -2,9 +2,9 @@ package mining
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"math/rand"
-	"time"
 )
 
 // weighted random tx
@@ -58,7 +58,7 @@ func (wq *WeightedRandQueue) Pop() *WeightedRandTx {
 
 // Build WeightedRandQueue
 func newWeightedRandQueue(reserve int) *WeightedRandQueue {
-	rand.Seed(time.Now().Unix())
+	rand.Seed(roughtime.Now().Unix())
 	wq := &WeightedRandQueue{
 		items: make([]*WeightedRandTx, 0, reserve),
 	}

@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"math"
@@ -166,7 +167,7 @@ func (b *BlockChain) addOrphanBlock(block *types.SerializedBlock) {
 
 	// Insert the block into the orphan map with an expiration time
 	// 1 hour from now.
-	expiration := time.Now().Add(MaxOrphanStallDuration)
+	expiration := roughtime.Now().Add(MaxOrphanStallDuration)
 	oBlock := &orphanBlock{
 		block:      block,
 		expiration: expiration,
@@ -248,7 +249,7 @@ func (b *BlockChain) RefreshOrphans() error {
 func (b *BlockChain) refreshOrphans() {
 	// Remove expired orphan blocks.
 	for _, oBlock := range b.orphans {
-		if time.Now().After(oBlock.expiration) {
+		if roughtime.Now().After(oBlock.expiration) {
 			b.removeOrphanBlock(oBlock)
 			continue
 		}

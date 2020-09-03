@@ -5,6 +5,7 @@ package miner
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -250,7 +251,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 	m := api.miner
 	lastTxUpdate := m.txSource.LastUpdated()
 	if lastTxUpdate.IsZero() {
-		lastTxUpdate = time.Now()
+		lastTxUpdate = roughtime.Now()
 	}
 
 	// Generate a new block template when the current best block has
@@ -258,14 +259,14 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 	// it has been at least gbtRegenerateSecond since the last template was
 	// generated.
 	var targetDifficulty string
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(roughtime.Now().UnixNano())
 	parentsSet := blockdag.NewHashSet()
 	parentsSet.AddList(m.blockManager.GetChain().GetMiningTips())
 	template := state.template
 	if template == nil || state.parentsSet == nil ||
 		!state.parentsSet.IsEqual(parentsSet) ||
 		(state.lastTxUpdate != lastTxUpdate &&
-			time.Now().After(state.lastGenerated.Add(time.Second*
+			roughtime.Now().After(state.lastGenerated.Add(time.Second*
 				gbtRegenerateSeconds))) {
 
 		// Reset the previous best hash the block template was generated
@@ -303,7 +304,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 		// Update work state to ensure another block template isn't
 		// generated until needed.
 		state.template = template
-		state.lastGenerated = time.Now()
+		state.lastGenerated = roughtime.Now()
 		state.lastTxUpdate = lastTxUpdate
 		state.parentsSet.AddList(msgBlock.Parents)
 		state.minTimestamp = minTimestamp

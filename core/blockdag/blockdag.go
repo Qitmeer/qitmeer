@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
@@ -201,7 +202,7 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 
 // Initialize self, the function to be invoked at the beginning
 func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, getBlockId GetBlockId, db database.DB) IBlockDAG {
-	bd.lastTime = time.Unix(time.Now().Unix(), 0)
+	bd.lastTime = time.Unix(roughtime.Now().Unix(), 0)
 
 	bd.calcWeight = calcWeight
 	bd.getBlockId = getBlockId

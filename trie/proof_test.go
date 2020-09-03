@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	mrand.Seed(time.Now().Unix())
+	mrand.Seed(roughtime.Now().Unix())
 }
 
 // makeProvers creates Merkle trie provers based on different implementations to

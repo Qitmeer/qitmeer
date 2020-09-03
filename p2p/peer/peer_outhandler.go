@@ -6,12 +6,12 @@
 package peer
 
 import (
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/log"
 	"io"
 	"net"
 	"sync/atomic"
-	"time"
 )
 
 // outHandler handles all outgoing messages for the peer.  It must be run as a
@@ -27,7 +27,7 @@ out:
 				// Setup ping statistics.
 				p.statsMtx.Lock()
 				p.lastPingNonce = m.Nonce
-				p.lastPingTime = time.Now()
+				p.lastPingTime = roughtime.Now()
 				p.statsMtx.Unlock()
 			}
 
@@ -48,7 +48,7 @@ out:
 			// message that it has been sent (if requested), and
 			// signal the send queue to the deliver the next queued
 			// message.
-			atomic.StoreInt64(&p.lastSend, time.Now().Unix())
+			atomic.StoreInt64(&p.lastSend, roughtime.Now().Unix())
 			if msg.doneChan != nil {
 				msg.doneChan <- struct{}{}
 			}

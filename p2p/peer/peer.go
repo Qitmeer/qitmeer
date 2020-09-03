@@ -8,6 +8,7 @@ package peer
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
@@ -127,7 +128,7 @@ func (p *Peer) AssociateConnection(c *connmgr.ConnReq) {
 	}
 
 	p.conn = c.Conn()
-	p.timeConnected = time.Now()
+	p.timeConnected = roughtime.Now()
 
 	if p.inbound {
 		p.addr = p.conn.RemoteAddr().String()

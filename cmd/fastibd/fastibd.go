@@ -26,7 +26,7 @@ func fastIBD() error {
 	app := &cli.App{
 		Name:     "FastIBD",
 		Version:  "V0.0.1",
-		Compiled: time.Now(),
+		Compiled: roughtime.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{
 				Name: "Qitmeer",
