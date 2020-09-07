@@ -1,11 +1,7 @@
-/*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:roughtime.go
- * Date:9/3/20 6:49 AM
- * Author:Jin
- * Email:lochjin@gmail.com
- */
+// Copyright (c) 2017-2019 The Qitmeer developers
+//
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
 
 package roughtime
 
