@@ -174,6 +174,10 @@ func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 	return nil
 }
 
+func (api *PublicBlockChainAPI) GetTimeInfo() (interface{}, error) {
+	return fmt.Sprintf("Now:%s offset:%s", roughtime.Now(), roughtime.Offset()), nil
+}
+
 type PrivateBlockChainAPI struct {
 	node *QitmeerFull
 }

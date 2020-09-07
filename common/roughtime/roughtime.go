@@ -66,3 +66,7 @@ func Now() time.Time {
 	}
 	return time.Now().Add(offset)
 }
+
+func Offset() time.Duration {
+	return offset
+}
