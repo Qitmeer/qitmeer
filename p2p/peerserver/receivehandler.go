@@ -8,6 +8,7 @@ package peerserver
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
@@ -164,7 +165,7 @@ func (sp *serverPeer) OnAddr(p *peer.Peer, msg *message.MsgAddr) {
 		return
 	}
 
-	now := time.Now()
+	now := roughtime.Now()
 	for _, na := range msg.AddrList {
 		// Don't add more address if we're disconnecting.
 		if !p.Connected() {

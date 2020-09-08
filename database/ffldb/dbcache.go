@@ -9,6 +9,7 @@ package ffldb
 import (
 	"bytes"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"sync"
 	"time"
 
@@ -475,7 +476,7 @@ func (c *dbCache) commitTreaps(pendingKeys, pendingRemove TreapForEacher) error 
 //
 // This function MUST be called with the database write lock held.
 func (c *dbCache) flush() error {
-	c.lastFlush = time.Now()
+	c.lastFlush = roughtime.Now()
 
 	// Sync the current write file associated with the block store.  This is
 	// necessary before writing the metadata to prevent the case where the
@@ -522,7 +523,7 @@ func (c *dbCache) flush() error {
 func (c *dbCache) needsFlush(tx *transaction) bool {
 	// A flush is needed when more time has elapsed than the configured
 	// flush interval.
-	if time.Since(c.lastFlush) > c.flushInterval {
+	if roughtime.Since(c.lastFlush) > c.flushInterval {
 		return true
 	}
 
@@ -643,7 +644,7 @@ func newDbCache(ldb *leveldb.DB, store *blockStore, maxSize uint64, flushInterva
 		store:         store,
 		maxSize:       maxSize,
 		flushInterval: time.Second * time.Duration(flushIntervalSecs),
-		lastFlush:     time.Now(),
+		lastFlush:     roughtime.Now(),
 		cachedKeys:    treap.NewImmutable(),
 		cachedRemove:  treap.NewImmutable(),
 	}

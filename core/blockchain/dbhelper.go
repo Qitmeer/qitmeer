@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -267,7 +268,7 @@ func (b *BlockChain) createChainState() error {
 			version: currentDatabaseVersion,
 			compVer: currentCompressionVersion,
 			bidxVer: currentBlockIndexVersion,
-			created: time.Now(),
+			created: roughtime.Now(),
 		}
 		err = dbPutDatabaseInfo(dbTx, b.dbInfo)
 		if err != nil {

@@ -3,10 +3,10 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
-	"time"
 )
 
 // update db to new version
@@ -17,7 +17,7 @@ func (b *BlockChain) upgradeDB() error {
 	log.Info(fmt.Sprintf("Update cur db to new version: version(%d) -> version(%d) ...", b.dbInfo.version, currentDatabaseVersion))
 	err := b.db.Update(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
-		bidxStart := time.Now()
+		bidxStart := roughtime.Now()
 		spendBucket := meta.Bucket(dbnamespace.SpendJournalBucketName)
 		if spendBucket == nil {
 			return nil
@@ -31,14 +31,14 @@ func (b *BlockChain) upgradeDB() error {
 			version: currentDatabaseVersion,
 			compVer: currentCompressionVersion,
 			bidxVer: currentBlockIndexVersion,
-			created: time.Now(),
+			created: roughtime.Now(),
 		}
 		err = dbPutDatabaseInfo(dbTx, b.dbInfo)
 		if err != nil {
 			return err
 		}
 
-		log.Info(fmt.Sprintf("Update db version:time=%v", time.Since(bidxStart)))
+		log.Info(fmt.Sprintf("Update db version:time=%v", roughtime.Since(bidxStart)))
 		return nil
 	})
 	if err != nil {

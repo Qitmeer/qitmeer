@@ -7,6 +7,7 @@ package peer
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/log"
 	"time"
@@ -103,7 +104,7 @@ out:
 				}
 
 				handlerActive = true
-				handlersStartTime = time.Now()
+				handlersStartTime = roughtime.Now()
 
 			case sccHandlerDone:
 				// Warn on unbalanced callback signalling.
@@ -116,7 +117,7 @@ out:
 
 				// Extend active deadlines by the time it took
 				// to execute the callback.
-				duration := time.Since(handlersStartTime)
+				duration := roughtime.Since(handlersStartTime)
 				deadlineOffset += duration
 				handlerActive = false
 
@@ -129,7 +130,7 @@ out:
 			// Calculate the offset to apply to the deadline based
 			// on how long the handlers have taken to execute since
 			// the last tick.
-			now := time.Now()
+			now := roughtime.Now()
 			offset := deadlineOffset
 			if handlerActive {
 				offset += now.Sub(handlersStartTime)
@@ -200,7 +201,7 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 	log.Debug(fmt.Sprintf("Adding deadline for command %s for peer %s",
 		msgCmd, p.addr))
 
-	deadline := time.Now().Add(stallResponseTimeout)
+	deadline := roughtime.Now().Add(stallResponseTimeout)
 	switch msgCmd {
 	case message.CmdVersion:
 		// Expects a verack message.
@@ -224,7 +225,7 @@ func (p *Peer) maybeAddDeadline(pendingResponses map[string]time.Time, msgCmd st
 		// Expects a headers message.  Use a longer deadline since it
 		// can take a while for the remote peer to load all of the
 		// headers.
-		deadline = time.Now().Add(stallResponseTimeout * 3)
+		deadline = roughtime.Now().Add(stallResponseTimeout * 3)
 		pendingResponses[message.CmdHeaders] = deadline
 
 	case message.CmdGetMiningState:

@@ -7,6 +7,7 @@
 package blockchain
 
 import (
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"strconv"
 	"testing"
 	"time"
@@ -62,7 +63,7 @@ func TestMedianTime(t *testing.T) {
 		filter := NewMedianTime()
 		for j, offset := range test.in {
 			id := strconv.Itoa(j)
-			now := time.Unix(time.Now().Unix(), 0)
+			now := time.Unix(roughtime.Now().Unix(), 0)
 			tOffset := now.Add(time.Duration(offset) * time.Second)
 			filter.AddTimeSample(id, tOffset)
 
@@ -93,7 +94,7 @@ func TestMedianTime(t *testing.T) {
 		// and the time.Now call here in the tests will be off by one
 		// second, allow a fudge factor to compensate.
 		adjustedTime := filter.AdjustedTime()
-		now := time.Unix(time.Now().Unix(), 0)
+		now := time.Unix(roughtime.Now().Unix(), 0)
 		wantTime := now.Add(filter.Offset())
 		wantTime2 := now.Add(filter.Offset() - time.Second)
 		if !adjustedTime.Equal(wantTime) && !adjustedTime.Equal(wantTime2) {

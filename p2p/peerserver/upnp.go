@@ -35,6 +35,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"errors"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"net"
 	"net/http"
 	"os"
@@ -76,7 +77,7 @@ func Discover() (nat NAT, err error) {
 	socket := conn.(*net.UDPConn)
 	defer socket.Close()
 
-	err = socket.SetDeadline(time.Now().Add(3 * time.Second))
+	err = socket.SetDeadline(roughtime.Now().Add(3 * time.Second))
 	if err != nil {
 		return
 	}

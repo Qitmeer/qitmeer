@@ -2,6 +2,7 @@ package peerserver
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"net"
@@ -29,7 +30,7 @@ func (s *PeerServer) handleBanPeerMsg(state *peerState, msg *BanPeerMsg) {
 	direction := directionString(msg.sp.Inbound())
 	log.Info(fmt.Sprintf("Banned peer %s (%s) for %v", host, direction,
 		connmgr.BanDuration))
-	state.banned[host] = time.Now().Add(msg.dur)
+	state.banned[host] = roughtime.Now().Add(msg.dur)
 }
 
 // addBanScore increases the persistent and decaying ban score fields by the

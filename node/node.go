@@ -3,6 +3,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/database"
@@ -12,7 +13,6 @@ import (
 	"reflect"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 // Node works as a server container for all service can be registered.
@@ -171,7 +171,7 @@ func (n *Node) Start() error {
 
 	// Finished node start
 	// Server startup time. Used for the uptime command for uptime calculation.
-	n.startupTime = time.Now().Unix()
+	n.startupTime = roughtime.Now().Unix()
 	n.wg.Wrap(n.nodeEventHandler)
 
 	return nil

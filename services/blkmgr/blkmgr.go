@@ -6,6 +6,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
@@ -173,7 +174,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		if band.Flags&blockchain.BFP2PAdd == blockchain.BFP2PAdd {
 			b.progressLogger.LogBlockHeight(block)
 			// reset last progress time
-			b.lastProgressTime = time.Now()
+			b.lastProgressTime = roughtime.Now()
 		}
 		b.zmqNotify.BlockAccepted(block)
 		// Don't relay if we are not current. Other peers that are current
@@ -963,8 +964,8 @@ func (b *BlockManager) checkSyncPeer() bool {
 	}
 
 	// If the stall timeout has not elapsed, exit early.
-	if time.Since(b.lastProgressTime) <= MaxStallDuration {
-		if time.Since(b.lastProgressTime) <= MaxBlockStallDuration {
+	if roughtime.Since(b.lastProgressTime) <= MaxStallDuration {
+		if roughtime.Since(b.lastProgressTime) <= MaxBlockStallDuration {
 			return false
 		}
 		if b.IsCurrent() {
@@ -990,7 +991,7 @@ func (b *BlockManager) checkSyncPeer() bool {
 		disconnectSyncPeer = true
 	}
 	log.Debug(fmt.Sprintf("Because no progress for: %v, try to update sync peer...",
-		time.Since(b.lastProgressTime)))
+		roughtime.Since(b.lastProgressTime)))
 	b.updateSyncPeer(disconnectSyncPeer)
 	return true
 }

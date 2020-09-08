@@ -8,6 +8,7 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"math"
 	"sort"
 	"sync"
@@ -100,7 +101,7 @@ func (m *medianTime) AdjustedTime() time.Time {
 	defer m.mtx.Unlock()
 
 	// Limit the adjusted time to 1 second precision.
-	now := time.Unix(time.Now().Unix(), 0)
+	now := time.Unix(roughtime.Now().Unix(), 0)
 	return now.Add(time.Duration(m.offsetSecs) * time.Second)
 }
 
@@ -123,7 +124,7 @@ func (m *medianTime) AddTimeSample(sourceID string, timeVal time.Time) {
 	// of offsets while respecting the maximum number of allowed entries by
 	// replacing the oldest entry with the new entry once the maximum number
 	// of entries is reached.
-	now := time.Unix(time.Now().Unix(), 0)
+	now := time.Unix(roughtime.Now().Unix(), 0)
 	offsetSecs := int64(timeVal.Sub(now).Seconds())
 	numOffsets := len(m.offsets)
 	if numOffsets == maxMedianTimeEntries && maxMedianTimeEntries > 0 {

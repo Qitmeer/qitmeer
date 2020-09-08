@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
@@ -787,7 +788,7 @@ func (a *AddrManager) Attempt(addr *types.NetAddress) {
 	// set last tried time to now
 	ka.mtx.Lock()
 	ka.attempts++
-	ka.lastattempt = time.Now()
+	ka.lastattempt = roughtime.Now()
 	ka.mtx.Unlock()
 }
 
@@ -805,12 +806,12 @@ func (a *AddrManager) Connected(addr *types.NetAddress) {
 
 	// Update the time as long as it has been 20 minutes since last we did
 	// so.
-	now := time.Now()
+	now := roughtime.Now()
 	if now.After(ka.na.Timestamp.Add(time.Minute * 20)) {
 		// ka.na is immutable, so replace it.
 		ka.mtx.Lock()
 		naCopy := *ka.na
-		naCopy.Timestamp = time.Now()
+		naCopy.Timestamp = roughtime.Now()
 		ka.na = &naCopy
 		ka.mtx.Unlock()
 	}
@@ -830,7 +831,7 @@ func (a *AddrManager) Good(addr *types.NetAddress) {
 
 	// ka.Timestamp is not updated here to avoid leaking information
 	// about currently connected peers.
-	now := time.Now()
+	now := roughtime.Now()
 	ka.lastsuccess = now
 	ka.lastattempt = now
 	ka.attempts = 0
@@ -1080,7 +1081,7 @@ func New(dataDir string, getAddrPer int, lookupFunc func(string) ([]net.IP, erro
 	am := AddrManager{
 		peersFile:      filepath.Join(dataDir, PeersFilename),
 		lookupFunc:     lookupFunc,
-		rand:           rand.New(rand.NewSource(time.Now().UnixNano())),
+		rand:           rand.New(rand.NewSource(roughtime.Now().UnixNano())),
 		quit:           make(chan struct{}),
 		localAddresses: make(map[string]*localAddress),
 		getAddrPercent: getAddrPer,

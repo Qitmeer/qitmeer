@@ -7,6 +7,7 @@ package connmgr
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"math"
 	"sync"
 	"time"
@@ -72,7 +73,7 @@ type DynamicBanScore struct {
 func (s *DynamicBanScore) String() string {
 	s.mtx.Lock()
 	r := fmt.Sprintf("persistent %v + transient %v at %v = %v as of now",
-		s.persistent, s.transient, s.lastUnix, s.int(time.Now()))
+		s.persistent, s.transient, s.lastUnix, s.int(roughtime.Now()))
 	s.mtx.Unlock()
 	return r
 }
@@ -83,7 +84,7 @@ func (s *DynamicBanScore) String() string {
 // This function is safe for concurrent access.
 func (s *DynamicBanScore) Int() uint32 {
 	s.mtx.Lock()
-	r := s.int(time.Now())
+	r := s.int(roughtime.Now())
 	s.mtx.Unlock()
 	return r
 }
@@ -94,7 +95,7 @@ func (s *DynamicBanScore) Int() uint32 {
 // This function is safe for concurrent access.
 func (s *DynamicBanScore) Increase(persistent, transient uint32) uint32 {
 	s.mtx.Lock()
-	r := s.increase(persistent, transient, time.Now())
+	r := s.increase(persistent, transient, roughtime.Now())
 	s.mtx.Unlock()
 	return r
 }

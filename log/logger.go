@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"os"
 	"time"
 
@@ -130,7 +131,7 @@ type logger struct {
 
 func (l *logger) write(msg string, lvl Lvl, ctx []interface{}, skip int) {
 	l.h.Log(&Record{
-		Time: time.Now(),
+		Time: roughtime.Now(),
 		Lvl:  lvl,
 		Msg:  msg,
 		Ctx:  newContext(l.ctx, ctx),

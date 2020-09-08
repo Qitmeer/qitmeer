@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/Qitmeer/crypto v0.0.0-20200516043559-dd457edff06c
+	github.com/cloudflare/roughtime v0.0.0-20200829152512-a9bb6267a4f5
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dchest/blake256 v1.0.0
 	github.com/deckarep/golang-set v1.7.1
@@ -20,9 +21,9 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeromq/goczmq v4.1.0+incompatible
-	golang.org/x/crypto v0.0.0-20190621222207-cc06ce4a13d4
+	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
-	golang.org/x/sys v0.0.0-20190412213103-97732733099d
+	golang.org/x/sys v0.0.0-20200523222454-059865788121
 	golang.org/x/tools v0.0.0-20190511041617-99f201b6807e
 	gonum.org/v1/gonum v0.0.0-20190608115022-c5f01565d866
 )

@@ -9,6 +9,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -107,7 +108,7 @@ func (mp *TxPool) removeTransaction(theTx *types.Tx, removeRedeemers bool) {
 			delete(mp.outpoints, txIn.PreviousOut)
 		}
 		delete(mp.pool, *txHash)
-		atomic.StoreInt64(&mp.lastUpdated, time.Now().Unix())
+		atomic.StoreInt64(&mp.lastUpdated, roughtime.Now().Unix())
 	}
 }
 
@@ -157,7 +158,7 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 	txD := &TxDesc{
 		TxDesc: types.TxDesc{
 			Tx:       tx,
-			Added:    time.Now(),
+			Added:    roughtime.Now(),
 			Height:   int64(height), //todo: fix type conversion
 			Fee:      fee,
 			FeePerKB: fee * 1000 / int64(tx.Tx.SerializeSize()),
@@ -168,7 +169,7 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 	for _, txIn := range msgTx.TxIn {
 		mp.outpoints[txIn.PreviousOut] = tx
 	}
-	atomic.StoreInt64(&mp.lastUpdated, time.Now().Unix())
+	atomic.StoreInt64(&mp.lastUpdated, roughtime.Now().Unix())
 
 	// Add unconfirmed address index entries associated with the transaction
 	// if enabled.
@@ -426,7 +427,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// penny-flooding with tiny transactions as a form of attack.
 	// This applies to non-stake transactions only.
 	if rateLimit && txFee < minFee {
-		nowUnix := time.Now().Unix()
+		nowUnix := roughtime.Now().Unix()
 		// Decay passed data with an exponentially decaying ~10 minute
 		// window.
 		mp.pennyTotal *= math.Pow(1.0-1.0/600.0,

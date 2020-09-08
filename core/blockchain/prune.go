@@ -2,6 +2,7 @@
 package blockchain
 
 import (
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"time"
 )
 
@@ -20,7 +21,7 @@ type chainPruner struct {
 func newChainPruner(chain *BlockChain) *chainPruner {
 	return &chainPruner{
 		chain:              chain,
-		lastNodeInsertTime: time.Now(),
+		lastNodeInsertTime: roughtime.Now(),
 	}
 }
 
@@ -29,7 +30,7 @@ func newChainPruner(chain *BlockChain) *chainPruner {
 //
 // pruneChainIfNeeded must be called with the chainLock held for writes.
 func (c *chainPruner) pruneChainIfNeeded() {
-	now := time.Now()
+	now := roughtime.Now()
 	duration := now.Sub(c.lastNodeInsertTime)
 	if duration < time.Minute*pruningIntervalInMinutes {
 		return

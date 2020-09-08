@@ -87,6 +87,8 @@ type Config struct {
 
 	// Cache Invalid tx
 	CacheInvalidTx bool `long:"cacheinvalidtx" description:"Cache invalid transactions."`
+
+	NTP bool `long:"ntp" description:"Auto sync time."`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {

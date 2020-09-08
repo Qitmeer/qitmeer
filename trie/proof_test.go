@@ -12,15 +12,15 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/database/statedb"
 	mrand "math/rand"
 	"testing"
-	"time"
 )
 
 func init() {
-	mrand.Seed(time.Now().Unix())
+	mrand.Seed(roughtime.Now().Unix())
 }
 
 // makeProvers creates Merkle trie provers based on different implementations to

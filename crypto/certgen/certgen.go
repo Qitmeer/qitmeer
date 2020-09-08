@@ -16,6 +16,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"math/big"
 	"net"
 	"os"
@@ -26,7 +27,7 @@ import (
 // machine's local interface addresses and all variants of IPv4 and IPv6
 // localhost are included as valid IP addresses.
 func NewTLSCertPair(curve elliptic.Curve, organization string, validUntil time.Time, extraHosts []string) (cert, key []byte, err error) {
-	now := time.Now()
+	now := roughtime.Now()
 	if validUntil.Before(now) {
 		return nil, nil, errors.New("validUntil would create an already-expired certificate")
 	}

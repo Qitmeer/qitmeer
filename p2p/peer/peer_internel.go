@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
@@ -253,7 +254,7 @@ func (p *Peer) readRemoteVersionMsg() error {
 	p.lastGS.Equal(msg.LastGS)
 
 	// Set the peer's time offset.
-	p.timeOffset = msg.Timestamp.Unix() - time.Now().Unix()
+	p.timeOffset = msg.Timestamp.Unix() - roughtime.Now().Unix()
 	p.statsMtx.Unlock()
 
 	// Set the peer's ID and user agent.

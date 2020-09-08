@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -427,7 +428,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %s", state.hash.String(), state.total, state.totalTxns, state.totalsubsidy, state.workSum.Text(16)))
 
 		log.Info("Loading dag ...")
-		bidxStart := time.Now()
+		bidxStart := roughtime.Now()
 
 		err = b.bd.Load(dbTx, uint(state.total), b.params.GenesisHash)
 		if err != nil {
@@ -440,7 +441,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if !b.bd.GetMainChainTip().GetHash().IsEqual(&state.hash) {
 			return fmt.Errorf("The dag main tip %s is not the same. %s", state.hash.String(), b.bd.GetMainChainTip().GetHash().String())
 		}
-		log.Info(fmt.Sprintf("Dag loaded:loadTime=%v", time.Since(bidxStart)))
+		log.Info(fmt.Sprintf("Dag loaded:loadTime=%v", roughtime.Since(bidxStart)))
 
 		// Determine how many blocks will be loaded into the index in order to
 		// allocate the right amount as a single alloc versus a whole bunch of
