@@ -1374,5 +1374,5 @@ func (bd *BlockDAG) GetBlockConcurrency(h *hash.Hash) (uint, error) {
 }
 
 func (bd *BlockDAG) UpdateWeight(ib IBlock) {
-	bd.instance.(*Phantom).UpdateWeight(ib)
+	bd.instance.(*Phantom).UpdateWeight(ib, true)
 }
