@@ -132,12 +132,13 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgSyncDAG{}
 	case CmdSyncPoint:
 		msg = &MsgSyncPoint{}
+	case CmdFeeFilter:
+		msg = &MsgFeeFilter{}
 	/*
 		case CmdSendHeaders:
 			msg = &MsgSendHeaders{}
 
-		case CmdFeeFilter:
-			msg = &MsgFeeFilter{}
+
 
 		case CmdGetCFilter:
 			msg = &MsgGetCFilter{}

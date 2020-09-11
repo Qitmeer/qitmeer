@@ -11,6 +11,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"os"
 	"time"
 )
@@ -34,7 +35,7 @@ func (bar *ProgressBar) reset(max int) {
 	bar.cur = 0
 	bar.max = max
 
-	bar.startTime = time.Now()
+	bar.startTime = roughtime.Now()
 }
 
 func (bar *ProgressBar) add() {
@@ -52,7 +53,7 @@ func (bar *ProgressBar) setMax() {
 
 func (bar *ProgressBar) refresh() {
 	cur := float64(bar.cur*100) / float64(bar.max)
-	cost := time.Now().Sub(bar.startTime)
+	cost := roughtime.Now().Sub(bar.startTime)
 	fmt.Fprintf(os.Stdout, "%s %d%% [%s] %s\r", bar.name, int(cur), bar.getProgress(), cost.String())
 }
 

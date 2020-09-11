@@ -1,12 +1,13 @@
 module github.com/Qitmeer/qitmeer
 
-go 1.14
+go 1.12
 
 require (
-	github.com/Qitmeer/crypto v0.0.0-20200630060824-4ff5dc9a91e4
-	github.com/aristanetworks/goarista v0.0.0-20200521140103-6c3304613b30
+	github.com/Qitmeer/crypto v0.0.0-20200516043559-dd457edff06c
+	github.com/aristanetworks/goarista v0.0.0-20200812190859-4cb0e71f3c0e
+	github.com/cloudflare/roughtime v0.0.0-20200829152512-a9bb6267a4f5
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dchest/blake256 v1.1.0
+	github.com/dchest/blake256 v1.0.0
 	github.com/deckarep/golang-set v1.7.1
 	github.com/dgraph-io/ristretto v0.0.2
 	github.com/ferranbt/fastssz v0.0.0-20200514094935-99fccaf93472
@@ -33,11 +34,21 @@ require (
 	github.com/prysmaticlabs/go-ssz v0.0.0-20200101200214-e24db4d9e963
 	github.com/satori/go.uuid v1.2.0
 	github.com/stretchr/testify v1.6.1
-	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
+	github.com/syndtr/goleveldb v1.0.0
+	github.com/urfave/cli/v2 v2.2.0
+	github.com/zeromq/goczmq v4.1.0+incompatible
 	go.opencensus.io v0.22.3
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/net v0.0.0-20200425230154-ff2c4b7c35a0
-	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f
-	gonum.org/v1/gonum v0.7.0
+	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
+	golang.org/x/sys v0.0.0-20200523222454-059865788121
+	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd
+	gonum.org/v1/gonum v0.0.0-20190608115022-c5f01565d866
 	gopkg.in/yaml.v2 v2.2.8
+)
+
+replace (
+	golang.org/x/crypto v0.0.0-20181001203147-e3636079e1a4 => github.com/golang/crypto v0.0.0-20181001203147-e3636079e1a4
+	golang.org/x/net v0.0.0-20180906233101-161cd47e91fd => github.com/golang/net v0.0.0-20180906233101-161cd47e91fd
+	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 => github.com/golang/net v0.0.0-20181005035420-146acd28ed58
+	golang.org/x/tools v0.0.0-20181006002542-f60d9635b16a => github.com/golang/tools v0.0.0-20181006002542-f60d9635b16a
 )

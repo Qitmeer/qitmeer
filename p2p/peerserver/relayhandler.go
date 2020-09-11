@@ -5,6 +5,8 @@ import (
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/services/mempool"
+	"sync/atomic"
 )
 
 // handleRelayInvMsg deals with relaying inventory to peers that are not already
@@ -40,6 +42,14 @@ func (s *PeerServer) handleRelayInvMsg(state *peerState, msg relayMsg) {
 			// transaction relaying disabled.
 			if sp.relayTxDisabled() {
 				return
+			}
+
+			txD, ok := msg.data.(*mempool.TxDesc)
+			if ok {
+				feeFilter := atomic.LoadInt64(&sp.feeFilter)
+				if feeFilter > 0 && txD.FeePerKB < feeFilter {
+					return
+				}
 			}
 		} else if msg.invVect.Type == message.InvTypeBlock {
 			gs = s.BlockManager.GetChain().BestSnapshot().GraphState

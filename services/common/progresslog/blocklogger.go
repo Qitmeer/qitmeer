@@ -8,6 +8,7 @@ package progresslog
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
@@ -34,7 +35,7 @@ type BlockProgressLogger struct {
 //  ({numTxs}, height {lastBlockHeight}, {lastBlockTimeStamp})
 func NewBlockProgressLogger(progressMessage string, logger log.Logger) *BlockProgressLogger {
 	return &BlockProgressLogger{
-		lastBlockLogTime: time.Now(),
+		lastBlockLogTime: roughtime.Now(),
 		progressAction:   progressMessage,
 		subsystemLogger:  logger,
 	}
@@ -49,7 +50,7 @@ func (b *BlockProgressLogger) LogBlockHeightByParent(block, parent *types.Serial
 	b.receivedLogBlocks++
 	b.receivedLogTx += int64(len(parent.Transactions()))
 
-	now := time.Now()
+	now := roughtime.Now()
 	duration := now.Sub(b.lastBlockLogTime)
 	if duration < time.Second*10 {
 		return
@@ -87,7 +88,7 @@ func (b *BlockProgressLogger) LogBlockHeight(block *types.SerializedBlock) {
 	defer b.Unlock()
 	b.receivedLogBlocks++
 	b.receivedLogTx += int64(len(block.Block().Transactions))
-	now := time.Now()
+	now := roughtime.Now()
 	duration := now.Sub(b.lastBlockLogTime)
 	if duration < time.Second*10 {
 		return

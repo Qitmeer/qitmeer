@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/Qitmeer/qitmeer/common/network"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"io"
@@ -68,7 +69,7 @@ func (na *NetAddress) AddService(service protocol.ServiceFlag) {
 // NewNetAddressIPPort returns a new NetAddress using the provided IP, port, and
 // supported services with defaults for the remaining fields.
 func NewNetAddressIPPort(ip net.IP, port uint16, services protocol.ServiceFlag) *NetAddress {
-	return NewNetAddressTimestamp(time.Now(), services, ip, port)
+	return NewNetAddressTimestamp(roughtime.Now(), services, ip, port)
 }
 
 // NewNetAddressTimestamp returns a new NetAddress using the provided

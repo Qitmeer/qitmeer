@@ -9,6 +9,7 @@
 package metrics
 
 import (
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/rcrowley/go-metrics"
 	"math"
 	"sort"
@@ -128,9 +129,9 @@ func (t *StandardResettingTimer) Mean() float64 {
 
 // Record the duration of the execution of the given function.
 func (t *StandardResettingTimer) Time(f func()) {
-	ts := time.Now()
+	ts := roughtime.Now()
 	f()
-	t.Update(time.Since(ts))
+	t.Update(roughtime.Since(ts))
 }
 
 // Record the duration of an event.
@@ -144,7 +145,7 @@ func (t *StandardResettingTimer) Update(d time.Duration) {
 func (t *StandardResettingTimer) UpdateSince(ts time.Time) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	t.values = append(t.values, int64(time.Since(ts)))
+	t.values = append(t.values, int64(roughtime.Since(ts)))
 }
 
 // ResettingTimerSnapshot is a point-in-time copy of another ResettingTimer.

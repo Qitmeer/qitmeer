@@ -64,6 +64,20 @@ var TestNetParams = Params{
 				CuckatooPercent:         0,
 				MainHeight:              0,
 			},
+			{
+				Blake2bDPercent:         0,
+				X16rv3Percent:           0,
+				QitmeerKeccak256Percent: 100,
+				CuckaroomPercent:        0,
+				CuckatooPercent:         0,
+				// | time	| timestamp	| mainHeight |
+				// | ---| --- | --- |
+				// | 2020-08-30 10:31:46 | 1598754706 | 192266
+				// | 2020-09-15 12:00 | 1600142400 | 238522
+				// The soft forking mainHeight was calculated according to the average time of 30s
+				// In other words, pmeer will be produced by the pow of QitmeerKeccak256 only after mainHeight arrived 238522
+				MainHeight: 238522,
+			},
 		},
 		// after this height the big graph will be the main pow graph
 		AdjustmentStartMainHeight: 365 * 1440 * 60 / testTargetTimePerBlock,

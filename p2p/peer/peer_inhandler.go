@@ -7,6 +7,7 @@ package peer
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/log"
 	"io"
@@ -53,7 +54,7 @@ out:
 			}
 			break out
 		}
-		atomic.StoreInt64(&p.lastRecv, time.Now().Unix())
+		atomic.StoreInt64(&p.lastRecv, roughtime.Now().Unix())
 		p.stallControl <- stallControlMsg{sccReceiveMessage, rmsg}
 
 		// Handle each supported message type.
@@ -172,6 +173,11 @@ out:
 			if p.cfg.Listeners.OnSyncPoint != nil {
 				p.cfg.Listeners.OnSyncPoint(p, msg)
 			}
+
+		case *message.MsgFeeFilter:
+			if p.cfg.Listeners.OnFeeFilter != nil {
+				p.cfg.Listeners.OnFeeFilter(p, msg)
+			}
 		/*
 			case *message.MsgHeaders:
 				if p.cfg.Listeners.OnHeaders != nil {
@@ -206,11 +212,6 @@ out:
 			case *message.MsgCFTypes:
 				if p.cfg.Listeners.OnCFTypes != nil {
 					p.cfg.Listeners.OnCFTypes(p, msg)
-				}
-
-			case *message.MsgFeeFilter:
-				if p.cfg.Listeners.OnFeeFilter != nil {
-					p.cfg.Listeners.OnFeeFilter(p, msg)
 				}
 
 			case *message.MsgSendHeaders:
@@ -286,7 +287,7 @@ func (p *Peer) handlePongMsg(msg *message.MsgPong) {
 	// enough that if they overlap we would have timed out the peer.
 	p.statsMtx.Lock()
 	if p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
-		p.lastPingMicros = time.Since(p.lastPingTime).Nanoseconds()
+		p.lastPingMicros = roughtime.Since(p.lastPingTime).Nanoseconds()
 		p.lastPingMicros /= 1000 // convert to usec.
 		p.lastPingNonce = 0
 	}

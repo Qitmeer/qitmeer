@@ -163,7 +163,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
-		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered(), coinbaseAmout, 0)
+		!api.bm.chain.BlockIndex().NodeStatus(node).KnownInvalid(), node.IsOrdered(), coinbaseAmout, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func (api *PublicBlockAPI) GetBlockV2(h hash.Hash, verbose *bool, inclTx *bool, 
 
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
-		api.bm.chain.BlockIndex().NodeStatus(node).KnownValid(), node.IsOrdered(), coinbaseAmout, coinbaseFee)
+		!api.bm.chain.BlockIndex().NodeStatus(node).KnownInvalid(), node.IsOrdered(), coinbaseAmout, coinbaseFee)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +328,7 @@ func (api *PublicBlockAPI) GetOrphansTotal() (interface{}, error) {
 
 // Obsoleted GetBlockByID Method, since the confused naming, replaced by GetBlockByNum method
 func (api *PublicBlockAPI) GetBlockByID(id uint64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
-	return api.GetBlockByNum(id,verbose,inclTx,fullTx)
+	return api.GetBlockByNum(id, verbose, inclTx, fullTx)
 }
 
 // GetBlockByNum works like GetBlockByOrder, the different is the GetBlockByNum is return the order result from

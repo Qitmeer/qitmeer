@@ -139,7 +139,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 		return nil, err
 	}
 	qm.txManager = tm
-	bm.GetChain().SetTxManager(tm)
+	bm.SetTxManager(tm)
 	// prepare peerServer
 	node.peerServer.BlockManager = bm
 	node.peerServer.TimeSource = qm.timeSource

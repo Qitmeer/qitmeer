@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/common/encode/rlp"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/database/statedb"
 	"github.com/Qitmeer/qitmeer/log"
@@ -117,9 +118,11 @@ type rawShortNode struct {
 	Val node
 }
 
-func (n rawShortNode) canUnload(uint16, uint16) bool { panic("this should never end up in a live trie") }
-func (n rawShortNode) cache() (hashNode, bool)       { panic("this should never end up in a live trie") }
-func (n rawShortNode) fstring(ind string) string     { panic("this should never end up in a live trie") }
+func (n rawShortNode) canUnload(uint16, uint16) bool {
+	panic("this should never end up in a live trie")
+}
+func (n rawShortNode) cache() (hashNode, bool)   { panic("this should never end up in a live trie") }
+func (n rawShortNode) fstring(ind string) string { panic("this should never end up in a live trie") }
 
 // cachedNode is all the information we know about a single cached node in the
 // memory database write layer.
@@ -432,18 +435,18 @@ func (db *Database) Dereference(root hash.Hash) {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	nodes, storage, start := len(db.nodes), db.nodesSize, time.Now()
+	nodes, storage, start := len(db.nodes), db.nodesSize, roughtime.Now()
 	db.dereference(root, hash.Hash{})
 
 	db.gcnodes += uint64(nodes - len(db.nodes))
 	db.gcsize += storage - db.nodesSize
-	db.gctime += time.Since(start)
+	db.gctime += roughtime.Since(start)
 
-	memcacheGCTimeTimer.Update(time.Since(start))
+	memcacheGCTimeTimer.Update(roughtime.Since(start))
 	memcacheGCSizeMeter.Mark(int64(storage - db.nodesSize))
 	memcacheGCNodesMeter.Mark(int64(nodes - len(db.nodes)))
 
-	log.Debug("Dereferenced trie from memory database", "nodes", nodes-len(db.nodes), "size", storage-db.nodesSize, "time", time.Since(start),
+	log.Debug("Dereferenced trie from memory database", "nodes", nodes-len(db.nodes), "size", storage-db.nodesSize, "time", roughtime.Since(start),
 		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 }
 
@@ -502,7 +505,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	// by only uncaching existing data when the database write finalizes.
 	db.lock.RLock()
 
-	nodes, storage, start := len(db.nodes), db.nodesSize, time.Now()
+	nodes, storage, start := len(db.nodes), db.nodesSize, roughtime.Now()
 	batch := db.diskdb.NewBatch()
 
 	// db.nodesSize only contains the useful data in the cache, but when reporting
@@ -582,13 +585,13 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	}
 	db.flushnodes += uint64(nodes - len(db.nodes))
 	db.flushsize += storage - db.nodesSize
-	db.flushtime += time.Since(start)
+	db.flushtime += roughtime.Since(start)
 
-	memcacheFlushTimeTimer.Update(time.Since(start))
+	memcacheFlushTimeTimer.Update(roughtime.Since(start))
 	memcacheFlushSizeMeter.Mark(int64(storage - db.nodesSize))
 	memcacheFlushNodesMeter.Mark(int64(nodes - len(db.nodes)))
 
-	log.Debug("Persisted nodes from memory database", "nodes", nodes-len(db.nodes), "size", storage-db.nodesSize, "time", time.Since(start),
+	log.Debug("Persisted nodes from memory database", "nodes", nodes-len(db.nodes), "size", storage-db.nodesSize, "time", roughtime.Since(start),
 		"flushnodes", db.flushnodes, "flushsize", db.flushsize, "flushtime", db.flushtime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 
 	return nil
@@ -605,7 +608,7 @@ func (db *Database) Commit(node hash.Hash, report bool) error {
 	// by only uncaching existing data when the database write finalizes.
 	db.lock.RLock()
 
-	start := time.Now()
+	start := roughtime.Now()
 	batch := db.diskdb.NewBatch()
 
 	// Move all of the accumulated preimages into a write batch
@@ -646,7 +649,7 @@ func (db *Database) Commit(node hash.Hash, report bool) error {
 
 	db.uncache(node)
 
-	memcacheCommitTimeTimer.Update(time.Since(start))
+	memcacheCommitTimeTimer.Update(roughtime.Since(start))
 	memcacheCommitSizeMeter.Mark(int64(storage - db.nodesSize))
 	memcacheCommitNodesMeter.Mark(int64(nodes - len(db.nodes)))
 
@@ -654,7 +657,7 @@ func (db *Database) Commit(node hash.Hash, report bool) error {
 	if !report {
 		logger = log.Debug
 	}
-	logger("Persisted trie from memory database", "nodes", nodes-len(db.nodes)+int(db.flushnodes), "size", storage-db.nodesSize+db.flushsize, "time", time.Since(start)+db.flushtime,
+	logger("Persisted trie from memory database", "nodes", nodes-len(db.nodes)+int(db.flushnodes), "size", storage-db.nodesSize+db.flushsize, "time", roughtime.Since(start)+db.flushtime,
 		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 
 	// Reset the garbage collection statistics

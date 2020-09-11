@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
@@ -167,7 +168,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32, powType pow.PowType) ([]*hash.Hash,
 		m.submitBlockLock.Lock()
 
 		// Choose a payment address at random.
-		rand.Seed(time.Now().UnixNano())
+		rand.Seed(roughtime.Now().UnixNano())
 		payToAddr := m.config.GetMinningAddrs()[rand.Intn(len(m.config.GetMinningAddrs()))]
 
 		// Create a new block template using the available transactions
@@ -323,7 +324,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 	header := &msgBlock.Header
 
 	// Initial state.
-	lastGenerated := time.Now()
+	lastGenerated := roughtime.Now()
 	lastTxUpdate := m.txSource.LastUpdated()
 	hashesCompleted := uint64(0)
 	target := pow.CompactToBig(uint32(header.Difficulty))
@@ -360,8 +361,8 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 			// generated and it has been at least 3 seconds,
 			// or if it's been one minute.
 			if (lastTxUpdate != m.txSource.LastUpdated() &&
-				time.Now().After(lastGenerated.Add(3*time.Second))) ||
-				time.Now().After(lastGenerated.Add(60*time.Second)) {
+				roughtime.Now().After(lastGenerated.Add(3*time.Second))) ||
+				roughtime.Now().After(lastGenerated.Add(60*time.Second)) {
 
 				return false
 			}
@@ -707,7 +708,7 @@ out:
 		time.Sleep(100 * time.Millisecond)
 
 		// Choose a payment address at random.
-		rand.Seed(time.Now().UnixNano())
+		rand.Seed(roughtime.Now().UnixNano())
 		miningaddrs := m.config.GetMinningAddrs()
 		fmt.Printf("why %v, %d \n", miningaddrs, len(miningaddrs))
 		rindex := rand.Intn(len(miningaddrs))
@@ -847,7 +848,7 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 		m.submitBlockLock.Lock()
 
 		// Choose a payment address at random.
-		rand.Seed(time.Now().UnixNano())
+		rand.Seed(roughtime.Now().UnixNano())
 		payToAddr := m.config.GetMinningAddrs()[rand.Intn(len(m.config.GetMinningAddrs()))]
 
 		// Create a new block template using the available transactions

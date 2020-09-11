@@ -22,7 +22,7 @@ const (
 
 	// currentDatabaseVersion indicates what the current database
 	// version is.
-	currentDatabaseVersion = 2
+	currentDatabaseVersion = 3
 
 	// blockHdrSize is the size of a block header.  This is simply the
 	// constant from wire and is only provided here for convenience since
@@ -40,7 +40,7 @@ const (
 	// is allowed to be ahead of the current time.
 	// 2 hours -> BTC settings (2 hours / 2016 block -> 2 weeks) = 0.6 %
 	// 360 sec -> Qitmeer settings ( 30*2016*6/1000 )
-	MaxTimeOffsetSeconds = 6 * 60  // 6 minutes
+	MaxTimeOffsetSeconds = 6 * 60 // 6 minutes
 
 	// MinCoinbaseScriptLen is the minimum length a coinbase script can be.
 	MinCoinbaseScriptLen = 2

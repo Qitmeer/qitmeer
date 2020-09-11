@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/network"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -139,7 +140,7 @@ func NewPeerServer(cfg *config.Config, chainParams *params.Params) (*PeerServer,
 
 			// only allow recent nodes (10mins) after we failed 30
 			// times
-			if addr.GetAttempts() > 1 && time.Since(addr.LastAttempt()) < 10*time.Minute {
+			if addr.GetAttempts() > 1 && roughtime.Since(addr.LastAttempt()) < 10*time.Minute {
 				return nil, errors.New("no valid connect address")
 			}
 			if s.state.IsBanPeer(addr.NetAddress().IP.String()) {

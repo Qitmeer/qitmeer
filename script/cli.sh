@@ -385,6 +385,12 @@ function get_fees(){
   get_result "$data"
 }
 
+function time_info(){
+  local block_hash=$1
+  local data='{"jsonrpc":"2.0","method":"getTimeInfo","id":1}'
+  get_result "$data"
+}
+
 function get_result(){
   local proto="https"
   if [ $notls -eq 1 ]; then
@@ -455,6 +461,7 @@ function usage(){
   echo "  banlist"
   echo "  removeban"
   echo "  loglevel [trace, debug, info, warn, error, critical]"
+  echo "  timeinfo"
   echo "block  :"
   echo "  block <order|hash>"
   echo "  blockid <id>"
@@ -470,9 +477,9 @@ function usage(){
   echo "  tips"
   echo "  coinbase <hash>"
   echo "  fees <hash>"
-  echo "  blockv2 <hash>"
   echo "tx     :"
   echo "  tx <id>"
+  echo "  txv2 <id>"
   echo "  txbyhash <hash>"
   echo "  createRawTx"
   echo "  txSign <rawTx>"
@@ -773,6 +780,10 @@ elif [ "$1" == "isblue" ]; then
 elif [ "$1" == "fees" ]; then
   shift
   get_fees $@
+
+elif [ "$1" == "timeinfo" ]; then
+  shift
+  time_info $@
 
 elif [ "$1" == "nodeinfo" ]; then
   shift

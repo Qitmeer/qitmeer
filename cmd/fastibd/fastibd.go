@@ -1,13 +1,13 @@
 package main
 
 import (
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	_ "github.com/Qitmeer/qitmeer/services/common"
 	"github.com/urfave/cli/v2"
 	"os"
 	"runtime"
 	"runtime/debug"
-	"time"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func fastIBD() error {
 	app := &cli.App{
 		Name:     "FastIBD",
 		Version:  "V0.0.1",
-		Compiled: time.Now(),
+		Compiled: roughtime.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{
 				Name: "Qitmeer",
@@ -48,6 +48,18 @@ func fastIBD() error {
 						Usage:       "Path to output data",
 						Value:       defaultHomeDir,
 						Destination: &cfg.OutputPath,
+					},
+					&cli.StringFlag{
+						Name:        "endpoint",
+						Aliases:     []string{"e"},
+						Usage:       "End point for output data",
+						Destination: &cfg.EndPoint,
+					},
+					&cli.BoolFlag{
+						Name:        "byid",
+						Aliases:     []string{"i"},
+						Usage:       "Export by block id",
+						Destination: &cfg.ByID,
 					},
 				},
 				Before: func(c *cli.Context) error {

@@ -144,7 +144,7 @@ func (node *DebugAddressNode) processAddress(blueM *map[uint]bool) error {
 			txHash := tx.Hash()
 			txFullHash := tx.Tx.TxHashFull()
 
-			txValid := node.isTxValid(db, txHash, &txFullHash, ib.GetHash())
+			txValid := isTxValid(db, txHash, &txFullHash, ib.GetHash())
 			if node.cfg.DebugAddrValid {
 				if !txValid {
 					continue
@@ -271,7 +271,7 @@ func (node *DebugAddressNode) processAddress(blueM *map[uint]bool) error {
 	return nil
 }
 
-func (node *DebugAddressNode) isTxValid(db database.DB, txHash *hash.Hash, txFullHash *hash.Hash, blockHash *hash.Hash) bool {
+func isTxValid(db database.DB, txHash *hash.Hash, txFullHash *hash.Hash, blockHash *hash.Hash) bool {
 	var preTx *types.Transaction
 	var preBlockH *hash.Hash
 	err := db.View(func(dbTx database.Tx) error {

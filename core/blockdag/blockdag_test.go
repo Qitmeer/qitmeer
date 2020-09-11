@@ -4,11 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/database"
 	l "github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/params"
 	"io"
 	"math/rand"
 	"os"
-	"time"
+	"path/filepath"
 )
 
 // Structure of blocks data
@@ -111,7 +116,7 @@ var bd BlockDAG
 // we only care about the block DAG.
 var tempHash int = 0
 
-var randTool *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+var randTool *rand.Rand = rand.New(rand.NewSource(roughtime.Now().UnixNano()))
 
 // It contains all of test data. Convenient for you to use different input data
 // and output data.
@@ -153,8 +158,23 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 	if blen < 2 {
 		return nil
 	}
+	var db database.DB
+	if dagType == phantom {
+		cfg := &config.Config{DbType: "ffldb", DataDir: "."}
+		db, err = loadBlockDB(cfg)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		db.Update(func(dbTx database.Tx) error {
+			meta := dbTx.Metadata()
+			_, err := meta.CreateBucket(dbnamespace.DagMainChainBucketName)
+			return err
+		})
+	}
+
 	bd = BlockDAG{}
-	instance := bd.Init(dagType, CalcBlockWeight, -1, onGetBlockId)
+	instance := bd.Init(dagType, CalcBlockWeight, -1, onGetBlockId, db)
 	tbMap = map[string]IBlock{}
 	for i := 0; i < blen; i++ {
 		parents := NewIdSet()
@@ -181,7 +201,7 @@ func buildBlock(parents *IdSet) *TestBlock {
 	h := hash.MustHexToDecodedHash(hashStr)
 	tBlock := &TestBlock{hash: h}
 	tBlock.parents = parents
-	tBlock.timeStamp = time.Now().Unix()
+	tBlock.timeStamp = roughtime.Now().Unix()
 
 	//
 	return tBlock
@@ -279,7 +299,7 @@ func reverseBlockList(s []uint) []uint {
 	return s
 }
 
-func CalcBlockWeight(blocks int64) int64 {
+func CalcBlockWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
 	if blocks == 0 {
 		return 0
 	} else if blocks < 3 {
@@ -295,4 +315,41 @@ func onGetBlockId(h *hash.Hash) uint {
 		}
 	}
 	return MaxId
+}
+
+func loadBlockDB(cfg *config.Config) (database.DB, error) {
+	dbName := "blocks_" + cfg.DbType
+	dbPath := filepath.Join(cfg.DataDir, dbName)
+	err := removeBlockDB(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	db, err := database.Create(cfg.DbType, dbPath, params.ActiveNetParams.Net)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+func removeBlockDB(dbPath string) error {
+	fi, err := os.Stat(dbPath)
+	if err == nil {
+		if fi.IsDir() {
+			err := os.RemoveAll(dbPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := os.Remove(dbPath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func exit() {
+	removeBlockDB("./blocks_ffldb")
 }

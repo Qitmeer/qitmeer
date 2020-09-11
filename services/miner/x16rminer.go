@@ -2,6 +2,7 @@ package miner
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/services/mining"
@@ -26,7 +27,7 @@ func (m *CPUMiner) solveX16rv3Block(msgBlock *types.Block, ticker *time.Ticker, 
 	header := &msgBlock.Header
 
 	// Initial state.
-	lastGenerated := time.Now()
+	lastGenerated := roughtime.Now()
 	lastTxUpdate := m.txSource.LastUpdated()
 	hashesCompleted := uint64(0)
 	target := pow.CompactToBig(uint32(header.Difficulty))
@@ -63,8 +64,8 @@ func (m *CPUMiner) solveX16rv3Block(msgBlock *types.Block, ticker *time.Ticker, 
 			// generated and it has been at least 3 seconds,
 			// or if it's been one minute.
 			if (lastTxUpdate != m.txSource.LastUpdated() &&
-				time.Now().After(lastGenerated.Add(3*time.Second))) ||
-				time.Now().After(lastGenerated.Add(60*time.Second)) {
+				roughtime.Now().After(lastGenerated.Add(3*time.Second))) ||
+				roughtime.Now().After(lastGenerated.Add(60*time.Second)) {
 
 				return false
 			}

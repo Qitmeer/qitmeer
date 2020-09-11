@@ -6,6 +6,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/address"
@@ -38,6 +39,7 @@ const (
 	defaultMiningStateSync        = false
 	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
 	defaultTrickleInterval        = peer.TrickleTimeout
+	defaultCacheInvalidTx         = false
 )
 const (
 	defaultSigCacheMaxSize = 100000
@@ -84,6 +86,8 @@ func LoadConfig() (*config.Config, []string, error) {
 		Banning:           false,
 		MaxInbound:        defaultMaxInboundPeersPerHost,
 		TrickleInterval:   defaultTrickleInterval,
+		CacheInvalidTx:    defaultCacheInvalidTx,
+		NTP:               false,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -393,6 +397,10 @@ func LoadConfig() (*config.Config, []string, error) {
 		fmt.Fprintln(os.Stderr, err)
 		fmt.Fprintln(os.Stderr, usageMessage)
 		return nil, nil, err
+	}
+
+	if cfg.NTP {
+		roughtime.Init()
 	}
 
 	// Warn about missing config file only after all other configuration is

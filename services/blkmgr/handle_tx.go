@@ -42,7 +42,7 @@ func (b *BlockManager) handleTxMsg(tmsg *txMsg) {
 	// Process the transaction to include validation, insertion in the
 	// memory pool, orphan handling, etc.
 	allowOrphans := b.config.MaxOrphanTxs > 0
-	acceptedTxs, err := b.chain.GetTxManager().MemPool().ProcessTransaction(tmsg.tx,
+	acceptedTxs, err := b.GetTxManager().MemPool().ProcessTransaction(tmsg.tx,
 		allowOrphans, true, true)
 
 	// Remove transaction from request maps. Either the mempool/chain

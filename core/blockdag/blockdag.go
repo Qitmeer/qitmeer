@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
@@ -145,7 +146,7 @@ type IBlockDAG interface {
 }
 
 // CalcWeight
-type CalcWeight func(int64) int64
+type CalcWeight func(int64, *hash.Hash, byte) int64
 
 // GetBlockId
 type GetBlockId func(*hash.Hash) uint
@@ -185,6 +186,8 @@ type BlockDAG struct {
 
 	// getBlockId
 	getBlockId GetBlockId
+
+	db database.DB
 }
 
 // Acquire the name of DAG instance
@@ -198,12 +201,12 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 }
 
 // Initialize self, the function to be invoked at the beginning
-func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, getBlockId GetBlockId) IBlockDAG {
-	bd.lastTime = time.Unix(time.Now().Unix(), 0)
+func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, getBlockId GetBlockId, db database.DB) IBlockDAG {
+	bd.lastTime = time.Unix(roughtime.Now().Unix(), 0)
 
 	bd.calcWeight = calcWeight
 	bd.getBlockId = getBlockId
-
+	bd.db = db
 	bd.blockRate = blockRate
 	if bd.blockRate < 0 {
 		bd.blockRate = anticone.DefaultBlockRate
@@ -1293,6 +1296,50 @@ func (bd *BlockDAG) GetMaturity(target uint, views []uint) uint {
 	return 0
 }
 
+// Get path intersection from block to main chain.
+func (bd *BlockDAG) getMainFork(ib IBlock, backward bool) IBlock {
+	if bd.instance.IsOnMainChain(ib) {
+		return ib
+	}
+
+	//
+	queue := []IBlock{}
+	queue = append(queue, ib)
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		if bd.instance.IsOnMainChain(cur) {
+			return cur
+		}
+
+		if backward {
+			if !cur.HasChildren() {
+				continue
+			} else {
+				childList := cur.GetChildren().SortHashList(false)
+				for _, v := range childList {
+					ib := cur.GetChildren().Get(v).(IBlock)
+					queue = append(queue, ib)
+				}
+			}
+		} else {
+			if !cur.HasParents() {
+				continue
+			} else {
+				parentsList := cur.GetParents().SortHashList(false)
+				for _, v := range parentsList {
+					ib := cur.GetParents().Get(v).(IBlock)
+					queue = append(queue, ib)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // MaxParentsPerBlock
 func (bd *BlockDAG) getMaxParents() int {
 	return bd.instance.getMaxParents()
@@ -1324,4 +1371,8 @@ func (bd *BlockDAG) GetBlockConcurrency(h *hash.Hash) (uint, error) {
 		return 0, fmt.Errorf("No find block")
 	}
 	return ib.(*PhantomBlock).GetBlueNum(), nil
+}
+
+func (bd *BlockDAG) UpdateWeight(ib IBlock) {
+	bd.instance.(*Phantom).UpdateWeight(ib, true)
 }

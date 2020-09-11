@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
@@ -44,7 +45,7 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 
 	ph.bd.order = map[uint]uint{}
 
-	ph.mainChain = &MainChain{NewIdSet(), MaxId, 0}
+	ph.mainChain = &MainChain{bd, MaxId, 0}
 	ph.diffAnticone = NewIdSet()
 
 	//vb
@@ -79,7 +80,6 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		pb.mainParent = tp.GetID()
 		pb.blueNum = tp.blueNum + 1
 		pb.height = tp.height + 1
-		pb.weight = tp.GetWeight()
 
 		diffAnticone := ph.bd.getDiffAnticone(pb, true)
 		if diffAnticone == nil {
@@ -88,7 +88,7 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 
 		ph.calculateBlueSet(pb, diffAnticone)
 
-		pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum + 1)))
+		ph.UpdateWeight(pb, false)
 	} else {
 		//It is genesis
 		if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
@@ -135,10 +135,6 @@ func (ph *Phantom) calculateBlueSet(pb *PhantomBlock, diffAnticone *IdSet) {
 		log.Error(fmt.Sprintf("error blue set"))
 	}
 	pb.blueNum += uint(pb.blueDiffAnticone.Size())
-
-	for k := range pb.blueDiffAnticone.GetMap() {
-		pb.weight += uint64(ph.bd.calcWeight(int64(ph.getBlock(k).blueNum + 1)))
-	}
 }
 
 func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
@@ -282,7 +278,7 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *Ph
 	if ph.mainChain.tip == MaxId {
 		ph.mainChain.tip = buestTip.GetID()
 		ph.mainChain.genesis = buestTip.GetID()
-		ph.mainChain.blocks.Add(buestTip.GetID())
+		ph.mainChain.Add(buestTip.GetID())
 		ph.diffAnticone.Clean()
 		buestTip.SetOrder(0)
 		ph.bd.order[0] = buestTip.GetID()
@@ -320,7 +316,7 @@ func (ph *Phantom) getIntersectionPathWithMainChain(pb *PhantomBlock) (uint, []u
 	curPb := pb
 	for {
 
-		if ph.mainChain.blocks.Has(curPb.GetID()) {
+		if ph.mainChain.Has(curPb.GetID()) {
 			intersection = curPb.GetID()
 			break
 		}
@@ -340,7 +336,7 @@ func (ph *Phantom) rollBackMainChain(intersection uint) {
 		if curPb.GetID() == intersection {
 			break
 		}
-		ph.mainChain.blocks.Remove(curPb.GetID())
+		ph.mainChain.Remove(curPb.GetID())
 
 		if curPb.mainParent == MaxId {
 			break
@@ -356,7 +352,7 @@ func (ph *Phantom) updateMainOrder(path []uint, intersection uint) {
 		curBlock := ph.getBlock(path[i])
 		curBlock.SetOrder(startOrder + uint(curBlock.blueDiffAnticone.Size()+curBlock.redDiffAnticone.Size()+1))
 		ph.bd.order[curBlock.GetOrder()] = curBlock.GetID()
-		ph.mainChain.blocks.Add(curBlock.GetID())
+		ph.mainChain.Add(curBlock.GetID())
 		for k, v := range curBlock.blueDiffAnticone.GetMap() {
 			dab := ph.getBlock(k)
 			dab.SetOrder(startOrder + v.(uint))
@@ -393,7 +389,7 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	ph.virtualBlock.mainParent = ph.mainChain.tip
 	ph.virtualBlock.blueNum = tp.blueNum + 1
 	ph.virtualBlock.height = tp.height + 1
-	ph.virtualBlock.weight = tp.GetWeight()
+	//ph.virtualBlock.weight = tp.GetWeight()
 
 	ph.virtualBlock.blueDiffAnticone.Clean()
 	ph.virtualBlock.redDiffAnticone.Clean()
@@ -470,6 +466,9 @@ func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash {
 
 // Query whether a given block is on the main chain.
 func (ph *Phantom) IsOnMainChain(b IBlock) bool {
+	if ph.mainChain.Has(b.GetID()) {
+		return true
+	}
 	for cur := ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
 		if cur.GetHash().IsEqual(b.GetHash()) {
 			return true
@@ -600,13 +599,6 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 	}
 
 	ph.mainChain.tip = ph.GetMainParent(ph.bd.tips).GetID()
-
-	for cur := ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
-		ph.mainChain.blocks.Add(cur.GetID())
-		if cur.mainParent == MaxId {
-			break
-		}
-	}
 	return nil
 }
 
@@ -644,10 +636,27 @@ func (ph *Phantom) IsBlue(id uint) bool {
 	if b == nil {
 		return false
 	}
-	if ph.diffAnticone.Has(id) {
+	return ph.doIsBlue(b, nil)
+}
+
+// Functions that really handle isblue.
+// fork: Path intersection from block to main chain.
+func (ph *Phantom) doIsBlue(ib IBlock, fork IBlock) bool {
+	b := ib.(*PhantomBlock)
+	if ph.diffAnticone.Has(b.GetID()) {
 		return false
 	}
-	for cur := ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
+	var cur *PhantomBlock
+	if fork == nil {
+		cur = ph.bd.getMainFork(b, true).(*PhantomBlock)
+		if cur == nil {
+			cur = ph.getBlock(ph.mainChain.tip)
+		}
+	} else {
+		cur = fork.(*PhantomBlock)
+	}
+
+	for ; cur != nil; cur = ph.getBlock(cur.mainParent) {
 		if cur.GetHash().IsEqual(b.GetHash()) ||
 			cur.blueDiffAnticone.Has(b.GetID()) {
 			return true
@@ -716,11 +725,76 @@ func (ph *Phantom) getMaxParents() int {
 	return types.MaxParentsPerBlock
 }
 
+func (ph *Phantom) UpdateWeight(ib IBlock, store bool) {
+	pb := ib.(*PhantomBlock)
+	tp := ph.getBlock(pb.GetMainParent())
+	pb.weight = tp.GetWeight()
+	pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), byte(pb.status)))
+	for k := range pb.blueDiffAnticone.GetMap() {
+		bdpb := ph.getBlock(k)
+		pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), byte(bdpb.status)))
+	}
+
+	if ph.bd.db == nil || !store {
+		return
+	}
+
+	err := ph.bd.db.Update(func(dbTx database.Tx) error {
+		err := DBPutDAGBlock(dbTx, ib)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err.Error())
+	}
+}
+
 // The main chain of DAG is support incremental expansion
 type MainChain struct {
-	blocks  *IdSet
+	bd      *BlockDAG
 	tip     uint
 	genesis uint
+}
+
+func (mc *MainChain) Has(id uint) bool {
+	result := false
+	mc.bd.db.View(func(dbTx database.Tx) error {
+		meta := dbTx.Metadata()
+		mchBucket := meta.Bucket(dbnamespace.DagMainChainBucketName)
+		if mchBucket == nil {
+			return nil
+		}
+		result = DBHasMainChainBlock(dbTx, id)
+		return nil
+	})
+	return result
+}
+
+func (mc *MainChain) Add(id uint) error {
+	return mc.bd.db.Update(func(dbTx database.Tx) error {
+		meta := dbTx.Metadata()
+		mchBucket := meta.Bucket(dbnamespace.DagMainChainBucketName)
+		if mchBucket == nil {
+			return fmt.Errorf("no %s", string(dbnamespace.DagMainChainBucketName))
+		}
+		return DBPutMainChainBlock(dbTx, id)
+	})
+}
+
+func (mc *MainChain) Remove(id uint) error {
+	if !mc.Has(id) {
+		return nil
+	}
+	return mc.bd.db.Update(func(dbTx database.Tx) error {
+		meta := dbTx.Metadata()
+		mchBucket := meta.Bucket(dbnamespace.DagMainChainBucketName)
+		if mchBucket == nil {
+			return fmt.Errorf("no %s", string(dbnamespace.DagMainChainBucketName))
+		}
+		return DBRemoveMainChainBlock(dbTx, id)
+	})
 }
 
 type KChain struct {

@@ -18,13 +18,13 @@ type NotifyMgr struct {
 // both websocket and getblocktemplate long poll clients of the passed
 // transactions.  This function should be called whenever new transactions
 // are added to the mempool.
-func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.Tx) {
+func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.TxDesc) {
 	// Generate and relay inventory vectors for all newly accepted
 	// transactions into the memory pool due to the original being
 	// accepted.
 	for _, tx := range newTxs {
 		// Generate the inventory vector and relay it.
-		iv := message.NewInvVect(message.InvTypeTx, tx.Hash())
+		iv := message.NewInvVect(message.InvTypeTx, tx.Tx.Hash())
 		// reply to p2p
 		ntmgr.RelayInventory(iv, tx)
 		// reply to rpc

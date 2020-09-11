@@ -7,6 +7,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/message"
@@ -134,7 +135,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 			info.GraphState = *getGraphStateResult(statsSnap.GraphState)
 		}
 		if p.LastPingNonce() != 0 {
-			wait := float64(time.Since(statsSnap.LastPingTime).Nanoseconds())
+			wait := float64(roughtime.Since(statsSnap.LastPingTime).Nanoseconds())
 			// We actually want microseconds.
 			info.PingWait = wait / 1000
 		}
@@ -172,6 +173,10 @@ func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 		}
 	}
 	return nil
+}
+
+func (api *PublicBlockChainAPI) GetTimeInfo() (interface{}, error) {
+	return fmt.Sprintf("Now:%s offset:%s", roughtime.Now(), roughtime.Offset()), nil
 }
 
 type PrivateBlockChainAPI struct {

@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -105,11 +106,11 @@ type BlockChain struct {
 	//block dag
 	bd *blockdag.BlockDAG
 
-	//tx manager
-	txManager TxManager
-
 	// block version
 	BlockVersion uint32
+
+	// Cache Invalid tx
+	CacheInvalidTx bool
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -171,6 +172,9 @@ type Config struct {
 
 	// block version
 	BlockVersion uint32
+
+	// Cache Invalid tx
+	CacheInvalidTx bool
 }
 
 // BestState houses information about the current best block and other info
@@ -261,12 +265,13 @@ func New(config *Config) (*BlockChain, error) {
 		index:              newBlockIndex(config.DB, par),
 		orphans:            make(map[hash.Hash]*orphanBlock),
 		BlockVersion:       config.BlockVersion,
+		CacheInvalidTx:     config.CacheInvalidTx,
 	}
 	b.subsidyCache = NewSubsidyCache(0, b.params)
 
 	b.bd = &blockdag.BlockDAG{}
-	b.bd.Init(config.DAGType, b.subsidyCache.CalcBlockSubsidy,
-		1.0/float64(par.TargetTimePerBlock/time.Second), b.index.GetDAGBlockID)
+	b.bd.Init(config.DAGType, b.CalcWeight,
+		1.0/float64(par.TargetTimePerBlock/time.Second), b.index.GetDAGBlockID, b.db)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -282,7 +287,10 @@ func New(config *Config) (*BlockChain, error) {
 			return nil, err
 		}
 	}
-
+	err := b.CheckCacheInvalidTxConfig()
+	if err != nil {
+		return nil, err
+	}
 	b.pruner = newChainPruner(&b)
 
 	log.Info(fmt.Sprintf("DAG Type:%s", b.bd.GetName()))
@@ -402,7 +410,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 	}
 
 	// Attempt to load the chain state from the database.
-	err = b.db.View(func(dbTx database.Tx) error {
+	err = b.db.Update(func(dbTx database.Tx) error {
 		// Fetch the stored chain state from the database metadata.
 		// When it doesn't exist, it means the database hasn't been
 		// initialized for use with chain yet, so break out now to allow
@@ -420,16 +428,20 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %s", state.hash.String(), state.total, state.totalTxns, state.totalsubsidy, state.workSum.Text(16)))
 
 		log.Info("Loading dag ...")
-		bidxStart := time.Now()
+		bidxStart := roughtime.Now()
 
 		err = b.bd.Load(dbTx, uint(state.total), b.params.GenesisHash)
 		if err != nil {
 			return fmt.Errorf("The dag data was damaged (%s). you can cleanup your block data base by '--cleanup'.", err)
 		}
+		err = b.bd.UpgradeDB(dbTx)
+		if err != nil {
+			return err
+		}
 		if !b.bd.GetMainChainTip().GetHash().IsEqual(&state.hash) {
 			return fmt.Errorf("The dag main tip %s is not the same. %s", state.hash.String(), b.bd.GetMainChainTip().GetHash().String())
 		}
-		log.Info(fmt.Sprintf("Dag loaded:loadTime=%v", time.Since(bidxStart)))
+		log.Info(fmt.Sprintf("Dag loaded:loadTime=%v", roughtime.Since(bidxStart)))
 
 		// Determine how many blocks will be loaded into the index in order to
 		// allocate the right amount as a single alloc versus a whole bunch of
@@ -457,7 +469,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			node := &blockNode{}
 			initBlockNode(node, &block.Block().Header, parents)
 			b.index.addNode(node)
-			node.status = blockStatus(refblock.GetStatus())
+			node.status = BlockStatus(refblock.GetStatus())
 			node.SetOrder(uint64(refblock.GetOrder()))
 			node.SetHeight(refblock.GetHeight())
 			node.dagID = i
@@ -806,13 +818,17 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode, block *types.Serializ
 	}*/
 }
 
-func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlock) error {
+func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlock, attachNodes *list.List) error {
 	// Must be end node of sequence in dag
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
 	b.stateLock.RLock()
 	curTotalTxns := b.stateSnapshot.TotalTxns
 	b.stateLock.RUnlock()
+
+	for e := attachNodes.Front(); e != nil; e = e.Next() {
+		b.bd.UpdateWeight(e.Value.(blockdag.IBlock))
+	}
 
 	// Calculate the number of transactions that would be added by adding
 	// this block.
@@ -1195,14 +1211,6 @@ func (b *BlockChain) fetchSpendJournal(targetBlock *types.SerializedBlock) ([]Sp
 	return spendEntries, nil
 }
 
-func (b *BlockChain) SetTxManager(txManager TxManager) {
-	b.txManager = txManager
-}
-
-func (b *BlockChain) GetTxManager() TxManager {
-	return b.txManager
-}
-
 func (b *BlockChain) GetMiningTips() []*hash.Hash {
 	return b.BlockDAG().GetValidTips()
 }
@@ -1261,6 +1269,9 @@ func (b *BlockChain) CalculateFees(block *types.SerializedBlock) int64 {
 	var totalAtomIn int64
 	if spentTxos != nil {
 		for _, st := range spentTxos {
+			if transactions[st.TxIndex].IsDuplicate {
+				continue
+			}
 			totalAtomIn += int64(st.Amount)
 		}
 		totalFees := totalAtomIn - totalAtomOut
@@ -1274,6 +1285,13 @@ func (b *BlockChain) CalculateFees(block *types.SerializedBlock) int64 {
 
 // GetFees
 func (b *BlockChain) GetFees(h *hash.Hash) int64 {
+	ib := b.bd.GetBlock(h)
+	if ib == nil {
+		return 0
+	}
+	if BlockStatus(ib.GetStatus()).KnownInvalid() {
+		return 0
+	}
 	block, err := b.FetchBlockByHash(h)
 	if err != nil {
 		return 0
@@ -1281,4 +1299,40 @@ func (b *BlockChain) GetFees(h *hash.Hash) int64 {
 	b.CalculateDAGDuplicateTxs(block)
 
 	return b.CalculateFees(block)
+}
+
+func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
+
+	status := BlockStatus(state)
+	if status.KnownInvalid() {
+		return 0
+	}
+	block, err := b.FetchBlockByHash(blockhash)
+	if err != nil {
+		log.Error(fmt.Sprintf("CalcWeight:%v", err))
+		return 0
+	}
+	if b.IsDuplicateTx(block.Transactions()[0].Hash(), blockhash) {
+		return 0
+	}
+	return b.subsidyCache.CalcBlockSubsidy(blocks)
+}
+
+func (b *BlockChain) CheckCacheInvalidTxConfig() error {
+	if b.CacheInvalidTx {
+		hasConfig := true
+		b.db.View(func(dbTx database.Tx) error {
+			meta := dbTx.Metadata()
+			citData := meta.Get(dbnamespace.CacheInvalidTxName)
+			if citData == nil {
+				hasConfig = false
+			}
+			return nil
+		})
+		if hasConfig {
+			return nil
+		}
+		return fmt.Errorf("You must use --droptxindex before you use --cacheinvalidtx.")
+	}
+	return nil
 }

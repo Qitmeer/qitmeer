@@ -85,6 +85,11 @@ type Config struct {
 	Zmqpubhashtx string `long:"zmqpubhashtx" description:"Enable publish hash transaction in <address>"`
 	Zmqpubrawtx  string `long:"zmqpubrawtx" description:"Enable publish raw transaction in <address>"`
 
+	// Cache Invalid tx
+	CacheInvalidTx bool `long:"cacheinvalidtx" description:"Cache invalid transactions."`
+
+	NTP bool `long:"ntp" description:"Auto sync time."`
+
 	//net2.0
 	BootstrapNodes []string `long:"bootstrapnode" description:"The address of bootstrap node."`
 	NoDiscovery    bool     `long:"nodiscovery" description:"Enable only local network p2p and do not connect to cloud bootstrap nodes."`

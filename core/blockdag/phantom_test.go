@@ -2,11 +2,18 @@ package blockdag
 
 import (
 	"fmt"
+	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	"strconv"
 	"testing"
 )
 
+func TestMain(m *testing.M) {
+	m.Run()
+	exit()
+}
+
 func Test_GetFutureSet(t *testing.T) {
+
 	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()

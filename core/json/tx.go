@@ -23,6 +23,7 @@ type TxRawResult struct {
 	Time          int64  `json:"time,omitempty"`
 	Blocktime     int64  `json:"blocktime,omitempty"`
 	Duplicate     bool   `json:"duplicate,omitempty"`
+	Txsvalid      bool   `json:"txsvalid"`
 }
 
 // Vin models parts of the tx data.  It is defined separately since

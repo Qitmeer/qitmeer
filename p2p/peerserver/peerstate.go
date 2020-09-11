@@ -2,6 +2,7 @@ package peerserver
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/log"
 	"time"
 )
@@ -44,9 +45,9 @@ func (ps *peerState) forAllOutboundPeers(closure func(sp *serverPeer)) {
 
 func (ps *peerState) IsBanPeer(host string) bool {
 	if banEnd, ok := ps.banned[host]; ok {
-		if time.Now().Before(banEnd) {
+		if roughtime.Now().Before(banEnd) {
 			log.Debug(fmt.Sprintf("Peer %s is banned for another %v - disconnecting",
-				host, time.Until(banEnd)))
+				host, roughtime.Until(banEnd)))
 			return true
 		}
 		log.Info("Peer is no longer banned", "peer", host)
