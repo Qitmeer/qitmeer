@@ -7,6 +7,7 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"io"
 	"reflect"
 	"strings"
@@ -47,6 +48,15 @@ func (s *Service) registerHandlers() {
 }
 
 func (s *Service) startSync() {
+	s.AddConnectionHandler(s.reValidatePeer, s.sendGenericGoodbyeMessage)
+	s.AddDisconnectionHandler(func(_ context.Context, _ peer.ID) error {
+		// TODO
+		return nil
+	})
+
+	s.AddPingMethod(s.sendPingRequest)
+
+	s.maintainPeerStatuses()
 
 }
 
@@ -119,7 +129,7 @@ func (s *Service) registerRPC(topic string, base interface{}, handle rpcHandler)
 			return
 		}
 		if err := handle(ctx, msg.Interface(), stream); err != nil {
-			log.Warn("Failed to handle p2p RPC:%v", err)
+			log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
 		}
 	})
 }
@@ -151,3 +161,5 @@ func ReadStatusCode(stream io.Reader, encoding encoder.NetworkEncoding) (uint8, 
 
 	return b[0], string(msg.Message), nil
 }
+
+// sync

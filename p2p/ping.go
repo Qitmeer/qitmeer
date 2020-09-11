@@ -11,9 +11,12 @@ package p2p
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"time"
 )
 
 // pingHandler reads the incoming ping rpc message from the peer.
@@ -61,6 +64,55 @@ func (s *Service) pingHandler(ctx context.Context, msg interface{}, stream libp2
 		s.Peers().SetMetadata(stream.Conn().RemotePeer(), md)
 	}()
 
+	return nil
+}
+
+func (s *Service) sendPingRequest(ctx context.Context, id peer.ID) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	metadataSeq := s.MetadataSeq()
+	stream, err := s.Send(ctx, &metadataSeq, RPCPingTopic, id)
+	if err != nil {
+		return err
+	}
+	currentTime := roughtime.Now()
+	defer func() {
+		if err := stream.Reset(); err != nil {
+			log.Error(fmt.Sprintf("Failed to reset stream with protocol %s", stream.Protocol()))
+		}
+	}()
+
+	code, errMsg, err := ReadStatusCode(stream, s.Encoding())
+	if err != nil {
+		return err
+	}
+	// Records the latency of the ping request for that peer.
+	s.Host().Peerstore().RecordLatency(id, roughtime.Now().Sub(currentTime))
+
+	if code != 0 {
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		return errors.New(errMsg)
+	}
+	msg := new(uint64)
+	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
+		return err
+	}
+	valid, err := s.validateSequenceNum(*msg, stream.Conn().RemotePeer())
+	if err != nil {
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		return err
+	}
+	if valid {
+		return nil
+	}
+	md, err := s.sendMetaDataRequest(ctx, stream.Conn().RemotePeer())
+	if err != nil {
+		// do not increment bad responses, as its
+		// already done in the request method.
+		return err
+	}
+	s.Peers().SetMetadata(stream.Conn().RemotePeer(), md)
 	return nil
 }
 

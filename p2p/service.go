@@ -264,7 +264,7 @@ func (s *Service) RefreshQNR() {
 		return
 	}
 	// ping all peers to inform them of new metadata
-	//s.pingPeers()
+	s.pingPeers()
 }
 
 // AddPingMethod adds the metadata ping rpc method to the p2p service, so that it can
