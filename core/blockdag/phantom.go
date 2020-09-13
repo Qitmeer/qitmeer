@@ -88,7 +88,7 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 
 		ph.calculateBlueSet(pb, diffAnticone)
 
-		ph.UpdateWeight(pb)
+		ph.UpdateWeight(pb, false)
 	} else {
 		//It is genesis
 		if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
@@ -725,7 +725,7 @@ func (ph *Phantom) getMaxParents() int {
 	return types.MaxParentsPerBlock
 }
 
-func (ph *Phantom) UpdateWeight(ib IBlock) {
+func (ph *Phantom) UpdateWeight(ib IBlock, store bool) {
 	pb := ib.(*PhantomBlock)
 	tp := ph.getBlock(pb.GetMainParent())
 	pb.weight = tp.GetWeight()
@@ -735,22 +735,20 @@ func (ph *Phantom) UpdateWeight(ib IBlock) {
 		pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), byte(bdpb.status)))
 	}
 
-	// TODO The next consensus version will be opened again
-	/*
-		if ph.bd.db == nil {
-			return
-		}
+	if ph.bd.db == nil || !store {
+		return
+	}
 
-		err := ph.bd.db.Update(func(dbTx database.Tx) error {
-			err := DBPutDAGBlock(dbTx, ib)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
+	err := ph.bd.db.Update(func(dbTx database.Tx) error {
+		err := DBPutDAGBlock(dbTx, ib)
 		if err != nil {
-			log.Error(err.Error())
-		}*/
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
 
 // The main chain of DAG is support incremental expansion
