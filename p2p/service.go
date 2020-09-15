@@ -198,7 +198,7 @@ func (s *Service) connectWithAllPeers(multiAddrs []multiaddr.Multiaddr) {
 		// make each dial non-blocking
 		go func(info peer.AddrInfo) {
 			if err := s.connectWithPeer(info); err != nil {
-				log.Trace("Could not connect with peer %s :%v", info.String(), err)
+				log.Trace(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
 			}
 		}(info)
 	}
@@ -252,7 +252,7 @@ func (s *Service) listenForNewNodes() {
 		}
 		go func(info *peer.AddrInfo) {
 			if err := s.connectWithPeer(*info); err != nil {
-				log.Trace("Could not connect with peer %s  :%v", info.String(), err)
+				log.Trace(fmt.Sprintf("Could not connect with peer %s  :%v", info.String(), err))
 			}
 		}(peerInfo)
 	}

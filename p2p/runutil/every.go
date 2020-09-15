@@ -26,7 +26,7 @@ func RunEvery(ctx context.Context, period time.Duration, f func()) {
 		for {
 			select {
 			case <-ticker.C:
-				log.Trace("running")
+				//log.Trace("running")
 				f()
 			case <-ctx.Done():
 				log.Debug(fmt.Sprintf("context is closed, exiting, function:%s", funcName))
