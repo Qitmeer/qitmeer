@@ -96,10 +96,7 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		if diffAnticone == nil {
 			diffAnticone = NewIdSet()
 		}
-
 		ph.calculateBlueSet(pb, diffAnticone)
-
-		//ph.UpdateWeight(pb, false)
 	} else {
 		//It is genesis
 		if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
