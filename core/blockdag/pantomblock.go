@@ -18,11 +18,8 @@ func (pb *PhantomBlock) IsBluer(other *PhantomBlock) bool {
 		(pb.blueNum == other.blueNum && pb.GetHash().String() < other.GetHash().String()) {
 		return true
 	}
-	if pb.blueNum == other.blueNum && pb.GetWeight() > other.GetWeight() {
-		return true
-	}
+
 	if pb.blueNum == other.blueNum &&
-		pb.GetWeight() == other.GetWeight() &&
 		pb.GetHash().String() < other.GetHash().String() {
 		return true
 	}
