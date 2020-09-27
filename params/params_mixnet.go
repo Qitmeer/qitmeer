@@ -16,7 +16,7 @@ import (
 
 // testMixNetPowLimit is the highest proof of work value a block can
 // have for the test network. It is the value 2^250 - 1.
-// target 0x3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+// target 0x03ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 250), common.Big1)
 
 // target time per block unit second(s)

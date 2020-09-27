@@ -10,7 +10,7 @@ import (
 
 func TestPowLimitToBits(t *testing.T) {
 	compact := pow.BigToCompact(testMixNetPowLimit)
-	assert.Equal(t, fmt.Sprintf("0x%x", testMixNetPowLimit), "0x3ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	assert.Equal(t, fmt.Sprintf("0x%064x", testMixNetPowLimit), "0x03ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 	assert.Equal(t, fmt.Sprintf("0x%x", compact), "0x2003ffff")
 }
 
