@@ -58,10 +58,10 @@ var MixNetParams = Params{
 
 		Percent: []pow.Percent{
 			{
-				Blake2bDPercent:         10,
-				CuckarooPercent:         20,
-				QitmeerKeccak256Percent: 50,
-				CuckaroomPercent:        10,
+				Blake2bDPercent:         20,
+				CuckarooPercent:         30,
+				QitmeerKeccak256Percent: 30,
+				CuckaroomPercent:        20,
 				MainHeight:              0,
 			},
 		},
