@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -45,12 +46,12 @@ type BlockChain struct {
 	// separate mutex.
 	checkpointsByLayer map[uint64]*params.Checkpoint
 
-	db            database.DB
-	dbInfo        *databaseInfo
-	timeSource    MedianTimeSource
-	notifications NotificationCallback
-	sigCache      *txscript.SigCache
-	indexManager  IndexManager
+	db           database.DB
+	dbInfo       *databaseInfo
+	timeSource   MedianTimeSource
+	events       *event.Feed
+	sigCache     *txscript.SigCache
+	indexManager IndexManager
 
 	// subsidyCache is the cache that provides quick lookup of subsidy
 	// values.
@@ -142,14 +143,14 @@ type Config struct {
 	// time is adjusted to be in agreement with other peers.
 	TimeSource MedianTimeSource
 
-	// Notifications defines a callback to which notifications will be sent
+	// Events defines a event manager to which notifications will be sent
 	// when various events take place.  See the documentation for
 	// Notification and NotificationType for details on the types and
 	// contents of notifications.
 	//
 	// This field can be nil if the caller is not interested in receiving
 	// notifications.
-	Notifications NotificationCallback
+	Events *event.Feed
 
 	// SigCache defines a signature cache to use when when validating
 	// signatures.  This is typically most useful when individual
@@ -259,7 +260,7 @@ func New(config *Config) (*BlockChain, error) {
 		db:                 config.DB,
 		params:             par,
 		timeSource:         config.TimeSource,
-		notifications:      config.Notifications,
+		events:             config.Events,
 		sigCache:           config.SigCache,
 		indexManager:       config.IndexManager,
 		index:              newBlockIndex(config.DB, par),

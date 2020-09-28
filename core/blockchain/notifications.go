@@ -8,17 +8,13 @@ package blockchain
 
 import (
 	"fmt"
-
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/types"
 )
 
 // NotificationType represents the type of a notification message.
 type NotificationType int
-
-// NotificationCallback is used for a caller to provide a callback for
-// notifications about various chain events.
-type NotificationCallback func(*Notification)
 
 // Constants for the type of a notification message.
 const (
@@ -103,7 +99,7 @@ type Notification struct {
 // to New.
 func (b *BlockChain) sendNotification(typ NotificationType, data interface{}) {
 	// Ignore it if the caller didn't request notifications.
-	if b.notifications == nil {
+	if b.events == nil {
 		return
 	}
 
@@ -111,6 +107,6 @@ func (b *BlockChain) sendNotification(typ NotificationType, data interface{}) {
 	n := Notification{Type: typ, Data: data}
 	log.Trace("send blkmgr notification", "type", n.Type, "data", n.Data)
 	b.ChainUnlock()
-	b.notifications(&n)
+	b.events.Send(event.New(&n))
 	b.ChainLock()
 }

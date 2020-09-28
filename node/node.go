@@ -6,6 +6,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/p2p/peerserver"
 	"github.com/Qitmeer/qitmeer/params"
@@ -44,6 +45,9 @@ type Node struct {
 
 	// api server
 	rpcServer *rpc.RpcServer
+
+	// event system
+	events event.Feed
 }
 
 func NewNode(cfg *config.Config, database database.DB, chainParams *params.Params, shutdownRequestChannel chan struct{}) (*Node, error) {
