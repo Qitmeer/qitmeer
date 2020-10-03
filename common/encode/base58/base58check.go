@@ -69,29 +69,45 @@ func DoubleHashChecksumFunc(hasher hash.Hasher, cksum_size int) func([]byte) []b
 }
 
 // CheckEncode prepends two version bytes and appends a four byte checksum.
-func QitmeerCheckEncode(input []byte, version []byte) string {
+func QitmeerCheckEncode(input []byte, version []byte) ([]byte, error) {
 	return CheckEncode(input, version[:], 4, checksum_qitmeer)
 }
 
-func DcrCheckEncode(input []byte, version [2]byte) string {
+func DcrCheckEncode(input []byte, version [2]byte) ([]byte, error) {
 	return CheckEncode(input, version[:], 4, checksum_dcr)
 }
-func BtcCheckEncode(input []byte, version byte) string {
+func BtcCheckEncode(input []byte, version byte) ([]byte, error) {
 	var ver []byte
 	ver = append(ver, version)
 	return CheckEncode(input, ver[:], 4, checksum_btc)
 }
 
-func CheckEncode(input []byte, version []byte, cksum_size int, cksumfunc func([]byte) []byte) string {
+func checkInputOverflow(input []byte) ([]byte, error){
+	if len(input) > 64*1024*1024 {
+		return nil, errors.New("value too large")
+	}
+	return input,nil
+}
+
+func CheckEncode(input []byte, version []byte, cksum_size int, cksumfunc func([]byte) []byte) ([]byte, error) {
+	input, err := checkInputOverflow(input)
+	if err != nil {
+		return nil, err
+	}
 	b := make([]byte, 0, len(version)+len(input)+cksum_size)
 	b = append(b, version[:]...)
 	b = append(b, input[:]...)
 	var cksum []byte = cksumfunc(b)
 	b = append(b, cksum[:]...)
-	return Encode(b)
+	enc,_ := Encode(b)  //need not check input overflow again, ignore err here
+	return enc,nil
 }
 
-func CheckDecode(input string, version_size, cksum_size int, cksumfunc func([]byte) []byte) (result []byte, version []byte, err error) {
+func CheckDecode(input []byte, version_size, cksum_size int, cksumfunc func([]byte) []byte) (result []byte, version []byte, err error) {
+	input,err = checkInputOverflow(input)
+	if err != nil {
+		return nil, nil, err
+	}
 	decoded := Decode(input)
 	if len(decoded) < cksum_size+version_size {
 		return nil, []byte{}, ErrInvalidFormat
@@ -110,7 +126,7 @@ func CheckDecode(input string, version_size, cksum_size int, cksumfunc func([]by
 // QitmeerCheckDecode decodes a string that was encoded with 2 bytes version and verifies
 // the checksum using blake2b-256 hash.
 func QitmeerCheckDecode(input string) (result []byte, version [2]byte, err error) {
-	r, v, err := CheckDecode(input, 2, 4, checksum_qitmeer)
+	r, v, err := CheckDecode([]byte(input), 2, 4, checksum_qitmeer)
 	if err != nil {
 		return nil, [2]byte{}, err
 	}
@@ -118,7 +134,7 @@ func QitmeerCheckDecode(input string) (result []byte, version [2]byte, err error
 }
 
 func BtcCheckDecode(input string) (result []byte, version byte, err error) {
-	r, v, err := CheckDecode(input, 1, 4, checksum_btc)
+	r, v, err := CheckDecode([]byte(input), 1, 4, checksum_btc)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -126,7 +142,7 @@ func BtcCheckDecode(input string) (result []byte, version byte, err error) {
 }
 
 func DcrCheckDecode(input string) (result []byte, version [2]byte, err error) {
-	r, v, err := CheckDecode(input, 2, 4, checksum_dcr)
+	r, v, err := CheckDecode([]byte(input), 2, 4, checksum_dcr)
 	if err != nil {
 		return nil, [2]byte{}, err
 	}

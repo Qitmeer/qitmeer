@@ -61,16 +61,16 @@ func TestBase58Check(t *testing.T) {
 		ver[0] = test.version0
 		ver[1] = test.version1
 		// test encoding
-		var eRes string
+		var eRes []byte
 		switch ver[0] {
 		case 0x42:
-			eRes = base58.BtcCheckEncode([]byte(test.in), ver[1])
+			eRes,_ = base58.BtcCheckEncode([]byte(test.in), ver[1])
 		case 0x44:
-			eRes = base58.DcrCheckEncode([]byte(test.in), ver)
+			eRes,_ = base58.DcrCheckEncode([]byte(test.in), ver)
 		default:
-			eRes = base58.QitmeerCheckEncode([]byte(test.in), ver[:])
+			eRes,_ = base58.QitmeerCheckEncode([]byte(test.in), ver[:])
 		}
-		if eRes != test.out {
+		if string(eRes) != test.out {
 			t.Errorf("CheckEncode test #%d failed: got %s, want: %s", x, eRes, test.out)
 		}
 		var res []byte
