@@ -59,7 +59,7 @@ func SeedFromDNS(chainParams *params.Params, reqServices protocol.ServiceFlag, l
 			}
 			addresses := make([]*types.NetAddress, len(seedpeers))
 			// if this errors then we have *real* problems
-			intPort, _ := strconv.Atoi(chainParams.DefaultPort)
+			intPort, _ := strconv.ParseUint(chainParams.DefaultPort,10,16)
 			for i, peer := range seedpeers {
 				addresses[i] = types.NewNetAddressTimestamp(
 					// bitcoind seeds with addresses from

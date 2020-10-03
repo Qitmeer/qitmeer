@@ -93,7 +93,7 @@ func (v *TxInputsFlag) Set(s string) error {
 		return fmt.Errorf("tx hash should be 32 bytes")
 	}
 
-	index, err := strconv.ParseUint(input[1], 10, 64)
+	index, err := strconv.ParseUint(input[1], 10, 32)
 	if err != nil {
 		return err
 	}
