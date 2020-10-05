@@ -12,7 +12,6 @@ import (
 
 // maintainPeerStatuses by infrequently polling peers for their latest status.
 func (s *Service) maintainPeerStatuses() {
-	// Run twice per epoch.
 	interval := time.Minute
 	runutil.RunEvery(s.ctx, interval, func() {
 		for _, pid := range s.Peers().Connected() {
