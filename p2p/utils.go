@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-const keyPath = "network-keys"
+const keyPath = "network.key"
 const metaDataPath = "metaData"
 
 const dialTimeout = 1 * time.Second

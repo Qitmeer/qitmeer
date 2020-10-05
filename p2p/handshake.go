@@ -101,7 +101,7 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 				if conn.Stat().Direction == network.DirInbound {
 					_, err := s.peers.ChainState(remotePeer)
 					peerExists := err == nil
-					currentTime := time.Now()
+					//currentTime := time.Now()
 
 					// Wait for peer to initiate handshake
 					time.Sleep(timeForStatus)
@@ -117,17 +117,18 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 						return
 					}
 					if peerExists {
-						updated, err := s.peers.ChainStateLastUpdated(remotePeer)
+						/*updated*/ _, err := s.peers.ChainStateLastUpdated(remotePeer)
 						if err != nil {
 							disconnectFromPeer()
 							return
 						}
+						// TODO Optimize Block DAG State
 						// exit if we don't receive any current status messages from
 						// peer.
-						if updated.IsZero() || !updated.After(currentTime) {
+						/*if updated.IsZero() || !updated.After(currentTime) {
 							disconnectFromPeer()
 							return
-						}
+						}*/
 					}
 					validPeerConnection()
 					return
