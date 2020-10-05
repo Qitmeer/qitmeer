@@ -294,13 +294,13 @@ func TestCoverage(t *testing.T) {
 	} else {
 		t.Log("Coverage Decode separator '1' at invalid position error case : ok / error :", err)
 	}
-	_, _, err = bech32.Decode("a" + string(32) + "1qqqqqq")
+	_, _, err = bech32.Decode("a" + string(rune(32)) + "1qqqqqq")
 	if err == nil {
 		t.Errorf("Coverage Decode invalid character human-readable part error case : FAIL")
 	} else {
 		t.Log("Coverage Decode invalid character human-readable part error case : ok / error :", err)
 	}
-	_, _, err = bech32.Decode("a" + string(127) + "1qqqqqq")
+	_, _, err = bech32.Decode("a" + string(rune(127)) + "1qqqqqq")
 	if err == nil {
 		t.Errorf("Coverage Decode invalid character human-readable part error case : FAIL")
 	} else {
@@ -353,7 +353,7 @@ func TestCoverage(t *testing.T) {
 	} else {
 		t.Log("Coverage Encode mix case error case : ok / error : ", err)
 	}
-	hrp = string(33) + string(126)
+	hrp = string(rune(33)) + string(rune(126))
 	data = make([]int, 90-7-len(hrp))
 	bech32String, err = bech32.Encode(hrp, data)
 	if err != nil {
@@ -361,7 +361,7 @@ func TestCoverage(t *testing.T) {
 	} else {
 		t.Log("Coverage Encode normal case : ok / bech32String : ", bech32String)
 	}
-	hrp = string(32) + "c"
+	hrp = string(rune(32)) + "c"
 	data = make([]int, 90-7-len(hrp))
 	bech32String, err = bech32.Encode(hrp, data)
 	if err == nil {
@@ -369,7 +369,7 @@ func TestCoverage(t *testing.T) {
 	} else {
 		t.Log("Coverage Encode invalid character human-readable part error case : ok / error : ", err)
 	}
-	hrp = "b" + string(127)
+	hrp = "b" + string(rune(127))
 	data = make([]int, 90-7-len(hrp))
 	bech32String, err = bech32.Encode(hrp, data)
 	if err == nil {
@@ -420,7 +420,7 @@ func TestBech32(t *testing.T) {
 		{"split1checkupstagehandshakeupstreamerranterredcaperred2y9e3w", true},
 		{"split1checkupstagehandshakeupstreamerranterredcaperred2y9e2w", false},                   // invalid checksum
 		{"s lit1checkupstagehandshakeupstreamerranterredcaperredp8hs2p", false},                   // invalid character (space) in hrp
-		{"spl" + string(127) + "t1checkupstagehandshakeupstreamerranterredcaperred2y9e3w", false}, // invalid character (DEL) in hrp
+		{"spl" + string(rune(127)) + "t1checkupstagehandshakeupstreamerranterredcaperred2y9e3w", false}, // invalid character (DEL) in hrp
 		{"split1cheo2y9e2w", false}, // invalid character (o) in data part
 		{"split1a2y9w", false},      // too short data part
 		{"1checkupstagehandshakeupstreamerranterredcaperred2y9e3w", false},                                     // empty hrp

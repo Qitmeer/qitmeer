@@ -248,10 +248,10 @@ func TestAddress(t *testing.T) {
 			var saddr []byte
 			switch d := decoded.(type) {
 			case *PubKeyHashAddress:
-				decoded := base58.Decode(encode)
+				decoded := base58.Decode([]byte(encode))
 				saddr = decoded[2 : 2+ripemd160.Size]
 			case *ScriptHashAddress:
-				decoded := base58.Decode(encode)
+				decoded := base58.Decode([]byte(encode))
 				saddr = decoded[2 : 2+ripemd160.Size]
 			case *SecpPubKeyAddress:
 				// Ignore the error here since the script

@@ -92,7 +92,7 @@ func HashrateToCompact(difficulty string, blocktime int) {
 }
 
 func CompactToGPS(compactS string, blockTime, scale int, printDetail bool) {
-	compact, err := strconv.ParseUint(compactS, 10, 64)
+	compact, err := strconv.ParseUint(compactS, 10, 32)
 	if err != nil {
 		ErrExit(err)
 	}

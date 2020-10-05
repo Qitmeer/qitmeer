@@ -88,11 +88,12 @@ func addChecksumToBytes(data []byte) ([]byte, error) {
 }
 
 func base58Encode(data []byte) string {
-	return base58.Encode(data)
+	enc,_ :=base58.Encode(data)
+	return string(enc)
 }
 
 func base58Decode(data string) ([]byte, error) {
-	result := base58.Decode(data)
+	result := base58.Decode([]byte(data))
 	return result, nil
 }
 

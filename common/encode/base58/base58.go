@@ -16,7 +16,7 @@ var bigRadix = big.NewInt(58)
 var bigZero = big.NewInt(0)
 
 // Decode decodes a modified base58 string to a byte slice.
-func Decode(b string) []byte {
+func Decode(b []byte) []byte {
 	answer := big.NewInt(0)
 	j := big.NewInt(1)
 
@@ -48,11 +48,15 @@ func Decode(b string) []byte {
 }
 
 // Encode encodes a byte slice to a modified base58 string.
-func Encode(b []byte) string {
+func Encode(b []byte) ([]byte, error) {
 	x := new(big.Int)
 	x.SetBytes(b)
 
-	answer := make([]byte, 0, len(b)*136/100)
+	input,err := checkInputOverflow(b)
+	if err != nil {
+		return nil,err
+	}
+	answer := make([]byte, 0, len(input)*136/100)
 	for x.Cmp(bigZero) > 0 {
 		mod := new(big.Int)
 		x.DivMod(x, bigRadix, mod)
@@ -73,5 +77,5 @@ func Encode(b []byte) string {
 		answer[i], answer[alen-1-i] = answer[alen-1-i], answer[i]
 	}
 
-	return string(answer)
+	return answer,nil
 }

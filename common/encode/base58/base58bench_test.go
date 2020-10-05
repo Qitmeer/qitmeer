@@ -27,7 +27,7 @@ func BenchmarkBase58Encode(b *testing.B) {
 func BenchmarkBase58Decode(b *testing.B) {
 	b.StopTimer()
 	data := bytes.Repeat([]byte{0xff}, 5000)
-	encoded := base58.Encode(data)
+	encoded,_ := base58.Encode(data)
 	b.SetBytes(int64(len(encoded)))
 	b.StartTimer()
 
