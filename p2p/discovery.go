@@ -190,7 +190,7 @@ func parseBootStrapAddrs(addrs []string) (discv5Nodes []string) {
 	return discv5Nodes
 }
 
-func parseGenericAddrs(addrs []string) (enodeString []string, multiAddrString []string) {
+func parseGenericAddrs(addrs []string) (qnodeString []string, multiAddrString []string) {
 	for _, addr := range addrs {
 		if addr == "" {
 			// Ignore empty entries
@@ -198,7 +198,7 @@ func parseGenericAddrs(addrs []string) (enodeString []string, multiAddrString []
 		}
 		_, err := qnode.Parse(qnode.ValidSchemes, addr)
 		if err == nil {
-			enodeString = append(enodeString, addr)
+			qnodeString = append(qnodeString, addr)
 			continue
 		}
 		_, err = multiAddrFromString(addr)
@@ -208,7 +208,7 @@ func parseGenericAddrs(addrs []string) (enodeString []string, multiAddrString []
 		}
 		log.Error(fmt.Sprintf("Invalid address of %s provided: %v", addr, err.Error()))
 	}
-	return enodeString, multiAddrString
+	return qnodeString, multiAddrString
 }
 
 func convertToMultiAddr(nodes []*qnode.Node) []ma.Multiaddr {
@@ -261,7 +261,7 @@ func convertToSingleMultiAddr(node *qnode.Node) (ma.Multiaddr, error) {
 
 func peersFromStringAddrs(addrs []string) ([]ma.Multiaddr, error) {
 	var allAddrs []ma.Multiaddr
-	enodeString, multiAddrString := parseGenericAddrs(addrs)
+	qnodeString, multiAddrString := parseGenericAddrs(addrs)
 	for _, stringAddr := range multiAddrString {
 		addr, err := multiAddrFromString(stringAddr)
 		if err != nil {
@@ -269,12 +269,12 @@ func peersFromStringAddrs(addrs []string) ([]ma.Multiaddr, error) {
 		}
 		allAddrs = append(allAddrs, addr)
 	}
-	for _, stringAddr := range enodeString {
-		enodeAddr, err := qnode.Parse(qnode.ValidSchemes, stringAddr)
+	for _, stringAddr := range qnodeString {
+		qnodeAddr, err := qnode.Parse(qnode.ValidSchemes, stringAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get enode from string")
+			return nil, errors.Wrapf(err, "Could not get qnode from string")
 		}
-		addr, err := convertToSingleMultiAddr(enodeAddr)
+		addr, err := convertToSingleMultiAddr(qnodeAddr)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Could not get multiaddr")
 		}
