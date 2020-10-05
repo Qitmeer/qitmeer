@@ -22,7 +22,7 @@ var (
 type Status struct {
 	lock            sync.RWMutex
 	maxBadResponses int
-	status          map[peer.ID]*peerStatus
+	peers           map[peer.ID]*Peer
 }
 
 // MaxBadResponses returns the maximum number of bad responses a peer can provide before it is considered bad.
@@ -35,7 +35,7 @@ func (p *Status) Bad() []peer.ID {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
-	for pid, status := range p.status {
+	for pid, status := range p.peers {
 		if status.badResponses >= p.maxBadResponses {
 			peers = append(peers, pid)
 		}
@@ -49,7 +49,7 @@ func (p *Status) IsBad(pid peer.ID) bool {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if status, ok := p.status[pid]; ok {
+	if status, ok := p.peers[pid]; ok {
 		return status.badResponses >= p.maxBadResponses
 	}
 	return false
@@ -64,12 +64,12 @@ func (p *Status) IncrementBadResponses(pid peer.ID) {
 	status.badResponses++
 }
 
-// fetch is a helper function that fetches a peer status, possibly creating it.
-func (p *Status) fetch(pid peer.ID) *peerStatus {
-	if _, ok := p.status[pid]; !ok {
-		p.status[pid] = &peerStatus{}
+// fetch is a helper function that fetches a peer, possibly creating it.
+func (p *Status) fetch(pid peer.ID) *Peer {
+	if _, ok := p.peers[pid]; !ok {
+		p.peers[pid] = NewPeer(pid)
 	}
-	return p.status[pid]
+	return p.peers[pid]
 }
 
 // Add adds a peer.
@@ -78,25 +78,15 @@ func (p *Status) Add(record *qnr.Record, pid peer.ID, address ma.Multiaddr, dire
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	if status, ok := p.status[pid]; ok {
+	if pe, ok := p.peers[pid]; ok {
 		// Peer already exists, just update its address info.
-		status.address = address
-		status.direction = direction
-		if record != nil {
-			status.qnr = record
-		}
+		pe.UpdateAddrDir(record, address, direction)
 		return
 	}
-	status := &peerStatus{
-		address:   address,
-		direction: direction,
-		// Peers start disconnected; state will be updated when the handshake process begins.
-		peerState: PeerDisconnected,
-	}
-	if record != nil {
-		status.qnr = record
-	}
-	p.status[pid] = status
+	pe := NewPeer(pid)
+	pe.UpdateAddrDir(record, address, direction)
+
+	p.peers[pid] = pe
 }
 
 // Address returns the multiaddress of the given remote peer.
@@ -105,7 +95,7 @@ func (p *Status) Address(pid peer.ID) (ma.Multiaddr, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if status, ok := p.status[pid]; ok {
+	if status, ok := p.peers[pid]; ok {
 		return status.address, nil
 	}
 	return nil, ErrPeerUnknown
@@ -117,18 +107,18 @@ func (p *Status) Direction(pid peer.ID) (network.Direction, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if status, ok := p.status[pid]; ok {
+	if status, ok := p.peers[pid]; ok {
 		return status.direction, nil
 	}
 	return network.DirUnknown, ErrPeerUnknown
 }
 
-// ENR returns the enr for the corresponding peer id.
-func (p *Status) ENR(pid peer.ID) (*qnr.Record, error) {
+// QNR returns the enr for the corresponding peer id.
+func (p *Status) QNR(pid peer.ID) (*qnr.Record, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if status, ok := p.status[pid]; ok {
+	if status, ok := p.peers[pid]; ok {
 		return status.qnr, nil
 	}
 	return nil, ErrPeerUnknown
@@ -151,7 +141,7 @@ func (p *Status) ChainState(pid peer.ID) (string, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if status, ok := p.status[pid]; ok {
+	if status, ok := p.peers[pid]; ok {
 		return status.chainState, nil
 	}
 	return "", ErrPeerUnknown
@@ -162,7 +152,7 @@ func (p *Status) IsActive(pid peer.ID) bool {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	status, ok := p.status[pid]
+	status, ok := p.peers[pid]
 	return ok && (status.peerState == PeerConnected || status.peerState == PeerConnecting)
 }
 
@@ -181,7 +171,7 @@ func (p *Status) Metadata(pid peer.ID) (*pb.MetaData, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if status, ok := p.status[pid]; ok {
+	if status, ok := p.peers[pid]; ok {
 		return proto.Clone(status.metaData).(*pb.MetaData), nil
 	}
 	return nil, ErrPeerUnknown
@@ -192,7 +182,7 @@ func (p *Status) CommitteeIndices(pid peer.ID) ([]uint64, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if status, ok := p.status[pid]; ok {
+	if status, ok := p.peers[pid]; ok {
 		if status.qnr == nil || status.metaData == nil {
 			return []uint64{}, nil
 		}
@@ -208,7 +198,7 @@ func (p *Status) SubscribedToSubnet(index uint64) []peer.ID {
 	defer p.lock.RUnlock()
 
 	peers := make([]peer.ID, 0)
-	for pid, status := range p.status {
+	for pid, status := range p.peers {
 		// look at active peers
 		connectedStatus := status.peerState == PeerConnecting || status.peerState == PeerConnected
 		if connectedStatus && status.metaData != nil && status.metaData.Attnets != nil {
@@ -239,7 +229,7 @@ func (p *Status) ConnectionState(pid peer.ID) (PeerConnectionState, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if status, ok := p.status[pid]; ok {
+	if status, ok := p.peers[pid]; ok {
 		return status.peerState, nil
 	}
 	return PeerDisconnected, ErrPeerUnknown
@@ -251,7 +241,7 @@ func (p *Status) ChainStateLastUpdated(pid peer.ID) (time.Time, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if status, ok := p.status[pid]; ok {
+	if status, ok := p.peers[pid]; ok {
 		return status.chainStateLastUpdated, nil
 	}
 	return time.Now(), ErrPeerUnknown
@@ -263,7 +253,7 @@ func (p *Status) BadResponses(pid peer.ID) (int, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if status, ok := p.status[pid]; ok {
+	if status, ok := p.peers[pid]; ok {
 		return status.badResponses, nil
 	}
 	return -1, ErrPeerUnknown
@@ -274,7 +264,7 @@ func (p *Status) Connecting() []peer.ID {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
-	for pid, status := range p.status {
+	for pid, status := range p.peers {
 		if status.peerState == PeerConnecting {
 			peers = append(peers, pid)
 		}
@@ -287,7 +277,7 @@ func (p *Status) Connected() []peer.ID {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
-	for pid, status := range p.status {
+	for pid, status := range p.peers {
 		if status.peerState == PeerConnected {
 			peers = append(peers, pid)
 		}
@@ -300,7 +290,7 @@ func (p *Status) Active() []peer.ID {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
-	for pid, status := range p.status {
+	for pid, status := range p.peers {
 		if status.peerState == PeerConnecting || status.peerState == PeerConnected {
 			peers = append(peers, pid)
 		}
@@ -313,7 +303,7 @@ func (p *Status) Disconnecting() []peer.ID {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
-	for pid, status := range p.status {
+	for pid, status := range p.peers {
 		if status.peerState == PeerDisconnecting {
 			peers = append(peers, pid)
 		}
@@ -326,7 +316,7 @@ func (p *Status) Disconnected() []peer.ID {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
-	for pid, status := range p.status {
+	for pid, status := range p.peers {
 		if status.peerState == PeerDisconnected {
 			peers = append(peers, pid)
 		}
@@ -339,7 +329,7 @@ func (p *Status) Inactive() []peer.ID {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
-	for pid, status := range p.status {
+	for pid, status := range p.peers {
 		if status.peerState == PeerDisconnecting || status.peerState == PeerDisconnected {
 			peers = append(peers, pid)
 		}
@@ -351,8 +341,8 @@ func (p *Status) Inactive() []peer.ID {
 func (p *Status) All() []peer.ID {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
-	pids := make([]peer.ID, 0, len(p.status))
-	for pid := range p.status {
+	pids := make([]peer.ID, 0, len(p.peers))
+	for pid := range p.peers {
 		pids = append(pids, pid)
 	}
 	return pids
@@ -364,7 +354,7 @@ func (p *Status) All() []peer.ID {
 func (p *Status) Decay() {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	for _, status := range p.status {
+	for _, status := range p.peers {
 		if status.badResponses > 0 {
 			status.badResponses--
 		}
@@ -375,7 +365,7 @@ func (p *Status) Decay() {
 func NewStatus(maxBadResponses int) *Status {
 	return &Status{
 		maxBadResponses: maxBadResponses,
-		status:          make(map[peer.ID]*peerStatus),
+		peers:           make(map[peer.ID]*Peer),
 	}
 }
 

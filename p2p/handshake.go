@@ -83,7 +83,7 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 					log.Trace(fmt.Sprintf("%s currentState:%d reason:already active, Ignoring connection request", peerInfoStr, peerConnectionState))
 					return
 				}
-				s.peers.Add(nil /* ENR */, remotePeer, conn.RemoteMultiaddr(), conn.Stat().Direction)
+				s.peers.Add(nil /* QNR */, remotePeer, conn.RemoteMultiaddr(), conn.Stat().Direction)
 				if s.peers.IsBad(remotePeer) {
 					log.Trace(fmt.Sprintf("%s reason bad peer, Ignoring connection request.", peerInfoStr))
 					disconnectFromPeer()
