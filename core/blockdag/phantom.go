@@ -45,7 +45,18 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 
 	ph.bd.order = map[uint]uint{}
 
+	// main chain
 	ph.mainChain = &MainChain{bd, MaxId, 0}
+	ph.bd.db.Update(func(dbTx database.Tx) error {
+		meta := dbTx.Metadata()
+		mchBucket := meta.Bucket(dbnamespace.DagMainChainBucketName)
+		var err error
+		if mchBucket == nil {
+			_, err = meta.CreateBucket(dbnamespace.DagMainChainBucketName)
+		}
+		return err
+	})
+
 	ph.diffAnticone = NewIdSet()
 
 	//vb
@@ -85,10 +96,7 @@ func (ph *Phantom) updateBlockColor(pb *PhantomBlock) {
 		if diffAnticone == nil {
 			diffAnticone = NewIdSet()
 		}
-
 		ph.calculateBlueSet(pb, diffAnticone)
-
-		ph.UpdateWeight(pb, false)
 	} else {
 		//It is genesis
 		if !pb.GetHash().IsEqual(ph.bd.GetGenesisHash()) {
