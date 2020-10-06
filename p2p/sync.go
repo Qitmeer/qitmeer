@@ -37,6 +37,12 @@ type rpcHandler func(context.Context, interface{}, libp2pcore.Stream) error
 // RespTimeout is the maximum time for complete response transfer.
 const RespTimeout = 10 * time.Second
 
+// ReqTimeout is the maximum time for complete request transfer.
+const ReqTimeout = 10 * time.Second
+
+// HandleTimeout is the maximum time for complete handler.
+const HandleTimeout = 5 * time.Second
+
 func (s *Service) registerHandlers() {
 	s.registerRPCHandlers()
 	//s.registerSubscribers()

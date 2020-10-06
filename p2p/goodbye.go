@@ -25,7 +25,7 @@ func (s *Service) goodbyeRPCHandler(ctx context.Context, msg interface{}, stream
 			log.Error("Failed to close stream")
 		}
 	}()
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	defer cancel()
 	SetRPCStreamDeadlines(stream)
 
@@ -40,7 +40,7 @@ func (s *Service) goodbyeRPCHandler(ctx context.Context, msg interface{}, stream
 }
 
 func (s *Service) sendGoodByeMessage(ctx context.Context, code uint64, id peer.ID) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
 	stream, err := s.Send(ctx, &code, RPCGoodByeTopic, id)

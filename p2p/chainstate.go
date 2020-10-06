@@ -21,7 +21,7 @@ const (
 )
 
 func (s *Service) sendChainStateRequest(ctx context.Context, id peer.ID) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
 	resp := s.getChainState()
@@ -67,7 +67,7 @@ func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream
 	defer func() {
 		closeSteam(stream)
 	}()
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	defer cancel()
 
 	SetRPCStreamDeadlines(stream)

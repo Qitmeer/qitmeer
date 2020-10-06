@@ -16,7 +16,6 @@ import (
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
-	"time"
 )
 
 // metaDataHandler reads the incoming metadata rpc request from the peer.
@@ -24,7 +23,7 @@ func (s *Service) metaDataHandler(ctx context.Context, msg interface{}, stream l
 	defer func() {
 		closeSteam(stream)
 	}()
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	defer cancel()
 	SetRPCStreamDeadlines(stream)
 
@@ -36,7 +35,7 @@ func (s *Service) metaDataHandler(ctx context.Context, msg interface{}, stream l
 }
 
 func (s *Service) sendMetaDataRequest(ctx context.Context, id peer.ID) (*pb.MetaData, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
 	stream, err := s.Send(ctx, new(interface{}), RPCMetaDataTopic, id)

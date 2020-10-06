@@ -3,16 +3,16 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"github.com/Qitmeer/qitmeer/p2p/runutil"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"time"
 )
 
 // maintainPeerStatuses by infrequently polling peers for their latest status.
 func (s *Service) maintainPeerStatuses() {
-	interval := time.Minute
+	interval := s.BlockManager.ChainParams().TargetTimePerBlock * 2
 	runutil.RunEvery(s.ctx, interval, func() {
 		for _, pid := range s.Peers().Connected() {
 			go func(id peer.ID) {
@@ -32,12 +32,18 @@ func (s *Service) maintainPeerStatuses() {
 					}
 					return
 				}
-
-				if err := s.reValidatePeer(s.ctx, id); err != nil {
-					log.Error(fmt.Sprintf("Failed to revalidate peer (%v), peer:%s", err, id))
-					s.Peers().IncrementBadResponses(id)
+				// If the status hasn't been updated in the recent interval time.
+				lastUpdated, err := s.Peers().ChainStateLastUpdated(id)
+				if err != nil {
+					// Peer has vanished; nothing to do.
+					return
 				}
-
+				if roughtime.Now().After(lastUpdated.Add(interval)) {
+					if err := s.reValidatePeer(s.ctx, id); err != nil {
+						log.Error(fmt.Sprintf("Failed to revalidate peer (%v), peer:%s", err, id))
+						s.Peers().IncrementBadResponses(id)
+					}
+				}
 			}(pid)
 		}
 	})
