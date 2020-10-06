@@ -348,6 +348,16 @@ func (p *Status) All() []peer.ID {
 	return pids
 }
 
+func (p *Status) AllPeers() []*Peer {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	pes := make([]*Peer, 0, len(p.peers))
+	for _, pe := range p.peers {
+		pes = append(pes, pe)
+	}
+	return pes
+}
+
 // Decay reduces the bad responses of all peers, giving reformed peers a chance to join the network.
 // This can be run periodically, although note that each time it runs it does give all bad peers another chance as well to clog up
 // the network with bad responses, so should not be run too frequently; once an hour would be reasonable.

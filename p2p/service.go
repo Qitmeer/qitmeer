@@ -16,6 +16,7 @@ import (
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/message"
+	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
@@ -24,6 +25,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/runutil"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/mempool"
+	"github.com/Qitmeer/qitmeer/version"
 	"github.com/dgraph-io/ristretto"
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p"
@@ -42,17 +44,23 @@ import (
 	"time"
 )
 
-// maxBadResponses is the maximum number of bad responses from a peer before we stop talking to it.
-const maxBadResponses = 5
+const (
+	// the default services supported by the node
+	defaultServices = pv.Full | pv.CF
+	// maxBadResponses is the maximum number of bad responses from a peer before we stop talking to it.
+	maxBadResponses = 5
+)
 
-// In the event that we are at our peer limit, we
-// stop looking for new peers and instead poll
-// for the current peer limit status for the time period
-// defined below.
-var pollingPeriod = 6 * time.Second
+var (
+	// In the event that we are at our peer limit, we
+	// stop looking for new peers and instead poll
+	// for the current peer limit status for the time period
+	// defined below.
+	pollingPeriod = 6 * time.Second
 
-// Refresh rate of QNR
-var refreshRate = time.Hour
+	// Refresh rate of QNR
+	refreshRate = time.Hour
+)
 
 type Service struct {
 	cfg           *Config
@@ -424,6 +432,9 @@ func NewService(cfg *config.Config) (*Service, error) {
 			TCPPort:              uint(cfg.P2PTCPPort),
 			UDPPort:              uint(cfg.P2PUDPPort),
 			Encoding:             "ssz-snappy",
+			ProtocolVersion:      pv.ProtocolVersion,
+			Services:             defaultServices,
+			UserAgent:            fmt.Sprintf("qitmeer(%s)", version.String()),
 		},
 		ctx:           ctx,
 		cancel:        cancel,

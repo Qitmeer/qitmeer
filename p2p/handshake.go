@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	// The time to wait for a status request.
-	timeForStatus = 10 * time.Second
+	// The time to wait for a chain state request.
+	timeForChainState = 10 * time.Second
 )
 
 // AddConnectionHandler adds a callback function which handles the connection with a
@@ -101,10 +101,10 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 				if conn.Stat().Direction == network.DirInbound {
 					_, err := s.peers.ChainState(remotePeer)
 					peerExists := err == nil
-					//currentTime := time.Now()
+					currentTime := time.Now()
 
 					// Wait for peer to initiate handshake
-					time.Sleep(timeForStatus)
+					time.Sleep(timeForChainState)
 
 					// Exit if we are disconnected with the peer.
 					if s.host.Network().Connectedness(remotePeer) != network.Connected {
@@ -117,18 +117,17 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 						return
 					}
 					if peerExists {
-						/*updated*/ _, err := s.peers.ChainStateLastUpdated(remotePeer)
+						updated, err := s.peers.ChainStateLastUpdated(remotePeer)
 						if err != nil {
 							disconnectFromPeer()
 							return
 						}
-						// TODO Optimize Block DAG State
 						// exit if we don't receive any current status messages from
 						// peer.
-						/*if updated.IsZero() || !updated.After(currentTime) {
+						if updated.IsZero() || !updated.After(currentTime) {
 							disconnectFromPeer()
 							return
-						}*/
+						}
 					}
 					validPeerConnection()
 					return
@@ -137,13 +136,6 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 				s.peers.SetConnectionState(conn.RemotePeer(), peers.PeerConnecting)
 				if err := reqFunc(context.Background(), conn.RemotePeer()); err != nil && err != io.EOF {
 					log.Trace(fmt.Sprintf("%s Handshake failed", peerInfoStr))
-					if err.Error() == "protocol not supported" {
-						// This is only to ensure the smooth running of our testnets. This will not be
-						// used in production.
-						log.Debug("Not disconnecting peer with unsupported protocol. This maybe the relay node.")
-						s.peers.SetConnectionState(conn.RemotePeer(), peers.PeerDisconnected)
-						return
-					}
 					disconnectFromPeer()
 					return
 				}

@@ -1,6 +1,9 @@
 package p2p
 
-import "os"
+import (
+	"github.com/Qitmeer/qitmeer/core/protocol"
+	"os"
+)
 
 // Config for the p2p service.
 // to initialize the p2p service.
@@ -26,4 +29,9 @@ type Config struct {
 	HostDNS       string
 	PrivateKey    string
 	Encoding      string
+	// ProtocolVersion specifies the maximum protocol version to use and
+	// advertise.
+	ProtocolVersion uint32
+	Services        protocol.ServiceFlag
+	UserAgent       string
 }

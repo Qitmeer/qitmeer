@@ -4,16 +4,64 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"time"
 )
 
-var (
-	errGeneric               = errors.New("generic error")
-	errInvalidGenesis        = errors.New("invalid genesis")
-	errInvalidProtcolVersion = errors.New("invalid protcol version")
+const (
+	retSuccess = iota
+	retErrGeneric
+	retErrInvalidChainState
 )
+
+func (s *Service) sendChainStateRequest(ctx context.Context, id peer.ID) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	resp := s.getChainState()
+	stream, err := s.Send(ctx, resp, RPCChainState, id)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := stream.Reset(); err != nil {
+			log.Error(fmt.Sprintf("Failed to reset stream with protocol %s,%v", stream.Protocol(), err))
+		}
+	}()
+
+	code, errMsg, err := ReadRspCode(stream, s.Encoding())
+	if err != nil {
+		return err
+	}
+
+	if code != responseCodeSuccess {
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		return errors.New(errMsg)
+	}
+
+	msg := &pb.ChainState{}
+	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
+		return err
+	}
+	s.Peers().SetChainState(stream.Conn().RemotePeer(), msg)
+
+	ret, err := s.validateChainStateMessage(ctx, msg)
+	if err != nil {
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		if ret == retErrInvalidChainState {
+			if err := s.sendGoodByeAndDisconnect(ctx, codeInvalidChainState, stream.Conn().RemotePeer()); err != nil {
+				return err
+			}
+		}
+	}
+	return err
+}
 
 func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	defer func() {
@@ -28,17 +76,16 @@ func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream
 		return fmt.Errorf("message is not type *pb.ChainState")
 	}
 
-	if err := s.validateChainStateMessage(ctx, m); err != nil {
+	if ret, err := s.validateChainStateMessage(ctx, m); err != nil {
 		log.Debug(fmt.Sprintf("Invalid chain state message from peer:peer=%s  error=%v", stream.Conn().RemotePeer(), err))
-
 		respCode := byte(0)
-		switch err {
-		case errGeneric:
+		switch ret {
+		case retErrGeneric:
 			respCode = responseCodeServerError
-		case errInvalidGenesis, errInvalidProtcolVersion:
+		case retErrInvalidChainState:
 			// Respond with our status and disconnect with the peer.
 			s.Peers().SetChainState(stream.Conn().RemotePeer(), m)
-			if err := s.respondWithStatus(ctx, stream); err != nil {
+			if err := s.respondWithChainState(ctx, stream); err != nil {
 				return err
 			}
 			closeSteam(stream)
@@ -72,11 +119,53 @@ func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream
 	}
 	s.Peers().SetChainState(stream.Conn().RemotePeer(), m)
 
-	return s.respondWithStatus(ctx, stream)
+	return s.respondWithChainState(ctx, stream)
 }
 
-func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainState) error {
-	// TODO validate
+func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainState) (int, error) {
+	if msg == nil {
+		return retErrGeneric, fmt.Errorf("msg is nil")
+	}
+	genesisHash := s.BlockManager.GetChain().BlockDAG().GetGenesisHash()
+	msgGenesisHash, err := hash.NewHash(msg.GenesisHash)
+	if err != nil {
+		return retErrGeneric, fmt.Errorf("invalid genesis")
+	}
+	if !msgGenesisHash.IsEqual(genesisHash) {
+		return retErrInvalidChainState, fmt.Errorf("invalid genesis")
+	}
+	// Notify and disconnect clients that have a protocol version that is
+	// too old.
+	if msg.ProtocolVersion < uint32(protocol.InitialProcotolVersion) {
+		return retErrInvalidChainState, fmt.Errorf("protocol version must be %d or greater",
+			protocol.InitialProcotolVersion)
+	}
+	return retSuccess, nil
+}
 
-	return nil
+func (s *Service) respondWithChainState(ctx context.Context, stream network.Stream) error {
+	resp := s.getChainState()
+	if resp == nil {
+		return fmt.Errorf("no chain state")
+	}
+
+	if _, err := stream.Write([]byte{responseCodeSuccess}); err != nil {
+		log.Error(fmt.Sprintf("Failed to write to stream:%v", err))
+	}
+	_, err := s.Encoding().EncodeWithMaxLength(stream, resp)
+	return err
+}
+
+func (s *Service) getChainState() *pb.ChainState {
+	genesisHash := s.BlockManager.GetChain().BlockDAG().GetGenesisHash()
+	cs := &pb.ChainState{
+		GenesisHash:     genesisHash.Bytes(),
+		ProtocolVersion: s.cfg.ProtocolVersion,
+		Timestamp:       uint64(roughtime.Now().Unix()),
+		Services:        uint64(s.cfg.Services),
+		GraphState:      1,
+		UserAgent:       []byte(s.cfg.UserAgent),
+	}
+
+	return cs
 }

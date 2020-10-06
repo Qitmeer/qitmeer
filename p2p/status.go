@@ -44,6 +44,10 @@ func (s *Service) maintainPeerStatuses() {
 }
 
 func (s *Service) reValidatePeer(ctx context.Context, id peer.ID) error {
+	if err := s.sendChainStateRequest(ctx, id); err != nil {
+		return err
+	}
+
 	// Do not return an error for ping requests.
 	if err := s.sendPingRequest(ctx, id); err != nil {
 		log.Debug(fmt.Sprintf("Could not ping peer:%v", err))
