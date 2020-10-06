@@ -45,7 +45,7 @@ func New(validSchemes qnr.IdentityScheme, r *qnr.Record) (*Node, error) {
 	return node, nil
 }
 
-// MustParse parses a node record or enode:// URL. It panics if the input is invalid.
+// MustParse parses a node record or qnode:// URL. It panics if the input is invalid.
 func MustParse(rawurl string) *Node {
 	n, err := Parse(ValidSchemes, rawurl)
 	if err != nil {

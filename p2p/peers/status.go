@@ -348,12 +348,17 @@ func (p *Status) All() []peer.ID {
 	return pids
 }
 
-func (p *Status) AllPeers() []*Peer {
+func (p *Status) StatsSnapshots() []*StatsSnap {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
-	pes := make([]*Peer, 0, len(p.peers))
+
+	pes := make([]*StatsSnap, 0, len(p.peers))
 	for _, pe := range p.peers {
-		pes = append(pes, pe)
+		ss, err := pe.StatsSnapshot()
+		if err != nil {
+			continue
+		}
+		pes = append(pes, ss)
 	}
 	return pes
 }

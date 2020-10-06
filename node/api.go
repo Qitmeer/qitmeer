@@ -107,45 +107,26 @@ func getDifficultyRatio(target *big.Int, params *params.Params, powType pow.PowT
 // Return the peer info
 func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 	ps := api.node.node.peerServer
-
-	return fmt.Sprintf("%d %d %d", len(ps.Peers().Connected()), len(ps.Peers().Connecting()), len(ps.Peers().All())), nil
-	/*peers := api.node.node.peerServer.ConnectedPeers()
-	syncPeerID := api.node.blockManager.SyncPeerID()
+	peers := ps.Peers().StatsSnapshots()
 	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
 	for _, p := range peers {
-		statsSnap := p.StatsSnapshot()
 		info := &json.GetPeerInfoResult{
-			UUID:       statsSnap.UUID.String(),
-			ID:         statsSnap.ID,
-			Addr:       statsSnap.Addr,
-			AddrLocal:  p.LocalAddr().String(),
-			Services:   fmt.Sprintf("%08d", uint64(statsSnap.Services)),
-			RelayTxes:  !p.IsTxRelayDisabled(),
-			LastSend:   statsSnap.LastSend.Unix(),
-			LastRecv:   statsSnap.LastRecv.Unix(),
-			BytesSent:  statsSnap.BytesSent,
-			BytesRecv:  statsSnap.BytesRecv,
-			ConnTime:   statsSnap.ConnTime.Unix(),
-			PingTime:   float64(statsSnap.LastPingMicros),
-			TimeOffset: statsSnap.TimeOffset,
-			Version:    statsSnap.Version,
-			SubVer:     statsSnap.UserAgent,
-			Inbound:    statsSnap.Inbound,
-			BanScore:   int32(p.BanScore()),
-			SyncNode:   statsSnap.ID == syncPeerID,
+			ID:    p.NodeID,
+			QNR:   p.QNR,
+			State: p.State.String(),
 		}
-		if statsSnap.GraphState != nil {
-			info.GraphState = *getGraphStateResult(statsSnap.GraphState)
-		}
-		if p.LastPingNonce() != 0 {
-			wait := float64(roughtime.Since(statsSnap.LastPingTime).Nanoseconds())
-			// We actually want microseconds.
-			info.PingWait = wait / 1000
+		if p.State.IsConnected() {
+			info.Protocol = p.Protocol
+			info.Services = uint64(p.Services)
+			info.UserAgent = p.UserAgent
+			if p.Genesis != nil {
+				info.Genesis = p.Genesis.String()
+			}
+			info.Direction = p.Direction.String()
 		}
 		infos = append(infos, info)
 	}
-	return infos, nil*/
-	return nil, nil
+	return infos, nil
 }
 
 // Return the RPC info

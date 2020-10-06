@@ -22,6 +22,24 @@ const (
 	PeerConnecting
 )
 
+func (pcs PeerConnectionState) String() string {
+	switch pcs {
+	case PeerDisconnected:
+		return "disconnected"
+	case PeerDisconnecting:
+		return "disconnecting"
+	case PeerConnected:
+		return "connected"
+	case PeerConnecting:
+		return "connecting"
+	}
+	return ""
+}
+
+func (pcs PeerConnectionState) IsConnected() bool {
+	return pcs == PeerConnected
+}
+
 // peerStatus is the status of an individual peer at the protocol level.
 type peerStatus struct {
 	address               ma.Multiaddr
