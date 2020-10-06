@@ -89,8 +89,8 @@ func (m *MetaData) MarshalSSZTo(dst []byte) ([]byte, error) {
 	// Field (0) 'SeqNumber'
 	dst = ssz.MarshalUint64(dst, m.SeqNumber)
 
-	// Field (1) 'Attnets'
-	if dst, err = ssz.MarshalFixedBytes(dst, m.Attnets, 8); err != nil {
+	// Field (1) 'Subnets'
+	if dst, err = ssz.MarshalFixedBytes(dst, m.Subnets, 8); err != nil {
 		return nil, errMarshalFixedBytes
 	}
 
@@ -108,8 +108,8 @@ func (m *MetaData) UnmarshalSSZ(buf []byte) error {
 	// Field (0) 'SeqNumber'
 	m.SeqNumber = ssz.UnmarshallUint64(buf[0:8])
 
-	// Field (1) 'Attnets'
-	m.Attnets = append(m.Attnets, buf[8:16]...)
+	// Field (1) 'Subnets'
+	m.Subnets = append(m.Subnets, buf[8:16]...)
 
 	return err
 }
@@ -117,5 +117,95 @@ func (m *MetaData) UnmarshalSSZ(buf []byte) error {
 // SizeSSZ returns the ssz encoded size in bytes for the MetaData object
 func (m *MetaData) SizeSSZ() (size int) {
 	size = 16
+	return
+}
+
+// MarshalSSZ ssz marshals the ChainState object
+func (c *ChainState) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, c.SizeSSZ())
+	return c.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the ChainState object to a target array
+func (c *ChainState) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+	offset := int(60)
+
+	// Field (0) 'GenesisHash'
+	if dst, err = ssz.MarshalFixedBytes(dst, c.GenesisHash, 32); err != nil {
+		return nil, errMarshalFixedBytes
+	}
+
+	// Field (1) 'ProtocolVersion'
+	dst = ssz.MarshalUint32(dst, c.ProtocolVersion)
+
+	// Field (2) 'Timestamp'
+	dst = ssz.MarshalUint64(dst, c.Timestamp)
+
+	// Field (3) 'Services'
+	dst = ssz.MarshalUint64(dst, c.Services)
+
+	// Field (4) 'GraphState'
+	dst = ssz.MarshalUint32(dst, c.GraphState)
+
+	// Offset (5) 'UserAgent'
+	dst = ssz.WriteOffset(dst, offset)
+	offset += len(c.UserAgent)
+
+	// Field (5) 'UserAgent'
+	if len(c.UserAgent) > 256 {
+		return nil, errMarshalDynamicBytes
+	}
+	dst = append(dst, c.UserAgent...)
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the ChainState object
+func (c *ChainState) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size < 60 {
+		return errSize
+	}
+
+	tail := buf
+	var o5 uint64
+
+	// Field (0) 'GenesisHash'
+	c.GenesisHash = append(c.GenesisHash, buf[0:32]...)
+
+	// Field (1) 'ProtocolVersion'
+	c.ProtocolVersion = ssz.UnmarshallUint32(buf[32:36])
+
+	// Field (2) 'Timestamp'
+	c.Timestamp = ssz.UnmarshallUint64(buf[36:44])
+
+	// Field (3) 'Services'
+	c.Services = ssz.UnmarshallUint64(buf[44:52])
+
+	// Field (4) 'GraphState'
+	c.GraphState = ssz.UnmarshallUint32(buf[52:56])
+
+	// Offset (5) 'UserAgent'
+	if o5 = ssz.ReadOffset(buf[56:60]); o5 > size {
+		return errOffset
+	}
+
+	// Field (5) 'UserAgent'
+	{
+		buf = tail[o5:]
+		c.UserAgent = append(c.UserAgent, buf...)
+	}
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the ChainState object
+func (c *ChainState) SizeSSZ() (size int) {
+	size = 60
+
+	// Field (5) 'UserAgent'
+	size += len(c.UserAgent)
+
 	return
 }

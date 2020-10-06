@@ -51,7 +51,7 @@ func (s *Service) sendMetaDataRequest(ctx context.Context, id peer.ID) (*pb.Meta
 			log.Error(fmt.Sprintf("Failed to reset stream for protocol %s  %v", stream.Protocol(), err))
 		}
 	}()
-	code, errMsg, err := ReadStatusCode(stream, s.Encoding())
+	code, errMsg, err := ReadRspCode(stream, s.Encoding())
 	if err != nil {
 		return nil, err
 	}

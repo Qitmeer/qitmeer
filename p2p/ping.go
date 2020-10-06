@@ -83,7 +83,7 @@ func (s *Service) sendPingRequest(ctx context.Context, id peer.ID) error {
 		}
 	}()
 
-	code, errMsg, err := ReadStatusCode(stream, s.Encoding())
+	code, errMsg, err := ReadRspCode(stream, s.Encoding())
 	if err != nil {
 		return err
 	}

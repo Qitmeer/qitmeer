@@ -9,15 +9,13 @@ import (
 )
 
 const (
-	codeClientShutdown uint64 = iota
-	codeWrongNetwork
-	codeGenericError
+	codeGenericError uint64 = iota
+	codeInvalidChainState
 )
 
 var goodByes = map[uint64]string{
-	codeClientShutdown: "client shutdown",
-	codeWrongNetwork:   "irrelevant network",
-	codeGenericError:   "fault/error",
+	codeGenericError:      "generic error",
+	codeInvalidChainState: "invalid chain state",
 }
 
 // goodbyeRPCHandler reads the incoming goodbye rpc message from the peer.

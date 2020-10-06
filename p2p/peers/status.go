@@ -125,7 +125,7 @@ func (p *Status) QNR(pid peer.ID) (*qnr.Record, error) {
 }
 
 // SetChainState sets the chain state of the given remote peer.
-func (p *Status) SetChainState(pid peer.ID, chainState string) {
+func (p *Status) SetChainState(pid peer.ID, chainState *pb.ChainState) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -137,14 +137,14 @@ func (p *Status) SetChainState(pid peer.ID, chainState string) {
 // ChainState gets the chain state of the given remote peer.
 // This can return nil if there is no known chain state for the peer.
 // This will error if the peer does not exist.
-func (p *Status) ChainState(pid peer.ID) (string, error) {
+func (p *Status) ChainState(pid peer.ID) (*pb.ChainState, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
 	if status, ok := p.peers[pid]; ok {
 		return status.chainState, nil
 	}
-	return "", ErrPeerUnknown
+	return nil, ErrPeerUnknown
 }
 
 // IsActive checks if a peers is active and returns the result appropriately.
@@ -186,7 +186,7 @@ func (p *Status) CommitteeIndices(pid peer.ID) ([]uint64, error) {
 		if status.qnr == nil || status.metaData == nil {
 			return []uint64{}, nil
 		}
-		return retrieveIndicesFromBitfield(status.metaData.Attnets), nil
+		return retrieveIndicesFromBitfield(status.metaData.Subnets), nil
 	}
 	return nil, ErrPeerUnknown
 }
@@ -201,8 +201,8 @@ func (p *Status) SubscribedToSubnet(index uint64) []peer.ID {
 	for pid, status := range p.peers {
 		// look at active peers
 		connectedStatus := status.peerState == PeerConnecting || status.peerState == PeerConnected
-		if connectedStatus && status.metaData != nil && status.metaData.Attnets != nil {
-			indices := retrieveIndicesFromBitfield(status.metaData.Attnets)
+		if connectedStatus && status.metaData != nil && status.metaData.Subnets != nil {
+			indices := retrieveIndicesFromBitfield(status.metaData.Subnets)
 			for _, idx := range indices {
 				if idx == index {
 					peers = append(peers, pid)

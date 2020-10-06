@@ -129,7 +129,7 @@ func metaDataFromConfig(cfg *Config) (*pb.MetaData, error) {
 	if metaDataPath == "" && !defaultMetadataExist {
 		metaData := &pb.MetaData{
 			SeqNumber: 0,
-			Attnets:   bitfield.NewBitvector64(),
+			Subnets:   bitfield.NewBitvector64(),
 		}
 		dst, err := metaData.Marshal()
 		if err != nil {

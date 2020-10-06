@@ -29,7 +29,7 @@ type peerStatus struct {
 	peerState             PeerConnectionState
 	qnr                   *qnr.Record
 	metaData              *pb.MetaData
-	chainState            string
+	chainState            *pb.ChainState
 	chainStateLastUpdated time.Time
 	badResponses          int
 }

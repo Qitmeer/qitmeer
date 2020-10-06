@@ -3,12 +3,10 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"io"
 	"reflect"
 	"strings"
 	"time"
@@ -22,6 +20,8 @@ const (
 	RPCPingTopic = "/qitmeer/req/ping/1"
 	// RPCMetaDataTopic defines the topic for the metadata rpc method.
 	RPCMetaDataTopic = "/qitmeer/req/metadata/1"
+	// RPCChainState defines the topic for the chain state rpc method.
+	RPCChainState = "/qitmeer/req/chainstate/1"
 )
 
 // Time to first byte timeout. The maximum time to wait for first byte of
@@ -33,11 +33,6 @@ const ttfbTimeout = 5 * time.Second
 // This method may return an error to internal monitoring, but the error will
 // not be relayed to the peer.
 type rpcHandler func(context.Context, interface{}, libp2pcore.Stream) error
-
-//
-var responseCodeSuccess = byte(0x00)
-var responseCodeInvalidRequest = byte(0x01)
-var responseCodeServerError = byte(0x02)
 
 // RespTimeout is the maximum time for complete response transfer.
 const RespTimeout = 10 * time.Second
@@ -79,6 +74,12 @@ func (s *Service) registerRPCHandlers() {
 		RPCMetaDataTopic,
 		new(interface{}),
 		s.metaDataHandler,
+	)
+
+	s.registerRPC(
+		RPCChainState,
+		&pb.ChainState{},
+		s.chainStateHandler,
 	)
 }
 
@@ -138,28 +139,6 @@ func closeSteam(stream libp2pcore.Stream) {
 	if err := stream.Close(); err != nil {
 		log.Error(fmt.Sprintf("Failed to close stream:%v", err))
 	}
-}
-
-// ReadStatusCode response from a RPC stream.
-func ReadStatusCode(stream io.Reader, encoding encoder.NetworkEncoding) (uint8, string, error) {
-	b := make([]byte, 1)
-	_, err := stream.Read(b)
-	if err != nil {
-		return 0, "", err
-	}
-
-	if b[0] == responseCodeSuccess {
-		return 0, "", nil
-	}
-
-	msg := &pb.ErrorResponse{
-		Message: []byte{},
-	}
-	if err := encoding.DecodeWithMaxLength(stream, msg); err != nil {
-		return 0, "", err
-	}
-
-	return b[0], string(msg.Message), nil
 }
 
 // sync
