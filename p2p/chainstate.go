@@ -180,6 +180,7 @@ func (s *Service) getChainState() *pb.ChainState {
 		Services:        uint64(s.cfg.Services),
 		GraphState:      gs,
 		UserAgent:       []byte(s.cfg.UserAgent),
+		DisableRelayTx:  s.cfg.DisableRelayTx,
 	}
 
 	return cs

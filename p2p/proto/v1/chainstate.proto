@@ -9,8 +9,9 @@ message ChainState {
   uint32 protocolVersion = 2;
   uint64 timestamp  = 3;
   uint64 services = 4;
-  GraphState graphState = 5;
-  bytes  userAgent = 6 [(gogoproto.moretags) = "ssz-max:\"256\""];
+  bool disableRelayTx =5;
+  GraphState graphState = 6;
+  bytes  userAgent = 7 [(gogoproto.moretags) = "ssz-max:\"256\""];
 }
 
 message GraphState {

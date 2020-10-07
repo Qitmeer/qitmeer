@@ -34,4 +34,7 @@ type Config struct {
 	ProtocolVersion uint32
 	Services        protocol.ServiceFlag
 	UserAgent       string
+	// DisableRelayTx specifies if the remote peer should be informed to
+	// not send inv messages for transactions.
+	DisableRelayTx bool
 }

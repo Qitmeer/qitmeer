@@ -435,6 +435,7 @@ func NewService(cfg *config.Config) (*Service, error) {
 			ProtocolVersion:      pv.ProtocolVersion,
 			Services:             defaultServices,
 			UserAgent:            fmt.Sprintf("qitmeer(%s)", version.String()),
+			DisableRelayTx:       cfg.BlocksOnly,
 		},
 		ctx:           ctx,
 		cancel:        cancel,

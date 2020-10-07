@@ -129,7 +129,7 @@ func (c *ChainState) MarshalSSZ() ([]byte, error) {
 // MarshalSSZTo ssz marshals the ChainState object to a target array
 func (c *ChainState) MarshalSSZTo(dst []byte) ([]byte, error) {
 	var err error
-	offset := int(60)
+	offset := int(61)
 
 	// Field (0) 'GenesisHash'
 	if c.GenesisHash == nil {
@@ -148,23 +148,26 @@ func (c *ChainState) MarshalSSZTo(dst []byte) ([]byte, error) {
 	// Field (3) 'Services'
 	dst = ssz.MarshalUint64(dst, c.Services)
 
-	// Offset (4) 'GraphState'
+	// Field (4) 'DisableRelayTx'
+	dst = ssz.MarshalBool(dst, c.DisableRelayTx)
+
+	// Offset (5) 'GraphState'
 	dst = ssz.WriteOffset(dst, offset)
 	if c.GraphState == nil {
 		c.GraphState = new(GraphState)
 	}
 	offset += c.GraphState.SizeSSZ()
 
-	// Offset (5) 'UserAgent'
+	// Offset (6) 'UserAgent'
 	dst = ssz.WriteOffset(dst, offset)
 	offset += len(c.UserAgent)
 
-	// Field (4) 'GraphState'
+	// Field (5) 'GraphState'
 	if dst, err = c.GraphState.MarshalSSZTo(dst); err != nil {
 		return nil, err
 	}
 
-	// Field (5) 'UserAgent'
+	// Field (6) 'UserAgent'
 	if len(c.UserAgent) > 256 {
 		return nil, errMarshalDynamicBytes
 	}
@@ -177,12 +180,12 @@ func (c *ChainState) MarshalSSZTo(dst []byte) ([]byte, error) {
 func (c *ChainState) UnmarshalSSZ(buf []byte) error {
 	var err error
 	size := uint64(len(buf))
-	if size < 60 {
+	if size < 61 {
 		return errSize
 	}
 
 	tail := buf
-	var o4, o5 uint64
+	var o5, o6 uint64
 
 	// Field (0) 'GenesisHash'
 	if c.GenesisHash == nil {
@@ -201,19 +204,22 @@ func (c *ChainState) UnmarshalSSZ(buf []byte) error {
 	// Field (3) 'Services'
 	c.Services = ssz.UnmarshallUint64(buf[44:52])
 
-	// Offset (4) 'GraphState'
-	if o4 = ssz.ReadOffset(buf[52:56]); o4 > size {
+	// Field (4) 'DisableRelayTx'
+	c.DisableRelayTx = ssz.UnmarshalBool(buf[52:53])
+
+	// Offset (5) 'GraphState'
+	if o5 = ssz.ReadOffset(buf[53:57]); o5 > size {
 		return errOffset
 	}
 
-	// Offset (5) 'UserAgent'
-	if o5 = ssz.ReadOffset(buf[56:60]); o5 > size || o4 > o5 {
+	// Offset (6) 'UserAgent'
+	if o6 = ssz.ReadOffset(buf[57:61]); o6 > size || o5 > o6 {
 		return errOffset
 	}
 
-	// Field (4) 'GraphState'
+	// Field (5) 'GraphState'
 	{
-		buf = tail[o4:o5]
+		buf = tail[o5:o6]
 		if c.GraphState == nil {
 			c.GraphState = new(GraphState)
 		}
@@ -222,9 +228,9 @@ func (c *ChainState) UnmarshalSSZ(buf []byte) error {
 		}
 	}
 
-	// Field (5) 'UserAgent'
+	// Field (6) 'UserAgent'
 	{
-		buf = tail[o5:]
+		buf = tail[o6:]
 		c.UserAgent = append(c.UserAgent, buf...)
 	}
 	return err
@@ -232,15 +238,15 @@ func (c *ChainState) UnmarshalSSZ(buf []byte) error {
 
 // SizeSSZ returns the ssz encoded size in bytes for the ChainState object
 func (c *ChainState) SizeSSZ() (size int) {
-	size = 60
+	size = 61
 
-	// Field (4) 'GraphState'
+	// Field (5) 'GraphState'
 	if c.GraphState == nil {
 		c.GraphState = new(GraphState)
 	}
 	size += c.GraphState.SizeSSZ()
 
-	// Field (5) 'UserAgent'
+	// Field (6) 'UserAgent'
 	size += len(c.UserAgent)
 
 	return
