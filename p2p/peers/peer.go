@@ -3,6 +3,7 @@ package peers
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
@@ -35,15 +36,16 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		return nil, fmt.Errorf("qnode: can't verify local record: %v", err)
 	}
 	ss := &StatsSnap{
-		NodeID:    n.ID().String(),
-		PeerID:    p.pid.String(),
-		QNR:       n.String(),
-		Protocol:  p.ProtocolVersion(),
-		Genesis:   p.Genesis(),
-		Services:  p.Services(),
-		UserAgent: p.UserAgent(),
-		State:     p.peerState,
-		Direction: p.direction,
+		NodeID:     n.ID().String(),
+		PeerID:     p.pid.String(),
+		QNR:        n.String(),
+		Protocol:   p.ProtocolVersion(),
+		Genesis:    p.Genesis(),
+		Services:   p.Services(),
+		UserAgent:  p.UserAgent(),
+		State:      p.peerState,
+		Direction:  p.direction,
+		GraphState: p.GraphState(),
 	}
 
 	return ss, nil
@@ -60,7 +62,7 @@ func (p *Peer) Genesis() *hash.Hash {
 	if p.chainState == nil {
 		return nil
 	}
-	genesisHash, err := hash.NewHash(p.chainState.GenesisHash)
+	genesisHash, err := hash.NewHash(p.chainState.GenesisHash.Hash)
 	if err != nil {
 		return nil
 	}
@@ -79,6 +81,26 @@ func (p *Peer) UserAgent() string {
 		return ""
 	}
 	return string(p.chainState.UserAgent)
+}
+
+func (p *Peer) GraphState() *blockdag.GraphState {
+	if p.chainState == nil {
+		return nil
+	}
+	gs := blockdag.NewGraphState()
+	gs.SetTotal(uint(p.chainState.GraphState.Total))
+	gs.SetLayer(uint(p.chainState.GraphState.Layer))
+	gs.SetMainHeight(uint(p.chainState.GraphState.MainHeight))
+	gs.SetMainOrder(uint(p.chainState.GraphState.MainOrder))
+	tips := gs.GetTips()
+	for _, tip := range p.chainState.GraphState.Tips {
+		h, err := hash.NewHash(tip.Hash)
+		if err != nil {
+			return nil
+		}
+		tips.Add(h)
+	}
+	return gs
 }
 
 func NewPeer(pid peer.ID) *Peer {

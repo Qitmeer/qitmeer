@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package qitmeer.p2p.v1;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message ChainState {
+  Hash genesisHash =1;
+  uint32 protocolVersion = 2;
+  uint64 timestamp  = 3;
+  uint64 services = 4;
+  GraphState graphState = 5;
+  bytes  userAgent = 6 [(gogoproto.moretags) = "ssz-max:\"256\""];
+}
+
+message GraphState {
+  uint32 total =100;
+  uint32 layer =101;
+  uint32 mainHeight =102;
+  uint32 mainOrder =103;
+  repeated Hash tips =104 [(gogoproto.moretags) = "ssz-max:\"100\""];
+}
+
+message Hash {
+  bytes hash =200 [(gogoproto.moretags) = "ssz-size:\"32\""];
+}

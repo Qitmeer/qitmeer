@@ -28,14 +28,15 @@ type InfoNodeResult struct {
 
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
 type GetPeerInfoResult struct {
-	ID        string `json:"id"`
-	QNR       string `json:"qnr"`
-	State     string `json:"state"`
-	Protocol  uint32 `json:"protocol,omitempty""`
-	Genesis   string `json:"genesis,omitempty""`
-	Services  uint64 `json:"services,omitempty""`
-	UserAgent string `json:"useragent,omitempty""`
-	Direction string `json:"direction,omitempty""`
+	ID         string              `json:"id"`
+	QNR        string              `json:"qnr"`
+	State      string              `json:"state"`
+	Protocol   uint32              `json:"protocol,omitempty""`
+	Genesis    string              `json:"genesis,omitempty""`
+	Services   uint64              `json:"services,omitempty""`
+	UserAgent  string              `json:"useragent,omitempty""`
+	Direction  string              `json:"direction,omitempty""`
+	GraphState GetGraphStateResult `json:"graphstate,omitempty"`
 }
 
 // GetGraphStateResult data

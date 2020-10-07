@@ -123,6 +123,9 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 				info.Genesis = p.Genesis.String()
 			}
 			info.Direction = p.Direction.String()
+			if p.GraphState != nil {
+				info.GraphState = *getGraphStateResult(p.GraphState)
+			}
 		}
 		infos = append(infos, info)
 	}

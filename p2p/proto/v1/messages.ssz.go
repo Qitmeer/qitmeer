@@ -132,8 +132,11 @@ func (c *ChainState) MarshalSSZTo(dst []byte) ([]byte, error) {
 	offset := int(60)
 
 	// Field (0) 'GenesisHash'
-	if dst, err = ssz.MarshalFixedBytes(dst, c.GenesisHash, 32); err != nil {
-		return nil, errMarshalFixedBytes
+	if c.GenesisHash == nil {
+		c.GenesisHash = new(Hash)
+	}
+	if dst, err = c.GenesisHash.MarshalSSZTo(dst); err != nil {
+		return nil, err
 	}
 
 	// Field (1) 'ProtocolVersion'
@@ -145,12 +148,21 @@ func (c *ChainState) MarshalSSZTo(dst []byte) ([]byte, error) {
 	// Field (3) 'Services'
 	dst = ssz.MarshalUint64(dst, c.Services)
 
-	// Field (4) 'GraphState'
-	dst = ssz.MarshalUint32(dst, c.GraphState)
+	// Offset (4) 'GraphState'
+	dst = ssz.WriteOffset(dst, offset)
+	if c.GraphState == nil {
+		c.GraphState = new(GraphState)
+	}
+	offset += c.GraphState.SizeSSZ()
 
 	// Offset (5) 'UserAgent'
 	dst = ssz.WriteOffset(dst, offset)
 	offset += len(c.UserAgent)
+
+	// Field (4) 'GraphState'
+	if dst, err = c.GraphState.MarshalSSZTo(dst); err != nil {
+		return nil, err
+	}
 
 	// Field (5) 'UserAgent'
 	if len(c.UserAgent) > 256 {
@@ -170,10 +182,15 @@ func (c *ChainState) UnmarshalSSZ(buf []byte) error {
 	}
 
 	tail := buf
-	var o5 uint64
+	var o4, o5 uint64
 
 	// Field (0) 'GenesisHash'
-	c.GenesisHash = append(c.GenesisHash, buf[0:32]...)
+	if c.GenesisHash == nil {
+		c.GenesisHash = new(Hash)
+	}
+	if err = c.GenesisHash.UnmarshalSSZ(buf[0:32]); err != nil {
+		return err
+	}
 
 	// Field (1) 'ProtocolVersion'
 	c.ProtocolVersion = ssz.UnmarshallUint32(buf[32:36])
@@ -184,12 +201,25 @@ func (c *ChainState) UnmarshalSSZ(buf []byte) error {
 	// Field (3) 'Services'
 	c.Services = ssz.UnmarshallUint64(buf[44:52])
 
-	// Field (4) 'GraphState'
-	c.GraphState = ssz.UnmarshallUint32(buf[52:56])
+	// Offset (4) 'GraphState'
+	if o4 = ssz.ReadOffset(buf[52:56]); o4 > size {
+		return errOffset
+	}
 
 	// Offset (5) 'UserAgent'
-	if o5 = ssz.ReadOffset(buf[56:60]); o5 > size {
+	if o5 = ssz.ReadOffset(buf[56:60]); o5 > size || o4 > o5 {
 		return errOffset
+	}
+
+	// Field (4) 'GraphState'
+	{
+		buf = tail[o4:o5]
+		if c.GraphState == nil {
+			c.GraphState = new(GraphState)
+		}
+		if err = c.GraphState.UnmarshalSSZ(buf); err != nil {
+			return err
+		}
 	}
 
 	// Field (5) 'UserAgent'
@@ -204,8 +234,153 @@ func (c *ChainState) UnmarshalSSZ(buf []byte) error {
 func (c *ChainState) SizeSSZ() (size int) {
 	size = 60
 
+	// Field (4) 'GraphState'
+	if c.GraphState == nil {
+		c.GraphState = new(GraphState)
+	}
+	size += c.GraphState.SizeSSZ()
+
 	// Field (5) 'UserAgent'
 	size += len(c.UserAgent)
 
+	return
+}
+
+// MarshalSSZ ssz marshals the GraphState object
+func (g *GraphState) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, g.SizeSSZ())
+	return g.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the GraphState object to a target array
+func (g *GraphState) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+	offset := int(20)
+
+	// Field (0) 'Total'
+	dst = ssz.MarshalUint32(dst, g.Total)
+
+	// Field (1) 'Layer'
+	dst = ssz.MarshalUint32(dst, g.Layer)
+
+	// Field (2) 'MainHeight'
+	dst = ssz.MarshalUint32(dst, g.MainHeight)
+
+	// Field (3) 'MainOrder'
+	dst = ssz.MarshalUint32(dst, g.MainOrder)
+
+	// Offset (4) 'Tips'
+	dst = ssz.WriteOffset(dst, offset)
+	offset += len(g.Tips) * 32
+
+	// Field (4) 'Tips'
+	if len(g.Tips) > 100 {
+		return nil, errMarshalList
+	}
+	for ii := 0; ii < len(g.Tips); ii++ {
+		if dst, err = g.Tips[ii].MarshalSSZTo(dst); err != nil {
+			return nil, err
+		}
+	}
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the GraphState object
+func (g *GraphState) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size < 20 {
+		return errSize
+	}
+
+	tail := buf
+	var o4 uint64
+
+	// Field (0) 'Total'
+	g.Total = ssz.UnmarshallUint32(buf[0:4])
+
+	// Field (1) 'Layer'
+	g.Layer = ssz.UnmarshallUint32(buf[4:8])
+
+	// Field (2) 'MainHeight'
+	g.MainHeight = ssz.UnmarshallUint32(buf[8:12])
+
+	// Field (3) 'MainOrder'
+	g.MainOrder = ssz.UnmarshallUint32(buf[12:16])
+
+	// Offset (4) 'Tips'
+	if o4 = ssz.ReadOffset(buf[16:20]); o4 > size {
+		return errOffset
+	}
+
+	// Field (4) 'Tips'
+	{
+		buf = tail[o4:]
+		num, ok := ssz.DivideInt(len(buf), 32)
+		if !ok {
+			return errDivideInt
+		}
+		if num > 100 {
+			return errListTooBig
+		}
+		g.Tips = make([]*Hash, num)
+		for ii := 0; ii < num; ii++ {
+			if g.Tips[ii] == nil {
+				g.Tips[ii] = new(Hash)
+			}
+			if err = g.Tips[ii].UnmarshalSSZ(buf[ii*32 : (ii+1)*32]); err != nil {
+				return err
+			}
+		}
+	}
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the GraphState object
+func (g *GraphState) SizeSSZ() (size int) {
+	size = 20
+
+	// Field (4) 'Tips'
+	size += len(g.Tips) * 32
+
+	return
+}
+
+// MarshalSSZ ssz marshals the Hash object
+func (h *Hash) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, h.SizeSSZ())
+	return h.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the Hash object to a target array
+func (h *Hash) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+
+	// Field (0) 'Hash'
+	if dst, err = ssz.MarshalFixedBytes(dst, h.Hash, 32); err != nil {
+		return nil, errMarshalFixedBytes
+	}
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the Hash object
+func (h *Hash) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size != 32 {
+		return errSize
+	}
+
+	// Field (0) 'Hash'
+	h.Hash = append(h.Hash, buf[0:32]...)
+
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the Hash object
+func (h *Hash) SizeSSZ() (size int) {
+	size = 32
 	return
 }

@@ -127,7 +127,7 @@ func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainSt
 		return retErrGeneric, fmt.Errorf("msg is nil")
 	}
 	genesisHash := s.BlockManager.GetChain().BlockDAG().GetGenesisHash()
-	msgGenesisHash, err := hash.NewHash(msg.GenesisHash)
+	msgGenesisHash, err := hash.NewHash(msg.GenesisHash.Hash)
 	if err != nil {
 		return retErrGeneric, fmt.Errorf("invalid genesis")
 	}
@@ -139,6 +139,9 @@ func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainSt
 	if msg.ProtocolVersion < uint32(protocol.InitialProcotolVersion) {
 		return retErrInvalidChainState, fmt.Errorf("protocol version must be %d or greater",
 			protocol.InitialProcotolVersion)
+	}
+	if msg.GraphState.Total <= 0 {
+		return retErrInvalidChainState, fmt.Errorf("invalid graph state")
 	}
 	return retSuccess, nil
 }
@@ -158,12 +161,24 @@ func (s *Service) respondWithChainState(ctx context.Context, stream network.Stre
 
 func (s *Service) getChainState() *pb.ChainState {
 	genesisHash := s.BlockManager.GetChain().BlockDAG().GetGenesisHash()
+	bs := s.BlockManager.GetChain().BestSnapshot()
+
+	gs := &pb.GraphState{
+		Total:      uint32(bs.GraphState.GetTotal()),
+		Layer:      uint32(bs.GraphState.GetLayer()),
+		MainHeight: uint32(bs.GraphState.GetMainHeight()),
+		MainOrder:  uint32(bs.GraphState.GetMainOrder()),
+		Tips:       []*pb.Hash{},
+	}
+	for tip := range bs.GraphState.GetTips().GetMap() {
+		gs.Tips = append(gs.Tips, &pb.Hash{Hash: tip.Bytes()})
+	}
 	cs := &pb.ChainState{
-		GenesisHash:     genesisHash.Bytes(),
+		GenesisHash:     &pb.Hash{Hash: genesisHash.Bytes()},
 		ProtocolVersion: s.cfg.ProtocolVersion,
 		Timestamp:       uint64(roughtime.Now().Unix()),
 		Services:        uint64(s.cfg.Services),
-		GraphState:      1,
+		GraphState:      gs,
 		UserAgent:       []byte(s.cfg.UserAgent),
 	}
 
