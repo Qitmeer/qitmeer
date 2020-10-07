@@ -95,6 +95,8 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 					multiAddr := fmt.Sprintf("%s/p2p/%s", conn.RemoteMultiaddr().String(), conn.RemotePeer().String())
 					log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s activePeers:%d Peer Connected",
 						peerInfoStr, conn.Stat().Direction, multiAddr, len(s.peers.Active())))
+
+					s.peerSync.OnPeerConnected(conn.RemotePeer())
 				}
 
 				// Do not perform handshake on inbound dials.
@@ -171,6 +173,7 @@ func (s *Service) AddDisconnectionHandler(handler func(ctx context.Context, id p
 				// Only log disconnections if we were fully connected.
 				if priorState == peers.PeerConnected {
 					log.Info(fmt.Sprintf("%s Peer Disconnected,activePeers:%d", peerInfoStr, len(s.peers.Active())))
+					s.peerSync.OnPeerDisconnected(conn.RemotePeer())
 				}
 			}()
 		},

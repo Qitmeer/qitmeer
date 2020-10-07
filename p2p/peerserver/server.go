@@ -81,7 +81,6 @@ type PeerServer struct {
 	connManager *connmgr.ConnManager
 	nat         NAT
 
-	newPeers  chan *serverPeer
 	donePeers chan *serverPeer
 	banPeers  chan *BanPeerMsg
 
@@ -153,7 +152,6 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 
 	return &peer.Config{
 		Listeners: peer.MessageListeners{
-			OnVersion:        sp.OnVersion,
 			OnGetAddr:        sp.OnGetAddr,
 			OnAddr:           sp.OnAddr,
 			OnRead:           sp.OnRead,
@@ -295,11 +293,6 @@ func (sp *serverPeer) newestGS() (*blockdag.GraphState, error) {
 	return best.GraphState, nil
 }
 
-// AddPeer adds a new peer that has already been connected to the server.
-func (s *PeerServer) AddPeer(sp *serverPeer) {
-	s.newPeers <- sp
-}
-
 // AddBytesReceived adds the passed number of bytes to the total bytes received
 // counter for the server.  It is safe for concurrent access.
 func (s *PeerServer) AddBytesReceived(bytesReceived uint64) {
@@ -362,10 +355,6 @@ func (s *PeerServer) peerHandler() {
 out:
 	for {
 		select {
-		// New peers connected to the server.
-		case p := <-s.newPeers:
-			s.handleAddPeerMsg(state, p)
-
 		// Disconnected peers.
 		case p := <-s.donePeers:
 			log.Trace("read peer from donePeers and do handleDonePeerMsg")
@@ -405,7 +394,6 @@ out:
 cleanup:
 	for {
 		select {
-		case <-s.newPeers:
 		case <-s.donePeers:
 		case <-s.relayInv:
 		case <-s.broadcast:

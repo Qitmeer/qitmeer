@@ -146,14 +146,6 @@ func (b *BlockManager) handleBlockMsg(bmsg *blockMsg) connmgr.BanScore {
 		if isCurrent {
 			log.Info("Your synchronization has been completed. ")
 		}
-
-		if len(b.requestedBlocks) == 0 ||
-			(len(bmsg.peer.RequestedBlocks) == 0 && bmsg.peer == b.syncPeer) {
-			if b.syncPeer != nil {
-				b.clearRequestedState(b.syncPeer)
-			}
-			//b.IntellectSyncBlocks(b.syncPeer, false)
-		}
 	}
 
 	// Nothing more to do if we aren't in headers-first mode.

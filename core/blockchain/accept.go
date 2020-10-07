@@ -84,7 +84,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// This function should never be called with orphan blocks or the
 	// genesis block.
 	b.ChainLock()
-	defer b.ChainUnlock()
 
 	parentsNode := []*blockNode{}
 	for _, pb := range block.Block().Parents {
@@ -93,6 +92,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		if prevNode == nil {
 			err := fmt.Errorf("Parents block %s is unknown", prevHash)
 			log.Debug(err.Error())
+			b.ChainUnlock()
 			return err
 		}
 		parentsNode = append(parentsNode, prevNode)
@@ -102,6 +102,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	newNode := newBlockNode(blockHeader, parentsNode)
 	mainParent := newNode.GetMainParent(b)
 	if mainParent == nil {
+		b.ChainUnlock()
 		return fmt.Errorf("Can't find main parent")
 	}
 
@@ -113,6 +114,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// position of the block within the block chain.
 	err := b.checkBlockContext(block, mainParent, flags)
 	if err != nil {
+		b.ChainUnlock()
 		return err
 	}
 
@@ -123,6 +125,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	//dag
 	newOrders, ib := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
+		b.ChainUnlock()
 		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
 	newNode.dagID = ib.GetID()
@@ -160,6 +163,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		return nil
 	})
 	if err != nil {
+		b.ChainUnlock()
 		panic(err.Error())
 	}
 	// Connect the passed block to the chain while respecting proper chain
@@ -170,7 +174,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		log.Warn(fmt.Sprintf("%s", err))
 	}
 	b.updateBestState(newNode, block, newOrders)
-
+	b.ChainUnlock()
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.

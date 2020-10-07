@@ -2,6 +2,7 @@ package peers
 
 import (
 	"errors"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/gogo/protobuf/proto"
@@ -374,6 +375,26 @@ func (p *Status) Decay() {
 			status.badResponses--
 		}
 	}
+}
+
+func (p *Status) Timestamp(pid peer.ID) (time.Time, error) {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	if status, ok := p.peers[pid]; ok {
+		return status.Timestamp(), nil
+	}
+	return time.Time{}, ErrPeerUnknown
+}
+
+func (p *Status) GraphState(pid peer.ID) (*blockdag.GraphState, error) {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	if status, ok := p.peers[pid]; ok {
+		return status.GraphState(), nil
+	}
+	return nil, ErrPeerUnknown
 }
 
 // NewStatus creates a new status entity.

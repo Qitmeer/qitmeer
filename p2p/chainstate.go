@@ -51,7 +51,7 @@ func (s *Service) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	}
 	s.Peers().SetChainState(stream.Conn().RemotePeer(), msg)
 
-	ret, err := s.validateChainStateMessage(ctx, msg)
+	ret, err := s.validateChainStateMessage(ctx, msg, id)
 	if err != nil {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		if ret == retErrInvalidChainState {
@@ -76,7 +76,7 @@ func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream
 		return fmt.Errorf("message is not type *pb.ChainState")
 	}
 
-	if ret, err := s.validateChainStateMessage(ctx, m); err != nil {
+	if ret, err := s.validateChainStateMessage(ctx, m, stream.Conn().RemotePeer()); err != nil {
 		log.Debug(fmt.Sprintf("Invalid chain state message from peer:peer=%s  error=%v", stream.Conn().RemotePeer(), err))
 		respCode := byte(0)
 		switch ret {
@@ -122,11 +122,11 @@ func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream
 	return s.respondWithChainState(ctx, stream)
 }
 
-func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainState) (int, error) {
+func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainState, id peer.ID) (int, error) {
 	if msg == nil {
 		return retErrGeneric, fmt.Errorf("msg is nil")
 	}
-	genesisHash := s.BlockManager.GetChain().BlockDAG().GetGenesisHash()
+	genesisHash := s.Chain.BlockDAG().GetGenesisHash()
 	msgGenesisHash, err := hash.NewHash(msg.GenesisHash.Hash)
 	if err != nil {
 		return retErrGeneric, fmt.Errorf("invalid genesis")
@@ -143,6 +143,21 @@ func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainSt
 	if msg.GraphState.Total <= 0 {
 		return retErrInvalidChainState, fmt.Errorf("invalid graph state")
 	}
+	dir, err := s.peers.Direction(id)
+	if err != nil {
+		return retErrGeneric, err
+	}
+	if dir == network.DirInbound {
+		// Reject outbound peers that are not full nodes.
+		wantServices := protocol.Full
+		if !protocol.HasServices(protocol.ServiceFlag(msg.Services), wantServices) {
+			// missingServices := wantServices & ^msg.Services
+			missingServices := protocol.MissingServices(protocol.ServiceFlag(msg.Services), wantServices)
+			return retErrInvalidChainState, fmt.Errorf("Rejecting peer %s with services %v "+
+				"due to not providing desired services %v\n", id.String(), msg.Services, missingServices)
+		}
+	}
+
 	return retSuccess, nil
 }
 
@@ -160,8 +175,8 @@ func (s *Service) respondWithChainState(ctx context.Context, stream network.Stre
 }
 
 func (s *Service) getChainState() *pb.ChainState {
-	genesisHash := s.BlockManager.GetChain().BlockDAG().GetGenesisHash()
-	bs := s.BlockManager.GetChain().BestSnapshot()
+	genesisHash := s.Chain.BlockDAG().GetGenesisHash()
+	bs := s.Chain.BestSnapshot()
 
 	gs := &pb.GraphState{
 		Total:      uint32(bs.GraphState.GetTotal()),

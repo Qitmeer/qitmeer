@@ -12,7 +12,7 @@ import (
 
 // maintainPeerStatuses by infrequently polling peers for their latest status.
 func (s *Service) maintainPeerStatuses() {
-	interval := s.BlockManager.ChainParams().TargetTimePerBlock * 2
+	interval := s.Chain.ChainParams().TargetTimePerBlock * 2
 	runutil.RunEvery(s.ctx, interval, func() {
 		for _, pid := range s.Peers().Connected() {
 			go func(id peer.ID) {

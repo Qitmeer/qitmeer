@@ -510,6 +510,8 @@ func (b *BlockChain) HaveBlock(hash *hash.Hash) (bool, error) {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) IsCurrent() bool {
+	b.ChainRLock()
+	defer b.ChainRUnlock()
 	return b.isCurrent()
 }
 
@@ -1336,4 +1338,9 @@ func (b *BlockChain) CheckCacheInvalidTxConfig() error {
 		return fmt.Errorf("You must use --droptxindex before you use --cacheinvalidtx.")
 	}
 	return nil
+}
+
+// Return chain params
+func (b *BlockChain) ChainParams() *params.Params {
+	return b.params
 }

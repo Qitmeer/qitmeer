@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/message"
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
@@ -23,7 +24,6 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/Qitmeer/qitmeer/p2p/runutil"
-	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
 	"github.com/dgraph-io/ristretto"
@@ -77,10 +77,12 @@ type Service struct {
 	peers         *peers.Status
 	dv5Listener   Listener
 	pingMethod    func(ctx context.Context, id peer.ID) error
+	events        *event.Feed
+	peerSync      *PeerSync
 
-	TimeSource   blockchain.MedianTimeSource
-	BlockManager *blkmgr.BlockManager
-	TxMemPool    *mempool.TxPool
+	Chain      *blockchain.BlockChain
+	TimeSource blockchain.MedianTimeSource
+	TxMemPool  *mempool.TxPool
 }
 
 func (s *Service) Start() error {
@@ -156,7 +158,7 @@ func (s *Service) Start() error {
 	}
 
 	s.startSync()
-	return nil
+	return s.peerSync.Start()
 }
 
 // Started returns true if the p2p service has successfully started.
@@ -172,7 +174,7 @@ func (s *Service) Stop() error {
 	if s.dv5Listener != nil {
 		s.dv5Listener.Close()
 	}
-	return nil
+	return s.peerSync.Stop()
 }
 
 func (s *Service) connectToBootnodes() error {
@@ -393,7 +395,11 @@ func (s *Service) Send(ctx context.Context, message interface{}, baseTopic strin
 	return stream, nil
 }
 
-func NewService(cfg *config.Config) (*Service, error) {
+func (s *Service) PeerSync() *PeerSync {
+	return s.peerSync
+}
+
+func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
 	cache, err := ristretto.NewCache(&ristretto.Config{
@@ -441,7 +447,9 @@ func NewService(cfg *config.Config) (*Service, error) {
 		cancel:        cancel,
 		exclusionList: cache,
 		isPreGenesis:  true,
+		events:        events,
 	}
+	s.peerSync = NewPeerSync(s)
 
 	dv5Nodes := parseBootStrapAddrs(s.cfg.BootstrapNodeAddr)
 	s.cfg.Discv5BootStrapAddr = dv5Nodes

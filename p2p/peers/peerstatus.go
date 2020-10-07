@@ -40,6 +40,10 @@ func (pcs PeerConnectionState) IsConnected() bool {
 	return pcs == PeerConnected
 }
 
+func (pcs PeerConnectionState) IsDisconnected() bool {
+	return pcs == PeerDisconnected
+}
+
 // peerStatus is the status of an individual peer at the protocol level.
 type peerStatus struct {
 	address               ma.Multiaddr

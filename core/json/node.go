@@ -37,6 +37,7 @@ type GetPeerInfoResult struct {
 	UserAgent  string              `json:"useragent,omitempty""`
 	Direction  string              `json:"direction,omitempty""`
 	GraphState GetGraphStateResult `json:"graphstate,omitempty"`
+	SyncNode   bool                `json:"syncnode,omitempty"`
 }
 
 // GetGraphStateResult data

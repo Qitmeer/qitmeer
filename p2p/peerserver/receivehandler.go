@@ -14,105 +14,10 @@ import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/p2p/addmgr"
 	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
-	"github.com/satori/go.uuid"
 	"time"
 )
-
-// OnVersion is invoked when a peer receives a version wire message and is used
-// to negotiate the protocol version details as well as kick start the
-// communications.
-func (sp *serverPeer) OnVersion(p *peer.Peer, msg *message.MsgVersion) *message.MsgReject {
-	// Update the address manager with the advertised services for outbound
-	// connections in case they have changed.  This is not done for inbound
-	// connections to help prevent malicious behavior and is skipped when
-	// running on the simulation test network since it is only intended to
-	// connect to specified peers and actively avoids advertising and
-	// connecting to discovered peers.
-	//
-	// NOTE: This is done before rejecting peers that are too old to ensure
-	// it is updated regardless in the case a new minimum protocol version is
-	// enforced and the remote node has not upgraded yet.
-	if !uuid.Equal(p.UUID(), uuid.Nil) && sp.server.HasPeer(p.UUID()) {
-		return message.NewMsgReject(msg.Command(), message.RejectDuplicate, "duplicate peer version message")
-	}
-	isInbound := sp.Inbound()
-	remoteAddr := sp.NA()
-	if sp.server.state.IsBanPeer(remoteAddr.IP.String()) {
-		return message.NewMsgReject(msg.Command(), message.RejectBan, "ban peer version message")
-	}
-	if sp.server.state.IsMaxInboundPeer(sp) {
-		return message.NewMsgReject(msg.Command(), message.RejectMaxInbound, "max inbound peer version message")
-	}
-	addrManager := sp.server.addrManager
-	if !sp.server.cfg.PrivNet && !isInbound {
-		addrManager.SetServices(remoteAddr, msg.Services)
-	}
-
-	// Ignore peers that have a protcol version that is too old.  The peer
-	// negotiation logic will disconnect it after this callback returns.
-	if msg.ProtocolVersion < int32(protocol.InitialProcotolVersion) {
-		return nil
-	}
-	// Reject outbound peers that are not full nodes.
-	wantServices := protocol.Full
-	if !isInbound && !protocol.HasServices(msg.Services, wantServices) {
-		// missingServices := wantServices & ^msg.Services
-		missingServices := protocol.MissingServices(msg.Services, wantServices)
-		log.Debug(fmt.Sprintf("Rejecting peer %s with services %v due to not "+
-			"providing desired services %v", sp.Peer, msg.Services,
-			missingServices))
-		reason := fmt.Sprintf("required services %#x not offered",
-			uint64(missingServices))
-		return message.NewMsgReject(msg.Command(), message.RejectNonstandard, reason)
-	}
-
-	// Update the address manager and request known addresses from the
-	// remote peer for outbound connections.  This is skipped when running
-	// on the simulation test network since it is only intended to connect
-	// to specified peers and actively avoids advertising and connecting to
-	// discovered peers.
-	if !sp.server.cfg.PrivNet && !isInbound {
-		// Advertise the local address when the server accepts incoming
-		// connections and it believes itself to be close to the best
-		// known tip.
-		if !sp.server.cfg.DisableListen && sp.server.BlockManager.IsCurrent() {
-			// Get address that best matches.
-			lna := addrManager.GetBestLocalAddress(remoteAddr)
-			if addmgr.IsRoutable(lna) {
-				// Filter addresses the peer already knows about.
-				addresses := []*types.NetAddress{lna}
-				sp.pushAddrMsg(addresses)
-			}
-		}
-
-		// Request known addresses if the server address manager needs
-		// more.
-		if addrManager.NeedMoreAddresses() {
-			p.QueueMessage(message.NewMsgGetAddr(), nil)
-		}
-
-		// Mark the address as a known good address.
-		addrManager.Good(remoteAddr)
-	}
-
-	// Choose whether or not to relay transactions.
-	sp.setDisableRelayTx(msg.DisableRelayTx)
-
-	// Add the remote peer time as a sample for creating an offset against
-	// the local clock to keep the network time in sync.
-	sp.server.TimeSource.AddTimeSample(p.Addr(), msg.Timestamp)
-
-	// Signal the block manager this peer is a new sync candidate.
-	log.Trace("OnVersion -> NewPeer send to blkMgr msgChan", "peer", sp.syncPeer)
-	sp.server.BlockManager.NewPeer(sp.syncPeer)
-
-	// Add valid peer to the server.
-	sp.server.AddPeer(sp)
-	return nil
-}
 
 // OnGetAddr is invoked when a peer receives a getaddr message and is used
 // to provide the peer with known addresses from the address manager.

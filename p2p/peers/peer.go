@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
+	"time"
 )
 
 // Peer represents a connected p2p network remote node.
@@ -101,6 +102,13 @@ func (p *Peer) GraphState() *blockdag.GraphState {
 		tips.Add(h)
 	}
 	return gs
+}
+
+func (p *Peer) Timestamp() time.Time {
+	if p.chainState == nil {
+		return time.Time{}
+	}
+	return time.Unix(int64(p.chainState.Timestamp), 0)
 }
 
 func NewPeer(pid peer.ID) *Peer {
