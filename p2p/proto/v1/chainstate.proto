@@ -3,6 +3,7 @@ syntax = "proto3";
 package qitmeer.p2p.v1;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "messages.proto";
 
 message ChainState {
   Hash genesisHash =1;
@@ -22,6 +23,3 @@ message GraphState {
   repeated Hash tips =104 [(gogoproto.moretags) = "ssz-max:\"100\""];
 }
 
-message Hash {
-  bytes hash =200 [(gogoproto.moretags) = "ssz-size:\"32\""];
-}
