@@ -22,6 +22,8 @@ const (
 	RPCMetaDataTopic = "/qitmeer/req/metadata/1"
 	// RPCChainState defines the topic for the chain state rpc method.
 	RPCChainState = "/qitmeer/req/chainstate/1"
+	// RPCGetBlocks defines the topic for the get blocks rpc method.
+	RPCGetBlocks = "/qitmeer/req/getblocks/1"
 )
 
 // Time to first byte timeout. The maximum time to wait for first byte of
@@ -49,6 +51,9 @@ func (s *Service) registerHandlers() {
 }
 
 func (s *Service) startSync() {
+	s.peerSync = NewPeerSync(s)
+	s.peerSync.Start()
+
 	s.AddConnectionHandler(s.reValidatePeer, s.sendGenericGoodbyeMessage)
 	s.AddDisconnectionHandler(func(_ context.Context, _ peer.ID) error {
 		// TODO
@@ -86,6 +91,12 @@ func (s *Service) registerRPCHandlers() {
 		RPCChainState,
 		&pb.ChainState{},
 		s.chainStateHandler,
+	)
+
+	s.registerRPC(
+		RPCGetBlocks,
+		&pb.Hash{},
+		s.getBlocksHandler,
 	)
 }
 

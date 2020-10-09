@@ -158,7 +158,7 @@ func (s *Service) Start() error {
 	}
 
 	s.startSync()
-	return s.peerSync.Start()
+	return nil
 }
 
 // Started returns true if the p2p service has successfully started.
@@ -449,7 +449,6 @@ func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 		isPreGenesis:  true,
 		events:        events,
 	}
-	s.peerSync = NewPeerSync(s)
 
 	dv5Nodes := parseBootStrapAddrs(s.cfg.BootstrapNodeAddr)
 	s.cfg.Discv5BootStrapAddr = dv5Nodes

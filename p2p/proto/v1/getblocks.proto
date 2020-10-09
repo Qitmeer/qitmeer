@@ -3,16 +3,8 @@ syntax = "proto3";
 package qitmeer.p2p.v1;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "messages.proto";
 
-message GetBlocks {
-  repeated Hash locator =1 [(gogoproto.moretags) = "ssz-max:\"500\""];
-}
-
-message Blocks {
-  repeated Block blocks = 1 [(gogoproto.moretags) = "ssz-max:\"500\""];
-}
-
-message Block {
-  bytes blockBytes = 100 [(gogoproto.moretags) = "ssz-max:\"1048576\""];
+message BlockData {
+  uint32 dagID = 1;
+  bytes blockBytes = 2 [(gogoproto.moretags) = "ssz-max:\"1048576\""];
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"sync"
 )
@@ -187,29 +186,40 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 		return
 	}
 
-	gs := ps.Chain().BestSnapshot().GraphState
 	if ps.Chain().GetOrphansTotal() >= blockchain.MaxOrphanBlocks || refresh {
 		ps.Chain().RefreshOrphans()
 	}
 	allOrphan := ps.Chain().GetRecentOrphansParents()
+
+	var err error
 	if len(allOrphan) > 0 {
-		err := peer.PushGetBlocksMsg(gs, allOrphan)
+		err = ps.service.getBlocks(ps.syncPeer, allOrphan)
 		if err != nil {
-			b.PushSyncDAGMsg(peer)
+			err = ps.service.syncDAGBlocks(ps.syncPeer)
 		}
 	} else {
-		b.PushSyncDAGMsg(peer)
+		err = ps.service.syncDAGBlocks(ps.syncPeer)
 	}
+	if err != nil {
+		ps.resetSyncPeer()
+	}
+}
+
+func (ps *PeerSync) updateSyncPeer() {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
+	log.Debug("Updating sync peer")
+	ps.resetSyncPeer()
+	ps.startSync()
+}
+
+func (ps *PeerSync) resetSyncPeer() {
+	ps.syncPeer = peer.ID("")
 }
 
 func NewPeerSync(service *Service) *PeerSync {
 	peerSync := &PeerSync{service: service, syncPeer: peer.ID("")}
 	peerSync.dagSync = blockdag.NewDAGSync(service.Chain.BlockDAG())
-	best := service.Chain.BestSnapshot()
-
-	peerSync.dagSync.GSMtx.Lock()
-	peerSync.dagSync.GS = best.GraphState
-	peerSync.dagSync.GSMtx.Unlock()
-
 	return peerSync
 }
