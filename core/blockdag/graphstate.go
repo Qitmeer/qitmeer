@@ -207,8 +207,8 @@ func (gs *GraphState) Decode(r io.Reader, pver uint32) error {
 	gs.mainOrder = uint(mainOrder)
 
 	count, err := s.ReadVarInt(r, pver)
-	if count == 0 {
-		return fmt.Errorf("GraphState.Decode:tips count is zero.")
+	if count == 0 || err != nil {
+		return fmt.Errorf("GraphState.Decode:tips count is zero.:%v", err)
 	}
 
 	locatorHashes := make([]hash.Hash, count)

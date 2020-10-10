@@ -262,7 +262,6 @@ func WriteMessageN(w io.Writer, msg Message, pver uint32, net protocol.Network) 
 	// Create header for the message.
 	hdr := messageHeader{}
 	hdr.magic = net
-	hdr.command = cmd
 	hdr.length = uint32(lenp)
 
 	// TODO, add an abstract layer of hash func

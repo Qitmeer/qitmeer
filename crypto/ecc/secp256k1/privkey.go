@@ -66,6 +66,9 @@ func GeneratePrivateKey() (*PrivateKey, error) {
 func GenerateKey(rand io.Reader) (priv []byte, x,
 	y *big.Int, err error) {
 	key, err := ecdsa.GenerateKey(S256(), rand)
+	if err != nil {
+		return
+	}
 	priv = key.D.Bytes()
 	x = key.PublicKey.X
 	y = key.PublicKey.Y

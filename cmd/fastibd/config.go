@@ -39,9 +39,6 @@ type Config struct {
 
 func (c *Config) load() error {
 
-	appName := filepath.Base(os.Args[0])
-	appName = strings.TrimSuffix(appName, filepath.Ext(appName))
-
 	// Create the home directory if it doesn't already exist.
 	funcName := "loadConfig"
 	err := os.MkdirAll(c.HomeDir, 0700)

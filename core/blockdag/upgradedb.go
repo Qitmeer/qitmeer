@@ -19,7 +19,7 @@ func (bd *BlockDAG) upgradeMainChain(dbTx database.Tx) error {
 		return nil
 	}
 	// Need build
-	mchBucket, err := meta.CreateBucket(dbnamespace.DagMainChainBucketName)
+	_, err := meta.CreateBucket(dbnamespace.DagMainChainBucketName)
 	if err != nil {
 		return err
 	}
