@@ -484,7 +484,9 @@ func (tx *Transaction) Decode(r io.Reader, pver uint32) error {
 func (tx *Transaction) decodePrefix(r io.Reader) (uint64, error) {
 
 	count, err := s.ReadVarInt(r, 0)
-
+	if err != nil {
+		return 0, err
+	}
 	// Prevent more input transactions than could possibly fit into a
 	// message.  It would be possible to cause memory exhaustion and panics
 	// without a sane upper bound on this count.

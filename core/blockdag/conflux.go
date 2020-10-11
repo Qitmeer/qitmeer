@@ -75,8 +75,9 @@ func (con *Conflux) AddBlock(b IBlock) *list.List {
 	var i uint
 	for i = 0; i < con.bd.blockTotal; i++ {
 		if result == nil {
-			if len(oldOrder) == 0 ||
-				i >= uint(len(oldOrder)) ||
+			oldOrderL := len(oldOrder)
+			if oldOrderL == 0 ||
+				i >= uint(oldOrderL) ||
 				oldOrder[i] != con.bd.order[i] {
 				result = list.New()
 				result.PushBack(con.bd.order[i])
