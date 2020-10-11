@@ -92,14 +92,6 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgVersion{}
 	case CmdVerAck:
 		msg = &MsgVerAck{}
-	case CmdGetAddr:
-		msg = &MsgGetAddr{}
-	case CmdAddr:
-		msg = &MsgAddr{}
-	case CmdPing:
-		msg = &MsgPing{}
-	case CmdPong:
-		msg = &MsgPong{}
 	case CmdReject:
 		msg = &MsgReject{}
 	case CmdGetBlocks:

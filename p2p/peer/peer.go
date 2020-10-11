@@ -12,12 +12,10 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
-	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/satori/go.uuid"
-	"math/rand"
 	"net"
 	"strconv"
 	"sync/atomic"
@@ -170,41 +168,6 @@ func (p *Peer) QueueMessage(msg message.Message, doneChan chan<- struct{}) {
 		return
 	}
 	p.outputQueue <- outMsg{msg: msg, doneChan: doneChan}
-}
-
-// PushAddrMsg sends an addr message to the connected peer using the provided
-// addresses.  This function is useful over manually sending the message via
-// QueueMessage since it automatically limits the addresses to the maximum
-// number allowed by the message and randomizes the chosen addresses when there
-// are too many.  It returns the addresses that were actually sent and no
-// message will be sent if there are no entries in the provided addresses slice.
-//
-// This function is safe for concurrent access.
-func (p *Peer) PushAddrMsg(addresses []*types.NetAddress) ([]*types.NetAddress, error) {
-
-	// Nothing to send.
-	if len(addresses) == 0 {
-		return nil, nil
-	}
-
-	msg := message.NewMsgAddr()
-	msg.AddrList = make([]*types.NetAddress, len(addresses))
-	copy(msg.AddrList, addresses)
-
-	// Randomize the addresses sent if there are more than the maximum allowed.
-	if len(msg.AddrList) > message.MaxAddrPerMsg {
-		// Shuffle the address list.
-		for i := range msg.AddrList {
-			j := rand.Intn(i + 1)
-			msg.AddrList[i], msg.AddrList[j] = msg.AddrList[j], msg.AddrList[i]
-		}
-
-		// Truncate it to the maximum size.
-		msg.AddrList = msg.AddrList[:message.MaxAddrPerMsg]
-	}
-
-	p.QueueMessage(msg, nil)
-	return msg.AddrList, nil
 }
 
 // Addr returns the peer address.
@@ -602,28 +565,6 @@ func (p *Peer) LastPingNonce() uint64 {
 	p.statsMtx.RUnlock()
 
 	return lastPingNonce
-}
-
-// pingHandler periodically pings the peer.  It must be run as a goroutine.
-func (p *Peer) pingHandler() {
-	pingTicker := time.NewTicker(pingInterval)
-	defer pingTicker.Stop()
-
-out:
-	for {
-		select {
-		case <-pingTicker.C:
-			nonce, err := serialization.RandomUint64()
-			if err != nil {
-				log.Error(fmt.Sprintf("Not sending ping to %s: %v", p, err))
-				continue
-			}
-			p.QueueMessage(message.NewMsgPing(nonce), nil)
-
-		case <-p.quit:
-			break out
-		}
-	}
 }
 
 func (p *Peer) Cfg() *Config {

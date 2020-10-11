@@ -152,15 +152,12 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 
 	return &peer.Config{
 		Listeners: peer.MessageListeners{
-			OnGetAddr:        sp.OnGetAddr,
-			OnAddr:           sp.OnAddr,
 			OnRead:           sp.OnRead,
 			OnWrite:          sp.OnWrite,
 			OnGetBlocks:      sp.OnGetBlocks,
 			OnGetHeaders:     sp.OnGetHeaders,
 			OnBlock:          sp.OnBlock,
 			OnGetData:        sp.OnGetData,
-			OnInv:            sp.OnInv,
 			OnGetMiningState: sp.OnGetMiningState,
 			OnMiningState:    sp.OnMiningState,
 			OnTx:             sp.OnTx,

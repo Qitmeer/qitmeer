@@ -8,7 +8,6 @@ package peerserver
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
@@ -16,84 +15,7 @@ import (
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
-	"time"
 )
-
-// OnGetAddr is invoked when a peer receives a getaddr message and is used
-// to provide the peer with known addresses from the address manager.
-func (sp *serverPeer) OnGetAddr(p *peer.Peer, msg *message.MsgGetAddr) {
-	// Don't return any addresses when running on the simulation test
-	// network.  This helps prevent the network from becoming another
-	// public test network since it will not be able to learn about other
-	// peers that have not specifically been provided.
-	if sp.server.cfg.PrivNet {
-		return
-	}
-
-	// Do not accept getaddr requests from outbound peers.  This reduces
-	// fingerprinting attacks.
-	if !p.Inbound() {
-		return
-	}
-
-	// Only respond with addresses once per connection.  This helps reduce
-	// traffic and further reduces fingerprinting attacks.
-	if sp.addrsSent {
-		log.Trace("Ignoring getaddr which already sent", "peer", sp.Peer)
-		return
-	}
-	sp.addrsSent = true
-
-	// Get the current known addresses from the address manager.
-	addrCache := sp.server.addrManager.AddressCache()
-
-	// Push the addresses.
-	sp.pushAddrMsg(addrCache)
-}
-
-// OnAddr is invoked when a peer receives an addr message and is used to
-// notify the server about advertised addresses.
-func (sp *serverPeer) OnAddr(p *peer.Peer, msg *message.MsgAddr) {
-	// Ignore addresses when running on the simulation test network.  This
-	// helps prevent the network from becoming another public test network
-	// since it will not be able to learn about other peers that have not
-	// specifically been provided.
-	if sp.server.cfg.PrivNet {
-		return
-	}
-
-	// A message that has no addresses is invalid.
-	if len(msg.AddrList) == 0 {
-		log.Error("Command does not contain any addresses",
-			"command", msg.Command(), "peer", p)
-		p.Disconnect()
-		return
-	}
-
-	now := roughtime.Now()
-	for _, na := range msg.AddrList {
-		// Don't add more address if we're disconnecting.
-		if !p.Connected() {
-			return
-		}
-
-		// Set the timestamp to 5 days ago if it's more than 24 hours
-		// in the future so this address is one of the first to be
-		// removed when space is needed.
-		if na.Timestamp.After(now.Add(time.Minute * 10)) {
-			na.Timestamp = now.Add(-1 * time.Hour * 24 * 5)
-		}
-
-		// Add address to known addresses for this peer.
-		sp.addKnownAddresses([]*types.NetAddress{na})
-	}
-
-	// Add addresses to server address manager.  The address manager handles
-	// the details of things such as preventing duplicate addresses, max
-	// addresses, and last seen updates.
-	// TODO, if need to add a time penalty
-	sp.server.addrManager.AddAddresses(msg.AddrList, p.NA())
-}
 
 // OnRead is invoked when a peer receives a message and it is used to update
 // the bytes received by the server.
@@ -217,39 +139,6 @@ func (sp *serverPeer) OnGetHeaders(p *peer.Peer, msg *message.MsgGetHeaders) {
 	}
 	if len(headersMsg.Headers) > 0 {
 		p.QueueMessage(headersMsg, nil)
-	}
-}
-
-// OnInv is invoked when a peer receives an inv  message and is used to
-// examine the inventory being advertised by the remote peer and react
-// accordingly.  We pass the message down to blockmanager which will call
-// QueueMessage with any appropriate responses.
-func (sp *serverPeer) OnInv(p *peer.Peer, msg *message.MsgInv) {
-	if !sp.server.cfg.BlocksOnly {
-		if len(msg.InvList) > 0 {
-			sp.server.BlockManager.QueueInv(msg, sp.syncPeer)
-		}
-		return
-	}
-
-	newInv := message.NewMsgInvSizeHint(uint(len(msg.InvList)))
-	newInv.GS = msg.GS
-	for _, invVect := range msg.InvList {
-		if invVect.Type == message.InvTypeTx {
-			log.Info(fmt.Sprintf("Peer %v is announcing transactions -- "+
-				"disconnecting", p))
-			p.Disconnect()
-			return
-		}
-		err := newInv.AddInvVect(invVect)
-		if err != nil {
-			log.Error("Failed to add inventory vector", "error", err)
-			break
-		}
-	}
-
-	if len(newInv.InvList) > 0 {
-		sp.server.BlockManager.QueueInv(newInv, sp.syncPeer)
 	}
 }
 

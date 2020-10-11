@@ -7,7 +7,6 @@ package peer
 
 import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
-	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/log"
 	"io"
 	"net"
@@ -22,14 +21,6 @@ out:
 	for {
 		select {
 		case msg := <-p.sendQueue:
-			switch m := msg.msg.(type) {
-			case *message.MsgPing:
-				// Setup ping statistics.
-				p.statsMtx.Lock()
-				p.lastPingNonce = m.Nonce
-				p.lastPingTime = roughtime.Now()
-				p.statsMtx.Unlock()
-			}
 
 			p.stallControl <- stallControlMsg{sccSendMessage, msg.msg}
 			if err := p.writeMessage(msg.msg); err != nil {

@@ -24,18 +24,6 @@ func Summary(msg Message) string {
 	case *MsgVerAck:
 		// No summary.
 
-	case *MsgGetAddr:
-		// No summary.
-
-	case *MsgAddr:
-		return fmt.Sprintf("%d addr", len(msg.AddrList))
-
-	case *MsgPing:
-		// No summary - perhaps add nonce.
-
-	case *MsgPong:
-		// No summary - perhaps add nonce.
-
 	case *MsgTx:
 		return fmt.Sprintf("hash %s, %d inputs, %d outputs, lock %s",
 			msg.Tx.TxHash(), len(msg.Tx.TxIn), len(msg.Tx.TxOut),

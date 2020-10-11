@@ -19,18 +19,6 @@ import (
 // handler goroutine blocks until the callback has completed.  Doing so will
 // result in a deadlock.
 type MessageListeners struct {
-	// OnGetAddr is invoked when a peer receives a getaddr wire message.
-	OnGetAddr func(p *Peer, msg *message.MsgGetAddr)
-
-	// OnAddr is invoked when a peer receives an addr wire message.
-	OnAddr func(p *Peer, msg *message.MsgAddr)
-
-	// OnPing is invoked when a peer receives a ping wire message.
-	OnPing func(p *Peer, msg *message.MsgPing)
-
-	// OnPong is invoked when a peer receives a pong wire message.
-	OnPong func(p *Peer, msg *message.MsgPong)
-
 	// OnVersion is invoked when a peer receives a version wire message.
 	// The caller may return a reject message in which case the message will
 	// be sent to the peer and the peer will be disconnected.
@@ -69,9 +57,6 @@ type MessageListeners struct {
 
 	// OnBlock is invoked when a peer receives a block wire message.
 	OnBlock func(p *Peer, msg *message.MsgBlock, buf []byte)
-
-	// OnInv is invoked when a peer receives an inv message.
-	OnInv func(p *Peer, msg *message.MsgInv)
 
 	// OnGetData is invoked when a peer receives a getdata wire message.
 	OnGetData func(p *Peer, msg *message.MsgGetData)

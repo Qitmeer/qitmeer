@@ -11,7 +11,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/p2p/addmgr"
 	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"sync"
@@ -60,39 +59,6 @@ func newServerPeer(s *PeerServer, isPersistent bool) *serverPeer {
 			RequestedBlocks: make(map[hash.Hash]struct{}),
 			RequestedTxns:   make(map[hash.Hash]struct{}),
 		}}
-}
-
-// pushAddrMsg sends an addr message to the connected peer using the provided
-// addresses.
-func (sp *serverPeer) pushAddrMsg(addresses []*types.NetAddress) {
-	// Filter addresses already known to the peer.
-	addrs := make([]*types.NetAddress, 0, len(addresses))
-	for _, addr := range addresses {
-		if !sp.addressKnown(addr) {
-			addrs = append(addrs, addr)
-		}
-	}
-	known, err := sp.PushAddrMsg(addrs)
-	if err != nil {
-		log.Error("Can't push address message to %s: %v", sp.Peer, err)
-		sp.Disconnect()
-		return
-	}
-	sp.addKnownAddresses(known)
-}
-
-// addressKnown true if the given address is already known to the peer.
-func (sp *serverPeer) addressKnown(na *types.NetAddress) bool {
-	_, exists := sp.knownAddresses[addmgr.NetAddressKey(na)]
-	return exists
-}
-
-// addKnownAddresses adds the given addresses to the set of known addreses to
-// the peer to prevent sending duplicate addresses.
-func (sp *serverPeer) addKnownAddresses(addresses []*types.NetAddress) {
-	for _, na := range addresses {
-		sp.knownAddresses[addmgr.NetAddressKey(na)] = struct{}{}
-	}
 }
 
 // setDisableRelayTx toggles relaying of transactions for the given peer.

@@ -487,9 +487,6 @@ out:
 				score := b.handleBlockMsg(msg)
 				log.Trace("notify syncPeer BlockProcessed done")
 				msg.peer.BlockProcessed <- score
-			case *invMsg:
-				log.Trace("blkmgr msgChan invMsg", "msg", msg)
-				b.handleInvMsg(msg)
 			case *donePeerMsg:
 				log.Trace("blkmgr msgChan donePeerMsg", "msg", msg)
 				b.handleDonePeerMsg(msg.peer)
@@ -725,24 +722,6 @@ func (b *BlockManager) QueueBlock(block *types.SerializedBlock, sp *peer.ServerP
 	}
 	log.Trace("send blockMsg to blkmgr msgChan", "block", block, "peer", sp)
 	b.msgChan <- &blockMsg{block: block, peer: sp}
-}
-
-// invMsg packages a inv message and the peer it came from together
-// so the block handler has access to that information.
-type invMsg struct {
-	inv  *message.MsgInv
-	peer *peer.ServerPeer
-}
-
-// QueueInv adds the passed inv message and peer to the block handling queue.
-func (b *BlockManager) QueueInv(inv *message.MsgInv, sp *peer.ServerPeer) {
-	// No channel handling here because peers do not need to block on inv
-	// messages.
-	if atomic.LoadInt32(&b.shutdown) != 0 {
-		return
-	}
-
-	b.msgChan <- &invMsg{inv: inv, peer: sp}
 }
 
 // tipGenerationResponse is a response sent to the reply channel of a

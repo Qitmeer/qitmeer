@@ -82,28 +82,6 @@ out:
 				p.cfg.Listeners.OnVerAck(p, msg)
 			}
 
-		case *message.MsgGetAddr:
-			if p.cfg.Listeners.OnGetAddr != nil {
-				p.cfg.Listeners.OnGetAddr(p, msg)
-			}
-
-		case *message.MsgAddr:
-			if p.cfg.Listeners.OnAddr != nil {
-				p.cfg.Listeners.OnAddr(p, msg)
-			}
-
-		case *message.MsgPing:
-			p.handlePingMsg(msg)
-			if p.cfg.Listeners.OnPing != nil {
-				p.cfg.Listeners.OnPing(p, msg)
-			}
-
-		case *message.MsgPong:
-			p.handlePongMsg(msg)
-			if p.cfg.Listeners.OnPong != nil {
-				p.cfg.Listeners.OnPong(p, msg)
-			}
-
 		case *message.MsgTx:
 			if p.cfg.Listeners.OnTx != nil {
 				p.cfg.Listeners.OnTx(p, msg)
@@ -117,11 +95,6 @@ out:
 		case *message.MsgGetBlocks:
 			if p.cfg.Listeners.OnGetBlocks != nil {
 				p.cfg.Listeners.OnGetBlocks(p, msg)
-			}
-
-		case *message.MsgInv:
-			if p.cfg.Listeners.OnInv != nil {
-				p.cfg.Listeners.OnInv(p, msg)
 			}
 
 		case *message.MsgGetData:
@@ -266,30 +239,4 @@ func (p *Peer) shouldHandleReadError(err error) bool {
 	}
 
 	return true
-}
-
-// handlePingMsg is invoked when a peer receives a ping wire message.
-func (p *Peer) handlePingMsg(msg *message.MsgPing) {
-	// Include nonce from ping so pong can be identified.
-	p.QueueMessage(message.NewMsgPong(msg.Nonce), nil)
-}
-
-// handlePongMsg is invoked when a peer receives a pong wire message.  It
-// updates the ping statistics as required for recent clients. There is
-// no effect for older clients or when a ping was not previously sent.
-func (p *Peer) handlePongMsg(msg *message.MsgPong) {
-	// Arguably we could use a buffered channel here sending data
-	// in a fifo manner whenever we send a ping, or a list keeping track of
-	// the times of each ping. For now we just make a best effort and
-	// only record stats if it was for the last ping sent. Any preceding
-	// and overlapping pings will be ignored. It is unlikely to occur
-	// without large usage of the ping rpc call since we ping infrequently
-	// enough that if they overlap we would have timed out the peer.
-	p.statsMtx.Lock()
-	if p.lastPingNonce != 0 && msg.Nonce == p.lastPingNonce {
-		p.lastPingMicros = roughtime.Since(p.lastPingTime).Nanoseconds()
-		p.lastPingMicros /= 1000 // convert to usec.
-		p.lastPingNonce = 0
-	}
-	p.statsMtx.Unlock()
 }
