@@ -96,8 +96,6 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgReject{}
 	case CmdGetBlocks:
 		msg = &MsgGetBlocks{}
-	case CmdBlock:
-		msg = &MsgBlock{}
 	case CmdInv:
 		msg = &MsgInv{}
 	case CmdTx:

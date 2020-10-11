@@ -32,7 +32,7 @@ out:
 		// Read a message and stop the idle timer as soon as the read
 		// is done.  The timer is reset below for the next iteration if
 		// needed.
-		rmsg, buf, err := p.readMessage()
+		rmsg, _, err := p.readMessage()
 		idleTimer.Stop()
 		if err != nil {
 			// Only log the error and send reject message if the
@@ -85,11 +85,6 @@ out:
 		case *message.MsgTx:
 			if p.cfg.Listeners.OnTx != nil {
 				p.cfg.Listeners.OnTx(p, msg)
-			}
-
-		case *message.MsgBlock:
-			if p.cfg.Listeners.OnBlock != nil {
-				p.cfg.Listeners.OnBlock(p, msg, buf)
 			}
 
 		case *message.MsgGetBlocks:
@@ -151,51 +146,6 @@ out:
 			if p.cfg.Listeners.OnFeeFilter != nil {
 				p.cfg.Listeners.OnFeeFilter(p, msg)
 			}
-		/*
-			case *message.MsgHeaders:
-				if p.cfg.Listeners.OnHeaders != nil {
-					p.cfg.Listeners.OnHeaders(p, msg)
-				}
-
-			case *message.MsgGetCFilter:
-				if p.cfg.Listeners.OnGetCFilter != nil {
-					p.cfg.Listeners.OnGetCFilter(p, msg)
-				}
-
-			case *message.MsgGetCFHeaders:
-				if p.cfg.Listeners.OnGetCFHeaders != nil {
-					p.cfg.Listeners.OnGetCFHeaders(p, msg)
-				}
-
-			case *message.MsgGetCFTypes:
-				if p.cfg.Listeners.OnGetCFTypes != nil {
-					p.cfg.Listeners.OnGetCFTypes(p, msg)
-				}
-
-			case *message.MsgCFilter:
-				if p.cfg.Listeners.OnCFilter != nil {
-					p.cfg.Listeners.OnCFilter(p, msg)
-				}
-
-			case *message.MsgCFHeaders:
-				if p.cfg.Listeners.OnCFHeaders != nil {
-					p.cfg.Listeners.OnCFHeaders(p, msg)
-				}
-
-			case *message.MsgCFTypes:
-				if p.cfg.Listeners.OnCFTypes != nil {
-					p.cfg.Listeners.OnCFTypes(p, msg)
-				}
-
-			case *message.MsgSendHeaders:
-				p.flagsMtx.Lock()
-				p.sendHeadersPreferred = true
-				p.flagsMtx.Unlock()
-
-				if p.cfg.Listeners.OnSendHeaders != nil {
-					p.cfg.Listeners.OnSendHeaders(p, msg)
-				}
-		*/
 		case *message.MsgReject:
 			if p.cfg.Listeners.OnReject != nil {
 				p.cfg.Listeners.OnReject(p, msg)

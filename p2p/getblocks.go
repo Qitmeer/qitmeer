@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/types"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -106,20 +108,45 @@ func (s *Service) getBlocks(id peer.ID, blocks []*hash.Hash) error {
 	for _, b := range blocks {
 		bd, err := s.sendGetBlocksRequest(s.ctx, id, b)
 		if err != nil {
+			log.Warn(fmt.Sprintf("getBlocks send:%v", err))
 			continue
 		}
 		blockdatas = append(blockdatas, bd)
 	}
+	log.Trace(fmt.Sprintf("getBlocks:%d", len(blockdatas)))
 	if len(blockdatas) <= 0 {
 		return fmt.Errorf("no blocks return")
 	}
 	if len(blockdatas) >= 2 {
 		sort.Sort(blockdatas)
 	}
+	behaviorFlags := blockchain.BFP2PAdd
 
-	return nil
-}
+	add := 0
+	for _, bd := range blockdatas {
+		block, err := types.NewBlockFromBytes(bd.BlockBytes)
+		if err != nil {
+			log.Warn(fmt.Sprintf("getBlocks from:%v", err))
+			continue
+		}
+		isOrphan, err := s.Chain.ProcessBlock(block, behaviorFlags)
+		if err != nil {
+			log.Error("Failed to process block", "hash", block.Hash(), "error", err)
+			continue
+		}
+		if isOrphan {
+			continue
+		}
+		add++
+	}
+	log.Trace(fmt.Sprintf("getBlocks:%d/%d", add, len(blockdatas)))
+	if add > 0 {
+		s.TxMemPool.PruneExpiredTx()
 
-func (s *Service) syncDAGBlocks(id peer.ID) error {
+		isCurrent := s.peerSync.IsCurrent()
+		if isCurrent {
+			log.Info("Your synchronization has been completed. ")
+		}
+	}
 	return nil
 }

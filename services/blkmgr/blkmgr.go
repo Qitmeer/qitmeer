@@ -17,7 +17,6 @@ import (
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/p2p"
-	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
@@ -482,11 +481,6 @@ out:
 		case m := <-b.msgChan:
 			log.Trace("blkmgr msgChan received ...", "msg", m)
 			switch msg := m.(type) {
-			case *blockMsg:
-				log.Trace("blkmgr msgChan blockMsg", "msg", msg)
-				score := b.handleBlockMsg(msg)
-				log.Trace("notify syncPeer BlockProcessed done")
-				msg.peer.BlockProcessed <- score
 			case *donePeerMsg:
 				log.Trace("blkmgr msgChan donePeerMsg", "msg", msg)
 				b.handleDonePeerMsg(msg.peer)
@@ -704,24 +698,6 @@ func (b *BlockManager) Current() bool {
 	log.Trace("send isCurrentMsg to blkmgr msgChan")
 	b.msgChan <- isCurrentMsg{isCurrentReply: reply}
 	return <-reply
-}
-
-// blockMsg packages a block message and the peer it came from together
-// so the block handler has access to that information.
-type blockMsg struct {
-	block *types.SerializedBlock
-	peer  *peer.ServerPeer
-}
-
-// QueueBlock adds the passed block message and peer to the block handling queue.
-func (b *BlockManager) QueueBlock(block *types.SerializedBlock, sp *peer.ServerPeer) {
-	// Don't accept more blocks if we're shutting down.
-	if atomic.LoadInt32(&b.shutdown) != 0 {
-		sp.BlockProcessed <- connmgr.NoneScore
-		return
-	}
-	log.Trace("send blockMsg to blkmgr msgChan", "block", block, "peer", sp)
-	b.msgChan <- &blockMsg{block: block, peer: sp}
 }
 
 // tipGenerationResponse is a response sent to the reply channel of a

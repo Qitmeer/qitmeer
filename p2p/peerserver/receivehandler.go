@@ -29,36 +29,6 @@ func (sp *serverPeer) OnWrite(p *peer.Peer, bytesWritten int, msg message.Messag
 	sp.server.AddBytesSent(uint64(bytesWritten))
 }
 
-// OnBlock is invoked when a peer receives a block wire message.  It blocks
-// until the network block has been fully processed.
-func (sp *serverPeer) OnBlock(p *peer.Peer, msg *message.MsgBlock, buf []byte) {
-	log.Trace("OnBlock called", "peer", p, "block", msg)
-	// Convert the raw MsgBlock to a types.Block which provides some
-	// convenience methods and things such as hash caching.
-
-	block := types.NewBlockFromBlockAndBytes(msg.Block, buf)
-
-	// Add the block to the known inventory for the peer.
-	iv := message.NewInvVect(message.InvTypeBlock, block.Hash())
-	p.AddKnownInventory(iv)
-
-	// Queue the block up to be handled by the block manager and
-	// intentionally block further receives until the network block is fully
-	// processed and known good or bad.  This helps prevent a malicious peer
-	// from queuing up a bunch of bad blocks before disconnecting (or being
-	// disconnected) and wasting memory.  Additionally, this behavior is
-	// depended on by at least the block acceptance test tool as the
-	// reference implementation processes blocks in the same thread and
-	// therefore blocks further messages until the network block has been
-	// fully processed.
-	sp.server.BlockManager.QueueBlock(block, sp.syncPeer)
-	score := <-sp.syncPeer.BlockProcessed
-	if score > connmgr.NoneScore {
-		sp.addBanScore(0, uint32(score), "onblock")
-	}
-	log.Trace("OnBlock done, sp.syncPeer.BlockProcessed")
-}
-
 // OnGetBlocks is invoked when a peer receives a getblocks wire message.
 func (sp *serverPeer) OnGetBlocks(p *peer.Peer, msg *message.MsgGetBlocks) {
 	if msg.GS.IsGenesis() && !msg.GS.GetTips().HasOnly(sp.server.chainParams.GenesisHash) {
@@ -182,8 +152,6 @@ func (sp *serverPeer) OnGetData(p *peer.Peer, msg *message.MsgGetData) {
 		switch iv.Type {
 		case message.InvTypeTx:
 			err = sp.server.pushTxMsg(sp, &iv.Hash, c, waitChan)
-		case message.InvTypeBlock:
-			err = sp.server.pushBlockMsg(sp, &iv.Hash, c, waitChan)
 		default:
 			log.Warn("Unknown type in inventory request", "type", iv.Type)
 			continue

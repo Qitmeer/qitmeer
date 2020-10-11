@@ -55,9 +55,6 @@ type MessageListeners struct {
 	// message.
 	OnGetHeaders func(p *Peer, msg *message.MsgGetHeaders)
 
-	// OnBlock is invoked when a peer receives a block wire message.
-	OnBlock func(p *Peer, msg *message.MsgBlock, buf []byte)
-
 	// OnGetData is invoked when a peer receives a getdata wire message.
 	OnGetData func(p *Peer, msg *message.MsgGetData)
 
