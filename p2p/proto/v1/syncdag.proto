@@ -5,6 +5,7 @@ package qitmeer.p2p.v1;
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "messages.proto";
 import "graphstate.proto";
+import "getblocks.proto";
 
 message SyncDAG {
   repeated Hash mainLocator =1 [(gogoproto.moretags) = "ssz-max:\"32\""];
@@ -14,6 +15,6 @@ message SyncDAG {
 message SubDAG {
   Hash syncPoint =1;
   GraphState graphState = 2;
-  bytes blockBytes = 3 [(gogoproto.moretags) = "ssz-max:\"1048576\""];
+  repeated BlockData blocks =3 [(gogoproto.moretags) = "ssz-max:\"500\""];
 }
 

@@ -176,6 +176,21 @@ func (s *Service) respondWithChainState(ctx context.Context, stream network.Stre
 
 func (s *Service) getChainState() *pb.ChainState {
 	genesisHash := s.Chain.BlockDAG().GetGenesisHash()
+
+	cs := &pb.ChainState{
+		GenesisHash:     &pb.Hash{Hash: genesisHash.Bytes()},
+		ProtocolVersion: s.cfg.ProtocolVersion,
+		Timestamp:       uint64(roughtime.Now().Unix()),
+		Services:        uint64(s.cfg.Services),
+		GraphState:      s.getGraphState(),
+		UserAgent:       []byte(s.cfg.UserAgent),
+		DisableRelayTx:  s.cfg.DisableRelayTx,
+	}
+
+	return cs
+}
+
+func (s *Service) getGraphState() *pb.GraphState {
 	bs := s.Chain.BestSnapshot()
 
 	gs := &pb.GraphState{
@@ -188,15 +203,6 @@ func (s *Service) getChainState() *pb.ChainState {
 	for tip := range bs.GraphState.GetTips().GetMap() {
 		gs.Tips = append(gs.Tips, &pb.Hash{Hash: tip.Bytes()})
 	}
-	cs := &pb.ChainState{
-		GenesisHash:     &pb.Hash{Hash: genesisHash.Bytes()},
-		ProtocolVersion: s.cfg.ProtocolVersion,
-		Timestamp:       uint64(roughtime.Now().Unix()),
-		Services:        uint64(s.cfg.Services),
-		GraphState:      gs,
-		UserAgent:       []byte(s.cfg.UserAgent),
-		DisableRelayTx:  s.cfg.DisableRelayTx,
-	}
 
-	return cs
+	return gs
 }

@@ -18,6 +18,107 @@ var (
 	errSize                = fmt.Errorf("incorrect size")
 )
 
+// MarshalSSZ ssz marshals the GraphState object
+func (g *GraphState) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, g.SizeSSZ())
+	return g.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the GraphState object to a target array
+func (g *GraphState) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+	offset := int(20)
+
+	// Field (0) 'Total'
+	dst = ssz.MarshalUint32(dst, g.Total)
+
+	// Field (1) 'Layer'
+	dst = ssz.MarshalUint32(dst, g.Layer)
+
+	// Field (2) 'MainHeight'
+	dst = ssz.MarshalUint32(dst, g.MainHeight)
+
+	// Field (3) 'MainOrder'
+	dst = ssz.MarshalUint32(dst, g.MainOrder)
+
+	// Offset (4) 'Tips'
+	dst = ssz.WriteOffset(dst, offset)
+	offset += len(g.Tips) * 32
+
+	// Field (4) 'Tips'
+	if len(g.Tips) > 100 {
+		return nil, errMarshalList
+	}
+	for ii := 0; ii < len(g.Tips); ii++ {
+		if dst, err = g.Tips[ii].MarshalSSZTo(dst); err != nil {
+			return nil, err
+		}
+	}
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the GraphState object
+func (g *GraphState) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size < 20 {
+		return errSize
+	}
+
+	tail := buf
+	var o4 uint64
+
+	// Field (0) 'Total'
+	g.Total = ssz.UnmarshallUint32(buf[0:4])
+
+	// Field (1) 'Layer'
+	g.Layer = ssz.UnmarshallUint32(buf[4:8])
+
+	// Field (2) 'MainHeight'
+	g.MainHeight = ssz.UnmarshallUint32(buf[8:12])
+
+	// Field (3) 'MainOrder'
+	g.MainOrder = ssz.UnmarshallUint32(buf[12:16])
+
+	// Offset (4) 'Tips'
+	if o4 = ssz.ReadOffset(buf[16:20]); o4 > size {
+		return errOffset
+	}
+
+	// Field (4) 'Tips'
+	{
+		buf = tail[o4:]
+		num, ok := ssz.DivideInt(len(buf), 32)
+		if !ok {
+			return errDivideInt
+		}
+		if num > 100 {
+			return errListTooBig
+		}
+		g.Tips = make([]*Hash, num)
+		for ii := 0; ii < num; ii++ {
+			if g.Tips[ii] == nil {
+				g.Tips[ii] = new(Hash)
+			}
+			if err = g.Tips[ii].UnmarshalSSZ(buf[ii*32 : (ii+1)*32]); err != nil {
+				return err
+			}
+		}
+	}
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the GraphState object
+func (g *GraphState) SizeSSZ() (size int) {
+	size = 20
+
+	// Field (4) 'Tips'
+	size += len(g.Tips) * 32
+
+	return
+}
+
 // MarshalSSZ ssz marshals the ChainState object
 func (c *ChainState) MarshalSSZ() ([]byte, error) {
 	buf := make([]byte, c.SizeSSZ())
@@ -351,20 +452,34 @@ func (s *SubDAG) MarshalSSZTo(dst []byte) ([]byte, error) {
 	}
 	offset += s.GraphState.SizeSSZ()
 
-	// Offset (2) 'BlockBytes'
+	// Offset (2) 'Blocks'
 	dst = ssz.WriteOffset(dst, offset)
-	offset += len(s.BlockBytes)
+	for ii := 0; ii < len(s.Blocks); ii++ {
+		offset += 4
+		offset += s.Blocks[ii].SizeSSZ()
+	}
 
 	// Field (1) 'GraphState'
 	if dst, err = s.GraphState.MarshalSSZTo(dst); err != nil {
 		return nil, err
 	}
 
-	// Field (2) 'BlockBytes'
-	if len(s.BlockBytes) > 1048576 {
-		return nil, errMarshalDynamicBytes
+	// Field (2) 'Blocks'
+	if len(s.Blocks) > 500 {
+		return nil, errMarshalList
 	}
-	dst = append(dst, s.BlockBytes...)
+	{
+		offset = 4 * len(s.Blocks)
+		for ii := 0; ii < len(s.Blocks); ii++ {
+			dst = ssz.WriteOffset(dst, offset)
+			offset += s.Blocks[ii].SizeSSZ()
+		}
+	}
+	for ii := 0; ii < len(s.Blocks); ii++ {
+		if dst, err = s.Blocks[ii].MarshalSSZTo(dst); err != nil {
+			return nil, err
+		}
+	}
 
 	return dst, err
 }
@@ -393,7 +508,7 @@ func (s *SubDAG) UnmarshalSSZ(buf []byte) error {
 		return errOffset
 	}
 
-	// Offset (2) 'BlockBytes'
+	// Offset (2) 'Blocks'
 	if o2 = ssz.ReadOffset(buf[36:40]); o2 > size || o1 > o2 {
 		return errOffset
 	}
@@ -409,10 +524,26 @@ func (s *SubDAG) UnmarshalSSZ(buf []byte) error {
 		}
 	}
 
-	// Field (2) 'BlockBytes'
+	// Field (2) 'Blocks'
 	{
 		buf = tail[o2:]
-		s.BlockBytes = append(s.BlockBytes, buf...)
+		num, err := ssz.DecodeDynamicLength(buf, 500)
+		if err != nil {
+			return err
+		}
+		s.Blocks = make([]*BlockData, num)
+		err = ssz.UnmarshalDynamic(buf, num, func(indx int, buf []byte) (err error) {
+			if s.Blocks[indx] == nil {
+				s.Blocks[indx] = new(BlockData)
+			}
+			if err = s.Blocks[indx].UnmarshalSSZ(buf); err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 	}
 	return err
 }
@@ -427,8 +558,11 @@ func (s *SubDAG) SizeSSZ() (size int) {
 	}
 	size += s.GraphState.SizeSSZ()
 
-	// Field (2) 'BlockBytes'
-	size += len(s.BlockBytes)
+	// Field (2) 'Blocks'
+	for ii := 0; ii < len(s.Blocks); ii++ {
+		size += 4
+		size += s.Blocks[ii].SizeSSZ()
+	}
 
 	return
 }
@@ -570,106 +704,5 @@ func (h *Hash) UnmarshalSSZ(buf []byte) error {
 // SizeSSZ returns the ssz encoded size in bytes for the Hash object
 func (h *Hash) SizeSSZ() (size int) {
 	size = 32
-	return
-}
-
-// MarshalSSZ ssz marshals the GraphState object
-func (g *GraphState) MarshalSSZ() ([]byte, error) {
-	buf := make([]byte, g.SizeSSZ())
-	return g.MarshalSSZTo(buf[:0])
-}
-
-// MarshalSSZTo ssz marshals the GraphState object to a target array
-func (g *GraphState) MarshalSSZTo(dst []byte) ([]byte, error) {
-	var err error
-	offset := int(20)
-
-	// Field (0) 'Total'
-	dst = ssz.MarshalUint32(dst, g.Total)
-
-	// Field (1) 'Layer'
-	dst = ssz.MarshalUint32(dst, g.Layer)
-
-	// Field (2) 'MainHeight'
-	dst = ssz.MarshalUint32(dst, g.MainHeight)
-
-	// Field (3) 'MainOrder'
-	dst = ssz.MarshalUint32(dst, g.MainOrder)
-
-	// Offset (4) 'Tips'
-	dst = ssz.WriteOffset(dst, offset)
-	offset += len(g.Tips) * 32
-
-	// Field (4) 'Tips'
-	if len(g.Tips) > 100 {
-		return nil, errMarshalList
-	}
-	for ii := 0; ii < len(g.Tips); ii++ {
-		if dst, err = g.Tips[ii].MarshalSSZTo(dst); err != nil {
-			return nil, err
-		}
-	}
-
-	return dst, err
-}
-
-// UnmarshalSSZ ssz unmarshals the GraphState object
-func (g *GraphState) UnmarshalSSZ(buf []byte) error {
-	var err error
-	size := uint64(len(buf))
-	if size < 20 {
-		return errSize
-	}
-
-	tail := buf
-	var o4 uint64
-
-	// Field (0) 'Total'
-	g.Total = ssz.UnmarshallUint32(buf[0:4])
-
-	// Field (1) 'Layer'
-	g.Layer = ssz.UnmarshallUint32(buf[4:8])
-
-	// Field (2) 'MainHeight'
-	g.MainHeight = ssz.UnmarshallUint32(buf[8:12])
-
-	// Field (3) 'MainOrder'
-	g.MainOrder = ssz.UnmarshallUint32(buf[12:16])
-
-	// Offset (4) 'Tips'
-	if o4 = ssz.ReadOffset(buf[16:20]); o4 > size {
-		return errOffset
-	}
-
-	// Field (4) 'Tips'
-	{
-		buf = tail[o4:]
-		num, ok := ssz.DivideInt(len(buf), 32)
-		if !ok {
-			return errDivideInt
-		}
-		if num > 100 {
-			return errListTooBig
-		}
-		g.Tips = make([]*Hash, num)
-		for ii := 0; ii < num; ii++ {
-			if g.Tips[ii] == nil {
-				g.Tips[ii] = new(Hash)
-			}
-			if err = g.Tips[ii].UnmarshalSSZ(buf[ii*32 : (ii+1)*32]); err != nil {
-				return err
-			}
-		}
-	}
-	return err
-}
-
-// SizeSSZ returns the ssz encoded size in bytes for the GraphState object
-func (g *GraphState) SizeSSZ() (size int) {
-	size = 20
-
-	// Field (4) 'Tips'
-	size += len(g.Tips) * 32
-
 	return
 }

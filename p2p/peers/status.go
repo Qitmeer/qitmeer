@@ -397,6 +397,30 @@ func (p *Status) GraphState(pid peer.ID) (*blockdag.GraphState, error) {
 	return nil, ErrPeerUnknown
 }
 
+func (p *Status) UpdateGraphState(pid peer.ID, gs *pb.GraphState) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	per, ok := p.peers[pid]
+	if !ok {
+		return ErrPeerUnknown
+	}
+	if per.chainState == nil {
+		per.chainState = &pb.ChainState{}
+		//per.chainState.GraphState=&pb.GraphState{}
+	}
+	per.chainState.GraphState = gs
+	/*	per.chainState.GraphState.Total=uint32(gs.GetTotal())
+		per.chainState.GraphState.Layer=uint32(gs.GetLayer())
+		per.chainState.GraphState.MainOrder=uint32(gs.GetMainOrder())
+		per.chainState.GraphState.MainHeight=uint32(gs.GetMainHeight())
+		per.chainState.GraphState.Tips=[]*pb.Hash{}
+		for h:=range gs.GetTips().GetMap() {
+			per.chainState.GraphState.Tips=append(per.chainState.GraphState.Tips,&pb.Hash{Hash:h.Bytes()})
+		}*/
+	return nil
+}
+
 // NewStatus creates a new status entity.
 func NewStatus(maxBadResponses int) *Status {
 	return &Status{

@@ -85,12 +85,11 @@ func (s *Service) getBlocksHandler(ctx context.Context, msg interface{}, stream 
 		return err
 	}
 
-	_, err = stream.Write([]byte{responseCodeSuccess})
+	blocks, err := block.Bytes()
 	if err != nil {
 		return err
 	}
-
-	blocks, err := block.Bytes()
+	_, err = stream.Write([]byte{responseCodeSuccess})
 	if err != nil {
 		return err
 	}
