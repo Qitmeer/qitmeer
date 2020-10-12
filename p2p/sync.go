@@ -24,6 +24,8 @@ const (
 	RPCChainState = "/qitmeer/req/chainstate/1"
 	// RPCGetBlocks defines the topic for the get blocks rpc method.
 	RPCGetBlocks = "/qitmeer/req/getblocks/1"
+	// RPCGetBlocks defines the topic for the get blocks rpc method.
+	RPCSyncDAG = "/qitmeer/req/syncdag/1"
 )
 
 // Time to first byte timeout. The maximum time to wait for first byte of
@@ -97,6 +99,12 @@ func (s *Service) registerRPCHandlers() {
 		RPCGetBlocks,
 		&pb.Hash{},
 		s.getBlocksHandler,
+	)
+
+	s.registerRPC(
+		RPCSyncDAG,
+		&pb.SyncDAG{},
+		s.syncDAGHandler,
 	)
 }
 

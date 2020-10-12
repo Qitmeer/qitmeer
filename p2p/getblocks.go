@@ -147,6 +147,8 @@ func (s *Service) getBlocks(id peer.ID, blocks []*hash.Hash) error {
 		if isCurrent {
 			log.Info("Your synchronization has been completed. ")
 		}
+	} else {
+		return fmt.Errorf("no get blocks")
 	}
 	return nil
 }
