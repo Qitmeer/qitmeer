@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
@@ -12,6 +13,38 @@ import (
 // MaxBlockLocatorsPerMsg is the maximum number of block locator hashes allowed
 // per message.
 const MaxBlockLocatorsPerMsg = 500
+
+func (s *Service) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.SyncDAG) (*pb.SubDAG, error) {
+	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
+	defer cancel()
+
+	stream, err := s.Send(ctx, sd, RPCSyncDAG, id)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := stream.Reset(); err != nil {
+			log.Error(fmt.Sprintf("Failed to reset stream with protocol %s,%v", stream.Protocol(), err))
+		}
+	}()
+
+	code, errMsg, err := ReadRspCode(stream, s.Encoding())
+	if err != nil {
+		return nil, err
+	}
+
+	if code != responseCodeSuccess {
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		return nil, errors.New(errMsg)
+	}
+
+	msg := &pb.SubDAG{}
+	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
+		return nil, err
+	}
+
+	return msg, err
+}
 
 func (s *Service) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
@@ -78,5 +111,11 @@ func (s *Service) syncDAGHandler(ctx context.Context, msg interface{}, stream li
 }
 
 func (s *Service) syncDAGBlocks(id peer.ID) error {
+	sd := &pb.SyncDAG{GraphState: s.getGraphState()}
+	_, err := s.sendSyncDAGRequest(s.ctx, id, sd)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
