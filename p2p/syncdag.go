@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/types"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -78,11 +80,12 @@ func (s *Service) syncDAGHandler(ctx context.Context, msg interface{}, stream li
 		return err
 	}
 
-	blocks, point := s.PeerSync().dagSync.CalcSyncBlocks(gs, changeHashs(m.MainLocator), blockdag.SubDAGMode, MaxBlockLocatorsPerMsg)
-	if len(blocks) <= 0 {
+	blocks, point := s.PeerSync().dagSync.CalcSyncBlocks(gs, changePBHashsToHashs(m.MainLocator), blockdag.SubDAGMode, MaxBlockLocatorsPerMsg)
+	s.peers.UpdateSyncPoint(stream.Conn().RemotePeer(), point)
+	/*	if len(blocks) <= 0 {
 		err = fmt.Errorf("No blocks")
 		return err
-	}
+	}*/
 	sd := &pb.SubDAG{SyncPoint: &pb.Hash{Hash: point.Bytes()}, GraphState: s.getGraphState(), Blocks: []*pb.BlockData{}}
 	for _, blockHash := range blocks {
 		block, err := s.Chain.FetchBlockByHash(blockHash)
@@ -111,11 +114,51 @@ func (s *Service) syncDAGHandler(ctx context.Context, msg interface{}, stream li
 }
 
 func (s *Service) syncDAGBlocks(id peer.ID) error {
-	sd := &pb.SyncDAG{GraphState: s.getGraphState()}
-	_, err := s.sendSyncDAGRequest(s.ctx, id, sd)
+	point, err := s.peers.SyncPoint(id)
 	if err != nil {
 		return err
 	}
+	mainLocator := s.peerSync.dagSync.GetMainLocator(point)
+	sd := &pb.SyncDAG{MainLocator: changeHashsToPBHashs(mainLocator), GraphState: s.getGraphState()}
+	subd, err := s.sendSyncDAGRequest(s.ctx, id, sd)
+	if err != nil {
+		return err
+	}
+	s.peers.UpdateSyncPoint(id, changePBHashToHash(subd.SyncPoint))
+	s.peers.UpdateGraphState(id, subd.GraphState)
 
+	if len(subd.Blocks) <= 0 {
+		return nil
+	}
+	behaviorFlags := blockchain.BFP2PAdd
+
+	add := 0
+	for _, bd := range subd.Blocks {
+		block, err := types.NewBlockFromBytes(bd.BlockBytes)
+		if err != nil {
+			log.Warn(fmt.Sprintf("getBlocks from:%v", err))
+			continue
+		}
+		isOrphan, err := s.Chain.ProcessBlock(block, behaviorFlags)
+		if err != nil {
+			log.Error("Failed to process block", "hash", block.Hash(), "error", err)
+			continue
+		}
+		if isOrphan {
+			continue
+		}
+		add++
+	}
+	log.Trace(fmt.Sprintf("getBlocks:%d/%d", add, len(subd.Blocks)))
+	if add > 0 {
+		s.TxMemPool.PruneExpiredTx()
+
+		isCurrent := s.peerSync.IsCurrent()
+		if isCurrent {
+			log.Info("Your synchronization has been completed. ")
+		}
+	} else {
+		return fmt.Errorf("no get blocks")
+	}
 	return nil
 }

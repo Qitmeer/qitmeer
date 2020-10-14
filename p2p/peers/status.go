@@ -2,6 +2,7 @@ package peers
 
 import (
 	"errors"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
@@ -419,6 +420,30 @@ func (p *Status) UpdateGraphState(pid peer.ID, gs *pb.GraphState) error {
 			per.chainState.GraphState.Tips=append(per.chainState.GraphState.Tips,&pb.Hash{Hash:h.Bytes()})
 		}*/
 	return nil
+}
+
+func (p *Status) UpdateSyncPoint(pid peer.ID, point *hash.Hash) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	per, ok := p.peers[pid]
+	if !ok {
+		return ErrPeerUnknown
+	}
+
+	per.syncPoint = point
+	return nil
+}
+
+func (p *Status) SyncPoint(pid peer.ID) (*hash.Hash, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	per, ok := p.peers[pid]
+	if !ok {
+		return nil, ErrPeerUnknown
+	}
+	return per.syncPoint, nil
 }
 
 // NewStatus creates a new status entity.

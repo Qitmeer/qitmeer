@@ -16,7 +16,8 @@ import (
 // Peer represents a connected p2p network remote node.
 type Peer struct {
 	*peerStatus
-	pid peer.ID
+	pid       peer.ID
+	syncPoint *hash.Hash
 }
 
 func (p *Peer) SetQNR(record *qnr.Record) {
