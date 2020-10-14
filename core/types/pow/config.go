@@ -9,17 +9,8 @@ import (
 
 var PowConfigInstance *PowConfig
 
-type Percent struct {
-	//percent of every pow sum of them must be 100
-	CuckarooPercent         int
-	CuckatooPercent         int
-	Blake2bDPercent         int
-	CuckaroomPercent        int
-	QitmeerKeccak256Percent int
-	X16rv3Percent           int
-	X8r16Percent            int
-	MainHeight              int64
-}
+type MainHeight int
+type PercentValue int
 
 type PowConfig struct {
 	// PowLimit defines the highest allowed proof of work value for a block
@@ -44,7 +35,7 @@ type PowConfig struct {
 	CuckaroomMinDifficulty uint32
 	CuckatooMinDifficulty  uint32
 
-	Percent []Percent
+	Percent map[MainHeight]map[PowType]PercentValue
 
 	AdjustmentStartMainHeight int64
 
@@ -73,40 +64,49 @@ func (this *PowConfig) Set(p *PowConfig) *PowConfig {
 }
 
 // get Percent By height
-func (this *PowConfig) GetPercentByHeight(h int64) (res Percent) {
+func (this *PowConfig) GetPercentByHeightAndType(h int64, powType PowType) PercentValue {
 	//sort by main height asc
-	sort.Slice(this.Percent, func(i, j int) bool {
-		return this.Percent[i].MainHeight < this.Percent[j].MainHeight
-	})
+	var keys []int
+	for k := range this.Percent {
+		keys = append(keys, int(k))
+	}
+	sort.Ints(keys)
+	currentPercent := map[PowType]PercentValue{}
 	// get best match percent
-	for i := 0; i < len(this.Percent); i++ {
-		if h >= this.Percent[i].MainHeight {
-			res = this.Percent[i]
+	for _, k := range keys {
+		if h >= int64(k) {
+			currentPercent = this.Percent[MainHeight(k)]
 		}
 	}
-	return
+	val, ok := currentPercent[powType]
+	if !ok {
+		return 0
+	}
+	return val
 }
 
 // check percent
 func (this *PowConfig) Check() error {
 	allPercent := 0
-	heightArr := map[int64]int{}
-	for _, p := range this.Percent {
-		if p.MainHeight < 0 {
-			return errors.New("pow config error, must greater than or equal to 0!")
+	heightArr := map[MainHeight]int{}
+	for mHeight, p := range this.Percent {
+		if mHeight < 0 {
+			return errors.New("pow config error, main height must greater than or equal to 0!")
 		}
-		if _, ok := heightArr[p.MainHeight]; ok {
+		if _, ok := heightArr[mHeight]; ok {
 			return errors.New("pow config error, mainHeight set repeat!")
 		}
-		heightArr[p.MainHeight] = 1
-		if p.CuckarooPercent < 0 || p.Blake2bDPercent < 0 ||
-			p.CuckatooPercent < 0 || p.CuckaroomPercent < 0 ||
-			p.QitmeerKeccak256Percent < 0 ||
-			p.X16rv3Percent < 0 || p.X8r16Percent < 0 {
-			return errors.New("pow config error, all percent must greater than or equal to 0!")
+		heightArr[mHeight] = 1
+		for pty, val := range p {
+			powName := GetPowName(pty)
+			if powName == "" {
+				return errors.New(fmt.Sprintf("Pow Type %d Not Config Name in IPow.go!", pty))
+			}
+			if val < 0 {
+				return errors.New(powName + " percent config error, all percent must greater than or equal to 0!")
+			}
+			allPercent += int(val)
 		}
-		allPercent = p.CuckarooPercent + p.Blake2bDPercent +
-			p.CuckatooPercent + p.CuckaroomPercent + p.X16rv3Percent + p.X8r16Percent + p.QitmeerKeccak256Percent
 		if allPercent != 100 {
 			return errors.New("pow config error, all pow not equal 100%!actual is " + fmt.Sprintf("%d", allPercent))
 		}

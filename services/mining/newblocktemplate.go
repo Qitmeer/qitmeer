@@ -383,38 +383,7 @@ mempoolLoop:
 	ts := MedianAdjustedTime(blockManager.GetChain(), timeSource)
 
 	//
-	reqBlake2bDDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.BLAKE2BD)
-	if err != nil {
-		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
-	}
-
-	//
-	reqX16rv3Difficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.X16RV3)
-	if err != nil {
-		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
-	}
-
-	//
-	reqX8r16Difficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.X8R16)
-	if err != nil {
-		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
-	}
-
-	//
-	keccak256Difficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.QITMEERKECCAK256)
-	if err != nil {
-		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
-	}
-	reqCuckarooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKAROO)
-	if err != nil {
-		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
-	}
-	reqCuckaroomDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKAROOM)
-	if err != nil {
-		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
-	}
-	reqCuckatooDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, pow.CUCKATOO)
-
+	reqCompactDifficulty, err := blockManager.GetChain().CalcNextRequiredDifficulty(ts, powType)
 	if err != nil {
 		return nil, miningRuleError(ErrGettingDifficulty, err.Error())
 	}
@@ -427,30 +396,13 @@ mempoolLoop:
 
 	paMerkles := merkle.BuildParentsMerkleTreeStore(parents)
 	var block types.Block
-	var reqDiff uint32
-	switch powType {
-	case pow.BLAKE2BD:
-		reqDiff = reqBlake2bDDifficulty
-	case pow.CUCKAROO:
-		reqDiff = reqCuckarooDifficulty
-	case pow.CUCKATOO:
-		reqDiff = reqCuckatooDifficulty
-	case pow.CUCKAROOM:
-		reqDiff = reqCuckaroomDifficulty
-	case pow.X16RV3:
-		reqDiff = reqX16rv3Difficulty
-	case pow.X8R16:
-		reqDiff = reqX8r16Difficulty
-	case pow.QITMEERKECCAK256:
-		reqDiff = keccak256Difficulty
-	}
 	block.Header = types.BlockHeader{
 		Version:    blockVersion,
 		ParentRoot: *paMerkles[len(paMerkles)-1],
 		TxRoot:     *merkles[len(merkles)-1],
 		StateRoot:  hash.Hash{}, //TODO, state root
 		Timestamp:  ts,
-		Difficulty: reqDiff,
+		Difficulty: reqCompactDifficulty,
 		Pow:        pow.GetInstance(powType, 0, []byte{}),
 		// Size declared below
 	}
@@ -491,15 +443,7 @@ mempoolLoop:
 		Height:          nextBlockHeight,
 		Blues:           blues,
 		ValidPayAddress: payToAddress != nil,
-		PowDiffData: types.PowDiffStandard{
-			Blake2bDTarget:         reqBlake2bDDifficulty,
-			X16rv3DTarget:          reqX16rv3Difficulty,
-			X8r16DTarget:           reqX8r16Difficulty,
-			QitmeerKeccak256Target: keccak256Difficulty,
-			CuckarooBaseDiff:       pow.CompactToBig(reqCuckarooDifficulty).Uint64(),
-			CuckaroomBaseDiff:      pow.CompactToBig(reqCuckaroomDifficulty).Uint64(),
-			CuckatooBaseDiff:       pow.CompactToBig(reqCuckatooDifficulty).Uint64(),
-		},
+		CompactDiff:     reqCompactDifficulty,
 	}
 	return handleCreatedBlockTemplate(blockTemplate, blockManager)
 }

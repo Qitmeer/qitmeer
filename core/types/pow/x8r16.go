@@ -66,7 +66,7 @@ func (this *X8r16) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, 
 }
 
 func (this *X8r16) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).X8r16Percent))
+	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType)))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
 }
@@ -117,5 +117,13 @@ func (this *X8r16) BlockData() PowBytes {
 
 //check pow is available
 func (this *X8r16) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.mainHeight).X8r16Percent > 0
+	return this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType) > 0
+}
+
+//not support
+func (this *X8r16) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
+	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {
+		return true
+	}
+	return false
 }

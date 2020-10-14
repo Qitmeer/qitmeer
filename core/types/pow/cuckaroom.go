@@ -64,7 +64,7 @@ func (this *Cuckaroom) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.I
 }
 
 func (this *Cuckaroom) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).CuckaroomPercent))
+	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType)))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
 }
@@ -85,7 +85,7 @@ func (this *Cuckaroom) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 
 //check pow is available
 func (this *Cuckaroom) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.mainHeight).CuckaroomPercent > 0
+	return this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType) > 0
 }
 
 //calc scale
@@ -103,4 +103,9 @@ func (this *Cuckaroom) CheckAvailable() bool {
 //so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
 func (this *Cuckaroom) GraphWeight() uint64 {
 	return (2 << (this.GetEdgeBits() - MIN_CUCKAROOEDGEBITS)) * uint64(this.GetEdgeBits())
+}
+
+//not support
+func (this *Cuckaroom) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
+	return false
 }

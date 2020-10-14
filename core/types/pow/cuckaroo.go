@@ -63,7 +63,7 @@ func (this *Cuckaroo) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 }
 
 func (this *Cuckaroo) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).CuckarooPercent))
+	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType)))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
 }
@@ -84,7 +84,7 @@ func (this *Cuckaroo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 
 //check pow is available
 func (this *Cuckaroo) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.mainHeight).CuckarooPercent > 0
+	return this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType) > 0
 }
 
 //calc scale
@@ -113,4 +113,20 @@ func (this *Cuckaroo) GraphWeight() uint64 {
 		scale = 1
 	}
 	return scale
+}
+
+//solve solution
+func (this *Cuckaroo) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
+	this.SetEdgeBits(uint8(cuckoo.Edgebits))
+	sipH := this.GetSipHash(headerData)
+	c := cuckoo.NewCuckoo()
+	cycleNonces, isFound := c.PoW(sipH[:])
+	if !isFound {
+		return false
+	}
+	this.SetCircleEdges(cycleNonces)
+	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {
+		return true
+	}
+	return false
 }

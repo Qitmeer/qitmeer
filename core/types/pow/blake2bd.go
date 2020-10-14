@@ -65,7 +65,7 @@ func (this *Blake2bd) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 }
 
 func (this *Blake2bd) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).Blake2bDPercent))
+	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType)))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
 }
@@ -117,5 +117,13 @@ func (this *Blake2bd) BlockData() PowBytes {
 
 //check pow is available
 func (this *Blake2bd) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.mainHeight).Blake2bDPercent > 0
+	return this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType) > 0
+}
+
+//solve solution
+func (this *Blake2bd) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
+	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {
+		return true
+	}
+	return false
 }

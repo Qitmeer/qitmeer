@@ -17,12 +17,10 @@ import (
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
-	"github.com/Qitmeer/qitmeer/crypto/cuckoo"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/mining"
-	"math/big"
 	"math/rand"
 	"sync"
 	"time"
@@ -195,31 +193,7 @@ func (m *CPUMiner) GenerateNBlocks(n uint32, powType pow.PowType) ([]*hash.Hash,
 		}
 
 		var result = false
-		switch powType {
-		case pow.BLAKE2BD:
-			template.Block.Header.Difficulty = uint32(template.PowDiffData.Blake2bDTarget)
-			result = m.solveBlock(template.Block, ticker, nil)
-		case pow.X16RV3:
-			template.Block.Header.Difficulty = uint32(template.PowDiffData.X16rv3DTarget)
-			result = m.solveX16rv3Block(template.Block, ticker, nil)
-		case pow.X8R16:
-			template.Block.Header.Difficulty = uint32(template.PowDiffData.X8r16DTarget)
-			result = m.solveX8r16Block(template.Block, ticker, nil)
-		case pow.QITMEERKECCAK256:
-			template.Block.Header.Difficulty = uint32(template.PowDiffData.QitmeerKeccak256Target)
-			result = m.solveQitmeerKeccak256Block(template.Block, ticker, nil)
-		case pow.CUCKAROO:
-			template.Block.Header.Difficulty = pow.BigToCompact(new(big.Int).SetUint64(template.PowDiffData.CuckarooBaseDiff))
-			result = m.solveCuckarooBlock(template.Block, ticker, nil, template.PowDiffData.CuckarooDiffScale, template.Height)
-		default:
-			m.Lock()
-			close(m.speedMonitorQuit)
-			m.wg.Wait()
-			m.started = false
-			m.discreteMining = false
-			m.Unlock()
-			return nil, errors.New("pow not found!") //should miner if error
-		}
+		result = m.solveBlock(template.Block, ticker, nil, powType, template.Height)
 
 		// Attempt to solve the block.  The function will exit early
 		// with false when conditions that trigger a stale block, so
@@ -306,19 +280,7 @@ out:
 // This function will return early with false when conditions that trigger a
 // stale block such as a new block showing up or periodically when there are
 // new transactions and enough time has elapsed without finding a solution.
-func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}) bool {
-
-	// TODO, decided if need extra nonce for coinbase-tx
-	// Choose a random extra nonce offset for this block template and
-	// worker.
-	/*
-		enOffset, err := s.RandomUint64()
-		if err != nil {
-			log.Error("Unexpected error while generating random "+
-				"extra nonce offset: %v", err)
-			enOffset = 0
-		}
-	*/
+func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}, powType pow.PowType, mheight uint64) bool {
 
 	// Create a couple of convenience variables.
 	header := &msgBlock.Header
@@ -327,7 +289,6 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 	lastGenerated := roughtime.Now()
 	lastTxUpdate := m.txSource.LastUpdated()
 	hashesCompleted := uint64(0)
-	target := pow.CompactToBig(uint32(header.Difficulty))
 	// TODO, decided if need extra nonce for coinbase-tx
 	// Note that the entire extra nonce range is iterated and the offset is
 	// added relying on the fact that overflow will wrap around 0 as
@@ -377,72 +338,17 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 		default:
 			// Non-blocking select to fall through
 		}
-		instance := pow.GetInstance(pow.BLAKE2BD, 0, []byte{})
-		powStruct := instance.(*pow.Blake2bd)
-		// Update the nonce and hash the block header.
-		powStruct.Nonce = i
-
-		header.Pow = powStruct
-
+		instance := pow.GetInstance(powType, 0, []byte{})
+		instance.SetNonce(i)
+		instance.SetMainHeight(int64(mheight))
+		instance.SetParams(m.params.PowConfig)
+		hashesCompleted += 2
+		header.Pow = instance
+		if instance.FindSolver(header.BlockData(), header.BlockHash(), header.Difficulty) {
+			m.updateHashes <- hashesCompleted
+			return true
+		}
 		// Each hash is actually a double hash (tow hashes), so
-		// increment the number of hashes by 2
-		hashesCompleted += 2
-		h := header.BlockHash()
-		hashNum := pow.HashToBig(&h)
-
-		if hashNum.Cmp(target) <= 0 {
-			// The block is solved when the new block hash is less
-			// than the target difficulty.  Yay!
-			m.updateHashes <- hashesCompleted
-			return true
-		}
-	}
-	//}
-	return false
-}
-
-// solveBlock attempts to find 42 circles that hash match the target diff
-func (m *CPUMiner) solveCuckarooBlock(msgBlock *types.Block, ticker *time.Ticker, quit chan struct{}, scale, mheight uint64) bool {
-	// Create a couple of convenience variables.
-	header := &msgBlock.Header
-	// Initial state.
-	hashesCompleted := uint64(0)
-	// Search through the entire nonce range for a solution while
-	// periodically checking for early quit and stale block
-	// conditions along with updates to the speed monitor.
-	for i := uint32(0); i <= maxNonce; i++ {
-		select {
-		case <-quit:
-			return false
-
-		default:
-			// Non-blocking select to fall through
-		}
-		instance := pow.GetInstance(pow.CUCKAROO, 0, []byte{})
-		powStruct := instance.(*pow.Cuckaroo)
-		powStruct.Nonce = i
-		// Update the nonce and hash the block header.
-		header.Pow = powStruct
-		powStruct.SetEdgeBits(uint8(cuckoo.Edgebits))
-		sipH := powStruct.GetSipHash(header.BlockData())
-		c := cuckoo.NewCuckoo()
-		cycleNonces, isFound := c.PoW(sipH[:])
-		if !isFound {
-			continue
-		}
-		powStruct.SetCircleEdges(cycleNonces)
-		powStruct.SetMainHeight(int64(mheight))
-		powStruct.SetParams(m.params.PowConfig)
-		err := cuckoo.VerifyCuckaroo(sipH[:], cycleNonces[:], uint(cuckoo.Edgebits))
-		if err != nil {
-			continue
-		}
-		hashesCompleted += 2
-		targetDiff := pow.CompactToBig(header.Difficulty)
-		if pow.CalcCuckooDiff(powStruct.GraphWeight(), header.BlockHash()).Cmp(targetDiff) >= 0 {
-			m.updateHashes <- hashesCompleted
-			return true
-		}
 	}
 	return false
 }
@@ -751,7 +657,7 @@ out:
 		// with false when conditions that trigger a stale block, so
 		// a new block template can be generated.  When the return is
 		// true a solution was found, so submit the solved block.
-		if m.solveBlock(template.Block, ticker, quit) {
+		if m.solveBlock(template.Block, ticker, quit, pow.QITMEERKECCAK256, template.Height) {
 			block := types.NewBlock(template.Block)
 			block.SetHeight(uint(template.Height))
 			if !m.submitBlock(block) {
@@ -879,7 +785,7 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 		// with false when conditions that trigger a stale block, so
 		// a new block template can be generated.  When the return is
 		// true a solution was found, so submit the solved block.
-		if m.solveBlock(template.Block, ticker, nil) {
+		if m.solveBlock(template.Block, ticker, nil, pow.QITMEERKECCAK256, template.Height) {
 			block := types.NewBlock(template.Block)
 			block.SetHeight(uint(template.Height))
 			//

@@ -40,6 +40,14 @@ var PowMapString = map[PowType]interface{}{
 	QITMEERKECCAK256: "qitmeer_keccak256",
 }
 
+func GetPowName(powType PowType) string {
+	val, ok := PowMapString[powType]
+	if !ok {
+		return ""
+	}
+	return val.(string)
+}
+
 type ProofDataType [PROOFDATA_LENGTH]byte
 
 func (this *ProofDataType) String() string {
@@ -79,6 +87,7 @@ type IPow interface {
 	SetMainHeight(height int64)
 	CheckAvailable() bool
 	CompareDiff(newtarget *big.Int, target *big.Int) bool
+	FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool
 }
 
 type Pow struct {
