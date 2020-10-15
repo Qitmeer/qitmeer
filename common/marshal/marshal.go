@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/json"
-	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -19,10 +18,11 @@ import (
 
 // messageToHex serializes a message to the wire protocol encoding using the
 // latest protocol version and returns a hex-encoded string of the result.
-func MessageToHex(msg message.Message) (string, error) {
+func MessageToHex(tx *types.Transaction) (string, error) {
 	var buf bytes.Buffer
-	if err := msg.Encode(&buf, protocol.ProtocolVersion); err != nil {
-		context := fmt.Sprintf("Failed to encode msg of type %T", msg)
+	err := tx.Encode(&buf, protocol.ProtocolVersion, types.TxSerializeFull)
+	if err != nil {
+		context := fmt.Sprintf("Failed to encode msg of type %T", tx)
 		return "", rpc.RpcInternalError(err.Error(), context)
 	}
 
@@ -40,7 +40,7 @@ func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHashStr string,
 func MarshalJsonTransaction(transaction *types.Tx, params *params.Params, blkHashStr string,
 	confirmations int64, coinbaseAmout uint64, state bool) (json.TxRawResult, error) {
 	tx := transaction.Tx
-	hexStr, err := MessageToHex(&message.MsgTx{Tx: tx})
+	hexStr, err := MessageToHex(tx)
 	if err != nil {
 		return json.TxRawResult{}, err
 	}

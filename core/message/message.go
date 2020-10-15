@@ -98,8 +98,6 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgGetBlocks{}
 	case CmdInv:
 		msg = &MsgInv{}
-	case CmdTx:
-		msg = &MsgTx{}
 	case CmdGetHeaders:
 		msg = &MsgGetHeaders{}
 	case CmdHeaders:

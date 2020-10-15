@@ -111,7 +111,7 @@ func (s *Service) registerRPCHandlers() {
 
 	s.registerRPC(
 		RPCTransaction,
-		&pb.Transaction{},
+		&pb.Hash{},
 		s.txHandler,
 	)
 }

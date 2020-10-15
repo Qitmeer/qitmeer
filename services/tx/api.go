@@ -11,7 +11,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/message"
-	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/ecc"
 	"github.com/Qitmeer/qitmeer/database"
@@ -131,7 +130,7 @@ func (api *PublicTxAPI) CreateRawTransaction(inputs []TransactionInput,
 	// is intentionally not directly returning because the first return
 	// value is a string and it would result in returning an empty string to
 	// the client instead of nothing (nil) in the case of an error.
-	mtxHex, err := marshal.MessageToHex(&message.MsgTx{Tx: mtx})
+	mtxHex, err := marshal.MessageToHex(mtx)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +310,7 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 			// string and it would result in returning an empty
 			// string to the client instead of nothing (nil) in the
 			// case of an error.
-			hexStr, err := marshal.MessageToHex(&message.MsgTx{Tx: tx.Transaction()})
+			hexStr, err := marshal.MessageToHex(tx.Transaction())
 			if err != nil {
 				return nil, err
 			}
@@ -580,7 +579,7 @@ func (api *PublicTxAPI) GetRawTransactions(addre string, vinext *bool, count *ui
 
 		// Serialize the transaction first and convert to hex when the
 		// retrieved transaction is the deserialized structure.
-		hexTxns[i], err = marshal.MessageToHex(&message.MsgTx{Tx: rtx.tx.Tx})
+		hexTxns[i], err = marshal.MessageToHex(rtx.tx.Tx)
 		if err != nil {
 			return nil, err
 		}
@@ -608,17 +607,19 @@ func (api *PublicTxAPI) GetRawTransactions(addre string, vinext *bool, count *ui
 		// be the case when it was lookup up from the database).
 		// Otherwise, use the existing deserialized transaction.
 		rtx := &addressTxns[i]
-		var mtx *message.MsgTx
+		var mtx *types.Tx
 		if rtx.tx == nil {
 			// Deserialize the transaction.
-			mtx = new(message.MsgTx)
-			err := mtx.Decode(bytes.NewReader(rtx.txBytes), protocol.ProtocolVersion)
+
+			mtxTx := &types.Transaction{}
+			err := mtxTx.Deserialize(bytes.NewReader(rtx.txBytes))
 			if err != nil {
 				context := "Failed to deserialize transaction"
 				return nil, fmt.Errorf("%s %s", err.Error(), context)
 			}
+			mtx = types.NewTx(mtxTx)
 		} else {
-			mtx = &message.MsgTx{Tx: rtx.tx.Tx}
+			mtx = types.NewTx(rtx.tx.Tx)
 		}
 
 		result := &srtList[i]
@@ -692,7 +693,7 @@ type retrievedTx struct {
 	tx      *types.Tx
 }
 
-func (api *PublicTxAPI) createVinListPrevOut(mtx *message.MsgTx, chainParams *params.Params, vinExtra bool, filterAddrMap map[string]struct{}) ([]json.VinPrevOut, error) {
+func (api *PublicTxAPI) createVinListPrevOut(mtx *types.Tx, chainParams *params.Params, vinExtra bool, filterAddrMap map[string]struct{}) ([]json.VinPrevOut, error) {
 	// Coinbase transactions only have a single txin by definition.
 	if mtx.Tx.IsCoinBase() {
 		// Only include the transaction if the filter map is empty
@@ -806,7 +807,7 @@ func (api *PublicTxAPI) createVinListPrevOut(mtx *message.MsgTx, chainParams *pa
 	return vinList, nil
 }
 
-func (api *PublicTxAPI) fetchInputTxos(tx *message.MsgTx) (map[types.TxOutPoint]types.TxOutput, error) {
+func (api *PublicTxAPI) fetchInputTxos(tx *types.Tx) (map[types.TxOutPoint]types.TxOutput, error) {
 	mp := api.txManager.txMemPool
 	originOutputs := make(map[types.TxOutPoint]types.TxOutput)
 	for txInIndex, txIn := range tx.Tx.TxIn {
@@ -848,21 +849,21 @@ func (api *PublicTxAPI) fetchInputTxos(tx *message.MsgTx) (map[types.TxOutPoint]
 		}
 
 		// Deserialize the transaction
-		var msgTx message.MsgTx
-		err = msgTx.Decode(bytes.NewReader(txBytes), protocol.ProtocolVersion)
+		msgTx := &types.Transaction{}
+		err = msgTx.Deserialize(bytes.NewReader(txBytes))
 		if err != nil {
 			context := "Failed to deserialize transaction"
 			return nil, rpc.RpcInternalError(err.Error(), context)
 		}
 
 		// Add the referenced output to the map.
-		if origin.OutIndex >= uint32(len(msgTx.Tx.TxOut)) {
+		if origin.OutIndex >= uint32(len(msgTx.TxOut)) {
 			errStr := fmt.Sprintf("unable to find output %v "+
 				"referenced from transaction %s:%d", origin,
 				tx.Tx.TxHash(), txInIndex)
 			return nil, rpc.RpcInternalError(errStr, "")
 		}
-		originOutputs[*origin] = *msgTx.Tx.TxOut[origin.OutIndex]
+		originOutputs[*origin] = *msgTx.TxOut[origin.OutIndex]
 	}
 
 	return originOutputs, nil
@@ -993,7 +994,7 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 		redeemTx.TxIn[i].SignScript = sigScript
 	}
 
-	mtxHex, err := marshal.MessageToHex(&message.MsgTx{Tx: &redeemTx})
+	mtxHex, err := marshal.MessageToHex(&redeemTx)
 	if err != nil {
 		return nil, err
 	}

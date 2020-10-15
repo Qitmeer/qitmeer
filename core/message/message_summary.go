@@ -24,31 +24,6 @@ func Summary(msg Message) string {
 	case *MsgVerAck:
 		// No summary.
 
-	case *MsgTx:
-		return fmt.Sprintf("hash %s, %d inputs, %d outputs, lock %s",
-			msg.Tx.TxHash(), len(msg.Tx.TxIn), len(msg.Tx.TxOut),
-			formatLockTime(msg.Tx.LockTime))
-	// TODO
-	/*
-		case *MsgMemPool:
-			// No summary.
-		case *MsgBlock:
-			header := &msg.Header
-			return fmt.Sprintf("hash %s, ver %d, %d tx, %s", msg.BlockHash(),
-				header.Version, len(msg.Transactions), header.Timestamp)
-
-		case *MsgInv:
-			return invSummary(msg.InvList)
-
-		case *MsgNotFound:
-			return invSummary(msg.InvList)
-
-		case *MsgGetData:
-			return invSummary(msg.InvList)
-
-		case *MsgGetBlocks:
-			return locatorSummary(msg.BlockLocatorHashes, &msg.HashStop)
-	*/
 	case *MsgGetHeaders:
 		return msg.String()
 
