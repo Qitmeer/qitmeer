@@ -481,9 +481,6 @@ out:
 		case m := <-b.msgChan:
 			log.Trace("blkmgr msgChan received ...", "msg", m)
 			switch msg := m.(type) {
-			case *donePeerMsg:
-				log.Trace("blkmgr msgChan donePeerMsg", "msg", msg)
-				b.handleDonePeerMsg(msg.peer)
 
 			case tipGenerationMsg:
 				log.Trace("blkmgr msgChan tipGenerationMsg", "msg", msg)
@@ -670,20 +667,6 @@ func (b *BlockManager) QueueTx(tx *types.Tx, sp *peer.ServerPeer) {
 	b.msgChan <- &txMsg{tx: tx, peer: sp}
 }
 
-// donePeerMsg signifies a newly disconnected peer to the block handler.
-type donePeerMsg struct {
-	peer *peer.ServerPeer
-}
-
-// DonePeer informs the blockmanager that a peer has disconnected.
-func (b *BlockManager) DonePeer(sp *peer.ServerPeer) {
-	// Ignore if we are shutting down.
-	if atomic.LoadInt32(&b.shutdown) != 0 {
-		return
-	}
-	b.msgChan <- &donePeerMsg{peer: sp}
-}
-
 // isCurrentMsg is a message type to be sent across the message channel for
 // requesting whether or not the block manager believes it is synced with
 // the currently connected peers.
@@ -805,25 +788,6 @@ func (b *BlockManager) PushSyncDAGMsg(peer *peer.ServerPeer) {
 func (b *BlockManager) handleStallSample() {
 	if atomic.LoadInt32(&b.shutdown) != 0 {
 		return
-	}
-}
-
-// clearRequestedState wipes all expected transactions and blocks from the sync
-// manager's requested maps that were requested under a peer's sync state, This
-// allows them to be rerequested by a subsequent sync peer.
-func (b *BlockManager) clearRequestedState(sp *peer.ServerPeer) {
-	// Remove requested transactions from the global map so that they will
-	// be fetched from elsewhere next time we get an inv.
-	for txHash := range sp.RequestedTxns {
-		delete(b.requestedTxns, txHash)
-	}
-
-	// Remove requested blocks from the global map so that they will be
-	// fetched from elsewhere next time we get an inv.
-	// TODO: we could possibly here check which peers have these blocks
-	// and request them now to speed things up a little.
-	for blockHash := range sp.RequestedBlocks {
-		delete(b.requestedBlocks, blockHash)
 	}
 }
 

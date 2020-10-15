@@ -49,7 +49,12 @@ func (ps *PeerSync) OnPeerConnected(id peer.ID) {
 }
 
 func (ps *PeerSync) OnPeerDisconnected(id peer.ID) {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
 
+	if id == ps.syncPeer {
+		ps.resetSyncPeer()
+	}
 }
 
 func (ps *PeerSync) HasSyncPeer() bool {

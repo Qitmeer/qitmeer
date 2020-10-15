@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package qitmeer.p2p.v1;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message Transaction {
+  bytes txBytes = 1 [(gogoproto.moretags) = "ssz-max:\"1048576\""];
+}

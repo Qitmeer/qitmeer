@@ -61,14 +61,6 @@ type MessageListeners struct {
 	// OnNotFound is invoked when a peer receives a notfound message.
 	OnNotFound func(p *Peer, msg *message.MsgNotFound)
 
-	// OnGetMiningState is invoked when a peer receives a getminings wire
-	// message.
-	OnGetMiningState func(p *Peer, msg *message.MsgGetMiningState)
-
-	// OnMiningState is invoked when a peer receives a miningstate wire
-	// message.
-	OnMiningState func(p *Peer, msg *message.MsgMiningState)
-
 	// OnGraphState
 	OnGraphState func(p *Peer, msg *message.MsgGraphState)
 

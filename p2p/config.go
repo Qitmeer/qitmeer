@@ -37,4 +37,5 @@ type Config struct {
 	// DisableRelayTx specifies if the remote peer should be informed to
 	// not send inv messages for transactions.
 	DisableRelayTx bool
+	MaxOrphanTxs   int
 }

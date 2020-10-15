@@ -18,6 +18,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/message"
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
@@ -83,6 +84,7 @@ type Service struct {
 	Chain      *blockchain.BlockChain
 	TimeSource blockchain.MedianTimeSource
 	TxMemPool  *mempool.TxPool
+	Notify     notify.Notify
 }
 
 func (s *Service) Start() error {
@@ -442,6 +444,7 @@ func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 			Services:             defaultServices,
 			UserAgent:            fmt.Sprintf("qitmeer(%s)", version.String()),
 			DisableRelayTx:       cfg.BlocksOnly,
+			MaxOrphanTxs:         cfg.MaxOrphanTxs,
 		},
 		ctx:           ctx,
 		cancel:        cancel,

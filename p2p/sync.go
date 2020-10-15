@@ -26,6 +26,8 @@ const (
 	RPCGetBlocks = "/qitmeer/req/getblocks/1"
 	// RPCGetBlocks defines the topic for the get blocks rpc method.
 	RPCSyncDAG = "/qitmeer/req/syncdag/1"
+	// RPCTransaction defines the topic for the transaction rpc method.
+	RPCTransaction = "/qitmeer/req/transaction/1"
 )
 
 // Time to first byte timeout. The maximum time to wait for first byte of
@@ -105,6 +107,12 @@ func (s *Service) registerRPCHandlers() {
 		RPCSyncDAG,
 		&pb.SyncDAG{},
 		s.syncDAGHandler,
+	)
+
+	s.registerRPC(
+		RPCTransaction,
+		&pb.Transaction{},
+		s.txHandler,
 	)
 }
 

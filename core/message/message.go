@@ -108,10 +108,6 @@ func makeEmptyMessage(command string) (Message, error) {
 		msg = &MsgGetData{}
 	case CmdNotFound:
 		msg = &MsgNotFound{}
-	case CmdMiningState:
-		msg = &MsgMiningState{}
-	case CmdGetMiningState:
-		msg = &MsgGetMiningState{}
 	case CmdGraphState:
 		msg = &MsgGraphState{}
 	case CmdMemPool:

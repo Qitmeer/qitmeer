@@ -97,16 +97,6 @@ out:
 				p.cfg.Listeners.OnGetData(p, msg)
 			}
 
-		case *message.MsgGetMiningState:
-			if p.cfg.Listeners.OnGetMiningState != nil {
-				p.cfg.Listeners.OnGetMiningState(p, msg)
-			}
-
-		case *message.MsgMiningState:
-			if p.cfg.Listeners.OnMiningState != nil {
-				p.cfg.Listeners.OnMiningState(p, msg)
-			}
-
 		case *message.MsgNotFound:
 			if p.cfg.Listeners.OnNotFound != nil {
 				p.cfg.Listeners.OnNotFound(p, msg)

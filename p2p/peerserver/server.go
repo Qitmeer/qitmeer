@@ -123,7 +123,6 @@ func (s *PeerServer) inboundPeerConnected(c *connmgr.ConnReq) {
 	sp.syncPeer.Peer = sp.Peer
 	sp.connReq = c
 	sp.AssociateConnection(c)
-	go s.peerDoneHandler(sp)
 }
 
 // outboundPeerConnected is invoked by the connection manager when a new
@@ -143,7 +142,6 @@ func (s *PeerServer) outboundPeerConnected(c *connmgr.ConnReq) {
 	sp.connReq = c
 	sp.isWhitelisted = isWhitelisted(s.cfg, c.Conn().RemoteAddr())
 	sp.AssociateConnection(c)
-	go s.peerDoneHandler(sp)
 	s.addrManager.Attempt(sp.NA())
 }
 
@@ -152,20 +150,18 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 
 	return &peer.Config{
 		Listeners: peer.MessageListeners{
-			OnRead:           sp.OnRead,
-			OnWrite:          sp.OnWrite,
-			OnGetBlocks:      sp.OnGetBlocks,
-			OnGetHeaders:     sp.OnGetHeaders,
-			OnGetData:        sp.OnGetData,
-			OnGetMiningState: sp.OnGetMiningState,
-			OnMiningState:    sp.OnMiningState,
-			OnTx:             sp.OnTx,
-			OnGraphState:     sp.OnGraphState,
-			OnMemPool:        sp.OnMemPool,
-			OnSyncResult:     sp.OnSyncResult,
-			OnSyncDAG:        sp.OnSyncDAG,
-			OnSyncPoint:      sp.OnSyncPoint,
-			OnFeeFilter:      sp.OnFeeFilter,
+			OnRead:       sp.OnRead,
+			OnWrite:      sp.OnWrite,
+			OnGetBlocks:  sp.OnGetBlocks,
+			OnGetHeaders: sp.OnGetHeaders,
+			OnGetData:    sp.OnGetData,
+			OnTx:         sp.OnTx,
+			OnGraphState: sp.OnGraphState,
+			OnMemPool:    sp.OnMemPool,
+			OnSyncResult: sp.OnSyncResult,
+			OnSyncDAG:    sp.OnSyncDAG,
+			OnSyncPoint:  sp.OnSyncPoint,
+			OnFeeFilter:  sp.OnFeeFilter,
 		},
 		NewestGS:         sp.newestGS,
 		HostToNetAddress: sp.server.addrManager.HostToNetAddress,
@@ -295,22 +291,6 @@ func (s *PeerServer) AddBytesReceived(bytesReceived uint64) {
 // for the server.  It is safe for concurrent access.
 func (s *PeerServer) AddBytesSent(bytesSent uint64) {
 	atomic.AddUint64(&s.bytesSent, bytesSent)
-}
-
-// peerDoneHandler handles peer disconnects by notifiying the server that it's
-// done.
-func (s *PeerServer) peerDoneHandler(sp *serverPeer) {
-	log.Trace("start peerDoneHandler")
-	sp.WaitForDisconnect()
-	s.donePeers <- sp
-
-	// Only tell block manager we are gone if we ever told it we existed.
-	if sp.VersionKnown() && !sp.connReq.Ban {
-		log.Trace("peerDoneHandler send blkmgr donePeerMsg ")
-		s.BlockManager.DonePeer(sp.syncPeer)
-	}
-	close(sp.quit)
-	log.Trace("stop peerDoneHandler")
 }
 
 // peerHandler is used to handle peer operations such as adding and removing
