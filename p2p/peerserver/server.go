@@ -155,7 +155,6 @@ func newPeerConfig(sp *serverPeer) *peer.Config {
 			OnGetBlocks:  sp.OnGetBlocks,
 			OnGetHeaders: sp.OnGetHeaders,
 			OnGetData:    sp.OnGetData,
-			OnTx:         sp.OnTx,
 			OnGraphState: sp.OnGraphState,
 			OnMemPool:    sp.OnMemPool,
 			OnSyncResult: sp.OnSyncResult,

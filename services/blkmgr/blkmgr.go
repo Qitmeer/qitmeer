@@ -17,7 +17,6 @@ import (
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/p2p"
-	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
 	"github.com/Qitmeer/qitmeer/services/zmq"
@@ -53,13 +52,8 @@ type BlockManager struct {
 
 	chain *blockchain.BlockChain
 
-	rejectedTxns      map[hash.Hash]struct{}
-	requestedTxns     map[hash.Hash]struct{}
-	requestedEverTxns map[hash.Hash]uint8
-	requestedBlocks   map[hash.Hash]struct{}
-	progressLogger    *progresslog.BlockProgressLogger
+	progressLogger *progresslog.BlockProgressLogger
 
-	peers   map[*peer.Peer]*peer.ServerPeer
 	msgChan chan interface{}
 
 	wg   sync.WaitGroup
@@ -96,19 +90,14 @@ func NewBlockManager(ntmgr notify.Notify, indexManager blockchain.IndexManager, 
 	cfg *config.Config, par *params.Params, blockVersion uint32,
 	interrupt <-chan struct{}, events *event.Feed, peerServer *p2p.Service) (*BlockManager, error) {
 	bm := BlockManager{
-		config:            cfg,
-		params:            par,
-		notify:            ntmgr,
-		rejectedTxns:      make(map[hash.Hash]struct{}),
-		requestedTxns:     make(map[hash.Hash]struct{}),
-		requestedEverTxns: make(map[hash.Hash]uint8),
-		requestedBlocks:   make(map[hash.Hash]struct{}),
-		peers:             make(map[*peer.Peer]*peer.ServerPeer),
-		progressLogger:    progresslog.NewBlockProgressLogger("Processed", log),
-		msgChan:           make(chan interface{}, cfg.MaxPeers*3),
-		headerList:        list.New(),
-		quit:              make(chan struct{}),
-		peerServer:        peerServer,
+		config:         cfg,
+		params:         par,
+		notify:         ntmgr,
+		progressLogger: progresslog.NewBlockProgressLogger("Processed", log),
+		msgChan:        make(chan interface{}, cfg.MaxPeers*3),
+		headerList:     list.New(),
+		quit:           make(chan struct{}),
+		peerServer:     peerServer,
 	}
 
 	// Create a new block chain instance with the appropriate configuration.
@@ -321,107 +310,6 @@ func (b *BlockManager) WaitForStop() {
 	log.Info("Block manager stopped")
 }
 
-// limitMap is a helper function for maps that require a maximum limit by
-// evicting a random transaction if adding a new value would cause it to
-// overflow the maximum allowed.
-func (b *BlockManager) limitMap(m map[hash.Hash]struct{}, limit int) {
-	if len(m)+1 > limit {
-		// Remove a random entry from the map.  For most compilers, Go's
-		// range statement iterates starting at a random item although
-		// that is not 100% guaranteed by the spec.  The iteration order
-		// is not important here because an adversary would have to be
-		// able to pull off preimage attacks on the hashing function in
-		// order to target eviction of specific entries anyways.
-		for txHash := range m {
-			delete(m, txHash)
-			return
-		}
-	}
-}
-
-// fetchHeaderBlocks creates and sends a request to the syncPeer for the next
-// list of blocks to be downloaded based on the current list of headers.
-func (b *BlockManager) fetchHeaderBlocks() {
-	// Nothing to do if there is no start header.
-	if b.startHeader == nil {
-		log.Warn("fetchHeaderBlocks called with no start header")
-		return
-	}
-
-	// Build up a getdata request for the list of blocks the headers
-	// describe.  The size hint will be limited to wire.MaxInvPerMsg by
-	// the function, so no need to double check it here.
-	gdmsg := message.NewMsgGetDataSizeHint(uint(b.headerList.Len()))
-	numRequested := 0
-	for e := b.startHeader; e != nil; e = e.Next() {
-		node, ok := e.Value.(*headerNode)
-		if !ok {
-			log.Warn("Header list node type is not a headerNode")
-			continue
-		}
-
-		iv := message.NewInvVect(message.InvTypeBlock, node.hash)
-		haveInv, err := b.haveInventory(iv)
-		if err != nil {
-			log.Warn("Unexpected failure when checking for "+
-				"existing inventory during header block fetch",
-				"error", err)
-			continue
-		}
-		if !haveInv {
-			b.requestedBlocks[*node.hash] = struct{}{}
-			err = gdmsg.AddInvVect(iv)
-			if err != nil {
-				log.Warn("Failed to add invvect while fetching block headers",
-					"error", err)
-			}
-			numRequested++
-		}
-		b.startHeader = e.Next()
-		if numRequested >= message.MaxInvPerMsg {
-			break
-		}
-	}
-}
-
-// haveInventory returns whether or not the inventory represented by the passed
-// inventory vector is known.  This includes checking all of the various places
-// inventory can be when it is in different states such as blocks that are part
-// of the main chain, on a side chain, in the orphan pool, and transactions that
-// are in the memory pool (either the main pool or orphan pool).
-func (b *BlockManager) haveInventory(invVect *message.InvVect) (bool, error) {
-	switch invVect.Type {
-	case message.InvTypeBlock:
-		// Ask chain if the block is known to it in any form (main
-		// chain, side chain, or orphan).
-		return b.chain.HaveBlock(&invVect.Hash)
-
-	case message.InvTypeTx:
-		// Ask the transaction memory pool if the transaction is known
-		// to it in any form (main pool or orphan).
-		if b.GetTxManager().MemPool().HaveTransaction(&invVect.Hash) {
-			return true, nil
-		}
-
-		prevOut := types.TxOutPoint{Hash: invVect.Hash}
-		for i := uint32(0); i < 2; i++ {
-			prevOut.OutIndex = i
-			entry, err := b.chain.FetchUtxoEntry(prevOut)
-			if err != nil {
-				return false, err
-			}
-			if entry != nil && !entry.IsSpent() {
-				return true, nil
-			}
-		}
-		return false, nil
-	}
-
-	// The requested inventory is is an unsupported type, so just claim
-	// it is known to avoid requesting it.
-	return true, nil
-}
-
 // findNextHeaderCheckpoint returns the next checkpoint after the passed layer.
 // It returns nil when there is not one either because the height is already
 // later than the final checkpoint or some other reason such as disabled
@@ -489,16 +377,6 @@ out:
 					hashes: g,
 					err:    err,
 				}
-			case requestFromPeerMsg:
-				log.Trace("blkmgr msgChan requestFromPeerMsg", "msg", msg)
-				err := b.requestFromPeer(msg.peer, msg.blocks)
-				msg.reply <- requestFromPeerResponse{
-					err: err,
-				}
-			case *txMsg:
-				log.Trace("blkmgr msgChan txMsg", "msg", msg)
-				b.handleTxMsg(msg)
-				msg.peer.TxProcessed <- struct{}{}
 
 			case processBlockMsg:
 				log.Trace("blkmgr msgChan processBlockMsg", "msg", msg)
@@ -648,25 +526,6 @@ func (b *BlockManager) ProcessTransaction(tx *types.Tx, allowOrphans bool,
 	return response.acceptedTxs, response.err
 }
 
-// txMsg packages a tx message and the peer it came from together
-// so the block handler has access to that information.
-type txMsg struct {
-	tx   *types.Tx
-	peer *peer.ServerPeer
-}
-
-// QueueTx adds the passed transaction message and peer to the block handling
-// queue.
-func (b *BlockManager) QueueTx(tx *types.Tx, sp *peer.ServerPeer) {
-	// Don't accept more transactions if we're shutting down.
-	if atomic.LoadInt32(&b.shutdown) != 0 {
-		sp.TxProcessed <- struct{}{}
-		return
-	}
-
-	b.msgChan <- &txMsg{tx: tx, peer: sp}
-}
-
 // isCurrentMsg is a message type to be sent across the message channel for
 // requesting whether or not the block manager believes it is synced with
 // the currently connected peers.
@@ -705,80 +564,6 @@ func (b *BlockManager) TipGeneration() ([]hash.Hash, error) {
 	b.msgChan <- tipGenerationMsg{reply: reply}
 	response := <-reply
 	return response.hashes, response.err
-}
-
-// requestFromPeerMsg is a message type to be sent across the message channel
-// for requesting either blocks or transactions from a given peer. It routes
-// this through the block manager so the block manager doesn't ban the peer
-// when it sends this information back.
-type requestFromPeerMsg struct {
-	peer   *peer.ServerPeer
-	blocks []*hash.Hash
-	reply  chan requestFromPeerResponse
-}
-
-// requestFromPeerResponse is a response sent to the reply channel of a
-// requestFromPeerMsg query.
-type requestFromPeerResponse struct {
-	err error
-}
-
-// RequestFromPeer allows an outside caller to request blocks or transactions
-// from a peer. The requests are logged in the blockmanager's internal map of
-// requests so they do not later ban the peer for sending the respective data.
-func (b *BlockManager) RequestFromPeer(p *peer.ServerPeer, blocks []*hash.Hash) error {
-	reply := make(chan requestFromPeerResponse)
-	b.msgChan <- requestFromPeerMsg{peer: p, blocks: blocks, reply: reply}
-	response := <-reply
-
-	return response.err
-}
-
-func (b *BlockManager) requestFromPeer(p *peer.ServerPeer, blocks []*hash.Hash) error {
-	msgResp := message.NewMsgGetData()
-
-	// Add the blocks to the request.
-	for _, bh := range blocks {
-		// If we've already requested this block, skip it.
-		_, alreadyReqP := p.RequestedBlocks[*bh]
-		_, alreadyReqB := b.requestedBlocks[*bh]
-
-		if alreadyReqP || alreadyReqB {
-			continue
-		}
-
-		// Check to see if we already have this block, too.
-		// If so, skip.
-		exists, err := b.chain.HaveBlock(bh)
-		if err != nil {
-			return err
-		}
-		if exists {
-			continue
-		}
-
-		err = msgResp.AddInvVect(message.NewInvVect(message.InvTypeBlock, bh))
-		if err != nil {
-			return fmt.Errorf("unexpected error encountered building request "+
-				"for mining state block %v: %v",
-				bh, err.Error())
-		}
-
-		p.RequestedBlocks[*bh] = struct{}{}
-		b.requestedBlocks[*bh] = struct{}{}
-	}
-
-	if len(msgResp.InvList) > 0 {
-		p.QueueMessage(msgResp, nil)
-	}
-
-	return nil
-}
-
-func (b *BlockManager) PushSyncDAGMsg(peer *peer.ServerPeer) {
-	gs := b.chain.BestSnapshot().GraphState
-	mainLocator := b.DAGSync().GetMainLocator(peer.PrevGet.Point)
-	peer.PushSyncDAGMsg(gs, mainLocator)
 }
 
 // handleStallSample will switch to a new sync peer if the current one has

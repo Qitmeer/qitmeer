@@ -45,9 +45,6 @@ type MessageListeners struct {
 	// circumstances such as keeping track of server-wide byte counts.
 	OnWrite func(p *Peer, bytesWritten int, msg message.Message, err error)
 
-	// OnTx is invoked when a peer receives a tx wire message.
-	OnTx func(p *Peer, msg *message.MsgTx)
-
 	// OnGetBlocks is invoked when a peer receives a getblocks wire message.
 	OnGetBlocks func(p *Peer, msg *message.MsgGetBlocks)
 

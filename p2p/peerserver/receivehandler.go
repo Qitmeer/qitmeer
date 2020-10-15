@@ -11,7 +11,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p/connmgr"
 	"github.com/Qitmeer/qitmeer/p2p/peer"
@@ -183,34 +182,6 @@ func (sp *serverPeer) OnGetData(p *peer.Peer, msg *message.MsgGetData) {
 	if numAdded > 0 {
 		<-doneChan
 	}
-}
-
-// OnTx is invoked when a peer receives a tx message.  It blocks until the
-// transaction has been fully processed.  Unlock the block handler this does not
-// serialize all transactions through a single thread transactions don't rely on
-// the previous one in a linear fashion like blocks.
-func (sp *serverPeer) OnTx(p *peer.Peer, msg *message.MsgTx) {
-	log.Trace("OnTx called, peer received tx message", "peer", p, "msg", msg)
-	if sp.server.cfg.BlocksOnly {
-		log.Trace(fmt.Sprintf("Ignoring tx %v from %v - blocksonly enabled",
-			msg.Tx.TxHash(), p))
-		return
-	}
-
-	// Add the transaction to the known inventory for the peer.
-	// Convert the raw MsgTx to a dcrutil.Tx which provides some convenience
-	// methods and things such as hash caching.
-	tx := types.NewTx(msg.Tx)
-	iv := message.NewInvVect(message.InvTypeTx, tx.Hash())
-	p.AddKnownInventory(iv)
-
-	// Queue the transaction up to be handled by the block manager and
-	// intentionally block further receives until the transaction is fully
-	// processed and known good or bad.  This helps prevent a malicious peer
-	// from queuing up a bunch of bad transactions before disconnecting (or
-	// being disconnected) and wasting memory.
-	sp.server.BlockManager.QueueTx(tx, sp.syncPeer)
-	<-sp.syncPeer.TxProcessed
 }
 
 // OnMemPool

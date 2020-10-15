@@ -82,11 +82,6 @@ out:
 				p.cfg.Listeners.OnVerAck(p, msg)
 			}
 
-		case *message.MsgTx:
-			if p.cfg.Listeners.OnTx != nil {
-				p.cfg.Listeners.OnTx(p, msg)
-			}
-
 		case *message.MsgGetBlocks:
 			if p.cfg.Listeners.OnGetBlocks != nil {
 				p.cfg.Listeners.OnGetBlocks(p, msg)
