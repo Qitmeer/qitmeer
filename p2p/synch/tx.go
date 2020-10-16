@@ -1,4 +1,8 @@
-package p2p
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
+
+package synch
 
 import (
 	"context"
@@ -11,7 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (s *Service) sendTxRequest(ctx context.Context, id peer.ID, txhash *hash.Hash) (*pb.Transaction, error) {
+func (s *Sync) sendTxRequest(ctx context.Context, id peer.ID, txhash *hash.Hash) (*pb.Transaction, error) {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
@@ -43,7 +47,7 @@ func (s *Service) sendTxRequest(ctx context.Context, id peer.ID, txhash *hash.Ha
 	return msg, err
 }
 
-func (s *Service) txHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
 	respCode := responseCodeServerError
@@ -96,7 +100,7 @@ func (s *Service) txHandler(ctx context.Context, msg interface{}, stream libp2pc
 	return nil
 }
 
-func (s *Service) handleTxMsg(msg *pb.Transaction) error {
+func (s *Sync) handleTxMsg(msg *pb.Transaction) error {
 	tx := changePBTxToTx(msg)
 	if tx == nil {
 		return fmt.Errorf("message is not type *pb.Transaction")
@@ -113,7 +117,7 @@ func (s *Service) handleTxMsg(msg *pb.Transaction) error {
 	return nil
 }
 
-func (s *Service) getTx(id peer.ID, txHash *hash.Hash) error {
+func (s *Sync) getTx(id peer.ID, txHash *hash.Hash) error {
 	tx, err := s.sendTxRequest(s.ctx, id, txHash)
 	if err != nil {
 		return err

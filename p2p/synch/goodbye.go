@@ -1,4 +1,8 @@
-package p2p
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
+
+package synch
 
 import (
 	"context"
@@ -19,7 +23,7 @@ var goodByes = map[uint64]string{
 }
 
 // goodbyeRPCHandler reads the incoming goodbye rpc message from the peer.
-func (s *Service) goodbyeRPCHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) goodbyeRPCHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	defer func() {
 		if err := stream.Close(); err != nil {
 			log.Error("Failed to close stream")
@@ -39,7 +43,7 @@ func (s *Service) goodbyeRPCHandler(ctx context.Context, msg interface{}, stream
 	return s.Disconnect(stream.Conn().RemotePeer())
 }
 
-func (s *Service) sendGoodByeMessage(ctx context.Context, code uint64, id peer.ID) error {
+func (s *Sync) sendGoodByeMessage(ctx context.Context, code uint64, id peer.ID) error {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
@@ -60,7 +64,7 @@ func (s *Service) sendGoodByeMessage(ctx context.Context, code uint64, id peer.I
 	return nil
 }
 
-func (s *Service) sendGoodByeAndDisconnect(ctx context.Context, code uint64, id peer.ID) error {
+func (s *Sync) sendGoodByeAndDisconnect(ctx context.Context, code uint64, id peer.ID) error {
 	if err := s.sendGoodByeMessage(ctx, code, id); err != nil {
 		log.Debug(fmt.Sprintf("Could not send goodbye message to peer, error:%v , peer:%s", err, id))
 	}
@@ -71,7 +75,7 @@ func (s *Service) sendGoodByeAndDisconnect(ctx context.Context, code uint64, id 
 }
 
 // sends a goodbye message for a generic error
-func (s *Service) sendGenericGoodbyeMessage(ctx context.Context, id peer.ID) error {
+func (s *Sync) sendGenericGoodbyeMessage(ctx context.Context, id peer.ID) error {
 	return s.sendGoodByeMessage(ctx, codeGenericError, id)
 }
 

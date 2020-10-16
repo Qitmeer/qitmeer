@@ -1,27 +1,28 @@
-package p2p
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
+
+package synch
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"sort"
 )
 
-// MaxBlockLocatorsPerMsg is the maximum number of block locator hashes allowed
-// per message.
-const MaxBlockLocatorsPerMsg = 500
-
-func (s *Service) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.SyncDAG) (*pb.SubDAG, error) {
+func (s *Sync) sendGetBlocksRequest(ctx context.Context, id peer.ID, blockhash *hash.Hash) (*pb.BlockData, error) {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
-	stream, err := s.Send(ctx, sd, RPCSyncDAG, id)
+	stream, err := s.Send(ctx, &pb.Hash{Hash: blockhash.Bytes()}, RPCGetBlocks, id)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func (s *Service) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.Syn
 		return nil, errors.New(errMsg)
 	}
 
-	msg := &pb.SubDAG{}
+	msg := &pb.BlockData{}
 	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
 		return nil, err
 	}
@@ -49,12 +50,7 @@ func (s *Service) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.Syn
 	return msg, err
 }
 
-func (s *Service) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
-	pe := s.peers.Get(stream.Conn().RemotePeer())
-	if pe == nil {
-		return peers.ErrPeerUnknown
-	}
-
+func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
 	respCode := responseCodeServerError
@@ -74,64 +70,64 @@ func (s *Service) syncDAGHandler(ctx context.Context, msg interface{}, stream li
 	}()
 
 	SetRPCStreamDeadlines(stream)
-	m, ok := msg.(*pb.SyncDAG)
+	m, ok := msg.(*pb.Hash)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")
 		return err
 	}
-	pe.UpdateGraphState(m.GraphState)
-	gs := pe.GraphState()
-	blocks, point := s.PeerSync().dagSync.CalcSyncBlocks(gs, changePBHashsToHashs(m.MainLocator), blockdag.SubDAGMode, MaxBlockLocatorsPerMsg)
-	pe.UpdateSyncPoint(point)
-	/*	if len(blocks) <= 0 {
-		err = fmt.Errorf("No blocks")
+	blockHash, err := hash.NewHash(m.Hash)
+	if err != nil {
+		err = fmt.Errorf("invalid block hash")
 		return err
-	}*/
-	sd := &pb.SubDAG{SyncPoint: &pb.Hash{Hash: point.Bytes()}, GraphState: s.getGraphState(), Blocks: []*pb.BlockData{}}
-	for _, blockHash := range blocks {
-		block, err := s.Chain.FetchBlockByHash(blockHash)
-		if err != nil {
-			return err
-		}
+	}
+	ib := s.Chain.BlockDAG().GetBlock(blockHash)
+	if ib == nil {
+		err = fmt.Errorf("invalid block hash")
+		return err
+	}
+	block, err := s.Chain.FetchBlockByHash(blockHash)
+	if err != nil {
+		return err
+	}
 
-		blockBytes, err := block.Bytes()
-		if err != nil {
-			return err
-		}
-		sd.Blocks = append(sd.Blocks, &pb.BlockData{BlockBytes: blockBytes})
+	blocks, err := block.Bytes()
+	if err != nil {
+		return err
 	}
 	_, err = stream.Write([]byte{responseCodeSuccess})
 	if err != nil {
 		return err
 	}
-
-	_, err = s.Encoding().EncodeWithMaxLength(stream, sd)
+	bd := &pb.BlockData{DagID: uint32(ib.GetID()), BlockBytes: blocks}
+	_, err = s.Encoding().EncodeWithMaxLength(stream, bd)
 	if err != nil {
 		return err
 	}
-
 	respCode = responseCodeSuccess
 	return nil
 }
 
-func (s *Service) syncDAGBlocks(pe *peers.Peer) error {
-	point := pe.SyncPoint()
-	mainLocator := s.peerSync.dagSync.GetMainLocator(point)
-	sd := &pb.SyncDAG{MainLocator: changeHashsToPBHashs(mainLocator), GraphState: s.getGraphState()}
-	subd, err := s.sendSyncDAGRequest(s.ctx, pe.GetID(), sd)
-	if err != nil {
-		return err
+func (s *Sync) getBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
+	blockdatas := BlockDataSlice{}
+	for _, b := range blocks {
+		bd, err := s.sendGetBlocksRequest(s.ctx, pe.GetID(), b)
+		if err != nil {
+			log.Warn(fmt.Sprintf("getBlocks send:%v", err))
+			continue
+		}
+		blockdatas = append(blockdatas, bd)
 	}
-	pe.UpdateSyncPoint(changePBHashToHash(subd.SyncPoint))
-	pe.UpdateGraphState(subd.GraphState)
-
-	if len(subd.Blocks) <= 0 {
-		return nil
+	log.Trace(fmt.Sprintf("getBlocks:%d", len(blockdatas)))
+	if len(blockdatas) <= 0 {
+		return fmt.Errorf("no blocks return")
+	}
+	if len(blockdatas) >= 2 {
+		sort.Sort(blockdatas)
 	}
 	behaviorFlags := blockchain.BFP2PAdd
 
 	add := 0
-	for _, bd := range subd.Blocks {
+	for _, bd := range blockdatas {
 		block, err := types.NewBlockFromBytes(bd.BlockBytes)
 		if err != nil {
 			log.Warn(fmt.Sprintf("getBlocks from:%v", err))
@@ -147,7 +143,7 @@ func (s *Service) syncDAGBlocks(pe *peers.Peer) error {
 		}
 		add++
 	}
-	log.Trace(fmt.Sprintf("getBlocks:%d/%d", add, len(subd.Blocks)))
+	log.Trace(fmt.Sprintf("getBlocks:%d/%d", add, len(blockdatas)))
 	if add > 0 {
 		s.TxMemPool.PruneExpiredTx()
 

@@ -1,13 +1,8 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:ping.go
- * Date:7/17/20 10:51 AM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
-package p2p
+package synch
 
 import (
 	"context"
@@ -20,7 +15,7 @@ import (
 )
 
 // pingHandler reads the incoming ping rpc message from the peer.
-func (s *Service) pingHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
 		return peers.ErrPeerUnknown
@@ -72,7 +67,7 @@ func (s *Service) pingHandler(ctx context.Context, msg interface{}, stream libp2
 	return nil
 }
 
-func (s *Service) sendPingRequest(ctx context.Context, id peer.ID) error {
+func (s *Sync) SendPingRequest(ctx context.Context, id peer.ID) error {
 	pe := s.peers.Get(id)
 	if pe == nil {
 		return peers.ErrPeerUnknown
@@ -128,7 +123,7 @@ func (s *Service) sendPingRequest(ctx context.Context, id peer.ID) error {
 }
 
 // validates the peer's sequence number.
-func (s *Service) validateSequenceNum(seq uint64, pe *peers.Peer) (bool, error) {
+func (s *Sync) validateSequenceNum(seq uint64, pe *peers.Peer) (bool, error) {
 	md := pe.Metadata()
 	if md == nil {
 		return false, nil

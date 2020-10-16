@@ -7,7 +7,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/prysmaticlabs/go-bitfield"
 	"sync"
 )
 
@@ -243,14 +242,4 @@ func NewStatus(p2p common.P2P) *Status {
 		p2p:   p2p,
 		peers: make(map[peer.ID]*Peer),
 	}
-}
-
-func retrieveIndicesFromBitfield(bitV bitfield.Bitvector64) []uint64 {
-	committeeIdxs := []uint64{}
-	for i := uint64(0); i < 64; i++ {
-		if bitV.BitAt(i) {
-			committeeIdxs = append(committeeIdxs, i)
-		}
-	}
-	return committeeIdxs
 }

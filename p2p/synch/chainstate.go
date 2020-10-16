@@ -1,4 +1,8 @@
-package p2p
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
+
+package synch
 
 import (
 	"context"
@@ -21,7 +25,7 @@ const (
 	retErrInvalidChainState
 )
 
-func (s *Service) sendChainStateRequest(ctx context.Context, id peer.ID) error {
+func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	pe := s.peers.Get(id)
 	if pe == nil {
 		return peers.ErrPeerUnknown
@@ -68,7 +72,7 @@ func (s *Service) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	return err
 }
 
-func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	defer func() {
 		closeSteam(stream)
 	}()
@@ -132,7 +136,7 @@ func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream
 	return s.respondWithChainState(ctx, stream)
 }
 
-func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainState, id peer.ID) (int, error) {
+func (s *Sync) validateChainStateMessage(ctx context.Context, msg *pb.ChainState, id peer.ID) (int, error) {
 	if msg == nil {
 		return retErrGeneric, fmt.Errorf("msg is nil")
 	}
@@ -172,7 +176,7 @@ func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainSt
 	return retSuccess, nil
 }
 
-func (s *Service) respondWithChainState(ctx context.Context, stream network.Stream) error {
+func (s *Sync) respondWithChainState(ctx context.Context, stream network.Stream) error {
 	resp := s.getChainState()
 	if resp == nil {
 		return fmt.Errorf("no chain state")
@@ -185,7 +189,7 @@ func (s *Service) respondWithChainState(ctx context.Context, stream network.Stre
 	return err
 }
 
-func (s *Service) getChainState() *pb.ChainState {
+func (s *Sync) getChainState() *pb.ChainState {
 	genesisHash := s.Chain.BlockDAG().GetGenesisHash()
 
 	cs := &pb.ChainState{
@@ -201,7 +205,7 @@ func (s *Service) getChainState() *pb.ChainState {
 	return cs
 }
 
-func (s *Service) getGraphState() *pb.GraphState {
+func (s *Sync) getGraphState() *pb.GraphState {
 	bs := s.Chain.BestSnapshot()
 
 	gs := &pb.GraphState{

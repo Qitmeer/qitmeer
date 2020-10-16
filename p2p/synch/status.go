@@ -1,4 +1,8 @@
-package p2p
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
+
+package synch
 
 import (
 	"context"
@@ -11,9 +15,9 @@ import (
 )
 
 // maintainPeerStatuses by infrequently polling peers for their latest status.
-func (s *Service) maintainPeerStatuses() {
-	interval := s.Chain.ChainParams().TargetTimePerBlock * 2
-	runutil.RunEvery(s.ctx, interval, func() {
+func (s *Sync) maintainPeerStatuses() {
+	interval := s.p2p.BlockChain().ChainParams().TargetTimePerBlock * 2
+	runutil.RunEvery(s.p2p.Context(), interval, func() {
 		for _, pid := range s.Peers().Connected() {
 			go func(id peer.ID) {
 				pe := s.peers.Get(id)
@@ -22,9 +26,9 @@ func (s *Service) maintainPeerStatuses() {
 				}
 				// If our peer status has not been updated correctly we disconnect over here
 				// and set the connection state over here instead.
-				if s.Host().Network().Connectedness(id) != network.Connected {
+				if s.p2p.Host().Network().Connectedness(id) != network.Connected {
 					pe.SetConnectionState(peers.PeerDisconnecting)
-					if err := s.Disconnect(id); err != nil {
+					if err := s.p2p.Disconnect(id); err != nil {
 						log.Error(fmt.Sprintf("Error when disconnecting with peer: %v", err))
 					}
 					pe.SetConnectionState(peers.PeerDisconnected)
@@ -32,7 +36,7 @@ func (s *Service) maintainPeerStatuses() {
 				}
 
 				if pe.IsBad() {
-					if err := s.sendGoodByeAndDisconnect(s.ctx, codeGenericError, id); err != nil {
+					if err := s.sendGoodByeAndDisconnect(s.p2p.Context(), codeGenericError, id); err != nil {
 						log.Error(fmt.Sprintf("Error when disconnecting with bad peer: %v", err))
 					}
 					return
@@ -50,13 +54,13 @@ func (s *Service) maintainPeerStatuses() {
 	})
 }
 
-func (s *Service) reValidatePeer(ctx context.Context, id peer.ID) error {
+func (s *Sync) reValidatePeer(ctx context.Context, id peer.ID) error {
 	if err := s.sendChainStateRequest(ctx, id); err != nil {
 		return err
 	}
 
 	// Do not return an error for ping requests.
-	if err := s.sendPingRequest(ctx, id); err != nil {
+	if err := s.SendPingRequest(ctx, id); err != nil {
 		log.Debug(fmt.Sprintf("Could not ping peer:%v", err))
 	}
 	return nil

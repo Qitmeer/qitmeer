@@ -1,4 +1,8 @@
-package p2p
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
+
+package synch
 
 import (
 	"bytes"
@@ -14,7 +18,7 @@ const (
 	responseCodeServerError    = byte(0x02)
 )
 
-func (s *Service) generateErrorResponse(code byte, reason string) ([]byte, error) {
+func (s *Sync) generateErrorResponse(code byte, reason string) ([]byte, error) {
 	buf := bytes.NewBuffer([]byte{code})
 	resp := &pb.ErrorResponse{
 		Message: []byte(reason),

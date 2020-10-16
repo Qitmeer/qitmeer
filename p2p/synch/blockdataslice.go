@@ -2,7 +2,7 @@
  * Copyright (c) 2017-2020 The qitmeer developers
  */
 
-package p2p
+package synch
 
 import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"

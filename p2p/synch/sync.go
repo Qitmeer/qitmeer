@@ -1,12 +1,20 @@
-package p2p
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
+
+package synch
 
 import (
 	"context"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/p2p/common"
+	"github.com/Qitmeer/qitmeer/p2p/encoder"
+	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"reflect"
 	"strings"
 	"time"
@@ -49,14 +57,14 @@ const ReqTimeout = 10 * time.Second
 // HandleTimeout is the maximum time for complete handler.
 const HandleTimeout = 5 * time.Second
 
-func (s *Service) registerHandlers() {
-	s.registerRPCHandlers()
-	//s.registerSubscribers()
+type Sync struct {
+	peers    *peers.Status
+	peerSync *PeerSync
+	p2p      common.P2P
 }
 
-func (s *Service) startSync() {
-	s.peerSync = NewPeerSync(s)
-	s.peerSync.Start()
+func (s *Sync) Start() error {
+	s.registerHandlers()
 
 	s.AddConnectionHandler(s.reValidatePeer, s.sendGenericGoodbyeMessage)
 	s.AddDisconnectionHandler(func(_ context.Context, _ peer.ID) error {
@@ -64,14 +72,22 @@ func (s *Service) startSync() {
 		return nil
 	})
 
-	s.AddPingMethod(s.sendPingRequest)
-
 	s.maintainPeerStatuses()
 
+	return s.peerSync.Start()
+}
+
+func (s *Sync) Stop() error {
+	return s.peerSync.Stop()
+}
+
+func (s *Sync) registerHandlers() {
+	s.registerRPCHandlers()
+	//s.registerSubscribers()
 }
 
 // registerRPCHandlers for p2p RPC.
-func (s *Service) registerRPCHandlers() {
+func (s *Sync) registerRPCHandlers() {
 
 	s.registerRPC(
 		RPCGoodByeTopic,
@@ -117,7 +133,7 @@ func (s *Service) registerRPCHandlers() {
 }
 
 // registerRPC for a given topic with an expected protobuf message type.
-func (s *Service) registerRPC(topic string, base interface{}, handle rpcHandler) {
+func (s *Sync) registerRPC(topic string, base interface{}, handle rpcHandler) {
 	topic += s.Encoding().ProtocolSuffix()
 	s.SetStreamHandler(topic, func(stream network.Stream) {
 		ctx, cancel := context.WithTimeout(context.Background(), ttfbTimeout)
@@ -168,10 +184,64 @@ func (s *Service) registerRPC(topic string, base interface{}, handle rpcHandler)
 	})
 }
 
-func closeSteam(stream libp2pcore.Stream) {
-	if err := stream.Close(); err != nil {
-		log.Error(fmt.Sprintf("Failed to close stream:%v", err))
+// Send a message to a specific peer. The returned stream may be used for reading, but has been
+// closed for writing.
+func (s *Sync) Send(ctx context.Context, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
+	topic := baseTopic + s.Encoding().ProtocolSuffix()
+
+	var deadline = ttfbTimeout + RespTimeout
+	ctx, cancel := context.WithTimeout(ctx, deadline)
+	defer cancel()
+
+	stream, err := s.p2p.Host().NewStream(ctx, pid, protocol.ID(topic))
+	if err != nil {
+		return nil, err
 	}
+	if err := stream.SetReadDeadline(time.Now().Add(deadline)); err != nil {
+		return nil, err
+	}
+	if err := stream.SetWriteDeadline(time.Now().Add(deadline)); err != nil {
+		return nil, err
+	}
+	// do not encode anything if we are sending a metadata request
+	if baseTopic == RPCMetaDataTopic {
+		return stream, nil
+	}
+
+	if _, err := s.Encoding().EncodeWithMaxLength(stream, message); err != nil {
+		return nil, err
+	}
+
+	// Close stream for writing.
+	if err := stream.Close(); err != nil {
+		return nil, err
+	}
+
+	return stream, nil
 }
 
-// sync
+func (s *Sync) PeerSync() *PeerSync {
+	return s.peerSync
+}
+
+// Peers returns the peer status interface.
+func (s *Sync) Peers() *peers.Status {
+	return s.peers
+}
+
+func (s *Sync) Encoding() encoder.NetworkEncoding {
+	return s.p2p.Encoding()
+}
+
+// SetStreamHandler sets the protocol handler on the p2p host multiplexer.
+// This method is a pass through to libp2pcore.Host.SetStreamHandler.
+func (s *Sync) SetStreamHandler(topic string, handler network.StreamHandler) {
+	s.p2p.Host().SetStreamHandler(protocol.ID(topic), handler)
+}
+
+func NewSync(p2p common.P2P) *Sync {
+	sy := &Sync{p2p: p2p, peers: peers.NewStatus(p2p)}
+	sy.peerSync = NewPeerSync(sy)
+
+	return sy
+}

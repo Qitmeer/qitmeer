@@ -1,13 +1,8 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:metadata.go
- * Date:7/17/20 11:33 AM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
-package p2p
+package synch
 
 import (
 	"context"
@@ -19,7 +14,7 @@ import (
 )
 
 // metaDataHandler reads the incoming metadata rpc request from the peer.
-func (s *Service) metaDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) metaDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	defer func() {
 		closeSteam(stream)
 	}()
@@ -34,7 +29,7 @@ func (s *Service) metaDataHandler(ctx context.Context, msg interface{}, stream l
 	return err
 }
 
-func (s *Service) sendMetaDataRequest(ctx context.Context, id peer.ID) (*pb.MetaData, error) {
+func (s *Sync) sendMetaDataRequest(ctx context.Context, id peer.ID) (*pb.MetaData, error) {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 

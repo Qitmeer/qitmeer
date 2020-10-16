@@ -1,16 +1,21 @@
-package p2p
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
+
+package synch
 
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"sync"
 )
 
 type PeerSync struct {
 	lock     sync.RWMutex
-	service  *Service
+	sy       *Sync
 	syncPeer *peers.Peer
 	// dag sync
 	dagSync *blockdag.DAGSync
@@ -228,8 +233,8 @@ func (ps *PeerSync) resetSyncPeer() {
 	ps.syncPeer = nil
 }
 
-func NewPeerSync(service *Service) *PeerSync {
-	peerSync := &PeerSync{service: service}
-	peerSync.dagSync = blockdag.NewDAGSync(service.Chain.BlockDAG())
+func NewPeerSync(sy *Sync) *PeerSync {
+	peerSync := &PeerSync{sy: sy}
+	peerSync.dagSync = blockdag.NewDAGSync(sy.p2p.BlockChain().BlockDAG())
 	return peerSync
 }

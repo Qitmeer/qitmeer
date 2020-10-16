@@ -1,13 +1,8 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:handshake.go
- * Date:7/19/20 10:37 AM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
-package p2p
+package synch
 
 import (
 	"context"
@@ -29,7 +24,7 @@ const (
 // AddConnectionHandler adds a callback function which handles the connection with a
 // newly added peer. It performs a handshake with that peer by sending a hello request
 // and validating the response from the peer.
-func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer.ID) error,
+func (s *Sync) AddConnectionHandler(reqFunc func(ctx context.Context, id peer.ID) error,
 	goodbyeFunc func(ctx context.Context, id peer.ID) error) {
 
 	// Peer map and lock to keep track of current connection attempts.
@@ -58,7 +53,7 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 		delete(peerMap, id)
 	}
 
-	s.host.Network().Notify(&network.NotifyBundle{
+	s.p2p.Host().Network().Notify(&network.NotifyBundle{
 		ConnectedF: func(net network.Network, conn network.Conn) {
 			peerInfoStr := fmt.Sprintf("peer:%s", conn.RemotePeer().Pretty())
 			remotePeer := conn.RemotePeer()
@@ -66,7 +61,7 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 
 			disconnectFromPeer := func() {
 				remotePe.SetConnectionState(peers.PeerDisconnecting)
-				if err := s.Disconnect(remotePeer); err != nil {
+				if err := s.p2p.Disconnect(remotePeer); err != nil {
 					log.Error(fmt.Sprintf("%s Unable to disconnect from peer:%v", peerInfoStr, err))
 				}
 				remotePe.SetConnectionState(peers.PeerDisconnected)
@@ -109,7 +104,7 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 					time.Sleep(timeForChainState)
 
 					// Exit if we are disconnected with the peer.
-					if s.host.Network().Connectedness(remotePeer) != network.Connected {
+					if s.p2p.Host().Network().Connectedness(remotePeer) != network.Connected {
 						return
 					}
 
@@ -143,8 +138,8 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 
 // AddDisconnectionHandler disconnects from peers.  It handles updating the peer status.
 // This also calls the handler responsible for maintaining other parts of the sync or p2p system.
-func (s *Service) AddDisconnectionHandler(handler func(ctx context.Context, id peer.ID) error) {
-	s.host.Network().Notify(&network.NotifyBundle{
+func (s *Sync) AddDisconnectionHandler(handler func(ctx context.Context, id peer.ID) error) {
+	s.p2p.Host().Network().Notify(&network.NotifyBundle{
 		DisconnectedF: func(net network.Network, conn network.Conn) {
 			peerInfoStr := fmt.Sprintf("peer:%s", conn.RemotePeer().Pretty())
 			// Must be handled in a goroutine as this callback cannot be blocking.

@@ -20,21 +20,21 @@ import (
 	"github.com/Qitmeer/qitmeer/core/message"
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/node/notify"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/Qitmeer/qitmeer/p2p/runutil"
+	"github.com/Qitmeer/qitmeer/p2p/synch"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
 	"github.com/dgraph-io/ristretto"
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/multiformats/go-multiaddr"
@@ -63,7 +63,7 @@ var (
 )
 
 type Service struct {
-	cfg           *Config
+	cfg           *common.Config
 	ctx           context.Context
 	cancel        context.CancelFunc
 	exclusionList *ristretto.Cache
@@ -74,11 +74,10 @@ type Service struct {
 	addrFilter    *multiaddr.Filters
 	host          host.Host
 	pubsub        *pubsub.PubSub
-	peers         *peers.Status
-	dv5Listener   Listener
-	pingMethod    func(ctx context.Context, id peer.ID) error
-	events        *event.Feed
-	peerSync      *PeerSync
+
+	dv5Listener Listener
+	events      *event.Feed
+	sy          *synch.Sync
 
 	Chain      *blockchain.BlockChain
 	TimeSource blockchain.MedianTimeSource
@@ -91,6 +90,11 @@ func (s *Service) Start() error {
 		return fmt.Errorf("Attempted to start p2p service when it was already started")
 	}
 	log.Info("P2P Service Start")
+
+	err := s.sy.Start()
+	if err != nil {
+		return err
+	}
 
 	s.isPreGenesis = false
 	s.started = true
@@ -158,7 +162,6 @@ func (s *Service) Start() error {
 		logExternalDNSAddr(s.host.ID(), p2pHostDNS, p2pTCPPort)
 	}
 
-	s.startSync()
 	return nil
 }
 
@@ -175,7 +178,7 @@ func (s *Service) Stop() error {
 	if s.dv5Listener != nil {
 		s.dv5Listener.Close()
 	}
-	return s.peerSync.Stop()
+	return s.sy.Stop()
 }
 
 func (s *Service) connectToBootnodes() error {
@@ -219,7 +222,7 @@ func (s *Service) connectWithPeer(info peer.AddrInfo) error {
 	if info.ID == s.host.ID() {
 		return nil
 	}
-	pe := s.peers.Get(info.ID)
+	pe := s.Peers().Get(info.ID)
 	if pe == nil {
 		return nil
 	}
@@ -235,7 +238,7 @@ func (s *Service) connectWithPeer(info peer.AddrInfo) error {
 
 // Peers returns the peer status interface.
 func (s *Service) Peers() *peers.Status {
-	return s.peers
+	return s.sy.Peers()
 }
 
 // listen for new nodes watches for new nodes in the network and adds them to the peerstore.
@@ -282,19 +285,10 @@ func (s *Service) RefreshQNR() {
 	//s.pingPeers()
 }
 
-// AddPingMethod adds the metadata ping rpc method to the p2p service, so that it can
-// be used to refresh QNR.
-func (s *Service) AddPingMethod(reqFunc func(ctx context.Context, id peer.ID) error) {
-	s.pingMethod = reqFunc
-}
-
 func (s *Service) pingPeers() {
-	if s.pingMethod == nil {
-		return
-	}
-	for _, pid := range s.peers.Connected() {
+	for _, pid := range s.Peers().Connected() {
 		go func(id peer.ID) {
-			if err := s.pingMethod(s.ctx, id); err != nil {
+			if err := s.sy.SendPingRequest(s.ctx, id); err != nil {
 				log.Error("Failed to ping peer:id=%s  %v", id, err)
 			}
 		}(pid)
@@ -310,12 +304,6 @@ func (s *Service) PubSub() *pubsub.PubSub {
 // host of the service.
 func (s *Service) Host() host.Host {
 	return s.host
-}
-
-// SetStreamHandler sets the protocol handler on the p2p host multiplexer.
-// This method is a pass through to libp2pcore.Host.SetStreamHandler.
-func (s *Service) SetStreamHandler(topic string, handler network.StreamHandler) {
-	s.host.SetStreamHandler(protocol.ID(topic), handler)
 }
 
 // PeerID returns the Peer ID of the local peer.
@@ -364,48 +352,16 @@ func (s *Service) Encoding() encoder.NetworkEncoding {
 	}
 }
 
-// Send a message to a specific peer. The returned stream may be used for reading, but has been
-// closed for writing.
-func (s *Service) Send(ctx context.Context, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
-	topic := baseTopic + s.Encoding().ProtocolSuffix()
-
-	var deadline = ttfbTimeout + RespTimeout
-	ctx, cancel := context.WithTimeout(ctx, deadline)
-	defer cancel()
-
-	stream, err := s.host.NewStream(ctx, pid, protocol.ID(topic))
-	if err != nil {
-		return nil, err
-	}
-	if err := stream.SetReadDeadline(time.Now().Add(deadline)); err != nil {
-		return nil, err
-	}
-	if err := stream.SetWriteDeadline(time.Now().Add(deadline)); err != nil {
-		return nil, err
-	}
-	// do not encode anything if we are sending a metadata request
-	if baseTopic == RPCMetaDataTopic {
-		return stream, nil
-	}
-
-	if _, err := s.Encoding().EncodeWithMaxLength(stream, message); err != nil {
-		return nil, err
-	}
-
-	// Close stream for writing.
-	if err := stream.Close(); err != nil {
-		return nil, err
-	}
-
-	return stream, nil
-}
-
-func (s *Service) PeerSync() *PeerSync {
-	return s.peerSync
-}
-
 func (s *Service) GetGenesisHash() *hash.Hash {
 	return s.Chain.BlockDAG().GetGenesisHash()
+}
+
+func (s *Service) BlockChain() *blockchain.BlockChain {
+	return s.Chain
+}
+
+func (s *Service) Context() context.Context {
+	return s.ctx
 }
 
 func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
@@ -435,7 +391,7 @@ func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 	}
 
 	s := &Service{
-		cfg: &Config{
+		cfg: &common.Config{
 			NoDiscovery:          cfg.NoDiscovery,
 			EnableUPnP:           cfg.Upnp,
 			StaticPeers:          cfg.AddPeers,
@@ -501,9 +457,7 @@ func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 	}
 	s.pubsub = gs
 
-	s.peers = peers.NewStatus(s)
-
-	s.registerHandlers()
+	s.sy = synch.NewSync(s)
 	return s, nil
 }
 
@@ -557,15 +511,6 @@ func logExternalDNSAddr(id peer.ID, addr string, port uint) {
 }
 
 // TODO
-func (s *Service) ConnectedCount() int32 {
-	return 0
-}
-
-// ConnectedPeers returns an array consisting of all connected peers.
-func (s *Service) ConnectedPeers() []int {
-	return nil
-}
-
 func (s *Service) GetBanlist() map[string]time.Time {
 	return nil
 }

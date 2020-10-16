@@ -63,7 +63,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		ProtocolVersion: int32(protocol.ProtocolVersion),
 		TotalSubsidy:    best.TotalSubsidy,
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
-		Connections:     api.node.node.peerServer.ConnectedCount(),
+		Connections:     int32(len(api.node.node.peerServer.Peers().Connected())),
 		PowDiff: json.PowDiff{
 			Blake2bdDiff: getDifficultyRatio(blake2bdNodes, api.node.node.Params, pow.BLAKE2BD),
 			CuckarooDiff: getDifficultyRatio(cuckarooNodes, api.node.node.Params, pow.CUCKAROO),

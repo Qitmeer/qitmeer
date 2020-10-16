@@ -1,4 +1,8 @@
-package p2p
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
+
+package common
 
 import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
