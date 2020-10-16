@@ -7,6 +7,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -102,10 +103,10 @@ func (s *Service) getBlocksHandler(ctx context.Context, msg interface{}, stream 
 	return nil
 }
 
-func (s *Service) getBlocks(id peer.ID, blocks []*hash.Hash) error {
+func (s *Service) getBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
 	blockdatas := BlockDataSlice{}
 	for _, b := range blocks {
-		bd, err := s.sendGetBlocksRequest(s.ctx, id, b)
+		bd, err := s.sendGetBlocksRequest(s.ctx, pe.GetID(), b)
 		if err != nil {
 			log.Warn(fmt.Sprintf("getBlocks send:%v", err))
 			continue

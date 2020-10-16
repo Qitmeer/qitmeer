@@ -116,17 +116,14 @@ func (s *Service) syncDAGHandler(ctx context.Context, msg interface{}, stream li
 
 func (s *Service) syncDAGBlocks(pe *peers.Peer) error {
 	point := pe.SyncPoint()
-	if point == nil {
-		return fmt.Errorf("no point")
-	}
 	mainLocator := s.peerSync.dagSync.GetMainLocator(point)
 	sd := &pb.SyncDAG{MainLocator: changeHashsToPBHashs(mainLocator), GraphState: s.getGraphState()}
-	subd, err := s.sendSyncDAGRequest(s.ctx, id, sd)
+	subd, err := s.sendSyncDAGRequest(s.ctx, pe.GetID(), sd)
 	if err != nil {
 		return err
 	}
-	s.peers.UpdateSyncPoint(id, changePBHashToHash(subd.SyncPoint))
-	s.peers.UpdateGraphState(id, subd.GraphState)
+	pe.UpdateSyncPoint(changePBHashToHash(subd.SyncPoint))
+	pe.UpdateGraphState(subd.GraphState)
 
 	if len(subd.Blocks) <= 0 {
 		return nil

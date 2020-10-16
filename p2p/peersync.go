@@ -5,7 +5,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"sync"
 )
 
