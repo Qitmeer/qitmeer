@@ -511,7 +511,7 @@ func readbootNodes(fileName string) ([]string, error) {
 }
 
 func msgIDFunction(pmsg *pubsub_pb.Message) string {
-	h := FastSum256(pmsg.Data)
+	h := common.FastSum256(pmsg.Data)
 	return base64.URLEncoding.EncodeToString(h[:])
 }
 

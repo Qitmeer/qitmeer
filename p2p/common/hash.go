@@ -1,13 +1,8 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:hash.go
- * Date:7/15/20 11:01 AM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
-package p2p
+package common
 
 import (
 	"github.com/Qitmeer/qitmeer/common"
