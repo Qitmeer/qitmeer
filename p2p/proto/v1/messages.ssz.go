@@ -18,196 +18,6 @@ var (
 	errSize                = fmt.Errorf("incorrect size")
 )
 
-// MarshalSSZ ssz marshals the ChainState object
-func (c *ChainState) MarshalSSZ() ([]byte, error) {
-	buf := make([]byte, c.SizeSSZ())
-	return c.MarshalSSZTo(buf[:0])
-}
-
-// MarshalSSZTo ssz marshals the ChainState object to a target array
-func (c *ChainState) MarshalSSZTo(dst []byte) ([]byte, error) {
-	var err error
-	offset := int(61)
-
-	// Field (0) 'GenesisHash'
-	if c.GenesisHash == nil {
-		c.GenesisHash = new(Hash)
-	}
-	if dst, err = c.GenesisHash.MarshalSSZTo(dst); err != nil {
-		return nil, err
-	}
-
-	// Field (1) 'ProtocolVersion'
-	dst = ssz.MarshalUint32(dst, c.ProtocolVersion)
-
-	// Field (2) 'Timestamp'
-	dst = ssz.MarshalUint64(dst, c.Timestamp)
-
-	// Field (3) 'Services'
-	dst = ssz.MarshalUint64(dst, c.Services)
-
-	// Field (4) 'DisableRelayTx'
-	dst = ssz.MarshalBool(dst, c.DisableRelayTx)
-
-	// Offset (5) 'GraphState'
-	dst = ssz.WriteOffset(dst, offset)
-	if c.GraphState == nil {
-		c.GraphState = new(GraphState)
-	}
-	offset += c.GraphState.SizeSSZ()
-
-	// Offset (6) 'UserAgent'
-	dst = ssz.WriteOffset(dst, offset)
-	offset += len(c.UserAgent)
-
-	// Field (5) 'GraphState'
-	if dst, err = c.GraphState.MarshalSSZTo(dst); err != nil {
-		return nil, err
-	}
-
-	// Field (6) 'UserAgent'
-	if len(c.UserAgent) > 256 {
-		return nil, errMarshalDynamicBytes
-	}
-	dst = append(dst, c.UserAgent...)
-
-	return dst, err
-}
-
-// UnmarshalSSZ ssz unmarshals the ChainState object
-func (c *ChainState) UnmarshalSSZ(buf []byte) error {
-	var err error
-	size := uint64(len(buf))
-	if size < 61 {
-		return errSize
-	}
-
-	tail := buf
-	var o5, o6 uint64
-
-	// Field (0) 'GenesisHash'
-	if c.GenesisHash == nil {
-		c.GenesisHash = new(Hash)
-	}
-	if err = c.GenesisHash.UnmarshalSSZ(buf[0:32]); err != nil {
-		return err
-	}
-
-	// Field (1) 'ProtocolVersion'
-	c.ProtocolVersion = ssz.UnmarshallUint32(buf[32:36])
-
-	// Field (2) 'Timestamp'
-	c.Timestamp = ssz.UnmarshallUint64(buf[36:44])
-
-	// Field (3) 'Services'
-	c.Services = ssz.UnmarshallUint64(buf[44:52])
-
-	// Field (4) 'DisableRelayTx'
-	c.DisableRelayTx = ssz.UnmarshalBool(buf[52:53])
-
-	// Offset (5) 'GraphState'
-	if o5 = ssz.ReadOffset(buf[53:57]); o5 > size {
-		return errOffset
-	}
-
-	// Offset (6) 'UserAgent'
-	if o6 = ssz.ReadOffset(buf[57:61]); o6 > size || o5 > o6 {
-		return errOffset
-	}
-
-	// Field (5) 'GraphState'
-	{
-		buf = tail[o5:o6]
-		if c.GraphState == nil {
-			c.GraphState = new(GraphState)
-		}
-		if err = c.GraphState.UnmarshalSSZ(buf); err != nil {
-			return err
-		}
-	}
-
-	// Field (6) 'UserAgent'
-	{
-		buf = tail[o6:]
-		c.UserAgent = append(c.UserAgent, buf...)
-	}
-	return err
-}
-
-// SizeSSZ returns the ssz encoded size in bytes for the ChainState object
-func (c *ChainState) SizeSSZ() (size int) {
-	size = 61
-
-	// Field (5) 'GraphState'
-	if c.GraphState == nil {
-		c.GraphState = new(GraphState)
-	}
-	size += c.GraphState.SizeSSZ()
-
-	// Field (6) 'UserAgent'
-	size += len(c.UserAgent)
-
-	return
-}
-
-// MarshalSSZ ssz marshals the Transaction object
-func (t *Transaction) MarshalSSZ() ([]byte, error) {
-	buf := make([]byte, t.SizeSSZ())
-	return t.MarshalSSZTo(buf[:0])
-}
-
-// MarshalSSZTo ssz marshals the Transaction object to a target array
-func (t *Transaction) MarshalSSZTo(dst []byte) ([]byte, error) {
-	var err error
-	offset := int(4)
-
-	// Offset (0) 'TxBytes'
-	dst = ssz.WriteOffset(dst, offset)
-	offset += len(t.TxBytes)
-
-	// Field (0) 'TxBytes'
-	if len(t.TxBytes) > 1048576 {
-		return nil, errMarshalDynamicBytes
-	}
-	dst = append(dst, t.TxBytes...)
-
-	return dst, err
-}
-
-// UnmarshalSSZ ssz unmarshals the Transaction object
-func (t *Transaction) UnmarshalSSZ(buf []byte) error {
-	var err error
-	size := uint64(len(buf))
-	if size < 4 {
-		return errSize
-	}
-
-	tail := buf
-	var o0 uint64
-
-	// Offset (0) 'TxBytes'
-	if o0 = ssz.ReadOffset(buf[0:4]); o0 > size {
-		return errOffset
-	}
-
-	// Field (0) 'TxBytes'
-	{
-		buf = tail[o0:]
-		t.TxBytes = append(t.TxBytes, buf...)
-	}
-	return err
-}
-
-// SizeSSZ returns the ssz encoded size in bytes for the Transaction object
-func (t *Transaction) SizeSSZ() (size int) {
-	size = 4
-
-	// Field (0) 'TxBytes'
-	size += len(t.TxBytes)
-
-	return
-}
-
 // MarshalSSZ ssz marshals the BlockData object
 func (b *BlockData) MarshalSSZ() ([]byte, error) {
 	buf := make([]byte, b.SizeSSZ())
@@ -411,10 +221,7 @@ func (s *SubDAG) MarshalSSZTo(dst []byte) ([]byte, error) {
 
 	// Offset (2) 'Blocks'
 	dst = ssz.WriteOffset(dst, offset)
-	for ii := 0; ii < len(s.Blocks); ii++ {
-		offset += 4
-		offset += s.Blocks[ii].SizeSSZ()
-	}
+	offset += len(s.Blocks) * 32
 
 	// Field (1) 'GraphState'
 	if dst, err = s.GraphState.MarshalSSZTo(dst); err != nil {
@@ -424,13 +231,6 @@ func (s *SubDAG) MarshalSSZTo(dst []byte) ([]byte, error) {
 	// Field (2) 'Blocks'
 	if len(s.Blocks) > 500 {
 		return nil, errMarshalList
-	}
-	{
-		offset = 4 * len(s.Blocks)
-		for ii := 0; ii < len(s.Blocks); ii++ {
-			dst = ssz.WriteOffset(dst, offset)
-			offset += s.Blocks[ii].SizeSSZ()
-		}
 	}
 	for ii := 0; ii < len(s.Blocks); ii++ {
 		if dst, err = s.Blocks[ii].MarshalSSZTo(dst); err != nil {
@@ -484,22 +284,21 @@ func (s *SubDAG) UnmarshalSSZ(buf []byte) error {
 	// Field (2) 'Blocks'
 	{
 		buf = tail[o2:]
-		num, err := ssz.DecodeDynamicLength(buf, 500)
-		if err != nil {
-			return err
+		num, ok := ssz.DivideInt(len(buf), 32)
+		if !ok {
+			return errDivideInt
 		}
-		s.Blocks = make([]*BlockData, num)
-		err = ssz.UnmarshalDynamic(buf, num, func(indx int, buf []byte) (err error) {
-			if s.Blocks[indx] == nil {
-				s.Blocks[indx] = new(BlockData)
+		if num > 500 {
+			return errListTooBig
+		}
+		s.Blocks = make([]*Hash, num)
+		for ii := 0; ii < num; ii++ {
+			if s.Blocks[ii] == nil {
+				s.Blocks[ii] = new(Hash)
 			}
-			if err = s.Blocks[indx].UnmarshalSSZ(buf); err != nil {
+			if err = s.Blocks[ii].UnmarshalSSZ(buf[ii*32 : (ii+1)*32]); err != nil {
 				return err
 			}
-			return nil
-		})
-		if err != nil {
-			return err
 		}
 	}
 	return err
@@ -516,10 +315,7 @@ func (s *SubDAG) SizeSSZ() (size int) {
 	size += s.GraphState.SizeSSZ()
 
 	// Field (2) 'Blocks'
-	for ii := 0; ii < len(s.Blocks); ii++ {
-		size += 4
-		size += s.Blocks[ii].SizeSSZ()
-	}
+	size += len(s.Blocks) * 32
 
 	return
 }
@@ -761,6 +557,196 @@ func (g *GraphState) SizeSSZ() (size int) {
 
 	// Field (4) 'Tips'
 	size += len(g.Tips) * 32
+
+	return
+}
+
+// MarshalSSZ ssz marshals the ChainState object
+func (c *ChainState) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, c.SizeSSZ())
+	return c.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the ChainState object to a target array
+func (c *ChainState) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+	offset := int(61)
+
+	// Field (0) 'GenesisHash'
+	if c.GenesisHash == nil {
+		c.GenesisHash = new(Hash)
+	}
+	if dst, err = c.GenesisHash.MarshalSSZTo(dst); err != nil {
+		return nil, err
+	}
+
+	// Field (1) 'ProtocolVersion'
+	dst = ssz.MarshalUint32(dst, c.ProtocolVersion)
+
+	// Field (2) 'Timestamp'
+	dst = ssz.MarshalUint64(dst, c.Timestamp)
+
+	// Field (3) 'Services'
+	dst = ssz.MarshalUint64(dst, c.Services)
+
+	// Field (4) 'DisableRelayTx'
+	dst = ssz.MarshalBool(dst, c.DisableRelayTx)
+
+	// Offset (5) 'GraphState'
+	dst = ssz.WriteOffset(dst, offset)
+	if c.GraphState == nil {
+		c.GraphState = new(GraphState)
+	}
+	offset += c.GraphState.SizeSSZ()
+
+	// Offset (6) 'UserAgent'
+	dst = ssz.WriteOffset(dst, offset)
+	offset += len(c.UserAgent)
+
+	// Field (5) 'GraphState'
+	if dst, err = c.GraphState.MarshalSSZTo(dst); err != nil {
+		return nil, err
+	}
+
+	// Field (6) 'UserAgent'
+	if len(c.UserAgent) > 256 {
+		return nil, errMarshalDynamicBytes
+	}
+	dst = append(dst, c.UserAgent...)
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the ChainState object
+func (c *ChainState) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size < 61 {
+		return errSize
+	}
+
+	tail := buf
+	var o5, o6 uint64
+
+	// Field (0) 'GenesisHash'
+	if c.GenesisHash == nil {
+		c.GenesisHash = new(Hash)
+	}
+	if err = c.GenesisHash.UnmarshalSSZ(buf[0:32]); err != nil {
+		return err
+	}
+
+	// Field (1) 'ProtocolVersion'
+	c.ProtocolVersion = ssz.UnmarshallUint32(buf[32:36])
+
+	// Field (2) 'Timestamp'
+	c.Timestamp = ssz.UnmarshallUint64(buf[36:44])
+
+	// Field (3) 'Services'
+	c.Services = ssz.UnmarshallUint64(buf[44:52])
+
+	// Field (4) 'DisableRelayTx'
+	c.DisableRelayTx = ssz.UnmarshalBool(buf[52:53])
+
+	// Offset (5) 'GraphState'
+	if o5 = ssz.ReadOffset(buf[53:57]); o5 > size {
+		return errOffset
+	}
+
+	// Offset (6) 'UserAgent'
+	if o6 = ssz.ReadOffset(buf[57:61]); o6 > size || o5 > o6 {
+		return errOffset
+	}
+
+	// Field (5) 'GraphState'
+	{
+		buf = tail[o5:o6]
+		if c.GraphState == nil {
+			c.GraphState = new(GraphState)
+		}
+		if err = c.GraphState.UnmarshalSSZ(buf); err != nil {
+			return err
+		}
+	}
+
+	// Field (6) 'UserAgent'
+	{
+		buf = tail[o6:]
+		c.UserAgent = append(c.UserAgent, buf...)
+	}
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the ChainState object
+func (c *ChainState) SizeSSZ() (size int) {
+	size = 61
+
+	// Field (5) 'GraphState'
+	if c.GraphState == nil {
+		c.GraphState = new(GraphState)
+	}
+	size += c.GraphState.SizeSSZ()
+
+	// Field (6) 'UserAgent'
+	size += len(c.UserAgent)
+
+	return
+}
+
+// MarshalSSZ ssz marshals the Transaction object
+func (t *Transaction) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, t.SizeSSZ())
+	return t.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the Transaction object to a target array
+func (t *Transaction) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+	offset := int(4)
+
+	// Offset (0) 'TxBytes'
+	dst = ssz.WriteOffset(dst, offset)
+	offset += len(t.TxBytes)
+
+	// Field (0) 'TxBytes'
+	if len(t.TxBytes) > 1048576 {
+		return nil, errMarshalDynamicBytes
+	}
+	dst = append(dst, t.TxBytes...)
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the Transaction object
+func (t *Transaction) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size < 4 {
+		return errSize
+	}
+
+	tail := buf
+	var o0 uint64
+
+	// Offset (0) 'TxBytes'
+	if o0 = ssz.ReadOffset(buf[0:4]); o0 > size {
+		return errOffset
+	}
+
+	// Field (0) 'TxBytes'
+	{
+		buf = tail[o0:]
+		t.TxBytes = append(t.TxBytes, buf...)
+	}
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the Transaction object
+func (t *Transaction) SizeSSZ() (size int) {
+	size = 4
+
+	// Field (0) 'TxBytes'
+	size += len(t.TxBytes)
 
 	return
 }

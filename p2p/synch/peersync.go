@@ -49,7 +49,7 @@ func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
 		ps.sy.p2p.TimeSource().AddTimeSample(pe.GetID().String(), ti)
 	}
 
-	if !ps.HasSyncPeer() {
+	if !ps.hasSyncPeer() {
 		ps.startSync()
 	}
 }
@@ -58,9 +58,9 @@ func (ps *PeerSync) OnPeerDisconnected(pe *peers.Peer) {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
-	if ps.HasSyncPeer() {
+	if ps.hasSyncPeer() {
 		if pe == ps.syncPeer || pe.GetID() == ps.syncPeer.GetID() {
-			ps.resetSyncPeer()
+			ps.updateSyncPeer(true)
 		}
 	}
 }
@@ -69,6 +69,10 @@ func (ps *PeerSync) HasSyncPeer() bool {
 	ps.lock.RLock()
 	defer ps.lock.RLock()
 
+	return ps.hasSyncPeer()
+}
+
+func (ps *PeerSync) hasSyncPeer() bool {
 	return ps.syncPeer != nil
 }
 
@@ -82,7 +86,7 @@ func (ps *PeerSync) Chain() *blockchain.BlockChain {
 // candidates and removes them as needed.
 func (ps *PeerSync) startSync() {
 	// Return now if we're already syncing.
-	if ps.HasSyncPeer() {
+	if ps.hasSyncPeer() {
 		return
 	}
 	best := ps.Chain().BestSnapshot()
@@ -197,7 +201,7 @@ func (ps *PeerSync) IsCurrent() bool {
 }
 
 func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
-	if !ps.HasSyncPeer() {
+	if !ps.hasSyncPeer() {
 		return
 	}
 
@@ -216,21 +220,23 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 		err = ps.sy.syncDAGBlocks(ps.syncPeer)
 	}
 	if err != nil {
-		ps.resetSyncPeer()
+		ps.updateSyncPeer(true)
 	}
 }
 
-func (ps *PeerSync) updateSyncPeer() {
+func (ps *PeerSync) UpdateSyncPeer(force bool) {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
-	log.Debug("Updating sync peer")
-	ps.resetSyncPeer()
-	ps.startSync()
+	ps.updateSyncPeer(force)
 }
 
-func (ps *PeerSync) resetSyncPeer() {
-	ps.syncPeer = nil
+func (ps *PeerSync) updateSyncPeer(force bool) {
+	log.Debug("Updating sync peer")
+	if force {
+		ps.syncPeer = nil
+	}
+	ps.startSync()
 }
 
 func NewPeerSync(sy *Sync) *PeerSync {
