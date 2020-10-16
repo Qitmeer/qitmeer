@@ -156,7 +156,7 @@ func (s *Service) filterPeer(node *qnode.Node) bool {
 		log.Debug(fmt.Sprintf("%s Could not convert to peer data", err.Error()))
 		return false
 	}
-	pe := s.peers.Get(peerData.ID)
+	pe := s.Peers().Get(peerData.ID)
 	if pe == nil {
 		return false
 	}
@@ -171,7 +171,7 @@ func (s *Service) filterPeer(node *qnode.Node) bool {
 	}
 	nodeQNR := node.Record()
 	// Add peer to peer handler.
-	s.peers.Add(nodeQNR, peerData.ID, multiAddr, network.DirUnknown)
+	s.Peers().Add(nodeQNR, peerData.ID, multiAddr, network.DirUnknown)
 	return true
 }
 

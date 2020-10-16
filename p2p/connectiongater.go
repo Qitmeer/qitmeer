@@ -11,6 +11,7 @@ package p2p
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/multiformats/go-multiaddr-net"
 	"net"
 
@@ -54,7 +55,7 @@ func (s *Service) InterceptUpgraded(n network.Conn) (allow bool, reason control.
 
 // configureFilter looks at the provided allow lists and
 // deny lists to appropriately create a filter.
-func configureFilter(cfg *Config) (*filter.Filters, error) {
+func configureFilter(cfg *common.Config) (*filter.Filters, error) {
 	addrFilter := filter.NewFilters()
 	// Configure from provided allow list in the config.
 	if cfg.AllowListCIDR != "" {

@@ -79,10 +79,10 @@ type Service struct {
 	events      *event.Feed
 	sy          *synch.Sync
 
-	Chain      *blockchain.BlockChain
-	TimeSource blockchain.MedianTimeSource
-	TxMemPool  *mempool.TxPool
-	Notify     notify.Notify
+	blockChain *blockchain.BlockChain
+	timeSource blockchain.MedianTimeSource
+	txMemPool  *mempool.TxPool
+	notify     notify.Notify
 }
 
 func (s *Service) Start() error {
@@ -353,15 +353,51 @@ func (s *Service) Encoding() encoder.NetworkEncoding {
 }
 
 func (s *Service) GetGenesisHash() *hash.Hash {
-	return s.Chain.BlockDAG().GetGenesisHash()
+	return s.blockChain.BlockDAG().GetGenesisHash()
+}
+
+func (s *Service) SetBlockChain(blockChain *blockchain.BlockChain) {
+	s.blockChain = blockChain
 }
 
 func (s *Service) BlockChain() *blockchain.BlockChain {
-	return s.Chain
+	return s.blockChain
+}
+
+func (s *Service) SetTxMemPool(txMemPool *mempool.TxPool) {
+	s.txMemPool = txMemPool
+}
+
+func (s *Service) TxMemPool() *mempool.TxPool {
+	return s.txMemPool
+}
+
+func (s *Service) SetTimeSource(timeSource blockchain.MedianTimeSource) {
+	s.timeSource = timeSource
+}
+
+func (s *Service) TimeSource() blockchain.MedianTimeSource {
+	return s.timeSource
+}
+
+func (s *Service) SetNotify(notify notify.Notify) {
+	s.notify = notify
+}
+
+func (s *Service) Notify() notify.Notify {
+	return s.notify
 }
 
 func (s *Service) Context() context.Context {
 	return s.ctx
+}
+
+func (s *Service) Config() *common.Config {
+	return s.cfg
+}
+
+func (s *Service) PeerSync() *synch.PeerSync {
+	return s.sy.PeerSync()
 }
 
 func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {

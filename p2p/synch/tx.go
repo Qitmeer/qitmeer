@@ -72,7 +72,7 @@ func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore
 		err = fmt.Errorf("message is not type *pb.Transaction")
 		return err
 	}
-	tx, err := s.TxMemPool.FetchTransaction(changePBHashToHash(m))
+	tx, err := s.p2p.TxMemPool().FetchTransaction(changePBHashToHash(m))
 	if err != nil {
 		log.Error(fmt.Sprintf("Unable to fetch tx from transaction pool tx:%v", err))
 		return err
@@ -107,18 +107,18 @@ func (s *Sync) handleTxMsg(msg *pb.Transaction) error {
 	}
 	// Process the transaction to include validation, insertion in the
 	// memory pool, orphan handling, etc.
-	allowOrphans := s.cfg.MaxOrphanTxs > 0
-	acceptedTxs, err := s.TxMemPool.ProcessTransaction(types.NewTx(tx), allowOrphans, true, true)
+	allowOrphans := s.p2p.Config().MaxOrphanTxs > 0
+	acceptedTxs, err := s.p2p.TxMemPool().ProcessTransaction(types.NewTx(tx), allowOrphans, true, true)
 	if err != nil {
 		return fmt.Errorf("Failed to process transaction %v: %v\n", tx.TxHash().String(), err.Error())
 	}
-	s.Notify.AnnounceNewTransactions(acceptedTxs)
+	s.p2p.Notify().AnnounceNewTransactions(acceptedTxs)
 
 	return nil
 }
 
 func (s *Sync) getTx(id peer.ID, txHash *hash.Hash) error {
-	tx, err := s.sendTxRequest(s.ctx, id, txHash)
+	tx, err := s.sendTxRequest(s.p2p.Context(), id, txHash)
 	if err != nil {
 		return err
 	}

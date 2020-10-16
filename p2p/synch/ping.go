@@ -37,7 +37,7 @@ func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pco
 		closeSteam(stream)
 		return err
 	}
-	if _, err := s.Encoding().EncodeWithMaxLength(stream, s.MetadataSeq()); err != nil {
+	if _, err := s.Encoding().EncodeWithMaxLength(stream, s.p2p.MetadataSeq()); err != nil {
 		closeSteam(stream)
 		return err
 	}
@@ -76,7 +76,7 @@ func (s *Sync) SendPingRequest(ctx context.Context, id peer.ID) error {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
-	metadataSeq := s.MetadataSeq()
+	metadataSeq := s.p2p.MetadataSeq()
 	stream, err := s.Send(ctx, &metadataSeq, RPCPingTopic, id)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (s *Sync) SendPingRequest(ctx context.Context, id peer.ID) error {
 		return err
 	}
 	// Records the latency of the ping request for that peer.
-	s.Host().Peerstore().RecordLatency(id, roughtime.Now().Sub(currentTime))
+	s.p2p.Host().Peerstore().RecordLatency(id, roughtime.Now().Sub(currentTime))
 
 	if code != 0 {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())

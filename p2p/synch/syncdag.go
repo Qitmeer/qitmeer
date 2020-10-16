@@ -93,7 +93,7 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 	}*/
 	sd := &pb.SubDAG{SyncPoint: &pb.Hash{Hash: point.Bytes()}, GraphState: s.getGraphState(), Blocks: []*pb.BlockData{}}
 	for _, blockHash := range blocks {
-		block, err := s.Chain.FetchBlockByHash(blockHash)
+		block, err := s.p2p.BlockChain().FetchBlockByHash(blockHash)
 		if err != nil {
 			return err
 		}
@@ -122,7 +122,7 @@ func (s *Sync) syncDAGBlocks(pe *peers.Peer) error {
 	point := pe.SyncPoint()
 	mainLocator := s.peerSync.dagSync.GetMainLocator(point)
 	sd := &pb.SyncDAG{MainLocator: changeHashsToPBHashs(mainLocator), GraphState: s.getGraphState()}
-	subd, err := s.sendSyncDAGRequest(s.ctx, pe.GetID(), sd)
+	subd, err := s.sendSyncDAGRequest(s.p2p.Context(), pe.GetID(), sd)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (s *Sync) syncDAGBlocks(pe *peers.Peer) error {
 			log.Warn(fmt.Sprintf("getBlocks from:%v", err))
 			continue
 		}
-		isOrphan, err := s.Chain.ProcessBlock(block, behaviorFlags)
+		isOrphan, err := s.p2p.BlockChain().ProcessBlock(block, behaviorFlags)
 		if err != nil {
 			log.Error("Failed to process block", "hash", block.Hash(), "error", err)
 			continue
@@ -153,7 +153,7 @@ func (s *Sync) syncDAGBlocks(pe *peers.Peer) error {
 	}
 	log.Trace(fmt.Sprintf("getBlocks:%d/%d", add, len(subd.Blocks)))
 	if add > 0 {
-		s.TxMemPool.PruneExpiredTx()
+		s.p2p.TxMemPool().PruneExpiredTx()
 
 		isCurrent := s.peerSync.IsCurrent()
 		if isCurrent {

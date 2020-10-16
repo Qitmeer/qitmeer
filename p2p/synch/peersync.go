@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"sync"
 )
@@ -23,6 +22,7 @@ type PeerSync struct {
 
 func (ps *PeerSync) Start() error {
 	log.Info("P2P PeerSync Start")
+	ps.dagSync = blockdag.NewDAGSync(ps.sy.p2p.BlockChain().BlockDAG())
 	return nil
 }
 
@@ -46,7 +46,7 @@ func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
 	if !ti.IsZero() {
 		// Add the remote peer time as a sample for creating an offset against
 		// the local clock to keep the network time in sync.
-		ps.service.TimeSource.AddTimeSample(pe.GetID().String(), ti)
+		ps.sy.p2p.TimeSource().AddTimeSample(pe.GetID().String(), ti)
 	}
 
 	if !ps.HasSyncPeer() {
@@ -73,7 +73,7 @@ func (ps *PeerSync) HasSyncPeer() bool {
 }
 
 func (ps *PeerSync) Chain() *blockchain.BlockChain {
-	return ps.service.Chain
+	return ps.sy.p2p.BlockChain()
 }
 
 // startSync will choose the best peer among the available candidate peers to
@@ -126,7 +126,7 @@ func (ps *PeerSync) getBestPeer() *peers.Peer {
 	best := ps.Chain().BestSnapshot()
 	var bestPeer *peers.Peer
 	equalPeers := []*peers.Peer{}
-	for _, sp := range ps.service.peers.ConnectedPeers() {
+	for _, sp := range ps.sy.peers.ConnectedPeers() {
 
 		// Remove sync candidate peers that are no longer candidates due
 		// to passing their latest known block.  NOTE: The < is
@@ -208,12 +208,12 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 
 	var err error
 	if len(allOrphan) > 0 {
-		err = ps.service.getBlocks(ps.syncPeer, allOrphan)
+		err = ps.sy.getBlocks(ps.syncPeer, allOrphan)
 		if err != nil {
-			err = ps.service.syncDAGBlocks(ps.syncPeer)
+			err = ps.sy.syncDAGBlocks(ps.syncPeer)
 		}
 	} else {
-		err = ps.service.syncDAGBlocks(ps.syncPeer)
+		err = ps.sy.syncDAGBlocks(ps.syncPeer)
 	}
 	if err != nil {
 		ps.resetSyncPeer()
@@ -235,6 +235,6 @@ func (ps *PeerSync) resetSyncPeer() {
 
 func NewPeerSync(sy *Sync) *PeerSync {
 	peerSync := &PeerSync{sy: sy}
-	peerSync.dagSync = blockdag.NewDAGSync(sy.p2p.BlockChain().BlockDAG())
+
 	return peerSync
 }

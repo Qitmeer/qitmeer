@@ -126,7 +126,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		// Add a short delay to allow the stream to flush before closing the connection.
 		// There is still a chance that the peer won't receive the message.
 		time.Sleep(50 * time.Millisecond)
-		if err := s.Disconnect(stream.Conn().RemotePeer()); err != nil {
+		if err := s.p2p.Disconnect(stream.Conn().RemotePeer()); err != nil {
 			log.Error("Failed to disconnect from peer:%v", err)
 		}
 		return originalErr
@@ -144,7 +144,7 @@ func (s *Sync) validateChainStateMessage(ctx context.Context, msg *pb.ChainState
 	if msg == nil {
 		return retErrGeneric, fmt.Errorf("peer is Unkonw:%s", id)
 	}
-	genesisHash := s.Chain.BlockDAG().GetGenesisHash()
+	genesisHash := s.p2p.GetGenesisHash()
 	msgGenesisHash, err := hash.NewHash(msg.GenesisHash.Hash)
 	if err != nil {
 		return retErrGeneric, fmt.Errorf("invalid genesis")
@@ -190,23 +190,23 @@ func (s *Sync) respondWithChainState(ctx context.Context, stream network.Stream)
 }
 
 func (s *Sync) getChainState() *pb.ChainState {
-	genesisHash := s.Chain.BlockDAG().GetGenesisHash()
+	genesisHash := s.p2p.GetGenesisHash()
 
 	cs := &pb.ChainState{
 		GenesisHash:     &pb.Hash{Hash: genesisHash.Bytes()},
-		ProtocolVersion: s.cfg.ProtocolVersion,
+		ProtocolVersion: s.p2p.Config().ProtocolVersion,
 		Timestamp:       uint64(roughtime.Now().Unix()),
-		Services:        uint64(s.cfg.Services),
+		Services:        uint64(s.p2p.Config().Services),
 		GraphState:      s.getGraphState(),
-		UserAgent:       []byte(s.cfg.UserAgent),
-		DisableRelayTx:  s.cfg.DisableRelayTx,
+		UserAgent:       []byte(s.p2p.Config().UserAgent),
+		DisableRelayTx:  s.p2p.Config().DisableRelayTx,
 	}
 
 	return cs
 }
 
 func (s *Sync) getGraphState() *pb.GraphState {
-	bs := s.Chain.BestSnapshot()
+	bs := s.p2p.BlockChain().BestSnapshot()
 
 	gs := &pb.GraphState{
 		Total:      uint32(bs.GraphState.GetTotal()),

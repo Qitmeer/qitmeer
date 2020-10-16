@@ -44,7 +44,7 @@ func (s *Sync) maintainPeerStatuses() {
 				// If the status hasn't been updated in the recent interval time.
 
 				if roughtime.Now().After(pe.ChainStateLastUpdated().Add(interval)) {
-					if err := s.reValidatePeer(s.ctx, id); err != nil {
+					if err := s.reValidatePeer(s.p2p.Context(), id); err != nil {
 						log.Error(fmt.Sprintf("Failed to revalidate peer (%v), peer:%s", err, id))
 						s.Peers().IncrementBadResponses(id)
 					}

@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/iputils"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
@@ -38,7 +39,7 @@ func ipAddr() net.IP {
 
 // Determines a private key for p2p networking from the p2p service's
 // configuration struct. If no key is found, it generates a new one.
-func privKey(cfg *Config) (*ecdsa.PrivateKey, error) {
+func privKey(cfg *common.Config) (*ecdsa.PrivateKey, error) {
 	defaultKeyPath := path.Join(cfg.DataDir, keyPath)
 	privateKeyPath := cfg.PrivateKey
 
@@ -117,7 +118,7 @@ func retrievePrivKeyFromFile(path string) (*ecdsa.PrivateKey, error) {
 
 // Retrieves node p2p metadata from a set of configuration values
 // from the p2p service.
-func metaDataFromConfig(cfg *Config) (*pb.MetaData, error) {
+func metaDataFromConfig(cfg *common.Config) (*pb.MetaData, error) {
 	defaultKeyPath := path.Join(cfg.DataDir, metaDataPath)
 	metaDataPath := cfg.MetaDataDir
 

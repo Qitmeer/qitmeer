@@ -25,7 +25,7 @@ func (s *Sync) metaDataHandler(ctx context.Context, msg interface{}, stream libp
 	if _, err := stream.Write([]byte{responseCodeSuccess}); err != nil {
 		return err
 	}
-	_, err := s.Encoding().EncodeWithMaxLength(stream, s.Metadata())
+	_, err := s.Encoding().EncodeWithMaxLength(stream, s.p2p.Metadata())
 	return err
 }
 

@@ -80,12 +80,12 @@ func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream lib
 		err = fmt.Errorf("invalid block hash")
 		return err
 	}
-	ib := s.Chain.BlockDAG().GetBlock(blockHash)
+	ib := s.p2p.BlockChain().BlockDAG().GetBlock(blockHash)
 	if ib == nil {
 		err = fmt.Errorf("invalid block hash")
 		return err
 	}
-	block, err := s.Chain.FetchBlockByHash(blockHash)
+	block, err := s.p2p.BlockChain().FetchBlockByHash(blockHash)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream lib
 func (s *Sync) getBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
 	blockdatas := BlockDataSlice{}
 	for _, b := range blocks {
-		bd, err := s.sendGetBlocksRequest(s.ctx, pe.GetID(), b)
+		bd, err := s.sendGetBlocksRequest(s.p2p.Context(), pe.GetID(), b)
 		if err != nil {
 			log.Warn(fmt.Sprintf("getBlocks send:%v", err))
 			continue
@@ -133,7 +133,7 @@ func (s *Sync) getBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
 			log.Warn(fmt.Sprintf("getBlocks from:%v", err))
 			continue
 		}
-		isOrphan, err := s.Chain.ProcessBlock(block, behaviorFlags)
+		isOrphan, err := s.p2p.BlockChain().ProcessBlock(block, behaviorFlags)
 		if err != nil {
 			log.Error("Failed to process block", "hash", block.Hash(), "error", err)
 			continue
@@ -145,7 +145,7 @@ func (s *Sync) getBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
 	}
 	log.Trace(fmt.Sprintf("getBlocks:%d/%d", add, len(blockdatas)))
 	if add > 0 {
-		s.TxMemPool.PruneExpiredTx()
+		s.p2p.TxMemPool().PruneExpiredTx()
 
 		isCurrent := s.peerSync.IsCurrent()
 		if isCurrent {

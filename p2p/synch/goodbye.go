@@ -40,7 +40,7 @@ func (s *Sync) goodbyeRPCHandler(ctx context.Context, msg interface{}, stream li
 	logReason := fmt.Sprintf("Reason:%s", goodbyeMessage(*m))
 	log.Debug(fmt.Sprintf("Peer has sent a goodbye message:%s (%s)", stream.Conn().RemotePeer(), logReason))
 	// closes all streams with the peer
-	return s.Disconnect(stream.Conn().RemotePeer())
+	return s.p2p.Disconnect(stream.Conn().RemotePeer())
 }
 
 func (s *Sync) sendGoodByeMessage(ctx context.Context, code uint64, id peer.ID) error {
@@ -68,7 +68,7 @@ func (s *Sync) sendGoodByeAndDisconnect(ctx context.Context, code uint64, id pee
 	if err := s.sendGoodByeMessage(ctx, code, id); err != nil {
 		log.Debug(fmt.Sprintf("Could not send goodbye message to peer, error:%v , peer:%s", err, id))
 	}
-	if err := s.Disconnect(id); err != nil {
+	if err := s.p2p.Disconnect(id); err != nil {
 		return err
 	}
 	return nil
