@@ -2,17 +2,13 @@ package peers
 
 import (
 	"errors"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
-	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/prysmaticlabs/go-bitfield"
 	"sync"
-	"time"
 )
 
 var (
@@ -22,243 +18,24 @@ var (
 
 // Status is the structure holding the peer status information.
 type Status struct {
-	lock            sync.RWMutex
-	maxBadResponses int
-	peers           map[peer.ID]*Peer
-}
+	lock  sync.RWMutex
+	peers map[peer.ID]*Peer
 
-// MaxBadResponses returns the maximum number of bad responses a peer can provide before it is considered bad.
-func (p *Status) MaxBadResponses() int {
-	return p.maxBadResponses
+	p2p common.P2P
 }
 
 // Bad returns the peers that are bad.
 func (p *Status) Bad() []peer.ID {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
+
 	peers := make([]peer.ID, 0)
 	for pid, status := range p.peers {
-		if status.badResponses >= p.maxBadResponses {
+		if status.IsBad() {
 			peers = append(peers, pid)
 		}
 	}
 	return peers
-}
-
-// IsBad states if the peer is to be considered bad.
-// If the peer is unknown this will return `false`, which makes using this function easier than returning an error.
-func (p *Status) IsBad(pid peer.ID) bool {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return status.badResponses >= p.maxBadResponses
-	}
-	return false
-}
-
-// IncrementBadResponses increments the number of bad responses we have received from the given remote peer.
-func (p *Status) IncrementBadResponses(pid peer.ID) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	status := p.fetch(pid)
-	status.badResponses++
-}
-
-// fetch is a helper function that fetches a peer, possibly creating it.
-func (p *Status) fetch(pid peer.ID) *Peer {
-	if _, ok := p.peers[pid]; !ok {
-		p.peers[pid] = NewPeer(pid)
-	}
-	return p.peers[pid]
-}
-
-// Add adds a peer.
-// If a peer already exists with this ID its address and direction are updated with the supplied data.
-func (p *Status) Add(record *qnr.Record, pid peer.ID, address ma.Multiaddr, direction network.Direction) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	if pe, ok := p.peers[pid]; ok {
-		// Peer already exists, just update its address info.
-		pe.UpdateAddrDir(record, address, direction)
-		return
-	}
-	pe := NewPeer(pid)
-	pe.UpdateAddrDir(record, address, direction)
-
-	p.peers[pid] = pe
-}
-
-// Address returns the multiaddress of the given remote peer.
-// This will error if the peer does not exist.
-func (p *Status) Address(pid peer.ID) (ma.Multiaddr, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return status.address, nil
-	}
-	return nil, ErrPeerUnknown
-}
-
-// Direction returns the direction of the given remote peer.
-// This will error if the peer does not exist.
-func (p *Status) Direction(pid peer.ID) (network.Direction, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return status.direction, nil
-	}
-	return network.DirUnknown, ErrPeerUnknown
-}
-
-// QNR returns the enr for the corresponding peer id.
-func (p *Status) QNR(pid peer.ID) (*qnr.Record, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return status.qnr, nil
-	}
-	return nil, ErrPeerUnknown
-}
-
-// SetChainState sets the chain state of the given remote peer.
-func (p *Status) SetChainState(pid peer.ID, chainState *pb.ChainState) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	status := p.fetch(pid)
-	status.chainState = chainState
-	status.chainStateLastUpdated = time.Now()
-}
-
-// ChainState gets the chain state of the given remote peer.
-// This can return nil if there is no known chain state for the peer.
-// This will error if the peer does not exist.
-func (p *Status) ChainState(pid peer.ID) (*pb.ChainState, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return status.chainState, nil
-	}
-	return nil, ErrPeerUnknown
-}
-
-// IsActive checks if a peers is active and returns the result appropriately.
-func (p *Status) IsActive(pid peer.ID) bool {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	status, ok := p.peers[pid]
-	return ok && (status.peerState == PeerConnected || status.peerState == PeerConnecting)
-}
-
-// SetMetadata sets the metadata of the given remote peer.
-func (p *Status) SetMetadata(pid peer.ID, metaData *pb.MetaData) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	status := p.fetch(pid)
-	status.metaData = metaData
-}
-
-// Metadata returns a copy of the metadata corresponding to the provided
-// peer id.
-func (p *Status) Metadata(pid peer.ID) (*pb.MetaData, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return proto.Clone(status.metaData).(*pb.MetaData), nil
-	}
-	return nil, ErrPeerUnknown
-}
-
-// CommitteeIndices retrieves the committee subnets the peer is subscribed to.
-func (p *Status) CommitteeIndices(pid peer.ID) ([]uint64, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		if status.qnr == nil || status.metaData == nil {
-			return []uint64{}, nil
-		}
-		return retrieveIndicesFromBitfield(status.metaData.Subnets), nil
-	}
-	return nil, ErrPeerUnknown
-}
-
-// SubscribedToSubnet retrieves the peers subscribed to the given
-// committee subnet.
-func (p *Status) SubscribedToSubnet(index uint64) []peer.ID {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	peers := make([]peer.ID, 0)
-	for pid, status := range p.peers {
-		// look at active peers
-		connectedStatus := status.peerState == PeerConnecting || status.peerState == PeerConnected
-		if connectedStatus && status.metaData != nil && status.metaData.Subnets != nil {
-			indices := retrieveIndicesFromBitfield(status.metaData.Subnets)
-			for _, idx := range indices {
-				if idx == index {
-					peers = append(peers, pid)
-					break
-				}
-			}
-		}
-	}
-	return peers
-}
-
-// SetConnectionState sets the connection state of the given remote peer.
-func (p *Status) SetConnectionState(pid peer.ID, state PeerConnectionState) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	status := p.fetch(pid)
-	status.peerState = state
-}
-
-// ConnectionState gets the connection state of the given remote peer.
-// This will error if the peer does not exist.
-func (p *Status) ConnectionState(pid peer.ID) (PeerConnectionState, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return status.peerState, nil
-	}
-	return PeerDisconnected, ErrPeerUnknown
-}
-
-// ChainStateLastUpdated gets the last time the chain state of the given remote peer was updated.
-// This will error if the peer does not exist.
-func (p *Status) ChainStateLastUpdated(pid peer.ID) (time.Time, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return status.chainStateLastUpdated, nil
-	}
-	return time.Now(), ErrPeerUnknown
-}
-
-// BadResponses obtains the number of bad responses we have received from the given remote peer.
-// This will error if the peer does not exist.
-func (p *Status) BadResponses(pid peer.ID) (int, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return status.badResponses, nil
-	}
-	return -1, ErrPeerUnknown
 }
 
 // Connecting returns the peers that are connecting.
@@ -267,7 +44,7 @@ func (p *Status) Connecting() []peer.ID {
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
 	for pid, status := range p.peers {
-		if status.peerState == PeerConnecting {
+		if status.ConnectionState().IsConnecting() {
 			peers = append(peers, pid)
 		}
 	}
@@ -280,8 +57,20 @@ func (p *Status) Connected() []peer.ID {
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
 	for pid, status := range p.peers {
-		if status.peerState == PeerConnected {
+		if status.ConnectionState().IsConnected() {
 			peers = append(peers, pid)
+		}
+	}
+	return peers
+}
+
+func (p *Status) ConnectedPeers() []*Peer {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	peers := make([]*Peer, 0)
+	for _, status := range p.peers {
+		if status.ConnectionState().IsConnected() {
+			peers = append(peers, status)
 		}
 	}
 	return peers
@@ -293,7 +82,7 @@ func (p *Status) Active() []peer.ID {
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
 	for pid, status := range p.peers {
-		if status.peerState == PeerConnecting || status.peerState == PeerConnected {
+		if status.IsActive() {
 			peers = append(peers, pid)
 		}
 	}
@@ -306,7 +95,7 @@ func (p *Status) Disconnecting() []peer.ID {
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
 	for pid, status := range p.peers {
-		if status.peerState == PeerDisconnecting {
+		if status.ConnectionState().IsDisconnecting() {
 			peers = append(peers, pid)
 		}
 	}
@@ -319,7 +108,7 @@ func (p *Status) Disconnected() []peer.ID {
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
 	for pid, status := range p.peers {
-		if status.peerState == PeerDisconnected {
+		if status.ConnectionState().IsDisconnected() {
 			peers = append(peers, pid)
 		}
 	}
@@ -332,7 +121,7 @@ func (p *Status) Inactive() []peer.ID {
 	defer p.lock.RUnlock()
 	peers := make([]peer.ID, 0)
 	for pid, status := range p.peers {
-		if status.peerState == PeerDisconnecting || status.peerState == PeerDisconnected {
+		if !status.IsActive() {
 			peers = append(peers, pid)
 		}
 	}
@@ -348,6 +137,77 @@ func (p *Status) All() []peer.ID {
 		pids = append(pids, pid)
 	}
 	return pids
+}
+
+// fetch is a helper function that fetches a peer, possibly creating it.
+func (p *Status) Get(pid peer.ID) *Peer {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	pe, ok := p.peers[pid]
+	if !ok {
+		return nil
+	}
+	return pe
+}
+
+// fetch is a helper function that fetches a peer, possibly creating it.
+func (p *Status) Fetch(pid peer.ID) *Peer {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if _, ok := p.peers[pid]; !ok {
+		p.peers[pid] = NewPeer(pid, p.p2p.GetGenesisHash())
+	}
+	return p.peers[pid]
+}
+
+// Add adds a peer.
+// If a peer already exists with this ID its address and direction are updated with the supplied data.
+func (p *Status) Add(record *qnr.Record, pid peer.ID, address ma.Multiaddr, direction network.Direction) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if pe, ok := p.peers[pid]; ok {
+		// Peer already exists, just update its address info.
+		pe.UpdateAddrDir(record, address, direction)
+		return
+	}
+	pe := NewPeer(pid, p.p2p.GetGenesisHash())
+	pe.UpdateAddrDir(record, address, direction)
+
+	p.peers[pid] = pe
+}
+
+// IncrementBadResponses increments the number of bad responses we have received from the given remote peer.
+func (p *Status) IncrementBadResponses(pid peer.ID) {
+	pe := p.Get(pid)
+	if pe == nil {
+		return
+	}
+	pe.IncrementBadResponses()
+}
+
+// SubscribedToSubnet retrieves the peers subscribed to the given
+// committee subnet.
+func (p *Status) SubscribedToSubnet(index uint64) []peer.ID {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	peers := make([]peer.ID, 0)
+	for pid, status := range p.peers {
+		// look at active peers
+		if status.IsActive() && status.metaData != nil && status.metaData.Subnets != nil {
+			indices := retrieveIndicesFromBitfield(status.metaData.Subnets)
+			for _, idx := range indices {
+				if idx == index {
+					peers = append(peers, pid)
+					break
+				}
+			}
+		}
+	}
+	return peers
 }
 
 func (p *Status) StatsSnapshots() []*StatsSnap {
@@ -371,86 +231,17 @@ func (p *Status) StatsSnapshots() []*StatsSnap {
 func (p *Status) Decay() {
 	p.lock.Lock()
 	defer p.lock.Unlock()
+
 	for _, status := range p.peers {
-		if status.badResponses > 0 {
-			status.badResponses--
-		}
+		status.Decay()
 	}
-}
-
-func (p *Status) Timestamp(pid peer.ID) (time.Time, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return status.Timestamp(), nil
-	}
-	return time.Time{}, ErrPeerUnknown
-}
-
-func (p *Status) GraphState(pid peer.ID) (*blockdag.GraphState, error) {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	if status, ok := p.peers[pid]; ok {
-		return status.GraphState(), nil
-	}
-	return nil, ErrPeerUnknown
-}
-
-func (p *Status) UpdateGraphState(pid peer.ID, gs *pb.GraphState) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	per, ok := p.peers[pid]
-	if !ok {
-		return ErrPeerUnknown
-	}
-	if per.chainState == nil {
-		per.chainState = &pb.ChainState{}
-		//per.chainState.GraphState=&pb.GraphState{}
-	}
-	per.chainState.GraphState = gs
-	/*	per.chainState.GraphState.Total=uint32(gs.GetTotal())
-		per.chainState.GraphState.Layer=uint32(gs.GetLayer())
-		per.chainState.GraphState.MainOrder=uint32(gs.GetMainOrder())
-		per.chainState.GraphState.MainHeight=uint32(gs.GetMainHeight())
-		per.chainState.GraphState.Tips=[]*pb.Hash{}
-		for h:=range gs.GetTips().GetMap() {
-			per.chainState.GraphState.Tips=append(per.chainState.GraphState.Tips,&pb.Hash{Hash:h.Bytes()})
-		}*/
-	return nil
-}
-
-func (p *Status) UpdateSyncPoint(pid peer.ID, point *hash.Hash) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	per, ok := p.peers[pid]
-	if !ok {
-		return ErrPeerUnknown
-	}
-
-	per.syncPoint = point
-	return nil
-}
-
-func (p *Status) SyncPoint(pid peer.ID) (*hash.Hash, error) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	per, ok := p.peers[pid]
-	if !ok {
-		return nil, ErrPeerUnknown
-	}
-	return per.syncPoint, nil
 }
 
 // NewStatus creates a new status entity.
-func NewStatus(maxBadResponses int) *Status {
+func NewStatus(p2p common.P2P) *Status {
 	return &Status{
-		maxBadResponses: maxBadResponses,
-		peers:           make(map[peer.ID]*Peer),
+		p2p:   p2p,
+		peers: make(map[peer.ID]*Peer),
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -49,6 +50,11 @@ func (s *Service) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.Syn
 }
 
 func (s *Service) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+	pe := s.peers.Get(stream.Conn().RemotePeer())
+	if pe == nil {
+		return peers.ErrPeerUnknown
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
 	respCode := responseCodeServerError
@@ -73,15 +79,10 @@ func (s *Service) syncDAGHandler(ctx context.Context, msg interface{}, stream li
 		err = fmt.Errorf("message is not type *pb.Hash")
 		return err
 	}
-	s.peers.UpdateGraphState(stream.Conn().RemotePeer(), m.GraphState)
-	gs, err := s.peers.GraphState(stream.Conn().RemotePeer())
-	if !ok {
-		err = fmt.Errorf("Graph State error")
-		return err
-	}
-
+	pe.UpdateGraphState(m.GraphState)
+	gs := pe.GraphState()
 	blocks, point := s.PeerSync().dagSync.CalcSyncBlocks(gs, changePBHashsToHashs(m.MainLocator), blockdag.SubDAGMode, MaxBlockLocatorsPerMsg)
-	s.peers.UpdateSyncPoint(stream.Conn().RemotePeer(), point)
+	pe.UpdateSyncPoint(point)
 	/*	if len(blocks) <= 0 {
 		err = fmt.Errorf("No blocks")
 		return err
@@ -113,10 +114,10 @@ func (s *Service) syncDAGHandler(ctx context.Context, msg interface{}, stream li
 	return nil
 }
 
-func (s *Service) syncDAGBlocks(id peer.ID) error {
-	point, err := s.peers.SyncPoint(id)
-	if err != nil {
-		return err
+func (s *Service) syncDAGBlocks(pe *peers.Peer) error {
+	point := pe.SyncPoint()
+	if point == nil {
+		return fmt.Errorf("no point")
 	}
 	mainLocator := s.peerSync.dagSync.GetMainLocator(point)
 	sd := &pb.SyncDAG{MainLocator: changeHashsToPBHashs(mainLocator), GraphState: s.getGraphState()}

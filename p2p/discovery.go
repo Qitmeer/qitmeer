@@ -156,10 +156,14 @@ func (s *Service) filterPeer(node *qnode.Node) bool {
 		log.Debug(fmt.Sprintf("%s Could not convert to peer data", err.Error()))
 		return false
 	}
-	if s.peers.IsBad(peerData.ID) {
+	pe := s.peers.Get(peerData.ID)
+	if pe == nil {
 		return false
 	}
-	if s.peers.IsActive(peerData.ID) {
+	if pe.IsBad() {
+		return false
+	}
+	if pe.IsActive() {
 		return false
 	}
 	if s.host.Network().Connectedness(peerData.ID) == network.Connected {

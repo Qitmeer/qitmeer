@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"sync"
 )
@@ -11,7 +12,7 @@ import (
 type PeerSync struct {
 	lock     sync.RWMutex
 	service  *Service
-	syncPeer peer.ID
+	syncPeer *peers.Peer
 	// dag sync
 	dagSync *blockdag.DAGSync
 }
@@ -21,9 +22,10 @@ func (ps *PeerSync) Start() error {
 	return nil
 }
 
-func (ps *PeerSync) SyncPeer() peer.ID {
+func (ps *PeerSync) SyncPeer() *peers.Peer {
 	ps.lock.RLock()
 	defer ps.lock.RLock()
+
 	return ps.syncPeer
 }
 
@@ -32,15 +34,15 @@ func (ps *PeerSync) Stop() error {
 	return nil
 }
 
-func (ps *PeerSync) OnPeerConnected(id peer.ID) {
+func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
-	ti, err := ps.service.peers.Timestamp(id)
-	if err == nil && !ti.IsZero() {
+	ti := pe.Timestamp()
+	if !ti.IsZero() {
 		// Add the remote peer time as a sample for creating an offset against
 		// the local clock to keep the network time in sync.
-		ps.service.TimeSource.AddTimeSample(id.String(), ti)
+		ps.service.TimeSource.AddTimeSample(pe.GetID().String(), ti)
 	}
 
 	if !ps.HasSyncPeer() {
@@ -48,17 +50,22 @@ func (ps *PeerSync) OnPeerConnected(id peer.ID) {
 	}
 }
 
-func (ps *PeerSync) OnPeerDisconnected(id peer.ID) {
+func (ps *PeerSync) OnPeerDisconnected(pe *peers.Peer) {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
-	if id == ps.syncPeer {
-		ps.resetSyncPeer()
+	if ps.HasSyncPeer() {
+		if pe == ps.syncPeer || pe.GetID() == ps.syncPeer.GetID() {
+			ps.resetSyncPeer()
+		}
 	}
 }
 
 func (ps *PeerSync) HasSyncPeer() bool {
-	return ps.syncPeer.Validate() == nil
+	ps.lock.RLock()
+	defer ps.lock.RLock()
+
+	return ps.syncPeer != nil
 }
 
 func (ps *PeerSync) Chain() *blockchain.BlockChain {
@@ -77,10 +84,10 @@ func (ps *PeerSync) startSync() {
 	best := ps.Chain().BestSnapshot()
 	bestPeer := ps.getBestPeer()
 	// Start syncing from the best peer if one was selected.
-	if bestPeer.Validate() == nil {
-		gs, _ := ps.service.peers.GraphState(bestPeer)
+	if bestPeer == nil {
+		gs := bestPeer.GraphState()
 
-		log.Info(fmt.Sprintf("Syncing to state %s from peer %s cur graph state:%s", gs.String(), bestPeer.String(), best.GraphState.String()))
+		log.Info(fmt.Sprintf("Syncing to state %s from peer %s cur graph state:%s", gs.String(), bestPeer.GetID().String(), best.GraphState.String()))
 
 		// When the current height is less than a known checkpoint we
 		// can use block headers to learn about which blocks comprise
@@ -111,46 +118,45 @@ func (ps *PeerSync) startSync() {
 }
 
 // getBestPeer
-func (ps *PeerSync) getBestPeer() peer.ID {
+func (ps *PeerSync) getBestPeer() *peers.Peer {
 	best := ps.Chain().BestSnapshot()
-	var bestPeer peer.ID
-	var bestGS *blockdag.GraphState
-	equalPeers := []peer.ID{}
-	for _, sp := range ps.service.peers.Connected() {
+	var bestPeer *peers.Peer
+	equalPeers := []*peers.Peer{}
+	for _, sp := range ps.service.peers.ConnectedPeers() {
+
 		// Remove sync candidate peers that are no longer candidates due
 		// to passing their latest known block.  NOTE: The < is
 		// intentional as opposed to <=.  While techcnically the peer
 		// doesn't have a later block when it's equal, it will likely
 		// have one soon so it is a reasonable choice.  It also allows
 		// the case where both are at 0 such as during regression test.
-		gs, err := ps.service.peers.GraphState(sp)
-		if err != nil {
+		gs := sp.GraphState()
+		if gs == nil {
 			continue
 		}
 		if best.GraphState.IsExcellent(gs) {
 			continue
 		}
 		// the best sync candidate is the most updated peer
-		if len(bestPeer) == 0 {
+		if bestPeer == nil {
 			bestPeer = sp
-			bestGS = gs
 			continue
 		}
-		if gs.IsExcellent(bestGS) {
+		if gs.IsExcellent(bestPeer.GraphState()) {
 			bestPeer = sp
 			if len(equalPeers) > 0 {
 				equalPeers = equalPeers[0:0]
 			}
-		} else if gs.IsEqual(bestGS) {
+		} else if gs.IsEqual(bestPeer.GraphState()) {
 			equalPeers = append(equalPeers, sp)
 		}
 	}
-	if len(bestPeer) == 0 {
-		return peer.ID("")
+	if bestPeer == nil {
+		return nil
 	}
 	if len(equalPeers) > 0 {
 		for _, sp := range equalPeers {
-			if sp.String() > bestPeer.String() {
+			if sp.GetID().String() > bestPeer.GetID().String() {
 				bestPeer = sp
 			}
 		}
@@ -173,8 +179,8 @@ func (ps *PeerSync) IsCurrent() bool {
 
 	// No matter what chain thinks, if we are below the block we are syncing
 	// to we are not current.
-	gs, err := ps.service.peers.GraphState(ps.syncPeer)
-	if err != nil {
+	gs := ps.syncPeer.GraphState()
+	if gs == nil {
 		return true
 	}
 	if gs.IsExcellent(ps.Chain().BestSnapshot().GraphState) {
@@ -220,11 +226,11 @@ func (ps *PeerSync) updateSyncPeer() {
 }
 
 func (ps *PeerSync) resetSyncPeer() {
-	ps.syncPeer = peer.ID("")
+	ps.syncPeer = nil
 }
 
 func NewPeerSync(service *Service) *PeerSync {
-	peerSync := &PeerSync{service: service, syncPeer: peer.ID("")}
+	peerSync := &PeerSync{service: service}
 	peerSync.dagSync = blockdag.NewDAGSync(service.Chain.BlockDAG())
 	return peerSync
 }

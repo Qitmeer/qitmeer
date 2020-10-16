@@ -7,6 +7,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -21,6 +22,10 @@ const (
 )
 
 func (s *Service) sendChainStateRequest(ctx context.Context, id peer.ID) error {
+	pe := s.peers.Get(id)
+	if pe == nil {
+		return peers.ErrPeerUnknown
+	}
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
@@ -49,7 +54,7 @@ func (s *Service) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
 		return err
 	}
-	s.Peers().SetChainState(stream.Conn().RemotePeer(), msg)
+	pe.SetChainState(msg)
 
 	ret, err := s.validateChainStateMessage(ctx, msg, id)
 	if err != nil {
@@ -67,6 +72,11 @@ func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream
 	defer func() {
 		closeSteam(stream)
 	}()
+
+	pe := s.peers.Get(stream.Conn().RemotePeer())
+	if pe == nil {
+		return peers.ErrPeerUnknown
+	}
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	defer cancel()
 
@@ -84,7 +94,7 @@ func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream
 			respCode = responseCodeServerError
 		case retErrInvalidChainState:
 			// Respond with our status and disconnect with the peer.
-			s.Peers().SetChainState(stream.Conn().RemotePeer(), m)
+			pe.SetChainState(m)
 			if err := s.respondWithChainState(ctx, stream); err != nil {
 				return err
 			}
@@ -117,7 +127,7 @@ func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream
 		}
 		return originalErr
 	}
-	s.Peers().SetChainState(stream.Conn().RemotePeer(), m)
+	pe.SetChainState(m)
 
 	return s.respondWithChainState(ctx, stream)
 }
@@ -125,6 +135,10 @@ func (s *Service) chainStateHandler(ctx context.Context, msg interface{}, stream
 func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainState, id peer.ID) (int, error) {
 	if msg == nil {
 		return retErrGeneric, fmt.Errorf("msg is nil")
+	}
+	pe := s.peers.Get(id)
+	if msg == nil {
+		return retErrGeneric, fmt.Errorf("peer is Unkonw:%s", id)
 	}
 	genesisHash := s.Chain.BlockDAG().GetGenesisHash()
 	msgGenesisHash, err := hash.NewHash(msg.GenesisHash.Hash)
@@ -143,11 +157,8 @@ func (s *Service) validateChainStateMessage(ctx context.Context, msg *pb.ChainSt
 	if msg.GraphState.Total <= 0 {
 		return retErrInvalidChainState, fmt.Errorf("invalid graph state")
 	}
-	dir, err := s.peers.Direction(id)
-	if err != nil {
-		return retErrGeneric, err
-	}
-	if dir == network.DirInbound {
+
+	if pe.Direction() == network.DirInbound {
 		// Reject outbound peers that are not full nodes.
 		wantServices := protocol.Full
 		if !protocol.HasServices(protocol.ServiceFlag(msg.Services), wantServices) {

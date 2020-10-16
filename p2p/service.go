@@ -13,6 +13,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/base64"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/event"
@@ -48,8 +49,6 @@ import (
 const (
 	// the default services supported by the node
 	defaultServices = pv.Full | pv.CF
-	// maxBadResponses is the maximum number of bad responses from a peer before we stop talking to it.
-	maxBadResponses = 5
 )
 
 var (
@@ -220,7 +219,11 @@ func (s *Service) connectWithPeer(info peer.AddrInfo) error {
 	if info.ID == s.host.ID() {
 		return nil
 	}
-	if s.Peers().IsBad(info.ID) {
+	pe := s.peers.Get(info.ID)
+	if pe == nil {
+		return nil
+	}
+	if pe.IsBad() {
 		return nil
 	}
 	if err := s.host.Connect(s.ctx, info); err != nil {
@@ -401,6 +404,10 @@ func (s *Service) PeerSync() *PeerSync {
 	return s.peerSync
 }
 
+func (s *Service) GetGenesisHash() *hash.Hash {
+	return s.Chain.BlockDAG().GetGenesisHash()
+}
+
 func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
@@ -494,7 +501,7 @@ func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 	}
 	s.pubsub = gs
 
-	s.peers = peers.NewStatus(maxBadResponses)
+	s.peers = peers.NewStatus(s)
 
 	s.registerHandlers()
 	return s, nil

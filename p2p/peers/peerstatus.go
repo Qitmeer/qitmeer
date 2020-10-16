@@ -40,8 +40,16 @@ func (pcs PeerConnectionState) IsConnected() bool {
 	return pcs == PeerConnected
 }
 
+func (pcs PeerConnectionState) IsConnecting() bool {
+	return pcs == PeerConnecting
+}
+
 func (pcs PeerConnectionState) IsDisconnected() bool {
 	return pcs == PeerDisconnected
+}
+
+func (pcs PeerConnectionState) IsDisconnecting() bool {
+	return pcs == PeerDisconnecting
 }
 
 // peerStatus is the status of an individual peer at the protocol level.

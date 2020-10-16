@@ -16,29 +16,30 @@ func (s *Service) maintainPeerStatuses() {
 	runutil.RunEvery(s.ctx, interval, func() {
 		for _, pid := range s.Peers().Connected() {
 			go func(id peer.ID) {
+				pe := s.peers.Get(id)
+				if pe == nil {
+					return
+				}
 				// If our peer status has not been updated correctly we disconnect over here
 				// and set the connection state over here instead.
 				if s.Host().Network().Connectedness(id) != network.Connected {
-					s.Peers().SetConnectionState(id, peers.PeerDisconnecting)
+					pe.SetConnectionState(peers.PeerDisconnecting)
 					if err := s.Disconnect(id); err != nil {
 						log.Error(fmt.Sprintf("Error when disconnecting with peer: %v", err))
 					}
-					s.Peers().SetConnectionState(id, peers.PeerDisconnected)
+					pe.SetConnectionState(peers.PeerDisconnected)
 					return
 				}
-				if s.Peers().IsBad(id) {
+
+				if pe.IsBad() {
 					if err := s.sendGoodByeAndDisconnect(s.ctx, codeGenericError, id); err != nil {
 						log.Error(fmt.Sprintf("Error when disconnecting with bad peer: %v", err))
 					}
 					return
 				}
 				// If the status hasn't been updated in the recent interval time.
-				lastUpdated, err := s.Peers().ChainStateLastUpdated(id)
-				if err != nil {
-					// Peer has vanished; nothing to do.
-					return
-				}
-				if roughtime.Now().After(lastUpdated.Add(interval)) {
+
+				if roughtime.Now().After(pe.ChainStateLastUpdated().Add(interval)) {
 					if err := s.reValidatePeer(s.ctx, id); err != nil {
 						log.Error(fmt.Sprintf("Failed to revalidate peer (%v), peer:%s", err, id))
 						s.Peers().IncrementBadResponses(id)

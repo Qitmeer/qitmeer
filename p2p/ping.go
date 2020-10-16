@@ -14,12 +14,18 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/p2p/peers"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // pingHandler reads the incoming ping rpc message from the peer.
 func (s *Service) pingHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+	pe := s.peers.Get(stream.Conn().RemotePeer())
+	if pe == nil {
+		return peers.ErrPeerUnknown
+	}
+
 	SetRPCStreamDeadlines(stream)
 
 	m, ok := msg.(*uint64)
@@ -27,7 +33,7 @@ func (s *Service) pingHandler(ctx context.Context, msg interface{}, stream libp2
 		closeSteam(stream)
 		return fmt.Errorf("wrong message type for ping, got %T, wanted *uint64", msg)
 	}
-	valid, err := s.validateSequenceNum(*m, stream.Conn().RemotePeer())
+	valid, err := s.validateSequenceNum(*m, pe)
 	if err != nil {
 		closeSteam(stream)
 		return err
@@ -60,13 +66,18 @@ func (s *Service) pingHandler(ctx context.Context, msg interface{}, stream libp2
 			return
 		}
 		// update metadata if there is no error
-		s.Peers().SetMetadata(stream.Conn().RemotePeer(), md)
+		pe.SetMetadata(md)
 	}()
 
 	return nil
 }
 
 func (s *Service) sendPingRequest(ctx context.Context, id peer.ID) error {
+	pe := s.peers.Get(id)
+	if pe == nil {
+		return peers.ErrPeerUnknown
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
@@ -97,7 +108,7 @@ func (s *Service) sendPingRequest(ctx context.Context, id peer.ID) error {
 	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
 		return err
 	}
-	valid, err := s.validateSequenceNum(*msg, stream.Conn().RemotePeer())
+	valid, err := s.validateSequenceNum(*msg, pe)
 	if err != nil {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return err
@@ -111,16 +122,14 @@ func (s *Service) sendPingRequest(ctx context.Context, id peer.ID) error {
 		// already done in the request method.
 		return err
 	}
-	s.Peers().SetMetadata(stream.Conn().RemotePeer(), md)
+
+	pe.SetMetadata(md)
 	return nil
 }
 
 // validates the peer's sequence number.
-func (s *Service) validateSequenceNum(seq uint64, id peer.ID) (bool, error) {
-	md, err := s.Peers().Metadata(id)
-	if err != nil {
-		return false, err
-	}
+func (s *Service) validateSequenceNum(seq uint64, pe *peers.Peer) (bool, error) {
+	md := pe.Metadata()
 	if md == nil {
 		return false, nil
 	}

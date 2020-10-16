@@ -62,12 +62,14 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 		ConnectedF: func(net network.Network, conn network.Conn) {
 			peerInfoStr := fmt.Sprintf("peer:%s", conn.RemotePeer().Pretty())
 			remotePeer := conn.RemotePeer()
+			remotePe := s.peers.Fetch(remotePeer)
+
 			disconnectFromPeer := func() {
-				s.peers.SetConnectionState(remotePeer, peers.PeerDisconnecting)
+				remotePe.SetConnectionState(peers.PeerDisconnecting)
 				if err := s.Disconnect(remotePeer); err != nil {
 					log.Error(fmt.Sprintf("%s Unable to disconnect from peer:%v", peerInfoStr, err))
 				}
-				s.peers.SetConnectionState(remotePeer, peers.PeerDisconnected)
+				remotePe.SetConnectionState(peers.PeerDisconnected)
 			}
 			// Connection handler must be non-blocking as part of libp2p design.
 			go func() {
@@ -78,31 +80,29 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 				}
 				defer peerFinished(remotePeer)
 				// Handle the various pre-existing conditions that will result in us not handshaking.
-				peerConnectionState, err := s.peers.ConnectionState(remotePeer)
-				if err == nil && (peerConnectionState == peers.PeerConnected || peerConnectionState == peers.PeerConnecting) {
+				peerConnectionState := remotePe.ConnectionState()
+				if remotePe.IsActive() {
 					log.Trace(fmt.Sprintf("%s currentState:%d reason:already active, Ignoring connection request", peerInfoStr, peerConnectionState))
 					return
 				}
 				s.peers.Add(nil /* QNR */, remotePeer, conn.RemoteMultiaddr(), conn.Stat().Direction)
-				if s.peers.IsBad(remotePeer) {
+				if remotePe.IsBad() {
 					log.Trace(fmt.Sprintf("%s reason bad peer, Ignoring connection request.", peerInfoStr))
 					disconnectFromPeer()
 					return
 				}
 				validPeerConnection := func() {
-					s.peers.SetConnectionState(conn.RemotePeer(), peers.PeerConnected)
+					remotePe.SetConnectionState(peers.PeerConnected)
 					// Go through the handshake process.
 					multiAddr := fmt.Sprintf("%s/p2p/%s", conn.RemoteMultiaddr().String(), conn.RemotePeer().String())
 					log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s activePeers:%d Peer Connected",
 						peerInfoStr, conn.Stat().Direction, multiAddr, len(s.peers.Active())))
 
-					s.peerSync.OnPeerConnected(conn.RemotePeer())
+					s.peerSync.OnPeerConnected(remotePe)
 				}
 
 				// Do not perform handshake on inbound dials.
 				if conn.Stat().Direction == network.DirInbound {
-					_, err := s.peers.ChainState(remotePeer)
-					peerExists := err == nil
 					currentTime := time.Now()
 
 					// Wait for peer to initiate handshake
@@ -114,28 +114,22 @@ func (s *Service) AddConnectionHandler(reqFunc func(ctx context.Context, id peer
 					}
 
 					// If peer hasn't sent a status request, we disconnect with them
-					if _, err := s.peers.ChainState(remotePeer); err == peers.ErrPeerUnknown {
+					if remotePe.ChainState() == nil {
 						disconnectFromPeer()
 						return
 					}
-					if peerExists {
-						updated, err := s.peers.ChainStateLastUpdated(remotePeer)
-						if err != nil {
-							disconnectFromPeer()
-							return
-						}
-						// exit if we don't receive any current status messages from
-						// peer.
-						if updated.IsZero() || !updated.After(currentTime) {
-							disconnectFromPeer()
-							return
-						}
+					updated := remotePe.ChainStateLastUpdated()
+					// exit if we don't receive any current status messages from
+					// peer.
+					if updated.IsZero() || !updated.After(currentTime) {
+						disconnectFromPeer()
+						return
 					}
 					validPeerConnection()
 					return
 				}
 
-				s.peers.SetConnectionState(conn.RemotePeer(), peers.PeerConnecting)
+				remotePe.SetConnectionState(peers.PeerConnecting)
 				if err := reqFunc(context.Background(), conn.RemotePeer()); err != nil && err != io.EOF {
 					log.Trace(fmt.Sprintf("%s Handshake failed", peerInfoStr))
 					disconnectFromPeer()
@@ -154,26 +148,27 @@ func (s *Service) AddDisconnectionHandler(handler func(ctx context.Context, id p
 		DisconnectedF: func(net network.Network, conn network.Conn) {
 			peerInfoStr := fmt.Sprintf("peer:%s", conn.RemotePeer().Pretty())
 			// Must be handled in a goroutine as this callback cannot be blocking.
+			pe := s.peers.Get(conn.RemotePeer())
+			if pe == nil {
+				return
+			}
 			go func() {
 				// Exit early if we are still connected to the peer.
 				if net.Connectedness(conn.RemotePeer()) == network.Connected {
 					return
 				}
-				priorState, err := s.peers.ConnectionState(conn.RemotePeer())
-				if err != nil {
-					// Can happen if the peer has already disconnected, so...
-					priorState = peers.PeerDisconnected
-				}
-				s.peers.SetConnectionState(conn.RemotePeer(), peers.PeerDisconnecting)
+				priorState := pe.ConnectionState()
+
+				pe.SetConnectionState(peers.PeerDisconnecting)
 				ctx := context.Background()
 				if err := handler(ctx, conn.RemotePeer()); err != nil {
 					log.Error(fmt.Sprintf("%s Disconnect handler failed", peerInfoStr))
 				}
-				s.peers.SetConnectionState(conn.RemotePeer(), peers.PeerDisconnected)
+				pe.SetConnectionState(peers.PeerDisconnected)
 				// Only log disconnections if we were fully connected.
 				if priorState == peers.PeerConnected {
 					log.Info(fmt.Sprintf("%s Peer Disconnected,activePeers:%d", peerInfoStr, len(s.peers.Active())))
-					s.peerSync.OnPeerDisconnected(conn.RemotePeer())
+					s.peerSync.OnPeerDisconnected(pe)
 				}
 			}()
 		},
