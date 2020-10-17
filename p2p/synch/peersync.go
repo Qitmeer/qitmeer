@@ -65,6 +65,13 @@ func (ps *PeerSync) OnPeerDisconnected(pe *peers.Peer) {
 	}
 }
 
+func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer) {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
+	ps.updateSyncPeer(false)
+}
+
 func (ps *PeerSync) HasSyncPeer() bool {
 	ps.lock.RLock()
 	defer ps.lock.RLock()
@@ -121,7 +128,7 @@ func (ps *PeerSync) startSync() {
 		ps.dagSync.GS = gs
 		ps.dagSync.GSMtx.Unlock()
 	} else {
-		log.Trace("No sync peer candidates available")
+		log.Trace("No synchronization is required.")
 	}
 }
 
