@@ -498,8 +498,8 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 // be like part of the main chain, on a side chain, or in the orphan pool.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) HaveBlock(hash *hash.Hash) (bool, error) {
-	return b.index.HaveBlock(hash) || b.IsOrphan(hash), nil
+func (b *BlockChain) HaveBlock(hash *hash.Hash) bool {
+	return b.index.HaveBlock(hash) || b.IsOrphan(hash)
 }
 
 // IsCurrent returns whether or not the chain believes it is current.  Several

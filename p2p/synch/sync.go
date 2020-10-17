@@ -132,6 +132,12 @@ func (s *Sync) registerRPCHandlers() {
 		&pb.Hash{},
 		s.txHandler,
 	)
+
+	s.registerRPC(
+		RPCInventory,
+		&pb.Inventory{},
+		s.inventoryHandler,
+	)
 }
 
 // registerRPC for a given topic with an expected protobuf message type.

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -117,10 +118,16 @@ func (s *Sync) handleTxMsg(msg *pb.Transaction) error {
 	return nil
 }
 
-func (s *Sync) getTx(id peer.ID, txHash *hash.Hash) error {
-	tx, err := s.sendTxRequest(s.p2p.Context(), id, txHash)
-	if err != nil {
-		return err
+func (s *Sync) getTxs(pe *peers.Peer, txs []*hash.Hash) error {
+	for _, txh := range txs {
+		tx, err := s.sendTxRequest(s.p2p.Context(), pe.GetID(), txh)
+		if err != nil {
+			return err
+		}
+		err = s.handleTxMsg(tx)
+		if err != nil {
+			return err
+		}
 	}
-	return s.handleTxMsg(tx)
+	return nil
 }
