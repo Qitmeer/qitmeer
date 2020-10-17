@@ -335,15 +335,6 @@ out:
 		case p := <-s.banPeers:
 			s.handleBanPeerMsg(state, p)
 
-		// New inventory to potentially be relayed to other peers.
-		case invMsg := <-s.relayInv:
-			s.handleRelayInvMsg(state, invMsg)
-
-		// Message to broadcast to all connected peers except those
-		// which are excluded by the message.
-		case bmsg := <-s.broadcast:
-			s.handleBroadcastMsg(state, &bmsg)
-
 		case qmsg := <-s.query:
 			s.handleQuery(state, qmsg)
 
@@ -375,17 +366,6 @@ cleanup:
 	}
 	s.wg.Done()
 	log.Trace("Peer handler done")
-}
-
-// RelayInventory relays the passed inventory vector to all connected peers
-// that are not already known to have it.
-func (s *PeerServer) RelayInventory(invVect *message.InvVect, data interface{}) {
-	s.relayInv <- relayMsg{invVect: invVect, data: data}
-}
-
-func (s *PeerServer) BroadcastMessage(msg message.Message, exclPeers ...*serverPeer) {
-	bmsg := broadcastMsg{message: msg, excludePeers: exclPeers}
-	s.broadcast <- bmsg
 }
 
 // Dial connects to the address on the named network.

@@ -1,7 +1,6 @@
 package notifymgr
 
 import (
-	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/rpc"
@@ -19,34 +18,16 @@ type NotifyMgr struct {
 // transactions.  This function should be called whenever new transactions
 // are added to the mempool.
 func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.TxDesc) {
-	// Generate and relay inventory vectors for all newly accepted
-	// transactions into the memory pool due to the original being
-	// accepted.
-	for _, tx := range newTxs {
-		// Generate the inventory vector and relay it.
-		iv := message.NewInvVect(message.InvTypeTx, tx.Tx.Hash())
-		// reply to p2p
-		ntmgr.RelayInventory(iv, tx)
-		// reply to rpc
-		if ntmgr.RpcServer != nil {
-			//TODO reply to rpc layer (if websockect long connection or gbt long poll)
-			// Notify websocket clients about mempool transactions.
-			//qitmeer.node.rpcServer.ntfnMgr.NotifyMempoolTx(tx, true)
-			//
-			// Potentially notify any getblocktemplate long poll clients
-			// about stale block templates due to the new transaction.
-			//qitmeer.node.rpcServer.gbtWorkState.NotifyMempoolTx(
-			//	qitmeer.txMemPool.LastUpdated())
-		}
-	}
+	// reply to p2p
+	ntmgr.RelayInventory(newTxs)
 }
 
 // RelayInventory relays the passed inventory vector to all connected peers
 // that are not already known to have it.
-func (ntmgr *NotifyMgr) RelayInventory(invVect *message.InvVect, data interface{}) {
-	ntmgr.Server.RelayInventory(invVect, data)
+func (ntmgr *NotifyMgr) RelayInventory(data interface{}) {
+	ntmgr.Server.RelayInventory(data)
 }
 
-func (ntmgr *NotifyMgr) BroadcastMessage(msg message.Message) {
-	ntmgr.Server.BroadcastMessage(msg)
+func (ntmgr *NotifyMgr) BroadcastMessage(data interface{}) {
+	ntmgr.Server.BroadcastMessage(data)
 }

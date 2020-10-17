@@ -17,7 +17,6 @@ import (
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/event"
-	"github.com/Qitmeer/qitmeer/core/message"
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/p2p/common"
@@ -400,6 +399,14 @@ func (s *Service) PeerSync() *synch.PeerSync {
 	return s.sy.PeerSync()
 }
 
+func (s *Service) RelayInventory(data interface{}) {
+	s.PeerSync().RelayInventory(data)
+}
+
+func (s *Service) BroadcastMessage(data interface{}) {
+
+}
+
 func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
@@ -552,13 +559,5 @@ func (s *Service) GetBanlist() map[string]time.Time {
 }
 
 func (s *Service) RemoveBan(host string) {
-
-}
-
-func (s *Service) RelayInventory(invVect *message.InvVect, data interface{}) {
-
-}
-
-func (s *Service) BroadcastMessage(msg message.Message) {
 
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/event"
-	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -196,13 +195,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		// because if the side chain were to be extended enough to become the
 		// best chain, it would result in a a reorg that would remove 6 blocks,
 		// namely blocks 101, 102, 103, 104, 105, and 106.
-		blockHash := block.Hash()
-
-		// Generate the inventory vector and relay it.
-		iv := message.NewInvVect(message.InvTypeBlock, blockHash)
-		log.Trace("relay inv", "inv", iv)
-
-		b.notify.RelayInventory(iv, block.Block().Header)
+		b.notify.RelayInventory(block.Block().Header)
 
 	// A block has been connected to the main block chain.
 	case blockchain.BlockConnected:

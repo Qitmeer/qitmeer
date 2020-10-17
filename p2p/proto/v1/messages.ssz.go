@@ -18,6 +18,64 @@ var (
 	errSize                = fmt.Errorf("incorrect size")
 )
 
+// MarshalSSZ ssz marshals the Transaction object
+func (t *Transaction) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, t.SizeSSZ())
+	return t.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the Transaction object to a target array
+func (t *Transaction) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+	offset := int(4)
+
+	// Offset (0) 'TxBytes'
+	dst = ssz.WriteOffset(dst, offset)
+	offset += len(t.TxBytes)
+
+	// Field (0) 'TxBytes'
+	if len(t.TxBytes) > 1048576 {
+		return nil, errMarshalDynamicBytes
+	}
+	dst = append(dst, t.TxBytes...)
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the Transaction object
+func (t *Transaction) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size < 4 {
+		return errSize
+	}
+
+	tail := buf
+	var o0 uint64
+
+	// Offset (0) 'TxBytes'
+	if o0 = ssz.ReadOffset(buf[0:4]); o0 > size {
+		return errOffset
+	}
+
+	// Field (0) 'TxBytes'
+	{
+		buf = tail[o0:]
+		t.TxBytes = append(t.TxBytes, buf...)
+	}
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the Transaction object
+func (t *Transaction) SizeSSZ() (size int) {
+	size = 4
+
+	// Field (0) 'TxBytes'
+	size += len(t.TxBytes)
+
+	return
+}
+
 // MarshalSSZ ssz marshals the BlockData object
 func (b *BlockData) MarshalSSZ() ([]byte, error) {
 	buf := make([]byte, b.SizeSSZ())
@@ -693,32 +751,36 @@ func (c *ChainState) SizeSSZ() (size int) {
 	return
 }
 
-// MarshalSSZ ssz marshals the Transaction object
-func (t *Transaction) MarshalSSZ() ([]byte, error) {
-	buf := make([]byte, t.SizeSSZ())
-	return t.MarshalSSZTo(buf[:0])
+// MarshalSSZ ssz marshals the Inventory object
+func (i *Inventory) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, i.SizeSSZ())
+	return i.MarshalSSZTo(buf[:0])
 }
 
-// MarshalSSZTo ssz marshals the Transaction object to a target array
-func (t *Transaction) MarshalSSZTo(dst []byte) ([]byte, error) {
+// MarshalSSZTo ssz marshals the Inventory object to a target array
+func (i *Inventory) MarshalSSZTo(dst []byte) ([]byte, error) {
 	var err error
 	offset := int(4)
 
-	// Offset (0) 'TxBytes'
+	// Offset (0) 'Invs'
 	dst = ssz.WriteOffset(dst, offset)
-	offset += len(t.TxBytes)
+	offset += len(i.Invs) * 36
 
-	// Field (0) 'TxBytes'
-	if len(t.TxBytes) > 1048576 {
-		return nil, errMarshalDynamicBytes
+	// Field (0) 'Invs'
+	if len(i.Invs) > 50000 {
+		return nil, errMarshalList
 	}
-	dst = append(dst, t.TxBytes...)
+	for ii := 0; ii < len(i.Invs); ii++ {
+		if dst, err = i.Invs[ii].MarshalSSZTo(dst); err != nil {
+			return nil, err
+		}
+	}
 
 	return dst, err
 }
 
-// UnmarshalSSZ ssz unmarshals the Transaction object
-func (t *Transaction) UnmarshalSSZ(buf []byte) error {
+// UnmarshalSSZ ssz unmarshals the Inventory object
+func (i *Inventory) UnmarshalSSZ(buf []byte) error {
 	var err error
 	size := uint64(len(buf))
 	if size < 4 {
@@ -728,25 +790,92 @@ func (t *Transaction) UnmarshalSSZ(buf []byte) error {
 	tail := buf
 	var o0 uint64
 
-	// Offset (0) 'TxBytes'
+	// Offset (0) 'Invs'
 	if o0 = ssz.ReadOffset(buf[0:4]); o0 > size {
 		return errOffset
 	}
 
-	// Field (0) 'TxBytes'
+	// Field (0) 'Invs'
 	{
 		buf = tail[o0:]
-		t.TxBytes = append(t.TxBytes, buf...)
+		num, ok := ssz.DivideInt(len(buf), 36)
+		if !ok {
+			return errDivideInt
+		}
+		if num > 50000 {
+			return errListTooBig
+		}
+		i.Invs = make([]*InvVect, num)
+		for ii := 0; ii < num; ii++ {
+			if i.Invs[ii] == nil {
+				i.Invs[ii] = new(InvVect)
+			}
+			if err = i.Invs[ii].UnmarshalSSZ(buf[ii*36 : (ii+1)*36]); err != nil {
+				return err
+			}
+		}
 	}
 	return err
 }
 
-// SizeSSZ returns the ssz encoded size in bytes for the Transaction object
-func (t *Transaction) SizeSSZ() (size int) {
+// SizeSSZ returns the ssz encoded size in bytes for the Inventory object
+func (i *Inventory) SizeSSZ() (size int) {
 	size = 4
 
-	// Field (0) 'TxBytes'
-	size += len(t.TxBytes)
+	// Field (0) 'Invs'
+	size += len(i.Invs) * 36
 
+	return
+}
+
+// MarshalSSZ ssz marshals the InvVect object
+func (i *InvVect) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, i.SizeSSZ())
+	return i.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the InvVect object to a target array
+func (i *InvVect) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+
+	// Field (0) 'Type'
+	dst = ssz.MarshalUint32(dst, i.Type)
+
+	// Field (1) 'Hash'
+	if i.Hash == nil {
+		i.Hash = new(Hash)
+	}
+	if dst, err = i.Hash.MarshalSSZTo(dst); err != nil {
+		return nil, err
+	}
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the InvVect object
+func (i *InvVect) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size != 36 {
+		return errSize
+	}
+
+	// Field (0) 'Type'
+	i.Type = ssz.UnmarshallUint32(buf[0:4])
+
+	// Field (1) 'Hash'
+	if i.Hash == nil {
+		i.Hash = new(Hash)
+	}
+	if err = i.Hash.UnmarshalSSZ(buf[4:36]); err != nil {
+		return err
+	}
+
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the InvVect object
+func (i *InvVect) SizeSSZ() (size int) {
+	size = 36
 	return
 }

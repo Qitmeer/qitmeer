@@ -36,6 +36,8 @@ const (
 	RPCSyncDAG = "/qitmeer/req/syncdag/1"
 	// RPCTransaction defines the topic for the transaction rpc method.
 	RPCTransaction = "/qitmeer/req/transaction/1"
+	// RPCInventory defines the topic for the inventory rpc method.
+	RPCInventory = "/qitmeer/req/inventory/1"
 )
 
 // Time to first byte timeout. The maximum time to wait for first byte of

@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
+	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"sync"
 )
 
@@ -244,6 +246,31 @@ func (ps *PeerSync) updateSyncPeer(force bool) {
 		ps.syncPeer = nil
 	}
 	ps.startSync()
+}
+
+func (ps *PeerSync) RelayInventory(data interface{}) {
+	ps.sy.Peers().ForPeers(peers.PeerConnected, func(pe *peers.Peer) {
+		msg := &pb.Inventory{Invs: []*pb.InvVect{}}
+		switch value := data.(type) {
+		case []*types.TxDesc:
+			// Don't relay the transaction to the peer when it has
+			// transaction relaying disabled.
+			if pe.DisableRelayTx() {
+				return
+			}
+			for _, tx := range value {
+				feeFilter := pe.FeeFilter()
+				if feeFilter > 0 && tx.FeePerKB < feeFilter {
+					return
+				}
+				msg.Invs = append(msg.Invs, NewInvVect(InvTypeTx, tx.Tx.Hash()))
+			}
+		case types.BlockHeader:
+			blockHash := value.BlockHash()
+			msg.Invs = append(msg.Invs, NewInvVect(InvTypeBlock, &blockHash))
+		}
+		ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), pe, msg)
+	})
 }
 
 func NewPeerSync(sy *Sync) *PeerSync {

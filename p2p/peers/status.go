@@ -236,6 +236,18 @@ func (p *Status) Decay() {
 	}
 }
 
+func (p *Status) ForPeers(state PeerConnectionState, closure func(pe *Peer)) {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	for _, pe := range p.peers {
+		if pe.ConnectionState() != state {
+			continue
+		}
+		closure(pe)
+	}
+}
+
 // NewStatus creates a new status entity.
 func NewStatus(p2p common.P2P) *Status {
 	return &Status{

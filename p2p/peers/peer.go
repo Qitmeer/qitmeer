@@ -26,6 +26,8 @@ type Peer struct {
 	*peerStatus
 	pid       peer.ID
 	syncPoint *hash.Hash
+	// Use to fee filter
+	feeFilter int64
 
 	lock *sync.RWMutex
 }
@@ -322,6 +324,23 @@ func (p *Peer) SyncPoint() *hash.Hash {
 	defer p.lock.RUnlock()
 
 	return p.syncPoint
+}
+
+func (p *Peer) DisableRelayTx() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	if p.chainState == nil {
+		return false
+	}
+	return p.chainState.DisableRelayTx
+}
+
+func (p *Peer) FeeFilter() int64 {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.feeFilter
 }
 
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
