@@ -15,8 +15,9 @@ import (
 )
 
 type PeerSync struct {
-	lock     sync.RWMutex
-	sy       *Sync
+	sy *Sync
+
+	splock   sync.RWMutex
 	syncPeer *peers.Peer
 	// dag sync
 	dagSync *blockdag.DAGSync
@@ -29,10 +30,17 @@ func (ps *PeerSync) Start() error {
 }
 
 func (ps *PeerSync) SyncPeer() *peers.Peer {
-	ps.lock.RLock()
-	defer ps.lock.RLock()
+	ps.splock.RLock()
+	defer ps.splock.RLock()
 
 	return ps.syncPeer
+}
+
+func (ps *PeerSync) SetSyncPeer(pe *peers.Peer) {
+	ps.splock.Lock()
+	defer ps.splock.Lock()
+
+	ps.syncPeer = pe
 }
 
 func (ps *PeerSync) Stop() error {
@@ -41,8 +49,6 @@ func (ps *PeerSync) Stop() error {
 }
 
 func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
 
 	ti := pe.Timestamp()
 	if !ti.IsZero() {
@@ -51,38 +57,26 @@ func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
 		ps.sy.p2p.TimeSource().AddTimeSample(pe.GetID().String(), ti)
 	}
 
-	if !ps.hasSyncPeer() {
+	if !ps.HasSyncPeer() {
 		ps.startSync()
 	}
 }
 
 func (ps *PeerSync) OnPeerDisconnected(pe *peers.Peer) {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
 
-	if ps.hasSyncPeer() {
-		if pe == ps.syncPeer || pe.GetID() == ps.syncPeer.GetID() {
+	if ps.HasSyncPeer() {
+		if pe == ps.SyncPeer() || pe.GetID() == ps.SyncPeer().GetID() {
 			ps.updateSyncPeer(true)
 		}
 	}
 }
 
 func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer) {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
-
 	ps.updateSyncPeer(false)
 }
 
 func (ps *PeerSync) HasSyncPeer() bool {
-	ps.lock.RLock()
-	defer ps.lock.RLock()
-
-	return ps.hasSyncPeer()
-}
-
-func (ps *PeerSync) hasSyncPeer() bool {
-	return ps.syncPeer != nil
+	return ps.SyncPeer() != nil
 }
 
 func (ps *PeerSync) Chain() *blockchain.BlockChain {
@@ -95,7 +89,7 @@ func (ps *PeerSync) Chain() *blockchain.BlockChain {
 // candidates and removes them as needed.
 func (ps *PeerSync) startSync() {
 	// Return now if we're already syncing.
-	if ps.hasSyncPeer() {
+	if ps.HasSyncPeer() {
 		return
 	}
 	best := ps.Chain().BestSnapshot()
@@ -123,12 +117,11 @@ func (ps *PeerSync) startSync() {
 		// and fully validate them.  Finally, regression test mode does
 		// not support the headers-first approach so do normal block
 		// downloads when in regression test mode.
-		ps.syncPeer = bestPeer
-		ps.IntellectSyncBlocks(true)
 
-		ps.dagSync.GSMtx.Lock()
-		ps.dagSync.GS = gs
-		ps.dagSync.GSMtx.Unlock()
+		ps.SetSyncPeer(bestPeer)
+		ps.IntellectSyncBlocks(true)
+		ps.dagSync.SetGraphState(gs)
+
 	} else {
 		log.Trace("No synchronization is required.")
 	}
@@ -184,26 +177,19 @@ func (ps *PeerSync) getBestPeer() *peers.Peer {
 // IsCurrent returns true if we believe we are synced with our peers, false if we
 // still have blocks to check
 func (ps *PeerSync) IsCurrent() bool {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	return ps.isCurrent()
-}
-
-func (ps *PeerSync) isCurrent() bool {
 	if !ps.Chain().IsCurrent() {
 		return false
 	}
 
 	// if blockChain thinks we are current and we have no syncPeer it
 	// is probably right.
-	if !ps.hasSyncPeer() {
+	if !ps.HasSyncPeer() {
 		return true
 	}
 
 	// No matter what chain thinks, if we are below the block we are syncing
 	// to we are not current.
-	gs := ps.syncPeer.GraphState()
+	gs := ps.SyncPeer().GraphState()
 	if gs == nil {
 		return true
 	}
@@ -217,7 +203,7 @@ func (ps *PeerSync) isCurrent() bool {
 }
 
 func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
-	if !ps.hasSyncPeer() {
+	if !ps.HasSyncPeer() {
 		return
 	}
 
@@ -228,29 +214,22 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 
 	var err error
 	if len(allOrphan) > 0 {
-		err = ps.sy.getBlocks(ps.syncPeer, allOrphan)
+		err = ps.sy.getBlocks(ps.SyncPeer(), allOrphan)
 		if err != nil {
-			err = ps.sy.syncDAGBlocks(ps.syncPeer)
+			err = ps.sy.syncDAGBlocks(ps.SyncPeer())
 		}
 	} else {
-		err = ps.sy.syncDAGBlocks(ps.syncPeer)
+		err = ps.sy.syncDAGBlocks(ps.SyncPeer())
 	}
 	if err != nil {
 		ps.updateSyncPeer(true)
 	}
 }
 
-func (ps *PeerSync) UpdateSyncPeer(force bool) {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
-
-	ps.updateSyncPeer(force)
-}
-
 func (ps *PeerSync) updateSyncPeer(force bool) {
 	log.Debug("Updating sync peer")
 	if force {
-		ps.syncPeer = nil
+		ps.SetSyncPeer(nil)
 	}
 	ps.startSync()
 }
