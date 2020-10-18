@@ -150,6 +150,7 @@ func (s *Sync) getBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
 		isCurrent := s.peerSync.IsCurrent()
 		if isCurrent {
 			log.Info("Your synchronization has been completed. ")
+			go s.updateGraphState(pe)
 		}
 	} else {
 		return fmt.Errorf("no get blocks")

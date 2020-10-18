@@ -158,7 +158,7 @@ func (p *Peer) SetChainState(chainState *pb.ChainState) {
 	p.chainState = chainState
 	p.chainStateLastUpdated = time.Now()
 
-	log.Trace(fmt.Sprintf("SetChainState(%s):%d", p.pid.ShortString(), chainState.GraphState.MainHeight))
+	log.Trace(fmt.Sprintf("SetChainState(%s) : MainHeight=%d", p.pid.ShortString(), chainState.GraphState.MainHeight))
 }
 
 // ChainState gets the chain state of the given remote peer.
@@ -320,6 +320,7 @@ func (p *Peer) UpdateGraphState(gs *pb.GraphState) {
 		//per.chainState.GraphState=&pb.GraphState{}
 	}
 	p.chainState.GraphState = gs
+	log.Trace(fmt.Sprintf("UpdateGraphState(%s) : MainHeight=%d", p.pid.ShortString(), gs.MainHeight))
 	/*	per.chainState.GraphState.Total=uint32(gs.GetTotal())
 		per.chainState.GraphState.Layer=uint32(gs.GetLayer())
 		per.chainState.GraphState.MainOrder=uint32(gs.GetMainOrder())
