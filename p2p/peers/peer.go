@@ -53,6 +53,10 @@ func (p *Peer) BadResponses() int {
 func (p *Peer) IsBad() bool {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
+	return p.isBad()
+}
+
+func (p *Peer) isBad() bool {
 	return p.badResponses >= maxBadResponses
 }
 
@@ -62,6 +66,10 @@ func (p *Peer) IncrementBadResponses() {
 	defer p.lock.Unlock()
 
 	p.badResponses++
+
+	if p.isBad() {
+		log.Warn(fmt.Sprintf("I am bad peer:%s", p.pid.String()))
+	}
 }
 
 func (p *Peer) Decay() {
