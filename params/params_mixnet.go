@@ -15,8 +15,9 @@ import (
 )
 
 // testMixNetPowLimit is the highest proof of work value a block can
-// have for the test network. It is the value 2^232 - 1.
-var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1)
+// have for the test network. It is the value 2^250 - 1.
+// target 0x03ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 250), common.Big1)
 
 // target time per block unit second(s)
 const mixTargetTimePerBlock = 15
@@ -42,13 +43,13 @@ var MixNetParams = Params{
 	GenerateSupported:    true,
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             testMixNetPowLimit,
-		Blake2bdPowLimitBits:         0x1e00ffff,
+		Blake2bdPowLimitBits:         0x2003ffff,
 		X16rv3PowLimit:               testMixNetPowLimit,
-		X16rv3PowLimitBits:           0x1e00ffff,
+		X16rv3PowLimitBits:           0x2003ffff,
 		X8r16PowLimit:                testMixNetPowLimit,
-		X8r16PowLimitBits:            0x1e00ffff,
+		X8r16PowLimitBits:            0x2003ffff,
 		QitmeerKeccak256PowLimit:     testMixNetPowLimit,
-		QitmeerKeccak256PowLimitBits: 0x1e00ffff,
+		QitmeerKeccak256PowLimitBits: 0x2003ffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 2 ≈ 1min find once
@@ -58,10 +59,10 @@ var MixNetParams = Params{
 
 		Percent: []pow.Percent{
 			{
-				Blake2bDPercent:         10,
-				CuckarooPercent:         60,
-				QitmeerKeccak256Percent: 10,
-				CuckatooPercent:         20,
+				Blake2bDPercent:         20,
+				CuckarooPercent:         30,
+				QitmeerKeccak256Percent: 30,
+				CuckaroomPercent:        20,
 				MainHeight:              0,
 			},
 		},
@@ -76,7 +77,7 @@ var MixNetParams = Params{
 	MaxTxSize:                1000000,
 	TargetTimePerBlock:       time.Second * mixTargetTimePerBlock,
 	TargetTimespan:           time.Second * mixTargetTimePerBlock * mixWorkDiffWindowSize, // TimePerBlock * WindowSize
-	RetargetAdjustmentFactor: 3,
+	RetargetAdjustmentFactor: 2,
 
 	// Subsidy parameters.
 	BaseSubsidy:              12000000000, // 120 Coin, stay same with testnet
@@ -111,6 +112,6 @@ var MixNetParams = Params{
 	// address generation.
 	HDCoinType: 223,
 
-	CoinbaseMaturity: 512,
+	CoinbaseMaturity: 720,
 	//OrganizationPkScript:  hexMustDecode("76a914868b9b6bc7e4a9c804ad3d3d7a2a6be27476941e88ac"),
 }

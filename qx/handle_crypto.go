@@ -66,7 +66,7 @@ func HdNewMasterPrivateKey(version bip32.Bip32Version, entropyStr string) {
 }
 
 func HdPrivateKeyToHdPublicKey(version bip32.Bip32Version, privateKeyStr string) {
-	data := base58.Decode(privateKeyStr)
+	data := base58.Decode([]byte(privateKeyStr))
 	masterKey, err := bip32.Deserialize2(data, version)
 	if err != nil {
 		ErrExit(err)
@@ -79,7 +79,7 @@ func HdPrivateKeyToHdPublicKey(version bip32.Bip32Version, privateKeyStr string)
 }
 
 func HdKeyToEcKey(version bip32.Bip32Version, keyStr string) {
-	data := base58.Decode(keyStr)
+	data := base58.Decode([]byte(keyStr))
 	key, err := bip32.Deserialize2(data, version)
 	if err != nil {
 		ErrExit(err)
@@ -105,7 +105,7 @@ const bip32_ByteSize = 78 + 4
 // 33 bytes: the public key or private key data (serP(K) for public keys, 0x00 || ser256(k) for private keys)
 //  4 bytes: checksum
 func HdDecode(keyStr string) {
-	data := base58.Decode(keyStr)
+	data := base58.Decode([]byte(keyStr))
 	if len(data) != bip32_ByteSize {
 		ErrExit(fmt.Errorf("invalid bip32 key size (%d), the size hould be %d", len(data), bip32_ByteSize))
 	}
@@ -148,7 +148,7 @@ func HdDecode(keyStr string) {
 }
 
 func HdDerive(hard bool, index uint32, path wallet.DerivationPath, version bip32.Bip32Version, key string) {
-	data := base58.Decode(key)
+	data := base58.Decode([]byte(key))
 	if len(data) != bip32_ByteSize {
 		ErrExit(fmt.Errorf("invalid bip32 key size (%d), the size hould be %d", len(data), bip32_ByteSize))
 	}
@@ -245,8 +245,13 @@ func EncodeWIF(uncompressed bool, privateKeyStr string) (string, error) {
 		key = append(key, []byte{0x01}...)
 	}
 	cksumfunc := base58.DoubleHashChecksumFunc(hash.GetHasher(hash.SHA256), 4)
-	encoded := base58.CheckEncode(key, []byte{0x80}, 4, cksumfunc)
-	return encoded, nil
+	var encoded []byte
+	encoded, err = base58.CheckEncode(key, []byte{0x80}, 4, cksumfunc)
+	if err != nil {
+		return "",err
+	} else {
+		return string(encoded), nil
+	}
 }
 
 func WifToEcPrivateKey(wif string) {
@@ -259,7 +264,7 @@ func WifToEcPrivateKey(wif string) {
 
 func DecodeWIF(wif string) ([]byte, bool, error) {
 	cksumfunc := base58.DoubleHashChecksumFunc(hash.GetHasher(hash.SHA256), 4)
-	decoded, version, err := base58.CheckDecode(wif, 1, 4, cksumfunc)
+	decoded, version, err := base58.CheckDecode([]byte(wif), 1, 4, cksumfunc)
 	compressed := false
 	if err != nil {
 		return nil, compressed, err

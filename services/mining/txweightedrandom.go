@@ -51,7 +51,7 @@ func (wq *WeightedRandQueue) Pop() *WeightedRandTx {
 		}
 	}
 	wq.items = append(wq.items[:index], wq.items[index+1:]...)
-	total = total - item.fee - 1
+	//total = total - item.fee - 1
 
 	return item
 }

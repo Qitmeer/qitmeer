@@ -742,7 +742,7 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 	offset := putVLQ(serialized, headerCode)
 	copy(serialized[offset:offset+hash.HashSize], entry.blockHash.Bytes())
 	offset += hash.HashSize
-	offset += putCompressedTxOut(serialized[offset:], uint64(entry.Amount()),
+	putCompressedTxOut(serialized[offset:], uint64(entry.Amount()),
 		entry.PkScript())
 
 	return serialized, nil

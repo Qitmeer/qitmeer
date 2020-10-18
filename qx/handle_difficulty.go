@@ -92,7 +92,7 @@ func HashrateToCompact(difficulty string, blocktime int) {
 }
 
 func CompactToGPS(compactS string, blockTime, scale int, printDetail bool) {
-	compact, err := strconv.ParseUint(compactS, 10, 64)
+	compact, err := strconv.ParseUint(compactS, 10, 32)
 	if err != nil {
 		ErrExit(err)
 	}
@@ -157,14 +157,13 @@ func GetHashrate(hashBig *big.Int, unit string) (string, string) {
 		f.Quo(f, big.NewFloat(1000000000))
 		return f.String(), " GH/s"
 	}
-	base, _ := new(big.Int).SetString("1000000000000000", 10)
 	if unit == "T" {
 		f := new(big.Float).SetInt(hashBig)
 		base1, _ := new(big.Int).SetString("1000000000000", 10)
 		f.Quo(f, new(big.Float).SetInt(base1))
 		return f.String(), " TH/s"
 	}
-	base, _ = new(big.Int).SetString("1000000000000000000", 10)
+	base, _ := new(big.Int).SetString("1000000000000000000", 10)
 	if unit == "P" {
 		f := new(big.Float).SetInt(hashBig)
 		base1, _ := new(big.Int).SetString("1000000000000000", 10)
