@@ -12,7 +12,6 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/version"
 	"net"
 	"time"
@@ -55,7 +54,7 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) []libp2p.Opt
 	options := []libp2p.Option{
 		privKeyOption(priKey),
 		libp2p.ListenAddrs(listen),
-		libp2p.UserAgent(GetUserAgent()),
+		libp2p.UserAgent(s.cfg.UserAgent),
 		libp2p.ConnectionGater(s),
 	}
 	if s.cfg.EnableNoise {
@@ -127,8 +126,4 @@ func privKeyOption(privkey *ecdsa.PrivateKey) libp2p.Option {
 		log.Debug("ECDSA private key generated")
 		return cfg.Apply(libp2p.Identity(convertToInterfacePrivkey(privkey)))
 	}
-}
-
-func GetUserAgent() string {
-	return fmt.Sprintf("%s@%s:%s", message.UUID.String(), userAgentName, userAgentVersion)
 }

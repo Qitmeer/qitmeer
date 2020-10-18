@@ -10,7 +10,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/json"
-	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/params"
@@ -57,7 +56,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	cuckarooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKAROO)
 	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKATOO)
 	ret := &json.InfoNodeResult{
-		UUID:            message.UUID.String(),
+		ID:              api.node.node.peerServer.PeerID().String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
 		BuildVersion:    version.String(),
 		ProtocolVersion: int32(protocol.ProtocolVersion),

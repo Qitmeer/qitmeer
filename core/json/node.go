@@ -9,7 +9,7 @@ type PowDiff struct {
 
 // InfoNodeResult models the data returned by the node server getnodeinfo command.
 type InfoNodeResult struct {
-	UUID             string              `json:"UUID"`
+	ID               string              `json:"ID"`
 	Version          int32               `json:"version"`
 	BuildVersion     string              `json:"buildversion"`
 	ProtocolVersion  int32               `json:"protocolversion"`

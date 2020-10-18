@@ -1,11 +1,3 @@
-/*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:Service.go
- * Date:7/2/20 8:04 PM
- * Author:Jin
- * Email:lochjin@gmail.com
- */
 package p2p
 
 import (
