@@ -197,6 +197,9 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
+	if p.qnr == nil {
+		return nil, fmt.Errorf("no qnr")
+	}
 	n, err := qnode.New(qnode.ValidSchemes, p.qnr)
 	if err != nil {
 		return nil, fmt.Errorf("qnode: can't verify local record: %v", err)

@@ -221,7 +221,7 @@ func (s *Service) connectWithPeer(info peer.AddrInfo) error {
 	if info.ID == s.host.ID() {
 		return nil
 	}
-	pe := s.Peers().Get(info.ID)
+	pe := s.Peers().Fetch(info.ID)
 	if pe == nil {
 		return nil
 	}

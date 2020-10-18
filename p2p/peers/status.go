@@ -166,7 +166,6 @@ func (p *Status) Fetch(pid peer.ID) *Peer {
 func (p *Status) Add(record *qnr.Record, pid peer.ID, address ma.Multiaddr, direction network.Direction) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-
 	if pe, ok := p.peers[pid]; ok {
 		// Peer already exists, just update its address info.
 		pe.UpdateAddrDir(record, address, direction)

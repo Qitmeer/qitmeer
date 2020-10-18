@@ -101,7 +101,7 @@ func (ps *PeerSync) startSync() {
 	best := ps.Chain().BestSnapshot()
 	bestPeer := ps.getBestPeer()
 	// Start syncing from the best peer if one was selected.
-	if bestPeer == nil {
+	if bestPeer != nil {
 		gs := bestPeer.GraphState()
 
 		log.Info(fmt.Sprintf("Syncing to state %s from peer %s cur graph state:%s", gs.String(), bestPeer.GetID().String(), best.GraphState.String()))
