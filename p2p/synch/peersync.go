@@ -184,13 +184,20 @@ func (ps *PeerSync) getBestPeer() *peers.Peer {
 // IsCurrent returns true if we believe we are synced with our peers, false if we
 // still have blocks to check
 func (ps *PeerSync) IsCurrent() bool {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	return ps.isCurrent()
+}
+
+func (ps *PeerSync) isCurrent() bool {
 	if !ps.Chain().IsCurrent() {
 		return false
 	}
 
 	// if blockChain thinks we are current and we have no syncPeer it
 	// is probably right.
-	if !ps.HasSyncPeer() {
+	if !ps.hasSyncPeer() {
 		return true
 	}
 

@@ -147,7 +147,7 @@ func (s *Sync) getBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
 	if add > 0 {
 		s.p2p.TxMemPool().PruneExpiredTx()
 
-		isCurrent := s.peerSync.IsCurrent()
+		isCurrent := s.peerSync.isCurrent()
 		if isCurrent {
 			log.Info("Your synchronization has been completed. ")
 		}
