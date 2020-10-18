@@ -160,7 +160,7 @@ func (this *Pow) SetProofData(data []byte) {
 }
 
 func (this *Pow) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType)))
+	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.GetPowType())))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
 }

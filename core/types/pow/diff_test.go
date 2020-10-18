@@ -92,12 +92,11 @@ func TestCalcBlake2bdNextDiff(t *testing.T) {
 	p := &PowConfig{
 		Blake2bdPowLimit:     new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1),
 		Blake2bdPowLimitBits: 0x1e00ffff,
-		Percent: []Percent{
-			{
-				Blake2bDPercent: 34,
-				CuckarooPercent: 33,
-				CuckatooPercent: 33,
-				MainHeight:      0,
+		Percent: map[MainHeight]PercentItem{
+			MainHeight(0): {
+				BLAKE2BD: 34,
+				CUCKAROO: 33,
+				CUCKATOO: 33,
 			},
 		},
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
@@ -106,7 +105,7 @@ func TestCalcBlake2bdNextDiff(t *testing.T) {
 		CuckarooMinDifficulty: 0x1300000 * 2,
 		CuckatooMinDifficulty: 0x1300000 * 2,
 	}
-	blakeObj := &Blake2bd{}
+	blakeObj := GetInstance(BLAKE2BD, 0, []byte{})
 	oldDiff := int64(10000)
 	oldDiffBig := big.NewInt(oldDiff)
 	fmt.Printf("0x%064x", oldDiffBig)
@@ -133,12 +132,11 @@ func TestCalcCuckarooNextDiff(t *testing.T) {
 	p := &PowConfig{
 		Blake2bdPowLimit:     new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1),
 		Blake2bdPowLimitBits: 0x1e00ffff,
-		Percent: []Percent{
-			{
-				Blake2bDPercent: 34,
-				CuckarooPercent: 33,
-				CuckatooPercent: 33,
-				MainHeight:      0,
+		Percent: map[MainHeight]PercentItem{
+			MainHeight(0): {
+				BLAKE2BD: 34,
+				CUCKAROO: 33,
+				CUCKATOO: 33,
 			},
 		},
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
@@ -156,7 +154,7 @@ func TestCalcCuckarooNextDiff(t *testing.T) {
 	weightBig.Lsh(weightBig, 32)
 	weightBig.Div(weightBig, big.NewInt(5))
 	//cuckaroo diff ajustment
-	cuckarooObj := &Cuckaroo{}
+	cuckarooObj := GetInstance(CUCKAROO, 0, []byte{})
 	cuckarooObj.SetMainHeight(1)
 	cuckarooObj.SetParams(p)
 	// actual time 2s  target time 5s
@@ -175,12 +173,11 @@ func TestCalcCuckatooNextDiff(t *testing.T) {
 	p := &PowConfig{
 		Blake2bdPowLimit:     new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1),
 		Blake2bdPowLimitBits: 0x1e00ffff,
-		Percent: []Percent{
-			{
-				Blake2bDPercent: 34,
-				CuckarooPercent: 33,
-				CuckatooPercent: 33,
-				MainHeight:      0,
+		Percent: map[MainHeight]PercentItem{
+			MainHeight(0): {
+				BLAKE2BD: 34,
+				CUCKAROO: 33,
+				CUCKATOO: 33,
 			},
 		},
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
@@ -197,7 +194,7 @@ func TestCalcCuckatooNextDiff(t *testing.T) {
 	weightBig.Lsh(weightBig, 32)
 	weightBig.Div(weightBig, big.NewInt(5))
 	//cuckaroo diff ajustment
-	cuckatooObj := &Cuckatoo{}
+	cuckatooObj := GetInstance(CUCKATOO, 0, []byte{})
 	cuckatooObj.SetMainHeight(1)
 	cuckatooObj.SetParams(p)
 	// actual time 2s  target time 5s
@@ -216,11 +213,10 @@ func TestCalcCuckaroomNextDiff(t *testing.T) {
 	p := &PowConfig{
 		QitmeerKeccak256PowLimit:     new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1),
 		QitmeerKeccak256PowLimitBits: 0x1e00ffff,
-		Percent: []Percent{
-			{
-				QitmeerKeccak256Percent: 30,
-				CuckaroomPercent:        70,
-				MainHeight:              0,
+		Percent: map[MainHeight]PercentItem{
+			MainHeight(0): {
+				QITMEERKECCAK256: 30,
+				CUCKAROOM:        70,
 			},
 		},
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
@@ -237,7 +233,7 @@ func TestCalcCuckaroomNextDiff(t *testing.T) {
 	weightBig.Lsh(weightBig, 32)
 	weightBig.Div(weightBig, big.NewInt(30))
 	//cuckaroo diff ajustment
-	cuckarooObj := &Cuckaroom{}
+	cuckarooObj := GetInstance(CUCKAROOM, 0, []byte{})
 	cuckarooObj.SetMainHeight(1)
 	cuckarooObj.SetParams(p)
 	// current pow count 100 all count 100
@@ -256,11 +252,10 @@ func TestCalcQitmeerKeccak256NextDiff(t *testing.T) {
 	p := &PowConfig{
 		QitmeerKeccak256PowLimit:     new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 232), common.Big1),
 		QitmeerKeccak256PowLimitBits: 0x1e00ffff,
-		Percent: []Percent{
-			{
-				QitmeerKeccak256Percent: 30,
-				CuckaroomPercent:        70,
-				MainHeight:              0,
+		Percent: map[MainHeight]PercentItem{
+			MainHeight(0): {
+				QITMEERKECCAK256: 30,
+				CUCKAROOM:        70,
 			},
 		},
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
@@ -269,12 +264,11 @@ func TestCalcQitmeerKeccak256NextDiff(t *testing.T) {
 		CuckarooMinDifficulty: 0x1300000 * 2,
 		CuckatooMinDifficulty: 0x1300000 * 2,
 	}
-	blakeObj := &QitmeerKeccak256{}
+	keccakObj := GetInstance(QITMEERKECCAK256, 0, []byte{})
 	oldDiff := int64(10000)
 	oldDiffBig := big.NewInt(oldDiff)
-	fmt.Printf("0x%064x", oldDiffBig)
-	blakeObj.SetMainHeight(1)
-	blakeObj.SetParams(p)
+	keccakObj.SetMainHeight(1)
+	keccakObj.SetParams(p)
 	// actual time 27s  target time 30s
 	// current pow count 50 all count 100
 	weightBig := big.NewInt(27)
@@ -283,9 +277,8 @@ func TestCalcQitmeerKeccak256NextDiff(t *testing.T) {
 	currentPowPercent := big.NewInt(50)
 	currentPowPercent.Lsh(currentPowPercent, 32)
 	currentPowPercent.Div(currentPowPercent, big.NewInt(100))
-	nextDiffBig := blakeObj.GetNextDiffBig(weightBig, oldDiffBig, currentPowPercent)
-	fmt.Printf("\n0x%064x", nextDiffBig)
-	fmt.Println("\n", nextDiffBig.Uint64())
+	nextDiffBig := keccakObj.GetNextDiffBig(weightBig, oldDiffBig, currentPowPercent)
+	fmt.Println("\ndiff after adjust:", nextDiffBig.Uint64())
 	//10000 * ( 27 / 30 ) * (30 / 50)
 	assert.Equal(t, uint64(5399), nextDiffBig.Uint64())
 }
