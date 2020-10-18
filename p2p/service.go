@@ -127,20 +127,11 @@ func (s *Service) Start() error {
 		}
 	}
 
-	if len(s.cfg.BootstrapNodeAddr) > 0 {
-		peersToWatch = append(peersToWatch, s.cfg.BootstrapNodeAddr...)
-	}
 	// Periodic functions.
 	if len(peersToWatch) > 0 {
-		peersToWatchAddr, err := peersFromStringAddrs(peersToWatch)
-		if err != nil {
-			log.Error(fmt.Sprintf("Could not connect to watch peer: %v", err))
-		} else {
-			runutil.RunEvery(s.ctx, 10*time.Second, func() {
-				s.ensurePeerConnections(peersToWatchAddr)
-			})
-		}
-
+		runutil.RunEvery(s.ctx, 10*time.Second, func() {
+			s.ensurePeerConnections(peersToWatch)
+		})
 	}
 
 	runutil.RunEvery(s.ctx, time.Hour, s.Peers().Decay)

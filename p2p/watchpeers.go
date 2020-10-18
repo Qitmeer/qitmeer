@@ -12,20 +12,19 @@ package p2p
 import (
 	"fmt"
 	"github.com/libp2p/go-libp2p-core/peer"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
 // ensurePeerConnections will attempt to reestablish connection to the peers
 // if there are currently no connections to that peer.
-func (s *Service) ensurePeerConnections(pes []ma.Multiaddr) {
+func (s *Service) ensurePeerConnections(pes []string) {
 	if len(pes) == 0 {
 		return
 	}
 	for _, p := range pes {
-		if p == nil {
+		if len(p) <= 0 {
 			continue
 		}
-		peerInfo, err := peer.AddrInfoFromP2pAddr(p)
+		peerInfo, err := MakePeer(p)
 		if err != nil {
 			log.Error(fmt.Sprintf("Could not make peer: %v", err))
 			continue

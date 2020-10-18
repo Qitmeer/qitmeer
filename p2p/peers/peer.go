@@ -212,17 +212,8 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if p.qnr == nil {
-		return nil, fmt.Errorf("no qnr")
-	}
-	n, err := qnode.New(qnode.ValidSchemes, p.qnr)
-	if err != nil {
-		return nil, fmt.Errorf("qnode: can't verify local record: %v", err)
-	}
 	ss := &StatsSnap{
-		NodeID:     n.ID().String(),
 		PeerID:     p.pid.String(),
-		QNR:        n.String(),
 		Protocol:   p.protocolVersion(),
 		Genesis:    p.genesis(),
 		Services:   p.services(),
@@ -232,6 +223,14 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		GraphState: p.graphState(),
 	}
 
+	if p.qnr != nil {
+		n, err := qnode.New(qnode.ValidSchemes, p.qnr)
+		if err != nil {
+			return nil, fmt.Errorf("qnode: can't verify local record: %v", err)
+		}
+		ss.NodeID = n.ID().String()
+		ss.QNR = n.String()
+	}
 	return ss, nil
 }
 

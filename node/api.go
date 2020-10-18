@@ -110,8 +110,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
 	for _, p := range peers {
 		info := &json.GetPeerInfoResult{
-			ID:    p.NodeID,
-			QNR:   p.QNR,
+			ID:    p.PeerID,
 			State: p.State.String(),
 		}
 		if p.State.IsConnected() {
@@ -130,6 +129,9 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 			} else {
 				info.SyncNode = false
 			}
+		}
+		if len(p.QNR) > 0 {
+			info.QNR = p.QNR
 		}
 		infos = append(infos, info)
 	}
