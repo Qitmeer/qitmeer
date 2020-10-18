@@ -399,6 +399,30 @@ func (s *Service) BroadcastMessage(data interface{}) {
 
 }
 
+func (s *Service) GetBanlist() map[string]int {
+	result := map[string]int{}
+	bads := s.Peers().Bad()
+	for _, bad := range bads {
+		pe := s.Peers().Get(bad)
+		if pe == nil {
+			continue
+		}
+		result[pe.GetID().String()] = pe.BadResponses()
+	}
+	return result
+}
+
+func (s *Service) RemoveBan(id string) {
+	bads := s.Peers().Bad()
+	for _, bad := range bads {
+		pe := s.Peers().Get(bad)
+		if pe == nil {
+			continue
+		}
+		pe.ResetBad()
+	}
+}
+
 func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
@@ -543,13 +567,4 @@ func logExternalDNSAddr(id peer.ID, addr string, port uint) {
 		p := strconv.FormatUint(uint64(port), 10)
 		log.Info(fmt.Sprintf("Node started external p2p server:multiAddr=%s", "/dns4/"+addr+"/tcp/"+p+"/p2p/"+id.String()))
 	}
-}
-
-// TODO
-func (s *Service) GetBanlist() map[string]time.Time {
-	return nil
-}
-
-func (s *Service) RemoveBan(host string) {
-
 }

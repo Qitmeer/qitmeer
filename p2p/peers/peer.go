@@ -73,6 +73,13 @@ func (p *Peer) Decay() {
 	}
 }
 
+func (p *Peer) ResetBad() {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.badResponses = 0
+}
+
 func (p *Peer) UpdateAddrDir(record *qnr.Record, address ma.Multiaddr, direction network.Direction) {
 	p.lock.Lock()
 	defer p.lock.Unlock()

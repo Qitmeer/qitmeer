@@ -49,6 +49,6 @@ type GetGraphStateResult struct {
 }
 
 type GetBanlistResult struct {
-	Host   string `json:"host"`
-	Expire string `json:"expire"`
+	ID   string `json:"id"`
+	Bads int    `json:"bads"`
 }
