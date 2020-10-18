@@ -53,7 +53,7 @@ var PrivNetParams = Params{
 		CuckatooMinDifficulty:  0x1300000,
 		CuckaroomMinDifficulty: 0x1300000,
 
-		Percent: map[pow.MainHeight]map[pow.PowType]pow.PercentValue{
+		Percent: map[pow.MainHeight]pow.PercentItem{
 			pow.MainHeight(0): {
 				pow.BLAKE2BD:         10,
 				pow.CUCKAROO:         10,

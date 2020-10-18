@@ -430,7 +430,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		"time", "transactions/add", "prevblock", "coinbase/append",
 	}
 	gbtCapabilities := []string{"proposal"}
-	diffBig := pow.CompactToBig(template.CompactDiff)
+	diffBig := pow.CompactToBig(template.Difficulty)
 	target := fmt.Sprintf("%064x", diffBig)
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, state.lastGenerated)
 	reply := json.GetBlockTemplateResult{
@@ -452,7 +452,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		SubmitOld: submitOld,
 		PowDiffReference: json.PowDiffReference{
 			Target: target,
-			NBits:  strconv.FormatInt(int64(template.CompactDiff), 16),
+			NBits:  strconv.FormatInt(int64(template.Difficulty), 16),
 		},
 		MinTime: state.minTimestamp.Unix(),
 		MaxTime: maxTime.Unix(),

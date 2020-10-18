@@ -62,12 +62,6 @@ func (this *Cuckaroo) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 	return nextDiffBig
 }
 
-func (this *Cuckaroo) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType)))
-	targetPercent.Lsh(targetPercent, 32)
-	return targetPercent
-}
-
 func (this *Cuckaroo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	minDiffBig := CompactToBig(this.params.CuckarooMinDifficulty)
 	if cur_reduce_diff <= 0 {

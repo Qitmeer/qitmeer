@@ -64,12 +64,6 @@ func (this *Blake2bd) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 	return nextDiffBig
 }
 
-func (this *Blake2bd) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType)))
-	targetPercent.Lsh(targetPercent, 32)
-	return targetPercent
-}
-
 func (this *Blake2bd) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	limitBits := this.params.Blake2bdPowLimitBits
 	limitBitsBig := CompactToBig(limitBits)

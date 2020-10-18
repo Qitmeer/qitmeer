@@ -56,7 +56,7 @@ var MixNetParams = Params{
 		CuckatooMinDifficulty:  0x1600000, // 96
 		CuckaroomMinDifficulty: 0x1600000, // 96
 
-		Percent: map[pow.MainHeight]map[pow.PowType]pow.PercentValue{
+		Percent: map[pow.MainHeight]pow.PercentItem{
 			pow.MainHeight(0): {
 				pow.BLAKE2BD:         20,
 				pow.CUCKAROO:         30,

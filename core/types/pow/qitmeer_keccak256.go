@@ -64,12 +64,6 @@ func (this *QitmeerKeccak256) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig
 	return nextDiffBig
 }
 
-func (this *QitmeerKeccak256) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType)))
-	targetPercent.Lsh(targetPercent, 32)
-	return targetPercent
-}
-
 func (this *QitmeerKeccak256) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	limitBits := this.params.QitmeerKeccak256PowLimitBits
 	limitBitsBig := CompactToBig(limitBits)

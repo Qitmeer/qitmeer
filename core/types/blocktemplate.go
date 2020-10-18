@@ -34,5 +34,5 @@ type BlockTemplate struct {
 	ValidPayAddress bool
 
 	//pow diff
-	CompactDiff uint32
+	Difficulty uint32
 }

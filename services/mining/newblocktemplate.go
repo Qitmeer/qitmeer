@@ -443,7 +443,7 @@ mempoolLoop:
 		Height:          nextBlockHeight,
 		Blues:           blues,
 		ValidPayAddress: payToAddress != nil,
-		CompactDiff:     reqCompactDifficulty,
+		Difficulty:      reqCompactDifficulty,
 	}
 	return handleCreatedBlockTemplate(blockTemplate, blockManager)
 }

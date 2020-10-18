@@ -65,12 +65,6 @@ func (this *X16rv3) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int,
 	return nextDiffBig
 }
 
-func (this *X16rv3) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType)))
-	targetPercent.Lsh(targetPercent, 32)
-	return targetPercent
-}
-
 func (this *X16rv3) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	limitBits := this.params.X16rv3PowLimitBits
 	limitBitsBig := CompactToBig(limitBits)

@@ -51,7 +51,7 @@ var MainNetParams = Params{
 		CuckaroomMinDifficulty: 0x1300000 * 4,
 		CuckatooMinDifficulty:  0x1300000 * 4,
 
-		Percent: map[pow.MainHeight]map[pow.PowType]pow.PercentValue{
+		Percent: map[pow.MainHeight]pow.PercentItem{
 			pow.MainHeight(0): {
 				pow.QITMEERKECCAK256: 100,
 			},

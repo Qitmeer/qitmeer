@@ -54,7 +54,7 @@ var TestNetParams = Params{
 		CuckatooMinDifficulty:  0x2074000, // 1856
 		CuckaroomMinDifficulty: 0x34ad1ec, // compact : 55235052 diff : 4903404
 
-		Percent: map[pow.MainHeight]map[pow.PowType]pow.PercentValue{
+		Percent: map[pow.MainHeight]pow.PercentItem{
 			pow.MainHeight(0): {
 				pow.BLAKE2BD:         0,
 				pow.X16RV3:           0,

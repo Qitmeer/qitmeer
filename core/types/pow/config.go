@@ -9,9 +9,10 @@ import (
 
 var PowConfigInstance *PowConfig
 
-type MainHeight int
-type PercentValue int
-
+type MainHeight uint32
+type PercentValue uint32
+type Percent map[MainHeight]PercentItem
+type PercentItem map[PowType]PercentValue
 type PowConfig struct {
 	// PowLimit defines the highest allowed proof of work value for a block
 	// as a uint256.
@@ -35,7 +36,7 @@ type PowConfig struct {
 	CuckaroomMinDifficulty uint32
 	CuckatooMinDifficulty  uint32
 
-	Percent map[MainHeight]map[PowType]PercentValue
+	Percent map[MainHeight]PercentItem
 
 	AdjustmentStartMainHeight int64
 
@@ -90,9 +91,6 @@ func (this *PowConfig) Check() error {
 	allPercent := 0
 	heightArr := map[MainHeight]int{}
 	for mHeight, p := range this.Percent {
-		if mHeight < 0 {
-			return errors.New("pow config error, main height must greater than or equal to 0!")
-		}
 		if _, ok := heightArr[mHeight]; ok {
 			return errors.New("pow config error, mainHeight set repeat!")
 		}
