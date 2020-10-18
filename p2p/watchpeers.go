@@ -36,7 +36,7 @@ func (s *Service) ensurePeerConnections(pes []ma.Multiaddr) {
 			log.Debug(fmt.Sprintf("No connections to peer, reconnecting:peer %v", peerInfo.ID))
 
 			go func(info peer.AddrInfo) {
-				if err := s.connectWithPeer(info); err != nil {
+				if err := s.connectWithPeer(info, true); err != nil {
 					log.Trace(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
 				}
 			}(*peerInfo)

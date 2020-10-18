@@ -31,14 +31,14 @@ func (ps *PeerSync) Start() error {
 
 func (ps *PeerSync) SyncPeer() *peers.Peer {
 	ps.splock.RLock()
-	defer ps.splock.RLock()
+	defer ps.splock.RUnlock()
 
 	return ps.syncPeer
 }
 
 func (ps *PeerSync) SetSyncPeer(pe *peers.Peer) {
 	ps.splock.Lock()
-	defer ps.splock.Lock()
+	defer ps.splock.Unlock()
 
 	ps.syncPeer = pe
 }
