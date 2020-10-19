@@ -109,11 +109,6 @@ func (this *Blake2bd) BlockData() PowBytes {
 	return PowBytes(bytes[:l-PROOFDATA_LENGTH])
 }
 
-//check pow is available
-func (this *Blake2bd) CheckAvailable() bool {
-	return this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType) > 0
-}
-
 //solve solution
 func (this *Blake2bd) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
 	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {

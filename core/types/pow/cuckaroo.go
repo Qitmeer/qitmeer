@@ -76,11 +76,6 @@ func (this *Cuckaroo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	return newTarget
 }
 
-//check pow is available
-func (this *Cuckaroo) CheckAvailable() bool {
-	return this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType) > 0
-}
-
 //calc scale
 //the edge_bits is bigger ,then scale is bigger
 //Reference resources https://eprint.iacr.org/2014/059.pdf 9. Difficulty control page 6
@@ -96,10 +91,10 @@ func (this *Cuckaroo) CheckAvailable() bool {
 //so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
 func (this *Cuckaroo) GraphWeight() uint64 {
 	//45 days
-	bigScale := this.params.AdjustmentStartMainHeight - this.mainHeight
-	bigScale = bigScale * 40
-	if bigScale <= 0 || int(this.GetEdgeBits()) == MIN_CUCKAROOEDGEBITS {
-		bigScale = 1
+	bigScale := MainHeight(1)
+	if this.params.AdjustmentStartMainHeight > this.mainHeight && int(this.GetEdgeBits()) != MIN_CUCKAROOEDGEBITS {
+		bigScale = this.params.AdjustmentStartMainHeight - this.mainHeight
+		bigScale = bigScale * 40
 	}
 
 	scale := (2 << (this.GetEdgeBits() - MIN_CUCKAROOEDGEBITS)) * uint64(this.GetEdgeBits()) / uint64(bigScale)

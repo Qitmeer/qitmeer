@@ -84,7 +84,7 @@ type IPow interface {
 	//SetParams
 	SetParams(params *PowConfig)
 	//SetHeight
-	SetMainHeight(height int64)
+	SetMainHeight(height MainHeight)
 	CheckAvailable() bool
 	CompareDiff(newtarget *big.Int, target *big.Int) bool
 	FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool
@@ -95,7 +95,7 @@ type Pow struct {
 	Nonce      uint32        //header nonce 4 bytes
 	ProofData  ProofDataType // 1 edge_bits  168  bytes circle length total 169 bytes
 	params     *PowConfig
-	mainHeight int64
+	mainHeight MainHeight
 }
 
 //get pow instance
@@ -133,7 +133,7 @@ func (this *Pow) SetParams(params *PowConfig) {
 	this.params = GetPowConfig().Set(params)
 }
 
-func (this *Pow) SetMainHeight(mainHeight int64) {
+func (this *Pow) SetMainHeight(mainHeight MainHeight) {
 	this.mainHeight = mainHeight
 }
 
@@ -163,4 +163,9 @@ func (this *Pow) PowPercent() *big.Int {
 	targetPercent := big.NewInt(int64(this.params.GetPercentByHeightAndType(this.mainHeight, this.GetPowType())))
 	targetPercent.Lsh(targetPercent, 32)
 	return targetPercent
+}
+
+//check pow is available
+func (this *Pow) CheckAvailable() bool {
+	return this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType) > 0
 }

@@ -227,7 +227,7 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 // are needed to pass along to checkProofOfWork.
 func checkBlockHeaderSanity(header *types.BlockHeader, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *params.Params, mHeight uint) error {
 	instance := pow.GetInstance(header.Pow.GetPowType(), 0, []byte{})
-	instance.SetMainHeight(int64(mHeight))
+	instance.SetMainHeight(pow.MainHeight(mHeight))
 	instance.SetParams(chainParams.PowConfig)
 	if !instance.CheckAvailable() {
 		str := fmt.Sprintf("pow type : %d is not available!", header.Pow.GetPowType())
@@ -277,7 +277,7 @@ func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags
 	// to avoid proof of work checks is set.
 	if flags&BFNoPoWCheck != BFNoPoWCheck {
 		header.Pow.SetParams(powConfig)
-		header.Pow.SetMainHeight(int64(mHeight))
+		header.Pow.SetMainHeight(pow.MainHeight(mHeight))
 		// The block hash must be less than the claimed target.
 		return header.Pow.Verify(header.BlockData(), header.BlockHash(), header.Difficulty)
 	}
@@ -647,7 +647,7 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	if !fastAdd {
 		instance := pow.GetInstance(header.Pow.GetPowType(), 0, []byte{})
-		instance.SetMainHeight(int64(prevNode.height + 1))
+		instance.SetMainHeight(pow.MainHeight(prevNode.height + 1))
 		instance.SetParams(b.params.PowConfig)
 		// Ensure the difficulty specified in the block header matches
 		// the calculated difficulty based on the previous block and

@@ -75,11 +75,6 @@ func (this *Cuckatoo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	return newTarget
 }
 
-//check pow is available
-func (this *Cuckatoo) CheckAvailable() bool {
-	return this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType) > 0
-}
-
 //calc scale
 //the edge_bits is bigger ,then scale is bigger
 //Reference resources https://eprint.iacr.org/2014/059.pdf 9. Difficulty control page 6

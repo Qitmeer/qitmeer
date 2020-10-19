@@ -38,7 +38,7 @@ type PowConfig struct {
 
 	Percent map[MainHeight]PercentItem
 
-	AdjustmentStartMainHeight int64
+	AdjustmentStartMainHeight MainHeight
 
 	//is init
 	init bool
@@ -65,18 +65,23 @@ func (this *PowConfig) Set(p *PowConfig) *PowConfig {
 }
 
 // get Percent By height
-func (this *PowConfig) GetPercentByHeightAndType(h int64, powType PowType) PercentValue {
+func (this *PowConfig) GetPercentByHeightAndType(h MainHeight, powType PowType) PercentValue {
 	//sort by main height asc
-	var keys []int
+	var keys []MainHeight
 	for k := range this.Percent {
-		keys = append(keys, int(k))
+		keys = append(keys, k)
 	}
-	sort.Ints(keys)
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i] > keys[j] {
+			return false
+		}
+		return true
+	})
 	currentPercent := map[PowType]PercentValue{}
 	// get best match percent
 	for _, k := range keys {
-		if h >= int64(k) {
-			currentPercent = this.Percent[MainHeight(k)]
+		if h >= k {
+			currentPercent = this.Percent[k]
 		}
 	}
 	val, ok := currentPercent[powType]
@@ -88,7 +93,7 @@ func (this *PowConfig) GetPercentByHeightAndType(h int64, powType PowType) Perce
 
 // check percent
 func (this *PowConfig) Check() error {
-	allPercent := 0
+	allPercent := PercentValue(0)
 	heightArr := map[MainHeight]int{}
 	for mHeight, p := range this.Percent {
 		if _, ok := heightArr[mHeight]; ok {
@@ -100,10 +105,7 @@ func (this *PowConfig) Check() error {
 			if powName == "" {
 				return errors.New(fmt.Sprintf("Pow Type %d Not Config Name in IPow.go!", pty))
 			}
-			if val < 0 {
-				return errors.New(powName + " percent config error, all percent must greater than or equal to 0!")
-			}
-			allPercent += int(val)
+			allPercent += val
 		}
 		if allPercent != 100 {
 			return errors.New("pow config error, all pow not equal 100%!actual is " + fmt.Sprintf("%d", allPercent))

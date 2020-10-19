@@ -340,7 +340,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 		}
 		instance := pow.GetInstance(powType, 0, []byte{})
 		instance.SetNonce(i)
-		instance.SetMainHeight(int64(mheight))
+		instance.SetMainHeight(pow.MainHeight(mheight))
 		instance.SetParams(m.params.PowConfig)
 		hashesCompleted += 2
 		header.Pow = instance

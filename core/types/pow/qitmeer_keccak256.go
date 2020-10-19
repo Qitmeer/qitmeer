@@ -108,11 +108,6 @@ func (this *QitmeerKeccak256) BlockData() PowBytes {
 	return PowBytes(this.Bytes()[:l-PROOFDATA_LENGTH])
 }
 
-//check pow is available
-func (this *QitmeerKeccak256) CheckAvailable() bool {
-	return this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType) > 0
-}
-
 //not support
 func (this *QitmeerKeccak256) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
 	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {

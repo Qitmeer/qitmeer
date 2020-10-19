@@ -109,11 +109,6 @@ func (this *X16rv3) BlockData() PowBytes {
 	return PowBytes(this.Bytes()[:l-PROOFDATA_LENGTH])
 }
 
-//check pow is available
-func (this *X16rv3) CheckAvailable() bool {
-	return this.params.GetPercentByHeightAndType(this.mainHeight, this.PowType) > 0
-}
-
 //not support
 func (this *X16rv3) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
 	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {

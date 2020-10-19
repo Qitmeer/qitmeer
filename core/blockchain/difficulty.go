@@ -386,7 +386,7 @@ func (b *BlockChain) CalcNextRequiredDiffFromNode(hash *hash.Hash, timestamp tim
 	}
 	instance := pow.GetInstance(powType, 0, []byte{})
 	instance.SetParams(b.params.PowConfig)
-	instance.SetMainHeight(int64(node.height + 1))
+	instance.SetMainHeight(pow.MainHeight(node.height + 1))
 	return b.calcNextRequiredDifficulty(node, timestamp, instance)
 }
 
@@ -401,7 +401,7 @@ func (b *BlockChain) CalcNextRequiredDifficulty(timestamp time.Time, powType pow
 	node := b.index.LookupNode(block.GetHash())
 	instance := pow.GetInstance(powType, 0, []byte{})
 	instance.SetParams(b.params.PowConfig)
-	instance.SetMainHeight(int64(node.height + 1))
+	instance.SetMainHeight(pow.MainHeight(node.height + 1))
 	difficulty, err := b.calcNextRequiredDifficulty(node, timestamp, instance)
 	b.ChainRUnlock()
 	return difficulty, err
