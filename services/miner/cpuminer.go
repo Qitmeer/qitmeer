@@ -344,7 +344,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 		instance.SetParams(m.params.PowConfig)
 		hashesCompleted += 2
 		header.Pow = instance
-		if instance.FindSolver(header.BlockData(), header.BlockHash(), header.Difficulty) {
+		if header.Pow.FindSolver(header.BlockData(), header.BlockHash(), header.Difficulty) {
 			m.updateHashes <- hashesCompleted
 			return true
 		}

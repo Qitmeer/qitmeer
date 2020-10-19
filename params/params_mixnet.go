@@ -30,8 +30,8 @@ var MixNetParams = Params{
 	Name:        "mixnet",
 	Net:         protocol.MixNet,
 	DefaultPort: "28130",
-	DNSSeeds: []DNSSeed{
-		{"mixnet-seed.qitmeer.io", true},
+	DNSSeeds:    []DNSSeed{
+		// {"mixnet-seed.qitmeer.io", true},
 	},
 
 	// Chain parameters
