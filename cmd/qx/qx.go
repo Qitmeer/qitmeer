@@ -572,19 +572,19 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		switch powType {
 		case "cuckaroo":
 			instance := &pow.Cuckaroo{}
-			instance.SetMainHeight(mheight)
+			instance.SetMainHeight(pow.MainHeight(mheight))
 			instance.SetEdgeBits(uint8(edgeBits))
 			instance.SetParams(p.PowConfig)
 			return int(instance.GraphWeight())
 		case "cuckaroom":
 			instance := &pow.Cuckaroom{}
-			instance.SetMainHeight(mheight)
+			instance.SetMainHeight(pow.MainHeight(mheight))
 			instance.SetEdgeBits(uint8(edgeBits))
 			instance.SetParams(p.PowConfig)
 			return int(instance.GraphWeight())
 		case "cuckatoo":
 			instance := &pow.Cuckaroo{}
-			instance.SetMainHeight(mheight)
+			instance.SetMainHeight(pow.MainHeight(mheight))
 			instance.SetEdgeBits(uint8(edgeBits))
 			instance.SetParams(p.PowConfig)
 			return int(instance.GraphWeight())

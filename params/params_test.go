@@ -22,7 +22,7 @@ func TestPercent(t *testing.T) {
 		instance.SetParams(PrivNetParam.PowConfig)
 		percent := new(big.Int)
 		for mheight, pi := range PrivNetParam.PowConfig.Percent {
-			instance.SetMainHeight(int64(mheight + 1))
+			instance.SetMainHeight(pow.MainHeight(mheight + 1))
 			percent.SetInt64(int64(pi[powType]))
 
 			percent.Lsh(percent, 32)
