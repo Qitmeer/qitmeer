@@ -54,28 +54,26 @@ var TestNetParams = Params{
 		CuckatooMinDifficulty:  0x2074000, // 1856
 		CuckaroomMinDifficulty: 0x34ad1ec, // compact : 55235052 diff : 4903404
 
-		Percent: []pow.Percent{
-			{
-				Blake2bDPercent:         0,
-				X16rv3Percent:           0,
-				QitmeerKeccak256Percent: 30,
-				CuckaroomPercent:        70,
-				CuckatooPercent:         0,
-				MainHeight:              0,
+		Percent: map[pow.MainHeight]pow.PercentItem{
+			pow.MainHeight(0): {
+				pow.BLAKE2BD:         0,
+				pow.X16RV3:           0,
+				pow.QITMEERKECCAK256: 30,
+				pow.CUCKAROOM:        70,
+				pow.CUCKATOO:         0,
 			},
-			{
-				Blake2bDPercent:         0,
-				X16rv3Percent:           0,
-				QitmeerKeccak256Percent: 100,
-				CuckaroomPercent:        0,
-				CuckatooPercent:         0,
-				// | time	| timestamp	| mainHeight |
-				// | ---| --- | --- |
-				// | 2020-08-30 10:31:46 | 1598754706 | 192266
-				// | 2020-09-15 12:00 | 1600142400 | 238522
-				// The soft forking mainHeight was calculated according to the average time of 30s
-				// In other words, pmeer will be produced by the pow of QitmeerKeccak256 only after mainHeight arrived 238522
-				MainHeight: 238522,
+			// | time	| timestamp	| mainHeight |
+			// | ---| --- | --- |
+			// | 2020-08-30 10:31:46 | 1598754706 | 192266
+			// | 2020-09-15 12:00 | 1600142400 | 238522
+			// The soft forking mainHeight was calculated according to the average time of 30s
+			// In other words, pmeer will be produced by the pow of QitmeerKeccak256 only after mainHeight arrived 238522
+			pow.MainHeight(238522): {
+				pow.BLAKE2BD:         0,
+				pow.X16RV3:           0,
+				pow.QITMEERKECCAK256: 100,
+				pow.CUCKAROOM:        0,
+				pow.CUCKATOO:         0,
 			},
 		},
 		// after this height the big graph will be the main pow graph

@@ -1,27 +1,5 @@
 package types
 
-// this standard target use for miner to verify Their work
-// for different pow work diff
-// blake2bd on hash compare hash <= target
-// cuckoo diff formula ：scale * 2^64 / hash(front 8bytes) >= base diff
-type PowDiffStandard struct {
-	//blake2b diff hash target
-	Blake2bDTarget         uint32
-	X16rv3DTarget          uint32
-	X8r16DTarget           uint32
-	QitmeerKeccak256Target uint32
-
-	//cuckoo base difficultuy
-	CuckarooBaseDiff  uint64
-	CuckatooBaseDiff  uint64
-	CuckaroomBaseDiff uint64
-
-	//cuckoo hash convert diff scale
-	CuckarooDiffScale  uint64
-	CuckatooDiffScale  uint64
-	CuckaroomDiffScale uint64
-}
-
 // BlockTemplate houses a block that has yet to be solved along with additional
 // details about the fees and the number of signature operations for each
 // transaction in the block.
@@ -55,6 +33,6 @@ type BlockTemplate struct {
 	// templates without a coinbase payment address.
 	ValidPayAddress bool
 
-	//pow diff standard
-	PowDiffData PowDiffStandard
+	//pow diff
+	Difficulty uint32
 }

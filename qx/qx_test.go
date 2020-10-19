@@ -54,10 +54,12 @@ func TestEcPubKeyToAddress(t *testing.T) {
 func TestCreateAddress(t *testing.T) {
 	s, _ := NewEntropy(32)
 	k, _ := EcNew("secp256k1", s)
+	fmt.Println("[privateKey]", k)
 	p, _ := EcPrivateKeyToEcPublicKey(false, k)
-	a, _ := EcPubKeyToAddress("testnet", p)
+	a, _ := EcPubKeyToAddress("mixnet", p)
+	fmt.Println("[address]", a)
 	fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-	assert.Contains(t, a, "Tm")
+	assert.Contains(t, a, "Xm")
 }
 
 func TestCreateMixParamsAddressPublicKeyHash(t *testing.T) {

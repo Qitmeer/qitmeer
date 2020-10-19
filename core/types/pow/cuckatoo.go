@@ -60,11 +60,6 @@ func (this *Cuckatoo) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 	nextDiffBig.Div(nextDiffBig, targetPercent)
 	return nextDiffBig
 }
-func (this *Cuckatoo) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).CuckatooPercent))
-	targetPercent.Lsh(targetPercent, 32)
-	return targetPercent
-}
 
 func (this *Cuckatoo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	minDiffBig := CompactToBig(this.params.CuckatooMinDifficulty)
@@ -78,11 +73,6 @@ func (this *Cuckatoo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 		newTarget.Set(minDiffBig)
 	}
 	return newTarget
-}
-
-//check pow is available
-func (this *Cuckatoo) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.mainHeight).CuckatooPercent > 0
 }
 
 //calc scale
@@ -100,4 +90,9 @@ func (this *Cuckatoo) CheckAvailable() bool {
 //so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
 func (this *Cuckatoo) GraphWeight() uint64 {
 	return (2 << (this.GetEdgeBits() - MIN_CUCKAROOEDGEBITS)) * uint64(this.GetEdgeBits())
+}
+
+//not support
+func (this *Cuckatoo) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
+	return false
 }

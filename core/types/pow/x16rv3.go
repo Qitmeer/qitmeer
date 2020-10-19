@@ -65,12 +65,6 @@ func (this *X16rv3) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int,
 	return nextDiffBig
 }
 
-func (this *X16rv3) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).X16rv3Percent))
-	targetPercent.Lsh(targetPercent, 32)
-	return targetPercent
-}
-
 func (this *X16rv3) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	limitBits := this.params.X16rv3PowLimitBits
 	limitBitsBig := CompactToBig(limitBits)
@@ -115,7 +109,10 @@ func (this *X16rv3) BlockData() PowBytes {
 	return PowBytes(this.Bytes()[:l-PROOFDATA_LENGTH])
 }
 
-//check pow is available
-func (this *X16rv3) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.mainHeight).X16rv3Percent > 0
+//not support
+func (this *X16rv3) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
+	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {
+		return true
+	}
+	return false
 }
