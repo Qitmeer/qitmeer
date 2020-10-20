@@ -154,7 +154,7 @@ func (ps *PeerSync) processGetBlocks(pe *peers.Peer, blocks []*hash.Hash) error 
 		isCurrent := ps.IsCurrent()
 		if isCurrent {
 			log.Info("Your synchronization has been completed. ")
-			ps.UpdateGraphState(pe)
+			go ps.UpdateGraphState(pe)
 		}
 	} else {
 		return fmt.Errorf("no get blocks")

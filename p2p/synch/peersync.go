@@ -333,9 +333,9 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 	allOrphan := ps.Chain().GetRecentOrphansParents()
 
 	if len(allOrphan) > 0 {
-		ps.GetBlocks(ps.SyncPeer(), allOrphan)
+		go ps.GetBlocks(ps.SyncPeer(), allOrphan)
 	} else {
-		ps.syncDAGBlocks(ps.SyncPeer())
+		go ps.syncDAGBlocks(ps.SyncPeer())
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
-	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"github.com/Qitmeer/qitmeer/p2p/runutil"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -16,7 +15,7 @@ import (
 
 // maintainPeerStatuses by infrequently polling peers for their latest status.
 func (s *Sync) maintainPeerStatuses() {
-	interval := s.p2p.BlockChain().ChainParams().TargetTimePerBlock * 2
+	interval := s.p2p.BlockChain().ChainParams().TargetTimePerBlock * 100
 	runutil.RunEvery(s.p2p.Context(), interval, func() {
 		for _, pid := range s.Peers().Connected() {
 			go func(id peer.ID) {
@@ -27,11 +26,7 @@ func (s *Sync) maintainPeerStatuses() {
 				// If our peer status has not been updated correctly we disconnect over here
 				// and set the connection state over here instead.
 				if s.p2p.Host().Network().Connectedness(id) != network.Connected {
-					pe.SetConnectionState(peers.PeerDisconnecting)
-					if err := s.p2p.Disconnect(id); err != nil {
-						log.Error(fmt.Sprintf("Error when disconnecting with peer: %v", err))
-					}
-					pe.SetConnectionState(peers.PeerDisconnected)
+					s.peerSync.Disconnect(pe)
 					return
 				}
 
