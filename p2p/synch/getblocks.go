@@ -16,6 +16,7 @@ import (
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"sort"
+	"sync/atomic"
 )
 
 func (s *Sync) sendGetBlocksRequest(ctx context.Context, id peer.ID, blockhash *hash.Hash) (*pb.BlockData, error) {
@@ -107,10 +108,13 @@ func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream lib
 	return nil
 }
 
-func (s *Sync) getBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
+func (ps *PeerSync) processGetBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
 	blockdatas := BlockDataSlice{}
 	for _, b := range blocks {
-		bd, err := s.sendGetBlocksRequest(s.p2p.Context(), pe.GetID(), b)
+		if !pe.IsActive() {
+			break
+		}
+		bd, err := ps.sy.sendGetBlocksRequest(ps.sy.p2p.Context(), pe.GetID(), b)
 		if err != nil {
 			log.Warn(fmt.Sprintf("getBlocks send:%v", err))
 			continue
@@ -133,7 +137,7 @@ func (s *Sync) getBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
 			log.Warn(fmt.Sprintf("getBlocks from:%v", err))
 			continue
 		}
-		isOrphan, err := s.p2p.BlockChain().ProcessBlock(block, behaviorFlags)
+		isOrphan, err := ps.sy.p2p.BlockChain().ProcessBlock(block, behaviorFlags)
 		if err != nil {
 			log.Error("Failed to process block", "hash", block.Hash(), "error", err)
 			continue
@@ -145,15 +149,24 @@ func (s *Sync) getBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
 	}
 	log.Trace(fmt.Sprintf("getBlocks:%d/%d", add, len(blockdatas)))
 	if add > 0 {
-		s.p2p.TxMemPool().PruneExpiredTx()
+		ps.sy.p2p.TxMemPool().PruneExpiredTx()
 
-		isCurrent := s.peerSync.IsCurrent()
+		isCurrent := ps.IsCurrent()
 		if isCurrent {
 			log.Info("Your synchronization has been completed. ")
-			go s.updateGraphState(pe)
+			ps.UpdateGraphState(pe)
 		}
 	} else {
 		return fmt.Errorf("no get blocks")
 	}
 	return nil
+}
+
+func (ps *PeerSync) GetBlocks(pe *peers.Peer, blocks []*hash.Hash) {
+	// Ignore if we are shutting down.
+	if atomic.LoadInt32(&ps.shutdown) != 0 {
+		return
+	}
+
+	ps.msgChan <- &GetBlocksMsg{pe: pe, blocks: blocks}
 }

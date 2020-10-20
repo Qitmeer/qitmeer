@@ -14,6 +14,7 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"sync/atomic"
 )
 
 func (s *Sync) sendTxRequest(ctx context.Context, id peer.ID, txhash *hash.Hash) (*pb.Transaction, error) {
@@ -118,16 +119,25 @@ func (s *Sync) handleTxMsg(msg *pb.Transaction) error {
 	return nil
 }
 
-func (s *Sync) getTxs(pe *peers.Peer, txs []*hash.Hash) error {
+func (ps *PeerSync) processGetTxs(pe *peers.Peer, txs []*hash.Hash) error {
 	for _, txh := range txs {
-		tx, err := s.sendTxRequest(s.p2p.Context(), pe.GetID(), txh)
+		tx, err := ps.sy.sendTxRequest(ps.sy.p2p.Context(), pe.GetID(), txh)
 		if err != nil {
 			return err
 		}
-		err = s.handleTxMsg(tx)
+		err = ps.sy.handleTxMsg(tx)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (ps *PeerSync) getTxs(pe *peers.Peer, txs []*hash.Hash) {
+	// Ignore if we are shutting down.
+	if atomic.LoadInt32(&ps.shutdown) != 0 {
+		return
+	}
+
+	ps.msgChan <- &getTxsMsg{pe: pe, txs: txs}
 }

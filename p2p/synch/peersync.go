@@ -12,6 +12,14 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"sync"
+	"sync/atomic"
+	"time"
+)
+
+const (
+	// stallSampleInterval the interval at which we will check to see if our
+	// sync has stalled.
+	stallSampleInterval = 300 * time.Second
 )
 
 type PeerSync struct {
@@ -21,12 +29,120 @@ type PeerSync struct {
 	syncPeer *peers.Peer
 	// dag sync
 	dagSync *blockdag.DAGSync
+
+	started  int32
+	shutdown int32
+	msgChan  chan interface{}
+	wg       sync.WaitGroup
+	quit     chan struct{}
 }
 
 func (ps *PeerSync) Start() error {
+	// Already started?
+	if atomic.AddInt32(&ps.started, 1) != 1 {
+		return nil
+	}
+
 	log.Info("P2P PeerSync Start")
 	ps.dagSync = blockdag.NewDAGSync(ps.sy.p2p.BlockChain().BlockDAG())
+
+	ps.wg.Add(1)
+	go ps.handler()
 	return nil
+}
+
+func (ps *PeerSync) Stop() error {
+	if atomic.AddInt32(&ps.shutdown, 1) != 1 {
+		log.Warn("PeerSync is already in the process of shutting down")
+		return nil
+	}
+	log.Info("P2P PeerSync Stop")
+
+	close(ps.quit)
+	ps.wg.Wait()
+
+	return nil
+}
+
+func (ps *PeerSync) handler() {
+	stallTicker := time.NewTicker(stallSampleInterval)
+	defer stallTicker.Stop()
+
+out:
+	for {
+		select {
+		case m := <-ps.msgChan:
+			switch msg := m.(type) {
+			case pauseMsg:
+				// Wait until the sender unpauses the manager.
+				<-msg.unpause
+
+			case *ConnectedMsg:
+				ps.processConnected(msg)
+
+			case *DisconnectedMsg:
+				ps.processDisconnected(msg)
+
+			case *GetBlocksMsg:
+				err := ps.processGetBlocks(msg.pe, msg.blocks)
+				if err != nil {
+					log.Error(err.Error())
+				}
+			case *UpdateGraphStateMsg:
+				err := ps.processUpdateGraphState(msg.pe)
+				if err != nil {
+					log.Error(err.Error())
+				}
+			case *syncDAGBlocksMsg:
+				err := ps.processSyncDAGBlocks(msg.pe)
+				if err != nil {
+					log.Error(err.Error())
+				}
+			case *PeerUpdateMsg:
+				ps.OnPeerUpdate(msg.pe)
+			case *getTxsMsg:
+				err := ps.processGetTxs(msg.pe, msg.txs)
+				if err != nil {
+					log.Error(err.Error())
+				}
+			default:
+				log.Warn(fmt.Sprintf("Invalid message type in task "+
+					"handler: %T", msg))
+			}
+
+		case <-stallTicker.C:
+			ps.handleStallSample()
+
+		case <-ps.quit:
+			break out
+		}
+	}
+
+	// Drain any wait channels before going away so there is nothing left
+	// waiting on this goroutine.
+cleanup:
+	for {
+		select {
+		case <-ps.msgChan:
+		default:
+			break cleanup
+		}
+	}
+
+	ps.wg.Done()
+	log.Trace("Peer Sync handler done")
+}
+
+func (ps *PeerSync) handleStallSample() {
+	if atomic.LoadInt32(&ps.shutdown) != 0 {
+		return
+	}
+}
+
+func (ps *PeerSync) Pause() chan<- struct{} {
+	c := make(chan struct{})
+	ps.msgChan <- pauseMsg{c}
+	return c
 }
 
 func (ps *PeerSync) SyncPeer() *peers.Peer {
@@ -41,11 +157,6 @@ func (ps *PeerSync) SetSyncPeer(pe *peers.Peer) {
 	defer ps.splock.Unlock()
 
 	ps.syncPeer = pe
-}
-
-func (ps *PeerSync) Stop() error {
-	log.Info("P2P PeerSync Stop")
-	return nil
 }
 
 func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
@@ -69,6 +180,15 @@ func (ps *PeerSync) OnPeerDisconnected(pe *peers.Peer) {
 			ps.updateSyncPeer(true)
 		}
 	}
+}
+
+func (ps *PeerSync) PeerUpdate(pe *peers.Peer) {
+	// Ignore if we are shutting down.
+	if atomic.LoadInt32(&ps.shutdown) != 0 {
+		return
+	}
+
+	ps.msgChan <- &PeerUpdateMsg{pe: pe}
 }
 
 func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer) {
@@ -212,17 +332,10 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 	}
 	allOrphan := ps.Chain().GetRecentOrphansParents()
 
-	var err error
 	if len(allOrphan) > 0 {
-		err = ps.sy.getBlocks(ps.SyncPeer(), allOrphan)
-		if err != nil {
-			err = ps.sy.syncDAGBlocks(ps.SyncPeer())
-		}
+		ps.GetBlocks(ps.SyncPeer(), allOrphan)
 	} else {
-		err = ps.sy.syncDAGBlocks(ps.SyncPeer())
-	}
-	if err != nil {
-		ps.updateSyncPeer(true)
+		ps.syncDAGBlocks(ps.SyncPeer())
 	}
 }
 
@@ -260,7 +373,11 @@ func (ps *PeerSync) RelayInventory(data interface{}) {
 }
 
 func NewPeerSync(sy *Sync) *PeerSync {
-	peerSync := &PeerSync{sy: sy}
+	peerSync := &PeerSync{
+		sy:      sy,
+		msgChan: make(chan interface{}),
+		quit:    make(chan struct{}),
+	}
 
 	return peerSync
 }

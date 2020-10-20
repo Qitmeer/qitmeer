@@ -107,10 +107,10 @@ func (s *Sync) handleInventory(msg *pb.Inventory, pe *peers.Peer) error {
 		}
 	}
 	if len(blocks) > 0 {
-		go s.getBlocks(pe, blocks)
+		s.peerSync.GetBlocks(pe, blocks)
 	}
 	if len(txs) > 0 {
-		go s.getTxs(pe, txs)
+		s.peerSync.getTxs(pe, txs)
 	}
 	return nil
 }

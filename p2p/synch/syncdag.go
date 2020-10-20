@@ -13,6 +13,7 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"sync/atomic"
 )
 
 // MaxBlockLocatorsPerMsg is the maximum number of block locator hashes allowed
@@ -82,7 +83,7 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 		return err
 	}
 	pe.UpdateGraphState(m.GraphState)
-	go s.peerSync.OnPeerUpdate(pe)
+	s.peerSync.PeerUpdate(pe)
 
 	gs := pe.GraphState()
 	blocks, point := s.PeerSync().dagSync.CalcSyncBlocks(gs, changePBHashsToHashs(m.MainLocator), blockdag.SubDAGMode, MaxBlockLocatorsPerMsg)
@@ -107,20 +108,31 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 	return nil
 }
 
-func (s *Sync) syncDAGBlocks(pe *peers.Peer) error {
+func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
 	point := pe.SyncPoint()
-	mainLocator := s.peerSync.dagSync.GetMainLocator(point)
-	sd := &pb.SyncDAG{MainLocator: changeHashsToPBHashs(mainLocator), GraphState: s.getGraphState()}
-	subd, err := s.sendSyncDAGRequest(s.p2p.Context(), pe.GetID(), sd)
+	mainLocator := ps.dagSync.GetMainLocator(point)
+	sd := &pb.SyncDAG{MainLocator: changeHashsToPBHashs(mainLocator), GraphState: ps.sy.getGraphState()}
+	subd, err := ps.sy.sendSyncDAGRequest(ps.sy.p2p.Context(), pe.GetID(), sd)
 	if err != nil {
 		return err
 	}
 	pe.UpdateSyncPoint(changePBHashToHash(subd.SyncPoint))
 	pe.UpdateGraphState(subd.GraphState)
-	go s.peerSync.OnPeerUpdate(pe)
+	ps.PeerUpdate(pe)
 
 	if len(subd.Blocks) <= 0 {
 		return nil
 	}
-	return s.getBlocks(pe, changePBHashsToHashs(subd.Blocks))
+	ps.GetBlocks(pe, changePBHashsToHashs(subd.Blocks))
+
+	return nil
+}
+
+func (ps *PeerSync) syncDAGBlocks(pe *peers.Peer) {
+	// Ignore if we are shutting down.
+	if atomic.LoadInt32(&ps.shutdown) != 0 {
+		return
+	}
+
+	ps.msgChan <- &syncDAGBlocksMsg{pe: pe}
 }

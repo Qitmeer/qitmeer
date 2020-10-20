@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
+	"sync/atomic"
 )
 
 func (s *Sync) sendGraphStateRequest(ctx context.Context, pe *peers.Peer, gs *pb.GraphState) (*pb.GraphState, error) {
@@ -89,12 +90,24 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 	return nil
 }
 
-func (s *Sync) updateGraphState(pe *peers.Peer) error {
-	gs, err := s.sendGraphStateRequest(s.p2p.Context(), pe, s.getGraphState())
+func (ps *PeerSync) processUpdateGraphState(pe *peers.Peer) error {
+	if !pe.IsActive() {
+		return fmt.Errorf("peer is not active")
+	}
+	gs, err := ps.sy.sendGraphStateRequest(ps.sy.p2p.Context(), pe, ps.sy.getGraphState())
 	if err != nil {
 		log.Error(err.Error())
 		return err
 	}
 	pe.UpdateGraphState(gs)
 	return nil
+}
+
+func (ps *PeerSync) UpdateGraphState(pe *peers.Peer) {
+	// Ignore if we are shutting down.
+	if atomic.LoadInt32(&ps.shutdown) != 0 {
+		return
+	}
+
+	ps.msgChan <- &UpdateGraphStateMsg{pe: pe}
 }

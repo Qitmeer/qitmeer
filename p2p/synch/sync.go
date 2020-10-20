@@ -70,11 +70,8 @@ type Sync struct {
 func (s *Sync) Start() error {
 	s.registerHandlers()
 
-	s.AddConnectionHandler(s.reValidatePeer, s.sendGenericGoodbyeMessage)
-	s.AddDisconnectionHandler(func(_ context.Context, _ peer.ID) error {
-		// TODO
-		return nil
-	})
+	s.AddConnectionHandler()
+	s.AddDisconnectionHandler()
 
 	s.maintainPeerStatuses()
 

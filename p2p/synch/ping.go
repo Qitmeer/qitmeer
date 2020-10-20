@@ -21,6 +21,7 @@ func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pco
 		return peers.ErrPeerUnknown
 	}
 
+	log.Trace(fmt.Sprintf("pingHandler:%s", pe.GetID()))
 	SetRPCStreamDeadlines(stream)
 
 	m, ok := msg.(*uint64)
@@ -72,7 +73,7 @@ func (s *Sync) SendPingRequest(ctx context.Context, id peer.ID) error {
 	if pe == nil {
 		return peers.ErrPeerUnknown
 	}
-
+	log.Trace(fmt.Sprintf("SendPingRequest:%s", pe.GetID()))
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
