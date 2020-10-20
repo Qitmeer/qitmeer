@@ -114,6 +114,10 @@ func (this *Cuckaroo) FindSolver(headerData []byte, blockHash hash.Hash, targetD
 		return false
 	}
 	this.SetCircleEdges(cycleNonces)
+	//cpuminer need recalc blockhash
+	// this.bytes() contains (nonce 4 bytes + powtype 1 byte + 169 proofdata) 174 bytes
+	copy(headerData[len(headerData)-POW_LENGTH:], this.Bytes())
+	blockHash = hash.DoubleHashH(headerData)
 	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {
 		return true
 	}
