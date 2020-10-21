@@ -32,6 +32,8 @@ const (
 	RPCChainState = "/qitmeer/req/chainstate/1"
 	// RPCGetBlocks defines the topic for the get blocks rpc method.
 	RPCGetBlocks = "/qitmeer/req/getblocks/1"
+	// RPCGetBlockDatas defines the topic for the get blocks rpc method.
+	RPCGetBlockDatas = "/qitmeer/req/getblockdatas/1"
 	// RPCGetBlocks defines the topic for the get blocks rpc method.
 	RPCSyncDAG = "/qitmeer/req/syncdag/1"
 	// RPCTransaction defines the topic for the transaction rpc method.
@@ -116,8 +118,14 @@ func (s *Sync) registerRPCHandlers() {
 
 	s.registerRPC(
 		RPCGetBlocks,
-		&pb.Hash{},
+		&pb.GetBlocks{},
 		s.getBlocksHandler,
+	)
+
+	s.registerRPC(
+		RPCGetBlockDatas,
+		&pb.Hash{},
+		s.getBlockDataHandler,
 	)
 
 	s.registerRPC(

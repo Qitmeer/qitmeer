@@ -9,21 +9,19 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"sort"
 	"sync/atomic"
 )
 
-func (s *Sync) sendGetBlocksRequest(ctx context.Context, id peer.ID, blockhash *hash.Hash) (*pb.BlockData, error) {
+func (s *Sync) sendGetBlocksRequest(ctx context.Context, id peer.ID, blocks *pb.GetBlocks) (*pb.DagBlocks, error) {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
-	stream, err := s.Send(ctx, &pb.Hash{Hash: blockhash.Bytes()}, RPCGetBlocks, id)
+	stream, err := s.Send(ctx, blocks, RPCGetBlocks, id)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +41,7 @@ func (s *Sync) sendGetBlocksRequest(ctx context.Context, id peer.ID, blockhash *
 		return nil, errors.New(errMsg)
 	}
 
-	msg := &pb.BlockData{}
+	msg := &pb.DagBlocks{}
 	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
 		return nil, err
 	}
@@ -71,35 +69,18 @@ func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream lib
 	}()
 
 	SetRPCStreamDeadlines(stream)
-	m, ok := msg.(*pb.Hash)
+	m, ok := msg.(*pb.GetBlocks)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")
 		return err
 	}
-	blockHash, err := hash.NewHash(m.Hash)
-	if err != nil {
-		err = fmt.Errorf("invalid block hash")
-		return err
-	}
-	ib := s.p2p.BlockChain().BlockDAG().GetBlock(blockHash)
-	if ib == nil {
-		err = fmt.Errorf("invalid block hash")
-		return err
-	}
-	block, err := s.p2p.BlockChain().FetchBlockByHash(blockHash)
-	if err != nil {
-		return err
-	}
+	blocks, _ := s.PeerSync().dagSync.CalcSyncBlocks(nil, changePBHashsToHashs(m.Locator), blockdag.DirectMode, MaxBlockLocatorsPerMsg)
 
-	blocks, err := block.Bytes()
-	if err != nil {
-		return err
-	}
 	_, err = stream.Write([]byte{responseCodeSuccess})
 	if err != nil {
 		return err
 	}
-	bd := &pb.BlockData{DagID: uint32(ib.GetID()), BlockBytes: blocks}
+	bd := &pb.DagBlocks{Blocks: changeHashsToPBHashs(blocks)}
 	_, err = s.Encoding().EncodeWithMaxLength(stream, bd)
 	if err != nil {
 		return err
@@ -109,62 +90,18 @@ func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream lib
 }
 
 func (ps *PeerSync) processGetBlocks(pe *peers.Peer, blocks []*hash.Hash) error {
-	blockdatas := BlockDataSlice{}
-	for _, b := range blocks {
-		if !pe.IsActive() {
-			break
-		}
-		bd, err := ps.sy.sendGetBlocksRequest(ps.sy.p2p.Context(), pe.GetID(), b)
-		if err != nil {
-			log.Warn(fmt.Sprintf("getBlocks send:%v", err))
-			continue
-		}
-		blockdatas = append(blockdatas, bd)
+	if len(blocks) <= 0 {
+		return fmt.Errorf("no blocks")
 	}
-	log.Trace(fmt.Sprintf("getBlocks:%d", len(blockdatas)))
-	if len(blockdatas) <= 0 {
-		return fmt.Errorf("no blocks return")
+	db, err := ps.sy.sendGetBlocksRequest(ps.sy.p2p.Context(), pe.GetID(), &pb.GetBlocks{Locator: changeHashsToPBHashs(blocks)})
+	if err != nil {
+		return err
 	}
-	if len(blockdatas) >= 2 {
-		sort.Sort(blockdatas)
+	if len(db.Blocks) <= 0 {
+		log.Warn("no block need to get")
+		return nil
 	}
-	behaviorFlags := blockchain.BFP2PAdd
-
-	add := 0
-	for _, bd := range blockdatas {
-		block, err := types.NewBlockFromBytes(bd.BlockBytes)
-		if err != nil {
-			log.Warn(fmt.Sprintf("getBlocks from:%v", err))
-			continue
-		}
-		isOrphan, err := ps.sy.p2p.BlockChain().ProcessBlock(block, behaviorFlags)
-		if err != nil {
-			log.Error("Failed to process block", "hash", block.Hash(), "error", err)
-			continue
-		}
-		if isOrphan {
-			continue
-		}
-		add++
-	}
-	log.Trace(fmt.Sprintf("getBlocks:%d/%d", add, len(blockdatas)))
-
-	var err error
-	if add > 0 {
-		ps.sy.p2p.TxMemPool().PruneExpiredTx()
-
-		isCurrent := ps.IsCurrent()
-		if isCurrent {
-			log.Info("Your synchronization has been completed. ")
-		}
-
-		go ps.UpdateGraphState(pe)
-	} else {
-		err = fmt.Errorf("no get blocks")
-	}
-	if add < len(blockdatas) {
-		ps.IntellectSyncBlocks(true)
-	}
+	go ps.GetBlockDatas(pe, changePBHashsToHashs(db.Blocks))
 	return err
 }
 
@@ -173,6 +110,9 @@ func (ps *PeerSync) GetBlocks(pe *peers.Peer, blocks []*hash.Hash) {
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
-
+	if len(blocks) == 1 {
+		ps.GetBlockDatas(pe, blocks)
+		return
+	}
 	ps.msgChan <- &GetBlocksMsg{pe: pe, blocks: blocks}
 }

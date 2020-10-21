@@ -121,7 +121,7 @@ func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
 	if len(subd.Blocks) <= 0 {
 		return nil
 	}
-	go ps.GetBlocks(pe, changePBHashsToHashs(subd.Blocks))
+	go ps.GetBlockDatas(pe, changePBHashsToHashs(subd.Blocks))
 
 	return nil
 }

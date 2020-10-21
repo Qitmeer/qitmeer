@@ -86,7 +86,6 @@ out:
 				fmt.Println("DisconnectedMsg")
 				ps.processDisconnected(msg)
 				fmt.Println("DisconnectedMsg end")
-
 			case *GetBlocksMsg:
 				fmt.Println("GetBlocksMsg")
 				err := ps.processGetBlocks(msg.pe, msg.blocks)
@@ -94,6 +93,13 @@ out:
 					log.Error(err.Error())
 				}
 				fmt.Println("GetBlocksMsg end")
+			case *GetBlockDatasMsg:
+				fmt.Println("GetBlockDatasMsg")
+				err := ps.processGetBlockDatas(msg.pe, msg.blocks)
+				if err != nil {
+					log.Error(err.Error())
+				}
+				fmt.Println("GetBlockDatasMsg end")
 			case *UpdateGraphStateMsg:
 				fmt.Println("UpdateGraphStateMsg")
 				err := ps.processUpdateGraphState(msg.pe)
@@ -190,10 +196,20 @@ func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
 func (ps *PeerSync) OnPeerDisconnected(pe *peers.Peer) {
 
 	if ps.HasSyncPeer() {
-		if pe == ps.SyncPeer() || pe.GetID() == ps.SyncPeer().GetID() {
+		if ps.isSyncPeer(pe) {
 			ps.updateSyncPeer(true)
 		}
 	}
+}
+
+func (ps *PeerSync) isSyncPeer(pe *peers.Peer) bool {
+	if !ps.HasSyncPeer() {
+		return false
+	}
+	if pe == ps.SyncPeer() || pe.GetID() == ps.SyncPeer().GetID() {
+		return true
+	}
+	return false
 }
 
 func (ps *PeerSync) PeerUpdate(pe *peers.Peer) {
@@ -206,11 +222,26 @@ func (ps *PeerSync) PeerUpdate(pe *peers.Peer) {
 }
 
 func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer) {
+
 	if ps.HasSyncPeer() {
 		spgs := ps.SyncPeer().GraphState()
-		pegs := pe.GraphState()
-		if pegs != nil && spgs != nil && pegs.IsExcellent(spgs) {
+		if !ps.SyncPeer().IsActive() || spgs == nil {
 			ps.updateSyncPeer(true)
+			return
+		}
+		if ps.isSyncPeer(pe) {
+			ps.IntellectSyncBlocks(false)
+			return
+		}
+		if pe != nil {
+			pegs := pe.GraphState()
+			if pegs != nil {
+				if pegs.IsExcellent(spgs) {
+					ps.updateSyncPeer(true)
+					return
+				}
+			}
+
 		}
 		return
 	}
@@ -354,6 +385,10 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 	}
 	allOrphan := ps.Chain().GetRecentOrphansParents()
 
+	if !ps.HasSyncPeer() || !ps.SyncPeer().IsActive() {
+		go ps.PeerUpdate(nil)
+		return
+	}
 	if len(allOrphan) > 0 {
 		go ps.GetBlocks(ps.SyncPeer(), allOrphan)
 	} else {

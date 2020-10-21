@@ -30,6 +30,11 @@ type GetBlocksMsg struct {
 	blocks []*hash.Hash
 }
 
+type GetBlockDatasMsg struct {
+	pe     *peers.Peer
+	blocks []*hash.Hash
+}
+
 type UpdateGraphStateMsg struct {
 	pe *peers.Peer
 }
