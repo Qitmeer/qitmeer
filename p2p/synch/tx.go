@@ -21,7 +21,7 @@ func (s *Sync) sendTxRequest(ctx context.Context, id peer.ID, txhash *hash.Hash)
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
-	stream, err := s.Send(ctx, &pb.Hash{Hash: txhash.Bytes()}, RPCGetBlocks, id)
+	stream, err := s.Send(ctx, &pb.Hash{Hash: txhash.Bytes()}, RPCTransaction, id)
 	if err != nil {
 		return nil, err
 	}
