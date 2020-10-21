@@ -148,18 +148,24 @@ func (ps *PeerSync) processGetBlocks(pe *peers.Peer, blocks []*hash.Hash) error 
 		add++
 	}
 	log.Trace(fmt.Sprintf("getBlocks:%d/%d", add, len(blockdatas)))
+
+	var err error
 	if add > 0 {
 		ps.sy.p2p.TxMemPool().PruneExpiredTx()
 
 		isCurrent := ps.IsCurrent()
 		if isCurrent {
 			log.Info("Your synchronization has been completed. ")
-			go ps.UpdateGraphState(pe)
 		}
+
+		go ps.UpdateGraphState(pe)
 	} else {
-		return fmt.Errorf("no get blocks")
+		err = fmt.Errorf("no get blocks")
 	}
-	return nil
+	if add < len(blockdatas) {
+		ps.IntellectSyncBlocks(true)
+	}
+	return err
 }
 
 func (ps *PeerSync) GetBlocks(pe *peers.Peer, blocks []*hash.Hash) {

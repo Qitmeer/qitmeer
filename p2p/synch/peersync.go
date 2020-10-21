@@ -78,33 +78,47 @@ out:
 				<-msg.unpause
 
 			case *ConnectedMsg:
+				fmt.Println("ConnectedMsg")
 				ps.processConnected(msg)
+				fmt.Println("ConnectedMsg end")
 
 			case *DisconnectedMsg:
+				fmt.Println("DisconnectedMsg")
 				ps.processDisconnected(msg)
+				fmt.Println("DisconnectedMsg end")
 
 			case *GetBlocksMsg:
+				fmt.Println("GetBlocksMsg")
 				err := ps.processGetBlocks(msg.pe, msg.blocks)
 				if err != nil {
 					log.Error(err.Error())
 				}
+				fmt.Println("GetBlocksMsg end")
 			case *UpdateGraphStateMsg:
+				fmt.Println("UpdateGraphStateMsg")
 				err := ps.processUpdateGraphState(msg.pe)
 				if err != nil {
 					log.Error(err.Error())
 				}
+				fmt.Println("UpdateGraphStateMsg end")
 			case *syncDAGBlocksMsg:
+				fmt.Println("syncDAGBlocksMsg")
 				err := ps.processSyncDAGBlocks(msg.pe)
 				if err != nil {
 					log.Error(err.Error())
 				}
+				fmt.Println("syncDAGBlocksMsg end")
 			case *PeerUpdateMsg:
+				fmt.Println("PeerUpdateMsg")
 				ps.OnPeerUpdate(msg.pe)
+				fmt.Println("PeerUpdateMsg end")
 			case *getTxsMsg:
+				fmt.Println("getTxsMsg")
 				err := ps.processGetTxs(msg.pe, msg.txs)
 				if err != nil {
 					log.Error(err.Error())
 				}
+				fmt.Println("getTxsMsg end")
 			default:
 				log.Warn(fmt.Sprintf("Invalid message type in task "+
 					"handler: %T", msg))
@@ -192,6 +206,14 @@ func (ps *PeerSync) PeerUpdate(pe *peers.Peer) {
 }
 
 func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer) {
+	if ps.HasSyncPeer() {
+		spgs := ps.SyncPeer().GraphState()
+		pegs := pe.GraphState()
+		if pegs != nil && spgs != nil && pegs.IsExcellent(spgs) {
+			ps.updateSyncPeer(true)
+		}
+		return
+	}
 	ps.updateSyncPeer(false)
 }
 
@@ -368,7 +390,7 @@ func (ps *PeerSync) RelayInventory(data interface{}) {
 			blockHash := value.BlockHash()
 			msg.Invs = append(msg.Invs, NewInvVect(InvTypeBlock, &blockHash))
 		}
-		ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), pe, msg)
+		go ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), pe, msg)
 	})
 }
 

@@ -83,7 +83,6 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 		return err
 	}
 	pe.UpdateGraphState(m.GraphState)
-	go s.peerSync.PeerUpdate(pe)
 
 	gs := pe.GraphState()
 	blocks, point := s.PeerSync().dagSync.CalcSyncBlocks(gs, changePBHashsToHashs(m.MainLocator), blockdag.SubDAGMode, MaxBlockLocatorsPerMsg)
@@ -118,7 +117,6 @@ func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
 	}
 	pe.UpdateSyncPoint(changePBHashToHash(subd.SyncPoint))
 	pe.UpdateGraphState(subd.GraphState)
-	go ps.PeerUpdate(pe)
 
 	if len(subd.Blocks) <= 0 {
 		return nil
