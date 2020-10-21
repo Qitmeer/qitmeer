@@ -107,7 +107,8 @@ func (s *Sync) handleInventory(msg *pb.Inventory, pe *peers.Peer) error {
 		}
 	}
 	if len(blocks) > 0 {
-		s.peerSync.GetBlocks(pe, blocks)
+		//s.peerSync.GetBlocks(pe, blocks)
+		s.peerSync.UpdateGraphState(pe)
 	}
 	if len(txs) > 0 {
 		s.peerSync.getTxs(pe, txs)
