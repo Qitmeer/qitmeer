@@ -116,7 +116,7 @@ out:
 				fmt.Println("syncDAGBlocksMsg end")
 			case *PeerUpdateMsg:
 				fmt.Println("PeerUpdateMsg")
-				ps.OnPeerUpdate(msg.pe)
+				ps.OnPeerUpdate(msg.pe, msg.orphan)
 				fmt.Println("PeerUpdateMsg end")
 			case *getTxsMsg:
 				fmt.Println("getTxsMsg")
@@ -212,25 +212,21 @@ func (ps *PeerSync) isSyncPeer(pe *peers.Peer) bool {
 	return false
 }
 
-func (ps *PeerSync) PeerUpdate(pe *peers.Peer) {
+func (ps *PeerSync) PeerUpdate(pe *peers.Peer, orphan bool) {
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
 
-	ps.msgChan <- &PeerUpdateMsg{pe: pe}
+	ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
 }
 
-func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer) {
+func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer, orphan bool) {
 
 	if ps.HasSyncPeer() {
 		spgs := ps.SyncPeer().GraphState()
 		if !ps.SyncPeer().IsActive() || spgs == nil {
 			ps.updateSyncPeer(true)
-			return
-		}
-		if ps.isSyncPeer(pe) {
-			ps.IntellectSyncBlocks(false)
 			return
 		}
 		if pe != nil {
@@ -243,6 +239,7 @@ func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer) {
 			}
 
 		}
+		ps.IntellectSyncBlocks(orphan)
 		return
 	}
 	ps.updateSyncPeer(false)
@@ -385,10 +382,6 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 	}
 	allOrphan := ps.Chain().GetRecentOrphansParents()
 
-	if !ps.HasSyncPeer() || !ps.SyncPeer().IsActive() {
-		go ps.PeerUpdate(nil)
-		return
-	}
 	if len(allOrphan) > 0 {
 		go ps.GetBlocks(ps.SyncPeer(), allOrphan)
 	} else {

@@ -44,7 +44,8 @@ type syncDAGBlocksMsg struct {
 }
 
 type PeerUpdateMsg struct {
-	pe *peers.Peer
+	pe     *peers.Peer
+	orphan bool
 }
 
 type getTxsMsg struct {

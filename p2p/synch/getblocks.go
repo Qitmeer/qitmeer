@@ -93,6 +93,10 @@ func (ps *PeerSync) processGetBlocks(pe *peers.Peer, blocks []*hash.Hash) error 
 	if len(blocks) <= 0 {
 		return fmt.Errorf("no blocks")
 	}
+	if !ps.isSyncPeer(pe) || !pe.IsActive() {
+		return fmt.Errorf("no sync peer")
+	}
+
 	db, err := ps.sy.sendGetBlocksRequest(ps.sy.p2p.Context(), pe.GetID(), &pb.GetBlocks{Locator: changeHashsToPBHashs(blocks)})
 	if err != nil {
 		return err

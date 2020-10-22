@@ -60,7 +60,7 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 		return err
 	}
 	pe.SetChainState(msg)
-	go s.peerSync.PeerUpdate(pe)
+	go s.peerSync.PeerUpdate(pe, false)
 
 	ret, err := s.validateChainStateMessage(ctx, msg, id)
 	if err != nil {
@@ -103,7 +103,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		case retErrInvalidChainState:
 			// Respond with our status and disconnect with the peer.
 			pe.SetChainState(m)
-			go s.peerSync.PeerUpdate(pe)
+			go s.peerSync.PeerUpdate(pe, false)
 			if err := s.respondWithChainState(ctx, stream); err != nil {
 				return err
 			}
@@ -137,7 +137,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		return originalErr
 	}
 	pe.SetChainState(m)
-	go s.peerSync.PeerUpdate(pe)
+	go s.peerSync.PeerUpdate(pe, false)
 
 	return s.respondWithChainState(ctx, stream)
 }

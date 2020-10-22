@@ -108,6 +108,10 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 }
 
 func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
+	if !ps.isSyncPeer(pe) || !pe.IsActive() {
+		return fmt.Errorf("no sync peer")
+	}
+
 	point := pe.SyncPoint()
 	mainLocator := ps.dagSync.GetMainLocator(point)
 	sd := &pb.SyncDAG{MainLocator: changeHashsToPBHashs(mainLocator), GraphState: ps.sy.getGraphState()}
