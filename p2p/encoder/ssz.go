@@ -12,6 +12,7 @@ package encoder
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 
 	fastssz "github.com/ferranbt/fastssz"
@@ -147,12 +148,11 @@ func (e SszNetworkEncoder) DecodeWithMaxLength(r io.Reader, to interface{}) erro
 		r = newBufferedReader(r)
 		defer bufReaderPool.Put(r)
 	}
-	b := make([]byte, e.MaxLength(int(msgLen)))
-	numOfBytes, err := r.Read(b)
+	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
 	}
-	return e.doDecode(b[:numOfBytes], to)
+	return e.doDecode(b, to)
 }
 
 // ProtocolSuffix returns the appropriate suffix for protocol IDs.
