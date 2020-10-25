@@ -33,7 +33,7 @@ var PrivNetParams = Params{
 	Net:            protocol.PrivNet,
 	DefaultPort:    "38130",
 	DefaultUDPPort: 38140,
-	DNSSeeds:       []DNSSeed{}, // NOTE: There must NOT be any seeds.
+	Bootstrap:      []string{},
 
 	// Chain parameters
 	GenesisBlock: &privNetGenesisBlock,

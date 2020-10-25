@@ -27,7 +27,6 @@ type Config struct {
 	DisableTLS         bool     `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
 	Modules            []string `long:"modules" description:"Modules is a list of API modules(See GetNodeInfo) to expose via the HTTP RPC interface. If the module list is empty, all RPC API endpoints designated public will be exposed."`
 	DisableDNSSeed     bool     `long:"nodnsseed" description:"Disable DNS seeding for peers"`
-	CustomDNSSeed      []string `short:"E" long:"customdns" description:"Seed customized by users."`
 	DisableCheckpoints bool     `long:"nocheckpoints" description:"Disable built-in checkpoints.  Don't do this unless you know what you're doing."`
 	DropTxIndex        bool     `long:"droptxindex" description:"Deletes the hash-based transaction index from the database on start up and then exits."`
 	AddrIndex          bool     `long:"addrindex" description:"Maintain a full address-based transaction index which makes the getrawtransactions RPC available"`

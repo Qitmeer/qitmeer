@@ -250,9 +250,6 @@ func LoadConfig() (*config.Config, []string, error) {
 		return nil, nil, err
 	}
 
-	// seed
-	processCustomizedDNSSeed(params.ActiveNetParams.Params, cfg.CustomDNSSeed)
-
 	// default p2p port
 	if len(cfg.DefaultPort) > 0 {
 		params.ActiveNetParams.Params.DefaultPort = cfg.DefaultPort
@@ -439,15 +436,4 @@ func ParseAndSetDebugLevels(debugLevel string) error {
 	}
 	// TODO support log for subsystem
 	return nil
-}
-
-func processCustomizedDNSSeed(param *params.Params, seed []string) {
-	if len(seed) == 0 {
-		return
-	}
-	dnsseed := []params.DNSSeed{}
-	for _, v := range seed {
-		dnsseed = append(dnsseed, params.DNSSeed{Host: v, HasFiltering: true})
-	}
-	param.DNSSeeds = dnsseed
 }

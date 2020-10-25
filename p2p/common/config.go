@@ -6,6 +6,7 @@ package common
 
 import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/params"
 	"os"
 )
 
@@ -42,4 +43,5 @@ type Config struct {
 	// not send inv messages for transactions.
 	DisableRelayTx bool
 	MaxOrphanTxs   int
+	Params         *params.Params
 }

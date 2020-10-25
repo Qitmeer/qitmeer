@@ -59,7 +59,7 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 		quit:   make(chan struct{}),
 	}
 
-	server, err := p2p.NewService(cfg, &n.events)
+	server, err := p2p.NewService(cfg, &n.events, chainParams)
 	if err != nil {
 		return nil, err
 	}

@@ -91,9 +91,9 @@ type Params struct {
 	// DefaultUDPPort defines the default peer-to-peer udp port for the network.
 	DefaultUDPPort int
 
-	// DNSSeeds defines a list of DNS seeds for the network that are used
+	// Bootstrap defines a list of boot node for the network that are used
 	// as one method to discover peers.
-	DNSSeeds []DNSSeed
+	Bootstrap []string
 
 	// GenesisBlock defines the first block of the chain.
 	GenesisBlock *types.Block
@@ -287,11 +287,6 @@ var (
 	scriptHashAddrIDs = make(map[[2]byte]struct{})
 	hdPrivToPubKeyIDs = make(map[[4]byte][]byte)
 )
-
-// String returns the hostname of the DNS seed in human-readable form.
-func (d DNSSeed) String() string {
-	return d.Host
-}
 
 // Register registers the network parameters for a Bitcoin network.  This may
 // error with ErrDuplicateNet if the network is already registered (either

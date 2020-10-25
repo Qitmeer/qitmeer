@@ -19,6 +19,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/Qitmeer/qitmeer/p2p/runutil"
 	"github.com/Qitmeer/qitmeer/p2p/synch"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
 	"github.com/dgraph-io/ristretto"
@@ -440,7 +441,7 @@ func (s *Service) ConnectTo(node *qnode.Node) {
 	s.connectWithAllPeers([]multiaddr.Multiaddr{addr})
 }
 
-func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
+func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*Service, error) {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
 	cache, err := ristretto.NewCache(&ristretto.Config{
@@ -452,8 +453,12 @@ func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 		return nil, err
 	}
 
-	bootnodesTemp := cfg.BootstrapNodes
 	bootnodeAddrs := make([]string, 0) //dest of final list of nodes
+
+	bootnodesTemp := cfg.BootstrapNodes
+	if len(bootnodesTemp) <= 0 {
+		bootnodesTemp = param.Bootstrap
+	}
 	for _, addr := range bootnodesTemp {
 		if filepath.Ext(addr) == ".yaml" {
 			fileNodes, err := readbootNodes(addr)
@@ -484,6 +489,7 @@ func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {
 			UserAgent:            fmt.Sprintf("qitmeer(%s)", version.String()),
 			DisableRelayTx:       cfg.BlocksOnly,
 			MaxOrphanTxs:         cfg.MaxOrphanTxs,
+			Params:               param,
 		},
 		ctx:           ctx,
 		cancel:        cancel,
