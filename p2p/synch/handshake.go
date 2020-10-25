@@ -27,10 +27,14 @@ func (ps *PeerSync) Connected(pid peer.ID, conn network.Conn) {
 		return
 	}
 
-	ps.msgChan <- &ConnectedMsg{ID: pid, Conn: conn}
+	//ps.msgChan <- &ConnectedMsg{ID: pid, Conn: conn}
+	go ps.processConnected(&ConnectedMsg{ID: pid, Conn: conn})
 }
 
 func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
+	ps.hslock.Lock()
+	defer ps.hslock.Unlock()
+
 	peerInfoStr := fmt.Sprintf("peer:%s", msg.ID)
 	remotePeer := msg.ID
 	conn := msg.Conn
@@ -131,10 +135,13 @@ func (ps *PeerSync) Disconnected(pid peer.ID, conn network.Conn) {
 		return
 	}
 
-	ps.msgChan <- &DisconnectedMsg{ID: pid, Conn: conn}
+	//ps.msgChan <- &DisconnectedMsg{ID: pid, Conn: conn}
+	go ps.processDisconnected(&DisconnectedMsg{ID: pid, Conn: conn})
 }
 
 func (ps *PeerSync) processDisconnected(msg *DisconnectedMsg) {
+	ps.hslock.Lock()
+	defer ps.hslock.Unlock()
 
 	peerInfoStr := fmt.Sprintf("peer:%s", msg.ID)
 	// Must be handled in a goroutine as this callback cannot be blocking.

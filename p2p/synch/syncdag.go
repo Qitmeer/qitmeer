@@ -18,7 +18,7 @@ import (
 
 // MaxBlockLocatorsPerMsg is the maximum number of block locator hashes allowed
 // per message.
-const MaxBlockLocatorsPerMsg = 500
+const MaxBlockLocatorsPerMsg = 2000
 
 func (s *Sync) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.SyncDAG) (*pb.SubDAG, error) {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
@@ -43,8 +43,8 @@ func (s *Sync) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.SyncDA
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return nil, errors.New(errMsg)
 	}
-
 	msg := &pb.SubDAG{}
+
 	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
 		return nil, err
 	}

@@ -30,6 +30,8 @@ type PeerSync struct {
 	// dag sync
 	dagSync *blockdag.DAGSync
 
+	hslock sync.RWMutex
+
 	started  int32
 	shutdown int32
 	msgChan  chan interface{}
@@ -98,6 +100,7 @@ out:
 				err := ps.processGetBlockDatas(msg.pe, msg.blocks)
 				if err != nil {
 					log.Error(err.Error())
+					go ps.PeerUpdate(msg.pe, false)
 				}
 				fmt.Println("GetBlockDatasMsg end")
 			case *UpdateGraphStateMsg:

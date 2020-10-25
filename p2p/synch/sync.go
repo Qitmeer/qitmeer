@@ -124,7 +124,7 @@ func (s *Sync) registerRPCHandlers() {
 
 	s.registerRPC(
 		RPCGetBlockDatas,
-		&pb.Hash{},
+		&pb.GetBlockDatas{},
 		s.getBlockDataHandler,
 	)
 
