@@ -14,6 +14,6 @@ message SyncDAG {
 message SubDAG {
   Hash syncPoint =1;
   GraphState graphState = 2;
-  repeated Hash blocks =3 [(gogoproto.moretags) = "ssz-max:\"500\""];
+  repeated Hash blocks =3 [(gogoproto.moretags) = "ssz-max:\"2000\""];
 }
 

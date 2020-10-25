@@ -6,7 +6,7 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "messages.proto";
 
 message Inventory {
-  repeated InvVect invs =1 [(gogoproto.moretags) = "ssz-max:\"50000\""];
+  repeated InvVect invs =1 [(gogoproto.moretags) = "ssz-max:\"2000\""];
 }
 
 message InvVect {

@@ -6,10 +6,10 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "messages.proto";
 
 message GetBlocks {
-  repeated Hash locator =1 [(gogoproto.moretags) = "ssz-max:\"500\""];
+  repeated Hash locator =1 [(gogoproto.moretags) = "ssz-max:\"2000\""];
 }
 
 message DagBlocks {
-  repeated Hash blocks =1 [(gogoproto.moretags) = "ssz-max:\"500\""];
+  repeated Hash blocks =1 [(gogoproto.moretags) = "ssz-max:\"2000\""];
 }
 
