@@ -57,6 +57,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKATOO)
 	ret := &json.InfoNodeResult{
 		ID:              api.node.node.peerServer.PeerID().String(),
+		QNR:             api.node.node.peerServer.Node().String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
 		BuildVersion:    version.String(),
 		ProtocolVersion: int32(protocol.ProtocolVersion),

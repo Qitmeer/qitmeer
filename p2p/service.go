@@ -321,12 +321,19 @@ func (s *Service) Connect(pi peer.AddrInfo) error {
 	return s.host.Connect(s.ctx, pi)
 }
 
-// ENR returns the local node's current ENR.
+// QNR returns the local node's current QNR.
 func (s *Service) QNR() *qnr.Record {
 	if s.dv5Listener == nil {
 		return nil
 	}
 	return s.dv5Listener.Self().Record()
+}
+
+func (s *Service) Node() *qnode.Node {
+	if s.dv5Listener == nil {
+		return nil
+	}
+	return s.dv5Listener.Self()
 }
 
 // Metadata returns a copy of the peer's metadata.

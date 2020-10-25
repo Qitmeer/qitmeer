@@ -10,6 +10,7 @@ type PowDiff struct {
 // InfoNodeResult models the data returned by the node server getnodeinfo command.
 type InfoNodeResult struct {
 	ID               string              `json:"ID"`
+	QNR              string              `json:"QNR"`
 	Version          int32               `json:"version"`
 	BuildVersion     string              `json:"buildversion"`
 	ProtocolVersion  int32               `json:"protocolversion"`
