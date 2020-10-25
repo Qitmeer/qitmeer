@@ -198,7 +198,7 @@ func (s *Service) connectToBootnodes() error {
 func (s *Service) connectWithAllPeers(multiAddrs []multiaddr.Multiaddr) {
 	addrInfos, err := peer.AddrInfosFromP2pAddrs(multiAddrs...)
 	if err != nil {
-		log.Error("Could not convert to peer address info's from multiaddresses: %v", err)
+		log.Error(fmt.Sprintf("Could not convert to peer address info's from multiaddresses: %v", err))
 		return
 	}
 	for _, info := range addrInfos {
@@ -429,6 +429,15 @@ func (s *Service) RemoveBan(id string) {
 		}
 		pe.ResetBad()
 	}
+}
+
+func (s *Service) ConnectTo(node *qnode.Node) {
+	addr, err := convertToSingleMultiAddr(node)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	s.connectWithAllPeers([]multiaddr.Multiaddr{addr})
 }
 
 func NewService(cfg *config.Config, events *event.Feed) (*Service, error) {

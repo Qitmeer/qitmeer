@@ -30,6 +30,8 @@ type Peer struct {
 	feeFilter int64
 
 	lock *sync.RWMutex
+
+	conTime time.Time
 }
 
 func (p *Peer) GetID() peer.ID {
@@ -125,6 +127,25 @@ func (p *Peer) QNR() *qnr.Record {
 	return p.qnr
 }
 
+func (p *Peer) Node() *qnode.Node {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return p.node()
+}
+
+func (p *Peer) node() *qnode.Node {
+	if p.qnr == nil {
+		return nil
+	}
+
+	n, err := qnode.New(qnode.ValidSchemes, p.qnr)
+	if err != nil {
+		log.Error("qnode: can't verify local record: %v", err)
+		return nil
+	}
+	return n
+}
+
 // ConnectionState gets the connection state of the given remote peer.
 // This will error if the peer does not exist.
 func (p *Peer) ConnectionState() PeerConnectionState {
@@ -148,6 +169,10 @@ func (p *Peer) SetConnectionState(state PeerConnectionState) {
 	defer p.lock.Unlock()
 
 	p.peerState = state
+
+	if state.IsConnected() || state.IsDisconnected() {
+		p.conTime = time.Now()
+	}
 }
 
 // SetChainState sets the chain state of the given remote peer.
@@ -223,11 +248,8 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		GraphState: p.graphState(),
 	}
 
-	if p.qnr != nil {
-		n, err := qnode.New(qnode.ValidSchemes, p.qnr)
-		if err != nil {
-			return nil, fmt.Errorf("qnode: can't verify local record: %v", err)
-		}
+	n := p.node()
+	if n != nil {
 		ss.NodeID = n.ID().String()
 		ss.QNR = n.String()
 	}
@@ -359,6 +381,13 @@ func (p *Peer) FeeFilter() int64 {
 	defer p.lock.RUnlock()
 
 	return p.feeFilter
+}
+
+func (p *Peer) ConnectionTime() time.Time {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.conTime
 }
 
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {

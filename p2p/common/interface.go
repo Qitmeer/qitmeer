@@ -7,6 +7,7 @@ import (
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -25,4 +26,5 @@ type P2P interface {
 	MetadataSeq() uint64
 	TimeSource() blockchain.MedianTimeSource
 	Notify() notify.Notify
+	ConnectTo(node *qnode.Node)
 }

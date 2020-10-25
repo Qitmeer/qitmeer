@@ -231,6 +231,22 @@ func convertToMultiAddr(nodes []*qnode.Node) []ma.Multiaddr {
 	return multiAddrs
 }
 
+func convertQNRToMultiAddr(qnrStr string) (ma.Multiaddr, error) {
+	node, err := qnode.Parse(qnode.ValidSchemes, qnrStr)
+	if err != nil {
+		return nil, err
+	}
+	// do not dial bootnodes with their tcp ports not set
+	if err := node.Record().Load(qnr.WithEntry("tcp", new(qnr.TCP))); err != nil {
+		if !qnr.IsNotFound(err) {
+			err = fmt.Errorf("Could not retrieve tcp port:%v\n", err)
+		}
+		return nil, err
+	}
+
+	return convertToSingleMultiAddr(node)
+}
+
 func convertToAddrInfo(node *qnode.Node) (*peer.AddrInfo, ma.Multiaddr, error) {
 	multiAddr, err := convertToSingleMultiAddr(node)
 	if err != nil {
