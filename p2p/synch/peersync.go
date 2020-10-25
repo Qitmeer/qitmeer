@@ -80,54 +80,38 @@ out:
 				<-msg.unpause
 
 			case *ConnectedMsg:
-				fmt.Println("ConnectedMsg")
 				ps.processConnected(msg)
-				fmt.Println("ConnectedMsg end")
 
 			case *DisconnectedMsg:
-				fmt.Println("DisconnectedMsg")
 				ps.processDisconnected(msg)
-				fmt.Println("DisconnectedMsg end")
 			case *GetBlocksMsg:
-				fmt.Println("GetBlocksMsg")
 				err := ps.processGetBlocks(msg.pe, msg.blocks)
 				if err != nil {
 					log.Error(err.Error())
 				}
-				fmt.Println("GetBlocksMsg end")
 			case *GetBlockDatasMsg:
-				fmt.Println("GetBlockDatasMsg")
 				err := ps.processGetBlockDatas(msg.pe, msg.blocks)
 				if err != nil {
 					log.Error(err.Error())
 					go ps.PeerUpdate(msg.pe, false)
 				}
-				fmt.Println("GetBlockDatasMsg end")
 			case *UpdateGraphStateMsg:
-				fmt.Println("UpdateGraphStateMsg")
 				err := ps.processUpdateGraphState(msg.pe)
 				if err != nil {
 					log.Error(err.Error())
 				}
-				fmt.Println("UpdateGraphStateMsg end")
 			case *syncDAGBlocksMsg:
-				fmt.Println("syncDAGBlocksMsg")
 				err := ps.processSyncDAGBlocks(msg.pe)
 				if err != nil {
 					log.Error(err.Error())
 				}
-				fmt.Println("syncDAGBlocksMsg end")
 			case *PeerUpdateMsg:
-				fmt.Println("PeerUpdateMsg")
 				ps.OnPeerUpdate(msg.pe, msg.orphan)
-				fmt.Println("PeerUpdateMsg end")
 			case *getTxsMsg:
-				fmt.Println("getTxsMsg")
 				err := ps.processGetTxs(msg.pe, msg.txs)
 				if err != nil {
 					log.Error(err.Error())
 				}
-				fmt.Println("getTxsMsg end")
 			default:
 				log.Warn(fmt.Sprintf("Invalid message type in task "+
 					"handler: %T", msg))
@@ -296,7 +280,7 @@ func (ps *PeerSync) startSync() {
 		ps.dagSync.SetGraphState(gs)
 
 	} else {
-		log.Trace("No synchronization is required.")
+		log.Trace("You're already up to date, no synchronization is required.")
 	}
 }
 
@@ -317,7 +301,7 @@ func (ps *PeerSync) getBestPeer() *peers.Peer {
 		if gs == nil {
 			continue
 		}
-		if best.GraphState.IsExcellent(gs) {
+		if !gs.IsExcellent(best.GraphState) {
 			continue
 		}
 		// the best sync candidate is the most updated peer
@@ -367,8 +351,8 @@ func (ps *PeerSync) IsCurrent() bool {
 		return true
 	}
 	if gs.IsExcellent(ps.Chain().BestSnapshot().GraphState) {
-		log.Trace("comparing the current best vs sync last",
-			"current.best", ps.Chain().BestSnapshot().GraphState.String(), "sync.last", gs.String())
+		//log.Trace("comparing the current best vs sync last",
+		//	"current.best", ps.Chain().BestSnapshot().GraphState.String(), "sync.last", gs.String())
 		return false
 	}
 
