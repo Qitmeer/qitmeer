@@ -32,7 +32,6 @@ func (this *QitmeerKeccak256) Verify(headerData []byte, blockHash hash.Hash, tar
 			"low", target)
 		return errors.New(str)
 	}
-
 	//The target difficulty must be less than the maximum allowed.
 	if target.Cmp(this.params.QitmeerKeccak256PowLimit) > 0 {
 		str := fmt.Sprintf("block target difficulty of %064x is "+
@@ -63,12 +62,6 @@ func (this *QitmeerKeccak256) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig
 	nextDiffBig.Mul(nextDiffBig, targetPercent)
 	nextDiffBig.Div(nextDiffBig, currentPowPercent)
 	return nextDiffBig
-}
-
-func (this *QitmeerKeccak256) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).QitmeerKeccak256Percent))
-	targetPercent.Lsh(targetPercent, 32)
-	return targetPercent
 }
 
 func (this *QitmeerKeccak256) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
@@ -115,7 +108,10 @@ func (this *QitmeerKeccak256) BlockData() PowBytes {
 	return PowBytes(this.Bytes()[:l-PROOFDATA_LENGTH])
 }
 
-//check pow is available
-func (this *QitmeerKeccak256) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.mainHeight).QitmeerKeccak256Percent > 0
+//not support
+func (this *QitmeerKeccak256) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
+	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {
+		return true
+	}
+	return false
 }

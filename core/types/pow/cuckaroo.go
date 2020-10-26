@@ -62,12 +62,6 @@ func (this *Cuckaroo) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.In
 	return nextDiffBig
 }
 
-func (this *Cuckaroo) PowPercent() *big.Int {
-	targetPercent := big.NewInt(int64(this.params.GetPercentByHeight(this.mainHeight).CuckarooPercent))
-	targetPercent.Lsh(targetPercent, 32)
-	return targetPercent
-}
-
 func (this *Cuckaroo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	minDiffBig := CompactToBig(this.params.CuckarooMinDifficulty)
 	if cur_reduce_diff <= 0 {
@@ -80,11 +74,6 @@ func (this *Cuckaroo) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 		newTarget.Set(minDiffBig)
 	}
 	return newTarget
-}
-
-//check pow is available
-func (this *Cuckaroo) CheckAvailable() bool {
-	return this.params.GetPercentByHeight(this.mainHeight).CuckarooPercent > 0
 }
 
 //calc scale
@@ -102,10 +91,10 @@ func (this *Cuckaroo) CheckAvailable() bool {
 //so In order to ensure the fairness of different edge indexes, the mining difficulty is different.
 func (this *Cuckaroo) GraphWeight() uint64 {
 	//45 days
-	bigScale := this.params.AdjustmentStartMainHeight - this.mainHeight
-	bigScale = bigScale * 40
-	if bigScale <= 0 || int(this.GetEdgeBits()) == MIN_CUCKAROOEDGEBITS {
-		bigScale = 1
+	bigScale := MainHeight(1)
+	if this.params.AdjustmentStartMainHeight > this.mainHeight && int(this.GetEdgeBits()) != MIN_CUCKAROOEDGEBITS {
+		bigScale = this.params.AdjustmentStartMainHeight - this.mainHeight
+		bigScale = bigScale * 40
 	}
 
 	scale := (2 << (this.GetEdgeBits() - MIN_CUCKAROOEDGEBITS)) * uint64(this.GetEdgeBits()) / uint64(bigScale)
@@ -113,4 +102,24 @@ func (this *Cuckaroo) GraphWeight() uint64 {
 		scale = 1
 	}
 	return scale
+}
+
+//solve solution
+func (this *Cuckaroo) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
+	this.SetEdgeBits(uint8(cuckoo.Edgebits))
+	sipH := this.GetSipHash(headerData)
+	c := cuckoo.NewCuckoo()
+	cycleNonces, isFound := c.PoW(sipH[:])
+	if !isFound {
+		return false
+	}
+	this.SetCircleEdges(cycleNonces)
+	//cpuminer need recalc blockhash
+	// this.bytes() contains (nonce 4 bytes + powtype 1 byte + 169 proofdata) 174 bytes
+	copy(headerData[len(headerData)-POW_LENGTH:], this.Bytes())
+	blockHash = hash.DoubleHashH(headerData)
+	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {
+		return true
+	}
+	return false
 }

@@ -57,13 +57,12 @@ var MixNetParams = Params{
 		CuckatooMinDifficulty:  0x1600000, // 96
 		CuckaroomMinDifficulty: 0x1600000, // 96
 
-		Percent: []pow.Percent{
-			{
-				Blake2bDPercent:         20,
-				CuckarooPercent:         30,
-				QitmeerKeccak256Percent: 30,
-				CuckaroomPercent:        20,
-				MainHeight:              0,
+		Percent: map[pow.MainHeight]pow.PercentItem{
+			pow.MainHeight(0): {
+				pow.BLAKE2BD:         20,
+				pow.CUCKAROO:         30,
+				pow.QITMEERKECCAK256: 30,
+				pow.CUCKAROOM:        20,
 			},
 		},
 		// after this height the big graph will be the main pow graph

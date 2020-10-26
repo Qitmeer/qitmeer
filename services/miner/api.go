@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"math/rand"
@@ -17,7 +18,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/json"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/services/mining"
 )
@@ -67,10 +67,10 @@ func NewPublicMinerAPI(c *CPUMiner) *PublicMinerAPI {
 }
 
 //func (api *PublicMinerAPI) GetBlockTemplate(request *mining.TemplateRequest) (interface{}, error){
-func (api *PublicMinerAPI) GetBlockTemplate(capabilities []string) (interface{}, error) {
+func (api *PublicMinerAPI) GetBlockTemplate(capabilities []string, powType byte) (interface{}, error) {
 	// Set the default mode and override it if supplied.
 	mode := "template"
-	request := json.TemplateRequest{Mode: mode, Capabilities: capabilities}
+	request := json.TemplateRequest{Mode: mode, Capabilities: capabilities, PowType: powType}
 	switch mode {
 	case "template":
 		return handleGetBlockTemplateRequest(api, &request)
@@ -168,6 +168,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, request *json.TemplateRe
 	// either a coinbase value or a coinbase transaction object depending on
 	// the request.  Default to only providing a coinbase value.
 	useCoinbaseValue := true
+	var powtyp byte
 	if request != nil {
 		var hasCoinbaseValue, hasCoinbaseTxn bool
 		for _, capability := range request.Capabilities {
@@ -182,6 +183,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, request *json.TemplateRe
 		if hasCoinbaseTxn && !hasCoinbaseValue {
 			useCoinbaseValue = false
 		}
+		powtyp = request.PowType
 	}
 
 	// When a coinbase transaction has been requested, respond with an error
@@ -210,7 +212,7 @@ func handleGetBlockTemplateRequest(api *PublicMinerAPI, request *json.TemplateRe
 	// in the memory pool have been updated and it has been at least five
 	// seconds since the last template was generated.  Otherwise, the
 	// timestamp for the existing block template is updated .
-	if err := state.updateBlockTemplate(api, useCoinbaseValue); err != nil {
+	if err := state.updateBlockTemplate(api, useCoinbaseValue, powtyp); err != nil {
 		return nil, err
 	}
 	return state.blockTemplateResult(api, useCoinbaseValue, nil)
@@ -247,7 +249,7 @@ type gbtWorkState struct {
 // addresses.
 //
 // This function MUST be called with the state locked.
-func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseValue bool) error {
+func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseValue bool, powType byte) error {
 	m := api.miner
 	lastTxUpdate := m.txSource.LastUpdated()
 	if lastTxUpdate.IsZero() {
@@ -265,6 +267,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 	template := state.template
 	if template == nil || state.parentsSet == nil ||
 		!state.parentsSet.IsEqual(parentsSet) ||
+		state.template.Block.Header.Pow.GetPowType() != pow.PowType(powType) ||
 		(state.lastTxUpdate != lastTxUpdate &&
 			roughtime.Now().After(state.lastGenerated.Add(time.Second*
 				gbtRegenerateSeconds))) {
@@ -288,7 +291,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 		// block template doesn't include the coinbase, so the caller
 		// will ultimately create their own coinbase which pays to the
 		// appropriate address(es).
-		template, err := mining.NewBlockTemplate(m.policy, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil, pow.QITMEERKECCAK256)
+		template, err := mining.NewBlockTemplate(m.policy, m.params, m.sigCache, m.txSource, m.timeSource, m.blockManager, payToAddr, nil, pow.PowType(powType))
 		if err != nil {
 			return rpc.RpcInvalidError("Failed to create new block template: %s", err.Error())
 		}
@@ -427,17 +430,8 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		"time", "transactions/add", "prevblock", "coinbase/append",
 	}
 	gbtCapabilities := []string{"proposal"}
-	blake2bdBig := pow.CompactToBig(template.PowDiffData.Blake2bDTarget)
-	x16rv3big := pow.CompactToBig(template.PowDiffData.X16rv3DTarget)
-	x8r16big := pow.CompactToBig(template.PowDiffData.X8r16DTarget)
-	keccak256big := pow.CompactToBig(template.PowDiffData.QitmeerKeccak256Target)
-	targetBlake2bDDifficulty := fmt.Sprintf("%064x", blake2bdBig)
-	x16rv3iDifficulty := fmt.Sprintf("%064x", x16rv3big)
-	x8r16Difficulty := fmt.Sprintf("%064x", x8r16big)
-	keccak256Difficulty := fmt.Sprintf("%064x", keccak256big)
-	targetCuckarooDDifficulty := template.PowDiffData.CuckarooBaseDiff
-	targetCuckaroomDifficulty := template.PowDiffData.CuckaroomBaseDiff
-	targetCuckatooDDifficulty := template.PowDiffData.CuckatooBaseDiff
+	diffBig := pow.CompactToBig(template.Difficulty)
+	target := fmt.Sprintf("%064x", diffBig)
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, state.lastGenerated)
 	reply := json.GetBlockTemplateResult{
 		StateRoot:    template.Block.Header.StateRoot.String(),
@@ -457,20 +451,8 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		//TODO, submitOld
 		SubmitOld: submitOld,
 		PowDiffReference: json.PowDiffReference{
-			Blake2bDBits: strconv.FormatInt(int64(template.PowDiffData.Blake2bDTarget), 16),
-			//blake2bd hash diff compare target
-			Blake2bTarget:          targetBlake2bDDifficulty,
-			X16rv3Bits:             strconv.FormatInt(int64(template.PowDiffData.X16rv3DTarget), 16),
-			X16rv3Target:           x16rv3iDifficulty,
-			X8r16Bits:              strconv.FormatInt(int64(template.PowDiffData.X8r16DTarget), 16),
-			X8r16Target:            x8r16Difficulty,
-			QitmeerKeccak256Bits:   strconv.FormatInt(int64(template.PowDiffData.QitmeerKeccak256Target), 16),
-			QitmeerKeccak256Target: keccak256Difficulty,
-			//cuckoo mining min diff
-			CuckarooMinDiff:  targetCuckarooDDifficulty,
-			CuckaroomMinDiff: targetCuckaroomDifficulty,
-			CuckatooMinDiff:  targetCuckatooDDifficulty,
-			//cuckoo hash calc diff scale
+			Target: target,
+			NBits:  strconv.FormatInt(int64(template.Difficulty), 16),
 		},
 		MinTime: state.minTimestamp.Unix(),
 		MaxTime: maxTime.Unix(),
@@ -550,8 +532,8 @@ func (api *PrivateMinerAPI) Generate(numBlocks uint32, powType pow.PowType) ([]s
 
 	// Mine the correct number of blocks, assigning the hex representation of the
 	// hash of each one to its place in the reply.
-	for i, hash := range blockHashes {
-		reply[i] = hash.String()
+	for i, h := range blockHashes {
+		reply[i] = h.String()
 	}
 
 	return reply, nil
