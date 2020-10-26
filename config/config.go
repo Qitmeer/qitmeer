@@ -26,7 +26,6 @@ type Config struct {
 	DisableRPC         bool     `long:"norpc" description:"Disable built-in RPC server -- NOTE: The RPC server is disabled by default if no rpcuser/rpcpass or rpclimituser/rpclimitpass is specified"`
 	DisableTLS         bool     `long:"notls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
 	Modules            []string `long:"modules" description:"Modules is a list of API modules(See GetNodeInfo) to expose via the HTTP RPC interface. If the module list is empty, all RPC API endpoints designated public will be exposed."`
-	DisableDNSSeed     bool     `long:"nodnsseed" description:"Disable DNS seeding for peers"`
 	DisableCheckpoints bool     `long:"nocheckpoints" description:"Disable built-in checkpoints.  Don't do this unless you know what you're doing."`
 	DropTxIndex        bool     `long:"droptxindex" description:"Deletes the hash-based transaction index from the database on start up and then exits."`
 	AddrIndex          bool     `long:"addrindex" description:"Maintain a full address-based transaction index which makes the getrawtransactions RPC available"`
@@ -61,7 +60,6 @@ type Config struct {
 	BlocksOnly      bool     `long:"blocksonly" description:"Do not accept transactions from remote peers."`
 	MiningStateSync bool     `long:"miningstatesync" description:"Synchronizing the mining state with other nodes"`
 	AddPeers        []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
-	ConnectPeers    []string `long:"connect" description:"Connect only to the specified peers at startup"`
 	ExternalIPs     []string `long:"externalip" description:"list of local addresses we claim to listen on to peers"`
 	Upnp            bool     `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
 	Whitelists      []string `long:"whitelist" description:"Add an IP network or IP that will not be banned. (eg. 192.168.1.0/24 or ::1)"`
@@ -71,7 +69,6 @@ type Config struct {
 	Banning         bool          `long:"banning" description:"Enable banning of misbehaving peers"`
 	BanDuration     time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
 	BanThreshold    uint32        `long:"banthreshold" description:"Maximum allowed ban score before disconnecting and banning misbehaving peers."`
-	GetAddrPercent  int           `short:"T" long:"getaddrpercent" description:"It is the percentage of total addresses known that we will share with a call to AddressCache."`
 	TrickleInterval time.Duration `long:"trickleinterval" description:"Minimum time between attempts to send new inventory to a connected peer"`
 
 	DAGType     string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`

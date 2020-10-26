@@ -217,7 +217,6 @@ func LoadConfig() (*config.Config, []string, error) {
 		numNets++
 		// Also disable dns seeding on the private test network.
 		params.ActiveNetParams = &params.PrivNetParam
-		cfg.DisableDNSSeed = true
 	}
 	if cfg.MixNet {
 		numNets++
