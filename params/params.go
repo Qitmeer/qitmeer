@@ -49,16 +49,6 @@ type Checkpoint struct {
 	Hash  *hash.Hash
 }
 
-// DNSSeed identifies a DNS seed.
-type DNSSeed struct {
-	// Host defines the hostname of the seed.
-	Host string
-
-	// HasFiltering defines whether the seed supports filtering
-	// by service flags (wire.ServiceFlag).
-	HasFiltering bool
-}
-
 // ConsensusDeployment defines details related to a specific consensus rule
 // change that is voted in.  This is part of BIP0009.
 type ConsensusDeployment struct {
