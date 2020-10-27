@@ -247,8 +247,11 @@ func predictAddr(t *netutil.IPTracker) (net.IP, int) {
 	}
 	ipString, portString, _ := net.SplitHostPort(ep)
 	ip := net.ParseIP(ipString)
-	port, _ := strconv.Atoi(portString)
-	return ip, port
+	port, err := strconv.ParseInt(portString, 10, 32)
+	if err != nil {
+		panic(err)
+	}
+	return ip, int(port)
 }
 
 func (ln *LocalNode) invalidate() {
