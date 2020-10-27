@@ -338,6 +338,10 @@ func (ps *PeerSync) IsCurrent() bool {
 		return false
 	}
 
+	return ps.IsCompleteForSyncPeer()
+}
+
+func (ps *PeerSync) IsCompleteForSyncPeer() bool {
 	// if blockChain thinks we are current and we have no syncPeer it
 	// is probably right.
 	if !ps.HasSyncPeer() {

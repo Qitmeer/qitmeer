@@ -156,9 +156,12 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 	if add > 0 {
 		ps.sy.p2p.TxMemPool().PruneExpiredTx()
 
-		isCurrent := ps.IsCurrent()
-		if isCurrent {
-			log.Info("Your synchronization has been completed. ")
+		if ps.IsCompleteForSyncPeer() {
+			log.Info("Your synchronization has been completed.")
+		}
+
+		if ps.IsCurrent() {
+			log.Info("You're up to date now.")
 		}
 
 		if !hasOrphan {
