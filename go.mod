@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/Qitmeer/crypto v0.0.0-20200516043559-dd457edff06c
 	github.com/aristanetworks/goarista v0.0.0-20200812190859-4cb0e71f3c0e
+	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/cloudflare/roughtime v0.0.0-20200829152512-a9bb6267a4f5
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dchest/blake256 v1.0.0
@@ -25,6 +26,7 @@ require (
 	github.com/libp2p/go-libp2p-noise v0.1.1
 	github.com/libp2p/go-libp2p-pubsub v0.3.2
 	github.com/libp2p/go-libp2p-secio v0.2.2
+	github.com/magiconair/properties v1.8.0
 	github.com/mattn/go-colorable v0.1.7
 	github.com/minio/highwayhash v1.0.0
 	github.com/multiformats/go-multiaddr v0.2.2
@@ -32,7 +34,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prysmaticlabs/go-bitfield v0.0.0-20200618145306-2ae0807bef65
 	github.com/prysmaticlabs/go-ssz v0.0.0-20200101200214-e24db4d9e963
-	github.com/satori/go.uuid v1.2.0
+	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli/v2 v2.2.0
