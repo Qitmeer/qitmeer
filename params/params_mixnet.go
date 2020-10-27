@@ -30,8 +30,8 @@ var MixNetParams = Params{
 	Name:        "mixnet",
 	Net:         protocol.MixNet,
 	DefaultPort: "28130",
-	DNSSeeds: []DNSSeed{
-		{"mixnet-seed.qitmeer.io", true},
+	DNSSeeds:    []DNSSeed{
+		// {"mixnet-seed.qitmeer.io", true},
 	},
 
 	// Chain parameters
@@ -49,6 +49,8 @@ var MixNetParams = Params{
 		X8r16PowLimitBits:            0x2003ffff,
 		QitmeerKeccak256PowLimit:     testMixNetPowLimit,
 		QitmeerKeccak256PowLimitBits: 0x2003ffff,
+		CryptoNightPowLimit:          testMixNetPowLimit,
+		CryptoNightPowLimitBits:      0x2003ffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 2 ≈ 1min find once
@@ -60,8 +62,9 @@ var MixNetParams = Params{
 			pow.MainHeight(0): {
 				pow.BLAKE2BD:         20,
 				pow.CUCKAROO:         30,
-				pow.QITMEERKECCAK256: 30,
-				pow.CUCKAROOM:        20,
+				pow.QITMEERKECCAK256: 10,
+				pow.CRYPTONIGHT:      30,
+				pow.CUCKAROOM:        10,
 			},
 		},
 		// after this height the big graph will be the main pow graph

@@ -28,6 +28,9 @@ type PowConfig struct {
 	X8r16PowLimit     *big.Int
 	X8r16PowLimitBits uint32
 
+	CryptoNightPowLimit     *big.Int
+	CryptoNightPowLimitBits uint32
+
 	QitmeerKeccak256PowLimit     *big.Int
 	QitmeerKeccak256PowLimitBits uint32
 
