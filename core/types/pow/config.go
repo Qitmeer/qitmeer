@@ -93,12 +93,12 @@ func (this *PowConfig) GetPercentByHeightAndType(h MainHeight, powType PowType) 
 
 // check percent
 func (this *PowConfig) Check() error {
-	allPercent := PercentValue(0)
 	heightArr := map[MainHeight]int{}
 	for mHeight, p := range this.Percent {
 		if _, ok := heightArr[mHeight]; ok {
 			return errors.New("pow config error, mainHeight set repeat!")
 		}
+		allPercent := PercentValue(0)
 		heightArr[mHeight] = 1
 		for pty, val := range p {
 			powName := GetPowName(pty)
