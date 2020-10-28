@@ -6,7 +6,7 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
-	"github.com/Qitmeer/qitmeer/p2p/peerserver"
+	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/services/acct"
@@ -48,7 +48,7 @@ type QitmeerFull struct {
 	sigCache *txscript.SigCache
 }
 
-func (qm *QitmeerFull) Start(server *peerserver.PeerServer) error {
+func (qm *QitmeerFull) Start() error {
 	log.Debug("Starting Qitmeer full node service")
 
 	// Start the CPU miner if generation is enabled.
@@ -127,7 +127,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 
 	// block-manager
 	bm, err := blkmgr.NewBlockManager(qm.nfManager, indexManager, node.DB, qm.timeSource, qm.sigCache, node.Config, node.Params,
-		mining.BlockVersion(node.Params.Net), node.quit, &node.events)
+		mining.BlockVersion(node.Params.Net), node.quit, &node.events, node.peerServer)
 	if err != nil {
 		return nil, err
 	}
@@ -141,9 +141,10 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 	qm.txManager = tm
 	bm.SetTxManager(tm)
 	// prepare peerServer
-	node.peerServer.BlockManager = bm
-	node.peerServer.TimeSource = qm.timeSource
-	node.peerServer.TxMemPool = qm.txManager.MemPool().(*mempool.TxPool)
+	node.peerServer.SetBlockChain(bm.GetChain())
+	node.peerServer.SetTimeSource(qm.timeSource)
+	node.peerServer.SetTxMemPool(qm.txManager.MemPool().(*mempool.TxPool))
+	node.peerServer.SetNotify(qm.nfManager)
 
 	// Cpu Miner
 	// Create the mining policy based on the configuration options.
@@ -186,6 +187,6 @@ func (qm *QitmeerFull) GetAddressApi() *address.AddressApi {
 }
 
 // return peer server
-func (qm *QitmeerFull) GetPeerServer() *peerserver.PeerServer {
+func (qm *QitmeerFull) GetPeerServer() *p2p.Service {
 	return qm.node.peerServer
 }

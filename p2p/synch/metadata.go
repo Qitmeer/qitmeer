@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
+
+package synch
+
+import (
+	"context"
+	"fmt"
+	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	libp2pcore "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/pkg/errors"
+)
+
+// metaDataHandler reads the incoming metadata rpc request from the peer.
+func (s *Sync) metaDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+	defer func() {
+		closeSteam(stream)
+	}()
+	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
+	defer cancel()
+	SetRPCStreamDeadlines(stream)
+
+	if _, err := stream.Write([]byte{responseCodeSuccess}); err != nil {
+		return err
+	}
+	_, err := s.Encoding().EncodeWithMaxLength(stream, s.p2p.Metadata())
+	return err
+}
+
+func (s *Sync) sendMetaDataRequest(ctx context.Context, id peer.ID) (*pb.MetaData, error) {
+	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
+	defer cancel()
+
+	stream, err := s.Send(ctx, new(interface{}), RPCMetaDataTopic, id)
+	if err != nil {
+		return nil, err
+	}
+	// we close the stream outside of `send` because
+	// metadata requests send no payload, so closing the
+	// stream early leads it to a reset.
+	defer func() {
+		if err := stream.Reset(); err != nil {
+			log.Error(fmt.Sprintf("Failed to reset stream for protocol %s  %v", stream.Protocol(), err))
+		}
+	}()
+	code, errMsg, err := ReadRspCode(stream, s.Encoding())
+	if err != nil {
+		return nil, err
+	}
+	if code != 0 {
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		return nil, errors.New(errMsg)
+	}
+	msg := new(pb.MetaData)
+	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
+		return nil, err
+	}
+	return msg, nil
+}

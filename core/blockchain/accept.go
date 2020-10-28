@@ -170,7 +170,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		log.Warn(fmt.Sprintf("%s", err))
 	}
 	b.updateBestState(newNode, block, newOrders)
-
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.

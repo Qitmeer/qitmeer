@@ -4,7 +4,6 @@ package node
 import (
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/p2p/peerserver"
 	"github.com/Qitmeer/qitmeer/rpc"
 )
 
@@ -15,7 +14,7 @@ type QitmeerLight struct {
 	config *config.Config
 }
 
-func (light *QitmeerLight) Start(server *peerserver.PeerServer) error {
+func (light *QitmeerLight) Start() error {
 	log.Debug("Starting Qitmeer light node service")
 	return nil
 }

@@ -23,13 +23,12 @@ const mainTargetTimePerBlock = 60 * 5
 
 // MainNetParams defines the network parameters for the main network.
 var MainNetParams = Params{
-	Name:        "mainnet",
-	Net:         protocol.MainNet,
-	DefaultPort: "8130",
-	DNSSeeds: []DNSSeed{
-		{"seed.qitmeer.io", true},
-		{"seed2.qitmeer.io", true},
-		{"seed3.qitmeer.io", true},
+	Name:           "mainnet",
+	Net:            protocol.MainNet,
+	DefaultPort:    "8130",
+	DefaultUDPPort: 8140,
+	Bootstrap: []string{
+		"qnr:-Iu4QBlOuf9NF3JhTT7ZbHMPyRM63NHKhZHwHmJNlVguObv1YEva6G4wY-6QZhfZ-U6OIOKeqP2nOtyhBZiK-inWMHwBgmlkgnY0gmlwhJDKWkGJc2VjcDI1NmsxoQNMjiLTk_DxxB8CHyYo5fmCqpI0t3vYQKyP0xaPzobieIN0Y3CCH8KDdWRwgh_M",
 	},
 
 	// Chain parameters
