@@ -5,7 +5,7 @@ import (
 	"github.com/Qitmeer/crypto/cryptonight"
 )
 
-// Qitmeer Keccak256 calculates hash(b) and returns the resulting bytes as a Hash.
+// CryptoNight calculates hash(b) and returns the resulting bytes as a Hash.
 func HashCryptoNight(b []byte) Hash {
 	h := cryptonight.Sum(b, 2)
 	hashR := [32]byte{}

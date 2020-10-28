@@ -1,6 +1,5 @@
 // Copyright (c) 2017-2020 The qitmeer developers
 // license that can be found in the LICENSE file.
-// Reference resources of rust bitVector
 package pow
 
 import (
