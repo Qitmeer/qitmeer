@@ -29,10 +29,11 @@ const privTargetTimePerBlock = 30
 // following normal discovery rules.  This is important as otherwise it would
 // just turn into another public testnet.
 var PrivNetParams = Params{
-	Name:        "privnet",
-	Net:         protocol.PrivNet,
-	DefaultPort: "38130",
-	DNSSeeds:    []DNSSeed{}, // NOTE: There must NOT be any seeds.
+	Name:           "privnet",
+	Net:            protocol.PrivNet,
+	DefaultPort:    "38130",
+	DefaultUDPPort: 38140,
+	Bootstrap:      []string{},
 
 	// Chain parameters
 	GenesisBlock: &privNetGenesisBlock,

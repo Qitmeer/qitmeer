@@ -10,7 +10,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/json"
-	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/params"
@@ -57,13 +56,14 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	cuckarooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKAROO)
 	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKATOO)
 	ret := &json.InfoNodeResult{
-		UUID:            message.UUID.String(),
+		ID:              api.node.node.peerServer.PeerID().String(),
+		QNR:             api.node.node.peerServer.Node().String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
 		BuildVersion:    version.String(),
 		ProtocolVersion: int32(protocol.ProtocolVersion),
 		TotalSubsidy:    best.TotalSubsidy,
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
-		Connections:     api.node.node.peerServer.ConnectedCount(),
+		Connections:     int32(len(api.node.node.peerServer.Peers().Connected())),
 		PowDiff: json.PowDiff{
 			Blake2bdDiff: getDifficultyRatio(blake2bdNodes, api.node.node.Params, pow.BLAKE2BD),
 			CuckarooDiff: getDifficultyRatio(cuckarooNodes, api.node.node.Params, pow.CUCKAROO),
@@ -106,38 +106,33 @@ func getDifficultyRatio(target *big.Int, params *params.Params, powType pow.PowT
 
 // Return the peer info
 func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
-	peers := api.node.node.peerServer.ConnectedPeers()
-	syncPeerID := api.node.blockManager.SyncPeerID()
+	ps := api.node.node.peerServer
+	peers := ps.Peers().StatsSnapshots()
 	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
 	for _, p := range peers {
-		statsSnap := p.StatsSnapshot()
 		info := &json.GetPeerInfoResult{
-			UUID:       statsSnap.UUID.String(),
-			ID:         statsSnap.ID,
-			Addr:       statsSnap.Addr,
-			AddrLocal:  p.LocalAddr().String(),
-			Services:   fmt.Sprintf("%08d", uint64(statsSnap.Services)),
-			RelayTxes:  !p.IsTxRelayDisabled(),
-			LastSend:   statsSnap.LastSend.Unix(),
-			LastRecv:   statsSnap.LastRecv.Unix(),
-			BytesSent:  statsSnap.BytesSent,
-			BytesRecv:  statsSnap.BytesRecv,
-			ConnTime:   statsSnap.ConnTime.Unix(),
-			PingTime:   float64(statsSnap.LastPingMicros),
-			TimeOffset: statsSnap.TimeOffset,
-			Version:    statsSnap.Version,
-			SubVer:     statsSnap.UserAgent,
-			Inbound:    statsSnap.Inbound,
-			BanScore:   int32(p.BanScore()),
-			SyncNode:   statsSnap.ID == syncPeerID,
+			ID:    p.PeerID,
+			State: p.State.String(),
 		}
-		if statsSnap.GraphState != nil {
-			info.GraphState = *getGraphStateResult(statsSnap.GraphState)
+		if p.State.IsConnected() {
+			info.Protocol = p.Protocol
+			info.Services = uint64(p.Services)
+			info.UserAgent = p.UserAgent
+			if p.Genesis != nil {
+				info.Genesis = p.Genesis.String()
+			}
+			info.Direction = p.Direction.String()
+			if p.GraphState != nil {
+				info.GraphState = *getGraphStateResult(p.GraphState)
+			}
+			if ps.PeerSync().SyncPeer() != nil {
+				info.SyncNode = p.NodeID == ps.PeerSync().SyncPeer().GetID().String()
+			} else {
+				info.SyncNode = false
+			}
 		}
-		if p.LastPingNonce() != 0 {
-			wait := float64(roughtime.Since(statsSnap.LastPingTime).Nanoseconds())
-			// We actually want microseconds.
-			info.PingWait = wait / 1000
+		if len(p.QNR) > 0 {
+			info.QNR = p.QNR
 		}
 		infos = append(infos, info)
 	}
@@ -200,16 +195,16 @@ func (api *PrivateBlockChainAPI) Banlist() (interface{}, error) {
 	bl := api.node.node.peerServer.GetBanlist()
 	bls := []*json.GetBanlistResult{}
 	for k, v := range bl {
-		bls = append(bls, &json.GetBanlistResult{Host: k, Expire: v.String()})
+		bls = append(bls, &json.GetBanlistResult{ID: k, Bads: v})
 	}
 	return bls, nil
 }
 
 // RemoveBan
-func (api *PrivateBlockChainAPI) RemoveBan(host *string) (interface{}, error) {
+func (api *PrivateBlockChainAPI) RemoveBan(id *string) (interface{}, error) {
 	ho := ""
-	if host != nil {
-		ho = *host
+	if id != nil {
+		ho = *id
 	}
 	api.node.node.peerServer.RemoveBan(ho)
 	return true, nil

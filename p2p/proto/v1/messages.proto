@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package qitmeer.p2p.v1;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message ErrorResponse {
+  bytes message = 1 [(gogoproto.moretags) = "ssz-max:\"256\""];
+}
+
+message MetaData {
+  uint64 seq_number =1;
+  bytes subnets = 2 [(gogoproto.moretags) = "ssz-size:\"8\"", (gogoproto.casttype) = "github.com/prysmaticlabs/go-bitfield.Bitvector64"];
+}
+
+message Hash {
+  bytes hash =200 [(gogoproto.moretags) = "ssz-size:\"32\""];
+}

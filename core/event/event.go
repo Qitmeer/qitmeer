@@ -9,6 +9,6 @@ type Event struct {
 	Ack  chan<- struct{}
 }
 
-func New(data interface{}, ack chan struct{}) *Event {
-	return &Event{Data: data, Ack: ack}
+func New(data interface{}) *Event {
+	return &Event{Data: data, Ack: nil}
 }

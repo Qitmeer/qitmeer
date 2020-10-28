@@ -11,7 +11,6 @@ import (
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/p2p/peer"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
@@ -20,7 +19,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -34,10 +35,10 @@ const (
 	defaultBlockMinSize           = 0
 	defaultBlockMaxSize           = 375000
 	defaultMaxRPCClients          = 10
-	defaultMaxPeers               = 125
+	defaultMaxPeers               = 30
 	defaultMiningStateSync        = false
 	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
-	defaultTrickleInterval        = peer.TrickleTimeout
+	defaultTrickleInterval        = 10 * time.Second
 	defaultCacheInvalidTx         = false
 )
 const (
@@ -216,7 +217,6 @@ func LoadConfig() (*config.Config, []string, error) {
 		numNets++
 		// Also disable dns seeding on the private test network.
 		params.ActiveNetParams = &params.PrivNetParam
-		cfg.DisableDNSSeed = true
 	}
 	if cfg.MixNet {
 		numNets++
@@ -232,13 +232,22 @@ func LoadConfig() (*config.Config, []string, error) {
 		return nil, nil, err
 	}
 
+	if cfg.P2PTCPPort <= 0 {
+		P2PTCPPort, err := strconv.Atoi(params.ActiveNetParams.DefaultPort)
+		if err != nil {
+			return nil, nil, err
+		}
+		cfg.P2PTCPPort = P2PTCPPort
+	}
+
+	if cfg.P2PUDPPort <= 0 {
+		cfg.P2PUDPPort = params.ActiveNetParams.DefaultUDPPort
+	}
+	//
 	if err := params.ActiveNetParams.PowConfig.Check(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, nil, err
 	}
-
-	// seed
-	processCustomizedDNSSeed(params.ActiveNetParams.Params, cfg.CustomDNSSeed)
 
 	// default p2p port
 	if len(cfg.DefaultPort) > 0 {
@@ -426,15 +435,4 @@ func ParseAndSetDebugLevels(debugLevel string) error {
 	}
 	// TODO support log for subsystem
 	return nil
-}
-
-func processCustomizedDNSSeed(param *params.Params, seed []string) {
-	if len(seed) == 0 {
-		return
-	}
-	dnsseed := []params.DNSSeed{}
-	for _, v := range seed {
-		dnsseed = append(dnsseed, params.DNSSeed{Host: v, HasFiltering: true})
-	}
-	param.DNSSeeds = dnsseed
 }

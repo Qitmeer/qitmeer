@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package qitmeer.p2p.v1;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "messages.proto";
+
+message GraphState {
+  uint32 total =100;
+  uint32 layer =101;
+  uint32 mainHeight =102;
+  uint32 mainOrder =103;
+  repeated Hash tips =104 [(gogoproto.moretags) = "ssz-max:\"100\""];
+}
+

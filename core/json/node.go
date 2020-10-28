@@ -9,7 +9,8 @@ type PowDiff struct {
 
 // InfoNodeResult models the data returned by the node server getnodeinfo command.
 type InfoNodeResult struct {
-	UUID             string              `json:"UUID"`
+	ID               string              `json:"ID"`
+	QNR              string              `json:"QNR"`
 	Version          int32               `json:"version"`
 	BuildVersion     string              `json:"buildversion"`
 	ProtocolVersion  int32               `json:"protocolversion"`
@@ -28,26 +29,16 @@ type InfoNodeResult struct {
 
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
 type GetPeerInfoResult struct {
-	UUID       string              `json:"uuid"`
-	ID         int32               `json:"id"`
-	Addr       string              `json:"addr"`
-	AddrLocal  string              `json:"addrlocal,omitempty"`
-	Services   string              `json:"services"`
-	RelayTxes  bool                `json:"relaytxes"`
-	LastSend   int64               `json:"lastsend"`
-	LastRecv   int64               `json:"lastrecv"`
-	BytesSent  uint64              `json:"bytessent"`
-	BytesRecv  uint64              `json:"bytesrecv"`
-	ConnTime   int64               `json:"conntime"`
-	TimeOffset int64               `json:"timeoffset"`
-	PingTime   float64             `json:"pingtime"`
-	PingWait   float64             `json:"pingwait,omitempty"`
-	Version    uint32              `json:"version"`
-	SubVer     string              `json:"subver"`
-	Inbound    bool                `json:"inbound"`
-	BanScore   int32               `json:"banscore"`
-	SyncNode   bool                `json:"syncnode"`
-	GraphState GetGraphStateResult `json:"graphstate"`
+	ID         string              `json:"id"`
+	QNR        string              `json:"qnr"`
+	State      string              `json:"state"`
+	Protocol   uint32              `json:"protocol,omitempty""`
+	Genesis    string              `json:"genesis,omitempty""`
+	Services   uint64              `json:"services,omitempty""`
+	UserAgent  string              `json:"useragent,omitempty""`
+	Direction  string              `json:"direction,omitempty""`
+	GraphState GetGraphStateResult `json:"graphstate,omitempty"`
+	SyncNode   bool                `json:"syncnode,omitempty"`
 }
 
 // GetGraphStateResult data
@@ -59,6 +50,6 @@ type GetGraphStateResult struct {
 }
 
 type GetBanlistResult struct {
-	Host   string `json:"host"`
-	Expire string `json:"expire"`
+	ID   string `json:"id"`
+	Bads int    `json:"bads"`
 }

@@ -1,7 +1,6 @@
 package notify
 
 import (
-	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 )
 
@@ -9,6 +8,6 @@ import (
 // and rpc server.
 type Notify interface {
 	AnnounceNewTransactions(newTxs []*types.TxDesc)
-	RelayInventory(invVect *message.InvVect, data interface{})
-	BroadcastMessage(msg message.Message)
+	RelayInventory(data interface{})
+	BroadcastMessage(data interface{})
 }

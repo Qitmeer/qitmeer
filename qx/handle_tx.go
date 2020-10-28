@@ -8,7 +8,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/marshal"
 	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/core/json"
-	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/ecc"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -149,7 +148,7 @@ func TxSign(privkeyStr string, rawTxStr string, network string) (string, error) 
 		redeemTx.TxIn[i2].SignScript = sigScripts[i2]
 	}
 
-	mtxHex, err := marshal.MessageToHex(&message.MsgTx{Tx: &redeemTx})
+	mtxHex, err := marshal.MessageToHex(&redeemTx)
 	if err != nil {
 		return "", err
 	}

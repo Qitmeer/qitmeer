@@ -49,16 +49,6 @@ type Checkpoint struct {
 	Hash  *hash.Hash
 }
 
-// DNSSeed identifies a DNS seed.
-type DNSSeed struct {
-	// Host defines the hostname of the seed.
-	Host string
-
-	// HasFiltering defines whether the seed supports filtering
-	// by service flags (wire.ServiceFlag).
-	HasFiltering bool
-}
-
 // ConsensusDeployment defines details related to a specific consensus rule
 // change that is voted in.  This is part of BIP0009.
 type ConsensusDeployment struct {
@@ -85,12 +75,15 @@ type Params struct {
 	// Net defines the magic bytes used to identify the network.
 	Net protocol.Network
 
-	// DefaultPort defines the default peer-to-peer port for the network.
+	// TCPPort defines the default peer-to-peer tcp port for the network.
 	DefaultPort string
 
-	// DNSSeeds defines a list of DNS seeds for the network that are used
+	// DefaultUDPPort defines the default peer-to-peer udp port for the network.
+	DefaultUDPPort int
+
+	// Bootstrap defines a list of boot node for the network that are used
 	// as one method to discover peers.
-	DNSSeeds []DNSSeed
+	Bootstrap []string
 
 	// GenesisBlock defines the first block of the chain.
 	GenesisBlock *types.Block
@@ -284,11 +277,6 @@ var (
 	scriptHashAddrIDs = make(map[[2]byte]struct{})
 	hdPrivToPubKeyIDs = make(map[[4]byte][]byte)
 )
-
-// String returns the hostname of the DNS seed in human-readable form.
-func (d DNSSeed) String() string {
-	return d.Host
-}
 
 // Register registers the network parameters for a Bitcoin network.  This may
 // error with ErrDuplicateNet if the network is already registered (either

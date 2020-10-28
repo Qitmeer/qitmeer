@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package qitmeer.p2p.v1;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "messages.proto";
+import "graphstate.proto";
+
+message ChainState {
+  Hash genesisHash =1;
+  uint32 protocolVersion = 2;
+  uint64 timestamp  = 3;
+  uint64 services = 4;
+  bool disableRelayTx =5;
+  GraphState graphState = 6;
+  bytes  userAgent = 7 [(gogoproto.moretags) = "ssz-max:\"256\""];
+}

@@ -21,8 +21,8 @@ type DAGSync struct {
 
 	// The following fields are used to track the graph state being synced to from
 	// peers.
-	GSMtx sync.Mutex
-	GS    *GraphState
+	gsMtx sync.Mutex
+	gs    *GraphState
 }
 
 // CalcSyncBlocks
@@ -175,6 +175,13 @@ func (ds *DAGSync) getBlockChainFromMain(point IBlock, maxHashes uint) []*hash.H
 		}
 	}
 	return result
+}
+
+func (ds *DAGSync) SetGraphState(gs *GraphState) {
+	ds.gsMtx.Lock()
+	defer ds.gsMtx.Unlock()
+
+	ds.gs = gs
 }
 
 // NewDAGSync
