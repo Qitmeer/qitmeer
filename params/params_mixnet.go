@@ -63,6 +63,12 @@ var MixNetParams = Params{
 			pow.MainHeight(0): {
 				pow.BLAKE2BD:         20,
 				pow.CUCKAROO:         30,
+				pow.QITMEERKECCAK256: 30,
+				pow.CUCKAROOM:        20,
+			},
+			pow.MainHeight(50000): {
+				pow.BLAKE2BD:         20,
+				pow.CUCKAROO:         30,
 				pow.QITMEERKECCAK256: 10,
 				pow.CRYPTONIGHT:      30,
 				pow.CUCKAROOM:        10,
