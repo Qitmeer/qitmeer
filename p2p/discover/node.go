@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/Qitmeer/qitmeer/common/math"
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 )
 
@@ -61,7 +61,7 @@ func recoverNodeKey(hash, sig []byte) (key encPubkey, err error) {
 	if err != nil {
 		return key, err
 	}
-	copy(key[:], pubkey[1:])
+	key = encodePubkey(pubkey.ToECDSA())
 	return key, nil
 }
 

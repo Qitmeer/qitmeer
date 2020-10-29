@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"github.com/Qitmeer/qitmeer/common/encode/rlp"
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

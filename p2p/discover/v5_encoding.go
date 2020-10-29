@@ -19,6 +19,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 	"hash"
 	"net"
 	"time"
@@ -26,7 +27,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/encode/rlp"
 	"github.com/Qitmeer/qitmeer/common/math"
 	"github.com/Qitmeer/qitmeer/common/mclock"
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"golang.org/x/crypto/hkdf"
@@ -328,7 +329,7 @@ func (c *wireCodec) makeAuthHeader(nonce []byte, challenge *whoareyouV5) (*authH
 	if err := challenge.node.Load((*qnode.Secp256k1)(remotePubkey)); err != nil {
 		return nil, nil, fmt.Errorf("can't find secp256k1 key for recipient")
 	}
-	ephkey, err := crypto.GenerateKey()
+	ephkey, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't generate ephemeral key")
 	}
@@ -342,7 +343,7 @@ func (c *wireCodec) makeAuthHeader(nonce []byte, challenge *whoareyouV5) (*authH
 	resp.Signature = idsig
 
 	// Create session keys.
-	sec := c.deriveKeys(c.localnode.ID(), challenge.node.ID(), ephkey, remotePubkey, challenge)
+	sec := c.deriveKeys(c.localnode.ID(), challenge.node.ID(), ephkey.ToECDSA(), remotePubkey, challenge)
 	if sec == nil {
 		return nil, nil, fmt.Errorf("key derivation failed")
 	}
@@ -397,7 +398,7 @@ func (c *wireCodec) signIDNonce(nonce, ephkey []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("can't sign: %v", err)
 	}
-	return idsig[:len(idsig)-1], nil // remove recovery ID
+	return idsig[1:], nil // remove header
 }
 
 // idNonceHash computes the hash of id nonce with prefix.
@@ -546,7 +547,7 @@ func (c *wireCodec) verifyIDSignature(nonce, ephkey, sig []byte, n *qnode.Node) 
 	case "v4":
 		var pk ecdsa.PublicKey
 		n.Load((*qnode.Secp256k1)(&pk)) // cannot fail because record is valid
-		if !crypto.VerifySignature(crypto.FromECDSAPub(&pk), c.idNonceHash(nonce, ephkey), sig) {
+		if !crypto.VerifySignature(&pk, c.idNonceHash(nonce, ephkey), sig) {
 			return errInvalidNonceSig
 		}
 		return nil

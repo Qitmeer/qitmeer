@@ -20,7 +20,7 @@ import (
 	"strconv"
 
 	"github.com/Qitmeer/qitmeer/common/math"
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 )
 

@@ -10,19 +10,19 @@
 package qnode
 
 import (
+	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 	"math/rand"
 	"net"
 	"testing"
 
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/stretchr/testify/assert"
 )
 
 func newLocalNodeForTesting() (*LocalNode, *DB) {
 	db, _ := OpenDB("")
-	key, _ := crypto.GenerateKey()
-	return NewLocalNode(db, key), db
+	key, _ := secp256k1.GeneratePrivateKey()
+	return NewLocalNode(db, key.ToECDSA()), db
 }
 
 func TestLocalNode(t *testing.T) {
@@ -64,8 +64,8 @@ func TestLocalNodeSeqPersist(t *testing.T) {
 
 	// Create a new instance with a different node key on the same database.
 	// This should reset the sequence number.
-	key, _ := crypto.GenerateKey()
-	ln3 := NewLocalNode(db, key)
+	key, _ := secp256k1.GeneratePrivateKey()
+	ln3 := NewLocalNode(db, key.ToECDSA())
 	if s := ln3.Node().Seq(); s != 1 {
 		t.Fatalf("wrong seq %d on instance with changed key, want 1", s)
 	}

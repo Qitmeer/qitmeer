@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/Qitmeer/qitmeer/common/mclock"
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/davecgh/go-spew/spew"
 )
