@@ -1,6 +1,6 @@
 
 EXECUTABLE := qitmeer
-GITVER := $(shell git rev-parse --short HEAD )
+GITVER := $(shell git rev-parse --short=7 HEAD )
 GITDIRTY := $(shell git diff --quiet || echo '-dirty')
 GITVERSION = "$(GITVER)$(GITDIRTY)"
 DEV=dev
