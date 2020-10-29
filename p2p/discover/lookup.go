@@ -1,10 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:lookup.go
- * Date:7/7/20 3:26 PM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
 package discover

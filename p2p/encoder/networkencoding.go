@@ -1,10 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:network_encoding.go
- * Date:7/17/20 11:14 AM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
 package encoder
