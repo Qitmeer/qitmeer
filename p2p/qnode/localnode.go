@@ -7,7 +7,6 @@ package qnode
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/math"
 	"net"
 	"reflect"
 	"strconv"
@@ -220,8 +219,8 @@ func (ln *LocalNode) updateEndpoints() {
 }
 
 // get returns the endpoint with highest precedence.
-func (e *lnEndpoint) get() (newIP net.IP, newPort uint16) {
-	newP := e.fallbackUDP
+func (e *lnEndpoint) get() (newIP net.IP, newPort int) {
+	newPort = e.fallbackUDP
 	if e.fallbackIP != nil {
 		newIP = e.fallbackIP
 	}
@@ -229,14 +228,8 @@ func (e *lnEndpoint) get() (newIP net.IP, newPort uint16) {
 		newIP = e.staticIP
 	} else if ip, port := predictAddr(e.track); ip != nil {
 		newIP = ip
-		newP = port
+		newPort = port
 	}
-
-	newPort = uint16(math.MaxUint16)
-	if newP > 0 && newP <= math.MaxUint16 {
-		newPort = uint16(newP)
-	}
-
 	return newIP, newPort
 }
 
@@ -249,7 +242,7 @@ func predictAddr(t *netutil.IPTracker) (net.IP, int) {
 	}
 	ipString, portString, _ := net.SplitHostPort(ep)
 	ip := net.ParseIP(ipString)
-	port, err := strconv.ParseInt(portString, 10, 32)
+	port, err := strconv.ParseInt(portString, 10, 16)
 	if err != nil {
 		panic(err)
 	}
