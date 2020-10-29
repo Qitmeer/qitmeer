@@ -1,10 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:idscheme_test.go
- * Date:7/7/20 3:30 PM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
 package qnode
@@ -17,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/Qitmeer/qitmeer/common/encode/rlp"
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

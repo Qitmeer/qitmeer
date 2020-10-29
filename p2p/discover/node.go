@@ -1,10 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:node.go
- * Date:7/7/20 3:26 PM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
 package discover
@@ -18,7 +13,7 @@ import (
 	"time"
 
 	"github.com/Qitmeer/qitmeer/common/math"
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 )
 
@@ -61,7 +56,7 @@ func recoverNodeKey(hash, sig []byte) (key encPubkey, err error) {
 	if err != nil {
 		return key, err
 	}
-	copy(key[:], pubkey[1:])
+	key = encodePubkey(pubkey.ToECDSA())
 	return key, nil
 }
 
