@@ -1,10 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:qnr_test.go
- * Date:7/4/20 9:15 PM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
 package qnr

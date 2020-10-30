@@ -1,10 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:localnode.go
- * Date:7/7/20 3:30 PM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
 package qnode
@@ -247,7 +242,7 @@ func predictAddr(t *netutil.IPTracker) (net.IP, int) {
 	}
 	ipString, portString, _ := net.SplitHostPort(ep)
 	ip := net.ParseIP(ipString)
-	port, err := strconv.ParseInt(portString, 10, 32)
+	port, err := strconv.ParseInt(portString, 10, 16)
 	if err != nil {
 		panic(err)
 	}

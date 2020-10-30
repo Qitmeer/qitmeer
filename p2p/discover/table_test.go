@@ -1,10 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:table_test.go
- * Date:7/7/20 3:26 PM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
 package discover
@@ -12,6 +7,7 @@ package discover
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 	"math/rand"
 
 	"net"
@@ -20,7 +16,7 @@ import (
 	"testing/quick"
 	"time"
 
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/netutil"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
@@ -413,9 +409,9 @@ func quickcfg() *quick.Config {
 }
 
 func newkey() *ecdsa.PrivateKey {
-	key, err := crypto.GenerateKey()
+	key, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		panic("couldn't generate key: " + err.Error())
 	}
-	return key
+	return key.ToECDSA()
 }

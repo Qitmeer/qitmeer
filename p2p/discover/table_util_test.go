@@ -1,10 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:table_util_test.go
- * Date:7/7/20 3:26 PM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
 package discover
@@ -20,7 +15,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 )

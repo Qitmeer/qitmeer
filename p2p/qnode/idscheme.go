@@ -1,10 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:idscheme.go
- * Date:7/7/20 3:30 PM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
 package qnode
@@ -12,11 +7,12 @@ package qnode
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 	"io"
 
 	"github.com/Qitmeer/qitmeer/common/encode/rlp"
 	"github.com/Qitmeer/qitmeer/common/math"
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"golang.org/x/crypto/sha3"
 )
@@ -47,7 +43,7 @@ func SignV4(r *qnr.Record, privkey *ecdsa.PrivateKey) error {
 	if err != nil {
 		return err
 	}
-	sig = sig[:len(sig)-1] // remove v
+	sig = sig[1:] // remove header
 	if err = cpy.SetSig(V4ID{}, sig); err == nil {
 		*r = cpy
 	}
@@ -64,7 +60,12 @@ func (V4ID) Verify(r *qnr.Record, sig []byte) error {
 
 	h := sha3.NewLegacyKeccak256()
 	rlp.Encode(h, r.AppendElements(nil))
-	if !crypto.VerifySignature(entry, h.Sum(nil), sig) {
+
+	pk, err := secp256k1.ParsePubKey(entry)
+	if err != nil {
+		return err
+	}
+	if !crypto.VerifySignature(pk.ToECDSA(), h.Sum(nil), sig) {
 		return qnr.ErrInvalidSig
 	}
 	return nil

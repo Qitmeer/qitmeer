@@ -1,10 +1,5 @@
 /*
- * Copyright (c) 2020.
- * Project:qitmeer
- * File:v4_udp.go
- * Date:7/7/20 3:26 PM
- * Author:Jin
- * Email:lochjin@gmail.com
+ * Copyright (c) 2017-2020 The qitmeer developers
  */
 
 package discover
@@ -17,13 +12,14 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 	"io"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/Qitmeer/qitmeer/common/encode/rlp"
-	"github.com/Qitmeer/qitmeer/p2p/crypto"
+	"github.com/Qitmeer/qitmeer/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/netutil"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
@@ -169,7 +165,7 @@ func (t *UDPv4) nodeFromRPC(sender *net.UDPAddr, rn rpcNode) (*node, error) {
 	if t.netrestrict != nil && !t.netrestrict.Contains(rn.IP) {
 		return nil, errors.New("not contained in netrestrict whitelist")
 	}
-	key, err := decodePubkey(crypto.S256(), rn.ID)
+	key, err := decodePubkey(secp256k1.S256(), rn.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -801,7 +797,7 @@ func (req *pingV4) preverify(t *UDPv4, from *net.UDPAddr, fromID qnode.ID, fromK
 	if expired(req.Expiration) {
 		return errExpired
 	}
-	key, err := decodePubkey(crypto.S256(), fromKey)
+	key, err := decodePubkey(secp256k1.S256(), fromKey)
 	if err != nil {
 		return errors.New("invalid public key")
 	}
