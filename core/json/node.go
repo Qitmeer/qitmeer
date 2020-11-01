@@ -39,6 +39,7 @@ type GetPeerInfoResult struct {
 	Direction  string              `json:"direction,omitempty""`
 	GraphState GetGraphStateResult `json:"graphstate,omitempty"`
 	SyncNode   bool                `json:"syncnode,omitempty"`
+	TimeOffset int64               `json:"timeoffset"`
 }
 
 // GetGraphStateResult data

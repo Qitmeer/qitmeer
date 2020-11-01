@@ -118,6 +118,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
 			info.Protocol = p.Protocol
 			info.Services = uint64(p.Services)
 			info.UserAgent = p.UserAgent
+			info.TimeOffset = p.TimeOffset
 			if p.Genesis != nil {
 				info.Genesis = p.Genesis.String()
 			}

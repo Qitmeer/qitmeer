@@ -3,6 +3,7 @@ package peers
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
@@ -31,7 +32,8 @@ type Peer struct {
 
 	lock *sync.RWMutex
 
-	conTime time.Time
+	conTime    time.Time
+	timeOffset int64
 }
 
 func (p *Peer) GetID() peer.ID {
@@ -182,6 +184,7 @@ func (p *Peer) SetChainState(chainState *pb.ChainState) {
 
 	p.chainState = chainState
 	p.chainStateLastUpdated = time.Now()
+	p.timeOffset = int64(p.chainState.Timestamp) - roughtime.Now().Unix()
 
 	log.Trace(fmt.Sprintf("SetChainState(%s) : MainHeight=%d", p.pid.ShortString(), chainState.GraphState.MainHeight))
 }
@@ -246,6 +249,7 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		State:      p.peerState,
 		Direction:  p.direction,
 		GraphState: p.graphState(),
+		TimeOffset: p.timeOffset,
 	}
 
 	n := p.node()

@@ -19,4 +19,5 @@ type StatsSnap struct {
 	State      PeerConnectionState
 	Direction  network.Direction
 	GraphState *blockdag.GraphState
+	TimeOffset int64
 }
