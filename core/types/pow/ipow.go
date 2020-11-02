@@ -28,6 +28,7 @@ const (
 	X16RV3           PowType = 4
 	X8R16            PowType = 5
 	QITMEERKECCAK256 PowType = 6
+	CRYPTONIGHT      PowType = 7
 )
 
 var PowMapString = map[PowType]interface{}{
@@ -38,6 +39,7 @@ var PowMapString = map[PowType]interface{}{
 	X16RV3:           "x16rv3",
 	X8R16:            "x8r16",
 	QITMEERKECCAK256: "qitmeer_keccak256",
+	CRYPTONIGHT:      "cryptonight",
 }
 
 func GetPowName(powType PowType) string {
@@ -116,6 +118,8 @@ func GetInstance(powType PowType, nonce uint32, proofData []byte) IPow {
 		instance = &Cuckaroom{}
 	case CUCKATOO:
 		instance = &Cuckatoo{}
+	case CRYPTONIGHT:
+		instance = &CryptoNight{}
 	default:
 		instance = &Blake2bd{}
 	}
