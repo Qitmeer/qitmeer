@@ -203,16 +203,7 @@ func (t *UDPv5) Resolve(n *qnode.Node) *qnode.Node {
 
 // AllNodes returns all the nodes stored in the local table.
 func (t *UDPv5) AllNodes() []*qnode.Node {
-	t.tab.mutex.Lock()
-	defer t.tab.mutex.Unlock()
-	nodes := make([]*qnode.Node, 0)
-
-	for _, b := range &t.tab.buckets {
-		for _, n := range b.entries {
-			nodes = append(nodes, unwrapNode(n))
-		}
-	}
-	return nodes
+	return t.tab.allNodes()
 }
 
 // LocalNode returns the current local node running the

@@ -57,12 +57,13 @@ func (s *Sync) maintainPeerStatuses() {
 			if pe == nil {
 				continue
 			}
-			if pe.QNR() == nil ||
+			node := pe.Node()
+			if node == nil ||
 				time.Since(pe.ConnectionTime()) < ReconnectionTime ||
 				pe.IsBad() {
 				continue
 			}
-			s.p2p.ConnectTo(pe.Node())
+			s.p2p.Resolve(node)
 		}
 	})
 }
