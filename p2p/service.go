@@ -12,6 +12,7 @@ import (
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/p2p/common"
+	"github.com/Qitmeer/qitmeer/p2p/discover"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
@@ -48,7 +49,7 @@ var (
 	// stop looking for new peers and instead poll
 	// for the current peer limit status for the time period
 	// defined below.
-	pollingPeriod = 6 * time.Second
+	pollingPeriod = discover.PollingPeriod
 
 	// Refresh rate of QNR
 	refreshRate = time.Hour

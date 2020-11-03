@@ -592,6 +592,20 @@ func (tab *Table) deleteInBucket(b *bucket, n *node) {
 	tab.removeIP(b, n.IP())
 }
 
+// AllNodes returns all the nodes stored in the table.
+func (tab *Table) allNodes() []*qnode.Node {
+	tab.mutex.Lock()
+	defer tab.mutex.Unlock()
+	nodes := make([]*qnode.Node, 0)
+
+	for _, b := range &tab.buckets {
+		for _, n := range b.entries {
+			nodes = append(nodes, unwrapNode(n))
+		}
+	}
+	return nodes
+}
+
 func contains(ns []*node, id qnode.ID) bool {
 	for _, n := range ns {
 		if n.ID() == id {

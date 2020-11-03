@@ -11,6 +11,11 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 )
 
+const (
+	MinTableNodes = 5
+	PollingPeriod = 6 * time.Second
+)
+
 // lookup performs a network search for nodes close to the given target. It approaches the
 // target by querying nodes that are closer to it on each iteration. The given target does
 // not need to be an actual node identifier.
@@ -72,6 +77,7 @@ func (it *lookup) advance() bool {
 		case <-it.cancelCh:
 			it.shutdown()
 		}
+		time.Sleep(PollingPeriod)
 	}
 	return false
 }
@@ -139,12 +145,14 @@ func (it *lookup) query(n *node, reply chan<- []*node) {
 		reply <- nil
 		return
 	} else if len(r) == 0 {
-		fails++
-		it.tab.db.UpdateFindFails(n.ID(), n.IP(), fails)
-		log.Trace("Findnode failed", "id", n.ID(), "failcount", fails, "results", len(r), "err", err)
-		if fails >= maxFindnodeFailures {
-			log.Trace("Too many findnode failures, dropping", "id", n.ID(), "failcount", fails)
-			it.tab.delete(n)
+		if len(it.tab.allNodes()) > MinTableNodes {
+			fails++
+			it.tab.db.UpdateFindFails(n.ID(), n.IP(), fails)
+			log.Trace("Findnode failed", "id", n.ID(), "failcount", fails, "results", len(r), "err", err)
+			if fails >= maxFindnodeFailures {
+				log.Trace("Too many findnode failures, dropping", "id", n.ID(), "failcount", fails)
+				it.tab.delete(n)
+			}
 		}
 	} else if fails > 0 {
 		// Reset failure counter because it counts _consecutive_ failures.
