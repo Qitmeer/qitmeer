@@ -290,7 +290,12 @@ function get_node_info(){
 }
 
 function get_peer_info(){
-  local data='{"jsonrpc":"2.0","method":"getPeerInfo","params":[],"id":null}'
+  local verbose=$1
+  if [ "$verbose" == "" ]; then
+    verbose="true"
+  fi
+
+  local data='{"jsonrpc":"2.0","method":"getPeerInfo","params":['$verbose'],"id":null}'
   get_result "$data"
 }
 
