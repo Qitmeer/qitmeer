@@ -449,6 +449,10 @@ func (s *Service) ConnectTo(node *qnode.Node) {
 	s.connectWithAllPeers([]multiaddr.Multiaddr{addr})
 }
 
+func (s *Service) Resolve(n *qnode.Node) *qnode.Node {
+	return s.dv5Listener.Resolve(n)
+}
+
 func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*Service, error) {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
