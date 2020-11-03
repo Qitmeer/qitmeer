@@ -60,7 +60,6 @@ type Config struct {
 	BlocksOnly      bool     `long:"blocksonly" description:"Do not accept transactions from remote peers."`
 	MiningStateSync bool     `long:"miningstatesync" description:"Synchronizing the mining state with other nodes"`
 	AddPeers        []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
-	ExternalIPs     []string `long:"externalip" description:"list of local addresses we claim to listen on to peers"`
 	Upnp            bool     `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
 	Whitelists      []string `long:"whitelist" description:"Add an IP network or IP that will not be banned. (eg. 192.168.1.0/24 or ::1)"`
 	whitelists      []*net.IPNet
@@ -92,6 +91,7 @@ type Config struct {
 	MetaDataDir    string   `long:"metadatadir" description:"meta data dir for p2p"`
 	P2PUDPPort     int      `long:"p2pudpport" description:"The udp port used by P2P."`
 	P2PTCPPort     int      `long:"p2ptcpport" description:"The tcp port used by P2P."`
+	HostIP         string   `long:"externalip" description:"The IP address advertised by libp2p. This may be used to advertise an external IP."`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {
