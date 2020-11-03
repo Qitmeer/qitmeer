@@ -497,6 +497,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			DisableRelayTx:       cfg.BlocksOnly,
 			MaxOrphanTxs:         cfg.MaxOrphanTxs,
 			Params:               param,
+			HostAddress:          cfg.HostIP,
 		},
 		ctx:           ctx,
 		cancel:        cancel,
