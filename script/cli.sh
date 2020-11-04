@@ -796,7 +796,7 @@ elif [ "$1" == "nodeinfo" ]; then
 
 elif [ "$1" == "peerinfo" ]; then
   shift
-  get_peer_info
+  get_peer_info $@
 
 elif [ "$1" == "rpcinfo" ]; then
   shift
