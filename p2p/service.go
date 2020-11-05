@@ -120,8 +120,13 @@ func (s *Service) Start() error {
 
 	s.started = true
 
+	_, bootstrapAddrs := parseGenericAddrs(s.cfg.BootstrapNodeAddr)
 	if len(s.cfg.StaticPeers) > 0 {
-		addrs, err := peersFromStringAddrs(s.cfg.StaticPeers)
+		bootstrapAddrs = append(bootstrapAddrs, s.cfg.StaticPeers...)
+	}
+
+	if len(bootstrapAddrs) > 0 {
+		addrs, err := peersFromStringAddrs(bootstrapAddrs)
 		if err != nil {
 			log.Error(fmt.Sprintf("Could not connect to static peer: %v", err))
 		} else {
@@ -503,6 +508,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			MaxOrphanTxs:         cfg.MaxOrphanTxs,
 			Params:               param,
 			HostAddress:          cfg.HostIP,
+			HostDNS:              cfg.HostDNS,
 		},
 		ctx:           ctx,
 		cancel:        cancel,
