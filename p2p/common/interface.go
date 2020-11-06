@@ -28,4 +28,5 @@ type P2P interface {
 	Notify() notify.Notify
 	ConnectTo(node *qnode.Node)
 	Resolve(n *qnode.Node) *qnode.Node
+	Node() *qnode.Node
 }

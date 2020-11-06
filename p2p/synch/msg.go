@@ -52,3 +52,8 @@ type getTxsMsg struct {
 	pe  *peers.Peer
 	txs []*hash.Hash
 }
+
+type SyncQNRMsg struct {
+	pe  *peers.Peer
+	qnr string
+}
