@@ -31,6 +31,7 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/multiformats/go-multiaddr"
+	ma "github.com/multiformats/go-multiaddr"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"path/filepath"
@@ -456,6 +457,26 @@ func (s *Service) ConnectTo(node *qnode.Node) {
 
 func (s *Service) Resolve(n *qnode.Node) *qnode.Node {
 	return s.dv5Listener.Resolve(n)
+}
+
+func (s *Service) HostAddress() ma.Multiaddr {
+	maddr, err := convertToSingleMultiAddr(s.Node())
+	if err != nil {
+		return nil
+	}
+	return maddr
+}
+
+func (s *Service) HostDNS() ma.Multiaddr {
+	if len(s.cfg.HostDNS) <= 0 {
+		return nil
+	}
+	external, err := ma.NewMultiaddr(fmt.Sprintf("/dns4/%s/tcp/%d/p2p/%s", s.cfg.HostDNS, s.cfg.TCPPort, s.Host().ID().String()))
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return external
 }
 
 func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*Service, error) {
