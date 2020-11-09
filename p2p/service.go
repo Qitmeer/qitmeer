@@ -101,7 +101,7 @@ func (s *Service) Start() error {
 		}
 	}
 	if !s.cfg.NoDiscovery {
-		ipAddr := ipAddr()
+		ipAddr := IpAddr()
 		listener, err := s.startDiscoveryV5(
 			ipAddr,
 			s.privKey,
@@ -541,7 +541,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 	dv5Nodes := parseBootStrapAddrs(s.cfg.BootstrapNodeAddr)
 	s.cfg.Discv5BootStrapAddr = dv5Nodes
 
-	ipAddr := ipAddr()
+	ipAddr := IpAddr()
 	s.privKey, err = privKey(s.cfg)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to generate p2p private key:%v", err))

@@ -119,6 +119,6 @@ func multiAddressBuilder(ipAddr string, port uint) (ma.Multiaddr, error) {
 func privKeyOption(privkey *ecdsa.PrivateKey) libp2p.Option {
 	return func(cfg *libp2p.Config) error {
 		log.Debug("ECDSA private key generated")
-		return cfg.Apply(libp2p.Identity(convertToInterfacePrivkey(privkey)))
+		return cfg.Apply(libp2p.Identity(ConvertToInterfacePrivkey(privkey)))
 	}
 }
