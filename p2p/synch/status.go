@@ -49,6 +49,10 @@ func (s *Sync) maintainPeerStatuses() {
 						s.Peers().IncrementBadResponses(id)
 					}
 				}
+
+				if pe.QNR() == nil && time.Since(pe.ConnectionTime()) > ReconnectionTime {
+					s.peerSync.SyncQNR(pe, s.p2p.Node().String())
+				}
 			}(pid)
 		}
 
@@ -63,7 +67,7 @@ func (s *Sync) maintainPeerStatuses() {
 				pe.IsBad() {
 				continue
 			}
-			s.p2p.Resolve(node)
+			s.LookupNode(nil, node)
 		}
 	})
 }

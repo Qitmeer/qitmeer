@@ -92,6 +92,7 @@ type Config struct {
 	P2PUDPPort     int      `long:"p2pudpport" description:"The udp port used by P2P."`
 	P2PTCPPort     int      `long:"p2ptcpport" description:"The tcp port used by P2P."`
 	HostIP         string   `long:"externalip" description:"The IP address advertised by libp2p. This may be used to advertise an external IP."`
+	HostDNS        string   `long:"externaldns" description:"The DNS address advertised by libp2p. This may be used to advertise an external DNS."`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {

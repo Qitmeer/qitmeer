@@ -73,8 +73,13 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		Confirmations:    blockdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
 		Modules:          []string{rpc.DefaultServiceNameSpace, rpc.MinerNameSpace, rpc.TestNameSpace, rpc.LogNameSpace},
+		HostAddress:      api.node.node.peerServer.HostAddress().String(),
 	}
 	ret.GraphState = *getGraphStateResult(best.GraphState)
+	hostdns := api.node.node.peerServer.HostDNS()
+	if hostdns != nil {
+		ret.HostDNS = hostdns.String()
+	}
 	return ret, nil
 }
 

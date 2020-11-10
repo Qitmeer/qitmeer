@@ -42,6 +42,8 @@ const (
 	RPCInventory = "/qitmeer/req/inventory/1"
 	// RPCGraphState defines the topic for the graphstate rpc method.
 	RPCGraphState = "/qitmeer/req/graphstate/1"
+	// RPCSyncQNR defines the topic for the syncqnr rpc method.
+	RPCSyncQNR = "/qitmeer/req/syncqnr/1"
 )
 
 // Time to first byte timeout. The maximum time to wait for first byte of
@@ -150,6 +152,12 @@ func (s *Sync) registerRPCHandlers() {
 		RPCGraphState,
 		&pb.GraphState{},
 		s.graphStateHandler,
+	)
+
+	s.registerRPC(
+		RPCSyncQNR,
+		&pb.SyncQNR{},
+		s.QNRHandler,
 	)
 }
 

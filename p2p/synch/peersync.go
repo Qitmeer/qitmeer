@@ -112,6 +112,11 @@ out:
 				if err != nil {
 					log.Error(err.Error())
 				}
+			case *SyncQNRMsg:
+				err := ps.processQNR(msg)
+				if err != nil {
+					log.Error(err.Error())
+				}
 			default:
 				log.Warn(fmt.Sprintf("Invalid message type in task "+
 					"handler: %T", msg))
