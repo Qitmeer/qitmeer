@@ -10,6 +10,7 @@ type PowDiff struct {
 // InfoNodeResult models the data returned by the node server getnodeinfo command.
 type InfoNodeResult struct {
 	ID               string              `json:"ID"`
+	Addresss         []string            `json:"address"`
 	QNR              string              `json:"QNR"`
 	Version          int32               `json:"version"`
 	BuildVersion     string              `json:"buildversion"`
@@ -25,14 +26,14 @@ type InfoNodeResult struct {
 	CoinbaseMaturity int32               `json:"coinbasematurity"`
 	Errors           string              `json:"errors"`
 	Modules          []string            `json:"modules"`
-	HostAddress      string              `json:"hostaddress,omitempty"`
-	HostDNS          string              `json:"hostdns,omitempty"`
+	DNS              string              `json:"dns,omitempty"`
 }
 
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
 type GetPeerInfoResult struct {
 	ID         string              `json:"id"`
 	QNR        string              `json:"qnr"`
+	Address    string              `json:"address"`
 	State      string              `json:"state"`
 	Protocol   uint32              `json:"protocol,omitempty"`
 	Genesis    string              `json:"genesis,omitempty"`

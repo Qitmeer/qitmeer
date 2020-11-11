@@ -36,6 +36,9 @@ const (
 	// Buffer for the number of peers allowed to connect above max peers before the
 	// connection manager begins trimming them.
 	peerBuffer = 5
+
+	// discovery for KAD
+	Rendezvous = "qitmeer"
 )
 
 // buildOptions for the libp2p host.

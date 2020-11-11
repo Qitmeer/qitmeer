@@ -12,6 +12,7 @@ type StatsSnap struct {
 	NodeID     string
 	PeerID     string
 	QNR        string
+	Address    string
 	Protocol   uint32
 	Genesis    *hash.Hash
 	Services   protocol.ServiceFlag

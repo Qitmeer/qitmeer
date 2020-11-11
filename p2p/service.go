@@ -28,6 +28,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-discovery"
 	"github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
@@ -72,8 +73,10 @@ type Service struct {
 
 	dv5Listener Listener
 	kademliaDHT *dht.IpfsDHT
-	events      *event.Feed
-	sy          *synch.Sync
+	routingDv   *discovery.RoutingDiscovery
+
+	events *event.Feed
+	sy     *synch.Sync
 
 	blockChain *blockchain.BlockChain
 	timeSource blockchain.MedianTimeSource
@@ -103,22 +106,29 @@ func (s *Service) Start() error {
 		}
 	}
 	if !s.cfg.NoDiscovery {
-		ipAddr := IpAddr()
-		listener, err := s.startDiscoveryV5(
-			ipAddr,
-			s.privKey,
-		)
+
+		err := s.startKademliaDHT()
 		if err != nil {
 			log.Error(fmt.Sprintf("Failed to start discovery:%v", err))
 			return err
 		}
-		err = s.connectToBootnodes()
-		if err != nil {
-			log.Error(fmt.Sprintf("Could not add bootnode to the exclusion list:%v", err))
-			return err
-		}
-		s.dv5Listener = listener
-		go s.listenForNewNodes()
+
+		/*		ipAddr := IpAddr()
+				listener, err := s.startDiscoveryV5(
+					ipAddr,
+					s.privKey,
+				)
+				if err != nil {
+					log.Error(fmt.Sprintf("Failed to start discovery:%v", err))
+					return err
+				}
+				err = s.connectToBootnodes()
+				if err != nil {
+					log.Error(fmt.Sprintf("Could not add bootnode to the exclusion list:%v", err))
+					return err
+				}
+				s.dv5Listener = listener
+				go s.listenForNewNodes()*/
 	}
 
 	s.started = true
@@ -464,15 +474,16 @@ func (s *Service) Resolve(n *qnode.Node) *qnode.Node {
 	return s.dv5Listener.Resolve(n)
 }
 
-func (s *Service) HostAddress() ma.Multiaddr {
-	if s.Node() == nil {
+func (s *Service) HostAddress() []string {
+	hms := s.host.Addrs()
+	if len(hms) <= 0 {
 		return nil
 	}
-	maddr, err := convertToSingleMultiAddr(s.Node())
-	if err != nil {
-		return nil
+	result := []string{}
+	for _, hm := range hms {
+		result = append(result, hm.String())
 	}
-	return maddr
+	return result
 }
 
 func (s *Service) HostDNS() ma.Multiaddr {

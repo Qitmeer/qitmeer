@@ -76,13 +76,13 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	ret.GraphState = *getGraphStateResult(best.GraphState)
 	hostdns := api.node.node.peerServer.HostDNS()
 	if hostdns != nil {
-		ret.HostDNS = hostdns.String()
+		ret.DNS = hostdns.String()
 	}
 	if api.node.node.peerServer.Node() != nil {
 		ret.QNR = api.node.node.peerServer.Node().String()
 	}
-	if api.node.node.peerServer.HostAddress() != nil {
-		ret.HostAddress = api.node.node.peerServer.HostAddress().String()
+	if len(api.node.node.peerServer.HostAddress()) > 0 {
+		ret.Addresss = api.node.node.peerServer.HostAddress()
 	}
 	return ret, nil
 }
@@ -129,8 +129,9 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 			}
 		}
 		info := &json.GetPeerInfoResult{
-			ID:    p.PeerID,
-			State: p.State.String(),
+			ID:      p.PeerID,
+			State:   p.State.String(),
+			Address: p.Address,
 		}
 		if p.State.IsConnected() {
 			info.Protocol = p.Protocol
