@@ -57,7 +57,6 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKATOO)
 	ret := &json.InfoNodeResult{
 		ID:              api.node.node.peerServer.PeerID().String(),
-		QNR:             api.node.node.peerServer.Node().String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
 		BuildVersion:    version.String(),
 		ProtocolVersion: int32(protocol.ProtocolVersion),
@@ -73,12 +72,17 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		Confirmations:    blockdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
 		Modules:          []string{rpc.DefaultServiceNameSpace, rpc.MinerNameSpace, rpc.TestNameSpace, rpc.LogNameSpace},
-		HostAddress:      api.node.node.peerServer.HostAddress().String(),
 	}
 	ret.GraphState = *getGraphStateResult(best.GraphState)
 	hostdns := api.node.node.peerServer.HostDNS()
 	if hostdns != nil {
 		ret.HostDNS = hostdns.String()
+	}
+	if api.node.node.peerServer.Node() != nil {
+		ret.QNR = api.node.node.peerServer.Node().String()
+	}
+	if api.node.node.peerServer.HostAddress() != nil {
+		ret.HostAddress = api.node.node.peerServer.HostAddress().String()
 	}
 	return ret, nil
 }

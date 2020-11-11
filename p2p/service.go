@@ -28,6 +28,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/multiformats/go-multiaddr"
@@ -70,6 +71,7 @@ type Service struct {
 	pubsub        *pubsub.PubSub
 
 	dv5Listener Listener
+	kademliaDHT *dht.IpfsDHT
 	events      *event.Feed
 	sy          *synch.Sync
 
@@ -456,10 +458,16 @@ func (s *Service) ConnectTo(node *qnode.Node) {
 }
 
 func (s *Service) Resolve(n *qnode.Node) *qnode.Node {
+	if s.dv5Listener == nil {
+		return nil
+	}
 	return s.dv5Listener.Resolve(n)
 }
 
 func (s *Service) HostAddress() ma.Multiaddr {
+	if s.Node() == nil {
+		return nil
+	}
 	maddr, err := convertToSingleMultiAddr(s.Node())
 	if err != nil {
 		return nil

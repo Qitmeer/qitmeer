@@ -85,6 +85,9 @@ func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcor
 		}
 	}
 
+	if s.p2p.Node() == nil {
+		return fmt.Errorf("Disable Node V5")
+	}
 	_, err = stream.Write([]byte{responseCodeSuccess})
 	if err != nil {
 		return err
