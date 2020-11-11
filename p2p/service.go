@@ -479,6 +479,18 @@ func (s *Service) HostDNS() ma.Multiaddr {
 	return external
 }
 
+func (s *Service) RelayNodeInfo() *peer.AddrInfo {
+	if len(s.cfg.RelayNodeAddr) <= 0 {
+		return nil
+	}
+	pi, err := MakePeer(s.cfg.RelayNodeAddr)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return pi
+}
+
 func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*Service, error) {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
@@ -530,6 +542,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			Params:               param,
 			HostAddress:          cfg.HostIP,
 			HostDNS:              cfg.HostDNS,
+			RelayNodeAddr:        cfg.RelayNode,
 		},
 		ctx:           ctx,
 		cancel:        cancel,

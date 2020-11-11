@@ -51,7 +51,10 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 		ps.Disconnect(remotePe)
 		return
 	}
-
+	if ps.sy.peers.IsRelayPeer(remotePeer) {
+		ps.Connection(remotePe)
+		return
+	}
 	// Do not perform handshake on inbound dials.
 	if conn.Stat().Direction == network.DirInbound {
 		currentTime := time.Now()
@@ -99,6 +102,9 @@ func (ps *PeerSync) Connection(pe *peers.Peer) {
 	log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s activePeers:%d Peer Connected",
 		pe.GetID(), pe.Direction(), multiAddr, len(ps.sy.peers.Active())))
 
+	if ps.sy.peers.IsRelayPeer(pe.GetID()) {
+		return
+	}
 	ps.OnPeerConnected(pe)
 }
 
@@ -113,6 +119,10 @@ func (ps *PeerSync) Disconnect(pe *peers.Peer) {
 	// TODO some handle
 	pe.SetConnectionState(peers.PeerDisconnected)
 	log.Trace(fmt.Sprintf("Disconnect:%v", pe.GetID()))
+
+	if ps.sy.peers.IsRelayPeer(pe.GetID()) {
+		return
+	}
 	ps.OnPeerDisconnected(pe)
 }
 

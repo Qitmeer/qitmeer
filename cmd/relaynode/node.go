@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-circuit"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -87,6 +88,20 @@ func (node *Node) run() error {
 		log.Error("Failed to create host %v", err)
 		return err
 	}
+
+	h.Network().Notify(&network.NotifyBundle{
+		ConnectedF: func(net network.Network, conn network.Conn) {
+			remotePeer := conn.RemotePeer()
+			log.Info(fmt.Sprintf("Connected:%s (%s)", remotePeer, conn.RemoteMultiaddr()))
+		},
+	})
+
+	h.Network().Notify(&network.NotifyBundle{
+		DisconnectedF: func(net network.Network, conn network.Conn) {
+			remotePeer := conn.RemotePeer()
+			log.Info(fmt.Sprintf("Disconnected:%s (%s)", remotePeer, conn.RemoteMultiaddr()))
+		},
+	})
 
 	log.Info(fmt.Sprintf("Relay Address: %s/p2p/%s\n", eMAddr.String(), h.ID()))
 	log.Info("You can copy the relay address and configure it to the required Qitmeer-Node")
