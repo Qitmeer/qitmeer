@@ -20,6 +20,8 @@ import (
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kad-dht/opts"
 	"github.com/libp2p/go-libp2p-noise"
 	"github.com/libp2p/go-libp2p-secio"
 	"github.com/multiformats/go-multiaddr"
@@ -111,6 +113,16 @@ func (node *Node) run() error {
 	err = node.registerHandlers()
 	if err != nil {
 		log.Error(err.Error())
+		return err
+	}
+
+	kademliaDHT, err := dht.New(node.ctx, node.host, dhtopts.Protocols(p2p.ProtocolDHT))
+	if err != nil {
+		return err
+	}
+
+	err = kademliaDHT.Bootstrap(node.ctx)
+	if err != nil {
 		return err
 	}
 
