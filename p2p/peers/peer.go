@@ -269,13 +269,15 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		Direction:  p.direction,
 		GraphState: p.graphState(),
 		TimeOffset: p.timeOffset,
-		Address:    p.qaddress().String(),
 	}
 
 	n := p.node()
 	if n != nil {
 		ss.NodeID = n.ID().String()
 		ss.QNR = n.String()
+	}
+	if p.qaddress() != nil {
+		ss.Address = p.qaddress().String()
 	}
 	return ss, nil
 }
