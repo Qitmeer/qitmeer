@@ -142,7 +142,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 				info.Genesis = p.Genesis.String()
 			}
 			info.Direction = p.Direction.String()
-			if p.GraphState != nil {
+			if p.GraphState != nil && !p.IsRelay() {
 				info.GraphState = getGraphStateResult(p.GraphState)
 			}
 			if ps.PeerSync().SyncPeer() != nil {

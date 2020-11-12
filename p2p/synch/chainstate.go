@@ -146,7 +146,7 @@ func (s *Sync) UpdateChainState(pe *peers.Peer, chainState *pb.ChainState, actio
 		return
 	}
 	if pe.ConnectionState().IsConnecting() {
-		s.peerSync.immediatelyConnected(pe)
+		go s.peerSync.immediatelyConnected(pe)
 		return
 	}
 	go s.peerSync.PeerUpdate(pe, false)

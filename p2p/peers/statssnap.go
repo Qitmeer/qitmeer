@@ -22,3 +22,7 @@ type StatsSnap struct {
 	GraphState *blockdag.GraphState
 	TimeOffset int64
 }
+
+func (p *StatsSnap) IsRelay() bool {
+	return protocol.HasServices(protocol.ServiceFlag(p.Services), protocol.Relay)
+}
