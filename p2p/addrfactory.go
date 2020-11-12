@@ -47,8 +47,8 @@ func withRelayAddrs(relay string) config.AddrsFactory {
 }
 
 func parseBootStrapAddrs(addrs []string) (discv5Nodes []string) {
-	discv5Nodes, _ = parseGenericAddrs(addrs)
-	if len(discv5Nodes) == 0 {
+	discv5Nodes, discvNodes := parseGenericAddrs(addrs)
+	if len(discv5Nodes) == 0 && len(discvNodes) <= 0 {
 		log.Warn("No bootstrap addresses supplied")
 	}
 	return discv5Nodes

@@ -59,8 +59,8 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
 		return err
 	}
-	pe.SetChainState(msg)
-	go s.peerSync.PeerUpdate(pe, false)
+
+	s.UpdateChainState(pe, msg, true)
 
 	ret, err := s.validateChainStateMessage(ctx, msg, id)
 	if err != nil {
@@ -102,8 +102,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 			respCode = responseCodeServerError
 		case retErrInvalidChainState:
 			// Respond with our status and disconnect with the peer.
-			pe.SetChainState(m)
-			go s.peerSync.PeerUpdate(pe, false)
+			s.UpdateChainState(pe, m, false)
 			if err := s.respondWithChainState(ctx, stream); err != nil {
 				return err
 			}
@@ -136,10 +135,21 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		}
 		return originalErr
 	}
-	pe.SetChainState(m)
-	go s.peerSync.PeerUpdate(pe, false)
+	s.UpdateChainState(pe, m, true)
 
 	return s.respondWithChainState(ctx, stream)
+}
+
+func (s *Sync) UpdateChainState(pe *peers.Peer, chainState *pb.ChainState, action bool) {
+	pe.SetChainState(chainState)
+	if !action {
+		return
+	}
+	if pe.ConnectionState().IsConnecting() {
+		s.peerSync.immediatelyConnected(pe)
+		return
+	}
+	go s.peerSync.PeerUpdate(pe, false)
 }
 
 func (s *Sync) validateChainStateMessage(ctx context.Context, msg *pb.ChainState, id peer.ID) (int, error) {

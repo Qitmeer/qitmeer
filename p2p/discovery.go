@@ -12,7 +12,6 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/libp2p/go-libp2p-discovery"
 	"github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/opts"
 	"github.com/pkg/errors"
@@ -195,9 +194,5 @@ func (s *Service) startKademliaDHT() error {
 	if err != nil {
 		return err
 	}
-
-	s.routingDv = discovery.NewRoutingDiscovery(kademliaDHT)
-	discovery.Advertise(s.ctx, s.routingDv, Rendezvous)
-
 	return nil
 }
