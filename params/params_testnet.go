@@ -30,9 +30,7 @@ var TestNetParams = Params{
 	Net:            protocol.TestNet,
 	DefaultPort:    "18130",
 	DefaultUDPPort: 18140,
-	Bootstrap: []string{
-		"qnr:-Iu4QGjAiagCl0-J831XSsfR9QRheY7lwILq6L8vm5pAtQ58CsJQnKLEEqQ3hf_fKGRsuInHISQByTq9zsqQPZN_RmQBgmlkgnY0gmlwhJDKWkGJc2VjcDI1NmsxoQNMjiLTk_DxxB8CHyYo5fmCqpI0t3vYQKyP0xaPzobieIN0Y3CCRtKDdWRwgkbc",
-	},
+	Bootstrap:      []string{},
 
 	// Chain parameters
 	GenesisBlock: &testNetGenesisBlock,
