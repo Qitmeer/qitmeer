@@ -411,6 +411,16 @@ func (p *Peer) ConnectionTime() time.Time {
 	return p.conTime
 }
 
+func (p *Peer) IsRelay() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	if p.chainState == nil {
+		return false
+	}
+	return protocol.HasServices(protocol.ServiceFlag(p.chainState.Services), protocol.Relay)
+}
+
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
 	return &Peer{
 		peerStatus: &peerStatus{

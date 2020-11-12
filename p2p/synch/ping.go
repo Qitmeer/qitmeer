@@ -34,7 +34,7 @@ func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pco
 		closeSteam(stream)
 		return err
 	}
-	if _, err := stream.Write([]byte{responseCodeSuccess}); err != nil {
+	if _, err := stream.Write([]byte{ResponseCodeSuccess}); err != nil {
 		closeSteam(stream)
 		return err
 	}
@@ -54,7 +54,7 @@ func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pco
 			closeSteam(stream)
 		}()
 		// New context so the calling function doesn't cancel on us.
-		ctx, cancel := context.WithTimeout(context.Background(), ttfbTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), TtfbTimeout)
 		defer cancel()
 		md, err := s.sendMetaDataRequest(ctx, stream.Conn().RemotePeer())
 		if err != nil {

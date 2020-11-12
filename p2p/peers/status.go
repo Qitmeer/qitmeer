@@ -247,14 +247,6 @@ func (p *Status) ForPeers(state PeerConnectionState, closure func(pe *Peer)) {
 	}
 }
 
-func (p *Status) IsRelayPeer(id peer.ID) bool {
-	pi := p.p2p.RelayNodeInfo()
-	if pi == nil {
-		return false
-	}
-	return id == pi.ID
-}
-
 // NewStatus creates a new status entity.
 func NewStatus(p2p common.P2P) *Status {
 	return &Status{

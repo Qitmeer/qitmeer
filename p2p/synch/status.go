@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"github.com/Qitmeer/qitmeer/p2p/runutil"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -41,7 +42,7 @@ func (s *Sync) maintainPeerStatuses() {
 					}
 					return
 				}
-				if s.peers.IsRelayPeer(id) {
+				if pe.IsRelay() {
 					return
 				}
 				// If the status hasn't been updated in the recent interval time.
@@ -78,7 +79,13 @@ func (s *Sync) reValidatePeer(ctx context.Context, id peer.ID) error {
 	if err := s.sendChainStateRequest(ctx, id); err != nil {
 		return err
 	}
-
+	pe := s.peers.Get(id)
+	if pe == nil {
+		return peers.ErrPeerUnknown
+	}
+	if pe.IsRelay() {
+		return nil
+	}
 	// Do not return an error for ping requests.
 	if err := s.SendPingRequest(ctx, id); err != nil {
 		log.Debug(fmt.Sprintf("Could not ping peer:%v", err))

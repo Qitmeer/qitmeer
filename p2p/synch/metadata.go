@@ -22,7 +22,7 @@ func (s *Sync) metaDataHandler(ctx context.Context, msg interface{}, stream libp
 	defer cancel()
 	SetRPCStreamDeadlines(stream)
 
-	if _, err := stream.Write([]byte{responseCodeSuccess}); err != nil {
+	if _, err := stream.Write([]byte{ResponseCodeSuccess}); err != nil {
 		return err
 	}
 	_, err := s.Encoding().EncodeWithMaxLength(stream, s.p2p.Metadata())

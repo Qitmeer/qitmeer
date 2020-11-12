@@ -106,29 +106,11 @@ func (s *Service) Start() error {
 		}
 	}
 	if !s.cfg.NoDiscovery {
-
 		err := s.startKademliaDHT()
 		if err != nil {
 			log.Error(fmt.Sprintf("Failed to start discovery:%v", err))
 			return err
 		}
-
-		/*		ipAddr := IpAddr()
-				listener, err := s.startDiscoveryV5(
-					ipAddr,
-					s.privKey,
-				)
-				if err != nil {
-					log.Error(fmt.Sprintf("Failed to start discovery:%v", err))
-					return err
-				}
-				err = s.connectToBootnodes()
-				if err != nil {
-					log.Error(fmt.Sprintf("Could not add bootnode to the exclusion list:%v", err))
-					return err
-				}
-				s.dv5Listener = listener
-				go s.listenForNewNodes()*/
 	}
 
 	s.started = true

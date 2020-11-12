@@ -34,7 +34,7 @@ func (s *Sync) sendQNRRequest(ctx context.Context, pe *peers.Peer, qnr *pb.SyncQ
 		return nil, err
 	}
 
-	if code != responseCodeSuccess {
+	if code != ResponseCodeSuccess {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return nil, errors.New(errMsg)
 	}
@@ -55,9 +55,9 @@ func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcor
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := responseCodeServerError
+	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != responseCodeSuccess {
+		if respCode != ResponseCodeSuccess {
 			resp, err := s.generateErrorResponse(respCode, err.Error())
 			if err != nil {
 				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
@@ -88,7 +88,7 @@ func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcor
 	if s.p2p.Node() == nil {
 		return fmt.Errorf("Disable Node V5")
 	}
-	_, err = stream.Write([]byte{responseCodeSuccess})
+	_, err = stream.Write([]byte{ResponseCodeSuccess})
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcor
 	if err != nil {
 		return err
 	}
-	respCode = responseCodeSuccess
+	respCode = ResponseCodeSuccess
 	return nil
 }
 

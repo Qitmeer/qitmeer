@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/urfave/cli/v2"
 	"os"
 	"path/filepath"
@@ -56,21 +58,41 @@ var (
 		Destination: &conf.Port,
 	}
 
+	EnableNoise = &cli.BoolFlag{
+		Name:        "noise",
+		Aliases:     []string{"n"},
+		Usage:       "noise",
+		Value:       false,
+		Destination: &conf.EnableNoise,
+	}
+
+	Network = &cli.StringFlag{
+		Name:        "network",
+		Aliases:     []string{"e"},
+		Usage:       "Network {mainnet,mixnet,privnet,testnet}",
+		Value:       params.MixNetParam.Name,
+		Destination: &conf.Network,
+	}
+
 	AppFlags = []cli.Flag{
 		HomeDir,
 		DataDir,
 		PrivateKey,
 		ExternalIP,
 		Port,
+		EnableNoise,
+		Network,
 	}
 )
 
 type Config struct {
-	HomeDir    string
-	DataDir    string
-	PrivateKey string
-	ExternalIP string
-	Port       string
+	HomeDir     string
+	DataDir     string
+	PrivateKey  string
+	ExternalIP  string
+	Port        string
+	EnableNoise bool
+	Network     string
 }
 
 func (c *Config) load() error {
@@ -90,6 +112,38 @@ func (c *Config) load() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// assign active network params while we're at it
+	numNets := 0
+	if c.Network == params.TestNetParam.Name {
+		numNets++
+		params.ActiveNetParams = &params.TestNetParam
+	}
+	if c.Network == params.PrivNetParam.Name {
+		numNets++
+		// Also disable dns seeding on the private test network.
+		params.ActiveNetParams = &params.PrivNetParam
+	}
+	if c.Network == params.MixNetParam.Name {
+		numNets++
+		params.ActiveNetParams = &params.MixNetParam
+	}
+
+	if numNets == 0 {
+		numNets++
+		params.ActiveNetParams = &params.MainNetParam
+	}
+
+	// Multiple networks can't be selected simultaneously.
+	if numNets > 1 {
+		str := "%s: the testnet and simnet params can't be " +
+			"used together -- choose one of the three"
+		return fmt.Errorf("%s", str)
+	}
+
+	if err := params.ActiveNetParams.PowConfig.Check(); err != nil {
+		return err
 	}
 	return nil
 }

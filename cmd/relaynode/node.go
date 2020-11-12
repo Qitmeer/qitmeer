@@ -8,10 +8,20 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
+	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p"
+	"github.com/Qitmeer/qitmeer/p2p/encoder"
+	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/Qitmeer/qitmeer/p2p/synch"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-circuit"
+	libp2pcore "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-noise"
+	"github.com/libp2p/go-libp2p-secio"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -20,6 +30,8 @@ type Node struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	privateKey *ecdsa.PrivateKey
+
+	host host.Host
 }
 
 func (node *Node) init(cfg *Config) error {
@@ -39,6 +51,7 @@ func (node *Node) init(cfg *Config) error {
 	node.privateKey = pk
 
 	log.Info(fmt.Sprintf("Load config completed"))
+	log.Info(fmt.Sprintf("NetWork:%s  Genesis:%s", params.ActiveNetParams.Name, params.ActiveNetParams.GenesisHash.String()))
 	return nil
 }
 
@@ -80,7 +93,13 @@ func (node *Node) run() error {
 		libp2p.Identity(p2p.ConvertToInterfacePrivkey(node.privateKey)),
 	}
 
-	h, err := libp2p.New(
+	if node.cfg.EnableNoise {
+		opts = append(opts, libp2p.Security(noise.ID, noise.New), libp2p.Security(secio.ID, secio.New))
+	} else {
+		opts = append(opts, libp2p.Security(secio.ID, secio.New))
+	}
+
+	node.host, err = libp2p.New(
 		node.ctx,
 		opts...,
 	)
@@ -89,24 +108,94 @@ func (node *Node) run() error {
 		return err
 	}
 
-	h.Network().Notify(&network.NotifyBundle{
+	err = node.registerHandlers()
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+
+	log.Info(fmt.Sprintf("Relay Address: %s/p2p/%s\n", eMAddr.String(), node.host.ID()))
+	log.Info("You can copy the relay address and configure it to the required Qitmeer-Node")
+
+	interrupt := interruptListener()
+	<-interrupt
+	return nil
+}
+
+func (node *Node) registerHandlers() error {
+
+	node.host.Network().Notify(&network.NotifyBundle{
 		ConnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
 			log.Info(fmt.Sprintf("Connected:%s (%s)", remotePeer, conn.RemoteMultiaddr()))
 		},
 	})
 
-	h.Network().Notify(&network.NotifyBundle{
+	node.host.Network().Notify(&network.NotifyBundle{
 		DisconnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
 			log.Info(fmt.Sprintf("Disconnected:%s (%s)", remotePeer, conn.RemoteMultiaddr()))
 		},
 	})
+	//
 
-	log.Info(fmt.Sprintf("Relay Address: %s/p2p/%s\n", eMAddr.String(), h.ID()))
-	log.Info("You can copy the relay address and configure it to the required Qitmeer-Node")
+	synch.RegisterRPC(
+		node.host, node.Encoding(),
+		synch.RPCChainState,
+		&pb.ChainState{},
+		node.chainStateHandler,
+	)
 
-	interrupt := interruptListener()
-	<-interrupt
 	return nil
+}
+
+func (node *Node) Encoding() encoder.NetworkEncoding {
+	return &encoder.SszNetworkEncoder{UseSnappyCompression: true}
+}
+
+func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+	defer func() {
+		closeSteam(stream)
+	}()
+
+	pid := stream.Conn().RemotePeer()
+	log.Trace(fmt.Sprintf("chainStateHandler:%s", pid))
+
+	ctx, cancel := context.WithTimeout(ctx, synch.HandleTimeout)
+	defer cancel()
+
+	synch.SetRPCStreamDeadlines(stream)
+
+	genesisHash := params.ActiveNetParams.GenesisHash
+
+	gs := &pb.GraphState{
+		Total:      1,
+		Layer:      0,
+		MainHeight: 0,
+		MainOrder:  0,
+		Tips:       []*pb.Hash{},
+	}
+	gs.Tips = append(gs.Tips, &pb.Hash{Hash: genesisHash.Bytes()})
+
+	resp := &pb.ChainState{
+		GenesisHash:     &pb.Hash{Hash: genesisHash.Bytes()},
+		ProtocolVersion: pv.ProtocolVersion,
+		Timestamp:       uint64(roughtime.Now().Unix()),
+		Services:        uint64(pv.Relay),
+		GraphState:      gs,
+		UserAgent:       []byte("qitmeer-relay"),
+		DisableRelayTx:  true,
+	}
+
+	if _, err := stream.Write([]byte{synch.ResponseCodeSuccess}); err != nil {
+		log.Error(fmt.Sprintf("Failed to write to stream:%v", err))
+	}
+	_, err := node.Encoding().EncodeWithMaxLength(stream, resp)
+	return err
+}
+
+func closeSteam(stream libp2pcore.Stream) {
+	if err := stream.Close(); err != nil {
+		log.Error(fmt.Sprintf("Failed to close stream:%v", err))
+	}
 }
