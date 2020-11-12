@@ -33,7 +33,7 @@ func (s *Sync) sendGraphStateRequest(ctx context.Context, pe *peers.Peer, gs *pb
 		return nil, err
 	}
 
-	if code != responseCodeSuccess {
+	if code != ResponseCodeSuccess {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return nil, errors.New(errMsg)
 	}
@@ -54,9 +54,9 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := responseCodeServerError
+	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != responseCodeSuccess {
+		if respCode != ResponseCodeSuccess {
 			resp, err := s.generateErrorResponse(respCode, err.Error())
 			if err != nil {
 				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
@@ -79,7 +79,7 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 	pe.UpdateGraphState(m)
 	go s.peerSync.PeerUpdate(pe, false)
 
-	_, err = stream.Write([]byte{responseCodeSuccess})
+	_, err = stream.Write([]byte{ResponseCodeSuccess})
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 	if err != nil {
 		return err
 	}
-	respCode = responseCodeSuccess
+	respCode = ResponseCodeSuccess
 	return nil
 }
 

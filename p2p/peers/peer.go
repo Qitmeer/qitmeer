@@ -6,6 +6,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
@@ -110,6 +111,24 @@ func (p *Peer) Address() ma.Multiaddr {
 	defer p.lock.RUnlock()
 
 	return p.address
+}
+
+func (p *Peer) QAddress() common.QMultiaddr {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.qaddress()
+}
+
+func (p *Peer) qaddress() common.QMultiaddr {
+	if p.address == nil {
+		return nil
+	}
+	qma, err := common.QMultiAddrFromString(fmt.Sprintf("%s", p.address.String()+"/p2p/"+p.pid.String()))
+	if err != nil {
+		return nil
+	}
+	return qma
 }
 
 // Direction returns the direction of the given remote peer.
@@ -250,6 +269,7 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		Direction:  p.direction,
 		GraphState: p.graphState(),
 		TimeOffset: p.timeOffset,
+		Address:    p.qaddress().String(),
 	}
 
 	n := p.node()
@@ -392,6 +412,16 @@ func (p *Peer) ConnectionTime() time.Time {
 	defer p.lock.RUnlock()
 
 	return p.conTime
+}
+
+func (p *Peer) IsRelay() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	if p.chainState == nil {
+		return false
+	}
+	return protocol.HasServices(protocol.ServiceFlag(p.chainState.Services), protocol.Relay)
 }
 
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {

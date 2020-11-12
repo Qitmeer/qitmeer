@@ -12,6 +12,7 @@ type StatsSnap struct {
 	NodeID     string
 	PeerID     string
 	QNR        string
+	Address    string
 	Protocol   uint32
 	Genesis    *hash.Hash
 	Services   protocol.ServiceFlag
@@ -20,4 +21,8 @@ type StatsSnap struct {
 	Direction  network.Direction
 	GraphState *blockdag.GraphState
 	TimeOffset int64
+}
+
+func (p *StatsSnap) IsRelay() bool {
+	return protocol.HasServices(protocol.ServiceFlag(p.Services), protocol.Relay)
 }

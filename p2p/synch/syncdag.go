@@ -39,7 +39,7 @@ func (s *Sync) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.SyncDA
 		return nil, err
 	}
 
-	if code != responseCodeSuccess {
+	if code != ResponseCodeSuccess {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return nil, errors.New(errMsg)
 	}
@@ -60,9 +60,9 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := responseCodeServerError
+	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != responseCodeSuccess {
+		if respCode != ResponseCodeSuccess {
 			resp, err := s.generateErrorResponse(respCode, err.Error())
 			if err != nil {
 				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
@@ -93,7 +93,7 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 	}*/
 	sd := &pb.SubDAG{SyncPoint: &pb.Hash{Hash: point.Bytes()}, GraphState: s.getGraphState(), Blocks: changeHashsToPBHashs(blocks)}
 
-	_, err = stream.Write([]byte{responseCodeSuccess})
+	_, err = stream.Write([]byte{ResponseCodeSuccess})
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 		return err
 	}
 
-	respCode = responseCodeSuccess
+	respCode = ResponseCodeSuccess
 	return nil
 }
 

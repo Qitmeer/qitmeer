@@ -51,42 +51,25 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 		ps.Disconnect(remotePe)
 		return
 	}
+	remotePe.SetConnectionState(peers.PeerConnecting)
 
 	// Do not perform handshake on inbound dials.
 	if conn.Stat().Direction == network.DirInbound {
-		currentTime := time.Now()
-
-		// Wait for peer to initiate handshake
-		time.Sleep(timeForChainState)
-
-		// Exit if we are disconnected with the peer.
-		if ps.sy.p2p.Host().Network().Connectedness(remotePeer) != network.Connected {
-			return
-		}
-
-		// If peer hasn't sent a status request, we disconnect with them
-		if remotePe.ChainState() == nil {
-			ps.Disconnect(remotePe)
-			return
-		}
-		updated := remotePe.ChainStateLastUpdated()
-		// exit if we don't receive any current status messages from
-		// peer.
-		if updated.IsZero() || !updated.After(currentTime) {
-			ps.Disconnect(remotePe)
-			return
-		}
-		ps.Connection(remotePe)
 		return
 	}
 
-	remotePe.SetConnectionState(peers.PeerConnecting)
 	if err := ps.sy.reValidatePeer(context.Background(), remotePeer); err != nil && err != io.EOF {
 		log.Trace(fmt.Sprintf("%s Handshake failed", peerInfoStr))
 		ps.Disconnect(remotePe)
 		return
 	}
 	ps.Connection(remotePe)
+}
+
+func (ps *PeerSync) immediatelyConnected(pe *peers.Peer) {
+	ps.hslock.Lock()
+	defer ps.hslock.Unlock()
+	ps.Connection(pe)
 }
 
 func (ps *PeerSync) Connection(pe *peers.Peer) {
@@ -96,9 +79,13 @@ func (ps *PeerSync) Connection(pe *peers.Peer) {
 	pe.SetConnectionState(peers.PeerConnected)
 	// Go through the handshake process.
 	multiAddr := fmt.Sprintf("%s/p2p/%s", pe.Address().String(), pe.GetID().String())
+	if pe.IsRelay() {
+		log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s  (Relay Peer)",
+			pe.GetID(), pe.Direction(), multiAddr))
+		return
+	}
 	log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s activePeers:%d Peer Connected",
 		pe.GetID(), pe.Direction(), multiAddr, len(ps.sy.peers.Active())))
-
 	ps.OnPeerConnected(pe)
 }
 
@@ -112,6 +99,11 @@ func (ps *PeerSync) Disconnect(pe *peers.Peer) {
 	}
 	// TODO some handle
 	pe.SetConnectionState(peers.PeerDisconnected)
+	if pe.IsRelay() {
+		log.Trace(fmt.Sprintf("Disconnect:%v (Relay Node)", pe.GetID()))
+		return
+	}
+
 	log.Trace(fmt.Sprintf("Disconnect:%v", pe.GetID()))
 	ps.OnPeerDisconnected(pe)
 }

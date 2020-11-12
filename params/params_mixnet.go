@@ -32,7 +32,7 @@ var MixNetParams = Params{
 	DefaultPort:    "28130",
 	DefaultUDPPort: 28140,
 	Bootstrap: []string{
-		"qnr:-Iu4QD3H-HvryfLH83WSxlhBf5zsrKSsJcvqR_iFdJ_u1-4XNXwz7mQ-VLStBt8-SJIox5wU-OuCN01sL46jHsM6v2sBgmlkgnY0gmlwhJDKWkGJc2VjcDI1NmsxoQNMjiLTk_DxxB8CHyYo5fmCqpI0t3vYQKyP0xaPzobieIN0Y3CCbeKDdWRwgm3s",
+		"/dns4/ns.qitmeer.top/tcp/28230/p2p/16Uiu2HAmRtp5CjNv3WvPYuh7kNXXZQDYegwFFeDH9vWY3JY4JS1W",
 	},
 
 	// Chain parameters

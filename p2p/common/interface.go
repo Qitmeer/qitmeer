@@ -29,4 +29,5 @@ type P2P interface {
 	ConnectTo(node *qnode.Node)
 	Resolve(n *qnode.Node) *qnode.Node
 	Node() *qnode.Node
+	RelayNodeInfo() *peer.AddrInfo
 }

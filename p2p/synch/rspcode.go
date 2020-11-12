@@ -13,9 +13,9 @@ import (
 
 // response code
 const (
-	responseCodeSuccess        = byte(0x00)
-	responseCodeInvalidRequest = byte(0x01)
-	responseCodeServerError    = byte(0x02)
+	ResponseCodeSuccess        = byte(0x00)
+	ResponseCodeInvalidRequest = byte(0x01)
+	ResponseCodeServerError    = byte(0x02)
 )
 
 func (s *Sync) generateErrorResponse(code byte, reason string) ([]byte, error) {
@@ -38,7 +38,7 @@ func ReadRspCode(stream io.Reader, encoding encoder.NetworkEncoding) (uint8, str
 		return 0, "", err
 	}
 
-	if b[0] == responseCodeSuccess {
+	if b[0] == ResponseCodeSuccess {
 		return 0, "", nil
 	}
 

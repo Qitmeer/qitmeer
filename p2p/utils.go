@@ -28,7 +28,7 @@ const metaDataPath = "metaData"
 const dialTimeout = 1 * time.Second
 
 // Retrieves an external ipv4 address and converts into a libp2p formatted value.
-func ipAddr() net.IP {
+func IpAddr() net.IP {
 	ip, err := iputils.ExternalIPv4()
 	if err != nil {
 		log.Error(fmt.Sprintf("Could not get IPv4 address: %v", err))
@@ -40,8 +40,13 @@ func ipAddr() net.IP {
 // Determines a private key for p2p networking from the p2p service's
 // configuration struct. If no key is found, it generates a new one.
 func privKey(cfg *common.Config) (*ecdsa.PrivateKey, error) {
-	defaultKeyPath := path.Join(cfg.DataDir, keyPath)
-	privateKeyPath := cfg.PrivateKey
+	return PrivateKey(cfg.DataDir, cfg.PrivateKey, cfg.ReadWritePermissions)
+}
+
+// Determines a private key for p2p networking from the p2p service's
+// configuration struct. If no key is found, it generates a new one.
+func PrivateKey(dataDir string, privateKeyPath string, readWritePermissions os.FileMode) (*ecdsa.PrivateKey, error) {
+	defaultKeyPath := path.Join(dataDir, keyPath)
 
 	_, err := os.Stat(defaultKeyPath)
 	defaultKeysExist := !os.IsNotExist(err)
@@ -60,7 +65,7 @@ func privKey(cfg *common.Config) (*ecdsa.PrivateKey, error) {
 		}
 		dst := make([]byte, hex.EncodedLen(len(rawbytes)))
 		hex.Encode(dst, rawbytes)
-		if err = ioutil.WriteFile(defaultKeyPath, dst, cfg.ReadWritePermissions); err != nil {
+		if err = ioutil.WriteFile(defaultKeyPath, dst, readWritePermissions); err != nil {
 			return nil, err
 		}
 		convertedKey := convertFromInterfacePrivKey(priv)
@@ -77,7 +82,7 @@ func convertFromInterfacePrivKey(privkey crypto.PrivKey) *ecdsa.PrivateKey {
 	return typeAssertedKey
 }
 
-func convertToInterfacePrivkey(privkey *ecdsa.PrivateKey) crypto.PrivKey {
+func ConvertToInterfacePrivkey(privkey *ecdsa.PrivateKey) crypto.PrivKey {
 	typeAssertedKey := crypto.PrivKey((*crypto.Secp256k1PrivateKey)((*secp256k1.PrivateKey)(privkey)))
 	return typeAssertedKey
 }
