@@ -463,7 +463,7 @@ func (s *Service) HostAddress() []string {
 	}
 	result := []string{}
 	for _, hm := range hms {
-		result = append(result, hm.String())
+		result = append(result, fmt.Sprintf("%s/p2p/%s", hm.String(), s.Host().ID().String()))
 	}
 	return result
 }

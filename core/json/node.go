@@ -11,7 +11,7 @@ type PowDiff struct {
 type InfoNodeResult struct {
 	ID               string              `json:"ID"`
 	Addresss         []string            `json:"address"`
-	QNR              string              `json:"QNR"`
+	QNR              string              `json:"QNR,omitempty"`
 	Version          int32               `json:"version"`
 	BuildVersion     string              `json:"buildversion"`
 	ProtocolVersion  int32               `json:"protocolversion"`
@@ -31,18 +31,18 @@ type InfoNodeResult struct {
 
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
 type GetPeerInfoResult struct {
-	ID         string              `json:"id"`
-	QNR        string              `json:"qnr"`
-	Address    string              `json:"address"`
-	State      string              `json:"state"`
-	Protocol   uint32              `json:"protocol,omitempty"`
-	Genesis    string              `json:"genesis,omitempty"`
-	Services   uint64              `json:"services,omitempty"`
-	UserAgent  string              `json:"useragent,omitempty"`
-	Direction  string              `json:"direction,omitempty"`
-	GraphState GetGraphStateResult `json:"graphstate,omitempty"`
-	SyncNode   bool                `json:"syncnode,omitempty"`
-	TimeOffset int64               `json:"timeoffset"`
+	ID         string               `json:"id"`
+	QNR        string               `json:"qnr,omitempty"`
+	Address    string               `json:"address"`
+	State      string               `json:"state"`
+	Protocol   uint32               `json:"protocol,omitempty"`
+	Genesis    string               `json:"genesis,omitempty"`
+	Services   uint64               `json:"services,omitempty"`
+	UserAgent  string               `json:"useragent,omitempty"`
+	Direction  string               `json:"direction,omitempty"`
+	GraphState *GetGraphStateResult `json:"graphstate,omitempty"`
+	SyncNode   bool                 `json:"syncnode,omitempty"`
+	TimeOffset int64                `json:"timeoffset"`
 }
 
 // GetGraphStateResult data
