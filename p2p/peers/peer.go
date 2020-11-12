@@ -121,6 +121,9 @@ func (p *Peer) QAddress() common.QMultiaddr {
 }
 
 func (p *Peer) qaddress() common.QMultiaddr {
+	if p.address == nil {
+		return nil
+	}
 	qma, err := common.QMultiAddrFromString(fmt.Sprintf("%s", p.address.String()+"/p2p/"+p.pid.String()))
 	if err != nil {
 		return nil
