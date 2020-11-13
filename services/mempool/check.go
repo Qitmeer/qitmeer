@@ -265,7 +265,7 @@ func isDust(txOut *types.TxOutput, minRelayTxFee types.Amount) bool {
 	// without needing to do floating point math.
 	// TODO fix type conversion
 	// TODO consider the case of token output
-	return int64(txOut.Amount)*1000/(3*int64(totalSize)) < int64(minRelayTxFee)
+	return int64(txOut.Amount)*1000/(3*int64(totalSize)) < int64(minRelayTxFee.Value)
 }
 
 // checkPoolDoubleSpend checks whether or not the passed transaction is

@@ -26,55 +26,55 @@ func TestAmountCreation(t *testing.T) {
 			name:     "zero",
 			amount:   0,
 			valid:    true,
-			expected: 0,
+			expected: Amount{0,MEERID},
 		},
 		{
 			name:     "max producable",
 			amount:   21e6,
 			valid:    true,
-			expected: MaxAmount,
+			expected: Amount{MaxAmount,MEERID},
 		},
 		{
 			name:     "min producable",
 			amount:   -21e6,
 			valid:    true,
-			expected: -MaxAmount,
+			expected: Amount{-MaxAmount,MEERID},
 		},
 		{
 			name:     "exceeds max producable",
 			amount:   21e6 + 1e-8,
 			valid:    true,
-			expected: MaxAmount + 1,
+			expected: Amount{MaxAmount + 1,MEERID},
 		},
 		{
 			name:     "exceeds min producable",
 			amount:   -21e6 - 1e-8,
 			valid:    true,
-			expected: -MaxAmount - 1,
+			expected: Amount{-MaxAmount - 1, MEERID},
 		},
 		{
 			name:     "one hundred",
 			amount:   100,
 			valid:    true,
-			expected: 100 * AtomsPerCoin,
+			expected: Amount{100 * AtomsPerCoin, MEERID},
 		},
 		{
 			name:     "fraction",
 			amount:   0.01234567,
 			valid:    true,
-			expected: 1234567,
+			expected: Amount{1234567,MEERID},
 		},
 		{
 			name:     "rounding up",
 			amount:   54.999999999999943157,
 			valid:    true,
-			expected: 55 * AtomsPerCoin,
+			expected: Amount{55 * AtomsPerCoin,MEERID},
 		},
 		{
 			name:     "rounding down",
 			amount:   55.000000000000056843,
 			valid:    true,
-			expected: 55 * AtomsPerCoin,
+			expected: Amount{55 * AtomsPerCoin, MEERID},
 		},
 
 		// Negative tests.
@@ -123,36 +123,36 @@ func TestAmountUnitConversions(t *testing.T) {
 	}{
 		{
 			name:      "MMEER",
-			amount:    MaxAmount,
+			amount:    Amount{MaxAmount,MEERID},
 			unit:      AmountMegaCoin,
 			converted: 21,
 			s:         "21 MMEER",
 		},
 		{
 			name:      "kMEER",
-			amount:    44433322211100,
+			amount:    Amount{44433322211100,MEERID},
 			unit:      AmountKiloCoin,
 			converted: 444.33322211100,
 			s:         "444.333222111 kMEER",
 		},
 		{
 			name:      "MEER",
-			amount:    44433322211100,
+			amount:    Amount{44433322211100,MEERID},
 			unit:      AmountCoin,
 			converted: 444333.22211100,
 			s:         "444333.222111 MEER",
 		},
 		{
 			name:      "mMEER",
-			amount:    44433322211100,
+			amount:    Amount{44433322211100,MEERID},
 			unit:      AmountMilliCoin,
 			converted: 444333222.11100,
 			s:         "444333222.111 mMEER",
 		},
 		{
 
-			name:      "μDCR",
-			amount:    44433322211100,
+			name:      "μMEER",
+			amount:    Amount{44433322211100,MEERID},
 			unit:      AmountMicroCoin,
 			converted: 444333222111.00,
 			s:         "444333222111 μMEER",
@@ -160,7 +160,7 @@ func TestAmountUnitConversions(t *testing.T) {
 		{
 
 			name:      "atom",
-			amount:    44433322211100,
+			amount:    Amount{44433322211100,MEERID},
 			unit:      AmountAtom,
 			converted: 44433322211100,
 			s:         "44433322211100 atomMEER",
@@ -168,7 +168,7 @@ func TestAmountUnitConversions(t *testing.T) {
 		{
 
 			name:      "non-standard unit",
-			amount:    44433322211100,
+			amount:    Amount{44433322211100,MEERID},
 			unit:      AmountUnit(-1),
 			converted: 4443332.2211100,
 			s:         "4443332.22111 1e-1 MEER",
@@ -212,94 +212,94 @@ func TestAmountMulF64(t *testing.T) {
 		res  Amount
 	}{
 		{
-			name: "Multiply 0.1 DCR by 2",
-			amt:  100e5, // 0.1 DCR
+			name: "Multiply 0.1 MEER by 2",
+			amt:  Amount{100e5, MEERID}, // 0.1 MEER
 			mul:  2,
-			res:  200e5, // 0.2 DCR
+			res:  Amount{200e5, MEERID}, // 0.2 MEER
 		},
 		{
-			name: "Multiply 0.2 DCR by 0.02",
-			amt:  200e5, // 0.2 DCR
+			name: "Multiply 0.2 MEER by 0.02",
+			amt:  Amount{200e5, MEERID}, // 0.2 MEER
 			mul:  1.02,
-			res:  204e5, // 0.204 DCR
+			res:  Amount{204e5, MEERID}, // 0.204 MEER
 		},
 		{
-			name: "Multiply 0.1 DCR by -2",
-			amt:  100e5, // 0.1 DCR
+			name: "Multiply 0.1 MEER by -2",
+			amt:  Amount{100e5, MEERID}, // 0.1 MEER
 			mul:  -2,
-			res:  -200e5, // -0.2 DCR
+			res:  Amount{-200e5,MEERID}, // -0.2 MEER
 		},
 		{
-			name: "Multiply 0.2 DCR by -0.02",
-			amt:  200e5, // 0.2 DCR
+			name: "Multiply 0.2 MEER by -0.02",
+			amt:  Amount{200e5,MEERID}, // 0.2 MEER
 			mul:  -1.02,
-			res:  -204e5, // -0.204 DCR
+			res:  Amount{-204e5, MEERID}, // -0.204 MEER
 		},
 		{
-			name: "Multiply -0.1 DCR by 2",
-			amt:  -100e5, // -0.1 DCR
+			name: "Multiply -0.1 MEER by 2",
+			amt:  Amount{-100e5, MEERID}, // -0.1 MEER
 			mul:  2,
-			res:  -200e5, // -0.2 DCR
+			res:  Amount{-200e5,MEERID}, // -0.2 MEER
 		},
 		{
-			name: "Multiply -0.2 DCR by 0.02",
-			amt:  -200e5, // -0.2 DCR
+			name: "Multiply -0.2 MEER by 0.02",
+			amt:  Amount{-200e5, MEERID}, // -0.2 MEER
 			mul:  1.02,
-			res:  -204e5, // -0.204 DCR
+			res:  Amount{-204e5, MEERID}, // -0.204 MEER
 		},
 		{
-			name: "Multiply -0.1 DCR by -2",
-			amt:  -100e5, // -0.1 DCR
+			name: "Multiply -0.1 MEER by -2",
+			amt:  Amount{-100e5, MEERID}, // -0.1 MEER
 			mul:  -2,
-			res:  200e5, // 0.2 DCR
+			res:  Amount{200e5, MEERID}, // 0.2 MEER
 		},
 		{
-			name: "Multiply -0.2 DCR by -0.02",
-			amt:  -200e5, // -0.2 DCR
+			name: "Multiply -0.2 MEER by -0.02",
+			amt:  Amount{-200e5, MEERID}, // -0.2 MEER
 			mul:  -1.02,
-			res:  204e5, // 0.204 DCR
+			res:  Amount{204e5,MEERID}, // 0.204 MEER
 		},
 		{
 			name: "Round down",
-			amt:  49, // 49 Atoms
+			amt:  Amount{49, MEERID},// 49 Atoms MEER
 			mul:  0.01,
-			res:  0,
+			res:  Amount{0,MEERID},
 		},
 		{
 			name: "Round up",
-			amt:  50, // 50 Atoms
+			amt:  Amount{50, MEERID}, // 50 Atom MEER
 			mul:  0.01,
-			res:  1, // 1 Atom
+			res:  Amount{1, MEERID}, // 1 Atom MEER
 		},
 		{
 			name: "Multiply by 0.",
-			amt:  1e8, // 1 DCR
+			amt:  Amount{1e8, MEERID}, // 1 MEER
 			mul:  0,
-			res:  0, // 0 DCR
+			res:  Amount{0, MEERID}, // 0 MEER
 		},
 		{
 			name: "Multiply 1 by 0.5.",
-			amt:  1, // 1 Atom
+			amt:  Amount{1, MEERID}, // 1 Atom MEER
 			mul:  0.5,
-			res:  1, // 1 Atom
+			res:  Amount{1, MEERID}, // 1 Atom MEER
 		},
 		{
 			name: "Multiply 100 by 66%.",
-			amt:  100, // 100 Atoms
+			amt:  Amount{100, MEERID}, // 100 Atom MEER
 			mul:  0.66,
-			res:  66, // 66 Atoms
+			res:  Amount{66, MEERID}, // 66 Atom MEER
 		},
 		{
 			name: "Multiply 100 by 66.6%.",
-			amt:  100, // 100 Atoms
+			amt:  Amount{100, MEERID}, // 100 Atom MEER
 			mul:  0.666,
-			res:  67, // 67 Atoms
+			res:  Amount{67,MEERID}, // 67 Atom MEER
 		},
 		{
 			name: "Multiply 100 by 2/3.",
-			amt:  100, // 100 Atoms
+			amt:  Amount{100, MEERID}, // 100 Atom MEER
 			mul:  2.0 / 3,
-			res:  67, // 67 Atoms
+			res:  Amount{67, MEERID}, // 67 Atoms MEER
 		},
 	}
 
@@ -324,18 +324,30 @@ func TestAmountSorter(t *testing.T) {
 		},
 		{
 			name: "Sort 1-element slice of Amounts",
-			as:   []Amount{7},
-			want: []Amount{7},
+			as:   []Amount{{7,MEERID}},
+			want: []Amount{{7,MEERID}},
 		},
 		{
 			name: "Sort 2-element slice of Amounts",
-			as:   []Amount{7, 5},
-			want: []Amount{5, 7},
+			as:   []Amount{{7, MEERID},{5,MEERID}},
+			want: []Amount{{5,MEERID}, {7, MEERID}},
 		},
 		{
 			name: "Sort 6-element slice of Amounts",
-			as:   []Amount{0, 9e8, 4e6, 4e6, 3, 9e12},
-			want: []Amount{0, 3, 4e6, 4e6, 9e8, 9e12},
+			as:   []Amount{
+				{0,MEERID},
+				{9e8,MEERID},
+				{4e6,MEERID},
+				{4e6,MEERID},
+				{3,MEERID},
+				{9e12,MEERID}},
+			want: []Amount{
+				{0,MEERID},
+				{3,MEERID},
+				{4e6,MEERID},
+				{4e6,MEERID},
+				{9e8,MEERID},
+				{9e12,MEERID}},
 		},
 	}
 
