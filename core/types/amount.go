@@ -35,19 +35,19 @@ const (
 func (u AmountUnit) String() string {
 	switch u {
 	case AmountMegaCoin:
-		return "MMEER"
+		return "M"
 	case AmountKiloCoin:
-		return "kMEER"
+		return "k"
 	case AmountCoin:
-		return "MEER"
+		return ""
 	case AmountMilliCoin:
-		return "mMEER"
+		return "m"
 	case AmountMicroCoin:
-		return "μMEER"
+		return "μ"
 	case AmountAtom:
-		return "AtomMEER"
+		return "atom"
 	default:
-		return "1e" + strconv.FormatInt(int64(u), 10) + " MEER"
+		return "1e" + strconv.FormatInt(int64(u), 10) + " "
 	}
 }
 
@@ -105,13 +105,17 @@ func (a Amount) ToCoin() float64 {
 // however, known units will be formated with an appended label describing
 // the units with SI notation, or "atom" for the base unit.
 func (a Amount) Format(u AmountUnit) string {
-	units := " " + u.String()
+	units := " " + u.String() + a.Type()
 	return strconv.FormatFloat(a.ToUnit(u), 'f', -int(u+8), 64) + units
 }
 
 // String is the equivalent of calling Format with AmountCoin.
 func (a Amount) String() string {
 	return a.Format(AmountCoin)
+}
+
+func (a Amount) Type() string {
+	return "MEER"
 }
 
 // MulF64 multiplies an Amount by a floating point value.  While this is not

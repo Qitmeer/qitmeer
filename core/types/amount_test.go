@@ -163,7 +163,7 @@ func TestAmountUnitConversions(t *testing.T) {
 			amount:    44433322211100,
 			unit:      AmountAtom,
 			converted: 44433322211100,
-			s:         "44433322211100 AtomMEER",
+			s:         "44433322211100 atomMEER",
 		},
 		{
 
