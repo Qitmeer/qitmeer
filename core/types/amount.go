@@ -50,8 +50,8 @@ func (u AmountUnit) String() string {
 		return "1e" + strconv.FormatInt(int64(u), 10) + " "
 	}
 }
-
-type CoinID int
+// from 0 ~ 65535
+type CoinID uint16
 const (
 	MEERID CoinID = 0
 	QITID CoinID = 1
@@ -70,6 +70,7 @@ func (c CoinID) String() string {
 
 // Amount represents the base coin monetary unit (colloquially referred
 // to as an `Atom').  A single Amount is equal to 1e-8 of a coin.
+// size is 10 bytes ( value -> 8 byte , coinId -> 2 byte)
 type Amount struct{
 	Value int64
 	Id CoinID
