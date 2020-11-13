@@ -439,11 +439,11 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 	for i, addr := range addrs {
 		addresses[i] = addr.Encode()
 	}
-
+	amt, _ := types.NewMeer(amount)
 	txOutReply := &json.GetUtxoResult{
 		BestBlock:     bestBlockHash,
 		Confirmations: confirmations,
-		Amount:        types.Amount(amount).ToUnit(types.AmountCoin),
+		Amount:        amt.ToUnit(types.AmountCoin),
 		Version:       int32(txVersion),
 		ScriptPubKey: json.ScriptPubKeyResult{
 			Asm:       disbuf,
@@ -795,11 +795,12 @@ func (api *PublicTxAPI) createVinListPrevOut(mtx *types.Tx, chainParams *params.
 
 		// Update the entry with previous output information if
 		// requested.
+		amt,_ := types.NewMeer(originTxOut.Amount)
 		if vinExtra {
 			vinListEntry := &vinList[len(vinList)-1]
 			vinListEntry.PrevOut = &json.PrevOut{
 				Addresses: encodedAddrs,
-				Value:     types.Amount(originTxOut.Amount).ToCoin(),
+				Value:     amt.ToCoin(),
 			}
 		}
 	}

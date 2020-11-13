@@ -209,7 +209,7 @@ func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsF
 			ErrExit(errors.Wrapf(err, "fail to create the currency amount from a "+
 				"floating point value %f", output.amount))
 		}
-		txOutputs[output.target] = uint64(atomic)
+		txOutputs[output.target] = uint64(atomic.Value)
 	}
 	mtxHex, err := TxEncode(uint32(version), uint32(lockTime), nil, txInputs, txOutputs)
 	if err != nil {
