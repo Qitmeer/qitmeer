@@ -19,6 +19,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -174,4 +175,15 @@ func verifyConnectivity(addr string, port uint, protocol string) {
 			log.Debug(fmt.Sprintf("Could not close connection:protocol=%s address=%s error=%s", protocol, a, err))
 		}
 	}
+}
+
+func filterBootStrapAddrs(hostID string, addrs []string) []string {
+	result := []string{}
+	for _, addr := range addrs {
+		if strings.HasSuffix(addr, hostID) {
+			continue
+		}
+		result = append(result, addr)
+	}
+	return result
 }

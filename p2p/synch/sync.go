@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/Qitmeer/qitmeer/params"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -67,9 +68,10 @@ const ReqTimeout = 10 * time.Second
 const HandleTimeout = 5 * time.Second
 
 type Sync struct {
-	peers    *peers.Status
-	peerSync *PeerSync
-	p2p      common.P2P
+	peers        *peers.Status
+	peerSync     *PeerSync
+	p2p          common.P2P
+	PeerInterval time.Duration
 }
 
 func (s *Sync) Start() error {
@@ -193,7 +195,8 @@ func (s *Sync) SetStreamHandler(topic string, handler network.StreamHandler) {
 }
 
 func NewSync(p2p common.P2P) *Sync {
-	sy := &Sync{p2p: p2p, peers: peers.NewStatus(p2p)}
+	sy := &Sync{p2p: p2p, peers: peers.NewStatus(p2p),
+		PeerInterval: params.ActiveNetParams.TargetTimePerBlock * 2}
 	sy.peerSync = NewPeerSync(sy)
 
 	return sy
