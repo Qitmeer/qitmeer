@@ -51,6 +51,7 @@ func (u AmountUnit) String() string {
 	}
 }
 // from 0 ~ 65535
+// 0 ~ 255 : Qitmeer reserved
 type CoinID uint16
 const (
 	MEERID CoinID = 0
