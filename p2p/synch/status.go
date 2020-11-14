@@ -21,8 +21,7 @@ const (
 
 // maintainPeerStatuses by infrequently polling peers for their latest status.
 func (s *Sync) maintainPeerStatuses() {
-	interval := s.p2p.BlockChain().ChainParams().TargetTimePerBlock * 5
-	runutil.RunEvery(s.p2p.Context(), interval, func() {
+	runutil.RunEvery(s.p2p.Context(), s.PeerInterval, func() {
 		for _, pid := range s.Peers().Connected() {
 			pe := s.peers.Get(pid)
 			if pe == nil {
@@ -46,7 +45,7 @@ func (s *Sync) maintainPeerStatuses() {
 					return
 				}
 				// If the status hasn't been updated in the recent interval time.
-				if roughtime.Now().After(pe.ChainStateLastUpdated().Add(interval)) {
+				if roughtime.Now().After(pe.ChainStateLastUpdated().Add(s.PeerInterval)) {
 					if err := s.reValidatePeer(s.p2p.Context(), id); err != nil {
 						log.Error(fmt.Sprintf("Failed to revalidate peer (%v), peer:%s", err, id))
 						s.Peers().IncrementBadResponses(id)

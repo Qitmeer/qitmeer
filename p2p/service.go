@@ -116,6 +116,9 @@ func (s *Service) Start() error {
 	s.started = true
 
 	_, bootstrapAddrs := parseGenericAddrs(s.cfg.BootstrapNodeAddr)
+	if len(bootstrapAddrs) > 0 {
+		peersToWatch = append(peersToWatch, bootstrapAddrs...)
+	}
 	if len(s.cfg.StaticPeers) > 0 {
 		bootstrapAddrs = append(bootstrapAddrs, s.cfg.StaticPeers...)
 	}
@@ -131,7 +134,7 @@ func (s *Service) Start() error {
 
 	// Periodic functions.
 	if len(peersToWatch) > 0 {
-		runutil.RunEvery(s.ctx, 10*time.Second, func() {
+		runutil.RunEvery(s.ctx, s.sy.PeerInterval, func() {
 			s.ensurePeerConnections(peersToWatch)
 		})
 	}
@@ -579,6 +582,8 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 	}
 
 	s.host = h
+
+	s.cfg.BootstrapNodeAddr = filterBootStrapAddrs(h.ID().String(), s.cfg.BootstrapNodeAddr)
 
 	psOpts := []pubsub.Option{
 		pubsub.WithMessageSigning(false),
