@@ -30,5 +30,6 @@ Relay node connections are end-to-end encrypted, which means that the peer actin
 
 ## Usage
 
-If you do not want to use the relay node default configuration parameters, you can use `./relaynode -h` to help for custom configuration.
+* If you do not want to use the relay node default configuration parameters, you can use `./relaynode -h` to help for custom configuration.
 
+* If your environment is having trouble getting public IP, please try using `./relaynode --externalip=[Your Public IP]`
