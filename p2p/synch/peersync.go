@@ -295,7 +295,6 @@ func (ps *PeerSync) getBestPeer() *peers.Peer {
 	var bestPeer *peers.Peer
 	equalPeers := []*peers.Peer{}
 	for _, sp := range ps.sy.peers.ConnectedPeers() {
-
 		// Remove sync candidate peers that are no longer candidates due
 		// to passing their latest known block.  NOTE: The < is
 		// intentional as opposed to <=.  While techcnically the peer

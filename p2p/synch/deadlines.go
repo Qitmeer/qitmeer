@@ -11,7 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 )
 
-var defaultReadDuration = ttfbTimeout
+var defaultReadDuration = TtfbTimeout
 var defaultWriteDuration = 10 * time.Second
 
 // SetRPCStreamDeadlines sets read and write deadlines for libp2p-based connection streams.

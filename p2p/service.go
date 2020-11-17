@@ -28,6 +28,8 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-discovery"
+	"github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/multiformats/go-multiaddr"
@@ -70,8 +72,11 @@ type Service struct {
 	pubsub        *pubsub.PubSub
 
 	dv5Listener Listener
-	events      *event.Feed
-	sy          *synch.Sync
+	kademliaDHT *dht.IpfsDHT
+	routingDv   *discovery.RoutingDiscovery
+
+	events *event.Feed
+	sy     *synch.Sync
 
 	blockChain *blockchain.BlockChain
 	timeSource blockchain.MedianTimeSource
@@ -101,27 +106,19 @@ func (s *Service) Start() error {
 		}
 	}
 	if !s.cfg.NoDiscovery {
-		ipAddr := ipAddr()
-		listener, err := s.startDiscoveryV5(
-			ipAddr,
-			s.privKey,
-		)
+		err := s.startKademliaDHT()
 		if err != nil {
 			log.Error(fmt.Sprintf("Failed to start discovery:%v", err))
 			return err
 		}
-		err = s.connectToBootnodes()
-		if err != nil {
-			log.Error(fmt.Sprintf("Could not add bootnode to the exclusion list:%v", err))
-			return err
-		}
-		s.dv5Listener = listener
-		go s.listenForNewNodes()
 	}
 
 	s.started = true
 
 	_, bootstrapAddrs := parseGenericAddrs(s.cfg.BootstrapNodeAddr)
+	if len(bootstrapAddrs) > 0 {
+		peersToWatch = append(peersToWatch, bootstrapAddrs...)
+	}
 	if len(s.cfg.StaticPeers) > 0 {
 		bootstrapAddrs = append(bootstrapAddrs, s.cfg.StaticPeers...)
 	}
@@ -137,7 +134,7 @@ func (s *Service) Start() error {
 
 	// Periodic functions.
 	if len(peersToWatch) > 0 {
-		runutil.RunEvery(s.ctx, 10*time.Second, func() {
+		runutil.RunEvery(s.ctx, s.sy.PeerInterval, func() {
 			s.ensurePeerConnections(peersToWatch)
 		})
 	}
@@ -456,15 +453,22 @@ func (s *Service) ConnectTo(node *qnode.Node) {
 }
 
 func (s *Service) Resolve(n *qnode.Node) *qnode.Node {
+	if s.dv5Listener == nil {
+		return nil
+	}
 	return s.dv5Listener.Resolve(n)
 }
 
-func (s *Service) HostAddress() ma.Multiaddr {
-	maddr, err := convertToSingleMultiAddr(s.Node())
-	if err != nil {
+func (s *Service) HostAddress() []string {
+	hms := s.host.Addrs()
+	if len(hms) <= 0 {
 		return nil
 	}
-	return maddr
+	result := []string{}
+	for _, hm := range hms {
+		result = append(result, fmt.Sprintf("%s/p2p/%s", hm.String(), s.Host().ID().String()))
+	}
+	return result
 }
 
 func (s *Service) HostDNS() ma.Multiaddr {
@@ -477,6 +481,18 @@ func (s *Service) HostDNS() ma.Multiaddr {
 		return nil
 	}
 	return external
+}
+
+func (s *Service) RelayNodeInfo() *peer.AddrInfo {
+	if len(s.cfg.RelayNodeAddr) <= 0 {
+		return nil
+	}
+	pi, err := MakePeer(s.cfg.RelayNodeAddr)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return pi
 }
 
 func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*Service, error) {
@@ -530,6 +546,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			Params:               param,
 			HostAddress:          cfg.HostIP,
 			HostDNS:              cfg.HostDNS,
+			RelayNodeAddr:        cfg.RelayNode,
 		},
 		ctx:           ctx,
 		cancel:        cancel,
@@ -541,7 +558,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 	dv5Nodes := parseBootStrapAddrs(s.cfg.BootstrapNodeAddr)
 	s.cfg.Discv5BootStrapAddr = dv5Nodes
 
-	ipAddr := ipAddr()
+	ipAddr := IpAddr()
 	s.privKey, err = privKey(s.cfg)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to generate p2p private key:%v", err))
@@ -565,6 +582,8 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 	}
 
 	s.host = h
+
+	s.cfg.BootstrapNodeAddr = filterBootStrapAddrs(h.ID().String(), s.cfg.BootstrapNodeAddr)
 
 	psOpts := []pubsub.Option{
 		pubsub.WithMessageSigning(false),

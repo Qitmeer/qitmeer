@@ -72,4 +72,10 @@ const (
 
 	// a peer supports committed filters (CFs).
 	CF
+
+	// Relay
+	Relay
+
+	// Observer
+	Observer
 )

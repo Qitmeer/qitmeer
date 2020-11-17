@@ -57,7 +57,6 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKATOO)
 	ret := &json.InfoNodeResult{
 		ID:              api.node.node.peerServer.PeerID().String(),
-		QNR:             api.node.node.peerServer.Node().String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
 		BuildVersion:    version.String(),
 		ProtocolVersion: int32(protocol.ProtocolVersion),
@@ -73,12 +72,17 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		Confirmations:    blockdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
 		Modules:          []string{rpc.DefaultServiceNameSpace, rpc.MinerNameSpace, rpc.TestNameSpace, rpc.LogNameSpace},
-		HostAddress:      api.node.node.peerServer.HostAddress().String(),
 	}
 	ret.GraphState = *getGraphStateResult(best.GraphState)
 	hostdns := api.node.node.peerServer.HostDNS()
 	if hostdns != nil {
-		ret.HostDNS = hostdns.String()
+		ret.DNS = hostdns.String()
+	}
+	if api.node.node.peerServer.Node() != nil {
+		ret.QNR = api.node.node.peerServer.Node().String()
+	}
+	if len(api.node.node.peerServer.HostAddress()) > 0 {
+		ret.Addresss = api.node.node.peerServer.HostAddress()
 	}
 	return ret, nil
 }
@@ -125,8 +129,9 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 			}
 		}
 		info := &json.GetPeerInfoResult{
-			ID:    p.PeerID,
-			State: p.State.String(),
+			ID:      p.PeerID,
+			State:   p.State.String(),
+			Address: p.Address,
 		}
 		if p.State.IsConnected() {
 			info.Protocol = p.Protocol
@@ -137,8 +142,8 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 				info.Genesis = p.Genesis.String()
 			}
 			info.Direction = p.Direction.String()
-			if p.GraphState != nil {
-				info.GraphState = *getGraphStateResult(p.GraphState)
+			if p.GraphState != nil && !p.IsRelay() {
+				info.GraphState = getGraphStateResult(p.GraphState)
 			}
 			if ps.PeerSync().SyncPeer() != nil {
 				info.SyncNode = p.NodeID == ps.PeerSync().SyncPeer().GetID().String()

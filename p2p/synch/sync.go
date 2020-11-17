@@ -11,7 +11,9 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/Qitmeer/qitmeer/params"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -49,7 +51,7 @@ const (
 // Time to first byte timeout. The maximum time to wait for first byte of
 // request response (time-to-first-byte). The client is expected to give up if
 // they don't receive the first byte within 5 seconds.
-const ttfbTimeout = 5 * time.Second
+const TtfbTimeout = 5 * time.Second
 
 // rpcHandler is responsible for handling and responding to any incoming message.
 // This method may return an error to internal monitoring, but the error will
@@ -66,9 +68,10 @@ const ReqTimeout = 10 * time.Second
 const HandleTimeout = 5 * time.Second
 
 type Sync struct {
-	peers    *peers.Status
-	peerSync *PeerSync
-	p2p      common.P2P
+	peers        *peers.Status
+	peerSync     *PeerSync
+	p2p          common.P2P
+	PeerInterval time.Duration
 }
 
 func (s *Sync) Start() error {
@@ -163,16 +166,54 @@ func (s *Sync) registerRPCHandlers() {
 
 // registerRPC for a given topic with an expected protobuf message type.
 func (s *Sync) registerRPC(topic string, base interface{}, handle rpcHandler) {
-	topic += s.Encoding().ProtocolSuffix()
-	s.SetStreamHandler(topic, func(stream network.Stream) {
-		ctx, cancel := context.WithTimeout(context.Background(), ttfbTimeout)
+	RegisterRPC(s.p2p.Host(), s.Encoding(), topic, base, handle)
+}
+
+// Send a message to a specific peer. The returned stream may be used for reading, but has been
+// closed for writing.
+func (s *Sync) Send(ctx context.Context, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
+	return Send(ctx, s.p2p.Host(), s.Encoding(), message, baseTopic, pid)
+}
+
+func (s *Sync) PeerSync() *PeerSync {
+	return s.peerSync
+}
+
+// Peers returns the peer status interface.
+func (s *Sync) Peers() *peers.Status {
+	return s.peers
+}
+
+func (s *Sync) Encoding() encoder.NetworkEncoding {
+	return s.p2p.Encoding()
+}
+
+// SetStreamHandler sets the protocol handler on the p2p host multiplexer.
+// This method is a pass through to libp2pcore.Host.SetStreamHandler.
+func (s *Sync) SetStreamHandler(topic string, handler network.StreamHandler) {
+	s.p2p.Host().SetStreamHandler(protocol.ID(topic), handler)
+}
+
+func NewSync(p2p common.P2P) *Sync {
+	sy := &Sync{p2p: p2p, peers: peers.NewStatus(p2p),
+		PeerInterval: params.ActiveNetParams.TargetTimePerBlock * 2}
+	sy.peerSync = NewPeerSync(sy)
+
+	return sy
+}
+
+// registerRPC for a given topic with an expected protobuf message type.
+func RegisterRPC(host host.Host, encoding encoder.NetworkEncoding, topic string, base interface{}, handle rpcHandler) {
+	topic += encoding.ProtocolSuffix()
+	host.SetStreamHandler(protocol.ID(topic), func(stream network.Stream) {
+		ctx, cancel := context.WithTimeout(context.Background(), TtfbTimeout)
 		defer cancel()
 		defer func() {
 			if err := stream.Close(); err != nil {
 				log.Error(fmt.Sprintf("topic:%s Failed to close stream:%v", topic, err))
 			}
 		}()
-		if err := stream.SetReadDeadline(time.Now().Add(ttfbTimeout)); err != nil {
+		if err := stream.SetReadDeadline(time.Now().Add(TtfbTimeout)); err != nil {
 			log.Error(fmt.Sprintf("topic:%s peer:%s Could not set stream read deadline:%v",
 				topic, stream.Conn().RemotePeer().Pretty(), err))
 			return
@@ -198,7 +239,7 @@ func (s *Sync) registerRPC(topic string, base interface{}, handle rpcHandler) {
 			ty = t
 		}
 		msg := reflect.New(ty)
-		if err := s.Encoding().DecodeWithMaxLength(stream, msg.Interface()); err != nil {
+		if err := encoding.DecodeWithMaxLength(stream, msg.Interface()); err != nil {
 			// Debug logs for goodbye errors
 			if strings.Contains(topic, RPCGoodByeTopic) {
 				log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
@@ -215,14 +256,14 @@ func (s *Sync) registerRPC(topic string, base interface{}, handle rpcHandler) {
 
 // Send a message to a specific peer. The returned stream may be used for reading, but has been
 // closed for writing.
-func (s *Sync) Send(ctx context.Context, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
-	topic := baseTopic + s.Encoding().ProtocolSuffix()
+func Send(ctx context.Context, host host.Host, encoding encoder.NetworkEncoding, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
+	topic := baseTopic + encoding.ProtocolSuffix()
 
-	var deadline = ttfbTimeout + RespTimeout
+	var deadline = TtfbTimeout + RespTimeout
 	ctx, cancel := context.WithTimeout(ctx, deadline)
 	defer cancel()
 
-	stream, err := s.p2p.Host().NewStream(ctx, pid, protocol.ID(topic))
+	stream, err := host.NewStream(ctx, pid, protocol.ID(topic))
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +278,7 @@ func (s *Sync) Send(ctx context.Context, message interface{}, baseTopic string, 
 		return stream, nil
 	}
 
-	if _, err := s.Encoding().EncodeWithMaxLength(stream, message); err != nil {
+	if _, err := encoding.EncodeWithMaxLength(stream, message); err != nil {
 		return nil, err
 	}
 
@@ -247,30 +288,4 @@ func (s *Sync) Send(ctx context.Context, message interface{}, baseTopic string, 
 	}
 
 	return stream, nil
-}
-
-func (s *Sync) PeerSync() *PeerSync {
-	return s.peerSync
-}
-
-// Peers returns the peer status interface.
-func (s *Sync) Peers() *peers.Status {
-	return s.peers
-}
-
-func (s *Sync) Encoding() encoder.NetworkEncoding {
-	return s.p2p.Encoding()
-}
-
-// SetStreamHandler sets the protocol handler on the p2p host multiplexer.
-// This method is a pass through to libp2pcore.Host.SetStreamHandler.
-func (s *Sync) SetStreamHandler(topic string, handler network.StreamHandler) {
-	s.p2p.Host().SetStreamHandler(protocol.ID(topic), handler)
-}
-
-func NewSync(p2p common.P2P) *Sync {
-	sy := &Sync{p2p: p2p, peers: peers.NewStatus(p2p)}
-	sy.peerSync = NewPeerSync(sy)
-
-	return sy
 }

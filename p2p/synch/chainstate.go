@@ -50,7 +50,7 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 		return err
 	}
 
-	if code != responseCodeSuccess {
+	if code != ResponseCodeSuccess {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return errors.New(errMsg)
 	}
@@ -59,8 +59,8 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
 		return err
 	}
-	pe.SetChainState(msg)
-	go s.peerSync.PeerUpdate(pe, false)
+
+	s.UpdateChainState(pe, msg, true)
 
 	ret, err := s.validateChainStateMessage(ctx, msg, id)
 	if err != nil {
@@ -99,11 +99,10 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		respCode := byte(0)
 		switch ret {
 		case retErrGeneric:
-			respCode = responseCodeServerError
+			respCode = ResponseCodeServerError
 		case retErrInvalidChainState:
 			// Respond with our status and disconnect with the peer.
-			pe.SetChainState(m)
-			go s.peerSync.PeerUpdate(pe, false)
+			s.UpdateChainState(pe, m, false)
 			if err := s.respondWithChainState(ctx, stream); err != nil {
 				return err
 			}
@@ -113,7 +112,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 			}
 			return nil
 		default:
-			respCode = responseCodeInvalidRequest
+			respCode = ResponseCodeInvalidRequest
 			s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		}
 
@@ -136,15 +135,29 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		}
 		return originalErr
 	}
-	pe.SetChainState(m)
-	go s.peerSync.PeerUpdate(pe, false)
+	s.UpdateChainState(pe, m, true)
 
 	return s.respondWithChainState(ctx, stream)
+}
+
+func (s *Sync) UpdateChainState(pe *peers.Peer, chainState *pb.ChainState, action bool) {
+	pe.SetChainState(chainState)
+	if !action {
+		return
+	}
+	if pe.ConnectionState().IsConnecting() {
+		go s.peerSync.immediatelyConnected(pe)
+		return
+	}
+	go s.peerSync.PeerUpdate(pe, false)
 }
 
 func (s *Sync) validateChainStateMessage(ctx context.Context, msg *pb.ChainState, id peer.ID) (int, error) {
 	if msg == nil {
 		return retErrGeneric, fmt.Errorf("msg is nil")
+	}
+	if protocol.HasServices(protocol.ServiceFlag(msg.Services), protocol.Relay) {
+		return retSuccess, nil
 	}
 	pe := s.peers.Get(id)
 	if msg == nil {
@@ -188,7 +201,7 @@ func (s *Sync) respondWithChainState(ctx context.Context, stream network.Stream)
 		return fmt.Errorf("no chain state")
 	}
 
-	if _, err := stream.Write([]byte{responseCodeSuccess}); err != nil {
+	if _, err := stream.Write([]byte{ResponseCodeSuccess}); err != nil {
 		log.Error(fmt.Sprintf("Failed to write to stream:%v", err))
 	}
 	_, err := s.Encoding().EncodeWithMaxLength(stream, resp)
