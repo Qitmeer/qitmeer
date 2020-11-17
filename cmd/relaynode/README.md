@@ -25,7 +25,7 @@ Relay node connections are end-to-end encrypted, which means that the peer actin
 
 * Configure startup parameters for Qitmeer nodes in the private network.
 ```bash
-~ ./qitmeerd --relaynode=[Relay Address]
+~ ./qitmeer --relaynode=[Relay Address]
 ```
 
 ## Usage
