@@ -11,7 +11,7 @@ import (
 
 const (
 	defaultDataDirname = "relay"
-	defaultPort        = "1001"
+	defaultPort        = "2001"
 	defaultIP          = "0.0.0.0"
 )
 
