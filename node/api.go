@@ -146,7 +146,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 				info.GraphState = getGraphStateResult(p.GraphState)
 			}
 			if ps.PeerSync().SyncPeer() != nil {
-				info.SyncNode = p.NodeID == ps.PeerSync().SyncPeer().GetID().String()
+				info.SyncNode = p.PeerID == ps.PeerSync().SyncPeer().GetID().String()
 			} else {
 				info.SyncNode = false
 			}
