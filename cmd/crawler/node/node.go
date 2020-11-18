@@ -33,6 +33,7 @@ import (
 	"github.com/libp2p/go-libp2p-secio"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
+	"sync"
 	"time"
 )
 
@@ -43,7 +44,9 @@ type Node struct {
 	privateKey *ecdsa.PrivateKey
 	peers      *peers.Peers
 
-	host host.Host
+	interrupt chan struct{}
+	wg        sync.WaitGroup
+	host      host.Host
 }
 
 func (node *Node) Init(cfg *Config) error {
@@ -61,7 +64,8 @@ func (node *Node) Init(cfg *Config) error {
 		return err
 	}
 	node.privateKey = pk
-
+	node.interrupt = make(chan struct{}, 1)
+	node.wg = sync.WaitGroup{}
 	log.Log.Info(fmt.Sprintf("Load config completed"))
 	log.Log.Info(fmt.Sprintf("NetWork:%s  Genesis:%s", params.ActiveNetParams.Name, params.ActiveNetParams.GenesisHash.String()))
 	return nil
@@ -156,47 +160,42 @@ func (node *Node) Run() error {
 			node.connectWithAllPeers(addrs)
 		}
 	}
-
+	node.wg.Add(1)
 	go node.connectWithNewPeers()
 
-	interrupt := interruptListener()
-	<-interrupt
+	node.wg.Add(1)
+	go node.interruptListener()
+
+	node.wg.Wait()
 	return nil
 }
 
 func (node *Node) connectWithNewPeers() {
 	ti := time.NewTicker(30 * time.Second)
-	defer ti.Stop()
+	defer func() {
+		ti.Stop()
+		node.wg.Done()
+	}()
 
 	for {
 		select {
+		case <-node.interrupt:
+			log.Log.Info("Shutdown waiting for connection...")
+			return
 		case <-ti.C:
 			peers := node.peers.UnConnected()
 			for _, p := range peers {
-				maAddr, err := multiAddrFromString(getConnPeerAddress(p.Conn))
-				if err != nil {
-					log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", getConnPeerAddress(p.Conn), err))
-					continue
+				select {
+				case <-node.interrupt:
+					log.Log.Info("Shutdown connect peer...")
+					return
+				default:
+					node.connectWithConn(p.Conn)
 				}
-				addrInfo, err := peer.AddrInfoFromP2pAddr(maAddr)
-				if err != nil {
-					log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", p.Conn.RemoteMultiaddr().String(), err))
-					continue
-				}
-				go func(info peer.AddrInfo) {
-					if err := node.connectWithPeer(info, false); err != nil {
-						log.Log.Trace(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
-					}
-				}(*addrInfo)
 			}
-			all := node.peers.All()
-			log.Log.Info(fmt.Sprintf("Find %d peers", len(all)))
-			for _, peer := range all {
-				log.Log.Info(fmt.Sprintf("Peer:%s", getConnPeerAddress(peer.Conn)))
-			}
+			node.printResult()
 		}
 	}
-
 }
 
 func (node *Node) connectWithAllPeers(multiAddrs []multiaddr.Multiaddr) {
@@ -206,7 +205,6 @@ func (node *Node) connectWithAllPeers(multiAddrs []multiaddr.Multiaddr) {
 		return
 	}
 	for _, info := range addrInfos {
-		// make each dial non-blocking
 		go func(info peer.AddrInfo) {
 			if err := node.connectWithPeer(info, false); err != nil {
 				log.Log.Trace(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
@@ -224,6 +222,24 @@ func (node *Node) connectWithPeer(info peer.AddrInfo, force bool) error {
 	}
 	node.peers.UpdateConnected(info.ID)
 	return nil
+}
+
+func (node *Node) connectWithConn(conn network.Conn) {
+	maAddr, err := multiAddrFromString(getConnPeerAddress(conn))
+	if err != nil {
+		log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", getConnPeerAddress(conn), err))
+		return
+	}
+	addrInfo, err := peer.AddrInfoFromP2pAddr(maAddr)
+	if err != nil {
+		log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", conn.RemoteMultiaddr().String(), err))
+		return
+	}
+	go func(info peer.AddrInfo) {
+		if err := node.connectWithPeer(info, false); err != nil {
+			log.Log.Trace(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
+		}
+	}(*addrInfo)
 }
 
 func (node *Node) registerHandlers() error {
@@ -289,7 +305,7 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 		Timestamp:       uint64(roughtime.Now().Unix()),
 		Services:        uint64(pv.Relay),
 		GraphState:      gs,
-		UserAgent:       []byte("qitmeer-relay"),
+		UserAgent:       []byte("qitmeer-crawler"),
 		DisableRelayTx:  true,
 	}
 
@@ -298,6 +314,22 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 	}
 	_, err := node.Encoding().EncodeWithMaxLength(stream, resp)
 	return err
+}
+
+func (node *Node) printResult() {
+	all := node.peers.All()
+
+	log.Log.Info(fmt.Sprintf("Find %d peers", len(all)))
+	for _, peer := range all {
+		log.Log.Info(fmt.Sprintf("Peer:%s", getConnPeerAddress(peer.Conn)))
+	}
+}
+
+func (node *Node) interruptListener() {
+	interrupt := interruptListener()
+	<-interrupt
+	close(node.interrupt)
+	node.wg.Done()
 }
 
 func closeSteam(stream libp2pcore.Stream) {
