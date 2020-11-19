@@ -37,7 +37,7 @@ type GetPeerInfoResult struct {
 	State      string               `json:"state"`
 	Protocol   uint32               `json:"protocol,omitempty"`
 	Genesis    string               `json:"genesis,omitempty"`
-	Services   uint64               `json:"services,omitempty"`
+	Services   string               `json:"services,omitempty"`
 	UserAgent  string               `json:"useragent,omitempty"`
 	Direction  string               `json:"direction,omitempty"`
 	GraphState *GetGraphStateResult `json:"graphstate,omitempty"`

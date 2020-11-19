@@ -68,7 +68,7 @@ func (p *Status) ConnectedPeers() []*Peer {
 	defer p.lock.RUnlock()
 	peers := make([]*Peer, 0)
 	for _, status := range p.peers {
-		if status.IsRelay() {
+		if !status.IsConsensusNode() {
 			continue
 		}
 		if status.ConnectionState().IsConnected() {

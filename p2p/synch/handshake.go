@@ -79,9 +79,10 @@ func (ps *PeerSync) Connection(pe *peers.Peer) {
 	pe.SetConnectionState(peers.PeerConnected)
 	// Go through the handshake process.
 	multiAddr := fmt.Sprintf("%s/p2p/%s", pe.Address().String(), pe.GetID().String())
-	if pe.IsRelay() {
-		log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s  (Relay Peer)",
-			pe.GetID(), pe.Direction(), multiAddr))
+
+	if !pe.IsConsensusNode() {
+		log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s  (%s)",
+			pe.GetID(), pe.Direction(), multiAddr, pe.Services().String()))
 		return
 	}
 	log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s activePeers:%d Peer Connected",
@@ -99,8 +100,8 @@ func (ps *PeerSync) Disconnect(pe *peers.Peer) {
 	}
 	// TODO some handle
 	pe.SetConnectionState(peers.PeerDisconnected)
-	if pe.IsRelay() {
-		log.Trace(fmt.Sprintf("Disconnect:%v (Relay Node)", pe.GetID()))
+	if !pe.IsConsensusNode() {
+		log.Trace(fmt.Sprintf("Disconnect:%v (%s)", pe.GetID(), pe.Services().String()))
 		return
 	}
 

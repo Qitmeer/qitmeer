@@ -159,6 +159,9 @@ func (s *Sync) validateChainStateMessage(ctx context.Context, msg *pb.ChainState
 	if protocol.HasServices(protocol.ServiceFlag(msg.Services), protocol.Relay) {
 		return retSuccess, nil
 	}
+	if protocol.HasServices(protocol.ServiceFlag(msg.Services), protocol.Observer) {
+		return retSuccess, nil
+	}
 	pe := s.peers.Get(id)
 	if msg == nil {
 		return retErrGeneric, fmt.Errorf("peer is Unkonw:%s", id)

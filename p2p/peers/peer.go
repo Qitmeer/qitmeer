@@ -267,7 +267,6 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		UserAgent:  p.userAgent(),
 		State:      p.peerState,
 		Direction:  p.direction,
-		GraphState: p.graphState(),
 		TimeOffset: p.timeOffset,
 	}
 
@@ -278,6 +277,9 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 	}
 	if p.qaddress() != nil {
 		ss.Address = p.qaddress().String()
+	}
+	if p.isConsensusNode() {
+		ss.GraphState = p.graphState()
 	}
 	return ss, nil
 }
@@ -315,6 +317,13 @@ func (p *Peer) genesis() *hash.Hash {
 		return nil
 	}
 	return genesisHash
+}
+
+func (p *Peer) Services() protocol.ServiceFlag {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.services()
 }
 
 func (p *Peer) services() protocol.ServiceFlag {
@@ -424,6 +433,20 @@ func (p *Peer) IsRelay() bool {
 		return false
 	}
 	return protocol.HasServices(protocol.ServiceFlag(p.chainState.Services), protocol.Relay)
+}
+
+func (p *Peer) IsConsensusNode() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.isConsensusNode()
+}
+
+func (p *Peer) isConsensusNode() bool {
+	if p.chainState == nil {
+		return false
+	}
+	return HasConsensusService(protocol.ServiceFlag(p.chainState.Services))
 }
 
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
