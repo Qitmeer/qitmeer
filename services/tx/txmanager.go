@@ -64,7 +64,7 @@ func NewTxManager(bm *blkmgr.BlockManager, txIndex *index.TxIndex,
 			MaxOrphanTxs:         cfg.MaxOrphanTxs,
 			MaxOrphanTxSize:      mempool.DefaultMaxOrphanTxSize,
 			MaxSigOpsPerTx:       blockchain.MaxSigOpsPerBlock / 5,
-			MinRelayTxFee:        amt,
+			MinRelayTxFee:        *amt,
 			StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
 				return common.StandardScriptVerifyFlags()
 			},

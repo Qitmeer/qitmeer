@@ -24,8 +24,13 @@ func createTx(ctime *time.Time) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
+	var amt *Amount
+	amt,err = NewMeer(1200000000)
+	if err != nil {
+		return nil, err
+	}
 	tx.AddTxOut(&TxOutput{
-		Amount:   1200000000,
+		Amount: *amt,
 		PkScript: ds,
 	})
 

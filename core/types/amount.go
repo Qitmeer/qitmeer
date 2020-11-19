@@ -8,6 +8,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"strconv"
 )
@@ -50,12 +51,14 @@ func (u AmountUnit) String() string {
 		return "1e" + strconv.FormatInt(int64(u), 10) + " "
 	}
 }
+
 // from 0 ~ 65535
 // 0 ~ 255 : Qitmeer reserved
 type CoinID uint16
+
 const (
 	MEERID CoinID = 0
-	QITID CoinID = 1
+	QITID  CoinID = 1
 )
 
 func (c CoinID) String() string {
@@ -65,16 +68,79 @@ func (c CoinID) String() string {
 	case QITID:
 		return "QIT"
 	default:
-		return "Unknown-CoinID:"+strconv.FormatInt(int64(c), 10)
+		return "Unknown-CoinID:" + strconv.FormatInt(int64(c), 10)
 	}
 }
+var CoinIDList = []CoinID{
+	MEERID,QITID,
+}
+
+func CheckUnknownCoinID(id CoinID) error{
+	unknownCoin := true
+	for _, coinId := range CoinIDList {
+		if id == coinId {
+			unknownCoin = false
+			break
+		}
+	}
+	if unknownCoin {
+		return fmt.Errorf("unknown coin id %s", id.String())
+	}
+	return nil
+}
+
 
 // Amount represents the base coin monetary unit (colloquially referred
 // to as an `Atom').  A single Amount is equal to 1e-8 of a coin.
 // size is 10 bytes ( value -> 8 byte , coinId -> 2 byte)
-type Amount struct{
+type Amount struct {
 	Value int64
-	Id CoinID
+	Id    CoinID
+}
+
+func checkMaxAmount(x *Amount) error {
+	if x.Value > MaxAmount {
+		return errors.New("x+y, x exceeds max amount of " + x.Id.String())
+	}
+	return nil
+}
+func checkSameCoinId(x, y CoinID) error {
+	if x != y {
+		err := errors.New("invalid amount add, unmatched " +
+			x.String() + " with " + y.String())
+		return err
+	}
+	return nil
+}
+
+func (z *Amount) Add(x, y *Amount) (*Amount, error) {
+	err := checkSameCoinId(z.Id, x.Id)
+	if err != nil {
+		return z, err
+	}
+	err = checkSameCoinId(x.Id, y.Id)
+	if err != nil {
+		return z, err
+	}
+	err = checkMaxAmount(x)
+	if err != nil {
+		return z, err
+	}
+	err = checkMaxAmount(y)
+	if err != nil {
+		return z, err
+	}
+	sum := x.Value + y.Value
+	if x.Value > 0 && y.Value > 0 && sum < 0 {
+		err := errors.New("add overflow")
+		return z, err
+	}
+	if x.Value < 0 && y.Value < 0 && sum > 0 {
+		err := errors.New("add overflow")
+		return z, err
+	}
+	z.Value = sum
+	return z, nil
 }
 
 // AmountGroup represents a group of multiple Amount,
@@ -90,7 +156,6 @@ func round(f float64) int64 {
 	}
 	return int64(f + 0.5)
 }
-
 // NewAmount creates an Amount from a floating point value representing
 // some value in the currency.  NewAmount errors if f is NaN or +-Infinity,
 // but does not check that the amount is within the total amount of coins
@@ -99,7 +164,7 @@ func round(f float64) int64 {
 // NewAmount is for specifically for converting qitmeer to Atoms (atomic units).
 // For creating a new Amount with an int64 value which denotes a quantity of
 // Atoms, do a simple type conversion from type int64 to Amount.
-func NewAmount(f float64) (Amount, error) {
+func NewAmount(f float64) (*Amount, error) {
 	// The amount is only considered invalid if it cannot be represented
 	// as an integer type.  This may happen if f is NaN or +-Infinity.
 	switch {
@@ -108,34 +173,40 @@ func NewAmount(f float64) (Amount, error) {
 	case math.IsInf(f, 1):
 		fallthrough
 	case math.IsInf(f, -1):
-		return Amount{0,MEERID}, errors.New("invalid coin amount")
+		return &Amount{0, MEERID}, errors.New("invalid coin amount")
 	}
 
-	return Amount{round(f * AtomsPerCoin),MEERID}, nil
+	return &Amount{round(f * AtomsPerCoin), MEERID}, nil
 }
 
-func NewMeer(a uint64)(Amount, error) {
-	if a > MaxAmount {
-		return Amount{0,MEERID}, errors.New("exceeds max amount of " + MEERID.String())
+func NewMeer(a uint64) (*Amount, error) {
+	amt := Amount{int64(a), MEERID}
+	err := checkMaxAmount(&amt)
+	if err != nil {
+		zero := Amount{0, MEERID}
+		return &zero, err
 	}
-	return Amount{int64(a), MEERID}, nil
+	return &amt, nil
 }
 
-func NewQit(a uint64)(Amount, error) {
-	if a > MaxAmount {
-		return Amount{0,QITID}, errors.New("exceeds max amount of " + QITID.String())
+func NewQit(a uint64) (*Amount, error) {
+	amt := Amount{int64(a), QITID}
+	err := checkMaxAmount(&amt)
+	if err != nil {
+		zero := Amount{0, QITID}
+		return &zero, err
 	}
-	return Amount{int64(a), QITID}, nil
+	return &amt, nil
 }
 
 // ToUnit converts a monetary amount counted in coin base units to a
 // floating point value representing an amount of coins.
-func (a Amount) ToUnit(u AmountUnit) float64 {
+func (a *Amount) ToUnit(u AmountUnit) float64 {
 	return float64(a.Value) / math.Pow10(int(u+8))
 }
 
 // ToCoin is the equivalent of calling ToUnit with AmountCoin.
-func (a Amount) ToCoin() float64 {
+func (a *Amount) ToCoin() float64 {
 	return a.ToUnit(AmountCoin)
 }
 
@@ -143,13 +214,13 @@ func (a Amount) ToCoin() float64 {
 // string for a given unit.  The conversion will succeed for any unit,
 // however, known units will be formated with an appended label describing
 // the units with SI notation, or "atom" for the base unit.
-func (a Amount) Format(u AmountUnit) string {
+func (a *Amount) Format(u AmountUnit) string {
 	units := " " + u.String() + a.Id.String()
 	return strconv.FormatFloat(a.ToUnit(u), 'f', -int(u+8), 64) + units
 }
 
 // String is the equivalent of calling Format with AmountCoin.
-func (a Amount) String() string {
+func (a *Amount) String() string {
 	return a.Format(AmountCoin)
 }
 
@@ -157,8 +228,8 @@ func (a Amount) String() string {
 // an operation that must typically be done by a full node or wallet, it is
 // useful for services that build on top of qitmeer (for example, calculating
 // a fee by multiplying by a percentage).
-func (a Amount) MulF64(f float64) Amount {
-	return Amount{round(float64(a.Value) * f),a.Id}
+func (a *Amount) MulF64(f float64) *Amount {
+	return &Amount{round(float64(a.Value) * f), a.Id}
 }
 
 // AmountSorter implements sort.Interface to allow a slice of Amounts to

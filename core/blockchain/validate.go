@@ -313,10 +313,10 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 	// restrictions.  All amounts in a transaction are in a unit value
 	// known as an atom.  One Coin is a quantity of atoms as defined by
 	// the AtomsPerCoin constant.
-	var totalAtom int64
+	totalAtom := make(map[types.CoinID]int64)
 	for _, txOut := range tx.TxOut {
 		atom := txOut.Amount
-		if atom > types.MaxAmount {
+		if atom.Value > types.MaxAmount {
 			str := fmt.Sprintf("transaction output value of %v is "+
 				"higher than max allowed value of %v", atom,
 				types.MaxAmount)
@@ -326,14 +326,14 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 		// Two's complement int64 overflow guarantees that any overflow
 		// is detected and reported.
 		// TODO revisit the overflow check
-		totalAtom += int64(atom)
-		if totalAtom < 0 {
+		totalAtom[atom.Id] += atom.Value
+		if totalAtom[atom.Id] < 0 {
 			str := fmt.Sprintf("total value of all transaction "+
 				"outputs exceeds max allowed value of %v",
 				types.MaxAmount)
 			return ruleError(ErrInvalidTxOutValue, str)
 		}
-		if totalAtom > types.MaxAmount {
+		if totalAtom[atom.Id] > types.MaxAmount {
 			str := fmt.Sprintf("total value of all transaction "+
 				"outputs is %v which is higher than max "+
 				"allowed value of %v", totalAtom,
@@ -389,6 +389,10 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 // Validate the tax in coinbase transaction. Prevent miners from attacking.
 func validateCoinbaseTax(tx *types.Transaction, params *params.Params) error {
 	if len(tx.TxOut) > CoinbaseOutput_tax {
+		coinId := tx.TxOut[CoinbaseOutput_tax].Amount.Id
+		if coinId != types.MEERID {
+			return fmt.Errorf("coinbase tax pay with wrong coin id %s", coinId.String())
+		}
 		slen := len(tx.TxOut[CoinbaseOutput_tax].PkScript)
 		if params.HasTax() {
 			if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
@@ -406,7 +410,7 @@ func validateCoinbaseTax(tx *types.Transaction, params *params.Params) error {
 				return ruleError(ErrBadCoinbaseValue, str)
 			}
 		} else {
-			if slen != 0 || tx.TxOut[CoinbaseOutput_tax].Amount != 0 {
+			if slen != 0 || tx.TxOut[CoinbaseOutput_tax].Amount.Value != 0 {
 				str := fmt.Sprintf("coinbase transaction error:no tax.")
 				return ruleError(ErrBadCoinbaseValue, str)
 			}
@@ -420,7 +424,10 @@ func validateCoinbaseCustomData(tx *types.Transaction, params *params.Params) er
 	if len(tx.TxOut) > CoinbaseOutput_data {
 		// Coinbase TxOut[2] is op return
 		nullDataOut := tx.TxOut[CoinbaseOutput_data]
-		if nullDataOut.Amount != 0 {
+		if nullDataOut.Amount.Id !=  types.MEERID {
+			return fmt.Errorf("coinbase output 2: bad coinId %s", nullDataOut.Amount.Id.String())
+		}
+		if nullDataOut.Amount.Value != 0 {
 			str := fmt.Sprintf("coinbase output 2:bad nulldata")
 			return ruleError(ErrBadCoinbaseOutpoint, str)
 		}
@@ -574,10 +581,14 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	subsidy := b.subsidyCache.CalcBlockSubsidy(int64(blocks))
 	workAmountOut := int64(0)
 	for k, v := range transactions[0].Tx.TxOut {
+		// the coinbase should always use meer coin
+		if v.Amount.Id != types.MEERID {
+			return fmt.Errorf("the coinbase tx output[%d] has invaild coin id %s", k, v.Amount.Id.String())
+		}
 		if k == CoinbaseOutput_tax || k == CoinbaseOutput_data {
 			continue
 		}
-		workAmountOut += int64(v.Amount)
+		workAmountOut += v.Amount.Value
 	}
 
 	var work int64
@@ -595,7 +606,7 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 		tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
 			int64(blocks), b.params))
 
-		taxAmountOut = int64(transactions[0].Tx.TxOut[CoinbaseOutput_tax].Amount)
+		taxAmountOut = transactions[0].Tx.TxOut[CoinbaseOutput_tax].Amount.Value
 	} else {
 		work = subsidy
 		tax = 0
@@ -1012,7 +1023,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 	msgTx := tx.Transaction()
 
 	txHash := tx.Hash()
-	var totalAtomIn int64
+	totalAtomIn := make(map[types.CoinID]int64)
 
 	// Coinbase transactions have no inputs.
 	if msgTx.IsCoinBase() {
@@ -1033,9 +1044,19 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 			return 0, ruleError(ErrMissingTxOut, str)
 		}
 
+		// Ensure the coinId is known
+		err := types.CheckUnknownCoinID(utxoEntry.amount.Id)
+		if err!= nil {
+			return 0, err
+		}
+
 		// Ensure the transaction is not spending coins which have not
 		// yet reached the required coinbase maturity.
 		if utxoEntry.IsCoinBase() {
+			// Ensure the coinbase is always meer coin
+			if utxoEntry.amount.Id != types.MEERID {
+				return 0, fmt.Errorf("coinbase uxto has invalid coin id %s", utxoEntry.amount.Id.String())
+			}
 			ubhIB := bd.GetBlock(utxoEntry.BlockHash())
 			if ubhIB == nil {
 				str := fmt.Sprintf("utxoEntry blockhash error:%s", utxoEntry.BlockHash())
@@ -1050,16 +1071,20 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		// in a transaction are in a unit value known as an atom.  One
 		// Coin is a quantity of atoms as defined by the AtomPerCoin
 		// constant.
-		originTxAtom := int64(utxoEntry.Amount())
+		originTxAtom := utxoEntry.Amount()
 		if utxoEntry.IsCoinBase() && txIn.PreviousOut.OutIndex == 0 {
-			originTxAtom += b.GetFees(utxoEntry.BlockHash())
+			if originTxAtom.Id != types.MEERID {
+				return 0, fmt.Errorf("coinbase uxto has invalid coin id %s", originTxAtom.Id.String())
+			}
+			// make sure the fee use meer coin only
+			originTxAtom.Value += b.GetFees(utxoEntry.BlockHash())
 		}
-		if originTxAtom < 0 {
+		if originTxAtom.Value < 0 {
 			str := fmt.Sprintf("transaction output has negative "+
 				"value of %v", originTxAtom)
 			return 0, ruleError(ErrInvalidTxOutValue, str)
 		}
-		if originTxAtom > types.MaxAmount {
+		if originTxAtom.Value > types.MaxAmount {
 			str := fmt.Sprintf("transaction output value of %v is "+
 				"higher than max allowed value of %v",
 				originTxAtom, types.MaxAmount)
@@ -1070,9 +1095,9 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		// allowed per transaction.  Also, we could potentially
 		// overflow the accumulator so check for overflow.
 		lastAtomIn := totalAtomIn
-		totalAtomIn += originTxAtom
-		if totalAtomIn < lastAtomIn ||
-			totalAtomIn > types.MaxAmount {
+		totalAtomIn[originTxAtom.Id] += originTxAtom.Value
+		if totalAtomIn[originTxAtom.Id] < lastAtomIn[originTxAtom.Id]  ||
+			totalAtomIn[originTxAtom.Id] > types.MaxAmount {
 			str := fmt.Sprintf("total value of all transaction "+
 				"inputs is %v which is higher than max "+
 				"allowed value of %v", totalAtomIn,
@@ -1102,23 +1127,39 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 	// Calculate the total output amount for this transaction.  It is safe
 	// to ignore overflow and out of range errors here because those error
 	// conditions would have already been caught by checkTransactionSanity.
-	var totalAtomOut int64
+	totalAtomOut := make(map[types.CoinID]int64)
 	for _, txOut := range tx.Transaction().TxOut {
-		totalAtomOut += int64(txOut.Amount) //TODO, remove type conversion
+		// Ensure the coinId is known
+		err := types.CheckUnknownCoinID(txOut.Amount.Id)
+		if err!= nil {
+			return 0, err
+		}
+		totalAtomOut[txOut.Amount.Id] += txOut.Amount.Value
 	}
 
-	// Ensure the transaction does not spend more than its inputs.
-	if totalAtomIn < totalAtomOut {
-		str := fmt.Sprintf("total value of all transaction inputs for "+
-			"transaction %v is %v which is less than the amount "+
-			"spent of %v", txHash, totalAtomIn, totalAtomOut)
-		return 0, ruleError(ErrSpendTooHigh, str)
+	// Ensure no unbalanced/unknowned coin type from input/output
+	if len(totalAtomIn) != len(totalAtomOut) ||
+		len(totalAtomIn) > len(types.CoinIDList) ||
+		len(totalAtomOut) > len(types.CoinIDList){
+		return 0, fmt.Errorf("transaction %v contains unknown or unbalanced coin types")
 	}
+	// Ensure the transaction does not spend more than its inputs.
+	for _,coinId := range types.CoinIDList {
+		if totalAtomIn[coinId] < totalAtomOut[coinId] {
+			str := fmt.Sprintf("total %s value of all transaction inputs for "+
+				"transaction %v is %v which is less than the amount "+
+				"spent of %v", coinId.String(),txHash, totalAtomIn[coinId], totalAtomOut[coinId])
+			return 0, ruleError(ErrSpendTooHigh, str)
+		}
+	}
+
+
 
 	// NOTE: bitcoind checks if the transaction fees are < 0 here, but that
 	// is an impossible condition because of the check above that ensures
 	// the inputs are >= the outputs.
-	txFeeInAtom := totalAtomIn - totalAtomOut
+	// fee only use Meer coin
+	txFeeInAtom := totalAtomIn[types.MEERID] - totalAtomOut[types.MEERID]
 
 	return txFeeInAtom, nil
 }
