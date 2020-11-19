@@ -21,7 +21,6 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	iaddr "github.com/ipfs/go-ipfs-addr"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-circuit"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -104,7 +103,7 @@ func (node *Node) Run() error {
 	}
 
 	opts := []libp2p.Option{
-		libp2p.EnableRelay(relay.OptHop),
+		//libp2p.EnableRelay(relay.OptHop),
 		libp2p.ListenAddrs(srcMAddr, eMAddr),
 		libp2p.Identity(p2p.ConvertToInterfacePrivkey(node.privateKey)),
 	}
@@ -303,7 +302,7 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 		GenesisHash:     &pb.Hash{Hash: genesisHash.Bytes()},
 		ProtocolVersion: pv.ProtocolVersion,
 		Timestamp:       uint64(roughtime.Now().Unix()),
-		Services:        uint64(pv.Relay),
+		Services:        uint64(pv.Observer),
 		GraphState:      gs,
 		UserAgent:       []byte("qitmeer-crawler"),
 		DisableRelayTx:  true,
