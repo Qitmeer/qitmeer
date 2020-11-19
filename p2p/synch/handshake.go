@@ -80,7 +80,7 @@ func (ps *PeerSync) Connection(pe *peers.Peer) {
 	// Go through the handshake process.
 	multiAddr := fmt.Sprintf("%s/p2p/%s", pe.Address().String(), pe.GetID().String())
 
-	if !pe.IsConsensusNode() {
+	if !pe.IsConsensus() {
 		log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s  (%s)",
 			pe.GetID(), pe.Direction(), multiAddr, pe.Services().String()))
 		return
@@ -100,7 +100,7 @@ func (ps *PeerSync) Disconnect(pe *peers.Peer) {
 	}
 	// TODO some handle
 	pe.SetConnectionState(peers.PeerDisconnected)
-	if !pe.IsConsensusNode() {
+	if !pe.IsConsensus() {
 		log.Trace(fmt.Sprintf("Disconnect:%v (%s)", pe.GetID(), pe.Services().String()))
 		return
 	}

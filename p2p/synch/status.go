@@ -41,7 +41,7 @@ func (s *Sync) maintainPeerStatuses() {
 					}
 					return
 				}
-				if !pe.IsConsensusNode() {
+				if !pe.IsConsensus() {
 					return
 				}
 				// If the status hasn't been updated in the recent interval time.
@@ -82,7 +82,7 @@ func (s *Sync) reValidatePeer(ctx context.Context, id peer.ID) error {
 	if pe == nil {
 		return peers.ErrPeerUnknown
 	}
-	if !pe.IsConsensusNode() {
+	if !pe.IsConsensus() {
 		return nil
 	}
 	// Do not return an error for ping requests.

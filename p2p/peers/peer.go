@@ -278,7 +278,7 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 	if p.qaddress() != nil {
 		ss.Address = p.qaddress().String()
 	}
-	if p.isConsensusNode() {
+	if p.isConsensus() {
 		ss.GraphState = p.graphState()
 	}
 	return ss, nil
@@ -435,14 +435,14 @@ func (p *Peer) IsRelay() bool {
 	return protocol.HasServices(protocol.ServiceFlag(p.chainState.Services), protocol.Relay)
 }
 
-func (p *Peer) IsConsensusNode() bool {
+func (p *Peer) IsConsensus() bool {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	return p.isConsensusNode()
+	return p.isConsensus()
 }
 
-func (p *Peer) isConsensusNode() bool {
+func (p *Peer) isConsensus() bool {
 	if p.chainState == nil {
 		return false
 	}
