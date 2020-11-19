@@ -63,9 +63,7 @@ func Base58CheckEncode(version []byte, mode string, hasher string, cksumSize int
 	}
 	// Show the encoded data.
 	//fmt.Printf("Encoded Data ver[%v] : %s\n",ver, encoded)
-	if err != nil {
-		fmt.Errorf("%s", err)
-	} else {
+	if err == nil {
 		fmt.Printf("%s\n", encoded)
 	}
 }
