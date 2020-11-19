@@ -17,6 +17,14 @@ const SpentTxOutTxIndexSize = 4
 // The bytes of TxInIndex
 const SpentTxOutTxInIndexSize = 4
 
+// The bytes of Fees field
+const SpentTxoutFeesCoinIDSize = 2
+const SpentTxOutFeesValueSize = 8
+
+// The bytes of Amount's CoinId
+const SpentTxoutAmountCoinIDSize = 2
+
+
 // -----------------------------------------------------------------------------
 // The transaction spend journal consists of an entry for each block connected
 // to the main chain which contains the transaction outputs the block spends
@@ -82,13 +90,13 @@ const SpentTxOutTxInIndexSize = 4
 //
 // The struct is aligned for memory efficiency.
 type SpentTxOut struct {
-	Amount     uint64 // The total amount of the output.
+	Amount     types.Amount // The total amount of the output.
 	PkScript   []byte // The public key script for the output.
 	BlockHash  hash.Hash
 	IsCoinBase bool   // Whether creating tx is a coinbase.
 	TxIndex    uint32 // The index of tx in block.
 	TxInIndex  uint32 // The index of TxInput in the tx.
-	Fees       uint64 // The fees of block
+	Fees       types.Amount // The fees of block
 }
 
 func spentTxOutHeaderCode(stxo *SpentTxOut) uint64 {
@@ -112,8 +120,9 @@ func spentTxOutSerializeSize(stxo *SpentTxOut) int {
 	size := serializeSizeVLQ(spentTxOutHeaderCode(stxo))
 	size += hash.HashSize
 	size += SpentTxOutTxIndexSize + SpentTxOutTxInIndexSize
-	size += 8
-	return size + compressedTxOutSize(uint64(stxo.Amount), stxo.PkScript)
+	size += SpentTxoutFeesCoinIDSize + SpentTxOutFeesValueSize
+	size += SpentTxoutAmountCoinIDSize
+	return size + compressedTxOutSize(uint64(stxo.Amount.Value), stxo.PkScript)
 }
 
 // putSpentTxOut serializes the passed stxo according to the format described
@@ -130,9 +139,16 @@ func putSpentTxOut(target []byte, stxo *SpentTxOut) int {
 	offset += SpentTxOutTxIndexSize
 	byteOrder.PutUint32(target[offset:], uint32(stxo.TxInIndex))
 	offset += SpentTxOutTxInIndexSize
-	byteOrder.PutUint64(target[offset:], stxo.Fees)
-	offset += 8
-	return offset + putCompressedTxOut(target[offset:], uint64(stxo.Amount), stxo.PkScript)
+	// add Fees coinId
+	byteOrder.PutUint16(target[offset:], uint16(stxo.Fees.Id))
+	offset += SpentTxoutFeesCoinIDSize
+	// add Fees Value
+	byteOrder.PutUint64(target[offset:], uint64(stxo.Fees.Value))
+	offset += SpentTxOutFeesValueSize
+	// add Amount coinId
+	byteOrder.PutUint16(target[offset:], uint16(stxo.Amount.Id))
+	offset += SpentTxoutAmountCoinIDSize
+	return offset + putCompressedTxOut(target[offset:], uint64(stxo.Amount.Value), stxo.PkScript)
 }
 
 // decodeSpentTxOut decodes the passed serialized stxo entry, possibly followed
@@ -169,12 +185,22 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 	stxo.BlockHash.SetBytes(serialized[offset : offset+hash.HashSize])
 	offset += hash.HashSize
 
-	stxo.TxIndex = uint32(byteOrder.Uint32(serialized[offset : offset+4]))
+	stxo.TxIndex = byteOrder.Uint32(serialized[offset : offset+SpentTxOutTxIndexSize])
 	offset += SpentTxOutTxIndexSize
-	stxo.TxInIndex = uint32(byteOrder.Uint32(serialized[offset : offset+4]))
+	stxo.TxInIndex = byteOrder.Uint32(serialized[offset : offset+SpentTxOutTxInIndexSize])
 	offset += SpentTxOutTxInIndexSize
-	stxo.Fees = uint64(byteOrder.Uint64(serialized[offset : offset+8]))
-	offset += 8
+
+	// Decode Fees
+	feesCoinId := byteOrder.Uint16(serialized[offset : offset+SpentTxoutFeesCoinIDSize])
+	offset += SpentTxoutFeesCoinIDSize
+	feesValue := byteOrder.Uint64(serialized[offset : offset+SpentTxOutFeesValueSize])
+	offset += SpentTxOutFeesValueSize
+	stxo.Fees = types.Amount{int64(feesValue),types.CoinID(feesCoinId)}
+
+	// Decode amount coinId
+	amountCoinId := byteOrder.Uint16(serialized[offset : offset+SpentTxoutAmountCoinIDSize])
+	offset += SpentTxoutAmountCoinIDSize
+
 	// Decode the compressed txout.
 	amount, pkScript, bytesRead, err := decodeCompressedTxOut(
 		serialized[offset:])
@@ -183,7 +209,7 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 		return offset, errDeserialize(fmt.Sprintf("unable to decode "+
 			"txout: %v", err))
 	}
-	stxo.Amount = uint64(amount)
+	stxo.Amount = types.Amount{int64(amount), types.CoinID(amountCoinId)}
 	stxo.PkScript = pkScript
 
 	return offset, nil

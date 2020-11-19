@@ -106,7 +106,7 @@ func TestAmountCreation(t *testing.T) {
 			continue
 		}
 
-		if a != test.expected {
+		if *a != test.expected {
 			t.Errorf("%v: Created amount %v does not match expected %v", test.name, a, test.expected)
 			continue
 		}
@@ -305,7 +305,7 @@ func TestAmountMulF64(t *testing.T) {
 
 	for _, test := range tests {
 		a := test.amt.MulF64(test.mul)
-		if a != test.res {
+		if *a != test.res {
 			t.Errorf("%v: expected %v got %v", test.name, test.res, a)
 		}
 	}

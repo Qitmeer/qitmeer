@@ -12,19 +12,21 @@ import (
 type TokenPayout struct {
 	Address  string
 	PkScript []byte
-	Amount   uint64
+	Amount   types.Amount
 }
 
 type TokenPayoutReGen struct {
 	Payout    TokenPayout
-	GenAmount uint64
+	GenAmount types.Amount
 }
 
 type PayoutList []TokenPayoutReGen
 
 func (p PayoutList) Len() int { return len(p) }
 func (p PayoutList) Less(i, j int) bool {
-	return (p[i].GenAmount+p[i].Payout.Amount < p[j].GenAmount+p[j].Payout.Amount)
+	x,_ := (&types.Amount{0,0}).Add(&p[i].GenAmount,&p[i].Payout.Amount)
+	y,_ := (&types.Amount{0,0}).Add(&p[j].GenAmount,&p[j].Payout.Amount)
+	return x.Value < y.Value
 }
 func (p PayoutList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
@@ -44,17 +46,16 @@ var GenesisLedger []*TokenPayout
 
 // BlockOneSubsidy returns the total subsidy of block height 1 for the
 // network.
-func GenesisLedgerSubsidy() uint64 {
+func GenesisLedgerSubsidy() types.Amount {
+	zero := &types.Amount{(0),0}
 	if len(GenesisLedger) == 0 {
-		return 0
+		return *zero;
 	}
-
-	sum := uint64(0)
+	sum := zero
 	for _, output := range GenesisLedger {
-		sum += output.Amount
+		sum.Add(sum,&output.Amount)
 	}
-
-	return sum
+	return *sum
 }
 
 func addPayout(addr string, amount uint64, pksStr string) {
@@ -63,7 +64,13 @@ func addPayout(addr string, amount uint64, pksStr string) {
 		fmt.Printf("Error %v - address:%s  amount:%d\n", err, addr, amount)
 		return
 	}
-	GenesisLedger = append(GenesisLedger, &TokenPayout{addr, pks, amount})
+	var amt *types.Amount
+	amt, err= types.NewMeer(amount)
+	if err != nil {
+		fmt.Printf("Error %v - address:%s  amount:%d\n", err, addr, amount)
+		return
+	}
+	GenesisLedger = append(GenesisLedger, &TokenPayout{addr, pks, *amt})
 	//fmt.Printf("Add payout (%d) - address:%s  amount:%d\n",len(GenesisLedger),addr,amount)
 }
 

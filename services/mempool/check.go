@@ -204,6 +204,12 @@ func isDust(txOut *types.TxOutput, minRelayTxFee types.Amount) bool {
 		return true
 	}
 
+	// Only MeerCoin need to compare with RelayTxFee
+	if txOut.Amount.Id != types.MEERID {
+		// TODO the Dust rule for coin other than meer
+		return false
+	}
+
 	// The total serialized size consists of the output and the associated
 	// input script to redeem it.  Since there is no input script
 	// to redeem it yet, use the minimum size of a typical input script.
@@ -265,7 +271,7 @@ func isDust(txOut *types.TxOutput, minRelayTxFee types.Amount) bool {
 	// without needing to do floating point math.
 	// TODO fix type conversion
 	// TODO consider the case of token output
-	return int64(txOut.Amount)*1000/(3*int64(totalSize)) < int64(minRelayTxFee.Value)
+	return int64(txOut.Amount.Value)*1000/(3*int64(totalSize)) < int64(minRelayTxFee.Value)
 }
 
 // checkPoolDoubleSpend checks whether or not the passed transaction is

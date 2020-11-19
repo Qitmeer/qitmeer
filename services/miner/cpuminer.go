@@ -395,7 +395,7 @@ func (m *CPUMiner) submitBlock(block *types.SerializedBlock) bool {
 	coinbaseTxOuts := block.Block().Transactions[0].TxOut
 	coinbaseTxGenerated := uint64(0)
 	for _, out := range coinbaseTxOuts {
-		coinbaseTxGenerated += out.Amount
+		coinbaseTxGenerated += uint64(out.Amount.Value)
 	}
 	log.Info("Block submitted accepted", "hash", block.Hash(),
 		"order", blockdag.GetOrderLogStr(uint(block.Order())), "height", block.Height(), "amount", coinbaseTxGenerated)
@@ -795,7 +795,7 @@ func (m *CPUMiner) GenerateBlockByParents(parents []*hash.Hash) (*hash.Hash, err
 				coinbaseTxOuts := block.Block().Transactions[0].TxOut
 				coinbaseTxGenerated := uint64(0)
 				for _, out := range coinbaseTxOuts {
-					coinbaseTxGenerated += out.Amount
+					coinbaseTxGenerated += uint64(out.Amount.Value)
 				}
 				log.Info("Block submitted accepted", "hash", block.Hash(),
 					"height", block.Height(), "amount", coinbaseTxGenerated)
