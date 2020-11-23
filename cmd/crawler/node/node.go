@@ -428,5 +428,5 @@ func convertToInterfacePubkey(pubkey *ecdsa.PublicKey) crypto.PubKey {
 }
 
 func getConnPeerAddress(conn network.Conn) string {
-	return fmt.Sprintf("%s/ipfs/%s", conn.RemoteMultiaddr().String(), conn.RemotePeer())
+	return fmt.Sprintf("%s/p2p/%s", conn.RemoteMultiaddr().String(), conn.RemotePeer())
 }
