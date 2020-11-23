@@ -7,9 +7,12 @@ import (
 
 // Map of service flags back to their constant names for pretty printing.
 var sfStrings = map[ServiceFlag]string{
-	Full:  "Full",
-	Bloom: "Bloom",
-	CF:    "CF",
+	Full:     "Full",
+	Bloom:    "Bloom",
+	CF:       "CF",
+	Light:    "Light",
+	Relay:    "Relay",
+	Observer: "Observer",
 }
 
 // orderedSFStrings is an ordered list of service flags from highest to
@@ -18,7 +21,33 @@ var orderedSFStrings = []ServiceFlag{
 	Full,
 	Bloom,
 	CF,
+	Light,
+	Relay,
+	Observer,
 }
+
+// ServiceFlag identifies services supported by a peer node.
+type ServiceFlag uint64
+
+const (
+	//  full node.
+	Full ServiceFlag = 1 << iota
+
+	// light node
+	Light
+
+	// a peer supports bloom filtering.
+	Bloom
+
+	// a peer supports committed filters (CFs).
+	CF
+
+	// Relay
+	Relay
+
+	// Observer
+	Observer
+)
 
 // String returns the ServiceFlag in human-readable form.
 func (f ServiceFlag) String() string {

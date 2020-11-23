@@ -503,6 +503,13 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 		MaxCost:     1000,
 		BufferItems: 64,
 	})
+
+	defer func() {
+		if err != nil {
+			cancel()
+		}
+	}()
+
 	if err != nil {
 		return nil, err
 	}
