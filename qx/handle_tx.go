@@ -77,7 +77,7 @@ func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[
 		if err != nil {
 			return "", err
 		}
-		txOut := types.NewTxOutput(amount, pkScript)
+		txOut := types.NewTxOutput(types.Amount{int64(amount),types.MEERID}, pkScript)
 		mtx.AddTxOut(txOut)
 	}
 	mtxHex, err := mtx.Serialize()
