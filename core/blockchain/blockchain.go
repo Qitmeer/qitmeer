@@ -1275,7 +1275,7 @@ func (b *BlockChain) CalculateFees(block *types.SerializedBlock) int64 {
 			if transactions[st.TxIndex].IsDuplicate {
 				continue
 			}
-			totalAtomIn += int64(st.Amount)
+			totalAtomIn += int64(st.Amount + st.Fees)
 		}
 		totalFees := totalAtomIn - totalAtomOut
 		if totalFees < 0 {
