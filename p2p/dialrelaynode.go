@@ -13,7 +13,7 @@ import (
 
 // MakePeer from multiaddress string.
 func MakePeer(addr string) (*peer.AddrInfo, error) {
-	maddr, err := multiAddrFromString(addr)
+	maddr, err := MultiAddrFromString(addr)
 	if err != nil {
 		return nil, err
 	}
