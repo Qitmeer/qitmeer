@@ -31,3 +31,9 @@ type P2P interface {
 	Node() *qnode.Node
 	RelayNodeInfo() *peer.AddrInfo
 }
+
+type P2PRPC interface {
+	Host() host.Host
+	Context() context.Context
+	Encoding() encoder.NetworkEncoding
+}

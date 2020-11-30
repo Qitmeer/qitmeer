@@ -166,7 +166,7 @@ func (s *Sync) registerRPCHandlers() {
 
 // registerRPC for a given topic with an expected protobuf message type.
 func (s *Sync) registerRPC(topic string, base interface{}, handle rpcHandler) {
-	RegisterRPC(s.p2p.Host(), s.Encoding(), topic, base, handle)
+	RegisterRPC(s.p2p, topic, base, handle)
 }
 
 // Send a message to a specific peer. The returned stream may be used for reading, but has been
@@ -203,10 +203,10 @@ func NewSync(p2p common.P2P) *Sync {
 }
 
 // registerRPC for a given topic with an expected protobuf message type.
-func RegisterRPC(host host.Host, encoding encoder.NetworkEncoding, topic string, base interface{}, handle rpcHandler) {
-	topic += encoding.ProtocolSuffix()
-	host.SetStreamHandler(protocol.ID(topic), func(stream network.Stream) {
-		ctx, cancel := context.WithTimeout(context.Background(), TtfbTimeout)
+func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHandler) {
+	topic += rpc.Encoding().ProtocolSuffix()
+	rpc.Host().SetStreamHandler(protocol.ID(topic), func(stream network.Stream) {
+		ctx, cancel := context.WithTimeout(rpc.Context(), TtfbTimeout)
 		defer cancel()
 		defer func() {
 			if err := stream.Close(); err != nil {
@@ -239,7 +239,7 @@ func RegisterRPC(host host.Host, encoding encoder.NetworkEncoding, topic string,
 			ty = t
 		}
 		msg := reflect.New(ty)
-		if err := encoding.DecodeWithMaxLength(stream, msg.Interface()); err != nil {
+		if err := rpc.Encoding().DecodeWithMaxLength(stream, msg.Interface()); err != nil {
 			// Debug logs for goodbye errors
 			if strings.Contains(topic, RPCGoodByeTopic) {
 				log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
