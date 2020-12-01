@@ -69,6 +69,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 			CuckatooDiff: getDifficultyRatio(cuckatooNodes, api.node.node.Params, pow.CUCKATOO),
 		},
 		TestNet:          api.node.node.Config.TestNet,
+		MixNet:           api.node.node.Config.MixNet,
 		Confirmations:    blockdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
 		Modules:          []string{rpc.DefaultServiceNameSpace, rpc.MinerNameSpace, rpc.TestNameSpace, rpc.LogNameSpace},
