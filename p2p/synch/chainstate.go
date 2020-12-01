@@ -88,7 +88,6 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	defer cancel()
 
-	SetRPCStreamDeadlines(stream)
 	m, ok := msg.(*pb.ChainState)
 	if !ok {
 		return fmt.Errorf("message is not type *pb.ChainState")

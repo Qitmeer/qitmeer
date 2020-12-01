@@ -111,7 +111,7 @@ func (s *Sync) registerRPCHandlers() {
 
 	s.registerRPC(
 		RPCMetaDataTopic,
-		new(interface{}),
+		nil,
 		s.metaDataHandler,
 	)
 
@@ -207,11 +207,9 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 	topic += rpc.Encoding().ProtocolSuffix()
 	rpc.Host().SetStreamHandler(protocol.ID(topic), func(stream network.Stream) {
 		ctx, cancel := context.WithTimeout(rpc.Context(), TtfbTimeout)
-		defer cancel()
 		defer func() {
-			if err := stream.Close(); err != nil {
-				log.Error(fmt.Sprintf("topic:%s Failed to close stream:%v", topic, err))
-			}
+			cancel()
+			closeSteam(stream)
 		}()
 		if err := stream.SetReadDeadline(time.Now().Add(TtfbTimeout)); err != nil {
 			log.Error(fmt.Sprintf("topic:%s peer:%s Could not set stream read deadline:%v",
@@ -219,26 +217,20 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 			return
 		}
 
-		// since metadata requests do not have any data in the payload, we
-		// do not decode anything.
-		if strings.Contains(topic, RPCMetaDataTopic) {
-			if err := handle(ctx, new(interface{}), stream); err != nil {
-				log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
-			}
-			return
-		}
-
 		// Given we have an input argument that can be pointer or [][32]byte, this gives us
 		// a way to check for its reflect.Kind and based on the result, we can decode
 		// accordingly.
-		t := reflect.TypeOf(base)
-		var ty reflect.Type
-		if t.Kind() == reflect.Ptr {
-			ty = t.Elem()
-		} else {
-			ty = t
+		var msg reflect.Value
+		if base != nil {
+			t := reflect.TypeOf(base)
+			var ty reflect.Type
+			if t.Kind() == reflect.Ptr {
+				ty = t.Elem()
+			} else {
+				ty = t
+			}
+			msg = reflect.New(ty)
 		}
-		msg := reflect.New(ty)
 		if err := rpc.Encoding().DecodeWithMaxLength(stream, msg.Interface()); err != nil {
 			// Debug logs for goodbye errors
 			if strings.Contains(topic, RPCGoodByeTopic) {
@@ -248,6 +240,7 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 			log.Warn(fmt.Sprintf("Failed to decode stream message:%v", err))
 			return
 		}
+		SetRPCStreamDeadlines(stream)
 		if err := handle(ctx, msg.Interface(), stream); err != nil {
 			log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
 		}

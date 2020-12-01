@@ -31,7 +31,6 @@ func (s *Sync) goodbyeRPCHandler(ctx context.Context, msg interface{}, stream li
 	}()
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	defer cancel()
-	SetRPCStreamDeadlines(stream)
 
 	m, ok := msg.(*uint64)
 	if !ok {

@@ -76,7 +76,6 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 		cancel()
 	}()
 
-	SetRPCStreamDeadlines(stream)
 	m, ok := msg.(*pb.SyncDAG)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")

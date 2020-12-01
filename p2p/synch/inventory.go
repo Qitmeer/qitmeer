@@ -61,7 +61,6 @@ func (s *Sync) inventoryHandler(ctx context.Context, msg interface{}, stream lib
 		cancel()
 	}()
 
-	SetRPCStreamDeadlines(stream)
 	m, ok := msg.(*pb.Inventory)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Inventory")

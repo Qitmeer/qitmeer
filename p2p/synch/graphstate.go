@@ -70,7 +70,6 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 		cancel()
 	}()
 
-	SetRPCStreamDeadlines(stream)
 	m, ok := msg.(*pb.GraphState)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.GraphState")

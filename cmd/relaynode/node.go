@@ -184,8 +184,6 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 	ctx, cancel := context.WithTimeout(ctx, synch.HandleTimeout)
 	defer cancel()
 
-	synch.SetRPCStreamDeadlines(stream)
-
 	genesisHash := params.ActiveNetParams.GenesisHash
 
 	gs := &pb.GraphState{

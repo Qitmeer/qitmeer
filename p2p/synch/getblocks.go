@@ -68,7 +68,6 @@ func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream lib
 		cancel()
 	}()
 
-	SetRPCStreamDeadlines(stream)
 	m, ok := msg.(*pb.GetBlocks)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")

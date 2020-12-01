@@ -22,7 +22,6 @@ func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pco
 	}
 
 	log.Trace(fmt.Sprintf("pingHandler:%s", pe.GetID()))
-	SetRPCStreamDeadlines(stream)
 
 	m, ok := msg.(*uint64)
 	if !ok {
