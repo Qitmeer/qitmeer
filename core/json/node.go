@@ -20,8 +20,7 @@ type InfoNodeResult struct {
 	TimeOffset       int64               `json:"timeoffset"`
 	Connections      int32               `json:"connections"`
 	PowDiff          PowDiff             `json:"pow_diff"`
-	TestNet          bool                `json:"testnet"`
-	MixNet           bool                `json:"mixnet"`
+	Network          string              `json:"network"`
 	Confirmations    int32               `json:"confirmations"`
 	CoinbaseMaturity int32               `json:"coinbasematurity"`
 	Errors           string              `json:"errors"`
