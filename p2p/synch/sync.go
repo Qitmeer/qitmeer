@@ -220,7 +220,7 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 		// Given we have an input argument that can be pointer or [][32]byte, this gives us
 		// a way to check for its reflect.Kind and based on the result, we can decode
 		// accordingly.
-		var msg reflect.Value
+		var msg interface{}
 		if base != nil {
 			t := reflect.TypeOf(base)
 			var ty reflect.Type
@@ -229,9 +229,11 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 			} else {
 				ty = t
 			}
-			msg = reflect.New(ty)
+			msgT := reflect.New(ty)
+			msg = msgT.Interface()
 		}
-		if err := rpc.Encoding().DecodeWithMaxLength(stream, msg.Interface()); err != nil {
+
+		if err := rpc.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
 			// Debug logs for goodbye errors
 			if strings.Contains(topic, RPCGoodByeTopic) {
 				log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
@@ -241,7 +243,7 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 			return
 		}
 		SetRPCStreamDeadlines(stream)
-		if err := handle(ctx, msg.Interface(), stream); err != nil {
+		if err := handle(ctx, msg, stream); err != nil {
 			log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
 		}
 	})
