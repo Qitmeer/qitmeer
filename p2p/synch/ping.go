@@ -22,48 +22,39 @@ func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pco
 	}
 
 	log.Trace(fmt.Sprintf("pingHandler:%s", pe.GetID()))
-	SetRPCStreamDeadlines(stream)
 
 	m, ok := msg.(*uint64)
 	if !ok {
-		closeSteam(stream)
 		return fmt.Errorf("wrong message type for ping, got %T, wanted *uint64", msg)
 	}
 	valid, err := s.validateSequenceNum(*m, pe)
 	if err != nil {
-		closeSteam(stream)
 		return err
 	}
 	if _, err := stream.Write([]byte{ResponseCodeSuccess}); err != nil {
-		closeSteam(stream)
 		return err
 	}
 	if _, err := s.Encoding().EncodeWithMaxLength(stream, s.p2p.MetadataSeq()); err != nil {
-		closeSteam(stream)
 		return err
 	}
 
 	if valid {
-		closeSteam(stream)
 		return nil
 	}
 
 	// The sequence number was not valid.  Start our own ping back to the peer.
-	go func() {
-		defer func() {
-			closeSteam(stream)
-		}()
+	go func(id peer.ID) {
 		// New context so the calling function doesn't cancel on us.
-		ctx, cancel := context.WithTimeout(context.Background(), TtfbTimeout)
+		ctx, cancel := context.WithTimeout(s.p2p.Context(), TtfbTimeout)
 		defer cancel()
-		md, err := s.sendMetaDataRequest(ctx, stream.Conn().RemotePeer())
+		md, err := s.sendMetaDataRequest(ctx, id)
 		if err != nil {
-			log.Debug(fmt.Sprintf("Failed to send metadata request:peer=%s  error=%v", stream.Conn().RemotePeer(), err))
+			log.Debug(fmt.Sprintf("Failed to send metadata request:peer=%s  error=%v", id, err))
 			return
 		}
 		// update metadata if there is no error
 		pe.SetMetadata(md)
-	}()
+	}(stream.Conn().RemotePeer())
 
 	return nil
 }

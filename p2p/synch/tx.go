@@ -64,11 +64,9 @@ func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore
 				}
 			}
 		}
-		closeSteam(stream)
 		cancel()
 	}()
 
-	SetRPCStreamDeadlines(stream)
 	m, ok := msg.(*pb.Hash)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Transaction")

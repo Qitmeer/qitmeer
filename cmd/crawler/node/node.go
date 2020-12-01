@@ -261,7 +261,7 @@ func (node *Node) registerHandlers() error {
 	//
 
 	synch.RegisterRPC(
-		node.host, node.Encoding(),
+		node,
 		synch.RPCChainState,
 		&pb.ChainState{},
 		node.chainStateHandler,
@@ -274,18 +274,20 @@ func (node *Node) Encoding() encoder.NetworkEncoding {
 	return &encoder.SszNetworkEncoder{UseSnappyCompression: true}
 }
 
-func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
-	defer func() {
-		closeSteam(stream)
-	}()
+func (node *Node) Host() host.Host {
+	return node.host
+}
 
+func (node *Node) Context() context.Context {
+	return node.ctx
+}
+
+func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	pid := stream.Conn().RemotePeer()
 	log.Log.Trace(fmt.Sprintf("chainStateHandler:%s", pid))
 
 	ctx, cancel := context.WithTimeout(ctx, synch.HandleTimeout)
 	defer cancel()
-
-	synch.SetRPCStreamDeadlines(stream)
 
 	genesisHash := params.ActiveNetParams.GenesisHash
 

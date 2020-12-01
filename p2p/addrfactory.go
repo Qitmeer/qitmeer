@@ -65,7 +65,7 @@ func parseGenericAddrs(addrs []string) (qnodeString []string, multiAddrString []
 			qnodeString = append(qnodeString, addr)
 			continue
 		}
-		_, err = multiAddrFromString(addr)
+		_, err = MultiAddrFromString(addr)
 		if err == nil {
 			multiAddrString = append(multiAddrString, addr)
 			continue
@@ -143,7 +143,7 @@ func peersFromStringAddrs(addrs []string) ([]ma.Multiaddr, error) {
 	var allAddrs []ma.Multiaddr
 	qnodeString, multiAddrString := parseGenericAddrs(addrs)
 	for _, stringAddr := range multiAddrString {
-		addr, err := multiAddrFromString(stringAddr)
+		addr, err := MultiAddrFromString(stringAddr)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Could not get multiaddr from string")
 		}
@@ -163,7 +163,7 @@ func peersFromStringAddrs(addrs []string) ([]ma.Multiaddr, error) {
 	return allAddrs, nil
 }
 
-func multiAddrFromString(address string) (ma.Multiaddr, error) {
+func MultiAddrFromString(address string) (ma.Multiaddr, error) {
 	addr, err := iaddr.ParseString(address)
 	if err != nil {
 		return nil, err

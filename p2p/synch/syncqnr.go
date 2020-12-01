@@ -67,11 +67,9 @@ func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcor
 				}
 			}
 		}
-		closeSteam(stream)
 		cancel()
 	}()
 
-	SetRPCStreamDeadlines(stream)
 	m, ok := msg.(*pb.SyncQNR)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.GraphState")

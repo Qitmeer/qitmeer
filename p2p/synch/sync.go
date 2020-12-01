@@ -111,7 +111,7 @@ func (s *Sync) registerRPCHandlers() {
 
 	s.registerRPC(
 		RPCMetaDataTopic,
-		new(interface{}),
+		nil,
 		s.metaDataHandler,
 	)
 
@@ -166,7 +166,7 @@ func (s *Sync) registerRPCHandlers() {
 
 // registerRPC for a given topic with an expected protobuf message type.
 func (s *Sync) registerRPC(topic string, base interface{}, handle rpcHandler) {
-	RegisterRPC(s.p2p.Host(), s.Encoding(), topic, base, handle)
+	RegisterRPC(s.p2p, topic, base, handle)
 }
 
 // Send a message to a specific peer. The returned stream may be used for reading, but has been
@@ -203,15 +203,13 @@ func NewSync(p2p common.P2P) *Sync {
 }
 
 // registerRPC for a given topic with an expected protobuf message type.
-func RegisterRPC(host host.Host, encoding encoder.NetworkEncoding, topic string, base interface{}, handle rpcHandler) {
-	topic += encoding.ProtocolSuffix()
-	host.SetStreamHandler(protocol.ID(topic), func(stream network.Stream) {
-		ctx, cancel := context.WithTimeout(context.Background(), TtfbTimeout)
-		defer cancel()
+func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHandler) {
+	topic += rpc.Encoding().ProtocolSuffix()
+	rpc.Host().SetStreamHandler(protocol.ID(topic), func(stream network.Stream) {
+		ctx, cancel := context.WithTimeout(rpc.Context(), TtfbTimeout)
 		defer func() {
-			if err := stream.Close(); err != nil {
-				log.Error(fmt.Sprintf("topic:%s Failed to close stream:%v", topic, err))
-			}
+			cancel()
+			closeSteam(stream)
 		}()
 		if err := stream.SetReadDeadline(time.Now().Add(TtfbTimeout)); err != nil {
 			log.Error(fmt.Sprintf("topic:%s peer:%s Could not set stream read deadline:%v",
@@ -219,27 +217,23 @@ func RegisterRPC(host host.Host, encoding encoder.NetworkEncoding, topic string,
 			return
 		}
 
-		// since metadata requests do not have any data in the payload, we
-		// do not decode anything.
-		if strings.Contains(topic, RPCMetaDataTopic) {
-			if err := handle(ctx, new(interface{}), stream); err != nil {
-				log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
-			}
-			return
-		}
-
 		// Given we have an input argument that can be pointer or [][32]byte, this gives us
 		// a way to check for its reflect.Kind and based on the result, we can decode
 		// accordingly.
-		t := reflect.TypeOf(base)
-		var ty reflect.Type
-		if t.Kind() == reflect.Ptr {
-			ty = t.Elem()
-		} else {
-			ty = t
+		var msg interface{}
+		if base != nil {
+			t := reflect.TypeOf(base)
+			var ty reflect.Type
+			if t.Kind() == reflect.Ptr {
+				ty = t.Elem()
+			} else {
+				ty = t
+			}
+			msgT := reflect.New(ty)
+			msg = msgT.Interface()
 		}
-		msg := reflect.New(ty)
-		if err := encoding.DecodeWithMaxLength(stream, msg.Interface()); err != nil {
+
+		if err := rpc.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
 			// Debug logs for goodbye errors
 			if strings.Contains(topic, RPCGoodByeTopic) {
 				log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
@@ -248,7 +242,8 @@ func RegisterRPC(host host.Host, encoding encoder.NetworkEncoding, topic string,
 			log.Warn(fmt.Sprintf("Failed to decode stream message:%v", err))
 			return
 		}
-		if err := handle(ctx, msg.Interface(), stream); err != nil {
+		SetRPCStreamDeadlines(stream)
+		if err := handle(ctx, msg, stream); err != nil {
 			log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
 		}
 	})
