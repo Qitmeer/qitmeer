@@ -283,10 +283,6 @@ func (node *Node) Context() context.Context {
 }
 
 func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
-	defer func() {
-		closeSteam(stream)
-	}()
-
 	pid := stream.Conn().RemotePeer()
 	log.Log.Trace(fmt.Sprintf("chainStateHandler:%s", pid))
 

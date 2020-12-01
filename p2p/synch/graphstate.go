@@ -66,7 +66,6 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 				}
 			}
 		}
-		closeSteam(stream)
 		cancel()
 	}()
 

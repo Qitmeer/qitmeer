@@ -57,7 +57,6 @@ func (s *Sync) inventoryHandler(ctx context.Context, msg interface{}, stream lib
 				}
 			}
 		}
-		closeSteam(stream)
 		cancel()
 	}()
 

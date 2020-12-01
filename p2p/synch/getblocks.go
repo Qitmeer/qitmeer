@@ -64,7 +64,6 @@ func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream lib
 				}
 			}
 		}
-		closeSteam(stream)
 		cancel()
 	}()
 

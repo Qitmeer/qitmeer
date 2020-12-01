@@ -67,7 +67,6 @@ func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcor
 				}
 			}
 		}
-		closeSteam(stream)
 		cancel()
 	}()
 

@@ -75,10 +75,6 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 }
 
 func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
-	defer func() {
-		closeSteam(stream)
-	}()
-
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
 		return peers.ErrPeerUnknown
@@ -105,7 +101,6 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 			if err := s.respondWithChainState(ctx, stream); err != nil {
 				return err
 			}
-			closeSteam(stream)
 			if err := s.sendGoodByeAndDisconnect(ctx, codeInvalidChainState, stream.Conn().RemotePeer()); err != nil {
 				return err
 			}
@@ -125,7 +120,6 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 				log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
 			}
 		}
-		closeSteam(stream)
 		// Add a short delay to allow the stream to flush before closing the connection.
 		// There is still a chance that the peer won't receive the message.
 		time.Sleep(50 * time.Millisecond)

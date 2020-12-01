@@ -72,7 +72,6 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 				}
 			}
 		}
-		closeSteam(stream)
 		cancel()
 	}()
 

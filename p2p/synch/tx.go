@@ -64,7 +64,6 @@ func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore
 				}
 			}
 		}
-		closeSteam(stream)
 		cancel()
 	}()
 
