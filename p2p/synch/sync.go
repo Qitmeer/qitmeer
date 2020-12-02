@@ -231,17 +231,17 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 			}
 			msgT := reflect.New(ty)
 			msg = msgT.Interface()
-		}
-
-		if err := rpc.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
-			// Debug logs for goodbye errors
-			if strings.Contains(topic, RPCGoodByeTopic) {
-				log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
+			if err := rpc.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
+				// Debug logs for goodbye errors
+				if strings.Contains(topic, RPCGoodByeTopic) {
+					log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
+					return
+				}
+				log.Warn(fmt.Sprintf("Failed to decode stream message:%v", err))
 				return
 			}
-			log.Warn(fmt.Sprintf("Failed to decode stream message:%v", err))
-			return
 		}
+
 		SetRPCStreamDeadlines(stream)
 		if err := handle(ctx, msg, stream); err != nil {
 			log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
