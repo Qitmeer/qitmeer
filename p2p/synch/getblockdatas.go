@@ -18,6 +18,8 @@ import (
 	"sync/atomic"
 )
 
+const BLOCKDATA_SSZ_HEAD_SIZE = 4
+
 func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator *pb.GetBlockDatas) (*pb.BlockDatas, error) {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
@@ -91,7 +93,7 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 			return err
 		}
 		pbbd := pb.BlockData{BlockBytes: blocks}
-		if uint64(bd.SizeSSZ()+pbbd.SizeSSZ()+4) >= s.p2p.Encoding().GetMaxChunkSize() {
+		if uint64(bd.SizeSSZ()+pbbd.SizeSSZ()+BLOCKDATA_SSZ_HEAD_SIZE) >= s.p2p.Encoding().GetMaxChunkSize() {
 			break
 		}
 		bd.Locator = append(bd.Locator, &pb.BlockData{BlockBytes: blocks})
