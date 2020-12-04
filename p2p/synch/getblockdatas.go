@@ -18,6 +18,8 @@ import (
 	"sync/atomic"
 )
 
+const BLOCKDATA_SSZ_HEAD_SIZE = 4
+
 func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator *pb.GetBlockDatas) (*pb.BlockDatas, error) {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
@@ -74,6 +76,7 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 		return err
 	}
 	bds := []*pb.BlockData{}
+	bd := &pb.BlockDatas{Locator: bds}
 	for _, bdh := range m.Locator {
 		blockHash, err := hash.NewHash(bdh.Hash)
 		if err != nil {
@@ -89,14 +92,16 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 		if err != nil {
 			return err
 		}
-		bds = append(bds, &pb.BlockData{BlockBytes: blocks})
+		pbbd := pb.BlockData{BlockBytes: blocks}
+		if uint64(bd.SizeSSZ()+pbbd.SizeSSZ()+BLOCKDATA_SSZ_HEAD_SIZE) >= s.p2p.Encoding().GetMaxChunkSize() {
+			break
+		}
+		bd.Locator = append(bd.Locator, &pb.BlockData{BlockBytes: blocks})
 	}
-
 	_, err = stream.Write([]byte{ResponseCodeSuccess})
 	if err != nil {
 		return err
 	}
-	bd := &pb.BlockDatas{Locator: bds}
 	_, err = s.Encoding().EncodeWithMaxLength(stream, bd)
 	if err != nil {
 		return err

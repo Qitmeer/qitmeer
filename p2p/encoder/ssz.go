@@ -167,6 +167,11 @@ func (e SszNetworkEncoder) MaxLength(length int) int {
 	return length
 }
 
+// return max chunk size
+func (e SszNetworkEncoder) GetMaxChunkSize() uint64 {
+	return MaxChunkSize
+}
+
 // Writes a bytes value through a snappy buffered writer.
 func writeSnappyBuffer(w io.Writer, b []byte) (int, error) {
 	bufWriter := newBufferedWriter(w)
