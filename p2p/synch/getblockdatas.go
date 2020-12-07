@@ -96,7 +96,7 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 		if uint64(bd.SizeSSZ()+pbbd.SizeSSZ()+BLOCKDATA_SSZ_HEAD_SIZE) >= s.p2p.Encoding().GetMaxChunkSize() {
 			break
 		}
-		bd.Locator = append(bd.Locator, &pb.BlockData{BlockBytes: blocks})
+		bd.Locator = append(bd.Locator, &pbbd)
 	}
 	_, err = stream.Write([]byte{ResponseCodeSuccess})
 	if err != nil {

@@ -1,4 +1,4 @@
-FROM alpine:3.9
+FROM alpine:3.12
 MAINTAINER jin
 
 ENV BUILDDIR=/qitmeer
