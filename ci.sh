@@ -26,7 +26,7 @@ fi
 project_name="qitmeer"
 image_name="qitmeer/qitmeerd"
 image_label="" #future
-baseimage_name="qitmeer/golang:1.12.5-alpine3.9"
+baseimage_name="qitmeer/golang:1.14.12-alpine3.12"
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin && \
 docker pull $baseimage_name
@@ -46,18 +46,9 @@ docker run --rm -v $cur_dir/:/go/src/$project_name -w /go/src/$project_name/cmd/
 cat>./bin/build/launch<<EOF
 #!/usr/bin/env bash
 A="-A=./"
-net="--testnet"
-rpclisten="--rpclisten=0.0.0.0:18131"
+net="--mixnet"
 rpcuser="--rpcuser=test"
 rpcpass="--rpcpass=test"
-debuglevel="--debuglevel=info"
-
-if [[ "\$@" =~ "miningaddr" ]]
-then
-  miningaddr=""
-else
-  miningaddr="--miningaddr=Tmgb3CyW7rGgn89MWEoAoMP47CwASc4KG4N"
-fi
 
 cd /qitmeer/
 
@@ -67,15 +58,17 @@ then
   exit
 fi
 
-./qitmeerd \$A \$net \$rpclisten \$rpcuser \$rpcpass \$txindex \$miningaddr \$debuglevel "\$@"
+./qitmeerd \$A \$net \$rpcuser \$rpcpass "\$@"
 EOF
 
-chmod u+x ./bin/build/launch
+chmod u+x ./bin/build/launch && \
+
+#---------------------------------------------------------------------------------------------
 # create cli
 
-cp ./script/cli.sh ./bin/build/cli
-sed -i 's/127.0.0.1/172.17.0.1/g' ./bin/build/cli
-sed -i 's/port=1234/port=18131/g' ./bin/build/cli
+cp ./src/$project_name/script/cli.sh ./bin/build/cli && \
+sed -i '' 's/127.0.0.1/172.17.0.1/g' ./bin/build/cli && \
+sed -i '' 's/port=1234/port=28131/g' ./bin/build/cli && \
 
 # build image
 cp ./container/docker/alpine/Dockerfile ./bin/ && \
