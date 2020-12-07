@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
@@ -52,7 +53,7 @@ func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator 
 	return msg, err
 }
 
-func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
 	respCode := ResponseCodeServerError
@@ -73,7 +74,7 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 	m, ok := msg.(*pb.GetBlockDatas)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")
-		return err
+		return common.NewP2PError(common.ErrMessage, err)
 	}
 	bds := []*pb.BlockData{}
 	bd := &pb.BlockDatas{Locator: bds}
@@ -81,16 +82,16 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 		blockHash, err := hash.NewHash(bdh.Hash)
 		if err != nil {
 			err = fmt.Errorf("invalid block hash")
-			return err
+			return common.NewP2PError(common.ErrMessage, err)
 		}
 		block, err := s.p2p.BlockChain().FetchBlockByHash(blockHash)
 		if err != nil {
-			return err
+			return common.NewP2PError(common.ErrMessage, err)
 		}
 
 		blocks, err := block.Bytes()
 		if err != nil {
-			return err
+			return common.NewP2PError(common.ErrMessage, err)
 		}
 		pbbd := pb.BlockData{BlockBytes: blocks}
 		if uint64(bd.SizeSSZ()+pbbd.SizeSSZ()+BLOCKDATA_SSZ_HEAD_SIZE) >= s.p2p.Encoding().GetMaxChunkSize() {
@@ -98,13 +99,10 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 		}
 		bd.Locator = append(bd.Locator, &pbbd)
 	}
-	_, err = stream.Write([]byte{ResponseCodeSuccess})
-	if err != nil {
-		return err
-	}
-	_, err = s.Encoding().EncodeWithMaxLength(stream, bd)
-	if err != nil {
-		return err
+	e := s.EncodeResponseMsg(stream, bd)
+	if e != nil {
+		err = e.Error
+		return e
 	}
 	respCode = ResponseCodeSuccess
 	return nil

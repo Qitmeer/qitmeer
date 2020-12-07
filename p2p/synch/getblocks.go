@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
@@ -49,7 +50,7 @@ func (s *Sync) sendGetBlocksRequest(ctx context.Context, id peer.ID, blocks *pb.
 	return msg, err
 }
 
-func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
 	respCode := ResponseCodeServerError
@@ -70,7 +71,7 @@ func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream lib
 	m, ok := msg.(*pb.GetBlocks)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")
-		return err
+		return common.NewP2PError(common.ErrMessage, err)
 	}
 	blocks, _ := s.PeerSync().dagSync.CalcSyncBlocks(nil, changePBHashsToHashs(m.Locator), blockdag.DirectMode, MaxBlockLocatorsPerMsg)
 

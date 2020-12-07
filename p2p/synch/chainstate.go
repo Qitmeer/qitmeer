@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
@@ -74,10 +75,10 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	return err
 }
 
-func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return peers.ErrPeerUnknown
+		return common.NewP2PError(common.ErrPeerUnknown, peers.ErrPeerUnknown)
 	}
 	log.Trace(fmt.Sprintf("chainStateHandler:%s", pe.GetID()))
 
@@ -86,7 +87,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 
 	m, ok := msg.(*pb.ChainState)
 	if !ok {
-		return fmt.Errorf("message is not type *pb.ChainState")
+		return common.NewP2PError(common.ErrMessage, fmt.Errorf("message is not type *pb.ChainState"))
 	}
 
 	if ret, err := s.validateChainStateMessage(ctx, m, stream.Conn().RemotePeer()); err != nil {
@@ -98,11 +99,11 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		case retErrInvalidChainState:
 			// Respond with our status and disconnect with the peer.
 			s.UpdateChainState(pe, m, false)
-			if err := s.respondWithChainState(ctx, stream); err != nil {
+			if err := s.EncodeResponseMsg(stream, s.getChainState()); err != nil {
 				return err
 			}
 			if err := s.sendGoodByeAndDisconnect(ctx, codeInvalidChainState, stream.Conn().RemotePeer()); err != nil {
-				return err
+				return common.NewP2PError(common.ErrStreamBase, err)
 			}
 			return nil
 		default:
@@ -126,11 +127,11 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		if err := s.p2p.Disconnect(stream.Conn().RemotePeer()); err != nil {
 			log.Error("Failed to disconnect from peer:%v", err)
 		}
-		return originalErr
+		return common.NewP2PError(common.ErrDAGConsensus, originalErr)
 	}
 	s.UpdateChainState(pe, m, true)
 
-	return s.respondWithChainState(ctx, stream)
+	return s.EncodeResponseMsg(stream, s.getChainState())
 }
 
 func (s *Sync) UpdateChainState(pe *peers.Peer, chainState *pb.ChainState, action bool) {
@@ -189,19 +190,6 @@ func (s *Sync) validateChainStateMessage(ctx context.Context, msg *pb.ChainState
 	}
 
 	return retSuccess, nil
-}
-
-func (s *Sync) respondWithChainState(ctx context.Context, stream network.Stream) error {
-	resp := s.getChainState()
-	if resp == nil {
-		return fmt.Errorf("no chain state")
-	}
-
-	if _, err := stream.Write([]byte{ResponseCodeSuccess}); err != nil {
-		log.Error(fmt.Sprintf("Failed to write to stream:%v", err))
-	}
-	_, err := s.Encoding().EncodeWithMaxLength(stream, resp)
-	return err
 }
 
 func (s *Sync) getChainState() *pb.ChainState {
