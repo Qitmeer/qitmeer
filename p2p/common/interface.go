@@ -27,4 +27,13 @@ type P2P interface {
 	TimeSource() blockchain.MedianTimeSource
 	Notify() notify.Notify
 	ConnectTo(node *qnode.Node)
+	Resolve(n *qnode.Node) *qnode.Node
+	Node() *qnode.Node
+	RelayNodeInfo() *peer.AddrInfo
+}
+
+type P2PRPC interface {
+	Host() host.Host
+	Context() context.Context
+	Encoding() encoder.NetworkEncoding
 }

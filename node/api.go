@@ -57,7 +57,6 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKATOO)
 	ret := &json.InfoNodeResult{
 		ID:              api.node.node.peerServer.PeerID().String(),
-		QNR:             api.node.node.peerServer.Node().String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
 		BuildVersion:    version.String(),
 		ProtocolVersion: int32(protocol.ProtocolVersion),
@@ -69,12 +68,22 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 			CuckarooDiff: getDifficultyRatio(cuckarooNodes, api.node.node.Params, pow.CUCKAROO),
 			CuckatooDiff: getDifficultyRatio(cuckatooNodes, api.node.node.Params, pow.CUCKATOO),
 		},
-		TestNet:          api.node.node.Config.TestNet,
+		Network:          params.ActiveNetParams.Name,
 		Confirmations:    blockdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
 		Modules:          []string{rpc.DefaultServiceNameSpace, rpc.MinerNameSpace, rpc.TestNameSpace, rpc.LogNameSpace},
 	}
 	ret.GraphState = *getGraphStateResult(best.GraphState)
+	hostdns := api.node.node.peerServer.HostDNS()
+	if hostdns != nil {
+		ret.DNS = hostdns.String()
+	}
+	if api.node.node.peerServer.Node() != nil {
+		ret.QNR = api.node.node.peerServer.Node().String()
+	}
+	if len(api.node.node.peerServer.HostAddress()) > 0 {
+		ret.Addresss = api.node.node.peerServer.HostAddress()
+	}
 	return ret, nil
 }
 
@@ -105,28 +114,39 @@ func getDifficultyRatio(target *big.Int, params *params.Params, powType pow.PowT
 }
 
 // Return the peer info
-func (api *PublicBlockChainAPI) GetPeerInfo() (interface{}, error) {
+func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) {
+	vb := true
+	if verbose != nil {
+		vb = *verbose
+	}
 	ps := api.node.node.peerServer
 	peers := ps.Peers().StatsSnapshots()
 	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
 	for _, p := range peers {
+		if !vb {
+			if p.State.IsDisconnected() || p.State.IsDisconnecting() {
+				continue
+			}
+		}
 		info := &json.GetPeerInfoResult{
-			ID:    p.PeerID,
-			State: p.State.String(),
+			ID:      p.PeerID,
+			State:   p.State.String(),
+			Address: p.Address,
 		}
 		if p.State.IsConnected() {
 			info.Protocol = p.Protocol
-			info.Services = uint64(p.Services)
+			info.Services = p.Services.String()
 			info.UserAgent = p.UserAgent
+			info.TimeOffset = p.TimeOffset
 			if p.Genesis != nil {
 				info.Genesis = p.Genesis.String()
 			}
 			info.Direction = p.Direction.String()
 			if p.GraphState != nil {
-				info.GraphState = *getGraphStateResult(p.GraphState)
+				info.GraphState = getGraphStateResult(p.GraphState)
 			}
 			if ps.PeerSync().SyncPeer() != nil {
-				info.SyncNode = p.NodeID == ps.PeerSync().SyncPeer().GetID().String()
+				info.SyncNode = p.PeerID == ps.PeerSync().SyncPeer().GetID().String()
 			} else {
 				info.SyncNode = false
 			}

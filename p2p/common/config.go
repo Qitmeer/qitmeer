@@ -26,14 +26,13 @@ type Config struct {
 	DenyListCIDR         []string
 	TCPPort              uint
 	UDPPort              uint
-	// EnableNoise enables the beacon node to use NOISE instead of SECIO when performing a handshake with another peer.
-	EnableNoise   bool
-	RelayNodeAddr string
-	LocalIP       string
-	HostAddress   string
-	HostDNS       string
-	PrivateKey    string
-	Encoding      string
+	EnableNoise          bool
+	RelayNodeAddr        string
+	LocalIP              string
+	HostAddress          string
+	HostDNS              string
+	PrivateKey           string
+	Encoding             string
 	// ProtocolVersion specifies the maximum protocol version to use and
 	// advertise.
 	ProtocolVersion uint32

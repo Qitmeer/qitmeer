@@ -359,244 +359,6 @@ func (d *DagBlocks) SizeSSZ() (size int) {
 	return
 }
 
-// MarshalSSZ ssz marshals the SyncDAG object
-func (s *SyncDAG) MarshalSSZ() ([]byte, error) {
-	buf := make([]byte, s.SizeSSZ())
-	return s.MarshalSSZTo(buf[:0])
-}
-
-// MarshalSSZTo ssz marshals the SyncDAG object to a target array
-func (s *SyncDAG) MarshalSSZTo(dst []byte) ([]byte, error) {
-	var err error
-	offset := int(8)
-
-	// Offset (0) 'MainLocator'
-	dst = ssz.WriteOffset(dst, offset)
-	offset += len(s.MainLocator) * 32
-
-	// Offset (1) 'GraphState'
-	dst = ssz.WriteOffset(dst, offset)
-	if s.GraphState == nil {
-		s.GraphState = new(GraphState)
-	}
-	offset += s.GraphState.SizeSSZ()
-
-	// Field (0) 'MainLocator'
-	if len(s.MainLocator) > 32 {
-		return nil, errMarshalList
-	}
-	for ii := 0; ii < len(s.MainLocator); ii++ {
-		if dst, err = s.MainLocator[ii].MarshalSSZTo(dst); err != nil {
-			return nil, err
-		}
-	}
-
-	// Field (1) 'GraphState'
-	if dst, err = s.GraphState.MarshalSSZTo(dst); err != nil {
-		return nil, err
-	}
-
-	return dst, err
-}
-
-// UnmarshalSSZ ssz unmarshals the SyncDAG object
-func (s *SyncDAG) UnmarshalSSZ(buf []byte) error {
-	var err error
-	size := uint64(len(buf))
-	if size < 8 {
-		return errSize
-	}
-
-	tail := buf
-	var o0, o1 uint64
-
-	// Offset (0) 'MainLocator'
-	if o0 = ssz.ReadOffset(buf[0:4]); o0 > size {
-		return errOffset
-	}
-
-	// Offset (1) 'GraphState'
-	if o1 = ssz.ReadOffset(buf[4:8]); o1 > size || o0 > o1 {
-		return errOffset
-	}
-
-	// Field (0) 'MainLocator'
-	{
-		buf = tail[o0:o1]
-		num, ok := ssz.DivideInt(len(buf), 32)
-		if !ok {
-			return errDivideInt
-		}
-		if num > 32 {
-			return errListTooBig
-		}
-		s.MainLocator = make([]*Hash, num)
-		for ii := 0; ii < num; ii++ {
-			if s.MainLocator[ii] == nil {
-				s.MainLocator[ii] = new(Hash)
-			}
-			if err = s.MainLocator[ii].UnmarshalSSZ(buf[ii*32 : (ii+1)*32]); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Field (1) 'GraphState'
-	{
-		buf = tail[o1:]
-		if s.GraphState == nil {
-			s.GraphState = new(GraphState)
-		}
-		if err = s.GraphState.UnmarshalSSZ(buf); err != nil {
-			return err
-		}
-	}
-	return err
-}
-
-// SizeSSZ returns the ssz encoded size in bytes for the SyncDAG object
-func (s *SyncDAG) SizeSSZ() (size int) {
-	size = 8
-
-	// Field (0) 'MainLocator'
-	size += len(s.MainLocator) * 32
-
-	// Field (1) 'GraphState'
-	if s.GraphState == nil {
-		s.GraphState = new(GraphState)
-	}
-	size += s.GraphState.SizeSSZ()
-
-	return
-}
-
-// MarshalSSZ ssz marshals the SubDAG object
-func (s *SubDAG) MarshalSSZ() ([]byte, error) {
-	buf := make([]byte, s.SizeSSZ())
-	return s.MarshalSSZTo(buf[:0])
-}
-
-// MarshalSSZTo ssz marshals the SubDAG object to a target array
-func (s *SubDAG) MarshalSSZTo(dst []byte) ([]byte, error) {
-	var err error
-	offset := int(40)
-
-	// Field (0) 'SyncPoint'
-	if s.SyncPoint == nil {
-		s.SyncPoint = new(Hash)
-	}
-	if dst, err = s.SyncPoint.MarshalSSZTo(dst); err != nil {
-		return nil, err
-	}
-
-	// Offset (1) 'GraphState'
-	dst = ssz.WriteOffset(dst, offset)
-	if s.GraphState == nil {
-		s.GraphState = new(GraphState)
-	}
-	offset += s.GraphState.SizeSSZ()
-
-	// Offset (2) 'Blocks'
-	dst = ssz.WriteOffset(dst, offset)
-	offset += len(s.Blocks) * 32
-
-	// Field (1) 'GraphState'
-	if dst, err = s.GraphState.MarshalSSZTo(dst); err != nil {
-		return nil, err
-	}
-
-	// Field (2) 'Blocks'
-	if len(s.Blocks) > 2000 {
-		return nil, errMarshalList
-	}
-	for ii := 0; ii < len(s.Blocks); ii++ {
-		if dst, err = s.Blocks[ii].MarshalSSZTo(dst); err != nil {
-			return nil, err
-		}
-	}
-
-	return dst, err
-}
-
-// UnmarshalSSZ ssz unmarshals the SubDAG object
-func (s *SubDAG) UnmarshalSSZ(buf []byte) error {
-	var err error
-	size := uint64(len(buf))
-	if size < 40 {
-		return errSize
-	}
-
-	tail := buf
-	var o1, o2 uint64
-
-	// Field (0) 'SyncPoint'
-	if s.SyncPoint == nil {
-		s.SyncPoint = new(Hash)
-	}
-	if err = s.SyncPoint.UnmarshalSSZ(buf[0:32]); err != nil {
-		return err
-	}
-
-	// Offset (1) 'GraphState'
-	if o1 = ssz.ReadOffset(buf[32:36]); o1 > size {
-		return errOffset
-	}
-
-	// Offset (2) 'Blocks'
-	if o2 = ssz.ReadOffset(buf[36:40]); o2 > size || o1 > o2 {
-		return errOffset
-	}
-
-	// Field (1) 'GraphState'
-	{
-		buf = tail[o1:o2]
-		if s.GraphState == nil {
-			s.GraphState = new(GraphState)
-		}
-		if err = s.GraphState.UnmarshalSSZ(buf); err != nil {
-			return err
-		}
-	}
-
-	// Field (2) 'Blocks'
-	{
-		buf = tail[o2:]
-		num, ok := ssz.DivideInt(len(buf), 32)
-		if !ok {
-			return errDivideInt
-		}
-		if num > 2000 {
-			return errListTooBig
-		}
-		s.Blocks = make([]*Hash, num)
-		for ii := 0; ii < num; ii++ {
-			if s.Blocks[ii] == nil {
-				s.Blocks[ii] = new(Hash)
-			}
-			if err = s.Blocks[ii].UnmarshalSSZ(buf[ii*32 : (ii+1)*32]); err != nil {
-				return err
-			}
-		}
-	}
-	return err
-}
-
-// SizeSSZ returns the ssz encoded size in bytes for the SubDAG object
-func (s *SubDAG) SizeSSZ() (size int) {
-	size = 40
-
-	// Field (1) 'GraphState'
-	if s.GraphState == nil {
-		s.GraphState = new(GraphState)
-	}
-	size += s.GraphState.SizeSSZ()
-
-	// Field (2) 'Blocks'
-	size += len(s.Blocks) * 32
-
-	return
-}
-
 // MarshalSSZ ssz marshals the ErrorResponse object
 func (e *ErrorResponse) MarshalSSZ() ([]byte, error) {
 	buf := make([]byte, e.SizeSSZ())
@@ -1060,6 +822,302 @@ func (g *GraphState) SizeSSZ() (size int) {
 
 	// Field (4) 'Tips'
 	size += len(g.Tips) * 32
+
+	return
+}
+
+// MarshalSSZ ssz marshals the SyncQNR object
+func (s *SyncQNR) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, s.SizeSSZ())
+	return s.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the SyncQNR object to a target array
+func (s *SyncQNR) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+	offset := int(4)
+
+	// Offset (0) 'Qnr'
+	dst = ssz.WriteOffset(dst, offset)
+	offset += len(s.Qnr)
+
+	// Field (0) 'Qnr'
+	if len(s.Qnr) > 300 {
+		return nil, errMarshalDynamicBytes
+	}
+	dst = append(dst, s.Qnr...)
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the SyncQNR object
+func (s *SyncQNR) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size < 4 {
+		return errSize
+	}
+
+	tail := buf
+	var o0 uint64
+
+	// Offset (0) 'Qnr'
+	if o0 = ssz.ReadOffset(buf[0:4]); o0 > size {
+		return errOffset
+	}
+
+	// Field (0) 'Qnr'
+	{
+		buf = tail[o0:]
+		s.Qnr = append(s.Qnr, buf...)
+	}
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the SyncQNR object
+func (s *SyncQNR) SizeSSZ() (size int) {
+	size = 4
+
+	// Field (0) 'Qnr'
+	size += len(s.Qnr)
+
+	return
+}
+
+// MarshalSSZ ssz marshals the SyncDAG object
+func (s *SyncDAG) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, s.SizeSSZ())
+	return s.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the SyncDAG object to a target array
+func (s *SyncDAG) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+	offset := int(8)
+
+	// Offset (0) 'MainLocator'
+	dst = ssz.WriteOffset(dst, offset)
+	offset += len(s.MainLocator) * 32
+
+	// Offset (1) 'GraphState'
+	dst = ssz.WriteOffset(dst, offset)
+	if s.GraphState == nil {
+		s.GraphState = new(GraphState)
+	}
+	offset += s.GraphState.SizeSSZ()
+
+	// Field (0) 'MainLocator'
+	if len(s.MainLocator) > 32 {
+		return nil, errMarshalList
+	}
+	for ii := 0; ii < len(s.MainLocator); ii++ {
+		if dst, err = s.MainLocator[ii].MarshalSSZTo(dst); err != nil {
+			return nil, err
+		}
+	}
+
+	// Field (1) 'GraphState'
+	if dst, err = s.GraphState.MarshalSSZTo(dst); err != nil {
+		return nil, err
+	}
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the SyncDAG object
+func (s *SyncDAG) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size < 8 {
+		return errSize
+	}
+
+	tail := buf
+	var o0, o1 uint64
+
+	// Offset (0) 'MainLocator'
+	if o0 = ssz.ReadOffset(buf[0:4]); o0 > size {
+		return errOffset
+	}
+
+	// Offset (1) 'GraphState'
+	if o1 = ssz.ReadOffset(buf[4:8]); o1 > size || o0 > o1 {
+		return errOffset
+	}
+
+	// Field (0) 'MainLocator'
+	{
+		buf = tail[o0:o1]
+		num, ok := ssz.DivideInt(len(buf), 32)
+		if !ok {
+			return errDivideInt
+		}
+		if num > 32 {
+			return errListTooBig
+		}
+		s.MainLocator = make([]*Hash, num)
+		for ii := 0; ii < num; ii++ {
+			if s.MainLocator[ii] == nil {
+				s.MainLocator[ii] = new(Hash)
+			}
+			if err = s.MainLocator[ii].UnmarshalSSZ(buf[ii*32 : (ii+1)*32]); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Field (1) 'GraphState'
+	{
+		buf = tail[o1:]
+		if s.GraphState == nil {
+			s.GraphState = new(GraphState)
+		}
+		if err = s.GraphState.UnmarshalSSZ(buf); err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the SyncDAG object
+func (s *SyncDAG) SizeSSZ() (size int) {
+	size = 8
+
+	// Field (0) 'MainLocator'
+	size += len(s.MainLocator) * 32
+
+	// Field (1) 'GraphState'
+	if s.GraphState == nil {
+		s.GraphState = new(GraphState)
+	}
+	size += s.GraphState.SizeSSZ()
+
+	return
+}
+
+// MarshalSSZ ssz marshals the SubDAG object
+func (s *SubDAG) MarshalSSZ() ([]byte, error) {
+	buf := make([]byte, s.SizeSSZ())
+	return s.MarshalSSZTo(buf[:0])
+}
+
+// MarshalSSZTo ssz marshals the SubDAG object to a target array
+func (s *SubDAG) MarshalSSZTo(dst []byte) ([]byte, error) {
+	var err error
+	offset := int(40)
+
+	// Field (0) 'SyncPoint'
+	if s.SyncPoint == nil {
+		s.SyncPoint = new(Hash)
+	}
+	if dst, err = s.SyncPoint.MarshalSSZTo(dst); err != nil {
+		return nil, err
+	}
+
+	// Offset (1) 'GraphState'
+	dst = ssz.WriteOffset(dst, offset)
+	if s.GraphState == nil {
+		s.GraphState = new(GraphState)
+	}
+	offset += s.GraphState.SizeSSZ()
+
+	// Offset (2) 'Blocks'
+	dst = ssz.WriteOffset(dst, offset)
+	offset += len(s.Blocks) * 32
+
+	// Field (1) 'GraphState'
+	if dst, err = s.GraphState.MarshalSSZTo(dst); err != nil {
+		return nil, err
+	}
+
+	// Field (2) 'Blocks'
+	if len(s.Blocks) > 2000 {
+		return nil, errMarshalList
+	}
+	for ii := 0; ii < len(s.Blocks); ii++ {
+		if dst, err = s.Blocks[ii].MarshalSSZTo(dst); err != nil {
+			return nil, err
+		}
+	}
+
+	return dst, err
+}
+
+// UnmarshalSSZ ssz unmarshals the SubDAG object
+func (s *SubDAG) UnmarshalSSZ(buf []byte) error {
+	var err error
+	size := uint64(len(buf))
+	if size < 40 {
+		return errSize
+	}
+
+	tail := buf
+	var o1, o2 uint64
+
+	// Field (0) 'SyncPoint'
+	if s.SyncPoint == nil {
+		s.SyncPoint = new(Hash)
+	}
+	if err = s.SyncPoint.UnmarshalSSZ(buf[0:32]); err != nil {
+		return err
+	}
+
+	// Offset (1) 'GraphState'
+	if o1 = ssz.ReadOffset(buf[32:36]); o1 > size {
+		return errOffset
+	}
+
+	// Offset (2) 'Blocks'
+	if o2 = ssz.ReadOffset(buf[36:40]); o2 > size || o1 > o2 {
+		return errOffset
+	}
+
+	// Field (1) 'GraphState'
+	{
+		buf = tail[o1:o2]
+		if s.GraphState == nil {
+			s.GraphState = new(GraphState)
+		}
+		if err = s.GraphState.UnmarshalSSZ(buf); err != nil {
+			return err
+		}
+	}
+
+	// Field (2) 'Blocks'
+	{
+		buf = tail[o2:]
+		num, ok := ssz.DivideInt(len(buf), 32)
+		if !ok {
+			return errDivideInt
+		}
+		if num > 2000 {
+			return errListTooBig
+		}
+		s.Blocks = make([]*Hash, num)
+		for ii := 0; ii < num; ii++ {
+			if s.Blocks[ii] == nil {
+				s.Blocks[ii] = new(Hash)
+			}
+			if err = s.Blocks[ii].UnmarshalSSZ(buf[ii*32 : (ii+1)*32]); err != nil {
+				return err
+			}
+		}
+	}
+	return err
+}
+
+// SizeSSZ returns the ssz encoded size in bytes for the SubDAG object
+func (s *SubDAG) SizeSSZ() (size int) {
+	size = 40
+
+	// Field (1) 'GraphState'
+	if s.GraphState == nil {
+		s.GraphState = new(GraphState)
+	}
+	size += s.GraphState.SizeSSZ()
+
+	// Field (2) 'Blocks'
+	size += len(s.Blocks) * 32
 
 	return
 }

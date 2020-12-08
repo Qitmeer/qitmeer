@@ -11,7 +11,9 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/Qitmeer/qitmeer/params"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -42,12 +44,14 @@ const (
 	RPCInventory = "/qitmeer/req/inventory/1"
 	// RPCGraphState defines the topic for the graphstate rpc method.
 	RPCGraphState = "/qitmeer/req/graphstate/1"
+	// RPCSyncQNR defines the topic for the syncqnr rpc method.
+	RPCSyncQNR = "/qitmeer/req/syncqnr/1"
 )
 
 // Time to first byte timeout. The maximum time to wait for first byte of
 // request response (time-to-first-byte). The client is expected to give up if
 // they don't receive the first byte within 5 seconds.
-const ttfbTimeout = 5 * time.Second
+const TtfbTimeout = 5 * time.Second
 
 // rpcHandler is responsible for handling and responding to any incoming message.
 // This method may return an error to internal monitoring, but the error will
@@ -64,9 +68,10 @@ const ReqTimeout = 10 * time.Second
 const HandleTimeout = 5 * time.Second
 
 type Sync struct {
-	peers    *peers.Status
-	peerSync *PeerSync
-	p2p      common.P2P
+	peers        *peers.Status
+	peerSync     *PeerSync
+	p2p          common.P2P
+	PeerInterval time.Duration
 }
 
 func (s *Sync) Start() error {
@@ -106,7 +111,7 @@ func (s *Sync) registerRPCHandlers() {
 
 	s.registerRPC(
 		RPCMetaDataTopic,
-		new(interface{}),
+		nil,
 		s.metaDataHandler,
 	)
 
@@ -151,94 +156,23 @@ func (s *Sync) registerRPCHandlers() {
 		&pb.GraphState{},
 		s.graphStateHandler,
 	)
+
+	s.registerRPC(
+		RPCSyncQNR,
+		&pb.SyncQNR{},
+		s.QNRHandler,
+	)
 }
 
 // registerRPC for a given topic with an expected protobuf message type.
 func (s *Sync) registerRPC(topic string, base interface{}, handle rpcHandler) {
-	topic += s.Encoding().ProtocolSuffix()
-	s.SetStreamHandler(topic, func(stream network.Stream) {
-		ctx, cancel := context.WithTimeout(context.Background(), ttfbTimeout)
-		defer cancel()
-		defer func() {
-			if err := stream.Close(); err != nil {
-				log.Error(fmt.Sprintf("topic:%s Failed to close stream:%v", topic, err))
-			}
-		}()
-		if err := stream.SetReadDeadline(time.Now().Add(ttfbTimeout)); err != nil {
-			log.Error(fmt.Sprintf("topic:%s peer:%s Could not set stream read deadline:%v",
-				topic, stream.Conn().RemotePeer().Pretty(), err))
-			return
-		}
-
-		// since metadata requests do not have any data in the payload, we
-		// do not decode anything.
-		if strings.Contains(topic, RPCMetaDataTopic) {
-			if err := handle(ctx, new(interface{}), stream); err != nil {
-				log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
-			}
-			return
-		}
-
-		// Given we have an input argument that can be pointer or [][32]byte, this gives us
-		// a way to check for its reflect.Kind and based on the result, we can decode
-		// accordingly.
-		t := reflect.TypeOf(base)
-		var ty reflect.Type
-		if t.Kind() == reflect.Ptr {
-			ty = t.Elem()
-		} else {
-			ty = t
-		}
-		msg := reflect.New(ty)
-		if err := s.Encoding().DecodeWithMaxLength(stream, msg.Interface()); err != nil {
-			// Debug logs for goodbye errors
-			if strings.Contains(topic, RPCGoodByeTopic) {
-				log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
-				return
-			}
-			log.Warn(fmt.Sprintf("Failed to decode stream message:%v", err))
-			return
-		}
-		if err := handle(ctx, msg.Interface(), stream); err != nil {
-			log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
-		}
-	})
+	RegisterRPC(s.p2p, topic, base, handle)
 }
 
 // Send a message to a specific peer. The returned stream may be used for reading, but has been
 // closed for writing.
 func (s *Sync) Send(ctx context.Context, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
-	topic := baseTopic + s.Encoding().ProtocolSuffix()
-
-	var deadline = ttfbTimeout + RespTimeout
-	ctx, cancel := context.WithTimeout(ctx, deadline)
-	defer cancel()
-
-	stream, err := s.p2p.Host().NewStream(ctx, pid, protocol.ID(topic))
-	if err != nil {
-		return nil, err
-	}
-	if err := stream.SetReadDeadline(time.Now().Add(deadline)); err != nil {
-		return nil, err
-	}
-	if err := stream.SetWriteDeadline(time.Now().Add(deadline)); err != nil {
-		return nil, err
-	}
-	// do not encode anything if we are sending a metadata request
-	if baseTopic == RPCMetaDataTopic {
-		return stream, nil
-	}
-
-	if _, err := s.Encoding().EncodeWithMaxLength(stream, message); err != nil {
-		return nil, err
-	}
-
-	// Close stream for writing.
-	if err := stream.Close(); err != nil {
-		return nil, err
-	}
-
-	return stream, nil
+	return Send(ctx, s.p2p.Host(), s.Encoding(), message, baseTopic, pid)
 }
 
 func (s *Sync) PeerSync() *PeerSync {
@@ -261,8 +195,92 @@ func (s *Sync) SetStreamHandler(topic string, handler network.StreamHandler) {
 }
 
 func NewSync(p2p common.P2P) *Sync {
-	sy := &Sync{p2p: p2p, peers: peers.NewStatus(p2p)}
+	sy := &Sync{p2p: p2p, peers: peers.NewStatus(p2p),
+		PeerInterval: params.ActiveNetParams.TargetTimePerBlock * 2}
 	sy.peerSync = NewPeerSync(sy)
 
 	return sy
+}
+
+// registerRPC for a given topic with an expected protobuf message type.
+func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHandler) {
+	topic += rpc.Encoding().ProtocolSuffix()
+	rpc.Host().SetStreamHandler(protocol.ID(topic), func(stream network.Stream) {
+		ctx, cancel := context.WithTimeout(rpc.Context(), TtfbTimeout)
+		defer func() {
+			cancel()
+			closeSteam(stream)
+		}()
+		if err := stream.SetReadDeadline(time.Now().Add(TtfbTimeout)); err != nil {
+			log.Error(fmt.Sprintf("topic:%s peer:%s Could not set stream read deadline:%v",
+				topic, stream.Conn().RemotePeer().Pretty(), err))
+			return
+		}
+
+		// Given we have an input argument that can be pointer or [][32]byte, this gives us
+		// a way to check for its reflect.Kind and based on the result, we can decode
+		// accordingly.
+		var msg interface{}
+		if base != nil {
+			t := reflect.TypeOf(base)
+			var ty reflect.Type
+			if t.Kind() == reflect.Ptr {
+				ty = t.Elem()
+			} else {
+				ty = t
+			}
+			msgT := reflect.New(ty)
+			msg = msgT.Interface()
+			if err := rpc.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
+				// Debug logs for goodbye errors
+				if strings.Contains(topic, RPCGoodByeTopic) {
+					log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
+					return
+				}
+				log.Warn(fmt.Sprintf("Failed to decode stream message:%v", err))
+				return
+			}
+		}
+
+		SetRPCStreamDeadlines(stream)
+		if err := handle(ctx, msg, stream); err != nil {
+			log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", err))
+		}
+	})
+}
+
+// Send a message to a specific peer. The returned stream may be used for reading, but has been
+// closed for writing.
+func Send(ctx context.Context, host host.Host, encoding encoder.NetworkEncoding, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
+	topic := baseTopic + encoding.ProtocolSuffix()
+
+	var deadline = TtfbTimeout + RespTimeout
+	ctx, cancel := context.WithTimeout(ctx, deadline)
+	defer cancel()
+
+	stream, err := host.NewStream(ctx, pid, protocol.ID(topic))
+	if err != nil {
+		return nil, err
+	}
+	if err := stream.SetReadDeadline(time.Now().Add(deadline)); err != nil {
+		return nil, err
+	}
+	if err := stream.SetWriteDeadline(time.Now().Add(deadline)); err != nil {
+		return nil, err
+	}
+	// do not encode anything if we are sending a metadata request
+	if baseTopic == RPCMetaDataTopic {
+		return stream, nil
+	}
+
+	if _, err := encoding.EncodeWithMaxLength(stream, message); err != nil {
+		return nil, err
+	}
+
+	// Close stream for writing.
+	if err := stream.Close(); err != nil {
+		return nil, err
+	}
+
+	return stream, nil
 }

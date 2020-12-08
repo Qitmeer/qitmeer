@@ -18,6 +18,8 @@ import (
 	"sync/atomic"
 )
 
+const BLOCKDATA_SSZ_HEAD_SIZE = 4
+
 func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator *pb.GetBlockDatas) (*pb.BlockDatas, error) {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
@@ -38,7 +40,7 @@ func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator 
 		return nil, err
 	}
 
-	if code != responseCodeSuccess {
+	if code != ResponseCodeSuccess {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return nil, errors.New(errMsg)
 	}
@@ -53,9 +55,9 @@ func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator 
 func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := responseCodeServerError
+	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != responseCodeSuccess {
+		if respCode != ResponseCodeSuccess {
 			resp, err := s.generateErrorResponse(respCode, err.Error())
 			if err != nil {
 				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
@@ -65,17 +67,16 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 				}
 			}
 		}
-		closeSteam(stream)
 		cancel()
 	}()
 
-	SetRPCStreamDeadlines(stream)
 	m, ok := msg.(*pb.GetBlockDatas)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")
 		return err
 	}
 	bds := []*pb.BlockData{}
+	bd := &pb.BlockDatas{Locator: bds}
 	for _, bdh := range m.Locator {
 		blockHash, err := hash.NewHash(bdh.Hash)
 		if err != nil {
@@ -91,19 +92,21 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 		if err != nil {
 			return err
 		}
-		bds = append(bds, &pb.BlockData{BlockBytes: blocks})
+		pbbd := pb.BlockData{BlockBytes: blocks}
+		if uint64(bd.SizeSSZ()+pbbd.SizeSSZ()+BLOCKDATA_SSZ_HEAD_SIZE) >= s.p2p.Encoding().GetMaxChunkSize() {
+			break
+		}
+		bd.Locator = append(bd.Locator, &pbbd)
 	}
-
-	_, err = stream.Write([]byte{responseCodeSuccess})
+	_, err = stream.Write([]byte{ResponseCodeSuccess})
 	if err != nil {
 		return err
 	}
-	bd := &pb.BlockDatas{Locator: bds}
 	_, err = s.Encoding().EncodeWithMaxLength(stream, bd)
 	if err != nil {
 		return err
 	}
-	respCode = responseCodeSuccess
+	respCode = ResponseCodeSuccess
 	return nil
 }
 

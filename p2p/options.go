@@ -53,7 +53,6 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) []libp2p.Opt
 		libp2p.ConnectionGater(s),
 	}
 	if s.cfg.EnableNoise {
-		// Enable NOISE for the beacon node with secio as a fallback.
 		options = append(options, libp2p.Security(noise.ID, noise.New), libp2p.Security(secio.ID, secio.New))
 	} else {
 		options = append(options, libp2p.Security(secio.ID, secio.New))
@@ -119,6 +118,6 @@ func multiAddressBuilder(ipAddr string, port uint) (ma.Multiaddr, error) {
 func privKeyOption(privkey *ecdsa.PrivateKey) libp2p.Option {
 	return func(cfg *libp2p.Config) error {
 		log.Debug("ECDSA private key generated")
-		return cfg.Apply(libp2p.Identity(convertToInterfacePrivkey(privkey)))
+		return cfg.Apply(libp2p.Identity(ConvertToInterfacePrivkey(privkey)))
 	}
 }

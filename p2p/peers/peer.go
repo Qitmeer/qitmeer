@@ -3,8 +3,10 @@ package peers
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
@@ -31,7 +33,8 @@ type Peer struct {
 
 	lock *sync.RWMutex
 
-	conTime time.Time
+	conTime    time.Time
+	timeOffset int64
 }
 
 func (p *Peer) GetID() peer.ID {
@@ -110,6 +113,24 @@ func (p *Peer) Address() ma.Multiaddr {
 	return p.address
 }
 
+func (p *Peer) QAddress() common.QMultiaddr {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.qaddress()
+}
+
+func (p *Peer) qaddress() common.QMultiaddr {
+	if p.address == nil {
+		return nil
+	}
+	qma, err := common.QMultiAddrFromString(fmt.Sprintf("%s", p.address.String()+"/p2p/"+p.pid.String()))
+	if err != nil {
+		return nil
+	}
+	return qma
+}
+
 // Direction returns the direction of the given remote peer.
 // This will error if the peer does not exist.
 func (p *Peer) Direction() network.Direction {
@@ -182,6 +203,7 @@ func (p *Peer) SetChainState(chainState *pb.ChainState) {
 
 	p.chainState = chainState
 	p.chainStateLastUpdated = time.Now()
+	p.timeOffset = int64(p.chainState.Timestamp) - roughtime.Now().Unix()
 
 	log.Trace(fmt.Sprintf("SetChainState(%s) : MainHeight=%d", p.pid.ShortString(), chainState.GraphState.MainHeight))
 }
@@ -245,13 +267,19 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		UserAgent:  p.userAgent(),
 		State:      p.peerState,
 		Direction:  p.direction,
-		GraphState: p.graphState(),
+		TimeOffset: p.timeOffset,
 	}
 
 	n := p.node()
 	if n != nil {
 		ss.NodeID = n.ID().String()
 		ss.QNR = n.String()
+	}
+	if p.qaddress() != nil {
+		ss.Address = p.qaddress().String()
+	}
+	if p.isConsensus() {
+		ss.GraphState = p.graphState()
 	}
 	return ss, nil
 }
@@ -289,6 +317,13 @@ func (p *Peer) genesis() *hash.Hash {
 		return nil
 	}
 	return genesisHash
+}
+
+func (p *Peer) Services() protocol.ServiceFlag {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.services()
 }
 
 func (p *Peer) services() protocol.ServiceFlag {
@@ -388,6 +423,30 @@ func (p *Peer) ConnectionTime() time.Time {
 	defer p.lock.RUnlock()
 
 	return p.conTime
+}
+
+func (p *Peer) IsRelay() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	if p.chainState == nil {
+		return false
+	}
+	return protocol.HasServices(protocol.ServiceFlag(p.chainState.Services), protocol.Relay)
+}
+
+func (p *Peer) IsConsensus() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.isConsensus()
+}
+
+func (p *Peer) isConsensus() bool {
+	if p.chainState == nil {
+		return false
+	}
+	return HasConsensusService(protocol.ServiceFlag(p.chainState.Services))
 }
 
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {

@@ -116,7 +116,7 @@ func fastIBD() error {
 			&cli.BoolFlag{
 				Name:        "testnet",
 				Usage:       "Use the test network",
-				Value:       true,
+				Value:       false,
 				Destination: &cfg.TestNet,
 			},
 			&cli.BoolFlag{

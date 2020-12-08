@@ -4,9 +4,11 @@ go 1.12
 
 require (
 	github.com/Qitmeer/crypto v0.0.0-20200516043559-dd457edff06c
+	github.com/Qitmeer/crypto/cryptonight v0.0.0-20201028030128-6ed4040ca34a
 	github.com/aristanetworks/goarista v0.0.0-20200812190859-4cb0e71f3c0e
 	github.com/cloudflare/roughtime v0.0.0-20200829152512-a9bb6267a4f5
 	github.com/davecgh/go-spew v1.1.1
+	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
 	github.com/dchest/blake256 v1.0.0
 	github.com/deckarep/golang-set v1.7.1
 	github.com/dgraph-io/ristretto v0.0.2
@@ -20,16 +22,20 @@ require (
 	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
-	github.com/libp2p/go-libp2p v0.10.0
-	github.com/libp2p/go-libp2p-core v0.6.0
+	github.com/libp2p/go-libp2p v0.11.0
+	github.com/libp2p/go-libp2p-circuit v0.3.1
+	github.com/libp2p/go-libp2p-core v0.6.1
+	github.com/libp2p/go-libp2p-discovery v0.5.0
+	github.com/libp2p/go-libp2p-kad-dht v0.5.0
 	github.com/libp2p/go-libp2p-noise v0.1.1
 	github.com/libp2p/go-libp2p-pubsub v0.3.2
 	github.com/libp2p/go-libp2p-secio v0.2.2
+	github.com/libp2p/go-sockaddr v0.1.0 // indirect
 	github.com/magiconair/properties v1.8.0
 	github.com/mattn/go-colorable v0.1.7
 	github.com/minio/highwayhash v1.0.0
-	github.com/multiformats/go-multiaddr v0.2.2
-	github.com/multiformats/go-multiaddr-net v0.1.5
+	github.com/multiformats/go-multiaddr v0.3.1
+	github.com/multiformats/go-multiaddr-net v0.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prysmaticlabs/go-bitfield v0.0.0-20200618145306-2ae0807bef65
 	github.com/prysmaticlabs/go-ssz v0.0.0-20200101200214-e24db4d9e963
@@ -38,7 +44,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeromq/goczmq v4.1.0+incompatible
-	go.opencensus.io v0.22.3
+	go.opencensus.io v0.22.4
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/sys v0.0.0-20200523222454-059865788121

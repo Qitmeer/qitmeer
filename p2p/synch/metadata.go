@@ -15,14 +15,10 @@ import (
 
 // metaDataHandler reads the incoming metadata rpc request from the peer.
 func (s *Sync) metaDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
-	defer func() {
-		closeSteam(stream)
-	}()
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	defer cancel()
-	SetRPCStreamDeadlines(stream)
 
-	if _, err := stream.Write([]byte{responseCodeSuccess}); err != nil {
+	if _, err := stream.Write([]byte{ResponseCodeSuccess}); err != nil {
 		return err
 	}
 	_, err := s.Encoding().EncodeWithMaxLength(stream, s.p2p.Metadata())

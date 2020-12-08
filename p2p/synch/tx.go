@@ -36,7 +36,7 @@ func (s *Sync) sendTxRequest(ctx context.Context, id peer.ID, txhash *hash.Hash)
 		return nil, err
 	}
 
-	if code != responseCodeSuccess {
+	if code != ResponseCodeSuccess {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return nil, errors.New(errMsg)
 	}
@@ -52,9 +52,9 @@ func (s *Sync) sendTxRequest(ctx context.Context, id peer.ID, txhash *hash.Hash)
 func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := responseCodeServerError
+	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != responseCodeSuccess {
+		if respCode != ResponseCodeSuccess {
 			resp, err := s.generateErrorResponse(respCode, err.Error())
 			if err != nil {
 				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
@@ -64,11 +64,9 @@ func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore
 				}
 			}
 		}
-		closeSteam(stream)
 		cancel()
 	}()
 
-	SetRPCStreamDeadlines(stream)
 	m, ok := msg.(*pb.Hash)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Transaction")
@@ -88,7 +86,7 @@ func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore
 		return err
 	}
 
-	_, err = stream.Write([]byte{responseCodeSuccess})
+	_, err = stream.Write([]byte{ResponseCodeSuccess})
 	if err != nil {
 		return err
 	}
@@ -98,7 +96,7 @@ func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore
 	if err != nil {
 		return err
 	}
-	respCode = responseCodeSuccess
+	respCode = ResponseCodeSuccess
 	return nil
 }
 

@@ -88,7 +88,7 @@ type SpentTxOut struct {
 	IsCoinBase bool   // Whether creating tx is a coinbase.
 	TxIndex    uint32 // The index of tx in block.
 	TxInIndex  uint32 // The index of TxInput in the tx.
-	OriAmount  uint64 // The original amount of the output.
+	Fees       uint64 // The fees of block
 }
 
 func spentTxOutHeaderCode(stxo *SpentTxOut) uint64 {
@@ -130,7 +130,7 @@ func putSpentTxOut(target []byte, stxo *SpentTxOut) int {
 	offset += SpentTxOutTxIndexSize
 	byteOrder.PutUint32(target[offset:], uint32(stxo.TxInIndex))
 	offset += SpentTxOutTxInIndexSize
-	byteOrder.PutUint64(target[offset:], stxo.OriAmount)
+	byteOrder.PutUint64(target[offset:], stxo.Fees)
 	offset += 8
 	return offset + putCompressedTxOut(target[offset:], uint64(stxo.Amount), stxo.PkScript)
 }
@@ -173,7 +173,7 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 	offset += SpentTxOutTxIndexSize
 	stxo.TxInIndex = uint32(byteOrder.Uint32(serialized[offset : offset+4]))
 	offset += SpentTxOutTxInIndexSize
-	stxo.OriAmount = uint64(byteOrder.Uint64(serialized[offset : offset+8]))
+	stxo.Fees = uint64(byteOrder.Uint64(serialized[offset : offset+8]))
 	offset += 8
 	// Decode the compressed txout.
 	amount, pkScript, bytesRead, err := decodeCompressedTxOut(
