@@ -11,7 +11,8 @@ import (
 )
 
 // proof data length 188
-const POW_LENGTH = 174
+// 8 + 1 + 169
+const POW_LENGTH = 178
 
 //except pow type 4bytes and nonce 8 bytes 176 bytes
 const PROOFDATA_LENGTH = 169
@@ -64,10 +65,10 @@ type IPow interface {
 	// verify result difficulty
 	Verify(headerData []byte, blockHash hash.Hash, targetDiff uint32) error
 	//set header nonce
-	SetNonce(nonce uint32)
+	SetNonce(nonce uint64)
 	//calc next diff
 	GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int) *big.Int
-	GetNonce() uint32
+	GetNonce() uint64
 	GetPowType() PowType
 	//set pow type
 	SetPowType(powType PowType)
@@ -94,14 +95,14 @@ type IPow interface {
 
 type Pow struct {
 	PowType    PowType       //header pow type 1 bytes
-	Nonce      uint32        //header nonce 4 bytes
+	Nonce      uint64        //header nonce 4 bytes
 	ProofData  ProofDataType // 1 edge_bits  168  bytes circle length total 169 bytes
 	params     *PowConfig
 	mainHeight MainHeight
 }
 
 //get pow instance
-func GetInstance(powType PowType, nonce uint32, proofData []byte) IPow {
+func GetInstance(powType PowType, nonce uint64, proofData []byte) IPow {
 	var instance IPow
 	switch powType {
 	case BLAKE2BD:
@@ -145,11 +146,11 @@ func (this *Pow) GetPowType() PowType {
 	return this.PowType
 }
 
-func (this *Pow) GetNonce() uint32 {
+func (this *Pow) GetNonce() uint64 {
 	return this.Nonce
 }
 
-func (this *Pow) SetNonce(nonce uint32) {
+func (this *Pow) SetNonce(nonce uint64) {
 	this.Nonce = nonce
 }
 

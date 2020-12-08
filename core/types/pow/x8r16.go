@@ -89,9 +89,9 @@ func (this *X8r16) CompareDiff(newTarget *big.Int, target *big.Int) bool {
 // pow proof data
 func (this *X8r16) Bytes() PowBytes {
 	r := make(PowBytes, 0)
-	//write nonce 4 bytes
-	n := make([]byte, 4)
-	binary.LittleEndian.PutUint32(n, this.Nonce)
+	// write nonce 8 bytes
+	n := make([]byte, 8)
+	binary.LittleEndian.PutUint64(n, this.Nonce)
 	r = append(r, n...)
 
 	t := make([]byte, 1)

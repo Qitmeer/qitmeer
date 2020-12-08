@@ -81,9 +81,9 @@ func (this *Cuckoo) GetSipHash(headerData []byte) hash.Hash {
 func (this *Cuckoo) Bytes() PowBytes {
 	r := make(PowBytes, 0)
 
-	//write nonce 4 bytes
-	n := make([]byte, 4)
-	binary.LittleEndian.PutUint32(n, this.Nonce)
+	// write nonce 8 bytes
+	n := make([]byte, 8)
+	binary.LittleEndian.PutUint64(n, this.Nonce)
 	r = append(r, n...)
 
 	//write pow type 1 byte
