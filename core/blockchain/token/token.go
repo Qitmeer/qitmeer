@@ -47,7 +47,7 @@ const (
 // The function ONLY check if the format is correct. for the returned signature,
 // public key and token id. The callee MUST to do additional check for the
 // returned values.
-func CheckTokenMint(tx types.Transaction) ([]byte, []byte, []byte, error) {
+func CheckTokenMint(tx *types.Transaction) ([]byte, []byte, []byte, error) {
 
 	// A valid TOKEN_MINT tx
 	// There must be at least 2 inputs and must be two outputs.
@@ -117,7 +117,7 @@ func CheckTokenMint(tx types.Transaction) ([]byte, []byte, []byte, error) {
 
 // IsTokenMint returns true if the input transaction is a valid TOKEN_MINT
 // NOTICE: the function DOES NOT check the signature and pubKey and tokenId.
-func IsTokenMint(tx types.Transaction) bool{
+func IsTokenMint(tx *types.Transaction) bool{
 	 _,_,_,err := CheckTokenMint(tx)
 	 return err == nil
 }
@@ -127,13 +127,13 @@ func IsTokenMint(tx types.Transaction) bool{
 // The function ONLY check if the format is correct. for the returned signature,
 // public key and token id. The callee MUST to do additional check for the
 // returned values.
-func CheckTokenUnMint(tx types.Transaction) ([]byte, []byte, []byte, error) {
+func CheckTokenUnMint(tx *types.Transaction) ([]byte, []byte, []byte, error) {
 	return nil,nil,nil,errors.Errorf("")
 }
 
 // IsTokenUnMint returns true if the input transaction is a valid TOKEN_UlMINT
 // NOTICE: the function DOES NOT check the signature and pubKey and tokenId.
-func IsTokenUnMint(tx types.Transaction) bool{
+func IsTokenUnMint(tx *types.Transaction) bool{
 	_,_,_,err := CheckTokenUnMint(tx)
 	return err == nil
 }
