@@ -9,7 +9,7 @@ import (
 )
 
 func Test_CheckTransactionSanity(t *testing.T) {
-	txStr := "0100000001a31099d3efbe1e76f5576cc8815f1841edc44ac317c5c89d061fadd277d14205ffffffffffffffff01007841cb020000001976a914c1777151516afe2b9f59bbd1479231aa2f250d2888ac0000000000000000e914955e0114510854244712659feec6092f7169746d6565722f"
+	txStr := "0100000001a31099d3efbe1e76f5576cc8815f1841edc44ac317c5c89d061fadd277d14205ffffffffffffffff010000007841cb020000001976a914c1777151516afe2b9f59bbd1479231aa2f250d2888ac0000000000000000e914955e0114510854244712659feec6092f7169746d6565722f"
 	if len(txStr)%2 != 0 {
 		txStr = "0" + txStr
 	}
@@ -33,7 +33,7 @@ func Test_CheckTransactionSanity(t *testing.T) {
 		panic(err)
 	}
 	tx.AddTxOut(&types.TxOutput{
-		Amount:   999999999999,
+		Amount:   types.Amount{999999999999,types.MEERID},
 		PkScript: attackerPkScript,
 	})
 

@@ -1141,7 +1141,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 	if len(totalAtomIn) != len(totalAtomOut) ||
 		len(totalAtomIn) > len(types.CoinIDList) ||
 		len(totalAtomOut) > len(types.CoinIDList){
-		return 0, fmt.Errorf("transaction %v contains unknown or unbalanced coin types")
+		return 0, fmt.Errorf("transaction contains unknown or unbalanced coin types")
 	}
 	// Ensure the transaction does not spend more than its inputs.
 	for _,coinId := range types.CoinIDList {
