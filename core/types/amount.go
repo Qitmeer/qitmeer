@@ -75,7 +75,8 @@ var CoinIDList = []CoinID{
 	MEERID,QITID,
 }
 
-func CheckUnknownCoinID(id CoinID) error{
+// Check if a valid coinId, current only check if the coinId is known.
+func CheckCoinID(id CoinID) error{
 	unknownCoin := true
 	for _, coinId := range CoinIDList {
 		if id == coinId {

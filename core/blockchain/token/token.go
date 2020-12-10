@@ -74,6 +74,11 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 	}
 	tokenId = txIn[100:100+TokenIdSize]
 
+	// tokenId must not meer itself
+	if types.CoinID(binary.LittleEndian.Uint16(tokenId)) == types.MEERID {
+		return nil, nil,nil, fmt.Errorf("invalid TOKEN_MINT input[0], invalid tokenId 0x%x",tokenId)
+	}
+
 	// TxIn[1..N] must normal meer signature script
 	for i, txIn := range tx.TxIn[1:] {
 		// Make sure there is a script.

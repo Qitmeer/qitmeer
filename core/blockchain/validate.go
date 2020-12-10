@@ -1045,7 +1045,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		}
 
 		// Ensure the coinId is known
-		err := types.CheckUnknownCoinID(utxoEntry.amount.Id)
+		err := types.CheckCoinID(utxoEntry.amount.Id)
 		if err!= nil {
 			return 0, err
 		}
@@ -1130,7 +1130,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 	totalAtomOut := make(map[types.CoinID]int64)
 	for _, txOut := range tx.Transaction().TxOut {
 		// Ensure the coinId is known
-		err := types.CheckUnknownCoinID(txOut.Amount.Id)
+		err := types.CheckCoinID(txOut.Amount.Id)
 		if err!= nil {
 			return 0, err
 		}
