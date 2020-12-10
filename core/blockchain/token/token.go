@@ -96,11 +96,13 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 	for i, txIn := range tx.TxIn[1:] {
 		// Make sure there is a script.
 		if len(txIn.SignScript) == 0 {
-			return nil, nil, nil, fmt.Errorf("invalid TxIn script length %v:%v", i, len(txIn.SignScript))
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[%d], " +
+				"script length %v", i+1, len(txIn.SignScript))
 		}
 		// Make sure the input value should meer
 		if types.MEERID != txIn.AmountIn.Id {
-			return nil, nil, nil, fmt.Errorf("invalid TxIn script length %v:%v", i, len(txIn.SignScript))
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[%d]," +
+				" must from meer, but from %v", i+1, txIn.AmountIn.Id )
 		}
 	}
 
@@ -133,9 +135,10 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[1] is not P2SH or P2PKH")
 	}
 	// check output[1] match with token id
-	id := uint16(tx.TxOut[1].Amount.Id)
-	if id!= binary.LittleEndian.Uint16(tokenId){
-		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, token id not match %v, output[1] is %v", tokenId, id)
+	id := binary.LittleEndian.Uint16(tokenId)
+	if id != uint16(tx.TxOut[1].Amount.Id) {
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, " +
+			"token id not match, mint token %v but release %v", types.CoinID(id), tx.TxOut[1].Amount.Id)
 	}
 	return signature,pubKey,tokenId,nil
 }

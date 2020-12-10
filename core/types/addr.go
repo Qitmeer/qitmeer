@@ -26,7 +26,7 @@ type Address interface {
 	EcType() ecc.EcType
 
 	// raw byte in script, aka the hash in the most case
-	ScriptAddress() []byte
+	Script() []byte
 
 	// TODO, revisit the design of address type decision
 	// IsForNetwork returns whether or not the address is associated with the
