@@ -136,12 +136,13 @@ func TestCheckTokenMint(t *testing.T) {
 					Sequence:    MaxTxInSequenceNum,
 					SignScript:  []byte{txscript.OP_DATA_1},
 				})
+				// output[0]
 				builder = txscript.NewScriptBuilder()
 				builder.AddOp(txscript.OP_MEER_LOCK)
 				meerlockScript,_ := builder.Script()
 				tx.AddTxOut(&TxOutput{Amount{100,MEERID},meerlockScript})
+				// output[1]
 				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
-
 				if err!= nil {
 					panic(err)
 				}
@@ -167,6 +168,113 @@ func TestCheckTokenMint(t *testing.T) {
 
 }
 
+func TestCheckTokenUnMint(t *testing.T) {
+	tests := []struct {
+		name     string
+		expected bool
+		createTx func() *Transaction
+	}{
+		{
+			name:"can not unmint meer",
+			expected: false,
+			createTx: func() *Transaction {
+				tx := NewTransaction()
+				builder := txscript.NewScriptBuilder()
+				builder.AddData(signature)
+				builder.AddData(pubkey)
+				builder.AddData(MEERID.Bytes())
+				builder.AddOp(txscript.OP_TOKEN_UNMINT)
+				unmintScript, _ := builder.Script()
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  unmintScript,
+				})
+				tx.AddTxIn(&TxInput{
+				})
+				tx.AddTxOut(&TxOutput{})
+				tx.AddTxOut(&TxOutput{})
+				return tx
+			},
+		},
+		{
+			name:"invalid input from meer",
+			expected: false,
+			createTx: func() *Transaction {
+				tx := NewTransaction()
+				builder := txscript.NewScriptBuilder()
+				builder.AddData(signature)
+				builder.AddData(pubkey)
+				builder.AddData(QITID.Bytes())
+				builder.AddOp(txscript.OP_TOKEN_UNMINT)
+				unmintScript, _ := builder.Script()
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  unmintScript,
+				})
+				tx.AddTxIn(&TxInput{
+						PreviousOut: *NewOutPoint(hashFramStr("377cfb2c535be289f8e40299e8d4c234283c367e20bc5ff67ca18c1ca1337443"),
+							0),
+						Sequence:    MaxTxInSequenceNum,
+						SignScript:  []byte{txscript.OP_DATA_1},
+				})
+				tx.AddTxOut(&TxOutput{})
+				return tx
+			},
+		},
+		{
+			name:"token unmint",
+			expected: true,
+			createTx: func() *Transaction {
+				tx := NewTransaction()
+				builder := txscript.NewScriptBuilder()
+				builder.AddData(signature)
+				builder.AddData(pubkey)
+				builder.AddData(QITID.Bytes())
+				builder.AddOp(txscript.OP_TOKEN_UNMINT)
+				unmintScript, _ := builder.Script()
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  unmintScript,
+				})
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(hashFramStr("377cfb2c535be289f8e40299e8d4c234283c367e20bc5ff67ca18c1ca1337443"),
+						0),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  []byte{txscript.OP_DATA_1},
+					AmountIn: Amount{100, QITID},
+				})
+				// output[0]
+				builder = txscript.NewScriptBuilder()
+				builder.AddOp(txscript.OP_TOKEN_DESTORY)
+				tokenDestoryScript,_ := builder.Script()
+				tx.AddTxOut(&TxOutput{Amount{100,QITID},tokenDestoryScript})
+				// output[1]
+				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
+				if err!= nil {
+					panic(err)
+				}
+				p2pkhScript, err := txscript.PayToAddrScript(addr)
+				if err!= nil {
+					panic(err)
+				}
+				meerReleaseScript := make([]byte, len(p2pkhScript)+1)
+				meerReleaseScript[0] = txscript.OP_MEER_RELEASE
+				copy(meerReleaseScript[1:], p2pkhScript)
+				tx.AddTxOut(&TxOutput{Amount{10,MEERID},meerReleaseScript})
+				return tx
+			},
+		},
+	}
+	for i, test:= range tests {
+		if got := token.IsTokenUnMint(test.createTx()); got != test.expected {
+			_,_,_,err := token.CheckTokenUnMint(test.createTx())
+			t.Errorf("failed test[%d]:[%v], expect [%v] but [%v], error:[%v]",i, test.name, test.expected, got, err)
+		}
+	}
+}
 
 //func generateKeys() {
 //	printKey := func(key []byte){

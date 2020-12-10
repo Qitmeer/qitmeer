@@ -155,8 +155,89 @@ func IsTokenMint(tx *types.Transaction) bool{
 // The function ONLY check if the format is correct. for the returned signature,
 // public key and token id. The callee MUST to do additional check for the
 // returned values.
-func CheckTokenUnMint(tx *types.Transaction) ([]byte, []byte, []byte, error) {
-	return nil,nil,nil,fmt.Errorf("")
+func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, tokenId []byte, err error) {
+	// A valid TOKEN_UNMINT tx
+	// There must be at least 2 inputs and must be two outputs.
+	if len(tx.TxIn) < 2 || len(tx.TxOut) != 2 {
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input/output size (in: %v out: %v)",
+			len(tx.TxIn), len(tx.TxOut))
+	}
+	// Inputs :
+	// TxIn[0] must point to zero (previous outpoint is zero hash and max index)
+	if isNullOutPoint(tx) == false {
+		return nil, nil, nil, fmt.Errorf( "invalid TOKEN_UNMINT input[0]: none-zero outpoint")
+	}
+	// TxIn[0] must contains a signature, a public key and and token id and an OP_TOKEN_MINT opcode.
+	txIn := tx.TxIn[0].SignScript
+	if !(len(txIn) == TokenUnMintScriptLen &&
+		txIn[0] == txscript.OP_DATA_64 &&
+		txIn[65] == txscript.OP_DATA_33 &&
+		txIn[99] == txscript.OP_DATA_2 &&
+		txIn[102] == txscript.OP_TOKEN_UNMINT) {
+		return nil, nil, nil, fmt.Errorf( "invalid TOKEN_UNMINT input[0]: incorrect signScript format")
+	}
+
+	// Pull out signature, pubkey, and tokenId
+	signature = txIn[1 : 1+schnorr.SignatureSize]
+	pubKey = txIn[66 : 66+secp256k1.PubKeyBytesLenCompressed]
+	if !txscript.IsStrictCompressedPubKeyEncoding(pubKey) {
+		return nil, nil,nil, fmt.Errorf("invalid TOKEN_UNMINT input[0]: wrong public key encoding")
+	}
+	tokenId = txIn[100:100+TokenIdSize]
+	id := types.CoinID(binary.LittleEndian.Uint16(tokenId))
+	// tokenId must not meer itself
+	if id == types.MEERID {
+		return nil, nil,nil, fmt.Errorf("invalid TOKEN_UNMINT input[0],  token id, can't unmint %v ",id)
+	}
+
+	// TxIn[1..N] must normal token signature script, and the input value should match with token id
+	for i, txIn := range tx.TxIn[1:] {
+		// Make sure there is a script.
+		if len(txIn.SignScript) == 0 {
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[%d], " +
+				"script length %v", i+1, len(txIn.SignScript))
+		}
+		// Make sure the input value should token
+		if id != txIn.AmountIn.Id {
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[%d]," +
+				" must from %v, but from %v", i+1, id, txIn.AmountIn.Id )
+		}
+	}
+
+	// Outpus :
+	// TxOut[0] must be an OP_TOKEN_DESTORY, and value must match with the unmint token id
+	// Txout[1]:must be an OP_MEER_RELEASE tagged P2SH or P2PKH script. and released value must meer
+
+	// output[0] len must 1
+	if len(tx.TxOut[0].PkScript) != 1 {
+		return nil,nil,nil,fmt.Errorf("invalid TOKEN_UNMINT, output[0] script length is not 1 byte, got %v",
+			len(tx.TxOut[0].PkScript))
+	}
+	if tx.TxOut[0].PkScript[0] != txscript.OP_TOKEN_DESTORY {
+		return nil,nil,nil,fmt.Errorf("invalid TOKEN_UNMINT, output[0] must be a TOKEN_DESTORY, got 0x%x",
+			tx.TxOut[0].PkScript[0])
+	}
+	if tx.TxOut[0].Amount.Id != id {
+		return nil,nil,nil,fmt.Errorf("invalid TOKEN_UNMINT, output[0] must be a %v value, got %v", id,
+			tx.TxOut[0].Amount.Id)
+	}
+	// output[1]
+	if len(tx.TxOut[1].PkScript) == 0 {
+		return nil, nil, nil , fmt.Errorf("invalid TOKEN_UNMINT, output[1] script is empty")
+	}
+	if tx.TxOut[1].PkScript[0] != txscript.OP_MEER_RELEASE {
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, output[1] is not a MEER_RELEASE")
+	}
+	if !(txscript.IsPubKeyHashScript(tx.TxOut[1].PkScript[1:]) ||
+		txscript.IsPayToScriptHash(tx.TxOut[1].PkScript[1:])) {
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, output[1] is not P2SH or P2PKH")
+	}
+	// check output[1] value must meer
+	if types.MEERID != tx.TxOut[1].Amount.Id {
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, " +
+			"token id %v not match, token-unmint must release MEER", tx.TxOut[1].Amount.Id)
+	}
+	return signature,pubKey,tokenId,nil
 }
 
 // IsTokenUnMint returns true if the input transaction is a valid TOKEN_UlMINT
