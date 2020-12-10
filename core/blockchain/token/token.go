@@ -7,10 +7,12 @@ package token
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/schnorr"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"math"
 )
 
 // the token mint/unmint transactions format definition.
@@ -42,6 +44,11 @@ const (
 	TokenIdSize = 2
 )
 
+var (
+	zeroHash = &hash.Hash{}
+)
+
+
 // CheckTokenMint verifies the input if is a valid TOKEN_MINT transaction.
 // The function return the signature, public key, tokenId and an error.
 // The function ONLY check if the format is correct. for the returned signature,
@@ -55,7 +62,12 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input/output size (in: %v out: %v)",
 			len(tx.TxIn), len(tx.TxOut))
 	}
+
 	// Inputs :
+	// TxIn[0] must point to zero (previous outpoint is zero hash and max index)
+	if isNullOutPoint(tx) == false {
+		return nil, nil, nil, fmt.Errorf( "invalid TOKEN_MINT input[0]: none-zero outpoint")
+	}
 	// TxIn[0] must contains a signature, a public key and and token id and an OP_TOKEN_MINT opcode.
 	txIn := tx.TxIn[0].SignScript
 	if !(len(txIn) == TokenMintScriptLen &&
@@ -63,14 +75,15 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 		txIn[65] == txscript.OP_DATA_33 &&
 		txIn[99] == txscript.OP_DATA_2 &&
 		txIn[102] == txscript.OP_TOKEN_MINT) {
-		return nil, nil, nil, fmt.Errorf( "invalid TOKEN_MINT input[0] script")
+		return nil, nil, nil, fmt.Errorf( "invalid TOKEN_MINT input[0]: incorrect signScript format")
 	}
+
 
 	// Pull out signature, pubkey, and tokenId
 	signature = txIn[1 : 1+schnorr.SignatureSize]
 	pubKey = txIn[66 : 66+secp256k1.PubKeyBytesLenCompressed]
 	if !txscript.IsStrictCompressedPubKeyEncoding(pubKey) {
-		return nil, nil,nil, fmt.Errorf("invalid TOKEN_MINT input[0], wrong public key encoding")
+		return nil, nil,nil, fmt.Errorf("invalid TOKEN_MINT input[0]: wrong public key encoding")
 	}
 	tokenId = txIn[100:100+TokenIdSize]
 
@@ -148,4 +161,12 @@ func CheckTokenUnMint(tx *types.Transaction) ([]byte, []byte, []byte, error) {
 func IsTokenUnMint(tx *types.Transaction) bool{
 	_,_,_,err := CheckTokenUnMint(tx)
 	return err == nil
+}
+
+func isNullOutPoint(tx *types.Transaction) bool {
+	op := &tx.TxIn[0].PreviousOut
+	if op.OutIndex == math.MaxUint32 && op.Hash.IsEqual(zeroHash) {
+		return true
+	}
+	return false
 }

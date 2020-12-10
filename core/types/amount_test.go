@@ -7,6 +7,7 @@
 package types
 
 import (
+	"bytes"
 	"math"
 	"reflect"
 	"sort"
@@ -383,5 +384,28 @@ func TestCheckCoinID (t *testing.T) {
 			t.Errorf("failed test[%d]:[%v] Check [%v] expect failure, but got no err.",i,test.name, test.coinId)
 		}
 	}
+}
+
+func TestCoinID_Bytes(t *testing.T) {
+	tests := []struct{
+		id CoinID
+		byte []byte
+		equal bool
+	}{
+		{  CoinID(0),[]byte{0x0,0x0}, true},
+		{CoinID(1),[]byte{0x1,0x0}, true},
+		{CoinID(2), []byte{0x2,0x0}, true},
+		{CoinID(2), []byte{0x0,0x2}, false},
+		{CoinID(2), []byte{0x2,0x0,0x0,0x0}, false},
+		{CoinID(255), []byte{0xff,0x00}, true},
+		{CoinID(256), []byte{0x00,0x01}, true},
+		{CoinID(65535), []byte{0xff,0xff}, true},
+	}
+	for _, test := range tests {
+		if equal := bytes.Compare(test.id.Bytes(),test.byte); equal == 0 != test.equal {
+			t.Errorf("failed on test %v == %v is %v", test.id, test.byte, test.equal)
+		}
+	}
+
 }
 
