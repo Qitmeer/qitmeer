@@ -7,6 +7,7 @@
 package types
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
@@ -70,6 +71,11 @@ func (c CoinID) String() string {
 	default:
 		return "Unknown-CoinID:" + strconv.FormatInt(int64(c), 10)
 	}
+}
+func (c CoinID) Bytes() []byte {
+	b := [2]byte{}
+	binary.LittleEndian.PutUint16(b[:],uint16(c))
+	return b[:]
 }
 var CoinIDList = []CoinID{
 	MEERID,QITID,

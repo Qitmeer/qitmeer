@@ -1,7 +1,10 @@
-package token
+package token_test
 
 import (
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain/token"
+	. "github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"testing"
 )
 
@@ -32,38 +35,84 @@ var (
 		0xd8,0x4b,0x23,0xaa,0x82,0xc2,0xca,0x44,
 		0xf9,0x4a,0x9a,0x24,0xd2,0x7e,0x80,0x7b,
 	}
+
 )
 
 
 func TestCheckTokenMint(t *testing.T) {
 	tests := []struct {
 		name     string
-		createTx func() *types.Transaction
+		createTx func() *Transaction
 		expected bool
 	}{
 		{
-			"1. invalid empty tx",
-			func() *types.Transaction {
-				tx := &types.Transaction{}
+			"invalid empty tx [0:0]",
+			func() *Transaction {
+				tx := &Transaction{}
 				return tx
 			},
 			false,
 		},
 		{
-			name:"2. token mint ",
+			name:"invalid empty tx [2:2]",
 			expected: false,
-			createTx: func() *types.Transaction {
-				tx := types.NewTransaction()
-
+			createTx: func() *Transaction {
+				tx := NewTransaction()
+				tx.AddTxIn(&TxInput{
+				})
+				tx.AddTxIn(&TxInput{
+				})
+				tx.AddTxOut(&TxOutput{})
+				tx.AddTxOut(&TxOutput{})
+				return tx
+			},
+		},
+		{
+			name:"empty token-mint script",
+			expected: false,
+			createTx: func() *Transaction {
+				tx := NewTransaction()
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  []byte{},
+				})
+				tx.AddTxIn(&TxInput{
+				})
+				tx.AddTxOut(&TxOutput{})
+				tx.AddTxOut(&TxOutput{})
+				return tx
+			},
+		},
+		{
+			name:"incorrect token-mint token-id",
+			expected: false,
+			createTx: func() *Transaction {
+				tx := NewTransaction()
+				builder := txscript.NewScriptBuilder()
+				builder.AddData(signature)
+				builder.AddData(pubkey)
+				builder.AddData(MEERID.Bytes())
+				builder.AddOp(txscript.OP_TOKEN_MINT)
+				mintScript, _ := builder.Script()
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  mintScript,
+				})
+				tx.AddTxIn(&TxInput{
+				})
+				tx.AddTxOut(&TxOutput{})
+				tx.AddTxOut(&TxOutput{})
 				return tx
 			},
 		},
 	}
 
 	for i, test:= range tests {
-		if got := IsTokenMint(test.createTx()); got != test.expected {
-			_,_,_,err := CheckTokenMint(test.createTx())
-			t.Errorf("failed test[%d]:%v, expect [%v] but [%v], error:[%v]",i, test.name, test.expected, got, err)
+		if got := token.IsTokenMint(test.createTx()); got != test.expected {
+			_,_,_,err := token.CheckTokenMint(test.createTx())
+			t.Errorf("failed test[%d]:[%v], expect [%v] but [%v], error:[%v]",i, test.name, test.expected, got, err)
 		}
 	}
 
