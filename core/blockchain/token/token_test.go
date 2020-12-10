@@ -49,6 +49,15 @@ func TestCheckTokenMint(t *testing.T) {
 			},
 			false,
 		},
+		{
+			name:"2. token mint ",
+			expected: false,
+			createTx: func() *types.Transaction {
+				tx := types.NewTransaction()
+
+				return tx
+			},
+		},
 	}
 
 	for i, test:= range tests {

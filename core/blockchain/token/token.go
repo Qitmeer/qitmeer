@@ -47,7 +47,7 @@ const (
 // The function ONLY check if the format is correct. for the returned signature,
 // public key and token id. The callee MUST to do additional check for the
 // returned values.
-func CheckTokenMint(tx *types.Transaction) ([]byte, []byte, []byte, error) {
+func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tokenId []byte, err error) {
 
 	// A valid TOKEN_MINT tx
 	// There must be at least 2 inputs and must be two outputs.
@@ -67,18 +67,21 @@ func CheckTokenMint(tx *types.Transaction) ([]byte, []byte, []byte, error) {
 	}
 
 	// Pull out signature, pubkey, and tokenId
-	signature := txIn[1 : 1+schnorr.SignatureSize]
-	pubKey := txIn[66 : 66+secp256k1.PubKeyBytesLenCompressed]
+	signature = txIn[1 : 1+schnorr.SignatureSize]
+	pubKey = txIn[66 : 66+secp256k1.PubKeyBytesLenCompressed]
 	if !txscript.IsStrictCompressedPubKeyEncoding(pubKey) {
 		return nil, nil,nil, errors.Errorf("invalid TOKEN_MINT input[0], wrong public key encoding")
 	}
-	tokenId := txIn[100:100+TokenIdSize]
+	tokenId = txIn[100:100+TokenIdSize]
 
 	// TxIn[1..N] must normal meer signature script
-	// Check to make sure that all output scripts are the consensus version.
 	for i, txIn := range tx.TxIn[1:] {
 		// Make sure there is a script.
 		if len(txIn.SignScript) == 0 {
+			return nil, nil, nil, errors.Errorf("invalid TxIn script length %v:%v", i, len(txIn.SignScript))
+		}
+		// Make sure the input value should meer
+		if types.MEERID != txIn.AmountIn.Id {
 			return nil, nil, nil, errors.Errorf("invalid TxIn script length %v:%v", i, len(txIn.SignScript))
 		}
 	}
@@ -95,6 +98,10 @@ func CheckTokenMint(tx *types.Transaction) ([]byte, []byte, []byte, error) {
 	if tx.TxOut[0].PkScript[0] != txscript.OP_MEER_LOCK {
 		return nil,nil,nil,errors.Errorf("invalid TOKEN_MINT, output[0] must be a MEER_LOCK, got 0x%x",
 			tx.TxOut[0].PkScript[0])
+	}
+	if tx.TxOut[0].Amount.Id != types.MEERID {
+		return nil,nil,nil,errors.Errorf("invalid TOKEN_MINT, output[0] must be a MEER value, got %v",
+			tx.TxOut[0].Amount.Id)
 	}
 	// output[1]
 	if len(tx.TxOut[1].PkScript) == 0 {
