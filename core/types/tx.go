@@ -968,6 +968,7 @@ type TxInput struct {
 	// however, its most relevant purpose is to enable “locking” of payments
 	// so that they cannot be redeemed until a certain time.
 	Sequence uint32 //work with LockTime (disable use 0xffffffff, bitcoin historical)
+	AmountIn Amount
 }
 
 // NewTxIn returns a new transaction input with the provided  previous outpoint
