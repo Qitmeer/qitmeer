@@ -2,6 +2,7 @@ package token_test
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	. "github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -37,7 +38,13 @@ var (
 	}
 
 )
-
+func hashFramStr(str string) *hash.Hash {
+	h, err:= hash.NewHashFromStr(str)
+	if err!=nil {
+		panic(err)
+	}
+	return h
+}
 
 func TestCheckTokenMint(t *testing.T) {
 	tests := []struct {
@@ -104,6 +111,48 @@ func TestCheckTokenMint(t *testing.T) {
 				})
 				tx.AddTxOut(&TxOutput{})
 				tx.AddTxOut(&TxOutput{})
+				return tx
+			},
+		},
+		{
+			name:"token-mint",
+			expected: true,
+			createTx: func() *Transaction {
+				tx := NewTransaction()
+				builder := txscript.NewScriptBuilder()
+				builder.AddData(signature)
+				builder.AddData(pubkey)
+				builder.AddData(QITID.Bytes())
+				builder.AddOp(txscript.OP_TOKEN_MINT)
+				mintScript, _ := builder.Script()
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  mintScript,
+				})
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(hashFramStr("377cfb2c535be289f8e40299e8d4c234283c367e20bc5ff67ca18c1ca1337443"),
+						0),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  []byte{txscript.OP_DATA_1},
+				})
+				builder = txscript.NewScriptBuilder()
+				builder.AddOp(txscript.OP_MEER_LOCK)
+				meerlockScript,_ := builder.Script()
+				tx.AddTxOut(&TxOutput{Amount{100,MEERID},meerlockScript})
+				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
+
+				if err!= nil {
+					panic(err)
+				}
+				p2pkhScript, err := txscript.PayToAddrScript(addr)
+				if err!= nil {
+					panic(err)
+				}
+				tokenReleaseScript := make([]byte, len(p2pkhScript)+1)
+				tokenReleaseScript[0] = txscript.OP_TOKEN_RELEASE
+				copy(tokenReleaseScript[1:], p2pkhScript)
+				tx.AddTxOut(&TxOutput{Amount{100,QITID},tokenReleaseScript})
 				return tx
 			},
 		},
