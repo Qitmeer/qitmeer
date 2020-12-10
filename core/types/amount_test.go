@@ -362,3 +362,26 @@ func TestAmountSorter(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckCoinID (t *testing.T) {
+	tests := []struct{
+		name string
+		expect bool
+		coinId CoinID
+	}{
+		{"meer", true, CoinID(0)},
+		{"qit", true, CoinID(1)},
+		{"unknow", false, CoinID(2)},
+	}
+
+	for i, test := range tests {
+		err :=CheckCoinID(test.coinId)
+		if test.expect == true && err != nil {
+			t.Errorf("failed test[%d]:[%v] Check [%v] expect ok, but got err: %v",i,test.name, test.coinId, err)
+		}
+		if test.expect == false && err == nil {
+			t.Errorf("failed test[%d]:[%v] Check [%v] expect failure, but got no err.",i,test.name, test.coinId)
+		}
+	}
+}
+
