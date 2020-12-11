@@ -130,17 +130,19 @@ func TestCheckTokenMint(t *testing.T) {
 					Sequence:    MaxTxInSequenceNum,
 					SignScript:  mintScript,
 				})
+				fee := int64(5400)
 				tx.AddTxIn(&TxInput{
 					PreviousOut: *NewOutPoint(hashFramStr("377cfb2c535be289f8e40299e8d4c234283c367e20bc5ff67ca18c1ca1337443"),
 						0),
 					Sequence:    MaxTxInSequenceNum,
 					SignScript:  []byte{txscript.OP_DATA_1},
+					AmountIn: Amount{100*1e8+fee,MEERID},
 				})
 				// output[0]
 				builder = txscript.NewScriptBuilder()
 				builder.AddOp(txscript.OP_MEER_LOCK)
 				meerlockScript,_ := builder.Script()
-				tx.AddTxOut(&TxOutput{Amount{100,MEERID},meerlockScript})
+				tx.AddTxOut(&TxOutput{Amount{100*1e8,MEERID},meerlockScript})
 				// output[1]
 				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
 				if err!= nil {
@@ -154,6 +156,59 @@ func TestCheckTokenMint(t *testing.T) {
 				tokenReleaseScript[0] = txscript.OP_TOKEN_RELEASE
 				copy(tokenReleaseScript[1:], p2pkhScript)
 				tx.AddTxOut(&TxOutput{Amount{100,QITID},tokenReleaseScript})
+				return tx
+			},
+		},
+		{
+			name:     "token-mint-with-change",
+			expected: true,
+			createTx: func() *Transaction {
+				tx := NewTransaction()
+				builder := txscript.NewScriptBuilder()
+				builder.AddData(signature)
+				builder.AddData(pubkey)
+				builder.AddData(QITID.Bytes())
+				builder.AddOp(txscript.OP_TOKEN_MINT)
+				mintScript, _ := builder.Script()
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  mintScript,
+				})
+				mint := int64(90*1e8)  // 90meer
+				change := int64(10*1e8) // 10meer
+				fee := int64(5400)
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(hashFramStr("377cfb2c535be289f8e40299e8d4c234283c367e20bc5ff67ca18c1ca1337443"),
+						0),
+					Sequence:   MaxTxInSequenceNum,
+					SignScript: []byte{txscript.OP_DATA_1},
+					AmountIn:   Amount{mint + change + fee, MEERID},
+				})
+				// output[0]
+				builder = txscript.NewScriptBuilder()
+				builder.AddOp(txscript.OP_MEER_LOCK)
+				meerlockScript, _ := builder.Script()
+				tx.AddTxOut(&TxOutput{Amount{mint, MEERID}, meerlockScript})
+				// output[1]
+				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
+				if err != nil {
+					panic(err)
+				}
+				p2pkhScript, err := txscript.PayToAddrScript(addr)
+				if err != nil {
+					panic(err)
+				}
+				tokenReleaseScript := make([]byte, len(p2pkhScript)+1)
+				tokenReleaseScript[0] = txscript.OP_TOKEN_RELEASE
+				copy(tokenReleaseScript[1:], p2pkhScript)
+				tx.AddTxOut(&TxOutput{Amount{100, QITID}, tokenReleaseScript})
+
+				// output[2]
+				meerChangeScript := make([]byte, len(p2pkhScript)+1)
+				meerChangeScript[0] = txscript.OP_MEER_CHANGE
+				copy(meerChangeScript[1:], p2pkhScript)
+				tx.AddTxOut(&TxOutput{Amount{change, MEERID}, meerChangeScript})
 				return tx
 			},
 		},

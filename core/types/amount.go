@@ -62,7 +62,7 @@ const (
 	QITID  CoinID = 1
 )
 
-func (c CoinID) String() string {
+func (c CoinID) Name() string {
 	switch c {
 	case MEERID:
 		return "MEER"
@@ -91,7 +91,7 @@ func CheckCoinID(id CoinID) error{
 		}
 	}
 	if unknownCoin {
-		return fmt.Errorf("unknown coin id %s", id.String())
+		return fmt.Errorf("unknown coin id %s", id.Name())
 	}
 	return nil
 }
@@ -107,14 +107,14 @@ type Amount struct {
 
 func checkMaxAmount(x *Amount) error {
 	if x.Value > MaxAmount {
-		return errors.New("x+y, x exceeds max amount of " + x.Id.String())
+		return errors.New("x+y, x exceeds max amount of " + x.Id.Name())
 	}
 	return nil
 }
 func checkSameCoinId(x, y CoinID) error {
 	if x != y {
 		err := errors.New("invalid amount add, unmatched " +
-			x.String() + " with " + y.String())
+			x.Name() + " with " + y.Name())
 		return err
 	}
 	return nil
@@ -222,7 +222,7 @@ func (a *Amount) ToCoin() float64 {
 // however, known units will be formated with an appended label describing
 // the units with SI notation, or "atom" for the base unit.
 func (a *Amount) Format(u AmountUnit) string {
-	units := " " + u.String() + a.Id.String()
+	units := " " + u.String() + a.Id.Name()
 	return strconv.FormatFloat(a.ToUnit(u), 'f', -int(u+8), 64) + units
 }
 
