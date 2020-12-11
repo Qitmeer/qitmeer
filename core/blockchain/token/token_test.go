@@ -326,6 +326,57 @@ func TestCheckTokenUnMint(t *testing.T) {
 				return tx
 			},
 		},
+		{
+			name:"token unmint with change",
+			expected: true,
+			createTx: func() *Transaction {
+				tx := NewTransaction()
+				builder := txscript.NewScriptBuilder()
+				builder.AddData(signature)
+				builder.AddData(pubkey)
+				builder.AddData(QITID.Bytes())
+				builder.AddOp(txscript.OP_TOKEN_UNMINT)
+				unmintScript, _ := builder.Script()
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  unmintScript,
+					AmountIn: Amount{10*1e8,MEERID},
+				})
+				tx.AddTxIn(&TxInput{
+					PreviousOut: *NewOutPoint(hashFramStr("377cfb2c535be289f8e40299e8d4c234283c367e20bc5ff67ca18c1ca1337443"),
+						0),
+					Sequence:    MaxTxInSequenceNum,
+					SignScript:  []byte{txscript.OP_DATA_1},
+					AmountIn: Amount{100*1e8, QITID},
+				})
+				// output[0]
+				builder = txscript.NewScriptBuilder()
+				builder.AddOp(txscript.OP_TOKEN_DESTORY)
+				tokenDestoryScript,_ := builder.Script()
+				tx.AddTxOut(&TxOutput{Amount{99*1e8,QITID},tokenDestoryScript})
+				// output[1]
+				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
+				if err!= nil {
+					panic(err)
+				}
+				p2pkhScript, err := txscript.PayToAddrScript(addr)
+				if err!= nil {
+					panic(err)
+				}
+				meerReleaseScript := make([]byte, len(p2pkhScript)+1)
+				meerReleaseScript[0] = txscript.OP_MEER_RELEASE
+				copy(meerReleaseScript[1:], p2pkhScript)
+				fee:=int64(5400)
+				tx.AddTxOut(&TxOutput{Amount{10*1e8-fee,MEERID},meerReleaseScript})
+				// output[2] token-change
+				tokenChangeScript := make([]byte, len(p2pkhScript)+1)
+				tokenChangeScript[0] = txscript.OP_TOKEN_CHANGE
+				copy(tokenChangeScript[1:], p2pkhScript)
+				tx.AddTxOut(&TxOutput{Amount{1*1e8,QITID},tokenChangeScript})
+				return tx
+			},
+		},
 	}
 	for i, test:= range tests {
 		if got := token.IsTokenUnMint(test.createTx()); got != test.expected {
