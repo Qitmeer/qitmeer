@@ -391,7 +391,7 @@ func validateCoinbaseTax(tx *types.Transaction, params *params.Params) error {
 	if len(tx.TxOut) > CoinbaseOutput_tax {
 		coinId := tx.TxOut[CoinbaseOutput_tax].Amount.Id
 		if coinId != types.MEERID {
-			return fmt.Errorf("coinbase tax pay with wrong coin id %s", coinId.String())
+			return fmt.Errorf("coinbase tax pay with wrong coin id %s", coinId.Name())
 		}
 		slen := len(tx.TxOut[CoinbaseOutput_tax].PkScript)
 		if params.HasTax() {
@@ -425,7 +425,7 @@ func validateCoinbaseCustomData(tx *types.Transaction, params *params.Params) er
 		// Coinbase TxOut[2] is op return
 		nullDataOut := tx.TxOut[CoinbaseOutput_data]
 		if nullDataOut.Amount.Id !=  types.MEERID {
-			return fmt.Errorf("coinbase output 2: bad coinId %s", nullDataOut.Amount.Id.String())
+			return fmt.Errorf("coinbase output 2: bad coinId %s", nullDataOut.Amount.Id.Name())
 		}
 		if nullDataOut.Amount.Value != 0 {
 			str := fmt.Sprintf("coinbase output 2:bad nulldata")
@@ -583,7 +583,7 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	for k, v := range transactions[0].Tx.TxOut {
 		// the coinbase should always use meer coin
 		if v.Amount.Id != types.MEERID {
-			return fmt.Errorf("the coinbase tx output[%d] has invaild coin id %s", k, v.Amount.Id.String())
+			return fmt.Errorf("the coinbase tx output[%d] has invaild coin id %s", k, v.Amount.Id.Name())
 		}
 		if k == CoinbaseOutput_tax || k == CoinbaseOutput_data {
 			continue
@@ -1055,7 +1055,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		if utxoEntry.IsCoinBase() {
 			// Ensure the coinbase is always meer coin
 			if utxoEntry.amount.Id != types.MEERID {
-				return 0, fmt.Errorf("coinbase uxto has invalid coin id %s", utxoEntry.amount.Id.String())
+				return 0, fmt.Errorf("coinbase uxto has invalid coin id %s", utxoEntry.amount.Id.Name())
 			}
 			ubhIB := bd.GetBlock(utxoEntry.BlockHash())
 			if ubhIB == nil {
@@ -1074,7 +1074,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		originTxAtom := utxoEntry.Amount()
 		if utxoEntry.IsCoinBase() && txIn.PreviousOut.OutIndex == 0 {
 			if originTxAtom.Id != types.MEERID {
-				return 0, fmt.Errorf("coinbase uxto has invalid coin id %s", originTxAtom.Id.String())
+				return 0, fmt.Errorf("coinbase uxto has invalid coin id %s", originTxAtom.Id.Name())
 			}
 			// make sure the fee use meer coin only
 			originTxAtom.Value += b.GetFees(utxoEntry.BlockHash())
@@ -1148,7 +1148,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		if totalAtomIn[coinId] < totalAtomOut[coinId] {
 			str := fmt.Sprintf("total %s value of all transaction inputs for "+
 				"transaction %v is %v which is less than the amount "+
-				"spent of %v", coinId.String(),txHash, totalAtomIn[coinId], totalAtomOut[coinId])
+				"spent of %v", coinId.Name(),txHash, totalAtomIn[coinId], totalAtomOut[coinId])
 			return 0, ruleError(ErrSpendTooHigh, str)
 		}
 	}

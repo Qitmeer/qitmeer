@@ -445,7 +445,7 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 	txOutReply := &json.GetUtxoResult{
 		BestBlock:     bestBlockHash,
 		Confirmations: confirmations,
-		CoinId:        amount.Id.String(),
+		CoinId:        amount.Id.Name(),
 		Amount:        amount.ToUnit(types.AmountCoin),
 		Version:       int32(txVersion),
 		ScriptPubKey: json.ScriptPubKeyResult{
@@ -802,7 +802,7 @@ func (api *PublicTxAPI) createVinListPrevOut(mtx *types.Tx, chainParams *params.
 			vinListEntry := &vinList[len(vinList)-1]
 			vinListEntry.PrevOut = &json.PrevOut{
 				Addresses: encodedAddrs,
-				CoinId:    originTxOut.Amount.Id.String(),
+				CoinId:    originTxOut.Amount.Id.Name(),
 				Value:     originTxOut.Amount.ToCoin(),
 			}
 		}
