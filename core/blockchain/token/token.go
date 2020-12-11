@@ -129,7 +129,7 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 	}
 	// TxOut[0] must be an OP_MEER_LOCK
 	// Txout[1] must be an OP_TOKEN_RELEASE tagged P2SH or P2PKH script. and released token id must match with TxIn[0]
-	//          and value must be equal with Txin[0]
+	//          and value must be equal with TxIn[0]
 
 	// output[0]
 	if len(tx.TxOut[0].PkScript) != 1 {
