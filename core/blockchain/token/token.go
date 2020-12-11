@@ -22,13 +22,14 @@ import (
 // TxIn[1:N] Normal meer TxIn signature scripts
 // TxOut[0] OP_MEER_LOCK (meer value)                            // meer value locked  (meer locked +)
 // TxOut[1] OP_TOKEN_RELEASE <p2pkh||p2sh>   (token value)       // token can be spent (coin balance +)
+// TxOut[2] optional OP_MEERCHANGE <p2pkh>||p2sh> (meer value)   // optional meer changes
 //
 // 2. unmint coin to unlock meer.
 // TxIn[0] <sigature> <ctr pubkey> <token_id> OP_TOKEN_UNMINT
 // TxIn[1:N]: Normal token Txin signature script
-// TxOut[0] OP_TOKEN_DESTROY (token value)                      // token value destroyed (coin balance -)
-// TxOut[1] OP_MEER_RELEASE <p2pkh||p2sh>   (meer value)        // meer value released ( meer locked -)
-//
+// TxOut[0] OP_TOKEN_DESTROY (token value)                         // token value destroyed (coin balance -)
+// TxOut[1] OP_MEER_RELEASE <p2pkh||p2sh>   (meer value)           // meer value released ( meer locked -)
+// TxOut[2] optional OP_TOKENCHANGE <p2pkh>||p2sh> (token value)   // optional token changes
 
 const (
 	// TokenMintScriptLen is the length of a TokenMint script
@@ -57,8 +58,8 @@ var (
 func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tokenId []byte, err error) {
 
 	// A valid TOKEN_MINT tx
-	// There must be at least 2 inputs and must be two outputs.
-	if len(tx.TxIn) < 2 || len(tx.TxOut) != 2 {
+	// There must be at least 2 inputs and must be 2 or 3 outputs.
+	if len(tx.TxIn) < 2 || len(tx.TxOut) < 2 || len(tx.TxOut) > 3 {
 		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input/output size (in: %v out: %v)",
 			len(tx.TxIn), len(tx.TxOut))
 	}
@@ -92,6 +93,7 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 		return nil, nil,nil, fmt.Errorf("invalid TOKEN_MINT input[0], invalid tokenId 0x%x",tokenId)
 	}
 
+	inputMeer := types.Amount{0,types.MEERID}
 	// TxIn[1..N] must normal meer signature script
 	for i, txIn := range tx.TxIn[1:] {
 		// Make sure there is a script.
@@ -104,9 +106,21 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[%d]," +
 				" must from meer, but from %v", i+1, txIn.AmountIn.Id )
 		}
+		if txIn.AmountIn.Value <= 0 {
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[%d]," +
+				" invalid value %v", i+1, txIn.AmountIn )
+		}
+		inputMeer.Value += txIn.AmountIn.Value
 	}
 
 	// Outpus :
+
+	// all TxOut script length should not zero.
+	for i := range tx.TxOut{
+		if len(tx.TxOut[i].PkScript) == 0 {
+			return nil, nil, nil , fmt.Errorf("invalid TOKEN_MINT, output[%d] script is empty",i)
+		}
+	}
 	// TxOut[0] must be an OP_MEER_LOCK
 	// Txout[1]:must be an OP_TOKEN_RELEASE tagged P2SH or P2PKH script. and released token id must much with TxIn[0]
 
@@ -123,10 +137,14 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 		return nil,nil,nil,fmt.Errorf("invalid TOKEN_MINT, output[0] must be a MEER value, got %v",
 			tx.TxOut[0].Amount.Id)
 	}
-	// output[1]
-	if len(tx.TxOut[1].PkScript) == 0 {
-		return nil, nil, nil , fmt.Errorf("invalid TOKEN_MINT, output[1] script is empty")
+	if tx.TxOut[0].Amount.Value <= 0 {
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT output[0]," +
+			" invalid value %v",tx.TxOut[0].Amount )
 	}
+	lockedMeer := tx.TxOut[0].Amount
+
+
+	// output[1]
 	if tx.TxOut[1].PkScript[0] != txscript.OP_TOKEN_RELEASE {
 		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[1] is not OP_TOKEN_RELEASE")
 	}
@@ -140,6 +158,30 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, " +
 			"token id not match, mint token %v but release %v", types.CoinID(id), tx.TxOut[1].Amount.Id)
 	}
+
+	// check optional output[2]
+	changeMeer := types.Amount{0,types.MEERID}
+	if len(tx.TxOut) == 3 {
+		if tx.TxOut[2].PkScript[0] != txscript.OP_MEER_CHANGE {
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[2] is not OP_MEER_CHANGE")
+		}
+		if !(txscript.IsPubKeyHashScript(tx.TxOut[2].PkScript[1:]) ||
+			txscript.IsPayToScriptHash(tx.TxOut[2].PkScript[1:])) {
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[2] is not P2SH or P2PKH")
+		}
+		if tx.TxOut[2].Amount.Id != types.MEERID {
+			return nil,nil,nil,fmt.Errorf("invalid TOKEN_MINT, output[2] must be a MEER value, got %v",
+				tx.TxOut[2].Amount.Id)
+		}
+		changeMeer = tx.TxOut[2].Amount
+	}
+
+	// make sure the input meer value > locked meer + change meer
+	if inputMeer.Value <= lockedMeer.Value + changeMeer.Value {
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, " +
+			"input %s <= locked %s + change %s", inputMeer.String(),lockedMeer.String(),changeMeer.String())
+	}
+
 	return signature,pubKey,tokenId,nil
 }
 
@@ -157,8 +199,8 @@ func IsTokenMint(tx *types.Transaction) bool{
 // returned values.
 func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, tokenId []byte, err error) {
 	// A valid TOKEN_UNMINT tx
-	// There must be at least 2 inputs and must be two outputs.
-	if len(tx.TxIn) < 2 || len(tx.TxOut) != 2 {
+	// There must be at least 2 inputs and must be 2 or 3 outputs.
+	if len(tx.TxIn) < 2 || len(tx.TxOut) < 2 || len(tx.TxOut) > 3 {
 		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input/output size (in: %v out: %v)",
 			len(tx.TxIn), len(tx.TxOut))
 	}
