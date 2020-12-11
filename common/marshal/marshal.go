@@ -137,7 +137,7 @@ func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, par
 
 		var vout json.Vout
 		voutSPK := &vout.ScriptPubKey
-		vout.CoinId = v.Amount.Id.String()
+		vout.CoinId = v.Amount.Id.Name()
 		vout.Amount = uint64(v.Amount.Value)
 		voutSPK.Addresses = encodedAddrs
 		voutSPK.Asm = disbuf
