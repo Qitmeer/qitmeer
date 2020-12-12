@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
@@ -47,10 +48,10 @@ func (s *Sync) sendQNRRequest(ctx context.Context, pe *peers.Peer, qnr *pb.SyncQ
 	return msg, err
 }
 
-func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return peers.ErrPeerUnknown
+		return common.NewP2PError(common.ErrPeerUnknown, peers.ErrPeerUnknown)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
@@ -73,26 +74,23 @@ func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcor
 	m, ok := msg.(*pb.SyncQNR)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.GraphState")
-		return err
+		return common.NewP2PError(common.ErrMessage, err)
 	}
 
 	if pe.QNR() == nil {
 		err = s.peerSync.LookupNode(pe, string(m.Qnr))
 		if err != nil {
-			return err
+			return common.NewP2PError(common.ErrMessage, err)
 		}
 	}
 
 	if s.p2p.Node() == nil {
-		return fmt.Errorf("Disable Node V5")
+		return common.NewP2PError(common.ErrMessage, fmt.Errorf("Disable Node V5"))
 	}
-	_, err = stream.Write([]byte{ResponseCodeSuccess})
-	if err != nil {
-		return err
-	}
-	_, err = s.Encoding().EncodeWithMaxLength(stream, &pb.SyncQNR{Qnr: []byte(s.p2p.Node().String())})
-	if err != nil {
-		return err
+
+	e := s.EncodeResponseMsg(stream, &pb.SyncQNR{Qnr: []byte(s.p2p.Node().String())})
+	if e != nil {
+		return e
 	}
 	respCode = ResponseCodeSuccess
 	return nil

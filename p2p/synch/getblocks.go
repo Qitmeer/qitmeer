@@ -74,15 +74,10 @@ func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream lib
 		return common.NewP2PError(common.ErrMessage, err)
 	}
 	blocks, _ := s.PeerSync().dagSync.CalcSyncBlocks(nil, changePBHashsToHashs(m.Locator), blockdag.DirectMode, MaxBlockLocatorsPerMsg)
-
-	_, err = stream.Write([]byte{ResponseCodeSuccess})
-	if err != nil {
-		return err
-	}
 	bd := &pb.DagBlocks{Blocks: changeHashsToPBHashs(blocks)}
-	_, err = s.Encoding().EncodeWithMaxLength(stream, bd)
-	if err != nil {
-		return err
+	e := s.EncodeResponseMsg(stream, bd)
+	if e != nil {
+		return e
 	}
 	respCode = ResponseCodeSuccess
 	return nil

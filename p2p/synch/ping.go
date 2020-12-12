@@ -9,35 +9,33 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // pingHandler reads the incoming ping rpc message from the peer.
-func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return peers.ErrPeerUnknown
+		return common.NewP2PError(common.ErrPeerUnknown, peers.ErrPeerUnknown)
 	}
 
 	log.Trace(fmt.Sprintf("pingHandler:%s", pe.GetID()))
 
 	m, ok := msg.(*uint64)
 	if !ok {
-		return fmt.Errorf("wrong message type for ping, got %T, wanted *uint64", msg)
+		return common.NewP2PError(common.ErrMessage, fmt.Errorf("wrong message type for ping, got %T, wanted *uint64", msg))
 	}
 	valid, err := s.validateSequenceNum(*m, pe)
 	if err != nil {
-		return err
+		return common.NewP2PError(common.ErrDAGConsensus, err)
 	}
-	if _, err := stream.Write([]byte{ResponseCodeSuccess}); err != nil {
-		return err
+	e := s.EncodeResponseMsg(stream, s.p2p.MetadataSeq())
+	if e != nil {
+		return e
 	}
-	if _, err := s.Encoding().EncodeWithMaxLength(stream, s.p2p.MetadataSeq()); err != nil {
-		return err
-	}
-
 	if valid {
 		return nil
 	}

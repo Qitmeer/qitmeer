@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
@@ -46,10 +47,10 @@ func (s *Sync) sendGraphStateRequest(ctx context.Context, pe *peers.Peer, gs *pb
 	return msg, err
 }
 
-func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return peers.ErrPeerUnknown
+		return common.NewP2PError(common.ErrPeerUnknown, peers.ErrPeerUnknown)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
@@ -72,18 +73,14 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 	m, ok := msg.(*pb.GraphState)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.GraphState")
-		return err
+		return common.NewP2PError(common.ErrMessage, err)
 	}
 	pe.UpdateGraphState(m)
 	go s.peerSync.PeerUpdate(pe, false)
 
-	_, err = stream.Write([]byte{ResponseCodeSuccess})
-	if err != nil {
-		return err
-	}
-	_, err = s.Encoding().EncodeWithMaxLength(stream, s.getGraphState())
-	if err != nil {
-		return err
+	e := s.EncodeResponseMsg(stream, s.getGraphState())
+	if e != nil {
+		return e
 	}
 	respCode = ResponseCodeSuccess
 	return nil

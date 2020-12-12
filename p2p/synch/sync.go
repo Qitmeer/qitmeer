@@ -195,16 +195,15 @@ func (s *Sync) SetStreamHandler(topic string, handler network.StreamHandler) {
 }
 
 func (s *Sync) EncodeResponseMsg(stream libp2pcore.Stream, msg interface{}) *common.P2PError {
-	if msg == nil {
-		return common.NewP2PError(common.ErrMessage, fmt.Errorf("Message is nil\n"))
-	}
 	_, err := stream.Write([]byte{ResponseCodeSuccess})
 	if err != nil {
 		return common.NewP2PError(common.ErrStreamWrite, err)
 	}
-	_, err = s.Encoding().EncodeWithMaxLength(stream, msg)
-	if err != nil {
-		return common.NewP2PError(common.ErrStreamWrite, err)
+	if msg != nil {
+		_, err = s.Encoding().EncodeWithMaxLength(stream, msg)
+		if err != nil {
+			return common.NewP2PError(common.ErrStreamWrite, err)
+		}
 	}
 	return nil
 }
@@ -272,7 +271,12 @@ func processError(e *common.P2PError) {
 	if e == nil {
 		return
 	}
-	log.Trace(fmt.Sprintf("Process error (%s):%s", e.Code.String(), e.Error.Error()))
+
+	if e.Code == common.ErrDAGConsensus {
+
+	} else {
+		log.Warn(fmt.Sprintf("Process error (%s):%s", e.Code.String(), e.Error.Error()))
+	}
 }
 
 // Send a message to a specific peer. The returned stream may be used for reading, but has been
