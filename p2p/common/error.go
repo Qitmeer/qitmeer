@@ -24,6 +24,9 @@ const (
 	// p2p peer unknown error
 	ErrPeerUnknown
 
+	// p2p peer bad error
+	ErrBadPeer
+
 	// p2p DAG consensus error
 	ErrDAGConsensus
 
@@ -36,6 +39,7 @@ var p2pErrorCodeStrings = map[ErrorCode]string{
 	ErrStreamRead:   "ErrStreamRead",
 	ErrStreamBase:   "ErrStreamBase",
 	ErrPeerUnknown:  "ErrPeerUnknown",
+	ErrBadPeer:      "ErrBadPeer",
 	ErrDAGConsensus: "ErrDAGConsensus",
 	ErrMessage:      "ErrMessage",
 }

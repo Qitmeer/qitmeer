@@ -67,7 +67,7 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	if err != nil {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		if ret == retErrInvalidChainState {
-			if err := s.sendGoodByeAndDisconnect(ctx, codeInvalidChainState, stream.Conn().RemotePeer()); err != nil {
+			if err := s.sendGoodByeAndDisconnect(ctx, common.ErrDAGConsensus, stream.Conn().RemotePeer()); err != nil {
 				return err
 			}
 		}
@@ -102,7 +102,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 			if err := s.EncodeResponseMsg(stream, s.getChainState()); err != nil {
 				return err
 			}
-			if err := s.sendGoodByeAndDisconnect(ctx, codeInvalidChainState, stream.Conn().RemotePeer()); err != nil {
+			if err := s.sendGoodByeAndDisconnect(ctx, common.ErrDAGConsensus, stream.Conn().RemotePeer()); err != nil {
 				return common.NewError(common.ErrStreamBase, err)
 			}
 			return nil
