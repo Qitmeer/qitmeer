@@ -50,7 +50,7 @@ func (s *Sync) sendTxRequest(ctx context.Context, id peer.ID, txhash *hash.Hash)
 	return msg, err
 }
 
-func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
+func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
 	respCode := ResponseCodeServerError
@@ -71,17 +71,17 @@ func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore
 	m, ok := msg.(*pb.Hash)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Transaction")
-		return common.NewP2PError(common.ErrMessage, err)
+		return ErrMessage(err)
 	}
 	tx, err := s.p2p.TxMemPool().FetchTransaction(changePBHashToHash(m))
 	if err != nil {
 		log.Error(fmt.Sprintf("Unable to fetch tx from transaction pool tx:%v", err))
-		return common.NewP2PError(common.ErrMessage, err)
+		return ErrMessage(err)
 	}
 
 	txbytes, err := tx.Tx.Serialize()
 	if err != nil {
-		return common.NewP2PError(common.ErrMessage, err)
+		return ErrMessage(err)
 	}
 
 	pbtx := &pb.Transaction{TxBytes: txbytes}

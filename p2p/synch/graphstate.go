@@ -47,10 +47,10 @@ func (s *Sync) sendGraphStateRequest(ctx context.Context, pe *peers.Peer, gs *pb
 	return msg, err
 }
 
-func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
+func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return common.NewP2PError(common.ErrPeerUnknown, peers.ErrPeerUnknown)
+		return ErrPeerUnknown
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
@@ -73,7 +73,7 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 	m, ok := msg.(*pb.GraphState)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.GraphState")
-		return common.NewP2PError(common.ErrMessage, err)
+		return ErrMessage(err)
 	}
 	pe.UpdateGraphState(m)
 	go s.peerSync.PeerUpdate(pe, false)

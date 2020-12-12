@@ -48,10 +48,10 @@ func (s *Sync) sendQNRRequest(ctx context.Context, pe *peers.Peer, qnr *pb.SyncQ
 	return msg, err
 }
 
-func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
+func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return common.NewP2PError(common.ErrPeerUnknown, peers.ErrPeerUnknown)
+		return ErrPeerUnknown
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
@@ -74,18 +74,18 @@ func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcor
 	m, ok := msg.(*pb.SyncQNR)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.GraphState")
-		return common.NewP2PError(common.ErrMessage, err)
+		return ErrMessage(err)
 	}
 
 	if pe.QNR() == nil {
 		err = s.peerSync.LookupNode(pe, string(m.Qnr))
 		if err != nil {
-			return common.NewP2PError(common.ErrMessage, err)
+			return ErrMessage(err)
 		}
 	}
 
 	if s.p2p.Node() == nil {
-		return common.NewP2PError(common.ErrMessage, fmt.Errorf("Disable Node V5"))
+		return ErrMessage(fmt.Errorf("Disable Node V5"))
 	}
 
 	e := s.EncodeResponseMsg(stream, &pb.SyncQNR{Qnr: []byte(s.p2p.Node().String())})

@@ -16,21 +16,21 @@ import (
 )
 
 // pingHandler reads the incoming ping rpc message from the peer.
-func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
+func (s *Sync) pingHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return common.NewP2PError(common.ErrPeerUnknown, peers.ErrPeerUnknown)
+		return ErrPeerUnknown
 	}
 
 	log.Trace(fmt.Sprintf("pingHandler:%s", pe.GetID()))
 
 	m, ok := msg.(*uint64)
 	if !ok {
-		return common.NewP2PError(common.ErrMessage, fmt.Errorf("wrong message type for ping, got %T, wanted *uint64", msg))
+		return ErrMessage(fmt.Errorf("wrong message type for ping, got %T, wanted *uint64", msg))
 	}
 	valid, err := s.validateSequenceNum(*m, pe)
 	if err != nil {
-		return common.NewP2PError(common.ErrDAGConsensus, err)
+		return common.NewError(common.ErrDAGConsensus, err)
 	}
 	e := s.EncodeResponseMsg(stream, s.p2p.MetadataSeq())
 	if e != nil {

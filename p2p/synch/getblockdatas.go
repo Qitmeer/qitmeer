@@ -53,7 +53,7 @@ func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator 
 	return msg, err
 }
 
-func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
+func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
 	respCode := ResponseCodeServerError
@@ -74,7 +74,7 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 	m, ok := msg.(*pb.GetBlockDatas)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")
-		return common.NewP2PError(common.ErrMessage, err)
+		return ErrMessage(err)
 	}
 	bds := []*pb.BlockData{}
 	bd := &pb.BlockDatas{Locator: bds}
@@ -82,16 +82,16 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 		blockHash, err := hash.NewHash(bdh.Hash)
 		if err != nil {
 			err = fmt.Errorf("invalid block hash")
-			return common.NewP2PError(common.ErrMessage, err)
+			return ErrMessage(err)
 		}
 		block, err := s.p2p.BlockChain().FetchBlockByHash(blockHash)
 		if err != nil {
-			return common.NewP2PError(common.ErrMessage, err)
+			return ErrMessage(err)
 		}
 
 		blocks, err := block.Bytes()
 		if err != nil {
-			return common.NewP2PError(common.ErrMessage, err)
+			return ErrMessage(err)
 		}
 		pbbd := pb.BlockData{BlockBytes: blocks}
 		if uint64(bd.SizeSSZ()+pbbd.SizeSSZ()+BLOCKDATA_SSZ_HEAD_SIZE) >= s.p2p.Encoding().GetMaxChunkSize() {

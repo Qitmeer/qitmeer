@@ -38,10 +38,10 @@ func (s *Sync) sendInventoryRequest(ctx context.Context, pe *peers.Peer, inv *pb
 	return err
 }
 
-func (s *Sync) inventoryHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
+func (s *Sync) inventoryHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return common.NewP2PError(common.ErrPeerUnknown, peers.ErrPeerUnknown)
+		return ErrPeerUnknown
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
@@ -64,11 +64,11 @@ func (s *Sync) inventoryHandler(ctx context.Context, msg interface{}, stream lib
 	m, ok := msg.(*pb.Inventory)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Inventory")
-		return common.NewP2PError(common.ErrMessage, err)
+		return ErrMessage(err)
 	}
 	err = s.handleInventory(m, pe)
 	if err != nil {
-		return common.NewP2PError(common.ErrMessage, err)
+		return ErrMessage(err)
 	}
 	e := s.EncodeResponseMsg(stream, nil)
 	if e != nil {

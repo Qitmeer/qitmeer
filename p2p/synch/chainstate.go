@@ -75,10 +75,10 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	return err
 }
 
-func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
+func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return common.NewP2PError(common.ErrPeerUnknown, peers.ErrPeerUnknown)
+		return ErrPeerUnknown
 	}
 	log.Trace(fmt.Sprintf("chainStateHandler:%s", pe.GetID()))
 
@@ -87,7 +87,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 
 	m, ok := msg.(*pb.ChainState)
 	if !ok {
-		return common.NewP2PError(common.ErrMessage, fmt.Errorf("message is not type *pb.ChainState"))
+		return ErrMessage(fmt.Errorf("message is not type *pb.ChainState"))
 	}
 
 	if ret, err := s.validateChainStateMessage(ctx, m, stream.Conn().RemotePeer()); err != nil {
@@ -103,7 +103,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 				return err
 			}
 			if err := s.sendGoodByeAndDisconnect(ctx, codeInvalidChainState, stream.Conn().RemotePeer()); err != nil {
-				return common.NewP2PError(common.ErrStreamBase, err)
+				return common.NewError(common.ErrStreamBase, err)
 			}
 			return nil
 		default:
@@ -127,7 +127,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		if err := s.p2p.Disconnect(stream.Conn().RemotePeer()); err != nil {
 			log.Error("Failed to disconnect from peer:%v", err)
 		}
-		return common.NewP2PError(common.ErrDAGConsensus, originalErr)
+		return common.NewError(common.ErrDAGConsensus, originalErr)
 	}
 	s.UpdateChainState(pe, m, true)
 

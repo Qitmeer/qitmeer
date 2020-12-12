@@ -8,12 +8,12 @@ import (
 	"fmt"
 )
 
-// P2PErrorCode identifies a kind of error.
-type P2PErrorCode int
+// ErrorCode identifies a kind of error.
+type ErrorCode int
 
 const (
 	// p2p stream write error
-	ErrStreamWrite P2PErrorCode = iota
+	ErrStreamWrite ErrorCode = iota
 
 	// p2p stream read error
 	ErrStreamRead
@@ -31,7 +31,7 @@ const (
 	ErrMessage
 )
 
-var p2pErrorCodeStrings = map[P2PErrorCode]string{
+var p2pErrorCodeStrings = map[ErrorCode]string{
 	ErrStreamWrite:  "ErrStreamWrite",
 	ErrStreamRead:   "ErrStreamRead",
 	ErrStreamBase:   "ErrStreamBase",
@@ -40,18 +40,18 @@ var p2pErrorCodeStrings = map[P2PErrorCode]string{
 	ErrMessage:      "ErrMessage",
 }
 
-func (e P2PErrorCode) String() string {
+func (e ErrorCode) String() string {
 	if s := p2pErrorCodeStrings[e]; s != "" {
 		return s
 	}
 	return fmt.Sprintf("Unknown P2PErrorCode (%d)", int(e))
 }
 
-type P2PError struct {
-	Code  P2PErrorCode
+type Error struct {
+	Code  ErrorCode
 	Error error
 }
 
-func NewP2PError(code P2PErrorCode, e error) *P2PError {
-	return &P2PError{code, e}
+func NewError(code ErrorCode, e error) *Error {
+	return &Error{code, e}
 }

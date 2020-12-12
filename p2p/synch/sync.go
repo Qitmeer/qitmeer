@@ -56,7 +56,7 @@ const TtfbTimeout = 5 * time.Second
 // rpcHandler is responsible for handling and responding to any incoming message.
 // This method may return an error to internal monitoring, but the error will
 // not be relayed to the peer.
-type rpcHandler func(context.Context, interface{}, libp2pcore.Stream) *common.P2PError
+type rpcHandler func(context.Context, interface{}, libp2pcore.Stream) *common.Error
 
 // RespTimeout is the maximum time for complete response transfer.
 const RespTimeout = 10 * time.Second
@@ -194,15 +194,15 @@ func (s *Sync) SetStreamHandler(topic string, handler network.StreamHandler) {
 	s.p2p.Host().SetStreamHandler(protocol.ID(topic), handler)
 }
 
-func (s *Sync) EncodeResponseMsg(stream libp2pcore.Stream, msg interface{}) *common.P2PError {
+func (s *Sync) EncodeResponseMsg(stream libp2pcore.Stream, msg interface{}) *common.Error {
 	_, err := stream.Write([]byte{ResponseCodeSuccess})
 	if err != nil {
-		return common.NewP2PError(common.ErrStreamWrite, err)
+		return common.NewError(common.ErrStreamWrite, err)
 	}
 	if msg != nil {
 		_, err = s.Encoding().EncodeWithMaxLength(stream, msg)
 		if err != nil {
-			return common.NewP2PError(common.ErrStreamWrite, err)
+			return common.NewError(common.ErrStreamWrite, err)
 		}
 	}
 	return nil
@@ -220,7 +220,7 @@ func NewSync(p2p common.P2P) *Sync {
 func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHandler) {
 	topic += rpc.Encoding().ProtocolSuffix()
 	rpc.Host().SetStreamHandler(protocol.ID(topic), func(stream network.Stream) {
-		var e *common.P2PError
+		var e *common.Error
 		ctx, cancel := context.WithTimeout(rpc.Context(), TtfbTimeout)
 		defer func() {
 			processError(e)
@@ -230,7 +230,7 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 		if err := stream.SetReadDeadline(time.Now().Add(TtfbTimeout)); err != nil {
 			log.Error(fmt.Sprintf("topic:%s peer:%s Could not set stream read deadline:%v",
 				topic, stream.Conn().RemotePeer().Pretty(), err))
-			e = common.NewP2PError(common.ErrStreamBase, err)
+			e = common.NewError(common.ErrStreamBase, err)
 			return
 		}
 
@@ -249,7 +249,7 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 			msgT := reflect.New(ty)
 			msg = msgT.Interface()
 			if err := rpc.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
-				e = common.NewP2PError(common.ErrStreamRead, err)
+				e = common.NewError(common.ErrStreamRead, err)
 				// Debug logs for goodbye errors
 				if strings.Contains(topic, RPCGoodByeTopic) {
 					log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
@@ -267,7 +267,7 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 	})
 }
 
-func processError(e *common.P2PError) {
+func processError(e *common.Error) {
 	if e == nil {
 		return
 	}

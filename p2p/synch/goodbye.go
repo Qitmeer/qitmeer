@@ -24,18 +24,18 @@ var goodByes = map[uint64]string{
 }
 
 // goodbyeRPCHandler reads the incoming goodbye rpc message from the peer.
-func (s *Sync) goodbyeRPCHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
+func (s *Sync) goodbyeRPCHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	defer cancel()
 
 	m, ok := msg.(*uint64)
 	if !ok {
-		return common.NewP2PError(common.ErrMessage, fmt.Errorf("wrong message type for goodbye, got %T, wanted *uint64", msg))
+		return ErrMessage(fmt.Errorf("wrong message type for goodbye, got %T, wanted *uint64", msg))
 	}
 	logReason := fmt.Sprintf("Reason:%s", goodbyeMessage(*m))
 	log.Debug(fmt.Sprintf("Peer has sent a goodbye message:%s (%s)", stream.Conn().RemotePeer(), logReason))
 	// closes all streams with the peer
-	return common.NewP2PError(common.ErrStreamBase, s.p2p.Disconnect(stream.Conn().RemotePeer()))
+	return common.NewError(common.ErrStreamBase, s.p2p.Disconnect(stream.Conn().RemotePeer()))
 }
 
 func (s *Sync) sendGoodByeMessage(ctx context.Context, code uint64, id peer.ID) error {

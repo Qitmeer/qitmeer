@@ -53,10 +53,10 @@ func (s *Sync) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.SyncDA
 	return msg, err
 }
 
-func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
+func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return common.NewP2PError(common.ErrPeerUnknown, peers.ErrPeerUnknown)
+		return ErrPeerUnknown
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
@@ -79,7 +79,7 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 	m, ok := msg.(*pb.SyncDAG)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")
-		return common.NewP2PError(common.ErrMessage, err)
+		return ErrMessage(err)
 	}
 	pe.UpdateGraphState(m.GraphState)
 

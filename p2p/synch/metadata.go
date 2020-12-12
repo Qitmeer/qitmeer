@@ -15,7 +15,7 @@ import (
 )
 
 // metaDataHandler reads the incoming metadata rpc request from the peer.
-func (s *Sync) metaDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.P2PError {
+func (s *Sync) metaDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	defer cancel()
 	return s.EncodeResponseMsg(stream, s.p2p.Metadata())
