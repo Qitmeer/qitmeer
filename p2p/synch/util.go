@@ -20,3 +20,7 @@ func closeSteam(stream libp2pcore.Stream) {
 func ErrMessage(err error) *common.Error {
 	return common.NewError(common.ErrMessage, err)
 }
+
+func ErrDAGConsensus(err error) *common.Error {
+	return common.NewError(common.ErrDAGConsensus, err)
+}

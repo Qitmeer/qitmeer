@@ -25,14 +25,32 @@ func (s *Sync) goodbyeRPCHandler(ctx context.Context, msg interface{}, stream li
 	logReason := fmt.Sprintf("Reason:%s", common.ErrorCode(*m).String())
 	log.Debug(fmt.Sprintf("Peer has sent a goodbye message:%s (%s)", stream.Conn().RemotePeer(), logReason))
 	// closes all streams with the peer
-	return common.NewError(common.ErrStreamBase, s.p2p.Disconnect(stream.Conn().RemotePeer()))
+	err := s.p2p.Disconnect(stream.Conn().RemotePeer())
+	if err != nil {
+		return common.NewError(common.ErrStreamBase, err)
+	}
+	return nil
 }
 
-func (s *Sync) sendGoodByeMessage(ctx context.Context, code common.ErrorCode, id peer.ID) error {
+func (s *Sync) sendGoodByeAndDisconnect(ctx context.Context, code common.ErrorCode, id peer.ID) error {
+	return sendGoodByeAndDisconnect(ctx, code, id, s.p2p)
+}
+
+func sendGoodByeAndDisconnect(ctx context.Context, code common.ErrorCode, id peer.ID, rpc common.P2PRPC) error {
+	if err := sendGoodByeMessage(ctx, code, id, rpc); err != nil {
+		log.Debug(fmt.Sprintf("Could not send goodbye message to peer, error:%v , peer:%s", err, id))
+	}
+	if err := rpc.Disconnect(id); err != nil {
+		return err
+	}
+	return nil
+}
+
+func sendGoodByeMessage(ctx context.Context, code common.ErrorCode, id peer.ID, rpc common.P2PRPC) error {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
-	stream, err := s.Send(ctx, &code, RPCGoodByeTopic, id)
+	stream, err := Send(ctx, rpc, &code, RPCGoodByeTopic, id)
 	if err != nil {
 		return err
 	}
@@ -46,15 +64,5 @@ func (s *Sync) sendGoodByeMessage(ctx context.Context, code common.ErrorCode, id
 	// Add a short delay to allow the stream to flush before resetting it.
 	// There is still a chance that the peer won't receive the message.
 	time.Sleep(50 * time.Millisecond)
-	return nil
-}
-
-func (s *Sync) sendGoodByeAndDisconnect(ctx context.Context, code common.ErrorCode, id peer.ID) error {
-	if err := s.sendGoodByeMessage(ctx, code, id); err != nil {
-		log.Debug(fmt.Sprintf("Could not send goodbye message to peer, error:%v , peer:%s", err, id))
-	}
-	if err := s.p2p.Disconnect(id); err != nil {
-		return err
-	}
 	return nil
 }

@@ -14,6 +14,7 @@ import (
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 	"github.com/Qitmeer/qitmeer/p2p"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
@@ -282,7 +283,11 @@ func (node *Node) Context() context.Context {
 	return node.ctx
 }
 
-func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (node *Node) Disconnect(pid peer.ID) error {
+	return node.host.Network().ClosePeer(pid)
+}
+
+func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pid := stream.Conn().RemotePeer()
 	log.Log.Trace(fmt.Sprintf("chainStateHandler:%s", pid))
 
@@ -309,12 +314,7 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 		UserAgent:       []byte("qitmeer-crawler"),
 		DisableRelayTx:  true,
 	}
-
-	if _, err := stream.Write([]byte{synch.ResponseCodeSuccess}); err != nil {
-		log.Log.Error(fmt.Sprintf("Failed to write to stream:%v", err))
-	}
-	_, err := node.Encoding().EncodeWithMaxLength(stream, resp)
-	return err
+	return synch.EncodeResponseMsg(node, stream, resp)
 }
 
 func (node *Node) printResult() {

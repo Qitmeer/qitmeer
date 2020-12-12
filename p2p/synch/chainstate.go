@@ -17,7 +17,6 @@ import (
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"time"
 )
 
 const (
@@ -51,7 +50,7 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 		return err
 	}
 
-	if code != ResponseCodeSuccess {
+	if !code.IsSuccess() {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return errors.New(errMsg)
 	}
@@ -92,45 +91,19 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 
 	if ret, err := s.validateChainStateMessage(ctx, m, stream.Conn().RemotePeer()); err != nil {
 		log.Debug(fmt.Sprintf("Invalid chain state message from peer:peer=%s  error=%v", stream.Conn().RemotePeer(), err))
-		respCode := byte(0)
-		switch ret {
-		case retErrGeneric:
-			respCode = ResponseCodeServerError
-		case retErrInvalidChainState:
+		if ret == retErrInvalidChainState {
 			// Respond with our status and disconnect with the peer.
 			s.UpdateChainState(pe, m, false)
 			if err := s.EncodeResponseMsg(stream, s.getChainState()); err != nil {
 				return err
 			}
-			if err := s.sendGoodByeAndDisconnect(ctx, common.ErrDAGConsensus, stream.Conn().RemotePeer()); err != nil {
-				return common.NewError(common.ErrStreamBase, err)
-			}
-			return nil
-		default:
-			respCode = ResponseCodeInvalidRequest
+			return ErrDAGConsensus(err)
+		} else if ret != retErrGeneric {
 			s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		}
-
-		originalErr := err
-		resp, err := s.generateErrorResponse(respCode, err.Error())
-		if err != nil {
-			log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
-		} else {
-			if _, err := stream.Write(resp); err != nil {
-				// The peer may already be ignoring us, as we disagree on fork version, so log this as debug only.
-				log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
-			}
-		}
-		// Add a short delay to allow the stream to flush before closing the connection.
-		// There is still a chance that the peer won't receive the message.
-		time.Sleep(50 * time.Millisecond)
-		if err := s.p2p.Disconnect(stream.Conn().RemotePeer()); err != nil {
-			log.Error("Failed to disconnect from peer:%v", err)
-		}
-		return common.NewError(common.ErrDAGConsensus, originalErr)
+		return ErrDAGConsensus(err)
 	}
 	s.UpdateChainState(pe, m, true)
-
 	return s.EncodeResponseMsg(stream, s.getChainState())
 }
 

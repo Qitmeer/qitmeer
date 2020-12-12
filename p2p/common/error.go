@@ -12,8 +12,11 @@ import (
 type ErrorCode int
 
 const (
+	// There are no errors by default
+	ErrNone ErrorCode = iota
+
 	// p2p stream write error
-	ErrStreamWrite ErrorCode = iota
+	ErrStreamWrite
 
 	// p2p stream read error
 	ErrStreamRead
@@ -35,6 +38,7 @@ const (
 )
 
 var p2pErrorCodeStrings = map[ErrorCode]string{
+	ErrNone:         "No error and success",
 	ErrStreamWrite:  "ErrStreamWrite",
 	ErrStreamRead:   "ErrStreamRead",
 	ErrStreamBase:   "ErrStreamBase",
@@ -49,6 +53,10 @@ func (e ErrorCode) String() string {
 		return s
 	}
 	return fmt.Sprintf("Unknown P2PErrorCode (%d)", int(e))
+}
+
+func (e ErrorCode) IsSuccess() bool {
+	return e == ErrNone
 }
 
 type Error struct {

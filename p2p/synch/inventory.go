@@ -31,7 +31,7 @@ func (s *Sync) sendInventoryRequest(ctx context.Context, pe *peers.Peer, inv *pb
 		return err
 	}
 
-	if code != ResponseCodeSuccess {
+	if !code.IsSuccess() {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return errors.New(errMsg)
 	}
@@ -46,18 +46,7 @@ func (s *Sync) inventoryHandler(ctx context.Context, msg interface{}, stream lib
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != ResponseCodeSuccess {
-			resp, err := s.generateErrorResponse(respCode, err.Error())
-			if err != nil {
-				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
-			} else {
-				if _, err := stream.Write(resp); err != nil {
-					log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
-				}
-			}
-		}
 		cancel()
 	}()
 
@@ -74,7 +63,6 @@ func (s *Sync) inventoryHandler(ctx context.Context, msg interface{}, stream lib
 	if e != nil {
 		return e
 	}
-	respCode = ResponseCodeSuccess
 	return nil
 }
 

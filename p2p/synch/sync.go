@@ -13,7 +13,6 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/params"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -172,7 +171,7 @@ func (s *Sync) registerRPC(topic string, base interface{}, handle rpcHandler) {
 // Send a message to a specific peer. The returned stream may be used for reading, but has been
 // closed for writing.
 func (s *Sync) Send(ctx context.Context, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
-	return Send(ctx, s.p2p.Host(), s.Encoding(), message, baseTopic, pid)
+	return Send(ctx, s.p2p, message, baseTopic, pid)
 }
 
 func (s *Sync) PeerSync() *PeerSync {
@@ -195,17 +194,7 @@ func (s *Sync) SetStreamHandler(topic string, handler network.StreamHandler) {
 }
 
 func (s *Sync) EncodeResponseMsg(stream libp2pcore.Stream, msg interface{}) *common.Error {
-	_, err := stream.Write([]byte{ResponseCodeSuccess})
-	if err != nil {
-		return common.NewError(common.ErrStreamWrite, err)
-	}
-	if msg != nil {
-		_, err = s.Encoding().EncodeWithMaxLength(stream, msg)
-		if err != nil {
-			return common.NewError(common.ErrStreamWrite, err)
-		}
-	}
-	return nil
+	return EncodeResponseMsg(s.p2p, stream, msg)
 }
 
 func NewSync(p2p common.P2P) *Sync {
@@ -223,7 +212,7 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 		var e *common.Error
 		ctx, cancel := context.WithTimeout(rpc.Context(), TtfbTimeout)
 		defer func() {
-			processError(e)
+			processError(e, stream, rpc)
 			cancel()
 			closeSteam(stream)
 		}()
@@ -267,13 +256,23 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 	})
 }
 
-func processError(e *common.Error) {
+func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 	if e == nil {
 		return
 	}
-
+	resp, err := generateErrorResponse(e, rpc.Encoding())
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
+	} else {
+		if _, err := stream.Write(resp); err != nil {
+			log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
+		}
+	}
 	if e.Code == common.ErrDAGConsensus {
-
+		if err := sendGoodByeAndDisconnect(rpc.Context(), common.ErrDAGConsensus, stream.Conn().RemotePeer(), rpc); err != nil {
+			log.Error(err.Error())
+			return
+		}
 	} else {
 		log.Warn(fmt.Sprintf("Process error (%s):%s", e.Code.String(), e.Error.Error()))
 	}
@@ -281,14 +280,14 @@ func processError(e *common.Error) {
 
 // Send a message to a specific peer. The returned stream may be used for reading, but has been
 // closed for writing.
-func Send(ctx context.Context, host host.Host, encoding encoder.NetworkEncoding, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
-	topic := baseTopic + encoding.ProtocolSuffix()
+func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
+	topic := baseTopic + rpc.Encoding().ProtocolSuffix()
 
 	var deadline = TtfbTimeout + RespTimeout
 	ctx, cancel := context.WithTimeout(ctx, deadline)
 	defer cancel()
 
-	stream, err := host.NewStream(ctx, pid, protocol.ID(topic))
+	stream, err := rpc.Host().NewStream(ctx, pid, protocol.ID(topic))
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +302,7 @@ func Send(ctx context.Context, host host.Host, encoding encoder.NetworkEncoding,
 		return stream, nil
 	}
 
-	if _, err := encoding.EncodeWithMaxLength(stream, message); err != nil {
+	if _, err := rpc.Encoding().EncodeWithMaxLength(stream, message); err != nil {
 		return nil, err
 	}
 
@@ -313,4 +312,18 @@ func Send(ctx context.Context, host host.Host, encoding encoder.NetworkEncoding,
 	}
 
 	return stream, nil
+}
+
+func EncodeResponseMsg(rpc common.P2PRPC, stream libp2pcore.Stream, msg interface{}) *common.Error {
+	_, err := stream.Write([]byte{byte(common.ErrNone)})
+	if err != nil {
+		return common.NewError(common.ErrStreamWrite, err)
+	}
+	if msg != nil {
+		_, err = rpc.Encoding().EncodeWithMaxLength(stream, msg)
+		if err != nil {
+			return common.NewError(common.ErrStreamWrite, err)
+		}
+	}
+	return nil
 }
