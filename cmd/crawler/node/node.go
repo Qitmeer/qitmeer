@@ -32,7 +32,6 @@ import (
 	"github.com/libp2p/go-libp2p-noise"
 	"github.com/libp2p/go-libp2p-secio"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/pkg/errors"
 	"sync"
 	"time"
 )
@@ -382,18 +381,18 @@ func peersFromStringAddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 	for _, stringAddr := range multiAddrString {
 		addr, err := multiAddrFromString(stringAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get multiaddr from string")
+			return nil, fmt.Errorf("Could not get multiaddr from string:%w", err)
 		}
 		allAddrs = append(allAddrs, addr)
 	}
 	for _, stringAddr := range qnodeString {
 		qnodeAddr, err := qnode.Parse(qnode.ValidSchemes, stringAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get qnode from string")
+			return nil, fmt.Errorf("Could not get qnode from string:%w", err)
 		}
 		addr, err := convertToSingleMultiAddr(qnodeAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get multiaddr")
+			return nil, fmt.Errorf("Could not get multiaddr:%w", err)
 		}
 		allAddrs = append(allAddrs, addr)
 	}
@@ -403,18 +402,18 @@ func peersFromStringAddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 func convertToSingleMultiAddr(node *qnode.Node) (multiaddr.Multiaddr, error) {
 	ip4 := node.IP().To4()
 	if ip4 == nil {
-		return nil, errors.Errorf("node doesn't have an ip4 address, it's stated IP is %s", node.IP().String())
+		return nil, fmt.Errorf("node doesn't have an ip4 address, it's stated IP is %s", node.IP().String())
 	}
 	pubkey := node.Pubkey()
 	assertedKey := convertToInterfacePubkey(pubkey)
 	id, err := peer.IDFromPublicKey(assertedKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get peer id")
+		return nil, fmt.Errorf("could not get peer id:%w", err)
 	}
 	multiAddrString := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", ip4.String(), node.TCP(), id)
 	multiAddr, err := multiaddr.NewMultiaddr(multiAddrString)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get multiaddr")
+		return nil, fmt.Errorf("could not get multiaddr:w", err)
 	}
 	return multiAddr, nil
 }

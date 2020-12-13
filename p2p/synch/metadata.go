@@ -11,7 +11,6 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/pkg/errors"
 )
 
 // metaDataHandler reads the incoming metadata rpc request from the peer.
@@ -43,7 +42,7 @@ func (s *Sync) sendMetaDataRequest(ctx context.Context, id peer.ID) (*pb.MetaDat
 	}
 	if code != 0 {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
-		return nil, errors.New(errMsg)
+		return nil, fmt.Errorf(errMsg)
 	}
 	msg := new(pb.MetaData)
 	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
