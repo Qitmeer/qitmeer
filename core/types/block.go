@@ -104,7 +104,7 @@ func (h *BlockHeader) BlockHash() hash.Hash {
 
 // BlockData computes the block data for block hash.
 // Block data has the dynamic length.
-//   - blake2bd data is 113 bytes .
+//   - blake2bd data is 117 bytes .
 //   - cuckoo data is 282 bytes .
 func (bh *BlockHeader) BlockData() []byte {
 	// Encode the header and hash256 everything prior to the number of

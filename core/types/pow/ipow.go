@@ -123,6 +123,8 @@ func GetInstance(powType PowType, nonce uint64, proofData []byte) IPow {
 		instance = &Cuckatoo{}
 	case CRYPTONIGHT:
 		instance = &CryptoNight{}
+	case MEER_CRYPTO:
+		instance = &MeerCrypto{}
 	default:
 		instance = &Blake2bd{}
 	}
