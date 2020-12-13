@@ -3,7 +3,7 @@
 # Meer Header
 
 | version	| parent_root	| tx_root	| state_root | difficulty 	| time | pow_type | nonce 
-| ---| --- | --- | --- | --- | --- |  --- |  --- |   --- |  
+| ---| --- | --- | --- | --- | --- |  --- |  --- |
 | 4 bytes	|32 bytes	|32 bytes	| 32 bytes	| 4 bytes	| 4 bytes | 1 byte |8 bytes 
 
 # ##QitmeerKeccak256(NewLegacyKeccak512(NewLegacyKeccak512(header))^1)
@@ -57,7 +57,7 @@ target:
 
 meerHash:5274d9733b48a7513a57950c59ee897106bdcc8313ea60b777b1c3ad739d0500
 
-meerHash(reverse):00059d73adc3b177b760ea1383ccbd067189ee590c95573a51a7483b73d974522020-12-13
+meerHash(reverse):00059d73adc3b177b760ea1383ccbd067189ee590c95573a51a7483b73d97452
 
 Compliance target difficulty
 ```
