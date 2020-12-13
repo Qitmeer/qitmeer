@@ -74,15 +74,16 @@ func (c CoinID) Name() string {
 }
 func (c CoinID) Bytes() []byte {
 	b := [2]byte{}
-	binary.LittleEndian.PutUint16(b[:],uint16(c))
+	binary.LittleEndian.PutUint16(b[:], uint16(c))
 	return b[:]
 }
+
 var CoinIDList = []CoinID{
-	MEERID,QITID,
+	MEERID, QITID,
 }
 
 // Check if a valid coinId, current only check if the coinId is known.
-func CheckCoinID(id CoinID) error{
+func CheckCoinID(id CoinID) error {
 	unknownCoin := true
 	for _, coinId := range CoinIDList {
 		if id == coinId {
@@ -96,6 +97,9 @@ func CheckCoinID(id CoinID) error{
 	return nil
 }
 
+func IsKnownCoinID(id CoinID) bool {
+	return CheckCoinID(id) == nil
+}
 
 // Amount represents the base coin monetary unit (colloquially referred
 // to as an `Atom').  A single Amount is equal to 1e-8 of a coin.
@@ -163,6 +167,7 @@ func round(f float64) int64 {
 	}
 	return int64(f + 0.5)
 }
+
 // NewAmount creates an Amount from a floating point value representing
 // some value in the currency.  NewAmount errors if f is NaN or +-Infinity,
 // but does not check that the amount is within the total amount of coins
