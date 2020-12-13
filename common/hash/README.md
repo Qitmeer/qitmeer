@@ -7,9 +7,10 @@
 | 4 bytes	|32 bytes	|32 bytes	| 32 bytes	| 4 bytes	| 4 bytes | 1 byte |8 bytes 
 
 # ##QitmeerKeccak256(NewLegacyKeccak512(NewLegacyKeccak512(header))^1)
-### [QitmeerKeccak256 PaddingFix Click Here](git@github.com:jamesvan2019/keccakhash_c.git)
+#### [MeerCrypto See Golang Code](https://github.com/jamesvan2019/meer/blob/meer_pow/common/hash/hashfuncs_meer_crypto.go)
+### [QitmeerKeccak256 Use PaddingFix Click Here](git@github.com:jamesvan2019/keccakhash_c.git)
 
-### NewLegacyKeccak512 Standard Keccak512
+### NewLegacyKeccak512 Use Standard Keccak512
 
 ### Example
 ```golang
