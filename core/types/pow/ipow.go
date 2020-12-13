@@ -30,6 +30,7 @@ const (
 	X8R16            PowType = 5
 	QITMEERKECCAK256 PowType = 6
 	CRYPTONIGHT      PowType = 7
+	MEER_CRYPTO      PowType = 8
 )
 
 var PowMapString = map[PowType]interface{}{
@@ -41,6 +42,7 @@ var PowMapString = map[PowType]interface{}{
 	X8R16:            "x8r16",
 	QITMEERKECCAK256: "qitmeer_keccak256",
 	CRYPTONIGHT:      "cryptonight",
+	MEER_CRYPTO:      "meer_crypto",
 }
 
 func GetPowName(powType PowType) string {

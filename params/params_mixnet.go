@@ -31,8 +31,8 @@ var MixNetParams = Params{
 	Net:            protocol.MixNet,
 	DefaultPort:    "28130",
 	DefaultUDPPort: 28140,
-	Bootstrap: []string{
-		"/dns4/ns.qitmeer.top/tcp/28230/p2p/16Uiu2HAmRtp5CjNv3WvPYuh7kNXXZQDYegwFFeDH9vWY3JY4JS1W",
+	Bootstrap:      []string{
+		// "/dns4/ns.qitmeer.top/tcp/28230/p2p/16Uiu2HAmRtp5CjNv3WvPYuh7kNXXZQDYegwFFeDH9vWY3JY4JS1W",
 	},
 
 	// Chain parameters
@@ -52,6 +52,8 @@ var MixNetParams = Params{
 		QitmeerKeccak256PowLimitBits: 0x2003ffff,
 		CryptoNightPowLimit:          testMixNetPowLimit,
 		CryptoNightPowLimitBits:      0x2003ffff,
+		MeerCryptoPowLimit:           testMixNetPowLimit,
+		MeerCryptoPowLimitBits:       0x2003ffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 2 ≈ 1min find once
@@ -61,17 +63,19 @@ var MixNetParams = Params{
 
 		Percent: map[pow.MainHeight]pow.PercentItem{
 			pow.MainHeight(0): {
-				pow.BLAKE2BD:         20,
-				pow.CUCKAROO:         30,
-				pow.QITMEERKECCAK256: 30,
-				pow.CUCKAROOM:        20,
+				pow.BLAKE2BD:         10,
+				pow.CUCKAROO:         10,
+				pow.QITMEERKECCAK256: 20,
+				pow.CUCKAROOM:        10,
+				pow.MEER_CRYPTO:      50,
 			},
 			pow.MainHeight(35000): {
-				pow.BLAKE2BD:         20,
-				pow.CUCKAROO:         30,
+				pow.BLAKE2BD:         10,
+				pow.CUCKAROO:         10,
 				pow.QITMEERKECCAK256: 10,
-				pow.CRYPTONIGHT:      30,
+				pow.CRYPTONIGHT:      10,
 				pow.CUCKAROOM:        10,
+				pow.MEER_CRYPTO:      50,
 			},
 		},
 		// after this height the big graph will be the main pow graph
