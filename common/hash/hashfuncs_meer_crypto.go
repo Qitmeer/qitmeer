@@ -10,25 +10,26 @@ import (
 // 1 round of NewQitmeerKeccak256
 func HashMeerCrypto(input []byte) Hash {
 	// input length 117 bytes
-	h := qitmeerSha3.NewLegacyKeccak512()
+	h1 := qitmeerSha3.NewLegacyKeccak512()
 	// first round
-	h.Write(input)
+	h1.Write(input)
 	// result length 64 bytes
-	input = h.Sum(nil)
+	input = h1.Sum(nil)
 	// second round
-	h.Write(input)
+	h2 := qitmeerSha3.NewLegacyKeccak512()
+	h2.Write(input)
 	// result length 64 bytes
-	input = h.Sum(nil)
+	input = h2.Sum(nil)
 	// Attention
 	// hash result first byte  ^1
 	// specialized processing
 	// Prevent compatibility of existing ASIC
 	input[0] ^= 1
 	// third round
-	h1 := qitmeerSha3.NewQitmeerKeccak256()
+	h3 := qitmeerSha3.NewQitmeerKeccak256()
 	// result length 32 bytes
-	h1.Write(input)
-	r := h.Sum(nil)
+	h3.Write(input)
+	r := h3.Sum(nil)
 	hashR := [32]byte{}
 	copy(hashR[:32], r[:32])
 	return hashR

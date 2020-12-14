@@ -40,6 +40,8 @@ func (this *MeerCrypto) Verify(headerData []byte, blockHash hash.Hash, targetDif
 	}
 	h := hash.HashMeerCrypto(headerData)
 	hashNum := HashToBig(&h)
+	fmt.Printf("\ntarget :%064x", target)
+	fmt.Printf("\nhash:%064x\n", hashNum)
 	if hashNum.Cmp(target) > 0 {
 		str := fmt.Sprintf("block hash of %064x is higher than"+
 			" expected max of %064x", hashNum, target)

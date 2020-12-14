@@ -7,6 +7,7 @@
 package miner
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
@@ -345,6 +346,9 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 		hashesCompleted += 2
 		header.Pow = instance
 		if header.Pow.FindSolver(header.BlockData(), header.BlockHash(), header.Difficulty) {
+			fmt.Println(hex.EncodeToString(header.BlockData()))
+			fmt.Println(i)
+			fmt.Println(header.Pow.GetNonce())
 			m.updateHashes <- hashesCompleted
 			return true
 		}
