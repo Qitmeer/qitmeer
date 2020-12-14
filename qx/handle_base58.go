@@ -9,7 +9,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/encode/base58"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/util"
-	"github.com/pkg/errors"
 	"strconv"
 )
 
@@ -139,14 +138,14 @@ func Base58CheckDecode(mode, hasher string, versionSize, cksumSize int, input st
 		util.ReverseBytes(version_r)
 		version_d2, err := strconv.ParseUint(fmt.Sprintf("%x", version_r[:]), 16, 64)
 		if err != nil {
-			ErrExit(errors.Wrapf(err, "convert version %x error", version[:]))
+			ErrExit(fmt.Errorf("convert version %x error : %w", version[:], err))
 		}
 		fmt.Printf("version : %x (hex) %v (BE) %v (LE)\n", version, version_d, version_d2)
 		fmt.Printf("payload : %x\n", data)
 		cksum := decoded[len(decoded)-cksumSize:]
 		cksum_d, err := strconv.ParseUint(fmt.Sprintf("%x", cksum[:]), 16, 64)
 		if err != nil {
-			ErrExit(errors.Wrapf(err, "convert version %x error", cksum[:]))
+			ErrExit(fmt.Errorf("convert version %x error : %w", cksum[:], err))
 		}
 		//convere to  little endian
 		cksum_r := util.CopyBytes(cksum[:])
