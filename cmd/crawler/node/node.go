@@ -413,7 +413,7 @@ func convertToSingleMultiAddr(node *qnode.Node) (multiaddr.Multiaddr, error) {
 	multiAddrString := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", ip4.String(), node.TCP(), id)
 	multiAddr, err := multiaddr.NewMultiaddr(multiAddrString)
 	if err != nil {
-		return nil, fmt.Errorf("could not get multiaddr:w", err)
+		return nil, fmt.Errorf("could not get multiaddr:w%", err)
 	}
 	return multiAddr, nil
 }
