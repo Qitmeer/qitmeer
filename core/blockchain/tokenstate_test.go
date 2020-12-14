@@ -7,10 +7,22 @@ package blockchain
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/database"
+	_ "github.com/Qitmeer/qitmeer/database/ffldb"
+	"github.com/Qitmeer/qitmeer/params"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 )
+
+func bytesFromStr(s string) []byte {
+	b, _ := hex.DecodeString(s)
+	return b
+}
 
 func TestTokeStateSerialization(t *testing.T) {
 	tests := []struct {
@@ -46,7 +58,63 @@ func TestTokeStateSerialization(t *testing.T) {
 
 }
 
-func bytesFromStr(s string) []byte {
-	b, _ := hex.DecodeString(s)
-	return b
+func TestTokenStateDB(t *testing.T) {
+	//create a test token state database
+	dbPath, err := ioutil.TempDir("", "test_tokenstate_db")
+	if err != nil {
+		t.Fatalf("failed to create token state db : %v", err)
+	}
+	// clean up db file when the test is finished
+	defer os.RemoveAll(dbPath)
+
+	tokendb, err := database.Create("ffldb", dbPath, params.PrivNetParam.Net)
+	if err != nil {
+		t.Fatalf("failed to create token state db : %v", err)
+	}
+	defer tokendb.Close()
+
+	// prepare token db.
+	err = tokendb.Update(func(dbTx database.Tx) error {
+		_, err := dbTx.Metadata().CreateBucketIfNotExists(dbnamespace.TokenBucketName)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// put a test token state record into tokenstate db
+	ts := tokenState{
+		balances: map[types.CoinID]tokenBalance{
+			types.QITID: tokenBalance{200 * 1e8, 100 * 1e8}},
+		updates: []balanceUpdate{
+			{typ: tokenMint,
+				meerAmount:  100 * 1e8,
+				tokenAmount: types.Amount{200 * 1e8, types.QITID}},
+		}}
+	// create a fake block hash for testing
+	b := make([]byte, 32)
+	b[0] = 0xa
+	hash := hash.HashH(b)
+
+	err = tokendb.Update(func(dbTx database.Tx) error {
+		return dbPutTokenState(dbTx, hash, ts)
+	})
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// fetch record from tokenstate db
+	var tsfromdb *tokenState
+	err = tokendb.View(func(dbTx database.Tx) error {
+		tsfromdb, err = dbFetchTokenState(dbTx, hash)
+		return err
+	})
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// compare result
+	if !reflect.DeepEqual(ts, *tsfromdb) {
+		t.Fatalf("token state put db is %v ,but from db is %v", ts, *tsfromdb)
+	}
 }

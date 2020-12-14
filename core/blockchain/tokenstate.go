@@ -6,7 +6,10 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/database"
 )
 
 // balanceUpdateType specifies the possible types of updates that might
@@ -166,4 +169,32 @@ func deserializeTokenState(data []byte) (*tokenState, error) {
 		}
 	}
 	return &tokenState{balances: balances, updates: updates}, nil
+}
+
+// dbPutTokenState put a token balance record into the token state database.
+// the key is the provided block hash
+func dbPutTokenState(dbTx database.Tx, hash hash.Hash, ts tokenState) error {
+	// Serialize the current token state.
+	serializedData, err := serializeTokeState(ts)
+	if err != nil {
+		return err
+	}
+	// Store the current token balance record into the token state database.
+	meta := dbTx.Metadata()
+	bucket := meta.Bucket(dbnamespace.TokenBucketName)
+	return bucket.Put(hash[:], serializedData)
+}
+
+// dbFetchTokenState fetch the token balance record from the token state database.
+// the key is the input block hash.
+func dbFetchTokenState(dbTx database.Tx, hash hash.Hash) (*tokenState, error) {
+	// Fetch record from the token state database by block hash
+	meta := dbTx.Metadata()
+	bucket := meta.Bucket(dbnamespace.TokenBucketName)
+	v := bucket.Get(hash[:])
+	if v == nil {
+		return nil, fmt.Errorf("tokenstate db can't find record from block hash : %v", hash)
+	}
+	// deserialize the fetched token state record
+	return deserializeTokenState(v)
 }
