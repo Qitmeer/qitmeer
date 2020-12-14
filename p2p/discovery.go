@@ -14,7 +14,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/opts"
-	"github.com/pkg/errors"
 	"net"
 )
 
@@ -103,7 +102,7 @@ func (s *Service) createLocalNode(
 ) (*qnode.LocalNode, error) {
 	db, err := qnode.OpenDB("")
 	if err != nil {
-		return nil, errors.Wrap(err, "could not open node's peer database")
+		return nil, fmt.Errorf("could not open node's peer database:%w", err)
 	}
 	localNode := qnode.NewLocalNode(db, privKey)
 	ipEntry := qnr.IP(ipAddr)

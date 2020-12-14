@@ -14,6 +14,7 @@ import (
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 	"github.com/Qitmeer/qitmeer/p2p"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
@@ -31,7 +32,6 @@ import (
 	"github.com/libp2p/go-libp2p-noise"
 	"github.com/libp2p/go-libp2p-secio"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/pkg/errors"
 	"sync"
 	"time"
 )
@@ -282,7 +282,11 @@ func (node *Node) Context() context.Context {
 	return node.ctx
 }
 
-func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (node *Node) Disconnect(pid peer.ID) error {
+	return node.host.Network().ClosePeer(pid)
+}
+
+func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pid := stream.Conn().RemotePeer()
 	log.Log.Trace(fmt.Sprintf("chainStateHandler:%s", pid))
 
@@ -309,12 +313,7 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 		UserAgent:       []byte("qitmeer-crawler"),
 		DisableRelayTx:  true,
 	}
-
-	if _, err := stream.Write([]byte{synch.ResponseCodeSuccess}); err != nil {
-		log.Log.Error(fmt.Sprintf("Failed to write to stream:%v", err))
-	}
-	_, err := node.Encoding().EncodeWithMaxLength(stream, resp)
-	return err
+	return synch.EncodeResponseMsg(node, stream, resp)
 }
 
 func (node *Node) printResult() {
@@ -382,18 +381,18 @@ func peersFromStringAddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 	for _, stringAddr := range multiAddrString {
 		addr, err := multiAddrFromString(stringAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get multiaddr from string")
+			return nil, fmt.Errorf("Could not get multiaddr from string:%w", err)
 		}
 		allAddrs = append(allAddrs, addr)
 	}
 	for _, stringAddr := range qnodeString {
 		qnodeAddr, err := qnode.Parse(qnode.ValidSchemes, stringAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get qnode from string")
+			return nil, fmt.Errorf("Could not get qnode from string:%w", err)
 		}
 		addr, err := convertToSingleMultiAddr(qnodeAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get multiaddr")
+			return nil, fmt.Errorf("Could not get multiaddr:%w", err)
 		}
 		allAddrs = append(allAddrs, addr)
 	}
@@ -403,18 +402,18 @@ func peersFromStringAddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 func convertToSingleMultiAddr(node *qnode.Node) (multiaddr.Multiaddr, error) {
 	ip4 := node.IP().To4()
 	if ip4 == nil {
-		return nil, errors.Errorf("node doesn't have an ip4 address, it's stated IP is %s", node.IP().String())
+		return nil, fmt.Errorf("node doesn't have an ip4 address, it's stated IP is %s", node.IP().String())
 	}
 	pubkey := node.Pubkey()
 	assertedKey := convertToInterfacePubkey(pubkey)
 	id, err := peer.IDFromPublicKey(assertedKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get peer id")
+		return nil, fmt.Errorf("could not get peer id:%w", err)
 	}
 	multiAddrString := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", ip4.String(), node.TCP(), id)
 	multiAddr, err := multiaddr.NewMultiaddr(multiAddrString)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get multiaddr")
+		return nil, fmt.Errorf("could not get multiaddr:%w", err)
 	}
 	return multiAddr, nil
 }
