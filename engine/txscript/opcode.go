@@ -1435,7 +1435,7 @@ func opcodeSubstr(op *ParsedOpcode, vm *Engine) error {
 		return err
 	}
 
-	// All data pushes and pops are effectivley limited to 32-bits, as are
+	// All data pushes and pops are effectively limited to 32-bits, as are
 	// all math-related numeric pushes, so it is safe to cast the length to
 	// int32.  The numeric values are also clamped to int32 accordingly.
 	aLen := int32(len(a))
@@ -1493,7 +1493,7 @@ func opcodeLeft(op *ParsedOpcode, vm *Engine) error {
 		return err
 	}
 
-	// All data pushes and pops are effectivley limited to 32-bits, as are
+	// All data pushes and pops are effectively limited to 32-bits, as are
 	// all math-related numeric pushes, so it is safe to cast the length to
 	// int32.  The numeric values are also clamped to int32 accordingly.
 	aLen := int32(len(a))
@@ -1539,7 +1539,7 @@ func opcodeRight(op *ParsedOpcode, vm *Engine) error {
 		return err
 	}
 
-	// All data pushes and pops are effectivley limited to 32-bits, as are
+	// All data pushes and pops are effectively limited to 32-bits, as are
 	// all math-related numeric pushes, so it is safe to cast the length to
 	// int32.  The numeric values are also clamped to int32 accordingly.
 	aLen := int32(len(a))
