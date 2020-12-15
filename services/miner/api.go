@@ -461,6 +461,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		NonceRange: gbtNonceRange,
 		// TODO, Capabilities
 		Capabilities: gbtCapabilities,
+		Header:       "",
 	}
 
 	if useCoinbaseValue {

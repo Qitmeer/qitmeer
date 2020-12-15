@@ -96,4 +96,5 @@ type GetBlockTemplateResult struct {
 	// Block proposal from BIP 0023.
 	Capabilities  []string `json:"capabilities,omitempty"`
 	RejectReasion string   `json:"reject-reason,omitempty"`
+	Header        string   `json:"template_header"`
 }
