@@ -28,7 +28,7 @@ import (
 
 const (
 	// maxNonce is the maximum value a nonce can be in a block header.
-	maxNonce = ^uint32(0) // 2^32 - 1
+	maxNonce = ^uint64(0) // 2^64 - 1
 
 	// TODO, decided if th extra nonce for coinbase-tx need
 	// maxExtraNonce is the maximum value an extra nonce used in a coinbase
@@ -308,7 +308,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 	// Search through the entire nonce range for a solution while
 	// periodically checking for early quit and stale block
 	// conditions along with updates to the speed monitor.
-	for i := uint32(0); i <= maxNonce; i++ {
+	for i := uint64(0); i <= maxNonce; i++ {
 		select {
 		case <-quit:
 			return false
@@ -339,7 +339,7 @@ func (m *CPUMiner) solveBlock(msgBlock *types.Block, ticker *time.Ticker, quit c
 			// Non-blocking select to fall through
 		}
 		instance := pow.GetInstance(powType, 0, []byte{})
-		instance.SetNonce(i)
+		instance.SetNonce(uint64(i))
 		instance.SetMainHeight(pow.MainHeight(mheight))
 		instance.SetParams(m.params.PowConfig)
 		hashesCompleted += 2
