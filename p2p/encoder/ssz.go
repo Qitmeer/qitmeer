@@ -13,7 +13,6 @@ import (
 	fastssz "github.com/ferranbt/fastssz"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
-	"github.com/pkg/errors"
 	"github.com/prysmaticlabs/go-ssz"
 )
 
@@ -55,7 +54,7 @@ func (e SszNetworkEncoder) EncodeGossip(w io.Writer, msg interface{}) (int, erro
 		return 0, err
 	}
 	if uint64(len(b)) > MaxGossipSize {
-		return 0, errors.Errorf("gossip message exceeds max gossip size: %d bytes > %d bytes", len(b), MaxGossipSize)
+		return 0, fmt.Errorf("gossip message exceeds max gossip size: %d bytes > %d bytes", len(b), MaxGossipSize)
 	}
 	if e.UseSnappyCompression {
 		b = snappy.Encode(nil /*dst*/, b)
@@ -120,7 +119,7 @@ func (e SszNetworkEncoder) DecodeGossip(b []byte, to interface{}) error {
 		}
 	}
 	if uint64(len(b)) > MaxGossipSize {
-		return errors.Errorf("gossip message exceeds max gossip size: %d bytes > %d bytes", len(b), MaxGossipSize)
+		return fmt.Errorf("gossip message exceeds max gossip size: %d bytes > %d bytes", len(b), MaxGossipSize)
 	}
 	return e.doDecode(b, to)
 }

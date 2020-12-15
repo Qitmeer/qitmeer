@@ -10,11 +10,10 @@ import (
 	"math/big"
 )
 
-// proof data length 188
-// 8 + 1 + 169
+// the pow length is 178
 const POW_LENGTH = 178
 
-//except pow type 4bytes and nonce 8 bytes 176 bytes
+// proof data length is 169
 const PROOFDATA_LENGTH = 169
 
 type PowType byte

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
@@ -39,7 +40,7 @@ func (s *Sync) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.SyncDA
 		return nil, err
 	}
 
-	if code != ResponseCodeSuccess {
+	if !code.IsSuccess() {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return nil, errors.New(errMsg)
 	}
@@ -52,33 +53,22 @@ func (s *Sync) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.SyncDA
 	return msg, err
 }
 
-func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return peers.ErrPeerUnknown
+		return ErrPeerUnknown
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != ResponseCodeSuccess {
-			resp, err := s.generateErrorResponse(respCode, err.Error())
-			if err != nil {
-				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
-			} else {
-				if _, err := stream.Write(resp); err != nil {
-					log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
-				}
-			}
-		}
 		cancel()
 	}()
 
 	m, ok := msg.(*pb.SyncDAG)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")
-		return err
+		return ErrMessage(err)
 	}
 	pe.UpdateGraphState(m.GraphState)
 
@@ -91,17 +81,10 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 	}*/
 	sd := &pb.SubDAG{SyncPoint: &pb.Hash{Hash: point.Bytes()}, GraphState: s.getGraphState(), Blocks: changeHashsToPBHashs(blocks)}
 
-	_, err = stream.Write([]byte{ResponseCodeSuccess})
-	if err != nil {
-		return err
+	e := s.EncodeResponseMsg(stream, sd)
+	if e != nil {
+		return e
 	}
-
-	_, err = s.Encoding().EncodeWithMaxLength(stream, sd)
-	if err != nil {
-		return err
-	}
-
-	respCode = ResponseCodeSuccess
 	return nil
 }
 

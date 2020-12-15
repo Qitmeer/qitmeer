@@ -80,8 +80,7 @@ func (this *Cuckoo) GetSipHash(headerData []byte) hash.Hash {
 //cuckoo pow proof data
 func (this *Cuckoo) Bytes() PowBytes {
 	r := make(PowBytes, 0)
-
-	//write pow type 1 byte
+	// write pow type 1 byte
 	r = append(r, []byte{byte(this.PowType)}...)
 
 	// write nonce 8 bytes

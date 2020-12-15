@@ -174,7 +174,7 @@ func readElement(r io.Reader, element interface{}) error {
 		if err != nil {
 			return err
 		}
-		//set pow type 1 bytes nonce 8 bytes and proof data except types
+		// set pow type 1 bytes nonce 8 bytes and proof data except types
 		*e = pow.GetInstance(powType, littleEndian.Uint64(b[1:9]), leftBytes)
 		return nil
 

@@ -89,7 +89,7 @@ func (this *X8r16) CompareDiff(newTarget *big.Int, target *big.Int) bool {
 // pow proof data
 func (this *X8r16) Bytes() PowBytes {
 	r := make(PowBytes, 0)
-	//write pow type 1 byte
+	// write pow type 1 byte
 	r = append(r, []byte{byte(this.PowType)}...)
 	// write nonce 8 bytes
 	n := make([]byte, 8)

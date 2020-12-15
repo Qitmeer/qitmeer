@@ -13,7 +13,6 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/pkg/errors"
 	"github.com/prysmaticlabs/go-bitfield"
 	"io/ioutil"
 	"net"
@@ -97,7 +96,7 @@ func convertToInterfacePubkey(pubkey *ecdsa.PublicKey) crypto.PubKey {
 func SerializeQNR(record *qnr.Record) (string, error) {
 	buf := bytes.NewBuffer([]byte{})
 	if err := record.EncodeRLP(buf); err != nil {
-		return "", errors.Wrap(err, "could not encode ENR record to bytes")
+		return "", fmt.Errorf("could not encode ENR record to bytes:%w", err)
 	}
 	enrString := base64.URLEncoding.EncodeToString(buf.Bytes())
 	return enrString, nil
@@ -113,7 +112,7 @@ func retrievePrivKeyFromFile(path string) (*ecdsa.PrivateKey, error) {
 	dst := make([]byte, hex.DecodedLen(len(src)))
 	_, err = hex.Decode(dst, src)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to decode hex string")
+		return nil, fmt.Errorf("failed to decode hex string:%w", err)
 	}
 	unmarshalledKey, err := crypto.UnmarshalSecp256k1PrivateKey(dst)
 	if err != nil {
