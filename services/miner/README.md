@@ -3,7 +3,7 @@
 ```shell script
 Get BlockTemplate
 curl -X POST \
-  http://47.244.17.119:1234/ \
+  http://47.244.17.119:2234/ \
   -H 'authorization: Basic dGVzdDp0ZXN0' \
   -H 'cache-control: no-cache' \
   -H 'content-type: application/json' \
@@ -72,7 +72,7 @@ curl -X POST \
 
 ```shell script
 curl -X POST \
-  http://47.244.17.119:1234/ \
+  http://47.244.17.119:2234/ \
   -H 'authorization: Basic dGVzdDp0ZXN0' \
   -H 'cache-control: no-cache' \
   -H 'content-type: application/json' \
