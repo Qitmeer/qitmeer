@@ -36,4 +36,5 @@ type P2PRPC interface {
 	Host() host.Host
 	Context() context.Context
 	Encoding() encoder.NetworkEncoding
+	Disconnect(pid peer.ID) error
 }

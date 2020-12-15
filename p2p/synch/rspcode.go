@@ -6,24 +6,18 @@ package synch
 
 import (
 	"bytes"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"io"
 )
 
-// response code
-const (
-	ResponseCodeSuccess        = byte(0x00)
-	ResponseCodeInvalidRequest = byte(0x01)
-	ResponseCodeServerError    = byte(0x02)
-)
-
-func (s *Sync) generateErrorResponse(code byte, reason string) ([]byte, error) {
-	buf := bytes.NewBuffer([]byte{code})
+func generateErrorResponse(e *common.Error, encoding encoder.NetworkEncoding) ([]byte, error) {
+	buf := bytes.NewBuffer([]byte{byte(e.Code)})
 	resp := &pb.ErrorResponse{
-		Message: []byte(reason),
+		Message: []byte(e.Code.String()),
 	}
-	if _, err := s.Encoding().EncodeWithMaxLength(buf, resp); err != nil {
+	if _, err := encoding.EncodeWithMaxLength(buf, resp); err != nil {
 		return nil, err
 	}
 
@@ -31,23 +25,23 @@ func (s *Sync) generateErrorResponse(code byte, reason string) ([]byte, error) {
 }
 
 // ReadRspCode response from a RPC stream.
-func ReadRspCode(stream io.Reader, encoding encoder.NetworkEncoding) (uint8, string, error) {
+func ReadRspCode(stream io.Reader, encoding encoder.NetworkEncoding) (common.ErrorCode, string, error) {
 	b := make([]byte, 1)
 	_, err := stream.Read(b)
 	if err != nil {
-		return 0, "", err
+		return common.ErrNone, "", err
 	}
 
-	if b[0] == ResponseCodeSuccess {
-		return 0, "", nil
+	if b[0] == byte(common.ErrNone) {
+		return common.ErrNone, "", nil
 	}
 
 	msg := &pb.ErrorResponse{
 		Message: []byte{},
 	}
 	if err := encoding.DecodeWithMaxLength(stream, msg); err != nil {
-		return 0, "", err
+		return common.ErrNone, "", err
 	}
 
-	return b[0], string(msg.Message), nil
+	return common.ErrorCode(b[0]), string(msg.Message), nil
 }

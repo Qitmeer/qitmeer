@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
@@ -30,50 +31,38 @@ func (s *Sync) sendInventoryRequest(ctx context.Context, pe *peers.Peer, inv *pb
 		return err
 	}
 
-	if code != ResponseCodeSuccess {
+	if !code.IsSuccess() {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return errors.New(errMsg)
 	}
 	return err
 }
 
-func (s *Sync) inventoryHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) inventoryHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return peers.ErrPeerUnknown
+		return ErrPeerUnknown
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != ResponseCodeSuccess {
-			resp, err := s.generateErrorResponse(respCode, err.Error())
-			if err != nil {
-				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
-			} else {
-				if _, err := stream.Write(resp); err != nil {
-					log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
-				}
-			}
-		}
 		cancel()
 	}()
 
 	m, ok := msg.(*pb.Inventory)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Inventory")
-		return err
+		return ErrMessage(err)
 	}
 	err = s.handleInventory(m, pe)
 	if err != nil {
-		return err
+		return ErrMessage(err)
 	}
-	_, err = stream.Write([]byte{ResponseCodeSuccess})
-	if err != nil {
-		return err
+	e := s.EncodeResponseMsg(stream, nil)
+	if e != nil {
+		return e
 	}
-	respCode = ResponseCodeSuccess
 	return nil
 }
 

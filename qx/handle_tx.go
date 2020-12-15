@@ -12,7 +12,6 @@ import (
 	"github.com/Qitmeer/qitmeer/crypto/ecc"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/pkg/errors"
 	"sort"
 	"time"
 )
@@ -206,8 +205,8 @@ func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsF
 	for _, output := range txOut.outputs {
 		atomic, err := types.NewAmount(output.amount)
 		if err != nil {
-			ErrExit(errors.Wrapf(err, "fail to create the currency amount from a "+
-				"floating point value %f", output.amount))
+			ErrExit(fmt.Errorf("fail to create the currency amount from a "+
+				"floating point value %f : %w", output.amount, err))
 		}
 		txOutputs[output.target] = uint64(atomic)
 	}

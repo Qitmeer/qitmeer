@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
@@ -40,7 +41,7 @@ func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator 
 		return nil, err
 	}
 
-	if code != ResponseCodeSuccess {
+	if !code.IsSuccess() {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return nil, errors.New(errMsg)
 	}
@@ -52,28 +53,17 @@ func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator 
 	return msg, err
 }
 
-func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != ResponseCodeSuccess {
-			resp, err := s.generateErrorResponse(respCode, err.Error())
-			if err != nil {
-				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
-			} else {
-				if _, err := stream.Write(resp); err != nil {
-					log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
-				}
-			}
-		}
 		cancel()
 	}()
 
 	m, ok := msg.(*pb.GetBlockDatas)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")
-		return err
+		return ErrMessage(err)
 	}
 	bds := []*pb.BlockData{}
 	bd := &pb.BlockDatas{Locator: bds}
@@ -81,16 +71,16 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 		blockHash, err := hash.NewHash(bdh.Hash)
 		if err != nil {
 			err = fmt.Errorf("invalid block hash")
-			return err
+			return ErrMessage(err)
 		}
 		block, err := s.p2p.BlockChain().FetchBlockByHash(blockHash)
 		if err != nil {
-			return err
+			return ErrMessage(err)
 		}
 
 		blocks, err := block.Bytes()
 		if err != nil {
-			return err
+			return ErrMessage(err)
 		}
 		pbbd := pb.BlockData{BlockBytes: blocks}
 		if uint64(bd.SizeSSZ()+pbbd.SizeSSZ()+BLOCKDATA_SSZ_HEAD_SIZE) >= s.p2p.Encoding().GetMaxChunkSize() {
@@ -98,15 +88,11 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 		}
 		bd.Locator = append(bd.Locator, &pbbd)
 	}
-	_, err = stream.Write([]byte{ResponseCodeSuccess})
-	if err != nil {
-		return err
+	e := s.EncodeResponseMsg(stream, bd)
+	if e != nil {
+		err = e.Error
+		return e
 	}
-	_, err = s.Encoding().EncodeWithMaxLength(stream, bd)
-	if err != nil {
-		return err
-	}
-	respCode = ResponseCodeSuccess
 	return nil
 }
 

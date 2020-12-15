@@ -11,12 +11,12 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"time"
 )
 
 const (
@@ -50,7 +50,7 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 		return err
 	}
 
-	if code != ResponseCodeSuccess {
+	if !code.IsSuccess() {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return errors.New(errMsg)
 	}
@@ -66,7 +66,7 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	if err != nil {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		if ret == retErrInvalidChainState {
-			if err := s.sendGoodByeAndDisconnect(ctx, codeInvalidChainState, stream.Conn().RemotePeer()); err != nil {
+			if err := s.sendGoodByeAndDisconnect(ctx, common.ErrDAGConsensus, stream.Conn().RemotePeer()); err != nil {
 				return err
 			}
 		}
@@ -74,10 +74,10 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	return err
 }
 
-func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return peers.ErrPeerUnknown
+		return ErrPeerUnknown
 	}
 	log.Trace(fmt.Sprintf("chainStateHandler:%s", pe.GetID()))
 
@@ -86,51 +86,25 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 
 	m, ok := msg.(*pb.ChainState)
 	if !ok {
-		return fmt.Errorf("message is not type *pb.ChainState")
+		return ErrMessage(fmt.Errorf("message is not type *pb.ChainState"))
 	}
 
 	if ret, err := s.validateChainStateMessage(ctx, m, stream.Conn().RemotePeer()); err != nil {
 		log.Debug(fmt.Sprintf("Invalid chain state message from peer:peer=%s  error=%v", stream.Conn().RemotePeer(), err))
-		respCode := byte(0)
-		switch ret {
-		case retErrGeneric:
-			respCode = ResponseCodeServerError
-		case retErrInvalidChainState:
+		if ret == retErrInvalidChainState {
 			// Respond with our status and disconnect with the peer.
 			s.UpdateChainState(pe, m, false)
-			if err := s.respondWithChainState(ctx, stream); err != nil {
+			if err := s.EncodeResponseMsg(stream, s.getChainState()); err != nil {
 				return err
 			}
-			if err := s.sendGoodByeAndDisconnect(ctx, codeInvalidChainState, stream.Conn().RemotePeer()); err != nil {
-				return err
-			}
-			return nil
-		default:
-			respCode = ResponseCodeInvalidRequest
+			return ErrDAGConsensus(err)
+		} else if ret != retErrGeneric {
 			s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		}
-
-		originalErr := err
-		resp, err := s.generateErrorResponse(respCode, err.Error())
-		if err != nil {
-			log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
-		} else {
-			if _, err := stream.Write(resp); err != nil {
-				// The peer may already be ignoring us, as we disagree on fork version, so log this as debug only.
-				log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
-			}
-		}
-		// Add a short delay to allow the stream to flush before closing the connection.
-		// There is still a chance that the peer won't receive the message.
-		time.Sleep(50 * time.Millisecond)
-		if err := s.p2p.Disconnect(stream.Conn().RemotePeer()); err != nil {
-			log.Error("Failed to disconnect from peer:%v", err)
-		}
-		return originalErr
+		return ErrDAGConsensus(err)
 	}
 	s.UpdateChainState(pe, m, true)
-
-	return s.respondWithChainState(ctx, stream)
+	return s.EncodeResponseMsg(stream, s.getChainState())
 }
 
 func (s *Sync) UpdateChainState(pe *peers.Peer, chainState *pb.ChainState, action bool) {
@@ -189,19 +163,6 @@ func (s *Sync) validateChainStateMessage(ctx context.Context, msg *pb.ChainState
 	}
 
 	return retSuccess, nil
-}
-
-func (s *Sync) respondWithChainState(ctx context.Context, stream network.Stream) error {
-	resp := s.getChainState()
-	if resp == nil {
-		return fmt.Errorf("no chain state")
-	}
-
-	if _, err := stream.Write([]byte{ResponseCodeSuccess}); err != nil {
-		log.Error(fmt.Sprintf("Failed to write to stream:%v", err))
-	}
-	_, err := s.Encoding().EncodeWithMaxLength(stream, resp)
-	return err
 }
 
 func (s *Sync) getChainState() *pb.ChainState {

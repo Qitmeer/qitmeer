@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
@@ -34,7 +35,7 @@ func (s *Sync) sendQNRRequest(ctx context.Context, pe *peers.Peer, qnr *pb.SyncQ
 		return nil, err
 	}
 
-	if code != ResponseCodeSuccess {
+	if !code.IsSuccess() {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return nil, errors.New(errMsg)
 	}
@@ -47,54 +48,39 @@ func (s *Sync) sendQNRRequest(ctx context.Context, pe *peers.Peer, qnr *pb.SyncQ
 	return msg, err
 }
 
-func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) QNRHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	pe := s.peers.Get(stream.Conn().RemotePeer())
 	if pe == nil {
-		return peers.ErrPeerUnknown
+		return ErrPeerUnknown
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != ResponseCodeSuccess {
-			resp, err := s.generateErrorResponse(respCode, err.Error())
-			if err != nil {
-				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
-			} else {
-				if _, err := stream.Write(resp); err != nil {
-					log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
-				}
-			}
-		}
 		cancel()
 	}()
 
 	m, ok := msg.(*pb.SyncQNR)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.GraphState")
-		return err
+		return ErrMessage(err)
 	}
 
 	if pe.QNR() == nil {
 		err = s.peerSync.LookupNode(pe, string(m.Qnr))
 		if err != nil {
-			return err
+			return ErrMessage(err)
 		}
 	}
 
 	if s.p2p.Node() == nil {
-		return fmt.Errorf("Disable Node V5")
+		return ErrMessage(fmt.Errorf("Disable Node V5"))
 	}
-	_, err = stream.Write([]byte{ResponseCodeSuccess})
-	if err != nil {
-		return err
+
+	e := s.EncodeResponseMsg(stream, &pb.SyncQNR{Qnr: []byte(s.p2p.Node().String())})
+	if e != nil {
+		return e
 	}
-	_, err = s.Encoding().EncodeWithMaxLength(stream, &pb.SyncQNR{Qnr: []byte(s.p2p.Node().String())})
-	if err != nil {
-		return err
-	}
-	respCode = ResponseCodeSuccess
 	return nil
 }
 
