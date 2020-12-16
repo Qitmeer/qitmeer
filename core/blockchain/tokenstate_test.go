@@ -33,7 +33,7 @@ func TestTokeStateSerialization(t *testing.T) {
 	}{
 		{name: "test1",
 			state: &tokenState{
-				balances: map[types.CoinID]tokenBalance{
+				balances: tokenBalances{
 					types.QITID: tokenBalance{200 * 1e8, 100 * 1e8}},
 				updates: []balanceUpdate{
 					{typ: tokenMint,
@@ -84,7 +84,7 @@ func TestTokenStateDB(t *testing.T) {
 
 	// put a test token state record into tokenstate db
 	ts := tokenState{
-		balances: map[types.CoinID]tokenBalance{
+		balances: tokenBalances{
 			types.QITID: tokenBalance{200 * 1e8, 100 * 1e8}},
 		updates: []balanceUpdate{
 			{typ: tokenMint,
@@ -97,7 +97,7 @@ func TestTokenStateDB(t *testing.T) {
 	hash := hash.HashH(b)
 
 	err = tokendb.Update(func(dbTx database.Tx) error {
-		return dbPutTokenState(dbTx, hash, ts)
+		return dbPutTokenState(dbTx, &hash, ts)
 	})
 	if err != nil {
 		t.Fatalf("%v", err)

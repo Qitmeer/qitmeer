@@ -866,6 +866,17 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	b.stateSnapshot = state
 	b.stateLock.Unlock()
 
+	// update token db
+	err = b.db.Update(func(dbTx database.Tx) error {
+		if err := b.dbPutTokenBalance(dbTx, block, node); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

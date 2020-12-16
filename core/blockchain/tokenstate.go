@@ -7,9 +7,11 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
+	"strings"
 )
 
 // balanceUpdateType specifies the possible types of updates that might
@@ -42,9 +44,30 @@ type tokenBalance struct {
 // the updates are written in the same order as the tx in the block, which is
 // used to verify the correctness of the token balance
 type tokenState struct {
-	balances map[types.CoinID]tokenBalance
+	balances tokenBalances
 	updates  []balanceUpdate
 }
+
+
+type tokenBalances map[types.CoinID]tokenBalance
+
+func (tb *tokenBalances) String() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "[")
+	for k,v :=range *tb {
+		b.WriteString(fmt.Sprintf("%v:{balance:%v,locked-meer:%v},",k.Name(),v.balance,v.lockedMeer))
+	}
+	fmt.Fprintf(&b, "]")
+	return b.String()
+}
+func (tb *tokenBalances) Copy() *tokenBalances {
+	newTb := tokenBalances{}
+	for k, v :=range *tb {
+		newTb[k] = v
+	}
+	return &newTb
+}
+
 
 // serializeTokeState function will serialize the token state into byte slice
 func serializeTokeState(ts tokenState) ([]byte, error) {
@@ -173,7 +196,7 @@ func deserializeTokenState(data []byte) (*tokenState, error) {
 
 // dbPutTokenState put a token balance record into the token state database.
 // the key is the provided block hash
-func dbPutTokenState(dbTx database.Tx, hash hash.Hash, ts tokenState) error {
+func dbPutTokenState(dbTx database.Tx, hash *hash.Hash, ts tokenState) error {
 	// Serialize the current token state.
 	serializedData, err := serializeTokeState(ts)
 	if err != nil {
@@ -197,4 +220,112 @@ func dbFetchTokenState(dbTx database.Tx, hash hash.Hash) (*tokenState, error) {
 	}
 	// deserialize the fetched token state record
 	return deserializeTokenState(v)
+}
+
+func (b *BlockChain) calculateTokenBalance(dbTx database.Tx, node *blockNode) tokenBalances {
+	result := tokenBalances{}
+
+	// NOTICE: TODO MUST replace the current implementation of getting mature node and previous node
+	// the following logic using main-height to calculate latest mature and the previous node for current state
+	//   mature_node = current.main_parent.main_parent....main_parent  /* iterate for MATURITY times */
+	//     prev_node = current.main_parent
+	// Its NOT correct. We MUST use the globe order instead of main-height. In this case, the mature
+	// node and previous node should be :
+	//   mature_node = get_node_by_order(current.order - MATURITY)
+	//     prev_node = get_node_by_order(current.order - 1)
+
+	// find the latest mature node
+	curHeight := node.height
+	mNode := node
+	for {
+		mNode = mNode.GetMainParent(b)
+		if mNode == nil || curHeight - mNode.height > uint(b.params.CoinbaseMaturity) {
+			break
+		}
+	}
+	if mNode == nil {  // no mature node find
+		return result // return empty
+	}
+	// current balance in the main parent node
+	curTs, err := dbFetchTokenState(dbTx, node.GetMainParent(b).hash)
+	if err != nil {
+		return result // return empty
+	}
+	// mature balance in the mature node
+	mTs, err := dbFetchTokenState(dbTx, mNode.hash)
+	if err != nil {
+		return result // return empty
+	}
+
+	// result = current + mature-added
+	// only matured updates can be added into balance
+	result = curTs.balances
+	for _, update := range mTs.updates{
+		tokenId := update.tokenAmount.Id
+		switch update.typ {
+		case tokenMint :
+			// the outside logic must make sure that the updates has already checked its legality
+			// and removed duplicated tx so that we can increase the token balance and locked meer
+			// balance safely. such as the balances can not be over minted.
+			b := result[tokenId]
+			b.balance += update.tokenAmount.Value
+			b.lockedMeer += update.meerAmount
+			result[tokenId] = b
+		case tokenUnMint:
+			// the outside logic must make sure that the updates has already checked its legality
+			// and removed duplicated tx so that we can decrease the token balance and locked meer
+			// balance safely. such as balances can not be negative.
+			b := result[tokenId]
+			b.balance -= update.tokenAmount.Value
+			b.lockedMeer -= update.meerAmount
+			result[tokenId] = b
+		}
+	}
+	return result
+}
+
+func (b *BlockChain) dbPutTokenBalance(dbTx database.Tx, block *types.SerializedBlock, node *blockNode) error {
+	balances := b.calculateTokenBalance(dbTx, node)
+	ts := tokenState{
+		balances: balances,
+		updates: []balanceUpdate{},
+	}
+	log.Trace(fmt.Sprintf("dbPutTokenBalance: %v start token balance %s", block.Hash(), balances.String()))
+
+	checkB := balances.Copy()
+	for _, tx:= range block.Transactions() {
+		if token.IsTokenMint(tx.Tx) {
+			// TOKEN_MINT: input[0] token output[0] meer
+			// the previous logic must make sure the legality of values, here only append.
+			update := balanceUpdate{
+				typ:tokenMint,
+				tokenAmount: tx.Tx.TxIn[0].AmountIn,
+				meerAmount:tx.Tx.TxOut[0].Amount.Value}
+			if err := checkMintUpdate(checkB, &update); err != nil {
+				return err
+			}
+			ts.updates = append(ts.updates, update)
+		}
+		if token.IsTokenUnMint(tx.Tx) {
+			// TOKEN_UNMINT: input[0] meer output[0] token
+			// the previous logic must make sure the legality of values, here only append.
+			update :=balanceUpdate{
+				typ:tokenUnMint,
+				meerAmount: tx.Tx.TxIn[0].AmountIn.Value,
+				tokenAmount:tx.Tx.TxOut[0].Amount}
+			if err := checkUnMintUpdate(checkB, &update); err != nil {
+				return err
+			}
+			ts.updates = append(ts.updates, update)
+		}
+	}
+	return dbPutTokenState(dbTx, block.Hash(), ts)
+}
+
+func checkUnMintUpdate(b *tokenBalances, update *balanceUpdate) error {
+	return nil
+}
+
+func checkMintUpdate(b *tokenBalances, update *balanceUpdate) error {
+	return nil
 }
