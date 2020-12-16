@@ -169,6 +169,18 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	if err != nil {
 		log.Warn(fmt.Sprintf("%s", err))
 	}
+
+	// update token db
+	err = b.db.Update(func(dbTx database.Tx) error {
+		if err := b.dbPutTokenBalance(dbTx, newNode, block); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	b.updateBestState(newNode, block, newOrders)
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
@@ -246,6 +258,18 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 	if err != nil {
 		log.Warn(fmt.Sprintf("%s", err))
 	}
+
+	// update token db
+	err = b.db.Update(func(dbTx database.Tx) error {
+		if err := b.dbPutTokenBalance(dbTx, newNode, block); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	b.updateBestState(newNode, block, newOrders)
 
 	return nil

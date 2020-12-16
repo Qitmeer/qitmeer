@@ -245,60 +245,75 @@ func dbFetchTokenState(dbTx database.Tx, hash hash.Hash) (*tokenState, error) {
 	return deserializeTokenState(v)
 }
 
-func (b *BlockChain) calculateTokenBalance(dbTx database.Tx, node *blockNode) tokenBalances {
+const dagConfirmFactor = 10
+
+func (b *BlockChain) calculateTokenBalance(dbTx database.Tx, node *blockNode) (tokenBalances, error) {
+
 	result := tokenBalances{}
 
-	// NOTICE: TODO MUST replace the current implementation of getting mature node and previous node
-	// the following logic using main-height to calculate latest mature and the previous node for current state
-	//   mature_node = current.main_parent.main_parent....main_parent  /* iterate for MATURITY times */
-	//     prev_node = current.main_parent
-	// Its NOT correct. We MUST use the globe order instead of main-height. In this case, the mature
-	// node and previous node should be :
-	//   mature_node = get_node_by_order(current.order - MATURITY)
-	//     prev_node = get_node_by_order(current.order - 1)
+	// the passed-in node should always has already been ordered at this level
+	if !node.IsOrdered() {
+		panic(fmt.Sprintf("node (hash=%v,order=%v,height=%v,layer=%v) is not ordered",
+			node.hash,node.order,node.height,node.layer)) //should never happen here
+	}
 
-	// find the latest mature node
-	curHeight := node.height
-	mNode := node
-	for {
-		mNode = mNode.GetMainParent(b)
-		if mNode == nil || curHeight - mNode.height > uint(b.params.CoinbaseMaturity) {
-			break
-		}
+	// if no block is mature, return empty
+	if uint16(node.order) < b.params.CoinbaseMaturity {
+		return result, nil
 	}
-	if mNode == nil {  // no mature node find
-		return result // return empty
-	}
-	// current balance in the main parent node
-	curTs, err := dbFetchTokenState(dbTx, node.GetMainParent(b).hash)
+
+	// Calculate the token balance by using the mature block and latest stable block.
+	//   result balance = stable balance + mature updates
+	// The latest mature block node and latest stable node should be :
+	//   mature_node = get_block_by_order(current.order - COINBASE_MATURITY)
+	//   stable_node = get_block_by_order(current.order - DAG_CONFIRM_FACTOR)  /* use 10 here */
+
+	// get the latest mature node hash
+	mNodeHash, err := dbFetchHashByOrder(dbTx, node.order - uint64(b.params.CoinbaseMaturity))
 	if err != nil {
-		return result // return empty
+		return nil, err
+	}
+	// get the latest stable node hash
+	sNodeHash, err := dbFetchHashByOrder(dbTx, node.order - dagConfirmFactor)
+	if err != nil {
+		return nil, err
+	}
+
+	// current balance in the stable node
+	sTs, err := dbFetchTokenState(dbTx, *sNodeHash)
+	if err != nil {
+		return nil, err
 	}
 	// mature balance in the mature node
-	mTs, err := dbFetchTokenState(dbTx, mNode.hash)
+	mTs, err := dbFetchTokenState(dbTx, *mNodeHash)
 	if err != nil {
-		return result // return empty
+		return nil, err
 	}
 
-	// result = current + mature-added
+	// result balance = stable balance + mature updates added
 	// only matured updates can be added into balance
-	result = curTs.balances
+	result = sTs.balances
 	for _, update := range mTs.updates{
-		// the additional checking must has already done so that the updates has already checked its
-		// legality and removed duplicated tx, we can increase/decrase the token balance and locked meer
-		// balance safely. such as the balances can not be over minted; balances can not be negative.
-		// etc..
+		// 1.) the updates list order has already been step up as exactly same as the order of transactions
+		//     in the block.
+		// 2.) the additional checking must has already done so that the updates has already checked its
+		//     legality and removed duplicated tx, we can increase/decrase the token balance and locked meer
+		//     balance safely. such as the balances can not be over minted; balances can not be negative.
+		//     etc..
 		err = result.UpdateBalance(&update)
 		if err != nil {
 			// should never happen at this level
 			log.Error("calculateTokenBalance internal error when update balance %v from update %v", result, update)
 		}
 	}
-	return result
+	return result,nil
 }
 
-func (b *BlockChain) dbPutTokenBalance(dbTx database.Tx, block *types.SerializedBlock, node *blockNode) error {
-	balances := b.calculateTokenBalance(dbTx, node)
+func (b *BlockChain) dbPutTokenBalance(dbTx database.Tx, node *blockNode, block *types.SerializedBlock) error {
+	balances, err := b.calculateTokenBalance(dbTx, node)
+	if err != nil {
+		return err
+	}
 	ts := tokenState{
 		balances: balances,
 		updates: []balanceUpdate{},
