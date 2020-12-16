@@ -365,9 +365,34 @@ func (b *BlockChain) dbPutTokenBalance(dbTx database.Tx, node *blockNode, block 
 }
 
 func checkUnMintUpdate(b *tokenBalances, update *balanceUpdate) error {
+	if update.typ != tokenUnMint {
+		return fmt.Errorf("checkUnMintUpdate : wrong update type %v", update.typ)
+	}
+	if err := checkUpdateCommon(update); err != nil {
+		return err
+	}
 	return nil
 }
 
 func checkMintUpdate(b *tokenBalances, update *balanceUpdate) error {
+	if update.typ != tokenMint {
+		return fmt.Errorf("checkUnMintUpdate : wrong update type %v", update.typ)
+	}
+	if err := checkUpdateCommon(update); err != nil {
+		return err
+	}
+	return nil
+}
+
+func checkUpdateCommon(update *balanceUpdate) error {
+	if !types.IsKnownCoinID(update.tokenAmount.Id) {
+		return fmt.Errorf("checkUpdateCommon : unknown token id %v", update.tokenAmount.Id.Name())
+	}
+	if update.tokenAmount.Value <= 0 {
+		return fmt.Errorf("checkUpdateCommon : wrong token amount : %v", update.tokenAmount.Value)
+	}
+	if update.meerAmount <= 0 {
+		return fmt.Errorf("checkUpdateCommon : wrong meer amount : %v", update.meerAmount)
+	}
 	return nil
 }
