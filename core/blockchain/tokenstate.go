@@ -51,6 +51,29 @@ type tokenState struct {
 
 type tokenBalances map[types.CoinID]tokenBalance
 
+func (tbs *tokenBalances) UpdateBalance(update *balanceUpdate) error {
+	tokenId := update.tokenAmount.Id
+	tb := (*tbs)[tokenId]
+	switch update.typ{
+	case tokenMint:
+		tb.balance += update.tokenAmount.Value
+		tb.lockedMeer += update.meerAmount
+	case tokenUnMint:
+		if tb.balance - update.tokenAmount.Value < 0{
+			return fmt.Errorf("can't unmint token %v more than token balance %v", update.tokenAmount, tb)
+		}
+		tb.balance -= update.tokenAmount.Value
+		if tb.lockedMeer - update.meerAmount < 0{
+			return fmt.Errorf("can't unlock %v meer more than locked meer %v", update.meerAmount, tb)
+		}
+		tb.lockedMeer -= update.meerAmount
+	default:
+		return fmt.Errorf("unknown balance update type %v", update.typ)
+	}
+	(*tbs)[tokenId]=tb
+	return nil
+}
+
 func (tb *tokenBalances) String() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "[")
@@ -261,24 +284,14 @@ func (b *BlockChain) calculateTokenBalance(dbTx database.Tx, node *blockNode) to
 	// only matured updates can be added into balance
 	result = curTs.balances
 	for _, update := range mTs.updates{
-		tokenId := update.tokenAmount.Id
-		switch update.typ {
-		case tokenMint :
-			// the outside logic must make sure that the updates has already checked its legality
-			// and removed duplicated tx so that we can increase the token balance and locked meer
-			// balance safely. such as the balances can not be over minted.
-			b := result[tokenId]
-			b.balance += update.tokenAmount.Value
-			b.lockedMeer += update.meerAmount
-			result[tokenId] = b
-		case tokenUnMint:
-			// the outside logic must make sure that the updates has already checked its legality
-			// and removed duplicated tx so that we can decrease the token balance and locked meer
-			// balance safely. such as balances can not be negative.
-			b := result[tokenId]
-			b.balance -= update.tokenAmount.Value
-			b.lockedMeer -= update.meerAmount
-			result[tokenId] = b
+		// the additional checking must has already done so that the updates has already checked its
+		// legality and removed duplicated tx, we can increase/decrase the token balance and locked meer
+		// balance safely. such as the balances can not be over minted; balances can not be negative.
+		// etc..
+		err = result.UpdateBalance(&update)
+		if err != nil {
+			// should never happen at this level
+			log.Error("calculateTokenBalance internal error when update balance %v from update %v", result, update)
 		}
 	}
 	return result
@@ -294,16 +307,26 @@ func (b *BlockChain) dbPutTokenBalance(dbTx database.Tx, block *types.Serialized
 
 	checkB := balances.Copy()
 	for _, tx:= range block.Transactions() {
+		if tx.IsDuplicate {
+			log.Trace(fmt.Sprintf("dbPutTokenBalance skip duplicate tx %v",tx.Hash()))
+			continue
+		}
 		if token.IsTokenMint(tx.Tx) {
 			// TOKEN_MINT: input[0] token output[0] meer
-			// the previous logic must make sure the legality of values, here only append.
 			update := balanceUpdate{
-				typ:tokenMint,
+				typ:         tokenMint,
 				tokenAmount: tx.Tx.TxIn[0].AmountIn,
-				meerAmount:tx.Tx.TxOut[0].Amount.Value}
+				meerAmount:  tx.Tx.TxOut[0].Amount.Value}
+
+			// check the legality of update values.
 			if err := checkMintUpdate(checkB, &update); err != nil {
 				return err
 			}
+			// try update balance
+			if err := checkB.UpdateBalance(&update); err!= nil{
+				return err
+			}
+			// append to update only when check & try has done with no err
 			ts.updates = append(ts.updates, update)
 		}
 		if token.IsTokenUnMint(tx.Tx) {
@@ -313,9 +336,15 @@ func (b *BlockChain) dbPutTokenBalance(dbTx database.Tx, block *types.Serialized
 				typ:tokenUnMint,
 				meerAmount: tx.Tx.TxIn[0].AmountIn.Value,
 				tokenAmount:tx.Tx.TxOut[0].Amount}
+			// check the legality of update values.
 			if err := checkUnMintUpdate(checkB, &update); err != nil {
 				return err
 			}
+			// try update balance
+			if err := checkB.UpdateBalance(&update); err!= nil{
+				return err
+			}
+			// append to update only when check & try has done with no err
 			ts.updates = append(ts.updates, update)
 		}
 	}
