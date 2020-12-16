@@ -866,8 +866,6 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	b.stateSnapshot = state
 	b.stateLock.Unlock()
 
-
-
 	return nil
 }
 

@@ -48,49 +48,47 @@ type tokenState struct {
 	updates  []balanceUpdate
 }
 
-
 type tokenBalances map[types.CoinID]tokenBalance
 
 func (tbs *tokenBalances) UpdateBalance(update *balanceUpdate) error {
 	tokenId := update.tokenAmount.Id
 	tb := (*tbs)[tokenId]
-	switch update.typ{
+	switch update.typ {
 	case tokenMint:
 		tb.balance += update.tokenAmount.Value
 		tb.lockedMeer += update.meerAmount
 	case tokenUnMint:
-		if tb.balance - update.tokenAmount.Value < 0{
+		if tb.balance-update.tokenAmount.Value < 0 {
 			return fmt.Errorf("can't unmint token %v more than token balance %v", update.tokenAmount, tb)
 		}
 		tb.balance -= update.tokenAmount.Value
-		if tb.lockedMeer - update.meerAmount < 0{
+		if tb.lockedMeer-update.meerAmount < 0 {
 			return fmt.Errorf("can't unlock %v meer more than locked meer %v", update.meerAmount, tb)
 		}
 		tb.lockedMeer -= update.meerAmount
 	default:
 		return fmt.Errorf("unknown balance update type %v", update.typ)
 	}
-	(*tbs)[tokenId]=tb
+	(*tbs)[tokenId] = tb
 	return nil
 }
 
 func (tb *tokenBalances) String() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "[")
-	for k,v :=range *tb {
-		b.WriteString(fmt.Sprintf("%v:{balance:%v,locked-meer:%v},",k.Name(),v.balance,v.lockedMeer))
+	for k, v := range *tb {
+		b.WriteString(fmt.Sprintf("%v:{balance:%v,locked-meer:%v},", k.Name(), v.balance, v.lockedMeer))
 	}
 	fmt.Fprintf(&b, "]")
 	return b.String()
 }
 func (tb *tokenBalances) Copy() *tokenBalances {
 	newTb := tokenBalances{}
-	for k, v :=range *tb {
+	for k, v := range *tb {
 		newTb[k] = v
 	}
 	return &newTb
 }
-
 
 // serializeTokeState function will serialize the token state into byte slice
 func serializeTokeState(ts tokenState) ([]byte, error) {
@@ -254,7 +252,7 @@ func (b *BlockChain) calculateTokenBalance(dbTx database.Tx, node *blockNode) (t
 	// the passed-in node should always has already been ordered at this level
 	if !node.IsOrdered() {
 		panic(fmt.Sprintf("node (hash=%v,order=%v,height=%v,layer=%v) is not ordered",
-			node.hash,node.order,node.height,node.layer)) //should never happen here
+			node.hash, node.order, node.height, node.layer)) //should never happen here
 	}
 
 	// if no block is mature, return empty
@@ -269,12 +267,12 @@ func (b *BlockChain) calculateTokenBalance(dbTx database.Tx, node *blockNode) (t
 	//   stable_node = get_block_by_order(current.order - DAG_CONFIRM_FACTOR)  /* use 10 here */
 
 	// get the latest mature node hash
-	mNodeHash, err := dbFetchHashByOrder(dbTx, node.order - uint64(b.params.CoinbaseMaturity))
+	mNodeHash, err := dbFetchHashByOrder(dbTx, node.order-uint64(b.params.CoinbaseMaturity))
 	if err != nil {
 		return nil, err
 	}
 	// get the latest stable node hash
-	sNodeHash, err := dbFetchHashByOrder(dbTx, node.order - dagConfirmFactor)
+	sNodeHash, err := dbFetchHashByOrder(dbTx, node.order-dagConfirmFactor)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +291,7 @@ func (b *BlockChain) calculateTokenBalance(dbTx database.Tx, node *blockNode) (t
 	// result balance = stable balance + mature updates added
 	// only matured updates can be added into balance
 	result = sTs.balances
-	for _, update := range mTs.updates{
+	for _, update := range mTs.updates {
 		// 1.) the updates list order has already been step up as exactly same as the order of transactions
 		//     in the block.
 		// 2.) the additional checking must has already done so that the updates has already checked its
@@ -306,7 +304,7 @@ func (b *BlockChain) calculateTokenBalance(dbTx database.Tx, node *blockNode) (t
 			log.Error("calculateTokenBalance internal error when update balance %v from update %v", result, update)
 		}
 	}
-	return result,nil
+	return result, nil
 }
 
 func (b *BlockChain) dbPutTokenBalance(dbTx database.Tx, node *blockNode, block *types.SerializedBlock) error {
@@ -316,14 +314,14 @@ func (b *BlockChain) dbPutTokenBalance(dbTx database.Tx, node *blockNode, block 
 	}
 	ts := tokenState{
 		balances: balances,
-		updates: []balanceUpdate{},
+		updates:  []balanceUpdate{},
 	}
 	log.Trace(fmt.Sprintf("dbPutTokenBalance: %v start token balance %s", block.Hash(), balances.String()))
 
 	checkB := balances.Copy()
-	for _, tx:= range block.Transactions() {
+	for _, tx := range block.Transactions() {
 		if tx.IsDuplicate {
-			log.Trace(fmt.Sprintf("dbPutTokenBalance skip duplicate tx %v",tx.Hash()))
+			log.Trace(fmt.Sprintf("dbPutTokenBalance skip duplicate tx %v", tx.Hash()))
 			continue
 		}
 		if token.IsTokenMint(tx.Tx) {
@@ -338,7 +336,7 @@ func (b *BlockChain) dbPutTokenBalance(dbTx database.Tx, node *blockNode, block 
 				return err
 			}
 			// try update balance
-			if err := checkB.UpdateBalance(&update); err!= nil{
+			if err := checkB.UpdateBalance(&update); err != nil {
 				return err
 			}
 			// append to update only when check & try has done with no err
@@ -347,16 +345,16 @@ func (b *BlockChain) dbPutTokenBalance(dbTx database.Tx, node *blockNode, block 
 		if token.IsTokenUnMint(tx.Tx) {
 			// TOKEN_UNMINT: input[0] meer output[0] token
 			// the previous logic must make sure the legality of values, here only append.
-			update :=balanceUpdate{
-				typ:tokenUnMint,
-				meerAmount: tx.Tx.TxIn[0].AmountIn.Value,
-				tokenAmount:tx.Tx.TxOut[0].Amount}
+			update := balanceUpdate{
+				typ:         tokenUnMint,
+				meerAmount:  tx.Tx.TxIn[0].AmountIn.Value,
+				tokenAmount: tx.Tx.TxOut[0].Amount}
 			// check the legality of update values.
 			if err := checkUnMintUpdate(checkB, &update); err != nil {
 				return err
 			}
 			// try update balance
-			if err := checkB.UpdateBalance(&update); err!= nil{
+			if err := checkB.UpdateBalance(&update); err != nil {
 				return err
 			}
 			// append to update only when check & try has done with no err
