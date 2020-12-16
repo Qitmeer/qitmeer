@@ -11,7 +11,7 @@ type ProofData struct {
 type PowResult struct {
 	PowName   string     `json:"pow_name"`
 	PowType   uint8      `json:"pow_type"`
-	Nonce     uint32     `json:"nonce"`
+	Nonce     uint64     `json:"nonce"`
 	ProofData *ProofData `json:"proof_data,omitempty"`
 }
 

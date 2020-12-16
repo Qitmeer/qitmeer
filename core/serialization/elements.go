@@ -155,15 +155,15 @@ func readElement(r io.Reader, element interface{}) error {
 		return nil
 
 	case *pow.IPow:
-		//pow 5 bytes for powtype 1 byte
-		// nonce 4 bytes
+		// pow 9 bytes for powtype 1 byte
+		// nonce 8 bytes
 		b := make([]byte, pow.POW_LENGTH-pow.PROOFDATA_LENGTH)
 		_, err := io.ReadFull(r, b)
 		if err != nil {
 			return err
 		}
-		//nonce 4 bytes + powType 1 bytes
-		powType := pow.PowType(b[4:5][0])
+		// powType 1 bytes + nonce 8 bytes
+		powType := pow.PowType(b[0:1][0])
 		if _, ok := pow.PowMapString[powType]; !ok {
 			return fmt.Errorf("powType:%d don't supported!", powType)
 		}
@@ -173,8 +173,8 @@ func readElement(r io.Reader, element interface{}) error {
 		if err != nil {
 			return err
 		}
-		//set pow type 1 bytes nonce 4 bytes and proof data except types
-		*e = pow.GetInstance(powType, littleEndian.Uint32(b[0:4]), leftBytes)
+		// set pow type 1 bytes nonce 8 bytes and proof data except types
+		*e = pow.GetInstance(powType, littleEndian.Uint64(b[1:9]), leftBytes)
 		return nil
 
 	}
