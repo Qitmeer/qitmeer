@@ -10,25 +10,26 @@ import (
 // node is the wrapper of a qitmeer node process. which contains all necessary
 // configure information required to manage a qitmeer full node process.
 type node struct {
-	t *testing.T
+	t      *testing.T
 	config *nodeConfig
-	cmd *exec.Cmd
+	cmd    *exec.Cmd
 }
 
 // the configuration of the node
 type nodeConfig struct {
 	program   string
 	rpclisten string
-	rpcuser  string
-	rpcpass  string
+	rpcuser   string
+	rpcpass   string
 	homeDir   string
 	dataDir   string
 	logDir    string
 	extraArgs []string
 }
+
 // args return the arguments list build from the nodeConfig
 // which be used to launch the qitmeer node
-func (n * nodeConfig) args() []string {
+func (n *nodeConfig) args() []string {
 	args := []string{}
 	if n.rpclisten != "" {
 		args = append(args, fmt.Sprintf("--rpclisten=%s", n.rpclisten))
@@ -59,13 +60,13 @@ func newNode(t *testing.T, config *nodeConfig) *node {
 
 func newNodeConfig(homeDir string, extraArgs []string) *nodeConfig {
 	c := &nodeConfig{
-		program: "qitmeer",
+		program:   "qitmeer",
 		rpclisten: "127.0.0.1:12345",
-		rpcuser: "testuser",
-		rpcpass: "testpass",
-		homeDir: homeDir,
-		dataDir: filepath.Join(homeDir, "data"),
-		logDir: filepath.Join(homeDir, "log"),
+		rpcuser:   "testuser",
+		rpcpass:   "testpass",
+		homeDir:   homeDir,
+		dataDir:   filepath.Join(homeDir, "data"),
+		logDir:    filepath.Join(homeDir, "log"),
 		extraArgs: extraArgs,
 	}
 	return c

@@ -37,7 +37,7 @@ type Harness struct {
 	// format of `test-harness-<num>-*`
 	instanceDir string
 	// the qitmeer node process
-	node        *node
+	node *node
 }
 
 func (h *Harness) Id() string {
@@ -66,7 +66,7 @@ func (h *Harness) teardown() error {
 	if err := os.RemoveAll(h.instanceDir); err != nil {
 		return err
 	}
-	delete(harnessInstances,h.instanceDir)
+	delete(harnessInstances, h.instanceDir)
 	return nil
 }
 
@@ -90,8 +90,8 @@ func NewHarness(t *testing.T, net *params.Params, args []string) (*Harness, erro
 	// initialize the node process
 	newNode := &node{}
 	h := Harness{
-		instanceDir:testDir,
-		node: newNode,
+		instanceDir: testDir,
+		node:        newNode,
 	}
 	harnessInstances[h.instanceDir] = &h
 	return &h, nil
@@ -102,7 +102,7 @@ func TearDownAll() error {
 	harnessStateMutex.Lock()
 	defer harnessStateMutex.Unlock()
 	for _, h := range harnessInstances {
-		if err:= h.teardown(); err != nil {
+		if err := h.teardown(); err != nil {
 			return err
 		}
 	}
@@ -114,7 +114,7 @@ func AllHarnesses() []*Harness {
 	harnessStateMutex.RLock()
 	defer harnessStateMutex.RUnlock()
 	all := make([]*Harness, 0, len(harnessInstances))
-	for _,h := range harnessInstances {
+	for _, h := range harnessInstances {
 		all = append(all, h)
 	}
 	return all

@@ -6,9 +6,9 @@ import (
 )
 
 func TestNewNodeCmdArgs(t *testing.T) {
-	c := newNodeConfig("test",[]string{"--k1=v1","--k2=v2"})
- 	node := newNode(t, c)
- 	if node.cmd.Dir != "" {
+	c := newNodeConfig("test", []string{"--k1=v1", "--k2=v2"})
+	node := newNode(t, c)
+	if node.cmd.Dir != "" {
 		t.Errorf("failed to create node, expect %v but got %v", "", node.cmd.Dir)
 	}
 	args := []string{
@@ -20,7 +20,7 @@ func TestNewNodeCmdArgs(t *testing.T) {
 		"--logdir=test/log",
 		"--k1=v1",
 		"--k2=v2",
-		}
+	}
 	if !reflect.DeepEqual(args, node.cmd.Args) {
 		t.Errorf("failed to create node, expect %v but got %v", args, node.cmd.Args)
 	}

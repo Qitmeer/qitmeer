@@ -54,7 +54,7 @@ func TestHarness(t *testing.T) {
 		t.Errorf("harness num is wrong, expect %d , but got %d", 1, numOfHarnessInstances)
 	}
 	var wg sync.WaitGroup
-	for i:=0 ; i<10 ; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
 			NewHarness(t, params.PrivNetParam.Params, nil)
