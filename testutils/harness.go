@@ -16,13 +16,13 @@ import (
 )
 
 var (
-	// the global variables for a protected harness state
-	// the number of initialized harness instance
-	numOfHarnessInstances = 0
-
 	// process id
 	pid = os.Getpid()
 
+	// the private harness instances map contains all initialized harnesses
+	// which returned by the NewHarness func. and the instance will delete itself
+	// from the map after the Teardown func has been called
+	harnessInstances = make(map[string]*Harness)
 	// protect the global harness state variables
 	harnessStateMutex sync.RWMutex
 )
@@ -32,9 +32,19 @@ var (
 // mode in order to allow for easy block generation. Harness handles the node
 // start/shutdown and any temporary directories need to be created.
 type Harness struct {
+	// the temporary directory created when the Harness instance initialized
+	// its also used as the unique id of the harness instance, its in the
+	// format of `test-harness-<num>-*`
+	instanceDir string
+	// the qitmeer node process
+	node        *node
 }
 
-// setup func initialize the test state.
+func (h *Harness) Id() string {
+	return h.instanceDir
+}
+
+// Setup func initialize the test state.
 // 1. start the qitmeer node according to the net params
 // 2. setup the rpc clint so that the rpc call can be sent to the node
 // 3. generate a test block dag by configuration (optional, may empty dag by config)
@@ -42,9 +52,21 @@ func (*Harness) Setup() error {
 	return nil
 }
 
+// Teardown func the concurrent safe wrapper of teardown func
+func (h *Harness) Teardown() error {
+	harnessStateMutex.Lock()
+	defer harnessStateMutex.Unlock()
+	return h.teardown()
+}
+
 // teardown func stop the running test, stop the rpc client shutdown the node,
 // kill any related processes if need and clean up the temporary data folder
-func (*Harness) Teardown() error {
+// NOTE: the func is NOT concurrent safe. see also the Teardown func
+func (h *Harness) teardown() error {
+	if err := os.RemoveAll(h.instanceDir); err != nil {
+		return err
+	}
+	delete(harnessInstances,h.instanceDir)
 	return nil
 }
 
@@ -54,9 +76,8 @@ func (*Harness) Teardown() error {
 func NewHarness(t *testing.T, net *params.Params, args []string) (*Harness, error) {
 	harnessStateMutex.Lock()
 	defer harnessStateMutex.Unlock()
-	h := Harness{}
 	// create temporary folder
-	testDir, err := ioutil.TempDir("", "test-harness-"+strconv.Itoa(numOfHarnessInstances))
+	testDir, err := ioutil.TempDir("", "test-harness-"+strconv.Itoa(len(harnessInstances))+"-*")
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +87,35 @@ func NewHarness(t *testing.T, net *params.Params, args []string) (*Harness, erro
 	if err := rpc.GenCertPair(certFile, keyFile); err != nil {
 		return nil, err
 	}
-	numOfHarnessInstances++
+	// initialize the node process
+	newNode := &node{}
+	h := Harness{
+		instanceDir:testDir,
+		node: newNode,
+	}
+	harnessInstances[h.instanceDir] = &h
 	return &h, nil
+}
+
+// TearDownAll func teardown all Harness Instances
+func TearDownAll() error {
+	harnessStateMutex.Lock()
+	defer harnessStateMutex.Unlock()
+	for _, h := range harnessInstances {
+		if err:= h.teardown(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// AllHarnesses func get all Harness instances
+func AllHarnesses() []*Harness {
+	harnessStateMutex.RLock()
+	defer harnessStateMutex.RUnlock()
+	all := make([]*Harness, 0, len(harnessInstances))
+	for _,h := range harnessInstances {
+		all = append(all, h)
+	}
+	return all
 }

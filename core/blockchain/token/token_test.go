@@ -6,6 +6,8 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	. "github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/testutils"
 	"testing"
 )
 
@@ -384,6 +386,19 @@ func TestCheckTokenUnMint(t *testing.T) {
 			t.Errorf("failed test[%d]:[%v], expect [%v] but [%v], error:[%v]",i, test.name, test.expected, got, err)
 		}
 	}
+}
+
+func TestTokenIssue(t *testing.T) {
+	h, err := testutils.NewHarness(t, params.PrivNetParam.Params, nil)
+	if err!=nil {
+		t.Errorf("failed to create test harness")
+	}
+	defer func() {
+		err := h.Teardown()
+		if err!=nil {
+			t.Errorf("failed to teardown test harness")
+		}
+	}()
 }
 
 //func generateKeys() {
