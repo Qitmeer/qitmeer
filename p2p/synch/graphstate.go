@@ -80,7 +80,7 @@ func (ps *PeerSync) processUpdateGraphState(pe *peers.Peer) error {
 	}
 	gs, err := ps.sy.sendGraphStateRequest(ps.sy.p2p.Context(), pe, ps.sy.getGraphState())
 	if err != nil {
-		log.Debug(err.Error())
+		log.Warn(err.Error())
 		return err
 	}
 	pe.UpdateGraphState(gs)

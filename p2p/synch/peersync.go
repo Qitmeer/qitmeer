@@ -87,7 +87,7 @@ out:
 			case *GetBlocksMsg:
 				err := ps.processGetBlocks(msg.pe, msg.blocks)
 				if err != nil {
-					log.Debug(err.Error())
+					log.Warn(err.Error())
 				}
 			case *GetBlockDatasMsg:
 				err := ps.processGetBlockDatas(msg.pe, msg.blocks)
@@ -98,24 +98,24 @@ out:
 			case *UpdateGraphStateMsg:
 				err := ps.processUpdateGraphState(msg.pe)
 				if err != nil {
-					log.Debug(err.Error())
+					log.Warn(err.Error())
 				}
 			case *syncDAGBlocksMsg:
 				err := ps.processSyncDAGBlocks(msg.pe)
 				if err != nil {
-					log.Debug(err.Error())
+					log.Warn(err.Error())
 				}
 			case *PeerUpdateMsg:
 				ps.OnPeerUpdate(msg.pe, msg.orphan)
 			case *getTxsMsg:
 				err := ps.processGetTxs(msg.pe, msg.txs)
 				if err != nil {
-					log.Debug(err.Error())
+					log.Warn(err.Error())
 				}
 			case *SyncQNRMsg:
 				err := ps.processQNR(msg)
 				if err != nil {
-					log.Debug(err.Error())
+					log.Warn(err.Error())
 				}
 			default:
 				log.Warn(fmt.Sprintf("Invalid message type in task "+

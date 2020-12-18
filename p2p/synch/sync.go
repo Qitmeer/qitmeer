@@ -244,14 +244,14 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 					log.Debug(fmt.Sprintf("Failed to decode goodbye stream message:%v", err))
 					return
 				}
-				log.Debug(fmt.Sprintf("Failed to decode stream message:%v", err))
+				log.Warn(fmt.Sprintf("Failed to decode stream message:%v", err))
 				return
 			}
 		}
 
 		SetRPCStreamDeadlines(stream)
 		if e = handle(ctx, msg, stream); e != nil {
-			log.Debug(fmt.Sprintf("Failed to handle p2p RPC:%v", e.Error.Error()))
+			log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", e.Error.Error()))
 		}
 	})
 }
@@ -262,7 +262,7 @@ func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 	}
 	resp, err := generateErrorResponse(e, rpc.Encoding())
 	if err != nil {
-		log.Debug(fmt.Sprintf("Failed to generate a response error:%v", err))
+		log.Warn(fmt.Sprintf("Failed to generate a response error:%v", err))
 	} else {
 		if _, err := stream.Write(resp); err != nil {
 			log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
@@ -274,7 +274,7 @@ func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 			return
 		}
 	} else {
-		log.Debug(fmt.Sprintf("Process error (%s):%s", e.Code.String(), e.Error.Error()))
+		log.Warn(fmt.Sprintf("Process error (%s):%s", e.Code.String(), e.Error.Error()))
 	}
 }
 
