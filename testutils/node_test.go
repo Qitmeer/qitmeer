@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"regexp"
 	"testing"
+	"time"
 )
 
 func TestNewNodeCmdArgs(t *testing.T) {
@@ -44,6 +45,25 @@ func TestNewNodeCmdArgs(t *testing.T) {
 	got := append(node.cmd.Args[:4], node.cmd.Args[6:]...)
 	if !reflect.DeepEqual(expect, got) {
 		t.Errorf("failed to create node, expect %v but got %v", expect, got)
+	}
+}
+
+func TestNodeStartStop(t *testing.T) {
+	testDir, _ := ioutil.TempDir("", "test")
+	defer os.RemoveAll(testDir)
+	c := newNodeConfig(testDir, []string{"--privnet"})
+	n, err := newNode(t, c)
+	if err != nil {
+		t.Errorf("new node failed :%v", err)
+	}
+	err = n.start()
+	if err != nil {
+		t.Errorf("new node start failed :%v", err)
+	}
+	time.Sleep(100 * time.Millisecond)
+	err = n.stop()
+	if err != nil {
+		t.Errorf("new node stop failed :%v", err)
 	}
 
 }

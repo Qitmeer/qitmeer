@@ -1,21 +1,16 @@
 package testutils
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"testing"
 )
-
-// node is the wrapper of a qitmeer node process. which contains all necessary
-// configure information required to manage a qitmeer full node process.
-type node struct {
-	t      *testing.T
-	config *nodeConfig
-	cmd    *exec.Cmd
-}
 
 // the configuration of the node
 type nodeConfig struct {
@@ -29,6 +24,22 @@ type nodeConfig struct {
 	keyFile   string
 	certFile  string
 	extraArgs []string
+}
+
+func newNodeConfig(homeDir string, extraArgs []string) *nodeConfig {
+	c := &nodeConfig{
+		program:   "qitmeer",
+		rpclisten: "127.0.0.1:12345",
+		rpcuser:   "testuser",
+		rpcpass:   "testpass",
+		homeDir:   homeDir,
+		dataDir:   filepath.Join(homeDir, "data"),
+		logDir:    filepath.Join(homeDir, "log"),
+		keyFile:   filepath.Join(homeDir, "rpc.key"),
+		certFile:  filepath.Join(homeDir, "rpc.cert"),
+		extraArgs: extraArgs,
+	}
+	return c
 }
 
 // args return the arguments list build from the nodeConfig
@@ -54,33 +65,79 @@ func (n *nodeConfig) args() []string {
 	return args
 }
 
+// node is the wrapper of a qitmeer node process. which contains all necessary
+// configure information required to manage a qitmeer full node process.
+type node struct {
+	t      *testing.T
+	config *nodeConfig
+	cmd    *exec.Cmd
+	wg     sync.WaitGroup
+}
+
+// create an new node instance
 func newNode(t *testing.T, config *nodeConfig) (*node, error) {
+	// test if home directory exist
 	if _, err := os.Stat(config.homeDir); os.IsNotExist(err) {
 		return nil, err
 	}
-	// create rpc cert and key
+	// create rpc cert and key file
 	if err := rpc.GenCertPair(config.certFile, config.keyFile); err != nil {
 		return nil, err
 	}
 	return &node{
-		t,
-		config,
-		exec.Command(config.program, config.args()...),
+		t:      t,
+		config: config,
+		cmd:    exec.Command(config.program, config.args()...),
 	}, nil
 }
 
-func newNodeConfig(homeDir string, extraArgs []string) *nodeConfig {
-	c := &nodeConfig{
-		program:   "qitmeer",
-		rpclisten: "127.0.0.1:12345",
-		rpcuser:   "testuser",
-		rpcpass:   "testpass",
-		homeDir:   homeDir,
-		dataDir:   filepath.Join(homeDir, "data"),
-		logDir:    filepath.Join(homeDir, "log"),
-		keyFile:   filepath.Join(homeDir, "rpc.key"),
-		certFile:  filepath.Join(homeDir, "rpc.cert"),
-		extraArgs: extraArgs,
+func (n *node) redirectOutput(reader io.ReadCloser) error {
+	n.wg.Add(1)
+	go func() {
+		defer n.wg.Done()
+		r := bufio.NewReader(reader)
+		for {
+			l, err := r.ReadString('\n')
+			if err != nil || err == io.EOF {
+				return
+			}
+			n.t.Logf("qitmeer-harness-node: %s", l)
+		}
+	}()
+	return nil
+}
+
+// start up the node instance which works as the wrapped qitmeer process
+func (n *node) start() error {
+	// redirect stdout
+	if stdout, err := n.cmd.StdoutPipe(); err != nil {
+		return err
+	} else {
+		n.redirectOutput(stdout)
 	}
-	return c
+	// redirect stderr
+	if stderr, err := n.cmd.StderrPipe(); err != nil {
+		return err
+	} else {
+		n.redirectOutput(stderr)
+	}
+
+	// Launch command
+	n.t.Logf("start node from %v", n.config.homeDir)
+	if err := n.cmd.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (n *node) stop() error {
+	n.t.Logf("stop node from %v", n.config.homeDir)
+	if err := n.cmd.Process.Signal(os.Interrupt); err != nil {
+		return err
+	}
+	if err := n.cmd.Wait(); err != nil {
+		return err
+	}
+	n.wg.Wait()
+	return nil
 }
