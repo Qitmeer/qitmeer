@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/rpc/websocket"
 	"github.com/deckarep/golang-set"
 	"golang.org/x/net/context"
 	"io"
@@ -126,12 +127,10 @@ func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 }
 
 func (s *RpcServer) Start() error {
-	//TODO control by config
-	if err := s.startHTTP(s.config.RPCListeners); err != nil {
-		return err
+	if atomic.AddInt32(&s.run, 1) != 1 {
+		return fmt.Errorf("Already running")
 	}
-	s.run = 1
-	return nil
+	return s.startHTTP(s.config.RPCListeners)
 }
 
 // Stop will stop reading new requests, wait for stopPendingRequestTimeout to allow pending requests to finish,
@@ -186,6 +185,28 @@ func (s *RpcServer) startHTTP(listenAddrs []string) error {
 		// Read and respond to the request.
 		s.jsonRPCRead(w, r)
 	})
+
+	// Websocket endpoint.
+	rpcServeMux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		isAdmin, err := s.checkAuth(r, false)
+		if err != nil {
+			jsonAuthFail(w)
+			return
+		}
+
+		// Attempt to upgrade the connection to a websocket connection
+		// using the default size for read/write buffers.
+		ws, err := websocket.Upgrade(w, r, nil, 0, 0)
+		if err != nil {
+			if _, ok := err.(websocket.HandshakeError); !ok {
+				log.Error(fmt.Sprintf("Unexpected websocket error: %v", err))
+			}
+			http.Error(w, "400 Bad Request.", http.StatusBadRequest)
+			return
+		}
+		s.WebsocketHandler(ws, r.RemoteAddr, isAdmin)
+	})
+
 	listeners, err := parseListeners(s.config, listenAddrs)
 	if err != nil {
 		return err
