@@ -1,8 +1,10 @@
 package testutils
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"reflect"
 	"regexp"
 	"testing"
@@ -49,6 +51,12 @@ func TestNewNodeCmdArgs(t *testing.T) {
 }
 
 func TestNodeStartStop(t *testing.T) {
+	found, err := exec.LookPath("qitmeer")
+	if err != nil {
+		t.Skip(fmt.Sprintf("skip the test since: %v", err))
+	} else {
+		t.Logf("found qitmeer execuable at %v", found)
+	}
 	testDir, _ := ioutil.TempDir("", "test")
 	defer os.RemoveAll(testDir)
 	c := newNodeConfig(testDir, []string{"--privnet"})
@@ -60,7 +68,7 @@ func TestNodeStartStop(t *testing.T) {
 	if err != nil {
 		t.Errorf("new node start failed :%v", err)
 	}
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	err = n.stop()
 	if err != nil {
 		t.Errorf("new node stop failed :%v", err)

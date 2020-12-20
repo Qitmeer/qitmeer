@@ -71,6 +71,7 @@ type node struct {
 	t      *testing.T
 	config *nodeConfig
 	cmd    *exec.Cmd
+	pid    int
 	wg     sync.WaitGroup
 }
 
@@ -91,10 +92,11 @@ func newNode(t *testing.T, config *nodeConfig) (*node, error) {
 	}, nil
 }
 
-func (n *node) redirectOutput(reader io.ReadCloser) error {
+func (n *node) redirectOutput(reader io.ReadCloser, waitPid *sync.WaitGroup) error {
 	n.wg.Add(1)
 	go func() {
 		defer n.wg.Done()
+		waitPid.Wait() //wait for pid is available
 		r := bufio.NewReader(reader)
 		for {
 			l, err := r.ReadString('\n')
@@ -106,25 +108,44 @@ func (n *node) redirectOutput(reader io.ReadCloser) error {
 	}()
 	return nil
 }
+func (n *node) storePid(waitPid *sync.WaitGroup) error {
+	n.pid = n.cmd.Process.Pid
+	defer waitPid.Done()
+	f, err := os.Create(filepath.Join(n.config.homeDir, "qitmeer.pid"))
+	if err != nil {
+		return err
+	}
+	if _, err = fmt.Fprintf(f, "%d\n", n.cmd.Process.Pid); err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return nil
+}
 
 // start up the node instance which works as the wrapped qitmeer process
 func (n *node) start() error {
+	var waitpid sync.WaitGroup
+	waitpid.Add(1)
 	// redirect stdout
 	if stdout, err := n.cmd.StdoutPipe(); err != nil {
 		return err
 	} else {
-		n.redirectOutput(stdout)
+		n.redirectOutput(stdout, &waitpid)
 	}
 	// redirect stderr
 	if stderr, err := n.cmd.StderrPipe(); err != nil {
 		return err
 	} else {
-		n.redirectOutput(stderr)
+		n.redirectOutput(stderr, &waitpid)
 	}
-
 	// Launch command
 	n.t.Logf("start node from %v", n.config.homeDir)
 	if err := n.cmd.Start(); err != nil {
+		return err
+	}
+	if err := n.storePid(&waitpid); err != nil {
 		return err
 	}
 	return nil
@@ -132,12 +153,22 @@ func (n *node) start() error {
 
 func (n *node) stop() error {
 	n.t.Logf("stop node from %v", n.config.homeDir)
+	// need to check if process has been started
+	if n.cmd.Process == nil {
+		return nil
+	}
+
 	if err := n.cmd.Process.Signal(os.Interrupt); err != nil {
 		return err
 	}
+
+	// wait for stdout/stderr redirect pipe done
+	n.wg.Wait()
+
+	// wait for cmd done
 	if err := n.cmd.Wait(); err != nil {
 		return err
 	}
-	n.wg.Wait()
+
 	return nil
 }
