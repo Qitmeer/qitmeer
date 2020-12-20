@@ -2,6 +2,8 @@ package testutils
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/rpc"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -24,6 +26,8 @@ type nodeConfig struct {
 	homeDir   string
 	dataDir   string
 	logDir    string
+	keyFile   string
+	certFile  string
 	extraArgs []string
 }
 
@@ -50,12 +54,19 @@ func (n *nodeConfig) args() []string {
 	return args
 }
 
-func newNode(t *testing.T, config *nodeConfig) *node {
+func newNode(t *testing.T, config *nodeConfig) (*node, error) {
+	if _, err := os.Stat(config.homeDir); os.IsNotExist(err) {
+		return nil, err
+	}
+	// create rpc cert and key
+	if err := rpc.GenCertPair(config.certFile, config.keyFile); err != nil {
+		return nil, err
+	}
 	return &node{
 		t,
 		config,
 		exec.Command(config.program, config.args()...),
-	}
+	}, nil
 }
 
 func newNodeConfig(homeDir string, extraArgs []string) *nodeConfig {
@@ -67,6 +78,8 @@ func newNodeConfig(homeDir string, extraArgs []string) *nodeConfig {
 		homeDir:   homeDir,
 		dataDir:   filepath.Join(homeDir, "data"),
 		logDir:    filepath.Join(homeDir, "log"),
+		keyFile:   filepath.Join(homeDir, "rpc.key"),
+		certFile:  filepath.Join(homeDir, "rpc.cert"),
 		extraArgs: extraArgs,
 	}
 	return c

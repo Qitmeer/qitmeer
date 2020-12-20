@@ -5,11 +5,11 @@
 package testutils
 
 import (
+	"fmt"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/rpc"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strconv"
 	"sync"
 	"testing"
@@ -73,22 +73,38 @@ func (h *Harness) teardown() error {
 // NewHarness func creates an new instance of test harness with provided network params.
 // The args is the arguments list that are used when setup a qitmeer node. In the most
 // case, it should be set to nil if no extra args need to add on the default starting up.
-func NewHarness(t *testing.T, net *params.Params, args []string) (*Harness, error) {
+func NewHarness(t *testing.T, params *params.Params, args []string) (*Harness, error) {
 	harnessStateMutex.Lock()
 	defer harnessStateMutex.Unlock()
+
 	// create temporary folder
 	testDir, err := ioutil.TempDir("", "test-harness-"+strconv.Itoa(len(harnessInstances))+"-*")
 	if err != nil {
 		return nil, err
 	}
-	// create rpc cert and key
-	certFile := filepath.Join(testDir, "rpc.cert")
-	keyFile := filepath.Join(testDir, "rpc.key")
-	if err := rpc.GenCertPair(certFile, keyFile); err != nil {
+
+	// setup network type
+	extraArgs := []string{}
+	switch params.Net {
+	case protocol.MainNet:
+		//do nothing for mainnet which is by default
+	case protocol.MixNet:
+		extraArgs = append(extraArgs, "--mixnet")
+	case protocol.TestNet:
+		extraArgs = append(extraArgs, "--testnet")
+	case protocol.PrivNet:
+		extraArgs = append(extraArgs, "--testnet")
+	default:
+		return nil, fmt.Errorf("unknown network type %v", params.Net)
+	}
+
+	// create node config & initialize the node process
+	config := newNodeConfig(testDir, extraArgs)
+	newNode, err := newNode(t, config)
+	if err != nil {
 		return nil, err
 	}
-	// initialize the node process
-	newNode := &node{}
+
 	h := Harness{
 		instanceDir: testDir,
 		node:        newNode,
