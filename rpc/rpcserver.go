@@ -53,6 +53,8 @@ type RpcServer struct {
 	reqStatusLock sync.RWMutex
 
 	ntfnMgr *wsNotificationManager
+
+	listeners []net.Listener
 }
 
 // service represents a registered object
@@ -149,6 +151,14 @@ func (s *RpcServer) Stop() {
 		return
 	}
 	log.Debug("RPC Server is stopping")
+
+	for _, listener := range s.listeners {
+		err := listener.Close()
+		if err != nil {
+			log.Error(fmt.Sprintf("Problem shutting down rpc: %v", err))
+		}
+	}
+
 	s.codecsMu.Lock()
 	defer s.codecsMu.Unlock()
 	s.codecs.Each(func(c interface{}) bool {
@@ -226,12 +236,13 @@ func (s *RpcServer) startHTTP(listenAddrs []string) error {
 	if err != nil {
 		return err
 	}
+	s.listeners = listeners
 	for _, listener := range listeners {
 		s.wg.Add(1)
 		go func(listener net.Listener) {
-			log.Info("RPC server listening on ", "addr", listener.Addr())
+			log.Info(fmt.Sprintf("RPC server listening on addr:%v", listener.Addr()))
 			httpServer.Serve(listener)
-			log.Trace("RPC listener done for %s", listener.Addr())
+			log.Info(fmt.Sprintf("RPC listener done for %v", listener.Addr()))
 			s.wg.Done()
 		}(listener)
 	}
