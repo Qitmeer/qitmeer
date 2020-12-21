@@ -9,6 +9,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/params"
 	"io/ioutil"
+	"net"
 	"os"
 	"strconv"
 	"sync"
@@ -16,8 +17,8 @@ import (
 )
 
 var (
-	// process id
-	pid = os.Getpid()
+	// harness main-process id which shared for all harness instances
+	harnessMainProcessId = os.Getpid()
 
 	// the private harness instances map contains all initialized harnesses
 	// which returned by the NewHarness func. and the instance will delete itself
@@ -81,7 +82,7 @@ func (h *Harness) teardown() error {
 // NewHarness func creates an new instance of test harness with provided network params.
 // The args is the arguments list that are used when setup a qitmeer node. In the most
 // case, it should be set to nil if no extra args need to add on the default starting up.
-func NewHarness(t *testing.T, params *params.Params, args []string) (*Harness, error) {
+func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, error) {
 	harnessStateMutex.Lock()
 	defer harnessStateMutex.Unlock()
 
@@ -106,8 +107,14 @@ func NewHarness(t *testing.T, params *params.Params, args []string) (*Harness, e
 		return nil, fmt.Errorf("unknown network type %v", params.Net)
 	}
 
+	extraArgs = append(extraArgs, args...)
+
 	// create node config & initialize the node process
 	config := newNodeConfig(testDir, extraArgs)
+
+	// use auto-genereated p2p/rpc port settings instead of default
+	config.listen, config.rpclisten = genListenArgs()
+
 	newNode, err := newNode(t, config)
 	if err != nil {
 		return nil, err
@@ -142,4 +149,26 @@ func AllHarnesses() []*Harness {
 		all = append(all, h)
 	}
 	return all
+}
+
+const (
+	// the minimum and maximum p2p and rpc port numbers used by a test harness.
+	minP2PPort = 38200              // 38200 The min is inclusive
+	maxP2PPort = minP2PPort + 10000 // 48199 The max is exclusive
+	minRPCPort = maxP2PPort         // 48200
+	maxRPCPort = minRPCPort + 10000 // 58199
+)
+
+// GenListenArgs returns auto generated args for p2p listen and rpc listen in the format of
+// ["--listen=127.0.0.1:12345", --rpclisten=127.0.0.1:12346"].
+// in order to support multiple test node running at the same time.
+func genListenArgs() (string, string) {
+	localhost := "127.0.0.1"
+	genPort := func(min, max int) string {
+		port := min + len(harnessInstances) + (42 * harnessMainProcessId % (max - min))
+		return strconv.Itoa(port)
+	}
+	p2p := net.JoinHostPort(localhost, genPort(minP2PPort, maxP2PPort))
+	rpc := net.JoinHostPort(localhost, genPort(minRPCPort, maxRPCPort))
+	return p2p, rpc
 }

@@ -24,7 +24,8 @@ func TestNewNodeCmdArgs(t *testing.T) {
 	}
 	args := []string{
 		"qitmeer",
-		"--rpclisten=127.0.0.1:12345",
+		"--listen=127.0.0.1:38130",
+		"--rpclisten=127.0.0.1:38131",
 		"--rpcuser=testuser",
 		"--rpcpass=testpass",
 		"--datadir=.*/test.*/data$",
@@ -32,19 +33,19 @@ func TestNewNodeCmdArgs(t *testing.T) {
 		"--k1=v1",
 		"--k2=v2",
 	}
-	data1 := args[4]
-	data2 := node.cmd.Args[4]
+	data1 := args[5]
+	data2 := node.cmd.Args[5]
 	if !regexp.MustCompile(data1).MatchString(data2) {
 		t.Errorf("failed to create node, expect %v but got %v", data1, data2)
 	}
-	log1 := args[5]
-	log2 := node.cmd.Args[5]
+	log1 := args[6]
+	log2 := node.cmd.Args[6]
 	if !regexp.MustCompile(log1).MatchString(log2) {
 		t.Errorf("failed to create node, expect %v but got %v", log1, log2)
 	}
 	//Must after data adn log test, because the slice has been cut off
-	expect := append(args[:4], args[6:]...)
-	got := append(node.cmd.Args[:4], node.cmd.Args[6:]...)
+	expect := append(args[:5], args[7:]...)
+	got := append(node.cmd.Args[:5], node.cmd.Args[7:]...)
 	if !reflect.DeepEqual(expect, got) {
 		t.Errorf("failed to create node, expect %v but got %v", expect, got)
 	}
@@ -74,4 +75,21 @@ func TestNodeStartStop(t *testing.T) {
 		t.Errorf("new node stop failed :%v", err)
 	}
 
+}
+
+func TestGenListenArgs(t *testing.T) {
+	c := newNodeConfig("test", nil)
+	a1, a2 := genListenArgs()
+	c.listen, c.rpclisten = a1, a2
+	args := []string{
+		"--listen=" + a1,
+		"--rpclisten=" + a2,
+		"--rpcuser=testuser",
+		"--rpcpass=testpass",
+		"--datadir=test/data",
+		"--logdir=test/log",
+	}
+	if !reflect.DeepEqual(args, c.args()) {
+		t.Errorf("failed to create node, expect %v but got %v", args, c.args())
+	}
 }

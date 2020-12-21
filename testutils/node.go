@@ -3,6 +3,7 @@ package testutils
 import (
 	"bufio"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"io"
 	"os"
@@ -15,6 +16,7 @@ import (
 // the configuration of the node
 type nodeConfig struct {
 	program   string
+	listen    string
 	rpclisten string
 	rpcuser   string
 	rpcpass   string
@@ -29,7 +31,8 @@ type nodeConfig struct {
 func newNodeConfig(homeDir string, extraArgs []string) *nodeConfig {
 	c := &nodeConfig{
 		program:   "qitmeer",
-		rpclisten: "127.0.0.1:12345",
+		listen:    "127.0.0.1:" + params.PrivNetParam.DefaultPort, //38130 by default
+		rpclisten: "127.0.0.1:" + params.PrivNetParam.RpcPort,     //38131 by default
 		rpcuser:   "testuser",
 		rpcpass:   "testpass",
 		homeDir:   homeDir,
@@ -46,6 +49,9 @@ func newNodeConfig(homeDir string, extraArgs []string) *nodeConfig {
 // which be used to launch the qitmeer node
 func (n *nodeConfig) args() []string {
 	args := []string{}
+	if n.listen != "" {
+		args = append(args, fmt.Sprintf("--listen=%s", n.listen))
+	}
 	if n.rpclisten != "" {
 		args = append(args, fmt.Sprintf("--rpclisten=%s", n.rpclisten))
 	}
@@ -70,6 +76,7 @@ func (n *nodeConfig) args() []string {
 type node struct {
 	t      *testing.T
 	config *nodeConfig
+	id     string
 	cmd    *exec.Cmd
 	pid    int
 	wg     sync.WaitGroup
@@ -88,6 +95,7 @@ func newNode(t *testing.T, config *nodeConfig) (*node, error) {
 	return &node{
 		t:      t,
 		config: config,
+		id:     filepath.Base(config.homeDir),
 		cmd:    exec.Command(config.program, config.args()...),
 	}, nil
 }
@@ -103,7 +111,7 @@ func (n *node) redirectOutput(reader io.ReadCloser, waitPid *sync.WaitGroup) err
 			if err != nil || err == io.EOF {
 				return
 			}
-			n.t.Logf("qitmeer-harness-node: %s", l)
+			n.t.Logf("%s: %s", n.id, l)
 		}
 	}()
 	return nil
@@ -164,7 +172,7 @@ func (n *node) stop() error {
 
 	if err := n.cmd.Process.Signal(os.Interrupt); err != nil {
 		// only log the signal error, and continue
-		n.t.Logf("stop node got process signal error: %v", err)
+		n.t.Logf("stop node [%s] got process signal error: %v", n.id, err)
 	}
 
 	// wait for stdout/stderr redirect pipe done
@@ -173,7 +181,7 @@ func (n *node) stop() error {
 	// wait for cmd done
 	if err := n.cmd.Wait(); err != nil {
 		// only log the cmd wait error and continue
-		n.t.Logf("stop node got cmd wait error: %v", err)
+		n.t.Logf("stop node [%s] got cmd wait error: %v", n.id, err)
 	}
 
 	return nil

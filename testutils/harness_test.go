@@ -9,10 +9,11 @@ import (
 	. "github.com/Qitmeer/qitmeer/testutils"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestHarness(t *testing.T) {
-	h, err := NewHarness(t, params.PrivNetParam.Params, nil)
+	h, err := NewHarness(t, params.PrivNetParam.Params)
 	if err != nil {
 		t.Errorf("create new test harness instance failed %v", err)
 	}
@@ -20,7 +21,7 @@ func TestHarness(t *testing.T) {
 		t.Errorf("setup test harness instance failed %v", err)
 	}
 
-	h2, err := NewHarness(t, params.PrivNetParam.Params, nil)
+	h2, err := NewHarness(t, params.PrivNetParam.Params)
 	defer func() {
 
 		if err := h.Teardown(); err != nil {
@@ -62,9 +63,39 @@ func TestHarness(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
-			NewHarness(t, params.PrivNetParam.Params, nil)
+			NewHarness(t, params.PrivNetParam.Params)
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+}
+
+func TestHarnessNodePorts(t *testing.T) {
+	var setup, teardown sync.WaitGroup
+	ha := make(map[int]*Harness, 10)
+	for i := 0; i < 10; i++ {
+		setup.Add(1)
+		teardown.Add(1)
+		// new and setup
+		go func(index int) {
+			defer setup.Done()
+			h, err := NewHarness(t, params.PrivNetParam.Params)
+			if err != nil {
+				t.Errorf("new harness failed: %v", err)
+			}
+			ha[index] = h
+			if err := ha[index].Setup(); err != nil {
+				t.Errorf("setup harness failed: %v", err)
+			}
+			time.Sleep(500 * time.Millisecond)
+		}(i)
+		go func(index int) {
+			defer teardown.Done()
+			setup.Wait() //wait for all setup finished
+			if err := ha[index].Teardown(); err != nil {
+				t.Errorf("tear down harness failed: %v", err)
+			}
+		}(i)
+	}
+	teardown.Wait()
 }

@@ -384,7 +384,7 @@ func TestCheckTokenUnMint(t *testing.T) {
 }
 
 func TestTokenIssue(t *testing.T) {
-	h, err := testutils.NewHarness(t, params.PrivNetParam.Params, nil)
+	h, err := testutils.NewHarness(t, params.PrivNetParam.Params)
 	if err != nil {
 		t.Errorf("failed to create test harness")
 	}
