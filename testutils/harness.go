@@ -48,7 +48,11 @@ func (h *Harness) Id() string {
 // 1. start the qitmeer node according to the net params
 // 2. setup the rpc clint so that the rpc call can be sent to the node
 // 3. generate a test block dag by configuration (optional, may empty dag by config)
-func (*Harness) Setup() error {
+func (h *Harness) Setup() error {
+	// start up the qitmeer node
+	if err := h.node.start(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -63,9 +67,13 @@ func (h *Harness) Teardown() error {
 // kill any related processes if need and clean up the temporary data folder
 // NOTE: the func is NOT concurrent safe. see also the Teardown func
 func (h *Harness) teardown() error {
+	if err := h.node.stop(); err != nil {
+		return err
+	}
 	if err := os.RemoveAll(h.instanceDir); err != nil {
 		return err
 	}
+
 	delete(harnessInstances, h.instanceDir)
 	return nil
 }

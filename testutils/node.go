@@ -153,13 +153,18 @@ func (n *node) start() error {
 
 func (n *node) stop() error {
 	n.t.Logf("stop node from %v", n.config.homeDir)
+	// check if process has not been started
+	if n.pid == 0 {
+		return nil
+	}
 	// need to check if process has been started
 	if n.cmd.Process == nil {
 		return nil
 	}
 
 	if err := n.cmd.Process.Signal(os.Interrupt); err != nil {
-		return err
+		// only log the signal error, and continue
+		n.t.Logf("stop node got process signal error: %v", err)
 	}
 
 	// wait for stdout/stderr redirect pipe done
@@ -167,7 +172,8 @@ func (n *node) stop() error {
 
 	// wait for cmd done
 	if err := n.cmd.Wait(); err != nil {
-		return err
+		// only log the cmd wait error and continue
+		n.t.Logf("stop node got cmd wait error: %v", err)
 	}
 
 	return nil

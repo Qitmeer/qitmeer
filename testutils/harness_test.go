@@ -28,13 +28,15 @@ func TestHarness(t *testing.T) {
 		}
 		numOfHarnessInstances := len(AllHarnesses())
 		if numOfHarnessInstances != 10 {
-			t.Errorf("harness num is wrong, expect %d , but got %d", 0, numOfHarnessInstances)
+			t.Errorf("harness num is wrong, expect %d , but got %d", 10, numOfHarnessInstances)
 			for _, h := range AllHarnesses() {
 				t.Errorf("%v\n", h.Id())
 			}
 		}
 
-		TearDownAll()
+		if err := TearDownAll(); err != nil {
+			t.Errorf("tear down all error %v", err)
+		}
 		numOfHarnessInstances = len(AllHarnesses())
 		if numOfHarnessInstances != 0 {
 			t.Errorf("harness num is wrong, expect %d , but got %d", 0, numOfHarnessInstances)
@@ -48,7 +50,10 @@ func TestHarness(t *testing.T) {
 	if numOfHarnessInstances != 2 {
 		t.Errorf("harness num is wrong, expect %d , but got %d", 2, numOfHarnessInstances)
 	}
-	h2.Teardown()
+	if err := h2.Teardown(); err != nil {
+		t.Errorf("teardown h2 error:%v", err)
+	}
+
 	numOfHarnessInstances = len(AllHarnesses())
 	if numOfHarnessInstances != 1 {
 		t.Errorf("harness num is wrong, expect %d , but got %d", 1, numOfHarnessInstances)
