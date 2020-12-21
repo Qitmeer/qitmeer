@@ -52,6 +52,8 @@ type RpcServer struct {
 
 	ReqStatus     map[string]*RequestStatus
 	reqStatusLock sync.RWMutex
+
+	ntfnMgr *wsNotificationManager
 }
 
 // service represents a registered object
@@ -123,6 +125,9 @@ func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 			base64.StdEncoding.EncodeToString([]byte(login))
 		rpc.authsha = sha256.Sum256([]byte(auth))
 	}
+
+	rpc.ntfnMgr = newWsNotificationManager(&rpc)
+
 	return &rpc, nil
 }
 
@@ -130,21 +135,32 @@ func (s *RpcServer) Start() error {
 	if atomic.AddInt32(&s.run, 1) != 1 {
 		return fmt.Errorf("Already running")
 	}
-	return s.startHTTP(s.config.RPCListeners)
+	err := s.startHTTP(s.config.RPCListeners)
+	if err != nil {
+		return err
+	}
+	s.ntfnMgr.Start()
+	return nil
 }
 
 // Stop will stop reading new requests, wait for stopPendingRequestTimeout to allow pending requests to finish,
 // close all codecs which will cancel pending requests/subscriptions.
 func (s *RpcServer) Stop() {
-	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
-		log.Debug("RPC Server is stopping")
-		s.codecsMu.Lock()
-		defer s.codecsMu.Unlock()
-		s.codecs.Each(func(c interface{}) bool {
-			c.(ServerCodec).Close()
-			return true
-		})
+	if !atomic.CompareAndSwapInt32(&s.run, 1, 0) {
+		return
 	}
+	log.Debug("RPC Server is stopping")
+	s.codecsMu.Lock()
+	defer s.codecsMu.Unlock()
+	s.codecs.Each(func(c interface{}) bool {
+		c.(ServerCodec).Close()
+		return true
+	})
+
+	s.ntfnMgr.Stop()
+
+	close(s.quit)
+	s.wg.Wait()
 }
 
 const (

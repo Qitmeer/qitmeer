@@ -35,6 +35,7 @@ const (
 	defaultBlockMinSize           = 0
 	defaultBlockMaxSize           = 375000
 	defaultMaxRPCClients          = 10
+	defaultMaxRPCWebsockets       = 25
 	defaultMaxPeers               = 30
 	defaultMiningStateSync        = false
 	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
@@ -75,6 +76,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		RPCKey:            defaultRPCKeyFile,
 		RPCCert:           defaultRPCCertFile,
 		RPCMaxClients:     defaultMaxRPCClients,
+		RPCMaxWebsockets:  defaultMaxRPCWebsockets,
 		Generate:          defaultGenerate,
 		MaxPeers:          defaultMaxPeers,
 		MinTxFee:          mempool.DefaultMinRelayTxFee,
