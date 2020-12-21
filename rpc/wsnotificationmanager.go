@@ -2,8 +2,6 @@ package rpc
 
 import (
 	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcutil"
 	"sync"
 )
 
@@ -108,10 +106,43 @@ out:
 	m.wg.Done()
 }
 
+func (m *wsNotificationManager) NotifyBlockConnected(block *types.Block) {
+	select {
+	case m.queueNotification <- (*notificationBlockConnected)(block):
+	case <-m.quit:
+	}
+}
+
 func (*wsNotificationManager) notifyBlockConnected(clients map[chan struct{}]*wsClient, block *types.Block) {
 }
 
+func (m *wsNotificationManager) NotifyBlockDisconnected(block *types.Block) {
+	select {
+	case m.queueNotification <- (*notificationBlockDisconnected)(block):
+	case <-m.quit:
+	}
+}
+
 func (*wsNotificationManager) notifyBlockDisconnected(clients map[chan struct{}]*wsClient, block *types.Block) {
+}
+
+func (m *wsNotificationManager) NumClients() (n int) {
+	select {
+	case n = <-m.numClients:
+	case <-m.quit: // Use default n (0) if server has shut down.
+	}
+	return
+}
+
+func (m *wsNotificationManager) AddClient(wsc *wsClient) {
+	m.queueNotification <- (*notificationRegisterClient)(wsc)
+}
+
+func (m *wsNotificationManager) RemoveClient(wsc *wsClient) {
+	select {
+	case m.queueNotification <- (*notificationUnregisterClient)(wsc):
+	case <-m.quit:
+	}
 }
 
 func newWsNotificationManager(server *RpcServer) *wsNotificationManager {

@@ -7,9 +7,8 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
-	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
 	"github.com/deckarep/golang-set"
 	"golang.org/x/net/context"
@@ -34,7 +33,7 @@ type API struct {
 // RpcServer provides a concurrent safe RPC server to a chain server.
 type RpcServer struct {
 	run        int32
-	wg         util.WaitGroupWrapper
+	wg         sync.WaitGroup
 	quit       chan int
 	statusLock sync.RWMutex
 
@@ -105,7 +104,7 @@ type serverRequest struct {
 }
 
 // newRPCServer returns a new instance of the rpcServer struct.
-func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
+func NewRPCServer(cfg *config.Config, events *event.Feed) (*RpcServer, error) {
 	rpc := RpcServer{
 
 		config: cfg,
@@ -127,7 +126,7 @@ func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 	}
 
 	rpc.ntfnMgr = newWsNotificationManager(&rpc)
-
+	rpc.subscribe(events)
 	return &rpc, nil
 }
 
