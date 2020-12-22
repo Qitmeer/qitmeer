@@ -24,7 +24,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/crypto/certgen"
-	"github.com/Qitmeer/qitmeer/log"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -355,4 +354,17 @@ func NewRequestStatus(sReq *serverRequest) (*RequestStatus, error) {
 		0, []*serverRequest{sReq}}
 	sReq.time = roughtime.Now()
 	return &rs, nil
+}
+
+func createMarshalledReply(id, result interface{}, replyErr error) ([]byte, error) {
+	var jsonErr *RPCError
+	if replyErr != nil {
+		if jErr, ok := replyErr.(*RPCError); ok {
+			jsonErr = jErr
+		} else {
+			jsonErr = internalRPCError(replyErr.Error(), "")
+		}
+	}
+
+	return MarshalResponse(id, result, jsonErr)
 }
