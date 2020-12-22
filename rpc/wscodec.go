@@ -71,5 +71,5 @@ func (c *WSCodec) Closed() <-chan interface{} {
 }
 
 func NewWSCodec(msg []byte, client *wsClient) *WSCodec {
-	return &WSCodec{msg: json.RawMessage(msg), client: client}
+	return &WSCodec{msg: json.RawMessage(msg), client: client, closed: make(chan interface{})}
 }
