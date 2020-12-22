@@ -199,8 +199,8 @@ func (d *Dialer) Dial(urlStr string, requestHeader http.Header) (*Conn, *http.Re
 		if cfg == nil {
 			cfg = &tls.Config{ServerName: hostNoPort}
 		} else if cfg.ServerName == "" {
-			shallowCopy := *cfg
-			cfg = &shallowCopy
+			shallowCopy := cfg.Clone()
+			cfg = shallowCopy
 			cfg.ServerName = hostNoPort
 		}
 		tlsConn := tls.Client(netConn, cfg)
