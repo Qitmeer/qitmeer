@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/log"
 	"io"
 	"reflect"
 	"strconv"
