@@ -1,3 +1,7 @@
+// Copyright (c) 2020 The qitmeer developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package testutils
 
 import (
@@ -96,6 +100,39 @@ func newClient(reconn reconnect) (*Client, error) {
 	}
 }
 
+// Call wraps CallWithContext using the background context.
+func (c *Client) Call(result interface{}, method string, args ...interface{}) error {
+	ctx := context.Background()
+	return c.CallWithContext(ctx, result, method, args...)
+}
+
+// CallWithContext performs a JSON-RPC call with the given arguments and unmarshalls into
+// result if no error occurred.
+func (c *Client) CallWithContext(ctx context.Context, result interface{}, method string, args ...interface{}) error {
+	// The result must be a pointer so that package json can unmarshal into it.
+	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
+		return fmt.Errorf("result must be pointer or nil interface: %v", result)
+	}
+	req, err := rpc.NewRequest(c.nextID(), method, args[:])
+	op := &requestOp{ids: []uint32{req.ID.(uint32)}, resp: make(chan *rpc.Response, 1)}
+	err = c.sendHTTP(ctx, op, req)
+	if err != nil {
+		return err
+	}
+	// dispatch has accepted the request and will close the channel when it quits.
+	switch resp, err := op.wait(ctx, c); {
+	case err != nil:
+		return err
+	case resp.Error != nil:
+		return resp.Error
+	case len(resp.Result) == 0:
+		return fmt.Errorf("no result")
+	default:
+		return json.Unmarshal(resp.Result, &result)
+	}
+	return nil
+}
+
 type httpConn struct {
 	client *http.Client
 	url    string
@@ -133,12 +170,6 @@ func (hc *httpConn) doRequest(ctx context.Context, msg interface{}) (io.ReadClos
 		return resp.Body, fmt.Errorf("%v", resp.Status)
 	}
 	return resp.Body, nil
-}
-
-// Call wraps CallWithContext using the background context.
-func (c *Client) Call(result interface{}, method string, args ...interface{}) error {
-	ctx := context.Background()
-	return c.CallWithContext(ctx, result, method, args...)
 }
 
 func (c *Client) nextID() uint32 {
@@ -184,31 +215,4 @@ func (op *requestOp) wait(ctx context.Context, c *Client) (*rpc.Response, error)
 	case resp := <-op.resp:
 		return resp, op.err
 	}
-}
-
-// CallWithContext performs a JSON-RPC call with the given arguments and unmarshalls into
-// result if no error occurred.
-func (c *Client) CallWithContext(ctx context.Context, result interface{}, method string, args ...interface{}) error {
-	// The result must be a pointer so that package json can unmarshal into it.
-	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
-		return fmt.Errorf("result must be pointer or nil interface: %v", result)
-	}
-	req, err := rpc.NewRequest(c.nextID(), method, args[:])
-	op := &requestOp{ids: []uint32{req.ID.(uint32)}, resp: make(chan *rpc.Response, 1)}
-	err = c.sendHTTP(ctx, op, req)
-	if err != nil {
-		return err
-	}
-	// dispatch has accepted the request and will close the channel when it quits.
-	switch resp, err := op.wait(ctx, c); {
-	case err != nil:
-		return err
-	case resp.Error != nil:
-		return resp.Error
-	case len(resp.Result) == 0:
-		return fmt.Errorf("no result")
-	default:
-		return json.Unmarshal(resp.Result, &result)
-	}
-	return nil
 }
