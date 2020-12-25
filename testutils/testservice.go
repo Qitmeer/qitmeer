@@ -10,13 +10,12 @@ type Complex struct {
 }
 
 type EchoResult struct {
-	String string
-	Int    int
-	Complex   *Complex
+	String  string
+	Int     int
+	Complex *Complex
 }
 
 func (s *TestService) Echo(str string, i int, comp *Complex) EchoResult {
 	comp.Name = strings.ToUpper(comp.Name)
 	return EchoResult{strings.ToUpper(str), i, comp}
 }
-

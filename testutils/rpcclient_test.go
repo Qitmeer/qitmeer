@@ -35,7 +35,7 @@ const (
 )
 
 var (
-	defaultHomeDir,_   = ioutil.TempDir("", "qitmeer-test-rpc-server")
+	defaultHomeDir, _  = ioutil.TempDir("", "qitmeer-test-rpc-server")
 	defaultConfigFile  = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultDataDir     = filepath.Join(defaultHomeDir, defaultDataDirname)
 	defaultDbType      = "ffldb"
@@ -74,13 +74,13 @@ var (
 		CacheInvalidTx:       defaultCacheInvalidTx,
 		NTP:                  false,
 		RPCListeners:         []string{"127.0.0.1:5555"},
-		RPCUser: "test",
-		RPCPass: "pass",
+		RPCUser:              "test",
+		RPCPass:              "pass",
 	}
 )
 
 func newTestServer(t *testing.T) *rpc.RpcServer {
-	server,err := rpc.NewRPCServer(&cfg, &event.Feed{})
+	server, err := rpc.NewRPCServer(&cfg, &event.Feed{})
 	if err != nil {
 		t.Errorf("failed to initialize rpc server: %v", err)
 	}
@@ -97,22 +97,21 @@ func TestRpcClient(t *testing.T) {
 		t.Errorf("register test service err : %v", err)
 	}
 
-	client, err := testutils.Dial("https://" + cfg.RPCListeners[0], cfg.RPCUser, cfg.RPCPass)
-	if err!= nil {
+	client, err := testutils.Dial("https://"+cfg.RPCListeners[0], cfg.RPCUser, cfg.RPCPass)
+	if err != nil {
 		t.Errorf("Dial client error: %v", err)
 	}
 	var result testutils.EchoResult
 	comp := &testutils.Complex{0, 0, "zero"}
-	if err := client.Call(&result,"test_echo", "test", 1, comp); err!= nil {
+	if err := client.Call(&result, "test_echo", "test", 1, comp); err != nil {
 		t.Errorf("client call execute error: %v", err)
 	}
 	expect := testutils.EchoResult{
-		"TEST",1, &testutils.Complex{0,0,"ZERO"},
+		"TEST", 1, &testutils.Complex{0, 0, "ZERO"},
 	}
 	// now deep equal should ok for every field
-	if !reflect.DeepEqual(expect,result) {
+	if !reflect.DeepEqual(expect, result) {
 		t.Errorf("call echo failed, expect %v but got %v", expect, result)
 	}
 
 }
-

@@ -21,39 +21,40 @@ import (
 // return a new client which can perform rpc Call. the context controls
 // the entire lifetime of the client.
 func Dial(URL string, user, pass string) (*Client, error) {
-	if u, err := url.Parse(URL)	; err == nil {
-		switch u.Scheme  {
-		case "http", "https" :
-			return dailHTTP(URL,user,pass)
+	if u, err := url.Parse(URL); err == nil {
+		switch u.Scheme {
+		case "http", "https":
+			return dailHTTP(URL, user, pass)
 		case "ws", "wss":
 			//TODO websocket
 			return nil, fmt.Errorf("websockect is unsupported yet")
 		default:
 			return nil, fmt.Errorf("unknown URL scheme: %v", u.Scheme)
 		}
-	}else {
+	} else {
 		return nil, err
 	}
 }
 
 const contentType = "application/json"
-func dailHTTP(URL string, user,pass string) (*Client, error) {
+
+func dailHTTP(URL string, user, pass string) (*Client, error) {
 	httpClient := new(http.Client)
 	header := make(http.Header, 2)
-	header.Set("accept", contentType)  //TODO, refactor rpc.contentType
+	header.Set("accept", contentType) //TODO, refactor rpc.contentType
 	header.Set("content-type", contentType)
 	auth := "Basic " +
 		base64.StdEncoding.EncodeToString([]byte(user+":"+pass))
 	header.Set("Authorization", auth)
 	// skip signature verify for testing
 	httpClient.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify : true},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	var httpReconn reconnect = func() (connect, error){
-		hc:= &httpConn{
+	var httpReconn reconnect = func() (connect, error) {
+		hc := &httpConn{
 			client: httpClient,
 			header: &header,
-			url : URL,
+			url:    URL,
 		}
 		return hc, nil
 	}
@@ -61,11 +62,12 @@ func dailHTTP(URL string, user,pass string) (*Client, error) {
 }
 
 type connType uint8
+
 const (
 	httpConnType connType = 0x0
 )
 
-type connect interface{
+type connect interface {
 	Type() connType
 }
 type reconnect func() (connect, error)
@@ -73,22 +75,22 @@ type reconnect func() (connect, error)
 // Client represents a connection to an RPC server.
 type Client struct {
 	// call when connection is lost, need to reconnect
-	reconnect    reconnect
-	connect      connect
-	connectType  connType
-	idCounter    uint32
+	reconnect   reconnect
+	connect     connect
+	connectType connType
+	idCounter   uint32
 }
 
 // the abstract connect
-func newClient(reconn reconnect) (*Client ,error) {
+func newClient(reconn reconnect) (*Client, error) {
 	if con, err := reconn(); err != nil {
 		return nil, err
 	} else {
 		c := &Client{
-			connect: con,
+			connect:     con,
 			connectType: con.Type(),
-			reconnect: reconn,
-			idCounter: 0,
+			reconnect:   reconn,
+			idCounter:   0,
 		}
 		return c, nil
 	}
@@ -101,7 +103,7 @@ type httpConn struct {
 	header *http.Header
 }
 
-func(hc *httpConn) Type() connType {
+func (hc *httpConn) Type() connType {
 	return httpConnType
 }
 
@@ -128,7 +130,7 @@ func (hc *httpConn) doRequest(ctx context.Context, msg interface{}) (io.ReadClos
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return resp.Body, fmt.Errorf("%v",resp.Status)
+		return resp.Body, fmt.Errorf("%v", resp.Status)
 	}
 	return resp.Body, nil
 }
@@ -136,14 +138,13 @@ func (hc *httpConn) doRequest(ctx context.Context, msg interface{}) (io.ReadClos
 // Call wraps CallWithContext using the background context.
 func (c *Client) Call(result interface{}, method string, args ...interface{}) error {
 	ctx := context.Background()
-	return c.CallWithContext(ctx,result, method, args...)
+	return c.CallWithContext(ctx, result, method, args...)
 }
 
 func (c *Client) nextID() uint32 {
 	id := atomic.AddUint32(&c.idCounter, 1)
 	return id
 }
-
 
 func (c *Client) sendHTTP(ctx context.Context, op *requestOp, req interface{}) error {
 	hc := c.connect.(*httpConn)
