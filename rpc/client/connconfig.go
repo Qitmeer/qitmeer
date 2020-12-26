@@ -4,7 +4,10 @@
 
 package client
 
-import "time"
+import (
+	"os"
+	"time"
+)
 
 type ConnConfig struct {
 	// Host is the IP address and port of the RPC server you want to connect
@@ -48,20 +51,6 @@ type ConnConfig struct {
 	// is true.
 	Certificates []byte
 
-	// Proxy specifies to connect through a SOCKS 5 proxy server.  It may
-	// be an empty string if a proxy is not required.
-	Proxy string
-
-	// ProxyUser is an optional username to use for the proxy server if it
-	// requires authentication.  It has no effect if the Proxy parameter
-	// is not set.
-	ProxyUser string
-
-	// ProxyPass is an optional password to use for the proxy server if it
-	// requires authentication.  It has no effect if the Proxy parameter
-	// is not set.
-	ProxyPass string
-
 	// DisableAutoReconnect specifies the client should not automatically
 	// try to reconnect to the server when it has been disconnected.
 	DisableAutoReconnect bool
@@ -83,4 +72,36 @@ type ConnConfig struct {
 	// ExtraHeaders specifies the extra headers when perform request. It's
 	// useful when RPC provider need customized headers.
 	ExtraHeaders map[string]string
+}
+
+func (config *ConnConfig) getAuth() (username, passphrase string, err error) {
+	// Try username+passphrase auth first.
+	if config.Pass != "" {
+		return config.User, config.Pass, nil
+	}
+
+	// If no username or passphrase is set, try cookie auth.
+	return config.retrieveCookie()
+}
+
+func (config *ConnConfig) retrieveCookie() (username, passphrase string, err error) {
+	if !config.cookieLastCheckTime.IsZero() && time.Now().Before(config.cookieLastCheckTime.Add(30*time.Second)) {
+		return config.cookieLastUser, config.cookieLastPass, config.cookieLastErr
+	}
+
+	config.cookieLastCheckTime = time.Now()
+
+	st, err := os.Stat(config.CookiePath)
+	if err != nil {
+		config.cookieLastErr = err
+		return config.cookieLastUser, config.cookieLastPass, config.cookieLastErr
+	}
+
+	modTime := st.ModTime()
+	if !modTime.Equal(config.cookieLastModTime) {
+		config.cookieLastModTime = modTime
+		config.cookieLastUser, config.cookieLastPass, config.cookieLastErr = readCookieFile(config.CookiePath)
+	}
+
+	return config.cookieLastUser, config.cookieLastPass, config.cookieLastErr
 }
