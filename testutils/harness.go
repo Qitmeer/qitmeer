@@ -43,7 +43,7 @@ type Harness struct {
 	// the qitmeer node process
 	node *node
 	// the rpc client to the qitmeer node in the Harness instance.
-	client *Client
+	Client *Client
 	// the maximized attempts try to establish the rpc connection
 	maxRpcConnRetries int
 }
@@ -76,7 +76,7 @@ func (h *Harness) connectRPCClient() error {
 
 	url, user, pass := h.node.config.rpclisten, h.node.config.rpcuser, h.node.config.rpcpass
 	for i := 0; i < h.maxRpcConnRetries; i++ {
-		if client, err = Dial("https:"+url, user, pass); err != nil {
+		if client, err = Dial("https://"+url, user, pass); err != nil {
 			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
 			continue
 		}
@@ -86,7 +86,7 @@ func (h *Harness) connectRPCClient() error {
 		return fmt.Errorf("failed to establish rpc client connection: %v", err)
 	}
 
-	h.client = client
+	h.Client = client
 	return nil
 }
 
@@ -135,7 +135,7 @@ func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, 
 	case protocol.TestNet:
 		extraArgs = append(extraArgs, "--testnet")
 	case protocol.PrivNet:
-		extraArgs = append(extraArgs, "--testnet")
+		extraArgs = append(extraArgs, "--privnet")
 	default:
 		return nil, fmt.Errorf("unknown network type %v", params.Net)
 	}

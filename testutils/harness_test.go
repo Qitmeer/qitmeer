@@ -99,3 +99,23 @@ func TestHarnessNodePorts(t *testing.T) {
 	}
 	teardown.Wait()
 }
+
+func TestHarness_rpcGetNodeInfo(t *testing.T) {
+	h, err := NewHarness(t, params.PrivNetParam.Params)
+	defer h.Teardown()
+	if err != nil {
+		t.Errorf("new harness failed: %v", err)
+		h.Teardown()
+	}
+	h.Setup()
+	time.Sleep(500 * time.Millisecond)
+	if info, err := h.Client.GetNodeInfo(); err != nil {
+		t.Errorf("test failed : %v", err)
+	} else {
+		expect := "privnet"
+		if info.Network != expect {
+			t.Logf("test failed, expect %v , but got %v", expect, info.Network)
+		}
+	}
+
+}
