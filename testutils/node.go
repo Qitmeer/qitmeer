@@ -86,6 +86,10 @@ type node struct {
 	wg     sync.WaitGroup
 }
 
+func (n *node) Id() string {
+	return n.id
+}
+
 // create an new node instance
 func newNode(t *testing.T, config *nodeConfig) (*node, error) {
 	// test if home directory exist

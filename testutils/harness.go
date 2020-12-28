@@ -41,7 +41,7 @@ type Harness struct {
 	// format of `test-harness-<num>-*`
 	instanceDir string
 	// the qitmeer node process
-	node *node
+	Node *node
 	// the rpc client to the qitmeer node in the Harness instance.
 	Client *Client
 	// the maximized attempts try to establish the rpc connection
@@ -58,7 +58,7 @@ func (h *Harness) Id() string {
 // 3. generate a test block dag by configuration (optional, may empty dag by config)
 func (h *Harness) Setup() error {
 	// start up the qitmeer node
-	if err := h.node.start(); err != nil {
+	if err := h.Node.start(); err != nil {
 		return err
 	}
 	if err := h.connectRPCClient(); err != nil {
@@ -74,7 +74,7 @@ func (h *Harness) connectRPCClient() error {
 	var client *Client
 	var err error
 
-	url, user, pass := h.node.config.rpclisten, h.node.config.rpcuser, h.node.config.rpcpass
+	url, user, pass := h.Node.config.rpclisten, h.Node.config.rpcuser, h.Node.config.rpcpass
 	for i := 0; i < h.maxRpcConnRetries; i++ {
 		if client, err = Dial("https://"+url, user, pass); err != nil {
 			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
@@ -101,7 +101,7 @@ func (h *Harness) Teardown() error {
 // kill any related processes if need and clean up the temporary data folder
 // NOTE: the func is NOT concurrent safe. see also the Teardown func
 func (h *Harness) teardown() error {
-	if err := h.node.stop(); err != nil {
+	if err := h.Node.stop(); err != nil {
 		return err
 	}
 	if err := os.RemoveAll(h.instanceDir); err != nil {
@@ -155,7 +155,7 @@ func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, 
 
 	h := Harness{
 		instanceDir:       testDir,
-		node:              newNode,
+		Node:              newNode,
 		maxRpcConnRetries: DefaultMaxRpcConnRetries,
 	}
 	harnessInstances[h.instanceDir] = &h

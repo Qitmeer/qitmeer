@@ -100,8 +100,9 @@ func TestHarnessNodePorts(t *testing.T) {
 	teardown.Wait()
 }
 
-func TestHarness_rpcGetNodeInfo(t *testing.T) {
-	h, err := NewHarness(t, params.PrivNetParam.Params)
+func TestHarness_RpcAPI(t *testing.T) {
+	args := []string{"--modules=miner", "--modules=qitmeer", "--miningaddr=RmFa5hnPd3uQRpzr3xWTfr8EFZdX7dS1qzV"}
+	h, err := NewHarness(t, params.PrivNetParam.Params, args...)
 	defer h.Teardown()
 	if err != nil {
 		t.Errorf("new harness failed: %v", err)
@@ -109,13 +110,59 @@ func TestHarness_rpcGetNodeInfo(t *testing.T) {
 	}
 	h.Setup()
 	time.Sleep(500 * time.Millisecond)
-	if info, err := h.Client.GetNodeInfo(); err != nil {
+
+	if info, err := h.Client.NodeInfo(); err != nil {
 		t.Errorf("test failed : %v", err)
 	} else {
 		expect := "privnet"
 		if info.Network != expect {
-			t.Logf("test failed, expect %v , but got %v", expect, info.Network)
+			t.Errorf("test failed, expect %v , but got %v", expect, info.Network)
 		}
 	}
+	assertBlockOrderAndHeight(t, h, 1, 1, 0)
+	generateBlock(t, h, 1)
+	assertBlockOrderAndHeight(t, h, 2, 2, 1)
+	generateBlock(t, h, 10)
+	assertBlockOrderAndHeight(t, h, 12, 12, 11)
 
+}
+
+func generateBlock(t *testing.T, h *Harness, num int) {
+	if blocks, err := h.Client.Generate(num); err != nil {
+		t.Errorf("generate block failed : %v", err)
+	} else {
+		for _, b := range blocks {
+			t.Logf("node [%v] generate block [%v] ok", h.Node.Id(), b)
+		}
+	}
+}
+
+func assertBlockOrderAndHeight(t *testing.T, h *Harness, order, total, height uint64) {
+	// order
+	if c, err := h.Client.BlockCount(); err != nil {
+		t.Errorf("test failed : %v", err)
+	} else {
+		expect := order
+		if c != expect {
+			t.Errorf("test failed, expect %v , but got %v", expect, c)
+		}
+	}
+	// total block
+	if tal, err := h.Client.BlockTotal(); err != nil {
+		t.Errorf("test failed : %v", err)
+	} else {
+		expect := total
+		if tal != expect {
+			t.Errorf("test failed, expect %v , but got %v", expect, tal)
+		}
+	}
+	// main height
+	if h, err := h.Client.MainHeight(); err != nil {
+		t.Errorf("test failed : %v", err)
+	} else {
+		expect := height
+		if h != expect {
+			t.Errorf("test failed, expect %v , but got %v", expect, h)
+		}
+	}
 }
