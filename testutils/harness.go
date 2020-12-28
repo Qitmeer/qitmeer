@@ -14,7 +14,10 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 )
+
+const DefaultMaxRpcConnRetries = 10
 
 var (
 	// harness main-process id which shared for all harness instances
@@ -39,6 +42,10 @@ type Harness struct {
 	instanceDir string
 	// the qitmeer node process
 	node *node
+	// the rpc client to the qitmeer node in the Harness instance.
+	client *Client
+	// the maximized attempts try to establish the rpc connection
+	maxRpcConnRetries int
 }
 
 func (h *Harness) Id() string {
@@ -54,6 +61,32 @@ func (h *Harness) Setup() error {
 	if err := h.node.start(); err != nil {
 		return err
 	}
+	if err := h.connectRPCClient(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// connectRPCClient attempts to establish an RPC connection to the Harness instance.
+// If the initial attempt fails, this function will retry h.maxRpcConnRetries times,
+// this function returns with an error if all retries failed.
+func (h *Harness) connectRPCClient() error {
+	var client *Client
+	var err error
+
+	url, user, pass := h.node.config.rpclisten, h.node.config.rpcuser, h.node.config.rpcpass
+	for i := 0; i < h.maxRpcConnRetries; i++ {
+		if client, err = Dial("https:"+url, user, pass); err != nil {
+			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
+			continue
+		}
+		break
+	}
+	if client == nil || err != nil {
+		return fmt.Errorf("failed to establish rpc client connection: %v", err)
+	}
+
+	h.client = client
 	return nil
 }
 
@@ -121,8 +154,9 @@ func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, 
 	}
 
 	h := Harness{
-		instanceDir: testDir,
-		node:        newNode,
+		instanceDir:       testDir,
+		node:              newNode,
+		maxRpcConnRetries: DefaultMaxRpcConnRetries,
 	}
 	harnessInstances[h.instanceDir] = &h
 	return &h, nil
