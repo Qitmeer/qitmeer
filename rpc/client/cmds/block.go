@@ -10,5 +10,5 @@ func init() {
 	// The commands in this file are only usable by websockets.
 	flags := UsageFlag(0)
 
-	MustRegisterCmd("getblockcount", (*GetBlockCountCmd)(nil), flags)
+	MustRegisterCmd("getBlockCount", (*GetBlockCountCmd)(nil), flags, DefaultServiceNameSpace)
 }

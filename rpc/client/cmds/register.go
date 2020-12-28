@@ -269,8 +269,12 @@ func RegisterCmd(method string, cmd interface{}, flags UsageFlag) error {
 // MustRegisterCmd performs the same function as RegisterCmd except it panics
 // if there is an error.  This should only be called from package init
 // functions.
-func MustRegisterCmd(method string, cmd interface{}, flags UsageFlag) {
-	if err := RegisterCmd(method, cmd, flags); err != nil {
+func MustRegisterCmd(method string, cmd interface{}, flags UsageFlag, service string) {
+	srvMethod := method
+	if len(service) > 0 {
+		srvMethod = service + "_" + method
+	}
+	if err := RegisterCmd(srvMethod, cmd, flags); err != nil {
 		panic(fmt.Sprintf("failed to register type %q: %v\n", method,
 			err))
 	}

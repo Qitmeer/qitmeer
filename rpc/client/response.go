@@ -2,12 +2,12 @@ package client
 
 import (
 	"encoding/json"
-	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 )
 
 type rawResponse struct {
 	Result json.RawMessage `json:"result"`
-	Error  *rpc.RPCError   `json:"error"`
+	Error  *cmds.RPCError  `json:"error"`
 }
 
 func (r rawResponse) result() (result []byte, err error) {

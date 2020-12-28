@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -37,12 +38,12 @@ const gbtRegenerateSeconds = 60
 func (c *CPUMiner) APIs() []rpc.API {
 	return []rpc.API{
 		{
-			NameSpace: rpc.DefaultServiceNameSpace,
+			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicMinerAPI(c),
 			Public:    true,
 		},
 		{
-			NameSpace: rpc.MinerNameSpace,
+			NameSpace: cmds.MinerNameSpace,
 			Service:   NewPrivateMinerAPI(c),
 			Public:    false,
 		},

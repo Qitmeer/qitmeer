@@ -267,38 +267,38 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 
 	switch ntfn.Method {
 	// OnBlockConnected
-	case BlockConnectedNtfnMethod:
+	case cmds.BlockConnectedNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnBlockConnected == nil {
 			return
 		}
 
-		blockHash, blockHeight, blockTime, err := parseChainNtfnParams(ntfn.Params)
+		blockHash, blockOrder, blockTime, err := parseChainNtfnParams(ntfn.Params)
 		if err != nil {
 			log.Warn(fmt.Sprintf("Received invalid block connected "+
 				"notification: %v", err))
 			return
 		}
 
-		c.ntfnHandlers.OnBlockConnected(blockHash, blockHeight, blockTime)
+		c.ntfnHandlers.OnBlockConnected(blockHash, blockOrder, blockTime)
 
 	// OnBlockDisconnected
-	case BlockDisconnectedNtfnMethod:
+	case cmds.BlockDisconnectedNtfnMethod:
 		// Ignore the notification if the client is not interested in
 		// it.
 		if c.ntfnHandlers.OnBlockDisconnected == nil {
 			return
 		}
 
-		blockHash, blockHeight, blockTime, err := parseChainNtfnParams(ntfn.Params)
+		blockHash, blockOrder, blockTime, err := parseChainNtfnParams(ntfn.Params)
 		if err != nil {
 			log.Warn(fmt.Sprintf("Received invalid block connected "+
 				"notification: %v", err))
 			return
 		}
 
-		c.ntfnHandlers.OnBlockDisconnected(blockHash, blockHeight, blockTime)
+		c.ntfnHandlers.OnBlockDisconnected(blockHash, blockOrder, blockTime)
 
 	// OnUnknownNotification
 	default:

@@ -7,7 +7,6 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/rpc"
 	"reflect"
 	"strconv"
 	"strings"
@@ -61,7 +60,7 @@ func MarshalCmd(id interface{}, cmd interface{}) ([]byte, error) {
 	params := makeParams(rt.Elem(), rv.Elem())
 
 	// Generate and marshal the final JSON-RPC request.
-	rawCmd, err := rpc.NewRequest(id, method, params)
+	rawCmd, err := NewRequest(id, method, params)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +108,7 @@ func populateDefaults(numParams int, info *methodInfo, rv reflect.Value) {
 // UnmarshalCmd unmarshals a JSON-RPC request into a suitable concrete command
 // so long as the method type contained within the marshalled request is
 // registered.
-func UnmarshalCmd(r *rpc.Request) (interface{}, error) {
+func UnmarshalCmd(r *Request) (interface{}, error) {
 	registerLock.RLock()
 	rtp, ok := methodToConcreteType[r.Method]
 	info := methodToInfo[r.Method]

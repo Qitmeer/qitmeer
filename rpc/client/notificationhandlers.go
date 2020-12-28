@@ -12,17 +12,12 @@ import (
 
 type NotificationHandlers struct {
 	OnClientConnected     func()
-	OnBlockConnected      func(hash *hash.Hash, height int32, t time.Time)
-	OnBlockDisconnected   func(hash *hash.Hash, height int32, t time.Time)
+	OnBlockConnected      func(hash *hash.Hash, height int64, t time.Time)
+	OnBlockDisconnected   func(hash *hash.Hash, height int64, t time.Time)
 	OnUnknownNotification func(method string, params []json.RawMessage)
 }
 
-const (
-	BlockConnectedNtfnMethod    = "blockconnected"
-	BlockDisconnectedNtfnMethod = "blockdisconnected"
-)
-
-func parseChainNtfnParams(params []json.RawMessage) (*hash.Hash, int32, time.Time, error) {
+func parseChainNtfnParams(params []json.RawMessage) (*hash.Hash, int64, time.Time, error) {
 
 	if len(params) != 3 {
 		return nil, 0, time.Time{}, wrongNumParams(len(params))
@@ -36,8 +31,8 @@ func parseChainNtfnParams(params []json.RawMessage) (*hash.Hash, int32, time.Tim
 	}
 
 	// Unmarshal second parameter as an integer.
-	var blockHeight int32
-	err = json.Unmarshal(params[1], &blockHeight)
+	var blockOrder int64
+	err = json.Unmarshal(params[1], &blockOrder)
 	if err != nil {
 		return nil, 0, time.Time{}, err
 	}
@@ -58,5 +53,5 @@ func parseChainNtfnParams(params []json.RawMessage) (*hash.Hash, int32, time.Tim
 	// Create time.Time from unix time.
 	blockTime := time.Unix(blockTimeUnix, 0)
 
-	return blockHash, blockHeight, blockTime, nil
+	return blockHash, blockOrder, blockTime, nil
 }

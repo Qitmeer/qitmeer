@@ -3,8 +3,11 @@ package rpc
 import (
 	"container/list"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/serialization"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
 	"io"
 	"sync"
@@ -18,6 +21,8 @@ const (
 	// independent of the send channel buffer.
 	websocketSendBufferSize = 50
 )
+
+var ErrClientQuit = errors.New("client quit")
 
 type wsClient struct {
 	sync.Mutex
@@ -117,8 +122,14 @@ out:
 			}
 			break out
 		}
+		success, exit := c.wsServiceRequest(msg)
+		if exit {
+			break out
+		}
+		if success {
+			continue
+		}
 		codec := NewWSCodec(msg, c)
-
 		c.serviceRequestSem.acquire()
 		go func() {
 			defer codec.Close()
@@ -133,6 +144,51 @@ out:
 	c.Disconnect()
 	c.wg.Done()
 	log.Trace(fmt.Sprintf("Websocket client input handler done for %s", c.addr))
+}
+
+func (c *wsClient) wsServiceRequest(msg []byte) (bool, bool) {
+	var request cmds.Request
+	err := json.Unmarshal(msg, &request)
+	if err != nil {
+		if !c.isAdmin {
+			return false, true
+		}
+		return false, false
+	}
+	cmd := parseCmd(&request)
+	if cmd.err != nil {
+		if !c.isAdmin {
+			return false, true
+		}
+		return false, false
+	}
+	log.Debug(fmt.Sprintf("Received command <%s> from %s", cmd.method, c.addr))
+
+	// process
+	c.serviceRequestSem.acquire()
+
+	var result interface{}
+
+	// Lookup the websocket extension for the command and if it doesn't
+	// exist fallback to handling the command as a standard command.
+	wsHandler, ok := wsHandlers[cmd.method]
+	if ok {
+		result, err = wsHandler(c, cmd.cmd)
+	} else {
+		return false, false
+	}
+	reply, err := createMarshalledReply(cmd.id, result, err)
+	if err != nil {
+		return false, false
+	}
+
+	c.serviceRequestSem.acquire()
+	go func() {
+		c.SendMessage(reply, nil)
+		c.serviceRequestSem.release()
+	}()
+
+	return true, false
 }
 
 func (c *wsClient) SendMessage(marshalledJSON []byte, doneChan chan bool) {
@@ -250,6 +306,16 @@ cleanup:
 	}
 	c.wg.Done()
 	log.Trace(fmt.Sprintf("Websocket client output handler done for %s", c.addr))
+}
+
+func (c *wsClient) QueueNotification(marshalledJSON []byte) error {
+	// Don't queue the message if disconnected.
+	if c.Disconnected() {
+		return ErrClientQuit
+	}
+
+	c.ntfnChan <- marshalledJSON
+	return nil
 }
 
 func newWebsocketClient(server *RpcServer, conn *websocket.Conn,
