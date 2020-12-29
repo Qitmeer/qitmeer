@@ -17,6 +17,7 @@ import (
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"time"
 )
@@ -24,12 +25,12 @@ import (
 func (tm *TxManager) APIs() []rpc.API {
 	return []rpc.API{
 		{
-			NameSpace: rpc.DefaultServiceNameSpace,
+			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicTxAPI(tm),
 			Public:    true,
 		},
 		{
-			NameSpace: rpc.TestNameSpace,
+			NameSpace: cmds.TestNameSpace,
 			Service:   NewPrivateTxAPI(tm),
 			Public:    false,
 		},

@@ -1,13 +1,3 @@
-// Copyright (c) 2017-2019 The qitmeer developers
-// Copyright (c) 2013-2014 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
-//
-// Use of this source code is governed by an ISC
-// license that can be found in the LICENSE file.
-
-// The parts code inspired by
-// https://github.com/ethereum/go-ethereum/rpc
-
 package rpc
 
 import (
@@ -24,6 +14,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/crypto/certgen"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -357,14 +348,43 @@ func NewRequestStatus(sReq *serverRequest) (*RequestStatus, error) {
 }
 
 func createMarshalledReply(id, result interface{}, replyErr error) ([]byte, error) {
-	var jsonErr *RPCError
+	var jsonErr *cmds.RPCError
 	if replyErr != nil {
-		if jErr, ok := replyErr.(*RPCError); ok {
+		if jErr, ok := replyErr.(*cmds.RPCError); ok {
 			jsonErr = jErr
 		} else {
-			jsonErr = internalRPCError(replyErr.Error(), "")
+			jsonErr = cmds.InternalRPCError(replyErr.Error(), "")
 		}
 	}
 
-	return MarshalResponse(id, result, jsonErr)
+	return cmds.MarshalResponse(id, result, jsonErr)
+}
+
+func parseCmd(request *cmds.Request) *parsedRPCCmd {
+	var parsedCmd parsedRPCCmd
+	parsedCmd.id = request.ID
+	parsedCmd.method = request.Method
+
+	cmd, err := cmds.UnmarshalCmd(request)
+	if err != nil {
+		if jerr, ok := err.(cmds.Error); ok &&
+			jerr.ErrorCode == cmds.ErrUnregisteredMethod {
+			parsedCmd.err = cmds.ErrRPCMethodNotFound
+			return &parsedCmd
+		}
+
+		parsedCmd.err = cmds.NewRPCError(
+			cmds.ErrRPCInvalidParams.Code, err.Error())
+		return &parsedCmd
+	}
+
+	parsedCmd.cmd = cmd
+	return &parsedCmd
+}
+
+type parsedRPCCmd struct {
+	id     interface{}
+	method string
+	cmd    interface{}
+	err    *cmds.RPCError
 }

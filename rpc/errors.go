@@ -8,7 +8,10 @@
 
 package rpc
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
+)
 
 // request is for an unknown service
 type methodNotFoundError struct {
@@ -19,7 +22,7 @@ type methodNotFoundError struct {
 func (e *methodNotFoundError) ErrorCode() int { return -32601 }
 
 func (e *methodNotFoundError) Error() string {
-	if e.service == DefaultServiceNameSpace {
+	if e.service == cmds.DefaultServiceNameSpace {
 		return fmt.Sprintf("The method %s does not exist/is not available", e.method)
 	}
 	return fmt.Sprintf("The method %s%s%s does not exist/is not available", e.service, serviceMethodSeparator, e.method)

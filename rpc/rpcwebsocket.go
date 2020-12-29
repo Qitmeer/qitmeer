@@ -62,7 +62,7 @@ func (s *RpcServer) handleNotifyMsg(notification *blockchain.Notification) {
 			log.Warn("Chain connected notification is wrong size slice.")
 			break
 		}
-		s.ntfnMgr.NotifyBlockConnected(blockSlice[0].Block())
+		s.ntfnMgr.NotifyBlockConnected(blockSlice[0])
 
 	case blockchain.BlockDisconnected:
 		block, ok := notification.Data.(*types.SerializedBlock)
@@ -70,7 +70,7 @@ func (s *RpcServer) handleNotifyMsg(notification *blockchain.Notification) {
 			log.Warn("Chain disconnected notification is not a block slice.")
 			break
 		}
-		s.ntfnMgr.NotifyBlockDisconnected(block.Block())
+		s.ntfnMgr.NotifyBlockDisconnected(block)
 	}
 }
 
@@ -101,4 +101,31 @@ func (s *RpcServer) WebsocketHandler(conn *websocket.Conn, remoteAddr string, is
 	client.WaitForShutdown()
 	s.ntfnMgr.RemoveClient(client)
 	log.Info(fmt.Sprintf("Disconnected websocket client %s", remoteAddr))
+}
+
+type wsCommandHandler func(*wsClient, interface{}) (interface{}, error)
+
+var wsHandlers map[string]wsCommandHandler
+var wsHandlersBeforeInit = map[string]wsCommandHandler{
+	"notifyBlocks":     handleNotifyBlocks,
+	"stopNotifyBlocks": handleStopNotifyBlocks,
+	"session":          handleSession,
+}
+
+func handleNotifyBlocks(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	wsc.server.ntfnMgr.RegisterBlockUpdates(wsc)
+	return nil, nil
+}
+
+func handleStopNotifyBlocks(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	wsc.server.ntfnMgr.UnregisterBlockUpdates(wsc)
+	return nil, nil
+}
+
+func handleSession(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	return &SessionResult{SessionID: wsc.sessionID}, nil
+}
+
+func init() {
+	wsHandlers = wsHandlersBeforeInit
 }

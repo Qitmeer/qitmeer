@@ -2,11 +2,20 @@
  * Copyright (c) 2017-2020 The qitmeer developers
  */
 
-package rpc
+package cmds
 
 import (
 	"encoding/json"
 	"fmt"
+)
+
+// These are all service namespace in node
+const (
+	DefaultServiceNameSpace = "qitmeer"
+	MinerNameSpace          = "miner"
+	TestNameSpace           = "test"
+	LogNameSpace            = "log"
+	NotifyNameSpace         = ""
 )
 
 type RPCErrorCode int
@@ -126,7 +135,7 @@ var (
 	}
 )
 
-func internalRPCError(errStr, context string) *RPCError {
+func InternalRPCError(errStr, context string) *RPCError {
 	logStr := errStr
 	if context != "" {
 		logStr = context + ": " + errStr
