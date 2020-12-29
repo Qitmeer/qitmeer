@@ -11,7 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -113,8 +113,8 @@ func (c *Client) CallWithContext(ctx context.Context, result interface{}, method
 	if result != nil && reflect.TypeOf(result).Kind() != reflect.Ptr {
 		return fmt.Errorf("result must be pointer or nil interface: %v", result)
 	}
-	req, err := rpc.NewRequest(c.nextID(), method, args[:])
-	op := &requestOp{ids: []uint32{req.ID.(uint32)}, resp: make(chan *rpc.Response, 1)}
+	req, err := cmds.NewRequest(c.nextID(), method, args[:])
+	op := &requestOp{ids: []uint32{req.ID.(uint32)}, resp: make(chan *cmds.Response, 1)}
 	err = c.sendHTTP(ctx, op, req)
 	if err != nil {
 		return err
@@ -193,7 +193,7 @@ func (c *Client) sendHTTP(ctx context.Context, op *requestOp, req interface{}) e
 		}
 		return err
 	}
-	var respmsg rpc.Response
+	var respmsg cmds.Response
 	if err := json.NewDecoder(respBody).Decode(&respmsg); err != nil {
 		return err
 	}
@@ -205,10 +205,10 @@ func (c *Client) sendHTTP(ctx context.Context, op *requestOp, req interface{}) e
 type requestOp struct {
 	ids  []uint32
 	err  error
-	resp chan *rpc.Response
+	resp chan *cmds.Response
 }
 
-func (op *requestOp) wait(ctx context.Context, c *Client) (*rpc.Response, error) {
+func (op *requestOp) wait(ctx context.Context, c *Client) (*cmds.Response, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
