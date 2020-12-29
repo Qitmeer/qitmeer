@@ -35,6 +35,8 @@ const (
 	defaultBlockMinSize           = 0
 	defaultBlockMaxSize           = 375000
 	defaultMaxRPCClients          = 10
+	defaultMaxRPCWebsockets       = 25
+	defaultMaxRPCConcurrentReqs   = 20
 	defaultMaxPeers               = 30
 	defaultMiningStateSync        = false
 	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
@@ -65,29 +67,31 @@ func LoadConfig() (*config.Config, []string, error) {
 
 	// Default config.
 	cfg := config.Config{
-		HomeDir:           defaultHomeDir,
-		ConfigFile:        defaultConfigFile,
-		DebugLevel:        defaultLogLevel,
-		DebugPrintOrigins: defaultDebugPrintOrigins,
-		DataDir:           defaultDataDir,
-		LogDir:            defaultLogDir,
-		DbType:            defaultDbType,
-		RPCKey:            defaultRPCKeyFile,
-		RPCCert:           defaultRPCCertFile,
-		RPCMaxClients:     defaultMaxRPCClients,
-		Generate:          defaultGenerate,
-		MaxPeers:          defaultMaxPeers,
-		MinTxFee:          mempool.DefaultMinRelayTxFee,
-		BlockMinSize:      defaultBlockMinSize,
-		BlockMaxSize:      defaultBlockMaxSize,
-		SigCacheMaxSize:   defaultSigCacheMaxSize,
-		MiningStateSync:   defaultMiningStateSync,
-		DAGType:           defaultDAGType,
-		Banning:           false,
-		MaxInbound:        defaultMaxInboundPeersPerHost,
-		TrickleInterval:   defaultTrickleInterval,
-		CacheInvalidTx:    defaultCacheInvalidTx,
-		NTP:               false,
+		HomeDir:              defaultHomeDir,
+		ConfigFile:           defaultConfigFile,
+		DebugLevel:           defaultLogLevel,
+		DebugPrintOrigins:    defaultDebugPrintOrigins,
+		DataDir:              defaultDataDir,
+		LogDir:               defaultLogDir,
+		DbType:               defaultDbType,
+		RPCKey:               defaultRPCKeyFile,
+		RPCCert:              defaultRPCCertFile,
+		RPCMaxClients:        defaultMaxRPCClients,
+		RPCMaxWebsockets:     defaultMaxRPCWebsockets,
+		RPCMaxConcurrentReqs: defaultMaxRPCConcurrentReqs,
+		Generate:             defaultGenerate,
+		MaxPeers:             defaultMaxPeers,
+		MinTxFee:             mempool.DefaultMinRelayTxFee,
+		BlockMinSize:         defaultBlockMinSize,
+		BlockMaxSize:         defaultBlockMaxSize,
+		SigCacheMaxSize:      defaultSigCacheMaxSize,
+		MiningStateSync:      defaultMiningStateSync,
+		DAGType:              defaultDAGType,
+		Banning:              false,
+		MaxInbound:           defaultMaxInboundPeersPerHost,
+		TrickleInterval:      defaultTrickleInterval,
+		CacheInvalidTx:       defaultCacheInvalidTx,
+		NTP:                  false,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -274,6 +278,15 @@ func LoadConfig() (*config.Config, []string, error) {
 			addr = net.JoinHostPort(addr, params.ActiveNetParams.RpcPort)
 			cfg.RPCListeners = append(cfg.RPCListeners, addr)
 		}
+	}
+
+	if cfg.RPCMaxConcurrentReqs < 0 {
+		str := "%s: The rpcmaxwebsocketconcurrentrequests option may " +
+			"not be less than 0 -- parsed [%d]"
+		err := fmt.Errorf(str, funcName, cfg.RPCMaxConcurrentReqs)
+		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, usageMessage)
+		return nil, nil, err
 	}
 
 	// Append the network type to the data directory so it is "namespaced"

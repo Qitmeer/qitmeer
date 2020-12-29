@@ -66,7 +66,7 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 	n.peerServer = server
 
 	if !cfg.DisableRPC {
-		n.rpcServer, err = rpc.NewRPCServer(cfg)
+		n.rpcServer, err = rpc.NewRPCServer(cfg, &n.events)
 		if err != nil {
 			return nil, err
 		}

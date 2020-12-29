@@ -262,7 +262,7 @@ func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 	}
 	resp, err := generateErrorResponse(e, rpc.Encoding())
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
+		log.Warn(fmt.Sprintf("Failed to generate a response error:%v", err))
 	} else {
 		if _, err := stream.Write(resp); err != nil {
 			log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))

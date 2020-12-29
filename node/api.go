@@ -14,6 +14,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/version"
 	"math/big"
@@ -23,17 +24,17 @@ import (
 func (nf *QitmeerFull) apis() []rpc.API {
 	return []rpc.API{
 		{
-			NameSpace: rpc.DefaultServiceNameSpace,
+			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicBlockChainAPI(nf),
 			Public:    true,
 		},
 		{
-			NameSpace: rpc.TestNameSpace,
+			NameSpace: cmds.TestNameSpace,
 			Service:   NewPrivateBlockChainAPI(nf),
 			Public:    false,
 		},
 		{
-			NameSpace: rpc.LogNameSpace,
+			NameSpace: cmds.LogNameSpace,
 			Service:   NewPrivateLogAPI(nf),
 			Public:    false,
 		},
@@ -71,7 +72,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		Network:          params.ActiveNetParams.Name,
 		Confirmations:    blockdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
-		Modules:          []string{rpc.DefaultServiceNameSpace, rpc.MinerNameSpace, rpc.TestNameSpace, rpc.LogNameSpace},
+		Modules:          []string{cmds.DefaultServiceNameSpace, cmds.MinerNameSpace, cmds.TestNameSpace, cmds.LogNameSpace},
 	}
 	ret.GraphState = *getGraphStateResult(best.GraphState)
 	hostdns := api.node.node.peerServer.HostDNS()

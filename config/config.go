@@ -55,7 +55,8 @@ type Config struct {
 	BlockPrioritySize uint32   `long:"blockprioritysize" description:"Size in bytes for high-priority/low-fee transactions when creating a block"`
 	miningAddrs       []types.Address
 	//WebSocket support
-	RPCMaxWebsockets int `long:"rpcmaxwebsockets" description:"Max number of RPC websocket connections"`
+	RPCMaxWebsockets     int `long:"rpcmaxwebsockets" description:"Max number of RPC websocket connections"`
+	RPCMaxConcurrentReqs int `long:"rpcmaxconcurrentreqs" description:"Max number of concurrent RPC requests that may be processed concurrently"`
 	//P2P
 	BlocksOnly      bool     `long:"blocksonly" description:"Do not accept transactions from remote peers."`
 	MiningStateSync bool     `long:"miningstatesync" description:"Synchronizing the mining state with other nodes"`
