@@ -2,6 +2,7 @@ package hash
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -57,4 +58,9 @@ func TestHashMeerCrypto(t *testing.T) {
 	b, _ = hex.DecodeString(str)
 	h = HashMeerCrypto(b)
 	assert.Equal(t, hex.EncodeToString(h[:]), "3b94fab4d25980aca4512b86b32bc96fd7cb8f8fdf3f265ffde45f72688e0100")
+
+	str = "120000003d23a9a7eb43ac14e7a00fb85074633f4279c1748182582fe69843f945512392c04a59e4d676f01b9f7755fe033602e0529dea90df046ecd3515900aeff9eab90000000000000000000000000000000000000000000000000000000000000000ffff032057d8e85f08899d0de000000000"
+	b, _ = hex.DecodeString(str)
+	h = HashMeerCrypto(b)
+	fmt.Println(hex.EncodeToString(h[:]))
 }
