@@ -119,50 +119,9 @@ func TestHarness_RpcAPI(t *testing.T) {
 			t.Errorf("test failed, expect %v , but got %v", expect, info.Network)
 		}
 	}
-	assertBlockOrderAndHeight(t, h, 1, 1, 0)
-	generateBlock(t, h, 1)
-	assertBlockOrderAndHeight(t, h, 2, 2, 1)
-	generateBlock(t, h, 10)
-	assertBlockOrderAndHeight(t, h, 12, 12, 11)
-
-}
-
-func generateBlock(t *testing.T, h *Harness, num int) {
-	if blocks, err := h.Client.Generate(num); err != nil {
-		t.Errorf("generate block failed : %v", err)
-	} else {
-		for _, b := range blocks {
-			t.Logf("node [%v] generate block [%v] ok", h.Node.Id(), b)
-		}
-	}
-}
-
-func assertBlockOrderAndHeight(t *testing.T, h *Harness, order, total, height uint64) {
-	// order
-	if c, err := h.Client.BlockCount(); err != nil {
-		t.Errorf("test failed : %v", err)
-	} else {
-		expect := order
-		if c != expect {
-			t.Errorf("test failed, expect %v , but got %v", expect, c)
-		}
-	}
-	// total block
-	if tal, err := h.Client.BlockTotal(); err != nil {
-		t.Errorf("test failed : %v", err)
-	} else {
-		expect := total
-		if tal != expect {
-			t.Errorf("test failed, expect %v , but got %v", expect, tal)
-		}
-	}
-	// main height
-	if h, err := h.Client.MainHeight(); err != nil {
-		t.Errorf("test failed : %v", err)
-	} else {
-		expect := height
-		if h != expect {
-			t.Errorf("test failed, expect %v , but got %v", expect, h)
-		}
-	}
+	AssertBlockOrderAndHeight(t, h, 1, 1, 0)
+	GenerateBlock(t, h, 1)
+	AssertBlockOrderAndHeight(t, h, 2, 2, 1)
+	GenerateBlock(t, h, 10)
+	AssertBlockOrderAndHeight(t, h, 12, 12, 11)
 }
