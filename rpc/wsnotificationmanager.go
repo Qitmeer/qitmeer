@@ -1,13 +1,15 @@
 package rpc
 
 import (
+	"fmt"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"sync"
 )
 
 // Notification types
-type notificationBlockConnected types.Block
-type notificationBlockDisconnected types.Block
+type notificationBlockConnected types.SerializedBlock
+type notificationBlockDisconnected types.SerializedBlock
 
 // Notification control requests
 type notificationRegisterClient wsClient
@@ -44,7 +46,6 @@ func (m *wsNotificationManager) notificationHandler() {
 	// clients is a map of all currently connected websocket clients.
 	clients := make(map[chan struct{}]*wsClient)
 	blockNotifications := make(map[chan struct{}]*wsClient)
-
 out:
 	for {
 		select {
@@ -55,14 +56,14 @@ out:
 			}
 			switch n := n.(type) {
 			case *notificationBlockConnected:
-				block := (*types.Block)(n)
+				block := (*types.SerializedBlock)(n)
 				if len(blockNotifications) != 0 {
 					m.notifyBlockConnected(blockNotifications,
 						block)
 				}
 
 			case *notificationBlockDisconnected:
-				block := (*types.Block)(n)
+				block := (*types.SerializedBlock)(n)
 				if len(blockNotifications) != 0 {
 					m.notifyBlockDisconnected(blockNotifications,
 						block)
@@ -106,24 +107,50 @@ out:
 	m.wg.Done()
 }
 
-func (m *wsNotificationManager) NotifyBlockConnected(block *types.Block) {
+func (m *wsNotificationManager) NotifyBlockConnected(block *types.SerializedBlock) {
 	select {
 	case m.queueNotification <- (*notificationBlockConnected)(block):
 	case <-m.quit:
 	}
 }
 
-func (*wsNotificationManager) notifyBlockConnected(clients map[chan struct{}]*wsClient, block *types.Block) {
+func (m *wsNotificationManager) notifyBlockConnected(clients map[chan struct{}]*wsClient, block *types.SerializedBlock) {
+	ntfn := cmds.NewBlockConnectedNtfn(block.Hash().String(), int64(block.Order()), block.Block().Header.Timestamp.Unix())
+	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to marshal block connected notification: "+
+			"%v", err))
+		return
+	}
+	for _, wsc := range clients {
+		wsc.QueueNotification(marshalledJSON)
+	}
 }
 
-func (m *wsNotificationManager) NotifyBlockDisconnected(block *types.Block) {
+func (m *wsNotificationManager) NotifyBlockDisconnected(block *types.SerializedBlock) {
 	select {
 	case m.queueNotification <- (*notificationBlockDisconnected)(block):
 	case <-m.quit:
 	}
 }
 
-func (*wsNotificationManager) notifyBlockDisconnected(clients map[chan struct{}]*wsClient, block *types.Block) {
+func (*wsNotificationManager) notifyBlockDisconnected(clients map[chan struct{}]*wsClient, block *types.SerializedBlock) {
+	if len(clients) == 0 {
+		return
+	}
+
+	// Notify interested websocket clients about the disconnected block.
+	ntfn := cmds.NewBlockDisconnectedNtfn(block.Hash().String(),
+		int64(block.Order()), block.Block().Header.Timestamp.Unix())
+	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to marshal block disconnected "+
+			"notification: %v", err))
+		return
+	}
+	for _, wsc := range clients {
+		wsc.QueueNotification(marshalledJSON)
+	}
 }
 
 func (m *wsNotificationManager) NumClients() (n int) {
@@ -143,6 +170,14 @@ func (m *wsNotificationManager) RemoveClient(wsc *wsClient) {
 	case m.queueNotification <- (*notificationUnregisterClient)(wsc):
 	case <-m.quit:
 	}
+}
+
+func (m *wsNotificationManager) RegisterBlockUpdates(wsc *wsClient) {
+	m.queueNotification <- (*notificationRegisterBlocks)(wsc)
+}
+
+func (m *wsNotificationManager) UnregisterBlockUpdates(wsc *wsClient) {
+	m.queueNotification <- (*notificationUnregisterBlocks)(wsc)
 }
 
 func newWsNotificationManager(server *RpcServer) *wsNotificationManager {

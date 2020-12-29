@@ -3,6 +3,7 @@ package acct
 import (
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 )
 
 // account manager communicate with various backends for signing transactions.
@@ -22,7 +23,7 @@ func (a *AccountManager) Stop() error {
 func (a AccountManager) APIs() []rpc.API {
 	return []rpc.API{
 		{
-			NameSpace: rpc.DefaultServiceNameSpace,
+			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicAccountManagerAPI(&a),
 			Public:    true,
 		},
