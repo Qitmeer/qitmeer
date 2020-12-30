@@ -9,6 +9,7 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/testutils"
 	"testing"
+	"time"
 )
 
 var (
@@ -384,7 +385,9 @@ func TestCheckTokenUnMint(t *testing.T) {
 }
 
 func TestTokenIssue(t *testing.T) {
-	h, err := testutils.NewHarness(t, params.PrivNetParam.Params)
+	args := []string{"--modules=miner", "--modules=qitmeer", "--miningaddr=RmFa5hnPd3uQRpzr3xWTfr8EFZdX7dS1qzV"}
+	netParams := params.PrivNetParam.Params
+	h, err := testutils.NewHarness(t, netParams, args...)
 	if err != nil {
 		t.Errorf("failed to create test harness")
 	}
@@ -394,6 +397,18 @@ func TestTokenIssue(t *testing.T) {
 			t.Errorf("failed to teardown test harness")
 		}
 	}()
+	h.Setup()
+	time.Sleep(500 * time.Millisecond)
+	testutils.AssertBlockOrderAndHeight(t, h, 1, 1, 0)
+	startHeight, err := h.Client.MainHeight()
+	if err != nil {
+		t.Errorf("failed to get main height: %v", err)
+	}
+	matureHeight := uint64(netParams.CoinbaseMaturity)
+	if matureHeight > startHeight {
+		testutils.GenerateBlock(t, h, matureHeight-startHeight)
+	}
+	testutils.AssertBlockOrderAndHeight(t, h, 17, 17, 16)
 }
 
 //func generateKeys() {

@@ -46,7 +46,7 @@ func (c *Client) MainHeight() (uint64, error) {
 	}
 }
 
-func (c *Client) Generate(num int) ([]string, error) {
+func (c *Client) Generate(num uint64) ([]string, error) {
 	var result []string
 	if err := c.Call(&result, "miner_generate", num, pow.PowType(0)); err != nil {
 		return result, err

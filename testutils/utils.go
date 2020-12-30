@@ -9,7 +9,7 @@ import "testing"
 // GenerateBlock will generate a number of blocks by the input number for
 // the appointed test harness.
 // It will return the hashes of the generated blocks or an error
-func GenerateBlock(t *testing.T, h *Harness, num int) {
+func GenerateBlock(t *testing.T, h *Harness, num uint64) {
 	if blocks, err := h.Client.Generate(num); err != nil {
 		t.Errorf("generate block failed : %v", err)
 	} else {

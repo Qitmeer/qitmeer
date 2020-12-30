@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/params"
 	"strings"
 )
 
@@ -232,6 +233,10 @@ func dbPutTokenState(dbTx database.Tx, hash *hash.Hash, ts tokenState) error {
 // dbFetchTokenState fetch the token balance record from the token state database.
 // the key is the input block hash.
 func dbFetchTokenState(dbTx database.Tx, hash hash.Hash) (*tokenState, error) {
+	// if it is genesis hash, return empty tokenState directly
+	if *params.ActiveNetParams.GenesisHash == hash {
+		return &tokenState{}, nil
+	}
 	// Fetch record from the token state database by block hash
 	meta := dbTx.Metadata()
 	bucket := meta.Bucket(dbnamespace.TokenBucketName)
