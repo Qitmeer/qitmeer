@@ -32,10 +32,10 @@ var (
 type testWallet struct {
 	// the bip32 master extended private key from a seed
 	hdMaster *bip32.Key
-	// the next hd key index from the master
-	hdIndex uint32
-	// addrs are all address belong to the master private key
-	// the index of address is their hd index.
+	// the next hd child number from the master
+	hdChildNumer uint32
+	// addrs are all addresses which belong to the master private key.
+	// the key of address map is their hd child number.
 	addrs map[uint32]types.Address
 
 	netParams *params.Params
@@ -75,17 +75,17 @@ func NewTestWalletWithSeed(t *testing.T, params *params.Params, seed *[hash.Hash
 	addrs := make(map[uint32]types.Address)
 	addrs[0] = addr0
 	return &testWallet{
-		hdMaster:  hdMaster,
-		hdIndex:   1,
-		addrs:     addrs,
-		netParams: params,
+		hdMaster:     hdMaster,
+		hdChildNumer: 1,
+		addrs:        addrs,
+		netParams:    params,
 	}, nil
 }
 
 // newAddress create a new address from the wallet's key chain.
 func (w *testWallet) newAddress() (types.Address, error) {
-	index := w.hdIndex
-	childx, err := w.hdMaster.NewChildKey(index)
+	num := w.hdChildNumer
+	childx, err := w.hdMaster.NewChildKey(num)
 	if err != nil {
 		return nil, err
 	}
@@ -93,9 +93,13 @@ func (w *testWallet) newAddress() (types.Address, error) {
 	if err != nil {
 		return nil, err
 	}
-	w.addrs[index] = addrx
-	w.hdIndex++
+	w.addrs[num] = addrx
+	w.hdChildNumer++
 	return addrx, nil
+}
+
+func (w *testWallet) coinBaseAddr() types.Address {
+	return w.addrs[0]
 }
 
 // convert the serialized private key into the p2pkh address
