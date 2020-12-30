@@ -6,8 +6,10 @@ package testutils
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/rpc/client"
 	"io/ioutil"
 	"net"
 	"os"
@@ -46,6 +48,9 @@ type Harness struct {
 	Client *Client
 	// the maximized attempts try to establish the rpc connection
 	maxRpcConnRetries int
+	// Notifier use rpc/client with web-socket notification support
+	// TODO refactor & merge two rpc clients to the single one in the future.
+	Notifier *client.Client
 }
 
 func (h *Harness) Id() string {
@@ -61,8 +66,18 @@ func (h *Harness) Setup() error {
 	if err := h.Node.start(); err != nil {
 		return err
 	}
+	// setup the rpc client
 	if err := h.connectRPCClient(); err != nil {
 		return err
+	}
+	// setup the notifier
+	if err := h.connectWSNotifier(); err != nil {
+		return err
+	} else {
+		// Register for block connect and disconnect notifications.
+		if err := h.Notifier.NotifyBlocks(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -90,6 +105,40 @@ func (h *Harness) connectRPCClient() error {
 	return nil
 }
 
+// connectWSNotifier establish web-socket connection to the qitmeer node in the Harness instance
+// so that we can get notification when registered event triggered.
+func (h *Harness) connectWSNotifier() error {
+	ntfnHandlers := client.NotificationHandlers{
+		OnBlockConnected: func(hash *hash.Hash, order int64, t time.Time) {
+			fmt.Println("OnBlockConnected", hash, order)
+		},
+		OnBlockDisconnected: func(hash *hash.Hash, order int64, t time.Time) {
+			fmt.Println("OnBlockDisconnected", hash, order)
+		},
+	}
+	connCfg := &client.ConnConfig{
+		Host:       h.Node.config.rpclisten,
+		User:       h.Node.config.rpcuser,
+		Pass:       h.Node.config.rpcpass,
+		Endpoint:   "ws",
+		DisableTLS: true,
+	}
+	var c *client.Client
+	var err error
+	for i := 0; i < h.maxRpcConnRetries; i++ {
+		if c, err = client.New(connCfg, &ntfnHandlers); err != nil {
+			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
+			continue
+		}
+		break
+	}
+	if c == nil || err != nil {
+		return fmt.Errorf("failed to establish web-socket client connection: %v", err)
+	}
+	h.Notifier = c
+	return nil
+}
+
 // Teardown func the concurrent safe wrapper of teardown func
 func (h *Harness) Teardown() error {
 	harnessStateMutex.Lock()
@@ -103,6 +152,10 @@ func (h *Harness) Teardown() error {
 func (h *Harness) teardown() error {
 	if err := h.Node.stop(); err != nil {
 		return err
+	}
+	if h.Notifier != nil {
+		h.Notifier.Shutdown()
+		h.Notifier.WaitForShutdown()
 	}
 	if err := os.RemoveAll(h.instanceDir); err != nil {
 		return err

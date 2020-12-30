@@ -108,7 +108,10 @@ func TestHarness_RpcAPI(t *testing.T) {
 		t.Errorf("new harness failed: %v", err)
 		h.Teardown()
 	}
-	h.Setup()
+	err = h.Setup()
+	if err != nil {
+		t.Errorf("setup harness failed:%v", err)
+	}
 	time.Sleep(500 * time.Millisecond)
 
 	if info, err := h.Client.NodeInfo(); err != nil {
