@@ -91,7 +91,7 @@ func (h *Harness) connectRPCClient() error {
 
 	url, user, pass := h.Node.config.rpclisten, h.Node.config.rpcuser, h.Node.config.rpcpass
 	for i := 0; i < h.maxRpcConnRetries; i++ {
-		if client, err = Dial("https://"+url, user, pass); err != nil {
+		if client, err = Dial("http://"+url, user, pass); err != nil {
 			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
 			continue
 		}
@@ -155,7 +155,6 @@ func (h *Harness) teardown() error {
 	}
 	if h.Notifier != nil {
 		h.Notifier.Shutdown()
-		h.Notifier.WaitForShutdown()
 	}
 	if err := os.RemoveAll(h.instanceDir); err != nil {
 		return err
@@ -194,6 +193,9 @@ func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, 
 	}
 
 	extraArgs = append(extraArgs, args...)
+
+	// force using notls since web-socket not support tls yet.
+	extraArgs = append(extraArgs, "--notls")
 
 	// create node config & initialize the node process
 	config := newNodeConfig(testDir, extraArgs)
