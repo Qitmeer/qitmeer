@@ -51,6 +51,10 @@ type Harness struct {
 	// Notifier use rpc/client with web-socket notification support
 	// TODO refactor & merge two rpc clients to the single one in the future.
 	Notifier *client.Client
+	// a simple in-memory test wallet works for the test harness node.
+	// aka the wallet of the coinbase miner of the node of the harness
+	// instance.
+	Wallet *testWallet
 }
 
 func (h *Harness) Id() string {
