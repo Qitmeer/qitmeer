@@ -110,10 +110,10 @@ func (h *Harness) connectRPCClient() error {
 func (h *Harness) connectWSNotifier() error {
 	ntfnHandlers := client.NotificationHandlers{
 		OnBlockConnected: func(hash *hash.Hash, order int64, t time.Time) {
-			fmt.Println("OnBlockConnected", hash, order)
+			h.Node.t.Logf("node [%v] OnBlockConnected hash=%v,order=%v", h.Node.Id(), hash, order)
 		},
 		OnBlockDisconnected: func(hash *hash.Hash, order int64, t time.Time) {
-			fmt.Println("OnBlockDisconnected", hash, order)
+			h.Node.t.Logf("node [%v] OnBlockDisconnected hash=%v,order=%v", h.Node.Id(), hash, order)
 		},
 	}
 	connCfg := &client.ConnConfig{
