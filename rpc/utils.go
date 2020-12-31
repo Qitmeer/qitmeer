@@ -9,10 +9,12 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/marshal"
 	"github.com/Qitmeer/qitmeer/common/network"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/certgen"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"io/ioutil"
@@ -332,9 +334,9 @@ func (rs *RequestStatus) RemoveRequst(sReq *serverRequest) {
 	}
 }
 
-func (rs *RequestStatus) ToJson() *JsonRequestStatus {
-	rsj := JsonRequestStatus{rs.GetName(), int(rs.TotalCalls),
-		rs.TotalTime.String(), "", len(rs.Requests)}
+func (rs *RequestStatus) ToJson() *cmds.JsonRequestStatus {
+	rsj := cmds.JsonRequestStatus{Name: rs.GetName(), TotalCalls: int(rs.TotalCalls),
+		TotalTime: rs.TotalTime.String(), AverageTime: "", RunningNum: len(rs.Requests)}
 	aTime := rs.TotalTime / time.Duration(rs.TotalCalls)
 	rsj.AverageTime = aTime.String()
 	return &rsj
@@ -387,4 +389,22 @@ type parsedRPCCmd struct {
 	method string
 	cmd    interface{}
 	err    *cmds.RPCError
+}
+
+func GetTxsHexFromBlock(block *types.SerializedBlock, duplicate bool) ([]string, error) {
+	txs := []string{}
+	for _, tx := range block.Transactions() {
+		if duplicate {
+			if tx.IsDuplicate {
+				continue
+			}
+		}
+
+		txhex, err := marshal.MessageToHex(tx.Tx)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to marshal transaction:%v", tx.Hash().String())
+		}
+		txs = append(txs, txhex)
+	}
+	return txs, nil
 }

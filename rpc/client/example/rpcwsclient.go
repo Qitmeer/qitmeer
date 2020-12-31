@@ -9,18 +9,22 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/rpc/client"
+	"io/ioutil"
 	"log"
+	"path/filepath"
 	"time"
 )
 
 func main() {
 	ntfnHandlers := client.NotificationHandlers{
-		OnBlockConnected: func(hash *hash.Hash, order int64, t time.Time) {
-			fmt.Println("OnBlockConnected", hash, order)
+		OnBlockConnected: func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
+			fmt.Println("OnBlockConnected", hash, order, len(txs))
 		},
-		OnBlockDisconnected: func(hash *hash.Hash, order int64, t time.Time) {
-			fmt.Println("OnBlockDisconnected", hash, order)
+		OnBlockDisconnected: func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
+			fmt.Println("OnBlockDisconnected", hash, order, len(txs))
 		},
 	}
 
@@ -29,8 +33,17 @@ func main() {
 		Endpoint:   "ws",
 		User:       "test",
 		Pass:       "test",
-		DisableTLS: true,
+		DisableTLS: false,
 	}
+	if !connCfg.DisableTLS {
+		homeDir := util.AppDataDir("qitmeerd", false)
+		certs, err := ioutil.ReadFile(filepath.Join(homeDir, "rpc.cert"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		connCfg.Certificates = certs
+	}
+
 	client, err := client.New(connCfg, &ntfnHandlers)
 	if err != nil {
 		log.Fatal(err)

@@ -21,18 +21,44 @@ type PowResult struct {
 
 type BlockVerboseResult struct {
 	Hash          string        `json:"hash"`
+	Txsvalid      bool          `json:"txsvalid"`
 	Confirmations int64         `json:"confirmations"`
-	Size          int32         `json:"size"`
-	Height        int64         `json:"height"`
 	Version       int32         `json:"version"`
+	Weight        int64         `json:"weight"`
+	Height        int64         `json:"height"`
 	TxRoot        string        `json:"txRoot"`
-	Tx            []string      `json:"tx,omitempty"`
-	RawTx         []TxRawResult `json:"rawtx,omitempty"`
-	Time          int64         `json:"time"`
-	PowResult     PowResult     `json:"pow"`
+	Order         int64         `json:"order,omitempty"`
+	Tx            []TxRawResult `json:"transactions,omitempty"`
+	TxFee         int64         `json:"transactionfee,omitempty"`
+	StateRoot     string        `json:"stateRoot"`
+	Bits          string        `json:"bits"`
 	Difficulty    uint32        `json:"difficulty"`
-	PreviousHash  string        `json:"previousblockhash"`
-	NextHash      string        `json:"nextblockhash,omitempty"`
+	PowResult     PowResult     `json:"pow"`
+	Time          string        `json:"timestamp"`
+	ParentRoot    string        `json:"parentroot"`
+	Parents       []string      `json:"parents"`
+	Children      []string      `json:"children"`
+}
+
+type BlockResult struct {
+	Hash          string    `json:"hash"`
+	Txsvalid      bool      `json:"txsvalid"`
+	Confirmations int64     `json:"confirmations"`
+	Version       int32     `json:"version"`
+	Weight        int64     `json:"weight"`
+	Height        int64     `json:"height"`
+	TxRoot        string    `json:"txRoot"`
+	Order         int64     `json:"order,omitempty"`
+	Tx            []string  `json:"transactions,omitempty"`
+	TxFee         int64     `json:"transactionfee,omitempty"`
+	StateRoot     string    `json:"stateRoot"`
+	Bits          string    `json:"bits"`
+	Difficulty    uint32    `json:"difficulty"`
+	PowResult     PowResult `json:"pow"`
+	Time          string    `json:"timestamp"`
+	ParentRoot    string    `json:"parentroot"`
+	Parents       []string  `json:"parents"`
+	Children      []string  `json:"children"`
 }
 
 // GetBlockHeaderVerboseResult models the data from the getblockheader command when
