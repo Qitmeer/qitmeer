@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/rpc/client"
 	"io/ioutil"
 	"log"
@@ -19,11 +20,11 @@ import (
 
 func main() {
 	ntfnHandlers := client.NotificationHandlers{
-		OnBlockConnected: func(hash *hash.Hash, order int64, t time.Time) {
-			fmt.Println("OnBlockConnected", hash, order)
+		OnBlockConnected: func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
+			fmt.Println("OnBlockConnected", hash, order, len(txs))
 		},
-		OnBlockDisconnected: func(hash *hash.Hash, order int64, t time.Time) {
-			fmt.Println("OnBlockDisconnected", hash, order)
+		OnBlockDisconnected: func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
+			fmt.Println("OnBlockDisconnected", hash, order, len(txs))
 		},
 	}
 
