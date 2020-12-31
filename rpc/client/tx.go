@@ -6,7 +6,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	j "github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
-	"github.com/Qitmeer/qitmeer/services/tx"
 )
 
 type FutureCreateRawTransactionResult chan *response
@@ -24,12 +23,12 @@ func (r FutureCreateRawTransactionResult) Receive() (string, error) {
 	return txStr, nil
 }
 
-func (c *Client) CreateRawTransactionAsync(inputs []tx.TransactionInput, amounts tx.Amounts, lockTime int64) FutureCreateRawTransactionResult {
+func (c *Client) CreateRawTransactionAsync(inputs []j.TransactionInput, amounts j.Amounts, lockTime int64) FutureCreateRawTransactionResult {
 	cmd := cmds.NewCreateRawTransactionCmd(inputs, amounts, lockTime)
 	return c.sendCmd(cmd)
 }
 
-func (c *Client) CreateRawTransaction(inputs []tx.TransactionInput, amounts tx.Amounts, lockTime int64) (string, error) {
+func (c *Client) CreateRawTransaction(inputs []j.TransactionInput, amounts j.Amounts, lockTime int64) (string, error) {
 	return c.CreateRawTransactionAsync(inputs, amounts, lockTime).Receive()
 }
 

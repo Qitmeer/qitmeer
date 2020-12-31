@@ -1,14 +1,16 @@
 package cmds
 
-import "github.com/Qitmeer/qitmeer/services/tx"
+import (
+	"github.com/Qitmeer/qitmeer/core/json"
+)
 
 type CreateRawTransactionCmd struct {
-	Inputs   []tx.TransactionInput
-	Amounts  tx.Amounts
+	Inputs   []json.TransactionInput
+	Amounts  json.Amounts
 	LockTime int64
 }
 
-func NewCreateRawTransactionCmd(inputs []tx.TransactionInput, amounts tx.Amounts, lockTime int64) *CreateRawTransactionCmd {
+func NewCreateRawTransactionCmd(inputs []json.TransactionInput, amounts json.Amounts, lockTime int64) *CreateRawTransactionCmd {
 	return &CreateRawTransactionCmd{
 		Inputs:   inputs,
 		Amounts:  amounts,

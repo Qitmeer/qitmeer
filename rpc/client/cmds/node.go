@@ -36,6 +36,26 @@ func NewBanlistCmd() *BanlistCmd {
 	return &BanlistCmd{}
 }
 
+type RemoveBanCmd struct {
+	Id string
+}
+
+func NewRemoveBanCmd(id string) *RemoveBanCmd {
+	return &RemoveBanCmd{
+		Id: id,
+	}
+}
+
+type SetRpcMaxClientsCmd struct {
+	Max int
+}
+
+func NewSetRpcMaxClientsCmd(max int) *SetRpcMaxClientsCmd {
+	return &SetRpcMaxClientsCmd{
+		Max: max,
+	}
+}
+
 type CheckAddressCmd struct {
 	Address string
 	Network string
@@ -48,6 +68,16 @@ func NewCheckAddressCmd(address string, network string) *CheckAddressCmd {
 	}
 }
 
+type SetLogLevelCmd struct {
+	Level string
+}
+
+func NewSetLogLevelCmd(level string) *SetLogLevelCmd {
+	return &SetLogLevelCmd{
+		Level: level,
+	}
+}
+
 func init() {
 	flags := UsageFlag(0)
 
@@ -57,6 +87,10 @@ func init() {
 	MustRegisterCmd("getTimeInfo", (*GetTimeInfoCmd)(nil), flags, DefaultServiceNameSpace)
 	MustRegisterCmd("stop", (*StopCmd)(nil), flags, TestNameSpace)
 	MustRegisterCmd("banlist", (*BanlistCmd)(nil), flags, TestNameSpace)
+	MustRegisterCmd("removeBan", (*RemoveBanCmd)(nil), flags, TestNameSpace)
+	MustRegisterCmd("setRpcMaxClients", (*SetRpcMaxClientsCmd)(nil), flags, TestNameSpace)
 
 	MustRegisterCmd("checkAddress", (*CheckAddressCmd)(nil), flags, DefaultServiceNameSpace)
+
+	MustRegisterCmd("setLogLevel", (*SetLogLevelCmd)(nil), flags, LogNameSpace)
 }

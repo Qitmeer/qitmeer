@@ -145,3 +145,12 @@ type DecodeRawTransactionResult struct {
 	Vin      []Vin  `json:"vin"`
 	Vout     []Vout `json:"vout"`
 }
+
+// TransactionInput represents the inputs to a transaction.  Specifically a
+// transaction hash and output number pair.
+type TransactionInput struct {
+	Txid string `json:"txid"`
+	Vout uint32 `json:"vout"`
+}
+
+type Amounts map[string]uint64 //{\"address\":amount,...}

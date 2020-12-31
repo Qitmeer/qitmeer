@@ -47,17 +47,8 @@ func NewPublicTxAPI(tm *TxManager) *PublicTxAPI {
 	return &ptapi
 }
 
-// TransactionInput represents the inputs to a transaction.  Specifically a
-// transaction hash and output number pair.
-type TransactionInput struct {
-	Txid string `json:"txid"`
-	Vout uint32 `json:"vout"`
-}
-
-type Amounts map[string]uint64 //{\"address\":amount,...}
-
-func (api *PublicTxAPI) CreateRawTransaction(inputs []TransactionInput,
-	amounts Amounts, lockTime *int64) (interface{}, error) {
+func (api *PublicTxAPI) CreateRawTransaction(inputs []json.TransactionInput,
+	amounts json.Amounts, lockTime *int64) (interface{}, error) {
 
 	// Validate the locktime, if given.
 	if lockTime != nil &&
