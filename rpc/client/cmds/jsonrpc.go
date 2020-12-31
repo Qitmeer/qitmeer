@@ -143,3 +143,11 @@ func InternalRPCError(errStr, context string) *RPCError {
 	log.Error(logStr)
 	return NewRPCError(ErrRPCInternal.Code, errStr)
 }
+
+type JsonRequestStatus struct {
+	Name        string `json:"name"`
+	TotalCalls  int    `json:"totalcalls"`
+	TotalTime   string `json:"totaltime"`
+	AverageTime string `json:"averagetime"`
+	RunningNum  int    `json:"runningnum"`
+}

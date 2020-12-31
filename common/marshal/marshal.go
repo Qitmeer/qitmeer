@@ -11,7 +11,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/rpc"
 	"strconv"
 	"time"
 )
@@ -23,7 +22,7 @@ func MessageToHex(tx *types.Transaction) (string, error) {
 	err := tx.Encode(&buf, protocol.ProtocolVersion, types.TxSerializeFull)
 	if err != nil {
 		context := fmt.Sprintf("Failed to encode msg of type %T", tx)
-		return "", rpc.RpcInternalError(err.Error(), context)
+		return "", fmt.Errorf("%s : %s", context, err.Error())
 	}
 
 	return hex.EncodeToString(buf.Bytes()), nil

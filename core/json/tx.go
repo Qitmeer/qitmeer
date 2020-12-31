@@ -138,3 +138,22 @@ type PrevOut struct {
 	CoinId    string   `json:"coinId"`
 	Value     float64  `json:"value"`
 }
+
+type DecodeRawTransactionResult struct {
+	Txid     string `json:"txid"`
+	Hash     string `json:"txhash"`
+	Version  uint32 `json:"version"`
+	LockTime uint32 `json:"locktime"`
+	Time     int64  `json:"timestamp"`
+	Vin      []Vin  `json:"vin"`
+	Vout     []Vout `json:"vout"`
+}
+
+// TransactionInput represents the inputs to a transaction.  Specifically a
+// transaction hash and output number pair.
+type TransactionInput struct {
+	Txid string `json:"txid"`
+	Vout uint32 `json:"vout"`
+}
+
+type Amounts map[string]uint64 //{\"address\":amount,...}

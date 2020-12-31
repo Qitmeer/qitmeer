@@ -64,14 +64,6 @@ type jsonNotification struct {
 	Params  jsonSubscription `json:"params"`
 }
 
-type JsonRequestStatus struct {
-	Name        string `json:"name"`
-	TotalCalls  int    `json:"totalcalls"`
-	TotalTime   string `json:"totaltime"`
-	AverageTime string `json:"averagetime"`
-	RunningNum  int    `json:"runningnum"`
-}
-
 type SessionResult struct {
 	SessionID uint64 `json:"sessionid"`
 }
