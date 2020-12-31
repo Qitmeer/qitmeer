@@ -9,8 +9,11 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/rpc/client"
+	"io/ioutil"
 	"log"
+	"path/filepath"
 	"time"
 )
 
@@ -29,8 +32,17 @@ func main() {
 		Endpoint:   "ws",
 		User:       "test",
 		Pass:       "test",
-		DisableTLS: true,
+		DisableTLS: false,
 	}
+	if !connCfg.DisableTLS {
+		homeDir := util.AppDataDir("qitmeerd", false)
+		certs, err := ioutil.ReadFile(filepath.Join(homeDir, "rpc.cert"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		connCfg.Certificates = certs
+	}
+
 	client, err := client.New(connCfg, &ntfnHandlers)
 	if err != nil {
 		log.Fatal(err)
