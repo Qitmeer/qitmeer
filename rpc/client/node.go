@@ -59,3 +59,132 @@ func (c *Client) GetPeerInfoAsync() FutureGetPeerInfoResult {
 func (c *Client) GetPeerInfo() ([]j.GetPeerInfoResult, error) {
 	return c.GetPeerInfoAsync().Receive()
 }
+
+type FutureCheckAddressResult chan *response
+
+func (r FutureCheckAddressResult) Receive() (bool, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return false, err
+	}
+	var result bool
+	err = json.Unmarshal(res, &result)
+	if err != nil {
+		return false, err
+	}
+
+	return result, nil
+}
+
+func (c *Client) CheckAddressAsync(address string, network string) FutureCheckAddressResult {
+	cmd := cmds.NewCheckAddressCmd(address, network)
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) CheckAddress(address string, network string) (bool, error) {
+	return c.CheckAddressAsync(address, network).Receive()
+}
+
+type FutureGetRpcInfoResult chan *response
+
+func (r FutureGetRpcInfoResult) Receive() (*cmds.JsonRequestStatus, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return nil, err
+	}
+
+	var result cmds.JsonRequestStatus
+	err = json.Unmarshal(res, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (c *Client) GetRpcInfoAsync() FutureGetRpcInfoResult {
+	cmd := cmds.NewGetRpcInfoCmd()
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) GetRpcInfo() (*cmds.JsonRequestStatus, error) {
+	return c.GetRpcInfoAsync().Receive()
+}
+
+type FutureGetTimeInfoResult chan *response
+
+func (r FutureGetTimeInfoResult) Receive() (string, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return "", err
+	}
+
+	var result string
+	err = json.Unmarshal(res, &result)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (c *Client) GetGetTimeInfoAsync() FutureGetTimeInfoResult {
+	cmd := cmds.NewGetTimeInfoCmd()
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) GetTimeInfo() (string, error) {
+	return c.GetGetTimeInfoAsync().Receive()
+}
+
+type FutureStopResult chan *response
+
+func (r FutureStopResult) Receive() (string, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return "", err
+	}
+
+	var result string
+	err = json.Unmarshal(res, &result)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
+
+func (c *Client) StopAsync() FutureStopResult {
+	cmd := cmds.NewStopCmd()
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) Stop() (string, error) {
+	return c.StopAsync().Receive()
+}
+
+type FutureBanlistResult chan *response
+
+func (r FutureBanlistResult) Receive() (*j.GetBanlistResult, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return nil, err
+	}
+
+	var result j.GetBanlistResult
+	err = json.Unmarshal(res, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (c *Client) BanlistAsync() FutureBanlistResult {
+	cmd := cmds.NewBanlistCmd()
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) Banlist() (*j.GetBanlistResult, error) {
+	return c.BanlistAsync().Receive()
+}

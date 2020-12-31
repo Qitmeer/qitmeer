@@ -163,7 +163,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 // Return the RPC info
 func (api *PublicBlockChainAPI) GetRpcInfo() (interface{}, error) {
 	rs := api.node.node.rpcServer.ReqStatus
-	jrs := []*rpc.JsonRequestStatus{}
+	jrs := []*cmds.JsonRequestStatus{}
 	for _, v := range rs {
 		jrs = append(jrs, v.ToJson())
 	}

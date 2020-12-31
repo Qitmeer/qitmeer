@@ -135,3 +135,13 @@ type PrevOut struct {
 	Addresses []string `json:"addresses,omitempty"`
 	Value     float64  `json:"value"`
 }
+
+type DecodeRawTransactionResult struct {
+	Txid     string `json:"txid"`
+	Hash     string `json:"txhash"`
+	Version  uint32 `json:"version"`
+	LockTime uint32 `json:"locktime"`
+	Time     int64  `json:"timestamp"`
+	Vin      []Vin  `json:"vin"`
+	Vout     []Vout `json:"vout"`
+}
