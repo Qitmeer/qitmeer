@@ -6,7 +6,6 @@ package testutils
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/client"
@@ -115,12 +114,8 @@ func (h *Harness) connectRPCClient() error {
 // so that we can get notification when registered event triggered.
 func (h *Harness) connectWSNotifier() error {
 	ntfnHandlers := client.NotificationHandlers{
-		OnBlockConnected: func(hash *hash.Hash, order int64, t time.Time) {
-			h.Node.t.Logf("node [%v] OnBlockConnected hash=%v,order=%v", h.Node.Id(), hash, order)
-		},
-		OnBlockDisconnected: func(hash *hash.Hash, order int64, t time.Time) {
-			h.Node.t.Logf("node [%v] OnBlockDisconnected hash=%v,order=%v", h.Node.Id(), hash, order)
-		},
+		OnBlockConnected:    h.Wallet.blockConnected,
+		OnBlockDisconnected: h.Wallet.blockDisconnected,
 	}
 	connCfg := &client.ConnConfig{
 		Host:       h.Node.config.rpclisten,

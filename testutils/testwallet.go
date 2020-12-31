@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
 	"github.com/Qitmeer/qitmeer/params"
 	"testing"
+	"time"
 )
 
 var (
@@ -30,6 +31,8 @@ var (
 // the integrated-test, such as send tx & verify balance etc.
 // testWallet works as a HD (BIP-32) wallet
 type testWallet struct {
+	// the harness node id which wallet is targeted for
+	nodeId uint32
 	// the bip32 master extended private key from a seed
 	hdMaster *bip32.Key
 	// the next hd child number from the master
@@ -80,11 +83,13 @@ func newTestWalletWithSeed(t *testing.T, params *params.Params, seed *[hash.Hash
 	addrs := make(map[uint32]types.Address)
 	addrs[0] = addr0
 	return &testWallet{
+		nodeId:       nodeId,
 		hdMaster:     hdMaster,
 		hdChildNumer: 1,
 		privkeys:     privkeys,
 		addrs:        addrs,
 		netParams:    params,
+		t:            t,
 	}, nil
 }
 
@@ -111,6 +116,14 @@ func (w *testWallet) coinBaseAddr() types.Address {
 
 func (w *testWallet) coinBasePrivKey() []byte {
 	return w.privkeys[0]
+}
+
+func (w *testWallet) blockConnected(hash *hash.Hash, order int64, t time.Time) {
+	w.t.Logf("node [%v] OnBlockConnected hash=%v,order=%v", w.nodeId, hash, order)
+}
+
+func (w *testWallet) blockDisconnected(hash *hash.Hash, order int64, t time.Time) {
+	w.t.Logf("node [%v] OnBlockDisconnected hash=%v,order=%v", w.nodeId, hash, order)
 }
 
 // convert the serialized private key into the p2pkh address
