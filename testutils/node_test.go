@@ -32,26 +32,23 @@ func TestNewNodeCmdArgs(t *testing.T) {
 		"--rpclisten=127.0.0.1:38131",
 		"--rpcuser=testuser",
 		"--rpcpass=testpass",
+		"--appdata=.*/test.*$",
 		"--datadir=.*/test.*/data$",
 		"--logdir=.*/test.*/log$",
 		"--k1=v1",
 		"--k2=v2",
 	}
-	data1 := args[5]
-	data2 := node.cmd.Args[5]
-	if !regexp.MustCompile(data1).MatchString(data2) {
-		t.Errorf("failed to create node, expect %v but got %v", data1, data2)
-	}
-	log1 := args[6]
-	log2 := node.cmd.Args[6]
-	if !regexp.MustCompile(log1).MatchString(log2) {
-		t.Errorf("failed to create node, expect %v but got %v", log1, log2)
-	}
-	//Must after data adn log test, because the slice has been cut off
-	expect := append(args[:5], args[7:]...)
-	got := append(node.cmd.Args[:5], node.cmd.Args[7:]...)
-	if !reflect.DeepEqual(expect, got) {
-		t.Errorf("failed to create node, expect %v but got %v", expect, got)
+	for i := 0; i < len(args); i++ {
+		expect, got := args[i], node.cmd.Args[i]
+		if i >= 5 && i <= 8 { // test app/data/log dir
+			if !regexp.MustCompile(expect).MatchString(got) {
+				t.Errorf("failed to create node, expect %v but got %v", expect, got)
+			}
+		} else { // other test
+			if !reflect.DeepEqual(expect, got) {
+				t.Errorf("failed to create node, expect %v but got %v", expect, got)
+			}
+		}
 	}
 }
 
@@ -90,6 +87,7 @@ func TestGenListenArgs(t *testing.T) {
 		"--rpclisten=" + a2,
 		"--rpcuser=testuser",
 		"--rpcpass=testpass",
+		"--appdata=test",
 		"--datadir=test/data",
 		"--logdir=test/log",
 	}

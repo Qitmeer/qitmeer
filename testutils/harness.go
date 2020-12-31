@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/client"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"strconv"
@@ -96,7 +97,7 @@ func (h *Harness) connectRPCClient() error {
 
 	url, user, pass := h.Node.config.rpclisten, h.Node.config.rpcuser, h.Node.config.rpcpass
 	for i := 0; i < h.maxRpcConnRetries; i++ {
-		if client, err = Dial("http://"+url, user, pass); err != nil {
+		if client, err = Dial("https://"+url, user, pass); err != nil {
 			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
 			continue
 		}
@@ -122,7 +123,14 @@ func (h *Harness) connectWSNotifier() error {
 		User:       h.Node.config.rpcuser,
 		Pass:       h.Node.config.rpcpass,
 		Endpoint:   "ws",
-		DisableTLS: true,
+		DisableTLS: false,
+	}
+	if !connCfg.DisableTLS {
+		certs, err := ioutil.ReadFile(h.Node.config.certFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		connCfg.Certificates = certs
 	}
 	var c *client.Client
 	var err error
@@ -196,7 +204,7 @@ func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, 
 	extraArgs = append(extraArgs, args...)
 
 	// force using notls since web-socket not support tls yet.
-	extraArgs = append(extraArgs, "--notls")
+	// extraArgs = append(extraArgs, "--notls")
 
 	// create node config & initialize the node process
 	config := newNodeConfig(testDir, extraArgs)

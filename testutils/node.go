@@ -65,6 +65,9 @@ func (n *nodeConfig) args() []string {
 	if n.rpcpass != "" {
 		args = append(args, fmt.Sprintf("--rpcpass=%s", n.rpcpass))
 	}
+	if n.homeDir != "" {
+		args = append(args, fmt.Sprintf("--appdata=%s", n.homeDir))
+	}
 	if n.dataDir != "" {
 		args = append(args, fmt.Sprintf("--datadir=%s", n.dataDir))
 	}

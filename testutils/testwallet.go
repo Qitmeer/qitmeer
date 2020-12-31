@@ -118,11 +118,14 @@ func (w *testWallet) coinBasePrivKey() []byte {
 	return w.privkeys[0]
 }
 
-func (w *testWallet) blockConnected(hash *hash.Hash, order int64, t time.Time) {
+func (w *testWallet) blockConnected(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
 	w.t.Logf("node [%v] OnBlockConnected hash=%v,order=%v", w.nodeId, hash, order)
+	for _, tx := range txs {
+		w.t.Logf("node [%v] OnBlockConnected tx=%v", w.nodeId, tx.TxHash())
+	}
 }
 
-func (w *testWallet) blockDisconnected(hash *hash.Hash, order int64, t time.Time) {
+func (w *testWallet) blockDisconnected(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
 	w.t.Logf("node [%v] OnBlockDisconnected hash=%v,order=%v", w.nodeId, hash, order)
 }
 
