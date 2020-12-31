@@ -132,6 +132,63 @@ func NewGetOrphansTotalCmd() *GetOrphansTotalCmd {
 	return &GetOrphansTotalCmd{}
 }
 
+type GetBlockByNumCmd struct {
+	ID      uint
+	Verbose bool
+	InclTx  bool
+	FullTx  bool
+}
+
+func NewGetBlockByNumCmd(id uint, verbose bool, inclTx bool, fullTx bool) *GetBlockByNumCmd {
+	return &GetBlockByNumCmd{
+		ID:      id,
+		Verbose: verbose,
+		InclTx:  inclTx,
+		FullTx:  fullTx,
+	}
+}
+
+type IsBlueCmd struct {
+	H string
+}
+
+func NewIsBlueCmd(h string) *IsBlueCmd {
+	return &IsBlueCmd{
+		H: h,
+	}
+}
+
+type IsCurrentCmd struct {
+}
+
+func NewIsCurrentCmd() *IsCurrentCmd {
+	return &IsCurrentCmd{}
+}
+
+type TipsCmd struct {
+}
+
+func NewTipsCmd() *TipsCmd {
+	return &TipsCmd{}
+}
+
+type GetCoinbaseCmd struct {
+}
+
+func NewGetCoinbaseCmd() *GetCoinbaseCmd {
+	return &GetCoinbaseCmd{}
+}
+
+type GetFeesCmd struct {
+	H string
+}
+
+func NewGetFeesCmd(h string) *GetFeesCmd {
+	return &GetFeesCmd{
+		H: h,
+	}
+}
+
 func init() {
 	flags := UsageFlag(0)
 
@@ -147,6 +204,11 @@ func init() {
 	MustRegisterCmd("isOnMainChain", (*IsOnMainChainCmd)(nil), flags, DefaultServiceNameSpace)
 	MustRegisterCmd("getMainChainHeight", (*GetMainChainHeightCmd)(nil), flags, DefaultServiceNameSpace)
 	MustRegisterCmd("getBlockWeight", (*GetBlockWeightCmd)(nil), flags, DefaultServiceNameSpace)
-	MustRegisterCmd("getBlockCount", (*GetBlockCountCmd)(nil), flags, DefaultServiceNameSpace)
 	MustRegisterCmd("getOrphansTotal", (*GetOrphansTotalCmd)(nil), flags, DefaultServiceNameSpace)
+	MustRegisterCmd("getBlockByNum", (*GetBlockByNumCmd)(nil), flags, DefaultServiceNameSpace)
+	MustRegisterCmd("isBlue", (*IsBlueCmd)(nil), flags, DefaultServiceNameSpace)
+	MustRegisterCmd("isCurrent", (*IsCurrentCmd)(nil), flags, DefaultServiceNameSpace)
+	MustRegisterCmd("tips", (*TipsCmd)(nil), flags, DefaultServiceNameSpace)
+	MustRegisterCmd("getCoinbase", (*GetCoinbaseCmd)(nil), flags, DefaultServiceNameSpace)
+	MustRegisterCmd("getFees", (*GetFeesCmd)(nil), flags, DefaultServiceNameSpace)
 }

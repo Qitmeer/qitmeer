@@ -486,3 +486,240 @@ func (c *Client) GetBlockWeightAsync(h string) FutureGetBlockWeightResult {
 func (c *Client) GetBlockWeight(h string) (int64, error) {
 	return c.GetBlockWeightAsync(h).Receive()
 }
+
+type FutureGetOrphansTotalResult chan *response
+
+func (r FutureGetOrphansTotalResult) Receive() (int64, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return 0, err
+	}
+
+	// Unmarshal the result as an int64.
+	var total int64
+	err = json.Unmarshal(res, &total)
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+func (c *Client) GetOrphansTotalAsync() FutureGetOrphansTotalResult {
+	cmd := cmds.NewGetOrphansTotalCmd()
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) GetOrphansTotal() (int64, error) {
+	return c.GetOrphansTotalAsync().Receive()
+}
+
+type FutureGetBlockByNumResult chan *response
+
+func (r FutureGetBlockByNumResult) Receive(verbose bool, fullTx bool) (interface{}, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return nil, err
+	}
+	if !verbose {
+		return string(res), nil
+	}
+	if fullTx {
+		var blk j.BlockVerboseResult
+		err = json.Unmarshal(res, &blk)
+		if err != nil {
+			return nil, err
+		}
+		return &blk, nil
+	}
+	var blk j.BlockResult
+	err = json.Unmarshal(res, &blk)
+	if err != nil {
+		return nil, err
+	}
+	return &blk, nil
+}
+
+func (c *Client) GetBlockByNumAsync(id uint, verbose bool, inclTx bool, fullTx bool) FutureGetBlockByNumResult {
+	cmd := cmds.NewGetBlockByNumCmd(id, verbose, inclTx, fullTx)
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) GetBlockByNum(id uint, verbose bool, inclTx bool, fullTx bool) (interface{}, error) {
+	return c.GetBlockByNumAsync(id, verbose, inclTx, fullTx).Receive(verbose, fullTx)
+}
+
+func (c *Client) GetBlockByNumRaw(id uint, inclTx bool) (string, error) {
+	result, err := c.GetBlockByNum(id, false, inclTx, false)
+	if err != nil {
+		return "", err
+	}
+	blk, ok := result.(string)
+	if !ok {
+		return "", fmt.Errorf("type is fail")
+	}
+	return blk, nil
+}
+
+func (c *Client) GetBlockByNumSimpleTx(id uint, inclTx bool) (*j.BlockResult, error) {
+	result, err := c.GetBlockByNum(id, true, inclTx, false)
+	if err != nil {
+		return nil, err
+	}
+	blk, ok := result.(*j.BlockResult)
+	if !ok {
+		return nil, fmt.Errorf("type is fail")
+	}
+	return blk, nil
+}
+
+func (c *Client) GetBlockByNumFullTx(id uint, inclTx bool) (*j.BlockVerboseResult, error) {
+	result, err := c.GetBlockByNum(id, true, inclTx, true)
+	if err != nil {
+		return nil, err
+	}
+	blk, ok := result.(*j.BlockVerboseResult)
+	if !ok {
+		return nil, fmt.Errorf("type is fail")
+	}
+	return blk, nil
+}
+
+func (c *Client) GetBlockByIDAsync(id uint, verbose bool, inclTx bool, fullTx bool) FutureGetBlockByNumResult {
+	return c.GetBlockByNumAsync(id, verbose, inclTx, fullTx)
+}
+
+func (c *Client) GetBlockByID(id uint, verbose bool, inclTx bool, fullTx bool) (interface{}, error) {
+	return c.GetBlockByNum(id, verbose, inclTx, fullTx)
+}
+
+func (c *Client) GetBlockByIDRaw(id uint, inclTx bool) (string, error) {
+	return c.GetBlockByNumRaw(id, inclTx)
+}
+
+func (c *Client) GetBlockByIDSimpleTx(id uint, inclTx bool) (*j.BlockResult, error) {
+	return c.GetBlockByNumSimpleTx(id, inclTx)
+}
+
+func (c *Client) GetBlockByIDFullTx(id uint, inclTx bool) (*j.BlockVerboseResult, error) {
+	return c.GetBlockByNumFullTx(id, inclTx)
+}
+
+type FutureIsBlueResult chan *response
+
+func (r FutureIsBlueResult) Receive() (int, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return 2, err
+	}
+	var state int
+	err = json.Unmarshal(res, &state)
+	if err != nil {
+		return 2, err
+	}
+	return state, nil
+}
+
+func (c *Client) IsBlueAsync(h string) FutureIsBlueResult {
+	cmd := cmds.NewIsBlueCmd(h)
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) IsBlue(h string) (int, error) {
+	return c.IsBlueAsync(h).Receive()
+}
+
+type FutureIsCurrentResult chan *response
+
+func (r FutureIsCurrentResult) Receive() (bool, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return false, err
+	}
+	var state bool
+	err = json.Unmarshal(res, &state)
+	if err != nil {
+		return false, err
+	}
+	return state, nil
+}
+
+func (c *Client) IsCurrentAsync() FutureIsCurrentResult {
+	cmd := cmds.NewIsCurrentCmd()
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) IsCurrent() (bool, error) {
+	return c.IsCurrentAsync().Receive()
+}
+
+type FutureTipsResult chan *response
+
+func (r FutureTipsResult) Receive() ([]string, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return nil, err
+	}
+	var tips []string
+	err = json.Unmarshal(res, &tips)
+	if err != nil {
+		return nil, err
+	}
+	return tips, nil
+}
+
+func (c *Client) TipsAsync() FutureTipsResult {
+	cmd := cmds.NewTipsCmd()
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) Tips() ([]string, error) {
+	return c.TipsAsync().Receive()
+}
+
+type FutureGetCoinbaseResult chan *response
+
+func (r FutureGetCoinbaseResult) Receive() ([]string, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return nil, err
+	}
+	var coinbase []string
+	err = json.Unmarshal(res, &coinbase)
+	if err != nil {
+		return nil, err
+	}
+	return coinbase, nil
+}
+
+func (c *Client) GetCoinbaseAsync() FutureGetCoinbaseResult {
+	cmd := cmds.NewGetCoinbaseCmd()
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) GetCoinbase() ([]string, error) {
+	return c.GetCoinbaseAsync().Receive()
+}
+
+type FutureGetFeesResult chan *response
+
+func (r FutureGetFeesResult) Receive() (int64, error) {
+	res, err := receiveFuture(r)
+	if err != nil {
+		return 0, err
+	}
+	var fees int64
+	err = json.Unmarshal(res, &fees)
+	if err != nil {
+		return 0, err
+	}
+	return fees, nil
+}
+
+func (c *Client) GetFeesAsync(h string) FutureGetFeesResult {
+	cmd := cmds.NewGetFeesCmd(h)
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) GetFees(h string) (int64, error) {
+	return c.GetFeesAsync(h).Receive()
+}
