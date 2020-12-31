@@ -9,12 +9,8 @@ import (
 	"testing"
 )
 
-func Test_newTestWallet(t *testing.T) {
-	wallet, err := newTestWallet(t, params.PrivNetParam.Params, 0)
-	if err != nil {
-		t.Errorf("create the test wallet failed: %v", err)
-	}
-	expect := struct {
+var (
+	expect = struct {
 		ver       string
 		key       string
 		chaincode string
@@ -31,6 +27,14 @@ func Test_newTestWallet(t *testing.T) {
 		"RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs",
 		"RmHFARk5xmoMNUVJ6UCHFiWQML1vxwUhw1b",
 	}
+)
+
+func Test_newTestWallet(t *testing.T) {
+	wallet, err := newTestWallet(t, params.PrivNetParam.Params, 0)
+	if err != nil {
+		t.Errorf("create the test wallet failed: %v", err)
+	}
+
 	if hexutil.Encode(wallet.hdMaster.Key) != expect.key {
 		t.Errorf("hd master key not matched, expect %v but got %v", wallet.hdMaster.Key, expect.key)
 	}
@@ -62,5 +66,38 @@ func Test_newTestWallet(t *testing.T) {
 	if hexutil.Encode(wallet.coinBasePrivKey()) != expect.priv0 {
 		t.Errorf("hd coinbase priv key not matched, expect %x but got %v", wallet.coinBasePrivKey(), expect.priv0)
 	}
+}
 
+func TestHarnessWallet(t *testing.T) {
+	h, err := NewHarness(t, params.PrivNetParam.Params)
+	h2, err := NewHarness(t, params.PrivNetParam.Params)
+	defer func() {
+		h.Teardown()
+		h2.Teardown()
+	}()
+	if err != nil {
+		t.Errorf("new harness failed: %v", err)
+		h.Teardown()
+		h2.Teardown()
+	}
+	if h.Wallet.coinBaseAddr().Encode() != expect.addr0 {
+		t.Errorf("hd coinbase addr not matched, expect %v but got %v", h.Wallet.coinBaseAddr(), expect.addr0)
+	}
+	if hexutil.Encode(h.Wallet.coinBasePrivKey()) != expect.priv0 {
+		t.Errorf("hd coinbase priv key not matched, expect %x but got %v", h.Wallet.coinBasePrivKey(), expect.priv0)
+	}
+	h2expect := struct {
+		coinbaseAddr   string
+		coinbasePivkey string
+	}{
+		"RmQsTTCZCWEjgnzRm8XWRQRitPoWvtzs1rJ",
+		"0xe7487ce542af7360e4e1560baa60c405c041065c3ccbb715fbd81da154910829",
+	}
+
+	if h2.Wallet.coinBaseAddr().Encode() != h2expect.coinbaseAddr {
+		t.Errorf("h2 coinbase addr not matched, expect %v but got %v", h2.Wallet.coinBaseAddr(), h2expect.coinbaseAddr)
+	}
+	if hexutil.Encode(h2.Wallet.coinBasePrivKey()) != h2expect.coinbasePivkey {
+		t.Errorf("h2 coinbase priv key not matched, expect %x but got %v", h2.Wallet.coinBasePrivKey(), h2expect.coinbasePivkey)
+	}
 }

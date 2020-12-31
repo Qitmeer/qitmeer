@@ -38,6 +38,8 @@ var (
 // mode in order to allow for easy block generation. Harness handles the node
 // start/shutdown and any temporary directories need to be created.
 type Harness struct {
+	// Harness id
+	id int
 	// the temporary directory created when the Harness instance initialized
 	// its also used as the unique id of the harness instance, its in the
 	// format of `test-harness-<num>-*`
@@ -58,7 +60,7 @@ type Harness struct {
 }
 
 func (h *Harness) Id() string {
-	return h.instanceDir
+	return strconv.Itoa(h.id) + "_" + h.instanceDir
 }
 
 // Setup func initialize the test state.
@@ -174,9 +176,9 @@ func (h *Harness) teardown() error {
 func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, error) {
 	harnessStateMutex.Lock()
 	defer harnessStateMutex.Unlock()
-
+	id := len(harnessInstances)
 	// create temporary folder
-	testDir, err := ioutil.TempDir("", "test-harness-"+strconv.Itoa(len(harnessInstances))+"-*")
+	testDir, err := ioutil.TempDir("", "test-harness-"+strconv.Itoa(id)+"-*")
 	if err != nil {
 		return nil, err
 	}
@@ -211,11 +213,16 @@ func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, 
 	if err != nil {
 		return nil, err
 	}
-
+	wallet, err := newTestWallet(t, params, uint32(id))
+	if err != nil {
+		return nil, err
+	}
 	h := Harness{
+		id:                id,
 		instanceDir:       testDir,
 		Node:              newNode,
 		maxRpcConnRetries: DefaultMaxRpcConnRetries,
+		Wallet:            wallet,
 	}
 	harnessInstances[h.instanceDir] = &h
 	return &h, nil
