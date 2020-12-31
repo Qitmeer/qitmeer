@@ -335,8 +335,8 @@ func (rs *RequestStatus) RemoveRequst(sReq *serverRequest) {
 }
 
 func (rs *RequestStatus) ToJson() *cmds.JsonRequestStatus {
-	rsj := cmds.JsonRequestStatus{rs.GetName(), int(rs.TotalCalls),
-		rs.TotalTime.String(), "", len(rs.Requests)}
+	rsj := cmds.JsonRequestStatus{Name: rs.GetName(), TotalCalls: int(rs.TotalCalls),
+		TotalTime: rs.TotalTime.String(), AverageTime: "", RunningNum: len(rs.Requests)}
 	aTime := rs.TotalTime / time.Duration(rs.TotalCalls)
 	rsj.AverageTime = aTime.String()
 	return &rsj
