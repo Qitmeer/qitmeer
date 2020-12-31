@@ -35,18 +35,21 @@ type testWallet struct {
 	// the next hd child number from the master
 	hdChildNumer uint32
 	// addrs are all addresses which belong to the master private key.
-	// the key of address map is their hd child number.
+	// the keys of address map are their hd child numbers.
 	addrs map[uint32]types.Address
+	// privkeys cached all private keys which derived from the master private key.
+	// the keys of the private key map are their hd child number.
+	privkeys map[uint32][]byte
 
 	netParams *params.Params
 	t         *testing.T
 }
 
-func NewTestWallet(t *testing.T, params *params.Params, nodeId uint32) (*testWallet, error) {
-	return NewTestWalletWithSeed(t, params, &defaultSeed, nodeId)
+func newTestWallet(t *testing.T, params *params.Params, nodeId uint32) (*testWallet, error) {
+	return newTestWalletWithSeed(t, params, &defaultSeed, nodeId)
 }
 
-func NewTestWalletWithSeed(t *testing.T, params *params.Params, seed *[hash.HashSize]byte, nodeId uint32) (*testWallet, error) {
+func newTestWalletWithSeed(t *testing.T, params *params.Params, seed *[hash.HashSize]byte, nodeId uint32) (*testWallet, error) {
 	// The final seed is seed || nodeId, the purpose to make sure that each harness
 	// node use a deterministic private key based on the its node id.
 	var finalSeed [hash.HashSize + 4]byte
@@ -68,6 +71,8 @@ func NewTestWalletWithSeed(t *testing.T, params *params.Params, seed *[hash.Hash
 		return nil, err
 	}
 	key0 := child0.Key
+	privkeys := make(map[uint32][]byte)
+	privkeys[0] = key0
 	addr0, err := privKeyToAddr(key0, params)
 	if err != nil {
 		return nil, err
@@ -77,6 +82,7 @@ func NewTestWalletWithSeed(t *testing.T, params *params.Params, seed *[hash.Hash
 	return &testWallet{
 		hdMaster:     hdMaster,
 		hdChildNumer: 1,
+		privkeys:     privkeys,
 		addrs:        addrs,
 		netParams:    params,
 	}, nil
@@ -89,6 +95,7 @@ func (w *testWallet) newAddress() (types.Address, error) {
 	if err != nil {
 		return nil, err
 	}
+	w.privkeys[num] = childx.Key
 	addrx, err := privKeyToAddr(childx.Key, w.netParams)
 	if err != nil {
 		return nil, err
@@ -100,6 +107,10 @@ func (w *testWallet) newAddress() (types.Address, error) {
 
 func (w *testWallet) coinBaseAddr() types.Address {
 	return w.addrs[0]
+}
+
+func (w *testWallet) coinBasePrivKey() []byte {
+	return w.privkeys[0]
 }
 
 // convert the serialized private key into the p2pkh address
