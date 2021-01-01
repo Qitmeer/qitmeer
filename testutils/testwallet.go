@@ -172,7 +172,6 @@ func (w *testWallet) Start() {
 			w.updateMtx.Unlock()
 			w.t.Logf("node [%v] update arrvied hash=%v,order=%v", w.nodeId, update.hash, update.order)
 			w.Lock()
-			defer w.Unlock()
 			w.currentOrder++
 			if w.currentOrder != update.order {
 				w.t.Fatalf("the order not match, expect current is %v but update got %v", w.currentOrder, update.order)
@@ -187,6 +186,7 @@ func (w *testWallet) Start() {
 				w.doOutputs(tx.TxOut, &txHash, isCoinbase, undo)
 			}
 			w.undoes[update.hash] = undo
+			w.Unlock()
 		}
 	}()
 }
