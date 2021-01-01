@@ -300,6 +300,38 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 
 		c.ntfnHandlers.OnBlockDisconnected(blockHash, blockOrder, blockTime, txs)
 
+	case cmds.BlockAcceptedNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnBlockAccepted == nil {
+			return
+		}
+
+		blockHash, blockOrder, blockTime, txs, err := parseChainNtfnParams(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid block accepted "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnBlockAccepted(blockHash, blockOrder, blockTime, txs)
+
+	case cmds.ReorganizationNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnReorganization == nil {
+			return
+		}
+
+		blockHash, blockOrder, olds, err := parseReorganizationNtfnParams(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid block reorganization "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnReorganization(blockHash, blockOrder, olds)
+
 	// OnUnknownNotification
 	default:
 		if c.ntfnHandlers.OnUnknownNotification == nil {

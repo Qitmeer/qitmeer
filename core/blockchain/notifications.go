@@ -75,10 +75,9 @@ type BlockAcceptedNotifyData struct {
 // ReorganizationNotifyData is the structure for data indicating information
 // about a reorganization.
 type ReorganizationNotifyData struct {
-	OldHash   hash.Hash
-	OldHeight uint64
-	NewHash   hash.Hash
-	NewHeight uint64
+	OldBlocks []*hash.Hash
+	NewBlock  *hash.Hash
+	NewOrder  uint64
 }
 
 // Notification defines notification that is sent to the caller via the callback
