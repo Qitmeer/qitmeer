@@ -26,6 +26,12 @@ func main() {
 		OnBlockDisconnected: func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
 			fmt.Println("OnBlockDisconnected", hash, order, len(txs))
 		},
+		OnBlockAccepted: func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
+			fmt.Println("OnBlockAccepted", hash, order, len(txs))
+		},
+		OnReorganization: func(hash *hash.Hash, order int64, olds []*hash.Hash) {
+			fmt.Println("OnReorganization", hash, order, len(olds))
+		},
 	}
 
 	connCfg := &client.ConnConfig{
