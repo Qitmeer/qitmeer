@@ -50,7 +50,6 @@ var (
 	zeroHash = &hash.Hash{}
 )
 
-
 // CheckTokenMint verifies the input if is a valid TOKEN_MINT transaction.
 // The function return the signature, public key, tokenId and an error.
 // The function ONLY check if the format is correct. for the returned signature,
@@ -68,7 +67,7 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 	// Inputs :
 	// TxIn[0] must point to zero (previous outpoint is zero hash and max index)
 	if isNullOutPoint(tx) == false {
-		return nil, nil, nil, fmt.Errorf( "invalid TOKEN_MINT input[0]: none-zero outpoint")
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[0]: none-zero outpoint")
 	}
 	// TxIn[0] must contains a signature, a public key and and token id and an OP_TOKEN_MINT opcode.
 	txIn := tx.TxIn[0].SignScript
@@ -77,44 +76,44 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 		txIn[65] == txscript.OP_DATA_33 &&
 		txIn[99] == txscript.OP_DATA_2 &&
 		txIn[102] == txscript.OP_TOKEN_MINT) {
-		return nil, nil, nil, fmt.Errorf( "invalid TOKEN_MINT input[0]: incorrect signScript format")
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[0]: incorrect signScript format")
 	}
 	// Pull out signature, pubkey, and tokenId
 	signature = txIn[1 : 1+schnorr.SignatureSize]
 	pubKey = txIn[66 : 66+secp256k1.PubKeyBytesLenCompressed]
 	if !txscript.IsStrictCompressedPubKeyEncoding(pubKey) {
-		return nil, nil,nil, fmt.Errorf("invalid TOKEN_MINT input[0]: wrong public key encoding")
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[0]: wrong public key encoding")
 	}
-	tokenId = txIn[100:100+TokenIdSize]
+	tokenId = txIn[100 : 100+TokenIdSize]
 	id := types.CoinID(binary.LittleEndian.Uint16(tokenId))
 
 	// tokenId must not meer itself
 	if id == types.MEERID {
-		return nil, nil,nil, fmt.Errorf("invalid TOKEN_MINT input[0], can not mint %s", id.Name())
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[0], can not mint %s", id.Name())
 	}
 	// TxIn[0] value should match tokenId
 	if id != tx.TxIn[0].AmountIn.Id {
-		return nil, nil,nil, fmt.Errorf("invalid TOKEN_MINT input[0], " +
-			"mint %s but value is %s",id.Name(), tx.TxIn[0].AmountIn.Id.Name())
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[0], "+
+			"mint %s but value is %s", id.Name(), tx.TxIn[0].AmountIn.Id.Name())
 	}
 	mintAmount := tx.TxIn[0].AmountIn
 
-	inputMeer := types.Amount{0,types.MEERID}
+	inputMeer := types.Amount{0, types.MEERID}
 	// TxIn[1..N] must normal meer signature script
 	for i, txIn := range tx.TxIn[1:] {
 		// Make sure there is a script.
 		if len(txIn.SignScript) == 0 {
-			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[%d], " +
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[%d], "+
 				"script length %v", i+1, len(txIn.SignScript))
 		}
 		// Make sure the input value should meer
 		if types.MEERID != txIn.AmountIn.Id {
-			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[%d]," +
-				" must from meer, but from %v", i+1, txIn.AmountIn.Id )
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[%d],"+
+				" must from meer, but from %v", i+1, txIn.AmountIn.Id)
 		}
 		if txIn.AmountIn.Value <= 0 {
-			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[%d]," +
-				" invalid value %v", i+1, txIn.AmountIn )
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT input[%d],"+
+				" invalid value %v", i+1, txIn.AmountIn)
 		}
 		inputMeer.Value += txIn.AmountIn.Value
 	}
@@ -122,9 +121,9 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 	// Outpus :
 
 	// all TxOut script length should not zero.
-	for i := range tx.TxOut{
+	for i := range tx.TxOut {
 		if len(tx.TxOut[i].PkScript) == 0 {
-			return nil, nil, nil , fmt.Errorf("invalid TOKEN_MINT, output[%d] script is empty",i)
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[%d] script is empty", i)
 		}
 	}
 	// TxOut[0] must be an OP_MEER_LOCK
@@ -133,23 +132,22 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 
 	// output[0]
 	if len(tx.TxOut[0].PkScript) != 1 {
-		return nil,nil,nil,fmt.Errorf("invalid TOKEN_MINT, output[0] script length is not 1 byte, got %v",
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[0] script length is not 1 byte, got %v",
 			len(tx.TxOut[0].PkScript))
 	}
 	if tx.TxOut[0].PkScript[0] != txscript.OP_MEER_LOCK {
-		return nil,nil,nil,fmt.Errorf("invalid TOKEN_MINT, output[0] must be a MEER_LOCK, got 0x%x",
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[0] must be a MEER_LOCK, got 0x%x",
 			tx.TxOut[0].PkScript[0])
 	}
 	if tx.TxOut[0].Amount.Id != types.MEERID {
-		return nil,nil,nil,fmt.Errorf("invalid TOKEN_MINT, output[0] must be a MEER value, got %v",
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[0] must be a MEER value, got %v",
 			tx.TxOut[0].Amount.Id)
 	}
 	if tx.TxOut[0].Amount.Value <= 0 {
-		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT output[0]," +
-			" invalid value %v",tx.TxOut[0].Amount )
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT output[0],"+
+			" invalid value %v", tx.TxOut[0].Amount)
 	}
 	lockedMeer := tx.TxOut[0].Amount
-
 
 	// output[1]
 	if tx.TxOut[1].PkScript[0] != txscript.OP_TOKEN_RELEASE {
@@ -161,17 +159,17 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 	}
 	// check output[1] match with token id
 	if id != tx.TxOut[1].Amount.Id {
-		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[1] " +
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[1] "+
 			"token id not match, mint token %v but release %v", id, tx.TxOut[1].Amount.Id)
 	}
 	// check mint value match
 	if mintAmount.Value != tx.TxOut[1].Amount.Value {
-		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[1] " +
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[1] "+
 			"mint %s but release %s", mintAmount.String(), tx.TxOut[1].Amount.String())
 	}
 
 	// check optional output[2]
-	changeMeer := types.Amount{0,types.MEERID}
+	changeMeer := types.Amount{0, types.MEERID}
 	if len(tx.TxOut) == 3 {
 		if tx.TxOut[2].PkScript[0] != txscript.OP_MEER_CHANGE {
 			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[2] is not OP_MEER_CHANGE")
@@ -181,26 +179,26 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[2] is not P2SH or P2PKH")
 		}
 		if tx.TxOut[2].Amount.Id != types.MEERID {
-			return nil,nil,nil,fmt.Errorf("invalid TOKEN_MINT, output[2] must be a MEER value, got %v",
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[2] must be a MEER value, got %v",
 				tx.TxOut[2].Amount.Id)
 		}
 		changeMeer = tx.TxOut[2].Amount
 	}
 
 	// make sure the input meer value > locked meer + change meer
-	if inputMeer.Value <= lockedMeer.Value + changeMeer.Value {
-		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, " +
-			"input %s <= locked %s + change %s", inputMeer.String(),lockedMeer.String(),changeMeer.String())
+	if inputMeer.Value <= lockedMeer.Value+changeMeer.Value {
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, "+
+			"input %s <= locked %s + change %s", inputMeer.String(), lockedMeer.String(), changeMeer.String())
 	}
 
-	return signature,pubKey,tokenId,nil
+	return signature, pubKey, tokenId, nil
 }
 
 // IsTokenMint returns true if the input transaction is a valid TOKEN_MINT
 // NOTICE: the function DOES NOT check the signature and pubKey and tokenId.
-func IsTokenMint(tx *types.Transaction) bool{
-	 _,_,_,err := CheckTokenMint(tx)
-	 return err == nil
+func IsTokenMint(tx *types.Transaction) bool {
+	_, _, _, err := CheckTokenMint(tx)
+	return err == nil
 }
 
 // CheckTokenUnMint verifies the input if is a valid TOKEN_UNMINT transaction.
@@ -218,7 +216,7 @@ func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, t
 	// Inputs :
 	// TxIn[0] must point to zero (previous outpoint is zero hash and max index)
 	if isNullOutPoint(tx) == false {
-		return nil, nil, nil, fmt.Errorf( "invalid TOKEN_UNMINT input[0]: none-zero outpoint")
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[0]: none-zero outpoint")
 	}
 	// TxIn[0] must contains a signature, a public key and and token id and an OP_TOKEN_MINT opcode.
 	txIn := tx.TxIn[0].SignScript
@@ -227,29 +225,29 @@ func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, t
 		txIn[65] == txscript.OP_DATA_33 &&
 		txIn[99] == txscript.OP_DATA_2 &&
 		txIn[102] == txscript.OP_TOKEN_UNMINT) {
-		return nil, nil, nil, fmt.Errorf( "invalid TOKEN_UNMINT input[0]: incorrect signScript format")
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[0]: incorrect signScript format")
 	}
 
 	// Pull out signature, pubkey, and tokenId
 	signature = txIn[1 : 1+schnorr.SignatureSize]
 	pubKey = txIn[66 : 66+secp256k1.PubKeyBytesLenCompressed]
 	if !txscript.IsStrictCompressedPubKeyEncoding(pubKey) {
-		return nil, nil,nil, fmt.Errorf("invalid TOKEN_UNMINT input[0]: wrong public key encoding")
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[0]: wrong public key encoding")
 	}
-	tokenId = txIn[100:100+TokenIdSize]
+	tokenId = txIn[100 : 100+TokenIdSize]
 	id := types.CoinID(binary.LittleEndian.Uint16(tokenId))
 	// tokenId must not meer itself
 	if id == types.MEERID {
-		return nil, nil,nil, fmt.Errorf("invalid TOKEN_UNMINT input[0],  token id, can't unmint %v ",id)
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[0],  token id, can't unmint %v ", id)
 	}
 
 	// check TxIn[0] id and value , TxIn[0] must meer
 	if tx.TxIn[0].AmountIn.Id != types.MEERID {
-		return nil, nil,nil, fmt.Errorf("invalid TOKEN_UNMINT input[0], value must be %s but %s",
-			types.MEERID.Name(),tx.TxIn[0].AmountIn.Id.Name())
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[0], value must be %s but %s",
+			types.MEERID.Name(), tx.TxIn[0].AmountIn.Id.Name())
 	}
 	if tx.TxIn[0].AmountIn.Value <= 0 {
-		return nil, nil,nil, fmt.Errorf("invalid TOKEN_UNMINT input[0], value %s is invalid",
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[0], value %s is invalid",
 			tx.TxIn[0].AmountIn.String())
 	}
 	inputMeer := tx.TxIn[0].AmountIn
@@ -259,18 +257,18 @@ func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, t
 	for i, txIn := range tx.TxIn[1:] {
 		// Make sure there is a script.
 		if len(txIn.SignScript) == 0 {
-			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[%d], " +
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[%d], "+
 				"script length %v", i+1, len(txIn.SignScript))
 		}
 		// Make sure the input value should same token id
 		if id != txIn.AmountIn.Id {
-			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[%d]," +
-				" must from %v, but from %v", i+1, id, txIn.AmountIn.Id )
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[%d],"+
+				" must from %v, but from %v", i+1, id, txIn.AmountIn.Id)
 		}
 		// check value valid
 		if txIn.AmountIn.Value <= 0 {
-			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[%d]," +
-				" invalid value %v",i+1, txIn.AmountIn )
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT input[%d],"+
+				" invalid value %v", i+1, txIn.AmountIn)
 		}
 		inputToken.Value += txIn.AmountIn.Value
 	}
@@ -280,29 +278,29 @@ func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, t
 	// Txout[1]:must be an OP_MEER_RELEASE tagged P2SH or P2PKH script. and released value must meer
 
 	// all TxOut script length should not zero.
-	for i := range tx.TxOut{
+	for i := range tx.TxOut {
 		if len(tx.TxOut[i].PkScript) == 0 {
-			return nil, nil, nil , fmt.Errorf("invalid TOKEN_UNMINT, output[%d] script is empty",i)
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, output[%d] script is empty", i)
 		}
 	}
 
 	// output[0] len must 1
 	if len(tx.TxOut[0].PkScript) != 1 {
-		return nil,nil,nil,fmt.Errorf("invalid TOKEN_UNMINT, output[0] script length is not 1 byte, got %v",
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, output[0] script length is not 1 byte, got %v",
 			len(tx.TxOut[0].PkScript))
 	}
 	if tx.TxOut[0].PkScript[0] != txscript.OP_TOKEN_DESTORY {
-		return nil,nil,nil,fmt.Errorf("invalid TOKEN_UNMINT, output[0] must be a TOKEN_DESTORY, got 0x%x",
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, output[0] must be a TOKEN_DESTORY, got 0x%x",
 			tx.TxOut[0].PkScript[0])
 	}
 	if tx.TxOut[0].Amount.Id != id {
-		return nil,nil,nil,fmt.Errorf("invalid TOKEN_UNMINT, output[0] must be a %s, got %s", id.Name(),
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, output[0] must be a %s, got %s", id.Name(),
 			tx.TxOut[0].Amount.Id.Name())
 	}
 
 	// check the destroyed toke value
 	if tx.TxOut[0].Amount.Value <= 0 {
-		return nil,nil,nil,fmt.Errorf("invalid TOKEN_UNMINT, invalid output[0] value %v",
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, invalid output[0] value %v",
 			tx.TxOut[0].Amount)
 	}
 	destoryed := tx.TxOut[0].Amount
@@ -316,16 +314,16 @@ func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, t
 	}
 	// check output[1] value must meer
 	if types.MEERID != tx.TxOut[1].Amount.Id {
-		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, " +
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, "+
 			"token id %v not match, token-unmint must release MEER", tx.TxOut[1].Amount.Id)
 	}
 	// check released meer value, make sure inputMeer > relased meer
-	if tx.TxOut[1].Amount.Value<= 0 || inputMeer.Value <= tx.TxOut[1].Amount.Value  {
-		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, " +
+	if tx.TxOut[1].Amount.Value <= 0 || inputMeer.Value <= tx.TxOut[1].Amount.Value {
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, "+
 			"release value not valid,  release %s should less than input %s", inputMeer.String(), tx.TxOut[1].Amount.String())
 	}
 
-	change := types.Amount{0,id}
+	change := types.Amount{0, id}
 	// optional output[2] , token change
 	if len(tx.TxOut) == 3 {
 		if tx.TxOut[2].PkScript[0] != txscript.OP_TOKEN_CHANGE {
@@ -336,24 +334,24 @@ func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, t
 			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, output[2] is not P2SH or P2PKH")
 		}
 		if tx.TxOut[2].Amount.Id != id {
-			return nil,nil,nil,fmt.Errorf("invalid TOKEN_UNMINT, output[2] must be a %s, got %s", id.Name(),
+			return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, output[2] must be a %s, got %s", id.Name(),
 				tx.TxOut[2].Amount.Id.Name())
 		}
 		change = tx.TxOut[2].Amount
 	}
 
 	// make sure input token value > destroyed + change
-	if inputToken.Value != destoryed.Value + change.Value {
-		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, " +
-			"input %s != destoryed %s + change %s", inputToken.String(),destoryed.String(),change.String())
+	if inputToken.Value != destoryed.Value+change.Value {
+		return nil, nil, nil, fmt.Errorf("invalid TOKEN_UNMINT, "+
+			"input %s != destoryed %s + change %s", inputToken.String(), destoryed.String(), change.String())
 	}
-	return signature,pubKey,tokenId,nil
+	return signature, pubKey, tokenId, nil
 }
 
 // IsTokenUnMint returns true if the input transaction is a valid TOKEN_UlMINT
 // NOTICE: the function DOES NOT check the signature and pubKey and tokenId.
-func IsTokenUnMint(tx *types.Transaction) bool{
-	_,_,_,err := CheckTokenUnMint(tx)
+func IsTokenUnMint(tx *types.Transaction) bool {
+	_, _, _, err := CheckTokenUnMint(tx)
 	return err == nil
 }
 

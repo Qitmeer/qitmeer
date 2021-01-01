@@ -397,7 +397,9 @@ func TestTokenIssue(t *testing.T) {
 			t.Errorf("failed to teardown test harness")
 		}
 	}()
-	h.Setup()
+	if err = h.Setup(); err != nil {
+		t.Errorf("failed to setup test harness: %v", err)
+	}
 	time.Sleep(500 * time.Millisecond)
 	testutils.AssertBlockOrderAndHeight(t, h, 1, 1, 0)
 	startHeight, err := h.Client.MainHeight()

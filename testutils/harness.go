@@ -85,6 +85,7 @@ func (h *Harness) Setup() error {
 			return err
 		}
 	}
+	h.Wallet.Start()
 	return nil
 }
 
