@@ -2,6 +2,8 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"sync"
@@ -10,6 +12,13 @@ import (
 // Notification types
 type notificationBlockConnected types.SerializedBlock
 type notificationBlockDisconnected types.SerializedBlock
+type notificationBlockAccepted types.SerializedBlock
+
+type notificationReorganization struct {
+	OldBlocks []*hash.Hash
+	NewBlock  *hash.Hash
+	NewOrder  uint64
+}
 
 // Notification control requests
 type notificationRegisterClient wsClient
@@ -67,6 +76,18 @@ out:
 				if len(blockNotifications) != 0 {
 					m.notifyBlockDisconnected(blockNotifications,
 						block)
+				}
+
+			case *notificationBlockAccepted:
+				block := (*types.SerializedBlock)(n)
+				if len(blockNotifications) != 0 {
+					m.notifyBlockAccepted(blockNotifications,
+						block)
+				}
+
+			case *notificationReorganization:
+				if len(blockNotifications) != 0 {
+					m.notifyReorganization(blockNotifications, n)
 				}
 
 			case *notificationRegisterBlocks:
@@ -155,6 +176,61 @@ func (*wsNotificationManager) notifyBlockDisconnected(clients map[chan struct{}]
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to marshal block disconnected "+
 			"notification: %v", err))
+		return
+	}
+	for _, wsc := range clients {
+		wsc.QueueNotification(marshalledJSON)
+	}
+}
+
+func (m *wsNotificationManager) NotifyBlockAccepted(block *types.SerializedBlock) {
+	select {
+	case m.queueNotification <- (*notificationBlockAccepted)(block):
+	case <-m.quit:
+	}
+}
+
+func (m *wsNotificationManager) notifyBlockAccepted(clients map[chan struct{}]*wsClient, block *types.SerializedBlock) {
+	txs, err := GetTxsHexFromBlock(block, true)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	ntfn := cmds.NewBlockAcceptedNtfn(block.Hash().String(), int64(block.Order()), block.Block().Header.Timestamp.Unix(), txs)
+	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to marshal block accepted notification: "+
+			"%v", err))
+		return
+	}
+	for _, wsc := range clients {
+		wsc.QueueNotification(marshalledJSON)
+	}
+}
+
+func (m *wsNotificationManager) NotifyReorganization(rnd *blockchain.ReorganizationNotifyData) {
+	nr := &notificationReorganization{
+		OldBlocks: rnd.OldBlocks,
+		NewBlock:  rnd.NewBlock,
+		NewOrder:  rnd.NewOrder,
+	}
+	select {
+	case m.queueNotification <- nr:
+	case <-m.quit:
+	}
+}
+
+func (m *wsNotificationManager) notifyReorganization(clients map[chan struct{}]*wsClient, nr *notificationReorganization) {
+
+	olds := []string{}
+	for _, old := range nr.OldBlocks {
+		olds = append(olds, old.String())
+	}
+	ntfn := cmds.NewReorganizationNtfn(nr.NewBlock.String(), int64(nr.NewOrder), olds)
+	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to marshal block accepted notification: "+
+			"%v", err))
 		return
 	}
 	for _, wsc := range clients {

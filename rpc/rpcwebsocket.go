@@ -43,13 +43,13 @@ func (s *RpcServer) subscribe(events *event.Feed) {
 func (s *RpcServer) handleNotifyMsg(notification *blockchain.Notification) {
 	switch notification.Type {
 	case blockchain.BlockAccepted:
-		// TODO ACCEPTED
-		_, ok := notification.Data.(*blockchain.BlockAcceptedNotifyData)
+		bnd, ok := notification.Data.(*blockchain.BlockAcceptedNotifyData)
 		if !ok {
 			log.Warn("Chain accepted notification is not " +
 				"BlockAcceptedNotifyData.")
 			break
 		}
+		s.ntfnMgr.NotifyBlockAccepted(bnd.Block)
 
 	case blockchain.BlockConnected:
 		blockSlice, ok := notification.Data.([]*types.SerializedBlock)
@@ -71,6 +71,15 @@ func (s *RpcServer) handleNotifyMsg(notification *blockchain.Notification) {
 			break
 		}
 		s.ntfnMgr.NotifyBlockDisconnected(block)
+
+	case blockchain.Reorganization:
+		rnd, ok := notification.Data.(*blockchain.ReorganizationNotifyData)
+		if !ok {
+			log.Warn("Chain accepted notification is not " +
+				"ReorganizationNotifyData.")
+			break
+		}
+		s.ntfnMgr.NotifyReorganization(rnd)
 	}
 }
 
