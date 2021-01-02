@@ -7,11 +7,13 @@ package testutils
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/bip32"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
 	"sync"
 	"testing"
@@ -36,7 +38,11 @@ type utxo struct {
 	//which hd index of private key/address hold the utxo
 	keyIndex uint32
 	//the wallet side marker to mark the utxo is being spent
-	isLocked bool
+	isSpent bool
+}
+
+func (u *utxo) isMature(currentOrder int64) bool {
+	return currentOrder >= u.maturity
 }
 
 type update struct {
@@ -84,6 +90,11 @@ type testWallet struct {
 
 	netParams *params.Params
 	t         *testing.T
+	client    *Client
+}
+
+func (w *testWallet) setRpcClient(client *Client) {
+	w.client = client
 }
 
 func newTestWallet(t *testing.T, params *params.Params, nodeId uint32) (*testWallet, error) {
@@ -151,6 +162,17 @@ func (w *testWallet) newAddress() (types.Address, error) {
 	return addrx, nil
 }
 
+// convert the serialized private key into the p2pkh address
+func privKeyToAddr(privKey []byte, params *params.Params) (types.Address, error) {
+	_, pubKey := secp256k1.PrivKeyFromBytes(privKey)
+	serializedKey := pubKey.SerializeCompressed()
+	addr, err := address.NewSecpPubKeyAddress(serializedKey, params)
+	if err != nil {
+		return nil, err
+	}
+	return addr.PKHAddress(), nil
+}
+
 func (w *testWallet) coinBaseAddr() types.Address {
 	return w.addrs[0]
 }
@@ -159,6 +181,8 @@ func (w *testWallet) coinBasePrivKey() []byte {
 	return w.privkeys[0]
 }
 
+// Start will start a internal goroutine to listen the block dog update notifications
+// from the target test harness node with which the wallet can be synced.
 func (w *testWallet) Start() {
 	go func() {
 		var update *update
@@ -276,13 +300,102 @@ func (w *testWallet) blockDisconnected(hash *hash.Hash, order int64, t time.Time
 	delete(w.undoes, hash)
 }
 
-// convert the serialized private key into the p2pkh address
-func privKeyToAddr(privKey []byte, params *params.Params) (types.Address, error) {
-	_, pubKey := secp256k1.PrivKeyFromBytes(privKey)
-	serializedKey := pubKey.SerializeCompressed()
-	addr, err := address.NewSecpPubKeyAddress(serializedKey, params)
-	if err != nil {
+// SpendOutputsAndSend will create tx to pay the specified tx outputs
+// and send the tx to the test harness node.
+func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amount) (*hash.Hash, error) {
+	if tx, err := w.createTx(outputs, feePerByte); err != nil {
 		return nil, err
+	} else {
+		return w.client.SendRawTx(tx, true)
 	}
-	return addr.PKHAddress(), nil
+}
+func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount) (*types.Transaction, error) {
+	w.Lock()
+	defer w.Unlock()
+	const (
+		// spendSize is the largest number of bytes of a sigScript
+		// which spends a p2pkh output: OP_DATA_73 <sig> OP_DATA_33 <pubkey>
+		spendSize = 1 + 73 + 1 + 33
+	)
+	tx := types.NewTransaction()
+	txSize := int64(0)
+
+	totalOutAmt := make(map[types.CoinID]int64)
+	totalInAmt := make(map[types.CoinID]int64)
+	feeCoinId := feePerByte.Id
+	requiredFee := types.Amount{0, feeCoinId}
+
+	// calculate the total amount need to pay && add output into tx
+	for _, o := range outputs {
+		totalOutAmt[o.Amount.Id] += o.Amount.Value
+		tx.AddTxOut(o)
+	}
+	enoughFund := false
+	// select inputs from utxo set of the wallet && add them into tx
+	for txOutPoint, utxo := range w.utxos {
+		// skip immature or spent utxo at first
+		if !utxo.isMature(w.currentOrder) || utxo.isSpent {
+			continue
+		}
+		totalInAmt[utxo.value.Id] += utxo.value.Value
+		// add selected input into tx
+		tx.AddTxIn(types.NewTxInput(&txOutPoint, nil))
+		// calculate required fee
+		txSize = int64(tx.SerializeSize() + spendSize)
+		requiredFee = types.Amount{txSize * feePerByte.Value, feeCoinId}
+		// check if enough fund
+		for id, outAmt := range totalOutAmt {
+			if id == feeCoinId && totalInAmt[id]-outAmt-requiredFee.Value < 0 {
+				continue
+			} else if totalInAmt[id]-outAmt < 0 {
+				continue
+			}
+		}
+		enoughFund = true
+		break
+	}
+	if !enoughFund {
+		return nil, fmt.Errorf("not engouh funds from the wallet to pay the specified outputs")
+	}
+	// add change if need
+	changeValue := totalInAmt[feeCoinId] - totalOutAmt[feeCoinId] - requiredFee.Value
+	if changeValue > 0 {
+		addr, err := w.newAddress()
+		if err != nil {
+			return nil, err
+		}
+		pkScript, err := txscript.PayToAddrScript(addr)
+		if err != nil {
+			return nil, err
+		}
+		tx.AddTxOut(&types.TxOutput{
+			Amount:   types.Amount{changeValue, feeCoinId},
+			PkScript: pkScript,
+		})
+	}
+
+	stxos := make([]*utxo, 0, len(tx.TxIn))
+
+	// sign and add signature script to inputs
+	for i, txIn := range tx.TxIn {
+		outPoint := txIn.PreviousOut
+		utxo := w.utxos[outPoint]
+		// get priv key for the utxo's key index
+		privkey := w.privkeys[utxo.keyIndex]
+		key, _ := secp256k1.PrivKeyFromBytes(privkey)
+		// sign
+		sigScript, err := txscript.SignatureScript(tx, i, utxo.pkScript, txscript.SigHashAll, key, true)
+		if err != nil {
+			return nil, err
+		}
+		txIn.SignScript = sigScript
+		// save the utxo which will mark spent later
+		stxos = append(stxos, utxo)
+	}
+
+	// all spend output need to mark spent for the wallet utxo
+	for _, utxo := range stxos {
+		utxo.isSpent = true
+	}
+	return tx, nil
 }

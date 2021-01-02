@@ -109,6 +109,7 @@ func (h *Harness) connectRPCClient() error {
 	}
 
 	h.Client = client
+	h.Wallet.setRpcClient(client)
 	return nil
 }
 

@@ -5,7 +5,10 @@
 package testutils
 
 import (
+	"encoding/hex"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"strconv"
 )
@@ -50,6 +53,20 @@ func (c *Client) Generate(num uint64) ([]string, error) {
 	var result []string
 	if err := c.Call(&result, "miner_generate", num, pow.PowType(0)); err != nil {
 		return result, err
+	}
+	return result, nil
+}
+
+func (c *Client) SendRawTx(tx *types.Transaction, allowHighFees bool) (*hash.Hash, error) {
+	txByte, err := tx.Serialize()
+	if err != nil {
+		return nil, err
+	}
+	txHex := hex.EncodeToString(txByte[:])
+
+	var result *hash.Hash
+	if err := c.Call(&result, "sendRawTransaction", txHex, allowHighFees); err != nil {
+		return nil, err
 	}
 	return result, nil
 }
