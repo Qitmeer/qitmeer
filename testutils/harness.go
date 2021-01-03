@@ -208,17 +208,23 @@ func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, 
 	// force using notls since web-socket not support tls yet.
 	// extraArgs = append(extraArgs, "--notls")
 
+	// create wallet
+	wallet, err := newTestWallet(t, params, uint32(id))
+	if err != nil {
+		return nil, err
+	}
+	coinbaseAddr := wallet.coinBaseAddr().Encode()
+	t.Logf("node [%v] wallet coinbase addr: %s", id, coinbaseAddr)
+	extraArgs = append(extraArgs, fmt.Sprintf("--miningaddr=%s", coinbaseAddr))
+
 	// create node config & initialize the node process
 	config := newNodeConfig(testDir, extraArgs)
 
 	// use auto-genereated p2p/rpc port settings instead of default
 	config.listen, config.rpclisten = genListenArgs()
 
+	// create node
 	newNode, err := newNode(t, config)
-	if err != nil {
-		return nil, err
-	}
-	wallet, err := newTestWallet(t, params, uint32(id))
 	if err != nil {
 		return nil, err
 	}

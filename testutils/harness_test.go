@@ -101,7 +101,7 @@ func TestHarnessNodePorts(t *testing.T) {
 }
 
 func TestHarness_RpcAPI(t *testing.T) {
-	args := []string{"--modules=miner", "--modules=qitmeer", "--miningaddr=RmFa5hnPd3uQRpzr3xWTfr8EFZdX7dS1qzV"}
+	args := []string{"--modules=miner", "--modules=qitmeer"}
 	h, err := NewHarness(t, params.PrivNetParam.Params, args...)
 	defer h.Teardown()
 	if err != nil {
@@ -127,4 +127,5 @@ func TestHarness_RpcAPI(t *testing.T) {
 	AssertBlockOrderAndHeight(t, h, 2, 2, 1)
 	GenerateBlock(t, h, 10)
 	AssertBlockOrderAndHeight(t, h, 12, 12, 11)
+	PayAndSend(t, h)
 }

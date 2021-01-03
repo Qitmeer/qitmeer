@@ -51,3 +51,12 @@ func AssertBlockOrderAndHeight(t *testing.T, h *Harness, order, total, height ui
 		}
 	}
 }
+
+func PayAndSend(t *testing.T, h *Harness) {
+	addr, err := h.Wallet.newAddress()
+	if err != nil {
+		t.Fatalf("failed to generate new address for test wallet: %v", err)
+	}
+	t.Logf("test wallet generated new address %v ok", addr.Encode())
+
+}
