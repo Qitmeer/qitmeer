@@ -15,14 +15,14 @@ import (
 // the appointed test harness.
 // It will return the hashes of the generated blocks or an error
 func GenerateBlock(t *testing.T, h *Harness, num uint64) []*hash.Hash {
-	result := make([]*hash.Hash, num)
+	result := make([]*hash.Hash, 0)
 	if blocks, err := h.Client.Generate(num); err != nil {
 		t.Errorf("generate block failed : %v", err)
 		return nil
 	} else {
 		for _, b := range blocks {
 			result = append(result, b)
-			t.Logf("node [%v] generate block [%v] ok", h.Node.Id(), b)
+			t.Logf("%v: generate block [%v] ok", h.Node.Id(), b)
 		}
 	}
 	return result
@@ -84,4 +84,36 @@ func Spend(t *testing.T, h *Harness, amt types.Amount) *hash.Hash {
 
 func AssertTxMined(t *testing.T, h *Harness, txId *hash.Hash, blockHash *hash.Hash) {
 
+	block, err := h.Notifier.GetBlockV2FullTx(blockHash.String(), true)
+	if err != nil {
+		t.Fatalf("failed to find block by hash %x : %v", blockHash, err)
+	}
+	numBlockTxns := len(block.Tx)
+	if numBlockTxns < 2 {
+		t.Fatalf("the tx has not been mined, the block should at least 2 tx, but got %v", numBlockTxns)
+	}
+	minedTx := block.Tx[1]
+	txHash := minedTx.Txid
+	if txHash != txId.String() {
+		t.Fatalf("txId %v not match vs block.tx[1] %v", txId, txHash)
+	}
+	t.Logf("txId %v minted in block, hash=%v, order=%v, height=%v", txId, blockHash, block.Order, block.Height)
+
+	// TODO, order and height not work for the SerializedBlock, comment off temporarily
+	/*
+		block, err := h.Client.GetBlock(blockHash)
+		if err!= nil {
+			t.Fatalf("failed to find block by hash %x : %v", blockHash, err)
+		}
+		numBlockTxns := len(block.Transactions())
+		if numBlockTxns < 2 {
+			t.Fatalf("the tx has not been mined, the block should at least 2 tx, but got %v",numBlockTxns)
+		}
+		minedTx := block.Transactions()[1]
+		txHash := minedTx.Tx.TxHash()
+		if txHash != *txId {
+			t.Fatalf("txId %v not match vs block.tx[1] %v",txId,txHash)
+		}
+		t.Logf("txId %v minted in block, hash=%v, order=%v, height=%v", txId, blockHash, block.Order(), block.Height())
+	*/
 }

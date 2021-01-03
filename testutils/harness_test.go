@@ -128,6 +128,9 @@ func TestHarness_RpcAPI(t *testing.T) {
 	AssertBlockOrderAndHeight(t, h, 3, 3, 2)
 	GenerateBlock(t, h, 16)
 	AssertBlockOrderAndHeight(t, h, 19, 19, 18)
-	txid := Spend(t, h, types.Amount{50 * 10e8, types.MEERID})
-	t.Logf("txid is %v", txid)
+	spendAmt := types.Amount{50 * 1e8, types.MEERID}
+	txid := Spend(t, h, spendAmt)
+	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
+	blocks := GenerateBlock(t, h, 1)
+	AssertTxMined(t, h, txid, blocks[0])
 }

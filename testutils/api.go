@@ -70,3 +70,22 @@ func (c *Client) SendRawTx(tx *types.Transaction, allowHighFees bool) (*hash.Has
 	}
 	return result, nil
 }
+
+// TODO, the SerializedBlock not work for order and height
+func (c *Client) GetBlock(h *hash.Hash) (*types.SerializedBlock, error) {
+	var blockHex string
+	if err := c.Call(&blockHex, "getBlock", h.String(), false); err != nil {
+		return nil, err
+	}
+	// Decode the serialized block hex to raw bytes.
+	serializedBlock, err := hex.DecodeString(blockHex)
+	if err != nil {
+		return nil, err
+	}
+	// Deserialize the block and return it.
+	block, err := types.NewBlockFromBytes(serializedBlock)
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
+}
