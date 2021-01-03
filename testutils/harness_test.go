@@ -5,6 +5,7 @@
 package testutils_test
 
 import (
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/params"
 	. "github.com/Qitmeer/qitmeer/testutils"
 	"sync"
@@ -123,9 +124,10 @@ func TestHarness_RpcAPI(t *testing.T) {
 		}
 	}
 	AssertBlockOrderAndHeight(t, h, 1, 1, 0)
-	GenerateBlock(t, h, 1)
-	AssertBlockOrderAndHeight(t, h, 2, 2, 1)
-	GenerateBlock(t, h, 10)
-	AssertBlockOrderAndHeight(t, h, 12, 12, 11)
-	PayAndSend(t, h)
+	GenerateBlock(t, h, 2)
+	AssertBlockOrderAndHeight(t, h, 3, 3, 2)
+	GenerateBlock(t, h, 16)
+	AssertBlockOrderAndHeight(t, h, 19, 19, 18)
+	txid := Spend(t, h, types.Amount{50 * 10e8, types.MEERID})
+	t.Logf("txid is %v", txid)
 }

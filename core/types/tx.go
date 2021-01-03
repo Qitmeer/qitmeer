@@ -598,7 +598,7 @@ func readTxOut(r io.Reader, to *TxOutput) error {
 	if err != nil {
 		return err
 	}
-	to.Amount = Amount{int64(value),CoinID(coinid)}
+	to.Amount = Amount{int64(value), CoinID(coinid)}
 
 	to.PkScript, err = readScript(r)
 	return err
@@ -1032,9 +1032,9 @@ func (to *TxOutput) GetPkScript() []byte {
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (to *TxOutput) SerializeSize() int {
-	// Value 8 bytes + serialized varint size for
+	// CoinId 2 bytes + Value 8 bytes + serialized varint size for
 	// the length of PkScript + PkScript bytes.
-	return 8 + s.VarIntSerializeSize(uint64(len(to.PkScript))) + len(to.PkScript)
+	return 2 + 8 + s.VarIntSerializeSize(uint64(len(to.PkScript))) + len(to.PkScript)
 }
 
 type ContractTransaction struct {

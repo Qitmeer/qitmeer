@@ -4,19 +4,28 @@
 
 package testutils
 
-import "testing"
+import (
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"testing"
+)
 
 // GenerateBlock will generate a number of blocks by the input number for
 // the appointed test harness.
 // It will return the hashes of the generated blocks or an error
-func GenerateBlock(t *testing.T, h *Harness, num uint64) {
+func GenerateBlock(t *testing.T, h *Harness, num uint64) []*hash.Hash {
+	result := make([]*hash.Hash, num)
 	if blocks, err := h.Client.Generate(num); err != nil {
 		t.Errorf("generate block failed : %v", err)
+		return nil
 	} else {
 		for _, b := range blocks {
+			result = append(result, b)
 			t.Logf("node [%v] generate block [%v] ok", h.Node.Id(), b)
 		}
 	}
+	return result
 }
 
 // AssertBlockOrderAndHeight will verify the current block order, total block number
@@ -52,11 +61,27 @@ func AssertBlockOrderAndHeight(t *testing.T, h *Harness, order, total, height ui
 	}
 }
 
-func PayAndSend(t *testing.T, h *Harness) {
+// Spend amount from the wallet of the test harness and return tx hash
+func Spend(t *testing.T, h *Harness, amt types.Amount) *hash.Hash {
 	addr, err := h.Wallet.newAddress()
 	if err != nil {
 		t.Fatalf("failed to generate new address for test wallet: %v", err)
 	}
 	t.Logf("test wallet generated new address %v ok", addr.Encode())
+	addrScript, err := txscript.PayToAddrScript(addr)
+	if err != nil {
+		t.Fatalf("failed to generated addr script: %v", err)
+	}
+	output := types.NewTxOutput(amt, addrScript)
+
+	feeRate := types.Amount{10, amt.Id}
+	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate)
+	if err != nil {
+		t.Fatalf("failed to pay the output: %v", err)
+	}
+	return txId
+}
+
+func AssertTxMined(t *testing.T, h *Harness, txId *hash.Hash, blockHash *hash.Hash) {
 
 }

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/address"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/bip32"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
@@ -313,9 +314,13 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 	w.Lock()
 	defer w.Unlock()
 	const (
-		// spendSize is the largest number of bytes of a sigScript
-		// which spends a p2pkh output: OP_DATA_73 <sig> OP_DATA_33 <pubkey>
-		spendSize = 1 + 73 + 1 + 33
+		// signScriptSize is the largest possible size bytes of a signScript
+		// sig may 71, 72, 73, pub may 33 or 32
+		// OP_DATA_73 <sig> OP_DATA_33 <pubkey>
+		maxSignScriptSize = 1 + 73 + 1 + 33
+		// a possible change output
+		// <coin_id> <value> <len> OP_DUP OP_HASH160 OP_DATA_20 <pk_hash> OP_EQUALVERIFY OP_CHECKSIG
+		changeOutPutSize = 2 + 8 + 1 + 1 + 1 + 1 + 20 + 1 + 1
 	)
 	tx := types.NewTransaction()
 	txSize := int64(0)
@@ -341,18 +346,25 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		// add selected input into tx
 		tx.AddTxIn(types.NewTxInput(&txOutPoint, nil))
 		// calculate required fee
-		txSize = int64(tx.SerializeSize() + spendSize)
+		txSize = int64(tx.SerializeSize() + maxSignScriptSize*len(tx.TxIn) + changeOutPutSize)
+		//fmt.Printf("createTx: txSerSize=%v, txSize=(%v+%v*%v)=%v\n",tx.SerializeSize(), tx.SerializeSize(), maxSignScriptSize, len(tx.TxIn), txSize)
+		//w.debugTxSize(tx)
 		requiredFee = types.Amount{txSize * feePerByte.Value, feeCoinId}
 		// check if enough fund
+		checkNext := false
 		for id, outAmt := range totalOutAmt {
 			if id == feeCoinId && totalInAmt[id]-outAmt-requiredFee.Value < 0 {
-				continue
+				checkNext = true
+				break
 			} else if totalInAmt[id]-outAmt < 0 {
-				continue
+				checkNext = true
+				break
 			}
 		}
-		enoughFund = true
-		break
+		if !checkNext {
+			enoughFund = true
+			break
+		}
 	}
 	if !enoughFund {
 		return nil, fmt.Errorf("not engouh funds from the wallet to pay the specified outputs")
@@ -382,12 +394,14 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		utxo := w.utxos[outPoint]
 		// get priv key for the utxo's key index
 		privkey := w.privkeys[utxo.keyIndex]
+		//fmt.Printf("keyindex=%v, privkey=%x\n",utxo.keyIndex, privkey)
 		key, _ := secp256k1.PrivKeyFromBytes(privkey)
 		// sign
 		sigScript, err := txscript.SignatureScript(tx, i, utxo.pkScript, txscript.SigHashAll, key, true)
 		if err != nil {
 			return nil, err
 		}
+		//fmt.Printf("signScript=%x, len=%v\n",sigScript, len(sigScript))
 		txIn.SignScript = sigScript
 		// save the utxo which will mark spent later
 		stxos = append(stxos, utxo)
@@ -398,4 +412,49 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		utxo.isSpent = true
 	}
 	return tx, nil
+}
+
+func (w testWallet) debugTxSize(tx *types.Transaction) {
+
+	n := 0
+
+	// 16 = Version 4 bytes + LockTime 4 bytes + Expire 4 bytes + Timestamp 4 bytes
+	// the number of inputs for prefix
+	// The number of outputs
+	// the number of inputs for witness
+	n = 16 + s.VarIntSerializeSize(uint64(len(tx.TxIn))) +
+		s.VarIntSerializeSize(uint64(len(tx.TxOut))) +
+		s.VarIntSerializeSize(uint64(len(tx.TxIn)))
+
+	w.t.Logf("debugTxSize: add ver, lock, exp, timestamp, var int size %v = 16 + %v + %v + %v", n,
+		s.VarIntSerializeSize(uint64(len(tx.TxIn))),
+		s.VarIntSerializeSize(uint64(len(tx.TxOut))),
+		s.VarIntSerializeSize(uint64(len(tx.TxIn))))
+
+	for i, txIn := range tx.TxIn {
+		w.t.Logf("debugTxSize: add input prefix[%v] %v", i, txIn.SerializeSizePrefix())
+		n += txIn.SerializeSizePrefix()
+	}
+	w.t.Logf("debugTxSize: add input prefix %v", n)
+	for i, txOut := range tx.TxOut {
+		w.t.Logf("debugTxSize: add output[%v] %v = (2 + 8 + %v + %v)", i, txOut.SerializeSize(),
+			s.VarIntSerializeSize(uint64(len(txOut.PkScript))),
+			len(txOut.PkScript))
+		id := make([]byte, 2)
+		binary.LittleEndian.PutUint16(id, uint16(txOut.Amount.Id))
+		w.t.Logf("debugTxSize: add output[%v] %v = 2 -> %x", i, txOut.SerializeSize(), id)
+		value := make([]byte, 8)
+		binary.LittleEndian.PutUint64(value, uint64(txOut.Amount.Value))
+		w.t.Logf("debugTxSize: add output[%v] %v = 8 -> %x", i, txOut.SerializeSize(), value)
+		n += txOut.SerializeSize()
+	}
+	w.t.Logf("debugTxSize: add outputs %v", n)
+	for i, txIn := range tx.TxIn {
+		w.t.Logf("debugTxSize: add input witness[%v] %v = %v + %v", i, txIn.SerializeSizeWitness(),
+			s.VarIntSerializeSize(uint64(len(txIn.SignScript))),
+			len(txIn.SignScript))
+		n += txIn.SerializeSizeWitness()
+	}
+	w.t.Logf("debugTxSize: add input witness %v", n)
+	w.t.Logf("debugTxSize: final size %v = %v", n, tx.SerializeSize())
 }
