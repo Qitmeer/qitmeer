@@ -132,5 +132,5 @@ func TestHarness_RpcAPI(t *testing.T) {
 	txid := Spend(t, h, spendAmt)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
 	blocks := GenerateBlock(t, h, 1)
-	AssertTxMined(t, h, txid, blocks[0])
+	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
 }

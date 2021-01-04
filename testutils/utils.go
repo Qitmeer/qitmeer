@@ -82,8 +82,25 @@ func Spend(t *testing.T, h *Harness, amt types.Amount) *hash.Hash {
 	return txId
 }
 
+// TODO, order and height not work for the SerializedBlock
 func AssertTxMined(t *testing.T, h *Harness, txId *hash.Hash, blockHash *hash.Hash) {
+	block, err := h.Client.GetBlock(blockHash)
+	if err != nil {
+		t.Fatalf("failed to find block by hash %x : %v", blockHash, err)
+	}
+	numBlockTxns := len(block.Transactions())
+	if numBlockTxns < 2 {
+		t.Fatalf("the tx has not been mined, the block should at least 2 tx, but got %v", numBlockTxns)
+	}
+	minedTx := block.Transactions()[1]
+	txHash := minedTx.Tx.TxHash()
+	if txHash != *txId {
+		t.Fatalf("txId %v not match vs block.tx[1] %v", txId, txHash)
+	}
+	t.Logf("txId %v minted in block, hash=%v, order=%v, height=%v", txId, blockHash, block.Order(), block.Height())
+}
 
+func AssertTxMinedUseNotifierAPI(t *testing.T, h *Harness, txId *hash.Hash, blockHash *hash.Hash) {
 	block, err := h.Notifier.GetBlockV2FullTx(blockHash.String(), true)
 	if err != nil {
 		t.Fatalf("failed to find block by hash %x : %v", blockHash, err)
@@ -98,22 +115,4 @@ func AssertTxMined(t *testing.T, h *Harness, txId *hash.Hash, blockHash *hash.Ha
 		t.Fatalf("txId %v not match vs block.tx[1] %v", txId, txHash)
 	}
 	t.Logf("txId %v minted in block, hash=%v, order=%v, height=%v", txId, blockHash, block.Order, block.Height)
-
-	// TODO, order and height not work for the SerializedBlock, comment off temporarily
-	/*
-		block, err := h.Client.GetBlock(blockHash)
-		if err!= nil {
-			t.Fatalf("failed to find block by hash %x : %v", blockHash, err)
-		}
-		numBlockTxns := len(block.Transactions())
-		if numBlockTxns < 2 {
-			t.Fatalf("the tx has not been mined, the block should at least 2 tx, but got %v",numBlockTxns)
-		}
-		minedTx := block.Transactions()[1]
-		txHash := minedTx.Tx.TxHash()
-		if txHash != *txId {
-			t.Fatalf("txId %v not match vs block.tx[1] %v",txId,txHash)
-		}
-		t.Logf("txId %v minted in block, hash=%v, order=%v, height=%v", txId, blockHash, block.Order(), block.Height())
-	*/
 }
