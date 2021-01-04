@@ -7,6 +7,7 @@ import (
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"sync"
 )
 
@@ -35,7 +36,7 @@ func NewPublicAddressAPI(ai *AddressApi) *PublicAddressAPI {
 func (c *AddressApi) APIs() []rpc.API {
 	return []rpc.API{
 		{
-			NameSpace: rpc.DefaultServiceNameSpace,
+			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicAddressAPI(c),
 			Public:    true,
 		},

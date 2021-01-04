@@ -1,13 +1,3 @@
-// Copyright (c) 2017-2019 The qitmeer developers
-// Copyright (c) 2013-2014 The btcsuite developers
-// Copyright (c) 2015-2017 The Decred developers
-//
-// Use of this source code is governed by an ISC
-// license that can be found in the LICENSE file.
-
-// The parts code inspired by
-// https://github.com/ethereum/go-ethereum/rpc
-
 package rpc
 
 import (
@@ -19,12 +9,14 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/marshal"
 	"github.com/Qitmeer/qitmeer/common/network"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/crypto/certgen"
-	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -342,9 +334,9 @@ func (rs *RequestStatus) RemoveRequst(sReq *serverRequest) {
 	}
 }
 
-func (rs *RequestStatus) ToJson() *JsonRequestStatus {
-	rsj := JsonRequestStatus{rs.GetName(), int(rs.TotalCalls),
-		rs.TotalTime.String(), "", len(rs.Requests)}
+func (rs *RequestStatus) ToJson() *cmds.JsonRequestStatus {
+	rsj := cmds.JsonRequestStatus{Name: rs.GetName(), TotalCalls: int(rs.TotalCalls),
+		TotalTime: rs.TotalTime.String(), AverageTime: "", RunningNum: len(rs.Requests)}
 	aTime := rs.TotalTime / time.Duration(rs.TotalCalls)
 	rsj.AverageTime = aTime.String()
 	return &rsj
@@ -355,4 +347,64 @@ func NewRequestStatus(sReq *serverRequest) (*RequestStatus, error) {
 		0, []*serverRequest{sReq}}
 	sReq.time = roughtime.Now()
 	return &rs, nil
+}
+
+func createMarshalledReply(id, result interface{}, replyErr error) ([]byte, error) {
+	var jsonErr *cmds.RPCError
+	if replyErr != nil {
+		if jErr, ok := replyErr.(*cmds.RPCError); ok {
+			jsonErr = jErr
+		} else {
+			jsonErr = cmds.InternalRPCError(replyErr.Error(), "")
+		}
+	}
+
+	return cmds.MarshalResponse(id, result, jsonErr)
+}
+
+func parseCmd(request *cmds.Request) *parsedRPCCmd {
+	var parsedCmd parsedRPCCmd
+	parsedCmd.id = request.ID
+	parsedCmd.method = request.Method
+
+	cmd, err := cmds.UnmarshalCmd(request)
+	if err != nil {
+		if jerr, ok := err.(cmds.Error); ok &&
+			jerr.ErrorCode == cmds.ErrUnregisteredMethod {
+			parsedCmd.err = cmds.ErrRPCMethodNotFound
+			return &parsedCmd
+		}
+
+		parsedCmd.err = cmds.NewRPCError(
+			cmds.ErrRPCInvalidParams.Code, err.Error())
+		return &parsedCmd
+	}
+
+	parsedCmd.cmd = cmd
+	return &parsedCmd
+}
+
+type parsedRPCCmd struct {
+	id     interface{}
+	method string
+	cmd    interface{}
+	err    *cmds.RPCError
+}
+
+func GetTxsHexFromBlock(block *types.SerializedBlock, duplicate bool) ([]string, error) {
+	txs := []string{}
+	for _, tx := range block.Transactions() {
+		if duplicate {
+			if tx.IsDuplicate {
+				continue
+			}
+		}
+
+		txhex, err := marshal.MessageToHex(tx.Tx)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to marshal transaction:%v", tx.Hash().String())
+		}
+		txs = append(txs, txhex)
+	}
+	return txs, nil
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"time"
 )
@@ -24,12 +25,12 @@ import (
 func (tm *TxManager) APIs() []rpc.API {
 	return []rpc.API{
 		{
-			NameSpace: rpc.DefaultServiceNameSpace,
+			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicTxAPI(tm),
 			Public:    true,
 		},
 		{
-			NameSpace: rpc.TestNameSpace,
+			NameSpace: cmds.TestNameSpace,
 			Service:   NewPrivateTxAPI(tm),
 			Public:    false,
 		},
@@ -46,17 +47,8 @@ func NewPublicTxAPI(tm *TxManager) *PublicTxAPI {
 	return &ptapi
 }
 
-// TransactionInput represents the inputs to a transaction.  Specifically a
-// transaction hash and output number pair.
-type TransactionInput struct {
-	Txid string `json:"txid"`
-	Vout uint32 `json:"vout"`
-}
-
-type Amounts map[string]uint64 //{\"address\":amount,...}
-
-func (api *PublicTxAPI) CreateRawTransaction(inputs []TransactionInput,
-	amounts Amounts, lockTime *int64) (interface{}, error) {
+func (api *PublicTxAPI) CreateRawTransaction(inputs []json.TransactionInput,
+	amounts json.Amounts, lockTime *int64) (interface{}, error) {
 
 	// Validate the locktime, if given.
 	if lockTime != nil &&
