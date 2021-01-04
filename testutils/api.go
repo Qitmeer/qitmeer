@@ -6,7 +6,6 @@ package testutils
 
 import (
 	"encoding/hex"
-	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -58,13 +57,9 @@ func (c *Client) Generate(num uint64) ([]*hash.Hash, error) {
 	return result, nil
 }
 
-func (c *Client) SendRawTx(tx *types.Transaction, allowHighFees bool) (*hash.Hash, error) {
-	txByte, err := tx.Serialize()
-	if err != nil {
-		return nil, err
-	}
-	txHex := hex.EncodeToString(txByte[:])
-	fmt.Printf("send rawtx=%s\n", txHex)
+func (c *Client) SendRawTx(txHex string, allowHighFees bool) (*hash.Hash, error) {
+
+	//fmt.Printf("send rawtx=%s\n", txHex)
 	var result *hash.Hash
 	if err := c.Call(&result, "sendRawTransaction", txHex, allowHighFees); err != nil {
 		return nil, err

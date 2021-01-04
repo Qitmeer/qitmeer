@@ -7,6 +7,7 @@ package testutils
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/address"
@@ -318,7 +319,13 @@ func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amou
 	if tx, err := w.createTx(outputs, feePerByte); err != nil {
 		return nil, err
 	} else {
-		return w.client.SendRawTx(tx, true)
+		txByte, err := tx.Serialize()
+		if err != nil {
+			return nil, err
+		}
+		txHex := hex.EncodeToString(txByte[:])
+		w.t.Logf("node [%v] has been sent rawtx=%s\n", w.nodeId, txHex)
+		return w.client.SendRawTx(txHex, true)
 	}
 }
 func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount) (*types.Transaction, error) {
