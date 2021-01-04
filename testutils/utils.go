@@ -74,7 +74,7 @@ func Spend(t *testing.T, h *Harness, amt types.Amount) *hash.Hash {
 	}
 	output := types.NewTxOutput(amt, addrScript)
 
-	feeRate := types.Amount{10, amt.Id}
+	feeRate := types.Amount{Value: 10, Id: amt.Id}
 	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate)
 	if err != nil {
 		t.Fatalf("failed to pay the output: %v", err)

@@ -24,7 +24,6 @@ const SpentTxOutFeesValueSize = 8
 // The bytes of Amount's CoinId
 const SpentTxoutAmountCoinIDSize = 2
 
-
 // -----------------------------------------------------------------------------
 // The transaction spend journal consists of an entry for each block connected
 // to the main chain which contains the transaction outputs the block spends
@@ -91,11 +90,11 @@ const SpentTxoutAmountCoinIDSize = 2
 // The struct is aligned for memory efficiency.
 type SpentTxOut struct {
 	Amount     types.Amount // The total amount of the output.
-	PkScript   []byte // The public key script for the output.
+	PkScript   []byte       // The public key script for the output.
 	BlockHash  hash.Hash
-	IsCoinBase bool   // Whether creating tx is a coinbase.
-	TxIndex    uint32 // The index of tx in block.
-	TxInIndex  uint32 // The index of TxInput in the tx.
+	IsCoinBase bool         // Whether creating tx is a coinbase.
+	TxIndex    uint32       // The index of tx in block.
+	TxInIndex  uint32       // The index of TxInput in the tx.
 	Fees       types.Amount // The fees of block
 }
 
@@ -195,7 +194,7 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 	offset += SpentTxoutFeesCoinIDSize
 	feesValue := byteOrder.Uint64(serialized[offset : offset+SpentTxOutFeesValueSize])
 	offset += SpentTxOutFeesValueSize
-	stxo.Fees = types.Amount{int64(feesValue),types.CoinID(feesCoinId)}
+	stxo.Fees = types.Amount{Value: int64(feesValue), Id: types.CoinID(feesCoinId)}
 
 	// Decode amount coinId
 	amountCoinId := byteOrder.Uint16(serialized[offset : offset+SpentTxoutAmountCoinIDSize])
@@ -209,7 +208,7 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 		return offset, errDeserialize(fmt.Sprintf("unable to decode "+
 			"txout: %v", err))
 	}
-	stxo.Amount = types.Amount{int64(amount), types.CoinID(amountCoinId)}
+	stxo.Amount = types.Amount{Value: int64(amount), Id: types.CoinID(amountCoinId)}
 	stxo.PkScript = pkScript
 
 	return offset, nil

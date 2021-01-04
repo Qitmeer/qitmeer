@@ -44,7 +44,7 @@ const (
 // The struct is aligned for memory efficiency.
 type UtxoEntry struct {
 	amount      types.Amount // The amount of the output.
-	pkScript    []byte // The public key script for the output.
+	pkScript    []byte       // The public key script for the output.
 	blockHash   hash.Hash
 	packedFlags txoFlags
 }
@@ -404,7 +404,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 		// in the utxo set.
 		var stxo = SpentTxOut{
 			Amount:     entry.Amount(),
-			Fees:       types.Amount{0,entry.Amount().Id},
+			Fees:       types.Amount{Value: 0, Id: entry.Amount().Id},
 			PkScript:   entry.PkScript(),
 			BlockHash:  entry.blockHash,
 			IsCoinBase: entry.IsCoinBase(),
@@ -718,7 +718,7 @@ func DeserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 	}
 
 	entry := &UtxoEntry{
-		amount:      types.Amount{int64(amount),types.CoinID(amountCoinId)},
+		amount:      types.Amount{Value: int64(amount), Id: types.CoinID(amountCoinId)},
 		pkScript:    pkScript,
 		blockHash:   *blockHash,
 		packedFlags: 0,

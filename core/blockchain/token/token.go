@@ -252,7 +252,7 @@ func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, t
 	}
 	inputMeer := tx.TxIn[0].AmountIn
 
-	inputToken := types.Amount{0, id}
+	inputToken := types.Amount{Value: 0, Id: id}
 	// TxIn[1..N] must normal token signature script, and the input value should match with token id
 	for i, txIn := range tx.TxIn[1:] {
 		// Make sure there is a script.
@@ -323,7 +323,7 @@ func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, t
 			"release value not valid,  release %s should less than input %s", inputMeer.String(), tx.TxOut[1].Amount.String())
 	}
 
-	change := types.Amount{0, id}
+	change := types.Amount{Value: 0, Id: id}
 	// optional output[2] , token change
 	if len(tx.TxOut) == 3 {
 		if tx.TxOut[2].PkScript[0] != txscript.OP_TOKEN_CHANGE {

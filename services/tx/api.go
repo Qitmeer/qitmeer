@@ -109,7 +109,7 @@ func (api *PublicTxAPI) CreateRawTransaction(inputs []json.TransactionInput,
 				"Pay to address script")
 		}
 
-		txOut := types.NewTxOutput(types.Amount{int64(amount),types.MEERID}, pkScript)
+		txOut := types.NewTxOutput(types.Amount{Value: int64(amount), Id: types.MEERID}, pkScript)
 		mtx.AddTxOut(txOut)
 	}
 

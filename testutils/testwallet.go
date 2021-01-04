@@ -346,7 +346,7 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 	totalOutAmt := make(map[types.CoinID]int64)
 	totalInAmt := make(map[types.CoinID]int64)
 	feeCoinId := feePerByte.Id
-	requiredFee := types.Amount{0, feeCoinId}
+	requiredFee := types.Amount{Value: 0, Id: feeCoinId}
 
 	// calculate the total amount need to pay && add output into tx
 	for _, o := range outputs {
@@ -371,7 +371,7 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		txSize = int64(tx.SerializeSize() + maxSignScriptSize*len(tx.TxIn) + changeOutPutSize)
 		//fmt.Printf("createTx: txSerSize=%v, txSize=(%v+%v*%v)=%v\n",tx.SerializeSize(), tx.SerializeSize(), maxSignScriptSize, len(tx.TxIn), txSize)
 		//w.debugTxSize(tx)
-		requiredFee = types.Amount{txSize * feePerByte.Value, feeCoinId}
+		requiredFee = types.Amount{Value: txSize * feePerByte.Value, Id: feeCoinId}
 		// check if enough fund
 		checkNext := false
 		for id, outAmt := range totalOutAmt {
@@ -403,7 +403,7 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 			return nil, err
 		}
 		tx.AddTxOut(&types.TxOutput{
-			Amount:   types.Amount{changeValue, feeCoinId},
+			Amount:   types.Amount{Value: changeValue, Id: feeCoinId},
 			PkScript: pkScript,
 		})
 	}

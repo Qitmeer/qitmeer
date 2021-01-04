@@ -128,7 +128,7 @@ func TestCheckTokenMint(t *testing.T) {
 					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
 					Sequence:    MaxTxInSequenceNum,
 					SignScript:  mintScript,
-					AmountIn:    Amount{200 * 1e8, QITID},
+					AmountIn:    Amount{Value: 200 * 1e8, Id: QITID},
 				})
 				fee := int64(5400)
 				tx.AddTxIn(&TxInput{
@@ -136,13 +136,13 @@ func TestCheckTokenMint(t *testing.T) {
 						0),
 					Sequence:   MaxTxInSequenceNum,
 					SignScript: []byte{txscript.OP_DATA_1},
-					AmountIn:   Amount{100*1e8 + fee, MEERID},
+					AmountIn:   Amount{Value: 100*1e8 + fee, Id: MEERID},
 				})
 				// output[0]
 				builder = txscript.NewScriptBuilder()
 				builder.AddOp(txscript.OP_MEER_LOCK)
 				meerlockScript, _ := builder.Script()
-				tx.AddTxOut(&TxOutput{Amount{100 * 1e8, MEERID}, meerlockScript})
+				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 100 * 1e8, Id: MEERID}, PkScript: meerlockScript})
 				// output[1]
 				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
 				if err != nil {
@@ -155,7 +155,7 @@ func TestCheckTokenMint(t *testing.T) {
 				tokenReleaseScript := make([]byte, len(p2pkhScript)+1)
 				tokenReleaseScript[0] = txscript.OP_TOKEN_RELEASE
 				copy(tokenReleaseScript[1:], p2pkhScript)
-				tx.AddTxOut(&TxOutput{Amount{200 * 1e8, QITID}, tokenReleaseScript})
+				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 200 * 1e8, Id: QITID}, PkScript: tokenReleaseScript})
 				return tx
 			},
 		},
@@ -174,7 +174,7 @@ func TestCheckTokenMint(t *testing.T) {
 					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
 					Sequence:    MaxTxInSequenceNum,
 					SignScript:  mintScript,
-					AmountIn:    Amount{100 * 1e8, QITID},
+					AmountIn:    Amount{Value: 100 * 1e8, Id: QITID},
 				})
 				fee := int64(5400)
 				mint := int64(90 * 1e8)   // 90meer
@@ -184,13 +184,13 @@ func TestCheckTokenMint(t *testing.T) {
 						0),
 					Sequence:   MaxTxInSequenceNum,
 					SignScript: []byte{txscript.OP_DATA_1},
-					AmountIn:   Amount{mint + change + fee, MEERID},
+					AmountIn:   Amount{Value: mint + change + fee, Id: MEERID},
 				})
 				// output[0]
 				builder = txscript.NewScriptBuilder()
 				builder.AddOp(txscript.OP_MEER_LOCK)
 				meerlockScript, _ := builder.Script()
-				tx.AddTxOut(&TxOutput{Amount{mint, MEERID}, meerlockScript})
+				tx.AddTxOut(&TxOutput{Amount: Amount{Value: mint, Id: MEERID}, PkScript: meerlockScript})
 				// output[1]
 				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
 				if err != nil {
@@ -203,13 +203,13 @@ func TestCheckTokenMint(t *testing.T) {
 				tokenReleaseScript := make([]byte, len(p2pkhScript)+1)
 				tokenReleaseScript[0] = txscript.OP_TOKEN_RELEASE
 				copy(tokenReleaseScript[1:], p2pkhScript)
-				tx.AddTxOut(&TxOutput{Amount{100 * 1e8, QITID}, tokenReleaseScript})
+				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 100 * 1e8, Id: QITID}, PkScript: tokenReleaseScript})
 
 				// output[2]
 				meerChangeScript := make([]byte, len(p2pkhScript)+1)
 				meerChangeScript[0] = txscript.OP_MEER_CHANGE
 				copy(meerChangeScript[1:], p2pkhScript)
-				tx.AddTxOut(&TxOutput{Amount{change, MEERID}, meerChangeScript})
+				tx.AddTxOut(&TxOutput{Amount: Amount{Value: change, Id: MEERID}, PkScript: meerChangeScript})
 				return tx
 			},
 		},
@@ -293,20 +293,20 @@ func TestCheckTokenUnMint(t *testing.T) {
 					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
 					Sequence:    MaxTxInSequenceNum,
 					SignScript:  unmintScript,
-					AmountIn:    Amount{10 * 1e8, MEERID},
+					AmountIn:    Amount{Value: 10 * 1e8, Id: MEERID},
 				})
 				tx.AddTxIn(&TxInput{
 					PreviousOut: *NewOutPoint(hashFramStr("377cfb2c535be289f8e40299e8d4c234283c367e20bc5ff67ca18c1ca1337443"),
 						0),
 					Sequence:   MaxTxInSequenceNum,
 					SignScript: []byte{txscript.OP_DATA_1},
-					AmountIn:   Amount{100 * 1e8, QITID},
+					AmountIn:   Amount{Value: 100 * 1e8, Id: QITID},
 				})
 				// output[0]
 				builder = txscript.NewScriptBuilder()
 				builder.AddOp(txscript.OP_TOKEN_DESTORY)
 				tokenDestoryScript, _ := builder.Script()
-				tx.AddTxOut(&TxOutput{Amount{100 * 1e8, QITID}, tokenDestoryScript})
+				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 100 * 1e8, Id: QITID}, PkScript: tokenDestoryScript})
 				// output[1]
 				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
 				if err != nil {
@@ -320,7 +320,7 @@ func TestCheckTokenUnMint(t *testing.T) {
 				meerReleaseScript[0] = txscript.OP_MEER_RELEASE
 				copy(meerReleaseScript[1:], p2pkhScript)
 				fee := int64(5400)
-				tx.AddTxOut(&TxOutput{Amount{10*1e8 - fee, MEERID}, meerReleaseScript})
+				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 10*1e8 - fee, Id: MEERID}, PkScript: meerReleaseScript})
 				return tx
 			},
 		},
@@ -339,20 +339,20 @@ func TestCheckTokenUnMint(t *testing.T) {
 					PreviousOut: *NewOutPoint(&hash.Hash{}, MaxPrevOutIndex),
 					Sequence:    MaxTxInSequenceNum,
 					SignScript:  unmintScript,
-					AmountIn:    Amount{10 * 1e8, MEERID},
+					AmountIn:    Amount{Value: 10 * 1e8, Id: MEERID},
 				})
 				tx.AddTxIn(&TxInput{
 					PreviousOut: *NewOutPoint(hashFramStr("377cfb2c535be289f8e40299e8d4c234283c367e20bc5ff67ca18c1ca1337443"),
 						0),
 					Sequence:   MaxTxInSequenceNum,
 					SignScript: []byte{txscript.OP_DATA_1},
-					AmountIn:   Amount{100 * 1e8, QITID},
+					AmountIn:   Amount{Value: 100 * 1e8, Id: QITID},
 				})
 				// output[0]
 				builder = txscript.NewScriptBuilder()
 				builder.AddOp(txscript.OP_TOKEN_DESTORY)
 				tokenDestoryScript, _ := builder.Script()
-				tx.AddTxOut(&TxOutput{Amount{99 * 1e8, QITID}, tokenDestoryScript})
+				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 99 * 1e8, Id: QITID}, PkScript: tokenDestoryScript})
 				// output[1]
 				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
 				if err != nil {
@@ -366,12 +366,12 @@ func TestCheckTokenUnMint(t *testing.T) {
 				meerReleaseScript[0] = txscript.OP_MEER_RELEASE
 				copy(meerReleaseScript[1:], p2pkhScript)
 				fee := int64(5400)
-				tx.AddTxOut(&TxOutput{Amount{10*1e8 - fee, MEERID}, meerReleaseScript})
+				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 10*1e8 - fee, Id: MEERID}, PkScript: meerReleaseScript})
 				// output[2] token-change
 				tokenChangeScript := make([]byte, len(p2pkhScript)+1)
 				tokenChangeScript[0] = txscript.OP_TOKEN_CHANGE
 				copy(tokenChangeScript[1:], p2pkhScript)
-				tx.AddTxOut(&TxOutput{Amount{1 * 1e8, QITID}, tokenChangeScript})
+				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 1 * 1e8, Id: QITID}, PkScript: tokenChangeScript})
 				return tx
 			},
 		},

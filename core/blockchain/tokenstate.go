@@ -209,7 +209,7 @@ func deserializeTokenState(data []byte) (*tokenState, error) {
 			updates[i] = balanceUpdate{
 				typ:         balanceUpdateType(updateType),
 				meerAmount:  int64(meerAmount),
-				tokenAmount: types.Amount{int64(tokenAmount), types.CoinID(uint16(tokenId))},
+				tokenAmount: types.Amount{Value:int64(tokenAmount), Id:types.CoinID(uint16(tokenId))},
 			}
 		}
 	}
