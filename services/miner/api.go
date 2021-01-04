@@ -150,7 +150,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	coinbaseTxOuts := block.Block().Transactions[0].TxOut
 	coinbaseTxGenerated := uint64(0)
 	for _, out := range coinbaseTxOuts {
-		coinbaseTxGenerated += out.Amount
+		coinbaseTxGenerated += uint64(out.Amount.Value)
 	}
 	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, order %s amount %d", block.Hash().String(),
 		block.Height(), blockdag.GetOrderLogStr(uint(block.Order())), coinbaseTxGenerated), nil
@@ -466,7 +466,8 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 
 	if useCoinbaseValue {
 		reply.CoinbaseAux = api.gbtCoinbaseAux
-		reply.CoinbaseValue = &msgBlock.Transactions[0].TxOut[0].Amount
+		v := uint64(msgBlock.Transactions[0].TxOut[0].Amount.Value)
+		reply.CoinbaseValue = &v
 	} else {
 		// Ensure the template has a valid payment address associated
 		// with it when a full coinbase is requested.

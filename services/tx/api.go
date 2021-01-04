@@ -109,7 +109,7 @@ func (api *PublicTxAPI) CreateRawTransaction(inputs []json.TransactionInput,
 				"Pay to address script")
 		}
 
-		txOut := types.NewTxOutput(amount, pkScript)
+		txOut := types.NewTxOutput(types.Amount{Value: int64(amount), Id: types.MEERID}, pkScript)
 		mtx.AddTxOut(txOut)
 	}
 
@@ -323,7 +323,7 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 		}
 
 		if mtx.Tx.IsCoinBase() {
-			coinbaseAmout = mtx.Tx.TxOut[0].Amount + uint64(api.txManager.bm.GetChain().GetFees(blkHash))
+			coinbaseAmout = uint64(mtx.Tx.TxOut[0].Amount.Value) + uint64(api.txManager.bm.GetChain().GetFees(blkHash))
 		}
 	}
 	if tx != nil {
@@ -358,7 +358,7 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 	var bestBlockHash string
 	var confirmations int64
 	var txVersion uint32
-	var amount uint64
+	var amount types.Amount
 	var pkScript []byte
 	var isCoinbase bool
 
@@ -410,7 +410,10 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 			} else {
 				confirmations = int64(best.GraphState.GetLayer() - block.GetLayer())
 			}
-			amount += uint64(api.txManager.bm.GetChain().GetFees(block.GetHash()))
+			if entry.IsCoinBase() {
+				//TODO, even the entry is coinbase, should not change the amount by tx fee, need consider output index
+				amount.Value += api.txManager.bm.GetChain().GetFees(block.GetHash())
+			}
 		}
 
 		pkScript = entry.PkScript()
@@ -431,11 +434,11 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 	for i, addr := range addrs {
 		addresses[i] = addr.Encode()
 	}
-
 	txOutReply := &json.GetUtxoResult{
 		BestBlock:     bestBlockHash,
 		Confirmations: confirmations,
-		Amount:        types.Amount(amount).ToUnit(types.AmountCoin),
+		CoinId:        amount.Id.Name(),
+		Amount:        amount.ToUnit(types.AmountCoin),
 		Version:       int32(txVersion),
 		ScriptPubKey: json.ScriptPubKeyResult{
 			Asm:       disbuf,
@@ -625,7 +628,7 @@ func (api *PublicTxAPI) GetRawTransactions(addre string, vinext *bool, count *ui
 
 		result.Vout = marshal.MarshJsonVout(mtx.Tx, filterAddrMap, params)
 		if mtx.Tx.IsCoinBase() {
-			result.Vout[0].Amount = mtx.Tx.TxOut[0].Amount + uint64(api.txManager.bm.GetChain().GetFees(rtx.blkHash))
+			result.Vout[0].Amount = uint64(mtx.Tx.TxOut[0].Amount.Value) + uint64(api.txManager.bm.GetChain().GetFees(rtx.blkHash))
 		}
 		result.Version = mtx.Tx.Version
 		result.LockTime = mtx.Tx.LockTime
@@ -791,7 +794,8 @@ func (api *PublicTxAPI) createVinListPrevOut(mtx *types.Tx, chainParams *params.
 			vinListEntry := &vinList[len(vinList)-1]
 			vinListEntry.PrevOut = &json.PrevOut{
 				Addresses: encodedAddrs,
-				Value:     types.Amount(originTxOut.Amount).ToCoin(),
+				CoinId:    originTxOut.Amount.Id.Name(),
+				Value:     originTxOut.Amount.ToCoin(),
 			}
 		}
 	}

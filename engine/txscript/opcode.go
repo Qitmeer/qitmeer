@@ -240,14 +240,14 @@ const (
 	OP_CHECKSIGALT         = 0xbe // 190 Alternative checksig op (ed25519/snnor)       //TODO, refactor name
 	OP_CHECKSIGALTVERIFY   = 0xbf // 191 Alternative checksigverify op (ed25519/snnor) //TODO, refactor name
 	OP_SHA256              = 0xc0 // 192
-	OP_UNKNOWN193          = 0xc1 // 193
-	OP_UNKNOWN194          = 0xc2 // 194
-	OP_UNKNOWN195          = 0xc3 // 195
-	OP_UNKNOWN196          = 0xc4 // 196
-	OP_UNKNOWN197          = 0xc5 // 197
-	OP_UNKNOWN198          = 0xc6 // 198
-	OP_UNKNOWN199          = 0xc7 // 199
-	OP_UNKNOWN200          = 0xc8 // 200
+	OP_TOKEN_MINT          = 0xc1 // 193 Qitmeer token mint
+	OP_TOKEN_UNMINT        = 0xc2 // 194 Qitmeer token unmint
+	OP_MEER_LOCK           = 0xc3 // 195 Qitmeer meer lock
+	OP_MEER_RELEASE        = 0xc4 // 196 Qitmeer meer release
+	OP_TOKEN_DESTORY       = 0xc5 // 197 Qitmeer token destory
+	OP_TOKEN_RELEASE       = 0xc6 // 198 Qitmeer token release
+	OP_MEER_CHANGE         = 0xc7 // 199 Qitmeer meer change
+	OP_TOKEN_CHANGE        = 0xc8 // 200 Qitmeer token change
 	OP_UNKNOWN201          = 0xc9 // 201
 	OP_UNKNOWN202          = 0xca // 202
 	OP_UNKNOWN203          = 0xcb // 203
@@ -533,15 +533,17 @@ var opcodeArray = [256]Opcode{
 	OP_CHECKSIGALT:       {OP_CHECKSIGALT, "OP_CHECKSIGALT", 1, opcodeCheckSigAlt},
 	OP_CHECKSIGALTVERIFY: {OP_CHECKSIGALTVERIFY, "OP_CHECKSIGALTVERIFY", 1, opcodeCheckSigAltVerify},
 
+	// Qitmeer Token opcode.
+	OP_TOKEN_MINT:   {OP_TOKEN_MINT, "OP_TOKEN_MINT", 1, opcodeNop},
+	OP_TOKEN_UNMINT: {OP_TOKEN_UNMINT, "OP_TOKEN_UNMINT", 1, opcodeNop},
+	OP_MEER_LOCK: {OP_MEER_LOCK, "OP_MEER_LOCK", 1, opcodeNop},
+	OP_MEER_RELEASE: {OP_MEER_RELEASE, "OP_MEER_RELEASE", 1, opcodeNop},
+	OP_TOKEN_DESTORY: {OP_TOKEN_DESTORY, "OP_TOKEN_DESTORY", 1, opcodeNop},
+	OP_TOKEN_RELEASE: {OP_TOKEN_RELEASE, "OP_TOKEN_RELEASE", 1, opcodeNop},
+	OP_MEER_CHANGE: {OP_MEER_CHANGE, "OP_MEER_CHANGE", 1, opcodeNop},
+	OP_TOKEN_CHANGE: {OP_TOKEN_CHANGE, "OP_TOKEN_CHANGE", 1, opcodeNop},
 	// Undefined opcodes.
-	OP_UNKNOWN193: {OP_UNKNOWN193, "OP_UNKNOWN193", 1, opcodeNop},
-	OP_UNKNOWN194: {OP_UNKNOWN194, "OP_UNKNOWN194", 1, opcodeNop},
-	OP_UNKNOWN195: {OP_UNKNOWN195, "OP_UNKNOWN195", 1, opcodeNop},
-	OP_UNKNOWN196: {OP_UNKNOWN196, "OP_UNKNOWN196", 1, opcodeNop},
-	OP_UNKNOWN197: {OP_UNKNOWN197, "OP_UNKNOWN197", 1, opcodeNop},
-	OP_UNKNOWN198: {OP_UNKNOWN198, "OP_UNKNOWN198", 1, opcodeNop},
-	OP_UNKNOWN199: {OP_UNKNOWN199, "OP_UNKNOWN199", 1, opcodeNop},
-	OP_UNKNOWN200: {OP_UNKNOWN200, "OP_UNKNOWN200", 1, opcodeNop},
+
 	OP_UNKNOWN201: {OP_UNKNOWN201, "OP_UNKNOWN201", 1, opcodeNop},
 	OP_UNKNOWN202: {OP_UNKNOWN202, "OP_UNKNOWN202", 1, opcodeNop},
 	OP_UNKNOWN203: {OP_UNKNOWN203, "OP_UNKNOWN203", 1, opcodeNop},
@@ -875,10 +877,7 @@ func opcodeN(op *ParsedOpcode, vm *Engine) error {
 func opcodeNop(op *ParsedOpcode, vm *Engine) error {
 	switch op.opcode.value {
 	case OP_NOP1, OP_NOP4, OP_NOP5, OP_NOP6,
-		OP_NOP7, OP_NOP8, OP_NOP9, OP_NOP10,
-		OP_UNKNOWN193, OP_UNKNOWN194, OP_UNKNOWN195,
-		OP_UNKNOWN196, OP_UNKNOWN197, OP_UNKNOWN198, OP_UNKNOWN199,
-		OP_UNKNOWN200, OP_UNKNOWN201, OP_UNKNOWN202, OP_UNKNOWN203,
+		OP_NOP7, OP_NOP8, OP_NOP9, OP_NOP10, OP_UNKNOWN201, OP_UNKNOWN202, OP_UNKNOWN203,
 		OP_UNKNOWN204, OP_UNKNOWN205, OP_UNKNOWN206, OP_UNKNOWN207,
 		OP_UNKNOWN208, OP_UNKNOWN209, OP_UNKNOWN210, OP_UNKNOWN211,
 		OP_UNKNOWN212, OP_UNKNOWN213, OP_UNKNOWN214, OP_UNKNOWN215,
@@ -1436,7 +1435,7 @@ func opcodeSubstr(op *ParsedOpcode, vm *Engine) error {
 		return err
 	}
 
-	// All data pushes and pops are effectivley limited to 32-bits, as are
+	// All data pushes and pops are effectively limited to 32-bits, as are
 	// all math-related numeric pushes, so it is safe to cast the length to
 	// int32.  The numeric values are also clamped to int32 accordingly.
 	aLen := int32(len(a))
@@ -1494,7 +1493,7 @@ func opcodeLeft(op *ParsedOpcode, vm *Engine) error {
 		return err
 	}
 
-	// All data pushes and pops are effectivley limited to 32-bits, as are
+	// All data pushes and pops are effectively limited to 32-bits, as are
 	// all math-related numeric pushes, so it is safe to cast the length to
 	// int32.  The numeric values are also clamped to int32 accordingly.
 	aLen := int32(len(a))
@@ -1540,7 +1539,7 @@ func opcodeRight(op *ParsedOpcode, vm *Engine) error {
 		return err
 	}
 
-	// All data pushes and pops are effectivley limited to 32-bits, as are
+	// All data pushes and pops are effectively limited to 32-bits, as are
 	// all math-related numeric pushes, so it is safe to cast the length to
 	// int32.  The numeric values are also clamped to int32 accordingly.
 	aLen := int32(len(a))

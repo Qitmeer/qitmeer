@@ -396,12 +396,13 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 
 	// Don't allow transactions with fees too low to get into a mined block.
 	serializedSize := int64(msgTx.SerializeSize())
+
 	minFee := calcMinRequiredTxRelayFee(serializedSize,
 		mp.cfg.Policy.MinRelayTxFee)
 	if txFee < minFee {
 		str := fmt.Sprintf("transaction %v has %v fees which "+
-			"is under the required amount of %v", txHash,
-			txFee, minFee)
+			"is under the required amount of %v, tx size is %v bytes, policy-rate is %v/byte.", txHash,
+			txFee, minFee, serializedSize, mp.cfg.Policy.MinRelayTxFee.Value/1000)
 		return nil, nil, txRuleError(message.RejectInsufficientFee, str)
 	}
 

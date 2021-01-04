@@ -344,7 +344,15 @@ func (b *BlockChain) createChainState() error {
 		}
 
 		// Store the genesis block into the database.
-		return dbTx.StoreBlock(genesisBlock)
+		if err := dbTx.StoreBlock(genesisBlock); err != nil {
+			return err
+		}
+
+		// Create the bucket which house the token state
+		if _, err := meta.CreateBucket(dbnamespace.TokenBucketName); err != nil {
+			return err
+		}
+		return nil
 	})
 	return err
 }

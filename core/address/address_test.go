@@ -158,7 +158,7 @@ func TestAddress(t *testing.T) {
 				pushData := []byte{
 					0x77, 0xca, 0x77, 0xb8, 0x27, 0x72, 0xbb, 0xf6, 0x86, 0x27,
 					0xe5, 0x00, 0x44, 0xa0, 0x82, 0x3e, 0xa9, 0xaf, 0x4f, 0x30}
-				return NewAddressScriptHashFromHash(pushData, privNetParams)
+				return NewScriptHashAddressFromHash(pushData, privNetParams)
 			},
 			net: privNetParams,
 		},
@@ -178,7 +178,7 @@ func TestAddress(t *testing.T) {
 				pushData := []byte{
 					0x77, 0xca, 0x77, 0xb8, 0x27, 0x72, 0xbb, 0xf6, 0x86, 0x27,
 					0xe5, 0x00, 0x44, 0xa0, 0x82, 0x3e, 0xa9, 0xaf, 0x4f, 0x30}
-				return NewAddressScriptHashFromHash(pushData, mainNetParams)
+				return NewScriptHashAddressFromHash(pushData, mainNetParams)
 			},
 			net: mainNetParams,
 		},
@@ -198,7 +198,7 @@ func TestAddress(t *testing.T) {
 				pushData := []byte{
 					0x77, 0xca, 0x77, 0xb8, 0x27, 0x72, 0xbb, 0xf6, 0x86, 0x27,
 					0xe5, 0x00, 0x44, 0xa0, 0x82, 0x3e, 0xa9, 0xaf, 0x4f, 0x30}
-				return NewAddressScriptHashFromHash(pushData, testNetParams)
+				return NewScriptHashAddressFromHash(pushData, testNetParams)
 			},
 			net: testNetParams,
 		},
@@ -218,7 +218,7 @@ func TestAddress(t *testing.T) {
 				pushData := []byte{
 					0x77, 0xca, 0x77, 0xb8, 0x27, 0x72, 0xbb, 0xf6, 0x86, 0x27,
 					0xe5, 0x00, 0x44, 0xa0, 0x82, 0x3e, 0xa9, 0xaf, 0x4f, 0x30}
-				return NewAddressScriptHashFromHash(pushData, mixNetParams)
+				return NewScriptHashAddressFromHash(pushData, mixNetParams)
 			},
 			net: mixNetParams,
 		},
@@ -269,11 +269,11 @@ func TestAddress(t *testing.T) {
 				// address is checked below.
 				saddr, _ = hex.DecodeString(d.String())
 			}
-			// Check script address, as well as the Hash160 method for P2PKH and
+			// Check address script, as well as the Hash160 method for P2PKH and
 			// P2SH addresses.
-			if !bytes.Equal(saddr, decoded.ScriptAddress()) {
-				t.Errorf("%v: script addresses do not match:\n%x != \n%x",
-					test.name, saddr, decoded.ScriptAddress())
+			if !bytes.Equal(saddr, decoded.Script()) {
+				t.Errorf("%v: addresses script do not match:\n%x != \n%x",
+					test.name, saddr, decoded.Script())
 				return
 			}
 			switch a := decoded.(type) {
@@ -322,10 +322,10 @@ func TestAddress(t *testing.T) {
 				test.name, err)
 			return
 		}
-		if !reflect.DeepEqual(addr.ScriptAddress(), test.result.ScriptAddress()) {
+		if !reflect.DeepEqual(addr.Script(), test.result.Script()) {
 			t.Errorf("%v: created address does not match expected result \n "+
 				"	got %x, expected %x",
-				test.name, addr.ScriptAddress(), test.result.ScriptAddress())
+				test.name, addr.Script(), test.result.Script())
 			return
 		}
 		if addr.String() != test.addr {
