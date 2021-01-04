@@ -128,9 +128,41 @@ func TestHarness_RpcAPI(t *testing.T) {
 	AssertBlockOrderAndHeight(t, h, 3, 3, 2)
 	GenerateBlock(t, h, 16)
 	AssertBlockOrderAndHeight(t, h, 19, 19, 18)
-	spendAmt := types.Amount{50 * 1e8, types.MEERID}
+
+	spendAmt := types.Amount{50 * types.AtomsPerCoin, types.MEERID}
 	txid := Spend(t, h, spendAmt)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
 	blocks := GenerateBlock(t, h, 1)
 	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
+
+	spendAmt = types.Amount{5000 * types.AtomsPerCoin, types.MEERID}
+	txid = Spend(t, h, spendAmt)
+	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
+	blocks = GenerateBlock(t, h, 1)
+	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
+}
+
+func TestHarness_SpentGenesis(t *testing.T) {
+	args := []string{"--modules=miner", "--modules=qitmeer"}
+	h, err := NewHarness(t, params.PrivNetParam.Params, args...)
+	defer h.Teardown()
+	if err != nil {
+		t.Errorf("new harness failed: %v", err)
+		h.Teardown()
+	}
+	err = h.Setup()
+	if err != nil {
+		t.Errorf("setup harness failed:%v", err)
+	}
+	time.Sleep(500 * time.Millisecond)
+
+	GenerateBlock(t, h, 18)
+	AssertBlockOrderAndHeight(t, h, 19, 19, 18)
+
+	spendAmt := types.Amount{50 * types.AtomsPerCoin, types.QITID}
+	txid := Spend(t, h, spendAmt)
+	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
+	blocks := GenerateBlock(t, h, 1)
+	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
+
 }

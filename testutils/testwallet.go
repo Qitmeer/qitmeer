@@ -197,9 +197,11 @@ func (w *testWallet) Start() {
 			w.updateMtx.Unlock()
 			w.t.Logf("node [%v] update arrvied hash=%v,order=%v", w.nodeId, update.hash, update.order)
 			w.Lock()
-			w.currentOrder++
-			if w.currentOrder != update.order {
-				w.t.Fatalf("the order not match, expect current is %v but update got %v", w.currentOrder, update.order)
+			if update.order != 0 {
+				w.currentOrder++
+				if w.currentOrder != update.order {
+					w.t.Fatalf("the order not match, expect current is %v but update got %v", w.currentOrder, update.order)
+				}
 			}
 			undo := &undo{
 				utxosDestroyed: make(map[types.TxOutPoint]*utxo),
@@ -214,6 +216,15 @@ func (w *testWallet) Start() {
 			w.Unlock()
 		}
 	}()
+	gensis, err := w.client.GetSerializedBlock(w.netParams.GenesisHash)
+	if err != nil {
+		w.t.Fatalf("failed to get gensis block")
+	}
+	txs := make([]*types.Transaction, 0)
+	for _, tx := range gensis.Transactions() {
+		txs = append(txs, tx.Tx)
+	}
+	w.blockConnected(gensis.Hash(), 0, time.Now(), txs)
 }
 
 // doOutputs scan each of the passed outputs, creating utxos.
@@ -340,6 +351,10 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 	for txOutPoint, utxo := range w.utxos {
 		// skip immature or spent utxo at first
 		if !utxo.isMature(w.currentOrder) || utxo.isSpent {
+			continue
+		}
+		// skip the utxo if not in known spent output coin id
+		if _, ok := totalOutAmt[utxo.value.Id]; !ok {
 			continue
 		}
 		totalInAmt[utxo.value.Id] += utxo.value.Value

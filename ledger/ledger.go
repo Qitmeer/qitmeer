@@ -24,8 +24,8 @@ type PayoutList []TokenPayoutReGen
 
 func (p PayoutList) Len() int { return len(p) }
 func (p PayoutList) Less(i, j int) bool {
-	x,_ := (&types.Amount{0,0}).Add(&p[i].GenAmount,&p[i].Payout.Amount)
-	y,_ := (&types.Amount{0,0}).Add(&p[j].GenAmount,&p[j].Payout.Amount)
+	x, _ := (&types.Amount{0, 0}).Add(&p[i].GenAmount, &p[i].Payout.Amount)
+	y, _ := (&types.Amount{0, 0}).Add(&p[j].GenAmount, &p[j].Payout.Amount)
 	return x.Value < y.Value
 }
 func (p PayoutList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
@@ -47,13 +47,13 @@ var GenesisLedger []*TokenPayout
 // BlockOneSubsidy returns the total subsidy of block height 1 for the
 // network.
 func GenesisLedgerSubsidy() types.Amount {
-	zero := &types.Amount{(0),0}
+	zero := &types.Amount{(0), 0}
 	if len(GenesisLedger) == 0 {
-		return *zero;
+		return *zero
 	}
 	sum := zero
 	for _, output := range GenesisLedger {
-		sum.Add(sum,&output.Amount)
+		sum.Add(sum, &output.Amount)
 	}
 	return *sum
 }
@@ -65,7 +65,7 @@ func addPayout(addr string, amount uint64, pksStr string) {
 		return
 	}
 	var amt *types.Amount
-	amt, err= types.NewMeer(amount)
+	amt, err = types.NewMeer(amount)
 	if err != nil {
 		fmt.Printf("Error %v - address:%s  amount:%d\n", err, addr, amount)
 		return
@@ -74,8 +74,21 @@ func addPayout(addr string, amount uint64, pksStr string) {
 	//fmt.Printf("Add payout (%d) - address:%s  amount:%d\n",len(GenesisLedger),addr,amount)
 }
 
+func addPayout2(addr string, amount types.Amount, pksStr string) {
+	pks, err := hex.DecodeString(pksStr)
+	if err != nil {
+		fmt.Printf("Error %v - address:%s  amount:%d\n", err, addr, amount)
+		return
+	}
+	//TODO input check for amout
+	GenesisLedger = append(GenesisLedger, &TokenPayout{addr, pks, amount})
+}
+
 // pay out tokens to a ledger.
 func Ledger(tx *types.Transaction, netType protocol.Network) {
+	if len(GenesisLedger) != 0 {
+		GenesisLedger = GenesisLedger[:0]
+	}
 	switch netType {
 	case protocol.MainNet:
 		initMain()

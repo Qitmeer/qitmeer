@@ -6,6 +6,7 @@ package testutils
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -63,7 +64,7 @@ func (c *Client) SendRawTx(tx *types.Transaction, allowHighFees bool) (*hash.Has
 		return nil, err
 	}
 	txHex := hex.EncodeToString(txByte[:])
-
+	fmt.Printf("send rawtx=%s\n", txHex)
 	var result *hash.Hash
 	if err := c.Call(&result, "sendRawTransaction", txHex, allowHighFees); err != nil {
 		return nil, err
@@ -72,7 +73,7 @@ func (c *Client) SendRawTx(tx *types.Transaction, allowHighFees bool) (*hash.Has
 }
 
 // TODO, the SerializedBlock not work for order and height
-func (c *Client) GetBlock(h *hash.Hash) (*types.SerializedBlock, error) {
+func (c *Client) GetSerializedBlock(h *hash.Hash) (*types.SerializedBlock, error) {
 	var blockHex string
 	if err := c.Call(&blockHex, "getBlock", h.String(), false); err != nil {
 		return nil, err
@@ -88,4 +89,13 @@ func (c *Client) GetBlock(h *hash.Hash) (*types.SerializedBlock, error) {
 		return nil, err
 	}
 	return block, nil
+}
+
+// TODO, the api is not easy to use when doing the internal-test
+func (c *Client) GetBlock(h *hash.Hash) (*json.BlockVerboseResult, error) {
+	var result json.BlockVerboseResult
+	if err := c.Call(&result, "getBlockV2", h.String(), true, true, true); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }

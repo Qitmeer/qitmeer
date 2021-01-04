@@ -83,8 +83,8 @@ func Spend(t *testing.T, h *Harness, amt types.Amount) *hash.Hash {
 }
 
 // TODO, order and height not work for the SerializedBlock
-func AssertTxMined(t *testing.T, h *Harness, txId *hash.Hash, blockHash *hash.Hash) {
-	block, err := h.Client.GetBlock(blockHash)
+func AssertTxMinedUseSerializedBlock(t *testing.T, h *Harness, txId *hash.Hash, blockHash *hash.Hash) {
+	block, err := h.Client.GetSerializedBlock(blockHash)
 	if err != nil {
 		t.Fatalf("failed to find block by hash %x : %v", blockHash, err)
 	}

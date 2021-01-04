@@ -424,7 +424,7 @@ func validateCoinbaseCustomData(tx *types.Transaction, params *params.Params) er
 	if len(tx.TxOut) > CoinbaseOutput_data {
 		// Coinbase TxOut[2] is op return
 		nullDataOut := tx.TxOut[CoinbaseOutput_data]
-		if nullDataOut.Amount.Id !=  types.MEERID {
+		if nullDataOut.Amount.Id != types.MEERID {
 			return fmt.Errorf("coinbase output 2: bad coinId %s", nullDataOut.Amount.Id.Name())
 		}
 		if nullDataOut.Amount.Value != 0 {
@@ -1046,7 +1046,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 
 		// Ensure the coinId is known
 		err := types.CheckCoinID(utxoEntry.amount.Id)
-		if err!= nil {
+		if err != nil {
 			return 0, err
 		}
 
@@ -1096,7 +1096,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		// overflow the accumulator so check for overflow.
 		lastAtomIn := totalAtomIn
 		totalAtomIn[originTxAtom.Id] += originTxAtom.Value
-		if totalAtomIn[originTxAtom.Id] < lastAtomIn[originTxAtom.Id]  ||
+		if totalAtomIn[originTxAtom.Id] < lastAtomIn[originTxAtom.Id] ||
 			totalAtomIn[originTxAtom.Id] > types.MaxAmount {
 			str := fmt.Sprintf("total value of all transaction "+
 				"inputs is %v which is higher than max "+
@@ -1131,7 +1131,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 	for _, txOut := range tx.Transaction().TxOut {
 		// Ensure the coinId is known
 		err := types.CheckCoinID(txOut.Amount.Id)
-		if err!= nil {
+		if err != nil {
 			return 0, err
 		}
 		totalAtomOut[txOut.Amount.Id] += txOut.Amount.Value
@@ -1140,26 +1140,39 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 	// Ensure no unbalanced/unknowned coin type from input/output
 	if len(totalAtomIn) != len(totalAtomOut) ||
 		len(totalAtomIn) > len(types.CoinIDList) ||
-		len(totalAtomOut) > len(types.CoinIDList){
+		len(totalAtomOut) > len(types.CoinIDList) {
 		return 0, fmt.Errorf("transaction contains unknown or unbalanced coin types")
 	}
 	// Ensure the transaction does not spend more than its inputs.
-	for _,coinId := range types.CoinIDList {
+	for _, coinId := range types.CoinIDList {
 		if totalAtomIn[coinId] < totalAtomOut[coinId] {
 			str := fmt.Sprintf("total %s value of all transaction inputs for "+
 				"transaction %v is %v which is less than the amount "+
-				"spent of %v", coinId.Name(),txHash, totalAtomIn[coinId], totalAtomOut[coinId])
+				"spent of %v", coinId.Name(), txHash, totalAtomIn[coinId], totalAtomOut[coinId])
 			return 0, ruleError(ErrSpendTooHigh, str)
 		}
 	}
 
-
-
 	// NOTE: bitcoind checks if the transaction fees are < 0 here, but that
 	// is an impossible condition because of the check above that ensures
 	// the inputs are >= the outputs.
-	// fee only use Meer coin
+
+	// check if txfee in meer
 	txFeeInAtom := totalAtomIn[types.MEERID] - totalAtomOut[types.MEERID]
+
+	// when and only-when txfee(meer) is zero, check if there has any
+	// other coin type can be used as txfee. if txfee(meer) < 0, it
+	// means meer are not balanced, it not accepted anyway.
+	if txFeeInAtom == 0 {
+		for _, coinId := range types.CoinIDList {
+			if coinId != types.MEERID {
+				feeInCoin := totalAtomIn[coinId] - totalAtomOut[coinId]
+				if feeInCoin > 0 {
+					txFeeInAtom = feeInCoin
+				}
+			}
+		}
+	}
 
 	return txFeeInAtom, nil
 }
