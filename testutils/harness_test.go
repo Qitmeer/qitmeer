@@ -111,7 +111,7 @@ func TestHarness_RpcAPI(t *testing.T) {
 	}
 	err = h.Setup()
 	if err != nil {
-		t.Errorf("setup harness failed:%v", err)
+		t.Fatalf("setup harness failed:%v", err)
 	}
 	time.Sleep(500 * time.Millisecond)
 
@@ -152,7 +152,7 @@ func TestHarness_SpentGenesis(t *testing.T) {
 	}
 	err = h.Setup()
 	if err != nil {
-		t.Errorf("setup harness failed:%v", err)
+		t.Fatalf("setup harness failed:%v", err)
 	}
 	time.Sleep(500 * time.Millisecond)
 
