@@ -34,11 +34,11 @@ func TestTokeStateSerialization(t *testing.T) {
 		{name: "test1",
 			state: &tokenState{
 				balances: tokenBalances{
-					types.QITID: tokenBalance{200 * 1e8, 100 * 1e8}},
+					types.QITID: tokenBalance{balance: 200 * 1e8, lockedMeer: 100 * 1e8}},
 				updates: []balanceUpdate{
 					{typ: tokenMint,
 						meerAmount:  100 * 1e8,
-						tokenAmount: types.Amount{200 * 1e8, types.QITID}},
+						tokenAmount: types.Amount{Value: 200 * 1e8, Id: types.QITID}},
 				},
 			},
 			bytes: bytesFromStr("0101c9bfde8f00a49faec7000101a49faec70001c9bfde8f00"),
@@ -85,11 +85,11 @@ func TestTokenStateDB(t *testing.T) {
 	// put a test token state record into tokenstate db
 	ts := tokenState{
 		balances: tokenBalances{
-			types.QITID: tokenBalance{200 * 1e8, 100 * 1e8}},
+			types.QITID: tokenBalance{balance: 200 * 1e8, lockedMeer: 100 * 1e8}},
 		updates: []balanceUpdate{
 			{typ: tokenMint,
 				meerAmount:  100 * 1e8,
-				tokenAmount: types.Amount{200 * 1e8, types.QITID}},
+				tokenAmount: types.Amount{Value: 200 * 1e8, Id: types.QITID}},
 		}}
 	// create a fake block hash for testing
 	b := make([]byte, 32)

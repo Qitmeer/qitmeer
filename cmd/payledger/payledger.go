@@ -230,8 +230,8 @@ func buildLedger(node INode, config *Config) error {
 				}
 			}
 			if _, ok := genesisLedger[addrStr]; !ok {
-				tp := ledger.TokenPayout{Address: addrStr, PkScript: entry.PkScript(), Amount: types.Amount{0, types.MEERID}}
-				reTp := ledger.TokenPayoutReGen{tp, types.Amount{0, types.MEERID}}
+				tp := ledger.TokenPayout{Address: addrStr, PkScript: entry.PkScript(), Amount: types.Amount{Value: 0, Id: types.MEERID}}
+				reTp := ledger.TokenPayoutReGen{tp, types.Amount{Value: 0, Id: types.MEERID}}
 				genesisLedger[addrStr] = &reTp
 			}
 

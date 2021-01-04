@@ -33,7 +33,7 @@ func Test_CheckTransactionSanity(t *testing.T) {
 		panic(err)
 	}
 	tx.AddTxOut(&types.TxOutput{
-		Amount:   types.Amount{999999999999,types.MEERID},
+		Amount:   types.Amount{Value: 999999999999, Id: types.MEERID},
 		PkScript: attackerPkScript,
 	})
 

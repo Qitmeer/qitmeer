@@ -98,7 +98,7 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 	}
 	mintAmount := tx.TxIn[0].AmountIn
 
-	inputMeer := types.Amount{0, types.MEERID}
+	inputMeer := types.Amount{Value: 0, Id: types.MEERID}
 	// TxIn[1..N] must normal meer signature script
 	for i, txIn := range tx.TxIn[1:] {
 		// Make sure there is a script.
@@ -169,7 +169,7 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 	}
 
 	// check optional output[2]
-	changeMeer := types.Amount{0, types.MEERID}
+	changeMeer := types.Amount{Value: 0, Id: types.MEERID}
 	if len(tx.TxOut) == 3 {
 		if tx.TxOut[2].PkScript[0] != txscript.OP_MEER_CHANGE {
 			return nil, nil, nil, fmt.Errorf("invalid TOKEN_MINT, output[2] is not OP_MEER_CHANGE")
