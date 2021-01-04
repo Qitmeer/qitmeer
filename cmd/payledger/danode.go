@@ -215,7 +215,7 @@ func (node *DebugAddressNode) processAddress(blueM *map[uint]bool) error {
 				tr.txUIndex = txOutIndex
 				tr.txIsIn = false
 				tr.txValid = txValid
-				tr.amount = txOut.Amount
+				tr.amount = uint64(txOut.Amount.Value)
 				tr.isCoinbase = tx.Tx.IsCoinBase()
 
 				if !knownInvalid(tr.blockStatus) && tr.txValid {
@@ -352,7 +352,7 @@ func (node *DebugAddressNode) checkUTXO(blueM *map[uint]bool) error {
 			}
 
 			if isValid {
-				totalAmount += entry.Amount()
+				totalAmount += uint64(entry.Amount().Value)
 			}
 
 			count++
