@@ -436,7 +436,7 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 	return tx, nil
 }
 
-func (w testWallet) debugTxSize(tx *types.Transaction) {
+func (w *testWallet) debugTxSize(tx *types.Transaction) {
 
 	n := 0
 

@@ -130,7 +130,6 @@ func (c *Client) CallWithContext(ctx context.Context, result interface{}, method
 	default:
 		return json.Unmarshal(resp.Result, &result)
 	}
-	return nil
 }
 
 type httpConn struct {

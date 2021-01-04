@@ -24,8 +24,8 @@ type PayoutList []TokenPayoutReGen
 
 func (p PayoutList) Len() int { return len(p) }
 func (p PayoutList) Less(i, j int) bool {
-	x, _ := (&types.Amount{0, 0}).Add(&p[i].GenAmount, &p[i].Payout.Amount)
-	y, _ := (&types.Amount{0, 0}).Add(&p[j].GenAmount, &p[j].Payout.Amount)
+	x, _ := (&types.Amount{0, types.MEERID}).Add(&p[i].GenAmount, &p[i].Payout.Amount)
+	y, _ := (&types.Amount{0, types.MEERID}).Add(&p[j].GenAmount, &p[j].Payout.Amount)
 	return x.Value < y.Value
 }
 func (p PayoutList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
@@ -47,7 +47,7 @@ var GenesisLedger []*TokenPayout
 // BlockOneSubsidy returns the total subsidy of block height 1 for the
 // network.
 func GenesisLedgerSubsidy() types.Amount {
-	zero := &types.Amount{(0), 0}
+	zero := &types.Amount{0, types.MEERID}
 	if len(GenesisLedger) == 0 {
 		return *zero
 	}
