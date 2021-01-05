@@ -15,6 +15,7 @@ const (
 	DefaultPort        = "1024"
 	DefaultRpcPort     = "2024"
 	DefaultIP          = "0.0.0.0"
+	DefaultDB          = DefaultDataDirname + "/db"
 )
 
 var (

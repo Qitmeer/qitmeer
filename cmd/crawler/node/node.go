@@ -61,14 +61,19 @@ type Node struct {
 	interrupt  chan struct{}
 	wg         sync.WaitGroup
 	host       host.Host
+	service    []Service
 }
 
 func (node *Node) Init(cfg *config.Config) error {
+	var err error
 	log.Log.Info(fmt.Sprintf("Start crawler node..."))
 	node.ctx, node.cancel = context.WithCancel(context.Background())
-	node.peers = peers.NewPeers()
-	err := cfg.Load()
+	node.peers, err = peers.NewPeers()
 	if err != nil {
+		return err
+	}
+	node.service = []Service{node.peers}
+	if err = cfg.Load(); err != nil {
 		return err
 	}
 	node.cfg = cfg
@@ -89,6 +94,10 @@ func (node *Node) Init(cfg *config.Config) error {
 }
 
 func (node *Node) Exit() error {
+	node.rpcServer.Stop()
+	for _, ser := range node.service {
+		ser.Stop()
+	}
 	node.cancel()
 	log.Log.Info(fmt.Sprintf("Stop crawler node"))
 	return nil
@@ -115,10 +124,16 @@ func (node *Node) startRPC(services []Service) error {
 
 func (node *Node) Run() error {
 	log.Log.Info(fmt.Sprintf("Run crawler node..."))
-
-	err := node.startRPC([]Service{node.peers})
+	err := node.startRPC(node.service)
 	if err != nil {
+		log.Log.Error("Failed to start rpc %v", err)
 		return err
+	}
+	for _, ser := range node.service {
+		if err = ser.Start(); err != nil {
+			log.Log.Error("Failed to start up service %v", err)
+			return err
+		}
 	}
 
 	var exip string
@@ -224,14 +239,14 @@ func (node *Node) connectWithNewPeers() {
 			log.Log.Info("Shutdown waiting for connection...")
 			return
 		case <-ti.C:
-			peers := node.peers.UnConnected()
+			peers := node.peers.FindPeerList()
 			for _, p := range peers {
 				select {
 				case <-node.interrupt:
 					log.Log.Info("Shutdown connect peer...")
 					return
 				default:
-					node.connectWithConn(p.Conn)
+					node.connectWithAddr(p.Id, p.Addr)
 				}
 			}
 			node.printResult()
@@ -261,24 +276,25 @@ func (node *Node) connectWithPeer(info peer.AddrInfo, force bool) error {
 	if err := node.host.Connect(node.ctx, info); err != nil {
 		return err
 	}
-	node.peers.UpdateConnected(info.ID)
+	node.peers.UpdateConnectTime(info.ID.String(), time.Now().Unix())
 	return nil
 }
 
-func (node *Node) connectWithConn(conn network.Conn) {
-	maAddr, err := multiAddrFromString(getConnPeerAddress(conn))
+func (node *Node) connectWithAddr(id string, addr string) {
+	formatStr := getConnPeerAddress(id, addr)
+	maAddr, err := multiAddrFromString(formatStr)
 	if err != nil {
-		log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", getConnPeerAddress(conn), err))
+		log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", formatStr, err))
 		return
 	}
 	addrInfo, err := peer.AddrInfoFromP2pAddr(maAddr)
 	if err != nil {
-		log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", conn.RemoteMultiaddr().String(), err))
+		log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", addr, err))
 		return
 	}
 	go func(info peer.AddrInfo) {
 		if err := node.connectWithPeer(info, false); err != nil {
-			log.Log.Trace(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
+			log.Log.Info(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
 		}
 	}(*addrInfo)
 }
@@ -289,14 +305,14 @@ func (node *Node) registerHandlers() error {
 		ConnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
 			//log.Log.Info(fmt.Sprintf("Connected:%s (%s)", remotePeer, conn.RemoteMultiaddr()))
-			node.peers.Add(remotePeer, conn)
+			node.peers.Add(remotePeer.String(), conn.RemoteMultiaddr().String())
 		},
 	})
 
 	node.host.Network().Notify(&network.NotifyBundle{
 		DisconnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
-			node.peers.Remove(remotePeer)
+			node.peers.UpdateUnConnected(remotePeer.String())
 			log.Log.Info(fmt.Sprintf("Disconnected:%s (%s)", remotePeer, conn.RemoteMultiaddr()))
 		},
 	})
@@ -362,7 +378,10 @@ func (node *Node) printResult() {
 
 	log.Log.Info(fmt.Sprintf("Find %d peers", len(all)))
 	for _, peer := range all {
-		log.Log.Info(fmt.Sprintf("Peer:%s", getConnPeerAddress(peer.Conn)))
+		log.Log.Info(fmt.Sprintf("Peer:%s, connected time:%s, connected:%v",
+			getConnPeerAddress(peer.Id, peer.Addr),
+			time.Unix(peer.ConnectTime, 0).String(),
+			peer.Connected))
 	}
 }
 
@@ -469,6 +488,6 @@ func convertToInterfacePubkey(pubkey *ecdsa.PublicKey) crypto.PubKey {
 	return typeAssertedKey
 }
 
-func getConnPeerAddress(conn network.Conn) string {
-	return fmt.Sprintf("%s/p2p/%s", conn.RemoteMultiaddr().String(), conn.RemotePeer())
+func getConnPeerAddress(id, addr string) string {
+	return fmt.Sprintf("%s/p2p/%s", addr, id)
 }
