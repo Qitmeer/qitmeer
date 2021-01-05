@@ -101,7 +101,7 @@ func TestRpcClient(t *testing.T) {
 		t.Errorf("register test service err : %v", err)
 	}
 
-	client, err := testutils.Dial("https://"+cfg.RPCListeners[0], cfg.RPCUser, cfg.RPCPass)
+	client, err := testutils.Dial("https://"+cfg.RPCListeners[0], cfg.RPCUser, cfg.RPCPass, cfg.RPCCert)
 	if err != nil {
 		t.Errorf("Dial client error: %v", err)
 	}
