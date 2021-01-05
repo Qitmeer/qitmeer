@@ -1,6 +1,8 @@
 package peers
 
 import (
+	"github.com/Qitmeer/qitmeer/cmd/crawler/rpc"
+	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"sync"
@@ -19,6 +21,24 @@ type Peers struct {
 
 func NewPeers() *Peers {
 	return &Peers{list: make(map[peer.ID]*Peer)}
+}
+
+func (p *Peers) Start() error {
+	return nil
+}
+
+func (p *Peers) Stop() error {
+	return nil
+}
+
+func (p *Peers) APIs() []rpc.API {
+	return []rpc.API{
+		{
+			NameSpace: "crawler",
+			Service:   NewPeersApi(p),
+			Public:    true,
+		},
+	}
 }
 
 func (p *Peers) Add(id peer.ID, conn network.Conn) {
@@ -76,4 +96,25 @@ func (p *Peers) UnConnected() []*Peer {
 		}
 	}
 	return list
+}
+
+type PeersApi struct {
+	peers *Peers
+}
+
+func NewPeersApi(peers *Peers) *PeersApi {
+	return &PeersApi{peers: peers}
+}
+
+func (api *PeersApi) GetNodeList() (interface{}, error) {
+	rs := []json.OrderedResult{}
+
+	list := api.peers.All()
+	for _, node := range list {
+		rs = append(rs, json.OrderedResult{
+			{Key: "id", Val: node.Id.String()},
+			{Key: "ip", Val: ""},
+		})
+	}
+	return rs, nil
 }

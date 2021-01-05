@@ -8,8 +8,10 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/cmd/crawler/config"
 	"github.com/Qitmeer/qitmeer/cmd/crawler/log"
 	"github.com/Qitmeer/qitmeer/cmd/crawler/peers"
+	"github.com/Qitmeer/qitmeer/cmd/crawler/rpc"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
@@ -31,33 +33,49 @@ import (
 	"github.com/libp2p/go-libp2p-noise"
 	"github.com/libp2p/go-libp2p-secio"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/pkg/errors"
 	"sync"
 	"time"
 )
 
+type Service interface {
+
+	// APIs retrieves the list of RPC descriptors the service provides
+	APIs() []rpc.API
+
+	// Start is called after all services have been constructed and the networking
+	// layer was also initialized to spawn any goroutines required by the service.
+	Start() error
+
+	// Stop terminates all goroutines belonging to the service, blocking until they
+	// are all terminated.
+	Stop() error
+}
+
 type Node struct {
-	cfg        *Config
+	cfg        *config.Config
 	ctx        context.Context
 	cancel     context.CancelFunc
 	privateKey *ecdsa.PrivateKey
 	peers      *peers.Peers
-
-	interrupt chan struct{}
-	wg        sync.WaitGroup
-	host      host.Host
+	rpcServer  *rpc.RpcServer
+	interrupt  chan struct{}
+	wg         sync.WaitGroup
+	host       host.Host
 }
 
-func (node *Node) Init(cfg *Config) error {
+func (node *Node) Init(cfg *config.Config) error {
 	log.Log.Info(fmt.Sprintf("Start crawler node..."))
 	node.ctx, node.cancel = context.WithCancel(context.Background())
 	node.peers = peers.NewPeers()
-	err := cfg.load()
+	err := cfg.Load()
 	if err != nil {
 		return err
 	}
 	node.cfg = cfg
-
+	node.rpcServer, err = rpc.NewRPCServer(cfg)
+	if err != nil {
+		return err
+	}
 	pk, err := p2p.PrivateKey(cfg.DataDir, cfg.PrivateKey, 0600)
 	if err != nil {
 		return err
@@ -76,8 +94,32 @@ func (node *Node) Exit() error {
 	return nil
 }
 
+func (node *Node) startRPC(services []Service) error {
+	// Gather all the possible APIs to surface
+	apis := []rpc.API{}
+	for _, service := range services {
+		apis = append(apis, service.APIs()...)
+	}
+
+	// Register all the APIs exposed by the services
+	for _, api := range apis {
+		if err := node.rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
+			return err
+		}
+	}
+	if err := node.rpcServer.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (node *Node) Run() error {
 	log.Log.Info(fmt.Sprintf("Run crawler node..."))
+
+	err := node.startRPC([]Service{node.peers})
+	if err != nil {
+		return err
+	}
 
 	var exip string
 	if len(node.cfg.ExternalIP) > 0 {
@@ -96,7 +138,7 @@ func (node *Node) Run() error {
 		return err
 	}
 
-	srcMAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%s", defaultIP, node.cfg.Port))
+	srcMAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%s", config.DefaultIP, node.cfg.Port))
 	if err != nil {
 		log.Log.Error("Unable to construct multiaddr %v", err)
 		return err
@@ -380,18 +422,18 @@ func peersFromStringAddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 	for _, stringAddr := range multiAddrString {
 		addr, err := multiAddrFromString(stringAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get multiaddr from string")
+			return nil, fmt.Errorf("could not get multiaddr from string : %w", err)
 		}
 		allAddrs = append(allAddrs, addr)
 	}
 	for _, stringAddr := range qnodeString {
 		qnodeAddr, err := qnode.Parse(qnode.ValidSchemes, stringAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get qnode from string")
+			return nil, fmt.Errorf("could not get qnode from string : %w", err)
 		}
 		addr, err := convertToSingleMultiAddr(qnodeAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get multiaddr")
+			return nil, fmt.Errorf("could not get multiaddr : %w", err)
 		}
 		allAddrs = append(allAddrs, addr)
 	}
@@ -401,18 +443,18 @@ func peersFromStringAddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 func convertToSingleMultiAddr(node *qnode.Node) (multiaddr.Multiaddr, error) {
 	ip4 := node.IP().To4()
 	if ip4 == nil {
-		return nil, errors.Errorf("node doesn't have an ip4 address, it's stated IP is %s", node.IP().String())
+		return nil, fmt.Errorf("node doesn't have an ip4 address, it's stated IP is %s", node.IP().String())
 	}
 	pubkey := node.Pubkey()
 	assertedKey := convertToInterfacePubkey(pubkey)
 	id, err := peer.IDFromPublicKey(assertedKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get peer id")
+		return nil, fmt.Errorf("could not get peer id : %w", err)
 	}
 	multiAddrString := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", ip4.String(), node.TCP(), id)
 	multiAddr, err := multiaddr.NewMultiaddr(multiAddrString)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get multiaddr")
+		return nil, fmt.Errorf("could not get multiaddr : %w", err)
 	}
 	return multiAddr, nil
 }
