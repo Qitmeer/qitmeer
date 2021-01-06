@@ -112,6 +112,9 @@ type BlockChain struct {
 
 	// Cache Invalid tx
 	CacheInvalidTx bool
+
+	// cache notification
+	CacheNotifications []*Notification
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -267,6 +270,7 @@ func New(config *Config) (*BlockChain, error) {
 		orphans:            make(map[hash.Hash]*orphanBlock),
 		BlockVersion:       config.BlockVersion,
 		CacheInvalidTx:     config.CacheInvalidTx,
+		CacheNotifications:  []*Notification{},
 	}
 	b.subsidyCache = NewSubsidyCache(0, b.params)
 

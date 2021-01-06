@@ -103,7 +103,17 @@ func (b *BlockChain) sendNotification(typ NotificationType, data interface{}) {
 	}
 
 	// Generate and send the notification.
-	n := Notification{Type: typ, Data: data}
-	log.Trace("send blkmgr notification", "type", n.Type, "data", n.Data)
-	go b.events.Send(event.New(&n))
+	n := &Notification{Type: typ, Data: data}
+	b.CacheNotifications=append(b.CacheNotifications,n)
+}
+
+func (b *BlockChain) flushNotifications() {
+	if len(b.CacheNotifications) <= 0 {
+		return
+	}
+	for _,n:=range b.CacheNotifications {
+		log.Trace("send blkmgr notification", "type", n.Type, "data", n.Data)
+		b.events.Send(event.New(&n))
+	}
+	b.CacheNotifications=[]*Notification{}
 }
