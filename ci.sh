@@ -4,6 +4,7 @@ set -ex
 export GO111MODULE=on
 #go mod init qitmeer
 go mod tidy
+export PATH=$PATH:$(pwd)/build/bin
 
 if [ ! -x "$(type -p golangci-lint)" ]; then
   exit 1
@@ -12,14 +13,13 @@ fi
 golangci-lint --version
 golangci-lint run -v --deadline=2m --disable-all --enable=govet --tests=false ./...
 
+make qitmeer
+
 linter_targets=$(go list ./...) && \
 go test $linter_targets
 
 if [[ $TRAVIS_PULL_REQUEST != 'false' || $TRAVIS_REPO_SLUG != 'Qitmeer/qitmeer' || $TRAVIS_BRANCH != 'master' ]];
 then
-    cd ./cmd/qitmeerd && \
-    go build && \
-    ./qitmeerd --version && \
     exit 0
 fi
 
