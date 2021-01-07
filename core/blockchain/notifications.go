@@ -113,7 +113,7 @@ func (b *BlockChain) flushNotifications() {
 	}
 	for _,n:=range b.CacheNotifications {
 		log.Trace("send blkmgr notification", "type", n.Type, "data", n.Data)
-		b.events.Send(event.New(&n))
+		b.events.Send(event.New(n))
 	}
 	b.CacheNotifications=[]*Notification{}
 }
