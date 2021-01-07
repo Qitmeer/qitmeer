@@ -419,7 +419,7 @@ func (bd *BlockDAG) BuildMerkleTreeStoreFromTips() []*hash.Hash {
 	return merkle.BuildParentsMerkleTreeStore(parents)
 }
 
-// Refresh the dag tip whith new block,it will cause changes in tips set.
+// Refresh the dag tip with new block,it will cause changes in tips set.
 func (bd *BlockDAG) updateTips(b IBlock) {
 	if bd.tips == nil {
 		bd.tips = NewIdSet()

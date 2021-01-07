@@ -11,8 +11,9 @@ import (
 
 //TODO refactoing the merkle root calculation to support abstract merkle node
 
-func CalcMerkleRoot(nodes []hash.Hash) (root hash.Hash, err error) {
-	return hash.Hash{}, nil
+func CalcMerkleRoot(txns []*types.Transaction) *hash.Hash {
+	root := calcMerkleRoot(txns)
+	return &root
 }
 
 // buildMerkleTreeStore creates a merkle tree from a slice of transactions,

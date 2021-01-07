@@ -1,6 +1,10 @@
 package ledger
 
+import (
+	. "github.com/Qitmeer/qitmeer/core/types"
+)
+
 func initPriv() {
-	// For example:
-	//addPayout("Rm76LG6m54Y2gj9pK2mhzBNrH5mYh34PNMy",25000000000,"76a91408ff3106060bf8d7d61a25d8108ec977698729f788ac")
+	addPayout2("RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs", Amount{Value: 5000 * AtomsPerCoin, Id: MEERID}, "76a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac")
+	addPayout2("RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs", Amount{Value: 500 * AtomsPerCoin, Id: QITID}, "76a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac")
 }

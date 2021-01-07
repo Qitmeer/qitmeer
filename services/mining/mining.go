@@ -159,21 +159,21 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	}
 	// Subsidy paid to miner.
 	tx.AddTxOut(&types.TxOutput{
-		Amount:   subsidy,
+		Amount:   types.Amount{Value: int64(subsidy), Id: types.MEERID},
 		PkScript: pksSubsidy,
 	})
 
 	// Tax output.
 	if params.HasTax() {
 		tx.AddTxOut(&types.TxOutput{
-			Amount:   uint64(tax),
+			Amount:   types.Amount{Value: int64(tax), Id: types.MEERID},
 			PkScript: params.OrganizationPkScript,
 		})
 	}
 	// nulldata.
 	if opReturnPkScript != nil {
 		tx.AddTxOut(&types.TxOutput{
-			Amount:   0,
+			Amount:   types.Amount{Value: 0, Id: types.MEERID},
 			PkScript: opReturnPkScript,
 		})
 	}

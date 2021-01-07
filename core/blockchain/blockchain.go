@@ -112,6 +112,9 @@ type BlockChain struct {
 
 	// Cache Invalid tx
 	CacheInvalidTx bool
+
+	// cache notification
+	CacheNotifications []*Notification
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -267,6 +270,7 @@ func New(config *Config) (*BlockChain, error) {
 		orphans:            make(map[hash.Hash]*orphanBlock),
 		BlockVersion:       config.BlockVersion,
 		CacheInvalidTx:     config.CacheInvalidTx,
+		CacheNotifications:  []*Notification{},
 	}
 	b.subsidyCache = NewSubsidyCache(0, b.params)
 
@@ -1271,7 +1275,9 @@ func (b *BlockChain) CalculateFees(block *types.SerializedBlock) int64 {
 			continue
 		}
 		for _, txOut := range tx.Transaction().TxOut {
-			totalAtomOut += int64(txOut.Amount)
+			if txOut.Amount.Id == types.MEERID {
+				totalAtomOut += int64(txOut.Amount.Value)
+			}
 		}
 	}
 	spentTxos, err := b.fetchSpendJournal(block)
@@ -1284,7 +1290,9 @@ func (b *BlockChain) CalculateFees(block *types.SerializedBlock) int64 {
 			if transactions[st.TxIndex].IsDuplicate {
 				continue
 			}
-			totalAtomIn += int64(st.Amount + st.Fees)
+			if st.Amount.Id == types.MEERID && st.Fees.Id == types.MEERID {
+				totalAtomIn += int64(st.Amount.Value + st.Fees.Value)
+			}
 		}
 		totalFees := totalAtomIn - totalAtomOut
 		if totalFees < 0 {

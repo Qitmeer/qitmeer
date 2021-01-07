@@ -8,6 +8,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -229,21 +230,23 @@ func buildLedger(node INode, config *Config) error {
 				}
 			}
 			if _, ok := genesisLedger[addrStr]; !ok {
-				tp := ledger.TokenPayout{Address: addrStr, PkScript: entry.PkScript(), Amount: 0}
-				reTp := ledger.TokenPayoutReGen{tp, 0}
+				tp := ledger.TokenPayout{Address: addrStr, PkScript: entry.PkScript(), Amount: types.Amount{Value: 0, Id: types.MEERID}}
+				reTp := ledger.TokenPayoutReGen{tp, types.Amount{Value: 0, Id: types.MEERID}}
 				genesisLedger[addrStr] = &reTp
 			}
 
 			if params.GenesisHash.IsEqual(entry.BlockHash()) {
-				genesisLedger[addrStr].GenAmount += entry.Amount()
-				genAmount += entry.Amount()
-			} else {
-				eamount := entry.Amount()
-				if entry.IsCoinBase() && txOutIdex == 0 {
-					eamount += uint64(node.BlockChain().GetFees(ib.GetHash()))
+				if genesisLedger[addrStr].GenAmount.Id == entry.Amount().Id {
+					genesisLedger[addrStr].GenAmount.Value += entry.Amount().Value
+					genAmount += uint64(entry.Amount().Value)
 				}
-				genesisLedger[addrStr].Payout.Amount += eamount
-				totalAmount += eamount
+			} else {
+				eAmount := entry.Amount()
+				if entry.IsCoinBase() && txOutIdex == 0 {
+					eAmount.Value += node.BlockChain().GetFees(ib.GetHash())
+				}
+				genesisLedger[addrStr].Payout.Amount = eAmount
+				totalAmount += uint64(eAmount.Value)
 			}
 			log.Trace(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s", addrStr, entry.Amount(), entry.BlockHash().String()))
 		}
@@ -265,7 +268,7 @@ func buildLedger(node INode, config *Config) error {
 	}
 	sort.Sort(sort.Reverse(payList))
 	for _, v := range payList {
-		fmt.Printf("Address:%s  GenAmount:%15d  Amount:%15d  Total:%15d\n", v.Payout.Address, v.GenAmount, v.Payout.Amount, v.GenAmount+v.Payout.Amount)
+		fmt.Printf("Address:%s  GenAmount:%15d  Amount:%15d  Total:%15d\n", v.Payout.Address, v.GenAmount, v.Payout.Amount, v.GenAmount.Value+v.Payout.Amount.Value)
 	}
 	fmt.Printf("-----------------\n")
 	fmt.Printf("Total Ledger:%5d  GenAmount:%15d  Amount:%15d  Total:%15d\n", len(genesisLedger), genAmount, totalAmount, genAmount+totalAmount)

@@ -73,4 +73,8 @@ var (
 
 	// DAG Main Chain Blocks
 	DagMainChainBucketName = []byte("dagmainchain")
+
+	//TokenBucketName is the name of the db bucket used to house the token balance state
+	//The balance state is updated by the TOKEN_MINT/TOKEN_UNMINT transactions.
+	TokenBucketName = []byte("token")
 )

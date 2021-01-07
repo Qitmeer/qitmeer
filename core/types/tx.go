@@ -384,7 +384,11 @@ func WriteOutPoint(w io.Writer, pver uint32, version uint32, op *TxOutPoint) err
 
 // writeTxOut encodes for a transaction output (TxOut) to w.
 func writeTxOut(w io.Writer, pver uint32, to *TxOutput) error {
-	err := s.BinarySerializer.PutUint64(w, binary.LittleEndian, uint64(to.Amount))
+	err := s.BinarySerializer.PutUint16(w, binary.LittleEndian, uint16(to.Amount.Id))
+	if err != nil {
+		return err
+	}
+	err = s.BinarySerializer.PutUint64(w, binary.LittleEndian, uint64(to.Amount.Value))
 	if err != nil {
 		return err
 	}
@@ -585,11 +589,16 @@ func ReadOutPoint(r io.Reader, version uint32, op *TxOutPoint) error {
 // readTxOut reads the next sequence of bytes from r as a transaction output
 // (TxOut).
 func readTxOut(r io.Reader, to *TxOutput) error {
-	value, err := s.BinarySerializer.Uint64(r, binary.LittleEndian)
+	coinid, err := s.BinarySerializer.Uint16(r, binary.LittleEndian)
 	if err != nil {
 		return err
 	}
-	to.Amount = uint64(value)
+	var value uint64
+	value, err = s.BinarySerializer.Uint64(r, binary.LittleEndian)
+	if err != nil {
+		return err
+	}
+	to.Amount = Amount{int64(value), CoinID(coinid)}
 
 	to.PkScript, err = readScript(r)
 	return err
@@ -959,6 +968,7 @@ type TxInput struct {
 	// however, its most relevant purpose is to enable “locking” of payments
 	// so that they cannot be redeemed until a certain time.
 	Sequence uint32 //work with LockTime (disable use 0xffffffff, bitcoin historical)
+	AmountIn Amount
 }
 
 // NewTxIn returns a new transaction input with the provided  previous outpoint
@@ -1002,13 +1012,13 @@ func (ti *TxInput) SerializeSizeWitness() int {
 }
 
 type TxOutput struct {
-	Amount   uint64
+	Amount   Amount
 	PkScript []byte //Here, asm/type -> OP_XXX OP_RETURN
 }
 
 // NewTxOutput returns a new bitcoin transaction output with the provided
 // transaction value and public key script.
-func NewTxOutput(amount uint64, pkScript []byte) *TxOutput {
+func NewTxOutput(amount Amount, pkScript []byte) *TxOutput {
 	return &TxOutput{
 		Amount:   amount,
 		PkScript: pkScript,
@@ -1022,9 +1032,9 @@ func (to *TxOutput) GetPkScript() []byte {
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction output.
 func (to *TxOutput) SerializeSize() int {
-	// Value 8 bytes + serialized varint size for
+	// CoinId 2 bytes + Value 8 bytes + serialized varint size for
 	// the length of PkScript + PkScript bytes.
-	return 8 + s.VarIntSerializeSize(uint64(len(to.PkScript))) + len(to.PkScript)
+	return 2 + 8 + s.VarIntSerializeSize(uint64(len(to.PkScript))) + len(to.PkScript)
 }
 
 type ContractTransaction struct {
