@@ -9,6 +9,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
 	"time"
 )
@@ -83,6 +84,13 @@ func (s *RpcServer) handleNotifyMsg(notification *blockchain.Notification) {
 	}
 }
 
+func (s *RpcServer) NotifyNewTransactions(txns []*types.TxDesc) {
+	for _, txD := range txns {
+		// Notify websocket clients about mempool transactions.
+		s.ntfnMgr.NotifyMempoolTx(txD.Tx, true)
+	}
+}
+
 func (s *RpcServer) WebsocketHandler(conn *websocket.Conn, remoteAddr string, isAdmin bool) {
 	// Clear the read deadline that was set before the websocket hijacked
 	// the connection.
@@ -116,9 +124,11 @@ type wsCommandHandler func(*wsClient, interface{}) (interface{}, error)
 
 var wsHandlers map[string]wsCommandHandler
 var wsHandlersBeforeInit = map[string]wsCommandHandler{
-	"notifyBlocks":     handleNotifyBlocks,
-	"stopNotifyBlocks": handleStopNotifyBlocks,
-	"session":          handleSession,
+	"notifyBlocks":              handleNotifyBlocks,
+	"stopNotifyBlocks":          handleStopNotifyBlocks,
+	"session":                   handleSession,
+	"notifynewtransactions":     handleNotifyNewTransactions,
+	"stopnotifynewtransactions": handleStopNotifyNewTransactions,
 }
 
 func handleNotifyBlocks(wsc *wsClient, icmd interface{}) (interface{}, error) {
@@ -133,6 +143,21 @@ func handleStopNotifyBlocks(wsc *wsClient, icmd interface{}) (interface{}, error
 
 func handleSession(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	return &SessionResult{SessionID: wsc.sessionID}, nil
+}
+
+func handleNotifyNewTransactions(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*cmds.NotifyNewTransactionsCmd)
+	if !ok {
+		return nil, cmds.ErrRPCInternal
+	}
+	wsc.verboseTxUpdates = cmd.Verbose
+	wsc.server.ntfnMgr.RegisterNewMempoolTxsUpdates(wsc)
+	return nil, nil
+}
+
+func handleStopNotifyNewTransactions(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	wsc.server.ntfnMgr.UnregisterNewMempoolTxsUpdates(wsc)
+	return nil, nil
 }
 
 func init() {
