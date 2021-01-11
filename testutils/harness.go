@@ -97,8 +97,9 @@ func (h *Harness) connectRPCClient() error {
 	var err error
 
 	url, user, pass := h.Node.config.rpclisten, h.Node.config.rpcuser, h.Node.config.rpcpass
+	certs := h.Node.config.certFile
 	for i := 0; i < h.maxRpcConnRetries; i++ {
-		if client, err = Dial("https://"+url, user, pass); err != nil {
+		if client, err = Dial("https://"+url, user, pass, certs); err != nil {
 			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
 			continue
 		}

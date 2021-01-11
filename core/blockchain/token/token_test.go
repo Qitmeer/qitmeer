@@ -398,7 +398,7 @@ func TestTokenIssue(t *testing.T) {
 		}
 	}()
 	if err = h.Setup(); err != nil {
-		t.Errorf("failed to setup test harness: %v", err)
+		t.Fatalf("failed to setup test harness: %v", err)
 	}
 	time.Sleep(500 * time.Millisecond)
 	testutils.AssertBlockOrderAndHeight(t, h, 1, 1, 0)

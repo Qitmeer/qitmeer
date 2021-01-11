@@ -241,12 +241,12 @@ func buildLedger(node INode, config *Config) error {
 					genAmount += uint64(entry.Amount().Value)
 				}
 			} else {
-				eamount := entry.Amount()
+				eAmount := entry.Amount()
 				if entry.IsCoinBase() && txOutIdex == 0 {
-					eamount.Value += node.BlockChain().GetFees(ib.GetHash())
+					eAmount.Value += node.BlockChain().GetFees(ib.GetHash())
 				}
-				genesisLedger[addrStr].Payout.Amount = eamount
-				totalAmount += uint64(eamount.Value)
+				genesisLedger[addrStr].Payout.Amount = eAmount
+				totalAmount += uint64(eAmount.Value)
 			}
 			log.Trace(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s", addrStr, entry.Amount(), entry.BlockHash().String()))
 		}

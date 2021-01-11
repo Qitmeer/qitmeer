@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -24,11 +25,11 @@ import (
 // Dial connects to a JSON-RPC server at the specified url,
 // return a new client which can perform rpc Call. the context controls
 // the entire lifetime of the client.
-func Dial(URL string, user, pass string) (*Client, error) {
+func Dial(URL, user, pass string, certs string) (*Client, error) {
 	if u, err := url.Parse(URL); err == nil {
 		switch u.Scheme {
 		case "http", "https":
-			return dailHTTP(URL, user, pass)
+			return dailHTTP(URL, user, pass, certs)
 		case "ws", "wss":
 			//TODO websocket
 			return nil, fmt.Errorf("websockect is unsupported yet")
@@ -42,7 +43,7 @@ func Dial(URL string, user, pass string) (*Client, error) {
 
 const contentType = "application/json"
 
-func dailHTTP(URL string, user, pass string) (*Client, error) {
+func dailHTTP(URL string, user, pass string, certs string) (*Client, error) {
 	httpClient := new(http.Client)
 	header := make(http.Header, 2)
 	header.Set("accept", contentType) //TODO, refactor rpc.contentType
@@ -50,9 +51,16 @@ func dailHTTP(URL string, user, pass string) (*Client, error) {
 	auth := "Basic " +
 		base64.StdEncoding.EncodeToString([]byte(user+":"+pass))
 	header.Set("Authorization", auth)
-	// skip signature verify for testing
+	cert, err := ioutil.ReadFile(certs)
+	if err != nil {
+		return nil, err
+	}
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM(cert)
 	httpClient.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{
+			RootCAs: pool,
+		},
 	}
 	var httpReconn reconnect = func() (connect, error) {
 		hc := &httpConn{

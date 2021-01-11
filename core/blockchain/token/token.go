@@ -118,7 +118,7 @@ func CheckTokenMint(tx *types.Transaction) (signature []byte, pubKey []byte, tok
 		inputMeer.Value += txIn.AmountIn.Value
 	}
 
-	// Outpus :
+	// Outputs :
 
 	// all TxOut script length should not zero.
 	for i := range tx.TxOut {
@@ -273,7 +273,7 @@ func CheckTokenUnMint(tx *types.Transaction) (signature []byte, pubKey []byte, t
 		inputToken.Value += txIn.AmountIn.Value
 	}
 
-	// Outpus :
+	// Outputs :
 	// TxOut[0] must be an OP_TOKEN_DESTORY, and value must match with the unmint token id
 	// Txout[1]:must be an OP_MEER_RELEASE tagged P2SH or P2PKH script. and released value must meer
 

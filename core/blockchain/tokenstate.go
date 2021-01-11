@@ -254,12 +254,6 @@ func (b *BlockChain) calculateTokenBalance(dbTx database.Tx, node *blockNode) (t
 
 	result := tokenBalances{}
 
-	// the passed-in node should always has already been ordered at this level
-	if !node.IsOrdered() {
-		panic(fmt.Sprintf("node (hash=%v,order=%v,height=%v,layer=%v) is not ordered",
-			node.hash, node.order, node.height, node.layer)) //should never happen here
-	}
-
 	// if no block is mature, return empty
 	if uint16(node.order) < b.params.CoinbaseMaturity {
 		return result, nil

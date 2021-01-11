@@ -84,7 +84,10 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// This function should never be called with orphan blocks or the
 	// genesis block.
 	b.ChainLock()
-	defer b.ChainUnlock()
+	defer func() {
+		b.ChainUnlock()
+		b.flushNotifications()
+	}()
 
 	parentsNode := []*blockNode{}
 	for _, pb := range block.Block().Parents {
@@ -185,18 +188,21 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
-	//TODO, refactor to event subscript/publish
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
 		ForkLen: 0,
 		Block:   block,
 		Flags:   flags,
 	})
+
 	return nil
 }
 
 func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 	b.ChainLock()
-	defer b.ChainUnlock()
+	defer func() {
+		b.ChainUnlock()
+		b.flushNotifications()
+	}()
 
 	parentsNode := []*blockNode{}
 	for _, pb := range block.Block().Parents {
