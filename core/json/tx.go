@@ -99,7 +99,7 @@ type ScriptSig struct {
 type GetUtxoResult struct {
 	BestBlock     string             `json:"bestblock"`
 	Confirmations int64              `json:"confirmations"`
-	CoinId        string            `json:"coinId"`
+	CoinId        string             `json:"coinId"`
 	Amount        float64            `json:"amount"`
 	ScriptPubKey  ScriptPubKeyResult `json:"scriptPubKey"`
 	Version       int32              `json:"version"`
@@ -144,7 +144,7 @@ type DecodeRawTransactionResult struct {
 	Hash     string `json:"txhash"`
 	Version  uint32 `json:"version"`
 	LockTime uint32 `json:"locktime"`
-	Time     int64  `json:"timestamp"`
+	Time     string `json:"timestamp"`
 	Vin      []Vin  `json:"vin"`
 	Vout     []Vout `json:"vout"`
 }

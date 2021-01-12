@@ -1,10 +1,17 @@
 package cmds
 
+import (
+	"github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qitmeer/core/types"
+)
+
 const (
 	BlockConnectedNtfnMethod    = "blockConnected"
 	BlockDisconnectedNtfnMethod = "blockDisconnected"
 	BlockAcceptedNtfnMethod     = "blockAccepted"
 	ReorganizationNtfnMethod    = "reorganization"
+	TxAcceptedNtfnMethod        = "txaccepted"
+	TxAcceptedVerboseNtfnMethod = "txacceptedverbose"
 )
 
 type BlockConnectedNtfn struct {
@@ -69,6 +76,28 @@ func NewReorganizationNtfn(hash string, order int64, olds []string) *Reorganizat
 	}
 }
 
+type TxAcceptedNtfn struct {
+	TxID    string
+	Amounts types.AmountGroup
+}
+
+func NewTxAcceptedNtfn(txHash string, amounts types.AmountGroup) *TxAcceptedNtfn {
+	return &TxAcceptedNtfn{
+		TxID:    txHash,
+		Amounts: amounts,
+	}
+}
+
+type TxAcceptedVerboseNtfn struct {
+	Tx json.DecodeRawTransactionResult
+}
+
+func NewTxAcceptedVerboseNtfn(tx json.DecodeRawTransactionResult) *TxAcceptedVerboseNtfn {
+	return &TxAcceptedVerboseNtfn{
+		Tx: tx,
+	}
+}
+
 func init() {
 	flags := UFWebsocketOnly | UFNotification
 
@@ -76,4 +105,6 @@ func init() {
 	MustRegisterCmd(BlockDisconnectedNtfnMethod, (*BlockDisconnectedNtfn)(nil), flags, NotifyNameSpace)
 	MustRegisterCmd(BlockAcceptedNtfnMethod, (*BlockAcceptedNtfn)(nil), flags, NotifyNameSpace)
 	MustRegisterCmd(ReorganizationNtfnMethod, (*ReorganizationNtfn)(nil), flags, NotifyNameSpace)
+	MustRegisterCmd(TxAcceptedNtfnMethod, (*TxAcceptedNtfn)(nil), flags, NotifyNameSpace)
+	MustRegisterCmd(TxAcceptedVerboseNtfnMethod, (*TxAcceptedVerboseNtfn)(nil), flags, NotifyNameSpace)
 }

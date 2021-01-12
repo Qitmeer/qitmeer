@@ -90,3 +90,57 @@ func (c *Client) NotifyReceivedAsync(addresses []types.Address) FutureNotifyRece
 func (c *Client) NotifyReceived(addresses []types.Address) error {
 	return c.NotifyReceivedAsync(addresses).Receive()
 }
+
+type FutureNotifyNewTransactionsResult chan *response
+
+func (r FutureNotifyNewTransactionsResult) Receive() error {
+	_, err := receiveFuture(r)
+	return err
+}
+
+func (c *Client) NotifyNewTransactionsAsync(verbose bool) FutureNotifyNewTransactionsResult {
+	// Not supported in HTTP POST mode.
+	if c.config.HTTPPostMode {
+		return newFutureError(ErrWebsocketsRequired)
+	}
+
+	// Ignore the notification if the client is not interested in
+	// notifications.
+	if c.ntfnHandlers == nil {
+		return newNilFutureResult()
+	}
+
+	cmd := cmds.NewNotifyNewTransactionsCmd(verbose)
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) NotifyNewTransactions(verbose bool) error {
+	return c.NotifyNewTransactionsAsync(verbose).Receive()
+}
+
+type FutureStopNotifyNewTransactionsResult chan *response
+
+func (r FutureStopNotifyNewTransactionsResult) Receive() error {
+	_, err := receiveFuture(r)
+	return err
+}
+
+func (c *Client) StopNotifyNewTransactionsAsync() FutureStopNotifyNewTransactionsResult {
+	// Not supported in HTTP POST mode.
+	if c.config.HTTPPostMode {
+		return newFutureError(ErrWebsocketsRequired)
+	}
+
+	// Ignore the notification if the client is not interested in
+	// notifications.
+	if c.ntfnHandlers == nil {
+		return newNilFutureResult()
+	}
+
+	cmd := cmds.NewStopNotifyNewTransactionsCmd()
+	return c.sendCmd(cmd)
+}
+
+func (c *Client) StopNotifyNewTransactions() error {
+	return c.StopNotifyNewTransactionsAsync().Receive()
+}
