@@ -22,11 +22,17 @@ import (
 )
 
 const (
+	// The index of coinbase output for subsidy
+	CoinbaseOutput_subsidy = 0
+
+	// The index of coinbase output for QIT fees
+	CoinbaseOutput_fees_QIT = 1
+
 	// The index of coinbase output for tax
-	CoinbaseOutput_tax = 1
+	CoinbaseOutput_tax = 2
 
 	// The index of coinbase output for custom data. (Can be used for future expansion)
-	CoinbaseOutput_data = 2
+	CoinbaseOutput_data = 3
 )
 
 // This function only differs from IsExpired in that it works with a raw wire
@@ -362,7 +368,13 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 				MaxCoinbaseScriptLen)
 			return ruleError(ErrBadCoinbaseScriptLen, str)
 		}
-		err := validateCoinbaseTax(tx, params)
+
+		err := validateCoinbaseFeeQIT(tx)
+		if err != nil {
+			return err
+		}
+
+		err = validateCoinbaseTax(tx, params)
 		if err != nil {
 			return err
 		}
@@ -381,6 +393,29 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 					"input refers to previous output that "+
 					"is null")
 			}
+		}
+	}
+	return nil
+}
+
+func validateCoinbaseFeeQIT(tx *types.Transaction) error {
+	if len(tx.TxOut) > CoinbaseOutput_fees_QIT {
+		coinId := tx.TxOut[CoinbaseOutput_fees_QIT].Amount.Id
+		if coinId != types.QITID {
+			return fmt.Errorf("coinbase tax pay with wrong coin id %s", coinId.Name())
+		}
+		slen := len(tx.TxOut[CoinbaseOutput_fees_QIT].PkScript)
+		if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
+			str := fmt.Sprintf("coinbase transaction script "+
+				"length of %d is out of range (min: %d, max: "+
+				"%d)", slen, MinCoinbaseScriptLen,
+				MaxCoinbaseScriptLen)
+			return ruleError(ErrBadCoinbaseScriptLen, str)
+		}
+
+		if tx.TxOut[CoinbaseOutput_fees_QIT].Amount.Value != 0 {
+			str := fmt.Sprintf("coinbase transaction error:QIT fees.")
+			return ruleError(ErrBadCoinbaseValue, str)
 		}
 	}
 	return nil
@@ -582,10 +617,10 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	workAmountOut := int64(0)
 	for k, v := range transactions[0].Tx.TxOut {
 		// the coinbase should always use meer coin
-		if v.Amount.Id != types.MEERID {
+		if v.Amount.Id != types.MEERID && k != CoinbaseOutput_fees_QIT {
 			return fmt.Errorf("the coinbase tx output[%d] has invaild coin id %s", k, v.Amount.Id.Name())
 		}
-		if k == CoinbaseOutput_tax || k == CoinbaseOutput_data {
+		if k == CoinbaseOutput_fees_QIT || k == CoinbaseOutput_tax || k == CoinbaseOutput_data {
 			continue
 		}
 		workAmountOut += v.Amount.Value
@@ -875,7 +910,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 		}
 	}
 
-	var totalFees int64
+	totalFees := types.AmountMap{}
 	for idx, tx := range transactions {
 		if tx.IsDuplicate && !tx.Tx.IsCoinBase() {
 			continue
@@ -887,11 +922,14 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 
 		// Sum the total fees and ensure we don't overflow the
 		// accumulator.
-		lastTotalFees := totalFees
-		totalFees += txFee
-		if totalFees < lastTotalFees {
-			return ruleError(ErrBadFees, "total fees for block "+
-				"overflows accumulator")
+		for _, coinId := range types.CoinIDList {
+			lastTotalFees := totalFees[coinId]
+			totalFees[coinId] += txFee[coinId]
+			if totalFees[coinId] < lastTotalFees {
+				return ruleError(ErrBadFees, "total fees for block "+
+					"overflows accumulator")
+			}
+
 		}
 
 		err = utxoView.connectTransaction(tx, node, uint32(idx), stxos, b)
@@ -1019,7 +1057,7 @@ func CountP2SHSigOps(tx *types.Tx, isCoinBaseTx bool, utxoView *UtxoViewpoint) (
 //
 // NOTE: The transaction MUST have already been sanity checked with the
 // CheckTransactionSanity function prior to calling this function.
-func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint) (int64, error) {
+func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint) (types.AmountMap, error) {
 	msgTx := tx.Transaction()
 
 	txHash := tx.Hash()
@@ -1027,7 +1065,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 
 	// Coinbase transactions have no inputs.
 	if msgTx.IsCoinBase() {
-		return 0, nil
+		return nil, nil
 	}
 	bd := b.bd
 	// -------------------------------------------------------------------
@@ -1041,26 +1079,22 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 				"transaction %s:%d either does not exist or "+
 				"has already been spent", txIn.PreviousOut,
 				txHash, idx)
-			return 0, ruleError(ErrMissingTxOut, str)
+			return nil, ruleError(ErrMissingTxOut, str)
 		}
 
 		// Ensure the coinId is known
 		err := types.CheckCoinID(utxoEntry.amount.Id)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 
 		// Ensure the transaction is not spending coins which have not
 		// yet reached the required coinbase maturity.
 		if utxoEntry.IsCoinBase() {
-			// Ensure the coinbase is always meer coin
-			if utxoEntry.amount.Id != types.MEERID {
-				return 0, fmt.Errorf("coinbase uxto has invalid coin id %s", utxoEntry.amount.Id.Name())
-			}
 			ubhIB := bd.GetBlock(utxoEntry.BlockHash())
 			if ubhIB == nil {
 				str := fmt.Sprintf("utxoEntry blockhash error:%s", utxoEntry.BlockHash())
-				return 0, ruleError(ErrNoViewpoint, str)
+				return nil, ruleError(ErrNoViewpoint, str)
 			}
 			targets = append(targets, ubhIB.GetID())
 		}
@@ -1072,23 +1106,29 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		// Coin is a quantity of atoms as defined by the AtomPerCoin
 		// constant.
 		originTxAtom := utxoEntry.Amount()
-		if utxoEntry.IsCoinBase() && txIn.PreviousOut.OutIndex == 0 {
-			if originTxAtom.Id != types.MEERID {
-				return 0, fmt.Errorf("coinbase uxto has invalid coin id %s", originTxAtom.Id.Name())
+		if utxoEntry.IsCoinBase() {
+			if txIn.PreviousOut.OutIndex == CoinbaseOutput_subsidy {
+				if originTxAtom.Id != types.MEERID {
+					return nil, fmt.Errorf("coinbase uxto has invalid coin id %s", originTxAtom.Id.Name())
+				}
+				originTxAtom.Value += b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
+			} else if txIn.PreviousOut.OutIndex == CoinbaseOutput_fees_QIT {
+				if originTxAtom.Id != types.QITID {
+					return nil, fmt.Errorf("coinbase uxto has invalid coin id %s", originTxAtom.Id.Name())
+				}
+				originTxAtom.Value = b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
 			}
-			// make sure the fee use meer coin only
-			originTxAtom.Value += b.GetFees(utxoEntry.BlockHash())
 		}
 		if originTxAtom.Value < 0 {
 			str := fmt.Sprintf("transaction output has negative "+
 				"value of %v", originTxAtom)
-			return 0, ruleError(ErrInvalidTxOutValue, str)
+			return nil, ruleError(ErrInvalidTxOutValue, str)
 		}
 		if originTxAtom.Value > types.MaxAmount {
 			str := fmt.Sprintf("transaction output value of %v is "+
 				"higher than max allowed value of %v",
 				originTxAtom, types.MaxAmount)
-			return 0, ruleError(ErrInvalidTxOutValue, str)
+			return nil, ruleError(ErrInvalidTxOutValue, str)
 		}
 
 		// The total of all outputs must not be more than the max
@@ -1102,7 +1142,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 				"inputs is %v which is higher than max "+
 				"allowed value of %v", totalAtomIn,
 				types.MaxAmount)
-			return 0, ruleError(ErrInvalidTxOutValue, str)
+			return nil, ruleError(ErrInvalidTxOutValue, str)
 		}
 	}
 
@@ -1116,11 +1156,11 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		}
 		if len(viewpoints) == 0 {
 			str := fmt.Sprintf("transaction %s has no viewpoints", txHash)
-			return 0, ruleError(ErrNoViewpoint, str)
+			return nil, ruleError(ErrNoViewpoint, str)
 		}
 		err := bd.CheckBlueAndMatureMT(targets, viewpoints, uint(b.params.CoinbaseMaturity))
 		if err != nil {
-			return 0, ruleError(ErrImmatureSpend, err.Error())
+			return nil, ruleError(ErrImmatureSpend, err.Error())
 		}
 	}
 
@@ -1132,7 +1172,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		// Ensure the coinId is known
 		err := types.CheckCoinID(txOut.Amount.Id)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		totalAtomOut[txOut.Amount.Id] += txOut.Amount.Value
 	}
@@ -1141,7 +1181,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 	if len(totalAtomIn) != len(totalAtomOut) ||
 		len(totalAtomIn) > len(types.CoinIDList) ||
 		len(totalAtomOut) > len(types.CoinIDList) {
-		return 0, fmt.Errorf("transaction contains unknown or unbalanced coin types")
+		return nil, fmt.Errorf("transaction contains unknown or unbalanced coin types")
 	}
 	// Ensure the transaction does not spend more than its inputs.
 	for _, coinId := range types.CoinIDList {
@@ -1149,32 +1189,17 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 			str := fmt.Sprintf("total %s value of all transaction inputs for "+
 				"transaction %v is %v which is less than the amount "+
 				"spent of %v", coinId.Name(), txHash, totalAtomIn[coinId], totalAtomOut[coinId])
-			return 0, ruleError(ErrSpendTooHigh, str)
+			return nil, ruleError(ErrSpendTooHigh, str)
 		}
 	}
 
-	// NOTE: bitcoind checks if the transaction fees are < 0 here, but that
-	// is an impossible condition because of the check above that ensures
-	// the inputs are >= the outputs.
-
-	// check if txfee in meer
-	txFeeInAtom := totalAtomIn[types.MEERID] - totalAtomOut[types.MEERID]
-
-	// when and only-when txfee(meer) is zero, check if there has any
-	// other coin type can be used as txfee. if txfee(meer) < 0, it
-	// means meer are not balanced, it not accepted anyway.
-	if txFeeInAtom == 0 {
-		for _, coinId := range types.CoinIDList {
-			if coinId != types.MEERID {
-				feeInCoin := totalAtomIn[coinId] - totalAtomOut[coinId]
-				if feeInCoin > 0 {
-					txFeeInAtom = feeInCoin
-				}
-			}
-		}
+	allFees := make(map[types.CoinID]int64)
+	for _, coinId := range types.CoinIDList {
+		txFeeInAtom := totalAtomIn[types.MEERID] - totalAtomOut[types.MEERID]
+		allFees[coinId] = txFeeInAtom
 	}
 
-	return txFeeInAtom, nil
+	return allFees, nil
 }
 
 // CheckConnectBlockTemplate fully validates that connecting the passed block to

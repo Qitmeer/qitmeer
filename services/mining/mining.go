@@ -163,6 +163,11 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 		PkScript: pksSubsidy,
 	})
 
+	tx.AddTxOut(&types.TxOutput{
+		Amount:   types.Amount{Value: 0, Id: types.QITID},
+		PkScript: pksSubsidy,
+	})
+
 	// Tax output.
 	if params.HasTax() {
 		tx.AddTxOut(&types.TxOutput{

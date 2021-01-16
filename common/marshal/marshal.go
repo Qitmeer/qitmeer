@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -29,7 +30,7 @@ func MessageToHex(tx *types.Transaction) (string, error) {
 }
 
 func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHashStr string,
-	confirmations int64, coinbaseAmout uint64, state bool) (json.TxRawResult, error) {
+	confirmations int64, coinbaseAmout types.AmountMap, state bool) (json.TxRawResult, error) {
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
@@ -37,7 +38,7 @@ func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHashStr string,
 }
 
 func MarshalJsonTransaction(transaction *types.Tx, params *params.Params, blkHashStr string,
-	confirmations int64, coinbaseAmout uint64, state bool) (json.TxRawResult, error) {
+	confirmations int64, coinbaseAmout types.AmountMap, state bool) (json.TxRawResult, error) {
 	tx := transaction.Tx
 	hexStr, err := MessageToHex(tx)
 	if err != nil {
@@ -60,7 +61,13 @@ func MarshalJsonTransaction(transaction *types.Tx, params *params.Params, blkHas
 		txr.Timestamp = tx.Timestamp.Format(time.RFC3339)
 	}
 	if tx.IsCoinBase() {
-		txr.Vout[0].Amount = coinbaseAmout
+		txr.Vout[0].Amount = uint64(coinbaseAmout[types.MEERID])
+		if len(txr.Vout) >= blockchain.CoinbaseOutput_tax {
+			txr.Vout[1].Amount = uint64(coinbaseAmout[types.QITID])
+			if txr.Vout[1].Amount == 0 {
+				txr.Vout = append(txr.Vout[:1], txr.Vout[2:]...)
+			}
+		}
 	}
 	if blkHashStr != "" {
 		txr.BlockHash = blkHashStr
@@ -153,7 +160,7 @@ func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, par
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
 func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
-	params *params.Params, confirmations int64, children []*hash.Hash, state bool, isOrdered bool, coinbaseAmout uint64, coinbaseFee uint64) (json.OrderedResult, error) {
+	params *params.Params, confirmations int64, children []*hash.Hash, state bool, isOrdered bool, coinbaseAmout types.AmountMap, coinbaseFee types.AmountMap) (json.OrderedResult, error) {
 
 	head := b.Block().Header // copies the header once
 	// Get next block hash unless there are none.
@@ -188,8 +195,17 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		}
 		fields = append(fields, json.KV{Key: "transactions", Val: transactions})
 	}
-	if coinbaseFee > 0 {
-		fields = append(fields, json.KV{Key: "transactionfee", Val: coinbaseFee})
+	if coinbaseFee != nil {
+		fees := []json.Amout{}
+		for coinid, amount := range coinbaseFee {
+			if amount <= 0 {
+				continue
+			}
+			fees = append(fees, json.Amout{CoinId: coinid.Name(), Amount: amount})
+		}
+		if len(fees) > 0 {
+			fields = append(fields, json.KV{Key: "transactionfee", Val: fees})
+		}
 	}
 	fields = append(fields, json.OrderedResult{
 		{Key: "stateRoot", Val: head.StateRoot.String()},

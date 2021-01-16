@@ -313,7 +313,7 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 		mtx = tx
 	}
 	txsvalid := true
-	coinbaseAmout := uint64(0)
+	coinbaseAmout := types.AmountMap{}
 	if blkHash != nil {
 		blkHashStr = blkHash.String()
 		ib := api.txManager.bm.GetChain().BlockDAG().GetBlock(blkHash)
@@ -323,7 +323,13 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 		}
 
 		if mtx.Tx.IsCoinBase() {
-			coinbaseAmout = uint64(mtx.Tx.TxOut[0].Amount.Value) + uint64(api.txManager.bm.GetChain().GetFees(blkHash))
+			coinbaseFees := api.txManager.bm.GetChain().GetFees(blkHash)
+			if coinbaseFees == nil {
+				coinbaseAmout[mtx.Tx.TxOut[0].Amount.Id] = mtx.Tx.TxOut[0].Amount.Value
+			} else {
+				coinbaseAmout = coinbaseFees
+				coinbaseAmout[mtx.Tx.TxOut[0].Amount.Id] += mtx.Tx.TxOut[0].Amount.Value
+			}
 		}
 	}
 	if tx != nil {
@@ -412,7 +418,7 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 			}
 			if entry.IsCoinBase() {
 				//TODO, even the entry is coinbase, should not change the amount by tx fee, need consider output index
-				amount.Value += api.txManager.bm.GetChain().GetFees(block.GetHash())
+				amount.Value += api.txManager.bm.GetChain().GetFeeByCoinID(block.GetHash(), amount.Id)
 			}
 		}
 
@@ -628,7 +634,7 @@ func (api *PublicTxAPI) GetRawTransactions(addre string, vinext *bool, count *ui
 
 		result.Vout = marshal.MarshJsonVout(mtx.Tx, filterAddrMap, params)
 		if mtx.Tx.IsCoinBase() {
-			result.Vout[0].Amount = uint64(mtx.Tx.TxOut[0].Amount.Value) + uint64(api.txManager.bm.GetChain().GetFees(rtx.blkHash))
+			result.Vout[0].Amount = uint64(mtx.Tx.TxOut[0].Amount.Value) + uint64(api.txManager.bm.GetChain().GetFeeByCoinID(rtx.blkHash, mtx.Tx.TxOut[0].Amount.Id))
 		}
 		result.Version = mtx.Tx.Version
 		result.LockTime = mtx.Tx.LockTime

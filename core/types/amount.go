@@ -157,6 +157,9 @@ func (z *Amount) Add(x, y *Amount) (*Amount, error) {
 // AmountGroup represents a group of multiple Amount,
 type AmountGroup []Amount
 
+// AmountMap represents a map of multiple Amount,
+type AmountMap map[CoinID]int64
+
 // round converts a floating point number, which may or may not be representable
 // as an integer, to the Amount integer type by rounding to the nearest integer.
 // This is performed by adding or subtracting 0.5 depending on the sign, and

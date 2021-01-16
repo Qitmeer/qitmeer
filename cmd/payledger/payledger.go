@@ -243,7 +243,7 @@ func buildLedger(node INode, config *Config) error {
 			} else {
 				eAmount := entry.Amount()
 				if entry.IsCoinBase() && txOutIdex == 0 {
-					eAmount.Value += node.BlockChain().GetFees(ib.GetHash())
+					eAmount.Value += node.BlockChain().GetFeeByCoinID(ib.GetHash(), eAmount.Id)
 				}
 				genesisLedger[addrStr].Payout.Amount = eAmount
 				totalAmount += uint64(eAmount.Value)
