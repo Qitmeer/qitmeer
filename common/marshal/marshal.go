@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -53,7 +52,6 @@ func MarshalJsonTransaction(transaction *types.Tx, params *params.Params, blkHas
 		LockTime:  tx.LockTime,
 		Expire:    tx.Expire,
 		Vin:       MarshJsonVin(tx),
-		Vout:      MarshJsonVout(tx, nil, params),
 		Duplicate: transaction.IsDuplicate,
 		Txsvalid:  state,
 	}
@@ -61,13 +59,9 @@ func MarshalJsonTransaction(transaction *types.Tx, params *params.Params, blkHas
 		txr.Timestamp = tx.Timestamp.Format(time.RFC3339)
 	}
 	if tx.IsCoinBase() {
-		txr.Vout[0].Amount = uint64(coinbaseAmout[types.MEERID])
-		if len(txr.Vout) >= blockchain.CoinbaseOutput_tax {
-			txr.Vout[1].Amount = uint64(coinbaseAmout[types.QITID])
-			if txr.Vout[1].Amount == 0 {
-				txr.Vout = append(txr.Vout[:1], txr.Vout[2:]...)
-			}
-		}
+		txr.Vout = MarshJsonCoinbaseVout(tx, nil, params, coinbaseAmout)
+	} else {
+		txr.Vout = MarshJsonVout(tx, nil, params)
 	}
 	if blkHashStr != "" {
 		txr.BlockHash = blkHashStr
@@ -145,6 +139,60 @@ func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, par
 		voutSPK := &vout.ScriptPubKey
 		vout.CoinId = v.Amount.Id.Name()
 		vout.Amount = uint64(v.Amount.Value)
+		voutSPK.Addresses = encodedAddrs
+		voutSPK.Asm = disbuf
+		voutSPK.Hex = hex.EncodeToString(v.PkScript)
+		voutSPK.Type = scriptClass
+		voutSPK.ReqSigs = int32(reqSigs)
+		voutList = append(voutList, vout)
+	}
+
+	return voutList
+}
+
+func MarshJsonCoinbaseVout(tx *types.Transaction, filterAddrMap map[string]struct{}, params *params.Params, coinbaseAmout types.AmountMap) []json.Vout {
+	if len(coinbaseAmout) <= 0 {
+		return MarshJsonVout(tx, filterAddrMap, params)
+	}
+	voutList := make([]json.Vout, 0, len(tx.TxOut))
+	for _, v := range tx.TxOut {
+		// The disassembled string will contain [error] inline if the
+		// script doesn't fully parse, so ignore the error here.
+		disbuf, _ := txscript.DisasmString(v.PkScript)
+
+		// Ignore the error here since an error means the script
+		// couldn't parse and there is no additional information
+		// about it anyways.
+		sc, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(
+			v.PkScript, params)
+		scriptClass := sc.String()
+
+		// Encode the addresses while checking if the address passes the
+		// filter when needed.
+		passesFilter := len(filterAddrMap) == 0
+		encodedAddrs := make([]string, len(addrs))
+		for j, addr := range addrs {
+			encodedAddr := addr.Encode()
+			encodedAddrs[j] = encodedAddr
+
+			// No need to check the map again if the filter already
+			// passes.
+			if passesFilter {
+				continue
+			}
+			if _, exists := filterAddrMap[encodedAddr]; exists {
+				passesFilter = true
+			}
+		}
+
+		if !passesFilter {
+			continue
+		}
+
+		var vout json.Vout
+		voutSPK := &vout.ScriptPubKey
+		vout.CoinId = v.Amount.Id.Name()
+		vout.Amount = uint64(coinbaseAmout[v.Amount.Id])
 		voutSPK.Addresses = encodedAddrs
 		voutSPK.Asm = disbuf
 		voutSPK.Hex = hex.EncodeToString(v.PkScript)

@@ -413,7 +413,7 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 		}
 		if stxo.IsCoinBase {
 			if txIn.PreviousOut.OutIndex == CoinbaseOutput_subsidy ||
-				txIn.PreviousOut.OutIndex == CoinbaseOutput_fees_QIT {
+				entry.Amount().Id != types.MEERID {
 				stxo.Fees.Value = bc.GetFeeByCoinID(&stxo.BlockHash, stxo.Fees.Id)
 			}
 		}

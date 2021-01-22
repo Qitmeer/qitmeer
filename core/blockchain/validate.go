@@ -24,15 +24,6 @@ import (
 const (
 	// The index of coinbase output for subsidy
 	CoinbaseOutput_subsidy = 0
-
-	// The index of coinbase output for QIT fees
-	CoinbaseOutput_fees_QIT = 1
-
-	// The index of coinbase output for tax
-	CoinbaseOutput_tax = 2
-
-	// The index of coinbase output for custom data. (Can be used for future expansion)
-	CoinbaseOutput_data = 3
 )
 
 // This function only differs from IsExpired in that it works with a raw wire
@@ -360,25 +351,7 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 
 	// Coinbase script length must be between min and max length.
 	if tx.IsCoinBase() {
-		slen := len(tx.TxIn[0].SignScript)
-		if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
-			str := fmt.Sprintf("coinbase transaction script "+
-				"length of %d is out of range (min: %d, max: "+
-				"%d)", slen, MinCoinbaseScriptLen,
-				MaxCoinbaseScriptLen)
-			return ruleError(ErrBadCoinbaseScriptLen, str)
-		}
-
-		err := validateCoinbaseFeeQIT(tx)
-		if err != nil {
-			return err
-		}
-
-		err = validateCoinbaseTax(tx, params)
-		if err != nil {
-			return err
-		}
-		err = validateCoinbaseCustomData(tx, params)
+		err := validateCoinbase(tx, params)
 		if err != nil {
 			return err
 		}
@@ -398,82 +371,82 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 	return nil
 }
 
-func validateCoinbaseFeeQIT(tx *types.Transaction) error {
-	if len(tx.TxOut) > CoinbaseOutput_fees_QIT {
-		coinId := tx.TxOut[CoinbaseOutput_fees_QIT].Amount.Id
-		if coinId != types.QITID {
-			return fmt.Errorf("coinbase tax pay with wrong coin id %s", coinId.Name())
+func validateCoinbase(tx *types.Transaction, pa *params.Params) error {
+	slen := len(tx.TxIn[0].SignScript)
+	if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
+		str := fmt.Sprintf("coinbase transaction script "+
+			"length of %d is out of range (min: %d, max: "+
+			"%d)", slen, MinCoinbaseScriptLen,
+			MaxCoinbaseScriptLen)
+		return ruleError(ErrBadCoinbaseScriptLen, str)
+	}
+	if pa.HasTax() {
+		err := validateCoinbaseTax(tx, pa)
+		if err != nil {
+			return err
 		}
-		slen := len(tx.TxOut[CoinbaseOutput_fees_QIT].PkScript)
-		if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
-			str := fmt.Sprintf("coinbase transaction script "+
-				"length of %d is out of range (min: %d, max: "+
-				"%d)", slen, MinCoinbaseScriptLen,
-				MaxCoinbaseScriptLen)
-			return ruleError(ErrBadCoinbaseScriptLen, str)
+	} else {
+		if len(tx.TxOut) <= CoinbaseOutput_subsidy {
+			str := fmt.Sprintf("No subsidy output")
+			return ruleError(ErrBadCoinbaseOutpoint, str)
 		}
+		if tx.TxOut[CoinbaseOutput_subsidy].Amount.Id != types.MEERID {
+			str := fmt.Sprintf("Subsidy output amount type is error")
+			return ruleError(ErrBadCoinbaseOutpoint, str)
+		}
+		err := validateCoinbaseToken(tx.TxOut[1:])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-		if tx.TxOut[CoinbaseOutput_fees_QIT].Amount.Value != 0 {
-			str := fmt.Sprintf("coinbase transaction error:QIT fees.")
-			return ruleError(ErrBadCoinbaseValue, str)
+func validateCoinbaseToken(outputs []*types.TxOutput) error {
+	if len(outputs) <= 0 {
+		return nil
+	}
+	for _, v := range outputs {
+		if v.Amount.Id == types.MEERID {
+			continue
+		}
+		if !types.IsKnownCoinID(v.Amount.Id) {
+			str := fmt.Sprintf("Unknown coin %s", v.Amount.Id.Name())
+			return ruleError(ErrBadCoinbaseOutpoint, str)
+		}
+		if v.Amount.Value != 0 {
+			str := fmt.Sprintf("You don't have permission to change the consensus balance: %d", v.Amount.Value)
+			return ruleError(ErrBadCoinbaseOutpoint, str)
 		}
 	}
 	return nil
 }
 
 // Validate the tax in coinbase transaction. Prevent miners from attacking.
-func validateCoinbaseTax(tx *types.Transaction, params *params.Params) error {
-	if len(tx.TxOut) > CoinbaseOutput_tax {
-		coinId := tx.TxOut[CoinbaseOutput_tax].Amount.Id
-		if coinId != types.MEERID {
-			return fmt.Errorf("coinbase tax pay with wrong coin id %s", coinId.Name())
-		}
-		slen := len(tx.TxOut[CoinbaseOutput_tax].PkScript)
-		if params.HasTax() {
-			if slen < MinCoinbaseScriptLen || slen > MaxCoinbaseScriptLen {
-				str := fmt.Sprintf("coinbase transaction script "+
-					"length of %d is out of range (min: %d, max: "+
-					"%d)", slen, MinCoinbaseScriptLen,
-					MaxCoinbaseScriptLen)
-				return ruleError(ErrBadCoinbaseScriptLen, str)
-			}
-			orgPkScriptStr := hex.EncodeToString(params.OrganizationPkScript)
-			curPkScriptStr := hex.EncodeToString(tx.TxOut[CoinbaseOutput_tax].PkScript)
-			if orgPkScriptStr != curPkScriptStr {
-				str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
-					orgPkScriptStr, curPkScriptStr)
-				return ruleError(ErrBadCoinbaseValue, str)
-			}
-		} else {
-			if slen != 0 || tx.TxOut[CoinbaseOutput_tax].Amount.Value != 0 {
-				str := fmt.Sprintf("coinbase transaction error:no tax.")
-				return ruleError(ErrBadCoinbaseValue, str)
-			}
-		}
+func validateCoinbaseTax(tx *types.Transaction, pa *params.Params) error {
+	if len(tx.TxOut) <= CoinbaseOutput_subsidy+1 {
+		str := fmt.Sprintf("Lack of output")
+		return ruleError(ErrBadCoinbaseOutpoint, str)
 	}
-	return nil
-}
-
-// Although it's the interface of the future, we have to deal with it specially.
-func validateCoinbaseCustomData(tx *types.Transaction, params *params.Params) error {
-	if len(tx.TxOut) > CoinbaseOutput_data {
-		// Coinbase TxOut[2] is op return
-		nullDataOut := tx.TxOut[CoinbaseOutput_data]
-		if nullDataOut.Amount.Id != types.MEERID {
-			return fmt.Errorf("coinbase output 2: bad coinId %s", nullDataOut.Amount.Id.Name())
-		}
-		if nullDataOut.Amount.Value != 0 {
-			str := fmt.Sprintf("coinbase output 2:bad nulldata")
-			return ruleError(ErrBadCoinbaseOutpoint, str)
-		}
-		// The first 4 bytes of the null data output must be the encoded height
-		// of the block, so that every coinbase created has a unique transaction
-		// hash.
-		nullData, err := txscript.ExtractCoinbaseNullData(nullDataOut.PkScript)
-		if err != nil {
-			str := fmt.Sprintf("coinbase output 2:bad nulldata %v", nullData)
-			return ruleError(ErrBadCoinbaseOutpoint, str)
-		}
+	if tx.TxOut[CoinbaseOutput_subsidy].Amount.Id != types.MEERID {
+		str := fmt.Sprintf("Subsidy output amount type is error")
+		return ruleError(ErrBadCoinbaseOutpoint, str)
+	}
+	taxIndex := len(tx.TxOut) - 1
+	if tx.TxOut[taxIndex].Amount.Id != types.MEERID {
+		str := fmt.Sprintf("Tax output amount type is error")
+		return ruleError(ErrBadCoinbaseOutpoint, str)
+	}
+	err := validateCoinbaseToken(tx.TxOut[1 : len(tx.TxOut)-1])
+	if err != nil {
+		return err
+	}
+	orgPkScriptStr := hex.EncodeToString(pa.OrganizationPkScript)
+	curPkScriptStr := hex.EncodeToString(tx.TxOut[taxIndex].PkScript)
+	if orgPkScriptStr != curPkScriptStr {
+		str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
+			orgPkScriptStr, curPkScriptStr)
+		return ruleError(ErrBadCoinbaseValue, str)
 	}
 	return nil
 }
@@ -617,11 +590,13 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	workAmountOut := int64(0)
 	for k, v := range transactions[0].Tx.TxOut {
 		// the coinbase should always use meer coin
-		if v.Amount.Id != types.MEERID && k != CoinbaseOutput_fees_QIT {
-			return fmt.Errorf("the coinbase tx output[%d] has invaild coin id %s", k, v.Amount.Id.Name())
-		}
-		if k == CoinbaseOutput_fees_QIT || k == CoinbaseOutput_tax || k == CoinbaseOutput_data {
+		if v.Amount.Id != types.MEERID {
 			continue
+		}
+		if b.params.HasTax() {
+			if k+1 == len(transactions[0].Tx.TxOut) {
+				continue
+			}
 		}
 		workAmountOut += v.Amount.Value
 	}
@@ -629,19 +604,17 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	var work int64
 	var tax int64
 	var taxAmountOut int64 = 0
+	var taxOutput *types.TxOutput
 	var totalAmountOut int64 = 0
 
 	if b.params.HasTax() {
-		if len(transactions[0].Tx.TxOut) < CoinbaseOutput_data {
-			str := fmt.Sprintf("coinbase transaction is illegal")
-			return ruleError(ErrBadCoinbaseValue, str)
-		}
 		work = int64(CalcBlockWorkSubsidy(b.subsidyCache,
 			int64(blocks), b.params))
 		tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
 			int64(blocks), b.params))
+		taxOutput = transactions[0].Tx.TxOut[len(transactions[0].Tx.TxOut)-1]
 
-		taxAmountOut = transactions[0].Tx.TxOut[CoinbaseOutput_tax].Amount.Value
+		taxAmountOut = taxOutput.Amount.Value
 	} else {
 		work = subsidy
 		tax = 0
@@ -665,7 +638,7 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 
 	if b.params.HasTax() {
 		orgPkScriptStr := hex.EncodeToString(b.params.OrganizationPkScript)
-		curPkScriptStr := hex.EncodeToString(transactions[0].Tx.TxOut[CoinbaseOutput_tax].PkScript)
+		curPkScriptStr := hex.EncodeToString(taxOutput.PkScript)
 		if orgPkScriptStr != curPkScriptStr {
 			str := fmt.Sprintf("coinbase transaction for block pays to %s, but it is %s",
 				orgPkScriptStr, curPkScriptStr)
@@ -1072,6 +1045,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 	// General transaction testing.
 	// -------------------------------------------------------------------
 	targets := []uint{}
+
 	for idx, txIn := range msgTx.TxIn {
 		utxoEntry := utxoView.LookupEntry(txIn.PreviousOut)
 		if utxoEntry == nil || utxoEntry.IsSpent() {
@@ -1090,14 +1064,6 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 
 		// Ensure the transaction is not spending coins which have not
 		// yet reached the required coinbase maturity.
-		if utxoEntry.IsCoinBase() {
-			ubhIB := bd.GetBlock(utxoEntry.BlockHash())
-			if ubhIB == nil {
-				str := fmt.Sprintf("utxoEntry blockhash error:%s", utxoEntry.BlockHash())
-				return nil, ruleError(ErrNoViewpoint, str)
-			}
-			targets = append(targets, ubhIB.GetID())
-		}
 
 		// Ensure the transaction amounts are in range.  Each of the
 		// output values of the input transactions must not be negative
@@ -1106,18 +1072,23 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		// Coin is a quantity of atoms as defined by the AtomPerCoin
 		// constant.
 		originTxAtom := utxoEntry.Amount()
+
 		if utxoEntry.IsCoinBase() {
-			if txIn.PreviousOut.OutIndex == CoinbaseOutput_subsidy {
-				if originTxAtom.Id != types.MEERID {
-					return nil, fmt.Errorf("coinbase uxto has invalid coin id %s", originTxAtom.Id.Name())
+			ubhIB := bd.GetBlock(utxoEntry.BlockHash())
+			if ubhIB == nil {
+				str := fmt.Sprintf("utxoEntry blockhash error:%s", utxoEntry.BlockHash())
+				return nil, ruleError(ErrNoViewpoint, str)
+			}
+			targets = append(targets, ubhIB.GetID())
+
+			if originTxAtom.Id == types.MEERID {
+				if txIn.PreviousOut.OutIndex == CoinbaseOutput_subsidy {
+					originTxAtom.Value += b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
 				}
-				originTxAtom.Value += b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
-			} else if txIn.PreviousOut.OutIndex == CoinbaseOutput_fees_QIT {
-				if originTxAtom.Id != types.QITID {
-					return nil, fmt.Errorf("coinbase uxto has invalid coin id %s", originTxAtom.Id.Name())
-				}
+			} else {
 				originTxAtom.Value = b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
 			}
+
 		}
 		if originTxAtom.Value < 0 {
 			str := fmt.Sprintf("transaction output has negative "+

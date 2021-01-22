@@ -632,9 +632,11 @@ func (api *PublicTxAPI) GetRawTransactions(addre string, vinext *bool, count *ui
 			return nil, err
 		}
 
-		result.Vout = marshal.MarshJsonVout(mtx.Tx, filterAddrMap, params)
 		if mtx.Tx.IsCoinBase() {
-			result.Vout[0].Amount = uint64(mtx.Tx.TxOut[0].Amount.Value) + uint64(api.txManager.bm.GetChain().GetFeeByCoinID(rtx.blkHash, mtx.Tx.TxOut[0].Amount.Id))
+			amountMap := api.txManager.bm.GetChain().GetFees(rtx.blkHash)
+			result.Vout = marshal.MarshJsonCoinbaseVout(mtx.Tx, filterAddrMap, params, amountMap)
+		} else {
+			result.Vout = marshal.MarshJsonVout(mtx.Tx, filterAddrMap, params)
 		}
 		result.Version = mtx.Tx.Version
 		result.LockTime = mtx.Tx.LockTime
