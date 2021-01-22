@@ -151,11 +151,15 @@ func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, par
 }
 
 func MarshJsonCoinbaseVout(tx *types.Transaction, filterAddrMap map[string]struct{}, params *params.Params, coinbaseAmout types.AmountMap) []json.Vout {
-	if len(coinbaseAmout) <= 0 {
+	if len(coinbaseAmout) <= 0 ||
+		tx.CachedTxHash().IsEqual(params.GenesisBlock.Transactions[0].CachedTxHash()) {
 		return MarshJsonVout(tx, filterAddrMap, params)
 	}
 	voutList := make([]json.Vout, 0, len(tx.TxOut))
-	for _, v := range tx.TxOut {
+	for k, v := range tx.TxOut {
+		if k > 0 && coinbaseAmout[v.Amount.Id] <= 0 {
+			continue
+		}
 		// The disassembled string will contain [error] inline if the
 		// script doesn't fully parse, so ignore the error here.
 		disbuf, _ := txscript.DisasmString(v.PkScript)

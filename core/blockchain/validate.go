@@ -1080,15 +1080,15 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 				return nil, ruleError(ErrNoViewpoint, str)
 			}
 			targets = append(targets, ubhIB.GetID())
-
-			if originTxAtom.Id == types.MEERID {
-				if txIn.PreviousOut.OutIndex == CoinbaseOutput_subsidy {
-					originTxAtom.Value += b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
+			if !utxoEntry.BlockHash().IsEqual(b.params.GenesisHash) {
+				if originTxAtom.Id == types.MEERID {
+					if txIn.PreviousOut.OutIndex == CoinbaseOutput_subsidy {
+						originTxAtom.Value += b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
+					}
+				} else {
+					originTxAtom.Value = b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
 				}
-			} else {
-				originTxAtom.Value = b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
 			}
-
 		}
 		if originTxAtom.Value < 0 {
 			str := fmt.Sprintf("transaction output has negative "+
@@ -1166,7 +1166,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 
 	allFees := make(map[types.CoinID]int64)
 	for _, coinId := range types.CoinIDList {
-		txFeeInAtom := totalAtomIn[types.MEERID] - totalAtomOut[types.MEERID]
+		txFeeInAtom := totalAtomIn[coinId] - totalAtomOut[coinId]
 		allFees[coinId] = txFeeInAtom
 	}
 
