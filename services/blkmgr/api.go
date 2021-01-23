@@ -160,11 +160,19 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 		}
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)
-	coinbaseAmout := uint64(blk.Transactions()[0].Tx.TxOut[0].Amount.Value) + uint64(api.bm.chain.CalculateFees(blk))
+
+	coinbaseAmout := types.AmountMap{}
+	coinbaseFees := api.bm.chain.CalculateFees(blk)
+	if coinbaseFees == nil {
+		coinbaseAmout[blk.Transactions()[0].Tx.TxOut[0].Amount.Id] = blk.Transactions()[0].Tx.TxOut[0].Amount.Value
+	} else {
+		coinbaseAmout = coinbaseFees
+		coinbaseAmout[blk.Transactions()[0].Tx.TxOut[0].Amount.Id] += blk.Transactions()[0].Tx.TxOut[0].Amount.Value
+	}
 
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
-		!api.bm.chain.BlockIndex().NodeStatus(node).KnownInvalid(), node.IsOrdered(), coinbaseAmout, 0)
+		!api.bm.chain.BlockIndex().NodeStatus(node).KnownInvalid(), node.IsOrdered(), coinbaseAmout, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -221,12 +229,13 @@ func (api *PublicBlockAPI) GetBlockV2(h hash.Hash, verbose *bool, inclTx *bool, 
 		}
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)
-	coinbaseAmout := uint64(blk.Transactions()[0].Tx.TxOut[0].Amount.Value)
-	coinbaseFee := uint64(api.bm.chain.CalculateFees(blk))
+	coinbaseFees := api.bm.chain.CalculateFees(blk)
+	coinbaseAmout := types.AmountMap{}
+	coinbaseAmout[blk.Transactions()[0].Tx.TxOut[0].Amount.Id] = blk.Transactions()[0].Tx.TxOut[0].Amount.Value
 
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
-		!api.bm.chain.BlockIndex().NodeStatus(node).KnownInvalid(), node.IsOrdered(), coinbaseAmout, coinbaseFee)
+		!api.bm.chain.BlockIndex().NodeStatus(node).KnownInvalid(), node.IsOrdered(), coinbaseAmout, coinbaseFees)
 	if err != nil {
 		return nil, err
 	}

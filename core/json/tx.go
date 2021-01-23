@@ -157,3 +157,8 @@ type TransactionInput struct {
 }
 
 type Amounts map[string]uint64 //{\"address\":amount,...}
+
+type Amout struct {
+	CoinId string `json:"coinid"`
+	Amount int64  `json:"amount"`
+}

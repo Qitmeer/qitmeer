@@ -411,11 +411,10 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 			TxIndex:    uint32(tx.Index()),
 			TxInIndex:  uint32(txInIndex),
 		}
-		if stxo.IsCoinBase && txIn.PreviousOut.OutIndex == 0 {
-			// only when stxo amount is MEER, the fees need to be calculated
-			// otherwise, the Fees field should remain zero.
-			if stxo.Amount.Id == types.MEERID {
-				stxo.Fees.Value = bc.GetFees(&stxo.BlockHash)
+		if stxo.IsCoinBase && !entry.BlockHash().IsEqual(bc.params.GenesisHash) {
+			if txIn.PreviousOut.OutIndex == CoinbaseOutput_subsidy ||
+				entry.Amount().Id != types.MEERID {
+				stxo.Fees.Value = bc.GetFeeByCoinID(&stxo.BlockHash, stxo.Fees.Id)
 			}
 		}
 		// Append the entry to the provided spent txouts slice.
