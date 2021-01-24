@@ -50,8 +50,8 @@ func (api *PublicBlockAPI) GetBlockhash(order uint) (string, error) {
 // if 'end' is equal to zero, 'start' is the number that from the last block to the Gen
 // if 'start' is greater than or equal to 'end', it will just return the hash of 'start'
 func (api *PublicBlockAPI) GetBlockhashByRange(start uint, end uint) ([]string, error) {
-	totalOrder := api.bm.chain.BlockDAG().GetBlockTotal()
-	if start >= totalOrder {
+	totalOrder := api.bm.chain.BestSnapshot().GraphState.GetMainOrder()
+	if start > totalOrder {
 		return nil, fmt.Errorf("startOrder(%d) is greater than or equal to the totalOrder(%d)", start, totalOrder)
 	}
 	result := []string{}
@@ -62,7 +62,7 @@ func (api *PublicBlockAPI) GetBlockhashByRange(start uint, end uint) ([]string, 
 		}
 		result = append(result, block.Hash().String())
 	} else if end == 0 {
-		for i := totalOrder - 1; i >= 0; i-- {
+		for i := totalOrder; i >= 0; i-- {
 			if uint(len(result)) >= start {
 				break
 			}
@@ -73,8 +73,8 @@ func (api *PublicBlockAPI) GetBlockhashByRange(start uint, end uint) ([]string, 
 			result = append(result, block.Hash().String())
 		}
 	} else {
-		for i := start; i < totalOrder; i++ {
-			if i >= end {
+		for i := start; i <= totalOrder; i++ {
+			if i > end {
 				break
 			}
 			block, err := api.bm.chain.BlockByOrder(uint64(i))
