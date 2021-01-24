@@ -18,6 +18,10 @@ import (
 	"strconv"
 )
 
+const (
+	LatestBlockOrder = int64(-1)
+)
+
 func (b *BlockManager) GetChain() *blockchain.BlockChain {
 	return b.chain
 }
@@ -38,7 +42,10 @@ func NewPublicBlockAPI(bm *BlockManager) *PublicBlockAPI {
 }
 
 //TODO, refactor BlkMgr API
-func (api *PublicBlockAPI) GetBlockhash(order uint) (string, error) {
+func (api *PublicBlockAPI) GetBlockhash(order int64) (string, error) {
+	if order == LatestBlockOrder {
+		order = int64(api.bm.chain.BestSnapshot().GraphState.GetMainOrder())
+	}
 	blockHash, err := api.bm.chain.BlockHashByOrder(uint64(order))
 	if err != nil {
 		return "", err
@@ -49,13 +56,13 @@ func (api *PublicBlockAPI) GetBlockhash(order uint) (string, error) {
 // Return the hash range of block from 'start' to 'end'(exclude self)
 // if 'end' is equal to zero, 'start' is the number that from the last block to the Gen
 // if 'start' is greater than or equal to 'end', it will just return the hash of 'start'
-func (api *PublicBlockAPI) GetBlockhashByRange(start uint, end uint) ([]string, error) {
-	totalOrder := api.bm.chain.BestSnapshot().GraphState.GetMainOrder()
+func (api *PublicBlockAPI) GetBlockhashByRange(start int64, end int64) ([]string, error) {
+	totalOrder := int64(api.bm.chain.BestSnapshot().GraphState.GetMainOrder())
 	if start > totalOrder {
 		return nil, fmt.Errorf("startOrder(%d) is greater than or equal to the totalOrder(%d)", start, totalOrder)
 	}
 	result := []string{}
-	if start >= end && end != 0 {
+	if start >= end && end != 0 && end != LatestBlockOrder {
 		block, err := api.bm.chain.BlockByOrder(uint64(start))
 		if err != nil {
 			return nil, err
@@ -63,7 +70,7 @@ func (api *PublicBlockAPI) GetBlockhashByRange(start uint, end uint) ([]string, 
 		result = append(result, block.Hash().String())
 	} else if end == 0 {
 		for i := totalOrder; i >= 0; i-- {
-			if uint(len(result)) >= start {
+			if int64(len(result)) >= start {
 				break
 			}
 			block, err := api.bm.chain.BlockByOrder(uint64(i))
@@ -74,7 +81,7 @@ func (api *PublicBlockAPI) GetBlockhashByRange(start uint, end uint) ([]string, 
 		}
 	} else {
 		for i := start; i <= totalOrder; i++ {
-			if i > end {
+			if i > end && end != LatestBlockOrder {
 				break
 			}
 			block, err := api.bm.chain.BlockByOrder(uint64(i))
@@ -87,11 +94,17 @@ func (api *PublicBlockAPI) GetBlockhashByRange(start uint, end uint) ([]string, 
 	return result, nil
 }
 
-func (api *PublicBlockAPI) GetBlockByOrder(order uint64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
-	if uint(order) > api.bm.chain.BestSnapshot().GraphState.GetMainOrder() {
-		return nil, fmt.Errorf("Order is too big")
+func (api *PublicBlockAPI) GetBlockByOrder(order int64, verbose *bool, inclTx *bool, fullTx *bool) (interface{}, error) {
+	mainOrder := int64(api.bm.chain.BestSnapshot().GraphState.GetMainOrder())
+	if order == LatestBlockOrder {
+		order = mainOrder
+	} else {
+		if order > mainOrder {
+			return nil, fmt.Errorf("Order is too big")
+		}
 	}
-	blockHash, err := api.bm.chain.BlockHashByOrder(order)
+
+	blockHash, err := api.bm.chain.BlockHashByOrder(uint64(order))
 	if err != nil {
 		return nil, err
 	}
