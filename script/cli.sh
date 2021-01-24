@@ -253,7 +253,11 @@ function is_on_mainchain(){
 
 function get_block_template(){
   local capabilities=$1
-  local data='{"jsonrpc":"2.0","method":"getBlockTemplate","params":[["'$capabilities'"]],"id":1}'
+  local powtype=$2
+  if [ "$powtype" == "" ]; then
+    powtype=6
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockTemplate","params":[["'$capabilities'"],'$powtype'],"id":1}'
   get_result "$data"
 }
 
