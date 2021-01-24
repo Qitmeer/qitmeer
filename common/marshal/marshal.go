@@ -137,7 +137,8 @@ func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, par
 
 		var vout json.Vout
 		voutSPK := &vout.ScriptPubKey
-		vout.CoinId = v.Amount.Id.Name()
+		vout.Coin   = v.Amount.Id.Name()
+		vout.CoinId = uint16(v.Amount.Id)
 		vout.Amount = uint64(v.Amount.Value)
 		voutSPK.Addresses = encodedAddrs
 		voutSPK.Asm = disbuf
@@ -195,7 +196,8 @@ func MarshJsonCoinbaseVout(tx *types.Transaction, filterAddrMap map[string]struc
 
 		var vout json.Vout
 		voutSPK := &vout.ScriptPubKey
-		vout.CoinId = v.Amount.Id.Name()
+		vout.Coin   = v.Amount.Id.Name()
+		vout.CoinId = uint16(v.Amount.Id)
 		vout.Amount = uint64(coinbaseAmout[v.Amount.Id])
 		voutSPK.Addresses = encodedAddrs
 		voutSPK.Asm = disbuf
@@ -253,7 +255,7 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 			if amount <= 0 {
 				continue
 			}
-			fees = append(fees, json.Amout{CoinId: coinid.Name(), Amount: amount})
+			fees = append(fees, json.Amout{CoinId: uint16(coinid), Amount: amount})
 		}
 		if len(fees) > 0 {
 			fields = append(fields, json.KV{Key: "transactionfee", Val: fees})
