@@ -94,6 +94,7 @@ type GetBlockTemplateResult struct {
 	NonceRange string   `json:"noncerange,omitempty"`
 
 	// Block proposal from BIP 0023.
-	Capabilities  []string `json:"capabilities,omitempty"`
-	RejectReasion string   `json:"reject-reason,omitempty"`
+	Capabilities  []string      `json:"capabilities,omitempty"`
+	RejectReasion string        `json:"reject-reason,omitempty"`
+	BlockFeesMap  map[int]int64 `json:"block_fees_map"`
 }
