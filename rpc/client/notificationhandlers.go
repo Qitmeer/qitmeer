@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	j "github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"time"
 )
@@ -19,6 +20,8 @@ type NotificationHandlers struct {
 	OnBlockDisconnected func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction)
 	OnBlockAccepted     func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction)
 	OnReorganization    func(hash *hash.Hash, order int64, olds []*hash.Hash)
+	OnTxAccepted        func(hash *hash.Hash, amounts types.AmountGroup)
+	OnTxAcceptedVerbose func(tx *j.DecodeRawTransactionResult)
 
 	OnUnknownNotification func(method string, params []json.RawMessage)
 }
@@ -120,4 +123,51 @@ func parseReorganizationNtfnParams(params []json.RawMessage) (*hash.Hash, int64,
 	}
 
 	return blockHash, blockOrder, olds, nil
+}
+
+func parseTxAcceptedNtfnParams(params []json.RawMessage) (*hash.Hash,
+	types.AmountGroup, error) {
+
+	if len(params) != 2 {
+		return nil, nil, wrongNumParams(len(params))
+	}
+
+	// Unmarshal first parameter as a string.
+	var txHashStr string
+	err := json.Unmarshal(params[0], &txHashStr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Unmarshal second parameter as a floating point number.
+	var amouts types.AmountGroup
+	err = json.Unmarshal(params[1], &amouts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Decode string encoding of transaction sha.
+	txHash, err := hash.NewHashFromStr(txHashStr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return txHash, amouts, nil
+}
+
+func parseTxAcceptedVerboseNtfnParams(params []json.RawMessage) (*j.DecodeRawTransactionResult,
+	error) {
+
+	if len(params) != 1 {
+		return nil, wrongNumParams(len(params))
+	}
+
+	// Unmarshal first parameter as a raw transaction result object.
+	var rawTx j.DecodeRawTransactionResult
+	err := json.Unmarshal(params[0], &rawTx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rawTx, nil
 }

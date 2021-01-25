@@ -112,6 +112,23 @@ func NewGetMempoolCmd(txType string, verbose bool) *GetMempoolCmd {
 	}
 }
 
+// ws
+type NotifyNewTransactionsCmd struct {
+	Verbose bool
+}
+
+func NewNotifyNewTransactionsCmd(verbose bool) *NotifyNewTransactionsCmd {
+	return &NotifyNewTransactionsCmd{
+		Verbose: verbose,
+	}
+}
+
+type StopNotifyNewTransactionsCmd struct{}
+
+func NewStopNotifyNewTransactionsCmd() *StopNotifyNewTransactionsCmd {
+	return &StopNotifyNewTransactionsCmd{}
+}
+
 func init() {
 	flags := UsageFlag(0)
 
@@ -124,4 +141,8 @@ func init() {
 	MustRegisterCmd("txSign", (*TxSignCmd)(nil), flags, TestNameSpace)
 
 	MustRegisterCmd("getMempool", (*GetMempoolCmd)(nil), flags, DefaultServiceNameSpace)
+
+	// ws
+	MustRegisterCmd("notifynewtransactions", (*NotifyNewTransactionsCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
+	MustRegisterCmd("stopnotifynewtransactions", (*StopNotifyNewTransactionsCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
 }

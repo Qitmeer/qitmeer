@@ -332,6 +332,40 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 
 		c.ntfnHandlers.OnReorganization(blockHash, blockOrder, olds)
 
+		// OnTxAccepted
+	case cmds.TxAcceptedNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnTxAccepted == nil {
+			return
+		}
+
+		hash, amt, err := parseTxAcceptedNtfnParams(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid tx accepted "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnTxAccepted(hash, amt)
+
+	// OnTxAcceptedVerbose
+	case cmds.TxAcceptedVerboseNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnTxAcceptedVerbose == nil {
+			return
+		}
+
+		rawTx, err := parseTxAcceptedVerboseNtfnParams(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid tx accepted verbose "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnTxAcceptedVerbose(rawTx)
+
 	// OnUnknownNotification
 	default:
 		if c.ntfnHandlers.OnUnknownNotification == nil {
@@ -820,6 +854,14 @@ func (c *Client) reregisterNtfns() error {
 	if stateCopy.notifyBlocks {
 		log.Debug("Reregistering [notifyblocks]")
 		if err := c.NotifyBlocks(); err != nil {
+			return err
+		}
+	}
+	if stateCopy.notifyNewTx || stateCopy.notifyNewTxVerbose {
+		log.Debug(fmt.Sprintf("Reregistering [notifynewtransactions] (verbose=%v)",
+			stateCopy.notifyNewTxVerbose))
+		err := c.NotifyNewTransactions(stateCopy.notifyNewTxVerbose)
+		if err != nil {
 			return err
 		}
 	}

@@ -20,6 +20,10 @@ type NotifyMgr struct {
 func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.TxDesc) {
 	// reply to p2p
 	ntmgr.RelayInventory(newTxs)
+
+	if ntmgr.RpcServer != nil {
+		ntmgr.RpcServer.NotifyNewTransactions(newTxs)
+	}
 }
 
 // RelayInventory relays the passed inventory vector to all connected peers
