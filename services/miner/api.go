@@ -434,6 +434,10 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 	diffBig := pow.CompactToBig(template.Difficulty)
 	target := fmt.Sprintf("%064x", diffBig)
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, state.lastGenerated)
+	blockFeeMap := map[int]int64{}
+	for coinid, val := range template.BlockFeesMap {
+		blockFeeMap[int(coinid)] = val
+	}
 	reply := json.GetBlockTemplateResult{
 		StateRoot:    template.Block.Header.StateRoot.String(),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
@@ -462,6 +466,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		NonceRange: gbtNonceRange,
 		// TODO, Capabilities
 		Capabilities: gbtCapabilities,
+		BlockFeesMap: blockFeeMap,
 	}
 
 	if useCoinbaseValue {

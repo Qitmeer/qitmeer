@@ -444,6 +444,7 @@ mempoolLoop:
 		Blues:           blues,
 		ValidPayAddress: payToAddress != nil,
 		Difficulty:      reqCompactDifficulty,
+		BlockFeesMap:    blockFeesMap,
 	}
 	return handleCreatedBlockTemplate(blockTemplate, blockManager)
 }
