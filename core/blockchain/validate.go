@@ -1157,22 +1157,27 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		len(totalAtomOut) > len(types.CoinIDList) {
 		return nil, fmt.Errorf("transaction contains unknown or unbalanced coin types")
 	}
-	// Ensure the transaction does not spend more than its inputs.
-	for _, coinId := range types.CoinIDList {
-		if totalAtomIn[coinId] < totalAtomOut[coinId] {
-			str := fmt.Sprintf("total %s value of all transaction inputs for "+
-				"transaction %v is %v which is less than the amount "+
-				"spent of %v", coinId.Name(), txHash, totalAtomIn[coinId], totalAtomOut[coinId])
-			return nil, ruleError(ErrSpendTooHigh, str)
-		}
-	}
 
 	allFees := make(map[types.CoinID]int64)
 	for _, coinId := range types.CoinIDList {
-		txFeeInAtom := totalAtomIn[coinId] - totalAtomOut[coinId]
-		allFees[coinId] = txFeeInAtom
-	}
+		atomin, okin := totalAtomIn[coinId]
+		atomout, okout := totalAtomOut[coinId]
+		if !okin && !okout {
+			continue
+		} else if !(okin && okout) {
+			str := fmt.Sprintf("transaction output CoinID does not match input. (%s)", coinId.Name())
+			return nil, ruleError(ErrInvalidTxOutValue, str)
+		}
 
+		// Ensure the transaction does not spend more than its inputs.
+		if atomin < atomout {
+			str := fmt.Sprintf("total %s value of all transaction inputs for "+
+				"transaction %v is %v which is less than the amount "+
+				"spent of %v", coinId.Name(), txHash, atomin, atomout)
+			return nil, ruleError(ErrSpendTooHigh, str)
+		}
+		allFees[coinId] = atomin - atomout
+	}
 	return allFees, nil
 }
 
