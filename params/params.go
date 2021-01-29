@@ -238,10 +238,13 @@ type Params struct {
 	// TODO revisit the org-pkscript design
 	OrganizationPkScript []byte
 
-	//DAG
+	// DAG
 	BlockDelay    float64
 	BlockRate     float64
 	SecurityLevel float64
+
+	// Coin config
+	CoinsCfg *types.CoinConfigs
 }
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax

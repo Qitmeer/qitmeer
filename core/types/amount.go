@@ -60,6 +60,8 @@ type CoinID uint16
 const (
 	MEERID CoinID = 0
 	QITID  CoinID = 1
+	METID  CoinID = 2 // TODO The future needs to be redefined or deleted
+	TERID  CoinID = 3 // TODO The future needs to be redefined or deleted
 )
 
 func (c CoinID) Name() string {
