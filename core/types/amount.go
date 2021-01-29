@@ -70,6 +70,10 @@ func (c CoinID) Name() string {
 		return "MEER"
 	case QITID:
 		return "QIT"
+	case METID:
+		return "METID"
+	case TERID:
+		return "TERID"
 	default:
 		return "Unknown-CoinID:" + strconv.FormatInt(int64(c), 10)
 	}
@@ -81,7 +85,7 @@ func (c CoinID) Bytes() []byte {
 }
 
 var CoinIDList = []CoinID{
-	MEERID, QITID,
+	MEERID, QITID, METID, TERID,
 }
 
 // Check if a valid coinId, current only check if the coinId is known.
