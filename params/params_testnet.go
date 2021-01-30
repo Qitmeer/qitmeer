@@ -138,7 +138,7 @@ var TestNetParams = Params{
 		},
 		&types.CoinConfig{
 			Id:    types.TERID,
-			Type:  types.EqualFreeType,
+			Type:  types.EqualFeeType,
 			Value: types.AtomsPerCoin,
 		},
 	},

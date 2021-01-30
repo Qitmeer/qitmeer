@@ -11,7 +11,7 @@ func Test_CoinConfigs(t *testing.T) {
 		},
 		&CoinConfig{
 			Id:    TERID,
-			Type:  EqualFreeType,
+			Type:  EqualFeeType,
 			Value: AtomsPerCoin,
 		},
 	}
