@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"sort"
 	"testing"
-
 )
 
 func TestAmountCreation(t *testing.T) {
@@ -27,25 +26,25 @@ func TestAmountCreation(t *testing.T) {
 			name:     "zero",
 			amount:   0,
 			valid:    true,
-			expected: Amount{0,MEERID},
+			expected: Amount{0, MEERID},
 		},
 		{
 			name:     "max producable",
 			amount:   21e6,
 			valid:    true,
-			expected: Amount{MaxAmount,MEERID},
+			expected: Amount{MaxAmount, MEERID},
 		},
 		{
 			name:     "min producable",
 			amount:   -21e6,
 			valid:    true,
-			expected: Amount{-MaxAmount,MEERID},
+			expected: Amount{-MaxAmount, MEERID},
 		},
 		{
 			name:     "exceeds max producable",
 			amount:   21e6 + 1e-8,
 			valid:    true,
-			expected: Amount{MaxAmount + 1,MEERID},
+			expected: Amount{MaxAmount + 1, MEERID},
 		},
 		{
 			name:     "exceeds min producable",
@@ -63,13 +62,13 @@ func TestAmountCreation(t *testing.T) {
 			name:     "fraction",
 			amount:   0.01234567,
 			valid:    true,
-			expected: Amount{1234567,MEERID},
+			expected: Amount{1234567, MEERID},
 		},
 		{
 			name:     "rounding up",
 			amount:   54.999999999999943157,
 			valid:    true,
-			expected: Amount{55 * AtomsPerCoin,MEERID},
+			expected: Amount{55 * AtomsPerCoin, MEERID},
 		},
 		{
 			name:     "rounding down",
@@ -124,28 +123,28 @@ func TestAmountUnitConversions(t *testing.T) {
 	}{
 		{
 			name:      "MMEER",
-			amount:    Amount{MaxAmount,MEERID},
+			amount:    Amount{MaxAmount, MEERID},
 			unit:      AmountMegaCoin,
 			converted: 21,
 			s:         "21 MMEER",
 		},
 		{
 			name:      "kMEER",
-			amount:    Amount{44433322211100,MEERID},
+			amount:    Amount{44433322211100, MEERID},
 			unit:      AmountKiloCoin,
 			converted: 444.33322211100,
 			s:         "444.333222111 kMEER",
 		},
 		{
 			name:      "MEER",
-			amount:    Amount{44433322211100,MEERID},
+			amount:    Amount{44433322211100, MEERID},
 			unit:      AmountCoin,
 			converted: 444333.22211100,
 			s:         "444333.222111 MEER",
 		},
 		{
 			name:      "mMEER",
-			amount:    Amount{44433322211100,MEERID},
+			amount:    Amount{44433322211100, MEERID},
 			unit:      AmountMilliCoin,
 			converted: 444333222.11100,
 			s:         "444333222.111 mMEER",
@@ -153,7 +152,7 @@ func TestAmountUnitConversions(t *testing.T) {
 		{
 
 			name:      "μMEER",
-			amount:    Amount{44433322211100,MEERID},
+			amount:    Amount{44433322211100, MEERID},
 			unit:      AmountMicroCoin,
 			converted: 444333222111.00,
 			s:         "444333222111 μMEER",
@@ -161,7 +160,7 @@ func TestAmountUnitConversions(t *testing.T) {
 		{
 
 			name:      "atom",
-			amount:    Amount{44433322211100,MEERID},
+			amount:    Amount{44433322211100, MEERID},
 			unit:      AmountAtom,
 			converted: 44433322211100,
 			s:         "44433322211100 atomMEER",
@@ -169,7 +168,7 @@ func TestAmountUnitConversions(t *testing.T) {
 		{
 
 			name:      "non-standard unit",
-			amount:    Amount{44433322211100,MEERID},
+			amount:    Amount{44433322211100, MEERID},
 			unit:      AmountUnit(-1),
 			converted: 4443332.2211100,
 			s:         "4443332.22111 1e-1 MEER",
@@ -228,11 +227,11 @@ func TestAmountMulF64(t *testing.T) {
 			name: "Multiply 0.1 MEER by -2",
 			amt:  Amount{100e5, MEERID}, // 0.1 MEER
 			mul:  -2,
-			res:  Amount{-200e5,MEERID}, // -0.2 MEER
+			res:  Amount{-200e5, MEERID}, // -0.2 MEER
 		},
 		{
 			name: "Multiply 0.2 MEER by -0.02",
-			amt:  Amount{200e5,MEERID}, // 0.2 MEER
+			amt:  Amount{200e5, MEERID}, // 0.2 MEER
 			mul:  -1.02,
 			res:  Amount{-204e5, MEERID}, // -0.204 MEER
 		},
@@ -240,7 +239,7 @@ func TestAmountMulF64(t *testing.T) {
 			name: "Multiply -0.1 MEER by 2",
 			amt:  Amount{-100e5, MEERID}, // -0.1 MEER
 			mul:  2,
-			res:  Amount{-200e5,MEERID}, // -0.2 MEER
+			res:  Amount{-200e5, MEERID}, // -0.2 MEER
 		},
 		{
 			name: "Multiply -0.2 MEER by 0.02",
@@ -258,13 +257,13 @@ func TestAmountMulF64(t *testing.T) {
 			name: "Multiply -0.2 MEER by -0.02",
 			amt:  Amount{-200e5, MEERID}, // -0.2 MEER
 			mul:  -1.02,
-			res:  Amount{204e5,MEERID}, // 0.204 MEER
+			res:  Amount{204e5, MEERID}, // 0.204 MEER
 		},
 		{
 			name: "Round down",
-			amt:  Amount{49, MEERID},// 49 Atoms MEER
+			amt:  Amount{49, MEERID}, // 49 Atoms MEER
 			mul:  0.01,
-			res:  Amount{0,MEERID},
+			res:  Amount{0, MEERID},
 		},
 		{
 			name: "Round up",
@@ -294,7 +293,7 @@ func TestAmountMulF64(t *testing.T) {
 			name: "Multiply 100 by 66.6%.",
 			amt:  Amount{100, MEERID}, // 100 Atom MEER
 			mul:  0.666,
-			res:  Amount{67,MEERID}, // 67 Atom MEER
+			res:  Amount{67, MEERID}, // 67 Atom MEER
 		},
 		{
 			name: "Multiply 100 by 2/3.",
@@ -325,30 +324,30 @@ func TestAmountSorter(t *testing.T) {
 		},
 		{
 			name: "Sort 1-element slice of Amounts",
-			as:   []Amount{{7,MEERID}},
-			want: []Amount{{7,MEERID}},
+			as:   []Amount{{7, MEERID}},
+			want: []Amount{{7, MEERID}},
 		},
 		{
 			name: "Sort 2-element slice of Amounts",
-			as:   []Amount{{7, MEERID},{5,MEERID}},
-			want: []Amount{{5,MEERID}, {7, MEERID}},
+			as:   []Amount{{7, MEERID}, {5, MEERID}},
+			want: []Amount{{5, MEERID}, {7, MEERID}},
 		},
 		{
 			name: "Sort 6-element slice of Amounts",
-			as:   []Amount{
-				{0,MEERID},
-				{9e8,MEERID},
-				{4e6,MEERID},
-				{4e6,MEERID},
-				{3,MEERID},
-				{9e12,MEERID}},
+			as: []Amount{
+				{0, MEERID},
+				{9e8, MEERID},
+				{4e6, MEERID},
+				{4e6, MEERID},
+				{3, MEERID},
+				{9e12, MEERID}},
 			want: []Amount{
-				{0,MEERID},
-				{3,MEERID},
-				{4e6,MEERID},
-				{4e6,MEERID},
-				{9e8,MEERID},
-				{9e12,MEERID}},
+				{0, MEERID},
+				{3, MEERID},
+				{4e6, MEERID},
+				{4e6, MEERID},
+				{9e8, MEERID},
+				{9e12, MEERID}},
 		},
 	}
 
@@ -364,48 +363,47 @@ func TestAmountSorter(t *testing.T) {
 	}
 }
 
-func TestCheckCoinID (t *testing.T) {
-	tests := []struct{
-		name string
+func TestCheckCoinID(t *testing.T) {
+	tests := []struct {
+		name   string
 		expect bool
 		coinId CoinID
 	}{
 		{"meer", true, CoinID(0)},
 		{"qit", true, CoinID(1)},
-		{"unknow", false, CoinID(2)},
+		{"unknow", false, CoinID(4)},
 	}
 
 	for i, test := range tests {
-		err :=CheckCoinID(test.coinId)
+		err := CheckCoinID(test.coinId)
 		if test.expect == true && err != nil {
-			t.Errorf("failed test[%d]:[%v] Check [%v] expect ok, but got err: %v",i,test.name, test.coinId, err)
+			t.Errorf("failed test[%d]:[%v] Check [%v] expect ok, but got err: %v", i, test.name, test.coinId, err)
 		}
 		if test.expect == false && err == nil {
-			t.Errorf("failed test[%d]:[%v] Check [%v] expect failure, but got no err.",i,test.name, test.coinId)
+			t.Errorf("failed test[%d]:[%v] Check [%v] expect failure, but got no err.", i, test.name, test.coinId)
 		}
 	}
 }
 
 func TestCoinID_Bytes(t *testing.T) {
-	tests := []struct{
-		id CoinID
-		byte []byte
+	tests := []struct {
+		id    CoinID
+		byte  []byte
 		equal bool
 	}{
-		{  CoinID(0),[]byte{0x0,0x0}, true},
-		{CoinID(1),[]byte{0x1,0x0}, true},
-		{CoinID(2), []byte{0x2,0x0}, true},
-		{CoinID(2), []byte{0x0,0x2}, false},
-		{CoinID(2), []byte{0x2,0x0,0x0,0x0}, false},
-		{CoinID(255), []byte{0xff,0x00}, true},
-		{CoinID(256), []byte{0x00,0x01}, true},
-		{CoinID(65535), []byte{0xff,0xff}, true},
+		{CoinID(0), []byte{0x0, 0x0}, true},
+		{CoinID(1), []byte{0x1, 0x0}, true},
+		{CoinID(2), []byte{0x2, 0x0}, true},
+		{CoinID(2), []byte{0x0, 0x2}, false},
+		{CoinID(2), []byte{0x2, 0x0, 0x0, 0x0}, false},
+		{CoinID(255), []byte{0xff, 0x00}, true},
+		{CoinID(256), []byte{0x00, 0x01}, true},
+		{CoinID(65535), []byte{0xff, 0xff}, true},
 	}
 	for _, test := range tests {
-		if equal := bytes.Compare(test.id.Bytes(),test.byte); equal == 0 != test.equal {
+		if equal := bytes.Compare(test.id.Bytes(), test.byte); equal == 0 != test.equal {
 			t.Errorf("failed on test %v == %v is %v", test.id, test.byte, test.equal)
 		}
 	}
 
 }
-
