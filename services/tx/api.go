@@ -47,8 +47,18 @@ func NewPublicTxAPI(tm *TxManager) *PublicTxAPI {
 	return &ptapi
 }
 
-func (api *PublicTxAPI) CreateRawTransaction(inputs []json.TransactionInput,
-	amounts json.Amounts, lockTime *int64) (interface{}, error) {
+func (api *PublicTxAPI) CreateRawTransaction(inputs []json.TransactionInput, amounts json.Amounts, lockTime *int64) (interface{}, error) {
+	aa := json.AdreesAmount{}
+	if len(amounts) > 0 {
+		for k, v := range amounts {
+			aa[k] = json.Amout{CoinId: uint16(types.MEERID), Amount: int64(v)}
+		}
+	}
+	return api.CreateRawTransactionV2(inputs, aa, lockTime)
+}
+
+func (api *PublicTxAPI) CreateRawTransactionV2(inputs []json.TransactionInput,
+	amounts json.AdreesAmount, lockTime *int64) (interface{}, error) {
 
 	// Validate the locktime, if given.
 	if lockTime != nil &&
@@ -76,11 +86,15 @@ func (api *PublicTxAPI) CreateRawTransaction(inputs []json.TransactionInput,
 	// some validity checks.
 	for encodedAddr, amount := range amounts {
 		// Ensure amount is in the valid range for monetary amounts.
-		if amount <= 0 || amount > types.MaxAmount {
+		if amount.Amount <= 0 || amount.Amount > types.MaxAmount {
 			return nil, rpc.RpcInvalidError("Invalid amount: 0 >= %v "+
 				"> %v", amount, types.MaxAmount)
 		}
 
+		err := types.CheckCoinID(types.CoinID(amount.CoinId))
+		if err != nil {
+			return nil, rpc.RpcInvalidError(err.Error())
+		}
 		// Decode the provided address.
 		addr, err := address.DecodeAddress(encodedAddr)
 		if err != nil {
@@ -109,7 +123,7 @@ func (api *PublicTxAPI) CreateRawTransaction(inputs []json.TransactionInput,
 				"Pay to address script")
 		}
 
-		txOut := types.NewTxOutput(types.Amount{Value: int64(amount), Id: types.MEERID}, pkScript)
+		txOut := types.NewTxOutput(types.Amount{Value: amount.Amount, Id: types.CoinID(amount.CoinId)}, pkScript)
 		mtx.AddTxOut(txOut)
 	}
 

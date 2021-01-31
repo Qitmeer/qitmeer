@@ -322,6 +322,13 @@ mempoolLoop:
 			logSkippedDeps(tx, deps)
 			continue
 		}
+		err = blockManager.GetChain().CheckTransactionFee(txFeesMap)
+		if err != nil {
+			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
+				"CheckTransactionFee: %v", tx.Hash(), err))
+			logSkippedDeps(tx, deps)
+			continue
+		}
 		err = blockchain.ValidateTransactionScripts(tx, blockUtxos,
 			scriptFlags, sigCache)
 		if err != nil {

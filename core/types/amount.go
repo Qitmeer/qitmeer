@@ -60,6 +60,8 @@ type CoinID uint16
 const (
 	MEERID CoinID = 0
 	QITID  CoinID = 1
+	METID  CoinID = 2 // TODO The future needs to be redefined or deleted
+	TERID  CoinID = 3 // TODO The future needs to be redefined or deleted
 )
 
 func (c CoinID) Name() string {
@@ -68,6 +70,10 @@ func (c CoinID) Name() string {
 		return "MEER"
 	case QITID:
 		return "QIT"
+	case METID:
+		return "METID"
+	case TERID:
+		return "TERID"
 	default:
 		return "Unknown-CoinID:" + strconv.FormatInt(int64(c), 10)
 	}
@@ -79,7 +85,7 @@ func (c CoinID) Bytes() []byte {
 }
 
 var CoinIDList = []CoinID{
-	MEERID, QITID,
+	MEERID, QITID, METID, TERID,
 }
 
 // Check if a valid coinId, current only check if the coinId is known.
