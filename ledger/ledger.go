@@ -94,6 +94,8 @@ func Ledger(tx *types.Transaction, netType protocol.Network) {
 		initMain()
 	case protocol.TestNet:
 		initTest()
+	case protocol.MixNet:
+		initMix()
 	case protocol.PrivNet:
 		initPriv()
 	}
