@@ -130,11 +130,11 @@ var MixNetParams = Params{
 		&types.CoinConfig{
 			Id:    types.MEERID,
 			Type:  types.FloorFeeType,
-			Value: 1,
+			Value: 0,
 		},
 		&types.CoinConfig{
 			Id:    types.QITID,
-			Type:  types.FloorFeeType,
+			Type:  types.EqualFeeType,
 			Value: 0,
 		},
 		&types.CoinConfig{
