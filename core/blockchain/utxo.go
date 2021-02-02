@@ -43,8 +43,8 @@ const (
 //
 // The struct is aligned for memory efficiency.
 type UtxoEntry struct {
-	amount      uint64 // The amount of the output.
-	pkScript    []byte // The public key script for the output.
+	amount      types.Amount // The amount of the output.
+	pkScript    []byte       // The public key script for the output.
 	blockHash   hash.Hash
 	packedFlags txoFlags
 }
@@ -85,7 +85,7 @@ func (entry *UtxoEntry) Spend() {
 }
 
 // Amount returns the amount of the output.
-func (entry *UtxoEntry) Amount() uint64 {
+func (entry *UtxoEntry) Amount() types.Amount {
 	return entry.amount
 }
 
@@ -404,15 +404,18 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blo
 		// in the utxo set.
 		var stxo = SpentTxOut{
 			Amount:     entry.Amount(),
-			Fees:       0,
+			Fees:       types.Amount{Value: 0, Id: entry.Amount().Id},
 			PkScript:   entry.PkScript(),
 			BlockHash:  entry.blockHash,
 			IsCoinBase: entry.IsCoinBase(),
 			TxIndex:    uint32(tx.Index()),
 			TxInIndex:  uint32(txInIndex),
 		}
-		if stxo.IsCoinBase && txIn.PreviousOut.OutIndex == 0 {
-			stxo.Fees = uint64(bc.GetFees(&stxo.BlockHash))
+		if stxo.IsCoinBase && !entry.BlockHash().IsEqual(bc.params.GenesisHash) {
+			if txIn.PreviousOut.OutIndex == CoinbaseOutput_subsidy ||
+				entry.Amount().Id != types.MEERID {
+				stxo.Fees.Value = bc.GetFeeByCoinID(&stxo.BlockHash, stxo.Fees.Id)
+			}
 		}
 		// Append the entry to the provided spent txouts slice.
 		*stxos = append(*stxos, stxo)
@@ -678,6 +681,8 @@ func dbPutUtxoView(dbTx database.Tx, view *UtxoViewpoint) error {
 	return nil
 }
 
+const UtxoEntryAmountCoinIDSize = 2
+
 // deserializeUtxoEntry decodes a utxo entry from the passed serialized byte
 // slice into a new UtxoEntry using a format that is suitable for long-term
 // storage.  The format is described in detail above.
@@ -700,6 +705,10 @@ func DeserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 			"utxo: %v", err))
 	}
 	offset += hash.HashSize
+	// Decode amount coinId
+	// Decode amount coinId
+	amountCoinId := byteOrder.Uint16(serialized[offset : offset+SpentTxoutAmountCoinIDSize])
+	offset += SpentTxoutAmountCoinIDSize
 	// Decode the compressed unspent transaction output.
 	amount, pkScript, _, err := decodeCompressedTxOut(serialized[offset:])
 	if err != nil {
@@ -708,7 +717,7 @@ func DeserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 	}
 
 	entry := &UtxoEntry{
-		amount:      amount,
+		amount:      types.Amount{Value: int64(amount), Id: types.CoinID(amountCoinId)},
 		pkScript:    pkScript,
 		blockHash:   *blockHash,
 		packedFlags: 0,
@@ -733,8 +742,8 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 	}
 
 	// Calculate the size needed to serialize the entry.
-	size := serializeSizeVLQ(headerCode) + hash.HashSize +
-		compressedTxOutSize(uint64(entry.Amount()), entry.PkScript())
+	size := serializeSizeVLQ(headerCode) + hash.HashSize + UtxoEntryAmountCoinIDSize +
+		compressedTxOutSize(uint64(entry.Amount().Value), entry.PkScript())
 
 	// Serialize the header code followed by the compressed unspent
 	// transaction output.
@@ -742,7 +751,10 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 	offset := putVLQ(serialized, headerCode)
 	copy(serialized[offset:offset+hash.HashSize], entry.blockHash.Bytes())
 	offset += hash.HashSize
-	putCompressedTxOut(serialized[offset:], uint64(entry.Amount()),
+	// add Amount coinId
+	byteOrder.PutUint16(serialized[offset:], uint16(entry.Amount().Id))
+	offset += SpentTxoutAmountCoinIDSize
+	putCompressedTxOut(serialized[offset:], uint64(entry.Amount().Value),
 		entry.PkScript())
 
 	return serialized, nil

@@ -7,6 +7,7 @@
 package mining
 
 import (
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/merkle"
@@ -118,7 +119,7 @@ func standardCoinbaseOpReturn(enData []byte) ([]byte, error) {
 //
 // See the comment for NewBlockTemplate for more information about why the nil
 // address handling is useful.
-func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, opReturnPkScript []byte, nextBlocks int64, addr types.Address, params *params.Params) (*types.Tx, error) {
+func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, nextBlocks int64, addr types.Address, params *params.Params) (*types.Tx, *types.TxOutput, error) {
 	tx := types.NewTransaction()
 	tx.AddTxIn(&types.TxInput{
 		// Coinbase transactions have no inputs, so previous outpoint is
@@ -144,13 +145,13 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	if addr != nil {
 		pksSubsidy, err = txscript.PayToAddrScript(addr)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		scriptBuilder := txscript.NewScriptBuilder()
 		pksSubsidy, err = scriptBuilder.AddOp(txscript.OP_TRUE).Script()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	if !params.HasTax() {
@@ -159,25 +160,19 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	}
 	// Subsidy paid to miner.
 	tx.AddTxOut(&types.TxOutput{
-		Amount:   subsidy,
+		Amount:   types.Amount{Value: int64(subsidy), Id: types.MEERID},
 		PkScript: pksSubsidy,
 	})
 
 	// Tax output.
+	var taxOutput *types.TxOutput
 	if params.HasTax() {
-		tx.AddTxOut(&types.TxOutput{
-			Amount:   uint64(tax),
+		taxOutput = &types.TxOutput{
+			Amount:   types.Amount{Value: int64(tax), Id: types.MEERID},
 			PkScript: params.OrganizationPkScript,
-		})
+		}
 	}
-	// nulldata.
-	if opReturnPkScript != nil {
-		tx.AddTxOut(&types.TxOutput{
-			Amount:   0,
-			PkScript: opReturnPkScript,
-		})
-	}
-	return types.NewTx(tx), nil
+	return types.NewTx(tx), taxOutput, nil
 }
 
 func BlockVersion(net protocol.Network) uint32 {
@@ -199,5 +194,24 @@ func fillWitnessToCoinBase(blockTxns []*types.Tx) error {
 	witnessCommitment := hash.DoubleHashH(witnessPreimage[:])
 	blockTxns[0].Tx.TxIn[0].PreviousOut.Hash = witnessCommitment
 	blockTxns[0].RefreshHash()
+	return nil
+}
+
+func fillOutputsToCoinBase(coinbaseTx *types.Tx, blockFeesMap types.AmountMap, taxOutput *types.TxOutput) error {
+	if len(coinbaseTx.Tx.TxOut) != blockchain.CoinbaseOutput_subsidy+1 {
+		return fmt.Errorf("coinbase output error")
+	}
+	for k, v := range blockFeesMap {
+		if v <= 0 || k == types.MEERID {
+			continue
+		}
+		coinbaseTx.Tx.AddTxOut(&types.TxOutput{
+			Amount:   types.Amount{Value: 0, Id: k},
+			PkScript: coinbaseTx.Tx.TxOut[0].GetPkScript(),
+		})
+	}
+	if taxOutput != nil {
+		coinbaseTx.Tx.AddTxOut(taxOutput)
+	}
 	return nil
 }

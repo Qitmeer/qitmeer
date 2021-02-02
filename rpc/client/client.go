@@ -274,14 +274,14 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 			return
 		}
 
-		blockHash, blockOrder, blockTime, err := parseChainNtfnParams(ntfn.Params)
+		blockHash, blockOrder, blockTime, txs, err := parseChainNtfnParams(ntfn.Params)
 		if err != nil {
 			log.Warn(fmt.Sprintf("Received invalid block connected "+
 				"notification: %v", err))
 			return
 		}
 
-		c.ntfnHandlers.OnBlockConnected(blockHash, blockOrder, blockTime)
+		c.ntfnHandlers.OnBlockConnected(blockHash, blockOrder, blockTime, txs)
 
 	// OnBlockDisconnected
 	case cmds.BlockDisconnectedNtfnMethod:
@@ -291,14 +291,80 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 			return
 		}
 
-		blockHash, blockOrder, blockTime, err := parseChainNtfnParams(ntfn.Params)
+		blockHash, blockOrder, blockTime, txs, err := parseChainNtfnParams(ntfn.Params)
 		if err != nil {
 			log.Warn(fmt.Sprintf("Received invalid block connected "+
 				"notification: %v", err))
 			return
 		}
 
-		c.ntfnHandlers.OnBlockDisconnected(blockHash, blockOrder, blockTime)
+		c.ntfnHandlers.OnBlockDisconnected(blockHash, blockOrder, blockTime, txs)
+
+	case cmds.BlockAcceptedNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnBlockAccepted == nil {
+			return
+		}
+
+		blockHash, blockOrder, blockTime, txs, err := parseChainNtfnParams(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid block accepted "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnBlockAccepted(blockHash, blockOrder, blockTime, txs)
+
+	case cmds.ReorganizationNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnReorganization == nil {
+			return
+		}
+
+		blockHash, blockOrder, olds, err := parseReorganizationNtfnParams(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid block reorganization "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnReorganization(blockHash, blockOrder, olds)
+
+		// OnTxAccepted
+	case cmds.TxAcceptedNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnTxAccepted == nil {
+			return
+		}
+
+		hash, amt, err := parseTxAcceptedNtfnParams(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid tx accepted "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnTxAccepted(hash, amt)
+
+	// OnTxAcceptedVerbose
+	case cmds.TxAcceptedVerboseNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnTxAcceptedVerbose == nil {
+			return
+		}
+
+		rawTx, err := parseTxAcceptedVerboseNtfnParams(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid tx accepted verbose "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnTxAcceptedVerbose(rawTx)
 
 	// OnUnknownNotification
 	default:
@@ -788,6 +854,14 @@ func (c *Client) reregisterNtfns() error {
 	if stateCopy.notifyBlocks {
 		log.Debug("Reregistering [notifyblocks]")
 		if err := c.NotifyBlocks(); err != nil {
+			return err
+		}
+	}
+	if stateCopy.notifyNewTx || stateCopy.notifyNewTxVerbose {
+		log.Debug(fmt.Sprintf("Reregistering [notifynewtransactions] (verbose=%v)",
+			stateCopy.notifyNewTxVerbose))
+		err := c.NotifyNewTransactions(stateCopy.notifyNewTxVerbose)
+		if err != nil {
 			return err
 		}
 	}

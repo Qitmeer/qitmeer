@@ -112,6 +112,9 @@ type BlockChain struct {
 
 	// Cache Invalid tx
 	CacheInvalidTx bool
+
+	// cache notification
+	CacheNotifications []*Notification
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -267,6 +270,7 @@ func New(config *Config) (*BlockChain, error) {
 		orphans:            make(map[hash.Hash]*orphanBlock),
 		BlockVersion:       config.BlockVersion,
 		CacheInvalidTx:     config.CacheInvalidTx,
+		CacheNotifications: []*Notification{},
 	}
 	b.subsidyCache = NewSubsidyCache(0, b.params)
 
@@ -995,6 +999,15 @@ func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 
 func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *list.List, newBlock *types.SerializedBlock) error {
 	node := b.index.LookupNode(newBlock.Hash())
+	oldBlocks := []*hash.Hash{}
+	for _, n := range detachNodes {
+		oldBlocks = append(oldBlocks, n.GetHash())
+	}
+	b.sendNotification(Reorganization, &ReorganizationNotifyData{
+		OldBlocks: oldBlocks,
+		NewBlock:  newBlock.Hash(),
+		NewOrder:  node.GetOrder(),
+	})
 	// Why the old order is the order that was removed by the new block, because the new block
 	// must be one of the tip of the dag.This is very important for the following understanding.
 	// In the two case, the perspective is the same.In the other words, the future can not
@@ -1254,54 +1267,66 @@ func (b *BlockChain) CalculateDAGDuplicateTxs(block *types.SerializedBlock) {
 	}
 }
 
-func (b *BlockChain) CalculateFees(block *types.SerializedBlock) int64 {
+func (b *BlockChain) CalculateFees(block *types.SerializedBlock) types.AmountMap {
 	transactions := block.Transactions()
-	var totalAtomOut int64
+	totalAtomOut := types.AmountMap{}
 	for i, tx := range transactions {
 		if i == 0 || tx.Tx.IsCoinBase() || tx.IsDuplicate {
 			continue
 		}
 		for _, txOut := range tx.Transaction().TxOut {
-			totalAtomOut += int64(txOut.Amount)
+			totalAtomOut[txOut.Amount.Id] += int64(txOut.Amount.Value)
 		}
 	}
 	spentTxos, err := b.fetchSpendJournal(block)
 	if err != nil {
-		return 0
+		return nil
 	}
-	var totalAtomIn int64
+	totalAtomIn := types.AmountMap{}
 	if spentTxos != nil {
 		for _, st := range spentTxos {
 			if transactions[st.TxIndex].IsDuplicate {
 				continue
 			}
-			totalAtomIn += int64(st.Amount + st.Fees)
+			totalAtomIn[st.Amount.Id] += int64(st.Amount.Value + st.Fees.Value)
 		}
-		totalFees := totalAtomIn - totalAtomOut
-		if totalFees < 0 {
-			totalFees = 0
+
+		totalFees := types.AmountMap{}
+		for _, coinId := range types.CoinIDList {
+			totalFees[coinId] = totalAtomIn[coinId] - totalAtomOut[coinId]
+			if totalFees[coinId] < 0 {
+				totalFees[coinId] = 0
+			}
 		}
 		return totalFees
 	}
-	return 0
+	return nil
 }
 
 // GetFees
-func (b *BlockChain) GetFees(h *hash.Hash) int64 {
+func (b *BlockChain) GetFees(h *hash.Hash) types.AmountMap {
 	ib := b.bd.GetBlock(h)
 	if ib == nil {
-		return 0
+		return nil
 	}
 	if BlockStatus(ib.GetStatus()).KnownInvalid() {
-		return 0
+		return nil
 	}
 	block, err := b.FetchBlockByHash(h)
 	if err != nil {
-		return 0
+		return nil
 	}
 	b.CalculateDAGDuplicateTxs(block)
 
 	return b.CalculateFees(block)
+}
+
+func (b *BlockChain) GetFeeByCoinID(h *hash.Hash, coinId types.CoinID) int64 {
+	fees := b.GetFees(h)
+	if fees == nil {
+		return 0
+	}
+	return fees[coinId]
 }
 
 func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {

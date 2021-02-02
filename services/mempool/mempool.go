@@ -344,7 +344,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Also returns the fees associated with the transaction which will be
 	// used later.  The fraud proof is not checked because it will be
 	// filled in by the miner.
-	txFee, err := mp.cfg.BC.CheckTransactionInputs(tx, utxoView) //TODO fix type conversion
+	txFees, err := mp.cfg.BC.CheckTransactionInputs(tx, utxoView) //TODO fix type conversion
 	if err != nil {
 		if cerr, ok := err.(blockchain.RuleError); ok {
 			return nil, nil, chainRuleError(cerr)
@@ -352,6 +352,10 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, nil, err
 	}
 
+	err = mp.cfg.BC.CheckTransactionFee(txFees)
+	if err != nil {
+		return nil, nil, err
+	}
 	// Don't allow transactions with non-standard inputs if the mempool config
 	// forbids their acceptance and relaying.
 	if !mp.cfg.Policy.AcceptNonStd {
@@ -396,12 +400,18 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 
 	// Don't allow transactions with fees too low to get into a mined block.
 	serializedSize := int64(msgTx.SerializeSize())
+
 	minFee := calcMinRequiredTxRelayFee(serializedSize,
 		mp.cfg.Policy.MinRelayTxFee)
+
+	txFee := int64(0)
+	if txFees != nil {
+		txFee = txFees[types.MEERID]
+	}
 	if txFee < minFee {
 		str := fmt.Sprintf("transaction %v has %v fees which "+
-			"is under the required amount of %v", txHash,
-			txFee, minFee)
+			"is under the required amount of %v, tx size is %v bytes, policy-rate is %v/byte.", txHash,
+			txFee, minFee, serializedSize, mp.cfg.Policy.MinRelayTxFee.Value/1000)
 		return nil, nil, txRuleError(message.RejectInsufficientFee, str)
 	}
 

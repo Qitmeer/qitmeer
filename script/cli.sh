@@ -212,6 +212,12 @@ function create_raw_tx(){
   get_result "$data"
 }
 
+function create_raw_txv2(){
+  local input=$1
+  local data='{"jsonrpc":"2.0","method":"createRawTransactionV2","params":['$input'],"id":1}'
+  get_result "$data"
+}
+
 function decode_raw_tx(){
   local input=$1
   local data='{"jsonrpc":"2.0","method":"decodeRawTransaction","params":["'$input'"],"id":1}'
@@ -253,7 +259,11 @@ function is_on_mainchain(){
 
 function get_block_template(){
   local capabilities=$1
-  local data='{"jsonrpc":"2.0","method":"getBlockTemplate","params":[["'$capabilities'"]],"id":1}'
+  local powtype=$2
+  if [ "$powtype" == "" ]; then
+    powtype=6
+  fi
+  local data='{"jsonrpc":"2.0","method":"getBlockTemplate","params":[["'$capabilities'"],'$powtype'],"id":1}'
   get_result "$data"
 }
 
@@ -487,6 +497,7 @@ function usage(){
   echo "  txv2 <id>"
   echo "  txbyhash <hash>"
   echo "  createRawTx"
+  echo "  createRawTxV2"
   echo "  txSign <rawTx>"
   echo "  sendRawTx <signedRawTx>"
   echo "  getrawtxs <address>"
@@ -845,6 +856,10 @@ elif [ "$1" == "txbyhash" ]; then
 elif [ "$1" == "createRawTx" ]; then
   shift
   create_raw_tx $@
+
+elif [ "$1" == "createRawTxV2" ]; then
+  shift
+  create_raw_txv2 $@
 
 elif [ "$1" == "decodeRawTx" ]; then
   shift

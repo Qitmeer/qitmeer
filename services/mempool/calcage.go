@@ -49,7 +49,7 @@ func calcInputValueAge(tx *types.Transaction, utxoView *blockchain.UtxoViewpoint
 				inputAge = nextBlockHeight - uint64(block.GetHeight())
 			}
 			// Sum the input value times age.
-			inputValue := txEntry.Amount()
+			inputValue := uint64(txEntry.Amount().Value)
 			totalInputAge += float64(inputValue * inputAge)
 		}
 	}

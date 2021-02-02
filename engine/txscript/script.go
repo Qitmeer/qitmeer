@@ -37,6 +37,40 @@ func IsPayToScriptHash(script []byte) bool {
 	return isScriptHash(pops)
 }
 
+// extractPubKeyHash extracts the public key hash from the passed script if it
+// is a standard pay-to-pubkey-hash script.  It will return nil otherwise.
+func extractPubKeyHash(script []byte) []byte {
+	// A pay-to-pubkey-hash script is of the form:
+	//  OP_DUP OP_HASH160 <20-byte hash> OP_EQUALVERIFY OP_CHECKSIG
+	if len(script) == 25 &&
+		script[0] == OP_DUP &&
+		script[1] == OP_HASH160 &&
+		script[2] == OP_DATA_20 &&
+		script[23] == OP_EQUALVERIFY &&
+		script[24] == OP_CHECKSIG {
+
+		return script[3:23]
+	}
+
+	return nil
+}
+
+// IsPubKeyHashScript returns whether or not the passed script is a standard
+// pay-to-pubkey-hash script.
+func IsPubKeyHashScript(script []byte) bool {
+	return extractPubKeyHash(script) != nil
+}
+
+// IsStrictCompressedPubKeyEncoding returns whether or not the passed public
+// key adheres to the strict compressed encoding requirements.
+func IsStrictCompressedPubKeyEncoding(pubKey []byte) bool {
+	if len(pubKey) == 33 && (pubKey[0] == 0x02 || pubKey[0] == 0x03) {
+		// Compressed
+		return true
+	}
+	return false
+}
+
 // isPushOnly returns true if the script only pushes data, false otherwise.
 func isPushOnly(pops []ParsedOpcode) bool {
 	// NOTE: This function does NOT verify opcodes directly since it is

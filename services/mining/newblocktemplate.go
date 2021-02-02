@@ -123,15 +123,10 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	if err != nil {
 		return nil, err
 	}
-	opReturnPkScript, err := standardCoinbaseOpReturn([]byte{})
-	if err != nil {
-		return nil, err
-	}
 
 	blues := int64(blockManager.GetChain().BlockDAG().GetBlues(blockManager.GetChain().BlockDAG().GetIdSet(parents)))
-	coinbaseTx, err := createCoinbaseTx(subsidyCache,
+	coinbaseTx, taxOutput, err := createCoinbaseTx(subsidyCache,
 		coinbaseScript,
-		opReturnPkScript,
 		blues,
 		payToAddress,
 		params)
@@ -269,6 +264,7 @@ mempoolLoop:
 
 	blockSigOpCost := coinbaseSigOpCost
 	totalFees := int64(0)
+	blockFeesMap := types.AmountMap{}
 
 	// Choose which transactions make it into the block.
 	for weightedRandQueue.Len() > 0 {
@@ -319,10 +315,17 @@ mempoolLoop:
 
 		// Ensure the transaction inputs pass all of the necessary
 		// preconditions before allowing it to be added to the block.
-		_, err = blockManager.GetChain().CheckTransactionInputs(tx, blockUtxos)
+		txFeesMap, err := blockManager.GetChain().CheckTransactionInputs(tx, blockUtxos)
 		if err != nil {
 			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
 				"CheckTransactionInputs: %v", tx.Hash(), err))
+			logSkippedDeps(tx, deps)
+			continue
+		}
+		err = blockManager.GetChain().CheckTransactionFee(txFeesMap)
+		if err != nil {
+			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
+				"CheckTransactionFee: %v", tx.Hash(), err))
 			logSkippedDeps(tx, deps)
 			continue
 		}
@@ -354,7 +357,7 @@ mempoolLoop:
 		totalFees += weirandItem.fee
 		txFees = append(txFees, weirandItem.fee)
 		txSigOpCosts = append(txSigOpCosts, int64(sigOpCost))
-
+		blockFeesMap.Add(txFeesMap)
 		log.Trace(fmt.Sprintf("Adding tx %s (priority %.2f, feePerKB %.2d)",
 			weirandItem.tx.Hash(), weirandItem.priority, weirandItem.feePerKB))
 
@@ -371,7 +374,11 @@ mempoolLoop:
 		}
 	}
 
-	//coinbaseTx.Tx.TxOut[0].Amount += uint64(totalFees)
+	// Fill outputs
+	err = fillOutputsToCoinBase(coinbaseTx, blockFeesMap, taxOutput)
+	if err != nil {
+		return nil, miningRuleError(ErrCreatingCoinbase, err.Error())
+	}
 	txFees[0] = -totalFees
 
 	// Fill witness
@@ -444,6 +451,7 @@ mempoolLoop:
 		Blues:           blues,
 		ValidPayAddress: payToAddress != nil,
 		Difficulty:      reqCompactDifficulty,
+		BlockFeesMap:    blockFeesMap,
 	}
 	return handleCreatedBlockTemplate(blockTemplate, blockManager)
 }

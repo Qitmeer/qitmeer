@@ -24,8 +24,13 @@ func createTx(ctime *time.Time) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
+	var amt *Amount
+	amt,err = NewMeer(1200000000)
+	if err != nil {
+		return nil, err
+	}
 	tx.AddTxOut(&TxOutput{
-		Amount:   1200000000,
+		Amount: *amt,
 		PkScript: ds,
 	})
 
@@ -37,10 +42,10 @@ func Test_TxHash(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	wantTxidStr := "a790ccc7d2039dcd06696c5f1a4d0b0d5ef3c70df03452811d190e5c5963aa7e"
-
-	if tx.TxHash().String() != wantTxidStr {
-		t.FailNow()
+	wantTxidStr := "3a73ec7b175f06eb2aa1a1184b76b626416bcef99af8699605b0fc082cd9d032"
+	got := tx.TxHash().String()
+	if  got != wantTxidStr {
+		t.Errorf("want %s, got %s", wantTxidStr, got)
 	}
 }
 
@@ -49,10 +54,10 @@ func Test_TxHashFull(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	wantTxHashStr := "2d31999fb44ec7cef84456396d2de95a0dac0ef49087daae2ba2d16e1d63c081"
-
-	if tx.TxHashFull().String() != wantTxHashStr {
-		t.FailNow()
+	wantTxHashStr := "fe5ffd5eb8f349fe2281b8f9bcba0c8db8778c27b83ae2d6c8624513821b4fc4"
+	got := tx.TxHashFull().String()
+	if  got != wantTxHashStr {
+		t.Errorf("want %s, got %s", wantTxHashStr, got)
 	}
 }
 

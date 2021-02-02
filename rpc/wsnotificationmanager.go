@@ -2,20 +2,40 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/marshal"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"sync"
+	"time"
 )
 
 // Notification types
 type notificationBlockConnected types.SerializedBlock
 type notificationBlockDisconnected types.SerializedBlock
+type notificationBlockAccepted types.SerializedBlock
+
+type notificationReorganization struct {
+	OldBlocks []*hash.Hash
+	NewBlock  *hash.Hash
+	NewOrder  uint64
+}
+
+type notificationTxAcceptedByMempool struct {
+	isNew bool
+	tx    *types.Tx
+}
 
 // Notification control requests
 type notificationRegisterClient wsClient
 type notificationUnregisterClient wsClient
 type notificationRegisterBlocks wsClient
 type notificationUnregisterBlocks wsClient
+type notificationRegisterNewMempoolTxs wsClient
+type notificationUnregisterNewMempoolTxs wsClient
 
 type wsNotificationManager struct {
 	server            *RpcServer
@@ -46,6 +66,8 @@ func (m *wsNotificationManager) notificationHandler() {
 	// clients is a map of all currently connected websocket clients.
 	clients := make(map[chan struct{}]*wsClient)
 	blockNotifications := make(map[chan struct{}]*wsClient)
+	txNotifications := make(map[chan struct{}]*wsClient)
+
 out:
 	for {
 		select {
@@ -69,6 +91,23 @@ out:
 						block)
 				}
 
+			case *notificationBlockAccepted:
+				block := (*types.SerializedBlock)(n)
+				if len(blockNotifications) != 0 {
+					m.notifyBlockAccepted(blockNotifications,
+						block)
+				}
+
+			case *notificationReorganization:
+				if len(blockNotifications) != 0 {
+					m.notifyReorganization(blockNotifications, n)
+				}
+
+			case *notificationTxAcceptedByMempool:
+				if n.isNew && len(txNotifications) != 0 {
+					m.notifyForNewTx(txNotifications, n.tx)
+				}
+
 			case *notificationRegisterBlocks:
 				wsc := (*wsClient)(n)
 				blockNotifications[wsc.quit] = wsc
@@ -88,6 +127,14 @@ out:
 				delete(blockNotifications, wsc.quit)
 
 				delete(clients, wsc.quit)
+
+			case *notificationRegisterNewMempoolTxs:
+				wsc := (*wsClient)(n)
+				txNotifications[wsc.quit] = wsc
+
+			case *notificationUnregisterNewMempoolTxs:
+				wsc := (*wsClient)(n)
+				delete(txNotifications, wsc.quit)
 
 			default:
 				log.Warn("Unhandled notification type")
@@ -115,7 +162,12 @@ func (m *wsNotificationManager) NotifyBlockConnected(block *types.SerializedBloc
 }
 
 func (m *wsNotificationManager) notifyBlockConnected(clients map[chan struct{}]*wsClient, block *types.SerializedBlock) {
-	ntfn := cmds.NewBlockConnectedNtfn(block.Hash().String(), int64(block.Order()), block.Block().Header.Timestamp.Unix())
+	txs, err := GetTxsHexFromBlock(block, true)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	ntfn := cmds.NewBlockConnectedNtfn(block.Hash().String(), int64(block.Order()), block.Block().Header.Timestamp.Unix(), txs)
 	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to marshal block connected notification: "+
@@ -138,14 +190,73 @@ func (*wsNotificationManager) notifyBlockDisconnected(clients map[chan struct{}]
 	if len(clients) == 0 {
 		return
 	}
-
+	txs, err := GetTxsHexFromBlock(block, false)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
 	// Notify interested websocket clients about the disconnected block.
 	ntfn := cmds.NewBlockDisconnectedNtfn(block.Hash().String(),
-		int64(block.Order()), block.Block().Header.Timestamp.Unix())
+		int64(block.Order()), block.Block().Header.Timestamp.Unix(), txs)
 	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to marshal block disconnected "+
 			"notification: %v", err))
+		return
+	}
+	for _, wsc := range clients {
+		wsc.QueueNotification(marshalledJSON)
+	}
+}
+
+func (m *wsNotificationManager) NotifyBlockAccepted(block *types.SerializedBlock) {
+	select {
+	case m.queueNotification <- (*notificationBlockAccepted)(block):
+	case <-m.quit:
+	}
+}
+
+func (m *wsNotificationManager) notifyBlockAccepted(clients map[chan struct{}]*wsClient, block *types.SerializedBlock) {
+	txs, err := GetTxsHexFromBlock(block, true)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	ntfn := cmds.NewBlockAcceptedNtfn(block.Hash().String(), int64(block.Order()), block.Block().Header.Timestamp.Unix(), txs)
+	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to marshal block accepted notification: "+
+			"%v", err))
+		return
+	}
+	for _, wsc := range clients {
+		wsc.QueueNotification(marshalledJSON)
+	}
+}
+
+func (m *wsNotificationManager) NotifyReorganization(rnd *blockchain.ReorganizationNotifyData) {
+	nr := &notificationReorganization{
+		OldBlocks: rnd.OldBlocks,
+		NewBlock:  rnd.NewBlock,
+		NewOrder:  rnd.NewOrder,
+	}
+	select {
+	case m.queueNotification <- nr:
+	case <-m.quit:
+	}
+}
+
+func (m *wsNotificationManager) notifyReorganization(clients map[chan struct{}]*wsClient, nr *notificationReorganization) {
+
+	olds := []string{}
+	for _, old := range nr.OldBlocks {
+		olds = append(olds, old.String())
+	}
+	ntfn := cmds.NewReorganizationNtfn(nr.NewBlock.String(), int64(nr.NewOrder), olds)
+	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to marshal block accepted notification: "+
+			"%v", err))
 		return
 	}
 	for _, wsc := range clients {
@@ -178,6 +289,104 @@ func (m *wsNotificationManager) RegisterBlockUpdates(wsc *wsClient) {
 
 func (m *wsNotificationManager) UnregisterBlockUpdates(wsc *wsClient) {
 	m.queueNotification <- (*notificationUnregisterBlocks)(wsc)
+}
+
+func (m *wsNotificationManager) RegisterNewMempoolTxsUpdates(wsc *wsClient) {
+	m.queueNotification <- (*notificationRegisterNewMempoolTxs)(wsc)
+}
+
+func (m *wsNotificationManager) UnregisterNewMempoolTxsUpdates(wsc *wsClient) {
+	m.queueNotification <- (*notificationUnregisterNewMempoolTxs)(wsc)
+}
+
+func (m *wsNotificationManager) NotifyMempoolTx(tx *types.Tx, isNew bool) {
+	n := &notificationTxAcceptedByMempool{
+		isNew: isNew,
+		tx:    tx,
+	}
+
+	select {
+	case m.queueNotification <- n:
+	case <-m.quit:
+	}
+}
+
+func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClient, tx *types.Tx) {
+	if len(clients) <= 0 {
+		return
+	}
+	needTx := false
+	needVerboseTx := false
+
+	for _, wsc := range clients {
+		if wsc.verboseTxUpdates {
+			needVerboseTx = true
+		} else {
+			needTx = true
+		}
+		if needVerboseTx && needTx {
+			break
+		}
+	}
+
+	var marshalledJSON []byte
+	var err error
+	if needTx {
+		txHashStr := tx.Hash().String()
+		amountsM := map[string]*types.Amount{}
+		for _, txOut := range tx.Tx.TxOut {
+			amount, ok := amountsM[txOut.Amount.Id.Name()]
+			if ok {
+				_, err := amount.Add(amount, &txOut.Amount)
+				if err != nil {
+					log.Error("notifyForNewTx fail")
+					return
+				}
+			} else {
+				amountsM[txOut.Amount.Id.Name()] = &types.Amount{Value: txOut.Amount.Value, Id: txOut.Amount.Id}
+			}
+		}
+
+		var amounts types.AmountGroup
+		for _, amount := range amountsM {
+			amounts = append(amounts, *amount)
+		}
+
+		ntfn := cmds.NewTxAcceptedNtfn(txHashStr, amounts)
+		marshalledJSON, err = cmds.MarshalCmd(nil, ntfn)
+		if err != nil {
+			log.Error(fmt.Sprintf("Failed to marshal tx notification: %s", err.Error()))
+			return
+		}
+	}
+
+	var marshalledJSONVerbose []byte
+	if needVerboseTx {
+		rawTx := &json.DecodeRawTransactionResult{
+			Txid:     tx.Hash().String(),
+			Hash:     tx.Tx.TxHashFull().String(),
+			Version:  tx.Tx.Version,
+			LockTime: tx.Tx.LockTime,
+			Time:     tx.Tx.Timestamp.Format(time.RFC3339),
+			Vin:      marshal.MarshJsonVin(tx.Tx),
+			Vout:     marshal.MarshJsonVout(tx.Tx, nil, params.ActiveNetParams.Params),
+		}
+		verboseNtfn := cmds.NewTxAcceptedVerboseNtfn(*rawTx)
+		marshalledJSONVerbose, err = cmds.MarshalCmd(nil, verboseNtfn)
+		if err != nil {
+			log.Error(fmt.Sprintf("Failed to marshal verbose tx "+
+				"notification: %s", err.Error()))
+			return
+		}
+	}
+
+	for _, wsc := range clients {
+		if wsc.verboseTxUpdates {
+			wsc.QueueNotification(marshalledJSONVerbose)
+		} else {
+			wsc.QueueNotification(marshalledJSON)
+		}
+	}
 }
 
 func newWsNotificationManager(server *RpcServer) *wsNotificationManager {

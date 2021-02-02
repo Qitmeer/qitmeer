@@ -9,6 +9,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
 	"time"
 )
@@ -43,13 +44,13 @@ func (s *RpcServer) subscribe(events *event.Feed) {
 func (s *RpcServer) handleNotifyMsg(notification *blockchain.Notification) {
 	switch notification.Type {
 	case blockchain.BlockAccepted:
-		// TODO ACCEPTED
-		_, ok := notification.Data.(*blockchain.BlockAcceptedNotifyData)
+		bnd, ok := notification.Data.(*blockchain.BlockAcceptedNotifyData)
 		if !ok {
 			log.Warn("Chain accepted notification is not " +
 				"BlockAcceptedNotifyData.")
 			break
 		}
+		s.ntfnMgr.NotifyBlockAccepted(bnd.Block)
 
 	case blockchain.BlockConnected:
 		blockSlice, ok := notification.Data.([]*types.SerializedBlock)
@@ -71,6 +72,22 @@ func (s *RpcServer) handleNotifyMsg(notification *blockchain.Notification) {
 			break
 		}
 		s.ntfnMgr.NotifyBlockDisconnected(block)
+
+	case blockchain.Reorganization:
+		rnd, ok := notification.Data.(*blockchain.ReorganizationNotifyData)
+		if !ok {
+			log.Warn("Chain accepted notification is not " +
+				"ReorganizationNotifyData.")
+			break
+		}
+		s.ntfnMgr.NotifyReorganization(rnd)
+	}
+}
+
+func (s *RpcServer) NotifyNewTransactions(txns []*types.TxDesc) {
+	for _, txD := range txns {
+		// Notify websocket clients about mempool transactions.
+		s.ntfnMgr.NotifyMempoolTx(txD.Tx, true)
 	}
 }
 
@@ -107,9 +124,11 @@ type wsCommandHandler func(*wsClient, interface{}) (interface{}, error)
 
 var wsHandlers map[string]wsCommandHandler
 var wsHandlersBeforeInit = map[string]wsCommandHandler{
-	"notifyBlocks":     handleNotifyBlocks,
-	"stopNotifyBlocks": handleStopNotifyBlocks,
-	"session":          handleSession,
+	"notifyBlocks":              handleNotifyBlocks,
+	"stopNotifyBlocks":          handleStopNotifyBlocks,
+	"session":                   handleSession,
+	"notifynewtransactions":     handleNotifyNewTransactions,
+	"stopnotifynewtransactions": handleStopNotifyNewTransactions,
 }
 
 func handleNotifyBlocks(wsc *wsClient, icmd interface{}) (interface{}, error) {
@@ -124,6 +143,21 @@ func handleStopNotifyBlocks(wsc *wsClient, icmd interface{}) (interface{}, error
 
 func handleSession(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	return &SessionResult{SessionID: wsc.sessionID}, nil
+}
+
+func handleNotifyNewTransactions(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*cmds.NotifyNewTransactionsCmd)
+	if !ok {
+		return nil, cmds.ErrRPCInternal
+	}
+	wsc.verboseTxUpdates = cmd.Verbose
+	wsc.server.ntfnMgr.RegisterNewMempoolTxsUpdates(wsc)
+	return nil, nil
+}
+
+func handleStopNotifyNewTransactions(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	wsc.server.ntfnMgr.UnregisterNewMempoolTxsUpdates(wsc)
+	return nil, nil
 }
 
 func init() {
