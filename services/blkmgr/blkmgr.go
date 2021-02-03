@@ -321,7 +321,7 @@ func (b *BlockManager) Start() {
 	if atomic.AddInt32(&b.started, 1) != 1 {
 		return
 	}
-
+	b.lastProgressTime = time.Now()
 	log.Trace("Starting block manager")
 	b.wg.Add(1)
 	go b.blockHandler()
