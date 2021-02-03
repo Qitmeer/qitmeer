@@ -71,9 +71,9 @@ func (c CoinID) Name() string {
 	case QITID:
 		return "QIT"
 	case METID:
-		return "METID"
+		return "MET"
 	case TERID:
-		return "TERID"
+		return "TER"
 	default:
 		return "Unknown-CoinID:" + strconv.FormatInt(int64(c), 10)
 	}
