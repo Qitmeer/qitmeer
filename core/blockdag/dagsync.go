@@ -154,6 +154,9 @@ func (ds *DAGSync) GetMainLocator(point *hash.Hash) []*hash.Hash {
 		tempL := locator
 		locator = []*hash.Hash{}
 		for i := len(tempL) - 1; i >= 0; i-- {
+			if len(locator) >= MaxMainLocatorNum {
+				break
+			}
 			locator = append(locator, tempL[i])
 		}
 	}
