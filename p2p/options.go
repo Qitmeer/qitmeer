@@ -8,9 +8,12 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/version"
+	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	"net"
+	"path"
 	"time"
 
+	ds "github.com/ipfs/go-ds-leveldb"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-noise"
 	"github.com/libp2p/go-libp2p-secio"
@@ -97,6 +100,22 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) []libp2p.Opt
 		}
 		options = append(options, libp2p.ListenAddrs(listen))
 	}
+
+	dsPath := path.Join(s.cfg.DataDir, peerStore)
+	peerDS, err := ds.NewDatastore(dsPath, nil)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	log.Info(fmt.Sprintf("Start Peers from:%s", dsPath))
+
+	ps, err := pstoreds.NewPeerstore(s.ctx, peerDS, pstoreds.DefaultOpts())
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	options = append(options, libp2p.Peerstore(ps))
+
 	return options
 }
 
