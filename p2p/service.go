@@ -131,6 +131,7 @@ func (s *Service) Start() error {
 			s.connectWithAllPeers(addrs)
 		}
 	}
+	s.connectFromPeerStore()
 
 	// Periodic functions.
 	if len(peersToWatch) > 0 {
@@ -208,6 +209,21 @@ func (s *Service) connectWithAllPeers(multiAddrs []multiaddr.Multiaddr) {
 	}
 	for _, info := range addrInfos {
 		// make each dial non-blocking
+		go func(info peer.AddrInfo) {
+			if err := s.connectWithPeer(info, false); err != nil {
+				log.Trace(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
+			}
+		}(info)
+	}
+}
+
+func (s *Service) connectFromPeerStore() {
+	for _, pid := range s.host.Peerstore().Peers() {
+		if pid == s.PeerID() {
+			continue
+		}
+		info := s.host.Peerstore().PeerInfo(pid)
+		log.Trace(fmt.Sprintf("Try to connect from peer store:%s", info.String()))
 		go func(info peer.AddrInfo) {
 			if err := s.connectWithPeer(info, false); err != nil {
 				log.Trace(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
