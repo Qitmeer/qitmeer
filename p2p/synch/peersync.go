@@ -92,14 +92,10 @@ out:
 			case *GetBlockDatasMsg:
 				err := ps.processGetBlockDatas(msg.pe, msg.blocks)
 				if err != nil {
-					log.Error(err.Error())
 					go ps.PeerUpdate(msg.pe, false)
 				}
 			case *UpdateGraphStateMsg:
-				err := ps.processUpdateGraphState(msg.pe)
-				if err != nil {
-					log.Warn(err.Error())
-				}
+				ps.processUpdateGraphState(msg.pe)
 			case *syncDAGBlocksMsg:
 				err := ps.processSyncDAGBlocks(msg.pe)
 				if err != nil {
