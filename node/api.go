@@ -131,9 +131,11 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 			}
 		}
 		info := &json.GetPeerInfoResult{
-			ID:      p.PeerID,
-			State:   p.State.String(),
-			Address: p.Address,
+			ID:        p.PeerID,
+			State:     p.State.String(),
+			Address:   p.Address,
+			BytesSent: p.BytesSent,
+			BytesRecv: p.BytesRecv,
 		}
 		if p.State.IsConnected() {
 			info.Protocol = p.Protocol
@@ -153,6 +155,12 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 				info.SyncNode = false
 			}
 			info.ConnTime = p.ConnTime.Truncate(time.Second).String()
+		}
+		if !p.LastSend.IsZero() {
+			info.LastSend = p.LastSend.String()
+		}
+		if !p.LastRecv.IsZero() {
+			info.LastRecv = p.LastRecv.String()
 		}
 		if len(p.QNR) > 0 {
 			info.QNR = p.QNR

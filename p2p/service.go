@@ -261,6 +261,30 @@ func (s *Service) Peers() *peers.Status {
 	return s.sy.Peers()
 }
 
+func (s *Service) IncreaseBytesSent(pid peer.ID, size int) {
+	if size <= 0 {
+		return
+	}
+	if s.Peers() != nil {
+		pe := s.Peers().Get(pid)
+		if pe != nil {
+			pe.IncreaseBytesSent(size)
+		}
+	}
+}
+
+func (s *Service) IncreaseBytesRecv(pid peer.ID, size int) {
+	if size <= 0 {
+		return
+	}
+	if s.Peers() != nil {
+		pe := s.Peers().Get(pid)
+		if pe != nil {
+			pe.IncreaseBytesRecv(size)
+		}
+	}
+}
+
 // listen for new nodes watches for new nodes in the network and adds them to the peerstore.
 func (s *Service) listenForNewNodes() {
 	iterator := s.dv5Listener.RandomNodes()

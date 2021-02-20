@@ -23,6 +23,10 @@ type StatsSnap struct {
 	GraphState *blockdag.GraphState
 	TimeOffset int64
 	ConnTime   time.Duration
+	LastSend   time.Time
+	LastRecv   time.Time
+	BytesSent  uint64
+	BytesRecv  uint64
 }
 
 func (p *StatsSnap) IsRelay() bool {
