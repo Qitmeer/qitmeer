@@ -19,6 +19,7 @@ import (
 	"github.com/Qitmeer/qitmeer/version"
 	"math/big"
 	"strconv"
+	"time"
 )
 
 func (nf *QitmeerFull) apis() []rpc.API {
@@ -151,6 +152,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 			} else {
 				info.SyncNode = false
 			}
+			info.ConnTime = p.ConnTime.Truncate(time.Second).String()
 		}
 		if len(p.QNR) > 0 {
 			info.QNR = p.QNR

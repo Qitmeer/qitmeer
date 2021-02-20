@@ -33,6 +33,10 @@ type Peer struct {
 
 	lock *sync.RWMutex
 
+	LastSend   int64
+	LastRecv   int64
+	BytesSent  uint64
+	BytesRecv  uint64
 	conTime    time.Time
 	timeOffset int64
 }
@@ -268,6 +272,7 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		State:      p.peerState,
 		Direction:  p.direction,
 		TimeOffset: p.timeOffset,
+		ConnTime:   time.Since(p.conTime),
 	}
 
 	n := p.node()

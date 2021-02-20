@@ -42,6 +42,11 @@ type GetPeerInfoResult struct {
 	GraphState *GetGraphStateResult `json:"graphstate,omitempty"`
 	SyncNode   bool                 `json:"syncnode,omitempty"`
 	TimeOffset int64                `json:"timeoffset"`
+	LastSend   int64                `json:"lastsend,omitempty"`
+	LastRecv   int64                `json:"lastrecv,omitempty"`
+	BytesSent  uint64               `json:"bytessent,omitempty"`
+	BytesRecv  uint64               `json:"bytesrecv,omitempty"`
+	ConnTime   string               `json:"conntime,omitempty"`
 }
 
 // GetGraphStateResult data

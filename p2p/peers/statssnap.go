@@ -5,6 +5,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/libp2p/go-libp2p-core/network"
+	"time"
 )
 
 // StatsSnap is a snapshot of peer stats at a point in time.
@@ -21,6 +22,7 @@ type StatsSnap struct {
 	Direction  network.Direction
 	GraphState *blockdag.GraphState
 	TimeOffset int64
+	ConnTime   time.Duration
 }
 
 func (p *StatsSnap) IsRelay() bool {
