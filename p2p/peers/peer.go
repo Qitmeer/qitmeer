@@ -33,6 +33,10 @@ type Peer struct {
 
 	lock *sync.RWMutex
 
+	lastSend   time.Time
+	lastRecv   time.Time
+	bytesSent  uint64
+	bytesRecv  uint64
 	conTime    time.Time
 	timeOffset int64
 }
@@ -268,6 +272,11 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		State:      p.peerState,
 		Direction:  p.direction,
 		TimeOffset: p.timeOffset,
+		ConnTime:   time.Since(p.conTime),
+		LastSend:   p.lastSend,
+		LastRecv:   p.lastRecv,
+		BytesSent:  p.bytesSent,
+		BytesRecv:  p.bytesRecv,
 	}
 
 	n := p.node()
@@ -447,6 +456,36 @@ func (p *Peer) isConsensus() bool {
 		return false
 	}
 	return HasConsensusService(protocol.ServiceFlag(p.chainState.Services))
+}
+
+func (p *Peer) IncreaseBytesSent(size int) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.bytesSent += uint64(size)
+	p.lastSend = time.Now()
+}
+
+func (p *Peer) BytesSent() uint64 {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	return p.bytesSent
+}
+
+func (p *Peer) IncreaseBytesRecv(size int) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.bytesRecv += uint64(size)
+	p.lastRecv = time.Now()
+}
+
+func (p *Peer) BytesRecv() uint64 {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	return p.bytesRecv
 }
 
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {

@@ -247,6 +247,8 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 				log.Warn(fmt.Sprintf("Failed to decode stream message:%v", err))
 				return
 			}
+			size := rpc.Encoding().GetSize(msg)
+			rpc.IncreaseBytesRecv(stream.Conn().RemotePeer(), size)
 		}
 
 		SetRPCStreamDeadlines(stream)
@@ -301,11 +303,11 @@ func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic
 	if baseTopic == RPCMetaDataTopic {
 		return stream, nil
 	}
-
-	if _, err := rpc.Encoding().EncodeWithMaxLength(stream, message); err != nil {
+	size, err := rpc.Encoding().EncodeWithMaxLength(stream, message)
+	if err != nil {
 		return nil, err
 	}
-
+	rpc.IncreaseBytesSent(pid, size)
 	// Close stream for writing.
 	if err := stream.Close(); err != nil {
 		return nil, err
@@ -320,10 +322,11 @@ func EncodeResponseMsg(rpc common.P2PRPC, stream libp2pcore.Stream, msg interfac
 		return common.NewError(common.ErrStreamWrite, err)
 	}
 	if msg != nil {
-		_, err = rpc.Encoding().EncodeWithMaxLength(stream, msg)
+		size, err := rpc.Encoding().EncodeWithMaxLength(stream, msg)
 		if err != nil {
 			return common.NewError(common.ErrStreamWrite, err)
 		}
+		rpc.IncreaseBytesSent(stream.Conn().RemotePeer(), size)
 	}
 	return nil
 }

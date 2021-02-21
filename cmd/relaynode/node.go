@@ -179,6 +179,12 @@ func (node *Node) Disconnect(pid peer.ID) error {
 	return node.host.Network().ClosePeer(pid)
 }
 
+func (node *Node) IncreaseBytesSent(pid peer.ID, size int) {
+}
+
+func (node *Node) IncreaseBytesRecv(pid peer.ID, size int) {
+}
+
 func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 
 	pid := stream.Conn().RemotePeer()

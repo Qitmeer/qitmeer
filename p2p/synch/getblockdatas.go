@@ -98,7 +98,9 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 
 func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) error {
 	if !ps.isSyncPeer(pe) || !pe.IsActive() {
-		return fmt.Errorf("no sync peer")
+		err := fmt.Errorf("no sync peer")
+		log.Trace(err.Error())
+		return err
 	}
 	blocksReady := []*hash.Hash{}
 
