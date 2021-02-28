@@ -83,6 +83,7 @@ type databaseInfo struct {
 //   block order       uint32           4 bytes
 //   total txns        uint64           8 bytes
 //   total subsidy     int64            8 bytes
+//   tokenTipID   	   uint32           4 bytes
 //   work sum length   uint32           4 bytes
 //   work sum          big.Int          work sum length
 // -----------------------------------------------------------------------------
@@ -90,11 +91,11 @@ type databaseInfo struct {
 // bestChainState represents the data to be stored the database for the current
 // best chain state.
 type bestChainState struct {
-	hash         hash.Hash
-	total        uint64
-	totalTxns    uint64
-	totalsubsidy uint64
-	workSum      *big.Int
+	hash       hash.Hash
+	total      uint64
+	totalTxns  uint64
+	tokenTipID uint32
+	workSum    *big.Int
 }
 
 // DBFetchBlockByOrder is the exported version of dbFetchBlockByOrder.
@@ -250,7 +251,7 @@ func (b *BlockChain) createChainState() error {
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
 	b.stateSnapshot = newBestState(node.GetHash(), node.bits, blockSize, numTxns,
-		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState())
+		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState(), 0)
 
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.
@@ -465,10 +466,11 @@ func dbRemoveBlockIndex(dbTx database.Tx, hash *hash.Hash, order int64) error {
 func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) error {
 	// Serialize the current best chain state.
 	serializedData := serializeBestChainState(bestChainState{
-		hash:      snapshot.Hash,
-		total:     uint64(snapshot.GraphState.GetTotal()),
-		totalTxns: snapshot.TotalTxns,
-		workSum:   workSum,
+		hash:       snapshot.Hash,
+		total:      uint64(snapshot.GraphState.GetTotal()),
+		totalTxns:  snapshot.TotalTxns,
+		workSum:    workSum,
+		tokenTipID: snapshot.TokenTipID,
 	})
 
 	// Store the current best chain state into the database.
@@ -491,6 +493,8 @@ func serializeBestChainState(state bestChainState) []byte {
 	offset += 8
 	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.totalTxns)
 	offset += 8
+	dbnamespace.ByteOrder.PutUint32(serializedData[offset:], state.tokenTipID)
+	offset += 4
 	dbnamespace.ByteOrder.PutUint32(serializedData[offset:], workSumBytesLen)
 	offset += 4
 	copy(serializedData[offset:], workSumBytes)
@@ -521,6 +525,8 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	offset += 8
 	state.totalTxns = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
 	offset += 8
+	state.tokenTipID = dbnamespace.ByteOrder.Uint32(serializedData[offset : offset+4])
+	offset += 4
 	workSumBytesLen := dbnamespace.ByteOrder.Uint32(serializedData[offset : offset+4])
 	offset += 4
 	// Ensure the serialized data has enough bytes to deserialize the work

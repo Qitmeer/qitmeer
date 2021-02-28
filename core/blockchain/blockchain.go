@@ -198,11 +198,12 @@ type BestState struct {
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
 	TotalSubsidy uint64               // The total subsidy for the chain.
+	TokenTipID   uint32               // The ID of token state tip for the chain.
 	GraphState   *blockdag.GraphState // The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(tipHash *hash.Hash, bits uint32, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalsubsidy uint64, gs *blockdag.GraphState) *BestState {
+func newBestState(tipHash *hash.Hash, bits uint32, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalsubsidy uint64, gs *blockdag.GraphState, tokenTipID uint32) *BestState {
 	return &BestState{
 		Hash:         *tipHash,
 		Bits:         bits,
@@ -211,6 +212,7 @@ func newBestState(tipHash *hash.Hash, bits uint32, blockSize, numTxns uint64, me
 		MedianTime:   medianTime,
 		TotalTxns:    totalTxns,
 		TotalSubsidy: totalsubsidy,
+		TokenTipID:   tokenTipID,
 		GraphState:   gs,
 	}
 }
@@ -430,7 +432,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %s", state.hash.String(), state.total, state.totalTxns, state.totalsubsidy, state.workSum.Text(16)))
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %s", state.hash.String(), state.total, state.totalTxns, state.tokenTipID, state.workSum.Text(16)))
 
 		log.Info("Loading dag ...")
 		bidxStart := roughtime.Now()
@@ -490,7 +492,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns,
-			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState())
+			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState(), state.tokenTipID)
 
 		return nil
 	})
@@ -768,6 +770,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		}
 		if !node.GetStatus().KnownInvalid() {
 			node.Valid(b)
+			b.updateTokenBalance(node, block, false)
 		}
 		// TODO, validating previous block
 		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
@@ -829,9 +832,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	// Must be end node of sequence in dag
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
-	b.stateLock.RLock()
-	curTotalTxns := b.stateSnapshot.TotalTxns
-	b.stateLock.RUnlock()
+	lastState := b.BestSnapshot()
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		b.bd.UpdateWeight(e.Value.(blockdag.IBlock))
@@ -845,8 +846,8 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 
 	mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
 
-	state := newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
-		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState())
+	state := newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns, mainTip.CalcPastMedianTime(b), lastState.TotalTxns+numTxns,
+		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState(), lastState.TokenTipID)
 
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
@@ -1019,6 +1020,8 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 	dl := len(detachNodes)
 	for i := dl - 1; i >= 0; i-- {
 		n = detachNodes[i]
+		b.updateTokenBalance(n, nil, true)
+		//
 		newn := b.index.LookupNode(n.GetHash())
 		block, err = b.fetchBlockByHash(&n.hash)
 		if err != nil || n == nil {
@@ -1108,6 +1111,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		}
 		if !n.GetStatus().KnownInvalid() {
 			n.Valid(b)
+			b.updateTokenBalance(n, block, false)
 		}
 	}
 
