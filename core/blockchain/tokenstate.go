@@ -7,6 +7,7 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"strings"
@@ -45,6 +46,15 @@ type tokenState struct {
 	prevStateID uint32
 	balances    tokenBalances
 	updates     []balanceUpdate
+}
+
+func (ts *tokenState) GetTokenBalances() []json.TokenBalance {
+	tbs := []json.TokenBalance{}
+	for k, v := range ts.balances {
+		tb := json.TokenBalance{CoinId: uint16(k), CoinName: k.Name(), Balance: v.balance, LockedMeer: v.lockedMeer}
+		tbs = append(tbs, tb)
+	}
+	return tbs
 }
 
 type tokenBalances map[types.CoinID]tokenBalance
