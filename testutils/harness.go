@@ -100,7 +100,7 @@ func (h *Harness) connectRPCClient() error {
 	certs := h.Node.config.certFile
 	for i := 0; i < h.maxRpcConnRetries; i++ {
 		if client, err = Dial("https://"+url, user, pass, certs); err != nil {
-			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
+			time.Sleep(time.Duration(i) * time.Second)
 			continue
 		}
 		break
@@ -139,7 +139,7 @@ func (h *Harness) connectWSNotifier() error {
 	var err error
 	for i := 0; i < h.maxRpcConnRetries; i++ {
 		if c, err = client.New(connCfg, &ntfnHandlers); err != nil {
-			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
+			time.Sleep(time.Duration(i) * time.Second)
 			continue
 		}
 		break
