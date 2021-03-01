@@ -483,7 +483,7 @@ func serializeBestChainState(state bestChainState) []byte {
 	// Calculate the full size needed to serialize the chain state.
 	workSumBytes := state.workSum.Bytes()
 	workSumBytesLen := uint32(len(workSumBytes))
-	serializedLen := hash.HashSize + 8 + 8 + 4 + workSumBytesLen
+	serializedLen := hash.HashSize + 8 + 8 + 4 + 4 + workSumBytesLen
 
 	// Serialize the chain state.
 	serializedData := make([]byte, serializedLen)
@@ -509,7 +509,7 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	// Ensure the serialized data has enough bytes to properly deserialize
 	// the hash, total, total transactions, total subsidy, current subsidy,
 	// and work sum length.
-	expectedMinLen := hash.HashSize + 8 + 8 + 4
+	expectedMinLen := hash.HashSize + 8 + 8 + 4 + 4
 	if len(serializedData) < expectedMinLen {
 		return bestChainState{}, database.Error{
 			ErrorCode: database.ErrCorruption,
