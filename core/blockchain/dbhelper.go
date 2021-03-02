@@ -83,7 +83,7 @@ type databaseInfo struct {
 //   block order       uint32           4 bytes
 //   total txns        uint64           8 bytes
 //   total subsidy     int64            8 bytes
-//   tokenTipID   	   uint32           4 bytes
+//   tokenTipHash      chainhash.Hash   chainhash.HashSize
 //   work sum length   uint32           4 bytes
 //   work sum          big.Int          work sum length
 // -----------------------------------------------------------------------------
@@ -91,11 +91,11 @@ type databaseInfo struct {
 // bestChainState represents the data to be stored the database for the current
 // best chain state.
 type bestChainState struct {
-	hash       hash.Hash
-	total      uint64
-	totalTxns  uint64
-	tokenTipID uint32
-	workSum    *big.Int
+	hash         hash.Hash
+	total        uint64
+	totalTxns    uint64
+	tokenTipHash hash.Hash
+	workSum      *big.Int
 }
 
 // DBFetchBlockByOrder is the exported version of dbFetchBlockByOrder.
@@ -326,7 +326,7 @@ func (b *BlockChain) createChainState() error {
 		}
 
 		// Store the current best chain state into the database.
-		err = dbPutBestState(dbTx, b.stateSnapshot, node.workSum, 0)
+		err = dbPutBestState(dbTx, b.stateSnapshot, node.workSum)
 		if err != nil {
 			return err
 		}
@@ -463,14 +463,18 @@ func dbRemoveBlockIndex(dbTx database.Tx, hash *hash.Hash, order int64) error {
 
 // dbPutBestState uses an existing database transaction to update the best chain
 // state with the given parameters.
-func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int, tokenTipID uint32) error {
+func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) error {
 	// Serialize the current best chain state.
+	tth := hash.ZeroHash
+	if snapshot.TokenTipHash != nil {
+		tth = *snapshot.TokenTipHash
+	}
 	serializedData := serializeBestChainState(bestChainState{
-		hash:       snapshot.Hash,
-		total:      uint64(snapshot.GraphState.GetTotal()),
-		totalTxns:  snapshot.TotalTxns,
-		workSum:    workSum,
-		tokenTipID: tokenTipID,
+		hash:         snapshot.Hash,
+		total:        uint64(snapshot.GraphState.GetTotal()),
+		totalTxns:    snapshot.TotalTxns,
+		workSum:      workSum,
+		tokenTipHash: tth,
 	})
 
 	// Store the current best chain state into the database.
@@ -483,7 +487,7 @@ func serializeBestChainState(state bestChainState) []byte {
 	// Calculate the full size needed to serialize the chain state.
 	workSumBytes := state.workSum.Bytes()
 	workSumBytesLen := uint32(len(workSumBytes))
-	serializedLen := hash.HashSize + 8 + 8 + 4 + 4 + workSumBytesLen
+	serializedLen := hash.HashSize + 8 + 8 + hash.HashSize + 4 + workSumBytesLen
 
 	// Serialize the chain state.
 	serializedData := make([]byte, serializedLen)
@@ -493,8 +497,8 @@ func serializeBestChainState(state bestChainState) []byte {
 	offset += 8
 	dbnamespace.ByteOrder.PutUint64(serializedData[offset:], state.totalTxns)
 	offset += 8
-	dbnamespace.ByteOrder.PutUint32(serializedData[offset:], state.tokenTipID)
-	offset += 4
+	copy(serializedData[offset:offset+hash.HashSize], state.tokenTipHash[:])
+	offset += hash.HashSize
 	dbnamespace.ByteOrder.PutUint32(serializedData[offset:], workSumBytesLen)
 	offset += 4
 	copy(serializedData[offset:], workSumBytes)
@@ -509,7 +513,7 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	// Ensure the serialized data has enough bytes to properly deserialize
 	// the hash, total, total transactions, total subsidy, current subsidy,
 	// and work sum length.
-	expectedMinLen := hash.HashSize + 8 + 8 + 4 + 4
+	expectedMinLen := hash.HashSize + 8 + 8 + hash.HashSize + 4
 	if len(serializedData) < expectedMinLen {
 		return bestChainState{}, database.Error{
 			ErrorCode: database.ErrCorruption,
@@ -525,8 +529,8 @@ func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	offset += 8
 	state.totalTxns = dbnamespace.ByteOrder.Uint64(serializedData[offset : offset+8])
 	offset += 8
-	state.tokenTipID = dbnamespace.ByteOrder.Uint32(serializedData[offset : offset+4])
-	offset += 4
+	copy(state.tokenTipHash[:], serializedData[offset:offset+hash.HashSize])
+	offset += hash.HashSize
 	workSumBytesLen := dbnamespace.ByteOrder.Uint32(serializedData[offset : offset+4])
 	offset += 4
 	// Ensure the serialized data has enough bytes to deserialize the work

@@ -436,8 +436,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %s", state.hash.String(), state.total, state.totalTxns, state.tokenTipID, state.workSum.Text(16)))
-		b.TokenTipID = state.tokenTipID
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %s %s", state.hash.String(), state.total, state.totalTxns, state.tokenTipHash.String(), state.workSum.Text(16)))
 
 		log.Info("Loading dag ...")
 		bidxStart := roughtime.Now()
@@ -497,9 +496,10 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 
+		b.TokenTipID = uint32(b.index.GetDAGBlockID(&state.tokenTipHash))
 		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns,
 			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(),
-			b.bd.GetGraphState(), b.GetTokenTipHash())
+			b.bd.GetGraphState(), &state.tokenTipHash)
 
 		return nil
 	})
@@ -858,7 +858,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// Update best block state.
-		err := dbPutBestState(dbTx, state, mainTip.workSum, b.TokenTipID)
+		err := dbPutBestState(dbTx, state, mainTip.workSum)
 		if err != nil {
 			return err
 		}
