@@ -19,7 +19,6 @@ require (
 	github.com/golang/protobuf v1.4.0
 	github.com/golang/snappy v0.0.1
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-ds-leveldb v0.4.2
 	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/jessevdk/go-flags v1.4.0
