@@ -115,6 +115,9 @@ type BlockChain struct {
 
 	// cache notification
 	CacheNotifications []*Notification
+
+	// The ID of token state tip for the chain.
+	TokenTipID uint32
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -198,12 +201,13 @@ type BestState struct {
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
 	TotalSubsidy uint64               // The total subsidy for the chain.
-	TokenTipID   uint32               // The ID of token state tip for the chain.
+	TokenTipHash *hash.Hash           // The Hash of token state tip for the chain.
 	GraphState   *blockdag.GraphState // The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(tipHash *hash.Hash, bits uint32, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalsubsidy uint64, gs *blockdag.GraphState, tokenTipID uint32) *BestState {
+func newBestState(tipHash *hash.Hash, bits uint32, blockSize, numTxns uint64, medianTime time.Time,
+	totalTxns uint64, totalsubsidy uint64, gs *blockdag.GraphState, tokenTipHash *hash.Hash) *BestState {
 	return &BestState{
 		Hash:         *tipHash,
 		Bits:         bits,
@@ -212,7 +216,7 @@ func newBestState(tipHash *hash.Hash, bits uint32, blockSize, numTxns uint64, me
 		MedianTime:   medianTime,
 		TotalTxns:    totalTxns,
 		TotalSubsidy: totalsubsidy,
-		TokenTipID:   tokenTipID,
+		TokenTipHash: tokenTipHash,
 		GraphState:   gs,
 	}
 }
@@ -433,6 +437,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			return err
 		}
 		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %s", state.hash.String(), state.total, state.totalTxns, state.tokenTipID, state.workSum.Text(16)))
+		b.TokenTipID = state.tokenTipID
 
 		log.Info("Loading dag ...")
 		bidxStart := roughtime.Now()
@@ -491,8 +496,10 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
+
 		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns,
-			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState(), state.tokenTipID)
+			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(),
+			b.bd.GetGraphState(), b.GetTokenTipHash())
 
 		return nil
 	})
@@ -845,14 +852,13 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	blockSize := uint64(block.Block().SerializeSize())
 
 	mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
-
 	state := newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns, mainTip.CalcPastMedianTime(b), lastState.TotalTxns+numTxns,
-		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState(), lastState.TokenTipID)
+		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState(), b.GetTokenTipHash())
 
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// Update best block state.
-		err := dbPutBestState(dbTx, state, mainTip.workSum)
+		err := dbPutBestState(dbTx, state, mainTip.workSum, b.TokenTipID)
 		if err != nil {
 			return err
 		}
@@ -1372,4 +1378,15 @@ func (b *BlockChain) CheckCacheInvalidTxConfig() error {
 // Return chain params
 func (b *BlockChain) ChainParams() *params.Params {
 	return b.params
+}
+
+func (b *BlockChain) GetTokenTipHash() *hash.Hash {
+	if b.TokenTipID == 0 || uint(b.TokenTipID) == blockdag.MaxId {
+		return nil
+	}
+	ib := b.bd.GetBlockById(uint(b.TokenTipID))
+	if ib == nil {
+		return nil
+	}
+	return ib.GetHash()
 }

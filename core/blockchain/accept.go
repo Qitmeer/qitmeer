@@ -262,9 +262,8 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 
 func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.SerializedBlock, rollback bool) error {
 	if rollback {
-		bs := b.BestSnapshot()
-		if uint32(node.dagID) == bs.TokenTipID {
-			state := b.GetTokenState(bs.TokenTipID)
+		if uint32(node.dagID) == b.TokenTipID {
+			state := b.GetTokenState(b.TokenTipID)
 			if state != nil {
 				err := b.db.Update(func(dbTx database.Tx) error {
 					return dbRemoveTokenState(dbTx, uint32(node.dagID))
@@ -272,10 +271,7 @@ func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.Serialized
 				if err != nil {
 					return err
 				}
-
-				b.stateLock.Lock()
-				b.stateSnapshot.TokenTipID = state.prevStateID
-				b.stateLock.Unlock()
+				b.TokenTipID = state.prevStateID
 			}
 
 		}
@@ -320,13 +316,12 @@ func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.Serialized
 	if len(updates) <= 0 {
 		return nil
 	}
-	bs := b.BestSnapshot()
-	state := b.GetTokenState(bs.TokenTipID)
+	state := b.GetTokenState(b.TokenTipID)
 	if state == nil {
 		state = &tokenState{prevStateID: 0, updates: updates}
 		state.balances.UpdatesBalance(updates)
 	} else {
-		state.prevStateID = bs.TokenTipID
+		state.prevStateID = b.TokenTipID
 		state.updates = updates
 		state.balances.UpdatesBalance(updates)
 	}
@@ -338,9 +333,7 @@ func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.Serialized
 		return err
 	}
 
-	b.stateLock.Lock()
-	b.stateSnapshot.TokenTipID = uint32(node.dagID)
-	b.stateLock.Unlock()
+	b.TokenTipID = state.prevStateID
 	return nil
 }
 

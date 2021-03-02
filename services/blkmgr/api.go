@@ -440,7 +440,7 @@ func (api *PublicBlockAPI) GetFees(h hash.Hash) (interface{}, error) {
 }
 
 func (api *PublicBlockAPI) GetTokenBalance() (interface{}, error) {
-	state := api.bm.chain.GetTokenState(api.bm.chain.BestSnapshot().TokenTipID)
+	state := api.bm.chain.GetTokenState(api.bm.chain.TokenTipID)
 	if state == nil {
 		return nil, nil
 	}

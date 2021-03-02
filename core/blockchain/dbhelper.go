@@ -251,7 +251,7 @@ func (b *BlockChain) createChainState() error {
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
 	b.stateSnapshot = newBestState(node.GetHash(), node.bits, blockSize, numTxns,
-		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState(), 0)
+		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState(), nil)
 
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.
@@ -326,7 +326,7 @@ func (b *BlockChain) createChainState() error {
 		}
 
 		// Store the current best chain state into the database.
-		err = dbPutBestState(dbTx, b.stateSnapshot, node.workSum)
+		err = dbPutBestState(dbTx, b.stateSnapshot, node.workSum, 0)
 		if err != nil {
 			return err
 		}
@@ -463,14 +463,14 @@ func dbRemoveBlockIndex(dbTx database.Tx, hash *hash.Hash, order int64) error {
 
 // dbPutBestState uses an existing database transaction to update the best chain
 // state with the given parameters.
-func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int) error {
+func dbPutBestState(dbTx database.Tx, snapshot *BestState, workSum *big.Int, tokenTipID uint32) error {
 	// Serialize the current best chain state.
 	serializedData := serializeBestChainState(bestChainState{
 		hash:       snapshot.Hash,
 		total:      uint64(snapshot.GraphState.GetTotal()),
 		totalTxns:  snapshot.TotalTxns,
 		workSum:    workSum,
-		tokenTipID: snapshot.TokenTipID,
+		tokenTipID: tokenTipID,
 	})
 
 	// Store the current best chain state into the database.
