@@ -70,6 +70,7 @@ const (
 	// ErrRPCInvalidParameter indicates an invalid, missing, or duplicate
 	// parameter.
 	ErrRPCInvalidParameter RPCErrorCode = -8
+	ErrRPCDecodeHexString  RPCErrorCode = -22
 
 	ErrInvalidNode = -30
 )

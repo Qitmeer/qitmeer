@@ -12,7 +12,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
-	"github.com/btcsuite/btcd/btcjson"
 	"time"
 )
 
@@ -219,8 +218,8 @@ func init() {
 
 // rpcDecodeHexError is a convenience function for returning a nicely formatted
 // RPC error which indicates the provided hex string failed to decode.
-func rpcDecodeHexError(gotHex string) *btcjson.RPCError {
-	return btcjson.NewRPCError(btcjson.ErrRPCDecodeHexString,
+func rpcDecodeHexError(gotHex string) *cmds.RPCError {
+	return cmds.NewRPCError(cmds.ErrRPCDecodeHexString,
 		fmt.Sprintf("Argument must be hexadecimal string (not %q)",
 			gotHex))
 }
