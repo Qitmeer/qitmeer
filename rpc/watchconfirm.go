@@ -28,6 +28,8 @@ func newWatchTxConfirmServer(server *RpcServer, m *wsNotificationManager) *Watch
 		bc:         server.BC,
 		m:          m,
 		TxConfirms: map[uint64]map[string]TxConfirm{},
+		quit:       make(chan struct{}),
+		wg:         &sync.WaitGroup{},
 	}
 }
 
@@ -39,6 +41,10 @@ func (w *WatchTxConfirmServer) AddTxConfirms(confirm TxConfirm) {
 
 func (w *WatchTxConfirmServer) Start() {
 	w.wg.Add(1)
+	go w.HandleTxConfirm()
+}
+
+func (w *WatchTxConfirmServer) HandleTxConfirm() {
 	defer w.wg.Done()
 	for {
 		select {

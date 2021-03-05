@@ -19,7 +19,7 @@ func (c *WSCodec) ReadRequestHeaders() ([]rpcRequest, bool, Error) {
 
 func (c *WSCodec) ParseRequestArguments(argTypes []reflect.Type, params interface{}) ([]reflect.Value, Error) {
 	if args, ok := params.(json.RawMessage); !ok {
-		return nil, &invalidParamsError{"Invalid params supplied"}
+		return nil, &invalidParamsError{"Invalid ChainParams supplied"}
 	} else {
 		return parsePositionalArguments(args, argTypes)
 	}
@@ -42,7 +42,7 @@ func (c *WSCodec) CreateErrorResponseWithInfo(id interface{}, err Error, info in
 		Error: jsonError{Code: err.ErrorCode(), Message: err.Error(), Data: info}}
 }
 
-// CreateNotification will create a JSON-RPC notification with the given subscription id and event as params.
+// CreateNotification will create a JSON-RPC notification with the given subscription id and event as ChainParams.
 func (c *WSCodec) CreateNotification(subid, namespace string, event interface{}) interface{} {
 	return &jsonNotification{Version: jsonrpcVersion, Method: namespace + notificationMethodSuffix,
 		Params: jsonSubscription{Subscription: subid, Result: event}}

@@ -57,7 +57,7 @@ type RpcServer struct {
 	ntfnMgr              *wsNotificationManager
 	watchTxConfirmServer *WatchTxConfirmServer
 	BC                   *blockchain.BlockChain
-	params               *params.Params
+	ChainParams          *params.Params
 	listeners            []net.Listener
 }
 

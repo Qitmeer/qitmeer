@@ -42,7 +42,7 @@ func (e *invalidMessageError) ErrorCode() int { return -32700 }
 
 func (e *invalidMessageError) Error() string { return e.message }
 
-// unable to decode supplied params, or an invalid number of parameters
+// unable to decode supplied ChainParams, or an invalid number of parameters
 type invalidParamsError struct{ message string }
 
 func (e *invalidParamsError) ErrorCode() int { return -32602 }

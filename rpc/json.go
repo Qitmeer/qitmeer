@@ -32,7 +32,7 @@ type jsonRequest struct {
 	Method  string          `json:"method"`
 	Version string          `json:"jsonrpc"`
 	Id      json.RawMessage `json:"id,omitempty"`
-	Payload json.RawMessage `json:"params,omitempty"`
+	Payload json.RawMessage `json:"ChainParams,omitempty"`
 }
 
 type jsonSuccessResponse struct {
@@ -61,7 +61,7 @@ type jsonSubscription struct {
 type jsonNotification struct {
 	Version string           `json:"jsonrpc"`
 	Method  string           `json:"method"`
-	Params  jsonSubscription `json:"params"`
+	Params  jsonSubscription `json:"ChainParams"`
 }
 
 type SessionResult struct {
@@ -223,11 +223,11 @@ func parseRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) {
 	return requests, batch, nil
 }
 
-// ParseRequestArguments tries to parse the given params (json.RawMessage) with the given
+// ParseRequestArguments tries to parse the given ChainParams (json.RawMessage) with the given
 // types. It returns the parsed values or an error when the parsing failed.
 func (c *jsonCodec) ParseRequestArguments(argTypes []reflect.Type, params interface{}) ([]reflect.Value, Error) {
 	if args, ok := params.(json.RawMessage); !ok {
-		return nil, &invalidParamsError{"Invalid params supplied"}
+		return nil, &invalidParamsError{"Invalid ChainParams supplied"}
 	} else {
 		return parsePositionalArguments(args, argTypes)
 	}
@@ -288,7 +288,7 @@ func (c *jsonCodec) CreateErrorResponseWithInfo(id interface{}, err Error, info 
 		Error: jsonError{Code: err.ErrorCode(), Message: err.Error(), Data: info}}
 }
 
-// CreateNotification will create a JSON-RPC notification with the given subscription id and event as params.
+// CreateNotification will create a JSON-RPC notification with the given subscription id and event as ChainParams.
 func (c *jsonCodec) CreateNotification(subid, namespace string, event interface{}) interface{} {
 	return &jsonNotification{Version: jsonrpcVersion, Method: namespace + notificationMethodSuffix,
 		Params: jsonSubscription{Subscription: subid, Result: event}}

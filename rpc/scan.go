@@ -291,7 +291,7 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock,
 			if err != nil {
 				continue
 			}
-			addr, err := pkScript.Address(wsc.server.params)
+			addr, err := pkScript.Address(wsc.server.ChainParams)
 			if err != nil {
 				continue
 			}
@@ -305,7 +305,7 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock,
 
 		for _, txout := range tx.Tx.TxOut {
 			_, addrs, _, _ := txscript.ExtractPkScriptAddrs(
-				txout.PkScript, wsc.server.params)
+				txout.PkScript, wsc.server.ChainParams)
 
 			for _, addr := range addrs {
 				if _, ok := lookups.addrs[addr.String()]; !ok {

@@ -387,7 +387,7 @@ func (m *wsNotificationManager) subscribedClients(tx *types.Tx,
 
 	for i, output := range msgTx.TxOut {
 		_, addrs, _, err := txscript.ExtractPkScriptAddrs(
-			output.PkScript, m.server.params)
+			output.PkScript, m.server.ChainParams)
 		if err != nil {
 			// Clients are not able to subscribe to
 			// nonstandard or non-address outputs.
