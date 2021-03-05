@@ -117,6 +117,47 @@ type NotifyNewTransactionsCmd struct {
 	Verbose bool
 }
 
+// OutPoint describes a transaction outpoint that will be marshalled to and
+// from JSON.
+type OutPoint struct {
+	Hash  string `json:"hash"`
+	Index uint32 `json:"index"`
+}
+
+// RescanCmd defines the rescan JSON-RPC command.
+//
+// Deprecated: Use RescanBlocksCmd instead.
+type RescanCmd struct {
+	BeginBlock string
+	Addresses  []string
+	OutPoints  []OutPoint
+	EndBlock   *string
+}
+
+type TxConfirm struct {
+	Txid          string
+	Order         uint64
+	Confirmations int32
+}
+
+type NotifyTxsConfirmedCmd struct {
+	Txs []*TxConfirm
+}
+
+// ws
+type NotifyTxsByAddrCmd struct {
+	Reload    bool
+	Addresses []string
+	OutPoints []OutPoint
+}
+
+// ws
+type UnNotifyTxsByAddrCmd struct {
+	Reload    bool
+	Addresses []string
+	OutPoints []OutPoint
+}
+
 func NewNotifyNewTransactionsCmd(verbose bool) *NotifyNewTransactionsCmd {
 	return &NotifyNewTransactionsCmd{
 		Verbose: verbose,

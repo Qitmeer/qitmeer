@@ -27,18 +27,20 @@ type ScriptClass byte
 
 // Classes of script payment known about in the blockchain.
 const (
-	NonStandardTy     ScriptClass = iota // None of the recognized forms.
-	PubKeyTy                             // Pay pubkey.
-	PubKeyHashTy                         // Pay pubkey hash.
-	ScriptHashTy                         // Pay to script hash.
-	MultiSigTy                           // Multi signature.
-	NullDataTy                           // Empty data-only (provably prunable).
-	StakeSubmissionTy                    // Stake submission.
-	StakeGenTy                           // Stake generation
-	StakeRevocationTy                    // Stake revocation.
-	StakeSubChangeTy                     // Change for stake submission tx.
-	PubkeyAltTy                          // Alternative signature pubkey.
-	PubkeyHashAltTy                      // Alternative signature pubkey hash.
+	NonStandardTy         ScriptClass = iota // None of the recognized forms.
+	PubKeyTy                                 // Pay pubkey.
+	PubKeyHashTy                             // Pay pubkey hash.
+	ScriptHashTy                             // Pay to script hash.
+	MultiSigTy                               // Multi signature.
+	NullDataTy                               // Empty data-only (provably prunable).
+	StakeSubmissionTy                        // Stake submission.
+	StakeGenTy                               // Stake generation
+	StakeRevocationTy                        // Stake revocation.
+	StakeSubChangeTy                         // Change for stake submission tx.
+	PubkeyAltTy                              // Alternative signature pubkey.
+	PubkeyHashAltTy                          // Alternative signature pubkey hash.
+	WitnessV0PubKeyHashTy                    // Pay witness pubkey hash.
+	WitnessV0ScriptHashTy                    // Pay to witness script hash.
 )
 
 // Script Interface provide a abstract layer to support new Script parsing from opcode
@@ -713,6 +715,12 @@ func payToPubKeyHashScript(pubKeyHash []byte) ([]byte, error) {
 		Script()
 }
 
+// payToWitnessPubKeyHashScript creates a new script to pay to a version 0
+// pubkey hash witness program. The passed hash is expected to be valid.
+func payToWitnessPubKeyHashScript(pubKeyHash []byte) ([]byte, error) {
+	return NewScriptBuilder().AddOp(OP_0).AddData(pubKeyHash).Script()
+}
+
 // payToPubKeyHashEdwardsScript creates a new script to pay a transaction
 // output to a 20-byte pubkey hash of an Edwards public key. It is expected
 // that the input is a valid hash.
@@ -721,6 +729,12 @@ func payToPubKeyHashEdwardsScript(pubKeyHash []byte) ([]byte, error) {
 	return NewScriptBuilder().AddOp(OP_DUP).AddOp(OP_HASH160).
 		AddData(pubKeyHash).AddOp(OP_EQUALVERIFY).AddData(edwardsData).
 		AddOp(OP_CHECKSIGALT).Script()
+}
+
+// payToWitnessPubKeyHashScript creates a new script to pay to a version 0
+// script hash witness program. The passed hash is expected to be valid.
+func payToWitnessScriptHashScript(scriptHash []byte) ([]byte, error) {
+	return NewScriptBuilder().AddOp(OP_0).AddData(scriptHash).Script()
 }
 
 // payToPubKeyHashSchnorrScript creates a new script to pay a transaction

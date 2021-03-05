@@ -10,6 +10,77 @@ type GetBlockhashCmd struct {
 	Order uint
 }
 
+// BlockDetails describes details of a tx in a block.
+type BlockDetails struct {
+	Order uint64 `json:"order"`
+	Hash  string `json:"hash"`
+	Index int    `json:"index"`
+	Time  int64  `json:"time"`
+}
+
+// RescanFinishedNtfn defines the rescanfinished JSON-RPC notification.
+//
+// Deprecated: Not used with rescanblocks command.
+type RescanFinishedNtfn struct {
+	Hash  string
+	Order uint64
+	Time  int64
+}
+
+// RescanProgressNtfn defines the rescanprogress JSON-RPC notification.
+//
+// Deprecated: Not used with rescanblocks command.
+type RescanProgressNtfn struct {
+	Hash  string
+	Order uint64
+	Time  int64
+}
+
+// NewRescanProgressNtfn returns a new instance which can be used to issue a
+// rescanprogress JSON-RPC notification.
+//
+// Deprecated: Not used with rescanblocks command.
+func NewRescanProgressNtfn(hash string, order uint64, time int64) *RescanProgressNtfn {
+	return &RescanProgressNtfn{
+		Hash:  hash,
+		Order: order,
+		Time:  time,
+	}
+}
+
+// NewRescanFinishedNtfn returns a new instance which can be used to issue a
+// rescanfinished JSON-RPC notification.
+//
+// Deprecated: Not used with rescanblocks command.
+func NewRescanFinishedNtfn(hash string, order uint64, time int64) *RescanFinishedNtfn {
+	return &RescanFinishedNtfn{
+		Hash:  hash,
+		Order: order,
+		Time:  time,
+	}
+}
+
+// RedeemingTxNtfn defines the redeemingtx JSON-RPC notification.
+//
+// Deprecated: Use RelevantTxAcceptedNtfn and FilteredBlockConnectedNtfn
+// instead.
+type RedeemingTxNtfn struct {
+	HexTx string
+	Block *BlockDetails
+}
+
+// NewRedeemingTxNtfn returns a new instance which can be used to issue a
+// redeemingtx JSON-RPC notification.
+//
+// Deprecated: Use NewRelevantTxAcceptedNtfn and
+// NewFilteredBlockConnectedNtfn instead.
+func NewRedeemingTxNtfn(hexTx string, block *BlockDetails) *RedeemingTxNtfn {
+	return &RedeemingTxNtfn{
+		HexTx: hexTx,
+		Block: block,
+	}
+}
+
 func NewGetBlockhashCmd(order uint) *GetBlockhashCmd {
 	return &GetBlockhashCmd{
 		Order: order,

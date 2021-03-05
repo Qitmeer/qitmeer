@@ -57,6 +57,11 @@ type wsClient struct {
 	// information about all new transactions.
 	verboseTxUpdates bool
 
+	// filterData is the new generation transaction filter backported from
+	// github.com/decred/dcrd for the new backported `loadtxfilter` and
+	// `rescanblocks` methods.
+	filterData *wsClientFilter
+
 	// Networking infrastructure.
 	serviceRequestSem semaphore
 	ntfnChan          chan []byte

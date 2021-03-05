@@ -6,6 +6,7 @@ require (
 	github.com/Qitmeer/crypto v0.0.0-20200516043559-dd457edff06c
 	github.com/Qitmeer/crypto/cryptonight v0.0.0-20201028030128-6ed4040ca34a
 	github.com/aristanetworks/goarista v0.0.0-20200812190859-4cb0e71f3c0e
+	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/cloudflare/roughtime v0.0.0-20200829152512-a9bb6267a4f5
 	github.com/davecgh/go-spew v1.1.1
 	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
@@ -48,6 +49,7 @@ require (
 	github.com/zeromq/goczmq v4.1.0+incompatible
 	go.opencensus.io v0.22.4
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+	golang.org/x/exp/errors v0.0.0-20210220032938-85be41e4509f
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/sys v0.0.0-20200523222454-059865788121
 	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd

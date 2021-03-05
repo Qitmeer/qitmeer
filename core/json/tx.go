@@ -141,13 +141,17 @@ type PrevOut struct {
 }
 
 type DecodeRawTransactionResult struct {
-	Txid     string `json:"txid"`
-	Hash     string `json:"txhash"`
-	Version  uint32 `json:"version"`
-	LockTime uint32 `json:"locktime"`
-	Time     string `json:"timestamp"`
-	Vin      []Vin  `json:"vin"`
-	Vout     []Vout `json:"vout"`
+	Order      uint64 `json:"order"`
+	IsCoinbase bool   `json:"is_coinbase"`
+	Confirms   uint64 `json:"confirms"`
+	IsBlue     bool   `json:"is_blue"`
+	Txid       string `json:"txid"`
+	Hash       string `json:"txhash"`
+	Version    uint32 `json:"version"`
+	LockTime   uint32 `json:"locktime"`
+	Time       string `json:"timestamp"`
+	Vin        []Vin  `json:"vin"`
+	Vout       []Vout `json:"vout"`
 }
 
 // TransactionInput represents the inputs to a transaction.  Specifically a

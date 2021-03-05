@@ -6,11 +6,14 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
+	"github.com/btcsuite/btcd/btcjson"
+	"math"
 	"time"
 )
 
@@ -129,6 +132,10 @@ var wsHandlersBeforeInit = map[string]wsCommandHandler{
 	"session":                   handleSession,
 	"notifynewtransactions":     handleNotifyNewTransactions,
 	"stopnotifynewtransactions": handleStopNotifyNewTransactions,
+	"notifyTxsByAddr":           handleNotifyTxsByAddr,
+	"stopnotifyTxsByAddr":       handleStopNotifyTxsByAddr,
+	"rescan":                    handleRescan,
+	"notifyTxsConfirmed":        handleNotifyTxsConfirmed,
 }
 
 func handleNotifyBlocks(wsc *wsClient, icmd interface{}) (interface{}, error) {
@@ -155,6 +162,53 @@ func handleNotifyNewTransactions(wsc *wsClient, icmd interface{}) (interface{}, 
 	return nil, nil
 }
 
+func handleNotifyTxsByAddr(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*cmds.NotifyTxsByAddrCmd)
+	if !ok {
+		return nil, cmds.ErrRPCInternal
+	}
+	outPoints := make([]types.TxOutPoint, len(cmd.OutPoints))
+	for i := range cmd.OutPoints {
+		h, err := hash.NewHashFromStr(cmd.OutPoints[i].Hash)
+		if err != nil {
+			return nil, &cmds.RPCError{
+				Code:    cmds.ErrRPCInvalidParameter,
+				Message: err.Error(),
+			}
+		}
+		outPoints[i] = types.TxOutPoint{
+			Hash:     *h,
+			OutIndex: cmd.OutPoints[i].Index,
+		}
+	}
+
+	wsc.Lock()
+	if cmd.Reload || wsc.filterData == nil {
+		wsc.filterData = newWSClientFilter(cmd.Addresses, outPoints)
+		wsc.Unlock()
+	} else {
+		wsc.Unlock()
+
+		wsc.filterData.mu.Lock()
+		for _, a := range cmd.Addresses {
+			wsc.filterData.addAddressStr(a)
+		}
+		wsc.filterData.mu.Unlock()
+	}
+	return nil, nil
+}
+
+func handleStopNotifyTxsByAddr(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*cmds.UnNotifyTxsByAddrCmd)
+	if !ok {
+		return nil, cmds.ErrRPCInternal
+	}
+	for _, addr := range cmd.Addresses {
+		wsc.filterData.removeAddressStr(addr)
+	}
+	return nil, nil
+}
+
 func handleStopNotifyNewTransactions(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	wsc.server.ntfnMgr.UnregisterNewMempoolTxsUpdates(wsc)
 	return nil, nil
@@ -162,4 +216,165 @@ func handleStopNotifyNewTransactions(wsc *wsClient, icmd interface{}) (interface
 
 func init() {
 	wsHandlers = wsHandlersBeforeInit
+}
+
+// rpcDecodeHexError is a convenience function for returning a nicely formatted
+// RPC error which indicates the provided hex string failed to decode.
+func rpcDecodeHexError(gotHex string) *btcjson.RPCError {
+	return btcjson.NewRPCError(btcjson.ErrRPCDecodeHexString,
+		fmt.Sprintf("Argument must be hexadecimal string (not %q)",
+			gotHex))
+}
+
+// handleRescan implements the rescan command extension for websocket
+// connections.
+//
+// NOTE: This does not smartly handle reorgs, and fixing requires database
+// changes (for safe, concurrent access to full block ranges, and support
+// for other chains than the best chain).  It will, however, detect whether
+// a reorg removed a block that was previously processed, and result in the
+// handler erroring.  Clients must handle this by finding a block still in
+// the chain (perhaps from a rescanprogress notification) to resume their
+// rescan.
+func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*cmds.RescanCmd)
+	if !ok {
+		return nil, cmds.ErrRPCInternal
+	}
+
+	outpoints := make([]*types.TxOutPoint, 0, len(cmd.OutPoints))
+	for i := range cmd.OutPoints {
+		cmdOutpoint := &cmd.OutPoints[i]
+		blockHash, err := hash.NewHashFromStr(cmdOutpoint.Hash)
+		if err != nil {
+			return nil, rpcDecodeHexError(cmdOutpoint.Hash)
+		}
+		outpoint := types.NewOutPoint(blockHash, cmdOutpoint.Index)
+		outpoints = append(outpoints, outpoint)
+	}
+
+	numAddrs := len(cmd.Addresses)
+	if numAddrs == 1 {
+		log.Info("Beginning rescan for 1 address")
+	} else {
+		log.Info(fmt.Sprintf("Beginning rescan for %d addresses", numAddrs))
+	}
+
+	// Build lookup maps.
+	lookups := rescanKeys{
+		addrs:   map[string]struct{}{},
+		unspent: map[types.TxOutPoint]struct{}{},
+	}
+	for _, addrStr := range cmd.Addresses {
+		lookups.addrs[addrStr] = struct{}{}
+	}
+	for _, outpoint := range outpoints {
+		lookups.unspent[*outpoint] = struct{}{}
+	}
+
+	chain := wsc.server.BC
+
+	minBlockHash, err := hash.NewHashFromStr(cmd.BeginBlock)
+	if err != nil {
+		return nil, rpcDecodeHexError(cmd.BeginBlock)
+	}
+	minBlock, err := chain.BlockOrderByHash(minBlockHash)
+	if err != nil {
+		return nil, &cmds.RPCError{
+			Code:    cmds.ErrRPCBlockNotFound,
+			Message: "Error getting block: " + err.Error(),
+		}
+	}
+
+	maxBlock := uint64(math.MaxInt64)
+	if cmd.EndBlock != nil {
+		maxBlockHash, err := hash.NewHashFromStr(*cmd.EndBlock)
+		if err != nil {
+			return nil, rpcDecodeHexError(*cmd.EndBlock)
+		}
+		maxBlock, err = chain.BlockOrderByHash(maxBlockHash)
+		if err != nil {
+			return nil, &cmds.RPCError{
+				Code:    cmds.ErrRPCBlockNotFound,
+				Message: "Error getting block: " + err.Error(),
+			}
+		}
+	}
+
+	var (
+		lastBlock     *types.SerializedBlock
+		lastBlockHash *hash.Hash
+	)
+	if len(lookups.addrs) != 0 || len(lookups.unspent) != 0 {
+		// With all the arguments parsed, we'll execute our chunked rescan
+		// which will notify the clients of any address deposits or output
+		// spends.
+		lastBlock, lastBlockHash, err = scanBlockChunks(
+			wsc, cmd, &lookups, minBlock, maxBlock, chain,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// If the last block is nil, then this means that the client
+		// disconnected mid-rescan. As a result, we don't need to send
+		// anything back to them.
+		if lastBlock == nil {
+			return nil, nil
+		}
+	} else {
+		log.Info("Skipping rescan as client has no addrs/utxos")
+
+		// If we didn't actually do a rescan, then we'll give the
+		// client our best known block within the final rescan finished
+		// notification.
+		chainTip := chain.BestSnapshot()
+		lastBlockHash = &chainTip.Hash
+		lastBlock, err = chain.BlockByHash(lastBlockHash)
+		if err != nil {
+			return nil, &cmds.RPCError{
+				Code:    cmds.ErrRPCBlockNotFound,
+				Message: "Error getting block: " + err.Error(),
+			}
+		}
+	}
+
+	// Notify websocket client of the finished rescan.  Due to how btcd
+	// asynchronously queues notifications to not block calling code,
+	// there is no guarantee that any of the notifications created during
+	// rescan (such as rescanprogress, recvtx and redeemingtx) will be
+	// received before the rescan RPC returns.  Therefore, another method
+	// is needed to safely inform clients that all rescan notifications have
+	// been sent.
+	n := cmds.NewRescanFinishedNtfn(
+		lastBlockHash.String(), lastBlock.Order(),
+		lastBlock.Block().Header.Timestamp.Unix(),
+	)
+	if mn, err := cmds.MarshalCmd(nil, n); err != nil {
+		log.Error(fmt.Sprintf("Failed to marshal rescan finished "+
+			"notification: %v", err))
+	} else {
+		// The rescan is finished, so we don't care whether the client
+		// has disconnected at this point, so discard error.
+		_ = wsc.QueueNotification(mn)
+	}
+
+	log.Info("Finished rescan")
+	return nil, nil
+}
+
+func handleNotifyTxsConfirmed(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*cmds.NotifyTxsConfirmedCmd)
+	if !ok {
+		return nil, cmds.ErrRPCInternal
+	}
+	for _, tx := range cmd.Txs {
+		wsc.server.watchTxConfirmServer.AddTxConfirms(TxConfirm{
+			Order:    tx.Order,
+			Confirms: uint64(tx.Confirmations),
+			TxHash:   tx.Txid,
+			wsc:      wsc,
+		})
+	}
+	return nil, nil
 }
