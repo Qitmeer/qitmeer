@@ -13,7 +13,6 @@ import (
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
 	"github.com/btcsuite/btcd/btcjson"
-	"math"
 	"time"
 )
 
@@ -274,34 +273,8 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 
 	chain := wsc.server.BC
 
-	minBlockHash, err := hash.NewHashFromStr(cmd.BeginBlock)
-	if err != nil {
-		return nil, rpcDecodeHexError(cmd.BeginBlock)
-	}
-	minBlock, err := chain.BlockOrderByHash(minBlockHash)
-	if err != nil {
-		return nil, &cmds.RPCError{
-			Code:    cmds.ErrRPCBlockNotFound,
-			Message: "Error getting block: " + err.Error(),
-		}
-	}
-
-	maxBlock := uint64(math.MaxInt64)
-	if cmd.EndBlock != nil {
-		maxBlockHash, err := hash.NewHashFromStr(*cmd.EndBlock)
-		if err != nil {
-			return nil, rpcDecodeHexError(*cmd.EndBlock)
-		}
-		maxBlock, err = chain.BlockOrderByHash(maxBlockHash)
-		if err != nil {
-			return nil, &cmds.RPCError{
-				Code:    cmds.ErrRPCBlockNotFound,
-				Message: "Error getting block: " + err.Error(),
-			}
-		}
-	}
-
 	var (
+		err           error
 		lastBlock     *types.SerializedBlock
 		lastBlockHash *hash.Hash
 	)
@@ -310,7 +283,7 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 		// which will notify the clients of any address deposits or output
 		// spends.
 		lastBlock, lastBlockHash, err = scanBlockChunks(
-			wsc, cmd, &lookups, minBlock, maxBlock, chain,
+			wsc, cmd, &lookups, cmd.BeginBlock, cmd.EndBlock, chain,
 		)
 		if err != nil {
 			return nil, err
@@ -369,7 +342,7 @@ func handleNotifyTxsConfirmed(wsc *wsClient, icmd interface{}) (interface{}, err
 		return nil, cmds.ErrRPCInternal
 	}
 	for _, tx := range cmd.Txs {
-		wsc.server.watchTxConfirmServer.AddTxConfirms(TxConfirm{
+		wsc.server.WatchTxConfirmServer.AddTxConfirms(TxConfirm{
 			Order:    tx.Order,
 			Confirms: uint64(tx.Confirmations),
 			TxHash:   tx.Txid,

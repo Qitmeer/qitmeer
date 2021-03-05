@@ -264,7 +264,7 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 	if c.ntfnHandlers == nil {
 		return
 	}
-
+	fmt.Println("receive", "method", ntfn.Method)
 	switch ntfn.Method {
 	// OnBlockConnected
 	case cmds.BlockConnectedNtfnMethod:
@@ -364,7 +364,56 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 			return
 		}
 
-		c.ntfnHandlers.OnTxAcceptedVerbose(rawTx)
+		c.ntfnHandlers.OnTxAcceptedVerbose(c, rawTx)
+
+	// OnTxConfirm
+	case cmds.TxConfirmNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnTxConfirm == nil {
+			return
+		}
+		rawTx, err := parseTxConfirm(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid tx confirm struct "+
+				"notification: %v", err))
+			return
+		}
+		c.ntfnHandlers.OnTxConfirm(rawTx)
+
+	// OnRescanProgress
+	case cmds.RescanProgressNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnRescanProgress == nil {
+			return
+		}
+
+		rawTx, err := parseRescanProgress(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid tx accepted verbose "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnRescanProgress(rawTx)
+
+	// OnRescanFinish
+	case cmds.RescanCompleteNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnRescanFinish == nil {
+			return
+		}
+
+		rawTx, err := parseRescanFinish(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid tx accepted verbose "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnRescanFinish(rawTx)
 
 	// OnUnknownNotification
 	default:

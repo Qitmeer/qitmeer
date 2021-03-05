@@ -318,7 +318,6 @@ func (c *wsClient) QueueNotification(marshalledJSON []byte) error {
 	if c.Disconnected() {
 		return ErrClientQuit
 	}
-
 	c.ntfnChan <- marshalledJSON
 	return nil
 }

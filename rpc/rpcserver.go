@@ -55,7 +55,7 @@ type RpcServer struct {
 	reqStatusLock sync.RWMutex
 
 	ntfnMgr              *wsNotificationManager
-	watchTxConfirmServer *WatchTxConfirmServer
+	WatchTxConfirmServer *WatchTxConfirmServer
 	BC                   *blockchain.BlockChain
 	ChainParams          *params.Params
 	listeners            []net.Listener
@@ -131,7 +131,7 @@ func NewRPCServer(cfg *config.Config, events *event.Feed) (*RpcServer, error) {
 		rpc.authsha = sha256.Sum256([]byte(auth))
 	}
 	rpc.ntfnMgr = newWsNotificationManager(&rpc)
-	rpc.watchTxConfirmServer = newWatchTxConfirmServer(&rpc, rpc.ntfnMgr)
+	rpc.WatchTxConfirmServer = newWatchTxConfirmServer(&rpc, rpc.ntfnMgr)
 	rpc.subscribe(events)
 	return &rpc, nil
 }
@@ -145,7 +145,7 @@ func (s *RpcServer) Start() error {
 		return err
 	}
 	s.ntfnMgr.Start()
-	s.watchTxConfirmServer.Start()
+	s.WatchTxConfirmServer.Start()
 	return nil
 }
 
@@ -172,7 +172,7 @@ func (s *RpcServer) Stop() {
 	})
 
 	s.ntfnMgr.Stop()
-	s.watchTxConfirmServer.Stop()
+	s.WatchTxConfirmServer.Stop()
 
 	close(s.quit)
 	s.wg.Wait()
@@ -637,7 +637,6 @@ func (s *RpcServer) handle(ctx context.Context, codec ServerCodec, req *serverRe
 
 		return codec.CreateResponse(req.id, subid), activateSub
 	}
-
 	// regular RPC call, prepare arguments
 	if len(req.args) != len(req.callb.argTypes) {
 		rpcErr := &invalidParamsError{fmt.Sprintf("%s%s%s expects %d parameters, got %d",

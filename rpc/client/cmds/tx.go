@@ -128,10 +128,10 @@ type OutPoint struct {
 //
 // Deprecated: Use RescanBlocksCmd instead.
 type RescanCmd struct {
-	BeginBlock string
+	BeginBlock uint64
 	Addresses  []string
 	OutPoints  []OutPoint
-	EndBlock   *string
+	EndBlock   uint64
 }
 
 type TxConfirm struct {
@@ -141,7 +141,7 @@ type TxConfirm struct {
 }
 
 type NotifyTxsConfirmedCmd struct {
-	Txs []*TxConfirm
+	Txs []TxConfirm
 }
 
 // ws
@@ -153,9 +153,7 @@ type NotifyTxsByAddrCmd struct {
 
 // ws
 type UnNotifyTxsByAddrCmd struct {
-	Reload    bool
 	Addresses []string
-	OutPoints []OutPoint
 }
 
 func NewNotifyNewTransactionsCmd(verbose bool) *NotifyNewTransactionsCmd {
@@ -164,10 +162,30 @@ func NewNotifyNewTransactionsCmd(verbose bool) *NotifyNewTransactionsCmd {
 	}
 }
 
+func NewNotifyTxsConfirmed(txs []TxConfirm) *NotifyTxsConfirmedCmd {
+	return &NotifyTxsConfirmedCmd{
+		Txs: txs,
+	}
+}
+
 type StopNotifyNewTransactionsCmd struct{}
 
 func NewStopNotifyNewTransactionsCmd() *StopNotifyNewTransactionsCmd {
 	return &StopNotifyNewTransactionsCmd{}
+}
+
+func NewNotifyTxsByAddrCmd(reload bool, addr []string, outpoint []OutPoint) *NotifyTxsByAddrCmd {
+	return &NotifyTxsByAddrCmd{
+		Reload:    reload,
+		Addresses: addr,
+		OutPoints: outpoint,
+	}
+}
+
+func StopNotifyTxsByAddrCmd(addr []string) *UnNotifyTxsByAddrCmd {
+	return &UnNotifyTxsByAddrCmd{
+		Addresses: addr,
+	}
 }
 
 func init() {
@@ -186,4 +204,10 @@ func init() {
 	// ws
 	MustRegisterCmd("notifynewtransactions", (*NotifyNewTransactionsCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
 	MustRegisterCmd("stopnotifynewtransactions", (*StopNotifyNewTransactionsCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
+
+	// ws
+	MustRegisterCmd("notifyTxsByAddr", (*NotifyTxsByAddrCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
+	MustRegisterCmd("stopnotifyTxsByAddr", (*UnNotifyTxsByAddrCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
+
+	MustRegisterCmd("notifyTxsConfirmed", (*NotifyTxsConfirmedCmd)(nil), flags, NotifyNameSpace)
 }

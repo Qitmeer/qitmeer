@@ -90,7 +90,6 @@ func scanBlockChunks(wsc *wsClient, cmd *cmds.RescanCmd, lookups *rescanKeys, mi
 	// websocket client of the current progress completed by the rescan.
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
-
 	// Instead of fetching all block shas at once, fetch in smaller chunks
 	// to ensure large rescans consume a limited amount of memory.
 fetchRange:
@@ -152,7 +151,6 @@ fetchRange:
 			}
 			break
 		}
-
 	loopHashList:
 		for i := range hashList {
 			blk, err := chain.BlockByHash(&hashList[i])
@@ -161,7 +159,6 @@ fetchRange:
 				// found for the hash.
 				if dbErr, ok := err.(database.Error); !ok ||
 					dbErr.ErrorCode != database.ErrBlockNotFound {
-
 					log.Error(fmt.Sprintf("Error looking up "+
 						"block: %v", err))
 					return nil, nil, &cmds.RPCError{
@@ -170,17 +167,6 @@ fetchRange:
 							err.Error(),
 					}
 				}
-				h := blk.Block().BlockHash()
-				node := wsc.server.BC.BlockIndex().LookupNode(&h)
-				if node == nil {
-					return nil, nil, &cmds.RPCError{
-						Code:    cmds.ErrInvalidNode,
-						Message: "no node ",
-					}
-				}
-				// Update the source block order
-				blk.SetOrder(node.GetOrder())
-				blk.SetHeight(node.GetHeight())
 				// If an absolute max block was specified, don't
 				// attempt to handle the reorg.
 				if maxBlock != math.MaxInt64 {
@@ -212,6 +198,17 @@ fetchRange:
 				}
 				goto loopHashList
 			}
+			h := blk.Block().BlockHash()
+			node := chain.BlockIndex().LookupNode(&h)
+			if node == nil {
+				return nil, nil, &cmds.RPCError{
+					Code:    cmds.ErrInvalidNode,
+					Message: "no node ",
+				}
+			}
+			// Update the source block order
+			blk.SetOrder(node.GetOrder())
+			blk.SetHeight(node.GetHeight())
 			if i == 0 && lastBlockHash != nil {
 				// Ensure the new hashList is on the same fork
 				// as the last block from the old hashList.
@@ -229,7 +226,7 @@ fetchRange:
 					"for disconnected client", blk.Order()))
 				return nil, nil, nil
 			default:
-				rescanBlock(wsc, lookups, blk, wsc.server.BC)
+				rescanBlock(wsc, lookups, blk)
 				lastBlock = blk
 				lastBlockHash = blk.Hash()
 			}
@@ -240,9 +237,7 @@ fetchRange:
 			select {
 			case <-ticker.C: // fallthrough
 			default:
-				continue
 			}
-
 			n := cmds.NewRescanProgressNtfn(
 				hashList[i].String(), blk.Order(),
 				blk.Block().Header.Timestamp.Unix(),
@@ -270,7 +265,7 @@ fetchRange:
 
 // rescanBlock rescans all transactions in a single block.  This is a helper
 // function for handleRescan.
-func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock, bc *blockchain.BlockChain) {
+func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock) {
 	for _, tx := range blk.Transactions() {
 		// notifySpend is a closure we'll use when we first detect that
 		// a transactions spends an outpoint/script in our filter list.

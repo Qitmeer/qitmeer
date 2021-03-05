@@ -35,14 +35,6 @@ type notificationTxByBlock struct {
 	tx  *types.Tx
 }
 
-type notificationTxConfirm struct {
-	Confirms uint64
-	Tx       string
-	Order    uint64
-	IsValid  bool
-	IsBlue   bool
-}
-
 // Notification control requests
 type notificationRegisterClient wsClient
 type notificationUnregisterClient wsClient
@@ -155,6 +147,7 @@ out:
 
 			case *notificationRegisterNewMempoolTxs:
 				wsc := (*wsClient)(n)
+				log.Info(fmt.Sprintf("listen tx %s", wsc.addr))
 				txNotifications[wsc.quit] = wsc
 
 			case *notificationUnregisterNewMempoolTxs:
@@ -581,7 +574,6 @@ func (m *wsNotificationManager) notifyForBlockTx(clients map[chan struct{}]*wsCl
 		}
 	}
 	clientsToNotify := m.subscribedClients(tx, clients)
-
 	for quitChan := range clientsToNotify {
 		wsc := clients[quitChan]
 		if wsc.verboseTxUpdates {

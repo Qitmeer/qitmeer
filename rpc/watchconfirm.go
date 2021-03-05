@@ -15,7 +15,7 @@ type TxConfirm struct {
 }
 
 type WatchTxConfirmServer struct {
-	bc         *blockchain.BlockChain
+	BC         *blockchain.BlockChain
 	TxConfirms map[uint64]map[string]TxConfirm
 	lock       sync.Mutex
 	m          *wsNotificationManager
@@ -25,7 +25,7 @@ type WatchTxConfirmServer struct {
 
 func newWatchTxConfirmServer(server *RpcServer, m *wsNotificationManager) *WatchTxConfirmServer {
 	return &WatchTxConfirmServer{
-		bc:         server.BC,
+		BC:         server.BC,
 		m:          m,
 		TxConfirms: map[uint64]map[string]TxConfirm{},
 		quit:       make(chan struct{}),
@@ -36,6 +36,9 @@ func newWatchTxConfirmServer(server *RpcServer, m *wsNotificationManager) *Watch
 func (w *WatchTxConfirmServer) AddTxConfirms(confirm TxConfirm) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
+	if _, ok := w.TxConfirms[confirm.Order]; !ok {
+		w.TxConfirms[confirm.Order] = map[string]TxConfirm{}
+	}
 	w.TxConfirms[confirm.Order][confirm.TxHash] = confirm
 }
 
@@ -55,24 +58,38 @@ func (w *WatchTxConfirmServer) HandleTxConfirm() {
 			if len(w.TxConfirms) > 0 {
 				w.lock.Lock()
 				for order, txc := range w.TxConfirms {
-					h := w.bc.BlockDAG().GetBlockByOrder(uint(order))
-					ib := w.bc.BlockDAG().GetBlock(h)
-					node := w.bc.BlockIndex().LookupNode(h)
+					h := w.BC.BlockDAG().GetBlockByOrder(uint(order))
+					if h == nil {
+						log.Error("order not exist", "order", order)
+						delete(w.TxConfirms, order)
+						continue
+					}
+					ib := w.BC.BlockDAG().GetBlock(h)
+					if ib == nil {
+						if h == nil {
+							log.Error("block hash not exist", "hash", h)
+							delete(w.TxConfirms, order)
+							continue
+						}
+					}
+					node := w.BC.BlockIndex().LookupNode(h)
 					if node == nil {
 						log.Error("no node")
 						continue
 					}
-					confirmations := int64(w.bc.BlockDAG().GetConfirmations(node.GetID()))
-					isBlue := w.bc.BlockDAG().IsBlue(ib.GetID())
-					IsValid := w.bc.BlockIndex().NodeStatus(node).KnownInvalid()
+					confirmations := int64(w.BC.BlockDAG().GetConfirmations(node.GetID()))
+					isBlue := w.BC.BlockDAG().IsBlue(ib.GetID())
+					InValid := w.BC.BlockIndex().NodeStatus(node).KnownInvalid()
 					for _, tx := range txc {
-						if !isBlue || !IsValid || confirmations > int64(tx.Confirms) {
-							ntfn := &notificationTxConfirm{
-								Tx:       tx.TxHash,
-								Confirms: uint64(confirmations),
-								IsBlue:   isBlue,
-								IsValid:  IsValid,
-								Order:    order,
+						if !isBlue || InValid || confirmations >= int64(tx.Confirms) {
+							ntfn := &cmds.NotificationTxConfirmNtfn{
+								cmds.TxConfirmResult{
+									Tx:       tx.TxHash,
+									Confirms: uint64(confirmations),
+									IsBlue:   isBlue,
+									IsValid:  !InValid,
+									Order:    order,
+								},
 							}
 							marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
 							if err != nil {
@@ -80,7 +97,11 @@ func (w *WatchTxConfirmServer) HandleTxConfirm() {
 									"%v", err))
 								continue
 							}
-							tx.wsc.QueueNotification(marshalledJSON)
+							err = tx.wsc.QueueNotification(marshalledJSON)
+							if err != nil {
+								log.Error("notify failed", "err", err)
+								continue
+							}
 							delete(w.TxConfirms[order], tx.TxHash)
 						}
 					}

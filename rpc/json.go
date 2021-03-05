@@ -32,7 +32,7 @@ type jsonRequest struct {
 	Method  string          `json:"method"`
 	Version string          `json:"jsonrpc"`
 	Id      json.RawMessage `json:"id,omitempty"`
-	Payload json.RawMessage `json:"ChainParams,omitempty"`
+	Payload json.RawMessage `json:"params,omitempty"`
 }
 
 type jsonSuccessResponse struct {

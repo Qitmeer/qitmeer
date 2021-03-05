@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/util"
+	j "github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/rpc/client"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -32,14 +34,26 @@ func main() {
 		OnReorganization: func(hash *hash.Hash, order int64, olds []*hash.Hash) {
 			fmt.Println("OnReorganization", hash, order, len(olds))
 		},
+		OnTxConfirm: func(txConfirm *cmds.TxConfirmResult) {
+			fmt.Println("OnTxConfirm", txConfirm.Tx, txConfirm.Confirms, txConfirm.Order)
+		},
+		OnTxAcceptedVerbose: func(c *client.Client, tx *j.DecodeRawTransactionResult) {
+			fmt.Println("OnTxAcceptedVerbose", tx.Hash, tx.Confirms, tx.Order)
+		},
+		OnRescanProgress: func(rescanPro *cmds.RescanProgressNtfn) {
+			fmt.Println("OnRescanProgress", rescanPro.Order, rescanPro.Hash)
+		},
+		OnRescanFinish: func(rescanFinish *cmds.RescanFinishedNtfn) {
+			fmt.Println("OnRescanFinish", rescanFinish.Order, rescanFinish.Hash)
+		},
 	}
 
 	connCfg := &client.ConnConfig{
-		Host:       "localhost:1234",
+		Host:       "127.0.0.1:1234",
 		Endpoint:   "ws",
 		User:       "test",
 		Pass:       "test",
-		DisableTLS: false,
+		DisableTLS: true,
 	}
 	if !connCfg.DisableTLS {
 		homeDir := util.AppDataDir("qitmeerd", false)
@@ -50,30 +64,53 @@ func main() {
 		connCfg.Certificates = certs
 	}
 
-	client, err := client.New(connCfg, &ntfnHandlers)
+	c, err := client.New(connCfg, &ntfnHandlers)
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	// first add addresses
+	if err := c.NotifyTxsByAddr(false, []string{"RmBCkqCZ17hXsUTGhKXT3s6CZ5b6MuNhwcZ"}, nil); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("NotifyTxsByAddr: NotifyTxsByAddr Complete")
+	if err := c.NotifyTxsConfirmed([]cmds.TxConfirm{
+		{
+			Txid:          "f5a95e6cfa754a8c81579fb8871bc97e965383d98c61197a74561f0cd8e24be2",
+			Order:         1,
+			Confirmations: 5,
+		},
+	}); err != nil {
+		log.Fatal(err)
+	}
 	// Register for block connect and disconnect notifications.
-	if err := client.NotifyBlocks(); err != nil {
+	if err := c.NotifyBlocks(); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("NotifyBlocks: Registration Complete")
 
+	// Register for transaction connect and disconnect notifications.
+	if err := c.NotifyNewTransactions(true); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("NotifyTransaction: Registration Complete")
+	time.Sleep(1 * time.Second)
+	if err := c.Rescan(0, 10, []string{"RmBCkqCZ17hXsUTGhKXT3s6CZ5b6MuNhwcZ"}, nil); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Rescan: Rescan Complete")
 	// call RPC: getNodeInfo
-	nodeInfo, err := client.GetNodeInfo()
+	nodeInfo, err := c.GetNodeInfo()
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("Node info: %v", nodeInfo)
 
-	waitTime := time.Second * 15
+	waitTime := time.Second * 300
 	log.Printf("Client shutdown in %s...\n", waitTime.String())
 	time.AfterFunc(waitTime, func() {
 		log.Println("Client shutting down...")
-		client.Shutdown()
+		c.Shutdown()
 		log.Println("Client shutdown complete.")
 	})
-	client.WaitForShutdown()
+	c.WaitForShutdown()
 }
