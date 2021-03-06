@@ -38,7 +38,7 @@ func main() {
 			fmt.Println("OnTxConfirm", txConfirm.Tx, txConfirm.Confirms, txConfirm.Order)
 		},
 		OnTxAcceptedVerbose: func(c *client.Client, tx *j.DecodeRawTransactionResult) {
-			fmt.Println("OnTxAcceptedVerbose", tx.Hash, tx.Confirms, tx.Order)
+			fmt.Println("OnTxAcceptedVerbose", tx.Hash, tx.Confirms, tx.Order, tx.Txvalid, tx.IsBlue, tx.Duplicate)
 		},
 		OnRescanProgress: func(rescanPro *cmds.RescanProgressNtfn) {
 			fmt.Println("OnRescanProgress", rescanPro.Order, rescanPro.Hash)
