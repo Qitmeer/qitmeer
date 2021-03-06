@@ -463,13 +463,15 @@ func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClie
 	var marshalledJSONVerbose []byte
 	if needVerboseTx {
 		rawTx := &json.DecodeRawTransactionResult{
-			Txid:     tx.Hash().String(),
-			Hash:     tx.Tx.TxHashFull().String(),
-			Version:  tx.Tx.Version,
-			LockTime: tx.Tx.LockTime,
-			Time:     tx.Tx.Timestamp.Format(time.RFC3339),
-			Vin:      marshal.MarshJsonVin(tx.Tx),
-			Vout:     marshal.MarshJsonVout(tx.Tx, nil, params.ActiveNetParams.Params),
+			Txid:       tx.Hash().String(),
+			Duplicate:  tx.IsDuplicate,
+			IsCoinbase: tx.Tx.IsCoinBase(),
+			Hash:       tx.Tx.TxHashFull().String(),
+			Version:    tx.Tx.Version,
+			LockTime:   tx.Tx.LockTime,
+			Time:       tx.Tx.Timestamp.Format(time.RFC3339),
+			Vin:        marshal.MarshJsonVin(tx.Tx),
+			Vout:       marshal.MarshJsonVout(tx.Tx, nil, params.ActiveNetParams.Params),
 		}
 		verboseNtfn := cmds.NewTxAcceptedVerboseNtfn(*rawTx)
 		marshalledJSONVerbose, err = cmds.MarshalCmd(nil, verboseNtfn)
