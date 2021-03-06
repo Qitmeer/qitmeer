@@ -504,6 +504,7 @@ func (m *wsNotificationManager) notifyForBlockTx(clients map[chan struct{}]*wsCl
 	}
 	confirmations := int64(m.server.BC.BlockDAG().GetConfirmations(node.GetID()))
 	isBlue := m.server.BC.BlockDAG().IsBlue(ib.GetID())
+	InValid := m.server.BC.BlockIndex().NodeStatus(node).KnownInvalid()
 	needTx := false
 	needVerboseTx := false
 	for _, wsc := range clients {
@@ -554,6 +555,9 @@ func (m *wsNotificationManager) notifyForBlockTx(clients map[chan struct{}]*wsCl
 
 		rawTx := &json.DecodeRawTransactionResult{
 			IsCoinbase: tx.Tx.IsCoinBase(),
+			Txvalid:    !InValid,
+			BlockHash:  blk.Hash().String(),
+			Duplicate:  tx.IsDuplicate,
 			Order:      node.GetOrder(),
 			Confirms:   uint64(confirmations),
 			IsBlue:     isBlue,

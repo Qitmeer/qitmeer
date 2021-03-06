@@ -142,6 +142,9 @@ type PrevOut struct {
 
 type DecodeRawTransactionResult struct {
 	Order      uint64 `json:"order"`
+	BlockHash  string `json:"blockhash"`
+	Txvalid    bool   `json:"txvalid"`
+	Duplicate  bool   `json:"duplicate,omitempty"`
 	IsCoinbase bool   `json:"is_coinbase"`
 	Confirms   uint64 `json:"confirms"`
 	IsBlue     bool   `json:"is_blue"`
