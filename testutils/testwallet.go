@@ -275,44 +275,6 @@ func (w *testWallet) doInputs(inputs []*types.TxInput, undo *undo) {
 	}
 }
 
-func (w *testWallet) blockConnected(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
-	w.t.Logf("node [%v] OnBlockConnected hash=%v,order=%v", w.nodeId, hash, order)
-	for _, tx := range txs {
-		w.t.Logf("node [%v] OnBlockConnected tx=%v", w.nodeId, tx.TxHash())
-	}
-	// Append the new update to the end of the queue of block dag updates.
-	w.updateMtx.Lock()
-	w.updates = append(w.updates, &update{order, hash, txs})
-	w.updateMtx.Unlock()
-
-	// signal the update watcher that a new update is arrived . use a goroutine
-	// in order to avoid blocking this callback itself from the websocket client.
-	go func() {
-		w.updateArrived <- struct{}{}
-	}()
-}
-
-func (w *testWallet) blockDisconnected(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
-	w.t.Logf("node [%v] OnBlockDisconnected hash=%v,order=%v", w.nodeId, hash, order)
-	w.Lock()
-	defer w.Unlock()
-
-	undo, ok := w.undoes[hash]
-	if !ok {
-		w.t.Fatalf("the disconnected a unknown block, hash=%v, order=%v", hash, order)
-	}
-
-	for _, utxo := range undo.utxosCreated {
-		delete(w.utxos, utxo)
-	}
-
-	for outPoint, utxo := range undo.utxosDestroyed {
-		w.utxos[outPoint] = utxo
-	}
-
-	delete(w.undoes, hash)
-}
-
 // SpendOutputsAndSend will create tx to pay the specified tx outputs
 // and send the tx to the test harness node.
 func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amount) (*hash.Hash, error) {
@@ -479,4 +441,12 @@ func (w *testWallet) debugTxSize(tx *types.Transaction) {
 	}
 	w.t.Logf("debugTxSize: add input witness %v", n)
 	w.t.Logf("debugTxSize: final size %v = %v", n, tx.SerializeSize())
+}
+
+func (w *testWallet) Addresses() []string {
+	addrs := make([]string, 0)
+	for _, a := range w.addrs {
+		addrs = append(addrs, a.String())
+	}
+	return addrs
 }

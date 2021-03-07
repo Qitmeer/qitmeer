@@ -487,6 +487,11 @@ type PkScript struct {
 	script [maxLen]byte
 }
 
+// Class returns the script type.
+func (s PkScript) Class() ScriptClass {
+	return s.class
+}
+
 // Script returns the script as a byte slice without any padding.
 func (s PkScript) Script() []byte {
 	var script []byte

@@ -68,6 +68,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Register for block connect and disconnect notifications.
+	if err := c.NotifyBlocks(); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("NotifyBlocks: Registration Complete")
+
+	// Register for transaction connect and disconnect notifications.
+	if err := c.NotifyNewTransactions(true); err != nil {
+		log.Fatal(err)
+	}
 	// first add addresses
 	if err := c.NotifyTxsByAddr(false, []string{"RmBCkqCZ17hXsUTGhKXT3s6CZ5b6MuNhwcZ"}, nil); err != nil {
 		log.Fatal(err)
@@ -82,19 +92,10 @@ func main() {
 	}); err != nil {
 		log.Fatal(err)
 	}
-	// Register for block connect and disconnect notifications.
-	if err := c.NotifyBlocks(); err != nil {
-		log.Fatal(err)
-	}
-	log.Println("NotifyBlocks: Registration Complete")
 
-	// Register for transaction connect and disconnect notifications.
-	if err := c.NotifyNewTransactions(true); err != nil {
-		log.Fatal(err)
-	}
 	log.Println("NotifyTransaction: Registration Complete")
 	time.Sleep(1 * time.Second)
-	if err := c.Rescan(0, 10, []string{"RmBCkqCZ17hXsUTGhKXT3s6CZ5b6MuNhwcZ"}, nil); err != nil {
+	if err := c.Rescan(0, 110, []string{"RmBCkqCZ17hXsUTGhKXT3s6CZ5b6MuNhwcZ"}, nil); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Rescan: Rescan Complete")
