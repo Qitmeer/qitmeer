@@ -23,7 +23,7 @@ func bytesFromStr(s string) []byte {
 	return b
 }
 
-func TestTokeStateSerialization(t *testing.T) {
+func TestTokenStateSerialization(t *testing.T) {
 	tests := []struct {
 		name  string
 		state *tokenState
