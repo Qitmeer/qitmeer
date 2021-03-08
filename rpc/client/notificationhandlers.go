@@ -221,7 +221,7 @@ func parseRescanProgress(params []json.RawMessage) (*cmds.RescanProgressNtfn,
 func parseRescanFinish(params []json.RawMessage) (*cmds.RescanFinishedNtfn,
 	error) {
 
-	if len(params) != 3 {
+	if len(params) != 4 {
 		return nil, wrongNumParams(len(params))
 	}
 
@@ -241,10 +241,17 @@ func parseRescanFinish(params []json.RawMessage) (*cmds.RescanFinishedNtfn,
 	if err != nil {
 		return nil, err
 	}
+	var lastTxHash string
+	// Unmarshal first parameter as result object.
+	err = json.Unmarshal(params[3], &lastTxHash)
+	if err != nil {
+		return nil, err
+	}
 
 	return &cmds.RescanFinishedNtfn{
-		Hash:  h,
-		Order: order,
-		Time:  tim,
+		Hash:       h,
+		Order:      order,
+		Time:       tim,
+		LastTxHash: lastTxHash,
 	}, nil
 }
