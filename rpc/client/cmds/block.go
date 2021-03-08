@@ -22,9 +22,10 @@ type BlockDetails struct {
 //
 // Deprecated: Not used with rescanblocks command.
 type RescanFinishedNtfn struct {
-	Hash  string
-	Order uint64
-	Time  int64
+	Hash       string
+	Order      uint64
+	Time       int64
+	LastTxHash string
 }
 
 // RescanProgressNtfn defines the rescanprogress JSON-RPC notification.
@@ -52,11 +53,12 @@ func NewRescanProgressNtfn(hash string, order uint64, time int64) *RescanProgres
 // rescanfinished JSON-RPC notification.
 //
 // Deprecated: Not used with rescanblocks command.
-func NewRescanFinishedNtfn(hash string, order uint64, time int64) *RescanFinishedNtfn {
+func NewRescanFinishedNtfn(hash, txHash string, order uint64, time int64) *RescanFinishedNtfn {
 	return &RescanFinishedNtfn{
-		Hash:  hash,
-		Order: order,
-		Time:  time,
+		Hash:       hash,
+		Order:      order,
+		Time:       time,
+		LastTxHash: txHash,
 	}
 }
 

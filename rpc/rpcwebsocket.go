@@ -275,13 +275,14 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	var (
 		err           error
 		lastBlock     *types.SerializedBlock
+		lastTxHash    *hash.Hash
 		lastBlockHash *hash.Hash
 	)
 	if len(lookups.addrs) != 0 || len(lookups.unspent) != 0 {
 		// With all the arguments parsed, we'll execute our chunked rescan
 		// which will notify the clients of any address deposits or output
 		// spends.
-		lastBlock, lastBlockHash, err = scanBlockChunks(
+		lastBlock, lastBlockHash, lastTxHash, err = scanBlockChunks(
 			wsc, cmd, &lookups, cmd.BeginBlock, cmd.EndBlock, chain,
 		)
 		if err != nil {
@@ -319,7 +320,9 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	// is needed to safely inform clients that all rescan notifications have
 	// been sent.
 	n := cmds.NewRescanFinishedNtfn(
-		lastBlockHash.String(), lastBlock.Order(),
+		lastBlockHash.String(),
+		lastTxHash.String(),
+		lastBlock.Order(),
 		lastBlock.Block().Header.Timestamp.Unix(),
 	)
 	if mn, err := cmds.MarshalCmd(nil, n); err != nil {

@@ -77,15 +77,14 @@ func descendantBlock(prevHash *hash.Hash, curBlock *types.SerializedBlock) error
 // final block and block hash that we've scanned will be returned.
 func scanBlockChunks(wsc *wsClient, cmd *cmds.RescanCmd, lookups *rescanKeys, minBlock,
 	maxBlock uint64, chain *blockchain.BlockChain) (
-	*types.SerializedBlock, *hash.Hash, error) {
+	*types.SerializedBlock, *hash.Hash, *hash.Hash, error) {
 
 	// lastBlock and lastBlockHash track the previously-rescanned block.
 	// They equal nil when no previous blocks have been rescanned.
 	var (
-		lastBlock          *types.SerializedBlock
-		lastBlockHash      *hash.Hash
-		lastHasTxBlock     *types.SerializedBlock
-		lastHasTxBlockHash *hash.Hash
+		lastBlock     *types.SerializedBlock
+		lastBlockHash *hash.Hash
+		lastTxHash    *hash.Hash
 	)
 
 	// A ticker is created to wait at least 10 seconds before notifying the
@@ -108,7 +107,7 @@ fetchRange:
 		hashList, err := chain.OrderRange(minBlock, maxLoopBlock)
 		if err != nil {
 			log.Error(fmt.Sprintf("Error looking up block range: %v", err))
-			return nil, nil, &cmds.RPCError{
+			return nil, nil, nil, &cmds.RPCError{
 				Code:    cmds.ErrRPCDatabase,
 				Message: "Database error: " + err.Error(),
 			}
@@ -142,7 +141,7 @@ fetchRange:
 			if err != nil {
 				log.Error(fmt.Sprintf("Error fetching best block "+
 					"hash: %v", err))
-				return nil, nil, &cmds.RPCError{
+				return nil, nil, nil, &cmds.RPCError{
 					Code: cmds.ErrRPCDatabase,
 					Message: "Database error: " +
 						err.Error(),
@@ -163,7 +162,7 @@ fetchRange:
 					dbErr.ErrorCode != database.ErrBlockNotFound {
 					log.Error(fmt.Sprintf("Error looking up "+
 						"block: %v", err))
-					return nil, nil, &cmds.RPCError{
+					return nil, nil, nil, &cmds.RPCError{
 						Code: cmds.ErrRPCDatabase,
 						Message: "Database error: " +
 							err.Error(),
@@ -175,7 +174,7 @@ fetchRange:
 					log.Error(fmt.Sprintf("Stopping rescan for "+
 						"reorged block %v",
 						cmd.EndBlock))
-					return nil, nil, &ErrRescanReorg
+					return nil, nil, nil, &ErrRescanReorg
 				}
 
 				// If the lookup for the previously valid block
@@ -193,7 +192,7 @@ fetchRange:
 					chain, minBlock, maxBlock, lastBlockHash,
 				)
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 				if len(hashList) == 0 {
 					break fetchRange
@@ -203,7 +202,7 @@ fetchRange:
 			h := blk.Block().BlockHash()
 			node := chain.BlockIndex().LookupNode(&h)
 			if node == nil {
-				return nil, nil, &cmds.RPCError{
+				return nil, nil, nil, &cmds.RPCError{
 					Code:    cmds.ErrInvalidNode,
 					Message: "no node ",
 				}
@@ -216,7 +215,7 @@ fetchRange:
 				// as the last block from the old hashList.
 				jsonErr := descendantBlock(lastBlockHash, blk)
 				if jsonErr != nil {
-					return nil, nil, jsonErr
+					return nil, nil, nil, jsonErr
 				}
 			}
 
@@ -226,11 +225,11 @@ fetchRange:
 			case <-wsc.quit:
 				log.Debug(fmt.Sprintf("Stopped rescan at order %v "+
 					"for disconnected client", blk.Order()))
-				return nil, nil, nil
+				return nil, nil, nil, nil
 			default:
-				if rescanBlock(wsc, lookups, blk) {
-					lastHasTxBlock = blk
-					lastHasTxBlockHash = blk.Hash()
+				h := rescanBlock(wsc, lookups, blk)
+				if h != nil {
+					lastTxHash = h
 				}
 				lastBlock = blk
 				lastBlockHash = blk.Hash()
@@ -258,19 +257,20 @@ fetchRange:
 				// Finished if the client disconnected.
 				log.Debug(fmt.Sprintf("Stopped rescan at order %v "+
 					"for disconnected client", blk.Order()))
-				return nil, nil, nil
+				return nil, nil, nil, nil
 			}
 		}
 
 		minBlock += uint64(len(hashList))
 	}
 
-	return lastHasTxBlock, lastHasTxBlockHash, nil
+	return lastBlock, lastBlockHash, lastTxHash, nil
 }
 
 // rescanBlock rescans all transactions in a single block.  This is a helper
 // function for handleRescan.
-func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock) bool {
+func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock) *hash.Hash {
+	var lastTxHash *hash.Hash
 	for _, tx := range blk.Transactions() {
 		// notifySpend is a closure we'll use when we first detect that
 		// a transactions spends an outpoint/script in our filter list.
@@ -319,7 +319,7 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock)
 				// Stop the rescan early if the websocket client
 				// disconnected.
 				if err == ErrClientQuit {
-					return false
+					return nil
 				} else {
 					log.Error(fmt.Sprintf("Unable to notify "+
 						"redeeming transaction %v: %v",
@@ -327,8 +327,9 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock)
 					continue
 				}
 			}
+			lastTxHash = tx.Hash()
 		}
-		return needNotifyTx
+		return lastTxHash
 	}
-	return false
+	return nil
 }
