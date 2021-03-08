@@ -82,8 +82,10 @@ func scanBlockChunks(wsc *wsClient, cmd *cmds.RescanCmd, lookups *rescanKeys, mi
 	// lastBlock and lastBlockHash track the previously-rescanned block.
 	// They equal nil when no previous blocks have been rescanned.
 	var (
-		lastBlock     *types.SerializedBlock
-		lastBlockHash *hash.Hash
+		lastBlock          *types.SerializedBlock
+		lastBlockHash      *hash.Hash
+		lastHasTxBlock     *types.SerializedBlock
+		lastHasTxBlockHash *hash.Hash
 	)
 
 	// A ticker is created to wait at least 10 seconds before notifying the
@@ -226,7 +228,10 @@ fetchRange:
 					"for disconnected client", blk.Order()))
 				return nil, nil, nil
 			default:
-				rescanBlock(wsc, lookups, blk)
+				if rescanBlock(wsc, lookups, blk) {
+					lastHasTxBlock = blk
+					lastHasTxBlockHash = blk.Hash()
+				}
 				lastBlock = blk
 				lastBlockHash = blk.Hash()
 			}
@@ -260,12 +265,12 @@ fetchRange:
 		minBlock += uint64(len(hashList))
 	}
 
-	return lastBlock, lastBlockHash, nil
+	return lastHasTxBlock, lastHasTxBlockHash, nil
 }
 
 // rescanBlock rescans all transactions in a single block.  This is a helper
 // function for handleRescan.
-func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock) {
+func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock) bool {
 	for _, tx := range blk.Transactions() {
 		// notifySpend is a closure we'll use when we first detect that
 		// a transactions spends an outpoint/script in our filter list.
@@ -323,5 +328,6 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock)
 				}
 			}
 		}
+		return needNotifyTx
 	}
 }
