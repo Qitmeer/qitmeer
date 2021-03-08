@@ -540,7 +540,11 @@ func (ph *Phantom) GetMainParent(parents *IdSet) IBlock {
 }
 
 func (ph *Phantom) getBlock(id uint) *PhantomBlock {
-	return ph.bd.getBlockById(id).(*PhantomBlock)
+	ib := ph.bd.getBlockById(id)
+	if ib == nil {
+		return nil
+	}
+	return ib.(*PhantomBlock)
 }
 
 func (ph *Phantom) GetDiffAnticone() *IdSet {
@@ -734,13 +738,15 @@ func (ph *Phantom) getMaxParents() int {
 }
 
 func (ph *Phantom) UpdateWeight(ib IBlock, store bool) {
-	pb := ib.(*PhantomBlock)
-	tp := ph.getBlock(pb.GetMainParent())
-	pb.weight = tp.GetWeight()
-	pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), byte(pb.status)))
-	for k := range pb.blueDiffAnticone.GetMap() {
-		bdpb := ph.getBlock(k)
-		pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), byte(bdpb.status)))
+	if ib.GetID() != GenesisId {
+		pb := ib.(*PhantomBlock)
+		tp := ph.getBlock(pb.GetMainParent())
+		pb.weight = tp.GetWeight()
+		pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), byte(pb.status)))
+		for k := range pb.blueDiffAnticone.GetMap() {
+			bdpb := ph.getBlock(k)
+			pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), byte(bdpb.status)))
+		}
 	}
 
 	if ph.bd.db == nil || !store {
