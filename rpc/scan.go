@@ -235,7 +235,7 @@ fetchRange:
 				lastBlock = blk
 				lastBlockHash = blk.Hash()
 			}
-
+			log.Debug("lastBlock", "order", lastBlock.Order())
 			// Periodically notify the client of the progress
 			// completed.  Continue with next block if no progress
 			// notification is needed yet.
@@ -319,7 +319,7 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock)
 				// Stop the rescan early if the websocket client
 				// disconnected.
 				if err == ErrClientQuit {
-					return
+					return false
 				} else {
 					log.Error(fmt.Sprintf("Unable to notify "+
 						"redeeming transaction %v: %v",
@@ -330,4 +330,5 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock)
 		}
 		return needNotifyTx
 	}
+	return false
 }
