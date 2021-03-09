@@ -74,7 +74,6 @@ var (
 		DAGType:              defaultDAGType,
 		Banning:              false,
 		MaxInbound:           defaultMaxInboundPeersPerHost,
-		TrickleInterval:      defaultTrickleInterval,
 		CacheInvalidTx:       defaultCacheInvalidTx,
 		NTP:                  false,
 		RPCListeners:         []string{"127.0.0.1:5555"},

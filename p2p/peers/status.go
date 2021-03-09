@@ -141,6 +141,18 @@ func (p *Status) All() []peer.ID {
 	return pids
 }
 
+func (p *Status) DirInbound() []peer.ID {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	peers := make([]peer.ID, 0)
+	for pid, status := range p.peers {
+		if status.IsActive() && status.Direction() == network.DirInbound {
+			peers = append(peers, pid)
+		}
+	}
+	return peers
+}
+
 // fetch is a helper function that fetches a peer, possibly creating it.
 func (p *Status) Get(pid peer.ID) *Peer {
 	p.lock.RLock()
@@ -182,6 +194,9 @@ func (p *Status) Add(record *qnr.Record, pid peer.ID, address ma.Multiaddr, dire
 
 // IncrementBadResponses increments the number of bad responses we have received from the given remote peer.
 func (p *Status) IncrementBadResponses(pid peer.ID) {
+	if !p.p2p.Config().Banning {
+		return
+	}
 	pe := p.Get(pid)
 	if pe == nil {
 		return

@@ -2,8 +2,6 @@ package config
 
 import (
 	"github.com/Qitmeer/qitmeer/core/types"
-	"net"
-	"time"
 )
 
 type Config struct {
@@ -13,7 +11,7 @@ type Config struct {
 	DataDir            string   `short:"b" long:"datadir" description:"Directory to store data"`
 	LogDir             string   `long:"logdir" description:"Directory to log output."`
 	NoFileLogging      bool     `long:"nofilelogging" description:"Disable file logging."`
-	Listeners          []string `long:"listen" description:"Add an interface/port to listen for connections (default all interfaces port: 8130, testnet: 18130)"`
+	Listener           string   `long:"listen" description:"Add an IP to listen for connections"`
 	DefaultPort        string   `long:"port" description:"Default p2p port."`
 	RPCListeners       []string `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 8131 , testnet: 18131)"`
 	MaxPeers           int      `long:"maxpeers" description:"Max number of inbound and outbound peers"`
@@ -62,14 +60,9 @@ type Config struct {
 	MiningStateSync bool     `long:"miningstatesync" description:"Synchronizing the mining state with other nodes"`
 	AddPeers        []string `short:"a" long:"addpeer" description:"Add a peer to connect with at startup"`
 	Upnp            bool     `long:"upnp" description:"Use UPnP to map our listening port outside of NAT"`
-	Whitelists      []string `long:"whitelist" description:"Add an IP network or IP that will not be banned. (eg. 192.168.1.0/24 or ::1)"`
-	whitelists      []*net.IPNet
-	MaxInbound      int `long:"maxinbound" description:"The max total of inbound peer for host"`
+	MaxInbound      int      `long:"maxinbound" description:"The max total of inbound peer for host"`
 	//P2P - server ban
-	Banning         bool          `long:"banning" description:"Enable banning of misbehaving peers"`
-	BanDuration     time.Duration `long:"banduration" description:"How long to ban misbehaving peers.  Valid time units are {s, m, h}.  Minimum 1 second"`
-	BanThreshold    uint32        `long:"banthreshold" description:"Maximum allowed ban score before disconnecting and banning misbehaving peers."`
-	TrickleInterval time.Duration `long:"trickleinterval" description:"Minimum time between attempts to send new inventory to a connected peer"`
+	Banning bool `long:"banning" description:"Enable banning of misbehaving peers"`
 
 	DAGType     string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
 	Cleanup     bool   `short:"L" long:"cleanup" description:"Cleanup the block database "`
@@ -95,6 +88,8 @@ type Config struct {
 	HostIP         string   `long:"externalip" description:"The IP address advertised by libp2p. This may be used to advertise an external IP."`
 	HostDNS        string   `long:"externaldns" description:"The DNS address advertised by libp2p. This may be used to advertise an external DNS."`
 	RelayNode      string   `long:"relaynode" description:"The address of relay node that routes traffic between two peers over a qitmeer “relay” peer."`
+	Whitelist      string   `long:"whitelist" description:"Add an IP network or IP that will not be banned. (eg. 192.168.1.0/24 or ::1)"`
+	Blacklist      []string `long:"blacklist" description:"Add some IP network or IP that will be banned. (eg. 192.168.1.0/24 or ::1)"`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {
@@ -103,11 +98,4 @@ func (c *Config) GetMinningAddrs() []types.Address {
 
 func (c *Config) SetMiningAddrs(addr types.Address) {
 	c.miningAddrs = append(c.miningAddrs, addr)
-}
-func (c *Config) GetWhitelists() []*net.IPNet {
-	return c.whitelists
-}
-
-func (c *Config) AddToWhitelists(ip *net.IPNet) {
-	c.whitelists = append(c.whitelists, ip)
 }

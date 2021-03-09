@@ -74,6 +74,14 @@ var (
 		Destination: &conf.Network,
 	}
 
+	HostDNS = &cli.StringFlag{
+		Name:        "externaldns",
+		Aliases:     []string{"s"},
+		Usage:       "The DNS address advertised by libp2p. This may be used to advertise an external DNS.",
+		Value:       params.MixNetParam.Name,
+		Destination: &conf.HostDNS,
+	}
+
 	AppFlags = []cli.Flag{
 		HomeDir,
 		DataDir,
@@ -82,6 +90,7 @@ var (
 		Port,
 		EnableNoise,
 		Network,
+		HostDNS,
 	}
 )
 
@@ -93,6 +102,7 @@ type Config struct {
 	Port        string
 	EnableNoise bool
 	Network     string
+	HostDNS     string
 }
 
 func (c *Config) load() error {
