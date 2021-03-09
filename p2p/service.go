@@ -36,6 +36,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"net"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -580,6 +581,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			BootstrapNodeAddr:    bootnodeAddrs,
 			DataDir:              cfg.DataDir,
 			MaxPeers:             uint(cfg.MaxPeers),
+			MaxInbound:           cfg.MaxInbound,
 			ReadWritePermissions: 0600, //-rw------- Read and Write permissions for user
 			MetaDataDir:          cfg.MetaDataDir,
 			TCPPort:              uint(cfg.P2PTCPPort),
@@ -594,6 +596,10 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			HostAddress:          cfg.HostIP,
 			HostDNS:              cfg.HostDNS,
 			RelayNodeAddr:        cfg.RelayNode,
+			AllowListCIDR:        cfg.Whitelist,
+			DenyListCIDR:         cfg.Blacklist,
+			Banning:              cfg.Banning,
+			DisableListen:        cfg.DisableListen,
 		},
 		ctx:           ctx,
 		cancel:        cancel,
@@ -605,7 +611,14 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 	dv5Nodes := parseBootStrapAddrs(s.cfg.BootstrapNodeAddr)
 	s.cfg.Discv5BootStrapAddr = dv5Nodes
 
-	ipAddr := IpAddr()
+	var ipAddr net.IP
+	if len(cfg.Listener) > 0 {
+		ipAddr = net.ParseIP(cfg.Listener)
+	}
+	if ipAddr == nil {
+		ipAddr = IpAddr()
+	}
+
 	s.privKey, err = privKey(s.cfg)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to generate p2p private key:%v", err))
