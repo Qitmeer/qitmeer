@@ -35,15 +35,24 @@ accessible from command line.
 
 ### How to build
 ####  Prerequisites
+###### Memory
+  * Minimum: 1GB
+  * Recommended: 2GB  
 
-- Update Go to version at least 1.12 (required >= **1.12**)
+Insufficient memory would lead to process killing, See [Known Issue 2](#Qitmeer-is-killed-unexpectedly)
 
-Check your golang version
+###### Golang 
+Update Go to version at least 1.12 (required >= **1.12**)
+
+Check your golang version.
 
 ```bash
 $ go version
 go version go1.13.4 darwin/amd64
 ```
+
+#### Build
+
 ```bash
 ~ mkdir -p /tmp/work
 ~ cd /tmp/work
@@ -54,6 +63,7 @@ go version go1.13.4 darwin/amd64
 qitmeer version 0.8.2+dev-f45bcf8 (Go version go1.13.4)
 ```
 
+## Known Issues
 ### How to fix `golang.org unrecognized` Issue
 
 If you got trouble to download the `golang.org` depends automatically
@@ -74,9 +84,46 @@ replace (
 )
 ```
 
+#### Qitmeer is killed unexpectedly
+Qitmeer is killed probably due to 'Out of Memory' error, you may verify it by following command.
+```sh
+dmesg -T| grep -E -i -B100 'killed process'
+```
+and if you find similar output as follows, then that is the case
+```sh
+[Tue Mar  9 11:34:26 2021] Out of memory: Killed process 140587 (qitmeer) total-vm:1403144kB, 
+anon-rss:675828kB, file-rss:0kB, shmem-rss:0kB, UID:1001 pgtables:1532kB oom_score_adj:0
+```
+The minimum memory requirement is 1GB, and we strongly recommend upgrading the memory to 2GB.
+The other way MIGHT work is to upgrade your Golang to the latest version since the latest version incorporated memory 
+optimizations, and we received feedbacks from community that this is effective, especially for running Ubuntu 20 wth low
+memory.
+
+Please try following commands.  
+
+```sh
+sudo add-apt-repository ppa:longsleep/golang-backports
+sudo apt update
+sudo apt install golang-go
+```
+NOTE: not guarantee if working, the more recommended way is still upgrading memory.
+
+####  missing go.sum entry
+If your go version is greater and equal than 1.16, you would meet error after make as follows due to go disabling auto
+fixing missing go.sum.
+
+```shell
+go: github.com/Qitmeer/crypto@v0.0.0-20200516043559-dd457edff06c: missing go.sum entry; to add it:
+        go mod download github.com/Qitmeer/crypto
+make: *** [Makefile:41: qitmeer-build] Error 1
+```
+you may fix it by:
+```shell
+go mod tidy 
+```
+
 ### P.S.
 * You must use ctrl+c ,kill(the default is 15) or kill -2 to close the qitmeer, otherwise, it may destroy the integrity of program data.
-
 ## qitmeer-cli
 
 [qitmeer rpc tools](https://github.com/Qitmeer/qitmeer-cli)
