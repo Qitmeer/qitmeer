@@ -37,6 +37,8 @@ type PeerSync struct {
 	msgChan  chan interface{}
 	wg       sync.WaitGroup
 	quit     chan struct{}
+
+	longSyncMod bool
 }
 
 func (ps *PeerSync) Start() error {
@@ -47,6 +49,7 @@ func (ps *PeerSync) Start() error {
 
 	log.Info("P2P PeerSync Start")
 	ps.dagSync = blockdag.NewDAGSync(ps.sy.p2p.BlockChain().BlockDAG())
+	ps.longSyncMod = false
 
 	ps.wg.Add(1)
 	go ps.handler()
