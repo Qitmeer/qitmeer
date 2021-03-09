@@ -103,6 +103,18 @@ func (node *Node) run() error {
 		opts = append(opts, libp2p.Security(secio.ID, secio.New))
 	}
 
+	if node.cfg.HostDNS != "" {
+		opts = append(opts, libp2p.AddrsFactory(func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
+			external, err := multiaddr.NewMultiaddr(fmt.Sprintf("/dns4/%s/tcp/%s", node.cfg.HostDNS, node.cfg.Port))
+			if err != nil {
+				log.Error(fmt.Sprintf("Unable to create external multiaddress:%v", err))
+			} else {
+				addrs = append(addrs, external)
+			}
+			return addrs
+		}))
+	}
+
 	node.host, err = libp2p.New(
 		node.ctx,
 		opts...,
@@ -130,7 +142,9 @@ func (node *Node) run() error {
 
 	log.Info(fmt.Sprintf("Relay Address: %s/p2p/%s\n", eMAddr.String(), node.host.ID()))
 	log.Info("You can copy the relay address and configure it to the required Qitmeer-Node")
-
+	if len(node.cfg.HostDNS) > 0 {
+		logExternalDNSAddr(node.host.ID(), node.cfg.HostDNS, node.cfg.Port)
+	}
 	interrupt := interruptListener()
 	<-interrupt
 	return nil
@@ -219,5 +233,11 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 func closeSteam(stream libp2pcore.Stream) {
 	if err := stream.Close(); err != nil {
 		log.Error(fmt.Sprintf("Failed to close stream:%v", err))
+	}
+}
+
+func logExternalDNSAddr(id peer.ID, addr string, port string) {
+	if addr != "" {
+		log.Info(fmt.Sprintf("Relay node started external p2p server:multiAddr=%s", "/dns4/"+addr+"/tcp/"+port+"/p2p/"+id.String()))
 	}
 }
