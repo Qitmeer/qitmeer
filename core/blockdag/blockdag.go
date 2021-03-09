@@ -42,6 +42,9 @@ const MaxBlockOrder = uint(^uint32(0))
 // Maximum id of the DAG block
 const MaxId = uint(math.MaxUint32)
 
+// Genesis id of the DAG block
+const GenesisId = uint(0)
+
 // MaxTipLayerGap
 const MaxTipLayerGap = 10
 
@@ -292,7 +295,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 
 // Acquire the genesis block of chain
 func (bd *BlockDAG) getGenesis() IBlock {
-	return bd.getBlockById(0)
+	return bd.getBlockById(GenesisId)
 }
 
 // Acquire the genesis block hash of chain
