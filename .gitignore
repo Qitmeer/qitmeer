@@ -28,6 +28,3 @@ cmd/payledger/payledger
 cmd/qitmeerd/qitmeerd
 cmd/rlpdump/rlpdump
 *_checksum.txt
-
-# Go
-go.sum
