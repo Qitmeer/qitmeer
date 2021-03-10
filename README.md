@@ -117,7 +117,8 @@ go: github.com/Qitmeer/crypto@v0.0.0-20200516043559-dd457edff06c: missing go.sum
         go mod download github.com/Qitmeer/crypto
 make: *** [Makefile:41: qitmeer-build] Error 1
 ```
-you may fix it by:
+this is a fixed issue, please update Qitmeer to the latest version. If you somehow need to stick to the current version,
+you may work around it by:
 ```shell
 go mod tidy 
 ```
