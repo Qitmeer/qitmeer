@@ -311,7 +311,10 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 			}
 		}
 	}
-
+	lastTx := ""
+	if lastTxHash != nil {
+		lastTx = lastTxHash.String()
+	}
 	// Notify websocket client of the finished rescan.  Due to how btcd
 	// asynchronously queues notifications to not block calling code,
 	// there is no guarantee that any of the notifications created during
@@ -321,7 +324,7 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 	// been sent.
 	n := cmds.NewRescanFinishedNtfn(
 		lastBlockHash.String(),
-		lastTxHash.String(),
+		lastTx,
 		lastBlock.Order(),
 		lastBlock.Block().Header.Timestamp.Unix(),
 	)

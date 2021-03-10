@@ -46,6 +46,9 @@ func main() {
 		OnRescanFinish: func(rescanFinish *cmds.RescanFinishedNtfn) {
 			fmt.Println("OnRescanFinish", rescanFinish.Order, rescanFinish.Hash)
 		},
+		OnNodeExit: func(p *cmds.NodeExitNtfn) {
+			fmt.Println("OnNodeExit", p)
+		},
 	}
 
 	connCfg := &client.ConnConfig{
@@ -73,7 +76,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("NotifyBlocks: Registration Complete")
-
+	time.Sleep(20 * time.Second)
 	// Register for transaction connect and disconnect notifications.
 	if err := c.NotifyNewTransactions(true); err != nil {
 		log.Fatal(err)

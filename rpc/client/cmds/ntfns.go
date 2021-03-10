@@ -15,6 +15,7 @@ const (
 	TxConfirmNtfnMethod         = "txconfirm"
 	RescanProgressNtfnMethod    = "rescanprocess"
 	RescanCompleteNtfnMethod    = "rescancomplete"
+	NodeExitMethod              = "nodeexit"
 )
 
 type BlockConnectedNtfn struct {
@@ -75,6 +76,9 @@ type TxAcceptedNtfn struct {
 	Amounts types.AmountGroup
 }
 
+type NodeExitNtfn struct {
+}
+
 func NewTxAcceptedNtfn(txHash string, amounts types.AmountGroup) *TxAcceptedNtfn {
 	return &TxAcceptedNtfn{
 		TxID:    txHash,
@@ -116,4 +120,5 @@ func init() {
 	MustRegisterCmd(TxConfirmNtfnMethod, (*NotificationTxConfirmNtfn)(nil), flags, NotifyNameSpace)
 	MustRegisterCmd(RescanProgressNtfnMethod, (*RescanProgressNtfn)(nil), flags, NotifyNameSpace)
 	MustRegisterCmd(RescanCompleteNtfnMethod, (*RescanFinishedNtfn)(nil), flags, NotifyNameSpace)
+	MustRegisterCmd(NodeExitMethod, (*NodeExitNtfn)(nil), flags, NotifyNameSpace)
 }

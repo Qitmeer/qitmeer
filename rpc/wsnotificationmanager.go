@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
+	"github.com/Qitmeer/qitmeer/rpc/websocket"
 	"sync"
 	"time"
 )
@@ -37,6 +38,8 @@ type notificationTxByBlock struct {
 
 // Notification control requests
 type notificationRegisterClient wsClient
+type notificationNodeExit struct {
+}
 type notificationUnregisterClient wsClient
 type notificationRegisterBlocks wsClient
 type notificationUnregisterBlocks wsClient
@@ -61,7 +64,7 @@ func (m *wsNotificationManager) Start() {
 }
 
 func (m *wsNotificationManager) Stop() {
-	close(m.quit)
+	m.queueNotification <- &notificationNodeExit{}
 	m.wg.Wait()
 }
 
@@ -136,6 +139,10 @@ out:
 			case *notificationRegisterClient:
 				wsc := (*wsClient)(n)
 				clients[wsc.quit] = wsc
+
+			case *notificationNodeExit:
+				m.notifyExit(clients)
+				close(m.quit)
 
 			case *notificationUnregisterClient:
 				wsc := (*wsClient)(n)
@@ -490,6 +497,22 @@ func (m *wsNotificationManager) notifyForNewTx(clients map[chan struct{}]*wsClie
 		} else {
 			wsc.QueueNotification(marshalledJSON)
 		}
+	}
+}
+
+func (m *wsNotificationManager) notifyExit(clients map[chan struct{}]*wsClient) {
+	if len(clients) <= 0 {
+		return
+	}
+	for _, wsc := range clients {
+		exitNtfn := &cmds.NodeExitNtfn{}
+		marshalledJSON, err := cmds.MarshalCmd(nil, exitNtfn)
+		if err != nil {
+			log.Error(fmt.Sprintf("Failed to marshal exitNtfn "+
+				"notification: %s", err.Error()))
+			return
+		}
+		_ = wsc.conn.WriteMessage(websocket.TextMessage, marshalledJSON)
 	}
 }
 

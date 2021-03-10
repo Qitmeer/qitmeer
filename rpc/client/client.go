@@ -415,6 +415,16 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 
 		c.ntfnHandlers.OnRescanFinish(rawTx)
 
+	// OnNodeExit
+	case cmds.NodeExitMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnNodeExit == nil {
+			return
+		}
+
+		c.ntfnHandlers.OnNodeExit(&cmds.NodeExitNtfn{})
+
 	// OnUnknownNotification
 	default:
 		if c.ntfnHandlers.OnUnknownNotification == nil {

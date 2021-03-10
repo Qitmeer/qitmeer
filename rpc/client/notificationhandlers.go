@@ -24,8 +24,9 @@ type NotificationHandlers struct {
 	OnTxAccepted        func(hash *hash.Hash, amounts types.AmountGroup)
 	OnTxAcceptedVerbose func(c *Client, tx *j.DecodeRawTransactionResult)
 	OnTxConfirm         func(txConfirm *cmds.TxConfirmResult)
-	OnRescanProgress    func(txConfirm *cmds.RescanProgressNtfn)
-	OnRescanFinish      func(txConfirm *cmds.RescanFinishedNtfn)
+	OnRescanProgress    func(param *cmds.RescanProgressNtfn)
+	OnRescanFinish      func(param *cmds.RescanFinishedNtfn)
+	OnNodeExit          func(nodeExit *cmds.NodeExitNtfn)
 
 	OnUnknownNotification func(method string, params []json.RawMessage)
 }

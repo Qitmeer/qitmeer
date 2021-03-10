@@ -27,20 +27,18 @@ type ScriptClass byte
 
 // Classes of script payment known about in the blockchain.
 const (
-	NonStandardTy         ScriptClass = iota // None of the recognized forms.
-	PubKeyTy                                 // Pay pubkey.
-	PubKeyHashTy                             // Pay pubkey hash.
-	ScriptHashTy                             // Pay to script hash.
-	MultiSigTy                               // Multi signature.
-	NullDataTy                               // Empty data-only (provably prunable).
-	StakeSubmissionTy                        // Stake submission.
-	StakeGenTy                               // Stake generation
-	StakeRevocationTy                        // Stake revocation.
-	StakeSubChangeTy                         // Change for stake submission tx.
-	PubkeyAltTy                              // Alternative signature pubkey.
-	PubkeyHashAltTy                          // Alternative signature pubkey hash.
-	WitnessV0PubKeyHashTy                    // Pay witness pubkey hash.
-	WitnessV0ScriptHashTy                    // Pay to witness script hash.
+	NonStandardTy     ScriptClass = iota // None of the recognized forms.
+	PubKeyTy                             // Pay pubkey.
+	PubKeyHashTy                         // Pay pubkey hash.
+	ScriptHashTy                         // Pay to script hash.
+	MultiSigTy                           // Multi signature.
+	NullDataTy                           // Empty data-only (provably prunable).
+	StakeSubmissionTy                    // Stake submission.
+	StakeGenTy                           // Stake generation
+	StakeRevocationTy                    // Stake revocation.
+	StakeSubChangeTy                     // Change for stake submission tx.
+	PubkeyAltTy                          // Alternative signature pubkey.
+	PubkeyHashAltTy                      // Alternative signature pubkey hash.
 )
 
 // Script Interface provide a abstract layer to support new Script parsing from opcode

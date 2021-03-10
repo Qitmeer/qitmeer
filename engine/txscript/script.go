@@ -501,17 +501,9 @@ func (s PkScript) Script() []byte {
 		script = make([]byte, pubKeyHashLen)
 		copy(script, s.script[:pubKeyHashLen])
 
-	case WitnessV0PubKeyHashTy:
-		script = make([]byte, witnessV0PubKeyHashLen)
-		copy(script, s.script[:witnessV0PubKeyHashLen])
-
 	case ScriptHashTy:
 		script = make([]byte, scriptHashLen)
 		copy(script, s.script[:scriptHashLen])
-
-	case WitnessV0ScriptHashTy:
-		script = make([]byte, witnessV0ScriptHashLen)
-		copy(script, s.script[:witnessV0ScriptHashLen])
 
 	default:
 		// Unsupported script type.
@@ -545,8 +537,6 @@ func ComputePkScript(sigScript []byte, witness TxWitness) (PkScript, error) {
 	switch {
 	case len(sigScript) > 0:
 		return computeNonWitnessPkScript(sigScript)
-	case len(witness) > 0:
-		return computeWitnessPkScript(witness)
 	default:
 		return PkScript{}, ErrUnsupportedScriptType
 	}
@@ -608,40 +598,4 @@ func computeNonWitnessPkScript(sigScript []byte) (PkScript, error) {
 		copy(pkScript.script[:], script)
 		return pkScript, nil
 	}
-}
-
-// computeWitnessPkScript computes the script of an output by looking at the
-// spending input's witness.
-func computeWitnessPkScript(witness TxWitness) (PkScript, error) {
-	// We'll use the last item of the witness stack to determine the proper
-	// witness type.
-	lastWitnessItem := witness[len(witness)-1]
-
-	var pkScript PkScript
-	switch {
-	// If the witness stack has a size of 2 and its last item is a
-	// compressed public key, then this is a P2WPKH witness.
-	case len(witness) == 2 && len(lastWitnessItem) == compressedPubKeyLen:
-		pubKeyHash := hash.Hash160(lastWitnessItem)
-		script, err := payToWitnessPubKeyHashScript(pubKeyHash)
-		if err != nil {
-			return pkScript, err
-		}
-
-		pkScript.class = WitnessV0PubKeyHashTy
-		copy(pkScript.script[:], script)
-
-	// For any other witnesses, we'll assume it's a P2WSH witness.
-	default:
-		scriptHash := hash.HashB(lastWitnessItem)
-		script, err := payToWitnessScriptHashScript(scriptHash[:])
-		if err != nil {
-			return pkScript, err
-		}
-
-		pkScript.class = WitnessV0ScriptHashTy
-		copy(pkScript.script[:], script)
-	}
-
-	return pkScript, nil
 }
