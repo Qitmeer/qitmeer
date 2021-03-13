@@ -42,6 +42,7 @@ type notificationNodeExit struct {
 }
 type notificationUnregisterClient wsClient
 type notificationRegisterBlocks wsClient
+type notificationRegisterTxConfirms wsClient
 type notificationUnregisterBlocks wsClient
 type notificationRegisterNewMempoolTxs wsClient
 type notificationUnregisterNewMempoolTxs wsClient
@@ -54,7 +55,6 @@ type wsNotificationManager struct {
 	numClients        chan int
 	wg                sync.WaitGroup
 	quit              chan struct{}
-	NewBlockMsg       chan interface{}
 }
 
 func (m *wsNotificationManager) Start() {
@@ -78,6 +78,7 @@ func (m *wsNotificationManager) notificationHandler() {
 	clients := make(map[chan struct{}]*wsClient)
 	blockNotifications := make(map[chan struct{}]*wsClient)
 	txNotifications := make(map[chan struct{}]*wsClient)
+	txConfirms := make(map[chan struct{}]*wsClient)
 
 out:
 	for {
@@ -93,8 +94,6 @@ out:
 				if len(blockNotifications) != 0 {
 					m.notifyBlockConnected(blockNotifications,
 						block)
-					m.NewBlockMsg <- struct {
-					}{}
 				}
 
 			case *notificationBlockDisconnected:
@@ -109,8 +108,12 @@ out:
 				if len(blockNotifications) != 0 {
 					m.notifyBlockAccepted(blockNotifications,
 						block)
-					m.NewBlockMsg <- struct {
-					}{}
+				}
+				// TODO need new notify type
+				if len(txConfirms) != 0 {
+					for _, wsc := range txConfirms {
+						wsc.TxConfirms.Handle(wsc)
+					}
 				}
 
 			case *notificationReorganization:
@@ -131,6 +134,10 @@ out:
 			case *notificationRegisterBlocks:
 				wsc := (*wsClient)(n)
 				blockNotifications[wsc.quit] = wsc
+
+			case *notificationRegisterTxConfirms:
+				wsc := (*wsClient)(n)
+				txConfirms[wsc.quit] = wsc
 
 			case *notificationUnregisterBlocks:
 				wsc := (*wsClient)(n)
@@ -310,6 +317,10 @@ func (m *wsNotificationManager) RemoveClient(wsc *wsClient) {
 
 func (m *wsNotificationManager) RegisterBlockUpdates(wsc *wsClient) {
 	m.queueNotification <- (*notificationRegisterBlocks)(wsc)
+}
+
+func (m *wsNotificationManager) RegisterTxConfirm(wsc *wsClient) {
+	m.queueNotification <- (*notificationRegisterTxConfirms)(wsc)
 }
 
 func (m *wsNotificationManager) UnregisterBlockUpdates(wsc *wsClient) {
@@ -618,7 +629,6 @@ func newWsNotificationManager(server *RpcServer) *wsNotificationManager {
 		server:            server,
 		queueNotification: make(chan interface{}),
 		notificationMsgs:  make(chan interface{}),
-		NewBlockMsg:       make(chan interface{}),
 		numClients:        make(chan int),
 		quit:              make(chan struct{}),
 	}
