@@ -528,6 +528,10 @@ func (ph *Phantom) GetMainChainTip() IBlock {
 	return ph.bd.getBlockById(ph.mainChain.tip)
 }
 
+func (ph *Phantom) GetMainChainTipId() uint {
+	return ph.mainChain.tip
+}
+
 // return the main parent in the parents
 func (ph *Phantom) GetMainParent(parents *IdSet) IBlock {
 	if parents == nil || parents.IsEmpty() {

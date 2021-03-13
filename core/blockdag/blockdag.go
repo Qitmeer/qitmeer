@@ -120,6 +120,9 @@ type IBlockDAG interface {
 	// return the tip of main chain
 	GetMainChainTip() IBlock
 
+	// return the tip of main chain id
+	GetMainChainTipId() uint
+
 	// return the main parent in the parents
 	GetMainParent(parents *IdSet) IBlock
 
@@ -221,12 +224,12 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 
 // This is an entry for update the block dag,you need pass in a block parameter,
 // If add block have failure,it will return false.
-func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
+func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock, bool) {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
 	if b == nil {
-		return nil, nil
+		return nil, nil, false
 	}
 	// Must keep no block in outside.
 	/*	if bd.hasBlock(b.GetHash()) {
@@ -236,20 +239,21 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 	if bd.blockTotal > 0 {
 		parentsIds := b.GetParents()
 		if len(parentsIds) == 0 {
-			return nil, nil
+			return nil, nil, false
 		}
 		for _, v := range parentsIds {
 			pib := bd.getBlockById(v)
 			if pib == nil {
-				return nil, nil
+				return nil, nil, false
 			}
 			parents = append(parents, pib)
 		}
 
 		if !bd.isDAG(parents) {
-			return nil, nil
+			return nil, nil, false
 		}
 	}
+	lastMT := bd.instance.GetMainChainTipId()
 	//
 	block := Block{id: bd.blockTotal, hash: *b.GetHash(), layer: 0, status: StatusNone, mainParent: MaxId}
 
@@ -290,7 +294,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock) {
 		bd.lastTime = t
 	}
 	//
-	return bd.instance.AddBlock(ib), ib
+	return bd.instance.AddBlock(ib), ib, lastMT != bd.instance.GetMainChainTipId()
 }
 
 // Acquire the genesis block of chain

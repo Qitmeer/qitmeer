@@ -356,6 +356,11 @@ func (con *Conflux) GetMainChainTip() IBlock {
 	return nil
 }
 
+// return the tip of main chain id
+func (con *Conflux) GetMainChainTipId() uint {
+	return 0
+}
+
 // return the main parent in the parents
 func (con *Conflux) GetMainParent(parents *IdSet) IBlock {
 	return nil

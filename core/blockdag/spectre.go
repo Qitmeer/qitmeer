@@ -816,6 +816,10 @@ func (sp *Spectre) GetMainChainTip() IBlock {
 	return nil
 }
 
+func (sp *Spectre) GetMainChainTipId() uint {
+	return 0
+}
+
 // return the main parent in the parents
 func (sp *Spectre) GetMainParent(parents *IdSet) IBlock {
 	return nil

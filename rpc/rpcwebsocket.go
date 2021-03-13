@@ -50,7 +50,7 @@ func (s *RpcServer) handleNotifyMsg(notification *blockchain.Notification) {
 				"BlockAcceptedNotifyData.")
 			break
 		}
-		s.ntfnMgr.NotifyBlockAccepted(bnd.Block)
+		s.ntfnMgr.NotifyBlockAccepted(bnd)
 
 	case blockchain.BlockConnected:
 		blockSlice, ok := notification.Data.([]*types.SerializedBlock)
