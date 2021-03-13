@@ -264,7 +264,6 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 	if c.ntfnHandlers == nil {
 		return
 	}
-	fmt.Println("receive", "method", ntfn.Method)
 	switch ntfn.Method {
 	// OnBlockConnected
 	case cmds.BlockConnectedNtfnMethod:
