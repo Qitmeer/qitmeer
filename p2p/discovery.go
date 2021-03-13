@@ -182,6 +182,10 @@ func (s *Service) isPeerAtLimit() bool {
 	return activePeers >= maxPeers || numOfConns >= maxPeers
 }
 
+func (s *Service) isInboundPeerAtLimit() bool {
+	return len(s.Peers().DirInbound()) >= s.cfg.MaxInbound
+}
+
 func (s *Service) startKademliaDHT() error {
 	kademliaDHT, err := dht.New(s.ctx, s.host, dhtopts.Protocols(ProtocolDHT))
 	if err != nil {
