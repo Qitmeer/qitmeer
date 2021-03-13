@@ -14,14 +14,12 @@ func TestComputePkScript(t *testing.T) {
 	tests := []struct {
 		name      string
 		sigScript []byte
-		witness   TxWitness
 		class     ScriptClass
 		pkScript  []byte
 	}{
 		{
 			name:      "empty sigScript and witness",
 			sigScript: nil,
-			witness:   nil,
 			class:     NonStandardTy,
 			pkScript:  nil,
 		},
@@ -50,8 +48,7 @@ func TestComputePkScript(t *testing.T) {
 				0x1f, 0x1f, 0x7b, 0x73, 0x7d, 0x9a, 0x24, 0x49,
 				0x90,
 			},
-			witness: nil,
-			class:   PubKeyHashTy,
+			class: PubKeyHashTy,
 			pkScript: []byte{
 				// OP_DUP
 				0x76,
@@ -83,8 +80,7 @@ func TestComputePkScript(t *testing.T) {
 			},
 			// NP2PKH outputs include a witness, but it is not
 			// needed to reconstruct the pkScript.
-			witness: nil,
-			class:   ScriptHashTy,
+			class: ScriptHashTy,
 			pkScript: []byte{
 				// OP_HASH160
 				0xa9,
@@ -130,8 +126,7 @@ func TestComputePkScript(t *testing.T) {
 				0x3e, 0xfd, 0x9d, 0x41, 0x03, 0xb5, 0x59, 0xeb,
 				0x67, 0xcd, 0x52, 0xae,
 			},
-			witness: nil,
-			class:   ScriptHashTy,
+			class: ScriptHashTy,
 			pkScript: []byte{
 				// OP_HASH160
 				0xA9,
@@ -145,100 +140,13 @@ func TestComputePkScript(t *testing.T) {
 				0x87,
 			},
 		},
-		// Invalid P2SH (non push-data only script).
-		{
-			name:      "invalid P2SH sigScript",
-			sigScript: []byte{0x6b, 0x65, 0x6b}, // kek
-			witness:   nil,
-			class:     NonStandardTy,
-			pkScript:  nil,
-		},
-		{
-			name:      "P2WSH witness",
-			sigScript: nil,
-			witness: [][]byte{
-				{},
-				// Witness script.
-				{
-					0x21, 0x03, 0x82, 0x62, 0xa6, 0xc6,
-					0xce, 0xc9, 0x3c, 0x2d, 0x3e, 0xcd,
-					0x6c, 0x60, 0x72, 0xef, 0xea, 0x86,
-					0xd0, 0x2f, 0xf8, 0xe3, 0x32, 0x8b,
-					0xbd, 0x02, 0x42, 0xb2, 0x0a, 0xf3,
-					0x42, 0x59, 0x90, 0xac, 0xac,
-				},
-			},
-			class: WitnessV0ScriptHashTy,
-			pkScript: []byte{
-				// OP_0
-				0x00,
-				// OP_DATA_32
-				0x20,
-				// <32-byte script hash>
-				0x95, 0xe2, 0xba, 0x1b, 0xdd, 0xb2, 0x55, 0x86,
-				0xff, 0x77, 0x3a, 0xb7, 0x16, 0x18, 0xa, 0x1e,
-				0x26, 0x6d, 0x67, 0x98, 0x25, 0x34, 0xb5, 0x24,
-				0x36, 0x5b, 0xdc, 0x5c, 0x39, 0x8, 0x79, 0x81,
-			},
-		},
-		{
-			name:      "P2WPKH witness",
-			sigScript: nil,
-			witness: [][]byte{
-				// Signature is not needed to re-derive the
-				// pkScript.
-				{},
-				// Compressed pubkey.
-				{
-					0x03, 0x82, 0x62, 0xa6, 0xc6, 0xce,
-					0xc9, 0x3c, 0x2d, 0x3e, 0xcd, 0x6c,
-					0x60, 0x72, 0xef, 0xea, 0x86, 0xd0,
-					0x2f, 0xf8, 0xe3, 0x32, 0x8b, 0xbd,
-					0x02, 0x42, 0xb2, 0x0a, 0xf3, 0x42,
-					0x59, 0x90, 0xac,
-				},
-			},
-			class: WitnessV0PubKeyHashTy,
-			pkScript: []byte{
-				// OP_0
-				0x00,
-				// OP_DATA_20
-				0x14,
-				// <20-byte pubkey hash>
-				0x46, 0x92, 0xa7, 0xa5, 0x11, 0xae, 0xb1, 0x71,
-				0xd8, 0x40, 0x0, 0xda, 0x59, 0x39, 0x6e, 0xf9,
-				0x55, 0x81, 0x26, 0x6c,
-			},
-		},
-		// Invalid v0 P2WPKH - same as above but missing a byte on the
-		// public key.
-		{
-			name:      "invalid P2WPKH witness",
-			sigScript: nil,
-			witness: [][]byte{
-				// Signature is not needed to re-derive the
-				// pkScript.
-				{},
-				// Malformed compressed pubkey.
-				{
-					0x03, 0x82, 0x62, 0xa6, 0xc6, 0xce,
-					0xc9, 0x3c, 0x2d, 0x3e, 0xcd, 0x6c,
-					0x60, 0x72, 0xef, 0xea, 0x86, 0xd0,
-					0x2f, 0xf8, 0xe3, 0x32, 0x8b, 0xbd,
-					0x02, 0x42, 0xb2, 0x0a, 0xf3, 0x42,
-					0x59, 0x90,
-				},
-			},
-			class:    WitnessV0PubKeyHashTy,
-			pkScript: nil,
-		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			valid := test.pkScript != nil
 			pkScript, err := ComputePkScript(
-				test.sigScript, test.witness,
+				test.sigScript,
 			)
 			if err != nil && valid {
 				t.Fatalf("unable to compute pkScript: %v", err)
