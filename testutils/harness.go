@@ -86,6 +86,11 @@ func (h *Harness) Setup() error {
 		if err := h.Notifier.NotifyBlocks(); err != nil {
 			return err
 		}
+		time.Sleep(500 * time.Microsecond)
+		// Register for addresses notifications.
+		if err := h.Notifier.NotifyTxsByAddr(false, h.Wallet.Addresses(), nil); err != nil {
+			return err
+		}
 	}
 	h.Wallet.Start()
 	return nil

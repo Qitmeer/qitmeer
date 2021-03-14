@@ -31,9 +31,7 @@ func TestWsNotify(t *testing.T) {
 	}
 	AssertBlockOrderAndHeight(t, h, 1, 1, 0)
 	GenerateBlock(t, h, 1)
-	AssertBlockOrderAndHeight(t, h, 3, 3, 2)
-	GenerateBlock(t, h, 16)
-	AssertBlockOrderAndHeight(t, h, 19, 19, 18)
+	AssertBlockOrderAndHeight(t, h, 2, 2, 1)
 	err = h.Notifier.NotifyNewTransactions(true)
 	if err != nil {
 		t.Fatal(err)
