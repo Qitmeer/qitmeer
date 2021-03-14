@@ -194,30 +194,14 @@ func (m *wsNotificationManager) NotifyBlockConnected(block *types.SerializedBloc
 }
 
 func (m *wsNotificationManager) notifyBlockConnected(clients map[chan struct{}]*wsClient, block *types.SerializedBlock) {
-	subscribedTxs := make(map[chan struct{}][]string)
-	for _, tx := range block.Transactions() {
-		for quitChan := range m.subscribedClients(tx, clients) {
-			txhex, err := marshal.MessageToHex(tx.Tx)
-			if err != nil {
-				log.Error("transaction error", "tx", tx)
-				return
-			}
-			subscribedTxs[quitChan] = append(subscribedTxs[quitChan], txhex)
-		}
+	txs, err := GetTxsHexFromBlock(block, true)
+	if err != nil {
+		log.Error(err.Error())
+		return
 	}
-	for quitChan, wsc := range clients {
-		// Add all discovered transactions for this client. For clients
-		// that have no new-style filter, add the empty string slice.
-		if _, ok := subscribedTxs[quitChan]; !ok {
-			continue
-		}
-		ntfn := cmds.NewBlockConnectedNtfn(block.Hash().String(), int64(block.Order()), block.Block().Header.Timestamp.Unix(), subscribedTxs[quitChan])
-		marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
-		if err != nil {
-			log.Error(fmt.Sprintf("Failed to marshal block connected notification: "+
-				"%v", err))
-			return
-		}
+	ntfn := cmds.NewBlockConnectedNtfn(block.Hash().String(), int64(block.Order()), block.Block().Header.Timestamp.Unix(), txs)
+	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
+	for _, wsc := range clients {
 		// Marshal and queue notification.
 		wsc.QueueNotification(marshalledJSON)
 	}
