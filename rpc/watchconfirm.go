@@ -49,7 +49,7 @@ func (w *WatchTxConfirmServer) Handle(wsc *wsClient) {
 		for _, tx := range txc {
 			if !isBlue || InValid || confirmations >= int64(tx.Confirms) {
 				ntfn := &cmds.NotificationTxConfirmNtfn{
-					cmds.TxConfirmResult{
+					ConfirmResult: cmds.TxConfirmResult{
 						Tx:       tx.TxHash,
 						Confirms: uint64(confirmations),
 						IsBlue:   isBlue,

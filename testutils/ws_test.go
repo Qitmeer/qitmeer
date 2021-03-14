@@ -47,11 +47,10 @@ func TestWsNotify(t *testing.T) {
 	spendAmt := types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
 	txid := Spend(t, h, spendAmt)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
-	blocks := GenerateBlock(t, h, 1)
+	blocks := GenerateBlock(t, h, 4)
 	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
-	blocks = GenerateBlock(t, h, 1)
-	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
+	blocks = GenerateBlock(t, h, 3)
 	err = h.Notifier.Rescan(0, 17, h.Wallet.Addresses(), nil)
 	if err != nil {
 		t.Fatal(err)
