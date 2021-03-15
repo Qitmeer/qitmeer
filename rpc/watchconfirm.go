@@ -12,6 +12,9 @@ type TxConfirm struct {
 }
 
 func (w *WatchTxConfirmServer) AddTxConfirms(confirm TxConfirm) {
+	if w == nil {
+		w = &WatchTxConfirmServer{}
+	}
 	if _, ok := (*w)[confirm.Order]; !ok {
 		(*w)[confirm.Order] = map[string]TxConfirm{}
 	}
@@ -21,7 +24,7 @@ func (w *WatchTxConfirmServer) AddTxConfirms(confirm TxConfirm) {
 type WatchTxConfirmServer map[uint64]map[string]TxConfirm
 
 func (w *WatchTxConfirmServer) Handle(wsc *wsClient) {
-	if len(*w) <= 0 {
+	if w == nil || len(*w) <= 0 {
 		return
 	}
 	bc := wsc.server.BC
