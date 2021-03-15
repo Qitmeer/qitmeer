@@ -95,10 +95,6 @@ out:
 					m.notifyBlockConnected(blockNotifications,
 						block)
 				}
-				// need filter user unspent utxo
-				for _, tx := range block.Transactions() {
-					m.subscribedClients(tx, clients)
-				}
 
 			case *notificationBlockDisconnected:
 				block := (*types.SerializedBlock)(n)
