@@ -54,11 +54,10 @@ type RpcServer struct {
 	ReqStatus     map[string]*RequestStatus
 	reqStatusLock sync.RWMutex
 
-	ntfnMgr              *wsNotificationManager
-	WatchTxConfirmServer *WatchTxConfirmServer
-	BC                   *blockchain.BlockChain
-	ChainParams          *params.Params
-	listeners            []net.Listener
+	ntfnMgr     *wsNotificationManager
+	BC          *blockchain.BlockChain
+	ChainParams *params.Params
+	listeners   []net.Listener
 }
 
 // service represents a registered object

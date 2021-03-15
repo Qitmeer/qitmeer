@@ -68,7 +68,7 @@ type wsClient struct {
 	sendChan          chan wsResponse
 	quit              chan struct{}
 	wg                sync.WaitGroup
-	TxConfirms        WatchTxConfirmServer
+	TxConfirms        *WatchTxConfirmServer
 	TxConfirmsLock    sync.Mutex
 }
 
@@ -342,7 +342,7 @@ func newWebsocketClient(server *RpcServer, conn *websocket.Conn,
 		ntfnChan:          make(chan []byte, 1), // nonblocking sync
 		sendChan:          make(chan wsResponse, websocketSendBufferSize),
 		quit:              make(chan struct{}),
-		TxConfirms:        WatchTxConfirmServer{},
+		TxConfirms:        &WatchTxConfirmServer{},
 	}
 	return client, nil
 }

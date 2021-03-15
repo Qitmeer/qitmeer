@@ -349,7 +349,7 @@ func handleNotifyTxsConfirmed(wsc *wsClient, icmd interface{}) (interface{}, err
 	wsc.TxConfirmsLock.Lock()
 	defer wsc.TxConfirmsLock.Unlock()
 	for _, tx := range cmd.Txs {
-		wsc.server.WatchTxConfirmServer.AddTxConfirms(TxConfirm{
+		wsc.TxConfirms.AddTxConfirms(TxConfirm{
 			Order:    tx.Order,
 			Confirms: uint64(tx.Confirmations),
 			TxHash:   tx.Txid,
