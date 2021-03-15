@@ -290,11 +290,6 @@ func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.Serialized
 				typ:         tokenMint,
 				tokenAmount: tx.Tx.TxIn[0].AmountIn,
 				meerAmount:  tx.Tx.TxOut[0].Amount.Value}
-
-			// check the legality of update values.
-			if err := checkMintUpdate(&update); err != nil {
-				return err
-			}
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
 		}
@@ -305,10 +300,6 @@ func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.Serialized
 				typ:         tokenUnMint,
 				meerAmount:  tx.Tx.TxIn[0].AmountIn.Value,
 				tokenAmount: tx.Tx.TxOut[0].Amount}
-			// check the legality of update values.
-			if err := checkUnMintUpdate(&update); err != nil {
-				return err
-			}
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
 		}
