@@ -125,7 +125,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.pruner.pruneChainIfNeeded()
 
 	//dag
-	newOrders, ib := b.bd.AddBlock(newNode)
+	newOrders, ib, isMainChainTipChange := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
 		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
@@ -179,9 +179,9 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
-		ForkLen: 0,
-		Block:   block,
-		Flags:   flags,
+		IsMainChainTipChange: isMainChainTipChange,
+		Block:                block,
+		Flags:                flags,
 	})
 
 	return nil
@@ -219,7 +219,7 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 	block.SetHeight(newNode.GetHeight())
 
 	//dag
-	newOrders, ib := b.bd.AddBlock(newNode)
+	newOrders, ib, _ := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
 		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}

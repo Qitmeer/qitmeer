@@ -441,6 +441,11 @@ func (ph *Phantom_v2) GetMainChainTip() IBlock {
 	return nil
 }
 
+// return the tip of main chain id
+func (ph *Phantom_v2) GetMainChainTipId() uint {
+	return 0
+}
+
 // return the main parent in the parents
 func (ph *Phantom_v2) GetMainParent(parents *IdSet) IBlock {
 	return nil
