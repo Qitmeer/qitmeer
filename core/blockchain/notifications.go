@@ -58,13 +58,7 @@ func (n NotificationType) String() string {
 // that was accepted extended the best chain as it might have created or
 // extended a side chain.
 type BlockAcceptedNotifyData struct {
-	// ForkLen is the length of the side chain the block extended or zero in the
-	// case the block extended the main chain.
-	//
-	// This can be used in conjunction with the height of the accepted block to
-	// determine the height at which the side chain the block created or
-	// extended forked from the best chain.
-	ForkLen int64
+	IsMainChainTipChange bool
 
 	// Block is the block that was accepted into the chain.
 	Block *types.SerializedBlock
@@ -104,16 +98,16 @@ func (b *BlockChain) sendNotification(typ NotificationType, data interface{}) {
 
 	// Generate and send the notification.
 	n := &Notification{Type: typ, Data: data}
-	b.CacheNotifications=append(b.CacheNotifications,n)
+	b.CacheNotifications = append(b.CacheNotifications, n)
 }
 
 func (b *BlockChain) flushNotifications() {
 	if len(b.CacheNotifications) <= 0 {
 		return
 	}
-	for _,n:=range b.CacheNotifications {
+	for _, n := range b.CacheNotifications {
 		log.Trace("send blkmgr notification", "type", n.Type, "data", n.Data)
 		b.events.Send(event.New(n))
 	}
-	b.CacheNotifications=[]*Notification{}
+	b.CacheNotifications = []*Notification{}
 }

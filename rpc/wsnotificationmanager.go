@@ -18,7 +18,7 @@ import (
 // Notification types
 type notificationBlockConnected types.SerializedBlock
 type notificationBlockDisconnected types.SerializedBlock
-type notificationBlockAccepted types.SerializedBlock
+type notificationBlockAccepted blockchain.BlockAcceptedNotifyData
 
 type notificationReorganization struct {
 	OldBlocks []*hash.Hash
@@ -104,15 +104,19 @@ out:
 				}
 
 			case *notificationBlockAccepted:
-				block := (*types.SerializedBlock)(n)
+				band := (*blockchain.BlockAcceptedNotifyData)(n)
+				block := band.Block
 				if len(blockNotifications) != 0 {
 					m.notifyBlockAccepted(blockNotifications,
 						block)
 				}
-				// TODO need new notify type
-				if len(txConfirms) != 0 {
-					for _, wsc := range txConfirms {
-						wsc.TxConfirms.Handle(wsc)
+				if band.IsMainChainTipChange {
+					// do something
+					fmt.Println("IsMainChainTipChange")
+					if len(txConfirms) != 0 {
+						for _, wsc := range txConfirms {
+							wsc.TxConfirms.Handle(wsc)
+						}
 					}
 				}
 
@@ -237,9 +241,9 @@ func (*wsNotificationManager) notifyBlockDisconnected(clients map[chan struct{}]
 	}
 }
 
-func (m *wsNotificationManager) NotifyBlockAccepted(block *types.SerializedBlock) {
+func (m *wsNotificationManager) NotifyBlockAccepted(band *blockchain.BlockAcceptedNotifyData) {
 	select {
-	case m.queueNotification <- (*notificationBlockAccepted)(block):
+	case m.queueNotification <- (*notificationBlockAccepted)(band):
 	case <-m.quit:
 	}
 }

@@ -182,7 +182,7 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 			parents.Add(tbMap[parent].GetID())
 		}
 		block := buildBlock(parents)
-		l, ib := bd.AddBlock(block)
+		l, ib, _ := bd.AddBlock(block)
 		if l != nil && l.Len() > 0 {
 			tbMap[tbd[i].Tag] = ib
 		} else {
