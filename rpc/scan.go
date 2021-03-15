@@ -275,7 +275,7 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock)
 		// notifySpend is a closure we'll use when we first detect that
 		// a transactions spends an outpoint/script in our filter list.
 		notifyTx := func() error {
-			wsc.server.ntfnMgr.NotifyBlockTx(tx, blk)
+			wsc.server.ntfnMgr.NotifyBlockTx(wsc, tx, blk)
 			return nil
 		}
 		needNotifyTx := false
@@ -295,7 +295,6 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock)
 			if err != nil {
 				continue
 			}
-
 			// If it is, we'll also dispatch a spend notification
 			// for this transaction if we haven't already.
 			if _, ok := lookups.addrs[addr.String()]; ok {
@@ -329,7 +328,6 @@ func rescanBlock(wsc *wsClient, lookups *rescanKeys, blk *types.SerializedBlock)
 			}
 			lastTxHash = tx.Hash()
 		}
-		return lastTxHash
 	}
-	return nil
+	return lastTxHash
 }

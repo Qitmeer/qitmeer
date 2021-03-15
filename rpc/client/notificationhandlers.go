@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	j "github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -166,14 +167,13 @@ func parseTxAcceptedVerboseNtfnParams(params []json.RawMessage) (*j.DecodeRawTra
 	if len(params) != 1 {
 		return nil, wrongNumParams(len(params))
 	}
-
 	// Unmarshal first parameter as a raw transaction result object.
 	var rawTx j.DecodeRawTransactionResult
 	err := json.Unmarshal(params[0], &rawTx)
 	if err != nil {
+		fmt.Println("[err]", err)
 		return nil, err
 	}
-
 	return &rawTx, nil
 }
 

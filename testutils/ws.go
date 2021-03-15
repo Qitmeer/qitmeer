@@ -72,7 +72,7 @@ func (w *testWallet) OnTxConfirm(txConfirm *cmds.TxConfirmResult) {
 	fmt.Println("OnTxConfirm", txConfirm.Tx, txConfirm.Confirms, txConfirm.Order)
 }
 func (w *testWallet) OnTxAcceptedVerbose(c *client.Client, tx *j.DecodeRawTransactionResult) {
-	fmt.Println("OnTxAcceptedVerbose", tx.Hash, tx.Confirms, tx.Order, tx.Txvalid, tx.IsBlue, tx.Duplicate)
+	fmt.Println("OnTxAcceptedVerbose", tx.Order, tx.Hash, tx.Confirms, tx.Txvalid, tx.IsBlue, tx.Duplicate)
 }
 func (w *testWallet) OnRescanProgress(rescanPro *cmds.RescanProgressNtfn) {
 	fmt.Println("OnRescanProgress", rescanPro.Order, rescanPro.Hash)

@@ -95,6 +95,10 @@ out:
 					m.notifyBlockConnected(blockNotifications,
 						block)
 				}
+				// need filter user unspent utxo
+				for _, tx := range block.Transactions() {
+					m.subscribedClients(tx, clients)
+				}
 
 			case *notificationBlockDisconnected:
 				block := (*types.SerializedBlock)(n)
@@ -126,13 +130,9 @@ out:
 				}
 
 			case *notificationTxAcceptedByMempool:
+
 				if n.isNew && len(txNotifications) != 0 {
 					m.notifyForNewTx(txNotifications, n.tx)
-				}
-
-			case *notificationTxByBlock:
-				if len(txNotifications) != 0 {
-					m.notifyForBlockTx(txNotifications, n.tx, n.blk)
 				}
 
 			case *notificationRegisterBlocks:
@@ -250,7 +250,10 @@ func (m *wsNotificationManager) NotifyBlockAccepted(band *blockchain.BlockAccept
 
 func (m *wsNotificationManager) notifyBlockAccepted(clients map[chan struct{}]*wsClient, block *types.SerializedBlock) {
 	for _, tx := range block.Transactions() {
-		m.notifyForBlockTx(clients, tx, block)
+		subClients := m.subscribedClients(tx, clients)
+		for quitChan, _ := range subClients {
+			m.notifyForBlockTx(clients[quitChan], tx, block)
+		}
 	}
 }
 
@@ -343,16 +346,8 @@ func (m *wsNotificationManager) NotifyMempoolTx(tx *types.Tx, isNew bool) {
 	}
 }
 
-func (m *wsNotificationManager) NotifyBlockTx(tx *types.Tx, blk *types.SerializedBlock) {
-	n := &notificationTxByBlock{
-		tx:  tx,
-		blk: blk,
-	}
-
-	select {
-	case m.queueNotification <- n:
-	case <-m.quit:
-	}
+func (m *wsNotificationManager) NotifyBlockTx(wsc *wsClient, tx *types.Tx, blk *types.SerializedBlock) {
+	m.notifyForBlockTx(wsc, tx, blk)
 }
 
 // subscribedClients returns the set of all websocket client quit channels that
@@ -376,8 +371,18 @@ func (m *wsNotificationManager) subscribedClients(tx *types.Tx,
 			if filter == nil {
 				continue
 			}
+			pkScript, err := txscript.ComputePkScript(
+				input.SignScript,
+			)
+			if err != nil {
+				continue
+			}
+			addr, err := pkScript.Address(wsc.server.ChainParams)
+			if err != nil {
+				continue
+			}
 			filter.mu.Lock()
-			if filter.existsUnspentOutPoint(&input.PreviousOut) {
+			if filter.existsAddress(addr) {
 				subscribed[quitChan] = struct{}{}
 			}
 			filter.mu.Unlock()
@@ -515,11 +520,8 @@ func (m *wsNotificationManager) notifyExit(clients map[chan struct{}]*wsClient) 
 	}
 }
 
-func (m *wsNotificationManager) notifyForBlockTx(clients map[chan struct{}]*wsClient, tx *types.Tx,
+func (m *wsNotificationManager) notifyForBlockTx(wsc *wsClient, tx *types.Tx,
 	blk *types.SerializedBlock) {
-	if len(clients) <= 0 {
-		return
-	}
 	ib := m.server.BC.BlockDAG().GetBlock(blk.Hash())
 	node := m.server.BC.BlockIndex().LookupNode(blk.Hash())
 	if node == nil {
@@ -529,87 +531,35 @@ func (m *wsNotificationManager) notifyForBlockTx(clients map[chan struct{}]*wsCl
 	confirmations := int64(m.server.BC.BlockDAG().GetConfirmations(node.GetID()))
 	isBlue := m.server.BC.BlockDAG().IsBlue(ib.GetID())
 	InValid := m.server.BC.BlockIndex().NodeStatus(node).KnownInvalid()
-	needTx := false
-	needVerboseTx := false
-	for _, wsc := range clients {
-		if wsc.verboseTxUpdates {
-			needVerboseTx = true
-		} else {
-			needTx = true
-		}
 
-		if needVerboseTx && needTx {
-			break
-		}
-	}
-
-	var marshalledJSON []byte
 	var err error
-	if needTx {
-		txHashStr := tx.Hash().String()
-		amountsM := map[string]*types.Amount{}
-		for _, txOut := range tx.Tx.TxOut {
-			amount, ok := amountsM[txOut.Amount.Id.Name()]
-			if ok {
-				_, err := amount.Add(amount, &txOut.Amount)
-				if err != nil {
-					log.Error("notifyForNewTx fail")
-					return
-				}
-			} else {
-				amountsM[txOut.Amount.Id.Name()] = &types.Amount{Value: txOut.Amount.Value, Id: txOut.Amount.Id}
-			}
-		}
-
-		var amounts types.AmountGroup
-		for _, amount := range amountsM {
-			amounts = append(amounts, *amount)
-		}
-
-		ntfn := cmds.NewTxAcceptedNtfn(txHashStr, amounts)
-		marshalledJSON, err = cmds.MarshalCmd(nil, ntfn)
-		if err != nil {
-			log.Error(fmt.Sprintf("Failed to marshal tx notification: %s", err.Error()))
-			return
-		}
-	}
 
 	var marshalledJSONVerbose []byte
-	if needVerboseTx {
 
-		rawTx := &json.DecodeRawTransactionResult{
-			IsCoinbase: tx.Tx.IsCoinBase(),
-			Txvalid:    !InValid,
-			BlockHash:  blk.Hash().String(),
-			Duplicate:  tx.IsDuplicate,
-			Order:      node.GetOrder(),
-			Confirms:   uint64(confirmations),
-			IsBlue:     isBlue,
-			Txid:       tx.Hash().String(),
-			Hash:       tx.Tx.TxHashFull().String(),
-			Version:    tx.Tx.Version,
-			LockTime:   tx.Tx.LockTime,
-			Time:       tx.Tx.Timestamp.Format(time.RFC3339),
-			Vin:        marshal.MarshJsonVin(tx.Tx),
-			Vout:       marshal.MarshJsonVout(tx.Tx, nil, params.ActiveNetParams.Params),
-		}
-		verboseNtfn := cmds.NewTxAcceptedVerboseNtfn(*rawTx)
-		marshalledJSONVerbose, err = cmds.MarshalCmd(nil, verboseNtfn)
-		if err != nil {
-			log.Error(fmt.Sprintf("Failed to marshal verbose tx "+
-				"notification: %s", err.Error()))
-			return
-		}
+	rawTx := &json.DecodeRawTransactionResult{
+		IsCoinbase: tx.Tx.IsCoinBase(),
+		Txvalid:    !InValid,
+		BlockHash:  blk.Hash().String(),
+		Duplicate:  tx.IsDuplicate,
+		Order:      node.GetOrder(),
+		Confirms:   uint64(confirmations),
+		IsBlue:     isBlue,
+		Txid:       tx.Hash().String(),
+		Hash:       tx.Tx.TxHashFull().String(),
+		Version:    tx.Tx.Version,
+		LockTime:   tx.Tx.LockTime,
+		Time:       tx.Tx.Timestamp.Format(time.RFC3339),
+		Vin:        marshal.MarshJsonVin(tx.Tx),
+		Vout:       marshal.MarshJsonVout(tx.Tx, nil, params.ActiveNetParams.Params),
 	}
-	clientsToNotify := m.subscribedClients(tx, clients)
-	for quitChan := range clientsToNotify {
-		wsc := clients[quitChan]
-		if wsc.verboseTxUpdates {
-			wsc.QueueNotification(marshalledJSONVerbose)
-		} else {
-			wsc.QueueNotification(marshalledJSON)
-		}
+	verboseNtfn := cmds.NewTxAcceptedVerboseNtfn(*rawTx)
+	marshalledJSONVerbose, err = cmds.MarshalCmd(nil, verboseNtfn)
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to marshal verbose tx "+
+			"notification: %s", err.Error()))
+		return
 	}
+	wsc.QueueNotification(marshalledJSONVerbose)
 }
 
 func newWsNotificationManager(server *RpcServer) *wsNotificationManager {

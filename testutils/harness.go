@@ -6,11 +6,9 @@ package testutils
 
 import (
 	"fmt"
-	j "github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/client"
-	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"io/ioutil"
 	"log"
 	"net"
@@ -127,18 +125,10 @@ func (h *Harness) connectWSNotifier() error {
 	ntfnHandlers := client.NotificationHandlers{
 		OnBlockConnected:    h.Wallet.blockConnected,
 		OnBlockDisconnected: h.Wallet.blockDisconnected,
-		OnTxConfirm: func(txConfirm *cmds.TxConfirmResult) {
-			fmt.Println("OnTxConfirm", txConfirm.Tx, txConfirm.Confirms, txConfirm.Order)
-		},
-		OnTxAcceptedVerbose: func(c *client.Client, tx *j.DecodeRawTransactionResult) {
-			fmt.Println("OnTxAcceptedVerbose", tx.Hash, tx.Confirms, tx.Order, tx.Txvalid, tx.IsBlue, tx.Duplicate)
-		},
-		OnRescanProgress: func(rescanPro *cmds.RescanProgressNtfn) {
-			fmt.Println("OnRescanProgress", rescanPro.Order, rescanPro.Hash)
-		},
-		OnRescanFinish: func(rescanFinish *cmds.RescanFinishedNtfn) {
-			fmt.Println("OnRescanFinish", rescanFinish.Order, rescanFinish.Hash)
-		},
+		OnTxConfirm:         h.Wallet.OnTxConfirm,
+		OnTxAcceptedVerbose: h.Wallet.OnTxAcceptedVerbose,
+		OnRescanProgress:    h.Wallet.OnRescanProgress,
+		OnRescanFinish:      h.Wallet.OnRescanFinish,
 	}
 	connCfg := &client.ConnConfig{
 		Host:       h.Node.config.rpclisten,
