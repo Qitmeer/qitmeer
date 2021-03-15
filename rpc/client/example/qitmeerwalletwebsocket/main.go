@@ -95,7 +95,6 @@ func main() {
 	}); err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(10 * time.Minute)
 	log.Println("NotifyTransaction: Registration Complete")
 	time.Sleep(1 * time.Second)
 	if err := c.Rescan(0, 110, []string{"RmBCkqCZ17hXsUTGhKXT3s6CZ5b6MuNhwcZ"}, nil); err != nil {
