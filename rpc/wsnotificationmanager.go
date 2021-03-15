@@ -115,7 +115,9 @@ out:
 					fmt.Println("IsMainChainTipChange")
 					if len(txConfirms) != 0 {
 						for _, wsc := range txConfirms {
+							wsc.TxConfirmsLock.Lock()
 							wsc.TxConfirms.Handle(wsc)
+							wsc.TxConfirmsLock.Unlock()
 						}
 					}
 				}
