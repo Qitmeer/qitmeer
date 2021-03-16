@@ -190,6 +190,17 @@ If you somehow need to stick to the current version, please make sure to execute
 ```shell
 go mod tidy
 ```
+### Qitmeer gets stuck on synchronization.
+For some reasons, all your peers are disconnected. For example, all your peers are busy, so your synchronization
+requests to them would exceed the timeout, leading your nodes disconnection from those peers. One recommended
+solution to this issue is to enhance your connectivity by reporting your external ip (if you have) to the public, so new peers
+will reach to you even all your peers are disconnected.
+Please see Qitmeer/qitmeer/issues/444 to get more details
+
+```sh
+externalip=YOUR_PUBLIC_IP:18130
+```
+
 
 ## License
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer?ref=badge_large)
