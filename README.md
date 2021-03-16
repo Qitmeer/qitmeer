@@ -194,8 +194,8 @@ go mod tidy
 For some reasons, all your peers are disconnected. For example, all your peers are busy, so your synchronization
 requests to them would exceed the timeout, leading your nodes disconnection from those peers. One recommended
 solution to this issue is to enhance your connectivity by reporting your external ip (if you have) to the public, so new peers
-will reach to you even all your peers are disconnected.
-Please see Qitmeer/qitmeer/issues/444 to get more details
+will reach to you even though all your peers are disconnected.
+Please follow this [issue](https://github.com/Qitmeer/qitmeer/issues/444) to get more details
 
 ```sh
 externalip=YOUR_PUBLIC_IP:18130
