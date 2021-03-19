@@ -169,10 +169,7 @@ func handleNotifyTxsByAddr(wsc *wsClient, icmd interface{}) (interface{}, error)
 	for i := range cmd.OutPoints {
 		h, err := hash.NewHashFromStr(cmd.OutPoints[i].Hash)
 		if err != nil {
-			return nil, &cmds.RPCError{
-				Code:    cmds.ErrRPCInvalidParameter,
-				Message: err.Error(),
-			}
+			return nil, cmds.ErrRPCInvalidParams
 		}
 		outPoints[i] = types.TxOutPoint{
 			Hash:     *h,
@@ -219,9 +216,8 @@ func init() {
 // rpcDecodeHexError is a convenience function for returning a nicely formatted
 // RPC error which indicates the provided hex string failed to decode.
 func rpcDecodeHexError(gotHex string) *cmds.RPCError {
-	return cmds.NewRPCError(cmds.ErrRPCDecodeHexString,
-		fmt.Sprintf("Argument must be hexadecimal string (not %q)",
-			gotHex))
+	log.Error(gotHex)
+	return cmds.ErrRPCDecodeHexString
 }
 
 // handleRescan implements the rescan command extension for websocket
@@ -305,10 +301,7 @@ func handleRescan(wsc *wsClient, icmd interface{}) (interface{}, error) {
 		lastBlockHash = &chainTip.Hash
 		lastBlock, err = chain.BlockByHash(lastBlockHash)
 		if err != nil {
-			return nil, &cmds.RPCError{
-				Code:    cmds.ErrRPCBlockNotFound,
-				Message: "Error getting block: " + err.Error(),
-			}
+			return nil, cmds.ErrRPCBlockNotFound
 		}
 	}
 	lastTx := ""

@@ -16,18 +16,6 @@ const (
 	TestNameSpace           = "test"
 	LogNameSpace            = "log"
 	NotifyNameSpace         = ""
-
-	// numErrorCodes is the maximum error code number used in tests.
-	numErrorCodes
-	// ErrRPCDatabase indicates a database error.
-	ErrRPCDatabase      RPCErrorCode = -20
-	ErrRPCBlockNotFound RPCErrorCode = -5
-	// ErrRPCInvalidParameter indicates an invalid, missing, or duplicate
-	// parameter.
-	ErrRPCInvalidParameter RPCErrorCode = -8
-	ErrRPCDecodeHexString  RPCErrorCode = -22
-
-	ErrInvalidNode = -30
 )
 
 type RPCErrorCode int
@@ -128,6 +116,24 @@ var (
 	ErrRPCInvalidRequest = &RPCError{
 		Code:    -32600,
 		Message: "Invalid request",
+	}
+	// ErrRPCDatabase indicates a database error.
+	ErrRPCDatabase = &RPCError{
+		Code:    -20,
+		Message: "Database error",
+	}
+	ErrRPCBlockNotFound = &RPCError{
+		Code:    -5,
+		Message: "Block Not Found error",
+	}
+	ErrRPCDecodeHexString = &RPCError{
+		Code:    -22,
+		Message: "Hex decode error",
+	}
+
+	ErrInvalidNode = &RPCError{
+		Code:    -30,
+		Message: "Invalid Node",
 	}
 	ErrRPCMethodNotFound = &RPCError{
 		Code:    -32601,

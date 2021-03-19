@@ -18,10 +18,7 @@ const MaxInvPerMsg = 50000
 
 // ErrRescanReorg defines the error that is returned when an unrecoverable
 // reorganize is detected during a rescan.
-var ErrRescanReorg = cmds.RPCError{
-	Code:    cmds.ErrRPCDatabase,
-	Message: "Reorganize",
-}
+var ErrRescanReorg = cmds.ErrRPCDatabase
 
 // recoverFromReorg attempts to recover from a detected reorganize during a
 // rescan.  It fetches a new range of block shas from the database and
@@ -34,10 +31,7 @@ func recoverFromReorg(chain *blockchain.BlockChain, minBlock, maxBlock uint64,
 	hashList, err := chain.OrderRange(minBlock, maxBlock)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error looking up block range: %v", err))
-		return nil, &cmds.RPCError{
-			Code:    cmds.ErrRPCDatabase,
-			Message: "Database error: " + err.Error(),
-		}
+		return nil, cmds.ErrRPCDatabase
 	}
 	if lastBlock == nil || len(hashList) == 0 {
 		return hashList, nil
@@ -47,10 +41,7 @@ func recoverFromReorg(chain *blockchain.BlockChain, minBlock, maxBlock uint64,
 	if err != nil {
 		log.Error(fmt.Sprintf("Error looking up possibly reorged block: %v",
 			err))
-		return nil, &cmds.RPCError{
-			Code:    cmds.ErrRPCDatabase,
-			Message: "Database error: " + err.Error(),
-		}
+		return nil, cmds.ErrRPCBlockNotFound
 	}
 	jsonErr := descendantBlock(lastBlock, blk)
 	if jsonErr != nil {
@@ -66,7 +57,7 @@ func descendantBlock(prevHash *hash.Hash, curBlock *types.SerializedBlock) error
 	if !prevHash.IsEqual(curHash) {
 		log.Error(fmt.Sprintf("Stopping rescan for reorged block %v "+
 			"(replaced by block %v)", prevHash, curHash))
-		return &ErrRescanReorg
+		return ErrRescanReorg
 	}
 	return nil
 }
@@ -107,10 +98,7 @@ fetchRange:
 		hashList, err := chain.OrderRange(minBlock, maxLoopBlock)
 		if err != nil {
 			log.Error(fmt.Sprintf("Error looking up block range: %v", err))
-			return nil, nil, nil, &cmds.RPCError{
-				Code:    cmds.ErrRPCDatabase,
-				Message: "Database error: " + err.Error(),
-			}
+			return nil, nil, nil, cmds.ErrRPCBlockNotFound
 		}
 		if len(hashList) == 0 {
 			// The rescan is finished if no blocks hashes for this
@@ -141,11 +129,7 @@ fetchRange:
 			if err != nil {
 				log.Error(fmt.Sprintf("Error fetching best block "+
 					"hash: %v", err))
-				return nil, nil, nil, &cmds.RPCError{
-					Code: cmds.ErrRPCDatabase,
-					Message: "Database error: " +
-						err.Error(),
-				}
+				return nil, nil, nil, cmds.ErrRPCBlockNotFound
 			}
 			if again {
 				continue
@@ -162,11 +146,7 @@ fetchRange:
 					dbErr.ErrorCode != database.ErrBlockNotFound {
 					log.Error(fmt.Sprintf("Error looking up "+
 						"block: %v", err))
-					return nil, nil, nil, &cmds.RPCError{
-						Code: cmds.ErrRPCDatabase,
-						Message: "Database error: " +
-							err.Error(),
-					}
+					return nil, nil, nil, cmds.ErrRPCDatabase
 				}
 				// If an absolute max block was specified, don't
 				// attempt to handle the reorg.
@@ -174,7 +154,7 @@ fetchRange:
 					log.Error(fmt.Sprintf("Stopping rescan for "+
 						"reorged block %v",
 						cmd.EndBlock))
-					return nil, nil, nil, &ErrRescanReorg
+					return nil, nil, nil, ErrRescanReorg
 				}
 
 				// If the lookup for the previously valid block
@@ -202,10 +182,7 @@ fetchRange:
 			h := blk.Block().BlockHash()
 			node := chain.BlockIndex().LookupNode(&h)
 			if node == nil {
-				return nil, nil, nil, &cmds.RPCError{
-					Code:    cmds.ErrInvalidNode,
-					Message: "no node ",
-				}
+				return nil, nil, nil, cmds.ErrInvalidNode
 			}
 			// Update the source block order
 			blk.SetOrder(node.GetOrder())
