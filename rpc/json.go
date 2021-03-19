@@ -61,7 +61,7 @@ type jsonSubscription struct {
 type jsonNotification struct {
 	Version string           `json:"jsonrpc"`
 	Method  string           `json:"method"`
-	Params  jsonSubscription `json:"ChainParams"`
+	Params  jsonSubscription `json:"params"`
 }
 
 type SessionResult struct {
