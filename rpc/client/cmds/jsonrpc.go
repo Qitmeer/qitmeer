@@ -16,6 +16,18 @@ const (
 	TestNameSpace           = "test"
 	LogNameSpace            = "log"
 	NotifyNameSpace         = ""
+
+	// numErrorCodes is the maximum error code number used in tests.
+	numErrorCodes
+	// ErrRPCDatabase indicates a database error.
+	ErrRPCDatabase      RPCErrorCode = -20
+	ErrRPCBlockNotFound RPCErrorCode = -5
+	// ErrRPCInvalidParameter indicates an invalid, missing, or duplicate
+	// parameter.
+	ErrRPCInvalidParameter RPCErrorCode = -8
+	ErrRPCDecodeHexString  RPCErrorCode = -22
+
+	ErrInvalidNode = -30
 )
 
 type RPCErrorCode int

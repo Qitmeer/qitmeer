@@ -227,7 +227,7 @@ func rpcDecodeHexError(gotHex string) *cmds.RPCError {
 // handleRescan implements the rescan command extension for websocket
 // connections.
 //
-// NOTE: This does not smartly handle reorgs, and fixing requires database
+// NOTE: This does not smartly handle the re-org and BlockDAG case should be covered carefully and fixing requires database
 // changes (for safe, concurrent access to full block ranges, and support
 // for other chains than the best chain).  It will, however, detect whether
 // a reorg removed a block that was previously processed, and result in the

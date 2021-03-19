@@ -521,9 +521,8 @@ func (s PkScript) String() string {
 }
 
 // ComputePkScript computes the script of an output by looking at the spending
-// input's signature script or witness.
 //
-// NOTE: Only P2PKH, P2SH, P2WSH, and P2WPKH redeem scripts are supported.
+// NOTE: Only P2PKH, P2SH redeem scripts are supported.
 func ComputePkScript(sigScript []byte) (PkScript, error) {
 	switch {
 	case len(sigScript) > 0:

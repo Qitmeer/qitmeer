@@ -61,18 +61,6 @@ const (
 	// ErrNumParams inidcates the number of params supplied do not
 	// match the requirements of the associated command.
 	ErrNumParams
-
-	// numErrorCodes is the maximum error code number used in tests.
-	numErrorCodes
-	// ErrRPCDatabase indicates a database error.
-	ErrRPCDatabase      RPCErrorCode = -20
-	ErrRPCBlockNotFound RPCErrorCode = -5
-	// ErrRPCInvalidParameter indicates an invalid, missing, or duplicate
-	// parameter.
-	ErrRPCInvalidParameter RPCErrorCode = -8
-	ErrRPCDecodeHexString  RPCErrorCode = -22
-
-	ErrInvalidNode = -30
 )
 
 // Map of ErrorCode values back to their constant names for pretty printing.

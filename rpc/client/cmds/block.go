@@ -20,7 +20,6 @@ type BlockDetails struct {
 
 // RescanFinishedNtfn defines the rescanfinished JSON-RPC notification.
 //
-// Deprecated: Not used with rescanblocks command.
 type RescanFinishedNtfn struct {
 	Hash       string
 	Order      uint64
@@ -30,7 +29,6 @@ type RescanFinishedNtfn struct {
 
 // RescanProgressNtfn defines the rescanprogress JSON-RPC notification.
 //
-// Deprecated: Not used with rescanblocks command.
 type RescanProgressNtfn struct {
 	Hash  string
 	Order uint64
@@ -40,7 +38,6 @@ type RescanProgressNtfn struct {
 // NewRescanProgressNtfn returns a new instance which can be used to issue a
 // rescanprogress JSON-RPC notification.
 //
-// Deprecated: Not used with rescanblocks command.
 func NewRescanProgressNtfn(hash string, order uint64, time int64) *RescanProgressNtfn {
 	return &RescanProgressNtfn{
 		Hash:  hash,
@@ -52,7 +49,6 @@ func NewRescanProgressNtfn(hash string, order uint64, time int64) *RescanProgres
 // NewRescanFinishedNtfn returns a new instance which can be used to issue a
 // rescanfinished JSON-RPC notification.
 //
-// Deprecated: Not used with rescanblocks command.
 func NewRescanFinishedNtfn(hash, txHash string, order uint64, time int64) *RescanFinishedNtfn {
 	return &RescanFinishedNtfn{
 		Hash:       hash,
@@ -64,23 +60,9 @@ func NewRescanFinishedNtfn(hash, txHash string, order uint64, time int64) *Resca
 
 // RedeemingTxNtfn defines the redeemingtx JSON-RPC notification.
 //
-// Deprecated: Use RelevantTxAcceptedNtfn and FilteredBlockConnectedNtfn
-// instead.
 type RedeemingTxNtfn struct {
 	HexTx string
 	Block *BlockDetails
-}
-
-// NewRedeemingTxNtfn returns a new instance which can be used to issue a
-// redeemingtx JSON-RPC notification.
-//
-// Deprecated: Use NewRelevantTxAcceptedNtfn and
-// NewFilteredBlockConnectedNtfn instead.
-func NewRedeemingTxNtfn(hexTx string, block *BlockDetails) *RedeemingTxNtfn {
-	return &RedeemingTxNtfn{
-		HexTx: hexTx,
-		Block: block,
-	}
 }
 
 func NewGetBlockhashCmd(order uint) *GetBlockhashCmd {

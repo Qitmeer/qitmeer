@@ -112,7 +112,6 @@ out:
 				}
 				if band.IsMainChainTipChange {
 					// do something
-					fmt.Println("IsMainChainTipChange")
 					if len(txConfirms) != 0 {
 						for _, wsc := range txConfirms {
 							wsc.TxConfirmsLock.Lock()

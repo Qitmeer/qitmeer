@@ -126,7 +126,6 @@ type OutPoint struct {
 
 // RescanCmd defines the rescan JSON-RPC command.
 //
-// Deprecated: Use RescanBlocksCmd instead.
 type RescanCmd struct {
 	BeginBlock uint64
 	Addresses  []string
