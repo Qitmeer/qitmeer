@@ -526,17 +526,16 @@ func (s PkScript) String() string {
 func ComputePkScript(sigScript []byte) (PkScript, error) {
 	switch {
 	case len(sigScript) > 0:
-		return computeNonWitnessPkScript(sigScript)
+		return computeStandardPkScript(sigScript)
 	default:
 		return PkScript{}, ErrUnsupportedScriptType
 	}
 }
 
-// computeNonWitnessPkScript computes the script of an output by looking at the
+// computeStandardPkScript computes the script of an output by looking at the
 // spending input's signature script.
-func computeNonWitnessPkScript(sigScript []byte) (PkScript, error) {
+func computeStandardPkScript(sigScript []byte) (PkScript, error) {
 	switch {
-	// Since we only support P2PKH and P2SH scripts as the only non-witness
 	// script types, we should expect to see a push only script.
 	case !IsPushOnlyScript(sigScript):
 		return PkScript{}, ErrUnsupportedScriptType
