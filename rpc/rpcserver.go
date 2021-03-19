@@ -12,6 +12,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
+	"github.com/Qitmeer/qitmeer/services/index"
 	"github.com/deckarep/golang-set"
 	"golang.org/x/net/context"
 	"io"
@@ -56,6 +57,7 @@ type RpcServer struct {
 
 	ntfnMgr     *wsNotificationManager
 	BC          *blockchain.BlockChain
+	TxIndex     *index.TxIndex
 	ChainParams *params.Params
 	listeners   []net.Listener
 }

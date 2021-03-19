@@ -1,12 +1,16 @@
 package rpc
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 )
 
 type TxConfirm struct {
-	Order    uint64
 	Confirms uint64
 	TxHash   string
 }
@@ -15,64 +19,91 @@ func (w *WatchTxConfirmServer) AddTxConfirms(confirm TxConfirm) {
 	if w == nil {
 		w = &WatchTxConfirmServer{}
 	}
-	if _, ok := (*w)[confirm.Order]; !ok {
-		(*w)[confirm.Order] = map[string]TxConfirm{}
+	if _, ok := (*w)[confirm.TxHash]; !ok {
+		(*w)[confirm.TxHash] = TxConfirm{}
 	}
-	(*w)[confirm.Order][confirm.TxHash] = confirm
+	(*w)[confirm.TxHash] = confirm
 }
 
-type WatchTxConfirmServer map[uint64]map[string]TxConfirm
+type WatchTxConfirmServer map[string]TxConfirm
 
 func (w *WatchTxConfirmServer) Handle(wsc *wsClient) {
 	if w == nil || len(*w) <= 0 {
 		return
 	}
 	bc := wsc.server.BC
-	for order, txc := range *w {
-		h := bc.BlockDAG().GetBlockByOrder(uint(order))
-		if h == nil {
-			log.Error("order not exist", "order", order)
-			delete(*w, order)
+	txIndex := wsc.server.TxIndex
+	if txIndex == nil {
+		log.Error("specify --txindex in configuration")
+	}
+	for tx, txconf := range *w {
+		txHash := hash.MustHexToDecodedHash(tx)
+		blockRegion, err := txIndex.TxBlockRegion(txHash)
+		if err != nil {
+			log.Error(err.Error(), "txhash", txHash)
 			continue
 		}
-		ib := bc.BlockDAG().GetBlock(h)
-		if ib == nil {
-			log.Error("block hash not exist", "hash", h)
-			delete(*w, order)
-			continue
-		}
-		node := bc.BlockIndex().LookupNode(h)
-		if node == nil {
-			log.Error("no node")
-			continue
-		}
-		confirmations := int64(bc.BlockDAG().GetConfirmations(node.GetID()))
-		isBlue := bc.BlockDAG().IsBlue(ib.GetID())
-		InValid := bc.BlockIndex().NodeStatus(node).KnownInvalid()
-		for _, tx := range txc {
-			if !isBlue || InValid || confirmations >= int64(tx.Confirms) {
-				ntfn := &cmds.NotificationTxConfirmNtfn{
-					ConfirmResult: cmds.TxConfirmResult{
-						Tx:       tx.TxHash,
-						Confirms: uint64(confirmations),
-						IsBlue:   isBlue,
-						IsValid:  !InValid,
-						Order:    order,
-					},
-				}
-				marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
+		if blockRegion == nil {
+			if bc.CacheInvalidTx {
+				blockRegion, err = txIndex.InvalidTxBlockRegion(txHash)
 				if err != nil {
-					log.Error(fmt.Sprintf("Failed to marshal tx confirm notification: "+
-						"%v", err))
+					log.Error(err.Error(), "txhash", txHash)
 					continue
 				}
-				err = wsc.QueueNotification(marshalledJSON)
-				if err != nil {
-					log.Error("notify failed", "err", err)
-					continue
-				}
-				delete((*w)[order], tx.TxHash)
+			} else {
+				log.Warn("tx hash not found", "txhash", txHash)
+				continue
 			}
+		}
+		txBytes, err := txIndex.GetTxBytes(blockRegion)
+		if err != nil {
+			log.Error("tx not found")
+			continue
+		}
+
+		// Deserialize the transaction
+		var msgTx types.Transaction
+		err = msgTx.Deserialize(bytes.NewReader(txBytes))
+		log.Trace("GetRawTx", "hex", hex.EncodeToString(txBytes))
+		if err != nil {
+			log.Error("Failed to deserialize transaction")
+			continue
+		}
+		mtx := types.NewTx(&msgTx)
+		mtx.IsDuplicate = bc.IsDuplicateTx(mtx.Hash(), blockRegion.Hash)
+		ib := bc.BlockDAG().GetBlock(blockRegion.Hash)
+		if ib == nil {
+			log.Error("block hash not exist", "hash", blockRegion.Hash)
+			delete(*w, tx)
+			continue
+		}
+		confirmations := bc.BlockDAG().GetConfirmations(ib.GetID())
+		isBlue := true
+		if mtx.Tx.IsCoinBase() {
+			isBlue = bc.BlockDAG().IsBlue(ib.GetID())
+		}
+		InValid := blockchain.BlockStatus(ib.GetStatus()).KnownInvalid()
+		if uint64(confirmations) >= txconf.Confirms || InValid || !isBlue {
+			ntfn := &cmds.NotificationTxConfirmNtfn{
+				ConfirmResult: cmds.TxConfirmResult{
+					Tx:       tx,
+					Confirms: uint64(confirmations),
+					IsBlue:   isBlue,
+					IsValid:  !InValid,
+				},
+			}
+			marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
+			if err != nil {
+				log.Error(fmt.Sprintf("Failed to marshal tx confirm notification: "+
+					"%v", err))
+				continue
+			}
+			err = wsc.QueueNotification(marshalledJSON)
+			if err != nil {
+				log.Error("notify failed", "err", err)
+				continue
+			}
+			delete(*w, tx)
 		}
 	}
 }
