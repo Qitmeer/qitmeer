@@ -117,24 +117,6 @@ var (
 		Code:    -32600,
 		Message: "Invalid request",
 	}
-	// ErrRPCDatabase indicates a database error.
-	ErrRPCDatabase = &RPCError{
-		Code:    -20,
-		Message: "Database error",
-	}
-	ErrRPCBlockNotFound = &RPCError{
-		Code:    -5,
-		Message: "Block Not Found error",
-	}
-	ErrRPCDecodeHexString = &RPCError{
-		Code:    -22,
-		Message: "Hex decode error",
-	}
-
-	ErrInvalidNode = &RPCError{
-		Code:    -30,
-		Message: "Invalid Node",
-	}
 	ErrRPCMethodNotFound = &RPCError{
 		Code:    -32601,
 		Message: "Method not found",
@@ -147,9 +129,27 @@ var (
 		Code:    -32603,
 		Message: "Internal error",
 	}
+	// ErrRPCDatabase indicates a database error.
+	ErrRPCDatabase = &RPCError{
+		Code:    -32604,
+		Message: "Database error",
+	}
+	ErrRPCBlockNotFound = &RPCError{
+		Code:    -32605,
+		Message: "Block Not Found error",
+	}
+
+	ErrInvalidNode = &RPCError{
+		Code:    -32606,
+		Message: "Invalid Node",
+	}
 	ErrRPCParse = &RPCError{
 		Code:    -32700,
 		Message: "Parse error",
+	}
+	ErrRPCDecodeHexString = &RPCError{
+		Code:    -32701,
+		Message: "Hex decode error",
 	}
 )
 
