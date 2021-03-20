@@ -168,7 +168,7 @@ func (ds *DAGSync) getBlockChainFromMain(point IBlock, maxHashes uint) []*hash.H
 	mainTip := ds.bd.getMainChainTip()
 	result := []*hash.Hash{}
 	for i := point.GetOrder() + 1; i <= mainTip.GetOrder(); i++ {
-		block := ds.bd.instance.GetBlockByOrder(i)
+		block := ds.bd.getBlockByOrder(i)
 		if block == nil {
 			continue
 		}

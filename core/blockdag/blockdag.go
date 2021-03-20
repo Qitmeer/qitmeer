@@ -111,9 +111,6 @@ type IBlockDAG interface {
 	// If the successor return nil, the underlying layer will use the default tips list.
 	GetTipsList() []IBlock
 
-	// Find block hash by order, this is very fast.
-	GetBlockByOrder(order uint) *hash.Hash
-
 	// Query whether a given block is on the main chain.
 	IsOnMainChain(ib IBlock) bool
 
@@ -450,20 +447,20 @@ func (bd *BlockDAG) GetLastTime() *time.Time {
 	return &bd.lastTime
 }
 
-// Return the full sequence array.
-func (bd *BlockDAG) GetOrder() map[uint]uint {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.order
-}
-
 // Obtain block hash by global order
 func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
-	return bd.instance.GetBlockByOrder(order)
+	ib := bd.getBlockByOrder(order)
+	if ib != nil {
+		return ib.GetHash()
+	}
+	return nil
+}
+
+func (bd *BlockDAG) getBlockByOrder(order uint) IBlock {
+	return nil
 }
 
 // Return the last order block
@@ -489,7 +486,11 @@ func (bd *BlockDAG) GetPrevious(id uint) (uint, error) {
 		return 0, fmt.Errorf("no pre")
 	}
 	// TODO
-	return bd.order[b.GetOrder()-1], nil
+	ib := bd.getBlockByOrder(b.GetOrder() - 1)
+	if ib != nil {
+		return ib.GetID(), nil
+	}
+	return 0, fmt.Errorf("no pre")
 }
 
 // Returns a future collection of block. This function is a recursively called function
@@ -1383,3 +1384,5 @@ func (bd *BlockDAG) GetBlockConcurrency(h *hash.Hash) (uint, error) {
 func (bd *BlockDAG) UpdateWeight(ib IBlock) {
 	bd.instance.(*Phantom).UpdateWeight(ib, true)
 }
+
+func (bd *BlockDAG) get()
