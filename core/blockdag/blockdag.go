@@ -171,8 +171,8 @@ type BlockDAG struct {
 	// This is time when the last block have added
 	lastTime time.Time
 
-	// The full sequence of dag, please note that the order starts at zero.
-	order map[uint]uint
+	// All orders relate to new block will be committed that need to be consensus
+	commitOrder map[uint]uint
 
 	// Current dag instance used. Different algorithms work according to
 	// different dag types config.
@@ -206,7 +206,7 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 // Initialize self, the function to be invoked at the beginning
 func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, getBlockId GetBlockId, db database.DB) IBlockDAG {
 	bd.lastTime = time.Unix(roughtime.Now().Unix(), 0)
-
+	bd.commitOrder = map[uint]uint{}
 	bd.calcWeight = calcWeight
 	bd.getBlockId = getBlockId
 	bd.db = db
@@ -459,8 +459,54 @@ func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash {
 	return nil
 }
 
-func (bd *BlockDAG) getBlockByOrder(order uint) IBlock {
+func (bd *BlockDAG) GetBlockByOrderWithTx(dbTx database.Tx, order uint) *hash.Hash {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	ib := bd.doGetBlockByOrder(dbTx, order)
+	if ib != nil {
+		return ib.GetHash()
+	}
 	return nil
+}
+
+func (bd *BlockDAG) getBlockByOrder(order uint) IBlock {
+	return bd.doGetBlockByOrder(nil, order)
+}
+
+func (bd *BlockDAG) doGetBlockByOrder(dbTx database.Tx, order uint) IBlock {
+	if order >= MaxBlockOrder {
+		return nil
+	}
+	id, ok := bd.commitOrder[order]
+	if ok {
+		return bd.getBlockById(id)
+	}
+
+	bid := uint(MaxId)
+
+	if dbTx == nil {
+		err := bd.db.View(func(dbTx database.Tx) error {
+			id, er := DBGetBlockIdByOrder(dbTx, order)
+			if er == nil {
+				bid = uint(id)
+			}
+			return er
+		})
+		if err != nil {
+			log.Error(err.Error())
+			return nil
+		}
+	} else {
+		id, er := DBGetBlockIdByOrder(dbTx, order)
+		if er == nil {
+			bid = uint(id)
+		} else {
+			return nil
+		}
+	}
+
+	return bd.getBlockById(bid)
 }
 
 // Return the last order block
@@ -1385,4 +1431,29 @@ func (bd *BlockDAG) UpdateWeight(ib IBlock) {
 	bd.instance.(*Phantom).UpdateWeight(ib, true)
 }
 
-func (bd *BlockDAG) get()
+// Commit the consensus content to the database for persistence
+func (bd *BlockDAG) Commit() error {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+	return bd.commit()
+}
+
+// Commit the consensus content to the database for persistence
+func (bd *BlockDAG) commit() error {
+	if len(bd.commitOrder) > 0 {
+		err := bd.db.Update(func(dbTx database.Tx) error {
+			var e error
+			for order, id := range bd.commitOrder {
+				er := DBPutBlockIdByOrder(dbTx, order, id)
+				if er != nil {
+					log.Error(er.Error())
+					e = er
+				}
+			}
+			return e
+		})
+		bd.commitOrder = map[uint]uint{}
+		return err
+	}
+	return nil
+}

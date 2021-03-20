@@ -172,7 +172,7 @@ func (ds *DAGSync) getBlockChainFromMain(point IBlock, maxHashes uint) []*hash.H
 		if block == nil {
 			continue
 		}
-		result = append(result, block)
+		result = append(result, block.GetHash())
 		if uint(len(result)) >= maxHashes {
 			break
 		}

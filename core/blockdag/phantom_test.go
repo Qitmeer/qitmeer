@@ -91,7 +91,7 @@ func Test_OrderFig2(t *testing.T) {
 	var i uint
 	ph.UpdateVirtualBlockOrder()
 	for i = 0; i < bd.GetBlockTotal(); i++ {
-		order = append(order, bd.order[i])
+		order = append(order, bd.getBlockByOrder(uint(i)).GetID())
 	}
 	fmt.Printf("The Fig.2 Order: ")
 	printBlockChainTag(order)
@@ -116,7 +116,7 @@ func Test_OrderFig4(t *testing.T) {
 	var i uint
 	ph.UpdateVirtualBlockOrder()
 	for i = 0; i < bd.GetBlockTotal(); i++ {
-		order = append(order, bd.order[i])
+		order = append(order, bd.getBlockByOrder(uint(i)).GetID())
 	}
 	fmt.Printf("The Fig.4 Order: ")
 	printBlockChainTag(order)
@@ -141,7 +141,7 @@ func Test_GetLayer(t *testing.T) {
 	ph := ibd.(*Phantom)
 	ph.UpdateVirtualBlockOrder()
 	for i = 0; i < bd.GetBlockTotal(); i++ {
-		l := bd.GetLayer(bd.order[i])
+		l := bd.GetLayer(bd.getBlockByOrder(uint(i)).GetID())
 		result = fmt.Sprintf("%s%d", result, l)
 	}
 	if result != testData.PH_GetLayer.Output[0] {
@@ -208,7 +208,7 @@ func Test_Confirmations(t *testing.T) {
 	ph := ibd.(*Phantom)
 	ph.UpdateVirtualBlockOrder()
 	for i := uint(0); i < bd.GetBlockTotal(); i++ {
-		blockHash := bd.order[i]
+		blockHash := bd.getBlockByOrder(uint(i)).GetID()
 		fmt.Printf("%s : %d\n", getBlockTag(blockHash), bd.GetConfirmations(blockHash))
 	}
 }

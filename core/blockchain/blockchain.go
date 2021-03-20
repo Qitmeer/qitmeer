@@ -894,16 +894,10 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
-		// Add the block hash and height to the block index.
-		err := dbPutBlockIndex(dbTx, block.Hash(), node.order)
-		if err != nil {
-			return err
-		}
-
 		// Update the utxo set using the state of the utxo view.  This
 		// entails removing all of the utxos spent and adding the new
 		// ones created by the block.
-		err = dbPutUtxoView(dbTx, view)
+		err := dbPutUtxoView(dbTx, view)
 		if err != nil {
 			return err
 		}
@@ -944,16 +938,10 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
 	// Calculate the exact subsidy produced by adding the block.
 	err := b.db.Update(func(dbTx database.Tx) error {
-		// Remove the block hash and order from the block index.
-		err := dbRemoveBlockIndex(dbTx, block.Hash(), int64(node.order)) //TODO, remove type conversion
-		if err != nil {
-			return err
-		}
-
 		// Update the utxo set using the state of the utxo view.  This
 		// entails restoring all of the utxos spent and removing the new
 		// ones created by the block.
-		err = dbPutUtxoView(dbTx, view)
+		err := dbPutUtxoView(dbTx, view)
 		if err != nil {
 			return err
 		}
