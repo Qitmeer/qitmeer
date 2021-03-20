@@ -67,6 +67,7 @@ func (w *WatchTxConfirmServer) Handle(wsc *wsClient) {
 		log.Trace("GetRawTx", "hex", hex.EncodeToString(txBytes))
 		if err != nil {
 			log.Error("Failed to deserialize transaction")
+			w.SendTxNotification(tx, 0, wsc, false, false)
 			continue
 		}
 		mtx := types.NewTx(&msgTx)
@@ -74,36 +75,52 @@ func (w *WatchTxConfirmServer) Handle(wsc *wsClient) {
 		ib := bc.BlockDAG().GetBlock(blockRegion.Hash)
 		if ib == nil {
 			log.Error("block hash not exist", "hash", blockRegion.Hash)
-			delete(*w, tx)
+			w.SendTxNotification(tx, 0, wsc, false, false)
 			continue
 		}
-		confirmations := bc.BlockDAG().GetConfirmations(ib.GetID())
+		if mtx.IsDuplicate {
+			w.SendTxNotification(tx, 0, wsc, false, false)
+			continue
+		}
 		isBlue := true
 		if mtx.Tx.IsCoinBase() {
 			isBlue = bc.BlockDAG().IsBlue(ib.GetID())
 		}
+		if !isBlue {
+			w.SendTxNotification(tx, 0, wsc, false, false)
+			continue
+		}
 		InValid := blockchain.BlockStatus(ib.GetStatus()).KnownInvalid()
-		if uint64(confirmations) >= txconf.Confirms || InValid || !isBlue {
-			ntfn := &cmds.NotificationTxConfirmNtfn{
-				ConfirmResult: cmds.TxConfirmResult{
-					Tx:       tx,
-					Confirms: uint64(confirmations),
-					IsBlue:   isBlue,
-					IsValid:  !InValid,
-				},
-			}
-			marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
-			if err != nil {
-				log.Error(fmt.Sprintf("Failed to marshal tx confirm notification: "+
-					"%v", err))
-				continue
-			}
-			err = wsc.QueueNotification(marshalledJSON)
-			if err != nil {
-				log.Error("notify failed", "err", err)
-				continue
-			}
-			delete(*w, tx)
+		if InValid {
+			w.SendTxNotification(tx, 0, wsc, false, false)
+			continue
+		}
+		confirmations := bc.BlockDAG().GetConfirmations(ib.GetID())
+		if uint64(confirmations) >= txconf.Confirms {
+			w.SendTxNotification(tx, uint64(confirmations), wsc, isBlue, !InValid)
 		}
 	}
+}
+
+func (w *WatchTxConfirmServer) SendTxNotification(tx string, confirms uint64, wsc *wsClient, isBlue, isValid bool) {
+	ntfn := &cmds.NotificationTxConfirmNtfn{
+		ConfirmResult: cmds.TxConfirmResult{
+			Tx:       tx,
+			Confirms: confirms,
+			IsBlue:   isBlue,
+			IsValid:  isValid,
+		},
+	}
+	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to marshal tx confirm notification: "+
+			"%v", err))
+		return
+	}
+	err = wsc.QueueNotification(marshalledJSON)
+	if err != nil {
+		log.Error("notify failed", "err", err)
+		return
+	}
+	delete(*w, tx)
 }
