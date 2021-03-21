@@ -131,16 +131,16 @@ var (
 	}
 	// ErrRPCDatabase indicates a database error.
 	ErrRPCDatabase = &RPCError{
-		Code:    -32604,
+		Code:    -32001,
 		Message: "Database error",
 	}
 	ErrRPCBlockNotFound = &RPCError{
-		Code:    -32605,
+		Code:    -32002,
 		Message: "Block Not Found error",
 	}
 
 	ErrInvalidNode = &RPCError{
-		Code:    -32606,
+		Code:    -32003,
 		Message: "Invalid Node",
 	}
 	ErrRPCParse = &RPCError{
