@@ -433,6 +433,20 @@ func (idx *TxIndex) Name() string {
 	return txIndexName
 }
 
+// Name returns the human-readable name of the index.
+//
+// This is part of the Indexer interface.
+func (idx *TxIndex) GetTxBytes(blockRegion *database.BlockRegion) ([]byte, error) {
+	// Load the raw transaction bytes from the database.
+	var txBytes []byte
+	err := idx.db.View(func(dbTx database.Tx) error {
+		var err error
+		txBytes, err = dbTx.FetchBlockRegion(blockRegion)
+		return err
+	})
+	return txBytes, err
+}
+
 // Create is invoked when the indexer manager determines the index needs
 // to be created for the first time.  It creates the buckets for the hash-based
 // transaction index and the internal block ID indexes.

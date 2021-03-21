@@ -128,7 +128,6 @@ func TestHarness_RpcAPI(t *testing.T) {
 	AssertBlockOrderAndHeight(t, h, 3, 3, 2)
 	GenerateBlock(t, h, 16)
 	AssertBlockOrderAndHeight(t, h, 19, 19, 18)
-
 	spendAmt := types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
 	txid := Spend(t, h, spendAmt)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())

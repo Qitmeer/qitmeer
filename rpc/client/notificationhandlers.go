@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	j "github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"time"
 )
 
@@ -21,7 +22,11 @@ type NotificationHandlers struct {
 	OnBlockAccepted     func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction)
 	OnReorganization    func(hash *hash.Hash, order int64, olds []*hash.Hash)
 	OnTxAccepted        func(hash *hash.Hash, amounts types.AmountGroup)
-	OnTxAcceptedVerbose func(tx *j.DecodeRawTransactionResult)
+	OnTxAcceptedVerbose func(c *Client, tx *j.DecodeRawTransactionResult)
+	OnTxConfirm         func(txConfirm *cmds.TxConfirmResult)
+	OnRescanProgress    func(param *cmds.RescanProgressNtfn)
+	OnRescanFinish      func(param *cmds.RescanFinishedNtfn)
+	OnNodeExit          func(nodeExit *cmds.NodeExitNtfn)
 
 	OnUnknownNotification func(method string, params []json.RawMessage)
 }
@@ -161,13 +166,92 @@ func parseTxAcceptedVerboseNtfnParams(params []json.RawMessage) (*j.DecodeRawTra
 	if len(params) != 1 {
 		return nil, wrongNumParams(len(params))
 	}
-
 	// Unmarshal first parameter as a raw transaction result object.
 	var rawTx j.DecodeRawTransactionResult
 	err := json.Unmarshal(params[0], &rawTx)
 	if err != nil {
+		log.Error("Unmarshal Tx Error", "err", err)
+		return nil, err
+	}
+	return &rawTx, nil
+}
+
+func parseTxConfirm(params []json.RawMessage) (*cmds.TxConfirmResult,
+	error) {
+	// Unmarshal first parameter as result object.
+	var txConfirm cmds.TxConfirmResult
+	err := json.Unmarshal(params[0], &txConfirm)
+	if err != nil {
 		return nil, err
 	}
 
-	return &rawTx, nil
+	return &txConfirm, nil
+}
+
+func parseRescanProgress(params []json.RawMessage) (*cmds.RescanProgressNtfn,
+	error) {
+
+	if len(params) != 3 {
+		return nil, wrongNumParams(len(params))
+	}
+	var h string
+	err := json.Unmarshal(params[0], &h)
+	if err != nil {
+		return nil, err
+	}
+	var order uint64
+	err = json.Unmarshal(params[1], &order)
+	if err != nil {
+		return nil, err
+	}
+	var tim int64
+	// Unmarshal first parameter as result object.
+	err = json.Unmarshal(params[2], &tim)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cmds.RescanProgressNtfn{
+		Hash:  h,
+		Order: order,
+		Time:  tim,
+	}, nil
+}
+
+func parseRescanFinish(params []json.RawMessage) (*cmds.RescanFinishedNtfn,
+	error) {
+
+	if len(params) != 4 {
+		return nil, wrongNumParams(len(params))
+	}
+
+	var h string
+	err := json.Unmarshal(params[0], &h)
+	if err != nil {
+		return nil, err
+	}
+	var order uint64
+	err = json.Unmarshal(params[1], &order)
+	if err != nil {
+		return nil, err
+	}
+	var tim int64
+	// Unmarshal first parameter as result object.
+	err = json.Unmarshal(params[2], &tim)
+	if err != nil {
+		return nil, err
+	}
+	var lastTxHash string
+	// Unmarshal first parameter as result object.
+	err = json.Unmarshal(params[3], &lastTxHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cmds.RescanFinishedNtfn{
+		Hash:       h,
+		Order:      order,
+		Time:       tim,
+		LastTxHash: lastTxHash,
+	}, nil
 }

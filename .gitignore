@@ -28,3 +28,4 @@ cmd/payledger/payledger
 cmd/qitmeerd/qitmeerd
 cmd/rlpdump/rlpdump
 *_checksum.txt
+rpc/client/example/qitmeerwalletwebsocket/qitmeerwalletwebsocket

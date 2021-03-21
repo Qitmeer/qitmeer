@@ -61,9 +61,6 @@ const (
 	// ErrNumParams inidcates the number of params supplied do not
 	// match the requirements of the associated command.
 	ErrNumParams
-
-	// numErrorCodes is the maximum error code number used in tests.
-	numErrorCodes
 )
 
 // Map of ErrorCode values back to their constant names for pretty printing.

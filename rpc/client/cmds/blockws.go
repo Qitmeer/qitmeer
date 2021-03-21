@@ -12,6 +12,15 @@ func NewStopNotifyBlocksCmd() *StopNotifyBlocksCmd {
 	return &StopNotifyBlocksCmd{}
 }
 
+func NotifyRescanCmd(beginBlock, endBlock uint64, addrs []string, op []OutPoint) *RescanCmd {
+	return &RescanCmd{
+		BeginBlock: beginBlock,
+		EndBlock:   endBlock,
+		Addresses:  addrs,
+		OutPoints:  op,
+	}
+}
+
 type SessionCmd struct{}
 
 func NewSessionCmd() *SessionCmd {
@@ -37,4 +46,5 @@ func init() {
 	MustRegisterCmd("notifyReceived", (*NotifyReceivedCmd)(nil), flags, NotifyNameSpace)
 	MustRegisterCmd("stopNotifyBlocks", (*StopNotifyBlocksCmd)(nil), flags, NotifyNameSpace)
 	MustRegisterCmd("session", (*SessionCmd)(nil), flags, NotifyNameSpace)
+	MustRegisterCmd("rescan", (*RescanCmd)(nil), flags, NotifyNameSpace)
 }
