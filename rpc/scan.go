@@ -37,7 +37,7 @@ func recoverFromReorg(chain *blockchain.BlockChain, minBlock, maxBlock uint64,
 		return hashList, nil
 	}
 
-	blk, err := chain.BlockByHash(&hashList[0])
+	blk, err := chain.FetchBlockByHash(&hashList[0])
 	if err != nil {
 		log.Error(fmt.Sprintf("Error looking up possibly reorged block: %v",
 			err))
@@ -138,7 +138,7 @@ fetchRange:
 		}
 	loopHashList:
 		for i := range hashList {
-			blk, err := chain.BlockByHash(&hashList[i])
+			blk, err := chain.FetchBlockByHash(&hashList[i])
 			if err != nil {
 				// Only handle reorgs if a block could not be
 				// found for the hash.
