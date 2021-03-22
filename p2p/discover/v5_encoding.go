@@ -372,7 +372,7 @@ func (c *wireCodec) deriveKeys(n1, n2 qnode.ID, priv *ecdsa.PrivateKey, pub *ecd
 	info := []byte("discovery v5 key agreement")
 	info = append(info, n1[:]...)
 	info = append(info, n2[:]...)
-	kdf := hkdf.New(c.sha256reset, eph, challenge.IDNonce[:], info)
+	kdf := hkdf.New(sha256.New, eph, challenge.IDNonce[:], info)
 	sec := handshakeSecrets{
 		writeKey:    make([]byte, aesKeySize),
 		readKey:     make([]byte, aesKeySize),
@@ -398,7 +398,7 @@ func (c *wireCodec) signIDNonce(nonce, ephkey []byte) ([]byte, error) {
 
 // idNonceHash computes the hash of id nonce with prefix.
 func (c *wireCodec) idNonceHash(nonce, ephkey []byte) []byte {
-	h := c.sha256reset()
+	h := sha256.New()
 	h.Write([]byte(idNoncePrefix))
 	h.Write(nonce)
 	h.Write(ephkey)
@@ -580,12 +580,6 @@ func decodePacketBodyV5(ptype byte, body []byte) (packetV5, error) {
 		return nil, err
 	}
 	return dec, nil
-}
-
-// sha256reset returns the shared hash instance.
-func (c *wireCodec) sha256reset() hash.Hash {
-	c.sha256.Reset()
-	return c.sha256
 }
 
 // sha256sum computes sha256 on the concatenation of inputs.
