@@ -238,7 +238,7 @@ func (c *Client) handleMessage(msg []byte) {
 	}
 
 	id := uint64(*in.ID)
-	log.Trace("Received response for id %d (result %s)", id, in.Result)
+	log.Trace(fmt.Sprintf("Received response for id %d (result %s)", id, in.Result))
 	request := c.removeRequest(id)
 
 	// Nothing more to do if there is no request associated with this reply.
