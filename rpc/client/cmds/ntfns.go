@@ -12,6 +12,10 @@ const (
 	ReorganizationNtfnMethod    = "reorganization"
 	TxAcceptedNtfnMethod        = "txaccepted"
 	TxAcceptedVerboseNtfnMethod = "txacceptedverbose"
+	TxConfirmNtfnMethod         = "txconfirm"
+	RescanProgressNtfnMethod    = "rescanprocess"
+	RescanCompleteNtfnMethod    = "rescancomplete"
+	NodeExitMethod              = "nodeexit"
 )
 
 type BlockConnectedNtfn struct {
@@ -53,15 +57,6 @@ type BlockAcceptedNtfn struct {
 	Txs   []string
 }
 
-func NewBlockAcceptedNtfn(hash string, order int64, time int64, txs []string) *BlockAcceptedNtfn {
-	return &BlockAcceptedNtfn{
-		Hash:  hash,
-		Order: order,
-		Time:  time,
-		Txs:   txs,
-	}
-}
-
 type ReorganizationNtfn struct {
 	Hash  string
 	Order int64
@@ -81,11 +76,26 @@ type TxAcceptedNtfn struct {
 	Amounts types.AmountGroup
 }
 
+type NodeExitNtfn struct {
+}
+
 func NewTxAcceptedNtfn(txHash string, amounts types.AmountGroup) *TxAcceptedNtfn {
 	return &TxAcceptedNtfn{
 		TxID:    txHash,
 		Amounts: amounts,
 	}
+}
+
+type TxConfirmResult struct {
+	Confirms uint64
+	Tx       string
+	Order    uint64
+	IsValid  bool
+	IsBlue   bool
+}
+
+type NotificationTxConfirmNtfn struct {
+	ConfirmResult TxConfirmResult
 }
 
 type TxAcceptedVerboseNtfn struct {
@@ -107,4 +117,8 @@ func init() {
 	MustRegisterCmd(ReorganizationNtfnMethod, (*ReorganizationNtfn)(nil), flags, NotifyNameSpace)
 	MustRegisterCmd(TxAcceptedNtfnMethod, (*TxAcceptedNtfn)(nil), flags, NotifyNameSpace)
 	MustRegisterCmd(TxAcceptedVerboseNtfnMethod, (*TxAcceptedVerboseNtfn)(nil), flags, NotifyNameSpace)
+	MustRegisterCmd(TxConfirmNtfnMethod, (*NotificationTxConfirmNtfn)(nil), flags, NotifyNameSpace)
+	MustRegisterCmd(RescanProgressNtfnMethod, (*RescanProgressNtfn)(nil), flags, NotifyNameSpace)
+	MustRegisterCmd(RescanCompleteNtfnMethod, (*RescanFinishedNtfn)(nil), flags, NotifyNameSpace)
+	MustRegisterCmd(NodeExitMethod, (*NodeExitNtfn)(nil), flags, NotifyNameSpace)
 }

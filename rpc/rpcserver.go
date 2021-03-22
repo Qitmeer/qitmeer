@@ -8,8 +8,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
+	"github.com/Qitmeer/qitmeer/services/index"
 	"github.com/deckarep/golang-set"
 	"golang.org/x/net/context"
 	"io"
@@ -52,9 +55,11 @@ type RpcServer struct {
 	ReqStatus     map[string]*RequestStatus
 	reqStatusLock sync.RWMutex
 
-	ntfnMgr *wsNotificationManager
-
-	listeners []net.Listener
+	ntfnMgr     *wsNotificationManager
+	BC          *blockchain.BlockChain
+	TxIndex     *index.TxIndex
+	ChainParams *params.Params
+	listeners   []net.Listener
 }
 
 // service represents a registered object
@@ -126,7 +131,6 @@ func NewRPCServer(cfg *config.Config, events *event.Feed) (*RpcServer, error) {
 			base64.StdEncoding.EncodeToString([]byte(login))
 		rpc.authsha = sha256.Sum256([]byte(auth))
 	}
-
 	rpc.ntfnMgr = newWsNotificationManager(&rpc)
 	rpc.subscribe(events)
 	return &rpc, nil
@@ -631,7 +635,6 @@ func (s *RpcServer) handle(ctx context.Context, codec ServerCodec, req *serverRe
 
 		return codec.CreateResponse(req.id, subid), activateSub
 	}
-
 	// regular RPC call, prepare arguments
 	if len(req.args) != len(req.callb.argTypes) {
 		rpcErr := &invalidParamsError{fmt.Sprintf("%s%s%s expects %d parameters, got %d",

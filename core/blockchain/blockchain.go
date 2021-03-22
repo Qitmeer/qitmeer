@@ -233,6 +233,59 @@ func (b *BlockChain) BestSnapshot() *BestState {
 	return snapshot
 }
 
+// OrderRange returns a range of block hashes for the given start and end
+// orders.  It is inclusive of the start order and exclusive of the end
+// order.  The end order will be limited to the current main chain order.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) OrderRange(startOrder, endOrder uint64) ([]hash.Hash, error) {
+	// Ensure requested orders are sane.
+	if startOrder < 0 {
+		return nil, fmt.Errorf("start order of fetch range must not "+
+			"be less than zero - got %d", startOrder)
+	}
+	if endOrder < startOrder {
+		return nil, fmt.Errorf("end order of fetch range must not "+
+			"be less than the start order - got start %d, end %d",
+			startOrder, endOrder)
+	}
+
+	// There is nothing to do when the start and end orders are the same,
+	// so return now to avoid the chain view lock.
+	if startOrder == endOrder {
+		return nil, nil
+	}
+
+	// Grab a lock on the chain view to prevent it from changing due to a
+	// reorg while building the hashes.
+	b.chainLock.Lock()
+	defer b.chainLock.Unlock()
+
+	// When the requested start order is after the most recent best chain
+	// order, there is nothing to do.
+	latestOrder := b.BestSnapshot().GraphState.GetMainOrder()
+	if startOrder > uint64(latestOrder) {
+		return nil, nil
+	}
+
+	// Limit the ending order to the latest order of the chain.
+	if endOrder > uint64(latestOrder+1) {
+		endOrder = uint64(latestOrder + 1)
+	}
+
+	// Fetch as many as are available within the specified range.
+	hashes := make([]hash.Hash, 0, endOrder-startOrder)
+	for i := startOrder; i < endOrder; i++ {
+		h, err := b.BlockHashByOrder(i)
+		if err != nil {
+			log.Error("order not exist", "order", i)
+			return nil, err
+		}
+		hashes = append(hashes, *h)
+	}
+	return hashes, nil
+}
+
 // New returns a BlockChain instance using the provided configuration details.
 func New(config *Config) (*BlockChain, error) {
 	// Enforce required config fields.
