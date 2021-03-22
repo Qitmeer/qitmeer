@@ -193,8 +193,8 @@ go mod tidy
 ### Qitmeer gets stuck on synchronization.
 For some reasons, all your peers are disconnected. For example, all your peers are busy, so your synchronization
 requests to them would exceed the timeout, leading your nodes disconnection from those peers. One recommended
-solution to this issue is to enhance your connectivity by reporting your external ip (if you have) to the public, so new peers
-will reach to you even all your peers are disconnected.
+practice to mitigate this issue is to enhance your connectivity by reporting your external ip (if you have) to the public, 
+so new peers will reach to you even all your peers are disconnected.
 Please see Qitmeer/qitmeer/issues/444 to get more details
 
 ```sh
