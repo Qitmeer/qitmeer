@@ -13,19 +13,21 @@ import (
 type TxType int
 
 const (
-	TxTypeRegular TxType = iota
-	TyTypeCoinbase
-	TxTypeStakeBase
-	TxTypeStakePurchase
-	TxTypeStakeDispose
-	TxTypeTokenMint
-	TxTypeTokenUnmint
+	TxTypeRegular       TxType = iota
+	TxTypeCoinbase      TxType = 0x1
+	TxTypeStakebase     TxType = 0x10
+	TyTypeStakeReserve  TxType = 0x11
+	TxTypeStakePurchase TxType = 0x12
+	TxTypeStakeDispose  TxType = 0x13
+	TxTypeTokenbase     TxType = 0x80  // token-base is reserved, not used at current stage
+	TxTypeTokenMint     TxType = 0x81
+	TxTypeTokenUnmint   TxType = 0x82
 )
 
 // DetermineTxType determines the type of transaction
 func DetermineTxType(tx *Transaction) TxType {
 	if IsCoinBaseTx(tx) {
-		return TyTypeCoinbase
+		return TxTypeCoinbase
 	}
 	//TODO more txType
 	return TxTypeRegular

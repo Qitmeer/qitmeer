@@ -764,7 +764,7 @@ func (tx *Transaction) TxHashFull() hash.Hash {
 
 
 func (tx *Transaction) IsCoinBase() bool {
-	return DetermineTxType(tx) == TyTypeCoinbase
+	return DetermineTxType(tx) == TxTypeCoinbase
 }
 
 // Tx defines a transaction that provides easier and more efficient manipulation
