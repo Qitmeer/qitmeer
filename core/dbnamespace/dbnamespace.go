@@ -36,14 +36,6 @@ var (
 	// BCDBInfoBucketName bucket.
 	BCDBInfoCreatedKeyName = []byte("created")
 
-	// HashIndexBucketName is the name of the db bucket used to house to the
-	// block hash -> block order index.
-	HashIndexBucketName = []byte("hashidx")
-
-	// OrderIndexBucketName is the name of the db bucket used to house to
-	// the block order -> block hash index.
-	OrderIndexBucketName = []byte("ordertidx")
-
 	// ChainStateKeyName is the name of the db key used to store the best
 	// chain state.
 	ChainStateKeyName = []byte("chainstate")
@@ -77,4 +69,8 @@ var (
 	//TokenBucketName is the name of the db bucket used to house the token balance state
 	//The balance state is updated by the TOKEN_MINT/TOKEN_UNMINT transactions.
 	TokenBucketName = []byte("token")
+
+	// OrderIdBucketName is the name of the db bucket used to house to
+	// the block order -> block DAG Id.
+	OrderIdBucketName = []byte("orderid")
 )

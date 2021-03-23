@@ -63,10 +63,6 @@ func (sp *Spectre) GetTipsList() []IBlock {
 	return nil
 }
 
-func (sp *Spectre) GetBlockByOrder(order uint) *hash.Hash {
-	return nil
-}
-
 func (sp *Spectre) voteFirst(voter hash.Hash) {
 	sp.votes[voter] = true
 }
