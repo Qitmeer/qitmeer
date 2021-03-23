@@ -156,6 +156,8 @@ anon-rss:675828kB, file-rss:0kB, shmem-rss:0kB, UID:1001 pgtables:1532kB oom_sco
 ```
 The minimum memory requirement is 1GB, and we strongly recommend upgrading the memory to 2GB.
 
+1. Update golang
+
 If the memory resource restrictions is do your case, You might try to upgrade your `Golang` to the latest version
 and re-compile `Qitmeer` and try yourself. We have received feedbacks from community that the
 newly golang compiler have better memory optimizations, might work better wth low memory
@@ -170,6 +172,12 @@ sudo apt install golang-go
 ```
 Please note, it does not guarantee that compiling with the latest `golang` might work.
 Adding more computer memory is always the recommended way.
+
+2. Mount Swap Memory
+
+Swap Memory may exploit your external memory, typically hard disk, to simulate physical memory.
+If your swap memory is not mounted, or the allocation is insufficient, 
+you may follow this [tutorial](https://qitmeer.github.io/docs/en/tutorials/swap-memory/). 
 
 ### Compliing failed by missing the `go.sum` entries
 
