@@ -13,15 +13,28 @@ import (
 type TxType int
 
 const (
-	TxTypeRegular       TxType = iota
-	TxTypeCoinbase      TxType = 0x1
-	TxTypeStakebase     TxType = 0x10
-	TyTypeStakeReserve  TxType = 0x11
-	TxTypeStakePurchase TxType = 0x12
-	TxTypeStakeDispose  TxType = 0x13
-	TxTypeTokenbase     TxType = 0x80  // token-base is reserved, not used at current stage
-	TxTypeTokenMint     TxType = 0x81
-	TxTypeTokenUnmint   TxType = 0x82
+	TxTypeRegular         TxType = iota
+	TxTypeCoinbase        TxType = 0x1
+
+	TxTypeStakebase       TxType = 0x10
+	TyTypeStakeReserve    TxType = 0x11
+	TxTypeStakePurchase   TxType = 0x12
+	TxTypeStakeDispose    TxType = 0x13
+
+	TxTypeTokenAdmin      TxType = 0x80  // token-admin is reserved, not for using.
+	TxTypeTokenNew        TxType = 0x81  // new coin-id, owners, up-limit etc. the token is disabled after token-new.
+	TxTypeTokenRenew      TxType = 0x82  // update owners, up-limits etc. can't change coin-id. renew works only when the token is disabled.
+	TxTypeTokenValidate   TxType = 0x83  // enable the token.
+	TxTypeTokenInvalidate TxType = 0x84  // disable the token.
+	TxTypeTokenRevoke     TxType = 0x8f  // revoke the coin-id. token-revoke is reserved, not used at current stage.
+
+	TxTypeTokenbase       TxType = 0x90  // token-base is reserved, not used at current stage.
+	TxTypeTokenMint       TxType = 0x91  // token owner mint token amount by locking MEER. (must validated token)
+	TxTypeTokenUnmint     TxType = 0x92  // token owner unmint token amount by releasing MEER. (must validated token)
+
+	// The workflow of an new token
+	// 1. roles
+	//   - token owner : the owner of a token who take the responsibility of legi entity
 )
 
 // DetermineTxType determines the type of transaction

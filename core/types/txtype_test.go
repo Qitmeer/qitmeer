@@ -16,12 +16,18 @@ func TestAllTxTypeValues(t *testing.T) {
 		{TxTypeRegular, 0},
 		{TxTypeCoinbase, 1},
 		{TxTypeStakebase, 16},
-		{TxTypeTokenbase, 128},
 		{TyTypeStakeReserve,17},
 		{TxTypeStakePurchase,18},
 		{TxTypeStakeDispose,19},
-		{TxTypeTokenMint,129},
-		{TxTypeTokenUnmint,130},
+		{TxTypeTokenAdmin,128},
+		{TxTypeTokenNew,129},
+		{TxTypeTokenRenew,130},
+		{TxTypeTokenValidate,131},
+		{TxTypeTokenInvalidate ,132},
+		{TxTypeTokenRevoke,143},
+		{TxTypeTokenbase, 144},
+		{TxTypeTokenMint,145},
+		{TxTypeTokenUnmint,146},
 	}{
 		if test.txType != TxType(test.want) {
 			t.Errorf("want %v but got %v", test.want, test.txType)
