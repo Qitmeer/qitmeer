@@ -199,11 +199,26 @@ If you somehow need to stick to the current version, please make sure to execute
 go mod tidy
 ```
 ### Qitmeer gets stuck on synchronization.
-For some reasons, all your peers are disconnected. For example, all your peers are busy, so your synchronization
-requests to them would exceed the timeout, leading your nodes disconnection from those peers. One recommended
-practice to mitigate this issue is to enhance your connectivity by reporting your external ip (if you have) to the public, 
-so new peers will reach to you even all your peers are disconnected.
-Please see Qitmeer/qitmeer/issues/444 to get more details
+> Note: reproduced in 0.9.x only so far, not found in 0.10.x 
+
+#### Problem
+If qitmeer gets stuck on synchronization, and you find qitmeer keeping iterating logs similar as follows:
+```shell
+ [INFO ] Syncing to state (824024,761687,761687,824025,1) from peer 47.116.50.38:18130 cur graph state:(235978,228535,228535,235979,1) module=blkmanager
+```
+
+#### Reason
+Due to your process ability is insufficient to process synchronization on time, peers will be disconnected gradually
+due to timeout until no peers for you to synchronize from, specifically, in the case that your memory is lacking, 
+or you connectivity is poor.
+
+Please see [issue 444](https://github.com/Qitmeer/qitmeer/issues/444) to get more details
+
+#### Solution
+1. Ensure memory is not less than 2G
+Currently, it is only reproduced on machines with 1G or less, please make sure that your have 2G memory as recommended.
+2. Publish your ip if you have a public ip
+Please add such entry in your launching parameters to improve connectivity 
 
 ```sh
 externalip=YOUR_PUBLIC_IP:18130
