@@ -61,10 +61,9 @@ Run "./build/bin/qitmeer" to launch.
 ### How to Run
 
 Memory Requirements
-  * Minimum: 1GB
   * Recommended: 2GB
 
-Make sure to have at least 1GB free memory to run qitmeer. Insufficient memory
+Make sure to have at least 2GB free memory to run qitmeer. Insufficient memory
 may lead to the process being killed unexpectedly when its running.
 See [FAQ #3](#Qitmeer-is-killed-unexpectedly) for details.
 
