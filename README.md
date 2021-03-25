@@ -208,16 +208,16 @@ If qitmeer gets stuck on synchronization, and you find qitmeer keeping iterating
 ```
 
 #### Reason
-Due to your process ability is insufficient to process synchronization on time, peers will be disconnected gradually
+Due to the node's computation performance is insufficient to proceed synchronization on time, peers will be disconnected gradually
 due to timeout until no peers for you to synchronize from, specifically, in the case that your memory is lacking, 
 or you connectivity is poor.
 
 Please see [issue 444](https://github.com/Qitmeer/qitmeer/issues/444) to get more details
 
 #### Solution
-1. Ensure memory is not less than 2G
+1. Ensure memory is not less than 2G  
 Currently, it is only reproduced on machines with 1G or less, please make sure that your have 2G memory as recommended.
-2. Publish your ip if you have a public ip
+2. Publish your ip if you have a public ip  
 Please add such entry in your launching parameters to improve connectivity 
 
 ```sh
