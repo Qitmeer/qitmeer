@@ -19,7 +19,7 @@ func TestAllTxTypeValues(t *testing.T) {
 		{TyTypeStakeReserve,17},
 		{TxTypeStakePurchase,18},
 		{TxTypeStakeDispose,19},
-		{TxTypeTokenAdmin,128},
+		{TxTypeTokenRegulation,128},
 		{TxTypeTokenNew,129},
 		{TxTypeTokenRenew,130},
 		{TxTypeTokenValidate,131},

@@ -16,12 +16,12 @@ const (
 	TxTypeRegular         TxType = iota
 	TxTypeCoinbase        TxType = 0x1
 
-	TxTypeStakebase       TxType = 0x10
-	TyTypeStakeReserve    TxType = 0x11
-	TxTypeStakePurchase   TxType = 0x12
-	TxTypeStakeDispose    TxType = 0x13
+	TxTypeStakebase       TxType = 0x10  // the special tx which vote for stake_purchase and reward stake holder from the stake_reserve
+	TyTypeStakeReserve    TxType = 0x11  // the tx reserve consensus-based value to a special stake_reserve address
+	TxTypeStakePurchase   TxType = 0x12  // the tx of stake holder who lock value into stake pool
+	TxTypeStakeDispose    TxType = 0x13  // the opposite tx of stake_purchase
 
-	TxTypeTokenAdmin      TxType = 0x80  // token-admin is reserved, not for using.
+	TxTypeTokenRegulation TxType = 0x80  // token-regulation is reserved, not for using.
 	TxTypeTokenNew        TxType = 0x81  // new coin-id, owners, up-limit etc. the token is disabled after token-new.
 	TxTypeTokenRenew      TxType = 0x82  // update owners, up-limits etc. can't change coin-id. renew works only when the token is disabled.
 	TxTypeTokenValidate   TxType = 0x83  // enable the token.
@@ -33,8 +33,17 @@ const (
 	TxTypeTokenUnmint     TxType = 0x92  // token owner unmint token amount by releasing MEER. (must validated token)
 
 	// The workflow of an new token
-	// 1. roles
-	//   - token owner : the owner of a token who take the responsibility of legi entity
+	// roles
+	//   - token operator : the controller of a token who provide & organize the financial services using the token and
+	//     take the responsibility as the legislate entity.
+	//   - token regulator : the main supervising body who assure all token operator follow regulatory guidelines, such as AML policy etc.
+	//     who in charge of new token approve and supervision the running token service.
+	// workflow
+	//   1. token operator request to token regulator, fulfil the requirement of the new token application. (off-chain)
+	//   2. if 1. is accepted, token regulator issue token_new (on chain).
+	//   3. consensus-based vote for token_validate (on chain).
+	//   4. if 3. is ok, token can be operated by token operator officially.
+	//   5. token operator do token_mint, the consensus-based token amount assessable. (on chain)
 )
 
 // DetermineTxType determines the type of transaction
