@@ -155,6 +155,8 @@ anon-rss:675828kB, file-rss:0kB, shmem-rss:0kB, UID:1001 pgtables:1532kB oom_sco
 ```
 The minimum memory requirement is 1GB, and we strongly recommend upgrading the memory to 2GB.
 
+1. Update golang
+
 If the memory resource restrictions is do your case, You might try to upgrade your `Golang` to the latest version
 and re-compile `Qitmeer` and try yourself. We have received feedbacks from community that the
 newly golang compiler have better memory optimizations, might work better wth low memory
@@ -169,6 +171,12 @@ sudo apt install golang-go
 ```
 Please note, it does not guarantee that compiling with the latest `golang` might work.
 Adding more computer memory is always the recommended way.
+
+2. Mount Swap Memory
+
+Swap Memory may exploit your external memory, typically hard disk, to simulate physical memory.
+If your swap memory is not mounted, or the allocation is insufficient, 
+you may follow this [tutorial](https://qitmeer.github.io/docs/en/tutorials/swap-memory/). 
 
 ### Compliing failed by missing the `go.sum` entries
 
@@ -189,6 +197,32 @@ If you somehow need to stick to the current version, please make sure to execute
 ```shell
 go mod tidy
 ```
+### Qitmeer gets stuck on synchronization.
+> Note: reproduced in 0.9.x only so far, not found in 0.10.x 
+
+#### Problem
+If qitmeer gets stuck on synchronization, and you find qitmeer keeping iterating logs similar as follows:
+```shell
+ [INFO ] Syncing to state (824024,761687,761687,824025,1) from peer 47.116.50.38:18130 cur graph state:(235978,228535,228535,235979,1) module=blkmanager
+```
+
+#### Reason
+Due to the node's computation performance is insufficient to proceed synchronization on time, peers will be disconnected gradually
+due to timeout until no peers for you to synchronize from, specifically, in the case that your memory is lacking, 
+or you connectivity is poor.
+
+Please see [issue 444](https://github.com/Qitmeer/qitmeer/issues/444) to get more details
+
+#### Solution
+1. Ensure memory is not less than 2G  
+Currently, it is only reproduced on machines with 1G or less, please make sure that your have 2G memory as recommended.
+2. Publish your ip if you have a public ip  
+Please add such entry in your launching parameters to improve connectivity 
+
+```sh
+externalip=YOUR_PUBLIC_IP:18130
+```
+
 
 ## License
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer?ref=badge_large)
