@@ -181,6 +181,18 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		return ruleError(ErrBadMerkleRoot, str)
 	}
 
+	// Build merkle tree and ensure the calculated merkle root matches the
+	// entry in the block header.  This also has the effect of caching all
+	// of the token balance hashes in the block to speed up future hash
+	// checks.
+	calculatedTokenStateRoot := b.CalculateTokenStateRoot(block.Transactions(), msgBlock.Parents)
+	if !header.StateRoot.IsEqual(&calculatedTokenStateRoot) {
+		str := fmt.Sprintf("block merkle state root is invalid - block "+
+			"header indicates %s, but calculated value is %s",
+			header.StateRoot, calculatedTokenStateRoot)
+		return ruleError(ErrBadMerkleRoot, str)
+	}
+
 	// Check for duplicate transactions.  This check will be fairly quick
 	// since the transaction hashes are already cached due to building the
 	// merkle trees above.
