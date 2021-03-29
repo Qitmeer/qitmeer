@@ -84,6 +84,16 @@ func (c CoinID) Bytes() []byte {
 	return b[:]
 }
 
+func NewCoinID(name string) CoinID {
+	for _, coinid := range CoinIDList {
+		if name == coinid.Name() {
+			return coinid
+		}
+	}
+	// panic(fmt.Sprintf("Unknown-CoinID:%s", name)) // Which way is better ?
+	return MEERID
+}
+
 var CoinIDList = []CoinID{
 	MEERID, QITID, METID, TERID,
 }

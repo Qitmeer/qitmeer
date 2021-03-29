@@ -377,7 +377,7 @@ func (node *blockNode) FlushToDB(b *BlockChain) error {
 	if err == nil {
 		node.dirty = false
 	}
-	return err
+	return b.bd.Commit()
 }
 
 // return node ID

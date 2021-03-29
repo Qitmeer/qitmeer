@@ -80,3 +80,40 @@ func DBRemoveMainChainBlock(dbTx database.Tx, id uint) error {
 	key := serializedID[:]
 	return bucket.Delete(key)
 }
+
+// block order
+
+// errNotInMainChain signifies that a block hash or height that is not in the
+// main chain was requested.
+type errNotInMainChain string
+
+// Error implements the error interface.
+func (e errNotInMainChain) Error() string {
+	return string(e)
+}
+
+func DBPutBlockIdByOrder(dbTx database.Tx, order uint, id uint) error {
+	// Serialize the order for use in the index entries.
+	var serializedOrder [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedOrder[:], uint32(order))
+
+	var serializedID [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+
+	// Add the block order to id mapping to the index.
+	bucket := dbTx.Metadata().Bucket(dbnamespace.OrderIdBucketName)
+	return bucket.Put(serializedOrder[:], serializedID[:])
+}
+
+func DBGetBlockIdByOrder(dbTx database.Tx, order uint) (uint32, error) {
+	var serializedOrder [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedOrder[:], uint32(order))
+
+	bucket := dbTx.Metadata().Bucket(dbnamespace.OrderIdBucketName)
+	idBytes := bucket.Get(serializedOrder[:])
+	if idBytes == nil {
+		str := fmt.Sprintf("no block at order %d exists", order)
+		return uint32(MaxId), errNotInMainChain(str)
+	}
+	return dbnamespace.ByteOrder.Uint32(idBytes), nil
+}
