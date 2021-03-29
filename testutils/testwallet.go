@@ -497,14 +497,14 @@ func (w *testWallet) blockDisconnected(hash *hash.Hash, order int64, t time.Time
 }
 
 func (w *testWallet) OnTxConfirm(txConfirm *cmds.TxConfirmResult) {
-	fmt.Println("OnTxConfirm", txConfirm.Tx, txConfirm.Confirms, txConfirm.Order)
+	w.t.Log("OnTxConfirm", txConfirm.Tx, txConfirm.Confirms, txConfirm.Order)
 	if w.confirmTxs == nil {
 		w.confirmTxs = map[string]uint64{}
 	}
 	w.confirmTxs[txConfirm.Tx] = txConfirm.Confirms
 }
 func (w *testWallet) OnTxAcceptedVerbose(c *client.Client, tx *j.DecodeRawTransactionResult) {
-	fmt.Println("OnTxAcceptedVerbose", tx.Order, tx.Txid, tx.Confirms, tx.Txvalid, tx.IsBlue, tx.Duplicate)
+	w.t.Log("OnTxAcceptedVerbose", tx.Order, tx.Txid, tx.Confirms, tx.Txvalid, tx.IsBlue, tx.Duplicate)
 	if tx.Order <= 0 {
 		// mempool tx
 		if w.mempoolTx == nil {
@@ -514,12 +514,12 @@ func (w *testWallet) OnTxAcceptedVerbose(c *client.Client, tx *j.DecodeRawTransa
 	}
 }
 func (w *testWallet) OnRescanProgress(rescanPro *cmds.RescanProgressNtfn) {
-	fmt.Println("OnRescanProgress", rescanPro.Order, rescanPro.Hash)
+	w.t.Log("OnRescanProgress", rescanPro.Order, rescanPro.Hash)
 	if w.maxRescanOrder < rescanPro.Order {
 		w.maxRescanOrder = rescanPro.Order
 	}
 	w.ScanCount++
 }
 func (w *testWallet) OnRescanFinish(rescanFinish *cmds.RescanFinishedNtfn) {
-	fmt.Println("OnRescanFinish", rescanFinish.Order, rescanFinish.Hash)
+	w.t.Log("OnRescanFinish", rescanFinish.Order, rescanFinish.Hash)
 }
