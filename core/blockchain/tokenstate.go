@@ -6,6 +6,7 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -31,6 +32,49 @@ type balanceUpdate struct {
 	typ         balanceUpdateType
 	meerAmount  int64
 	tokenAmount types.Amount
+
+	cacheHash *hash.Hash
+}
+
+func (bu *balanceUpdate) Serialize() ([]byte, error) {
+	if bu.typ != tokenMint && bu.typ != tokenUnMint {
+		return nil, fmt.Errorf("invalid token balance update type %v", bu.typ)
+	}
+	if bu.meerAmount < 0 || bu.tokenAmount.Value < 0 || !types.IsKnownCoinID(bu.tokenAmount.Id) {
+		return nil, fmt.Errorf("invalid token balance update %v", bu)
+	}
+	serializeSize := serializeSizeVLQ(uint64(bu.typ))
+	serializeSize += serializeSizeVLQ(uint64(bu.meerAmount))
+	serializeSize += serializeSizeVLQ(uint64(bu.tokenAmount.Id))
+	serializeSize += serializeSizeVLQ(uint64(bu.tokenAmount.Value))
+
+	serialized := make([]byte, serializeSize)
+	offset := 0
+
+	offset += putVLQ(serialized[offset:], uint64(bu.typ))
+	offset += putVLQ(serialized[offset:], uint64(bu.meerAmount))
+	offset += putVLQ(serialized[offset:], uint64(bu.tokenAmount.Id))
+	offset += putVLQ(serialized[offset:], uint64(bu.tokenAmount.Value))
+	return serialized, nil
+}
+
+func (bu *balanceUpdate) Hash() *hash.Hash {
+	if bu.cacheHash != nil {
+		return bu.cacheHash
+	}
+	return bu.CacheHash()
+}
+
+func (bu *balanceUpdate) CacheHash() *hash.Hash {
+	bu.cacheHash = nil
+	bs, err := bu.Serialize()
+	if err != nil {
+		log.Error(err.Error())
+		return bu.cacheHash
+	}
+	h := hash.DoubleHashH(bs)
+	bu.cacheHash = &h
+	return bu.cacheHash
 }
 
 // tokenBalance specifies the token balance and the locked meer amount
