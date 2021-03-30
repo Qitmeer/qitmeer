@@ -3,6 +3,7 @@ package testutils
 import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"testing"
 	"time"
 )
@@ -45,11 +46,28 @@ func TestWsNotify(t *testing.T) {
 	spendAmt := types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
 	txid := Spend(t, h, spendAmt)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
+	time.Sleep(1 * time.Second)
+	AssertMempoolTxNotify(t, h, txid.String(), h.Wallet.Addresses()[1])
 	blocks := GenerateBlock(t, h, 4)
 	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
-	err = h.Notifier.Rescan(0, 17, h.Wallet.Addresses(), nil)
+	AssertBlockOrderAndHeight(t, h, 6, 6, 5)
+	err = h.Notifier.Rescan(0, 6, h.Wallet.Addresses(), nil)
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
+	AssertScan(t, h, 5, 6)
+	err = h.Notifier.NotifyTxsConfirmed([]cmds.TxConfirm{
+		{
+			Txid:          txid.String(),
+			Confirmations: 5,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	GenerateBlock(t, h, 2)
+	AssertBlockOrderAndHeight(t, h, 8, 8, 7)
+	AssertTxConfirm(t, h, txid.String(), 5)
 }

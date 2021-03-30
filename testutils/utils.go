@@ -116,3 +116,36 @@ func AssertTxMinedUseNotifierAPI(t *testing.T, h *Harness, txId *hash.Hash, bloc
 	}
 	t.Logf("txId %v minted in block, hash=%v, order=%v, height=%v", txId, blockHash, block.Order, block.Height)
 }
+
+func AssertScan(t *testing.T, h *Harness, maxOrder, scanCount uint64) {
+	if h.Wallet.maxRescanOrder != maxOrder {
+		t.Fatalf("max scan order %d not match %d", h.Wallet.maxRescanOrder, maxOrder)
+	}
+	if h.Wallet.ScanCount != scanCount {
+		t.Fatalf("scan count %d not match %d", h.Wallet.ScanCount, scanCount)
+	}
+}
+
+func AssertMempoolTxNotify(t *testing.T, h *Harness, txid, addr string) {
+	if h.Wallet.mempoolTx == nil {
+		t.Fatalf("not match mempool tx")
+	}
+	if _, ok := h.Wallet.mempoolTx[txid]; !ok {
+		t.Fatalf("not has mempool tx %s", txid)
+	}
+	if h.Wallet.mempoolTx[txid] != addr {
+		t.Fatalf("mempool tx vout address %s not match%s", h.Wallet.mempoolTx[txid], addr)
+	}
+}
+
+func AssertTxConfirm(t *testing.T, h *Harness, txid string, confirms uint64) {
+	if h.Wallet.confirmTxs == nil {
+		t.Fatalf("not have any confirms txs")
+	}
+	if _, ok := h.Wallet.confirmTxs[txid]; !ok {
+		t.Fatalf("not has tx %s", txid)
+	}
+	if h.Wallet.confirmTxs[txid] < confirms {
+		t.Fatalf("tx %s confirms %d not right,should more than %d", txid, h.Wallet.confirmTxs[txid], confirms)
+	}
+}
