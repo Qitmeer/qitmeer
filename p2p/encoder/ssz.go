@@ -6,8 +6,10 @@ package encoder
 
 import (
 	"fmt"
+	"github.com/prysmaticlabs/go-ssz/types"
 	"io"
 	"io/ioutil"
+	"reflect"
 	"sync"
 
 	fastssz "github.com/ferranbt/fastssz"
@@ -169,6 +171,13 @@ func (e SszNetworkEncoder) MaxLength(length int) int {
 // return max chunk size
 func (e SszNetworkEncoder) GetMaxChunkSize() uint64 {
 	return MaxChunkSize
+}
+
+func (e SszNetworkEncoder) GetSize(msg interface{}) int {
+	if v, ok := msg.(fastssz.Marshaler); ok {
+		return v.SizeSSZ()
+	}
+	return int(types.DetermineSize(reflect.ValueOf(msg)))
 }
 
 // Writes a bytes value through a snappy buffered writer.

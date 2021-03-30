@@ -63,10 +63,6 @@ func (sp *Spectre) GetTipsList() []IBlock {
 	return nil
 }
 
-func (sp *Spectre) GetBlockByOrder(order uint) *hash.Hash {
-	return nil
-}
-
 func (sp *Spectre) voteFirst(voter hash.Hash) {
 	sp.votes[voter] = true
 }
@@ -814,6 +810,10 @@ func (sp *Spectre) IsOnMainChain(b IBlock) bool {
 // return the tip of main chain
 func (sp *Spectre) GetMainChainTip() IBlock {
 	return nil
+}
+
+func (sp *Spectre) GetMainChainTipId() uint {
+	return 0
 }
 
 // return the main parent in the parents

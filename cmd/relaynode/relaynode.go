@@ -23,7 +23,7 @@ func relayNode() error {
 	node := &Node{}
 	app := &cli.App{
 		Name:     "RelayNode",
-		Version:  "V0.0.1",
+		Version:  "V0.0.2",
 		Compiled: roughtime.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{

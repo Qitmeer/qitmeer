@@ -30,4 +30,6 @@ type NetworkEncoding interface {
 	ProtocolSuffix() string
 	// return max chunk size
 	GetMaxChunkSize() uint64
+	// return msg size
+	GetSize(msg interface{}) int
 }

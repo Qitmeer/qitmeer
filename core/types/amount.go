@@ -71,9 +71,9 @@ func (c CoinID) Name() string {
 	case QITID:
 		return "QIT"
 	case METID:
-		return "METID"
+		return "MET"
 	case TERID:
-		return "TERID"
+		return "TER"
 	default:
 		return "Unknown-CoinID:" + strconv.FormatInt(int64(c), 10)
 	}
@@ -82,6 +82,16 @@ func (c CoinID) Bytes() []byte {
 	b := [2]byte{}
 	binary.LittleEndian.PutUint16(b[:], uint16(c))
 	return b[:]
+}
+
+func NewCoinID(name string) CoinID {
+	for _, coinid := range CoinIDList {
+		if name == coinid.Name() {
+			return coinid
+		}
+	}
+	// panic(fmt.Sprintf("Unknown-CoinID:%s", name)) // Which way is better ?
+	return MEERID
 }
 
 var CoinIDList = []CoinID{

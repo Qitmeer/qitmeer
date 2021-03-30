@@ -115,6 +115,9 @@ type BlockChain struct {
 
 	// cache notification
 	CacheNotifications []*Notification
+
+	// The ID of token state tip for the chain.
+	TokenTipID uint32
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -198,11 +201,13 @@ type BestState struct {
 	MedianTime   time.Time            // Median time as per CalcPastMedianTime.
 	TotalTxns    uint64               // The total number of txns in the chain.
 	TotalSubsidy uint64               // The total subsidy for the chain.
+	TokenTipHash *hash.Hash           // The Hash of token state tip for the chain.
 	GraphState   *blockdag.GraphState // The graph state of dag
 }
 
 // newBestState returns a new best stats instance for the given parameters.
-func newBestState(tipHash *hash.Hash, bits uint32, blockSize, numTxns uint64, medianTime time.Time, totalTxns uint64, totalsubsidy uint64, gs *blockdag.GraphState) *BestState {
+func newBestState(tipHash *hash.Hash, bits uint32, blockSize, numTxns uint64, medianTime time.Time,
+	totalTxns uint64, totalsubsidy uint64, gs *blockdag.GraphState, tokenTipHash *hash.Hash) *BestState {
 	return &BestState{
 		Hash:         *tipHash,
 		Bits:         bits,
@@ -211,6 +216,7 @@ func newBestState(tipHash *hash.Hash, bits uint32, blockSize, numTxns uint64, me
 		MedianTime:   medianTime,
 		TotalTxns:    totalTxns,
 		TotalSubsidy: totalsubsidy,
+		TokenTipHash: tokenTipHash,
 		GraphState:   gs,
 	}
 }
@@ -225,6 +231,59 @@ func (b *BlockChain) BestSnapshot() *BestState {
 	snapshot := b.stateSnapshot
 	b.stateLock.RUnlock()
 	return snapshot
+}
+
+// OrderRange returns a range of block hashes for the given start and end
+// orders.  It is inclusive of the start order and exclusive of the end
+// order.  The end order will be limited to the current main chain order.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) OrderRange(startOrder, endOrder uint64) ([]hash.Hash, error) {
+	// Ensure requested orders are sane.
+	if startOrder < 0 {
+		return nil, fmt.Errorf("start order of fetch range must not "+
+			"be less than zero - got %d", startOrder)
+	}
+	if endOrder < startOrder {
+		return nil, fmt.Errorf("end order of fetch range must not "+
+			"be less than the start order - got start %d, end %d",
+			startOrder, endOrder)
+	}
+
+	// There is nothing to do when the start and end orders are the same,
+	// so return now to avoid the chain view lock.
+	if startOrder == endOrder {
+		return nil, nil
+	}
+
+	// Grab a lock on the chain view to prevent it from changing due to a
+	// reorg while building the hashes.
+	b.chainLock.Lock()
+	defer b.chainLock.Unlock()
+
+	// When the requested start order is after the most recent best chain
+	// order, there is nothing to do.
+	latestOrder := b.BestSnapshot().GraphState.GetMainOrder()
+	if startOrder > uint64(latestOrder) {
+		return nil, nil
+	}
+
+	// Limit the ending order to the latest order of the chain.
+	if endOrder > uint64(latestOrder+1) {
+		endOrder = uint64(latestOrder + 1)
+	}
+
+	// Fetch as many as are available within the specified range.
+	hashes := make([]hash.Hash, 0, endOrder-startOrder)
+	for i := startOrder; i < endOrder; i++ {
+		h, err := b.BlockHashByOrder(i)
+		if err != nil {
+			log.Error("order not exist", "order", i)
+			return nil, err
+		}
+		hashes = append(hashes, *h)
+	}
+	return hashes, nil
 }
 
 // New returns a BlockChain instance using the provided configuration details.
@@ -430,7 +489,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %d %s", state.hash.String(), state.total, state.totalTxns, state.totalsubsidy, state.workSum.Text(16)))
+		log.Trace(fmt.Sprintf("Load chain state:%s %d %d %s %s", state.hash.String(), state.total, state.totalTxns, state.tokenTipHash.String(), state.workSum.Text(16)))
 
 		log.Info("Loading dag ...")
 		bidxStart := roughtime.Now()
@@ -489,8 +548,11 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
+
+		b.TokenTipID = uint32(b.index.GetDAGBlockID(&state.tokenTipHash))
 		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns,
-			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState())
+			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(),
+			b.bd.GetGraphState(), &state.tokenTipHash)
 
 		return nil
 	})
@@ -768,6 +830,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		}
 		if !node.GetStatus().KnownInvalid() {
 			node.Valid(b)
+			b.updateTokenBalance(node, block, false)
 		}
 		// TODO, validating previous block
 		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
@@ -829,9 +892,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	// Must be end node of sequence in dag
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.
-	b.stateLock.RLock()
-	curTotalTxns := b.stateSnapshot.TotalTxns
-	b.stateLock.RUnlock()
+	lastState := b.BestSnapshot()
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		b.bd.UpdateWeight(e.Value.(blockdag.IBlock))
@@ -844,9 +905,8 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	blockSize := uint64(block.Block().SerializeSize())
 
 	mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
-
-	state := newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns, mainTip.CalcPastMedianTime(b), curTotalTxns+numTxns,
-		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState())
+	state := newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns, mainTip.CalcPastMedianTime(b), lastState.TotalTxns+numTxns,
+		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState(), b.GetTokenTipHash())
 
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
@@ -887,16 +947,10 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
-		// Add the block hash and height to the block index.
-		err := dbPutBlockIndex(dbTx, block.Hash(), node.order)
-		if err != nil {
-			return err
-		}
-
 		// Update the utxo set using the state of the utxo view.  This
 		// entails removing all of the utxos spent and adding the new
 		// ones created by the block.
-		err = dbPutUtxoView(dbTx, view)
+		err := dbPutUtxoView(dbTx, view)
 		if err != nil {
 			return err
 		}
@@ -937,16 +991,10 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
 	// Calculate the exact subsidy produced by adding the block.
 	err := b.db.Update(func(dbTx database.Tx) error {
-		// Remove the block hash and order from the block index.
-		err := dbRemoveBlockIndex(dbTx, block.Hash(), int64(node.order)) //TODO, remove type conversion
-		if err != nil {
-			return err
-		}
-
 		// Update the utxo set using the state of the utxo view.  This
 		// entails restoring all of the utxos spent and removing the new
 		// ones created by the block.
-		err = dbPutUtxoView(dbTx, view)
+		err := dbPutUtxoView(dbTx, view)
 		if err != nil {
 			return err
 		}
@@ -1019,6 +1067,8 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 	dl := len(detachNodes)
 	for i := dl - 1; i >= 0; i-- {
 		n = detachNodes[i]
+		b.updateTokenBalance(n, nil, true)
+		//
 		newn := b.index.LookupNode(n.GetHash())
 		block, err = b.fetchBlockByHash(&n.hash)
 		if err != nil || n == nil {
@@ -1108,6 +1158,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		}
 		if !n.GetStatus().KnownInvalid() {
 			n.Valid(b)
+			b.updateTokenBalance(n, block, false)
 		}
 	}
 
@@ -1368,4 +1419,15 @@ func (b *BlockChain) CheckCacheInvalidTxConfig() error {
 // Return chain params
 func (b *BlockChain) ChainParams() *params.Params {
 	return b.params
+}
+
+func (b *BlockChain) GetTokenTipHash() *hash.Hash {
+	if b.TokenTipID == 0 || uint(b.TokenTipID) == blockdag.MaxId {
+		return nil
+	}
+	ib := b.bd.GetBlockById(uint(b.TokenTipID))
+	if ib == nil {
+		return nil
+	}
+	return ib.GetHash()
 }

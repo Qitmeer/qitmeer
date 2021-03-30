@@ -129,9 +129,27 @@ var (
 		Code:    -32603,
 		Message: "Internal error",
 	}
+	// ErrRPCDatabase indicates a database error.
+	ErrRPCDatabase = &RPCError{
+		Code:    -32001,
+		Message: "Database error",
+	}
+	ErrRPCBlockNotFound = &RPCError{
+		Code:    -32002,
+		Message: "Block Not Found error",
+	}
+
+	ErrInvalidNode = &RPCError{
+		Code:    -32003,
+		Message: "Invalid Node",
+	}
 	ErrRPCParse = &RPCError{
 		Code:    -32700,
 		Message: "Parse error",
+	}
+	ErrRPCDecodeHexString = &RPCError{
+		Code:    -32701,
+		Message: "Hex decode error",
 	}
 )
 

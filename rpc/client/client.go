@@ -238,7 +238,7 @@ func (c *Client) handleMessage(msg []byte) {
 	}
 
 	id := uint64(*in.ID)
-	log.Trace("Received response for id %d (result %s)", id, in.Result)
+	log.Trace(fmt.Sprintf("Received response for id %d (result %s)", id, in.Result))
 	request := c.removeRequest(id)
 
 	// Nothing more to do if there is no request associated with this reply.
@@ -264,7 +264,6 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 	if c.ntfnHandlers == nil {
 		return
 	}
-
 	switch ntfn.Method {
 	// OnBlockConnected
 	case cmds.BlockConnectedNtfnMethod:
@@ -364,7 +363,66 @@ func (c *Client) handleNotification(ntfn *rawNotification) {
 			return
 		}
 
-		c.ntfnHandlers.OnTxAcceptedVerbose(rawTx)
+		c.ntfnHandlers.OnTxAcceptedVerbose(c, rawTx)
+
+	// OnTxConfirm
+	case cmds.TxConfirmNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnTxConfirm == nil {
+			return
+		}
+		rawTx, err := parseTxConfirm(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid tx confirm struct "+
+				"notification: %v", err))
+			return
+		}
+		c.ntfnHandlers.OnTxConfirm(rawTx)
+
+	// OnRescanProgress
+	case cmds.RescanProgressNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnRescanProgress == nil {
+			return
+		}
+
+		rawTx, err := parseRescanProgress(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid tx accepted verbose "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnRescanProgress(rawTx)
+
+	// OnRescanFinish
+	case cmds.RescanCompleteNtfnMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnRescanFinish == nil {
+			return
+		}
+
+		rawTx, err := parseRescanFinish(ntfn.Params)
+		if err != nil {
+			log.Warn(fmt.Sprintf("Received invalid tx accepted verbose "+
+				"notification: %v", err))
+			return
+		}
+
+		c.ntfnHandlers.OnRescanFinish(rawTx)
+
+	// OnNodeExit
+	case cmds.NodeExitMethod:
+		// Ignore the notification if the client is not interested in
+		// it.
+		if c.ntfnHandlers.OnNodeExit == nil {
+			return
+		}
+
+		c.ntfnHandlers.OnNodeExit(&cmds.NodeExitNtfn{})
 
 	// OnUnknownNotification
 	default:

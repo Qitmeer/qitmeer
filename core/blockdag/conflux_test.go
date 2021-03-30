@@ -30,7 +30,7 @@ func Test_GetOrder(t *testing.T) {
 	order := []uint{}
 	var i uint
 	for i = 0; i < bd.GetBlockTotal(); i++ {
-		order = append(order, bd.order[i])
+		order = append(order, ibd.(*Conflux).order[i])
 	}
 	printBlockChainTag(order)
 	if !processResult(order, changeToIDList(testData.CO_GetOrder.Output)) {

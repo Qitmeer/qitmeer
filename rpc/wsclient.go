@@ -57,12 +57,19 @@ type wsClient struct {
 	// information about all new transactions.
 	verboseTxUpdates bool
 
+	// filterData is the new generation transaction filter backported from
+	// github.com/decred/dcrd for the new backported `loadtxfilter` and
+	// `rescanblocks` methods.
+	filterData *wsClientFilter
+
 	// Networking infrastructure.
 	serviceRequestSem semaphore
 	ntfnChan          chan []byte
 	sendChan          chan wsResponse
 	quit              chan struct{}
 	wg                sync.WaitGroup
+	TxConfirms        *WatchTxConfirmServer
+	TxConfirmsLock    sync.Mutex
 }
 
 func (c *wsClient) Start() {
@@ -313,7 +320,6 @@ func (c *wsClient) QueueNotification(marshalledJSON []byte) error {
 	if c.Disconnected() {
 		return ErrClientQuit
 	}
-
 	c.ntfnChan <- marshalledJSON
 	return nil
 }
@@ -336,6 +342,7 @@ func newWebsocketClient(server *RpcServer, conn *websocket.Conn,
 		ntfnChan:          make(chan []byte, 1), // nonblocking sync
 		sendChan:          make(chan wsResponse, websocketSendBufferSize),
 		quit:              make(chan struct{}),
+		TxConfirms:        &WatchTxConfirmServer{},
 	}
 	return client, nil
 }

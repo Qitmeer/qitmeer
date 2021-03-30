@@ -9,6 +9,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/client"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"io/ioutil"
 	"log"
 	"net"
@@ -84,6 +85,11 @@ func (h *Harness) Setup() error {
 		if err := h.Notifier.NotifyBlocks(); err != nil {
 			return err
 		}
+		time.Sleep(500 * time.Microsecond)
+		// Register for addresses notifications.
+		if err := h.Notifier.NotifyTxsByAddr(false, h.Wallet.Addresses(), nil); err != nil {
+			return err
+		}
 	}
 	h.Wallet.Start()
 	return nil
@@ -100,7 +106,7 @@ func (h *Harness) connectRPCClient() error {
 	certs := h.Node.config.certFile
 	for i := 0; i < h.maxRpcConnRetries; i++ {
 		if client, err = Dial("https://"+url, user, pass, certs); err != nil {
-			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
+			time.Sleep(time.Duration(i) * time.Second)
 			continue
 		}
 		break
@@ -120,6 +126,10 @@ func (h *Harness) connectWSNotifier() error {
 	ntfnHandlers := client.NotificationHandlers{
 		OnBlockConnected:    h.Wallet.blockConnected,
 		OnBlockDisconnected: h.Wallet.blockDisconnected,
+		OnTxConfirm:         h.Wallet.OnTxConfirm,
+		OnTxAcceptedVerbose: h.Wallet.OnTxAcceptedVerbose,
+		OnRescanProgress:    h.Wallet.OnRescanProgress,
+		OnRescanFinish:      h.Wallet.OnRescanFinish,
 	}
 	connCfg := &client.ConnConfig{
 		Host:       h.Node.config.rpclisten,
@@ -139,7 +149,7 @@ func (h *Harness) connectWSNotifier() error {
 	var err error
 	for i := 0; i < h.maxRpcConnRetries; i++ {
 		if c, err = client.New(connCfg, &ntfnHandlers); err != nil {
-			time.Sleep(time.Duration(i) * 50 * time.Millisecond)
+			time.Sleep(time.Duration(i) * time.Second)
 			continue
 		}
 		break
@@ -174,6 +184,26 @@ func (h *Harness) teardown() error {
 
 	delete(harnessInstances, h.instanceDir)
 	return nil
+}
+
+// Register Addrs Filter
+func (h *Harness) NotifyTxsByAddr(reload bool, addr []string, outpoint []cmds.OutPoint) error {
+	return h.Notifier.NotifyTxsByAddr(reload, addr, outpoint)
+}
+
+// Register NotifyNewTransactions
+func (h *Harness) NotifyNewTransactions(verbose bool) error {
+	return h.Notifier.NotifyNewTransactions(verbose)
+}
+
+// Register Rescan by address
+func (h *Harness) Rescan(beginBlock, endBlock uint64, addrs []string, op []cmds.OutPoint) error {
+	return h.Notifier.Rescan(beginBlock, endBlock, addrs, op)
+}
+
+// Register NotifyTxsConfirmed
+func (h *Harness) NotifyTxsConfirmed(txs []cmds.TxConfirm) error {
+	return h.Notifier.NotifyTxsConfirmed(txs)
 }
 
 // NewHarness func creates an new instance of test harness with provided network params.

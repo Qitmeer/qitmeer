@@ -86,9 +86,8 @@ func LoadConfig() (*config.Config, []string, error) {
 		SigCacheMaxSize:      defaultSigCacheMaxSize,
 		MiningStateSync:      defaultMiningStateSync,
 		DAGType:              defaultDAGType,
-		Banning:              false,
+		Banning:              true,
 		MaxInbound:           defaultMaxInboundPeersPerHost,
-		TrickleInterval:      defaultTrickleInterval,
 		CacheInvalidTx:       defaultCacheInvalidTx,
 		NTP:                  false,
 	}
@@ -257,15 +256,6 @@ func LoadConfig() (*config.Config, []string, error) {
 		params.ActiveNetParams.Params.DefaultPort = cfg.DefaultPort
 	}
 
-	// Add the default listener if none were specified. The default
-	// listener is all addresses on the listen port for the network
-	// we are to connect to.
-	if len(cfg.Listeners) == 0 {
-		cfg.Listeners = []string{
-			net.JoinHostPort("", params.ActiveNetParams.DefaultPort),
-		}
-	}
-
 	// Default RPC to listen on localhost only.
 	if !cfg.DisableRPC && len(cfg.RPCListeners) == 0 {
 		addrs, err := net.LookupHost("localhost")
@@ -364,36 +354,6 @@ func LoadConfig() (*config.Config, []string, error) {
 			return nil, nil, err
 		}
 		cfg.SetMiningAddrs(addr)
-	}
-
-	// Validate any given whitelisted IP addresses and networks.
-	if len(cfg.Whitelists) > 0 {
-		var ip net.IP
-		for _, addr := range cfg.Whitelists {
-			_, ipnet, err := net.ParseCIDR(addr)
-			if err != nil {
-				ip = net.ParseIP(addr)
-				if ip == nil {
-					str := "%s: the whitelist value of '%s' is invalid"
-					err = fmt.Errorf(str, funcName, addr)
-					fmt.Fprintln(os.Stderr, err)
-					fmt.Fprintln(os.Stderr, usageMessage)
-					return nil, nil, err
-				}
-				var bits int
-				if ip.To4() == nil {
-					// IPv6
-					bits = 128
-				} else {
-					bits = 32
-				}
-				ipnet = &net.IPNet{
-					IP:   ip,
-					Mask: net.CIDRMask(bits, bits),
-				}
-			}
-			cfg.AddToWhitelists(ipnet)
-		}
 	}
 
 	// Ensure there is at least one mining address when the generate flag is

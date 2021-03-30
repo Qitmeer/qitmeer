@@ -438,3 +438,11 @@ func (api *PublicBlockAPI) GetCoinbase(h hash.Hash, verbose *bool) (interface{},
 func (api *PublicBlockAPI) GetFees(h hash.Hash) (interface{}, error) {
 	return api.bm.chain.GetFees(&h), nil
 }
+
+func (api *PublicBlockAPI) GetTokenBalance() (interface{}, error) {
+	state := api.bm.chain.GetTokenState(api.bm.chain.TokenTipID)
+	if state == nil {
+		return nil, nil
+	}
+	return state.GetTokenBalances(), nil
+}

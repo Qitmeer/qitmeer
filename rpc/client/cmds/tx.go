@@ -117,9 +117,53 @@ type NotifyNewTransactionsCmd struct {
 	Verbose bool
 }
 
+// OutPoint describes a transaction outpoint that will be marshalled to and
+// from JSON.
+type OutPoint struct {
+	Hash  string `json:"hash"`
+	Index uint32 `json:"index"`
+}
+
+// RescanCmd defines the rescan JSON-RPC command.
+//
+type RescanCmd struct {
+	BeginBlock uint64
+	Addresses  []string
+	OutPoints  []OutPoint
+	EndBlock   uint64
+}
+
+type TxConfirm struct {
+	Txid          string
+	Order         uint64
+	Confirmations int32
+}
+
+type NotifyTxsConfirmedCmd struct {
+	Txs []TxConfirm
+}
+
+// ws
+type NotifyTxsByAddrCmd struct {
+	Reload    bool
+	Addresses []string
+	OutPoints []OutPoint
+}
+
+// ws
+type UnNotifyTxsByAddrCmd struct {
+	Addresses []string
+}
+
 func NewNotifyNewTransactionsCmd(verbose bool) *NotifyNewTransactionsCmd {
 	return &NotifyNewTransactionsCmd{
 		Verbose: verbose,
+	}
+}
+
+func NewNotifyTxsConfirmed(txs []TxConfirm) *NotifyTxsConfirmedCmd {
+	return &NotifyTxsConfirmedCmd{
+		Txs: txs,
 	}
 }
 
@@ -127,6 +171,20 @@ type StopNotifyNewTransactionsCmd struct{}
 
 func NewStopNotifyNewTransactionsCmd() *StopNotifyNewTransactionsCmd {
 	return &StopNotifyNewTransactionsCmd{}
+}
+
+func NewNotifyTxsByAddrCmd(reload bool, addr []string, outpoint []OutPoint) *NotifyTxsByAddrCmd {
+	return &NotifyTxsByAddrCmd{
+		Reload:    reload,
+		Addresses: addr,
+		OutPoints: outpoint,
+	}
+}
+
+func StopNotifyTxsByAddrCmd(addr []string) *UnNotifyTxsByAddrCmd {
+	return &UnNotifyTxsByAddrCmd{
+		Addresses: addr,
+	}
 }
 
 func init() {
@@ -145,4 +203,10 @@ func init() {
 	// ws
 	MustRegisterCmd("notifynewtransactions", (*NotifyNewTransactionsCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
 	MustRegisterCmd("stopnotifynewtransactions", (*StopNotifyNewTransactionsCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
+
+	// ws
+	MustRegisterCmd("notifyTxsByAddr", (*NotifyTxsByAddrCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
+	MustRegisterCmd("stopnotifyTxsByAddr", (*UnNotifyTxsByAddrCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
+
+	MustRegisterCmd("notifyTxsConfirmed", (*NotifyTxsConfirmedCmd)(nil), flags, NotifyNameSpace)
 }

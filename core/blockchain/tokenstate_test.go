@@ -7,7 +7,6 @@ package blockchain
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
@@ -24,7 +23,7 @@ func bytesFromStr(s string) []byte {
 	return b
 }
 
-func TestTokeStateSerialization(t *testing.T) {
+func TestTokenStateSerialization(t *testing.T) {
 	tests := []struct {
 		name  string
 		state *tokenState
@@ -41,7 +40,7 @@ func TestTokeStateSerialization(t *testing.T) {
 						tokenAmount: types.Amount{Value: 200 * 1e8, Id: types.QITID}},
 				},
 			},
-			bytes: bytesFromStr("0101c9bfde8f00a49faec7000101a49faec70001c9bfde8f00"),
+			bytes: bytesFromStr("000101c9bfde8f00a49faec7000101a49faec70001c9bfde8f00"),
 			ok:    true,
 		},
 	}
@@ -91,13 +90,11 @@ func TestTokenStateDB(t *testing.T) {
 				meerAmount:  100 * 1e8,
 				tokenAmount: types.Amount{Value: 200 * 1e8, Id: types.QITID}},
 		}}
-	// create a fake block hash for testing
-	b := make([]byte, 32)
-	b[0] = 0xa
-	hash := hash.HashH(b)
+	// create a fake block id for testing
+	bid := uint32(0xa)
 
 	err = tokendb.Update(func(dbTx database.Tx) error {
-		return dbPutTokenState(dbTx, &hash, ts)
+		return dbPutTokenState(dbTx, bid, ts)
 	})
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -106,7 +103,7 @@ func TestTokenStateDB(t *testing.T) {
 	// fetch record from tokenstate db
 	var tsfromdb *tokenState
 	err = tokendb.View(func(dbTx database.Tx) error {
-		tsfromdb, err = dbFetchTokenState(dbTx, hash)
+		tsfromdb, err = dbFetchTokenState(dbTx, bid)
 		return err
 	})
 	if err != nil {

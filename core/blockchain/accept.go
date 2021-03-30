@@ -8,6 +8,7 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -124,7 +125,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.pruner.pruneChainIfNeeded()
 
 	//dag
-	newOrders, ib := b.bd.AddBlock(newNode)
+	newOrders, ib, isMainChainTipChange := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
 		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
@@ -173,25 +174,14 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		log.Warn(fmt.Sprintf("%s", err))
 	}
 
-	// update token db
-	err = b.db.Update(func(dbTx database.Tx) error {
-		if err := b.dbPutTokenBalance(dbTx, newNode, block); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
 	b.updateBestState(newNode, block, newOrders)
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
 	b.sendNotification(BlockAccepted, &BlockAcceptedNotifyData{
-		ForkLen: 0,
-		Block:   block,
-		Flags:   flags,
+		IsMainChainTipChange: isMainChainTipChange,
+		Block:                block,
+		Flags:                flags,
 	})
 
 	return nil
@@ -229,7 +219,7 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 	block.SetHeight(newNode.GetHeight())
 
 	//dag
-	newOrders, ib := b.bd.AddBlock(newNode)
+	newOrders, ib, _ := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
 		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
 	}
@@ -265,18 +255,95 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 		log.Warn(fmt.Sprintf("%s", err))
 	}
 
-	// update token db
-	err = b.db.Update(func(dbTx database.Tx) error {
-		if err := b.dbPutTokenBalance(dbTx, newNode, block); err != nil {
-			return err
+	b.updateBestState(newNode, block, newOrders)
+
+	return nil
+}
+
+func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.SerializedBlock, rollback bool) error {
+	if rollback {
+		if uint32(node.dagID) == b.TokenTipID {
+			state := b.GetTokenState(b.TokenTipID)
+			if state != nil {
+				err := b.db.Update(func(dbTx database.Tx) error {
+					return dbRemoveTokenState(dbTx, uint32(node.dagID))
+				})
+				if err != nil {
+					return err
+				}
+				b.TokenTipID = state.prevStateID
+			}
+
 		}
 		return nil
+	}
+	updates := []balanceUpdate{}
+	for _, tx := range block.Transactions() {
+		if tx.IsDuplicate {
+			log.Trace(fmt.Sprintf("updateTokenBalance skip duplicate tx %v", tx.Hash()))
+			continue
+		}
+
+		if token.IsTokenMint(tx.Tx) {
+			// TOKEN_MINT: input[0] token output[0] meer
+			update := balanceUpdate{
+				typ:         tokenMint,
+				tokenAmount: tx.Tx.TxIn[0].AmountIn,
+				meerAmount:  tx.Tx.TxOut[0].Amount.Value}
+			// append to update only when check & try has done with no err
+			updates = append(updates, update)
+		}
+		if token.IsTokenUnMint(tx.Tx) {
+			// TOKEN_UNMINT: input[0] meer output[0] token
+			// the previous logic must make sure the legality of values, here only append.
+			update := balanceUpdate{
+				typ:         tokenUnMint,
+				meerAmount:  tx.Tx.TxIn[0].AmountIn.Value,
+				tokenAmount: tx.Tx.TxOut[0].Amount}
+			// append to update only when check & try has done with no err
+			updates = append(updates, update)
+		}
+	}
+	if len(updates) <= 0 {
+		return nil
+	}
+	state := b.GetTokenState(b.TokenTipID)
+	if state == nil {
+		state = &tokenState{prevStateID: 0, updates: updates}
+		state.balances.UpdatesBalance(updates)
+	} else {
+		state.prevStateID = b.TokenTipID
+		state.updates = updates
+		state.balances.UpdatesBalance(updates)
+	}
+
+	err := b.db.Update(func(dbTx database.Tx) error {
+		return dbPutTokenState(dbTx, uint32(node.dagID), *state)
 	})
 	if err != nil {
 		return err
 	}
 
-	b.updateBestState(newNode, block, newOrders)
-
+	b.TokenTipID = state.prevStateID
 	return nil
+}
+
+func (b *BlockChain) GetTokenState(bid uint32) *tokenState {
+	if bid == 0 {
+		return nil
+	}
+	var state *tokenState
+	err := b.db.View(func(dbTx database.Tx) error {
+		ts, err := dbFetchTokenState(dbTx, bid)
+		if err != nil {
+			return err
+		}
+		state = ts
+		return nil
+	})
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return state
 }

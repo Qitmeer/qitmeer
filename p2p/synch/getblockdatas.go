@@ -98,7 +98,9 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 
 func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) error {
 	if !ps.isSyncPeer(pe) || !pe.IsActive() {
-		return fmt.Errorf("no sync peer")
+		err := fmt.Errorf("no sync peer")
+		log.Trace(err.Error())
+		return err
 	}
 	blocksReady := []*hash.Hash{}
 
@@ -111,6 +113,13 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 	if len(blocksReady) <= 0 {
 		return nil
 	}
+	if !ps.longSyncMod {
+		bs := ps.sy.p2p.BlockChain().BestSnapshot()
+		if pe.GraphState().GetTotal() >= bs.GraphState.GetTotal()+MaxBlockLocatorsPerMsg {
+			ps.longSyncMod = true
+		}
+	}
+
 	bd, err := ps.sy.sendGetBlockDataRequest(ps.sy.p2p.Context(), pe.GetID(), &pb.GetBlockDatas{Locator: changeHashsToPBHashs(blocksReady)})
 	if err != nil {
 		log.Warn(fmt.Sprintf("getBlocks send:%v", err))
@@ -145,12 +154,16 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 	if add > 0 {
 		ps.sy.p2p.TxMemPool().PruneExpiredTx()
 
-		if ps.IsCompleteForSyncPeer() {
-			log.Info("Your synchronization has been completed.")
-		}
+		if ps.longSyncMod {
+			if ps.IsCompleteForSyncPeer() {
+				log.Info("Your synchronization has been completed.")
+				ps.longSyncMod = false
+			}
 
-		if ps.IsCurrent() {
-			log.Info("You're up to date now.")
+			if ps.IsCurrent() {
+				log.Info("You're up to date now.")
+				ps.longSyncMod = false
+			}
 		}
 
 		if !hasOrphan {
