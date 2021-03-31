@@ -74,7 +74,7 @@ func TestQitmeerBase58CheckEncode(t *testing.T) {
 		}
 	*/
 	for _, addrtest := range testAddresses {
-		encoded, _ := base58.QitmeerCheckEncode(data, addrtest.ver[:])
+		encoded,_ := base58.QitmeerCheckEncode(data, addrtest.ver[:])
 		assert.Equal(t, string(encoded), addrtest.addr)
 	}
 }

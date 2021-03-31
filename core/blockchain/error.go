@@ -406,7 +406,7 @@ var errorCodeStrings = map[ErrorCode]string{
 	//cuckoo,begin
 	ErrBadCuckooNonces: "ErrBadCuckooNonces",
 	ErrInValidPowType:  "ErrInValidPowType",
-	ErrInvalidPow:      "ErrInvalidPow",
+	ErrInvalidPow: "ErrInvalidPow",
 
 	ErrNoBlueCoinbase: "ErrNoBlueCoinbase",
 	ErrNoViewpoint:    "ErrNoViewpoint",

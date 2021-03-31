@@ -54,7 +54,7 @@ func NewTxManager(bm *blkmgr.BlockManager, txIndex *index.TxIndex,
 	addrIndex *index.AddrIndex, cfg *config.Config, ntmgr notify.Notify,
 	sigCache *txscript.SigCache, db database.DB) (*TxManager, error) {
 	// mem-pool
-	amt, _ := types.NewMeer(uint64(cfg.MinTxFee))
+	amt,_ := types.NewMeer(uint64(cfg.MinTxFee))
 	txC := mempool.Config{
 		Policy: mempool.Policy{
 			MaxTxVersion:         2,

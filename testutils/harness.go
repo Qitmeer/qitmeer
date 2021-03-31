@@ -58,8 +58,6 @@ type Harness struct {
 	// aka the wallet of the coinbase miner of the node of the harness
 	// instance.
 	Wallet *testWallet
-
-	Config *nodeConfig
 }
 
 func (h *Harness) Id() string {
@@ -267,7 +265,6 @@ func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, 
 		Node:              newNode,
 		maxRpcConnRetries: DefaultMaxRpcConnRetries,
 		Wallet:            wallet,
-		Config:            config,
 	}
 	harnessInstances[h.instanceDir] = &h
 	return &h, nil

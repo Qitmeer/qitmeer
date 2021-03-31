@@ -67,7 +67,7 @@ func TestBase58(t *testing.T) {
 	// Encode tests
 	for x, test := range stringTests {
 		tmp := []byte(test.in)
-		if res, _ := base58.Encode(tmp); string(res) != test.out {
+		if res,_ := base58.Encode(tmp); string(res) != test.out {
 			t.Errorf("Encode test #%d failed: got: %s want: %s",
 				x, res, test.out)
 			continue

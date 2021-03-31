@@ -30,7 +30,7 @@ func ExampleDecode() {
 func ExampleEncode() {
 	// Encode example data with the modified base58 encoding scheme.
 	data := []byte("Test data")
-	encoded, _ := base58.Encode(data)
+	encoded,_ := base58.Encode(data)
 
 	// Show the encoded data.
 	fmt.Printf("Encoded Data: %s\n", encoded)
@@ -61,7 +61,7 @@ func ExampleCheckDecodeBtc() {
 func ExampleCheckEncodeBtc1() {
 	// Encode example data with the Base58Check encoding scheme.
 	data, _ := hex.DecodeString("62e907b15cbf27d5425399ebf6f0fb50ebb88f18a")
-	encoded, _ := base58.BtcCheckEncode(data, 0x0)
+	encoded,_ := base58.BtcCheckEncode(data, 0x0)
 
 	// Show the encoded data.
 	fmt.Printf("Encoded Data: %s", encoded)
@@ -75,7 +75,7 @@ func ExampleCheckEncodeBtc1() {
 func ExampleCheckEncodeBtc() {
 	// Encode example data with the Base58Check encoding scheme.
 	data := []byte("Test data")
-	encoded, _ := base58.BtcCheckEncode(data, 0x0)
+	encoded,_ := base58.BtcCheckEncode(data, 0x0)
 
 	// Show the encoded data.
 	fmt.Printf("Encoded Data: %s", encoded)
@@ -89,7 +89,7 @@ func ExampleCheckEncodeDcr() {
 	data := []byte("Test data")
 	ver := [2]byte{0x44, 0x0}
 
-	encoded, _ := base58.DcrCheckEncode(data, ver)
+	encoded,_ := base58.DcrCheckEncode(data, ver)
 
 	// Show the encoded data.
 	fmt.Printf("Encoded Data: %s", encoded)
@@ -134,10 +134,10 @@ func ExampleCheckEncode_addr() {
 
 	data, _ := hex.DecodeString("64e20eb6075561d30c23a517c5b73badbc120f05")
 	ver := [2]byte{0x0c, 0x40} //qitmeer main
-	encoded, _ := base58.QitmeerCheckEncode(data, ver[:])
+	encoded,_ := base58.QitmeerCheckEncode(data, ver[:])
 	fmt.Println("Address (sha256) : Nm281BTkccPTDL1CfhAAR27GAzx2bqFLQx5")
 	fmt.Printf("Address (b2b)    : %s\n", encoded)
-	encoded, _ = base58.DcrCheckEncode(data, ver)
+	encoded,_ = base58.DcrCheckEncode(data, ver)
 	fmt.Printf("Address (b256)   : %s", encoded)
 	// Output:
 	// Address (sha256) : Nm281BTkccPTDL1CfhAAR27GAzx2bqFLQx5
@@ -152,7 +152,7 @@ func ExampleCheckEncode() {
 	ver[0] = 0
 	ver[1] = 0
 
-	encoded, _ := base58.QitmeerCheckEncode(data, ver[:])
+	encoded,_ := base58.QitmeerCheckEncode(data, ver[:])
 
 	// Show the encoded data.
 	fmt.Printf("Encoded Data: %s", encoded)

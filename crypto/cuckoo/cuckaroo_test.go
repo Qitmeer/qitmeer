@@ -15,7 +15,7 @@ import (
 const targetBits = 1
 
 func TestCuckooMining(t *testing.T) {
-	if os.Getenv("TEST_CUCKOO") == "" {
+	if os.Getenv("TEST_CUCKOO") == ""  {
 		t.Skip("skipping the long test by default. use 'TEST_CUCKOO=true go test -v' to run the test.")
 	}
 	// Use all processor cores.

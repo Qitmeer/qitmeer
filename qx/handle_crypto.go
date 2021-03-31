@@ -248,7 +248,7 @@ func EncodeWIF(uncompressed bool, privateKeyStr string) (string, error) {
 	var encoded []byte
 	encoded, err = base58.CheckEncode(key, []byte{0x80}, 4, cksumfunc)
 	if err != nil {
-		return "", err
+		return "",err
 	} else {
 		return string(encoded), nil
 	}
