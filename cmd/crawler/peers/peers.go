@@ -63,7 +63,7 @@ func (p *Peers) Add(id string, Addr string) {
 	if _, ok := p.list[id]; ok {
 		return
 	}
-	peer := &db.Peer{id, Addr, 0, true}
+	peer := &db.Peer{Id: id, Addr: Addr, ConnectTime: 0, Connected: true}
 	p.list[id] = peer
 	p.db.UpdatePeer(peer)
 }
