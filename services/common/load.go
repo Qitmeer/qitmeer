@@ -12,7 +12,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
 	"github.com/jessevdk/go-flags"
 	"net"
@@ -35,6 +34,8 @@ const (
 	defaultBlockMinSize           = 0
 	defaultBlockMaxSize           = 375000
 	defaultMaxRPCClients          = 10
+	defaultMaxRPCWebsockets       = 25
+	defaultMaxRPCConcurrentReqs   = 20
 	defaultMaxPeers               = 30
 	defaultMiningStateSync        = false
 	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
@@ -65,29 +66,30 @@ func LoadConfig() (*config.Config, []string, error) {
 
 	// Default config.
 	cfg := config.Config{
-		HomeDir:           defaultHomeDir,
-		ConfigFile:        defaultConfigFile,
-		DebugLevel:        defaultLogLevel,
-		DebugPrintOrigins: defaultDebugPrintOrigins,
-		DataDir:           defaultDataDir,
-		LogDir:            defaultLogDir,
-		DbType:            defaultDbType,
-		RPCKey:            defaultRPCKeyFile,
-		RPCCert:           defaultRPCCertFile,
-		RPCMaxClients:     defaultMaxRPCClients,
-		Generate:          defaultGenerate,
-		MaxPeers:          defaultMaxPeers,
-		MinTxFee:          mempool.DefaultMinRelayTxFee,
-		BlockMinSize:      defaultBlockMinSize,
-		BlockMaxSize:      defaultBlockMaxSize,
-		SigCacheMaxSize:   defaultSigCacheMaxSize,
-		MiningStateSync:   defaultMiningStateSync,
-		DAGType:           defaultDAGType,
-		Banning:           false,
-		MaxInbound:        defaultMaxInboundPeersPerHost,
-		TrickleInterval:   defaultTrickleInterval,
-		CacheInvalidTx:    defaultCacheInvalidTx,
-		NTP:               false,
+		HomeDir:              defaultHomeDir,
+		ConfigFile:           defaultConfigFile,
+		DebugLevel:           defaultLogLevel,
+		DebugPrintOrigins:    defaultDebugPrintOrigins,
+		DataDir:              defaultDataDir,
+		LogDir:               defaultLogDir,
+		DbType:               defaultDbType,
+		RPCKey:               defaultRPCKeyFile,
+		RPCCert:              defaultRPCCertFile,
+		RPCMaxClients:        defaultMaxRPCClients,
+		RPCMaxWebsockets:     defaultMaxRPCWebsockets,
+		RPCMaxConcurrentReqs: defaultMaxRPCConcurrentReqs,
+		Generate:             defaultGenerate,
+		MaxPeers:             defaultMaxPeers,
+		MinTxFee:             0, // TODO mempool.DefaultMinRelayTxFee,
+		BlockMinSize:         defaultBlockMinSize,
+		BlockMaxSize:         defaultBlockMaxSize,
+		SigCacheMaxSize:      defaultSigCacheMaxSize,
+		MiningStateSync:      defaultMiningStateSync,
+		DAGType:              defaultDAGType,
+		Banning:              true,
+		MaxInbound:           defaultMaxInboundPeersPerHost,
+		CacheInvalidTx:       defaultCacheInvalidTx,
+		NTP:                  false,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -254,15 +256,6 @@ func LoadConfig() (*config.Config, []string, error) {
 		params.ActiveNetParams.Params.DefaultPort = cfg.DefaultPort
 	}
 
-	// Add the default listener if none were specified. The default
-	// listener is all addresses on the listen port for the network
-	// we are to connect to.
-	if len(cfg.Listeners) == 0 {
-		cfg.Listeners = []string{
-			net.JoinHostPort("", params.ActiveNetParams.DefaultPort),
-		}
-	}
-
 	// Default RPC to listen on localhost only.
 	if !cfg.DisableRPC && len(cfg.RPCListeners) == 0 {
 		addrs, err := net.LookupHost("localhost")
@@ -274,6 +267,15 @@ func LoadConfig() (*config.Config, []string, error) {
 			addr = net.JoinHostPort(addr, params.ActiveNetParams.RpcPort)
 			cfg.RPCListeners = append(cfg.RPCListeners, addr)
 		}
+	}
+
+	if cfg.RPCMaxConcurrentReqs < 0 {
+		str := "%s: The rpcmaxwebsocketconcurrentrequests option may " +
+			"not be less than 0 -- parsed [%d]"
+		err := fmt.Errorf(str, funcName, cfg.RPCMaxConcurrentReqs)
+		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, usageMessage)
+		return nil, nil, err
 	}
 
 	// Append the network type to the data directory so it is "namespaced"
@@ -352,36 +354,6 @@ func LoadConfig() (*config.Config, []string, error) {
 			return nil, nil, err
 		}
 		cfg.SetMiningAddrs(addr)
-	}
-
-	// Validate any given whitelisted IP addresses and networks.
-	if len(cfg.Whitelists) > 0 {
-		var ip net.IP
-		for _, addr := range cfg.Whitelists {
-			_, ipnet, err := net.ParseCIDR(addr)
-			if err != nil {
-				ip = net.ParseIP(addr)
-				if ip == nil {
-					str := "%s: the whitelist value of '%s' is invalid"
-					err = fmt.Errorf(str, funcName, addr)
-					fmt.Fprintln(os.Stderr, err)
-					fmt.Fprintln(os.Stderr, usageMessage)
-					return nil, nil, err
-				}
-				var bits int
-				if ip.To4() == nil {
-					// IPv6
-					bits = 128
-				} else {
-					bits = 32
-				}
-				ipnet = &net.IPNet{
-					IP:   ip,
-					Mask: net.CIDRMask(bits, bits),
-				}
-			}
-			cfg.AddToWhitelists(ipnet)
-		}
 	}
 
 	// Ensure there is at least one mining address when the generate flag is

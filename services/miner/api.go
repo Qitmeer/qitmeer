@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -37,12 +38,12 @@ const gbtRegenerateSeconds = 60
 func (c *CPUMiner) APIs() []rpc.API {
 	return []rpc.API{
 		{
-			NameSpace: rpc.DefaultServiceNameSpace,
+			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicMinerAPI(c),
 			Public:    true,
 		},
 		{
-			NameSpace: rpc.MinerNameSpace,
+			NameSpace: cmds.MinerNameSpace,
 			Service:   NewPrivateMinerAPI(c),
 			Public:    false,
 		},
@@ -149,7 +150,7 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	coinbaseTxOuts := block.Block().Transactions[0].TxOut
 	coinbaseTxGenerated := uint64(0)
 	for _, out := range coinbaseTxOuts {
-		coinbaseTxGenerated += out.Amount
+		coinbaseTxGenerated += uint64(out.Amount.Value)
 	}
 	return fmt.Sprintf("Block submitted accepted  hash %s, height %d, order %s amount %d", block.Hash().String(),
 		block.Height(), blockdag.GetOrderLogStr(uint(block.Order())), coinbaseTxGenerated), nil
@@ -433,6 +434,10 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 	diffBig := pow.CompactToBig(template.Difficulty)
 	target := fmt.Sprintf("%064x", diffBig)
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, state.lastGenerated)
+	blockFeeMap := map[int]int64{}
+	for coinid, val := range template.BlockFeesMap {
+		blockFeeMap[int(coinid)] = val
+	}
 	reply := json.GetBlockTemplateResult{
 		StateRoot:    template.Block.Header.StateRoot.String(),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
@@ -461,11 +466,13 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		NonceRange: gbtNonceRange,
 		// TODO, Capabilities
 		Capabilities: gbtCapabilities,
+		BlockFeesMap: blockFeeMap,
 	}
 
 	if useCoinbaseValue {
 		reply.CoinbaseAux = api.gbtCoinbaseAux
-		reply.CoinbaseValue = &msgBlock.Transactions[0].TxOut[0].Amount
+		v := uint64(msgBlock.Transactions[0].TxOut[0].Amount.Value)
+		reply.CoinbaseValue = &v
 	} else {
 		// Ensure the template has a valid payment address associated
 		// with it when a full coinbase is requested.

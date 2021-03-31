@@ -372,12 +372,14 @@ func calcSignatureHash(prevOutScript []ParsedOpcode, hashType SigHashType, tx *t
 			// commit to an output amount of -1 and a nil public
 			// key script for everything that is not the output
 			// corresponding to the input being signed instead.
-			value := txOut.Amount
+			coinId := txOut.Amount.Id
+			value := txOut.Amount.Value
 			pkScript := txOut.PkScript
 			if hashType&sigHashMask == SigHashSingle && txOutIdx != idx {
 				value = 0
 				pkScript = nil
 			}
+			offset += putUint16LE(prefixBuf[offset:], uint16(coinId))
 			offset += putUint64LE(prefixBuf[offset:], uint64(value))
 			offset += putVarInt(prefixBuf[offset:], uint64(len(pkScript)))
 			offset += copy(prefixBuf[offset:], pkScript)

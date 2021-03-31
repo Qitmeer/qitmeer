@@ -33,6 +33,10 @@ type Peer struct {
 
 	lock *sync.RWMutex
 
+	lastSend   time.Time
+	lastRecv   time.Time
+	bytesSent  uint64
+	bytesRecv  uint64
 	conTime    time.Time
 	timeOffset int64
 }
@@ -267,8 +271,12 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		UserAgent:  p.userAgent(),
 		State:      p.peerState,
 		Direction:  p.direction,
-		GraphState: p.graphState(),
 		TimeOffset: p.timeOffset,
+		ConnTime:   time.Since(p.conTime),
+		LastSend:   p.lastSend,
+		LastRecv:   p.lastRecv,
+		BytesSent:  p.bytesSent,
+		BytesRecv:  p.bytesRecv,
 	}
 
 	n := p.node()
@@ -278,6 +286,9 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 	}
 	if p.qaddress() != nil {
 		ss.Address = p.qaddress().String()
+	}
+	if p.isConsensus() {
+		ss.GraphState = p.graphState()
 	}
 	return ss, nil
 }
@@ -315,6 +326,13 @@ func (p *Peer) genesis() *hash.Hash {
 		return nil
 	}
 	return genesisHash
+}
+
+func (p *Peer) Services() protocol.ServiceFlag {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.services()
 }
 
 func (p *Peer) services() protocol.ServiceFlag {
@@ -424,6 +442,50 @@ func (p *Peer) IsRelay() bool {
 		return false
 	}
 	return protocol.HasServices(protocol.ServiceFlag(p.chainState.Services), protocol.Relay)
+}
+
+func (p *Peer) IsConsensus() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.isConsensus()
+}
+
+func (p *Peer) isConsensus() bool {
+	if p.chainState == nil {
+		return false
+	}
+	return HasConsensusService(protocol.ServiceFlag(p.chainState.Services))
+}
+
+func (p *Peer) IncreaseBytesSent(size int) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.bytesSent += uint64(size)
+	p.lastSend = time.Now()
+}
+
+func (p *Peer) BytesSent() uint64 {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	return p.bytesSent
+}
+
+func (p *Peer) IncreaseBytesRecv(size int) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.bytesRecv += uint64(size)
+	p.lastRecv = time.Now()
+}
+
+func (p *Peer) BytesRecv() uint64 {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	return p.bytesRecv
 }
 
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {

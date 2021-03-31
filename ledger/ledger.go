@@ -12,19 +12,21 @@ import (
 type TokenPayout struct {
 	Address  string
 	PkScript []byte
-	Amount   uint64
+	Amount   types.Amount
 }
 
 type TokenPayoutReGen struct {
 	Payout    TokenPayout
-	GenAmount uint64
+	GenAmount types.Amount
 }
 
 type PayoutList []TokenPayoutReGen
 
 func (p PayoutList) Len() int { return len(p) }
 func (p PayoutList) Less(i, j int) bool {
-	return (p[i].GenAmount+p[i].Payout.Amount < p[j].GenAmount+p[j].Payout.Amount)
+	x, _ := (&types.Amount{Value: 0, Id: types.MEERID}).Add(&p[i].GenAmount, &p[i].Payout.Amount)
+	y, _ := (&types.Amount{Value: 0, Id: types.MEERID}).Add(&p[j].GenAmount, &p[j].Payout.Amount)
+	return x.Value < y.Value
 }
 func (p PayoutList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
@@ -44,17 +46,16 @@ var GenesisLedger []*TokenPayout
 
 // BlockOneSubsidy returns the total subsidy of block height 1 for the
 // network.
-func GenesisLedgerSubsidy() uint64 {
+func GenesisLedgerSubsidy() types.Amount {
+	zero := &types.Amount{Value: 0, Id: types.MEERID}
 	if len(GenesisLedger) == 0 {
-		return 0
+		return *zero
 	}
-
-	sum := uint64(0)
+	sum := zero
 	for _, output := range GenesisLedger {
-		sum += output.Amount
+		sum.Add(sum, &output.Amount)
 	}
-
-	return sum
+	return *sum
 }
 
 func addPayout(addr string, amount uint64, pksStr string) {
@@ -63,17 +64,38 @@ func addPayout(addr string, amount uint64, pksStr string) {
 		fmt.Printf("Error %v - address:%s  amount:%d\n", err, addr, amount)
 		return
 	}
-	GenesisLedger = append(GenesisLedger, &TokenPayout{addr, pks, amount})
+	var amt *types.Amount
+	amt, err = types.NewMeer(amount)
+	if err != nil {
+		fmt.Printf("Error %v - address:%s  amount:%d\n", err, addr, amount)
+		return
+	}
+	GenesisLedger = append(GenesisLedger, &TokenPayout{addr, pks, *amt})
 	//fmt.Printf("Add payout (%d) - address:%s  amount:%d\n",len(GenesisLedger),addr,amount)
+}
+
+func addPayout2(addr string, amount types.Amount, pksStr string) {
+	pks, err := hex.DecodeString(pksStr)
+	if err != nil {
+		fmt.Printf("Error %v - address:%s  amount:%d\n", err, addr, amount)
+		return
+	}
+	//TODO input check for amout
+	GenesisLedger = append(GenesisLedger, &TokenPayout{addr, pks, amount})
 }
 
 // pay out tokens to a ledger.
 func Ledger(tx *types.Transaction, netType protocol.Network) {
+	if len(GenesisLedger) != 0 {
+		GenesisLedger = GenesisLedger[:0]
+	}
 	switch netType {
 	case protocol.MainNet:
 		initMain()
 	case protocol.TestNet:
 		initTest()
+	case protocol.MixNet:
+		initMix()
 	case protocol.PrivNet:
 		initPriv()
 	}
@@ -88,5 +110,11 @@ func Ledger(tx *types.Transaction, netType protocol.Network) {
 				PkScript: payout.PkScript,
 			})
 		}
+	}
+
+	if len(tx.TxOut) <= 0 {
+		tx.AddTxOut(&types.TxOutput{
+			Amount: types.Amount{Value: 0, Id: types.MEERID},
+		})
 	}
 }

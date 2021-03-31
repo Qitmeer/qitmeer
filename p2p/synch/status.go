@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"github.com/Qitmeer/qitmeer/p2p/runutil"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -36,12 +37,12 @@ func (s *Sync) maintainPeerStatuses() {
 				}
 
 				if pe.IsBad() {
-					if err := s.sendGoodByeAndDisconnect(s.p2p.Context(), codeGenericError, id); err != nil {
+					if err := s.sendGoodByeAndDisconnect(s.p2p.Context(), common.ErrBadPeer, id); err != nil {
 						log.Error(fmt.Sprintf("Error when disconnecting with bad peer: %v", err))
 					}
 					return
 				}
-				if pe.IsRelay() {
+				if !pe.IsConsensus() {
 					return
 				}
 				// If the status hasn't been updated in the recent interval time.
@@ -82,7 +83,7 @@ func (s *Sync) reValidatePeer(ctx context.Context, id peer.ID) error {
 	if pe == nil {
 		return peers.ErrPeerUnknown
 	}
-	if pe.IsRelay() {
+	if !pe.IsConsensus() {
 		return nil
 	}
 	// Do not return an error for ping requests.

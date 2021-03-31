@@ -11,12 +11,15 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"sync/atomic"
 )
+
+const BLOCKDATA_SSZ_HEAD_SIZE = 4
 
 func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator *pb.GetBlockDatas) (*pb.BlockDatas, error) {
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
@@ -38,7 +41,7 @@ func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator 
 		return nil, err
 	}
 
-	if code != ResponseCodeSuccess {
+	if !code.IsSuccess() {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return nil, errors.New(errMsg)
 	}
@@ -50,66 +53,54 @@ func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator 
 	return msg, err
 }
 
-func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
+func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	var err error
-	respCode := ResponseCodeServerError
 	defer func() {
-		if respCode != ResponseCodeSuccess {
-			resp, err := s.generateErrorResponse(respCode, err.Error())
-			if err != nil {
-				log.Error(fmt.Sprintf("Failed to generate a response error:%v", err))
-			} else {
-				if _, err := stream.Write(resp); err != nil {
-					log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
-				}
-			}
-		}
-		closeSteam(stream)
 		cancel()
 	}()
 
-	SetRPCStreamDeadlines(stream)
 	m, ok := msg.(*pb.GetBlockDatas)
 	if !ok {
 		err = fmt.Errorf("message is not type *pb.Hash")
-		return err
+		return ErrMessage(err)
 	}
 	bds := []*pb.BlockData{}
+	bd := &pb.BlockDatas{Locator: bds}
 	for _, bdh := range m.Locator {
 		blockHash, err := hash.NewHash(bdh.Hash)
 		if err != nil {
 			err = fmt.Errorf("invalid block hash")
-			return err
+			return ErrMessage(err)
 		}
 		block, err := s.p2p.BlockChain().FetchBlockByHash(blockHash)
 		if err != nil {
-			return err
+			return ErrMessage(err)
 		}
 
 		blocks, err := block.Bytes()
 		if err != nil {
-			return err
+			return ErrMessage(err)
 		}
-		bds = append(bds, &pb.BlockData{BlockBytes: blocks})
+		pbbd := pb.BlockData{BlockBytes: blocks}
+		if uint64(bd.SizeSSZ()+pbbd.SizeSSZ()+BLOCKDATA_SSZ_HEAD_SIZE) >= s.p2p.Encoding().GetMaxChunkSize() {
+			break
+		}
+		bd.Locator = append(bd.Locator, &pbbd)
 	}
-
-	_, err = stream.Write([]byte{ResponseCodeSuccess})
-	if err != nil {
-		return err
+	e := s.EncodeResponseMsg(stream, bd)
+	if e != nil {
+		err = e.Error
+		return e
 	}
-	bd := &pb.BlockDatas{Locator: bds}
-	_, err = s.Encoding().EncodeWithMaxLength(stream, bd)
-	if err != nil {
-		return err
-	}
-	respCode = ResponseCodeSuccess
 	return nil
 }
 
 func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) error {
 	if !ps.isSyncPeer(pe) || !pe.IsActive() {
-		return fmt.Errorf("no sync peer")
+		err := fmt.Errorf("no sync peer")
+		log.Trace(err.Error())
+		return err
 	}
 	blocksReady := []*hash.Hash{}
 
@@ -122,6 +113,13 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 	if len(blocksReady) <= 0 {
 		return nil
 	}
+	if !ps.longSyncMod {
+		bs := ps.sy.p2p.BlockChain().BestSnapshot()
+		if pe.GraphState().GetTotal() >= bs.GraphState.GetTotal()+MaxBlockLocatorsPerMsg {
+			ps.longSyncMod = true
+		}
+	}
+
 	bd, err := ps.sy.sendGetBlockDataRequest(ps.sy.p2p.Context(), pe.GetID(), &pb.GetBlockDatas{Locator: changeHashsToPBHashs(blocksReady)})
 	if err != nil {
 		log.Warn(fmt.Sprintf("getBlocks send:%v", err))
@@ -156,12 +154,16 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 	if add > 0 {
 		ps.sy.p2p.TxMemPool().PruneExpiredTx()
 
-		if ps.IsCompleteForSyncPeer() {
-			log.Info("Your synchronization has been completed.")
-		}
+		if ps.longSyncMod {
+			if ps.IsCompleteForSyncPeer() {
+				log.Info("Your synchronization has been completed.")
+				ps.longSyncMod = false
+			}
 
-		if ps.IsCurrent() {
-			log.Info("You're up to date now.")
+			if ps.IsCurrent() {
+				log.Info("You're up to date now.")
+				ps.longSyncMod = false
+			}
 		}
 
 		if !hasOrphan {

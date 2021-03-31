@@ -105,7 +105,7 @@ func (node *BINode) statistics() error {
 			if isTxValid(node.db, block.Transactions()[0].Hash(), &txfullHash, ib.GetHash()) {
 				if node.bc.BlockDAG().IsBlue(i) {
 					subsidyCount++
-					subsidy += block.Transactions()[0].Tx.TxOut[0].Amount
+					subsidy += uint64(block.Transactions()[0].Tx.TxOut[0].Amount.Value)
 				}
 			}
 		}

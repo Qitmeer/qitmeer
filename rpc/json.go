@@ -12,7 +12,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"io"
 	"reflect"
 	"strconv"
@@ -26,14 +26,6 @@ const (
 	subscribeMethodSuffix    = "_subscribe"
 	unsubscribeMethodSuffix  = "_unsubscribe"
 	notificationMethodSuffix = "_subscription"
-)
-
-// These are all service namespace in node
-const (
-	DefaultServiceNameSpace = "qitmeer"
-	MinerNameSpace          = "miner"
-	TestNameSpace           = "test"
-	LogNameSpace            = "log"
 )
 
 type jsonRequest struct {
@@ -72,12 +64,8 @@ type jsonNotification struct {
 	Params  jsonSubscription `json:"params"`
 }
 
-type JsonRequestStatus struct {
-	Name        string `json:"name"`
-	TotalCalls  int    `json:"totalcalls"`
-	TotalTime   string `json:"totaltime"`
-	AverageTime string `json:"averagetime"`
-	RunningNum  int    `json:"runningnum"`
+type SessionResult struct {
+	SessionID uint64 `json:"sessionid"`
 }
 
 // jsonCodec reads and writes JSON-RPC messages to the underlying connection. It
@@ -226,7 +214,7 @@ func parseRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) {
 		if elem := strings.Split(r.Method, serviceMethodSeparator); len(elem) == 2 {
 			requests[i].service, requests[i].method = elem[0], elem[1]
 		} else if len(elem) == 1 {
-			requests[i].service, requests[i].method = DefaultServiceNameSpace, elem[0]
+			requests[i].service, requests[i].method = cmds.DefaultServiceNameSpace, elem[0]
 		} else {
 			requests[i].err = &methodNotFoundError{"", r.Method}
 		}

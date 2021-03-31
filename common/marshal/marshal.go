@@ -11,7 +11,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/rpc"
 	"strconv"
 	"time"
 )
@@ -23,14 +22,14 @@ func MessageToHex(tx *types.Transaction) (string, error) {
 	err := tx.Encode(&buf, protocol.ProtocolVersion, types.TxSerializeFull)
 	if err != nil {
 		context := fmt.Sprintf("Failed to encode msg of type %T", tx)
-		return "", rpc.RpcInternalError(err.Error(), context)
+		return "", fmt.Errorf("%s : %s", context, err.Error())
 	}
 
 	return hex.EncodeToString(buf.Bytes()), nil
 }
 
 func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHashStr string,
-	confirmations int64, coinbaseAmout uint64, state bool) (json.TxRawResult, error) {
+	confirmations int64, coinbaseAmout types.AmountMap, state bool) (json.TxRawResult, error) {
 	if tx == nil {
 		return json.TxRawResult{}, errors.New("can't marshal nil transaction")
 	}
@@ -38,7 +37,7 @@ func MarshalJsonTx(tx *types.Tx, params *params.Params, blkHashStr string,
 }
 
 func MarshalJsonTransaction(transaction *types.Tx, params *params.Params, blkHashStr string,
-	confirmations int64, coinbaseAmout uint64, state bool) (json.TxRawResult, error) {
+	confirmations int64, coinbaseAmout types.AmountMap, state bool) (json.TxRawResult, error) {
 	tx := transaction.Tx
 	hexStr, err := MessageToHex(tx)
 	if err != nil {
@@ -53,7 +52,6 @@ func MarshalJsonTransaction(transaction *types.Tx, params *params.Params, blkHas
 		LockTime:  tx.LockTime,
 		Expire:    tx.Expire,
 		Vin:       MarshJsonVin(tx),
-		Vout:      MarshJsonVout(tx, nil, params),
 		Duplicate: transaction.IsDuplicate,
 		Txsvalid:  state,
 	}
@@ -61,7 +59,9 @@ func MarshalJsonTransaction(transaction *types.Tx, params *params.Params, blkHas
 		txr.Timestamp = tx.Timestamp.Format(time.RFC3339)
 	}
 	if tx.IsCoinBase() {
-		txr.Vout[0].Amount = coinbaseAmout
+		txr.Vout = MarshJsonCoinbaseVout(tx, nil, params, coinbaseAmout)
+	} else {
+		txr.Vout = MarshJsonVout(tx, nil, params)
 	}
 	if blkHashStr != "" {
 		txr.BlockHash = blkHashStr
@@ -137,7 +137,68 @@ func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, par
 
 		var vout json.Vout
 		voutSPK := &vout.ScriptPubKey
-		vout.Amount = v.Amount
+		vout.Coin   = v.Amount.Id.Name()
+		vout.CoinId = uint16(v.Amount.Id)
+		vout.Amount = uint64(v.Amount.Value)
+		voutSPK.Addresses = encodedAddrs
+		voutSPK.Asm = disbuf
+		voutSPK.Hex = hex.EncodeToString(v.PkScript)
+		voutSPK.Type = scriptClass
+		voutSPK.ReqSigs = int32(reqSigs)
+		voutList = append(voutList, vout)
+	}
+
+	return voutList
+}
+
+func MarshJsonCoinbaseVout(tx *types.Transaction, filterAddrMap map[string]struct{}, params *params.Params, coinbaseAmout types.AmountMap) []json.Vout {
+	if len(coinbaseAmout) <= 0 ||
+		tx.CachedTxHash().IsEqual(params.GenesisBlock.Transactions[0].CachedTxHash()) {
+		return MarshJsonVout(tx, filterAddrMap, params)
+	}
+	voutList := make([]json.Vout, 0, len(tx.TxOut))
+	for k, v := range tx.TxOut {
+		if k > 0 && coinbaseAmout[v.Amount.Id] <= 0 {
+			continue
+		}
+		// The disassembled string will contain [error] inline if the
+		// script doesn't fully parse, so ignore the error here.
+		disbuf, _ := txscript.DisasmString(v.PkScript)
+
+		// Ignore the error here since an error means the script
+		// couldn't parse and there is no additional information
+		// about it anyways.
+		sc, addrs, reqSigs, _ := txscript.ExtractPkScriptAddrs(
+			v.PkScript, params)
+		scriptClass := sc.String()
+
+		// Encode the addresses while checking if the address passes the
+		// filter when needed.
+		passesFilter := len(filterAddrMap) == 0
+		encodedAddrs := make([]string, len(addrs))
+		for j, addr := range addrs {
+			encodedAddr := addr.Encode()
+			encodedAddrs[j] = encodedAddr
+
+			// No need to check the map again if the filter already
+			// passes.
+			if passesFilter {
+				continue
+			}
+			if _, exists := filterAddrMap[encodedAddr]; exists {
+				passesFilter = true
+			}
+		}
+
+		if !passesFilter {
+			continue
+		}
+
+		var vout json.Vout
+		voutSPK := &vout.ScriptPubKey
+		vout.Coin   = v.Amount.Id.Name()
+		vout.CoinId = uint16(v.Amount.Id)
+		vout.Amount = uint64(coinbaseAmout[v.Amount.Id])
 		voutSPK.Addresses = encodedAddrs
 		voutSPK.Asm = disbuf
 		voutSPK.Hex = hex.EncodeToString(v.PkScript)
@@ -153,7 +214,7 @@ func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, par
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
 func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
-	params *params.Params, confirmations int64, children []*hash.Hash, state bool, isOrdered bool, coinbaseAmout uint64, coinbaseFee uint64) (json.OrderedResult, error) {
+	params *params.Params, confirmations int64, children []*hash.Hash, state bool, isOrdered bool, coinbaseAmout types.AmountMap, coinbaseFee types.AmountMap) (json.OrderedResult, error) {
 
 	head := b.Block().Header // copies the header once
 	// Get next block hash unless there are none.
@@ -188,8 +249,17 @@ func MarshalJsonBlock(b *types.SerializedBlock, inclTx bool, fullTx bool,
 		}
 		fields = append(fields, json.KV{Key: "transactions", Val: transactions})
 	}
-	if coinbaseFee > 0 {
-		fields = append(fields, json.KV{Key: "transactionfee", Val: coinbaseFee})
+	if coinbaseFee != nil {
+		fees := []json.Amout{}
+		for coinid, amount := range coinbaseFee {
+			if amount <= 0 {
+				continue
+			}
+			fees = append(fees, json.Amout{CoinId: uint16(coinid), Amount: amount})
+		}
+		if len(fees) > 0 {
+			fields = append(fields, json.KV{Key: "transactionfee", Val: fees})
+		}
 	}
 	fields = append(fields, json.OrderedResult{
 		{Key: "stateRoot", Val: head.StateRoot.String()},

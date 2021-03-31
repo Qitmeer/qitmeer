@@ -50,6 +50,9 @@ type Conflux struct {
 	bd *BlockDAG
 
 	privotTip IBlock
+
+	// The full sequence of dag, please note that the order starts at zero.
+	order map[uint]uint
 }
 
 func (con *Conflux) GetName() string {
@@ -67,8 +70,8 @@ func (con *Conflux) AddBlock(b IBlock) *list.List {
 	}
 	//
 	con.updatePrivot(b)
-	oldOrder := con.bd.order
-	con.bd.order = map[uint]uint{}
+	oldOrder := con.order
+	con.order = map[uint]uint{}
 	con.updateMainChain(con.bd.getGenesis(), nil, nil)
 
 	var result *list.List
@@ -78,12 +81,12 @@ func (con *Conflux) AddBlock(b IBlock) *list.List {
 			oldOrderL := len(oldOrder)
 			if oldOrderL == 0 ||
 				i >= uint(oldOrderL) ||
-				oldOrder[i] != con.bd.order[i] {
+				oldOrder[i] != con.order[i] {
 				result = list.New()
-				result.PushBack(con.bd.order[i])
+				result.PushBack(con.order[i])
 			}
 		} else {
-			result.PushBack(con.bd.order[i])
+			result.PushBack(con.order[i])
 		}
 
 	}
@@ -229,13 +232,13 @@ func (con *Conflux) updateOrder(b IBlock, preEpoch *Epoch, main *HashSet) *Epoch
 	}
 	//update list
 	sequence := result.GetSequence()
-	startOrder := len(con.bd.order)
+	startOrder := len(con.order)
 	for i, block := range sequence {
 		if block.GetOrder() != uint(startOrder+i) {
 			panic("epoch order error")
 		}
 		if !con.isVirtualBlock(block) {
-			con.bd.order[block.GetOrder()] = block.GetID()
+			con.order[block.GetOrder()] = block.GetID()
 		}
 	}
 
@@ -330,14 +333,6 @@ func (con *Conflux) isVirtualBlock(b IBlock) bool {
 	return b.GetHash().IsEqual(&hash.Hash{})
 }
 
-func (con *Conflux) GetBlockByOrder(order uint) *hash.Hash {
-
-	if order >= con.bd.blockTotal {
-		return nil
-	}
-	return con.bd.getBlockById(con.bd.order[order]).GetHash()
-}
-
 // Query whether a given block is on the main chain.
 func (con *Conflux) IsOnMainChain(b IBlock) bool {
 	for p := con.privotTip; p != nil; p = con.bd.getBlockById(p.GetMainParent()) {
@@ -354,6 +349,11 @@ func (con *Conflux) IsOnMainChain(b IBlock) bool {
 // return the tip of main chain
 func (con *Conflux) GetMainChainTip() IBlock {
 	return nil
+}
+
+// return the tip of main chain id
+func (con *Conflux) GetMainChainTipId() uint {
+	return 0
 }
 
 // return the main parent in the parents

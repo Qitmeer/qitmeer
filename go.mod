@@ -19,6 +19,7 @@ require (
 	github.com/golang/protobuf v1.4.0
 	github.com/golang/snappy v0.0.1
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/ipfs/go-ds-leveldb v0.4.2
 	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
@@ -28,8 +29,8 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.5.0
 	github.com/libp2p/go-libp2p-noise v0.1.1
+	github.com/libp2p/go-libp2p-peerstore v0.2.6
 	github.com/libp2p/go-libp2p-pubsub v0.3.2
-	github.com/libp2p/go-libp2p-quic-transport v0.5.0 // indirect
 	github.com/libp2p/go-libp2p-secio v0.2.2
 	github.com/libp2p/go-sockaddr v0.1.0 // indirect
 	github.com/magiconair/properties v1.8.0

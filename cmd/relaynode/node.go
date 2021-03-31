@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/synch"
@@ -20,6 +21,7 @@ import (
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/opts"
 	"github.com/libp2p/go-libp2p-noise"
@@ -101,6 +103,18 @@ func (node *Node) run() error {
 		opts = append(opts, libp2p.Security(secio.ID, secio.New))
 	}
 
+	if node.cfg.HostDNS != "" {
+		opts = append(opts, libp2p.AddrsFactory(func(addrs []multiaddr.Multiaddr) []multiaddr.Multiaddr {
+			external, err := multiaddr.NewMultiaddr(fmt.Sprintf("/dns4/%s/tcp/%s", node.cfg.HostDNS, node.cfg.Port))
+			if err != nil {
+				log.Error(fmt.Sprintf("Unable to create external multiaddress:%v", err))
+			} else {
+				addrs = append(addrs, external)
+			}
+			return addrs
+		}))
+	}
+
 	node.host, err = libp2p.New(
 		node.ctx,
 		opts...,
@@ -128,7 +142,9 @@ func (node *Node) run() error {
 
 	log.Info(fmt.Sprintf("Relay Address: %s/p2p/%s\n", eMAddr.String(), node.host.ID()))
 	log.Info("You can copy the relay address and configure it to the required Qitmeer-Node")
-
+	if len(node.cfg.HostDNS) > 0 {
+		logExternalDNSAddr(node.host.ID(), node.cfg.HostDNS, node.cfg.Port)
+	}
 	interrupt := interruptListener()
 	<-interrupt
 	return nil
@@ -152,7 +168,7 @@ func (node *Node) registerHandlers() error {
 	//
 
 	synch.RegisterRPC(
-		node.host, node.Encoding(),
+		node,
 		synch.RPCChainState,
 		&pb.ChainState{},
 		node.chainStateHandler,
@@ -165,18 +181,31 @@ func (node *Node) Encoding() encoder.NetworkEncoding {
 	return &encoder.SszNetworkEncoder{UseSnappyCompression: true}
 }
 
-func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
-	defer func() {
-		closeSteam(stream)
-	}()
+func (node *Node) Host() host.Host {
+	return node.host
+}
+
+func (node *Node) Context() context.Context {
+	return node.ctx
+}
+
+func (node *Node) Disconnect(pid peer.ID) error {
+	return node.host.Network().ClosePeer(pid)
+}
+
+func (node *Node) IncreaseBytesSent(pid peer.ID, size int) {
+}
+
+func (node *Node) IncreaseBytesRecv(pid peer.ID, size int) {
+}
+
+func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 
 	pid := stream.Conn().RemotePeer()
 	log.Trace(fmt.Sprintf("chainStateHandler:%s", pid))
 
 	ctx, cancel := context.WithTimeout(ctx, synch.HandleTimeout)
 	defer cancel()
-
-	synch.SetRPCStreamDeadlines(stream)
 
 	genesisHash := params.ActiveNetParams.GenesisHash
 
@@ -198,16 +227,17 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 		UserAgent:       []byte("qitmeer-relay"),
 		DisableRelayTx:  true,
 	}
-
-	if _, err := stream.Write([]byte{synch.ResponseCodeSuccess}); err != nil {
-		log.Error(fmt.Sprintf("Failed to write to stream:%v", err))
-	}
-	_, err := node.Encoding().EncodeWithMaxLength(stream, resp)
-	return err
+	return synch.EncodeResponseMsg(node, stream, resp)
 }
 
 func closeSteam(stream libp2pcore.Stream) {
 	if err := stream.Close(); err != nil {
 		log.Error(fmt.Sprintf("Failed to close stream:%v", err))
+	}
+}
+
+func logExternalDNSAddr(id peer.ID, addr string, port string) {
+	if addr != "" {
+		log.Info(fmt.Sprintf("Relay node started external p2p server:multiAddr=%s", "/dns4/"+addr+"/tcp/"+port+"/p2p/"+id.String()))
 	}
 }

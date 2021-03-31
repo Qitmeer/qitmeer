@@ -12,7 +12,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p/config"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/pkg/errors"
 	"strings"
 )
 
@@ -65,7 +64,7 @@ func parseGenericAddrs(addrs []string) (qnodeString []string, multiAddrString []
 			qnodeString = append(qnodeString, addr)
 			continue
 		}
-		_, err = multiAddrFromString(addr)
+		_, err = MultiAddrFromString(addr)
 		if err == nil {
 			multiAddrString = append(multiAddrString, addr)
 			continue
@@ -123,18 +122,18 @@ func convertToAddrInfo(node *qnode.Node) (*peer.AddrInfo, ma.Multiaddr, error) {
 func convertToSingleMultiAddr(node *qnode.Node) (ma.Multiaddr, error) {
 	ip4 := node.IP().To4()
 	if ip4 == nil {
-		return nil, errors.Errorf("node doesn't have an ip4 address, it's stated IP is %s", node.IP().String())
+		return nil, fmt.Errorf("node doesn't have an ip4 address, it's stated IP is %s", node.IP().String())
 	}
 	pubkey := node.Pubkey()
 	assertedKey := convertToInterfacePubkey(pubkey)
 	id, err := peer.IDFromPublicKey(assertedKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get peer id")
+		return nil, fmt.Errorf("could not get peer id:%w", err)
 	}
 	multiAddrString := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", ip4.String(), node.TCP(), id)
 	multiAddr, err := ma.NewMultiaddr(multiAddrString)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get multiaddr")
+		return nil, fmt.Errorf("could not get multiaddr:%w", err)
 	}
 	return multiAddr, nil
 }
@@ -143,27 +142,27 @@ func peersFromStringAddrs(addrs []string) ([]ma.Multiaddr, error) {
 	var allAddrs []ma.Multiaddr
 	qnodeString, multiAddrString := parseGenericAddrs(addrs)
 	for _, stringAddr := range multiAddrString {
-		addr, err := multiAddrFromString(stringAddr)
+		addr, err := MultiAddrFromString(stringAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get multiaddr from string")
+			return nil, fmt.Errorf("Could not get multiaddr from string:%w", err)
 		}
 		allAddrs = append(allAddrs, addr)
 	}
 	for _, stringAddr := range qnodeString {
 		qnodeAddr, err := qnode.Parse(qnode.ValidSchemes, stringAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get qnode from string")
+			return nil, fmt.Errorf("Could not get qnode from string:%w", err)
 		}
 		addr, err := convertToSingleMultiAddr(qnodeAddr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Could not get multiaddr")
+			return nil, fmt.Errorf("Could not get multiaddr:%w", err)
 		}
 		allAddrs = append(allAddrs, addr)
 	}
 	return allAddrs, nil
 }
 
-func multiAddrFromString(address string) (ma.Multiaddr, error) {
+func MultiAddrFromString(address string) (ma.Multiaddr, error) {
 	addr, err := iaddr.ParseString(address)
 	if err != nil {
 		return nil, err

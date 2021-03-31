@@ -36,6 +36,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"net"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -131,6 +132,7 @@ func (s *Service) Start() error {
 			s.connectWithAllPeers(addrs)
 		}
 	}
+	s.connectFromPeerStore()
 
 	// Periodic functions.
 	if len(peersToWatch) > 0 {
@@ -216,6 +218,21 @@ func (s *Service) connectWithAllPeers(multiAddrs []multiaddr.Multiaddr) {
 	}
 }
 
+func (s *Service) connectFromPeerStore() {
+	for _, pid := range s.host.Peerstore().Peers() {
+		if pid == s.PeerID() {
+			continue
+		}
+		info := s.host.Peerstore().PeerInfo(pid)
+		log.Trace(fmt.Sprintf("Try to connect from peer store:%s", info.String()))
+		go func(info peer.AddrInfo) {
+			if err := s.connectWithPeer(info, false); err != nil {
+				log.Trace(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
+			}
+		}(info)
+	}
+}
+
 func (s *Service) connectWithPeer(info peer.AddrInfo, force bool) error {
 	if info.ID == s.host.ID() {
 		return nil
@@ -243,6 +260,30 @@ func (s *Service) connectWithPeer(info peer.AddrInfo, force bool) error {
 // Peers returns the peer status interface.
 func (s *Service) Peers() *peers.Status {
 	return s.sy.Peers()
+}
+
+func (s *Service) IncreaseBytesSent(pid peer.ID, size int) {
+	if size <= 0 {
+		return
+	}
+	if s.Peers() != nil {
+		pe := s.Peers().Get(pid)
+		if pe != nil {
+			pe.IncreaseBytesSent(size)
+		}
+	}
+}
+
+func (s *Service) IncreaseBytesRecv(pid peer.ID, size int) {
+	if size <= 0 {
+		return
+	}
+	if s.Peers() != nil {
+		pe := s.Peers().Get(pid)
+		if pe != nil {
+			pe.IncreaseBytesRecv(size)
+		}
+	}
 }
 
 // listen for new nodes watches for new nodes in the network and adds them to the peerstore.
@@ -503,6 +544,13 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 		MaxCost:     1000,
 		BufferItems: 64,
 	})
+
+	defer func() {
+		if err != nil {
+			cancel()
+		}
+	}()
+
 	if err != nil {
 		return nil, err
 	}
@@ -533,6 +581,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			BootstrapNodeAddr:    bootnodeAddrs,
 			DataDir:              cfg.DataDir,
 			MaxPeers:             uint(cfg.MaxPeers),
+			MaxInbound:           cfg.MaxInbound,
 			ReadWritePermissions: 0600, //-rw------- Read and Write permissions for user
 			MetaDataDir:          cfg.MetaDataDir,
 			TCPPort:              uint(cfg.P2PTCPPort),
@@ -547,6 +596,10 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			HostAddress:          cfg.HostIP,
 			HostDNS:              cfg.HostDNS,
 			RelayNodeAddr:        cfg.RelayNode,
+			AllowListCIDR:        cfg.Whitelist,
+			DenyListCIDR:         cfg.Blacklist,
+			Banning:              cfg.Banning,
+			DisableListen:        cfg.DisableListen,
 		},
 		ctx:           ctx,
 		cancel:        cancel,
@@ -558,7 +611,14 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 	dv5Nodes := parseBootStrapAddrs(s.cfg.BootstrapNodeAddr)
 	s.cfg.Discv5BootStrapAddr = dv5Nodes
 
-	ipAddr := IpAddr()
+	var ipAddr net.IP
+	if len(cfg.Listener) > 0 {
+		ipAddr = net.ParseIP(cfg.Listener)
+	}
+	if ipAddr == nil {
+		ipAddr = IpAddr()
+	}
+
 	s.privKey, err = privKey(s.cfg)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to generate p2p private key:%v", err))

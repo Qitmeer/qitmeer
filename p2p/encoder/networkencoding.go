@@ -28,4 +28,8 @@ type NetworkEncoding interface {
 	EncodeWithMaxLength(io.Writer, interface{}) (int, error)
 	// ProtocolSuffix returns the last part of the protocol ID to indicate the encoding scheme.
 	ProtocolSuffix() string
+	// return max chunk size
+	GetMaxChunkSize() uint64
+	// return msg size
+	GetSize(msg interface{}) int
 }

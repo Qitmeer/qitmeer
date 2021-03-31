@@ -8,6 +8,7 @@ package txscript
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 )
 
@@ -16,6 +17,43 @@ const (
 	MaxOpsPerScript       = 255  // Max number of non-push operations.
 	MaxPubKeysPerMultiSig = 20   // Multisig can't have more sigs than this.
 	MaxScriptElementSize  = 2048 // Max bytes pushable to the stack.
+
+	// pubKeyHashLen is the length of a P2PKH script.
+	pubKeyHashLen = 25
+
+	// scriptHashLen is the length of a P2SH script.
+	scriptHashLen = 23
+
+	// maxLen is the maximum script length supported by ParsePkScript.
+	maxLen = 34
+
+	// minPubKeyHashSigScriptLen is the minimum length of a signature script
+	// that spends a P2PKH output. The length is composed of the following:
+	//   Signature length (1 byte)
+	//   Signature (min 8 bytes)
+	//   Signature hash type (1 byte)
+	//   Public key length (1 byte)
+	//   Public key (33 byte)
+	minPubKeyHashSigScriptLen = 1 + 8 + 1 + 1 + 33
+
+	// maxPubKeyHashSigScriptLen is the maximum length of a signature script
+	// that spends a P2PKH output. The length is composed of the following:
+	//   Signature length (1 byte)
+	//   Signature (max 72 bytes)
+	//   Signature hash type (1 byte)
+	//   Public key length (1 byte)
+	//   Public key (33 byte)
+	maxPubKeyHashSigScriptLen = 1 + 72 + 1 + 1 + 33
+
+	// compressedPubKeyLen is the length in bytes of a compressed public
+	// key.
+	compressedPubKeyLen = 33
+)
+
+var (
+	// ErrUnsupportedScriptType is an error returned when we attempt to
+	// parse/re-compute an output script into a PkScript struct.
+	ErrUnsupportedScriptType = errors.New("unsupported script type")
 )
 
 // isSmallInt returns whether or not the opcode is considered a small integer,
@@ -35,6 +73,40 @@ func IsPayToScriptHash(script []byte) bool {
 		return false
 	}
 	return isScriptHash(pops)
+}
+
+// extractPubKeyHash extracts the public key hash from the passed script if it
+// is a standard pay-to-pubkey-hash script.  It will return nil otherwise.
+func extractPubKeyHash(script []byte) []byte {
+	// A pay-to-pubkey-hash script is of the form:
+	//  OP_DUP OP_HASH160 <20-byte hash> OP_EQUALVERIFY OP_CHECKSIG
+	if len(script) == 25 &&
+		script[0] == OP_DUP &&
+		script[1] == OP_HASH160 &&
+		script[2] == OP_DATA_20 &&
+		script[23] == OP_EQUALVERIFY &&
+		script[24] == OP_CHECKSIG {
+
+		return script[3:23]
+	}
+
+	return nil
+}
+
+// IsPubKeyHashScript returns whether or not the passed script is a standard
+// pay-to-pubkey-hash script.
+func IsPubKeyHashScript(script []byte) bool {
+	return extractPubKeyHash(script) != nil
+}
+
+// IsStrictCompressedPubKeyEncoding returns whether or not the passed public
+// key adheres to the strict compressed encoding requirements.
+func IsStrictCompressedPubKeyEncoding(pubKey []byte) bool {
+	if len(pubKey) == 33 && (pubKey[0] == 0x02 || pubKey[0] == 0x03) {
+		// Compressed
+		return true
+	}
+	return false
 }
 
 // isPushOnly returns true if the script only pushes data, false otherwise.

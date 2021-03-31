@@ -8,6 +8,7 @@ package params
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
@@ -192,7 +193,7 @@ var privNetGenesisCoinbaseTx = types.Transaction{
 	},
 	TxOut: []*types.TxOutput{
 		{
-			Amount: 0x00000000,
+			Amount: types.Amount{Value: 0x00000000, Id: types.MEERID},
 			PkScript: []byte{
 				0x41, 0x04, 0x67, 0x8a, 0xfd, 0xb0, 0xfe, 0x55, /* |A.g....U| */
 				0x48, 0x27, 0x19, 0x67, 0xf1, 0xa6, 0x71, 0x30, /* |H'.g..q0| */
@@ -210,10 +211,56 @@ var privNetGenesisCoinbaseTx = types.Transaction{
 	Expire:   0,
 }
 
+var privNetGenesisTx1 = buildPrvNetGenesisTxOne()
+
+func buildPrvNetGenesisTxOne() types.Transaction {
+	tx := types.Transaction{
+		Version: 1,
+		TxIn: []*types.TxInput{
+			{
+				PreviousOut: types.TxOutPoint{
+					Hash:     hash.Hash{},
+					OutIndex: 0xffffffff,
+				},
+				Sequence: 0xffffffff,
+				SignScript: []byte{
+					0x04, 0xff, 0xff, 0x00, 0x1d, 0x01, 0x04, 0x45, /* |.......E| */
+					0x54, 0x68, 0x65, 0x20, 0x54, 0x69, 0x6d, 0x65, /* |The Time| */
+					0x73, 0x20, 0x30, 0x33, 0x2f, 0x4a, 0x61, 0x6e, /* |s 03/Jan| */
+					0x2f, 0x32, 0x30, 0x30, 0x39, 0x20, 0x43, 0x68, /* |/2009 Ch| */
+					0x61, 0x6e, 0x63, 0x65, 0x6c, 0x6c, 0x6f, 0x72, /* |ancellor| */
+					0x20, 0x6f, 0x6e, 0x20, 0x62, 0x72, 0x69, 0x6e, /* | on brin| */
+					0x6b, 0x20, 0x6f, 0x66, 0x20, 0x73, 0x65, 0x63, /* |k of sec|*/
+					0x6f, 0x6e, 0x64, 0x20, 0x62, 0x61, 0x69, 0x6c, /* |ond bail| */
+					0x6f, 0x75, 0x74, 0x20, 0x66, 0x6f, 0x72, 0x20, /* |out for |*/
+					0x62, 0x61, 0x6e, 0x6b, 0x73, /* |banks| */
+				},
+			},
+			{
+				PreviousOut: types.TxOutPoint{
+					Hash:     hash.Hash{},
+					OutIndex: 0xffffffff,
+				},
+				Sequence:   0xffffffff,
+				SignScript: []byte{},
+			},
+		},
+		LockTime: 0,
+		Expire:   0,
+	}
+	ledger.Ledger(&tx, protocol.PrivNet)
+	return tx
+}
+
+var privNetGenesisTxs = []*types.Transaction{
+	&privNetGenesisCoinbaseTx,
+	&privNetGenesisTx1,
+}
+
 // privNetGenesisMerkleRoot is the hash of the first transaction in the genesis
 // block for the simulation test network.  It is the same as the merkle root for
 // the main network.
-var privNetGenesisMerkleRoot = privNetGenesisCoinbaseTx.TxHashFull()
+var privNetGenesisMerkleRoot = merkle.CalcMerkleRoot(privNetGenesisTxs)
 
 var zeroHash = hash.ZeroHash
 
@@ -222,7 +269,7 @@ var zeroHash = hash.ZeroHash
 var privNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
 		ParentRoot: zeroHash,
-		TxRoot:     privNetGenesisMerkleRoot,
+		TxRoot:     *privNetGenesisMerkleRoot,
 		StateRoot: hash.Hash([32]byte{ // Make go vet happy.
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -233,7 +280,7 @@ var privNetGenesisBlock = types.Block{
 		Difficulty: 0x207fffff,               // 545259519
 		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
 	},
-	Transactions: []*types.Transaction{&privNetGenesisCoinbaseTx},
+	Transactions: privNetGenesisTxs,
 }
 
 // privNetGenesisHash is the hash of the first block in the block chain for the
@@ -268,7 +315,7 @@ var testPowNetGenesisCoinbaseTx = types.Transaction{
 	},
 	TxOut: []*types.TxOutput{
 		{
-			Amount: 0x00000000,
+			Amount: types.Amount{Value: 0x00000000, Id: types.MEERID},
 			PkScript: []byte{
 				0x41, 0x04, 0x67, 0x8a, 0xfd, 0xb0, 0xfe, 0x55, /* |A.g....U| */
 				0x48, 0x27, 0x19, 0x67, 0xf1, 0xa6, 0x71, 0x30, /* |H'.g..q0| */
@@ -286,9 +333,54 @@ var testPowNetGenesisCoinbaseTx = types.Transaction{
 	Expire:   0,
 }
 
+var mixNetGenesisTx1 = buildMixNetGenesisTxOne()
+func buildMixNetGenesisTxOne() types.Transaction {
+	tx := types.Transaction{
+		Version: 1,
+		TxIn: []*types.TxInput{
+			{
+				PreviousOut: types.TxOutPoint{
+					Hash:     hash.Hash{},
+					OutIndex: 0xffffffff,
+				},
+				Sequence: 0xffffffff,
+				SignScript: []byte{
+					0x04, 0xff, 0xff, 0x00, 0x1d, 0x01, 0x04, 0x45, /* |.......E| */
+					0x54, 0x68, 0x65, 0x20, 0x54, 0x69, 0x6d, 0x65, /* |The Time| */
+					0x73, 0x20, 0x30, 0x33, 0x2f, 0x4a, 0x61, 0x6e, /* |s 03/Jan| */
+					0x2f, 0x32, 0x30, 0x30, 0x39, 0x20, 0x43, 0x68, /* |/2009 Ch| */
+					0x61, 0x6e, 0x63, 0x65, 0x6c, 0x6c, 0x6f, 0x72, /* |ancellor| */
+					0x20, 0x6f, 0x6e, 0x20, 0x62, 0x72, 0x69, 0x6e, /* | on brin| */
+					0x6b, 0x20, 0x6f, 0x66, 0x20, 0x73, 0x65, 0x63, /* |k of sec|*/
+					0x6f, 0x6e, 0x64, 0x20, 0x62, 0x61, 0x69, 0x6c, /* |ond bail| */
+					0x6f, 0x75, 0x74, 0x20, 0x66, 0x6f, 0x72, 0x20, /* |out for |*/
+					0x62, 0x61, 0x6e, 0x6b, 0x73, /* |banks| */
+				},
+			},
+			{
+				PreviousOut: types.TxOutPoint{
+					Hash:     hash.Hash{},
+					OutIndex: 0xffffffff,
+				},
+				Sequence:   0xffffffff,
+				SignScript: []byte{},
+			},
+		},
+		LockTime: 0,
+		Expire:   0,
+	}
+	ledger.Ledger(&tx, protocol.MixNet)
+	return tx
+}
+
+var mixNetGenesisTxs = []*types.Transaction{
+	&testPowNetGenesisCoinbaseTx,
+	&mixNetGenesisTx1,
+}
+
 // testNetGenesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the test network.
-var testPowNetGenesisMerkleRoot = testPowNetGenesisCoinbaseTx.TxHashFull()
+var testPowNetGenesisMerkleRoot = merkle.CalcMerkleRoot(mixNetGenesisTxs)
 
 // testNetGenesisBlock defines the genesis block of the block chain which
 // serves as the public transaction ledger for the test network (version 3).
@@ -296,12 +388,12 @@ var testPowNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
 		Version:    16,
 		ParentRoot: hash.Hash{},
-		TxRoot:     testPowNetGenesisMerkleRoot,
+		TxRoot:     *testPowNetGenesisMerkleRoot,
 		Timestamp:  time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
 		Difficulty: 0x1e00ffff,
 		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
 	},
-	Transactions: []*types.Transaction{&testPowNetGenesisCoinbaseTx},
+	Transactions: mixNetGenesisTxs,
 	Parents:      []*hash.Hash{},
 }
 

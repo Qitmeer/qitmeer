@@ -7,26 +7,17 @@ package synch
 import (
 	"context"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/p2p/common"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/pkg/errors"
 )
 
 // metaDataHandler reads the incoming metadata rpc request from the peer.
-func (s *Sync) metaDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) error {
-	defer func() {
-		closeSteam(stream)
-	}()
+func (s *Sync) metaDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
 	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
 	defer cancel()
-	SetRPCStreamDeadlines(stream)
-
-	if _, err := stream.Write([]byte{ResponseCodeSuccess}); err != nil {
-		return err
-	}
-	_, err := s.Encoding().EncodeWithMaxLength(stream, s.p2p.Metadata())
-	return err
+	return s.EncodeResponseMsg(stream, s.p2p.Metadata())
 }
 
 func (s *Sync) sendMetaDataRequest(ctx context.Context, id peer.ID) (*pb.MetaData, error) {
@@ -51,7 +42,7 @@ func (s *Sync) sendMetaDataRequest(ctx context.Context, id peer.ID) (*pb.MetaDat
 	}
 	if code != 0 {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
-		return nil, errors.New(errMsg)
+		return nil, fmt.Errorf(errMsg)
 	}
 	msg := new(pb.MetaData)
 	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {

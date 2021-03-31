@@ -20,6 +20,7 @@ type Config struct {
 	Discv5BootStrapAddr  []string
 	DataDir              string
 	MaxPeers             uint
+	MaxInbound           int
 	MetaDataDir          string
 	ReadWritePermissions os.FileMode
 	AllowListCIDR        string
@@ -43,4 +44,6 @@ type Config struct {
 	DisableRelayTx bool
 	MaxOrphanTxs   int
 	Params         *params.Params
+	Banning        bool // Open or not ban module
+	DisableListen  bool
 }

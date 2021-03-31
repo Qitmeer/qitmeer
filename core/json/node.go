@@ -20,8 +20,7 @@ type InfoNodeResult struct {
 	TimeOffset       int64               `json:"timeoffset"`
 	Connections      int32               `json:"connections"`
 	PowDiff          PowDiff             `json:"pow_diff"`
-	TestNet          bool                `json:"testnet"`
-	MixNet           bool                `json:"mixnet"`
+	Network          string              `json:"network"`
 	Confirmations    int32               `json:"confirmations"`
 	CoinbaseMaturity int32               `json:"coinbasematurity"`
 	Errors           string              `json:"errors"`
@@ -37,12 +36,17 @@ type GetPeerInfoResult struct {
 	State      string               `json:"state"`
 	Protocol   uint32               `json:"protocol,omitempty"`
 	Genesis    string               `json:"genesis,omitempty"`
-	Services   uint64               `json:"services,omitempty"`
+	Services   string               `json:"services,omitempty"`
 	UserAgent  string               `json:"useragent,omitempty"`
 	Direction  string               `json:"direction,omitempty"`
 	GraphState *GetGraphStateResult `json:"graphstate,omitempty"`
 	SyncNode   bool                 `json:"syncnode,omitempty"`
 	TimeOffset int64                `json:"timeoffset"`
+	LastSend   string               `json:"lastsend,omitempty"`
+	LastRecv   string               `json:"lastrecv,omitempty"`
+	BytesSent  uint64               `json:"bytessent,omitempty"`
+	BytesRecv  uint64               `json:"bytesrecv,omitempty"`
+	ConnTime   string               `json:"conntime,omitempty"`
 }
 
 // GetGraphStateResult data

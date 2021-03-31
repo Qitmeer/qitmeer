@@ -5,7 +5,6 @@
 package synch
 
 import (
-	"context"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"io"
@@ -58,7 +57,7 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 		return
 	}
 
-	if err := ps.sy.reValidatePeer(context.Background(), remotePeer); err != nil && err != io.EOF {
+	if err := ps.sy.reValidatePeer(ps.sy.p2p.Context(), remotePeer); err != nil && err != io.EOF {
 		log.Trace(fmt.Sprintf("%s Handshake failed", peerInfoStr))
 		ps.Disconnect(remotePe)
 		return
@@ -79,9 +78,10 @@ func (ps *PeerSync) Connection(pe *peers.Peer) {
 	pe.SetConnectionState(peers.PeerConnected)
 	// Go through the handshake process.
 	multiAddr := fmt.Sprintf("%s/p2p/%s", pe.Address().String(), pe.GetID().String())
-	if pe.IsRelay() {
-		log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s  (Relay Peer)",
-			pe.GetID(), pe.Direction(), multiAddr))
+
+	if !pe.IsConsensus() {
+		log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s  (%s)",
+			pe.GetID(), pe.Direction(), multiAddr, pe.Services().String()))
 		return
 	}
 	log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s activePeers:%d Peer Connected",
@@ -99,8 +99,8 @@ func (ps *PeerSync) Disconnect(pe *peers.Peer) {
 	}
 	// TODO some handle
 	pe.SetConnectionState(peers.PeerDisconnected)
-	if pe.IsRelay() {
-		log.Trace(fmt.Sprintf("Disconnect:%v (Relay Node)", pe.GetID()))
+	if !pe.IsConsensus() {
+		log.Trace(fmt.Sprintf("Disconnect:%v (%s)", pe.GetID(), pe.Services().String()))
 		return
 	}
 

@@ -6,14 +6,15 @@ package encoder
 
 import (
 	"fmt"
+	"github.com/prysmaticlabs/go-ssz/types"
 	"io"
 	"io/ioutil"
+	"reflect"
 	"sync"
 
 	fastssz "github.com/ferranbt/fastssz"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
-	"github.com/pkg/errors"
 	"github.com/prysmaticlabs/go-ssz"
 )
 
@@ -55,7 +56,7 @@ func (e SszNetworkEncoder) EncodeGossip(w io.Writer, msg interface{}) (int, erro
 		return 0, err
 	}
 	if uint64(len(b)) > MaxGossipSize {
-		return 0, errors.Errorf("gossip message exceeds max gossip size: %d bytes > %d bytes", len(b), MaxGossipSize)
+		return 0, fmt.Errorf("gossip message exceeds max gossip size: %d bytes > %d bytes", len(b), MaxGossipSize)
 	}
 	if e.UseSnappyCompression {
 		b = snappy.Encode(nil /*dst*/, b)
@@ -120,7 +121,7 @@ func (e SszNetworkEncoder) DecodeGossip(b []byte, to interface{}) error {
 		}
 	}
 	if uint64(len(b)) > MaxGossipSize {
-		return errors.Errorf("gossip message exceeds max gossip size: %d bytes > %d bytes", len(b), MaxGossipSize)
+		return fmt.Errorf("gossip message exceeds max gossip size: %d bytes > %d bytes", len(b), MaxGossipSize)
 	}
 	return e.doDecode(b, to)
 }
@@ -165,6 +166,18 @@ func (e SszNetworkEncoder) MaxLength(length int) int {
 		return snappy.MaxEncodedLen(length)
 	}
 	return length
+}
+
+// return max chunk size
+func (e SszNetworkEncoder) GetMaxChunkSize() uint64 {
+	return MaxChunkSize
+}
+
+func (e SszNetworkEncoder) GetSize(msg interface{}) int {
+	if v, ok := msg.(fastssz.Marshaler); ok {
+		return v.SizeSSZ()
+	}
+	return int(types.DetermineSize(reflect.ValueOf(msg)))
 }
 
 // Writes a bytes value through a snappy buffered writer.

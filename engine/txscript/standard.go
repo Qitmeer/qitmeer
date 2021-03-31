@@ -816,7 +816,7 @@ func PayToSStx(addr types.Address) ([]byte, error) {
 		return nil, ErrUnsupportedAddress
 	}
 
-	hash := addr.ScriptAddress()
+	hash := addr.Script()
 
 	if scriptType == PubKeyHashTy {
 		return NewScriptBuilder().AddOp(OP_SSTX).AddOp(OP_DUP).
@@ -849,7 +849,7 @@ func PayToSStxChange(addr types.Address) ([]byte, error) {
 		return nil, ErrUnsupportedAddress
 	}
 
-	h := addr.ScriptAddress()
+	h := addr.Script()
 
 	if scriptType == PubKeyHashTy {
 		return NewScriptBuilder().AddOp(OP_SSTXCHANGE).AddOp(OP_DUP).
@@ -882,7 +882,7 @@ func PayToSSGen(addr types.Address) ([]byte, error) {
 		return nil, ErrUnsupportedAddress
 	}
 
-	h := addr.ScriptAddress()
+	h := addr.Script()
 
 	if scriptType == PubKeyHashTy {
 		return NewScriptBuilder().AddOp(OP_SSGEN).AddOp(OP_DUP).
@@ -942,7 +942,7 @@ func PayToSSRtx(addr types.Address) ([]byte, error) {
 		return nil, ErrUnsupportedAddress
 	}
 
-	h := addr.ScriptAddress()
+	h := addr.Script()
 
 	if scriptType == PubKeyHashTy {
 		return NewScriptBuilder().AddOp(OP_SSRTX).AddOp(OP_DUP).
@@ -1008,7 +1008,7 @@ func GenerateSStxAddrPush(addr types.Address, amount uint64,
 		0x1e, // OP_DATA_30
 	}
 
-	hash := addr.ScriptAddress()
+	hash := addr.Script()
 
 	amountBuffer := make([]byte, 8)
 	binary.LittleEndian.PutUint64(amountBuffer, uint64(amount))
@@ -1088,35 +1088,35 @@ func PayToAddrScript(addr types.Address) ([]byte, error) {
 		}
 		switch addr.EcType() {
 		case ecc.ECDSA_Secp256k1:
-			return payToPubKeyHashScript(addr.ScriptAddress())
+			return payToPubKeyHashScript(addr.Script())
 		case ecc.EdDSA_Ed25519:
-			return payToPubKeyHashEdwardsScript(addr.ScriptAddress())
+			return payToPubKeyHashEdwardsScript(addr.Script())
 		case ecc.ECDSA_SecpSchnorr:
-			return payToPubKeyHashSchnorrScript(addr.ScriptAddress())
+			return payToPubKeyHashSchnorrScript(addr.Script())
 		}
 	case *address.ScriptHashAddress:
 		if addr == nil {
 			return nil, ErrUnsupportedAddress
 		}
-		return payToScriptHashScript(addr.ScriptAddress())
+		return payToScriptHashScript(addr.Script())
 
 	case *address.SecpPubKeyAddress:
 		if addr == nil {
 			return nil, ErrUnsupportedAddress
 		}
-		return payToPubKeyScript(addr.ScriptAddress())
+		return payToPubKeyScript(addr.Script())
 
 	case *address.EdwardsPubKeyAddress:
 		if addr == nil {
 			return nil, ErrUnsupportedAddress
 		}
-		return payToEdwardsPubKeyScript(addr.ScriptAddress())
+		return payToEdwardsPubKeyScript(addr.Script())
 
 	case *address.SecSchnorrPubKeyAddress:
 		if addr == nil {
 			return nil, ErrUnsupportedAddress
 		}
-		return payToSchnorrPubKeyScript(addr.ScriptAddress())
+		return payToSchnorrPubKeyScript(addr.Script())
 	}
 
 	return nil, ErrUnsupportedAddress
@@ -1134,7 +1134,7 @@ func MultiSigScript(pubkeys []*address.SecpPubKeyAddress, nrequired int) ([]byte
 
 	builder := NewScriptBuilder().AddInt64(int64(nrequired))
 	for _, key := range pubkeys {
-		builder.AddData(key.ScriptAddress())
+		builder.AddData(key.Script())
 	}
 	builder.AddInt64(int64(len(pubkeys)))
 	builder.AddOp(OP_CHECKMULTISIG)
@@ -1306,7 +1306,7 @@ func ExtractPkScriptAddrs(pkScript []byte,
 		// Therefore the script hash is the 2nd item on the stack.
 		// Skip the script hash if it's invalid for some reason.
 		requiredSigs = 1
-		addr, err := address.NewAddressScriptHashFromHash(pops[1].data,
+		addr, err := address.NewScriptHashAddressFromHash(pops[1].data,
 			chainParams)
 		if err == nil {
 			addrs = append(addrs, addr)

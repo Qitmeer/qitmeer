@@ -30,4 +30,15 @@ type P2P interface {
 	Resolve(n *qnode.Node) *qnode.Node
 	Node() *qnode.Node
 	RelayNodeInfo() *peer.AddrInfo
+	IncreaseBytesSent(pid peer.ID, size int)
+	IncreaseBytesRecv(pid peer.ID, size int)
+}
+
+type P2PRPC interface {
+	Host() host.Host
+	Context() context.Context
+	Encoding() encoder.NetworkEncoding
+	Disconnect(pid peer.ID) error
+	IncreaseBytesSent(pid peer.ID, size int)
+	IncreaseBytesRecv(pid peer.ID, size int)
 }

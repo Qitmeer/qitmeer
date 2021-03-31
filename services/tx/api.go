@@ -17,6 +17,7 @@ import (
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"time"
 )
@@ -24,12 +25,12 @@ import (
 func (tm *TxManager) APIs() []rpc.API {
 	return []rpc.API{
 		{
-			NameSpace: rpc.DefaultServiceNameSpace,
+			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicTxAPI(tm),
 			Public:    true,
 		},
 		{
-			NameSpace: rpc.TestNameSpace,
+			NameSpace: cmds.TestNameSpace,
 			Service:   NewPrivateTxAPI(tm),
 			Public:    false,
 		},
@@ -46,17 +47,18 @@ func NewPublicTxAPI(tm *TxManager) *PublicTxAPI {
 	return &ptapi
 }
 
-// TransactionInput represents the inputs to a transaction.  Specifically a
-// transaction hash and output number pair.
-type TransactionInput struct {
-	Txid string `json:"txid"`
-	Vout uint32 `json:"vout"`
+func (api *PublicTxAPI) CreateRawTransaction(inputs []json.TransactionInput, amounts json.Amounts, lockTime *int64) (interface{}, error) {
+	aa := json.AdreesAmount{}
+	if len(amounts) > 0 {
+		for k, v := range amounts {
+			aa[k] = json.Amout{CoinId: uint16(types.MEERID), Amount: int64(v)}
+		}
+	}
+	return api.CreateRawTransactionV2(inputs, aa, lockTime)
 }
 
-type Amounts map[string]uint64 //{\"address\":amount,...}
-
-func (api *PublicTxAPI) CreateRawTransaction(inputs []TransactionInput,
-	amounts Amounts, lockTime *int64) (interface{}, error) {
+func (api *PublicTxAPI) CreateRawTransactionV2(inputs []json.TransactionInput,
+	amounts json.AdreesAmount, lockTime *int64) (interface{}, error) {
 
 	// Validate the locktime, if given.
 	if lockTime != nil &&
@@ -84,11 +86,15 @@ func (api *PublicTxAPI) CreateRawTransaction(inputs []TransactionInput,
 	// some validity checks.
 	for encodedAddr, amount := range amounts {
 		// Ensure amount is in the valid range for monetary amounts.
-		if amount <= 0 || amount > types.MaxAmount {
+		if amount.Amount <= 0 || amount.Amount > types.MaxAmount {
 			return nil, rpc.RpcInvalidError("Invalid amount: 0 >= %v "+
 				"> %v", amount, types.MaxAmount)
 		}
 
+		err := types.CheckCoinID(types.CoinID(amount.CoinId))
+		if err != nil {
+			return nil, rpc.RpcInvalidError(err.Error())
+		}
 		// Decode the provided address.
 		addr, err := address.DecodeAddress(encodedAddr)
 		if err != nil {
@@ -117,7 +123,7 @@ func (api *PublicTxAPI) CreateRawTransaction(inputs []TransactionInput,
 				"Pay to address script")
 		}
 
-		txOut := types.NewTxOutput(amount, pkScript)
+		txOut := types.NewTxOutput(types.Amount{Value: amount.Amount, Id: types.CoinID(amount.CoinId)}, pkScript)
 		mtx.AddTxOut(txOut)
 	}
 
@@ -321,7 +327,7 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 		mtx = tx
 	}
 	txsvalid := true
-	coinbaseAmout := uint64(0)
+	coinbaseAmout := types.AmountMap{}
 	if blkHash != nil {
 		blkHashStr = blkHash.String()
 		ib := api.txManager.bm.GetChain().BlockDAG().GetBlock(blkHash)
@@ -331,7 +337,13 @@ func (api *PublicTxAPI) GetRawTransaction(txHash hash.Hash, verbose bool) (inter
 		}
 
 		if mtx.Tx.IsCoinBase() {
-			coinbaseAmout = mtx.Tx.TxOut[0].Amount + uint64(api.txManager.bm.GetChain().GetFees(blkHash))
+			coinbaseFees := api.txManager.bm.GetChain().GetFees(blkHash)
+			if coinbaseFees == nil {
+				coinbaseAmout[mtx.Tx.TxOut[0].Amount.Id] = mtx.Tx.TxOut[0].Amount.Value
+			} else {
+				coinbaseAmout = coinbaseFees
+				coinbaseAmout[mtx.Tx.TxOut[0].Amount.Id] += mtx.Tx.TxOut[0].Amount.Value
+			}
 		}
 	}
 	if tx != nil {
@@ -366,7 +378,7 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 	var bestBlockHash string
 	var confirmations int64
 	var txVersion uint32
-	var amount uint64
+	var amount types.Amount
 	var pkScript []byte
 	var isCoinbase bool
 
@@ -418,7 +430,10 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 			} else {
 				confirmations = int64(best.GraphState.GetLayer() - block.GetLayer())
 			}
-			amount += uint64(api.txManager.bm.GetChain().GetFees(block.GetHash()))
+			if entry.IsCoinBase() {
+				//TODO, even the entry is coinbase, should not change the amount by tx fee, need consider output index
+				amount.Value += api.txManager.bm.GetChain().GetFeeByCoinID(block.GetHash(), amount.Id)
+			}
 		}
 
 		pkScript = entry.PkScript()
@@ -439,11 +454,11 @@ func (api *PublicTxAPI) GetUtxo(txHash hash.Hash, vout uint32, includeMempool *b
 	for i, addr := range addrs {
 		addresses[i] = addr.Encode()
 	}
-
 	txOutReply := &json.GetUtxoResult{
 		BestBlock:     bestBlockHash,
 		Confirmations: confirmations,
-		Amount:        types.Amount(amount).ToUnit(types.AmountCoin),
+		CoinId:        uint16(amount.Id),
+		Amount:        amount.ToUnit(types.AmountCoin),
 		Version:       int32(txVersion),
 		ScriptPubKey: json.ScriptPubKeyResult{
 			Asm:       disbuf,
@@ -631,9 +646,11 @@ func (api *PublicTxAPI) GetRawTransactions(addre string, vinext *bool, count *ui
 			return nil, err
 		}
 
-		result.Vout = marshal.MarshJsonVout(mtx.Tx, filterAddrMap, params)
 		if mtx.Tx.IsCoinBase() {
-			result.Vout[0].Amount = mtx.Tx.TxOut[0].Amount + uint64(api.txManager.bm.GetChain().GetFees(rtx.blkHash))
+			amountMap := api.txManager.bm.GetChain().GetFees(rtx.blkHash)
+			result.Vout = marshal.MarshJsonCoinbaseVout(mtx.Tx, filterAddrMap, params, amountMap)
+		} else {
+			result.Vout = marshal.MarshJsonVout(mtx.Tx, filterAddrMap, params)
 		}
 		result.Version = mtx.Tx.Version
 		result.LockTime = mtx.Tx.LockTime
@@ -799,7 +816,8 @@ func (api *PublicTxAPI) createVinListPrevOut(mtx *types.Tx, chainParams *params.
 			vinListEntry := &vinList[len(vinList)-1]
 			vinListEntry.PrevOut = &json.PrevOut{
 				Addresses: encodedAddrs,
-				Value:     types.Amount(originTxOut.Amount).ToCoin(),
+				CoinId:    uint16(originTxOut.Amount.Id),
+				Value:     originTxOut.Amount.ToCoin(),
 			}
 		}
 	}

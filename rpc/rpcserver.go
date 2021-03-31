@@ -7,9 +7,12 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
-	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/rpc/websocket"
+	"github.com/Qitmeer/qitmeer/services/index"
 	"github.com/deckarep/golang-set"
 	"golang.org/x/net/context"
 	"io"
@@ -33,7 +36,7 @@ type API struct {
 // RpcServer provides a concurrent safe RPC server to a chain server.
 type RpcServer struct {
 	run        int32
-	wg         util.WaitGroupWrapper
+	wg         sync.WaitGroup
 	quit       chan int
 	statusLock sync.RWMutex
 
@@ -51,6 +54,12 @@ type RpcServer struct {
 
 	ReqStatus     map[string]*RequestStatus
 	reqStatusLock sync.RWMutex
+
+	ntfnMgr     *wsNotificationManager
+	BC          *blockchain.BlockChain
+	TxIndex     *index.TxIndex
+	ChainParams *params.Params
+	listeners   []net.Listener
 }
 
 // service represents a registered object
@@ -102,7 +111,7 @@ type serverRequest struct {
 }
 
 // newRPCServer returns a new instance of the rpcServer struct.
-func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
+func NewRPCServer(cfg *config.Config, events *event.Feed) (*RpcServer, error) {
 	rpc := RpcServer{
 
 		config: cfg,
@@ -122,30 +131,49 @@ func NewRPCServer(cfg *config.Config) (*RpcServer, error) {
 			base64.StdEncoding.EncodeToString([]byte(login))
 		rpc.authsha = sha256.Sum256([]byte(auth))
 	}
+	rpc.ntfnMgr = newWsNotificationManager(&rpc)
+	rpc.subscribe(events)
 	return &rpc, nil
 }
 
 func (s *RpcServer) Start() error {
-	//TODO control by config
-	if err := s.startHTTP(s.config.RPCListeners); err != nil {
+	if atomic.AddInt32(&s.run, 1) != 1 {
+		return fmt.Errorf("Already running")
+	}
+	err := s.startHTTP(s.config.RPCListeners)
+	if err != nil {
 		return err
 	}
-	s.run = 1
+	s.ntfnMgr.Start()
 	return nil
 }
 
 // Stop will stop reading new requests, wait for stopPendingRequestTimeout to allow pending requests to finish,
 // close all codecs which will cancel pending requests/subscriptions.
 func (s *RpcServer) Stop() {
-	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
-		log.Debug("RPC Server is stopping")
-		s.codecsMu.Lock()
-		defer s.codecsMu.Unlock()
-		s.codecs.Each(func(c interface{}) bool {
-			c.(ServerCodec).Close()
-			return true
-		})
+	if !atomic.CompareAndSwapInt32(&s.run, 1, 0) {
+		return
 	}
+	log.Debug("RPC Server is stopping")
+
+	for _, listener := range s.listeners {
+		err := listener.Close()
+		if err != nil {
+			log.Error(fmt.Sprintf("Problem shutting down rpc: %v", err))
+		}
+	}
+
+	s.codecsMu.Lock()
+	defer s.codecsMu.Unlock()
+	s.codecs.Each(func(c interface{}) bool {
+		c.(ServerCodec).Close()
+		return true
+	})
+
+	s.ntfnMgr.Stop()
+
+	close(s.quit)
+	s.wg.Wait()
 }
 
 const (
@@ -186,16 +214,39 @@ func (s *RpcServer) startHTTP(listenAddrs []string) error {
 		// Read and respond to the request.
 		s.jsonRPCRead(w, r)
 	})
+
+	// Websocket endpoint.
+	rpcServeMux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		isAdmin, err := s.checkAuth(r, false)
+		if err != nil {
+			jsonAuthFail(w)
+			return
+		}
+
+		// Attempt to upgrade the connection to a websocket connection
+		// using the default size for read/write buffers.
+		ws, err := websocket.Upgrade(w, r, nil, 0, 0)
+		if err != nil {
+			if _, ok := err.(websocket.HandshakeError); !ok {
+				log.Error(fmt.Sprintf("Unexpected websocket error: %v", err))
+			}
+			http.Error(w, "400 Bad Request.", http.StatusBadRequest)
+			return
+		}
+		s.WebsocketHandler(ws, r.RemoteAddr, isAdmin)
+	})
+
 	listeners, err := parseListeners(s.config, listenAddrs)
 	if err != nil {
 		return err
 	}
+	s.listeners = listeners
 	for _, listener := range listeners {
 		s.wg.Add(1)
 		go func(listener net.Listener) {
-			log.Info("RPC server listening on ", "addr", listener.Addr())
+			log.Info(fmt.Sprintf("RPC server listening on addr:%v", listener.Addr()))
 			httpServer.Serve(listener)
-			log.Trace("RPC listener done for %s", listener.Addr())
+			log.Info(fmt.Sprintf("RPC listener done for %v", listener.Addr()))
 			s.wg.Done()
 		}(listener)
 	}
@@ -584,7 +635,6 @@ func (s *RpcServer) handle(ctx context.Context, codec ServerCodec, req *serverRe
 
 		return codec.CreateResponse(req.id, subid), activateSub
 	}
-
 	// regular RPC call, prepare arguments
 	if len(req.args) != len(req.callb.argTypes) {
 		rpcErr := &invalidParamsError{fmt.Sprintf("%s%s%s expects %d parameters, got %d",

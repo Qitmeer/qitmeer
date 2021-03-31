@@ -35,4 +35,6 @@ type BlockTemplate struct {
 
 	//pow diff
 	Difficulty uint32
+
+	BlockFeesMap AmountMap
 }

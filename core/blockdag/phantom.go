@@ -43,8 +43,6 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 		log.Info(fmt.Sprintf("anticone size:%d", ph.anticoneSize))
 	}
 
-	ph.bd.order = map[uint]uint{}
-
 	// main chain
 	ph.mainChain = &MainChain{bd, MaxId, 0}
 	ph.bd.db.Update(func(dbTx database.Tx) error {
@@ -289,7 +287,7 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *Ph
 		ph.mainChain.Add(buestTip.GetID())
 		ph.diffAnticone.Clean()
 		buestTip.SetOrder(0)
-		ph.bd.order[0] = buestTip.GetID()
+		ph.bd.commitOrder[0] = buestTip.GetID()
 		return buestTip
 	}
 
@@ -305,7 +303,12 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *Ph
 	ph.diffAnticone = ph.bd.getAnticone(ph.bd.getBlockById(ph.mainChain.tip), nil)
 
 	changeOrder := ph.bd.getBlockById(intersection).GetOrder() + 1
-	return ph.getBlock(ph.bd.order[changeOrder])
+
+	coPB, ok := ph.bd.getBlockByOrder(changeOrder).(*PhantomBlock)
+	if !ok {
+		return nil
+	}
+	return coPB
 }
 
 func (ph *Phantom) isMaxMainTip(pb *PhantomBlock) bool {
@@ -359,17 +362,17 @@ func (ph *Phantom) updateMainOrder(path []uint, intersection uint) {
 	for i := l - 1; i >= 0; i-- {
 		curBlock := ph.getBlock(path[i])
 		curBlock.SetOrder(startOrder + uint(curBlock.blueDiffAnticone.Size()+curBlock.redDiffAnticone.Size()+1))
-		ph.bd.order[curBlock.GetOrder()] = curBlock.GetID()
+		ph.bd.commitOrder[curBlock.GetOrder()] = curBlock.GetID()
 		ph.mainChain.Add(curBlock.GetID())
 		for k, v := range curBlock.blueDiffAnticone.GetMap() {
 			dab := ph.getBlock(k)
 			dab.SetOrder(startOrder + v.(uint))
-			ph.bd.order[dab.GetOrder()] = dab.GetID()
+			ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
 		}
 		for k, v := range curBlock.redDiffAnticone.GetMap() {
 			dab := ph.getBlock(k)
 			dab.SetOrder(startOrder + v.(uint))
-			ph.bd.order[dab.GetOrder()] = dab.GetID()
+			ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
 		}
 		startOrder = curBlock.GetOrder()
 	}
@@ -409,12 +412,12 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	for k, v := range ph.virtualBlock.blueDiffAnticone.GetMap() {
 		dab := ph.getBlock(k)
 		dab.SetOrder(startOrder + v.(uint))
-		ph.bd.order[dab.GetOrder()] = dab.GetID()
+		ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
 	}
 	for k, v := range ph.virtualBlock.redDiffAnticone.GetMap() {
 		dab := ph.getBlock(k)
 		dab.SetOrder(startOrder + v.(uint))
-		ph.bd.order[dab.GetOrder()] = dab.GetID()
+		ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
 	}
 
 	ph.virtualBlock.SetOrder(ph.bd.blockTotal + 1)
@@ -460,18 +463,6 @@ func (ph *Phantom) GetTipsList() []IBlock {
 	return nil
 }
 
-// Find block hash by order, this is very fast.
-func (ph *Phantom) GetBlockByOrder(order uint) *hash.Hash {
-	if order > ph.GetMainChainTip().GetOrder() {
-		return nil
-	}
-	ib := ph.bd.getBlockById(ph.bd.order[order])
-	if ib != nil {
-		return ib.GetHash()
-	}
-	return nil
-}
-
 // Query whether a given block is on the main chain.
 func (ph *Phantom) IsOnMainChain(b IBlock) bool {
 	if ph.mainChain.Has(b.GetID()) {
@@ -507,9 +498,12 @@ func (ph *Phantom) getOrderChangeList(pb *PhantomBlock) *list.List {
 			refNodes.PushBack(pb)
 		} else if pb.IsOrdered() && pb.GetOrder() <= ph.GetMainChainTip().GetOrder() {
 			for i := ph.GetMainChainTip().GetOrder(); i >= 0; i-- {
-				refNodes.PushFront(ph.getBlock(ph.bd.order[i]))
-				if ph.bd.order[i] == pb.GetID() {
-					break
+				curOrderPb, ok := ph.bd.getBlockByOrder(i).(*PhantomBlock)
+				if ok {
+					refNodes.PushFront(curOrderPb)
+					if curOrderPb.GetID() == pb.GetID() {
+						break
+					}
 				}
 			}
 		}
@@ -528,6 +522,10 @@ func (ph *Phantom) GetMainChainTip() IBlock {
 	return ph.bd.getBlockById(ph.mainChain.tip)
 }
 
+func (ph *Phantom) GetMainChainTipId() uint {
+	return ph.mainChain.tip
+}
+
 // return the main parent in the parents
 func (ph *Phantom) GetMainParent(parents *IdSet) IBlock {
 	if parents == nil || parents.IsEmpty() {
@@ -540,7 +538,11 @@ func (ph *Phantom) GetMainParent(parents *IdSet) IBlock {
 }
 
 func (ph *Phantom) getBlock(id uint) *PhantomBlock {
-	return ph.bd.getBlockById(id).(*PhantomBlock)
+	ib := ph.bd.getBlockById(id)
+	if ib == nil {
+		return nil
+	}
+	return ib.(*PhantomBlock)
 }
 
 func (ph *Phantom) GetDiffAnticone() *IdSet {
@@ -599,8 +601,6 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 
 		ph.bd.updateTips(ib)
 		//
-		ph.bd.order[ib.GetOrder()] = ib.GetID()
-
 		if !ib.IsOrdered() {
 			ph.diffAnticone.AddPair(ib.GetID(), ib)
 		}
@@ -734,13 +734,15 @@ func (ph *Phantom) getMaxParents() int {
 }
 
 func (ph *Phantom) UpdateWeight(ib IBlock, store bool) {
-	pb := ib.(*PhantomBlock)
-	tp := ph.getBlock(pb.GetMainParent())
-	pb.weight = tp.GetWeight()
-	pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), byte(pb.status)))
-	for k := range pb.blueDiffAnticone.GetMap() {
-		bdpb := ph.getBlock(k)
-		pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), byte(bdpb.status)))
+	if ib.GetID() != GenesisId {
+		pb := ib.(*PhantomBlock)
+		tp := ph.getBlock(pb.GetMainParent())
+		pb.weight = tp.GetWeight()
+		pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), byte(pb.status)))
+		for k := range pb.blueDiffAnticone.GetMap() {
+			bdpb := ph.getBlock(k)
+			pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), byte(bdpb.status)))
+		}
 	}
 
 	if ph.bd.db == nil || !store {

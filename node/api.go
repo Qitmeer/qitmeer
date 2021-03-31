@@ -14,26 +14,28 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/version"
 	"math/big"
 	"strconv"
+	"time"
 )
 
 func (nf *QitmeerFull) apis() []rpc.API {
 	return []rpc.API{
 		{
-			NameSpace: rpc.DefaultServiceNameSpace,
+			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicBlockChainAPI(nf),
 			Public:    true,
 		},
 		{
-			NameSpace: rpc.TestNameSpace,
+			NameSpace: cmds.TestNameSpace,
 			Service:   NewPrivateBlockChainAPI(nf),
 			Public:    false,
 		},
 		{
-			NameSpace: rpc.LogNameSpace,
+			NameSpace: cmds.LogNameSpace,
 			Service:   NewPrivateLogAPI(nf),
 			Public:    false,
 		},
@@ -68,10 +70,10 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 			CuckarooDiff: getDifficultyRatio(cuckarooNodes, api.node.node.Params, pow.CUCKAROO),
 			CuckatooDiff: getDifficultyRatio(cuckatooNodes, api.node.node.Params, pow.CUCKATOO),
 		},
-		TestNet:          api.node.node.Config.TestNet,
+		Network:          params.ActiveNetParams.Name,
 		Confirmations:    blockdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
-		Modules:          []string{rpc.DefaultServiceNameSpace, rpc.MinerNameSpace, rpc.TestNameSpace, rpc.LogNameSpace},
+		Modules:          []string{cmds.DefaultServiceNameSpace, cmds.MinerNameSpace, cmds.TestNameSpace, cmds.LogNameSpace},
 	}
 	ret.GraphState = *getGraphStateResult(best.GraphState)
 	hostdns := api.node.node.peerServer.HostDNS()
@@ -129,27 +131,36 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 			}
 		}
 		info := &json.GetPeerInfoResult{
-			ID:      p.PeerID,
-			State:   p.State.String(),
-			Address: p.Address,
+			ID:        p.PeerID,
+			State:     p.State.String(),
+			Address:   p.Address,
+			BytesSent: p.BytesSent,
+			BytesRecv: p.BytesRecv,
 		}
 		if p.State.IsConnected() {
 			info.Protocol = p.Protocol
-			info.Services = uint64(p.Services)
+			info.Services = p.Services.String()
 			info.UserAgent = p.UserAgent
 			info.TimeOffset = p.TimeOffset
 			if p.Genesis != nil {
 				info.Genesis = p.Genesis.String()
 			}
 			info.Direction = p.Direction.String()
-			if p.GraphState != nil && !p.IsRelay() {
+			if p.GraphState != nil {
 				info.GraphState = getGraphStateResult(p.GraphState)
 			}
 			if ps.PeerSync().SyncPeer() != nil {
-				info.SyncNode = p.NodeID == ps.PeerSync().SyncPeer().GetID().String()
+				info.SyncNode = p.PeerID == ps.PeerSync().SyncPeer().GetID().String()
 			} else {
 				info.SyncNode = false
 			}
+			info.ConnTime = p.ConnTime.Truncate(time.Second).String()
+		}
+		if !p.LastSend.IsZero() {
+			info.LastSend = p.LastSend.String()
+		}
+		if !p.LastRecv.IsZero() {
+			info.LastRecv = p.LastRecv.String()
 		}
 		if len(p.QNR) > 0 {
 			info.QNR = p.QNR
@@ -162,7 +173,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 // Return the RPC info
 func (api *PublicBlockChainAPI) GetRpcInfo() (interface{}, error) {
 	rs := api.node.node.rpcServer.ReqStatus
-	jrs := []*rpc.JsonRequestStatus{}
+	jrs := []*cmds.JsonRequestStatus{}
 	for _, v := range rs {
 		jrs = append(jrs, v.ToJson())
 	}
