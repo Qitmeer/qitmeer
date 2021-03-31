@@ -689,4 +689,3 @@ func Sph_fugue512_process(data []uint8, dst []uint8, length uint) {
 	fugue4_core_c_code(data, length)
 	fugue4_close_c_code(0, 0, dst)
 }
-

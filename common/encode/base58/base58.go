@@ -52,9 +52,9 @@ func Encode(b []byte) ([]byte, error) {
 	x := new(big.Int)
 	x.SetBytes(b)
 
-	input,err := checkInputOverflow(b)
+	input, err := checkInputOverflow(b)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	answer := make([]byte, 0, len(input)*136/100)
 	for x.Cmp(bigZero) > 0 {
@@ -77,5 +77,5 @@ func Encode(b []byte) ([]byte, error) {
 		answer[i], answer[alen-1-i] = answer[alen-1-i], answer[i]
 	}
 
-	return answer,nil
+	return answer, nil
 }

@@ -82,11 +82,11 @@ func BtcCheckEncode(input []byte, version byte) ([]byte, error) {
 	return CheckEncode(input, ver[:], 4, checksum_btc)
 }
 
-func checkInputOverflow(input []byte) ([]byte, error){
+func checkInputOverflow(input []byte) ([]byte, error) {
 	if len(input) > 64*1024*1024 {
 		return nil, errors.New("value too large")
 	}
-	return input,nil
+	return input, nil
 }
 
 func CheckEncode(input []byte, version []byte, cksum_size int, cksumfunc func([]byte) []byte) ([]byte, error) {
@@ -99,12 +99,12 @@ func CheckEncode(input []byte, version []byte, cksum_size int, cksumfunc func([]
 	b = append(b, input[:]...)
 	var cksum []byte = cksumfunc(b)
 	b = append(b, cksum[:]...)
-	enc,_ := Encode(b)  //need not check input overflow again, ignore err here
-	return enc,nil
+	enc, _ := Encode(b) //need not check input overflow again, ignore err here
+	return enc, nil
 }
 
 func CheckDecode(input []byte, version_size, cksum_size int, cksumfunc func([]byte) []byte) (result []byte, version []byte, err error) {
-	input,err = checkInputOverflow(input)
+	input, err = checkInputOverflow(input)
 	if err != nil {
 		return nil, nil, err
 	}

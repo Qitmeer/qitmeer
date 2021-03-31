@@ -21,7 +21,7 @@ const (
 // test database is clean when in regression test mode.
 func LoadBlockDB(cfg *Config) (database.DB, error) {
 	// The database name is based on the database type.
-	dbPath := blockDbPath(cfg.DbType,cfg)
+	dbPath := blockDbPath(cfg.DbType, cfg)
 
 	log.Info("Loading block database", "dbPath", dbPath)
 	db, err := database.Open(cfg.DbType, dbPath, params.ActiveNetParams.Net)
@@ -33,7 +33,7 @@ func LoadBlockDB(cfg *Config) (database.DB, error) {
 }
 
 // blockDbPath returns the path to the block database given a database type.
-func blockDbPath(dbType string,cfg *Config) string {
+func blockDbPath(dbType string, cfg *Config) string {
 	// The database name is based on the database type.
 	dbName := blockDbNamePrefix + "_" + dbType
 	dbPath := filepath.Join(cfg.DataDir, dbName)

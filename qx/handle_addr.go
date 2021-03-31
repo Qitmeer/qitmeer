@@ -34,11 +34,11 @@ func EcPubKeyToAddress(version string, pubkey string) (string, error) {
 	}
 	h := hash.Hash160(data)
 
-	address,err := base58.QitmeerCheckEncode(h, ver[:])
-	if err!=nil {
-		return "",err
+	address, err := base58.QitmeerCheckEncode(h, ver[:])
+	if err != nil {
+		return "", err
 	}
-	return string(address),nil
+	return string(address), nil
 }
 
 func EcScriptKeyToAddress(version string, pubkey string) (string, error) {
@@ -67,9 +67,9 @@ func EcScriptKeyToAddress(version string, pubkey string) (string, error) {
 	}
 	h := hash.Hash160(data)
 
-	address,err := base58.QitmeerCheckEncode(h, ver[:])
+	address, err := base58.QitmeerCheckEncode(h, ver[:])
 	if err != nil {
-		return "",err
+		return "", err
 	}
 	return string(address), nil
 }
@@ -81,6 +81,6 @@ func EcPubKeyToAddressSTDO(version []byte, pubkey string) {
 	}
 	h := hash.Hash160(data)
 
-	address,_ := base58.QitmeerCheckEncode(h, version[:])
+	address, _ := base58.QitmeerCheckEncode(h, version[:])
 	fmt.Printf("%s\n", address)
 }
