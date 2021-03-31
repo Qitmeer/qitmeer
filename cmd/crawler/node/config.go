@@ -11,7 +11,7 @@ import (
 
 const (
 	defaultDataDirname = "crawler-data"
-	defaultPort        = "1024"
+	defaultPort        = "1001"
 	defaultIP          = "0.0.0.0"
 )
 

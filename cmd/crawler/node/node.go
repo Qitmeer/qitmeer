@@ -8,8 +8,10 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/cmd/crawler/config"
 	"github.com/Qitmeer/qitmeer/cmd/crawler/log"
 	"github.com/Qitmeer/qitmeer/cmd/crawler/peers"
+	"github.com/Qitmeer/qitmeer/cmd/crawler/rpc"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
@@ -36,28 +38,50 @@ import (
 	"time"
 )
 
+type Service interface {
+
+	// APIs retrieves the list of RPC descriptors the service provides
+	APIs() []rpc.API
+
+	// Start is called after all services have been constructed and the networking
+	// layer was also initialized to spawn any goroutines required by the service.
+	Start() error
+
+	// Stop terminates all goroutines belonging to the service, blocking until they
+	// are all terminated.
+	Stop() error
+}
+
 type Node struct {
-	cfg        *Config
+	cfg        *config.Config
 	ctx        context.Context
 	cancel     context.CancelFunc
 	privateKey *ecdsa.PrivateKey
 	peers      *peers.Peers
-
-	interrupt chan struct{}
-	wg        sync.WaitGroup
-	host      host.Host
+	rpcServer  *rpc.RpcServer
+	interrupt  chan struct{}
+	wg         sync.WaitGroup
+	host       host.Host
+	service    []Service
 }
 
-func (node *Node) Init(cfg *Config) error {
+func (node *Node) Init(cfg *config.Config) error {
+	var err error
 	log.Log.Info(fmt.Sprintf("Start crawler node..."))
 	node.ctx, node.cancel = context.WithCancel(context.Background())
-	node.peers = peers.NewPeers()
-	err := cfg.load()
+	node.peers, err = peers.NewPeers()
 	if err != nil {
 		return err
 	}
+	node.service = []Service{node.peers}
+	if err = cfg.Load(); err != nil {
+		return err
+	}
 	node.cfg = cfg
-
+	node.rpcServer, err = rpc.NewRPCServer(cfg)
+	if err != nil {
+		return err
+	}
 	pk, err := p2p.PrivateKey(cfg.DataDir, cfg.PrivateKey, 0600)
 	if err != nil {
 		return err
@@ -71,13 +95,47 @@ func (node *Node) Init(cfg *Config) error {
 }
 
 func (node *Node) Exit() error {
+	node.rpcServer.Stop()
+	for _, ser := range node.service {
+		ser.Stop()
+	}
 	node.cancel()
 	log.Log.Info(fmt.Sprintf("Stop crawler node"))
 	return nil
 }
 
+func (node *Node) startRPC(services []Service) error {
+	// Gather all the possible APIs to surface
+	apis := []rpc.API{}
+	for _, service := range services {
+		apis = append(apis, service.APIs()...)
+	}
+
+	// Register all the APIs exposed by the services
+	for _, api := range apis {
+		if err := node.rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
+			return err
+		}
+	}
+	if err := node.rpcServer.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (node *Node) Run() error {
 	log.Log.Info(fmt.Sprintf("Run crawler node..."))
+	err := node.startRPC(node.service)
+	if err != nil {
+		log.Log.Error("Failed to start rpc %v", err)
+		return err
+	}
+	for _, ser := range node.service {
+		if err = ser.Start(); err != nil {
+			log.Log.Error("Failed to start up service %v", err)
+			return err
+		}
+	}
 
 	var exip string
 	if len(node.cfg.ExternalIP) > 0 {
@@ -96,7 +154,7 @@ func (node *Node) Run() error {
 		return err
 	}
 
-	srcMAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%s", defaultIP, node.cfg.Port))
+	srcMAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%s", config.DefaultIP, node.cfg.Port))
 	if err != nil {
 		log.Log.Error("Unable to construct multiaddr %v", err)
 		return err
@@ -182,14 +240,14 @@ func (node *Node) connectWithNewPeers() {
 			log.Log.Info("Shutdown waiting for connection...")
 			return
 		case <-ti.C:
-			peers := node.peers.UnConnected()
+			peers := node.peers.FindPeerList()
 			for _, p := range peers {
 				select {
 				case <-node.interrupt:
 					log.Log.Info("Shutdown connect peer...")
 					return
 				default:
-					node.connectWithConn(p.Conn)
+					node.connectWithAddr(p.Id, p.Addr)
 				}
 			}
 			node.printResult()
@@ -219,24 +277,25 @@ func (node *Node) connectWithPeer(info peer.AddrInfo, force bool) error {
 	if err := node.host.Connect(node.ctx, info); err != nil {
 		return err
 	}
-	node.peers.UpdateConnected(info.ID)
+	node.peers.UpdateConnectTime(info.ID.String(), time.Now().Unix())
 	return nil
 }
 
-func (node *Node) connectWithConn(conn network.Conn) {
-	maAddr, err := multiAddrFromString(getConnPeerAddress(conn))
+func (node *Node) connectWithAddr(id string, addr string) {
+	formatStr := getConnPeerAddress(id, addr)
+	maAddr, err := multiAddrFromString(formatStr)
 	if err != nil {
-		log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", getConnPeerAddress(conn), err))
+		log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", formatStr, err))
 		return
 	}
 	addrInfo, err := peer.AddrInfoFromP2pAddr(maAddr)
 	if err != nil {
-		log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", conn.RemoteMultiaddr().String(), err))
+		log.Log.Trace(fmt.Sprintf("Wrong remote address %s to p2p address, %v", addr, err))
 		return
 	}
 	go func(info peer.AddrInfo) {
 		if err := node.connectWithPeer(info, false); err != nil {
-			log.Log.Trace(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
+			log.Log.Info(fmt.Sprintf("Could not connect with peer %s :%v", info.String(), err))
 		}
 	}(*addrInfo)
 }
@@ -247,14 +306,14 @@ func (node *Node) registerHandlers() error {
 		ConnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
 			//log.Log.Info(fmt.Sprintf("Connected:%s (%s)", remotePeer, conn.RemoteMultiaddr()))
-			node.peers.Add(remotePeer, conn)
+			node.peers.Add(remotePeer.String(), conn.RemoteMultiaddr().String())
 		},
 	})
 
 	node.host.Network().Notify(&network.NotifyBundle{
 		DisconnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
-			node.peers.Remove(remotePeer)
+			node.peers.UpdateUnConnected(remotePeer.String())
 			log.Log.Info(fmt.Sprintf("Disconnected:%s (%s)", remotePeer, conn.RemoteMultiaddr()))
 		},
 	})
@@ -327,7 +386,10 @@ func (node *Node) printResult() {
 
 	log.Log.Info(fmt.Sprintf("Find %d peers", len(all)))
 	for _, peer := range all {
-		log.Log.Info(fmt.Sprintf("Peer:%s", getConnPeerAddress(peer.Conn)))
+		log.Log.Info(fmt.Sprintf("Peer:%s, connected time:%s, connected:%v",
+			getConnPeerAddress(peer.Id, peer.Addr),
+			time.Unix(peer.ConnectTime, 0).String(),
+			peer.Connected))
 	}
 }
 
@@ -387,18 +449,18 @@ func peersFromStringAddrs(addrs []string) ([]multiaddr.Multiaddr, error) {
 	for _, stringAddr := range multiAddrString {
 		addr, err := multiAddrFromString(stringAddr)
 		if err != nil {
-			return nil, fmt.Errorf("Could not get multiaddr from string:%w", err)
+			return nil, fmt.Errorf("could not get multiaddr from string : %w", err)
 		}
 		allAddrs = append(allAddrs, addr)
 	}
 	for _, stringAddr := range qnodeString {
 		qnodeAddr, err := qnode.Parse(qnode.ValidSchemes, stringAddr)
 		if err != nil {
-			return nil, fmt.Errorf("Could not get qnode from string:%w", err)
+			return nil, fmt.Errorf("could not get qnode from string : %w", err)
 		}
 		addr, err := convertToSingleMultiAddr(qnodeAddr)
 		if err != nil {
-			return nil, fmt.Errorf("Could not get multiaddr:%w", err)
+			return nil, fmt.Errorf("could not get multiaddr : %w", err)
 		}
 		allAddrs = append(allAddrs, addr)
 	}
@@ -414,12 +476,12 @@ func convertToSingleMultiAddr(node *qnode.Node) (multiaddr.Multiaddr, error) {
 	assertedKey := convertToInterfacePubkey(pubkey)
 	id, err := peer.IDFromPublicKey(assertedKey)
 	if err != nil {
-		return nil, fmt.Errorf("could not get peer id:%w", err)
+		return nil, fmt.Errorf("could not get peer id : %w", err)
 	}
 	multiAddrString := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", ip4.String(), node.TCP(), id)
 	multiAddr, err := multiaddr.NewMultiaddr(multiAddrString)
 	if err != nil {
-		return nil, fmt.Errorf("could not get multiaddr:%w", err)
+		return nil, fmt.Errorf("could not get multiaddr : %w", err)
 	}
 	return multiAddr, nil
 }
@@ -434,6 +496,6 @@ func convertToInterfacePubkey(pubkey *ecdsa.PublicKey) crypto.PubKey {
 	return typeAssertedKey
 }
 
-func getConnPeerAddress(conn network.Conn) string {
-	return fmt.Sprintf("%s/p2p/%s", conn.RemoteMultiaddr().String(), conn.RemotePeer())
+func getConnPeerAddress(id, addr string) string {
+	return fmt.Sprintf("%s/p2p/%s", addr, id)
 }
