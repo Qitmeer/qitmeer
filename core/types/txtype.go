@@ -15,6 +15,8 @@ type TxType int
 const (
 	TxTypeRegular         TxType = iota
 	TxTypeCoinbase        TxType = 0x1
+	TxTypeGenesisSpent    TxType = 0x2   // the tx try to spent the genesis output
+	TxTypeGenesisLock     TxType = 0x3   // the tx try to lock the genesis output to the stake pool
 
 	TxTypeStakebase       TxType = 0x10  // the special tx which vote for stake_purchase and reward stake holder from the stake_reserve
 	TyTypeStakeReserve    TxType = 0x11  // the tx reserve consensus-based value to a special stake_reserve address
