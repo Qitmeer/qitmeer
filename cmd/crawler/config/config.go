@@ -1,23 +1,26 @@
-package node
+package config
 
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/urfave/cli/v2"
+	"net"
 	"os"
 	"path/filepath"
 )
 
 const (
-	defaultDataDirname = "crawler-data"
-	defaultPort        = "1001"
-	defaultIP          = "0.0.0.0"
+	DefaultDataDirname = "crawler-data"
+	DefaultPort        = "1024"
+	DefaultRpcPort     = "2024"
+	DefaultIP          = "0.0.0.0"
+	DefaultDB          = DefaultDataDirname + "/db"
 )
 
 var (
 	defaultHomeDir = util.AppDataDir(".", false)
-	defaultDataDir = filepath.Join(defaultHomeDir, defaultDataDirname)
+	defaultDataDir = filepath.Join(defaultHomeDir, DefaultDataDirname)
 
 	Conf = &Config{}
 
@@ -54,7 +57,7 @@ var (
 		Name:        "port",
 		Aliases:     []string{"o"},
 		Usage:       "listen port",
-		Value:       defaultPort,
+		Value:       DefaultPort,
 		Destination: &Conf.Port,
 	}
 
@@ -74,6 +77,30 @@ var (
 		Destination: &Conf.Network,
 	}
 
+	RpcUser = &cli.StringFlag{
+		Name:        "rpcuser",
+		Aliases:     []string{"u"},
+		Usage:       "rpc user",
+		Value:       "admin",
+		Destination: &Conf.RPCUser,
+	}
+
+	RpcPass = &cli.StringFlag{
+		Name:        "rpcpass",
+		Aliases:     []string{"s"},
+		Usage:       "rpc pass",
+		Value:       "123",
+		Destination: &Conf.RPCPass,
+	}
+
+	RPCMaxClients = &cli.IntFlag{
+		Name:        "rpcmaxclients",
+		Aliases:     []string{"m"},
+		Usage:       "rpc max clients",
+		Value:       100,
+		Destination: &Conf.RPCMaxClients,
+	}
+
 	AppFlags = []cli.Flag{
 		HomeDir,
 		DataDir,
@@ -82,6 +109,9 @@ var (
 		Port,
 		EnableNoise,
 		Network,
+		RpcUser,
+		RpcPass,
+		RPCMaxClients,
 	}
 )
 
@@ -95,9 +125,13 @@ type Config struct {
 	Network           string
 	StaticPeers       []string
 	BootstrapNodeAddr []string
+	RPCUser           string
+	RPCPass           string
+	RPCListeners      []string
+	RPCMaxClients     int
 }
 
-func (c *Config) load() error {
+func (c *Config) Load() error {
 	var err error
 	if c.HomeDir != defaultHomeDir {
 		c.HomeDir, err = filepath.Abs(c.HomeDir)
@@ -105,7 +139,7 @@ func (c *Config) load() error {
 			return err
 		}
 		if c.DataDir == defaultDataDir {
-			c.DataDir = filepath.Join(c.HomeDir, defaultDataDirname)
+			c.DataDir = filepath.Join(c.HomeDir, DefaultDataDirname)
 		}
 	}
 	_, err = os.Stat(c.DataDir)
@@ -140,6 +174,12 @@ func (c *Config) load() error {
 	if len(c.BootstrapNodeAddr) == 0 {
 		c.BootstrapNodeAddr = params.ActiveNetParams.Bootstrap
 		fmt.Println(c.BootstrapNodeAddr)
+	}
+
+	if len(c.RPCListeners) == 0 {
+		c.RPCListeners = []string{
+			net.JoinHostPort("", DefaultRpcPort),
+		}
 	}
 
 	// Multiple networks can't be selected simultaneously.
