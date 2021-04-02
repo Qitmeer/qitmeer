@@ -8,7 +8,9 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"sync"
 	"testing"
+	"time"
 )
 
 // GenerateBlock will generate a number of blocks by the input number for
@@ -126,7 +128,13 @@ func AssertScan(t *testing.T, h *Harness, maxOrder, scanCount uint64) {
 	}
 }
 
-func AssertMempoolTxNotify(t *testing.T, h *Harness, txid, addr string) {
+func AssertMempoolTxNotify(t *testing.T, h *Harness, txid, addr string, timeout int) {
+	TimeoutFunc(t, func() bool {
+		if h.Wallet.mempoolTx != nil {
+			return true
+		}
+		return false
+	}, timeout)
 	if h.Wallet.mempoolTx == nil {
 		t.Fatalf("not match mempool tx")
 	}
@@ -134,7 +142,7 @@ func AssertMempoolTxNotify(t *testing.T, h *Harness, txid, addr string) {
 		t.Fatalf("not has mempool tx %s", txid)
 	}
 	if h.Wallet.mempoolTx[txid] != addr {
-		t.Fatalf("mempool tx vout address %s not match%s", h.Wallet.mempoolTx[txid], addr)
+		t.Fatalf("mempool tx vout address %s not match %s", h.Wallet.mempoolTx[txid], addr)
 	}
 }
 
@@ -148,4 +156,27 @@ func AssertTxConfirm(t *testing.T, h *Harness, txid string, confirms uint64) {
 	if h.Wallet.confirmTxs[txid] < confirms {
 		t.Fatalf("tx %s confirms %d not right,should more than %d", txid, h.Wallet.confirmTxs[txid], confirms)
 	}
+}
+
+func TimeoutFunc(t *testing.T, f func() bool, timeout int) {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	start := time.Now().UnixNano()
+	go func() {
+		defer wg.Done()
+		t1 := time.NewTicker(time.Duration(timeout) * time.Second)
+		defer t1.Stop()
+		for {
+			select {
+			case <-t1.C:
+				return
+			default:
+				if f() {
+					return
+				}
+			}
+		}
+	}()
+	wg.Wait()
+	t.Logf("time use:%.4fs", float64(time.Now().UnixNano())/float64(start))
 }
