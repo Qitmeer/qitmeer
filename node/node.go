@@ -83,7 +83,10 @@ func (n *Node) Stop() error {
 	log.Info("Stopping Server")
 
 	// stop rpc server
-	n.rpcServer.Stop()
+	if n.rpcServer != nil {
+		n.rpcServer.Stop()
+	}
+
 	// stop p2p server
 	n.peerServer.Stop()
 
