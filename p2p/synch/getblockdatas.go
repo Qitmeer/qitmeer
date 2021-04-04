@@ -14,6 +14,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/btcsuite/btcd/wire"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"sync/atomic"
@@ -185,4 +186,70 @@ func (ps *PeerSync) GetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) {
 	}
 
 	ps.msgChan <- &GetBlockDatasMsg{pe: pe, blocks: blocks}
+}
+
+// handleGetData is invoked when a peer receives a getdata bitcoin message and
+// is used to deliver block and transaction information.
+func (ps *PeerSync) OnGetData(sp *peers.Peer, msg *pb.Inventory) {
+	numAdded := 0
+	notFound := wire.NewMsgNotFound()
+
+	length := len(msg.Invs)
+
+	// We wait on this wait channel periodically to prevent queuing
+	// far more data than we can send in a reasonable time, wasting memory.
+	// The waiting occurs after the database fetch for the next one to
+	// provide a little pipelining.
+	var waitChan chan struct{}
+	doneChan := make(chan struct{}, 1)
+
+	for i, iv := range msg.Invs {
+		var c chan struct{}
+		// If this will be the last message we send.
+		if i == length-1 && len(notFound.InvList) == 0 {
+			c = doneChan
+		} else if (i+1)%3 == 0 {
+			// Buffered so as to not make the send goroutine block.
+			c = make(chan struct{}, 1)
+		}
+		var err error
+		switch InvType(iv.Type) {
+		case InvTypeTx:
+			err = sp.pushTxMsg(sp, &iv.Hash, c, waitChan, types.BaseEncoding)
+		case InvTypeBlock:
+			err = sp.pushBlockMsg(sp, &iv.Hash, c, waitChan, types.BaseEncoding)
+		case InvTypeFilteredBlock:
+			err = sp.pushMerkleBlockMsg(sp, &iv.Hash, c, waitChan, types.BaseEncoding)
+		default:
+			log.Warn(fmt.Sprintf("Unknown type in inventory request %d",
+				iv.Type))
+			continue
+		}
+		if err != nil {
+			notFound.AddInvVect(iv)
+
+			// When there is a failure fetching the final entry
+			// and the done channel was sent in due to there
+			// being no outstanding not found inventory, consume
+			// it here because there is now not found inventory
+			// that will use the channel momentarily.
+			if i == len(msg.Invs)-1 && c != nil {
+				<-c
+			}
+		}
+		numAdded++
+		waitChan = c
+	}
+	if len(notFound.InvList) != 0 {
+		sp.QueueMessage(notFound, doneChan)
+	}
+
+	// Wait for messages to be sent. We can send quite a lot of data at this
+	// point and this will keep the peer busy for a decent amount of time.
+	// We don't process anything else by them in this time so that we
+	// have an idea of when we should hear back from them - else the idle
+	// timeout could fire when we were only half done sending the blocks.
+	if numAdded > 0 {
+		<-doneChan
+	}
 }

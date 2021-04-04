@@ -2,6 +2,7 @@ package peers
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/bloom"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
@@ -30,9 +31,9 @@ type Peer struct {
 	syncPoint *hash.Hash
 	// Use to fee filter
 	feeFilter int64
+	filter    *bloom.Filter
 
-	lock *sync.RWMutex
-
+	lock       *sync.RWMutex
 	lastSend   time.Time
 	lastRecv   time.Time
 	bytesSent  uint64
@@ -156,6 +157,12 @@ func (p *Peer) Node() *qnode.Node {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.node()
+}
+
+func (p *Peer) Filter() *bloom.Filter {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return p.filter
 }
 
 func (p *Peer) node() *qnode.Node {
@@ -488,7 +495,25 @@ func (p *Peer) BytesRecv() uint64 {
 	return p.bytesRecv
 }
 
-func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
+// EnforceNodeBloomFlag disconnects the peer if the server is not configured to
+// allow bloom filters.  Additionally, if the peer has negotiated to a protocol
+// version  that is high enough to observe the bloom filter service support bit,
+// it will be banned since it is intentionally violating the protocol.
+func (sp *Peer) EnforceNodeBloomFlag(cmd string) bool {
+	services := sp.Services()
+	if services&protocol.Bloom != protocol.Bloom {
+		// Disconnect the peer regardless of protocol version or banning
+		// state.
+		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
+			"filter loaded -- disconnecting", sp))
+		sp.SetConnectionState(PeerDisconnected)
+		return false
+	}
+
+	return true
+}
+
+func NewPeer(pid peer.ID, point *hash.Hash, services protocol.ServiceFlag) *Peer {
 	return &Peer{
 		peerStatus: &peerStatus{
 			peerState: PeerDisconnected,
@@ -496,5 +521,6 @@ func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
 		pid:       pid,
 		lock:      &sync.RWMutex{},
 		syncPoint: point,
+		filter:    bloom.LoadFilter(nil),
 	}
 }

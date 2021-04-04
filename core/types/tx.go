@@ -1144,6 +1144,32 @@ func (c scriptFreeList) Return(buf []byte) {
 	}
 }
 
+// NewTxFromBytes returns a new instance of a bitcoin transaction given the
+// serialized bytes.  See Tx.
+func NewTxFromBytes(serializedTx []byte) (*Tx, error) {
+	br := bytes.NewReader(serializedTx)
+	return NewTxFromReader(br)
+}
+
+// NewTxFromReader returns a new instance of a bitcoin transaction given a
+// Reader to deserialize the transaction.  See Tx.
+func NewTxFromReader(r io.Reader) (*Tx, error) {
+	// Deserialize the bytes into a MsgTx.
+	var msgTx Transaction
+	err := msgTx.Deserialize(r)
+	if err != nil {
+		return nil, err
+	}
+
+	t := Tx{
+		Tx:          &msgTx,
+		IsDuplicate: false,
+		hash:        msgTx.TxHash(),
+		txIndex:     TxIndexUnknown,
+	}
+	return &t, nil
+}
+
 // Create the concurrent safe free list to use for script deserialization.  As
 // previously described, this free list is maintained to significantly reduce
 // the number of allocations.

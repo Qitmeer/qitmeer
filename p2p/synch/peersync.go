@@ -6,11 +6,14 @@ package synch
 
 import (
 	"fmt"
+	chainhash "github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/btcsuite/btcd/wire"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -32,12 +35,11 @@ type PeerSync struct {
 
 	hslock sync.RWMutex
 
-	started  int32
-	shutdown int32
-	msgChan  chan interface{}
-	wg       sync.WaitGroup
-	quit     chan struct{}
-
+	started     int32
+	shutdown    int32
+	msgChan     chan interface{}
+	wg          sync.WaitGroup
+	quit        chan struct{}
 	longSyncMod bool
 }
 
@@ -97,6 +99,9 @@ out:
 				if err != nil {
 					go ps.PeerUpdate(msg.pe, false)
 				}
+			case *MsgGetData:
+				ps.OnGetData(msg.pe, msg.InvMsg)
+
 			case *UpdateGraphStateMsg:
 				ps.processUpdateGraphState(msg.pe)
 			case *syncDAGBlocksMsg:
@@ -406,6 +411,14 @@ func (ps *PeerSync) RelayInventory(data interface{}) {
 				if feeFilter > 0 && tx.FeePerKB < feeFilter {
 					return
 				}
+				// Don't relay the transaction if there is a bloom
+				// filter loaded and the transaction doesn't match it.
+				filter := pe.Filter()
+				if filter.IsLoaded() {
+					if !filter.MatchTxAndUpdate(tx.Tx) {
+						return
+					}
+				}
 				msg.Invs = append(msg.Invs, NewInvVect(InvTypeTx, tx.Tx.Hash()))
 			}
 		case types.BlockHeader:
@@ -414,6 +427,259 @@ func (ps *PeerSync) RelayInventory(data interface{}) {
 		}
 		go ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), pe, msg)
 	})
+}
+
+// OnFilterAdd is invoked when a peer receives a filteradd qitmeer
+// message and is used by remote peers to add data to an already loaded bloom
+// filter.  The peer will be disconnected if a filter is not loaded when this
+// message is received or the server is not configured to allow bloom filters.
+func (ps *PeerSync) OnFilterAdd(sp *peers.Peer, msg *types.MsgFilterAdd) {
+	// Disconnect and/or ban depending on the node bloom services flag and
+	// negotiated protocol version.
+	if !sp.EnforceNodeBloomFlag(msg.Command()) {
+		return
+	}
+	filter := sp.Filter()
+	if !filter.IsLoaded() {
+		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
+			"filter loaded -- disconnecting", sp))
+		ps.Disconnect(sp)
+		return
+	}
+
+	filter.Add(msg.Data)
+}
+
+// OnFilterClear is invoked when a peer receives a filterclear qitmeer
+// message and is used by remote peers to clear an already loaded bloom filter.
+// The peer will be disconnected if a filter is not loaded when this message is
+// received  or the server is not configured to allow bloom filters.
+func (ps *PeerSync) OnFilterClear(sp *peers.Peer, msg *wire.MsgFilterClear) {
+	// Disconnect and/or ban depending on the node bloom services flag and
+	// negotiated protocol version.
+	if !sp.EnforceNodeBloomFlag(msg.Command()) {
+		return
+	}
+	filter := sp.Filter()
+
+	if !filter.IsLoaded() {
+		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
+			"filter loaded -- disconnecting", sp))
+		ps.Disconnect(sp)
+		return
+	}
+
+	filter.Unload()
+}
+
+// OnFilterLoad is invoked when a peer receives a filterload qitmeer
+// message and it used to load a bloom filter that should be used for
+// delivering merkle blocks and associated transactions that match the filter.
+// The peer will be disconnected if the server is not configured to allow bloom
+// filters.
+func (ps *PeerSync) OnFilterLoad(sp *peers.Peer, msg *types.MsgFilterLoad) {
+	// Disconnect and/or ban depending on the node bloom services flag and
+	// negotiated protocol version.
+	if !sp.EnforceNodeBloomFlag(msg.Command()) {
+		return
+	}
+	filter := sp.Filter()
+	sp.DisableRelayTx()
+
+	filter.Reload(msg)
+}
+
+// OnMemPool is invoked when a peer receives a mempool qitmeer message.
+// It creates and sends an inventory message with the contents of the memory
+// pool up to the maximum inventory allowed per message.  When the peer has a
+// bloom filter loaded, the contents are filtered accordingly.
+func (ps *PeerSync) OnMemPool(sp *peers.Peer, msg *types.MsgMemPool) {
+	// Only allow mempool requests if the server has bloom filtering
+	// enabled.
+	services := sp.Services()
+	if services&protocol.Bloom != protocol.Bloom {
+		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
+			"filter loaded -- disconnecting", sp))
+		ps.Disconnect(sp)
+		return
+	}
+
+	// Generate inventory message with the available transactions in the
+	// transaction memory pool.  Limit it to the max allowed inventory
+	// per message.  The NewMsgInvSizeHint function automatically limits
+	// the passed hint to the maximum allowed, so it's safe to pass it
+	// without double checking it here.
+	txDescs := ps.sy.p2p.TxMemPool().TxDescs()
+	invMsg := &pb.Inventory{Invs: []*pb.InvVect{}}
+	for _, txDesc := range txDescs {
+		// Either add all transactions when there is no bloom filter,
+		// or only the transactions that match the filter when there is
+		// one.
+		filter := sp.Filter()
+		if !filter.IsLoaded() || filter.MatchTxAndUpdate(txDesc.Tx) {
+			invMsg.Invs = append(invMsg.Invs, NewInvVect(InvTypeTx, txDesc.Tx.Hash()))
+		}
+	}
+	// Send the inventory message if there is anything to send.
+	if len(invMsg.Invs) > 0 {
+		go ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), sp, invMsg)
+	}
+}
+
+// pushTxMsg sends a tx message for the provided transaction hash to the
+// connected peer.  An error is returned if the transaction hash is not known.
+func (s *PeerSync) pushTxMsg(sp *serverPeer, hash *chainhash.Hash, doneChan chan<- struct{},
+	waitChan <-chan struct{}, encoding wire.MessageEncoding) error {
+
+	// Attempt to fetch the requested transaction from the pool.  A
+	// call could be made to check for existence first, but simply trying
+	// to fetch a missing transaction results in the same behavior.
+	tx, err := s.sy.p2p.TxMemPool().FetchTransaction(hash)
+	if err != nil {
+		peerLog.Tracef("Unable to fetch tx %v from transaction "+
+			"pool: %v", hash, err)
+
+		if doneChan != nil {
+			doneChan <- struct{}{}
+		}
+		return err
+	}
+
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
+
+	sp.QueueMessageWithEncoding(tx.MsgTx(), doneChan, encoding)
+
+	return nil
+}
+
+// pushBlockMsg sends a block message for the provided block hash to the
+// connected peer.  An error is returned if the block hash is not known.
+func (s *PeerSync) pushBlockMsg(sp *serverPeer, hash *chainhash.Hash, doneChan chan<- struct{},
+	waitChan <-chan struct{}, encoding wire.MessageEncoding) error {
+
+	// Fetch the raw block bytes from the database.
+	var blockBytes []byte
+	err := sp.server.db.View(func(dbTx database.Tx) error {
+		var err error
+		blockBytes, err = dbTx.FetchBlock(hash)
+		return err
+	})
+	if err != nil {
+		peerLog.Tracef("Unable to fetch requested block hash %v: %v",
+			hash, err)
+
+		if doneChan != nil {
+			doneChan <- struct{}{}
+		}
+		return err
+	}
+
+	// Deserialize the block.
+	var msgBlock wire.MsgBlock
+	err = msgBlock.Deserialize(bytes.NewReader(blockBytes))
+	if err != nil {
+		peerLog.Tracef("Unable to deserialize requested block hash "+
+			"%v: %v", hash, err)
+
+		if doneChan != nil {
+			doneChan <- struct{}{}
+		}
+		return err
+	}
+
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
+
+	// We only send the channel for this message if we aren't sending
+	// an inv straight after.
+	var dc chan<- struct{}
+	continueHash := sp.continueHash
+	sendInv := continueHash != nil && continueHash.IsEqual(hash)
+	if !sendInv {
+		dc = doneChan
+	}
+	sp.QueueMessageWithEncoding(&msgBlock, dc, encoding)
+
+	// When the peer requests the final block that was advertised in
+	// response to a getblocks message which requested more blocks than
+	// would fit into a single message, send it a new inventory message
+	// to trigger it to issue another getblocks message for the next
+	// batch of inventory.
+	if sendInv {
+		best := sp.server.chain.BestSnapshot()
+		invMsg := wire.NewMsgInvSizeHint(1)
+		iv := wire.NewInvVect(wire.InvTypeBlock, &best.Hash)
+		invMsg.AddInvVect(iv)
+		sp.QueueMessage(invMsg, doneChan)
+		sp.continueHash = nil
+	}
+	return nil
+}
+
+// pushMerkleBlockMsg sends a merkleblock message for the provided block hash to
+// the connected peer.  Since a merkle block requires the peer to have a filter
+// loaded, this call will simply be ignored if there is no filter loaded.  An
+// error is returned if the block hash is not known.
+func (s *PeerSync) pushMerkleBlockMsg(sp *serverPeer, hash *chainhash.Hash,
+	doneChan chan<- struct{}, waitChan <-chan struct{}, encoding wire.MessageEncoding) error {
+
+	// Do not send a response if the peer doesn't have a filter loaded.
+	if !sp.filter.IsLoaded() {
+		if doneChan != nil {
+			doneChan <- struct{}{}
+		}
+		return nil
+	}
+
+	// Fetch the raw block bytes from the database.
+	blk, err := sp.server.chain.BlockByHash(hash)
+	if err != nil {
+		peerLog.Tracef("Unable to fetch requested block hash %v: %v",
+			hash, err)
+
+		if doneChan != nil {
+			doneChan <- struct{}{}
+		}
+		return err
+	}
+
+	// Generate a merkle block by filtering the requested block according
+	// to the filter for the peer.
+	merkle, matchedTxIndices := bloom.NewMerkleBlock(blk, sp.filter)
+
+	// Once we have fetched data wait for any previous operation to finish.
+	if waitChan != nil {
+		<-waitChan
+	}
+
+	// Send the merkleblock.  Only send the done channel with this message
+	// if no transactions will be sent afterwards.
+	var dc chan<- struct{}
+	if len(matchedTxIndices) == 0 {
+		dc = doneChan
+	}
+	sp.QueueMessage(merkle, dc)
+
+	// Finally, send any matched transactions.
+	blkTransactions := blk.MsgBlock().Transactions
+	for i, txIndex := range matchedTxIndices {
+		// Only send the done channel on the final transaction.
+		var dc chan<- struct{}
+		if i == len(matchedTxIndices)-1 {
+			dc = doneChan
+		}
+		if txIndex < uint32(len(blkTransactions)) {
+			sp.QueueMessageWithEncoding(blkTransactions[txIndex], dc,
+				encoding)
+		}
+	}
+
+	return nil
 }
 
 func NewPeerSync(sy *Sync) *PeerSync {
