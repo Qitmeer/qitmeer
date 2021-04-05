@@ -499,7 +499,7 @@ func (p *Peer) BytesRecv() uint64 {
 // allow bloom filters.  Additionally, if the peer has negotiated to a protocol
 // version  that is high enough to observe the bloom filter service support bit,
 // it will be banned since it is intentionally violating the protocol.
-func (sp *Peer) EnforceNodeBloomFlag(cmd string) bool {
+func (sp *Peer) EnforceNodeBloomFlag() bool {
 	services := sp.Services()
 	if services&protocol.Bloom != protocol.Bloom {
 		// Disconnect the peer regardless of protocol version or banning
@@ -513,7 +513,7 @@ func (sp *Peer) EnforceNodeBloomFlag(cmd string) bool {
 	return true
 }
 
-func NewPeer(pid peer.ID, point *hash.Hash, services protocol.ServiceFlag) *Peer {
+func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
 	return &Peer{
 		peerStatus: &peerStatus{
 			peerState: PeerDisconnected,

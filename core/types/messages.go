@@ -1,19 +1,7 @@
-package synch
+package types
 
 import (
 	"fmt"
-)
-
-// Commands used in bitcoin message headers which describe the type of message.
-const (
-	CmdMerkleBlock = "merkleblock"
-	CmdFilterAdd   = "filteradd"
-	CmdFilterClear = "filterclear"
-	CmdFilterLoad  = "filterload"
-	CmdMemPool     = "mempool"
-	CmdInv         = "inv"
-
-	CmdGetData = "getdata"
 )
 
 // MessageEncoding represents the wire message encoding format to be used.

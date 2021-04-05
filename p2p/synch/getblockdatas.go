@@ -8,13 +8,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/bloom"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
-	"github.com/btcsuite/btcd/wire"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"sync/atomic"
@@ -48,6 +48,38 @@ func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator 
 	}
 
 	msg := &pb.BlockDatas{}
+	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
+		return nil, err
+	}
+	return msg, err
+}
+
+func (s *Sync) sendGetMerkleBlockDataRequest(ctx context.Context, id peer.ID, req *pb.MerkleBlockRequest) (*pb.MerkleBlockResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
+	defer cancel()
+
+	stream, err := s.Send(ctx, req, RPCGetMerkleBlocks, id)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err := stream.Reset()
+		if err != nil {
+			log.Error(fmt.Sprintf("Failed to close stream with protocol %s,%v", stream.Protocol(), err))
+		}
+	}()
+
+	code, errMsg, err := ReadRspCode(stream, s.Encoding())
+	if err != nil {
+		return nil, err
+	}
+
+	if !code.IsSuccess() {
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		return nil, errors.New(errMsg)
+	}
+
+	msg := &pb.MerkleBlockResponse{}
 	if err := s.Encoding().DecodeWithMaxLength(stream, msg); err != nil {
 		return nil, err
 	}
@@ -88,6 +120,54 @@ func (s *Sync) getBlockDataHandler(ctx context.Context, msg interface{}, stream 
 			break
 		}
 		bd.Locator = append(bd.Locator, &pbbd)
+	}
+	e := s.EncodeResponseMsg(stream, bd)
+	if e != nil {
+		err = e.Error
+		return e
+	}
+	return nil
+}
+
+func (s *Sync) getMerkleBlockDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
+	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
+	var err error
+	defer func() {
+		cancel()
+	}()
+	m, ok := msg.(*pb.MerkleBlockRequest)
+	if !ok {
+		err = fmt.Errorf("message is not type *pb.Hash")
+		return ErrMessage(err)
+	}
+	filter := s.PeerSync().syncPeer.Filter()
+	// Do not send a response if the peer doesn't have a filter loaded.
+	if !filter.IsLoaded() {
+		log.Warn("filter not loaded!")
+		return nil
+	}
+	bds := []*pb.MerkleBlock{}
+	bd := &pb.MerkleBlockResponse{Data: bds}
+	for _, bdh := range m.Hashes {
+		blockHash, err := hash.NewHash(bdh.Hash)
+		if err != nil {
+			err = fmt.Errorf("invalid block hash")
+			return ErrMessage(err)
+		}
+		block, err := s.p2p.BlockChain().FetchBlockByHash(blockHash)
+		if err != nil {
+			return ErrMessage(err)
+		}
+		// Generate a merkle block by filtering the requested block according
+		// to the filter for the peer.
+		merkle, _ := bloom.NewMerkleBlock(block, filter)
+		// Finally, send any matched transactions.
+		pbbd := pb.MerkleBlock{Header: merkle.Header.BlockData(),
+			Transactions: int64(merkle.Transactions),
+			Hashes:       changeHashsToPBHashs(merkle.Hashes),
+			Flags:        merkle.Flags,
+		}
+		bd.Data = append(bd.Data, &pbbd)
 	}
 	e := s.EncodeResponseMsg(stream, bd)
 	if e != nil {
@@ -179,6 +259,47 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 	return err
 }
 
+func (ps *PeerSync) processGetMerkleBlockDatas(pe *peers.Peer, blocks []*hash.Hash) error {
+	if !ps.isSyncPeer(pe) || !pe.IsActive() {
+		err := fmt.Errorf("no sync peer")
+		log.Trace(err.Error())
+		return err
+	}
+	filter := pe.Filter()
+	// Do not send a response if the peer doesn't have a filter loaded.
+	if !filter.IsLoaded() {
+		err := fmt.Errorf("filter not loaded")
+		log.Trace(err.Error())
+		return nil
+	}
+
+	blocksReady := []*hash.Hash{}
+
+	for _, b := range blocks {
+		if ps.sy.p2p.BlockChain().HaveBlock(b) {
+			continue
+		}
+		blocksReady = append(blocksReady, b)
+	}
+	if len(blocksReady) <= 0 {
+		return nil
+	}
+	if !ps.longSyncMod {
+		bs := ps.sy.p2p.BlockChain().BestSnapshot()
+		if pe.GraphState().GetTotal() >= bs.GraphState.GetTotal()+MaxBlockLocatorsPerMsg {
+			ps.longSyncMod = true
+		}
+	}
+
+	bd, err := ps.sy.sendGetMerkleBlockDataRequest(ps.sy.p2p.Context(), pe.GetID(), &pb.MerkleBlockRequest{Hashes: changeHashsToPBHashs(blocksReady)})
+	if err != nil {
+		log.Warn(fmt.Sprintf("sendGetMerkleBlockDataRequest send:%v", err))
+		return err
+	}
+	log.Debug(fmt.Sprintf("sendGetMerkleBlockDataRequest:%d", len(bd.Data)))
+	return nil
+}
+
 func (ps *PeerSync) GetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) {
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
@@ -188,68 +309,46 @@ func (ps *PeerSync) GetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) {
 	ps.msgChan <- &GetBlockDatasMsg{pe: pe, blocks: blocks}
 }
 
-// handleGetData is invoked when a peer receives a getdata bitcoin message and
+// handleGetData is invoked when a peer receives a getdata qitmeer message and
 // is used to deliver block and transaction information.
-func (ps *PeerSync) OnGetData(sp *peers.Peer, msg *pb.Inventory) {
-	numAdded := 0
-	notFound := wire.NewMsgNotFound()
-
-	length := len(msg.Invs)
-
-	// We wait on this wait channel periodically to prevent queuing
-	// far more data than we can send in a reasonable time, wasting memory.
-	// The waiting occurs after the database fetch for the next one to
-	// provide a little pipelining.
-	var waitChan chan struct{}
-	doneChan := make(chan struct{}, 1)
-
-	for i, iv := range msg.Invs {
-		var c chan struct{}
-		// If this will be the last message we send.
-		if i == length-1 && len(notFound.InvList) == 0 {
-			c = doneChan
-		} else if (i+1)%3 == 0 {
-			// Buffered so as to not make the send goroutine block.
-			c = make(chan struct{}, 1)
-		}
-		var err error
+func (ps *PeerSync) OnGetData(sp *peers.Peer, invList []*pb.InvVect) error {
+	txs := make([]*pb.Hash, 0)
+	blocks := make([]*pb.Hash, 0)
+	merkleBlocks := make([]*pb.Hash, 0)
+	for _, iv := range invList {
 		switch InvType(iv.Type) {
 		case InvTypeTx:
-			err = sp.pushTxMsg(sp, &iv.Hash, c, waitChan, types.BaseEncoding)
+			txs = append(txs, iv.Hash)
 		case InvTypeBlock:
-			err = sp.pushBlockMsg(sp, &iv.Hash, c, waitChan, types.BaseEncoding)
+			blocks = append(blocks, iv.Hash)
 		case InvTypeFilteredBlock:
-			err = sp.pushMerkleBlockMsg(sp, &iv.Hash, c, waitChan, types.BaseEncoding)
+			merkleBlocks = append(merkleBlocks, iv.Hash)
 		default:
 			log.Warn(fmt.Sprintf("Unknown type in inventory request %d",
 				iv.Type))
 			continue
 		}
+	}
+	if len(txs) > 0 {
+		err := ps.processGetTxs(sp, changePBHashsToHashs(txs))
 		if err != nil {
-			notFound.AddInvVect(iv)
-
-			// When there is a failure fetching the final entry
-			// and the done channel was sent in due to there
-			// being no outstanding not found inventory, consume
-			// it here because there is now not found inventory
-			// that will use the channel momentarily.
-			if i == len(msg.Invs)-1 && c != nil {
-				<-c
-			}
+			log.Info("processGetTxs Error", "err", err.Error())
+			return err
 		}
-		numAdded++
-		waitChan = c
 	}
-	if len(notFound.InvList) != 0 {
-		sp.QueueMessage(notFound, doneChan)
+	if len(blocks) > 0 {
+		err := ps.processGetBlockDatas(sp, changePBHashsToHashs(txs))
+		if err != nil {
+			log.Info("processGetBlockDatas Error", "err", err.Error())
+			return err
+		}
 	}
-
-	// Wait for messages to be sent. We can send quite a lot of data at this
-	// point and this will keep the peer busy for a decent amount of time.
-	// We don't process anything else by them in this time so that we
-	// have an idea of when we should hear back from them - else the idle
-	// timeout could fire when we were only half done sending the blocks.
-	if numAdded > 0 {
-		<-doneChan
+	if len(merkleBlocks) > 0 {
+		err := ps.processGetMerkleBlockDatas(sp, changePBHashsToHashs(txs))
+		if err != nil {
+			log.Info("processGetBlockDatas Error", "err", err.Error())
+			return err
+		}
 	}
+	return nil
 }
