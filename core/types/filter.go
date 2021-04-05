@@ -1,5 +1,11 @@
 package types
 
+import (
+	"fmt"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"io"
+)
+
 const (
 	// BloomUpdateNone indicates the filter is not adjusted when a match is
 	// found.
@@ -63,4 +69,52 @@ func NewMsgFilterLoad(filter []byte, hashFuncs uint32, tweak uint32, flags Bloom
 		Tweak:     tweak,
 		Flags:     flags,
 	}
+}
+
+// QitmeerDecode decodes r using the bitcoin protocol encoding into the receiver.
+// This is part of the Message interface implementation.
+func (msg *MsgFilterLoad) QitmeerDecode(r io.Reader, pver uint32, enc MessageEncoding) error {
+	var err error
+	msg.Filter, err = s.ReadVarBytes(r, pver, MaxFilterLoadFilterSize,
+		"filterload filter size")
+	if err != nil {
+		return err
+	}
+
+	err = s.ReadElements(r, &msg.HashFuncs, &msg.Tweak, &msg.Flags)
+	if err != nil {
+		return err
+	}
+
+	if msg.HashFuncs > MaxFilterLoadHashFuncs {
+		str := fmt.Sprintf("too many filter hash functions for message "+
+			"[count %v, max %v]", msg.HashFuncs, MaxFilterLoadHashFuncs)
+		return messageError("MsgFilterLoad.QitmeerDecode", str)
+	}
+
+	return nil
+}
+
+// QitmeerEncode encodes the receiver to w using the bitcoin protocol encoding.
+// This is part of the Message interface implementation.
+func (msg *MsgFilterLoad) QitmeerEncode(w io.Writer, pver uint32, enc MessageEncoding) error {
+	size := len(msg.Filter)
+	if size > MaxFilterLoadFilterSize {
+		str := fmt.Sprintf("filterload filter size too large for message "+
+			"[size %v, max %v]", size, MaxFilterLoadFilterSize)
+		return messageError("MsgFilterLoad.QitmeerEncode", str)
+	}
+
+	if msg.HashFuncs > MaxFilterLoadHashFuncs {
+		str := fmt.Sprintf("too many filter hash functions for message "+
+			"[count %v, max %v]", msg.HashFuncs, MaxFilterLoadHashFuncs)
+		return messageError("MsgFilterLoad.QitmeerEncode", str)
+	}
+
+	err := s.WriteVarBytes(w, pver, msg.Filter)
+	if err != nil {
+		return err
+	}
+
+	return s.WriteElements(w, msg.HashFuncs, msg.Tweak, msg.Flags)
 }

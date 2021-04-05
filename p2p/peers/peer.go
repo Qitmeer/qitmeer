@@ -505,7 +505,7 @@ func (sp *Peer) EnforceNodeBloomFlag() bool {
 		// Disconnect the peer regardless of protocol version or banning
 		// state.
 		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
-			"filter loaded -- disconnecting", sp))
+			"filter loaded -- disconnecting", sp.Node().String()))
 		sp.SetConnectionState(PeerDisconnected)
 		return false
 	}

@@ -6,9 +6,6 @@ require (
 	github.com/Qitmeer/crypto v0.0.0-20200516043559-dd457edff06c
 	github.com/Qitmeer/crypto/cryptonight v0.0.0-20201028030128-6ed4040ca34a
 	github.com/aristanetworks/goarista v0.0.0-20200812190859-4cb0e71f3c0e
-	github.com/btceasypay/bitcoinpay v0.0.3
-	github.com/btcsuite/btcd v0.20.1-beta
-	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/cloudflare/roughtime v0.0.0-20200829152512-a9bb6267a4f5
 	github.com/davecgh/go-spew v1.1.1
 	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect

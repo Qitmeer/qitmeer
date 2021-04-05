@@ -448,7 +448,7 @@ func (ps *PeerSync) OnFilterAdd(sp *peers.Peer, msg *types.MsgFilterAdd) {
 	filter := sp.Filter()
 	if !filter.IsLoaded() {
 		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
-			"filter loaded -- disconnecting", sp))
+			"filter loaded -- disconnecting", sp.Node().String()))
 		ps.Disconnect(sp)
 		return
 	}
@@ -470,7 +470,7 @@ func (ps *PeerSync) OnFilterClear(sp *peers.Peer, msg *types.MsgFilterClear) {
 
 	if !filter.IsLoaded() {
 		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
-			"filter loaded -- disconnecting", sp))
+			"filter loaded -- disconnecting", sp.Node().String()))
 		ps.Disconnect(sp)
 		return
 	}
@@ -505,7 +505,7 @@ func (ps *PeerSync) OnMemPool(sp *peers.Peer, msg *MsgMemPool) {
 	services := sp.Services()
 	if services&protocol.Bloom != protocol.Bloom {
 		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
-			"filter loaded -- disconnecting", sp))
+			"filter loaded -- disconnecting", sp.Node().String()))
 		ps.Disconnect(sp)
 		return
 	}
