@@ -88,14 +88,17 @@ func IsCoinBaseTx(tx *Transaction) bool {
 // genesis_spent transactions are specified as below :
 //
 // 1.) Inputs:
-// genesis input [index 0]
-// only ONE input is allowed
+// genesis output [index 0]
+//
+// Note: only 1 input is allowed
 //
 // 2.) Outputs:
 // OP_RETURN push of 40 bytes containing: [index 0]
 //    i. the hash of block which determined the input[0] allowed to be spent. (32-byte)
 //   ii. this block's order. (8-byte uint)
-// normal output [index 2]
+// normal output [index 1]
+//
+// Note: only 2 outputs are allowed
 //
 // 3.) No changes && fee are allowed
 // inputs amount == output amount
@@ -121,15 +124,15 @@ func IsGenesisSpentTx(tx *Transaction) bool {
 //
 // 2.) Outputs:
 // OP_STAKE_LOCK tagged output [index 0]
-// OP_RETURN push of input 1's address for stake reward receiving [index 1]
-// OP_RETURN push of input 2's address for stake reward receiving [index 3]
+// OP_RETURN push of input 1's stake reward receiving address [index 1]
+// OP_STAKE_LOCK tagged output [index 2]
+// OP_RETURN push of input 2's stake reward receiving address [index 3]
 // ...
+// Note: The output OP_RETURN pushes should be of size 20 bytes (standard address).
 //
 // 3.) NO changes are allowed for the tx && NO fee are allowed for this tx.
 // inputs amount == output amount
 //
-//
-// The output OP_RETURN pushes should be of size 20 bytes (standard address).
 func CheckGenesisLock(tx *Transaction) error {
 	return fmt.Errorf("CheckGenesisLock is not supported yet")
 }
