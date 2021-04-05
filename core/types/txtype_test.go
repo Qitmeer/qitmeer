@@ -15,6 +15,8 @@ func TestAllTxTypeValues(t *testing.T) {
 	}{
 		{TxTypeRegular, 0},
 		{TxTypeCoinbase, 1},
+		{TxTypeGenesisSpent, 2},
+		{TxTypeGenesisLock, 3},
 		{TxTypeStakebase, 16},
 		{TyTypeStakeReserve,17},
 		{TxTypeStakePurchase,18},
