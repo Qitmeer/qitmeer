@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Qitmeer/qitmeer/cmd/crawler/config"
 	"github.com/Qitmeer/qitmeer/cmd/crawler/log"
 	"github.com/Qitmeer/qitmeer/cmd/crawler/node"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
@@ -30,10 +31,10 @@ func crawlerNode() error {
 		},
 		Copyright:            "(c) 2020 Qitmeer",
 		Usage:                "Crawler Node",
-		Flags:                node.AppFlags,
+		Flags:                config.AppFlags,
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
-			return n.Init(node.Conf)
+			return n.Init(config.Conf)
 		},
 		After: func(c *cli.Context) error {
 			return n.Exit()
