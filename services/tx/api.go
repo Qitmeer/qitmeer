@@ -227,8 +227,8 @@ func (api *PublicTxAPI) SendRawTransaction(hexTx string, allowHighFees *bool) (i
 			tx.Hash(), err)
 		return nil, rpc.RpcDeserializationError("rejected: %v", err)
 	}
-	//TODO P2P layer announce
 	api.txManager.ntmgr.AnnounceNewTransactions(acceptedTxs)
+	api.txManager.ntmgr.AddRebroadcastInventory(acceptedTxs)
 
 	return tx.Hash().String(), nil
 }
