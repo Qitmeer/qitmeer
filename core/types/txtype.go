@@ -16,8 +16,7 @@ type TxType int
 const (
 	TxTypeRegular         TxType = iota
 	TxTypeCoinbase        TxType = 0x1
-	TxTypeGenesisSpent    TxType = 0x2   // the tx try to spent the genesis output
-	TxTypeGenesisLock     TxType = 0x3   // the tx try to lock the genesis output to the stake pool
+	TxTypeGenesisLock     TxType = 0x2   // the tx try to lock the genesis output to the stake pool
 
 	TxTypeStakebase       TxType = 0x10  // the special tx which vote for stake_purchase and reward stake holder from the stake_reserve
 	TyTypeStakeReserve    TxType = 0x11  // the tx reserve consensus-based value to a special stake_reserve address
@@ -40,9 +39,6 @@ const (
 func DetermineTxType(tx *Transaction) TxType {
 	if IsCoinBaseTx(tx) {
 		return TxTypeCoinbase
-	}
-	if IsGenesisSpentTx(tx) {
-		return TxTypeGenesisSpent
 	}
 	if IsGenesisLockTx(tx) {
 		return TxTypeGenesisLock
@@ -76,41 +72,10 @@ func IsCoinBaseTx(tx *Transaction) bool {
 // --------------------------------------------------------------------------------
 // The Genesis_XXX transactions
 //
-//    the transactions related to spend or lock the genesis UTXOs
+//    the transactions related to the genesis UTXOs
 //
-//  - genesis_spent  how to spent the genesis output
 //  - genesis_lock   how lock the genesis output to the stake pool
 // --------------------------------------------------------------------------------
-
-// CheckGenesisSpent returns an error if a transaction is not a genesis_spent transaction.
-// It makes sure the number of inputs/outputs, and related scripts are valid.
-//
-// genesis_spent transactions are specified as below :
-//
-// 1.) Inputs:
-// genesis output [index 0]
-//
-// Note: only 1 input is allowed
-//
-// 2.) Outputs:
-// OP_RETURN push of 40 bytes containing: [index 0]
-//    i. the hash of block which determined the input[0] allowed to be spent. (32-byte)
-//   ii. this block's order. (8-byte uint)
-// normal output [index 1]
-//
-// Note: only 2 outputs are allowed
-//
-// 3.) No changes && fee are allowed
-// inputs amount == output amount
-//
-func CheckGenesisSpent(tx *Transaction) error {
-	return fmt.Errorf("CheckGenesisSpent is not supported yet")
-}
-
-// IsGenesisSpentTx returns whether or not a transaction is a genesis_spent transaction.
-func IsGenesisSpentTx(tx *Transaction) bool {
-	return CheckGenesisSpent(tx) == nil
-}
 
 // CheckGenesisLock returns an error if a transaction is not a genesis_lock transaction.
 // It makes sure the number of inputs/outputs, and related scripts are valid.
@@ -162,5 +127,3 @@ func IsGenesisLockTx(tx *Transaction) bool {
 //   4. if 3. is ok, token can be operated by token operator officially.
 //   5. token operator do token_mint, the consensus-based token amount assessable. (on chain)
 // --------------------------------------------------------------------------------
-
-
