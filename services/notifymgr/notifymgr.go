@@ -35,3 +35,15 @@ func (ntmgr *NotifyMgr) RelayInventory(data interface{}) {
 func (ntmgr *NotifyMgr) BroadcastMessage(data interface{}) {
 	ntmgr.Server.BroadcastMessage(data)
 }
+
+func (ntmgr *NotifyMgr) AddRebroadcastInventory(newTxs []*types.TxDesc) {
+	for _, tx := range newTxs {
+		ntmgr.Server.Rebroadcast().AddInventory(tx.Tx.Hash(), tx)
+	}
+}
+
+// Transaction has one confirmation on the main chain. Now we can mark it as no
+// longer needing rebroadcasting.
+func (ntmgr *NotifyMgr) TransactionConfirmed(tx *types.Tx) {
+	ntmgr.Server.Rebroadcast().RemoveInventory(tx.Hash())
+}

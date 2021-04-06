@@ -10,4 +10,6 @@ type Notify interface {
 	AnnounceNewTransactions(newTxs []*types.TxDesc)
 	RelayInventory(data interface{})
 	BroadcastMessage(data interface{})
+	TransactionConfirmed(tx *types.Tx)
+	AddRebroadcastInventory(newTxs []*types.TxDesc)
 }
