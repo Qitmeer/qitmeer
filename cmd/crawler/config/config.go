@@ -173,7 +173,6 @@ func (c *Config) Load() error {
 
 	if len(c.BootstrapNodeAddr) == 0 {
 		c.BootstrapNodeAddr = params.ActiveNetParams.Bootstrap
-		fmt.Println(c.BootstrapNodeAddr)
 	}
 
 	if len(c.RPCListeners) == 0 {
