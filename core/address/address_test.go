@@ -85,9 +85,9 @@ func TestAddress(t *testing.T) {
 		{
 			// prikey 7e445aa5ffd834cb2d3b2db50f8997dd21af29bec3d296aaa066d902b93f484b
 			name:      "mainNet p2pkh NewPubKeyHashAddress",
-			addr:      "NmVBjxT3GzCW5btcoxqXJc5Xe4M8hAqZJgR",
+			addr:      "MmYWtAp7nkDmuqUYLSRZQn2LMRi2rsAdJLr",
 			pubkeystr: "0354455a60d86273d322eebb913d87f428988ce97922a366f0a0867a426df78bc9",
-			encoded:   "NmVBjxT3GzCW5btcoxqXJc5Xe4M8hAqZJgR",
+			encoded:   "MmYWtAp7nkDmuqUYLSRZQn2LMRi2rsAdJLr",
 			valid:     true,
 			result: &PubKeyHashAddress{
 				net:   mainNetParams,
@@ -164,8 +164,8 @@ func TestAddress(t *testing.T) {
 		},
 		{
 			name:    "mainNet p2sh NewAddressScriptHashFromHash",
-			addr:    "NSYJEU4c9ZFcUydu5i3HzJpYW4tHczukQPz",
-			encoded: "NSYJEU4c9ZFcUydu5i3HzJpYW4tHczukQPz",
+			addr:    "MSCHmhKPNc6RSPngXACzmze5RojvqusFGeN",
+			encoded: "MSCHmhKPNc6RSPngXACzmze5RojvqusFGeN",
 			valid:   true,
 			result: &ScriptHashAddress{
 				net:   mainNetParams,
@@ -204,8 +204,8 @@ func TestAddress(t *testing.T) {
 		},
 		{
 			name:    "mixNet p2sh NewAddressScriptHashFromHash",
-			addr:    "XdHnr7qFbc78XmWVn7WHxLpv7NmQYJRz6Rx",
-			encoded: "XdHnr7qFbc78XmWVn7WHxLpv7NmQYJRz6Rx",
+			addr:    "XSRfZXuCpSEcsgojSTBJMFSZsP9T58yB1Z5",
+			encoded: "XSRfZXuCpSEcsgojSTBJMFSZsP9T58yB1Z5",
 			valid:   true,
 			result: &ScriptHashAddress{
 				net:   mixNetParams,
