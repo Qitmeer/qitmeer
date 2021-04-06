@@ -7,24 +7,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/math"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"io"
 	"time"
-)
-
-type TxType byte
-
-const (
-	CoinBase        TxType = 0x01
-	Leger           TxType = 0x02
-	TxTypeRegular   TxType = 0x03
-	AssetIssue      TxType = 0xa0
-	AssetRevoke     TxType = 0xa1
-	ContractCreate  TxType = 0xc0
-	ContractDestroy TxType = 0xc1
-	ContractUpdate  TxType = 0xc2
 )
 
 const (
@@ -220,12 +206,6 @@ func (t *Transaction) AddTxOut(to *TxOutput) {
 	t.TxOut = append(t.TxOut, to)
 }
 
-// DetermineTxType determines the type of stake transaction a transaction is; if
-// none, it returns that it is an assumed regular tx.
-func DetermineTxType(tx *Transaction) TxType {
-	//TODO txType
-	return TxTypeRegular
-}
 
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction. (full size)
@@ -782,26 +762,9 @@ func (tx *Transaction) TxHashFull() hash.Hash {
 	return hash.DoubleHashH(tx.mustSerialize(TxSerializeFull))
 }
 
-// IsCoinBaseTx determines whether or not a transaction is a coinbase.  A
-// coinbase is a special transaction created by miners that has no inputs.
-// This is represented in the block chain by a transaction with a single input
-// that has a previous output transaction index set to the maximum value along
-// with a zero hash.
-//
-// This function only differs from IsCoinBase in that it works with a raw wire
-// transaction as opposed to a higher level util transaction.
+
 func (tx *Transaction) IsCoinBase() bool {
-	// A coin base must only have one transaction input.
-	if len(tx.TxIn) != 1 {
-		return false
-	}
-	// The previous output of a coin base must have a max value index and a
-	// zero hash.
-	prevOut := &tx.TxIn[0].PreviousOut
-	/*if prevOut.OutIndex != math.MaxUint32 || !prevOut.Hash.IsEqual(&hash.ZeroHash) {
-		return false
-	}*/
-	return prevOut.OutIndex == math.MaxUint32
+	return DetermineTxType(tx) == TxTypeCoinbase
 }
 
 // Tx defines a transaction that provides easier and more efficient manipulation

@@ -153,7 +153,7 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		// transaction tree.
 		msgTx := tx.Transaction()
 		txType := types.DetermineTxType(msgTx)
-		if txType != types.TxTypeRegular {
+		if txType != types.TxTypeRegular && txType != types.TxTypeCoinbase {
 			errStr := fmt.Sprintf("block contains a irregular "+
 				"transaction in the regular transaction tree at "+
 				"index %d", i)
