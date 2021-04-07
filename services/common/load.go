@@ -256,6 +256,41 @@ func LoadConfig() (*config.Config, []string, error) {
 		params.ActiveNetParams.Params.DefaultPort = cfg.DefaultPort
 	}
 
+	// Add default port to all rpc listener addresses if needed and remove
+	// duplicate addresses.
+	cfg.RPCListeners = normalizeAddresses(cfg.RPCListeners,
+		params.ActiveNetParams.RpcPort)
+
+	// Only allow TLS to be disabled if the RPC is bound to localhost
+	// addresses.
+	if !cfg.DisableRPC && cfg.DisableTLS {
+		allowedTLSListeners := map[string]struct{}{
+			"localhost": {},
+			"127.0.0.1": {},
+			"::1":       {},
+		}
+		for _, addr := range cfg.RPCListeners {
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
+				str := "%s: RPC listen interface '%s' is " +
+					"invalid: %v"
+				err := fmt.Errorf(str, funcName, addr, err)
+				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintln(os.Stderr, usageMessage)
+				return nil, nil, err
+			}
+			if _, ok := allowedTLSListeners[host]; !ok {
+				str := "%s: the --notls option may not be used " +
+					"when binding RPC to non localhost " +
+					"addresses: %s"
+				err := fmt.Errorf(str, funcName, addr)
+				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintln(os.Stderr, usageMessage)
+				return nil, nil, err
+			}
+		}
+	}
+
 	// Default RPC to listen on localhost only.
 	if !cfg.DisableRPC && len(cfg.RPCListeners) == 0 {
 		addrs, err := net.LookupHost("localhost")
@@ -365,41 +400,6 @@ func LoadConfig() (*config.Config, []string, error) {
 		fmt.Fprintln(os.Stderr, err)
 		fmt.Fprintln(os.Stderr, usageMessage)
 		return nil, nil, err
-	}
-
-	// Add default port to all rpc listener addresses if needed and remove
-	// duplicate addresses.
-	cfg.RPCListeners = normalizeAddresses(cfg.RPCListeners,
-		params.ActiveNetParams.RpcPort)
-
-	// Only allow TLS to be disabled if the RPC is bound to localhost
-	// addresses.
-	if !cfg.DisableRPC && cfg.DisableTLS {
-		allowedTLSListeners := map[string]struct{}{
-			"localhost": {},
-			"127.0.0.1": {},
-			"::1":       {},
-		}
-		for _, addr := range cfg.RPCListeners {
-			host, _, err := net.SplitHostPort(addr)
-			if err != nil {
-				str := "%s: RPC listen interface '%s' is " +
-					"invalid: %v"
-				err := fmt.Errorf(str, funcName, addr, err)
-				fmt.Fprintln(os.Stderr, err)
-				fmt.Fprintln(os.Stderr, usageMessage)
-				return nil, nil, err
-			}
-			if _, ok := allowedTLSListeners[host]; !ok {
-				str := "%s: the --notls option may not be used " +
-					"when binding RPC to non localhost " +
-					"addresses: %s"
-				err := fmt.Errorf(str, funcName, addr)
-				fmt.Fprintln(os.Stderr, err)
-				fmt.Fprintln(os.Stderr, usageMessage)
-				return nil, nil, err
-			}
-		}
 	}
 
 	if cfg.NTP {
