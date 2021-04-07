@@ -616,14 +616,15 @@ out:
 		// Choose a payment address at random.
 		rand.Seed(roughtime.Now().UnixNano())
 		miningaddrs := m.config.GetMinningAddrs()
-		log.Trace(fmt.Sprintf("MinningAddrs: %v, %d \n", miningaddrs, len(miningaddrs)))
+		log.Trace(fmt.Sprintf("MinningAddrs: %v, %d", miningaddrs, len(miningaddrs)))
 		rindex := rand.Intn(len(miningaddrs))
 		payToAddr := miningaddrs[rindex]
 
 		currentOrder := m.blockManager.GetChain().BestSnapshot().GraphState.GetTotal() - 1
 		if currentOrder != 0 && !m.blockManager.IsCurrent() {
-			log.Warn("Client in initial download, qitmeer is downloading blocks...")
-			return
+			log.Trace("Client in initial download, qitmeer is downloading blocks...")
+			m.submitBlockLock.Unlock()
+			continue
 		}
 		// Create a new block template using the available transactions
 		// in the memory pool as a source of transactions to potentially
