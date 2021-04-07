@@ -616,7 +616,7 @@ out:
 		// Choose a payment address at random.
 		rand.Seed(roughtime.Now().UnixNano())
 		miningaddrs := m.config.GetMinningAddrs()
-		fmt.Printf("why %v, %d \n", miningaddrs, len(miningaddrs))
+		log.Trace(fmt.Sprintf("MinningAddrs: %v, %d \n", miningaddrs, len(miningaddrs)))
 		rindex := rand.Intn(len(miningaddrs))
 		payToAddr := miningaddrs[rindex]
 
