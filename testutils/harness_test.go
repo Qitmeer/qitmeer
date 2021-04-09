@@ -29,8 +29,8 @@ func TestHarness(t *testing.T) {
 			t.Errorf("tear down test harness instance failed %v", err)
 		}
 		numOfHarnessInstances := len(AllHarnesses())
-		if numOfHarnessInstances != 10 {
-			t.Errorf("harness num is wrong, expect %d , but got %d", 10, numOfHarnessInstances)
+		if numOfHarnessInstances != 2 {
+			t.Errorf("harness num is wrong, expect %d , but got %d", 2, numOfHarnessInstances)
 			for _, h := range AllHarnesses() {
 				t.Errorf("%v\n", h.Id())
 			}
@@ -61,7 +61,7 @@ func TestHarness(t *testing.T) {
 		t.Errorf("harness num is wrong, expect %d , but got %d", 1, numOfHarnessInstances)
 	}
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 2; i++ {
 		wg.Add(1)
 		go func() {
 			NewHarness(t, params.PrivNetParam.Params)
@@ -73,8 +73,8 @@ func TestHarness(t *testing.T) {
 
 func TestHarnessNodePorts(t *testing.T) {
 	var setup, teardown sync.WaitGroup
-	ha := make(map[int]*Harness, 10)
-	for i := 0; i < 10; i++ {
+	ha := make(map[int]*Harness, 2)
+	for i := 0; i < 2; i++ {
 		setup.Add(1)
 		teardown.Add(1)
 		// new and setup
