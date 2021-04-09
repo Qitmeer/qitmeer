@@ -225,7 +225,6 @@ func (w *testWallet) Start() {
 			w.Unlock()
 		}
 	}()
-	time.Sleep(800 * time.Microsecond)
 	gensis, err := w.client.GetSerializedBlock(w.netParams.GenesisHash)
 	if err != nil {
 		w.t.Fatalf("failed to get gensis block")

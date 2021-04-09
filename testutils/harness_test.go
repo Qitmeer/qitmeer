@@ -124,8 +124,8 @@ func TestHarness_RpcAPI(t *testing.T) {
 		}
 	}
 	AssertBlockOrderAndHeight(t, h, 1, 1, 0)
-	GenerateBlock(t, h, 2)
-	AssertBlockOrderAndHeight(t, h, 3, 3, 2)
+	GenerateBlock(t, h, 20)
+	AssertBlockOrderAndHeight(t, h, 21, 21, 20)
 	spendAmt := types.Amount{Value: 4 * types.AtomsPerCoin, Id: types.QITID}
 	txid, _ := Spend(t, h, spendAmt)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
@@ -147,7 +147,9 @@ func TestHarness_SpentGenesis(t *testing.T) {
 		t.Fatalf("setup harness failed:%v", err)
 	}
 	time.Sleep(500 * time.Millisecond)
-
+	AssertBlockOrderAndHeight(t, h, 1, 1, 0)
+	GenerateBlock(t, h, 20)
+	AssertBlockOrderAndHeight(t, h, 21, 21, 20)
 	spendAmt := types.Amount{Value: 45 * types.AtomsPerCoin, Id: types.MEERID}
 	txid, _ := Spend(t, h, spendAmt)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
