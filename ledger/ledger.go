@@ -43,6 +43,7 @@ func (p PayoutList2) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 // If there are no payouts to be given, set this
 // to an empty slice.
 var GenesisLedger []*TokenPayout
+var LockGenesisLedger map[uint32][]*TokenPayout
 
 // BlockOneSubsidy returns the total subsidy of block height 1 for the
 // network.
@@ -84,6 +85,22 @@ func addPayout2(addr string, amount types.Amount, pksStr string) {
 	GenesisLedger = append(GenesisLedger, &TokenPayout{addr, pks, amount})
 }
 
+func addPayoutLock(addr string, amount types.Amount, pksStr string, lockTime uint32) {
+	pks, err := hex.DecodeString(pksStr)
+	if err != nil {
+		fmt.Printf("Error %v - address:%s  amount:%d\n", err, addr, amount)
+		return
+	}
+	if LockGenesisLedger == nil {
+		LockGenesisLedger = map[uint32][]*TokenPayout{}
+	}
+	//TODO input check for amout
+	if _, ok := LockGenesisLedger[lockTime]; !ok {
+		LockGenesisLedger[lockTime] = make([]*TokenPayout, 0)
+	}
+	LockGenesisLedger[lockTime] = append(LockGenesisLedger[lockTime], &TokenPayout{addr, pks, amount})
+}
+
 // pay out tokens to a ledger.
 func Ledger(tx *types.Transaction, netType protocol.Network) {
 	if len(GenesisLedger) != 0 {
@@ -117,4 +134,55 @@ func Ledger(tx *types.Transaction, netType protocol.Network) {
 			Amount: types.Amount{Value: 0, Id: types.MEERID},
 		})
 	}
+}
+
+// pay out tokens to a ledger.
+func Ledger2(tmplate types.Transaction, netType protocol.Network) []*types.Transaction {
+	if len(GenesisLedger) != 0 {
+		GenesisLedger = GenesisLedger[:0]
+	}
+	switch netType {
+	case protocol.MainNet:
+		initMain()
+	case protocol.TestNet:
+		initTest()
+	case protocol.MixNet:
+		initMix()
+	case protocol.PrivNet:
+		initPriv()
+	}
+	txes := make([]*types.Transaction, 0)
+	// Block one is a special block that might pay out tokens to a ledger.
+	if len(GenesisLedger) != 0 {
+		tmp := tmplate
+		// Convert the addresses in the ledger into useable format.
+		for _, payout := range GenesisLedger {
+			// Make payout to this address.
+			tmp.AddTxOut(&types.TxOutput{
+				Amount:   payout.Amount,
+				PkScript: payout.PkScript,
+			})
+		}
+		txes = append(txes, &tmp)
+	}
+
+	// lock payout
+	// Block one is a special block that might pay out tokens to a ledger.
+	if len(LockGenesisLedger) != 0 {
+		// Convert the addresses in the ledger into useable format.
+		for lockTime, payouts := range LockGenesisLedger {
+			tmp := tmplate
+			tmp.LockTime = lockTime
+			for _, payout := range payouts {
+				// Make payout to this address.
+				tmp.AddTxOut(&types.TxOutput{
+					Amount:   payout.Amount,
+					PkScript: payout.PkScript,
+				})
+			}
+			txes = append(txes, &tmp)
+		}
+	}
+
+	return txes
 }

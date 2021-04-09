@@ -77,11 +77,33 @@ func Spend(t *testing.T, h *Harness, amt types.Amount) (*hash.Hash, types.Addres
 	output := types.NewTxOutput(amt, addrScript)
 
 	feeRate := types.Amount{Value: 10, Id: amt.Id}
-	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate)
+	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, false)
 	if err != nil {
 		t.Fatalf("failed to pay the output: %v", err)
 	}
 	return txId, addr
+}
+
+// Spend lock amount from the wallet of the test harness and return tx hash
+func SpendLockAmount(t *testing.T, h *Harness, amt types.Amount) (*hash.Hash, types.Address, error) {
+	addr, err := h.Wallet.newAddress()
+	if err != nil {
+		t.Fatalf("failed to generate new address for test wallet: %v", err)
+	}
+	t.Logf("test wallet generated new address %v ok", addr.Encode())
+	addrScript, err := txscript.PayToAddrScript(addr)
+	if err != nil {
+		t.Fatalf("failed to generated addr script: %v", err)
+	}
+	output := types.NewTxOutput(amt, addrScript)
+
+	feeRate := types.Amount{Value: 10, Id: amt.Id}
+	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, true)
+	if err != nil {
+		t.Logf("failed to pay the output: %v", err)
+		return nil, nil, err
+	}
+	return txId, addr, nil
 }
 
 // TODO, order and height not work for the SerializedBlock

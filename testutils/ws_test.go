@@ -43,7 +43,7 @@ func TestWsNotify(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	spendAmt := types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
+	spendAmt := types.Amount{Value: 4 * types.AtomsPerCoin, Id: types.MEERID}
 	txid, addr := Spend(t, h, spendAmt)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
 	t.Log(h.Wallet.Addresses())

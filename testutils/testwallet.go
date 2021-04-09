@@ -43,7 +43,8 @@ type utxo struct {
 	//which hd index of private key/address hold the utxo
 	keyIndex uint32
 	//the wallet side marker to mark the utxo is being spent
-	isSpent bool
+	isSpent  bool
+	LockTime int64
 }
 
 func (u *utxo) isMature(currentOrder int64) bool {
@@ -218,14 +219,22 @@ func (w *testWallet) Start() {
 				txHash := tx.TxHash()
 				isCoinbase := tx.IsCoinBase()
 				w.doInputs(tx.TxIn, undo)
-				w.doOutputs(tx.TxOut, &txHash, isCoinbase, undo)
+				w.doOutputs(tx.TxOut, &txHash, isCoinbase, undo, tx.LockTime)
 			}
 			w.undoes[update.hash] = undo
 			w.Unlock()
 		}
 	}()
-	gensis, err := w.client.GetSerializedBlock(w.netParams.GenesisHash)
-	if err != nil {
+	var gensis *types.SerializedBlock
+	var err error
+	TimeoutFunc(w.t, func() bool {
+		gensis, err = w.client.GetSerializedBlock(w.netParams.GenesisHash)
+		if err != nil {
+			return false
+		}
+		return true
+	}, 5)
+	if gensis == nil {
 		w.t.Fatalf("failed to get gensis block")
 	}
 	txs := make([]*types.Transaction, 0)
@@ -236,7 +245,7 @@ func (w *testWallet) Start() {
 }
 
 // doOutputs scan each of the passed outputs, creating utxos.
-func (w *testWallet) doOutputs(outputs []*types.TxOutput, txHash *hash.Hash, isCoinbase bool, undo *undo) {
+func (w *testWallet) doOutputs(outputs []*types.TxOutput, txHash *hash.Hash, isCoinbase bool, undo *undo, lockTime uint32) {
 
 	for i, output := range outputs {
 		pkScript := output.PkScript
@@ -254,13 +263,14 @@ func (w *testWallet) doOutputs(outputs []*types.TxOutput, txHash *hash.Hash, isC
 			if isCoinbase {
 				maturity = w.currentOrder + int64(w.netParams.CoinbaseMaturity)
 			}
-
+			fmt.Println("==============lockTime", lockTime)
 			op := types.TxOutPoint{Hash: *txHash, OutIndex: uint32(i)}
 			w.utxos[op] = &utxo{
 				value:    output.Amount,
 				keyIndex: keyIndex,
 				maturity: maturity,
 				pkScript: pkScript,
+				LockTime: int64(lockTime),
 			}
 			undo.utxosCreated = append(undo.utxosCreated, op)
 		}
@@ -284,8 +294,8 @@ func (w *testWallet) doInputs(inputs []*types.TxInput, undo *undo) {
 
 // SpendOutputsAndSend will create tx to pay the specified tx outputs
 // and send the tx to the test harness node.
-func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amount) (*hash.Hash, error) {
-	if tx, err := w.createTx(outputs, feePerByte); err != nil {
+func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amount, useLockAmount bool) (*hash.Hash, error) {
+	if tx, err := w.createTx(outputs, feePerByte, useLockAmount); err != nil {
 		return nil, err
 	} else {
 		txByte, err := tx.Serialize()
@@ -297,7 +307,7 @@ func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amou
 		return w.client.SendRawTx(txHex, true)
 	}
 }
-func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount) (*types.Transaction, error) {
+func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount, useLockTx bool) (*types.Transaction, error) {
 	w.Lock()
 	defer w.Unlock()
 	const (
@@ -333,6 +343,10 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		if _, ok := totalOutAmt[utxo.value.Id]; !ok {
 			continue
 		}
+		if !useLockTx && utxo.LockTime != 0 && utxo.LockTime > time.Now().Unix() {
+			continue
+		}
+		fmt.Println("================", useLockTx, utxo.LockTime)
 		totalInAmt[utxo.value.Id] += utxo.value.Value
 		// add selected input into tx
 		tx.AddTxIn(types.NewTxInput(&txOutPoint, nil))
@@ -402,6 +416,7 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 	for _, utxo := range stxos {
 		utxo.isSpent = true
 	}
+	tx.LockTime = uint32(time.Now().Unix()) - 1800
 	return tx, nil
 }
 
