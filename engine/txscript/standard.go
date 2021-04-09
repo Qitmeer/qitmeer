@@ -27,18 +27,19 @@ type ScriptClass byte
 
 // Classes of script payment known about in the blockchain.
 const (
-	NonStandardTy     ScriptClass = iota // None of the recognized forms.
-	PubKeyTy                             // Pay pubkey.
-	PubKeyHashTy                         // Pay pubkey hash.
-	ScriptHashTy                         // Pay to script hash.
-	MultiSigTy                           // Multi signature.
-	NullDataTy                           // Empty data-only (provably prunable).
-	StakeSubmissionTy                    // Stake submission.
-	StakeGenTy                           // Stake generation
-	StakeRevocationTy                    // Stake revocation.
-	StakeSubChangeTy                     // Change for stake submission tx.
-	PubkeyAltTy                          // Alternative signature pubkey.
-	PubkeyHashAltTy                      // Alternative signature pubkey hash.
+	NonStandardTy           ScriptClass = iota // None of the recognized forms.
+	PubKeyTy                                   // Pay pubkey.
+	PubKeyHashTy                               // Pay pubkey hash.
+	ScriptHashTy                               // Pay to script hash.
+	MultiSigTy                                 // Multi signature.
+	NullDataTy                                 // Empty data-only (provably prunable).
+	StakeSubmissionTy                          // Stake submission.
+	StakeGenTy                                 // Stake generation
+	StakeRevocationTy                          // Stake revocation.
+	StakeSubChangeTy                           // Change for stake submission tx.
+	PubkeyAltTy                                // Alternative signature pubkey.
+	PubkeyHashAltTy                            // Alternative signature pubkey hash.
+	PubkeyHashCheckLockTime                    // Pay pubkey hash with check locktime.
 )
 
 // Script Interface provide a abstract layer to support new Script parsing from opcode
@@ -113,18 +114,19 @@ var _ Script = (*NonStandardScript)(nil)
 // scriptClassToName houses the human-readable strings which describe each
 // script class.
 var scriptClassToName = []string{
-	NonStandardTy:     "nonstandard",
-	PubKeyTy:          "pubkey",
-	PubkeyAltTy:       "pubkeyalt",
-	PubKeyHashTy:      "pubkeyhash",
-	PubkeyHashAltTy:   "pubkeyhashalt",
-	ScriptHashTy:      "scripthash",
-	MultiSigTy:        "multisig",
-	NullDataTy:        "nulldata",
-	StakeSubmissionTy: "stakesubmission",
-	StakeGenTy:        "stakegen",
-	StakeRevocationTy: "stakerevoke",
-	StakeSubChangeTy:  "sstxchange",
+	NonStandardTy:           "nonstandard",
+	PubKeyTy:                "pubkey",
+	PubkeyAltTy:             "pubkeyalt",
+	PubKeyHashTy:            "pubkeyhash",
+	PubkeyHashAltTy:         "pubkeyhashalt",
+	ScriptHashTy:            "scripthash",
+	MultiSigTy:              "multisig",
+	NullDataTy:              "nulldata",
+	StakeSubmissionTy:       "stakesubmission",
+	StakeGenTy:              "stakegen",
+	StakeRevocationTy:       "stakerevoke",
+	StakeSubChangeTy:        "sstxchange",
+	PubkeyHashCheckLockTime: "pubkeyhashwithlocktime",
 }
 
 // String implements the Stringer interface by returning the name of
@@ -187,6 +189,20 @@ func isPubkeyHash(pops []ParsedOpcode) bool {
 		pops[2].opcode.value == OP_DATA_20 &&
 		pops[3].opcode.value == OP_EQUALVERIFY &&
 		pops[4].opcode.value == OP_CHECKSIG
+}
+
+// isPubkeyHashWithLockTime returns true if the script passed is a pay-to-pubkey-hash with locktime
+// transaction, false otherwise.
+func isPubkeyHashWithLockTime(pops []ParsedOpcode) bool {
+	return len(pops) == 7 &&
+		pops[0].opcode.value == OP_DUP &&
+		pops[1].opcode.value == OP_HASH160 &&
+		pops[2].opcode.value == OP_DATA_20 &&
+		pops[3].opcode.value == OP_EQUALVERIFY &&
+		pops[4].opcode.value == OP_CHECKSIG &&
+		pops[5].opcode.value == OP_CHECK_UTXO_LOCK &&
+		(pops[6].opcode.value == OP_DATA_4 || pops[6].opcode.value == OP_DATA_5) // time can 4-5 bytes
+
 }
 
 // isPubkeyHashAlt returns true if the script passed is a pay-to-pubkey-hash
@@ -414,6 +430,8 @@ func typeOfScript(pops []ParsedOpcode) ScriptClass {
 		return PubkeyAltTy
 	} else if isPubkeyHash(pops) {
 		return PubKeyHashTy
+	} else if isPubkeyHashWithLockTime(pops) {
+		return PubkeyHashCheckLockTime
 	} else if isPubkeyHashAlt(pops) {
 		return PubkeyHashAltTy
 	} else if isScriptHash(pops) {
@@ -710,6 +728,19 @@ func MultisigRedeemScriptFromScriptSig(script []byte) ([]byte, error) {
 func payToPubKeyHashScript(pubKeyHash []byte) ([]byte, error) {
 	return NewScriptBuilder().AddOp(OP_DUP).AddOp(OP_HASH160).
 		AddData(pubKeyHash).AddOp(OP_EQUALVERIFY).AddOp(OP_CHECKSIG).
+		Script()
+}
+
+// payToPubKeyHashScript creates a new script to pay a transaction
+// output to a 20-byte pubkey hash. It is expected that the input is a valid
+// hash.
+func payToPubKeyHashLockScript(pubKeyHash []byte, lockTime uint32) ([]byte, error) {
+	b := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, lockTime)
+	return NewScriptBuilder().AddOp(OP_DUP).AddOp(OP_HASH160).
+		AddData(pubKeyHash).AddOp(OP_EQUALVERIFY).AddOp(OP_CHECKSIG).
+		AddOp(OP_CHECK_UTXO_LOCK).
+		AddData(b).
 		Script()
 }
 
@@ -1117,6 +1148,23 @@ func PayToAddrScript(addr types.Address) ([]byte, error) {
 			return nil, ErrUnsupportedAddress
 		}
 		return payToSchnorrPubKeyScript(addr.Script())
+	}
+
+	return nil, ErrUnsupportedAddress
+}
+
+// PayToAddrScript creates a new script to pay a transaction output to a the
+// specified address.
+func PayToAddrLockScript(addr types.Address, lockTime uint32) ([]byte, error) {
+	switch addr := addr.(type) {
+	case *address.PubKeyHashAddress:
+		if addr == nil {
+			return nil, ErrUnsupportedAddress
+		}
+		switch addr.EcType() {
+		case ecc.ECDSA_Secp256k1:
+			return payToPubKeyHashLockScript(addr.Script(), lockTime)
+		}
 	}
 
 	return nil, ErrUnsupportedAddress

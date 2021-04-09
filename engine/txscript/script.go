@@ -120,7 +120,8 @@ func isPushOnly(pops []ParsedOpcode) bool {
 		// NOTE: This does consider OP_RESERVED to be a data push
 		// instruction, but execution of OP_RESERVED will fail anyways
 		// and matches the behavior required by consensus.
-		if pop.opcode.value > OP_16 {
+		// OP_CHECK_UTXO_LOCK expand uxto timelock
+		if pop.opcode.value > OP_16 && pop.opcode.value != OP_CHECK_UTXO_LOCK {
 			return false
 		}
 	}

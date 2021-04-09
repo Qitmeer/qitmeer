@@ -225,16 +225,9 @@ func (w *testWallet) Start() {
 			w.Unlock()
 		}
 	}()
-	var gensis *types.SerializedBlock
-	var err error
-	TimeoutFunc(w.t, func() bool {
-		gensis, err = w.client.GetSerializedBlock(w.netParams.GenesisHash)
-		if err != nil {
-			return false
-		}
-		return true
-	}, 5)
-	if gensis == nil {
+	time.Sleep(800 * time.Microsecond)
+	gensis, err := w.client.GetSerializedBlock(w.netParams.GenesisHash)
+	if err != nil {
 		w.t.Fatalf("failed to get gensis block")
 	}
 	txs := make([]*types.Transaction, 0)
@@ -263,7 +256,6 @@ func (w *testWallet) doOutputs(outputs []*types.TxOutput, txHash *hash.Hash, isC
 			if isCoinbase {
 				maturity = w.currentOrder + int64(w.netParams.CoinbaseMaturity)
 			}
-			fmt.Println("==============lockTime", lockTime)
 			op := types.TxOutPoint{Hash: *txHash, OutIndex: uint32(i)}
 			w.utxos[op] = &utxo{
 				value:    output.Amount,
@@ -346,7 +338,9 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		if !useLockTx && utxo.LockTime != 0 && utxo.LockTime > time.Now().Unix() {
 			continue
 		}
-		fmt.Println("================", useLockTx, utxo.LockTime)
+		if utxo.LockTime > 0 {
+			tx.LockTime = uint32(time.Now().Unix())
+		}
 		totalInAmt[utxo.value.Id] += utxo.value.Value
 		// add selected input into tx
 		tx.AddTxIn(types.NewTxInput(&txOutPoint, nil))
@@ -416,7 +410,7 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 	for _, utxo := range stxos {
 		utxo.isSpent = true
 	}
-	tx.LockTime = uint32(time.Now().Unix()) - 1800
+	// tx.LockTime = uint32(time.Now().Unix()) - 1800
 	return tx, nil
 }
 
