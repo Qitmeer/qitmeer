@@ -337,7 +337,7 @@ func New(config *Config) (*BlockChain, error) {
 
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType, b.CalcWeight,
-		1.0/float64(par.TargetTimePerBlock/time.Second), b.index.GetDAGBlockID, b.db)
+		1.0/float64(par.TargetTimePerBlock/time.Second), b.db)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.

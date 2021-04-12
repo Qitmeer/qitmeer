@@ -151,9 +151,6 @@ type IBlockDAG interface {
 // CalcWeight
 type CalcWeight func(int64, *hash.Hash, byte) int64
 
-// GetBlockId
-type GetBlockId func(*hash.Hash) uint
-
 // The general foundation framework of DAG
 type BlockDAG struct {
 	// The genesis of block dag
@@ -187,9 +184,6 @@ type BlockDAG struct {
 	// blocks per second
 	blockRate float64
 
-	// getBlockId
-	getBlockId GetBlockId
-
 	db database.DB
 }
 
@@ -204,11 +198,10 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 }
 
 // Initialize self, the function to be invoked at the beginning
-func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, getBlockId GetBlockId, db database.DB) IBlockDAG {
+func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, db database.DB) IBlockDAG {
 	bd.lastTime = time.Unix(roughtime.Now().Unix(), 0)
 	bd.commitOrder = map[uint]uint{}
 	bd.calcWeight = calcWeight
-	bd.getBlockId = getBlockId
 	bd.db = db
 	bd.blockRate = blockRate
 	if bd.blockRate < 0 {
@@ -216,6 +209,41 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 	}
 	bd.instance = NewBlockDAG(dagType)
 	bd.instance.Init(bd)
+
+	err := db.Update(func(dbTx database.Tx) error {
+		meta := dbTx.Metadata()
+		serializedData := meta.Get(dbnamespace.DagInfoBucketName)
+		if serializedData == nil {
+			DBPutDAGInfo(dbTx, bd)
+			// Create the bucket that houses the block index data.
+			_, err := meta.CreateBucket(dbnamespace.BlockIndexBucketName)
+			if err != nil {
+				return err
+			}
+
+			// Create the bucket that houses the chain block order to hash
+			// index.
+			_, err = meta.CreateBucket(dbnamespace.OrderIdBucketName)
+			if err != nil {
+				return err
+			}
+
+			_, err = meta.CreateBucket(dbnamespace.DagMainChainBucketName)
+			if err != nil {
+				return err
+			}
+
+			_, err = meta.CreateBucket(dbnamespace.BlockIdBucketName)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
 	return bd.instance
 }
 
@@ -354,7 +382,17 @@ func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
 	if h == nil {
 		return nil
 	}
-	id := bd.getBlockId(h)
+	id := MaxId
+	err := bd.db.View(func(dbTx database.Tx) error {
+		bid, er := DBGetBlockIdByHash(dbTx, h)
+		if er == nil {
+			id = uint(bid)
+		}
+		return er
+	})
+	if err != nil {
+		return nil
+	}
 	if id == MaxId {
 		return nil
 	}
@@ -1402,9 +1440,22 @@ func (bd *BlockDAG) getMaxParents() int {
 // GetIdSet
 func (bd *BlockDAG) GetIdSet(hs []*hash.Hash) *IdSet {
 	result := NewIdSet()
-	for _, v := range hs {
-		result.Add(bd.getBlockId(v))
+
+	err := bd.db.View(func(dbTx database.Tx) error {
+		for _, v := range hs {
+			bid, er := DBGetBlockIdByHash(dbTx, v)
+			if er == nil {
+				result.Add(uint(bid))
+			} else {
+				return er
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil
 	}
+
 	return result
 }
 

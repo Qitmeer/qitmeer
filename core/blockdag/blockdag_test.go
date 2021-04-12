@@ -174,7 +174,7 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 	}
 
 	bd = BlockDAG{}
-	instance := bd.Init(dagType, CalcBlockWeight, -1, onGetBlockId, db)
+	instance := bd.Init(dagType, CalcBlockWeight, -1, db)
 	tbMap = map[string]IBlock{}
 	for i := 0; i < blen; i++ {
 		parents := NewIdSet()
@@ -306,15 +306,6 @@ func CalcBlockWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
 		return 2
 	}
 	return 1
-}
-
-func onGetBlockId(h *hash.Hash) uint {
-	for _, v := range tbMap {
-		if v.GetHash().IsEqual(h) {
-			return v.GetID()
-		}
-	}
-	return MaxId
 }
 
 func loadBlockDB(cfg *config.Config) (database.DB, error) {

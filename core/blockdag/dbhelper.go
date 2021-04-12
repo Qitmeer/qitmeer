@@ -3,6 +3,7 @@ package blockdag
 import (
 	"bytes"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/database"
 )
@@ -21,7 +22,14 @@ func DBPutDAGBlock(dbTx database.Tx, block IBlock) error {
 	if err != nil {
 		return err
 	}
-	return bucket.Put(key, buff.Bytes())
+	err = bucket.Put(key, buff.Bytes())
+	if err != nil {
+		return err
+	}
+
+	bucket = dbTx.Metadata().Bucket(dbnamespace.BlockIdBucketName)
+	key = block.GetHash()[:]
+	return bucket.Put(key, serializedID[:])
 }
 
 // DBGetDAGBlock get dag block data by resouce ID
@@ -116,4 +124,13 @@ func DBGetBlockIdByOrder(dbTx database.Tx, order uint) (uint32, error) {
 		return uint32(MaxId), errNotInMainChain(str)
 	}
 	return dbnamespace.ByteOrder.Uint32(idBytes), nil
+}
+
+func DBGetBlockIdByHash(dbTx database.Tx, h *hash.Hash) (uint32, error) {
+	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIdBucketName)
+	data := bucket.Get(h[:])
+	if data == nil {
+		return uint32(MaxId), fmt.Errorf("get dag block error")
+	}
+	return dbnamespace.ByteOrder.Uint32(data), nil
 }
