@@ -368,11 +368,7 @@ func (node *blockNode) FlushToDB(b *BlockChain) error {
 	block.SetStatus(blockdag.BlockStatus(node.status))
 
 	err := b.db.Update(func(dbTx database.Tx) error {
-		err := blockdag.DBPutDAGBlock(dbTx, block)
-		if err != nil {
-			return err
-		}
-		return nil
+		return blockdag.DBPutDAGBlock(dbTx, block)
 	})
 	// If write was successful, clear the dirty set.
 	if err == nil {
