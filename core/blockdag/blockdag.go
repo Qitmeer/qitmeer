@@ -379,32 +379,18 @@ func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
 // Acquire one block by hash
 // Be careful, this is inefficient and cannot be called frequently
 func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
-	return bd.getBlockAdvanced(h, nil)
-}
 
-func (bd *BlockDAG) getBlockAdvanced(h *hash.Hash, tx database.Tx) IBlock {
 	if h == nil {
 		return nil
 	}
 	id := MaxId
-	var err error
-	if tx == nil {
-		err = bd.db.View(func(dbTx database.Tx) error {
-			bid, er := DBGetBlockIdByHash(dbTx, h)
-			if er == nil {
-				id = uint(bid)
-			}
-			return er
-		})
-	} else {
-		bid, er := DBGetBlockIdByHash(tx, h)
+	err := bd.db.View(func(dbTx database.Tx) error {
+		bid, er := DBGetBlockIdByHash(dbTx, h)
 		if er == nil {
 			id = uint(bid)
-		} else {
-			err = er
 		}
-	}
-
+		return er
+	})
 	if err != nil {
 		return nil
 	}
