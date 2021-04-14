@@ -140,7 +140,11 @@ func (s *Sync) getMerkleBlockDataHandler(ctx context.Context, msg interface{}, s
 		err = fmt.Errorf("message is not type *pb.Hash")
 		return ErrMessage(err)
 	}
-	filter := s.PeerSync().syncPeer.Filter()
+	pe := s.peers.Get(stream.Conn().RemotePeer())
+	if pe == nil {
+		return ErrPeerUnknown
+	}
+	filter := pe.Filter()
 	// Do not send a response if the peer doesn't have a filter loaded.
 	if !filter.IsLoaded() {
 		log.Warn("filter not loaded!")
@@ -337,14 +341,14 @@ func (ps *PeerSync) OnGetData(sp *peers.Peer, invList []*pb.InvVect) error {
 		}
 	}
 	if len(blocks) > 0 {
-		err := ps.processGetBlockDatas(sp, changePBHashsToHashs(txs))
+		err := ps.processGetBlockDatas(sp, changePBHashsToHashs(blocks))
 		if err != nil {
 			log.Info("processGetBlockDatas Error", "err", err.Error())
 			return err
 		}
 	}
 	if len(merkleBlocks) > 0 {
-		err := ps.processGetMerkleBlockDatas(sp, changePBHashsToHashs(txs))
+		err := ps.processGetMerkleBlockDatas(sp, changePBHashsToHashs(merkleBlocks))
 		if err != nil {
 			log.Info("processGetBlockDatas Error", "err", err.Error())
 			return err
