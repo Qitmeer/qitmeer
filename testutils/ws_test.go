@@ -51,12 +51,15 @@ func TestWsNotify(t *testing.T) {
 	blocks := GenerateBlock(t, h, 4)
 	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
 	AssertBlockOrderAndHeight(t, h, 6, 6, 5)
+
+	h.Wallet.OnRescanComplete = func() {
+		AssertScan(t, h, 5, 6)
+	}
 	err = h.Notifier.Rescan(0, 6, h.Wallet.Addresses(), nil)
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
-	AssertScan(t, h, 5, 6)
 	err = h.Notifier.NotifyTxsConfirmed([]cmds.TxConfirm{
 		{
 			Txid:          txid.String(),
