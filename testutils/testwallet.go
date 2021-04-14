@@ -95,11 +95,12 @@ type testWallet struct {
 	currentOrder int64
 	sync.RWMutex
 
-	netParams      *params.Params
-	t              *testing.T
-	client         *Client
-	maxRescanOrder uint64
-	ScanCount      uint64
+	netParams        *params.Params
+	t                *testing.T
+	client           *Client
+	maxRescanOrder   uint64
+	ScanCount        uint64
+	OnRescanComplete func()
 }
 
 func (w *testWallet) setRpcClient(client *Client) {
@@ -522,4 +523,7 @@ func (w *testWallet) OnRescanProgress(rescanPro *cmds.RescanProgressNtfn) {
 }
 func (w *testWallet) OnRescanFinish(rescanFinish *cmds.RescanFinishedNtfn) {
 	w.t.Log("OnRescanFinish", rescanFinish.Order, rescanFinish.Hash)
+	if w.OnRescanComplete != nil {
+		w.OnRescanComplete()
+	}
 }
