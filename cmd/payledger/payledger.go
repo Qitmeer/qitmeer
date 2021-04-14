@@ -181,80 +181,89 @@ func buildLedger(node INode, config *Config) error {
 	var genAmount uint64
 	mainChainTip := node.BlockChain().BlockDAG().GetMainChainTip()
 	log.Info(fmt.Sprintf("Cur main tip:%s", mainChainTip.GetHash().String()))
+	serializedUtxos := [][]byte{}
+	cursorKeys := [][]byte{}
 	err := node.DB().View(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
 		utxoBucket := meta.Bucket(dbnamespace.UtxoSetBucketName)
 		cursor := utxoBucket.Cursor()
 		for ok := cursor.First(); ok; ok = cursor.Next() {
 			serializedUtxo := utxoBucket.Get(cursor.Key())
-			txOutIdex, size := deserializeVLQ(cursor.Key()[hash.HashSize:])
-			if size <= 0 {
-				return fmt.Errorf("deserializeVLQ:%s %v", cursor.Key()[hash.HashSize:])
-			}
-			// Deserialize the utxo entry and return it.
-			entry, err := blockchain.DeserializeUtxoEntry(serializedUtxo)
-			if err != nil {
-				return err
-			}
-			if entry.IsSpent() {
-				continue
-			}
-			ib := node.BlockChain().BlockDAG().GetBlock(entry.BlockHash())
-			if ib.GetOrder() == blockdag.MaxBlockOrder {
-				continue
-			}
-			if blockchain.BlockStatus(ib.GetStatus()).KnownInvalid() {
-				continue
-			}
-			if entry.IsCoinBase() {
-				isblue, ok := blueMap[ib.GetID()]
-				if !ok {
-					isblue = node.BlockChain().BlockDAG().IsBlue(ib.GetID())
-					blueMap[ib.GetID()] = isblue
-				}
-				if !isblue {
-					continue
-				}
-			}
-			_, addr, _, err := txscript.ExtractPkScriptAddrs(entry.PkScript(), params)
-			if err != nil {
-				return err
-			}
-			var addrStr string
-			if len(addr) > 0 {
-				for i := 0; i < len(addr); i++ {
-					if i > 0 {
-						addrStr += "-"
-					}
-					addrStr += addr[i].String()
-				}
-			}
-			if _, ok := genesisLedger[addrStr]; !ok {
-				tp := ledger.TokenPayout{Address: addrStr, PkScript: entry.PkScript(), Amount: types.Amount{Value: 0, Id: types.MEERID}}
-				reTp := ledger.TokenPayoutReGen{tp, types.Amount{Value: 0, Id: types.MEERID}}
-				genesisLedger[addrStr] = &reTp
-			}
-
-			if params.GenesisHash.IsEqual(entry.BlockHash()) {
-				if genesisLedger[addrStr].GenAmount.Id == entry.Amount().Id {
-					genesisLedger[addrStr].GenAmount.Value += entry.Amount().Value
-					genAmount += uint64(entry.Amount().Value)
-				}
-			} else {
-				eAmount := entry.Amount()
-				if entry.IsCoinBase() && txOutIdex == 0 {
-					eAmount.Value += node.BlockChain().GetFeeByCoinID(ib.GetHash(), eAmount.Id)
-				}
-				genesisLedger[addrStr].Payout.Amount = eAmount
-				totalAmount += uint64(eAmount.Value)
-			}
-			log.Trace(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s", addrStr, entry.Amount(), entry.BlockHash().String()))
+			serializedUtxos = append(serializedUtxos, serializedUtxo)
+			cursorKeys = append(cursorKeys, cursor.Key()[hash.HashSize:])
 		}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
+
+	for i := 0; i < len(serializedUtxos); i++ {
+		serializedUtxo := serializedUtxos[i]
+		txOutIdex, size := deserializeVLQ(cursorKeys[i])
+		if size <= 0 {
+			return fmt.Errorf("deserializeVLQ:%s %v", cursorKeys[i])
+		}
+		// Deserialize the utxo entry and return it.
+		entry, err := blockchain.DeserializeUtxoEntry(serializedUtxo)
+		if err != nil {
+			return err
+		}
+		if entry.IsSpent() {
+			continue
+		}
+		ib := node.BlockChain().BlockDAG().GetBlock(entry.BlockHash())
+		if ib.GetOrder() == blockdag.MaxBlockOrder {
+			continue
+		}
+		if blockchain.BlockStatus(ib.GetStatus()).KnownInvalid() {
+			continue
+		}
+		if entry.IsCoinBase() {
+			isblue, ok := blueMap[ib.GetID()]
+			if !ok {
+				isblue = node.BlockChain().BlockDAG().IsBlue(ib.GetID())
+				blueMap[ib.GetID()] = isblue
+			}
+			if !isblue {
+				continue
+			}
+		}
+		_, addr, _, err := txscript.ExtractPkScriptAddrs(entry.PkScript(), params)
+		if err != nil {
+			return err
+		}
+		var addrStr string
+		if len(addr) > 0 {
+			for i := 0; i < len(addr); i++ {
+				if i > 0 {
+					addrStr += "-"
+				}
+				addrStr += addr[i].String()
+			}
+		}
+		if _, ok := genesisLedger[addrStr]; !ok {
+			tp := ledger.TokenPayout{Address: addrStr, PkScript: entry.PkScript(), Amount: types.Amount{Value: 0, Id: types.MEERID}}
+			reTp := ledger.TokenPayoutReGen{tp, types.Amount{Value: 0, Id: types.MEERID}}
+			genesisLedger[addrStr] = &reTp
+		}
+
+		if params.GenesisHash.IsEqual(entry.BlockHash()) {
+			if genesisLedger[addrStr].GenAmount.Id == entry.Amount().Id {
+				genesisLedger[addrStr].GenAmount.Value += entry.Amount().Value
+				genAmount += uint64(entry.Amount().Value)
+			}
+		} else {
+			eAmount := entry.Amount()
+			if entry.IsCoinBase() && txOutIdex == 0 {
+				eAmount.Value += node.BlockChain().GetFeeByCoinID(ib.GetHash(), eAmount.Id)
+			}
+			genesisLedger[addrStr].Payout.Amount = eAmount
+			totalAmount += uint64(eAmount.Value)
+		}
+		log.Trace(fmt.Sprintf("Process Address:%s Amount:%d Block Hash:%s", addrStr, entry.Amount(), entry.BlockHash().String()))
+	}
+
 	if len(genesisLedger) == 0 {
 		log.Info("No payouts need to deal with.")
 		return nil

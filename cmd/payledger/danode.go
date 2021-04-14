@@ -307,6 +307,7 @@ func (node *DebugAddressNode) checkUTXO(blueM *map[uint]bool) error {
 
 	var totalAmount uint64
 	var count int
+	serializedUtxos := [][]byte{}
 
 	err := db.View(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
@@ -314,63 +315,66 @@ func (node *DebugAddressNode) checkUTXO(blueM *map[uint]bool) error {
 		cursor := utxoBucket.Cursor()
 		for ok := cursor.First(); ok; ok = cursor.Next() {
 			serializedUtxo := utxoBucket.Get(cursor.Key())
-
-			// Deserialize the utxo entry and return it.
-			entry, err := blockchain.DeserializeUtxoEntry(serializedUtxo)
-			if err != nil {
-				return err
-			}
-			if entry.IsSpent() {
-				continue
-			}
-			ib := node.bc.BlockDAG().GetBlock(entry.BlockHash())
-			if ib.GetOrder() == blockdag.MaxBlockOrder {
-				continue
-			}
-			_, addr, _, err := txscript.ExtractPkScriptAddrs(entry.PkScript(), par)
-			if err != nil {
-				return err
-			}
-			addrStr := addr[0].String()
-			if addrStr != checkAddress {
-				continue
-			}
-			isValid := true
-			blockBlue := 2
-			if entry.IsCoinBase() {
-				isblue, ok := blueMap[ib.GetID()]
-				if !ok {
-					isblue = node.bc.BlockDAG().IsBlue(ib.GetID())
-				}
-				if !isblue {
-					isValid = false
-					blockBlue = 0
-				} else {
-					blockBlue = 1
-				}
-
-			}
-
-			if isValid {
-				totalAmount += uint64(entry.Amount().Value)
-			}
-
-			count++
-
-			if node.cfg.DebugAddrValid {
-				if !isValid {
-					continue
-				}
-			}
-
-			fmt.Printf("BlockHash:%s Amount:%d Valid:%v Blue:%s\n", ib.GetHash(), entry.Amount(), isValid, blueState(blockBlue))
-
+			serializedUtxos = append(serializedUtxos, serializedUtxo)
 		}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
+	for _, serializedUtxo := range serializedUtxos {
+		// Deserialize the utxo entry and return it.
+		entry, err := blockchain.DeserializeUtxoEntry(serializedUtxo)
+		if err != nil {
+			return err
+		}
+		if entry.IsSpent() {
+			continue
+		}
+		ib := node.bc.BlockDAG().GetBlock(entry.BlockHash())
+		if ib.GetOrder() == blockdag.MaxBlockOrder {
+			continue
+		}
+		_, addr, _, err := txscript.ExtractPkScriptAddrs(entry.PkScript(), par)
+		if err != nil {
+			return err
+		}
+		addrStr := addr[0].String()
+		if addrStr != checkAddress {
+			continue
+		}
+		isValid := true
+		blockBlue := 2
+		if entry.IsCoinBase() {
+			isblue, ok := blueMap[ib.GetID()]
+			if !ok {
+				isblue = node.bc.BlockDAG().IsBlue(ib.GetID())
+			}
+			if !isblue {
+				isValid = false
+				blockBlue = 0
+			} else {
+				blockBlue = 1
+			}
+
+		}
+
+		if isValid {
+			totalAmount += uint64(entry.Amount().Value)
+		}
+
+		count++
+
+		if node.cfg.DebugAddrValid {
+			if !isValid {
+				continue
+			}
+		}
+
+		fmt.Printf("BlockHash:%s Amount:%d Valid:%v Blue:%s\n", ib.GetHash(), entry.Amount(), isValid, blueState(blockBlue))
+
+	}
+
 	fmt.Printf("UTXO Result： Number of ledger records：%d   Total balance:%d\n", count, totalAmount)
 	return nil
 }
