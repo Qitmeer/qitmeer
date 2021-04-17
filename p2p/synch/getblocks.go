@@ -92,6 +92,9 @@ func (ps *PeerSync) processGetBlocks(pe *peers.Peer, blocks []*hash.Hash) error 
 }
 
 func (ps *PeerSync) GetBlocks(pe *peers.Peer, blocks []*hash.Hash) {
+	if pe == nil {
+		return
+	}
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return

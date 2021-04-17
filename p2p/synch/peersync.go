@@ -194,10 +194,13 @@ func (ps *PeerSync) OnPeerDisconnected(pe *peers.Peer) {
 }
 
 func (ps *PeerSync) isSyncPeer(pe *peers.Peer) bool {
-	if !ps.HasSyncPeer() {
+	ps.splock.RLock()
+	defer ps.splock.RUnlock()
+
+	if ps.syncPeer == nil || pe == nil {
 		return false
 	}
-	if pe == ps.SyncPeer() || pe.GetID() == ps.SyncPeer().GetID() {
+	if pe == ps.syncPeer || pe.GetID() == ps.syncPeer.GetID() {
 		return true
 	}
 	return false
@@ -213,10 +216,10 @@ func (ps *PeerSync) PeerUpdate(pe *peers.Peer, orphan bool) {
 }
 
 func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer, orphan bool) {
-
-	if ps.HasSyncPeer() {
-		spgs := ps.SyncPeer().GraphState()
-		if !ps.SyncPeer().IsActive() || spgs == nil {
+	sp := ps.SyncPeer()
+	if sp != nil {
+		spgs := sp.GraphState()
+		if !sp.IsActive() || spgs == nil {
 			ps.updateSyncPeer(true)
 			return
 		}
@@ -347,13 +350,14 @@ func (ps *PeerSync) IsCurrent() bool {
 func (ps *PeerSync) IsCompleteForSyncPeer() bool {
 	// if blockChain thinks we are current and we have no syncPeer it
 	// is probably right.
-	if !ps.HasSyncPeer() {
+	sp := ps.SyncPeer()
+	if sp == nil {
 		return true
 	}
 
 	// No matter what chain thinks, if we are below the block we are syncing
 	// to we are not current.
-	gs := ps.SyncPeer().GraphState()
+	gs := sp.GraphState()
 	if gs == nil {
 		return true
 	}
