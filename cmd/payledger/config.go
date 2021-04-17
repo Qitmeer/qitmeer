@@ -59,7 +59,6 @@ func LoadConfig() (*Config, []string, error) {
 	cfg := Config{
 		HomeDir:         defaultHomeDir,
 		DataDir:         defaultDataDir,
-		TestNet:         true,
 		DbType:          defaultDbType,
 		DAGType:         defaultDAGType,
 		SrcDataDir:      defaultSrcDataDir,
@@ -114,11 +113,13 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.DebugAddrValid = preCfg.DebugAddrValid
 	cfg.Last = preCfg.Last
 	cfg.BlocksInfo = preCfg.BlocksInfo
+	cfg.MixNet = preCfg.MixNet
+	cfg.TestNet = preCfg.TestNet
+	cfg.PrivNet = preCfg.PrivNet
 
 	if len(preCfg.SrcDataDir) > 0 {
 		cfg.SrcDataDir = preCfg.SrcDataDir
 	}
-
 	// Create the home directory if it doesn't already exist.
 	funcName := "loadConfig"
 	err = os.MkdirAll(cfg.HomeDir, 0700)
