@@ -10,7 +10,7 @@
 ```
 * If you want to use all UTXOs from `srcdatadir`:
 ```
-~ ./payledger --srcdatadir=[YourQitmeerDataPath] --endpoint=*
+~ ./payledger --srcdatadir=[YourQitmeerDataPath] --endpoint="*"
 ```
 
 * If you want to use specific UTXOs from `srcdatadir`:
@@ -23,6 +23,13 @@
 ~ cd ./../../
 ~ go build
 ```
+
+### How to generate locked ledger and save payouts
+```
+cd ./qitmeer/cmd/payledger
+go run . --mixnet --srcdatadir=[YourQitmeerDataPath] --endpoint="*" --savefile --unlocksperheight=5000000000
+```
+
 
 ### How to show last result of generated ledger
 ```

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
@@ -24,7 +25,7 @@ import (
 
 const (
 	defaultSuffixFilename = "payouts.go"
-	defaultPayoutDirPath  = "./"
+	defaultPayoutDirPath  = "./../../ledger"
 )
 
 func main() {
@@ -283,12 +284,12 @@ func buildLedger(node INode, config *Config) error {
 	fmt.Printf("Total Ledger:%5d  GenAmount:%15d  Amount:%15d  Total:%15d\n", len(genesisLedger), genAmount, totalAmount, genAmount+totalAmount)
 
 	if config.SavePayoutsFile {
-		return savePayoutsFile(params, genesisLedger)
+		return savePayoutsFile(params, payList, config)
 	}
 	return nil
 }
 
-func savePayoutsFile(params *params.Params, genesisLedger map[string]*ledger.TokenPayoutReGen) error {
+func savePayoutsFile(params *params.Params, genesisLedger ledger.PayoutList2, config *Config) error {
 	if len(genesisLedger) == 0 {
 		log.Info("No payouts need to deal with.")
 		return nil
@@ -320,12 +321,12 @@ func savePayoutsFile(params *params.Params, genesisLedger map[string]*ledger.Tok
 	funName := fmt.Sprintf("%s%s", strings.ToUpper(string(netName[0])), netName[1:])
 	fileContent := fmt.Sprintf("package ledger\nfunc init%s() {\n", funName)
 
-	for k, v := range genesisLedger {
-		if v.Payout.Amount.Id != types.QITID {
-			continue
-		}
-		fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", k, v.Payout.Amount.Value, hex.EncodeToString(v.Payout.PkScript))
+	if config.UnlocksPerHeight > 0 {
+		fileContent += processLockingPayouts(genesisLedger, int64(config.UnlocksPerHeight))
+	} else {
+		fileContent += processNormalPayouts(genesisLedger)
 	}
+
 	fileContent += "}"
 
 	f.WriteString(fileContent)
@@ -333,6 +334,62 @@ func savePayoutsFile(params *params.Params, genesisLedger map[string]*ledger.Tok
 	log.Info(fmt.Sprintf("Finish save %s", fileName))
 
 	return nil
+}
+
+func processNormalPayouts(genesisLedger ledger.PayoutList2) string {
+	fileContent := ""
+	for _, v := range genesisLedger {
+		if v.Payout.Amount.Id != types.MEERID {
+			continue
+		}
+		fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", v.Payout.Address, v.Payout.Amount.Value, hex.EncodeToString(v.Payout.PkScript))
+	}
+	return fileContent
+}
+
+func processLockingPayouts(genesisLedger ledger.PayoutList2, lockNum int64) string {
+	fileContent := ""
+
+	curMHeight := int64(0)
+	curLockedNum := int64(0)
+	for _, v := range genesisLedger {
+		if v.Payout.Amount.Id != types.MEERID {
+			continue
+		}
+
+		for v.Payout.Amount.Value > 0 {
+			needLockNum := lockNum - curLockedNum
+
+			amount := int64(0)
+			if v.Payout.Amount.Value >= needLockNum {
+				v.Payout.Amount.Value -= needLockNum
+				amount = needLockNum
+				curMHeight++
+				curLockedNum = 0
+			} else {
+				amount = v.Payout.Amount.Value
+				curLockedNum += amount
+				v.Payout.Amount.Value = 0
+			}
+			script, err := lockToAddress(v.Payout.Address, curMHeight)
+			if err != nil {
+				return err.Error()
+			}
+			fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", v.Payout.Address, amount, hex.EncodeToString(script))
+		}
+
+	}
+	return fileContent
+}
+
+func lockToAddress(addrStr string, height int64) ([]byte, error) {
+	addr, err := address.DecodeAddress(addrStr)
+	if err != nil {
+		return nil, err
+	}
+	return txscript.NewScriptBuilder().AddInt64(height).AddOp(txscript.OP_CHECKLOCKTIMEVERIFY).AddOp(txscript.OP_DROP).AddOp(txscript.OP_DUP).AddOp(txscript.OP_HASH160).
+		AddData(addr.Script()).AddOp(txscript.OP_EQUALVERIFY).AddOp(txscript.OP_CHECKSIG).
+		Script()
 }
 
 func blockInfo(cfg *Config) bool {
