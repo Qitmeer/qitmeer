@@ -24,7 +24,7 @@ import (
 
 const (
 	defaultSuffixFilename = "payouts.go"
-	defaultPayoutDirPath  = "./../../ledger/"
+	defaultPayoutDirPath  = "./"
 )
 
 func main() {
@@ -301,6 +301,8 @@ func savePayoutsFile(params *params.Params, genesisLedger map[string]*ledger.Tok
 		netName = "test"
 	case protocol.PrivNet:
 		netName = "priv"
+	case protocol.MixNet:
+		netName = "mix"
 	}
 
 	fileName := filepath.Join(defaultPayoutDirPath, netName+defaultSuffixFilename)
@@ -319,7 +321,10 @@ func savePayoutsFile(params *params.Params, genesisLedger map[string]*ledger.Tok
 	fileContent := fmt.Sprintf("package ledger\nfunc init%s() {\n", funName)
 
 	for k, v := range genesisLedger {
-		fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", k, v.Payout.Amount, hex.EncodeToString(v.Payout.PkScript))
+		if v.Payout.Amount.Id != types.QITID {
+			continue
+		}
+		fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", k, v.Payout.Amount.Value, hex.EncodeToString(v.Payout.PkScript))
 	}
 	fileContent += "}"
 
