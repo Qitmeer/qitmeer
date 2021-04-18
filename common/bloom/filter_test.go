@@ -205,6 +205,44 @@ func TestFilterInsertWithTweak(t *testing.T) {
 }
 
 func TestFilterBloomMatch(t *testing.T) {
+	// genesis coinbase tx bytes
+	str := "01000000020000000000000000000000000000000000000000000000000000000000000000ffffffffffffffff0000000000000000000000000000000000000000000000000000000000000000ffffffffffffffff0200000088526a740000001976a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac010000743ba40b0000001976a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac000000000000000000096e88024d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b7300"
+	strBytes, err := hex.DecodeString(str)
+	if err != nil {
+		t.Errorf("TestFilterBloomMatch DecodeString failure: %v", err)
+		return
+	}
+	tx, err := types.NewTxFromBytes(strBytes)
+	if err != nil {
+		t.Errorf("TestFilterBloomMatch NewTxFromBytes failure: %v", err)
+		return
+	}
+	spendingTxBytes, _ := hex.DecodeString("0100000002767b98dc030a071654483cd22ad4265b4dcbcaed92f04b42119da626950330ff00000000ffffffffdce4f5433828893593f175a9c918cd7ae4e7837407a725a995177b884cd6430b00000000ffffffff0200000088526a740000001976a9143208f7eb599914e3418e2def4ee0de8f66fefd9488ac0000ce643ba40b0000001976a914f8328c6b050e67d7c76cd7cf0a2673c38a78ce6388ac000000000000000056197c60026b483045022100c57ba688a867f3c10883a0c995a7983009a48fce4e0a2f24bb2679f602af24b102200e874322c7631ff710abc943b4c48c3d877c22bd4bdcfd3fc7c2f05c118b8f480121023c6682e0628c701ead657b43c01c316c06d15cd0090e82f14caa004e414217916a47304402202c54b92007c2be1bdc16d6affd8e9ae274d1a346cd72360cc1c5e349f3e7507f02200f8227d35c4a71f41bc7d63a64bbea10697daedd1f5f289e24993535d571744c0121023c6682e0628c701ead657b43c01c316c06d15cd0090e82f14caa004e41421791")
+
+	spendingTx, err := types.NewTxFromBytes(spendingTxBytes)
+	if err != nil {
+		t.Errorf("TestFilterBloomMatch NewTxFromBytes failure: %v", err)
+		return
+	}
+
+	f := bloom.NewFilter(10, 0, 0.000001, types.BloomUpdateAll)
+	// pubkey
+	inputStr := "37733b37b9f09ce024a5ffbd4570fc1e242c907a"
+	hashBytes, err := hex.DecodeString(inputStr)
+	if err != nil {
+		t.Errorf("TestFilterBloomMatch DecodeString failed: %v\n", err)
+		return
+	}
+	f.Add(hashBytes)
+	if !f.MatchTxAndUpdate(tx) {
+		t.Errorf("TestFilterBloomMatch didn't match hash %s", inputStr)
+	}
+	f = bloom.NewFilter(10, 0, 0.000001, types.BloomUpdateAll)
+	outpoint := types.NewOutPoint(tx.Hash(), 0)
+	f.AddOutPoint(outpoint)
+	if !f.MatchTxAndUpdate(spendingTx) {
+		t.Errorf("TestFilterBloomMatch matched outpoint %s", inputStr)
+	}
 
 }
 
@@ -256,10 +294,6 @@ func TestFilterInsertUpdateNone(t *testing.T) {
 		t.Errorf("TestFilterInsertUpdateNone matched outpoint %s", inputStr)
 		return
 	}
-}
-
-func TestFilterInsertP2PubKeyOnly(t *testing.T) {
-
 }
 
 func TestFilterReload(t *testing.T) {
