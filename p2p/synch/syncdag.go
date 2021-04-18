@@ -112,6 +112,9 @@ func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
 }
 
 func (ps *PeerSync) syncDAGBlocks(pe *peers.Peer) {
+	if pe == nil {
+		return
+	}
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
