@@ -105,3 +105,22 @@ func (ps *PeerSync) GetBlocks(pe *peers.Peer, blocks []*hash.Hash) {
 	}
 	ps.msgChan <- &GetBlocksMsg{pe: pe, blocks: blocks}
 }
+
+func (s *Sync) GetDataHandler(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
+	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
+	var err error
+	defer func() {
+		cancel()
+	}()
+	pe := s.peers.Get(stream.Conn().RemotePeer())
+	if pe == nil {
+		return ErrPeerUnknown
+	}
+	m, ok := msg.(*pb.Inventory)
+	if !ok {
+		err = fmt.Errorf("message is not type *MsgFilterLoad")
+		return ErrMessage(err)
+	}
+	s.peerSync.msgChan <- &GetDatasMsg{pe: pe, data: m}
+	return nil
+}

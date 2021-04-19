@@ -45,6 +45,18 @@ const (
 	RPCGraphState = "/qitmeer/req/graphstate/1"
 	// RPCSyncQNR defines the topic for the syncqnr rpc method.
 	RPCSyncQNR = "/qitmeer/req/syncqnr/1"
+	// RPCGetMerkleBlocks defines the topic for the get merkle blocks rpc method.
+	RPCGetMerkleBlocks = "/qitmeer/req/getmerkles/1"
+	// RPCFilterAdd defines the topic for the filter add rpc method.
+	RPCFilterAdd = "/qitmeer/req/filteradd/1"
+	// RPCFilterClear defines the topic for the filter add rpc method.
+	RPCFilterClear = "/qitmeer/req/filterclear/1"
+	// RPCFilterLoad defines the topic for the filter add rpc method.
+	RPCFilterLoad = "/qitmeer/req/filterload/1"
+	// RPCMemPool defines the topic for the mempool rpc method.
+	RPCMemPool = "/qitmeer/req/mempool/1"
+	// RPCMemPool defines the topic for the getdata rpc method.
+	RPCGetData = "/qitmeer/req/getdata/1"
 )
 
 // Time to first byte timeout. The maximum time to wait for first byte of
@@ -160,6 +172,42 @@ func (s *Sync) registerRPCHandlers() {
 		RPCSyncQNR,
 		&pb.SyncQNR{},
 		s.QNRHandler,
+	)
+
+	s.registerRPC(
+		RPCGetMerkleBlocks,
+		&pb.MerkleBlockRequest{},
+		s.getMerkleBlockDataHandler,
+	)
+
+	s.registerRPC(
+		RPCFilterAdd,
+		&pb.FilterAddRequest{},
+		s.HandlerFilterMsgAdd,
+	)
+
+	s.registerRPC(
+		RPCFilterClear,
+		&pb.FilterClearRequest{},
+		s.HandlerFilterMsgClear,
+	)
+
+	s.registerRPC(
+		RPCFilterLoad,
+		&pb.FilterLoadRequest{},
+		s.HandlerFilterMsgLoad,
+	)
+
+	s.registerRPC(
+		RPCMemPool,
+		&pb.MemPoolRequest{},
+		s.HandlerMemPool,
+	)
+
+	s.registerRPC(
+		RPCGetData,
+		&pb.Inventory{},
+		s.GetDataHandler,
 	)
 }
 

@@ -14,7 +14,7 @@ require (
 	github.com/dgraph-io/ristretto v0.0.2
 	github.com/ferranbt/fastssz v0.0.0-20200514094935-99fccaf93472
 	github.com/go-stack/stack v1.8.0
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
 	github.com/golang/protobuf v1.4.0
 	github.com/golang/snappy v0.0.1
@@ -33,7 +33,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.3.2
 	github.com/libp2p/go-libp2p-secio v0.2.2
 	github.com/libp2p/go-sockaddr v0.1.0 // indirect
-	github.com/magiconair/properties v1.8.0
+	github.com/magiconair/properties v1.8.1
 	github.com/mattn/go-colorable v0.1.7
 	github.com/minio/highwayhash v1.0.0
 	github.com/multiformats/go-multiaddr v0.3.1
@@ -47,10 +47,10 @@ require (
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeromq/goczmq v4.1.0+incompatible
 	go.opencensus.io v0.22.4
-	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
-	golang.org/x/sys v0.0.0-20200523222454-059865788121
-	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/net v0.0.0-20201021035429-f5854403a974
+	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 	gonum.org/v1/gonum v0.0.0-20190608115022-c5f01565d866
 	gopkg.in/yaml.v2 v2.2.8
 )
