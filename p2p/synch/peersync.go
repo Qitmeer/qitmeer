@@ -435,6 +435,24 @@ func (ps *PeerSync) RelayInventory(data interface{}) {
 	})
 }
 
+// EnforceNodeBloomFlag disconnects the peer if the server is not configured to
+// allow bloom filters.  Additionally, if the peer has negotiated to a protocol
+// version  that is high enough to observe the bloom filter service support bit,
+// it will be banned since it is intentionally violating the protocol.
+func (ps *PeerSync) EnforceNodeBloomFlag(sp *peers.Peer) bool {
+	services := sp.Services()
+	if services&protocol.Bloom != protocol.Bloom {
+		// Disconnect the peer regardless of protocol version or banning
+		// state.
+		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
+			"filter loaded -- disconnecting", sp.Node().String()))
+		ps.Disconnect(sp)
+		return false
+	}
+
+	return true
+}
+
 // OnFilterAdd is invoked when a peer receives a filteradd qitmeer
 // message and is used by remote peers to add data to an already loaded bloom
 // filter.  The peer will be disconnected if a filter is not loaded when this
@@ -442,7 +460,7 @@ func (ps *PeerSync) RelayInventory(data interface{}) {
 func (ps *PeerSync) OnFilterAdd(sp *peers.Peer, msg *types.MsgFilterAdd) {
 	// Disconnect and/or ban depending on the node bloom services flag and
 	// negotiated protocol version.
-	if !sp.EnforceNodeBloomFlag() {
+	if !ps.EnforceNodeBloomFlag(sp) {
 		return
 	}
 	filter := sp.Filter()
@@ -463,7 +481,7 @@ func (ps *PeerSync) OnFilterAdd(sp *peers.Peer, msg *types.MsgFilterAdd) {
 func (ps *PeerSync) OnFilterClear(sp *peers.Peer, msg *types.MsgFilterClear) {
 	// Disconnect and/or ban depending on the node bloom services flag and
 	// negotiated protocol version.
-	if !sp.EnforceNodeBloomFlag() {
+	if !ps.EnforceNodeBloomFlag(sp) {
 		return
 	}
 	filter := sp.Filter()
@@ -486,7 +504,7 @@ func (ps *PeerSync) OnFilterClear(sp *peers.Peer, msg *types.MsgFilterClear) {
 func (ps *PeerSync) OnFilterLoad(sp *peers.Peer, msg *types.MsgFilterLoad) {
 	// Disconnect and/or ban depending on the node bloom services flag and
 	// negotiated protocol version.
-	if !sp.EnforceNodeBloomFlag() {
+	if !ps.EnforceNodeBloomFlag(sp) {
 		return
 	}
 	filter := sp.Filter()
