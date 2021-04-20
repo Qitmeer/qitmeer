@@ -1,13 +1,11 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
-	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
@@ -16,15 +14,12 @@ import (
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	_ "github.com/Qitmeer/qitmeer/services/common"
-	"os"
-	"path/filepath"
 	"sort"
-	"strings"
 )
 
 const (
 	defaultSuffixFilename = "payouts.go"
-	defaultPayoutDirPath  = "./../../ledger/"
+	defaultPayoutDirPath  = "./../../ledger"
 )
 
 func main() {
@@ -202,7 +197,7 @@ func buildLedger(node INode, config *Config) error {
 		serializedUtxo := serializedUtxos[i]
 		txOutIdex, size := deserializeVLQ(cursorKeys[i])
 		if size <= 0 {
-			return fmt.Errorf("deserializeVLQ:%s %v", cursorKeys[i])
+			return fmt.Errorf("deserializeVLQ:%s", cursorKeys[i])
 		}
 		// Deserialize the utxo entry and return it.
 		entry, err := blockchain.DeserializeUtxoEntry(serializedUtxo)
@@ -283,50 +278,8 @@ func buildLedger(node INode, config *Config) error {
 	fmt.Printf("Total Ledger:%5d  GenAmount:%15d  Amount:%15d  Total:%15d\n", len(genesisLedger), genAmount, totalAmount, genAmount+totalAmount)
 
 	if config.SavePayoutsFile {
-		return savePayoutsFile(params, genesisLedger)
+		return savePayoutsFile(params, payList, config)
 	}
-	return nil
-}
-
-func savePayoutsFile(params *params.Params, genesisLedger map[string]*ledger.TokenPayoutReGen) error {
-	if len(genesisLedger) == 0 {
-		log.Info("No payouts need to deal with.")
-		return nil
-	}
-	netName := ""
-	switch params.Net {
-	case protocol.MainNet:
-		netName = "main"
-	case protocol.TestNet:
-		netName = "test"
-	case protocol.PrivNet:
-		netName = "priv"
-	}
-
-	fileName := filepath.Join(defaultPayoutDirPath, netName+defaultSuffixFilename)
-
-	f, err := os.Create(fileName)
-
-	if err != nil {
-		log.Error(fmt.Sprintf("Save error:%s  %s", fileName, err))
-		return err
-	}
-	defer func() {
-		err = f.Close()
-	}()
-
-	funName := fmt.Sprintf("%s%s", strings.ToUpper(string(netName[0])), netName[1:])
-	fileContent := fmt.Sprintf("package ledger\nfunc init%s() {\n", funName)
-
-	for k, v := range genesisLedger {
-		fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", k, v.Payout.Amount, hex.EncodeToString(v.Payout.PkScript))
-	}
-	fileContent += "}"
-
-	f.WriteString(fileContent)
-
-	log.Info(fmt.Sprintf("Finish save %s", fileName))
-
 	return nil
 }
 
