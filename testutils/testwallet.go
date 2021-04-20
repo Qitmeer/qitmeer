@@ -172,6 +172,10 @@ func (w *testWallet) newAddress() (types.Address, error) {
 	return addrx, nil
 }
 
+func (w *testWallet) NewAddress() (types.Address, error) {
+	return w.newAddress()
+}
+
 // convert the serialized private key into the p2pkh address
 func privKeyToAddr(privKey []byte, params *params.Params) (types.Address, error) {
 	_, pubKey := secp256k1.PrivKeyFromBytes(privKey)

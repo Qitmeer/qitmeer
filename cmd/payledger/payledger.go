@@ -197,7 +197,7 @@ func buildLedger(node INode, config *Config) error {
 		serializedUtxo := serializedUtxos[i]
 		txOutIdex, size := deserializeVLQ(cursorKeys[i])
 		if size <= 0 {
-			return fmt.Errorf("deserializeVLQ:%s %v", cursorKeys[i])
+			return fmt.Errorf("deserializeVLQ:%s", cursorKeys[i])
 		}
 		// Deserialize the utxo entry and return it.
 		entry, err := blockchain.DeserializeUtxoEntry(serializedUtxo)
