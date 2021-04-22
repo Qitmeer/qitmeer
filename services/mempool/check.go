@@ -326,6 +326,10 @@ func checkInputsStandard(tx *types.Tx, utxoView *blockchain.UtxoViewpoint) error
 					i, numSigOps, maxStandardP2SHSigOps)
 				return txRuleError(message.RejectNonstandard, str)
 			}
+		case txscript.NonStandardTy:
+			str := fmt.Sprintf("transaction input #%d has a "+
+				"non-standard script form", i)
+			return txRuleError(message.RejectNonstandard, str)
 		}
 	}
 
