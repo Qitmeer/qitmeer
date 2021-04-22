@@ -289,8 +289,8 @@ func (w *testWallet) doInputs(inputs []*types.TxInput, undo *undo) {
 
 // SpendOutputsAndSend will create tx to pay the specified tx outputs
 // and send the tx to the test harness node.
-func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amount) (*hash.Hash, error) {
-	if tx, err := w.createTx(outputs, feePerByte); err != nil {
+func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amount, preOutpoint *types.TxOutPoint, lockTime *int64) (*hash.Hash, error) {
+	if tx, err := w.createTx(outputs, feePerByte, preOutpoint, lockTime); err != nil {
 		return nil, err
 	} else {
 		txByte, err := tx.Serialize()
@@ -302,7 +302,7 @@ func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amou
 		return w.client.SendRawTx(txHex, true)
 	}
 }
-func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount) (*types.Transaction, error) {
+func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount, preOutpoint *types.TxOutPoint, lockTime *int64) (*types.Transaction, error) {
 	w.Lock()
 	defer w.Unlock()
 	const (
@@ -314,6 +314,12 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		// <coin_id> <value> <len> OP_DUP OP_HASH160 OP_DATA_20 <pk_hash> OP_EQUALVERIFY OP_CHECKSIG
 		changeOutPutSize = 2 + 8 + 1 + 1 + 1 + 1 + 20 + 1 + 1
 	)
+
+	if lockTime != nil &&
+		(*lockTime < 0 || *lockTime > int64(types.MaxTxInSequenceNum)) {
+		return nil, fmt.Errorf("Locktime out of range")
+	}
+
 	tx := types.NewTransaction()
 	txSize := int64(0)
 
@@ -327,9 +333,16 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		totalOutAmt[o.Amount.Id] += o.Amount.Value
 		tx.AddTxOut(o)
 	}
+
+	// Set the Locktime, if given.
+	if lockTime != nil {
+		tx.LockTime = uint32(*lockTime)
+	}
+
 	enoughFund := false
 	// select inputs from utxo set of the wallet && add them into tx
 	for txOutPoint, utxo := range w.utxos {
+		fmt.Println(txOutPoint.Hash.String(), txOutPoint.OutIndex, utxo.value.Id.Name(), utxo.value.Value)
 		// skip immature or spent utxo at first
 		if !utxo.isMature(w.currentOrder) || utxo.isSpent {
 			continue
@@ -338,9 +351,18 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		if _, ok := totalOutAmt[utxo.value.Id]; !ok {
 			continue
 		}
+		if preOutpoint != nil {
+			if *preOutpoint != txOutPoint {
+				continue
+			}
+		}
 		totalInAmt[utxo.value.Id] += utxo.value.Value
 		// add selected input into tx
-		tx.AddTxIn(types.NewTxInput(&txOutPoint, nil))
+		txIn := types.NewTxInput(&txOutPoint, nil)
+		if lockTime != nil && *lockTime != 0 {
+			txIn.Sequence = types.MaxTxInSequenceNum - 1
+		}
+		tx.AddTxIn(txIn)
 		// calculate required fee
 		txSize = int64(tx.SerializeSize() + maxSignScriptSize*len(tx.TxIn) + changeOutPutSize)
 		//fmt.Printf("createTx: txSerSize=%v, txSize=(%v+%v*%v)=%v\n",tx.SerializeSize(), tx.SerializeSize(), maxSignScriptSize, len(tx.TxIn), txSize)
