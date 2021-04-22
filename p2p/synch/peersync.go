@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
@@ -32,12 +33,11 @@ type PeerSync struct {
 
 	hslock sync.RWMutex
 
-	started  int32
-	shutdown int32
-	msgChan  chan interface{}
-	wg       sync.WaitGroup
-	quit     chan struct{}
-
+	started     int32
+	shutdown    int32
+	msgChan     chan interface{}
+	wg          sync.WaitGroup
+	quit        chan struct{}
 	longSyncMod bool
 }
 
@@ -97,6 +97,17 @@ out:
 				if err != nil {
 					go ps.PeerUpdate(msg.pe, false)
 				}
+			case *GetDatasMsg:
+				_ = ps.OnGetData(msg.pe, msg.data.Invs)
+			case *OnFilterAddMsg:
+				ps.OnFilterAdd(msg.pe, msg.data)
+			case *OnFilterClearMsg:
+				ps.OnFilterClear(msg.pe, msg.data)
+			case *OnFilterLoadMsg:
+				ps.OnFilterLoad(msg.pe, msg.data)
+			case *OnMsgMemPool:
+				ps.OnMemPool(msg.pe, msg.data)
+
 			case *UpdateGraphStateMsg:
 				ps.processUpdateGraphState(msg.pe)
 			case *syncDAGBlocksMsg:
@@ -410,6 +421,14 @@ func (ps *PeerSync) RelayInventory(data interface{}) {
 				if feeFilter > 0 && tx.FeePerKB < feeFilter {
 					return
 				}
+				// Don't relay the transaction if there is a bloom
+				// filter loaded and the transaction doesn't match it.
+				filter := pe.Filter()
+				if filter.IsLoaded() {
+					if !filter.MatchTxAndUpdate(tx.Tx) {
+						return
+					}
+				}
 				msg.Invs = append(msg.Invs, NewInvVect(InvTypeTx, tx.Tx.Hash()))
 			}
 		case types.BlockHeader:
@@ -418,6 +437,121 @@ func (ps *PeerSync) RelayInventory(data interface{}) {
 		}
 		go ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), pe, msg)
 	})
+}
+
+// EnforceNodeBloomFlag disconnects the peer if the server is not configured to
+// allow bloom filters.  Additionally, if the peer has negotiated to a protocol
+// version  that is high enough to observe the bloom filter service support bit,
+// it will be banned since it is intentionally violating the protocol.
+func (ps *PeerSync) EnforceNodeBloomFlag(sp *peers.Peer) bool {
+	services := sp.Services()
+	if services&protocol.Bloom != protocol.Bloom {
+		// Disconnect the peer regardless of protocol version or banning
+		// state.
+		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
+			"filter loaded -- disconnecting", sp.Node().String()))
+		ps.Disconnect(sp)
+		return false
+	}
+
+	return true
+}
+
+// OnFilterAdd is invoked when a peer receives a filteradd qitmeer
+// message and is used by remote peers to add data to an already loaded bloom
+// filter.  The peer will be disconnected if a filter is not loaded when this
+// message is received or the server is not configured to allow bloom filters.
+func (ps *PeerSync) OnFilterAdd(sp *peers.Peer, msg *types.MsgFilterAdd) {
+	// Disconnect and/or ban depending on the node bloom services flag and
+	// negotiated protocol version.
+	if !ps.EnforceNodeBloomFlag(sp) {
+		return
+	}
+	filter := sp.Filter()
+	if !filter.IsLoaded() {
+		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
+			"filter loaded -- disconnecting", sp.Node().String()))
+		ps.Disconnect(sp)
+		return
+	}
+
+	filter.Add(msg.Data)
+}
+
+// OnFilterClear is invoked when a peer receives a filterclear qitmeer
+// message and is used by remote peers to clear an already loaded bloom filter.
+// The peer will be disconnected if a filter is not loaded when this message is
+// received  or the server is not configured to allow bloom filters.
+func (ps *PeerSync) OnFilterClear(sp *peers.Peer, msg *types.MsgFilterClear) {
+	// Disconnect and/or ban depending on the node bloom services flag and
+	// negotiated protocol version.
+	if !ps.EnforceNodeBloomFlag(sp) {
+		return
+	}
+	filter := sp.Filter()
+
+	if !filter.IsLoaded() {
+		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
+			"filter loaded -- disconnecting", sp.Node().String()))
+		ps.Disconnect(sp)
+		return
+	}
+
+	filter.Unload()
+}
+
+// OnFilterLoad is invoked when a peer receives a filterload qitmeer
+// message and it used to load a bloom filter that should be used for
+// delivering merkle blocks and associated transactions that match the filter.
+// The peer will be disconnected if the server is not configured to allow bloom
+// filters.
+func (ps *PeerSync) OnFilterLoad(sp *peers.Peer, msg *types.MsgFilterLoad) {
+	// Disconnect and/or ban depending on the node bloom services flag and
+	// negotiated protocol version.
+	if !ps.EnforceNodeBloomFlag(sp) {
+		return
+	}
+	filter := sp.Filter()
+	sp.DisableRelayTx()
+
+	filter.Reload(msg)
+}
+
+// OnMemPool is invoked when a peer receives a mempool qitmeer message.
+// It creates and sends an inventory message with the contents of the memory
+// pool up to the maximum inventory allowed per message.  When the peer has a
+// bloom filter loaded, the contents are filtered accordingly.
+func (ps *PeerSync) OnMemPool(sp *peers.Peer, msg *MsgMemPool) {
+	// Only allow mempool requests if the server has bloom filtering
+	// enabled.
+	services := sp.Services()
+	if services&protocol.Bloom != protocol.Bloom {
+		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
+			"filter loaded -- disconnecting", sp.Node().String()))
+		ps.Disconnect(sp)
+		return
+	}
+
+	// Generate inventory message with the available transactions in the
+	// transaction memory pool.  Limit it to the max allowed inventory
+	// per message.  The NewMsgInvSizeHint function automatically limits
+	// the passed hint to the maximum allowed, so it's safe to pass it
+	// without double checking it here.
+	txDescs := ps.sy.p2p.TxMemPool().TxDescs()
+	invMsg := &pb.Inventory{Invs: []*pb.InvVect{}}
+	for _, txDesc := range txDescs {
+		// Either add all transactions when there is no bloom filter,
+		// or only the transactions that match the filter when there is
+		// one.
+		filter := sp.Filter()
+		if !filter.IsLoaded() || filter.MatchTxAndUpdate(txDesc.Tx) {
+			invMsg.Invs = append(invMsg.Invs, NewInvVect(InvTypeTx, txDesc.Tx.Hash()))
+		}
+	}
+	// Send the inventory message if there is anything to send.
+	if len(invMsg.Invs) > 0 {
+		go ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), sp, invMsg)
+	}
 }
 
 func NewPeerSync(sy *Sync) *PeerSync {

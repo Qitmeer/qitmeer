@@ -172,8 +172,12 @@ func (w *testWallet) newAddress() (types.Address, error) {
 	return addrx, nil
 }
 
-func (w *testWallet) NewAddress() (types.Address, error) {
-	return w.newAddress()
+// NewAddress return a new address from the wallet's key chain
+// which is safe for concurrent access
+func (m *testWallet) NewAddress() (types.Address, error) {
+	m.Lock()
+	defer m.Unlock()
+	return m.newAddress()
 }
 
 // convert the serialized private key into the p2pkh address

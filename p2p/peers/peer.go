@@ -2,6 +2,7 @@ package peers
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/bloom"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
@@ -30,9 +31,9 @@ type Peer struct {
 	syncPoint *hash.Hash
 	// Use to fee filter
 	feeFilter int64
+	filter    *bloom.Filter
 
-	lock *sync.RWMutex
-
+	lock       *sync.RWMutex
 	lastSend   time.Time
 	lastRecv   time.Time
 	bytesSent  uint64
@@ -156,6 +157,12 @@ func (p *Peer) Node() *qnode.Node {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.node()
+}
+
+func (p *Peer) Filter() *bloom.Filter {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return p.filter
 }
 
 func (p *Peer) node() *qnode.Node {
@@ -496,5 +503,6 @@ func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
 		pid:       pid,
 		lock:      &sync.RWMutex{},
 		syncPoint: point,
+		filter:    bloom.LoadFilter(nil),
 	}
 }
