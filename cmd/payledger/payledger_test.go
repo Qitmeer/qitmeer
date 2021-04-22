@@ -45,6 +45,6 @@ func TestLockedLedger(t *testing.T) {
 	spendAmt := types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
 
 	lockTime := int64(2)
-	txid, addr := testutils.SpendV2(t, h, spendAmt, types.NewOutPoint(&genesisTxHash, 2), &lockTime)
+	txid, addr := testutils.Spend(t, h, spendAmt, types.NewOutPoint(&genesisTxHash, 2), &lockTime)
 	t.Logf("[%v]: tx %v which spend %v has been sent, address:%s", h.Node.Id(), txid, spendAmt.String(), addr.String())
 }

@@ -64,7 +64,7 @@ func AssertBlockOrderAndHeight(t *testing.T, h *Harness, order, total, height ui
 }
 
 // Spend amount from the wallet of the test harness and return tx hash
-func Spend(t *testing.T, h *Harness, amt types.Amount) (*hash.Hash, types.Address) {
+func Spend(t *testing.T, h *Harness, amt types.Amount, preOutpoint *types.TxOutPoint, lockTime *int64) (*hash.Hash, types.Address) {
 	addr, err := h.Wallet.newAddress()
 	if err != nil {
 		t.Fatalf("failed to generate new address for test wallet: %v", err)
@@ -78,27 +78,6 @@ func Spend(t *testing.T, h *Harness, amt types.Amount) (*hash.Hash, types.Addres
 
 	feeRate := types.Amount{Value: 10, Id: amt.Id}
 	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, nil, nil)
-	if err != nil {
-		t.Fatalf("failed to pay the output: %v", err)
-	}
-	return txId, addr
-}
-
-// Spend amount from the wallet of the test harness and return tx hash
-func SpendV2(t *testing.T, h *Harness, amt types.Amount, preOutpoint *types.TxOutPoint, lockTime *int64) (*hash.Hash, types.Address) {
-	addr, err := h.Wallet.newAddress()
-	if err != nil {
-		t.Fatalf("failed to generate new address for test wallet: %v", err)
-	}
-	t.Logf("test wallet generated new address %v ok", addr.Encode())
-	addrScript, err := txscript.PayToAddrScript(addr)
-	if err != nil {
-		t.Fatalf("failed to generated addr script: %v", err)
-	}
-	output := types.NewTxOutput(amt, addrScript)
-
-	feeRate := types.Amount{Value: 10, Id: amt.Id}
-	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, preOutpoint, lockTime)
 	if err != nil {
 		t.Fatalf("failed to pay the output: %v", err)
 	}

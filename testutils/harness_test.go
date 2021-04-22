@@ -129,13 +129,13 @@ func TestHarness_RpcAPI(t *testing.T) {
 	GenerateBlock(t, h, 16)
 	AssertBlockOrderAndHeight(t, h, 19, 19, 18)
 	spendAmt := types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
-	txid, _ := Spend(t, h, spendAmt)
+	txid, _ := Spend(t, h, spendAmt, nil, nil)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
 	blocks := GenerateBlock(t, h, 1)
 	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
 
 	spendAmt = types.Amount{Value: 5000 * types.AtomsPerCoin, Id: types.MEERID}
-	txid, _ = Spend(t, h, spendAmt)
+	txid, _ = Spend(t, h, spendAmt, nil, nil)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
 	blocks = GenerateBlock(t, h, 1)
 	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
@@ -159,7 +159,7 @@ func TestHarness_SpentGenesis(t *testing.T) {
 	AssertBlockOrderAndHeight(t, h, 19, 19, 18)
 
 	spendAmt := types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.QITID}
-	txid, _ := Spend(t, h, spendAmt)
+	txid, _ := Spend(t, h, spendAmt, nil, nil)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
 	blocks := GenerateBlock(t, h, 1)
 	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
