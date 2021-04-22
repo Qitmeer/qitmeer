@@ -3,10 +3,9 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/address"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/ledger"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
@@ -97,7 +96,7 @@ func processLockingPayouts(genesisLedger ledger.PayoutList2, lockNum int64) stri
 				curLockedNum += amount
 				v.Payout.Amount.Value = 0
 			}
-			script, err := lockToAddress(v.Payout.Address, curMHeight)
+			script, err := blockchain.PayToCltvAddrScriptWithMainHeight(v.Payout.Address, curMHeight)
 			if err != nil {
 				return err.Error()
 			}
@@ -106,14 +105,4 @@ func processLockingPayouts(genesisLedger ledger.PayoutList2, lockNum int64) stri
 
 	}
 	return fileContent
-}
-
-func lockToAddress(addrStr string, height int64) ([]byte, error) {
-	addr, err := address.DecodeAddress(addrStr)
-	if err != nil {
-		return nil, err
-	}
-	return txscript.NewScriptBuilder().AddInt64(height).AddOp(txscript.OP_CHECKLOCKTIMEVERIFY).AddOp(txscript.OP_DROP).AddOp(txscript.OP_DUP).AddOp(txscript.OP_HASH160).
-		AddData(addr.Script()).AddOp(txscript.OP_EQUALVERIFY).AddOp(txscript.OP_CHECKSIG).
-		Script()
 }
