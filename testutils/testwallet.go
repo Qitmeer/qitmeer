@@ -342,7 +342,6 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 	enoughFund := false
 	// select inputs from utxo set of the wallet && add them into tx
 	for txOutPoint, utxo := range w.utxos {
-		fmt.Println(txOutPoint.Hash.String(), txOutPoint.OutIndex, utxo.value.Id.Name(), utxo.value.Value)
 		// skip immature or spent utxo at first
 		if !utxo.isMature(w.currentOrder) || utxo.isSpent {
 			continue
