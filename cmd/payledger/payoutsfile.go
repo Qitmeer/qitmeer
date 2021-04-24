@@ -95,7 +95,7 @@ func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger ledger.P
 	fileContent := fmt.Sprintf("package ledger\n\nfunc init%s() {\n", funName)
 
 	if config.UnlocksPerHeight > 0 {
-		fileContent += processLockingGenesisPayouts(genesisLedger, int64(config.UnlocksPerHeight), int64(config.UnlocksPerHeightStep))
+		fileContent += processLockingGenesisPayouts(genesisLedger, sortKeys, int64(config.UnlocksPerHeight), int64(config.UnlocksPerHeightStep))
 	} else {
 		fileContent += processNormalPayouts(genesisLedger)
 	}
@@ -155,12 +155,13 @@ func processLockingPayouts(genesisLedger ledger.PayoutList2, lockNum int64) stri
 	return fileContent
 }
 
-func processLockingGenesisPayouts(genesisLedger ledger.PayoutList2, lockNum int64, heightStep int64) string {
+func processLockingGenesisPayouts(genesisLedger ledger.PayoutList2, sortKeys []int, lockNum int64, heightStep int64) string {
 	fileContent := ""
 
 	curMHeight := int64(0)
 	curLockedNum := int64(0)
-	for _, v := range genesisLedger {
+	for _, k := range sortKeys {
+		v := genesisLedger[k]
 		if v.Payout.Amount.Id != types.MEERID {
 			continue
 		}
