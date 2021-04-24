@@ -18,6 +18,11 @@
 ~ ./payledger --srcdatadir=[YourQitmeerDataPath] --endpoint=000005fd233345570677bc257e7c35e300dfe9b6d384bd8a0659c6619ff7ab30
 ```
 
+* If you want to use specific UTXOs from `csv file`:
+```
+~ ./payledger --genesisdatadir=./genesistemplate.csv --privnet --unlocksperheight=1000000000000 --genesisamountunit=10000000000 --savefilego build
+```
+
 * Then, you can build the next qitmeerd version.
 ```
 ~ cd ./../../

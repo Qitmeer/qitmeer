@@ -62,6 +62,53 @@ func savePayoutsFile(params *params.Params, genesisLedger ledger.PayoutList2, co
 	return nil
 }
 
+func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger ledger.PayoutList2, sortKeys []int, config *Config) error {
+	if len(genesisLedger) == 0 {
+		log.Info("No payouts need to deal with.")
+		return nil
+	}
+	netName := ""
+	switch params.Net {
+	case protocol.MainNet:
+		netName = "main"
+	case protocol.TestNet:
+		netName = "test"
+	case protocol.PrivNet:
+		netName = "priv"
+	case protocol.MixNet:
+		netName = "mix"
+	}
+
+	fileName := filepath.Join(defaultPayoutDirPath, netName+defaultSuffixFilename)
+
+	f, err := os.Create(fileName)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("Save error:%s  %s", fileName, err))
+		return err
+	}
+	defer func() {
+		err = f.Close()
+	}()
+
+	funName := fmt.Sprintf("%s%s", strings.ToUpper(string(netName[0])), netName[1:])
+	fileContent := fmt.Sprintf("package ledger\n\nfunc init%s() {\n", funName)
+
+	if config.UnlocksPerHeight > 0 {
+		fileContent += processLockingGenesisPayouts(genesisLedger, int64(config.UnlocksPerHeight), int64(config.UnlocksPerHeightStep))
+	} else {
+		fileContent += processNormalPayouts(genesisLedger)
+	}
+
+	fileContent += "}"
+
+	f.WriteString(fileContent)
+
+	log.Info(fmt.Sprintf("Finish save %s", fileName))
+
+	return nil
+}
+
 func processNormalPayouts(genesisLedger ledger.PayoutList2) string {
 	fileContent := ""
 	for _, v := range genesisLedger {
@@ -96,6 +143,41 @@ func processLockingPayouts(genesisLedger ledger.PayoutList2, lockNum int64) stri
 				amount = v.Payout.Amount.Value
 				curLockedNum += amount
 				v.Payout.Amount.Value = 0
+			}
+			script, err := lockToAddress(v.Payout.Address, curMHeight)
+			if err != nil {
+				return err.Error()
+			}
+			fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", v.Payout.Address, amount, hex.EncodeToString(script))
+		}
+
+	}
+	return fileContent
+}
+
+func processLockingGenesisPayouts(genesisLedger ledger.PayoutList2, lockNum int64, heightStep int64) string {
+	fileContent := ""
+
+	curMHeight := int64(0)
+	curLockedNum := int64(0)
+	for _, v := range genesisLedger {
+		if v.Payout.Amount.Id != types.MEERID {
+			continue
+		}
+
+		for v.GenAmount.Value > 0 {
+			needLockNum := lockNum - curLockedNum
+
+			amount := int64(0)
+			if v.GenAmount.Value >= needLockNum {
+				v.GenAmount.Value -= needLockNum
+				amount = needLockNum
+				curMHeight += heightStep
+				curLockedNum = 0
+			} else {
+				amount = v.GenAmount.Value
+				curLockedNum += amount
+				v.GenAmount.Value = 0
 			}
 			script, err := lockToAddress(v.Payout.Address, curMHeight)
 			if err != nil {

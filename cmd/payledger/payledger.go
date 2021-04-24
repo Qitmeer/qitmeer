@@ -1,6 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"encoding/binary"
+	"encoding/csv"
+	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
@@ -14,6 +18,9 @@ import (
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	_ "github.com/Qitmeer/qitmeer/services/common"
+	"io"
+	"math/big"
+	"os"
 	"sort"
 )
 
@@ -29,6 +36,11 @@ func main() {
 	cfg, _, err := LoadConfig()
 	if err != nil {
 		log.Error(err.Error())
+		return
+	}
+	if cfg.GenesisDataPath != "" {
+		// build from tx data
+		buildLedgerByTxData(cfg)
 		return
 	}
 	fmt.Println(cfg.DebugAddress)
@@ -55,11 +67,13 @@ func main() {
 		log.Error(err.Error())
 		return
 	}
+
 	if cfg.Last {
 		// Just show last result
 		buildLedger(srcnode, cfg)
 		return
 	}
+
 	if cfg.ShowEndPoints > 0 {
 		showEndBlocks(srcnode)
 		return
@@ -283,6 +297,98 @@ func buildLedger(node INode, config *Config) error {
 	return nil
 }
 
+func buildLedgerByTxData(config *Config) error {
+	csvFile, _ := os.Open(config.GenesisDataPath)
+	reader := csv.NewReader(bufio.NewReader(csvFile))
+	genesisLedger := map[string]*ledger.TokenPayoutReGen{}
+	genAmount := int64(0)
+	keys := make([]string, 0)
+	for {
+		// csv format
+		// RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs,1000.234
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Error("csv read error", "error", err)
+			return err
+		}
+		if len(line) < 2 {
+			errorStr := "csv format error,need RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs,1000.234"
+			return errors.New(errorStr)
+		}
+		addrStr := line[0]
+		amount := line[1]
+		amountF, ok := new(big.Float).SetString(amount)
+		if !ok {
+			return errors.New("amount format error,amount is not float")
+		}
+		amountF = amountF.Mul(amountF, new(big.Float).SetFloat64(1e8))
+		val, _ := amountF.Uint64()
+
+		if _, ok := genesisLedger[addrStr]; !ok {
+			keys = append(keys, addrStr)
+			tp := ledger.TokenPayout{Address: addrStr, PkScript: []byte{}, Amount: types.Amount{Value: 0, Id: types.MEERID}}
+			reTp := ledger.TokenPayoutReGen{tp, types.Amount{Value: int64(val), Id: types.MEERID}}
+			genesisLedger[addrStr] = &reTp
+		} else {
+			genesisLedger[addrStr].GenAmount.Value += int64(val)
+		}
+		if genesisLedger[addrStr].GenAmount.Value <= 0 {
+			return errors.New(addrStr + " amount is not right")
+		}
+		genAmount += int64(val)
+	}
+	sort.Strings(keys)
+	seed := ""
+	for _, k := range keys {
+		seed += fmt.Sprintf("%s:%d,", k, genesisLedger[k].GenAmount.Value)
+	}
+	seedHash := hash.HashB([]byte(seed))
+
+	params := params.ActiveNetParams.Params
+
+	if len(genesisLedger) == 0 {
+		log.Info("No payouts need to deal with.")
+		return nil
+	}
+	payList := make(ledger.PayoutList2, 0)
+	i := 0
+	payKeys := make([]int, 0)
+	for _, v := range genesisLedger {
+		for {
+			if v.GenAmount.Value > config.GenesisAmountUnit {
+				payList = append(payList, ledger.TokenPayoutReGen{
+					Payout: v.Payout,
+					GenAmount: types.Amount{
+						Id:    v.GenAmount.Id,
+						Value: config.GenesisAmountUnit,
+					},
+				})
+				payKeys = append(payKeys, i)
+				i++
+				v.GenAmount.Value -= config.GenesisAmountUnit
+			} else {
+				payList = append(payList, *v)
+				payKeys = append(payKeys, i)
+				i++
+				break
+			}
+		}
+	}
+	payKeys = GenesisShuffle(payKeys, seedHash)
+	for _, v := range payList {
+		fmt.Printf("Address:%s  GenAmount:%15d ", v.Payout.Address, v.GenAmount)
+	}
+	fmt.Printf("-----------------\n")
+	fmt.Printf("Total Ledger:%5d  GenAmount:%15d \n", len(genesisLedger), genAmount)
+
+	if config.SavePayoutsFile {
+		return savePayoutsFileBySliceShuffle(params, payList, payKeys, config)
+	}
+	return nil
+}
+
 func blockInfo(cfg *Config) bool {
 	if cfg.BlocksInfo {
 		node := &BINode{}
@@ -311,4 +417,25 @@ func deserializeVLQ(serialized []byte) (uint64, int) {
 	}
 
 	return n, size
+}
+
+func GenesisShuffle(array []int, seed []byte) []int {
+	for i := len(array) - 1; i > 0; i-- {
+		p := RandShuffle(int64(i), seed)
+		a := array[i]
+		array[i] = array[p]
+		array[p] = a
+	}
+	return array
+}
+
+func RandShuffle(max int64, seed []byte) int64 {
+	if max > 24 {
+		max = max % 24
+	}
+	if max <= 0 {
+		max = 1
+	}
+	seedNum := binary.LittleEndian.Uint64(seed[max : max+8])
+	return int64(seedNum % uint64(max))
 }
