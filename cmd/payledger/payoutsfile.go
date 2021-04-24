@@ -160,8 +160,8 @@ func processLockingGenesisPayouts(genesisLedger ledger.PayoutList2, sortKeys []i
 
 	curMHeight := int64(0)
 	curLockedNum := int64(0)
-	for _, k := range sortKeys {
-		v := genesisLedger[k]
+	for i := 0; i < len(sortKeys); i++ {
+		v := genesisLedger[sortKeys[i]]
 		if v.Payout.Amount.Id != types.MEERID {
 			continue
 		}
