@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"encoding/binary"
-	"encoding/csv"
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
@@ -18,9 +16,6 @@ import (
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	_ "github.com/Qitmeer/qitmeer/services/common"
-	"io"
-	"math/big"
-	"os"
 	"sort"
 )
 
@@ -298,34 +293,10 @@ func buildLedger(node INode, config *Config) error {
 }
 
 func buildLedgerByTxData(config *Config) error {
-	csvFile, _ := os.Open(config.GenesisDataPath)
-	reader := csv.NewReader(bufio.NewReader(csvFile))
 	genesisLedger := map[string]*ledger.TokenPayoutReGen{}
 	genAmount := int64(0)
 	keys := make([]string, 0)
-	for {
-		// csv format
-		// RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs,1000.234
-		line, err := reader.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			log.Error("csv read error", "error", err)
-			return err
-		}
-		if len(line) < 2 {
-			errorStr := "csv format error,need RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs,1000.234"
-			return errors.New(errorStr)
-		}
-		addrStr := line[0]
-		amount := line[1]
-		amountF, ok := new(big.Float).SetString(amount)
-		if !ok {
-			return errors.New("amount format error,amount is not float")
-		}
-		amountF = amountF.Mul(amountF, new(big.Float).SetFloat64(1e8))
-		val, _ := amountF.Uint64()
-
+	for addrStr, val := range GenesisMapData {
 		if _, ok := genesisLedger[addrStr]; !ok {
 			keys = append(keys, addrStr)
 			tp := ledger.TokenPayout{Address: addrStr, PkScript: []byte{}, Amount: types.Amount{Value: 0, Id: types.MEERID}}
