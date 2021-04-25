@@ -33,7 +33,7 @@ func main() {
 		log.Error(err.Error())
 		return
 	}
-	if cfg.GenesisDataPath != "" {
+	if cfg.UseGenesisMapData {
 		// build from tx data
 		buildLedgerByTxData(cfg)
 		return
@@ -297,6 +297,7 @@ func buildLedgerByTxData(config *Config) error {
 	genAmount := int64(0)
 	keys := make([]string, 0)
 	for addrStr, val := range GenesisMapData {
+		val *= 1e8
 		if _, ok := genesisLedger[addrStr]; !ok {
 			keys = append(keys, addrStr)
 			tp := ledger.TokenPayout{Address: addrStr, PkScript: []byte{}, Amount: types.Amount{Value: 0, Id: types.MEERID}}

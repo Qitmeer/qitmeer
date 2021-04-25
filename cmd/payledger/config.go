@@ -32,14 +32,13 @@ var (
 )
 
 type Config struct {
-	HomeDir         string `short:"A" long:"appdata" description:"Path to application home directory"`
-	DataDir         string `short:"b" long:"datadir" description:"Directory to store data"`
-	GenesisDataPath string `long:"genesisdatadir" description:"Genesis Tx Data file path"`
-	TestNet         bool   `long:"testnet" description:"Use the test network"`
-	MixNet          bool   `long:"mixnet" description:"Use the test mix pow network"`
-	PrivNet         bool   `long:"privnet" description:"Use the private network"`
-	DbType          string `long:"dbtype" description:"Database backend to use for the Block Chain"`
-	DAGType         string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
+	HomeDir string `short:"A" long:"appdata" description:"Path to application home directory"`
+	DataDir string `short:"b" long:"datadir" description:"Directory to store data"`
+	TestNet bool   `long:"testnet" description:"Use the test network"`
+	MixNet  bool   `long:"mixnet" description:"Use the test mix pow network"`
+	PrivNet bool   `long:"privnet" description:"Use the private network"`
+	DbType  string `long:"dbtype" description:"Database backend to use for the Block Chain"`
+	DAGType string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
 
 	SrcDataDir      string `long:"srcdatadir" description:"Original directory to store data"`
 	EndPoint        string `long:"endpoint" description:"The end point block hash when building ledger"`
@@ -54,6 +53,7 @@ type Config struct {
 	Last            bool   `long:"last"  description:"Show ledger by last building data."`
 	BlocksInfo      bool   `long:"blocksinfo"  description:"Show all blocks information."`
 
+	UseGenesisMapData    bool  `long:"usegenesismapdata"  description:"Use Genesis map data."`
 	UnlocksPerHeight     int   `long:"unlocksperheight"  description:"How many will be unlocked at each DAG main height."`
 	UnlocksPerHeightStep int   `long:"unlocksperheightstep"  description:"How many height will lock a tx."`
 	GenesisAmountUnit    int64 `long:"genesisamountunit"  description:"the unit amount of equally divided."`
@@ -74,7 +74,7 @@ func LoadConfig() (*Config, []string, error) {
 		Last:                 false,
 		BlocksInfo:           false,
 		UnlocksPerHeight:     0,
-		GenesisDataPath:      "",
+		UseGenesisMapData:    false,
 		GenesisAmountUnit:    10 * 1e8,
 		UnlocksPerHeightStep: 1,
 	}
@@ -126,7 +126,7 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.TestNet = preCfg.TestNet
 	cfg.PrivNet = preCfg.PrivNet
 	cfg.UnlocksPerHeight = preCfg.UnlocksPerHeight
-	cfg.GenesisDataPath = preCfg.GenesisDataPath
+	cfg.UseGenesisMapData = preCfg.UseGenesisMapData
 	cfg.GenesisAmountUnit = preCfg.GenesisAmountUnit
 
 	if len(preCfg.SrcDataDir) > 0 {
@@ -198,7 +198,7 @@ func LoadConfig() (*Config, []string, error) {
 		cfg.ShowEndPoints == 0 &&
 		len(cfg.DebugAddress) == 0 &&
 		!cfg.Last &&
-		cfg.GenesisDataPath == "" &&
+		!cfg.UseGenesisMapData &&
 		!cfg.BlocksInfo {
 		err := fmt.Errorf("No Command")
 		fmt.Fprintln(os.Stderr, err)
