@@ -327,9 +327,6 @@ func checkInputsStandard(tx *types.Tx, utxoView *blockchain.UtxoViewpoint) error
 				return txRuleError(message.RejectNonstandard, str)
 			}
 		case txscript.NonStandardTy:
-			if blockchain.IsCltvPublicKeyHashTy(originPkScript) {
-				continue
-			}
 			str := fmt.Sprintf("transaction input #%d has a "+
 				"non-standard script form", i)
 			return txRuleError(message.RejectNonstandard, str)

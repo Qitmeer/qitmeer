@@ -39,6 +39,7 @@ const (
 	StakeSubChangeTy                     // Change for stake submission tx.
 	PubkeyAltTy                          // Alternative signature pubkey.
 	PubkeyHashAltTy                      // Alternative signature pubkey hash.
+	CLTVPubKeyHashTy                     // Check Lock Time Verify Pay pubkey hash.
 )
 
 // Script Interface provide a abstract layer to support new Script parsing from opcode
@@ -405,6 +406,19 @@ func isSStxChange(pops []ParsedOpcode) bool {
 	return false
 }
 
+// isCLTVPubkeyHash returns true if the script passed is a pay-to-cltv-pubkey-hash
+// transaction, false otherwise.
+func isCLTVPubkeyHash(pops []ParsedOpcode) bool {
+	return len(pops) == 8 &&
+		pops[1].opcode.value == OP_CHECKLOCKTIMEVERIFY &&
+		pops[2].opcode.value == OP_DROP &&
+		pops[3].opcode.value == OP_DUP &&
+		pops[4].opcode.value == OP_HASH160 &&
+		pops[5].opcode.value == OP_DATA_20 &&
+		pops[6].opcode.value == OP_EQUALVERIFY &&
+		pops[7].opcode.value == OP_CHECKSIG
+}
+
 // scriptType returns the type of the script being inspected from the known
 // standard types.
 func typeOfScript(pops []ParsedOpcode) ScriptClass {
@@ -430,6 +444,8 @@ func typeOfScript(pops []ParsedOpcode) ScriptClass {
 		return StakeRevocationTy
 	} else if isSStxChange(pops) {
 		return StakeSubChangeTy
+	} else if isCLTVPubkeyHash(pops) {
+		return CLTVPubKeyHashTy
 	}
 
 	return NonStandardTy
@@ -980,6 +996,14 @@ func PayToSSRtxSHDirect(sh []byte) ([]byte, error) {
 		AddData(sh).AddOp(OP_EQUAL).Script()
 }
 
+// PayToCLTVPubKeyHashScript creates a new script to pay a transaction
+// output to a 20-byte pubkey hash and lockTime. It is expected that the input is a valid
+// hash.
+func PayToCLTVPubKeyHashScript(pubKeyHash []byte, lockTime int64) ([]byte, error) {
+	return NewScriptBuilder().AddInt64(lockTime).AddOp(OP_CHECKLOCKTIMEVERIFY).AddOp(OP_DROP).AddOp(OP_DUP).AddOp(OP_HASH160).
+		AddData(pubKeyHash).AddOp(OP_EQUALVERIFY).AddOp(OP_CHECKSIG).Script()
+}
+
 // GenerateSStxAddrPush generates an OP_RETURN push for SSGen payment addresses in
 // an SStx.
 func GenerateSStxAddrPush(addr types.Address, amount uint64,
@@ -1341,6 +1365,18 @@ func ExtractPkScriptAddrs(pkScript []byte,
 	case NonStandardTy:
 		// Don't attempt to extract addresses or required signatures for
 		// nonstandard transactions.
+
+	case CLTVPubKeyHashTy:
+		// A pay-to-cltv-pubkey-hash script is of the form:
+		//  <nLockTime> OP_CHECKLOCKTIMEVERIFY OP_DROP OP_DUP OP_HASH160 <hash> OP_EQUALVERIFY OP_CHECKSIG
+		// Therefore the pubkey hash is the 3rd item on the stack.
+		// Skip the pubkey hash if it's invalid for some reason.
+		requiredSigs = 1
+		addr, err := address.NewPubKeyHashAddress(pops[5].data,
+			chainParams, ecc.ECDSA_Secp256k1)
+		if err == nil {
+			addrs = append(addrs, addr)
+		}
 	}
 
 	return scriptClass, addrs, requiredSigs, nil
