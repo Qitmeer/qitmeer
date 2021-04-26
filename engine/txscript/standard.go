@@ -126,6 +126,7 @@ var scriptClassToName = []string{
 	StakeGenTy:        "stakegen",
 	StakeRevocationTy: "stakerevoke",
 	StakeSubChangeTy:  "sstxchange",
+	CLTVPubKeyHashTy:  "cltvpubkeyhash",
 }
 
 // String implements the Stringer interface by returning the name of
