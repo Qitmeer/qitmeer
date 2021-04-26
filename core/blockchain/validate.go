@@ -326,7 +326,7 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 			MeerAmount:  tx.TxOut[0].Amount.Value}
 
 		// check the legality of update values.
-		if err := checkMintUpdate(&update); err != nil {
+		if err := token.CheckMintUpdate(&update); err != nil {
 			return err
 		}
 		return nil
@@ -338,7 +338,7 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 			MeerAmount:  tx.TxIn[0].AmountIn.Value,
 			TokenAmount: tx.TxOut[0].Amount}
 		// check the legality of update values.
-		if err := checkUnMintUpdate(&update); err != nil {
+		if err := token.CheckUnMintUpdate(&update); err != nil {
 			return err
 		}
 		return nil

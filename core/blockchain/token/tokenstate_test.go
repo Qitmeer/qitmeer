@@ -1,8 +1,8 @@
-// Copyright (c) 2020 The qitmeer developers
-// Use of this source code is governed by an ISC
-// license that can be found in the LICENSE file.
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
 
-package blockchain
+package token
 
 import (
 	"bytes"

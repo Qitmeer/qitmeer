@@ -266,12 +266,12 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 			state := b.GetTokenState(b.TokenTipID)
 			if state != nil {
 				err := b.db.Update(func(dbTx database.Tx) error {
-					return dbRemoveTokenState(dbTx, uint32(node.dagID))
+					return token.DBRemoveTokenState(dbTx, uint32(node.dagID))
 				})
 				if err != nil {
 					return err
 				}
-				b.TokenTipID = state.prevStateID
+				b.TokenTipID = state.PrevStateID
 			}
 
 		}
@@ -309,32 +309,32 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 	}
 	state := b.GetTokenState(b.TokenTipID)
 	if state == nil {
-		state = &tokenState{prevStateID: 0, updates: updates}
-		state.balances.UpdatesBalance(updates)
+		state = &token.TokenState{PrevStateID: 0, Updates: updates}
+		state.Balances.UpdatesBalance(updates)
 	} else {
-		state.prevStateID = b.TokenTipID
-		state.updates = updates
-		state.balances.UpdatesBalance(updates)
+		state.PrevStateID = b.TokenTipID
+		state.Updates = updates
+		state.Balances.UpdatesBalance(updates)
 	}
 
 	err := b.db.Update(func(dbTx database.Tx) error {
-		return dbPutTokenState(dbTx, uint32(node.dagID), *state)
+		return token.DBPutTokenState(dbTx, uint32(node.dagID), *state)
 	})
 	if err != nil {
 		return err
 	}
 
-	b.TokenTipID = state.prevStateID
+	b.TokenTipID = state.PrevStateID
 	return nil
 }
 
-func (b *BlockChain) GetTokenState(bid uint32) *tokenState {
+func (b *BlockChain) GetTokenState(bid uint32) *token.TokenState {
 	if bid == 0 {
 		return nil
 	}
-	var state *tokenState
+	var state *token.TokenState
 	err := b.db.View(func(dbTx database.Tx) error {
-		ts, err := dbFetchTokenState(dbTx, bid)
+		ts, err := token.DBFetchTokenState(dbTx, bid)
 		if err != nil {
 			return err
 		}
