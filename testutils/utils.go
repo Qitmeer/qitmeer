@@ -77,7 +77,7 @@ func Spend(t *testing.T, h *Harness, amt types.Amount, preOutpoint *types.TxOutP
 	output := types.NewTxOutput(amt, addrScript)
 
 	feeRate := types.Amount{Value: 10, Id: amt.Id}
-	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, nil, nil)
+	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, preOutpoint, lockTime)
 	if err != nil {
 		t.Fatalf("failed to pay the output: %v", err)
 	}
