@@ -97,7 +97,7 @@ func processLockingPayouts(genesisLedger ledger.PayoutList2, lockNum int64) stri
 				curLockedNum += amount
 				v.Payout.Amount.Value = 0
 			}
-			script, err := lockToAddress(v.Payout.Address, curMHeight)
+			script, err := PayToCltvAddrScriptWithMainHeight(v.Payout.Address, curMHeight)
 			if err != nil {
 				return err.Error()
 			}
@@ -108,12 +108,10 @@ func processLockingPayouts(genesisLedger ledger.PayoutList2, lockNum int64) stri
 	return fileContent
 }
 
-func lockToAddress(addrStr string, height int64) ([]byte, error) {
+func PayToCltvAddrScriptWithMainHeight(addrStr string, mainHeight int64) ([]byte, error) {
 	addr, err := address.DecodeAddress(addrStr)
 	if err != nil {
 		return nil, err
 	}
-	return txscript.NewScriptBuilder().AddInt64(height).AddOp(txscript.OP_CHECKLOCKTIMEVERIFY).AddOp(txscript.OP_DROP).AddOp(txscript.OP_DUP).AddOp(txscript.OP_HASH160).
-		AddData(addr.Script()).AddOp(txscript.OP_EQUALVERIFY).AddOp(txscript.OP_CHECKSIG).
-		Script()
+	return txscript.PayToCLTVPubKeyHashScript(addr.Script(), mainHeight)
 }
