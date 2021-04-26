@@ -260,7 +260,7 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 	return nil
 }
 
-func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.SerializedBlock, rollback bool) error {
+func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBlock, rollback bool) error {
 	if rollback {
 		if uint32(node.dagID) == b.TokenTipID {
 			state := b.GetTokenState(b.TokenTipID)
@@ -277,7 +277,7 @@ func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.Serialized
 		}
 		return nil
 	}
-	updates := []balanceUpdate{}
+	updates := []token.BalanceUpdate{}
 	for _, tx := range block.Transactions() {
 		if tx.IsDuplicate {
 			log.Trace(fmt.Sprintf("updateTokenBalance skip duplicate tx %v", tx.Hash()))
@@ -286,20 +286,20 @@ func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.Serialized
 
 		if token.IsTokenMint(tx.Tx) {
 			// TOKEN_MINT: input[0] token output[0] meer
-			update := balanceUpdate{
-				typ:         tokenMint,
-				tokenAmount: tx.Tx.TxIn[0].AmountIn,
-				meerAmount:  tx.Tx.TxOut[0].Amount.Value}
+			update := token.BalanceUpdate{
+				Typ:         token.TokenMint,
+				TokenAmount: tx.Tx.TxIn[0].AmountIn,
+				MeerAmount:  tx.Tx.TxOut[0].Amount.Value}
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
 		}
 		if token.IsTokenUnMint(tx.Tx) {
 			// TOKEN_UNMINT: input[0] meer output[0] token
 			// the previous logic must make sure the legality of values, here only append.
-			update := balanceUpdate{
-				typ:         tokenUnMint,
-				meerAmount:  tx.Tx.TxIn[0].AmountIn.Value,
-				tokenAmount: tx.Tx.TxOut[0].Amount}
+			update := token.BalanceUpdate{
+				Typ:         token.TokenUnMint,
+				MeerAmount:  tx.Tx.TxIn[0].AmountIn.Value,
+				TokenAmount: tx.Tx.TxOut[0].Amount}
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
 		}

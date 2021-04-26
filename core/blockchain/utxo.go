@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -688,7 +689,7 @@ const UtxoEntryAmountCoinIDSize = 2
 // storage.  The format is described in detail above.
 func DeserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 	// Deserialize the header code.
-	code, offset := deserializeVLQ(serialized)
+	code, offset := serialization.DeserializeVLQ(serialized)
 	if offset >= len(serialized) {
 		return nil, errDeserialize("unexpected end of data after header")
 	}
@@ -742,13 +743,13 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 	}
 
 	// Calculate the size needed to serialize the entry.
-	size := serializeSizeVLQ(headerCode) + hash.HashSize + UtxoEntryAmountCoinIDSize +
+	size := serialization.SerializeSizeVLQ(headerCode) + hash.HashSize + UtxoEntryAmountCoinIDSize +
 		compressedTxOutSize(uint64(entry.Amount().Value), entry.PkScript())
 
 	// Serialize the header code followed by the compressed unspent
 	// transaction output.
 	serialized := make([]byte, size)
-	offset := putVLQ(serialized, headerCode)
+	offset := serialization.PutVLQ(serialized, headerCode)
 	copy(serialized[offset:offset+hash.HashSize], entry.blockHash.Bytes())
 	offset += hash.HashSize
 	// add Amount coinId
@@ -766,15 +767,15 @@ func outpointKey(outpoint types.TxOutPoint) *[]byte {
 	// doing byte-wise comparisons will produce them in order.
 	key := outpointKeyPool.Get().(*[]byte)
 	idx := uint64(outpoint.OutIndex)
-	*key = (*key)[:hash.HashSize+serializeSizeVLQ(idx)]
+	*key = (*key)[:hash.HashSize+serialization.SerializeSizeVLQ(idx)]
 	copy(*key, outpoint.Hash[:])
-	putVLQ((*key)[hash.HashSize:], idx)
+	serialization.PutVLQ((*key)[hash.HashSize:], idx)
 	return key
 }
 
 var outpointKeyPool = sync.Pool{
 	New: func() interface{} {
-		b := make([]byte, hash.HashSize+maxUint32VLQSerializeSize)
+		b := make([]byte, hash.HashSize+serialization.MaxUint32VLQSerializeSize)
 		return &b // Pointer to slice to avoid boxing alloc.
 	},
 }

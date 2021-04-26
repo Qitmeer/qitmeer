@@ -6,282 +6,162 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
-	"strings"
 )
-
-// balanceUpdateType specifies the possible types of updates that might
-// change the token balance
-type balanceUpdateType byte
-
-// The following constants define the known type of balanceUpdateType
-const (
-	tokenMint   balanceUpdateType = 0x01
-	tokenUnMint balanceUpdateType = 0x02
-)
-
-// balanceUpdate specifies the type and update record of the values that change a token
-// balance.
-// for TOKON_MINT, the values should add on the meerlock and token balance
-// for TOKEN_UNMINT, the values should subtract from the meerlock and token balance
-type balanceUpdate struct {
-	typ         balanceUpdateType
-	meerAmount  int64
-	tokenAmount types.Amount
-
-	cacheHash *hash.Hash
-}
-
-func (bu *balanceUpdate) Serialize() ([]byte, error) {
-	if bu.typ != tokenMint && bu.typ != tokenUnMint {
-		return nil, fmt.Errorf("invalid token balance update type %v", bu.typ)
-	}
-	if bu.meerAmount < 0 || bu.tokenAmount.Value < 0 || !types.IsKnownCoinID(bu.tokenAmount.Id) {
-		return nil, fmt.Errorf("invalid token balance update %v", bu)
-	}
-	serializeSize := serializeSizeVLQ(uint64(bu.typ))
-	serializeSize += serializeSizeVLQ(uint64(bu.meerAmount))
-	serializeSize += serializeSizeVLQ(uint64(bu.tokenAmount.Id))
-	serializeSize += serializeSizeVLQ(uint64(bu.tokenAmount.Value))
-
-	serialized := make([]byte, serializeSize)
-	offset := 0
-
-	offset += putVLQ(serialized[offset:], uint64(bu.typ))
-	offset += putVLQ(serialized[offset:], uint64(bu.meerAmount))
-	offset += putVLQ(serialized[offset:], uint64(bu.tokenAmount.Id))
-	offset += putVLQ(serialized[offset:], uint64(bu.tokenAmount.Value))
-	return serialized, nil
-}
-
-func (bu *balanceUpdate) Hash() *hash.Hash {
-	if bu.cacheHash != nil {
-		return bu.cacheHash
-	}
-	return bu.CacheHash()
-}
-
-func (bu *balanceUpdate) CacheHash() *hash.Hash {
-	bu.cacheHash = nil
-	bs, err := bu.Serialize()
-	if err != nil {
-		log.Error(err.Error())
-		return bu.cacheHash
-	}
-	h := hash.DoubleHashH(bs)
-	bu.cacheHash = &h
-	return bu.cacheHash
-}
-
-// tokenBalance specifies the token balance and the locked meer amount
-type tokenBalance struct {
-	balance    int64
-	lockedMeer int64
-}
 
 // tokenState specifies the token balance of the current block.
 // the updates are written in the same order as the tx in the block, which is
 // used to verify the correctness of the token balance
 type tokenState struct {
 	prevStateID uint32
-	balances    tokenBalances
-	updates     []balanceUpdate
+	types       token.TokenTypesMap
+	balances    token.TokenBalancesMap
+	updates     []token.BalanceUpdate
 }
 
 func (ts *tokenState) GetTokenBalances() []json.TokenBalance {
 	tbs := []json.TokenBalance{}
 	for k, v := range ts.balances {
-		tb := json.TokenBalance{CoinId: uint16(k), CoinName: k.Name(), Balance: v.balance, LockedMeer: v.lockedMeer}
+		tb := json.TokenBalance{CoinId: uint16(k), CoinName: k.Name(), Balance: v.Balance, LockedMeer: v.LockedMeer}
 		tbs = append(tbs, tb)
 	}
 	return tbs
 }
 
-type tokenBalances map[types.CoinID]tokenBalance
-
-func (tbs *tokenBalances) UpdateBalance(update *balanceUpdate) error {
-	tokenId := update.tokenAmount.Id
-	tb := (*tbs)[tokenId]
-	switch update.typ {
-	case tokenMint:
-		tb.balance += update.tokenAmount.Value
-		tb.lockedMeer += update.meerAmount
-	case tokenUnMint:
-		if tb.balance-update.tokenAmount.Value < 0 {
-			return fmt.Errorf("can't unmint token %v more than token balance %v", update.tokenAmount, tb)
-		}
-		tb.balance -= update.tokenAmount.Value
-		if tb.lockedMeer-update.meerAmount < 0 {
-			return fmt.Errorf("can't unlock %v meer more than locked meer %v", update.meerAmount, tb)
-		}
-		tb.lockedMeer -= update.meerAmount
-	default:
-		return fmt.Errorf("unknown balance update type %v", update.typ)
-	}
-	(*tbs)[tokenId] = tb
-	return nil
-}
-
-func (tbs *tokenBalances) UpdatesBalance(updates []balanceUpdate) error {
-	for _, update := range updates {
-		err := tbs.UpdateBalance(&update)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (tb *tokenBalances) String() string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "[")
-	for k, v := range *tb {
-		b.WriteString(fmt.Sprintf("%v:{balance:%v,locked-meer:%v},", k.Name(), v.balance, v.lockedMeer))
-	}
-	fmt.Fprintf(&b, "]")
-	return b.String()
-}
-func (tb *tokenBalances) Copy() *tokenBalances {
-	newTb := tokenBalances{}
-	for k, v := range *tb {
-		newTb[k] = v
-	}
-	return &newTb
-}
-
 // serializeTokeState function will serialize the token state into byte slice
 func serializeTokeState(ts tokenState) ([]byte, error) {
 	// total number of bytes to serialize
-	serializeSize := serializeSizeVLQ(uint64(ts.prevStateID))
+	serializeSize := serialization.SerializeSizeVLQ(uint64(ts.prevStateID))
 
-	serializeSize += serializeSizeVLQ(uint64(len(ts.balances)))
+	serializeSize += serialization.SerializeSizeVLQ(uint64(len(ts.balances)))
 	for id, b := range ts.balances {
 		// sanity check
-		if id == types.MEERID || b.balance < 0 || b.lockedMeer < 0 {
+		if id == types.MEERID || b.Balance < 0 || b.LockedMeer < 0 {
 			return nil, fmt.Errorf("invalid token balance {%v, %v}", id, b)
 		}
-		serializeSize += serializeSizeVLQ(uint64(id))
-		serializeSize += serializeSizeVLQ(uint64(b.balance))
-		serializeSize += serializeSizeVLQ(uint64(b.lockedMeer))
+		serializeSize += serialization.SerializeSizeVLQ(uint64(id))
+		serializeSize += serialization.SerializeSizeVLQ(uint64(b.Balance))
+		serializeSize += serialization.SerializeSizeVLQ(uint64(b.LockedMeer))
 	}
-	serializeSize += serializeSizeVLQ(uint64(len(ts.updates)))
+	serializeSize += serialization.SerializeSizeVLQ(uint64(len(ts.updates)))
 	for _, v := range ts.updates {
-		if v.typ != tokenMint && v.typ != tokenUnMint {
-			return nil, fmt.Errorf("invalid token balance update type %v", v.typ)
+		if v.Typ != token.TokenMint && v.Typ != token.TokenUnMint {
+			return nil, fmt.Errorf("invalid token balance update type %v", v.Typ)
 		}
-		if v.meerAmount < 0 || v.tokenAmount.Value < 0 || !types.IsKnownCoinID(v.tokenAmount.Id) {
+		if v.MeerAmount < 0 || v.TokenAmount.Value < 0 || !types.IsKnownCoinID(v.TokenAmount.Id) {
 			return nil, fmt.Errorf("invalid token balance update %v", v)
 		}
 		serializeSize += 1 // balanceUpdateType takes 1 byte
-		serializeSize += serializeSizeVLQ(uint64(v.meerAmount))
-		serializeSize += serializeSizeVLQ(uint64(v.tokenAmount.Id))
-		serializeSize += serializeSizeVLQ(uint64(v.tokenAmount.Value))
+		serializeSize += serialization.SerializeSizeVLQ(uint64(v.MeerAmount))
+		serializeSize += serialization.SerializeSizeVLQ(uint64(v.TokenAmount.Id))
+		serializeSize += serialization.SerializeSizeVLQ(uint64(v.TokenAmount.Value))
 	}
 	serialized := make([]byte, serializeSize)
 	offset := 0
-	offset = putVLQ(serialized, uint64(ts.prevStateID))
+	offset = serialization.PutVLQ(serialized, uint64(ts.prevStateID))
 
-	offset += putVLQ(serialized[offset:], uint64(len(ts.balances)))
+	offset += serialization.PutVLQ(serialized[offset:], uint64(len(ts.balances)))
 	for id, b := range ts.balances {
-		offset += putVLQ(serialized[offset:], uint64(id))
-		offset += putVLQ(serialized[offset:], uint64(b.balance))
-		offset += putVLQ(serialized[offset:], uint64(b.lockedMeer))
+		offset += serialization.PutVLQ(serialized[offset:], uint64(id))
+		offset += serialization.PutVLQ(serialized[offset:], uint64(b.Balance))
+		offset += serialization.PutVLQ(serialized[offset:], uint64(b.LockedMeer))
 	}
 
-	offset += putVLQ(serialized[offset:], uint64(len(ts.updates)))
+	offset += serialization.PutVLQ(serialized[offset:], uint64(len(ts.updates)))
 	for _, v := range ts.updates {
-		offset += putVLQ(serialized[offset:], uint64(v.typ))
-		offset += putVLQ(serialized[offset:], uint64(v.meerAmount))
-		offset += putVLQ(serialized[offset:], uint64(v.tokenAmount.Id))
-		offset += putVLQ(serialized[offset:], uint64(v.tokenAmount.Value))
+		offset += serialization.PutVLQ(serialized[offset:], uint64(v.Typ))
+		offset += serialization.PutVLQ(serialized[offset:], uint64(v.MeerAmount))
+		offset += serialization.PutVLQ(serialized[offset:], uint64(v.TokenAmount.Id))
+		offset += serialization.PutVLQ(serialized[offset:], uint64(v.TokenAmount.Value))
 	}
 	return serialized, nil
 }
 
 // deserializeTokenState function will deserializes token state from the byte slice
 func deserializeTokenState(data []byte) (*tokenState, error) {
-	prevStateID, offset := deserializeVLQ(data)
+	prevStateID, offset := serialization.DeserializeVLQ(data)
 	if offset == 0 {
 		return nil, errDeserialize("unexpected end of data while reading prevStateID")
 	}
 	// Deserialize the balance.
-	var balances map[types.CoinID]tokenBalance
-	numOfBalances, bytesRead := deserializeVLQ(data[offset:])
+	var balances map[types.CoinID]token.TokenBalance
+	numOfBalances, bytesRead := serialization.DeserializeVLQ(data[offset:])
 	if bytesRead == 0 {
 		return nil, fmt.Errorf("unexpected end of data while reading number of balances")
 	}
 	offset += bytesRead
 
 	if numOfBalances > 0 {
-		balances = make(map[types.CoinID]tokenBalance, numOfBalances)
+		balances = make(map[types.CoinID]token.TokenBalance, numOfBalances)
 		for i := uint64(0); i < numOfBalances; i++ {
 			// token id
-			derId, bytesRead := deserializeVLQ(data[offset:])
+			derId, bytesRead := serialization.DeserializeVLQ(data[offset:])
 			if bytesRead == 0 {
 				return nil, fmt.Errorf("unexpected end of data while reading token id at balances{%d}", i)
 			}
 			offset += bytesRead
 
 			// token balance
-			balance, bytesRead := deserializeVLQ(data[offset:])
+			balance, bytesRead := serialization.DeserializeVLQ(data[offset:])
 			if bytesRead == 0 {
 				return nil, fmt.Errorf("unexpected end of data while reading balance at balances{%d}", i)
 			}
 			offset += bytesRead
 
 			// locked meer
-			lockedMeer, bytesRead := deserializeVLQ(data[offset:])
+			lockedMeer, bytesRead := serialization.DeserializeVLQ(data[offset:])
 			if bytesRead == 0 {
 				return nil, fmt.Errorf("unexpected end of data while reading balance at balances{%d}", i)
 			}
 			offset += bytesRead
 
 			id := types.CoinID(uint16(derId))
-			balances[id] = tokenBalance{int64(balance), int64(lockedMeer)}
+			balances[id] = token.TokenBalance{int64(balance), int64(lockedMeer)}
 		}
 	}
-	updates := []balanceUpdate{}
-	numOfUpdates, bytesRead := deserializeVLQ(data[offset:])
+	updates := []token.BalanceUpdate{}
+	numOfUpdates, bytesRead := serialization.DeserializeVLQ(data[offset:])
 	if bytesRead == 0 {
 		return nil, errDeserialize("unexpected end of data while reading number of balances")
 	}
 	offset += bytesRead
 	if numOfUpdates > 0 {
-		updates = make([]balanceUpdate, numOfUpdates)
+		updates = make([]token.BalanceUpdate, numOfUpdates)
 		for i := uint64(0); i < numOfUpdates; i++ {
 			//type
-			updateType, bytesRead := deserializeVLQ(data[offset:])
+			updateType, bytesRead := serialization.DeserializeVLQ(data[offset:])
 			if bytesRead == 0 {
 				return nil, fmt.Errorf("unexpected end of data while reading balance update type at update[%d]", i)
 			}
 			offset += bytesRead
 			//meerAmount
-			meerAmount, bytesRead := deserializeVLQ(data[offset:])
+			meerAmount, bytesRead := serialization.DeserializeVLQ(data[offset:])
 			if bytesRead == 0 {
 				return nil, fmt.Errorf("unexpected end of data while reading meer amount at update[%d]", i)
 			}
 			offset += bytesRead
 			//tokenId
-			tokenId, bytesRead := deserializeVLQ(data[offset:])
+			tokenId, bytesRead := serialization.DeserializeVLQ(data[offset:])
 			if bytesRead == 0 {
 				return nil, fmt.Errorf("unexpected end of data while reading token id at update[%d]", i)
 			}
 			offset += bytesRead
 			//tokenAmount
-			tokenAmount, bytesRead := deserializeVLQ(data[offset:])
+			tokenAmount, bytesRead := serialization.DeserializeVLQ(data[offset:])
 			if bytesRead == 0 {
 				return nil, fmt.Errorf("unexpected end of data while reading token amount at update[%d]", i)
 			}
 			offset += bytesRead
 
-			updates[i] = balanceUpdate{
-				typ:         balanceUpdateType(updateType),
-				meerAmount:  int64(meerAmount),
-				tokenAmount: types.Amount{Value: int64(tokenAmount), Id: types.CoinID(uint16(tokenId))},
+			updates[i] = token.BalanceUpdate{
+				Typ:         token.BalanceUpdateType(updateType),
+				MeerAmount:  int64(meerAmount),
+				TokenAmount: types.Amount{Value: int64(tokenAmount), Id: types.CoinID(uint16(tokenId))},
 			}
 		}
 	}
@@ -334,9 +214,9 @@ func dbRemoveTokenState(dbTx database.Tx, id uint32) error {
 	return bucket.Delete(key)
 }
 
-func checkUnMintUpdate(update *balanceUpdate) error {
-	if update.typ != tokenUnMint {
-		return fmt.Errorf("checkUnMintUpdate : wrong update type %v", update.typ)
+func checkUnMintUpdate(update *token.BalanceUpdate) error {
+	if update.Typ != token.TokenUnMint {
+		return fmt.Errorf("checkUnMintUpdate : wrong update type %v", update.Typ)
 	}
 	if err := checkUpdateCommon(update); err != nil {
 		return err
@@ -344,9 +224,9 @@ func checkUnMintUpdate(update *balanceUpdate) error {
 	return nil
 }
 
-func checkMintUpdate(update *balanceUpdate) error {
-	if update.typ != tokenMint {
-		return fmt.Errorf("checkUnMintUpdate : wrong update type %v", update.typ)
+func checkMintUpdate(update *token.BalanceUpdate) error {
+	if update.Typ != token.TokenMint {
+		return fmt.Errorf("checkUnMintUpdate : wrong update type %v", update.Typ)
 	}
 	if err := checkUpdateCommon(update); err != nil {
 		return err
@@ -354,15 +234,15 @@ func checkMintUpdate(update *balanceUpdate) error {
 	return nil
 }
 
-func checkUpdateCommon(update *balanceUpdate) error {
-	if !types.IsKnownCoinID(update.tokenAmount.Id) {
-		return fmt.Errorf("checkUpdateCommon : unknown token id %v", update.tokenAmount.Id.Name())
+func checkUpdateCommon(update *token.BalanceUpdate) error {
+	if !types.IsKnownCoinID(update.TokenAmount.Id) {
+		return fmt.Errorf("checkUpdateCommon : unknown token id %v", update.TokenAmount.Id.Name())
 	}
-	if update.tokenAmount.Value <= 0 {
-		return fmt.Errorf("checkUpdateCommon : wrong token amount : %v", update.tokenAmount.Value)
+	if update.TokenAmount.Value <= 0 {
+		return fmt.Errorf("checkUpdateCommon : wrong token amount : %v", update.TokenAmount.Value)
 	}
-	if update.meerAmount <= 0 {
-		return fmt.Errorf("checkUpdateCommon : wrong meer amount : %v", update.meerAmount)
+	if update.MeerAmount <= 0 {
+		return fmt.Errorf("checkUpdateCommon : wrong meer amount : %v", update.MeerAmount)
 	}
 	return nil
 }

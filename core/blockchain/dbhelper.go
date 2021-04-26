@@ -8,6 +8,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"math/big"
@@ -226,7 +227,7 @@ func (b *BlockChain) createChainState() error {
 
 		b.dbInfo = &databaseInfo{
 			version: currentDatabaseVersion,
-			compVer: currentCompressionVersion,
+			compVer: serialization.CurrentCompressionVersion,
 			bidxVer: currentBlockIndexVersion,
 			created: roughtime.Now(),
 		}

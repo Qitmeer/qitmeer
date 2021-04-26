@@ -320,10 +320,10 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 	// Token Mint Tx
 	if token.IsTokenMint(tx) {
 		// TOKEN_MINT: input[0] token output[0] meer
-		update := balanceUpdate{
-			typ:         tokenMint,
-			tokenAmount: tx.TxIn[0].AmountIn,
-			meerAmount:  tx.TxOut[0].Amount.Value}
+		update := token.BalanceUpdate{
+			Typ:         token.TokenMint,
+			TokenAmount: tx.TxIn[0].AmountIn,
+			MeerAmount:  tx.TxOut[0].Amount.Value}
 
 		// check the legality of update values.
 		if err := checkMintUpdate(&update); err != nil {
@@ -333,10 +333,10 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 	} else if token.IsTokenUnMint(tx) {
 		// TOKEN_UNMINT: input[0] meer output[0] token
 		// the previous logic must make sure the legality of values, here only append.
-		update := balanceUpdate{
-			typ:         tokenUnMint,
-			meerAmount:  tx.TxIn[0].AmountIn.Value,
-			tokenAmount: tx.TxOut[0].Amount}
+		update := token.BalanceUpdate{
+			Typ:         token.TokenUnMint,
+			MeerAmount:  tx.TxIn[0].AmountIn.Value,
+			TokenAmount: tx.TxOut[0].Amount}
 		// check the legality of update values.
 		if err := checkUnMintUpdate(&update); err != nil {
 			return err
