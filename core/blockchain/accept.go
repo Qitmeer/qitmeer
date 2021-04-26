@@ -277,7 +277,7 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 		}
 		return nil
 	}
-	updates := []token.BalanceUpdate{}
+	updates := []token.ITokenUpdate{}
 	for _, tx := range block.Transactions() {
 		if tx.IsDuplicate {
 			log.Trace(fmt.Sprintf("updateTokenBalance skip duplicate tx %v", tx.Hash()))
@@ -286,20 +286,14 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 
 		if token.IsTokenMint(tx.Tx) {
 			// TOKEN_MINT: input[0] token output[0] meer
-			update := token.BalanceUpdate{
-				Typ:         token.TokenMint,
-				TokenAmount: tx.Tx.TxIn[0].AmountIn,
-				MeerAmount:  tx.Tx.TxOut[0].Amount.Value}
+			update := token.NewBalanceUpdate(types.TxTypeTokenMint, tx.Tx.TxOut[0].Amount.Value, tx.Tx.TxIn[0].AmountIn)
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
 		}
 		if token.IsTokenUnMint(tx.Tx) {
 			// TOKEN_UNMINT: input[0] meer output[0] token
 			// the previous logic must make sure the legality of values, here only append.
-			update := token.BalanceUpdate{
-				Typ:         token.TokenUnMint,
-				MeerAmount:  tx.Tx.TxIn[0].AmountIn.Value,
-				TokenAmount: tx.Tx.TxOut[0].Amount}
+			update := token.NewBalanceUpdate(types.TxTypeTokenUnmint, tx.Tx.TxIn[0].AmountIn.Value, tx.Tx.TxOut[0].Amount)
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
 		}
@@ -310,15 +304,15 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 	state := b.GetTokenState(b.TokenTipID)
 	if state == nil {
 		state = &token.TokenState{PrevStateID: 0, Updates: updates}
-		state.Balances.UpdatesBalance(updates)
+		state.Commit()
 	} else {
 		state.PrevStateID = b.TokenTipID
 		state.Updates = updates
-		state.Balances.UpdatesBalance(updates)
+		state.Commit()
 	}
 
 	err := b.db.Update(func(dbTx database.Tx) error {
-		return token.DBPutTokenState(dbTx, uint32(node.dagID), *state)
+		return token.DBPutTokenState(dbTx, uint32(node.dagID), state)
 	})
 	if err != nil {
 		return err

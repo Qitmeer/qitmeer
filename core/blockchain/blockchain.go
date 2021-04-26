@@ -1436,24 +1436,19 @@ func (b *BlockChain) GetTokenTipHash() *hash.Hash {
 }
 
 func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Hash) hash.Hash {
-	updates := []token.BalanceUpdate{}
+	updates := []token.ITokenUpdate{}
 	for _, tx := range txs {
 		if token.IsTokenMint(tx.Tx) {
 			// TOKEN_MINT: input[0] token output[0] meer
-			update := token.BalanceUpdate{
-				Typ:         token.TokenMint,
-				TokenAmount: tx.Tx.TxIn[0].AmountIn,
-				MeerAmount:  tx.Tx.TxOut[0].Amount.Value}
+			update := token.NewBalanceUpdate(types.TxTypeTokenMint, tx.Tx.TxOut[0].Amount.Value, tx.Tx.TxIn[0].AmountIn)
+
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
 		}
 		if token.IsTokenUnMint(tx.Tx) {
 			// TOKEN_UNMINT: input[0] meer output[0] token
 			// the previous logic must make sure the legality of values, here only append.
-			update := token.BalanceUpdate{
-				Typ:         token.TokenMint,
-				MeerAmount:  tx.Tx.TxIn[0].AmountIn.Value,
-				TokenAmount: tx.Tx.TxOut[0].Amount}
+			update := token.NewBalanceUpdate(types.TxTypeTokenUnmint, tx.Tx.TxIn[0].AmountIn.Value, tx.Tx.TxOut[0].Amount)
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
 		}
@@ -1491,7 +1486,7 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 	}
 	balanceUpdate := []*hash.Hash{}
 	for _, u := range updates {
-		balanceUpdate = append(balanceUpdate, u.Hash())
+		balanceUpdate = append(balanceUpdate, u.GetHash())
 	}
 	tsMerkle := merkle.BuildTokenBalanceMerkleTreeStore(balanceUpdate)
 

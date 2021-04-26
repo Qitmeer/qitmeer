@@ -18,10 +18,10 @@ func (tbs *TokenBalancesMap) UpdateBalance(update *BalanceUpdate) error {
 	tokenId := update.TokenAmount.Id
 	tb := (*tbs)[tokenId]
 	switch update.Typ {
-	case TokenMint:
+	case types.TxTypeTokenMint:
 		tb.Balance += update.TokenAmount.Value
 		tb.LockedMeer += update.MeerAmount
-	case TokenUnMint:
+	case types.TxTypeTokenUnmint:
 		if tb.Balance-update.TokenAmount.Value < 0 {
 			return fmt.Errorf("can't unmint token %v more than token balance %v", update.TokenAmount, tb)
 		}
