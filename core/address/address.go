@@ -19,7 +19,7 @@ import (
 func encodeAddress(hash160 []byte, netID [2]byte) string {
 	// Format is 2 bytes for a network and address class (i.e. P2PKH vs
 	// P2SH), 20 bytes for a RIPEMD160 hash, and 4 bytes of checksum.
-	res,_ := base58.QitmeerCheckEncode(hash160[:ripemd160.Size], netID[:])
+	res, _ := base58.QitmeerCheckEncode(hash160[:ripemd160.Size], netID[:])
 	return string(res)
 }
 
@@ -55,7 +55,7 @@ func encodePKAddress(serializedPK []byte, netID [2]byte, algo ecc.EcType) string
 	}
 
 	pubKeyBytes = append(pubKeyBytes, compressed...)
-	res,_ := base58.QitmeerCheckEncode(pubKeyBytes, netID[:])
+	res, _ := base58.QitmeerCheckEncode(pubKeyBytes, netID[:])
 	return string(res)
 }
 
@@ -190,6 +190,12 @@ type ScriptHashAddress struct {
 	net   *params.Params
 	hash  [ripemd160.Size]byte
 	netID [2]byte
+}
+
+// NewAddressScriptHash returns a new AddressScriptHash.
+func NewScriptHashAddress(serializedScript []byte, net *params.Params) (*ScriptHashAddress, error) {
+	scriptHash := hash.Hash160(serializedScript)
+	return newScriptHashAddressFromHash(scriptHash, net.ScriptHashAddrID)
 }
 
 // NewAddressScriptHashFromHash returns a new AddressScriptHash.  scriptHash

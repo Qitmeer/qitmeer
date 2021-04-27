@@ -64,7 +64,7 @@ func AssertBlockOrderAndHeight(t *testing.T, h *Harness, order, total, height ui
 }
 
 // Spend amount from the wallet of the test harness and return tx hash
-func Spend(t *testing.T, h *Harness, amt types.Amount) (*hash.Hash, types.Address) {
+func Spend(t *testing.T, h *Harness, amt types.Amount, preOutpoint *types.TxOutPoint, lockTime *int64) (*hash.Hash, types.Address) {
 	addr, err := h.Wallet.NewAddress()
 	if err != nil {
 		t.Fatalf("failed to generate new address for test wallet: %v", err)
@@ -77,7 +77,7 @@ func Spend(t *testing.T, h *Harness, amt types.Amount) (*hash.Hash, types.Addres
 	output := types.NewTxOutput(amt, addrScript)
 
 	feeRate := types.Amount{Value: 10, Id: amt.Id}
-	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate)
+	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, preOutpoint, lockTime)
 	if err != nil {
 		t.Fatalf("failed to pay the output: %v", err)
 	}
