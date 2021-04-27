@@ -1005,12 +1005,12 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 		if blockNode.GetStatus().KnownInvalid() {
 			return nil, fmt.Errorf("Vin is  illegal %s", blockRegion.Hash)
 		}
-		var sigScript []byte
+
+		pks := pkScript
 		if redeemTx.LockTime != 0 {
-			sigScript, err = txscript.SignatureScript(&redeemTx, i, pkScript, txscript.SigHashAll, privateKey, true)
-		} else {
-			sigScript, err = txscript.SignTxOutput(param, &redeemTx, i, pkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
+			pks = prevTx.TxOut[redeemTx.TxIn[i].PreviousOut.OutIndex].PkScript
 		}
+		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pks, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
 		if err != nil {
 			return nil, err
 		}
