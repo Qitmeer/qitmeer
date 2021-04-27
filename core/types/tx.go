@@ -206,7 +206,6 @@ func (t *Transaction) AddTxOut(to *TxOutput) {
 	t.TxOut = append(t.TxOut, to)
 }
 
-
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction. (full size)
 func (tx *Transaction) SerializeSize() int {
@@ -762,9 +761,8 @@ func (tx *Transaction) TxHashFull() hash.Hash {
 	return hash.DoubleHashH(tx.mustSerialize(TxSerializeFull))
 }
 
-
 func (tx *Transaction) IsCoinBase() bool {
-	return DetermineTxType(tx) == TxTypeCoinbase
+	return IsCoinBaseTx(tx)
 }
 
 // Tx defines a transaction that provides easier and more efficient manipulation

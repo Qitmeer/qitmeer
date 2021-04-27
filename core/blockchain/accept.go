@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/core/types/txtype"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"math"
@@ -296,6 +297,9 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 			update := token.NewBalanceUpdate(types.TxTypeTokenUnmint, tx.Tx.TxIn[0].AmountIn.Value, tx.Tx.TxOut[0].Amount)
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
+		}
+		if txtype.IsTokenNewTx(tx.Tx) {
+			updates = append(updates, token.NewTypeUpdateFromScript(tx.Tx.TxOut[0].PkScript))
 		}
 	}
 	if len(updates) <= 0 {

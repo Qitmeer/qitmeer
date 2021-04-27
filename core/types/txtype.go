@@ -14,38 +14,26 @@ import (
 type TxType int
 
 const (
-	TxTypeRegular         TxType = iota
-	TxTypeCoinbase        TxType = 0x1
-	TxTypeGenesisLock     TxType = 0x2   // the tx try to lock the genesis output to the stake pool
+	TxTypeRegular     TxType = iota
+	TxTypeCoinbase    TxType = 0x1
+	TxTypeGenesisLock TxType = 0x2 // the tx try to lock the genesis output to the stake pool
 
-	TxTypeStakebase       TxType = 0x10  // the special tx which vote for stake_purchase and reward stake holder from the stake_reserve
-	TyTypeStakeReserve    TxType = 0x11  // the tx reserve consensus-based value to a special stake_reserve address
-	TxTypeStakePurchase   TxType = 0x12  // the tx of stake holder who lock value into stake pool
-	TxTypeStakeDispose    TxType = 0x13  // the opposite tx of stake_purchase
+	TxTypeStakebase     TxType = 0x10 // the special tx which vote for stake_purchase and reward stake holder from the stake_reserve
+	TyTypeStakeReserve  TxType = 0x11 // the tx reserve consensus-based value to a special stake_reserve address
+	TxTypeStakePurchase TxType = 0x12 // the tx of stake holder who lock value into stake pool
+	TxTypeStakeDispose  TxType = 0x13 // the opposite tx of stake_purchase
 
-	TxTypeTokenRegulation TxType = 0x80  // token-regulation is reserved, not for using.
-	TxTypeTokenNew        TxType = 0x81  // new coin-id, owners, up-limit etc. the token is disabled after token-new.
-	TxTypeTokenRenew      TxType = 0x82  // update owners, up-limits etc. can't change coin-id. renew works only when the token is disabled.
-	TxTypeTokenValidate   TxType = 0x83  // enable the token.
-	TxTypeTokenInvalidate TxType = 0x84  // disable the token.
-	TxTypeTokenRevoke     TxType = 0x8f  // revoke the coin-id. token-revoke is reserved, not used at current stage.
+	TxTypeTokenRegulation TxType = 0x80 // token-regulation is reserved, not for using.
+	TxTypeTokenNew        TxType = 0x81 // new coin-id, owners, up-limit etc. the token is disabled after token-new.
+	TxTypeTokenRenew      TxType = 0x82 // update owners, up-limits etc. can't change coin-id. renew works only when the token is disabled.
+	TxTypeTokenValidate   TxType = 0x83 // enable the token.
+	TxTypeTokenInvalidate TxType = 0x84 // disable the token.
+	TxTypeTokenRevoke     TxType = 0x8f // revoke the coin-id. token-revoke is reserved, not used at current stage.
 
-	TxTypeTokenbase       TxType = 0x90  // token-base is reserved, not used at current stage.
-	TxTypeTokenMint       TxType = 0x91  // token owner mint token amount by locking MEER. (must validated token)
-	TxTypeTokenUnmint     TxType = 0x92  // token owner unmint token amount by releasing MEER. (must validated token)
+	TxTypeTokenbase   TxType = 0x90 // token-base is reserved, not used at current stage.
+	TxTypeTokenMint   TxType = 0x91 // token owner mint token amount by locking MEER. (must validated token)
+	TxTypeTokenUnmint TxType = 0x92 // token owner unmint token amount by releasing MEER. (must validated token)
 )
-
-// DetermineTxType determines the type of transaction
-func DetermineTxType(tx *Transaction) TxType {
-	if IsCoinBaseTx(tx) {
-		return TxTypeCoinbase
-	}
-	if IsGenesisLockTx(tx) {
-		return TxTypeGenesisLock
-	}
-	//TODO more txType
-	return TxTypeRegular
-}
 
 // IsCoinBaseTx determines whether or not a transaction is a coinbase.  A
 // coinbase is a special transaction created by miners that has no inputs.
@@ -101,6 +89,7 @@ func IsCoinBaseTx(tx *Transaction) bool {
 func CheckGenesisLock(tx *Transaction) error {
 	return fmt.Errorf("CheckGenesisLock is not supported yet")
 }
+
 // IsGenesisLockTx returns whether or not a transaction is a genesis_lock transaction.
 func IsGenesisLockTx(tx *Transaction) bool {
 	return CheckGenesisLock(tx) == nil
@@ -127,3 +116,13 @@ func IsGenesisLockTx(tx *Transaction) bool {
 //   4. if 3. is ok, token can be operated by token operator officially.
 //   5. token operator do token_mint, the consensus-based token amount assessable. (on chain)
 // --------------------------------------------------------------------------------
+
+func IsValidTxType(tt TxType) bool {
+	if tt == TxTypeRegular ||
+		tt == TxTypeCoinbase ||
+		tt == TxTypeGenesisLock ||
+		tt == TxTypeTokenNew {
+		return true
+	}
+	return false
+}

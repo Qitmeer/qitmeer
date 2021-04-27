@@ -145,3 +145,7 @@ func (tu *TypeUpdate) CheckSanity() error {
 	}
 	return nil
 }
+
+func NewTypeUpdateFromScript(script []byte) *TypeUpdate {
+	return &TypeUpdate{}
+}
