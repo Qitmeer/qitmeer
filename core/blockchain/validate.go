@@ -328,7 +328,11 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 		update := token.NewBalanceUpdate(types.TxTypeTokenUnmint, tx.TxIn[0].AmountIn.Value, tx.TxOut[0].Amount)
 		return update.CheckSanity()
 	} else if txtype.IsTokenNewTx(tx) {
-		return token.NewTypeUpdateFromScript(tx.TxOut[0].PkScript).CheckSanity()
+		update, err := token.NewTypeUpdateFromScript(tx.TxOut[0].PkScript)
+		if err != nil {
+			return err
+		}
+		return update.CheckSanity()
 	}
 
 	// Ensure the transaction amounts are in range.  Each transaction

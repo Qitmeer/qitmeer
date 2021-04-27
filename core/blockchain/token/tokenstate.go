@@ -6,8 +6,9 @@ package token
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/math"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
-	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
@@ -21,15 +22,6 @@ type TokenState struct {
 	Types       TokenTypesMap
 	Balances    TokenBalancesMap
 	Updates     []ITokenUpdate
-}
-
-func (ts *TokenState) GetTokenBalances() []json.TokenBalance {
-	tbs := []json.TokenBalance{}
-	for k, v := range ts.Balances {
-		tb := json.TokenBalance{CoinId: uint16(k), CoinName: k.Name(), Balance: v.Balance, LockedMeer: v.LockedMeer}
-		tbs = append(tbs, tb)
-	}
-	return tbs
 }
 
 // Serialize function will serialize the token state into byte slice
@@ -59,8 +51,8 @@ func (ts *TokenState) Serialize() ([]byte, error) {
 		offset += serialization.PutVLQ(serialized[offset:], uint64(b.LockedMeer))
 	}
 
+	// updates
 	offset += serialization.PutVLQ(serialized[offset:], uint64(len(ts.Updates)))
-
 	for _, v := range ts.Updates {
 		uSerialized, err := v.Serialize()
 		if err != nil {
@@ -68,6 +60,20 @@ func (ts *TokenState) Serialize() ([]byte, error) {
 		}
 		serialized = append(serialized, uSerialized...)
 	}
+
+	// types
+	serializeSize = serialization.SerializeSizeVLQ(uint64(len(ts.Types)))
+	typesLen := make([]byte, serializeSize)
+	offset = serialization.PutVLQ(typesLen[:], uint64(len(ts.Types)))
+	serialized = append(serialized, typesLen...)
+	for _, v := range ts.Types {
+		uSerialized, err := v.Serialize()
+		if err != nil {
+			return nil, err
+		}
+		serialized = append(serialized, uSerialized...)
+	}
+
 	return serialized, nil
 }
 
@@ -137,14 +143,37 @@ func (ts *TokenState) Deserialize(data []byte) (int, error) {
 			updates = append(updates, update)
 		}
 	}
+
+	//types
+	tys := TokenTypesMap{}
+	numOfTypes, bytesRead := serialization.DeserializeVLQ(data[offset:])
+	if bytesRead == 0 {
+		return offset, fmt.Errorf("unexpected end of data while reading number of types")
+	}
+	offset += bytesRead
+
+	if numOfTypes > 0 {
+		for i := uint64(0); i < numOfTypes; i++ {
+			tt := TokenType{}
+			bytesRead, err := tt.Deserialize(data[offset:])
+			if err != nil {
+				return offset, err
+			}
+			offset += bytesRead
+			tys[tt.Id] = tt
+		}
+	}
+
+	//
 	ts.PrevStateID = uint32(prevStateID)
 	ts.Balances = balances
 	ts.Updates = updates
+	ts.Types = tys
 
 	return offset, nil
 }
 
-func (ts *TokenState) Commit() error {
+func (ts *TokenState) Update() error {
 	for _, tu := range ts.Updates {
 		if bu, ok := tu.(*BalanceUpdate); ok {
 			err := ts.Balances.Update(bu)
@@ -157,6 +186,18 @@ func (ts *TokenState) Commit() error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+func (ts *TokenState) Commit() error {
+	types.CoinNameMap = map[types.CoinID]string{}
+	types.CoinIDList = []types.CoinID{}
+	for _, v := range ts.Types {
+		if v.Enable {
+			types.CoinIDList = append(types.CoinIDList, v.Id)
+			types.CoinNameMap[v.Id] = v.Name
 		}
 	}
 	return nil
@@ -182,9 +223,6 @@ func DBPutTokenState(dbTx database.Tx, bid uint32, ts *TokenState) error {
 // the key is the input block hash.
 func DBFetchTokenState(dbTx database.Tx, bid uint32) (*TokenState, error) {
 	// if it is genesis hash, return empty tokenState directly
-	if bid == 0 {
-		return &TokenState{}, nil
-	}
 	// Fetch record from the token state database by block hash
 	meta := dbTx.Metadata()
 	bucket := meta.Bucket(dbnamespace.TokenBucketName)
@@ -208,4 +246,29 @@ func DBRemoveTokenState(dbTx database.Tx, id uint32) error {
 
 	key := serializedID[:]
 	return bucket.Delete(key)
+}
+
+// TODO: You can customize the initial value
+func BuildGenesisTokenState() *TokenState {
+	tys := TokenTypesMap{}
+	tys[types.MEERID] = TokenType{
+		Id:      types.MEERID,
+		Owners:  []byte("Qitmeer"),
+		UpLimit: math.MaxUint64,
+		Enable:  true,
+		Name:    "MEER",
+	}
+	tys[types.QITID] = TokenType{
+		Id:      types.QITID,
+		Owners:  []byte("Qitmeer"),
+		UpLimit: math.MaxUint64,
+		Enable:  true,
+		Name:    "QIT",
+	}
+	return &TokenState{
+		PrevStateID: uint32(blockdag.MaxId),
+		Types:       tys,
+		Balances:    TokenBalancesMap{},
+		Updates:     []ITokenUpdate{},
+	}
 }

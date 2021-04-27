@@ -439,10 +439,29 @@ func (api *PublicBlockAPI) GetFees(h hash.Hash) (interface{}, error) {
 	return api.bm.chain.GetFees(&h), nil
 }
 
-func (api *PublicBlockAPI) GetTokenBalance() (interface{}, error) {
+func (api *PublicBlockAPI) GetTokenInfo() (interface{}, error) {
 	state := api.bm.chain.GetTokenState(api.bm.chain.TokenTipID)
 	if state == nil {
 		return nil, nil
 	}
-	return state.GetTokenBalances(), nil
+
+	tbs := []json.TokenState{}
+	for _, v := range state.Types {
+		ts := json.TokenState{}
+		ts.CoinId = uint16(v.Id)
+		ts.CoinName = v.Name
+		ts.Owners = hex.EncodeToString(v.Owners)
+		if v.Id != types.MEERID {
+			ts.UpLimit = v.UpLimit
+			ts.Enable = v.Enable
+			for k, vb := range state.Balances {
+				if k == v.Id {
+					ts.Balance = vb.Balance
+					ts.LockedMeer = vb.LockedMeer
+				}
+			}
+		}
+		tbs = append(tbs, ts)
+	}
+	return tbs, nil
 }

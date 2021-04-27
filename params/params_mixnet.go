@@ -137,15 +137,5 @@ var MixNetParams = Params{
 			Type:  types.EqualFeeType,
 			Value: 0,
 		},
-		&types.CoinConfig{
-			Id:    types.METID,
-			Type:  types.FloorFeeType,
-			Value: types.AtomsPerCoin,
-		},
-		&types.CoinConfig{
-			Id:    types.TERID,
-			Type:  types.EqualFeeType,
-			Value: types.AtomsPerCoin,
-		},
 	},
 }

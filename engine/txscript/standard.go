@@ -54,7 +54,8 @@ type Script interface {
 
 // The registry where the add-on script been registered
 var scriptRegistry = []Script{
-	NonStandardTy: &NonStandardScript{},
+	NonStandardTy:        &NonStandardScript{},
+	TokenNewPubKeyHashTy: &TokenNewScript{},
 }
 
 func fromRegisteredScript(pops []ParsedOpcode) Script {

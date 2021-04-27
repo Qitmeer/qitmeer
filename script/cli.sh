@@ -406,8 +406,8 @@ function time_info(){
   get_result "$data"
 }
 
-function get_tokenbalance(){
-  local data='{"jsonrpc":"2.0","method":"getTokenBalance","params":[],"id":null}'
+function get_tokeninfo(){
+  local data='{"jsonrpc":"2.0","method":"getTokenInfo","params":[],"id":null}'
   get_result "$data"
 }
 
@@ -497,7 +497,7 @@ function usage(){
   echo "  tips"
   echo "  coinbase <hash>"
   echo "  fees <hash>"
-  echo "  tokenbalance"
+  echo "  tokeninfo"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txv2 <id>"
@@ -838,9 +838,9 @@ elif [ "$1" == "iscurrent" ]; then
 elif [ "$1" == "tips" ]; then
   shift
   tips | jq .
-elif [ "$1" == "tokenbalance" ]; then
+elif [ "$1" == "tokeninfo" ]; then
   shift
-  get_tokenbalance | jq .
+  get_tokeninfo | jq .
 elif [ "$1" == "coinbase" ]; then
   shift
   get_coinbase $@

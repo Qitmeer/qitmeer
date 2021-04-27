@@ -36,7 +36,7 @@ func TestTokenStateSerialization(t *testing.T) {
 					types.QITID: TokenBalance{Balance: 200 * 1e8, LockedMeer: 100 * 1e8}},
 				Updates: []ITokenUpdate{NewBalanceUpdate(types.TxTypeTokenMint, 100*1e8, types.Amount{Value: 200 * 1e8, Id: types.QITID})},
 			},
-			bytes: bytesFromStr("000101c9bfde8f00a49faec700018011a49faec70001c9bfde8f00"),
+			bytes: bytesFromStr("000101c9bfde8f00a49faec700018011a49faec70001c9bfde8f0000"),
 			ok:    true,
 		},
 	}

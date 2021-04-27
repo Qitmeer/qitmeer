@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/serialization"
@@ -211,8 +212,8 @@ func (b *BlockChain) createChainState() error {
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
 	b.stateSnapshot = newBestState(node.GetHash(), node.bits, blockSize, numTxns,
-		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState(), nil)
-
+		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState(), node.GetHash())
+	b.TokenTipID = 0
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.
 	err := b.db.Update(func(dbTx database.Tx) error {
@@ -250,6 +251,19 @@ func (b *BlockChain) createChainState() error {
 			return err
 		}
 
+		// Create the bucket which house the token state
+		if _, err := meta.CreateBucket(dbnamespace.TokenBucketName); err != nil {
+			return err
+		}
+		initTS := token.BuildGenesisTokenState()
+		err = initTS.Commit()
+		if err != nil {
+			return err
+		}
+		err = token.DBPutTokenState(dbTx, uint32(node.dagID), initTS)
+		if err != nil {
+			return err
+		}
 		// Store the current best chain state into the database.
 		err = dbPutBestState(dbTx, b.stateSnapshot, node.workSum)
 		if err != nil {
@@ -269,11 +283,6 @@ func (b *BlockChain) createChainState() error {
 
 		// Store the genesis block into the database.
 		if err := dbTx.StoreBlock(genesisBlock); err != nil {
-			return err
-		}
-
-		// Create the bucket which house the token state
-		if _, err := meta.CreateBucket(dbnamespace.TokenBucketName); err != nil {
 			return err
 		}
 		return nil

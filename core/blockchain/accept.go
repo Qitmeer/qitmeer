@@ -9,6 +9,7 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/txtype"
 	"github.com/Qitmeer/qitmeer/database"
@@ -299,7 +300,11 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 			updates = append(updates, update)
 		}
 		if txtype.IsTokenNewTx(tx.Tx) {
-			updates = append(updates, token.NewTypeUpdateFromScript(tx.Tx.TxOut[0].PkScript))
+			update, err := token.NewTypeUpdateFromScript(tx.Tx.TxOut[0].PkScript)
+			if err != nil {
+				return err
+			}
+			updates = append(updates, update)
 		}
 	}
 	if len(updates) <= 0 {
@@ -307,13 +312,13 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 	}
 	state := b.GetTokenState(b.TokenTipID)
 	if state == nil {
-		state = &token.TokenState{PrevStateID: 0, Updates: updates}
+		state = &token.TokenState{PrevStateID: uint32(blockdag.MaxId), Updates: updates}
 	} else {
 		state.PrevStateID = b.TokenTipID
 		state.Updates = updates
 	}
 
-	err := state.Commit()
+	err := state.Update()
 	if err != nil {
 		return err
 	}
@@ -326,13 +331,10 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 	}
 
 	b.TokenTipID = uint32(node.dagID)
-	return nil
+	return state.Commit()
 }
 
 func (b *BlockChain) GetTokenState(bid uint32) *token.TokenState {
-	if bid == 0 {
-		return nil
-	}
 	var state *token.TokenState
 	err := b.db.View(func(dbTx database.Tx) error {
 		ts, err := token.DBFetchTokenState(dbTx, bid)
