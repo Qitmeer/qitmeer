@@ -38,12 +38,12 @@ func (tu *TokenUpdate) Deserialize(data []byte) (int, error) {
 	return bytesRead, nil
 }
 
-func NewTokenUpdate(typ types.TxType) ITokenUpdate {
-	switch typ {
+func NewTokenUpdate(tu *TokenUpdate) ITokenUpdate {
+	switch tu.GetType() {
 	case types.TxTypeTokenMint, types.TxTypeTokenUnmint:
-		return &BalanceUpdate{}
+		return &BalanceUpdate{TokenUpdate: tu}
 	case types.TxTypeTokenNew, types.TxTypeTokenRenew, types.TxTypeTokenValidate, types.TxTypeTokenInvalidate:
-		return &TypeUpdate{}
+		return &TypeUpdate{TokenUpdate: tu}
 	}
 	return nil
 }

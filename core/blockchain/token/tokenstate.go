@@ -128,7 +128,7 @@ func (ts *TokenState) Deserialize(data []byte) (int, error) {
 			if err != nil {
 				return offset, err
 			}
-			update := NewTokenUpdate(tu.GetType())
+			update := NewTokenUpdate(&tu)
 			bytesRead, err = update.Deserialize(data[offset:])
 			if err != nil {
 				return offset, err
