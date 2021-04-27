@@ -14,7 +14,7 @@ type TokenBalance struct {
 
 type TokenBalancesMap map[types.CoinID]TokenBalance
 
-func (tbs *TokenBalancesMap) UpdateBalance(update *BalanceUpdate) error {
+func (tbs *TokenBalancesMap) Update(update *BalanceUpdate) error {
 	tokenId := update.TokenAmount.Id
 	tb := (*tbs)[tokenId]
 	switch update.Typ {
@@ -37,9 +37,9 @@ func (tbs *TokenBalancesMap) UpdateBalance(update *BalanceUpdate) error {
 	return nil
 }
 
-func (tbs *TokenBalancesMap) UpdatesBalance(updates []BalanceUpdate) error {
+func (tbs *TokenBalancesMap) Updates(updates []BalanceUpdate) error {
 	for _, update := range updates {
-		err := tbs.UpdateBalance(&update)
+		err := tbs.Update(&update)
 		if err != nil {
 			return err
 		}
@@ -62,4 +62,37 @@ func (tb *TokenBalancesMap) Copy() *TokenBalancesMap {
 		newTb[k] = v
 	}
 	return &newTb
+}
+
+func CheckUnMintUpdate(update *BalanceUpdate) error {
+	if update.Typ != types.TxTypeTokenUnmint {
+		return fmt.Errorf("checkUnMintUpdate : wrong update type %v", update.Typ)
+	}
+	if err := checkUpdateCommon(update); err != nil {
+		return err
+	}
+	return nil
+}
+
+func CheckMintUpdate(update *BalanceUpdate) error {
+	if update.Typ != types.TxTypeTokenMint {
+		return fmt.Errorf("checkUnMintUpdate : wrong update type %v", update.Typ)
+	}
+	if err := checkUpdateCommon(update); err != nil {
+		return err
+	}
+	return nil
+}
+
+func checkUpdateCommon(update *BalanceUpdate) error {
+	if !types.IsKnownCoinID(update.TokenAmount.Id) {
+		return fmt.Errorf("checkUpdateCommon : unknown token id %v", update.TokenAmount.Id.Name())
+	}
+	if update.TokenAmount.Value <= 0 {
+		return fmt.Errorf("checkUpdateCommon : wrong token amount : %v", update.TokenAmount.Value)
+	}
+	if update.MeerAmount <= 0 {
+		return fmt.Errorf("checkUpdateCommon : wrong meer amount : %v", update.MeerAmount)
+	}
+	return nil
 }

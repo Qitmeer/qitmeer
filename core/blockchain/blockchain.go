@@ -832,8 +832,10 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 			return true, err
 		}
 		if !node.GetStatus().KnownInvalid() {
-			node.Valid(b)
-			b.updateTokenState(node, block, false)
+			err := b.updateTokenState(node, block, false)
+			if err == nil {
+				node.Valid(b)
+			}
 		}
 		// TODO, validating previous block
 		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
@@ -1160,8 +1162,10 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 			continue
 		}
 		if !n.GetStatus().KnownInvalid() {
-			n.Valid(b)
-			b.updateTokenState(n, block, false)
+			err := b.updateTokenState(n, block, false)
+			if err != nil {
+				n.Valid(b)
+			}
 		}
 	}
 

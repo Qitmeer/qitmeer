@@ -304,21 +304,24 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 	state := b.GetTokenState(b.TokenTipID)
 	if state == nil {
 		state = &token.TokenState{PrevStateID: 0, Updates: updates}
-		state.Commit()
 	} else {
 		state.PrevStateID = b.TokenTipID
 		state.Updates = updates
-		state.Commit()
 	}
 
-	err := b.db.Update(func(dbTx database.Tx) error {
+	err := state.Commit()
+	if err != nil {
+		return err
+	}
+
+	err = b.db.Update(func(dbTx database.Tx) error {
 		return token.DBPutTokenState(dbTx, uint32(node.dagID), state)
 	})
 	if err != nil {
 		return err
 	}
 
-	b.TokenTipID = state.PrevStateID
+	b.TokenTipID = uint32(node.dagID)
 	return nil
 }
 

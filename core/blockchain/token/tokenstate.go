@@ -144,12 +144,22 @@ func (ts *TokenState) Deserialize(data []byte) (int, error) {
 	return offset, nil
 }
 
-func (ts *TokenState) Commit() {
+func (ts *TokenState) Commit() error {
 	for _, tu := range ts.Updates {
 		if bu, ok := tu.(*BalanceUpdate); ok {
-			ts.Balances.UpdateBalance(bu)
+			err := ts.Balances.Update(bu)
+			if err != nil {
+				return err
+			}
+		}
+		if tu, ok := tu.(*TypeUpdate); ok {
+			err := ts.Types.Update(tu)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 // dbPutTokenState put a token balance record into the token state database.
@@ -198,37 +208,4 @@ func DBRemoveTokenState(dbTx database.Tx, id uint32) error {
 
 	key := serializedID[:]
 	return bucket.Delete(key)
-}
-
-func CheckUnMintUpdate(update *BalanceUpdate) error {
-	if update.Typ != types.TxTypeTokenUnmint {
-		return fmt.Errorf("checkUnMintUpdate : wrong update type %v", update.Typ)
-	}
-	if err := checkUpdateCommon(update); err != nil {
-		return err
-	}
-	return nil
-}
-
-func CheckMintUpdate(update *BalanceUpdate) error {
-	if update.Typ != types.TxTypeTokenMint {
-		return fmt.Errorf("checkUnMintUpdate : wrong update type %v", update.Typ)
-	}
-	if err := checkUpdateCommon(update); err != nil {
-		return err
-	}
-	return nil
-}
-
-func checkUpdateCommon(update *BalanceUpdate) error {
-	if !types.IsKnownCoinID(update.TokenAmount.Id) {
-		return fmt.Errorf("checkUpdateCommon : unknown token id %v", update.TokenAmount.Id.Name())
-	}
-	if update.TokenAmount.Value <= 0 {
-		return fmt.Errorf("checkUpdateCommon : wrong token amount : %v", update.TokenAmount.Value)
-	}
-	if update.MeerAmount <= 0 {
-		return fmt.Errorf("checkUpdateCommon : wrong meer amount : %v", update.MeerAmount)
-	}
-	return nil
 }

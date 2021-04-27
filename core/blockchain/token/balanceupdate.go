@@ -20,12 +20,6 @@ type BalanceUpdate struct {
 }
 
 func (bu *BalanceUpdate) Serialize() ([]byte, error) {
-	if bu.Typ != types.TxTypeTokenMint && bu.Typ != types.TxTypeTokenUnmint {
-		return nil, fmt.Errorf("invalid token balance update type %v", bu.Typ)
-	}
-	if bu.MeerAmount < 0 || bu.TokenAmount.Value < 0 || !types.IsKnownCoinID(bu.TokenAmount.Id) {
-		return nil, fmt.Errorf("invalid token balance update %v", bu)
-	}
 	//
 	tuSerialized, err := bu.TokenUpdate.Serialize()
 	if err != nil {
@@ -95,6 +89,19 @@ func (bu *BalanceUpdate) CacheHash() *hash.Hash {
 	h := hash.DoubleHashH(bs)
 	bu.cacheHash = &h
 	return bu.cacheHash
+}
+
+func (bu *BalanceUpdate) CheckSanity() error {
+	if bu.Typ != types.TxTypeTokenMint && bu.Typ != types.TxTypeTokenUnmint {
+		return fmt.Errorf("invalid token balance update type %v", bu.Typ)
+	}
+	if bu.TokenAmount.Value <= 0 {
+		return fmt.Errorf("invalid token balance update : wrong token amount : %v", bu.TokenAmount.Value)
+	}
+	if bu.MeerAmount <= 0 {
+		return fmt.Errorf("invalid token balance update : wrong meer amount : %v", bu.MeerAmount)
+	}
+	return nil
 }
 
 func NewBalanceUpdate(typ types.TxType, meerAmount int64, tokenAmount types.Amount) *BalanceUpdate {

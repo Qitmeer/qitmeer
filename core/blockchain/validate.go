@@ -321,20 +321,12 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 	if token.IsTokenMint(tx) {
 		// TOKEN_MINT: input[0] token output[0] meer
 		update := token.NewBalanceUpdate(types.TxTypeTokenMint, tx.TxOut[0].Amount.Value, tx.TxIn[0].AmountIn)
-		// check the legality of update values.
-		if err := token.CheckMintUpdate(update); err != nil {
-			return err
-		}
-		return nil
+		return update.CheckSanity()
 	} else if token.IsTokenUnMint(tx) {
 		// TOKEN_UNMINT: input[0] meer output[0] token
 		// the previous logic must make sure the legality of values, here only append.
 		update := token.NewBalanceUpdate(types.TxTypeTokenUnmint, tx.TxIn[0].AmountIn.Value, tx.TxOut[0].Amount)
-		// check the legality of update values.
-		if err := token.CheckUnMintUpdate(update); err != nil {
-			return err
-		}
-		return nil
+		return update.CheckSanity()
 	}
 
 	// Ensure the transaction amounts are in range.  Each transaction

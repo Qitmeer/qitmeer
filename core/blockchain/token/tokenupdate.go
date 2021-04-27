@@ -12,6 +12,7 @@ type ITokenUpdate interface {
 	GetHash() *hash.Hash
 	Serialize() ([]byte, error)
 	Deserialize(data []byte) (int, error)
+	CheckSanity() error
 }
 
 type TokenUpdate struct {
