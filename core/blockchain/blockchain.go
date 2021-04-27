@@ -345,7 +345,6 @@ func New(config *Config) (*BlockChain, error) {
 	if err := b.initChainState(config.Interrupt); err != nil {
 		return nil, err
 	}
-
 	// Initialize and catch up all of the currently active optional indexes
 	// as needed.
 	if config.IndexManager != nil {
@@ -556,10 +555,16 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns,
 			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(),
 			b.bd.GetGraphState(), &state.tokenTipHash)
-
 		return nil
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	ts := b.GetTokenState(b.TokenTipID)
+	if ts == nil {
+		return fmt.Errorf("token state error")
+	}
+	return ts.Commit()
 }
 
 // HaveBlock returns whether or not the chain instance has the block represented
