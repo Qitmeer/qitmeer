@@ -20,6 +20,8 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/client"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -353,6 +355,14 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		// skip the utxo if not in known spent output coin id
 		if _, ok := totalOutAmt[utxo.value.Id]; !ok {
 			continue
+		}
+		if txscript.GetScriptClass(0, utxo.pkScript) == txscript.CLTVPubKeyHashTy {
+			scripts, _ := txscript.DisasmString(utxo.pkScript)
+			arr := strings.Split(scripts, " ")
+			needHeight, _ := strconv.ParseInt(arr[0], 16, 32)
+			if tx.LockTime < uint32(needHeight) {
+				continue
+			}
 		}
 		if preOutpoint != nil {
 			if *preOutpoint != txOutPoint {

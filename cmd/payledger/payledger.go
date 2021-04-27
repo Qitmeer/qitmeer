@@ -1,3 +1,4 @@
+//go:generate go run . --usegenesismapdata --savefile
 package main
 
 import (
@@ -17,6 +18,8 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	_ "github.com/Qitmeer/qitmeer/services/common"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -35,7 +38,10 @@ func main() {
 	}
 	if cfg.UseGenesisMapData {
 		// build from tx data
-		buildLedgerByTxData(cfg)
+		InitNet("privnet", cfg)
+		InitNet("testnet", cfg)
+		InitNet("mixnet", cfg)
+		InitNet("mainnet", cfg)
 		return
 	}
 	fmt.Println(cfg.DebugAddress)
@@ -292,33 +298,47 @@ func buildLedger(node INode, config *Config) error {
 	return nil
 }
 
-func buildLedgerByTxData(config *Config) error {
-	genesisLedger := map[string]*ledger.TokenPayoutReGen{}
+func buildLedgerByTxData(config *Config, genesisMapData map[string]map[uint16]float64) error {
+	type key struct {
+		Address string
+		CoinId  types.CoinID
+	}
+	genesisLedger := map[key]*ledger.TokenPayoutReGen{}
 	genAmount := int64(0)
 	keys := make([]string, 0)
-	for addrStr, val := range GenesisMapData {
-		val *= 1e8
-		if _, ok := genesisLedger[addrStr]; !ok {
-			keys = append(keys, addrStr)
-			tp := ledger.TokenPayout{Address: addrStr, PkScript: []byte{}, Amount: types.Amount{Value: 0, Id: types.MEERID}}
-			reTp := ledger.TokenPayoutReGen{tp, types.Amount{Value: int64(val), Id: types.MEERID}}
-			genesisLedger[addrStr] = &reTp
-		} else {
-			genesisLedger[addrStr].GenAmount.Value += int64(val)
+	for addrStr, amount := range genesisMapData {
+		for coinid, val := range amount {
+			val *= 1e8
+			k := key{
+				Address: addrStr,
+				CoinId:  types.CoinID(coinid),
+			}
+			if _, ok := genesisLedger[k]; !ok {
+				keys = append(keys, addrStr+fmt.Sprintf(":%d", coinid))
+				tp := ledger.TokenPayout{Address: addrStr, PkScript: []byte{}, Amount: types.Amount{Value: 0, Id: types.CoinID(coinid)}}
+				reTp := ledger.TokenPayoutReGen{tp, types.Amount{Value: int64(val), Id: types.CoinID(coinid)}}
+				genesisLedger[k] = &reTp
+			} else {
+				genesisLedger[k].GenAmount.Value += int64(val)
+			}
+			if genesisLedger[k].GenAmount.Value <= 0 {
+				return errors.New(addrStr + " amount is not right")
+			}
+			genAmount += int64(val)
 		}
-		if genesisLedger[addrStr].GenAmount.Value <= 0 {
-			return errors.New(addrStr + " amount is not right")
-		}
-		genAmount += int64(val)
 	}
 	sort.Strings(keys)
 	seed := ""
 	for _, k := range keys {
-		seed += fmt.Sprintf("%s:%d,", k, genesisLedger[k].GenAmount.Value)
+		arr := strings.Split(k, ":")
+		val, _ := strconv.Atoi(arr[1])
+		j := key{
+			Address: arr[0],
+			CoinId:  types.CoinID(val),
+		}
+		seed += fmt.Sprintf("%s:%d:%d,", k, genesisLedger[j].GenAmount.Id, genesisLedger[j].GenAmount.Value)
 	}
 	seedHash := hash.HashB([]byte(seed))
-
-	params := params.ActiveNetParams.Params
 
 	if len(genesisLedger) == 0 {
 		log.Info("No payouts need to deal with.")
@@ -329,6 +349,12 @@ func buildLedgerByTxData(config *Config) error {
 	payKeys := make([]int, 0)
 	for _, v := range genesisLedger {
 		for {
+			if v.GenAmount.Id != types.MEERID {
+				payList = append(payList, *v)
+				payKeys = append(payKeys, i)
+				i++
+				break
+			}
 			if v.GenAmount.Value > config.GenesisAmountUnit {
 				payList = append(payList, ledger.TokenPayoutReGen{
 					Payout: v.Payout,
@@ -349,14 +375,8 @@ func buildLedgerByTxData(config *Config) error {
 		}
 	}
 	payKeys = GenesisShuffle(payKeys, seedHash)
-	for _, v := range payList {
-		fmt.Printf("Address:%s  GenAmount:%15d ", v.Payout.Address, v.GenAmount)
-	}
-	fmt.Printf("-----------------\n")
-	fmt.Printf("Total Ledger:%5d  GenAmount:%15d \n", len(genesisLedger), genAmount)
-
 	if config.SavePayoutsFile {
-		return savePayoutsFileBySliceShuffle(params, payList, payKeys, config)
+		return savePayoutsFileBySliceShuffle(params.ActiveNetParams.Params, payList, payKeys, config)
 	}
 	return nil
 }

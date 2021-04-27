@@ -92,7 +92,7 @@ func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger ledger.P
 	}()
 
 	funName := fmt.Sprintf("%s%s", strings.ToUpper(string(netName[0])), netName[1:])
-	fileContent := fmt.Sprintf("package ledger\n\nfunc init%s() {\n", funName)
+	fileContent := fmt.Sprintf("package ledger\n\nimport (\n\t. \"github.com/Qitmeer/qitmeer/core/types\"\n)\n\nfunc init%s() {\n", funName)
 
 	if config.UnlocksPerHeight > 0 {
 		fileContent += processLockingGenesisPayouts(genesisLedger, sortKeys, int64(config.UnlocksPerHeight), int64(config.UnlocksPerHeightStep))
@@ -103,8 +103,6 @@ func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger ledger.P
 	fileContent += "}"
 
 	f.WriteString(fileContent)
-
-	log.Info(fmt.Sprintf("Finish save %s", fileName))
 
 	return nil
 }
@@ -157,12 +155,20 @@ func processLockingPayouts(genesisLedger ledger.PayoutList2, lockNum int64) stri
 
 func processLockingGenesisPayouts(genesisLedger ledger.PayoutList2, sortKeys []int, lockNum int64, heightStep int64) string {
 	fileContent := ""
-
 	curMHeight := int64(0)
 	curLockedNum := int64(0)
 	for i := 0; i < len(sortKeys); i++ {
 		v := genesisLedger[sortKeys[i]]
-		if v.Payout.Amount.Id != types.MEERID {
+		if v.GenAmount.Id != types.MEERID {
+			addr, err := address.DecodeAddress(v.Payout.Address)
+			if err != nil {
+				return err.Error()
+			}
+			script, err := txscript.PayToAddrScript(addr)
+			if err != nil {
+				return err.Error()
+			}
+			fileContent += fmt.Sprintf("	addPayout2(\"%s\",Amount{Value: %d, Id: CoinIDList[%d]},\"%s\")\n", v.Payout.Address, v.GenAmount.Value, v.GenAmount.Id, hex.EncodeToString(script))
 			continue
 		}
 
@@ -184,7 +190,7 @@ func processLockingGenesisPayouts(genesisLedger ledger.PayoutList2, sortKeys []i
 			if err != nil {
 				return err.Error()
 			}
-			fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", v.Payout.Address, amount, hex.EncodeToString(script))
+			fileContent += fmt.Sprintf("	addPayout2(\"%s\",Amount{Value: %d, Id: CoinIDList[%d]},\"%s\")\n", v.Payout.Address, amount, v.GenAmount.Id, hex.EncodeToString(script))
 		}
 
 	}
