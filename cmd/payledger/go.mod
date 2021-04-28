@@ -1,4 +1,4 @@
-module github.com/Qitmeer/qitmeer/cmd/payledger
+module payledger
 
 go 1.12
 
