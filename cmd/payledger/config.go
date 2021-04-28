@@ -53,30 +53,23 @@ type Config struct {
 	Last            bool   `long:"last"  description:"Show ledger by last building data."`
 	BlocksInfo      bool   `long:"blocksinfo"  description:"Show all blocks information."`
 
-	UseGenesisMapData    bool  `long:"usegenesismapdata"  description:"Use Genesis map data."`
-	UnlocksPerHeight     int   `long:"unlocksperheight"  description:"How many will be unlocked at each DAG main height."`
-	UnlocksPerHeightStep int   `long:"unlocksperheightstep"  description:"How many height will lock a tx."`
-	GenesisAmountUnit    int64 `long:"genesisamountunit"  description:"the unit amount of equally divided."`
+	UnlocksPerHeight int `long:"unlocksperheight"  description:"How many will be unlocked at each DAG main height."`
 }
 
 func LoadConfig() (*Config, []string, error) {
 	// Default config.
 	cfg := Config{
-		HomeDir:              defaultHomeDir,
-		DataDir:              defaultDataDir,
-		DbType:               defaultDbType,
-		DAGType:              defaultDAGType,
-		SrcDataDir:           defaultSrcDataDir,
-		SavePayoutsFile:      false,
-		DisableBar:           false,
-		DebugAddrUTXO:        false,
-		DebugAddrValid:       false,
-		Last:                 false,
-		BlocksInfo:           false,
-		UnlocksPerHeight:     0,
-		UseGenesisMapData:    false,
-		GenesisAmountUnit:    10 * 1e8,
-		UnlocksPerHeightStep: 1,
+		HomeDir:         defaultHomeDir,
+		DataDir:         defaultDataDir,
+		DbType:          defaultDbType,
+		DAGType:         defaultDAGType,
+		SrcDataDir:      defaultSrcDataDir,
+		SavePayoutsFile: false,
+		DisableBar:      false,
+		DebugAddrUTXO:   false,
+		DebugAddrValid:  false,
+		Last:            false,
+		BlocksInfo:      false,
 	}
 
 	preCfg := cfg
@@ -126,8 +119,6 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.TestNet = preCfg.TestNet
 	cfg.PrivNet = preCfg.PrivNet
 	cfg.UnlocksPerHeight = preCfg.UnlocksPerHeight
-	cfg.UseGenesisMapData = preCfg.UseGenesisMapData
-	cfg.GenesisAmountUnit = preCfg.GenesisAmountUnit
 
 	if len(preCfg.SrcDataDir) > 0 {
 		cfg.SrcDataDir = preCfg.SrcDataDir
