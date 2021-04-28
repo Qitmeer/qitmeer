@@ -190,7 +190,6 @@ func LoadConfig() (*Config, []string, error) {
 		cfg.ShowEndPoints == 0 &&
 		len(cfg.DebugAddress) == 0 &&
 		!cfg.Last &&
-		!cfg.UseGenesisMapData &&
 		!cfg.BlocksInfo {
 		err := fmt.Errorf("No Command")
 		fmt.Fprintln(os.Stderr, err)
