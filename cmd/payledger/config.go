@@ -59,17 +59,18 @@ type Config struct {
 func LoadConfig() (*Config, []string, error) {
 	// Default config.
 	cfg := Config{
-		HomeDir:         defaultHomeDir,
-		DataDir:         defaultDataDir,
-		DbType:          defaultDbType,
-		DAGType:         defaultDAGType,
-		SrcDataDir:      defaultSrcDataDir,
-		SavePayoutsFile: false,
-		DisableBar:      false,
-		DebugAddrUTXO:   false,
-		DebugAddrValid:  false,
-		Last:            false,
-		BlocksInfo:      false,
+		HomeDir:          defaultHomeDir,
+		DataDir:          defaultDataDir,
+		DbType:           defaultDbType,
+		DAGType:          defaultDAGType,
+		SrcDataDir:       defaultSrcDataDir,
+		SavePayoutsFile:  false,
+		DisableBar:       false,
+		DebugAddrUTXO:    false,
+		DebugAddrValid:   false,
+		Last:             false,
+		BlocksInfo:       false,
+		UnlocksPerHeight: 0,
 	}
 
 	preCfg := cfg
