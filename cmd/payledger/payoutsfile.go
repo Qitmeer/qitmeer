@@ -62,51 +62,6 @@ func savePayoutsFile(params *params.Params, genesisLedger ledger.PayoutList2, co
 	return nil
 }
 
-func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger ledger.PayoutList2, sortKeys []int, config *Config) error {
-	if len(genesisLedger) == 0 {
-		log.Info("No payouts need to deal with.")
-		return nil
-	}
-	netName := ""
-	switch params.Net {
-	case protocol.MainNet:
-		netName = "main"
-	case protocol.TestNet:
-		netName = "test"
-	case protocol.PrivNet:
-		netName = "priv"
-	case protocol.MixNet:
-		netName = "mix"
-	}
-
-	fileName := filepath.Join(defaultPayoutDirPath, netName+defaultSuffixFilename)
-
-	f, err := os.Create(fileName)
-
-	if err != nil {
-		log.Error(fmt.Sprintf("Save error:%s  %s", fileName, err))
-		return err
-	}
-	defer func() {
-		err = f.Close()
-	}()
-
-	funName := fmt.Sprintf("%s%s", strings.ToUpper(string(netName[0])), netName[1:])
-	fileContent := fmt.Sprintf("package ledger\n\nimport (\n\t. \"github.com/Qitmeer/qitmeer/core/types\"\n)\n\nfunc init%s() {\n", funName)
-
-	if config.UnlocksPerHeight > 0 {
-		fileContent += processLockingGenesisPayouts(genesisLedger, sortKeys, int64(config.UnlocksPerHeight), int64(config.UnlocksPerHeightStep))
-	} else {
-		fileContent += processNormalPayouts(genesisLedger)
-	}
-
-	fileContent += "}"
-
-	f.WriteString(fileContent)
-
-	return nil
-}
-
 func processNormalPayouts(genesisLedger ledger.PayoutList2) string {
 	fileContent := ""
 	for _, v := range genesisLedger {
@@ -147,50 +102,6 @@ func processLockingPayouts(genesisLedger ledger.PayoutList2, lockNum int64) stri
 				return err.Error()
 			}
 			fileContent += fmt.Sprintf("	addPayout(\"%s\",%d,\"%s\")\n", v.Payout.Address, amount, hex.EncodeToString(script))
-		}
-
-	}
-	return fileContent
-}
-
-func processLockingGenesisPayouts(genesisLedger ledger.PayoutList2, sortKeys []int, lockNum int64, heightStep int64) string {
-	fileContent := ""
-	curMHeight := int64(0)
-	curLockedNum := int64(0)
-	for i := 0; i < len(sortKeys); i++ {
-		v := genesisLedger[sortKeys[i]]
-		if v.GenAmount.Id != types.MEERID {
-			addr, err := address.DecodeAddress(v.Payout.Address)
-			if err != nil {
-				return err.Error()
-			}
-			script, err := txscript.PayToAddrScript(addr)
-			if err != nil {
-				return err.Error()
-			}
-			fileContent += fmt.Sprintf("	addPayout2(\"%s\",Amount{Value: %d, Id: CoinIDList[%d]},\"%s\")\n", v.Payout.Address, v.GenAmount.Value, v.GenAmount.Id, hex.EncodeToString(script))
-			continue
-		}
-
-		for v.GenAmount.Value > 0 {
-			needLockNum := lockNum - curLockedNum
-
-			amount := int64(0)
-			if v.GenAmount.Value >= needLockNum {
-				v.GenAmount.Value -= needLockNum
-				amount = needLockNum
-				curMHeight += heightStep
-				curLockedNum = 0
-			} else {
-				amount = v.GenAmount.Value
-				curLockedNum += amount
-				v.GenAmount.Value = 0
-			}
-			script, err := PayToCltvAddrScriptWithMainHeight(v.Payout.Address, curMHeight)
-			if err != nil {
-				return err.Error()
-			}
-			fileContent += fmt.Sprintf("	addPayout2(\"%s\",Amount{Value: %d, Id: CoinIDList[%d]},\"%s\")\n", v.Payout.Address, amount, v.GenAmount.Id, hex.EncodeToString(script))
 		}
 
 	}

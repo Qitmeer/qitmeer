@@ -1,9 +1,6 @@
-//go:generate go run . --usegenesismapdata --savefile
 package main
 
 import (
-	"encoding/binary"
-	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
@@ -18,8 +15,6 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	_ "github.com/Qitmeer/qitmeer/services/common"
 	"sort"
-	"strconv"
-	"strings"
 )
 
 const (
@@ -34,14 +29,6 @@ func main() {
 	cfg, _, err := LoadConfig()
 	if err != nil {
 		log.Error(err.Error())
-		return
-	}
-	if cfg.UseGenesisMapData {
-		// build from tx data
-		InitNet("privnet", cfg)
-		InitNet("testnet", cfg)
-		InitNet("mixnet", cfg)
-		InitNet("mainnet", cfg)
 		return
 	}
 	fmt.Println(cfg.DebugAddress)
@@ -298,89 +285,6 @@ func buildLedger(node INode, config *Config) error {
 	return nil
 }
 
-func buildLedgerByTxData(config *Config, genesisMapData map[string]map[uint16]float64) error {
-	type key struct {
-		Address string
-		CoinId  types.CoinID
-	}
-	genesisLedger := map[key]*ledger.TokenPayoutReGen{}
-	genAmount := int64(0)
-	keys := make([]string, 0)
-	for addrStr, amount := range genesisMapData {
-		for coinid, val := range amount {
-			val *= 1e8
-			k := key{
-				Address: addrStr,
-				CoinId:  types.CoinID(coinid),
-			}
-			if _, ok := genesisLedger[k]; !ok {
-				keys = append(keys, addrStr+fmt.Sprintf(":%d", coinid))
-				tp := ledger.TokenPayout{Address: addrStr, PkScript: []byte{}, Amount: types.Amount{Value: 0, Id: types.CoinID(coinid)}}
-				reTp := ledger.TokenPayoutReGen{tp, types.Amount{Value: int64(val), Id: types.CoinID(coinid)}}
-				genesisLedger[k] = &reTp
-			} else {
-				genesisLedger[k].GenAmount.Value += int64(val)
-			}
-			if genesisLedger[k].GenAmount.Value <= 0 {
-				return errors.New(addrStr + " amount is not right")
-			}
-			genAmount += int64(val)
-		}
-	}
-	sort.Strings(keys)
-	seed := ""
-	for _, k := range keys {
-		arr := strings.Split(k, ":")
-		val, _ := strconv.Atoi(arr[1])
-		j := key{
-			Address: arr[0],
-			CoinId:  types.CoinID(val),
-		}
-		seed += fmt.Sprintf("%s:%d:%d,", k, genesisLedger[j].GenAmount.Id, genesisLedger[j].GenAmount.Value)
-	}
-	seedHash := hash.HashB([]byte(seed))
-
-	if len(genesisLedger) == 0 {
-		log.Info("No payouts need to deal with.")
-		return nil
-	}
-	payList := make(ledger.PayoutList2, 0)
-	i := 0
-	payKeys := make([]int, 0)
-	for _, v := range genesisLedger {
-		for {
-			if v.GenAmount.Id != types.MEERID {
-				payList = append(payList, *v)
-				payKeys = append(payKeys, i)
-				i++
-				break
-			}
-			if v.GenAmount.Value > config.GenesisAmountUnit {
-				payList = append(payList, ledger.TokenPayoutReGen{
-					Payout: v.Payout,
-					GenAmount: types.Amount{
-						Id:    v.GenAmount.Id,
-						Value: config.GenesisAmountUnit,
-					},
-				})
-				payKeys = append(payKeys, i)
-				i++
-				v.GenAmount.Value -= config.GenesisAmountUnit
-			} else {
-				payList = append(payList, *v)
-				payKeys = append(payKeys, i)
-				i++
-				break
-			}
-		}
-	}
-	payKeys = GenesisShuffle(payKeys, seedHash)
-	if config.SavePayoutsFile {
-		return savePayoutsFileBySliceShuffle(params.ActiveNetParams.Params, payList, payKeys, config)
-	}
-	return nil
-}
-
 func blockInfo(cfg *Config) bool {
 	if cfg.BlocksInfo {
 		node := &BINode{}
@@ -409,25 +313,4 @@ func deserializeVLQ(serialized []byte) (uint64, int) {
 	}
 
 	return n, size
-}
-
-func GenesisShuffle(array []int, seed []byte) []int {
-	for i := len(array) - 1; i > 0; i-- {
-		p := RandShuffle(int64(i), seed)
-		a := array[i]
-		array[i] = array[p]
-		array[p] = a
-	}
-	return array
-}
-
-func RandShuffle(max int64, seed []byte) int64 {
-	if max > 24 {
-		max = max % 24
-	}
-	if max <= 0 {
-		max = 1
-	}
-	seedNum := binary.LittleEndian.Uint64(seed[max : max+8])
-	return int64(seedNum % uint64(max))
 }

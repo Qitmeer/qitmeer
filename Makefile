@@ -34,7 +34,6 @@ qitmeer: qitmeer-build
 	@echo "Run \"$(GOBIN)/qitmeer\" to launch."
 
 qitmeer-build:
-	@cd cmd/payledger && go generate && cd ../../
     ifeq ($(ZMQ),TRUE)
 		@echo "Enalbe ZMQ"
 		@go build -o $(GOBIN)/qitmeer $(GOFLAGS_DEV) -tags=zmq "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
