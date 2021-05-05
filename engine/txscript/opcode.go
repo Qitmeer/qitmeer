@@ -3047,7 +3047,6 @@ func opcodeCheckSigAltVerify(op *ParsedOpcode, vm *Engine) error {
 }
 
 func opcodeCheckTokenVerify(op *ParsedOpcode, vm *Engine) error {
-
 	return nil
 }
 

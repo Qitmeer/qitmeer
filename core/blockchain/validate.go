@@ -16,7 +16,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
-	"github.com/Qitmeer/qitmeer/core/types/txtype"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
 	"math"
@@ -153,7 +152,7 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		// A block must not have stake transactions in the regular
 		// transaction tree.
 		msgTx := tx.Transaction()
-		if !types.IsValidTxType(txtype.DetermineTxType(msgTx)) {
+		if !types.IsValidTxType(types.DetermineTxType(msgTx)) {
 			errStr := fmt.Sprintf("block contains a irregular "+
 				"transaction in the regular transaction tree at "+
 				"index %d", i)
@@ -327,8 +326,8 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 		// the previous logic must make sure the legality of values, here only append.
 		update := token.NewBalanceUpdate(types.TxTypeTokenUnmint, tx.TxIn[0].AmountIn.Value, tx.TxOut[0].Amount)
 		return update.CheckSanity()
-	} else if txtype.IsTokenNewTx(tx) {
-		update, err := token.NewTypeUpdateFromScript(tx.TxOut[0].PkScript)
+	} else if types.IsTokenTx(tx) {
+		update, err := token.NewTypeUpdateFromScript(tx)
 		if err != nil {
 			return err
 		}
@@ -916,7 +915,7 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 
 	totalFees := types.AmountMap{}
 	for idx, tx := range transactions {
-		if tx.IsDuplicate && !tx.Tx.IsCoinBase() {
+		if tx.IsDuplicate && !tx.Tx.IsCoinBase() || types.IsTokenTx(tx.Tx) {
 			continue
 		}
 		txFee, err := b.CheckTransactionInputs(tx, utxoView)

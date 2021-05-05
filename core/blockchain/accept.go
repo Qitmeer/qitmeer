@@ -11,7 +11,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/core/types/txtype"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"math"
@@ -299,8 +298,8 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
 		}
-		if txtype.IsTokenNewTx(tx.Tx) {
-			update, err := token.NewTypeUpdateFromScript(tx.Tx.TxOut[0].PkScript)
+		if types.IsTokenTx(tx.Tx) {
+			update, err := token.NewTypeUpdateFromScript(tx.Tx)
 			if err != nil {
 				return err
 			}

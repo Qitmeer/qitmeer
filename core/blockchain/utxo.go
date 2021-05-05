@@ -288,7 +288,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 	txInFlight := map[hash.Hash]int{}
 	transactions := block.Transactions()
 	for i, tx := range transactions {
-		if tx.IsDuplicate {
+		if tx.IsDuplicate || types.IsTokenTx(tx.Tx) {
 			continue
 		}
 		txInFlight[*tx.Hash()] = i
@@ -299,7 +299,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 	// what is already known (in-flight).
 	txNeededSet := make(map[types.TxOutPoint]struct{})
 	for i, tx := range transactions[1:] {
-		if tx.IsDuplicate {
+		if tx.IsDuplicate || types.IsTokenTx(tx.Tx) {
 			continue
 		}
 		for _, txIn := range tx.Transaction().TxIn {

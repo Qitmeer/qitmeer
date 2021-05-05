@@ -175,7 +175,7 @@ func (api *PublicTxAPI) DecodeRawTransaction(hexTx string) (interface{}, error) 
 		{Key: "locktime", Val: mtx.LockTime},
 		{Key: "timestamp", Val: mtx.Timestamp.Format(time.RFC3339)},
 		{Key: "vin", Val: marshal.MarshJsonVin(&mtx)},
-		{Key: "vout", Val: marshal.MarshJsonVout(&mtx, nil, api.txManager.bm.ChainParams())},
+		{Key: "vout", Val: marshal.MarshJsonVout(&mtx, nil, params.ActiveNetParams.Params)},
 	}
 	return txReply, nil
 }
@@ -933,7 +933,7 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 	privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
 	h160 := hash.Hash160(pubKey.SerializeCompressed())
 
-	param := api.txManager.bm.ChainParams()
+	param := params.ActiveNetParams.Params
 	addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
 	if err != nil {
 		return nil, err
@@ -962,63 +962,74 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 		return privateKey, true, nil // compressed is true
 	}
 	//
-	txIndex := api.txManager.txIndex
-	if txIndex == nil {
-		return nil, fmt.Errorf("the transaction index " +
-			"must be enabled to query the blockchain (specify --txindex in configuration)")
-	}
-
-	for i := 0; i < len(redeemTx.TxIn); i++ {
-		txHash := redeemTx.TxIn[i].PreviousOut.Hash
-		// Look up the location of the transaction.
-		blockRegion, err := txIndex.TxBlockRegion(txHash)
-		if err != nil {
-			return nil, errors.New("Failed to retrieve transaction location")
+	if types.IsTokenTx(&redeemTx) {
+		if len(param.TokenAdminPkScript) <= 0 {
+			return nil, fmt.Errorf("No token admin pk script.\n")
 		}
-		if blockRegion == nil {
-			return nil, rpc.RpcNoTxInfoError(&txHash)
-		}
-
-		// Load the raw transaction bytes from the database.
-		var txBytes []byte
-		err = api.txManager.db.View(func(dbTx database.Tx) error {
-			var err error
-			txBytes, err = dbTx.FetchBlockRegion(blockRegion)
-			return err
-		})
-		if err != nil {
-			return nil, rpc.RpcNoTxInfoError(&txHash)
-		}
-		// Deserialize the transaction.
-		var prevTx types.Transaction
-		err = prevTx.Deserialize(bytes.NewReader(txBytes))
+		sigScript, err := txscript.SignTxOutput(param, &redeemTx, 0, param.TokenAdminPkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
 		if err != nil {
 			return nil, err
 		}
-
-		if redeemTx.TxIn[i].PreviousOut.OutIndex >= uint32(len(prevTx.TxOut)) {
-			return nil, fmt.Errorf("index:%d", redeemTx.TxIn[i].PreviousOut.OutIndex)
+		redeemTx.TxIn[0].SignScript = sigScript
+	} else {
+		txIndex := api.txManager.txIndex
+		if txIndex == nil {
+			return nil, fmt.Errorf("the transaction index " +
+				"must be enabled to query the blockchain (specify --txindex in configuration)")
 		}
 
-		//
-		blockNode := api.txManager.bm.GetChain().BlockIndex().LookupNode(blockRegion.Hash)
-		if blockNode == nil {
-			return nil, fmt.Errorf("Can't find block %s", blockRegion.Hash)
-		}
+		for i := 0; i < len(redeemTx.TxIn); i++ {
+			txHash := redeemTx.TxIn[i].PreviousOut.Hash
+			// Look up the location of the transaction.
+			blockRegion, err := txIndex.TxBlockRegion(txHash)
+			if err != nil {
+				return nil, errors.New("Failed to retrieve transaction location")
+			}
+			if blockRegion == nil {
+				return nil, rpc.RpcNoTxInfoError(&txHash)
+			}
 
-		if blockNode.GetStatus().KnownInvalid() {
-			return nil, fmt.Errorf("Vin is  illegal %s", blockRegion.Hash)
-		}
+			// Load the raw transaction bytes from the database.
+			var txBytes []byte
+			err = api.txManager.db.View(func(dbTx database.Tx) error {
+				var err error
+				txBytes, err = dbTx.FetchBlockRegion(blockRegion)
+				return err
+			})
+			if err != nil {
+				return nil, rpc.RpcNoTxInfoError(&txHash)
+			}
+			// Deserialize the transaction.
+			var prevTx types.Transaction
+			err = prevTx.Deserialize(bytes.NewReader(txBytes))
+			if err != nil {
+				return nil, err
+			}
 
-		pks := pkScript
-		if redeemTx.LockTime != 0 {
-			pks = prevTx.TxOut[redeemTx.TxIn[i].PreviousOut.OutIndex].PkScript
+			if redeemTx.TxIn[i].PreviousOut.OutIndex >= uint32(len(prevTx.TxOut)) {
+				return nil, fmt.Errorf("index:%d", redeemTx.TxIn[i].PreviousOut.OutIndex)
+			}
+
+			//
+			blockNode := api.txManager.bm.GetChain().BlockIndex().LookupNode(blockRegion.Hash)
+			if blockNode == nil {
+				return nil, fmt.Errorf("Can't find block %s", blockRegion.Hash)
+			}
+
+			if blockNode.GetStatus().KnownInvalid() {
+				return nil, fmt.Errorf("Vin is  illegal %s", blockRegion.Hash)
+			}
+
+			pks := pkScript
+			if redeemTx.LockTime != 0 {
+				pks = prevTx.TxOut[redeemTx.TxIn[i].PreviousOut.OutIndex].PkScript
+			}
+			sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pks, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
+			if err != nil {
+				return nil, err
+			}
+			redeemTx.TxIn[i].SignScript = sigScript
 		}
-		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pks, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
-		if err != nil {
-			return nil, err
-		}
-		redeemTx.TxIn[i].SignScript = sigScript
 	}
 
 	mtxHex, err := marshal.MessageToHex(&redeemTx)
@@ -1032,20 +1043,21 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 
 func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, coinName *string, owners *string, uplimit *uint64) (interface{}, error) {
 	txt := types.TxTypeTokenRegulation
-	if strings.HasPrefix(txtype, "TxTypeToken") {
+	if !strings.HasPrefix(txtype, "0x") {
 		switch txtype {
-		case "TxTypeTokenNew":
+		case "new":
 			txt = types.TxTypeTokenNew
-		case "TxTypeTokenRenew":
+		case "renew":
 			txt = types.TxTypeTokenRenew
-		case "TxTypeTokenValidate":
+		case "validate":
 			txt = types.TxTypeTokenValidate
-		case "TxTypeTokenInvalidate":
+		case "invalidate":
 			txt = types.TxTypeTokenInvalidate
 		default:
 			return nil, fmt.Errorf("No support %s\n", txtype)
 		}
 	} else {
+		txtype = txtype[2:]
 		txtI, err := strconv.ParseInt(txtype, 16, 32)
 		if err != nil {
 			return nil, err
@@ -1070,7 +1082,7 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 		if !address.IsForNetwork(addr, params.ActiveNetParams.Params) {
 			return nil, rpc.RpcAddressKeyError("Wrong network: %v", addr)
 		}
-		upLi := uint64(math.MaxUint64)
+		upLi := uint64(math.MaxInt64)
 		if uplimit != nil {
 			upLi = *uplimit
 		}
@@ -1079,6 +1091,9 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 		}
 		if len(*coinName) > token.MaxTokenNameLength {
 			return nil, fmt.Errorf("Coin name is too long:%d  (max:%d)", len(*coinName), token.MaxTokenNameLength)
+		}
+		if types.CoinID(coinId) <= types.QitmeerReservedID {
+			return nil, fmt.Errorf("Coin ID (%d) is qitmeer reserved. It has to be greater than %d for token type update.\n", coinId, types.QitmeerReservedID)
 		}
 		pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), upLi, *coinName)
 		if err != nil {

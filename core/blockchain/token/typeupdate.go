@@ -67,6 +67,9 @@ func (tu *TypeUpdate) CacheHash() *hash.Hash {
 
 func (tu *TypeUpdate) CheckSanity() error {
 	if tu.GetType() == types.TxTypeTokenNew {
+		if tu.Tt.Id <= types.QitmeerReservedID {
+			return fmt.Errorf("Coin ID (%d) is qitmeer reserved. It has to be greater than %d for token type update.\n", tu.Tt.Id, types.QitmeerReservedID)
+		}
 		class, _, _, err := txscript.ExtractPkScriptAddrs(tu.Tt.Owners, params.ActiveNetParams.Params)
 		if err != nil || class == txscript.NonStandardTy {
 			return err
@@ -86,8 +89,8 @@ func (tu *TypeUpdate) CheckSanity() error {
 	return nil
 }
 
-func NewTypeUpdateFromScript(pkscript []byte) (*TypeUpdate, error) {
-	script, err := txscript.ParsePkScript(pkscript)
+func NewTypeUpdateFromScript(tx *types.Transaction) (*TypeUpdate, error) {
+	script, err := txscript.ParsePkScript(tx.TxOut[0].PkScript)
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
@@ -95,15 +98,15 @@ func NewTypeUpdateFromScript(pkscript []byte) (*TypeUpdate, error) {
 
 	if tnScript, ok := script.(*txscript.TokenNewScript); ok {
 		return &TypeUpdate{
-			TokenUpdate: &TokenUpdate{Typ: types.TxTypeTokenNew},
+			TokenUpdate: &TokenUpdate{Typ: types.DetermineTxType(tx)},
 			Tt: TokenType{
 				Id:      tnScript.GetCoinId(),
-				Owners:  pkscript,
+				Owners:  tx.TxOut[0].PkScript,
 				UpLimit: tnScript.GetUpLimit(),
 				Enable:  false,
 				Name:    tnScript.GetName(),
 			},
 		}, nil
 	}
-	return nil, fmt.Errorf("Not supported:%v\n", pkscript)
+	return nil, fmt.Errorf("Not supported:%v\n", tx.TxOut[0].PkScript)
 }

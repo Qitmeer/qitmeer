@@ -35,6 +35,31 @@ const (
 	TxTypeTokenUnmint TxType = 0x92 // token owner unmint token amount by releasing MEER. (must validated token)
 )
 
+// DetermineTxType determines the type of transaction
+func DetermineTxType(tx *Transaction) TxType {
+	if IsCoinBaseTx(tx) {
+		return TxTypeCoinbase
+	}
+	if IsGenesisLockTx(tx) {
+		return TxTypeGenesisLock
+	}
+	if IsTokenNewTx(tx) {
+		return TxTypeTokenNew
+	}
+	if IsTokenRenewTx(tx) {
+		return TxTypeTokenRenew
+	}
+	if IsTokenValidateTx(tx) {
+		return TxTypeTokenValidate
+	}
+	if IsTokenInvalidateTx(tx) {
+		return TxTypeTokenInvalidate
+	}
+
+	//TODO more txType
+	return TxTypeRegular
+}
+
 // IsCoinBaseTx determines whether or not a transaction is a coinbase.  A
 // coinbase is a special transaction created by miners that has no inputs.
 // This is represented in the block chain by a transaction with a single input
@@ -117,11 +142,61 @@ func IsGenesisLockTx(tx *Transaction) bool {
 //   5. token operator do token_mint, the consensus-based token amount assessable. (on chain)
 // --------------------------------------------------------------------------------
 
+func IsTokenNewTx(tx *Transaction) bool {
+	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+		return false
+	}
+	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
+		return false
+	}
+	return TxType(tx.TxIn[0].Sequence) == TxTypeTokenNew
+}
+
+func IsTokenRenewTx(tx *Transaction) bool {
+	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+		return false
+	}
+	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
+		return false
+	}
+	return TxType(tx.TxIn[0].Sequence) == TxTypeTokenRenew
+}
+
+func IsTokenValidateTx(tx *Transaction) bool {
+	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+		return false
+	}
+	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
+		return false
+	}
+	return TxType(tx.TxIn[0].Sequence) == TxTypeTokenValidate
+}
+
+func IsTokenInvalidateTx(tx *Transaction) bool {
+	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+		return false
+	}
+	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
+		return false
+	}
+	return TxType(tx.TxIn[0].Sequence) == TxTypeTokenInvalidate
+}
+
+func IsTokenTx(tx *Transaction) bool {
+	return IsTokenNewTx(tx) ||
+		IsTokenRenewTx(tx) ||
+		IsTokenValidateTx(tx) ||
+		IsTokenInvalidateTx(tx)
+}
+
 func IsValidTxType(tt TxType) bool {
 	if tt == TxTypeRegular ||
 		tt == TxTypeCoinbase ||
 		tt == TxTypeGenesisLock ||
-		tt == TxTypeTokenNew {
+		tt == TxTypeTokenNew ||
+		tt == TxTypeTokenRenew ||
+		tt == TxTypeTokenValidate ||
+		tt == TxTypeTokenInvalidate {
 		return true
 	}
 	return false
