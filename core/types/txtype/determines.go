@@ -26,7 +26,7 @@ func IsTokenNewTx(tx *types.Transaction) bool {
 		return false
 	}
 	scriptClass := txscript.GetScriptClass(txscript.DefaultScriptVersion, tx.TxOut[0].PkScript)
-	if scriptClass != txscript.TokenNewPubKeyHashTy {
+	if scriptClass != txscript.TokenPubKeyHashTy {
 		return false
 	}
 	return true

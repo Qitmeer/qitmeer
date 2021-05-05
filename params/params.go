@@ -238,6 +238,10 @@ type Params struct {
 	// TODO revisit the org-pkscript design
 	OrganizationPkScript []byte
 
+	// TokenAdminPkScript is the output script for token
+	// It should ideally be a P2SH multisignature address.
+	TokenAdminPkScript []byte
+
 	// DAG
 	BlockDelay    float64
 	BlockRate     float64

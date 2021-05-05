@@ -12,15 +12,15 @@ type TokenNewScript struct {
 }
 
 func (s *TokenNewScript) Name() string {
-	return scriptClassToName[TokenNewPubKeyHashTy]
+	return scriptClassToName[TokenPubKeyHashTy]
 }
 
 func (s *TokenNewScript) GetClass() ScriptClass {
-	return TokenNewPubKeyHashTy
+	return TokenPubKeyHashTy
 }
 
 func (s *TokenNewScript) Match(pops []ParsedOpcode) bool {
-	return isTokenNewPubkeyHash(pops)
+	return isTokenPubkeyHash(pops)
 }
 
 func (s *TokenNewScript) SetOpcode(pops []ParsedOpcode) error {

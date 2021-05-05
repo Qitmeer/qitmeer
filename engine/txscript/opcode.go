@@ -248,7 +248,7 @@ const (
 	OP_TOKEN_RELEASE       = 0xc6 // 198 Qitmeer token release
 	OP_MEER_CHANGE         = 0xc7 // 199 Qitmeer meer change
 	OP_TOKEN_CHANGE        = 0xc8 // 200 Qitmeer token change
-	OP_TOKEN_NEW           = 0xc9 // 201 Qitmeer token new
+	OP_TOKEN               = 0xc9 // 201 Qitmeer token manage operation
 	OP_UNKNOWN202          = 0xca // 202
 	OP_UNKNOWN203          = 0xcb // 203
 	OP_UNKNOWN204          = 0xcc // 204
@@ -542,7 +542,7 @@ var opcodeArray = [256]Opcode{
 	OP_TOKEN_RELEASE: {OP_TOKEN_RELEASE, "OP_TOKEN_RELEASE", 1, opcodeNop},
 	OP_MEER_CHANGE:   {OP_MEER_CHANGE, "OP_MEER_CHANGE", 1, opcodeNop},
 	OP_TOKEN_CHANGE:  {OP_TOKEN_CHANGE, "OP_TOKEN_CHANGE", 1, opcodeNop},
-	OP_TOKEN_NEW:     {OP_TOKEN_NEW, "OP_TOKEN_NEW", 1, opcodeCheckTokenNewVerify},
+	OP_TOKEN:         {OP_TOKEN, "OP_TOKEN", 1, opcodeCheckTokenVerify},
 	// Undefined opcodes.
 
 	OP_UNKNOWN202: {OP_UNKNOWN202, "OP_UNKNOWN202", 1, opcodeNop},
@@ -3046,7 +3046,7 @@ func opcodeCheckSigAltVerify(op *ParsedOpcode, vm *Engine) error {
 	return err
 }
 
-func opcodeCheckTokenNewVerify(op *ParsedOpcode, vm *Engine) error {
+func opcodeCheckTokenVerify(op *ParsedOpcode, vm *Engine) error {
 
 	return nil
 }

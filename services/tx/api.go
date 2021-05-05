@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/marshal"
+	"github.com/Qitmeer/qitmeer/common/math"
 	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -19,6 +21,8 @@ import (
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/services/mempool"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -1018,6 +1022,72 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 	}
 
 	mtxHex, err := marshal.MessageToHex(&redeemTx)
+	if err != nil {
+		return nil, err
+	}
+	return mtxHex, nil
+}
+
+// token
+
+func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, coinName *string, owners *string, uplimit *uint64) (interface{}, error) {
+	txt := types.TxTypeTokenRegulation
+	if strings.HasPrefix(txtype, "TxTypeToken") {
+		switch txtype {
+		case "TxTypeTokenNew":
+			txt = types.TxTypeTokenNew
+		case "TxTypeTokenRenew":
+			txt = types.TxTypeTokenRenew
+		case "TxTypeTokenValidate":
+			txt = types.TxTypeTokenValidate
+		case "TxTypeTokenInvalidate":
+			txt = types.TxTypeTokenInvalidate
+		default:
+			return nil, fmt.Errorf("No support %s\n", txtype)
+		}
+	} else {
+		txtI, err := strconv.ParseInt(txtype, 16, 32)
+		if err != nil {
+			return nil, err
+		}
+		txt = types.TxType(txtI)
+	}
+
+	mtx := types.NewTransaction()
+	mtx.AddTxIn(&types.TxInput{
+		PreviousOut: *types.NewOutPoint(&hash.ZeroHash, types.TokenPrevOutIndex),
+		Sequence:    uint32(txt),
+	})
+
+	if txt == types.TxTypeTokenNew {
+		if owners == nil {
+			return nil, fmt.Errorf("No owners address\n")
+		}
+		addr, err := address.DecodeAddress(*owners)
+		if err != nil {
+			return nil, rpc.RpcAddressKeyError("Could not decode address: %v", err)
+		}
+		if !address.IsForNetwork(addr, params.ActiveNetParams.Params) {
+			return nil, rpc.RpcAddressKeyError("Wrong network: %v", addr)
+		}
+		upLi := uint64(math.MaxUint64)
+		if uplimit != nil {
+			upLi = *uplimit
+		}
+		if coinName == nil {
+			return nil, fmt.Errorf("No coin name\n")
+		}
+		if len(*coinName) > token.MaxTokenNameLength {
+			return nil, fmt.Errorf("Coin name is too long:%d  (max:%d)", len(*coinName), token.MaxTokenNameLength)
+		}
+		pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), upLi, *coinName)
+		if err != nil {
+			return nil, err
+		}
+		mtx.AddTxOut(&types.TxOutput{PkScript: pkScript})
+	}
+
+	mtxHex, err := marshal.MessageToHex(mtx)
 	if err != nil {
 		return nil, err
 	}
