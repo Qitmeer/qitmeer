@@ -190,6 +190,7 @@ mempoolLoop:
 			txSigOpCosts = append(txSigOpCosts, tokenSOC)
 			tokenSigOpCost += tokenSOC
 			tokenSize += uint32(tx.Transaction().SerializeSize())
+			blockUtxos.AddTokenTxOut()
 			continue
 		}
 		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight,

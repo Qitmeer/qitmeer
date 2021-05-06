@@ -240,6 +240,10 @@ func checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint,
 			}
 			txValItems = append(txValItems, txVI)
 		}
+
+		if types.IsTokenTx(tx.Tx) {
+			utxoView.AddTokenTxOut()
+		}
 	}
 
 	// Validate all of the inputs.

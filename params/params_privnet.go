@@ -135,7 +135,7 @@ var PrivNetParams = Params{
 	//OrganizationPkScript:  hexMustDecode("76a91408ff3106060bf8d7d61a25d8108ec977698729f788ac"),
 
 	// Because it's only for testing, it comes from testwallet.go
-	TokenAdminPkScript: hexMustDecode("000000c97576a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
+	TokenAdminPkScript: hexMustDecode("000000c9756d76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
 
 	CoinbaseMaturity: 16,
 }

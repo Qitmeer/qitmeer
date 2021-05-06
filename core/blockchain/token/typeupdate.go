@@ -71,7 +71,7 @@ func (tu *TypeUpdate) CheckSanity() error {
 			return fmt.Errorf("Coin ID (%d) is qitmeer reserved. It has to be greater than %d for token type update.\n", tu.Tt.Id, types.QitmeerReservedID)
 		}
 		class, _, _, err := txscript.ExtractPkScriptAddrs(tu.Tt.Owners, params.ActiveNetParams.Params)
-		if err != nil || class == txscript.NonStandardTy {
+		if err != nil || class != txscript.TokenPubKeyHashTy {
 			return err
 		}
 		if tu.Tt.UpLimit == 0 {

@@ -53,7 +53,7 @@ type Script interface {
 }
 
 // The registry where the add-on script been registered
-var scriptRegistry = []Script{
+var scriptRegistry = map[ScriptClass]Script{
 	NonStandardTy:     &NonStandardScript{},
 	TokenPubKeyHashTy: &TokenNewScript{},
 }
@@ -75,7 +75,7 @@ func RegisterScript(sin Script) error {
 			return fmt.Errorf("%v has been registred as script %v ", sin, s)
 		}
 	}
-	scriptRegistry = append(scriptRegistry, sin)
+	scriptRegistry[sin.GetClass()] = sin
 	return nil
 }
 
@@ -426,14 +426,15 @@ func isCLTVPubkeyHash(pops []ParsedOpcode) bool {
 // isTokenPubkeyHash returns true if the script passed is a pay-to-token-pubkey-hash
 // transaction, false otherwise.
 func isTokenPubkeyHash(pops []ParsedOpcode) bool {
-	return len(pops) == 10 &&
+	return len(pops) == 11 &&
 		pops[3].opcode.value == OP_TOKEN &&
 		pops[4].opcode.value == OP_DROP &&
-		pops[5].opcode.value == OP_DUP &&
-		pops[6].opcode.value == OP_HASH160 &&
-		pops[7].opcode.value == OP_DATA_20 &&
-		pops[8].opcode.value == OP_EQUALVERIFY &&
-		pops[9].opcode.value == OP_CHECKSIG
+		pops[5].opcode.value == OP_2DROP &&
+		pops[6].opcode.value == OP_DUP &&
+		pops[7].opcode.value == OP_HASH160 &&
+		pops[8].opcode.value == OP_DATA_20 &&
+		pops[9].opcode.value == OP_EQUALVERIFY &&
+		pops[10].opcode.value == OP_CHECKSIG
 }
 
 // scriptType returns the type of the script being inspected from the known
@@ -1024,7 +1025,7 @@ func PayToCLTVPubKeyHashScript(pubKeyHash []byte, lockTime int64) ([]byte, error
 }
 
 func PayToTokenPubKeyHashScript(pubKeyHash []byte, coinId types.CoinID, upLimit uint64, name string) ([]byte, error) {
-	return NewScriptBuilder().AddInt64(int64(coinId)).AddInt64(int64(upLimit)).AddData([]byte(name)).AddOp(OP_TOKEN).AddOp(OP_DROP).AddOp(OP_DUP).AddOp(OP_HASH160).
+	return NewScriptBuilder().AddInt64(int64(coinId)).AddInt64(int64(upLimit)).AddData([]byte(name)).AddOp(OP_TOKEN).AddOp(OP_DROP).AddOp(OP_2DROP).AddOp(OP_DUP).AddOp(OP_HASH160).
 		AddData(pubKeyHash).AddOp(OP_EQUALVERIFY).AddOp(OP_CHECKSIG).Script()
 }
 
@@ -1404,7 +1405,7 @@ func ExtractPkScriptAddrs(pkScript []byte,
 
 	case TokenPubKeyHashTy:
 		requiredSigs = 1
-		addr, err := address.NewPubKeyHashAddress(pops[7].data,
+		addr, err := address.NewPubKeyHashAddress(pops[8].data,
 			chainParams, ecc.ECDSA_Secp256k1)
 		if err == nil {
 			addrs = append(addrs, addr)

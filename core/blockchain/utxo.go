@@ -9,6 +9,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/params"
 	"sync"
 )
 
@@ -199,6 +200,19 @@ func (view *UtxoViewpoint) addTxOut(outpoint types.TxOutPoint, txOut *types.TxOu
 	if isCoinBase {
 		entry.packedFlags |= tfCoinBase
 	}
+}
+
+func (view *UtxoViewpoint) AddTokenTxOut() {
+	outpoint := types.TxOutPoint{Hash: hash.ZeroHash, OutIndex: types.TokenPrevOutIndex}
+	entry := view.LookupEntry(outpoint)
+	if entry == nil {
+		entry = new(UtxoEntry)
+		view.entries[outpoint] = entry
+	}
+	txOut := &types.TxOutput{PkScript: params.ActiveNetParams.Params.TokenAdminPkScript}
+	entry.amount = txOut.Amount
+	entry.pkScript = txOut.PkScript
+	entry.packedFlags = tfModified
 }
 
 // Viewpoints returns the hash of the viewpoint block in the chain the view currently
