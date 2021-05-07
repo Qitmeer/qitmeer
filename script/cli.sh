@@ -218,6 +218,30 @@ function create_raw_txv2(){
   get_result "$data"
 }
 
+function create_token_raw_tx(){
+  local txtype=$1
+  local coinId=$2
+
+  local coinName=$3
+  local owners=$4
+  local uplimit=$5
+
+  if [ "$coinName" == "" ]; then
+    coinName=""
+  fi
+
+  if [ "$owners" == "" ]; then
+    owners=""
+  fi
+
+  if [ "$uplimit" == "" ]; then
+    uplimit=0
+  fi
+
+  local data='{"jsonrpc":"2.0","method":"createTokenRawTransaction","params":["'$txtype'",'$coinId',"'$coinName'","'$owners'",'$uplimit'],"id":1}'
+  get_result "$data"
+}
+
 function decode_raw_tx(){
   local input=$1
   local data='{"jsonrpc":"2.0","method":"decodeRawTransaction","params":["'$input'"],"id":1}'
@@ -504,6 +528,7 @@ function usage(){
   echo "  txbyhash <hash>"
   echo "  createRawTx"
   echo "  createRawTxV2"
+  echo "  createTokenRawTx"
   echo "  txSign <rawTx>"
   echo "  sendRawTx <signedRawTx>"
   echo "  getrawtxs <address>"
@@ -868,6 +893,10 @@ elif [ "$1" == "createRawTx" ]; then
 elif [ "$1" == "createRawTxV2" ]; then
   shift
   create_raw_txv2 $@
+
+elif [ "$1" == "createTokenRawTx" ]; then
+  shift
+  create_token_raw_tx $@
 
 elif [ "$1" == "decodeRawTx" ]; then
   shift

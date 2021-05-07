@@ -328,7 +328,6 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 	if err != nil {
 		return err
 	}
-
 	b.TokenTipID = uint32(node.dagID)
 	return state.Commit()
 }

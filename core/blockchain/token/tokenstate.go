@@ -195,10 +195,8 @@ func (ts *TokenState) Commit() error {
 	types.CoinNameMap = map[types.CoinID]string{}
 	types.CoinIDList = []types.CoinID{}
 	for _, v := range ts.Types {
-		if v.Enable {
-			types.CoinIDList = append(types.CoinIDList, v.Id)
-			types.CoinNameMap[v.Id] = v.Name
-		}
+		types.CoinIDList = append(types.CoinIDList, v.Id)
+		types.CoinNameMap[v.Id] = v.Name
 	}
 	return nil
 }

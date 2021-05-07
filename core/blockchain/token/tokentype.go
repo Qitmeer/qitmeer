@@ -109,6 +109,20 @@ func (ttm *TokenTypesMap) Update(update *TypeUpdate) error {
 			return fmt.Errorf("It already exists:%s\n", update.Tt.Name)
 		}
 		(*ttm)[update.Tt.Id] = update.Tt
+		log.Trace(fmt.Sprintf("Token type update: new %s(%d)", update.Tt.Name, update.Tt.Id))
+	case types.TxTypeTokenRenew:
+		tt, ok := (*ttm)[update.Tt.Id]
+		if !ok {
+			return fmt.Errorf("It doesn't exist: Coin id (%d)\n", update.Tt.Id)
+		}
+		if tt.Enable {
+			return fmt.Errorf("Renew is allowed only when disable: Coin id (%d)\n", update.Tt.Id)
+		}
+		tt.Owners = update.Tt.Owners
+		tt.UpLimit = update.Tt.UpLimit
+		tt.Name = update.Tt.Name
+		(*ttm)[tt.Id] = tt
+		log.Trace(fmt.Sprintf("Token type update: renew %s(%d)", update.Tt.Name, update.Tt.Id))
 	default:
 		return fmt.Errorf("unknown update type %v", update.Typ)
 	}

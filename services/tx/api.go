@@ -1071,7 +1071,30 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 		Sequence:    uint32(txt),
 	})
 
-	if txt == types.TxTypeTokenNew {
+	if types.CoinID(coinId) <= types.QitmeerReservedID {
+		return nil, fmt.Errorf("Coin ID (%d) is qitmeer reserved. It has to be greater than %d for token type update.\n", coinId, types.QitmeerReservedID)
+	}
+
+	upLi := uint64(math.MaxInt64)
+	if uplimit != nil {
+		upLi = *uplimit
+		if *uplimit == 0 {
+			upLi = uint64(math.MaxInt64)
+		}
+	}
+
+	if coinName != nil {
+		if len(*coinName) > token.MaxTokenNameLength {
+			return nil, fmt.Errorf("Coin name is too long:%d  (max:%d)", len(*coinName), token.MaxTokenNameLength)
+		}
+	}
+	if txt == types.TxTypeTokenNew || txt == types.TxTypeTokenRenew {
+		if txt == types.TxTypeTokenRenew {
+			err := types.CheckCoinID(types.CoinID(coinId))
+			if err != nil {
+				return nil, err
+			}
+		}
 		if owners == nil {
 			return nil, fmt.Errorf("No owners address\n")
 		}
@@ -1082,18 +1105,9 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 		if !address.IsForNetwork(addr, params.ActiveNetParams.Params) {
 			return nil, rpc.RpcAddressKeyError("Wrong network: %v", addr)
 		}
-		upLi := uint64(math.MaxInt64)
-		if uplimit != nil {
-			upLi = *uplimit
-		}
+
 		if coinName == nil {
 			return nil, fmt.Errorf("No coin name\n")
-		}
-		if len(*coinName) > token.MaxTokenNameLength {
-			return nil, fmt.Errorf("Coin name is too long:%d  (max:%d)", len(*coinName), token.MaxTokenNameLength)
-		}
-		if types.CoinID(coinId) <= types.QitmeerReservedID {
-			return nil, fmt.Errorf("Coin ID (%d) is qitmeer reserved. It has to be greater than %d for token type update.\n", coinId, types.QitmeerReservedID)
 		}
 		pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), upLi, *coinName)
 		if err != nil {
