@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 )
 
 const MaxTokenNameLength = 6
@@ -99,6 +100,22 @@ func (tt *TokenType) Deserialize(data []byte) (int, error) {
 	return offset, nil
 }
 
+func (tt *TokenType) GetAddress() types.Address {
+	script, err := txscript.ParsePkScript(tt.Owners)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	if tnScript, ok := script.(*txscript.TokenNewScript); ok {
+		addr := tnScript.GetAddresses()
+		if len(addr) > 0 {
+			return addr[0]
+		}
+	}
+	return nil
+}
+
 type TokenTypesMap map[types.CoinID]TokenType
 
 func (ttm *TokenTypesMap) Update(update *TypeUpdate) error {
@@ -123,6 +140,28 @@ func (ttm *TokenTypesMap) Update(update *TypeUpdate) error {
 		tt.Name = update.Tt.Name
 		(*ttm)[tt.Id] = tt
 		log.Trace(fmt.Sprintf("Token type update: renew %s(%d)", update.Tt.Name, update.Tt.Id))
+	case types.TxTypeTokenValidate:
+		tt, ok := (*ttm)[update.Tt.Id]
+		if !ok {
+			return fmt.Errorf("It doesn't exist: Coin id (%d)\n", update.Tt.Id)
+		}
+		if tt.Enable {
+			return fmt.Errorf("Validate is allowed only when disable: Coin id (%d)\n", update.Tt.Id)
+		}
+		tt.Enable = true
+		(*ttm)[tt.Id] = tt
+		log.Trace(fmt.Sprintf("Token type update: validate %s(%d)", update.Tt.Name, update.Tt.Id))
+	case types.TxTypeTokenInvalidate:
+		tt, ok := (*ttm)[update.Tt.Id]
+		if !ok {
+			return fmt.Errorf("It doesn't exist: Coin id (%d)\n", update.Tt.Id)
+		}
+		if !tt.Enable {
+			return fmt.Errorf("Invalidate is allowed only when enable: Coin id (%d)\n", update.Tt.Id)
+		}
+		tt.Enable = false
+		(*ttm)[tt.Id] = tt
+		log.Trace(fmt.Sprintf("Token type update: invalidate %s(%d)", update.Tt.Name, update.Tt.Id))
 	default:
 		return fmt.Errorf("unknown update type %v", update.Typ)
 	}

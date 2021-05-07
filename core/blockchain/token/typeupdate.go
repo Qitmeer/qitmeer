@@ -69,25 +69,33 @@ func (tu *TypeUpdate) CheckSanity() error {
 	if tu.Tt.Id <= types.QitmeerReservedID {
 		return fmt.Errorf("Coin ID (%d) is qitmeer reserved. It has to be greater than %d for token type update.\n", tu.Tt.Id, types.QitmeerReservedID)
 	}
-	class, _, _, err := txscript.ExtractPkScriptAddrs(tu.Tt.Owners, params.ActiveNetParams.Params)
-	if err != nil || class != txscript.TokenPubKeyHashTy {
-		return err
-	}
 	if len(tu.Tt.Name) > MaxTokenNameLength {
 		return fmt.Errorf("Token name (%s) exceeds the maximum length (%d).\n", tu.Tt.Name, MaxTokenNameLength)
 	}
+	if tu.GetType() != types.TxTypeTokenNew {
+		err := types.CheckCoinID(tu.Tt.Id)
+		if err != nil {
+			return err
+		}
+	}
 	if tu.GetType() == types.TxTypeTokenNew || tu.GetType() == types.TxTypeTokenRenew {
+		class, _, _, err := txscript.ExtractPkScriptAddrs(tu.Tt.Owners, params.ActiveNetParams.Params)
+		if err != nil || class != txscript.TokenPubKeyHashTy {
+			return err
+		}
 		if tu.Tt.UpLimit == 0 {
 			return fmt.Errorf("UpLimit cannot be zero")
 		}
 		if len(tu.Tt.Name) <= 0 {
 			return fmt.Errorf("Must have token name.\n")
 		}
-		if tu.GetType() == types.TxTypeTokenRenew {
-			err := types.CheckCoinID(tu.Tt.Id)
-			if err != nil {
-				return err
-			}
+
+	} else if tu.GetType() == types.TxTypeTokenValidate || tu.GetType() == types.TxTypeTokenInvalidate {
+		if tu.Tt.UpLimit != 0 {
+			return fmt.Errorf("UpLimit must be zero")
+		}
+		if len(tu.Tt.Name) != 0 {
+			return fmt.Errorf("Token name must empty.\n")
 		}
 	} else {
 		return fmt.Errorf("This type (%v) is not supported\n", tu.GetType())
@@ -95,7 +103,7 @@ func (tu *TypeUpdate) CheckSanity() error {
 	return nil
 }
 
-func NewTypeUpdateFromScript(tx *types.Transaction) (*TypeUpdate, error) {
+func NewTypeUpdateFromTx(tx *types.Transaction) (*TypeUpdate, error) {
 	script, err := txscript.ParsePkScript(tx.TxOut[0].PkScript)
 	if err != nil {
 		log.Error(err.Error())

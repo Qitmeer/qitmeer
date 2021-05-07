@@ -299,7 +299,7 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 			updates = append(updates, update)
 		}
 		if types.IsTokenTx(tx.Tx) {
-			update, err := token.NewTypeUpdateFromScript(tx.Tx)
+			update, err := token.NewTypeUpdateFromTx(tx.Tx)
 			if err != nil {
 				return err
 			}

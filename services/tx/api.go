@@ -1088,13 +1088,13 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 			return nil, fmt.Errorf("Coin name is too long:%d  (max:%d)", len(*coinName), token.MaxTokenNameLength)
 		}
 	}
-	if txt == types.TxTypeTokenNew || txt == types.TxTypeTokenRenew {
-		if txt == types.TxTypeTokenRenew {
-			err := types.CheckCoinID(types.CoinID(coinId))
-			if err != nil {
-				return nil, err
-			}
+	if txt != types.TxTypeTokenNew {
+		err := types.CheckCoinID(types.CoinID(coinId))
+		if err != nil {
+			return nil, err
 		}
+	}
+	if txt == types.TxTypeTokenNew || txt == types.TxTypeTokenRenew {
 		if owners == nil {
 			return nil, fmt.Errorf("No owners address\n")
 		}
@@ -1110,6 +1110,30 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 			return nil, fmt.Errorf("No coin name\n")
 		}
 		pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), upLi, *coinName)
+		if err != nil {
+			return nil, err
+		}
+		mtx.AddTxOut(&types.TxOutput{PkScript: pkScript})
+	} else {
+		state := api.txManager.bm.GetChain().GetTokenState(api.txManager.bm.GetChain().TokenTipID)
+		if state == nil {
+			return nil, fmt.Errorf("Token state error\n")
+		}
+		tt, ok := state.Types[types.CoinID(coinId)]
+		if !ok {
+			return nil, fmt.Errorf("It doesn't exist: Coin id (%d)\n", coinId)
+		}
+		if tt.Enable && txt == types.TxTypeTokenValidate {
+			return nil, fmt.Errorf("Validate is allowed only when disable: Coin id (%d)\n", coinId)
+		}
+		if !tt.Enable && txt == types.TxTypeTokenInvalidate {
+			return nil, fmt.Errorf("Invalidate is allowed only when enable: Coin id (%d)\n", coinId)
+		}
+		addr := tt.GetAddress()
+		if addr == nil {
+			return nil, fmt.Errorf("Token owners is error\n")
+		}
+		pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), 0, "")
 		if err != nil {
 			return nil, err
 		}
