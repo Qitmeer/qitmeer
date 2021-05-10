@@ -837,10 +837,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 			return true, err
 		}
 		if !node.GetStatus().KnownInvalid() {
-			err := b.updateTokenState(node, block, false)
-			if err == nil {
-				node.Valid(b)
-			}
+			node.Valid(b)
 		}
 		// TODO, validating previous block
 		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
@@ -989,6 +986,11 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	// Prune fully spent entries and mark all entries in the view unmodified
 	// now that the modifications have been committed to the database.
 	view.commit()
+
+	err = b.updateTokenState(node, block, false)
+	if err != nil {
+		return err
+	}
 
 	b.sendNotification(BlockConnected, []*types.SerializedBlock{block})
 	return nil
@@ -1167,10 +1169,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 			continue
 		}
 		if !n.GetStatus().KnownInvalid() {
-			err := b.updateTokenState(n, block, false)
-			if err != nil {
-				n.Valid(b)
-			}
+			n.Valid(b)
 		}
 	}
 
