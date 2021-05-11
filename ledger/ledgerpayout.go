@@ -56,6 +56,7 @@ var PrivGeneData = []GenesisInitPayout{
 	},
 }
 
+// coinid,address,lockAmount,locktype,lockheight
 var PrivGeneDataFromImport = []string{
 	"0,RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs,50000,1,0",
 	"0,RmHFARk5xmoMNUVJ6UCHFiWQML1vxwUhw1b,1254.345,1,0",

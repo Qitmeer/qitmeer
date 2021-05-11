@@ -344,7 +344,7 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 	if lockTime != nil {
 		tx.LockTime = uint32(*lockTime)
 	}
-
+	useCLTVPubKeyHashTy := false
 	enoughFund := false
 	// select inputs from utxo set of the wallet && add them into tx
 	for txOutPoint, utxo := range w.utxos {
@@ -363,6 +363,8 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 			if tx.LockTime < uint32(needHeight) {
 				continue
 			}
+			fmt.Println("===========================", useCLTVPubKeyHashTy)
+			useCLTVPubKeyHashTy = true
 		}
 		if preOutpoint != nil {
 			if *preOutpoint != txOutPoint {
@@ -372,7 +374,7 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		totalInAmt[utxo.value.Id] += utxo.value.Value
 		// add selected input into tx
 		txIn := types.NewTxInput(&txOutPoint, nil)
-		if lockTime != nil && *lockTime != 0 {
+		if useCLTVPubKeyHashTy {
 			txIn.Sequence = types.MaxTxInSequenceNum - 1
 		}
 		tx.AddTxIn(txIn)
