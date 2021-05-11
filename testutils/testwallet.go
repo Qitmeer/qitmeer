@@ -363,7 +363,6 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 			if tx.LockTime < uint32(needHeight) {
 				continue
 			}
-			fmt.Println("===========================", useCLTVPubKeyHashTy)
 			useCLTVPubKeyHashTy = true
 		}
 		if preOutpoint != nil {

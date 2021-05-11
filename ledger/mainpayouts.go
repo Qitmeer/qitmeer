@@ -1,6 +1,20 @@
-package ledger
+// This file is ignored during the regular build due to the following build tag.
+// It is called by go generate and used to automatically generate pre-computed
+// tables used to accelerate operations.
+// +build ignore
 
-func initMain() {
-	// For example:
-	//addPayout("NmZrMthHYXwAHN1Zf8gUidHAkDSNRG23iyn",25000000000,"76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac")
+//go:generate go run mainpayouts.go ledgerpayout.go
+package main
+
+import (
+	"github.com/Qitmeer/qitmeer/params"
+)
+
+var MainGeneData = []GenesisInitPayout{}
+
+// coinid,address,lockAmount,locktype,lockheight
+var MainGeneDataFromImport = []string{}
+
+func main() {
+	GeneratePayoutFile(params.MainNetParam.Params, MainGeneData, MainGeneDataFromImport)
 }

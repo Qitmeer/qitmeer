@@ -24,7 +24,6 @@ import (
 	"strings"
 )
 
-//go:generate go run ledgerpayout.go privnet
 const (
 	GENE_PAYOUT_TYPE_STANDARD = iota
 	GENE_PAYOUT_TYPE_AUTO_LOCK_WITH_CONFIG
@@ -44,44 +43,7 @@ type GenesisInitPayout struct {
 	LockHeight        int64 // amount lock with height
 }
 
-var PrivGeneData = []GenesisInitPayout{
-	{
-		types.MEERID, "RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs", 5000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.QITID, "RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs", 500, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.MEERID, "RmHFARk5xmoMNUVJ6UCHFiWQML1vxwUhw1b", 100, GENE_PAYOUT_TYPE_LOCK_WITH_HEIGHT, 2,
-	},
-}
-
-// coinid,address,lockAmount,locktype,lockheight
-var PrivGeneDataFromImport = []string{
-	"0,RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs,50000,1,0",
-	"0,RmHFARk5xmoMNUVJ6UCHFiWQML1vxwUhw1b,1254.345,1,0",
-}
-
-func main() {
-	params.ActiveNetParams = &params.MainNetParam
-	geneData := MainGeneData
-	geneDataImport := MainGeneDataFromImport
-	if len(os.Args) >= 2 {
-		switch os.Args[1] {
-		case "testnet":
-			params.ActiveNetParams = &params.TestNetParam
-			geneData = TestGeneData
-			geneDataImport = TestGeneDataFromImport
-		case "mixnet":
-			params.ActiveNetParams = &params.MixNetParam
-			geneData = MixGeneData
-			geneDataImport = MixGeneDataFromImport
-		case "privnet":
-			params.ActiveNetParams = &params.PrivNetParam
-			geneData = PrivGeneData
-			geneDataImport = PrivGeneDataFromImport
-		}
-	}
+func GeneratePayoutFile(param *params.Params, geneData []GenesisInitPayout, geneDataImport []string) {
 	importData, err := FormatDataFromImport(geneDataImport)
 	if err != nil {
 		fmt.Println(err)
@@ -93,8 +55,8 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	payList, payKeys := ReSortAndSliceGeneDataWithSeed(geneData, seedHash, params.ActiveNetParams.Params)
-	savePayoutsFileBySliceShuffle(params.ActiveNetParams.Params, payList, payKeys)
+	payList, payKeys := ReSortAndSliceGeneDataWithSeed(geneData, seedHash, param)
+	savePayoutsFileBySliceShuffle(param, payList, payKeys)
 }
 
 func ReSortAndSliceGeneDataWithSeed(data []GenesisInitPayout, seedHash []byte, p *params.Params) ([]GenesisInitPayout, []int) {
@@ -178,48 +140,6 @@ func FormatDataFromImport(data []string) ([]GenesisInitPayout, error) {
 	}
 	return newData, nil
 }
-
-var MixGeneData = []GenesisInitPayout{
-	{
-		types.QITID, "XmspWkqJv6a4sziWrPZbSWQ37WoNEmTD1xm", 10000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.METID, "XmspWkqJv6a4sziWrPZbSWQ37WoNEmTD1xm", 10000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.TERID, "XmspWkqJv6a4sziWrPZbSWQ37WoNEmTD1xm", 10000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-
-	{
-		types.QITID, "XmkgU8m4G2GwRjz6rEVskG9HAabT5uUS8Fy", 20000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.METID, "XmkgU8m4G2GwRjz6rEVskG9HAabT5uUS8Fy", 20000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.TERID, "XmkgU8m4G2GwRjz6rEVskG9HAabT5uUS8Fy", 20000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-
-	{
-		types.QITID, "XmnsdQkQYWHih65kMyZPo5bFzRpEyGc3N9x", 30000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.METID, "XmnsdQkQYWHih65kMyZPo5bFzRpEyGc3N9x", 30000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.TERID, "XmnsdQkQYWHih65kMyZPo5bFzRpEyGc3N9x", 30000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-}
-
-var MixGeneDataFromImport = []string{}
-
-var TestGeneData = []GenesisInitPayout{}
-
-var TestGeneDataFromImport = []string{}
-
-var MainGeneData = []GenesisInitPayout{}
-
-var MainGeneDataFromImport = []string{}
 
 func GenesisShuffle(array []int, seed []byte) []int {
 	for i := len(array) - 1; i > 0; i-- {
