@@ -36,8 +36,11 @@ var PrivNetParams = Params{
 	Bootstrap:      []string{},
 
 	// Chain parameters
-	GenesisBlock: &privNetGenesisBlock,
-	GenesisHash:  &privNetGenesisHash,
+	GenesisBlock:         &privNetGenesisBlock,
+	GenesisHash:          &privNetGenesisHash,
+	UnlocksPerHeight:     10000 * 1e8,
+	GenesisAmountUnit:    1000 * 1e8,
+	UnlocksPerHeightStep: 10,
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             privNetPowLimit,
 		Blake2bdPowLimitBits:         0x207fffff,
@@ -92,7 +95,7 @@ var PrivNetParams = Params{
 	MaximumBlockSizes:        []int{1000000, 1310720},
 	MaxTxSize:                1000000,
 	WorkDiffAlpha:            1,
-	WorkDiffWindowSize:       16,
+	WorkDiffWindowSize:       160,
 	WorkDiffWindows:          20,
 	TargetTimePerBlock:       time.Second * privTargetTimePerBlock,
 	TargetTimespan:           time.Second * privTargetTimePerBlock * 16, // TimePerBlock * WindowSize
@@ -115,12 +118,12 @@ var PrivNetParams = Params{
 
 	// Address encoding magics
 	NetworkAddressPrefix: "R",
-	PubKeyAddrID:         [2]byte{0x0d, 0xef}, // starts with Rk
+	PubKeyAddrID:         [2]byte{0x25, 0xe5}, // starts with Rk
 	PubKeyHashAddrID:     [2]byte{0x0d, 0xf1}, // starts with Rm
-	PKHEdwardsAddrID:     [2]byte{0x0d, 0xdf}, // starts with Re
-	PKHSchnorrAddrID:     [2]byte{0x0d, 0xfd}, // starts with Rr
+	PKHEdwardsAddrID:     [2]byte{0x0d, 0xe0}, // starts with Re
+	PKHSchnorrAddrID:     [2]byte{0x0d, 0xfe}, // starts with Rr
 	ScriptHashAddrID:     [2]byte{0x0d, 0xc2}, // starts with RS
-	PrivateKeyID:         [2]byte{0x0c, 0xdd}, // starts with Pr
+	PrivateKeyID:         [2]byte{0x22, 0xfe}, // starts with Pr
 
 	// BIP32 hierarchical deterministic extended key magics
 	HDPrivateKeyID: [4]byte{0x04, 0x0b, 0xee, 0x6e}, // starts with rprv

@@ -73,4 +73,8 @@ var (
 	// OrderIdBucketName is the name of the db bucket used to house to
 	// the block order -> block DAG Id.
 	OrderIdBucketName = []byte("orderid")
+
+	// BlockIdBucketName is the name of the db bucket used to house to
+	// the block hash -> block DAG Id.
+	BlockIdBucketName = []byte("blockid")
 )

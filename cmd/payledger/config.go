@@ -52,23 +52,25 @@ type Config struct {
 	DebugAddrValid  bool   `long:"debugaddrvalid"  description:"Print only valid data about the address."`
 	Last            bool   `long:"last"  description:"Show ledger by last building data."`
 	BlocksInfo      bool   `long:"blocksinfo"  description:"Show all blocks information."`
+
+	UnlocksPerHeight int `long:"unlocksperheight"  description:"How many will be unlocked at each DAG main height."`
 }
 
 func LoadConfig() (*Config, []string, error) {
 	// Default config.
 	cfg := Config{
-		HomeDir:         defaultHomeDir,
-		DataDir:         defaultDataDir,
-		TestNet:         true,
-		DbType:          defaultDbType,
-		DAGType:         defaultDAGType,
-		SrcDataDir:      defaultSrcDataDir,
-		SavePayoutsFile: false,
-		DisableBar:      false,
-		DebugAddrUTXO:   false,
-		DebugAddrValid:  false,
-		Last:            false,
-		BlocksInfo:      false,
+		HomeDir:          defaultHomeDir,
+		DataDir:          defaultDataDir,
+		DbType:           defaultDbType,
+		DAGType:          defaultDAGType,
+		SrcDataDir:       defaultSrcDataDir,
+		SavePayoutsFile:  false,
+		DisableBar:       false,
+		DebugAddrUTXO:    false,
+		DebugAddrValid:   false,
+		Last:             false,
+		BlocksInfo:       false,
+		UnlocksPerHeight: 0,
 	}
 
 	preCfg := cfg
@@ -114,11 +116,14 @@ func LoadConfig() (*Config, []string, error) {
 	cfg.DebugAddrValid = preCfg.DebugAddrValid
 	cfg.Last = preCfg.Last
 	cfg.BlocksInfo = preCfg.BlocksInfo
+	cfg.MixNet = preCfg.MixNet
+	cfg.TestNet = preCfg.TestNet
+	cfg.PrivNet = preCfg.PrivNet
+	cfg.UnlocksPerHeight = preCfg.UnlocksPerHeight
 
 	if len(preCfg.SrcDataDir) > 0 {
 		cfg.SrcDataDir = preCfg.SrcDataDir
 	}
-
 	// Create the home directory if it doesn't already exist.
 	funcName := "loadConfig"
 	err = os.MkdirAll(cfg.HomeDir, 0700)

@@ -44,19 +44,23 @@ func TestWsNotify(t *testing.T) {
 		return
 	}
 	spendAmt := types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
-	txid := Spend(t, h, spendAmt)
+	lockT := int64(1)
+	txid, addr := Spend(t, h, spendAmt, nil, &lockT)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
-	time.Sleep(1 * time.Second)
-	AssertMempoolTxNotify(t, h, txid.String(), h.Wallet.Addresses()[1])
+	t.Log(h.Wallet.Addresses())
+	AssertMempoolTxNotify(t, h, txid.String(), addr.String(), 5)
 	blocks := GenerateBlock(t, h, 4)
 	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
 	AssertBlockOrderAndHeight(t, h, 6, 6, 5)
+
+	h.Wallet.OnRescanComplete = func() {
+		AssertScan(t, h, 5, 6)
+	}
 	err = h.Notifier.Rescan(0, 6, h.Wallet.Addresses(), nil)
 	if err != nil {
 		t.Fatal(err)
 		return
 	}
-	AssertScan(t, h, 5, 6)
 	err = h.Notifier.NotifyTxsConfirmed([]cmds.TxConfirm{
 		{
 			Txid:          txid.String(),

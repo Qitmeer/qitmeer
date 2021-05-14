@@ -8,7 +8,9 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"sync"
 	"testing"
+	"time"
 )
 
 // GenerateBlock will generate a number of blocks by the input number for
@@ -62,8 +64,8 @@ func AssertBlockOrderAndHeight(t *testing.T, h *Harness, order, total, height ui
 }
 
 // Spend amount from the wallet of the test harness and return tx hash
-func Spend(t *testing.T, h *Harness, amt types.Amount) *hash.Hash {
-	addr, err := h.Wallet.newAddress()
+func Spend(t *testing.T, h *Harness, amt types.Amount, preOutpoint *types.TxOutPoint, lockTime *int64) (*hash.Hash, types.Address) {
+	addr, err := h.Wallet.NewAddress()
 	if err != nil {
 		t.Fatalf("failed to generate new address for test wallet: %v", err)
 	}
@@ -75,11 +77,32 @@ func Spend(t *testing.T, h *Harness, amt types.Amount) *hash.Hash {
 	output := types.NewTxOutput(amt, addrScript)
 
 	feeRate := types.Amount{Value: 10, Id: amt.Id}
-	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate)
+	txId, err := h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, preOutpoint, lockTime)
 	if err != nil {
 		t.Fatalf("failed to pay the output: %v", err)
 	}
-	return txId
+	return txId, addr
+}
+
+// Spend amount from the wallet of the test harness and return tx hash
+func CanNotSpend(t *testing.T, h *Harness, amt types.Amount, preOutpoint *types.TxOutPoint, lockTime *int64) (*hash.Hash, types.Address) {
+	addr, err := h.Wallet.NewAddress()
+	if err != nil {
+		t.Fatalf("failed to generate new address for test wallet: %v", err)
+	}
+	t.Logf("test wallet generated new address %v ok", addr.Encode())
+	addrScript, err := txscript.PayToAddrScript(addr)
+	if err != nil {
+		t.Fatalf("failed to generated addr script: %v", err)
+	}
+	output := types.NewTxOutput(amt, addrScript)
+
+	feeRate := types.Amount{Value: 10, Id: amt.Id}
+	_, err = h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, preOutpoint, lockTime)
+	if err == nil {
+		t.Fatalf("lock script error")
+	}
+	return nil, addr
 }
 
 // TODO, order and height not work for the SerializedBlock
@@ -126,7 +149,15 @@ func AssertScan(t *testing.T, h *Harness, maxOrder, scanCount uint64) {
 	}
 }
 
-func AssertMempoolTxNotify(t *testing.T, h *Harness, txid, addr string) {
+func AssertMempoolTxNotify(t *testing.T, h *Harness, txid, addr string, timeout int) {
+	TimeoutFunc(t, func() bool {
+		if h.Wallet.mempoolTx != nil {
+			if _, ok := h.Wallet.mempoolTx[txid]; ok {
+				return true
+			}
+		}
+		return false
+	}, timeout)
 	if h.Wallet.mempoolTx == nil {
 		t.Fatalf("not match mempool tx")
 	}
@@ -134,7 +165,7 @@ func AssertMempoolTxNotify(t *testing.T, h *Harness, txid, addr string) {
 		t.Fatalf("not has mempool tx %s", txid)
 	}
 	if h.Wallet.mempoolTx[txid] != addr {
-		t.Fatalf("mempool tx vout address %s not match%s", h.Wallet.mempoolTx[txid], addr)
+		t.Fatalf("mempool tx vout address %s not match %s", h.Wallet.mempoolTx[txid], addr)
 	}
 }
 
@@ -148,4 +179,27 @@ func AssertTxConfirm(t *testing.T, h *Harness, txid string, confirms uint64) {
 	if h.Wallet.confirmTxs[txid] < confirms {
 		t.Fatalf("tx %s confirms %d not right,should more than %d", txid, h.Wallet.confirmTxs[txid], confirms)
 	}
+}
+
+func TimeoutFunc(t *testing.T, f func() bool, timeout int) {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	start := time.Now().UnixNano()
+	go func() {
+		defer wg.Done()
+		t1 := time.NewTicker(time.Duration(timeout) * time.Second)
+		defer t1.Stop()
+		for {
+			select {
+			case <-t1.C:
+				return
+			default:
+				if f() {
+					return
+				}
+			}
+		}
+	}()
+	wg.Wait()
+	t.Logf("time use:%.4f ms", float64(time.Now().UnixNano())/float64(start))
 }

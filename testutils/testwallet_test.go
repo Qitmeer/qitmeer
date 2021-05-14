@@ -47,7 +47,7 @@ func Test_newTestWallet(t *testing.T) {
 	if wallet.addrs[0].Encode() != expect.addr0 {
 		t.Errorf("hd key0 addr not matched, expect %v but got %v", wallet.addrs[0].Encode(), expect.addr0)
 	}
-	addr1, err := wallet.newAddress()
+	addr1, err := wallet.NewAddress()
 	if err != nil {
 		t.Errorf("failed get new address : %v", err)
 	}

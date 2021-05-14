@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -335,7 +337,7 @@ func New(config *Config) (*BlockChain, error) {
 
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType, b.CalcWeight,
-		1.0/float64(par.TargetTimePerBlock/time.Second), b.index.GetDAGBlockID, b.db)
+		1.0/float64(par.TargetTimePerBlock/time.Second), b.db)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -1430,4 +1432,67 @@ func (b *BlockChain) GetTokenTipHash() *hash.Hash {
 		return nil
 	}
 	return ib.GetHash()
+}
+
+func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Hash) hash.Hash {
+	updates := []balanceUpdate{}
+	for _, tx := range txs {
+		if token.IsTokenMint(tx.Tx) {
+			// TOKEN_MINT: input[0] token output[0] meer
+			update := balanceUpdate{
+				typ:         tokenMint,
+				tokenAmount: tx.Tx.TxIn[0].AmountIn,
+				meerAmount:  tx.Tx.TxOut[0].Amount.Value}
+			// append to update only when check & try has done with no err
+			updates = append(updates, update)
+		}
+		if token.IsTokenUnMint(tx.Tx) {
+			// TOKEN_UNMINT: input[0] meer output[0] token
+			// the previous logic must make sure the legality of values, here only append.
+			update := balanceUpdate{
+				typ:         tokenUnMint,
+				meerAmount:  tx.Tx.TxIn[0].AmountIn.Value,
+				tokenAmount: tx.Tx.TxOut[0].Amount}
+			// append to update only when check & try has done with no err
+			updates = append(updates, update)
+		}
+	}
+	if len(updates) <= 0 {
+		if len(parents) <= 0 {
+			return hash.ZeroHash
+		}
+		var mainParent blockdag.IBlock
+		if len(parents) > 1 {
+			parentsSet := blockdag.NewIdSet()
+			for _, bh := range parents {
+				id := b.bd.GetBlock(bh)
+				if id == nil {
+					continue
+				}
+				parentsSet.Add(id.GetID())
+			}
+			if parentsSet == nil || parentsSet.IsEmpty() {
+				return hash.ZeroHash
+			}
+			mainParent = b.bd.GetMainParent(parentsSet)
+
+		} else {
+			mainParent = b.bd.GetBlock(parents[0])
+		}
+		if mainParent == nil {
+			return hash.ZeroHash
+		}
+		block, err := b.fetchBlockByHash(mainParent.GetHash())
+		if err != nil {
+			return hash.ZeroHash
+		}
+		return block.Block().Header.StateRoot
+	}
+	balanceUpdate := []*hash.Hash{}
+	for _, u := range updates {
+		balanceUpdate = append(balanceUpdate, u.Hash())
+	}
+	tsMerkle := merkle.BuildTokenBalanceMerkleTreeStore(balanceUpdate)
+
+	return *tsMerkle[0]
 }

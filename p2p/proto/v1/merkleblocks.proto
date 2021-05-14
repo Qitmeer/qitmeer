@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package qitmeer.p2p.v1;
+
+import "messages.proto";
+
+message MerkleBlockRequest {
+  repeated Hash hashes = 1;
+}
+
+message MerkleBlock {
+  bytes header = 1;
+  int64 transactions = 2;
+  repeated Hash hashes = 3;
+  bytes flags = 4;
+}
+
+message MerkleBlockResponse {
+  repeated MerkleBlock data=1;
+}

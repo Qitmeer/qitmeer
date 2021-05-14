@@ -25,9 +25,9 @@ const MaxBlockHeaderPayload = 4 + (hash.HashSize * 3) + 4 + 4 + 8 + 1 + 1 + 42*4
 // MaxBlockPayload is the maximum bytes a block message can be in bytes.
 const MaxBlockPayload = 1048576 // 1024*1024 (1MB)
 
-// maxTxPerBlock is the maximum number of transactions that could
+// MaxTxPerBlock is the maximum number of transactions that could
 // possibly fit into a block.
-const maxTxPerBlock = (MaxBlockPayload / minTxPayload) + 1
+const MaxTxPerBlock = (MaxBlockPayload / minTxPayload) + 1
 
 //Limited parents quantity
 const MaxParentsPerBlock = 50
@@ -368,9 +368,9 @@ func (b *Block) DeserializeTxLoc(r *bytes.Buffer) ([]TxLoc, error) {
 	// Prevent more transactions than could possibly fit into a block.
 	// It would be possible to cause memory exhaustion and panics without
 	// a sane upper bound on this count.
-	if txCount > maxTxPerBlock {
+	if txCount > MaxTxPerBlock {
 		return nil, fmt.Errorf("Block.DeserializeTxLoc: too many transactions to fit into a block "+
-			"[count %d, max %d]", txCount, maxTxPerBlock)
+			"[count %d, max %d]", txCount, MaxTxPerBlock)
 	}
 
 	// Deserialize each transaction while keeping track of its location

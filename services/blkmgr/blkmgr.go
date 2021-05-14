@@ -223,6 +223,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			b.GetTxManager().MemPool().RemoveTransaction(tx, false)
 			b.GetTxManager().MemPool().RemoveDoubleSpends(tx)
 			b.GetTxManager().MemPool().RemoveOrphan(tx.Hash())
+			b.notify.TransactionConfirmed(tx)
 			acceptedTxs := b.GetTxManager().MemPool().ProcessOrphans(tx.Hash())
 			b.notify.AnnounceNewTransactions(acceptedTxs)
 		}

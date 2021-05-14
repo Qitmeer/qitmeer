@@ -145,9 +145,13 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 	node.peerServer.SetTimeSource(qm.timeSource)
 	node.peerServer.SetTxMemPool(qm.txManager.MemPool().(*mempool.TxPool))
 	node.peerServer.SetNotify(qm.nfManager)
-	node.rpcServer.BC = bm.GetChain()
-	node.rpcServer.TxIndex = txIndex
-	node.rpcServer.ChainParams = bm.ChainParams()
+
+	if node.rpcServer != nil {
+		node.rpcServer.BC = bm.GetChain()
+		node.rpcServer.TxIndex = txIndex
+		node.rpcServer.ChainParams = bm.ChainParams()
+	}
+
 	// Cpu Miner
 	// Create the mining policy based on the configuration options.
 	// NOTE: The CPU miner relies on the mempool, so the mempool has to be

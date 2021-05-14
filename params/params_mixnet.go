@@ -110,12 +110,12 @@ var MixNetParams = Params{
 
 	// Address encoding magics
 	NetworkAddressPrefix: "X",
-	PubKeyAddrID:         [2]byte{0x11, 0x6e}, // starts with Xx
+	PubKeyAddrID:         [2]byte{0x2f, 0x16}, // starts with Xx
 	PubKeyHashAddrID:     [2]byte{0x11, 0x53}, // starts with Xm
-	PKHEdwardsAddrID:     [2]byte{0x11, 0x3c}, // starts with Xc
+	PKHEdwardsAddrID:     [2]byte{0x11, 0x41}, // starts with Xe
 	PKHSchnorrAddrID:     [2]byte{0x11, 0x5f}, // starts with Xr
-	ScriptHashAddrID:     [2]byte{0x11, 0x3e}, // starts with Xd
-	PrivateKeyID:         [2]byte{0x11, 0x64}, // starts with Xt
+	ScriptHashAddrID:     [2]byte{0x11, 0x23}, // starts with XS
+	PrivateKeyID:         [2]byte{0x23, 0x26}, // starts with Px
 
 	// BIP32 hierarchical deterministic extended key magics
 	HDPrivateKeyID: [4]byte{0x01, 0x9d, 0x0b, 0xe1}, // starts with LsFC

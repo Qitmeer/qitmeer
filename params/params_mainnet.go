@@ -83,13 +83,13 @@ var MainNetParams = Params{
 	Deployments: map[uint32][]ConsensusDeployment{},
 
 	// Address encoding magics
-	NetworkAddressPrefix: "N",
-	PubKeyAddrID:         [2]byte{0x0c, 0x3e}, // starts with Nk
-	PubKeyHashAddrID:     [2]byte{0x0c, 0x41}, // starts with Nm
-	PKHEdwardsAddrID:     [2]byte{0x0c, 0x30}, // starts with Ne
-	PKHSchnorrAddrID:     [2]byte{0x0c, 0x4e}, // starts with Nr
-	ScriptHashAddrID:     [2]byte{0x0c, 0x12}, // starts with NS
-	PrivateKeyID:         [2]byte{0x0c, 0xd1}, // starts with Pm
+	NetworkAddressPrefix: "M",
+	PubKeyAddrID:         [2]byte{0x1f, 0xc5}, // starts with Mk
+	PubKeyHashAddrID:     [2]byte{0x0b, 0xb1}, // starts with Mm
+	PKHEdwardsAddrID:     [2]byte{0x0b, 0x9f}, // starts with Me
+	PKHSchnorrAddrID:     [2]byte{0x0b, 0xbd}, // starts with Mr
+	ScriptHashAddrID:     [2]byte{0x0b, 0x81}, // starts with MS
+	PrivateKeyID:         [2]byte{0x22, 0xdc}, // starts with Pm
 
 	// BIP32 hierarchical deterministic extended key magics
 	HDPrivateKeyID: [4]byte{0x03, 0xb8, 0xc4, 0x22}, // starts with nprv

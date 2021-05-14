@@ -79,10 +79,11 @@ type Service struct {
 	events *event.Feed
 	sy     *synch.Sync
 
-	blockChain *blockchain.BlockChain
-	timeSource blockchain.MedianTimeSource
-	txMemPool  *mempool.TxPool
-	notify     notify.Notify
+	blockChain  *blockchain.BlockChain
+	timeSource  blockchain.MedianTimeSource
+	txMemPool   *mempool.TxPool
+	notify      notify.Notify
+	rebroadcast *Rebroadcast
 }
 
 func (s *Service) Start() error {
@@ -162,6 +163,7 @@ func (s *Service) Start() error {
 		logExternalDNSAddr(s.host.ID(), p2pHostDNS, p2pTCPPort)
 	}
 
+	s.rebroadcast.Start()
 	return nil
 }
 
@@ -178,6 +180,8 @@ func (s *Service) Stop() error {
 	if s.dv5Listener != nil {
 		s.dv5Listener.Close()
 	}
+
+	s.rebroadcast.Stop()
 	return s.sy.Stop()
 }
 
@@ -536,6 +540,10 @@ func (s *Service) RelayNodeInfo() *peer.AddrInfo {
 	return pi
 }
 
+func (s *Service) Rebroadcast() *Rebroadcast {
+	return s.rebroadcast
+}
+
 func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*Service, error) {
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
@@ -659,6 +667,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 	s.pubsub = gs
 
 	s.sy = synch.NewSync(s)
+	s.rebroadcast = NewRebroadcast(s)
 	return s, nil
 }
 

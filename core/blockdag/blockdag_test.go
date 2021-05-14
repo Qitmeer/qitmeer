@@ -6,7 +6,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/config"
-	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/database"
 	l "github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
@@ -158,23 +157,16 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 	if blen < 2 {
 		return nil
 	}
-	var db database.DB
-	if dagType == phantom {
-		cfg := &config.Config{DbType: "ffldb", DataDir: "."}
-		db, err = loadBlockDB(cfg)
-		if err != nil {
-			fmt.Println(err)
-			return nil
-		}
-		db.Update(func(dbTx database.Tx) error {
-			meta := dbTx.Metadata()
-			_, err := meta.CreateBucket(dbnamespace.DagMainChainBucketName)
-			return err
-		})
+
+	cfg := &config.Config{DbType: "ffldb", DataDir: "."}
+	db, err := loadBlockDB(cfg)
+	if err != nil {
+		fmt.Println(err)
+		return nil
 	}
 
 	bd = BlockDAG{}
-	instance := bd.Init(dagType, CalcBlockWeight, -1, onGetBlockId, db)
+	instance := bd.Init(dagType, CalcBlockWeight, -1, db)
 	tbMap = map[string]IBlock{}
 	for i := 0; i < blen; i++ {
 		parents := NewIdSet()
@@ -185,6 +177,12 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 		l, ib, _ := bd.AddBlock(block)
 		if l != nil && l.Len() > 0 {
 			tbMap[tbd[i].Tag] = ib
+			err = db.Update(func(dbTx database.Tx) error {
+				return DBPutDAGBlock(dbTx, ib)
+			})
+			if err != nil {
+				return nil
+			}
 		} else {
 			fmt.Printf("Error:%d  %s\n", tempHash, tbd[i].Tag)
 			return nil
@@ -306,15 +304,6 @@ func CalcBlockWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
 		return 2
 	}
 	return 1
-}
-
-func onGetBlockId(h *hash.Hash) uint {
-	for _, v := range tbMap {
-		if v.GetHash().IsEqual(h) {
-			return v.GetID()
-		}
-	}
-	return MaxId
 }
 
 func loadBlockDB(cfg *config.Config) (database.DB, error) {

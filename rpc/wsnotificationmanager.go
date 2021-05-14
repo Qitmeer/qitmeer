@@ -38,8 +38,6 @@ type notificationTxByBlock struct {
 
 // Notification control requests
 type notificationRegisterClient wsClient
-type notificationNodeExit struct {
-}
 type notificationUnregisterClient wsClient
 type notificationRegisterBlocks wsClient
 type notificationRegisterTxConfirms wsClient
@@ -64,7 +62,7 @@ func (m *wsNotificationManager) Start() {
 }
 
 func (m *wsNotificationManager) Stop() {
-	m.queueNotification <- &notificationNodeExit{}
+	close(m.quit)
 	m.wg.Wait()
 }
 
@@ -148,10 +146,6 @@ out:
 				wsc := (*wsClient)(n)
 				clients[wsc.quit] = wsc
 
-			case *notificationNodeExit:
-				m.notifyExit(clients)
-				close(m.quit)
-
 			case *notificationUnregisterClient:
 				wsc := (*wsClient)(n)
 				// Remove any requests made by the client as well as
@@ -181,6 +175,7 @@ out:
 		}
 	}
 
+	m.notifyExit(clients)
 	for _, c := range clients {
 		c.Disconnect()
 	}

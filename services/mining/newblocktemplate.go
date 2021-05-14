@@ -407,7 +407,7 @@ mempoolLoop:
 		Version:    blockVersion,
 		ParentRoot: *paMerkles[len(paMerkles)-1],
 		TxRoot:     *merkles[len(merkles)-1],
-		StateRoot:  hash.Hash{}, //TODO, state root
+		StateRoot:  blockManager.GetChain().CalculateTokenStateRoot(blockTxns, parents),
 		Timestamp:  ts,
 		Difficulty: reqCompactDifficulty,
 		Pow:        pow.GetInstance(powType, 0, []byte{}),

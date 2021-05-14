@@ -94,7 +94,7 @@ func TestCreateMixParamsSciptToHashAddress(t *testing.T) {
 		p, _ := EcPrivateKeyToEcPublicKey(false, k)
 		a, _ := EcScriptKeyToAddress("mixnet", p)
 		//fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-		if !assert.Contains(t, a, "Xd") {
+		if !assert.Contains(t, a, "XS") {
 			break
 		}
 		times++

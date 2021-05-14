@@ -153,7 +153,7 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		// transaction tree.
 		msgTx := tx.Transaction()
 		txType := types.DetermineTxType(msgTx)
-		if txType != types.TxTypeRegular {
+		if txType != types.TxTypeRegular && txType != types.TxTypeCoinbase {
 			errStr := fmt.Sprintf("block contains a irregular "+
 				"transaction in the regular transaction tree at "+
 				"index %d", i)
@@ -178,6 +178,18 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		str := fmt.Sprintf("block merkle root is invalid - block "+
 			"header indicates %v, but calculated value is %v",
 			header.TxRoot, calculatedMerkleRoot)
+		return ruleError(ErrBadMerkleRoot, str)
+	}
+
+	// Build merkle tree and ensure the calculated merkle root matches the
+	// entry in the block header.  This also has the effect of caching all
+	// of the token balance hashes in the block to speed up future hash
+	// checks.
+	calculatedTokenStateRoot := b.CalculateTokenStateRoot(block.Transactions(), msgBlock.Parents)
+	if !header.StateRoot.IsEqual(&calculatedTokenStateRoot) {
+		str := fmt.Sprintf("block merkle state root is invalid - block "+
+			"header indicates %s, but calculated value is %s",
+			header.StateRoot, calculatedTokenStateRoot)
 		return ruleError(ErrBadMerkleRoot, str)
 	}
 

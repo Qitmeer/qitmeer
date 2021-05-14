@@ -20,6 +20,8 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/client"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -95,11 +97,12 @@ type testWallet struct {
 	currentOrder int64
 	sync.RWMutex
 
-	netParams      *params.Params
-	t              *testing.T
-	client         *Client
-	maxRescanOrder uint64
-	ScanCount      uint64
+	netParams        *params.Params
+	t                *testing.T
+	client           *Client
+	maxRescanOrder   uint64
+	ScanCount        uint64
+	OnRescanComplete func()
 }
 
 func (w *testWallet) setRpcClient(client *Client) {
@@ -169,6 +172,14 @@ func (w *testWallet) newAddress() (types.Address, error) {
 	w.addrs[num] = addrx
 	w.hdChildNumer++
 	return addrx, nil
+}
+
+// NewAddress return a new address from the wallet's key chain
+// which is safe for concurrent access
+func (m *testWallet) NewAddress() (types.Address, error) {
+	m.Lock()
+	defer m.Unlock()
+	return m.newAddress()
 }
 
 // convert the serialized private key into the p2pkh address
@@ -284,8 +295,8 @@ func (w *testWallet) doInputs(inputs []*types.TxInput, undo *undo) {
 
 // SpendOutputsAndSend will create tx to pay the specified tx outputs
 // and send the tx to the test harness node.
-func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amount) (*hash.Hash, error) {
-	if tx, err := w.createTx(outputs, feePerByte); err != nil {
+func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amount, preOutpoint *types.TxOutPoint, lockTime *int64) (*hash.Hash, error) {
+	if tx, err := w.createTx(outputs, feePerByte, preOutpoint, lockTime); err != nil {
 		return nil, err
 	} else {
 		txByte, err := tx.Serialize()
@@ -297,7 +308,7 @@ func (w *testWallet) PayAndSend(outputs []*types.TxOutput, feePerByte types.Amou
 		return w.client.SendRawTx(txHex, true)
 	}
 }
-func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount) (*types.Transaction, error) {
+func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount, preOutpoint *types.TxOutPoint, lockTime *int64) (*types.Transaction, error) {
 	w.Lock()
 	defer w.Unlock()
 	const (
@@ -309,6 +320,12 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		// <coin_id> <value> <len> OP_DUP OP_HASH160 OP_DATA_20 <pk_hash> OP_EQUALVERIFY OP_CHECKSIG
 		changeOutPutSize = 2 + 8 + 1 + 1 + 1 + 1 + 20 + 1 + 1
 	)
+
+	if lockTime != nil &&
+		(*lockTime < 0 || *lockTime > int64(types.MaxTxInSequenceNum)) {
+		return nil, fmt.Errorf("Locktime out of range")
+	}
+
 	tx := types.NewTransaction()
 	txSize := int64(0)
 
@@ -322,6 +339,12 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		totalOutAmt[o.Amount.Id] += o.Amount.Value
 		tx.AddTxOut(o)
 	}
+
+	// Set the Locktime, if given.
+	if lockTime != nil {
+		tx.LockTime = uint32(*lockTime)
+	}
+	useCLTVPubKeyHashTy := false
 	enoughFund := false
 	// select inputs from utxo set of the wallet && add them into tx
 	for txOutPoint, utxo := range w.utxos {
@@ -333,9 +356,27 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		if _, ok := totalOutAmt[utxo.value.Id]; !ok {
 			continue
 		}
+		if txscript.GetScriptClass(0, utxo.pkScript) == txscript.CLTVPubKeyHashTy {
+			scripts, _ := txscript.DisasmString(utxo.pkScript)
+			arr := strings.Split(scripts, " ")
+			needHeight, _ := strconv.ParseInt(arr[0], 16, 32)
+			if tx.LockTime < uint32(needHeight) {
+				continue
+			}
+			useCLTVPubKeyHashTy = true
+		}
+		if preOutpoint != nil {
+			if *preOutpoint != txOutPoint {
+				continue
+			}
+		}
 		totalInAmt[utxo.value.Id] += utxo.value.Value
 		// add selected input into tx
-		tx.AddTxIn(types.NewTxInput(&txOutPoint, nil))
+		txIn := types.NewTxInput(&txOutPoint, nil)
+		if useCLTVPubKeyHashTy {
+			txIn.Sequence = types.MaxTxInSequenceNum - 1
+		}
+		tx.AddTxIn(txIn)
 		// calculate required fee
 		txSize = int64(tx.SerializeSize() + maxSignScriptSize*len(tx.TxIn) + changeOutPutSize)
 		//fmt.Printf("createTx: txSerSize=%v, txSize=(%v+%v*%v)=%v\n",tx.SerializeSize(), tx.SerializeSize(), maxSignScriptSize, len(tx.TxIn), txSize)
@@ -522,4 +563,7 @@ func (w *testWallet) OnRescanProgress(rescanPro *cmds.RescanProgressNtfn) {
 }
 func (w *testWallet) OnRescanFinish(rescanFinish *cmds.RescanFinishedNtfn) {
 	w.t.Log("OnRescanFinish", rescanFinish.Order, rescanFinish.Hash)
+	if w.OnRescanComplete != nil {
+		w.OnRescanComplete()
+	}
 }

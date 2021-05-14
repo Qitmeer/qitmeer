@@ -197,13 +197,14 @@ func (b *BlockChain) createChainState() error {
 	genesisBlock.SetOrder(0)
 	header := &genesisBlock.Block().Header
 	node := newBlockNode(header, nil)
-	node.status = statusDataStored | statusValid
+	node.SetStatusFlags(statusDataStored | statusValid)
 	b.bd.AddBlock(node)
 	node.SetOrder(0)
 	node.SetHeight(0)
 	node.SetLayer(0)
 	node.dagID = 0
 	b.index.addNode(node)
+	node.FlushToDB(b)
 	// Initialize the state related to the best block.  Since it is the
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
@@ -234,19 +235,6 @@ func (b *BlockChain) createChainState() error {
 			return err
 		}
 
-		// Create the bucket that houses the block index data.
-		_, err = meta.CreateBucket(dbnamespace.BlockIndexBucketName)
-		if err != nil {
-			return err
-		}
-
-		// Create the bucket that houses the chain block order to hash
-		// index.
-		_, err = meta.CreateBucket(dbnamespace.OrderIdBucketName)
-		if err != nil {
-			return err
-		}
-
 		// Create the bucket that houses the spend journal data.
 		_, err = meta.CreateBucket(dbnamespace.SpendJournalBucketName)
 		if err != nil {
@@ -261,21 +249,11 @@ func (b *BlockChain) createChainState() error {
 			return err
 		}
 
-		// Add the genesis block to the block index.
-		ib := b.bd.GetBlock(&node.hash)
-		ib.SetStatus(blockdag.BlockStatus(node.status))
-		err = blockdag.DBPutDAGBlock(dbTx, ib)
-		if err != nil {
-			return err
-		}
-
 		// Store the current best chain state into the database.
 		err = dbPutBestState(dbTx, b.stateSnapshot, node.workSum)
 		if err != nil {
 			return err
 		}
-
-		blockdag.DBPutDAGInfo(dbTx, b.bd)
 
 		// Add genesis utxo
 		view := NewUtxoViewpoint()

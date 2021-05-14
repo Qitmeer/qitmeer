@@ -244,7 +244,10 @@ type Params struct {
 	SecurityLevel float64
 
 	// Coin config
-	CoinsCfg *types.CoinConfigs
+	CoinsCfg             *types.CoinConfigs
+	UnlocksPerHeight     int   // How many will be unlocked at each DAG main height.
+	UnlocksPerHeightStep int   // How many height will lock a tx.
+	GenesisAmountUnit    int64 // the unit amount of equally divided.
 }
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax

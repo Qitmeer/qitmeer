@@ -1,10 +1,35 @@
-package ledger
+// This file is ignored during the regular build due to the following build tag.
+// It is called by go generate and used to automatically generate pre-computed
+// tables used to accelerate operations.
+// +build ignore
+
+//go:generate go run privpayouts.go ledgerpayout.go
+
+package main
 
 import (
-	. "github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/params"
 )
 
-func initPriv() {
-	addPayout2("RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs", Amount{Value: 5000 * AtomsPerCoin, Id: MEERID}, "76a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac")
-	addPayout2("RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs", Amount{Value: 500 * AtomsPerCoin, Id: QITID}, "76a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac")
+var PrivGeneData = []GenesisInitPayout{
+	{
+		types.MEERID, "RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs", 5000, GENE_PAYOUT_TYPE_STANDARD, 0,
+	},
+	{
+		types.QITID, "RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs", 500, GENE_PAYOUT_TYPE_STANDARD, 0,
+	},
+	{
+		types.MEERID, "RmHFARk5xmoMNUVJ6UCHFiWQML1vxwUhw1b", 100, GENE_PAYOUT_TYPE_LOCK_WITH_HEIGHT, 2,
+	},
+}
+
+// coinid,address,lockAmount,locktype,lockheight
+var PrivGeneDataFromImport = []string{
+	"0,RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs,50000,1,0",
+	"0,RmHFARk5xmoMNUVJ6UCHFiWQML1vxwUhw1b,1254.345,1,0",
+}
+
+func main() {
+	GeneratePayoutFile(params.PrivNetParam.Params, PrivGeneData, PrivGeneDataFromImport)
 }
