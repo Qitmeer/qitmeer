@@ -870,7 +870,7 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		}
 	}
 
-	return nil
+	return b.CheckTokenState(node, block)
 }
 
 // consensusScriptVerifyFlags returns the script flags that must be used when

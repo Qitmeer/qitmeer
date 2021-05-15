@@ -348,3 +348,45 @@ func (b *BlockChain) GetTokenState(bid uint32) *token.TokenState {
 	}
 	return state
 }
+
+func (b *BlockChain) CheckTokenState(node *blockNode, block *types.SerializedBlock) error {
+	updates := []token.ITokenUpdate{}
+	for _, tx := range block.Transactions() {
+		if tx.IsDuplicate {
+			log.Trace(fmt.Sprintf("updateTokenBalance skip duplicate tx %v", tx.Hash()))
+			continue
+		}
+
+		if token.IsTokenMint(tx.Tx) {
+			// TOKEN_MINT: input[0] token output[0] meer
+			update := token.NewBalanceUpdate(types.TxTypeTokenMint, tx.Tx.TxOut[0].Amount.Value, tx.Tx.TxIn[0].AmountIn)
+			// append to update only when check & try has done with no err
+			updates = append(updates, update)
+		}
+		if token.IsTokenUnMint(tx.Tx) {
+			// TOKEN_UNMINT: input[0] meer output[0] token
+			// the previous logic must make sure the legality of values, here only append.
+			update := token.NewBalanceUpdate(types.TxTypeTokenUnmint, tx.Tx.TxIn[0].AmountIn.Value, tx.Tx.TxOut[0].Amount)
+			// append to update only when check & try has done with no err
+			updates = append(updates, update)
+		}
+		if types.IsTokenTx(tx.Tx) {
+			update, err := token.NewTypeUpdateFromTx(tx.Tx)
+			if err != nil {
+				return err
+			}
+			updates = append(updates, update)
+		}
+	}
+	if len(updates) <= 0 {
+		return nil
+	}
+	state := b.GetTokenState(b.TokenTipID)
+	if state == nil {
+		state = &token.TokenState{PrevStateID: uint32(blockdag.MaxId), Updates: updates}
+	} else {
+		state.PrevStateID = b.TokenTipID
+		state.Updates = updates
+	}
+	return state.Update()
+}
