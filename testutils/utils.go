@@ -130,6 +130,8 @@ func AssertScan(t *testing.T, h *Harness, maxOrder, scanCount uint64) {
 
 func AssertMempoolTxNotify(t *testing.T, h *Harness, txid, addr string, timeout int) {
 	TimeoutFunc(t, func() bool {
+		h.Wallet.Lock()
+		defer h.Wallet.Unlock()
 		if h.Wallet.mempoolTx != nil {
 			if _, ok := h.Wallet.mempoolTx[txid]; ok {
 				return true
@@ -137,6 +139,9 @@ func AssertMempoolTxNotify(t *testing.T, h *Harness, txid, addr string, timeout 
 		}
 		return false
 	}, timeout)
+
+	h.Wallet.Lock()
+	defer h.Wallet.Unlock()
 	if h.Wallet.mempoolTx == nil {
 		t.Fatalf("not match mempool tx")
 	}
@@ -149,6 +154,9 @@ func AssertMempoolTxNotify(t *testing.T, h *Harness, txid, addr string, timeout 
 }
 
 func AssertTxConfirm(t *testing.T, h *Harness, txid string, confirms uint64) {
+	h.Wallet.Lock()
+	defer h.Wallet.Unlock()
+
 	if h.Wallet.confirmTxs == nil {
 		t.Fatalf("not have any confirms txs")
 	}
