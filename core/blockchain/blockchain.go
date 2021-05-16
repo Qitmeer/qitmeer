@@ -1460,6 +1460,14 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 			// append to update only when check & try has done with no err
 			updates = append(updates, update)
 		}
+		if types.IsTokenTx(tx.Tx) {
+			update, err := token.NewTypeUpdateFromTx(tx.Tx)
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+			updates = append(updates, update)
+		}
 	}
 	if len(updates) <= 0 {
 		if len(parents) <= 0 {

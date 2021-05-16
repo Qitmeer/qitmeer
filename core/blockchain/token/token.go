@@ -46,10 +46,6 @@ const (
 	TokenIdSize = 2
 )
 
-var (
-	zeroHash = &hash.Hash{}
-)
-
 // CheckTokenMint verifies the input if is a valid TOKEN_MINT transaction.
 // The function return the signature, public key, tokenId and an error.
 // The function ONLY check if the format is correct. for the returned signature,
@@ -357,7 +353,7 @@ func IsTokenUnMint(tx *types.Transaction) bool {
 
 func isNullOutPoint(tx *types.Transaction) bool {
 	op := &tx.TxIn[0].PreviousOut
-	if op.OutIndex == math.MaxUint32 && op.Hash.IsEqual(zeroHash) {
+	if op.OutIndex == math.MaxUint32 && op.Hash.IsEqual(&hash.ZeroHash) {
 		return true
 	}
 	return false
