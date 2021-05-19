@@ -138,4 +138,7 @@ var MixNetParams = Params{
 			Value: 0,
 		},
 	},
+
+	// Support tx type config
+	TxTypesCfg: []types.TxType{types.TxTypeRegular, types.TxTypeCoinbase},
 }

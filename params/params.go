@@ -249,6 +249,9 @@ type Params struct {
 
 	// Coin config
 	CoinsCfg *types.CoinConfigs
+
+	// Support tx type config
+	TxTypesCfg []types.TxType
 }
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax
@@ -262,6 +265,18 @@ func (p *Params) HasTax() bool {
 	if p.BlockTaxProportion > 0 &&
 		len(p.OrganizationPkScript) > 0 {
 		return true
+	}
+	return false
+}
+
+func (p *Params) IsValidTxType(tt types.TxType) bool {
+	if len(p.TxTypesCfg) <= 0 {
+		return false
+	}
+	for _, txt := range p.TxTypesCfg {
+		if txt == tt {
+			return true
+		}
 	}
 	return false
 }

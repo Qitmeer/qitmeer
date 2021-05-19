@@ -152,7 +152,7 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		// A block must not have stake transactions in the regular
 		// transaction tree.
 		msgTx := tx.Transaction()
-		if !types.IsValidTxType(types.DetermineTxType(msgTx), params.ActiveNetParams.Net) {
+		if !params.ActiveNetParams.IsValidTxType(types.DetermineTxType(msgTx)) {
 			errStr := fmt.Sprintf("block contains a irregular "+
 				"transaction in the regular transaction tree at "+
 				"index %d", i)

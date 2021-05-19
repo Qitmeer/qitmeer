@@ -7,7 +7,6 @@ package types
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/math"
-	"github.com/Qitmeer/qitmeer/core/protocol"
 )
 
 // TxType indicates the type of transactions
@@ -188,23 +187,4 @@ func IsTokenTx(tx *Transaction) bool {
 		IsTokenRenewTx(tx) ||
 		IsTokenValidateTx(tx) ||
 		IsTokenInvalidateTx(tx)
-}
-
-func IsValidTxType(tt TxType, net protocol.Network) bool {
-	if tt == TxTypeRegular ||
-		tt == TxTypeCoinbase ||
-		tt == TxTypeGenesisLock {
-		return true
-	}
-
-	if net == protocol.PrivNet || net == protocol.TestNet {
-		if tt == TxTypeTokenNew ||
-			tt == TxTypeTokenRenew ||
-			tt == TxTypeTokenValidate ||
-			tt == TxTypeTokenInvalidate {
-			return true
-		}
-	}
-
-	return false
 }

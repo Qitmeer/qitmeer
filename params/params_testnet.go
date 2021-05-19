@@ -9,6 +9,7 @@ package params
 import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"math/big"
 	"time"
@@ -126,4 +127,12 @@ var TestNetParams = Params{
 	HDCoinType: 223,
 
 	//OrganizationPkScript:  hexMustDecode("76a914868b9b6bc7e4a9c804ad3d3d7a2a6be27476941e88ac"),
+
+	// Support tx type config
+	TxTypesCfg: []types.TxType{types.TxTypeRegular,
+		types.TxTypeCoinbase,
+		types.TxTypeTokenNew,
+		types.TxTypeTokenRenew,
+		types.TxTypeTokenInvalidate,
+		types.TxTypeTokenValidate},
 }

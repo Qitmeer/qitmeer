@@ -9,6 +9,7 @@ package params
 import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"math/big"
 	"time"
@@ -138,4 +139,12 @@ var PrivNetParams = Params{
 	TokenAdminPkScript: hexMustDecode("000000c9756d76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
 
 	CoinbaseMaturity: 16,
+
+	// Support tx type config
+	TxTypesCfg: []types.TxType{types.TxTypeRegular,
+		types.TxTypeCoinbase,
+		types.TxTypeTokenNew,
+		types.TxTypeTokenRenew,
+		types.TxTypeTokenInvalidate,
+		types.TxTypeTokenValidate},
 }
