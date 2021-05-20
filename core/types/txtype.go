@@ -35,6 +35,44 @@ const (
 	TxTypeTokenUnmint TxType = 0x92 // token owner unmint token amount by releasing MEER. (must validated token)
 )
 
+func (tt TxType) String() string {
+	switch tt {
+	case TxTypeRegular:
+		return "TxTypeRegular"
+	case TxTypeCoinbase:
+		return "TxTypeCoinbase"
+	case TxTypeGenesisLock:
+		return "TxTypeGenesisLock"
+	case TxTypeStakebase:
+		return "TxTypeStakebase"
+	case TyTypeStakeReserve:
+		return "TyTypeStakeReserve"
+	case TxTypeStakePurchase:
+		return "TxTypeStakePurchase"
+	case TxTypeStakeDispose:
+		return "TxTypeStakeDispose"
+	case TxTypeTokenRegulation:
+		return "TxTypeTokenRegulation"
+	case TxTypeTokenNew:
+		return "TxTypeTokenNew"
+	case TxTypeTokenRenew:
+		return "TxTypeTokenRenew"
+	case TxTypeTokenValidate:
+		return "TxTypeTokenValidate"
+	case TxTypeTokenInvalidate:
+		return "TxTypeTokenInvalidate"
+	case TxTypeTokenRevoke:
+		return "TxTypeTokenRevoke"
+	case TxTypeTokenbase:
+		return "TxTypeTokenbase"
+	case TxTypeTokenMint:
+		return "TxTypeTokenMint"
+	case TxTypeTokenUnmint:
+		return "TxTypeTokenUnmint"
+	}
+	return "Unknow"
+}
+
 // DetermineTxType determines the type of transaction
 func DetermineTxType(tx *Transaction) TxType {
 	if IsCoinBaseTx(tx) {

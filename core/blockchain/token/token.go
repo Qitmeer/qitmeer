@@ -370,5 +370,5 @@ func NewUpdateFromTx(tx *types.Transaction) (ITokenUpdate, error) {
 	} else {
 		return NewTypeUpdateFromTx(tx)
 	}
-	return nil, fmt.Errorf("Not supported:%v\n", types.DetermineTxType(tx))
+	return nil, fmt.Errorf("Not supported:%s\n", types.DetermineTxType(tx))
 }
