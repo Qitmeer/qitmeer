@@ -316,18 +316,8 @@ func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error 
 		return ruleError(ErrTxTooBig, str)
 	}
 
-	// Token Mint Tx
-	if token.IsTokenMint(tx) {
-		// TOKEN_MINT: input[0] token output[0] meer
-		update := token.NewBalanceUpdate(types.TxTypeTokenMint, tx.TxOut[0].Amount.Value, tx.TxIn[0].AmountIn)
-		return update.CheckSanity()
-	} else if token.IsTokenUnMint(tx) {
-		// TOKEN_UNMINT: input[0] meer output[0] token
-		// the previous logic must make sure the legality of values, here only append.
-		update := token.NewBalanceUpdate(types.TxTypeTokenUnmint, tx.TxIn[0].AmountIn.Value, tx.TxOut[0].Amount)
-		return update.CheckSanity()
-	} else if types.IsTokenTx(tx) {
-		update, err := token.NewTypeUpdateFromTx(tx)
+	if types.IsTokenTx(tx) {
+		update, err := token.NewUpdateFromTx(tx)
 		if err != nil {
 			return err
 		}

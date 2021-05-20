@@ -55,7 +55,15 @@ func DetermineTxType(tx *Transaction) TxType {
 	if IsTokenInvalidateTx(tx) {
 		return TxTypeTokenInvalidate
 	}
-
+	if IsTokenInvalidateTx(tx) {
+		return TxTypeTokenInvalidate
+	}
+	if IsTokenMintTx(tx) {
+		return TxTypeTokenMint
+	}
+	if IsTokenUnmintTx(tx) {
+		return TxTypeTokenUnmint
+	}
 	//TODO more txType
 	return TxTypeRegular
 }
@@ -182,9 +190,31 @@ func IsTokenInvalidateTx(tx *Transaction) bool {
 	return TxType(tx.TxIn[0].Sequence) == TxTypeTokenInvalidate
 }
 
+func IsTokenMintTx(tx *Transaction) bool {
+	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+		return false
+	}
+	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
+		return false
+	}
+	return TxType(tx.TxIn[0].Sequence) == TxTypeTokenMint
+}
+
+func IsTokenUnmintTx(tx *Transaction) bool {
+	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+		return false
+	}
+	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
+		return false
+	}
+	return TxType(tx.TxIn[0].Sequence) == TxTypeTokenUnmint
+}
+
 func IsTokenTx(tx *Transaction) bool {
 	return IsTokenNewTx(tx) ||
 		IsTokenRenewTx(tx) ||
 		IsTokenValidateTx(tx) ||
-		IsTokenInvalidateTx(tx)
+		IsTokenInvalidateTx(tx) ||
+		IsTokenMintTx(tx) ||
+		IsTokenUnmintTx(tx)
 }

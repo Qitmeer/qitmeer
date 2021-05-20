@@ -285,21 +285,8 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 			continue
 		}
 
-		if token.IsTokenMint(tx.Tx) {
-			// TOKEN_MINT: input[0] token output[0] meer
-			update := token.NewBalanceUpdate(types.TxTypeTokenMint, tx.Tx.TxOut[0].Amount.Value, tx.Tx.TxIn[0].AmountIn)
-			// append to update only when check & try has done with no err
-			updates = append(updates, update)
-		}
-		if token.IsTokenUnMint(tx.Tx) {
-			// TOKEN_UNMINT: input[0] meer output[0] token
-			// the previous logic must make sure the legality of values, here only append.
-			update := token.NewBalanceUpdate(types.TxTypeTokenUnmint, tx.Tx.TxIn[0].AmountIn.Value, tx.Tx.TxOut[0].Amount)
-			// append to update only when check & try has done with no err
-			updates = append(updates, update)
-		}
 		if types.IsTokenTx(tx.Tx) {
-			update, err := token.NewTypeUpdateFromTx(tx.Tx)
+			update, err := token.NewUpdateFromTx(tx.Tx)
 			if err != nil {
 				return err
 			}
@@ -357,21 +344,8 @@ func (b *BlockChain) CheckTokenState(node *blockNode, block *types.SerializedBlo
 			continue
 		}
 
-		if token.IsTokenMint(tx.Tx) {
-			// TOKEN_MINT: input[0] token output[0] meer
-			update := token.NewBalanceUpdate(types.TxTypeTokenMint, tx.Tx.TxOut[0].Amount.Value, tx.Tx.TxIn[0].AmountIn)
-			// append to update only when check & try has done with no err
-			updates = append(updates, update)
-		}
-		if token.IsTokenUnMint(tx.Tx) {
-			// TOKEN_UNMINT: input[0] meer output[0] token
-			// the previous logic must make sure the legality of values, here only append.
-			update := token.NewBalanceUpdate(types.TxTypeTokenUnmint, tx.Tx.TxIn[0].AmountIn.Value, tx.Tx.TxOut[0].Amount)
-			// append to update only when check & try has done with no err
-			updates = append(updates, update)
-		}
 		if types.IsTokenTx(tx.Tx) {
-			update, err := token.NewTypeUpdateFromTx(tx.Tx)
+			update, err := token.NewUpdateFromTx(tx.Tx)
 			if err != nil {
 				return err
 			}

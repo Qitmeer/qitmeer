@@ -110,7 +110,7 @@ func NewTypeUpdateFromTx(tx *types.Transaction) (*TypeUpdate, error) {
 		return nil, err
 	}
 
-	if tnScript, ok := script.(*txscript.TokenNewScript); ok {
+	if tnScript, ok := script.(*txscript.TokenScript); ok {
 		return &TypeUpdate{
 			TokenUpdate: &TokenUpdate{Typ: types.DetermineTxType(tx)},
 			Tt: TokenType{

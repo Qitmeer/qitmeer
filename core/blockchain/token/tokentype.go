@@ -107,7 +107,7 @@ func (tt *TokenType) GetAddress() types.Address {
 		return nil
 	}
 
-	if tnScript, ok := script.(*txscript.TokenNewScript); ok {
+	if tnScript, ok := script.(*txscript.TokenScript); ok {
 		addr := tnScript.GetAddresses()
 		if len(addr) > 0 {
 			return addr[0]
