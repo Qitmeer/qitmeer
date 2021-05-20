@@ -367,7 +367,10 @@ func NewUpdateFromTx(tx *types.Transaction) (ITokenUpdate, error) {
 		// TOKEN_UNMINT: input[0] meer output[0] token
 		// the previous logic must make sure the legality of values, here only append.
 		return NewBalanceUpdate(types.TxTypeTokenUnmint, tx.TxIn[0].AmountIn.Value, tx.TxOut[0].Amount), nil
-	} else {
+	} else if types.IsTokenNewTx(tx) ||
+		types.IsTokenRenewTx(tx) ||
+		types.IsTokenValidateTx(tx) ||
+		types.IsTokenInvalidateTx(tx) {
 		return NewTypeUpdateFromTx(tx)
 	}
 	return nil, fmt.Errorf("Not supported:%s\n", types.DetermineTxType(tx))

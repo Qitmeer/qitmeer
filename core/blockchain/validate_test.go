@@ -116,8 +116,8 @@ func createTx() *types.Transaction {
 	builder.AddOp(txscript.OP_TOKEN_UNMINT)
 	unmintScript, _ := builder.Script()
 	tx.AddTxIn(&types.TxInput{
-		PreviousOut: *types.NewOutPoint(&hash.Hash{}, types.MaxPrevOutIndex),
-		Sequence:    types.MaxTxInSequenceNum,
+		PreviousOut: *types.NewOutPoint(&hash.Hash{}, types.TokenPrevOutIndex),
+		Sequence:    uint32(types.TxTypeTokenUnmint),
 		SignScript:  unmintScript,
 		AmountIn:    types.Amount{Value: 10 * 1e8, Id: types.MEERID},
 	})

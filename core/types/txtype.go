@@ -229,7 +229,7 @@ func IsTokenInvalidateTx(tx *Transaction) bool {
 }
 
 func IsTokenMintTx(tx *Transaction) bool {
-	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+	if len(tx.TxOut) < 1 && len(tx.TxIn) <= 1 {
 		return false
 	}
 	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
@@ -239,7 +239,7 @@ func IsTokenMintTx(tx *Transaction) bool {
 }
 
 func IsTokenUnmintTx(tx *Transaction) bool {
-	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+	if len(tx.TxOut) < 1 && len(tx.TxIn) <= 1 {
 		return false
 	}
 	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
