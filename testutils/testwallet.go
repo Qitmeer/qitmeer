@@ -538,6 +538,9 @@ func (w *testWallet) blockDisconnected(hash *hash.Hash, order int64, t time.Time
 }
 
 func (w *testWallet) OnTxConfirm(txConfirm *cmds.TxConfirmResult) {
+	w.Lock()
+	defer w.Unlock()
+
 	w.t.Log("OnTxConfirm", txConfirm.Tx, txConfirm.Confirms, txConfirm.Order)
 	if w.confirmTxs == nil {
 		w.confirmTxs = map[string]uint64{}
@@ -548,6 +551,8 @@ func (w *testWallet) OnTxAcceptedVerbose(c *client.Client, tx *j.DecodeRawTransa
 	w.t.Log("OnTxAcceptedVerbose", tx.Order, tx.Txid, tx.Confirms, tx.Txvalid, tx.IsBlue, tx.Duplicate)
 	if tx.Order <= 0 {
 		// mempool tx
+		w.Lock()
+		defer w.Unlock()
 		if w.mempoolTx == nil {
 			w.mempoolTx = map[string]string{}
 		}
