@@ -962,7 +962,10 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 		return privateKey, true, nil // compressed is true
 	}
 	//
-	if types.IsTokenTx(&redeemTx) {
+	if types.IsTokenNewTx(&redeemTx) ||
+		types.IsTokenRenewTx(&redeemTx) ||
+		types.IsTokenValidateTx(&redeemTx) ||
+		types.IsTokenInvalidateTx(&redeemTx) {
 		if len(param.TokenAdminPkScript) <= 0 {
 			return nil, fmt.Errorf("No token admin pk script.\n")
 		}
@@ -1041,7 +1044,7 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 
 // token
 
-func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, coinName *string, owners *string, uplimit *uint64) (interface{}, error) {
+func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, coinName *string, owners *string, uplimit *uint64, inputs []json.TransactionInput, amounts json.Amounts) (interface{}, error) {
 	txt := types.TxTypeTokenRegulation
 	if !strings.HasPrefix(txtype, "0x") {
 		switch txtype {
@@ -1053,6 +1056,8 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 			txt = types.TxTypeTokenValidate
 		case "invalidate":
 			txt = types.TxTypeTokenInvalidate
+		case "mint":
+			txt = types.TxTypeTokenMint
 		default:
 			return nil, fmt.Errorf("No support %s\n", txtype)
 		}
@@ -1075,69 +1080,124 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 		return nil, fmt.Errorf("Coin ID (%d) is qitmeer reserved. It has to be greater than %d for token type update.\n", coinId, types.QitmeerReservedID)
 	}
 
-	upLi := uint64(math.MaxInt64)
-	if uplimit != nil {
-		upLi = *uplimit
-		if *uplimit == 0 {
-			upLi = uint64(math.MaxInt64)
+	//
+	if txt == types.TxTypeTokenMint {
+		if len(inputs) <= 0 {
+			return nil, fmt.Errorf("Tx inputs cannot be empty\n")
 		}
-	}
-
-	if coinName != nil {
-		if len(*coinName) > token.MaxTokenNameLength {
-			return nil, fmt.Errorf("Coin name is too long:%d  (max:%d)", len(*coinName), token.MaxTokenNameLength)
-		}
-	}
-	if txt != types.TxTypeTokenNew {
-		err := types.CheckCoinID(types.CoinID(coinId))
-		if err != nil {
-			return nil, err
-		}
-	}
-	if txt == types.TxTypeTokenNew || txt == types.TxTypeTokenRenew {
-		if owners == nil {
-			return nil, fmt.Errorf("No owners address\n")
-		}
-		addr, err := address.DecodeAddress(*owners)
-		if err != nil {
-			return nil, rpc.RpcAddressKeyError("Could not decode address: %v", err)
-		}
-		if !address.IsForNetwork(addr, params.ActiveNetParams.Params) {
-			return nil, rpc.RpcAddressKeyError("Wrong network: %v", addr)
+		if len(amounts) <= 0 {
+			return nil, fmt.Errorf("Token amounts cannot be empty\n")
 		}
 
-		if coinName == nil {
-			return nil, fmt.Errorf("No coin name\n")
+		for _, input := range inputs {
+			txid, err := hash.NewHashFromStr(input.Txid)
+			if err != nil {
+				return nil, rpc.RpcDecodeHexError(input.Txid)
+			}
+			prevOut := types.NewOutPoint(txid, input.Vout)
+			txIn := types.NewTxInput(prevOut, []byte{})
+			mtx.AddTxIn(txIn)
 		}
-		pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), upLi, *coinName)
-		if err != nil {
-			return nil, err
+		for encodedAddr, amount := range amounts {
+			// Ensure amount is in the valid range for monetary amounts.
+			if amount <= 0 || amount > types.MaxAmount {
+				return nil, rpc.RpcInvalidError("Invalid amount: 0 >= %v "+
+					"> %v", amount, types.MaxAmount)
+			}
+
+			err := types.CheckCoinID(types.CoinID(coinId))
+			if err != nil {
+				return nil, err
+			}
+			// Decode the provided address.
+			addr, err := address.DecodeAddress(encodedAddr)
+			if err != nil {
+				return nil, rpc.RpcAddressKeyError("Could not decode "+
+					"address: %v", err)
+			}
+
+			if !address.IsForNetwork(addr, api.txManager.bm.ChainParams()) {
+				return nil, rpc.RpcAddressKeyError("Wrong network: %v",
+					addr)
+			}
+
+			// Create a new script which pays to the provided address.
+			pkScript, err := txscript.PayToAddrScript(addr)
+			if err != nil {
+				return nil, rpc.RpcInternalError(err.Error(),
+					"Pay to address script")
+			}
+
+			txOut := types.NewTxOutput(types.Amount{Value: int64(amount), Id: types.CoinID(coinId)}, pkScript)
+			mtx.AddTxOut(txOut)
 		}
-		mtx.AddTxOut(&types.TxOutput{PkScript: pkScript})
 	} else {
-		state := api.txManager.bm.GetChain().GetTokenState(api.txManager.bm.GetChain().TokenTipID)
-		if state == nil {
-			return nil, fmt.Errorf("Token state error\n")
+		//
+
+		upLi := uint64(math.MaxInt64)
+		if uplimit != nil {
+			upLi = *uplimit
+			if *uplimit == 0 {
+				upLi = uint64(math.MaxInt64)
+			}
 		}
-		tt, ok := state.Types[types.CoinID(coinId)]
-		if !ok {
-			return nil, fmt.Errorf("It doesn't exist: Coin id (%d)\n", coinId)
+
+		if coinName != nil {
+			if len(*coinName) > token.MaxTokenNameLength {
+				return nil, fmt.Errorf("Coin name is too long:%d  (max:%d)", len(*coinName), token.MaxTokenNameLength)
+			}
 		}
-		if tt.Enable && txt == types.TxTypeTokenValidate {
-			return nil, fmt.Errorf("Validate is allowed only when disable: Coin id (%d)\n", coinId)
+		if txt != types.TxTypeTokenNew {
+			err := types.CheckCoinID(types.CoinID(coinId))
+			if err != nil {
+				return nil, err
+			}
 		}
-		if !tt.Enable && txt == types.TxTypeTokenInvalidate {
-			return nil, fmt.Errorf("Invalidate is allowed only when enable: Coin id (%d)\n", coinId)
+		if txt == types.TxTypeTokenNew || txt == types.TxTypeTokenRenew {
+			if owners == nil {
+				return nil, fmt.Errorf("No owners address\n")
+			}
+			addr, err := address.DecodeAddress(*owners)
+			if err != nil {
+				return nil, rpc.RpcAddressKeyError("Could not decode address: %v", err)
+			}
+			if !address.IsForNetwork(addr, params.ActiveNetParams.Params) {
+				return nil, rpc.RpcAddressKeyError("Wrong network: %v", addr)
+			}
+
+			if coinName == nil {
+				return nil, fmt.Errorf("No coin name\n")
+			}
+			pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), upLi, *coinName)
+			if err != nil {
+				return nil, err
+			}
+			mtx.AddTxOut(&types.TxOutput{PkScript: pkScript})
+		} else {
+			state := api.txManager.bm.GetChain().GetTokenState(api.txManager.bm.GetChain().TokenTipID)
+			if state == nil {
+				return nil, fmt.Errorf("Token state error\n")
+			}
+			tt, ok := state.Types[types.CoinID(coinId)]
+			if !ok {
+				return nil, fmt.Errorf("It doesn't exist: Coin id (%d)\n", coinId)
+			}
+			if tt.Enable && txt == types.TxTypeTokenValidate {
+				return nil, fmt.Errorf("Validate is allowed only when disable: Coin id (%d)\n", coinId)
+			}
+			if !tt.Enable && txt == types.TxTypeTokenInvalidate {
+				return nil, fmt.Errorf("Invalidate is allowed only when enable: Coin id (%d)\n", coinId)
+			}
+			addr := tt.GetAddress()
+			if addr == nil {
+				return nil, fmt.Errorf("Token owners is error\n")
+			}
+			pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), 0, "")
+			if err != nil {
+				return nil, err
+			}
+			mtx.AddTxOut(&types.TxOutput{PkScript: pkScript})
 		}
-		addr := tt.GetAddress()
-		if addr == nil {
-			return nil, fmt.Errorf("Token owners is error\n")
-		}
-		pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), 0, "")
-		if err != nil {
-			return nil, err
-		}
-		mtx.AddTxOut(&types.TxOutput{PkScript: pkScript})
 	}
 
 	mtxHex, err := marshal.MessageToHex(mtx)
