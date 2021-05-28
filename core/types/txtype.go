@@ -256,3 +256,6 @@ func IsTokenTx(tx *Transaction) bool {
 		IsTokenMintTx(tx) ||
 		IsTokenUnmintTx(tx)
 }
+
+// Standard transaction type
+var StdTxs = []TxType{TxTypeRegular, TxTypeCoinbase}

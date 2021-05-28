@@ -251,7 +251,10 @@ type Params struct {
 	CoinsCfg *types.CoinConfigs
 
 	// Support tx type config
-	TxTypesCfg []types.TxType
+	NonStdTxs []types.TxType
+
+	// accept non standard transactions
+	AcceptNonStdTxs bool
 }
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax
@@ -270,10 +273,12 @@ func (p *Params) HasTax() bool {
 }
 
 func (p *Params) IsValidTxType(tt types.TxType) bool {
-	if len(p.TxTypesCfg) <= 0 {
-		return false
+	txTypesCfg := types.StdTxs
+	if p.AcceptNonStdTxs && len(p.NonStdTxs) > 0 {
+		txTypesCfg = append(txTypesCfg, p.NonStdTxs...)
 	}
-	for _, txt := range p.TxTypesCfg {
+
+	for _, txt := range txTypesCfg {
 		if txt == tt {
 			return true
 		}

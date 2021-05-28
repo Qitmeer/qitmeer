@@ -141,10 +141,11 @@ var PrivNetParams = Params{
 	CoinbaseMaturity: 16,
 
 	// Support tx type config
-	TxTypesCfg: []types.TxType{types.TxTypeRegular,
-		types.TxTypeCoinbase,
+	NonStdTxs: []types.TxType{
 		types.TxTypeTokenNew,
 		types.TxTypeTokenRenew,
 		types.TxTypeTokenInvalidate,
 		types.TxTypeTokenValidate},
+
+	AcceptNonStdTxs: true,
 }

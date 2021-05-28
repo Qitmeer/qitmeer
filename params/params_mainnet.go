@@ -9,7 +9,6 @@ package params
 import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"math/big"
 	"time"
@@ -105,7 +104,4 @@ var MainNetParams = Params{
 	CoinbaseMaturity: 512,
 
 	OrganizationPkScript: hexMustDecode("76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac"),
-
-	// Support tx type config
-	TxTypesCfg: []types.TxType{types.TxTypeRegular, types.TxTypeCoinbase},
 }
