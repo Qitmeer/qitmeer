@@ -145,7 +145,9 @@ var PrivNetParams = Params{
 		types.TxTypeTokenNew,
 		types.TxTypeTokenRenew,
 		types.TxTypeTokenInvalidate,
-		types.TxTypeTokenValidate},
+		types.TxTypeTokenValidate,
+		types.TxTypeTokenMint,
+	},
 
 	AcceptNonStdTxs: true,
 }

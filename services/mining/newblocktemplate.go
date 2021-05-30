@@ -190,7 +190,7 @@ mempoolLoop:
 			txSigOpCosts = append(txSigOpCosts, tokenSOC)
 			tokenSigOpCost += tokenSOC
 			tokenSize += uint32(tx.Transaction().SerializeSize())
-			blockUtxos.AddTokenTxOut()
+			blockUtxos.AddTokenTxOut(nil)
 			continue
 		}
 		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight,
@@ -274,9 +274,9 @@ mempoolLoop:
 	log.Trace(fmt.Sprintf("Weighted random queue len %d, dependers len %d",
 		weightedRandQueue.Len(), len(dependers)))
 
-	blockSize := uint32(blockHeaderOverhead) + uint32(coinbaseTx.Transaction().SerializeSize())
+	blockSize := uint32(blockHeaderOverhead) + uint32(coinbaseTx.Transaction().SerializeSize()) + tokenSize
 
-	blockSigOpCost := coinbaseSigOpCost
+	blockSigOpCost := coinbaseSigOpCost + tokenSigOpCost
 	totalFees := int64(0)
 	blockFeesMap := types.AmountMap{}
 

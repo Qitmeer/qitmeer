@@ -148,18 +148,10 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 
 	// Do some preliminary checks on each regular transaction to ensure they
 	// are sane before continuing.
-	for i, tx := range transactions {
+	for _, tx := range transactions {
 		// A block must not have stake transactions in the regular
 		// transaction tree.
-		msgTx := tx.Transaction()
-		if !params.ActiveNetParams.IsValidTxType(types.DetermineTxType(msgTx)) {
-			errStr := fmt.Sprintf("block contains a irregular "+
-				"transaction in the regular transaction tree at "+
-				"index %d", i)
-			return ruleError(ErrIrregTxInRegularTree, errStr)
-		}
-
-		err := CheckTransactionSanity(msgTx, chainParams)
+		err := CheckTransactionSanity(tx.Transaction(), chainParams)
 		if err != nil {
 			return err
 		}
@@ -297,6 +289,10 @@ func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags
 // CheckTransactionSanity performs some preliminary checks on a transaction to
 // ensure it is sane.  These checks are context free.
 func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error {
+	if !params.IsValidTxType(types.DetermineTxType(tx)) {
+		errStr := fmt.Sprintf("%s is not support transaction type.", types.DetermineTxType(tx).String())
+		return ruleError(ErrIrregTxInRegularTree, errStr)
+	}
 	// A transaction must have at least one input.
 	if len(tx.TxIn) == 0 {
 		return ruleError(ErrNoTxInputs, "transaction has no inputs")
@@ -905,7 +901,16 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 
 	totalFees := types.AmountMap{}
 	for idx, tx := range transactions {
-		if tx.IsDuplicate && !tx.Tx.IsCoinBase() || types.IsTokenTx(tx.Tx) {
+		if tx.IsDuplicate && !tx.Tx.IsCoinBase() {
+			continue
+		}
+		if types.IsTokenTx(tx.Tx) {
+			if types.IsTokenMintTx(tx.Tx) {
+				err := b.CheckTokenTransactionInputs(tx, utxoView)
+				if err != nil {
+					return err
+				}
+			}
 			continue
 		}
 		txFee, err := b.CheckTransactionInputs(tx, utxoView)
@@ -1296,4 +1301,72 @@ func ExtractCoinbaseHeight(coinbaseTx *types.Transaction) (uint64, error) {
 	serializedHeight := binary.LittleEndian.Uint64(serializedHeightBytes)
 
 	return serializedHeight, nil
+}
+
+func (b *BlockChain) CheckTokenTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint) error {
+	msgTx := tx.Transaction()
+	totalAtomIn := int64(0)
+	for idx, txIn := range msgTx.TxIn {
+		if idx == 0 {
+			continue
+		}
+		utxoEntry := utxoView.LookupEntry(txIn.PreviousOut)
+		if utxoEntry == nil || utxoEntry.IsSpent() {
+			str := fmt.Sprintf("output %v referenced from "+
+				"transaction %s:%d either does not exist or "+
+				"has already been spent", txIn.PreviousOut,
+				tx.Hash(), idx)
+			return ruleError(ErrMissingTxOut, str)
+		}
+		if !utxoEntry.amount.Id.IsBase() || !txIn.AmountIn.Id.IsBase() {
+			return fmt.Errorf("Token transaction(%s) input (%s %d) must be MEERID\n", tx.Hash(), txIn.PreviousOut.Hash, txIn.PreviousOut.OutIndex)
+		}
+
+		originTxAtom := utxoEntry.Amount()
+		if originTxAtom.Value != txIn.AmountIn.Value {
+			return fmt.Errorf("Utxo (%d) and input amount (%d) are inconsistent\n", originTxAtom.Value, txIn.AmountIn.Value)
+		}
+
+		if originTxAtom.Value < 0 {
+			str := fmt.Sprintf("transaction output has negative "+
+				"value of %v", originTxAtom)
+			return ruleError(ErrInvalidTxOutValue, str)
+		}
+		if originTxAtom.Value > types.MaxAmount {
+			str := fmt.Sprintf("transaction output value of %v is "+
+				"higher than max allowed value of %v",
+				originTxAtom, types.MaxAmount)
+			return ruleError(ErrInvalidTxOutValue, str)
+		}
+
+		totalAtomIn += originTxAtom.Value
+	}
+
+	totalAtomOut := int64(0)
+	state := b.GetTokenState(b.TokenTipID)
+	if state == nil {
+		return fmt.Errorf("Token state error\n")
+	}
+	coinId := msgTx.TxOut[0].Amount.Id
+	tt, ok := state.Types[coinId]
+	if !ok {
+		return fmt.Errorf("It doesn't exist: Coin id (%d)\n", coinId)
+	}
+	tokenAmount := int64(0)
+	tb, ok := state.Balances[coinId]
+	if ok {
+		tokenAmount = tb.Balance
+	}
+
+	for idx, txOut := range tx.Transaction().TxOut {
+		if txOut.Amount.Id != coinId {
+			return fmt.Errorf("Transaction(%s) output(%d) coin id is invalid\n", tx.Hash(), idx)
+		}
+		totalAtomOut += txOut.Amount.Value
+	}
+	if totalAtomOut+tokenAmount > int64(tt.UpLimit) {
+		return fmt.Errorf("Token transaction mint (%d) exceeds the maximum (%d)\n", totalAtomOut, tt.UpLimit)
+	}
+
+	return nil
 }

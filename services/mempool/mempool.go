@@ -285,8 +285,27 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		if err != nil {
 			return nil, nil, err
 		}
+
 		utxoView := blockchain.NewUtxoViewpoint()
-		utxoView.AddTokenTxOut()
+		if types.IsTokenMintTx(tx.Tx) {
+			utxoView, err = mp.fetchInputUtxos(tx)
+			if err != nil {
+				return nil, nil, err
+			}
+			pkscript, err := mp.cfg.BC.GetCurTokenOwners(tx.Tx.TxOut[0].Amount.Id)
+			if err != nil {
+				return nil, nil, err
+			}
+			utxoView.AddTokenTxOut(pkscript)
+
+			err = mp.cfg.BC.CheckTokenTransactionInputs(tx, utxoView)
+			if err != nil {
+				return nil, nil, err
+			}
+		} else {
+			utxoView.AddTokenTxOut(nil)
+		}
+
 		err = blockchain.ValidateTransactionScripts(tx, utxoView, flags,
 			mp.cfg.SigCache)
 		if err != nil {

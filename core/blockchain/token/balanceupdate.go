@@ -104,10 +104,31 @@ func (bu *BalanceUpdate) CheckSanity() error {
 	return nil
 }
 
-func NewBalanceUpdate(typ types.TxType, meerAmount int64, tokenAmount types.Amount) *BalanceUpdate {
+func NewBalanceUpdate(tx *types.Transaction) (*BalanceUpdate, error) {
+	meerAmount := int64(0)
+	tokenAmount := types.Amount{}
+	if types.IsTokenMintTx(tx) {
+		for idx, in := range tx.TxIn {
+			if idx == 0 {
+				continue
+			}
+			if !in.AmountIn.Id.IsBase() {
+				return nil, fmt.Errorf("Token transaction input (%s %d) must be MEERID\n", in.PreviousOut.Hash, in.PreviousOut.OutIndex)
+			}
+			meerAmount += in.AmountIn.Value
+		}
+		tokenAmount.Id = tx.TxOut[0].Amount.Id
+		for idx, out := range tx.TxOut {
+			if tokenAmount.Id != out.Amount.Id {
+				return nil, fmt.Errorf("Transaction(%s) output(%d) coin id is invalid\n", tx.TxHash(), idx)
+			}
+			tokenAmount.Value += out.Amount.Value
+		}
+	}
+
 	return &BalanceUpdate{
-		TokenUpdate: &TokenUpdate{Typ: typ},
+		TokenUpdate: &TokenUpdate{Typ: types.DetermineTxType(tx)},
 		MeerAmount:  meerAmount,
 		TokenAmount: tokenAmount,
-	}
+	}, nil
 }

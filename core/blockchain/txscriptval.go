@@ -242,7 +242,7 @@ func checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint,
 		}
 
 		if types.IsTokenTx(tx.Tx) {
-			utxoView.AddTokenTxOut()
+			utxoView.AddTokenTxOut(nil)
 		}
 	}
 

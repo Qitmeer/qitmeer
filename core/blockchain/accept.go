@@ -336,6 +336,26 @@ func (b *BlockChain) GetTokenState(bid uint32) *token.TokenState {
 	return state
 }
 
+func (b *BlockChain) GetCurTokenState() *token.TokenState {
+	b.ChainRLock()
+	defer b.ChainRUnlock()
+	return b.GetTokenState(b.TokenTipID)
+}
+
+func (b *BlockChain) GetCurTokenOwners(coinId types.CoinID) ([]byte, error) {
+	b.ChainRLock()
+	defer b.ChainRUnlock()
+	state := b.GetTokenState(b.TokenTipID)
+	if state == nil {
+		return nil, fmt.Errorf("Token state error\n")
+	}
+	tt, ok := state.Types[coinId]
+	if !ok {
+		return nil, fmt.Errorf("It doesn't exist: Coin id (%d)\n", coinId)
+	}
+	return tt.Owners, nil
+}
+
 func (b *BlockChain) CheckTokenState(node *blockNode, block *types.SerializedBlock) error {
 	updates := []token.ITokenUpdate{}
 	for _, tx := range block.Transactions() {

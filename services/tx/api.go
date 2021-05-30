@@ -980,8 +980,22 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 			return nil, fmt.Errorf("the transaction index " +
 				"must be enabled to query the blockchain (specify --txindex in configuration)")
 		}
-
+		var tokenPkScript []byte
+		if types.IsTokenMintTx(&redeemTx) {
+			tokenPkScript, err = api.txManager.bm.GetChain().GetCurTokenOwners(redeemTx.TxOut[0].Amount.Id)
+			if err != nil {
+				return nil, err
+			}
+		}
 		for i := 0; i < len(redeemTx.TxIn); i++ {
+			if i == 0 && len(tokenPkScript) > 0 {
+				sigScript, err := txscript.SignTxOutput(param, &redeemTx, 0, tokenPkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
+				if err != nil {
+					return nil, err
+				}
+				redeemTx.TxIn[0].SignScript = sigScript
+				continue
+			}
 			txHash := redeemTx.TxIn[i].PreviousOut.Hash
 			// Look up the location of the transaction.
 			blockRegion, err := txIndex.TxBlockRegion(txHash)
@@ -1096,7 +1110,23 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 			}
 			prevOut := types.NewOutPoint(txid, input.Vout)
 			txIn := types.NewTxInput(prevOut, []byte{})
+
+			entry, err := api.txManager.bm.GetChain().FetchUtxoEntry(*prevOut)
+			if err != nil {
+				return nil, rpc.RpcNoTxInfoError(txid)
+			}
+			if entry == nil || entry.IsSpent() {
+				return nil, fmt.Errorf("Input(%s %d) is invalid\n", prevOut.Hash, prevOut.OutIndex)
+			}
+			if !entry.Amount().Id.IsBase() {
+				return nil, fmt.Errorf("Token transaction input (%s %d) must be MEERID\n", txIn.PreviousOut.Hash, txIn.PreviousOut.OutIndex)
+			}
+			txIn.AmountIn = entry.Amount()
 			mtx.AddTxIn(txIn)
+		}
+		err := types.CheckCoinID(types.CoinID(coinId))
+		if err != nil {
+			return nil, err
 		}
 		for encodedAddr, amount := range amounts {
 			// Ensure amount is in the valid range for monetary amounts.
@@ -1105,10 +1135,6 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 					"> %v", amount, types.MaxAmount)
 			}
 
-			err := types.CheckCoinID(types.CoinID(coinId))
-			if err != nil {
-				return nil, err
-			}
 			// Decode the provided address.
 			addr, err := address.DecodeAddress(encodedAddr)
 			if err != nil {
@@ -1174,7 +1200,7 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 			}
 			mtx.AddTxOut(&types.TxOutput{PkScript: pkScript})
 		} else {
-			state := api.txManager.bm.GetChain().GetTokenState(api.txManager.bm.GetChain().TokenTipID)
+			state := api.txManager.bm.GetChain().GetCurTokenState()
 			if state == nil {
 				return nil, fmt.Errorf("Token state error\n")
 			}

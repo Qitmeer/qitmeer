@@ -26,10 +26,16 @@ func (c CoinID) Name() string {
 		return "Unknown-CoinID:" + strconv.FormatInt(int64(c), 10)
 	}
 }
+
 func (c CoinID) Bytes() []byte {
 	b := [2]byte{}
 	binary.LittleEndian.PutUint16(b[:], uint16(c))
 	return b[:]
+}
+
+// Is it the main coin ?
+func (c CoinID) IsBase() bool {
+	return c == MEERID
 }
 
 func NewCoinID(name string) CoinID {

@@ -360,13 +360,9 @@ func isNullOutPoint(tx *types.Transaction) bool {
 }
 
 func NewUpdateFromTx(tx *types.Transaction) (ITokenUpdate, error) {
-	if types.IsTokenMintTx(tx) {
-		// TOKEN_MINT: input[0] token output[0] meer
-		return NewBalanceUpdate(types.TxTypeTokenMint, tx.TxOut[0].Amount.Value, tx.TxIn[0].AmountIn), nil
-	} else if types.IsTokenUnmintTx(tx) {
-		// TOKEN_UNMINT: input[0] meer output[0] token
-		// the previous logic must make sure the legality of values, here only append.
-		return NewBalanceUpdate(types.TxTypeTokenUnmint, tx.TxIn[0].AmountIn.Value, tx.TxOut[0].Amount), nil
+	if types.IsTokenMintTx(tx) ||
+		types.IsTokenUnmintTx(tx) {
+		return NewBalanceUpdate(tx)
 	} else if types.IsTokenNewTx(tx) ||
 		types.IsTokenRenewTx(tx) ||
 		types.IsTokenValidateTx(tx) ||

@@ -202,14 +202,17 @@ func (view *UtxoViewpoint) addTxOut(outpoint types.TxOutPoint, txOut *types.TxOu
 	}
 }
 
-func (view *UtxoViewpoint) AddTokenTxOut() {
+func (view *UtxoViewpoint) AddTokenTxOut(pkscript []byte) {
 	outpoint := types.TxOutPoint{Hash: hash.ZeroHash, OutIndex: types.TokenPrevOutIndex}
 	entry := view.LookupEntry(outpoint)
 	if entry == nil {
 		entry = new(UtxoEntry)
 		view.entries[outpoint] = entry
 	}
-	txOut := &types.TxOutput{PkScript: params.ActiveNetParams.Params.TokenAdminPkScript}
+	if len(pkscript) <= 0 {
+		pkscript = params.ActiveNetParams.Params.TokenAdminPkScript
+	}
+	txOut := &types.TxOutput{PkScript: pkscript}
 	entry.amount = txOut.Amount
 	entry.pkScript = txOut.PkScript
 	entry.packedFlags = tfModified
