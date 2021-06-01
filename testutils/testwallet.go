@@ -20,6 +20,8 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/client"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -342,7 +344,7 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 	if lockTime != nil {
 		tx.LockTime = uint32(*lockTime)
 	}
-
+	useCLTVPubKeyHashTy := false
 	enoughFund := false
 	// select inputs from utxo set of the wallet && add them into tx
 	for txOutPoint, utxo := range w.utxos {
@@ -354,6 +356,15 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		if _, ok := totalOutAmt[utxo.value.Id]; !ok {
 			continue
 		}
+		if txscript.GetScriptClass(0, utxo.pkScript) == txscript.CLTVPubKeyHashTy {
+			scripts, _ := txscript.DisasmString(utxo.pkScript)
+			arr := strings.Split(scripts, " ")
+			needHeight, _ := strconv.ParseInt(arr[0], 16, 32)
+			if tx.LockTime < uint32(needHeight) {
+				continue
+			}
+			useCLTVPubKeyHashTy = true
+		}
 		if preOutpoint != nil {
 			if *preOutpoint != txOutPoint {
 				continue
@@ -362,7 +373,7 @@ func (w *testWallet) createTx(outputs []*types.TxOutput, feePerByte types.Amount
 		totalInAmt[utxo.value.Id] += utxo.value.Value
 		// add selected input into tx
 		txIn := types.NewTxInput(&txOutPoint, nil)
-		if lockTime != nil && *lockTime != 0 {
+		if useCLTVPubKeyHashTy {
 			txIn.Sequence = types.MaxTxInSequenceNum - 1
 		}
 		tx.AddTxIn(txIn)

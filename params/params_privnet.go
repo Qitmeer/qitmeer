@@ -37,8 +37,11 @@ var PrivNetParams = Params{
 	Bootstrap:      []string{},
 
 	// Chain parameters
-	GenesisBlock: &privNetGenesisBlock,
-	GenesisHash:  &privNetGenesisHash,
+	GenesisBlock:         &privNetGenesisBlock,
+	GenesisHash:          &privNetGenesisHash,
+	UnlocksPerHeight:     10000 * 1e8,
+	GenesisAmountUnit:    1000 * 1e8,
+	UnlocksPerHeightStep: 10,
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             privNetPowLimit,
 		Blake2bdPowLimitBits:         0x207fffff,
@@ -93,7 +96,7 @@ var PrivNetParams = Params{
 	MaximumBlockSizes:        []int{1000000, 1310720},
 	MaxTxSize:                1000000,
 	WorkDiffAlpha:            1,
-	WorkDiffWindowSize:       16,
+	WorkDiffWindowSize:       160,
 	WorkDiffWindows:          20,
 	TargetTimePerBlock:       time.Second * privTargetTimePerBlock,
 	TargetTimespan:           time.Second * privTargetTimePerBlock * 16, // TimePerBlock * WindowSize

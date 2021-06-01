@@ -84,6 +84,27 @@ func Spend(t *testing.T, h *Harness, amt types.Amount, preOutpoint *types.TxOutP
 	return txId, addr
 }
 
+// Spend amount from the wallet of the test harness and return tx hash
+func CanNotSpend(t *testing.T, h *Harness, amt types.Amount, preOutpoint *types.TxOutPoint, lockTime *int64) (*hash.Hash, types.Address) {
+	addr, err := h.Wallet.NewAddress()
+	if err != nil {
+		t.Fatalf("failed to generate new address for test wallet: %v", err)
+	}
+	t.Logf("test wallet generated new address %v ok", addr.Encode())
+	addrScript, err := txscript.PayToAddrScript(addr)
+	if err != nil {
+		t.Fatalf("failed to generated addr script: %v", err)
+	}
+	output := types.NewTxOutput(amt, addrScript)
+
+	feeRate := types.Amount{Value: 10, Id: amt.Id}
+	_, err = h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, preOutpoint, lockTime)
+	if err == nil {
+		t.Fatalf("lock script error")
+	}
+	return nil, addr
+}
+
 // TODO, order and height not work for the SerializedBlock
 func AssertTxMinedUseSerializedBlock(t *testing.T, h *Harness, txId *hash.Hash, blockHash *hash.Hash) {
 	block, err := h.Client.GetSerializedBlock(blockHash)

@@ -44,7 +44,8 @@ func TestWsNotify(t *testing.T) {
 		return
 	}
 	spendAmt := types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
-	txid, addr := Spend(t, h, spendAmt, nil, nil)
+	lockT := int64(1)
+	txid, addr := Spend(t, h, spendAmt, nil, &lockT)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
 	t.Log(h.Wallet.Addresses())
 	AssertMempoolTxNotify(t, h, txid.String(), addr.String(), 5)

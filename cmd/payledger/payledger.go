@@ -55,11 +55,13 @@ func main() {
 		log.Error(err.Error())
 		return
 	}
+
 	if cfg.Last {
 		// Just show last result
 		buildLedger(srcnode, cfg)
 		return
 	}
+
 	if cfg.ShowEndPoints > 0 {
 		showEndBlocks(srcnode)
 		return
