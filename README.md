@@ -102,6 +102,9 @@ The command line utility of Qitmeer
 ## How to Work with ZeroMQ
 [Block and Transaction Broadcasting with ZeroMQ](services/zmq/README.md) for details on how this works.
 
+## How to use Token
+[Qitmeer Token](core/blockchain/token/README.md) for details on how this works.
+
 ## FAQ
 
 ### How to exit qitmeer properly.

@@ -3,18 +3,7 @@ package types
 import "testing"
 
 func Test_CoinConfigs(t *testing.T) {
-	coinsCfg := &CoinConfigs{
-		&CoinConfig{
-			Id:    METID,
-			Type:  FloorFeeType,
-			Value: AtomsPerCoin,
-		},
-		&CoinConfig{
-			Id:    TERID,
-			Type:  EqualFeeType,
-			Value: AtomsPerCoin,
-		},
-	}
+	coinsCfg := &CoinConfigs{}
 
 	tests := []struct {
 		txFees AmountMap
@@ -24,8 +13,6 @@ func Test_CoinConfigs(t *testing.T) {
 			txFees: AmountMap{
 				MEERID: AtomsPerCoin,
 				QITID:  AtomsPerCoin,
-				METID:  AtomsPerCoin,
-				TERID:  AtomsPerCoin,
 			},
 			expect: true,
 		},
@@ -33,8 +20,6 @@ func Test_CoinConfigs(t *testing.T) {
 			txFees: AmountMap{
 				MEERID: AtomsPerCoin * 2,
 				QITID:  AtomsPerCoin * 3,
-				METID:  AtomsPerCoin,
-				TERID:  AtomsPerCoin,
 			},
 			expect: true,
 		},
@@ -42,19 +27,15 @@ func Test_CoinConfigs(t *testing.T) {
 			txFees: AmountMap{
 				MEERID: AtomsPerCoin,
 				QITID:  AtomsPerCoin,
-				METID:  AtomsPerCoin - 1,
-				TERID:  AtomsPerCoin,
 			},
-			expect: false,
+			expect: true,
 		},
 		{
 			txFees: AmountMap{
 				MEERID: AtomsPerCoin,
 				QITID:  AtomsPerCoin,
-				METID:  AtomsPerCoin,
-				TERID:  AtomsPerCoin * 2,
 			},
-			expect: false,
+			expect: true,
 		},
 	}
 

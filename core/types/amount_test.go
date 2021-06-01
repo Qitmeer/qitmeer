@@ -370,7 +370,6 @@ func TestCheckCoinID(t *testing.T) {
 		coinId CoinID
 	}{
 		{"meer", true, CoinID(0)},
-		{"qit", true, CoinID(1)},
 		{"unknow", false, CoinID(4)},
 	}
 

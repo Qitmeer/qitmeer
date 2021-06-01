@@ -206,15 +206,49 @@ function tx_sign(){
 }
 
 #
-function create_raw_tx(){
+function create_raw_tx() {
   local input=$1
   local data='{"jsonrpc":"2.0","method":"createRawTransaction","params":['$input'],"id":1}'
   get_result "$data"
 }
 
-function create_raw_txv2(){
+function create_raw_txv2() {
   local input=$1
   local data='{"jsonrpc":"2.0","method":"createRawTransactionV2","params":['$input'],"id":1}'
+  get_result "$data"
+}
+
+function create_token_raw_tx(){
+  local txtype=$1
+  local coinId=$2
+
+  local coinName=$3
+  local owners=$4
+  local uplimit=$5
+  local inputs=$6
+  local amounts=$7
+
+  if [ "$coinName" == "" ]; then
+    coinName=""
+  fi
+
+  if [ "$owners" == "" ]; then
+    owners=""
+  fi
+
+  if [ "$uplimit" == "" ]; then
+    uplimit=0
+  fi
+
+  if [ "$inputs" == "" ]; then
+    inputs='[{"txid":"","vout":0}]'
+  fi
+
+  if [ "$amounts" == "" ]; then
+    amounts='{"":0}'
+  fi
+
+  local data='{"jsonrpc":"2.0","method":"createTokenRawTransaction","params":["'$txtype'",'$coinId',"'$coinName'","'$owners'",'$uplimit','$inputs','$amounts'],"id":1}'
   get_result "$data"
 }
 
@@ -406,8 +440,8 @@ function time_info(){
   get_result "$data"
 }
 
-function get_tokenbalance(){
-  local data='{"jsonrpc":"2.0","method":"getTokenBalance","params":[],"id":null}'
+function get_tokeninfo(){
+  local data='{"jsonrpc":"2.0","method":"getTokenInfo","params":[],"id":null}'
   get_result "$data"
 }
 
@@ -497,13 +531,14 @@ function usage(){
   echo "  tips"
   echo "  coinbase <hash>"
   echo "  fees <hash>"
-  echo "  tokenbalance"
+  echo "  tokeninfo"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txv2 <id>"
   echo "  txbyhash <hash>"
   echo "  createRawTx"
   echo "  createRawTxV2"
+  echo "  createTokenRawTx"
   echo "  txSign <rawTx>"
   echo "  sendRawTx <signedRawTx>"
   echo "  getrawtxs <address>"
@@ -838,9 +873,9 @@ elif [ "$1" == "iscurrent" ]; then
 elif [ "$1" == "tips" ]; then
   shift
   tips | jq .
-elif [ "$1" == "tokenbalance" ]; then
+elif [ "$1" == "tokeninfo" ]; then
   shift
-  get_tokenbalance | jq .
+  get_tokeninfo | jq .
 elif [ "$1" == "coinbase" ]; then
   shift
   get_coinbase $@
@@ -868,6 +903,10 @@ elif [ "$1" == "createRawTx" ]; then
 elif [ "$1" == "createRawTxV2" ]; then
   shift
   create_raw_txv2 $@
+
+elif [ "$1" == "createTokenRawTx" ]; then
+  shift
+  create_token_raw_tx $@
 
 elif [ "$1" == "decodeRawTx" ]; then
   shift
