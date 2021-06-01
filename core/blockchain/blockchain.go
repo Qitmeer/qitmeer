@@ -1433,7 +1433,7 @@ func (b *BlockChain) ChainParams() *params.Params {
 }
 
 func (b *BlockChain) GetTokenTipHash() *hash.Hash {
-	if b.TokenTipID == 0 || uint(b.TokenTipID) == blockdag.MaxId {
+	if uint(b.TokenTipID) == blockdag.MaxId {
 		return nil
 	}
 	ib := b.bd.GetBlockById(uint(b.TokenTipID))
