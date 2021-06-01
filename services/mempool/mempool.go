@@ -296,14 +296,14 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 			if err != nil {
 				return nil, nil, err
 			}
-			utxoView.AddTokenTxOut(pkscript)
+			utxoView.AddTokenTxOut(tx.Tx.TxIn[0].PreviousOut, pkscript)
 
 			err = mp.cfg.BC.CheckTokenTransactionInputs(tx, utxoView)
 			if err != nil {
 				return nil, nil, err
 			}
 		} else {
-			utxoView.AddTokenTxOut(nil)
+			utxoView.AddTokenTxOut(tx.Tx.TxIn[0].PreviousOut, nil)
 		}
 
 		err = blockchain.ValidateTransactionScripts(tx, utxoView, flags,

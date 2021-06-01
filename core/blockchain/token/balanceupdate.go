@@ -112,10 +112,7 @@ func NewBalanceUpdate(tx *types.Transaction) (*BalanceUpdate, error) {
 			if idx == 0 {
 				continue
 			}
-			if !in.AmountIn.Id.IsBase() {
-				return nil, fmt.Errorf("Token transaction input (%s %d) must be MEERID\n", in.PreviousOut.Hash, in.PreviousOut.OutIndex)
-			}
-			meerAmount += in.AmountIn.Value
+			meerAmount += int64(in.Sequence)
 		}
 		tokenAmount.Id = tx.TxOut[0].Amount.Id
 		for idx, out := range tx.TxOut {

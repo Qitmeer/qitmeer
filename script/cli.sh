@@ -206,13 +206,13 @@ function tx_sign(){
 }
 
 #
-function create_raw_tx(){
+function create_raw_tx() {
   local input=$1
   local data='{"jsonrpc":"2.0","method":"createRawTransaction","params":['$input'],"id":1}'
   get_result "$data"
 }
 
-function create_raw_txv2(){
+function create_raw_txv2() {
   local input=$1
   local data='{"jsonrpc":"2.0","method":"createRawTransactionV2","params":['$input'],"id":1}'
   get_result "$data"
@@ -225,6 +225,8 @@ function create_token_raw_tx(){
   local coinName=$3
   local owners=$4
   local uplimit=$5
+  local inputs=$6
+  local amounts=$7
 
   if [ "$coinName" == "" ]; then
     coinName=""
@@ -238,7 +240,15 @@ function create_token_raw_tx(){
     uplimit=0
   fi
 
-  local data='{"jsonrpc":"2.0","method":"createTokenRawTransaction","params":["'$txtype'",'$coinId',"'$coinName'","'$owners'",'$uplimit'],"id":1}'
+  if [ "$inputs" == "" ]; then
+    inputs='[{"txid":"","vout":0}]'
+  fi
+
+  if [ "$amounts" == "" ]; then
+    amounts='{"":0}'
+  fi
+
+  local data='{"jsonrpc":"2.0","method":"createTokenRawTransaction","params":["'$txtype'",'$coinId',"'$coinName'","'$owners'",'$uplimit','$inputs','$amounts'],"id":1}'
   get_result "$data"
 }
 

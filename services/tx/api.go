@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -1103,6 +1104,7 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 			return nil, fmt.Errorf("Token amounts cannot be empty\n")
 		}
 
+		lockMeer := int64(0)
 		for _, input := range inputs {
 			txid, err := hash.NewHashFromStr(input.Txid)
 			if err != nil {
@@ -1121,9 +1123,11 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 			if !entry.Amount().Id.IsBase() {
 				return nil, fmt.Errorf("Token transaction input (%s %d) must be MEERID\n", txIn.PreviousOut.Hash, txIn.PreviousOut.OutIndex)
 			}
-			txIn.AmountIn = entry.Amount()
+			lockMeer += entry.Amount().Value
 			mtx.AddTxIn(txIn)
 		}
+		dbnamespace.ByteOrder.PutUint64(mtx.TxIn[0].PreviousOut.Hash[0:8], uint64(lockMeer))
+
 		err := types.CheckCoinID(types.CoinID(coinId))
 		if err != nil {
 			return nil, err

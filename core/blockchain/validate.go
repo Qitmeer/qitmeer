@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
@@ -1318,15 +1319,11 @@ func (b *BlockChain) CheckTokenTransactionInputs(tx *types.Tx, utxoView *UtxoVie
 				tx.Hash(), idx)
 			return ruleError(ErrMissingTxOut, str)
 		}
-		if !utxoEntry.amount.Id.IsBase() || !txIn.AmountIn.Id.IsBase() {
+		if !utxoEntry.amount.Id.IsBase() {
 			return fmt.Errorf("Token transaction(%s) input (%s %d) must be MEERID\n", tx.Hash(), txIn.PreviousOut.Hash, txIn.PreviousOut.OutIndex)
 		}
 
 		originTxAtom := utxoEntry.Amount()
-		if originTxAtom.Value != txIn.AmountIn.Value {
-			return fmt.Errorf("Utxo (%d) and input amount (%d) are inconsistent\n", originTxAtom.Value, txIn.AmountIn.Value)
-		}
-
 		if originTxAtom.Value < 0 {
 			str := fmt.Sprintf("transaction output has negative "+
 				"value of %v", originTxAtom)
@@ -1340,6 +1337,11 @@ func (b *BlockChain) CheckTokenTransactionInputs(tx *types.Tx, utxoView *UtxoVie
 		}
 
 		totalAtomIn += originTxAtom.Value
+	}
+
+	lockMeer := int64(dbnamespace.ByteOrder.Uint64(msgTx.TxIn[0].PreviousOut.Hash[0:8]))
+	if totalAtomIn != lockMeer {
+		return fmt.Errorf("Utxo (%d) and input amount (%d) are inconsistent\n", totalAtomIn, lockMeer)
 	}
 
 	totalAtomOut := int64(0)

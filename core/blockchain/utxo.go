@@ -202,8 +202,7 @@ func (view *UtxoViewpoint) addTxOut(outpoint types.TxOutPoint, txOut *types.TxOu
 	}
 }
 
-func (view *UtxoViewpoint) AddTokenTxOut(pkscript []byte) {
-	outpoint := types.TxOutPoint{Hash: hash.ZeroHash, OutIndex: types.TokenPrevOutIndex}
+func (view *UtxoViewpoint) AddTokenTxOut(outpoint types.TxOutPoint, pkscript []byte) {
 	entry := view.LookupEntry(outpoint)
 	if entry == nil {
 		entry = new(UtxoEntry)
