@@ -346,6 +346,19 @@ func sign(chainParams *params.Params, tx *types.Transaction, idx int,
 		return nil, class, nil, 0,
 			errors.New("can't sign NULLDATA transactions")
 
+	case TokenPubKeyHashTy:
+		key, compressed, err := kdb.GetKey(addresses[0])
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		script, err := SignatureScript(tx, idx, subScript, hashType,
+			key, compressed)
+		if err != nil {
+			return nil, class, nil, 0, err
+		}
+
+		return script, class, addresses, nrequired, nil
 	default:
 		return nil, class, nil, 0,
 			errors.New("can't sign unknown transactions")

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/params"
 	"sync"
 )
 
@@ -200,6 +202,21 @@ func (view *UtxoViewpoint) addTxOut(outpoint types.TxOutPoint, txOut *types.TxOu
 	}
 }
 
+func (view *UtxoViewpoint) AddTokenTxOut(outpoint types.TxOutPoint, pkscript []byte) {
+	entry := view.LookupEntry(outpoint)
+	if entry == nil {
+		entry = new(UtxoEntry)
+		view.entries[outpoint] = entry
+	}
+	if len(pkscript) <= 0 {
+		pkscript = params.ActiveNetParams.Params.TokenAdminPkScript
+	}
+	txOut := &types.TxOutput{PkScript: pkscript}
+	entry.amount = txOut.Amount
+	entry.pkScript = txOut.PkScript
+	entry.packedFlags = tfModified
+}
+
 // Viewpoints returns the hash of the viewpoint block in the chain the view currently
 // respresents.
 func (view *UtxoViewpoint) Viewpoints() []*hash.Hash {
@@ -287,7 +304,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 	txInFlight := map[hash.Hash]int{}
 	transactions := block.Transactions()
 	for i, tx := range transactions {
-		if tx.IsDuplicate {
+		if tx.IsDuplicate || types.IsTokenTx(tx.Tx) {
 			continue
 		}
 		txInFlight[*tx.Hash()] = i
@@ -298,7 +315,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 	// what is already known (in-flight).
 	txNeededSet := make(map[types.TxOutPoint]struct{})
 	for i, tx := range transactions[1:] {
-		if tx.IsDuplicate {
+		if tx.IsDuplicate || types.IsTokenTx(tx.Tx) {
 			continue
 		}
 		for _, txIn := range tx.Transaction().TxIn {
@@ -688,7 +705,7 @@ const UtxoEntryAmountCoinIDSize = 2
 // storage.  The format is described in detail above.
 func DeserializeUtxoEntry(serialized []byte) (*UtxoEntry, error) {
 	// Deserialize the header code.
-	code, offset := deserializeVLQ(serialized)
+	code, offset := serialization.DeserializeVLQ(serialized)
 	if offset >= len(serialized) {
 		return nil, errDeserialize("unexpected end of data after header")
 	}
@@ -742,13 +759,13 @@ func serializeUtxoEntry(entry *UtxoEntry) ([]byte, error) {
 	}
 
 	// Calculate the size needed to serialize the entry.
-	size := serializeSizeVLQ(headerCode) + hash.HashSize + UtxoEntryAmountCoinIDSize +
+	size := serialization.SerializeSizeVLQ(headerCode) + hash.HashSize + UtxoEntryAmountCoinIDSize +
 		compressedTxOutSize(uint64(entry.Amount().Value), entry.PkScript())
 
 	// Serialize the header code followed by the compressed unspent
 	// transaction output.
 	serialized := make([]byte, size)
-	offset := putVLQ(serialized, headerCode)
+	offset := serialization.PutVLQ(serialized, headerCode)
 	copy(serialized[offset:offset+hash.HashSize], entry.blockHash.Bytes())
 	offset += hash.HashSize
 	// add Amount coinId
@@ -766,15 +783,15 @@ func outpointKey(outpoint types.TxOutPoint) *[]byte {
 	// doing byte-wise comparisons will produce them in order.
 	key := outpointKeyPool.Get().(*[]byte)
 	idx := uint64(outpoint.OutIndex)
-	*key = (*key)[:hash.HashSize+serializeSizeVLQ(idx)]
+	*key = (*key)[:hash.HashSize+serialization.SerializeSizeVLQ(idx)]
 	copy(*key, outpoint.Hash[:])
-	putVLQ((*key)[hash.HashSize:], idx)
+	serialization.PutVLQ((*key)[hash.HashSize:], idx)
 	return key
 }
 
 var outpointKeyPool = sync.Pool{
 	New: func() interface{} {
-		b := make([]byte, hash.HashSize+maxUint32VLQSerializeSize)
+		b := make([]byte, hash.HashSize+serialization.MaxUint32VLQSerializeSize)
 		return &b // Pointer to slice to avoid boxing alloc.
 	},
 }

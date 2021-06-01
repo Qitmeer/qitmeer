@@ -593,6 +593,15 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 		//
 		if !ib.IsOrdered() {
 			ph.diffAnticone.AddPair(ib.GetID(), ib)
+		} else {
+			// check order index
+			id, err := DBGetBlockIdByOrder(dbTx, ib.GetOrder())
+			if err != nil {
+				return err
+			}
+			if uint(id) != ib.GetID() {
+				return fmt.Errorf("The order(%d) of %s is inconsistent: Order Index (%d)\n", ib.GetOrder(), ib.GetHash(), id)
+			}
 		}
 	}
 

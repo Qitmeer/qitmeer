@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 )
@@ -116,7 +117,7 @@ func spentTxOutHeaderCode(stxo *SpentTxOut) uint64 {
 // they're already encoded into the transactions, so skip them when
 // determining the serialization size.
 func spentTxOutSerializeSize(stxo *SpentTxOut) int {
-	size := serializeSizeVLQ(spentTxOutHeaderCode(stxo))
+	size := serialization.SerializeSizeVLQ(spentTxOutHeaderCode(stxo))
 	size += hash.HashSize
 	size += SpentTxOutTxIndexSize + SpentTxOutTxInIndexSize
 	size += SpentTxoutFeesCoinIDSize + SpentTxOutFeesValueSize
@@ -130,7 +131,7 @@ func spentTxOutSerializeSize(stxo *SpentTxOut) int {
 // SpentTxOutSerializeSize function or it will panic.
 func putSpentTxOut(target []byte, stxo *SpentTxOut) int {
 	headerCode := spentTxOutHeaderCode(stxo)
-	offset := putVLQ(target, headerCode)
+	offset := serialization.PutVLQ(target, headerCode)
 	copy(target[offset:], stxo.BlockHash.Bytes())
 	offset += hash.HashSize
 
@@ -169,7 +170,7 @@ func decodeSpentTxOut(serialized []byte, stxo *SpentTxOut) (int, error) {
 	}
 
 	// Deserialize the header code.
-	code, offset := deserializeVLQ(serialized)
+	code, offset := serialization.DeserializeVLQ(serialized)
 	if offset >= len(serialized) {
 		return offset, errDeserialize("unexpected end of data after " +
 			"header code")

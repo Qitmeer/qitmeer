@@ -238,6 +238,10 @@ type Params struct {
 	// TODO revisit the org-pkscript design
 	OrganizationPkScript []byte
 
+	// TokenAdminPkScript is the output script for token
+	// It should ideally be a P2SH multisignature address.
+	TokenAdminPkScript []byte
+
 	// DAG
 	BlockDelay    float64
 	BlockRate     float64
@@ -248,6 +252,12 @@ type Params struct {
 	UnlocksPerHeight     int   // How many will be unlocked at each DAG main height.
 	UnlocksPerHeightStep int   // How many height will lock a tx.
 	GenesisAmountUnit    int64 // the unit amount of equally divided.
+
+	// Support tx type config
+	NonStdTxs []types.TxType
+
+	// accept non standard transactions
+	AcceptNonStdTxs bool
 }
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax
@@ -261,6 +271,20 @@ func (p *Params) HasTax() bool {
 	if p.BlockTaxProportion > 0 &&
 		len(p.OrganizationPkScript) > 0 {
 		return true
+	}
+	return false
+}
+
+func (p *Params) IsValidTxType(tt types.TxType) bool {
+	txTypesCfg := types.StdTxs
+	if p.AcceptNonStdTxs && len(p.NonStdTxs) > 0 {
+		txTypesCfg = append(txTypesCfg, p.NonStdTxs...)
+	}
+
+	for _, txt := range txTypesCfg {
+		if txt == tt {
+			return true
+		}
 	}
 	return false
 }

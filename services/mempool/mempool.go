@@ -278,6 +278,50 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, nil, err
 	}
 
+	if types.IsTokenTx(tx.Tx) {
+		// Verify crypto signatures for each input and reject the transaction if
+		// any don't verify.
+		flags, err := mp.cfg.Policy.StandardVerifyFlags()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		utxoView := blockchain.NewUtxoViewpoint()
+		if types.IsTokenMintTx(tx.Tx) {
+			utxoView, err = mp.fetchInputUtxos(tx)
+			if err != nil {
+				return nil, nil, err
+			}
+			pkscript, err := mp.cfg.BC.GetCurTokenOwners(tx.Tx.TxOut[0].Amount.Id)
+			if err != nil {
+				return nil, nil, err
+			}
+			utxoView.AddTokenTxOut(tx.Tx.TxIn[0].PreviousOut, pkscript)
+
+			err = mp.cfg.BC.CheckTokenTransactionInputs(tx, utxoView)
+			if err != nil {
+				return nil, nil, err
+			}
+		} else {
+			utxoView.AddTokenTxOut(tx.Tx.TxIn[0].PreviousOut, nil)
+		}
+
+		err = blockchain.ValidateTransactionScripts(tx, utxoView, flags,
+			mp.cfg.SigCache)
+		if err != nil {
+			if cerr, ok := err.(blockchain.RuleError); ok {
+				return nil, nil, chainRuleError(cerr)
+			}
+			return nil, nil, err
+		}
+
+		// Add to transaction pool.
+		txD := mp.addTransaction(utxoView, tx, nextBlockHeight, 0)
+
+		log.Debug("Accepted transaction", "txHash", txHash, "pool size", len(mp.pool))
+
+		return nil, txD, nil
+	}
 	// Fetch all of the unspent transaction outputs referenced by the inputs
 	// to this transaction.  This function also attempts to fetch the
 	// transaction itself to be used for detecting a duplicate transaction

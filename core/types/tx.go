@@ -100,6 +100,10 @@ const (
 	// NoExpiryValue is the value of expiry that indicates the transaction
 	// has no expiry.
 	NoExpiryValue uint32 = 0
+
+	// TokenPrevOutIndex is the token index field of a previous
+	// outpoint can be.
+	TokenPrevOutIndex uint32 = 0xfffffffe
 )
 
 // TxIndexUnknown is the value returned for a transaction index that is unknown.
@@ -205,7 +209,6 @@ func (t *Transaction) AddTxIn(ti *TxInput) {
 func (t *Transaction) AddTxOut(to *TxOutput) {
 	t.TxOut = append(t.TxOut, to)
 }
-
 
 // SerializeSize returns the number of bytes it would take to serialize the
 // the transaction. (full size)
@@ -762,9 +765,8 @@ func (tx *Transaction) TxHashFull() hash.Hash {
 	return hash.DoubleHashH(tx.mustSerialize(TxSerializeFull))
 }
 
-
 func (tx *Transaction) IsCoinBase() bool {
-	return DetermineTxType(tx) == TxTypeCoinbase
+	return IsCoinBaseTx(tx)
 }
 
 // Tx defines a transaction that provides easier and more efficient manipulation
