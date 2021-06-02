@@ -12,7 +12,6 @@ type CoinID uint16
 
 const (
 	MEERID CoinID = 0
-	QITID  CoinID = 1
 
 	QitmeerReservedID CoinID = 255
 )

@@ -11,6 +11,8 @@ import (
 	"testing"
 )
 
+const QITID types.CoinID = 1
+
 func Test_CheckTransactionSanity(t *testing.T) {
 	txStr := "0100000001df44f16415ecc836e1c8e7f8cd3af896dc1c81f0f4e159535e744a0f75c76b7501000000ffffffff0101000093459e0b0000001976a9149a2aff5fcbfc29f9a30262bd6ba976f08f9fcf9188ac00000000000000004c790a60016a4730440220336757a0c9bdcb2510fe627520ad79694fc36d1880bf24ecc7496a65fc65a991022073853aba8fa9f3f29a8f1135f3b570aa3f804887cdbfa260d1544a0ea8c9aa530121036f2b25ef58a673b255d63802d1a9f25ffeb6f2a78c0eab33ee17831e07e5e487"
 	if len(txStr)%2 != 0 {
@@ -112,7 +114,7 @@ func createTx() *types.Transaction {
 	builder := txscript.NewScriptBuilder()
 	builder.AddData(signature)
 	builder.AddData(pubkey)
-	builder.AddData(types.QITID.Bytes())
+	builder.AddData(QITID.Bytes())
 	builder.AddOp(txscript.OP_TOKEN_UNMINT)
 	unmintScript, _ := builder.Script()
 	tx.AddTxIn(&types.TxInput{
