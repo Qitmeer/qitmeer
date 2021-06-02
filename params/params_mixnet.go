@@ -9,7 +9,6 @@ package params
 import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"math/big"
 	"time"
@@ -123,19 +122,4 @@ var MixNetParams = Params{
 
 	CoinbaseMaturity: 720,
 	//OrganizationPkScript:  hexMustDecode("76a914868b9b6bc7e4a9c804ad3d3d7a2a6be27476941e88ac"),
-
-	// Coins config
-	// TODO The future needs to be redefined or deleted
-	CoinsCfg: &types.CoinConfigs{
-		&types.CoinConfig{
-			Id:    types.MEERID,
-			Type:  types.FloorFeeType,
-			Value: 0,
-		},
-		&types.CoinConfig{
-			Id:    types.QITID,
-			Type:  types.EqualFeeType,
-			Value: 0,
-		},
-	},
 }

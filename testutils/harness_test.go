@@ -168,7 +168,7 @@ func TestHarness_SpentGenesis(t *testing.T) {
 	GenerateBlock(t, h, 5)
 	AssertBlockOrderAndHeight(t, h, 26, 26, 25)
 
-	spendAmt = types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.QITID}
+	spendAmt = types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
 	txid, _ := Spend(t, h, spendAmt, nil, nil)
 	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
 	blocks := GenerateBlock(t, h, 1)

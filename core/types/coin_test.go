@@ -2,6 +2,8 @@ package types
 
 import "testing"
 
+const QITID CoinID = 1
+
 func Test_CoinConfigs(t *testing.T) {
 	coinsCfg := &CoinConfigs{}
 
