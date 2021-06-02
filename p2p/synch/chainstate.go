@@ -41,7 +41,7 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 	}
 	defer func() {
 		if err := stream.Reset(); err != nil {
-			log.Error(fmt.Sprintf("Failed to reset stream with protocol %s,%v", stream.Protocol(), err))
+			log.Trace(fmt.Sprintf("Failed to reset stream with protocol %s,%v", stream.Protocol(), err))
 		}
 	}()
 
