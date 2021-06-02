@@ -130,13 +130,13 @@ func createTx() *types.Transaction {
 			0),
 		Sequence:   types.MaxTxInSequenceNum,
 		SignScript: []byte{txscript.OP_DATA_1},
-		AmountIn:   types.Amount{Value: 100 * 1e8, Id: types.QITID},
+		AmountIn:   types.Amount{Value: 100 * 1e8, Id: QITID},
 	})
 	// output[0]
 	builder = txscript.NewScriptBuilder()
 	builder.AddOp(txscript.OP_TOKEN_DESTORY)
 	tokenDestoryScript, _ := builder.Script()
-	tx.AddTxOut(&types.TxOutput{Amount: types.Amount{Value: 99 * 1e8, Id: types.QITID}, PkScript: tokenDestoryScript})
+	tx.AddTxOut(&types.TxOutput{Amount: types.Amount{Value: 99 * 1e8, Id: QITID}, PkScript: tokenDestoryScript})
 	// output[1]
 	addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
 	if err != nil {
@@ -155,6 +155,6 @@ func createTx() *types.Transaction {
 	tokenChangeScript := make([]byte, len(p2pkhScript)+1)
 	tokenChangeScript[0] = txscript.OP_TOKEN_CHANGE
 	copy(tokenChangeScript[1:], p2pkhScript)
-	tx.AddTxOut(&types.TxOutput{Amount: types.Amount{Value: 1 * 1e8, Id: types.QITID}, PkScript: tokenChangeScript})
+	tx.AddTxOut(&types.TxOutput{Amount: types.Amount{Value: 1 * 1e8, Id: QITID}, PkScript: tokenChangeScript})
 	return tx
 }

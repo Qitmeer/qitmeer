@@ -18,6 +18,8 @@ import (
 	"testing"
 )
 
+const QITID types.CoinID = 1
+
 func bytesFromStr(s string) []byte {
 	b, _ := hex.DecodeString(s)
 	return b
@@ -33,11 +35,11 @@ func TestTokenStateSerialization(t *testing.T) {
 		{name: "test1",
 			state: &TokenState{
 				Balances: TokenBalancesMap{
-					types.QITID: TokenBalance{Balance: 200 * 1e8, LockedMeer: 100 * 1e8}},
+					QITID: TokenBalance{Balance: 200 * 1e8, LockedMeer: 100 * 1e8}},
 				Updates: []ITokenUpdate{&BalanceUpdate{
 					TokenUpdate: &TokenUpdate{Typ: types.TxTypeTokenMint},
 					MeerAmount:  100 * 1e8,
-					TokenAmount: types.Amount{Value: 200 * 1e8, Id: types.QITID},
+					TokenAmount: types.Amount{Value: 200 * 1e8, Id: QITID},
 				}},
 			},
 			bytes: bytesFromStr("000101c9bfde8f00a49faec700018011a49faec70001c9bfde8f0000"),
@@ -84,11 +86,11 @@ func TestTokenStateDB(t *testing.T) {
 	// put a test token state record into tokenstate db
 	ts := &TokenState{
 		Balances: TokenBalancesMap{
-			types.QITID: TokenBalance{Balance: 200 * 1e8, LockedMeer: 100 * 1e8}},
+			QITID: TokenBalance{Balance: 200 * 1e8, LockedMeer: 100 * 1e8}},
 		Updates: []ITokenUpdate{&BalanceUpdate{
 			TokenUpdate: &TokenUpdate{Typ: types.TxTypeTokenMint},
 			MeerAmount:  100 * 1e8,
-			TokenAmount: types.Amount{Value: 200 * 1e8, Id: types.QITID},
+			TokenAmount: types.Amount{Value: 200 * 1e8, Id: QITID},
 		}},
 	}
 
