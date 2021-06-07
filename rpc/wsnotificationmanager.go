@@ -195,7 +195,7 @@ func (m *wsNotificationManager) notifyBlockConnected(clients map[chan struct{}]*
 		log.Error(err.Error())
 		return
 	}
-	ntfn := cmds.NewBlockConnectedNtfn(block.Hash().String(), int64(block.Order()), block.Block().Header.Timestamp.Unix(), txs)
+	ntfn := cmds.NewBlockConnectedNtfn(block.Hash().String(), int64(block.Height()), int64(block.Order()), block.Block().Header.Timestamp.Unix(), txs)
 	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
 	for _, wsc := range clients {
 		// Marshal and queue notification.
@@ -221,7 +221,7 @@ func (*wsNotificationManager) notifyBlockDisconnected(clients map[chan struct{}]
 	}
 	// Notify interested websocket clients about the disconnected block.
 	ntfn := cmds.NewBlockDisconnectedNtfn(block.Hash().String(),
-		int64(block.Order()), block.Block().Header.Timestamp.Unix(), txs)
+		int64(block.Height()), int64(block.Order()), block.Block().Header.Timestamp.Unix(), txs)
 	marshalledJSON, err := cmds.MarshalCmd(nil, ntfn)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to marshal block disconnected "+

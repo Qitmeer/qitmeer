@@ -17,9 +17,9 @@ import (
 
 type NotificationHandlers struct {
 	OnClientConnected   func()
-	OnBlockConnected    func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction)
-	OnBlockDisconnected func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction)
-	OnBlockAccepted     func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction)
+	OnBlockConnected    func(hash *hash.Hash, height, order int64, t time.Time, txs []*types.Transaction)
+	OnBlockDisconnected func(hash *hash.Hash, height, order int64, t time.Time, txs []*types.Transaction)
+	OnBlockAccepted     func(hash *hash.Hash, height, order int64, t time.Time, txs []*types.Transaction)
 	OnReorganization    func(hash *hash.Hash, order int64, olds []*hash.Hash)
 	OnTxAccepted        func(hash *hash.Hash, amounts types.AmountGroup)
 	OnTxAcceptedVerbose func(c *Client, tx *j.DecodeRawTransactionResult)
@@ -31,47 +31,54 @@ type NotificationHandlers struct {
 	OnUnknownNotification func(method string, params []json.RawMessage)
 }
 
-func parseChainNtfnParams(params []json.RawMessage) (*hash.Hash, int64, time.Time, []*types.Transaction, error) {
-	if len(params) != 4 {
-		return nil, 0, time.Time{}, nil, wrongNumParams(len(params))
+func parseChainNtfnParams(params []json.RawMessage) (*hash.Hash, int64, int64, time.Time, []*types.Transaction, error) {
+	if len(params) != 5 {
+		return nil, 0, 0, time.Time{}, nil, wrongNumParams(len(params))
 	}
 
 	// Unmarshal first parameter as a string.
 	var blockHashStr string
 	err := json.Unmarshal(params[0], &blockHashStr)
 	if err != nil {
-		return nil, 0, time.Time{}, nil, err
+		return nil, 0, 0, time.Time{}, nil, err
 	}
 
 	// Unmarshal second parameter as an integer.
-	var blockOrder int64
-	err = json.Unmarshal(params[1], &blockOrder)
+	var height int64
+	err = json.Unmarshal(params[1], &height)
 	if err != nil {
-		return nil, 0, time.Time{}, nil, err
+		return nil, 0, 0, time.Time{}, nil, err
 	}
 
-	// Unmarshal third parameter as unix time.
-	var blockTimeUnix int64
-	err = json.Unmarshal(params[2], &blockTimeUnix)
+	// Unmarshal third parameter as an integer.
+	var blockOrder int64
+	err = json.Unmarshal(params[2], &blockOrder)
 	if err != nil {
-		return nil, 0, time.Time{}, nil, err
+		return nil, 0, 0, time.Time{}, nil, err
+	}
+
+	// Unmarshal fourth parameter as unix time.
+	var blockTimeUnix int64
+	err = json.Unmarshal(params[3], &blockTimeUnix)
+	if err != nil {
+		return nil, 0, 0, time.Time{}, nil, err
 	}
 
 	var txHexs []string
-	err = json.Unmarshal(params[3], &txHexs)
+	err = json.Unmarshal(params[4], &txHexs)
 	if err != nil {
-		return nil, 0, time.Time{}, nil, err
+		return nil, 0, 0, time.Time{}, nil, err
 	}
 	txs := []*types.Transaction{}
 	for _, txHex := range txHexs {
 		serializedTx, err := hex.DecodeString(txHex)
 		if err != nil {
-			return nil, 0, time.Time{}, nil, err
+			return nil, 0, 0, time.Time{}, nil, err
 		}
 		var tx types.Transaction
 		err = tx.Deserialize(bytes.NewReader(serializedTx))
 		if err != nil {
-			return nil, 0, time.Time{}, nil, err
+			return nil, 0, 0, time.Time{}, nil, err
 		}
 		txs = append(txs, &tx)
 	}
@@ -79,13 +86,13 @@ func parseChainNtfnParams(params []json.RawMessage) (*hash.Hash, int64, time.Tim
 	// Create hash from block hash string.
 	blockHash, err := hash.NewHashFromStr(blockHashStr)
 	if err != nil {
-		return nil, 0, time.Time{}, nil, err
+		return nil, 0, 0, time.Time{}, nil, err
 	}
 
 	// Create time.Time from unix time.
 	blockTime := time.Unix(blockTimeUnix, 0)
 
-	return blockHash, blockOrder, blockTime, txs, nil
+	return blockHash, height, blockOrder, blockTime, txs, nil
 }
 
 func parseReorganizationNtfnParams(params []json.RawMessage) (*hash.Hash, int64, []*hash.Hash, error) {
