@@ -120,7 +120,7 @@ func TestTokenStateDB(t *testing.T) {
 	}
 }
 
-func Test_CoinConfigs(t *testing.T) {
+func Test_FeeConfigs(t *testing.T) {
 
 	tests := []struct {
 		txFees types.AmountMap
@@ -156,7 +156,10 @@ func Test_CoinConfigs(t *testing.T) {
 		},
 	}
 
-	ts := TokenState{}
+	ts := TokenState{Types: TokenTypesMap{}}
+	ts.Types[types.MEERID] = TokenType{FeeCfg: *NewTokenFeeConfig(0)}
+	ts.Types[QITID] = TokenType{FeeCfg: *NewTokenFeeConfig(0)}
+
 	for _, test := range tests {
 		err := ts.CheckFees(test.txFees)
 		if (err == nil && test.expect) ||

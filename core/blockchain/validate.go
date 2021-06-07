@@ -1202,7 +1202,7 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 	}
 	state := b.GetTokenState(b.TokenTipID)
 	if state == nil {
-		fmt.Errorf("No token sate:%d\n", b.TokenTipID)
+		return nil, fmt.Errorf("No token sate:%d\n", b.TokenTipID)
 	}
 	err := state.CheckFees(allFees)
 	if err != nil {
@@ -1267,14 +1267,6 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		return err
 	}
 	return nil
-}
-
-func (b *BlockChain) CheckTransactionFee(fees types.AmountMap) error {
-	state := b.GetTokenState(b.TokenTipID)
-	if state == nil {
-		fmt.Errorf("No token sate:%d\n", b.TokenTipID)
-	}
-	return state.CheckFees(fees)
 }
 
 func ExtractCoinbaseHeight(coinbaseTx *types.Transaction) (uint64, error) {
