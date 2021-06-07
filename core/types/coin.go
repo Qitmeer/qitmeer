@@ -78,15 +78,3 @@ const (
 )
 
 type FeeType byte
-
-type CoinConfig struct {
-	Id    CoinID
-	Type  FeeType
-	Value int64
-}
-
-type CoinConfigs []*CoinConfig
-
-func (cc *CoinConfigs) CheckFees(fees AmountMap) error {
-
-}

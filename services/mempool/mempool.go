@@ -396,10 +396,6 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, nil, err
 	}
 
-	err = mp.cfg.BC.CheckTransactionFee(txFees)
-	if err != nil {
-		return nil, nil, err
-	}
 	// Don't allow transactions with non-standard inputs if the mempool config
 	// forbids their acceptance and relaying.
 	if !mp.cfg.Policy.AcceptNonStd {
