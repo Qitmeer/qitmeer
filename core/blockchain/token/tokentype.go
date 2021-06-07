@@ -15,6 +15,7 @@ type TokenType struct {
 	UpLimit uint64
 	Enable  bool
 	Name    string
+	FeeCfg  TokenFeeConfig
 }
 
 func (tt *TokenType) Serialize() ([]byte, error) {
@@ -26,6 +27,8 @@ func (tt *TokenType) Serialize() ([]byte, error) {
 	serializeSize += 1
 	serializeSize += serialization.SerializeSizeVLQ(uint64(len(tt.Name)))
 	serializeSize += len(tt.Name)
+	serializeSize += serialization.SerializeSizeVLQ(uint64(tt.FeeCfg.Type))
+	serializeSize += serialization.SerializeSizeVLQ(uint64(tt.FeeCfg.Value))
 
 	serialized := make([]byte, serializeSize)
 	offset := 0
@@ -44,6 +47,8 @@ func (tt *TokenType) Serialize() ([]byte, error) {
 	offset += serialization.PutVLQ(serialized[offset:], uint64(len(tt.Name)))
 	copy(serialized[offset:offset+len(tt.Name)], tt.Name)
 	offset += len(tt.Name)
+	offset += serialization.PutVLQ(serialized[offset:], uint64(tt.FeeCfg.Type))
+	offset += serialization.PutVLQ(serialized[offset:], uint64(tt.FeeCfg.Value))
 
 	return serialized, nil
 }
@@ -92,11 +97,26 @@ func (tt *TokenType) Deserialize(data []byte) (int, error) {
 	bytesRead = len(Name)
 	offset += bytesRead
 
+	//fee type
+	feeType, bytesRead := serialization.DeserializeVLQ(data[offset:])
+	if bytesRead == 0 {
+		return offset, fmt.Errorf("unexpected end of data while reading fee type")
+	}
+	offset += bytesRead
+
+	//fee value
+	feeValue, bytesRead := serialization.DeserializeVLQ(data[offset:])
+	if bytesRead == 0 {
+		return offset, fmt.Errorf("unexpected end of data while reading fee value")
+	}
+	offset += bytesRead
+
 	tt.Id = types.CoinID(Id)
 	tt.Owners = Owners
 	tt.UpLimit = UpLimit
 	tt.Enable = enableB > 0
 	tt.Name = string(Name)
+	tt.FeeCfg = TokenFeeConfig{Type: types.FeeType(feeType), Value: int64(feeValue)}
 	return offset, nil
 }
 

@@ -119,3 +119,50 @@ func TestTokenStateDB(t *testing.T) {
 		t.Fatalf("token state put db is %v ,but from db is %v", ts, *tsfromdb)
 	}
 }
+
+func Test_CoinConfigs(t *testing.T) {
+
+	tests := []struct {
+		txFees types.AmountMap
+		expect bool
+	}{
+		{
+			txFees: types.AmountMap{
+				types.MEERID: types.AtomsPerCoin,
+				QITID:        types.AtomsPerCoin,
+			},
+			expect: true,
+		},
+		{
+			txFees: types.AmountMap{
+				types.MEERID: types.AtomsPerCoin * 2,
+				QITID:        types.AtomsPerCoin * 3,
+			},
+			expect: true,
+		},
+		{
+			txFees: types.AmountMap{
+				types.MEERID: types.AtomsPerCoin,
+				QITID:        types.AtomsPerCoin,
+			},
+			expect: true,
+		},
+		{
+			txFees: types.AmountMap{
+				types.MEERID: types.AtomsPerCoin,
+				QITID:        types.AtomsPerCoin,
+			},
+			expect: true,
+		},
+	}
+
+	ts := TokenState{}
+	for _, test := range tests {
+		err := ts.CheckFees(test.txFees)
+		if (err == nil && test.expect) ||
+			(err != nil && !test.expect) {
+			continue
+		}
+		t.Fatalf("txFees:%v Expect:%v", test.txFees, test.expect)
+	}
+}
