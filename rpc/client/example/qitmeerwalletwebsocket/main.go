@@ -22,14 +22,14 @@ import (
 
 func main() {
 	ntfnHandlers := client.NotificationHandlers{
-		OnBlockConnected: func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
+		OnBlockConnected: func(hash *hash.Hash, height, order int64, t time.Time, txs []*types.Transaction) {
 			fmt.Println("OnBlockConnected", hash, order, len(txs))
 		},
-		OnBlockDisconnected: func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
+		OnBlockDisconnected: func(hash *hash.Hash, height, order int64, t time.Time, txs []*types.Transaction) {
 			fmt.Println("OnBlockDisconnected", hash, order, len(txs))
 		},
-		OnBlockAccepted: func(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
-			fmt.Println("OnBlockAccepted", hash, order, len(txs))
+		OnBlockAccepted: func(hash *hash.Hash, height, order int64, t time.Time, txs []*types.Transaction) {
+			fmt.Println("OnBlockAccepted", hash, height, order, len(txs))
 		},
 		OnReorganization: func(hash *hash.Hash, order int64, olds []*hash.Hash) {
 			fmt.Println("OnReorganization", hash, order, len(olds))
