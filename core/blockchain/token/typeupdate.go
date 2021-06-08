@@ -89,6 +89,10 @@ func (tu *TypeUpdate) CheckSanity() error {
 		if len(tu.Tt.Name) <= 0 {
 			return fmt.Errorf("Must have token name.\n")
 		}
+		if tu.Tt.FeeCfg.Type != types.FloorFeeType &&
+			tu.Tt.FeeCfg.Type != types.EqualFeeType {
+			return fmt.Errorf("Fee type (%d) is invalid.\n", tu.Tt.FeeCfg.Type)
+		}
 
 	} else if tu.GetType() == types.TxTypeTokenValidate || tu.GetType() == types.TxTypeTokenInvalidate {
 		if tu.Tt.UpLimit != 0 {
@@ -119,6 +123,7 @@ func NewTypeUpdateFromTx(tx *types.Transaction) (*TypeUpdate, error) {
 				UpLimit: tnScript.GetUpLimit(),
 				Enable:  false,
 				Name:    tnScript.GetName(),
+				FeeCfg:  *NewTokenFeeConfig(tnScript.GetFeeCfgData()),
 			},
 		}, nil
 	}

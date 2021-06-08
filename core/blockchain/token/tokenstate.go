@@ -201,6 +201,27 @@ func (ts *TokenState) Commit() error {
 	return nil
 }
 
+func (ts *TokenState) CheckFees(fees types.AmountMap) error {
+	for coinid, fee := range fees {
+		t, ok := ts.Types[coinid]
+		if !ok {
+			return fmt.Errorf("Error: %s", coinid.Name())
+		}
+		if t.FeeCfg.Type == types.FloorFeeType {
+			if fee < t.FeeCfg.Value {
+				return fmt.Errorf("The fee must be greater than or equal to %d, but actually it is %d", t.FeeCfg.Value, fee)
+			}
+		} else if t.FeeCfg.Type == types.EqualFeeType {
+			if fee != t.FeeCfg.Value {
+				return fmt.Errorf("The fee must be equal to %d, but actually it is %d", t.FeeCfg.Value, fee)
+			}
+		} else {
+			return fmt.Errorf("unknown fee type")
+		}
+	}
+	return nil
+}
+
 // dbPutTokenState put a token balance record into the token state database.
 // the key is the provided block hash
 func DBPutTokenState(dbTx database.Tx, bid uint32, ts *TokenState) error {

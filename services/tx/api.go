@@ -1059,7 +1059,7 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 
 // token
 
-func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, coinName *string, owners *string, uplimit *uint64, inputs []json.TransactionInput, amounts json.Amounts) (interface{}, error) {
+func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, coinName *string, owners *string, uplimit *uint64, inputs []json.TransactionInput, amounts json.Amounts, feeType uint16, feeValue int64) (interface{}, error) {
 	txt := types.TxTypeTokenRegulation
 	if !strings.HasPrefix(txtype, "0x") {
 		switch txtype {
@@ -1198,7 +1198,8 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 			if coinName == nil {
 				return nil, fmt.Errorf("No coin name\n")
 			}
-			pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), upLi, *coinName)
+			fcfg := &token.TokenFeeConfig{Type: types.FeeType(feeType), Value: feeValue}
+			pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), upLi, *coinName, fcfg.GetData())
 			if err != nil {
 				return nil, err
 			}
@@ -1222,7 +1223,7 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 			if addr == nil {
 				return nil, fmt.Errorf("Token owners is error\n")
 			}
-			pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), 0, "")
+			pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), 0, "", 0)
 			if err != nil {
 				return nil, err
 			}

@@ -64,3 +64,12 @@ func (s *TokenScript) GetUpLimit() uint64 {
 func (s *TokenScript) GetName() string {
 	return string(s.pops[2].data)
 }
+
+func (s *TokenScript) GetFeeCfgData() int64 {
+	da, err := makeScriptNum(s.pops[3].data, true, 8)
+	if err != nil {
+		log.Error(err.Error())
+		return 0
+	}
+	return int64(da)
+}
