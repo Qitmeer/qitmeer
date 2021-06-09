@@ -65,6 +65,25 @@ type ConsensusDeployment struct {
 	ExpireTime uint64
 }
 
+// Constants that define the deployment offset in the deployments field of the
+// parameters for each deployment.  This is useful to be able to get the details
+// of a specific deployment by name.
+const (
+	// DeploymentTestDummy defines the rule change deployment ID for testing
+	// purposes.
+	DeploymentTestDummy = iota
+
+	// DeploymentToken defines the rule change deployment ID for the token
+	// soft-fork package.
+	DeploymentToken
+
+	// NOTE: DefinedDeployments must always come last since it is used to
+	// determine how many defined deployments there currently are.
+
+	// DefinedDeployments is the number of currently defined deployments.
+	DefinedDeployments
+)
+
 // Params defines a qitmeer network by its parameters.  These parameters may be
 // used by qitmeer applications to differentiate networks as well as addresses
 // and keys for one network from those intended for use on another network.
@@ -251,9 +270,6 @@ type Params struct {
 	UnlocksPerHeightStep int   // How many height will lock a tx.
 	GenesisAmountUnit    int64 // the unit amount of equally divided.
 
-	// Support tx type config
-	NonStdTxs []types.TxType
-
 	// accept non standard transactions
 	AcceptNonStdTxs bool
 }
@@ -275,8 +291,8 @@ func (p *Params) HasTax() bool {
 
 func (p *Params) IsValidTxType(tt types.TxType) bool {
 	txTypesCfg := types.StdTxs
-	if p.AcceptNonStdTxs && len(p.NonStdTxs) > 0 {
-		txTypesCfg = append(txTypesCfg, p.NonStdTxs...)
+	if p.AcceptNonStdTxs && len(types.NonStdTxs) > 0 {
+		txTypesCfg = append(txTypesCfg, types.NonStdTxs...)
 	}
 
 	for _, txt := range txTypesCfg {
