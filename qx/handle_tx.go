@@ -86,7 +86,7 @@ func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[
 	return hex.EncodeToString(mtxHex), nil
 }
 
-func TxSign(privkeyStr string, rawTxStr string, network string) (string, error) {
+func TxSign(privkeyStr string, rawTxStr string, network string, lockTime int64) (string, error) {
 	privkeyByte, err := hex.DecodeString(privkeyStr)
 	if err != nil {
 		return "", err
@@ -112,10 +112,18 @@ func TxSign(privkeyStr string, rawTxStr string, network string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	// Create a new script which pays to the provided address.
-	pkScript, err := txscript.PayToAddrScript(addr)
-	if err != nil {
-		return "", err
+	var pkScript []byte
+	if lockTime <= 0 {
+		// Create a new script which pays to the provided address.
+		pkScript, err = txscript.PayToAddrScript(addr)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		pkScript, err = txscript.PayToCLTVPubKeyHashScript(addr.Script(), lockTime)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	if len(rawTxStr)%2 != 0 {
@@ -217,8 +225,8 @@ func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsF
 	fmt.Printf("%s\n", mtxHex)
 }
 
-func TxSignSTDO(privkeyStr string, rawTxStr string, network string) {
-	mtxHex, err := TxSign(privkeyStr, rawTxStr, network)
+func TxSignSTDO(privkeyStr string, rawTxStr string, network string, locktime int64) {
+	mtxHex, err := TxSign(privkeyStr, rawTxStr, network, locktime)
 	if err != nil {
 		ErrExit(err)
 	}
