@@ -918,10 +918,6 @@ func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.S
 		if err != nil {
 			return err
 		}
-		err = b.CheckTransactionFee(txFee)
-		if err != nil {
-			return err
-		}
 		// Sum the total fees and ensure we don't overflow the
 		// accumulator.
 		for _, coinId := range types.CoinIDList {
@@ -1204,6 +1200,14 @@ func (b *BlockChain) CheckTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoin
 		}
 		allFees[coinId] = atomin - atomout
 	}
+	state := b.GetTokenState(b.TokenTipID)
+	if state == nil {
+		return nil, fmt.Errorf("No token sate:%d\n", b.TokenTipID)
+	}
+	err := state.CheckFees(allFees)
+	if err != nil {
+		return nil, err
+	}
 	return allFees, nil
 }
 
@@ -1261,13 +1265,6 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 	err = b.checkConnectBlock(newNode, block, view, nil)
 	if err != nil {
 		return err
-	}
-	return nil
-}
-
-func (b *BlockChain) CheckTransactionFee(fees types.AmountMap) error {
-	if b.params.CoinsCfg != nil {
-		return b.params.CoinsCfg.CheckFees(fees)
 	}
 	return nil
 }

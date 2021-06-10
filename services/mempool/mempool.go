@@ -396,10 +396,6 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, nil, err
 	}
 
-	err = mp.cfg.BC.CheckTransactionFee(txFees)
-	if err != nil {
-		return nil, nil, err
-	}
 	// Don't allow transactions with non-standard inputs if the mempool config
 	// forbids their acceptance and relaying.
 	if !mp.cfg.Policy.AcceptNonStd {
@@ -452,6 +448,9 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	if txFees != nil {
 		txFee = txFees[types.MEERID]
 	}
+
+	fmt.Println("minFee:", minFee, "txFee:", txFee)
+
 	if txFee < minFee {
 		str := fmt.Sprintf("transaction %v has %v fees which "+
 			"is under the required amount of %v, tx size is %v bytes, policy-rate is %v/byte.", txHash,
@@ -469,6 +468,8 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 
 		currentPriority := CalcPriority(msgTx, utxoView,
 			nextBlockHeight, mp.cfg.BD)
+
+		fmt.Println("Priority:", currentPriority, MinHighPriority)
 		if currentPriority <= MinHighPriority {
 			str := fmt.Sprintf("transaction %v has insufficient "+
 				"priority (%g <= %g)", txHash,
@@ -508,6 +509,8 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	if !allowHighFees {
 		maxFee := calcMinRequiredTxRelayFee(serializedSize*maxRelayFeeMultiplier,
 			mp.cfg.Policy.MinRelayTxFee)
+
+		fmt.Println("allowHighFees", maxFee)
 		if txFee > maxFee {
 			err = fmt.Errorf("transaction %v has %v fee which is above the "+
 				"allowHighFee check threshold amount of %v (= %v byte * %v/kB * %v)", txHash,

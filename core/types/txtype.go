@@ -93,9 +93,6 @@ func DetermineTxType(tx *Transaction) TxType {
 	if IsTokenInvalidateTx(tx) {
 		return TxTypeTokenInvalidate
 	}
-	if IsTokenInvalidateTx(tx) {
-		return TxTypeTokenInvalidate
-	}
 	if IsTokenMintTx(tx) {
 		return TxTypeTokenMint
 	}
@@ -189,7 +186,7 @@ func IsGenesisLockTx(tx *Transaction) bool {
 // --------------------------------------------------------------------------------
 
 func IsTokenNewTx(tx *Transaction) bool {
-	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+	if len(tx.TxOut) != 1 || len(tx.TxIn) != 1 {
 		return false
 	}
 	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
@@ -199,7 +196,7 @@ func IsTokenNewTx(tx *Transaction) bool {
 }
 
 func IsTokenRenewTx(tx *Transaction) bool {
-	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+	if len(tx.TxOut) != 1 || len(tx.TxIn) != 1 {
 		return false
 	}
 	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
@@ -209,7 +206,7 @@ func IsTokenRenewTx(tx *Transaction) bool {
 }
 
 func IsTokenValidateTx(tx *Transaction) bool {
-	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+	if len(tx.TxOut) != 1 || len(tx.TxIn) != 1 {
 		return false
 	}
 	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
@@ -219,7 +216,7 @@ func IsTokenValidateTx(tx *Transaction) bool {
 }
 
 func IsTokenInvalidateTx(tx *Transaction) bool {
-	if len(tx.TxOut) != 1 && len(tx.TxIn) != 1 {
+	if len(tx.TxOut) != 1 || len(tx.TxIn) != 1 {
 		return false
 	}
 	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
@@ -229,7 +226,7 @@ func IsTokenInvalidateTx(tx *Transaction) bool {
 }
 
 func IsTokenMintTx(tx *Transaction) bool {
-	if len(tx.TxOut) < 1 && len(tx.TxIn) <= 1 {
+	if len(tx.TxOut) < 1 || len(tx.TxIn) <= 1 {
 		return false
 	}
 	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {
@@ -239,7 +236,7 @@ func IsTokenMintTx(tx *Transaction) bool {
 }
 
 func IsTokenUnmintTx(tx *Transaction) bool {
-	if len(tx.TxOut) < 1 && len(tx.TxIn) <= 1 {
+	if len(tx.TxOut) < 1 || len(tx.TxIn) <= 1 {
 		return false
 	}
 	if tx.TxIn[0].PreviousOut.OutIndex != TokenPrevOutIndex {

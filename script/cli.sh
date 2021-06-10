@@ -227,6 +227,8 @@ function create_token_raw_tx(){
   local uplimit=$5
   local inputs=$6
   local amounts=$7
+  local feeType=$8
+  local feeValue=$9
 
   if [ "$coinName" == "" ]; then
     coinName=""
@@ -248,7 +250,14 @@ function create_token_raw_tx(){
     amounts='{"":0}'
   fi
 
-  local data='{"jsonrpc":"2.0","method":"createTokenRawTransaction","params":["'$txtype'",'$coinId',"'$coinName'","'$owners'",'$uplimit','$inputs','$amounts'],"id":1}'
+  if [ "$feeType" == "" ]; then
+    feeType=0
+  fi
+  if [ "$feeValue" == "" ]; then
+    feeValue=0
+  fi
+
+  local data='{"jsonrpc":"2.0","method":"createTokenRawTransaction","params":["'$txtype'",'$coinId',"'$coinName'","'$owners'",'$uplimit','$inputs','$amounts','$feeType','$feeValue'],"id":1}'
   get_result "$data"
 }
 

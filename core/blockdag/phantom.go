@@ -606,7 +606,7 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 	}
 
 	ph.mainChain.tip = ph.GetMainParent(ph.bd.tips).GetID()
-	return nil
+	return ph.CheckMainChainDB(dbTx)
 }
 
 func (ph *Phantom) GetBlues(parents *IdSet) uint {
@@ -758,6 +758,35 @@ func (ph *Phantom) UpdateWeight(ib IBlock, store bool) {
 	if err != nil {
 		log.Error(err.Error())
 	}
+}
+
+func (ph *Phantom) CheckMainChainDB(dbTx database.Tx) error {
+	mainChainM := map[uint]bool{}
+	var cur *PhantomBlock
+	for cur = ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
+		mainChainM[cur.id] = true
+		if cur.mainParent == MaxId {
+			break
+		}
+	}
+	if cur.id != 0 {
+		return fmt.Errorf("Main chain genesis error:%d %s\n", cur.id, cur.GetHash().String())
+	}
+	bucket := dbTx.Metadata().Bucket(dbnamespace.DagMainChainBucketName)
+	cursor := bucket.Cursor()
+	mcLen := int(0)
+	for cok := cursor.First(); cok; cok = cursor.Next() {
+		id := dbnamespace.ByteOrder.Uint32(cursor.Key())
+		_, ok := mainChainM[uint(id)]
+		if !ok {
+			return fmt.Errorf("Main chain error:invalid %d\n", id)
+		}
+		mcLen++
+	}
+	if len(mainChainM) != mcLen {
+		return fmt.Errorf("Inconsistent main chain length:%d != %d\n", len(mainChainM), mcLen)
+	}
+	return nil
 }
 
 // The main chain of DAG is support incremental expansion

@@ -12,6 +12,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/version"
 	"github.com/jessevdk/go-flags"
 	"net"
@@ -80,7 +81,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		RPCMaxConcurrentReqs: defaultMaxRPCConcurrentReqs,
 		Generate:             defaultGenerate,
 		MaxPeers:             defaultMaxPeers,
-		MinTxFee:             0, // TODO mempool.DefaultMinRelayTxFee,
+		MinTxFee:             mempool.DefaultMinRelayTxFee,
 		BlockMinSize:         defaultBlockMinSize,
 		BlockMaxSize:         defaultBlockMaxSize,
 		SigCacheMaxSize:      defaultSigCacheMaxSize,
