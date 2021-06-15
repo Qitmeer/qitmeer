@@ -40,6 +40,7 @@ const (
 	PubkeyAltTy                          // Alternative signature pubkey.
 	PubkeyHashAltTy                      // Alternative signature pubkey hash.
 	CLTVPubKeyHashTy                     // Check Lock Time Verify Pay pubkey hash.
+	TokenPubKeyHashTy                    // Token Pay pubkey hash.
 )
 
 // Script Interface provide a abstract layer to support new Script parsing from opcode
@@ -52,8 +53,9 @@ type Script interface {
 }
 
 // The registry where the add-on script been registered
-var scriptRegistry = []Script{
-	NonStandardTy: &NonStandardScript{},
+var scriptRegistry = map[ScriptClass]Script{
+	NonStandardTy:     &NonStandardScript{},
+	TokenPubKeyHashTy: &TokenScript{},
 }
 
 func fromRegisteredScript(pops []ParsedOpcode) Script {
@@ -73,7 +75,7 @@ func RegisterScript(sin Script) error {
 			return fmt.Errorf("%v has been registred as script %v ", sin, s)
 		}
 	}
-	scriptRegistry = append(scriptRegistry, sin)
+	scriptRegistry[sin.GetClass()] = sin
 	return nil
 }
 
@@ -127,6 +129,7 @@ var scriptClassToName = []string{
 	StakeRevocationTy: "stakerevoke",
 	StakeSubChangeTy:  "sstxchange",
 	CLTVPubKeyHashTy:  "cltvpubkeyhash",
+	TokenPubKeyHashTy: "tokenpubkeyhash",
 }
 
 // String implements the Stringer interface by returning the name of
@@ -420,6 +423,20 @@ func isCLTVPubkeyHash(pops []ParsedOpcode) bool {
 		pops[7].opcode.value == OP_CHECKSIG
 }
 
+// isTokenPubkeyHash returns true if the script passed is a pay-to-token-pubkey-hash
+// transaction, false otherwise.
+func isTokenPubkeyHash(pops []ParsedOpcode) bool {
+	return len(pops) == 12 &&
+		pops[4].opcode.value == OP_TOKEN &&
+		pops[5].opcode.value == OP_2DROP &&
+		pops[6].opcode.value == OP_2DROP &&
+		pops[7].opcode.value == OP_DUP &&
+		pops[8].opcode.value == OP_HASH160 &&
+		pops[9].opcode.value == OP_DATA_20 &&
+		pops[10].opcode.value == OP_EQUALVERIFY &&
+		pops[11].opcode.value == OP_CHECKSIG
+}
+
 // scriptType returns the type of the script being inspected from the known
 // standard types.
 func typeOfScript(pops []ParsedOpcode) ScriptClass {
@@ -447,6 +464,8 @@ func typeOfScript(pops []ParsedOpcode) ScriptClass {
 		return StakeSubChangeTy
 	} else if isCLTVPubkeyHash(pops) {
 		return CLTVPubKeyHashTy
+	} else if isTokenPubkeyHash(pops) {
+		return TokenPubKeyHashTy
 	}
 
 	return NonStandardTy
@@ -1005,6 +1024,11 @@ func PayToCLTVPubKeyHashScript(pubKeyHash []byte, lockTime int64) ([]byte, error
 		AddData(pubKeyHash).AddOp(OP_EQUALVERIFY).AddOp(OP_CHECKSIG).Script()
 }
 
+func PayToTokenPubKeyHashScript(pubKeyHash []byte, coinId types.CoinID, upLimit uint64, name string, feeCfg int64) ([]byte, error) {
+	return NewScriptBuilder().AddInt64(int64(coinId)).AddInt64(int64(upLimit)).AddData([]byte(name)).AddInt64(feeCfg).AddOp(OP_TOKEN).AddOp(OP_2DROP).AddOp(OP_2DROP).AddOp(OP_DUP).AddOp(OP_HASH160).
+		AddData(pubKeyHash).AddOp(OP_EQUALVERIFY).AddOp(OP_CHECKSIG).Script()
+}
+
 // GenerateSStxAddrPush generates an OP_RETURN push for SSGen payment addresses in
 // an SStx.
 func GenerateSStxAddrPush(addr types.Address, amount uint64,
@@ -1374,6 +1398,14 @@ func ExtractPkScriptAddrs(pkScript []byte,
 		// Skip the pubkey hash if it's invalid for some reason.
 		requiredSigs = 1
 		addr, err := address.NewPubKeyHashAddress(pops[5].data,
+			chainParams, ecc.ECDSA_Secp256k1)
+		if err == nil {
+			addrs = append(addrs, addr)
+		}
+
+	case TokenPubKeyHashTy:
+		requiredSigs = 1
+		addr, err := address.NewPubKeyHashAddress(pops[9].data,
 			chainParams, ecc.ECDSA_Secp256k1)
 		if err == nil {
 			addrs = append(addrs, addr)

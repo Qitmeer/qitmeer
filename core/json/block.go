@@ -77,9 +77,12 @@ type GetBlockHeaderVerboseResult struct {
 	PowResult     PowResult `json:"pow"`
 }
 
-type TokenBalance struct {
+type TokenState struct {
 	CoinId     uint16 `json:"coinid"`
 	CoinName   string `json:"coinname"`
-	Balance    int64  `json:"balance"`
-	LockedMeer int64  `json:"lockedMEER"`
+	Owners     string `json:"owners"`
+	UpLimit    uint64 `json:"uplimit,omitempty"`
+	Enable     bool   `json:"enable,omitempty"`
+	Balance    int64  `json:"balance,omitempty"`
+	LockedMeer int64  `json:"lockedMEER,omitempty"`
 }

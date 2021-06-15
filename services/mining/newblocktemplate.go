@@ -169,6 +169,9 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	txFees = append(txFees, -1) // Updated once known
 	txSigOpCosts = append(txSigOpCosts, coinbaseSigOpCost)
 
+	tokenSigOpCost := int64(0)
+	tokenSize := uint32(0)
+
 	log.Debug("Inclusion to new block", "transactions", len(sourceTxns))
 mempoolLoop:
 	for _, txDesc := range sourceTxns {
@@ -177,6 +180,16 @@ mempoolLoop:
 		tx := txDesc.Tx
 		if tx.Tx.IsCoinBase() {
 			log.Trace(fmt.Sprintf("Skipping coinbase tx %s", tx.Hash()))
+			continue
+		}
+		if types.IsTokenTx(tx.Tx) {
+			log.Trace(fmt.Sprintf("Skipping token tx %s", tx.Hash()))
+			blockTxns = append(blockTxns, tx)
+			txFees = append(txFees, -1)
+			tokenSOC := int64(blockchain.CountSigOps(tx))
+			txSigOpCosts = append(txSigOpCosts, tokenSOC)
+			tokenSigOpCost += tokenSOC
+			tokenSize += uint32(tx.Transaction().SerializeSize())
 			continue
 		}
 		if !blockchain.IsFinalizedTransaction(tx, nextBlockHeight,
@@ -260,9 +273,9 @@ mempoolLoop:
 	log.Trace(fmt.Sprintf("Weighted random queue len %d, dependers len %d",
 		weightedRandQueue.Len(), len(dependers)))
 
-	blockSize := uint32(blockHeaderOverhead) + uint32(coinbaseTx.Transaction().SerializeSize())
+	blockSize := uint32(blockHeaderOverhead) + uint32(coinbaseTx.Transaction().SerializeSize()) + tokenSize
 
-	blockSigOpCost := coinbaseSigOpCost
+	blockSigOpCost := coinbaseSigOpCost + tokenSigOpCost
 	totalFees := int64(0)
 	blockFeesMap := types.AmountMap{}
 
@@ -319,13 +332,6 @@ mempoolLoop:
 		if err != nil {
 			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
 				"CheckTransactionInputs: %v", tx.Hash(), err))
-			logSkippedDeps(tx, deps)
-			continue
-		}
-		err = blockManager.GetChain().CheckTransactionFee(txFeesMap)
-		if err != nil {
-			log.Trace(fmt.Sprintf("Skipping tx %s due to error in "+
-				"CheckTransactionFee: %v", tx.Hash(), err))
 			logSkippedDeps(tx, deps)
 			continue
 		}

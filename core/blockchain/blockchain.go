@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/merkle"
+	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -344,7 +345,6 @@ func New(config *Config) (*BlockChain, error) {
 	if err := b.initChainState(config.Interrupt); err != nil {
 		return nil, err
 	}
-
 	// Initialize and catch up all of the currently active optional indexes
 	// as needed.
 	if config.IndexManager != nil {
@@ -441,11 +441,11 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		}
 
 		// Don't allow downgrades of the database compression version.
-		if dbInfo.compVer > currentCompressionVersion {
+		if dbInfo.compVer > serialization.CurrentCompressionVersion {
 			return fmt.Errorf("the current database compression "+
 				"version is no longer compatible with this "+
 				"version of the software (%d > %d)",
-				dbInfo.compVer, currentCompressionVersion)
+				dbInfo.compVer, serialization.CurrentCompressionVersion)
 		}
 
 		// Don't allow downgrades of the block index.
@@ -555,10 +555,16 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns,
 			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(),
 			b.bd.GetGraphState(), &state.tokenTipHash)
-
 		return nil
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	ts := b.GetTokenState(b.TokenTipID)
+	if ts == nil {
+		return fmt.Errorf("token state error")
+	}
+	return ts.Commit()
 }
 
 // HaveBlock returns whether or not the chain instance has the block represented
@@ -832,7 +838,6 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		}
 		if !node.GetStatus().KnownInvalid() {
 			node.Valid(b)
-			b.updateTokenBalance(node, block, false)
 		}
 		// TODO, validating previous block
 		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
@@ -982,6 +987,11 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 	// now that the modifications have been committed to the database.
 	view.commit()
 
+	err = b.updateTokenState(node, block, false)
+	if err != nil {
+		return err
+	}
+
 	b.sendNotification(BlockConnected, []*types.SerializedBlock{block})
 	return nil
 }
@@ -1069,7 +1079,7 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 	dl := len(detachNodes)
 	for i := dl - 1; i >= 0; i-- {
 		n = detachNodes[i]
-		b.updateTokenBalance(n, nil, true)
+		b.updateTokenState(n, nil, true)
 		//
 		newn := b.index.LookupNode(n.GetHash())
 		block, err = b.fetchBlockByHash(&n.hash)
@@ -1160,7 +1170,6 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 		}
 		if !n.GetStatus().KnownInvalid() {
 			n.Valid(b)
-			b.updateTokenBalance(n, block, false)
 		}
 	}
 
@@ -1424,7 +1433,7 @@ func (b *BlockChain) ChainParams() *params.Params {
 }
 
 func (b *BlockChain) GetTokenTipHash() *hash.Hash {
-	if b.TokenTipID == 0 || uint(b.TokenTipID) == blockdag.MaxId {
+	if uint(b.TokenTipID) == blockdag.MaxId {
 		return nil
 	}
 	ib := b.bd.GetBlockById(uint(b.TokenTipID))
@@ -1435,25 +1444,14 @@ func (b *BlockChain) GetTokenTipHash() *hash.Hash {
 }
 
 func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Hash) hash.Hash {
-	updates := []balanceUpdate{}
+	updates := []token.ITokenUpdate{}
 	for _, tx := range txs {
-		if token.IsTokenMint(tx.Tx) {
-			// TOKEN_MINT: input[0] token output[0] meer
-			update := balanceUpdate{
-				typ:         tokenMint,
-				tokenAmount: tx.Tx.TxIn[0].AmountIn,
-				meerAmount:  tx.Tx.TxOut[0].Amount.Value}
-			// append to update only when check & try has done with no err
-			updates = append(updates, update)
-		}
-		if token.IsTokenUnMint(tx.Tx) {
-			// TOKEN_UNMINT: input[0] meer output[0] token
-			// the previous logic must make sure the legality of values, here only append.
-			update := balanceUpdate{
-				typ:         tokenUnMint,
-				meerAmount:  tx.Tx.TxIn[0].AmountIn.Value,
-				tokenAmount: tx.Tx.TxOut[0].Amount}
-			// append to update only when check & try has done with no err
+		if types.IsTokenTx(tx.Tx) {
+			update, err := token.NewUpdateFromTx(tx.Tx)
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
 			updates = append(updates, update)
 		}
 	}
@@ -1490,7 +1488,7 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 	}
 	balanceUpdate := []*hash.Hash{}
 	for _, u := range updates {
-		balanceUpdate = append(balanceUpdate, u.Hash())
+		balanceUpdate = append(balanceUpdate, u.GetHash())
 	}
 	tsMerkle := merkle.BuildTokenBalanceMerkleTreeStore(balanceUpdate)
 

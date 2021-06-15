@@ -243,7 +243,7 @@ func (w *testWallet) Start() {
 	for _, tx := range gensis.Transactions() {
 		txs = append(txs, tx.Tx)
 	}
-	w.blockConnected(gensis.Hash(), 0, time.Now(), txs)
+	w.blockConnected(gensis.Hash(), 0, 0, time.Now(), txs)
 }
 
 // doOutputs scan each of the passed outputs, creating utxos.
@@ -499,7 +499,7 @@ func (w *testWallet) Addresses() []string {
 	return addrs
 }
 
-func (w *testWallet) blockConnected(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
+func (w *testWallet) blockConnected(hash *hash.Hash, height, order int64, t time.Time, txs []*types.Transaction) {
 	w.t.Logf("node [%v] OnBlockConnected hash=%v,order=%v", w.nodeId, hash, order)
 	for _, tx := range txs {
 		w.t.Logf("node [%v] OnBlockConnected tx=%v", w.nodeId, tx.TxHash())
@@ -516,7 +516,7 @@ func (w *testWallet) blockConnected(hash *hash.Hash, order int64, t time.Time, t
 	}()
 }
 
-func (w *testWallet) blockDisconnected(hash *hash.Hash, order int64, t time.Time, txs []*types.Transaction) {
+func (w *testWallet) blockDisconnected(hash *hash.Hash, height, order int64, t time.Time, txs []*types.Transaction) {
 	w.t.Logf("node [%v] OnBlockDisconnected hash=%v,order=%v", w.nodeId, hash, order)
 	w.Lock()
 	defer w.Unlock()
@@ -538,6 +538,9 @@ func (w *testWallet) blockDisconnected(hash *hash.Hash, order int64, t time.Time
 }
 
 func (w *testWallet) OnTxConfirm(txConfirm *cmds.TxConfirmResult) {
+	w.Lock()
+	defer w.Unlock()
+
 	w.t.Log("OnTxConfirm", txConfirm.Tx, txConfirm.Confirms, txConfirm.Order)
 	if w.confirmTxs == nil {
 		w.confirmTxs = map[string]uint64{}
@@ -548,6 +551,8 @@ func (w *testWallet) OnTxAcceptedVerbose(c *client.Client, tx *j.DecodeRawTransa
 	w.t.Log("OnTxAcceptedVerbose", tx.Order, tx.Txid, tx.Confirms, tx.Txvalid, tx.IsBlue, tx.Duplicate)
 	if tx.Order <= 0 {
 		// mempool tx
+		w.Lock()
+		defer w.Unlock()
 		if w.mempoolTx == nil {
 			w.mempoolTx = map[string]string{}
 		}

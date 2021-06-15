@@ -7,9 +7,7 @@
 package types
 
 import (
-	"encoding/binary"
 	"errors"
-	"fmt"
 	"math"
 	"strconv"
 )
@@ -51,70 +49,6 @@ func (u AmountUnit) String() string {
 	default:
 		return "1e" + strconv.FormatInt(int64(u), 10) + " "
 	}
-}
-
-// from 0 ~ 65535
-// 0 ~ 255 : Qitmeer reserved
-type CoinID uint16
-
-const (
-	MEERID CoinID = 0
-	QITID  CoinID = 1
-	METID  CoinID = 2 // TODO The future needs to be redefined or deleted
-	TERID  CoinID = 3 // TODO The future needs to be redefined or deleted
-)
-
-func (c CoinID) Name() string {
-	switch c {
-	case MEERID:
-		return "MEER"
-	case QITID:
-		return "QIT"
-	case METID:
-		return "MET"
-	case TERID:
-		return "TER"
-	default:
-		return "Unknown-CoinID:" + strconv.FormatInt(int64(c), 10)
-	}
-}
-func (c CoinID) Bytes() []byte {
-	b := [2]byte{}
-	binary.LittleEndian.PutUint16(b[:], uint16(c))
-	return b[:]
-}
-
-func NewCoinID(name string) CoinID {
-	for _, coinid := range CoinIDList {
-		if name == coinid.Name() {
-			return coinid
-		}
-	}
-	// panic(fmt.Sprintf("Unknown-CoinID:%s", name)) // Which way is better ?
-	return MEERID
-}
-
-var CoinIDList = []CoinID{
-	MEERID, QITID, METID, TERID,
-}
-
-// Check if a valid coinId, current only check if the coinId is known.
-func CheckCoinID(id CoinID) error {
-	unknownCoin := true
-	for _, coinId := range CoinIDList {
-		if id == coinId {
-			unknownCoin = false
-			break
-		}
-	}
-	if unknownCoin {
-		return fmt.Errorf("unknown coin id %s", id.Name())
-	}
-	return nil
-}
-
-func IsKnownCoinID(id CoinID) bool {
-	return CheckCoinID(id) == nil
 }
 
 // Amount represents the base coin monetary unit (colloquially referred
@@ -235,16 +169,6 @@ func NewMeer(a uint64) (*Amount, error) {
 	err := checkMaxAmount(&amt)
 	if err != nil {
 		zero := Amount{0, MEERID}
-		return &zero, err
-	}
-	return &amt, nil
-}
-
-func NewQit(a uint64) (*Amount, error) {
-	amt := Amount{int64(a), QITID}
-	err := checkMaxAmount(&amt)
-	if err != nil {
-		zero := Amount{0, QITID}
 		return &zero, err
 	}
 	return &amt, nil

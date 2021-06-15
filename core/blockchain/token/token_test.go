@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const QITID CoinID = 1
+
 var (
 	// private key
 	privateKey []byte = []byte{

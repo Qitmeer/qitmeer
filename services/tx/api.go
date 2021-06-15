@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/marshal"
+	"github.com/Qitmeer/qitmeer/common/math"
 	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/blockchain/token"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -19,6 +22,8 @@ import (
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/services/mempool"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -171,7 +176,7 @@ func (api *PublicTxAPI) DecodeRawTransaction(hexTx string) (interface{}, error) 
 		{Key: "locktime", Val: mtx.LockTime},
 		{Key: "timestamp", Val: mtx.Timestamp.Format(time.RFC3339)},
 		{Key: "vin", Val: marshal.MarshJsonVin(&mtx)},
-		{Key: "vout", Val: marshal.MarshJsonVout(&mtx, nil, api.txManager.bm.ChainParams())},
+		{Key: "vout", Val: marshal.MarshJsonVout(&mtx, nil, params.ActiveNetParams.Params)},
 	}
 	return txReply, nil
 }
@@ -929,7 +934,7 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 	privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
 	h160 := hash.Hash160(pubKey.SerializeCompressed())
 
-	param := api.txManager.bm.ChainParams()
+	param := params.ActiveNetParams.Params
 	addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
 	if err != nil {
 		return nil, err
@@ -958,66 +963,275 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 		return privateKey, true, nil // compressed is true
 	}
 	//
-	txIndex := api.txManager.txIndex
-	if txIndex == nil {
-		return nil, fmt.Errorf("the transaction index " +
-			"must be enabled to query the blockchain (specify --txindex in configuration)")
-	}
-
-	for i := 0; i < len(redeemTx.TxIn); i++ {
-		txHash := redeemTx.TxIn[i].PreviousOut.Hash
-		// Look up the location of the transaction.
-		blockRegion, err := txIndex.TxBlockRegion(txHash)
-		if err != nil {
-			return nil, errors.New("Failed to retrieve transaction location")
+	if types.IsTokenNewTx(&redeemTx) ||
+		types.IsTokenRenewTx(&redeemTx) ||
+		types.IsTokenValidateTx(&redeemTx) ||
+		types.IsTokenInvalidateTx(&redeemTx) {
+		if len(param.TokenAdminPkScript) <= 0 {
+			return nil, fmt.Errorf("No token admin pk script.\n")
 		}
-		if blockRegion == nil {
-			return nil, rpc.RpcNoTxInfoError(&txHash)
-		}
-
-		// Load the raw transaction bytes from the database.
-		var txBytes []byte
-		err = api.txManager.db.View(func(dbTx database.Tx) error {
-			var err error
-			txBytes, err = dbTx.FetchBlockRegion(blockRegion)
-			return err
-		})
-		if err != nil {
-			return nil, rpc.RpcNoTxInfoError(&txHash)
-		}
-		// Deserialize the transaction.
-		var prevTx types.Transaction
-		err = prevTx.Deserialize(bytes.NewReader(txBytes))
+		sigScript, err := txscript.SignTxOutput(param, &redeemTx, 0, param.TokenAdminPkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
 		if err != nil {
 			return nil, err
 		}
+		redeemTx.TxIn[0].SignScript = sigScript
+	} else {
+		txIndex := api.txManager.txIndex
+		if txIndex == nil {
+			return nil, fmt.Errorf("the transaction index " +
+				"must be enabled to query the blockchain (specify --txindex in configuration)")
+		}
+		var tokenPkScript []byte
+		if types.IsTokenMintTx(&redeemTx) {
+			tokenPkScript, err = api.txManager.bm.GetChain().GetCurTokenOwners(redeemTx.TxOut[0].Amount.Id)
+			if err != nil {
+				return nil, err
+			}
+		}
+		for i := 0; i < len(redeemTx.TxIn); i++ {
+			if i == 0 && len(tokenPkScript) > 0 {
+				sigScript, err := txscript.SignTxOutput(param, &redeemTx, 0, tokenPkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
+				if err != nil {
+					return nil, err
+				}
+				redeemTx.TxIn[0].SignScript = sigScript
+				continue
+			}
+			txHash := redeemTx.TxIn[i].PreviousOut.Hash
+			// Look up the location of the transaction.
+			blockRegion, err := txIndex.TxBlockRegion(txHash)
+			if err != nil {
+				return nil, errors.New("Failed to retrieve transaction location")
+			}
+			if blockRegion == nil {
+				return nil, rpc.RpcNoTxInfoError(&txHash)
+			}
 
-		if redeemTx.TxIn[i].PreviousOut.OutIndex >= uint32(len(prevTx.TxOut)) {
-			return nil, fmt.Errorf("index:%d", redeemTx.TxIn[i].PreviousOut.OutIndex)
-		}
+			// Load the raw transaction bytes from the database.
+			var txBytes []byte
+			err = api.txManager.db.View(func(dbTx database.Tx) error {
+				var err error
+				txBytes, err = dbTx.FetchBlockRegion(blockRegion)
+				return err
+			})
+			if err != nil {
+				return nil, rpc.RpcNoTxInfoError(&txHash)
+			}
+			// Deserialize the transaction.
+			var prevTx types.Transaction
+			err = prevTx.Deserialize(bytes.NewReader(txBytes))
+			if err != nil {
+				return nil, err
+			}
 
-		//
-		blockNode := api.txManager.bm.GetChain().BlockIndex().LookupNode(blockRegion.Hash)
-		if blockNode == nil {
-			return nil, fmt.Errorf("Can't find block %s", blockRegion.Hash)
-		}
+			if redeemTx.TxIn[i].PreviousOut.OutIndex >= uint32(len(prevTx.TxOut)) {
+				return nil, fmt.Errorf("index:%d", redeemTx.TxIn[i].PreviousOut.OutIndex)
+			}
 
-		if blockNode.GetStatus().KnownInvalid() {
-			return nil, fmt.Errorf("Vin is  illegal %s", blockRegion.Hash)
-		}
+			//
+			blockNode := api.txManager.bm.GetChain().BlockIndex().LookupNode(blockRegion.Hash)
+			if blockNode == nil {
+				return nil, fmt.Errorf("Can't find block %s", blockRegion.Hash)
+			}
 
-		pks := pkScript
-		if redeemTx.LockTime != 0 {
-			pks = prevTx.TxOut[redeemTx.TxIn[i].PreviousOut.OutIndex].PkScript
+			if blockNode.GetStatus().KnownInvalid() {
+				return nil, fmt.Errorf("Vin is  illegal %s", blockRegion.Hash)
+			}
+
+			pks := pkScript
+			if redeemTx.LockTime != 0 {
+				pks = prevTx.TxOut[redeemTx.TxIn[i].PreviousOut.OutIndex].PkScript
+			}
+			sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pks, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
+			if err != nil {
+				return nil, err
+			}
+			redeemTx.TxIn[i].SignScript = sigScript
 		}
-		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pks, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
-		if err != nil {
-			return nil, err
-		}
-		redeemTx.TxIn[i].SignScript = sigScript
 	}
 
 	mtxHex, err := marshal.MessageToHex(&redeemTx)
+	if err != nil {
+		return nil, err
+	}
+	return mtxHex, nil
+}
+
+// token
+
+func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, coinName *string, owners *string, uplimit *uint64, inputs []json.TransactionInput, amounts json.Amounts, feeType uint16, feeValue int64) (interface{}, error) {
+	txt := types.TxTypeTokenRegulation
+	if !strings.HasPrefix(txtype, "0x") {
+		switch txtype {
+		case "new":
+			txt = types.TxTypeTokenNew
+		case "renew":
+			txt = types.TxTypeTokenRenew
+		case "validate":
+			txt = types.TxTypeTokenValidate
+		case "invalidate":
+			txt = types.TxTypeTokenInvalidate
+		case "mint":
+			txt = types.TxTypeTokenMint
+		default:
+			return nil, fmt.Errorf("No support %s\n", txtype)
+		}
+	} else {
+		txtype = txtype[2:]
+		txtI, err := strconv.ParseInt(txtype, 16, 32)
+		if err != nil {
+			return nil, err
+		}
+		txt = types.TxType(txtI)
+	}
+
+	mtx := types.NewTransaction()
+	mtx.AddTxIn(&types.TxInput{
+		PreviousOut: *types.NewOutPoint(&hash.ZeroHash, types.TokenPrevOutIndex),
+		Sequence:    uint32(txt),
+	})
+
+	if types.CoinID(coinId) <= types.QitmeerReservedID {
+		return nil, fmt.Errorf("Coin ID (%d) is qitmeer reserved. It has to be greater than %d for token type update.\n", coinId, types.QitmeerReservedID)
+	}
+
+	//
+	if txt == types.TxTypeTokenMint {
+		if len(inputs) <= 0 {
+			return nil, fmt.Errorf("Tx inputs cannot be empty\n")
+		}
+		if len(amounts) <= 0 {
+			return nil, fmt.Errorf("Token amounts cannot be empty\n")
+		}
+
+		lockMeer := int64(0)
+		for _, input := range inputs {
+			txid, err := hash.NewHashFromStr(input.Txid)
+			if err != nil {
+				return nil, rpc.RpcDecodeHexError(input.Txid)
+			}
+			prevOut := types.NewOutPoint(txid, input.Vout)
+			txIn := types.NewTxInput(prevOut, []byte{})
+
+			entry, err := api.txManager.bm.GetChain().FetchUtxoEntry(*prevOut)
+			if err != nil {
+				return nil, rpc.RpcNoTxInfoError(txid)
+			}
+			if entry == nil || entry.IsSpent() {
+				return nil, fmt.Errorf("Input(%s %d) is invalid\n", prevOut.Hash, prevOut.OutIndex)
+			}
+			if !entry.Amount().Id.IsBase() {
+				return nil, fmt.Errorf("Token transaction input (%s %d) must be MEERID\n", txIn.PreviousOut.Hash, txIn.PreviousOut.OutIndex)
+			}
+			lockMeer += entry.Amount().Value
+			mtx.AddTxIn(txIn)
+		}
+		dbnamespace.ByteOrder.PutUint64(mtx.TxIn[0].PreviousOut.Hash[0:8], uint64(lockMeer))
+
+		err := types.CheckCoinID(types.CoinID(coinId))
+		if err != nil {
+			return nil, err
+		}
+		for encodedAddr, amount := range amounts {
+			// Ensure amount is in the valid range for monetary amounts.
+			if amount <= 0 || amount > types.MaxAmount {
+				return nil, rpc.RpcInvalidError("Invalid amount: 0 >= %v "+
+					"> %v", amount, types.MaxAmount)
+			}
+
+			// Decode the provided address.
+			addr, err := address.DecodeAddress(encodedAddr)
+			if err != nil {
+				return nil, rpc.RpcAddressKeyError("Could not decode "+
+					"address: %v", err)
+			}
+
+			if !address.IsForNetwork(addr, api.txManager.bm.ChainParams()) {
+				return nil, rpc.RpcAddressKeyError("Wrong network: %v",
+					addr)
+			}
+
+			// Create a new script which pays to the provided address.
+			pkScript, err := txscript.PayToAddrScript(addr)
+			if err != nil {
+				return nil, rpc.RpcInternalError(err.Error(),
+					"Pay to address script")
+			}
+
+			txOut := types.NewTxOutput(types.Amount{Value: int64(amount), Id: types.CoinID(coinId)}, pkScript)
+			mtx.AddTxOut(txOut)
+		}
+	} else {
+		//
+
+		upLi := uint64(math.MaxInt64)
+		if uplimit != nil {
+			upLi = *uplimit
+			if *uplimit == 0 {
+				upLi = uint64(math.MaxInt64)
+			}
+		}
+
+		if coinName != nil {
+			if len(*coinName) > token.MaxTokenNameLength {
+				return nil, fmt.Errorf("Coin name is too long:%d  (max:%d)", len(*coinName), token.MaxTokenNameLength)
+			}
+		}
+		if txt != types.TxTypeTokenNew {
+			err := types.CheckCoinID(types.CoinID(coinId))
+			if err != nil {
+				return nil, err
+			}
+		}
+		if txt == types.TxTypeTokenNew || txt == types.TxTypeTokenRenew {
+			if owners == nil {
+				return nil, fmt.Errorf("No owners address\n")
+			}
+			addr, err := address.DecodeAddress(*owners)
+			if err != nil {
+				return nil, rpc.RpcAddressKeyError("Could not decode address: %v", err)
+			}
+			if !address.IsForNetwork(addr, params.ActiveNetParams.Params) {
+				return nil, rpc.RpcAddressKeyError("Wrong network: %v", addr)
+			}
+
+			if coinName == nil {
+				return nil, fmt.Errorf("No coin name\n")
+			}
+			fcfg := &token.TokenFeeConfig{Type: types.FeeType(feeType), Value: feeValue}
+			pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), upLi, *coinName, fcfg.GetData())
+			if err != nil {
+				return nil, err
+			}
+			mtx.AddTxOut(&types.TxOutput{PkScript: pkScript})
+		} else {
+			state := api.txManager.bm.GetChain().GetCurTokenState()
+			if state == nil {
+				return nil, fmt.Errorf("Token state error\n")
+			}
+			tt, ok := state.Types[types.CoinID(coinId)]
+			if !ok {
+				return nil, fmt.Errorf("It doesn't exist: Coin id (%d)\n", coinId)
+			}
+			if tt.Enable && txt == types.TxTypeTokenValidate {
+				return nil, fmt.Errorf("Validate is allowed only when disable: Coin id (%d)\n", coinId)
+			}
+			if !tt.Enable && txt == types.TxTypeTokenInvalidate {
+				return nil, fmt.Errorf("Invalidate is allowed only when enable: Coin id (%d)\n", coinId)
+			}
+			addr := tt.GetAddress()
+			if addr == nil {
+				return nil, fmt.Errorf("Token owners is error\n")
+			}
+			pkScript, err := txscript.PayToTokenPubKeyHashScript(addr.Script(), types.CoinID(coinId), 0, "", 0)
+			if err != nil {
+				return nil, err
+			}
+			mtx.AddTxOut(&types.TxOutput{PkScript: pkScript})
+		}
+	}
+
+	mtxHex, err := marshal.MessageToHex(mtx)
 	if err != nil {
 		return nil, err
 	}

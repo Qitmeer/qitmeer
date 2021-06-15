@@ -9,6 +9,7 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -260,47 +261,35 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 	return nil
 }
 
-func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.SerializedBlock, rollback bool) error {
+func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBlock, rollback bool) error {
 	if rollback {
 		if uint32(node.dagID) == b.TokenTipID {
 			state := b.GetTokenState(b.TokenTipID)
 			if state != nil {
 				err := b.db.Update(func(dbTx database.Tx) error {
-					return dbRemoveTokenState(dbTx, uint32(node.dagID))
+					return token.DBRemoveTokenState(dbTx, uint32(node.dagID))
 				})
 				if err != nil {
 					return err
 				}
-				b.TokenTipID = state.prevStateID
+				b.TokenTipID = state.PrevStateID
 			}
 
 		}
 		return nil
 	}
-	updates := []balanceUpdate{}
+	updates := []token.ITokenUpdate{}
 	for _, tx := range block.Transactions() {
 		if tx.IsDuplicate {
 			log.Trace(fmt.Sprintf("updateTokenBalance skip duplicate tx %v", tx.Hash()))
 			continue
 		}
 
-		if token.IsTokenMint(tx.Tx) {
-			// TOKEN_MINT: input[0] token output[0] meer
-			update := balanceUpdate{
-				typ:         tokenMint,
-				tokenAmount: tx.Tx.TxIn[0].AmountIn,
-				meerAmount:  tx.Tx.TxOut[0].Amount.Value}
-			// append to update only when check & try has done with no err
-			updates = append(updates, update)
-		}
-		if token.IsTokenUnMint(tx.Tx) {
-			// TOKEN_UNMINT: input[0] meer output[0] token
-			// the previous logic must make sure the legality of values, here only append.
-			update := balanceUpdate{
-				typ:         tokenUnMint,
-				meerAmount:  tx.Tx.TxIn[0].AmountIn.Value,
-				tokenAmount: tx.Tx.TxOut[0].Amount}
-			// append to update only when check & try has done with no err
+		if types.IsTokenTx(tx.Tx) {
+			update, err := token.NewUpdateFromTx(tx.Tx)
+			if err != nil {
+				return err
+			}
 			updates = append(updates, update)
 		}
 	}
@@ -309,32 +298,31 @@ func (b *BlockChain) updateTokenBalance(node *blockNode, block *types.Serialized
 	}
 	state := b.GetTokenState(b.TokenTipID)
 	if state == nil {
-		state = &tokenState{prevStateID: 0, updates: updates}
-		state.balances.UpdatesBalance(updates)
+		state = &token.TokenState{PrevStateID: uint32(blockdag.MaxId), Updates: updates}
 	} else {
-		state.prevStateID = b.TokenTipID
-		state.updates = updates
-		state.balances.UpdatesBalance(updates)
+		state.PrevStateID = b.TokenTipID
+		state.Updates = updates
 	}
 
-	err := b.db.Update(func(dbTx database.Tx) error {
-		return dbPutTokenState(dbTx, uint32(node.dagID), *state)
-	})
+	err := state.Update()
 	if err != nil {
 		return err
 	}
 
-	b.TokenTipID = state.prevStateID
-	return nil
+	err = b.db.Update(func(dbTx database.Tx) error {
+		return token.DBPutTokenState(dbTx, uint32(node.dagID), state)
+	})
+	if err != nil {
+		return err
+	}
+	b.TokenTipID = uint32(node.dagID)
+	return state.Commit()
 }
 
-func (b *BlockChain) GetTokenState(bid uint32) *tokenState {
-	if bid == 0 {
-		return nil
-	}
-	var state *tokenState
+func (b *BlockChain) GetTokenState(bid uint32) *token.TokenState {
+	var state *token.TokenState
 	err := b.db.View(func(dbTx database.Tx) error {
-		ts, err := dbFetchTokenState(dbTx, bid)
+		ts, err := token.DBFetchTokenState(dbTx, bid)
 		if err != nil {
 			return err
 		}
@@ -346,4 +334,53 @@ func (b *BlockChain) GetTokenState(bid uint32) *tokenState {
 		return nil
 	}
 	return state
+}
+
+func (b *BlockChain) GetCurTokenState() *token.TokenState {
+	b.ChainRLock()
+	defer b.ChainRUnlock()
+	return b.GetTokenState(b.TokenTipID)
+}
+
+func (b *BlockChain) GetCurTokenOwners(coinId types.CoinID) ([]byte, error) {
+	b.ChainRLock()
+	defer b.ChainRUnlock()
+	state := b.GetTokenState(b.TokenTipID)
+	if state == nil {
+		return nil, fmt.Errorf("Token state error\n")
+	}
+	tt, ok := state.Types[coinId]
+	if !ok {
+		return nil, fmt.Errorf("It doesn't exist: Coin id (%d)\n", coinId)
+	}
+	return tt.Owners, nil
+}
+
+func (b *BlockChain) CheckTokenState(node *blockNode, block *types.SerializedBlock) error {
+	updates := []token.ITokenUpdate{}
+	for _, tx := range block.Transactions() {
+		if tx.IsDuplicate {
+			log.Trace(fmt.Sprintf("updateTokenBalance skip duplicate tx %v", tx.Hash()))
+			continue
+		}
+
+		if types.IsTokenTx(tx.Tx) {
+			update, err := token.NewUpdateFromTx(tx.Tx)
+			if err != nil {
+				return err
+			}
+			updates = append(updates, update)
+		}
+	}
+	if len(updates) <= 0 {
+		return nil
+	}
+	state := b.GetTokenState(b.TokenTipID)
+	if state == nil {
+		state = &token.TokenState{PrevStateID: uint32(blockdag.MaxId), Updates: updates}
+	} else {
+		state.PrevStateID = b.TokenTipID
+		state.Updates = updates
+	}
+	return state.Update()
 }

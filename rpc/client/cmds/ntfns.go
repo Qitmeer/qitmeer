@@ -19,48 +19,54 @@ const (
 )
 
 type BlockConnectedNtfn struct {
-	Hash  string
-	Order int64
-	Time  int64
-	Txs   []string
+	Hash   string
+	Height int64
+	Order  int64
+	Time   int64
+	Txs    []string
 }
 
-func NewBlockConnectedNtfn(hash string, order int64, time int64, txs []string) *BlockConnectedNtfn {
+func NewBlockConnectedNtfn(hash string, height, order int64, time int64, txs []string) *BlockConnectedNtfn {
 	return &BlockConnectedNtfn{
-		Hash:  hash,
-		Order: order,
-		Time:  time,
-		Txs:   txs,
+		Hash:   hash,
+		Height: height,
+		Order:  order,
+		Time:   time,
+		Txs:    txs,
 	}
 }
 
 type BlockDisconnectedNtfn struct {
-	Hash  string
-	Order int64
-	Time  int64
-	Txs   []string
+	Hash   string
+	Height int64
+	Order  int64
+	Time   int64
+	Txs    []string
 }
 
-func NewBlockDisconnectedNtfn(hash string, order int64, time int64, txs []string) *BlockDisconnectedNtfn {
+func NewBlockDisconnectedNtfn(hash string, height, order int64, time int64, txs []string) *BlockDisconnectedNtfn {
 	return &BlockDisconnectedNtfn{
-		Hash:  hash,
-		Order: order,
-		Time:  time,
-		Txs:   txs,
+		Hash:   hash,
+		Height: height,
+		Order:  order,
+		Time:   time,
+		Txs:    txs,
 	}
 }
 
 type BlockAcceptedNtfn struct {
-	Hash  string
-	Order int64
-	Time  int64
-	Txs   []string
+	Hash   string
+	Height int64
+	Order  int64
+	Time   int64
+	Txs    []string
 }
 
 type ReorganizationNtfn struct {
-	Hash  string
-	Order int64
-	Olds  []string
+	Hash   string
+	Height int64
+	Order  int64
+	Olds   []string
 }
 
 func NewReorganizationNtfn(hash string, order int64, olds []string) *ReorganizationNtfn {

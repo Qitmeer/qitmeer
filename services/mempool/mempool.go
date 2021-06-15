@@ -278,6 +278,50 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, nil, err
 	}
 
+	if types.IsTokenTx(tx.Tx) {
+		// Verify crypto signatures for each input and reject the transaction if
+		// any don't verify.
+		flags, err := mp.cfg.Policy.StandardVerifyFlags()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		utxoView := blockchain.NewUtxoViewpoint()
+		if types.IsTokenMintTx(tx.Tx) {
+			utxoView, err = mp.fetchInputUtxos(tx)
+			if err != nil {
+				return nil, nil, err
+			}
+			pkscript, err := mp.cfg.BC.GetCurTokenOwners(tx.Tx.TxOut[0].Amount.Id)
+			if err != nil {
+				return nil, nil, err
+			}
+			utxoView.AddTokenTxOut(tx.Tx.TxIn[0].PreviousOut, pkscript)
+
+			err = mp.cfg.BC.CheckTokenTransactionInputs(tx, utxoView)
+			if err != nil {
+				return nil, nil, err
+			}
+		} else {
+			utxoView.AddTokenTxOut(tx.Tx.TxIn[0].PreviousOut, nil)
+		}
+
+		err = blockchain.ValidateTransactionScripts(tx, utxoView, flags,
+			mp.cfg.SigCache)
+		if err != nil {
+			if cerr, ok := err.(blockchain.RuleError); ok {
+				return nil, nil, chainRuleError(cerr)
+			}
+			return nil, nil, err
+		}
+
+		// Add to transaction pool.
+		txD := mp.addTransaction(utxoView, tx, nextBlockHeight, 0)
+
+		log.Debug("Accepted transaction", "txHash", txHash, "pool size", len(mp.pool))
+
+		return nil, txD, nil
+	}
 	// Fetch all of the unspent transaction outputs referenced by the inputs
 	// to this transaction.  This function also attempts to fetch the
 	// transaction itself to be used for detecting a duplicate transaction
@@ -352,10 +396,6 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, nil, err
 	}
 
-	err = mp.cfg.BC.CheckTransactionFee(txFees)
-	if err != nil {
-		return nil, nil, err
-	}
 	// Don't allow transactions with non-standard inputs if the mempool config
 	// forbids their acceptance and relaying.
 	if !mp.cfg.Policy.AcceptNonStd {
@@ -408,6 +448,9 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	if txFees != nil {
 		txFee = txFees[types.MEERID]
 	}
+
+	fmt.Println("minFee:", minFee, "txFee:", txFee)
+
 	if txFee < minFee {
 		str := fmt.Sprintf("transaction %v has %v fees which "+
 			"is under the required amount of %v, tx size is %v bytes, policy-rate is %v/byte.", txHash,
@@ -425,6 +468,8 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 
 		currentPriority := CalcPriority(msgTx, utxoView,
 			nextBlockHeight, mp.cfg.BD)
+
+		fmt.Println("Priority:", currentPriority, MinHighPriority)
 		if currentPriority <= MinHighPriority {
 			str := fmt.Sprintf("transaction %v has insufficient "+
 				"priority (%g <= %g)", txHash,
@@ -464,6 +509,8 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	if !allowHighFees {
 		maxFee := calcMinRequiredTxRelayFee(serializedSize*maxRelayFeeMultiplier,
 			mp.cfg.Policy.MinRelayTxFee)
+
+		fmt.Println("allowHighFees", maxFee)
 		if txFee > maxFee {
 			err = fmt.Errorf("transaction %v has %v fee which is above the "+
 				"allowHighFee check threshold amount of %v (= %v byte * %v/kB * %v)", txHash,

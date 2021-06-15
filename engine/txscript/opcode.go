@@ -248,7 +248,7 @@ const (
 	OP_TOKEN_RELEASE       = 0xc6 // 198 Qitmeer token release
 	OP_MEER_CHANGE         = 0xc7 // 199 Qitmeer meer change
 	OP_TOKEN_CHANGE        = 0xc8 // 200 Qitmeer token change
-	OP_UNKNOWN201          = 0xc9 // 201
+	OP_TOKEN               = 0xc9 // 201 Qitmeer token manage operation
 	OP_UNKNOWN202          = 0xca // 202
 	OP_UNKNOWN203          = 0xcb // 203
 	OP_UNKNOWN204          = 0xcc // 204
@@ -534,17 +534,17 @@ var opcodeArray = [256]Opcode{
 	OP_CHECKSIGALTVERIFY: {OP_CHECKSIGALTVERIFY, "OP_CHECKSIGALTVERIFY", 1, opcodeCheckSigAltVerify},
 
 	// Qitmeer Token opcode.
-	OP_TOKEN_MINT:   {OP_TOKEN_MINT, "OP_TOKEN_MINT", 1, opcodeNop},
-	OP_TOKEN_UNMINT: {OP_TOKEN_UNMINT, "OP_TOKEN_UNMINT", 1, opcodeNop},
-	OP_MEER_LOCK: {OP_MEER_LOCK, "OP_MEER_LOCK", 1, opcodeNop},
-	OP_MEER_RELEASE: {OP_MEER_RELEASE, "OP_MEER_RELEASE", 1, opcodeNop},
+	OP_TOKEN_MINT:    {OP_TOKEN_MINT, "OP_TOKEN_MINT", 1, opcodeNop},
+	OP_TOKEN_UNMINT:  {OP_TOKEN_UNMINT, "OP_TOKEN_UNMINT", 1, opcodeNop},
+	OP_MEER_LOCK:     {OP_MEER_LOCK, "OP_MEER_LOCK", 1, opcodeNop},
+	OP_MEER_RELEASE:  {OP_MEER_RELEASE, "OP_MEER_RELEASE", 1, opcodeNop},
 	OP_TOKEN_DESTORY: {OP_TOKEN_DESTORY, "OP_TOKEN_DESTORY", 1, opcodeNop},
 	OP_TOKEN_RELEASE: {OP_TOKEN_RELEASE, "OP_TOKEN_RELEASE", 1, opcodeNop},
-	OP_MEER_CHANGE: {OP_MEER_CHANGE, "OP_MEER_CHANGE", 1, opcodeNop},
-	OP_TOKEN_CHANGE: {OP_TOKEN_CHANGE, "OP_TOKEN_CHANGE", 1, opcodeNop},
+	OP_MEER_CHANGE:   {OP_MEER_CHANGE, "OP_MEER_CHANGE", 1, opcodeNop},
+	OP_TOKEN_CHANGE:  {OP_TOKEN_CHANGE, "OP_TOKEN_CHANGE", 1, opcodeNop},
+	OP_TOKEN:         {OP_TOKEN, "OP_TOKEN", 1, opcodeCheckTokenVerify},
 	// Undefined opcodes.
 
-	OP_UNKNOWN201: {OP_UNKNOWN201, "OP_UNKNOWN201", 1, opcodeNop},
 	OP_UNKNOWN202: {OP_UNKNOWN202, "OP_UNKNOWN202", 1, opcodeNop},
 	OP_UNKNOWN203: {OP_UNKNOWN203, "OP_UNKNOWN203", 1, opcodeNop},
 	OP_UNKNOWN204: {OP_UNKNOWN204, "OP_UNKNOWN204", 1, opcodeNop},
@@ -877,7 +877,7 @@ func opcodeN(op *ParsedOpcode, vm *Engine) error {
 func opcodeNop(op *ParsedOpcode, vm *Engine) error {
 	switch op.opcode.value {
 	case OP_NOP1, OP_NOP4, OP_NOP5, OP_NOP6,
-		OP_NOP7, OP_NOP8, OP_NOP9, OP_NOP10, OP_UNKNOWN201, OP_UNKNOWN202, OP_UNKNOWN203,
+		OP_NOP7, OP_NOP8, OP_NOP9, OP_NOP10, OP_UNKNOWN202, OP_UNKNOWN203,
 		OP_UNKNOWN204, OP_UNKNOWN205, OP_UNKNOWN206, OP_UNKNOWN207,
 		OP_UNKNOWN208, OP_UNKNOWN209, OP_UNKNOWN210, OP_UNKNOWN211,
 		OP_UNKNOWN212, OP_UNKNOWN213, OP_UNKNOWN214, OP_UNKNOWN215,
@@ -3044,6 +3044,10 @@ func opcodeCheckSigAltVerify(op *ParsedOpcode, vm *Engine) error {
 		err = opcodeVerify(op, vm)
 	}
 	return err
+}
+
+func opcodeCheckTokenVerify(op *ParsedOpcode, vm *Engine) error {
+	return nil
 }
 
 // OpcodeByName is a map that can be used to lookup an opcode by its
