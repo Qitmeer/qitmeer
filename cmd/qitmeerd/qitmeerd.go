@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/config"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/node"
@@ -130,7 +131,8 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 		log.Error("Uable to start server", "error", err)
 		return err
 	}
-
+	showLogo(cfg)
+	//
 	if nodeChan != nil {
 		nodeChan <- n
 	}
@@ -139,4 +141,20 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	// server.
 	<-interrupt
 	return nil
+}
+
+func showLogo(cfg *config.Config) {
+	logo := `
+       .__  __                               
+  _____|__|/  |_  _____   ____   ___________ 
+ / ____/  \   __\/     \_/ __ \_/ __ \_  __ \
+< <_|  |  ||  | |  Y Y  \  ___/\  ___/|  | \/
+ \__   |__||__| |__|_|  /\___  >\___  >__|   
+    |__|              \/     \/     \/       
+ Qitmeer %s
+ Port: %d
+ PID: %d
+ https://github.com/Qitmeer/qitmeer
+`
+	fmt.Printf(logo, version.String(), cfg.P2PTCPPort, os.Getpid())
 }
