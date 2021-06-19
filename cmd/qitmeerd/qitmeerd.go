@@ -145,16 +145,16 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 
 func showLogo(cfg *config.Config) {
 	logo := `
-       .__  __                               
-  _____|__|/  |_  _____   ____   ___________ 
- / ____/  \   __\/     \_/ __ \_/ __ \_  __ \
-< <_|  |  ||  | |  Y Y  \  ___/\  ___/|  | \/
- \__   |__||__| |__|_|  /\___  >\___  >__|   
-    |__|              \/     \/     \/       
- Qitmeer %s
- Port: %d
- PID: %d
- https://github.com/Qitmeer/qitmeer
+
+         .__  __                                                                    
+    _____|__|/  |_  _____   ____   ___________    Qitmeer %s
+   / ____/  \   __\/     \_/ __ \_/ __ \_  __ \   Port: %d
+  < <_|  |  ||  | |  Y Y  \  ___/\  ___/|  | \/   PID : %d
+   \__   |__||__| |__|_|  /\___  >\___  >__|                                        
+      |__|              \/     \/     \/          https://github.com/Qitmeer/qitmeer
+
+
+
 `
 	fmt.Printf(logo, version.String(), cfg.P2PTCPPort, os.Getpid())
 }
