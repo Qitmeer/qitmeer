@@ -157,7 +157,6 @@ var testNetGenesisMerkleRoot = testNetGenesisCoinbaseTx.TxHashFull()
 // serves as the public transaction ledger for the test network (version 3).
 var testNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
-		Version:    3,
 		ParentRoot: hash.Hash{},
 		TxRoot:     testNetGenesisMerkleRoot,
 		Timestamp:  testNetGenesisCoinbaseTx.Timestamp, // same with the tx timestamp (added since 0.9)
@@ -339,6 +338,7 @@ var testPowNetGenesisCoinbaseTx = types.Transaction{
 }
 
 var mixNetGenesisTx1 = buildMixNetGenesisTxOne()
+
 func buildMixNetGenesisTxOne() types.Transaction {
 	tx := types.Transaction{
 		Version: 1,
@@ -391,7 +391,6 @@ var testPowNetGenesisMerkleRoot = merkle.CalcMerkleRoot(mixNetGenesisTxs)
 // serves as the public transaction ledger for the test network (version 3).
 var testPowNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
-		Version:    16,
 		ParentRoot: hash.Hash{},
 		TxRoot:     *testPowNetGenesisMerkleRoot,
 		Timestamp:  time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
