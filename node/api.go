@@ -86,6 +86,40 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	if len(api.node.node.peerServer.HostAddress()) > 0 {
 		ret.Addresss = api.node.node.peerServer.HostAddress()
 	}
+
+	// soft forks
+	ret.SoftForks = make(map[string]*json.SoftForkDescription)
+	for deployment, deploymentDetails := range params.ActiveNetParams.Deployments {
+		// Map the integer deployment ID into a human readable
+		// fork-name.
+		var forkName string
+		switch deployment {
+		case params.DeploymentTestDummy:
+			forkName = "dummy"
+
+		case params.DeploymentToken:
+			forkName = "token"
+
+		default:
+			return nil, fmt.Errorf("Unknown deployment %v detected\n", deployment)
+		}
+
+		// Query the chain for the current status of the deployment as
+		// identified by its deployment ID.
+		deploymentStatus, err := api.node.blockManager.GetChain().ThresholdState(uint32(deployment))
+		if err != nil {
+			return nil, fmt.Errorf("Failed to obtain deployment status\n")
+		}
+
+		// Finally, populate the soft-fork description with all the
+		// information gathered above.
+		ret.SoftForks[forkName] = &json.SoftForkDescription{
+			Status:    deploymentStatus.HumanString(),
+			Bit:       deploymentDetails.BitNumber,
+			StartTime: int64(deploymentDetails.StartTime),
+			Timeout:   int64(deploymentDetails.ExpireTime),
+		}
+	}
 	return ret, nil
 }
 

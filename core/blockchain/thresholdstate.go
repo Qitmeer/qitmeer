@@ -62,6 +62,23 @@ func (t ThresholdState) String() string {
 	return fmt.Sprintf("Unknown ThresholdState (%d)", int(t))
 }
 
+func (t ThresholdState) HumanString() string {
+	switch t {
+	case ThresholdDefined:
+		return "defined"
+	case ThresholdStarted:
+		return "started"
+	case ThresholdLockedIn:
+		return "lockedin"
+	case ThresholdActive:
+		return "active"
+	case ThresholdFailed:
+		return "failed"
+	default:
+		return fmt.Sprintf("unknown deployment state: %v", t)
+	}
+}
+
 // thresholdConditionChecker provides a generic interface that is invoked to
 // determine when a consensus rule change threshold should be changed.
 type thresholdConditionChecker interface {
