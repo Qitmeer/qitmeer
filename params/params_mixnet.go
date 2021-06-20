@@ -101,7 +101,22 @@ var MixNetParams = Params{
 
 	// Consensus rule change deployments.
 	//
-	Deployments: map[uint32][]ConsensusDeployment{},
+	// The miner confirmation window is defined as:
+	//   target proof of work timespan / target proof of work spacing
+	RuleChangeActivationThreshold: 57,                    // 95% of MinerConfirmationWindow
+	MinerConfirmationWindow:       mixWorkDiffWindowSize, //
+	Deployments: [DefinedDeployments]ConsensusDeployment{
+		DeploymentTestDummy: {
+			BitNumber:  28,
+			StartTime:  1626688646, // 2021-07-19 09:58:47 UTC
+			ExpireTime: 1655200727, // 2022-06-14 09:58:47 UTC
+		},
+		DeploymentToken: {
+			BitNumber:  0,
+			StartTime:  1629280727, // 2021-08-18 09:58:47 UTC
+			ExpireTime: 1655200727, // 2022-06-14 09:58:47 UTC
+		},
+	},
 
 	// Address encoding magics
 	NetworkAddressPrefix: "X",

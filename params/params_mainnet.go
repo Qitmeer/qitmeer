@@ -80,8 +80,6 @@ var MainNetParams = Params{
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{},
 
-	Deployments: map[uint32][]ConsensusDeployment{},
-
 	// Address encoding magics
 	NetworkAddressPrefix: "M",
 	PubKeyAddrID:         [2]byte{0x1f, 0xc5}, // starts with Mk

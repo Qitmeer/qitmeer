@@ -175,7 +175,10 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		log.Warn(fmt.Sprintf("%s", err))
 	}
 
-	b.updateBestState(newNode, block, newOrders)
+	err = b.updateBestState(newNode, block, newOrders)
+	if err != nil {
+		panic(err.Error())
+	}
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
@@ -256,9 +259,7 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 		log.Warn(fmt.Sprintf("%s", err))
 	}
 
-	b.updateBestState(newNode, block, newOrders)
-
-	return nil
+	return b.updateBestState(newNode, block, newOrders)
 }
 
 func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBlock, rollback bool) error {

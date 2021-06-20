@@ -225,7 +225,7 @@ type Params struct {
 	// on.
 	RuleChangeActivationThreshold uint32
 	MinerConfirmationWindow       uint32
-	Deployments                   map[uint32][]ConsensusDeployment
+	Deployments                   [DefinedDeployments]ConsensusDeployment
 
 	// Mempool parameters
 	RelayNonStdTxs bool

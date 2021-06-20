@@ -113,9 +113,6 @@ var PrivNetParams = Params{
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: nil,
 
-	// Consensus rule change deployments.
-	Deployments: map[uint32][]ConsensusDeployment{},
-
 	// Address encoding magics
 	NetworkAddressPrefix: "R",
 	PubKeyAddrID:         [2]byte{0x25, 0xe5}, // starts with Rk
