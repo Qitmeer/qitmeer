@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/params"
 	"math"
 	"time"
 )
@@ -384,4 +385,19 @@ func (b *BlockChain) CheckTokenState(node *blockNode, block *types.SerializedBlo
 		state.Updates = updates
 	}
 	return state.Update()
+}
+
+func (b *BlockChain) IsValidTxType(tt types.TxType) bool {
+	txTypesCfg := types.StdTxs
+	ok, err := b.isDeploymentActive(params.DeploymentToken)
+	if err == nil && ok && len(types.NonStdTxs) > 0 {
+		txTypesCfg = append(txTypesCfg, types.NonStdTxs...)
+	}
+
+	for _, txt := range txTypesCfg {
+		if txt == tt {
+			return true
+		}
+	}
+	return false
 }

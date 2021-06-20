@@ -225,7 +225,7 @@ type Params struct {
 	// on.
 	RuleChangeActivationThreshold uint32
 	MinerConfirmationWindow       uint32
-	Deployments                   [DefinedDeployments]ConsensusDeployment
+	Deployments                   []ConsensusDeployment
 
 	// Mempool parameters
 	RelayNonStdTxs bool
@@ -269,9 +269,6 @@ type Params struct {
 	UnlocksPerHeight     int   // How many will be unlocked at each DAG main height.
 	UnlocksPerHeightStep int   // How many height will lock a tx.
 	GenesisAmountUnit    int64 // the unit amount of equally divided.
-
-	// accept non standard transactions
-	AcceptNonStdTxs bool
 }
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax
@@ -285,20 +282,6 @@ func (p *Params) HasTax() bool {
 	if p.BlockTaxProportion > 0 &&
 		len(p.OrganizationPkScript) > 0 {
 		return true
-	}
-	return false
-}
-
-func (p *Params) IsValidTxType(tt types.TxType) bool {
-	txTypesCfg := types.StdTxs
-	if p.AcceptNonStdTxs && len(types.NonStdTxs) > 0 {
-		txTypesCfg = append(txTypesCfg, types.NonStdTxs...)
-	}
-
-	for _, txt := range txTypesCfg {
-		if txt == tt {
-			return true
-		}
 	}
 	return false
 }

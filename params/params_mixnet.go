@@ -105,7 +105,7 @@ var MixNetParams = Params{
 	//   target proof of work timespan / target proof of work spacing
 	RuleChangeActivationThreshold: 57,                    // 95% of MinerConfirmationWindow
 	MinerConfirmationWindow:       mixWorkDiffWindowSize, //
-	Deployments: [DefinedDeployments]ConsensusDeployment{
+	Deployments: []ConsensusDeployment{
 		DeploymentTestDummy: {
 			BitNumber:  28,
 			StartTime:  1626688646, // 2021-07-19 09:58:47 UTC

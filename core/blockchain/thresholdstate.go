@@ -146,7 +146,7 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 	// The threshold state for the window that contains the genesis block is
 	// defined by definition.
 	confirmationWindow := int(checker.MinerConfirmationWindow())
-	if prevNode == nil || int(prevNode.height+1) < confirmationWindow {
+	if prevNode == nil || confirmationWindow <= 0 || int(prevNode.height+1) < confirmationWindow {
 		return ThresholdDefined, nil
 	}
 
@@ -305,14 +305,18 @@ func (b *BlockChain) ThresholdState(deploymentID uint32) (ThresholdState, error)
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) IsDeploymentActive(deploymentID uint32) (bool, error) {
-	mtip := b.index.LookupNode(&b.BestSnapshot().Hash)
 	b.chainLock.Lock()
-	state, err := b.deploymentState(mtip, deploymentID)
+	state, err := b.isDeploymentActive(deploymentID)
 	b.chainLock.Unlock()
+	return state, err
+}
+
+func (b *BlockChain) isDeploymentActive(deploymentID uint32) (bool, error) {
+	mtip := b.index.LookupNode(&b.BestSnapshot().Hash)
+	state, err := b.deploymentState(mtip, deploymentID)
 	if err != nil {
 		return false, err
 	}
-
 	return state == ThresholdActive, nil
 }
 
