@@ -110,9 +110,6 @@ type BlockChain struct {
 	//block dag
 	bd *blockdag.BlockDAG
 
-	// block version
-	BlockVersion uint32
-
 	// Cache Invalid tx
 	CacheInvalidTx bool
 
@@ -183,9 +180,6 @@ type Config struct {
 
 	// Setting different dag types will use different consensus
 	DAGType string
-
-	// block version
-	BlockVersion uint32
 
 	// Cache Invalid tx
 	CacheInvalidTx bool
@@ -320,10 +314,6 @@ func New(config *Config) (*BlockChain, error) {
 		}
 	}
 
-	if config.BlockVersion > types.MaxBlockVersionValue {
-		return nil, AssertError(fmt.Sprintf("BlockVersion Can not bigger than %d", types.MaxBlockVersionValue))
-	}
-
 	b := BlockChain{
 		checkpointsByLayer: checkpointsByLayer,
 		db:                 config.DB,
@@ -334,10 +324,9 @@ func New(config *Config) (*BlockChain, error) {
 		indexManager:       config.IndexManager,
 		index:              newBlockIndex(config.DB, par),
 		orphans:            make(map[hash.Hash]*orphanBlock),
-		BlockVersion:       config.BlockVersion,
 		CacheInvalidTx:     config.CacheInvalidTx,
 		CacheNotifications: []*Notification{},
-		warningCaches:      newThresholdCaches(vbNumBits),
+		warningCaches:      newThresholdCaches(VBNumBits),
 		deploymentCaches:   newThresholdCaches(params.DefinedDeployments),
 	}
 	b.subsidyCache = NewSubsidyCache(0, b.params)
@@ -529,9 +518,6 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			block, err = dbFetchBlockByHash(dbTx, blockHash)
 			if err != nil {
 				return err
-			}
-			if i != 0 && block.Block().Header.GetVersion() != b.BlockVersion {
-				return fmt.Errorf("The dag block is not match current genesis block. you can cleanup your block data base by '--cleanup'.")
 			}
 			parents := []*blockNode{}
 			for _, pb := range block.Block().Parents {

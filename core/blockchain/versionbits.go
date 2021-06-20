@@ -11,21 +11,17 @@ import (
 )
 
 const (
-	// vbLegacyBlockVersion is the highest legacy block version before the
-	// version bits scheme became active.
-	vbLegacyBlockVersion = 4
-
-	// vbTopBits defines the bits to set in the version to signal that the
+	// VBTopBits defines the bits to set in the version to signal that the
 	// version bits scheme is being used.
-	vbTopBits = 0x20000000
+	VBTopBits = 0x20000000
 
-	// vbTopMask is the bitmask to use to determine whether or not the
+	// VBTopMask is the bitmask to use to determine whether or not the
 	// version bits scheme is in use.
-	vbTopMask = 0xe0000000
+	VBTopMask = 0xe0000000
 
-	// vbNumBits is the total number of bits available for use with the
+	// VBNumBits is the total number of bits available for use with the
 	// version bits scheme.
-	vbNumBits = 29
+	VBNumBits = 29
 )
 
 // bitConditionChecker provides a thresholdConditionChecker which can be used to
@@ -97,7 +93,7 @@ func (c bitConditionChecker) MinerConfirmationWindow() uint32 {
 func (c bitConditionChecker) Condition(node *blockNode) (bool, error) {
 	conditionMask := uint32(1) << c.bit
 	version := uint32(node.blockVersion)
-	if version&vbTopMask != vbTopBits {
+	if version&VBTopMask != VBTopBits {
 		return false, nil
 	}
 	if version&conditionMask == 0 {
@@ -183,7 +179,7 @@ func (c deploymentChecker) MinerConfirmationWindow() uint32 {
 func (c deploymentChecker) Condition(node *blockNode) (bool, error) {
 	conditionMask := uint32(1) << c.deployment.BitNumber
 	version := uint32(node.blockVersion)
-	return (version&vbTopMask == vbTopBits) && (version&conditionMask != 0),
+	return (version&VBTopMask == VBTopBits) && (version&conditionMask != 0),
 		nil
 }
 
@@ -196,11 +192,11 @@ func (c deploymentChecker) Condition(node *blockNode) (bool, error) {
 // while this function accepts any block node.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) calcNextBlockVersion(prevNode *blockNode) (int32, error) {
+func (b *BlockChain) calcNextBlockVersion(prevNode *blockNode) (uint32, error) {
 	// Set the appropriate bits for each actively defined rule deployment
 	// that is either in the process of being voted on, or locked in for the
 	// activation at the next threshold window change.
-	expectedVersion := uint32(vbTopBits)
+	expectedVersion := uint32(VBTopBits)
 	for id := 0; id < len(b.params.Deployments); id++ {
 		deployment := &b.params.Deployments[id]
 		cache := &b.deploymentCaches[id]
@@ -213,7 +209,7 @@ func (b *BlockChain) calcNextBlockVersion(prevNode *blockNode) (int32, error) {
 			expectedVersion |= uint32(1) << deployment.BitNumber
 		}
 	}
-	return int32(expectedVersion), nil
+	return expectedVersion, nil
 }
 
 // CalcNextBlockVersion calculates the expected version of the block after the
@@ -221,7 +217,7 @@ func (b *BlockChain) calcNextBlockVersion(prevNode *blockNode) (int32, error) {
 // rule change deployments.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) CalcNextBlockVersion() (int32, error) {
+func (b *BlockChain) CalcNextBlockVersion() (uint32, error) {
 	b.chainLock.Lock()
 	version, err := b.calcNextBlockVersion(b.index.LookupNode(&b.BestSnapshot().Hash))
 	b.chainLock.Unlock()
@@ -237,7 +233,7 @@ func (b *BlockChain) CalcNextBlockVersion() (int32, error) {
 func (b *BlockChain) warnUnknownRuleActivations(node *blockNode) error {
 	// Warn if any unknown new rules are either about to activate or have
 	// already been activated.
-	for bit := uint32(0); bit < vbNumBits; bit++ {
+	for bit := uint32(0); bit < VBNumBits; bit++ {
 		checker := bitConditionChecker{bit: bit, chain: b}
 		cache := &b.warningCaches[bit]
 		ib := b.bd.GetBlockById(node.dagID)

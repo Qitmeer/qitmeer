@@ -54,11 +54,6 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 	msgBlock := block.Block()
 	header := &msgBlock.Header
 
-	// TODO It can be considered to delete in the future when it is officially launched
-	if header.GetVersion() != b.BlockVersion {
-		return ruleError(ErrBlockVersionTooOld, "block version too old")
-	}
-
 	// A block must have at least one regular transaction.
 	numTx := len(msgBlock.Transactions)
 	if numTx == 0 {

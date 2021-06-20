@@ -335,7 +335,7 @@ func (b *BlockChain) initThresholdCaches() error {
 	if prevNodeH != nil {
 		prevNode = b.index.LookupNode(prevNodeH)
 	}
-	for bit := uint32(0); bit < vbNumBits; bit++ {
+	for bit := uint32(0); bit < VBNumBits; bit++ {
 		checker := bitConditionChecker{bit: bit, chain: b}
 		cache := &b.warningCaches[bit]
 		_, err := b.thresholdState(prevNode, checker, cache)
