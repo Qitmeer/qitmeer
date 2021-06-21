@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[string]uint32, outputs map[string]uint64) (string, error) {
+func TxEncode(version uint32, lockTime uint32, targetLockTime int64, timestamp *time.Time, inputs map[string]uint32, outputs map[string]uint64) (string, error) {
 	mtx := types.NewTransaction()
 	mtx.Version = uint32(version)
 	if lockTime != 0 {
@@ -76,6 +76,12 @@ func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[
 		if err != nil {
 			return "", err
 		}
+		if targetLockTime > 0 {
+			pkScript, err = txscript.PayToCLTVPubKeyHashScript(addr.Script(), targetLockTime)
+			if err != nil {
+				return "", err
+			}
+		}
 		txOut := types.NewTxOutput(types.Amount{Value: int64(amount), Id: types.MEERID}, pkScript)
 		mtx.AddTxOut(txOut)
 	}
@@ -86,7 +92,15 @@ func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[
 	return hex.EncodeToString(mtxHex), nil
 }
 
-func TxSign(privkeyStr string, rawTxStr string, network string, lockTime int64) (string, error) {
+func DecodePkString(pk string) (string, error) {
+	b, err := txscript.PkStringToScript(pk)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+func TxSign(privkeyStr string, rawTxStr string, network string, pks []string) (string, error) {
 	privkeyByte, err := hex.DecodeString(privkeyStr)
 	if err != nil {
 		return "", err
@@ -94,8 +108,7 @@ func TxSign(privkeyStr string, rawTxStr string, network string, lockTime int64) 
 	if len(privkeyByte) != 32 {
 		return "", fmt.Errorf("invaid ec private key bytes: %d", len(privkeyByte))
 	}
-	privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
-	h160 := hash.Hash160(pubKey.SerializeCompressed())
+	privateKey, _ := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
 
 	var param *params.Params
 	switch network {
@@ -108,24 +121,6 @@ func TxSign(privkeyStr string, rawTxStr string, network string, lockTime int64) 
 	case "mixnet":
 		param = &params.MixNetParams
 	}
-	addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
-	if err != nil {
-		return "", err
-	}
-	var pkScript []byte
-	if lockTime <= 0 {
-		// Create a new script which pays to the provided address.
-		pkScript, err = txscript.PayToAddrScript(addr)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		pkScript, err = txscript.PayToCLTVPubKeyHashScript(addr.Script(), lockTime)
-		if err != nil {
-			return "", err
-		}
-	}
-
 	if len(rawTxStr)%2 != 0 {
 		return "", fmt.Errorf("invaild raw transaction : %s", rawTxStr)
 	}
@@ -142,8 +137,15 @@ func TxSign(privkeyStr string, rawTxStr string, network string, lockTime int64) 
 	var kdb txscript.KeyClosure = func(types.Address) (ecc.PrivateKey, bool, error) {
 		return privateKey, true, nil // compressed is true
 	}
+	if len(redeemTx.TxIn) != len(pks) {
+		return "", fmt.Errorf("input pkscript len :%d not equal %d txIn length", len(pks), len(redeemTx.TxIn))
+	}
 	var sigScripts [][]byte
 	for i := range redeemTx.TxIn {
+		pkScript, err := hex.DecodeString(pks[i])
+		if err != nil {
+			return "", fmt.Errorf("pkscript %d error:%s", i, err.Error())
+		}
 		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
 		if err != nil {
 			return "", err
@@ -218,15 +220,15 @@ func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsF
 		}
 		txOutputs[output.target] = uint64(atomic.Value)
 	}
-	mtxHex, err := TxEncode(uint32(version), uint32(lockTime), nil, txInputs, txOutputs)
+	mtxHex, err := TxEncode(uint32(version), uint32(lockTime), 0, nil, txInputs, txOutputs)
 	if err != nil {
 		ErrExit(err)
 	}
 	fmt.Printf("%s\n", mtxHex)
 }
 
-func TxSignSTDO(privkeyStr string, rawTxStr string, network string, locktime int64) {
-	mtxHex, err := TxSign(privkeyStr, rawTxStr, network, locktime)
+func TxSignSTDO(privkeyStr string, rawTxStr string, network string, pks []string) {
+	mtxHex, err := TxSign(privkeyStr, rawTxStr, network, pks)
 	if err != nil {
 		ErrExit(err)
 	}

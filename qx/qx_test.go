@@ -11,7 +11,11 @@ func TestTxSign(t *testing.T) {
 	k := "c39fb9103419af8be42385f3d6390b4c0c8f2cb67cf24dd43a059c4045d1a409"
 	tx := "0100000001255fea249c9747f7f4a8c432ca6f6bbed20db023fa9101288cad1a4e8056a5f600000000ffffffff01000000943577000000001976a914c50b62be2f7c23cf0b9d904fa9984efbdb75859888ac0000000000000000a2b54c5e0100"
 	net := "testnet"
-	rs, err := TxSign(k, tx, net, 0)
+	pks := make([]string, 0)
+	script, _ := DecodePkString("OP_DUP OP_HASH160 864c051cdb39c31f21924a5ac88b4cf82124d2c1 OP_EQUALVERIFY OP_CHECKSIG")
+	//
+	pks = append(pks, script)
+	rs, err := TxSign(k, tx, net, pks)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -19,27 +23,15 @@ func TestTxSign(t *testing.T) {
 	assert.Equal(t, rs, "0100000001255fea249c9747f7f4a8c432ca6f6bbed20db023fa9101288cad1a4e8056a5f600000000ffffffff01000000943577000000001976a914c50b62be2f7c23cf0b9d904fa9984efbdb75859888ac0000000000000000a2b54c5e016b483045022100fae2248ae8f68854f5f5a522caa326f14e6ed9fa55c1a6da0cc0ad7659ec0e100220784c0f325fdb53be1fbf6466dc8a26297696fcebf3dffbc57a3a1fa0f9a96d42012102b3e7c21a906433171cad38589335002c34a6928e19b7798224077c30f03e835e")
 }
 
-func TestTxSignLock(t *testing.T) {
-	k := "c39fb9103419af8be42385f3d6390b4c0c8f2cb67cf24dd43a059c4045d1a409"
-	tx := "0100000001255fea249c9747f7f4a8c432ca6f6bbed20db023fa9101288cad1a4e8056a5f600000000ffffffff01000000943577000000001976a914c50b62be2f7c23cf0b9d904fa9984efbdb75859888ac0000000000000000a2b54c5e0100"
-	net := "testnet"
-	locktime := int64(10000)
-	rs, err := TxSign(k, tx, net, locktime)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-	fmt.Println(rs)
-	assert.Equal(t, rs, "0100000001255fea249c9747f7f4a8c432ca6f6bbed20db023fa9101288cad1a4e8056a5f600000000ffffffff01000000943577000000001976a914c50b62be2f7c23cf0b9d904fa9984efbdb75859888ac0000000000000000a2b54c5e016a473044022013a765d6f6913039112b57ec0f2d12bc684834517fbcc9559710b01261d5b942022061c1547e8227c0bb611aaa4f3eeff5cfc1e05a57e2b89344359b92214d412dbd012102b3e7c21a906433171cad38589335002c34a6928e19b7798224077c30f03e835e")
-}
-
 func TestTxEncode(t *testing.T) {
 	inputs := make(map[string]uint32)
 	outputs := make(map[string]uint64)
+
 	inputs["25517e3b3759365e80a164a3d4d2db2462c5d6888e4bd874c5fbfbb6fb130b41"] = 0
 	outputs["Tmeyuj8ZBaQC8F47wNKxDmYAWUFti3XMrLb"] = 2083509771
 	outputs["TmfTUZcZNrtvuyqfZym5LJ2sT2MN3p5WES8"] = 100000000
 	timestamp, _ := time.Parse("2016-01-02 15:04:05", "2019-13-14 00:00:00")
-	rs, _ := TxEncode(1, 0, &timestamp, inputs, outputs)
+	rs, _ := TxEncode(1, 0, 0, &timestamp, inputs, outputs)
 
 	fmt.Println(rs)
 	assert.Equal(t, rs, "0100000001410b13fbb6fbfbc574d84b8e88d6c56224dbd2d4a364a1805e3659373b7e512500000000ffffffff0200000bd62f7c000000001976a914afda839fa515ffdbcbc8630b60909c64cfd73f7a88ac000000e1f505000000001976a914b51127b89f9b704e7cfbc69286f0de2e00e7196988ac000000000000000000096e880100")
