@@ -41,7 +41,7 @@ var MixNetParams = Params{
 	ReduceMinDifficulty:  false,
 	MinDiffReductionTime: 0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:    true,
-	UnlocksPerHeight:     10,
+	UnlocksPerHeight:     10 * 1e8,
 	GenesisAmountUnit:    1000 * 1e8,
 	UnlocksPerHeightStep: 10,
 	PowConfig: &pow.PowConfig{

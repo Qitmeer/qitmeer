@@ -43,9 +43,24 @@ var MixGeneData = []GenesisInitPayout{
 	},
 }
 
+/**
+// mainnet : MmRfhzqvkimi8VrSTPXfFr8W36KNhvyLzBx
+// mixnet : Xmf3VqRkCYuuZnsVNgVxq6vzUfitw2sQy2t
+// testnet : TmV2ThmkxspY1un3PZRmwJawYWfEetHYmmc
+// privnet : Rm7B35PAP24GkZW1Za2gKrSiigZQ7M46KfL
+*/
+
+/**
+[mainnet] MmLVbvqUS49N5VqhfUNpkYDwa9zzmrX1CtJ
+[mixnet] XmZsPmRHstHZWnrkamM8Ko2S1jQX1748nxx
+[testnet] TmPrMdmJeDCBxumJbeGwRzgP5aLriqGeE5o
+[privnet] RmCM99PchggcoZWkMVBWqAMHBcsn3T6VetG
+*/
+
 // coinid,address,lockAmount,locktype,lockheight
 var MixGeneDataFromImport = []string{
-	"0,XmnsdQkQYWHih65kMyZPo5bFzRpEyGc3N9x,500,1,0",
+	"0,Xmf3VqRkCYuuZnsVNgVxq6vzUfitw2sQy2t,50000,1,0",
+	"0,XmZsPmRHstHZWnrkamM8Ko2S1jQX1748nxx,1000,1,0",
 }
 
 func main() {
