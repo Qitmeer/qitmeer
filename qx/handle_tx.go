@@ -100,16 +100,8 @@ func DecodePkString(pk string) (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func TxSign(privkeyStr string, rawTxStr string, network string, pks []string) (string, error) {
-	privkeyByte, err := hex.DecodeString(privkeyStr)
-	if err != nil {
-		return "", err
-	}
-	if len(privkeyByte) != 32 {
-		return "", fmt.Errorf("invaid ec private key bytes: %d", len(privkeyByte))
-	}
-	privateKey, _ := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
-
+func TxSign(privkeyStrs []string, rawTxStr string, network string, pks []string) (string, error) {
+	privateKeyMaps := map[string]ecc.PrivateKey{}
 	var param *params.Params
 	switch network {
 	case "mainnet":
@@ -120,6 +112,22 @@ func TxSign(privkeyStr string, rawTxStr string, network string, pks []string) (s
 		param = &params.PrivNetParams
 	case "mixnet":
 		param = &params.MixNetParams
+	}
+	for _, privkeyStr := range privkeyStrs {
+		privkeyByte, err := hex.DecodeString(privkeyStr)
+		if err != nil {
+			return "", err
+		}
+		if len(privkeyByte) != 32 {
+			return "", fmt.Errorf("invaid ec private key bytes: %d", len(privkeyByte))
+		}
+		privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
+		h160 := hash.Hash160(pubKey.SerializeCompressed())
+		addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
+		if err != nil {
+			return "", err
+		}
+		privateKeyMaps[addr.String()] = privateKey
 	}
 	if len(rawTxStr)%2 != 0 {
 		return "", fmt.Errorf("invaild raw transaction : %s", rawTxStr)
@@ -134,9 +142,7 @@ func TxSign(privkeyStr string, rawTxStr string, network string, pks []string) (s
 	if err != nil {
 		return "", err
 	}
-	var kdb txscript.KeyClosure = func(types.Address) (ecc.PrivateKey, bool, error) {
-		return privateKey, true, nil // compressed is true
-	}
+
 	if len(redeemTx.TxIn) != len(pks) {
 		return "", fmt.Errorf("input pkscript len :%d not equal %d txIn length", len(pks), len(redeemTx.TxIn))
 	}
@@ -146,6 +152,15 @@ func TxSign(privkeyStr string, rawTxStr string, network string, pks []string) (s
 		if err != nil {
 			return "", fmt.Errorf("pkscript %d error:%s", i, err.Error())
 		}
+		_, addrs, _, err := txscript.ExtractPkScriptAddrs(pkScript, param)
+		privateKey, ok := privateKeyMaps[addrs[0].String()]
+		if !ok {
+			return "", fmt.Errorf("addrress : %s  privatekey not exist,can not sign", addrs[0].String())
+		}
+		var kdb txscript.KeyClosure = func(types.Address) (ecc.PrivateKey, bool, error) {
+			return privateKey, true, nil // compressed is true
+		}
+
 		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
 		if err != nil {
 			return "", err
@@ -228,7 +243,7 @@ func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsF
 }
 
 func TxSignSTDO(privkeyStr string, rawTxStr string, network string, pks []string) {
-	mtxHex, err := TxSign(privkeyStr, rawTxStr, network, pks)
+	mtxHex, err := TxSign([]string{privkeyStr}, rawTxStr, network, pks)
 	if err != nil {
 		ErrExit(err)
 	}

@@ -15,7 +15,7 @@ func TestTxSign(t *testing.T) {
 	script, _ := DecodePkString("OP_DUP OP_HASH160 864c051cdb39c31f21924a5ac88b4cf82124d2c1 OP_EQUALVERIFY OP_CHECKSIG")
 	//
 	pks = append(pks, script)
-	rs, err := TxSign(k, tx, net, pks)
+	rs, err := TxSign([]string{k}, tx, net, pks)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
