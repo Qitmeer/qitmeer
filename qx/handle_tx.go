@@ -22,7 +22,12 @@ type Amount struct {
 	Id             types.CoinID
 }
 
-func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[string]uint32, outputs map[string]Amount) (string, error) {
+type Input struct {
+	TxID     string
+	OutIndex uint32
+}
+
+func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs []Input, outputs map[string]Amount) (string, error) {
 	mtx := types.NewTransaction()
 	mtx.Version = uint32(version)
 	if lockTime != 0 {
@@ -32,19 +37,12 @@ func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[
 		mtx.Timestamp = *timestamp
 	}
 
-	inputsSlice := []string{}
-	for k := range inputs {
-		inputsSlice = append(inputsSlice, k)
-	}
-	sort.Strings(inputsSlice)
-
-	for _, txId := range inputsSlice {
-		vout := inputs[txId]
-		txHash, err := hash.NewHashFromStr(txId)
+	for _, vout := range inputs {
+		txHash, err := hash.NewHashFromStr(vout.TxID)
 		if err != nil {
 			return "", err
 		}
-		prevOut := types.NewOutPoint(txHash, vout)
+		prevOut := types.NewOutPoint(txHash, vout.OutIndex)
 		txIn := types.NewTxInput(prevOut, []byte{})
 		if lockTime != 0 {
 			txIn.Sequence = types.MaxTxInSequenceNum - 1
@@ -228,10 +226,13 @@ func TxDecode(network string, rawTxStr string) {
 }
 
 func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsFlag, txOut TxOutputsFlag) {
-	txInputs := make(map[string]uint32)
+	txInputs := []Input{}
 	txOutputs := make(map[string]Amount)
 	for _, input := range txIn.inputs {
-		txInputs[hex.EncodeToString(input.txhash)] = input.index
+		txInputs = append(txInputs, Input{
+			TxID:     hex.EncodeToString(input.txhash),
+			OutIndex: input.index,
+		})
 	}
 	for _, output := range txOut.outputs {
 		atomic, err := types.NewAmount(output.amount)

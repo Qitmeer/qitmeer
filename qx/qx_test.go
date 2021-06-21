@@ -24,10 +24,12 @@ func TestTxSign(t *testing.T) {
 }
 
 func TestTxEncode(t *testing.T) {
-	inputs := make(map[string]uint32)
+	inputs := make([]Input, 0)
 	outputs := make(map[string]Amount)
-
-	inputs["25517e3b3759365e80a164a3d4d2db2462c5d6888e4bd874c5fbfbb6fb130b41"] = 0
+	inputs = append(inputs, Input{
+		TxID:     "25517e3b3759365e80a164a3d4d2db2462c5d6888e4bd874c5fbfbb6fb130b41",
+		OutIndex: 0,
+	})
 	outputs["Tmeyuj8ZBaQC8F47wNKxDmYAWUFti3XMrLb"] = Amount{
 		0,
 		2083509771,
