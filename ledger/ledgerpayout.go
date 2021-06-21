@@ -231,7 +231,7 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 		if v.GenesisPayoutType == GENE_PAYOUT_TYPE_AUTO_LOCK_WITH_CONFIG {
 			for v.Amount > 0 {
 				needLockNum := lockNum - curLockedNum
-
+				fmt.Println("needLockNum", needLockNum)
 				amount := float64(0)
 				if v.Amount >= float64(needLockNum) {
 					v.Amount -= float64(needLockNum)

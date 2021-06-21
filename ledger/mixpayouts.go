@@ -43,13 +43,10 @@ var MixGeneData = []GenesisInitPayout{
 	},
 }
 
-var MixGeneDataFromImport = []string{}
-	addPayout2("XmspWkqJv6a4sziWrPZbSWQ37WoNEmTD1xm",
-		Amount{Value: 10000 * AtomsPerCoin, Id: QITID}, "76a914cec9c6fb443a62b5e8d7a00fc3ad0f3cef1f070588ac")
-	addPayout2("XmkgU8m4G2GwRjz6rEVskG9HAabT5uUS8Fy",
-		Amount{Value: 20000 * AtomsPerCoin, Id: QITID}, "76a914807b61617f12c3166f4531ddeae484b82187ae2f88ac")
-	addPayout2("XmnsdQkQYWHih65kMyZPo5bFzRpEyGc3N9x",
-		Amount{Value: 30000 * AtomsPerCoin, Id: QITID}, "76a9149887f352a02c4e60d99bcd2eab33c8b7b0198b0488ac")
+// coinid,address,lockAmount,locktype,lockheight
+var MixGeneDataFromImport = []string{
+	"0,XmnsdQkQYWHih65kMyZPo5bFzRpEyGc3N9x,500,1,0",
+}
 
 func main() {
 	GeneratePayoutFile(params.MixNetParam.Params, MixGeneData, MixGeneDataFromImport)
