@@ -16,7 +16,13 @@ import (
 	"time"
 )
 
-func TxEncode(version uint32, lockTime uint32, targetLockTime int64, timestamp *time.Time, inputs map[string]uint32, outputs map[string]uint64) (string, error) {
+type Amount struct {
+	TargetLockTime int64
+	Value          int64
+	Id             types.CoinID
+}
+
+func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[string]uint32, outputs map[string]Amount) (string, error) {
 	mtx := types.NewTransaction()
 	mtx.Version = uint32(version)
 	if lockTime != 0 {
@@ -54,7 +60,7 @@ func TxEncode(version uint32, lockTime uint32, targetLockTime int64, timestamp *
 
 	for _, encodedAddr := range outputsSlice {
 		amount := outputs[encodedAddr]
-		if amount <= 0 || amount > types.MaxAmount {
+		if amount.Value <= 0 || amount.Value > types.MaxAmount {
 			return "", fmt.Errorf("invalid amount: 0 >= %v "+
 				"> %v", amount, types.MaxAmount)
 		}
@@ -76,13 +82,13 @@ func TxEncode(version uint32, lockTime uint32, targetLockTime int64, timestamp *
 		if err != nil {
 			return "", err
 		}
-		if targetLockTime > 0 {
-			pkScript, err = txscript.PayToCLTVPubKeyHashScript(addr.Script(), targetLockTime)
+		if amount.TargetLockTime > 0 {
+			pkScript, err = txscript.PayToCLTVPubKeyHashScript(addr.Script(), amount.TargetLockTime)
 			if err != nil {
 				return "", err
 			}
 		}
-		txOut := types.NewTxOutput(types.Amount{Value: int64(amount), Id: types.MEERID}, pkScript)
+		txOut := types.NewTxOutput(types.Amount{Value: amount.Value, Id: amount.Id}, pkScript)
 		mtx.AddTxOut(txOut)
 	}
 	mtxHex, err := mtx.Serialize()
@@ -223,7 +229,7 @@ func TxDecode(network string, rawTxStr string) {
 
 func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsFlag, txOut TxOutputsFlag) {
 	txInputs := make(map[string]uint32)
-	txOutputs := make(map[string]uint64)
+	txOutputs := make(map[string]Amount)
 	for _, input := range txIn.inputs {
 		txInputs[hex.EncodeToString(input.txhash)] = input.index
 	}
@@ -233,9 +239,13 @@ func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsF
 			ErrExit(fmt.Errorf("fail to create the currency amount from a "+
 				"floating point value %f : %w", output.amount, err))
 		}
-		txOutputs[output.target] = uint64(atomic.Value)
+		txOutputs[output.target] = Amount{
+			TargetLockTime: 0,
+			Id:             types.MEERID,
+			Value:          atomic.Value,
+		}
 	}
-	mtxHex, err := TxEncode(uint32(version), uint32(lockTime), 0, nil, txInputs, txOutputs)
+	mtxHex, err := TxEncode(uint32(version), uint32(lockTime), nil, txInputs, txOutputs)
 	if err != nil {
 		ErrExit(err)
 	}

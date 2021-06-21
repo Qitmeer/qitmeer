@@ -25,13 +25,21 @@ func TestTxSign(t *testing.T) {
 
 func TestTxEncode(t *testing.T) {
 	inputs := make(map[string]uint32)
-	outputs := make(map[string]uint64)
+	outputs := make(map[string]Amount)
 
 	inputs["25517e3b3759365e80a164a3d4d2db2462c5d6888e4bd874c5fbfbb6fb130b41"] = 0
-	outputs["Tmeyuj8ZBaQC8F47wNKxDmYAWUFti3XMrLb"] = 2083509771
-	outputs["TmfTUZcZNrtvuyqfZym5LJ2sT2MN3p5WES8"] = 100000000
+	outputs["Tmeyuj8ZBaQC8F47wNKxDmYAWUFti3XMrLb"] = Amount{
+		0,
+		2083509771,
+		0,
+	}
+	outputs["TmfTUZcZNrtvuyqfZym5LJ2sT2MN3p5WES8"] = Amount{
+		0,
+		100000000,
+		0,
+	}
 	timestamp, _ := time.Parse("2016-01-02 15:04:05", "2019-13-14 00:00:00")
-	rs, _ := TxEncode(1, 0, 0, &timestamp, inputs, outputs)
+	rs, _ := TxEncode(1, 0, &timestamp, inputs, outputs)
 
 	fmt.Println(rs)
 	assert.Equal(t, rs, "0100000001410b13fbb6fbfbc574d84b8e88d6c56224dbd2d4a364a1805e3659373b7e512500000000ffffffff0200000bd62f7c000000001976a914afda839fa515ffdbcbc8630b60909c64cfd73f7a88ac000000e1f505000000001976a914b51127b89f9b704e7cfbc69286f0de2e00e7196988ac000000000000000000096e880100")
