@@ -88,7 +88,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	}
 
 	// soft forks
-	ret.SoftForks = make(map[string]*json.SoftForkDescription)
+	ret.ConsensusDeployment = make(map[string]*json.ConsensusDeploymentDesc)
 	for deployment, deploymentDetails := range params.ActiveNetParams.Deployments {
 		// Map the integer deployment ID into a human readable
 		// fork-name.
@@ -113,11 +113,15 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 
 		since := "end"
 		if time.Unix(int64(deploymentDetails.ExpireTime), 0).After(best.MedianTime) {
-			since = time.Unix(int64(deploymentDetails.StartTime), 0).Sub(best.MedianTime).String()
+			startTime := time.Unix(int64(deploymentDetails.StartTime), 0)
+			since = startTime.Sub(best.MedianTime).String()
+			if startTime.After(best.MedianTime) {
+				since = "-" + since
+			}
 		}
 		// Finally, populate the soft-fork description with all the
 		// information gathered above.
-		ret.SoftForks[forkName] = &json.SoftForkDescription{
+		ret.ConsensusDeployment[forkName] = &json.ConsensusDeploymentDesc{
 			Status:    deploymentStatus.HumanString(),
 			Bit:       deploymentDetails.BitNumber,
 			StartTime: int64(deploymentDetails.StartTime),
