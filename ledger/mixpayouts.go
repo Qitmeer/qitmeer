@@ -59,8 +59,9 @@ var MixGeneData = []GenesisInitPayout{
 
 // coinid,address,lockAmount,locktype,lockheight
 var MixGeneDataFromImport = []string{
-	"0,Xmf3VqRkCYuuZnsVNgVxq6vzUfitw2sQy2t,50000,1,0",
-	"0,XmZsPmRHstHZWnrkamM8Ko2S1jQX1748nxx,1000,1,0",
+	"0,Xmf3VqRkCYuuZnsVNgVxq6vzUfitw2sQy2t,5000,1,0",
+	"0,XmZsPmRHstHZWnrkamM8Ko2S1jQX1748nxx,5000,1,0",
+	"0,XmkgU8m4G2GwRjz6rEVskG9HAabT5uUS8Fy,50000,1,0", // will release 6 days
 }
 
 func main() {
