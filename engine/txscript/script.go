@@ -327,7 +327,6 @@ func DisasmString(buf []byte) (string, error) {
 	var disbuf bytes.Buffer
 	opcodes, err := parseScript(buf)
 	for _, pop := range opcodes {
-		fmt.Println(pop.opcode.name, pop.opcode.length, hex.EncodeToString(pop.data))
 		disbuf.WriteString(pop.print(true))
 		disbuf.WriteByte(' ')
 	}
