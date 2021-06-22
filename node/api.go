@@ -111,6 +111,10 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 			return nil, fmt.Errorf("Failed to obtain deployment status\n")
 		}
 
+		since := "end"
+		if time.Unix(int64(deploymentDetails.ExpireTime), 0).After(best.MedianTime) {
+			since = time.Unix(int64(deploymentDetails.StartTime), 0).Sub(best.MedianTime).String()
+		}
 		// Finally, populate the soft-fork description with all the
 		// information gathered above.
 		ret.SoftForks[forkName] = &json.SoftForkDescription{
@@ -118,6 +122,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 			Bit:       deploymentDetails.BitNumber,
 			StartTime: int64(deploymentDetails.StartTime),
 			Timeout:   int64(deploymentDetails.ExpireTime),
+			Since:     since,
 		}
 	}
 	return ret, nil

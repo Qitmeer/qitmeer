@@ -68,5 +68,5 @@ type SoftForkDescription struct {
 	Bit       uint8  `json:"bit"`
 	StartTime int64  `json:"startTime"`
 	Timeout   int64  `json:"timeout"`
-	Since     int32  `json:"since"`
+	Since     string `json:"since,omitempty"`
 }
