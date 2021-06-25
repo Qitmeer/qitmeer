@@ -49,9 +49,8 @@ func (c bitConditionChecker) BeginTime() uint64 {
 	return 0
 }
 
-// EndTime returns the unix timestamp for the median block time after which an
-// attempted rule change fails if it has not already been locked in or
-// activated.
+// EndTime returns the unix timestamp for the median block time after which
+// voting on a rule change end (at the next window).
 //
 // Since this implementation checks for unknown rules, it returns the maximum
 // possible timestamp so the rule is always treated as active.
@@ -59,6 +58,15 @@ func (c bitConditionChecker) BeginTime() uint64 {
 // This is part of the thresholdConditionChecker interface implementation.
 func (c bitConditionChecker) EndTime() uint64 {
 	return math.MaxUint64
+}
+
+// PerformTime returns the unix timestamp for the median block time after which an
+// attempted rule change fails if it has not already been locked in or
+// activated.
+//
+// This is part of the thresholdConditionChecker interface implementation.
+func (c bitConditionChecker) PerformTime() uint64 {
+	return 0
 }
 
 // RuleChangeActivationThreshold is the number of blocks for which the condition
@@ -138,9 +146,8 @@ func (c deploymentChecker) BeginTime() uint64 {
 	return c.deployment.StartTime
 }
 
-// EndTime returns the unix timestamp for the median block time after which an
-// attempted rule change fails if it has not already been locked in or
-// activated.
+// EndTime returns the unix timestamp for the median block time after which
+// voting on a rule change end (at the next window).
 //
 // This implementation returns the value defined by the specific deployment the
 // checker is associated with.
@@ -148,6 +155,15 @@ func (c deploymentChecker) BeginTime() uint64 {
 // This is part of the thresholdConditionChecker interface implementation.
 func (c deploymentChecker) EndTime() uint64 {
 	return c.deployment.ExpireTime
+}
+
+// PerformTime returns the unix timestamp for the median block time after which an
+// attempted rule change fails if it has not already been locked in or
+// activated.
+//
+// This is part of the thresholdConditionChecker interface implementation.
+func (c deploymentChecker) PerformTime() uint64 {
+	return c.deployment.PerformTime
 }
 
 // RuleChangeActivationThreshold is the number of blocks for which the condition

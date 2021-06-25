@@ -111,14 +111,6 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 			return nil, fmt.Errorf("Failed to obtain deployment status\n")
 		}
 
-		since := "end"
-		if time.Unix(int64(deploymentDetails.ExpireTime), 0).After(best.MedianTime) {
-			startTime := time.Unix(int64(deploymentDetails.StartTime), 0)
-			since = startTime.Sub(best.MedianTime).String()
-			if startTime.After(best.MedianTime) {
-				since = "-" + since
-			}
-		}
 		// Finally, populate the soft-fork description with all the
 		// information gathered above.
 		ret.ConsensusDeployment[forkName] = &json.ConsensusDeploymentDesc{
@@ -126,7 +118,15 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 			Bit:       deploymentDetails.BitNumber,
 			StartTime: int64(deploymentDetails.StartTime),
 			Timeout:   int64(deploymentDetails.ExpireTime),
-			Since:     since,
+		}
+
+		if deploymentDetails.PerformTime != 0 {
+			ret.ConsensusDeployment[forkName].Perform = int64(deploymentDetails.PerformTime)
+		}
+
+		if time.Unix(int64(deploymentDetails.ExpireTime), 0).After(best.MedianTime) {
+			startTime := time.Unix(int64(deploymentDetails.StartTime), 0)
+			ret.ConsensusDeployment[forkName].Since = best.MedianTime.Sub(startTime).String()
 		}
 	}
 	return ret, nil

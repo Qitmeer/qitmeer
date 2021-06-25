@@ -63,6 +63,10 @@ type ConsensusDeployment struct {
 	// ExpireTime is the median block time after which the attempted
 	// deployment expires.
 	ExpireTime uint64
+
+	// PerformTime is the median block time after which the attempted
+	// deployment perform.
+	PerformTime uint64
 }
 
 // Constants that define the deployment offset in the deployments field of the

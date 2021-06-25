@@ -87,9 +87,13 @@ type thresholdConditionChecker interface {
 	BeginTime() uint64
 
 	// EndTime returns the unix timestamp for the median block time after
+	// which voting on a rule change end (at the next window).
+	EndTime() uint64
+
+	// PerformTime returns the unix timestamp for the median block time after
 	// which an attempted rule change fails if it has not already been
 	// locked in or activated.
-	EndTime() uint64
+	PerformTime() uint64
 
 	// RuleChangeActivationThreshold is the number of blocks for which the
 	// condition must be true in order to lock in a rule change.
@@ -269,9 +273,16 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 			}
 
 		case ThresholdLockedIn:
-			// The new rule becomes active when its previous state
-			// was locked in.
-			state = ThresholdActive
+			if checker.PerformTime() == 0 {
+				// The new rule becomes active when its previous state
+				// was locked in.
+				state = ThresholdActive
+			} else {
+				medianTime := prevNode.CalcPastMedianTime(b)
+				if uint64(medianTime.Unix()) >= checker.PerformTime() {
+					state = ThresholdActive
+				}
+			}
 
 		// Nothing to do if the previous state is active or failed since
 		// they are both terminal states.

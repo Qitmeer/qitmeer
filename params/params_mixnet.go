@@ -107,9 +107,10 @@ var MixNetParams = Params{
 	MinerConfirmationWindow:       mixWorkDiffWindowSize, //
 	Deployments: []ConsensusDeployment{
 		DeploymentTestDummy: {
-			BitNumber:  28,
-			StartTime:  1626688646, // 2021-07-19 09:58:47 UTC
-			ExpireTime: 1655200727, // 2022-06-14 09:58:47 UTC
+			BitNumber:   28,
+			StartTime:   1626688646, // 2021-07-19 09:58:47 UTC
+			ExpireTime:  1655200727, // 2022-06-14 09:58:47 UTC
+			PerformTime: 1655204327, // 2022-06-14 10:58:47 UTC
 		},
 		DeploymentToken: {
 			BitNumber:  0,

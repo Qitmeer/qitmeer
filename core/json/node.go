@@ -68,5 +68,6 @@ type ConsensusDeploymentDesc struct {
 	Bit       uint8  `json:"bit"`
 	StartTime int64  `json:"startTime"`
 	Timeout   int64  `json:"timeout"`
+	Perform   int64  `json:"perform,omitempty"`
 	Since     string `json:"since,omitempty"`
 }
