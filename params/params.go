@@ -12,6 +12,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/ledger"
 	"time"
 )
 
@@ -247,9 +248,7 @@ type Params struct {
 	BlockRate     float64
 	SecurityLevel float64
 
-	UnlocksPerHeight     int   // How many will be unlocked at each DAG main height.
-	UnlocksPerHeightStep int   // How many height will lock a tx.
-	GenesisAmountUnit    int64 // the unit amount of equally divided.
+	LedgerParams ledger.LedgerParams
 
 	// Support tx type config
 	NonStdTxs []types.TxType
