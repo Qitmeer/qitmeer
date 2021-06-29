@@ -141,6 +141,10 @@ func newThresholdCaches(numCaches uint32) []thresholdStateCache {
 	return caches
 }
 
+func isCheckerTimeMode(checker thresholdConditionChecker) bool {
+	return checker.BeginTime() >= CheckerTimeThreshold
+}
+
 // thresholdState returns the current rule change threshold state for the block
 // AFTER the given node and deployment ID.  The cache is used to ensure the
 // threshold states for previous windows are only calculated once.
@@ -170,15 +174,22 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 			break
 		}
 
-		// The start and expiration times are based on the median block
-		// time, so calculate it now.
-		medianTime := prevNode.CalcPastMedianTime(b)
+		if isCheckerTimeMode(checker) {
+			// The start and expiration times are based on the median block
+			// time, so calculate it now.
+			medianTime := prevNode.CalcPastMedianTime(b)
 
-		// The state is simply defined if the start time hasn't been
-		// been reached yet.
-		if uint64(medianTime.Unix()) < checker.BeginTime() {
-			cache.Update(&prevNode.hash, ThresholdDefined)
-			break
+			// The state is simply defined if the start time hasn't been
+			// been reached yet.
+			if uint64(medianTime.Unix()) < checker.BeginTime() {
+				cache.Update(&prevNode.hash, ThresholdDefined)
+				break
+			}
+		} else {
+			if uint64(prevNode.GetHeight()) < checker.BeginTime() {
+				cache.Update(&prevNode.hash, ThresholdDefined)
+				break
+			}
 		}
 
 		// Add this node to the list of nodes that need the state
@@ -210,29 +221,46 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 
 		switch state {
 		case ThresholdDefined:
-			// The deployment of the rule change fails if it expires
-			// before it is accepted and locked in.
-			medianTime := prevNode.CalcPastMedianTime(b)
-			medianTimeUnix := uint64(medianTime.Unix())
-			if medianTimeUnix >= checker.EndTime() {
-				state = ThresholdFailed
-				break
-			}
+			if isCheckerTimeMode(checker) {
+				// The deployment of the rule change fails if it expires
+				// before it is accepted and locked in.
+				medianTime := prevNode.CalcPastMedianTime(b)
+				medianTimeUnix := uint64(medianTime.Unix())
+				if medianTimeUnix >= checker.EndTime() {
+					state = ThresholdFailed
+					break
+				}
 
-			// The state for the rule moves to the started state
-			// once its start time has been reached (and it hasn't
-			// already expired per the above).
-			if medianTimeUnix >= checker.BeginTime() {
-				state = ThresholdStarted
+				// The state for the rule moves to the started state
+				// once its start time has been reached (and it hasn't
+				// already expired per the above).
+				if medianTimeUnix >= checker.BeginTime() {
+					state = ThresholdStarted
+				}
+			} else {
+				if uint64(prevNode.GetHeight()) >= checker.EndTime() {
+					state = ThresholdFailed
+					break
+				}
+				if uint64(prevNode.GetHeight()) >= checker.BeginTime() {
+					state = ThresholdStarted
+				}
 			}
 
 		case ThresholdStarted:
 			// The deployment of the rule change fails if it expires
 			// before it is accepted and locked in.
-			medianTime := prevNode.CalcPastMedianTime(b)
-			if uint64(medianTime.Unix()) >= checker.EndTime() {
-				state = ThresholdFailed
-				break
+			if isCheckerTimeMode(checker) {
+				medianTime := prevNode.CalcPastMedianTime(b)
+				if uint64(medianTime.Unix()) >= checker.EndTime() {
+					state = ThresholdFailed
+					break
+				}
+			} else {
+				if uint64(prevNode.GetHeight()) >= checker.EndTime() {
+					state = ThresholdFailed
+					break
+				}
 			}
 
 			// At this point, the rule change is still being voted
@@ -278,10 +306,17 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 				// was locked in.
 				state = ThresholdActive
 			} else {
-				medianTime := prevNode.CalcPastMedianTime(b)
-				if uint64(medianTime.Unix()) >= checker.PerformTime() {
-					state = ThresholdActive
+				if isCheckerTimeMode(checker) {
+					medianTime := prevNode.CalcPastMedianTime(b)
+					if uint64(medianTime.Unix()) >= checker.PerformTime() {
+						state = ThresholdActive
+					}
+				} else {
+					if uint64(prevNode.GetHeight()) >= checker.PerformTime() {
+						state = ThresholdActive
+					}
 				}
+
 			}
 
 		// Nothing to do if the previous state is active or failed since

@@ -314,6 +314,22 @@ func New(config *Config) (*BlockChain, error) {
 		}
 	}
 
+	if len(par.Deployments) > 0 {
+		for _, v := range par.Deployments {
+			if v.StartTime < CheckerTimeThreshold &&
+				v.ExpireTime < CheckerTimeThreshold &&
+				(v.PerformTime < CheckerTimeThreshold || v.PerformTime == 0) {
+				continue
+			}
+			if v.StartTime >= CheckerTimeThreshold &&
+				v.ExpireTime >= CheckerTimeThreshold &&
+				(v.PerformTime >= CheckerTimeThreshold || v.PerformTime == 0) {
+				continue
+			}
+			return nil, AssertError("blockchain.New chain parameters Deployments error")
+		}
+	}
+
 	b := BlockChain{
 		checkpointsByLayer: checkpointsByLayer,
 		db:                 config.DB,

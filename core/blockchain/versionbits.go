@@ -22,6 +22,9 @@ const (
 	// VBNumBits is the total number of bits available for use with the
 	// version bits scheme.
 	VBNumBits = 29
+
+	// time or main height threshold
+	CheckerTimeThreshold = 0x60000000 // 2021-01-14 08:25:36 +0000 UTC
 )
 
 // bitConditionChecker provides a thresholdConditionChecker which can be used to

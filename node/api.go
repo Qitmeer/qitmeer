@@ -8,6 +8,7 @@ package node
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/protocol"
@@ -124,10 +125,13 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 			ret.ConsensusDeployment[forkName].Perform = int64(deploymentDetails.PerformTime)
 		}
 
-		if time.Unix(int64(deploymentDetails.ExpireTime), 0).After(best.MedianTime) {
-			startTime := time.Unix(int64(deploymentDetails.StartTime), 0)
-			ret.ConsensusDeployment[forkName].Since = best.MedianTime.Sub(startTime).String()
+		if deploymentDetails.StartTime >= blockchain.CheckerTimeThreshold {
+			if time.Unix(int64(deploymentDetails.ExpireTime), 0).After(best.MedianTime) {
+				startTime := time.Unix(int64(deploymentDetails.StartTime), 0)
+				ret.ConsensusDeployment[forkName].Since = best.MedianTime.Sub(startTime).String()
+			}
 		}
+
 	}
 	return ret, nil
 }
