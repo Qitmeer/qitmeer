@@ -151,6 +151,8 @@ type IBlockDAG interface {
 // CalcWeight
 type CalcWeight func(int64, *hash.Hash, byte) int64
 
+type GetBlockData func(*hash.Hash, []uint) IBlockData
+
 // The general foundation framework of DAG
 type BlockDAG struct {
 	// The genesis of block dag
@@ -181,6 +183,8 @@ type BlockDAG struct {
 	//
 	calcWeight CalcWeight
 
+	getBlockData GetBlockData
+
 	// blocks per second
 	blockRate float64
 
@@ -198,10 +202,11 @@ func (bd *BlockDAG) GetInstance() IBlockDAG {
 }
 
 // Initialize self, the function to be invoked at the beginning
-func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, db database.DB) IBlockDAG {
+func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float64, db database.DB, getBlockData GetBlockData) IBlockDAG {
 	bd.lastTime = time.Unix(roughtime.Now().Unix(), 0)
 	bd.commitOrder = map[uint]uint{}
 	bd.calcWeight = calcWeight
+	bd.getBlockData = getBlockData
 	bd.db = db
 	bd.blockRate = blockRate
 	if bd.blockRate < 0 {
@@ -280,7 +285,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock, bool) {
 	}
 	lastMT := bd.instance.GetMainChainTipId()
 	//
-	block := Block{id: bd.blockTotal, hash: *b.GetHash(), layer: 0, status: StatusNone, mainParent: MaxId}
+	block := Block{id: bd.blockTotal, hash: *b.GetHash(), layer: 0, status: StatusNone, mainParent: MaxId, data: b}
 
 	if bd.blocks == nil {
 		bd.blocks = map[uint]IBlock{}
@@ -1508,4 +1513,30 @@ func (bd *BlockDAG) commit() error {
 		return err
 	}
 	return nil
+}
+
+// Just for custom Virtual block
+func (bd *BlockDAG) CreateVirtualBlock(data IBlockData, id uint, parents, layer uint, order uint, height uint, status BlockStatus) IBlock {
+	if _, ok := bd.instance.(*Phantom); ok {
+		return nil
+	}
+	parents := NewIdSet()
+	parents.AddList(data.GetParents())
+	mainParent := bd.GetMainParent(parents)
+	mainParentId := MaxId
+	if mainParent != nil {
+		mainParentId = mainParent.GetID()
+	}
+	block := Block{id: id, hash: *data.GetHash(), parents: parents, layer: layer, status: status, mainParent: mainParentId, data: data, order: order, height: height}
+	return &PhantomBlock{&block, 0, NewIdSet(), NewIdSet()}
+}
+
+func GetMaxLayerFromList(list []IBlock) uint {
+	var maxLayer uint = 0
+	for _, v := range list {
+		if maxLayer == 0 || maxLayer < v.GetLayer() {
+			maxLayer = v.GetLayer()
+		}
+	}
+	return maxLayer
 }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
@@ -349,7 +350,7 @@ func New(config *Config) (*BlockChain, error) {
 
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType, b.CalcWeight,
-		1.0/float64(par.TargetTimePerBlock/time.Second), b.db)
+		1.0/float64(par.TargetTimePerBlock/time.Second), b.db, b.getBlockData)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -1514,4 +1515,56 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 	tsMerkle := merkle.BuildTokenBalanceMerkleTreeStore(balanceUpdate)
 
 	return *tsMerkle[0]
+}
+
+func (b *BlockChain) getBlockData(hash *hash.Hash, parents []uint) blockdag.IBlockData {
+	block, err := b.fetchBlockByHash(hash)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return NewBlockNode(&block.Block().Header, parents)
+}
+
+// CalcPastMedianTime calculates the median time of the previous few blocks
+// prior to, and including, the block node.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) CalcPastMedianTime(block blockdag.IBlock) time.Time {
+	// Create a slice of the previous few block timestamps used to calculate
+	// the median per the number defined by the constant medianTimeBlocks.
+	timestamps := make([]int64, medianTimeBlocks)
+	numNodes := 0
+	iterBlock := block
+	for i := 0; i < medianTimeBlocks && iterBlock != nil; i++ {
+		iterNode := b.GetBlockNode(iterBlock)
+		if iterNode == nil {
+			break
+		}
+		timestamps[i] = iterNode.GetTimestamp()
+		numNodes++
+
+		iterBlock = b.bd.GetBlockById(iterBlock.GetMainParent())
+	}
+
+	// Prune the slice to the actual number of available timestamps which
+	// will be fewer than desired near the beginning of the block chain
+	// and sort them.
+	timestamps = timestamps[:numNodes]
+	sort.Sort(util.TimeSorter(timestamps))
+
+	// NOTE: The consensus rules incorrectly calculate the median for even
+	// numbers of blocks.  A true median averages the middle two elements
+	// for a set with an even number of elements in it.   Since the constant
+	// for the previous number of blocks to be used is odd, this is only an
+	// issue for a few blocks near the beginning of the chain.  I suspect
+	// this is an optimization even though the result is slightly wrong for
+	// a few of the first blocks since after the first few blocks, there
+	// will always be an odd number of blocks in the set per the constant.
+	//
+	// This code follows suit to ensure the same rules are used, however, be
+	// aware that should the medianTimeBlocks constant ever be changed to an
+	// even number, this code will be wrong.
+	medianTimestamp := timestamps[numNodes/2]
+	return time.Unix(medianTimestamp, 0)
 }

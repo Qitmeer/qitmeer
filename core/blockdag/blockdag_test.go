@@ -166,7 +166,7 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 	}
 
 	bd = BlockDAG{}
-	instance := bd.Init(dagType, CalcBlockWeight, -1, db)
+	instance := bd.Init(dagType, CalcBlockWeight, -1, db, nil)
 	tbMap = map[string]IBlock{}
 	for i := 0; i < blen; i++ {
 		parents := NewIdSet()

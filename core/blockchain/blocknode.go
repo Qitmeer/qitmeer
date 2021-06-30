@@ -405,3 +405,55 @@ func (node *blockNode) FlushToDB(b *BlockChain) error {
 func (node *blockNode) GetID() uint {
 	return node.dagID
 }
+
+type BlockNode struct {
+	// hash is the hash of the block this node represents.
+	hash hash.Hash
+
+	parents []uint
+
+	header types.BlockHeader
+}
+
+//return the block node hash.
+func (node *BlockNode) GetHash() *hash.Hash {
+	return &node.hash
+}
+
+// Include all parents for set
+func (node *BlockNode) GetParents() []uint {
+	return node.parents
+}
+
+//return the timestamp of node
+func (node *BlockNode) GetTimestamp() int64 {
+	return node.header.Timestamp.Unix()
+}
+
+func (node *BlockNode) GetHeader() *types.BlockHeader {
+	return &node.header
+}
+
+func (node *BlockNode) Difficulty() uint32 {
+	return node.GetHeader().Difficulty
+}
+
+func (node *BlockNode) Pow() pow.IPow {
+	return node.GetHeader().Pow
+}
+
+func (node *BlockNode) GetPowType() pow.PowType {
+	return node.Pow().GetPowType()
+}
+
+func (node *BlockNode) Timestamp() time.Time {
+	return node.GetHeader().Timestamp
+}
+
+func NewBlockNode(header *types.BlockHeader, parents []uint) *BlockNode {
+	return &BlockNode{
+		hash:    header.BlockHash(),
+		parents: parents,
+		header:  *header,
+	}
+}

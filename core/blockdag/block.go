@@ -12,13 +12,10 @@ type IBlockData interface {
 	GetHash() *hash.Hash
 
 	// Get all parents set,the dag block has more than one parent
-	GetParents() []uint
+	GetParents() []*hash.Hash
 
 	// Timestamp
 	GetTimestamp() int64
-
-	// Acquire the weight of block
-	GetWeight() uint64
 }
 
 //The interface of block
@@ -79,6 +76,9 @@ type IBlock interface {
 
 	// decode
 	Decode(r io.Reader) error
+
+	// block data
+	GetData() IBlockData
 }
 
 // It is the element of a DAG. It is the most basic data unit.
@@ -94,6 +94,8 @@ type Block struct {
 	layer      uint
 	height     uint
 	status     BlockStatus
+
+	data IBlockData
 }
 
 // Return block ID
@@ -403,6 +405,10 @@ func (b *Block) SetStatusFlags(flags BlockStatus) {
 
 func (b *Block) UnsetStatusFlags(flags BlockStatus) {
 	b.status &^= flags
+}
+
+func (b *Block) GetData() IBlockData {
+	return b.data
 }
 
 // BlockStatus

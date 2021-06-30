@@ -148,12 +148,36 @@ func (bi *blockIndex) GetDAGBlockID(h *hash.Hash) uint {
 	return bn.dagID
 }
 
-func GetMaxLayerFromList(list []*blockNode) uint {
-	var maxLayer uint = 0
-	for _, v := range list {
-		if maxLayer == 0 || maxLayer < v.GetLayer() {
-			maxLayer = v.GetLayer()
-		}
+// LookupNode returns the block node identified by the provided hash.  It will
+// return nil if there is no entry for the hash.
+func (b *BlockChain) LookupNode(hash *hash.Hash) *BlockNode {
+	ib := b.bd.GetBlock(hash)
+	if ib == nil {
+		return nil
 	}
-	return maxLayer
+	if ib.GetData() == nil {
+		return nil
+	}
+	return ib.GetData().(*BlockNode)
+}
+
+func (b *BlockChain) LookupNodeById(id uint) *BlockNode {
+	ib := b.bd.GetBlockById(id)
+	if ib == nil {
+		return nil
+	}
+	if ib.GetData() == nil {
+		return nil
+	}
+	return ib.GetData().(*BlockNode)
+}
+
+func (b *BlockChain) GetBlockNode(ib blockdag.IBlock) *BlockNode {
+	if ib == nil {
+		return nil
+	}
+	if ib.GetData() == nil {
+		return nil
+	}
+	return ib.GetData().(*BlockNode)
 }

@@ -668,7 +668,7 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 //    the checkpoints are not performed.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevNode *blockNode, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevNode blockdag.IBlock, flags BehaviorFlags) error {
 	// The genesis block is valid by definition.
 	if prevNode == nil {
 		return nil
@@ -678,7 +678,7 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	if !fastAdd {
 		instance := pow.GetInstance(header.Pow.GetPowType(), 0, []byte{})
-		instance.SetMainHeight(pow.MainHeight(prevNode.height + 1))
+		instance.SetMainHeight(pow.MainHeight(prevNode.GetHeight() + 1))
 		instance.SetParams(b.params.PowConfig)
 		// Ensure the difficulty specified in the block header matches
 		// the calculated difficulty based on the previous block and
@@ -698,7 +698,7 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 
 		// Ensure the timestamp for the block header is after the
 		// median time of the last several blocks (medianTimeBlocks).
-		medianTime := prevNode.CalcPastMedianTime(b)
+		medianTime := b.CalcPastMedianTime(prevNode)
 		if !header.Timestamp.After(medianTime) {
 			str := "block timestamp of %v is not after expected %v"
 			str = fmt.Sprintf(str, header.Timestamp.Unix(), medianTime.Unix())
@@ -1228,9 +1228,9 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		return err
 	}
 
-	tipsNode := []*blockNode{}
+	tipsNode := []blockdag.IBlock{}
 	for _, v := range block.Block().Parents {
-		bn := b.index.LookupNode(v)
+		bn := b.bd.GetBlock(v)
 		if bn == nil {
 			return ruleError(ErrPrevBlockNotBest, "tipsNode")
 		}
