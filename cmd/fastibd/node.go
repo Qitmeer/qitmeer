@@ -18,7 +18,6 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/index"
-	"github.com/Qitmeer/qitmeer/services/mining"
 	"os"
 	"path"
 )
@@ -56,7 +55,6 @@ func (node *Node) init(cfg *Config) error {
 		ChainParams:  params.ActiveNetParams.Params,
 		TimeSource:   blockchain.NewMedianTime(),
 		DAGType:      cfg.DAGType,
-		BlockVersion: mining.BlockVersion(params.ActiveNetParams.Params.Net),
 		IndexManager: indexManager,
 	})
 	if err != nil {

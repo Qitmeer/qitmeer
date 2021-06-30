@@ -8,6 +8,7 @@ package node
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/protocol"
@@ -85,6 +86,52 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	}
 	if len(api.node.node.peerServer.HostAddress()) > 0 {
 		ret.Addresss = api.node.node.peerServer.HostAddress()
+	}
+
+	// soft forks
+	ret.ConsensusDeployment = make(map[string]*json.ConsensusDeploymentDesc)
+	for deployment, deploymentDetails := range params.ActiveNetParams.Deployments {
+		// Map the integer deployment ID into a human readable
+		// fork-name.
+		var forkName string
+		switch deployment {
+		case params.DeploymentTestDummy:
+			forkName = "dummy"
+
+		case params.DeploymentToken:
+			forkName = "token"
+
+		default:
+			return nil, fmt.Errorf("Unknown deployment %v detected\n", deployment)
+		}
+
+		// Query the chain for the current status of the deployment as
+		// identified by its deployment ID.
+		deploymentStatus, err := api.node.blockManager.GetChain().ThresholdState(uint32(deployment))
+		if err != nil {
+			return nil, fmt.Errorf("Failed to obtain deployment status\n")
+		}
+
+		// Finally, populate the soft-fork description with all the
+		// information gathered above.
+		ret.ConsensusDeployment[forkName] = &json.ConsensusDeploymentDesc{
+			Status:    deploymentStatus.HumanString(),
+			Bit:       deploymentDetails.BitNumber,
+			StartTime: int64(deploymentDetails.StartTime),
+			Timeout:   int64(deploymentDetails.ExpireTime),
+		}
+
+		if deploymentDetails.PerformTime != 0 {
+			ret.ConsensusDeployment[forkName].Perform = int64(deploymentDetails.PerformTime)
+		}
+
+		if deploymentDetails.StartTime >= blockchain.CheckerTimeThreshold {
+			if time.Unix(int64(deploymentDetails.ExpireTime), 0).After(best.MedianTime) {
+				startTime := time.Unix(int64(deploymentDetails.StartTime), 0)
+				ret.ConsensusDeployment[forkName].Since = best.MedianTime.Sub(startTime).String()
+			}
+		}
+
 	}
 	return ret, nil
 }

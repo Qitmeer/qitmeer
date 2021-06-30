@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/ledger"
 	"math/big"
 	"time"
 )
@@ -41,6 +42,11 @@ var MixNetParams = Params{
 	ReduceMinDifficulty:  false,
 	MinDiffReductionTime: 0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:    true,
+	LedgerParams: ledger.LedgerParams{
+		UnlocksPerHeight:     10000 * 1e8, // every height 10000 MEER
+		GenesisAmountUnit:    1000 * 1e8,  // 100 MEER every utxo
+		UnlocksPerHeightStep: 5760,        // 1 day block heights
+	},
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             testMixNetPowLimit,
 		Blake2bdPowLimitBits:         0x2003ffff,
@@ -105,7 +111,23 @@ var MixNetParams = Params{
 
 	// Consensus rule change deployments.
 	//
-	Deployments: map[uint32][]ConsensusDeployment{},
+	// The miner confirmation window is defined as:
+	//   target proof of work timespan / target proof of work spacing
+	RuleChangeActivationThreshold: 57,                    // 95% of MinerConfirmationWindow
+	MinerConfirmationWindow:       mixWorkDiffWindowSize, //
+	Deployments: []ConsensusDeployment{
+		DeploymentTestDummy: {
+			BitNumber:   28,
+			StartTime:   1626688646, // 2021-07-19 09:58:47 UTC
+			ExpireTime:  1655200727, // 2022-06-14 09:58:47 UTC
+			PerformTime: 1655204327, // 2022-06-14 10:58:47 UTC
+		},
+		DeploymentToken: {
+			BitNumber:  0,
+			StartTime:  1629280727, // 2021-08-18 09:58:47 UTC
+			ExpireTime: 1655200727, // 2022-06-14 09:58:47 UTC
+		},
+	},
 
 	// Address encoding magics
 	NetworkAddressPrefix: "X",

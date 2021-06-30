@@ -54,11 +54,6 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 	msgBlock := block.Block()
 	header := &msgBlock.Header
 
-	// TODO It can be considered to delete in the future when it is officially launched
-	if header.GetVersion() != b.BlockVersion {
-		return ruleError(ErrBlockVersionTooOld, "block version too old")
-	}
-
 	// A block must have at least one regular transaction.
 	numTx := len(msgBlock.Transactions)
 	if numTx == 0 {
@@ -150,6 +145,10 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 	// Do some preliminary checks on each regular transaction to ensure they
 	// are sane before continuing.
 	for _, tx := range transactions {
+		if !b.IsValidTxType(types.DetermineTxType(tx.Tx)) {
+			errStr := fmt.Sprintf("%s is not support transaction type.", types.DetermineTxType(tx.Tx).String())
+			return ruleError(ErrIrregTxInRegularTree, errStr)
+		}
 		// A block must not have stake transactions in the regular
 		// transaction tree.
 		err := CheckTransactionSanity(tx.Transaction(), chainParams)
@@ -290,10 +289,6 @@ func checkProofOfWork(header *types.BlockHeader, powConfig *pow.PowConfig, flags
 // CheckTransactionSanity performs some preliminary checks on a transaction to
 // ensure it is sane.  These checks are context free.
 func CheckTransactionSanity(tx *types.Transaction, params *params.Params) error {
-	if !params.IsValidTxType(types.DetermineTxType(tx)) {
-		errStr := fmt.Sprintf("%s is not support transaction type.", types.DetermineTxType(tx).String())
-		return ruleError(ErrIrregTxInRegularTree, errStr)
-	}
 	// A transaction must have at least one input.
 	if len(tx.TxIn) == 0 {
 		return ruleError(ErrNoTxInputs, "transaction has no inputs")

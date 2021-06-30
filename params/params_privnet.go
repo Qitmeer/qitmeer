@@ -9,8 +9,8 @@ package params
 import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/ledger"
 	"math/big"
 	"time"
 )
@@ -37,11 +37,13 @@ var PrivNetParams = Params{
 	Bootstrap:      []string{},
 
 	// Chain parameters
-	GenesisBlock:         &privNetGenesisBlock,
-	GenesisHash:          &privNetGenesisHash,
-	UnlocksPerHeight:     10000 * 1e8,
-	GenesisAmountUnit:    1000 * 1e8,
-	UnlocksPerHeightStep: 10,
+	GenesisBlock: &privNetGenesisBlock,
+	GenesisHash:  &privNetGenesisHash,
+	LedgerParams: ledger.LedgerParams{
+		UnlocksPerHeight:     10000 * 1e8,
+		GenesisAmountUnit:    1000 * 1e8,
+		UnlocksPerHeightStep: 10,
+	},
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             privNetPowLimit,
 		Blake2bdPowLimitBits:         0x207fffff,
@@ -114,9 +116,6 @@ var PrivNetParams = Params{
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: nil,
 
-	// Consensus rule change deployments.
-	Deployments: map[uint32][]ConsensusDeployment{},
-
 	// Address encoding magics
 	NetworkAddressPrefix: "R",
 	PubKeyAddrID:         [2]byte{0x25, 0xe5}, // starts with Rk
@@ -142,15 +141,4 @@ var PrivNetParams = Params{
 	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
 
 	CoinbaseMaturity: 16,
-
-	// Support tx type config
-	NonStdTxs: []types.TxType{
-		types.TxTypeTokenNew,
-		types.TxTypeTokenRenew,
-		types.TxTypeTokenInvalidate,
-		types.TxTypeTokenValidate,
-		types.TxTypeTokenMint,
-	},
-
-	AcceptNonStdTxs: true,
 }

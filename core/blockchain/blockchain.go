@@ -110,9 +110,6 @@ type BlockChain struct {
 	//block dag
 	bd *blockdag.BlockDAG
 
-	// block version
-	BlockVersion uint32
-
 	// Cache Invalid tx
 	CacheInvalidTx bool
 
@@ -121,6 +118,10 @@ type BlockChain struct {
 
 	// The ID of token state tip for the chain.
 	TokenTipID uint32
+
+	warningCaches      []thresholdStateCache
+	deploymentCaches   []thresholdStateCache
+	unknownRulesWarned bool
 }
 
 // Config is a descriptor which specifies the blockchain instance configuration.
@@ -179,9 +180,6 @@ type Config struct {
 
 	// Setting different dag types will use different consensus
 	DAGType string
-
-	// block version
-	BlockVersion uint32
 
 	// Cache Invalid tx
 	CacheInvalidTx bool
@@ -316,8 +314,20 @@ func New(config *Config) (*BlockChain, error) {
 		}
 	}
 
-	if config.BlockVersion > types.MaxBlockVersionValue {
-		return nil, AssertError(fmt.Sprintf("BlockVersion Can not bigger than %d", types.MaxBlockVersionValue))
+	if len(par.Deployments) > 0 {
+		for _, v := range par.Deployments {
+			if v.StartTime < CheckerTimeThreshold &&
+				v.ExpireTime < CheckerTimeThreshold &&
+				(v.PerformTime < CheckerTimeThreshold || v.PerformTime == 0) {
+				continue
+			}
+			if v.StartTime >= CheckerTimeThreshold &&
+				v.ExpireTime >= CheckerTimeThreshold &&
+				(v.PerformTime >= CheckerTimeThreshold || v.PerformTime == 0) {
+				continue
+			}
+			return nil, AssertError("blockchain.New chain parameters Deployments error")
+		}
 	}
 
 	b := BlockChain{
@@ -330,9 +340,10 @@ func New(config *Config) (*BlockChain, error) {
 		indexManager:       config.IndexManager,
 		index:              newBlockIndex(config.DB, par),
 		orphans:            make(map[hash.Hash]*orphanBlock),
-		BlockVersion:       config.BlockVersion,
 		CacheInvalidTx:     config.CacheInvalidTx,
 		CacheNotifications: []*Notification{},
+		warningCaches:      newThresholdCaches(VBNumBits),
+		deploymentCaches:   newThresholdCaches(params.DefinedDeployments),
 	}
 	b.subsidyCache = NewSubsidyCache(0, b.params)
 
@@ -358,6 +369,11 @@ func New(config *Config) (*BlockChain, error) {
 		return nil, err
 	}
 	b.pruner = newChainPruner(&b)
+
+	// Initialize rule change threshold state caches.
+	if err := b.initThresholdCaches(); err != nil {
+		return nil, err
+	}
 
 	log.Info(fmt.Sprintf("DAG Type:%s", b.bd.GetName()))
 	log.Info("Blockchain database version", "chain", b.dbInfo.version, "compression", b.dbInfo.compVer,
@@ -518,9 +534,6 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			block, err = dbFetchBlockByHash(dbTx, blockHash)
 			if err != nil {
 				return err
-			}
-			if i != 0 && block.Block().Header.GetVersion() != b.BlockVersion {
-				return fmt.Errorf("The dag block is not match current genesis block. you can cleanup your block data base by '--cleanup'.")
 			}
 			parents := []*blockNode{}
 			for _, pb := range block.Block().Parents {
@@ -896,6 +909,14 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode, block *types.Serializ
 }
 
 func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlock, attachNodes *list.List) error {
+	// No warnings about unknown rules until the chain is current.
+	if b.isCurrent() {
+		// Warn if any unknown new rules are either about to activate or
+		// have already been activated.
+		if err := b.warnUnknownRuleActivations(node); err != nil {
+			return err
+		}
+	}
 	// Must be end node of sequence in dag
 	// Generate a new best state snapshot that will be used to update the
 	// database and later memory if all database updates are successful.

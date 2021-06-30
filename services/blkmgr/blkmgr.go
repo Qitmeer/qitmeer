@@ -86,7 +86,7 @@ type BlockManager struct {
 // Use Start to begin processing asynchronous block and inv updates.
 func NewBlockManager(ntmgr notify.Notify, indexManager blockchain.IndexManager, db database.DB,
 	timeSource blockchain.MedianTimeSource, sigCache *txscript.SigCache,
-	cfg *config.Config, par *params.Params, blockVersion uint32,
+	cfg *config.Config, par *params.Params,
 	interrupt <-chan struct{}, events *event.Feed, peerServer *p2p.Service) (*BlockManager, error) {
 	bm := BlockManager{
 		config:         cfg,
@@ -110,7 +110,6 @@ func NewBlockManager(ntmgr notify.Notify, indexManager blockchain.IndexManager, 
 		SigCache:       sigCache,
 		IndexManager:   indexManager,
 		DAGType:        cfg.DAGType,
-		BlockVersion:   blockVersion,
 		CacheInvalidTx: cfg.CacheInvalidTx,
 	})
 	if err != nil {

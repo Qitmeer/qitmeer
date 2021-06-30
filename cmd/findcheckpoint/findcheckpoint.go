@@ -9,7 +9,6 @@ import (
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common"
-	"github.com/Qitmeer/qitmeer/services/mining"
 	"os"
 )
 
@@ -42,11 +41,10 @@ func main() {
 
 	// find
 	bc, err := blockchain.New(&blockchain.Config{
-		DB:           db,
-		ChainParams:  params.ActiveNetParams.Params,
-		TimeSource:   blockchain.NewMedianTime(),
-		DAGType:      cfg.DAGType,
-		BlockVersion: mining.BlockVersion(params.ActiveNetParams.Params.Net),
+		DB:          db,
+		ChainParams: params.ActiveNetParams.Params,
+		TimeSource:  blockchain.NewMedianTime(),
+		DAGType:     cfg.DAGType,
 	})
 	if err != nil {
 		log.Error(err.Error())

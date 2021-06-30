@@ -16,7 +16,18 @@ import (
 	"time"
 )
 
-func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[string]uint32, outputs map[string]uint64) (string, error) {
+type Amount struct {
+	TargetLockTime int64
+	Value          int64
+	Id             types.CoinID
+}
+
+type Input struct {
+	TxID     string
+	OutIndex uint32
+}
+
+func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs []Input, outputs map[string]Amount) (string, error) {
 	mtx := types.NewTransaction()
 	mtx.Version = uint32(version)
 	if lockTime != 0 {
@@ -26,19 +37,12 @@ func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[
 		mtx.Timestamp = *timestamp
 	}
 
-	inputsSlice := []string{}
-	for k := range inputs {
-		inputsSlice = append(inputsSlice, k)
-	}
-	sort.Strings(inputsSlice)
-
-	for _, txId := range inputsSlice {
-		vout := inputs[txId]
-		txHash, err := hash.NewHashFromStr(txId)
+	for _, vout := range inputs {
+		txHash, err := hash.NewHashFromStr(vout.TxID)
 		if err != nil {
 			return "", err
 		}
-		prevOut := types.NewOutPoint(txHash, vout)
+		prevOut := types.NewOutPoint(txHash, vout.OutIndex)
 		txIn := types.NewTxInput(prevOut, []byte{})
 		if lockTime != 0 {
 			txIn.Sequence = types.MaxTxInSequenceNum - 1
@@ -54,7 +58,7 @@ func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[
 
 	for _, encodedAddr := range outputsSlice {
 		amount := outputs[encodedAddr]
-		if amount <= 0 || amount > types.MaxAmount {
+		if amount.Value <= 0 || amount.Value > types.MaxAmount {
 			return "", fmt.Errorf("invalid amount: 0 >= %v "+
 				"> %v", amount, types.MaxAmount)
 		}
@@ -76,7 +80,13 @@ func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[
 		if err != nil {
 			return "", err
 		}
-		txOut := types.NewTxOutput(types.Amount{Value: int64(amount), Id: types.MEERID}, pkScript)
+		if amount.TargetLockTime > 0 {
+			pkScript, err = txscript.PayToCLTVPubKeyHashScript(addr.Script(), amount.TargetLockTime)
+			if err != nil {
+				return "", err
+			}
+		}
+		txOut := types.NewTxOutput(types.Amount{Value: amount.Value, Id: amount.Id}, pkScript)
 		mtx.AddTxOut(txOut)
 	}
 	mtxHex, err := mtx.Serialize()
@@ -86,17 +96,16 @@ func TxEncode(version uint32, lockTime uint32, timestamp *time.Time, inputs map[
 	return hex.EncodeToString(mtxHex), nil
 }
 
-func TxSign(privkeyStr string, rawTxStr string, network string) (string, error) {
-	privkeyByte, err := hex.DecodeString(privkeyStr)
+func DecodePkString(pk string) (string, error) {
+	b, err := txscript.PkStringToScript(pk)
 	if err != nil {
 		return "", err
 	}
-	if len(privkeyByte) != 32 {
-		return "", fmt.Errorf("invaid ec private key bytes: %d", len(privkeyByte))
-	}
-	privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
-	h160 := hash.Hash160(pubKey.SerializeCompressed())
+	return hex.EncodeToString(b), nil
+}
 
+func TxSign(privkeyStrs []string, rawTxStr string, network string, pks []string) (string, error) {
+	privateKeyMaps := map[string]ecc.PrivateKey{}
 	var param *params.Params
 	switch network {
 	case "mainnet":
@@ -108,16 +117,22 @@ func TxSign(privkeyStr string, rawTxStr string, network string) (string, error) 
 	case "mixnet":
 		param = &params.MixNetParams
 	}
-	addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
-	if err != nil {
-		return "", err
+	for _, privkeyStr := range privkeyStrs {
+		privkeyByte, err := hex.DecodeString(privkeyStr)
+		if err != nil {
+			return "", err
+		}
+		if len(privkeyByte) != 32 {
+			return "", fmt.Errorf("invaid ec private key bytes: %d", len(privkeyByte))
+		}
+		privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
+		h160 := hash.Hash160(pubKey.SerializeCompressed())
+		addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
+		if err != nil {
+			return "", err
+		}
+		privateKeyMaps[addr.String()] = privateKey
 	}
-	// Create a new script which pays to the provided address.
-	pkScript, err := txscript.PayToAddrScript(addr)
-	if err != nil {
-		return "", err
-	}
-
 	if len(rawTxStr)%2 != 0 {
 		return "", fmt.Errorf("invaild raw transaction : %s", rawTxStr)
 	}
@@ -131,11 +146,25 @@ func TxSign(privkeyStr string, rawTxStr string, network string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	var kdb txscript.KeyClosure = func(types.Address) (ecc.PrivateKey, bool, error) {
-		return privateKey, true, nil // compressed is true
+
+	if len(redeemTx.TxIn) != len(pks) {
+		return "", fmt.Errorf("input pkscript len :%d not equal %d txIn length", len(pks), len(redeemTx.TxIn))
 	}
 	var sigScripts [][]byte
 	for i := range redeemTx.TxIn {
+		pkScript, err := hex.DecodeString(pks[i])
+		if err != nil {
+			return "", fmt.Errorf("pkscript %d error:%s", i, err.Error())
+		}
+		_, addrs, _, err := txscript.ExtractPkScriptAddrs(pkScript, param)
+		privateKey, ok := privateKeyMaps[addrs[0].String()]
+		if !ok {
+			return "", fmt.Errorf("addrress : %s  privatekey not exist,can not sign", addrs[0].String())
+		}
+		var kdb txscript.KeyClosure = func(types.Address) (ecc.PrivateKey, bool, error) {
+			return privateKey, true, nil // compressed is true
+		}
+
 		sigScript, err := txscript.SignTxOutput(param, &redeemTx, i, pkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
 		if err != nil {
 			return "", err
@@ -197,10 +226,13 @@ func TxDecode(network string, rawTxStr string) {
 }
 
 func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsFlag, txOut TxOutputsFlag) {
-	txInputs := make(map[string]uint32)
-	txOutputs := make(map[string]uint64)
+	txInputs := []Input{}
+	txOutputs := make(map[string]Amount)
 	for _, input := range txIn.inputs {
-		txInputs[hex.EncodeToString(input.txhash)] = input.index
+		txInputs = append(txInputs, Input{
+			TxID:     hex.EncodeToString(input.txhash),
+			OutIndex: input.index,
+		})
 	}
 	for _, output := range txOut.outputs {
 		atomic, err := types.NewAmount(output.amount)
@@ -208,7 +240,11 @@ func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsF
 			ErrExit(fmt.Errorf("fail to create the currency amount from a "+
 				"floating point value %f : %w", output.amount, err))
 		}
-		txOutputs[output.target] = uint64(atomic.Value)
+		txOutputs[output.target] = Amount{
+			TargetLockTime: 0,
+			Id:             types.MEERID,
+			Value:          atomic.Value,
+		}
 	}
 	mtxHex, err := TxEncode(uint32(version), uint32(lockTime), nil, txInputs, txOutputs)
 	if err != nil {
@@ -217,8 +253,8 @@ func TxEncodeSTDO(version TxVersionFlag, lockTime TxLockTimeFlag, txIn TxInputsF
 	fmt.Printf("%s\n", mtxHex)
 }
 
-func TxSignSTDO(privkeyStr string, rawTxStr string, network string) {
-	mtxHex, err := TxSign(privkeyStr, rawTxStr, network)
+func TxSignSTDO(privkeyStr string, rawTxStr string, network string, pks []string) {
+	mtxHex, err := TxSign([]string{privkeyStr}, rawTxStr, network, pks)
 	if err != nil {
 		ErrExit(err)
 	}

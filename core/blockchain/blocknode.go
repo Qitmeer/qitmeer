@@ -325,6 +325,30 @@ func (node *blockNode) GetMainParent(b *BlockChain) *blockNode {
 	return b.index.LookupNode(mainParent.GetHash())
 }
 
+func (node *blockNode) GetMainAncestor(height int, b *BlockChain) *blockNode {
+	if height < 0 || height > int(node.height) {
+		return nil
+	}
+
+	ib := b.bd.GetBlockById(node.dagID)
+
+	for ib != nil && int(ib.GetHeight()) != height {
+		if ib.GetMainParent() == blockdag.MaxId {
+			ib = nil
+			break
+		}
+		ib = b.bd.GetBlockById(ib.GetMainParent())
+	}
+	if ib == nil {
+		return nil
+	}
+	return b.index.LookupNode(ib.GetHash())
+}
+
+func (node *blockNode) RelativeMainAncestor(distance int, b *BlockChain) *blockNode {
+	return node.GetMainAncestor(int(node.height)-distance, b)
+}
+
 func (node *blockNode) GetStatus() BlockStatus {
 	return node.status
 }

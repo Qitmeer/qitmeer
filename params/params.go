@@ -12,6 +12,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/ledger"
 	"time"
 )
 
@@ -50,20 +51,53 @@ type Checkpoint struct {
 }
 
 // ConsensusDeployment defines details related to a specific consensus rule
-// change that is voted in.  This is part of BIP0009.
+// change that is voted in.
+// NOTE: The type of time must be consistent
 type ConsensusDeployment struct {
 	// BitNumber defines the specific bit number within the block version
 	// this particular soft-fork deployment refers to.
 	BitNumber uint8
 
-	// StartTime is the median block time after which voting on the
-	// deployment starts.
+	// StartTime (>=CheckerTimeThreshold) is the median block time after which voting on the
+	// deployment starts .
+	// or
+	// StartTime (< CheckerTimeThreshold) is the block main height after which voting on the
+	// deployment starts .
 	StartTime uint64
 
-	// ExpireTime is the median block time after which the attempted
+	// ExpireTime (>=CheckerTimeThreshold) is the median block time after which the attempted
+	// deployment expires.
+	// or
+	// ExpireTime (< CheckerTimeThreshold) is the block main height after which the attempted
 	// deployment expires.
 	ExpireTime uint64
+
+	// PerformTime (>=CheckerTimeThreshold) is the median block time after which the attempted
+	// deployment perform.
+	// or
+	// PerformTime (< CheckerTimeThreshold) is the block main height after which the attempted
+	// deployment perform.
+	PerformTime uint64
 }
+
+// Constants that define the deployment offset in the deployments field of the
+// parameters for each deployment.  This is useful to be able to get the details
+// of a specific deployment by name.
+const (
+	// DeploymentTestDummy defines the rule change deployment ID for testing
+	// purposes.
+	DeploymentTestDummy = iota
+
+	// DeploymentToken defines the rule change deployment ID for the token
+	// soft-fork package.
+	DeploymentToken
+
+	// NOTE: DefinedDeployments must always come last since it is used to
+	// determine how many defined deployments there currently are.
+
+	// DefinedDeployments is the number of currently defined deployments.
+	DefinedDeployments
+)
 
 // Params defines a qitmeer network by its parameters.  These parameters may be
 // used by qitmeer applications to differentiate networks as well as addresses
@@ -206,7 +240,7 @@ type Params struct {
 	// on.
 	RuleChangeActivationThreshold uint32
 	MinerConfirmationWindow       uint32
-	Deployments                   map[uint32][]ConsensusDeployment
+	Deployments                   []ConsensusDeployment
 
 	// Mempool parameters
 	RelayNonStdTxs bool
@@ -247,15 +281,7 @@ type Params struct {
 	BlockRate     float64
 	SecurityLevel float64
 
-	UnlocksPerHeight     int   // How many will be unlocked at each DAG main height.
-	UnlocksPerHeightStep int   // How many height will lock a tx.
-	GenesisAmountUnit    int64 // the unit amount of equally divided.
-
-	// Support tx type config
-	NonStdTxs []types.TxType
-
-	// accept non standard transactions
-	AcceptNonStdTxs bool
+	LedgerParams ledger.LedgerParams
 }
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax
@@ -269,20 +295,6 @@ func (p *Params) HasTax() bool {
 	if p.BlockTaxProportion > 0 &&
 		len(p.OrganizationPkScript) > 0 {
 		return true
-	}
-	return false
-}
-
-func (p *Params) IsValidTxType(tt types.TxType) bool {
-	txTypesCfg := types.StdTxs
-	if p.AcceptNonStdTxs && len(p.NonStdTxs) > 0 {
-		txTypesCfg = append(txTypesCfg, p.NonStdTxs...)
-	}
-
-	for _, txt := range txTypesCfg {
-		if txt == tt {
-			return true
-		}
 	}
 	return false
 }

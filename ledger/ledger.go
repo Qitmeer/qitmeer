@@ -7,6 +7,12 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 )
 
+type LedgerParams struct {
+	UnlocksPerHeight     int   // How many will be unlocked at each DAG main height.
+	UnlocksPerHeightStep int   // How many height will lock a tx.
+	GenesisAmountUnit    int64 // the unit amount of equally divided.
+}
+
 // TokenPayout is a payout for block 1 which specifies an address and an amount
 // to pay to that address in a transaction output.
 type TokenPayout struct {
