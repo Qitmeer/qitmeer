@@ -51,21 +51,31 @@ type Checkpoint struct {
 }
 
 // ConsensusDeployment defines details related to a specific consensus rule
-// change that is voted in.  This is part of BIP0009.
+// change that is voted in.
+// NOTE: The type of time must be consistent
 type ConsensusDeployment struct {
 	// BitNumber defines the specific bit number within the block version
 	// this particular soft-fork deployment refers to.
 	BitNumber uint8
 
-	// StartTime is the median block time after which voting on the
-	// deployment starts.
+	// StartTime (>=CheckerTimeThreshold) is the median block time after which voting on the
+	// deployment starts .
+	// or
+	// StartTime (< CheckerTimeThreshold) is the block main height after which voting on the
+	// deployment starts .
 	StartTime uint64
 
-	// ExpireTime is the median block time after which the attempted
+	// ExpireTime (>=CheckerTimeThreshold) is the median block time after which the attempted
+	// deployment expires.
+	// or
+	// ExpireTime (< CheckerTimeThreshold) is the block main height after which the attempted
 	// deployment expires.
 	ExpireTime uint64
 
-	// PerformTime is the median block time after which the attempted
+	// PerformTime (>=CheckerTimeThreshold) is the median block time after which the attempted
+	// deployment perform.
+	// or
+	// PerformTime (< CheckerTimeThreshold) is the block main height after which the attempted
 	// deployment perform.
 	PerformTime uint64
 }
