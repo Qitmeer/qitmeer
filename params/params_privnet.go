@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/ledger"
 	"math/big"
 	"time"
 )
@@ -37,11 +38,13 @@ var PrivNetParams = Params{
 	Bootstrap:      []string{},
 
 	// Chain parameters
-	GenesisBlock:         &privNetGenesisBlock,
-	GenesisHash:          &privNetGenesisHash,
-	UnlocksPerHeight:     10000 * 1e8,
-	GenesisAmountUnit:    1000 * 1e8,
-	UnlocksPerHeightStep: 10,
+	GenesisBlock: &privNetGenesisBlock,
+	GenesisHash:  &privNetGenesisHash,
+	LedgerParams: ledger.LedgerParams{
+		UnlocksPerHeight:     10000 * 1e8,
+		GenesisAmountUnit:    1000 * 1e8,
+		UnlocksPerHeightStep: 10,
+	},
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             privNetPowLimit,
 		Blake2bdPowLimitBits:         0x207fffff,
