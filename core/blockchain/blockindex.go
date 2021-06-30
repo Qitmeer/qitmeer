@@ -67,6 +67,9 @@ func newBlockIndex(db database.DB, par *params.Params) *blockIndex {
 //
 // This function MUST be called with the block index lock held (for reads).
 func (bi *blockIndex) lookupNode(hash *hash.Hash) *blockNode {
+	if hash == nil {
+		return nil
+	}
 	return bi.index[*hash]
 }
 

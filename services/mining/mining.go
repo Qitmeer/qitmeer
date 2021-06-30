@@ -11,7 +11,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/merkle"
-	"github.com/Qitmeer/qitmeer/core/protocol"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -34,25 +33,6 @@ const (
 	// sig.
 	// TODO, refactor the location of coinbaseFlags const
 	CoinbaseFlags = "/qitmeer/"
-
-	// generatedBlockVersion is the version of the block being generated for
-	// the main network.  It is defined as a constant here rather than using
-	// the wire.BlockVersion constant since a change in the block version
-	// will require changes to the generated block.  Using the wire constant
-	// for generated block version could allow creation of invalid blocks
-	// for the updated version.
-	// TODO, refactor the location of generatedBlockVersion const
-	GeneratedBlockVersion = 1
-
-	// generatedBlockVersionTest is the version of the block being generated
-	// for networks other than the main network.
-	// TODO, refactor the location of generatedBlockVersionTest const
-	GeneratedBlockVersionTest = 12
-
-	// generatedBlockVersionTestMixPow is the version of the block being generated
-	// for networks other than the main network.
-	// TODO, refactor the location of generatedBlockVersionTestPow const
-	generatedBlockVersionTestMixPow = 18
 )
 
 // TxSource represents a source of transactions to consider for inclusion in
@@ -173,18 +153,6 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 		}
 	}
 	return types.NewTx(tx), taxOutput, nil
-}
-
-func BlockVersion(net protocol.Network) uint32 {
-	blockVersion := uint32(GeneratedBlockVersion)
-	if net != protocol.MainNet {
-		blockVersion = GeneratedBlockVersionTest
-	}
-	// block version for mix test net,discriminate other net
-	if net == protocol.MixNet {
-		blockVersion = generatedBlockVersionTestMixPow
-	}
-	return blockVersion
 }
 
 func fillWitnessToCoinBase(blockTxns []*types.Tx) error {

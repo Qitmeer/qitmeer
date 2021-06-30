@@ -256,3 +256,10 @@ func IsTokenTx(tx *Transaction) bool {
 
 // Standard transaction type
 var StdTxs = []TxType{TxTypeRegular, TxTypeCoinbase}
+var NonStdTxs = []TxType{
+	TxTypeTokenNew,
+	TxTypeTokenRenew,
+	TxTypeTokenInvalidate,
+	TxTypeTokenValidate,
+	TxTypeTokenMint,
+}

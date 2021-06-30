@@ -9,7 +9,6 @@ package params
 import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/ledger"
 	"math/big"
@@ -117,9 +116,6 @@ var PrivNetParams = Params{
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: nil,
 
-	// Consensus rule change deployments.
-	Deployments: map[uint32][]ConsensusDeployment{},
-
 	// Address encoding magics
 	NetworkAddressPrefix: "R",
 	PubKeyAddrID:         [2]byte{0x25, 0xe5}, // starts with Rk
@@ -145,15 +141,4 @@ var PrivNetParams = Params{
 	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
 
 	CoinbaseMaturity: 16,
-
-	// Support tx type config
-	NonStdTxs: []types.TxType{
-		types.TxTypeTokenNew,
-		types.TxTypeTokenRenew,
-		types.TxTypeTokenInvalidate,
-		types.TxTypeTokenValidate,
-		types.TxTypeTokenMint,
-	},
-
-	AcceptNonStdTxs: true,
 }

@@ -205,6 +205,10 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		return nil, nil, txRuleError(message.RejectDuplicate, str)
 	}
 
+	if !mp.cfg.BC.IsValidTxType(types.DetermineTxType(tx.Tx)) {
+		str := fmt.Sprintf("%s is not support transaction type.", types.DetermineTxType(tx.Tx).String())
+		return nil, nil, txRuleError(message.RejectNonstandard, str)
+	}
 	// Perform preliminary sanity checks on the transaction.  This makes
 	// use of chain which contains the invariant rules for what
 	// transactions are allowed into blocks.

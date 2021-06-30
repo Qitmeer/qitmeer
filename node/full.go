@@ -127,7 +127,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 
 	// block-manager
 	bm, err := blkmgr.NewBlockManager(qm.nfManager, indexManager, node.DB, qm.timeSource, qm.sigCache, node.Config, node.Params,
-		mining.BlockVersion(node.Params.Net), node.quit, &node.events, node.peerServer)
+		node.quit, &node.events, node.peerServer)
 	if err != nil {
 		return nil, err
 	}

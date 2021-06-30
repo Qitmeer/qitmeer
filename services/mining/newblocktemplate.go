@@ -402,8 +402,10 @@ mempoolLoop:
 	}
 
 	// Choose the block version to generate based on the network.
-	blockVersion := BlockVersion(params.Net)
-
+	blockVersion, err := blockManager.GetChain().CalcNextBlockVersion()
+	if err != nil {
+		return nil, miningRuleError(ErrFailedToGetGeneration, err.Error())
+	}
 	// Create a new block ready to be solved.
 	merkles := merkle.BuildMerkleTreeStore(blockTxns, false)
 

@@ -9,23 +9,24 @@ type PowDiff struct {
 
 // InfoNodeResult models the data returned by the node server getnodeinfo command.
 type InfoNodeResult struct {
-	ID               string              `json:"ID"`
-	Addresss         []string            `json:"address"`
-	QNR              string              `json:"QNR,omitempty"`
-	Version          int32               `json:"version"`
-	BuildVersion     string              `json:"buildversion"`
-	ProtocolVersion  int32               `json:"protocolversion"`
-	TotalSubsidy     uint64              `json:"totalsubsidy"`
-	GraphState       GetGraphStateResult `json:"graphstate"`
-	TimeOffset       int64               `json:"timeoffset"`
-	Connections      int32               `json:"connections"`
-	PowDiff          PowDiff             `json:"pow_diff"`
-	Network          string              `json:"network"`
-	Confirmations    int32               `json:"confirmations"`
-	CoinbaseMaturity int32               `json:"coinbasematurity"`
-	Errors           string              `json:"errors"`
-	Modules          []string            `json:"modules"`
-	DNS              string              `json:"dns,omitempty"`
+	ID                  string                              `json:"ID"`
+	Addresss            []string                            `json:"address"`
+	QNR                 string                              `json:"QNR,omitempty"`
+	Version             int32                               `json:"version"`
+	BuildVersion        string                              `json:"buildversion"`
+	ProtocolVersion     int32                               `json:"protocolversion"`
+	TotalSubsidy        uint64                              `json:"totalsubsidy"`
+	GraphState          GetGraphStateResult                 `json:"graphstate"`
+	TimeOffset          int64                               `json:"timeoffset"`
+	Connections         int32                               `json:"connections"`
+	PowDiff             PowDiff                             `json:"pow_diff"`
+	Network             string                              `json:"network"`
+	Confirmations       int32                               `json:"confirmations"`
+	CoinbaseMaturity    int32                               `json:"coinbasematurity"`
+	Errors              string                              `json:"errors"`
+	Modules             []string                            `json:"modules"`
+	DNS                 string                              `json:"dns,omitempty"`
+	ConsensusDeployment map[string]*ConsensusDeploymentDesc `json:"consensusdeployment"`
 }
 
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
@@ -60,4 +61,13 @@ type GetGraphStateResult struct {
 type GetBanlistResult struct {
 	ID   string `json:"id"`
 	Bads int    `json:"bads"`
+}
+
+type ConsensusDeploymentDesc struct {
+	Status    string `json:"status"`
+	Bit       uint8  `json:"bit"`
+	StartTime int64  `json:"startTime"`
+	Timeout   int64  `json:"timeout"`
+	Perform   int64  `json:"perform,omitempty"`
+	Since     string `json:"since,omitempty"`
 }
