@@ -129,6 +129,7 @@ var txOutputs qx.TxOutputsFlag
 var txVersion qx.TxVersionFlag
 var txLockTime qx.TxLockTimeFlag
 var privateKey string
+var pkScripts string
 var msgSignatureMode string
 
 func main() {
@@ -410,6 +411,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		cmdUsage(txSignCmd, "Usage: qx tx-sign [raw_tx_base16_string] \n")
 	}
 	txSignCmd.StringVar(&privateKey, "k", "", "the ec private key to sign the raw transaction")
+	txSignCmd.StringVar(&pkScripts, "p", "", "the vin pkScripts in order")
 
 	msgSignCmd := flag.NewFlagSet("msg-sign", flag.ExitOnError)
 	msgSignCmd.Usage = func() {
@@ -1279,7 +1281,8 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
 				txSignCmd.Usage()
 			} else {
-				qx.TxSignSTDO(privateKey, os.Args[len(os.Args)-1], network)
+				pks := strings.Split(pkScripts, ",")
+				qx.TxSignSTDO(privateKey, os.Args[len(os.Args)-1], network, pks)
 			}
 		} else { //try from STDIN
 			src, err := ioutil.ReadAll(os.Stdin)
@@ -1287,7 +1290,8 @@ MEER is the 64 bit spend amount in qitmeer.`)
 				errExit(err)
 			}
 			str := strings.TrimSpace(string(src))
-			qx.TxSignSTDO(privateKey, str, network)
+			pks := strings.Split(pkScripts, ",")
+			qx.TxSignSTDO(privateKey, str, network, pks)
 		}
 	}
 

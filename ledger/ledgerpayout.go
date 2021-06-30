@@ -72,13 +72,13 @@ func ReSortAndSliceGeneDataWithSeed(data []GenesisInitPayout, seedHash []byte, p
 				i++
 				break
 			}
-			if int64(v.Amount) > p.GenesisAmountUnit {
+			if int64(v.Amount) > p.LedgerParams.GenesisAmountUnit {
 				payList = append(payList, GenesisInitPayout{
-					v.CoinID, v.Address, float64(p.GenesisAmountUnit), v.GenesisPayoutType, v.LockHeight,
+					v.CoinID, v.Address, float64(p.LedgerParams.GenesisAmountUnit), v.GenesisPayoutType, v.LockHeight,
 				})
 				payKeys = append(payKeys, i)
 				i++
-				v.Amount -= float64(p.GenesisAmountUnit)
+				v.Amount -= float64(p.LedgerParams.GenesisAmountUnit)
 			} else {
 				payList = append(payList, v)
 				payKeys = append(payKeys, i)
@@ -191,9 +191,9 @@ func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger []Genesi
 	}()
 
 	funName := fmt.Sprintf("%s%s", strings.ToUpper(string(netName[0])), netName[1:])
-	fileContent := fmt.Sprintf("// This file is auto generate \npackage ledger\n\nimport (\n\t. \"github.com/Qitmeer/qitmeer/core/types\"\n)\n\nfunc init%s() {\n", funName)
+	fileContent := fmt.Sprintf("// It is called by go generate and used to automatically generate pre-computed \n// Copyright 2017-2018 The qitmeer developers \n// This file is auto generate \npackage ledger\n\nimport (\n\t. \"github.com/Qitmeer/qitmeer/core/types\"\n)\n\nfunc init%s() {\n", funName)
 
-	fileContent += processLockingGenesisPayouts(genesisLedger, sortKeys, int64(params.UnlocksPerHeight), int64(params.UnlocksPerHeightStep))
+	fileContent += processLockingGenesisPayouts(genesisLedger, sortKeys, int64(params.LedgerParams.UnlocksPerHeight), int64(params.LedgerParams.UnlocksPerHeightStep))
 
 	fileContent += "}"
 
@@ -231,7 +231,6 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 		if v.GenesisPayoutType == GENE_PAYOUT_TYPE_AUTO_LOCK_WITH_CONFIG {
 			for v.Amount > 0 {
 				needLockNum := lockNum - curLockedNum
-
 				amount := float64(0)
 				if v.Amount >= float64(needLockNum) {
 					v.Amount -= float64(needLockNum)

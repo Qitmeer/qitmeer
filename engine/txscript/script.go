@@ -8,8 +8,11 @@ package txscript
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 // These are the constants specified for maximums in individual scripts.
@@ -97,6 +100,49 @@ func extractPubKeyHash(script []byte) []byte {
 // pay-to-pubkey-hash script.
 func IsPubKeyHashScript(script []byte) bool {
 	return extractPubKeyHash(script) != nil
+}
+
+func PkStringToScript(pk string) ([]byte, error) {
+	builder := NewScriptBuilder()
+	pk = strings.Replace(pk, "\n", " ", -1)
+	pk = strings.Replace(pk, "\t", " ", -1)
+	arr := strings.Split(pk, " ")
+	for i := 0; i < len(arr); i++ {
+		tok := arr[i]
+		if len(tok) == 0 {
+			continue
+		}
+
+		// if parses as a plain number
+		if num, err := strconv.ParseInt(tok, 10, 64); err == nil {
+			builder.AddInt64(num)
+			continue
+		} else if bts, err := hex.DecodeString(tok); err == nil {
+			// Concatenate the bytes manually since the test code
+			// intentionally creates scripts that are too large and
+			// would cause the builder to error otherwise.
+			if builder.err == nil {
+				builder.AddData(bts)
+			}
+		} else if len(tok) >= 2 &&
+			tok[0] == '\'' && tok[len(tok)-1] == '\'' {
+			builder.AddFullData([]byte(tok[1 : len(tok)-1]))
+		} else if opcode, err := findOpcodeFromString(tok); err == nil {
+			builder.AddOp(opcode.value)
+		} else {
+			return nil, fmt.Errorf("bad token %q", tok)
+		}
+	}
+	return builder.Script()
+}
+
+func findOpcodeFromString(pkcode string) (Opcode, error) {
+	for _, v := range opcodeArray {
+		if v.name == pkcode {
+			return v, nil
+		}
+	}
+	return Opcode{}, errors.New("not opcode string")
 }
 
 // IsStrictCompressedPubKeyEncoding returns whether or not the passed public

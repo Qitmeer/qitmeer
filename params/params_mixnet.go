@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/ledger"
 	"math/big"
 	"time"
 )
@@ -41,6 +42,11 @@ var MixNetParams = Params{
 	ReduceMinDifficulty:  false,
 	MinDiffReductionTime: 0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:    true,
+	LedgerParams: ledger.LedgerParams{
+		UnlocksPerHeight:     10000 * 1e8, // every height 10000 MEER
+		GenesisAmountUnit:    1000 * 1e8,  // 100 MEER every utxo
+		UnlocksPerHeightStep: 5760,        // 1 day block heights
+	},
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             testMixNetPowLimit,
 		Blake2bdPowLimitBits:         0x2003ffff,
