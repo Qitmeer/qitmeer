@@ -30,7 +30,7 @@ type SequenceLock struct {
 // from the point of view of the block node passed in as the first argument.
 //
 // See the CalcSequenceLock comments for more details.
-func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoViewpoint, isActive bool) (*SequenceLock, error) {
+func (b *BlockChain) calcSequenceLock(tx *types.Tx, view *UtxoViewpoint, isActive bool) (*SequenceLock, error) {
 	// A value of -1 for each lock type allows a transaction to be included
 	// in a block at any given height or time.
 	sequenceLock := &SequenceLock{BlockHeight: -1, Time: -1}

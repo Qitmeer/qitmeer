@@ -358,7 +358,7 @@ func (b *BlockChain) GetCurTokenOwners(coinId types.CoinID) ([]byte, error) {
 	return tt.Owners, nil
 }
 
-func (b *BlockChain) CheckTokenState(node *blockNode, block *types.SerializedBlock) error {
+func (b *BlockChain) CheckTokenState(block *types.SerializedBlock) error {
 	updates := []token.ITokenUpdate{}
 	for _, tx := range block.Transactions() {
 		if tx.IsDuplicate {

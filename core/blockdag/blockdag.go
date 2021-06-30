@@ -151,7 +151,7 @@ type IBlockDAG interface {
 // CalcWeight
 type CalcWeight func(int64, *hash.Hash, byte) int64
 
-type GetBlockData func(*hash.Hash, []uint) IBlockData
+type GetBlockData func(*hash.Hash) IBlockData
 
 // The general foundation framework of DAG
 type BlockDAG struct {
@@ -272,7 +272,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock, bool) {
 			return nil, nil, false
 		}
 		for _, v := range parentsIds {
-			pib := bd.getBlockById(v)
+			pib := bd.getBlock(v)
 			if pib == nil {
 				return nil, nil, false
 			}
@@ -1516,27 +1516,29 @@ func (bd *BlockDAG) commit() error {
 }
 
 // Just for custom Virtual block
-func (bd *BlockDAG) CreateVirtualBlock(data IBlockData, id uint, parents, layer uint, order uint, height uint, status BlockStatus) IBlock {
+func (bd *BlockDAG) CreateVirtualBlock(data IBlockData) IBlock {
 	if _, ok := bd.instance.(*Phantom); ok {
 		return nil
 	}
 	parents := NewIdSet()
-	parents.AddList(data.GetParents())
-	mainParent := bd.GetMainParent(parents)
-	mainParentId := MaxId
-	if mainParent != nil {
-		mainParentId = mainParent.GetID()
-	}
-	block := Block{id: id, hash: *data.GetHash(), parents: parents, layer: layer, status: status, mainParent: mainParentId, data: data, order: order, height: height}
-	return &PhantomBlock{&block, 0, NewIdSet(), NewIdSet()}
-}
-
-func GetMaxLayerFromList(list []IBlock) uint {
 	var maxLayer uint = 0
-	for _, v := range list {
-		if maxLayer == 0 || maxLayer < v.GetLayer() {
-			maxLayer = v.GetLayer()
+	for _, p := range data.GetParents() {
+		ib := bd.GetBlock(p)
+		if ib == nil {
+			return nil
+		}
+		parents.AddPair(ib.GetID(), ib)
+		if maxLayer == 0 || maxLayer < ib.GetLayer() {
+			maxLayer = ib.GetLayer()
 		}
 	}
-	return maxLayer
+	mainParent := bd.GetMainParent(parents)
+	mainParentId := MaxId
+	mainHeight := uint(0)
+	if mainParent != nil {
+		mainParentId = mainParent.GetID()
+		mainHeight = mainParent.GetHeight()
+	}
+	block := Block{id: bd.GetBlockTotal(), hash: *data.GetHash(), parents: parents, layer: maxLayer + 1, status: StatusNone, mainParent: mainParentId, data: data, order: MaxBlockOrder, height: mainHeight}
+	return &PhantomBlock{&block, 0, NewIdSet(), NewIdSet()}
 }

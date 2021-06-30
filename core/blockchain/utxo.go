@@ -387,7 +387,7 @@ func (view *UtxoViewpoint) fetchUtxos(db database.DB, outpoints map[types.TxOutP
 // spent.  In addition, when the 'stxos' argument is not nil, it will be updated
 // to append an entry for each spent txout.  An error will be returned if the
 // view does not contain the required utxos.
-func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *blockNode, blockIndex uint32, stxos *[]SpentTxOut, bc *BlockChain) error {
+func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *BlockNode, blockIndex uint32, stxos *[]SpentTxOut, bc *BlockChain) error {
 	msgTx := tx.Transaction()
 	// Coinbase transactions don't have any inputs to spend.
 	if msgTx.IsCoinBase() {

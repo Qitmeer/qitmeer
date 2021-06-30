@@ -603,7 +603,7 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 				return fmt.Errorf("The order(%d) of %s is inconsistent: Order Index (%d)\n", ib.GetOrder(), ib.GetHash(), id)
 			}
 		}
-		block.data = ph.bd.getBlockData(ib.GetHash(), ib.GetParents().List())
+		block.data = ph.bd.getBlockData(ib.GetHash())
 	}
 
 	ph.mainChain.tip = ph.GetMainParent(ph.bd.tips).GetID()

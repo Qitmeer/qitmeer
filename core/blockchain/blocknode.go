@@ -410,7 +410,7 @@ type BlockNode struct {
 	// hash is the hash of the block this node represents.
 	hash hash.Hash
 
-	parents []uint
+	parents []hash.Hash
 
 	header types.BlockHeader
 }
@@ -421,8 +421,12 @@ func (node *BlockNode) GetHash() *hash.Hash {
 }
 
 // Include all parents for set
-func (node *BlockNode) GetParents() []uint {
-	return node.parents
+func (node *BlockNode) GetParents() []*hash.Hash {
+	parents := []*hash.Hash{}
+	for _, p := range node.parents {
+		parents = append(parents, &p)
+	}
+	return parents
 }
 
 //return the timestamp of node
@@ -450,10 +454,14 @@ func (node *BlockNode) Timestamp() time.Time {
 	return node.GetHeader().Timestamp
 }
 
-func NewBlockNode(header *types.BlockHeader, parents []uint) *BlockNode {
-	return &BlockNode{
+func NewBlockNode(header *types.BlockHeader, parents []*hash.Hash) *BlockNode {
+	bn := BlockNode{
 		hash:    header.BlockHash(),
-		parents: parents,
 		header:  *header,
+		parents: []hash.Hash{},
 	}
+	for _, p := range parents {
+		bn.parents = append(bn.parents, *p)
+	}
+	return &bn
 }

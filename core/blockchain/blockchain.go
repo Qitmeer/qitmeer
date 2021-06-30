@@ -756,7 +756,7 @@ func (b *BlockChain) fetchMainChainBlockByHash(hash *hash.Hash) (*types.Serializ
 // AFTER the given node.
 //
 // This function MUST be called with the chain state lock held (for reads).
-func (b *BlockChain) maxBlockSize(prevNode *blockNode) (int64, error) {
+func (b *BlockChain) maxBlockSize() (int64, error) {
 
 	maxSize := int64(b.params.MaximumBlockSizes[0])
 
@@ -1517,13 +1517,13 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 	return *tsMerkle[0]
 }
 
-func (b *BlockChain) getBlockData(hash *hash.Hash, parents []uint) blockdag.IBlockData {
+func (b *BlockChain) getBlockData(hash *hash.Hash) blockdag.IBlockData {
 	block, err := b.fetchBlockByHash(hash)
 	if err != nil {
 		log.Error(err.Error())
 		return nil
 	}
-	return NewBlockNode(&block.Block().Header, parents)
+	return NewBlockNode(&block.Block().Header, block.Block().Parents)
 }
 
 // CalcPastMedianTime calculates the median time of the previous few blocks
