@@ -746,31 +746,17 @@ func (ph *Phantom) getMaxParents() int {
 	return types.MaxParentsPerBlock
 }
 
-func (ph *Phantom) UpdateWeight(ib IBlock, store bool) {
+func (ph *Phantom) UpdateWeight(ib IBlock) {
 	if ib.GetID() != GenesisId {
 		pb := ib.(*PhantomBlock)
 		tp := ph.getBlock(pb.GetMainParent())
 		pb.weight = tp.GetWeight()
-		pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), byte(pb.status)))
+		pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), pb.status))
 		for k := range pb.blueDiffAnticone.GetMap() {
 			bdpb := ph.getBlock(k)
-			pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), byte(bdpb.status)))
+			pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), bdpb.status))
 		}
-	}
-
-	if ph.bd.db == nil || !store {
-		return
-	}
-
-	err := ph.bd.db.Update(func(dbTx database.Tx) error {
-		err := DBPutDAGBlock(dbTx, ib)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		log.Error(err.Error())
+		ph.bd.commitBlock.AddPair(ib.GetID(), ib)
 	}
 }
 

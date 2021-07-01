@@ -542,9 +542,9 @@ func (bc *BlockChain) IsInvalidOut(entry *UtxoEntry) bool {
 	if entry.blockHash.IsEqual(&hash.ZeroHash) {
 		return false
 	}
-	node := bc.index.LookupNode(&entry.blockHash)
+	node := bc.BlockDAG().GetBlock(&entry.blockHash)
 	if node != nil {
-		if !bc.index.NodeStatus(node).KnownInvalid() {
+		if !node.GetStatus().KnownInvalid() {
 			return false
 		}
 	}

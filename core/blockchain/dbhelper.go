@@ -128,7 +128,7 @@ func (b *BlockChain) BlockByOrder(blockOrder uint64) (*types.SerializedBlock, er
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) BlockHashByOrder(blockOrder uint64) (*hash.Hash, error) {
-	hash := b.bd.GetBlockByOrder(uint(blockOrder))
+	hash := b.bd.GetBlockHashByOrder(uint(blockOrder))
 	if hash == nil {
 		return nil, fmt.Errorf("Can't find block")
 	}
@@ -140,7 +140,7 @@ func (b *BlockChain) BlockHashByOrder(blockOrder uint64) (*hash.Hash, error) {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) MainChainHasBlock(hash *hash.Hash) bool {
-	return b.bd.IsOnMainChain(b.index.GetDAGBlockID(hash))
+	return b.bd.IsOnMainChain(b.bd.GetBlockId(hash))
 }
 
 // dbFetchDatabaseInfo uses an existing database transaction to fetch the

@@ -149,7 +149,7 @@ type IBlockDAG interface {
 }
 
 // CalcWeight
-type CalcWeight func(int64, *hash.Hash, byte) int64
+type CalcWeight func(int64, *hash.Hash, BlockStatus) int64
 
 type GetBlockData func(*hash.Hash) IBlockData
 
@@ -172,6 +172,8 @@ type BlockDAG struct {
 
 	// All orders relate to new block will be committed that need to be consensus
 	commitOrder map[uint]uint
+
+	commitBlock *IdSet
 
 	// Current dag instance used. Different algorithms work according to
 	// different dag types config.
@@ -208,6 +210,7 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 	bd.calcWeight = calcWeight
 	bd.getBlockData = getBlockData
 	bd.db = db
+	bd.commitBlock = NewIdSet()
 	bd.blockRate = blockRate
 	if bd.blockRate < 0 {
 		bd.blockRate = anticone.DefaultBlockRate
@@ -349,7 +352,7 @@ func (bd *BlockDAG) isDAG(parents []IBlock) bool {
 
 // Is there a block in DAG?
 func (bd *BlockDAG) HasBlock(h *hash.Hash) bool {
-	return bd.GetBlock(h) != nil
+	return bd.GetBlockId(h) != MaxId
 }
 
 // Is there a block in DAG?
@@ -386,9 +389,19 @@ func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
 // Acquire one block by hash
 // Be careful, this is inefficient and cannot be called frequently
 func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
+	return bd.getBlockById(bd.getBlockId(h))
+}
 
+func (bd *BlockDAG) GetBlockId(h *hash.Hash) uint {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.getBlockId(h)
+}
+
+func (bd *BlockDAG) getBlockId(h *hash.Hash) uint {
 	if h == nil {
-		return nil
+		return MaxId
 	}
 	id := MaxId
 	err := bd.db.View(func(dbTx database.Tx) error {
@@ -399,12 +412,9 @@ func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
 		return er
 	})
 	if err != nil {
-		return nil
+		return MaxId
 	}
-	if id == MaxId {
-		return nil
-	}
-	return bd.getBlockById(id)
+	return id
 }
 
 // Acquire one block by hash
@@ -494,7 +504,7 @@ func (bd *BlockDAG) GetLastTime() *time.Time {
 }
 
 // Obtain block hash by global order
-func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash {
+func (bd *BlockDAG) GetBlockHashByOrder(order uint) *hash.Hash {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
@@ -503,6 +513,13 @@ func (bd *BlockDAG) GetBlockByOrder(order uint) *hash.Hash {
 		return ib.GetHash()
 	}
 	return nil
+}
+
+func (bd *BlockDAG) GetBlockByOrder(order uint) IBlock {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.getBlockByOrder(order)
 }
 
 func (bd *BlockDAG) GetBlockByOrderWithTx(dbTx database.Tx, order uint) *hash.Hash {
@@ -1503,7 +1520,7 @@ func (bd *BlockDAG) GetBlockConcurrency(h *hash.Hash) (uint, error) {
 }
 
 func (bd *BlockDAG) UpdateWeight(ib IBlock) {
-	bd.instance.(*Phantom).UpdateWeight(ib, true)
+	bd.instance.(*Phantom).UpdateWeight(ib)
 }
 
 // Commit the consensus content to the database for persistence
@@ -1528,7 +1545,29 @@ func (bd *BlockDAG) commit() error {
 			return e
 		})
 		bd.commitOrder = map[uint]uint{}
-		return err
+		if err != nil {
+			return err
+		}
+	}
+
+	if !bd.commitBlock.IsEmpty() {
+		err := bd.db.Update(func(dbTx database.Tx) error {
+			for _, v := range bd.commitBlock.GetMap() {
+				block, ok := v.(IBlock)
+				if !ok {
+					return fmt.Errorf("Commit block error\n")
+				}
+				e := DBPutDAGBlock(dbTx, block)
+				if e != nil {
+					return e
+				}
+			}
+			return nil
+		})
+		bd.commitBlock.Clean()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -1605,4 +1644,14 @@ func (bd *BlockDAG) GetMainAncestor(block IBlock, height int64) IBlock {
 
 func (bd *BlockDAG) RelativeMainAncestor(block IBlock, distance int64) IBlock {
 	return bd.GetMainAncestor(block, int64(block.GetHeight())-distance)
+}
+
+func (bd *BlockDAG) ValidBlock(block IBlock) {
+	block.Valid()
+	bd.commitBlock.AddPair(block.GetID(), block)
+}
+
+func (bd *BlockDAG) InvalidBlock(block IBlock) {
+	block.Invalid()
+	bd.commitBlock.AddPair(block.GetID(), block)
 }

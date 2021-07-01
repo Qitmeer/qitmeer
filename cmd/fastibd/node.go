@@ -162,7 +162,7 @@ func (node *Node) Export() error {
 				blockHash = nil
 			}
 		} else {
-			blockHash = node.bc.BlockDAG().GetBlockByOrder(i)
+			blockHash = node.bc.BlockDAG().GetBlockHashByOrder(i)
 		}
 
 		if blockHash == nil {

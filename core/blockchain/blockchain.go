@@ -71,14 +71,6 @@ type BlockChain struct {
 	noVerify      bool
 	noCheckpoints bool
 
-	// These fields are related to the memory block index.  They both have
-	// their own locks, however they are often also protected by the chain
-	// lock to help prevent logic races when blocks are being processed.
-	//
-	// index houses the entire block index in memory.  The block index is
-	// a tree-shaped structure.
-	index *blockIndex
-
 	// These fields are related to handling of orphan blocks.  They are
 	// protected by a combination of the chain lock and the orphan lock.
 	orphanLock   sync.RWMutex
@@ -88,7 +80,7 @@ type BlockChain struct {
 	// These fields are related to checkpoint handling.  They are protected
 	// by the chain lock.
 	nextCheckpoint *params.Checkpoint
-	checkpointNode *blockNode
+	checkpointNode blockdag.IBlock
 
 	// The state is used as a fairly efficient way to cache information
 	// about the current best chain state that is returned to callers when
@@ -542,7 +534,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 
-		b.TokenTipID = uint32(b.index.GetDAGBlockID(&state.tokenTipHash))
+		b.TokenTipID = uint32(b.bd.GetBlockId(&state.tokenTipHash))
 		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTipNode.Difficulty(), blockSize, numTxns,
 			b.CalcPastMedianTime(mainTip), state.totalTxns, b.bd.GetMainChainTip().GetWeight(),
 			b.bd.GetGraphState(), &state.tokenTipHash)
@@ -564,7 +556,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) HaveBlock(hash *hash.Hash) bool {
-	return b.index.HaveBlock(hash) || b.IsOrphan(hash)
+	return b.bd.HasBlock(hash) || b.IsOrphan(hash)
 }
 
 // IsCurrent returns whether or not the chain believes it is current.  Several
@@ -602,8 +594,11 @@ func (b *BlockChain) isCurrent() bool {
 	// The chain appears to be current if none of the checks reported
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
-	lastNode := b.index.LookupNode(lastBlock.GetHash())
-	return lastNode.timestamp >= minus24Hours
+	lastNode := b.GetBlockNode(lastBlock)
+	if lastNode == nil {
+		return false
+	}
+	return lastNode.GetTimestamp() >= minus24Hours
 }
 
 // TipGeneration returns the entire generation of blocks stemming from the
@@ -812,7 +807,7 @@ func (b *BlockChain) connectDagChain(ib blockdag.IBlock, block *types.Serialized
 		stxos := []SpentTxOut{}
 		err := b.checkConnectBlock(ib, block, view, &stxos)
 		if err != nil {
-			ib.Invalid()
+			b.bd.InvalidBlock(ib)
 			stxos = []SpentTxOut{}
 			view.Clean()
 		}
@@ -824,10 +819,10 @@ func (b *BlockChain) connectDagChain(ib blockdag.IBlock, block *types.Serialized
 		// Connect the block to the main chain.
 		err = b.connectBlock(ib, block, view, stxos)
 		if err != nil {
-			ib.Invalid()
+			b.bd.InvalidBlock(ib)
 			return true, err
 		}
-		ib.Valid()
+		b.bd.ValidBlock(ib)
 		// TODO, validating previous block
 		log.Debug("Block connected to the main chain", "hash", ib.GetHash(), "order", ib.GetOrder())
 		return true, nil
@@ -938,7 +933,7 @@ func (b *BlockChain) updateBestState(ib blockdag.IBlock, block *types.Serialized
 	b.stateSnapshot = state
 	b.stateLock.Unlock()
 
-	return nil
+	return b.bd.Commit()
 }
 
 // connectBlock handles connecting the passed node/block to the end of the main
@@ -1115,11 +1110,11 @@ func (b *BlockChain) reorganizeChain(ib blockdag.IBlock, detachNodes *list.List,
 			// Store the loaded block and spend journal entry for later.
 			err = view.disconnectTransactions(block, stxos, b)
 			if err != nil {
-				n.Block.Invalid()
+				b.bd.InvalidBlock(n.Block)
 				log.Info(fmt.Sprintf("%s", err))
 			}
 		}
-		n.Block.Valid()
+		b.bd.ValidBlock(n.Block)
 
 		//newn.FlushToDB(b)
 
@@ -1152,18 +1147,18 @@ func (b *BlockChain) reorganizeChain(ib blockdag.IBlock, detachNodes *list.List,
 		stxos := []SpentTxOut{}
 		err = b.checkConnectBlock(nodeBlock, block, view, &stxos)
 		if err != nil {
-			nodeBlock.Invalid()
+			b.bd.InvalidBlock(nodeBlock)
 			stxos = []SpentTxOut{}
 			view.Clean()
 			log.Info(fmt.Sprintf("%s", err))
 		}
 		err = b.connectBlock(nodeBlock, block, view, stxos)
 		if err != nil {
-			nodeBlock.Invalid()
+			b.bd.InvalidBlock(nodeBlock)
 			log.Info(fmt.Sprintf("%s", err))
 			continue
 		}
-		nodeBlock.Valid()
+		b.bd.ValidBlock(nodeBlock)
 	}
 
 	// Log the point where the chain forked and old and new best chain
@@ -1189,11 +1184,6 @@ func (b *BlockChain) countSpentOutputs(block *types.SerializedBlock) int {
 // Return the dag instance
 func (b *BlockChain) BlockDAG() *blockdag.BlockDAG {
 	return b.bd
-}
-
-// Return the blockindex instance
-func (b *BlockChain) BlockIndex() *blockIndex {
-	return b.index
 }
 
 // Return median time source
@@ -1306,7 +1296,7 @@ func (b *BlockChain) GetFees(h *hash.Hash) types.AmountMap {
 	if ib == nil {
 		return nil
 	}
-	if BlockStatus(ib.GetStatus()).KnownInvalid() {
+	if ib.GetStatus().KnownInvalid() {
 		return nil
 	}
 	block, err := b.FetchBlockByHash(h)
@@ -1326,9 +1316,7 @@ func (b *BlockChain) GetFeeByCoinID(h *hash.Hash, coinId types.CoinID) int64 {
 	return fees[coinId]
 }
 
-func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
-
-	status := BlockStatus(state)
+func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, status blockdag.BlockStatus) int64 {
 	if status.KnownInvalid() {
 		return 0
 	}

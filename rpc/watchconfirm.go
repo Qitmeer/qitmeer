@@ -90,7 +90,7 @@ func (w *WatchTxConfirmServer) Handle(wsc *wsClient) {
 			w.SendTxNotification(tx, 0, wsc, false, false)
 			continue
 		}
-		InValid := blockchain.BlockStatus(ib.GetStatus()).KnownInvalid()
+		InValid := ib.GetStatus().KnownInvalid()
 		if InValid {
 			w.SendTxNotification(tx, 0, wsc, false, false)
 			continue

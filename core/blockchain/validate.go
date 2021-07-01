@@ -593,7 +593,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	parents := blockdag.NewIdSet()
 	for _, v := range block.Block().Parents {
-		parents.Add(b.index.GetDAGBlockID(v))
+		parents.Add(b.bd.GetBlockId(v))
 	}
 	blocks := b.bd.GetBlues(parents)
 	// check subsidy
@@ -712,7 +712,7 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	}
 	parents := blockdag.NewIdSet()
 	for _, v := range block.Block().Parents {
-		parents.Add(b.index.GetDAGBlockID(v))
+		parents.Add(b.bd.GetBlockId(v))
 	}
 	blockLayer, ok := b.BlockDAG().GetParentsMaxLayer(parents)
 	if !ok {
