@@ -86,11 +86,11 @@ func (b *BlockChain) calcSequenceLock(tx *types.Tx, view *UtxoViewpoint, isActiv
 			if hash.ZeroHash.IsEqual(utxo.BlockHash()) {
 				medianTime = b.BestSnapshot().MedianTime
 			} else {
-				blockNode := b.index.LookupNode(utxo.BlockHash())
+				blockNode := b.bd.GetBlock(utxo.BlockHash())
 				if blockNode == nil {
 					return sequenceLock, nil
 				}
-				medianTime = blockNode.CalcPastMedianTime(b)
+				medianTime = b.CalcPastMedianTime(blockNode)
 			}
 			// Calculate the minimum required timestamp based on the
 			// sum of the aforementioned past median time and
@@ -150,9 +150,7 @@ func (b *BlockChain) calcSequenceLock(tx *types.Tx, view *UtxoViewpoint, isActiv
 // This function is safe for concurrent access.
 func (b *BlockChain) CalcSequenceLock(tx *types.Tx, view *UtxoViewpoint) (*SequenceLock, error) {
 	b.ChainRLock()
-	block := b.bd.GetMainChainTip()
-	node := b.index.LookupNode(block.GetHash())
-	seqLock, err := b.calcSequenceLock(node, tx, view, true)
+	seqLock, err := b.calcSequenceLock(tx, view, true)
 	b.ChainRUnlock()
 	return seqLock, err
 }

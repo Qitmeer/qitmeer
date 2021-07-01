@@ -16,6 +16,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
@@ -384,8 +385,7 @@ func New(config *Config) (*BlockChain, error) {
 	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d mainOrder=%d total=%d", b.BestSnapshot().TotalTxns, len(tips), b.bd.GetMainChainTip().GetOrder(), b.bd.GetBlockTotal()))
 
 	for _, v := range tips {
-		tnode := b.index.LookupNode(v.GetHash())
-		log.Info(fmt.Sprintf("hash=%v,order=%s,work=%v", tnode.hash, blockdag.GetOrderLogStr(uint(tnode.GetOrder())), tnode.workSum))
+		log.Info(fmt.Sprintf("hash=%s,order=%s,height=%d", v.GetHash(), blockdag.GetOrderLogStr(v.GetOrder()), v.GetHeight()))
 	}
 
 	return &b, nil
@@ -526,48 +526,25 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		}
 		log.Info(fmt.Sprintf("Dag loaded:loadTime=%v", roughtime.Since(bidxStart)))
 
-		// Determine how many blocks will be loaded into the index in order to
-		// allocate the right amount as a single alloc versus a whole bunch of
-		// littles ones to reduce pressure on the GC.
-		var block *types.SerializedBlock
-		for i := uint(0); i < uint(state.total); i++ {
-			blockHash := b.bd.GetBlockHash(i)
-			block, err = dbFetchBlockByHash(dbTx, blockHash)
-			if err != nil {
-				return err
-			}
-			parents := []*blockNode{}
-			for _, pb := range block.Block().Parents {
-				parent := b.index.LookupNode(pb)
-				if parent == nil {
-					return fmt.Errorf("Can't find parent %s", pb.String())
-				}
-				parents = append(parents, parent)
-			}
-			refblock := b.bd.GetBlockById(i)
-			//
-			node := &blockNode{}
-			initBlockNode(node, &block.Block().Header, parents)
-			b.index.addNode(node)
-			node.status = BlockStatus(refblock.GetStatus())
-			node.SetOrder(uint64(refblock.GetOrder()))
-			node.SetHeight(refblock.GetHeight())
-			node.dagID = i
-			if i != 0 {
-				node.CalcWorkSum(node.GetMainParent(b))
-			}
-		}
-
 		// Set the best chain view to the stored best state.
 		// Load the raw block bytes for the best block.
-		mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
+		mainTip := b.bd.GetMainChainTip()
+		mainTipNode := b.GetBlockNode(mainTip)
+		if mainTipNode == nil {
+			return fmt.Errorf("No main tip\n")
+		}
+		block, err := dbFetchBlockByHash(dbTx, mainTip.GetHash())
+		if err != nil {
+			return err
+		}
+
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 
 		b.TokenTipID = uint32(b.index.GetDAGBlockID(&state.tokenTipHash))
-		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns,
-			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(),
+		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTipNode.Difficulty(), blockSize, numTxns,
+			b.CalcPastMedianTime(mainTip), state.totalTxns, b.bd.GetMainChainTip().GetWeight(),
 			b.bd.GetGraphState(), &state.tokenTipHash)
 		return nil
 	})
@@ -907,12 +884,12 @@ func (b *BlockChain) fastDoubleSpentCheck(ib blockdag.IBlock, block *types.Seria
 	}*/
 }
 
-func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlock, attachNodes *list.List) error {
+func (b *BlockChain) updateBestState(ib blockdag.IBlock, block *types.SerializedBlock, attachNodes *list.List) error {
 	// No warnings about unknown rules until the chain is current.
 	if b.isCurrent() {
 		// Warn if any unknown new rules are either about to activate or
 		// have already been activated.
-		if err := b.warnUnknownRuleActivations(node); err != nil {
+		if err := b.warnUnknownRuleActivations(ib); err != nil {
 			return err
 		}
 	}
@@ -931,14 +908,18 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 
 	blockSize := uint64(block.Block().SerializeSize())
 
-	mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
-	state := newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns, mainTip.CalcPastMedianTime(b), lastState.TotalTxns+numTxns,
+	mainTip := b.bd.GetMainChainTip()
+	mainTipNode := b.GetBlockNode(mainTip)
+	if mainTipNode == nil {
+		return fmt.Errorf("No main tip node\n")
+	}
+	state := newBestState(mainTip.GetHash(), mainTipNode.Difficulty(), blockSize, numTxns, b.CalcPastMedianTime(mainTip), lastState.TotalTxns+numTxns,
 		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState(), b.GetTokenTipHash())
 
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// Update best block state.
-		err := dbPutBestState(dbTx, state, mainTip.workSum)
+		err := dbPutBestState(dbTx, state, pow.CalcWork(mainTipNode.Difficulty(), mainTipNode.Pow().GetPowType()))
 		if err != nil {
 			return err
 		}

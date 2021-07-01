@@ -483,7 +483,7 @@ func (idx *TxIndex) ConnectBlock(dbTx database.Tx, block *types.SerializedBlock,
 	// Increment the internal block ID to use for the block being connected
 	// and add all of the transactions in the block to the index.
 	newBlockID := idx.curBlockID + 1
-	node := idx.chain.BlockIndex().LookupNode(block.Hash())
+	node := idx.chain.BlockDAG().GetBlock(block.Hash())
 	if node == nil {
 		return fmt.Errorf("no node %s", block.Hash())
 	}

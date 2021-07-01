@@ -1585,3 +1585,24 @@ func (bd *BlockDAG) optimizeReorganizeResult(newOrders *list.List, oldOrders *li
 		oe = oeNext
 	}
 }
+
+func (bd *BlockDAG) GetMainAncestor(block IBlock, height int64) IBlock {
+	if height < 0 || height > int64(block.GetHeight()) {
+		return nil
+	}
+
+	ib := block
+
+	for ib != nil && int64(ib.GetHeight()) != height {
+		if !ib.HasParents() {
+			ib = nil
+			break
+		}
+		ib = bd.GetBlockById(ib.GetMainParent())
+	}
+	return ib
+}
+
+func (bd *BlockDAG) RelativeMainAncestor(block IBlock, distance int64) IBlock {
+	return bd.GetMainAncestor(block, int64(block.GetHeight())-distance)
+}

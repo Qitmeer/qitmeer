@@ -441,24 +441,25 @@ func (b *BlockChain) getPowTypeNode(block blockdag.IBlock, powType pow.PowType) 
 }
 
 // find block node by pow type
-func (b *BlockChain) GetCurrentPowDiff(curNode blockNode, powType pow.PowType) *big.Int {
+func (b *BlockChain) GetCurrentPowDiff(ib blockdag.IBlock, powType pow.PowType) *big.Int {
 	instance := pow.GetInstance(powType, 0, []byte{})
 	instance.SetParams(b.params.PowConfig)
 	safeBigDiff := instance.GetSafeDiff(0)
 	for {
-		if curNode.pow.GetPowType() == powType {
-			return pow.CompactToBig(curNode.Header().Difficulty)
+		curNode := b.GetBlockNode(ib)
+		if curNode == nil {
+			return safeBigDiff
+		}
+		if curNode.Pow().GetPowType() == powType {
+			return pow.CompactToBig(curNode.Difficulty())
 		}
 
 		if curNode.parents == nil {
 			return safeBigDiff
 		}
 
-		oldBlock := b.bd.GetBlockById(curNode.GetID())
-		oldMainParent := b.bd.GetBlockById(oldBlock.GetMainParent())
-		if oldMainParent != nil {
-			curNode = *b.index.LookupNode(oldMainParent.GetHash())
-		} else {
+		ib := b.bd.GetBlockById(ib.GetMainParent())
+		if ib == nil {
 			return safeBigDiff
 		}
 	}

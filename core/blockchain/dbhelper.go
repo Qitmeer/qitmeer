@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/database"
 	"math/big"
 	"time"
@@ -198,21 +199,15 @@ func (b *BlockChain) createChainState() error {
 	genesisBlock := types.NewBlock(b.params.GenesisBlock)
 	genesisBlock.SetOrder(0)
 	header := &genesisBlock.Block().Header
-	node := newBlockNode(header, nil)
-	node.SetStatusFlags(statusDataStored | statusValid)
-	b.bd.AddBlock(node)
-	node.SetOrder(0)
-	node.SetHeight(0)
-	node.SetLayer(0)
-	node.dagID = 0
-	b.index.addNode(node)
-	node.FlushToDB(b)
+	node := NewBlockNode(header, genesisBlock.Block().Parents)
+	_, _, ib, _ := b.bd.AddBlock(node)
+	//node.FlushToDB(b)
 	// Initialize the state related to the best block.  Since it is the
 	// genesis block, use its timestamp for the median time.
 	numTxns := uint64(len(genesisBlock.Block().Transactions))
 	blockSize := uint64(genesisBlock.Block().SerializeSize())
-	b.stateSnapshot = newBestState(node.GetHash(), node.bits, blockSize, numTxns,
-		time.Unix(node.timestamp, 0), numTxns, 0, b.bd.GetGraphState(), node.GetHash())
+	b.stateSnapshot = newBestState(node.GetHash(), node.Difficulty(), blockSize, numTxns,
+		time.Unix(node.GetTimestamp(), 0), numTxns, 0, b.bd.GetGraphState(), node.GetHash())
 	b.TokenTipID = 0
 	// Create the initial the database chain state including creating the
 	// necessary index buckets and inserting the genesis block.
@@ -260,12 +255,12 @@ func (b *BlockChain) createChainState() error {
 		if err != nil {
 			return err
 		}
-		err = token.DBPutTokenState(dbTx, uint32(node.dagID), initTS)
+		err = token.DBPutTokenState(dbTx, uint32(ib.GetID()), initTS)
 		if err != nil {
 			return err
 		}
 		// Store the current best chain state into the database.
-		err = dbPutBestState(dbTx, b.stateSnapshot, node.workSum)
+		err = dbPutBestState(dbTx, b.stateSnapshot, pow.CalcWork(header.Difficulty, header.Pow.GetPowType()))
 		if err != nil {
 			return err
 		}

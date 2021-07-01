@@ -515,14 +515,14 @@ func (m *wsNotificationManager) notifyExit(clients map[chan struct{}]*wsClient) 
 func (m *wsNotificationManager) notifyForBlockTx(wsc *wsClient, tx *types.Tx,
 	blk *types.SerializedBlock) {
 	ib := m.server.BC.BlockDAG().GetBlock(blk.Hash())
-	node := m.server.BC.BlockIndex().LookupNode(blk.Hash())
+	node := m.server.BC.BlockDAG().GetBlock(blk.Hash())
 	if node == nil {
 		log.Error("no node")
 		return
 	}
 	confirmations := int64(m.server.BC.BlockDAG().GetConfirmations(node.GetID()))
 	isBlue := m.server.BC.BlockDAG().IsBlue(ib.GetID())
-	InValid := m.server.BC.BlockIndex().NodeStatus(node).KnownInvalid()
+	InValid := node.GetStatus().KnownInvalid()
 
 	var err error
 
@@ -533,7 +533,7 @@ func (m *wsNotificationManager) notifyForBlockTx(wsc *wsClient, tx *types.Tx,
 		Txvalid:    !InValid,
 		BlockHash:  blk.Hash().String(),
 		Duplicate:  tx.IsDuplicate,
-		Order:      node.GetOrder(),
+		Order:      uint64(node.GetOrder()),
 		Confirms:   uint64(confirmations),
 		IsBlue:     isBlue,
 		Txid:       tx.Hash().String(),

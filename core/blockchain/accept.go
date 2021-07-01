@@ -144,7 +144,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		log.Warn(fmt.Sprintf("%s", err))
 	}
 
-	err = b.updateBestState(newNode, block, newOrders)
+	err = b.updateBestState(ib, block, newOrders)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -167,51 +167,17 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 		b.flushNotifications()
 	}()
 
-	parentsNode := []*blockNode{}
-	for _, pb := range block.Block().Parents {
-		prevHash := pb
-		prevNode := b.index.LookupNode(prevHash)
-		if prevNode == nil {
-			err := fmt.Errorf("Parents block %s is unknown", prevHash)
-			log.Debug(err.Error())
-			return err
-		}
-		parentsNode = append(parentsNode, prevNode)
-	}
-
-	blockHeader := &block.Block().Header
-	newNode := newBlockNode(blockHeader, parentsNode)
-	mainParent := newNode.GetMainParent(b)
-	if mainParent == nil {
-		return fmt.Errorf("Can't find main parent")
-	}
-
-	newNode.CalcWorkSum(b.index.LookupNode(mainParent.GetHash()))
-	newNode.SetHeight(mainParent.GetHeight() + 1)
-
-	block.SetHeight(newNode.GetHeight())
-
+	newNode := NewBlockNode(&block.Block().Header, block.Block().Parents)
 	//dag
-	newOrders, ib, _ := b.bd.AddBlock(newNode)
+	newOrders, oldOrders, ib, _ := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
-		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
-	}
-	newNode.dagID = ib.GetID()
-	newNode.SetLayer(ib.GetLayer())
-	block.SetOrder(uint64(ib.GetOrder()))
-	if ib.GetHeight() != newNode.GetHeight() {
-		log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d", newNode.GetHash(), newNode.GetHeight(), ib.GetHeight()))
-		newNode.SetHeight(ib.GetHeight())
-		block.SetHeight(ib.GetHeight())
+		return fmt.Errorf("Irreparable error![%s]\n", newNode.GetHash().String())
 	}
 
-	b.index.AddNode(newNode)
-	newNode.SetStatusFlags(statusDataStored)
-	err := newNode.FlushToDB(b)
-	if err != nil {
-		return err
-	}
-	err = b.db.Update(func(dbTx database.Tx) error {
+	block.SetOrder(uint64(ib.GetOrder()))
+	block.SetHeight(ib.GetHeight())
+
+	err := b.db.Update(func(dbTx database.Tx) error {
 		if err := dbMaybeStoreBlock(dbTx, block); err != nil {
 			return err
 		}
@@ -221,12 +187,12 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 		return err
 	}
 
-	_, err = b.connectDagChain(newNode, block, newOrders, oldOrders)
+	_, err = b.connectDagChain(ib, block, newOrders, oldOrders)
 	if err != nil {
 		log.Warn(fmt.Sprintf("%s", err))
 	}
 
-	return b.updateBestState(newNode, block, newOrders)
+	return b.updateBestState(ib, block, newOrders)
 }
 
 func (b *BlockChain) updateTokenState(node blockdag.IBlock, block *types.SerializedBlock, rollback bool) error {

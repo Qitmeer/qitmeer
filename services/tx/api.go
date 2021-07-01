@@ -1029,7 +1029,7 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 			}
 
 			//
-			blockNode := api.txManager.bm.GetChain().BlockIndex().LookupNode(blockRegion.Hash)
+			blockNode := api.txManager.bm.GetChain().BlockDAG().GetBlock(blockRegion.Hash)
 			if blockNode == nil {
 				return nil, fmt.Errorf("Can't find block %s", blockRegion.Hash)
 			}
