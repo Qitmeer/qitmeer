@@ -64,9 +64,9 @@ func (con *Conflux) Init(bd *BlockDAG) bool {
 	return true
 }
 
-func (con *Conflux) AddBlock(b IBlock) *list.List {
+func (con *Conflux) AddBlock(b IBlock) (*list.List, *list.List) {
 	if b == nil {
-		return nil
+		return nil, nil
 	}
 	//
 	con.updatePrivot(b)
@@ -90,7 +90,7 @@ func (con *Conflux) AddBlock(b IBlock) *list.List {
 		}
 
 	}
-	return result
+	return result, nil
 }
 
 // Build self block

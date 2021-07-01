@@ -55,16 +55,16 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 }
 
 // Add a block
-func (ph *Phantom) AddBlock(ib IBlock) *list.List {
+func (ph *Phantom) AddBlock(ib IBlock) (*list.List, *list.List) {
 	pb := ib.(*PhantomBlock)
 	pb.SetOrder(MaxBlockOrder)
 
 	ph.updateBlockColor(pb)
 	ph.updateBlockOrder(pb)
 
-	changeBlock := ph.updateMainChain(ph.getBluest(ph.bd.tips), pb)
+	changeBlock, oldOrders := ph.updateMainChain(ph.getBluest(ph.bd.tips), pb)
 	ph.preUpdateVirtualBlock()
-	return ph.getOrderChangeList(changeBlock)
+	return ph.getOrderChangeList(changeBlock), oldOrders
 }
 
 // Build self block
@@ -265,11 +265,11 @@ func (ph *Phantom) buildSortDiffAnticone(diffAn *IdSet) *IdSet {
 	return result
 }
 
-func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *PhantomBlock {
+func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) (*PhantomBlock, *list.List) {
 	ph.virtualBlock.SetOrder(MaxBlockOrder)
 	if !ph.isMaxMainTip(buestTip) {
 		ph.diffAnticone.AddPair(pb.GetID(), pb)
-		return nil
+		return nil, nil
 	}
 	if ph.mainChain.tip == MaxId {
 		ph.mainChain.tip = buestTip.GetID()
@@ -278,13 +278,26 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *Ph
 		ph.diffAnticone.Clean()
 		buestTip.SetOrder(0)
 		ph.bd.commitOrder[0] = buestTip.GetID()
-		return buestTip
+		return buestTip, nil
 	}
 
 	intersection, path := ph.getIntersectionPathWithMainChain(buestTip)
-	if intersection == MaxId {
+	intersectionBlock := ph.bd.getBlockById(intersection)
+	if intersectionBlock == nil {
 		panic("DAG can't find intersection!")
 	}
+
+	// old orders
+	oldOrders := list.New()
+	for i := intersectionBlock.GetOrder() + 1; i <= ph.GetMainChainTip().GetOrder(); i++ {
+		ib := ph.bd.getBlockByOrder(i)
+		if ib == nil {
+			panic(fmt.Errorf("DAG can't find block in order(%d)\n", i))
+		}
+		oldOrders.PushBack(&BlockOrderHelp{OldOrder: i, Block: ib})
+	}
+
+	//
 	ph.rollBackMainChain(intersection)
 
 	ph.updateMainOrder(path, intersection)
@@ -292,13 +305,13 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *Ph
 
 	ph.diffAnticone = ph.bd.getAnticone(ph.bd.getBlockById(ph.mainChain.tip), nil)
 
-	changeOrder := ph.bd.getBlockById(intersection).GetOrder() + 1
+	changeOrder := intersectionBlock.GetOrder() + 1
 
 	coPB, ok := ph.bd.getBlockByOrder(changeOrder).(*PhantomBlock)
 	if !ok {
-		return nil
+		return nil, nil
 	}
-	return coPB
+	return coPB, oldOrders
 }
 
 func (ph *Phantom) isMaxMainTip(pb *PhantomBlock) bool {

@@ -79,6 +79,12 @@ type IBlock interface {
 
 	// block data
 	GetData() IBlockData
+
+	// valid block data
+	Valid()
+
+	// invalid block data
+	Invalid()
 }
 
 // It is the element of a DAG. It is the most basic data unit.
@@ -411,6 +417,14 @@ func (b *Block) GetData() IBlockData {
 	return b.data
 }
 
+func (b *Block) Valid() {
+	b.UnsetStatusFlags(StatusInvalid)
+}
+
+func (b *Block) Invalid() {
+	b.SetStatusFlags(StatusInvalid)
+}
+
 // BlockStatus
 type BlockStatus byte
 
@@ -420,8 +434,15 @@ const (
 
 	// StatusBadSide
 	StatusBadSide BlockStatus = 1 << 0
+
+	// StatusInvalid indicates that the block data has failed validation.
+	StatusInvalid BlockStatus = 1 << 2
 )
 
 func (status BlockStatus) IsBadSide() bool {
 	return status&StatusBadSide != 0
+}
+
+func (status BlockStatus) KnownInvalid() bool {
+	return status&StatusInvalid != 0
 }

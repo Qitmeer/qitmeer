@@ -7,6 +7,7 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 )
 
 // ThresholdState define the various threshold states used when voting on
@@ -107,7 +108,7 @@ type thresholdConditionChecker interface {
 	// has been met.  This typically involves checking whether or not the
 	// bit associated with the condition is set, but can be more complex as
 	// needed.
-	Condition(*blockNode) (bool, error)
+	Condition(blockdag.IBlock) (bool, error)
 }
 
 // thresholdStateCache provides a type to cache the threshold states of each
@@ -150,11 +151,11 @@ func isCheckerTimeMode(checker thresholdConditionChecker) bool {
 // threshold states for previous windows are only calculated once.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdConditionChecker, cache *thresholdStateCache) (ThresholdState, error) {
+func (b *BlockChain) thresholdState(prevNode blockdag.IBlock, checker thresholdConditionChecker, cache *thresholdStateCache) (ThresholdState, error) {
 	// The threshold state for the window that contains the genesis block is
 	// defined by definition.
 	confirmationWindow := int(checker.MinerConfirmationWindow())
-	if prevNode == nil || confirmationWindow <= 0 || int(prevNode.height+1) < confirmationWindow {
+	if prevNode == nil || confirmationWindow <= 0 || int(prevNode.GetHeight()+1) < confirmationWindow {
 		return ThresholdDefined, nil
 	}
 
@@ -338,7 +339,7 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) ThresholdState(deploymentID uint32) (ThresholdState, error) {
-	mtip := b.index.LookupNode(&b.BestSnapshot().Hash)
+	mtip := b.bd.GetMainChainTip()
 	b.chainLock.Lock()
 	state, err := b.deploymentState(mtip, deploymentID)
 	b.chainLock.Unlock()
@@ -358,8 +359,7 @@ func (b *BlockChain) IsDeploymentActive(deploymentID uint32) (bool, error) {
 }
 
 func (b *BlockChain) isDeploymentActive(deploymentID uint32) (bool, error) {
-	mtip := b.index.LookupNode(&b.BestSnapshot().Hash)
-	state, err := b.deploymentState(mtip, deploymentID)
+	state, err := b.deploymentState(b.bd.GetMainChainTip(), deploymentID)
 	if err != nil {
 		return false, err
 	}
@@ -376,7 +376,7 @@ func (b *BlockChain) isDeploymentActive(deploymentID uint32) (bool, error) {
 // AFTER the passed node.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) deploymentState(prevNode *blockNode, deploymentID uint32) (ThresholdState, error) {
+func (b *BlockChain) deploymentState(prevNode blockdag.IBlock, deploymentID uint32) (ThresholdState, error) {
 	if deploymentID > uint32(len(b.params.Deployments)) {
 		return ThresholdFailed, DeploymentError(deploymentID)
 	}
@@ -396,12 +396,8 @@ func (b *BlockChain) initThresholdCaches() error {
 	// threshold state for each of them.  This will ensure the caches are
 	// populated and any states that needed to be recalculated due to
 	// definition changes is done now.
-	prevNodeID := b.bd.GetMainChainTip().GetMainParent()
-	prevNodeH := b.bd.GetBlockHash(prevNodeID)
-	var prevNode *blockNode
-	if prevNodeH != nil {
-		prevNode = b.index.LookupNode(prevNodeH)
-	}
+	prevNode := b.bd.GetBlockById(b.bd.GetMainChainTip().GetMainParent())
+
 	for bit := uint32(0); bit < VBNumBits; bit++ {
 		checker := bitConditionChecker{bit: bit, chain: b}
 		cache := &b.warningCaches[bit]
@@ -422,11 +418,9 @@ func (b *BlockChain) initThresholdCaches() error {
 
 	// No warnings about unknown rules until the chain is current.
 	if b.isCurrent() {
-		bestNode := b.index.LookupNode(&b.BestSnapshot().Hash)
-
 		// Warn if any unknown new rules are either about to activate or
 		// have already been activated.
-		if err := b.warnUnknownRuleActivations(bestNode); err != nil {
+		if err := b.warnUnknownRuleActivations(b.bd.GetMainChainTip()); err != nil {
 			return err
 		}
 	}

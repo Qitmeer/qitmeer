@@ -35,19 +35,6 @@ const (
 	statusInvalid BlockStatus = 1 << 2
 )
 
-// HaveData returns whether the full block data is stored in the database.  This
-// will return false for a block node where only the header is downloaded or
-// stored.
-func (status BlockStatus) HaveData() bool {
-	return status&statusDataStored != 0
-}
-
-// KnownValid returns whether the block is known to be valid.  This will return
-// false for a valid block that has not been fully validated yet.
-func (status BlockStatus) KnownValid() bool {
-	return status&statusValid != 0
-}
-
 // KnownInvalid returns whether the block is known to be invalid.  This will
 // return false for invalid blocks that have not been proven invalid yet.
 func (status BlockStatus) KnownInvalid() bool {

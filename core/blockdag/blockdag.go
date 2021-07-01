@@ -103,7 +103,7 @@ type IBlockDAG interface {
 	Init(bd *BlockDAG) bool
 
 	// Add a block
-	AddBlock(ib IBlock) *list.List
+	AddBlock(ib IBlock) (*list.List, *list.List)
 
 	// Build self block
 	CreateBlock(b *Block) IBlock
@@ -254,12 +254,12 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 
 // This is an entry for update the block dag,you need pass in a block parameter,
 // If add block have failure,it will return false.
-func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock, bool) {
+func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, *list.List, IBlock, bool) {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
 	if b == nil {
-		return nil, nil, false
+		return nil, nil, nil, false
 	}
 	// Must keep no block in outside.
 	/*	if bd.hasBlock(b.GetHash()) {
@@ -269,18 +269,18 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock, bool) {
 	if bd.blockTotal > 0 {
 		parentsIds := b.GetParents()
 		if len(parentsIds) == 0 {
-			return nil, nil, false
+			return nil, nil, nil, false
 		}
 		for _, v := range parentsIds {
 			pib := bd.getBlock(v)
 			if pib == nil {
-				return nil, nil, false
+				return nil, nil, nil, false
 			}
 			parents = append(parents, pib)
 		}
 
 		if !bd.isDAG(parents) {
-			return nil, nil, false
+			return nil, nil, nil, false
 		}
 	}
 	lastMT := bd.instance.GetMainChainTipId()
@@ -324,7 +324,9 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, IBlock, bool) {
 		bd.lastTime = t
 	}
 	//
-	return bd.instance.AddBlock(ib), ib, lastMT != bd.instance.GetMainChainTipId()
+	news, olds := bd.instance.AddBlock(ib)
+	bd.optimizeReorganizeResult(news, olds)
+	return news, olds, ib, lastMT != bd.instance.GetMainChainTipId()
 }
 
 // Acquire the genesis block of chain
@@ -633,6 +635,22 @@ func (bd *BlockDAG) GetMainParent(parents *IdSet) IBlock {
 	defer bd.stateLock.Unlock()
 
 	return bd.instance.GetMainParent(parents)
+}
+
+// return the main parent in the parents
+func (bd *BlockDAG) GetMainParentByHashs(parents []*hash.Hash) IBlock {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	parentsSet := NewIdSet()
+	for _, p := range parents {
+		ib := bd.getBlock(p)
+		if ib == nil {
+			return nil
+		}
+		parentsSet.AddPair(ib.GetID(), ib)
+	}
+	return bd.instance.GetMainParent(parentsSet)
 }
 
 // Return the layer of block,it is stable.
@@ -1541,4 +1559,29 @@ func (bd *BlockDAG) CreateVirtualBlock(data IBlockData) IBlock {
 	}
 	block := Block{id: bd.GetBlockTotal(), hash: *data.GetHash(), parents: parents, layer: maxLayer + 1, status: StatusNone, mainParent: mainParentId, data: data, order: MaxBlockOrder, height: mainHeight}
 	return &PhantomBlock{&block, 0, NewIdSet(), NewIdSet()}
+}
+
+func (bd *BlockDAG) optimizeReorganizeResult(newOrders *list.List, oldOrders *list.List) {
+	// optimization
+	ne := newOrders.Front()
+	oe := oldOrders.Front()
+	for {
+		if ne == nil || oe == nil {
+			break
+		}
+		neNext := ne.Next()
+		oeNext := oe.Next()
+
+		neBlock := ne.Value.(IBlock)
+		oeBlock := oe.Value.(*BlockOrderHelp)
+		if neBlock.GetID() == oeBlock.Block.GetID() {
+			newOrders.Remove(ne)
+			oldOrders.Remove(oe)
+		} else {
+			break
+		}
+
+		ne = neNext
+		oe = oeNext
+	}
 }

@@ -813,29 +813,29 @@ func panicf(format string, args ...interface{}) {
 //    This is useful when using checkpoints.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlock, newOrders *list.List, oldOrders BlockNodeList) (bool, error) {
+func (b *BlockChain) connectDagChain(ib blockdag.IBlock, block *types.SerializedBlock, newOrders *list.List, oldOrders *list.List) (bool, error) {
 	if newOrders.Len() == 0 {
 		return true, nil
 	}
 	//Fast double spent check
-	b.fastDoubleSpentCheck(node, block)
+	b.fastDoubleSpentCheck(ib, block)
 
 	// We are extending the main (best) chain with a new block.  This is the
 	// most common case.
 	if newOrders.Len() == 1 {
-		if !node.IsOrdered() {
+		if !ib.IsOrdered() {
 			return true, nil
 		}
 		// Perform several checks to verify the block can be connected
 		// to the main chain without violating any rules and without
 		// actually connecting the block.
 		view := NewUtxoViewpoint()
-		view.SetViewpoints([]*hash.Hash{&node.hash})
+		view.SetViewpoints([]*hash.Hash{ib.GetHash()})
 
 		stxos := []SpentTxOut{}
-		err := b.checkConnectBlock(node, block, view, &stxos)
+		err := b.checkConnectBlock(ib, block, view, &stxos)
 		if err != nil {
-			node.Invalid(b)
+			ib.Invalid()
 			stxos = []SpentTxOut{}
 			view.Clean()
 		}
@@ -845,16 +845,14 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// this block.
 
 		// Connect the block to the main chain.
-		err = b.connectBlock(node, block, view, stxos)
+		err = b.connectBlock(ib, block, view, stxos)
 		if err != nil {
-			node.Invalid(b)
+			ib.Invalid()
 			return true, err
 		}
-		if !node.GetStatus().KnownInvalid() {
-			node.Valid(b)
-		}
+		ib.Valid()
 		// TODO, validating previous block
-		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
+		log.Debug("Block connected to the main chain", "hash", ib.GetHash(), "order", ib.GetOrder())
 		return true, nil
 	}
 
@@ -867,8 +865,8 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 	// common ancenstor (the point where the chain forked).
 
 	// Reorganize the chain.
-	log.Debug(fmt.Sprintf("Start DAG REORGANIZE: Block %v is causing a reorganize.", node.hash))
-	err := b.reorganizeChain(oldOrders, newOrders, block)
+	log.Debug(fmt.Sprintf("Start DAG REORGANIZE: Block %v is causing a reorganize.", ib.GetHash()))
+	err := b.reorganizeChain(ib, oldOrders, newOrders, block)
 	if err != nil {
 		return false, err
 	}
@@ -877,7 +875,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 }
 
 // This function is fast check before global sequencing,it can judge who is the bad block quickly.
-func (b *BlockChain) fastDoubleSpentCheck(node *blockNode, block *types.SerializedBlock) {
+func (b *BlockChain) fastDoubleSpentCheck(ib blockdag.IBlock, block *types.SerializedBlock) {
 	/*transactions:=block.Transactions()
 	if len(transactions)>1 {
 		for i, tx := range transactions {
@@ -973,7 +971,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 // it would be inefficient to repeat it.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
+func (b *BlockChain) connectBlock(node blockdag.IBlock, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// Update the utxo set using the state of the utxo view.  This
@@ -1022,7 +1020,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 // the main (best) chain.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
+func (b *BlockChain) disconnectBlock(block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
 	// Calculate the exact subsidy produced by adding the block.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// Update the utxo set using the state of the utxo view.  This
@@ -1079,45 +1077,44 @@ func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 //
 // This function MUST be called with the chain state lock held (for writes).
 
-func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *list.List, newBlock *types.SerializedBlock) error {
-	node := b.index.LookupNode(newBlock.Hash())
+func (b *BlockChain) reorganizeChain(ib blockdag.IBlock, detachNodes *list.List, attachNodes *list.List, newBlock *types.SerializedBlock) error {
 	oldBlocks := []*hash.Hash{}
-	for _, n := range detachNodes {
-		oldBlocks = append(oldBlocks, n.GetHash())
+	for e := detachNodes.Front(); e != nil; e = e.Next() {
+		ob := e.Value.(*blockdag.BlockOrderHelp)
+		oldBlocks = append(oldBlocks, ob.Block.GetHash())
 	}
+
 	b.sendNotification(Reorganization, &ReorganizationNotifyData{
 		OldBlocks: oldBlocks,
 		NewBlock:  newBlock.Hash(),
-		NewOrder:  node.GetOrder(),
+		NewOrder:  uint64(ib.GetOrder()),
 	})
 	// Why the old order is the order that was removed by the new block, because the new block
 	// must be one of the tip of the dag.This is very important for the following understanding.
 	// In the two case, the perspective is the same.In the other words, the future can not
 	// affect the past.
-	var n *blockNode
 	var block *types.SerializedBlock
 	var err error
 
-	dl := len(detachNodes)
-	for i := dl - 1; i >= 0; i-- {
-		n = detachNodes[i]
-		b.updateTokenState(n, nil, true)
-		//
-		newn := b.index.LookupNode(n.GetHash())
-		block, err = b.fetchBlockByHash(&n.hash)
-		if err != nil || n == nil {
+	for e := detachNodes.Back(); e != nil; e = e.Prev() {
+		n := e.Value.(*blockdag.BlockOrderHelp)
+		if n == nil {
 			panic(err.Error())
 		}
-		if !n.IsOrdered() {
-			panic("no ordered")
+		b.updateTokenState(n.Block, nil, true)
+		//
+		block, err = b.fetchBlockByHash(n.Block.GetHash())
+		if err != nil {
+			panic(err.Error())
 		}
-		block.SetOrder(n.order)
+
+		block.SetOrder(uint64(n.OldOrder))
 		// Load all of the utxos referenced by the block that aren't
 		// already in the view.
 		var stxos []SpentTxOut
 		view := NewUtxoViewpoint()
 		view.SetViewpoints([]*hash.Hash{block.Hash()})
-		if !b.index.NodeStatus(n).KnownInvalid() {
+		if !n.Block.GetStatus().KnownInvalid() {
 			b.CalculateDAGDuplicateTxs(block)
 			err = view.fetchInputUtxos(b.db, block, b)
 			if err != nil {
@@ -1137,19 +1134,15 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 			// Store the loaded block and spend journal entry for later.
 			err = view.disconnectTransactions(block, stxos, b)
 			if err != nil {
-				n.Invalid(b)
-				newn.Invalid(b)
+				n.Block.Invalid()
 				log.Info(fmt.Sprintf("%s", err))
 			}
 		}
+		n.Block.Valid()
 
-		n.UnsetStatusFlags(statusValid)
-		newn.UnsetStatusFlags(statusValid)
-		n.UnsetStatusFlags(statusInvalid)
-		newn.UnsetStatusFlags(statusInvalid)
-		newn.FlushToDB(b)
+		//newn.FlushToDB(b)
 
-		err = b.disconnectBlock(n, block, view, stxos)
+		err = b.disconnectBlock(block, view, stxos)
 		if err != nil {
 			return err
 		}
@@ -1157,42 +1150,39 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		nodeBlock := e.Value.(blockdag.IBlock)
-		if nodeBlock.GetID() == node.GetID() {
-			n = node
+		if nodeBlock.GetID() == ib.GetID() {
 			block = newBlock
 		} else {
-			n = b.index.LookupNode(nodeBlock.GetHash())
 			// If any previous nodes in attachNodes failed validation,
 			// mark this one as having an invalid ancestor.
-			block, err = b.FetchBlockByHash(&n.hash)
+			block, err = b.FetchBlockByHash(nodeBlock.GetHash())
 
 			if err != nil {
 				return err
 			}
-			block.SetOrder(n.GetOrder())
+			block.SetOrder(uint64(nodeBlock.GetOrder()))
+			block.SetHeight(nodeBlock.GetHeight())
 		}
-		if !n.IsOrdered() {
+		if !nodeBlock.IsOrdered() {
 			continue
 		}
 		view := NewUtxoViewpoint()
-		view.SetViewpoints([]*hash.Hash{n.GetHash()})
+		view.SetViewpoints([]*hash.Hash{nodeBlock.GetHash()})
 		stxos := []SpentTxOut{}
-		err = b.checkConnectBlock(n, block, view, &stxos)
+		err = b.checkConnectBlock(nodeBlock, block, view, &stxos)
 		if err != nil {
-			n.Invalid(b)
+			nodeBlock.Invalid()
 			stxos = []SpentTxOut{}
 			view.Clean()
 			log.Info(fmt.Sprintf("%s", err))
 		}
-		err = b.connectBlock(n, block, view, stxos)
+		err = b.connectBlock(nodeBlock, block, view, stxos)
 		if err != nil {
-			n.Invalid(b)
+			nodeBlock.Invalid()
 			log.Info(fmt.Sprintf("%s", err))
 			continue
 		}
-		if !n.GetStatus().KnownInvalid() {
-			n.Valid(b)
-		}
+		nodeBlock.Valid()
 	}
 
 	// Log the point where the chain forked and old and new best chain
@@ -1228,64 +1218,6 @@ func (b *BlockChain) BlockIndex() *blockIndex {
 // Return median time source
 func (b *BlockChain) TimeSource() MedianTimeSource {
 	return b.timeSource
-}
-
-// Return the reorganization information
-func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.SerializedBlock, newOrders *list.List, oldOrders *BlockNodeList) {
-	var refnode *blockNode
-	var oldOrdersTemp BlockNodeList
-
-	for e := newOrders.Front(); e != nil; e = e.Next() {
-		refblock := e.Value.(blockdag.IBlock)
-		if refblock.GetID() == newNode.GetID() {
-			refnode = newNode
-		} else {
-			refnode = b.index.LookupNode(refblock.GetHash())
-			if refnode.IsOrdered() {
-				oldOrdersTemp = append(oldOrdersTemp, refnode.Clone())
-			}
-		}
-		refnode.SetOrder(uint64(refblock.GetOrder()))
-	}
-	if newOrders.Len() <= 1 || len(oldOrdersTemp) == 0 {
-		return
-	}
-
-	if len(oldOrdersTemp) > 1 {
-		sort.Sort(oldOrdersTemp)
-	}
-	oldOrdersList := list.New()
-	for i := 0; i < len(oldOrdersTemp); i++ {
-		oldOrdersList.PushBack(oldOrdersTemp[i])
-	}
-
-	// optimization
-	ne := newOrders.Front()
-	oe := oldOrdersList.Front()
-	for {
-		if ne == nil || oe == nil {
-			break
-		}
-		neNext := ne.Next()
-		oeNext := oe.Next()
-
-		neBlock := ne.Value.(blockdag.IBlock)
-		oeNode := oe.Value.(*blockNode)
-		if neBlock.GetID() == oeNode.GetID() {
-			newOrders.Remove(ne)
-			oldOrdersList.Remove(oe)
-		} else {
-			break
-		}
-
-		ne = neNext
-		oe = oeNext
-	}
-	//
-	for e := oldOrdersList.Front(); e != nil; e = e.Next() {
-		node := e.Value.(*blockNode)
-		*oldOrders = append(*oldOrders, node)
-	}
 }
 
 // FetchSpendJournal can return the set of outputs spent for the target block.

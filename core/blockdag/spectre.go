@@ -42,7 +42,7 @@ func (sp *Spectre) Init(bd *BlockDAG) bool {
 	return true
 }
 
-func (sp *Spectre) AddBlock(b IBlock) *list.List {
+func (sp *Spectre) AddBlock(b IBlock) (*list.List, *list.List) {
 	if sp.sblocks == nil {
 		sp.sblocks = map[hash.Hash]*SpectreBlock{}
 	}
@@ -51,7 +51,7 @@ func (sp *Spectre) AddBlock(b IBlock) *list.List {
 
 	var result *list.List = list.New()
 	result.PushBack(block.GetHash())
-	return result
+	return result, nil
 }
 
 // Build self block

@@ -92,29 +92,11 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		b.flushNotifications()
 	}()
 
-	parentsNode := []*blockNode{}
-	for _, pb := range block.Block().Parents {
-		prevHash := pb
-		prevNode := b.index.LookupNode(prevHash)
-		if prevNode == nil {
-			err := fmt.Errorf("Parents block %s is unknown", prevHash)
-			log.Debug(err.Error())
-			return err
-		}
-		parentsNode = append(parentsNode, prevNode)
-	}
-
-	blockHeader := &block.Block().Header
-	newNode := newBlockNode(blockHeader, parentsNode)
-	mainParent := newNode.GetMainParent(b)
+	newNode := NewBlockNode(&block.Block().Header, block.Block().Parents)
+	mainParent := b.bd.GetMainParentByHashs(block.Block().Parents)
 	if mainParent == nil {
-		return fmt.Errorf("Can't find main parent")
+		return fmt.Errorf("Can't find main parent\n")
 	}
-
-	newNode.CalcWorkSum(b.index.LookupNode(mainParent.GetHash()))
-	newNode.SetHeight(mainParent.GetHeight() + 1)
-
-	block.SetHeight(newNode.GetHeight())
 	// The block must pass all of the validation rules which depend on the
 	// position of the block within the block chain.
 	err := b.checkBlockContext(block, mainParent, flags)
@@ -127,27 +109,13 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	b.pruner.pruneChainIfNeeded()
 
 	//dag
-	newOrders, ib, isMainChainTipChange := b.bd.AddBlock(newNode)
+	newOrders, oldOrders, ib, isMainChainTipChange := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
-		return fmt.Errorf("Irreparable error![%s]", newNode.hash.String())
+		return fmt.Errorf("Irreparable error![%s]\n", newNode.GetHash().String())
 	}
-	newNode.dagID = ib.GetID()
-	newNode.SetLayer(ib.GetLayer())
 	block.SetOrder(uint64(ib.GetOrder()))
-	if ib.GetHeight() != newNode.GetHeight() {
-		log.Warn(fmt.Sprintf("The consensus main height is not match (%s) %d-%d", newNode.GetHash(), newNode.GetHeight(), ib.GetHeight()))
-		newNode.SetHeight(ib.GetHeight())
-		block.SetHeight(ib.GetHeight())
-	}
+	block.SetHeight(ib.GetHeight())
 
-	oldOrders := BlockNodeList{}
-	b.getReorganizeNodes(newNode, block, newOrders, &oldOrders)
-	b.index.AddNode(newNode)
-	newNode.SetStatusFlags(statusDataStored)
-	err = newNode.FlushToDB(b)
-	if err != nil {
-		panic(err.Error())
-	}
 	// Insert the block into the database if it's not already there.  Even
 	// though it is possible the block will ultimately fail to connect, it
 	// has already passed all proof-of-work and validity tests which means
@@ -171,7 +139,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This
 	// also handles validation of the transaction scripts.
-	_, err = b.connectDagChain(newNode, block, newOrders, oldOrders)
+	_, err = b.connectDagChain(ib, block, newOrders, oldOrders)
 	if err != nil {
 		log.Warn(fmt.Sprintf("%s", err))
 	}
@@ -237,8 +205,6 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 		block.SetHeight(ib.GetHeight())
 	}
 
-	oldOrders := BlockNodeList{}
-	b.getReorganizeNodes(newNode, block, newOrders, &oldOrders)
 	b.index.AddNode(newNode)
 	newNode.SetStatusFlags(statusDataStored)
 	err := newNode.FlushToDB(b)
@@ -263,13 +229,13 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 	return b.updateBestState(newNode, block, newOrders)
 }
 
-func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBlock, rollback bool) error {
+func (b *BlockChain) updateTokenState(node blockdag.IBlock, block *types.SerializedBlock, rollback bool) error {
 	if rollback {
-		if uint32(node.dagID) == b.TokenTipID {
+		if uint32(node.GetID()) == b.TokenTipID {
 			state := b.GetTokenState(b.TokenTipID)
 			if state != nil {
 				err := b.db.Update(func(dbTx database.Tx) error {
-					return token.DBRemoveTokenState(dbTx, uint32(node.dagID))
+					return token.DBRemoveTokenState(dbTx, uint32(node.GetID()))
 				})
 				if err != nil {
 					return err
@@ -312,12 +278,12 @@ func (b *BlockChain) updateTokenState(node *blockNode, block *types.SerializedBl
 	}
 
 	err = b.db.Update(func(dbTx database.Tx) error {
-		return token.DBPutTokenState(dbTx, uint32(node.dagID), state)
+		return token.DBPutTokenState(dbTx, uint32(node.GetID()), state)
 	})
 	if err != nil {
 		return err
 	}
-	b.TokenTipID = uint32(node.dagID)
+	b.TokenTipID = uint32(node.GetID())
 	return state.Commit()
 }
 
