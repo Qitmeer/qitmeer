@@ -731,10 +731,10 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	if err != nil {
 		return err
 	}
-	if checkpointNode != nil && blockLayer < checkpointNode.layer {
+	if checkpointNode != nil && blockLayer < checkpointNode.GetLayer() {
 		str := fmt.Sprintf("block at layer %d forks the main chain "+
 			"before the previous checkpoint at layer %d",
-			blockLayer, checkpointNode.layer)
+			blockLayer, checkpointNode.GetLayer())
 		return ruleError(ErrForkTooOld, str)
 	}
 

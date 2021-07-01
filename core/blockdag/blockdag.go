@@ -295,6 +295,17 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, *list.List, IBlock, bool
 	}
 	ib := bd.instance.CreateBlock(&block)
 	bd.blocks[block.id] = ib
+
+	// db
+	bd.commitBlock.AddPair(ib.GetID(), ib)
+
+	if bd.db.Update(func(dbTx database.Tx) error {
+		return DBPutDAGBlockIdByHash(dbTx, ib)
+	}) != nil {
+		return nil, nil, nil, false
+	}
+
+	//
 	if bd.blockTotal == 0 {
 		bd.genesis = *block.GetHash()
 	}
@@ -1574,7 +1585,7 @@ func (bd *BlockDAG) commit() error {
 
 // Just for custom Virtual block
 func (bd *BlockDAG) CreateVirtualBlock(data IBlockData) IBlock {
-	if _, ok := bd.instance.(*Phantom); ok {
+	if _, ok := bd.instance.(*Phantom); !ok {
 		return nil
 	}
 	parents := NewIdSet()
@@ -1596,11 +1607,14 @@ func (bd *BlockDAG) CreateVirtualBlock(data IBlockData) IBlock {
 		mainParentId = mainParent.GetID()
 		mainHeight = mainParent.GetHeight()
 	}
-	block := Block{id: bd.GetBlockTotal(), hash: *data.GetHash(), parents: parents, layer: maxLayer + 1, status: StatusNone, mainParent: mainParentId, data: data, order: MaxBlockOrder, height: mainHeight}
+	block := Block{id: bd.GetBlockTotal(), hash: *data.GetHash(), parents: parents, layer: maxLayer + 1, status: StatusNone, mainParent: mainParentId, data: data, order: MaxBlockOrder, height: mainHeight + 1}
 	return &PhantomBlock{&block, 0, NewIdSet(), NewIdSet()}
 }
 
 func (bd *BlockDAG) optimizeReorganizeResult(newOrders *list.List, oldOrders *list.List) {
+	if newOrders == nil || oldOrders == nil {
+		return
+	}
 	// optimization
 	ne := newOrders.Front()
 	oe := oldOrders.Front()

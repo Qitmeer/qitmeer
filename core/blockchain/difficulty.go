@@ -454,11 +454,11 @@ func (b *BlockChain) GetCurrentPowDiff(ib blockdag.IBlock, powType pow.PowType) 
 			return pow.CompactToBig(curNode.Difficulty())
 		}
 
-		if curNode.parents == nil {
+		if curNode.parents == nil || !ib.HasParents() {
 			return safeBigDiff
 		}
 
-		ib := b.bd.GetBlockById(ib.GetMainParent())
+		ib = b.bd.GetBlockById(ib.GetMainParent())
 		if ib == nil {
 			return safeBigDiff
 		}

@@ -332,7 +332,6 @@ func New(config *Config) (*BlockChain, error) {
 		events:             config.Events,
 		sigCache:           config.SigCache,
 		indexManager:       config.IndexManager,
-		index:              newBlockIndex(config.DB, par),
 		orphans:            make(map[hash.Hash]*orphanBlock),
 		CacheInvalidTx:     config.CacheInvalidTx,
 		CacheNotifications: []*Notification{},
