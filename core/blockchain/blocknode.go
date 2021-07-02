@@ -26,7 +26,8 @@ func (node *BlockNode) GetHash() *hash.Hash {
 func (node *BlockNode) GetParents() []*hash.Hash {
 	parents := []*hash.Hash{}
 	for _, p := range node.parents {
-		parents = append(parents, &p)
+		pa := p
+		parents = append(parents, &pa)
 	}
 	return parents
 }
@@ -63,7 +64,8 @@ func NewBlockNode(header *types.BlockHeader, parents []*hash.Hash) *BlockNode {
 		parents: []hash.Hash{},
 	}
 	for _, p := range parents {
-		bn.parents = append(bn.parents, *p)
+		pa := *p
+		bn.parents = append(bn.parents, pa)
 	}
 	return &bn
 }
