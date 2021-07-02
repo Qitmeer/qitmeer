@@ -340,6 +340,12 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, *list.List, IBlock, bool
 	//
 	news, olds := bd.instance.AddBlock(ib)
 	bd.optimizeReorganizeResult(news, olds)
+	if news == nil {
+		news = list.New()
+	}
+	if olds == nil {
+		olds = list.New()
+	}
 	return news, olds, ib, lastMT != bd.instance.GetMainChainTipId()
 }
 
@@ -1613,6 +1619,9 @@ func (bd *BlockDAG) CreateVirtualBlock(data IBlockData) IBlock {
 
 func (bd *BlockDAG) optimizeReorganizeResult(newOrders *list.List, oldOrders *list.List) {
 	if newOrders == nil || oldOrders == nil {
+		return
+	}
+	if newOrders.Len() <= 0 || oldOrders.Len() <= 0 {
 		return
 	}
 	// optimization
