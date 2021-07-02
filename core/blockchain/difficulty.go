@@ -114,7 +114,6 @@ func (b *BlockChain) calcNextRequiredDifficulty(block blockdag.IBlock, newBlockT
 	if curNode == nil {
 		return pow.BigToCompact(baseTarget), nil
 	}
-
 	// Get the old difficulty; if we aren't at a block height where it changes,
 	// just return this.
 	oldDiff := curNode.Difficulty()
@@ -193,17 +192,20 @@ func (b *BlockChain) calcNextRequiredDifficulty(block blockdag.IBlock, newBlockT
 	// per window period; use bigInts to emulate 64.32 bit fixed point.
 	var olderTime, windowPeriod int64
 	var weights uint64
-	oldNode := curNode
 	oldBlock := block
+
+	oldNodeTimestamp := curNode.GetTimestamp()
+	oldBlockOrder := block.GetOrder()
+
 	recentTime := curNode.GetTimestamp()
 	for i := uint64(0); ; i++ {
 		// Store and reset after reaching the end of every window period.
 		if i%uint64(needAjustCount) == 0 && i != 0 {
-			olderTime = oldNode.GetTimestamp()
+			olderTime = oldNodeTimestamp
 			timeDifference := recentTime - olderTime
 			// Just assume we're at the target (no change) if we've
 			// gone all the way back to the genesis block.
-			if oldBlock.GetOrder() == 0 {
+			if oldBlockOrder == 0 {
 				timeDifference = int64(b.params.TargetTimespan /
 					time.Second)
 			}
@@ -235,19 +237,23 @@ func (b *BlockChain) calcNextRequiredDifficulty(block blockdag.IBlock, newBlockT
 		}
 		// Get the previous node while staying at the genesis block as
 		// needed.
-		if oldBlock.HasParents() {
-			oldBlock := b.bd.GetBlockById(oldBlock.GetMainParent())
+		if oldBlock != nil && oldBlock.HasParents() {
+			oldBlock = b.bd.GetBlockById(oldBlock.GetMainParent())
 			if oldBlock == nil {
-				break
+				continue
 			}
-			ob := b.getPowTypeNode(oldBlock, powInstance.GetPowType())
-			if ob != nil {
-				oldBlock = ob
+			oldBlock = b.getPowTypeNode(oldBlock, powInstance.GetPowType())
+			if oldBlock == nil {
+				oldNodeTimestamp = 0
+				oldBlockOrder = 0
+				continue
 			}
-			oldNode = b.GetBlockNode(oldBlock)
-			if oldNode == nil {
-				break
+			on := b.GetBlockNode(oldBlock)
+			if on == nil {
+				continue
 			}
+			oldNodeTimestamp = on.GetTimestamp()
+			oldBlockOrder = oldBlock.GetOrder()
 		}
 	}
 	// Sum up the weighted window periods.
@@ -293,6 +299,7 @@ func (b *BlockChain) calcNextRequiredDifficulty(block blockdag.IBlock, newBlockT
 	// newTarget since conversion to the compact representation loses
 	// precision.
 	nextDiffBits := pow.BigToCompact(nextDiffBig)
+
 	log.Debug("Difficulty retarget", "block main height", block.GetHeight()+1)
 	log.Debug("Old target", "bits", fmt.Sprintf("%08x", curNode.Difficulty()),
 		"diff", fmt.Sprintf("(%064x)", oldDiffBig))
@@ -319,18 +326,20 @@ func (b *BlockChain) calcCurrentPowCount(block blockdag.IBlock, nodesToTraverse 
 			currentPowBlockCount--
 		}
 		if oldBlock.HasParents() {
-			oldBlock := b.bd.GetBlockById(oldBlock.GetMainParent())
-			if oldBlock != nil {
-				oldNode := b.GetBlockNode(oldBlock)
+			ob := b.bd.GetBlockById(oldBlock.GetMainParent())
+			if ob != nil {
+				oldNode := b.GetBlockNode(ob)
+				if oldNode == nil {
+					continue
+				}
+				oldBlock = ob
 				if oldBlock.GetOrder() != 0 && oldNode.GetPowType() != powType {
 					currentPowBlockCount--
 				}
-			} else {
-				return 0
+
 			}
 		}
 	}
-
 	return currentPowBlockCount
 }
 
