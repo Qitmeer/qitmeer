@@ -116,7 +116,7 @@ func (node *Node) Export() error {
 		if err != nil {
 			return err
 		}
-		endPoint = node.bc.BlockDAG().GetBlock(ephash)
+		endPoint = node.bc.GetBlock(ephash)
 		if endPoint != nil {
 			if node.cfg.ByID {
 				if endNum > endPoint.GetID() {

@@ -34,7 +34,7 @@ type IndexManager interface {
 // LookupNode returns the block node identified by the provided hash.  It will
 // return nil if there is no entry for the hash.
 func (b *BlockChain) LookupNode(hash *hash.Hash) *BlockNode {
-	ib := b.bd.GetBlock(hash)
+	ib := b.GetBlock(hash)
 	if ib == nil {
 		return nil
 	}
@@ -63,4 +63,8 @@ func (b *BlockChain) GetBlockNode(ib blockdag.IBlock) *BlockNode {
 		return nil
 	}
 	return ib.GetData().(*BlockNode)
+}
+
+func (b *BlockChain) GetBlock(h *hash.Hash) blockdag.IBlock {
+	return b.bd.GetBlock(h)
 }

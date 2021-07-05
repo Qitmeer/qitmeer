@@ -174,7 +174,7 @@ func processIsCheckpoint(chain *blockchain.BlockChain, cfg *Config) bool {
 		log.Error(err.Error())
 		return true
 	}
-	block := chain.BlockDAG().GetBlock(blockhash)
+	block := chain.GetBlock(blockhash)
 	if block == nil {
 		log.Error(fmt.Sprintf("%s is not check point", blockhash.String()))
 		return true

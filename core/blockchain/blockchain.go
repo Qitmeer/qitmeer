@@ -1291,7 +1291,7 @@ func (b *BlockChain) CalculateFees(block *types.SerializedBlock) types.AmountMap
 
 // GetFees
 func (b *BlockChain) GetFees(h *hash.Hash) types.AmountMap {
-	ib := b.bd.GetBlock(h)
+	ib := b.GetBlock(h)
 	if ib == nil {
 		return nil
 	}
@@ -1385,7 +1385,7 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 		if len(parents) > 1 {
 			parentsSet := blockdag.NewIdSet()
 			for _, bh := range parents {
-				id := b.bd.GetBlock(bh)
+				id := b.GetBlock(bh)
 				if id == nil {
 					continue
 				}
@@ -1397,7 +1397,7 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 			mainParent = b.bd.GetMainParent(parentsSet)
 
 		} else {
-			mainParent = b.bd.GetBlock(parents[0])
+			mainParent = b.GetBlock(parents[0])
 		}
 		if mainParent == nil {
 			return hash.ZeroHash

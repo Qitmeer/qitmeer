@@ -81,7 +81,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 	if !b.bd.HasBlock(endHash) {
 		return nil
 	}
-	endBlock := b.bd.GetBlock(endHash)
+	endBlock := b.GetBlock(endHash)
 	hashesSet := blockdag.NewHashSet()
 
 	// First of all, we need to make sure we have the parents of block.
