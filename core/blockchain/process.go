@@ -57,7 +57,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	log.Trace("Processing block ", "hash", blockHash)
 
 	// The block must not already exist in the main chain or side chains.
-	if b.index.HaveBlock(blockHash) {
+	if b.bd.HasBlock(blockHash) {
 		str := fmt.Sprintf("already have block %v", blockHash)
 		b.ChainRUnlock()
 		return false, ruleError(ErrDuplicateBlock, str)
@@ -84,14 +84,15 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 	// used to eat memory, and ensuring expected (versus claimed) proof of
 	// work requirements since the previous checkpoint are met.
 	blockHeader := &block.Block().Header
-	checkpointNode, err := b.findPreviousCheckpoint()
+	checkpoint, err := b.findPreviousCheckpoint()
 	if err != nil {
 		b.ChainRUnlock()
 		return false, err
 	}
+	checkpointNode := b.GetBlockNode(checkpoint)
 	if checkpointNode != nil {
 		// Ensure the block timestamp is after the checkpoint timestamp.
-		checkpointTime := time.Unix(checkpointNode.timestamp, 0)
+		checkpointTime := time.Unix(checkpointNode.GetTimestamp(), 0)
 		if blockHeader.Timestamp.Before(checkpointTime) {
 			str := fmt.Sprintf("block %v has timestamp %v before "+
 				"last checkpoint timestamp %v", blockHash,
@@ -109,7 +110,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 			// maximum adjustment allowed by the retarget rules.
 			duration := blockHeader.Timestamp.Sub(checkpointTime)
 			requiredTarget := pow.CompactToBig(b.calcEasiestDifficulty(
-				checkpointNode.bits, duration, block.Block().Header.Pow))
+				checkpointNode.Difficulty(), duration, block.Block().Header.Pow))
 			currentTarget := pow.CompactToBig(blockHeader.Difficulty)
 			if !block.Block().Header.Pow.CompareDiff(currentTarget, requiredTarget) {
 				str := fmt.Sprintf("block target difficulty of %064x "+
@@ -123,7 +124,7 @@ func (b *BlockChain) ProcessBlock(block *types.SerializedBlock, flags BehaviorFl
 
 	// Handle orphan blocks.
 	for _, pb := range block.Block().Parents {
-		if !b.index.HaveBlock(pb) {
+		if !b.bd.HasBlock(pb) {
 			log.Trace(fmt.Sprintf("Adding orphan block %s with parent %s", blockHash.String(), pb.String()))
 			b.addOrphanBlock(block)
 

@@ -12,13 +12,10 @@ type IBlockData interface {
 	GetHash() *hash.Hash
 
 	// Get all parents set,the dag block has more than one parent
-	GetParents() []uint
+	GetParents() []*hash.Hash
 
 	// Timestamp
 	GetTimestamp() int64
-
-	// Acquire the weight of block
-	GetWeight() uint64
 }
 
 //The interface of block
@@ -79,6 +76,15 @@ type IBlock interface {
 
 	// decode
 	Decode(r io.Reader) error
+
+	// block data
+	GetData() IBlockData
+
+	// valid block data
+	Valid()
+
+	// invalid block data
+	Invalid()
 }
 
 // It is the element of a DAG. It is the most basic data unit.
@@ -94,6 +100,8 @@ type Block struct {
 	layer      uint
 	height     uint
 	status     BlockStatus
+
+	data IBlockData
 }
 
 // Return block ID
@@ -405,6 +413,18 @@ func (b *Block) UnsetStatusFlags(flags BlockStatus) {
 	b.status &^= flags
 }
 
+func (b *Block) GetData() IBlockData {
+	return b.data
+}
+
+func (b *Block) Valid() {
+	b.UnsetStatusFlags(StatusInvalid)
+}
+
+func (b *Block) Invalid() {
+	b.SetStatusFlags(StatusInvalid)
+}
+
 // BlockStatus
 type BlockStatus byte
 
@@ -414,8 +434,15 @@ const (
 
 	// StatusBadSide
 	StatusBadSide BlockStatus = 1 << 0
+
+	// StatusInvalid indicates that the block data has failed validation.
+	StatusInvalid BlockStatus = 1 << 2
 )
 
 func (status BlockStatus) IsBadSide() bool {
 	return status&StatusBadSide != 0
+}
+
+func (status BlockStatus) KnownInvalid() bool {
+	return status&StatusInvalid != 0
 }

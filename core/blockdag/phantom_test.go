@@ -2,6 +2,7 @@ package blockdag
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	"strconv"
 	"testing"
@@ -221,12 +222,12 @@ func Test_IsDAG(t *testing.T) {
 	//ph:=ibd.(*Phantom)
 	//
 	parentsTag := []string{"I", "G"}
-	parents := NewIdSet()
+	parents := []*hash.Hash{}
 	for _, parent := range parentsTag {
-		parents.Add(tbMap[parent].GetID())
+		parents = append(parents, tbMap[parent].GetHash())
 	}
 	block := buildBlock(parents)
-	l, ib, _ := bd.AddBlock(block)
+	l, _, ib, _ := bd.AddBlock(block)
 	if l != nil && l.Len() > 0 {
 		tbMap["L"] = ib
 	} else {

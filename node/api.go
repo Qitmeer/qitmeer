@@ -54,10 +54,10 @@ func NewPublicBlockChainAPI(node *QitmeerFull) *PublicBlockChainAPI {
 // Return the node info
 func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	best := api.node.blockManager.GetChain().BestSnapshot()
-	node := api.node.blockManager.GetChain().BlockIndex().LookupNode(&best.Hash)
-	blake2bdNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.BLAKE2BD)
-	cuckarooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKAROO)
-	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(*node, pow.CUCKATOO)
+	node := api.node.blockManager.GetChain().BlockDAG().GetBlock(&best.Hash)
+	blake2bdNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(node, pow.BLAKE2BD)
+	cuckarooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(node, pow.CUCKAROO)
+	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(node, pow.CUCKATOO)
 	ret := &json.InfoNodeResult{
 		ID:              api.node.node.peerServer.PeerID().String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),

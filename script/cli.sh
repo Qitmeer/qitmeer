@@ -454,6 +454,13 @@ function get_tokeninfo(){
   get_result "$data"
 }
 
+function submit_block() {
+  local input=$1
+  local data='{"jsonrpc":"2.0","method":"submitBlock","params":["'$input'"],"id":1}'
+  get_result "$data"
+}
+
+
 function get_result(){
   local proto="https"
   if [ $notls -eq 1 ]; then
@@ -541,6 +548,7 @@ function usage(){
   echo "  coinbase <hash>"
   echo "  fees <hash>"
   echo "  tokeninfo"
+  echo "  submitblock"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txv2 <id>"
@@ -1088,6 +1096,11 @@ elif [ "$1" == "to_hex" ]; then
 elif [ "$1" == "to_base64" ]; then
   shift
   to_base64 $1
+
+elif [ "$1" == "submitblock" ]; then
+  shift
+  submit_block $@
+
 elif [ "$1" == "list_command" ]; then
   usage
 else

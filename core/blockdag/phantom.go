@@ -55,16 +55,16 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 }
 
 // Add a block
-func (ph *Phantom) AddBlock(ib IBlock) *list.List {
+func (ph *Phantom) AddBlock(ib IBlock) (*list.List, *list.List) {
 	pb := ib.(*PhantomBlock)
 	pb.SetOrder(MaxBlockOrder)
 
 	ph.updateBlockColor(pb)
 	ph.updateBlockOrder(pb)
 
-	changeBlock := ph.updateMainChain(ph.getBluest(ph.bd.tips), pb)
+	changeBlock, oldOrders := ph.updateMainChain(ph.getBluest(ph.bd.tips), pb)
 	ph.preUpdateVirtualBlock()
-	return ph.getOrderChangeList(changeBlock)
+	return ph.getOrderChangeList(changeBlock), oldOrders
 }
 
 // Build self block
@@ -265,11 +265,11 @@ func (ph *Phantom) buildSortDiffAnticone(diffAn *IdSet) *IdSet {
 	return result
 }
 
-func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *PhantomBlock {
+func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) (*PhantomBlock, *list.List) {
 	ph.virtualBlock.SetOrder(MaxBlockOrder)
 	if !ph.isMaxMainTip(buestTip) {
 		ph.diffAnticone.AddPair(pb.GetID(), pb)
-		return nil
+		return nil, nil
 	}
 	if ph.mainChain.tip == MaxId {
 		ph.mainChain.tip = buestTip.GetID()
@@ -278,13 +278,26 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *Ph
 		ph.diffAnticone.Clean()
 		buestTip.SetOrder(0)
 		ph.bd.commitOrder[0] = buestTip.GetID()
-		return buestTip
+		return buestTip, nil
 	}
 
 	intersection, path := ph.getIntersectionPathWithMainChain(buestTip)
-	if intersection == MaxId {
+	intersectionBlock := ph.bd.getBlockById(intersection)
+	if intersectionBlock == nil {
 		panic("DAG can't find intersection!")
 	}
+
+	// old orders
+	oldOrders := list.New()
+	for i := intersectionBlock.GetOrder() + 1; i <= ph.GetMainChainTip().GetOrder(); i++ {
+		ib := ph.bd.getBlockByOrder(i)
+		if ib == nil {
+			panic(fmt.Errorf("DAG can't find block in order(%d)\n", i))
+		}
+		oldOrders.PushBack(&BlockOrderHelp{OldOrder: i, Block: ib})
+	}
+
+	//
 	ph.rollBackMainChain(intersection)
 
 	ph.updateMainOrder(path, intersection)
@@ -292,13 +305,13 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) *Ph
 
 	ph.diffAnticone = ph.bd.getAnticone(ph.bd.getBlockById(ph.mainChain.tip), nil)
 
-	changeOrder := ph.bd.getBlockById(intersection).GetOrder() + 1
+	changeOrder := intersectionBlock.GetOrder() + 1
 
 	coPB, ok := ph.bd.getBlockByOrder(changeOrder).(*PhantomBlock)
 	if !ok {
-		return nil
+		return nil, nil
 	}
-	return coPB
+	return coPB, oldOrders
 }
 
 func (ph *Phantom) isMaxMainTip(pb *PhantomBlock) bool {
@@ -603,6 +616,7 @@ func (ph *Phantom) Load(dbTx database.Tx) error {
 				return fmt.Errorf("The order(%d) of %s is inconsistent: Order Index (%d)\n", ib.GetOrder(), ib.GetHash(), id)
 			}
 		}
+		block.data = ph.bd.getBlockData(ib.GetHash())
 	}
 
 	ph.mainChain.tip = ph.GetMainParent(ph.bd.tips).GetID()
@@ -732,31 +746,17 @@ func (ph *Phantom) getMaxParents() int {
 	return types.MaxParentsPerBlock
 }
 
-func (ph *Phantom) UpdateWeight(ib IBlock, store bool) {
+func (ph *Phantom) UpdateWeight(ib IBlock) {
 	if ib.GetID() != GenesisId {
 		pb := ib.(*PhantomBlock)
 		tp := ph.getBlock(pb.GetMainParent())
 		pb.weight = tp.GetWeight()
-		pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), byte(pb.status)))
+		pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), pb.status))
 		for k := range pb.blueDiffAnticone.GetMap() {
 			bdpb := ph.getBlock(k)
-			pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), byte(bdpb.status)))
+			pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), bdpb.status))
 		}
-	}
-
-	if ph.bd.db == nil || !store {
-		return
-	}
-
-	err := ph.bd.db.Update(func(dbTx database.Tx) error {
-		err := DBPutDAGBlock(dbTx, ib)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		log.Error(err.Error())
+		ph.bd.commitBlock.AddPair(ib.GetID(), ib)
 	}
 }
 

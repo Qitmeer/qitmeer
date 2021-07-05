@@ -86,7 +86,7 @@ func main() {
 				return
 			}
 			blockHash = blockH
-			ib = srcnode.bc.BlockDAG().GetBlock(blockHash)
+			ib = srcnode.bc.GetBlock(blockHash)
 			if ib == nil {
 				log.Error(fmt.Sprintf("Can't find block:%s", blockHash.String()))
 				return
@@ -158,7 +158,7 @@ func checkEndBlocks(node *SrcNode) {
 		log.Error(err.Error())
 		return
 	}
-	ib := node.bc.BlockDAG().GetBlock(blockHash)
+	ib := node.bc.GetBlock(blockHash)
 	if ib == nil {
 		log.Error(fmt.Sprintf("Can't find block:%s", blockHash.String()))
 		return
@@ -209,11 +209,11 @@ func buildLedger(node INode, config *Config) error {
 		if entry.IsSpent() {
 			continue
 		}
-		ib := node.BlockChain().BlockDAG().GetBlock(entry.BlockHash())
+		ib := node.BlockChain().GetBlock(entry.BlockHash())
 		if ib.GetOrder() == blockdag.MaxBlockOrder {
 			continue
 		}
-		if blockchain.BlockStatus(ib.GetStatus()).KnownInvalid() {
+		if ib.GetStatus().KnownInvalid() {
 			continue
 		}
 		if entry.IsCoinBase() {

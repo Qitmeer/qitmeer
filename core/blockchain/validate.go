@@ -507,12 +507,12 @@ func CountSigOps(tx *types.Tx) int {
 //
 // The flags are also passed to checkBlockHeaderContext.  See its documentation
 // for how the flags modify its behavior.
-func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent *blockNode, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent blockdag.IBlock, flags BehaviorFlags) error {
 	// The genesis block is valid by definition.
 	if mainParent == nil {
 		return nil
 	}
-	prevBlock := b.bd.GetBlock(mainParent.GetHash())
+	prevBlock := mainParent
 
 	// Perform all block header related validation checks.
 	err := b.checkBlockHeaderContext(block, mainParent, flags)
@@ -525,7 +525,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 		// A block must not exceed the maximum allowed size as defined
 		// by the network parameters and the current status of any hard
 		// fork votes to change it when serialized.
-		maxBlockSize, err := b.maxBlockSize(mainParent)
+		maxBlockSize, err := b.maxBlockSize()
 		if err != nil {
 			return err
 		}
@@ -593,7 +593,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	parents := blockdag.NewIdSet()
 	for _, v := range block.Block().Parents {
-		parents.Add(b.index.GetDAGBlockID(v))
+		parents.Add(b.bd.GetBlockId(v))
 	}
 	blocks := b.bd.GetBlues(parents)
 	// check subsidy
@@ -668,7 +668,7 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 //    the checkpoints are not performed.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevNode *blockNode, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevNode blockdag.IBlock, flags BehaviorFlags) error {
 	// The genesis block is valid by definition.
 	if prevNode == nil {
 		return nil
@@ -678,7 +678,7 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	if !fastAdd {
 		instance := pow.GetInstance(header.Pow.GetPowType(), 0, []byte{})
-		instance.SetMainHeight(pow.MainHeight(prevNode.height + 1))
+		instance.SetMainHeight(pow.MainHeight(prevNode.GetHeight() + 1))
 		instance.SetParams(b.params.PowConfig)
 		// Ensure the difficulty specified in the block header matches
 		// the calculated difficulty based on the previous block and
@@ -698,7 +698,7 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 
 		// Ensure the timestamp for the block header is after the
 		// median time of the last several blocks (medianTimeBlocks).
-		medianTime := prevNode.CalcPastMedianTime(b)
+		medianTime := b.CalcPastMedianTime(prevNode)
 		if !header.Timestamp.After(medianTime) {
 			str := "block timestamp of %v is not after expected %v"
 			str = fmt.Sprintf(str, header.Timestamp.Unix(), medianTime.Unix())
@@ -712,7 +712,7 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	}
 	parents := blockdag.NewIdSet()
 	for _, v := range block.Block().Parents {
-		parents.Add(b.index.GetDAGBlockID(v))
+		parents.Add(b.bd.GetBlockId(v))
 	}
 	blockLayer, ok := b.BlockDAG().GetParentsMaxLayer(parents)
 	if !ok {
@@ -731,10 +731,10 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	if err != nil {
 		return err
 	}
-	if checkpointNode != nil && blockLayer < checkpointNode.layer {
+	if checkpointNode != nil && blockLayer < checkpointNode.GetLayer() {
 		str := fmt.Sprintf("block at layer %d forks the main chain "+
 			"before the previous checkpoint at layer %d",
-			blockLayer, checkpointNode.layer)
+			blockLayer, checkpointNode.GetLayer())
 		return ruleError(ErrForkTooOld, str)
 	}
 
@@ -759,7 +759,7 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 // the bulk of its work.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedBlock, utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
+func (b *BlockChain) checkConnectBlock(ib blockdag.IBlock, block *types.SerializedBlock, utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
 	// If the side chain blocks end up in the database, a call to
 	// CheckBlockSanity should be done here in case a previous version
 	// allowed a block that is no longer valid.  However, since the
@@ -768,11 +768,10 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 
 	// The coinbase for the Genesis block is not spendable, so just return
 	// an error now.
-	if node.hash.IsEqual(b.params.GenesisHash) {
+	if ib.GetHash().IsEqual(b.params.GenesisHash) {
 		str := "the coinbase for the genesis block is not spendable"
 		return ruleError(ErrMissingTxOut, str)
 	}
-
 	// Don't run scripts if this node is before the latest known good
 	// checkpoint since the validity is verified via the checkpoints (all
 	// transactions are included in the merkle root hash and any changes
@@ -781,13 +780,13 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// portion of block handling.
 	checkpoint := b.LatestCheckpoint()
 	runScripts := !b.noVerify
-	if checkpoint != nil && uint64(node.GetLayer()) <= checkpoint.Layer {
+	if checkpoint != nil && uint64(ib.GetLayer()) <= checkpoint.Layer {
 		runScripts = false
 	}
 	var scriptFlags txscript.ScriptFlags
 	var err error
 	if runScripts {
-		scriptFlags, err = b.consensusScriptVerifyFlags(node)
+		scriptFlags, err = b.consensusScriptVerifyFlags()
 		if err != nil {
 			return err
 		}
@@ -809,6 +808,10 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		return err
 	}
 
+	node := b.GetBlockNode(ib)
+	if node == nil {
+		return fmt.Errorf("Block Node error:%s\n", ib.GetHash().String())
+	}
 	err = b.checkTransactionsAndConnect(node, block, b.subsidyCache, utxoView, stxos)
 	if err != nil {
 		log.Trace("checkTransactionsAndConnect failed", "err", err)
@@ -821,18 +824,22 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 	// Use the past median time of the *previous* block in order
 	// to determine if the transactions in the current block are
 	// final.
-	prevMedianTime := node.GetMainParent(b).CalcPastMedianTime(b)
+	mainParent := b.bd.GetBlockById(ib.GetMainParent())
+	if mainParent == nil {
+		return fmt.Errorf("Block Main Parent error:%s\n", ib.GetHash().String())
+	}
+	prevMedianTime := b.CalcPastMedianTime(mainParent)
 
 	// Skip the coinbase since it does not have any inputs and thus
 	// lock times do not apply.
 	for _, tx := range block.Transactions() {
-		sequenceLock, err := b.calcSequenceLock(node, tx,
+		sequenceLock, err := b.calcSequenceLock(tx,
 			utxoView, false)
 		if err != nil {
 			return err
 		}
 
-		if !SequenceLockActive(sequenceLock, int64(node.GetHeight()), //TODO, remove type conversion
+		if !SequenceLockActive(sequenceLock, int64(ib.GetHeight()), //TODO, remove type conversion
 			prevMedianTime) {
 
 			str := fmt.Sprintf("block contains " +
@@ -852,14 +859,14 @@ func (b *BlockChain) checkConnectBlock(node *blockNode, block *types.SerializedB
 		}
 	}
 
-	return b.CheckTokenState(node, block)
+	return b.CheckTokenState(block)
 }
 
 // consensusScriptVerifyFlags returns the script flags that must be used when
 // executing transaction scripts to enforce the consensus rules. This includes
 // any flags required as the result of any agendas that have passed and become
 // active.
-func (b *BlockChain) consensusScriptVerifyFlags(node *blockNode) (txscript.ScriptFlags, error) {
+func (b *BlockChain) consensusScriptVerifyFlags() (txscript.ScriptFlags, error) {
 	//TODO, refactor the txvm flag, the flag should decided by node.parent
 	scriptFlags := txscript.ScriptBip16 |
 		txscript.ScriptVerifyDERSignatures |
@@ -877,7 +884,7 @@ func (b *BlockChain) consensusScriptVerifyFlags(node *blockNode) (txscript.Scrip
 // transaction inputs for a transaction list given a predetermined TxStore.
 // After ensuring the transaction is valid, the transaction is connected to the
 // UTXO viewpoint.  TxTree true == Regular, false == Stake
-func (b *BlockChain) checkTransactionsAndConnect(node *blockNode, block *types.SerializedBlock, subsidyCache *SubsidyCache, utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
+func (b *BlockChain) checkTransactionsAndConnect(node *BlockNode, block *types.SerializedBlock, subsidyCache *SubsidyCache, utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
 	transactions := block.Transactions()
 	totalSigOpCost := 0
 	for _, tx := range transactions {
@@ -1228,36 +1235,29 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		return err
 	}
 
-	tipsNode := []*blockNode{}
-	for _, v := range block.Block().Parents {
-		bn := b.index.LookupNode(v)
-		if bn == nil {
-			return ruleError(ErrPrevBlockNotBest, "tipsNode")
-		}
-		tipsNode = append(tipsNode, bn)
-	}
-	if len(tipsNode) == 0 {
+	newNode := NewBlockNode(&block.Block().Header, block.Block().Parents)
+	virBlock := b.bd.CreateVirtualBlock(newNode)
+	if virBlock == nil {
 		return ruleError(ErrPrevBlockNotBest, "tipsNode")
 	}
-	header := &block.Block().Header
-	newNode := newBlockNode(header, tipsNode)
-	newNode.SetOrder(block.Order())
-	newNode.SetHeight(block.Height())
-	newNode.SetLayer(GetMaxLayerFromList(tipsNode) + 1)
-	newNode.dagID = b.bd.GetBlockTotal()
+	virBlock.SetOrder(uint(block.Order()))
+	if virBlock.GetHeight() != block.Height() {
+		return ruleError(ErrPrevBlockNotBest, "tipsNode height")
+	}
+	mainParent := b.bd.GetBlockById(virBlock.GetMainParent())
+	if mainParent == nil {
+		return ruleError(ErrPrevBlockNotBest, "main parent")
+	}
+
+	err = b.checkBlockContext(block, mainParent, flags)
+	if err != nil {
+		return err
+	}
 
 	view := NewUtxoViewpoint()
 	view.SetViewpoints(block.Block().Parents)
 
-	mainParent := newNode.GetMainParent(b)
-	mainParentNode := b.index.LookupNode(mainParent.GetHash())
-	newNode.CalcWorkSum(mainParentNode)
-
-	err = b.checkBlockContext(block, mainParentNode, flags)
-	if err != nil {
-		return err
-	}
-	err = b.checkConnectBlock(newNode, block, view, nil)
+	err = b.checkConnectBlock(virBlock, block, view, nil)
 	if err != nil {
 		return err
 	}

@@ -22,14 +22,7 @@ func DBPutDAGBlock(dbTx database.Tx, block IBlock) error {
 	if err != nil {
 		return err
 	}
-	err = bucket.Put(key, buff.Bytes())
-	if err != nil {
-		return err
-	}
-
-	bucket = dbTx.Metadata().Bucket(dbnamespace.BlockIdBucketName)
-	key = block.GetHash()[:]
-	return bucket.Put(key, serializedID[:])
+	return bucket.Put(key, buff.Bytes())
 }
 
 // DBGetDAGBlock get dag block data by resouce ID
@@ -124,6 +117,15 @@ func DBGetBlockIdByOrder(dbTx database.Tx, order uint) (uint32, error) {
 		return uint32(MaxId), errNotInMainChain(str)
 	}
 	return dbnamespace.ByteOrder.Uint32(idBytes), nil
+}
+
+func DBPutDAGBlockIdByHash(dbTx database.Tx, block IBlock) error {
+	var serializedID [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
+
+	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIdBucketName)
+	key := block.GetHash()[:]
+	return bucket.Put(key, serializedID[:])
 }
 
 func DBGetBlockIdByHash(dbTx database.Tx, h *hash.Hash) (uint32, error) {

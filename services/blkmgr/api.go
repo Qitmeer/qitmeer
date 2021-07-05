@@ -146,12 +146,12 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 	if err != nil {
 		return nil, err
 	}
-	node := api.bm.chain.BlockIndex().LookupNode(&h)
+	node := api.bm.chain.BlockDAG().GetBlock(&h)
 	if node == nil {
 		return nil, fmt.Errorf("no node")
 	}
 	// Update the source block order
-	blk.SetOrder(node.GetOrder())
+	blk.SetOrder(uint64(node.GetOrder()))
 	blk.SetHeight(node.GetHeight())
 	// When the verbose flag isn't set, simply return the
 	// network-serialized block as a hex-encoded string.
@@ -185,7 +185,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
-		!api.bm.chain.BlockIndex().NodeStatus(node).KnownInvalid(), node.IsOrdered(), coinbaseAmout, nil)
+		!node.GetStatus().KnownInvalid(), node.IsOrdered(), coinbaseAmout, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -215,12 +215,12 @@ func (api *PublicBlockAPI) GetBlockV2(h hash.Hash, verbose *bool, inclTx *bool, 
 	if err != nil {
 		return nil, err
 	}
-	node := api.bm.chain.BlockIndex().LookupNode(&h)
+	node := api.bm.chain.BlockDAG().GetBlock(&h)
 	if node == nil {
 		return nil, fmt.Errorf("no node")
 	}
 	// Update the source block order
-	blk.SetOrder(node.GetOrder())
+	blk.SetOrder(uint64(node.GetOrder()))
 	blk.SetHeight(node.GetHeight())
 	// When the verbose flag isn't set, simply return the
 	// network-serialized block as a hex-encoded string.
@@ -248,7 +248,7 @@ func (api *PublicBlockAPI) GetBlockV2(h hash.Hash, verbose *bool, inclTx *bool, 
 
 	//TODO, refactor marshal api
 	fields, err := marshal.MarshalJsonBlock(blk, iTx, fTx, api.bm.params, confirmations, children,
-		!api.bm.chain.BlockIndex().NodeStatus(node).KnownInvalid(), node.IsOrdered(), coinbaseAmout, coinbaseFees)
+		!node.GetStatus().KnownInvalid(), node.IsOrdered(), coinbaseAmout, coinbaseFees)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func (api *PublicBlockAPI) GetBlockTotal() (interface{}, error) {
 func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interface{}, error) {
 
 	// Fetch the block node
-	node := api.bm.chain.BlockIndex().LookupNode(&hash)
+	node := api.bm.chain.BlockDAG().GetBlock(&hash)
 	if node == nil {
 		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", hash))
 	}
@@ -321,7 +321,7 @@ func (api *PublicBlockAPI) GetBlockHeader(hash hash.Hash, verbose bool) (interfa
 // Query whether a given block is on the main chain.
 // Note that some DAG protocols may not support this feature.
 func (api *PublicBlockAPI) IsOnMainChain(h hash.Hash) (interface{}, error) {
-	node := api.bm.chain.BlockIndex().LookupNode(&h)
+	node := api.bm.chain.BlockDAG().GetBlock(&h)
 	if node == nil {
 		return nil, rpc.RpcInternalError(fmt.Errorf("no block").Error(), fmt.Sprintf("Block not found: %v", h))
 	}

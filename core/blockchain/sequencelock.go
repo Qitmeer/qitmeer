@@ -30,7 +30,7 @@ type SequenceLock struct {
 // from the point of view of the block node passed in as the first argument.
 //
 // See the CalcSequenceLock comments for more details.
-func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoViewpoint, isActive bool) (*SequenceLock, error) {
+func (b *BlockChain) calcSequenceLock(tx *types.Tx, view *UtxoViewpoint, isActive bool) (*SequenceLock, error) {
 	// A value of -1 for each lock type allows a transaction to be included
 	// in a block at any given height or time.
 	sequenceLock := &SequenceLock{BlockHeight: -1, Time: -1}
@@ -86,11 +86,11 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 			if hash.ZeroHash.IsEqual(utxo.BlockHash()) {
 				medianTime = b.BestSnapshot().MedianTime
 			} else {
-				blockNode := b.index.LookupNode(utxo.BlockHash())
+				blockNode := b.bd.GetBlock(utxo.BlockHash())
 				if blockNode == nil {
 					return sequenceLock, nil
 				}
-				medianTime = blockNode.CalcPastMedianTime(b)
+				medianTime = b.CalcPastMedianTime(blockNode)
 			}
 			// Calculate the minimum required timestamp based on the
 			// sum of the aforementioned past median time and
@@ -150,9 +150,7 @@ func (b *BlockChain) calcSequenceLock(node *blockNode, tx *types.Tx, view *UtxoV
 // This function is safe for concurrent access.
 func (b *BlockChain) CalcSequenceLock(tx *types.Tx, view *UtxoViewpoint) (*SequenceLock, error) {
 	b.ChainRLock()
-	block := b.bd.GetMainChainTip()
-	node := b.index.LookupNode(block.GetHash())
-	seqLock, err := b.calcSequenceLock(node, tx, view, true)
+	seqLock, err := b.calcSequenceLock(tx, view, true)
 	b.ChainRUnlock()
 	return seqLock, err
 }

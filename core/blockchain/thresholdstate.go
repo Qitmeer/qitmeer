@@ -6,7 +6,7 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 )
 
 // ThresholdState define the various threshold states used when voting on
@@ -107,26 +107,26 @@ type thresholdConditionChecker interface {
 	// has been met.  This typically involves checking whether or not the
 	// bit associated with the condition is set, but can be more complex as
 	// needed.
-	Condition(*blockNode) (bool, error)
+	Condition(blockdag.IBlock) (bool, error)
 }
 
 // thresholdStateCache provides a type to cache the threshold states of each
 // threshold window for a set of IDs.
 type thresholdStateCache struct {
-	entries map[hash.Hash]ThresholdState
+	entries map[uint]ThresholdState
 }
 
 // Lookup returns the threshold state associated with the given hash along with
 // a boolean that indicates whether or not it is valid.
-func (c *thresholdStateCache) Lookup(hash *hash.Hash) (ThresholdState, bool) {
-	state, ok := c.entries[*hash]
+func (c *thresholdStateCache) Lookup(id uint) (ThresholdState, bool) {
+	state, ok := c.entries[id]
 	return state, ok
 }
 
 // Update updates the cache to contain the provided hash to threshold state
 // mapping.
-func (c *thresholdStateCache) Update(hash *hash.Hash, state ThresholdState) {
-	c.entries[*hash] = state
+func (c *thresholdStateCache) Update(id uint, state ThresholdState) {
+	c.entries[id] = state
 }
 
 // newThresholdCaches returns a new array of caches to be used when calculating
@@ -135,7 +135,7 @@ func newThresholdCaches(numCaches uint32) []thresholdStateCache {
 	caches := make([]thresholdStateCache, numCaches)
 	for i := 0; i < len(caches); i++ {
 		caches[i] = thresholdStateCache{
-			entries: make(map[hash.Hash]ThresholdState),
+			entries: make(map[uint]ThresholdState),
 		}
 	}
 	return caches
@@ -150,44 +150,43 @@ func isCheckerTimeMode(checker thresholdConditionChecker) bool {
 // threshold states for previous windows are only calculated once.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdConditionChecker, cache *thresholdStateCache) (ThresholdState, error) {
+func (b *BlockChain) thresholdState(prevNode blockdag.IBlock, checker thresholdConditionChecker, cache *thresholdStateCache) (ThresholdState, error) {
 	// The threshold state for the window that contains the genesis block is
 	// defined by definition.
-	confirmationWindow := int(checker.MinerConfirmationWindow())
-	if prevNode == nil || confirmationWindow <= 0 || int(prevNode.height+1) < confirmationWindow {
+	confirmationWindow := int64(checker.MinerConfirmationWindow())
+	if prevNode == nil || confirmationWindow <= 0 || int64(prevNode.GetHeight()+1) < confirmationWindow {
 		return ThresholdDefined, nil
 	}
 
 	// Get the ancestor that is the last block of the previous confirmation
 	// window in order to get its threshold state.  This can be done because
 	// the state is the same for all blocks within a given window.
-	prevNode = prevNode.GetMainAncestor(int(prevNode.height)-
-		(int(prevNode.height+1))%confirmationWindow, b)
+	prevNode = b.bd.GetMainAncestor(prevNode, int64(prevNode.GetHeight())-(int64(prevNode.GetHeight()+1))%confirmationWindow)
 
 	// Iterate backwards through each of the previous confirmation windows
 	// to find the most recently cached threshold state.
-	var neededStates []*blockNode
+	neededStates := []blockdag.IBlock{}
 	for prevNode != nil {
 		// Nothing more to do if the state of the block is already
 		// cached.
-		if _, ok := cache.Lookup(&prevNode.hash); ok {
+		if _, ok := cache.Lookup(prevNode.GetID()); ok {
 			break
 		}
 
 		if isCheckerTimeMode(checker) {
 			// The start and expiration times are based on the median block
 			// time, so calculate it now.
-			medianTime := prevNode.CalcPastMedianTime(b)
+			medianTime := b.CalcPastMedianTime(prevNode)
 
 			// The state is simply defined if the start time hasn't been
 			// been reached yet.
 			if uint64(medianTime.Unix()) < checker.BeginTime() {
-				cache.Update(&prevNode.hash, ThresholdDefined)
+				cache.Update(prevNode.GetID(), ThresholdDefined)
 				break
 			}
 		} else {
 			if uint64(prevNode.GetHeight()) < checker.BeginTime() {
-				cache.Update(&prevNode.hash, ThresholdDefined)
+				cache.Update(prevNode.GetID(), ThresholdDefined)
 				break
 			}
 		}
@@ -198,7 +197,7 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 
 		// Get the ancestor that is the last block of the previous
 		// confirmation window.
-		prevNode = prevNode.RelativeMainAncestor(confirmationWindow, b)
+		prevNode = b.bd.RelativeMainAncestor(prevNode, confirmationWindow)
 	}
 
 	// Start with the threshold state for the most recent confirmation
@@ -206,11 +205,11 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 	state := ThresholdDefined
 	if prevNode != nil {
 		var ok bool
-		state, ok = cache.Lookup(&prevNode.hash)
+		state, ok = cache.Lookup(prevNode.GetID())
 		if !ok {
 			return ThresholdFailed, AssertError(fmt.Sprintf(
 				"thresholdState: cache lookup failed for %v",
-				prevNode.hash))
+				prevNode.GetHash()))
 		}
 	}
 
@@ -224,7 +223,7 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 			if isCheckerTimeMode(checker) {
 				// The deployment of the rule change fails if it expires
 				// before it is accepted and locked in.
-				medianTime := prevNode.CalcPastMedianTime(b)
+				medianTime := b.CalcPastMedianTime(prevNode)
 				medianTimeUnix := uint64(medianTime.Unix())
 				if medianTimeUnix >= checker.EndTime() {
 					state = ThresholdFailed
@@ -251,7 +250,7 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 			// The deployment of the rule change fails if it expires
 			// before it is accepted and locked in.
 			if isCheckerTimeMode(checker) {
-				medianTime := prevNode.CalcPastMedianTime(b)
+				medianTime := b.CalcPastMedianTime(prevNode)
 				if uint64(medianTime.Unix()) >= checker.EndTime() {
 					state = ThresholdFailed
 					break
@@ -268,7 +267,7 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 			// confirmation window to count all of the votes in it.
 			var count uint32
 			countNode := prevNode
-			for i := int(0); i < confirmationWindow; i++ {
+			for i := int64(0); i < confirmationWindow; i++ {
 				condition, err := checker.Condition(countNode)
 				if err != nil {
 					return ThresholdFailed, err
@@ -277,17 +276,8 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 					count++
 				}
 
-				ib := b.bd.GetBlockById(countNode.dagID)
-				if ib == nil {
-					return ThresholdFailed, err
-				}
-
 				// Get the previous block node.
-				cnh := b.bd.GetBlockHash(ib.GetMainParent())
-				if cnh == nil {
-					break
-				}
-				countNode = b.index.LookupNode(cnh)
+				countNode = b.bd.GetBlockById(countNode.GetMainParent())
 				if countNode == nil {
 					break
 				}
@@ -307,7 +297,7 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 				state = ThresholdActive
 			} else {
 				if isCheckerTimeMode(checker) {
-					medianTime := prevNode.CalcPastMedianTime(b)
+					medianTime := b.CalcPastMedianTime(prevNode)
 					if uint64(medianTime.Unix()) >= checker.PerformTime() {
 						state = ThresholdActive
 					}
@@ -327,7 +317,7 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 
 		// Update the cache to avoid recalculating the state in the
 		// future.
-		cache.Update(&prevNode.hash, state)
+		cache.Update(prevNode.GetID(), state)
 	}
 
 	return state, nil
@@ -338,7 +328,7 @@ func (b *BlockChain) thresholdState(prevNode *blockNode, checker thresholdCondit
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) ThresholdState(deploymentID uint32) (ThresholdState, error) {
-	mtip := b.index.LookupNode(&b.BestSnapshot().Hash)
+	mtip := b.bd.GetMainChainTip()
 	b.chainLock.Lock()
 	state, err := b.deploymentState(mtip, deploymentID)
 	b.chainLock.Unlock()
@@ -358,8 +348,7 @@ func (b *BlockChain) IsDeploymentActive(deploymentID uint32) (bool, error) {
 }
 
 func (b *BlockChain) isDeploymentActive(deploymentID uint32) (bool, error) {
-	mtip := b.index.LookupNode(&b.BestSnapshot().Hash)
-	state, err := b.deploymentState(mtip, deploymentID)
+	state, err := b.deploymentState(b.bd.GetMainChainTip(), deploymentID)
 	if err != nil {
 		return false, err
 	}
@@ -376,7 +365,7 @@ func (b *BlockChain) isDeploymentActive(deploymentID uint32) (bool, error) {
 // AFTER the passed node.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) deploymentState(prevNode *blockNode, deploymentID uint32) (ThresholdState, error) {
+func (b *BlockChain) deploymentState(prevNode blockdag.IBlock, deploymentID uint32) (ThresholdState, error) {
 	if deploymentID > uint32(len(b.params.Deployments)) {
 		return ThresholdFailed, DeploymentError(deploymentID)
 	}
@@ -396,12 +385,8 @@ func (b *BlockChain) initThresholdCaches() error {
 	// threshold state for each of them.  This will ensure the caches are
 	// populated and any states that needed to be recalculated due to
 	// definition changes is done now.
-	prevNodeID := b.bd.GetMainChainTip().GetMainParent()
-	prevNodeH := b.bd.GetBlockHash(prevNodeID)
-	var prevNode *blockNode
-	if prevNodeH != nil {
-		prevNode = b.index.LookupNode(prevNodeH)
-	}
+	prevNode := b.bd.GetBlockById(b.bd.GetMainChainTip().GetMainParent())
+
 	for bit := uint32(0); bit < VBNumBits; bit++ {
 		checker := bitConditionChecker{bit: bit, chain: b}
 		cache := &b.warningCaches[bit]
@@ -422,11 +407,9 @@ func (b *BlockChain) initThresholdCaches() error {
 
 	// No warnings about unknown rules until the chain is current.
 	if b.isCurrent() {
-		bestNode := b.index.LookupNode(&b.BestSnapshot().Hash)
-
 		// Warn if any unknown new rules are either about to activate or
 		// have already been activated.
-		if err := b.warnUnknownRuleActivations(bestNode); err != nil {
+		if err := b.warnUnknownRuleActivations(b.bd.GetMainChainTip()); err != nil {
 			return err
 		}
 	}

@@ -6,6 +6,7 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/params"
 	"math"
 )
@@ -101,25 +102,20 @@ func (c bitConditionChecker) MinerConfirmationWindow() uint32 {
 // This function MUST be called with the chain state lock held (for writes).
 //
 // This is part of the thresholdConditionChecker interface implementation.
-func (c bitConditionChecker) Condition(node *blockNode) (bool, error) {
+func (c bitConditionChecker) Condition(node blockdag.IBlock) (bool, error) {
+	bn := c.chain.GetBlockNode(node)
+	if bn == nil {
+		return false, nil
+	}
 	conditionMask := uint32(1) << c.bit
-	version := uint32(node.blockVersion)
+	version := bn.GetHeader().Version
 	if version&VBTopMask != VBTopBits {
 		return false, nil
 	}
 	if version&conditionMask == 0 {
 		return false, nil
 	}
-	ib := c.chain.bd.GetBlockById(node.dagID)
-	if ib == nil {
-		return false, nil
-	}
-	var n *blockNode
-	nh := c.chain.bd.GetBlockHash(ib.GetMainParent())
-	if nh == nil {
-		n = c.chain.index.LookupNode(nh)
-	}
-	expectedVersion, err := c.chain.calcNextBlockVersion(n)
+	expectedVersion, err := c.chain.calcNextBlockVersion(c.chain.bd.GetBlockById(node.GetMainParent()))
 	if err != nil {
 		return false, err
 	}
@@ -195,9 +191,14 @@ func (c deploymentChecker) MinerConfirmationWindow() uint32 {
 // associated with the checker is set.
 //
 // This is part of the thresholdConditionChecker interface implementation.
-func (c deploymentChecker) Condition(node *blockNode) (bool, error) {
+func (c deploymentChecker) Condition(node blockdag.IBlock) (bool, error) {
+	bn := c.chain.GetBlockNode(node)
+	if bn == nil {
+		return false, nil
+	}
+
 	conditionMask := uint32(1) << c.deployment.BitNumber
-	version := uint32(node.blockVersion)
+	version := bn.GetHeader().Version
 	return (version&VBTopMask == VBTopBits) && (version&conditionMask != 0),
 		nil
 }
@@ -211,7 +212,7 @@ func (c deploymentChecker) Condition(node *blockNode) (bool, error) {
 // while this function accepts any block node.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) calcNextBlockVersion(prevNode *blockNode) (uint32, error) {
+func (b *BlockChain) calcNextBlockVersion(prevNode blockdag.IBlock) (uint32, error) {
 	// Set the appropriate bits for each actively defined rule deployment
 	// that is either in the process of being voted on, or locked in for the
 	// activation at the next threshold window change.
@@ -238,7 +239,7 @@ func (b *BlockChain) calcNextBlockVersion(prevNode *blockNode) (uint32, error) {
 // This function is safe for concurrent access.
 func (b *BlockChain) CalcNextBlockVersion() (uint32, error) {
 	b.ChainLock()
-	version, err := b.calcNextBlockVersion(b.index.LookupNode(&b.BestSnapshot().Hash))
+	version, err := b.calcNextBlockVersion(b.bd.GetMainChainTip())
 	b.ChainUnlock()
 	return version, err
 }
@@ -249,17 +250,18 @@ func (b *BlockChain) CalcNextBlockVersion() (uint32, error) {
 // activated.
 //
 // This function MUST be called with the chain state lock held (for writes)
-func (b *BlockChain) warnUnknownRuleActivations(node *blockNode) error {
+func (b *BlockChain) warnUnknownRuleActivations(node blockdag.IBlock) error {
+	if node == nil {
+		return fmt.Errorf("No block:%s\n", node.GetHash())
+	}
+	mp := b.bd.GetBlockById(node.GetMainParent())
 	// Warn if any unknown new rules are either about to activate or have
 	// already been activated.
 	for bit := uint32(0); bit < VBNumBits; bit++ {
 		checker := bitConditionChecker{bit: bit, chain: b}
 		cache := &b.warningCaches[bit]
-		ib := b.bd.GetBlockById(node.dagID)
-		if ib == nil {
-			return fmt.Errorf("No block:%s\n", node.hash)
-		}
-		state, err := b.thresholdState(b.index.LookupNode(b.bd.GetBlockHash(ib.GetMainParent())), checker, cache)
+
+		state, err := b.thresholdState(mp, checker, cache)
 		if err != nil {
 			return err
 		}
@@ -274,7 +276,7 @@ func (b *BlockChain) warnUnknownRuleActivations(node *blockNode) error {
 
 		case ThresholdLockedIn:
 			window := int32(checker.MinerConfirmationWindow())
-			activationHeight := window - (int32(node.height) % window)
+			activationHeight := window - (int32(node.GetHeight()) % window)
 			log.Warn(fmt.Sprintf("Unknown new rules are about to activate in "+
 				"%d blocks (bit %d)", activationHeight, bit))
 		}
