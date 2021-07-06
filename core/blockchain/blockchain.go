@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
@@ -15,6 +16,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
@@ -69,14 +71,6 @@ type BlockChain struct {
 	noVerify      bool
 	noCheckpoints bool
 
-	// These fields are related to the memory block index.  They both have
-	// their own locks, however they are often also protected by the chain
-	// lock to help prevent logic races when blocks are being processed.
-	//
-	// index houses the entire block index in memory.  The block index is
-	// a tree-shaped structure.
-	index *blockIndex
-
 	// These fields are related to handling of orphan blocks.  They are
 	// protected by a combination of the chain lock and the orphan lock.
 	orphanLock   sync.RWMutex
@@ -86,7 +80,7 @@ type BlockChain struct {
 	// These fields are related to checkpoint handling.  They are protected
 	// by the chain lock.
 	nextCheckpoint *params.Checkpoint
-	checkpointNode *blockNode
+	checkpointNode blockdag.IBlock
 
 	// The state is used as a fairly efficient way to cache information
 	// about the current best chain state that is returned to callers when
@@ -338,7 +332,6 @@ func New(config *Config) (*BlockChain, error) {
 		events:             config.Events,
 		sigCache:           config.SigCache,
 		indexManager:       config.IndexManager,
-		index:              newBlockIndex(config.DB, par),
 		orphans:            make(map[hash.Hash]*orphanBlock),
 		CacheInvalidTx:     config.CacheInvalidTx,
 		CacheNotifications: []*Notification{},
@@ -349,7 +342,7 @@ func New(config *Config) (*BlockChain, error) {
 
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType, b.CalcWeight,
-		1.0/float64(par.TargetTimePerBlock/time.Second), b.db)
+		1.0/float64(par.TargetTimePerBlock/time.Second), b.db, b.getBlockData)
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -383,8 +376,7 @@ func New(config *Config) (*BlockChain, error) {
 	log.Info(fmt.Sprintf("Chain state:totaltx=%d tipsNum=%d mainOrder=%d total=%d", b.BestSnapshot().TotalTxns, len(tips), b.bd.GetMainChainTip().GetOrder(), b.bd.GetBlockTotal()))
 
 	for _, v := range tips {
-		tnode := b.index.LookupNode(v.GetHash())
-		log.Info(fmt.Sprintf("hash=%v,order=%s,work=%v", tnode.hash, blockdag.GetOrderLogStr(uint(tnode.GetOrder())), tnode.workSum))
+		log.Info(fmt.Sprintf("hash=%s,order=%s,height=%d", v.GetHash(), blockdag.GetOrderLogStr(v.GetOrder()), v.GetHeight()))
 	}
 
 	return &b, nil
@@ -525,48 +517,25 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		}
 		log.Info(fmt.Sprintf("Dag loaded:loadTime=%v", roughtime.Since(bidxStart)))
 
-		// Determine how many blocks will be loaded into the index in order to
-		// allocate the right amount as a single alloc versus a whole bunch of
-		// littles ones to reduce pressure on the GC.
-		var block *types.SerializedBlock
-		for i := uint(0); i < uint(state.total); i++ {
-			blockHash := b.bd.GetBlockHash(i)
-			block, err = dbFetchBlockByHash(dbTx, blockHash)
-			if err != nil {
-				return err
-			}
-			parents := []*blockNode{}
-			for _, pb := range block.Block().Parents {
-				parent := b.index.LookupNode(pb)
-				if parent == nil {
-					return fmt.Errorf("Can't find parent %s", pb.String())
-				}
-				parents = append(parents, parent)
-			}
-			refblock := b.bd.GetBlockById(i)
-			//
-			node := &blockNode{}
-			initBlockNode(node, &block.Block().Header, parents)
-			b.index.addNode(node)
-			node.status = BlockStatus(refblock.GetStatus())
-			node.SetOrder(uint64(refblock.GetOrder()))
-			node.SetHeight(refblock.GetHeight())
-			node.dagID = i
-			if i != 0 {
-				node.CalcWorkSum(node.GetMainParent(b))
-			}
-		}
-
 		// Set the best chain view to the stored best state.
 		// Load the raw block bytes for the best block.
-		mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
+		mainTip := b.bd.GetMainChainTip()
+		mainTipNode := b.GetBlockNode(mainTip)
+		if mainTipNode == nil {
+			return fmt.Errorf("No main tip\n")
+		}
+		block, err := dbFetchBlockByHash(dbTx, mainTip.GetHash())
+		if err != nil {
+			return err
+		}
+
 		// Initialize the state related to the best block.
 		blockSize := uint64(block.Block().SerializeSize())
 		numTxns := uint64(len(block.Block().Transactions))
 
-		b.TokenTipID = uint32(b.index.GetDAGBlockID(&state.tokenTipHash))
-		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns,
-			mainTip.CalcPastMedianTime(b), state.totalTxns, b.bd.GetMainChainTip().GetWeight(),
+		b.TokenTipID = uint32(b.bd.GetBlockId(&state.tokenTipHash))
+		b.stateSnapshot = newBestState(mainTip.GetHash(), mainTipNode.Difficulty(), blockSize, numTxns,
+			b.CalcPastMedianTime(mainTip), state.totalTxns, b.bd.GetMainChainTip().GetWeight(),
 			b.bd.GetGraphState(), &state.tokenTipHash)
 		return nil
 	})
@@ -586,7 +555,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 //
 // This function is safe for concurrent access.
 func (b *BlockChain) HaveBlock(hash *hash.Hash) bool {
-	return b.index.HaveBlock(hash) || b.IsOrphan(hash)
+	return b.bd.HasBlock(hash) || b.IsOrphan(hash)
 }
 
 // IsCurrent returns whether or not the chain believes it is current.  Several
@@ -624,8 +593,11 @@ func (b *BlockChain) isCurrent() bool {
 	// The chain appears to be current if none of the checks reported
 	// otherwise.
 	minus24Hours := b.timeSource.AdjustedTime().Add(-24 * time.Hour).Unix()
-	lastNode := b.index.LookupNode(lastBlock.GetHash())
-	return lastNode.timestamp >= minus24Hours
+	lastNode := b.GetBlockNode(lastBlock)
+	if lastNode == nil {
+		return false
+	}
+	return lastNode.GetTimestamp() >= minus24Hours
 }
 
 // TipGeneration returns the entire generation of blocks stemming from the
@@ -755,7 +727,7 @@ func (b *BlockChain) fetchMainChainBlockByHash(hash *hash.Hash) (*types.Serializ
 // AFTER the given node.
 //
 // This function MUST be called with the chain state lock held (for reads).
-func (b *BlockChain) maxBlockSize(prevNode *blockNode) (int64, error) {
+func (b *BlockChain) maxBlockSize() (int64, error) {
 
 	maxSize := int64(b.params.MaximumBlockSizes[0])
 
@@ -812,29 +784,29 @@ func panicf(format string, args ...interface{}) {
 //    This is useful when using checkpoints.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlock, newOrders *list.List, oldOrders BlockNodeList) (bool, error) {
+func (b *BlockChain) connectDagChain(ib blockdag.IBlock, block *types.SerializedBlock, newOrders *list.List, oldOrders *list.List) (bool, error) {
 	if newOrders.Len() == 0 {
 		return true, nil
 	}
 	//Fast double spent check
-	b.fastDoubleSpentCheck(node, block)
+	b.fastDoubleSpentCheck(ib, block)
 
 	// We are extending the main (best) chain with a new block.  This is the
 	// most common case.
 	if newOrders.Len() == 1 {
-		if !node.IsOrdered() {
+		if !ib.IsOrdered() {
 			return true, nil
 		}
 		// Perform several checks to verify the block can be connected
 		// to the main chain without violating any rules and without
 		// actually connecting the block.
 		view := NewUtxoViewpoint()
-		view.SetViewpoints([]*hash.Hash{&node.hash})
+		view.SetViewpoints([]*hash.Hash{ib.GetHash()})
 
 		stxos := []SpentTxOut{}
-		err := b.checkConnectBlock(node, block, view, &stxos)
+		err := b.checkConnectBlock(ib, block, view, &stxos)
 		if err != nil {
-			node.Invalid(b)
+			b.bd.InvalidBlock(ib)
 			stxos = []SpentTxOut{}
 			view.Clean()
 		}
@@ -844,16 +816,14 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 		// this block.
 
 		// Connect the block to the main chain.
-		err = b.connectBlock(node, block, view, stxos)
+		err = b.connectBlock(ib, block, view, stxos)
 		if err != nil {
-			node.Invalid(b)
+			b.bd.InvalidBlock(ib)
 			return true, err
 		}
-		if !node.GetStatus().KnownInvalid() {
-			node.Valid(b)
-		}
+		b.bd.ValidBlock(ib)
 		// TODO, validating previous block
-		log.Debug("Block connected to the main chain", "hash", node.hash, "order", node.order)
+		log.Debug("Block connected to the main chain", "hash", ib.GetHash(), "order", ib.GetOrder())
 		return true, nil
 	}
 
@@ -866,8 +836,8 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 	// common ancenstor (the point where the chain forked).
 
 	// Reorganize the chain.
-	log.Debug(fmt.Sprintf("Start DAG REORGANIZE: Block %v is causing a reorganize.", node.hash))
-	err := b.reorganizeChain(oldOrders, newOrders, block)
+	log.Debug(fmt.Sprintf("Start DAG REORGANIZE: Block %v is causing a reorganize.", ib.GetHash()))
+	err := b.reorganizeChain(ib, oldOrders, newOrders, block)
 	if err != nil {
 		return false, err
 	}
@@ -876,7 +846,7 @@ func (b *BlockChain) connectDagChain(node *blockNode, block *types.SerializedBlo
 }
 
 // This function is fast check before global sequencing,it can judge who is the bad block quickly.
-func (b *BlockChain) fastDoubleSpentCheck(node *blockNode, block *types.SerializedBlock) {
+func (b *BlockChain) fastDoubleSpentCheck(ib blockdag.IBlock, block *types.SerializedBlock) {
 	/*transactions:=block.Transactions()
 	if len(transactions)>1 {
 		for i, tx := range transactions {
@@ -908,12 +878,12 @@ func (b *BlockChain) fastDoubleSpentCheck(node *blockNode, block *types.Serializ
 	}*/
 }
 
-func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlock, attachNodes *list.List) error {
+func (b *BlockChain) updateBestState(ib blockdag.IBlock, block *types.SerializedBlock, attachNodes *list.List) error {
 	// No warnings about unknown rules until the chain is current.
 	if b.isCurrent() {
 		// Warn if any unknown new rules are either about to activate or
 		// have already been activated.
-		if err := b.warnUnknownRuleActivations(node); err != nil {
+		if err := b.warnUnknownRuleActivations(ib); err != nil {
 			return err
 		}
 	}
@@ -932,14 +902,18 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 
 	blockSize := uint64(block.Block().SerializeSize())
 
-	mainTip := b.index.LookupNode(b.bd.GetMainChainTip().GetHash())
-	state := newBestState(mainTip.GetHash(), mainTip.bits, blockSize, numTxns, mainTip.CalcPastMedianTime(b), lastState.TotalTxns+numTxns,
+	mainTip := b.bd.GetMainChainTip()
+	mainTipNode := b.GetBlockNode(mainTip)
+	if mainTipNode == nil {
+		return fmt.Errorf("No main tip node\n")
+	}
+	state := newBestState(mainTip.GetHash(), mainTipNode.Difficulty(), blockSize, numTxns, b.CalcPastMedianTime(mainTip), lastState.TotalTxns+numTxns,
 		b.bd.GetMainChainTip().GetWeight(), b.bd.GetGraphState(), b.GetTokenTipHash())
 
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// Update best block state.
-		err := dbPutBestState(dbTx, state, mainTip.workSum)
+		err := dbPutBestState(dbTx, state, pow.CalcWork(mainTipNode.Difficulty(), mainTipNode.Pow().GetPowType()))
 		if err != nil {
 			return err
 		}
@@ -958,7 +932,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 	b.stateSnapshot = state
 	b.stateLock.Unlock()
 
-	return nil
+	return b.bd.Commit()
 }
 
 // connectBlock handles connecting the passed node/block to the end of the main
@@ -972,7 +946,7 @@ func (b *BlockChain) updateBestState(node *blockNode, block *types.SerializedBlo
 // it would be inefficient to repeat it.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
+func (b *BlockChain) connectBlock(node blockdag.IBlock, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
 	// Atomically insert info into the database.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// Update the utxo set using the state of the utxo view.  This
@@ -1021,7 +995,7 @@ func (b *BlockChain) connectBlock(node *blockNode, block *types.SerializedBlock,
 // the main (best) chain.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) disconnectBlock(node *blockNode, block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
+func (b *BlockChain) disconnectBlock(block *types.SerializedBlock, view *UtxoViewpoint, stxos []SpentTxOut) error {
 	// Calculate the exact subsidy produced by adding the block.
 	err := b.db.Update(func(dbTx database.Tx) error {
 		// Update the utxo set using the state of the utxo view.  This
@@ -1078,45 +1052,44 @@ func (b *BlockChain) FetchSubsidyCache() *SubsidyCache {
 //
 // This function MUST be called with the chain state lock held (for writes).
 
-func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *list.List, newBlock *types.SerializedBlock) error {
-	node := b.index.LookupNode(newBlock.Hash())
+func (b *BlockChain) reorganizeChain(ib blockdag.IBlock, detachNodes *list.List, attachNodes *list.List, newBlock *types.SerializedBlock) error {
 	oldBlocks := []*hash.Hash{}
-	for _, n := range detachNodes {
-		oldBlocks = append(oldBlocks, n.GetHash())
+	for e := detachNodes.Front(); e != nil; e = e.Next() {
+		ob := e.Value.(*blockdag.BlockOrderHelp)
+		oldBlocks = append(oldBlocks, ob.Block.GetHash())
 	}
+
 	b.sendNotification(Reorganization, &ReorganizationNotifyData{
 		OldBlocks: oldBlocks,
 		NewBlock:  newBlock.Hash(),
-		NewOrder:  node.GetOrder(),
+		NewOrder:  uint64(ib.GetOrder()),
 	})
 	// Why the old order is the order that was removed by the new block, because the new block
 	// must be one of the tip of the dag.This is very important for the following understanding.
 	// In the two case, the perspective is the same.In the other words, the future can not
 	// affect the past.
-	var n *blockNode
 	var block *types.SerializedBlock
 	var err error
 
-	dl := len(detachNodes)
-	for i := dl - 1; i >= 0; i-- {
-		n = detachNodes[i]
-		b.updateTokenState(n, nil, true)
-		//
-		newn := b.index.LookupNode(n.GetHash())
-		block, err = b.fetchBlockByHash(&n.hash)
-		if err != nil || n == nil {
+	for e := detachNodes.Back(); e != nil; e = e.Prev() {
+		n := e.Value.(*blockdag.BlockOrderHelp)
+		if n == nil {
 			panic(err.Error())
 		}
-		if !n.IsOrdered() {
-			panic("no ordered")
+		b.updateTokenState(n.Block, nil, true)
+		//
+		block, err = b.fetchBlockByHash(n.Block.GetHash())
+		if err != nil {
+			panic(err.Error())
 		}
-		block.SetOrder(n.order)
+
+		block.SetOrder(uint64(n.OldOrder))
 		// Load all of the utxos referenced by the block that aren't
 		// already in the view.
 		var stxos []SpentTxOut
 		view := NewUtxoViewpoint()
 		view.SetViewpoints([]*hash.Hash{block.Hash()})
-		if !b.index.NodeStatus(n).KnownInvalid() {
+		if !n.Block.GetStatus().KnownInvalid() {
 			b.CalculateDAGDuplicateTxs(block)
 			err = view.fetchInputUtxos(b.db, block, b)
 			if err != nil {
@@ -1136,19 +1109,15 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 			// Store the loaded block and spend journal entry for later.
 			err = view.disconnectTransactions(block, stxos, b)
 			if err != nil {
-				n.Invalid(b)
-				newn.Invalid(b)
+				b.bd.InvalidBlock(n.Block)
 				log.Info(fmt.Sprintf("%s", err))
 			}
 		}
+		b.bd.ValidBlock(n.Block)
 
-		n.UnsetStatusFlags(statusValid)
-		newn.UnsetStatusFlags(statusValid)
-		n.UnsetStatusFlags(statusInvalid)
-		newn.UnsetStatusFlags(statusInvalid)
-		newn.FlushToDB(b)
+		//newn.FlushToDB(b)
 
-		err = b.disconnectBlock(n, block, view, stxos)
+		err = b.disconnectBlock(block, view, stxos)
 		if err != nil {
 			return err
 		}
@@ -1156,42 +1125,39 @@ func (b *BlockChain) reorganizeChain(detachNodes BlockNodeList, attachNodes *lis
 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		nodeBlock := e.Value.(blockdag.IBlock)
-		if nodeBlock.GetID() == node.GetID() {
-			n = node
+		if nodeBlock.GetID() == ib.GetID() {
 			block = newBlock
 		} else {
-			n = b.index.LookupNode(nodeBlock.GetHash())
 			// If any previous nodes in attachNodes failed validation,
 			// mark this one as having an invalid ancestor.
-			block, err = b.FetchBlockByHash(&n.hash)
+			block, err = b.FetchBlockByHash(nodeBlock.GetHash())
 
 			if err != nil {
 				return err
 			}
-			block.SetOrder(n.GetOrder())
+			block.SetOrder(uint64(nodeBlock.GetOrder()))
+			block.SetHeight(nodeBlock.GetHeight())
 		}
-		if !n.IsOrdered() {
+		if !nodeBlock.IsOrdered() {
 			continue
 		}
 		view := NewUtxoViewpoint()
-		view.SetViewpoints([]*hash.Hash{n.GetHash()})
+		view.SetViewpoints([]*hash.Hash{nodeBlock.GetHash()})
 		stxos := []SpentTxOut{}
-		err = b.checkConnectBlock(n, block, view, &stxos)
+		err = b.checkConnectBlock(nodeBlock, block, view, &stxos)
 		if err != nil {
-			n.Invalid(b)
+			b.bd.InvalidBlock(nodeBlock)
 			stxos = []SpentTxOut{}
 			view.Clean()
 			log.Info(fmt.Sprintf("%s", err))
 		}
-		err = b.connectBlock(n, block, view, stxos)
+		err = b.connectBlock(nodeBlock, block, view, stxos)
 		if err != nil {
-			n.Invalid(b)
+			b.bd.InvalidBlock(nodeBlock)
 			log.Info(fmt.Sprintf("%s", err))
 			continue
 		}
-		if !n.GetStatus().KnownInvalid() {
-			n.Valid(b)
-		}
+		b.bd.ValidBlock(nodeBlock)
 	}
 
 	// Log the point where the chain forked and old and new best chain
@@ -1219,72 +1185,9 @@ func (b *BlockChain) BlockDAG() *blockdag.BlockDAG {
 	return b.bd
 }
 
-// Return the blockindex instance
-func (b *BlockChain) BlockIndex() *blockIndex {
-	return b.index
-}
-
 // Return median time source
 func (b *BlockChain) TimeSource() MedianTimeSource {
 	return b.timeSource
-}
-
-// Return the reorganization information
-func (b *BlockChain) getReorganizeNodes(newNode *blockNode, block *types.SerializedBlock, newOrders *list.List, oldOrders *BlockNodeList) {
-	var refnode *blockNode
-	var oldOrdersTemp BlockNodeList
-
-	for e := newOrders.Front(); e != nil; e = e.Next() {
-		refblock := e.Value.(blockdag.IBlock)
-		if refblock.GetID() == newNode.GetID() {
-			refnode = newNode
-		} else {
-			refnode = b.index.LookupNode(refblock.GetHash())
-			if refnode.IsOrdered() {
-				oldOrdersTemp = append(oldOrdersTemp, refnode.Clone())
-			}
-		}
-		refnode.SetOrder(uint64(refblock.GetOrder()))
-	}
-	if newOrders.Len() <= 1 || len(oldOrdersTemp) == 0 {
-		return
-	}
-
-	if len(oldOrdersTemp) > 1 {
-		sort.Sort(oldOrdersTemp)
-	}
-	oldOrdersList := list.New()
-	for i := 0; i < len(oldOrdersTemp); i++ {
-		oldOrdersList.PushBack(oldOrdersTemp[i])
-	}
-
-	// optimization
-	ne := newOrders.Front()
-	oe := oldOrdersList.Front()
-	for {
-		if ne == nil || oe == nil {
-			break
-		}
-		neNext := ne.Next()
-		oeNext := oe.Next()
-
-		neBlock := ne.Value.(blockdag.IBlock)
-		oeNode := oe.Value.(*blockNode)
-		if neBlock.GetID() == oeNode.GetID() {
-			newOrders.Remove(ne)
-			oldOrdersList.Remove(oe)
-		} else {
-			break
-		}
-
-		ne = neNext
-		oe = oeNext
-	}
-	//
-	for e := oldOrdersList.Front(); e != nil; e = e.Next() {
-		node := e.Value.(*blockNode)
-		*oldOrders = append(*oldOrders, node)
-	}
 }
 
 // FetchSpendJournal can return the set of outputs spent for the target block.
@@ -1388,11 +1291,11 @@ func (b *BlockChain) CalculateFees(block *types.SerializedBlock) types.AmountMap
 
 // GetFees
 func (b *BlockChain) GetFees(h *hash.Hash) types.AmountMap {
-	ib := b.bd.GetBlock(h)
+	ib := b.GetBlock(h)
 	if ib == nil {
 		return nil
 	}
-	if BlockStatus(ib.GetStatus()).KnownInvalid() {
+	if ib.GetStatus().KnownInvalid() {
 		return nil
 	}
 	block, err := b.FetchBlockByHash(h)
@@ -1412,9 +1315,7 @@ func (b *BlockChain) GetFeeByCoinID(h *hash.Hash, coinId types.CoinID) int64 {
 	return fees[coinId]
 }
 
-func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
-
-	status := BlockStatus(state)
+func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, status blockdag.BlockStatus) int64 {
 	if status.KnownInvalid() {
 		return 0
 	}
@@ -1484,7 +1385,7 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 		if len(parents) > 1 {
 			parentsSet := blockdag.NewIdSet()
 			for _, bh := range parents {
-				id := b.bd.GetBlock(bh)
+				id := b.GetBlock(bh)
 				if id == nil {
 					continue
 				}
@@ -1496,7 +1397,7 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 			mainParent = b.bd.GetMainParent(parentsSet)
 
 		} else {
-			mainParent = b.bd.GetBlock(parents[0])
+			mainParent = b.GetBlock(parents[0])
 		}
 		if mainParent == nil {
 			return hash.ZeroHash
@@ -1514,4 +1415,56 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 	tsMerkle := merkle.BuildTokenBalanceMerkleTreeStore(balanceUpdate)
 
 	return *tsMerkle[0]
+}
+
+func (b *BlockChain) getBlockData(hash *hash.Hash) blockdag.IBlockData {
+	block, err := b.fetchBlockByHash(hash)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return NewBlockNode(&block.Block().Header, block.Block().Parents)
+}
+
+// CalcPastMedianTime calculates the median time of the previous few blocks
+// prior to, and including, the block node.
+//
+// This function is safe for concurrent access.
+func (b *BlockChain) CalcPastMedianTime(block blockdag.IBlock) time.Time {
+	// Create a slice of the previous few block timestamps used to calculate
+	// the median per the number defined by the constant medianTimeBlocks.
+	timestamps := make([]int64, medianTimeBlocks)
+	numNodes := 0
+	iterBlock := block
+	for i := 0; i < medianTimeBlocks && iterBlock != nil; i++ {
+		iterNode := b.GetBlockNode(iterBlock)
+		if iterNode == nil {
+			break
+		}
+		timestamps[i] = iterNode.GetTimestamp()
+		numNodes++
+
+		iterBlock = b.bd.GetBlockById(iterBlock.GetMainParent())
+	}
+
+	// Prune the slice to the actual number of available timestamps which
+	// will be fewer than desired near the beginning of the block chain
+	// and sort them.
+	timestamps = timestamps[:numNodes]
+	sort.Sort(util.TimeSorter(timestamps))
+
+	// NOTE: The consensus rules incorrectly calculate the median for even
+	// numbers of blocks.  A true median averages the middle two elements
+	// for a set with an even number of elements in it.   Since the constant
+	// for the previous number of blocks to be used is odd, this is only an
+	// issue for a few blocks near the beginning of the chain.  I suspect
+	// this is an optimization even though the result is slightly wrong for
+	// a few of the first blocks since after the first few blocks, there
+	// will always be an odd number of blocks in the set per the constant.
+	//
+	// This code follows suit to ensure the same rules are used, however, be
+	// aware that should the medianTimeBlocks constant ever be changed to an
+	// even number, this code will be wrong.
+	medianTimestamp := timestamps[numNodes/2]
+	return time.Unix(medianTimestamp, 0)
 }

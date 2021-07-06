@@ -58,7 +58,7 @@ func (ph *Phantom_v2) Init(bd *BlockDAG) bool {
 }
 
 // Add a block
-func (ph *Phantom_v2) AddBlock(b IBlock) *list.List {
+func (ph *Phantom_v2) AddBlock(b IBlock) (*list.List, *list.List) {
 	if ph.blocks == nil {
 		ph.blocks = map[hash.Hash]*PhantomBlock{}
 	}
@@ -72,7 +72,7 @@ func (ph *Phantom_v2) AddBlock(b IBlock) *list.List {
 	result := list.New()
 	result.PushBack(pb)
 
-	return result
+	return result, nil
 }
 
 // Build self block

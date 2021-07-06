@@ -71,7 +71,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 	} else if hashStop.IsEqual(locator[0]) {
 		// In this case, we're going back to what block we need.
 		for _, v := range locator {
-			if !b.index.HaveBlock(v) {
+			if !b.bd.HasBlock(v) {
 				continue
 			}
 			hashes = append(hashes, hash.Hash(*v))
@@ -81,7 +81,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 	if !b.bd.HasBlock(endHash) {
 		return nil
 	}
-	endBlock := b.bd.GetBlock(endHash)
+	endBlock := b.GetBlock(endHash)
 	hashesSet := blockdag.NewHashSet()
 
 	// First of all, we need to make sure we have the parents of block.
@@ -102,11 +102,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 	}
 
 	for curBlock != nil {
-		curBlockH := b.bd.GetBlockByOrder(curBlock.GetOrder() + 1)
-		if curBlockH == nil {
-			break
-		}
-		curBlock = b.bd.GetBlock(curBlockH)
+		curBlock = b.bd.GetBlockByOrder(curBlock.GetOrder() + 1)
 		hashesSet.Add(curBlock.GetHash())
 		curNum++
 
@@ -132,7 +128,7 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 // This function is safe for concurrent access.
 func (b *BlockChain) BlockLocatorFromHash(hash *hash.Hash) BlockLocator {
 	b.ChainRLock()
-	node := b.index.LookupNode(hash)
+	node := b.bd.GetBlock(hash)
 	locator := b.blockLocator(node)
 	b.ChainRUnlock()
 	return locator
@@ -142,11 +138,10 @@ func (b *BlockChain) BlockLocatorFromHash(hash *hash.Hash) BlockLocator {
 // node can be nil in which case the block locator for the current DAG
 // associated with the view will be returned.
 // This function MUST be called with the view mutex locked (for reads).
-func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
+func (b *BlockChain) blockLocator(node blockdag.IBlock) BlockLocator {
 	// Use the current tip if requested.
 	if node == nil {
-		lb := b.bd.GetMainChainTip()
-		node = b.index.LookupNode(lb.GetHash())
+		node := b.bd.GetMainChainTip()
 		if node == nil {
 			return nil
 		}
@@ -156,22 +151,22 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 	// block locator.  See the description of the algorithm for how these
 	// numbers are derived.
 	var maxEntries uint8
-	if node.order <= 12 {
-		maxEntries = uint8(node.order) + 1
+	if node.GetOrder() <= 12 {
+		maxEntries = uint8(node.GetOrder()) + 1
 	} else {
 		// Requested hash itself + previous 10 entries + genesis block.
 		// Then floor(log2(height-10)) entries for the skip portion.
-		adjustedHeight := uint32(node.order) - 10
+		adjustedHeight := uint32(node.GetOrder()) - 10
 		maxEntries = 12 + fastLog2Floor(adjustedHeight)
 	}
 	locator := make(BlockLocator, 0, maxEntries)
 
 	step := uint64(1)
 	for node != nil {
-		locator = append(locator, &node.hash)
+		locator = append(locator, node.GetHash())
 
 		// Nothing more to add once the genesis block has been added.
-		if node.order == 0 {
+		if node.GetOrder() == 0 {
 			break
 		}
 
@@ -182,12 +177,11 @@ func (b *BlockChain) blockLocator(node *blockNode) BlockLocator {
 		//	 height = 0
 		// }
 		height := uint64(0)
-		if node.order > step {
-			height = node.order - step
+		if uint64(node.GetOrder()) > step {
+			height = uint64(node.GetOrder()) - step
 		}
 
-		nodeH := b.bd.GetBlockByOrder(uint(height))
-		node = b.index.LookupNode(nodeH)
+		node = b.bd.GetBlockByOrder(uint(height))
 		// Once 11 entries have been included, start doubling the
 		// distance between included hashes.
 		if len(locator) > 10 {

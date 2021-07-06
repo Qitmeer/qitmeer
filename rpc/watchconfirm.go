@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 )
@@ -90,7 +89,7 @@ func (w *WatchTxConfirmServer) Handle(wsc *wsClient) {
 			w.SendTxNotification(tx, 0, wsc, false, false)
 			continue
 		}
-		InValid := blockchain.BlockStatus(ib.GetStatus()).KnownInvalid()
+		InValid := ib.GetStatus().KnownInvalid()
 		if InValid {
 			w.SendTxNotification(tx, 0, wsc, false, false)
 			continue

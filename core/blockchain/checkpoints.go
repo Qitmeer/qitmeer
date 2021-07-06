@@ -92,7 +92,7 @@ func (b *BlockChain) verifyCheckpoint(layer uint64, hash *hash.Hash) bool {
 // should really only happen for blocks before the first checkpoint).
 //
 // This function MUST be called with the chain lock held (for reads).
-func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
+func (b *BlockChain) findPreviousCheckpoint() (blockdag.IBlock, error) {
 	if !b.HasCheckpoints() {
 		return nil, nil
 	}
@@ -106,7 +106,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
 		// Loop backwards through the available checkpoints to find one
 		// that is already available.
 		for i := numCheckpoints - 1; i >= 0; i-- {
-			node := b.index.LookupNode(checkpoints[i].Hash)
+			node := b.bd.GetBlock(checkpoints[i].Hash)
 			if node == nil {
 				continue
 			}
@@ -151,7 +151,7 @@ func (b *BlockChain) findPreviousCheckpoint() (*blockNode, error) {
 	// this lookup fails something is very wrong since the chain has already
 	// passed the checkpoint which was verified as accurate before inserting
 	// it.
-	checkpointNode := b.index.LookupNode(b.nextCheckpoint.Hash)
+	checkpointNode := b.bd.GetBlock(b.nextCheckpoint.Hash)
 	if checkpointNode == nil {
 		return nil, AssertError(fmt.Sprintf("findPreviousCheckpoint "+
 			"failed lookup of known good block node %s",
@@ -237,17 +237,17 @@ func (b *BlockChain) IsCheckpointCandidate(preBlock, block blockdag.IBlock) (boo
 	if nextBlock == nil {
 		return false, nil
 	}
-	nextNode := b.index.LookupNode(nextBlock.GetHash())
+	nextNode := b.GetBlockNode(nextBlock)
 	if nextNode == nil {
 		return false, nil
 	}
 
-	preNode := b.index.LookupNode(preBlock.GetHash())
+	preNode := b.GetBlockNode(preBlock)
 	if preNode == nil {
 		return false, nil
 	}
 
-	node := b.index.LookupNode(block.GetHash())
+	node := b.GetBlockNode(block)
 	if node == nil {
 		return false, nil
 	}
@@ -255,9 +255,9 @@ func (b *BlockChain) IsCheckpointCandidate(preBlock, block blockdag.IBlock) (boo
 	// A checkpoint must have timestamps for the block and the blocks on
 	// either side of it in order (due to the median time allowance this is
 	// not always the case).
-	prevTime := time.Unix(nextNode.timestamp, 0)
-	curTime := time.Unix(node.timestamp, 0)
-	nextTime := time.Unix(preNode.timestamp, 0)
+	prevTime := time.Unix(nextNode.GetTimestamp(), 0)
+	curTime := time.Unix(node.GetTimestamp(), 0)
+	nextTime := time.Unix(preNode.GetTimestamp(), 0)
 	if prevTime.After(curTime) || nextTime.Before(curTime) {
 		return false, nil
 	}

@@ -329,7 +329,7 @@ func (node *DebugAddressNode) checkUTXO(blueM *map[uint]bool) error {
 		if entry.IsSpent() {
 			continue
 		}
-		ib := node.bc.BlockDAG().GetBlock(entry.BlockHash())
+		ib := node.bc.GetBlock(entry.BlockHash())
 		if ib.GetOrder() == blockdag.MaxBlockOrder {
 			continue
 		}

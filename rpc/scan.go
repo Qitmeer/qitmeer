@@ -180,12 +180,12 @@ fetchRange:
 				goto loopHashList
 			}
 			h := blk.Block().BlockHash()
-			node := chain.BlockIndex().LookupNode(&h)
+			node := chain.BlockDAG().GetBlock(&h)
 			if node == nil {
 				return nil, nil, nil, cmds.ErrInvalidNode
 			}
 			// Update the source block order
-			blk.SetOrder(node.GetOrder())
+			blk.SetOrder(uint64(node.GetOrder()))
 			blk.SetHeight(node.GetHeight())
 			if i == 0 && lastBlockHash != nil {
 				// Ensure the new hashList is on the same fork

@@ -85,7 +85,7 @@ func loadTestData(fileName string, testData *TestData) error {
 // DAG block data
 type TestBlock struct {
 	hash      hash.Hash
-	parents   *IdSet
+	parents   []*hash.Hash
 	timeStamp int64
 }
 
@@ -95,8 +95,8 @@ func (tb *TestBlock) GetHash() *hash.Hash {
 }
 
 // Get all parents set,the dag block has more than one parent
-func (tb *TestBlock) GetParents() []uint {
-	return tb.parents.List()
+func (tb *TestBlock) GetParents() []*hash.Hash {
+	return tb.parents
 }
 
 func (tb *TestBlock) GetTimestamp() int64 {
@@ -166,20 +166,18 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 	}
 
 	bd = BlockDAG{}
-	instance := bd.Init(dagType, CalcBlockWeight, -1, db)
+	instance := bd.Init(dagType, CalcBlockWeight, -1, db, nil)
 	tbMap = map[string]IBlock{}
 	for i := 0; i < blen; i++ {
-		parents := NewIdSet()
+		parents := []*hash.Hash{}
 		for _, parent := range tbd[i].Parents {
-			parents.Add(tbMap[parent].GetID())
+			parents = append(parents, tbMap[parent].GetHash())
 		}
 		block := buildBlock(parents)
-		l, ib, _ := bd.AddBlock(block)
+		l, _, ib, _ := bd.AddBlock(block)
 		if l != nil && l.Len() > 0 {
 			tbMap[tbd[i].Tag] = ib
-			err = db.Update(func(dbTx database.Tx) error {
-				return DBPutDAGBlock(dbTx, ib)
-			})
+			err = bd.Commit()
 			if err != nil {
 				return nil
 			}
@@ -193,7 +191,7 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 	return instance
 }
 
-func buildBlock(parents *IdSet) *TestBlock {
+func buildBlock(parents []*hash.Hash) *TestBlock {
 	tempHash++
 	hashStr := fmt.Sprintf("%d", tempHash)
 	h := hash.MustHexToDecodedHash(hashStr)
@@ -297,7 +295,7 @@ func reverseBlockList(s []uint) []uint {
 	return s
 }
 
-func CalcBlockWeight(blocks int64, blockhash *hash.Hash, state byte) int64 {
+func CalcBlockWeight(blocks int64, blockhash *hash.Hash, state BlockStatus) int64 {
 	if blocks == 0 {
 		return 0
 	} else if blocks < 3 {
