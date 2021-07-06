@@ -8,8 +8,8 @@ import (
 )
 
 type LedgerParams struct {
-	UnlocksPerHeight     int   // How many will be unlocked at each DAG main height.
-	UnlocksPerHeightStep int   // How many height will lock a tx.
+	UnlocksPerHeight     int64 // How many will be unlocked at each DAG main height.
+	UnlocksPerHeightStep int64 // How many height will lock a tx.
 	GenesisAmountUnit    int64 // the unit amount of equally divided.
 }
 
