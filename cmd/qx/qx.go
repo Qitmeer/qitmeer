@@ -6,14 +6,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/crypto/seed"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/qx"
 	"github.com/Qitmeer/qitmeer/wallet"
-	"io/ioutil"
-	"os"
-	"strings"
 )
 
 const (
@@ -412,6 +413,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 	}
 	txSignCmd.StringVar(&privateKey, "k", "", "the ec private key to sign the raw transaction")
 	txSignCmd.StringVar(&pkScripts, "p", "", "the vin pkScripts in order")
+	txSignCmd.StringVar(&network, "n", "testnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
 
 	msgSignCmd := flag.NewFlagSet("msg-sign", flag.ExitOnError)
 	msgSignCmd.Usage = func() {
