@@ -69,19 +69,7 @@ var MixNetParams = Params{
 
 		Percent: map[pow.MainHeight]pow.PercentItem{
 			pow.MainHeight(0): {
-				pow.BLAKE2BD:         10,
-				pow.CUCKAROO:         10,
-				pow.QITMEERKECCAK256: 20,
-				pow.CUCKAROOM:        10,
-				pow.MEER_CRYPTO:      50,
-			},
-			pow.MainHeight(35000): {
-				pow.BLAKE2BD:         10,
-				pow.CUCKAROO:         10,
-				pow.QITMEERKECCAK256: 10,
-				pow.CRYPTONIGHT:      10,
-				pow.CUCKAROOM:        10,
-				pow.MEER_CRYPTO:      50,
+				pow.MEER_CRYPTO: 100,
 			},
 		},
 		// after this height the big graph will be the main pow graph
