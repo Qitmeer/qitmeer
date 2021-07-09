@@ -99,8 +99,8 @@ func CanNotSpend(t *testing.T, h *Harness, amt types.Amount, preOutpoint *types.
 
 	feeRate := types.Amount{Value: 10, Id: amt.Id}
 	_, err = h.Wallet.PayAndSend([]*types.TxOutput{output}, feeRate, preOutpoint, lockTime)
-	if err == nil {
-		t.Fatalf("lock script error")
+	if err != nil {
+		t.Fatalf("lock script error:%v", err)
 	}
 	return nil, addr
 }
