@@ -14,7 +14,6 @@ func TestMain(m *testing.M) {
 }
 
 func Test_GetFutureSet(t *testing.T) {
-
 	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
 		t.FailNow()
@@ -299,5 +298,55 @@ func Test_MainChainTip(t *testing.T) {
 		if ret != v.Output {
 			t.Fatalf("Main chain tip check:%v is %v not %v", v.Input, ret, v.Output)
 		}
+	}
+}
+
+func Test_Rollback(t *testing.T) {
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
+	if ibd == nil {
+		t.FailNow()
+	}
+	ph := ibd.(*Phantom)
+	orders := NewIdSet()
+	total := bd.GetBlockTotal()
+	tips := bd.tips.Clone()
+
+	for i := uint(0); i < bd.GetBlockTotal(); i++ {
+		ib := ph.bd.getBlockById(i)
+		orders.AddPair(ib.GetID(), ib.GetOrder())
+	}
+
+	parents := []*hash.Hash{}
+	parents = append(parents, tbMap["I"].GetHash())
+	parents = append(parents, tbMap["G"].GetHash())
+
+	block := buildBlock(parents)
+	l, _, ib, _ := bd.AddBlock(block)
+	if l != nil && l.Len() > 0 {
+		tbMap["L"] = ib
+	} else {
+		t.Fatalf("Error:%d  L\n", tempHash)
+		return
+	}
+
+	bd.rollback()
+
+	if bd.GetBlockTotal() != total {
+		t.Fatalf("Roll back error")
+	}
+	for i := uint(0); i < bd.GetBlockTotal(); i++ {
+		ib := ph.bd.getBlockById(i)
+		v := orders.Get(i)
+		o, ok := v.(uint)
+		if !ok {
+			t.Fatalf("Roll back error")
+		}
+		if o != ib.GetOrder() {
+			t.Fatalf("Roll back error")
+		}
+	}
+
+	if !bd.tips.IsEqual(tips) {
+		t.Fatalf("Roll back error")
 	}
 }

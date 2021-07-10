@@ -305,12 +305,11 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, *list.List, IBlock, bool
 	//
 	if bd.blockTotal == 0 {
 		bd.genesis = *block.GetHash()
-	} else {
-		bd.lastSnapshot.Clean()
-		bd.lastSnapshot.block = ib
-		bd.lastSnapshot.tips = bd.tips.Clone()
-		bd.lastSnapshot.lastTime = bd.lastTime
 	}
+	bd.lastSnapshot.Clean()
+	bd.lastSnapshot.block = ib
+	bd.lastSnapshot.tips = bd.tips.Clone()
+	bd.lastSnapshot.lastTime = bd.lastTime
 	//
 	bd.blockTotal++
 
@@ -1214,7 +1213,15 @@ func (bd *BlockDAG) Commit() error {
 
 // Commit the consensus content to the database for persistence
 func (bd *BlockDAG) commit() error {
+	needPB := false
 	if bd.lastSnapshot.IsValid() {
+		needPB = true
+	} else if bd.lastSnapshot.block != nil {
+		if bd.lastSnapshot.block.GetID() == 0 {
+			needPB = true
+		}
+	}
+	if needPB {
 		err := bd.db.Update(func(dbTx database.Tx) error {
 			return DBPutDAGBlockIdByHash(dbTx, bd.lastSnapshot.block)
 		})

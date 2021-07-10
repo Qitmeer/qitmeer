@@ -31,7 +31,10 @@ func (d *DAGSnapshot) AddOrder(ib IBlock) {
 }
 
 func (d *DAGSnapshot) IsValid() bool {
-	return d.block != nil
+	if d.block == nil {
+		return false
+	}
+	return d.block.GetID() != 0
 }
 
 func NewDAGSnapshot() *DAGSnapshot {

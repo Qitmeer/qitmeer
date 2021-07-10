@@ -447,6 +447,7 @@ func (ph *Phantom) preUpdateVirtualBlock() *PhantomBlock {
 	}
 	for k := range ph.diffAnticone.GetMap() {
 		dab := ph.getBlock(k)
+		ph.bd.lastSnapshot.AddOrder(dab)
 		dab.SetOrder(MaxBlockOrder)
 	}
 	return nil
