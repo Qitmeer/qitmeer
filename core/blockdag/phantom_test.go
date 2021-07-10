@@ -285,3 +285,19 @@ func Test_GetBlockConcurrency(t *testing.T) {
 		t.Fatal()
 	}
 }
+
+func Test_MainChainTip(t *testing.T) {
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
+	if ibd == nil {
+		t.FailNow()
+	}
+	ph := ibd.(*Phantom)
+	ph.UpdateVirtualBlockOrder()
+
+	for _, v := range testData.PH_MainChainTip {
+		_, ret := bd.CheckSubMainChainTip(getBlocksByTag(v.Input))
+		if ret != v.Output {
+			t.Fatalf("Main chain tip check:%v is %v not %v", v.Input, ret, v.Output)
+		}
+	}
+}

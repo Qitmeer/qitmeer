@@ -33,6 +33,11 @@ type TestInOutData2 struct {
 	Output int    `json:"out"`
 }
 
+type TestInOutData3 struct {
+	Input  []string `json:"in"`
+	Output bool     `json:"out"`
+}
+
 // Structure of test data
 type TestData struct {
 	PH_Fig2Blocks      []TestBlocksData `json:"PH_fig2-blocks"`
@@ -54,6 +59,7 @@ type TestData struct {
 	CP_Blocks          []TestBlocksData
 	PH_MPConcurrency   TestInOutData2
 	PH_BConcurrency    TestInOutData2
+	PH_MainChainTip    []TestInOutData3
 }
 
 // Load some data that phantom test need,it can use to build the dag ;This is the
@@ -335,6 +341,18 @@ func removeBlockDB(dbPath string) error {
 	}
 
 	return nil
+}
+
+func getBlocksByTag(tags []string) []uint {
+	result := []uint{}
+	for _, v := range tags {
+		ib, ok := tbMap[v]
+		if !ok {
+			continue
+		}
+		result = append(result, ib.GetID())
+	}
+	return result
 }
 
 func exit() {
