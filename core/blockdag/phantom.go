@@ -44,7 +44,7 @@ func (ph *Phantom) Init(bd *BlockDAG) bool {
 	}
 
 	// main chain
-	ph.mainChain = &MainChain{bd, MaxId, 0}
+	ph.mainChain = &MainChain{bd, MaxId, 0, NewIdSet()}
 	ph.diffAnticone = NewIdSet()
 
 	//vb
@@ -266,6 +266,12 @@ func (ph *Phantom) buildSortDiffAnticone(diffAn *IdSet) *IdSet {
 }
 
 func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) (*PhantomBlock, *list.List) {
+	if ph.bd.lastSnapshot.IsValid() {
+		ph.bd.lastSnapshot.diffAnticone = ph.diffAnticone.Clone()
+		ph.bd.lastSnapshot.mainChainTip = ph.mainChain.tip
+		ph.bd.lastSnapshot.mainChainGenesis = ph.mainChain.genesis
+	}
+
 	ph.virtualBlock.SetOrder(MaxBlockOrder)
 	if !ph.isMaxMainTip(buestTip) {
 		ph.diffAnticone.AddPair(pb.GetID(), pb)
@@ -274,7 +280,7 @@ func (ph *Phantom) updateMainChain(buestTip *PhantomBlock, pb *PhantomBlock) (*P
 	if ph.mainChain.tip == MaxId {
 		ph.mainChain.tip = buestTip.GetID()
 		ph.mainChain.genesis = buestTip.GetID()
-		ph.mainChain.Add(buestTip.GetID())
+		ph.mainChain.commitBlocks.AddPair(buestTip.GetID(), true)
 		ph.diffAnticone.Clean()
 		buestTip.SetOrder(0)
 		ph.bd.commitOrder[0] = buestTip.GetID()
@@ -350,7 +356,7 @@ func (ph *Phantom) rollBackMainChain(intersection uint) {
 		if curPb.GetID() == intersection {
 			break
 		}
-		ph.mainChain.Remove(curPb.GetID())
+		ph.mainChain.commitBlocks.AddPair(curPb.GetID(), false)
 
 		if curPb.mainParent == MaxId {
 			break
@@ -364,16 +370,20 @@ func (ph *Phantom) updateMainOrder(path []uint, intersection uint) {
 	l := len(path)
 	for i := l - 1; i >= 0; i-- {
 		curBlock := ph.getBlock(path[i])
+		ph.bd.lastSnapshot.AddOrder(curBlock)
 		curBlock.SetOrder(startOrder + uint(curBlock.blueDiffAnticone.Size()+curBlock.redDiffAnticone.Size()+1))
 		ph.bd.commitOrder[curBlock.GetOrder()] = curBlock.GetID()
-		ph.mainChain.Add(curBlock.GetID())
+
+		ph.mainChain.commitBlocks.AddPair(curBlock.GetID(), true)
 		for k, v := range curBlock.blueDiffAnticone.GetMap() {
 			dab := ph.getBlock(k)
+			ph.bd.lastSnapshot.AddOrder(dab)
 			dab.SetOrder(startOrder + v.(uint))
 			ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
 		}
 		for k, v := range curBlock.redDiffAnticone.GetMap() {
 			dab := ph.getBlock(k)
+			ph.bd.lastSnapshot.AddOrder(dab)
 			dab.SetOrder(startOrder + v.(uint))
 			ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
 		}
@@ -414,15 +424,17 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 	startOrder := ph.getBlock(ph.mainChain.tip).GetOrder()
 	for k, v := range ph.virtualBlock.blueDiffAnticone.GetMap() {
 		dab := ph.getBlock(k)
+		ph.bd.lastSnapshot.AddOrder(dab)
 		dab.SetOrder(startOrder + v.(uint))
 		ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
 	}
 	for k, v := range ph.virtualBlock.redDiffAnticone.GetMap() {
 		dab := ph.getBlock(k)
+		ph.bd.lastSnapshot.AddOrder(dab)
 		dab.SetOrder(startOrder + v.(uint))
 		ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
 	}
-
+	ph.bd.lastSnapshot.AddOrder(ph.virtualBlock)
 	ph.virtualBlock.SetOrder(ph.bd.blockTotal + 1)
 
 	return ph.getBlock(ph.mainChain.tip)
@@ -794,10 +806,23 @@ type MainChain struct {
 	bd      *BlockDAG
 	tip     uint
 	genesis uint
+
+	commitBlocks *IdSet
 }
 
 func (mc *MainChain) Has(id uint) bool {
 	result := false
+
+	if mc.commitBlocks.Has(id) {
+		opt := mc.commitBlocks.Get(id)
+		add, ok := opt.(bool)
+		if ok {
+			if add {
+				return true
+			}
+		}
+	}
+
 	mc.bd.db.View(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
 		mchBucket := meta.Bucket(dbnamespace.DagMainChainBucketName)
@@ -833,6 +858,23 @@ func (mc *MainChain) Remove(id uint) error {
 		}
 		return DBRemoveMainChainBlock(dbTx, id)
 	})
+}
+
+func (mc *MainChain) commit() error {
+	if mc.commitBlocks.IsEmpty() {
+		return nil
+	}
+	for k, v := range mc.commitBlocks.GetMap() {
+		opt, ok := v.(bool)
+		if !ok || !opt {
+			mc.Remove(k)
+		} else {
+			mc.Add(k)
+		}
+	}
+	mc.commitBlocks.Clean()
+
+	return nil
 }
 
 type KChain struct {

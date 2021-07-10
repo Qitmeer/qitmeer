@@ -60,6 +60,11 @@ func (bd *BlockDAG) getBlockId(h *hash.Hash) uint {
 	if h == nil {
 		return MaxId
 	}
+	if bd.lastSnapshot.IsValid() {
+		if bd.lastSnapshot.block.GetHash().IsEqual(h) {
+			return bd.lastSnapshot.block.GetID()
+		}
+	}
 	id := MaxId
 	err := bd.db.View(func(dbTx database.Tx) error {
 		bid, er := DBGetBlockIdByHash(dbTx, h)
@@ -241,6 +246,12 @@ func (bd *BlockDAG) GetIdSet(hs []*hash.Hash) *IdSet {
 
 	err := bd.db.View(func(dbTx database.Tx) error {
 		for _, v := range hs {
+			if bd.lastSnapshot.IsValid() {
+				if bd.lastSnapshot.block.GetHash().IsEqual(v) {
+					result.Add(bd.lastSnapshot.block.GetID())
+					continue
+				}
+			}
 			bid, er := DBGetBlockIdByHash(dbTx, v)
 			if er == nil {
 				result.Add(uint(bid))

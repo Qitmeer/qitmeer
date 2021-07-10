@@ -53,6 +53,8 @@ type IBlock interface {
 	// Detecting the presence of child nodes
 	HasChildren() bool
 
+	RemoveChild(child uint)
+
 	// GetMainParent
 	GetMainParent() uint
 
@@ -186,6 +188,13 @@ func (b *Block) HasChildren() bool {
 		return false
 	}
 	return true
+}
+
+func (b *Block) RemoveChild(child uint) {
+	if !b.HasChildren() {
+		return
+	}
+	b.children.Remove(child)
 }
 
 // Setting the weight of block

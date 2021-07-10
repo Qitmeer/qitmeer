@@ -190,6 +190,9 @@ type BlockDAG struct {
 	blockRate float64
 
 	db database.DB
+
+	// Rollback mechanism
+	lastSnapshot *DAGSnapshot
 }
 
 // Acquire the name of DAG instance
@@ -210,6 +213,7 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 	bd.getBlockData = getBlockData
 	bd.db = db
 	bd.commitBlock = NewIdSet()
+	bd.lastSnapshot = NewDAGSnapshot()
 	bd.blockRate = blockRate
 	if bd.blockRate < 0 {
 		bd.blockRate = anticone.DefaultBlockRate
@@ -298,15 +302,14 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, *list.List, IBlock, bool
 	// db
 	bd.commitBlock.AddPair(ib.GetID(), ib)
 
-	if bd.db.Update(func(dbTx database.Tx) error {
-		return DBPutDAGBlockIdByHash(dbTx, ib)
-	}) != nil {
-		return nil, nil, nil, false
-	}
-
 	//
 	if bd.blockTotal == 0 {
 		bd.genesis = *block.GetHash()
+	} else {
+		bd.lastSnapshot.Clean()
+		bd.lastSnapshot.block = ib
+		bd.lastSnapshot.tips = bd.tips.Clone()
+		bd.lastSnapshot.lastTime = bd.lastTime
 	}
 	//
 	bd.blockTotal++
@@ -1211,6 +1214,16 @@ func (bd *BlockDAG) Commit() error {
 
 // Commit the consensus content to the database for persistence
 func (bd *BlockDAG) commit() error {
+	if bd.lastSnapshot.IsValid() {
+		err := bd.db.Update(func(dbTx database.Tx) error {
+			return DBPutDAGBlockIdByHash(dbTx, bd.lastSnapshot.block)
+		})
+		if err != nil {
+			return err
+		}
+		bd.lastSnapshot.Clean()
+	}
+
 	if len(bd.commitOrder) > 0 {
 		err := bd.db.Update(func(dbTx database.Tx) error {
 			var e error
@@ -1248,6 +1261,58 @@ func (bd *BlockDAG) commit() error {
 			return err
 		}
 	}
+	ph, ok := bd.instance.(*Phantom)
+	if !ok {
+		return nil
+	}
+	return ph.mainChain.commit()
+}
+
+func (bd *BlockDAG) rollback() error {
+	if bd.lastSnapshot.IsValid() {
+		log.Debug(fmt.Sprintf("Block DAG try to roll back ... ..."))
+
+		block := bd.lastSnapshot.block
+		delete(bd.blocks, block.GetID())
+		bd.commitBlock.Clean()
+
+		for _, v := range block.GetParents().GetMap() {
+			parent, ok := v.(IBlock)
+			if !ok {
+				log.Error(fmt.Sprintf("Can't remove child info for %s", block.GetHash()))
+				continue
+			}
+			parent.RemoveChild(block.GetID())
+		}
+
+		bd.blockTotal--
+		bd.tips = bd.lastSnapshot.tips
+		bd.lastTime = bd.lastSnapshot.lastTime
+
+		if ph, ok := bd.instance.(*Phantom); ok {
+			ph.mainChain.tip = bd.lastSnapshot.mainChainTip
+			ph.mainChain.genesis = bd.lastSnapshot.mainChainGenesis
+			ph.mainChain.commitBlocks.Clean()
+			ph.diffAnticone = bd.lastSnapshot.diffAnticone
+		}
+
+		if !bd.lastSnapshot.orders.IsEmpty() {
+			for _, v := range bd.lastSnapshot.orders.GetMap() {
+				boh, ok := v.(*BlockOrderHelp)
+				if !ok {
+					log.Error("DAG roll back orders type error")
+					continue
+				}
+				boh.Block.SetOrder(boh.OldOrder)
+			}
+		}
+		bd.commitOrder = map[uint]uint{}
+
+		bd.lastSnapshot.Clean()
+	} else {
+		return fmt.Errorf("No DAG snapshot data for roll back")
+	}
+
 	return nil
 }
 
