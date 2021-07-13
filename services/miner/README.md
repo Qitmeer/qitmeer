@@ -67,7 +67,7 @@ curl -X POST \
 #### pow_diff_reference.target is the target hash
 #### submit work
 
-#### [cpu solo golang code](https://github.com/jamesvan2019/meer/blob/meer_pow/services/miner/miner_test.go)
+#### [cpu solo golang code](https://github.com/Qitmeer/qitmeer/blob/meer_pow/services/miner/miner_test.go)
 
 | submit | 
 |---|
