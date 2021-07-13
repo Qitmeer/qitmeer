@@ -29,7 +29,7 @@ const (
 	X8R16            PowType = 5
 	QITMEERKECCAK256 PowType = 6
 	CRYPTONIGHT      PowType = 7
-	MEER_CRYPTO      PowType = 8
+	MEERXKECCAKV1    PowType = 8
 )
 
 var PowMapString = map[PowType]interface{}{
@@ -41,7 +41,7 @@ var PowMapString = map[PowType]interface{}{
 	X8R16:            "x8r16",
 	QITMEERKECCAK256: "qitmeer_keccak256",
 	CRYPTONIGHT:      "cryptonight",
-	MEER_CRYPTO:      "meer_crypto",
+	MEERXKECCAKV1:    "meer_xkeccak_v1",
 }
 
 func GetPowName(powType PowType) string {
@@ -122,8 +122,8 @@ func GetInstance(powType PowType, nonce uint64, proofData []byte) IPow {
 		instance = &Cuckatoo{}
 	case CRYPTONIGHT:
 		instance = &CryptoNight{}
-	case MEER_CRYPTO:
-		instance = &MeerCrypto{}
+	case MEERXKECCAKV1:
+		instance = &MeerXKeccakV1{}
 	default:
 		instance = &Blake2bd{}
 	}

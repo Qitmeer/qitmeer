@@ -63,7 +63,7 @@ curl -X POST \
 
 #### Use workdata and calc nonce , replace the 8 bytes nonce of header
 #### nonce position is 109-117
-#### header hash is meerCrypto(workdata[:117])
+#### header hash is MeerXKeccakV1(workdata[:117])
 #### pow_diff_reference.target is the target hash
 #### submit work
 

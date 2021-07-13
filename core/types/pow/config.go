@@ -34,8 +34,8 @@ type PowConfig struct {
 	QitmeerKeccak256PowLimit     *big.Int
 	QitmeerKeccak256PowLimitBits uint32
 
-	MeerCryptoPowLimit     *big.Int
-	MeerCryptoPowLimitBits uint32
+	MeerXKeccakV1PowLimit     *big.Int
+	MeerXKeccakV1PowLimitBits uint32
 
 	// cuckoo difficulty calc params  min difficulty
 	CuckarooMinDifficulty  uint32

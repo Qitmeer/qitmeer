@@ -139,7 +139,7 @@ func TestMining(t *testing.T) {
 			nonce := make([]byte, 8)
 			binary.LittleEndian.PutUint64(nonce, i)
 			copy(workData[109:117], nonce)
-			h := hash.HashMeerCrypto(workData[:117])
+			h := hash.HashMeerXKeccakV1(workData[:117])
 			if pow.HashToBig(&h).Cmp(targetDiff) <= 0 {
 				fmt.Println(i, hex.EncodeToString(nonce), h)
 				// find hash

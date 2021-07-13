@@ -5,10 +5,10 @@ import (
 	qitmeerSha3 "github.com/Qitmeer/crypto/sha3"
 )
 
-// Meer Crypto calculates hash(b) and returns the resulting bytes as a Hash.
+// Meer X Keccak V1 calculates hash(b) and returns the resulting bytes as a Hash.
 // 2 round of NewLegacyKeccak512
 // 1 round of NewQitmeerKeccak256
-func HashMeerCrypto(input []byte) Hash {
+func HashMeerXKeccakV1(input []byte) Hash {
 	// input length 117 bytes
 	h1 := qitmeerSha3.NewLegacyKeccak512()
 	// first round
