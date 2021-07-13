@@ -22,12 +22,12 @@ func (e HashError) Error() string {
 
 // DeploymentError identifies an error that indicates a deployment ID was
 // specified that does not exist.
-type DeploymentError string
+type DeploymentError uint32
 
 // Error returns the assertion error as a human-readable string and satisfies
 // the error interface.
 func (e DeploymentError) Error() string {
-	return fmt.Sprintf("deployment ID %v does not exist", string(e))
+	return fmt.Sprintf("deployment ID %v does not exist", uint32(e))
 }
 
 // AssertError identifies an error that indicates an internal code consistency
@@ -406,7 +406,7 @@ var errorCodeStrings = map[ErrorCode]string{
 	//cuckoo,begin
 	ErrBadCuckooNonces: "ErrBadCuckooNonces",
 	ErrInValidPowType:  "ErrInValidPowType",
-	ErrInvalidPow: "ErrInvalidPow",
+	ErrInvalidPow:      "ErrInvalidPow",
 
 	ErrNoBlueCoinbase: "ErrNoBlueCoinbase",
 	ErrNoViewpoint:    "ErrNoViewpoint",
