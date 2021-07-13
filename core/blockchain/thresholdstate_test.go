@@ -5,7 +5,6 @@
 package blockchain
 
 import (
-	"github.com/Qitmeer/qitmeer/common/hash"
 	"testing"
 )
 
@@ -64,24 +63,24 @@ nextTest:
 	for _, test := range tests {
 		cache := &newThresholdCaches(1)[0]
 		for i := 0; i < test.numEntries; i++ {
-			var hash hash.Hash
-			hash[0] = uint8(i + 1)
+			var id uint
+			id = uint(i + 1)
 
 			// Ensure the hash isn't available in the cache already.
-			_, ok := cache.Lookup(&hash)
+			_, ok := cache.Lookup(id)
 			if ok {
 				t.Errorf("Lookup (%s): has entry for hash %v",
-					test.name, hash)
+					test.name, id)
 				continue nextTest
 			}
 
 			// Ensure hash that was added to the cache reports it's
 			// available and the state is the expected value.
-			cache.Update(&hash, test.state)
-			state, ok := cache.Lookup(&hash)
+			cache.Update(id, test.state)
+			state, ok := cache.Lookup(id)
 			if !ok {
 				t.Errorf("Lookup (%s): missing entry for hash "+
-					"%v", test.name, hash)
+					"%v", test.name, id)
 				continue nextTest
 			}
 			if state != test.state {
@@ -93,12 +92,12 @@ nextTest:
 
 			// Ensure adding an existing hash with the same state
 			// doesn't break the existing entry.
-			cache.Update(&hash, test.state)
-			state, ok = cache.Lookup(&hash)
+			cache.Update(id, test.state)
+			state, ok = cache.Lookup(id)
 			if !ok {
 				t.Errorf("Lookup (%s): missing entry after "+
 					"second add for hash %v", test.name,
-					hash)
+					id)
 				continue nextTest
 			}
 			if state != test.state {
@@ -114,12 +113,12 @@ nextTest:
 			if newState == test.state {
 				newState = ThresholdStarted
 			}
-			cache.Update(&hash, newState)
-			state, ok = cache.Lookup(&hash)
+			cache.Update(id, newState)
+			state, ok = cache.Lookup(id)
 			if !ok {
 				t.Errorf("Lookup (%s): missing entry after "+
 					"state change for hash %v", test.name,
-					hash)
+					id)
 				continue nextTest
 			}
 			if state != newState {

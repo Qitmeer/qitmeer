@@ -13,7 +13,6 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 	"math"
-	"sort"
 	"sync"
 	"time"
 )
@@ -191,6 +190,9 @@ type BlockDAG struct {
 	blockRate float64
 
 	db database.DB
+
+	// Rollback mechanism
+	lastSnapshot *DAGSnapshot
 }
 
 // Acquire the name of DAG instance
@@ -211,6 +213,7 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 	bd.getBlockData = getBlockData
 	bd.db = db
 	bd.commitBlock = NewIdSet()
+	bd.lastSnapshot = NewDAGSnapshot()
 	bd.blockRate = blockRate
 	if bd.blockRate < 0 {
 		bd.blockRate = anticone.DefaultBlockRate
@@ -299,16 +302,14 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, *list.List, IBlock, bool
 	// db
 	bd.commitBlock.AddPair(ib.GetID(), ib)
 
-	if bd.db.Update(func(dbTx database.Tx) error {
-		return DBPutDAGBlockIdByHash(dbTx, ib)
-	}) != nil {
-		return nil, nil, nil, false
-	}
-
 	//
 	if bd.blockTotal == 0 {
 		bd.genesis = *block.GetHash()
 	}
+	bd.lastSnapshot.Clean()
+	bd.lastSnapshot.block = ib
+	bd.lastSnapshot.tips = bd.tips.Clone()
+	bd.lastSnapshot.lastTime = bd.lastTime
 	//
 	bd.blockTotal++
 
@@ -365,93 +366,6 @@ func (bd *BlockDAG) isDAG(parents []IBlock) bool {
 	return bd.checkLayerGap(parents) &&
 		bd.checkLegality(parents) &&
 		bd.instance.IsDAG(parents)
-}
-
-// Is there a block in DAG?
-func (bd *BlockDAG) HasBlock(h *hash.Hash) bool {
-	return bd.GetBlockId(h) != MaxId
-}
-
-// Is there a block in DAG?
-func (bd *BlockDAG) hasBlockById(id uint) bool {
-	return bd.getBlockById(id) != nil
-}
-
-// Is there a block in DAG?
-func (bd *BlockDAG) HasBlockById(id uint) bool {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.hasBlockById(id)
-}
-
-// Is there some block in DAG?
-func (bd *BlockDAG) hasBlocks(ids []uint) bool {
-	for _, id := range ids {
-		if !bd.hasBlockById(id) {
-			return false
-		}
-	}
-	return true
-}
-
-// Acquire one block by hash
-func (bd *BlockDAG) GetBlock(h *hash.Hash) IBlock {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.getBlock(h)
-}
-
-// Acquire one block by hash
-// Be careful, this is inefficient and cannot be called frequently
-func (bd *BlockDAG) getBlock(h *hash.Hash) IBlock {
-	return bd.getBlockById(bd.getBlockId(h))
-}
-
-func (bd *BlockDAG) GetBlockId(h *hash.Hash) uint {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.getBlockId(h)
-}
-
-func (bd *BlockDAG) getBlockId(h *hash.Hash) uint {
-	if h == nil {
-		return MaxId
-	}
-	id := MaxId
-	err := bd.db.View(func(dbTx database.Tx) error {
-		bid, er := DBGetBlockIdByHash(dbTx, h)
-		if er == nil {
-			id = uint(bid)
-		}
-		return er
-	})
-	if err != nil {
-		return MaxId
-	}
-	return id
-}
-
-// Acquire one block by hash
-func (bd *BlockDAG) GetBlockById(id uint) IBlock {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.getBlockById(id)
-}
-
-// Acquire one block by id
-func (bd *BlockDAG) getBlockById(id uint) IBlock {
-	if id == MaxId {
-		return nil
-	}
-	block, ok := bd.blocks[id]
-	if !ok {
-		return nil
-	}
-	return block
 }
 
 // Total number of blocks
@@ -518,105 +432,6 @@ func (bd *BlockDAG) GetLastTime() *time.Time {
 	defer bd.stateLock.Unlock()
 
 	return &bd.lastTime
-}
-
-// Obtain block hash by global order
-func (bd *BlockDAG) GetBlockHashByOrder(order uint) *hash.Hash {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	ib := bd.getBlockByOrder(order)
-	if ib != nil {
-		return ib.GetHash()
-	}
-	return nil
-}
-
-func (bd *BlockDAG) GetBlockByOrder(order uint) IBlock {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.getBlockByOrder(order)
-}
-
-func (bd *BlockDAG) GetBlockByOrderWithTx(dbTx database.Tx, order uint) *hash.Hash {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	ib := bd.doGetBlockByOrder(dbTx, order)
-	if ib != nil {
-		return ib.GetHash()
-	}
-	return nil
-}
-
-func (bd *BlockDAG) getBlockByOrder(order uint) IBlock {
-	return bd.doGetBlockByOrder(nil, order)
-}
-
-func (bd *BlockDAG) doGetBlockByOrder(dbTx database.Tx, order uint) IBlock {
-	if order >= MaxBlockOrder {
-		return nil
-	}
-	id, ok := bd.commitOrder[order]
-	if ok {
-		return bd.getBlockById(id)
-	}
-
-	bid := uint(MaxId)
-
-	if dbTx == nil {
-		err := bd.db.View(func(dbTx database.Tx) error {
-			id, er := DBGetBlockIdByOrder(dbTx, order)
-			if er == nil {
-				bid = uint(id)
-			}
-			return er
-		})
-		if err != nil {
-			log.Error(err.Error())
-			return nil
-		}
-	} else {
-		id, er := DBGetBlockIdByOrder(dbTx, order)
-		if er == nil {
-			bid = uint(id)
-		} else {
-			return nil
-		}
-	}
-
-	return bd.getBlockById(bid)
-}
-
-// Return the last order block
-func (bd *BlockDAG) GetLastBlock() IBlock {
-	// TODO
-	return bd.GetMainChainTip()
-}
-
-// This function need a stable sequence,so call it before sorting the DAG.
-// If the h is invalid,the function will become a little inefficient.
-func (bd *BlockDAG) GetPrevious(id uint) (uint, error) {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	if id == 0 {
-		return 0, fmt.Errorf("no pre")
-	}
-	b := bd.getBlockById(id)
-	if b == nil {
-		return 0, fmt.Errorf("no pre")
-	}
-	if b.GetOrder() == 0 {
-		return 0, fmt.Errorf("no pre")
-	}
-	// TODO
-	ib := bd.getBlockByOrder(b.GetOrder() - 1)
-	if ib != nil {
-		return ib.GetID(), nil
-	}
-	return 0, fmt.Errorf("no pre")
 }
 
 // Returns a future collection of block. This function is a recursively called function
@@ -687,12 +502,6 @@ func (bd *BlockDAG) GetMainParentByHashs(parents []*hash.Hash) IBlock {
 	return bd.instance.GetMainParent(parentsSet)
 }
 
-// Return the layer of block,it is stable.
-// You can imagine that this is the main chain.
-func (bd *BlockDAG) GetLayer(id uint) uint {
-	return bd.GetBlockById(id).GetLayer()
-}
-
 // Return current general description of the whole state of DAG
 func (bd *BlockDAG) GetGraphState() *GraphState {
 	bd.stateLock.Lock()
@@ -721,87 +530,6 @@ func (bd *BlockDAG) getGraphState() *GraphState {
 	gs.SetMainHeight(bd.getMainChainTip().GetHeight())
 	gs.SetMainOrder(bd.getMainChainTip().GetOrder())
 	return gs
-}
-
-// Locate all eligible block by current graph state.
-func (bd *BlockDAG) locateBlocks(gs *GraphState, maxHashes uint) []*hash.Hash {
-	if gs.IsExcellent(bd.getGraphState()) {
-		return nil
-	}
-	queue := []IBlock{}
-	fs := NewHashSet()
-	tips := bd.getValidTips(false)
-	queue = append(queue, tips...)
-	for len(queue) > 0 {
-		cur := queue[0]
-		queue = queue[1:]
-
-		if fs.Has(cur.GetHash()) {
-			continue
-		}
-		if gs.GetTips().Has(cur.GetHash()) || cur.GetID() == 0 {
-			continue
-		}
-		needRec := true
-		if cur.HasChildren() {
-			for _, v := range cur.GetChildren().GetMap() {
-				ib := v.(IBlock)
-				if gs.GetTips().Has(ib.GetHash()) || !fs.Has(ib.GetHash()) && ib.IsOrdered() {
-					needRec = false
-					break
-				}
-			}
-		}
-		if needRec {
-			fs.AddPair(cur.GetHash(), cur)
-			if cur.HasParents() {
-				for _, v := range cur.GetParents().GetMap() {
-					value := v.(IBlock)
-					ib := value
-					if fs.Has(ib.GetHash()) {
-						continue
-					}
-					queue = append(queue, ib)
-
-				}
-			}
-		}
-	}
-
-	fsSlice := BlockSlice{}
-	for _, v := range fs.GetMap() {
-		value := v.(IBlock)
-		ib := value
-		if gs.GetTips().Has(ib.GetHash()) {
-			continue
-		}
-		if ib.HasChildren() {
-			need := true
-			for _, v := range ib.GetChildren().GetMap() {
-				ib := v.(IBlock)
-				if gs.GetTips().Has(ib.GetHash()) {
-					need = false
-					break
-				}
-			}
-			if !need {
-				continue
-			}
-		}
-		fsSlice = append(fsSlice, ib)
-	}
-
-	result := []*hash.Hash{}
-	if len(fsSlice) >= 2 {
-		sort.Sort(fsSlice)
-	}
-	for i := 0; i < len(fsSlice); i++ {
-		if maxHashes > 0 && i >= int(maxHashes) {
-			break
-		}
-		result = append(result, fsSlice[i].GetHash())
-	}
-	return result
 }
 
 // Judging whether block is the virtual tip that it have not future set.
@@ -1031,37 +759,6 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock, verbose bool) *IdSet {
 	return result
 }
 
-// Sort block by id
-func (bd *BlockDAG) sortBlock(src []*hash.Hash) []*hash.Hash {
-
-	if len(src) <= 1 {
-		return src
-	}
-	srcBlockS := BlockSlice{}
-	for i := 0; i < len(src); i++ {
-		ib := bd.getBlock(src[i])
-		if ib != nil {
-			srcBlockS = append(srcBlockS, ib)
-		}
-	}
-	if len(srcBlockS) >= 2 {
-		sort.Sort(srcBlockS)
-	}
-	result := []*hash.Hash{}
-	for i := 0; i < len(srcBlockS); i++ {
-		result = append(result, srcBlockS[i].GetHash())
-	}
-	return result
-}
-
-// Sort block by id
-func (bd *BlockDAG) SortBlock(src []*hash.Hash) []*hash.Hash {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.sortBlock(src)
-}
-
 // GetConfirmations
 func (bd *BlockDAG) GetConfirmations(id uint) uint {
 	bd.stateLock.Lock()
@@ -1103,17 +800,6 @@ func (bd *BlockDAG) GetConfirmations(id uint) uint {
 		}
 	}
 	return 0
-}
-
-func (bd *BlockDAG) GetBlockHash(id uint) *hash.Hash {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	ib := bd.getBlockById(id)
-	if ib != nil {
-		return ib.GetHash()
-	}
-	return nil
 }
 
 func (bd *BlockDAG) GetValidTips() []*hash.Hash {
@@ -1495,28 +1181,6 @@ func (bd *BlockDAG) getMaxParents() int {
 	return bd.instance.getMaxParents()
 }
 
-// GetIdSet
-func (bd *BlockDAG) GetIdSet(hs []*hash.Hash) *IdSet {
-	result := NewIdSet()
-
-	err := bd.db.View(func(dbTx database.Tx) error {
-		for _, v := range hs {
-			bid, er := DBGetBlockIdByHash(dbTx, v)
-			if er == nil {
-				result.Add(uint(bid))
-			} else {
-				return er
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return nil
-	}
-
-	return result
-}
-
 // The main parent concurrency of block
 func (bd *BlockDAG) GetMainParentConcurrency(b IBlock) int {
 	bd.stateLock.Lock()
@@ -1549,6 +1213,24 @@ func (bd *BlockDAG) Commit() error {
 
 // Commit the consensus content to the database for persistence
 func (bd *BlockDAG) commit() error {
+	needPB := false
+	if bd.lastSnapshot.IsValid() {
+		needPB = true
+	} else if bd.lastSnapshot.block != nil {
+		if bd.lastSnapshot.block.GetID() == 0 {
+			needPB = true
+		}
+	}
+	if needPB {
+		err := bd.db.Update(func(dbTx database.Tx) error {
+			return DBPutDAGBlockIdByHash(dbTx, bd.lastSnapshot.block)
+		})
+		if err != nil {
+			return err
+		}
+		bd.lastSnapshot.Clean()
+	}
+
 	if len(bd.commitOrder) > 0 {
 		err := bd.db.Update(func(dbTx database.Tx) error {
 			var e error
@@ -1586,6 +1268,58 @@ func (bd *BlockDAG) commit() error {
 			return err
 		}
 	}
+	ph, ok := bd.instance.(*Phantom)
+	if !ok {
+		return nil
+	}
+	return ph.mainChain.commit()
+}
+
+func (bd *BlockDAG) rollback() error {
+	if bd.lastSnapshot.IsValid() {
+		log.Debug(fmt.Sprintf("Block DAG try to roll back ... ..."))
+
+		block := bd.lastSnapshot.block
+		delete(bd.blocks, block.GetID())
+		bd.commitBlock.Clean()
+
+		for _, v := range block.GetParents().GetMap() {
+			parent, ok := v.(IBlock)
+			if !ok {
+				log.Error(fmt.Sprintf("Can't remove child info for %s", block.GetHash()))
+				continue
+			}
+			parent.RemoveChild(block.GetID())
+		}
+
+		bd.blockTotal--
+		bd.tips = bd.lastSnapshot.tips
+		bd.lastTime = bd.lastSnapshot.lastTime
+
+		if ph, ok := bd.instance.(*Phantom); ok {
+			ph.mainChain.tip = bd.lastSnapshot.mainChainTip
+			ph.mainChain.genesis = bd.lastSnapshot.mainChainGenesis
+			ph.mainChain.commitBlocks.Clean()
+			ph.diffAnticone = bd.lastSnapshot.diffAnticone
+		}
+
+		if !bd.lastSnapshot.orders.IsEmpty() {
+			for _, v := range bd.lastSnapshot.orders.GetMap() {
+				boh, ok := v.(*BlockOrderHelp)
+				if !ok {
+					log.Error("DAG roll back orders type error")
+					continue
+				}
+				boh.Block.SetOrder(boh.OldOrder)
+			}
+		}
+		bd.commitOrder = map[uint]uint{}
+
+		bd.lastSnapshot.Clean()
+	} else {
+		return fmt.Errorf("No DAG snapshot data for roll back")
+	}
+
 	return nil
 }
 
@@ -1646,35 +1380,4 @@ func (bd *BlockDAG) optimizeReorganizeResult(newOrders *list.List, oldOrders *li
 		ne = neNext
 		oe = oeNext
 	}
-}
-
-func (bd *BlockDAG) GetMainAncestor(block IBlock, height int64) IBlock {
-	if height < 0 || height > int64(block.GetHeight()) {
-		return nil
-	}
-
-	ib := block
-
-	for ib != nil && int64(ib.GetHeight()) != height {
-		if !ib.HasParents() {
-			ib = nil
-			break
-		}
-		ib = bd.GetBlockById(ib.GetMainParent())
-	}
-	return ib
-}
-
-func (bd *BlockDAG) RelativeMainAncestor(block IBlock, distance int64) IBlock {
-	return bd.GetMainAncestor(block, int64(block.GetHeight())-distance)
-}
-
-func (bd *BlockDAG) ValidBlock(block IBlock) {
-	block.Valid()
-	bd.commitBlock.AddPair(block.GetID(), block)
-}
-
-func (bd *BlockDAG) InvalidBlock(block IBlock) {
-	block.Invalid()
-	bd.commitBlock.AddPair(block.GetID(), block)
 }

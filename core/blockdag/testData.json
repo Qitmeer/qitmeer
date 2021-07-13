@@ -491,5 +491,28 @@
   "PH_BConcurrency":{
     "in":"J",
     "out": 6
-  }
+  },
+  "PH_MainChainTip":[
+    {
+      "in":[
+        "I",
+        "J"
+      ],
+      "out": true
+    },
+    {
+      "in":[
+        "F",
+        "H"
+      ],
+      "out": true
+    },
+    {
+      "in":[
+        "C",
+        "D"
+      ],
+      "out": false
+    }
+  ]
 }
