@@ -112,8 +112,8 @@ var MixNetParams = Params{
 		},
 		DeploymentToken: {
 			BitNumber:  0,
-			StartTime:  1629280727, // 2021-08-18 09:58:47 UTC
-			ExpireTime: 1655200727, // 2022-06-14 09:58:47 UTC
+			StartTime:  1440,
+			ExpireTime: 14400,
 		},
 	},
 
