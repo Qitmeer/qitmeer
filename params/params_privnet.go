@@ -70,7 +70,7 @@ var PrivNetParams = Params{
 				pow.CUCKAROOM:     10,
 				pow.X16RV3:        10,
 				pow.X8R16:         20,
-				pow.MeerXKeccakV1: 20,
+				pow.MEERXKECCAKV1: 20,
 			},
 			pow.MainHeight(50): {
 				pow.BLAKE2BD:         0,
@@ -80,7 +80,7 @@ var PrivNetParams = Params{
 				pow.X16RV3:           10,
 				pow.X8R16:            0,
 				pow.QITMEERKECCAK256: 0,
-				pow.MeerXKeccakV1:    30,
+				pow.MEERXKECCAKV1:    30,
 			},
 			pow.MainHeight(100): {
 				pow.BLAKE2BD:      0,
@@ -89,7 +89,7 @@ var PrivNetParams = Params{
 				pow.CUCKAROOM:     70,
 				pow.X16RV3:        0,
 				pow.X8R16:         0,
-				pow.MeerXKeccakV1: 30,
+				pow.MEERXKECCAKV1: 30,
 			},
 		},
 		// after this height the big graph will be the main pow graph
