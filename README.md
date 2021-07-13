@@ -1,6 +1,8 @@
 # Qitmeer
 
-[![Build Status](https://travis-ci.com/Qitmeer/qitmeer.svg?token=DzCFNC6nhEqPc89sq1nd&branch=master)](https://travis-ci.com/Qitmeer/qitmeer) [![Go Report Card](https://goreportcard.com/badge/github.com/Qitmeer/qitmeer)](https://goreportcard.com/report/github.com/Qitmeer/qitmeer)
+[![Build Status](https://github.com/Qitmeer/qitmeer/workflows/CodeQL/badge.svg?branch=0.10-dev)](https://github.com/Qitmeer/qitmeer/actions/workflows/codeql-analysis.yml)
+[![Build Status](https://github.com/Qitmeer/qitmeer/workflows/GoTest/badge.svg?branch=0.10-dev)](https://github.com/Qitmeer/qitmeer/actions/workflows/go.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Qitmeer/qitmeer)](https://goreportcard.com/report/github.com/Qitmeer/qitmeer)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer?ref=badge_shield)
 
 The guardian of trust. The core backend of the qitmeer network.
