@@ -155,7 +155,8 @@ func readElement(r io.Reader, element interface{}) error {
 		return nil
 
 	case *pow.IPow:
-		// pow 9 bytes for powtype 1 byte
+		// pow 9 bytes
+		// powtype 1 byte
 		// nonce 8 bytes
 		b := make([]byte, pow.POW_LENGTH-pow.PROOFDATA_LENGTH)
 		_, err := io.ReadFull(r, b)

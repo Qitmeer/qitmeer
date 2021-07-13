@@ -1,0 +1,95 @@
+# Solo Mining
+
+```shell script
+Get BlockTemplate
+curl -X POST \
+  http://47.244.17.119:2234/ \
+  -H 'authorization: Basic dGVzdDp0ZXN0' \
+  -H 'cache-control: no-cache' \
+  -H 'content-type: application/json' \
+  -H 'postman-token: a6702d2a-9deb-4d42-6fbd-51dfb3173001' \
+  -d '{
+  "method":"getBlockTemplate",
+  "version":"2.0",
+  "params":[["coinbasetxn","coinbasevalue"],8],
+  "id":1
+}'
+
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+        "stateroot": "0000000000000000000000000000000000000000000000000000000000000000",
+        "curtime": 1608036734,
+        "height": 1,
+        "blues": 1,
+        "previousblockhash": "45512392e69843f98182582f4279c1745074633fe7a00fb8eb43ac143d23a9a7",
+        "sigoplimit": 80000,
+        "sizelimit": 1048576,
+        "weightlimit": 4000000,
+        "parents": [
+            {
+                "data": "a7a9233d14ac43ebb80fa0e73f63745074c179422f588281f94398e692235145",
+                "hash": "45512392e69843f98182582f4279c1745074633fe7a00fb8eb43ac143d23a9a7"
+            }
+        ],
+        "transactions": [],
+        "version": 18,
+        "coinbaseaux": {
+            "flags": "092f7169746d6565722f"
+        },
+        "coinbasevalue": 12000000000,
+        "longpollid": "45512392e69843f98182582f4279c1745074633fe7a00fb8eb43ac143d23a9a7-1608036734",
+        "pow_diff_reference": {
+            "nbits": "2003ffff",
+            "target": "03ffff0000000000000000000000000000000000000000000000000000000000"
+        },
+        "maxtime": 1608037094,
+        "mintime": 1547735582,
+        "mutable": [
+            "time",
+            "transactions/add",
+            "prevblock",
+            "coinbase/append"
+        ],
+        "noncerange": "00000000ffffffff",
+        "capabilities": [
+            "proposal"
+        ],
+        "workdata": "12000000a7a9233d14ac43ebb80fa0e73f63745074c179422f588281f94398e6922351452a56f96d4f7b037fee75b15cf9744e0b77d29ed308e795e965314eb2baf10cda0000000000000000000000000000000000000000000000000000000000000000ffff03207eb1d85f0800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001a7a9233d14ac43ebb80fa0e73f63745074c179422f588281f94398e692235145010100000001eb5552605a1187746fe66534c3720e3aa7bb8bfc3f09f90c1c1ac2305593fe64ffffffffffffffff01007841cb02000000015100000000000000007eb1d85f0114510837a5726fec66c722092f7169746d6565722f"
+    }
+}
+```
+
+#### Use workdata and calc nonce , replace the 8 bytes nonce of header
+#### nonce position is 109-117
+#### header hash is MeerXKeccakV1(workdata[:117])
+#### pow_diff_reference.target is the target hash
+#### submit work
+
+#### [cpu solo golang code](https://github.com/Qitmeer/qitmeer/blob/meer_pow/services/miner/miner_test.go)
+
+| submit | 
+|---|
+
+
+```shell script
+curl -X POST \
+  http://47.244.17.119:2234/ \
+  -H 'authorization: Basic dGVzdDp0ZXN0' \
+  -H 'cache-control: no-cache' \
+  -H 'content-type: application/json' \
+  -H 'postman-token: 6b997b0f-a45f-9c4c-9d2d-224f71d79adc' \
+  -d '{
+  "method":"submitBlock",
+  "version":"2.0",
+  "params":["12000000a7a9233d14ac43ebb80fa0e73f63745074c179422f588281f94398e6922351452a56f96d4f7b037fee75b15cf9744e0b77d29ed308e795e965314eb2baf10cda0000000000000000000000000000000000000000000000000000000000000000ffff03207eb1d85f0800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001a7a9233d14ac43ebb80fa0e73f63745074c179422f588281f94398e692235145010100000001eb5552605a1187746fe66534c3720e3aa7bb8bfc3f09f90c1c1ac2305593fe64ffffffffffffffff01007841cb02000000015100000000000000007eb1d85f0114510837a5726fec66c722092f7169746d6565722f"],
+  "id":1
+}
+'
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": "0c034550cf7aa78c76e17fb4d79e94c9f687fb9aa57c6dd00c000000cf7ad290",
+}
+```

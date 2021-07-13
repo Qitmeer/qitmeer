@@ -12,11 +12,11 @@ import (
 	"math/big"
 )
 
-type QitmeerKeccak256 struct {
+type MeerXKeccakV1 struct {
 	Pow
 }
 
-func (this *QitmeerKeccak256) GetPowResult() json.PowResult {
+func (this *MeerXKeccakV1) GetPowResult() json.PowResult {
 	return json.PowResult{
 		PowName:   PowMapString[this.GetPowType()].(string),
 		PowType:   uint8(this.GetPowType()),
@@ -25,7 +25,7 @@ func (this *QitmeerKeccak256) GetPowResult() json.PowResult {
 	}
 }
 
-func (this *QitmeerKeccak256) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) error {
+func (this *MeerXKeccakV1) Verify(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) error {
 	target := CompactToBig(targetDiffBits)
 	if target.Sign() <= 0 {
 		str := fmt.Sprintf("block target difficulty of %064x is too "+
@@ -33,13 +33,15 @@ func (this *QitmeerKeccak256) Verify(headerData []byte, blockHash hash.Hash, tar
 		return errors.New(str)
 	}
 	//The target difficulty must be less than the maximum allowed.
-	if target.Cmp(this.params.QitmeerKeccak256PowLimit) > 0 {
+	if target.Cmp(this.params.MeerXKeccakV1PowLimit) > 0 {
 		str := fmt.Sprintf("block target difficulty of %064x is "+
-			"higher than max of %064x", target, this.params.QitmeerKeccak256PowLimit)
+			"higher than max of %064x", target, this.params.MeerXKeccakV1PowLimit)
 		return errors.New(str)
 	}
-	h := hash.HashQitmeerKeccak256(headerData)
+	h := hash.HashMeerXKeccakV1(headerData)
 	hashNum := HashToBig(&h)
+	fmt.Printf("\ntarget :%064x", target)
+	fmt.Printf("\nhash:%064x\n", hashNum)
 	if hashNum.Cmp(target) > 0 {
 		str := fmt.Sprintf("block hash of %064x is higher than"+
 			" expected max of %064x", hashNum, target)
@@ -48,7 +50,7 @@ func (this *QitmeerKeccak256) Verify(headerData []byte, blockHash hash.Hash, tar
 	return nil
 }
 
-func (this *QitmeerKeccak256) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int) *big.Int {
+func (this *MeerXKeccakV1) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig *big.Int, currentPowPercent *big.Int) *big.Int {
 	nextDiffBig := weightedSumDiv.Mul(weightedSumDiv, oldDiffBig)
 	defer func() {
 		nextDiffBig = nextDiffBig.Rsh(nextDiffBig, 32)
@@ -64,8 +66,8 @@ func (this *QitmeerKeccak256) GetNextDiffBig(weightedSumDiv *big.Int, oldDiffBig
 	return nextDiffBig
 }
 
-func (this *QitmeerKeccak256) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
-	limitBits := this.params.QitmeerKeccak256PowLimitBits
+func (this *MeerXKeccakV1) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
+	limitBits := this.params.MeerXKeccakV1PowLimitBits
 	limitBitsBig := CompactToBig(limitBits)
 	if cur_reduce_diff <= 0 {
 		return limitBitsBig
@@ -73,22 +75,22 @@ func (this *QitmeerKeccak256) GetSafeDiff(cur_reduce_diff uint64) *big.Int {
 	newTarget := &big.Int{}
 	newTarget = newTarget.SetUint64(cur_reduce_diff)
 	// Limit new value to the proof of work limit.
-	if newTarget.Cmp(this.params.QitmeerKeccak256PowLimit) > 0 {
-		newTarget.Set(this.params.QitmeerKeccak256PowLimit)
+	if newTarget.Cmp(this.params.MeerXKeccakV1PowLimit) > 0 {
+		newTarget.Set(this.params.MeerXKeccakV1PowLimit)
 	}
 	return newTarget
 }
 
 // compare the target
 // wether target match the target diff
-func (this *QitmeerKeccak256) CompareDiff(newTarget *big.Int, target *big.Int) bool {
+func (this *MeerXKeccakV1) CompareDiff(newTarget *big.Int, target *big.Int) bool {
 	return newTarget.Cmp(target) <= 0
 }
 
 // pow proof data
-func (this *QitmeerKeccak256) Bytes() PowBytes {
+func (this *MeerXKeccakV1) Bytes() PowBytes {
 	r := make(PowBytes, 0)
-	// write pow type 1 byte
+	//write pow type 1 byte
 	r = append(r, []byte{byte(this.PowType)}...)
 	// write nonce 8 bytes
 	n := make([]byte, 8)
@@ -100,13 +102,13 @@ func (this *QitmeerKeccak256) Bytes() PowBytes {
 }
 
 // pow proof data
-func (this *QitmeerKeccak256) BlockData() PowBytes {
+func (this *MeerXKeccakV1) BlockData() PowBytes {
 	l := len(this.Bytes())
 	return PowBytes(this.Bytes()[:l-PROOFDATA_LENGTH])
 }
 
 //not support
-func (this *QitmeerKeccak256) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
+func (this *MeerXKeccakV1) FindSolver(headerData []byte, blockHash hash.Hash, targetDiffBits uint32) bool {
 	if err := this.Verify(headerData, blockHash, targetDiffBits); err == nil {
 		return true
 	}

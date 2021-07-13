@@ -94,7 +94,6 @@ func (this *CryptoNight) Bytes() PowBytes {
 	n := make([]byte, 8)
 	binary.LittleEndian.PutUint64(n, this.Nonce)
 	r = append(r, n...)
-
 	//write ProofData 169 bytes
 	r = append(r, this.ProofData[:]...)
 	return PowBytes(r)

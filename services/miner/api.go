@@ -3,10 +3,12 @@
 package miner
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -434,6 +436,42 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 	diffBig := pow.CompactToBig(template.Difficulty)
 	target := fmt.Sprintf("%064x", diffBig)
 	longPollID := encodeTemplateID(template.Block.Header.ParentRoot, state.lastGenerated)
+	workData := make([]byte, 0)
+	workData = append(workData, template.Block.Header.BlockData()...)
+	if len(workData) != types.MaxBlockHeaderPayload {
+		exceptData := make([]byte, types.MaxBlockHeaderPayload-len(workData))
+		workData = append(workData, exceptData...)
+	}
+	var w bytes.Buffer
+	err := s.WriteVarInt(&w, 0, uint64(len(parents)))
+	if err != nil {
+		context := "Failed to write parents length"
+		return nil, rpc.RpcInvalidError(err.Error(), context)
+	}
+	workData = append(workData, w.Bytes()...)
+	for i := 0; i < len(parents); i++ {
+		b, err := hex.DecodeString(parents[i].Data)
+		if err != nil {
+			context := "Failed to write parents"
+			return nil, rpc.RpcInvalidError(err.Error(), context)
+		}
+		workData = append(workData, b...)
+	}
+	var w1 bytes.Buffer
+	err = s.WriteVarInt(&w1, 0, uint64(len(msgBlock.Transactions)))
+	if err != nil {
+		context := "Failed to write transaction length"
+		return nil, rpc.RpcInvalidError(err.Error(), context)
+	}
+	workData = append(workData, w1.Bytes()...)
+	for i := 0; i < len(msgBlock.Transactions); i++ {
+		b, err := msgBlock.Transactions[i].Serialize()
+		if err != nil {
+			context := "Failed to serialize transaction"
+			return nil, rpc.RpcInvalidError(err.Error(), context)
+		}
+		workData = append(workData, b...)
+	}
 	blockFeeMap := map[int]int64{}
 	for coinid, val := range template.BlockFeesMap {
 		blockFeeMap[int(coinid)] = val
@@ -466,6 +504,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		NonceRange: gbtNonceRange,
 		// TODO, Capabilities
 		Capabilities: gbtCapabilities,
+		WorkData:     hex.EncodeToString(workData),
 		BlockFeesMap: blockFeeMap,
 	}
 
@@ -500,6 +539,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 
 		reply.CoinbaseTxn = &resultTx
 	}
+
 	return &reply, nil
 }
 

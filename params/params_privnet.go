@@ -53,6 +53,8 @@ var PrivNetParams = Params{
 		X16rv3PowLimitBits:           0x207fffff,
 		QitmeerKeccak256PowLimit:     privNetPowLimit,
 		QitmeerKeccak256PowLimitBits: 0x207fffff,
+		MeerXKeccakV1PowLimit:        privNetPowLimit,
+		MeerXKeccakV1PowLimitBits:    0x207fffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1 times use for privnet if GPS is 2. need 50 /2 = 25s find once
@@ -62,13 +64,13 @@ var PrivNetParams = Params{
 
 		Percent: map[pow.MainHeight]pow.PercentItem{
 			pow.MainHeight(0): {
-				pow.BLAKE2BD:         10,
-				pow.CUCKAROO:         10,
-				pow.CUCKATOO:         20,
-				pow.CUCKAROOM:        10,
-				pow.X16RV3:           10,
-				pow.X8R16:            20,
-				pow.QITMEERKECCAK256: 20,
+				pow.BLAKE2BD:      10,
+				pow.CUCKAROO:      10,
+				pow.CUCKATOO:      20,
+				pow.CUCKAROOM:     10,
+				pow.X16RV3:        10,
+				pow.X8R16:         20,
+				pow.MEERXKECCAKV1: 20,
 			},
 			pow.MainHeight(50): {
 				pow.BLAKE2BD:         0,
@@ -77,16 +79,17 @@ var PrivNetParams = Params{
 				pow.CUCKAROOM:        30,
 				pow.X16RV3:           10,
 				pow.X8R16:            0,
-				pow.QITMEERKECCAK256: 30,
+				pow.QITMEERKECCAK256: 0,
+				pow.MEERXKECCAKV1:    30,
 			},
 			pow.MainHeight(100): {
-				pow.BLAKE2BD:         0,
-				pow.CUCKAROO:         0,
-				pow.CUCKATOO:         0,
-				pow.CUCKAROOM:        70,
-				pow.X16RV3:           0,
-				pow.X8R16:            0,
-				pow.QITMEERKECCAK256: 30,
+				pow.BLAKE2BD:      0,
+				pow.CUCKAROO:      0,
+				pow.CUCKATOO:      0,
+				pow.CUCKAROOM:     70,
+				pow.X16RV3:        0,
+				pow.X8R16:         0,
+				pow.MEERXKECCAKV1: 30,
 			},
 		},
 		// after this height the big graph will be the main pow graph
