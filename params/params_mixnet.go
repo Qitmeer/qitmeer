@@ -112,8 +112,8 @@ var MixNetParams = Params{
 		},
 		DeploymentToken: {
 			BitNumber:  0,
-			StartTime:  1629280727, // 2021-08-18 09:58:47 UTC
-			ExpireTime: 1655200727, // 2022-06-14 09:58:47 UTC
+			StartTime:  1440,
+			ExpireTime: 14400,
 		},
 	},
 
@@ -136,4 +136,6 @@ var MixNetParams = Params{
 
 	CoinbaseMaturity: 720,
 	//OrganizationPkScript:  hexMustDecode("76a914868b9b6bc7e4a9c804ad3d3d7a2a6be27476941e88ac"),
+
+	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
 }
