@@ -320,6 +320,10 @@ func New(config *Config) (*BlockChain, error) {
 				(v.PerformTime >= CheckerTimeThreshold || v.PerformTime == 0) {
 				continue
 			}
+			if v.StartTime < v.ExpireTime &&
+				(v.ExpireTime < v.PerformTime || v.PerformTime == 0) {
+				continue
+			}
 			return nil, AssertError("blockchain.New chain parameters Deployments error")
 		}
 	}
