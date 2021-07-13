@@ -4,7 +4,7 @@ set -ex
 export GO111MODULE=on
 #go mod init qitmeer
 go mod tidy
-export PATH=$PATH:$(pwd)/build/bin
+#export PATH=$PATH:$(pwd)/build/bin
 
 if [ ! -x "$(type -p golangci-lint)" ]; then
   exit 1
