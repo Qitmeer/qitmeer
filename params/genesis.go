@@ -393,7 +393,7 @@ var testPowNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
 		ParentRoot: hash.Hash{},
 		TxRoot:     *testPowNetGenesisMerkleRoot,
-		Timestamp:  time.Unix(1547735581, 0), // 2019-01-17 14:33:12 GMT
+		Timestamp:  time.Unix(1626247831, 0), // 2021-07-14 15:30:31 GMT
 		Difficulty: 0x1e00ffff,
 		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
 	},
