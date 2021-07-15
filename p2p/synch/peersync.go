@@ -409,31 +409,34 @@ func (ps *PeerSync) updateSyncPeer(force bool) {
 func (ps *PeerSync) RelayInventory(data interface{}) {
 	ps.sy.Peers().ForPeers(peers.PeerConnected, func(pe *peers.Peer) {
 		msg := &pb.Inventory{Invs: []*pb.InvVect{}}
+
 		switch value := data.(type) {
-		case []*types.TxDesc:
+		case *types.TxDesc:
 			// Don't relay the transaction to the peer when it has
 			// transaction relaying disabled.
 			if pe.DisableRelayTx() {
 				return
 			}
-			for _, tx := range value {
-				feeFilter := pe.FeeFilter()
-				if feeFilter > 0 && tx.FeePerKB < feeFilter {
+			feeFilter := pe.FeeFilter()
+			if feeFilter > 0 && value.FeePerKB < feeFilter {
+				return
+			}
+			// Don't relay the transaction if there is a bloom
+			// filter loaded and the transaction doesn't match it.
+			filter := pe.Filter()
+			if filter.IsLoaded() {
+				if !filter.MatchTxAndUpdate(value.Tx) {
 					return
 				}
-				// Don't relay the transaction if there is a bloom
-				// filter loaded and the transaction doesn't match it.
-				filter := pe.Filter()
-				if filter.IsLoaded() {
-					if !filter.MatchTxAndUpdate(tx.Tx) {
-						return
-					}
-				}
-				msg.Invs = append(msg.Invs, NewInvVect(InvTypeTx, tx.Tx.Hash()))
 			}
+			msg.Invs = append(msg.Invs, NewInvVect(InvTypeTx, value.Tx.Hash()))
 		case types.BlockHeader:
 			blockHash := value.BlockHash()
 			msg.Invs = append(msg.Invs, NewInvVect(InvTypeBlock, &blockHash))
+		}
+
+		if len(msg.Invs) <= 0 {
+			return
 		}
 		go ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), pe, msg)
 	})
