@@ -3,6 +3,7 @@ package p2p
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/params"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -77,11 +78,14 @@ out:
 				r.s.RelayInventory(data)
 			}
 
+			mint := int64(params.ActiveNetParams.TargetTimePerBlock) / 2
+			rt := mint + rand.Int63n(int64(params.ActiveNetParams.TargetTimePerBlock)-mint)
+			timer.Reset(time.Duration(rt))
+
 		case <-r.quit:
 			break out
 		}
 	}
-
 	timer.Stop()
 
 cleanup:
