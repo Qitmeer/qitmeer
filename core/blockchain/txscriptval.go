@@ -209,7 +209,7 @@ func ValidateTransactionScripts(tx *types.Tx, utxoView *UtxoViewpoint, flags txs
 // checkBlockScripts executes and validates the scripts for all transactions in
 // the passed block using multiple goroutines.
 // txTree = true is TxTreeRegular, txTree = false is TxTreeStake.
-func checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint,
+func (b *BlockChain) checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint,
 	scriptFlags txscript.ScriptFlags, sigCache *txscript.SigCache) error {
 
 	// Collect all of the transaction inputs and required information for
@@ -242,7 +242,19 @@ func checkBlockScripts(block *types.SerializedBlock, utxoView *UtxoViewpoint,
 		}
 
 		if types.IsTokenTx(tx.Tx) {
-			utxoView.AddTokenTxOut(tx.Tx.TxIn[0].PreviousOut, nil)
+			if types.IsTokenMintTx(tx.Tx) {
+				state := b.GetTokenState(b.TokenTipID)
+				if state == nil {
+					return fmt.Errorf("Token state error\n")
+				}
+				tt, ok := state.Types[tx.Tx.TxOut[0].Amount.Id]
+				if !ok {
+					return fmt.Errorf("It doesn't exist: Coin id (%d)\n", tx.Tx.TxOut[0].Amount.Id)
+				}
+				utxoView.AddTokenTxOut(tx.Tx.TxIn[0].PreviousOut, tt.Owners)
+			} else {
+				utxoView.AddTokenTxOut(tx.Tx.TxIn[0].PreviousOut, nil)
+			}
 		}
 	}
 

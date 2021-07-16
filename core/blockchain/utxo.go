@@ -407,6 +407,9 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *BlockNode, blo
 	// if a slice was provided for the spent txout details, append an entry
 	// to it.
 	for txInIndex, txIn := range msgTx.TxIn {
+		if txInIndex == 0 && types.IsTokenMintTx(tx.Tx) {
+			continue
+		}
 		entry := view.entries[txIn.PreviousOut]
 
 		// Ensure the referenced utxo exists in the view.  This should

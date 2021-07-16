@@ -84,7 +84,7 @@ func (ts *TokenState) Deserialize(data []byte) (int, error) {
 		return offset, fmt.Errorf("unexpected end of data while reading prevStateID")
 	}
 	// Deserialize the balance.
-	var balances map[types.CoinID]TokenBalance
+	balances := map[types.CoinID]TokenBalance{}
 	numOfBalances, bytesRead := serialization.DeserializeVLQ(data[offset:])
 	if bytesRead == 0 {
 		return offset, fmt.Errorf("unexpected end of data while reading number of balances")

@@ -16,7 +16,12 @@ type TokenBalancesMap map[types.CoinID]TokenBalance
 
 func (tbs *TokenBalancesMap) Update(update *BalanceUpdate) error {
 	tokenId := update.TokenAmount.Id
-	tb := (*tbs)[tokenId]
+	tb := TokenBalance{}
+
+	srcTB, ok := (*tbs)[tokenId]
+	if ok {
+		tb = srcTB
+	}
 	switch update.Typ {
 	case types.TxTypeTokenMint:
 		tb.Balance += update.TokenAmount.Value
