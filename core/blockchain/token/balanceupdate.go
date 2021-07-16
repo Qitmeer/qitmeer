@@ -101,6 +101,12 @@ func (bu *BalanceUpdate) CheckSanity() error {
 	if bu.MeerAmount <= 0 {
 		return fmt.Errorf("invalid token balance update : wrong meer amount : %v", bu.MeerAmount)
 	}
+	if bu.TokenAmount.Value > types.MaxAmount {
+		return fmt.Errorf("Total token amount value of %v is higher than max allowed value of %v\n", bu.TokenAmount.Value, types.MaxAmount)
+	}
+	if bu.MeerAmount > types.MaxAmount {
+		return fmt.Errorf("Meer amount value of %v is higher than max allowed value of %v\n", bu.MeerAmount, types.MaxAmount)
+	}
 	return nil
 }
 
@@ -108,7 +114,13 @@ func NewBalanceUpdate(tx *types.Transaction) (*BalanceUpdate, error) {
 	meerAmount := int64(0)
 	tokenAmount := types.Amount{}
 	if types.IsTokenMintTx(tx) {
+		existingTxOut := make(map[types.TxOutPoint]struct{})
 		for idx, in := range tx.TxIn {
+			if _, exists := existingTxOut[in.PreviousOut]; exists {
+				return nil, fmt.Errorf("transaction contains duplicate inputs")
+			}
+			existingTxOut[in.PreviousOut] = struct{}{}
+
 			if idx == 0 {
 				continue
 			}
@@ -119,8 +131,20 @@ func NewBalanceUpdate(tx *types.Transaction) (*BalanceUpdate, error) {
 			if tokenAmount.Id != out.Amount.Id {
 				return nil, fmt.Errorf("Transaction(%s) output(%d) coin id is invalid\n", tx.TxHash(), idx)
 			}
+			if out.Amount.Value > types.MaxAmount {
+				return nil, fmt.Errorf("transaction output value of %v is "+
+					"higher than max allowed value of %v", out.Amount.Value,
+					types.MaxAmount)
+			}
+			if out.Amount.Value < 0 {
+				return nil, fmt.Errorf("Transaction output value is less than or equal to zero\n")
+			}
 			tokenAmount.Value += out.Amount.Value
 		}
+	}
+
+	if tokenAmount.Value > types.MaxAmount {
+		return nil, fmt.Errorf("Total token amount value of %v is higher than max allowed value of %v\n", tokenAmount.Value, types.MaxAmount)
 	}
 
 	return &BalanceUpdate{

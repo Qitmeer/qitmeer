@@ -315,10 +315,17 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 	// what is already known (in-flight).
 	txNeededSet := make(map[types.TxOutPoint]struct{})
 	for i, tx := range transactions[1:] {
-		if tx.IsDuplicate || types.IsTokenTx(tx.Tx) {
+		if tx.IsDuplicate {
 			continue
 		}
-		for _, txIn := range tx.Transaction().TxIn {
+		if types.IsTokenTx(tx.Tx) && !types.IsTokenMintTx(tx.Tx) {
+			continue
+		}
+
+		for txInIdx, txIn := range tx.Transaction().TxIn {
+			if txInIdx == 0 && types.IsTokenMintTx(tx.Tx) {
+				continue
+			}
 			// It is acceptable for a transaction input to reference
 			// the output of another transaction in this block only
 			// if the referenced transaction comes before the
