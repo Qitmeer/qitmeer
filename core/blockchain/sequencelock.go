@@ -58,7 +58,7 @@ func (b *BlockChain) calcSequenceLock(tx *types.Tx, view *UtxoViewpoint, isActiv
 
 		utxo := view.LookupEntry(txIn.PreviousOut)
 		if utxo == nil {
-			str := fmt.Sprintf("1output %v referenced from "+
+			str := fmt.Sprintf("output %v referenced from "+
 				"transaction %s:%d either does not exist or "+
 				"has already been spent", txIn.PreviousOut,
 				tx.Hash(), txInIndex)
