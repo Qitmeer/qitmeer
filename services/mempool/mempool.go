@@ -450,7 +450,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 
 	txFee := int64(0)
 	if txFees != nil {
-		txFee = txFees[types.MEERID]
+		txFee = txFees[tx.Tx.TxOut[0].Amount.Id]
 	}
 
 	if txFee < minFee {
