@@ -3,6 +3,7 @@ package token
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
 )
@@ -115,17 +116,15 @@ func NewBalanceUpdate(tx *types.Transaction) (*BalanceUpdate, error) {
 	tokenAmount := types.Amount{}
 	if types.IsTokenMintTx(tx) {
 		existingTxOut := make(map[types.TxOutPoint]struct{})
-		for idx, in := range tx.TxIn {
+		for _, in := range tx.TxIn {
 			if _, exists := existingTxOut[in.PreviousOut]; exists {
 				return nil, fmt.Errorf("transaction contains duplicate inputs")
 			}
 			existingTxOut[in.PreviousOut] = struct{}{}
-
-			if idx == 0 {
-				continue
-			}
-			meerAmount += int64(in.Sequence)
 		}
+
+		meerAmount = int64(dbnamespace.ByteOrder.Uint64(tx.TxIn[0].PreviousOut.Hash[0:8]))
+
 		tokenAmount.Id = tx.TxOut[0].Amount.Id
 		for idx, out := range tx.TxOut {
 			if tokenAmount.Id != out.Amount.Id {
