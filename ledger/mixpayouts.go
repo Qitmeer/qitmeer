@@ -7,48 +7,15 @@
 package main
 
 import (
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/params"
 )
 
-var MixGeneData = []GenesisInitPayout{
-	{
-		types.MEERID, "XmspWkqJv6a4sziWrPZbSWQ37WoNEmTD1xm", 10000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.MEERID, "XmspWkqJv6a4sziWrPZbSWQ37WoNEmTD1xm", 10000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.MEERID, "XmspWkqJv6a4sziWrPZbSWQ37WoNEmTD1xm", 10000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-
-	{
-		types.MEERID, "XmkgU8m4G2GwRjz6rEVskG9HAabT5uUS8Fy", 20000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.MEERID, "XmkgU8m4G2GwRjz6rEVskG9HAabT5uUS8Fy", 20000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.MEERID, "XmkgU8m4G2GwRjz6rEVskG9HAabT5uUS8Fy", 20000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-
-	{
-		types.MEERID, "XmnsdQkQYWHih65kMyZPo5bFzRpEyGc3N9x", 30000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.MEERID, "XmnsdQkQYWHih65kMyZPo5bFzRpEyGc3N9x", 30000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-	{
-		types.MEERID, "XmnsdQkQYWHih65kMyZPo5bFzRpEyGc3N9x", 30000, GENE_PAYOUT_TYPE_STANDARD, 0,
-	},
-}
+var MixGeneData = []GenesisInitPayout{}
 
 // coinid,address,lockAmount,locktype,lockheight
 var MixGeneDataFromImport = []string{
-	"0,Xmf3VqRkCYuuZnsVNgVxq6vzUfitw2sQy2t,5000,1,0",
-	"0,XmZsPmRHstHZWnrkamM8Ko2S1jQX1748nxx,5000,1,0",
-	"0,XmsUAvWUuEAXPCEHrzCbB9zGQmqQRSiBwBC,33762.20532,1,0",
-	"0,XmkgU8m4G2GwRjz6rEVskG9HAabT5uUS8Fy,20000,1,0", // will release 6 days
+	"0,XmCUoNaMxFaKU78BtrNtCtfhuR6AeYLUYts,50000,1,0",
+	"0,XmEUDxYWL36NZLFTUxtrkVZuUxeVks78qLo,33762.20532,1,0",
 }
 
 func main() {
