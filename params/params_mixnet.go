@@ -44,7 +44,7 @@ var MixNetParams = Params{
 	GenerateSupported:    true,
 	LedgerParams: ledger.LedgerParams{
 		UnlocksPerHeight:     10000 * 1e8, // every height 10000 MEER
-		GenesisAmountUnit:    100 * 1e8,   // 100 MEER every utxo
+		GenesisAmountUnit:    1000 * 1e8,  // 100 MEER every utxo
 		UnlocksPerHeightStep: 5760,        // 1 day block heights
 	},
 	PowConfig: &pow.PowConfig{
