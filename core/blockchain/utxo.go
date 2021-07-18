@@ -315,10 +315,17 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *types.Serializ
 	// what is already known (in-flight).
 	txNeededSet := make(map[types.TxOutPoint]struct{})
 	for i, tx := range transactions[1:] {
-		if tx.IsDuplicate || types.IsTokenTx(tx.Tx) {
+		if tx.IsDuplicate {
 			continue
 		}
-		for _, txIn := range tx.Transaction().TxIn {
+		if types.IsTokenTx(tx.Tx) && !types.IsTokenMintTx(tx.Tx) {
+			continue
+		}
+
+		for txInIdx, txIn := range tx.Transaction().TxIn {
+			if txInIdx == 0 && types.IsTokenMintTx(tx.Tx) {
+				continue
+			}
 			// It is acceptable for a transaction input to reference
 			// the output of another transaction in this block only
 			// if the referenced transaction comes before the
@@ -400,6 +407,9 @@ func (view *UtxoViewpoint) connectTransaction(tx *types.Tx, node *BlockNode, blo
 	// if a slice was provided for the spent txout details, append an entry
 	// to it.
 	for txInIndex, txIn := range msgTx.TxIn {
+		if txInIndex == 0 && types.IsTokenMintTx(tx.Tx) {
+			continue
+		}
 		entry := view.entries[txIn.PreviousOut]
 
 		// Ensure the referenced utxo exists in the view.  This should

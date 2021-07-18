@@ -201,7 +201,8 @@ function get_utxo() {
 function tx_sign(){
    local private_key=$1
    local raw_tx=$2
-   local data='{"jsonrpc":"2.0","method":"test_txSign","params":["'$private_key'","'$raw_tx'"],"id":1}'
+   local tokenPrivateKey=$3
+   local data='{"jsonrpc":"2.0","method":"test_txSign","params":["'$private_key'","'$raw_tx'","'$tokenPrivateKey'"],"id":1}'
    get_result "$data"
 }
 

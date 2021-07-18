@@ -850,7 +850,7 @@ func (b *BlockChain) checkConnectBlock(ib blockdag.IBlock, block *types.Serializ
 	}
 
 	if runScripts {
-		err = checkBlockScripts(block, utxoView,
+		err = b.checkBlockScripts(block, utxoView,
 			scriptFlags, b.sigCache)
 		if err != nil {
 			log.Trace("checkBlockScripts failed; error returned "+
@@ -910,6 +910,10 @@ func (b *BlockChain) checkTransactionsAndConnect(node *BlockNode, block *types.S
 		if types.IsTokenTx(tx.Tx) {
 			if types.IsTokenMintTx(tx.Tx) {
 				err := b.CheckTokenTransactionInputs(tx, utxoView)
+				if err != nil {
+					return err
+				}
+				err = utxoView.connectTransaction(tx, node, uint32(idx), stxos, b)
 				if err != nil {
 					return err
 				}
@@ -1299,6 +1303,8 @@ func ExtractCoinbaseHeight(coinbaseTx *types.Transaction) (uint64, error) {
 func (b *BlockChain) CheckTokenTransactionInputs(tx *types.Tx, utxoView *UtxoViewpoint) error {
 	msgTx := tx.Transaction()
 	totalAtomIn := int64(0)
+	targets := []uint{}
+
 	for idx, txIn := range msgTx.TxIn {
 		if idx == 0 {
 			continue
@@ -1328,6 +1334,24 @@ func (b *BlockChain) CheckTokenTransactionInputs(tx *types.Tx, utxoView *UtxoVie
 			return ruleError(ErrInvalidTxOutValue, str)
 		}
 
+		if utxoEntry.IsCoinBase() {
+			ubhIB := b.bd.GetBlock(utxoEntry.BlockHash())
+			if ubhIB == nil {
+				str := fmt.Sprintf("utxoEntry blockhash error:%s", utxoEntry.BlockHash())
+				return ruleError(ErrNoViewpoint, str)
+			}
+			targets = append(targets, ubhIB.GetID())
+			if !utxoEntry.BlockHash().IsEqual(b.params.GenesisHash) {
+				if originTxAtom.Id == types.MEERID {
+					if txIn.PreviousOut.OutIndex == CoinbaseOutput_subsidy {
+						originTxAtom.Value += b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
+					}
+				} else {
+					originTxAtom.Value = b.GetFeeByCoinID(utxoEntry.BlockHash(), originTxAtom.Id)
+				}
+			}
+		}
+
 		totalAtomIn += originTxAtom.Value
 	}
 
@@ -1335,6 +1359,26 @@ func (b *BlockChain) CheckTokenTransactionInputs(tx *types.Tx, utxoView *UtxoVie
 	if totalAtomIn != lockMeer {
 		return fmt.Errorf("Utxo (%d) and input amount (%d) are inconsistent\n", totalAtomIn, lockMeer)
 	}
+
+	//
+	if len(targets) > 0 {
+		viewpoints := []uint{}
+		for _, blockHash := range utxoView.viewpoints {
+			vIB := b.bd.GetBlock(blockHash)
+			if vIB != nil {
+				viewpoints = append(viewpoints, vIB.GetID())
+			}
+		}
+		if len(viewpoints) == 0 {
+			str := fmt.Sprintf("transaction %s has no viewpoints", tx.Hash())
+			return ruleError(ErrNoViewpoint, str)
+		}
+		err := b.bd.CheckBlueAndMatureMT(targets, viewpoints, uint(b.params.CoinbaseMaturity))
+		if err != nil {
+			return ruleError(ErrImmatureSpend, err.Error())
+		}
+	}
+	//
 
 	totalAtomOut := int64(0)
 	state := b.GetTokenState(b.TokenTipID)

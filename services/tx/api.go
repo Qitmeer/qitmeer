@@ -922,7 +922,7 @@ func NewPrivateTxAPI(tm *TxManager) *PrivateTxAPI {
 	return &ptapi
 }
 
-func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}, error) {
+func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string, tokenPrivkeyStr *string) (interface{}, error) {
 	privkeyByte, err := hex.DecodeString(privkeyStr)
 	if err != nil {
 		return nil, err
@@ -981,15 +981,30 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string) (interface{}
 				"must be enabled to query the blockchain (specify --txindex in configuration)")
 		}
 		var tokenPkScript []byte
+		var tokenPrivkey ecc.PrivateKey
 		if types.IsTokenMintTx(&redeemTx) {
 			tokenPkScript, err = api.txManager.bm.GetChain().GetCurTokenOwners(redeemTx.TxOut[0].Amount.Id)
 			if err != nil {
 				return nil, err
 			}
+			if tokenPrivkeyStr == nil {
+				return nil, fmt.Errorf("Token private key must be provided.")
+			}
+			tprivkeyByte, err := hex.DecodeString(*tokenPrivkeyStr)
+			if err != nil {
+				return nil, err
+			}
+			if len(tprivkeyByte) != 32 {
+				return nil, fmt.Errorf("error:%d", len(tprivkeyByte))
+			}
+			tokenPrivkey, _ = ecc.Secp256k1.PrivKeyFromBytes(tprivkeyByte)
 		}
 		for i := 0; i < len(redeemTx.TxIn); i++ {
 			if i == 0 && len(tokenPkScript) > 0 {
-				sigScript, err := txscript.SignTxOutput(param, &redeemTx, 0, tokenPkScript, txscript.SigHashAll, kdb, nil, nil, ecc.ECDSA_Secp256k1)
+				var tkdb txscript.KeyClosure = func(types.Address) (ecc.PrivateKey, bool, error) {
+					return tokenPrivkey, true, nil // compressed is true
+				}
+				sigScript, err := txscript.SignTxOutput(param, &redeemTx, 0, tokenPkScript, txscript.SigHashAll, tkdb, nil, nil, ecc.ECDSA_Secp256k1)
 				if err != nil {
 					return nil, err
 				}
