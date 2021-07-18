@@ -1,4 +1,4 @@
-## The Qitmeer Burn Address Generateor
+## The Qitmeer Burn Address Generator
 - The tool which generate a valid `qitmeer-base58check` encoded 
   address for the specified network (the default is testnet).
 - **Security Note**: 
