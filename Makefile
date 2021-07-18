@@ -41,7 +41,7 @@ qitmeer-build:
 		@go build -o $(GOBIN)/qitmeer $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
     endif
 qx:
-	@go build -o $(GOBIN)/qx "github.com/Qitmeer/qitmeer/cmd/qx"
+	@go build -o $(GOBIN)/qx $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/qx"
 
 checkversion: qitmeer-build
 #	@echo version $(VERSION)

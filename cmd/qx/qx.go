@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/crypto/seed"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/qx"
+	ver "github.com/Qitmeer/qitmeer/version"
 	"github.com/Qitmeer/qitmeer/wallet"
 	"io/ioutil"
 	"os"
@@ -17,7 +18,6 @@ import (
 )
 
 const (
-	QX_VERSION = "0.0.3"
 	TX_VERION  = 1 //default version is 1
 )
 
@@ -91,7 +91,7 @@ func cmdUsage(cmd *flag.FlagSet, usage string) {
 }
 
 func version() {
-	fmt.Fprintf(os.Stderr, "Qx Version : %q\n", QX_VERSION)
+	fmt.Fprintf(os.Stderr, "Qx Version : %q\n", ver.String())
 	os.Exit(1)
 }
 
