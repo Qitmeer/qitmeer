@@ -146,7 +146,7 @@ func TestCheckTokenMint(t *testing.T) {
 				meerlockScript, _ := builder.Script()
 				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 100 * 1e8, Id: MEERID}, PkScript: meerlockScript})
 				// output[1]
-				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
+				addr, err := address.DecodeAddress("XmJvqQiDqCxEKEvSz8QaMJafkyyP4YDjL73")
 				if err != nil {
 					panic(err)
 				}
@@ -194,7 +194,7 @@ func TestCheckTokenMint(t *testing.T) {
 				meerlockScript, _ := builder.Script()
 				tx.AddTxOut(&TxOutput{Amount: Amount{Value: mint, Id: MEERID}, PkScript: meerlockScript})
 				// output[1]
-				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
+				addr, err := address.DecodeAddress("XmJvqQiDqCxEKEvSz8QaMJafkyyP4YDjL73")
 				if err != nil {
 					panic(err)
 				}
@@ -310,7 +310,7 @@ func TestCheckTokenUnMint(t *testing.T) {
 				tokenDestoryScript, _ := builder.Script()
 				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 100 * 1e8, Id: QITID}, PkScript: tokenDestoryScript})
 				// output[1]
-				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
+				addr, err := address.DecodeAddress("XmJvqQiDqCxEKEvSz8QaMJafkyyP4YDjL73")
 				if err != nil {
 					panic(err)
 				}
@@ -356,7 +356,7 @@ func TestCheckTokenUnMint(t *testing.T) {
 				tokenDestoryScript, _ := builder.Script()
 				tx.AddTxOut(&TxOutput{Amount: Amount{Value: 99 * 1e8, Id: QITID}, PkScript: tokenDestoryScript})
 				// output[1]
-				addr, err := address.DecodeAddress("XmiGSPpX7v8hC4Mb59pufnhwYcUe1GvZVEx")
+				addr, err := address.DecodeAddress("XmJvqQiDqCxEKEvSz8QaMJafkyyP4YDjL73")
 				if err != nil {
 					panic(err)
 				}
