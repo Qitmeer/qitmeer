@@ -29,7 +29,7 @@ func testNetworkPrefix(prefix string , p *params.Params, t *testing.T) {
 		t.Fail();
 	}
 	if !strings.HasPrefix(string(addr),prefixed) {
-		t.Fail();
+	    t.Errorf("Incorrect %s burn addr %s not prefixed by %s \n",p.Name, addr, prefixed)
 	}
 	fmt.Printf("%s burn addr: %s tested ok!\n",p.Name, addr)
 }
