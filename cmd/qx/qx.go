@@ -47,15 +47,15 @@ hash :
     hash160               calculate ripemd160(blake2b256(data))
 
 compact :
-	compact-to-target      convert compact to target
-	target-to-compact      convert target to compact
+    compact-to-target     convert compact to target
+    target-to-compact     convert target to compact
 cuckoo-difficulty :
-    compact-to-gps          convert cuckoo compact to gps.
-    gps-to-compact          convert cuckoo gps to compact.
+    compact-to-gps        convert cuckoo compact to gps.
+    gps-to-compact        convert cuckoo gps to compact.
 
 hash-difficulty :
-    compact-to-hashrate          convert compact to hashrate.
-    hashrate-to-compact          convert hashrate to compact.
+    compact-to-hashrate   convert compact to hashrate.
+    hashrate-to-compact   convert hashrate to compact.
 
 entropy (seed) & mnemoic & hd & ec 
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
