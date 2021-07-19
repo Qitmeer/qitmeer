@@ -10,26 +10,34 @@ import (
 	"testing"
 )
 
-func TestBurnAddrForNetworks(t *testing.T) {
-	testNetworkPrefix("Mm", &params.MainNetParams, t)
-	testNetworkPrefix("Tm", &params.TestNetParams, t)
-	testNetworkPrefix("Xm", &params.MixNetParams, t)
-	testNetworkPrefix("Rm", &params.PrivNetParams, t)
+func TestBurnAddrss(t *testing.T) {
+	tests := []struct{
+		param *params.Params
+		addr string
+	}{
+		{ &params.MainNetParams,"MmQitmeerMainnetBurnAddressXXSFKLc1",},
+		{ &params.TestNetParams,"TmQitmeerTestnetBurnAddressXXaDBvN7"},
+		{ &params.MixNetParams, "XmQitmeerMixnetBurnAddressXXXWkhgxQ"},
+		{ &params.PrivNetParams, "RmQitmeerPrivnetBurnAddressXXVVcD5m"},
+	}
+	for _,test := range tests {
+		addr := testGetAddr(test.param, false, t)
+		if addr != test.addr {
+			t.Fatalf("failed test gen default burn address, expect=%s, but got=%s", test.addr, addr)
+		}
+		naddr := testGetAddr(test.param, true, t)
+		fmt.Printf("test %s burn addr ok! [%s,%s]\n", test.param.Name, addr, naddr)
+	}
 }
 
-func testNetworkPrefix(prefix string , p *params.Params, t *testing.T) {
-	var sb strings.Builder
-	sb.WriteString(prefix)
-	sb.WriteString("Qitmeer")
-	sb.WriteString(strings.Title(p.Name))
-	sb.WriteString("BurnAddress")
-	prefixed := sb.String()
-	addr, err := getAddr(prefixed, p)
+func testGetAddr(p *params.Params, genNew bool, t *testing.T) string{
+	template := genTemplateByParams(p)
+	addr, err := getAddr(template,p,genNew)
 	if err != nil {
-		t.Fail();
+		t.Fatalf("Failed to genAddr: %v", err)
 	}
-	if !strings.HasPrefix(string(addr),prefixed) {
-	    t.Errorf("Incorrect %s burn addr %s not prefixed by %s \n",p.Name, addr, prefixed)
+	if !strings.HasPrefix(string(addr),template) {
+		t.Fatalf("Incorrect %s burn addr %s not prefixed by %s \n",p.Name, addr, template)
 	}
-	fmt.Printf("%s burn addr: %s tested ok!\n",p.Name, addr)
+	return string(addr)
 }

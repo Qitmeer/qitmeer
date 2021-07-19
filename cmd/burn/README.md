@@ -11,24 +11,33 @@
 ```
 $ ./burn --help
 Usage of ./burn:
--n string
-network [mainnet|testnet|mixnet|privnet] (default "testnet")
--t string
-template (default "TmQitmeerTestNetBurnAddress")
+  -n string
+        network [mainnet|testnet|mixnet|privnet] (default "testnet")
+  -new
+        generate new address
+  -t string
+        template
 ```
 
-### generate a burn address for testnet (default)
+### display the default burn address for testnet (default)
 
 ```
 $ ./burn
-template = TmQitmeerTestNetBurnAddress
-    addr = TmQitmeerTestNetBurnAddressLn4jhCih
+template = TmQitmeerTestnetBurnAddress
+    addr = TmQitmeerTestnetBurnAddressXXaDBvN7
 ```
-### for a specified network
+### display for a specified network
 
 using `-n` option for a network. 
 ```
 $ ./burn -n mixnet
 template = XmQitmeerMixnetBurnAddress
-    addr = XmQitmeerMixnetBurnAddressgqNYbsmqv
+    addr = XmQitmeerMixnetBurnAddressXXXWkhgxQ
+```
+
+### generate a new burn address
+```
+$ ./burn -new
+template = TmQitmeerTestnetBurnAddress
+    addr = TmQitmeerTestnetBurnAddressLqkrCTgy
 ```

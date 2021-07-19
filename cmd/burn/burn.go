@@ -16,16 +16,7 @@ import (
 
 const addrSize int = 35
 const alphabet string = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-const defaultTemplate string = "TmQitmeerTestNetBurnAddress"
 const defaultNetwork string = "testnet"
-var template string
-var network string
-
-func init() {
-	flag.StringVar(&template, "t", defaultTemplate,"template")
-	flag.StringVar(&network, "n",defaultNetwork ,"network [mainnet|testnet|mixnet|privnet]")
-	rand.Seed(time.Now().UnixNano())
-}
 
 // The generator of the Qitmeer burn addresses. The tool which generate a valid
 // qitmeer-base58check encoded address for the specified network (the default
@@ -35,18 +26,19 @@ func init() {
 // See https://en.bitcoin.it/wiki/Vanitygen for the details
 //
 func main() {
+	var template string
+	var network string
+	var generate bool
+	flag.StringVar(&template, "t", "","template")
+	flag.StringVar(&network, "n",defaultNetwork ,"network [mainnet|testnet|mixnet|privnet]")
+	flag.BoolVar(&generate, "new", false, "generate new address")
 	flag.Parse()
 	p, err := getParams(network);
 	exitIfErr(err)
-	if network != defaultNetwork && template == defaultTemplate {
-		var sb strings.Builder
-		sb.WriteString(p.NetworkAddressPrefix)
-		sb.WriteString("mQitmeer")
-		sb.WriteString(strings.Title(p.Name))
-		sb.WriteString("BurnAddress")
-		template = sb.String();
+	if template == "" {
+		template = genTemplateByParams(p)
 	}
-	addr, err := getAddr(template,p)
+	addr, err := getAddr(template,p,generate)
 	exitIfErr(err)
 	fmt.Printf("template = %s \n", template)
 	fmt.Printf("    addr = %v \n", string(addr));
@@ -72,17 +64,35 @@ func getParams(network string) (*params.Params, error) {
 		return nil, fmt.Errorf("unknown network %s",network)
 	}
 }
+func genTemplateByParams(p *params.Params) string {
+	var sb strings.Builder
+	sb.WriteString(p.NetworkAddressPrefix)
+	sb.WriteString("mQitmeer")
+	sb.WriteString(strings.Title(p.Name))
+	sb.WriteString("BurnAddress")
+	return sb.String()
+}
 
-func getAddr(template string, p *params.Params) ([]byte, error) {
+func getAddr(template string, p *params.Params, randomSuffix bool) ([]byte, error) {
 	pickSize := addrSize-len(template)
 	var sb strings.Builder
 	sb.WriteString(template);
-	for i := 0; i < pickSize; i++ {
-		randomIndex := rand.Intn(58)
-		pick := alphabet[randomIndex]
-		sb.WriteString(string(pick))
+	if randomSuffix {
+		rand.Seed(time.Now().UnixNano())
+		for i := 0; i < pickSize; i++ {
+			randomIndex := rand.Intn(58)
+			pick := alphabet[randomIndex]
+			sb.WriteString(string(pick))
+		}
+	} else {
+		for i := 0; i < pickSize; i++ {
+			sb.WriteString("X");
+		}
 	}
 	decoded := base58.Decode([]byte(sb.String()))
+	if len(decoded) == 0 {
+		return nil, fmt.Errorf("incorrect base58 encoded template %s", sb.String());
+	}
 	addr, err := base58.QitmeerCheckEncode(decoded[2:22],p.PubKeyHashAddrID[:])
  	if err!=nil {
  		return nil, err
