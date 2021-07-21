@@ -475,6 +475,11 @@ func (view *UtxoViewpoint) disconnectTransactions(block *types.SerializedBlock, 
 		if tx.IsDuplicate {
 			continue
 		}
+		if types.IsTokenTx(tx.Tx) {
+			if !types.IsTokenMintTx(tx.Tx) {
+				continue
+			}
+		}
 		var packedFlags txoFlags
 		isCoinBase := txIdx == 0
 		if isCoinBase {
@@ -508,6 +513,9 @@ func (view *UtxoViewpoint) disconnectTransactions(block *types.SerializedBlock, 
 			continue
 		}
 		for txInIdx := len(tx.Tx.TxIn) - 1; txInIdx > -1; txInIdx-- {
+			if types.IsTokenMintTx(tx.Tx) && txInIdx == 0 {
+				continue
+			}
 			stxo := &stxos[stxoIdx]
 			stxoIdx--
 

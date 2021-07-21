@@ -1179,7 +1179,15 @@ func (b *BlockChain) countSpentOutputs(block *types.SerializedBlock) int {
 		if tx.IsDuplicate {
 			continue
 		}
+		if types.IsTokenTx(tx.Tx) {
+			if types.IsTokenMintTx(tx.Tx) {
+				numSpent--
+			} else {
+				continue
+			}
+		}
 		numSpent += len(tx.Transaction().TxIn)
+
 	}
 	return numSpent
 }
