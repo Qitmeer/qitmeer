@@ -37,6 +37,21 @@ var TestNetParams = Params{
 		GenesisAmountUnit:    1000 * 1e8,  // 100 MEER every utxo
 		UnlocksPerHeightStep: 2880,        // 1 day block heights
 	},
+	RuleChangeActivationThreshold: 57,                     // 95% of MinerConfirmationWindow
+	MinerConfirmationWindow:       testWorkDiffWindowSize, //
+	Deployments: []ConsensusDeployment{
+		DeploymentTestDummy: {
+			BitNumber:   28,
+			StartTime:   1626688646, // 2021-07-19 09:58:47 UTC
+			ExpireTime:  1655200727, // 2022-06-14 09:58:47 UTC
+			PerformTime: 1655204327, // 2022-06-14 10:58:47 UTC
+		},
+		DeploymentToken: {
+			BitNumber:  0,
+			StartTime:  1440,
+			ExpireTime: 14400,
+		},
+	},
 	// Chain parameters
 	GenesisBlock: &testNetGenesisBlock,
 	GenesisHash:  &testNetGenesisHash,
