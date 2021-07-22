@@ -10,13 +10,14 @@ import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/ledger"
 	"math/big"
 	"time"
 )
 
 // testNetPowLimit is the highest proof of work value a block can
 // have for the test network. It is the value 2^208 - 1.
-var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 208), common.Big1)
+var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 240), common.Big1)
 
 // target time per block unit second(s)
 const testTargetTimePerBlock = 30
@@ -31,7 +32,11 @@ var TestNetParams = Params{
 	DefaultPort:    "18130",
 	DefaultUDPPort: 18140,
 	Bootstrap:      []string{},
-
+	LedgerParams: ledger.LedgerParams{
+		UnlocksPerHeight:     10000 * 1e8, // every height 10000 MEER
+		GenesisAmountUnit:    1000 * 1e8,  // 100 MEER every utxo
+		UnlocksPerHeightStep: 2880,        // 1 day block heights
+	},
 	// Chain parameters
 	GenesisBlock: &testNetGenesisBlock,
 	GenesisHash:  &testNetGenesisHash,
@@ -44,6 +49,8 @@ var TestNetParams = Params{
 		X8r16PowLimitBits:            0x1b7fffff, // compact from of testNetPowLimit (2^215-1)
 		QitmeerKeccak256PowLimit:     testNetPowLimit,
 		QitmeerKeccak256PowLimitBits: 0x1b00ffff, // compact from of testNetPowLimit (2^208-1) 453050367
+		MeerXKeccakV1PowLimit:        testNetPowLimit,
+		MeerXKeccakV1PowLimitBits:    0x1f0198f2, // compact from of testNetPowLimit (2^240-1)
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 = 1min find once
@@ -52,25 +59,14 @@ var TestNetParams = Params{
 		CuckaroomMinDifficulty: 0x34ad1ec, // compact : 55235052 diff : 4903404
 
 		Percent: map[pow.MainHeight]pow.PercentItem{
-			pow.MainHeight(0): {
-				pow.BLAKE2BD:         0,
-				pow.X16RV3:           0,
-				pow.QITMEERKECCAK256: 30,
-				pow.CUCKAROOM:        70,
-				pow.CUCKATOO:         0,
-			},
 			// | time	| timestamp	| mainHeight |
 			// | ---| --- | --- |
 			// | 2020-08-30 10:31:46 | 1598754706 | 192266
 			// | 2020-09-15 12:00 | 1600142400 | 238522
 			// The soft forking mainHeight was calculated according to the average time of 30s
 			// In other words, pmeer will be produced by the pow of QitmeerKeccak256 only after mainHeight arrived 238522
-			pow.MainHeight(238522): {
-				pow.BLAKE2BD:         0,
-				pow.X16RV3:           0,
-				pow.QITMEERKECCAK256: 100,
-				pow.CUCKAROOM:        0,
-				pow.CUCKATOO:         0,
+			pow.MainHeight(0): {
+				pow.MEERXKECCAKV1: 100,
 			},
 		},
 		// after this height the big graph will be the main pow graph
