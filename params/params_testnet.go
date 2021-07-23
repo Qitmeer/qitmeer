@@ -34,9 +34,9 @@ var TestNetParams = Params{
 	DefaultPort:    "18130",
 	DefaultUDPPort: 18140,
 	Bootstrap:      []string{},
-	LedgerParams: ledger.LedgerParams{
-		UnlocksPerHeight:     10000 * 1e8, // every height 10000 MEER
-		GenesisAmountUnit:    1000 * 1e8,  // 100 MEER every utxo
+	LedgerParams: ledger.LedgerParams{ // lock tx release rule in genesis
+		UnlocksPerHeight:     10000 * 1e8, // every height release 10000 MEER
+		GenesisAmountUnit:    1000 * 1e8,  // 1000 MEER every utxo
 		UnlocksPerHeightStep: 2880,        // 1 day block heights
 	},
 	// Chain parameters
@@ -83,7 +83,7 @@ var TestNetParams = Params{
 	// Subsidy parameters.
 	BaseSubsidy:              12000000000, // 120 Coin , daily supply is 120*2*60*24 = 345600 ~ 345600 * 2 (DAG factor)
 	MulSubsidy:               100,
-	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
+	DivSubsidy:               10000000000000, //
 	SubsidyReductionInterval: math.MaxInt64,
 	WorkRewardProportion:     10,
 	StakeRewardProportion:    0,
