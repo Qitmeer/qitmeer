@@ -58,13 +58,13 @@ var TestNetParams = Params{
 	GenesisHash:  &testNetGenesisHash,
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             maxNetPowLimit,
-		Blake2bdPowLimitBits:         0x0, // compact from of testNetPowLimit (2^215-1)
+		Blake2bdPowLimitBits:         0x0, // compact from of testNetPowLimit 0
 		X16rv3PowLimit:               maxNetPowLimit,
-		X16rv3PowLimitBits:           0x0, // compact from of testNetPowLimit (2^215-1)
+		X16rv3PowLimitBits:           0x0, // compact from of testNetPowLimit 0
 		X8r16PowLimit:                maxNetPowLimit,
-		X8r16PowLimitBits:            0x0, // compact from of testNetPowLimit (2^215-1)
+		X8r16PowLimitBits:            0x0, // compact from of testNetPowLimit 0
 		QitmeerKeccak256PowLimit:     maxNetPowLimit,
-		QitmeerKeccak256PowLimitBits: 0x0, // compact from of testNetPowLimit (2^208-1) 453050367
+		QitmeerKeccak256PowLimitBits: 0x0, // compact from of testNetPowLimit 0
 		MeerXKeccakV1PowLimit:        testNetPowLimit,
 		MeerXKeccakV1PowLimitBits:    0x1f0198f2, // compact from of testNetPowLimit (2^240-1)
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
