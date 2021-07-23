@@ -8,6 +8,7 @@ package params
 
 import (
 	"github.com/Qitmeer/qitmeer/common"
+	"github.com/Qitmeer/qitmeer/common/math"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/ledger"
@@ -75,12 +76,6 @@ var TestNetParams = Params{
 		CuckaroomMinDifficulty: 0x87fffff, // diff: max int64
 
 		Percent: map[pow.MainHeight]pow.PercentItem{
-			// | time	| timestamp	| mainHeight |
-			// | ---| --- | --- |
-			// | 2020-08-30 10:31:46 | 1598754706 | 192266
-			// | 2020-09-15 12:00 | 1600142400 | 238522
-			// The soft forking mainHeight was calculated according to the average time of 30s
-			// In other words, pmeer will be produced by the pow of QitmeerKeccak256 only after mainHeight arrived 238522
 			pow.MainHeight(0): {
 				pow.MEERXKECCAKV1: 100,
 			},
@@ -103,8 +98,8 @@ var TestNetParams = Params{
 	// Subsidy parameters.
 	BaseSubsidy:              12000000000, // 120 Coin , daily supply is 120*2*60*24 = 345600 ~ 345600 * 2 (DAG factor)
 	MulSubsidy:               100,
-	DivSubsidy:               10000000000000,   // Coin-base reward reduce to zero at 1540677 blocks created
-	SubsidyReductionInterval: 1669066 - 541194, // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days
+	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
+	SubsidyReductionInterval: math.MaxInt64,
 	// && subsidy has to reduce the 0.8.5 mining_rewarded blocks (541194)
 	WorkRewardProportion:  10,
 	StakeRewardProportion: 0,
@@ -131,7 +126,7 @@ var TestNetParams = Params{
 
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
-	HDCoinType: 223,
-
+	HDCoinType:         223,
+	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac"),
 	//OrganizationPkScript:  hexMustDecode("76a914868b9b6bc7e4a9c804ad3d3d7a2a6be27476941e88ac"),
 }
