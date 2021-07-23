@@ -33,7 +33,10 @@ var TestNetParams = Params{
 	Net:            protocol.TestNet,
 	DefaultPort:    "18150",
 	DefaultUDPPort: 18160,
-	Bootstrap:      []string{},
+	Bootstrap: []string{
+		"/dns4/node.meerscan.io/tcp/28130/p2p/16Uiu2HAmTdcrQ2S4MD6UxeR81Su8DQdt2eB7vLzJA7LrawNf93T2",
+		"/dns4/ns-cn.qitmeer.xyz/tcp/18150/p2p/16Uiu2HAm45YEQXf5sYgpebp1NvPS96ypvvpz5uPx7iPHmau94vVk",
+	},
 	LedgerParams: ledger.LedgerParams{ // lock tx release rule in genesis
 		UnlocksPerHeight:     10000 * 1e8, // every height release 10000 MEER
 		GenesisAmountUnit:    1000 * 1e8,  // 1000 MEER every utxo

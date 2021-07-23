@@ -2,9 +2,7 @@ package json
 
 // for pow diff
 type PowDiff struct {
-	Blake2bdDiff float64 `json:"blake2bd_diff"`
-	CuckarooDiff float64 `json:"cuckaroo_diff"`
-	CuckatooDiff float64 `json:"cuckatoo_diff"`
+	CurrentDiff float64 `json:"current_diff"`
 }
 
 // InfoNodeResult models the data returned by the node server getnodeinfo command.

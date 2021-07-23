@@ -55,9 +55,7 @@ func NewPublicBlockChainAPI(node *QitmeerFull) *PublicBlockChainAPI {
 func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	best := api.node.blockManager.GetChain().BestSnapshot()
 	node := api.node.blockManager.GetChain().BlockDAG().GetBlock(&best.Hash)
-	blake2bdNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(node, pow.BLAKE2BD)
-	cuckarooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(node, pow.CUCKAROO)
-	cuckatooNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(node, pow.CUCKATOO)
+	powNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(node, pow.MEERXKECCAKV1)
 	ret := &json.InfoNodeResult{
 		ID:              api.node.node.peerServer.PeerID().String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
@@ -67,9 +65,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
 		Connections:     int32(len(api.node.node.peerServer.Peers().Connected())),
 		PowDiff: json.PowDiff{
-			Blake2bdDiff: getDifficultyRatio(blake2bdNodes, api.node.node.Params, pow.BLAKE2BD),
-			CuckarooDiff: getDifficultyRatio(cuckarooNodes, api.node.node.Params, pow.CUCKAROO),
-			CuckatooDiff: getDifficultyRatio(cuckatooNodes, api.node.node.Params, pow.CUCKATOO),
+			CurrentDiff: getDifficultyRatio(powNodes, api.node.node.Params, pow.MEERXKECCAKV1),
 		},
 		Network:          params.ActiveNetParams.Name,
 		Confirmations:    blockdag.StableConfirmations,
@@ -147,8 +143,14 @@ func getDifficultyRatio(target *big.Int, params *params.Params, powType pow.PowT
 	// with the compact form which loses precision.
 	base := instance.GetSafeDiff(0)
 	var difficulty *big.Rat
-	if powType == pow.BLAKE2BD {
-		difficulty = new(big.Rat).SetFrac(base, target)
+	if powType == pow.BLAKE2BD || powType == pow.MEERXKECCAKV1 ||
+		powType == pow.QITMEERKECCAK256 ||
+		powType == pow.X8R16 ||
+		powType == pow.X16RV3 ||
+		powType == pow.CRYPTONIGHT {
+		if target.Cmp(big.NewInt(0)) > 0 {
+			difficulty = new(big.Rat).SetFrac(base, target)
+		}
 	} else {
 		difficulty = new(big.Rat).SetFrac(target, base)
 	}
