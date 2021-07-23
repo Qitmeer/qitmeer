@@ -104,6 +104,10 @@ const (
 	// TokenPrevOutIndex is the token index field of a previous
 	// outpoint can be.
 	TokenPrevOutIndex uint32 = 0xfffffffe
+
+	// TokenInSequence is the maximum tx type the sequence field
+	// of a transaction input can be.
+	TxTypeInSequence uint32 = 0x400
 )
 
 // TxIndexUnknown is the value returned for a transaction index that is unknown.
@@ -1139,3 +1143,7 @@ func NewTxFromReader(r io.Reader) (*Tx, error) {
 // previously described, this free list is maintained to significantly reduce
 // the number of allocations.
 var scriptPool scriptFreeList = make(chan []byte, freeListMaxItems)
+
+func IsSequenceLockTimeDisabled(sequence uint32) bool {
+	return sequence&SequenceLockTimeDisabled != 0 || sequence <= TxTypeInSequence
+}

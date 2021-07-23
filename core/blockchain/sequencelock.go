@@ -52,7 +52,7 @@ func (b *BlockChain) calcSequenceLock(tx *types.Tx, view *UtxoViewpoint, isActiv
 		// are disabled for it.
 		sequenceNum := txIn.Sequence
 		// TODO, refactor config item
-		if sequenceNum&types.SequenceLockTimeDisabled != 0 {
+		if types.IsSequenceLockTimeDisabled(sequenceNum) {
 			continue
 		}
 
