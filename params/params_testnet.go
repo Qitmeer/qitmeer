@@ -31,8 +31,8 @@ const testWorkDiffWindowSize = 60
 var TestNetParams = Params{
 	Name:           "testnet",
 	Net:            protocol.TestNet,
-	DefaultPort:    "18130",
-	DefaultUDPPort: 18140,
+	DefaultPort:    "18150",
+	DefaultUDPPort: 18160,
 	Bootstrap:      []string{},
 	LedgerParams: ledger.LedgerParams{ // lock tx release rule in genesis
 		UnlocksPerHeight:     10000 * 1e8, // every height release 10000 MEER
