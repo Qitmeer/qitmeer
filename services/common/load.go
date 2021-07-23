@@ -235,6 +235,11 @@ func LoadConfig() (*config.Config, []string, error) {
 		return nil, nil, err
 	}
 
+	// default p2p port
+	if len(cfg.DefaultPort) > 0 {
+		params.ActiveNetParams.Params.DefaultPort = cfg.DefaultPort
+	}
+
 	if cfg.P2PTCPPort <= 0 {
 		P2PTCPPort, err := strconv.Atoi(params.ActiveNetParams.DefaultPort)
 		if err != nil {
@@ -250,11 +255,6 @@ func LoadConfig() (*config.Config, []string, error) {
 	if err := params.ActiveNetParams.PowConfig.Check(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, nil, err
-	}
-
-	// default p2p port
-	if len(cfg.DefaultPort) > 0 {
-		params.ActiveNetParams.Params.DefaultPort = cfg.DefaultPort
 	}
 
 	// Add default port to all rpc listener addresses if needed and remove
