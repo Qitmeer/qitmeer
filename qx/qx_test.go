@@ -1,11 +1,50 @@
 package qx
 
 import (
+	"encoding/hex"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestScriptDisasm(t *testing.T) {
+	pkStr := "76a91408ff3106060bf8d7d61a25d8108ec977698729f788ac"
+	expect := "OP_DUP OP_HASH160 08ff3106060bf8d7d61a25d8108ec977698729f7 OP_EQUALVERIFY OP_CHECKSIG"
+	b, _ := hex.DecodeString(pkStr)
+	s, err := txscript.DisasmString(b)
+	if err != nil {
+		t.Fatal(t)
+	}
+	assert.Equal(t, expect, s)
+	pkStr = "00b17576a9141f426c4a880a66803ad2a91c6a697dac1c2600ec88ac"
+	expect = "0 OP_CHECKLOCKTIMEVERIFY OP_DROP OP_DUP OP_HASH160 1f426c4a880a66803ad2a91c6a697dac1c2600ec OP_EQUALVERIFY OP_CHECKSIG"
+	b, _ = hex.DecodeString(pkStr)
+	s, err = txscript.DisasmString(b)
+	if err != nil {
+		t.Fatal(t)
+	}
+	assert.Equal(t, expect, s)
+}
+
+func TestDisasmDecodeString(t *testing.T) {
+	pkStr := "OP_DUP OP_HASH160 08ff3106060bf8d7d61a25d8108ec977698729f7 OP_EQUALVERIFY OP_CHECKSIG"
+	expect := "76a91408ff3106060bf8d7d61a25d8108ec977698729f788ac"
+	script, err := DecodePkString(pkStr)
+	if err != nil {
+		t.Fatal(t)
+	}
+	assert.Equal(t, expect, script)
+	pkStr = "0 OP_CHECKLOCKTIMEVERIFY OP_DROP OP_DUP OP_HASH160 1f426c4a880a66803ad2a91c6a697dac1c2600ec OP_EQUALVERIFY OP_CHECKSIG"
+	expect = "00b17576a9141f426c4a880a66803ad2a91c6a697dac1c2600ec88ac"
+	script, err = DecodePkString(pkStr)
+	if err != nil {
+		t.Fatal(t)
+	}
+	assert.Equal(t, expect, script)
+}
 
 func TestTxSign(t *testing.T) {
 	k := "c39fb9103419af8be42385f3d6390b4c0c8f2cb67cf24dd43a059c4045d1a409"
@@ -73,8 +112,9 @@ func TestCreateAddress(t *testing.T) {
 	s, _ := NewEntropy(32)
 	k, _ := EcNew("secp256k1", s)
 	fmt.Println("[privateKey]", k)
+	k = "e0b26a52b1a9676a365d6452fb04a1c05b58e959683862d73105e58d4416baba"
 	p, _ := EcPrivateKeyToEcPublicKey(false, k)
-	a, _ := EcPubKeyToAddress("mixnet", p)
+	a, _ := EcPubKeyToAddress("testnet", p)
 	fmt.Println("[address]", a)
 	fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
 	assert.Contains(t, a, "Xm")
@@ -83,7 +123,7 @@ func TestCreateAddress(t *testing.T) {
 func TestCreateMixParamsAddressPublicKeyHash(t *testing.T) {
 	times := 0
 	for {
-		if times > 20000 {
+		if times > 50000 {
 			break
 		}
 		s, _ := NewEntropy(32)
@@ -91,8 +131,8 @@ func TestCreateMixParamsAddressPublicKeyHash(t *testing.T) {
 		p, _ := EcPrivateKeyToEcPublicKey(false, k)
 		a, _ := EcPubKeyToAddress("mixnet", p)
 		//fmt.Printf("%s\n%s\n%s\n%s\n", s, k, p, a)
-		if !assert.Contains(t, a, "Xm") {
-			break
+		if !strings.HasPrefix(a, "Xm") {
+			t.Fatal("Error")
 		}
 		times++
 	}

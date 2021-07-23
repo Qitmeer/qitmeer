@@ -131,6 +131,7 @@ func TxSign(privkeyStrs []string, rawTxStr string, network string, pks []string)
 		if err != nil {
 			return "", err
 		}
+		fmt.Println(addr.String())
 		privateKeyMaps[addr.String()] = privateKey
 	}
 	if len(rawTxStr)%2 != 0 {

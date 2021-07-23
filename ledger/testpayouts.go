@@ -7,12 +7,17 @@
 package main
 
 import (
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/params"
 )
 
+// coinid,address,lockAmount,locktype,lockheight
 var TestGeneData = []GenesisInitPayout{
 	{
 		types.MEERID, "TmU1GutpKPC9aLp6yo7ULQfrJfZsiQyK6Rs", 100000, GENE_PAYOUT_TYPE_STANDARD, 0,
+	},
+	{
+		types.MEERID, "TmYxDYgDc8H3xMYHU2gbnvg7NN6gFpTDYia", 100000, GENE_PAYOUT_TYPE_STANDARD, 0,
 	},
 }
 
