@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.10.0] - 2021-07-24
+
+- Replaced entire new P2P networking layer.
+  - Adapt to the `libp2p` code base.
+  - Entirely rewritten the block synchronization machanism.
+  - Obsoleted the seeder machanism with the bootstrap node.
+  - Add new node type (relay node) to improve the local network connectivity.
+- Changed to a new Pow algorithm.
+  - The `meer_xkeccak`, a new ASCI friendly PoW algorithm.
+- Non-std transaction support.
+  - Uxto based layer 2 token issue and management mechanism.
+  - The customized tx fee support.
+  - The customized tx time lock mechanism.
+- New consensus deployment mechanism.
+- Many improvements on the block DAG consensus.
+- A lot of bug fixes overall.
+
 ## [0.9.2] - 2020-09-01
 
 - Pmeer soft fork for pow proportion upgrade.
