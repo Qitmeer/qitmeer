@@ -16,7 +16,7 @@ import (
 )
 
 // testNetPowLimit is the highest proof of work value a block can
-// have for the test network. It is the value 2^208 - 1.
+// have for the test network. It is the value 2^240 - 1.
 var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 240), common.Big1)
 
 // target time per block unit second(s)
