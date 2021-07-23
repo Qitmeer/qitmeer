@@ -35,11 +35,16 @@ type Vin struct {
 	Vout      uint32     `json:"vout"`
 	Sequence  uint32     `json:"sequence"`
 	ScriptSig *ScriptSig `json:"scriptSig"`
+	TxType    string     `json:"type,omitempty"`
 }
 
 // IsCoinBase returns a bool to show if a Vin is a Coinbase one or not.
 func (v *Vin) IsCoinBase() bool {
 	return len(v.Coinbase) > 0
+}
+
+func (v *Vin) IsNonStd() bool {
+	return len(v.TxType) > 0
 }
 
 // MarshalJSON provides a custom Marshal method for Vin.
@@ -51,6 +56,16 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 		}{
 			Coinbase: v.Coinbase,
 			Sequence: v.Sequence,
+		}
+		return json.Marshal(coinbaseStruct)
+	}
+	if v.IsNonStd() {
+		coinbaseStruct := struct {
+			Type      string     `json:"type"`
+			ScriptSig *ScriptSig `json:"scriptSig"`
+		}{
+			Type:      v.TxType,
+			ScriptSig: v.ScriptSig,
 		}
 		return json.Marshal(coinbaseStruct)
 	}
