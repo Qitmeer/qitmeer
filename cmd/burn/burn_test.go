@@ -5,33 +5,37 @@ package main
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/params"
 	"strings"
 	"testing"
 )
 
 func TestBurnAddrss(t *testing.T) {
 	tests := []struct{
-		param *params.Params
+		network string
 		addr string
 	}{
-		{ &params.MainNetParams,"MmQitmeerMainnetBurnAddressXXSFKLc1",},
-		{ &params.TestNetParams,"TmQitmeerTestnetBurnAddressXXaDBvN7"},
-		{ &params.MixNetParams, "XmQitmeerMixnetBurnAddressXXXWkhgxQ"},
-		{ &params.PrivNetParams, "RmQitmeerPrivnetBurnAddressXXVVcD5m"},
+		{ "mainnet", "MmQitmeerMainnetBurnAddressXXSFKLc1",},
+		{ "0.9testnet", "TmQitmeerTestnetBurnAddressXXaDBvN7"},
+		{ "testnet","TnQitmeerTestnetBurnAddressXXd8arKJ"},
+		{ "mixnet", "XmQitmeerMixnetBurnAddressXXXWkhgxQ"},
+		{ "privnet","RmQitmeerPrivnetBurnAddressXXVVcD5m"},
 	}
 	for _,test := range tests {
-		addr := testGetAddr(test.param, false, t)
+		p, err :=getParams(test.network)
+		if err != nil {
+			t.Fatalf("Failed to getParams: %v", err)
+		}
+		addr := testGetAddr(p, test.network, false, t)
 		if addr != test.addr {
 			t.Fatalf("failed test gen default burn address, expect=%s, but got=%s", test.addr, addr)
 		}
-		naddr := testGetAddr(test.param, true, t)
-		fmt.Printf("test %s burn addr ok! [%s,%s]\n", test.param.Name, addr, naddr)
+		naddr := testGetAddr(p, test.network, true, t)
+		fmt.Printf("test %s burn addr ok! default=%s, new=%s\n",test.network, addr, naddr)
 	}
 }
 
-func testGetAddr(p *params.Params, genNew bool, t *testing.T) string{
-	template := genTemplateByParams(p)
+func testGetAddr(p *NetParams, network string, genNew bool, t *testing.T) string{
+	template := genTemplateByParams(p,network)
 	addr, err := getAddr(template,p,genNew)
 	if err != nil {
 		t.Fatalf("Failed to genAddr: %v", err)

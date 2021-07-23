@@ -30,13 +30,13 @@ func main() {
 	var network string
 	var generate bool
 	flag.StringVar(&template, "t", "","template")
-	flag.StringVar(&network, "n",defaultNetwork ,"network [mainnet|testnet|mixnet|privnet]")
+	flag.StringVar(&network, "n",defaultNetwork ,"network [mainnet|testnet|0.9testnet|mixnet|privnet]")
 	flag.BoolVar(&generate, "new", false, "generate new address")
 	flag.Parse()
 	p, err := getParams(network);
 	exitIfErr(err)
 	if template == "" {
-		template = genTemplateByParams(p)
+		template = genTemplateByParams(p,network)
 	}
 	addr, err := getAddr(template,p,generate)
 	exitIfErr(err)
@@ -50,30 +50,68 @@ func exitIfErr(err error){
 		os.Exit(-1)
 	}
 }
-func getParams(network string) (*params.Params, error) {
+type NetParams struct {
+	Name string
+	NetworkAddressPrefix string
+	PubKeyHashAddrID [2]byte
+}
+
+func getParams(network string) (*NetParams, error) {
 	switch network {
 	case "testnet":
-		return &params.TestNetParams, nil
+		p := NetParams{
+			Name: params.TestNetParams.Name,
+			NetworkAddressPrefix: params.TestNetParams.NetworkAddressPrefix,
+			PubKeyHashAddrID: params.TestNetParams.PubKeyHashAddrID,
+		}
+		return &p, nil
 	case "privnet":
-		return &params.PrivNetParams, nil
+		p := NetParams{
+			Name: params.PrivNetParams.Name,
+			NetworkAddressPrefix: params.PrivNetParams.NetworkAddressPrefix,
+			PubKeyHashAddrID: params.PrivNetParams.PubKeyHashAddrID,
+		}
+		return &p, nil
 	case "mainnet":
-		return &params.MainNetParams, nil
+		p := NetParams{
+			Name: params.MainNetParams.Name,
+			NetworkAddressPrefix: params.MainNetParams.NetworkAddressPrefix,
+			PubKeyHashAddrID: params.MainNetParams.PubKeyHashAddrID,
+		}
+		return &p, nil
 	case "mixnet":
-		return &params.MixNetParams, nil
+		p := NetParams{
+			Name: params.MixNetParams.Name,
+			NetworkAddressPrefix: params.MixNetParams.NetworkAddressPrefix,
+			PubKeyHashAddrID: params.MixNetParams.PubKeyHashAddrID,
+		}
+		return &p, nil
+	case "0.9testnet":
+		p := NetParams{
+			Name: params.TestNetParams.Name,
+			NetworkAddressPrefix: params.TestNetParams.NetworkAddressPrefix,
+			PubKeyHashAddrID: [2]byte{0x0f, 0x12}, // starts with Tm
+		}
+		return &p, nil
 	default:
 		return nil, fmt.Errorf("unknown network %s",network)
 	}
 }
-func genTemplateByParams(p *params.Params) string {
+func genTemplateByParams(p *NetParams, network string) string {
 	var sb strings.Builder
 	sb.WriteString(p.NetworkAddressPrefix)
-	sb.WriteString("mQitmeer")
+	if network == "testnet"  {
+		sb.WriteString("n")
+	}else {
+		sb.WriteString("m")
+	}
+	sb.WriteString("Qitmeer")
 	sb.WriteString(strings.Title(p.Name))
 	sb.WriteString("BurnAddress")
 	return sb.String()
 }
 
-func getAddr(template string, p *params.Params, randomSuffix bool) ([]byte, error) {
+func getAddr(template string, p *NetParams, randomSuffix bool) ([]byte, error) {
 	pickSize := addrSize-len(template)
 	var sb strings.Builder
 	sb.WriteString(template);
