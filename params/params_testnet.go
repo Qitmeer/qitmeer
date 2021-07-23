@@ -39,21 +39,6 @@ var TestNetParams = Params{
 		GenesisAmountUnit:    1000 * 1e8,  // 100 MEER every utxo
 		UnlocksPerHeightStep: 2880,        // 1 day block heights
 	},
-	RuleChangeActivationThreshold: 57,                     // 95% of MinerConfirmationWindow
-	MinerConfirmationWindow:       testWorkDiffWindowSize, //
-	Deployments: []ConsensusDeployment{
-		DeploymentTestDummy: {
-			BitNumber:   28,
-			StartTime:   1626688646, // 2021-07-19 09:58:47 UTC
-			ExpireTime:  1655200727, // 2022-06-14 09:58:47 UTC
-			PerformTime: 1655204327, // 2022-06-14 10:58:47 UTC
-		},
-		DeploymentToken: {
-			BitNumber:  0,
-			StartTime:  1440,
-			ExpireTime: 14400,
-		},
-	},
 	// Chain parameters
 	GenesisBlock: &testNetGenesisBlock,
 	GenesisHash:  &testNetGenesisHash,
@@ -100,10 +85,9 @@ var TestNetParams = Params{
 	MulSubsidy:               100,
 	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
 	SubsidyReductionInterval: math.MaxInt64,
-	// && subsidy has to reduce the 0.8.5 mining_rewarded blocks (541194)
-	WorkRewardProportion:  10,
-	StakeRewardProportion: 0,
-	BlockTaxProportion:    0,
+	WorkRewardProportion:     10,
+	StakeRewardProportion:    0,
+	BlockTaxProportion:       0,
 
 	// Maturity
 	CoinbaseMaturity: 720, // coinbase required 720 * 30 = 6 hours before repent
