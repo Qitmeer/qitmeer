@@ -160,8 +160,8 @@ var testNetGenesisBlock = types.Block{
 		ParentRoot: hash.Hash{},
 		TxRoot:     testNetGenesisMerkleRoot,
 		Timestamp:  testNetGenesisCoinbaseTx.Timestamp, // same with the tx timestamp (added since 0.9)
-		Difficulty: 0x34ad1ec,                          //4903404
-		Pow:        pow.GetInstance(pow.CUCKAROOM, 0, []byte{}),
+		Difficulty: 0x1f0198f2,                         // 67108864
+		Pow:        pow.GetInstance(pow.MEERXKECCAKV1, 0, []byte{}),
 	},
 	Transactions: []*types.Transaction{&testNetGenesisCoinbaseTx},
 }
