@@ -1159,7 +1159,7 @@ func opcodeCheckSequenceVerify(op *ParsedOpcode, vm *Engine) error {
 	// To provide for future soft-fork extensibility, if the
 	// operand has the disabled lock-time flag set,
 	// CHECKSEQUENCEVERIFY behaves as a NOP.
-	if sequence&int64(types.SequenceLockTimeDisabled) != 0 {
+	if types.IsSequenceLockTimeDisabled(uint32(sequence)) {
 		return nil
 	}
 
@@ -1175,7 +1175,7 @@ func opcodeCheckSequenceVerify(op *ParsedOpcode, vm *Engine) error {
 	// number does not have this bit set prevents using this property
 	// to get around a CHECKSEQUENCEVERIFY check.
 	txSequence := int64(vm.tx.TxIn[vm.txIdx].Sequence)
-	if txSequence&int64(types.SequenceLockTimeDisabled) != 0 {
+	if types.IsSequenceLockTimeDisabled(uint32(txSequence)) {
 		return fmt.Errorf("transaction sequence has sequence "+
 			"locktime disabled bit set: 0x%x", txSequence)
 	}

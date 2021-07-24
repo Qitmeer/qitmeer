@@ -448,12 +448,17 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	minFee := calcMinRequiredTxRelayFee(serializedSize,
 		mp.cfg.Policy.MinRelayTxFee)
 
-	txFee := int64(0)
-	if txFees != nil {
-		txFee = txFees[tx.Tx.TxOut[0].Amount.Id]
+	if len(txFees) > 1 {
+		str := fmt.Sprintf("Multi coin type ouput transaction are not supported")
+		return nil, nil, txRuleError(message.RejectNonstandard, str)
 	}
 
-	if txFee < minFee {
+	txFee := types.Amount{Id: tx.Tx.TxOut[0].Amount.Id, Value: 0}
+	if txFees != nil {
+		txFee.Value = txFees[txFee.Id]
+	}
+
+	if txFee.Value < minFee {
 		str := fmt.Sprintf("transaction %v has %v fees which "+
 			"is under the required amount of %v, tx size is %v bytes, policy-rate is %v/byte.", txHash,
 			txFee, minFee, serializedSize, mp.cfg.Policy.MinRelayTxFee.Value/1000)
@@ -466,7 +471,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// are exempted.
 	//
 	// This applies to non-stake transactions only.
-	if isNew && !mp.cfg.Policy.DisableRelayPriority && txFee < minFee {
+	if isNew && !mp.cfg.Policy.DisableRelayPriority && txFee.Value < minFee {
 
 		currentPriority := CalcPriority(msgTx, utxoView,
 			nextBlockHeight, mp.cfg.BD)
@@ -482,7 +487,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Free-to-relay transactions are rate limited here to prevent
 	// penny-flooding with tiny transactions as a form of attack.
 	// This applies to non-stake transactions only.
-	if rateLimit && txFee < minFee {
+	if rateLimit && txFee.Value < minFee {
 		nowUnix := roughtime.Now().Unix()
 		// Decay passed data with an exponentially decaying ~10 minute
 		// window.
@@ -511,10 +516,11 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		maxFee := calcMinRequiredTxRelayFee(serializedSize*maxRelayFeeMultiplier,
 			mp.cfg.Policy.MinRelayTxFee)
 
-		if txFee > maxFee {
+		mrtf := types.Amount{Id: txFee.Id, Value: mp.cfg.Policy.MinRelayTxFee.Value}
+		if txFee.Value > maxFee {
 			err = fmt.Errorf("transaction %v has %v fee which is above the "+
 				"allowHighFee check threshold amount of %v (= %v byte * %v/kB * %v)", txHash,
-				txFee, maxFee, serializedSize, mp.cfg.Policy.MinRelayTxFee.Format(types.AmountAtom), maxRelayFeeMultiplier)
+				txFee.Value, maxFee, serializedSize, mrtf.Format(types.AmountAtom), maxRelayFeeMultiplier)
 			return nil, nil, err
 		}
 	}
@@ -535,7 +541,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	}
 
 	// Add to transaction pool.
-	txD := mp.addTransaction(utxoView, tx, nextBlockHeight, txFee)
+	txD := mp.addTransaction(utxoView, tx, nextBlockHeight, txFee.Value)
 
 	log.Debug("Accepted transaction", "txHash", txHash, "pool size", len(mp.pool))
 

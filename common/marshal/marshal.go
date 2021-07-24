@@ -79,6 +79,25 @@ func MarshJsonVin(tx *types.Transaction) []json.Vin {
 		vinEntry.Coinbase = hex.EncodeToString(txIn.SignScript)
 		vinEntry.Sequence = txIn.Sequence
 		return vinList
+	} else if types.IsTokenTx(tx) {
+		for i, txIn := range tx.TxIn {
+			disbuf, _ := txscript.DisasmString(txIn.SignScript)
+
+			vinEntry := &vinList[i]
+			if i == 0 {
+				vinEntry.TxType = types.DetermineTxType(tx).String()
+			} else {
+				vinEntry.Txid = txIn.PreviousOut.Hash.String()
+				vinEntry.Vout = txIn.PreviousOut.OutIndex
+				vinEntry.Sequence = txIn.Sequence
+			}
+
+			vinEntry.ScriptSig = &json.ScriptSig{
+				Asm: disbuf,
+				Hex: hex.EncodeToString(txIn.SignScript),
+			}
+
+		}
 	}
 
 	for i, txIn := range tx.TxIn {
@@ -137,7 +156,7 @@ func MarshJsonVout(tx *types.Transaction, filterAddrMap map[string]struct{}, par
 
 		var vout json.Vout
 		voutSPK := &vout.ScriptPubKey
-		vout.Coin   = v.Amount.Id.Name()
+		vout.Coin = v.Amount.Id.Name()
 		vout.CoinId = uint16(v.Amount.Id)
 		vout.Amount = uint64(v.Amount.Value)
 		voutSPK.Addresses = encodedAddrs
@@ -196,7 +215,7 @@ func MarshJsonCoinbaseVout(tx *types.Transaction, filterAddrMap map[string]struc
 
 		var vout json.Vout
 		voutSPK := &vout.ScriptPubKey
-		vout.Coin   = v.Amount.Id.Name()
+		vout.Coin = v.Amount.Id.Name()
 		vout.CoinId = uint16(v.Amount.Id)
 		vout.Amount = uint64(coinbaseAmout[v.Amount.Id])
 		voutSPK.Addresses = encodedAddrs
