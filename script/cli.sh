@@ -346,7 +346,7 @@ function get_node_info(){
 function get_peer_info(){
   local verbose=$1
   if [ "$verbose" == "" ]; then
-    verbose="true"
+    verbose="false"
   fi
 
   local data='{"jsonrpc":"2.0","method":"getPeerInfo","params":['$verbose'],"id":null}'
