@@ -166,7 +166,7 @@ func getDifficultyRatio(target *big.Int, params *params.Params, powType pow.PowT
 
 // Return the peer info
 func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) {
-	vb := true
+	vb := false
 	if verbose != nil {
 		vb = *verbose
 	}
