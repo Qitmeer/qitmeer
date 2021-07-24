@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/encode/base58"
 	"github.com/Qitmeer/qitmeer/params"
+	ver "github.com/Qitmeer/qitmeer/version"
 	"math/rand"
 	"os"
 	"strings"
@@ -29,10 +30,16 @@ func main() {
 	var template string
 	var network string
 	var generate bool
+	var showVer bool
 	flag.StringVar(&template, "t", "","template")
 	flag.StringVar(&network, "n",defaultNetwork ,"network [mainnet|testnet|0.9testnet|mixnet|privnet]")
 	flag.BoolVar(&generate, "new", false, "generate new address")
+	flag.BoolVar(&showVer, "version", false, "show version")
 	flag.Parse()
+	if showVer {
+		version();
+		os.Exit(0);
+	}
 	p, err := getParams(network);
 	exitIfErr(err)
 	if template == "" {
@@ -40,8 +47,13 @@ func main() {
 	}
 	addr, err := getAddr(template,p,generate)
 	exitIfErr(err)
+	fmt.Printf(" network = %s \n", network)
 	fmt.Printf("template = %s \n", template)
 	fmt.Printf("    addr = %v \n", string(addr));
+}
+
+func version() {
+	fmt.Printf("Burn version : %q\n", ver.String())
 }
 
 func exitIfErr(err error){
