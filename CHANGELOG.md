@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.10.1] - 2021-07-25
+- Change 0.10.x testnet addr prefix to distinguish 0.9.x testnet
+- Optimize network friendly information
+
 ## [0.10.0] - 2021-07-24
 
 - Replaced entire new P2P networking layer.
