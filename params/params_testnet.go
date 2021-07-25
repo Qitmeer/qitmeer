@@ -18,7 +18,7 @@ import (
 
 // testNetPowLimit is the highest proof of work value a block can
 // have for the test network. It is the value 2^240 - 1.
-var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 240), common.Big1)
+var testNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 242), common.Big1)
 var maxNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 0), common.Big1)
 
 // target time per block unit second(s)
@@ -56,7 +56,7 @@ var TestNetParams = Params{
 		QitmeerKeccak256PowLimit:     maxNetPowLimit,
 		QitmeerKeccak256PowLimitBits: 0x0, // compact from of testNetPowLimit 0
 		MeerXKeccakV1PowLimit:        testNetPowLimit,
-		MeerXKeccakV1PowLimitBits:    0x1f0198f2, // compact from of testNetPowLimit (2^240-1)
+		MeerXKeccakV1PowLimitBits:    0x1f0198f2, //
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 = 1min find once
