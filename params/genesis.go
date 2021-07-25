@@ -140,7 +140,7 @@ func buildTestNetGenesisCoinbaseTx(net protocol.Network) types.Transaction {
 		},
 		LockTime:  0,
 		Expire:    0,
-		Timestamp: time.Unix(1592964000, 0), // 2020/06/24 10:00:00 AM GMT+08:00
+		Timestamp: time.Unix(1627203600, 0), // 2021/07/25 17:00:00 AM GMT+08:00
 	}
 	ledger.Ledger(&tx, net)
 	return tx
