@@ -42,11 +42,14 @@ qitmeer-build:
     endif
 qx:
 	@go build -o $(GOBIN)/qx $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/qx"
+burn:
+	@go build -o $(GOBIN)/burn $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/burn"
+
 
 checkversion: qitmeer-build
 #	@echo version $(VERSION)
 
-all: qitmeer-build qx
+all: qitmeer-build qx burn
 
 # amd64 release
 build/release/%: OS=$(word 3,$(subst /, ,$(@)))

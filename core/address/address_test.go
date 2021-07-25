@@ -107,9 +107,9 @@ func TestAddress(t *testing.T) {
 		{
 			// prikey 7e445aa5ffd834cb2d3b2db50f8997dd21af29bec3d296aaa066d902b93f484b
 			name:      "testNet p2pkh NewPubKeyHashAddress",
-			addr:      "TmbsdsjwzuGboFQ9GcKg6EUmrr3tokzozyF",
+			addr:      "TnQYqqxYaKdXYtGRSfALjCjKS74QhEXaQZp",
 			pubkeystr: "0354455a60d86273d322eebb913d87f428988ce97922a366f0a0867a426df78bc9",
-			encoded:   "TmbsdsjwzuGboFQ9GcKg6EUmrr3tokzozyF",
+			encoded:   "TnQYqqxYaKdXYtGRSfALjCjKS74QhEXaQZp",
 			valid:     true,
 			result: &PubKeyHashAddress{
 				net:   testNetParams,

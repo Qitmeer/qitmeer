@@ -30,12 +30,12 @@ func TestTxEncode(t *testing.T) {
 		TxID:     "25517e3b3759365e80a164a3d4d2db2462c5d6888e4bd874c5fbfbb6fb130b41",
 		OutIndex: 0,
 	})
-	outputs["Tmeyuj8ZBaQC8F47wNKxDmYAWUFti3XMrLb"] = Amount{
+	outputs["TnTf7hM9kzm7ssvQ7RAcrjni5jGQbVykd2w"] = Amount{
 		0,
 		2083509771,
 		0,
 	}
-	outputs["TmfTUZcZNrtvuyqfZym5LJ2sT2MN3p5WES8"] = Amount{
+	outputs["TnU8gXq9xHFrfchwk2bjyGHR2HMswANsVU5"] = Amount{
 		0,
 		100000000,
 		0,
@@ -66,7 +66,7 @@ func TestEcPrivateKeyToEcPublicKey(t *testing.T) {
 
 func TestEcPubKeyToAddress(t *testing.T) {
 	s, _ := EcPubKeyToAddress("testnet", "02addd806e8813f85fad05b97541915eb3a1f27528d3156f2ef8166823d6722b58")
-	assert.Equal(t, s, "TmgMiXziDuFiyLc159zagcCnmVxhReojytr")
+	assert.Equal(t, s, "TnV2vWDJoKceiyUHFCqFKaTLLkyDK6cY5ka")
 }
 
 func TestCreateAddress(t *testing.T) {

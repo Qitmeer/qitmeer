@@ -48,6 +48,10 @@ func checkAddressPrefixesAreConsistent(t *testing.T, privateKeyPrefix string, pa
 
 	Pk := P + "k"
 	Pm := P + "m"
+	if P == "T" {
+		// Since 0.10.0 release Testnet PubKeyHashAddrID using Tn, Tm using by 0.9.x testnet
+		Pm = P + "n"
+	}
 	Pe := P + "e"
 	Pr := P + "r"
 	PS := P + "S"
