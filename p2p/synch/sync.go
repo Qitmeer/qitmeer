@@ -301,9 +301,7 @@ func RegisterRPC(rpc common.P2PRPC, basetopic string, base interface{}, handle r
 		}
 
 		SetRPCStreamDeadlines(stream)
-		if e = handle(ctx, msg, stream); e != nil {
-			log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", e.Error.Error()))
-		}
+		e = handle(ctx, msg, stream)
 	})
 }
 

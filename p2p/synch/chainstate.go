@@ -50,7 +50,7 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 		return err
 	}
 
-	if !code.IsSuccess() {
+	if !code.IsSuccess() && code != common.ErrDAGConsensus {
 		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		return errors.New(errMsg)
 	}
@@ -60,15 +60,19 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 		return err
 	}
 
-	s.UpdateChainState(pe, msg, true)
+	s.UpdateChainState(pe, msg, code == common.ErrNone)
 
+	if code == common.ErrDAGConsensus {
+		return errors.New(errMsg)
+	}
 	ret, err := s.validateChainStateMessage(ctx, msg, id)
 	if err != nil {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		if ret == retErrInvalidChainState {
 			if err := s.sendGoodByeAndDisconnect(ctx, common.ErrDAGConsensus, stream.Conn().RemotePeer()); err != nil {
 				return err
 			}
+		} else {
+			s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		}
 	}
 	return err
@@ -101,7 +105,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		} else if ret != retErrGeneric {
 			s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
 		}
-		return ErrDAGConsensus(err)
+		return ErrMessage(err)
 	}
 	s.UpdateChainState(pe, m, true)
 	return s.EncodeResponseMsg(stream, s.getChainState())
