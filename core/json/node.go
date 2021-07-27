@@ -36,7 +36,7 @@ type GetPeerInfoResult struct {
 	Protocol   uint32               `json:"protocol,omitempty"`
 	Genesis    string               `json:"genesis,omitempty"`
 	Services   string               `json:"services,omitempty"`
-	UserAgent  string               `json:"useragent,omitempty"`
+	Name       string               `json:"name,omitempty"`
 	Direction  string               `json:"direction,omitempty"`
 	GraphState *GetGraphStateResult `json:"graphstate,omitempty"`
 	SyncNode   bool                 `json:"syncnode,omitempty"`
@@ -46,6 +46,8 @@ type GetPeerInfoResult struct {
 	BytesSent  uint64               `json:"bytessent,omitempty"`
 	BytesRecv  uint64               `json:"bytesrecv,omitempty"`
 	ConnTime   string               `json:"conntime,omitempty"`
+	Version    string               `json:"version,omitempty"`
+	Network    string               `json:"network,omitempty"`
 }
 
 // GetGraphStateResult data

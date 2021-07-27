@@ -4,6 +4,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/libp2p/go-libp2p-core/network"
 	"time"
 )
@@ -31,4 +32,32 @@ type StatsSnap struct {
 
 func (p *StatsSnap) IsRelay() bool {
 	return protocol.HasServices(protocol.ServiceFlag(p.Services), protocol.Relay)
+}
+
+func (p *StatsSnap) GetName() string {
+	err, name, _, _ := ParseUserAgent(p.UserAgent)
+	if err != nil {
+		return p.UserAgent
+	}
+	return name
+}
+
+func (p *StatsSnap) GetVersion() string {
+	err, _, version, _ := ParseUserAgent(p.UserAgent)
+	if err != nil {
+		return ""
+	}
+	return version
+}
+
+func (p *StatsSnap) GetNetwork() string {
+	err, _, _, network := ParseUserAgent(p.UserAgent)
+	if err != nil {
+		return ""
+	}
+	return network
+}
+
+func (p *StatsSnap) IsTheSameNetwork() bool {
+	return params.ActiveNetParams.Name == p.GetNetwork()
 }

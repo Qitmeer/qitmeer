@@ -181,15 +181,29 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) 
 		}
 		info := &json.GetPeerInfoResult{
 			ID:        p.PeerID,
-			State:     p.State.String(),
+			Name:      p.GetName(),
 			Address:   p.Address,
 			BytesSent: p.BytesSent,
 			BytesRecv: p.BytesRecv,
 		}
+		info.Protocol = p.Protocol
+		info.Services = p.Services.String()
+		if p.Genesis != nil {
+			info.Genesis = p.Genesis.String()
+		}
+		if p.IsTheSameNetwork() {
+			info.State = p.State.String()
+		}
+		version := p.GetVersion()
+		if len(version) > 0 {
+			info.Version = version
+		}
+		network := p.GetNetwork()
+		if len(version) > 0 {
+			info.Network = network
+		}
+
 		if p.State.IsConnected() {
-			info.Protocol = p.Protocol
-			info.Services = p.Services.String()
-			info.UserAgent = p.UserAgent
 			info.TimeOffset = p.TimeOffset
 			if p.Genesis != nil {
 				info.Genesis = p.Genesis.String()
