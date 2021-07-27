@@ -4,6 +4,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	_ "github.com/Qitmeer/qitmeer/services/common"
+	"github.com/Qitmeer/qitmeer/version"
 	"github.com/urfave/cli/v2"
 	"os"
 	"runtime"
@@ -23,7 +24,7 @@ func relayNode() error {
 	node := &Node{}
 	app := &cli.App{
 		Name:     "RelayNode",
-		Version:  "V0.0.2",
+		Version:  version.String(),
 		Compiled: roughtime.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{

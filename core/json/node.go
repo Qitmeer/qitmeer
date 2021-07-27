@@ -32,7 +32,7 @@ type GetPeerInfoResult struct {
 	ID         string               `json:"id"`
 	QNR        string               `json:"qnr,omitempty"`
 	Address    string               `json:"address"`
-	State      string               `json:"state"`
+	State      string               `json:"state,omitempty"`
 	Protocol   uint32               `json:"protocol,omitempty"`
 	Genesis    string               `json:"genesis,omitempty"`
 	Services   string               `json:"services,omitempty"`

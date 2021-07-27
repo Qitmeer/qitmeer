@@ -224,7 +224,7 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 		Timestamp:       uint64(roughtime.Now().Unix()),
 		Services:        uint64(pv.Relay),
 		GraphState:      gs,
-		UserAgent:       []byte("qitmeer-relay"),
+		UserAgent:       []byte(p2p.BuildUserAgent("Qitmeer-relay")),
 		DisableRelayTx:  true,
 	}
 	return synch.EncodeResponseMsg(node, stream, resp)
