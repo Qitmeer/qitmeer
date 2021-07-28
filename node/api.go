@@ -165,17 +165,31 @@ func getDifficultyRatio(target *big.Int, params *params.Params, powType pow.PowT
 }
 
 // Return the peer info
-func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) {
+func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (interface{}, error) {
 	vb := false
 	if verbose != nil {
 		vb = *verbose
+	}
+	networkName := ""
+	if network != nil {
+		networkName = *network
+	}
+	if len(networkName) <= 0 {
+		networkName = params.ActiveNetParams.Name
 	}
 	ps := api.node.node.peerServer
 	peers := ps.Peers().StatsSnapshots()
 	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
 	for _, p := range peers {
+
+		if len(networkName) != 0 && networkName != "all" {
+			if p.Network != networkName {
+				continue
+			}
+		}
+
 		if !vb {
-			if p.State.IsDisconnected() || p.State.IsDisconnecting() {
+			if !p.State.IsConnected() {
 				continue
 			}
 		}
