@@ -13,7 +13,7 @@ The guardian of trust. The core backend of the qitmeer network.
 
 | Latest Testnet            | Compatible Qitmeer Vesion | Start Date | Type            |
 | ------------------------- |-------------------------- | ---------- | --------------- |
-|[Umayyad Network 1.0](TESTNET.md#v0100-20210724-umayyad10)| v0.10.1  | 2021/07/25 | Official Public Testnet |
+|[Umayyad Network 1.0](TESTNET.md#v0102-20210728-umayyad10)| v0.10.2  | 2021/07/25 | Official Public Testnet |
 |[Medina Network 2.0](TESTNET.md#v09x-20200624-medina20)| v0.9.x    | 2020/06/24 | Official Public Testnet |
 
 

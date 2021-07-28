@@ -2,7 +2,7 @@ Table of Contents
 =================
 
    * [Qitmeer Testnet](#qitmeer-testnet)
-      * [v0.10.1 2021/07/25 (Umayyad1.0)](#v0101-20210725-umayyad10)
+      * [v0.10.x 2021/07/25 (Umayyad1.0)](#v0102-20210728-umayyad10)
       * [v0.9.x 2020/06/24 (Medina2.0)](#v09x-20200624-medina20)
       * [v0.8.5 2019/12/30 (Medina)](#v085-20191230-medina)
       * [v0.8.4 2019/12/17](#v084-20191217)
@@ -22,9 +22,17 @@ Table of Contents
 
 # Qitmeer Testnet
 
-## v0.10.1 2021/07/25 (Umayyad1.0)
+## v0.10.2 2021/07/28 (Umayyad1.0)
+| Umayyad1.0         |     Info             |
+| -------------------|----------------------|
+| **Testnet Type**   | Public               |
+| **Version**        | *0.10.x*              |
+| **Start Date**     | 2021-7-25 17:00:00 GMT+8 |
 
-| Median 3.0         |     Info             |
+~~## v0.10.1 2021/07/25 (Umayyad1.0)~~
+- *Note : **`v0.10.1` is obsoleted**, Please use **v0.10.2 or above** for the network protocol compatiblity*
+
+| Umayyad1.0         |     Info             |
 | -------------------|----------------------|
 | **Testnet Type**   | Public               |
 | **Version**        | *0.10.x*              |
