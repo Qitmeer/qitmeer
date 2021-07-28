@@ -13,10 +13,10 @@ import (
 const (
 	// InitialProcotolVersion is the initial protocol version for the
 	// network.
-	InitialProcotolVersion uint32 = 31
+	InitialProcotolVersion uint32 = 32
 
 	// ProtocolVersion is the latest protocol version this package supports.
-	ProtocolVersion uint32 = 31
+	ProtocolVersion uint32 = 32
 )
 
 // Network represents which qitmeer network a message belongs to.
