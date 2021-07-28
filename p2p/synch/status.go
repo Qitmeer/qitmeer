@@ -36,9 +36,9 @@ func (s *Sync) maintainPeerStatuses() {
 					return
 				}
 
-				if pe.IsBad() {
+				if pe.IsBad() || !pe.CanConnectWithNetwork() {
 					if err := s.sendGoodByeAndDisconnect(s.p2p.Context(), common.ErrBadPeer, id); err != nil {
-						log.Error(fmt.Sprintf("Error when disconnecting with bad peer: %v", err))
+						log.Debug(fmt.Sprintf("Error when disconnecting with bad peer: %v", err))
 					}
 					return
 				}
@@ -48,7 +48,7 @@ func (s *Sync) maintainPeerStatuses() {
 				// If the status hasn't been updated in the recent interval time.
 				if roughtime.Now().After(pe.ChainStateLastUpdated().Add(s.PeerInterval)) {
 					if err := s.reValidatePeer(s.p2p.Context(), id); err != nil {
-						log.Error(fmt.Sprintf("Failed to revalidate peer (%v), peer:%s", err, id))
+						log.Debug(fmt.Sprintf("Failed to revalidate peer (%v), peer:%s", err, id))
 						s.Peers().IncrementBadResponses(id)
 					}
 				}

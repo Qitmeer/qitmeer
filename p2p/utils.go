@@ -12,6 +12,8 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/iputils"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
+	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/version"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/prysmaticlabs/go-bitfield"
 	"io/ioutil"
@@ -186,4 +188,8 @@ func filterBootStrapAddrs(hostID string, addrs []string) []string {
 		result = append(result, addr)
 	}
 	return result
+}
+
+func BuildUserAgent(name string) string {
+	return fmt.Sprintf("%s|%s|%s", name, version.String(), params.ActiveNetParams.Name)
 }

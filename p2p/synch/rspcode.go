@@ -36,6 +36,10 @@ func ReadRspCode(stream io.Reader, encoding encoder.NetworkEncoding) (common.Err
 		return common.ErrNone, "", nil
 	}
 
+	if b[0] == byte(common.ErrDAGConsensus) {
+		return common.ErrDAGConsensus, "", nil
+	}
+
 	msg := &pb.ErrorResponse{
 		Message: []byte{},
 	}

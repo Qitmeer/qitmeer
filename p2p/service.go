@@ -22,7 +22,6 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/synch"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mempool"
-	"github.com/Qitmeer/qitmeer/version"
 	"github.com/dgraph-io/ristretto"
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p"
@@ -597,7 +596,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			Encoding:             "ssz-snappy",
 			ProtocolVersion:      pv.ProtocolVersion,
 			Services:             defaultServices,
-			UserAgent:            fmt.Sprintf("qitmeer(%s)", version.String()),
+			UserAgent:            BuildUserAgent("Qitmeer"),
 			DisableRelayTx:       cfg.BlocksOnly,
 			MaxOrphanTxs:         cfg.MaxOrphanTxs,
 			Params:               param,

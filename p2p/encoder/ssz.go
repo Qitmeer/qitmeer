@@ -6,7 +6,6 @@ package encoder
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/params"
 	"github.com/prysmaticlabs/go-ssz/types"
 	"io"
 	"io/ioutil"
@@ -155,9 +154,9 @@ func (e SszNetworkEncoder) DecodeWithMaxLength(r io.Reader, to interface{}) erro
 // ProtocolSuffix returns the appropriate suffix for protocol IDs.
 func (e SszNetworkEncoder) ProtocolSuffix() string {
 	if e.UseSnappyCompression {
-		return "/ssz_snappy/" + params.ActiveNetParams.Name
+		return "/ssz_snappy"
 	}
-	return "/ssz/" + params.ActiveNetParams.Name
+	return "/ssz"
 }
 
 // MaxLength specifies the maximum possible length of an encoded

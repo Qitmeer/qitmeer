@@ -165,31 +165,57 @@ func getDifficultyRatio(target *big.Int, params *params.Params, powType pow.PowT
 }
 
 // Return the peer info
-func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool) (interface{}, error) {
+func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (interface{}, error) {
 	vb := false
 	if verbose != nil {
 		vb = *verbose
+	}
+	networkName := ""
+	if network != nil {
+		networkName = *network
+	}
+	if len(networkName) <= 0 {
+		networkName = params.ActiveNetParams.Name
 	}
 	ps := api.node.node.peerServer
 	peers := ps.Peers().StatsSnapshots()
 	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
 	for _, p := range peers {
+
+		if len(networkName) != 0 && networkName != "all" {
+			if p.Network != networkName {
+				continue
+			}
+		}
+
 		if !vb {
-			if p.State.IsDisconnected() || p.State.IsDisconnecting() {
+			if !p.State.IsConnected() {
 				continue
 			}
 		}
 		info := &json.GetPeerInfoResult{
 			ID:        p.PeerID,
-			State:     p.State.String(),
+			Name:      p.Name,
 			Address:   p.Address,
 			BytesSent: p.BytesSent,
 			BytesRecv: p.BytesRecv,
 		}
+		info.Protocol = p.Protocol
+		info.Services = p.Services.String()
+		if p.Genesis != nil {
+			info.Genesis = p.Genesis.String()
+		}
+		if p.IsTheSameNetwork() {
+			info.State = p.State.String()
+		}
+		if len(p.Version) > 0 {
+			info.Version = p.Version
+		}
+		if len(p.Network) > 0 {
+			info.Network = p.Network
+		}
+
 		if p.State.IsConnected() {
-			info.Protocol = p.Protocol
-			info.Services = p.Services.String()
-			info.UserAgent = p.UserAgent
 			info.TimeOffset = p.TimeOffset
 			if p.Genesis != nil {
 				info.Genesis = p.Genesis.String()

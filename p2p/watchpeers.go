@@ -24,6 +24,10 @@ func (s *Service) ensurePeerConnections(pes []string) {
 			log.Error(fmt.Sprintf("Could not make peer: %v", err))
 			continue
 		}
+		pe := s.Peers().Get(peerInfo.ID)
+		if pe != nil && !pe.CanConnectWithNetwork() {
+			continue
+		}
 
 		c := s.Host().Network().ConnsToPeer(peerInfo.ID)
 		if len(c) == 0 {

@@ -242,7 +242,11 @@ func (s *Sync) SetStreamHandler(topic string, handler network.StreamHandler) {
 }
 
 func (s *Sync) EncodeResponseMsg(stream libp2pcore.Stream, msg interface{}) *common.Error {
-	return EncodeResponseMsg(s.p2p, stream, msg)
+	return EncodeResponseMsg(s.p2p, stream, msg, common.ErrNone)
+}
+
+func (s *Sync) EncodeResponseMsgPro(stream libp2pcore.Stream, msg interface{}, retCode common.ErrorCode) *common.Error {
+	return EncodeResponseMsg(s.p2p, stream, msg, retCode)
 }
 
 func NewSync(p2p common.P2P) *Sync {
@@ -254,13 +258,15 @@ func NewSync(p2p common.P2P) *Sync {
 }
 
 // registerRPC for a given topic with an expected protobuf message type.
-func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHandler) {
-	topic += rpc.Encoding().ProtocolSuffix()
+func RegisterRPC(rpc common.P2PRPC, basetopic string, base interface{}, handle rpcHandler) {
+	topic := getTopic(basetopic) + rpc.Encoding().ProtocolSuffix()
+
 	rpc.Host().SetStreamHandler(protocol.ID(topic), func(stream network.Stream) {
 		var e *common.Error
 		ctx, cancel := context.WithTimeout(rpc.Context(), TtfbTimeout)
 		defer func() {
 			processError(e, stream, rpc)
+			time.Sleep(time.Second)
 			cancel()
 			closeSteam(stream)
 		}()
@@ -300,9 +306,7 @@ func RegisterRPC(rpc common.P2PRPC, topic string, base interface{}, handle rpcHa
 		}
 
 		SetRPCStreamDeadlines(stream)
-		if e = handle(ctx, msg, stream); e != nil {
-			log.Warn(fmt.Sprintf("Failed to handle p2p RPC:%v", e.Error.Error()))
-		}
+		e = handle(ctx, msg, stream)
 	})
 }
 
@@ -318,12 +322,7 @@ func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 			log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
 		}
 	}
-	if e.Code == common.ErrDAGConsensus {
-		if err := sendGoodByeAndDisconnect(rpc.Context(), common.ErrDAGConsensus, stream.Conn().RemotePeer(), rpc); err != nil {
-			log.Error(err.Error())
-			return
-		}
-	} else {
+	if e.Code != common.ErrDAGConsensus {
 		log.Warn(fmt.Sprintf("Process error (%s):%s", e.Code.String(), e.Error.Error()))
 	}
 }
@@ -331,7 +330,7 @@ func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 // Send a message to a specific peer. The returned stream may be used for reading, but has been
 // closed for writing.
 func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
-	topic := baseTopic + rpc.Encoding().ProtocolSuffix()
+	topic := getTopic(baseTopic) + rpc.Encoding().ProtocolSuffix()
 
 	var deadline = TtfbTimeout + RespTimeout
 	ctx, cancel := context.WithTimeout(ctx, deadline)
@@ -364,8 +363,8 @@ func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic
 	return stream, nil
 }
 
-func EncodeResponseMsg(rpc common.P2PRPC, stream libp2pcore.Stream, msg interface{}) *common.Error {
-	_, err := stream.Write([]byte{byte(common.ErrNone)})
+func EncodeResponseMsg(rpc common.P2PRPC, stream libp2pcore.Stream, msg interface{}, retCode common.ErrorCode) *common.Error {
+	_, err := stream.Write([]byte{byte(retCode)})
 	if err != nil {
 		return common.NewError(common.ErrStreamWrite, err)
 	}
@@ -377,4 +376,11 @@ func EncodeResponseMsg(rpc common.P2PRPC, stream libp2pcore.Stream, msg interfac
 		rpc.IncreaseBytesSent(stream.Conn().RemotePeer(), size)
 	}
 	return nil
+}
+
+func getTopic(baseTopic string) string {
+	if baseTopic == RPCChainState || baseTopic == RPCGoodByeTopic {
+		return baseTopic
+	}
+	return baseTopic + "/" + params.ActiveNetParams.Name
 }

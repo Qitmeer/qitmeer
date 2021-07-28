@@ -345,11 +345,12 @@ function get_node_info(){
 
 function get_peer_info(){
   local verbose=$1
+  local network=$2
   if [ "$verbose" == "" ]; then
     verbose="false"
   fi
 
-  local data='{"jsonrpc":"2.0","method":"getPeerInfo","params":['$verbose'],"id":null}'
+  local data='{"jsonrpc":"2.0","method":"getPeerInfo","params":['$verbose',"'$network'"],"id":null}'
   get_result "$data"
 }
 
