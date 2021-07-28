@@ -242,7 +242,11 @@ func (s *Sync) SetStreamHandler(topic string, handler network.StreamHandler) {
 }
 
 func (s *Sync) EncodeResponseMsg(stream libp2pcore.Stream, msg interface{}) *common.Error {
-	return EncodeResponseMsg(s.p2p, stream, msg)
+	return EncodeResponseMsg(s.p2p, stream, msg, common.ErrNone)
+}
+
+func (s *Sync) EncodeResponseMsgPro(stream libp2pcore.Stream, msg interface{}, retCode common.ErrorCode) *common.Error {
+	return EncodeResponseMsg(s.p2p, stream, msg, retCode)
 }
 
 func NewSync(p2p common.P2P) *Sync {
@@ -262,6 +266,7 @@ func RegisterRPC(rpc common.P2PRPC, basetopic string, base interface{}, handle r
 		ctx, cancel := context.WithTimeout(rpc.Context(), TtfbTimeout)
 		defer func() {
 			processError(e, stream, rpc)
+			time.Sleep(time.Second)
 			cancel()
 			closeSteam(stream)
 		}()
@@ -317,12 +322,7 @@ func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 			log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
 		}
 	}
-	if e.Code == common.ErrDAGConsensus {
-		if err := sendGoodByeAndDisconnect(rpc.Context(), common.ErrDAGConsensus, stream.Conn().RemotePeer(), rpc); err != nil {
-			log.Error(err.Error())
-			return
-		}
-	} else {
+	if e.Code != common.ErrDAGConsensus {
 		log.Warn(fmt.Sprintf("Process error (%s):%s", e.Code.String(), e.Error.Error()))
 	}
 }
@@ -363,8 +363,8 @@ func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic
 	return stream, nil
 }
 
-func EncodeResponseMsg(rpc common.P2PRPC, stream libp2pcore.Stream, msg interface{}) *common.Error {
-	_, err := stream.Write([]byte{byte(common.ErrNone)})
+func EncodeResponseMsg(rpc common.P2PRPC, stream libp2pcore.Stream, msg interface{}, retCode common.ErrorCode) *common.Error {
+	_, err := stream.Write([]byte{byte(retCode)})
 	if err != nil {
 		return common.NewError(common.ErrStreamWrite, err)
 	}
@@ -379,7 +379,7 @@ func EncodeResponseMsg(rpc common.P2PRPC, stream libp2pcore.Stream, msg interfac
 }
 
 func getTopic(baseTopic string) string {
-	if baseTopic == RPCChainState {
+	if baseTopic == RPCChainState || baseTopic == RPCGoodByeTopic {
 		return baseTopic
 	}
 	return baseTopic + "/" + params.ActiveNetParams.Name

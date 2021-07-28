@@ -11,6 +11,7 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
+	"github.com/Qitmeer/qitmeer/params"
 	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -275,7 +276,9 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		Protocol:   p.protocolVersion(),
 		Genesis:    p.genesis(),
 		Services:   p.services(),
-		UserAgent:  p.userAgent(),
+		Name:       p.getName(),
+		Version:    p.getVersion(),
+		Network:    p.getNetwork(),
 		State:      p.peerState,
 		Direction:  p.direction,
 		TimeOffset: p.timeOffset,
@@ -493,6 +496,59 @@ func (p *Peer) BytesRecv() uint64 {
 	defer p.lock.Unlock()
 
 	return p.bytesRecv
+}
+
+func (p *Peer) GetName() string {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.getName()
+}
+
+func (p *Peer) getName() string {
+	err, name, _, _ := ParseUserAgent(p.userAgent())
+	if err != nil {
+		return p.userAgent()
+	}
+	return name
+}
+
+func (p *Peer) GetVersion() string {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.getVersion()
+}
+
+func (p *Peer) getVersion() string {
+
+	err, _, version, _ := ParseUserAgent(p.userAgent())
+	if err != nil {
+		return ""
+	}
+	return version
+}
+
+func (p *Peer) GetNetwork() string {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.getNetwork()
+}
+
+func (p *Peer) getNetwork() string {
+	err, _, _, network := ParseUserAgent(p.userAgent())
+	if err != nil {
+		return ""
+	}
+	return network
+}
+
+func (p *Peer) CanConnectWithNetwork() bool {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	network := p.getNetwork()
+	if len(network) <= 0 {
+		return true
+	}
+	return params.ActiveNetParams.Name == network
 }
 
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {

@@ -227,7 +227,7 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 		UserAgent:       []byte(p2p.BuildUserAgent("Qitmeer-relay")),
 		DisableRelayTx:  true,
 	}
-	return synch.EncodeResponseMsg(node, stream, resp)
+	return synch.EncodeResponseMsg(node, stream, resp, common.ErrNone)
 }
 
 func closeSteam(stream libp2pcore.Stream) {

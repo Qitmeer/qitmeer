@@ -18,7 +18,9 @@ type StatsSnap struct {
 	Protocol   uint32
 	Genesis    *hash.Hash
 	Services   protocol.ServiceFlag
-	UserAgent  string
+	Name       string
+	Version    string
+	Network    string
 	State      PeerConnectionState
 	Direction  network.Direction
 	GraphState *blockdag.GraphState
@@ -34,30 +36,6 @@ func (p *StatsSnap) IsRelay() bool {
 	return protocol.HasServices(protocol.ServiceFlag(p.Services), protocol.Relay)
 }
 
-func (p *StatsSnap) GetName() string {
-	err, name, _, _ := ParseUserAgent(p.UserAgent)
-	if err != nil {
-		return p.UserAgent
-	}
-	return name
-}
-
-func (p *StatsSnap) GetVersion() string {
-	err, _, version, _ := ParseUserAgent(p.UserAgent)
-	if err != nil {
-		return ""
-	}
-	return version
-}
-
-func (p *StatsSnap) GetNetwork() string {
-	err, _, _, network := ParseUserAgent(p.UserAgent)
-	if err != nil {
-		return ""
-	}
-	return network
-}
-
 func (p *StatsSnap) IsTheSameNetwork() bool {
-	return params.ActiveNetParams.Name == p.GetNetwork()
+	return params.ActiveNetParams.Name == p.Network
 }

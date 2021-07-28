@@ -378,7 +378,7 @@ func (node *Node) chainStateHandler(ctx context.Context, msg interface{}, stream
 		UserAgent:       []byte("qitmeer-crawler"),
 		DisableRelayTx:  true,
 	}
-	return synch.EncodeResponseMsg(node, stream, resp)
+	return synch.EncodeResponseMsg(node, stream, resp, common.ErrNone)
 }
 
 func (node *Node) printResult() {
