@@ -26,7 +26,7 @@ var MainNetParam = netParams{
 // testNetParams contains parameters specific to the test network
 var TestNetParam = netParams{
 	Params:  &TestNetParams,
-	RpcPort: "18131",
+	RpcPort: "18151",
 }
 
 // privNetParams contains parameters specific to the private test network
