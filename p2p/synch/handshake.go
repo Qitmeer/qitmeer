@@ -51,6 +51,10 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 		ps.Disconnect(remotePe)
 		return
 	}
+	if time.Since(remotePe.ConnectionTime()) <= time.Second {
+		remotePe.IncrementBadResponses()
+		log.Debug(fmt.Sprintf("%s is too frequent, so I'll deduct you points", remotePeer))
+	}
 	remotePe.SetConnectionState(peers.PeerConnecting)
 
 	// Do not perform handshake on inbound dials.
