@@ -347,7 +347,7 @@ func (p *Peer) Services() protocol.ServiceFlag {
 
 func (p *Peer) services() protocol.ServiceFlag {
 	if p.chainState == nil {
-		return protocol.Full
+		return protocol.Unknown
 	}
 	return protocol.ServiceFlag(p.chainState.Services)
 }

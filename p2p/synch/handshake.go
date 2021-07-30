@@ -6,6 +6,7 @@ package synch
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"io"
 	"sync/atomic"
@@ -100,7 +101,11 @@ func (ps *PeerSync) Disconnect(pe *peers.Peer) {
 	// TODO some handle
 	pe.SetConnectionState(peers.PeerDisconnected)
 	if !pe.IsConsensus() {
-		log.Trace(fmt.Sprintf("Disconnect:%v (%s)", pe.GetID(), pe.Services().String()))
+		if pe.Services() == protocol.Unknown {
+			log.Trace(fmt.Sprintf("Disconnect:%v", pe.GetID()))
+		} else {
+			log.Trace(fmt.Sprintf("Disconnect:%v (%s)", pe.GetID(), pe.Services().String()))
+		}
 		return
 	}
 
