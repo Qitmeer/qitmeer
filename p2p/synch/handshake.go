@@ -101,7 +101,7 @@ func (ps *PeerSync) Disconnect(pe *peers.Peer) {
 	// TODO some handle
 	pe.SetConnectionState(peers.PeerDisconnected)
 	if !pe.IsConsensus() {
-		if pe.Services() == protocol.None {
+		if pe.Services() == protocol.Unknown {
 			log.Trace(fmt.Sprintf("Disconnect:%v", pe.GetID()))
 		} else {
 			log.Trace(fmt.Sprintf("Disconnect:%v (%s)", pe.GetID(), pe.Services().String()))

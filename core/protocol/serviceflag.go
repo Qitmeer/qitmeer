@@ -13,7 +13,7 @@ var sfStrings = map[ServiceFlag]string{
 	Light:    "Light",
 	Relay:    "Relay",
 	Observer: "Observer",
-	None:     "None",
+	Unknown:  "Unknown",
 }
 
 // orderedSFStrings is an ordered list of service flags from highest to
@@ -25,7 +25,7 @@ var orderedSFStrings = []ServiceFlag{
 	Light,
 	Relay,
 	Observer,
-	None,
+	Unknown,
 }
 
 // ServiceFlag identifies services supported by a peer node.
@@ -51,7 +51,7 @@ const (
 	Observer
 
 	// None
-	None
+	Unknown
 )
 
 // String returns the ServiceFlag in human-readable form.
