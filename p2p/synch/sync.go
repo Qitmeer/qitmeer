@@ -330,6 +330,11 @@ func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 // Send a message to a specific peer. The returned stream may be used for reading, but has been
 // closed for writing.
 func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
+	curState := rpc.Host().Network().Connectedness(pid)
+	if curState != network.Connected {
+		return nil, fmt.Errorf("%s is %s", pid, curState)
+	}
+
 	topic := getTopic(baseTopic) + rpc.Encoding().ProtocolSuffix()
 
 	var deadline = TtfbTimeout + RespTimeout
