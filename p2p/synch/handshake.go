@@ -63,7 +63,7 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 	}
 
 	if err := ps.sy.reValidatePeer(ps.sy.p2p.Context(), remotePeer); err != nil && err != io.EOF {
-		log.Trace(fmt.Sprintf("%s Handshake failed", peerInfoStr))
+		log.Trace(fmt.Sprintf("%s Handshake failed (%s)", peerInfoStr, err))
 		ps.Disconnect(remotePe)
 		return
 	}
