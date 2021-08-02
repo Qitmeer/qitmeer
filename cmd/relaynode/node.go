@@ -16,6 +16,7 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/synch"
 	"github.com/Qitmeer/qitmeer/params"
+	ds "github.com/ipfs/go-ds-leveldb"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-circuit"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
@@ -25,8 +26,10 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/opts"
 	"github.com/libp2p/go-libp2p-noise"
+	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	"github.com/libp2p/go-libp2p-secio"
 	"github.com/multiformats/go-multiaddr"
+	"path"
 )
 
 type Node struct {
@@ -115,6 +118,15 @@ func (node *Node) run() error {
 		}))
 	}
 
+	if node.cfg.UsePeerStore {
+		ps, err := node.initPeerStore()
+		if err != nil {
+			log.Error(err.Error())
+			return err
+		}
+		opts = append(opts, ps)
+	}
+
 	node.host, err = libp2p.New(
 		node.ctx,
 		opts...,
@@ -148,6 +160,21 @@ func (node *Node) run() error {
 	interrupt := interruptListener()
 	<-interrupt
 	return nil
+}
+
+func (node *Node) initPeerStore() (libp2p.Option, error) {
+	dsPath := path.Join(node.cfg.DataDir, p2p.PeerStore)
+	peerDS, err := ds.NewDatastore(dsPath, nil)
+	if err != nil {
+		return nil, err
+	}
+	log.Info(fmt.Sprintf("Start Peers from:%s", dsPath))
+
+	ps, err := pstoreds.NewPeerstore(node.ctx, peerDS, pstoreds.DefaultOpts())
+	if err != nil {
+		return nil, err
+	}
+	return libp2p.Peerstore(ps), nil
 }
 
 func (node *Node) registerHandlers() error {

@@ -82,6 +82,14 @@ var (
 		Destination: &conf.HostDNS,
 	}
 
+	UsePeerStore = &cli.BoolFlag{
+		Name:        "pstore",
+		Aliases:     []string{"r"},
+		Usage:       "P2P Peer store",
+		Value:       true,
+		Destination: &conf.UsePeerStore,
+	}
+
 	AppFlags = []cli.Flag{
 		HomeDir,
 		DataDir,
@@ -91,18 +99,20 @@ var (
 		EnableNoise,
 		Network,
 		HostDNS,
+		UsePeerStore,
 	}
 )
 
 type Config struct {
-	HomeDir     string
-	DataDir     string
-	PrivateKey  string
-	ExternalIP  string
-	Port        string
-	EnableNoise bool
-	Network     string
-	HostDNS     string
+	HomeDir      string
+	DataDir      string
+	PrivateKey   string
+	ExternalIP   string
+	Port         string
+	EnableNoise  bool
+	Network      string
+	HostDNS      string
+	UsePeerStore bool
 }
 
 func (c *Config) load() error {
