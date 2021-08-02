@@ -78,7 +78,7 @@ var (
 		Name:        "externaldns",
 		Aliases:     []string{"s"},
 		Usage:       "The DNS address advertised by libp2p. This may be used to advertise an external DNS.",
-		Value:       params.MixNetParam.Name,
+		Value:       "",
 		Destination: &conf.HostDNS,
 	}
 
