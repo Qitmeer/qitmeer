@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/urfave/cli/v2"
 	"os"
 	"path/filepath"
@@ -13,6 +14,8 @@ const (
 	defaultDataDirname = "relay"
 	defaultPort        = "2001"
 	defaultIP          = "0.0.0.0"
+	defaultLogDirname  = "logs"
+	defaultLogFilename = "relaynode.log"
 )
 
 var (
@@ -90,6 +93,22 @@ var (
 		Destination: &conf.UsePeerStore,
 	}
 
+	NoFileLogging = &cli.BoolFlag{
+		Name:        "nofilelogging",
+		Aliases:     []string{"l"},
+		Usage:       "Disable file logging.",
+		Value:       false,
+		Destination: &conf.UsePeerStore,
+	}
+
+	DebugLevel = &cli.StringFlag{
+		Name:        "debuglevel",
+		Aliases:     []string{"dl"},
+		Usage:       "Logging level {trace, debug, info, warn, error, critical} ",
+		Value:       "info",
+		Destination: &conf.DebugLevel,
+	}
+
 	AppFlags = []cli.Flag{
 		HomeDir,
 		DataDir,
@@ -100,19 +119,23 @@ var (
 		Network,
 		HostDNS,
 		UsePeerStore,
+		NoFileLogging,
+		DebugLevel,
 	}
 )
 
 type Config struct {
-	HomeDir      string
-	DataDir      string
-	PrivateKey   string
-	ExternalIP   string
-	Port         string
-	EnableNoise  bool
-	Network      string
-	HostDNS      string
-	UsePeerStore bool
+	HomeDir       string
+	DataDir       string
+	PrivateKey    string
+	ExternalIP    string
+	Port          string
+	EnableNoise   bool
+	Network       string
+	HostDNS       string
+	UsePeerStore  bool
+	NoFileLogging bool
+	DebugLevel    string
 }
 
 func (c *Config) load() error {
@@ -165,5 +188,17 @@ func (c *Config) load() error {
 	if err := params.ActiveNetParams.PowConfig.Check(); err != nil {
 		return err
 	}
+
+	// Set logging file if presented
+	if !c.NoFileLogging {
+		logDir := filepath.Join(c.DataDir, defaultLogDirname, params.ActiveNetParams.Name)
+
+		common.InitLogRotator(filepath.Join(logDir, defaultLogFilename))
+	}
+	err = common.ParseAndSetDebugLevels(c.DebugLevel)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

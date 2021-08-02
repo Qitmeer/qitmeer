@@ -276,11 +276,6 @@ func (node *Node) processConnected(pid peer.ID, conn network.Conn) {
 	// Go through the handshake process.
 	multiAddr := fmt.Sprintf("%s/p2p/%s", remotePe.Address().String(), remotePe.GetID().String())
 
-	if !remotePe.IsConsensus() {
-		log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s  (%s)",
-			remotePe.GetID(), remotePe.Direction(), multiAddr, remotePe.Services().String()))
-		return
-	}
 	log.Info(fmt.Sprintf("%s direction:%s multiAddr:%s",
 		remotePe.GetID(), remotePe.Direction(), multiAddr))
 }
