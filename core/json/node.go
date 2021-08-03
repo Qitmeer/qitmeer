@@ -13,18 +13,19 @@ type InfoNodeResult struct {
 	Version             int32                               `json:"version"`
 	BuildVersion        string                              `json:"buildversion"`
 	ProtocolVersion     int32                               `json:"protocolversion"`
-	TotalSubsidy        uint64                              `json:"totalsubsidy"`
-	GraphState          GetGraphStateResult                 `json:"graphstate"`
-	TimeOffset          int64                               `json:"timeoffset"`
-	Connections         int32                               `json:"connections"`
-	PowDiff             PowDiff                             `json:"pow_diff"`
-	Network             string                              `json:"network"`
-	Confirmations       int32                               `json:"confirmations"`
-	CoinbaseMaturity    int32                               `json:"coinbasematurity"`
-	Errors              string                              `json:"errors"`
-	Modules             []string                            `json:"modules"`
+	TotalSubsidy        uint64                              `json:"totalsubsidy,omitempty"`
+	GraphState          *GetGraphStateResult                `json:"graphstate,omitempty"`
+	TimeOffset          int64                               `json:"timeoffset,omitempty"`
+	PowDiff             *PowDiff                            `json:"pow_diff,omitempty"`
+	Confirmations       int32                               `json:"confirmations,omitempty"`
+	CoinbaseMaturity    int32                               `json:"coinbasematurity,omitempty"`
+	Errors              string                              `json:"errors,omitempty"`
+	Modules             []string                            `json:"modules,omitempty"`
 	DNS                 string                              `json:"dns,omitempty"`
-	ConsensusDeployment map[string]*ConsensusDeploymentDesc `json:"consensusdeployment"`
+	ConsensusDeployment map[string]*ConsensusDeploymentDesc `json:"consensusdeployment,omitempty"`
+	Network             string                              `json:"network"`
+	Connections         int32                               `json:"connections"`
+	NetworkStat         *NetworkStat                        `json:"networkstat,omitempty"`
 }
 
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
@@ -70,4 +71,18 @@ type ConsensusDeploymentDesc struct {
 	Timeout   int64  `json:"timeout"`
 	Perform   int64  `json:"perform,omitempty"`
 	Since     string `json:"since,omitempty"`
+}
+
+type NetworkStat struct {
+	TotalPeers     int            `json:"totalpeers"`
+	TotalConnected int            `json:"totalconnected"`
+	TotalRelays    int            `json:"totalrelays"`
+	Infos          []*NetworkInfo `json:"infos"`
+}
+
+type NetworkInfo struct {
+	Name       string `json:"name"`
+	Peers      int    `json:"peers"`
+	Relays     int    `json:"relays"`
+	Connecteds int    `json:"connecteds"`
 }

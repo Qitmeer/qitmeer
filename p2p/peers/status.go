@@ -2,6 +2,7 @@ package peers
 
 import (
 	"errors"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -171,7 +172,11 @@ func (p *Status) Fetch(pid peer.ID) *Peer {
 	defer p.lock.Unlock()
 
 	if _, ok := p.peers[pid]; !ok {
-		p.peers[pid] = NewPeer(pid, p.p2p.GetGenesisHash())
+		var genHash *hash.Hash
+		if p.p2p != nil {
+			genHash = p.p2p.GetGenesisHash()
+		}
+		p.peers[pid] = NewPeer(pid, genHash)
 	}
 	return p.peers[pid]
 }

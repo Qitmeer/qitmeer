@@ -64,7 +64,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		TotalSubsidy:    best.TotalSubsidy,
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
 		Connections:     int32(len(api.node.node.peerServer.Peers().Connected())),
-		PowDiff: json.PowDiff{
+		PowDiff: &json.PowDiff{
 			CurrentDiff: getDifficultyRatio(powNodes, api.node.node.Params, pow.MEERXKECCAKV1),
 		},
 		Network:          params.ActiveNetParams.Name,
@@ -72,7 +72,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
 		Modules:          []string{cmds.DefaultServiceNameSpace, cmds.MinerNameSpace, cmds.TestNameSpace, cmds.LogNameSpace},
 	}
-	ret.GraphState = *getGraphStateResult(best.GraphState)
+	ret.GraphState = GetGraphStateResult(best.GraphState)
 	hostdns := api.node.node.peerServer.HostDNS()
 	if hostdns != nil {
 		ret.DNS = hostdns.String()
@@ -222,7 +222,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (int
 			}
 			info.Direction = p.Direction.String()
 			if p.GraphState != nil {
-				info.GraphState = getGraphStateResult(p.GraphState)
+				info.GraphState = GetGraphStateResult(p.GraphState)
 			}
 			if ps.PeerSync().SyncPeer() != nil {
 				info.SyncNode = p.PeerID == ps.PeerSync().SyncPeer().GetID().String()
@@ -255,7 +255,7 @@ func (api *PublicBlockChainAPI) GetRpcInfo() (interface{}, error) {
 	return jrs, nil
 }
 
-func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
+func GetGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 	if gs != nil {
 		mainTip := gs.GetMainChainTip()
 		tips := []string{mainTip.String() + " main"}

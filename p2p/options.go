@@ -101,7 +101,7 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) []libp2p.Opt
 		options = append(options, libp2p.ListenAddrs(listen))
 	}
 
-	dsPath := path.Join(s.cfg.DataDir, peerStore)
+	dsPath := path.Join(s.cfg.DataDir, PeerStore)
 	peerDS, err := ds.NewDatastore(dsPath, nil)
 	if err != nil {
 		log.Error(err.Error())
