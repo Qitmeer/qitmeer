@@ -32,6 +32,7 @@ import (
 	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	"github.com/libp2p/go-libp2p-secio"
 	"github.com/multiformats/go-multiaddr"
+	ma "github.com/multiformats/go-multiaddr"
 	"path"
 	"reflect"
 	"sync"
@@ -118,6 +119,30 @@ func (node *Node) run() error {
 	interrupt := interruptListener()
 	<-interrupt
 	return nil
+}
+
+func (node *Node) HostDNS() ma.Multiaddr {
+	if len(node.cfg.HostDNS) <= 0 {
+		return nil
+	}
+	external, err := ma.NewMultiaddr(fmt.Sprintf("/dns4/%s/tcp/%s/p2p/%s", node.cfg.HostDNS, node.cfg.Port, node.Host().ID().String()))
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return external
+}
+
+func (node *Node) HostAddress() []string {
+	hms := node.host.Addrs()
+	if len(hms) <= 0 {
+		return nil
+	}
+	result := []string{}
+	for _, hm := range hms {
+		result = append(result, fmt.Sprintf("%s/p2p/%s", hm.String(), node.Host().ID().String()))
+	}
+	return result
 }
 
 func (node *Node) startP2P() error {

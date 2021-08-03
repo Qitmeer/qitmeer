@@ -5,11 +5,14 @@
 package main
 
 import (
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/node"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
+	"github.com/Qitmeer/qitmeer/version"
 	"time"
 )
 
@@ -112,4 +115,62 @@ func (api *PublicRelayAPI) GetPeerInfo(verbose *bool, network *string) (interfac
 		infos = append(infos, info)
 	}
 	return infos, nil
+}
+
+// Return the node info
+func (api *PublicRelayAPI) GetNodeInfo() (interface{}, error) {
+	ret := &json.InfoNodeResult{
+		ID:              api.node.Host().ID().String(),
+		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
+		BuildVersion:    version.String(),
+		ProtocolVersion: int32(protocol.ProtocolVersion),
+		Connections:     int32(len(api.node.peerStatus.Connected())),
+		Network:         params.ActiveNetParams.Name,
+		Confirmations:   blockdag.StableConfirmations,
+		Modules:         []string{cmds.DefaultServiceNameSpace},
+	}
+	hostdns := api.node.HostDNS()
+	if hostdns != nil {
+		ret.DNS = hostdns.String()
+	}
+
+	hostaddrs := api.node.HostAddress()
+	if len(hostaddrs) > 0 {
+		ret.Addresss = hostaddrs
+	}
+
+	peers := api.node.peerStatus.StatsSnapshots()
+	nstat := &json.NetworkStat{Infos: []*json.NetworkInfo{}}
+	infos := map[string]*json.NetworkInfo{}
+
+	for _, p := range peers {
+		nstat.TotalPeers++
+		if p.State.IsConnected() {
+			nstat.TotalConnected++
+		}
+
+		if p.Services&protocol.Relay > 0 {
+			nstat.TotalRelays++
+		}
+		//
+		if len(p.Network) <= 0 {
+			continue
+		}
+
+		info, ok := infos[p.Network]
+		if !ok {
+			info = &json.NetworkInfo{Name: p.Network}
+			infos[p.Network] = info
+			nstat.Infos = append(nstat.Infos, info)
+		}
+		info.Peers++
+		if p.State.IsConnected() {
+			info.Connecteds++
+		}
+		if p.Services&protocol.Relay > 0 {
+			info.Relays++
+		}
+	}
+	ret.NetworkStat = nstat
+	return ret, nil
 }
