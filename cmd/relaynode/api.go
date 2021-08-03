@@ -145,9 +145,6 @@ func (api *PublicRelayAPI) GetNodeInfo() (interface{}, error) {
 
 	for _, p := range peers {
 		nstat.TotalPeers++
-		if p.State.IsConnected() {
-			nstat.TotalConnected++
-		}
 
 		if p.Services&protocol.Relay > 0 {
 			nstat.TotalRelays++
@@ -166,6 +163,7 @@ func (api *PublicRelayAPI) GetNodeInfo() (interface{}, error) {
 		info.Peers++
 		if p.State.IsConnected() {
 			info.Connecteds++
+			nstat.TotalConnected++
 		}
 		if p.Services&protocol.Relay > 0 {
 			info.Relays++
