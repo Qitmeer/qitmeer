@@ -28,6 +28,27 @@ Relay node connections are end-to-end encrypted, which means that the peer actin
 ~ ./qitmeer --relaynode=[Relay Address]
 ```
 
+## RPC
+
+```bash
+~ ./relaynode --norpc=false
+```
+
+If you don't want to use the default configuration, you can:
+```bash
+~ ./relaynode -h
+... ...
+--rpclisten
+--rpcuser
+--rpcpass
+... ...
+
+```
+
+* Example of calling RPC:(You must pay attention to whether the respective RPC port numbers are consistent)
+```bash
+~ ./cli.sh peerinfo
+```
 ## Usage
 
 * If you do not want to use the relay node default configuration parameters, you can use `./relaynode -h` to help for custom configuration.
