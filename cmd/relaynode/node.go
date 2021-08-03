@@ -9,6 +9,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/config"
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/p2p/common"
@@ -17,6 +18,7 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/synch"
 	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/rpc"
 	ds "github.com/ipfs/go-ds-leveldb"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-circuit"
@@ -31,6 +33,7 @@ import (
 	"github.com/libp2p/go-libp2p-secio"
 	"github.com/multiformats/go-multiaddr"
 	"path"
+	"reflect"
 	"sync"
 )
 
@@ -45,6 +48,8 @@ type Node struct {
 	peerStatus *peers.Status
 
 	hslock sync.RWMutex
+
+	rpcServer *rpc.RpcServer
 }
 
 func (node *Node) init(cfg *Config) error {
@@ -66,6 +71,28 @@ func (node *Node) init(cfg *Config) error {
 	//
 	node.peerStatus = peers.NewStatus(nil)
 
+	if !cfg.DisableRPC {
+		qcfg := &config.Config{
+			DisableRPC:    cfg.DisableRPC,
+			RPCListeners:  cfg.RPCListeners.Value(),
+			RPCUser:       cfg.RPCUser,
+			RPCPass:       cfg.RPCPass,
+			RPCCert:       cfg.RPCCert,
+			RPCKey:        cfg.RPCKey,
+			RPCMaxClients: cfg.RPCMaxClients,
+			DisableTLS:    cfg.DisableTLS,
+		}
+
+		node.rpcServer, err = rpc.NewRPCServer(qcfg, nil)
+		if err != nil {
+			return err
+		}
+		go func() {
+			<-node.rpcServer.RequestedProcessShutdown()
+			shutdownRequestChannel <- struct{}{}
+		}()
+	}
+
 	log.Info(fmt.Sprintf("Load config completed"))
 	log.Info(fmt.Sprintf("NetWork:%s  Genesis:%s", params.ActiveNetParams.Name, params.ActiveNetParams.GenesisHash.String()))
 	return nil
@@ -79,7 +106,21 @@ func (node *Node) exit() error {
 
 func (node *Node) run() error {
 	log.Info(fmt.Sprintf("Run relay node..."))
+	err := node.startP2P()
+	if err != nil {
+		return err
+	}
+	err = node.startRPC()
+	if err != nil {
+		return err
+	}
 
+	interrupt := interruptListener()
+	<-interrupt
+	return nil
+}
+
+func (node *Node) startP2P() error {
 	var exip string
 	if len(node.cfg.ExternalIP) > 0 {
 		exip = node.cfg.ExternalIP
@@ -166,8 +207,7 @@ func (node *Node) run() error {
 	if len(node.cfg.HostDNS) > 0 {
 		logExternalDNSAddr(node.host.ID(), node.cfg.HostDNS, node.cfg.Port)
 	}
-	interrupt := interruptListener()
-	<-interrupt
+
 	return nil
 }
 
@@ -211,6 +251,24 @@ func (node *Node) registerHandlers() error {
 	)
 
 	return nil
+}
+
+func (node *Node) startRPC() error {
+	if node.cfg.DisableRPC {
+		return nil
+	}
+	api := node.api()
+	if err := node.rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
+		return err
+	}
+	log.Debug(fmt.Sprintf("RPC Service API registered. NameSpace:%s     %s", api.NameSpace, reflect.TypeOf(api.Service)))
+
+	if err := node.rpcServer.Start(); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func (node *Node) Encoding() encoder.NetworkEncoding {

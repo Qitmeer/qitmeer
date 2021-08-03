@@ -11,16 +11,22 @@ import (
 )
 
 const (
-	defaultDataDirname = "relay"
-	defaultPort        = "2001"
-	defaultIP          = "0.0.0.0"
-	defaultLogDirname  = "logs"
-	defaultLogFilename = "relaynode.log"
+	defaultDataDirname   = "relay"
+	defaultPort          = "2001"
+	defaultIP            = "0.0.0.0"
+	defaultLogDirname    = "logs"
+	defaultLogFilename   = "relaynode.log"
+	defaultRPCKeyFile    = "rpc.key"
+	defaultRPCCertFile   = "rpc.cert"
+	defaultMaxRPCClients = 10
+	defaultRPCListener   = "127.0.0.1:2002"
 )
 
 var (
-	defaultHomeDir = util.AppDataDir(".", false)
-	defaultDataDir = filepath.Join(defaultHomeDir, defaultDataDirname)
+	defaultHomeDir     = util.AppDataDir(".", false)
+	defaultDataDir     = filepath.Join(defaultHomeDir, defaultDataDirname)
+	defaultRPCCertPath = filepath.Join(defaultDataDir, defaultRPCCertFile)
+	defaultRPCKeyPath  = filepath.Join(defaultDataDir, defaultRPCKeyFile)
 
 	conf = &Config{}
 
@@ -109,6 +115,69 @@ var (
 		Destination: &conf.DebugLevel,
 	}
 
+	DisableRPC = &cli.BoolFlag{
+		Name:        "norpc",
+		Aliases:     []string{"nr"},
+		Usage:       "Disable built-in RPC server -- NOTE: The RPC server is disabled by default if no rpcuser/rpcpass",
+		Value:       true,
+		Destination: &conf.DisableRPC,
+	}
+
+	RPCListeners = &cli.StringSliceFlag{
+		Name:        "rpclisten",
+		Aliases:     []string{"rl"},
+		Usage:       "Add an interface/port to listen for RPC connections",
+		Destination: &conf.RPCListeners,
+	}
+
+	RPCUser = &cli.StringFlag{
+		Name:        "rpcuser",
+		Aliases:     []string{"ru"},
+		Usage:       "Username for RPC connections",
+		Value:       "test",
+		Destination: &conf.RPCUser,
+	}
+
+	RPCPass = &cli.StringFlag{
+		Name:        "rpcpass",
+		Aliases:     []string{"rp"},
+		Usage:       "Password for RPC connections",
+		Value:       "test",
+		Destination: &conf.RPCPass,
+	}
+
+	RPCCert = &cli.StringFlag{
+		Name:        "rpccert",
+		Aliases:     []string{"rc"},
+		Usage:       "File containing the certificate file",
+		Value:       defaultRPCCertPath,
+		Destination: &conf.RPCCert,
+	}
+
+	RPCKey = &cli.StringFlag{
+		Name:        "rpckey",
+		Aliases:     []string{"rk"},
+		Usage:       "File containing the certificate key",
+		Value:       defaultRPCKeyPath,
+		Destination: &conf.RPCKey,
+	}
+
+	RPCMaxClients = &cli.IntFlag{
+		Name:        "rpcmaxclients",
+		Aliases:     []string{"rmc"},
+		Usage:       "Max number of RPC clients for standard connections",
+		Value:       defaultMaxRPCClients,
+		Destination: &conf.RPCMaxClients,
+	}
+
+	DisableTLS = &cli.BoolFlag{
+		Name:        "notls",
+		Aliases:     []string{"nt"},
+		Usage:       "Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost",
+		Value:       false,
+		Destination: &conf.DisableTLS,
+	}
+
 	AppFlags = []cli.Flag{
 		HomeDir,
 		DataDir,
@@ -121,6 +190,14 @@ var (
 		UsePeerStore,
 		NoFileLogging,
 		DebugLevel,
+		DisableRPC,
+		RPCListeners,
+		RPCUser,
+		RPCPass,
+		RPCCert,
+		RPCKey,
+		RPCMaxClients,
+		DisableTLS,
 	}
 )
 
@@ -136,6 +213,15 @@ type Config struct {
 	UsePeerStore  bool
 	NoFileLogging bool
 	DebugLevel    string
+
+	DisableRPC    bool
+	RPCListeners  cli.StringSlice
+	RPCUser       string
+	RPCPass       string
+	RPCCert       string
+	RPCKey        string
+	RPCMaxClients int
+	DisableTLS    bool
 }
 
 func (c *Config) load() error {
@@ -200,5 +286,16 @@ func (c *Config) load() error {
 		return err
 	}
 
+	if c.RPCCert == defaultRPCCertPath {
+		c.RPCCert = filepath.Join(c.DataDir, defaultRPCCertFile)
+	}
+
+	if c.RPCKey == defaultRPCKeyPath {
+		c.RPCKey = filepath.Join(c.DataDir, defaultRPCKeyFile)
+	}
+
+	if len(c.RPCListeners.Value()) <= 0 {
+		c.RPCListeners = *cli.NewStringSlice(defaultRPCListener)
+	}
 	return nil
 }

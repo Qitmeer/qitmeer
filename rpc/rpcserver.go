@@ -132,7 +132,10 @@ func NewRPCServer(cfg *config.Config, events *event.Feed) (*RpcServer, error) {
 		rpc.authsha = sha256.Sum256([]byte(auth))
 	}
 	rpc.ntfnMgr = newWsNotificationManager(&rpc)
-	rpc.subscribe(events)
+	if events != nil {
+		rpc.subscribe(events)
+	}
+
 	return &rpc, nil
 }
 
