@@ -320,6 +320,7 @@ func (ps *PeerSync) OnGetData(sp *peers.Peer, invList []*pb.InvVect) error {
 	blocks := make([]*pb.Hash, 0)
 	merkleBlocks := make([]*pb.Hash, 0)
 	for _, iv := range invList {
+		log.Trace(fmt.Sprintf("OnGetData:%s (%s)", InvType(iv.Type).String(), changePBHashToHash(iv.Hash)))
 		switch InvType(iv.Type) {
 		case InvTypeTx:
 			txs = append(txs, iv.Hash)

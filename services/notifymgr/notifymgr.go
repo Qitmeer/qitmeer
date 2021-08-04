@@ -1,7 +1,9 @@
 package notifymgr
 
 import (
+	"fmt"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/rpc"
 )
@@ -18,6 +20,9 @@ type NotifyMgr struct {
 // transactions.  This function should be called whenever new transactions
 // are added to the mempool.
 func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.TxDesc) {
+	for _, tx := range newTxs {
+		log.Trace(fmt.Sprintf("Announce new transaction :hash=%s height=%d add=%s", tx.Tx.Hash().String(), tx.Height, tx.Added.String()))
+	}
 	// reply to p2p
 	ntmgr.RelayInventory(newTxs)
 

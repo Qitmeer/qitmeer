@@ -430,14 +430,17 @@ func (ps *PeerSync) RelayInventory(data interface{}) {
 				}
 			}
 			msg.Invs = append(msg.Invs, NewInvVect(InvTypeTx, value.Tx.Hash()))
+			log.Trace(fmt.Sprintf("Relay inventory tx(%s) to peer(%s)", value.Tx.Hash().String(), pe.GetID().String()))
 		case types.BlockHeader:
 			blockHash := value.BlockHash()
 			msg.Invs = append(msg.Invs, NewInvVect(InvTypeBlock, &blockHash))
+			log.Trace(fmt.Sprintf("Relay inventory block(%s) to peer(%s)", blockHash.String(), pe.GetID().String()))
 		}
 
 		if len(msg.Invs) <= 0 {
 			return
 		}
+
 		go ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), pe, msg)
 	})
 }
