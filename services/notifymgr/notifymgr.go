@@ -24,7 +24,9 @@ func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.TxDesc) {
 		log.Trace(fmt.Sprintf("Announce new transaction :hash=%s height=%d add=%s", tx.Tx.Hash().String(), tx.Height, tx.Added.String()))
 	}
 	// reply to p2p
-	ntmgr.RelayInventory(newTxs)
+	for _, tx := range newTxs {
+		ntmgr.RelayInventory(tx)
+	}
 
 	if ntmgr.RpcServer != nil {
 		ntmgr.RpcServer.NotifyNewTransactions(newTxs)
