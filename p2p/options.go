@@ -62,32 +62,39 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) []libp2p.Opt
 	if cfg.EnableUPnP {
 		options = append(options, libp2p.NATPortMap()) //Allow to use UPnP
 	}
-	if cfg.RelayNodeAddr != "" {
-		options = append(options, libp2p.AddrsFactory(withRelayAddrs(cfg.RelayNodeAddr)))
-		options = append(options, libp2p.EnableRelay())
-	}
-	if cfg.HostAddress != "" {
+
+	if len(cfg.RelayNodeAddr) > 0 ||
+		len(cfg.HostAddress) > 0 ||
+		len(cfg.HostDNS) > 0 {
+
+		if len(cfg.RelayNodeAddr) > 0 {
+			options = append(options, libp2p.EnableRelay())
+		}
+
 		options = append(options, libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
-			external, err := multiAddressBuilder(cfg.HostAddress, cfg.TCPPort)
-			if err != nil {
-				log.Error(fmt.Sprintf("Unable to create external multiaddress:%v", err))
-			} else {
-				addrs = append(addrs, external)
+			if len(cfg.HostDNS) > 0 {
+				external, err := ma.NewMultiaddr(fmt.Sprintf("/dns4/%s/tcp/%d", cfg.HostDNS, cfg.TCPPort))
+				if err != nil {
+					log.Error(fmt.Sprintf("Unable to create external multiaddress:%v", err))
+				} else {
+					addrs = append(addrs, external)
+				}
+			}
+			if len(cfg.HostAddress) > 0 {
+				external, err := multiAddressBuilder(cfg.HostAddress, cfg.TCPPort)
+				if err != nil {
+					log.Error(fmt.Sprintf("Unable to create external multiaddress:%v", err))
+				} else {
+					addrs = append(addrs, external)
+				}
+			}
+			if len(cfg.RelayNodeAddr) > 0 {
+				return withRelayAddrs(cfg.RelayNodeAddr, addrs)
 			}
 			return addrs
 		}))
 	}
-	if cfg.HostDNS != "" {
-		options = append(options, libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
-			external, err := ma.NewMultiaddr(fmt.Sprintf("/dns4/%s/tcp/%d", cfg.HostDNS, cfg.TCPPort))
-			if err != nil {
-				log.Error(fmt.Sprintf("Unable to create external multiaddress:%v", err))
-			} else {
-				addrs = append(addrs, external)
-			}
-			return addrs
-		}))
-	}
+
 	if cfg.LocalIP != "" {
 		if net.ParseIP(cfg.LocalIP) == nil {
 			log.Error(fmt.Sprintf("Invalid local ip provided: %s", cfg.LocalIP))
