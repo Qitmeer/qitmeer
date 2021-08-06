@@ -75,6 +75,7 @@ type GetBlockTemplateResult struct {
 	CoinbaseTxn   *GetBlockTemplateResultTx  `json:"coinbasetxn,omitempty"`
 	CoinbaseValue *uint64                    `json:"coinbasevalue,omitempty"`
 	WorkID        string                     `json:"workid,omitempty"`
+	NodeVersion   string                     `json:"nodeversion,omitempty"`
 
 	// Witness commitment defined in BIP 0141.
 	DefaultWitnessCommitment string `json:"default_witness_commitment,omitempty"`

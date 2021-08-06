@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
+	"github.com/Qitmeer/qitmeer/version"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -480,6 +481,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		StateRoot:    template.Block.Header.StateRoot.String(),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
 		Height:       int64(template.Height),
+		NodeVersion:  version.String(),
 		Blues:        template.Blues,
 		PreviousHash: template.Block.Header.ParentRoot.String(),
 		WeightLimit:  types.MaxBlockWeight,
