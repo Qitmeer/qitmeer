@@ -60,6 +60,7 @@ const (
 // system which is typically sufficient.
 type CPUMiner struct {
 	sync.Mutex
+	nodeInfo          string
 	params            *params.Params
 	config            *config.Config
 	policy            *mining.Policy
@@ -90,11 +91,12 @@ type CPUMiner struct {
 // newCPUMiner returns a new instance of a CPU miner for the provided server.
 // Use Start to begin the mining process.  See the documentation for CPUMiner
 // type for more details.
-func NewCPUMiner(cfg *config.Config, par *params.Params, policy *mining.Policy,
+func NewCPUMiner(node string, cfg *config.Config, par *params.Params, policy *mining.Policy,
 	cache *txscript.SigCache,
 	source mining.TxSource, tsource blockchain.MedianTimeSource, blkMgr *blkmgr.BlockManager, numWorkers uint32) *CPUMiner {
 	return &CPUMiner{
 		config:            cfg,
+		nodeInfo:          node,
 		params:            par,
 		policy:            policy,
 		sigCache:          cache,
