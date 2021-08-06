@@ -37,9 +37,9 @@ const (
 	defaultMaxRPCClients          = 10
 	defaultMaxRPCWebsockets       = 25
 	defaultMaxRPCConcurrentReqs   = 20
-	defaultMaxPeers               = 30
+	defaultMaxPeers               = 100
 	defaultMiningStateSync        = false
-	defaultMaxInboundPeersPerHost = 10 // The default max total of inbound peer for host
+	defaultMaxInboundPeersPerHost = 50 // The default max total of inbound peer for host
 	defaultTrickleInterval        = 10 * time.Second
 	defaultCacheInvalidTx         = false
 )
