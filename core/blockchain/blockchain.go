@@ -825,7 +825,10 @@ func (b *BlockChain) connectDagChain(ib blockdag.IBlock, block *types.Serialized
 			b.bd.InvalidBlock(ib)
 			return true, err
 		}
-		b.bd.ValidBlock(ib)
+		if !ib.GetStatus().KnownInvalid() {
+			b.bd.ValidBlock(ib)
+		}
+
 		// TODO, validating previous block
 		log.Debug("Block connected to the main chain", "hash", ib.GetHash(), "order", ib.GetOrder())
 		return true, nil
@@ -1161,7 +1164,10 @@ func (b *BlockChain) reorganizeChain(ib blockdag.IBlock, detachNodes *list.List,
 			log.Info(fmt.Sprintf("%s", err))
 			continue
 		}
-		b.bd.ValidBlock(nodeBlock)
+		if !nodeBlock.GetStatus().KnownInvalid() {
+			b.bd.ValidBlock(nodeBlock)
+		}
+
 	}
 
 	// Log the point where the chain forked and old and new best chain
