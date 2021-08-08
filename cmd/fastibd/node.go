@@ -12,14 +12,18 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/services/index"
 	"os"
 	"path"
+	"time"
 )
 
 type Node struct {
@@ -251,5 +255,145 @@ func (node *Node) Import() error {
 	mainTip = node.bc.BlockDAG().GetMainChainTip()
 	log.Info(fmt.Sprintf("Finish import: blocks(%d)    ------>File:%s", mainTip.GetOrder(), inputFilePath))
 	log.Info(fmt.Sprintf("New Info:%s  mainOrder=%d tips=%d", mainTip.GetHash().String(), mainTip.GetOrder(), node.bc.BlockDAG().GetTips().Size()))
+	return nil
+}
+
+func (node *Node) Upgrade() error {
+	mainTip := node.bc.BlockDAG().GetMainChainTip()
+	if mainTip.GetOrder() <= 0 {
+		return fmt.Errorf("No blocks in database")
+	}
+
+	var endPoint blockdag.IBlock
+	endNum := uint(0)
+	if node.cfg.ByID {
+		endNum = mainTip.GetID()
+	} else {
+		endNum = mainTip.GetOrder()
+	}
+
+	if len(node.cfg.EndPoint) > 0 {
+		ephash, err := hash.NewHashFromStr(node.cfg.EndPoint)
+		if err != nil {
+			return err
+		}
+		endPoint = node.bc.GetBlock(ephash)
+		if endPoint != nil {
+			if node.cfg.ByID {
+				if endNum > endPoint.GetID() {
+					endNum = endPoint.GetID()
+				}
+			} else {
+				if endNum > endPoint.GetOrder() {
+					endNum = endPoint.GetOrder()
+				}
+			}
+
+			log.Info(fmt.Sprintf("End point:%s order:%d id:%d", ephash.String(), endPoint.GetOrder(), endPoint.GetID()))
+		} else {
+			return fmt.Errorf("End point is error")
+		}
+
+	}
+	var bar *ProgressBar
+	if !node.cfg.DisableBar {
+
+		bar = &ProgressBar{}
+		bar.init("Export:")
+		bar.reset(int(endNum))
+		bar.add()
+	} else {
+		log.Info("Export...")
+	}
+
+	var i uint
+	var blockHash *hash.Hash
+	blocks := []*types.SerializedBlock{}
+
+	for i = uint(1); i <= endNum; i++ {
+		if node.cfg.ByID {
+			ib := node.bc.BlockDAG().GetBlockById(i)
+			if ib != nil {
+				blockHash = ib.GetHash()
+			} else {
+				blockHash = nil
+			}
+		} else {
+			blockHash = node.bc.BlockDAG().GetBlockHashByOrder(i)
+		}
+
+		if blockHash == nil {
+			return fmt.Errorf(fmt.Sprintf("Can't find block (%d)!", i))
+		}
+
+		block, err := node.bc.FetchBlockByHash(blockHash)
+		if err != nil {
+			return err
+		}
+		blocks = append(blocks, block)
+	}
+
+	if node.db != nil {
+		log.Info(fmt.Sprintf("Gracefully shutting down the last database:%s", node.name))
+		node.db.Close()
+	}
+	time.Sleep(time.Second * 1)
+
+	common.CleanupBlockDB(&config.Config{DbType: node.cfg.DbType, DataDir: node.cfg.DataDir})
+
+	time.Sleep(time.Second * 2)
+
+	db, err := LoadBlockDB(node.cfg.DbType, node.cfg.DataDir, true)
+	if err != nil {
+		log.Error("load block database", "error", err)
+		return err
+	}
+
+	node.db = db
+	//
+	var indexes []index.Indexer
+	txIndex := index.NewTxIndex(db)
+	indexes = append(indexes, txIndex)
+	// index-manager
+	indexManager := index.NewManager(db, indexes, params.ActiveNetParams.Params)
+
+	bc, err := blockchain.New(&blockchain.Config{
+		DB:           db,
+		ChainParams:  params.ActiveNetParams.Params,
+		TimeSource:   blockchain.NewMedianTime(),
+		DAGType:      node.cfg.DAGType,
+		IndexManager: indexManager,
+	})
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+	node.bc = bc
+	node.name = path.Base(node.cfg.DataDir)
+
+	log.Info(fmt.Sprintf("Load new data:%s", node.cfg.DataDir))
+
+	if bar != nil {
+		bar.init("Upgrade:")
+		bar.reset(int(len(blocks)))
+		bar.add()
+	} else {
+		log.Info("Upgrade...")
+	}
+	for _, block := range blocks {
+		err := node.bc.FastAcceptBlock(block)
+		if err != nil {
+			return err
+		}
+		if bar != nil {
+			bar.add()
+		}
+	}
+
+	if bar != nil {
+		bar.setMax()
+		fmt.Println()
+	}
+	log.Info(fmt.Sprintf("Finish upgrade: blocks(%d)", endNum))
 	return nil
 }
