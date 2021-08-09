@@ -46,4 +46,5 @@ type Config struct {
 	Params         *params.Params
 	Banning        bool // Open or not ban module
 	DisableListen  bool
+	LANPeers       []string
 }

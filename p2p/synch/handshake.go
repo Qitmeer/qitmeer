@@ -198,6 +198,12 @@ func (s *Sync) bidirectionalChannelCapacity(pe *peers.Peer, conn network.Conn) b
 			return true
 		}
 	}
+	_, ok := s.LANPeers[pe.GetID()]
+	if ok {
+		pe.SetBidChanCap(time.Time{})
+		return true
+	}
+	//
 	peAddr := conn.RemoteMultiaddr()
 	ipAddr := ""
 	protocol := ""
