@@ -109,6 +109,13 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 		}
 		return ErrMessage(err)
 	}
+	if !s.bidirectionalChannelCapacity(pe, stream.Conn()) {
+		s.UpdateChainState(pe, m, false)
+		if err := s.EncodeResponseMsgPro(stream, s.getChainState(), common.ErrDAGConsensus); err != nil {
+			return err
+		}
+		return nil
+	}
 	s.UpdateChainState(pe, m, true)
 	return s.EncodeResponseMsg(stream, s.getChainState())
 }

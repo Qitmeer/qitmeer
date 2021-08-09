@@ -199,6 +199,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (int
 			Address:   p.Address,
 			BytesSent: p.BytesSent,
 			BytesRecv: p.BytesRecv,
+			Circuit:   p.IsCircuit,
 		}
 		info.Protocol = p.Protocol
 		info.Services = p.Services.String()

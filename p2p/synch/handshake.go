@@ -5,10 +5,14 @@
 package synch
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
+	"github.com/multiformats/go-multistream"
 	"io"
+	"net"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -19,6 +23,10 @@ import (
 const (
 	// The time to wait for a chain state request.
 	timeForChainState = 10 * time.Second
+
+	timeForBidirChan = 4 * time.Second
+
+	timeForBidirChanLife = 10 * time.Minute
 )
 
 func (ps *PeerSync) Connected(pid peer.ID, conn network.Conn) {
@@ -177,4 +185,68 @@ func (s *Sync) AddDisconnectionHandler() {
 			s.peerSync.Disconnected(remotePeer, conn)
 		},
 	})
+}
+
+func (s *Sync) bidirectionalChannelCapacity(pe *peers.Peer, conn network.Conn) bool {
+	if conn.Stat().Direction == network.DirOutbound {
+		pe.SetBidChanCap(time.Now())
+		return true
+	}
+	bidChanLife := pe.GetBidChanCap()
+	if !bidChanLife.IsZero() {
+		if time.Since(bidChanLife) < timeForBidirChanLife {
+			return true
+		}
+	}
+	peAddr := conn.RemoteMultiaddr()
+	ipAddr := ""
+	protocol := ""
+	port := ""
+	ps := peAddr.Protocols()
+	if len(ps) >= 1 {
+		ia, err := peAddr.ValueForProtocol(ps[0].Code)
+		if err != nil {
+			log.Debug(err.Error())
+			pe.SetBidChanCap(time.Time{})
+			return false
+		}
+		ipAddr = ia
+	}
+	if len(ps) >= 2 {
+		protocol = ps[1].Name
+		po, err := peAddr.ValueForProtocol(ps[1].Code)
+		if err != nil {
+			log.Debug(err.Error())
+			pe.SetBidChanCap(time.Time{})
+			return false
+		}
+		port = po
+	}
+	if len(ipAddr) <= 0 ||
+		len(protocol) <= 0 ||
+		len(port) <= 0 {
+	}
+	bidConn, err := net.DialTimeout(protocol, fmt.Sprintf("%s:%s", ipAddr, port), timeForBidirChan)
+	if err != nil {
+		log.Debug(err.Error())
+		pe.SetBidChanCap(time.Time{})
+		return false
+	}
+	reply, err := bufio.NewReader(bidConn).ReadString('\n')
+	if err != nil {
+		log.Debug(err.Error())
+		pe.SetBidChanCap(time.Time{})
+		return false
+	}
+	if !strings.Contains(reply, multistream.ProtocolID) {
+		log.Debug(fmt.Sprintf("BidChan protocol is error"))
+		pe.SetBidChanCap(time.Time{})
+		return false
+	}
+	log.Debug(fmt.Sprintf("Bidirectional channel capacity:%s", pe.GetID().String()))
+	bidConn.Write([]byte(fmt.Sprintf("%s\n", multistream.ProtocolID)))
+	bidConn.Close()
+
+	pe.SetBidChanCap(time.Now())
+	return true
 }

@@ -30,6 +30,7 @@ type StatsSnap struct {
 	LastRecv   time.Time
 	BytesSent  uint64
 	BytesRecv  uint64
+	IsCircuit  bool
 }
 
 func (p *StatsSnap) IsRelay() bool {
