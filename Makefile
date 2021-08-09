@@ -19,10 +19,17 @@ WIN_EXECUTABLES := \
 	build/release/windows/amd64/bin/$(EXECUTABLE).exe
 
 EXECUTABLES=$(UNIX_EXECUTABLES) $(WIN_EXECUTABLES)
-	
+
+DEV_EXECUTABLES := \
+	build/dev/darwin/amd64/bin/$(EXECUTABLE) \
+	build/dev/linux/amd64/bin/$(EXECUTABLE) \
+	build/dev/windows/amd64/bin/$(EXECUTABLE).exe
+
 COMPRESSED_EXECUTABLES=$(UNIX_EXECUTABLES:%=%.tar.gz) $(WIN_EXECUTABLES:%.exe=%.zip) $(WIN_EXECUTABLES:%.exe=%.cn.zip)
 
 RELEASE_TARGETS=$(EXECUTABLES) $(COMPRESSED_EXECUTABLES)
+
+DEV_TARGETS=$(DEV_EXECUTABLES)
 
 ZMQ = FALSE
 
@@ -61,6 +68,17 @@ build/release/%/$(EXECUTABLE).exe:
 	@echo Build $(@)
 	@GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS_RELEASE) -o $(@) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
 
+# amd64 dev
+build/dev/%: OS=$(word 3,$(subst /, ,$(@)))
+build/dev/%: ARCH=$(word 4,$(subst /, ,$(@)))
+build/dev/%/$(EXECUTABLE):
+	@echo Build $(@)
+	@GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS_DEV) -o $(@) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
+build/dev/%/$(EXECUTABLE).exe:
+	@echo Build $(@)
+	@GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS_DEV) -o $(@) "github.com/Qitmeer/qitmeer/cmd/qitmeerd"
+
+
 %.zip: %.exe
 	@echo zip $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH)
 	@zip $(EXECUTABLE)-$(VERSION)-$(OS)-$(ARCH).zip "$<"
@@ -78,6 +96,10 @@ release: clean checkversion
 	@$(MAKE) $(RELEASE_TARGETS)
 	@shasum -a 512 $(EXECUTABLES) > $(EXECUTABLE)-$(VERSION)_checksum.txt
 	@shasum -a 512 $(EXECUTABLE)-$(VERSION)-* >> $(EXECUTABLE)-$(VERSION)_checksum.txt
+dev: clean checkversion
+	@echo "Build dev version : $(VERSION)"
+	@$(MAKE) $(DEV_TARGETS)
+
 checksum: checkversion
 	@cat $(EXECUTABLE)-$(VERSION)_checksum.txt|shasum -c
 clean:
@@ -86,3 +108,4 @@ clean:
 	@rm -f ./build/bin/qx
 	@rm -f ./build/bin/qitmeer
 	@rm -rf ./build/release
+	@rm -rf ./build/dev
