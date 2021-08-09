@@ -607,6 +607,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			DenyListCIDR:         cfg.Blacklist,
 			Banning:              cfg.Banning,
 			DisableListen:        cfg.DisableListen,
+			LANPeers:             cfg.LANPeers,
 		},
 		ctx:           ctx,
 		cancel:        cancel,
