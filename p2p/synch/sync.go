@@ -7,7 +7,6 @@ package synch
 import (
 	"context"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
@@ -84,7 +83,7 @@ type Sync struct {
 	peerSync     *PeerSync
 	p2p          common.P2P
 	PeerInterval time.Duration
-	LANPeers     map[peer.ID]blockdag.Empty
+	LANPeers     map[peer.ID]struct{}
 }
 
 func (s *Sync) Start() error {
@@ -254,7 +253,7 @@ func (s *Sync) EncodeResponseMsgPro(stream libp2pcore.Stream, msg interface{}, r
 func NewSync(p2p common.P2P) *Sync {
 	sy := &Sync{p2p: p2p, peers: peers.NewStatus(p2p),
 		PeerInterval: params.ActiveNetParams.TargetTimePerBlock * 2,
-		LANPeers:     map[peer.ID]blockdag.Empty{}}
+		LANPeers:     map[peer.ID]struct{}{}}
 	sy.peerSync = NewPeerSync(sy)
 
 	for _, pid := range p2p.Config().LANPeers {
@@ -263,7 +262,7 @@ func NewSync(p2p common.P2P) *Sync {
 			log.Warn(fmt.Sprintf("LANPeers configuration error:%s", pid))
 			continue
 		}
-		sy.LANPeers[peid] = blockdag.Empty{}
+		sy.LANPeers[peid] = struct{}{}
 	}
 	return sy
 }
