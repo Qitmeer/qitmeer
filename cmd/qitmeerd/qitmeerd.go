@@ -150,11 +150,11 @@ func showLogo(cfg *config.Config) {
     _____|__|/  |_  _____   ____   ___________    Qitmeer %s
    / ____/  \   __\/     \_/ __ \_/ __ \_  __ \   Port: %d
   < <_|  |  ||  | |  Y Y  \  ___/\  ___/|  | \/   PID : %d
-   \__   |__||__| |__|_|  /\___  >\___  >__|                                        
+   \__   |__||__| |__|_|  /\___  >\___  >__|      Network : %s                      
       |__|              \/     \/     \/          https://github.com/Qitmeer/qitmeer
 
 
 
 `
-	fmt.Printf(logo, version.String(), cfg.P2PTCPPort, os.Getpid())
+	fmt.Printf(logo, version.String(), cfg.P2PTCPPort, os.Getpid(), params.ActiveNetParams.Name)
 }

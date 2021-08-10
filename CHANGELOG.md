@@ -1,4 +1,6 @@
 # Changelog
+## [0.10.2] - 2017-07-28
+- update network protocol to support multiple-network.
 
 ## [0.10.1] - 2021-07-25
 - Change 0.10.x testnet addr prefix to distinguish 0.9.x testnet
