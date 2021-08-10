@@ -41,6 +41,8 @@ type Peer struct {
 	bytesRecv  uint64
 	conTime    time.Time
 	timeOffset int64
+
+	bidChanCap time.Time
 }
 
 func (p *Peer) GetID() peer.ID {
@@ -287,8 +289,8 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		LastRecv:   p.lastRecv,
 		BytesSent:  p.bytesSent,
 		BytesRecv:  p.bytesRecv,
+		IsCircuit:  p.isCircuit(),
 	}
-
 	n := p.node()
 	if n != nil {
 		ss.NodeID = n.ID().String()
@@ -549,6 +551,25 @@ func (p *Peer) CanConnectWithNetwork() bool {
 		return true
 	}
 	return params.ActiveNetParams.Name == network
+}
+
+func (p *Peer) GetBidChanCap() time.Time {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.bidChanCap
+}
+
+func (p *Peer) SetBidChanCap(life time.Time) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.bidChanCap = life
+}
+
+func (p *Peer) isCircuit() bool {
+	if p.direction == network.DirOutbound {
+		return true
+	}
+	return !p.bidChanCap.IsZero()
 }
 
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {

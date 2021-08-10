@@ -580,6 +580,18 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 		}
 	}
 
+	allowListCIDR := ""
+	lanPeers := []string{}
+
+	if len(cfg.Whitelist) > 0 {
+		for _, wl := range cfg.Whitelist {
+			if strings.Contains(wl, "/") {
+				allowListCIDR = wl
+			} else {
+				lanPeers = append(lanPeers, wl)
+			}
+		}
+	}
 	s := &Service{
 		cfg: &common.Config{
 			NoDiscovery:          cfg.NoDiscovery,
@@ -603,10 +615,11 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			HostAddress:          cfg.HostIP,
 			HostDNS:              cfg.HostDNS,
 			RelayNodeAddr:        cfg.RelayNode,
-			AllowListCIDR:        cfg.Whitelist,
+			AllowListCIDR:        allowListCIDR,
 			DenyListCIDR:         cfg.Blacklist,
 			Banning:              cfg.Banning,
 			DisableListen:        cfg.DisableListen,
+			LANPeers:             lanPeers,
 		},
 		ctx:           ctx,
 		cancel:        cancel,
@@ -614,7 +627,6 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 		isPreGenesis:  true,
 		events:        events,
 	}
-
 	dv5Nodes := parseBootStrapAddrs(s.cfg.BootstrapNodeAddr)
 	s.cfg.Discv5BootStrapAddr = dv5Nodes
 

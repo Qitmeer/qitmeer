@@ -61,8 +61,8 @@ const (
 
 // Time to first byte timeout. The maximum time to wait for first byte of
 // request response (time-to-first-byte). The client is expected to give up if
-// they don't receive the first byte within 5 seconds.
-const TtfbTimeout = 5 * time.Second
+// they don't receive the first byte within 6 seconds.
+const TtfbTimeout = 6 * time.Second
 
 // rpcHandler is responsible for handling and responding to any incoming message.
 // This method may return an error to internal monitoring, but the error will
@@ -76,13 +76,14 @@ const RespTimeout = 10 * time.Second
 const ReqTimeout = 10 * time.Second
 
 // HandleTimeout is the maximum time for complete handler.
-const HandleTimeout = 5 * time.Second
+const HandleTimeout = 6 * time.Second
 
 type Sync struct {
 	peers        *peers.Status
 	peerSync     *PeerSync
 	p2p          common.P2P
 	PeerInterval time.Duration
+	LANPeers     map[peer.ID]struct{}
 }
 
 func (s *Sync) Start() error {
@@ -251,9 +252,18 @@ func (s *Sync) EncodeResponseMsgPro(stream libp2pcore.Stream, msg interface{}, r
 
 func NewSync(p2p common.P2P) *Sync {
 	sy := &Sync{p2p: p2p, peers: peers.NewStatus(p2p),
-		PeerInterval: params.ActiveNetParams.TargetTimePerBlock * 2}
+		PeerInterval: params.ActiveNetParams.TargetTimePerBlock * 2,
+		LANPeers:     map[peer.ID]struct{}{}}
 	sy.peerSync = NewPeerSync(sy)
 
+	for _, pid := range p2p.Config().LANPeers {
+		peid, err := peer.Decode(pid)
+		if err != nil {
+			log.Warn(fmt.Sprintf("LANPeers configuration error:%s", pid))
+			continue
+		}
+		sy.LANPeers[peid] = struct{}{}
+	}
 	return sy
 }
 

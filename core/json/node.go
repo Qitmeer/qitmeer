@@ -49,6 +49,7 @@ type GetPeerInfoResult struct {
 	ConnTime   string               `json:"conntime,omitempty"`
 	Version    string               `json:"version,omitempty"`
 	Network    string               `json:"network,omitempty"`
+	Circuit    bool                 `json:"circuit,omitempty"`
 }
 
 // GetGraphStateResult data
