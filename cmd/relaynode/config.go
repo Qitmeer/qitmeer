@@ -104,7 +104,7 @@ var (
 		Aliases:     []string{"l"},
 		Usage:       "Disable file logging.",
 		Value:       false,
-		Destination: &conf.UsePeerStore,
+		Destination: &conf.NoFileLogging,
 	}
 
 	DebugLevel = &cli.StringFlag{
@@ -178,6 +178,14 @@ var (
 		Destination: &conf.DisableTLS,
 	}
 
+	EnableRelay = &cli.BoolFlag{
+		Name:        "relay",
+		Aliases:     []string{"re"},
+		Usage:       "Enable relay service for node",
+		Value:       false,
+		Destination: &conf.EnableRelay,
+	}
+
 	AppFlags = []cli.Flag{
 		HomeDir,
 		DataDir,
@@ -198,6 +206,7 @@ var (
 		RPCKey,
 		RPCMaxClients,
 		DisableTLS,
+		EnableRelay,
 	}
 )
 
@@ -222,6 +231,7 @@ type Config struct {
 	RPCKey        string
 	RPCMaxClients int
 	DisableTLS    bool
+	EnableRelay   bool
 }
 
 func (c *Config) load() error {
