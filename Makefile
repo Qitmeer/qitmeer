@@ -51,12 +51,13 @@ qx:
 	@go build -o $(GOBIN)/qx $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/qx"
 burn:
 	@go build -o $(GOBIN)/burn $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/burn"
-
+relay:
+	@go build -o $(GOBIN)/relaynode $(GOFLAGS_DEV) "github.com/Qitmeer/qitmeer/cmd/relaynode"
 
 checkversion: qitmeer-build
 #	@echo version $(VERSION)
 
-all: qitmeer-build qx burn
+all: qitmeer-build qx burn relay
 
 # amd64 release
 build/release/%: OS=$(word 3,$(subst /, ,$(@)))
