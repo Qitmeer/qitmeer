@@ -64,7 +64,7 @@ func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore
 	}
 	tx, err := s.p2p.TxMemPool().FetchTransaction(changePBHashToHash(m))
 	if err != nil {
-		log.Error(fmt.Sprintf("Unable to fetch tx from transaction pool tx:%v", err))
+		log.Error(fmt.Sprintf("Unable to fetch tx %x from transaction pool : %v ", m.Hash, err))
 		return ErrMessage(err)
 	}
 
