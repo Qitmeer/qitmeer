@@ -89,8 +89,6 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) []libp2p.Opt
 				}
 			}
 			if len(cfg.RelayNodeAddr) > 0 {
-				//return withRelayAddrs(cfg.RelayNodeAddr, addrs)
-
 				relayAddr, err := ma.NewMultiaddr(cfg.RelayNodeAddr + "/p2p-circuit")
 				if err != nil {
 					log.Error(fmt.Sprintf("Failed to create multiaddress for relay node: %v", err))
