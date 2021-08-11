@@ -170,9 +170,12 @@ func (node *Node) startP2P() error {
 	}
 
 	opts := []libp2p.Option{
-		libp2p.EnableRelay(relay.OptHop),
 		libp2p.ListenAddrs(srcMAddr, eMAddr),
 		libp2p.Identity(p2p.ConvertToInterfacePrivkey(node.privateKey)),
+	}
+
+	if node.cfg.EnableRelay {
+		opts = append(opts, libp2p.EnableRelay(relay.OptHop))
 	}
 
 	if node.cfg.EnableNoise {
@@ -228,7 +231,12 @@ func (node *Node) startP2P() error {
 	}
 
 	log.Info(fmt.Sprintf("Relay Address: %s/p2p/%s\n", eMAddr.String(), node.host.ID()))
-	log.Info("You can copy the relay address and configure it to the required Qitmeer-Node")
+	if node.cfg.EnableRelay {
+		log.Info("You can copy the relay address and configure it to the required Qitmeer-Node")
+	} else {
+		log.Info("The relay transport is disable.")
+	}
+
 	if len(node.cfg.HostDNS) > 0 {
 		logExternalDNSAddr(node.host.ID(), node.cfg.HostDNS, node.cfg.Port)
 	}
