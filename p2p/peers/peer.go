@@ -52,6 +52,15 @@ func (p *Peer) GetID() peer.ID {
 	return p.pid
 }
 
+// IDWithAddress returns the printable id and address of the remote peer.
+// It's useful on printing out the trace log messages.
+func (p *Peer) IDWithAddress() string {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return fmt.Sprintf("%s %s", p.pid, p.address)
+}
+
 // BadResponses obtains the number of bad responses we have received from the given remote peer.
 // This will error if the peer does not exist.
 func (p *Peer) BadResponses() int {
