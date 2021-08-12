@@ -50,7 +50,8 @@ func sendGoodByeMessage(ctx context.Context, code common.ErrorCode, id peer.ID, 
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
-	stream, err := Send(ctx, rpc, &[]byte{byte(code)}, RPCGoodByeTopic, id)
+	msg := uint64(code)
+	stream, err := Send(ctx, rpc, &msg, RPCGoodByeTopic, id)
 	if err != nil {
 		return fmt.Errorf("failed send code %v to peer %v : %v ", code, id, err)
 	}
