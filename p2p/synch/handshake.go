@@ -114,14 +114,14 @@ func (ps *PeerSync) Disconnect(pe *peers.Peer) {
 	pe.SetConnectionState(peers.PeerDisconnected)
 	if !pe.IsConsensus() {
 		if pe.Services() == protocol.Unknown {
-			log.Trace(fmt.Sprintf("Disconnect:%v", pe.GetID()))
+			log.Trace(fmt.Sprintf("Disconnect:%v ", pe.IDWithAddress()))
 		} else {
-			log.Trace(fmt.Sprintf("Disconnect:%v (%s)", pe.GetID(), pe.Services().String()))
+			log.Trace(fmt.Sprintf("Disconnect:%v (%s)", pe.IDWithAddress(), pe.Services().String()))
 		}
 		return
 	}
 
-	log.Trace(fmt.Sprintf("Disconnect:%v", pe.GetID()))
+	log.Trace(fmt.Sprintf("Disconnect:%v ", pe.IDWithAddress()))
 	ps.OnPeerDisconnected(pe)
 }
 
@@ -132,7 +132,7 @@ func (s *Sync) AddConnectionHandler() {
 	s.p2p.Host().Network().Notify(&network.NotifyBundle{
 		ConnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
-			log.Trace(fmt.Sprintf("ConnectedF:%s", remotePeer))
+			log.Trace(fmt.Sprintf("ConnectedF:%s, %v ", remotePeer, conn.RemoteMultiaddr()))
 			s.peerSync.Connected(remotePeer, conn)
 		},
 	})

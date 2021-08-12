@@ -353,12 +353,15 @@ func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic
 
 	stream, err := rpc.Host().NewStream(ctx, pid, protocol.ID(topic))
 	if err != nil {
+		log.Trace(fmt.Sprintf("open stream on topic %v failed", topic))
 		return nil, err
 	}
 	if err := stream.SetReadDeadline(time.Now().Add(deadline)); err != nil {
+		log.Trace(fmt.Sprintf("set stream read dealine %v failed", deadline))
 		return nil, err
 	}
 	if err := stream.SetWriteDeadline(time.Now().Add(deadline)); err != nil {
+		log.Trace(fmt.Sprintf("set stream write dealine %v failed", deadline))
 		return nil, err
 	}
 	// do not encode anything if we are sending a metadata request
@@ -367,11 +370,13 @@ func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic
 	}
 	size, err := rpc.Encoding().EncodeWithMaxLength(stream, message)
 	if err != nil {
+		log.Trace(fmt.Sprintf("encocde rpc message %v to stream failed", message))
 		return nil, err
 	}
 	rpc.IncreaseBytesSent(pid, size)
 	// Close stream for writing.
 	if err := stream.Close(); err != nil {
+		log.Trace(fmt.Sprintf("close stream failed: %v ", err))
 		return nil, err
 	}
 
