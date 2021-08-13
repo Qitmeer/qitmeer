@@ -194,7 +194,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 		// because if the side chain were to be extended enough to become the
 		// best chain, it would result in a a reorg that would remove 6 blocks,
 		// namely blocks 101, 102, 103, 104, 105, and 106.
-		b.notify.RelayInventory(block.Block().Header)
+		b.notify.RelayInventory(block.Block().Header, nil)
 
 	// A block has been connected to the main block chain.
 	case blockchain.BlockConnected:
@@ -224,7 +224,7 @@ func (b *BlockManager) handleNotifyMsg(notification *blockchain.Notification) {
 			b.GetTxManager().MemPool().RemoveOrphan(tx.Hash())
 			b.notify.TransactionConfirmed(tx)
 			acceptedTxs := b.GetTxManager().MemPool().ProcessOrphans(tx.Hash())
-			b.notify.AnnounceNewTransactions(acceptedTxs)
+			b.notify.AnnounceNewTransactions(acceptedTxs, nil)
 		}
 
 		/*

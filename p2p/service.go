@@ -455,8 +455,8 @@ func (s *Service) PeerSync() *synch.PeerSync {
 	return s.sy.PeerSync()
 }
 
-func (s *Service) RelayInventory(data interface{}) {
-	s.PeerSync().RelayInventory(data)
+func (s *Service) RelayInventory(data interface{}, filters []peer.ID) {
+	s.PeerSync().RelayInventory(data, filters)
 }
 
 func (s *Service) BroadcastMessage(data interface{}) {

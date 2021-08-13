@@ -12,6 +12,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -406,8 +407,18 @@ func (ps *PeerSync) updateSyncPeer(force bool) {
 	ps.startSync()
 }
 
-func (ps *PeerSync) RelayInventory(data interface{}) {
+func (ps *PeerSync) RelayInventory(data interface{}, filters []peer.ID) {
+	filtersM := map[peer.ID]struct{}{}
+	if len(filters) > 0 {
+		for _, f := range filters {
+			filtersM[f] = struct{}{}
+		}
+	}
 	ps.sy.Peers().ForPeers(peers.PeerConnected, func(pe *peers.Peer) {
+		_, ok := filtersM[pe.GetID()]
+		if ok {
+			return
+		}
 		msg := &pb.Inventory{Invs: []*pb.InvVect{}}
 
 		switch value := data.(type) {

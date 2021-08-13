@@ -75,7 +75,7 @@ out:
 
 		case <-timer.C:
 			for _, data := range pendingInvs {
-				r.s.RelayInventory(data)
+				r.s.RelayInventory(data, nil)
 			}
 
 			mint := int64(params.ActiveNetParams.TargetTimePerBlock) / 2

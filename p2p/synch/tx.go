@@ -64,7 +64,7 @@ func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore
 	}
 	tx, err := s.p2p.TxMemPool().FetchTransaction(changePBHashToHash(m))
 	if err != nil {
-		log.Error(fmt.Sprintf("Unable to fetch tx %x from transaction pool : %v ", m.Hash, err))
+		log.Trace(fmt.Sprintf("Unable to fetch tx %x from transaction pool : %v ", m.Hash, err))
 		return ErrMessage(err)
 	}
 
@@ -81,7 +81,7 @@ func (s *Sync) txHandler(ctx context.Context, msg interface{}, stream libp2pcore
 	return nil
 }
 
-func (s *Sync) handleTxMsg(msg *pb.Transaction) error {
+func (s *Sync) handleTxMsg(msg *pb.Transaction, pid peer.ID) error {
 	tx := changePBTxToTx(msg)
 	if tx == nil {
 		return fmt.Errorf("message is not type *pb.Transaction")
@@ -93,7 +93,7 @@ func (s *Sync) handleTxMsg(msg *pb.Transaction) error {
 	if err != nil {
 		return fmt.Errorf("Failed to process transaction %v: %v\n", tx.TxHash().String(), err.Error())
 	}
-	s.p2p.Notify().AnnounceNewTransactions(acceptedTxs)
+	s.p2p.Notify().AnnounceNewTransactions(acceptedTxs, []peer.ID{pid})
 
 	return nil
 }
@@ -104,7 +104,7 @@ func (ps *PeerSync) processGetTxs(pe *peers.Peer, txs []*hash.Hash) error {
 		if err != nil {
 			return err
 		}
-		err = ps.sy.handleTxMsg(tx)
+		err = ps.sy.handleTxMsg(tx, pe.GetID())
 		if err != nil {
 			return err
 		}
