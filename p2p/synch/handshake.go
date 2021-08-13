@@ -40,13 +40,14 @@ func (ps *PeerSync) Connected(pid peer.ID, conn network.Conn) {
 }
 
 func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
-	ps.hslock.Lock()
-	defer ps.hslock.Unlock()
+	remotePe := ps.sy.peers.Fetch(msg.ID)
+
+	remotePe.HSlock.Lock()
+	defer remotePe.HSlock.Unlock()
 
 	peerInfoStr := fmt.Sprintf("peer:%s", msg.ID)
 	remotePeer := msg.ID
 	conn := msg.Conn
-	remotePe := ps.sy.peers.Fetch(remotePeer)
 	// Handle the various pre-existing conditions that will result in us not handshaking.
 	peerConnectionState := remotePe.ConnectionState()
 	if remotePe.IsActive() {
@@ -79,8 +80,8 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 }
 
 func (ps *PeerSync) immediatelyConnected(pe *peers.Peer) {
-	ps.hslock.Lock()
-	defer ps.hslock.Unlock()
+	pe.HSlock.Lock()
+	defer pe.HSlock.Unlock()
 
 	if !pe.ConnectionState().IsConnecting() {
 		go ps.PeerUpdate(pe, false)
@@ -154,15 +155,17 @@ func (ps *PeerSync) Disconnected(pid peer.ID, conn network.Conn) {
 }
 
 func (ps *PeerSync) processDisconnected(msg *DisconnectedMsg) {
-	ps.hslock.Lock()
-	defer ps.hslock.Unlock()
-
-	peerInfoStr := fmt.Sprintf("peer:%s", msg.ID)
 	// Must be handled in a goroutine as this callback cannot be blocking.
 	pe := ps.sy.peers.Get(msg.ID)
 	if pe == nil {
 		return
 	}
+
+	pe.HSlock.Lock()
+	defer pe.HSlock.Unlock()
+
+	peerInfoStr := fmt.Sprintf("peer:%s", msg.ID)
+
 	if pe.ConnectionState().IsDisconnected() {
 		return
 	}
