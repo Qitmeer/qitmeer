@@ -42,7 +42,9 @@ type Peer struct {
 	conTime    time.Time
 	timeOffset int64
 
-	bidChanCap     time.Time
+	bidChanCap time.Time
+
+	HSlock         *sync.RWMutex
 	graphStateTime time.Time
 }
 
@@ -593,6 +595,7 @@ func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
 		},
 		pid:       pid,
 		lock:      &sync.RWMutex{},
+		HSlock:    &sync.RWMutex{},
 		syncPoint: point,
 		filter:    bloom.LoadFilter(nil),
 	}

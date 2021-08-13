@@ -32,8 +32,6 @@ type PeerSync struct {
 	// dag sync
 	dagSync *blockdag.DAGSync
 
-	hslock sync.RWMutex
-
 	started     int32
 	shutdown    int32
 	msgChan     chan interface{}
