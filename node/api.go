@@ -7,6 +7,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/math"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
@@ -200,6 +201,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (int
 			BytesSent: p.BytesSent,
 			BytesRecv: p.BytesRecv,
 			Circuit:   p.IsCircuit,
+			Bads:      p.Bads,
 		}
 		info.Protocol = p.Protocol
 		info.Services = p.Services.String()
@@ -231,7 +233,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (int
 				info.SyncNode = false
 			}
 			info.ConnTime = p.ConnTime.Truncate(time.Second).String()
-			info.GSUpdate = p.GraphStateDur.String()
+			info.GSUpdate = p.GraphStateDur.Truncate(time.Second).String()
 		}
 		if !p.LastSend.IsZero() {
 			info.LastSend = p.LastSend.String()
@@ -279,6 +281,64 @@ func GetGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 
 func (api *PublicBlockChainAPI) GetTimeInfo() (interface{}, error) {
 	return fmt.Sprintf("Now:%s offset:%s", roughtime.Now(), roughtime.Offset()), nil
+}
+
+func (api *PublicBlockChainAPI) GetNetworkInfo() (interface{}, error) {
+	ps := api.node.node.peerServer
+	peers := ps.Peers().StatsSnapshots()
+	nstat := &json.NetworkStat{MaxConnected: ps.Config().MaxPeers,
+		MaxInbound: ps.Config().MaxInbound, Infos: []*json.NetworkInfo{}}
+	infos := map[string]*json.NetworkInfo{}
+	gsups := map[string][]time.Duration{}
+
+	for _, p := range peers {
+		nstat.TotalPeers++
+
+		if p.Services&protocol.Relay > 0 {
+			nstat.TotalRelays++
+		}
+		//
+		if len(p.Network) <= 0 {
+			continue
+		}
+
+		info, ok := infos[p.Network]
+		if !ok {
+			info = &json.NetworkInfo{Name: p.Network}
+			infos[p.Network] = info
+			nstat.Infos = append(nstat.Infos, info)
+
+			gsups[p.Network] = []time.Duration{0, 0, math.MaxInt64}
+		}
+		info.Peers++
+		if p.State.IsConnected() {
+			info.Connecteds++
+			nstat.TotalConnected++
+
+			gsups[p.Network][0] = gsups[p.Network][0] + p.GraphStateDur
+			if p.GraphStateDur > gsups[p.Network][1] {
+				gsups[p.Network][1] = p.GraphStateDur
+			}
+			if p.GraphStateDur < gsups[p.Network][2] {
+				gsups[p.Network][2] = p.GraphStateDur
+			}
+		}
+		if p.Services&protocol.Relay > 0 {
+			info.Relays++
+		}
+	}
+	for k, gu := range gsups {
+		info, ok := infos[k]
+		if !ok {
+			continue
+		}
+		if info.Connecteds > 0 {
+			info.AverageGS = time.Duration(int64(gu[0]) / int64(info.Connecteds)).Truncate(time.Second).String()
+			info.MaxGS = gu[1].Truncate(time.Second).String()
+			info.MinGS = gu[2].Truncate(time.Second).String()
+		}
+	}
+	return nstat, nil
 }
 
 type PrivateBlockChainAPI struct {

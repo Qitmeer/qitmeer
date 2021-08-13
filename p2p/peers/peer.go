@@ -300,6 +300,7 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		BytesSent:  p.bytesSent,
 		BytesRecv:  p.bytesRecv,
 		IsCircuit:  p.isCircuit(),
+		Bads:       p.badResponses,
 	}
 	n := p.node()
 	if n != nil {

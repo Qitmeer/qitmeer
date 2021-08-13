@@ -354,6 +354,11 @@ function get_peer_info(){
   get_result "$data"
 }
 
+function get_network_info(){
+  local data='{"jsonrpc":"2.0","method":"getNetworkInfo","params":[],"id":null}'
+  get_result "$data"
+}
+
 function get_rpc_info(){
   local data='{"jsonrpc":"2.0","method":"getRpcInfo","params":[],"id":null}'
   get_result "$data"
@@ -526,6 +531,7 @@ function usage(){
   echo "chain  :"
   echo "  nodeinfo"
   echo "  peerinfo"
+  echo "  networkinfo"
   echo "  rpcinfo"
   echo "  rpcmax <max>"
   echo "  main  <hash>"
@@ -868,6 +874,10 @@ elif [ "$1" == "nodeinfo" ]; then
 elif [ "$1" == "peerinfo" ]; then
   shift
   get_peer_info $@
+
+elif [ "$1" == "networkinfo" ]; then
+  shift
+  get_network_info $@
 
 elif [ "$1" == "rpcinfo" ]; then
   shift
