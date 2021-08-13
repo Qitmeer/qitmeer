@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/params"
 	"math/rand"
 	"sync"
@@ -74,7 +75,15 @@ out:
 			}
 
 		case <-timer.C:
-			for _, data := range pendingInvs {
+			for h, data := range pendingInvs {
+				dh := h
+				if _, ok := data.(*types.TxDesc); ok {
+					if !r.s.TxMemPool().HaveTransaction(&dh) {
+						r.RemoveInventory(&dh)
+						continue
+					}
+				}
+
 				r.s.RelayInventory(data, nil)
 			}
 
