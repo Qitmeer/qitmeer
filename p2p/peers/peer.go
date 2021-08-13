@@ -42,7 +42,8 @@ type Peer struct {
 	conTime    time.Time
 	timeOffset int64
 
-	bidChanCap time.Time
+	bidChanCap     time.Time
+	graphStateTime time.Time
 }
 
 func (p *Peer) GetID() peer.ID {
@@ -227,7 +228,7 @@ func (p *Peer) SetChainState(chainState *pb.ChainState) {
 	p.chainState = chainState
 	p.chainStateLastUpdated = time.Now()
 	p.timeOffset = int64(p.chainState.Timestamp) - roughtime.Now().Unix()
-
+	p.graphStateTime = time.Now()
 	log.Trace(fmt.Sprintf("SetChainState(%s) : MainHeight=%d", p.pid.ShortString(), chainState.GraphState.MainHeight))
 }
 
@@ -310,6 +311,7 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 	}
 	if p.isConsensus() {
 		ss.GraphState = p.graphState()
+		ss.GraphStateDur = time.Since(p.graphStateTime)
 	}
 	return ss, nil
 }
@@ -407,6 +409,8 @@ func (p *Peer) UpdateGraphState(gs *pb.GraphState) {
 	}
 	p.chainState.GraphState = gs
 	log.Trace(fmt.Sprintf("UpdateGraphState(%s) : MainHeight=%d", p.pid.ShortString(), gs.MainHeight))
+
+	p.graphStateTime = time.Now()
 	/*	per.chainState.GraphState.Total=uint32(gs.GetTotal())
 		per.chainState.GraphState.Layer=uint32(gs.GetLayer())
 		per.chainState.GraphState.MainOrder=uint32(gs.GetMainOrder())

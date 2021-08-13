@@ -40,6 +40,7 @@ type GetPeerInfoResult struct {
 	Name       string               `json:"name,omitempty"`
 	Direction  string               `json:"direction,omitempty"`
 	GraphState *GetGraphStateResult `json:"graphstate,omitempty"`
+	GSUpdate   string               `json:"gsupdate,omitempty"`
 	SyncNode   bool                 `json:"syncnode,omitempty"`
 	TimeOffset int64                `json:"timeoffset"`
 	LastSend   string               `json:"lastsend,omitempty"`

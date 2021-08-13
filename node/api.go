@@ -231,6 +231,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (int
 				info.SyncNode = false
 			}
 			info.ConnTime = p.ConnTime.Truncate(time.Second).String()
+			info.GSUpdate = p.GraphStateDur.String()
 		}
 		if !p.LastSend.IsZero() {
 			info.LastSend = p.LastSend.String()

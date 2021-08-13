@@ -102,6 +102,8 @@ func (api *PublicRelayAPI) GetPeerInfo(verbose *bool, network *string) (interfac
 				info.GraphState = node.GetGraphStateResult(p.GraphState)
 			}
 			info.ConnTime = p.ConnTime.Truncate(time.Second).String()
+
+			info.GSUpdate = p.GraphStateDur.String()
 		}
 		if !p.LastSend.IsZero() {
 			info.LastSend = p.LastSend.String()
