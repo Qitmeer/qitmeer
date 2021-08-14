@@ -61,7 +61,7 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 		return
 	}
 	if time.Since(remotePe.ConnectionTime()) <= time.Second {
-		remotePe.IncrementBadResponses()
+		ps.sy.Peers().IncrementBadResponses(remotePeer, "Connection is too frequent")
 		log.Debug(fmt.Sprintf("%s is too frequent, so I'll deduct you points", remotePeer))
 	}
 	remotePe.SetConnectionState(peers.PeerConnecting)

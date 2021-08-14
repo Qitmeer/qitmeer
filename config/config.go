@@ -90,6 +90,7 @@ type Config struct {
 	RelayNode      string   `long:"relaynode" description:"The address of relay node that routes traffic between two peers over a qitmeer “relay” peer."`
 	Whitelist      []string `long:"whitelist" description:"Add an IP network or IP,PeerID that will not be banned or ignore dual channel mode detection. (eg. 192.168.1.0/24 or ::1 or [peer id])"`
 	Blacklist      []string `long:"blacklist" description:"Add some IP network or IP that will be banned. (eg. 192.168.1.0/24 or ::1)"`
+	MaxBadResp     int      `long:"maxbadresp" description:"maxbadresp is the maximum number of bad responses from a peer before we stop talking to it."`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {

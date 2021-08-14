@@ -86,7 +86,7 @@ func (s *Sync) SendPingRequest(ctx context.Context, id peer.ID) error {
 	s.p2p.Host().Peerstore().RecordLatency(id, roughtime.Now().Sub(currentTime))
 
 	if code != 0 {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "ping request rsp")
 		return errors.New(errMsg)
 	}
 	msg := new(uint64)
@@ -95,7 +95,7 @@ func (s *Sync) SendPingRequest(ctx context.Context, id peer.ID) error {
 	}
 	valid, err := s.validateSequenceNum(*msg, pe)
 	if err != nil {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "ping request rsp validate seq num")
 		return err
 	}
 	if valid {

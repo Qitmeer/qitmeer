@@ -20,9 +20,9 @@ import (
 	"time"
 )
 
-const (
+var (
 	// maxBadResponses is the maximum number of bad responses from a peer before we stop talking to it.
-	maxBadResponses = 5
+	MaxBadResponses = 50
 )
 
 // Peer represents a connected p2p network remote node.
@@ -82,18 +82,20 @@ func (p *Peer) IsBad() bool {
 }
 
 func (p *Peer) isBad() bool {
-	return p.badResponses >= maxBadResponses
+	return p.badResponses >= MaxBadResponses
 }
 
 // IncrementBadResponses increments the number of bad responses we have received from the given remote peer.
-func (p *Peer) IncrementBadResponses() {
+func (p *Peer) IncrementBadResponses(reason string) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	p.badResponses++
 
 	if p.isBad() {
-		log.Warn(fmt.Sprintf("I am bad peer:%s", p.pid.String()))
+		log.Info(fmt.Sprintf("I am bad peer:%s reason:%s", p.pid.String(), reason))
+	} else {
+		log.Debug(fmt.Sprintf("Bad responses:%s reason:%s", p.pid.String(), reason))
 	}
 }
 
