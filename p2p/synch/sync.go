@@ -324,16 +324,24 @@ func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 	if e == nil {
 		return
 	}
+	peInfo := ""
+	if stream != nil {
+		peInfo = stream.ID()
+		if stream.Conn() != nil {
+			peInfo += " "
+			peInfo += stream.Conn().RemotePeer().String()
+		}
+	}
 	resp, err := generateErrorResponse(e, rpc.Encoding())
 	if err != nil {
-		log.Warn(fmt.Sprintf("Failed to generate a response error:%v", err))
+		log.Warn(fmt.Sprintf("Failed to generate a response error:%v %s", err, peInfo))
 	} else {
 		if _, err := stream.Write(resp); err != nil {
 			log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
 		}
 	}
 	if e.Code != common.ErrDAGConsensus {
-		log.Warn(fmt.Sprintf("Process error (%s):%s", e.Code.String(), e.Error.Error()))
+		log.Warn(fmt.Sprintf("Process error (%s):%s %s", e.Code.String(), e.Error.Error(), peInfo))
 	}
 }
 
