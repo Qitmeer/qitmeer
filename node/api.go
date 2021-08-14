@@ -333,7 +333,20 @@ func (api *PublicBlockChainAPI) GetNetworkInfo() (interface{}, error) {
 			continue
 		}
 		if info.Connecteds > 0 {
-			info.AverageGS = time.Duration(int64(gu[0]) / int64(info.Connecteds)).Truncate(time.Second).String()
+			avegs := time.Duration(0)
+			if info.Connecteds > 2 {
+				avegs = gu[0] - gu[1] - gu[2]
+				if avegs < 0 {
+					avegs = 0
+				}
+				cons := info.Connecteds - 2
+				avegs = time.Duration(int64(avegs) / int64(cons))
+
+			} else {
+				avegs = time.Duration(int64(gu[0]) / int64(info.Connecteds))
+			}
+
+			info.AverageGS = avegs.Truncate(time.Second).String()
 			info.MaxGS = gu[1].Truncate(time.Second).String()
 			info.MinGS = gu[2].Truncate(time.Second).String()
 		}
