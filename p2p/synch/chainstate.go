@@ -125,11 +125,7 @@ func (s *Sync) UpdateChainState(pe *peers.Peer, chainState *pb.ChainState, actio
 	if !action {
 		return
 	}
-	if pe.ConnectionState().IsConnecting() {
-		go s.peerSync.immediatelyConnected(pe)
-		return
-	}
-	go s.peerSync.PeerUpdate(pe, false)
+	go s.peerSync.immediatelyConnected(pe)
 }
 
 func (s *Sync) validateChainStateMessage(ctx context.Context, msg *pb.ChainState, id peer.ID) (int, error) {
