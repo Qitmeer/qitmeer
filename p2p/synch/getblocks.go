@@ -38,7 +38,7 @@ func (s *Sync) sendGetBlocksRequest(ctx context.Context, id peer.ID, blocks *pb.
 	}
 
 	if !code.IsSuccess() {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "get blocks request rsp")
 		return nil, errors.New(errMsg)
 	}
 
@@ -75,7 +75,7 @@ func (ps *PeerSync) processGetBlocks(pe *peers.Peer, blocks []*hash.Hash) error 
 	if len(blocks) <= 0 {
 		return fmt.Errorf("no blocks")
 	}
-	if !ps.isSyncPeer(pe) || !pe.IsActive() {
+	if !ps.isSyncPeer(pe) || !pe.IsConnected() {
 		return fmt.Errorf("no sync peer")
 	}
 

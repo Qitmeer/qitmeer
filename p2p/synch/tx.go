@@ -38,7 +38,7 @@ func (s *Sync) sendTxRequest(ctx context.Context, id peer.ID, txhash *hash.Hash)
 	}
 
 	if !code.IsSuccess() {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "tx request rsp")
 		return nil, errors.New(errMsg)
 	}
 

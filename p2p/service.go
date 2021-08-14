@@ -245,16 +245,13 @@ func (s *Service) connectWithPeer(info peer.AddrInfo, force bool) error {
 		return nil
 	}
 	if !force {
-		if pe.IsBad() {
+		if pe.IsBad() && !s.sy.IsWhitePeer(info.ID) {
 			return nil
 		}
 	} else {
 		pe.ResetBad()
 	}
 	if err := s.host.Connect(s.ctx, info); err != nil {
-		if !force {
-			s.Peers().IncrementBadResponses(info.ID)
-		}
 		return err
 	}
 	return nil
@@ -591,6 +588,10 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 				lanPeers = append(lanPeers, wl)
 			}
 		}
+	}
+
+	if cfg.MaxBadResp > 0 {
+		peers.MaxBadResponses = cfg.MaxBadResp
 	}
 	s := &Service{
 		cfg: &common.Config{

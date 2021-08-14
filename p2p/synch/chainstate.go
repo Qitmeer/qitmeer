@@ -50,7 +50,7 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 		return err
 	}
 	if !code.IsSuccess() && code != common.ErrDAGConsensus {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "chain state request")
 		return errors.New(errMsg)
 	}
 
@@ -74,7 +74,7 @@ func (s *Sync) sendChainStateRequest(ctx context.Context, id peer.ID) error {
 				return err
 			}
 		} else {
-			s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+			s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "chain state resp")
 		}
 	}
 	return err
@@ -105,7 +105,7 @@ func (s *Sync) chainStateHandler(ctx context.Context, msg interface{}, stream li
 			}
 			return nil
 		} else if ret != retErrGeneric {
-			s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+			s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "chain state handler")
 		}
 		return ErrMessage(err)
 	}

@@ -102,6 +102,8 @@ func (api *PublicRelayAPI) GetPeerInfo(verbose *bool, network *string) (interfac
 				info.GraphState = node.GetGraphStateResult(p.GraphState)
 			}
 			info.ConnTime = p.ConnTime.Truncate(time.Second).String()
+
+			info.GSUpdate = p.GraphStateDur.Truncate(time.Second).String()
 		}
 		if !p.LastSend.IsZero() {
 			info.LastSend = p.LastSend.String()
@@ -139,6 +141,10 @@ func (api *PublicRelayAPI) GetNodeInfo() (interface{}, error) {
 		ret.Addresss = hostaddrs
 	}
 
+	return ret, nil
+}
+
+func (api *PublicRelayAPI) GetNetworkInfo() (interface{}, error) {
 	peers := api.node.peerStatus.StatsSnapshots()
 	nstat := &json.NetworkStat{Infos: []*json.NetworkInfo{}}
 	infos := map[string]*json.NetworkInfo{}
@@ -169,6 +175,5 @@ func (api *PublicRelayAPI) GetNodeInfo() (interface{}, error) {
 			info.Relays++
 		}
 	}
-	ret.NetworkStat = nstat
-	return ret, nil
+	return nstat, nil
 }

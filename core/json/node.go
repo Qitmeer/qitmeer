@@ -25,7 +25,6 @@ type InfoNodeResult struct {
 	ConsensusDeployment map[string]*ConsensusDeploymentDesc `json:"consensusdeployment,omitempty"`
 	Network             string                              `json:"network"`
 	Connections         int32                               `json:"connections"`
-	NetworkStat         *NetworkStat                        `json:"networkstat,omitempty"`
 }
 
 // GetPeerInfoResult models the data returned from the getpeerinfo command.
@@ -40,6 +39,7 @@ type GetPeerInfoResult struct {
 	Name       string               `json:"name,omitempty"`
 	Direction  string               `json:"direction,omitempty"`
 	GraphState *GetGraphStateResult `json:"graphstate,omitempty"`
+	GSUpdate   string               `json:"gsupdate,omitempty"`
 	SyncNode   bool                 `json:"syncnode,omitempty"`
 	TimeOffset int64                `json:"timeoffset"`
 	LastSend   string               `json:"lastsend,omitempty"`
@@ -50,6 +50,7 @@ type GetPeerInfoResult struct {
 	Version    string               `json:"version,omitempty"`
 	Network    string               `json:"network,omitempty"`
 	Circuit    bool                 `json:"circuit,omitempty"`
+	Bads       int                  `json:"bads,omitempty"`
 }
 
 // GetGraphStateResult data
@@ -76,6 +77,8 @@ type ConsensusDeploymentDesc struct {
 
 type NetworkStat struct {
 	TotalPeers     int            `json:"totalpeers"`
+	MaxConnected   uint           `json:"maxconnected"`
+	MaxInbound     int            `json:"maxinbound"`
 	TotalConnected int            `json:"totalconnected"`
 	TotalRelays    int            `json:"totalrelays"`
 	Infos          []*NetworkInfo `json:"infos"`
@@ -86,4 +89,7 @@ type NetworkInfo struct {
 	Peers      int    `json:"peers"`
 	Relays     int    `json:"relays"`
 	Connecteds int    `json:"connecteds"`
+	AverageGS  string `json:"averagegs,omitempty"`
+	MaxGS      string `json:"maxgs,omitempty"`
+	MinGS      string `json:"mings,omitempty"`
 }

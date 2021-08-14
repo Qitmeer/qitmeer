@@ -41,7 +41,7 @@ func (s *Sync) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.SyncDA
 	}
 
 	if !code.IsSuccess() {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "sync DAG request rsp")
 		return nil, errors.New(errMsg)
 	}
 	msg := &pb.SubDAG{}
@@ -89,7 +89,7 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 }
 
 func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
-	if !ps.isSyncPeer(pe) || !pe.IsActive() {
+	if !ps.isSyncPeer(pe) || !pe.IsConnected() {
 		return fmt.Errorf("no sync peer")
 	}
 
