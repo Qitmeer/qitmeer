@@ -245,7 +245,7 @@ func (s *Service) connectWithPeer(info peer.AddrInfo, force bool) error {
 		return nil
 	}
 	if !force {
-		if pe.IsBad() {
+		if pe.IsBad() && !s.sy.IsWhitePeer(info.ID) {
 			return nil
 		}
 	} else {

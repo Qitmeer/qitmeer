@@ -55,7 +55,7 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 		return
 	}
 	ps.sy.peers.Add(nil /* QNR */, remotePeer, conn.RemoteMultiaddr(), conn.Stat().Direction)
-	if remotePe.IsBad() {
+	if remotePe.IsBad() && !ps.sy.IsWhitePeer(remotePeer) {
 		log.Trace(fmt.Sprintf("%s reason bad peer, Ignoring connection request.", peerInfoStr))
 		ps.Disconnect(remotePe)
 		return
@@ -206,8 +206,7 @@ func (s *Sync) bidirectionalChannelCapacity(pe *peers.Peer, conn network.Conn) b
 			return true
 		}
 	}
-	_, ok := s.LANPeers[pe.GetID()]
-	if ok {
+	if s.IsWhitePeer(pe.GetID()) {
 		pe.SetBidChanCap(time.Time{})
 		return true
 	}
@@ -263,4 +262,9 @@ func (s *Sync) bidirectionalChannelCapacity(pe *peers.Peer, conn network.Conn) b
 
 	pe.SetBidChanCap(time.Now())
 	return true
+}
+
+func (s *Sync) IsWhitePeer(pid peer.ID) bool {
+	_, ok := s.LANPeers[pid]
+	return ok
 }

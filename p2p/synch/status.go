@@ -36,7 +36,7 @@ func (s *Sync) maintainPeerStatuses() {
 					return
 				}
 
-				if pe.IsBad() || !pe.CanConnectWithNetwork() {
+				if (pe.IsBad() && !s.IsWhitePeer(id)) || !pe.CanConnectWithNetwork() {
 					if err := s.sendGoodByeAndDisconnect(s.p2p.Context(), common.ErrBadPeer, id); err != nil {
 						log.Debug(fmt.Sprintf("Error when disconnecting with bad peer: %v", err))
 					}
