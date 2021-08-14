@@ -212,6 +212,13 @@ func (p *Peer) IsActive() bool {
 	return p.peerState.IsConnected() || p.peerState.IsConnecting()
 }
 
+func (p *Peer) IsConnected() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.peerState.IsConnected()
+}
+
 // SetConnectionState sets the connection state of the given remote peer.
 func (p *Peer) SetConnectionState(state PeerConnectionState) {
 	p.lock.Lock()

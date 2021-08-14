@@ -182,7 +182,7 @@ func (s *Sync) getMerkleBlockDataHandler(ctx context.Context, msg interface{}, s
 }
 
 func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) error {
-	if !ps.isSyncPeer(pe) || !pe.IsActive() {
+	if !ps.isSyncPeer(pe) || !pe.IsConnected() {
 		err := fmt.Errorf("no sync peer")
 		log.Trace(err.Error())
 		return err
@@ -264,7 +264,7 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 }
 
 func (ps *PeerSync) processGetMerkleBlockDatas(pe *peers.Peer, blocks []*hash.Hash) error {
-	if !ps.isSyncPeer(pe) || !pe.IsActive() {
+	if !ps.isSyncPeer(pe) || !pe.IsConnected() {
 		err := fmt.Errorf("no sync peer")
 		log.Trace(err.Error())
 		return err

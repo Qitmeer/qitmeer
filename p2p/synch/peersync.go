@@ -89,7 +89,7 @@ out:
 			case *GetBlocksMsg:
 				err := ps.processGetBlocks(msg.pe, msg.blocks)
 				if err != nil {
-					log.Warn(err.Error())
+					log.Debug(err.Error())
 				}
 			case *GetBlockDatasMsg:
 				err := ps.processGetBlockDatas(msg.pe, msg.blocks)
@@ -112,7 +112,7 @@ out:
 			case *syncDAGBlocksMsg:
 				err := ps.processSyncDAGBlocks(msg.pe)
 				if err != nil {
-					log.Warn(err.Error())
+					log.Debug(err.Error())
 				}
 			case *PeerUpdateMsg:
 				ps.OnPeerUpdate(msg.pe, msg.orphan)
@@ -229,7 +229,7 @@ func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer, orphan bool) {
 	sp := ps.SyncPeer()
 	if sp != nil {
 		spgs := sp.GraphState()
-		if !sp.IsActive() || spgs == nil {
+		if !sp.IsConnected() || spgs == nil {
 			ps.updateSyncPeer(true)
 			return
 		}

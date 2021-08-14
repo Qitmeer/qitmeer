@@ -97,7 +97,7 @@ func (s *Sync) LookupNode(pe *peers.Peer, peNode *qnode.Node) {
 }
 
 func (ps *PeerSync) processQNR(msg *SyncQNRMsg) error {
-	if !msg.pe.IsActive() {
+	if !msg.pe.IsConnected() {
 		return fmt.Errorf("peer is not active")
 	}
 	qnr, err := ps.sy.sendQNRRequest(ps.sy.p2p.Context(), msg.pe, &pb.SyncQNR{Qnr: []byte(msg.qnr)})

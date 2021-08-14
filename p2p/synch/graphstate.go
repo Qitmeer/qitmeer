@@ -75,7 +75,7 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 }
 
 func (ps *PeerSync) processUpdateGraphState(pe *peers.Peer) error {
-	if !pe.IsActive() {
+	if !pe.IsConnected() {
 		err := fmt.Errorf("peer is not active")
 		log.Trace(err.Error())
 		return err
