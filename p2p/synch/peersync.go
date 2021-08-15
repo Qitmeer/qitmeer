@@ -108,7 +108,11 @@ out:
 				ps.OnMemPool(msg.pe, msg.data)
 
 			case *UpdateGraphStateMsg:
-				ps.processUpdateGraphState(msg.pe)
+				log.Trace(fmt.Sprintf("UpdateGraphStateMsg recevied from %v, state=%v ", msg.pe.GetID(), msg.pe.GraphState()));
+				err :=ps.processUpdateGraphState(msg.pe)
+				if err!= nil {
+					log.Trace(err.Error());
+				}
 			case *syncDAGBlocksMsg:
 				err := ps.processSyncDAGBlocks(msg.pe)
 				if err != nil {
@@ -226,6 +230,7 @@ func (ps *PeerSync) PeerUpdate(pe *peers.Peer, orphan bool) {
 }
 
 func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer, orphan bool) {
+	log.Trace(fmt.Sprintf("OnPeerUpdate peer=%v, orphan=%v", pe.GetID(), orphan))
 	sp := ps.SyncPeer()
 	if sp != nil {
 		spgs := sp.GraphState()
@@ -382,17 +387,23 @@ func (ps *PeerSync) IsCompleteForSyncPeer() bool {
 
 func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 	if !ps.HasSyncPeer() {
+		log.Trace(fmt.Sprintf("IntellectSyncBlocks has not sync peer, return directly"))
 		return
 	}
 
 	if ps.Chain().GetOrphansTotal() >= blockchain.MaxOrphanBlocks || refresh {
-		ps.Chain().RefreshOrphans()
+		err := ps.Chain().RefreshOrphans()
+		if err != nil {
+			log.Trace(fmt.Sprintf("IntellectSyncBlocks failed to refresh orphans, err=%v", err.Error()))
+		}
 	}
 	allOrphan := ps.Chain().GetRecentOrphansParents()
 
 	if len(allOrphan) > 0 {
+		log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.GetBlock, peer=%v,allOrphan=%v ", ps.SyncPeer().GetID(), allOrphan))
 		go ps.GetBlocks(ps.SyncPeer(), allOrphan)
 	} else {
+		log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.syncDAGBlocks, peer=%v ", ps.SyncPeer().GetID()))
 		go ps.syncDAGBlocks(ps.SyncPeer())
 	}
 }
