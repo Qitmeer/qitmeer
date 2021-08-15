@@ -122,6 +122,7 @@ func (s *Service) Start() error {
 	}
 	if len(s.cfg.StaticPeers) > 0 {
 		bootstrapAddrs = append(bootstrapAddrs, s.cfg.StaticPeers...)
+		peersToWatch = append(peersToWatch, s.cfg.StaticPeers...)
 	}
 
 	if len(bootstrapAddrs) > 0 {
