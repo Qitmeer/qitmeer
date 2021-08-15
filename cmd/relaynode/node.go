@@ -23,6 +23,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-circuit"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/control"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -172,6 +173,7 @@ func (node *Node) startP2P() error {
 	opts := []libp2p.Option{
 		libp2p.ListenAddrs(srcMAddr, eMAddr),
 		libp2p.Identity(p2p.ConvertToInterfacePrivkey(node.privateKey)),
+		libp2p.ConnectionGater(node),
 	}
 
 	if node.cfg.EnableRelay {
@@ -417,6 +419,53 @@ func (node *Node) getChainState() *pb.ChainState {
 		UserAgent:       []byte(p2p.BuildUserAgent("Qitmeer-relay")),
 		DisableRelayTx:  true,
 	}
+}
+
+func (node *Node) isPeerAtLimit() bool {
+	numOfConns := len(node.host.Network().Peers())
+	maxPeers := int(node.cfg.MaxPeers)
+	activePeers := len(node.peerStatus.Active())
+
+	return activePeers >= maxPeers || numOfConns >= maxPeers
+}
+
+// InterceptPeerDial tests whether we're permitted to Dial the specified peer.
+func (node *Node) InterceptPeerDial(p peer.ID) (allow bool) {
+	if node.isPeerAtLimit() {
+		log.Trace(fmt.Sprintf("peer:%s reason:at peer max limit", p.String()))
+		return false
+	}
+	return true
+}
+
+// InterceptAddrDial tests whether we're permitted to dial the specified
+// multiaddr for the given peer.
+func (node *Node) InterceptAddrDial(_ peer.ID, m multiaddr.Multiaddr) (allow bool) {
+	if node.isPeerAtLimit() {
+		log.Trace(fmt.Sprintf("peer:%s reason:at peer max limit", m.String()))
+		return false
+	}
+	return true
+}
+
+// InterceptAccept tests whether an incipient inbound connection is allowed.
+func (node *Node) InterceptAccept(n network.ConnMultiaddrs) (allow bool) {
+	if node.isPeerAtLimit() {
+		log.Trace(fmt.Sprintf("peer:%s reason:at peer max limit", n.RemoteMultiaddr().String()))
+		return false
+	}
+	return true
+}
+
+// InterceptSecured tests whether a given connection, now authenticated,
+// is allowed.
+func (node *Node) InterceptSecured(_ network.Direction, _ peer.ID, n network.ConnMultiaddrs) (allow bool) {
+	return true
+}
+
+// InterceptUpgraded tests whether a fully capable connection is allowed.
+func (node *Node) InterceptUpgraded(n network.Conn) (allow bool, reason control.DisconnectReason) {
+	return true, 0
 }
 
 func closeSteam(stream libp2pcore.Stream) {

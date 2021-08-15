@@ -20,6 +20,7 @@ const (
 	defaultRPCCertFile   = "rpc.cert"
 	defaultMaxRPCClients = 10
 	defaultRPCListener   = "127.0.0.1:2002"
+	defaultMaxPeers      = 1000
 )
 
 var (
@@ -186,6 +187,14 @@ var (
 		Destination: &conf.EnableRelay,
 	}
 
+	MaxPeers = &cli.IntFlag{
+		Name:        "maxpeers",
+		Aliases:     []string{"mp"},
+		Usage:       "Max number of inbound and outbound peers",
+		Value:       defaultMaxPeers,
+		Destination: &conf.MaxPeers,
+	}
+
 	AppFlags = []cli.Flag{
 		HomeDir,
 		DataDir,
@@ -207,6 +216,7 @@ var (
 		RPCMaxClients,
 		DisableTLS,
 		EnableRelay,
+		MaxPeers,
 	}
 )
 
@@ -232,6 +242,7 @@ type Config struct {
 	RPCMaxClients int
 	DisableTLS    bool
 	EnableRelay   bool
+	MaxPeers      int
 }
 
 func (c *Config) load() error {
