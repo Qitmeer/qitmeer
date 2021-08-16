@@ -5,6 +5,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
+	"time"
 )
 
 var (
@@ -24,3 +25,14 @@ func ErrMessage(err error) *common.Error {
 func ErrDAGConsensus(err error) *common.Error {
 	return common.NewError(common.ErrDAGConsensus, err)
 }
+
+const (
+	UpdateGraphStateTime = time.Second * 2
+	DefaultRateTaskTime  = time.Second * 2
+)
+
+const (
+	UpdateGraphState = "UpdateGraphState"
+	PeerUpdate       = "PeerUpdate"
+	PeerUpdateOrphan = "PeerUpdateOrphan"
+)

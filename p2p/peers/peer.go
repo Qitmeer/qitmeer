@@ -47,7 +47,7 @@ type Peer struct {
 	HSlock         *sync.RWMutex
 	graphStateTime time.Time
 
-	rateTimer *time.Timer
+	rateTasks map[string]*time.Timer
 }
 
 func (p *Peer) GetID() peer.ID {
@@ -599,25 +599,27 @@ func (p *Peer) isCircuit() bool {
 	return !p.bidChanCap.IsZero()
 }
 
-func (p *Peer) RunRate(delay time.Duration, f func()) {
+func (p *Peer) RunRate(task string, delay time.Duration, f func()) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	if p.rateTimer == nil {
-		p.rateTimer = time.NewTimer(delay)
+	rt, ok := p.rateTasks[task]
+	if !ok {
+		rt = time.NewTimer(delay)
+		p.rateTasks[task] = rt
 		go func() {
 			select {
-			case <-p.rateTimer.C:
+			case <-rt.C:
 				f()
 			}
 			p.lock.Lock()
-			p.rateTimer = nil
+			delete(p.rateTasks, task)
 			p.lock.Unlock()
 		}()
 
 		return
 	}
-	p.rateTimer.Reset(delay)
+	rt.Reset(delay)
 }
 
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
@@ -630,5 +632,6 @@ func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
 		HSlock:    &sync.RWMutex{},
 		syncPoint: point,
 		filter:    bloom.LoadFilter(nil),
+		rateTasks: map[string]*time.Timer{},
 	}
 }

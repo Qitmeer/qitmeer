@@ -111,6 +111,10 @@ func (b *Block) GetID() uint {
 	return b.id
 }
 
+func (b *Block) SetID(id uint) {
+	b.id = id
+}
+
 // Return the hash of block. It will be a pointer.
 func (b *Block) GetHash() *hash.Hash {
 	return &b.hash
