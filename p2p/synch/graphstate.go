@@ -13,6 +13,11 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"sync/atomic"
+	"time"
+)
+
+const (
+	UpdateGraphStateTime = time.Second * 2
 )
 
 func (s *Sync) sendGraphStateRequest(ctx context.Context, pe *peers.Peer, gs *pb.GraphState) (*pb.GraphState, error) {
@@ -95,6 +100,7 @@ func (ps *PeerSync) UpdateGraphState(pe *peers.Peer) {
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
-
-	ps.msgChan <- &UpdateGraphStateMsg{pe: pe}
+	pe.RunRate(UpdateGraphStateTime, func() {
+		ps.msgChan <- &UpdateGraphStateMsg{pe: pe}
+	})
 }
