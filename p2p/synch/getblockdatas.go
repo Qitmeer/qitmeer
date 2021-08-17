@@ -258,7 +258,7 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 		err = fmt.Errorf("no get blocks")
 	}
 	if add < len(bd.Locator) {
-		go ps.PeerUpdate(pe, hasOrphan)
+		go ps.PeerUpdate(pe, hasOrphan, false)
 	}
 	return err
 }

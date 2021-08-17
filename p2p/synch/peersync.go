@@ -94,7 +94,7 @@ out:
 			case *GetBlockDatasMsg:
 				err := ps.processGetBlockDatas(msg.pe, msg.blocks)
 				if err != nil {
-					go ps.PeerUpdate(msg.pe, false)
+					go ps.PeerUpdate(msg.pe, false, false)
 				}
 			case *GetDatasMsg:
 				_ = ps.OnGetData(msg.pe, msg.data.Invs)
@@ -216,13 +216,26 @@ func (ps *PeerSync) isSyncPeer(pe *peers.Peer) bool {
 	return false
 }
 
-func (ps *PeerSync) PeerUpdate(pe *peers.Peer, orphan bool) {
+func (ps *PeerSync) PeerUpdate(pe *peers.Peer, orphan bool, immediately bool) {
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
 
-	ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
+	if immediately {
+		ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
+		return
+	}
+	if orphan {
+		pe.RunRate(PeerUpdateOrphan, DefaultRateTaskTime, func() {
+			ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
+		})
+	} else {
+		pe.RunRate(PeerUpdate, DefaultRateTaskTime, func() {
+			ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
+		})
+	}
+
 }
 
 func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer, orphan bool) {
