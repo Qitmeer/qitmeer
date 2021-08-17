@@ -53,6 +53,15 @@ func (ds *DAGSync) CalcSyncBlocks(gs *GraphState, locator []*hash.Hash, mode Syn
 
 	if point == nil && len(locator) > 0 {
 		point = ds.bd.getBlock(locator[0])
+		for !ds.bd.isOnMainChain(point.GetID()) {
+			if point.GetMainParent() == MaxId {
+				break
+			}
+			point = ds.bd.getBlockById(point.GetMainParent())
+			if point == nil {
+				break
+			}
+		}
 	}
 
 	if point == nil {
