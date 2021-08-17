@@ -18,6 +18,7 @@ func (s *Sync) sendInventoryRequest(ctx context.Context, pe *peers.Peer, inv *pb
 
 	stream, err := s.Send(ctx, inv, RPCInventory, pe.GetID())
 	if err != nil {
+		log.Trace(fmt.Sprintf("Failed to send inventory request to peer=%v, err=%v", pe.GetID(), err.Error()));
 		return err
 	}
 	defer func() {
