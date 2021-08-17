@@ -20,9 +20,9 @@ import (
 	"time"
 )
 
-const (
+var (
 	// maxBadResponses is the maximum number of bad responses from a peer before we stop talking to it.
-	maxBadResponses = 5
+	MaxBadResponses = 50
 )
 
 // Peer represents a connected p2p network remote node.
@@ -41,6 +41,13 @@ type Peer struct {
 	bytesRecv  uint64
 	conTime    time.Time
 	timeOffset int64
+
+	bidChanCap time.Time
+
+	HSlock         *sync.RWMutex
+	graphStateTime time.Time
+
+	rateTasks map[string]*time.Timer
 }
 
 func (p *Peer) GetID() peer.ID {
@@ -48,6 +55,15 @@ func (p *Peer) GetID() peer.ID {
 	defer p.lock.RUnlock()
 
 	return p.pid
+}
+
+// IDWithAddress returns the printable id and address of the remote peer.
+// It's useful on printing out the trace log messages.
+func (p *Peer) IDWithAddress() string {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return fmt.Sprintf("%s %s", p.pid, p.address)
 }
 
 // BadResponses obtains the number of bad responses we have received from the given remote peer.
@@ -68,18 +84,20 @@ func (p *Peer) IsBad() bool {
 }
 
 func (p *Peer) isBad() bool {
-	return p.badResponses >= maxBadResponses
+	return p.badResponses >= MaxBadResponses
 }
 
 // IncrementBadResponses increments the number of bad responses we have received from the given remote peer.
-func (p *Peer) IncrementBadResponses() {
+func (p *Peer) IncrementBadResponses(reason string) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	p.badResponses++
 
 	if p.isBad() {
-		log.Warn(fmt.Sprintf("I am bad peer:%s", p.pid.String()))
+		log.Info(fmt.Sprintf("I am bad peer:%s reason:%s", p.pid.String(), reason))
+	} else {
+		log.Debug(fmt.Sprintf("Bad responses:%s reason:%s", p.pid.String(), reason))
 	}
 }
 
@@ -196,6 +214,13 @@ func (p *Peer) IsActive() bool {
 	return p.peerState.IsConnected() || p.peerState.IsConnecting()
 }
 
+func (p *Peer) IsConnected() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.peerState.IsConnected()
+}
+
 // SetConnectionState sets the connection state of the given remote peer.
 func (p *Peer) SetConnectionState(state PeerConnectionState) {
 	p.lock.Lock()
@@ -216,7 +241,7 @@ func (p *Peer) SetChainState(chainState *pb.ChainState) {
 	p.chainState = chainState
 	p.chainStateLastUpdated = time.Now()
 	p.timeOffset = int64(p.chainState.Timestamp) - roughtime.Now().Unix()
-
+	p.graphStateTime = time.Now()
 	log.Trace(fmt.Sprintf("SetChainState(%s) : MainHeight=%d", p.pid.ShortString(), chainState.GraphState.MainHeight))
 }
 
@@ -287,8 +312,9 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 		LastRecv:   p.lastRecv,
 		BytesSent:  p.bytesSent,
 		BytesRecv:  p.bytesRecv,
+		IsCircuit:  p.isCircuit(),
+		Bads:       p.badResponses,
 	}
-
 	n := p.node()
 	if n != nil {
 		ss.NodeID = n.ID().String()
@@ -299,6 +325,7 @@ func (p *Peer) StatsSnapshot() (*StatsSnap, error) {
 	}
 	if p.isConsensus() {
 		ss.GraphState = p.graphState()
+		ss.GraphStateDur = time.Since(p.graphStateTime)
 	}
 	return ss, nil
 }
@@ -347,7 +374,7 @@ func (p *Peer) Services() protocol.ServiceFlag {
 
 func (p *Peer) services() protocol.ServiceFlag {
 	if p.chainState == nil {
-		return protocol.Full
+		return protocol.Unknown
 	}
 	return protocol.ServiceFlag(p.chainState.Services)
 }
@@ -396,6 +423,8 @@ func (p *Peer) UpdateGraphState(gs *pb.GraphState) {
 	}
 	p.chainState.GraphState = gs
 	log.Trace(fmt.Sprintf("UpdateGraphState(%s) : MainHeight=%d", p.pid.ShortString(), gs.MainHeight))
+
+	p.graphStateTime = time.Now()
 	/*	per.chainState.GraphState.Total=uint32(gs.GetTotal())
 		per.chainState.GraphState.Layer=uint32(gs.GetLayer())
 		per.chainState.GraphState.MainOrder=uint32(gs.GetMainOrder())
@@ -551,6 +580,48 @@ func (p *Peer) CanConnectWithNetwork() bool {
 	return params.ActiveNetParams.Name == network
 }
 
+func (p *Peer) GetBidChanCap() time.Time {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.bidChanCap
+}
+
+func (p *Peer) SetBidChanCap(life time.Time) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.bidChanCap = life
+}
+
+func (p *Peer) isCircuit() bool {
+	if p.direction == network.DirOutbound {
+		return true
+	}
+	return !p.bidChanCap.IsZero()
+}
+
+func (p *Peer) RunRate(task string, delay time.Duration, f func()) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	rt, ok := p.rateTasks[task]
+	if !ok {
+		rt = time.NewTimer(delay)
+		p.rateTasks[task] = rt
+		go func() {
+			select {
+			case <-rt.C:
+				f()
+			}
+			p.lock.Lock()
+			delete(p.rateTasks, task)
+			p.lock.Unlock()
+		}()
+
+		return
+	}
+	rt.Reset(delay)
+}
+
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
 	return &Peer{
 		peerStatus: &peerStatus{
@@ -558,7 +629,9 @@ func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
 		},
 		pid:       pid,
 		lock:      &sync.RWMutex{},
+		HSlock:    &sync.RWMutex{},
 		syncPoint: point,
 		filter:    bloom.LoadFilter(nil),
+		rateTasks: map[string]*time.Timer{},
 	}
 }

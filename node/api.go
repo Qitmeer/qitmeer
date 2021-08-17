@@ -7,6 +7,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/common/math"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
@@ -64,7 +65,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		TotalSubsidy:    best.TotalSubsidy,
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
 		Connections:     int32(len(api.node.node.peerServer.Peers().Connected())),
-		PowDiff: json.PowDiff{
+		PowDiff: &json.PowDiff{
 			CurrentDiff: getDifficultyRatio(powNodes, api.node.node.Params, pow.MEERXKECCAKV1),
 		},
 		Network:          params.ActiveNetParams.Name,
@@ -72,7 +73,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
 		Modules:          []string{cmds.DefaultServiceNameSpace, cmds.MinerNameSpace, cmds.TestNameSpace, cmds.LogNameSpace},
 	}
-	ret.GraphState = *getGraphStateResult(best.GraphState)
+	ret.GraphState = GetGraphStateResult(best.GraphState)
 	hostdns := api.node.node.peerServer.HostDNS()
 	if hostdns != nil {
 		ret.DNS = hostdns.String()
@@ -199,6 +200,8 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (int
 			Address:   p.Address,
 			BytesSent: p.BytesSent,
 			BytesRecv: p.BytesRecv,
+			Circuit:   p.IsCircuit,
+			Bads:      p.Bads,
 		}
 		info.Protocol = p.Protocol
 		info.Services = p.Services.String()
@@ -222,7 +225,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (int
 			}
 			info.Direction = p.Direction.String()
 			if p.GraphState != nil {
-				info.GraphState = getGraphStateResult(p.GraphState)
+				info.GraphState = GetGraphStateResult(p.GraphState)
 			}
 			if ps.PeerSync().SyncPeer() != nil {
 				info.SyncNode = p.PeerID == ps.PeerSync().SyncPeer().GetID().String()
@@ -230,6 +233,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (int
 				info.SyncNode = false
 			}
 			info.ConnTime = p.ConnTime.Truncate(time.Second).String()
+			info.GSUpdate = p.GraphStateDur.Truncate(time.Second).String()
 		}
 		if !p.LastSend.IsZero() {
 			info.LastSend = p.LastSend.String()
@@ -255,7 +259,7 @@ func (api *PublicBlockChainAPI) GetRpcInfo() (interface{}, error) {
 	return jrs, nil
 }
 
-func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
+func GetGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 	if gs != nil {
 		mainTip := gs.GetMainChainTip()
 		tips := []string{mainTip.String() + " main"}
@@ -277,6 +281,77 @@ func getGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
 
 func (api *PublicBlockChainAPI) GetTimeInfo() (interface{}, error) {
 	return fmt.Sprintf("Now:%s offset:%s", roughtime.Now(), roughtime.Offset()), nil
+}
+
+func (api *PublicBlockChainAPI) GetNetworkInfo() (interface{}, error) {
+	ps := api.node.node.peerServer
+	peers := ps.Peers().StatsSnapshots()
+	nstat := &json.NetworkStat{MaxConnected: ps.Config().MaxPeers,
+		MaxInbound: ps.Config().MaxInbound, Infos: []*json.NetworkInfo{}}
+	infos := map[string]*json.NetworkInfo{}
+	gsups := map[string][]time.Duration{}
+
+	for _, p := range peers {
+		nstat.TotalPeers++
+
+		if p.Services&protocol.Relay > 0 {
+			nstat.TotalRelays++
+		}
+		//
+		if len(p.Network) <= 0 {
+			continue
+		}
+
+		info, ok := infos[p.Network]
+		if !ok {
+			info = &json.NetworkInfo{Name: p.Network}
+			infos[p.Network] = info
+			nstat.Infos = append(nstat.Infos, info)
+
+			gsups[p.Network] = []time.Duration{0, 0, math.MaxInt64}
+		}
+		info.Peers++
+		if p.State.IsConnected() {
+			info.Connecteds++
+			nstat.TotalConnected++
+
+			gsups[p.Network][0] = gsups[p.Network][0] + p.GraphStateDur
+			if p.GraphStateDur > gsups[p.Network][1] {
+				gsups[p.Network][1] = p.GraphStateDur
+			}
+			if p.GraphStateDur < gsups[p.Network][2] {
+				gsups[p.Network][2] = p.GraphStateDur
+			}
+		}
+		if p.Services&protocol.Relay > 0 {
+			info.Relays++
+		}
+	}
+	for k, gu := range gsups {
+		info, ok := infos[k]
+		if !ok {
+			continue
+		}
+		if info.Connecteds > 0 {
+			avegs := time.Duration(0)
+			if info.Connecteds > 2 {
+				avegs = gu[0] - gu[1] - gu[2]
+				if avegs < 0 {
+					avegs = 0
+				}
+				cons := info.Connecteds - 2
+				avegs = time.Duration(int64(avegs) / int64(cons))
+
+			} else {
+				avegs = time.Duration(int64(gu[0]) / int64(info.Connecteds))
+			}
+
+			info.AverageGS = avegs.Truncate(time.Second).String()
+			info.MaxGS = gu[1].Truncate(time.Second).String()
+			info.MinGS = gu[2].Truncate(time.Second).String()
+		}
+	}
+	return nstat, nil
 }
 
 type PrivateBlockChainAPI struct {

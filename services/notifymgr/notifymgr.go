@@ -1,9 +1,12 @@
 package notifymgr
 
 import (
+	"fmt"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // NotifyMgr manage message announce & relay & notification between mempool, websocket, gbt long pull
@@ -17,9 +20,17 @@ type NotifyMgr struct {
 // both websocket and getblocktemplate long poll clients of the passed
 // transactions.  This function should be called whenever new transactions
 // are added to the mempool.
-func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.TxDesc) {
+func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.TxDesc, filters []peer.ID) {
+	if len(newTxs) <= 0 {
+		return
+	}
+	for _, tx := range newTxs {
+		log.Trace(fmt.Sprintf("Announce new transaction :hash=%s height=%d add=%s", tx.Tx.Hash().String(), tx.Height, tx.Added.String()))
+	}
 	// reply to p2p
-	ntmgr.RelayInventory(newTxs)
+	for _, tx := range newTxs {
+		ntmgr.RelayInventory(tx, filters)
+	}
 
 	if ntmgr.RpcServer != nil {
 		ntmgr.RpcServer.NotifyNewTransactions(newTxs)
@@ -28,8 +39,8 @@ func (ntmgr *NotifyMgr) AnnounceNewTransactions(newTxs []*types.TxDesc) {
 
 // RelayInventory relays the passed inventory vector to all connected peers
 // that are not already known to have it.
-func (ntmgr *NotifyMgr) RelayInventory(data interface{}) {
-	ntmgr.Server.RelayInventory(data)
+func (ntmgr *NotifyMgr) RelayInventory(data interface{}, filters []peer.ID) {
+	ntmgr.Server.RelayInventory(data, filters)
 }
 
 func (ntmgr *NotifyMgr) BroadcastMessage(data interface{}) {

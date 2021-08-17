@@ -35,7 +35,7 @@ func (s *Sync) sendGraphStateRequest(ctx context.Context, pe *peers.Peer, gs *pb
 	}
 
 	if !code.IsSuccess() {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "graph state request rsp")
 		return nil, errors.New(errMsg)
 	}
 
@@ -65,7 +65,7 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 		return ErrMessage(err)
 	}
 	pe.UpdateGraphState(m)
-	go s.peerSync.PeerUpdate(pe, false)
+	go s.peerSync.PeerUpdate(pe, false, false)
 
 	e := s.EncodeResponseMsg(stream, s.getGraphState())
 	if e != nil {
@@ -75,7 +75,7 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 }
 
 func (ps *PeerSync) processUpdateGraphState(pe *peers.Peer) error {
-	if !pe.IsActive() {
+	if !pe.IsConnected() {
 		err := fmt.Errorf("peer is not active")
 		log.Trace(err.Error())
 		return err
@@ -86,7 +86,7 @@ func (ps *PeerSync) processUpdateGraphState(pe *peers.Peer) error {
 		return err
 	}
 	pe.UpdateGraphState(gs)
-	go ps.PeerUpdate(pe, false)
+	go ps.PeerUpdate(pe, false, false)
 	return nil
 }
 
@@ -95,6 +95,7 @@ func (ps *PeerSync) UpdateGraphState(pe *peers.Peer) {
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
-
-	ps.msgChan <- &UpdateGraphStateMsg{pe: pe}
+	pe.RunRate(UpdateGraphState, UpdateGraphStateTime, func() {
+		ps.msgChan <- &UpdateGraphStateMsg{pe: pe}
+	})
 }

@@ -14,6 +14,7 @@ import (
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"strings"
 	"sync/atomic"
 )
 
@@ -41,7 +42,7 @@ func (s *Sync) sendSyncDAGRequest(ctx context.Context, id peer.ID, sd *pb.SyncDA
 	}
 
 	if !code.IsSuccess() {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "sync DAG request rsp")
 		return nil, errors.New(errMsg)
 	}
 	msg := &pb.SubDAG{}
@@ -88,24 +89,49 @@ func (s *Sync) syncDAGHandler(ctx context.Context, msg interface{}, stream libp2
 	return nil
 }
 
+func debugSyncDAG(m *pb.SyncDAG) string {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("SyncDAG: graphstate=(%v,%v,%v), ",
+		m.GraphState.MainOrder, m.GraphState.MainHeight, m.GraphState.Layer,
+	))
+	sb.WriteString("locator=[")
+	size := len(m.MainLocator)
+	for i, h := range m.MainLocator {
+		sb.WriteString(changePBHashToHash(h).String())
+		if i + 1 < size {
+			sb.WriteString(",")
+		}
+	}
+	sb.WriteString("]")
+	sb.WriteString(fmt.Sprintf(", size=%d ",size))
+	return sb.String();
+}
+
 func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
-	if !ps.isSyncPeer(pe) || !pe.IsActive() {
+	log.Trace(fmt.Sprintf("processSyncDAGBlocks peer=%v ", pe.GetID()));
+	if !ps.isSyncPeer(pe) || !pe.IsConnected() {
 		return fmt.Errorf("no sync peer")
 	}
 
 	point := pe.SyncPoint()
 	mainLocator := ps.dagSync.GetMainLocator(point)
 	sd := &pb.SyncDAG{MainLocator: changeHashsToPBHashs(mainLocator), GraphState: ps.sy.getGraphState()}
+	log.Trace(fmt.Sprintf("processSyncDAGBlocks sendSyncDAG point=%v, sd=%v",point.String(), debugSyncDAG(sd)));
 	subd, err := ps.sy.sendSyncDAGRequest(ps.sy.p2p.Context(), pe.GetID(), sd)
 	if err != nil {
+		log.Trace(fmt.Sprintf("processSyncDAGBlocks err=%v ", err.Error()));
 		return err
 	}
+	log.Trace(fmt.Sprintf("processSyncDAGBlocks result graphstate=(%v,%v,%v), blocks=%v ",
+		subd.GraphState.MainOrder, subd.GraphState.MainHeight, subd.GraphState.Layer,
+		len(subd.Blocks)));
 	pe.UpdateSyncPoint(changePBHashToHash(subd.SyncPoint))
 	pe.UpdateGraphState(subd.GraphState)
 
 	if len(subd.Blocks) <= 0 {
 		return nil
 	}
+	log.Trace(fmt.Sprintf("processSyncDAGBlocks do GetBlockDatas blocks=%v ", len(subd.Blocks)));
 	go ps.GetBlockDatas(pe, changePBHashsToHashs(subd.Blocks))
 
 	return nil

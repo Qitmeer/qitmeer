@@ -2,6 +2,7 @@ package peers
 
 import (
 	"errors"
+	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -171,7 +172,11 @@ func (p *Status) Fetch(pid peer.ID) *Peer {
 	defer p.lock.Unlock()
 
 	if _, ok := p.peers[pid]; !ok {
-		p.peers[pid] = NewPeer(pid, p.p2p.GetGenesisHash())
+		var genHash *hash.Hash
+		if p.p2p != nil {
+			genHash = p.p2p.GetGenesisHash()
+		}
+		p.peers[pid] = NewPeer(pid, genHash)
 	}
 	return p.peers[pid]
 }
@@ -193,7 +198,7 @@ func (p *Status) Add(record *qnr.Record, pid peer.ID, address ma.Multiaddr, dire
 }
 
 // IncrementBadResponses increments the number of bad responses we have received from the given remote peer.
-func (p *Status) IncrementBadResponses(pid peer.ID) {
+func (p *Status) IncrementBadResponses(pid peer.ID, reason string) {
 	if !p.p2p.Config().Banning {
 		return
 	}
@@ -201,7 +206,7 @@ func (p *Status) IncrementBadResponses(pid peer.ID) {
 	if pe == nil {
 		return
 	}
-	pe.IncrementBadResponses()
+	pe.IncrementBadResponses(reason)
 }
 
 // SubscribedToSubnet retrieves the peers subscribed to the given

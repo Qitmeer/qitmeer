@@ -97,6 +97,31 @@ func fastIBD() error {
 					return node.Import()
 				},
 			},
+			&cli.Command{
+				Name:        "upgrade",
+				Aliases:     []string{"u"},
+				Category:    "IBD",
+				Usage:       "Upgrade all blocks from database for Qitmeer",
+				Description: "Upgrade all blocks from database for Qitmeer",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "path",
+						Aliases:     []string{"p"},
+						Usage:       "Path to input data",
+						Value:       defaultHomeDir,
+						Destination: &cfg.InputPath,
+					},
+				},
+				Before: func(c *cli.Context) error {
+					return node.init(cfg)
+				},
+				After: func(c *cli.Context) error {
+					return node.exit()
+				},
+				Action: func(c *cli.Context) error {
+					return node.Upgrade()
+				},
+			},
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{

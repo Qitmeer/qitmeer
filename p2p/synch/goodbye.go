@@ -38,7 +38,7 @@ func (s *Sync) sendGoodByeAndDisconnect(ctx context.Context, code common.ErrorCo
 
 func sendGoodByeAndDisconnect(ctx context.Context, code common.ErrorCode, id peer.ID, rpc common.P2PRPC) error {
 	if err := sendGoodByeMessage(ctx, code, id, rpc); err != nil {
-		log.Debug(fmt.Sprintf("Could not send goodbye message to peer, error:%v , peer:%s", err, id))
+		log.Debug(fmt.Sprintf("Could not send goodbye message: %v ",err))
 	}
 	if err := rpc.Disconnect(id); err != nil {
 		return err
@@ -50,9 +50,10 @@ func sendGoodByeMessage(ctx context.Context, code common.ErrorCode, id peer.ID, 
 	ctx, cancel := context.WithTimeout(ctx, ReqTimeout)
 	defer cancel()
 
-	stream, err := Send(ctx, rpc, &code, RPCGoodByeTopic, id)
+	msg := uint64(code)
+	stream, err := Send(ctx, rpc, &msg, RPCGoodByeTopic, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed send code %v to peer %v : %v ", code, id, err)
 	}
 	defer func() {
 		if err := stream.Reset(); err != nil {

@@ -12,6 +12,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -30,8 +31,6 @@ type PeerSync struct {
 	syncPeer *peers.Peer
 	// dag sync
 	dagSync *blockdag.DAGSync
-
-	hslock sync.RWMutex
 
 	started     int32
 	shutdown    int32
@@ -90,12 +89,12 @@ out:
 			case *GetBlocksMsg:
 				err := ps.processGetBlocks(msg.pe, msg.blocks)
 				if err != nil {
-					log.Warn(err.Error())
+					log.Debug(err.Error())
 				}
 			case *GetBlockDatasMsg:
 				err := ps.processGetBlockDatas(msg.pe, msg.blocks)
 				if err != nil {
-					go ps.PeerUpdate(msg.pe, false)
+					go ps.PeerUpdate(msg.pe, false, false)
 				}
 			case *GetDatasMsg:
 				_ = ps.OnGetData(msg.pe, msg.data.Invs)
@@ -109,11 +108,15 @@ out:
 				ps.OnMemPool(msg.pe, msg.data)
 
 			case *UpdateGraphStateMsg:
-				ps.processUpdateGraphState(msg.pe)
+				log.Trace(fmt.Sprintf("UpdateGraphStateMsg recevied from %v, state=%v ", msg.pe.GetID(), msg.pe.GraphState()));
+				err :=ps.processUpdateGraphState(msg.pe)
+				if err!= nil {
+					log.Trace(err.Error());
+				}
 			case *syncDAGBlocksMsg:
 				err := ps.processSyncDAGBlocks(msg.pe)
 				if err != nil {
-					log.Warn(err.Error())
+					log.Debug(err.Error())
 				}
 			case *PeerUpdateMsg:
 				ps.OnPeerUpdate(msg.pe, msg.orphan)
@@ -217,20 +220,34 @@ func (ps *PeerSync) isSyncPeer(pe *peers.Peer) bool {
 	return false
 }
 
-func (ps *PeerSync) PeerUpdate(pe *peers.Peer, orphan bool) {
+func (ps *PeerSync) PeerUpdate(pe *peers.Peer, orphan bool, immediately bool) {
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
 
-	ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
+	if immediately {
+		ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
+		return
+	}
+	if orphan {
+		pe.RunRate(PeerUpdateOrphan, DefaultRateTaskTime, func() {
+			ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
+		})
+	} else {
+		pe.RunRate(PeerUpdate, DefaultRateTaskTime, func() {
+			ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
+		})
+	}
+
 }
 
 func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer, orphan bool) {
+	log.Trace(fmt.Sprintf("OnPeerUpdate peer=%v, orphan=%v", pe.GetID(), orphan))
 	sp := ps.SyncPeer()
 	if sp != nil {
 		spgs := sp.GraphState()
-		if !sp.IsActive() || spgs == nil {
+		if !sp.IsConnected() || spgs == nil {
 			ps.updateSyncPeer(true)
 			return
 		}
@@ -383,17 +400,23 @@ func (ps *PeerSync) IsCompleteForSyncPeer() bool {
 
 func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 	if !ps.HasSyncPeer() {
+		log.Trace(fmt.Sprintf("IntellectSyncBlocks has not sync peer, return directly"))
 		return
 	}
 
 	if ps.Chain().GetOrphansTotal() >= blockchain.MaxOrphanBlocks || refresh {
-		ps.Chain().RefreshOrphans()
+		err := ps.Chain().RefreshOrphans()
+		if err != nil {
+			log.Trace(fmt.Sprintf("IntellectSyncBlocks failed to refresh orphans, err=%v", err.Error()))
+		}
 	}
 	allOrphan := ps.Chain().GetRecentOrphansParents()
 
 	if len(allOrphan) > 0 {
+		log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.GetBlock, peer=%v,allOrphan=%v ", ps.SyncPeer().GetID(), allOrphan))
 		go ps.GetBlocks(ps.SyncPeer(), allOrphan)
 	} else {
+		log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.syncDAGBlocks, peer=%v ", ps.SyncPeer().GetID()))
 		go ps.syncDAGBlocks(ps.SyncPeer())
 	}
 }
@@ -406,8 +429,18 @@ func (ps *PeerSync) updateSyncPeer(force bool) {
 	ps.startSync()
 }
 
-func (ps *PeerSync) RelayInventory(data interface{}) {
+func (ps *PeerSync) RelayInventory(data interface{}, filters []peer.ID) {
+	filtersM := map[peer.ID]struct{}{}
+	if len(filters) > 0 {
+		for _, f := range filters {
+			filtersM[f] = struct{}{}
+		}
+	}
 	ps.sy.Peers().ForPeers(peers.PeerConnected, func(pe *peers.Peer) {
+		_, ok := filtersM[pe.GetID()]
+		if ok {
+			return
+		}
 		msg := &pb.Inventory{Invs: []*pb.InvVect{}}
 
 		switch value := data.(type) {
@@ -430,14 +463,17 @@ func (ps *PeerSync) RelayInventory(data interface{}) {
 				}
 			}
 			msg.Invs = append(msg.Invs, NewInvVect(InvTypeTx, value.Tx.Hash()))
+			log.Trace(fmt.Sprintf("Relay inventory tx(%s) to peer(%s)", value.Tx.Hash().String(), pe.GetID().String()))
 		case types.BlockHeader:
 			blockHash := value.BlockHash()
 			msg.Invs = append(msg.Invs, NewInvVect(InvTypeBlock, &blockHash))
+			log.Trace(fmt.Sprintf("Relay inventory block(%s) to peer(%s)", blockHash.String(), pe.GetID().String()))
 		}
 
 		if len(msg.Invs) <= 0 {
 			return
 		}
+
 		go ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), pe, msg)
 	})
 }

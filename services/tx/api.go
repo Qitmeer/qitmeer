@@ -231,7 +231,7 @@ func (api *PublicTxAPI) SendRawTransaction(hexTx string, allowHighFees *bool) (i
 			tx.Hash(), err)
 		return nil, rpc.RpcDeserializationError("rejected: %v", err)
 	}
-	api.txManager.ntmgr.AnnounceNewTransactions(acceptedTxs)
+	api.txManager.ntmgr.AnnounceNewTransactions(acceptedTxs, nil)
 	api.txManager.ntmgr.AddRebroadcastInventory(acceptedTxs)
 
 	return tx.Hash().String(), nil

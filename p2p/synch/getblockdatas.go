@@ -43,7 +43,7 @@ func (s *Sync) sendGetBlockDataRequest(ctx context.Context, id peer.ID, locator 
 	}
 
 	if !code.IsSuccess() {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "get block date request rsp")
 		return nil, errors.New(errMsg)
 	}
 
@@ -75,7 +75,7 @@ func (s *Sync) sendGetMerkleBlockDataRequest(ctx context.Context, id peer.ID, re
 	}
 
 	if !code.IsSuccess() {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "get merkle bock date request rsp")
 		return nil, errors.New(errMsg)
 	}
 
@@ -182,7 +182,7 @@ func (s *Sync) getMerkleBlockDataHandler(ctx context.Context, msg interface{}, s
 }
 
 func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) error {
-	if !ps.isSyncPeer(pe) || !pe.IsActive() {
+	if !ps.isSyncPeer(pe) || !pe.IsConnected() {
 		err := fmt.Errorf("no sync peer")
 		log.Trace(err.Error())
 		return err
@@ -258,13 +258,13 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 		err = fmt.Errorf("no get blocks")
 	}
 	if add < len(bd.Locator) {
-		go ps.PeerUpdate(pe, hasOrphan)
+		go ps.PeerUpdate(pe, hasOrphan, false)
 	}
 	return err
 }
 
 func (ps *PeerSync) processGetMerkleBlockDatas(pe *peers.Peer, blocks []*hash.Hash) error {
-	if !ps.isSyncPeer(pe) || !pe.IsActive() {
+	if !ps.isSyncPeer(pe) || !pe.IsConnected() {
 		err := fmt.Errorf("no sync peer")
 		log.Trace(err.Error())
 		return err
@@ -320,6 +320,7 @@ func (ps *PeerSync) OnGetData(sp *peers.Peer, invList []*pb.InvVect) error {
 	blocks := make([]*pb.Hash, 0)
 	merkleBlocks := make([]*pb.Hash, 0)
 	for _, iv := range invList {
+		log.Trace(fmt.Sprintf("OnGetData:%s (%s)", InvType(iv.Type).String(), changePBHashToHash(iv.Hash)))
 		switch InvType(iv.Type) {
 		case InvTypeTx:
 			txs = append(txs, iv.Hash)

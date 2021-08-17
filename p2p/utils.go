@@ -26,7 +26,7 @@ import (
 
 const keyPath = "network.key"
 const metaDataPath = "metaData"
-const peerStore = "peerstore"
+const PeerStore = "peerstore"
 
 const dialTimeout = 1 * time.Second
 

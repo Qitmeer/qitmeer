@@ -5,9 +5,14 @@
 package synch
 
 import (
+	"bufio"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
+	"github.com/multiformats/go-multistream"
 	"io"
+	"net"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -18,6 +23,10 @@ import (
 const (
 	// The time to wait for a chain state request.
 	timeForChainState = 10 * time.Second
+
+	timeForBidirChan = 4 * time.Second
+
+	timeForBidirChanLife = 10 * time.Minute
 )
 
 func (ps *PeerSync) Connected(pid peer.ID, conn network.Conn) {
@@ -31,13 +40,14 @@ func (ps *PeerSync) Connected(pid peer.ID, conn network.Conn) {
 }
 
 func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
-	ps.hslock.Lock()
-	defer ps.hslock.Unlock()
+	remotePe := ps.sy.peers.Fetch(msg.ID)
+
+	remotePe.HSlock.Lock()
+	defer remotePe.HSlock.Unlock()
 
 	peerInfoStr := fmt.Sprintf("peer:%s", msg.ID)
 	remotePeer := msg.ID
 	conn := msg.Conn
-	remotePe := ps.sy.peers.Fetch(remotePeer)
 	// Handle the various pre-existing conditions that will result in us not handshaking.
 	peerConnectionState := remotePe.ConnectionState()
 	if remotePe.IsActive() {
@@ -45,10 +55,14 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 		return
 	}
 	ps.sy.peers.Add(nil /* QNR */, remotePeer, conn.RemoteMultiaddr(), conn.Stat().Direction)
-	if remotePe.IsBad() {
+	if remotePe.IsBad() && !ps.sy.IsWhitePeer(remotePeer) {
 		log.Trace(fmt.Sprintf("%s reason bad peer, Ignoring connection request.", peerInfoStr))
 		ps.Disconnect(remotePe)
 		return
+	}
+	if time.Since(remotePe.ConnectionTime()) <= time.Second {
+		ps.sy.Peers().IncrementBadResponses(remotePeer, "Connection is too frequent")
+		log.Debug(fmt.Sprintf("%s is too frequent, so I'll deduct you points", remotePeer))
 	}
 	remotePe.SetConnectionState(peers.PeerConnecting)
 
@@ -58,7 +72,7 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 	}
 
 	if err := ps.sy.reValidatePeer(ps.sy.p2p.Context(), remotePeer); err != nil && err != io.EOF {
-		log.Trace(fmt.Sprintf("%s Handshake failed", peerInfoStr))
+		log.Trace(fmt.Sprintf("%s Handshake failed (%s)", peerInfoStr, err))
 		ps.Disconnect(remotePe)
 		return
 	}
@@ -66,8 +80,13 @@ func (ps *PeerSync) processConnected(msg *ConnectedMsg) {
 }
 
 func (ps *PeerSync) immediatelyConnected(pe *peers.Peer) {
-	ps.hslock.Lock()
-	defer ps.hslock.Unlock()
+	pe.HSlock.Lock()
+	defer pe.HSlock.Unlock()
+
+	if !pe.ConnectionState().IsConnecting() {
+		go ps.PeerUpdate(pe, false, true)
+		return
+	}
 	ps.Connection(pe)
 }
 
@@ -100,11 +119,15 @@ func (ps *PeerSync) Disconnect(pe *peers.Peer) {
 	// TODO some handle
 	pe.SetConnectionState(peers.PeerDisconnected)
 	if !pe.IsConsensus() {
-		log.Trace(fmt.Sprintf("Disconnect:%v (%s)", pe.GetID(), pe.Services().String()))
+		if pe.Services() == protocol.Unknown {
+			log.Trace(fmt.Sprintf("Disconnect:%v ", pe.IDWithAddress()))
+		} else {
+			log.Trace(fmt.Sprintf("Disconnect:%v (%s)", pe.IDWithAddress(), pe.Services().String()))
+		}
 		return
 	}
 
-	log.Trace(fmt.Sprintf("Disconnect:%v", pe.GetID()))
+	log.Trace(fmt.Sprintf("Disconnect:%v ", pe.IDWithAddress()))
 	ps.OnPeerDisconnected(pe)
 }
 
@@ -115,7 +138,7 @@ func (s *Sync) AddConnectionHandler() {
 	s.p2p.Host().Network().Notify(&network.NotifyBundle{
 		ConnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
-			log.Trace(fmt.Sprintf("ConnectedF:%s", remotePeer))
+			log.Trace(fmt.Sprintf("ConnectedF:%s, %v ", remotePeer, conn.RemoteMultiaddr()))
 			s.peerSync.Connected(remotePeer, conn)
 		},
 	})
@@ -132,15 +155,17 @@ func (ps *PeerSync) Disconnected(pid peer.ID, conn network.Conn) {
 }
 
 func (ps *PeerSync) processDisconnected(msg *DisconnectedMsg) {
-	ps.hslock.Lock()
-	defer ps.hslock.Unlock()
-
-	peerInfoStr := fmt.Sprintf("peer:%s", msg.ID)
 	// Must be handled in a goroutine as this callback cannot be blocking.
 	pe := ps.sy.peers.Get(msg.ID)
 	if pe == nil {
 		return
 	}
+
+	pe.HSlock.Lock()
+	defer pe.HSlock.Unlock()
+
+	peerInfoStr := fmt.Sprintf("peer:%s", msg.ID)
+
 	if pe.ConnectionState().IsDisconnected() {
 		return
 	}
@@ -168,4 +193,78 @@ func (s *Sync) AddDisconnectionHandler() {
 			s.peerSync.Disconnected(remotePeer, conn)
 		},
 	})
+}
+
+func (s *Sync) bidirectionalChannelCapacity(pe *peers.Peer, conn network.Conn) bool {
+	if conn.Stat().Direction == network.DirOutbound {
+		pe.SetBidChanCap(time.Now())
+		return true
+	}
+	bidChanLife := pe.GetBidChanCap()
+	if !bidChanLife.IsZero() {
+		if time.Since(bidChanLife) < timeForBidirChanLife {
+			return true
+		}
+	}
+	if s.IsWhitePeer(pe.GetID()) {
+		pe.SetBidChanCap(time.Time{})
+		return true
+	}
+	//
+	peAddr := conn.RemoteMultiaddr()
+	ipAddr := ""
+	protocol := ""
+	port := ""
+	ps := peAddr.Protocols()
+	if len(ps) >= 1 {
+		ia, err := peAddr.ValueForProtocol(ps[0].Code)
+		if err != nil {
+			log.Debug(err.Error())
+			pe.SetBidChanCap(time.Time{})
+			return false
+		}
+		ipAddr = ia
+	}
+	if len(ps) >= 2 {
+		protocol = ps[1].Name
+		po, err := peAddr.ValueForProtocol(ps[1].Code)
+		if err != nil {
+			log.Debug(err.Error())
+			pe.SetBidChanCap(time.Time{})
+			return false
+		}
+		port = po
+	}
+	if len(ipAddr) <= 0 ||
+		len(protocol) <= 0 ||
+		len(port) <= 0 {
+	}
+	bidConn, err := net.DialTimeout(protocol, fmt.Sprintf("%s:%s", ipAddr, port), timeForBidirChan)
+	if err != nil {
+		log.Debug(err.Error())
+		pe.SetBidChanCap(time.Time{})
+		return false
+	}
+	reply, err := bufio.NewReader(bidConn).ReadString('\n')
+	if err != nil {
+		log.Debug(err.Error())
+		pe.SetBidChanCap(time.Time{})
+		return false
+	}
+	if !strings.Contains(reply, multistream.ProtocolID) {
+		log.Debug(fmt.Sprintf("BidChan protocol is error"))
+		pe.SetBidChanCap(time.Time{})
+		return false
+	}
+	log.Debug(fmt.Sprintf("Bidirectional channel capacity:%s", pe.GetID().String()))
+	bidConn.Write([]byte(fmt.Sprintf("%s\n", multistream.ProtocolID)))
+	bidConn.Close()
+
+	pe.SetBidChanCap(time.Now())
+	return true
+}
+
+func (s *Sync) IsWhitePeer(pid peer.ID) bool {
+	_, ok := s.LANPeers[pid]
+	return ok
 }

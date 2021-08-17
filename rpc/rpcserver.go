@@ -132,7 +132,10 @@ func NewRPCServer(cfg *config.Config, events *event.Feed) (*RpcServer, error) {
 		rpc.authsha = sha256.Sum256([]byte(auth))
 	}
 	rpc.ntfnMgr = newWsNotificationManager(&rpc)
-	rpc.subscribe(events)
+	if events != nil {
+		rpc.subscribe(events)
+	}
+
 	return &rpc, nil
 }
 
@@ -361,8 +364,6 @@ func (s *RpcServer) jsonRPCRead(w http.ResponseWriter, r *http.Request) {
 	body := io.LimitReader(r.Body, maxRequestContentLength)
 	codec := NewJSONCodec(&httpReadWriteNopCloser{body, w})
 	defer codec.Close()
-
-	log.Trace("jsonRPCRead", "body", body, "codec", codec)
 
 	s.ServeSingleRequest(ctx, codec, OptionMethodInvocation)
 }

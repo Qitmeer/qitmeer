@@ -122,6 +122,7 @@ func (s *Service) Start() error {
 	}
 	if len(s.cfg.StaticPeers) > 0 {
 		bootstrapAddrs = append(bootstrapAddrs, s.cfg.StaticPeers...)
+		peersToWatch = append(peersToWatch, s.cfg.StaticPeers...)
 	}
 
 	if len(bootstrapAddrs) > 0 {
@@ -245,16 +246,13 @@ func (s *Service) connectWithPeer(info peer.AddrInfo, force bool) error {
 		return nil
 	}
 	if !force {
-		if pe.IsBad() {
+		if pe.IsBad() && !s.sy.IsWhitePeer(info.ID) {
 			return nil
 		}
 	} else {
 		pe.ResetBad()
 	}
 	if err := s.host.Connect(s.ctx, info); err != nil {
-		if !force {
-			s.Peers().IncrementBadResponses(info.ID)
-		}
 		return err
 	}
 	return nil
@@ -455,8 +453,8 @@ func (s *Service) PeerSync() *synch.PeerSync {
 	return s.sy.PeerSync()
 }
 
-func (s *Service) RelayInventory(data interface{}) {
-	s.PeerSync().RelayInventory(data)
+func (s *Service) RelayInventory(data interface{}, filters []peer.ID) {
+	s.PeerSync().RelayInventory(data, filters)
 }
 
 func (s *Service) BroadcastMessage(data interface{}) {
@@ -580,6 +578,22 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 		}
 	}
 
+	allowListCIDR := ""
+	lanPeers := []string{}
+
+	if len(cfg.Whitelist) > 0 {
+		for _, wl := range cfg.Whitelist {
+			if strings.Contains(wl, "/") {
+				allowListCIDR = wl
+			} else {
+				lanPeers = append(lanPeers, wl)
+			}
+		}
+	}
+
+	if cfg.MaxBadResp > 0 {
+		peers.MaxBadResponses = cfg.MaxBadResp
+	}
 	s := &Service{
 		cfg: &common.Config{
 			NoDiscovery:          cfg.NoDiscovery,
@@ -603,10 +617,11 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			HostAddress:          cfg.HostIP,
 			HostDNS:              cfg.HostDNS,
 			RelayNodeAddr:        cfg.RelayNode,
-			AllowListCIDR:        cfg.Whitelist,
+			AllowListCIDR:        allowListCIDR,
 			DenyListCIDR:         cfg.Blacklist,
 			Banning:              cfg.Banning,
 			DisableListen:        cfg.DisableListen,
+			LANPeers:             lanPeers,
 		},
 		ctx:           ctx,
 		cancel:        cancel,
@@ -614,7 +629,6 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 		isPreGenesis:  true,
 		events:        events,
 	}
-
 	dv5Nodes := parseBootStrapAddrs(s.cfg.BootstrapNodeAddr)
 	s.cfg.Discv5BootStrapAddr = dv5Nodes
 

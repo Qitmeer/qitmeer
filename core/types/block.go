@@ -401,6 +401,13 @@ type SerializedBlock struct {
 	height          uint      //height is in the sub dag chain.
 }
 
+// The stringer method makes SerializedBlock satisfy the Stringer interface.
+// It simplifies the message printing in the trace logs.
+func (sb *SerializedBlock) String() string {
+	return fmt.Sprintf("blockhash: %v transactions:%d txnsGenerated:%v order:%d height:%d",
+		sb.hash.String(), len(sb.transactions), sb.txnsGenerated, sb.order, sb.height)
+}
+
 // NewBlock returns a new instance of the serialized block given an underlying Block.
 // the block hash has been calculated and cached
 func NewBlock(block *Block) *SerializedBlock {

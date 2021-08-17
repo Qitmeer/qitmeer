@@ -61,8 +61,8 @@ const (
 
 // Time to first byte timeout. The maximum time to wait for first byte of
 // request response (time-to-first-byte). The client is expected to give up if
-// they don't receive the first byte within 5 seconds.
-const TtfbTimeout = 5 * time.Second
+// they don't receive the first byte within 6 seconds.
+const TtfbTimeout = 6 * time.Second
 
 // rpcHandler is responsible for handling and responding to any incoming message.
 // This method may return an error to internal monitoring, but the error will
@@ -76,13 +76,14 @@ const RespTimeout = 10 * time.Second
 const ReqTimeout = 10 * time.Second
 
 // HandleTimeout is the maximum time for complete handler.
-const HandleTimeout = 5 * time.Second
+const HandleTimeout = 6 * time.Second
 
 type Sync struct {
 	peers        *peers.Status
 	peerSync     *PeerSync
 	p2p          common.P2P
 	PeerInterval time.Duration
+	LANPeers     map[peer.ID]struct{}
 }
 
 func (s *Sync) Start() error {
@@ -251,9 +252,18 @@ func (s *Sync) EncodeResponseMsgPro(stream libp2pcore.Stream, msg interface{}, r
 
 func NewSync(p2p common.P2P) *Sync {
 	sy := &Sync{p2p: p2p, peers: peers.NewStatus(p2p),
-		PeerInterval: params.ActiveNetParams.TargetTimePerBlock * 2}
+		PeerInterval: params.ActiveNetParams.TargetTimePerBlock * 2,
+		LANPeers:     map[peer.ID]struct{}{}}
 	sy.peerSync = NewPeerSync(sy)
 
+	for _, pid := range p2p.Config().LANPeers {
+		peid, err := peer.Decode(pid)
+		if err != nil {
+			log.Warn(fmt.Sprintf("LANPeers configuration error:%s", pid))
+			continue
+		}
+		sy.LANPeers[peid] = struct{}{}
+	}
 	return sy
 }
 
@@ -314,22 +324,35 @@ func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 	if e == nil {
 		return
 	}
+	peInfo := ""
+	if stream != nil {
+		peInfo = stream.ID()
+		if stream.Conn() != nil {
+			peInfo += " "
+			peInfo += stream.Conn().RemotePeer().String()
+		}
+	}
 	resp, err := generateErrorResponse(e, rpc.Encoding())
 	if err != nil {
-		log.Warn(fmt.Sprintf("Failed to generate a response error:%v", err))
+		log.Warn(fmt.Sprintf("Failed to generate a response error:%v %s", err, peInfo))
 	} else {
 		if _, err := stream.Write(resp); err != nil {
 			log.Debug(fmt.Sprintf("Failed to write to stream:%v", err))
 		}
 	}
 	if e.Code != common.ErrDAGConsensus {
-		log.Warn(fmt.Sprintf("Process error (%s):%s", e.Code.String(), e.Error.Error()))
+		log.Warn(fmt.Sprintf("Process error (%s):%s %s", e.Code.String(), e.Error.Error(), peInfo))
 	}
 }
 
 // Send a message to a specific peer. The returned stream may be used for reading, but has been
 // closed for writing.
 func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic string, pid peer.ID) (network.Stream, error) {
+	curState := rpc.Host().Network().Connectedness(pid)
+	if curState != network.Connected {
+		return nil, fmt.Errorf("%s is %s", pid, curState)
+	}
+
 	topic := getTopic(baseTopic) + rpc.Encoding().ProtocolSuffix()
 
 	var deadline = TtfbTimeout + RespTimeout
@@ -338,12 +361,15 @@ func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic
 
 	stream, err := rpc.Host().NewStream(ctx, pid, protocol.ID(topic))
 	if err != nil {
+		log.Trace(fmt.Sprintf("open stream on topic %v failed", topic))
 		return nil, err
 	}
 	if err := stream.SetReadDeadline(time.Now().Add(deadline)); err != nil {
+		log.Trace(fmt.Sprintf("set stream read dealine %v failed", deadline))
 		return nil, err
 	}
 	if err := stream.SetWriteDeadline(time.Now().Add(deadline)); err != nil {
+		log.Trace(fmt.Sprintf("set stream write dealine %v failed", deadline))
 		return nil, err
 	}
 	// do not encode anything if we are sending a metadata request
@@ -352,11 +378,13 @@ func Send(ctx context.Context, rpc common.P2PRPC, message interface{}, baseTopic
 	}
 	size, err := rpc.Encoding().EncodeWithMaxLength(stream, message)
 	if err != nil {
+		log.Trace(fmt.Sprintf("encocde rpc message %v to stream failed", message))
 		return nil, err
 	}
 	rpc.IncreaseBytesSent(pid, size)
 	// Close stream for writing.
 	if err := stream.Close(); err != nil {
+		log.Trace(fmt.Sprintf("close stream failed: %v ", err))
 		return nil, err
 	}
 

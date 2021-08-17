@@ -18,6 +18,7 @@ func (s *Sync) sendInventoryRequest(ctx context.Context, pe *peers.Peer, inv *pb
 
 	stream, err := s.Send(ctx, inv, RPCInventory, pe.GetID())
 	if err != nil {
+		log.Trace(fmt.Sprintf("Failed to send inventory request to peer=%v, err=%v", pe.GetID(), err.Error()));
 		return err
 	}
 	defer func() {
@@ -32,7 +33,7 @@ func (s *Sync) sendInventoryRequest(ctx context.Context, pe *peers.Peer, inv *pb
 	}
 
 	if !code.IsSuccess() {
-		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer())
+		s.Peers().IncrementBadResponses(stream.Conn().RemotePeer(), "inventory request rsp")
 		return errors.New(errMsg)
 	}
 	return err
@@ -70,19 +71,12 @@ func (s *Sync) handleInventory(msg *pb.Inventory, pe *peers.Peer) error {
 	if len(msg.Invs) <= 0 {
 		return nil
 	}
-	isCurrent := s.peerSync.IsCurrent()
-	blocks := []*hash.Hash{}
 	txs := []*hash.Hash{}
+	hasBlocks := false
 	for _, inv := range msg.Invs {
 		h := changePBHashToHash(inv.Hash)
 		if InvType(inv.Type) == InvTypeBlock {
-			if !isCurrent {
-				continue
-			}
-			if s.haveInventory(inv) {
-				continue
-			}
-			blocks = append(blocks, h)
+			hasBlocks = true
 		} else if InvType(inv.Type) == InvTypeTx {
 			if s.p2p.Config().DisableRelayTx {
 				continue
@@ -93,7 +87,7 @@ func (s *Sync) handleInventory(msg *pb.Inventory, pe *peers.Peer) error {
 			txs = append(txs, h)
 		}
 	}
-	if len(blocks) > 0 {
+	if hasBlocks {
 		//s.peerSync.GetBlocks(pe, blocks)
 		s.peerSync.UpdateGraphState(pe)
 	}

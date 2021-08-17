@@ -38,6 +38,7 @@ require (
 	github.com/minio/highwayhash v1.0.0
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-net v0.2.0
+	github.com/multiformats/go-multistream v0.1.2
 	github.com/pkg/errors v0.9.1
 	github.com/prysmaticlabs/go-bitfield v0.0.0-20200618145306-2ae0807bef65
 	github.com/prysmaticlabs/go-ssz v0.0.0-20200101200214-e24db4d9e963
