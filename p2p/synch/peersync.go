@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -108,15 +109,22 @@ out:
 				ps.OnMemPool(msg.pe, msg.data)
 
 			case *UpdateGraphStateMsg:
-				log.Trace(fmt.Sprintf("UpdateGraphStateMsg recevied from %v, state=%v ", msg.pe.GetID(), msg.pe.GraphState()));
-				err :=ps.processUpdateGraphState(msg.pe)
-				if err!= nil {
-					log.Trace(err.Error());
+				log.Trace(fmt.Sprintf("UpdateGraphStateMsg recevied from %v, state=%v ", msg.pe.GetID(), msg.pe.GraphState()))
+				err := ps.processUpdateGraphState(msg.pe)
+				if err != nil {
+					log.Trace(err.Error())
 				}
 			case *syncDAGBlocksMsg:
 				err := ps.processSyncDAGBlocks(msg.pe)
 				if err != nil {
 					log.Debug(err.Error())
+					go func() {
+						ps.SetSyncPeer(nil)
+						time.Sleep(time.Second * 5)
+						if !ps.HasSyncPeer() {
+							ps.startSync()
+						}
+					}()
 				}
 			case *PeerUpdateMsg:
 				ps.OnPeerUpdate(msg.pe, msg.orphan)
@@ -309,7 +317,6 @@ func (ps *PeerSync) startSync() {
 		// and fully validate them.  Finally, regression test mode does
 		// not support the headers-first approach so do normal block
 		// downloads when in regression test mode.
-
 		ps.SetSyncPeer(bestPeer)
 		ps.IntellectSyncBlocks(true)
 		ps.dagSync.SetGraphState(gs)
@@ -341,28 +348,28 @@ func (ps *PeerSync) getBestPeer() *peers.Peer {
 		// the best sync candidate is the most updated peer
 		if bestPeer == nil {
 			bestPeer = sp
+			equalPeers = []*peers.Peer{sp}
 			continue
 		}
 		if gs.IsExcellent(bestPeer.GraphState()) {
 			bestPeer = sp
-			if len(equalPeers) > 0 {
-				equalPeers = equalPeers[0:0]
-			}
+			equalPeers = []*peers.Peer{sp}
 		} else if gs.IsEqual(bestPeer.GraphState()) {
 			equalPeers = append(equalPeers, sp)
 		}
 	}
-	if bestPeer == nil {
+	if len(equalPeers) <= 0 {
 		return nil
 	}
-	if len(equalPeers) > 0 {
-		for _, sp := range equalPeers {
-			if sp.GetID().String() > bestPeer.GetID().String() {
-				bestPeer = sp
-			}
-		}
+	if len(equalPeers) == 1 {
+		return equalPeers[0]
 	}
-	return bestPeer
+
+	index := int(rand.Int63n(int64(len(equalPeers))))
+	if index >= len(equalPeers) {
+		index = 0
+	}
+	return equalPeers[index]
 }
 
 // IsCurrent returns true if we believe we are synced with our peers, false if we

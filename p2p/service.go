@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/event"
@@ -35,6 +36,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"path/filepath"
 	"strconv"
@@ -542,6 +544,8 @@ func (s *Service) Rebroadcast() *Rebroadcast {
 }
 
 func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*Service, error) {
+	rand.Seed(roughtime.Now().UnixNano())
+
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
 	cache, err := ristretto.NewCache(&ristretto.Config{
