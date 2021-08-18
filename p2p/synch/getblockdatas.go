@@ -204,7 +204,7 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 			ps.longSyncMod = true
 		}
 	}
-
+	log.Trace(fmt.Sprintf("processGetBlockDatas sendGetBlockDataRequest peer=%v, blocks=%v ",pe.GetID(), blocksReady))
 	bd, err := ps.sy.sendGetBlockDataRequest(ps.sy.p2p.Context(), pe.GetID(), &pb.GetBlockDatas{Locator: changeHashsToPBHashs(blocksReady)})
 	if err != nil {
 		log.Warn(fmt.Sprintf("getBlocks send:%v", err))
