@@ -171,9 +171,6 @@ func (c *wsClient) wsServiceRequest(msg []byte) (bool, bool) {
 	}
 	log.Debug(fmt.Sprintf("Received command <%s> from %s", cmd.method, c.addr))
 
-	// process
-	c.serviceRequestSem.acquire()
-
 	var result interface{}
 
 	// Lookup the websocket extension for the command and if it doesn't
