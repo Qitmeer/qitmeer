@@ -420,10 +420,18 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 	allOrphan := ps.Chain().GetRecentOrphansParents()
 
 	if len(allOrphan) > 0 {
-		log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.GetBlock, peer=%v,allOrphan=%v ", ps.SyncPeer().GetID(), allOrphan))
+		pe := ps.SyncPeer()
+		if pe != nil {
+			log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.GetBlock, peer=%v,allOrphan=%v ", pe.GetID(), allOrphan))
+		}
+
 		go ps.GetBlocks(ps.SyncPeer(), allOrphan)
 	} else {
-		log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.syncDAGBlocks, peer=%v ", ps.SyncPeer().GetID()))
+		pe := ps.SyncPeer()
+		if pe != nil {
+			log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.syncDAGBlocks, peer=%v ", pe.GetID()))
+		}
+
 		go ps.syncDAGBlocks(ps.SyncPeer())
 	}
 }
