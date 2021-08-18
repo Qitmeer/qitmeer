@@ -1,5 +1,10 @@
 # Changelog
-## [0.10.2] - 2017-07-28
+## [0.10.3] - 2021-08-17
+- A lot of optimization & bug fixes for the P2P network and the DAG synchronization.
+- upgrade the network protocol version to 33. 
+
+
+## [0.10.2] - 2021-07-28
 - update network protocol to support multiple-network.
 
 ## [0.10.1] - 2021-07-25
