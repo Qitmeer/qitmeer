@@ -138,6 +138,9 @@ func (s *Sync) AddConnectionHandler() {
 	s.p2p.Host().Network().Notify(&network.NotifyBundle{
 		ConnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
+			if !s.connectionGater(remotePeer, conn) {
+				return
+			}
 			log.Trace(fmt.Sprintf("ConnectedF:%s, %v ", remotePeer, conn.RemoteMultiaddr()))
 			s.peerSync.Connected(remotePeer, conn)
 		},
@@ -267,4 +270,42 @@ func (s *Sync) bidirectionalChannelCapacity(pe *peers.Peer, conn network.Conn) b
 func (s *Sync) IsWhitePeer(pid peer.ID) bool {
 	_, ok := s.LANPeers[pid]
 	return ok
+}
+
+func (s *Sync) IsPeerAtLimit() bool {
+	//numOfConns := len(s.p2p.Host().Network().Peers())
+	maxPeers := int(s.p2p.Config().MaxPeers)
+	activePeers := len(s.Peers().Active())
+
+	return activePeers >= maxPeers
+}
+
+func (s *Sync) IsInboundPeerAtLimit() bool {
+	return len(s.Peers().DirInbound()) >= s.p2p.Config().MaxInbound
+}
+
+func (s *Sync) connectionGater(pid peer.ID, conn network.Conn) bool {
+	ret := true
+	if s.IsWhitePeer(pid) {
+		return ret
+	}
+	if s.IsPeerAtLimit() {
+		log.Trace(fmt.Sprintf("connectionGater  peer:%s reason:at peer max limit", pid.String()))
+		ret = false
+	}
+	if ret {
+		if conn.Stat().Direction == network.DirInbound {
+			if s.IsInboundPeerAtLimit() {
+				log.Trace(fmt.Sprintf("peer:%s reason:at peer limit,Not accepting inbound dial", pid.String()))
+				ret = false
+			}
+		}
+	}
+
+	if !ret {
+		if err := s.p2p.Disconnect(pid); err != nil {
+			log.Error(fmt.Sprintf("%s Unable to disconnect from peer:%v", pid, err))
+		}
+	}
+	return true
 }
