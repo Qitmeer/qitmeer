@@ -175,15 +175,11 @@ func (s *Service) filterPeer(node *qnode.Node) bool {
 // determines whether our currently connected and
 // active peers are above our set max peer limit.
 func (s *Service) isPeerAtLimit() bool {
-	numOfConns := len(s.host.Network().Peers())
-	maxPeers := int(s.cfg.MaxPeers)
-	activePeers := len(s.Peers().Active())
-
-	return activePeers >= maxPeers || numOfConns >= maxPeers
+	return s.sy.IsPeerAtLimit()
 }
 
 func (s *Service) isInboundPeerAtLimit() bool {
-	return len(s.Peers().DirInbound()) >= s.cfg.MaxInbound
+	return s.sy.IsInboundPeerAtLimit()
 }
 
 func (s *Service) startKademliaDHT() error {
