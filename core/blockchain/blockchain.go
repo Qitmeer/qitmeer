@@ -499,7 +499,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 			return nil
 		}
 		log.Trace("Serialized chain state: ", "serializedData", fmt.Sprintf("%x", serializedData))
-		state, err := deserializeBestChainState(serializedData)
+		state, err := DeserializeBestChainState(serializedData)
 		if err != nil {
 			return err
 		}

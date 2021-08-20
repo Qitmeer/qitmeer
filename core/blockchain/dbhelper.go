@@ -85,6 +85,10 @@ type bestChainState struct {
 	workSum      *big.Int
 }
 
+func (bcs *bestChainState) GetTotal() uint64 {
+	return bcs.total
+}
+
 // dbFetchBlockByOrder uses an existing database transaction to retrieve the
 // raw block for the provided order, deserialize it, and return a Block
 // with the height set.
@@ -383,7 +387,7 @@ func serializeBestChainState(state bestChainState) []byte {
 // state.  This is data stored in the chain state bucket and is updated after
 // every block is connected or disconnected form the main chain.
 // block.
-func deserializeBestChainState(serializedData []byte) (bestChainState, error) {
+func DeserializeBestChainState(serializedData []byte) (bestChainState, error) {
 	// Ensure the serialized data has enough bytes to properly deserialize
 	// the hash, total, total transactions, total subsidy, current subsidy,
 	// and work sum length.
