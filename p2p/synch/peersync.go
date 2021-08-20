@@ -423,15 +423,14 @@ func (ps *PeerSync) continueSync(orphan bool) {
 		}
 		bestPeer := ps.getBestPeer()
 		if bestPeer == nil {
+			ps.updateSyncPeer(true)
 			return
 		}
-		bgs := bestPeer.GraphState()
-		if bgs != nil {
-			if bgs.IsExcellent(spgs) {
-				ps.updateSyncPeer(true)
-				return
-			}
+		if bestPeer != sp {
+			ps.updateSyncPeer(true)
+			return
 		}
+
 		ps.IntellectSyncBlocks(orphan, sp)
 		return
 	}
