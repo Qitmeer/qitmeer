@@ -20,3 +20,17 @@ or
 or
 ~ ./fastibd import --path=[Input directory]
 ```
+
+### How to upgrade the data of blocks to node
+
+```
+~ ./fastibd --testnet upgrade
+```
+
+### First aid mode under consensus error
+
+```
+~ ./fastibd --testnet upgrade --aidmode
+```
+
+
