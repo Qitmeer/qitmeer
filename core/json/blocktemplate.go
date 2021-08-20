@@ -96,8 +96,9 @@ type GetBlockTemplateResult struct {
 
 	// Block proposal from BIP 0023.
 	// temp use
-	WorkData      string        `json:"workdata"`
-	Capabilities  []string      `json:"capabilities,omitempty"`
-	RejectReasion string        `json:"reject-reason,omitempty"`
-	BlockFeesMap  map[int]int64 `json:"block_fees_map"`
+	WorkData        string        `json:"workdata"`
+	Capabilities    []string      `json:"capabilities,omitempty"`
+	RejectReasion   string        `json:"reject-reason,omitempty"`
+	BlockFeesMap    map[int]int64 `json:"block_fees_map"`
+	CoinbaseVersion string        `json:"coinbase_version"`
 }

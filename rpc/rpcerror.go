@@ -32,6 +32,11 @@ func RpcDeserializationError(fmtStr string, args ...interface{}) error {
 	return fmt.Errorf("Deserialization Error : %s", str)
 }
 
+func RpcSubmitError(fmtStr string, args ...interface{}) error {
+	str := fmt.Sprintf(fmtStr, args...)
+	return fmt.Errorf("Submit Error : %s", str)
+}
+
 // RpcDuplicateTxError is a convenience function to convert a
 // rejected duplicate tx  error to an RPC error
 func RpcDuplicateTxError(fmtStr string, args ...interface{}) error {
