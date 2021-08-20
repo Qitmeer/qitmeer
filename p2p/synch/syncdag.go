@@ -120,6 +120,7 @@ func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
 	subd, err := ps.sy.sendSyncDAGRequest(ps.sy.p2p.Context(), pe.GetID(), sd)
 	if err != nil {
 		log.Trace(fmt.Sprintf("processSyncDAGBlocks err=%v ", err.Error()))
+		ps.updateSyncPeer(true)
 		return err
 	}
 	log.Trace(fmt.Sprintf("processSyncDAGBlocks result graphstate=(%v,%v,%v), blocks=%v ",
@@ -129,6 +130,7 @@ func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
 	pe.UpdateGraphState(subd.GraphState)
 
 	if len(subd.Blocks) <= 0 {
+		ps.updateSyncPeer(true)
 		return fmt.Errorf("No sync dag blocks")
 	}
 	log.Trace(fmt.Sprintf("processSyncDAGBlocks do GetBlockDatas blocks=%v ", len(subd.Blocks)))
