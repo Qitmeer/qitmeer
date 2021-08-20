@@ -18,6 +18,7 @@ import (
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"sync/atomic"
+	"time"
 )
 
 const BLOCKDATA_SSZ_HEAD_SIZE = 4
@@ -216,6 +217,8 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 	add := 0
 	hasOrphan := false
 
+	lastSync := ps.lastSync
+
 	for _, b := range bd.Locator {
 		if atomic.LoadInt32(&ps.shutdown) != 0 {
 			break
@@ -235,8 +238,9 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 			break
 		}
 		add++
+		ps.lastSync = time.Now()
 	}
-	log.Debug(fmt.Sprintf("getBlockDatas:%d/%d", add, len(bd.Locator)))
+	log.Debug(fmt.Sprintf("getBlockDatas:%d/%d  spend:%s", add, len(bd.Locator), time.Since(lastSync).Truncate(time.Second).String()))
 
 	if add > 0 {
 		ps.sy.p2p.TxMemPool().PruneExpiredTx()

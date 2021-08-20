@@ -22,7 +22,7 @@ import (
 const (
 	// stallSampleInterval the interval at which we will check to see if our
 	// sync has stalled.
-	stallSampleInterval = 300 * time.Second
+	stallSampleInterval = 30 * time.Second
 )
 
 type PeerSync struct {
@@ -30,6 +30,7 @@ type PeerSync struct {
 
 	splock   sync.RWMutex
 	syncPeer *peers.Peer
+	lastSync time.Time
 	// dag sync
 	dagSync *blockdag.DAGSync
 
@@ -163,6 +164,11 @@ func (ps *PeerSync) handleStallSample() {
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
+	if ps.HasSyncPeer() {
+		if time.Since(ps.lastSync) >= ps.sy.PeerInterval {
+			ps.updateSyncPeer(true)
+		}
+	}
 }
 
 func (ps *PeerSync) Pause() chan<- struct{} {
@@ -183,6 +189,10 @@ func (ps *PeerSync) SetSyncPeer(pe *peers.Peer) {
 	defer ps.splock.Unlock()
 
 	ps.syncPeer = pe
+
+	if pe != nil {
+		ps.lastSync = time.Now()
+	}
 }
 
 func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
