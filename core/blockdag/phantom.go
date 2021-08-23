@@ -724,7 +724,7 @@ func (ph *Phantom) IsDAG(parents []IBlock) bool {
 			parentsSet.AddPair(v.GetID(), ib)
 		}
 
-		vb := &Block{hash: hash.ZeroHash, layer: 0}
+		vb := &Block{hash: hash.ZeroHash, layer: 0, id: ph.bd.blockTotal}
 		pb := &PhantomBlock{vb, 0, NewIdSet(), NewIdSet()}
 		pb.parents = parentsSet.Clone()
 
