@@ -121,7 +121,7 @@ func (node *Node) processBlockDAG(srcnode *SrcNode) error {
 			return err
 		}
 		//fmt.Printf("%d %s\n", i, blockHash.String())
-		err = node.bc.FastAcceptBlock(block)
+		err = node.bc.FastAcceptBlock(block, blockchain.BFFastAdd)
 		if err != nil {
 			return err
 		}

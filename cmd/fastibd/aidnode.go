@@ -196,20 +196,30 @@ func (node *AidNode) Upgrade() error {
 	} else {
 		log.Info("Upgrade...")
 	}
+	//
+	addNum := int(0)
+	lastBH := ""
+	defer func() {
+		if bar != nil {
+			bar.setMax()
+			fmt.Println()
+		}
+		log.Info(fmt.Sprintf("Finish upgrade: blocks(%d/%d), %s", addNum, endNum, lastBH))
+	}()
+
 	for _, block := range blocks {
-		err := node.bc.FastAcceptBlock(block)
+		err := node.bc.FastAcceptBlock(block, blockchain.BFNone)
 		if err != nil {
-			return err
+			fmt.Println()
+			log.Info(fmt.Sprintf("The block stopped because of an error:%s", block.Hash().String()))
+			return nil
 		}
 		if bar != nil {
 			bar.add()
 		}
+		addNum++
+		lastBH = block.Hash().String()
 	}
 
-	if bar != nil {
-		bar.setMax()
-		fmt.Println()
-	}
-	log.Info(fmt.Sprintf("Finish upgrade: blocks(%d)", endNum))
 	return nil
 }
