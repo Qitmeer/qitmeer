@@ -373,6 +373,7 @@ func (ph *Phantom) updateMainOrder(path []uint, intersection uint) {
 		ph.bd.lastSnapshot.AddOrder(curBlock)
 		curBlock.SetOrder(startOrder + uint(curBlock.blueDiffAnticone.Size()+curBlock.redDiffAnticone.Size()+1))
 		ph.bd.commitOrder[curBlock.GetOrder()] = curBlock.GetID()
+		ph.bd.commitBlock.AddPair(curBlock.GetID(), curBlock)
 
 		ph.mainChain.commitBlocks.AddPair(curBlock.GetID(), true)
 		for k, v := range curBlock.blueDiffAnticone.GetMap() {
@@ -380,12 +381,14 @@ func (ph *Phantom) updateMainOrder(path []uint, intersection uint) {
 			ph.bd.lastSnapshot.AddOrder(dab)
 			dab.SetOrder(startOrder + v.(uint))
 			ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
+			ph.bd.commitBlock.AddPair(dab.GetID(), dab)
 		}
 		for k, v := range curBlock.redDiffAnticone.GetMap() {
 			dab := ph.getBlock(k)
 			ph.bd.lastSnapshot.AddOrder(dab)
 			dab.SetOrder(startOrder + v.(uint))
 			ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
+			ph.bd.commitBlock.AddPair(dab.GetID(), dab)
 		}
 		startOrder = curBlock.GetOrder()
 	}
@@ -427,12 +430,14 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 		ph.bd.lastSnapshot.AddOrder(dab)
 		dab.SetOrder(startOrder + v.(uint))
 		ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
+		ph.bd.commitBlock.AddPair(dab.GetID(), dab)
 	}
 	for k, v := range ph.virtualBlock.redDiffAnticone.GetMap() {
 		dab := ph.getBlock(k)
 		ph.bd.lastSnapshot.AddOrder(dab)
 		dab.SetOrder(startOrder + v.(uint))
 		ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
+		ph.bd.commitBlock.AddPair(dab.GetID(), dab)
 	}
 	ph.bd.lastSnapshot.AddOrder(ph.virtualBlock)
 	ph.virtualBlock.SetOrder(ph.bd.blockTotal + 1)
@@ -449,6 +454,7 @@ func (ph *Phantom) preUpdateVirtualBlock() *PhantomBlock {
 		dab := ph.getBlock(k)
 		ph.bd.lastSnapshot.AddOrder(dab)
 		dab.SetOrder(MaxBlockOrder)
+		ph.bd.commitBlock.AddPair(dab.GetID(), dab)
 	}
 	return nil
 }
