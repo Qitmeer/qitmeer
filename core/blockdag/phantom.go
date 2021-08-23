@@ -490,17 +490,6 @@ func (ph *Phantom) IsOnMainChain(b IBlock) bool {
 	if ph.mainChain.Has(b.GetID()) {
 		return true
 	}
-	for cur := ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
-		if cur.GetHash().IsEqual(b.GetHash()) {
-			return true
-		}
-		if cur.GetLayer() < b.GetLayer() {
-			break
-		}
-		if cur.mainParent == MaxId {
-			break
-		}
-	}
 	return false
 }
 
