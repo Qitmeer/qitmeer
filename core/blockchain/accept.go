@@ -160,7 +160,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	return nil
 }
 
-func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
+func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock, flags BehaviorFlags) error {
 	b.ChainLock()
 	defer func() {
 		b.ChainUnlock()
@@ -168,6 +168,20 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock) error {
 	}()
 
 	newNode := NewBlockNode(&block.Block().Header, block.Block().Parents)
+
+	fastAdd := flags&BFFastAdd == BFFastAdd
+	if !fastAdd {
+		mainParent := b.bd.GetMainParentByHashs(block.Block().Parents)
+		if mainParent == nil {
+			return fmt.Errorf("Can't find main parent\n")
+		}
+		// The block must pass all of the validation rules which depend on the
+		// position of the block within the block chain.
+		err := b.checkBlockContext(block, mainParent, flags)
+		if err != nil {
+			return err
+		}
+	}
 	//dag
 	newOrders, oldOrders, ib, _ := b.bd.AddBlock(newNode)
 	if newOrders == nil || newOrders.Len() == 0 || ib == nil {
