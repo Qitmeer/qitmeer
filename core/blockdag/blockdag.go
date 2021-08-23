@@ -610,10 +610,18 @@ func getTreeTips(root IBlock, mainsubdag *IdSet, genealogy *IdSet) *IdSet {
 			genealogy.Add(ib.GetID())
 		}
 	}
+
 	startQueue := queue
+	queueSet := NewIdSet()
+
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
+
+		if queueSet.Has(cur.GetID()) {
+			continue
+		}
+		queueSet.Add(cur.GetID())
 
 		if allmainsubdag.Has(cur.GetID()) {
 			allmainsubdag.AddSet(cur.GetParents())
@@ -625,13 +633,24 @@ func getTreeTips(root IBlock, mainsubdag *IdSet, genealogy *IdSet) *IdSet {
 			ib := v.(IBlock)
 			queue = append(queue, ib)
 		}
+
 	}
 
 	queue = startQueue
 	tips := NewIdSet()
+	queueSet.Clean()
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
+
+		if cur.GetID() == 0 {
+			tips.AddPair(cur.GetID(), cur)
+			continue
+		}
+		if queueSet.Has(cur.GetID()) {
+			continue
+		}
+		queueSet.Add(cur.GetID())
 
 		if !allmainsubdag.Has(cur.GetID()) {
 			if !cur.HasParents() {
@@ -649,6 +668,7 @@ func getTreeTips(root IBlock, mainsubdag *IdSet, genealogy *IdSet) *IdSet {
 			queue = append(queue, ib)
 		}
 	}
+
 	return tips
 }
 
@@ -661,71 +681,32 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock, verbose bool) *IdSet {
 	if parents == nil || parents.Size() <= 1 {
 		return nil
 	}
-	rootBlock := &Block{id: b.GetID(), hash: *b.GetHash(), parents: NewIdSet(), mainParent: MaxId}
+	rootBlock := &Block{id: b.GetID(), hash: *b.GetHash(), parents: NewIdSet(), mainParent: MaxId, layer: b.GetLayer()}
 	// find anticone
 	anticone := NewIdSet()
 	mainsubdag := NewIdSet()
 	mainsubdag.Add(0)
-	mainsubdagTips := NewIdSet()
+
+	var curMP IBlock
 
 	for _, v := range parents.GetMap() {
 		ib := v.(IBlock)
-		cur := &Block{id: ib.GetID(), hash: *ib.GetHash(), parents: NewIdSet(), mainParent: MaxId}
+		cur := &Block{id: ib.GetID(), hash: *ib.GetHash(), parents: NewIdSet(), mainParent: MaxId, layer: ib.GetLayer()}
 		if ib.GetID() == b.GetMainParent() {
 			mainsubdag.Add(ib.GetID())
-			mainsubdagTips.AddPair(ib.GetID(), ib)
+			curMP = ib
 		} else {
 			rootBlock.parents.AddPair(cur.GetID(), cur)
 			anticone.AddPair(cur.GetID(), cur)
 		}
 	}
 
-	anticoneTips := getTreeTips(rootBlock, mainsubdag, nil)
-	newmainsubdagTips := NewIdSet()
-
-	for i := 0; i <= MaxTipLayerGap+1; i++ {
-
-		for _, v := range mainsubdagTips.GetMap() {
-			ib := v.(IBlock)
-			if ib.HasParents() {
-				for _, pv := range ib.GetParents().GetMap() {
-					pib := pv.(IBlock)
-					if mainsubdag.Has(pib.GetID()) {
-						continue
-					}
-					mainsubdag.Add(pib.GetID())
-					newmainsubdagTips.AddPair(pib.GetID(), pib)
-				}
-			}
-			mainsubdagTips.Remove(ib.GetID())
-		}
-		mainsubdagTips.AddSet(newmainsubdagTips)
-
-		if mainsubdagTips.Size() == 0 {
-			break
-		}
-	}
+	result := NewIdSet()
+	anticoneTips := getTreeTips(rootBlock, mainsubdag, result)
 
 	for anticoneTips.Size() > 0 {
 
-		for _, v := range mainsubdagTips.GetMap() {
-			ib := v.(IBlock)
-			if ib.HasParents() {
-				for _, pv := range ib.GetParents().GetMap() {
-					pib := pv.(IBlock)
-					if mainsubdag.Has(pib.GetID()) {
-						continue
-					}
-					mainsubdag.Add(pib.GetID())
-					newmainsubdagTips.AddPair(pib.GetID(), pib)
-				}
-			}
-			mainsubdagTips.Remove(ib.GetID())
-		}
-		mainsubdagTips.AddSet(newmainsubdagTips)
-
-		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
-		//
+		minTipLayer := uint(math.MaxUint32)
 		for _, v := range anticoneTips.GetMap() {
 			tb := v.(*Block)
 			realib := bd.getBlockById(tb.GetID())
@@ -736,17 +717,33 @@ func (bd *BlockDAG) getDiffAnticone(b IBlock, verbose bool) *IdSet {
 					if anticone.Has(pib.GetID()) {
 						cur = anticone.Get(pib.GetID()).(*Block)
 					} else {
-						cur = &Block{id: pib.GetID(), hash: *pib.GetHash(), parents: NewIdSet(), mainParent: MaxId}
+						cur = &Block{id: pib.GetID(), hash: *pib.GetHash(), parents: NewIdSet(), mainParent: MaxId, layer: pib.GetLayer()}
 						anticone.AddPair(cur.GetID(), cur)
 					}
 					tb.parents.AddPair(cur.GetID(), cur)
 				}
 			}
+			if tb.GetLayer() < minTipLayer {
+				minTipLayer = tb.GetLayer()
+			}
 		}
-		anticoneTips = getTreeTips(rootBlock, mainsubdag, nil)
+
+		for curMP != nil {
+			if curMP.GetLayer() < minTipLayer {
+				break
+			}
+			mainsubdag.Add(curMP.GetID())
+			mainsubdag.AddSet(curMP.(*PhantomBlock).GetBlueDiffAnticone())
+			mainsubdag.AddSet(curMP.(*PhantomBlock).GetRedDiffAnticone())
+			curMP = bd.getBlockById(curMP.GetMainParent())
+		}
+		result.Clean()
+		anticoneTips = getTreeTips(rootBlock, mainsubdag, result)
+
+		if curMP == nil && anticoneTips.HasOnly(0) {
+			break
+		}
 	}
-	result := NewIdSet()
-	getTreeTips(rootBlock, mainsubdag, result)
 
 	//
 	if verbose && !result.IsEmpty() {
