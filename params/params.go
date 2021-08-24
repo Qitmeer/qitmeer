@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/ledger"
+	"strings"
 	"time"
 )
 
@@ -282,6 +283,37 @@ type Params struct {
 	SecurityLevel float64
 
 	LedgerParams ledger.LedgerParams
+
+	CoinbaseVersionConfig CoinbaseVersionConfig
+}
+
+type CoinbaseConfig struct {
+	Height  int64
+	Version string
+}
+
+type CoinbaseVersionConfig []CoinbaseConfig
+
+func (cv *CoinbaseVersionConfig) Check(curHeight int64, coinbase []byte) bool {
+	version := cv.GetCurrentVersion(curHeight)
+	if version == "" || strings.Contains(string(coinbase), version) {
+		return true
+	}
+	return false
+}
+
+func (cv *CoinbaseVersionConfig) GetCurrentVersion(curHeight int64) string {
+	if len(*cv) < 1 {
+		return ""
+	}
+	cc := CoinbaseConfig{}
+	for i := 0; i < len(*cv); i++ {
+		if (*cv)[i].Height > curHeight {
+			break
+		}
+		cc = (*cv)[i]
+	}
+	return cc.Version
 }
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax
