@@ -56,6 +56,7 @@ var MainNetParams = Params{
 		// after this height the big graph will be the main pow graph
 		AdjustmentStartMainHeight: 45 * 1440 * 60 / mainTargetTimePerBlock,
 	},
+	CoinbaseVersionConfig:    []CoinbaseConfig{},
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        false,
