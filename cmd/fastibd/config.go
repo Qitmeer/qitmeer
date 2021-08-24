@@ -35,6 +35,7 @@ type Config struct {
 	DisableBar bool
 	EndPoint   string
 	ByID       bool
+	AidMode    bool
 }
 
 func (c *Config) load() error {

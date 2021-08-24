@@ -22,6 +22,7 @@ func main() {
 func fastIBD() error {
 	cfg := &Config{}
 	node := &Node{}
+	aidnode := &AidNode{}
 
 	app := &cli.App{
 		Name:     "FastIBD",
@@ -111,14 +112,30 @@ func fastIBD() error {
 						Value:       defaultHomeDir,
 						Destination: &cfg.InputPath,
 					},
+					&cli.BoolFlag{
+						Name:        "aidmode",
+						Aliases:     []string{"ai"},
+						Usage:       "Export by block id",
+						Value:       false,
+						Destination: &cfg.AidMode,
+					},
 				},
 				Before: func(c *cli.Context) error {
+					if cfg.AidMode {
+						return aidnode.init(cfg)
+					}
 					return node.init(cfg)
 				},
 				After: func(c *cli.Context) error {
+					if cfg.AidMode {
+						return aidnode.exit()
+					}
 					return node.exit()
 				},
 				Action: func(c *cli.Context) error {
+					if cfg.AidMode {
+						return aidnode.Upgrade()
+					}
 					return node.Upgrade()
 				},
 			},

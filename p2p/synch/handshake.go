@@ -84,7 +84,7 @@ func (ps *PeerSync) immediatelyConnected(pe *peers.Peer) {
 	defer pe.HSlock.Unlock()
 
 	if !pe.ConnectionState().IsConnecting() {
-		go ps.PeerUpdate(pe, false, true)
+		go ps.PeerUpdate(pe, true)
 		return
 	}
 	ps.Connection(pe)

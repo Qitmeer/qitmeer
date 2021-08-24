@@ -65,7 +65,7 @@ func (s *Sync) graphStateHandler(ctx context.Context, msg interface{}, stream li
 		return ErrMessage(err)
 	}
 	pe.UpdateGraphState(m)
-	go s.peerSync.PeerUpdate(pe, false, false)
+	go s.peerSync.PeerUpdate(pe, false)
 
 	e := s.EncodeResponseMsg(stream, s.getGraphState())
 	if e != nil {
@@ -86,7 +86,7 @@ func (ps *PeerSync) processUpdateGraphState(pe *peers.Peer) error {
 		return err
 	}
 	pe.UpdateGraphState(gs)
-	go ps.PeerUpdate(pe, false, false)
+	go ps.PeerUpdate(pe, false)
 	return nil
 }
 
