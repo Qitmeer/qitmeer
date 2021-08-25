@@ -1,4 +1,4 @@
-package mining
+package coinbase
 
 import (
 	"github.com/Qitmeer/qitmeer/params"
