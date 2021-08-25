@@ -75,8 +75,10 @@ var TestNetParams = Params{
 	},
 	CoinbaseConfig: CoinbaseConfigs{
 		{
-			Height:  61279,
-			Version: "0.10.4",
+			Height:                    61279,
+			Version:                   "0.10.4",
+			ExtraDataIncludedVer:      true,
+			ExtraDataIncludedNodeInfo: true,
 		},
 	},
 	ReduceMinDifficulty:      false,

@@ -303,7 +303,7 @@ func (cf *CoinbaseConfigs) CheckVersion(curHeight int64, coinbase []byte) bool {
 
 func (cf *CoinbaseConfigs) GetCurrentVersion(curHeight int64) string {
 	current := cf.GetCurrentConfig(curHeight)
-	if current != nil {
+	if current != nil && current.ExtraDataIncludedVer {
 		return current.Version
 	}
 	return ""
