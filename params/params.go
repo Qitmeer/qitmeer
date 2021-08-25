@@ -287,12 +287,11 @@ type Params struct {
 	CoinbaseConfig CoinbaseConfigs
 }
 
-
 type CoinbaseConfig struct {
-	Height  int64
-	Version string
-	ExtraDataIncludedVer   bool
-	ExtraDataIncludedNodeInfo  bool
+	Height                    int64
+	Version                   string
+	ExtraDataIncludedVer      bool
+	ExtraDataIncludedNodeInfo bool
 }
 
 type CoinbaseConfigs []CoinbaseConfig
@@ -304,23 +303,23 @@ func (cf *CoinbaseConfigs) CheckVersion(curHeight int64, coinbase []byte) bool {
 
 func (cf *CoinbaseConfigs) GetCurrentVersion(curHeight int64) string {
 	current := cf.GetCurrentConfig(curHeight)
-	if current != nil  {
+	if current != nil {
 		return current.Version
 	}
 	return ""
 }
 
 func (cf *CoinbaseConfigs) GetCurrentConfig(curHeight int64) *CoinbaseConfig {
-	var cc *CoinbaseConfig = nil;
-	for _, config := range *cf {
+	var cc *CoinbaseConfig = nil
+	for i := 0; i < len(*cf); i++ {
+		config := (*cf)[i]
 		if config.Height > curHeight {
-			break;
+			break
 		}
-		cc = &config;
+		cc = &config
 	}
 	return cc
 }
-
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax
 // proportions.

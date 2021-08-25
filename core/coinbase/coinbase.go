@@ -6,13 +6,13 @@ import (
 )
 
 type CoinbaseGenerator struct {
-	 configs *params.CoinbaseConfigs
-	 nodeInfo string
+	configs  *params.CoinbaseConfigs
+	nodeInfo string
 }
 
-func NewCoinbaseGenerator(param *params.Params, nodeInfo string) *CoinbaseGenerator{
+func NewCoinbaseGenerator(param *params.Params, nodeInfo string) *CoinbaseGenerator {
 	return &CoinbaseGenerator{
-		configs: &param.CoinbaseConfig,
+		configs:  &param.CoinbaseConfig,
 		nodeInfo: nodeInfo,
 	}
 }
@@ -28,5 +28,9 @@ func (cg *CoinbaseGenerator) BuildExtraData(curHeight int64) string {
 			sb.WriteString(cg.nodeInfo)
 		}
 	}
-	return sb.String();
+	return sb.String()
+}
+
+func (cg *CoinbaseGenerator) PeerID() string {
+	return cg.nodeInfo
 }

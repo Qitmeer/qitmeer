@@ -172,7 +172,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 	// system stays reasonably responsive under heavy load.
 	defaultNumWorkers := uint32(params.CPUMinerThreads) //TODO, move to config
 
-	qm.cpuMiner = miner.NewCPUMiner(qm.node.peerServer.PeerID().String(), cfg, node.Params, &policy, qm.sigCache,
+	qm.cpuMiner = miner.NewCPUMiner(cfg, node.Params, &policy, qm.sigCache,
 		qm.txManager.MemPool().(*mempool.TxPool), qm.timeSource, qm.blockManager, defaultNumWorkers)
 	// init address api
 	qm.addressApi = address.NewAddressApi(cfg, node.Params)
