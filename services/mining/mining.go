@@ -74,10 +74,13 @@ func MedianAdjustedTime(bc *blockchain.BlockChain, timeSource blockchain.MedianT
 	return newTimestamp
 }
 
-func standardCoinbaseScript(nextBlockHeight uint64, extraNonce uint64, coinbaseVersion string) ([]byte, error) {
-	return txscript.NewScriptBuilder().AddInt64(int64(nextBlockHeight)).
-		AddInt64(int64(extraNonce)).AddData([]byte(CoinbaseFlags)).AddData([]byte(coinbaseVersion)).
-		Script()
+func standardCoinbaseScript(nextBlockHeight uint64, extraNonce uint64, extraData string) ([]byte, error) {
+	scriptBuilder := txscript.NewScriptBuilder().AddInt64(int64(nextBlockHeight)).
+		AddInt64(int64(extraNonce)).AddData([]byte(CoinbaseFlags))
+	if extraData != "" {
+		scriptBuilder = scriptBuilder.AddData([]byte(extraData))
+	}
+	return scriptBuilder.Script()
 }
 
 // standardCoinbaseOpReturn creates a standard OP_RETURN output to insert into

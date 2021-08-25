@@ -27,5 +27,9 @@ cmd/nx-hd/nx-hd
 cmd/payledger/payledger
 cmd/qitmeerd/qitmeerd
 cmd/rlpdump/rlpdump
+cmd/crawler/crawler
+cmd/crawler/crawler-data/
+cmd/relaynode/relay/
+cmd/relaynode/relaynode
 *_checksum.txt
 rpc/client/example/qitmeerwalletwebsocket/qitmeerwalletwebsocket

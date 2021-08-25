@@ -118,7 +118,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		mainp := blockManager.GetChain().BlockDAG().GetMainParent(blockManager.GetChain().BlockDAG().GetIdSet(parents))
 		nextBlockHeight = uint64(mainp.GetHeight() + 1)
 	}
-	coinbaseScript, err := standardCoinbaseScript(nextBlockHeight, extraNonce, params.CoinbaseVersionConfig.GetCurrentVersion(int64(nextBlockHeight)))
+	coinbaseScript, err := standardCoinbaseScript(nextBlockHeight, extraNonce, policy.CoinbaseGenerator.BuildExtraData(int64(nextBlockHeight)))
 	if err != nil {
 		return nil, err
 	}

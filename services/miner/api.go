@@ -464,7 +464,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		StateRoot:    template.Block.Header.StateRoot.String(),
 		CurTime:      template.Block.Header.Timestamp.Unix(),
 		Height:       int64(template.Height),
-		NodeInfo:     version.String() + ":" + api.miner.nodeInfo,
+		NodeInfo:     version.String() + ":" + api.miner.policy.CoinbaseGenerator.PeerID(),
 		Blues:        template.Blues,
 		PreviousHash: template.Block.Header.ParentRoot.String(),
 		WeightLimit:  types.MaxBlockWeight,
@@ -490,7 +490,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		// TODO, Capabilities
 		Capabilities:    gbtCapabilities,
 		BlockFeesMap:    blockFeeMap,
-		CoinbaseVersion: api.miner.params.CoinbaseVersionConfig.GetCurrentVersion(int64(template.Height)),
+		CoinbaseVersion: api.miner.params.CoinbaseConfig.GetCurrentVersion(int64(template.Height)),
 	}
 
 	if useCoinbaseValue {

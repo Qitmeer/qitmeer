@@ -284,36 +284,41 @@ type Params struct {
 
 	LedgerParams ledger.LedgerParams
 
-	CoinbaseVersionConfig CoinbaseVersionConfig
+	CoinbaseConfig CoinbaseConfigs
 }
 
 type CoinbaseConfig struct {
-	Height  int64
-	Version string
+	Height                    int64
+	Version                   string
+	ExtraDataIncludedVer      bool
+	ExtraDataIncludedNodeInfo bool
 }
 
-type CoinbaseVersionConfig []CoinbaseConfig
+type CoinbaseConfigs []CoinbaseConfig
 
-func (cv *CoinbaseVersionConfig) Check(curHeight int64, coinbase []byte) bool {
-	version := cv.GetCurrentVersion(curHeight)
-	if version == "" || strings.Contains(string(coinbase), version) {
-		return true
-	}
-	return false
+func (cf *CoinbaseConfigs) CheckVersion(curHeight int64, coinbase []byte) bool {
+	version := cf.GetCurrentVersion(curHeight)
+	return version == "" || strings.Contains(string(coinbase), version)
 }
 
-func (cv *CoinbaseVersionConfig) GetCurrentVersion(curHeight int64) string {
-	if len(*cv) < 1 {
-		return ""
+func (cf *CoinbaseConfigs) GetCurrentVersion(curHeight int64) string {
+	current := cf.GetCurrentConfig(curHeight)
+	if current != nil && current.ExtraDataIncludedVer {
+		return current.Version
 	}
-	cc := CoinbaseConfig{}
-	for i := 0; i < len(*cv); i++ {
-		if (*cv)[i].Height > curHeight {
+	return ""
+}
+
+func (cf *CoinbaseConfigs) GetCurrentConfig(curHeight int64) *CoinbaseConfig {
+	var cc *CoinbaseConfig = nil
+	for i := 0; i < len(*cf); i++ {
+		config := (*cf)[i]
+		if config.Height > curHeight {
 			break
 		}
-		cc = (*cv)[i]
+		cc = &config
 	}
-	return cc.Version
+	return cc
 }
 
 // TotalSubsidyProportions is the sum of POW Reward, POS Reward, and Tax
