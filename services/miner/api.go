@@ -490,7 +490,7 @@ func (state *gbtWorkState) blockTemplateResult(api *PublicMinerAPI, useCoinbaseV
 		// TODO, Capabilities
 		Capabilities:    gbtCapabilities,
 		BlockFeesMap:    blockFeeMap,
-		CoinbaseVersion: api.miner.params.CoinbaseVersionConfig.GetCurrentVersion(int64(template.Height)),
+		CoinbaseVersion: api.miner.params.CoinbaseConfig.GetCurrentVersion(int64(template.Height)),
 	}
 
 	if useCoinbaseValue {

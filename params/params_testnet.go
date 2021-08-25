@@ -73,7 +73,7 @@ var TestNetParams = Params{
 		// after this height the big graph will be the main pow graph
 		AdjustmentStartMainHeight: 365 * 1440 * 60 / testTargetTimePerBlock,
 	},
-	CoinbaseVersionConfig: []CoinbaseConfig{
+	CoinbaseConfig: CoinbaseConfigs{
 		{
 			Height:  61279,
 			Version: "0.10.4",

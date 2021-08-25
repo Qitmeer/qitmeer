@@ -164,6 +164,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 		StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
 			return common.StandardScriptVerifyFlags()
 		}, //TODO, duplicated config item with mem-pool
+		CoinbaseGenerator: mining.NewCoinbaseGenerator(node.Params, string(qm.node.peerServer.PeerID())),
 	}
 	// defaultNumWorkers is the default number of workers to use for mining
 	// and is based on the number of processor cores.  This helps ensure the

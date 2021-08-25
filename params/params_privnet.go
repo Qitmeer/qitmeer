@@ -95,7 +95,7 @@ var PrivNetParams = Params{
 		// after this height the big graph will be the main pow graph
 		AdjustmentStartMainHeight: 45 * 1440 * 60 / privTargetTimePerBlock,
 	},
-	CoinbaseVersionConfig: []CoinbaseConfig{
+	CoinbaseConfig: CoinbaseConfigs{
 		{
 			Height:  0,
 			Version: "0.10.1",

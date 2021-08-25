@@ -38,4 +38,8 @@ type Policy struct {
 	//
 	// This function must be safe for concurrent access.
 	StandardVerifyFlags func() (txscript.ScriptFlags, error)
+
+	// CoinbaseGenerator
+	CoinbaseGenerator *CoinbaseGenerator
+
 }
