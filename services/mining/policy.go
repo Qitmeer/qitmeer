@@ -7,6 +7,7 @@
 package mining
 
 import (
+	"github.com/Qitmeer/qitmeer/core/coinbase"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 )
 
@@ -38,4 +39,8 @@ type Policy struct {
 	//
 	// This function must be safe for concurrent access.
 	StandardVerifyFlags func() (txscript.ScriptFlags, error)
+
+	// CoinbaseGenerator
+	CoinbaseGenerator *coinbase.CoinbaseGenerator
+
 }

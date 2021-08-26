@@ -2,7 +2,8 @@ Table of Contents
 =================
 
    * [Qitmeer Testnet](#qitmeer-testnet)
-      * [v0.10.x 2021/07/25 (Umayyad1.0)](#v0102-20210728-umayyad10)
+      * [v0.10.4 (Consensus Changes)](#v0104-consensus-changes)
+      * [v0.10.2 2021/07/28 (Umayyad1.0)](#v0102-20210728-umayyad10)
       * [v0.9.x 2020/06/24 (Medina2.0)](#v09x-20200624-medina20)
       * [v0.8.5 2019/12/30 (Medina)](#v085-20191230-medina)
       * [v0.8.4 2019/12/17](#v084-20191217)
@@ -21,6 +22,54 @@ Table of Contents
       * [v0.7.8](#v078)
 
 # Qitmeer Testnet
+
+## v0.10.4 (Consensus Changes)
+| Umayyad1.0         |     Info             |
+| -------------------|----------------------|
+| **Testnet Type**   | Public               |
+| **Version**        | *0.10.4*             |
+| **v0.10.1/2/3 Consensus** | `0` to `157774`     |
+| *Order* & *Hash*   | `157774` `b5bc2b4720640b468a8bd0b0ee74df2bdc03e2dfa9d8c9d59fdf0c79445e24caf`|
+| **Interm GState Fork**    | `157775` to `177809`|
+| *Order* & *Hash*   | `157775`  `f7ecb384fadeb81c106fa27826c5f7b4d850e47e073dd280678efe075b12414e`|
+|                    | `157776`  `43ec3168672ce12120980b8db3538f72cae0b7c07eb0a08c3958bc9b6b4480ef`|
+|                    | `157777`  `b1ad8b35cf4126684a3611e3bed62fba98c42dc53a4e449f58249a419ca8f4e2`|
+|                    | `157778`  `5f32a49b4ac0e311c15db3e61462251e9455c86f31bd341d759ad5310eda38e3`|
+|                    | `157779`  `1ef71517070eac9282098964ce3daf223eebb13109b33298e513fad4595f5190`|
+|                    | `157780`  `c4dbbefcd35cd2d003b4d37c6540f34712d64f41dde78824dd11a6257be9a23d`|
+|                    | `157781`  `7b27f0661d79cd17f279c21b7c08b44977b9ad2bd1596d63ee340cc6ccb810ef`|
+|                    | `157782`  `39cc4945ab01ea14e07f67e1d3d4afe50f772d347b11a2eb57434893cee4d951`|
+|                    | `157783`  `123590de97b37b6388b2ea56363822339512a403cf4fb57968f9b392323dc3d8`|
+|                    | `157784`  `86f88c1dc0a1d1c1d4598ff6cdf453573ce5de0a3994d4882f5ef9e703a42a2b`|
+|                    | `157785`  `4908462f0b2f5d0a9e48246978f9a8372206cd7b5dc31166c4c0039f077d30c0`|
+|                    | `157786`  `101dfcc8b3e067d0555750e1010fa700b0fdc0cf94a6f66773f57e3e7ada9946`|
+|                    | `157787`  `bc2ecf487b8869b7e8f4c9deae01f3ea8914810b13db48aa880c50608c4ebae6`|
+|                    | `157788`  `07c62be558d2019c515d1feffa2fd3b4f7f3f457e682f07c034513cc45adb898`|
+|                    | `157789`  `af854974bf6c7234f813dfec2db060f79fd37d85062e6941d56a5556182fbeda`|
+|                    | `157790`  `40655951cf9abcfaa652c1b9e924bff46964f10d5e235f659b3dbc2a8d6f1636`|
+|                    | `157791`  `3a1fbb2184c5754ff578b0d7aa7d0ef1496a7d295222bbc36436f3ef0d71e213`|
+|                    | `157792`  `c7869b87271b3860a075f29775c655b3a858e6f3794d5963b8de6650233d6994`|
+|                    | `157793`  `22a8504123efa932fb1662804f5202a76056db50a0789d52ad8c185a6d2b5ec9`|
+|                    | `157794`  `a130bbd11165322724437c432b192e4db5c3671b6012b1be29a232bde7db4d3b`|
+|                    | `157795`  `49ff7d95fcf6fe06828cf982782872f35affd46ae5bd5a482a65b8d3ff41793b`|
+|                    | `157796`  `f21159dfe9de752a9be98c128961d0b0394be2c828a09826f45002374359becb`|
+|                    | `157797`  `c7e2b3df52143a4048ce2e2eeb4ccdfa53733830f8e62dcaad5e6781015aa115`|
+|                    | `157798`  `176f07d6ac95fa110ba70c7c87b3683a9e17db480060c552b1f3c9a3a674f5af`|
+|                    | `157799`  `054d29760e622ce37654d38380f7533d693b4142bf5bbfb51aa0c81c7026d5d6`|
+|                    | `157800`  `08cde3e38f701ee7e911476ce611d1ee37f1c1fa39b1ba8128a591c61b70123f`|
+|                    | `157801`  `393264de7bf5f2c05627404fef005b6386d1feeeaff647e554c3a06a52d1af81`|
+|                    | `157802`  `8cfe26f8b0901dad02fa811a4c3e402d0729d92afde204aa3cb080c4f3562679`|
+|                    | `157803`  `88eb0f6b89cbc958bb2bc33cd640eb4b6a6d3332a2f39c64217b70b820444c67`|
+|                    | `157804`  `62ab2274b73dad4732dca86f1dba93fd89e0042e8d681021d07ae972a7255335`|
+|                    | `157805`  `96288bf693ee926791ad4dbf3c8747e1ab6e68233f1c70d94e2ffa954984b75d`|
+|                    | `157806`  `66ffd893bec0af7f1ea184fdae483ce225a21da1b8e846d58e6bf7a82dad9251`|
+|                    | `157807`  `05d1037233715b6206d4d4928e9e1c10a980a56c85abb7be46ae18c29478a3c5`|
+|                    | `157808`  `3d69258f3fd57f2e76d4c62a2c6fd10e31e5ed05f761f7cf40685dba713da6b7`|
+|                    | `157809`  `c051b52901b88948174f82eadaae60afb5d47243783eb7c5b7edad8b622fb085`|
+| **v0.10.4 Consensus** | Since `157810` |
+| *Order* & *Hash*   | `157810` `1dec825d1630150c755773ae61b954da2fd9c5139ce8df811a7c073c83794d2e` |
+| *Date*             | `2021-08-24_16:50:43 CST` |
+
 
 ## v0.10.2 2021/07/28 (Umayyad1.0)
 | Umayyad1.0         |     Info             |

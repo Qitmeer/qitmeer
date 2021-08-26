@@ -66,6 +66,11 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 		return err
 	}
 
+	// TODO this hard code fork
+	if !chainParams.CoinbaseConfig.CheckVersion(int64(height), block.Block().Transactions[0].TxIn[0].GetSignScript()) {
+		return ruleError(ErrorCoinbaseBlockVersion, "block coinbase version error")
+	}
+
 	err = checkBlockHeaderSanity(header, timeSource, flags, chainParams, uint(height))
 	if err != nil {
 		return err

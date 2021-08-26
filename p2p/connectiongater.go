@@ -19,6 +19,9 @@ import (
 
 // InterceptPeerDial tests whether we're permitted to Dial the specified peer.
 func (s *Service) InterceptPeerDial(p peer.ID) (allow bool) {
+	if s.sy.IsWhitePeer(p) {
+		return true
+	}
 	if s.isPeerAtLimit() {
 		log.Trace(fmt.Sprintf("peer:%s reason:at peer max limit", p.String()))
 		return false
@@ -28,7 +31,10 @@ func (s *Service) InterceptPeerDial(p peer.ID) (allow bool) {
 
 // InterceptAddrDial tests whether we're permitted to dial the specified
 // multiaddr for the given peer.
-func (s *Service) InterceptAddrDial(_ peer.ID, m multiaddr.Multiaddr) (allow bool) {
+func (s *Service) InterceptAddrDial(p peer.ID, m multiaddr.Multiaddr) (allow bool) {
+	if s.sy.IsWhitePeer(p) {
+		return true
+	}
 	if s.isPeerAtLimit() {
 		log.Trace(fmt.Sprintf("peer:%s reason:at peer max limit", m.String()))
 		return false
@@ -40,10 +46,6 @@ func (s *Service) InterceptAddrDial(_ peer.ID, m multiaddr.Multiaddr) (allow boo
 func (s *Service) InterceptAccept(n network.ConnMultiaddrs) (allow bool) {
 	if s.cfg.DisableListen {
 		log.Trace(fmt.Sprintf("peer:%s reason:Not accepting inbound dial", n.RemoteMultiaddr()))
-		return false
-	}
-	if s.isInboundPeerAtLimit() {
-		log.Trace(fmt.Sprintf("peer:%s reason:at peer limit,Not accepting inbound dial", n.RemoteMultiaddr()))
 		return false
 	}
 	return filterConnections(s.addrFilter, n.RemoteMultiaddr())

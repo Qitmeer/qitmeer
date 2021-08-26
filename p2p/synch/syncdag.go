@@ -98,17 +98,17 @@ func debugSyncDAG(m *pb.SyncDAG) string {
 	size := len(m.MainLocator)
 	for i, h := range m.MainLocator {
 		sb.WriteString(changePBHashToHash(h).String())
-		if i + 1 < size {
+		if i+1 < size {
 			sb.WriteString(",")
 		}
 	}
 	sb.WriteString("]")
-	sb.WriteString(fmt.Sprintf(", size=%d ",size))
-	return sb.String();
+	sb.WriteString(fmt.Sprintf(", size=%d ", size))
+	return sb.String()
 }
 
 func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
-	log.Trace(fmt.Sprintf("processSyncDAGBlocks peer=%v ", pe.GetID()));
+	log.Trace(fmt.Sprintf("processSyncDAGBlocks peer=%v ", pe.GetID()))
 	if !ps.isSyncPeer(pe) || !pe.IsConnected() {
 		return fmt.Errorf("no sync peer")
 	}
@@ -116,22 +116,24 @@ func (ps *PeerSync) processSyncDAGBlocks(pe *peers.Peer) error {
 	point := pe.SyncPoint()
 	mainLocator := ps.dagSync.GetMainLocator(point)
 	sd := &pb.SyncDAG{MainLocator: changeHashsToPBHashs(mainLocator), GraphState: ps.sy.getGraphState()}
-	log.Trace(fmt.Sprintf("processSyncDAGBlocks sendSyncDAG point=%v, sd=%v",point.String(), debugSyncDAG(sd)));
+	log.Trace(fmt.Sprintf("processSyncDAGBlocks sendSyncDAG point=%v, sd=%v", point.String(), debugSyncDAG(sd)))
 	subd, err := ps.sy.sendSyncDAGRequest(ps.sy.p2p.Context(), pe.GetID(), sd)
 	if err != nil {
-		log.Trace(fmt.Sprintf("processSyncDAGBlocks err=%v ", err.Error()));
+		log.Trace(fmt.Sprintf("processSyncDAGBlocks err=%v ", err.Error()))
+		ps.updateSyncPeer(true)
 		return err
 	}
 	log.Trace(fmt.Sprintf("processSyncDAGBlocks result graphstate=(%v,%v,%v), blocks=%v ",
 		subd.GraphState.MainOrder, subd.GraphState.MainHeight, subd.GraphState.Layer,
-		len(subd.Blocks)));
+		len(subd.Blocks)))
 	pe.UpdateSyncPoint(changePBHashToHash(subd.SyncPoint))
 	pe.UpdateGraphState(subd.GraphState)
 
 	if len(subd.Blocks) <= 0 {
-		return nil
+		ps.updateSyncPeer(true)
+		return fmt.Errorf("No sync dag blocks")
 	}
-	log.Trace(fmt.Sprintf("processSyncDAGBlocks do GetBlockDatas blocks=%v ", len(subd.Blocks)));
+	log.Trace(fmt.Sprintf("processSyncDAGBlocks do GetBlockDatas blocks=%v ", len(subd.Blocks)))
 	go ps.GetBlockDatas(pe, changePBHashsToHashs(subd.Blocks))
 
 	return nil

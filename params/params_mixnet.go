@@ -47,6 +47,7 @@ var MixNetParams = Params{
 		GenesisAmountUnit:    1000 * 1e8,  // 100 MEER every utxo
 		UnlocksPerHeightStep: 5760,        // 1 day block heights
 	},
+	CoinbaseConfig: CoinbaseConfigs{},
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             testMixNetPowLimit,
 		Blake2bdPowLimitBits:         0x2003ffff,

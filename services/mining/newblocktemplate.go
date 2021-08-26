@@ -118,8 +118,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		mainp := blockManager.GetChain().BlockDAG().GetMainParent(blockManager.GetChain().BlockDAG().GetIdSet(parents))
 		nextBlockHeight = uint64(mainp.GetHeight() + 1)
 	}
-
-	coinbaseScript, err := standardCoinbaseScript(nextBlockHeight, extraNonce)
+	coinbaseScript, err := standardCoinbaseScript(nextBlockHeight, extraNonce, policy.CoinbaseGenerator.BuildExtraData(int64(nextBlockHeight)))
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +132,6 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	if err != nil {
 		return nil, err
 	}
-
 	coinbaseSigOpCost := int64(blockchain.CountSigOps(coinbaseTx))
 	// Get the current source transactions and create a priority queue to
 	// hold the transactions which are ready for inclusion into a block

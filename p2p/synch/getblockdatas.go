@@ -18,6 +18,7 @@ import (
 	libp2pcore "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"sync/atomic"
+	"time"
 )
 
 const BLOCKDATA_SSZ_HEAD_SIZE = 4
@@ -196,6 +197,7 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 		blocksReady = append(blocksReady, b)
 	}
 	if len(blocksReady) <= 0 {
+		ps.continueSync(false)
 		return nil
 	}
 	if !ps.longSyncMod {
@@ -204,15 +206,18 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 			ps.longSyncMod = true
 		}
 	}
-
+	log.Trace(fmt.Sprintf("processGetBlockDatas sendGetBlockDataRequest peer=%v, blocks=%v ",pe.GetID(), blocksReady))
 	bd, err := ps.sy.sendGetBlockDataRequest(ps.sy.p2p.Context(), pe.GetID(), &pb.GetBlockDatas{Locator: changeHashsToPBHashs(blocksReady)})
 	if err != nil {
 		log.Warn(fmt.Sprintf("getBlocks send:%v", err))
+		ps.updateSyncPeer(true)
 		return err
 	}
 	behaviorFlags := blockchain.BFP2PAdd
 	add := 0
 	hasOrphan := false
+
+	lastSync := ps.lastSync
 
 	for _, b := range bd.Locator {
 		if atomic.LoadInt32(&ps.shutdown) != 0 {
@@ -233,8 +238,9 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 			break
 		}
 		add++
+		ps.lastSync = time.Now()
 	}
-	log.Debug(fmt.Sprintf("getBlockDatas:%d/%d", add, len(bd.Locator)))
+	log.Debug(fmt.Sprintf("getBlockDatas:%d/%d  spend:%s", add, len(bd.Locator), time.Since(lastSync).Truncate(time.Second).String()))
 
 	if add > 0 {
 		ps.sy.p2p.TxMemPool().PruneExpiredTx()
@@ -250,16 +256,10 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 				ps.longSyncMod = false
 			}
 		}
-
-		if !hasOrphan {
-			go ps.UpdateGraphState(pe)
-		}
 	} else {
 		err = fmt.Errorf("no get blocks")
 	}
-	if add < len(bd.Locator) {
-		go ps.PeerUpdate(pe, hasOrphan, false)
-	}
+	ps.continueSync(hasOrphan)
 	return err
 }
 

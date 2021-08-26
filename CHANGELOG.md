@@ -1,4 +1,9 @@
 # Changelog
+## [0.10.4] - 2021-08-25
+- Consensus upgrading
+  - BlockDAG consensus improvement of the ability to process the massive concurrent blocks.
+  - Accordingly, The miner protocol changes to limit the empty block generation.
+
 ## [0.10.3] - 2021-08-17
 - A lot of optimization & bug fixes for the P2P network and the DAG synchronization.
 - upgrade the network protocol version to 33. 

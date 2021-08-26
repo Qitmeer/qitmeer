@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,7 +22,7 @@ import (
 const (
 	// stallSampleInterval the interval at which we will check to see if our
 	// sync has stalled.
-	stallSampleInterval = 300 * time.Second
+	stallSampleInterval = 30 * time.Second
 )
 
 type PeerSync struct {
@@ -29,6 +30,7 @@ type PeerSync struct {
 
 	splock   sync.RWMutex
 	syncPeer *peers.Peer
+	lastSync time.Time
 	// dag sync
 	dagSync *blockdag.DAGSync
 
@@ -94,7 +96,7 @@ out:
 			case *GetBlockDatasMsg:
 				err := ps.processGetBlockDatas(msg.pe, msg.blocks)
 				if err != nil {
-					go ps.PeerUpdate(msg.pe, false, false)
+					log.Debug(err.Error())
 				}
 			case *GetDatasMsg:
 				_ = ps.OnGetData(msg.pe, msg.data.Invs)
@@ -108,10 +110,10 @@ out:
 				ps.OnMemPool(msg.pe, msg.data)
 
 			case *UpdateGraphStateMsg:
-				log.Trace(fmt.Sprintf("UpdateGraphStateMsg recevied from %v, state=%v ", msg.pe.GetID(), msg.pe.GraphState()));
-				err :=ps.processUpdateGraphState(msg.pe)
-				if err!= nil {
-					log.Trace(err.Error());
+				log.Trace(fmt.Sprintf("UpdateGraphStateMsg recevied from %v, state=%v ", msg.pe.GetID(), msg.pe.GraphState()))
+				err := ps.processUpdateGraphState(msg.pe)
+				if err != nil {
+					log.Trace(err.Error())
 				}
 			case *syncDAGBlocksMsg:
 				err := ps.processSyncDAGBlocks(msg.pe)
@@ -119,7 +121,7 @@ out:
 					log.Debug(err.Error())
 				}
 			case *PeerUpdateMsg:
-				ps.OnPeerUpdate(msg.pe, msg.orphan)
+				ps.OnPeerUpdate(msg.pe)
 			case *getTxsMsg:
 				err := ps.processGetTxs(msg.pe, msg.txs)
 				if err != nil {
@@ -162,6 +164,11 @@ func (ps *PeerSync) handleStallSample() {
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
+	if ps.HasSyncPeer() {
+		if time.Since(ps.lastSync) >= ps.sy.PeerInterval {
+			ps.updateSyncPeer(true)
+		}
+	}
 }
 
 func (ps *PeerSync) Pause() chan<- struct{} {
@@ -182,6 +189,10 @@ func (ps *PeerSync) SetSyncPeer(pe *peers.Peer) {
 	defer ps.splock.Unlock()
 
 	ps.syncPeer = pe
+
+	if pe != nil {
+		ps.lastSync = time.Now()
+	}
 }
 
 func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
@@ -193,9 +204,7 @@ func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
 		ps.sy.p2p.TimeSource().AddTimeSample(pe.GetID().String(), ti)
 	}
 
-	if !ps.HasSyncPeer() {
-		ps.startSync()
-	}
+	ps.updateSyncPeer(false)
 }
 
 func (ps *PeerSync) OnPeerDisconnected(pe *peers.Peer) {
@@ -220,50 +229,25 @@ func (ps *PeerSync) isSyncPeer(pe *peers.Peer) bool {
 	return false
 }
 
-func (ps *PeerSync) PeerUpdate(pe *peers.Peer, orphan bool, immediately bool) {
+func (ps *PeerSync) PeerUpdate(pe *peers.Peer, immediately bool) {
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
 
 	if immediately {
-		ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
+		ps.msgChan <- &PeerUpdateMsg{pe: pe}
 		return
 	}
-	if orphan {
-		pe.RunRate(PeerUpdateOrphan, DefaultRateTaskTime, func() {
-			ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
-		})
-	} else {
-		pe.RunRate(PeerUpdate, DefaultRateTaskTime, func() {
-			ps.msgChan <- &PeerUpdateMsg{pe: pe, orphan: orphan}
-		})
-	}
+
+	pe.RunRate(PeerUpdate, DefaultRateTaskTime, func() {
+		ps.msgChan <- &PeerUpdateMsg{pe: pe}
+	})
 
 }
 
-func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer, orphan bool) {
-	log.Trace(fmt.Sprintf("OnPeerUpdate peer=%v, orphan=%v", pe.GetID(), orphan))
-	sp := ps.SyncPeer()
-	if sp != nil {
-		spgs := sp.GraphState()
-		if !sp.IsConnected() || spgs == nil {
-			ps.updateSyncPeer(true)
-			return
-		}
-		if pe != nil {
-			pegs := pe.GraphState()
-			if pegs != nil {
-				if pegs.IsExcellent(spgs) {
-					ps.updateSyncPeer(true)
-					return
-				}
-			}
-
-		}
-		ps.IntellectSyncBlocks(orphan)
-		return
-	}
+func (ps *PeerSync) OnPeerUpdate(pe *peers.Peer) {
+	log.Trace(fmt.Sprintf("OnPeerUpdate peer=%v", pe.GetID()))
 	ps.updateSyncPeer(false)
 }
 
@@ -309,9 +293,8 @@ func (ps *PeerSync) startSync() {
 		// and fully validate them.  Finally, regression test mode does
 		// not support the headers-first approach so do normal block
 		// downloads when in regression test mode.
-
 		ps.SetSyncPeer(bestPeer)
-		ps.IntellectSyncBlocks(true)
+		ps.IntellectSyncBlocks(true, bestPeer)
 		ps.dagSync.SetGraphState(gs)
 
 	} else {
@@ -341,28 +324,28 @@ func (ps *PeerSync) getBestPeer() *peers.Peer {
 		// the best sync candidate is the most updated peer
 		if bestPeer == nil {
 			bestPeer = sp
+			equalPeers = []*peers.Peer{sp}
 			continue
 		}
 		if gs.IsExcellent(bestPeer.GraphState()) {
 			bestPeer = sp
-			if len(equalPeers) > 0 {
-				equalPeers = equalPeers[0:0]
-			}
+			equalPeers = []*peers.Peer{sp}
 		} else if gs.IsEqual(bestPeer.GraphState()) {
 			equalPeers = append(equalPeers, sp)
 		}
 	}
-	if bestPeer == nil {
+	if len(equalPeers) <= 0 {
 		return nil
 	}
-	if len(equalPeers) > 0 {
-		for _, sp := range equalPeers {
-			if sp.GetID().String() > bestPeer.GetID().String() {
-				bestPeer = sp
-			}
-		}
+	if len(equalPeers) == 1 {
+		return equalPeers[0]
 	}
-	return bestPeer
+
+	index := int(rand.Int63n(int64(len(equalPeers))))
+	if index >= len(equalPeers) {
+		index = 0
+	}
+	return equalPeers[index]
 }
 
 // IsCurrent returns true if we believe we are synced with our peers, false if we
@@ -398,8 +381,8 @@ func (ps *PeerSync) IsCompleteForSyncPeer() bool {
 	return true
 }
 
-func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
-	if !ps.HasSyncPeer() {
+func (ps *PeerSync) IntellectSyncBlocks(refresh bool, pe *peers.Peer) {
+	if pe == nil {
 		log.Trace(fmt.Sprintf("IntellectSyncBlocks has not sync peer, return directly"))
 		return
 	}
@@ -413,11 +396,11 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool) {
 	allOrphan := ps.Chain().GetRecentOrphansParents()
 
 	if len(allOrphan) > 0 {
-		log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.GetBlock, peer=%v,allOrphan=%v ", ps.SyncPeer().GetID(), allOrphan))
-		go ps.GetBlocks(ps.SyncPeer(), allOrphan)
+		log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.GetBlock, peer=%v,allOrphan=%v ", pe.GetID(), allOrphan))
+		go ps.GetBlocks(pe, allOrphan)
 	} else {
-		log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.syncDAGBlocks, peer=%v ", ps.SyncPeer().GetID()))
-		go ps.syncDAGBlocks(ps.SyncPeer())
+		log.Trace(fmt.Sprintf("IntellectSyncBlocks do ps.syncDAGBlocks, peer=%v ", pe.GetID()))
+		go ps.syncDAGBlocks(pe)
 	}
 }
 
@@ -427,6 +410,31 @@ func (ps *PeerSync) updateSyncPeer(force bool) {
 		ps.SetSyncPeer(nil)
 	}
 	ps.startSync()
+}
+
+func (ps *PeerSync) continueSync(orphan bool) {
+	log.Debug("Continue sync peer")
+	sp := ps.SyncPeer()
+	if sp != nil {
+		spgs := sp.GraphState()
+		if !sp.IsConnected() || spgs == nil {
+			ps.updateSyncPeer(true)
+			return
+		}
+		bestPeer := ps.getBestPeer()
+		if bestPeer == nil {
+			ps.updateSyncPeer(true)
+			return
+		}
+		if bestPeer != sp {
+			ps.updateSyncPeer(true)
+			return
+		}
+
+		ps.IntellectSyncBlocks(orphan, sp)
+		return
+	}
+	ps.updateSyncPeer(false)
 }
 
 func (ps *PeerSync) RelayInventory(data interface{}, filters []peer.ID) {

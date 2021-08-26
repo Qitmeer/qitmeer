@@ -337,6 +337,9 @@ const (
 
 	// numErrorCodes is the maximum error code number used in tests.
 	numErrorCodes
+
+	// error coinbase block version
+	ErrorCoinbaseBlockVersion
 )
 
 // Map of ErrorCode values back to their constant names for pretty printing.
@@ -408,8 +411,9 @@ var errorCodeStrings = map[ErrorCode]string{
 	ErrInValidPowType:  "ErrInValidPowType",
 	ErrInvalidPow:      "ErrInvalidPow",
 
-	ErrNoBlueCoinbase: "ErrNoBlueCoinbase",
-	ErrNoViewpoint:    "ErrNoViewpoint",
+	ErrNoBlueCoinbase:         "ErrNoBlueCoinbase",
+	ErrNoViewpoint:            "ErrNoViewpoint",
+	ErrorCoinbaseBlockVersion: "ErrorCoinbaseBlockVersion",
 }
 
 // String returns the ErrorCode as a human-readable name.

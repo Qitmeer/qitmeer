@@ -373,6 +373,7 @@ func (ph *Phantom) updateMainOrder(path []uint, intersection uint) {
 		ph.bd.lastSnapshot.AddOrder(curBlock)
 		curBlock.SetOrder(startOrder + uint(curBlock.blueDiffAnticone.Size()+curBlock.redDiffAnticone.Size()+1))
 		ph.bd.commitOrder[curBlock.GetOrder()] = curBlock.GetID()
+		ph.bd.commitBlock.AddPair(curBlock.GetID(), curBlock)
 
 		ph.mainChain.commitBlocks.AddPair(curBlock.GetID(), true)
 		for k, v := range curBlock.blueDiffAnticone.GetMap() {
@@ -380,12 +381,14 @@ func (ph *Phantom) updateMainOrder(path []uint, intersection uint) {
 			ph.bd.lastSnapshot.AddOrder(dab)
 			dab.SetOrder(startOrder + v.(uint))
 			ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
+			ph.bd.commitBlock.AddPair(dab.GetID(), dab)
 		}
 		for k, v := range curBlock.redDiffAnticone.GetMap() {
 			dab := ph.getBlock(k)
 			ph.bd.lastSnapshot.AddOrder(dab)
 			dab.SetOrder(startOrder + v.(uint))
 			ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
+			ph.bd.commitBlock.AddPair(dab.GetID(), dab)
 		}
 		startOrder = curBlock.GetOrder()
 	}
@@ -427,12 +430,14 @@ func (ph *Phantom) UpdateVirtualBlockOrder() *PhantomBlock {
 		ph.bd.lastSnapshot.AddOrder(dab)
 		dab.SetOrder(startOrder + v.(uint))
 		ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
+		ph.bd.commitBlock.AddPair(dab.GetID(), dab)
 	}
 	for k, v := range ph.virtualBlock.redDiffAnticone.GetMap() {
 		dab := ph.getBlock(k)
 		ph.bd.lastSnapshot.AddOrder(dab)
 		dab.SetOrder(startOrder + v.(uint))
 		ph.bd.commitOrder[dab.GetOrder()] = dab.GetID()
+		ph.bd.commitBlock.AddPair(dab.GetID(), dab)
 	}
 	ph.bd.lastSnapshot.AddOrder(ph.virtualBlock)
 	ph.virtualBlock.SetOrder(ph.bd.blockTotal + 1)
@@ -449,6 +454,7 @@ func (ph *Phantom) preUpdateVirtualBlock() *PhantomBlock {
 		dab := ph.getBlock(k)
 		ph.bd.lastSnapshot.AddOrder(dab)
 		dab.SetOrder(MaxBlockOrder)
+		ph.bd.commitBlock.AddPair(dab.GetID(), dab)
 	}
 	return nil
 }
@@ -483,17 +489,6 @@ func (ph *Phantom) GetTipsList() []IBlock {
 func (ph *Phantom) IsOnMainChain(b IBlock) bool {
 	if ph.mainChain.Has(b.GetID()) {
 		return true
-	}
-	for cur := ph.getBlock(ph.mainChain.tip); cur != nil; cur = ph.getBlock(cur.mainParent) {
-		if cur.GetHash().IsEqual(b.GetHash()) {
-			return true
-		}
-		if cur.GetLayer() < b.GetLayer() {
-			break
-		}
-		if cur.mainParent == MaxId {
-			break
-		}
 	}
 	return false
 }
@@ -718,7 +713,7 @@ func (ph *Phantom) IsDAG(parents []IBlock) bool {
 			parentsSet.AddPair(v.GetID(), ib)
 		}
 
-		vb := &Block{hash: hash.ZeroHash, layer: 0}
+		vb := &Block{hash: hash.ZeroHash, layer: 0, id: ph.bd.blockTotal}
 		pb := &PhantomBlock{vb, 0, NewIdSet(), NewIdSet()}
 		pb.parents = parentsSet.Clone()
 
