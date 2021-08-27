@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/common/math"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -706,30 +707,47 @@ func (ph *Phantom) IsDAG(parents []IBlock) bool {
 		return false
 	} else if len(parents) == 1 {
 		return true
-	} else {
-		parentsSet := NewIdSet()
-		for _, v := range parents {
-			ib := v.(IBlock)
-			parentsSet.AddPair(v.GetID(), ib)
+	}
+	parentsSet := NewIdSet()
+
+	for _, v := range parents {
+		ib := v.(IBlock)
+		parentsSet.AddPair(v.GetID(), ib)
+	}
+
+	tp := ph.GetMainParent(parentsSet)
+	ops := NewIdSet()
+	//
+	minTipLayer := uint(math.MaxUint32)
+	for _, v := range parents {
+		ib := v.(IBlock)
+		if ib == nil ||
+			ib.GetID() == tp.GetID() {
+			continue
 		}
-
-		vb := &Block{hash: hash.ZeroHash, layer: 0, id: ph.bd.blockTotal}
-		pb := &PhantomBlock{vb, 0, NewIdSet(), NewIdSet()}
-		pb.parents = parentsSet.Clone()
-
-		// In the past set
-		//vb
-		tp := ph.GetMainParent(parentsSet).(*PhantomBlock)
-		pb.mainParent = tp.GetID()
-		pb.blueNum = tp.blueNum + 1
-		pb.height = tp.height + 1
-
-		diffAnticone := ph.bd.getDiffAnticone(pb, false)
-		if diffAnticone == nil {
-			diffAnticone = NewIdSet()
+		if ib.GetLayer() < minTipLayer {
+			minTipLayer = ib.GetLayer()
 		}
-		inSet := diffAnticone.Intersection(parentsSet)
-		if inSet.IsEmpty() {
+		ops.Add(ib.GetID())
+	}
+	//
+	mainsubdag := NewIdSet()
+	mainsubdag.Add(0)
+
+	mlg := MaxTipLayerGap
+
+	for curMP := tp; curMP != nil && mlg > 0; curMP = ph.bd.getBlockById(curMP.GetMainParent()) {
+		mainsubdag.Add(curMP.GetID())
+		mainsubdag.AddSet(curMP.(*PhantomBlock).GetBlueDiffAnticone())
+		mainsubdag.AddSet(curMP.(*PhantomBlock).GetRedDiffAnticone())
+
+		if curMP.GetLayer() < minTipLayer {
+			mlg--
+		}
+	}
+
+	for k := range ops.GetMap() {
+		if mainsubdag.Has(k) {
 			return false
 		}
 	}
