@@ -50,6 +50,9 @@ const MaxTipLayerGap = 10
 // StableConfirmations
 const StableConfirmations = 10
 
+// Max Priority
+const MaxPriority = int(math.MaxInt32)
+
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
@@ -362,8 +365,9 @@ func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 
 // If the block is illegal dag,will return false.
 // Exclude genesis block
-func (bd *BlockDAG) isDAG(parents []IBlock) bool {
-	return bd.checkLayerGap(parents) &&
+func (bd *BlockDAG) isDAG(parents []IBlock, b IBlockData) bool {
+	return bd.checkPriority(parents, b) &&
+		bd.checkLayerGap(parents) &&
 		bd.checkLegality(parents) &&
 		bd.instance.IsDAG(parents)
 }
@@ -937,6 +941,20 @@ func (bd *BlockDAG) checkLegality(parentsNode []IBlock) bool {
 	}
 
 	return true
+}
+
+// Checking the priority of block legitimacy
+func (bd *BlockDAG) checkPriority(parents []IBlock, b IBlockData) bool {
+	if b.GetPriority() <= 0 {
+		return false
+	}
+	lowPriNum := 0
+	for _, pa := range parents {
+		if pa.GetData().GetPriority() <= 1 {
+			lowPriNum++
+		}
+	}
+	return b.GetPriority() > lowPriNum
 }
 
 // Load from database

@@ -1231,7 +1231,9 @@ func (b *BlockChain) fetchSpendJournal(targetBlock *types.SerializedBlock) ([]Sp
 	return spendEntries, nil
 }
 
-func (b *BlockChain) GetMiningTips() []*hash.Hash {
+// expect priority
+func (b *BlockChain) GetMiningTips(expectPriority int) []*hash.Hash {
+
 	return b.BlockDAG().GetValidTips()
 }
 

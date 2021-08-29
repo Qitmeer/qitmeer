@@ -284,7 +284,7 @@ func (state *gbtWorkState) updateBlockTemplate(api *PublicMinerAPI, useCoinbaseV
 	var targetDifficulty string
 	rand.Seed(roughtime.Now().UnixNano())
 	parentsSet := blockdag.NewHashSet()
-	parentsSet.AddList(m.blockManager.GetChain().GetMiningTips())
+	parentsSet.AddList(m.blockManager.GetChain().GetMiningTips(blockdag.MaxPriority))
 	template := state.template
 	if template == nil || state.parentsSet == nil ||
 		!state.parentsSet.IsEqual(parentsSet) ||

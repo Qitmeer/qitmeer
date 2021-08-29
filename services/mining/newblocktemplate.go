@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -108,13 +107,10 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		return nil, err
 	}
 
-	parentsSet := blockdag.NewHashSet()
 	if parents == nil {
 		parents = blockManager.GetChain().GetMiningTips()
-		parentsSet.AddList(parents)
 		nextBlockHeight = uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
 	} else {
-		parentsSet.AddList(parents)
 		mainp := blockManager.GetChain().BlockDAG().GetMainParent(blockManager.GetChain().BlockDAG().GetIdSet(parents))
 		nextBlockHeight = uint64(mainp.GetHeight() + 1)
 	}
