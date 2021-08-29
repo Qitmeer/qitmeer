@@ -9,11 +9,11 @@ The guardian of trust. The core backend of the qitmeer network.
 
 ## Qitmeer Testnet Notice
 
- The Qitmeer Official Public Testnet is **OPEN** Now. The Code name is the *Medina Network*. Please Join the Medina Network !
+ The Qitmeer Official Public Testnet is **OPEN** Now. The latest Public Testnet is the *Umayyad Network*. Please Join the Umayyad Network !
 
 | Latest Testnet            | Compatible Qitmeer Vesion | Start Date | Type            |
 | ------------------------- |-------------------------- | ---------- | --------------- |
-|[Umayyad Network 1.0](TESTNET.md#v0102-20210728-umayyad10)| v0.10.3  | 2021/07/25 | Official Public Testnet |
+|[Umayyad Network 1.0](TESTNET.md##v0104-consensus-changes)| v0.10.4  | 2021/07/25 | Official Public Testnet |
 |[Medina Network 2.0](TESTNET.md#v09x-20200624-medina20)| v0.9.x    | 2020/06/24 | Official Public Testnet |
 
 
