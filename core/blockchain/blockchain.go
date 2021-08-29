@@ -1443,7 +1443,7 @@ func (b *BlockChain) getBlockData(hash *hash.Hash) blockdag.IBlockData {
 		log.Error(err.Error())
 		return nil
 	}
-	return NewBlockNode(&block.Block().Header, block.Block().Parents)
+	return NewBlockNode(block, block.Block().Parents)
 }
 
 // CalcPastMedianTime calculates the median time of the previous few blocks

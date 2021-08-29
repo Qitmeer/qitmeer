@@ -288,7 +288,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, *list.List, IBlock, bool
 			parents = append(parents, pib)
 		}
 
-		if !bd.isDAG(parents) {
+		if !bd.isDAG(parents, b) {
 			return nil, nil, nil, false
 		}
 	}

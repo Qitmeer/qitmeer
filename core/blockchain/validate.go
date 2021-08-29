@@ -1244,7 +1244,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		return err
 	}
 
-	newNode := NewBlockNode(&block.Block().Header, block.Block().Parents)
+	newNode := NewBlockNode(block, block.Block().Parents)
 	virBlock := b.bd.CreateVirtualBlock(newNode)
 	if virBlock == nil {
 		return ruleError(ErrPrevBlockNotBest, "tipsNode")

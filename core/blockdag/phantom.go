@@ -643,7 +643,7 @@ func (ph *Phantom) GetBlues(parents *IdSet) uint {
 	}
 
 	//vb
-	vb := &Block{hash: hash.ZeroHash, layer: 0, mainParent: MaxId}
+	vb := &Block{hash: hash.ZeroHash, layer: 0, mainParent: MaxId, parents: parents}
 	pb := &PhantomBlock{vb, 0, NewIdSet(), NewIdSet()}
 
 	tp := ph.GetMainParent(parents).(*PhantomBlock)
