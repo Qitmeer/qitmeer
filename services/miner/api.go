@@ -118,13 +118,12 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	}
 
 	// Because it's asynchronous, so you must ensure that all tips are referenced
-	parents := blockdag.NewIdSet()
-	for _, v := range block.Block().Parents {
-		parents.Add(api.miner.blockManager.GetChain().BlockDAG().GetBlockId(v))
+	if len(block.Block().Transactions) <= 0 {
+		return nil, fmt.Errorf("block is illegal")
 	}
-	height, ok := api.miner.blockManager.GetChain().BlockDAG().CheckSubMainChainTip(parents.List())
-	if !ok {
-		return fmt.Sprintf("The tips of block is expired."), nil
+	height, err := blockchain.ExtractCoinbaseHeight(block.Block().Transactions[0])
+	if err != nil {
+		return nil, err
 	}
 	if _, ok := api.submits[int64(height)]; !ok {
 		api.submits[int64(height)] = 0
@@ -132,10 +131,10 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	if api.submits[int64(height)] > 0 && len(block.Transactions()) <= 1 {
 		return nil, rpc.RpcSubmitError("The block has worthless")
 	}
-	block.SetHeight(height)
+	block.SetHeight(uint(height))
 	// Process this block using the same rules as blocks coming from other
 	// nodes.  This will in turn relay it to the network like normal.
-	isOrphan, err := api.miner.blockManager.ProcessBlock(block, blockchain.BFNone)
+	isOrphan, err := api.miner.blockManager.ProcessBlock(block, blockchain.BFRPCAdd)
 	if err != nil {
 		// Anything other than a rule violation is an unexpected error,
 		// so log that error as an internal error.
