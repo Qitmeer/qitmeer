@@ -803,14 +803,29 @@ func (bd *BlockDAG) GetConfirmations(id uint) uint {
 	return 0
 }
 
-func (bd *BlockDAG) GetValidTips() []*hash.Hash {
+func (bd *BlockDAG) GetValidTips(expectPriority int) []*hash.Hash {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 	tips := bd.getValidTips(true)
 
-	result := []*hash.Hash{}
-	for _, v := range tips {
+	result := []*hash.Hash{tips[0].GetHash()}
+	epNum := expectPriority
+	for k, v := range tips {
+		if k == 0 {
+			if v.GetData().GetPriority() <= 1 {
+				epNum--
+			}
+			continue
+		}
+		if v.GetData().GetPriority() > 1 {
+			result = append(result, v.GetHash())
+			continue
+		}
+		if epNum <= 0 {
+			break
+		}
 		result = append(result, v.GetHash())
+		epNum--
 	}
 	return result
 }
@@ -954,7 +969,7 @@ func (bd *BlockDAG) checkPriority(parents []IBlock, b IBlockData) bool {
 			lowPriNum++
 		}
 	}
-	return b.GetPriority() > lowPriNum
+	return b.GetPriority() >= lowPriNum
 }
 
 // Load from database
@@ -1004,6 +1019,31 @@ func (bd *BlockDAG) GetBlues(parents *IdSet) uint {
 	defer bd.stateLock.Unlock()
 
 	return bd.instance.GetBlues(parents)
+}
+
+func (bd *BlockDAG) GetBluesByHash(h *hash.Hash) uint {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.getBluesByBlock(bd.getBlockById(bd.getBlockId(h)))
+}
+
+func (bd *BlockDAG) GetBluesByBlock(ib IBlock) uint {
+	bd.stateLock.Lock()
+	defer bd.stateLock.Unlock()
+
+	return bd.getBluesByBlock(ib)
+}
+
+func (bd *BlockDAG) getBluesByBlock(ib IBlock) uint {
+	if ib == nil {
+		return 0
+	}
+	pb, ok := ib.(*PhantomBlock)
+	if !ok {
+		return 0
+	}
+	return pb.blueNum
 }
 
 // IsBlue

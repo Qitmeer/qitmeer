@@ -1233,8 +1233,7 @@ func (b *BlockChain) fetchSpendJournal(targetBlock *types.SerializedBlock) ([]Sp
 
 // expect priority
 func (b *BlockChain) GetMiningTips(expectPriority int) []*hash.Hash {
-
-	return b.BlockDAG().GetValidTips()
+	return b.BlockDAG().GetValidTips(expectPriority)
 }
 
 func (b *BlockChain) ChainLock() {
