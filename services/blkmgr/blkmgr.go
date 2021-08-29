@@ -384,7 +384,7 @@ out:
 					if !ok {
 						msg.reply <- processBlockResponse{
 							isOrphan: false,
-							err:      fmt.Errorf("The tips of block is expired.\n"),
+							err:      fmt.Errorf("The tips of block is expired:%s\n", msg.block.Hash().String()),
 						}
 						continue
 					}
