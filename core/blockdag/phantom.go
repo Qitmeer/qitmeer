@@ -239,11 +239,11 @@ func (ph *Phantom) sortBlocks(lastBlock uint, blueDiffAnticone *IdSet, toSort *I
 	remaining = remaining.Intersection(diffAnticone)
 
 	blueSet := remaining.Intersection(blueDiffAnticone)
-	blueList := blueSet.SortHashList(false)
+	blueList := blueSet.SortPriorityList(false)
 
 	redSet := remaining.Clone()
 	redSet.RemoveSet(blueSet)
-	redList := redSet.SortHashList(false)
+	redList := redSet.SortPriorityList(false)
 
 	result := []uint{}
 	if lastBlock != MaxId && diffAnticone.Has(lastBlock) && toSort.Has(lastBlock) {

@@ -163,6 +163,25 @@ func (s *IdSet) SortHashList(reverse bool) []uint {
 	return result
 }
 
+func (s *IdSet) SortPriorityList(reverse bool) []uint {
+	list := BlockPrioritySlice{}
+	for _, v := range s.m {
+		item := v.(IBlock)
+		list = append(list, item)
+	}
+	if reverse {
+		sort.Sort(sort.Reverse(list))
+	} else {
+		sort.Sort(list)
+	}
+
+	result := []uint{}
+	for _, v := range list {
+		result = append(result, v.GetID())
+	}
+	return result
+}
+
 func (s *IdSet) IsEqual(other *IdSet) bool {
 	var k uint
 	for k = range s.m {
