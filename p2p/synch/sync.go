@@ -341,7 +341,7 @@ func processError(e *common.Error, stream network.Stream, rpc common.P2PRPC) {
 		}
 	}
 	if e.Code != common.ErrDAGConsensus {
-		log.Warn(fmt.Sprintf("Process error (%s):%s %s", e.Code.String(), e.Error.Error(), peInfo))
+		log.Debug(fmt.Sprintf("Process error (%s):%s %s", e.Code.String(), e.Error.Error(), peInfo))
 	}
 }
 
