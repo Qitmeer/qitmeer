@@ -117,8 +117,10 @@ func (ps *PeerSync) getTxs(pe *peers.Peer, txs []*hash.Hash) {
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
-
-	ps.msgChan <- &getTxsMsg{pe: pe, txs: txs}
+	err := ps.processGetTxs(pe, txs)
+	if err != nil {
+		log.Debug(err.Error())
+	}
 }
 
 func (s *Sync) HandlerMemPool(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {

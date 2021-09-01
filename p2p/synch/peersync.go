@@ -122,11 +122,7 @@ out:
 				}
 			case *PeerUpdateMsg:
 				ps.OnPeerUpdate(msg.pe)
-			case *getTxsMsg:
-				err := ps.processGetTxs(msg.pe, msg.txs)
-				if err != nil {
-					log.Warn(err.Error())
-				}
+
 			case *SyncQNRMsg:
 				err := ps.processQNR(msg)
 				if err != nil {
