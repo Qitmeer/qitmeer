@@ -88,6 +88,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	blockManager *blkmgr.BlockManager, payToAddress types.Address, parents []*hash.Hash, powType pow.PowType) (*types.BlockTemplate, error) {
 	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
 
+	bd := blockManager.GetChain().BlockDAG()
 	best := blockManager.GetChain().BestSnapshot()
 	nextBlockHeight := uint64(0)
 	nextBlockOrder := uint64(best.GraphState.GetTotal())
@@ -108,22 +109,21 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		return nil, err
 	}
 
-	parentsSet := blockdag.NewHashSet()
+	var mainp blockdag.IBlock
 	if parents == nil {
-		parents = blockManager.GetChain().GetMiningTips()
-		parentsSet.AddList(parents)
-		nextBlockHeight = uint64(blockManager.GetChain().BlockDAG().GetMainChainTip().GetHeight() + 1)
+		mainp = bd.GetMainChainTip()
 	} else {
-		parentsSet.AddList(parents)
-		mainp := blockManager.GetChain().BlockDAG().GetMainParent(blockManager.GetChain().BlockDAG().GetIdSet(parents))
-		nextBlockHeight = uint64(mainp.GetHeight() + 1)
+		mainp = bd.GetMainParent(bd.GetIdSet(parents))
 	}
+
+	nextBlockHeight = uint64(mainp.GetHeight() + 1)
+
 	coinbaseScript, err := standardCoinbaseScript(nextBlockHeight, extraNonce, policy.CoinbaseGenerator.BuildExtraData(int64(nextBlockHeight)))
 	if err != nil {
 		return nil, err
 	}
 
-	blues := int64(blockManager.GetChain().BlockDAG().GetBlues(blockManager.GetChain().BlockDAG().GetIdSet(parents)))
+	blues := int64(bd.GetBluesByBlock(mainp))
 	coinbaseTx, taxOutput, err := createCoinbaseTx(subsidyCache,
 		coinbaseScript,
 		blues,
@@ -149,7 +149,12 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	blockTxns := make([]*types.Tx, 0, len(sourceTxns))
 	blockTxns = append(blockTxns, coinbaseTx)
 	blockUtxos := blockchain.NewUtxoViewpoint()
-	blockUtxos.SetViewpoints(parents)
+	if parents == nil {
+		blockUtxos.SetViewpoints(blockManager.GetChain().GetMiningTips(len(blockTxns)))
+	} else {
+		blockUtxos.SetViewpoints(parents)
+	}
+
 	// dependers is used to track transactions which depend on another
 	// transaction in the source pool.  This, in conjunction with the
 	// dependsOn map kept with each dependent transaction helps quickly
@@ -407,6 +412,9 @@ mempoolLoop:
 	// Create a new block ready to be solved.
 	merkles := merkle.BuildMerkleTreeStore(blockTxns, false)
 
+	if parents == nil {
+		parents = blockManager.GetChain().GetMiningTips(len(blockTxns))
+	}
 	paMerkles := merkle.BuildParentsMerkleTreeStore(parents)
 	var block types.Block
 	block.Header = types.BlockHeader{

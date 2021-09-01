@@ -15,6 +15,8 @@ type BlockNode struct {
 	parents []hash.Hash
 
 	header types.BlockHeader
+
+	txNum int
 }
 
 //return the block node hash.
@@ -57,11 +59,17 @@ func (node *BlockNode) Timestamp() time.Time {
 	return node.GetHeader().Timestamp
 }
 
-func NewBlockNode(header *types.BlockHeader, parents []*hash.Hash) *BlockNode {
+func (node *BlockNode) GetPriority() int {
+	return node.txNum
+}
+
+func NewBlockNode(block *types.SerializedBlock, parents []*hash.Hash) *BlockNode {
+	header := &block.Block().Header
 	bn := BlockNode{
 		hash:    header.BlockHash(),
 		header:  *header,
 		parents: []hash.Hash{},
+		txNum:   len(block.Transactions()),
 	}
 	for _, p := range parents {
 		pa := *p

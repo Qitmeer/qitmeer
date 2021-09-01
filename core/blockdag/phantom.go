@@ -39,11 +39,9 @@ func (ph *Phantom) GetName() string {
 func (ph *Phantom) Init(bd *BlockDAG) bool {
 	ph.bd = bd
 	ph.anticoneSize = anticone.GetSize(anticone.BlockDelay, bd.blockRate, anticone.SecurityLevel)
-
 	if log != nil {
 		log.Info(fmt.Sprintf("anticone size:%d", ph.anticoneSize))
 	}
-
 	// main chain
 	ph.mainChain = &MainChain{bd, MaxId, 0, NewIdSet()}
 	ph.diffAnticone = NewIdSet()
@@ -138,11 +136,14 @@ func (ph *Phantom) getKChain(pb *PhantomBlock) *KChain {
 	var blueCount int = 0
 	result := &KChain{NewIdSet(), 0}
 	curPb := pb
+	deep := 0
 	for {
 		result.blocks.AddPair(curPb.GetID(), curPb)
+		blueCount++
+		deep++
 		result.miniLayer = curPb.GetLayer()
 		blueCount += curPb.blueDiffAnticone.Size()
-		if blueCount > ph.anticoneSize || curPb.mainParent == MaxId {
+		if (blueCount > ph.anticoneSize && deep > MaxTipLayerGap*2) || curPb.mainParent == MaxId {
 			break
 		}
 		curPb = ph.getBlock(curPb.mainParent)
@@ -239,11 +240,11 @@ func (ph *Phantom) sortBlocks(lastBlock uint, blueDiffAnticone *IdSet, toSort *I
 	remaining = remaining.Intersection(diffAnticone)
 
 	blueSet := remaining.Intersection(blueDiffAnticone)
-	blueList := blueSet.SortHashList(false)
+	blueList := blueSet.SortPriorityList(true)
 
 	redSet := remaining.Clone()
 	redSet.RemoveSet(blueSet)
-	redList := redSet.SortHashList(false)
+	redList := redSet.SortPriorityList(true)
 
 	result := []uint{}
 	if lastBlock != MaxId && diffAnticone.Has(lastBlock) && toSort.Has(lastBlock) {
@@ -643,7 +644,7 @@ func (ph *Phantom) GetBlues(parents *IdSet) uint {
 	}
 
 	//vb
-	vb := &Block{hash: hash.ZeroHash, layer: 0, mainParent: MaxId}
+	vb := &Block{hash: hash.ZeroHash, layer: 0, mainParent: MaxId, parents: parents}
 	pb := &PhantomBlock{vb, 0, NewIdSet(), NewIdSet()}
 
 	tp := ph.GetMainParent(parents).(*PhantomBlock)

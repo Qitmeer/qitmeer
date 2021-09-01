@@ -14,14 +14,16 @@ type PhantomBlock struct {
 }
 
 func (pb *PhantomBlock) IsBluer(other *PhantomBlock) bool {
-	if pb.blueNum > other.blueNum ||
-		(pb.blueNum == other.blueNum && pb.GetHash().String() < other.GetHash().String()) {
+	if pb.blueNum > other.blueNum {
 		return true
-	}
-
-	if pb.blueNum == other.blueNum &&
-		pb.GetHash().String() < other.GetHash().String() {
-		return true
+	} else if pb.blueNum == other.blueNum {
+		if pb.GetData().GetPriority() > other.GetData().GetPriority() {
+			return true
+		} else if pb.GetData().GetPriority() == other.GetData().GetPriority() {
+			if pb.GetHash().String() < other.GetHash().String() {
+				return true
+			}
+		}
 	}
 	return false
 }

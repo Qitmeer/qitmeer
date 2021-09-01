@@ -517,6 +517,9 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 	if mainParent == nil {
 		return nil
 	}
+	if !mainParent.GetHash().IsEqual(block.Block().Parents[0]) {
+		return fmt.Errorf("Main parent (%s) is inconsistent in block (%s)\n", mainParent.GetHash().String(), block.Block().Parents[0].String())
+	}
 	prevBlock := mainParent
 
 	// Perform all block header related validation checks.
@@ -596,11 +599,7 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 }
 
 func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
-	parents := blockdag.NewIdSet()
-	for _, v := range block.Block().Parents {
-		parents.Add(b.bd.GetBlockId(v))
-	}
-	blocks := b.bd.GetBlues(parents)
+	blocks := b.bd.GetBluesByHash(block.Block().Parents[0])
 	// check subsidy
 	transactions := block.Transactions()
 	subsidy := b.subsidyCache.CalcBlockSubsidy(int64(blocks))
@@ -1244,7 +1243,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		return err
 	}
 
-	newNode := NewBlockNode(&block.Block().Header, block.Block().Parents)
+	newNode := NewBlockNode(block, block.Block().Parents)
 	virBlock := b.bd.CreateVirtualBlock(newNode)
 	if virBlock == nil {
 		return ruleError(ErrPrevBlockNotBest, "tipsNode")

@@ -114,6 +114,10 @@ func (tb *TestBlock) GetWeight() uint64 {
 	return 1
 }
 
+func (tb *TestBlock) GetPriority() int {
+	return MaxPriority
+}
+
 // This is the interface for Block DAG,can use to call public function.
 var bd BlockDAG
 
