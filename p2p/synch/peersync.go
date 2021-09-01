@@ -122,11 +122,7 @@ out:
 				}
 			case *PeerUpdateMsg:
 				ps.OnPeerUpdate(msg.pe)
-			case *getTxsMsg:
-				err := ps.processGetTxs(msg.pe, msg.txs)
-				if err != nil {
-					log.Warn(err.Error())
-				}
+
 			case *SyncQNRMsg:
 				err := ps.processQNR(msg)
 				if err != nil {
@@ -453,6 +449,9 @@ func (ps *PeerSync) RelayInventory(data interface{}, filters []peer.ID) {
 
 		switch value := data.(type) {
 		case *types.TxDesc:
+			if pe.HasBroadcast(value.Tx.Hash().String()) {
+				return
+			}
 			// Don't relay the transaction to the peer when it has
 			// transaction relaying disabled.
 			if pe.DisableRelayTx() {
@@ -472,6 +471,8 @@ func (ps *PeerSync) RelayInventory(data interface{}, filters []peer.ID) {
 			}
 			msg.Invs = append(msg.Invs, NewInvVect(InvTypeTx, value.Tx.Hash()))
 			log.Trace(fmt.Sprintf("Relay inventory tx(%s) to peer(%s)", value.Tx.Hash().String(), pe.GetID().String()))
+			pe.Broadcast(value.Tx.Hash().String(), value)
+
 		case types.BlockHeader:
 			blockHash := value.BlockHash()
 			msg.Invs = append(msg.Invs, NewInvVect(InvTypeBlock, &blockHash))

@@ -963,8 +963,6 @@ elif [ "$1" == "mempool" ]; then
 elif [ "$1" == "txSign" ]; then
   shift
   tx_sign $@
-  echo $@
-
 
 ## UTXO
 elif [ "$1" == "getutxo" ]; then

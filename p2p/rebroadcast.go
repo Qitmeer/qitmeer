@@ -4,7 +4,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/params"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -87,9 +86,13 @@ out:
 				r.s.RelayInventory(data, nil)
 			}
 
-			mint := int64(params.ActiveNetParams.TargetTimePerBlock) / 2
-			rt := mint + rand.Int63n(int64(params.ActiveNetParams.TargetTimePerBlock)-mint)
+			rt := int64(len(pendingInvs)/50) * int64(params.ActiveNetParams.TargetTimePerBlock)
+			if rt < int64(params.ActiveNetParams.TargetTimePerBlock) {
+				rt = int64(params.ActiveNetParams.TargetTimePerBlock)
+			}
 			timer.Reset(time.Duration(rt))
+
+			r.s.sy.Peers().UpdateBroadcasts()
 
 		case <-r.quit:
 			break out
