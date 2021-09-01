@@ -3,6 +3,7 @@ package p2p
 import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"github.com/Qitmeer/qitmeer/params"
 	"sync"
 	"sync/atomic"
@@ -28,6 +29,9 @@ type Rebroadcast struct {
 	modifyRebroadcastInv chan interface{}
 
 	s *Service
+
+	regainMP      bool
+	regainMPLimit int
 }
 
 func (r *Rebroadcast) Start() {
@@ -94,6 +98,8 @@ out:
 
 			r.s.sy.Peers().UpdateBroadcasts()
 
+			r.onRegainMempool()
+
 		case <-r.quit:
 			break out
 		}
@@ -129,11 +135,35 @@ func (r *Rebroadcast) RemoveInventory(h *hash.Hash) {
 	r.modifyRebroadcastInv <- broadcastInventoryDel(h)
 }
 
+func (r *Rebroadcast) RegainMempool() {
+	if r.regainMP || r.regainMPLimit <= 0 {
+		return
+	}
+	r.regainMP = true
+}
+
+func (r *Rebroadcast) onRegainMempool() {
+	if !r.regainMP || r.regainMPLimit <= 0 {
+		return
+	}
+	if !r.s.PeerSync().IsCurrent() {
+		return
+	}
+	r.regainMP = false
+	r.regainMPLimit--
+
+	r.s.sy.Peers().ForPeers(peers.PeerConnected, func(pe *peers.Peer) {
+		r.s.sy.SendMempoolRequest(r.s.Context(), pe)
+	})
+}
+
 func NewRebroadcast(s *Service) *Rebroadcast {
 	r := Rebroadcast{
 		s:                    s,
 		quit:                 make(chan struct{}),
 		modifyRebroadcastInv: make(chan interface{}),
+		regainMP:             false,
+		regainMPLimit:        1,
 	}
 
 	return &r

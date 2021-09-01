@@ -565,43 +565,6 @@ func (ps *PeerSync) OnFilterLoad(sp *peers.Peer, msg *types.MsgFilterLoad) {
 	filter.Reload(msg)
 }
 
-// OnMemPool is invoked when a peer receives a mempool qitmeer message.
-// It creates and sends an inventory message with the contents of the memory
-// pool up to the maximum inventory allowed per message.  When the peer has a
-// bloom filter loaded, the contents are filtered accordingly.
-func (ps *PeerSync) OnMemPool(sp *peers.Peer, msg *MsgMemPool) {
-	// Only allow mempool requests if the server has bloom filtering
-	// enabled.
-	services := sp.Services()
-	if services&protocol.Bloom != protocol.Bloom {
-		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
-			"filter loaded -- disconnecting", sp.Node().String()))
-		ps.Disconnect(sp)
-		return
-	}
-
-	// Generate inventory message with the available transactions in the
-	// transaction memory pool.  Limit it to the max allowed inventory
-	// per message.  The NewMsgInvSizeHint function automatically limits
-	// the passed hint to the maximum allowed, so it's safe to pass it
-	// without double checking it here.
-	txDescs := ps.sy.p2p.TxMemPool().TxDescs()
-	invMsg := &pb.Inventory{Invs: []*pb.InvVect{}}
-	for _, txDesc := range txDescs {
-		// Either add all transactions when there is no bloom filter,
-		// or only the transactions that match the filter when there is
-		// one.
-		filter := sp.Filter()
-		if !filter.IsLoaded() || filter.MatchTxAndUpdate(txDesc.Tx) {
-			invMsg.Invs = append(invMsg.Invs, NewInvVect(InvTypeTx, txDesc.Tx.Hash()))
-		}
-	}
-	// Send the inventory message if there is anything to send.
-	if len(invMsg.Invs) > 0 {
-		go ps.sy.sendInventoryRequest(ps.sy.p2p.Context(), sp, invMsg)
-	}
-}
-
 func NewPeerSync(sy *Sync) *PeerSync {
 	peerSync := &PeerSync{
 		sy:      sy,

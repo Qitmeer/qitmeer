@@ -168,7 +168,7 @@ func (s *Sync) getMerkleBlockDataHandler(ctx context.Context, msg interface{}, s
 		merkle, _ := bloom.NewMerkleBlock(block, filter)
 		// Finally, send any matched transactions.
 		pbbd := pb.MerkleBlock{Header: merkle.Header.BlockData(),
-			Transactions: int64(merkle.Transactions),
+			Transactions: uint64(merkle.Transactions),
 			Hashes:       changeHashsToPBHashs(merkle.Hashes),
 			Flags:        merkle.Flags,
 		}
@@ -206,7 +206,7 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 			ps.longSyncMod = true
 		}
 	}
-	log.Trace(fmt.Sprintf("processGetBlockDatas sendGetBlockDataRequest peer=%v, blocks=%v ",pe.GetID(), blocksReady))
+	log.Trace(fmt.Sprintf("processGetBlockDatas sendGetBlockDataRequest peer=%v, blocks=%v ", pe.GetID(), blocksReady))
 	bd, err := ps.sy.sendGetBlockDataRequest(ps.sy.p2p.Context(), pe.GetID(), &pb.GetBlockDatas{Locator: changeHashsToPBHashs(blocksReady)})
 	if err != nil {
 		log.Warn(fmt.Sprintf("getBlocks send:%v", err))

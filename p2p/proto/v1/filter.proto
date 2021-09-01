@@ -2,16 +2,21 @@ syntax = "proto3";
 
 package qitmeer.p2p.v1;
 
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
 message FilterAddRequest {
-  bytes data = 1;
+  bytes data = 1 [(gogoproto.moretags) = "ssz-max:\"256\""];
 }
+
 message FilterClearRequest {
 }
+
 message FilterLoadRequest {
-  bytes filter = 1;
-  int64 hashFuncs = 2;
-  int64 tweak = 3;
-  int64 flags = 4;
+  bytes filter = 1 [(gogoproto.moretags) = "ssz-max:\"256\""];
+  uint64 hashFuncs = 2;
+  uint64 tweak = 3;
+  uint64 flags = 4;
 }
+
 message MemPoolRequest {
 }
