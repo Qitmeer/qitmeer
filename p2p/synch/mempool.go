@@ -69,7 +69,7 @@ func (ps *PeerSync) OnMemPool(sp *peers.Peer, msg *MsgMemPool) {
 	services := sp.Services()
 	if services&protocol.Bloom != protocol.Bloom {
 		log.Debug(fmt.Sprintf("%s sent a filterclear request with no "+
-			"filter loaded -- disconnecting", sp.Node().String()))
+			"filter loaded -- disconnecting", sp.GetID().String()))
 		ps.Disconnect(sp)
 		return
 	}
