@@ -18,7 +18,7 @@ func (s *Sync) sendInventoryRequest(ctx context.Context, pe *peers.Peer, inv *pb
 
 	stream, err := s.Send(ctx, inv, RPCInventory, pe.GetID())
 	if err != nil {
-		log.Trace(fmt.Sprintf("Failed to send inventory request to peer=%v, err=%v", pe.GetID(), err.Error()));
+		log.Trace(fmt.Sprintf("Failed to send inventory request to peer=%v, err=%v", pe.GetID(), err.Error()))
 		return err
 	}
 	defer func() {
@@ -92,7 +92,7 @@ func (s *Sync) handleInventory(msg *pb.Inventory, pe *peers.Peer) error {
 		s.peerSync.UpdateGraphState(pe)
 	}
 	if len(txs) > 0 {
-		s.peerSync.getTxs(pe, txs)
+		go s.peerSync.getTxs(pe, txs)
 	}
 	return nil
 }

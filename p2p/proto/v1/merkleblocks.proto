@@ -2,19 +2,20 @@ syntax = "proto3";
 
 package qitmeer.p2p.v1;
 
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "messages.proto";
 
 message MerkleBlockRequest {
-  repeated Hash hashes = 1;
+  repeated Hash hashes = 1 [(gogoproto.moretags) = "ssz-max:\"2000\""];
 }
 
 message MerkleBlock {
-  bytes header = 1;
-  int64 transactions = 2;
-  repeated Hash hashes = 3;
-  bytes flags = 4;
+  bytes header = 1 [(gogoproto.moretags) = "ssz-max:\"256\""];
+  uint64 transactions = 2;
+  repeated Hash hashes = 3 [(gogoproto.moretags) = "ssz-max:\"104858\""];
+  bytes flags = 4 [(gogoproto.moretags) = "ssz-max:\"256\""];
 }
 
 message MerkleBlockResponse {
-  repeated MerkleBlock data=1;
+  repeated MerkleBlock data=1 [(gogoproto.moretags) = "ssz-max:\"2000\""];
 }

@@ -422,6 +422,7 @@ out:
 					isOrphan: isOrphan,
 					err:      nil,
 				}
+				b.peerServer.Rebroadcast().RegainMempool()
 
 			case processTransactionMsg:
 				log.Trace("blkmgr msgChan processTransactionMsg", "msg", msg)
