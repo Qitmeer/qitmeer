@@ -7,6 +7,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
@@ -23,6 +24,11 @@ import (
 var (
 	// maxBadResponses is the maximum number of bad responses from a peer before we stop talking to it.
 	MaxBadResponses = 50
+)
+
+const (
+	MinBroadcastRecord  = 10
+	BroadcastRecordLife = 30 * time.Minute
 )
 
 // Peer represents a connected p2p network remote node.
@@ -48,6 +54,8 @@ type Peer struct {
 	graphStateTime time.Time
 
 	rateTasks map[string]*time.Timer
+
+	broadcast map[string]interface{}
 }
 
 func (p *Peer) GetID() peer.ID {
@@ -622,6 +630,33 @@ func (p *Peer) RunRate(task string, delay time.Duration, f func()) {
 	rt.Reset(delay)
 }
 
+func (p *Peer) Broadcast(key string, record interface{}) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.broadcast[key] = record
+}
+
+func (p *Peer) HasBroadcast(key string) bool {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	_, ok := p.broadcast[key]
+	return ok
+}
+
+func (p *Peer) UpdateBroadcast() {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	for key, data := range p.broadcast {
+		switch value := data.(type) {
+		case *types.TxDesc:
+			if time.Since(value.Added) > BroadcastRecordLife && len(p.broadcast) > MinBroadcastRecord {
+				delete(p.broadcast, key)
+			}
+		}
+	}
+}
+
 func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
 	return &Peer{
 		peerStatus: &peerStatus{
@@ -633,5 +668,6 @@ func NewPeer(pid peer.ID, point *hash.Hash) *Peer {
 		syncPoint: point,
 		filter:    bloom.LoadFilter(nil),
 		rateTasks: map[string]*time.Timer{},
+		broadcast: map[string]interface{}{},
 	}
 }

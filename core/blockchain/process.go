@@ -30,9 +30,16 @@ const (
 
 	BFP2PAdd
 
+	// Add block from RPC interface
+	BFRPCAdd
+
 	// BFNone is a convenience value to specifically indicate no flags.
 	BFNone BehaviorFlags = 0
 )
+
+func (bf BehaviorFlags) Has(value BehaviorFlags) bool {
+	return (bf & value) == value
+}
 
 // ProcessBlock is the main workhorse for handling insertion of new blocks into
 // the block chain.  It includes functionality such as rejecting duplicate

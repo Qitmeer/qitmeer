@@ -79,6 +79,16 @@ func (p *Status) ConnectedPeers() []*Peer {
 	return peers
 }
 
+func (p *Status) AllPeers() []*Peer {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	peers := make([]*Peer, 0)
+	for _, status := range p.peers {
+		peers = append(peers, status)
+	}
+	return peers
+}
+
 // Active returns the peers that are connecting or connected.
 func (p *Status) Active() []peer.ID {
 	p.lock.RLock()
@@ -267,6 +277,15 @@ func (p *Status) ForPeers(state PeerConnectionState, closure func(pe *Peer)) {
 			continue
 		}
 		closure(pe)
+	}
+}
+
+func (p *Status) UpdateBroadcasts() {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	for _, pe := range p.peers {
+		pe.UpdateBroadcast()
 	}
 }
 

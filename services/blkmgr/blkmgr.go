@@ -373,6 +373,23 @@ out:
 
 			case processBlockMsg:
 				log.Trace("blkmgr msgChan processBlockMsg", "msg", msg)
+
+				if msg.flags.Has(blockchain.BFRPCAdd) {
+					parents := blockdag.NewIdSet()
+					for _, v := range msg.block.Block().Parents {
+						parents.Add(b.chain.BlockDAG().GetBlockId(v))
+					}
+
+					_, ok := b.chain.BlockDAG().CheckSubMainChainTip(parents.List())
+					if !ok {
+						msg.reply <- processBlockResponse{
+							isOrphan: false,
+							err:      fmt.Errorf("The tips of block is expired:%s\n", msg.block.Hash().String()),
+						}
+						continue
+					}
+				}
+
 				isOrphan, err := b.chain.ProcessBlock(
 					msg.block, msg.flags)
 				if err != nil {
@@ -405,6 +422,7 @@ out:
 					isOrphan: isOrphan,
 					err:      nil,
 				}
+				b.peerServer.Rebroadcast().RegainMempool()
 
 			case processTransactionMsg:
 				log.Trace("blkmgr msgChan processTransactionMsg", "msg", msg)

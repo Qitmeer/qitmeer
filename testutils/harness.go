@@ -177,6 +177,7 @@ func (h *Harness) teardown() error {
 	}
 	if h.Notifier != nil {
 		h.Notifier.Shutdown()
+		h.Notifier.WaitForShutdown()
 	}
 	if err := os.RemoveAll(h.instanceDir); err != nil {
 		return err

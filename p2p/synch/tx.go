@@ -117,25 +117,8 @@ func (ps *PeerSync) getTxs(pe *peers.Peer, txs []*hash.Hash) {
 	if atomic.LoadInt32(&ps.shutdown) != 0 {
 		return
 	}
-
-	ps.msgChan <- &getTxsMsg{pe: pe, txs: txs}
-}
-
-func (s *Sync) HandlerMemPool(ctx context.Context, msg interface{}, stream libp2pcore.Stream) *common.Error {
-	ctx, cancel := context.WithTimeout(ctx, HandleTimeout)
-	var err error
-	defer func() {
-		cancel()
-	}()
-	pe := s.peers.Get(stream.Conn().RemotePeer())
-	if pe == nil {
-		return ErrPeerUnknown
+	err := ps.processGetTxs(pe, txs)
+	if err != nil {
+		log.Debug(err.Error())
 	}
-	_, ok := msg.(*pb.MemPoolRequest)
-	if !ok {
-		err = fmt.Errorf("message is not type *MsgFilterLoad")
-		return ErrMessage(err)
-	}
-	s.peerSync.msgChan <- &OnMsgMemPool{pe: pe, data: &MsgMemPool{}}
-	return nil
 }

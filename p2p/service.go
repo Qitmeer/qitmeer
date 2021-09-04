@@ -46,7 +46,7 @@ import (
 
 const (
 	// the default services supported by the node
-	defaultServices = pv.Full | pv.CF
+	defaultServices = pv.Full | pv.CF | pv.Bloom
 )
 
 var (
