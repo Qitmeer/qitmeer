@@ -16,9 +16,9 @@ import (
 )
 
 // testMixNetPowLimit is the highest proof of work value a block can
-// have for the test network. It is the value 2^250 - 1.
-// target 0x03ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 250), common.Big1)
+// have for the test network. It is the value 2^224 - 1.
+// target 0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 224), common.Big1)
 
 // target time per block unit second(s)
 const mixTargetTimePerBlock = 15
@@ -60,7 +60,7 @@ var MixNetParams = Params{
 		CryptoNightPowLimit:          testMixNetPowLimit,
 		CryptoNightPowLimitBits:      0x2003ffff,
 		MeerXKeccakV1PowLimit:        testMixNetPowLimit,
-		MeerXKeccakV1PowLimitBits:    0x2003ffff,
+		MeerXKeccakV1PowLimitBits:    0x1d00ffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 2 ≈ 1min find once
