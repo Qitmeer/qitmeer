@@ -626,6 +626,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			Banning:              cfg.Banning,
 			DisableListen:        cfg.DisableListen,
 			LANPeers:             lanPeers,
+			IsCircuit:            cfg.Circuit,
 		},
 		ctx:           ctx,
 		cancel:        cancel,

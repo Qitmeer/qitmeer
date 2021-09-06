@@ -203,16 +203,18 @@ func (s *Sync) bidirectionalChannelCapacity(pe *peers.Peer, conn network.Conn) b
 		pe.SetBidChanCap(time.Now())
 		return true
 	}
+	if s.p2p.Config().IsCircuit || s.IsWhitePeer(pe.GetID()) {
+		pe.SetBidChanCap(time.Now())
+		return true
+	}
+
 	bidChanLife := pe.GetBidChanCap()
 	if !bidChanLife.IsZero() {
 		if time.Since(bidChanLife) < timeForBidirChanLife {
 			return true
 		}
 	}
-	if s.IsWhitePeer(pe.GetID()) {
-		pe.SetBidChanCap(time.Time{})
-		return true
-	}
+
 	//
 	peAddr := conn.RemoteMultiaddr()
 	ipAddr := ""
