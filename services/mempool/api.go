@@ -1,6 +1,7 @@
 package mempool
 
 import (
+	"fmt"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
@@ -35,4 +36,9 @@ func (api *PublicMempoolAPI) GetMempool(txType *string, verbose bool) (interface
 	}
 	sort.Strings(hashStrings)
 	return hashStrings, nil
+}
+
+func (api *PublicMempoolAPI) GetMempoolCount() (interface{}, error) {
+	descsCount := len(api.txPool.TxDescs())
+	return fmt.Sprintf("%d", descsCount), nil
 }
