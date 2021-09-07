@@ -347,14 +347,14 @@ func removeBlockDB(dbPath string) error {
 	return nil
 }
 
-func getBlocksByTag(tags []string) []uint {
-	result := []uint{}
+func getBlocksByTag(tags []string) []*hash.Hash {
+	result := []*hash.Hash{}
 	for _, v := range tags {
 		ib, ok := tbMap[v]
 		if !ok {
 			continue
 		}
-		result = append(result, ib.GetID())
+		result = append(result, ib.GetHash())
 	}
 	return result
 }

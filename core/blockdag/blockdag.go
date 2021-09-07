@@ -896,26 +896,20 @@ func (bd *BlockDAG) checkLayerGap(parentsNode []IBlock) bool {
 }
 
 // Checking the sub main chain for the parents of tip
-func (bd *BlockDAG) CheckSubMainChainTip(parents []uint) (uint, bool) {
+func (bd *BlockDAG) CheckSubMainChainTip(parents []*hash.Hash) (uint, bool) {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
 	if len(parents) == 0 {
 		return 0, false
 	}
-	for _, v := range parents {
-		ib := bd.getBlockById(v)
-		if ib == nil {
-			return 0, false
-		}
+	mainParent := bd.getBlock(parents[0])
+	if mainParent == nil {
+		return 0, false
 	}
-
-	parentsSet := NewIdSet()
-	parentsSet.AddList(parents)
-	mainParent := bd.instance.GetMainParent(parentsSet)
 	virtualHeight := mainParent.GetHeight() + 1
 
-	if virtualHeight >= bd.getMainChainTip().GetHeight() {
+	if virtualHeight > bd.getMainChainTip().GetHeight() {
 		return virtualHeight, true
 	}
 	return 0, false
@@ -1385,17 +1379,20 @@ func (bd *BlockDAG) CreateVirtualBlock(data IBlockData) IBlock {
 	}
 	parents := NewIdSet()
 	var maxLayer uint = 0
-	for _, p := range data.GetParents() {
+	var mainParent IBlock
+	for k, p := range data.GetParents() {
 		ib := bd.GetBlock(p)
 		if ib == nil {
 			return nil
+		}
+		if k == 0 {
+			mainParent = ib
 		}
 		parents.AddPair(ib.GetID(), ib)
 		if maxLayer == 0 || maxLayer < ib.GetLayer() {
 			maxLayer = ib.GetLayer()
 		}
 	}
-	mainParent := bd.GetMainParent(parents)
 	mainParentId := MaxId
 	mainHeight := uint(0)
 	if mainParent != nil {
