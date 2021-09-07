@@ -1379,17 +1379,20 @@ func (bd *BlockDAG) CreateVirtualBlock(data IBlockData) IBlock {
 	}
 	parents := NewIdSet()
 	var maxLayer uint = 0
-	for _, p := range data.GetParents() {
+	var mainParent IBlock
+	for k, p := range data.GetParents() {
 		ib := bd.GetBlock(p)
 		if ib == nil {
 			return nil
+		}
+		if k == 0 {
+			mainParent = ib
 		}
 		parents.AddPair(ib.GetID(), ib)
 		if maxLayer == 0 || maxLayer < ib.GetLayer() {
 			maxLayer = ib.GetLayer()
 		}
 	}
-	mainParent := bd.GetMainParent(parents)
 	mainParentId := MaxId
 	mainHeight := uint(0)
 	if mainParent != nil {
