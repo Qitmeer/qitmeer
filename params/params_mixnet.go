@@ -43,7 +43,7 @@ var MixNetParams = Params{
 	MinDiffReductionTime: 0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:    true,
 	LedgerParams: ledger.LedgerParams{
-		UnlocksPerHeight:     10000 * 1e8, // every height 10000 MEER
+		UnlocksPerHeight:     46221 * 1e8, // every height 10000 MEER
 		GenesisAmountUnit:    1000 * 1e8,  // 100 MEER every utxo
 		UnlocksPerHeightStep: 5760,        // 1 day block heights
 	},
