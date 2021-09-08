@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/address"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mempool"
@@ -33,7 +34,7 @@ const (
 	defaultLogFilename            = "qitmeer.log"
 	defaultGenerate               = false
 	defaultBlockMinSize           = 0
-	defaultBlockMaxSize           = 375000
+	defaultBlockMaxSize           = types.MaxBlockPayload
 	defaultMaxRPCClients          = 10
 	defaultMaxRPCWebsockets       = 25
 	defaultMaxRPCConcurrentReqs   = 20
