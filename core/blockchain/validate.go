@@ -909,7 +909,10 @@ func (b *BlockChain) checkTransactionsAndConnect(node *BlockNode, block *types.S
 
 	totalFees := types.AmountMap{}
 	for idx, tx := range transactions {
-		if tx.IsDuplicate && !tx.Tx.IsCoinBase() {
+		if tx.IsDuplicate {
+			if tx.Tx.IsCoinBase() {
+				return ruleError(ErrDuplicateTx, fmt.Sprintf("Coinbase Tx(%s) is duplicate in block(%s)", tx.Hash().String(), block.Hash().String()))
+			}
 			continue
 		}
 		if types.IsTokenTx(tx.Tx) {
