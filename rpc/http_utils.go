@@ -12,7 +12,7 @@ import (
 
 const (
 	contentType             = "application/json"
-	maxRequestContentLength = types.MaxBlockPayload
+	maxRequestContentLength = types.MaxBlockPayload * 2
 )
 
 // validateRequest returns a non-zero response code and error message if the
