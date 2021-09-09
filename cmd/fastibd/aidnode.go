@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/services/index"
 	"path"
+	"runtime"
 	"time"
 )
 
@@ -25,7 +26,8 @@ type AidNode struct {
 }
 
 func (node *AidNode) init(cfg *Config) error {
-	log.Info("Start first aid mode.")
+	runtime.GOMAXPROCS(cfg.CPUNum)
+	log.Info(fmt.Sprintf("Start first aid mode. (CPU Num:%d)", cfg.CPUNum))
 	err := cfg.load()
 	if err != nil {
 		return err

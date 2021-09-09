@@ -23,6 +23,7 @@ import (
 	"github.com/Qitmeer/qitmeer/services/index"
 	"os"
 	"path"
+	"runtime"
 	"time"
 )
 
@@ -34,6 +35,8 @@ type Node struct {
 }
 
 func (node *Node) init(cfg *Config) error {
+	runtime.GOMAXPROCS(cfg.CPUNum)
+	log.Info(fmt.Sprintf("Start (CPU Num:%d)", cfg.CPUNum))
 	err := cfg.load()
 	if err != nil {
 		return err
