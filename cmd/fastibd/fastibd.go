@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
+	ver "github.com/Qitmeer/qitmeer/version"
 )
 
 func main() {
@@ -26,7 +27,7 @@ func fastIBD() error {
 
 	app := &cli.App{
 		Name:     "FastIBD",
-		Version:  "V0.0.1",
+		Version:  ver.String(),
 		Compiled: roughtime.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{
