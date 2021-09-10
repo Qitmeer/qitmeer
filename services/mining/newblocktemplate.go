@@ -276,7 +276,14 @@ mempoolLoop:
 	log.Trace(fmt.Sprintf("Weighted random queue len %d, dependers len %d",
 		weightedRandQueue.Len(), len(dependers)))
 
-	blockSize := uint32(blockHeaderOverhead) + uint32(coinbaseTx.Transaction().SerializeSize()) + tokenSize
+	blockSize := uint32(blockHeaderOverhead) + tokenSize
+
+	// fix parents size
+	blockSize += uint32(s.VarIntSerializeSize(uint64(len(parents))))
+	for i := 0; i < len(parents); i++ {
+		blockSize += hash.HashSize
+	}
+	// =====
 
 	blockSigOpCost := coinbaseSigOpCost + tokenSigOpCost
 	totalFees := int64(0)
