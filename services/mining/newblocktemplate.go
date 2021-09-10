@@ -279,6 +279,9 @@ mempoolLoop:
 	blockSize := uint32(blockHeaderOverhead) + uint32(coinbaseTx.Transaction().SerializeSize()) + tokenSize
 
 	// ==== fix parents size
+	if parents == nil {
+		parents = blockManager.GetChain().GetMiningTips(blockdag.MaxPriority)
+	}
 	blockSize += uint32(s.VarIntSerializeSize(uint64(len(parents))))
 	for i := 0; i < len(parents); i++ {
 		blockSize += hash.HashSize
@@ -422,6 +425,7 @@ mempoolLoop:
 	if parents == nil {
 		parents = blockManager.GetChain().GetMiningTips(len(blockTxns))
 	}
+
 	paMerkles := merkle.BuildParentsMerkleTreeStore(parents)
 	var block types.Block
 	block.Header = types.BlockHeader{
