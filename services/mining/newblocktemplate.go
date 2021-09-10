@@ -279,11 +279,12 @@ mempoolLoop:
 	blockSize := uint32(blockHeaderOverhead) + uint32(coinbaseTx.Transaction().SerializeSize()) + tokenSize
 
 	// ==== fix parents size
+	expectParents := []*hash.Hash{}
 	if parents == nil {
-		parents = blockManager.GetChain().GetMiningTips(blockdag.MaxPriority)
+		expectParents = blockManager.GetChain().GetMiningTips(blockdag.MaxPriority)
 	}
-	blockSize += uint32(s.VarIntSerializeSize(uint64(len(parents))))
-	for i := 0; i < len(parents); i++ {
+	blockSize += uint32(s.VarIntSerializeSize(uint64(len(expectParents))))
+	for i := 0; i < len(expectParents); i++ {
 		blockSize += hash.HashSize
 	}
 	// =====
