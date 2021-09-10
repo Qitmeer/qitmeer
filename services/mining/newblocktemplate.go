@@ -278,6 +278,17 @@ mempoolLoop:
 
 	blockSize := uint32(blockHeaderOverhead) + uint32(coinbaseTx.Transaction().SerializeSize()) + tokenSize
 
+	// ==== fix parents size
+	expectParents := []*hash.Hash{}
+	if parents == nil {
+		expectParents = blockManager.GetChain().GetMiningTips(blockdag.MaxPriority)
+	}
+	blockSize += uint32(s.VarIntSerializeSize(uint64(len(expectParents))))
+	for i := 0; i < len(expectParents); i++ {
+		blockSize += hash.HashSize
+	}
+	// =====
+
 	blockSigOpCost := coinbaseSigOpCost + tokenSigOpCost
 	totalFees := int64(0)
 	blockFeesMap := types.AmountMap{}
@@ -415,6 +426,7 @@ mempoolLoop:
 	if parents == nil {
 		parents = blockManager.GetChain().GetMiningTips(len(blockTxns))
 	}
+
 	paMerkles := merkle.BuildParentsMerkleTreeStore(parents)
 	var block types.Block
 	block.Header = types.BlockHeader{
