@@ -43,6 +43,7 @@ const (
 	defaultMaxInboundPeersPerHost = 25 // The default max total of inbound peer for host
 	defaultTrickleInterval        = 10 * time.Second
 	defaultCacheInvalidTx         = false
+	defaultMempoolExpiry          = int64(time.Hour)
 )
 const (
 	defaultSigCacheMaxSize = 100000
@@ -92,6 +93,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		MaxInbound:           defaultMaxInboundPeersPerHost,
 		CacheInvalidTx:       defaultCacheInvalidTx,
 		NTP:                  false,
+		MempoolExpiry:        defaultMempoolExpiry,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
