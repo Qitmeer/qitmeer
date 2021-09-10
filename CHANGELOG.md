@@ -1,4 +1,9 @@
 # Changelog
+
+## [0.10.5] - 2021-09-06
+- Optimizition for the mempool sync.
+- Bug fixes
+
 ## [0.10.4] - 2021-08-25
 - Consensus upgrading
   - BlockDAG consensus improvement of the ability to process the massive concurrent blocks.
