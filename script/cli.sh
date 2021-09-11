@@ -139,6 +139,11 @@ function get_mempool_count(){
   get_result "$data"
 }
 
+function save_mempool(){
+  local data='{"jsonrpc":"2.0","method":"saveMempool","params":[],"id":1}'
+  get_result "$data"
+}
+
 # return block by hash
 #   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){
@@ -579,6 +584,7 @@ function usage(){
   echo "  generate <num>"
   echo "  mempool"
   echo "  mempool_count"
+  echo "  savemempool"
 }
 
 # -------------------
@@ -970,6 +976,9 @@ elif [ "$1" == "mempool_count" ]; then
   shift
   get_mempool_count $@
 
+elif [ "$1" == "savemempool" ]; then
+  shift
+  save_mempool $@
 
 elif [ "$1" == "txSign" ]; then
   shift

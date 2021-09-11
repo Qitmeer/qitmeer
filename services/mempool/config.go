@@ -79,4 +79,13 @@ type Config struct {
 
 	// block chain
 	BC *blockchain.BlockChain
+
+	// Data Directory
+	DataDir string
+
+	// mempool expiry
+	Expiry time.Duration
+
+	// persist mempool
+	Persist bool
 }
