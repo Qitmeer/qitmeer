@@ -854,7 +854,7 @@ elif [ "$1" == "main" ]; then
 
 elif [ "$1" == "template" ]; then
     shift
-    get_block_template $1 | jq .
+    get_block_template $@ | jq .
 
 elif [ "$1" == "mainHeight" ]; then
     shift
