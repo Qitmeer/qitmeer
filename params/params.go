@@ -51,6 +51,10 @@ type Checkpoint struct {
 	Hash  *hash.Hash
 }
 
+const (
+	CoinbaseVersionV1 = "0.10.4"
+)
+
 // ConsensusDeployment defines details related to a specific consensus rule
 // change that is voted in.
 // NOTE: The type of time must be consistent
