@@ -13,7 +13,6 @@ import (
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
-	"github.com/Qitmeer/qitmeer/services/mempool"
 )
 
 // NewBlockTemplate returns a new block template that is ready to be solved
@@ -176,7 +175,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	tokenSize := uint32(0)
 
 	log.Debug("Inclusion to new block", "transactions", len(sourceTxns))
-mempoolLoop:
+
 	for _, txDesc := range sourceTxns {
 		// A block can't have more than one coinbase or contain
 		// non-finalized transactions.
@@ -202,77 +201,14 @@ mempoolLoop:
 			continue
 		}
 
-		// Fetch all of the utxos referenced by the this transaction.
-		// NOTE: This intentionally does not fetch inputs from the
-		// mempool since a transaction which depends on other
-		// transactions in the mempool must come after those
-		// dependencies in the final generated block.
-		utxos, err := blockManager.GetChain().FetchUtxoView(tx)
-		if err != nil {
-			log.Warn(fmt.Sprintf("Unable to fetch utxo view for tx %s: %v",
-				tx.Hash(), err))
-			continue
-		}
-
 		// Setup dependencies for any transactions which reference
 		// other transactions in the mempool so they can be properly
 		// ordered below.
 		weirandItem := &WeightedRandTx{tx: tx}
-		for _, txIn := range tx.Tx.TxIn {
-			originHash := &txIn.PreviousOut.Hash
-			entry := utxos.LookupEntry(txIn.PreviousOut)
-			if entry == nil || entry.IsSpent() {
-				if !txSource.HaveTransaction(originHash) {
-					log.Trace(fmt.Sprintf("Skipping tx %s because it "+
-						"references unspent output %v "+
-						"which is not available",
-						tx.Hash(), txIn.PreviousOut))
-					continue mempoolLoop
-				}
-
-				// The transaction is referencing another
-				// transaction in the source pool, so setup an
-				// ordering dependency.
-				deps, exists := dependers[*originHash]
-				if !exists {
-					deps = make(map[hash.Hash]*WeightedRandTx)
-					dependers[*originHash] = deps
-				}
-				deps[*weirandItem.tx.Hash()] = weirandItem
-				if weirandItem.dependsOn == nil {
-					weirandItem.dependsOn = make(
-						map[hash.Hash]struct{})
-				}
-				weirandItem.dependsOn[*originHash] = struct{}{}
-
-				// Skip the check below. We already know the
-				// referenced transaction is available.
-				continue
-			}
-		}
-
-		// Calculate the final transaction priority using the input
-		// value age sum as well as the adjusted transaction size.  The
-		// formula is: sum(inputValue * inputAge) / adjustedTxSize
-		weirandItem.priority = mempool.CalcPriority(tx.Tx, utxos,
-			nextBlockHeight, blockManager.GetChain().BlockDAG())
-
-		// Calculate the fee in Satoshi/kB.
 		weirandItem.feePerKB = txDesc.FeePerKB
 		weirandItem.fee = txDesc.Fee
-
-		// Add the transaction to the priority queue to mark it ready
-		// for inclusion in the block unless it has dependencies.
-		if weirandItem.dependsOn == nil {
-			weightedRandQueue.Push(weirandItem)
-		}
-
-		// Merge the referenced outputs from the input transactions to
-		// this transaction into the block utxo view.  This allows the
-		// code below to avoid a second lookup.
-		mergeUtxoView(blockUtxos, utxos)
+		weightedRandQueue.Push(weirandItem)
 	}
-
 	log.Trace(fmt.Sprintf("Weighted random queue len %d, dependers len %d",
 		weightedRandQueue.Len(), len(dependers)))
 
@@ -293,6 +229,8 @@ mempoolLoop:
 	totalFees := int64(0)
 	blockFeesMap := types.AmountMap{}
 
+	fetchUtxo := map[string]struct{}{}
+
 	// Choose which transactions make it into the block.
 	for weightedRandQueue.Len() > 0 {
 		// Grab the highest priority (or highest fee per kilobyte
@@ -300,6 +238,54 @@ mempoolLoop:
 		weirandItem := weightedRandQueue.Pop()
 		tx := weirandItem.tx
 
+		//
+		_, ok := fetchUtxo[tx.Hash().String()]
+		if !ok {
+			fetchUtxo[tx.Hash().String()] = struct{}{}
+			utxos, err := blockManager.GetChain().FetchUtxoView(tx)
+			if err != nil {
+				log.Warn(fmt.Sprintf("Unable to fetch utxo view for tx %s: %v",
+					tx.Hash(), err))
+				continue
+			}
+
+			for _, txIn := range tx.Tx.TxIn {
+				originHash := &txIn.PreviousOut.Hash
+				entry := utxos.LookupEntry(txIn.PreviousOut)
+				if entry == nil || entry.IsSpent() {
+					if !txSource.HaveTransaction(originHash) {
+						log.Trace(fmt.Sprintf("Skipping tx %s because it "+
+							"references unspent output %v "+
+							"which is not available",
+							tx.Hash(), txIn.PreviousOut))
+						continue
+					}
+
+					// The transaction is referencing another
+					// transaction in the source pool, so setup an
+					// ordering dependency.
+					deps, exists := dependers[*originHash]
+					if !exists {
+						deps = make(map[hash.Hash]*WeightedRandTx)
+						dependers[*originHash] = deps
+					}
+					deps[*weirandItem.tx.Hash()] = weirandItem
+					if weirandItem.dependsOn == nil {
+						weirandItem.dependsOn = make(
+							map[hash.Hash]struct{})
+					}
+					weirandItem.dependsOn[*originHash] = struct{}{}
+
+					// Skip the check below. We already know the
+					// referenced transaction is available.
+					continue
+				}
+			}
+			// Merge the referenced outputs from the input transactions to
+			// this transaction into the block utxo view.  This allows the
+			// code below to avoid a second lookup.
+			mergeUtxoView(blockUtxos, utxos)
+		}
 		// Grab any transactions which depend on this one.
 		deps := dependers[*tx.Hash()]
 
@@ -312,7 +298,7 @@ mempoolLoop:
 				"size %v, cur num tx %v", tx.Hash(), txSize,
 				blockSize, len(blockTxns)))
 			logSkippedDeps(tx, deps)
-			continue
+			break
 		}
 
 		// Enforce maximum signature operation cost per block.  Also
@@ -323,7 +309,7 @@ mempoolLoop:
 			log.Trace(fmt.Sprintf("Skipping tx %s because it would "+
 				"exceed the maximum sigops per block", tx.Hash()))
 			logSkippedDeps(tx, deps)
-			continue
+			break
 		}
 
 		// Skip free transactions once the block is larger than the
@@ -378,8 +364,8 @@ mempoolLoop:
 		txFees = append(txFees, weirandItem.fee)
 		txSigOpCosts = append(txSigOpCosts, int64(sigOpCost))
 		blockFeesMap.Add(txFeesMap)
-		log.Trace(fmt.Sprintf("Adding tx %s (priority %.2f, feePerKB %.2d)",
-			weirandItem.tx.Hash(), weirandItem.priority, weirandItem.feePerKB))
+		log.Trace(fmt.Sprintf("Adding tx %s (feePerKB %.2d)",
+			weirandItem.tx.Hash(), weirandItem.feePerKB))
 
 		// Add transactions which depend on this one (and also do not
 		// have any other unsatisified dependencies) to the priority
@@ -393,7 +379,6 @@ mempoolLoop:
 			}
 		}
 	}
-
 	// Fill outputs
 	err = fillOutputsToCoinBase(coinbaseTx, blockFeesMap, taxOutput)
 	if err != nil {
@@ -449,7 +434,6 @@ mempoolLoop:
 			return nil, miningRuleError(ErrTransactionAppend, err.Error())
 		}
 	}
-
 	sblock := types.NewBlock(&block)
 	sblock.SetOrder(nextBlockOrder)
 	sblock.SetHeight(uint(nextBlockHeight))
