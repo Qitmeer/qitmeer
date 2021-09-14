@@ -1487,3 +1487,7 @@ func (b *BlockChain) CalcPastMedianTime(block blockdag.IBlock) time.Time {
 	medianTimestamp := timestamps[numNodes/2]
 	return time.Unix(medianTimestamp, 0)
 }
+
+func (b *BlockChain) GetSubsidyCache() *SubsidyCache {
+	return b.subsidyCache
+}

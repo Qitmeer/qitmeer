@@ -127,6 +127,13 @@ func (s *SubsidyCache) CalcTotalControlBlockSubsidy(bi *blockdag.BlueInfo) int64
 	return blockSubsidy
 }
 
+func (s *SubsidyCache) GetMode() string {
+	if s.params.TargetTotalSubsidy > 0 {
+		return "dynamic"
+	}
+	return "static"
+}
+
 // CalcBlockWorkSubsidy calculates the proof of work subsidy for a block as a
 // proportion of the total subsidy. (aka, the coinbase subsidy)
 func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, bi *blockdag.BlueInfo, params *params.Params) uint64 {
