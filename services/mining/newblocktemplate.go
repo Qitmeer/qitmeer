@@ -125,7 +125,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	blues := int64(bd.GetBluesByBlock(mainp))
 	coinbaseTx, taxOutput, err := createCoinbaseTx(subsidyCache,
 		coinbaseScript,
-		blues,
+		bd.GetBlueInfo(mainp),
 		payToAddress,
 		params)
 	if err != nil {

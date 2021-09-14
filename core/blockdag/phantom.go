@@ -778,10 +778,11 @@ func (ph *Phantom) UpdateWeight(ib IBlock) {
 		pb := ib.(*PhantomBlock)
 		tp := ph.getBlock(pb.GetMainParent())
 		pb.weight = tp.GetWeight()
-		pb.weight += uint64(ph.bd.calcWeight(int64(pb.blueNum+1), pb.GetHash(), pb.status))
+
+		pb.weight += uint64(ph.bd.calcWeight(pb, ph.bd.getBlueInfo(pb)))
 		for k := range pb.blueDiffAnticone.GetMap() {
 			bdpb := ph.getBlock(k)
-			pb.weight += uint64(ph.bd.calcWeight(int64(bdpb.blueNum+1), bdpb.GetHash(), bdpb.status))
+			pb.weight += uint64(ph.bd.calcWeight(bdpb, ph.bd.getBlueInfo(bdpb)))
 		}
 		ph.bd.commitBlock.AddPair(ib.GetID(), ib)
 	}

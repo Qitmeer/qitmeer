@@ -212,6 +212,9 @@ type Params struct {
 	// SubsidyReductionInterval is the reduction interval in blocks.
 	SubsidyReductionInterval int64
 
+	// TargetTotalSubsidy is the target total subsidy.
+	TargetTotalSubsidy int64
+
 	// WorkRewardProportion is the comparative amount of the subsidy given for
 	// creating a block.
 	WorkRewardProportion uint16

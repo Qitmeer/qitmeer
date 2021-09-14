@@ -477,6 +477,10 @@ function submit_block() {
   get_result "$data"
 }
 
+function get_subsidy(){
+  local data='{"jsonrpc":"2.0","method":"getSubsidy","params":[],"id":null}'
+  get_result "$data"
+}
 
 function get_result(){
   local proto="https"
@@ -550,6 +554,7 @@ function usage(){
   echo "  removeban"
   echo "  loglevel [trace, debug, info, warn, error, critical]"
   echo "  timeinfo"
+  echo "  subsidy"
   echo "block  :"
   echo "  block <order|hash>"
   echo "  blockid <id>"
@@ -879,6 +884,10 @@ elif [ "$1" == "fees" ]; then
 elif [ "$1" == "timeinfo" ]; then
   shift
   time_info $@
+
+elif [ "$1" == "subsidy" ]; then
+  shift
+  get_subsidy $@
 
 elif [ "$1" == "nodeinfo" ]; then
   shift
