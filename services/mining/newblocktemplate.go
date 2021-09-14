@@ -13,6 +13,7 @@ import (
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
+	"golang.org/x/net/context"
 )
 
 // NewBlockTemplate returns a new block template that is ready to be solved
@@ -86,7 +87,6 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	sigCache *txscript.SigCache, txSource TxSource, timeSource blockchain.MedianTimeSource,
 	blockManager *blkmgr.BlockManager, payToAddress types.Address, parents []*hash.Hash, powType pow.PowType) (*types.BlockTemplate, error) {
 	subsidyCache := blockManager.GetChain().FetchSubsidyCache()
-
 	bd := blockManager.GetChain().BlockDAG()
 	best := blockManager.GetChain().BestSnapshot()
 	nextBlockHeight := uint64(0)
@@ -231,8 +231,19 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 
 	fetchUtxo := map[string]struct{}{}
 
+	ctx, cancel := context.WithTimeout(context.Background(), params.TargetTimePerBlock/2)
+	defer cancel()
+
 	// Choose which transactions make it into the block.
+mempool:
 	for weightedRandQueue.Len() > 0 {
+		//
+		select {
+		case <-ctx.Done():
+			log.Info(fmt.Sprintf("NewBlockTemplate will timed out(%s), so we will return the result as soon as possible.", (params.TargetTimePerBlock / 2).String()))
+			break mempool
+		default:
+		}
 		// Grab the highest priority (or highest fee per kilobyte
 		// depending on the sort order) transaction.
 		weirandItem := weightedRandQueue.Pop()
