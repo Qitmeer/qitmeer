@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -102,7 +103,7 @@ func standardCoinbaseOpReturn(enData []byte) ([]byte, error) {
 //
 // See the comment for NewBlockTemplate for more information about why the nil
 // address handling is useful.
-func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, nextBlocks int64, addr types.Address, params *params.Params) (*types.Tx, *types.TxOutput, error) {
+func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, bi *blockdag.BlueInfo, addr types.Address, params *params.Params) (*types.Tx, *types.TxOutput, error) {
 	tx := types.NewTransaction()
 	tx.AddTxIn(&types.TxInput{
 		// Coinbase transactions have no inputs, so previous outpoint is
@@ -115,9 +116,9 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 
 	// Create a coinbase with correct block subsidy and extranonce.
 	subsidy := blockchain.CalcBlockWorkSubsidy(subsidyCache,
-		nextBlocks, params)
+		bi, params)
 	tax := blockchain.CalcBlockTaxSubsidy(subsidyCache,
-		nextBlocks, params)
+		bi, params)
 
 	// output
 	// Create the script to pay to the provided payment address if one was

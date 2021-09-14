@@ -599,10 +599,10 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 }
 
 func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
-	blocks := b.bd.GetBluesByHash(block.Block().Parents[0])
+	bi := b.bd.GetBlueInfoByHash(block.Block().Parents[0])
 	// check subsidy
 	transactions := block.Transactions()
-	subsidy := b.subsidyCache.CalcBlockSubsidy(int64(blocks))
+	subsidy := b.subsidyCache.CalcBlockSubsidy(bi)
 	workAmountOut := int64(0)
 	for k, v := range transactions[0].Tx.TxOut {
 		// the coinbase should always use meer coin
@@ -624,10 +624,8 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	var totalAmountOut int64 = 0
 
 	if b.params.HasTax() {
-		work = int64(CalcBlockWorkSubsidy(b.subsidyCache,
-			int64(blocks), b.params))
-		tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
-			int64(blocks), b.params))
+		work = int64(CalcBlockWorkSubsidy(b.subsidyCache, bi, b.params))
+		tax = int64(CalcBlockTaxSubsidy(b.subsidyCache, bi, b.params))
 		taxOutput = transactions[0].Tx.TxOut[len(transactions[0].Tx.TxOut)-1]
 
 		taxAmountOut = taxOutput.Amount.Value

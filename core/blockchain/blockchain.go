@@ -1334,19 +1334,19 @@ func (b *BlockChain) GetFeeByCoinID(h *hash.Hash, coinId types.CoinID) int64 {
 	return fees[coinId]
 }
 
-func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, status blockdag.BlockStatus) int64 {
-	if status.KnownInvalid() {
+func (b *BlockChain) CalcWeight(ib blockdag.IBlock, bi *blockdag.BlueInfo) int64 {
+	if ib.GetStatus().KnownInvalid() {
 		return 0
 	}
-	block, err := b.FetchBlockByHash(blockhash)
+	block, err := b.FetchBlockByHash(ib.GetHash())
 	if err != nil {
 		log.Error(fmt.Sprintf("CalcWeight:%v", err))
 		return 0
 	}
-	if b.IsDuplicateTx(block.Transactions()[0].Hash(), blockhash) {
+	if b.IsDuplicateTx(block.Transactions()[0].Hash(), ib.GetHash()) {
 		return 0
 	}
-	return b.subsidyCache.CalcBlockSubsidy(blocks)
+	return b.subsidyCache.CalcBlockSubsidy(bi)
 }
 
 func (b *BlockChain) CheckCacheInvalidTxConfig() error {

@@ -151,7 +151,7 @@ type IBlockDAG interface {
 }
 
 // CalcWeight
-type CalcWeight func(int64, *hash.Hash, BlockStatus) int64
+type CalcWeight func(ib IBlock, bi *BlueInfo) int64
 
 type GetBlockData func(*hash.Hash) IBlockData
 
@@ -1005,47 +1005,6 @@ func (bd *BlockDAG) Decode(r io.Reader) error {
 		return fmt.Errorf("The dag type is %s, but read is %s", bd.instance.GetName(), GetDAGTypeByIndex(dagTypeIndex))
 	}
 	return bd.instance.Decode(r)
-}
-
-// GetBlues
-func (bd *BlockDAG) GetBlues(parents *IdSet) uint {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.instance.GetBlues(parents)
-}
-
-func (bd *BlockDAG) GetBluesByHash(h *hash.Hash) uint {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.getBluesByBlock(bd.getBlockById(bd.getBlockId(h)))
-}
-
-func (bd *BlockDAG) GetBluesByBlock(ib IBlock) uint {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.getBluesByBlock(ib)
-}
-
-func (bd *BlockDAG) getBluesByBlock(ib IBlock) uint {
-	if ib == nil {
-		return 0
-	}
-	pb, ok := ib.(*PhantomBlock)
-	if !ok {
-		return 0
-	}
-	return pb.blueNum
-}
-
-// IsBlue
-func (bd *BlockDAG) IsBlue(id uint) bool {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.instance.IsBlue(id)
 }
 
 func (bd *BlockDAG) IsHourglass(id uint) bool {
