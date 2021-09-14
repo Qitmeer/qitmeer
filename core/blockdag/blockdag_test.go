@@ -305,10 +305,10 @@ func reverseBlockList(s []uint) []uint {
 	return s
 }
 
-func CalcBlockWeight(blocks int64, blockhash *hash.Hash, state BlockStatus) int64 {
-	if blocks == 0 {
+func CalcBlockWeight(ib IBlock, bi *BlueInfo) int64 {
+	if ib.(*PhantomBlock).blueNum == 0 {
 		return 0
-	} else if blocks < 3 {
+	} else if ib.(*PhantomBlock).blueNum < 3 {
 		return 2
 	}
 	return 1

@@ -62,17 +62,20 @@ func (bd *BlockDAG) GetBlueInfo(ib IBlock) *BlueInfo {
 
 func (bd *BlockDAG) getBlueInfo(ib IBlock) *BlueInfo {
 	if ib == nil {
-		return nil
+		return NewBlueInfo(0, 0, 0)
 	}
 	if ib.GetID() == 0 {
-		return nil
+		return NewBlueInfo(0, 0, 0)
 	}
 	if !ib.HasParents() {
-		return nil
+		return NewBlueInfo(0, 0, 0)
+	}
+	if ib.GetMainParent() == 0 {
+		return NewBlueInfo(1, 0, 0)
 	}
 	mainIB, ok := ib.GetParents().Get(ib.GetMainParent()).(IBlock)
 	if !ok {
-		return nil
+		return NewBlueInfo(1, 0, 0)
 	}
 	mt := ib.GetData().GetTimestamp() - mainIB.GetData().GetTimestamp()
 	if mt <= 0 {
@@ -82,7 +85,7 @@ func (bd *BlockDAG) getBlueInfo(ib IBlock) *BlueInfo {
 
 	pb, ok := ib.(*PhantomBlock)
 	if !ok {
-		return nil
+		return NewBlueInfo(1, 0, 0)
 	}
 	blues := 1
 	if pb.blueDiffAnticone != nil && !pb.blueDiffAnticone.IsEmpty() {
