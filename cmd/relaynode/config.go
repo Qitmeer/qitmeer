@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/util"
+	l "github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/urfave/cli/v2"
@@ -300,7 +301,7 @@ func (c *Config) load() error {
 	if !c.NoFileLogging {
 		logDir := filepath.Join(c.DataDir, defaultLogDirname, params.ActiveNetParams.Name)
 
-		common.InitLogRotator(filepath.Join(logDir, defaultLogFilename))
+		l.InitLogRotator(filepath.Join(logDir, defaultLogFilename))
 	}
 	err = common.ParseAndSetDebugLevels(c.DebugLevel)
 	if err != nil {

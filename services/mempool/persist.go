@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/core/types"
+	l "github.com/Qitmeer/qitmeer/log"
+	"github.com/schollz/progressbar/v3"
 	"io"
 	"io/ioutil"
 	"os"
@@ -77,11 +79,19 @@ func (mp *TxPool) Load() error {
 	if version != MempoolVersion {
 		return fmt.Errorf("The version(%d) of the file does not match %d\n", version, MempoolVersion)
 	}
-
 	txNum := dbnamespace.ByteOrder.Uint32(bs[offset : offset+4])
 	offset += 4
-
+	var bar *progressbar.ProgressBar
+	logLvl := l.Glogger().GetVerbosity()
+	if !mp.cfg.NoMempoolBar {
+		bar = progressbar.Default(int64(txNum), "Mempool load:")
+		l.Glogger().Verbosity(l.LvlCrit)
+	}
+	add := 0
 	for i := uint32(0); i < txNum; i++ {
+		if bar != nil {
+			bar.Add(1)
+		}
 		mtd := &MempoolTxData{}
 		off, err := mtd.Decode(bs[offset:])
 		if err != nil {
@@ -100,9 +110,12 @@ func (mp *TxPool) Load() error {
 			return fmt.Errorf("Failed to process transaction %v: %v\n", mtd.tx.TxHash().String(), err.Error())
 		}
 		for _, tx := range acceptedTxs {
-			log.Info(fmt.Sprintf("Mempool add %s from %s", tx.Tx.Hash().String(), outFilePath))
+			log.Debug(fmt.Sprintf("Mempool add %s from %s", tx.Tx.Hash().String(), outFilePath))
 		}
+		add += len(acceptedTxs)
 	}
+	l.Glogger().Verbosity(logLvl)
+	log.Info(fmt.Sprintf("Mempool load:%d/%d", add, txNum))
 	return os.Remove(outFilePath)
 }
 

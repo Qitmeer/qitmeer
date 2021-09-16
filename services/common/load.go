@@ -336,7 +336,7 @@ func LoadConfig() (*config.Config, []string, error) {
 
 		// Initialize log rotation.  After log rotation has been initialized, the
 		// logger variables may be used.
-		InitLogRotator(filepath.Join(cfg.LogDir, defaultLogFilename))
+		log.InitLogRotator(filepath.Join(cfg.LogDir, defaultLogFilename))
 	}
 
 	// Parse, validate, and set debug log level(s).
@@ -442,7 +442,7 @@ func ParseAndSetDebugLevels(debugLevel string) error {
 			return fmt.Errorf(str, debugLevel)
 		}
 		// Change the logging level for all subsystems.
-		Glogger().Verbosity(lvl)
+		log.Glogger().Verbosity(lvl)
 		return nil
 	}
 	// TODO support log for subsystem
