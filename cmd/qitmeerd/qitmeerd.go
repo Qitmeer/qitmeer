@@ -49,8 +49,8 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 	}
 
 	defer func() {
-		if common.LogWrite() != nil {
-			common.LogWrite().Close()
+		if log.LogWrite() != nil {
+			log.LogWrite().Close()
 		}
 	}()
 	// Get a channel that will be closed when a shutdown signal has been

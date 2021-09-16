@@ -88,4 +88,7 @@ type Config struct {
 
 	// persist mempool
 	Persist bool
+
+	//  no mempool bar
+	NoMempoolBar bool
 }

@@ -46,6 +46,7 @@ type Config struct {
 	MinTxFee         int64   `long:"mintxfee" description:"The minimum transaction fee in AtomMEER/kB."`
 	MempoolExpiry    int64   `long:"mempoolexpiry" description:"Do not keep transactions in the mempool more than mempoolexpiry"`
 	Persistmempool   bool    `long:"persistmempool" description:"Whether to save the mempool on shutdown and load on restart"`
+	NoMempoolBar     bool    `long:"nomempoolbar" description:"Whether to show progress bar when load mempool from file"`
 	// Miner
 	Generate          bool     `long:"generate" description:"Generate (mine) coins using the CPU"`
 	MiningAddrs       []string `long:"miningaddr" description:"Add the specified payment address to the list of addresses to use for generated blocks -- At least one address is required if the generate option is set"`

@@ -99,6 +99,7 @@ func NewTxManager(bm *blkmgr.BlockManager, txIndex *index.TxIndex,
 		DataDir:          cfg.DataDir,
 		Expiry:           time.Duration(cfg.MempoolExpiry),
 		Persist:          cfg.Persistmempool,
+		NoMempoolBar:     cfg.NoMempoolBar,
 	}
 	txMemPool := mempool.New(&txC)
 	invalidTx := make(map[hash.Hash]*blockdag.HashSet)

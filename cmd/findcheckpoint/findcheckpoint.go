@@ -8,7 +8,6 @@ import (
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/services/common"
 	"os"
 )
 
@@ -22,8 +21,8 @@ func main() {
 	}
 
 	defer func() {
-		if common.LogWrite() != nil {
-			common.LogWrite().Close()
+		if log.LogWrite() != nil {
+			log.LogWrite().Close()
 		}
 	}()
 
