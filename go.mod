@@ -43,7 +43,6 @@ require (
 	github.com/prysmaticlabs/go-bitfield v0.0.0-20200618145306-2ae0807bef65
 	github.com/prysmaticlabs/go-ssz v0.0.0-20200101200214-e24db4d9e963
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
-	github.com/schollz/progressbar v1.0.0
 	github.com/schollz/progressbar/v3 v3.8.3
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.0
