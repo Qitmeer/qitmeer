@@ -16,6 +16,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/ledger"
 	"github.com/Qitmeer/qitmeer/params"
 	"os"
 	"path/filepath"
@@ -44,7 +45,7 @@ type GenesisInitPayout struct {
 }
 
 func GeneratePayoutFile(param *params.Params, geneData []GenesisInitPayout, geneDataImport []string) {
-	importData, err := FormatDataFromImport(geneDataImport)
+	importData, err := FormatDataFromImport(geneDataImport, param)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -106,7 +107,7 @@ func GenerateUniqueSeedHash(data []GenesisInitPayout) ([]byte, error) {
 	return seedHash, nil
 }
 
-func FormatDataFromImport(data []string) ([]GenesisInitPayout, error) {
+func FormatDataFromImport(data []string, params *params.Params) ([]GenesisInitPayout, error) {
 	newData := make([]GenesisInitPayout, 0)
 	for _, v := range data {
 		// CoinID,address,amount,locktype,height
@@ -122,6 +123,9 @@ func FormatDataFromImport(data []string) ([]GenesisInitPayout, error) {
 		if err != nil {
 			return nil, errors.New("amount data error" + arr[2])
 		}
+		if amount <= 0 {
+			continue
+		}
 		payouttype, err := strconv.Atoi(arr[3])
 		if err != nil {
 			return nil, errors.New("payouttype data error" + arr[3])
@@ -130,13 +134,31 @@ func FormatDataFromImport(data []string) ([]GenesisInitPayout, error) {
 		if err != nil {
 			return nil, errors.New("height data error" + arr[4])
 		}
-		newData = append(newData, GenesisInitPayout{
-			types.CoinID(CoinID),
-			arr[1],
-			amount,
-			payouttype,
-			int64(lockheight),
-		})
+		yearReleaseAmount := amount * float64(params.LedgerParams.Percent) / ledger.PercentBase
+		if yearReleaseAmount > 0 {
+			newData = append(newData, GenesisInitPayout{
+				types.CoinID(CoinID),
+				arr[1],
+				yearReleaseAmount,
+				payouttype,
+				int64(lockheight),
+			})
+		}
+
+		leftAmount := amount - yearReleaseAmount
+		if leftAmount > 0 {
+			if leftAmount > amount {
+				leftAmount = amount
+			}
+			newData = append(newData, GenesisInitPayout{
+				types.CoinID(CoinID),
+				arr[1],
+				leftAmount,
+				GENE_PAYOUT_TYPE_LOCK_WITH_HEIGHT,
+				int64(params.LedgerParams.MaxLockHeight),
+			})
+		}
+
 	}
 	return newData, nil
 }
@@ -193,7 +215,7 @@ func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger []Genesi
 	funName := fmt.Sprintf("%s%s", strings.ToUpper(string(netName[0])), netName[1:])
 	fileContent := fmt.Sprintf("// It is called by go generate and used to automatically generate pre-computed \n// Copyright 2017-2018 The qitmeer developers \n// This file is auto generate \npackage ledger\n\nimport (\n\t. \"github.com/Qitmeer/qitmeer/core/types\"\n)\n\nfunc init%s() {\n", funName)
 
-	fileContent += processLockingGenesisPayouts(genesisLedger, sortKeys, int64(params.LedgerParams.UnlocksPerHeight), int64(params.LedgerParams.UnlocksPerHeightStep))
+	fileContent += processLockingGenesisPayouts(genesisLedger, sortKeys, int64(params.LedgerParams.UnlocksPerStep), int64(params.LedgerParams.UnlocksPerHeightStep))
 
 	fileContent += "}"
 

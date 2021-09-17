@@ -40,9 +40,11 @@ var PrivNetParams = Params{
 	GenesisBlock: &privNetGenesisBlock,
 	GenesisHash:  &privNetGenesisHash,
 	LedgerParams: ledger.LedgerParams{
-		UnlocksPerHeight:     10000 * 1e8,
+		Percent:              10000, // 10000/10000 100%
+		UnlocksPerStep:       10000 * 1e8,
 		GenesisAmountUnit:    1000 * 1e8,
 		UnlocksPerHeightStep: 10,
+		MaxLockHeight:        10 * 365 * 5,
 	},
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             privNetPowLimit,
