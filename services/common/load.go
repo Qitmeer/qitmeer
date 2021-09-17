@@ -396,15 +396,26 @@ func LoadConfig() (*config.Config, []string, error) {
 		cfg.SetMiningAddrs(addr)
 	}
 
-	// Ensure there is at least one mining address when the generate flag is
+	if cfg.Generate {
+		cfg.Miner = true
+	}
+	// Ensure there is at least one mining address when the generate or miner flag is
 	// set.
-	if cfg.Generate && len(cfg.MiningAddrs) == 0 {
-		str := "%s: the generate flag is set, but there are no mining " +
-			"addresses specified "
-		err := fmt.Errorf(str, funcName)
-		fmt.Fprintln(os.Stderr, err)
-		fmt.Fprintln(os.Stderr, usageMessage)
-		return nil, nil, err
+	if len(cfg.MiningAddrs) == 0 {
+		var str string
+		if cfg.Generate {
+			str = "%s: the generate flag is set, but there are no mining " +
+				"addresses specified "
+		} else if cfg.Miner {
+			str = "%s: the miner flag is set, but there are no mining " +
+				"addresses specified "
+		}
+		if len(str) > 0 {
+			err := fmt.Errorf(str, funcName)
+			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, usageMessage)
+			return nil, nil, err
+		}
 	}
 
 	if cfg.NTP {

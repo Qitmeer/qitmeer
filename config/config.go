@@ -48,6 +48,7 @@ type Config struct {
 	Persistmempool   bool    `long:"persistmempool" description:"Whether to save the mempool on shutdown and load on restart"`
 	NoMempoolBar     bool    `long:"nomempoolbar" description:"Whether to show progress bar when load mempool from file"`
 	// Miner
+	Miner             bool     `long:"miner" description:"Enable miner module"`
 	Generate          bool     `long:"generate" description:"Generate (mine) coins using the CPU"`
 	MiningAddrs       []string `long:"miningaddr" description:"Add the specified payment address to the list of addresses to use for generated blocks -- At least one address is required if the generate option is set"`
 	MiningTimeOffset  int      `long:"miningtimeoffset" description:"Offset the mining timestamp of a block by this many seconds (positive values are in the past)"`

@@ -38,7 +38,7 @@ type QitmeerFull struct {
 	txManager *tx.TxManager
 
 	// miner service
-	cpuMiner *miner.CPUMiner
+	miner *miner.Miner
 
 	// address service
 	addressApi *address.AddressApi
@@ -52,10 +52,7 @@ type QitmeerFull struct {
 func (qm *QitmeerFull) Start() error {
 	log.Debug("Starting Qitmeer full node service")
 
-	// Start the CPU miner if generation is enabled.
-	if qm.node.Config.Generate {
-		qm.cpuMiner.Start()
-	}
+	qm.miner.Start()
 
 	qm.blockManager.Start()
 	qm.txManager.Start()
@@ -72,11 +69,9 @@ func (qm *QitmeerFull) Stop() error {
 
 	qm.txManager.Stop()
 
-	log.Info("try stop cpu miner")
-	// Stop the CPU miner if needed.
-	if qm.node.Config.Generate && qm.cpuMiner != nil {
-		qm.cpuMiner.Stop()
-	}
+	log.Info("try stop miner")
+
+	qm.miner.Stop()
 
 	return nil
 }
@@ -84,7 +79,7 @@ func (qm *QitmeerFull) Stop() error {
 func (qm *QitmeerFull) APIs() []rpc.API {
 	apis := qm.acctmanager.APIs()
 	apis = append(apis, qm.addressApi.APIs()...)
-	apis = append(apis, qm.cpuMiner.APIs()...)
+	apis = append(apis, qm.miner.APIs()...)
 	apis = append(apis, qm.blockManager.API())
 	apis = append(apis, qm.txManager.APIs()...)
 	apis = append(apis, qm.apis()...)
@@ -172,8 +167,9 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 	// system stays reasonably responsive under heavy load.
 	defaultNumWorkers := uint32(params.CPUMinerThreads) //TODO, move to config
 
-	qm.cpuMiner = miner.NewCPUMiner(cfg, node.Params, &policy, qm.sigCache,
+	qm.miner = miner.NewMiner(cfg, &policy, qm.sigCache,
 		qm.txManager.MemPool().(*mempool.TxPool), qm.timeSource, qm.blockManager, defaultNumWorkers)
+
 	// init address api
 	qm.addressApi = address.NewAddressApi(cfg, node.Params)
 	return &qm, nil
@@ -182,11 +178,6 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 // return block manager
 func (qm *QitmeerFull) GetBlockManager() *blkmgr.BlockManager {
 	return qm.blockManager
-}
-
-// return cpu miner
-func (qm *QitmeerFull) GetCpuMiner() *miner.CPUMiner {
-	return qm.cpuMiner
 }
 
 // return address api
