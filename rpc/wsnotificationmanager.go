@@ -111,11 +111,7 @@ out:
 				if band.IsMainChainTipChange {
 					// do something
 					if len(txConfirms) != 0 {
-						for k, wsc := range txConfirms {
-							if wsc.Disconnected() {
-								delete(txConfirms, k)
-								continue
-							}
+						for _, wsc := range txConfirms {
 							wsc.TxConfirmsLock.Lock()
 							wsc.TxConfirms.Handle(wsc)
 							wsc.TxConfirmsLock.Unlock()
