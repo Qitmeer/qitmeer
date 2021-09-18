@@ -175,7 +175,7 @@ func (s *Service) Started() bool {
 }
 
 func (s *Service) Stop() error {
-	log.Info("P2P Service Stop")
+	log.Info("P2P Service is stopping")
 
 	defer s.cancel()
 	s.started = false
@@ -184,7 +184,13 @@ func (s *Service) Stop() error {
 	}
 
 	s.rebroadcast.Stop()
-	return s.sy.Stop()
+	err := s.sy.Stop()
+	if err == nil {
+		log.Info("P2P Service is stopped")
+	}else {
+		log.Error(fmt.Sprintf("P2P Service error when stopping : %v",err))
+	}
+	return err
 }
 
 func (s *Service) connectToBootnodes() error {

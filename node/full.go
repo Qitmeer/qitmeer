@@ -63,21 +63,18 @@ func (qm *QitmeerFull) Start() error {
 }
 
 func (qm *QitmeerFull) Stop() error {
-	log.Debug("Stopping Qitmeer full node service")
-
-	log.Info("try stop bm")
+	log.Info("Stopping Qitmeer full node service")
 
 	qm.blockManager.Stop()
-	qm.blockManager.WaitForStop()
 
 	qm.txManager.Stop()
 
-	log.Info("try stop cpu miner")
 	// Stop the CPU miner if needed.
 	if qm.node.Config.Generate && qm.cpuMiner != nil {
 		qm.cpuMiner.Stop()
 	}
 
+	log.Info("Qitmeer full node service stopped")
 	return nil
 }
 

@@ -62,11 +62,11 @@ func (ps *PeerSync) Stop() error {
 		log.Warn("PeerSync is already in the process of shutting down")
 		return nil
 	}
-	log.Info("P2P PeerSync Stop")
+	log.Info("PeerSync is stopping")
 
 	close(ps.quit)
 	ps.wg.Wait()
-
+	log.Info("PeerSync is stopped")
 	return nil
 }
 

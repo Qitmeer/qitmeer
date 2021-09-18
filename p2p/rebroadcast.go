@@ -53,11 +53,12 @@ func (r *Rebroadcast) Stop() error {
 		return nil
 	}
 
-	log.Info("Rebroadcast shutting down")
+	log.Info("Rebroadcast is stopping")
 
 	close(r.quit)
 
 	r.wg.Wait()
+	log.Info("Rebroadcast is stopped")
 	return nil
 
 }

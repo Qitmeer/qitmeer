@@ -62,8 +62,10 @@ func (m *wsNotificationManager) Start() {
 }
 
 func (m *wsNotificationManager) Stop() {
+	log.Info("WS Notification is stopping")
 	close(m.quit)
 	m.wg.Wait()
+	log.Info("WS Notification is stopped")
 }
 
 func (m *wsNotificationManager) queueHandler() {

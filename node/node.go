@@ -80,7 +80,7 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 }
 
 func (n *Node) Stop() error {
-	log.Info("Stopping Server")
+	log.Info("Node is stopping...")
 
 	// stop rpc server
 	if n.rpcServer != nil {
@@ -106,6 +106,8 @@ func (n *Node) Stop() error {
 	if len(failure.Services) > 0 {
 		return failure
 	}
+
+	log.Info("Node is stopped")
 	return nil
 }
 

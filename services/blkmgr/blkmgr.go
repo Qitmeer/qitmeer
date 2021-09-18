@@ -294,13 +294,11 @@ func (b *BlockManager) Stop() error {
 
 	// shutdown zmq
 	b.zmqNotify.Shutdown()
-	return nil
-}
 
-func (b *BlockManager) WaitForStop() {
 	log.Info("Wait For Block manager stop ...")
 	b.wg.Wait()
 	log.Info("Block manager stopped")
+	return nil
 }
 
 // findNextHeaderCheckpoint returns the next checkpoint after the passed layer.

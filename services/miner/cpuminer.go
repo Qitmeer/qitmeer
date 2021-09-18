@@ -500,6 +500,7 @@ out:
 func (m *CPUMiner) Stop() {
 	m.Lock()
 	defer m.Unlock()
+	log.Info("Cpu miner is stopping")
 
 	// Nothing to do if the miner is not currently running or if running in
 	// discrete mode (using GenerateNBlocks).
@@ -510,7 +511,7 @@ func (m *CPUMiner) Stop() {
 	close(m.quit)
 	m.wg.Wait()
 	m.started = false
-	log.Info("CPU miner stopped")
+	log.Info("CPU miner is stopped")
 }
 
 // IsMining returns whether or not the CPU miner has been started and is

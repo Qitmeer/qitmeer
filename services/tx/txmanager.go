@@ -47,7 +47,7 @@ func (tm *TxManager) Start() error {
 }
 
 func (tm *TxManager) Stop() error {
-	log.Info("Stopping tx manager")
+	log.Info("Tx manager is stopping" )
 
 	if tm.txMemPool.IsPersist() {
 		num, err := tm.txMemPool.Save()
@@ -58,6 +58,7 @@ func (tm *TxManager) Stop() error {
 		}
 	}
 
+	log.Info("Tx manager is stopped")
 	return nil
 }
 

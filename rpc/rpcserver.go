@@ -157,7 +157,7 @@ func (s *RpcServer) Stop() {
 	if !atomic.CompareAndSwapInt32(&s.run, 1, 0) {
 		return
 	}
-	log.Debug("RPC Server is stopping")
+	log.Info("RPC Server is stopping")
 
 	for _, listener := range s.listeners {
 		err := listener.Close()
@@ -177,6 +177,7 @@ func (s *RpcServer) Stop() {
 
 	close(s.quit)
 	s.wg.Wait()
+	log.Info("RPC Server is stopped")
 }
 
 const (
