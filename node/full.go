@@ -8,7 +8,6 @@ import (
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/p2p"
-	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/services/acct"
 	"github.com/Qitmeer/qitmeer/services/address"
@@ -51,28 +50,22 @@ type QitmeerFull struct {
 
 func (qm *QitmeerFull) Start() error {
 	log.Debug("Starting Qitmeer full node service")
-
-	qm.miner.Start()
-
 	qm.blockManager.Start()
 	qm.txManager.Start()
+	qm.miner.Start()
 	return nil
 }
 
 func (qm *QitmeerFull) Stop() error {
 	log.Debug("Stopping Qitmeer full node service")
+	log.Info("try stop miner")
+	qm.miner.Stop()
 
 	log.Info("try stop bm")
-
 	qm.blockManager.Stop()
 	qm.blockManager.WaitForStop()
 
 	qm.txManager.Stop()
-
-	log.Info("try stop miner")
-
-	qm.miner.Stop()
-
 	return nil
 }
 
@@ -130,7 +123,7 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 	qm.blockManager = bm
 
 	// txmanager
-	tm, err := tx.NewTxManager(bm, txIndex, addrIndex, cfg, qm.nfManager, qm.sigCache, node.DB)
+	tm, err := tx.NewTxManager(bm, txIndex, addrIndex, cfg, qm.nfManager, qm.sigCache, node.DB, &node.events)
 	if err != nil {
 		return nil, err
 	}
@@ -162,13 +155,8 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 		}, //TODO, duplicated config item with mem-pool
 		CoinbaseGenerator: coinbase.NewCoinbaseGenerator(node.Params, qm.node.peerServer.PeerID().String()),
 	}
-	// defaultNumWorkers is the default number of workers to use for mining
-	// and is based on the number of processor cores.  This helps ensure the
-	// system stays reasonably responsive under heavy load.
-	defaultNumWorkers := uint32(params.CPUMinerThreads) //TODO, move to config
-
 	qm.miner = miner.NewMiner(cfg, &policy, qm.sigCache,
-		qm.txManager.MemPool().(*mempool.TxPool), qm.timeSource, qm.blockManager, defaultNumWorkers)
+		qm.txManager.MemPool().(*mempool.TxPool), qm.timeSource, qm.blockManager, &node.events)
 
 	// init address api
 	qm.addressApi = address.NewAddressApi(cfg, node.Params)

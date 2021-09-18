@@ -35,10 +35,6 @@ const (
 	// transaction can be.
 	maxExtraNonce = ^uint64(0) // 2^64 - 1
 
-	// hpsUpdateSecs is the number of seconds to wait in between each
-	// update to the hashes per second monitor.
-	hpsUpdateSecs = 10
-
 	// hashUpdateSec is the number of seconds each worker waits in between
 	// notifying the speed monitor with how many hashes have been completed
 	// while they are actively searching for a solution.  This is done to
