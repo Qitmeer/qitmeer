@@ -91,11 +91,20 @@ func main() {
 			Txid:          "f5a95e6cfa754a8c81579fb8871bc97e965383d98c61197a74561f0cd8e24be2",
 			Order:         1,
 			Confirmations: 5,
+			EndHeight:     100,
 		},
 	}); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("NotifyTransaction: Registration Complete")
+
+	if err := c.RemoveTxsConfirmed([]cmds.TxConfirm{
+		{
+			Txid: "f5a95e6cfa754a8c81579fb8871bc97e965383d98c61197a74561f0cd8e24be2",
+		},
+	}); err != nil {
+		log.Fatal(err)
+	}
 	time.Sleep(1 * time.Second)
 	if err := c.Rescan(0, 110, []string{"RmBCkqCZ17hXsUTGhKXT3s6CZ5b6MuNhwcZ"}, nil); err != nil {
 		log.Fatal(err)

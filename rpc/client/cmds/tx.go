@@ -137,9 +137,14 @@ type TxConfirm struct {
 	Txid          string
 	Order         uint64
 	Confirmations int32
+	EndHeight     uint64
 }
 
 type NotifyTxsConfirmedCmd struct {
+	Txs []TxConfirm
+}
+
+type RemoveTxsConfirmedCmd struct {
 	Txs []TxConfirm
 }
 
@@ -163,6 +168,12 @@ func NewNotifyNewTransactionsCmd(verbose bool) *NotifyNewTransactionsCmd {
 
 func NewNotifyTxsConfirmed(txs []TxConfirm) *NotifyTxsConfirmedCmd {
 	return &NotifyTxsConfirmedCmd{
+		Txs: txs,
+	}
+}
+
+func NewRemoveTxsConfirmed(txs []TxConfirm) *RemoveTxsConfirmedCmd {
+	return &RemoveTxsConfirmedCmd{
 		Txs: txs,
 	}
 }
@@ -209,4 +220,6 @@ func init() {
 	MustRegisterCmd("stopnotifyTxsByAddr", (*UnNotifyTxsByAddrCmd)(nil), UFWebsocketOnly, NotifyNameSpace)
 
 	MustRegisterCmd("notifyTxsConfirmed", (*NotifyTxsConfirmedCmd)(nil), flags, NotifyNameSpace)
+
+	MustRegisterCmd("removeTxsConfirmed", (*RemoveTxsConfirmedCmd)(nil), flags, NotifyNameSpace)
 }

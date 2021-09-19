@@ -189,6 +189,18 @@ func AssertTxConfirm(t *testing.T, h *Harness, txid string, confirms uint64) {
 	}
 }
 
+func AssertTxNotConfirm(t *testing.T, h *Harness, txid string) {
+	h.Wallet.Lock()
+	defer h.Wallet.Unlock()
+
+	if h.Wallet.confirmTxs == nil {
+		return
+	}
+	if _, ok := h.Wallet.confirmTxs[txid]; ok {
+		t.Fatalf("remove has tx %s failed", txid)
+	}
+}
+
 func TimeoutFunc(t *testing.T, f func() bool, timeout int) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)

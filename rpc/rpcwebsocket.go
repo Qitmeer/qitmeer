@@ -134,6 +134,7 @@ var wsHandlersBeforeInit = map[string]wsCommandHandler{
 	"stopnotifyTxsByAddr":       handleStopNotifyTxsByAddr,
 	"rescan":                    handleRescan,
 	"notifyTxsConfirmed":        handleNotifyTxsConfirmed,
+	"removeTxsConfirmed":        handleRemoveTxsConfirmed,
 }
 
 func handleNotifyBlocks(wsc *wsClient, icmd interface{}) (interface{}, error) {
@@ -343,10 +344,26 @@ func handleNotifyTxsConfirmed(wsc *wsClient, icmd interface{}) (interface{}, err
 	defer wsc.TxConfirmsLock.Unlock()
 	for _, tx := range cmd.Txs {
 		wsc.TxConfirms.AddTxConfirms(TxConfirm{
-			Confirms: uint64(tx.Confirmations),
-			TxHash:   tx.Txid,
+			Confirms:  uint64(tx.Confirmations),
+			TxHash:    tx.Txid,
+			EndHeight: tx.EndHeight,
 		})
 	}
 	wsc.server.ntfnMgr.RegisterTxConfirm(wsc)
+	return nil, nil
+}
+
+func handleRemoveTxsConfirmed(wsc *wsClient, icmd interface{}) (interface{}, error) {
+	cmd, ok := icmd.(*cmds.RemoveTxsConfirmedCmd)
+	if !ok {
+		return nil, cmds.ErrRPCInternal
+	}
+	wsc.TxConfirmsLock.Lock()
+	defer wsc.TxConfirmsLock.Unlock()
+	for _, tx := range cmd.Txs {
+		wsc.TxConfirms.RemoveTxConfirms(TxConfirm{
+			TxHash: tx.Txid,
+		})
+	}
 	return nil, nil
 }
