@@ -63,6 +63,7 @@ func (w *WatchTxConfirmServer) Handle(wsc *wsClient, currentHeight uint64) {
 			} else {
 				// timeout
 				if txconf.EndHeight > 0 && currentHeight >= txconf.EndHeight {
+					log.Debug("coinbase tx long time not confirm ,will remove for watch", "txhash", txHash)
 					delete(*w, tx)
 				}
 				continue
