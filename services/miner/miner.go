@@ -183,7 +183,7 @@ out:
 				m.updateBlockTemplate(false)
 				worker := NewGBTWorker(m)
 				worker.Start()
-				m.worker.Update()
+				worker.Update()
 				worker.GetRequest(msg.request, msg.reply)
 
 				m.worker = worker
