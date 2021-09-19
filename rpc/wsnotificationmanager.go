@@ -117,7 +117,7 @@ out:
 								continue
 							}
 							wsc.TxConfirmsLock.Lock()
-							wsc.TxConfirms.Handle(wsc)
+							wsc.TxConfirms.Handle(wsc, uint64(block.Height()))
 							wsc.TxConfirmsLock.Unlock()
 						}
 					}

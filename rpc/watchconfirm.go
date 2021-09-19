@@ -10,8 +10,9 @@ import (
 )
 
 type TxConfirm struct {
-	Confirms uint64
-	TxHash   string
+	Confirms  uint64
+	TxHash    string
+	EndHeight uint64 // timeout
 }
 
 func (w *WatchTxConfirmServer) AddTxConfirms(confirm TxConfirm) {
@@ -24,9 +25,19 @@ func (w *WatchTxConfirmServer) AddTxConfirms(confirm TxConfirm) {
 	(*w)[confirm.TxHash] = confirm
 }
 
+func (w *WatchTxConfirmServer) RemoveTxConfirms(confirm TxConfirm) {
+	if w == nil {
+		w = &WatchTxConfirmServer{}
+	}
+	if _, ok := (*w)[confirm.TxHash]; !ok {
+		return
+	}
+	delete((*w), confirm.TxHash)
+}
+
 type WatchTxConfirmServer map[string]TxConfirm
 
-func (w *WatchTxConfirmServer) Handle(wsc *wsClient) {
+func (w *WatchTxConfirmServer) Handle(wsc *wsClient, currentHeight uint64) {
 	if w == nil || len(*w) <= 0 {
 		return
 	}
@@ -50,7 +61,10 @@ func (w *WatchTxConfirmServer) Handle(wsc *wsClient) {
 					continue
 				}
 			} else {
-				log.Warn("tx hash not found", "txhash", txHash)
+				// timeout
+				if txconf.EndHeight > 0 && currentHeight >= txconf.EndHeight {
+					delete(*w, tx)
+				}
 				continue
 			}
 		}

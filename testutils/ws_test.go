@@ -71,7 +71,34 @@ func TestWsNotify(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
+
 	GenerateBlock(t, h, 2)
 	AssertBlockOrderAndHeight(t, h, 8, 8, 7)
 	AssertTxConfirm(t, h, txid.String(), 5)
+	spendAmt = types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
+	lockT = int64(1)
+	txid, addr = Spend(t, h, spendAmt, nil, &lockT)
+	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
+	GenerateBlock(t, h, 4)
+	err = h.Notifier.NotifyTxsConfirmed([]cmds.TxConfirm{
+		{
+			Txid:          txid.String(),
+			Confirmations: 5,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	err = h.Notifier.RemoveTxsConfirmed([]cmds.TxConfirm{
+		{
+			Txid: txid.String(),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	GenerateBlock(t, h, 2)
+	AssertTxNotConfirm(t, h, txid.String())
 }
