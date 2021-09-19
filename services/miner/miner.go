@@ -57,6 +57,9 @@ type Miner struct {
 
 	sync.Mutex
 	submitLocker sync.Mutex
+
+	totalSubmit   int
+	successSubmit int
 }
 
 func (m *Miner) Start() error {
@@ -125,13 +128,16 @@ out:
 					m.worker.Stop()
 					m.worker = nil
 				}
+				m.updateBlockTemplate(false)
 				m.worker = NewCPUWorker(m)
 				m.worker.Start()
-				if m.updateBlockTemplate(false) != nil {
-					m.worker.Update()
-				}
+				m.worker.Update()
+
 			case *CPUMiningGenerateMsg:
 				if msg.discreteNum <= 0 {
+					if msg.block != nil {
+						close(msg.block)
+					}
 					continue
 				}
 				if m.worker != nil {
@@ -140,7 +146,7 @@ out:
 						if m.powType != msg.powType {
 							m.powType = msg.powType
 						}
-						if m.updateBlockTemplate(true) != nil {
+						if m.updateBlockTemplate(true) == nil {
 							m.worker.Update()
 						}
 						continue
@@ -148,22 +154,20 @@ out:
 					m.worker.Stop()
 					m.worker = nil
 				}
+				m.updateBlockTemplate(false)
 				worker := NewCPUWorker(m)
 				worker.Start()
 				worker.generateDiscrete(msg.discreteNum, msg.block)
+				worker.Update()
 
 				m.worker = worker
 
-				if m.updateBlockTemplate(false) != nil {
-					m.worker.Update()
-				}
-
 			case *BlockChainChangeMsg:
-				if m.updateBlockTemplate(false) != nil {
+				if m.updateBlockTemplate(false) == nil {
 					m.worker.Update()
 				}
 			case *MempoolChangeMsg:
-				if m.updateBlockTemplate(false) != nil {
+				if m.updateBlockTemplate(false) == nil {
 					m.worker.Update()
 				}
 
@@ -176,12 +180,10 @@ out:
 					m.worker.Stop()
 					m.worker = nil
 				}
+				m.updateBlockTemplate(false)
 				worker := NewGBTWorker(m)
 				worker.Start()
-				if m.updateBlockTemplate(false) != nil {
-					m.worker.Update()
-				}
-
+				m.worker.Update()
 				worker.GetRequest(msg.request, msg.reply)
 
 				m.worker = worker
@@ -312,6 +314,7 @@ func (m *Miner) submitBlock(block *types.SerializedBlock) (interface{}, error) {
 	}
 	m.submitLocker.Lock()
 	defer m.submitLocker.Unlock()
+	m.totalSubmit++
 
 	// Process this block using the same rules as blocks coming from other
 	// nodes. This will in turn relay it to the network like normal.
@@ -340,6 +343,8 @@ func (m *Miner) submitBlock(block *types.SerializedBlock) (interface{}, error) {
 			"on parent %v", m.worker.GetType(), block.Block().Header.ParentRoot))
 	}
 
+	m.successSubmit++
+
 	// The block was accepted.
 	coinbaseTxOuts := block.Block().Transactions[0].TxOut
 	coinbaseTxGenerated := uint64(0)
@@ -359,6 +364,20 @@ func (m *Miner) CanMining() error {
 	}
 	return nil
 }
+
+func (m *Miner) IsEnable() bool {
+	if !m.cfg.Miner {
+		return false
+	}
+	if atomic.LoadInt32(&m.shutdown) != 0 {
+		return false
+	}
+	if atomic.LoadInt32(&m.started) == 0 {
+		return false
+	}
+	return true
+}
+
 func (m *Miner) handleStallSample() {
 	//if atomic.LoadInt32(&m.shutdown) != 0 {
 	//	return

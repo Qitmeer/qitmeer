@@ -103,6 +103,30 @@ func (api *PublicMinerAPI) SubmitBlock(hexBlock string) (interface{}, error) {
 	return m.submitBlock(block)
 }
 
+func (api *PublicMinerAPI) GetMinerInfo() (interface{}, error) {
+	if !api.miner.IsEnable() {
+		return nil, fmt.Errorf("Miner is disable. You can enable by --miner.")
+	}
+	if api.miner.template == nil || api.miner.worker == nil {
+		return nil, fmt.Errorf("Not ready")
+	}
+	result := json.MinerInfoResult{}
+	result.Timestamp = api.miner.template.Block.Header.Timestamp.String()
+	result.Height = api.miner.template.Height
+	result.Pow = pow.GetPowName(api.miner.powType)
+	result.Difficulty = fmt.Sprintf("%x", api.miner.template.Block.Header.Difficulty)
+	result.Target = fmt.Sprintf("%064x", pow.CompactToBig(api.miner.template.Block.Header.Difficulty))
+	result.Coinbase = api.miner.coinbaseAddress.String()
+	result.TotalSubmit = api.miner.totalSubmit
+	result.SuccessSubmit = api.miner.successSubmit
+	if api.miner.worker != nil {
+		result.Running = api.miner.worker.IsRunning()
+		result.Type = api.miner.worker.GetType()
+	}
+
+	return &result, nil
+}
+
 // PrivateMinerAPI provides private RPC methods to control the miner.
 type PrivateMinerAPI struct {
 	miner *Miner

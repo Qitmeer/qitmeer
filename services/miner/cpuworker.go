@@ -273,11 +273,17 @@ func (w *CPUWorker) Update() {
 
 func (w *CPUWorker) generateDiscrete(num int, block chan *hash.Hash) {
 	if atomic.LoadInt32(&w.shutdown) != 0 {
+		if block != nil {
+			close(block)
+		}
 		return
 	}
 	w.Lock()
 	defer w.Unlock()
 	if w.discrete && w.discreteNum > 0 {
+		if block != nil {
+			close(block)
+		}
 		log.Info(fmt.Sprintf("It already exists generate blocks by discrete: left=%d", w.discreteNum))
 		return
 	}
@@ -392,7 +398,6 @@ func (w *CPUWorker) solveBlock() bool {
 		hashesCompleted += 2
 		header.Pow = instance
 		if header.Pow.FindSolver(header.BlockData(), header.BlockHash(), header.Difficulty) {
-			time.Sleep(time.Second * 5)
 			w.updateHashes <- hashesCompleted
 			return true
 		}

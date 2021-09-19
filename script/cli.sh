@@ -144,6 +144,11 @@ function save_mempool(){
   get_result "$data"
 }
 
+function miner_info(){
+  local data='{"jsonrpc":"2.0","method":"getMinerInfo","params":[],"id":1}'
+  get_result "$data"
+}
+
 # return block by hash
 #   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){
@@ -590,6 +595,7 @@ function usage(){
   echo "  mempool"
   echo "  mempool_count"
   echo "  savemempool"
+  echo "  minerinfo"
 }
 
 # -------------------
@@ -988,6 +994,10 @@ elif [ "$1" == "mempool_count" ]; then
 elif [ "$1" == "savemempool" ]; then
   shift
   save_mempool $@
+
+elif [ "$1" == "minerinfo" ]; then
+  shift
+  miner_info $@
 
 elif [ "$1" == "txSign" ]; then
   shift

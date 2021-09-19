@@ -71,6 +71,7 @@ func (w *GBTWorker) Update() {
 
 func (w *GBTWorker) GetRequest(request *json.TemplateRequest, reply chan *gbtResponse) {
 	if atomic.LoadInt32(&w.shutdown) != 0 {
+		close(reply)
 		return
 	}
 
