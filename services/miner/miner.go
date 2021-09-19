@@ -324,7 +324,13 @@ func (m *Miner) handleNotifyMsg(notification *blockchain.Notification) {
 	}
 	switch notification.Type {
 	case blockchain.BlockAccepted:
-		m.BlockChainChange()
+		band, ok := notification.Data.(*blockchain.BlockAcceptedNotifyData)
+		if !ok {
+			return
+		}
+		if band.IsMainChainTipChange {
+			m.BlockChainChange()
+		}
 	}
 }
 
