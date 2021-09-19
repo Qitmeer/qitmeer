@@ -177,7 +177,7 @@ func (s *Service) Started() bool {
 func (s *Service) Stop() error {
 	log.Info("P2P Service Stop")
 
-	defer s.cancel()
+	s.cancel()
 	s.started = false
 	if s.dv5Listener != nil {
 		s.dv5Listener.Close()

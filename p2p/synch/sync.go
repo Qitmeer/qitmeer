@@ -84,6 +84,9 @@ type Sync struct {
 	p2p          common.P2P
 	PeerInterval time.Duration
 	LANPeers     map[peer.ID]struct{}
+
+	disconnectionNotify *network.NotifyBundle
+	connectionNotify    *network.NotifyBundle
 }
 
 func (s *Sync) Start() error {
@@ -98,6 +101,12 @@ func (s *Sync) Start() error {
 }
 
 func (s *Sync) Stop() error {
+	if s.connectionNotify != nil {
+		s.p2p.Host().Network().StopNotify(s.connectionNotify)
+	}
+	if s.disconnectionNotify != nil {
+		s.p2p.Host().Network().StopNotify(s.disconnectionNotify)
+	}
 	return s.peerSync.Stop()
 }
 
