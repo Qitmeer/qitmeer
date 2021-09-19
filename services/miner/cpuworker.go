@@ -307,6 +307,9 @@ out:
 		// Quit when the miner is stopped.
 		select {
 		case <-w.updateWork:
+			if w.discrete && w.discreteNum <= 0 {
+				continue
+			}
 			if w.solveBlock() {
 				block := types.NewBlock(w.miner.template.Block)
 				block.SetHeight(uint(w.miner.template.Height))
