@@ -373,14 +373,14 @@ func (m *Miner) submitBlock(block *types.SerializedBlock) (interface{}, error) {
 }
 
 func (m *Miner) submitBlockHeader(header *types.BlockHeader) (interface{}, error) {
-	if m.IsEnable() || m.template == nil {
+	if !m.IsEnable() || m.template == nil {
 		return nil, fmt.Errorf("You must enable miner by --miner.")
 	}
 	tHeader := &m.template.Block.Header
 	if header.Version != tHeader.Version ||
 		!header.ParentRoot.IsEqual(&tHeader.ParentRoot) ||
 		!header.StateRoot.IsEqual(&tHeader.StateRoot) ||
-		header.TxRoot.IsEqual(&tHeader.TxRoot) {
+		!header.TxRoot.IsEqual(&tHeader.TxRoot) {
 		return nil, fmt.Errorf("You're overdue")
 	}
 	tHeader.Difficulty = header.Difficulty
