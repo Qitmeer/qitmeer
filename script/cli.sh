@@ -144,6 +144,11 @@ function save_mempool(){
   get_result "$data"
 }
 
+function miner_info(){
+  local data='{"jsonrpc":"2.0","method":"getMinerInfo","params":[],"id":1}'
+  get_result "$data"
+}
+
 # return block by hash
 #   func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error)
 function get_block_by_hash(){
@@ -477,6 +482,21 @@ function submit_block() {
   get_result "$data"
 }
 
+function get_remote_gbt() {
+  local powtype=$1
+    if [ "$powtype" == "" ]; then
+    powtype=8
+  fi
+  local data='{"jsonrpc":"2.0","method":"getRemoteGBT","params":['$powtype'],"id":1}'
+  get_result "$data"
+}
+
+function submit_block_header() {
+  local input=$1
+  local data='{"jsonrpc":"2.0","method":"submitBlockHeader","params":["'$input'"],"id":1}'
+  get_result "$data"
+}
+
 function get_subsidy(){
   local data='{"jsonrpc":"2.0","method":"getSubsidy","params":[],"id":null}'
   get_result "$data"
@@ -571,7 +591,6 @@ function usage(){
   echo "  coinbase <hash>"
   echo "  fees <hash>"
   echo "  tokeninfo"
-  echo "  submitblock"
   echo "tx     :"
   echo "  tx <id>"
   echo "  txv2 <id>"
@@ -590,6 +609,10 @@ function usage(){
   echo "  mempool"
   echo "  mempool_count"
   echo "  savemempool"
+  echo "  minerinfo"
+  echo "  submitblock"
+  echo "  submitblockheader"
+  echo "  remotegbt"
 }
 
 # -------------------
@@ -989,6 +1012,10 @@ elif [ "$1" == "savemempool" ]; then
   shift
   save_mempool $@
 
+elif [ "$1" == "minerinfo" ]; then
+  shift
+  miner_info $@
+
 elif [ "$1" == "txSign" ]; then
   shift
   tx_sign $@
@@ -1139,6 +1166,14 @@ elif [ "$1" == "to_base64" ]; then
 elif [ "$1" == "submitblock" ]; then
   shift
   submit_block $@
+
+elif [ "$1" == "submitblockheader" ]; then
+  shift
+  submit_block_header $@
+
+elif [ "$1" == "remotegbt" ]; then
+  shift
+  get_remote_gbt $@
 
 elif [ "$1" == "list_command" ]; then
   usage

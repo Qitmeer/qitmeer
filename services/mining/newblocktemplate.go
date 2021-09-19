@@ -462,9 +462,11 @@ mempool:
 		"signOp", blockSigOpCost,
 		"bytes", blockSize,
 		"target",
-		fmt.Sprintf("%064x", pow.CompactToBig(block.Header.Difficulty)))
+		fmt.Sprintf("%064x", pow.CompactToBig(block.Header.Difficulty)),
+		"timestamp", block.Header.Timestamp,
+		"parents root", block.Header.ParentRoot.String())
 
-	blockTemplate := &types.BlockTemplate{
+	return &types.BlockTemplate{
 		Block:           &block,
 		Fees:            txFees,
 		SigOpCounts:     txSigOpCosts,
@@ -473,8 +475,8 @@ mempool:
 		ValidPayAddress: payToAddress != nil,
 		Difficulty:      reqCompactDifficulty,
 		BlockFeesMap:    blockFeesMap,
-	}
-	return handleCreatedBlockTemplate(blockTemplate, blockManager)
+	}, nil
+
 }
 
 // UpdateBlockTime updates the timestamp in the header of the passed block to

@@ -11,12 +11,17 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/message"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"math"
 	"sync"
 	"sync/atomic"
 	"time"
+)
+
+const (
+	MempoolTxAdd = int(1)
 )
 
 // TxPool is used as a source of transactions that need to be mined into blocks
@@ -178,6 +183,8 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 	if mp.cfg.ExistsAddrIndex != nil {
 		mp.cfg.ExistsAddrIndex.AddUnconfirmedTx(msgTx)
 	}
+
+	mp.cfg.Events.Send(event.New(MempoolTxAdd))
 	return txD
 }
 

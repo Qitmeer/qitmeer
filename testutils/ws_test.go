@@ -33,6 +33,7 @@ func TestWsNotify(t *testing.T) {
 	AssertBlockOrderAndHeight(t, h, 1, 1, 0)
 	GenerateBlock(t, h, 1)
 	AssertBlockOrderAndHeight(t, h, 2, 2, 1)
+
 	err = h.Notifier.NotifyNewTransactions(true)
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +53,6 @@ func TestWsNotify(t *testing.T) {
 	blocks := GenerateBlock(t, h, 4)
 	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
 	AssertBlockOrderAndHeight(t, h, 6, 6, 5)
-
 	h.Wallet.OnRescanComplete = func() {
 		AssertScan(t, h, 5, 6)
 	}
@@ -71,7 +71,6 @@ func TestWsNotify(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-
 	GenerateBlock(t, h, 2)
 	AssertBlockOrderAndHeight(t, h, 8, 8, 7)
 	AssertTxConfirm(t, h, txid.String(), 5)

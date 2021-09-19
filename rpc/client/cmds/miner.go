@@ -4,7 +4,12 @@
 
 package cmds
 
-import "github.com/Qitmeer/qitmeer/core/types/pow"
+import (
+	"bytes"
+	"encoding/hex"
+	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/core/types/pow"
+)
 
 type GetBlockTemplateCmd struct {
 	Capabilities []string
@@ -40,10 +45,38 @@ func NewGenerateCmd(numBlocks uint32, powType pow.PowType) *GenerateCmd {
 	}
 }
 
+type GetRemoteGBTCmd struct {
+	PowType pow.PowType
+}
+
+func NewGetRemoteGBTCmd(powType pow.PowType) *GetRemoteGBTCmd {
+	return &GetRemoteGBTCmd{
+		PowType: powType,
+	}
+}
+
+type SubmitBlockHeaderCmd struct {
+	HexBlockHeader string
+}
+
+func NewSubmitBlockHeaderCmd(blockHeader *types.BlockHeader) *SubmitBlockHeaderCmd {
+	var headerBuf bytes.Buffer
+	err := blockHeader.Serialize(&headerBuf)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return &SubmitBlockHeaderCmd{
+		HexBlockHeader: hex.EncodeToString(headerBuf.Bytes()),
+	}
+}
+
 func init() {
 	flags := UsageFlag(0)
 
 	MustRegisterCmd("getBlockTemplate", (*GetBlockTemplateCmd)(nil), flags, DefaultServiceNameSpace)
 	MustRegisterCmd("submitBlock", (*SubmitBlockCmd)(nil), flags, DefaultServiceNameSpace)
+	MustRegisterCmd("getRemoteGBT", (*GetRemoteGBTCmd)(nil), flags, DefaultServiceNameSpace)
+	MustRegisterCmd("submitBlockHeader", (*SubmitBlockHeaderCmd)(nil), flags, DefaultServiceNameSpace)
 	MustRegisterCmd("generate", (*GenerateCmd)(nil), flags, MinerNameSpace)
 }
