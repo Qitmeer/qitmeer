@@ -248,6 +248,7 @@ func NewHarness(t *testing.T, params *params.Params, args ...string) (*Harness, 
 	coinbaseAddr := wallet.coinBaseAddr().Encode()
 	t.Logf("node [%v] wallet coinbase addr: %s", id, coinbaseAddr)
 	extraArgs = append(extraArgs, fmt.Sprintf("--miningaddr=%s", coinbaseAddr))
+	extraArgs = append(extraArgs, "--miner")
 
 	// create node config & initialize the node process
 	config := newNodeConfig(testDir, extraArgs)

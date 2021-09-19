@@ -156,19 +156,22 @@ out:
 				}
 				m.updateBlockTemplate(false)
 				worker := NewCPUWorker(m)
+				m.worker = worker
 				worker.Start()
 				worker.generateDiscrete(msg.discreteNum, msg.block)
 				worker.Update()
 
-				m.worker = worker
-
 			case *BlockChainChangeMsg:
 				if m.updateBlockTemplate(false) == nil {
-					m.worker.Update()
+					if m.worker != nil {
+						m.worker.Update()
+					}
 				}
 			case *MempoolChangeMsg:
 				if m.updateBlockTemplate(false) == nil {
-					m.worker.Update()
+					if m.worker != nil {
+						m.worker.Update()
+					}
 				}
 
 			case *GBTMiningMsg:
@@ -182,11 +185,10 @@ out:
 				}
 				m.updateBlockTemplate(false)
 				worker := NewGBTWorker(m)
+				m.worker = worker
 				worker.Start()
 				worker.Update()
 				worker.GetRequest(msg.request, msg.reply)
-
-				m.worker = worker
 
 			case *RemoteMiningMsg:
 				if m.worker != nil {
@@ -199,11 +201,11 @@ out:
 				}
 				m.updateBlockTemplate(false)
 				worker := NewRemoteWorker(m)
+				m.worker = worker
 				worker.Start()
 				worker.Update()
 				worker.GetRequest(msg.powType, msg.reply)
 
-				m.worker = worker
 			default:
 				log.Warn("Invalid message type in task handler: %T", msg)
 			}
@@ -317,6 +319,9 @@ func (m *Miner) subscribe() {
 	}()
 }
 func (m *Miner) handleNotifyMsg(notification *blockchain.Notification) {
+	if m.worker == nil {
+		return
+	}
 	switch notification.Type {
 	case blockchain.BlockAccepted:
 		m.BlockChainChange()
@@ -463,6 +468,9 @@ func (m *Miner) BlockChainChange() {
 func (m *Miner) MempoolChange() {
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&m.shutdown) != 0 {
+		return
+	}
+	if m.worker == nil {
 		return
 	}
 	if err := m.CanMining(); err != nil {
