@@ -62,12 +62,22 @@ func (ps *PeerSync) Stop() error {
 		log.Warn("PeerSync is already in the process of shutting down")
 		return nil
 	}
-	log.Info("P2P PeerSync Stop")
+	log.Info("P2P PeerSync Stoping...")
 
 	close(ps.quit)
 	ps.wg.Wait()
-
+	log.Info("P2P PeerSync Stoped")
 	return nil
+}
+
+func (ps *PeerSync) IsRunning() bool {
+	if atomic.LoadInt32(&ps.shutdown) != 0 {
+		return false
+	}
+	if atomic.LoadInt32(&ps.started) == 0 {
+		return false
+	}
+	return true
 }
 
 func (ps *PeerSync) handler() {
@@ -192,7 +202,9 @@ func (ps *PeerSync) SetSyncPeer(pe *peers.Peer) {
 }
 
 func (ps *PeerSync) OnPeerConnected(pe *peers.Peer) {
-
+	if !ps.IsRunning() {
+		return
+	}
 	ti := pe.Timestamp()
 	if !ti.IsZero() {
 		// Add the remote peer time as a sample for creating an offset against
@@ -401,6 +413,9 @@ func (ps *PeerSync) IntellectSyncBlocks(refresh bool, pe *peers.Peer) {
 }
 
 func (ps *PeerSync) updateSyncPeer(force bool) {
+	if !ps.IsRunning() {
+		return
+	}
 	log.Debug("Updating sync peer")
 	if force {
 		ps.SetSyncPeer(nil)
@@ -409,6 +424,9 @@ func (ps *PeerSync) updateSyncPeer(force bool) {
 }
 
 func (ps *PeerSync) continueSync(orphan bool) {
+	if !ps.IsRunning() {
+		return
+	}
 	log.Debug("Continue sync peer")
 	sp := ps.SyncPeer()
 	if sp != nil {
