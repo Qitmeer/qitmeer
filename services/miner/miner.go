@@ -377,10 +377,7 @@ func (m *Miner) submitBlockHeader(header *types.BlockHeader) (interface{}, error
 		return nil, fmt.Errorf("You must enable miner by --miner.")
 	}
 	tHeader := &m.template.Block.Header
-	if header.Version != tHeader.Version ||
-		!header.ParentRoot.IsEqual(&tHeader.ParentRoot) ||
-		!header.StateRoot.IsEqual(&tHeader.StateRoot) ||
-		!header.TxRoot.IsEqual(&tHeader.TxRoot) {
+	if !IsEqualForMiner(tHeader, header) {
 		return nil, fmt.Errorf("You're overdue")
 	}
 	tHeader.Difficulty = header.Difficulty
@@ -523,4 +520,14 @@ func NewMiner(cfg *config.Config, policy *mining.Policy,
 	}
 
 	return &m
+}
+
+func IsEqualForMiner(header *types.BlockHeader, other *types.BlockHeader) bool {
+	if header.Version != other.Version ||
+		!header.ParentRoot.IsEqual(&other.ParentRoot) ||
+		!header.StateRoot.IsEqual(&other.StateRoot) ||
+		!header.TxRoot.IsEqual(&other.TxRoot) {
+		return false
+	}
+	return true
 }
