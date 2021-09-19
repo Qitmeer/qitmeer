@@ -135,7 +135,7 @@ func (ps *PeerSync) Disconnect(pe *peers.Peer) {
 // newly added peer. It performs a handshake with that peer by sending a hello request
 // and validating the response from the peer.
 func (s *Sync) AddConnectionHandler() {
-	s.p2p.Host().Network().Notify(&network.NotifyBundle{
+	s.connectionNotify = &network.NotifyBundle{
 		ConnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
 			if !s.connectionGater(remotePeer, conn) {
@@ -144,7 +144,8 @@ func (s *Sync) AddConnectionHandler() {
 			log.Trace(fmt.Sprintf("ConnectedF:%s, %v ", remotePeer, conn.RemoteMultiaddr()))
 			s.peerSync.Connected(remotePeer, conn)
 		},
-	})
+	}
+	s.p2p.Host().Network().Notify(s.connectionNotify)
 }
 
 func (ps *PeerSync) Disconnected(pid peer.ID, conn network.Conn) {
@@ -189,13 +190,14 @@ func (ps *PeerSync) processDisconnected(msg *DisconnectedMsg) {
 // AddDisconnectionHandler disconnects from peers.  It handles updating the peer status.
 // This also calls the handler responsible for maintaining other parts of the sync or p2p system.
 func (s *Sync) AddDisconnectionHandler() {
-	s.p2p.Host().Network().Notify(&network.NotifyBundle{
+	s.disconnectionNotify = &network.NotifyBundle{
 		DisconnectedF: func(net network.Network, conn network.Conn) {
 			remotePeer := conn.RemotePeer()
 			log.Trace(fmt.Sprintf("DisconnectedF:%s", remotePeer))
 			s.peerSync.Disconnected(remotePeer, conn)
 		},
-	})
+	}
+	s.p2p.Host().Network().Notify(s.disconnectionNotify)
 }
 
 func (s *Sync) bidirectionalChannelCapacity(pe *peers.Peer, conn network.Conn) bool {
