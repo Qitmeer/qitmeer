@@ -188,6 +188,22 @@ out:
 
 				m.worker = worker
 
+			case *RemoteMiningMsg:
+				if m.worker != nil {
+					if m.worker.GetType() == RemoteWorkerType {
+						m.worker.(*RemoteWorker).GetRequest(msg.powType, msg.reply)
+						continue
+					}
+					m.worker.Stop()
+					m.worker = nil
+				}
+				m.updateBlockTemplate(false)
+				worker := NewRemoteWorker(m)
+				worker.Start()
+				worker.Update()
+				worker.GetRequest(msg.powType, msg.reply)
+
+				m.worker = worker
 			default:
 				log.Warn("Invalid message type in task handler: %T", msg)
 			}
@@ -225,7 +241,8 @@ func (m *Miner) updateBlockTemplate(force bool) error {
 		reCreate = true
 	} else if m.template == nil {
 		reCreate = true
-	} else {
+	}
+	if !reCreate {
 		parentsSet := blockdag.NewHashSet()
 		parentsSet.AddList(m.blockManager.GetChain().GetMiningTips(blockdag.MaxPriority))
 
@@ -355,6 +372,25 @@ func (m *Miner) submitBlock(block *types.SerializedBlock) (interface{}, error) {
 		blockdag.GetOrderLogStr(uint(block.Order())), block.Height(), coinbaseTxGenerated, m.worker.GetType()), nil
 }
 
+func (m *Miner) submitBlockHeader(header *types.BlockHeader) (interface{}, error) {
+	if m.IsEnable() || m.template == nil {
+		return nil, fmt.Errorf("You must enable miner by --miner.")
+	}
+	tHeader := &m.template.Block.Header
+	if header.Version != tHeader.Version ||
+		!header.ParentRoot.IsEqual(&tHeader.ParentRoot) ||
+		!header.StateRoot.IsEqual(&tHeader.StateRoot) ||
+		header.TxRoot.IsEqual(&tHeader.TxRoot) {
+		return nil, fmt.Errorf("You're overdue")
+	}
+	tHeader.Difficulty = header.Difficulty
+	tHeader.Timestamp = header.Timestamp
+	tHeader.Pow = header.Pow
+	block := types.NewBlock(m.template.Block)
+	block.SetHeight(uint(m.template.Height))
+	return m.submitBlock(block)
+}
+
 func (m *Miner) CanMining() error {
 	currentOrder := m.blockManager.GetChain().BestSnapshot().GraphState.GetTotal() - 1
 	if currentOrder != 0 && !m.blockManager.IsCurrent() {
@@ -439,6 +475,9 @@ func (m *Miner) MempoolChange() {
 }
 
 func (m *Miner) GBTMining(request *json.TemplateRequest, reply chan *gbtResponse) error {
+	if !m.cfg.Miner {
+		return fmt.Errorf("Miner is disable. You can enable by --miner.")
+	}
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&m.shutdown) != 0 {
 		return fmt.Errorf("Miner is shutdown")
@@ -448,6 +487,22 @@ func (m *Miner) GBTMining(request *json.TemplateRequest, reply chan *gbtResponse
 	}
 
 	m.msgChan <- &GBTMiningMsg{request: request, reply: reply}
+	return nil
+}
+
+func (m *Miner) RemoteMining(powType pow.PowType, reply chan *gbtResponse) error {
+	if !m.cfg.Miner {
+		return fmt.Errorf("Miner is disable. You can enable by --miner.")
+	}
+	// Ignore if we are shutting down.
+	if atomic.LoadInt32(&m.shutdown) != 0 {
+		return fmt.Errorf("Miner is shutdown")
+	}
+	if err := m.CanMining(); err != nil {
+		return err
+	}
+
+	m.msgChan <- &RemoteMiningMsg{powType: powType, reply: reply}
 	return nil
 }
 

@@ -14,6 +14,14 @@ import (
 )
 
 const (
+	// maxNonce is the maximum value a nonce can be in a block header.
+	maxNonce = ^uint64(0) // 2^64 - 1
+
+	// TODO, decided if th extra nonce for coinbase-tx need
+	// maxExtraNonce is the maximum value an extra nonce used in a coinbase
+	// transaction can be.
+	maxExtraNonce = ^uint64(0) // 2^64 - 1
+
 	// hpsUpdateSecs is the number of seconds to wait in between each
 	// update to the hashes per second monitor.
 	hpsUpdateSecs = 10

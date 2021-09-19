@@ -3,6 +3,7 @@
 package miner
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
@@ -125,6 +126,35 @@ func (api *PublicMinerAPI) GetMinerInfo() (interface{}, error) {
 	}
 
 	return &result, nil
+}
+
+func (api *PublicMinerAPI) GetRemoteGBT(powType byte) (interface{}, error) {
+	reply := make(chan *gbtResponse)
+	err := api.miner.RemoteMining(pow.PowType(powType), reply)
+	if err != nil {
+		return nil, err
+	}
+	resp := <-reply
+	return resp.result, resp.err
+}
+
+func (api *PublicMinerAPI) SubmitBlockHeader(hexBlockHeader string) (interface{}, error) {
+	// Deserialize the hexBlock.
+	m := api.miner
+
+	if len(hexBlockHeader)%2 != 0 {
+		hexBlockHeader = "0" + hexBlockHeader
+	}
+	serializedBlockHeader, err := hex.DecodeString(hexBlockHeader)
+	if err != nil {
+		return nil, rpc.RpcDecodeHexError(hexBlockHeader)
+	}
+	var header types.BlockHeader
+	err = header.Deserialize(bytes.NewReader(serializedBlockHeader))
+	if err != nil {
+		return nil, err
+	}
+	return m.submitBlockHeader(&header)
 }
 
 // PrivateMinerAPI provides private RPC methods to control the miner.

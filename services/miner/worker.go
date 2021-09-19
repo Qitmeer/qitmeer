@@ -5,10 +5,10 @@
 package miner
 
 const (
-	CPUWorkerType = "CPU_Worker"
-	GBTWorkerType = "GBT_Worker"
-	RemoteType    = "Remote_Worker"
-	PoolType      = "Pool_Worker"
+	CPUWorkerType    = "CPU_Worker"
+	GBTWorkerType    = "GBT_Worker"
+	RemoteWorkerType = "Remote_Worker"
+	PoolWorkerType   = "Pool_Worker"
 )
 
 type IWorker interface {

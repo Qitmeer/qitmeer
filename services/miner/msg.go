@@ -30,3 +30,8 @@ type GBTMiningMsg struct {
 	request *json.TemplateRequest
 	reply   chan *gbtResponse
 }
+
+type RemoteMiningMsg struct {
+	powType pow.PowType
+	reply   chan *gbtResponse
+}
