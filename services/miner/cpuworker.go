@@ -62,13 +62,19 @@ func (w *CPUWorker) GetType() string {
 }
 
 func (w *CPUWorker) Start() error {
-
+	err := w.miner.initCoinbase()
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
 	// Already started?
 	if atomic.AddInt32(&w.started, 1) != 1 {
 		return nil
 	}
 
 	log.Info("Start CPU Worker...")
+
+	w.miner.updateBlockTemplate(false)
 
 	w.wg.Add(2)
 	go w.speedMonitor()

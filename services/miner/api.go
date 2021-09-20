@@ -196,5 +196,8 @@ func (api *PrivateMinerAPI) Generate(numBlocks uint32, powType pow.PowType) ([]s
 			reply[i] = blockHash.String()
 		}
 	}
+	if len(reply) <= 0 {
+		return nil, fmt.Errorf("No blocks")
+	}
 	return reply, nil
 }

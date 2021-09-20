@@ -66,25 +66,13 @@ func (m *Miner) Start() error {
 	if !m.cfg.Miner {
 		return nil
 	}
-	mAddrs := m.cfg.GetMinningAddrs()
-	if len(mAddrs) <= 0 {
-		// Respond with an error if there are no addresses to pay the
-		// created blocks to.
-		return fmt.Errorf("No payment addresses specified via --miningaddr.\n")
-	}
 	// Already started?
 	if atomic.AddInt32(&m.started, 1) != 1 {
 		return nil
 	}
 
-	// Choose a payment address at random.
-	if len(mAddrs) == 1 {
-		m.coinbaseAddress = mAddrs[0]
-	} else {
-		m.coinbaseAddress = mAddrs[rand.Intn(len(mAddrs))]
-	}
 	//
-	log.Info(fmt.Sprintf("Start Miner...(Coinbase Address:%s)", m.coinbaseAddress.String()))
+	log.Info("Start Miner...")
 
 	m.subscribe()
 
@@ -128,9 +116,11 @@ out:
 					m.worker.Stop()
 					m.worker = nil
 				}
-				m.updateBlockTemplate(false)
 				m.worker = NewCPUWorker(m)
-				m.worker.Start()
+				if m.worker.Start() != nil {
+					m.worker = nil
+					continue
+				}
 				m.worker.Update()
 
 			case *CPUMiningGenerateMsg:
@@ -154,10 +144,15 @@ out:
 					m.worker.Stop()
 					m.worker = nil
 				}
-				m.updateBlockTemplate(false)
 				worker := NewCPUWorker(m)
 				m.worker = worker
-				worker.Start()
+				if m.worker.Start() != nil {
+					m.worker = nil
+					if msg.block != nil {
+						close(msg.block)
+					}
+					continue
+				}
 				worker.generateDiscrete(msg.discreteNum, msg.block)
 				worker.Update()
 
@@ -183,10 +178,15 @@ out:
 					m.worker.Stop()
 					m.worker = nil
 				}
-				m.updateBlockTemplate(false)
 				worker := NewGBTWorker(m)
 				m.worker = worker
-				worker.Start()
+				if m.worker.Start() != nil {
+					m.worker = nil
+					if msg.reply != nil {
+						close(msg.reply)
+					}
+					continue
+				}
 				worker.Update()
 				worker.GetRequest(msg.request, msg.reply)
 
@@ -199,10 +199,15 @@ out:
 					m.worker.Stop()
 					m.worker = nil
 				}
-				m.updateBlockTemplate(false)
 				worker := NewRemoteWorker(m)
 				m.worker = worker
-				worker.Start()
+				if m.worker.Start() != nil {
+					m.worker = nil
+					if msg.reply != nil {
+						close(msg.reply)
+					}
+					continue
+				}
 				worker.Update()
 				worker.GetRequest(msg.powType, msg.reply)
 
@@ -243,6 +248,12 @@ func (m *Miner) updateBlockTemplate(force bool) error {
 		reCreate = true
 	} else if m.template == nil {
 		reCreate = true
+	}
+	if !reCreate {
+		hasCoinbaseAddr := m.coinbaseAddress != nil
+		if hasCoinbaseAddr != m.template.ValidPayAddress {
+			reCreate = true
+		}
 	}
 	if !reCreate {
 		parentsSet := blockdag.NewHashSet()
@@ -422,6 +433,26 @@ func (m *Miner) IsEnable() bool {
 	return true
 }
 
+func (m *Miner) initCoinbase() error {
+	if m.coinbaseAddress != nil {
+		return nil
+	}
+	mAddrs := m.cfg.GetMinningAddrs()
+	if len(mAddrs) <= 0 {
+		// Respond with an error if there are no addresses to pay the
+		// created blocks to.
+		return fmt.Errorf("No payment addresses specified via --miningaddr.")
+	}
+	// Choose a payment address at random.
+	if len(mAddrs) == 1 {
+		m.coinbaseAddress = mAddrs[0]
+	} else {
+		m.coinbaseAddress = mAddrs[rand.Intn(len(mAddrs))]
+	}
+	log.Info(fmt.Sprintf("Init Coinbase Address:%s", m.coinbaseAddress.String()))
+	return nil
+}
+
 func (m *Miner) handleStallSample() {
 	//if atomic.LoadInt32(&m.shutdown) != 0 {
 	//	return
@@ -486,8 +517,14 @@ func (m *Miner) MempoolChange() {
 }
 
 func (m *Miner) GBTMining(request *json.TemplateRequest, reply chan *gbtResponse) error {
-	if !m.cfg.Miner {
-		return fmt.Errorf("Miner is disable. You can enable by --miner.")
+	if atomic.LoadInt32(&m.started) == 0 {
+		if !m.cfg.Miner {
+			m.cfg.Miner = true
+		}
+		if err := m.Start(); err != nil {
+			log.Error(err.Error())
+			return err
+		}
 	}
 	// Ignore if we are shutting down.
 	if atomic.LoadInt32(&m.shutdown) != 0 {

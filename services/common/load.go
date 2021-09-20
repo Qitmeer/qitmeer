@@ -406,9 +406,6 @@ func LoadConfig() (*config.Config, []string, error) {
 		if cfg.Generate {
 			str = "%s: the generate flag is set, but there are no mining " +
 				"addresses specified "
-		} else if cfg.Miner {
-			str = "%s: the miner flag is set, but there are no mining " +
-				"addresses specified "
 		}
 		if len(str) > 0 {
 			err := fmt.Errorf(str, funcName)
