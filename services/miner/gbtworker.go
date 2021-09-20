@@ -40,14 +40,13 @@ func (w *GBTWorker) GetType() string {
 }
 
 func (w *GBTWorker) Start() error {
-
 	// Already started?
 	if atomic.AddInt32(&w.started, 1) != 1 {
 		return nil
 	}
 
 	log.Info("Start GBT Worker...")
-
+	w.miner.updateBlockTemplate(false)
 	return nil
 }
 

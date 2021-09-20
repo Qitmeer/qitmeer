@@ -22,13 +22,18 @@ func (w *RemoteWorker) GetType() string {
 }
 
 func (w *RemoteWorker) Start() error {
+	err := w.miner.initCoinbase()
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
 	// Already started?
 	if atomic.AddInt32(&w.started, 1) != 1 {
 		return nil
 	}
 
 	log.Info("Start Remote Worker...")
-
+	w.miner.updateBlockTemplate(false)
 	return nil
 }
 
