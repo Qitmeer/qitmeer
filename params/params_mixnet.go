@@ -43,11 +43,8 @@ var MixNetParams = Params{
 	MinDiffReductionTime: 0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:    true,
 	LedgerParams: ledger.LedgerParams{
-		Percent:              2000,        // 2000/10000 20%
-		UnlocksPerStep:       46221 * 1e8, // every height 10000 MEER
-		GenesisAmountUnit:    1000 * 1e8,  // 1000 MEER every utxo
-		UnlocksPerHeightStep: 5760,        // 1 day block heights
-		MaxLockHeight:        5760 * 365 * 5,
+		GenesisAmountUnit: 1000 * 1e8,     // 1000 MEER every utxo
+		MaxLockHeight:     5760 * 365 * 5, // max lock height
 	},
 	CoinbaseConfig: CoinbaseConfigs{
 		{
@@ -96,7 +93,7 @@ var MixNetParams = Params{
 	RetargetAdjustmentFactor: 2,
 
 	// Subsidy parameters.
-	BaseSubsidy:              12000000000, // 120 Coin, stay same with testnet
+	BaseSubsidy:              10 * 1e8, // 10 Coin, stay same with testnet
 	MulSubsidy:               100,
 	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
 	SubsidyReductionInterval: 1669066,        // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days

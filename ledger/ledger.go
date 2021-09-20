@@ -8,11 +8,8 @@ import (
 )
 
 type LedgerParams struct {
-	UnlocksPerStep       int64 // How many will be unlocked at each DAG main height.
-	UnlocksPerHeightStep int64 // How many height will lock a tx.
-	GenesisAmountUnit    int64 // the unit amount of equally divided.
-	Percent              int64 // the percent of amount release in one year
-	MaxLockHeight        int64 // the max lock height
+	GenesisAmountUnit int64 // the unit amount of equally divided.
+	MaxLockHeight     int64 // the max lock height
 }
 
 const PercentBase = 10000
