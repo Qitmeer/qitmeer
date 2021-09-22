@@ -252,10 +252,10 @@ func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger []Genesi
 	return nil
 }
 
-func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []int, lockNum int64, heightStep int64) string {
+func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []int, oneDayRelease int64, heightStep int64) string {
 	fileContent := ""
 	curMHeight := int64(0)
-	curLockedNum := int64(0)
+	oneDayUsedAmount := int64(0)
 	for i := 0; i < len(sortKeys); i++ {
 		v := genesisLedger[sortKeys[i]]
 		if v.GenesisPayoutType == GENE_PAYOUT_TYPE_STANDARD {
@@ -280,16 +280,16 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 		}
 		if v.GenesisPayoutType == GENE_PAYOUT_TYPE_AUTO_LOCK_WITH_CONFIG {
 			for v.Amount > 0 {
-				needLockNum := lockNum - curLockedNum
+				oneDayLeftAmount := oneDayRelease - oneDayUsedAmount
 				amount := float64(0)
-				if v.Amount >= float64(needLockNum) {
-					v.Amount -= float64(needLockNum)
-					amount = float64(needLockNum)
+				if v.Amount >= float64(oneDayLeftAmount) {
+					v.Amount -= float64(oneDayLeftAmount)
+					amount = float64(oneDayLeftAmount)
 					curMHeight += heightStep
-					curLockedNum = 0
+					oneDayUsedAmount = 0
 				} else {
 					amount = v.Amount
-					curLockedNum += int64(amount)
+					oneDayUsedAmount += int64(amount)
 					v.Amount = 0
 				}
 				script, err := PayToCltvAddrScriptWithMainHeight(v.Address, curMHeight)
