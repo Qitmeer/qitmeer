@@ -14,7 +14,7 @@ var MixGeneData = []GenesisInitPayout{}
 
 // coinid,address,lockAmount,locktype,lockheight
 var MixGeneDataFromImport = []string{
-	// PMEER mapping data
+	// PMEER and HLC mapping data
 	"0,Mma1MhE6ETFLNNTcS6PFnHtmoesaXNBC6kr,21.38127709,1,0",
 	"0,Mma2nuMLeWmf5zKR6StbLkcYLdap7Qjunam,31.069911,1,0",
 	"0,Mma44dShPKMgjoyYZy9Xe6vP5HgjzfN4Svc,31.069911,1,0",
