@@ -202,6 +202,7 @@ func GenesisShuffle(array []int, seed []byte) []int {
 }
 
 func RandShuffle(max int64, seed []byte) int64 {
+	originL := max
 	if max > 24 {
 		max = max % 24
 	}
@@ -209,7 +210,7 @@ func RandShuffle(max int64, seed []byte) int64 {
 		max = 1
 	}
 	seedNum := binary.LittleEndian.Uint64(seed[max : max+8])
-	return int64(seedNum % uint64(max))
+	return int64(seedNum % uint64(originL))
 }
 
 func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger []GenesisInitPayout, sortKeys []int) error {
@@ -282,6 +283,7 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 			for v.Amount > 0 {
 				oneDayLeftAmount := oneDayRelease - oneDayUsedAmount
 				amount := float64(0)
+				script, err := PayToCltvAddrScriptWithMainHeight(v.Address, curMHeight)
 				if v.Amount >= float64(oneDayLeftAmount) {
 					v.Amount -= float64(oneDayLeftAmount)
 					amount = float64(oneDayLeftAmount)
@@ -292,7 +294,6 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 					oneDayUsedAmount += int64(amount)
 					v.Amount = 0
 				}
-				script, err := PayToCltvAddrScriptWithMainHeight(v.Address, curMHeight)
 				if err != nil {
 					return err.Error()
 				}
