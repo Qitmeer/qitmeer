@@ -21,7 +21,7 @@ import (
 var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 216), common.Big1)
 
 // target time per block unit second(s)
-const mixTargetTimePerBlock = 15
+const mixTargetTimePerBlock = 30
 
 // Difficulty check interval is about 60*15 = 15 mins
 const mixWorkDiffWindowSize = 60
