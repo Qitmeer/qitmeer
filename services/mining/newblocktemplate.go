@@ -374,7 +374,15 @@ mempool:
 		totalFees += weirandItem.fee
 		txFees = append(txFees, weirandItem.fee)
 		txSigOpCosts = append(txSigOpCosts, int64(sigOpCost))
+		lastBFMSize := len(blockFeesMap)
 		blockFeesMap.Add(txFeesMap)
+		addBFMSize := len(blockFeesMap) - lastBFMSize
+		if addBFMSize <= 0 {
+			addBFMSize = 0
+		}
+		if addBFMSize > 0 {
+			blockSigOpCost += int64(addBFMSize)
+		}
 		log.Trace(fmt.Sprintf("Adding tx %s (feePerKB %.2d)",
 			weirandItem.tx.Hash(), weirandItem.feePerKB))
 
