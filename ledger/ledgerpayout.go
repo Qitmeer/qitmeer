@@ -282,6 +282,7 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 			for v.Amount > 0 {
 				oneDayLeftAmount := oneDayRelease - oneDayUsedAmount
 				amount := float64(0)
+				script, err := PayToCltvAddrScriptWithMainHeight(v.Address, curMHeight)
 				if v.Amount >= float64(oneDayLeftAmount) {
 					v.Amount -= float64(oneDayLeftAmount)
 					amount = float64(oneDayLeftAmount)
@@ -292,7 +293,6 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 					oneDayUsedAmount += int64(amount)
 					v.Amount = 0
 				}
-				script, err := PayToCltvAddrScriptWithMainHeight(v.Address, curMHeight)
 				if err != nil {
 					return err.Error()
 				}
