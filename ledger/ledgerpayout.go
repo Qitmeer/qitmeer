@@ -202,6 +202,7 @@ func GenesisShuffle(array []int, seed []byte) []int {
 }
 
 func RandShuffle(max int64, seed []byte) int64 {
+	originL := max
 	if max > 24 {
 		max = max % 24
 	}
@@ -209,7 +210,7 @@ func RandShuffle(max int64, seed []byte) int64 {
 		max = 1
 	}
 	seedNum := binary.LittleEndian.Uint64(seed[max : max+8])
-	return int64(seedNum % uint64(max))
+	return int64(seedNum % uint64(originL))
 }
 
 func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger []GenesisInitPayout, sortKeys []int) error {
