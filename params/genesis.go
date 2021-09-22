@@ -394,7 +394,7 @@ var testPowNetGenesisBlock = types.Block{
 		ParentRoot: hash.Hash{},
 		TxRoot:     *testPowNetGenesisMerkleRoot,
 		Timestamp:  time.Unix(1632273458, 0), // 2021-09-22 09:17:38
-		Difficulty: 0x1d00ffff,
+		Difficulty: 0x1c00ffff,               // 1T diff
 		Pow:        pow.GetInstance(pow.MEERXKECCAKV1, 0, []byte{}),
 	},
 	Transactions: mixNetGenesisTxs,
