@@ -43,8 +43,8 @@ var MixNetParams = Params{
 	MinDiffReductionTime: 0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:    true,
 	LedgerParams: ledger.LedgerParams{
-		GenesisAmountUnit: 1000 * 1e8,     // 1000 MEER every utxo
-		MaxLockHeight:     5760 * 365 * 5, // max lock height
+		GenesisAmountUnit: 1000 * 1e8,                              // 1000 MEER every utxo
+		MaxLockHeight:     86400 / mixTargetTimePerBlock * 365 * 5, // max lock height
 	},
 	CoinbaseConfig: CoinbaseConfigs{
 		{
