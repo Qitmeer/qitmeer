@@ -6,6 +6,7 @@ package opreturn
 
 import (
 	"fmt"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 )
 
@@ -23,19 +24,19 @@ var OPRNameMap = map[OPReturnType]string{
 }
 
 func (t OPReturnType) Name() string {
-	if t, ok := OPRNameMap[t]; ok {
-		return t
+	if name, ok := OPRNameMap[t]; ok {
+		return name
 	} else {
-		return "Unknown-OPReturn type:" + fmt.Sprintf("%x", t)
+		return "Unknown-OPReturn type:" + fmt.Sprintf("%d", t)
 	}
 }
 
 // Exclusive to Coinbase OP Return function
 type IOPReturn interface {
 	GetType() OPReturnType
-	Verify() error
+	Verify(tx *types.Transaction) error
 	Deserialize(data []byte) error
-	Serialize() ([]byte, error)
+	PKScript() []byte
 }
 
 func IsOPReturn(pks []byte) bool {
@@ -61,4 +62,11 @@ func NewOPReturnFrom(pks []byte) (IOPReturn, error) {
 		return &sa, nil
 	}
 	return nil, fmt.Errorf("No support %s", opType.Name())
+}
+
+func GetOPReturnTxOutput(opr IOPReturn) *types.TxOutput {
+	return &types.TxOutput{
+		Amount:   types.Amount{Value: 0, Id: types.MEERID},
+		PkScript: opr.PKScript(),
+	}
 }

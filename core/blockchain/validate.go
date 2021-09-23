@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain/opreturn"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
@@ -411,7 +412,26 @@ func validateCoinbase(tx *types.Transaction, pa *params.Params) error {
 			str := fmt.Sprintf("Subsidy output amount type is error")
 			return ruleError(ErrBadCoinbaseOutpoint, str)
 		}
-		err := validateCoinbaseToken(tx.TxOut[1:])
+		endIndex := len(tx.TxOut) - 1
+		ctIndex := len(tx.TxOut)
+		if opreturn.IsOPReturn(tx.TxOut[endIndex].PkScript) {
+			opr, err := opreturn.NewOPReturnFrom(tx.TxOut[endIndex].PkScript)
+			if err != nil {
+				return err
+			}
+			err = opr.Verify(tx)
+			if err != nil {
+				return err
+			}
+			//
+			if len(tx.TxOut) <= CoinbaseOutput_subsidy+1 {
+				str := fmt.Sprintf("Lack of output")
+				return ruleError(ErrBadCoinbaseOutpoint, str)
+			}
+			ctIndex = endIndex
+		}
+
+		err := validateCoinbaseToken(tx.TxOut[1:ctIndex])
 		if err != nil {
 			return err
 		}
@@ -449,12 +469,31 @@ func validateCoinbaseTax(tx *types.Transaction, pa *params.Params) error {
 		str := fmt.Sprintf("Subsidy output amount type is error")
 		return ruleError(ErrBadCoinbaseOutpoint, str)
 	}
-	taxIndex := len(tx.TxOut) - 1
+	endIndex := len(tx.TxOut) - 1
+	taxIndex := endIndex
+
+	if opreturn.IsOPReturn(tx.TxOut[endIndex].PkScript) {
+		opr, err := opreturn.NewOPReturnFrom(tx.TxOut[endIndex].PkScript)
+		if err != nil {
+			return err
+		}
+		err = opr.Verify(tx)
+		if err != nil {
+			return err
+		}
+		//
+		if len(tx.TxOut) <= CoinbaseOutput_subsidy+2 {
+			str := fmt.Sprintf("Lack of output")
+			return ruleError(ErrBadCoinbaseOutpoint, str)
+		}
+		taxIndex = endIndex - 1
+	}
+
 	if tx.TxOut[taxIndex].Amount.Id != types.MEERID {
 		str := fmt.Sprintf("Tax output amount type is error")
 		return ruleError(ErrBadCoinbaseOutpoint, str)
 	}
-	err := validateCoinbaseToken(tx.TxOut[1 : len(tx.TxOut)-1])
+	err := validateCoinbaseToken(tx.TxOut[1:taxIndex])
 	if err != nil {
 		return err
 	}
@@ -604,15 +643,27 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	transactions := block.Transactions()
 	subsidy := b.subsidyCache.CalcBlockSubsidy(bi)
 	workAmountOut := int64(0)
+	txoutLen := len(transactions[0].Tx.TxOut)
+	hasOPR := opreturn.IsOPReturn(transactions[0].Tx.TxOut[txoutLen-1].PkScript)
 	for k, v := range transactions[0].Tx.TxOut {
 		// the coinbase should always use meer coin
 		if v.Amount.Id != types.MEERID {
 			continue
 		}
 		if b.params.HasTax() {
-			if k+1 == len(transactions[0].Tx.TxOut) {
-				continue
+			if hasOPR {
+				if k == txoutLen-2 {
+					continue
+				}
+				if k == txoutLen-1 {
+					continue
+				}
+			} else {
+				if k == txoutLen-1 {
+					continue
+				}
 			}
+
 		}
 		workAmountOut += v.Amount.Value
 	}
