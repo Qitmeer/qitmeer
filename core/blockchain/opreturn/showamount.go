@@ -45,6 +45,10 @@ func (a *ShowAmount) PKScript() []byte {
 	return pks
 }
 
+func (a *ShowAmount) GetAmount() int64 {
+	return a.subsidy
+}
+
 func NewShowAmount(subsidy int64) *ShowAmount {
 	return &ShowAmount{subsidy: subsidy}
 }
