@@ -404,8 +404,8 @@ func validateCoinbase(tx *types.Transaction, pa *params.Params) error {
 			return err
 		}
 	} else {
-		if len(tx.TxOut) <= CoinbaseOutput_subsidy {
-			str := fmt.Sprintf("No subsidy output")
+		if len(tx.TxOut) <= CoinbaseOutput_subsidy+1 {
+			str := fmt.Sprintf("Coinbase output number error")
 			return ruleError(ErrBadCoinbaseOutpoint, str)
 		}
 		if tx.TxOut[CoinbaseOutput_subsidy].Amount.Id != types.MEERID {
@@ -413,25 +413,20 @@ func validateCoinbase(tx *types.Transaction, pa *params.Params) error {
 			return ruleError(ErrBadCoinbaseOutpoint, str)
 		}
 		endIndex := len(tx.TxOut) - 1
-		ctIndex := len(tx.TxOut)
-		if opreturn.IsOPReturn(tx.TxOut[endIndex].PkScript) {
-			opr, err := opreturn.NewOPReturnFrom(tx.TxOut[endIndex].PkScript)
-			if err != nil {
-				return err
-			}
-			err = opr.Verify(tx)
-			if err != nil {
-				return err
-			}
-			//
-			if len(tx.TxOut) <= CoinbaseOutput_subsidy+1 {
-				str := fmt.Sprintf("Lack of output")
-				return ruleError(ErrBadCoinbaseOutpoint, str)
-			}
-			ctIndex = endIndex
+		if !opreturn.IsOPReturn(tx.TxOut[endIndex].PkScript) {
+			str := fmt.Sprintf("TxOutput(%d) must coinbase op return type", endIndex)
+			return ruleError(ErrBadCoinbaseOutpoint, str)
+		}
+		opr, err := opreturn.NewOPReturnFrom(tx.TxOut[endIndex].PkScript)
+		if err != nil {
+			return err
+		}
+		err = opr.Verify(tx)
+		if err != nil {
+			return err
 		}
 
-		err := validateCoinbaseToken(tx.TxOut[1:ctIndex])
+		err = validateCoinbaseToken(tx.TxOut[1:endIndex])
 		if err != nil {
 			return err
 		}
@@ -461,7 +456,7 @@ func validateCoinbaseToken(outputs []*types.TxOutput) error {
 
 // Validate the tax in coinbase transaction. Prevent miners from attacking.
 func validateCoinbaseTax(tx *types.Transaction, pa *params.Params) error {
-	if len(tx.TxOut) <= CoinbaseOutput_subsidy+1 {
+	if len(tx.TxOut) <= CoinbaseOutput_subsidy+2 {
 		str := fmt.Sprintf("Lack of output")
 		return ruleError(ErrBadCoinbaseOutpoint, str)
 	}
@@ -470,30 +465,26 @@ func validateCoinbaseTax(tx *types.Transaction, pa *params.Params) error {
 		return ruleError(ErrBadCoinbaseOutpoint, str)
 	}
 	endIndex := len(tx.TxOut) - 1
-	taxIndex := endIndex
+	taxIndex := endIndex - 1
+	if !opreturn.IsOPReturn(tx.TxOut[endIndex].PkScript) {
+		str := fmt.Sprintf("TxOutput(%d) must coinbase op return type", endIndex)
+		return ruleError(ErrBadCoinbaseOutpoint, str)
+	}
 
-	if opreturn.IsOPReturn(tx.TxOut[endIndex].PkScript) {
-		opr, err := opreturn.NewOPReturnFrom(tx.TxOut[endIndex].PkScript)
-		if err != nil {
-			return err
-		}
-		err = opr.Verify(tx)
-		if err != nil {
-			return err
-		}
-		//
-		if len(tx.TxOut) <= CoinbaseOutput_subsidy+2 {
-			str := fmt.Sprintf("Lack of output")
-			return ruleError(ErrBadCoinbaseOutpoint, str)
-		}
-		taxIndex = endIndex - 1
+	opr, err := opreturn.NewOPReturnFrom(tx.TxOut[endIndex].PkScript)
+	if err != nil {
+		return err
+	}
+	err = opr.Verify(tx)
+	if err != nil {
+		return err
 	}
 
 	if tx.TxOut[taxIndex].Amount.Id != types.MEERID {
 		str := fmt.Sprintf("Tax output amount type is error")
 		return ruleError(ErrBadCoinbaseOutpoint, str)
 	}
-	err := validateCoinbaseToken(tx.TxOut[1:taxIndex])
+	err = validateCoinbaseToken(tx.TxOut[1:taxIndex])
 	if err != nil {
 		return err
 	}
