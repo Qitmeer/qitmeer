@@ -12,15 +12,8 @@ import (
 
 type OPReturnType byte
 
-const (
-	// Show locked currency amount
-	ShowAmountType = 0x01
-
-	// ...
-)
-
 var OPRNameMap = map[OPReturnType]string{
-	ShowAmountType: "Show locked amount",
+	OPReturnType(txscript.OP_MEER_LOCK): "LockAmount",
 }
 
 func (t OPReturnType) Name() string {
@@ -35,7 +28,7 @@ func (t OPReturnType) Name() string {
 type IOPReturn interface {
 	GetType() OPReturnType
 	Verify(tx *types.Transaction) error
-	Deserialize(data []byte) error
+	Init(ops []txscript.ParsedOpcode) error
 	PKScript() []byte
 }
 
@@ -43,25 +36,38 @@ func IsOPReturn(pks []byte) bool {
 	if len(pks) <= 0 {
 		return false
 	}
-	return txscript.GetScriptClass(txscript.DefaultScriptVersion, pks) == txscript.NullDataTy
+	ops, err := txscript.ParseScript(pks)
+	if err != nil {
+		return false
+	}
+	if len(ops) <= 0 {
+		return false
+	}
+	if ops[0].GetOpcode() == nil {
+		return false
+	}
+	return ops[0].GetOpcode().GetValue() == txscript.OP_RETURN
 }
 
 func NewOPReturnFrom(pks []byte) (IOPReturn, error) {
-	opData, err := txscript.ExtractCoinbaseNullData(pks)
+	ops, err := txscript.ParseScript(pks)
 	if err != nil {
 		return nil, err
 	}
-	if len(opData) <= 0 {
+	if len(ops) <= 0 {
 		return nil, fmt.Errorf("Is is not coinbase opreturn")
 	}
-	opType := OPReturnType(opData[0])
+	opType := ops[1].GetOpcode().GetValue()
 	switch opType {
-	case ShowAmountType:
-		sa := ShowAmount{}
-		sa.Deserialize(opData[1:])
+	case txscript.OP_MEER_LOCK:
+		sa := LockAmount{}
+		err := sa.Init(ops)
+		if err != nil {
+			return nil, err
+		}
 		return &sa, nil
 	}
-	return nil, fmt.Errorf("No support %s", opType.Name())
+	return nil, fmt.Errorf("No support %s", OPReturnType(opType).Name())
 }
 
 func GetOPReturnTxOutput(opr IOPReturn) *types.TxOutput {

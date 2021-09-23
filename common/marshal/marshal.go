@@ -221,12 +221,19 @@ func MarshJsonCoinbaseVout(tx *types.Transaction, filterAddrMap map[string]struc
 			vout.Coin = v.Amount.Id.Name()
 			vout.CoinId = uint16(v.Amount.Id)
 			vout.Amount = uint64(coinbaseAmout[v.Amount.Id])
+			voutSPK.Type = scriptClass
+		} else {
+			opr, err := opreturn.NewOPReturnFrom(v.PkScript)
+			if err != nil {
+				continue
+			}
+			voutSPK.Type = opr.GetType().Name()
 		}
 
 		voutSPK.Addresses = encodedAddrs
 		voutSPK.Asm = disbuf
 		voutSPK.Hex = hex.EncodeToString(v.PkScript)
-		voutSPK.Type = scriptClass
+
 		voutSPK.ReqSigs = int32(reqSigs)
 		voutList = append(voutList, vout)
 	}

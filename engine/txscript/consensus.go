@@ -77,3 +77,11 @@ func ExtractCoinbaseData(pkScript []byte) ([][]byte, error) {
 	}
 	return result, nil
 }
+
+func ParseScript(script []byte) ([]ParsedOpcode, error) {
+	return parseScript(script)
+}
+
+func MakeScriptNum(v []byte, requireMinimal bool, scriptNumLen int) (scriptNum, error) {
+	return makeScriptNum(v, requireMinimal, scriptNumLen)
+}
