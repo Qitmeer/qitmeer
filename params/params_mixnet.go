@@ -17,11 +17,11 @@ import (
 
 // testMixNetPowLimit is the highest proof of work value a block can
 // have for the test network. It is the value 2^224 - 1.
-// target 0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 224), common.Big1)
+// target 0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff
+var testMixNetPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 216), common.Big1)
 
 // target time per block unit second(s)
-const mixTargetTimePerBlock = 15
+const mixTargetTimePerBlock = 30
 
 // Difficulty check interval is about 60*15 = 15 mins
 const mixWorkDiffWindowSize = 60
@@ -43,9 +43,8 @@ var MixNetParams = Params{
 	MinDiffReductionTime: 0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:    true,
 	LedgerParams: ledger.LedgerParams{
-		UnlocksPerHeight:     46221 * 1e8, // every height 10000 MEER
-		GenesisAmountUnit:    1000 * 1e8,  // 100 MEER every utxo
-		UnlocksPerHeightStep: 5760,        // 1 day block heights
+		GenesisAmountUnit: 1000 * 1e8,                              // 1000 MEER every utxo
+		MaxLockHeight:     86400 / mixTargetTimePerBlock * 365 * 5, // max lock height
 	},
 	CoinbaseConfig: CoinbaseConfigs{
 		{
@@ -67,7 +66,7 @@ var MixNetParams = Params{
 		CryptoNightPowLimit:          testMixNetPowLimit,
 		CryptoNightPowLimitBits:      0x2003ffff,
 		MeerXKeccakV1PowLimit:        testMixNetPowLimit,
-		MeerXKeccakV1PowLimitBits:    0x1d00ffff,
+		MeerXKeccakV1PowLimitBits:    0x1c00ffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 2 ≈ 1min find once
@@ -94,7 +93,7 @@ var MixNetParams = Params{
 	RetargetAdjustmentFactor: 2,
 
 	// Subsidy parameters.
-	BaseSubsidy:              12000000000, // 120 Coin, stay same with testnet
+	BaseSubsidy:              10 * 1e8, // 10 Coin, stay same with testnet
 	MulSubsidy:               100,
 	DivSubsidy:               10000000000000, // Coin-base reward reduce to zero at 1540677 blocks created
 	SubsidyReductionInterval: 1669066,        // 120 * 1669066 (blocks) *= 200287911 (200M) -> 579 ~ 289 days

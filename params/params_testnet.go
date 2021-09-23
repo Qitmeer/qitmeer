@@ -40,9 +40,8 @@ var TestNetParams = Params{
 		"/dns4/boot.qitmir.info/tcp/2001/p2p/16Uiu2HAmJ8qBBgoNoHH84ntLuXB9sqDngh82zZgaEejdFUYGR59Y",
 	},
 	LedgerParams: ledger.LedgerParams{ // lock tx release rule in genesis
-		UnlocksPerHeight:     10000 * 1e8, // every height release 10000 MEER
-		GenesisAmountUnit:    1000 * 1e8,  // 1000 MEER every utxo
-		UnlocksPerHeightStep: 2880,        // 1 day block heights
+		GenesisAmountUnit: 1000 * 1e8, // 1000 MEER every utxo
+		MaxLockHeight:     2880 * 365 * 5,
 	},
 	// Chain parameters
 	GenesisBlock: &testNetGenesisBlock,
