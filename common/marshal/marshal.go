@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain/opreturn"
 	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types"
@@ -177,7 +178,8 @@ func MarshJsonCoinbaseVout(tx *types.Transaction, filterAddrMap map[string]struc
 	}
 	voutList := make([]json.Vout, 0, len(tx.TxOut))
 	for k, v := range tx.TxOut {
-		if k > 0 && coinbaseAmout[v.Amount.Id] <= 0 {
+		isopr := opreturn.IsOPReturn(v.PkScript)
+		if k > 0 && coinbaseAmout[v.Amount.Id] <= 0 && !isopr {
 			continue
 		}
 		// The disassembled string will contain [error] inline if the
@@ -215,13 +217,23 @@ func MarshJsonCoinbaseVout(tx *types.Transaction, filterAddrMap map[string]struc
 
 		var vout json.Vout
 		voutSPK := &vout.ScriptPubKey
-		vout.Coin = v.Amount.Id.Name()
-		vout.CoinId = uint16(v.Amount.Id)
-		vout.Amount = uint64(coinbaseAmout[v.Amount.Id])
+		if !isopr {
+			vout.Coin = v.Amount.Id.Name()
+			vout.CoinId = uint16(v.Amount.Id)
+			vout.Amount = uint64(coinbaseAmout[v.Amount.Id])
+			voutSPK.Type = scriptClass
+		} else {
+			opr, err := opreturn.NewOPReturnFrom(v.PkScript)
+			if err != nil {
+				continue
+			}
+			voutSPK.Type = opr.GetType().Name()
+		}
+
 		voutSPK.Addresses = encodedAddrs
 		voutSPK.Asm = disbuf
 		voutSPK.Hex = hex.EncodeToString(v.PkScript)
-		voutSPK.Type = scriptClass
+
 		voutSPK.ReqSigs = int32(reqSigs)
 		voutList = append(voutList, vout)
 	}

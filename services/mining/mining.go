@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
+	"github.com/Qitmeer/qitmeer/core/blockchain/opreturn"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/merkle"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
@@ -103,7 +104,7 @@ func standardCoinbaseOpReturn(enData []byte) ([]byte, error) {
 //
 // See the comment for NewBlockTemplate for more information about why the nil
 // address handling is useful.
-func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, bi *blockdag.BlueInfo, addr types.Address, params *params.Params) (*types.Tx, *types.TxOutput, error) {
+func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []byte, bi *blockdag.BlueInfo, addr types.Address, params *params.Params, opReturnPkScript []byte) (*types.Tx, *types.TxOutput, *types.TxOutput, error) {
 	tx := types.NewTransaction()
 	tx.AddTxIn(&types.TxInput{
 		// Coinbase transactions have no inputs, so previous outpoint is
@@ -129,13 +130,13 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 	if addr != nil {
 		pksSubsidy, err = txscript.PayToAddrScript(addr)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 	} else {
 		scriptBuilder := txscript.NewScriptBuilder()
 		pksSubsidy, err = scriptBuilder.AddOp(txscript.OP_TRUE).Script()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 	}
 	if !params.HasTax() {
@@ -156,7 +157,18 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 			PkScript: params.OrganizationPkScript,
 		}
 	}
-	return types.NewTx(tx), taxOutput, nil
+
+	// opReturnPkScript
+	var opReturnOutput *types.TxOutput
+	if len(opReturnPkScript) > 0 {
+		opReturnOutput = &types.TxOutput{
+			PkScript: opReturnPkScript,
+		}
+	} else {
+		opReturnOutput = opreturn.GetOPReturnTxOutput(opreturn.NewShowAmount(int64(subsidy)))
+	}
+
+	return types.NewTx(tx), taxOutput, opReturnOutput, nil
 }
 
 func fillWitnessToCoinBase(blockTxns []*types.Tx) error {
@@ -169,7 +181,7 @@ func fillWitnessToCoinBase(blockTxns []*types.Tx) error {
 	return nil
 }
 
-func fillOutputsToCoinBase(coinbaseTx *types.Tx, blockFeesMap types.AmountMap, taxOutput *types.TxOutput) error {
+func fillOutputsToCoinBase(coinbaseTx *types.Tx, blockFeesMap types.AmountMap, taxOutput *types.TxOutput, oprOutput *types.TxOutput) error {
 	if len(coinbaseTx.Tx.TxOut) != blockchain.CoinbaseOutput_subsidy+1 {
 		return fmt.Errorf("coinbase output error")
 	}
@@ -184,6 +196,9 @@ func fillOutputsToCoinBase(coinbaseTx *types.Tx, blockFeesMap types.AmountMap, t
 	}
 	if taxOutput != nil {
 		coinbaseTx.Tx.AddTxOut(taxOutput)
+	}
+	if oprOutput != nil {
+		coinbaseTx.Tx.AddTxOut(oprOutput)
 	}
 	return nil
 }

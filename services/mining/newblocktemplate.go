@@ -123,11 +123,12 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	}
 
 	blues := int64(bd.GetBluesByBlock(mainp))
-	coinbaseTx, taxOutput, err := createCoinbaseTx(subsidyCache,
+	coinbaseTx, taxOutput, oprOutput, err := createCoinbaseTx(subsidyCache,
 		coinbaseScript,
 		bd.GetBlueInfo(mainp),
 		payToAddress,
-		params)
+		params,
+		nil)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +400,7 @@ mempool:
 		}
 	}
 	// Fill outputs
-	err = fillOutputsToCoinBase(coinbaseTx, blockFeesMap, taxOutput)
+	err = fillOutputsToCoinBase(coinbaseTx, blockFeesMap, taxOutput, oprOutput)
 	if err != nil {
 		return nil, miningRuleError(ErrCreatingCoinbase, err.Error())
 	}
