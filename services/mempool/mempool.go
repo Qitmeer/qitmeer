@@ -184,7 +184,7 @@ func (mp *TxPool) addTransaction(utxoView *blockchain.UtxoViewpoint,
 		mp.cfg.ExistsAddrIndex.AddUnconfirmedTx(msgTx)
 	}
 
-	mp.cfg.Events.Send(event.New(MempoolTxAdd))
+	go mp.cfg.Events.Send(event.New(MempoolTxAdd))
 	return txD
 }
 
