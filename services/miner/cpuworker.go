@@ -322,6 +322,7 @@ out:
 				info, err := w.miner.submitBlock(block)
 				if err != nil {
 					log.Error(fmt.Sprintf("Failed to submit new block:%s ,%v", block.Hash().String(), err))
+					w.cleanDiscrete()
 					continue
 				}
 				log.Info(fmt.Sprintf("%v", info))
@@ -332,11 +333,11 @@ out:
 					}
 					w.discreteNum--
 					if w.discreteNum <= 0 {
-						w.discreteNum = 0
-						close(w.discreteBlock)
-						w.discreteBlock = nil
+						w.cleanDiscrete()
 					}
 				}
+			} else {
+				w.cleanDiscrete()
 			}
 		case <-w.quit:
 			break out
@@ -345,6 +346,16 @@ out:
 
 	w.workWg.Done()
 	log.Trace(fmt.Sprintf("Generate blocks worker done:%s", w.GetType()))
+}
+
+func (w *CPUWorker) cleanDiscrete() {
+	if w.discrete {
+		w.discreteNum = 0
+		if w.discreteBlock != nil {
+			close(w.discreteBlock)
+			w.discreteBlock = nil
+		}
+	}
 }
 
 func (w *CPUWorker) solveBlock() bool {

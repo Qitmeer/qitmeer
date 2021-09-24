@@ -178,7 +178,7 @@ func (api *PrivateMinerAPI) Generate(numBlocks uint32, powType pow.PowType) ([]s
 	}
 
 	// Create a reply
-	reply := make([]string, numBlocks)
+	reply := []string{}
 
 	blockHashC := make(chan *hash.Hash)
 	err := api.miner.CPUMiningGenerate(int(numBlocks), blockHashC, powType)
@@ -193,7 +193,7 @@ func (api *PrivateMinerAPI) Generate(numBlocks uint32, powType pow.PowType) ([]s
 			}
 			// Mine the correct number of blocks, assigning the hex representation of the
 			// hash of each one to its place in the reply.
-			reply[i] = blockHash.String()
+			reply = append(reply, blockHash.String())
 		}
 	}
 	if len(reply) <= 0 {
