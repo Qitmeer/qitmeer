@@ -1026,3 +1026,15 @@ func (mp *TxPool) PruneExpiredTx() {
 	mp.pruneExpiredTx()
 	mp.mtx.Unlock()
 }
+
+// Count returns the number of transactions in the main pool.  It does not
+// include the orphan pool.
+//
+// This function is safe for concurrent access.
+func (mp *TxPool) Count() int {
+	mp.mtx.RLock()
+	count := len(mp.pool)
+	mp.mtx.RUnlock()
+
+	return count
+}
