@@ -68,13 +68,7 @@ func (s *SubsidyCache) CalcBlockSubsidy(bi *blockdag.BlueInfo) int64 {
 	if s.params.TargetTotalSubsidy > 0 {
 		return s.CalcTotalControlBlockSubsidy(bi)
 	}
-
-	if bi.GetNum() == 0 {
-		return 0
-	}
-
 	iteration := uint64(int64(bi.GetNum()) / s.params.SubsidyReductionInterval)
-
 	if iteration == 0 {
 		return s.params.BaseSubsidy
 	}
@@ -121,9 +115,7 @@ func (s *SubsidyCache) CalcBlockSubsidy(bi *blockdag.BlueInfo) int64 {
 }
 
 func (s *SubsidyCache) CalcTotalControlBlockSubsidy(bi *blockdag.BlueInfo) int64 {
-	if bi.GetNum() == 0 {
-		return 0
-	} else if bi.GetNum() == 1 {
+	if bi.GetNum() <= 1 {
 		return s.params.BaseSubsidy
 	}
 	blockSubsidy := int64(float64(s.params.BaseSubsidy) / float64(s.params.TargetTimePerBlock) * float64(bi.GetRate()))
