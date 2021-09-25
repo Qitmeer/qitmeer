@@ -13,8 +13,8 @@ import (
 
 func TestPowLimitToBits(t *testing.T) {
 	compact := pow.BigToCompact(testMixNetPowLimit)
-	assert.Equal(t, fmt.Sprintf("0x%064x", testMixNetPowLimit), "0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-	assert.Equal(t, fmt.Sprintf("0x%x", compact), "0x1d00ffff")
+	assert.Equal(t, fmt.Sprintf("0x%064x", testMixNetPowLimit), "0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	assert.Equal(t, fmt.Sprintf("0x%x", compact), "0x1c00ffff")
 }
 
 //test blake2bd percent params
