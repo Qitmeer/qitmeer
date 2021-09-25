@@ -38,8 +38,7 @@ func (api *PublicMempoolAPI) GetMempool(txType *string, verbose bool) (interface
 }
 
 func (api *PublicMempoolAPI) GetMempoolCount() (interface{}, error) {
-	descsCount := len(api.txPool.TxDescs())
-	return fmt.Sprintf("%d", descsCount), nil
+	return fmt.Sprintf("%d", api.txPool.Count()), nil
 }
 
 func (api *PublicMempoolAPI) SaveMempool() (interface{}, error) {
