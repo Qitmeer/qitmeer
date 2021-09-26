@@ -115,3 +115,7 @@ type MinerInfoResult struct {
 	TotalSubmit   int    `json:"totalsubmit"`
 	SuccessSubmit int    `json:"successsubmit"`
 }
+
+type GetBlockHeaderResult struct {
+	Hex string `json:"hex"`
+}

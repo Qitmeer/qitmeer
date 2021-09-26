@@ -17,4 +17,5 @@ type IWorker interface {
 	Stop()
 	IsRunning() bool
 	Update()
+	GetNotifyData() []byte
 }

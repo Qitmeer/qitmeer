@@ -35,3 +35,9 @@ type RemoteMiningMsg struct {
 	powType pow.PowType
 	reply   chan *gbtResponse
 }
+
+type SetMinerConfigMsg struct {
+	powType      pow.PowType
+	coinbaseAddr string
+	notify       string
+}

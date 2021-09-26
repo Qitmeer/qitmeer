@@ -1,9 +1,13 @@
 package miner
 
 import (
+	"bytes"
+	"encoding/hex"
+	js "encoding/json"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/params"
@@ -74,7 +78,7 @@ func (w *CPUWorker) Start() error {
 
 	log.Info("Start CPU Worker...")
 
-	w.miner.updateBlockTemplate(false)
+	w.miner.updateBlockTemplate(false, false)
 
 	w.wg.Add(2)
 	go w.speedMonitor()
@@ -432,6 +436,28 @@ func (w *CPUWorker) solveBlock() bool {
 		// Each hash is actually a double hash (tow hashes), so
 	}
 	return false
+}
+
+func (w *CPUWorker) GetNotifyData() []byte {
+	if w.miner.template == nil {
+		return nil
+	}
+	var headerBuf bytes.Buffer
+	err := w.miner.template.Block.Header.Serialize(&headerBuf)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	result := &json.GetBlockHeaderResult{
+		Hex: hex.EncodeToString(headerBuf.Bytes()),
+	}
+	da, err := js.Marshal(result)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return da
 }
 
 func NewCPUWorker(miner *Miner) *CPUWorker {
