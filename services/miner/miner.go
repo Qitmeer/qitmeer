@@ -315,7 +315,7 @@ func (m *Miner) subscribe() {
 						m.handleNotifyMsg(value)
 					case int:
 						if value == mempool.MempoolTxAdd {
-							m.MempoolChange()
+							go m.MempoolChange()
 						}
 					}
 				}
@@ -340,7 +340,7 @@ func (m *Miner) handleNotifyMsg(notification *blockchain.Notification) {
 			return
 		}
 		if band.IsMainChainTipChange {
-			m.BlockChainChange()
+			go m.BlockChainChange()
 		}
 	}
 }
