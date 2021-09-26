@@ -1,10 +1,13 @@
 package miner
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/core/address"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/event"
@@ -18,6 +21,7 @@ import (
 	"github.com/Qitmeer/qitmeer/services/mempool"
 	"github.com/Qitmeer/qitmeer/services/mining"
 	"math/rand"
+	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -29,6 +33,9 @@ const (
 	// changed and there have been changes to the available transactions
 	// in the memory pool.
 	gbtRegenerateSeconds = 60
+
+	// This is the timeout for HTTP requests to notify external miners.
+	ExternalMinerTimeout = 1 * time.Second
 )
 
 // Miner creates blocks and searches for proof-of-work values.
@@ -39,6 +46,8 @@ type Miner struct {
 	wg       sync.WaitGroup
 	quit     chan struct{}
 
+	ctx          context.Context
+	cancel       context.CancelFunc
 	cfg          *config.Config
 	events       *event.Feed
 	txSource     mining.TxSource
@@ -60,6 +69,9 @@ type Miner struct {
 
 	totalSubmit   int
 	successSubmit int
+
+	notify string
+	reqWG  sync.WaitGroup
 }
 
 func (m *Miner) Start() error {
@@ -94,8 +106,10 @@ func (m *Miner) Stop() {
 		return
 	}
 	log.Info("Stop Miner...")
-
+	m.cancel()
 	close(m.quit)
+
+	m.reqWG.Wait()
 	m.wg.Wait()
 }
 
@@ -136,7 +150,7 @@ out:
 						if m.powType != msg.powType {
 							m.powType = msg.powType
 						}
-						if m.updateBlockTemplate(true) == nil {
+						if m.updateBlockTemplate(true, false) == nil {
 							m.worker.Update()
 						}
 						continue
@@ -157,13 +171,13 @@ out:
 				worker.Update()
 
 			case *BlockChainChangeMsg:
-				if m.updateBlockTemplate(false) == nil {
+				if m.updateBlockTemplate(false, true) == nil {
 					if m.worker != nil {
 						m.worker.Update()
 					}
 				}
 			case *MempoolChangeMsg:
-				if m.updateBlockTemplate(false) == nil {
+				if m.updateBlockTemplate(false, true) == nil {
 					if m.worker != nil {
 						m.worker.Update()
 					}
@@ -211,6 +225,9 @@ out:
 				worker.Update()
 				worker.GetRequest(msg.powType, msg.reply)
 
+			case *SetMinerConfigMsg:
+				m.doSetMinerConfig(msg.powType, msg.coinbaseAddr, msg.notify)
+
 			default:
 				log.Warn("Invalid message type in task handler: %T", msg)
 			}
@@ -240,7 +257,7 @@ cleanup:
 	log.Trace("Miner handler done")
 }
 
-func (m *Miner) updateBlockTemplate(force bool) error {
+func (m *Miner) updateBlockTemplate(force bool, notify bool) error {
 
 	reCreate := false
 	//
@@ -290,6 +307,9 @@ func (m *Miner) updateBlockTemplate(force bool) error {
 		// consensus rules.
 		m.minTimestamp = mining.MinimumMedianTime(m.blockManager.GetChain())
 
+		if notify {
+			m.onBlockTemplateChange()
+		}
 		return nil
 	} else {
 		err := mining.UpdateBlockTime(m.template.Block, m.blockManager.GetChain(), m.timeSource, params.ActiveNetParams.Params)
@@ -315,7 +335,7 @@ func (m *Miner) subscribe() {
 						m.handleNotifyMsg(value)
 					case int:
 						if value == mempool.MempoolTxAdd {
-							m.MempoolChange()
+							go m.MempoolChange()
 						}
 					}
 				}
@@ -340,7 +360,7 @@ func (m *Miner) handleNotifyMsg(notification *blockchain.Notification) {
 			return
 		}
 		if band.IsMainChainTipChange {
-			m.BlockChainChange()
+			go m.BlockChainChange()
 		}
 	}
 }
@@ -453,6 +473,74 @@ func (m *Miner) initCoinbase() error {
 	return nil
 }
 
+func (m *Miner) onBlockTemplateChange() {
+	if len(m.notify) > 0 {
+		if m.worker == nil {
+			return
+		}
+		jsonData := m.worker.GetNotifyData()
+		if len(jsonData) <= 0 {
+			return
+		}
+		m.reqWG.Add(1)
+		go m.sendNotification(m.ctx, m.notify, jsonData)
+	}
+}
+
+func (m *Miner) sendNotification(ctx context.Context, url string, json []byte) {
+	defer m.reqWG.Done()
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(json))
+	if err != nil {
+		log.Warn(fmt.Sprintf("Can't create miner notification:%s", err))
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, ExternalMinerTimeout)
+	defer cancel()
+	req = req.WithContext(ctx)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Warn(fmt.Sprintf("Failed to notify miner:%s", err))
+	} else {
+		log.Debug(fmt.Sprintf("Notified miner(%s):json size=%d", url, len(json)))
+		resp.Body.Close()
+	}
+}
+
+func (m *Miner) doSetMinerConfig(powType pow.PowType, coinbaseAddr string, notify string) {
+
+	needUpdate := false
+	if len(coinbaseAddr) > 0 {
+		if m.coinbaseAddress != nil {
+			if coinbaseAddr != m.coinbaseAddress.String() {
+				needUpdate = true
+			}
+		}
+		addr, err := address.DecodeAddress(coinbaseAddr)
+		if err == nil {
+			if address.IsForNetwork(addr, params.ActiveNetParams.Params) {
+				if m.coinbaseAddress == nil {
+					needUpdate = true
+				}
+				m.coinbaseAddress = addr
+			}
+		}
+	}
+
+	m.powType = powType
+
+	m.notify = notify
+
+	if needUpdate && m.worker != nil {
+		if m.updateBlockTemplate(false, true) == nil {
+			m.worker.Update()
+		}
+	}
+	log.Debug(fmt.Sprintf("Set up miner config:powType=%s coinbaseAddress=%s notify=%s", pow.GetPowName(powType), coinbaseAddr, notify))
+}
+
 func (m *Miner) handleStallSample() {
 	//if atomic.LoadInt32(&m.shutdown) != 0 {
 	//	return
@@ -554,9 +642,22 @@ func (m *Miner) RemoteMining(powType pow.PowType, reply chan *gbtResponse) error
 	return nil
 }
 
+func (m *Miner) SetMinerConfig(powType pow.PowType, coinbaseAddr string, notify string) error {
+
+	if atomic.LoadInt32(&m.started) == 0 || atomic.LoadInt32(&m.shutdown) != 0 {
+		m.doSetMinerConfig(powType, coinbaseAddr, notify)
+		return nil
+	}
+
+	m.msgChan <- &SetMinerConfigMsg{powType: powType, coinbaseAddr: coinbaseAddr, notify: notify}
+	return nil
+}
+
 func NewMiner(cfg *config.Config, policy *mining.Policy,
 	sigCache *txscript.SigCache,
 	txSource mining.TxSource, tsource blockchain.MedianTimeSource, blkMgr *blkmgr.BlockManager, events *event.Feed) *Miner {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	m := Miner{
 		msgChan:      make(chan interface{}),
 		quit:         make(chan struct{}),
@@ -568,6 +669,8 @@ func NewMiner(cfg *config.Config, policy *mining.Policy,
 		blockManager: blkMgr,
 		powType:      pow.MEERXKECCAKV1,
 		events:       events,
+		ctx:          ctx,
+		cancel:       cancel,
 	}
 
 	return &m

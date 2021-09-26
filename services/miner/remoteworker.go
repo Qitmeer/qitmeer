@@ -3,7 +3,9 @@ package miner
 import (
 	"bytes"
 	"encoding/hex"
+	js "encoding/json"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"sync"
 	"sync/atomic"
@@ -33,7 +35,7 @@ func (w *RemoteWorker) Start() error {
 	}
 
 	log.Info("Start Remote Worker...")
-	w.miner.updateBlockTemplate(false)
+	w.miner.updateBlockTemplate(false, false)
 	return nil
 }
 
@@ -67,7 +69,7 @@ func (w *RemoteWorker) GetRequest(powType pow.PowType, reply chan *gbtResponse) 
 
 	if w.miner.powType != powType {
 		w.miner.powType = powType
-		if err := w.miner.updateBlockTemplate(true); err != nil {
+		if err := w.miner.updateBlockTemplate(true, false); err != nil {
 			reply <- &gbtResponse{nil, err}
 			return
 		}
@@ -79,7 +81,30 @@ func (w *RemoteWorker) GetRequest(powType pow.PowType, reply chan *gbtResponse) 
 		return
 	}
 	hexBlockHeader := hex.EncodeToString(headerBuf.Bytes())
-	reply <- &gbtResponse{hexBlockHeader, err}
+	reply <- &gbtResponse{&json.GetBlockHeaderResult{Hex: hexBlockHeader}, err}
+}
+
+func (w *RemoteWorker) GetNotifyData() []byte {
+	if w.miner.template == nil {
+		return nil
+	}
+
+	var headerBuf bytes.Buffer
+	err := w.miner.template.Block.Header.Serialize(&headerBuf)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	result := &json.GetBlockHeaderResult{
+		Hex: hex.EncodeToString(headerBuf.Bytes()),
+	}
+	da, err := js.Marshal(result)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	return da
 }
 
 func NewRemoteWorker(miner *Miner) *RemoteWorker {

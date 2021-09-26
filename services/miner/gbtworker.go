@@ -2,6 +2,7 @@ package miner
 
 import (
 	"encoding/hex"
+	js "encoding/json"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
@@ -46,7 +47,7 @@ func (w *GBTWorker) Start() error {
 	}
 
 	log.Info("Start GBT Worker...")
-	w.miner.updateBlockTemplate(false)
+	w.miner.updateBlockTemplate(false, false)
 	return nil
 }
 
@@ -116,7 +117,7 @@ func (w *GBTWorker) GetRequest(request *json.TemplateRequest, reply chan *gbtRes
 	// timestamp for the existing block template is updated .
 	if w.miner.powType != pow.PowType(powtyp) {
 		w.miner.powType = pow.PowType(powtyp)
-		if err := w.miner.updateBlockTemplate(true); err != nil {
+		if err := w.miner.updateBlockTemplate(true, false); err != nil {
 			reply <- &gbtResponse{nil, err}
 			return
 		}
@@ -289,6 +290,23 @@ func (w *GBTWorker) getResult(useCoinbaseValue bool, submitOld *bool) (*json.Get
 	}
 
 	return &reply, nil
+}
+
+func (w *GBTWorker) GetNotifyData() []byte {
+	if w.miner.template == nil {
+		return nil
+	}
+	result, err := w.getResult(true, nil)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	da, err := js.Marshal(result)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return da
 }
 
 func NewGBTWorker(miner *Miner) *GBTWorker {
