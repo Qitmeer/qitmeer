@@ -17,6 +17,7 @@ import (
 )
 
 // MainNet ------------------------------------------------------------------------
+var genesisTime = time.Unix(1632700998, 0) // 2021-09-27 08:03:18
 
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for
 // the main network.
@@ -43,6 +44,7 @@ func buildGenesisCoinbaseTx(net protocol.Network) types.Transaction {
 		},
 		LockTime: 0,
 		Expire:   0,
+		Timestamp: genesisTime,
 	}
 	ledger.Ledger(&tx, net)
 	return tx
@@ -75,9 +77,9 @@ var genesisBlock = types.Block{
 		//UtxoCommitment: types.Hash{},
 		//CompactFilter: types.Hash{},
 		StateRoot:  hash.Hash{},
-		Timestamp:  time.Unix(1561939200, 0), // 2019-07-01 00:00:00 GMT
-		Difficulty: 0x1b01ffff,               // Difficulty 32767
-		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
+		Timestamp: genesisTime,
+		Difficulty: 0x1b0fffff,               // Difficulty 17 T
+		Pow:        pow.GetInstance(pow.MEERXKECCAKV1, 0, []byte{}),
 	},
 	Transactions: []*types.Transaction{&genesisCoinbaseTx},
 }
@@ -371,8 +373,9 @@ func buildMixNetGenesisTxOne() types.Transaction {
 				SignScript: []byte{},
 			},
 		},
-		LockTime: 0,
-		Expire:   0,
+		Timestamp: time.Unix(1632700998, 0), // 2021-09-27 08:03:18
+		LockTime:  0,
+		Expire:    0,
 	}
 	ledger.Ledger(&tx, protocol.MixNet)
 	return tx

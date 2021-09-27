@@ -34,7 +34,7 @@ const (
 	defaultLogFilename            = "qitmeer.log"
 	defaultGenerate               = false
 	defaultBlockMinSize           = 0
-	defaultBlockMaxSize           = types.MaxBlockPayload
+	defaultBlockMaxSize           = types.MaxBlockPayload / 2
 	defaultMaxRPCClients          = 10
 	defaultMaxRPCWebsockets       = 25
 	defaultMaxRPCConcurrentReqs   = 20

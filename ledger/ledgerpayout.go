@@ -17,6 +17,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
+	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
@@ -38,12 +39,14 @@ var (
 	oneDayHeight          = int64(0)
 	yearMiningAmount      = 0.00
 	yearReleaseAmount     = 0.00
+	originAmount          = int64(0)
+	genesisAmount         = int64(0)
 )
 
 type GenesisInitPayout struct {
 	CoinID            types.CoinID
 	Address           string
-	Amount            float64
+	Amount            int64
 	GenesisPayoutType int
 	LockHeight        int64 // amount lock with height
 }
@@ -69,7 +72,6 @@ func ReSortAndSliceGeneDataWithSeed(data []GenesisInitPayout, seedHash []byte, p
 	i := 0
 	payKeys := make([]int, 0)
 	for _, v := range data {
-		v.Amount *= 1e8
 		for {
 			if v.GenesisPayoutType == GENE_PAYOUT_TYPE_STANDARD || v.GenesisPayoutType == GENE_PAYOUT_TYPE_LOCK_WITH_HEIGHT {
 				payList = append(payList, v)
@@ -79,11 +81,11 @@ func ReSortAndSliceGeneDataWithSeed(data []GenesisInitPayout, seedHash []byte, p
 			}
 			if int64(v.Amount) > p.LedgerParams.GenesisAmountUnit {
 				payList = append(payList, GenesisInitPayout{
-					v.CoinID, v.Address, float64(p.LedgerParams.GenesisAmountUnit), v.GenesisPayoutType, v.LockHeight,
+					v.CoinID, v.Address, p.LedgerParams.GenesisAmountUnit, v.GenesisPayoutType, v.LockHeight,
 				})
 				payKeys = append(payKeys, i)
 				i++
-				v.Amount -= float64(p.LedgerParams.GenesisAmountUnit)
+				v.Amount -= p.LedgerParams.GenesisAmountUnit
 			} else {
 				payList = append(payList, v)
 				payKeys = append(payKeys, i)
@@ -111,26 +113,32 @@ func GenerateUniqueSeedHash(data []GenesisInitPayout) ([]byte, error) {
 	return seedHash, nil
 }
 
-func CalcAllNeedReleaseAmount(data []string) float64 {
-	all := 0.00
+func ConvertStringToInt64(s string) int64 {
+	a, ok := new(big.Int).SetString(s, 10)
+	if !ok {
+		return 0
+	}
+	return a.Int64()
+}
+
+func CalcAllNeedReleaseAmount(data []string) int64 {
 	for _, v := range data {
 		// CoinID,address,amount,locktype,height
 		arr := strings.Split(v, ",")
-		amount, err := strconv.ParseFloat(arr[2], 64)
-		if err != nil {
-			continue
-		}
+		amount := ConvertStringToInt64(arr[2])
 		if amount <= 0 {
 			continue
 		}
-		all += amount
+		originAmount += amount
 	}
-	return all
+	return originAmount
 }
 
 func FormatDataFromImport(data []string, params *params.Params) ([]GenesisInitPayout, error) {
 	allNeedRelease := CalcAllNeedReleaseAmount(data)
 	newData := make([]GenesisInitPayout, 0)
+	oneDayHeight = int64(float64(ONE_DAY_SECONDS) / params.TargetTimePerBlock.Seconds())
+	yearMiningAmount = float64(oneDayHeight) * float64(params.BaseSubsidy) * YEAR_DAYS
 	for _, v := range data {
 		// CoinID,address,amount,locktype,height
 		arr := strings.Split(v, ",")
@@ -141,10 +149,7 @@ func FormatDataFromImport(data []string, params *params.Params) ([]GenesisInitPa
 		if err != nil {
 			return nil, errors.New("CoinID data error" + arr[0])
 		}
-		amount, err := strconv.ParseFloat(arr[2], 64)
-		if err != nil {
-			return nil, errors.New("amount data error" + arr[2])
-		}
+		amount := ConvertStringToInt64(arr[2])
 		if amount <= 0 {
 			continue
 		}
@@ -156,32 +161,40 @@ func FormatDataFromImport(data []string, params *params.Params) ([]GenesisInitPa
 		if err != nil {
 			return nil, errors.New("height data error" + arr[4])
 		}
-		oneDayHeight = int64(float64(ONE_DAY_SECONDS) / params.TargetTimePerBlock.Seconds())
-		yearMiningAmount = float64(oneDayHeight) * float64(params.BaseSubsidy) * YEAR_DAYS / 1e8
-		userYearReleaseAmount := amount * yearMiningAmount / allNeedRelease
-		if userYearReleaseAmount > amount {
-			userYearReleaseAmount = amount
+		if payouttype != GENE_PAYOUT_TYPE_AUTO_LOCK_WITH_CONFIG {
+			newData = append(newData, GenesisInitPayout{
+				types.CoinID(CoinID),
+				arr[1],
+				amount,
+				payouttype,
+				int64(lockheight),
+			})
+			continue
+		}
+		userYearReleaseAmount := float64(amount) * yearMiningAmount / float64(allNeedRelease)
+		if userYearReleaseAmount > float64(amount) {
+			userYearReleaseAmount = float64(amount)
 		}
 		yearReleaseAmount += userYearReleaseAmount
 		if userYearReleaseAmount > 0 {
 			newData = append(newData, GenesisInitPayout{
 				types.CoinID(CoinID),
 				arr[1],
-				userYearReleaseAmount,
+				int64(userYearReleaseAmount),
 				payouttype,
 				int64(lockheight),
 			})
 		}
 
-		leftAmount := amount - userYearReleaseAmount
+		leftAmount := float64(amount) - float64(int64(userYearReleaseAmount))
 		if leftAmount > 0 {
-			if leftAmount > amount {
-				leftAmount = amount
+			if leftAmount > float64(amount) {
+				leftAmount = float64(amount)
 			}
 			newData = append(newData, GenesisInitPayout{
 				types.CoinID(CoinID),
 				arr[1],
-				leftAmount,
+				int64(leftAmount),
 				GENE_PAYOUT_TYPE_LOCK_WITH_HEIGHT,
 				int64(params.LedgerParams.MaxLockHeight),
 			})
@@ -243,7 +256,7 @@ func savePayoutsFileBySliceShuffle(params *params.Params, genesisLedger []Genesi
 
 	funName := fmt.Sprintf("%s%s", strings.ToUpper(string(netName[0])), netName[1:])
 	fileContent := fmt.Sprintf("// It is called by go generate and used to automatically generate pre-computed \n// Copyright 2017-2018 The qitmeer developers \n// This file is auto generate \npackage ledger\n\nimport (\n\t. \"github.com/Qitmeer/qitmeer/core/types\"\n)\n\nfunc init%s() {\n", funName)
-	oneDayRelease := yearReleaseAmount / YEAR_DAYS * 1e8
+	oneDayRelease := yearReleaseAmount / YEAR_DAYS
 	fileContent += processLockingGenesisPayouts(genesisLedger, sortKeys, int64(oneDayRelease), oneDayHeight)
 
 	fileContent += "}"
@@ -268,6 +281,7 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 			if err != nil {
 				return err.Error()
 			}
+			genesisAmount += int64(v.Amount)
 			fileContent += fmt.Sprintf("	addPayout2(\"%s\",Amount{Value: %d, Id: CoinID(%d)},\"%s\")\n", v.Address, int64(v.Amount), v.CoinID, hex.EncodeToString(script))
 			continue
 		}
@@ -276,17 +290,18 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 			if err != nil {
 				return err.Error()
 			}
+			genesisAmount += int64(v.Amount)
 			fileContent += fmt.Sprintf("	addPayout2(\"%s\",Amount{Value: %d, Id: CoinID(%d)},\"%s\")\n", v.Address, int64(v.Amount), v.CoinID, hex.EncodeToString(script))
 			continue
 		}
 		if v.GenesisPayoutType == GENE_PAYOUT_TYPE_AUTO_LOCK_WITH_CONFIG {
 			for v.Amount > 0 {
 				oneDayLeftAmount := oneDayRelease - oneDayUsedAmount
-				amount := float64(0)
+				amount := int64(0)
 				script, err := PayToCltvAddrScriptWithMainHeight(v.Address, curMHeight)
-				if v.Amount >= float64(oneDayLeftAmount) {
-					v.Amount -= float64(oneDayLeftAmount)
-					amount = float64(oneDayLeftAmount)
+				if v.Amount >= oneDayLeftAmount {
+					v.Amount -= oneDayLeftAmount
+					amount = oneDayLeftAmount
 					curMHeight += heightStep
 					oneDayUsedAmount = 0
 				} else {
@@ -297,10 +312,16 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 				if err != nil {
 					return err.Error()
 				}
+				genesisAmount += int64(amount)
 				fileContent += fmt.Sprintf("	addPayout2(\"%s\",Amount{Value: %d, Id: CoinID(%d)},\"%s\")\n", v.Address, int64(amount), v.CoinID, hex.EncodeToString(script))
 			}
 		}
 	}
+	if originAmount != genesisAmount {
+		fmt.Println("not equal", "originAmount", originAmount, "genesisAmount", genesisAmount)
+		return ""
+	}
+	fmt.Println("generate success")
 	return fileContent
 }
 
