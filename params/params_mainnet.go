@@ -34,7 +34,12 @@ var MainNetParams = Params{
 	Net:            protocol.MainNet,
 	DefaultPort:    "8130",
 	DefaultUDPPort: 8140,
-	Bootstrap:      []string{},
+	Bootstrap: []string{
+		"/dns4/node.meerscan.io/tcp/28130/p2p/16Uiu2HAmTdcrQ2S4MD6UxeR81Su8DQdt2eB7vLzJA7LrawNf93T2",
+		"/dns4/ns-cn.qitmeer.xyz/tcp/18150/p2p/16Uiu2HAm45YEQXf5sYgpebp1NvPS96ypvvpz5uPx7iPHmau94vVk",
+		"/dns4/ns.qitmeer.top/tcp/28230/p2p/16Uiu2HAmRtp5CjNv3WvPYuh7kNXXZQDYegwFFeDH9vWY3JY4JS1W",
+		"/dns4/boot.qitmir.info/tcp/2001/p2p/16Uiu2HAmJ8qBBgoNoHH84ntLuXB9sqDngh82zZgaEejdFUYGR59Y",
+	},
 	LedgerParams: ledger.LedgerParams{
 		GenesisAmountUnit: 1000 * 1e8,                              // 1000 MEER every utxo
 		MaxLockHeight:     86400 / mixTargetTimePerBlock * 365 * 5, // max lock height
