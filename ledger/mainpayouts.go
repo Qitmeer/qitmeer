@@ -7,17 +7,10 @@
 package main
 
 import (
-	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/params"
 )
 
-var MainGeneData = []GenesisInitPayout{
-	{
-		types.MEERID, "Mmgtbce51YiHyPmn327jY4P28dJoBEA42Qf", 4200000,
-		GENE_PAYOUT_TYPE_LOCK_WITH_HEIGHT,
-		params.MainNetParam.LedgerParams.MaxLockHeight,
-	},
-}
+var MainGeneData = []GenesisInitPayout{}
 
 // coinid,address,lockAmount,locktype,lockheight
 var MainGeneDataFromImport = []string{
@@ -3362,6 +3355,7 @@ var MainGeneDataFromImport = []string{
 	"0,MmdjjVhp5NNfoHmXc9muaywr5FiaswdGfMt,150000,1,0",
 	"0,MmTcWSYjy6UeZHjR5mvWSLHfoTPvKxDdcQ5,100000,1,0",
 	"0,Mmgtbce51YiHyPmn327jY4P28dJoBEA42Qf,300000,1,0",
+	"0,Mmgtbce51YiHyPmn327jY4P28dJoBEA42Qf,4200000,2,5256000",
 }
 
 func main() {

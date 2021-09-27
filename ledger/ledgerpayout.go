@@ -131,6 +131,8 @@ func CalcAllNeedReleaseAmount(data []string) float64 {
 func FormatDataFromImport(data []string, params *params.Params) ([]GenesisInitPayout, error) {
 	allNeedRelease := CalcAllNeedReleaseAmount(data)
 	newData := make([]GenesisInitPayout, 0)
+	oneDayHeight = int64(float64(ONE_DAY_SECONDS) / params.TargetTimePerBlock.Seconds())
+	yearMiningAmount = float64(oneDayHeight) * float64(params.BaseSubsidy) * YEAR_DAYS / 1e8
 	for _, v := range data {
 		// CoinID,address,amount,locktype,height
 		arr := strings.Split(v, ",")
@@ -156,8 +158,16 @@ func FormatDataFromImport(data []string, params *params.Params) ([]GenesisInitPa
 		if err != nil {
 			return nil, errors.New("height data error" + arr[4])
 		}
-		oneDayHeight = int64(float64(ONE_DAY_SECONDS) / params.TargetTimePerBlock.Seconds())
-		yearMiningAmount = float64(oneDayHeight) * float64(params.BaseSubsidy) * YEAR_DAYS / 1e8
+		if payouttype != GENE_PAYOUT_TYPE_AUTO_LOCK_WITH_CONFIG {
+			newData = append(newData, GenesisInitPayout{
+				types.CoinID(CoinID),
+				arr[1],
+				amount,
+				payouttype,
+				int64(lockheight),
+			})
+			continue
+		}
 		userYearReleaseAmount := amount * yearMiningAmount / allNeedRelease
 		if userYearReleaseAmount > amount {
 			userYearReleaseAmount = amount
