@@ -25,10 +25,9 @@ var mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 212), common.B
 // target time per block unit second(s)
 const mainTargetTimePerBlock = 30
 
-// Difficulty check interval is about 60*15 = 15 mins
+// Difficulty check interval is about 60*30 = 30 mins
 const mainWorkDiffWindowSize = 60
 
-// Difficulty check interval is about 60*15 = 15 mins
 // MainNetParams defines the network parameters for the main network.
 var MainNetParams = Params{
 	Name:           "mainnet",
@@ -82,16 +81,31 @@ var MainNetParams = Params{
 	RetargetAdjustmentFactor: 2,
 
 	// Subsidy parameters.
-	BaseSubsidy:              10 * 1e8, // 21m
-	MulSubsidy:               100,
+	BaseSubsidy:              10 * 1e8, // POW daily supply is almost 24*60*(60/30)*10 = 28880, ignore the DAG concurrent increment.
+	MulSubsidy:               0,        // subsidy reduce to zero after 7986093 block created
 	DivSubsidy:               101,
-	SubsidyReductionInterval: 6144,
+	SubsidyReductionInterval: 7986093,  // (210240000-50518130)/2/BaseSubsidy = 7986093
+										// total POW + locked supply almost = 79860930*2*10 = 159721860, ignore DAG increment.
 	WorkRewardProportion:     10,
 	StakeRewardProportion:    0,
 	BlockTaxProportion:       0,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{},
+
+	// Consensus rule change deployments.
+	//
+	// The miner confirmation window is defined as:
+	//   target proof of work timespan / target proof of work spacing
+	RuleChangeActivationThreshold: 57,                    // 95% of MinerConfirmationWindow
+	MinerConfirmationWindow:       mixWorkDiffWindowSize, //
+	Deployments: []ConsensusDeployment{
+		DeploymentToken: {
+			BitNumber:  0,
+			StartTime:  0,
+			ExpireTime: 0,
+		},
+	},
 
 	// Address encoding magics
 	NetworkAddressPrefix: "M",
@@ -112,7 +126,8 @@ var MainNetParams = Params{
 	// https://github.com/satoshilabs/slips/blob/master/slip-0044.md
 	HDCoinType: 223,
 
-	CoinbaseMaturity: 512,
+	CoinbaseMaturity: 720,
 
 	OrganizationPkScript: hexMustDecode("76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac"),
+	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
 }
