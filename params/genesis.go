@@ -371,8 +371,9 @@ func buildMixNetGenesisTxOne() types.Transaction {
 				SignScript: []byte{},
 			},
 		},
-		LockTime: 0,
-		Expire:   0,
+		Timestamp: time.Unix(1632700998, 0), // 2021-09-27 08:03:18
+		LockTime:  0,
+		Expire:    0,
 	}
 	ledger.Ledger(&tx, protocol.MixNet)
 	return tx
