@@ -100,10 +100,13 @@ var MainNetParams = Params{
 	RuleChangeActivationThreshold: 57,                    // 95% of MinerConfirmationWindow
 	MinerConfirmationWindow:       mixWorkDiffWindowSize, //
 	Deployments: []ConsensusDeployment{
+		DeploymentTestDummy: {
+			BitNumber: 28,
+		},
 		DeploymentToken: {
 			BitNumber:  0,
 			StartTime:  0,
-			ExpireTime: 0,
+			ExpireTime: mixWorkDiffWindowSize,
 		},
 	},
 
