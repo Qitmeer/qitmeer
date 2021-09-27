@@ -10,17 +10,25 @@ import (
 	"github.com/Qitmeer/qitmeer/common"
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qitmeer/ledger"
 	"math/big"
 	"time"
 )
 
 // mainPowLimit is the highest proof of work value a block can
-// have for the main network. It is the value 2^224 - 1.
-var mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 224), common.Big1)
+// have for the main network. It is the value 2^212 - 1.
+// target 00000000000fffffffffffffffffffffffffffffffffffffffffffffffffffff
+// Min Diff 17 T
+// compact 0x1b0fffff
+var mainPowLimit = new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 212), common.Big1)
 
 // target time per block unit second(s)
-const mainTargetTimePerBlock = 60 * 5
+const mainTargetTimePerBlock = 30
 
+// Difficulty check interval is about 60*15 = 15 mins
+const mainWorkDiffWindowSize = 60
+
+// Difficulty check interval is about 60*15 = 15 mins
 // MainNetParams defines the network parameters for the main network.
 var MainNetParams = Params{
 	Name:           "mainnet",
@@ -28,29 +36,33 @@ var MainNetParams = Params{
 	DefaultPort:    "8130",
 	DefaultUDPPort: 8140,
 	Bootstrap:      []string{},
-
+	LedgerParams: ledger.LedgerParams{
+		GenesisAmountUnit: 1000 * 1e8,                              // 1000 MEER every utxo
+		MaxLockHeight:     86400 / mixTargetTimePerBlock * 365 * 5, // max lock height
+	},
 	// Chain parameters
 	GenesisBlock: &genesisBlock,
 	GenesisHash:  &genesisHash,
 	PowConfig: &pow.PowConfig{
 		Blake2bdPowLimit:             mainPowLimit,
-		Blake2bdPowLimitBits:         0x1d00ffff,
+		Blake2bdPowLimitBits:         0x1b0fffff,
 		X16rv3PowLimit:               mainPowLimit,
-		X16rv3PowLimitBits:           0x1d00ffff,
+		X16rv3PowLimitBits:           0x1b0fffff,
 		X8r16PowLimit:                mainPowLimit,
-		X8r16PowLimitBits:            0x1d00ffff,
+		X8r16PowLimitBits:            0x1b0fffff,
 		QitmeerKeccak256PowLimit:     mainPowLimit,
-		QitmeerKeccak256PowLimitBits: 0x1d00ffff,
+		QitmeerKeccak256PowLimitBits: 0x1b0fffff,
 		//hash ffffffffffffffff000000000000000000000000000000000000000000000000 corresponding difficulty is 48 for edge bits 24
 		// Uniform field type uint64 value is 48 . bigToCompact the uint32 value
 		// 24 edge_bits only need hash 1*4 times use for privnet if GPS is 2. need 50 /2 * 4 find once
-		CuckarooMinDifficulty:  0x1300000 * 4,
-		CuckaroomMinDifficulty: 0x1300000 * 4,
-		CuckatooMinDifficulty:  0x1300000 * 4,
-
+		CuckarooMinDifficulty:     0x1300000 * 4,
+		CuckaroomMinDifficulty:    0x1300000 * 4,
+		CuckatooMinDifficulty:     0x1300000 * 4,
+		MeerXKeccakV1PowLimit:     mainPowLimit,
+		MeerXKeccakV1PowLimitBits: 0x1b0fffff,
 		Percent: map[pow.MainHeight]pow.PercentItem{
 			pow.MainHeight(0): {
-				pow.QITMEERKECCAK256: 100,
+				pow.MEERXKECCAKV1: 100,
 			},
 		},
 		// after this height the big graph will be the main pow graph
@@ -61,22 +73,22 @@ var MainNetParams = Params{
 	MinDiffReductionTime:     0, // Does not apply since ReduceMinDifficulty false
 	GenerateSupported:        false,
 	WorkDiffAlpha:            1,
-	WorkDiffWindowSize:       144,
-	WorkDiffWindows:          20,
-	MaximumBlockSizes:        []int{393216},
-	MaxTxSize:                393216,
+	WorkDiffWindowSize:       mainWorkDiffWindowSize,
+	WorkDiffWindows:          20, //
+	MaximumBlockSizes:        []int{1310720},
+	MaxTxSize:                1000000,
 	TargetTimePerBlock:       time.Second * mainTargetTimePerBlock,
-	TargetTimespan:           time.Second * mainTargetTimePerBlock * 144, // TimePerBlock * WindowSize
-	RetargetAdjustmentFactor: 4,
+	TargetTimespan:           time.Second * mainTargetTimePerBlock * mainWorkDiffWindowSize, // TimePerBlock * WindowSize
+	RetargetAdjustmentFactor: 2,
 
 	// Subsidy parameters.
-	BaseSubsidy:              3119582664, // 21m
+	BaseSubsidy:              10 * 1e8, // 21m
 	MulSubsidy:               100,
 	DivSubsidy:               101,
 	SubsidyReductionInterval: 6144,
-	WorkRewardProportion:     9,
+	WorkRewardProportion:     10,
 	StakeRewardProportion:    0,
-	BlockTaxProportion:       1,
+	BlockTaxProportion:       0,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{},
