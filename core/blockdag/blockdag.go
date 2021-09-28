@@ -490,20 +490,31 @@ func (bd *BlockDAG) GetMainParent(parents *IdSet) IBlock {
 	return bd.instance.GetMainParent(parents)
 }
 
+func (bd *BlockDAG) GetMainParentAndList(parents []*hash.Hash) (IBlock, []*hash.Hash) {
+	pids := bd.GetIdSet(parents)
+
+	bd.stateLock.Lock()
+	mp := bd.instance.GetMainParent(pids)
+	bd.stateLock.Unlock()
+
+	ps := []*hash.Hash{mp.GetHash()}
+	for _, pt := range parents {
+		if pt.IsEqual(mp.GetHash()) {
+			continue
+		}
+		ps = append(ps, pt)
+	}
+	return mp, ps
+}
+
 // return the main parent in the parents
 func (bd *BlockDAG) GetMainParentByHashs(parents []*hash.Hash) IBlock {
+	pids := bd.GetIdSet(parents)
+
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
-	parentsSet := NewIdSet()
-	for _, p := range parents {
-		ib := bd.getBlock(p)
-		if ib == nil {
-			return nil
-		}
-		parentsSet.AddPair(ib.GetID(), ib)
-	}
-	return bd.instance.GetMainParent(parentsSet)
+	return bd.instance.GetMainParent(pids)
 }
 
 // Return current general description of the whole state of DAG

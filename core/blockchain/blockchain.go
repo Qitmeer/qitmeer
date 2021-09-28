@@ -1400,28 +1400,7 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 		if len(parents) <= 0 {
 			return hash.ZeroHash
 		}
-		var mainParent blockdag.IBlock
-		if len(parents) > 1 {
-			parentsSet := blockdag.NewIdSet()
-			for _, bh := range parents {
-				id := b.GetBlock(bh)
-				if id == nil {
-					continue
-				}
-				parentsSet.Add(id.GetID())
-			}
-			if parentsSet == nil || parentsSet.IsEmpty() {
-				return hash.ZeroHash
-			}
-			mainParent = b.bd.GetMainParent(parentsSet)
-
-		} else {
-			mainParent = b.GetBlock(parents[0])
-		}
-		if mainParent == nil {
-			return hash.ZeroHash
-		}
-		block, err := b.fetchBlockByHash(mainParent.GetHash())
+		block, err := b.fetchBlockByHash(parents[0])
 		if err != nil {
 			return hash.ZeroHash
 		}
