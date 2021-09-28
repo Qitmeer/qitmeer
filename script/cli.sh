@@ -497,6 +497,18 @@ function submit_block_header() {
   get_result "$data"
 }
 
+function set_miner() {
+  local powtype=$1
+  if [ "$powtype" == "" ]; then
+    powtype=8
+  fi
+  local coinbaseAddr=$2
+  local notify=$3
+
+  local data='{"jsonrpc":"2.0","method":"setMiner","params":['$powtype',"'$coinbaseAddr'","'$notify'"],"id":1}'
+  get_result "$data"
+}
+
 function get_subsidy(){
   local data='{"jsonrpc":"2.0","method":"getSubsidy","params":[],"id":null}'
   get_result "$data"
@@ -613,6 +625,7 @@ function usage(){
   echo "  submitblock"
   echo "  submitblockheader"
   echo "  remotegbt"
+  echo "  setminer <powType> <coinbase> <notify>"
 }
 
 # -------------------
@@ -1170,6 +1183,10 @@ elif [ "$1" == "submitblock" ]; then
 elif [ "$1" == "submitblockheader" ]; then
   shift
   submit_block_header $@
+
+elif [ "$1" == "setminer" ]; then
+  shift
+  set_miner $@
 
 elif [ "$1" == "remotegbt" ]; then
   shift

@@ -157,6 +157,14 @@ func (api *PublicMinerAPI) SubmitBlockHeader(hexBlockHeader string) (interface{}
 	return m.submitBlockHeader(&header)
 }
 
+func (api *PublicMinerAPI) SetMiner(powType byte, coinbaseAddr string, notify *string) (interface{}, error) {
+	noti := ""
+	if notify != nil {
+		noti = *notify
+	}
+	return nil, api.miner.SetMinerConfig(pow.PowType(powType), coinbaseAddr, noti)
+}
+
 // PrivateMinerAPI provides private RPC methods to control the miner.
 type PrivateMinerAPI struct {
 	miner *Miner
