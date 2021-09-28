@@ -299,6 +299,9 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 				oneDayLeftAmount := oneDayRelease - oneDayUsedAmount
 				amount := int64(0)
 				script, err := PayToCltvAddrScriptWithMainHeight(v.Address, curMHeight)
+				if err != nil {
+					return err.Error()
+				}
 				if v.Amount >= oneDayLeftAmount {
 					v.Amount -= oneDayLeftAmount
 					amount = oneDayLeftAmount
@@ -308,9 +311,6 @@ func processLockingGenesisPayouts(genesisLedger []GenesisInitPayout, sortKeys []
 					amount = v.Amount
 					oneDayUsedAmount += int64(amount)
 					v.Amount = 0
-				}
-				if err != nil {
-					return err.Error()
 				}
 				genesisAmount += int64(amount)
 				fileContent += fmt.Sprintf("	addPayout2(\"%s\",Amount{Value: %d, Id: CoinID(%d)},\"%s\")\n", v.Address, int64(amount), v.CoinID, hex.EncodeToString(script))
@@ -329,6 +329,9 @@ func PayToCltvAddrScriptWithMainHeight(addrStr string, mainHeight int64) ([]byte
 	addr, err := address.DecodeAddress(addrStr)
 	if err != nil {
 		return nil, err
+	}
+	if mainHeight <= 0 {
+		return txscript.PayToAddrScript(addr)
 	}
 	return txscript.PayToCLTVPubKeyHashScript(addr.Script(), mainHeight)
 }

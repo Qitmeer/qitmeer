@@ -8,7 +8,7 @@ import (
 )
 
 func initPriv() {
-	addPayout2("RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs",Amount{Value: 14864109589, Id: CoinID(0)},"00b17576a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac")
+	addPayout2("RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs",Amount{Value: 14864109589, Id: CoinID(0)},"76a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac")
 	addPayout2("RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs",Amount{Value: 14864109589, Id: CoinID(0)},"02400bb17576a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac")
 	addPayout2("RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs",Amount{Value: 14864109589, Id: CoinID(0)},"028016b17576a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac")
 	addPayout2("RmBKxMWg4C4EMzYowisDEGSBwmnR6tPgjLs",Amount{Value: 14864109589, Id: CoinID(0)},"02c021b17576a91437733b37b9f09ce024a5ffbd4570fc1e242c907a88ac")
