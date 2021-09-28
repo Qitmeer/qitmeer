@@ -138,4 +138,9 @@ var MainNetParams = Params{
 
 	OrganizationPkScript: hexMustDecode("76a914e99ebf409dda2a10ea9970651021d8e552f286de88ac"),
 	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
+
+	// MmQitmeerMainNetGuardAddressXd7b76q
+	GuardAddrPkScript: hexMustDecode("76a9143846e53e5e952b5cd6023e3ad3cfc75cb93fce0388ac"),
+	// MmQitmeerMainNetHonorAddressXY9JH2y
+	HonorAddrPkScript: hexMustDecode("76a9143846e53e5e952b5cd60240ad9c4cf6164dd5090988ac"),
 }

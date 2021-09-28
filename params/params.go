@@ -284,6 +284,11 @@ type Params struct {
 	// It should ideally be a P2SH multisignature address.
 	TokenAdminPkScript []byte
 
+	// the output script for guard lock address
+	GuardAddrPkScript []byte
+	// the output script for honor lock address
+	HonorAddrPkScript []byte
+
 	// DAG
 	BlockDelay    float64
 	BlockRate     float64
