@@ -154,8 +154,7 @@ var PrivNetParams = Params{
 	// TODO coin type
 	HDCoinType: 223, // ASCII for s
 
-	// TODO replace the test pkh
-	//OrganizationPkScript:  hexMustDecode("76a91408ff3106060bf8d7d61a25d8108ec977698729f788ac"),
+	OrganizationPkScript:  hexMustDecode("76a91429209320e66d96839785dd07e643a7f1592edc5a88ac"),
 
 	// Because it's only for testing, it comes from testwallet.go
 	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
