@@ -76,7 +76,7 @@ func buildGenesisMappingTx(net protocol.Network) types.Transaction {
 				// Fully null.
 				PreviousOut: types.TxOutPoint{
 					Hash:     hash.Hash{},
-					OutIndex: 0xffffffff,
+					OutIndex: 0xfffffffe,
 				},
 				SignScript: []byte{
 					0x45, 0x61, 0x74, 0x20, 0x6e, 0x6f, 0x74, 0x20, 0x75, 0x70, 0x20, 0x79,
