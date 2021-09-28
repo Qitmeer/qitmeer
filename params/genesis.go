@@ -133,7 +133,7 @@ var genesisBlock = types.Block{
 		Difficulty: 0x1b0fffff, // Difficulty 17 T
 		Pow:        pow.GetInstance(pow.MEERXKECCAKV1, 0, []byte{}),
 	},
-	Transactions: []*types.Transaction{&genesisCoinbaseTx},
+	Transactions: genesisTxs,
 }
 
 // genesisHash is the hash of the first block in the block chain for the main
