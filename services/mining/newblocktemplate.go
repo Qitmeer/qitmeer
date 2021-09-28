@@ -112,7 +112,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	if parents == nil {
 		mainp = bd.GetMainChainTip()
 	} else {
-		mainp = bd.GetMainParent(bd.GetIdSet(parents))
+		mainp, parents = bd.GetMainParentAndList(parents)
 	}
 
 	nextBlockHeight = uint64(mainp.GetHeight() + 1)
