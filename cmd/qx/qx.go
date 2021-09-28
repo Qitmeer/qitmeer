@@ -23,6 +23,7 @@ const (
 )
 
 func usage() {
+	fmt.Fprintf(os.Stderr, "Version: %v\n", ver.String())
 	fmt.Fprintf(os.Stderr, "Usage: qx [--version] [--help] <command> [<args>]\n")
 	fmt.Fprintf(os.Stderr, `
 encode and decode :
@@ -34,6 +35,8 @@ encode and decode :
     base64-decode         encode a base64 string to a base16 string
     rlp-encode            encode a string to a rlp encoded base16 string 
     rlp-decode            decode a rlp base16 string to a human-readble representation
+    script-encode         encode a tx script token list to a base16 string
+    script-decode         decode a base16 string to a human-readable tx script token list
 
 hash :
     blake2b256            calculate Blake2b 256 hash of a base16 data.
@@ -46,18 +49,15 @@ hash :
     bitcoin160            calculate ripemd160(sha256(data))   
     hash160               calculate ripemd160(blake2b256(data))
 
-compact :
+difficulty conversion:
     compact-to-target     convert compact to target
     target-to-compact     convert target to compact
-cuckoo-difficulty :
     compact-to-gps        convert cuckoo compact to gps.
     gps-to-compact        convert cuckoo gps to compact.
-
-hash-difficulty :
     compact-to-hashrate   convert compact to hashrate.
     hashrate-to-compact   convert hashrate to compact.
 
-entropy (seed) & mnemoic & hd & ec 
+entropy (seed) & mnemoic & hd & ec :
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
     hd-new                create a new HD(BIP32) private key from an entropy (seed)
     hd-to-ec              convert the HD (BIP32) format private/public key to a EC private/public key
@@ -73,7 +73,7 @@ entropy (seed) & mnemoic & hd & ec
     wif-to-ec             convert a WIF private key to an EC private key.
     wif-to-public         derive the EC public key from a WIF private key. 
 
-addr & tx & sign
+addr & tx & sign :
     ec-to-addr            convert an EC public key to a paymant address. default is qx address
     tx-encode             encode a unsigned transaction.
     tx-decode             decode a transaction in base16 to json format.
@@ -81,7 +81,6 @@ addr & tx & sign
     msg-sign              create a message signature
     msg-verify            validate a message signature
     signature-decode      decode a ECDSA signature
-	
 `)
 	os.Exit(1)
 }
@@ -428,6 +427,18 @@ MEER is the 64 bit spend amount in qitmeer.`)
 	}
 	msgVerifyCmd.StringVar(&msgSignatureMode, "m", "qx", "the msg signature mode")
 
+	// Script
+	scriptDecodeCmd := flag.NewFlagSet("script-decode", flag.ExitOnError)
+	scriptDecodeCmd.Usage = func() {
+		cmdUsage(scriptDecodeCmd, "Usage: qx script-decode [base16_string] \n")
+	}
+
+	scriptEncodeCmd := flag.NewFlagSet("script-encode", flag.ExitOnError)
+	scriptEncodeCmd.Usage = func() {
+		cmdUsage(scriptEncodeCmd, "Usage: qx script-encode [ops] \n")
+	}
+
+
 	flagSet := []*flag.FlagSet{
 		base58CheckEncodeCommand,
 		base58CheckDecodeCommand,
@@ -472,6 +483,8 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		txSignCmd,
 		msgSignCmd,
 		msgVerifyCmd,
+		scriptDecodeCmd,
+		scriptEncodeCmd,
 	}
 
 	if len(os.Args) == 1 {
@@ -1316,6 +1329,42 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			} else {
 				qx.VerifyMsgSignature(msgSignatureMode, os.Args[len(os.Args)-3], os.Args[len(os.Args)-2], os.Args[len(os.Args)-1])
 			}
+		}
+	}
+
+	if scriptDecodeCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				scriptDecodeCmd.Usage()
+			} else {
+				qx.ScriptDecode(os.Args[len(os.Args)-1])
+			}
+		} else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.ScriptDecode(str)
+		}
+	}
+
+	if scriptEncodeCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				scriptEncodeCmd.Usage()
+			} else {
+				qx.ScriptEncode(os.Args[len(os.Args)-1])
+			}
+		} else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.ScriptEncode(str)
 		}
 	}
 }
