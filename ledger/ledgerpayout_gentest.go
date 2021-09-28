@@ -8,7 +8,7 @@ import (
 )
 
 func initTest() {
-	addPayout2("TnNbgxLpoPJCLTcsJbHCzpzcHUouTtfbP8c",Amount{Value: 50136986301, Id: CoinID(0)},"00b17576a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac")
+	addPayout2("TnNbgxLpoPJCLTcsJbHCzpzcHUouTtfbP8c",Amount{Value: 50136986301, Id: CoinID(0)},"76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac")
 	addPayout2("TnNbgxLpoPJCLTcsJbHCzpzcHUouTtfbP8c",Amount{Value: 49863013699, Id: CoinID(0)},"02400bb17576a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac")
 	addPayout2("TnMTUwUDxJHH2HhM1xABRtTSXvGNvU4uDbw",Amount{Value: 273972602, Id: CoinID(0)},"02400bb17576a9146bd68046854813036fa042958e7f5ca29606e8d088ac")
 	addPayout2("TnMTUwUDxJHH2HhM1xABRtTSXvGNvU4uDbw",Amount{Value: 50136986301, Id: CoinID(0)},"028016b17576a9146bd68046854813036fa042958e7f5ca29606e8d088ac")

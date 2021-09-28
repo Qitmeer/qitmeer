@@ -8,7 +8,7 @@ import (
 )
 
 func initMix() {
-	addPayout2("Mma1MhE6ETFLNNTcS6PFnHtmoesaXNBC6kr",Amount{Value: 5753424, Id: CoinID(0)},"00b17576a9149e1d2860bb0d96a35d4ed2e4c49c7db00f0e0b9288ac")
+	addPayout2("Mma1MhE6ETFLNNTcS6PFnHtmoesaXNBC6kr",Amount{Value: 5753424, Id: CoinID(0)},"76a9149e1d2860bb0d96a35d4ed2e4c49c7db00f0e0b9288ac")
 	addPayout2("Mma1MhE6ETFLNNTcS6PFnHtmoesaXNBC6kr",Amount{Value: 5753424, Id: CoinID(0)},"02400bb17576a9149e1d2860bb0d96a35d4ed2e4c49c7db00f0e0b9288ac")
 	addPayout2("Mma1MhE6ETFLNNTcS6PFnHtmoesaXNBC6kr",Amount{Value: 5753424, Id: CoinID(0)},"028016b17576a9149e1d2860bb0d96a35d4ed2e4c49c7db00f0e0b9288ac")
 	addPayout2("Mma1MhE6ETFLNNTcS6PFnHtmoesaXNBC6kr",Amount{Value: 5753424, Id: CoinID(0)},"02c021b17576a9149e1d2860bb0d96a35d4ed2e4c49c7db00f0e0b9288ac")
