@@ -188,7 +188,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		if types.IsTokenTx(tx.Tx) {
 			log.Trace(fmt.Sprintf("Skipping token tx %s", tx.Hash()))
 			blockTxns = append(blockTxns, tx)
-			txFees = append(txFees, -1)
+			txFees = append(txFees, 0)
 			tokenSOC := int64(blockchain.CountSigOps(tx))
 			txSigOpCosts = append(txSigOpCosts, tokenSOC)
 			tokenSigOpCost += tokenSOC
