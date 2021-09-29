@@ -15,7 +15,7 @@ The guardian of trust. The core backend of the qitmeer network.
 | ------------------------- |-------------------------- | ---------- | --------------- |
 |[Umayyad Network 1.0 (mainnet)](MAINNET.md#v0.10.6)| v0.10.6  | 2021/09/30 | Official Public Mainnet |
 
-Please know more details from the [Qitmeer Mainnet](MAINET.md)
+Please know more details from the [Qitmeer Mainnet](MAINNET.md)
 
 ## Qitmeer Testnet Notice
 
