@@ -89,11 +89,11 @@ var MainNetParams = Params{
 	BaseSubsidy:              10 * 1e8, // POW daily supply is almost 24*60*(60/30)*10 = 28880, ignore the DAG concurrent increment.
 	MulSubsidy:               0,        // subsidy reduce to zero after 7986093 block created
 	DivSubsidy:               101,
-	SubsidyReductionInterval: 7986093,  // (210240000-50518130)/2/BaseSubsidy = 7986093
-										// total POW + locked supply almost = 79860930*2*10 = 159721860, ignore DAG increment.
-	WorkRewardProportion:     10,
-	StakeRewardProportion:    0,
-	BlockTaxProportion:       0,
+	SubsidyReductionInterval: 7986093, // (210240000-50518130)/2/BaseSubsidy = 7986093
+	// total POW + locked supply almost = 79860930*2*10 = 159721860, ignore DAG increment.
+	WorkRewardProportion:  10,
+	StakeRewardProportion: 0,
+	BlockTaxProportion:    0,
 
 	// Checkpoints ordered from oldest to newest.
 	Checkpoints: []Checkpoint{},
@@ -102,8 +102,8 @@ var MainNetParams = Params{
 	//
 	// The miner confirmation window is defined as:
 	//   target proof of work timespan / target proof of work spacing
-	RuleChangeActivationThreshold: 57,                    // 95% of MinerConfirmationWindow
-	MinerConfirmationWindow:       mainWorkDiffWindowSize, //
+	RuleChangeActivationThreshold: 1,
+	MinerConfirmationWindow:       mainWorkDiffWindowSize,
 	Deployments: []ConsensusDeployment{
 		DeploymentTestDummy: {
 			BitNumber: 28,
@@ -111,7 +111,7 @@ var MainNetParams = Params{
 		DeploymentToken: {
 			BitNumber:  0,
 			StartTime:  0,
-			ExpireTime: mainWorkDiffWindowSize,
+			ExpireTime: mainWorkDiffWindowSize * 2,
 		},
 	},
 
@@ -137,7 +137,7 @@ var MainNetParams = Params{
 	CoinbaseMaturity: 720,
 
 	OrganizationPkScript: hexMustDecode("76a914e99ebf409dda2a10ea9970651021d8e552f286de88ac"),
-	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
+	TokenAdminPkScript:   hexMustDecode("00000000c96d6d76a914785bfbf4ecad8b72f2582be83616c5d364a3244288ac"),
 
 	// MmQitmeerMainNetGuardAddressXd7b76q
 	GuardAddrPkScript: hexMustDecode("76a9143846e53e5e952b5cd6023e3ad3cfc75cb93fce0388ac"),
