@@ -140,7 +140,7 @@ func main() {
 
 	base58CheckEncodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
 	base58checkVersion = qx.QitmeerBase58checkVersionFlag{}
-	base58checkVersion.Set("testnet")
+	base58checkVersion.Set("mainnet")
 	base58CheckEncodeCommand.Var(&base58checkVersion, "v", "base58check `version` [mainnet|testnet|privnet")
 	base58CheckEncodeCommand.StringVar(&base58checkMode, "m", "qitmeer", "base58check encode mode : [qitmeer|btc]")
 	base58CheckEncodeCommand.StringVar(&base58checkHasher, "a", "", "base58check hasher")
@@ -173,7 +173,7 @@ func main() {
 	compactToGPSCmd.BoolVar(&printDetail, "p", false, "-p means print details")
 	compactToGPSCmd.IntVar(&cuckoo_blocktime, "t", 43, "blocktime")
 	compactToGPSCmd.IntVar(&mheight, "m", 1, "mheight")
-	compactToGPSCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
+	compactToGPSCmd.StringVar(&network, "n", "mainnet", "the target network. (mainnet, testnet, privnet,mixnet)")
 	compactToGPSCmd.StringVar(&powType, "a", "cuckaroom", "-a means use the selected cuckoo pow algorithm (cuckaroo,cuckaroom, cuckatoo), default is cuckaroom")
 	compactToGPSCmd.Usage = func() {
 		cmdUsage(compactToGPSCmd, "Usage: qx compact-to-gps -e 24 -ct 43 [compact value]\n")
@@ -183,7 +183,7 @@ func main() {
 	gpsToCompactCmd.IntVar(&edgeBits, "e", 29, "edgebits")
 	gpsToCompactCmd.IntVar(&cuckoo_blocktime, "t", 43, "blocktime")
 	gpsToCompactCmd.IntVar(&mheight, "m", 1, "mheight")
-	gpsToCompactCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
+	gpsToCompactCmd.StringVar(&network, "n", "mainnet", "the target network. (mainnet, testnet, privnet,mixnet)")
 	gpsToCompactCmd.StringVar(&powType, "a", "cuckaroom", "-a means use the selected cuckoo pow algorithm (cuckaroo,cuckaroom, cuckatoo), default is cuckaroom")
 	gpsToCompactCmd.Usage = func() {
 		cmdUsage(gpsToCompactCmd, "Usage: qx gps-to-compact -e 29 -t 43 [GPS float64]\n")
@@ -389,7 +389,7 @@ func main() {
 	txDecodeCmd.Usage = func() {
 		cmdUsage(txDecodeCmd, "Usage: qx tx-decode [base16_string] \n")
 	}
-	txDecodeCmd.StringVar(&network, "n", "testnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
+	txDecodeCmd.StringVar(&network, "n", "mainnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
 
 	txEncodeCmd := flag.NewFlagSet("tx-encode", flag.ExitOnError)
 	txEncodeCmd.Usage = func() {
@@ -412,7 +412,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 	}
 	txSignCmd.StringVar(&privateKey, "k", "", "the ec private key to sign the raw transaction")
 	txSignCmd.StringVar(&pkScripts, "p", "", "the vin pkScripts in order")
-	txSignCmd.StringVar(&network, "n", "testnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
+	txSignCmd.StringVar(&network, "n", "mainnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
 
 	msgSignCmd := flag.NewFlagSet("msg-sign", flag.ExitOnError)
 	msgSignCmd.Usage = func() {
