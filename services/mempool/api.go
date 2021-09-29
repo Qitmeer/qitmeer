@@ -1,7 +1,7 @@
 package mempool
 
 import (
-	"github.com/Qitmeer/qitmeer/log"
+	"fmt"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"sort"
@@ -35,4 +35,16 @@ func (api *PublicMempoolAPI) GetMempool(txType *string, verbose bool) (interface
 	}
 	sort.Strings(hashStrings)
 	return hashStrings, nil
+}
+
+func (api *PublicMempoolAPI) GetMempoolCount() (interface{}, error) {
+	return fmt.Sprintf("%d", api.txPool.Count()), nil
+}
+
+func (api *PublicMempoolAPI) SaveMempool() (interface{}, error) {
+	num, err := api.txPool.Perisit()
+	if err != nil {
+		return nil, err
+	}
+	return fmt.Sprintf("Mempool persist:%d transactions", num), nil
 }

@@ -375,12 +375,7 @@ out:
 				log.Trace("blkmgr msgChan processBlockMsg", "msg", msg)
 
 				if msg.flags.Has(blockchain.BFRPCAdd) {
-					parents := blockdag.NewIdSet()
-					for _, v := range msg.block.Block().Parents {
-						parents.Add(b.chain.BlockDAG().GetBlockId(v))
-					}
-
-					_, ok := b.chain.BlockDAG().CheckSubMainChainTip(parents.List())
+					_, ok := b.chain.BlockDAG().CheckSubMainChainTip(msg.block.Block().Parents)
 					if !ok {
 						msg.reply <- processBlockResponse{
 							isOrphan: false,

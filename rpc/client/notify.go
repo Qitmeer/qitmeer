@@ -138,8 +138,28 @@ func (c *Client) NotifyTxsConfirmedAsync(txs []cmds.TxConfirm) FutureNotifyBlock
 	return c.sendCmd(cmd)
 }
 
+func (c *Client) RemoveTxsConfirmedAsync(txs []cmds.TxConfirm) FutureNotifyBlocksResult {
+	// Not supported in HTTP POST mode.
+	if c.config.HTTPPostMode {
+		return newFutureError(ErrWebsocketsRequired)
+	}
+
+	// Ignore the notification if the client is not interested in
+	// notifications.
+	if c.ntfnHandlers == nil {
+		return newNilFutureResult()
+	}
+
+	cmd := cmds.NewRemoveTxsConfirmed(txs)
+	return c.sendCmd(cmd)
+}
+
 func (c *Client) NotifyTxsConfirmed(txs []cmds.TxConfirm) error {
 	return c.NotifyTxsConfirmedAsync(txs).Receive()
+}
+
+func (c *Client) RemoveTxsConfirmed(txs []cmds.TxConfirm) error {
+	return c.RemoveTxsConfirmedAsync(txs).Receive()
 }
 
 type FutureNotifyReceivedResult chan *response

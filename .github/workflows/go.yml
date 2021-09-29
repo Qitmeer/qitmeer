@@ -2,9 +2,9 @@ name: GoTest
 
 on:
   push:
-    branches: [ master,0.10-dev ]
+    branches: [ master,0.10-dev,0.10.6-mixnet ]
   pull_request:
-    branches: [ master,0.10-dev ]
+    branches: [ master,0.10-dev,0.10.6-mixnet ]
 
   workflow_dispatch:
 

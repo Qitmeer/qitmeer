@@ -33,6 +33,7 @@ func TestWsNotify(t *testing.T) {
 	AssertBlockOrderAndHeight(t, h, 1, 1, 0)
 	GenerateBlock(t, h, 1)
 	AssertBlockOrderAndHeight(t, h, 2, 2, 1)
+
 	err = h.Notifier.NotifyNewTransactions(true)
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +53,6 @@ func TestWsNotify(t *testing.T) {
 	blocks := GenerateBlock(t, h, 4)
 	AssertTxMinedUseNotifierAPI(t, h, txid, blocks[0])
 	AssertBlockOrderAndHeight(t, h, 6, 6, 5)
-
 	h.Wallet.OnRescanComplete = func() {
 		AssertScan(t, h, 5, 6)
 	}
@@ -74,4 +74,30 @@ func TestWsNotify(t *testing.T) {
 	GenerateBlock(t, h, 2)
 	AssertBlockOrderAndHeight(t, h, 8, 8, 7)
 	AssertTxConfirm(t, h, txid.String(), 5)
+	spendAmt = types.Amount{Value: 50 * types.AtomsPerCoin, Id: types.MEERID}
+	lockT = int64(1)
+	txid, addr = Spend(t, h, spendAmt, nil, &lockT)
+	t.Logf("[%v]: tx %v which spend %v has been sent", h.Node.Id(), txid, spendAmt.String())
+	GenerateBlock(t, h, 4)
+	err = h.Notifier.NotifyTxsConfirmed([]cmds.TxConfirm{
+		{
+			Txid:          txid.String(),
+			Confirmations: 5,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	err = h.Notifier.RemoveTxsConfirmed([]cmds.TxConfirm{
+		{
+			Txid: txid.String(),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+	GenerateBlock(t, h, 2)
+	AssertTxNotConfirm(t, h, txid.String())
 }

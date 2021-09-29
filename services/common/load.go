@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/address"
+	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/mempool"
@@ -33,7 +34,7 @@ const (
 	defaultLogFilename            = "qitmeer.log"
 	defaultGenerate               = false
 	defaultBlockMinSize           = 0
-	defaultBlockMaxSize           = 375000
+	defaultBlockMaxSize           = types.MaxBlockPayload / 2
 	defaultMaxRPCClients          = 10
 	defaultMaxRPCWebsockets       = 25
 	defaultMaxRPCConcurrentReqs   = 20
@@ -42,6 +43,7 @@ const (
 	defaultMaxInboundPeersPerHost = 25 // The default max total of inbound peer for host
 	defaultTrickleInterval        = 10 * time.Second
 	defaultCacheInvalidTx         = false
+	defaultMempoolExpiry          = int64(time.Hour)
 )
 const (
 	defaultSigCacheMaxSize = 100000
@@ -91,6 +93,8 @@ func LoadConfig() (*config.Config, []string, error) {
 		MaxInbound:           defaultMaxInboundPeersPerHost,
 		CacheInvalidTx:       defaultCacheInvalidTx,
 		NTP:                  false,
+		MempoolExpiry:        defaultMempoolExpiry,
+		AcceptNonStd:         true,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -268,6 +272,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		allowedTLSListeners := map[string]struct{}{
 			"localhost": {},
 			"127.0.0.1": {},
+			"0.0.0.0":   {},
 			"::1":       {},
 		}
 		for _, addr := range cfg.RPCListeners {
@@ -332,7 +337,7 @@ func LoadConfig() (*config.Config, []string, error) {
 
 		// Initialize log rotation.  After log rotation has been initialized, the
 		// logger variables may be used.
-		InitLogRotator(filepath.Join(cfg.LogDir, defaultLogFilename))
+		log.InitLogRotator(filepath.Join(cfg.LogDir, defaultLogFilename))
 	}
 
 	// Parse, validate, and set debug log level(s).
@@ -392,15 +397,23 @@ func LoadConfig() (*config.Config, []string, error) {
 		cfg.SetMiningAddrs(addr)
 	}
 
-	// Ensure there is at least one mining address when the generate flag is
+	if cfg.Generate {
+		cfg.Miner = true
+	}
+	// Ensure there is at least one mining address when the generate or miner flag is
 	// set.
-	if cfg.Generate && len(cfg.MiningAddrs) == 0 {
-		str := "%s: the generate flag is set, but there are no mining " +
-			"addresses specified "
-		err := fmt.Errorf(str, funcName)
-		fmt.Fprintln(os.Stderr, err)
-		fmt.Fprintln(os.Stderr, usageMessage)
-		return nil, nil, err
+	if len(cfg.MiningAddrs) == 0 {
+		var str string
+		if cfg.Generate {
+			str = "%s: the generate flag is set, but there are no mining " +
+				"addresses specified "
+		}
+		if len(str) > 0 {
+			err := fmt.Errorf(str, funcName)
+			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, usageMessage)
+			return nil, nil, err
+		}
 	}
 
 	if cfg.NTP {
@@ -438,7 +451,7 @@ func ParseAndSetDebugLevels(debugLevel string) error {
 			return fmt.Errorf(str, debugLevel)
 		}
 		// Change the logging level for all subsystems.
-		Glogger().Verbosity(lvl)
+		log.Glogger().Verbosity(lvl)
 		return nil
 	}
 	// TODO support log for subsystem

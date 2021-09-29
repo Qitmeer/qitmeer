@@ -163,9 +163,13 @@ func InternalRPCError(errStr, context string) *RPCError {
 }
 
 type JsonRequestStatus struct {
-	Name        string `json:"name"`
-	TotalCalls  int    `json:"totalcalls"`
-	TotalTime   string `json:"totaltime"`
-	AverageTime string `json:"averagetime"`
-	RunningNum  int    `json:"runningnum"`
+	Name         string `json:"name"`
+	TotalCalls   int    `json:"totalcalls"`
+	TotalTime    string `json:"totaltime"`
+	AverageTime  string `json:"averagetime"`
+	MaxTime      string `json:"maxtime"`
+	MinTime      string `json:"mintime"`
+	MaxTimeReqID string `json:"maxtimereqid"`
+	MinTimeReqID string `json:"mintimereqid"`
+	RunningNum   int    `json:"runningnum"`
 }

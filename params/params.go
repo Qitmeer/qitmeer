@@ -51,6 +51,10 @@ type Checkpoint struct {
 	Hash  *hash.Hash
 }
 
+const (
+	CoinbaseVersionV1 = "0.10.4"
+)
+
 // ConsensusDeployment defines details related to a specific consensus rule
 // change that is voted in.
 // NOTE: The type of time must be consistent
@@ -208,6 +212,9 @@ type Params struct {
 	// SubsidyReductionInterval is the reduction interval in blocks.
 	SubsidyReductionInterval int64
 
+	// TargetTotalSubsidy is the target total subsidy.
+	TargetTotalSubsidy int64
+
 	// WorkRewardProportion is the comparative amount of the subsidy given for
 	// creating a block.
 	WorkRewardProportion uint16
@@ -276,6 +283,11 @@ type Params struct {
 	// TokenAdminPkScript is the output script for token
 	// It should ideally be a P2SH multisignature address.
 	TokenAdminPkScript []byte
+
+	// the output script for guard lock address
+	GuardAddrPkScript []byte
+	// the output script for honor lock address
+	HonorAddrPkScript []byte
 
 	// DAG
 	BlockDelay    float64

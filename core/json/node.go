@@ -93,3 +93,14 @@ type NetworkInfo struct {
 	MaxGS      string `json:"maxgs,omitempty"`
 	MinGS      string `json:"mings,omitempty"`
 }
+
+type SubsidyInfo struct {
+	Mode               string `json:"mode"`
+	TotalSubsidy       uint64 `json:"totalsubsidy"`
+	TargetTotalSubsidy int64  `json:"targettotalsubsidy,omitempty"`
+	LeftTotalSubsidy   int64  `json:"lefttotalsubsidy,omitempty"`
+	TotalTime          string `json:"totalTime,omitempty"`
+	LeftTotalTime      string `json:"lefttotalTime,omitempty"`
+	BaseSubsidy        int64  `json:"basesubsidy"`
+	NextSubsidy        int64  `json:"nextsubsidy"`
+}

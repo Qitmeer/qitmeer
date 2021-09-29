@@ -114,6 +114,10 @@ func (tb *TestBlock) GetWeight() uint64 {
 	return 1
 }
 
+func (tb *TestBlock) GetPriority() int {
+	return MaxPriority
+}
+
 // This is the interface for Block DAG,can use to call public function.
 var bd BlockDAG
 
@@ -301,10 +305,10 @@ func reverseBlockList(s []uint) []uint {
 	return s
 }
 
-func CalcBlockWeight(blocks int64, blockhash *hash.Hash, state BlockStatus) int64 {
-	if blocks == 0 {
+func CalcBlockWeight(ib IBlock, bi *BlueInfo) int64 {
+	if ib.(*PhantomBlock).blueNum == 0 {
 		return 0
-	} else if blocks < 3 {
+	} else if ib.(*PhantomBlock).blueNum < 3 {
 		return 2
 	}
 	return 1
@@ -343,14 +347,14 @@ func removeBlockDB(dbPath string) error {
 	return nil
 }
 
-func getBlocksByTag(tags []string) []uint {
-	result := []uint{}
+func getBlocksByTag(tags []string) []*hash.Hash {
+	result := []*hash.Hash{}
 	for _, v := range tags {
 		ib, ok := tbMap[v]
 		if !ok {
 			continue
 		}
-		result = append(result, ib.GetID())
+		result = append(result, ib.GetHash())
 	}
 	return result
 }

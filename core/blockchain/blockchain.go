@@ -1231,8 +1231,9 @@ func (b *BlockChain) fetchSpendJournal(targetBlock *types.SerializedBlock) ([]Sp
 	return spendEntries, nil
 }
 
-func (b *BlockChain) GetMiningTips() []*hash.Hash {
-	return b.BlockDAG().GetValidTips()
+// expect priority
+func (b *BlockChain) GetMiningTips(expectPriority int) []*hash.Hash {
+	return b.BlockDAG().GetValidTips(expectPriority)
 }
 
 func (b *BlockChain) ChainLock() {
@@ -1333,19 +1334,19 @@ func (b *BlockChain) GetFeeByCoinID(h *hash.Hash, coinId types.CoinID) int64 {
 	return fees[coinId]
 }
 
-func (b *BlockChain) CalcWeight(blocks int64, blockhash *hash.Hash, status blockdag.BlockStatus) int64 {
-	if status.KnownInvalid() {
+func (b *BlockChain) CalcWeight(ib blockdag.IBlock, bi *blockdag.BlueInfo) int64 {
+	if ib.GetStatus().KnownInvalid() {
 		return 0
 	}
-	block, err := b.FetchBlockByHash(blockhash)
+	block, err := b.FetchBlockByHash(ib.GetHash())
 	if err != nil {
 		log.Error(fmt.Sprintf("CalcWeight:%v", err))
 		return 0
 	}
-	if b.IsDuplicateTx(block.Transactions()[0].Hash(), blockhash) {
+	if b.IsDuplicateTx(block.Transactions()[0].Hash(), ib.GetHash()) {
 		return 0
 	}
-	return b.subsidyCache.CalcBlockSubsidy(blocks)
+	return b.subsidyCache.CalcBlockSubsidy(bi)
 }
 
 func (b *BlockChain) CheckCacheInvalidTxConfig() error {
@@ -1399,28 +1400,7 @@ func (b *BlockChain) CalculateTokenStateRoot(txs []*types.Tx, parents []*hash.Ha
 		if len(parents) <= 0 {
 			return hash.ZeroHash
 		}
-		var mainParent blockdag.IBlock
-		if len(parents) > 1 {
-			parentsSet := blockdag.NewIdSet()
-			for _, bh := range parents {
-				id := b.GetBlock(bh)
-				if id == nil {
-					continue
-				}
-				parentsSet.Add(id.GetID())
-			}
-			if parentsSet == nil || parentsSet.IsEmpty() {
-				return hash.ZeroHash
-			}
-			mainParent = b.bd.GetMainParent(parentsSet)
-
-		} else {
-			mainParent = b.GetBlock(parents[0])
-		}
-		if mainParent == nil {
-			return hash.ZeroHash
-		}
-		block, err := b.fetchBlockByHash(mainParent.GetHash())
+		block, err := b.fetchBlockByHash(parents[0])
 		if err != nil {
 			return hash.ZeroHash
 		}
@@ -1441,7 +1421,7 @@ func (b *BlockChain) getBlockData(hash *hash.Hash) blockdag.IBlockData {
 		log.Error(err.Error())
 		return nil
 	}
-	return NewBlockNode(&block.Block().Header, block.Block().Parents)
+	return NewBlockNode(block, block.Block().Parents)
 }
 
 // CalcPastMedianTime calculates the median time of the previous few blocks
@@ -1485,4 +1465,8 @@ func (b *BlockChain) CalcPastMedianTime(block blockdag.IBlock) time.Time {
 	// even number, this code will be wrong.
 	medianTimestamp := timestamps[numNodes/2]
 	return time.Unix(medianTimestamp, 0)
+}
+
+func (b *BlockChain) GetSubsidyCache() *SubsidyCache {
+	return b.subsidyCache
 }

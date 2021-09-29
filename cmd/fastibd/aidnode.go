@@ -12,7 +12,9 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/services/index"
+	"github.com/schollz/progressbar/v3"
 	"path"
+	"runtime"
 	"time"
 )
 
@@ -25,7 +27,8 @@ type AidNode struct {
 }
 
 func (node *AidNode) init(cfg *Config) error {
-	log.Info("Start first aid mode.")
+	runtime.GOMAXPROCS(cfg.CPUNum)
+	log.Info(fmt.Sprintf("Start first aid mode. (CPU Num:%d)", cfg.CPUNum))
 	err := cfg.load()
 	if err != nil {
 		return err
@@ -91,13 +94,10 @@ func (node *AidNode) Upgrade() error {
 
 	endNum := uint(node.total - 1)
 
-	var bar *ProgressBar
+	var bar *progressbar.ProgressBar
 	if !node.cfg.DisableBar {
-
-		bar = &ProgressBar{}
-		bar.init("Export:")
-		bar.reset(int(endNum))
-		bar.add()
+		bar = progressbar.Default(int64(endNum), "Export:")
+		bar.Add(1)
 	} else {
 		log.Info("Export...")
 	}
@@ -147,6 +147,10 @@ func (node *AidNode) Upgrade() error {
 			return err
 		}
 		blocks = append(blocks, block)
+
+		if bar != nil {
+			bar.Add(1)
+		}
 	}
 
 	if node.db != nil {
@@ -190,9 +194,8 @@ func (node *AidNode) Upgrade() error {
 	log.Info(fmt.Sprintf("Load new data:%s", node.cfg.DataDir))
 
 	if bar != nil {
-		bar.init("Upgrade:")
-		bar.reset(int(len(blocks)))
-		bar.add()
+		bar = progressbar.Default(int64(len(blocks)), "Upgrade:")
+		bar.Add(1)
 	} else {
 		log.Info("Upgrade...")
 	}
@@ -201,7 +204,7 @@ func (node *AidNode) Upgrade() error {
 	lastBH := ""
 	defer func() {
 		if bar != nil {
-			bar.setMax()
+			bar.Add(1)
 			fmt.Println()
 		}
 		log.Info(fmt.Sprintf("Finish upgrade: blocks(%d/%d), %s", addNum, endNum, lastBH))
@@ -215,7 +218,7 @@ func (node *AidNode) Upgrade() error {
 			return nil
 		}
 		if bar != nil {
-			bar.add()
+			bar.Add(1)
 		}
 		addNum++
 		lastBH = block.Hash().String()

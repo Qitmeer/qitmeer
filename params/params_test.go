@@ -13,8 +13,8 @@ import (
 
 func TestPowLimitToBits(t *testing.T) {
 	compact := pow.BigToCompact(testMixNetPowLimit)
-	assert.Equal(t, fmt.Sprintf("0x%064x", testMixNetPowLimit), "0x03ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-	assert.Equal(t, fmt.Sprintf("0x%x", compact), "0x2003ffff")
+	assert.Equal(t, fmt.Sprintf("0x%064x", testMixNetPowLimit), "0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	assert.Equal(t, fmt.Sprintf("0x%x", compact), "0x1c00ffff")
 }
 
 //test blake2bd percent params
@@ -74,15 +74,15 @@ func checkEncodedKeys(t *testing.T, desiredPrefix string, keySize int, networkNa
 	// all ones
 	maxKey := bytes.Repeat([]byte{0xff}, keySize)
 
-	encodedMinKey,_ :=base58.QitmeerCheckEncode(minKey, magic[:])
-	encodedMaxKey,_ :=base58.QitmeerCheckEncode(maxKey, magic[:])
+	encodedMinKey, _ := base58.QitmeerCheckEncode(minKey, magic[:])
+	encodedMaxKey, _ := base58.QitmeerCheckEncode(maxKey, magic[:])
 
 	checkPrefix(t, desiredPrefix, string(encodedMinKey), networkName, magic)
 	checkPrefix(t, desiredPrefix, string(encodedMaxKey), networkName, magic)
 }
 
 // checkPrefix checks if targetString starts with the given prefix
-func checkPrefix(t *testing.T, prefix string, targetString, networkName string, magic[2]byte) {
+func checkPrefix(t *testing.T, prefix string, targetString, networkName string, magic [2]byte) {
 	if strings.Index(targetString, prefix) != 0 {
 		t.Logf("Address prefix mismatch for <%s>: expected <%s> received <%s>, magic <%x>",
 			networkName, prefix, targetString, magic)

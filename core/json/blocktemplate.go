@@ -102,3 +102,16 @@ type GetBlockTemplateResult struct {
 	BlockFeesMap    map[int]int64 `json:"block_fees_map"`
 	CoinbaseVersion string        `json:"coinbase_version"`
 }
+
+type MinerInfoResult struct {
+	Type          string `json:"type"`
+	Pow           string `json:"pow"`
+	Running       bool   `json:"running"`
+	Coinbase      string `json:"coinbase"`
+	Height        uint64 `json:"height"`
+	Difficulty    string `json:"difficulty"`
+	Target        string `json:"target"`
+	Timestamp     string `json:"timestamp"`
+	TotalSubmit   int    `json:"totalsubmit"`
+	SuccessSubmit int    `json:"successsubmit"`
+}

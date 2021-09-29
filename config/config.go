@@ -44,7 +44,11 @@ type Config struct {
 	AcceptNonStd     bool    `long:"acceptnonstd" description:"Accept and relay non-standard transactions to the network regardless of the default settings for the active network."`
 	MaxOrphanTxs     int     `long:"maxorphantx" description:"Max number of orphan transactions to keep in memory"`
 	MinTxFee         int64   `long:"mintxfee" description:"The minimum transaction fee in AtomMEER/kB."`
+	MempoolExpiry    int64   `long:"mempoolexpiry" description:"Do not keep transactions in the mempool more than mempoolexpiry"`
+	Persistmempool   bool    `long:"persistmempool" description:"Whether to save the mempool on shutdown and load on restart"`
+	NoMempoolBar     bool    `long:"nomempoolbar" description:"Whether to show progress bar when load mempool from file"`
 	// Miner
+	Miner             bool     `long:"miner" description:"Enable miner module"`
 	Generate          bool     `long:"generate" description:"Generate (mine) coins using the CPU"`
 	MiningAddrs       []string `long:"miningaddr" description:"Add the specified payment address to the list of addresses to use for generated blocks -- At least one address is required if the generate option is set"`
 	MiningTimeOffset  int      `long:"miningtimeoffset" description:"Offset the mining timestamp of a block by this many seconds (positive values are in the past)"`
@@ -91,6 +95,7 @@ type Config struct {
 	Whitelist      []string `long:"whitelist" description:"Add an IP network or IP,PeerID that will not be banned or ignore dual channel mode detection. (eg. 192.168.1.0/24 or ::1 or [peer id])"`
 	Blacklist      []string `long:"blacklist" description:"Add some IP network or IP that will be banned. (eg. 192.168.1.0/24 or ::1)"`
 	MaxBadResp     int      `long:"maxbadresp" description:"maxbadresp is the maximum number of bad responses from a peer before we stop talking to it."`
+	Circuit        bool     `long:"circuit" description:"All peers will ignore dual channel mode detection"`
 }
 
 func (c *Config) GetMinningAddrs() []types.Address {

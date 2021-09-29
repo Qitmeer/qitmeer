@@ -129,3 +129,31 @@ func Test_ForId(t *testing.T) {
 		fmt.Printf("%d - %d\n", v, k)
 	}
 }
+
+func Test_SortListPriority(t *testing.T) {
+	hs := NewIdSet()
+	hl := BlockPrioritySlice{}
+	var hashNum uint = 5
+	for i := uint(0); i < hashNum; i++ {
+		hashStr := fmt.Sprintf("%d", i)
+		h := hash.MustHexToDecodedHash(hashStr)
+		block := &PhantomBlock{Block: &Block{id: i, hash: h, data: &TestBlock{}}, blueNum: i}
+		hs.AddPair(block.GetID(), block)
+		hl = append(hl, block)
+	}
+
+	shs := hs.SortPriorityList(false)
+
+	for i := uint(0); i < hashNum; i++ {
+		if hl[i].GetID() != shs[i] {
+			t.FailNow()
+		}
+	}
+	rshs := hs.SortPriorityList(true)
+
+	for i := uint(0); i < hashNum; i++ {
+		if hl[i].GetID() != rshs[hashNum-i-1] {
+			t.FailNow()
+		}
+	}
+}

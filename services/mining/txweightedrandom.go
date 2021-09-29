@@ -11,7 +11,6 @@ import (
 type WeightedRandTx struct {
 	tx       *types.Tx
 	fee      int64
-	priority float64
 	feePerKB int64
 
 	dependsOn map[hash.Hash]struct{}
