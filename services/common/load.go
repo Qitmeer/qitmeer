@@ -94,6 +94,7 @@ func LoadConfig() (*config.Config, []string, error) {
 		CacheInvalidTx:       defaultCacheInvalidTx,
 		NTP:                  false,
 		MempoolExpiry:        defaultMempoolExpiry,
+		AcceptNonStd:         true,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
