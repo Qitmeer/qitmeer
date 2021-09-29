@@ -16,6 +16,9 @@ type IBlockData interface {
 
 	// Timestamp
 	GetTimestamp() int64
+
+	// Priority
+	GetPriority() int
 }
 
 //The interface of block

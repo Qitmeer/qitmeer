@@ -48,10 +48,11 @@ func ExtractCoinbaseNullData(pkScript []byte) ([]byte, error) {
 	if len(pops) == 1 && pops[0].opcode.value == OP_RETURN {
 		return nil, nil
 	}
-	if len(pops) == 2 && pops[0].opcode.value == OP_RETURN &&
-		pops[1].opcode.value <= OP_PUSHDATA4 && len(pops[1].data) <=
-		maxUniqueCoinbaseNullDataSize {
-
+	if len(pops) == 2 &&
+		pops[0].opcode.value == OP_RETURN &&
+		(isSmallInt(pops[1].opcode) || pops[1].opcode.value <=
+			OP_PUSHDATA4) &&
+		len(pops[1].data) <= maxUniqueCoinbaseNullDataSize {
 		return pops[1].data, nil
 	}
 
@@ -75,4 +76,12 @@ func ExtractCoinbaseData(pkScript []byte) ([][]byte, error) {
 		}
 	}
 	return result, nil
+}
+
+func ParseScript(script []byte) ([]ParsedOpcode, error) {
+	return parseScript(script)
+}
+
+func MakeScriptNum(v []byte, requireMinimal bool, scriptNumLen int) (scriptNum, error) {
+	return makeScriptNum(v, requireMinimal, scriptNumLen)
 }

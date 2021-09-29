@@ -9,6 +9,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/params"
@@ -79,4 +80,18 @@ type Config struct {
 
 	// block chain
 	BC *blockchain.BlockChain
+
+	// Data Directory
+	DataDir string
+
+	// mempool expiry
+	Expiry time.Duration
+
+	// persist mempool
+	Persist bool
+
+	//  no mempool bar
+	NoMempoolBar bool
+
+	Events *event.Feed
 }

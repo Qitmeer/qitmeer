@@ -17,6 +17,7 @@ import (
 )
 
 // MainNet ------------------------------------------------------------------------
+var genesisTime = time.Unix(1632913200, 0) //  2021-09-29 19:00:00 GMT+08:00
 
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for
 // the main network.
@@ -31,28 +32,73 @@ func buildGenesisCoinbaseTx(net protocol.Network) types.Transaction {
 					OutIndex: 0xffffffff,
 				},
 				SignScript: []byte{
-					0x45, 0x61, 0x74, 0x20, 0x6e, 0x6f, 0x74, 0x20, 0x75, 0x70, 0x20, 0x79,
-					0x6f, 0x75, 0x72, 0x20, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x79,
-					0x20, 0x61, 0x6d, 0x6f, 0x6e, 0x67, 0x20, 0x79, 0x6f, 0x75, 0x72, 0x73,
-					0x65, 0x6c, 0x76, 0x65, 0x73, 0x20, 0x69, 0x6e, 0x20, 0x76, 0x61, 0x6e,
-					0x69, 0x74, 0x79, 0x20, 0x28, 0x51, 0x75, 0x72, 0x61, 0x6e, 0x20, 0x32,
-					0x3a, 0x31, 0x38, 0x38, 0x29, 0x0a,
+					0x0f, 0x51, 0x69, 0x74, 0x6d, 0x65, 0x65, 0x72, 0x20, 0x6d, 0x61, 0x69,
+					0x6e, 0x6e, 0x65, 0x74, 0x41, 0x45, 0x61, 0x74, 0x20, 0x6e, 0x6f, 0x74,
+					0x20, 0x75, 0x70, 0x20, 0x79, 0x6f, 0x75, 0x72, 0x20, 0x70, 0x72, 0x6f,
+					0x70, 0x65, 0x72, 0x74, 0x79, 0x20, 0x61, 0x6d, 0x6f, 0x6e, 0x67, 0x20,
+					0x79, 0x6f, 0x75, 0x72, 0x73, 0x65, 0x6c, 0x76, 0x65, 0x73, 0x20, 0x69,
+					0x6e, 0x20, 0x76, 0x61, 0x6e, 0x69, 0x74, 0x79, 0x20, 0x28, 0x51, 0x75,
+					0x72, 0x61, 0x6e, 0x20, 0x32, 0x3a, 0x31, 0x38, 0x38, 0x29,
 				},
 				Sequence: 0xffffffff,
 			},
 		},
-		LockTime: 0,
-		Expire:   0,
+
+		TxOut: []*types.TxOutput{
+			{
+				Amount: types.Amount{Value: 0x00000000, Id: types.MEERID},
+				PkScript: hexMustDecode("76a9143846e53e5e952b5cd6023e3ad3cfc75cb93fce0388ac"),
+			},
+		},
+		LockTime:  0,
+		Expire:    0,
+		Timestamp: genesisTime,
+	}
+	return tx
+}
+
+// buildGenesisMappingTx is the mapping transaction for the genesis blocks for
+// the main network.
+func buildGenesisMappingTx(net protocol.Network) types.Transaction {
+	tx := types.Transaction{
+		Version: 1,
+		TxIn: []*types.TxInput{
+			{
+				// Fully null.
+				PreviousOut: types.TxOutPoint{
+					Hash:     hash.Hash{},
+					OutIndex: 0xfffffffe,
+				},
+				SignScript: []byte{
+					0x0f, 0x51, 0x69, 0x74, 0x6d, 0x65, 0x65, 0x72, 0x20, 0x6d, 0x61, 0x69,
+					0x6e, 0x6e, 0x65, 0x74, 0x41, 0x45, 0x61, 0x74, 0x20, 0x6e, 0x6f, 0x74,
+					0x20, 0x75, 0x70, 0x20, 0x79, 0x6f, 0x75, 0x72, 0x20, 0x70, 0x72, 0x6f,
+					0x70, 0x65, 0x72, 0x74, 0x79, 0x20, 0x61, 0x6d, 0x6f, 0x6e, 0x67, 0x20,
+					0x79, 0x6f, 0x75, 0x72, 0x73, 0x65, 0x6c, 0x76, 0x65, 0x73, 0x20, 0x69,
+					0x6e, 0x20, 0x76, 0x61, 0x6e, 0x69, 0x74, 0x79, 0x20, 0x28, 0x51, 0x75,
+					0x72, 0x61, 0x6e, 0x20, 0x32, 0x3a, 0x31, 0x38, 0x38, 0x29,
+				},
+				Sequence: 0xffffffff,
+			},
+		},
+		LockTime:  0,
+		Expire:    0,
+		Timestamp: genesisTime,
 	}
 	ledger.Ledger(&tx, net)
 	return tx
 }
 
 var genesisCoinbaseTx = buildGenesisCoinbaseTx(protocol.MainNet)
+var genesisMappingTx = buildGenesisMappingTx(protocol.MainNet)
+var genesisTxs = []*types.Transaction{
+	&genesisCoinbaseTx,
+	&genesisMappingTx,
+}
 
 // mainnetgenesisMerkleRoot is the hash of the first transaction in the genesis block
 // for the main network.
-var genesisMerkleRoot = genesisCoinbaseTx.TxHashFull()
+var genesisMerkleRoot = merkle.CalcMerkleRoot(genesisTxs)
 
 // genesisBlock defines the genesis block of the block chain which serves as the
 // public transaction ledger for the main network.
@@ -71,15 +117,15 @@ var genesisMerkleRoot = genesisCoinbaseTx.TxHashFull()
 var genesisBlock = types.Block{
 	Header: types.BlockHeader{
 		ParentRoot: hash.Hash{},
-		TxRoot:     genesisMerkleRoot,
+		TxRoot:     *genesisMerkleRoot,
 		//UtxoCommitment: types.Hash{},
 		//CompactFilter: types.Hash{},
 		StateRoot:  hash.Hash{},
-		Timestamp:  time.Unix(1561939200, 0), // 2019-07-01 00:00:00 GMT
-		Difficulty: 0x1b01ffff,               // Difficulty 32767
-		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
+		Timestamp:  genesisTime,
+		Difficulty: 0x1b0fffff, // Difficulty 17 T
+		Pow:        pow.GetInstance(pow.MEERXKECCAKV1, 0, []byte{}),
 	},
-	Transactions: []*types.Transaction{&genesisCoinbaseTx},
+	Transactions: genesisTxs,
 }
 
 // genesisHash is the hash of the first block in the block chain for the main
@@ -371,8 +417,9 @@ func buildMixNetGenesisTxOne() types.Transaction {
 				SignScript: []byte{},
 			},
 		},
-		LockTime: 0,
-		Expire:   0,
+		Timestamp: time.Unix(1632700998, 0), // 2021-09-27 08:03:18
+		LockTime:  0,
+		Expire:    0,
 	}
 	ledger.Ledger(&tx, protocol.MixNet)
 	return tx
@@ -393,9 +440,9 @@ var testPowNetGenesisBlock = types.Block{
 	Header: types.BlockHeader{
 		ParentRoot: hash.Hash{},
 		TxRoot:     *testPowNetGenesisMerkleRoot,
-		Timestamp:  time.Unix(1626247831, 0), // 2021-07-14 15:30:31 GMT
-		Difficulty: 0x1e00ffff,
-		Pow:        pow.GetInstance(pow.BLAKE2BD, 0, []byte{}),
+		Timestamp:  time.Unix(1632273458, 0), // 2021-09-22 09:17:38
+		Difficulty: 0x1c00ffff,               // 1T diff
+		Pow:        pow.GetInstance(pow.MEERXKECCAKV1, 0, []byte{}),
 	},
 	Transactions: mixNetGenesisTxs,
 	Parents:      []*hash.Hash{},

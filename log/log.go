@@ -1,10 +1,11 @@
-// Copyright (c) 2017-2018 The qitmeer developers
+/*
+ * Copyright (c) 2017-2020 The qitmeer developers
+ */
 
-package common
+package log
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/log"
 	"github.com/Qitmeer/qitmeer/log/term"
 	"github.com/jrick/logrotate/rotator"
 	"github.com/mattn/go-colorable"
@@ -14,7 +15,7 @@ import (
 )
 
 var (
-	glogger *log.GlogHandler
+	glogger *GlogHandler
 
 	logWrite *logWriter
 )
@@ -68,11 +69,11 @@ func init() {
 	// and Go runtime exceptions are printed to stderr as well.
 	logWrite = &logWriter{}
 	logWrite.Init()
-	glogger = log.NewGlogHandler(log.StreamHandler(io.Writer(logWrite), log.TerminalFormat(logWrite.IsUseColor())))
+	glogger = NewGlogHandler(StreamHandler(io.Writer(logWrite), TerminalFormat(logWrite.IsUseColor())))
 
-	log.Root().SetHandler(glogger)
+	Root().SetHandler(glogger)
 
-	glogger.Verbosity(log.LvlInfo)
+	glogger.Verbosity(LvlInfo)
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and
@@ -98,6 +99,6 @@ func LogWrite() *logWriter {
 	return logWrite
 }
 
-func Glogger() *log.GlogHandler {
+func Glogger() *GlogHandler {
 	return glogger
 }

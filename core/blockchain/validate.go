@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/core/blockchain/opreturn"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
@@ -403,15 +404,29 @@ func validateCoinbase(tx *types.Transaction, pa *params.Params) error {
 			return err
 		}
 	} else {
-		if len(tx.TxOut) <= CoinbaseOutput_subsidy {
-			str := fmt.Sprintf("No subsidy output")
+		if len(tx.TxOut) <= CoinbaseOutput_subsidy+1 {
+			str := fmt.Sprintf("Coinbase output number error")
 			return ruleError(ErrBadCoinbaseOutpoint, str)
 		}
 		if tx.TxOut[CoinbaseOutput_subsidy].Amount.Id != types.MEERID {
 			str := fmt.Sprintf("Subsidy output amount type is error")
 			return ruleError(ErrBadCoinbaseOutpoint, str)
 		}
-		err := validateCoinbaseToken(tx.TxOut[1:])
+		endIndex := len(tx.TxOut) - 1
+		if !opreturn.IsOPReturn(tx.TxOut[endIndex].PkScript) {
+			str := fmt.Sprintf("TxOutput(%d) must coinbase op return type", endIndex)
+			return ruleError(ErrBadCoinbaseOutpoint, str)
+		}
+		opr, err := opreturn.NewOPReturnFrom(tx.TxOut[endIndex].PkScript)
+		if err != nil {
+			return err
+		}
+		err = opr.Verify(tx)
+		if err != nil {
+			return err
+		}
+
+		err = validateCoinbaseToken(tx.TxOut[1:endIndex])
 		if err != nil {
 			return err
 		}
@@ -441,7 +456,7 @@ func validateCoinbaseToken(outputs []*types.TxOutput) error {
 
 // Validate the tax in coinbase transaction. Prevent miners from attacking.
 func validateCoinbaseTax(tx *types.Transaction, pa *params.Params) error {
-	if len(tx.TxOut) <= CoinbaseOutput_subsidy+1 {
+	if len(tx.TxOut) <= CoinbaseOutput_subsidy+2 {
 		str := fmt.Sprintf("Lack of output")
 		return ruleError(ErrBadCoinbaseOutpoint, str)
 	}
@@ -449,12 +464,27 @@ func validateCoinbaseTax(tx *types.Transaction, pa *params.Params) error {
 		str := fmt.Sprintf("Subsidy output amount type is error")
 		return ruleError(ErrBadCoinbaseOutpoint, str)
 	}
-	taxIndex := len(tx.TxOut) - 1
+	endIndex := len(tx.TxOut) - 1
+	taxIndex := endIndex - 1
+	if !opreturn.IsOPReturn(tx.TxOut[endIndex].PkScript) {
+		str := fmt.Sprintf("TxOutput(%d) must coinbase op return type", endIndex)
+		return ruleError(ErrBadCoinbaseOutpoint, str)
+	}
+
+	opr, err := opreturn.NewOPReturnFrom(tx.TxOut[endIndex].PkScript)
+	if err != nil {
+		return err
+	}
+	err = opr.Verify(tx)
+	if err != nil {
+		return err
+	}
+
 	if tx.TxOut[taxIndex].Amount.Id != types.MEERID {
 		str := fmt.Sprintf("Tax output amount type is error")
 		return ruleError(ErrBadCoinbaseOutpoint, str)
 	}
-	err := validateCoinbaseToken(tx.TxOut[1 : len(tx.TxOut)-1])
+	err = validateCoinbaseToken(tx.TxOut[1:taxIndex])
 	if err != nil {
 		return err
 	}
@@ -516,6 +546,9 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 	// The genesis block is valid by definition.
 	if mainParent == nil {
 		return nil
+	}
+	if !mainParent.GetHash().IsEqual(block.Block().Parents[0]) {
+		return fmt.Errorf("Main parent (%s) is inconsistent in block (%s)\n", mainParent.GetHash().String(), block.Block().Parents[0].String())
 	}
 	prevBlock := mainParent
 
@@ -596,24 +629,32 @@ func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent 
 }
 
 func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
-	parents := blockdag.NewIdSet()
-	for _, v := range block.Block().Parents {
-		parents.Add(b.bd.GetBlockId(v))
-	}
-	blocks := b.bd.GetBlues(parents)
+	bi := b.bd.GetBlueInfoByHash(block.Block().Parents[0])
 	// check subsidy
 	transactions := block.Transactions()
-	subsidy := b.subsidyCache.CalcBlockSubsidy(int64(blocks))
+	subsidy := b.subsidyCache.CalcBlockSubsidy(bi)
 	workAmountOut := int64(0)
+	txoutLen := len(transactions[0].Tx.TxOut)
+	hasOPR := opreturn.IsOPReturn(transactions[0].Tx.TxOut[txoutLen-1].PkScript)
 	for k, v := range transactions[0].Tx.TxOut {
 		// the coinbase should always use meer coin
 		if v.Amount.Id != types.MEERID {
 			continue
 		}
 		if b.params.HasTax() {
-			if k+1 == len(transactions[0].Tx.TxOut) {
-				continue
+			if hasOPR {
+				if k == txoutLen-2 {
+					continue
+				}
+				if k == txoutLen-1 {
+					continue
+				}
+			} else {
+				if k == txoutLen-1 {
+					continue
+				}
 			}
+
 		}
 		workAmountOut += v.Amount.Value
 	}
@@ -625,10 +666,8 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 	var totalAmountOut int64 = 0
 
 	if b.params.HasTax() {
-		work = int64(CalcBlockWorkSubsidy(b.subsidyCache,
-			int64(blocks), b.params))
-		tax = int64(CalcBlockTaxSubsidy(b.subsidyCache,
-			int64(blocks), b.params))
+		work = int64(CalcBlockWorkSubsidy(b.subsidyCache, bi, b.params))
+		tax = int64(CalcBlockTaxSubsidy(b.subsidyCache, bi, b.params))
 		taxOutput = transactions[0].Tx.TxOut[len(transactions[0].Tx.TxOut)-1]
 
 		taxAmountOut = taxOutput.Amount.Value
@@ -1247,7 +1286,7 @@ func (b *BlockChain) CheckConnectBlockTemplate(block *types.SerializedBlock) err
 		return err
 	}
 
-	newNode := NewBlockNode(&block.Block().Header, block.Block().Parents)
+	newNode := NewBlockNode(block, block.Block().Parents)
 	virBlock := b.bd.CreateVirtualBlock(newNode)
 	if virBlock == nil {
 		return ruleError(ErrPrevBlockNotBest, "tipsNode")

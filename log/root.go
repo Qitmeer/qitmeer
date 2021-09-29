@@ -10,10 +10,6 @@ var (
 	StderrHandler = StreamHandler(os.Stderr, LogfmtFormat())
 )
 
-func init() {
-	root.SetHandler(DiscardHandler())
-}
-
 // New returns a new logger with the given context.
 // New is a convenient alias for Root().New
 func New(ctx ...interface{}) Logger {

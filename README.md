@@ -1,20 +1,29 @@
 # Qitmeer
 
-[![Build Status](https://github.com/Qitmeer/qitmeer/workflows/CodeQL/badge.svg?branch=0.10-dev)](https://github.com/Qitmeer/qitmeer/actions/workflows/codeql-analysis.yml)
-[![Build Status](https://github.com/Qitmeer/qitmeer/workflows/GoTest/badge.svg?branch=0.10-dev)](https://github.com/Qitmeer/qitmeer/actions/workflows/go.yml)
+[![Build Status](https://github.com/Qitmeer/qitmeer/workflows/CodeQL/badge.svg?branch=0.10.6-mixnet)](https://github.com/Qitmeer/qitmeer/actions/workflows/codeql-analysis.yml)
+[![Build Status](https://github.com/Qitmeer/qitmeer/workflows/GoTest/badge.svg?branch=0.10.6-mixnet)](https://github.com/Qitmeer/qitmeer/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Qitmeer/qitmeer)](https://goreportcard.com/report/github.com/Qitmeer/qitmeer)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FQitmeer%2Fqitmeer?ref=badge_shield)
 
 The guardian of trust. The core backend of the qitmeer network.
 
-## Qitmeer Testnet Notice
+## Qitmeer Mainnet Notice
 
- The Qitmeer Official Public Testnet is **OPEN** Now. The latest Public Testnet is the *Umayyad Network*. Please Join the Umayyad Network !
+ The Qitmeer Mainnet is **OPENED** on 2021/09/30. The latest compatible network is the *Umayyad Network*. Please Join the Umayyad Network !
 
 | Latest Testnet            | Compatible Qitmeer Vesion | Start Date | Type            |
 | ------------------------- |-------------------------- | ---------- | --------------- |
-|[Umayyad Network 1.0](TESTNET.md##v0105)| v0.10.5  | 2021/07/25 | Official Public Testnet |
-|[Medina Network 2.0](TESTNET.md#v09x-20200624-medina20)| v0.9.x    | 2020/06/24 | Official Public Testnet |
+|[Umayyad Network 1.0 (mainnet)](MAINNET.md#v0.10.6)| v0.10.6  | 2021/09/30 | Official Public Mainnet |
+
+Please know more details from the [Qitmeer Mainnet](MAINET.md)
+
+## Qitmeer Testnet Notice
+
+ The latest compatible Public Testnet is the *Umayyad Network*. Please help support Public testnet !
+
+| Latest Testnet            | Compatible Qitmeer Vesion | Start Date | Type            |
+| ------------------------- |-------------------------- | ---------- | --------------- |
+|[Umayyad Network 1.0 (testnet)](TESTNET.md##v0106)| v0.10.6  | 2021/09/30 | Official Public Testnet |
 
 
 Please know more details from the [Qitmeer Testnet](TESTNET.md)
@@ -67,17 +76,38 @@ Make sure to have at least 1GB free memory to run qitmeer. Insufficient memory
 may lead to the process being killed unexpectedly when its running.
 See [FAQ #3](#Qitmeer-is-killed-unexpectedly) for details.
 
-#### Getting Started
+#### Getting Started 
+
+##### Mainnet
+The easiest way to connect to mainnet is run `qitmeer` directly without any argument by executing following command.
 ```
-./build/bin/qitmeer --testnet
+./qitmeer
 ```
-Please make sure use `--testnet` to connect to the correct network.
-currently, only `testnet` network is officially supported.
+
+you will see following information from the console when the `qitmeer` node is started successfully. 
+
+```
+
+         .__  __
+    _____|__|/  |_  _____   ____   ___________    Qitmeer 0.10.6-release-xxxx
+   / ____/  \   __\/     \_/ __ \_/ __ \_  __ \   Port: <your_port, 8130 by defaut>
+  < <_|  |  ||  | |  Y Y  \  ___/\  ___/|  | \/   PID : <your_pid>
+   \__   |__||__| |__|_|  /\___  >\___  >__|      Network : mainnet
+      |__|              \/     \/     \/          https://github.com/Qitmeer/qitmeer
+
+```
+
 
 Several configuration options available to tweak how it runs. Please see details by
 using the `help` command
 ```
-./build/bin/qitmeer --help
+./qitmeer --help
+```
+
+##### Testnet
+Please make sure use `--testnet` to connect to the test network.
+```
+./qitmeer --testnet
 ```
 
 #### Running with Docker

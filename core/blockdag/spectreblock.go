@@ -37,3 +37,7 @@ func (sd *SpectreBlockData) GetTimestamp() int64 {
 func (sd *SpectreBlockData) GetWeight() uint64 {
 	return 1
 }
+
+func (sd *SpectreBlockData) GetPriority() int {
+	return 1
+}

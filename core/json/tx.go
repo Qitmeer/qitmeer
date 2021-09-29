@@ -87,9 +87,9 @@ func (v *Vin) MarshalJSON() ([]byte, error) {
 // Vout models parts of the tx data.  It is defined separately since both
 // getrawtransaction and decoderawtransaction use the same structure.
 type Vout struct {
-	Coin         string             `json:"coin"`
-	CoinId       uint16             `json:"coinid"`
-	Amount       uint64             `json:"amount"`
+	Coin         string             `json:"coin,omitempty"`
+	CoinId       uint16             `json:"coinid,omitempty"`
+	Amount       uint64             `json:"amount,omitempty"`
 	ScriptPubKey ScriptPubKeyResult `json:"scriptPubKey"`
 }
 

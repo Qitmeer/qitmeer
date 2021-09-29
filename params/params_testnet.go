@@ -40,9 +40,8 @@ var TestNetParams = Params{
 		"/dns4/boot.qitmir.info/tcp/2001/p2p/16Uiu2HAmJ8qBBgoNoHH84ntLuXB9sqDngh82zZgaEejdFUYGR59Y",
 	},
 	LedgerParams: ledger.LedgerParams{ // lock tx release rule in genesis
-		UnlocksPerHeight:     10000 * 1e8, // every height release 10000 MEER
-		GenesisAmountUnit:    1000 * 1e8,  // 1000 MEER every utxo
-		UnlocksPerHeightStep: 2880,        // 1 day block heights
+		GenesisAmountUnit: 1000 * 1e8, // 1000 MEER every utxo
+		MaxLockHeight:     2880 * 365 * 5,
 	},
 	// Chain parameters
 	GenesisBlock: &testNetGenesisBlock,
@@ -124,6 +123,6 @@ var TestNetParams = Params{
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
 	HDCoinType:         223,
-	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac"),
-	//OrganizationPkScript:  hexMustDecode("76a914868b9b6bc7e4a9c804ad3d3d7a2a6be27476941e88ac"),
+	OrganizationPkScript: hexMustDecode("76a91429209320e66d96839785dd07e643a7f1592edc5a88ac"),
+	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914b8834294977b26a44094fe2216f8a7d59af1130888ac"),
 }

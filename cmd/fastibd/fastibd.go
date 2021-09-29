@@ -193,6 +193,12 @@ func fastIBD() error {
 				Value:       false,
 				Destination: &cfg.DisableBar,
 			},
+			&cli.IntFlag{
+				Name:        "cpunum",
+				Usage:       "Use the num of cpu",
+				Value:       runtime.NumCPU(),
+				Destination: &cfg.CPUNum,
+			},
 		},
 		EnableBashCompletion: true,
 		Action: func(c *cli.Context) error {

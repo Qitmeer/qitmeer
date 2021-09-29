@@ -23,6 +23,7 @@ const (
 )
 
 func usage() {
+	fmt.Fprintf(os.Stderr, "Version: %v\n", ver.String())
 	fmt.Fprintf(os.Stderr, "Usage: qx [--version] [--help] <command> [<args>]\n")
 	fmt.Fprintf(os.Stderr, `
 encode and decode :
@@ -34,6 +35,8 @@ encode and decode :
     base64-decode         encode a base64 string to a base16 string
     rlp-encode            encode a string to a rlp encoded base16 string 
     rlp-decode            decode a rlp base16 string to a human-readble representation
+    script-encode         encode a tx script token list to a base16 string
+    script-decode         decode a base16 string to a human-readable tx script token list
 
 hash :
     blake2b256            calculate Blake2b 256 hash of a base16 data.
@@ -46,18 +49,15 @@ hash :
     bitcoin160            calculate ripemd160(sha256(data))   
     hash160               calculate ripemd160(blake2b256(data))
 
-compact :
+difficulty conversion:
     compact-to-target     convert compact to target
     target-to-compact     convert target to compact
-cuckoo-difficulty :
     compact-to-gps        convert cuckoo compact to gps.
     gps-to-compact        convert cuckoo gps to compact.
-
-hash-difficulty :
     compact-to-hashrate   convert compact to hashrate.
     hashrate-to-compact   convert hashrate to compact.
 
-entropy (seed) & mnemoic & hd & ec 
+entropy (seed) & mnemoic & hd & ec :
     entropy               generate a cryptographically secure pseudorandom entropy (seed)
     hd-new                create a new HD(BIP32) private key from an entropy (seed)
     hd-to-ec              convert the HD (BIP32) format private/public key to a EC private/public key
@@ -73,7 +73,7 @@ entropy (seed) & mnemoic & hd & ec
     wif-to-ec             convert a WIF private key to an EC private key.
     wif-to-public         derive the EC public key from a WIF private key. 
 
-addr & tx & sign
+addr & tx & sign :
     ec-to-addr            convert an EC public key to a paymant address. default is qx address
     tx-encode             encode a unsigned transaction.
     tx-decode             decode a transaction in base16 to json format.
@@ -81,7 +81,6 @@ addr & tx & sign
     msg-sign              create a message signature
     msg-verify            validate a message signature
     signature-decode      decode a ECDSA signature
-	
 `)
 	os.Exit(1)
 }
@@ -141,7 +140,7 @@ func main() {
 
 	base58CheckEncodeCommand := flag.NewFlagSet("base58check-encode", flag.ExitOnError)
 	base58checkVersion = qx.QitmeerBase58checkVersionFlag{}
-	base58checkVersion.Set("testnet")
+	base58checkVersion.Set("mainnet")
 	base58CheckEncodeCommand.Var(&base58checkVersion, "v", "base58check `version` [mainnet|testnet|privnet")
 	base58CheckEncodeCommand.StringVar(&base58checkMode, "m", "qitmeer", "base58check encode mode : [qitmeer|btc]")
 	base58CheckEncodeCommand.StringVar(&base58checkHasher, "a", "", "base58check hasher")
@@ -174,7 +173,7 @@ func main() {
 	compactToGPSCmd.BoolVar(&printDetail, "p", false, "-p means print details")
 	compactToGPSCmd.IntVar(&cuckoo_blocktime, "t", 43, "blocktime")
 	compactToGPSCmd.IntVar(&mheight, "m", 1, "mheight")
-	compactToGPSCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
+	compactToGPSCmd.StringVar(&network, "n", "mainnet", "the target network. (mainnet, testnet, privnet,mixnet)")
 	compactToGPSCmd.StringVar(&powType, "a", "cuckaroom", "-a means use the selected cuckoo pow algorithm (cuckaroo,cuckaroom, cuckatoo), default is cuckaroom")
 	compactToGPSCmd.Usage = func() {
 		cmdUsage(compactToGPSCmd, "Usage: qx compact-to-gps -e 24 -ct 43 [compact value]\n")
@@ -184,7 +183,7 @@ func main() {
 	gpsToCompactCmd.IntVar(&edgeBits, "e", 29, "edgebits")
 	gpsToCompactCmd.IntVar(&cuckoo_blocktime, "t", 43, "blocktime")
 	gpsToCompactCmd.IntVar(&mheight, "m", 1, "mheight")
-	gpsToCompactCmd.StringVar(&network, "n", "testnet", "the target network. (mainnet, testnet, privnet,mixnet)")
+	gpsToCompactCmd.StringVar(&network, "n", "mainnet", "the target network. (mainnet, testnet, privnet,mixnet)")
 	gpsToCompactCmd.StringVar(&powType, "a", "cuckaroom", "-a means use the selected cuckoo pow algorithm (cuckaroo,cuckaroom, cuckatoo), default is cuckaroom")
 	gpsToCompactCmd.Usage = func() {
 		cmdUsage(gpsToCompactCmd, "Usage: qx gps-to-compact -e 29 -t 43 [GPS float64]\n")
@@ -390,7 +389,7 @@ func main() {
 	txDecodeCmd.Usage = func() {
 		cmdUsage(txDecodeCmd, "Usage: qx tx-decode [base16_string] \n")
 	}
-	txDecodeCmd.StringVar(&network, "n", "testnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
+	txDecodeCmd.StringVar(&network, "n", "mainnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
 
 	txEncodeCmd := flag.NewFlagSet("tx-encode", flag.ExitOnError)
 	txEncodeCmd.Usage = func() {
@@ -413,7 +412,7 @@ MEER is the 64 bit spend amount in qitmeer.`)
 	}
 	txSignCmd.StringVar(&privateKey, "k", "", "the ec private key to sign the raw transaction")
 	txSignCmd.StringVar(&pkScripts, "p", "", "the vin pkScripts in order")
-	txSignCmd.StringVar(&network, "n", "testnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
+	txSignCmd.StringVar(&network, "n", "mainnet", "decode rawtx for the target network. (mainnet, testnet, privnet)")
 
 	msgSignCmd := flag.NewFlagSet("msg-sign", flag.ExitOnError)
 	msgSignCmd.Usage = func() {
@@ -427,6 +426,18 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		cmdUsage(msgVerifyCmd, "Usage: msg-verify [addr] [signature] [message] \n")
 	}
 	msgVerifyCmd.StringVar(&msgSignatureMode, "m", "qx", "the msg signature mode")
+
+	// Script
+	scriptDecodeCmd := flag.NewFlagSet("script-decode", flag.ExitOnError)
+	scriptDecodeCmd.Usage = func() {
+		cmdUsage(scriptDecodeCmd, "Usage: qx script-decode [base16_string] \n")
+	}
+
+	scriptEncodeCmd := flag.NewFlagSet("script-encode", flag.ExitOnError)
+	scriptEncodeCmd.Usage = func() {
+		cmdUsage(scriptEncodeCmd, "Usage: qx script-encode [ops] \n")
+	}
+
 
 	flagSet := []*flag.FlagSet{
 		base58CheckEncodeCommand,
@@ -472,6 +483,8 @@ MEER is the 64 bit spend amount in qitmeer.`)
 		txSignCmd,
 		msgSignCmd,
 		msgVerifyCmd,
+		scriptDecodeCmd,
+		scriptEncodeCmd,
 	}
 
 	if len(os.Args) == 1 {
@@ -1316,6 +1329,42 @@ MEER is the 64 bit spend amount in qitmeer.`)
 			} else {
 				qx.VerifyMsgSignature(msgSignatureMode, os.Args[len(os.Args)-3], os.Args[len(os.Args)-2], os.Args[len(os.Args)-1])
 			}
+		}
+	}
+
+	if scriptDecodeCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				scriptDecodeCmd.Usage()
+			} else {
+				qx.ScriptDecode(os.Args[len(os.Args)-1])
+			}
+		} else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.ScriptDecode(str)
+		}
+	}
+
+	if scriptEncodeCmd.Parsed() {
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeNamedPipe) == 0 {
+			if len(os.Args) == 2 || os.Args[2] == "help" || os.Args[2] == "--help" {
+				scriptEncodeCmd.Usage()
+			} else {
+				qx.ScriptEncode(os.Args[len(os.Args)-1])
+			}
+		} else { //try from STDIN
+			src, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				errExit(err)
+			}
+			str := strings.TrimSpace(string(src))
+			qx.ScriptEncode(str)
 		}
 	}
 }

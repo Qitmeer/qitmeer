@@ -47,4 +47,5 @@ type Config struct {
 	Banning        bool // Open or not ban module
 	DisableListen  bool
 	LANPeers       []string
+	IsCircuit      bool
 }

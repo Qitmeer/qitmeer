@@ -9,6 +9,7 @@
 package blockchain
 
 import (
+	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"sync"
 
 	"github.com/Qitmeer/qitmeer/params"
@@ -38,13 +39,15 @@ func NewSubsidyCache(blocks int64, params *params.Params) *SubsidyCache {
 		params:       params,
 	}
 
-	iteration := uint64(blocks / params.SubsidyReductionInterval)
-	if iteration < subsidyCacheInitWidth {
-		return &sc
-	}
+	if params.TargetTotalSubsidy > 0 {
+		iteration := uint64(blocks / params.SubsidyReductionInterval)
+		if iteration < subsidyCacheInitWidth {
+			return &sc
+		}
 
-	for i := iteration - 4; i <= iteration; i++ {
-		sc.CalcBlockSubsidy(int64(iteration) * params.SubsidyReductionInterval)
+		for i := iteration - 4; i <= iteration; i++ {
+			sc.CalcBlockSubsidy(blockdag.NewBlueInfo(uint(iteration)*uint(params.SubsidyReductionInterval), 0, 0))
+		}
 	}
 
 	return &sc
@@ -61,13 +64,11 @@ func NewSubsidyCache(blocks int64, params *params.Params) *SubsidyCache {
 // 2     subsidy /= DivSubsidy
 //
 // Safe for concurrent access.
-func (s *SubsidyCache) CalcBlockSubsidy(blocks int64) int64 {
-	if blocks == 0 {
-		return 0
+func (s *SubsidyCache) CalcBlockSubsidy(bi *blockdag.BlueInfo) int64 {
+	if s.params.TargetTotalSubsidy > 0 {
+		return s.CalcTotalControlBlockSubsidy(bi)
 	}
-
-	iteration := uint64(blocks / s.params.SubsidyReductionInterval)
-
+	iteration := uint64(int64(bi.GetNum()) / s.params.SubsidyReductionInterval)
 	if iteration == 0 {
 		return s.params.BaseSubsidy
 	}
@@ -113,22 +114,40 @@ func (s *SubsidyCache) CalcBlockSubsidy(blocks int64) int64 {
 	return subsidy
 }
 
+func (s *SubsidyCache) CalcTotalControlBlockSubsidy(bi *blockdag.BlueInfo) int64 {
+	if bi.GetNum() <= 1 {
+		return s.params.BaseSubsidy
+	}
+	blockSubsidy := int64(float64(s.params.BaseSubsidy) / float64(s.params.TargetTimePerBlock) * float64(bi.GetRate()))
+	if bi.GetWeight() >= s.params.TargetTotalSubsidy {
+		return 0
+	}
+	return blockSubsidy
+}
+
+func (s *SubsidyCache) GetMode() string {
+	if s.params.TargetTotalSubsidy > 0 {
+		return "dynamic"
+	}
+	return "static"
+}
+
 // CalcBlockWorkSubsidy calculates the proof of work subsidy for a block as a
 // proportion of the total subsidy. (aka, the coinbase subsidy)
-func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, blocks int64, params *params.Params) uint64 {
-	work, _, _ := calcBlockProportion(subsidyCache, blocks, params)
+func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, bi *blockdag.BlueInfo, params *params.Params) uint64 {
+	work, _, _ := calcBlockProportion(subsidyCache, bi, params)
 	return work
 }
 
 // CalcBlockTaxSubsidy calculates the subsidy for the organization address in the
 // coinbase.
-func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, blocks int64, params *params.Params) uint64 {
-	_, _, tax := calcBlockProportion(subsidyCache, blocks, params)
+func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, bi *blockdag.BlueInfo, params *params.Params) uint64 {
+	_, _, tax := calcBlockProportion(subsidyCache, bi, params)
 	return tax
 }
 
-func calcBlockProportion(subsidyCache *SubsidyCache, blocks int64, params *params.Params) (uint64, uint64, uint64) {
-	subsidy := uint64(subsidyCache.CalcBlockSubsidy(blocks))
+func calcBlockProportion(subsidyCache *SubsidyCache, bi *blockdag.BlueInfo, params *params.Params) (uint64, uint64, uint64) {
+	subsidy := uint64(subsidyCache.CalcBlockSubsidy(bi))
 	workPro := float64(params.WorkRewardProportion)
 	stakePro := float64(params.StakeRewardProportion)
 	proportions := float64(params.TotalSubsidyProportions())

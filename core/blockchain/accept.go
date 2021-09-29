@@ -92,7 +92,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		b.flushNotifications()
 	}()
 
-	newNode := NewBlockNode(&block.Block().Header, block.Block().Parents)
+	newNode := NewBlockNode(block, block.Block().Parents)
 	mainParent := b.bd.GetMainParentByHashs(block.Block().Parents)
 	if mainParent == nil {
 		return fmt.Errorf("Can't find main parent\n")
@@ -167,7 +167,7 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock, flags Behavio
 		b.flushNotifications()
 	}()
 
-	newNode := NewBlockNode(&block.Block().Header, block.Block().Parents)
+	newNode := NewBlockNode(block, block.Block().Parents)
 
 	fastAdd := flags&BFFastAdd == BFFastAdd
 	if !fastAdd {

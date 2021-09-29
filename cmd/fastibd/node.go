@@ -21,8 +21,10 @@ import (
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/services/index"
+	"github.com/schollz/progressbar/v3"
 	"os"
 	"path"
+	"runtime"
 	"time"
 )
 
@@ -34,6 +36,8 @@ type Node struct {
 }
 
 func (node *Node) init(cfg *Config) error {
+	runtime.GOMAXPROCS(cfg.CPUNum)
+	log.Info(fmt.Sprintf("Start (CPU Num:%d)", cfg.CPUNum))
 	err := cfg.load()
 	if err != nil {
 		return err
@@ -138,13 +142,10 @@ func (node *Node) Export() error {
 		}
 
 	}
-	var bar *ProgressBar
+	var bar *progressbar.ProgressBar
 	if !node.cfg.DisableBar {
-
-		bar = &ProgressBar{}
-		bar.init("Export:")
-		bar.reset(int(endNum))
-		bar.add()
+		bar = progressbar.Default(int64(endNum), "Export:")
+		bar.Add(1)
 	} else {
 		log.Info("Export...")
 	}
@@ -187,7 +188,7 @@ func (node *Node) Export() error {
 			return err
 		}
 		if bar != nil {
-			bar.add()
+			bar.Add(1)
 		}
 
 		/*if endPoint != nil {
@@ -197,7 +198,7 @@ func (node *Node) Export() error {
 		}*/
 	}
 	if bar != nil {
-		bar.setMax()
+		bar.Add(100)
 		fmt.Println()
 	}
 	log.Info(fmt.Sprintf("Finish export: blocks(%d)    ------>File:%s", endNum, outFilePath))
@@ -221,13 +222,10 @@ func (node *Node) Import() error {
 	maxOrder := dbnamespace.ByteOrder.Uint32(blocksBytes[offset : offset+4])
 	offset += 4
 
-	var bar *ProgressBar
+	var bar *progressbar.ProgressBar
 	if !node.cfg.DisableBar {
-
-		bar = &ProgressBar{}
-		bar.init("Import:")
-		bar.reset(int(maxOrder))
-		bar.add()
+		bar = progressbar.Default(int64(maxOrder), "Import:")
+		bar.Add(1)
 	} else {
 		log.Info("Import...")
 	}
@@ -244,12 +242,12 @@ func (node *Node) Import() error {
 			return err
 		}
 		if bar != nil {
-			bar.add()
+			bar.Add(1)
 		}
 	}
 
 	if bar != nil {
-		bar.setMax()
+		bar.Add(1)
 		fmt.Println()
 	}
 	mainTip = node.bc.BlockDAG().GetMainChainTip()
@@ -295,13 +293,11 @@ func (node *Node) Upgrade() error {
 		}
 
 	}
-	var bar *ProgressBar
+	var bar *progressbar.ProgressBar
 	if !node.cfg.DisableBar {
 
-		bar = &ProgressBar{}
-		bar.init("Export:")
-		bar.reset(int(endNum))
-		bar.add()
+		bar = progressbar.Default(int64(endNum), "Export:")
+		bar.Add(1)
 	} else {
 		log.Info("Export...")
 	}
@@ -374,9 +370,8 @@ func (node *Node) Upgrade() error {
 	log.Info(fmt.Sprintf("Load new data:%s", node.cfg.DataDir))
 
 	if bar != nil {
-		bar.init("Upgrade:")
-		bar.reset(int(len(blocks)))
-		bar.add()
+		bar = progressbar.Default(int64(len(blocks)), "Upgrade:")
+		bar.Add(1)
 	} else {
 		log.Info("Upgrade...")
 	}
@@ -386,12 +381,12 @@ func (node *Node) Upgrade() error {
 			return err
 		}
 		if bar != nil {
-			bar.add()
+			bar.Add(1)
 		}
 	}
 
 	if bar != nil {
-		bar.setMax()
+		bar.Add(1)
 		fmt.Println()
 	}
 	log.Info(fmt.Sprintf("Finish upgrade: blocks(%d)", endNum))

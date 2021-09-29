@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/marshal"
+	"github.com/Qitmeer/qitmeer/common/math"
 	"github.com/Qitmeer/qitmeer/common/network"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/common/util"
@@ -302,11 +303,16 @@ func GenCertPair(certFile, keyFile string) error {
 }
 
 type RequestStatus struct {
-	Service    string
-	Method     string
-	TotalCalls uint
-	TotalTime  time.Duration
-	Requests   []*serverRequest
+	Service      string
+	Method       string
+	TotalCalls   uint
+	TotalTime    time.Duration
+	MaxTime      time.Duration
+	MinTime      time.Duration
+	MaxTimeReqID string
+	MinTimeReqID string
+
+	Requests []*serverRequest
 }
 
 func (rs *RequestStatus) GetName() string {
@@ -322,13 +328,25 @@ func (rs *RequestStatus) AddRequst(sReq *serverRequest) {
 	rs.Requests = append(rs.Requests, sReq)
 	rs.TotalCalls++
 	sReq.time = roughtime.Now()
+	log.Debug(fmt.Sprintf("Start RPC Call (id:%s method:%s)", sReq.id, rs.GetName()))
 }
 
 func (rs *RequestStatus) RemoveRequst(sReq *serverRequest) {
 	for i := 0; i < len(rs.Requests); i++ {
 		if rs.Requests[i] == sReq {
-			rs.TotalTime += roughtime.Since(sReq.time)
+			cost := roughtime.Since(sReq.time)
+			rs.TotalTime += cost
 			rs.Requests = append(rs.Requests[:i], rs.Requests[i+1:]...)
+
+			if cost > rs.MaxTime {
+				rs.MaxTime = cost
+				rs.MaxTimeReqID = fmt.Sprintf("%s", sReq.id)
+			}
+			if cost < rs.MinTime {
+				rs.MinTime = cost
+				rs.MinTimeReqID = fmt.Sprintf("%s", sReq.id)
+			}
+			log.Debug(fmt.Sprintf("End RPC Call (id:%s method:%s)", sReq.id, rs.GetName()))
 			return
 		}
 	}
@@ -339,13 +357,17 @@ func (rs *RequestStatus) ToJson() *cmds.JsonRequestStatus {
 		TotalTime: rs.TotalTime.String(), AverageTime: "", RunningNum: len(rs.Requests)}
 	aTime := rs.TotalTime / time.Duration(rs.TotalCalls)
 	rsj.AverageTime = aTime.String()
+	rsj.MaxTime = rs.MaxTime.String()
+	rsj.MinTime = rs.MinTime.String()
+	rsj.MaxTimeReqID = rs.MaxTimeReqID
+	rsj.MinTimeReqID = rs.MinTimeReqID
 	return &rsj
 }
 
 func NewRequestStatus(sReq *serverRequest) (*RequestStatus, error) {
-	rs := RequestStatus{sReq.svcname, sReq.callb.method.Name, 1,
-		0, []*serverRequest{sReq}}
-	sReq.time = roughtime.Now()
+	rs := RequestStatus{sReq.svcname, sReq.callb.method.Name, 0,
+		0, time.Duration(0), time.Duration(math.MaxInt64), "", "", []*serverRequest{}}
+	rs.AddRequst(sReq)
 	return &rs, nil
 }
 

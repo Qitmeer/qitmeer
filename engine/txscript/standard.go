@@ -1020,6 +1020,9 @@ func PayToSSRtxSHDirect(sh []byte) ([]byte, error) {
 // output to a 20-byte pubkey hash and lockTime. It is expected that the input is a valid
 // hash.
 func PayToCLTVPubKeyHashScript(pubKeyHash []byte, lockTime int64) ([]byte, error) {
+	if lockTime < 1 || lockTime > int64(types.MaxTxInSequenceNum) {
+		return nil, fmt.Errorf("Locktime out of range:%d", lockTime)
+	}
 	return NewScriptBuilder().AddInt64(lockTime).AddOp(OP_CHECKLOCKTIMEVERIFY).AddOp(OP_DROP).AddOp(OP_DUP).AddOp(OP_HASH160).
 		AddData(pubKeyHash).AddOp(OP_EQUALVERIFY).AddOp(OP_CHECKSIG).Script()
 }

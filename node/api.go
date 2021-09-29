@@ -354,6 +354,33 @@ func (api *PublicBlockChainAPI) GetNetworkInfo() (interface{}, error) {
 	return nstat, nil
 }
 
+func (api *PublicBlockChainAPI) GetSubsidy() (interface{}, error) {
+	best := api.node.blockManager.GetChain().BestSnapshot()
+	sc := api.node.blockManager.GetChain().GetSubsidyCache()
+
+	info := &json.SubsidyInfo{Mode: sc.GetMode(), TotalSubsidy: best.TotalSubsidy, BaseSubsidy: params.ActiveNetParams.BaseSubsidy}
+
+	if params.ActiveNetParams.TargetTotalSubsidy > 0 {
+		info.TargetTotalSubsidy = params.ActiveNetParams.TargetTotalSubsidy
+		info.LeftTotalSubsidy = info.TargetTotalSubsidy - int64(info.TotalSubsidy)
+		if info.LeftTotalSubsidy < 0 {
+			info.TargetTotalSubsidy = 0
+		}
+		totalTime := time.Duration(info.TargetTotalSubsidy / info.BaseSubsidy * int64(params.ActiveNetParams.TargetTimePerBlock))
+		info.TotalTime = totalTime.Truncate(time.Second).String()
+
+		firstMBlock := api.node.blockManager.GetChain().BlockDAG().GetBlockByOrder(1)
+		startTime := time.Unix(firstMBlock.GetData().GetTimestamp(), 0)
+		leftTotalTime := totalTime - time.Since(startTime)
+		if leftTotalTime < 0 {
+			leftTotalTime = 0
+		}
+		info.LeftTotalTime = leftTotalTime.Truncate(time.Second).String()
+	}
+	info.NextSubsidy = sc.CalcBlockSubsidy(api.node.blockManager.GetChain().BlockDAG().GetBlueInfo(api.node.blockManager.GetChain().BlockDAG().GetMainChainTip()))
+	return info, nil
+}
+
 type PrivateBlockChainAPI struct {
 	node *QitmeerFull
 }

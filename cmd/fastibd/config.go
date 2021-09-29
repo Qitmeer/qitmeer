@@ -36,6 +36,7 @@ type Config struct {
 	EndPoint   string
 	ByID       bool
 	AidMode    bool
+	CPUNum     int
 }
 
 func (c *Config) load() error {

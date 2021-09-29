@@ -1,10 +1,12 @@
 package tx
 
 import (
+	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
@@ -38,11 +40,25 @@ type TxManager struct {
 
 func (tm *TxManager) Start() error {
 	log.Info("Starting tx manager")
+	err := tm.txMemPool.Load()
+	if err != nil {
+		log.Error(err.Error())
+	}
 	return nil
 }
 
 func (tm *TxManager) Stop() error {
 	log.Info("Stopping tx manager")
+
+	if tm.txMemPool.IsPersist() {
+		num, err := tm.txMemPool.Save()
+		if err != nil {
+			log.Error(err.Error())
+		} else {
+			log.Info(fmt.Sprintf("Mempool persist:%d transactions", num))
+		}
+	}
+
 	return nil
 }
 
@@ -52,9 +68,9 @@ func (tm *TxManager) MemPool() blkmgr.TxPool {
 
 func NewTxManager(bm *blkmgr.BlockManager, txIndex *index.TxIndex,
 	addrIndex *index.AddrIndex, cfg *config.Config, ntmgr notify.Notify,
-	sigCache *txscript.SigCache, db database.DB) (*TxManager, error) {
+	sigCache *txscript.SigCache, db database.DB, events *event.Feed) (*TxManager, error) {
 	// mem-pool
-	amt,_ := types.NewMeer(uint64(cfg.MinTxFee))
+	amt, _ := types.NewMeer(uint64(cfg.MinTxFee))
 	txC := mempool.Config{
 		Policy: mempool.Policy{
 			MaxTxVersion:         2,
@@ -81,6 +97,11 @@ func NewTxManager(bm *blkmgr.BlockManager, txIndex *index.TxIndex,
 		AddrIndex:        addrIndex,
 		BD:               bm.GetChain().BlockDAG(),
 		BC:               bm.GetChain(),
+		DataDir:          cfg.DataDir,
+		Expiry:           time.Duration(cfg.MempoolExpiry),
+		Persist:          cfg.Persistmempool,
+		NoMempoolBar:     cfg.NoMempoolBar,
+		Events:           events,
 	}
 	txMemPool := mempool.New(&txC)
 	invalidTx := make(map[hash.Hash]*blockdag.HashSet)

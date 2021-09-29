@@ -203,7 +203,7 @@ func (b *BlockChain) createChainState() error {
 	genesisBlock := types.NewBlock(b.params.GenesisBlock)
 	genesisBlock.SetOrder(0)
 	header := &genesisBlock.Block().Header
-	node := NewBlockNode(header, genesisBlock.Block().Parents)
+	node := NewBlockNode(genesisBlock, genesisBlock.Block().Parents)
 	_, _, ib, _ := b.bd.AddBlock(node)
 	//node.FlushToDB(b)
 	// Initialize the state related to the best block.  Since it is the

@@ -50,6 +50,9 @@ const MaxTipLayerGap = 10
 // StableConfirmations
 const StableConfirmations = 10
 
+// Max Priority
+const MaxPriority = int(math.MaxInt32)
+
 // It will create different BlockDAG instances
 func NewBlockDAG(dagType string) IBlockDAG {
 	switch dagType {
@@ -148,7 +151,7 @@ type IBlockDAG interface {
 }
 
 // CalcWeight
-type CalcWeight func(int64, *hash.Hash, BlockStatus) int64
+type CalcWeight func(ib IBlock, bi *BlueInfo) int64
 
 type GetBlockData func(*hash.Hash) IBlockData
 
@@ -285,7 +288,7 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, *list.List, IBlock, bool
 			parents = append(parents, pib)
 		}
 
-		if !bd.isDAG(parents) {
+		if !bd.isDAG(parents, b) {
 			return nil, nil, nil, false
 		}
 	}
@@ -362,8 +365,9 @@ func (bd *BlockDAG) GetGenesisHash() *hash.Hash {
 
 // If the block is illegal dag,will return false.
 // Exclude genesis block
-func (bd *BlockDAG) isDAG(parents []IBlock) bool {
-	return bd.checkLayerGap(parents) &&
+func (bd *BlockDAG) isDAG(parents []IBlock, b IBlockData) bool {
+	return bd.checkPriority(parents, b) &&
+		bd.checkLayerGap(parents) &&
 		bd.checkLegality(parents) &&
 		bd.instance.IsDAG(parents)
 }
@@ -486,20 +490,31 @@ func (bd *BlockDAG) GetMainParent(parents *IdSet) IBlock {
 	return bd.instance.GetMainParent(parents)
 }
 
+func (bd *BlockDAG) GetMainParentAndList(parents []*hash.Hash) (IBlock, []*hash.Hash) {
+	pids := bd.GetIdSet(parents)
+
+	bd.stateLock.Lock()
+	mp := bd.instance.GetMainParent(pids)
+	bd.stateLock.Unlock()
+
+	ps := []*hash.Hash{mp.GetHash()}
+	for _, pt := range parents {
+		if pt.IsEqual(mp.GetHash()) {
+			continue
+		}
+		ps = append(ps, pt)
+	}
+	return mp, ps
+}
+
 // return the main parent in the parents
 func (bd *BlockDAG) GetMainParentByHashs(parents []*hash.Hash) IBlock {
+	pids := bd.GetIdSet(parents)
+
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
-	parentsSet := NewIdSet()
-	for _, p := range parents {
-		ib := bd.getBlock(p)
-		if ib == nil {
-			return nil
-		}
-		parentsSet.AddPair(ib.GetID(), ib)
-	}
-	return bd.instance.GetMainParent(parentsSet)
+	return bd.instance.GetMainParent(pids)
 }
 
 // Return current general description of the whole state of DAG
@@ -799,14 +814,29 @@ func (bd *BlockDAG) GetConfirmations(id uint) uint {
 	return 0
 }
 
-func (bd *BlockDAG) GetValidTips() []*hash.Hash {
+func (bd *BlockDAG) GetValidTips(expectPriority int) []*hash.Hash {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 	tips := bd.getValidTips(true)
 
-	result := []*hash.Hash{}
-	for _, v := range tips {
+	result := []*hash.Hash{tips[0].GetHash()}
+	epNum := expectPriority
+	for k, v := range tips {
+		if k == 0 {
+			if v.GetData().GetPriority() <= 1 {
+				epNum--
+			}
+			continue
+		}
+		if v.GetData().GetPriority() > 1 {
+			result = append(result, v.GetHash())
+			continue
+		}
+		if epNum <= 0 {
+			break
+		}
 		result = append(result, v.GetHash())
+		epNum--
 	}
 	return result
 }
@@ -877,26 +907,20 @@ func (bd *BlockDAG) checkLayerGap(parentsNode []IBlock) bool {
 }
 
 // Checking the sub main chain for the parents of tip
-func (bd *BlockDAG) CheckSubMainChainTip(parents []uint) (uint, bool) {
+func (bd *BlockDAG) CheckSubMainChainTip(parents []*hash.Hash) (uint, bool) {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 
 	if len(parents) == 0 {
 		return 0, false
 	}
-	for _, v := range parents {
-		ib := bd.getBlockById(v)
-		if ib == nil {
-			return 0, false
-		}
+	mainParent := bd.getBlock(parents[0])
+	if mainParent == nil {
+		return 0, false
 	}
-
-	parentsSet := NewIdSet()
-	parentsSet.AddList(parents)
-	mainParent := bd.instance.GetMainParent(parentsSet)
 	virtualHeight := mainParent.GetHeight() + 1
 
-	if virtualHeight >= bd.getMainChainTip().GetHeight() {
+	if virtualHeight > bd.getMainChainTip().GetHeight() {
 		return virtualHeight, true
 	}
 	return 0, false
@@ -939,6 +963,20 @@ func (bd *BlockDAG) checkLegality(parentsNode []IBlock) bool {
 	return true
 }
 
+// Checking the priority of block legitimacy
+func (bd *BlockDAG) checkPriority(parents []IBlock, b IBlockData) bool {
+	if b.GetPriority() <= 0 {
+		return false
+	}
+	lowPriNum := 0
+	for _, pa := range parents {
+		if pa.GetData().GetPriority() <= 1 {
+			lowPriNum++
+		}
+	}
+	return b.GetPriority() >= lowPriNum
+}
+
 // Load from database
 func (bd *BlockDAG) Load(dbTx database.Tx, blockTotal uint, genesis *hash.Hash) error {
 	meta := dbTx.Metadata()
@@ -978,22 +1016,6 @@ func (bd *BlockDAG) Decode(r io.Reader) error {
 		return fmt.Errorf("The dag type is %s, but read is %s", bd.instance.GetName(), GetDAGTypeByIndex(dagTypeIndex))
 	}
 	return bd.instance.Decode(r)
-}
-
-// GetBlues
-func (bd *BlockDAG) GetBlues(parents *IdSet) uint {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.instance.GetBlues(parents)
-}
-
-// IsBlue
-func (bd *BlockDAG) IsBlue(id uint) bool {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	return bd.instance.IsBlue(id)
 }
 
 func (bd *BlockDAG) IsHourglass(id uint) bool {
@@ -1327,17 +1349,20 @@ func (bd *BlockDAG) CreateVirtualBlock(data IBlockData) IBlock {
 	}
 	parents := NewIdSet()
 	var maxLayer uint = 0
-	for _, p := range data.GetParents() {
+	var mainParent IBlock
+	for k, p := range data.GetParents() {
 		ib := bd.GetBlock(p)
 		if ib == nil {
 			return nil
+		}
+		if k == 0 {
+			mainParent = ib
 		}
 		parents.AddPair(ib.GetID(), ib)
 		if maxLayer == 0 || maxLayer < ib.GetLayer() {
 			maxLayer = ib.GetLayer()
 		}
 	}
-	mainParent := bd.GetMainParent(parents)
 	mainParentId := MaxId
 	mainHeight := uint(0)
 	if mainParent != nil {
