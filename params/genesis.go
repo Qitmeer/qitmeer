@@ -17,7 +17,7 @@ import (
 )
 
 // MainNet ------------------------------------------------------------------------
-var genesisTime = time.Unix(1632700998, 0) // 2021-09-27 08:03:18
+var genesisTime = time.Unix(1632916800, 0) //  2021-09-29 20:00:00 GMT+08:00
 
 // genesisCoinbaseTx is the coinbase transaction for the genesis blocks for
 // the main network.
