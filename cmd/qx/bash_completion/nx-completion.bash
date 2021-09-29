@@ -45,6 +45,8 @@ _qx()
         compact-to-uint64
         uint64-to-compact
         diff-to-gps
+        script-encode
+        script-decode
     "
 
     if [[ $COMP_CWORD == 1 ]]; then
