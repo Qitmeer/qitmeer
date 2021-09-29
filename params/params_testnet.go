@@ -123,6 +123,6 @@ var TestNetParams = Params{
 	// BIP44 coin type used in the hierarchical deterministic path for
 	// address generation.
 	HDCoinType:         223,
-	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914c0f0b73c320e1fe38eb1166a57b953e509c8f93e88ac"),
 	OrganizationPkScript: hexMustDecode("76a91429209320e66d96839785dd07e643a7f1592edc5a88ac"),
+	TokenAdminPkScript: hexMustDecode("00000000c96d6d76a914b8834294977b26a44094fe2216f8a7d59af1130888ac"),
 }
