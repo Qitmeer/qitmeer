@@ -2,6 +2,7 @@ Table of Contents
 =================
 
    * [Qitmeer Testnet](#qitmeer-testnet)
+      * [v0.10.6](#v0106)
       * [v0.10.5](#v0105)
       * [v0.10.4 (Consensus Changes)](#v0104-consensus-changes)
       * [v0.10.2 2021/07/28 (Umayyad1.0)](#v0102-20210728-umayyad10)
@@ -24,10 +25,15 @@ Table of Contents
 
 # Qitmeer Testnet
 
+## v0.10.6 
+
+- Start date : **2021/09/30**
+- The latest compatible testnet for the **Mainnet v0.10.6**
+- **Not compatible** with the old `v0.10.5/v0.10.4` network.
+- The old `v0.10.5/v0.10.4` testnet has been obsoleted.
+
 ## v0.10.5
-
-compatible with the `v0.10.4` network.
-
+- compatible with the `v0.10.4` network.
 
 ## v0.10.4 (Consensus Changes)
 | Umayyad1.0         |     Info             |
