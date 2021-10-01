@@ -119,8 +119,8 @@ var TestNetParams = Params{
 		},
 		DeploymentToken: {
 			BitNumber:  0,
-			StartTime:  0,
-			ExpireTime: mainWorkDiffWindowSize * 2,
+			StartTime:  2880,
+			ExpireTime: 28800,
 		},
 	},
 
