@@ -26,6 +26,8 @@ type IService interface {
 	IsShutdown() bool
 
 	Context() context.Context
+
+	SetKind(kind reflect.Type)
 }
 
 type ServiceRegistry struct {
@@ -80,6 +82,8 @@ func (s *ServiceRegistry) RegisterService(service IService) error {
 	if _, exists := s.services[kind]; exists {
 		return fmt.Errorf("service already exists: %v", kind)
 	}
+	service.SetKind(kind)
+
 	s.services[kind] = service
 	s.serviceTypes = append(s.serviceTypes, kind)
 	return nil

@@ -34,13 +34,6 @@ type QitmeerFull struct {
 	nfManager notify.Notify
 	// database
 	db database.DB
-	// account/wallet service
-	acctmanager *acct.AccountManager
-	// tx manager
-	txManager *tx.TxManager
-
-	// miner service
-	miner *miner.Miner
 
 	// address service
 	addressApi *address.AddressApi
@@ -51,37 +44,9 @@ type QitmeerFull struct {
 	sigCache *txscript.SigCache
 }
 
-func (qm *QitmeerFull) Start() error {
-	log.Debug("Starting Qitmeer full node service")
-	if err := qm.Service.Start(); err != nil {
-		return err
-	}
-	qm.txManager.Start()
-	qm.miner.Start()
-
-	return nil
-}
-
-func (qm *QitmeerFull) Stop() error {
-	log.Debug("Stopping Qitmeer full node service")
-	if err := qm.Service.Stop(); err != nil {
-		return err
-	}
-
-	log.Info("try stop miner")
-	qm.miner.Stop()
-
-	qm.txManager.Stop()
-
-	return nil
-}
-
 func (qm *QitmeerFull) APIs() []api.API {
 	apis := qm.Service.APIs()
 	apis = append(apis, qm.addressApi.APIs()...)
-	apis = append(apis, qm.miner.APIs()...)
-	apis = append(apis, qm.acctmanager.APIs()...)
-	apis = append(apis, qm.txManager.APIs()...)
 	apis = append(apis, qm.apis()...)
 	return apis
 }
@@ -141,6 +106,49 @@ func (qm *QitmeerFull) RegisterBlkMgrService(indexManager blockchain.IndexManage
 	return nil
 }
 
+func (qm *QitmeerFull) RegisterTxManagerService(txIndex *index.TxIndex, addrIndex *index.AddrIndex) error {
+	// txmanager
+	tm, err := tx.NewTxManager(qm.GetBlockManager(), txIndex, addrIndex, qm.node.Config, qm.nfManager, qm.sigCache, qm.node.DB, &qm.node.events)
+	if err != nil {
+		return err
+	}
+	qm.Services().RegisterService(tm)
+	return nil
+}
+
+func (qm *QitmeerFull) RegisterMinerService() error {
+	cfg := qm.node.Config
+	txManager := qm.GetTxManager()
+	// Cpu Miner
+	// Create the mining policy based on the configuration options.
+	// NOTE: The CPU miner relies on the mempool, so the mempool has to be
+	// created before calling the function to create the CPU miner.
+	policy := mining.Policy{
+		BlockMinSize:      cfg.BlockMinSize,
+		BlockMaxSize:      cfg.BlockMaxSize,
+		BlockPrioritySize: cfg.BlockPrioritySize,
+		TxMinFreeFee:      cfg.MinTxFee, //TODO, duplicated config item with mem-pool
+		StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
+			return common.StandardScriptVerifyFlags()
+		}, //TODO, duplicated config item with mem-pool
+		CoinbaseGenerator: coinbase.NewCoinbaseGenerator(qm.node.Params, qm.GetPeerServer().PeerID().String()),
+	}
+	miner := miner.NewMiner(cfg, &policy, qm.sigCache,
+		txManager.MemPool().(*mempool.TxPool), qm.timeSource, qm.GetBlockManager(), &qm.node.events)
+	qm.Services().RegisterService(miner)
+	return nil
+}
+
+func (qm *QitmeerFull) RegisterAccountService() error {
+	// account manager
+	acctmgr, err := acct.New()
+	if err != nil {
+		return err
+	}
+	qm.Services().RegisterService(acctmgr)
+	return nil
+}
+
 // return block manager
 func (qm *QitmeerFull) GetBlockManager() *blkmgr.BlockManager {
 	var service *blkmgr.BlockManager
@@ -175,22 +183,29 @@ func (qm *QitmeerFull) GetRpcServer() *rpc.RpcServer {
 	return service
 }
 
-func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
-	// account manager
-	acctmgr, err := acct.New()
-	if err != nil {
-		return nil, err
+func (qm *QitmeerFull) GetTxManager() *tx.TxManager {
+	var service *tx.TxManager
+	if err := qm.Services().FetchService(&service); err != nil {
+		log.Error(err.Error())
+		return nil
 	}
+	return service
+}
+
+func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 	qm := QitmeerFull{
-		node:        node,
-		db:          node.DB,
-		acctmanager: acctmgr,
-		timeSource:  blockchain.NewMedianTime(),
-		sigCache:    txscript.NewSigCache(node.Config.SigCacheMaxSize),
+		node:       node,
+		db:         node.DB,
+		timeSource: blockchain.NewMedianTime(),
+		sigCache:   txscript.NewSigCache(node.Config.SigCacheMaxSize),
 	}
 	qm.Service.InitServices()
 
 	cfg := node.Config
+
+	if err := qm.RegisterAccountService(); err != nil {
+		return nil, err
+	}
 
 	if err := qm.RegisterP2PService(); err != nil {
 		return nil, err
@@ -223,36 +238,22 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 	}
 	bm := qm.GetBlockManager()
 
-	// txmanager
-	tm, err := tx.NewTxManager(bm, txIndex, addrIndex, cfg, qm.nfManager, qm.sigCache, node.DB, &node.events)
-	if err != nil {
+	if err := qm.RegisterTxManagerService(txIndex, addrIndex); err != nil {
 		return nil, err
 	}
-	qm.txManager = tm
-	bm.SetTxManager(tm)
+
+	txManager := qm.GetTxManager()
+	bm.SetTxManager(txManager)
 	// prepare peerServer
 	qm.GetPeerServer().SetBlockChain(bm.GetChain())
 	qm.GetPeerServer().SetTimeSource(qm.timeSource)
-	qm.GetPeerServer().SetTxMemPool(qm.txManager.MemPool().(*mempool.TxPool))
+	qm.GetPeerServer().SetTxMemPool(txManager.MemPool().(*mempool.TxPool))
 	qm.GetPeerServer().SetNotify(qm.nfManager)
 
-	// Cpu Miner
-	// Create the mining policy based on the configuration options.
-	// NOTE: The CPU miner relies on the mempool, so the mempool has to be
-	// created before calling the function to create the CPU miner.
-	policy := mining.Policy{
-		BlockMinSize:      cfg.BlockMinSize,
-		BlockMaxSize:      cfg.BlockMaxSize,
-		BlockPrioritySize: cfg.BlockPrioritySize,
-		TxMinFreeFee:      cfg.MinTxFee, //TODO, duplicated config item with mem-pool
-		StandardVerifyFlags: func() (txscript.ScriptFlags, error) {
-			return common.StandardScriptVerifyFlags()
-		}, //TODO, duplicated config item with mem-pool
-		CoinbaseGenerator: coinbase.NewCoinbaseGenerator(node.Params, qm.GetPeerServer().PeerID().String()),
+	//
+	if err := qm.RegisterMinerService(); err != nil {
+		return nil, err
 	}
-	qm.miner = miner.NewMiner(cfg, &policy, qm.sigCache,
-		qm.txManager.MemPool().(*mempool.TxPool), qm.timeSource, bm, &node.events)
-
 	// init address api
 	qm.addressApi = address.NewAddressApi(cfg, node.Params)
 

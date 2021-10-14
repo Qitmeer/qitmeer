@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/rpc/api"
+	"reflect"
 	"sync/atomic"
 )
 
@@ -13,11 +14,15 @@ type Service struct {
 	started  int32
 	shutdown int32
 	services *ServiceRegistry
+	kind     reflect.Type
 }
 
 func (s *Service) Start() error {
 	if atomic.AddInt32(&s.started, 1) != 1 {
 		return fmt.Errorf("Service is already in the process of started")
+	}
+	if s.kind != nil {
+		log.Debug(fmt.Sprintf("(%v) service start", s.kind))
 	}
 	s.InitContext()
 	if s.services != nil {
@@ -30,6 +35,10 @@ func (s *Service) Stop() error {
 	if atomic.AddInt32(&s.shutdown, 1) != 1 {
 		return fmt.Errorf("Service is already in the process of shutting down")
 	}
+	if s.kind != nil {
+		log.Debug(fmt.Sprintf("(%v) service stop", s.kind))
+	}
+
 	s.cancel()
 	if s.services != nil {
 		return s.services.StopAll()
@@ -72,4 +81,8 @@ func (s *Service) Services() *ServiceRegistry {
 
 func (s *Service) InitServices() {
 	s.services = NewServiceRegistry()
+}
+
+func (s *Service) SetKind(kind reflect.Type) {
+	s.kind = kind
 }

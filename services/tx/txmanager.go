@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
+	"github.com/Qitmeer/qitmeer/node/service"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/services/index"
@@ -19,6 +20,8 @@ import (
 )
 
 type TxManager struct {
+	service.Service
+
 	bm *blkmgr.BlockManager
 	// tx index
 	txIndex *index.TxIndex
@@ -40,6 +43,10 @@ type TxManager struct {
 
 func (tm *TxManager) Start() error {
 	log.Info("Starting tx manager")
+	if err := tm.Service.Start(); err != nil {
+		return err
+	}
+
 	err := tm.txMemPool.Load()
 	if err != nil {
 		log.Error(err.Error())
@@ -49,7 +56,9 @@ func (tm *TxManager) Start() error {
 
 func (tm *TxManager) Stop() error {
 	log.Info("Stopping tx manager")
-
+	if err := tm.Service.Stop(); err != nil {
+		return err
+	}
 	if tm.txMemPool.IsPersist() {
 		num, err := tm.txMemPool.Save()
 		if err != nil {
@@ -105,5 +114,5 @@ func NewTxManager(bm *blkmgr.BlockManager, txIndex *index.TxIndex,
 	}
 	txMemPool := mempool.New(&txC)
 	invalidTx := make(map[hash.Hash]*blockdag.HashSet)
-	return &TxManager{bm, txIndex, addrIndex, txMemPool, ntmgr, db, invalidTx}, nil
+	return &TxManager{bm: bm, txIndex: txIndex, addrIndex: addrIndex, txMemPool: txMemPool, ntmgr: ntmgr, db: db, invalidTx: invalidTx}, nil
 }
