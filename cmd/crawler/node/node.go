@@ -41,7 +41,7 @@ import (
 type Service interface {
 
 	// APIs retrieves the list of RPC descriptors the service provides
-	APIs() []rpc.API
+	APIs() []api.API
 
 	// Start is called after all services have been constructed and the networking
 	// layer was also initialized to spawn any goroutines required by the service.
@@ -106,7 +106,7 @@ func (node *Node) Exit() error {
 
 func (node *Node) startRPC(services []Service) error {
 	// Gather all the possible APIs to surface
-	apis := []rpc.API{}
+	apis := []api.API{}
 	for _, service := range services {
 		apis = append(apis, service.APIs()...)
 	}

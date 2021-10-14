@@ -16,8 +16,8 @@ import (
 	"time"
 )
 
-func (node *Node) api() rpc.API {
-	return rpc.API{
+func (node *Node) api() api.API {
+	return api.API{
 		NameSpace: cmds.DefaultServiceNameSpace,
 		Service:   NewPublicRelayAPI(node),
 		Public:    true,

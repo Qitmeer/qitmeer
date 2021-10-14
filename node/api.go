@@ -15,7 +15,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/api"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/version"
@@ -24,8 +24,8 @@ import (
 	"time"
 )
 
-func (nf *QitmeerFull) apis() []rpc.API {
-	return []rpc.API{
+func (nf *QitmeerFull) apis() []api.API {
+	return []api.API{
 		{
 			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicBlockChainAPI(nf),

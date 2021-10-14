@@ -2,13 +2,15 @@
 package node
 
 import (
+	"context"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/coinbase"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
+	"github.com/Qitmeer/qitmeer/node/service"
 	"github.com/Qitmeer/qitmeer/p2p"
-	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/api"
 	"github.com/Qitmeer/qitmeer/services/acct"
 	"github.com/Qitmeer/qitmeer/services/address"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
@@ -23,6 +25,7 @@ import (
 
 // QitmeerFull implements the qitmeer full node service.
 type QitmeerFull struct {
+	service.Service
 	// under node
 	node *Node
 	// msg notifier
@@ -48,8 +51,11 @@ type QitmeerFull struct {
 	sigCache *txscript.SigCache
 }
 
-func (qm *QitmeerFull) Start() error {
+func (qm *QitmeerFull) Start(ctx context.Context) error {
 	log.Debug("Starting Qitmeer full node service")
+	if err := qm.Service.Start(ctx); err != nil {
+		return err
+	}
 	qm.blockManager.Start()
 	qm.txManager.Start()
 	qm.miner.Start()
@@ -58,6 +64,10 @@ func (qm *QitmeerFull) Start() error {
 
 func (qm *QitmeerFull) Stop() error {
 	log.Debug("Stopping Qitmeer full node service")
+	if err := qm.Service.Stop(); err != nil {
+		return err
+	}
+
 	log.Info("try stop miner")
 	qm.miner.Stop()
 
@@ -69,7 +79,7 @@ func (qm *QitmeerFull) Stop() error {
 	return nil
 }
 
-func (qm *QitmeerFull) APIs() []rpc.API {
+func (qm *QitmeerFull) APIs() []api.API {
 	apis := qm.acctmanager.APIs()
 	apis = append(apis, qm.addressApi.APIs()...)
 	apis = append(apis, qm.miner.APIs()...)
@@ -78,6 +88,22 @@ func (qm *QitmeerFull) APIs() []rpc.API {
 	apis = append(apis, qm.apis()...)
 	return apis
 }
+
+// return block manager
+func (qm *QitmeerFull) GetBlockManager() *blkmgr.BlockManager {
+	return qm.blockManager
+}
+
+// return address api
+func (qm *QitmeerFull) GetAddressApi() *address.AddressApi {
+	return qm.addressApi
+}
+
+// return peer server
+func (qm *QitmeerFull) GetPeerServer() *p2p.Service {
+	return qm.node.peerServer
+}
+
 func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 
 	// account manager
@@ -161,19 +187,4 @@ func newQitmeerFullNode(node *Node) (*QitmeerFull, error) {
 	// init address api
 	qm.addressApi = address.NewAddressApi(cfg, node.Params)
 	return &qm, nil
-}
-
-// return block manager
-func (qm *QitmeerFull) GetBlockManager() *blkmgr.BlockManager {
-	return qm.blockManager
-}
-
-// return address api
-func (qm *QitmeerFull) GetAddressApi() *address.AddressApi {
-	return qm.addressApi
-}
-
-// return peer server
-func (qm *QitmeerFull) GetPeerServer() *p2p.Service {
-	return qm.node.peerServer
 }

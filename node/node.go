@@ -2,15 +2,18 @@
 package node
 
 import (
+	"context"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qitmeer/node/service"
 	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/api"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -37,11 +40,7 @@ type Node struct {
 	// network server
 	peerServer *p2p.Service
 
-	// service layer
-	// Service constructors (in dependency order)
-	svcConstructors []ServiceConstructor
-	// Currently registered & running services
-	runningSvcs map[reflect.Type]Service
+	services *service.ServiceRegistry
 
 	// api server
 	rpcServer *rpc.RpcServer
@@ -53,10 +52,11 @@ type Node struct {
 func NewNode(cfg *config.Config, database database.DB, chainParams *params.Params, shutdownRequestChannel chan struct{}) (*Node, error) {
 
 	n := Node{
-		Config: cfg,
-		DB:     database,
-		Params: chainParams,
-		quit:   make(chan struct{}),
+		Config:   cfg,
+		DB:       database,
+		Params:   chainParams,
+		quit:     make(chan struct{}),
+		services: service.NewServiceRegistry(),
 	}
 
 	server, err := p2p.NewService(cfg, &n.events, chainParams)
@@ -81,6 +81,8 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 
 func (n *Node) Stop() error {
 	log.Info("Stopping Server")
+	// Signal the node quit.
+	close(n.quit)
 
 	// stop rpc server
 	if n.rpcServer != nil {
@@ -90,23 +92,7 @@ func (n *Node) Stop() error {
 	// stop p2p server
 	n.peerServer.Stop()
 
-	failure := &ServiceStopError{
-		Services: make(map[reflect.Type]error),
-	}
-	// stop all service
-	for kind, service := range n.runningSvcs {
-		if err := service.Stop(); err != nil {
-			failure.Services[kind] = err
-		}
-		log.Debug("Service stopped", "service", kind)
-	}
-	// Signal the node quit.
-	close(n.quit)
-
-	if len(failure.Services) > 0 {
-		return failure
-	}
-	return nil
+	return n.services.StopAll()
 }
 
 // WaitForShutdown blocks until the main listener and peer handlers are stopped.
@@ -129,37 +115,8 @@ func (n *Node) Start() error {
 	}
 
 	log.Info("Starting Server")
-
-	// Initialize every service by calling the registered service constructors & save to services
-	services := make(map[reflect.Type]Service)
-	for _, c := range n.svcConstructors {
-		ctx := &ServiceContext{}
-		// Construct and save the service
-		service, err := c.initFunc(ctx)
-		if err != nil {
-			return err
-		}
-		kind := reflect.TypeOf(service)
-		if _, exists := services[kind]; exists {
-			return fmt.Errorf("duplicate Service, kind=%s}", kind)
-		}
-		services[kind] = service
-	}
 	// start service one by one
-	startedSvs := []reflect.Type{}
-	for kind, service := range services {
-		if err := service.Start(); err != nil {
-			// stopping all started service if upon failure
-			for _, kind := range startedSvs {
-				services[kind].Stop()
-			}
-			return err
-		}
-		// Mark the service has been started
-		startedSvs = append(startedSvs, kind)
-		log.Debug("Node service started", "service", kind)
-	}
-	n.runningSvcs = services
+	n.services.StartAll(context.Background())
 
 	// start p2p server
 	if err := n.peerServer.Start(); err != nil {
@@ -167,11 +124,7 @@ func (n *Node) Start() error {
 	}
 	// start RPC by service
 	if !n.Config.DisableRPC {
-		if err := n.startRPC(services); err != nil {
-			for _, service := range services {
-				service.Stop()
-			}
-			n.peerServer.Stop()
+		if err := n.startRPC(); err != nil {
 			return err
 		}
 	}
@@ -181,18 +134,6 @@ func (n *Node) Start() error {
 	n.startupTime = roughtime.Now().Unix()
 	n.wg.Wrap(n.nodeEventHandler)
 
-	return nil
-}
-
-func (n *Node) register(sc ServiceConstructor) error {
-	n.lock.Lock()
-	defer n.lock.Unlock()
-	// Already started?
-	if atomic.LoadInt32(&n.started) == 1 {
-		return fmt.Errorf("node has already been started")
-	}
-	n.svcConstructors = append(n.svcConstructors, sc)
-	log.Debug("Register service to node", "service", sc)
 	return nil
 }
 
@@ -206,10 +147,10 @@ func (n *Node) RegisterService() error {
 // startRPC is a helper method to start all the various RPC endpoint during node
 // startup. It's not meant to be called at any time afterwards as it makes certain
 // assumptions about the state of the node.
-func (n *Node) startRPC(services map[reflect.Type]Service) error {
+func (n *Node) startRPC() error {
 	// Gather all the possible APIs to surface
-	apis := []rpc.API{}
-	for _, service := range services {
+	apis := []api.API{}
+	for _, service := range n.services.GetServices() {
 		apis = append(apis, service.APIs()...)
 	}
 	// Generate the whitelist based on the allowed modules
@@ -235,31 +176,30 @@ func (n *Node) startRPC(services map[reflect.Type]Service) error {
 
 // register services as qitmeer Full node
 func (n *Node) registerQitmeerFull() error {
-	err := n.register(NewServiceConstructor("qitmeer",
-		func(ctx *ServiceContext) (Service, error) {
-			fullNode, err := newQitmeerFullNode(n)
-			return fullNode, err
-		}))
-	return err
+	fullNode, err := newQitmeerFullNode(n)
+	if err != nil {
+		return err
+	}
+	n.services.RegisterService(fullNode)
+	return nil
 }
 
 // register services as the qitmeer Light node
 func (n *Node) registerQitmeerLight() error {
-	err := n.register(NewServiceConstructor("qitmeer-light",
-		func(ctx *ServiceContext) (Service, error) {
-			lightNode, err := newQitmeerLight(n)
-			return lightNode, err
-		}))
-	return err
+	lightNode, err := newQitmeerLight(n)
+	if err != nil {
+		return err
+	}
+	n.services.RegisterService(lightNode)
+	return nil
 }
 
 // return qitmeer full
 func (n *Node) GetQitmeerFull() *QitmeerFull {
-	for _, server := range n.runningSvcs {
-		fullqm := server.(*QitmeerFull)
-		if fullqm != nil {
-			return fullqm
-		}
+	var qm *QitmeerFull
+	if err := n.services.FetchService(&qm); err != nil {
+		log.Error(err.Error())
+		return nil
 	}
-	return nil
+	return qm
 }

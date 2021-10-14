@@ -2,7 +2,7 @@ package acct
 
 import (
 	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/api"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 )
 
@@ -20,8 +20,8 @@ func (a *AccountManager) Stop() error {
 	return nil
 }
 
-func (a AccountManager) APIs() []rpc.API {
-	return []rpc.API{
+func (a AccountManager) APIs() []api.API {
+	return []api.API{
 		{
 			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicAccountManagerAPI(&a),

@@ -36,8 +36,8 @@ func (p *Peers) Stop() error {
 	return p.db.Close()
 }
 
-func (p *Peers) APIs() []rpc.API {
-	return []rpc.API{
+func (p *Peers) APIs() []api.API {
+	return []api.API{
 		{
 			NameSpace: "crawler",
 			Service:   NewPeersApi(p),

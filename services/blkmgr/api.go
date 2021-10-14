@@ -14,6 +14,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/api"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"strconv"
 )
@@ -25,8 +26,8 @@ const (
 func (b *BlockManager) GetChain() *blockchain.BlockChain {
 	return b.chain
 }
-func (b *BlockManager) API() rpc.API {
-	return rpc.API{
+func (b *BlockManager) API() api.API {
+	return api.API{
 		NameSpace: cmds.DefaultServiceNameSpace,
 		Service:   NewPublicBlockAPI(b),
 		Public:    true,

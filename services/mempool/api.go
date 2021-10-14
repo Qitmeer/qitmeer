@@ -2,13 +2,13 @@ package mempool
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/api"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"sort"
 )
 
-func (t *TxPool) API() rpc.API {
-	return rpc.API{
+func (t *TxPool) API() api.API {
+	return api.API{
 		NameSpace: cmds.DefaultServiceNameSpace,
 		Service:   NewPublicMempoolAPI(t),
 		Public:    true,
