@@ -58,13 +58,13 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 	node := api.node.blockManager.GetChain().BlockDAG().GetBlock(&best.Hash)
 	powNodes := api.node.blockManager.GetChain().GetCurrentPowDiff(node, pow.MEERXKECCAKV1)
 	ret := &json.InfoNodeResult{
-		ID:              api.node.node.peerServer.PeerID().String(),
+		ID:              api.node.peerServer.PeerID().String(),
 		Version:         int32(1000000*version.Major + 10000*version.Minor + 100*version.Patch),
 		BuildVersion:    version.String(),
 		ProtocolVersion: int32(protocol.ProtocolVersion),
 		TotalSubsidy:    best.TotalSubsidy,
 		TimeOffset:      int64(api.node.blockManager.GetChain().TimeSource().Offset().Seconds()),
-		Connections:     int32(len(api.node.node.peerServer.Peers().Connected())),
+		Connections:     int32(len(api.node.peerServer.Peers().Connected())),
 		PowDiff: &json.PowDiff{
 			CurrentDiff: getDifficultyRatio(powNodes, api.node.node.Params, pow.MEERXKECCAKV1),
 		},
@@ -74,15 +74,15 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 		Modules:          []string{cmds.DefaultServiceNameSpace, cmds.MinerNameSpace, cmds.TestNameSpace, cmds.LogNameSpace},
 	}
 	ret.GraphState = GetGraphStateResult(best.GraphState)
-	hostdns := api.node.node.peerServer.HostDNS()
+	hostdns := api.node.peerServer.HostDNS()
 	if hostdns != nil {
 		ret.DNS = hostdns.String()
 	}
-	if api.node.node.peerServer.Node() != nil {
-		ret.QNR = api.node.node.peerServer.Node().String()
+	if api.node.peerServer.Node() != nil {
+		ret.QNR = api.node.peerServer.Node().String()
 	}
-	if len(api.node.node.peerServer.HostAddress()) > 0 {
-		ret.Addresss = api.node.node.peerServer.HostAddress()
+	if len(api.node.peerServer.HostAddress()) > 0 {
+		ret.Addresss = api.node.peerServer.HostAddress()
 	}
 
 	// soft forks
@@ -178,7 +178,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (int
 	if len(networkName) <= 0 {
 		networkName = params.ActiveNetParams.Name
 	}
-	ps := api.node.node.peerServer
+	ps := api.node.peerServer
 	peers := ps.Peers().StatsSnapshots()
 	infos := make([]*json.GetPeerInfoResult, 0, len(peers))
 	for _, p := range peers {
@@ -251,7 +251,7 @@ func (api *PublicBlockChainAPI) GetPeerInfo(verbose *bool, network *string) (int
 
 // Return the RPC info
 func (api *PublicBlockChainAPI) GetRpcInfo() (interface{}, error) {
-	rs := api.node.node.rpcServer.ReqStatus
+	rs := api.node.rpcServer.ReqStatus
 	jrs := []*cmds.JsonRequestStatus{}
 	for _, v := range rs {
 		jrs = append(jrs, v.ToJson())
@@ -284,7 +284,7 @@ func (api *PublicBlockChainAPI) GetTimeInfo() (interface{}, error) {
 }
 
 func (api *PublicBlockChainAPI) GetNetworkInfo() (interface{}, error) {
-	ps := api.node.node.peerServer
+	ps := api.node.peerServer
 	peers := ps.Peers().StatsSnapshots()
 	nstat := &json.NetworkStat{MaxConnected: ps.Config().MaxPeers,
 		MaxInbound: ps.Config().MaxInbound, Infos: []*json.NetworkInfo{}}
@@ -392,7 +392,7 @@ func NewPrivateBlockChainAPI(node *QitmeerFull) *PrivateBlockChainAPI {
 // Stop the node
 func (api *PrivateBlockChainAPI) Stop() (interface{}, error) {
 	select {
-	case api.node.node.rpcServer.RequestedProcessShutdown() <- struct{}{}:
+	case api.node.rpcServer.RequestedProcessShutdown() <- struct{}{}:
 	default:
 	}
 	return "Qitmeer stopping.", nil
@@ -400,7 +400,7 @@ func (api *PrivateBlockChainAPI) Stop() (interface{}, error) {
 
 // Banlist
 func (api *PrivateBlockChainAPI) Banlist() (interface{}, error) {
-	bl := api.node.node.peerServer.GetBanlist()
+	bl := api.node.peerServer.GetBanlist()
 	bls := []*json.GetBanlistResult{}
 	for k, v := range bl {
 		bls = append(bls, &json.GetBanlistResult{ID: k, Bads: v})
@@ -414,7 +414,7 @@ func (api *PrivateBlockChainAPI) RemoveBan(id *string) (interface{}, error) {
 	if id != nil {
 		ho = *id
 	}
-	api.node.node.peerServer.RemoveBan(ho)
+	api.node.peerServer.RemoveBan(ho)
 	return true, nil
 }
 
