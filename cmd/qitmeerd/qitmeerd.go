@@ -5,7 +5,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/config"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
@@ -127,7 +126,7 @@ func qitmeerdMain(nodeChan chan<- *node.Node) error {
 		}
 		n.WaitForShutdown()
 	}()
-	err = n.Start(context.Background())
+	err = n.Start()
 	if err != nil {
 		log.Error("Uable to start server", "error", err)
 		return err

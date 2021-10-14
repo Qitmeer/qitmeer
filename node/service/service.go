@@ -12,14 +12,17 @@ type Service struct {
 	cancel   context.CancelFunc
 	started  int32
 	shutdown int32
+	services *ServiceRegistry
 }
 
-func (s *Service) Start(ctx context.Context) error {
+func (s *Service) Start() error {
 	if atomic.AddInt32(&s.started, 1) != 1 {
 		return fmt.Errorf("Service is already in the process of started")
 	}
-	s.ctx, s.cancel = context.WithCancel(ctx)
-
+	s.InitContext()
+	if s.services != nil {
+		return s.services.StartAll()
+	}
 	return nil
 }
 
@@ -27,9 +30,10 @@ func (s *Service) Stop() error {
 	if atomic.AddInt32(&s.shutdown, 1) != 1 {
 		return fmt.Errorf("Service is already in the process of shutting down")
 	}
-	defer func() {
-		s.cancel()
-	}()
+	s.cancel()
+	if s.services != nil {
+		return s.services.StopAll()
+	}
 	return nil
 }
 
@@ -42,9 +46,30 @@ func (s *Service) IsShutdown() bool {
 }
 
 func (s *Service) APIs() []api.API {
+	if s.services != nil {
+		return s.services.APIs()
+	}
 	return nil
 }
 
 func (s *Service) Status() error {
 	return nil
+}
+
+func (s *Service) Context() context.Context {
+	return s.ctx
+}
+
+func (s *Service) InitContext() {
+	if s.ctx == nil {
+		s.ctx, s.cancel = context.WithCancel(context.Background())
+	}
+}
+
+func (s *Service) Services() *ServiceRegistry {
+	return s.services
+}
+
+func (s *Service) InitServices() {
+	s.services = NewServiceRegistry()
 }

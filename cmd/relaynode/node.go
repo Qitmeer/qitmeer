@@ -90,7 +90,7 @@ func (node *Node) init(cfg *Config) error {
 			return err
 		}
 		go func() {
-			<-node.rpcServer.RequestedProcessShutdown()
+			<-node.GetRpcServer().RequestedProcessShutdown()
 			shutdownRequestChannel <- struct{}{}
 		}()
 	}
@@ -293,12 +293,12 @@ func (node *Node) startRPC() error {
 		return nil
 	}
 	api := node.api()
-	if err := node.rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
+	if err := node.GetRpcServer().RegisterService(api.NameSpace, api.Service); err != nil {
 		return err
 	}
 	log.Debug(fmt.Sprintf("RPC Service API registered. NameSpace:%s     %s", api.NameSpace, reflect.TypeOf(api.Service)))
 
-	if err := node.rpcServer.Start(); err != nil {
+	if err := node.GetRpcServer().Start(); err != nil {
 		return err
 	}
 

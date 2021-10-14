@@ -95,7 +95,7 @@ func (node *Node) Init(cfg *config.Config) error {
 }
 
 func (node *Node) Exit() error {
-	node.rpcServer.Stop()
+	node.GetRpcServer().Stop()
 	for _, ser := range node.service {
 		ser.Stop()
 	}
@@ -113,11 +113,11 @@ func (node *Node) startRPC(services []Service) error {
 
 	// Register all the APIs exposed by the services
 	for _, api := range apis {
-		if err := node.rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
+		if err := node.GetRpcServer().RegisterService(api.NameSpace, api.Service); err != nil {
 			return err
 		}
 	}
-	if err := node.rpcServer.Start(); err != nil {
+	if err := node.GetRpcServer().Start(); err != nil {
 		return err
 	}
 	return nil

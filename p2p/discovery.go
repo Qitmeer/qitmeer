@@ -183,13 +183,13 @@ func (s *Service) isInboundPeerAtLimit() bool {
 }
 
 func (s *Service) startKademliaDHT() error {
-	kademliaDHT, err := dht.New(s.ctx, s.host, dhtopts.Protocols(ProtocolDHT))
+	kademliaDHT, err := dht.New(s.Context(), s.host, dhtopts.Protocols(ProtocolDHT))
 	if err != nil {
 		return err
 	}
 	s.kademliaDHT = kademliaDHT
 
-	err = kademliaDHT.Bootstrap(s.ctx)
+	err = kademliaDHT.Bootstrap(s.Context())
 	if err != nil {
 		return err
 	}

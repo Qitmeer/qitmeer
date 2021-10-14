@@ -15,12 +15,12 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
+	"github.com/Qitmeer/qitmeer/node/service"
 	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"
 	"github.com/Qitmeer/qitmeer/services/zmq"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -41,8 +41,7 @@ const (
 // BlockManager provides a concurrency safe block manager for handling all
 // incoming blocks.
 type BlockManager struct {
-	started  int32
-	shutdown int32
+	service.Service
 
 	config *config.Config
 	params *params.Params
@@ -272,28 +271,29 @@ func (b *BlockManager) IsCurrent() bool {
 }
 
 // Start begins the core block handler which processes block and inv messages.
-func (b *BlockManager) Start() {
-	// Already started?
-	if atomic.AddInt32(&b.started, 1) != 1 {
-		return
+func (b *BlockManager) Start() error {
+	if err := b.Service.Start(); err != nil {
+		return err
 	}
 
 	log.Trace("Starting block manager")
 	b.wg.Add(1)
 	go b.blockHandler()
+	return nil
 }
 
 func (b *BlockManager) Stop() error {
-	if atomic.AddInt32(&b.shutdown, 1) != 1 {
-		log.Warn("Block manager is already in the process of " +
-			"shutting down")
-		return nil
+	log.Info("try stop bm")
+	if err := b.Service.Stop(); err != nil {
+		return err
 	}
 	log.Info("Block manager shutting down")
 	close(b.quit)
 
 	// shutdown zmq
 	b.zmqNotify.Shutdown()
+
+	b.WaitForStop()
 	return nil
 }
 
@@ -577,7 +577,7 @@ func (b *BlockManager) TipGeneration() ([]hash.Hash, error) {
 // the current time, and disconnecting the peer if we stalled before reaching
 // their highest advertised block.
 func (b *BlockManager) handleStallSample() {
-	if atomic.LoadInt32(&b.shutdown) != 0 {
+	if b.IsShutdown() {
 		return
 	}
 }

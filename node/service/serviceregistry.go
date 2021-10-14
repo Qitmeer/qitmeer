@@ -13,7 +13,7 @@ type IService interface {
 
 	// Start is called after all services have been constructed and the networking
 	// layer was also initialized to spawn any goroutines required by the service.
-	Start(ctx context.Context) error
+	Start() error
 
 	// Stop terminates all goroutines belonging to the service, blocking until they
 	// are all terminated.
@@ -24,6 +24,8 @@ type IService interface {
 	IsStarted() bool
 
 	IsShutdown() bool
+
+	Context() context.Context
 }
 
 type ServiceRegistry struct {
@@ -37,11 +39,11 @@ func NewServiceRegistry() *ServiceRegistry {
 	}
 }
 
-func (s *ServiceRegistry) StartAll(ctx context.Context) error {
+func (s *ServiceRegistry) StartAll() error {
 	log.Debug(fmt.Sprintf("Starting %d services: %v", len(s.serviceTypes), s.serviceTypes))
 	for _, kind := range s.serviceTypes {
 		log.Debug(fmt.Sprintf("Starting service type %v", kind))
-		err := s.services[kind].Start(ctx)
+		err := s.services[kind].Start()
 		if err != nil {
 			return err
 		}
@@ -97,4 +99,16 @@ func (s *ServiceRegistry) FetchService(service interface{}) error {
 
 func (s *ServiceRegistry) GetServices() map[reflect.Type]IService {
 	return s.services
+}
+
+func (s *ServiceRegistry) APIs() []api.API {
+	apis := []api.API{}
+	for _, kind := range s.serviceTypes {
+		a := s.services[kind].APIs()
+		if a == nil {
+			continue
+		}
+		apis = append(apis, a...)
+	}
+	return apis
 }

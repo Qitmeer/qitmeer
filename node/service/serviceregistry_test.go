@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"reflect"
 	"testing"
@@ -16,8 +15,8 @@ type secondMockService struct {
 	status error
 }
 
-func (m *mockService) Start(ctx context.Context) error {
-	if err := m.Service.Start(ctx); err != nil {
+func (m *mockService) Start() error {
+	if err := m.Service.Start(); err != nil {
 		return err
 	}
 	return nil
@@ -34,8 +33,8 @@ func (m *mockService) Status() error {
 	return m.status
 }
 
-func (s *secondMockService) Start(ctx context.Context) error {
-	if err := s.Service.Start(ctx); err != nil {
+func (s *secondMockService) Start() error {
+	if err := s.Service.Start(); err != nil {
 		return err
 	}
 	return nil

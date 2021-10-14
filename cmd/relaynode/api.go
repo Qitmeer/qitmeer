@@ -34,7 +34,7 @@ func NewPublicRelayAPI(node *Node) *PublicRelayAPI {
 
 // Return the RPC info
 func (api *PublicRelayAPI) GetRpcInfo() (interface{}, error) {
-	rs := api.node.rpcServer.ReqStatus
+	rs := api.node.GetRpcServer().ReqStatus
 	jrs := []*cmds.JsonRequestStatus{}
 	for _, v := range rs {
 		jrs = append(jrs, v.ToJson())

@@ -2,7 +2,6 @@
 package node
 
 import (
-	"context"
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/node/service"
@@ -17,7 +16,7 @@ type QitmeerLight struct {
 	config *config.Config
 }
 
-func (light *QitmeerLight) Start(ctx context.Context) error {
+func (light *QitmeerLight) Start() error {
 	log.Debug("Starting Qitmeer light node service")
 	return nil
 }

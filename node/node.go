@@ -2,7 +2,6 @@
 package node
 
 import (
-	"context"
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/common/util"
 	"github.com/Qitmeer/qitmeer/config"
@@ -30,8 +29,6 @@ type Node struct {
 	// database layer
 	DB database.DB
 
-	services *service.ServiceRegistry
-
 	// event system
 	events event.Feed
 
@@ -45,10 +42,9 @@ func NewNode(cfg *config.Config, database database.DB, chainParams *params.Param
 		DB:                     database,
 		Params:                 chainParams,
 		quit:                   make(chan struct{}),
-		services:               service.NewServiceRegistry(),
 		shutdownRequestChannel: shutdownRequestChannel,
 	}
-
+	n.InitServices()
 	return &n, nil
 }
 
@@ -60,7 +56,7 @@ func (n *Node) Stop() error {
 	// Signal the node quit.
 	close(n.quit)
 
-	return n.services.StopAll()
+	return nil
 }
 
 // WaitForShutdown blocks until the main listener and peer handlers are stopped.
@@ -74,17 +70,14 @@ func (n *Node) nodeEventHandler() {
 	log.Trace("node stop event (quit) received")
 }
 
-func (n *Node) Start(ctx context.Context) error {
+func (n *Node) Start() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
+	log.Info("Starting Node")
 	// Already started?
-	if err := n.Service.Start(ctx); err != nil {
+	if err := n.Service.Start(); err != nil {
 		return err
 	}
-
-	log.Info("Starting Server")
-	// start service one by one
-	n.services.StartAll(ctx)
 
 	// Finished node start
 	// Server startup time. Used for the uptime command for uptime calculation.
@@ -107,7 +100,7 @@ func (n *Node) registerQitmeerFull() error {
 	if err != nil {
 		return err
 	}
-	n.services.RegisterService(fullNode)
+	n.Services().RegisterService(fullNode)
 	return nil
 }
 
@@ -117,14 +110,14 @@ func (n *Node) registerQitmeerLight() error {
 	if err != nil {
 		return err
 	}
-	n.services.RegisterService(lightNode)
+	n.Services().RegisterService(lightNode)
 	return nil
 }
 
 // return qitmeer full
 func (n *Node) GetQitmeerFull() *QitmeerFull {
 	var qm *QitmeerFull
-	if err := n.services.FetchService(&qm); err != nil {
+	if err := n.Services().FetchService(&qm); err != nil {
 		log.Error(err.Error())
 		return nil
 	}
