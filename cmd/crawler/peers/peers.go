@@ -3,8 +3,8 @@ package peers
 import (
 	"github.com/Qitmeer/qitmeer/cmd/crawler/config"
 	"github.com/Qitmeer/qitmeer/cmd/crawler/db"
-	"github.com/Qitmeer/qitmeer/cmd/crawler/rpc"
 	"github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qitmeer/rpc/api"
 	"sync"
 	"time"
 )
