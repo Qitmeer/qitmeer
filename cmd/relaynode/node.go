@@ -11,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/config"
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qitmeer/node/service"
 	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
@@ -40,9 +41,9 @@ import (
 )
 
 type Node struct {
-	cfg        *Config
-	ctx        context.Context
-	cancel     context.CancelFunc
+	service.Service
+	cfg *Config
+
 	privateKey *ecdsa.PrivateKey
 
 	host host.Host
@@ -50,13 +51,12 @@ type Node struct {
 	peerStatus *peers.Status
 
 	hslock sync.RWMutex
-
-	rpcServer *rpc.RpcServer
 }
 
 func (node *Node) init(cfg *Config) error {
 	log.Info(fmt.Sprintf("Start relay node..."))
-	node.ctx, node.cancel = context.WithCancel(context.Background())
+	node.InitContext()
+	node.InitServices()
 
 	err := cfg.load()
 	if err != nil {
@@ -73,26 +73,8 @@ func (node *Node) init(cfg *Config) error {
 	//
 	node.peerStatus = peers.NewStatus(nil)
 
-	if !cfg.DisableRPC {
-		qcfg := &config.Config{
-			DisableRPC:    cfg.DisableRPC,
-			RPCListeners:  cfg.RPCListeners.Value(),
-			RPCUser:       cfg.RPCUser,
-			RPCPass:       cfg.RPCPass,
-			RPCCert:       cfg.RPCCert,
-			RPCKey:        cfg.RPCKey,
-			RPCMaxClients: cfg.RPCMaxClients,
-			DisableTLS:    cfg.DisableTLS,
-		}
-
-		node.rpcServer, err = rpc.NewRPCServer(qcfg, nil)
-		if err != nil {
-			return err
-		}
-		go func() {
-			<-node.rpcServer.RequestedProcessShutdown()
-			shutdownRequestChannel <- struct{}{}
-		}()
+	if err := node.RegisterRpcService(); err != nil {
+		return err
 	}
 
 	log.Info(fmt.Sprintf("Load config completed"))
@@ -100,19 +82,20 @@ func (node *Node) init(cfg *Config) error {
 	return nil
 }
 
-func (node *Node) exit() error {
-	node.cancel()
+func (node *Node) Stop() error {
+	if err := node.Service.Stop(); err != nil {
+		return err
+	}
 	log.Info(fmt.Sprintf("Stop relay node"))
 	return nil
 }
 
-func (node *Node) run() error {
-	log.Info(fmt.Sprintf("Run relay node..."))
-	err := node.startP2P()
-	if err != nil {
+func (node *Node) Start() error {
+	if err := node.Service.Start(); err != nil {
 		return err
 	}
-	err = node.startRPC()
+	log.Info(fmt.Sprintf("Run relay node..."))
+	err := node.startP2P()
 	if err != nil {
 		return err
 	}
@@ -208,7 +191,7 @@ func (node *Node) startP2P() error {
 	}
 
 	node.host, err = libp2p.New(
-		node.ctx,
+		node.Context(),
 		opts...,
 	)
 	if err != nil {
@@ -222,12 +205,12 @@ func (node *Node) startP2P() error {
 		return err
 	}
 
-	kademliaDHT, err := dht.New(node.ctx, node.host, dhtopts.Protocols(p2p.ProtocolDHT))
+	kademliaDHT, err := dht.New(node.Context(), node.host, dhtopts.Protocols(p2p.ProtocolDHT))
 	if err != nil {
 		return err
 	}
 
-	err = kademliaDHT.Bootstrap(node.ctx)
+	err = kademliaDHT.Bootstrap(node.Context())
 	if err != nil {
 		return err
 	}
@@ -254,7 +237,7 @@ func (node *Node) initPeerStore() (libp2p.Option, error) {
 	}
 	log.Info(fmt.Sprintf("Start Peers from:%s", dsPath))
 
-	ps, err := pstoreds.NewPeerstore(node.ctx, peerDS, pstoreds.DefaultOpts())
+	ps, err := pstoreds.NewPeerstore(node.Context(), peerDS, pstoreds.DefaultOpts())
 	if err != nil {
 		return nil, err
 	}
@@ -288,19 +271,37 @@ func (node *Node) registerHandlers() error {
 	return nil
 }
 
-func (node *Node) startRPC() error {
+func (node *Node) RegisterRpcService() error {
 	if node.cfg.DisableRPC {
 		return nil
 	}
+	cfg := node.cfg
+	qcfg := &config.Config{
+		DisableRPC:    cfg.DisableRPC,
+		RPCListeners:  cfg.RPCListeners.Value(),
+		RPCUser:       cfg.RPCUser,
+		RPCPass:       cfg.RPCPass,
+		RPCCert:       cfg.RPCCert,
+		RPCKey:        cfg.RPCKey,
+		RPCMaxClients: cfg.RPCMaxClients,
+		DisableTLS:    cfg.DisableTLS,
+	}
+
+	rpcServer, err := rpc.NewRPCServer(qcfg, nil)
+	if err != nil {
+		return err
+	}
+	node.Services().RegisterService(rpcServer)
+	go func() {
+		<-rpcServer.RequestedProcessShutdown()
+		shutdownRequestChannel <- struct{}{}
+	}()
+
 	api := node.api()
-	if err := node.rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
+	if err := rpcServer.RegisterService(api.NameSpace, api.Service); err != nil {
 		return err
 	}
 	log.Debug(fmt.Sprintf("RPC Service API registered. NameSpace:%s     %s", api.NameSpace, reflect.TypeOf(api.Service)))
-
-	if err := node.rpcServer.Start(); err != nil {
-		return err
-	}
 
 	return nil
 
@@ -312,10 +313,6 @@ func (node *Node) Encoding() encoder.NetworkEncoding {
 
 func (node *Node) Host() host.Host {
 	return node.host
-}
-
-func (node *Node) Context() context.Context {
-	return node.ctx
 }
 
 func (node *Node) Disconnect(pid peer.ID) error {
@@ -466,6 +463,15 @@ func (node *Node) InterceptSecured(_ network.Direction, _ peer.ID, n network.Con
 // InterceptUpgraded tests whether a fully capable connection is allowed.
 func (node *Node) InterceptUpgraded(n network.Conn) (allow bool, reason control.DisconnectReason) {
 	return true, 0
+}
+
+func (node *Node) GetRpcServer() *rpc.RpcServer {
+	var service *rpc.RpcServer
+	if err := node.Services().FetchService(&service); err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+	return service
 }
 
 func closeSteam(stream libp2pcore.Stream) {

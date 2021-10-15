@@ -10,6 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/event"
+	ser "github.com/Qitmeer/qitmeer/node/service"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
 	"github.com/Qitmeer/qitmeer/services/index"
@@ -26,16 +27,9 @@ import (
 	"time"
 )
 
-// API describes the set of methods offered over the RPC interface
-type API struct {
-	NameSpace string      // namespace under which the rpc methods of Service are exposed
-	Service   interface{} // receiver instance which holds the methods
-	Public    bool        // indication if the methods must be considered safe for public use
-}
-
 // RpcServer provides a concurrent safe RPC server to a chain server.
 type RpcServer struct {
-	run        int32
+	ser.Service
 	wg         sync.WaitGroup
 	quit       chan int
 	statusLock sync.RWMutex
@@ -140,8 +134,8 @@ func NewRPCServer(cfg *config.Config, events *event.Feed) (*RpcServer, error) {
 }
 
 func (s *RpcServer) Start() error {
-	if atomic.AddInt32(&s.run, 1) != 1 {
-		return fmt.Errorf("Already running")
+	if err := s.Service.Start(); err != nil {
+		return err
 	}
 	err := s.startHTTP(s.config.RPCListeners)
 	if err != nil {
@@ -153,9 +147,9 @@ func (s *RpcServer) Start() error {
 
 // Stop will stop reading new requests, wait for stopPendingRequestTimeout to allow pending requests to finish,
 // close all codecs which will cancel pending requests/subscriptions.
-func (s *RpcServer) Stop() {
-	if !atomic.CompareAndSwapInt32(&s.run, 1, 0) {
-		return
+func (s *RpcServer) Stop() error {
+	if err := s.Service.Stop(); err != nil {
+		return err
 	}
 	log.Debug("RPC Server is stopping")
 
@@ -177,6 +171,8 @@ func (s *RpcServer) Stop() {
 
 	close(s.quit)
 	s.wg.Wait()
+
+	return nil
 }
 
 const (
@@ -339,7 +335,7 @@ const (
 
 // jsonRPCRead handles reading and responding to RPC messages.
 func (s *RpcServer) jsonRPCRead(w http.ResponseWriter, r *http.Request) {
-	if atomic.LoadInt32(&s.run) != 1 { // server stopped
+	if s.IsShutdown() { // server stopped
 		return
 	}
 	// discard dumb empty requests
@@ -407,7 +403,7 @@ func (s *RpcServer) serveRequest(ctx context.Context, codec ServerCodec, singleS
 		ctx = context.WithValue(ctx, notifierKey{}, newNotifier(codec))
 	}
 	s.codecsMu.Lock()
-	if atomic.LoadInt32(&s.run) != 1 { // server stopped
+	if s.IsShutdown() { // server stopped
 		s.codecsMu.Unlock()
 		return &shutdownError{}
 	}
@@ -415,7 +411,7 @@ func (s *RpcServer) serveRequest(ctx context.Context, codec ServerCodec, singleS
 	s.codecsMu.Unlock()
 
 	// test if the server is ordered to stop
-	for atomic.LoadInt32(&s.run) == 1 {
+	for s.IsStarted() {
 		reqs, batch, err := s.readRequest(codec)
 		if err != nil {
 			// If a parsing error occurred, send an error
@@ -430,7 +426,7 @@ func (s *RpcServer) serveRequest(ctx context.Context, codec ServerCodec, singleS
 
 		// check if server is ordered to shutdown and return an error
 		// telling the client that his request failed.
-		if atomic.LoadInt32(&s.run) != 1 {
+		if s.IsShutdown() {
 			err = &shutdownError{}
 			if batch {
 				resps := make([]interface{}, len(reqs))

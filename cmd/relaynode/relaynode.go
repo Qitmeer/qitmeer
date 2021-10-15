@@ -39,10 +39,10 @@ func relayNode() error {
 			return node.init(conf)
 		},
 		After: func(c *cli.Context) error {
-			return node.exit()
+			return node.Stop()
 		},
 		Action: func(c *cli.Context) error {
-			return node.run()
+			return node.Start()
 		},
 	}
 

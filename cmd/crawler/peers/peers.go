@@ -3,8 +3,8 @@ package peers
 import (
 	"github.com/Qitmeer/qitmeer/cmd/crawler/config"
 	"github.com/Qitmeer/qitmeer/cmd/crawler/db"
-	"github.com/Qitmeer/qitmeer/cmd/crawler/rpc"
 	"github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qitmeer/rpc/api"
 	"sync"
 	"time"
 )
@@ -36,8 +36,8 @@ func (p *Peers) Stop() error {
 	return p.db.Close()
 }
 
-func (p *Peers) APIs() []rpc.API {
-	return []rpc.API{
+func (p *Peers) APIs() []api.API {
+	return []api.API{
 		{
 			NameSpace: "crawler",
 			Service:   NewPeersApi(p),

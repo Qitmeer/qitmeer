@@ -12,6 +12,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qitmeer/node/service"
 	"github.com/Qitmeer/qitmeer/params"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/services/blkmgr"
@@ -19,7 +20,6 @@ import (
 	"github.com/Qitmeer/qitmeer/services/mining"
 	"math/rand"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -33,11 +33,10 @@ const (
 
 // Miner creates blocks and searches for proof-of-work values.
 type Miner struct {
-	started  int32
-	shutdown int32
-	msgChan  chan interface{}
-	wg       sync.WaitGroup
-	quit     chan struct{}
+	service.Service
+	msgChan chan interface{}
+	wg      sync.WaitGroup
+	quit    chan struct{}
 
 	cfg          *config.Config
 	events       *event.Feed
@@ -66,9 +65,8 @@ func (m *Miner) Start() error {
 	if !m.cfg.Miner {
 		return nil
 	}
-	// Already started?
-	if atomic.AddInt32(&m.started, 1) != 1 {
-		return nil
+	if err := m.Service.Start(); err != nil {
+		return err
 	}
 
 	//
@@ -85,18 +83,20 @@ func (m *Miner) Start() error {
 	return nil
 }
 
-func (m *Miner) Stop() {
+func (m *Miner) Stop() error {
 	if !m.cfg.Miner {
-		return
+		return nil
 	}
-	if atomic.AddInt32(&m.shutdown, 1) != 1 {
-		log.Warn(fmt.Sprintf("Miner is already in the process of shutting down"))
-		return
+	log.Info("try stop miner")
+	if err := m.Service.Stop(); err != nil {
+		return err
 	}
 	log.Info("Stop Miner...")
 
 	close(m.quit)
 	m.wg.Wait()
+
+	return nil
 }
 
 func (m *Miner) handler() {
@@ -424,10 +424,10 @@ func (m *Miner) IsEnable() bool {
 	if !m.cfg.Miner {
 		return false
 	}
-	if atomic.LoadInt32(&m.shutdown) != 0 {
+	if m.IsShutdown() {
 		return false
 	}
-	if atomic.LoadInt32(&m.started) == 0 {
+	if !m.IsStarted() {
 		return false
 	}
 	return true
@@ -462,7 +462,7 @@ func (m *Miner) handleStallSample() {
 
 func (m *Miner) StartCPUMining() {
 	// Ignore if we are shutting down.
-	if atomic.LoadInt32(&m.shutdown) != 0 {
+	if m.IsShutdown() {
 		return
 	}
 
@@ -473,7 +473,7 @@ func (m *Miner) CPUMiningGenerate(discreteNum int, block chan *hash.Hash, powTyp
 	if err := m.CanMining(); err != nil {
 		return err
 	}
-	if atomic.LoadInt32(&m.started) == 0 {
+	if !m.IsStarted() {
 		if !m.cfg.Miner {
 			m.cfg.Miner = true
 		}
@@ -483,7 +483,7 @@ func (m *Miner) CPUMiningGenerate(discreteNum int, block chan *hash.Hash, powTyp
 		}
 	}
 	// Ignore if we are shutting down.
-	if atomic.LoadInt32(&m.shutdown) != 0 {
+	if m.IsShutdown() {
 		return fmt.Errorf("Miner is quit")
 	}
 	m.msgChan <- &CPUMiningGenerateMsg{discreteNum: discreteNum, block: block, powType: powType}
@@ -492,7 +492,7 @@ func (m *Miner) CPUMiningGenerate(discreteNum int, block chan *hash.Hash, powTyp
 
 func (m *Miner) BlockChainChange() {
 	// Ignore if we are shutting down.
-	if atomic.LoadInt32(&m.shutdown) != 0 {
+	if m.IsShutdown() {
 		return
 	}
 	if err := m.CanMining(); err != nil {
@@ -504,7 +504,7 @@ func (m *Miner) BlockChainChange() {
 
 func (m *Miner) MempoolChange() {
 	// Ignore if we are shutting down.
-	if atomic.LoadInt32(&m.shutdown) != 0 {
+	if m.IsShutdown() {
 		return
 	}
 	if m.worker == nil {
@@ -517,7 +517,7 @@ func (m *Miner) MempoolChange() {
 }
 
 func (m *Miner) GBTMining(request *json.TemplateRequest, reply chan *gbtResponse) error {
-	if atomic.LoadInt32(&m.started) == 0 {
+	if !m.IsStarted() {
 		if !m.cfg.Miner {
 			m.cfg.Miner = true
 		}
@@ -527,7 +527,7 @@ func (m *Miner) GBTMining(request *json.TemplateRequest, reply chan *gbtResponse
 		}
 	}
 	// Ignore if we are shutting down.
-	if atomic.LoadInt32(&m.shutdown) != 0 {
+	if m.IsShutdown() {
 		return fmt.Errorf("Miner is shutdown")
 	}
 	if err := m.CanMining(); err != nil {
@@ -543,7 +543,7 @@ func (m *Miner) RemoteMining(powType pow.PowType, reply chan *gbtResponse) error
 		return fmt.Errorf("Miner is disable. You can enable by --miner.")
 	}
 	// Ignore if we are shutting down.
-	if atomic.LoadInt32(&m.shutdown) != 0 {
+	if m.IsShutdown() {
 		return fmt.Errorf("Miner is shutdown")
 	}
 	if err := m.CanMining(); err != nil {

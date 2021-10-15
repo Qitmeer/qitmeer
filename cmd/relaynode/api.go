@@ -10,14 +10,14 @@ import (
 	"github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/node"
 	"github.com/Qitmeer/qitmeer/params"
-	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/api"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/version"
 	"time"
 )
 
-func (node *Node) api() rpc.API {
-	return rpc.API{
+func (node *Node) api() api.API {
+	return api.API{
 		NameSpace: cmds.DefaultServiceNameSpace,
 		Service:   NewPublicRelayAPI(node),
 		Public:    true,
@@ -34,7 +34,7 @@ func NewPublicRelayAPI(node *Node) *PublicRelayAPI {
 
 // Return the RPC info
 func (api *PublicRelayAPI) GetRpcInfo() (interface{}, error) {
-	rs := api.node.rpcServer.ReqStatus
+	rs := api.node.GetRpcServer().ReqStatus
 	jrs := []*cmds.JsonRequestStatus{}
 	for _, v := range rs {
 		jrs = append(jrs, v.ToJson())

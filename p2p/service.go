@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"encoding/base64"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/event"
 	pv "github.com/Qitmeer/qitmeer/core/protocol"
 	"github.com/Qitmeer/qitmeer/node/notify"
+	"github.com/Qitmeer/qitmeer/node/service"
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/discover"
 	"github.com/Qitmeer/qitmeer/p2p/encoder"
@@ -61,11 +61,9 @@ var (
 )
 
 type Service struct {
+	service.Service
 	cfg           *common.Config
-	ctx           context.Context
-	cancel        context.CancelFunc
 	exclusionList *ristretto.Cache
-	started       bool
 	isPreGenesis  bool
 	privKey       *ecdsa.PrivateKey
 	metaData      *pb.MetaData
@@ -88,8 +86,8 @@ type Service struct {
 }
 
 func (s *Service) Start() error {
-	if s.started {
-		return fmt.Errorf("Attempted to start p2p service when it was already started")
+	if err := s.Service.Start(); err != nil {
+		return err
 	}
 	log.Info("P2P Service Start")
 
@@ -99,12 +97,11 @@ func (s *Service) Start() error {
 	}
 
 	s.isPreGenesis = false
-	s.started = true
 
 	var peersToWatch []string
 	if s.cfg.RelayNodeAddr != "" {
 		peersToWatch = append(peersToWatch, s.cfg.RelayNodeAddr)
-		if err := dialRelayNode(s.ctx, s.host, s.cfg.RelayNodeAddr); err != nil {
+		if err := dialRelayNode(s.Context(), s.host, s.cfg.RelayNodeAddr); err != nil {
 			log.Warn(fmt.Sprintf("Could not dial relay node:%v", err))
 		}
 	}
@@ -115,8 +112,6 @@ func (s *Service) Start() error {
 			return err
 		}
 	}
-
-	s.started = true
 
 	_, bootstrapAddrs := parseGenericAddrs(s.cfg.BootstrapNodeAddr)
 	if len(bootstrapAddrs) > 0 {
@@ -139,13 +134,13 @@ func (s *Service) Start() error {
 
 	// Periodic functions.
 	if len(peersToWatch) > 0 {
-		runutil.RunEvery(s.ctx, s.sy.PeerInterval, func() {
+		runutil.RunEvery(s.Context(), s.sy.PeerInterval, func() {
 			s.ensurePeerConnections(peersToWatch)
 		})
 	}
 
-	runutil.RunEvery(s.ctx, time.Hour, s.Peers().Decay)
-	runutil.RunEvery(s.ctx, refreshRate, func() {
+	runutil.RunEvery(s.Context(), time.Hour, s.Peers().Decay)
+	runutil.RunEvery(s.Context(), refreshRate, func() {
 		s.RefreshQNR()
 	})
 
@@ -170,15 +165,16 @@ func (s *Service) Start() error {
 }
 
 // Started returns true if the p2p service has successfully started.
-func (s *Service) Started() bool {
-	return s.started
-}
+//func (s *Service) Started() bool {
+//	return s.started
+//}
 
 func (s *Service) Stop() error {
 	log.Info("P2P Service Stop")
+	if err := s.Service.Stop(); err != nil {
+		return err
+	}
 
-	s.cancel()
-	s.started = false
 	if s.dv5Listener != nil {
 		s.dv5Listener.Close()
 	}
@@ -254,7 +250,7 @@ func (s *Service) connectWithPeer(info peer.AddrInfo, force bool) error {
 	} else {
 		pe.ResetBad()
 	}
-	if err := s.host.Connect(s.ctx, info); err != nil {
+	if err := s.host.Connect(s.Context(), info); err != nil {
 		return err
 	}
 	return nil
@@ -296,7 +292,7 @@ func (s *Service) listenForNewNodes() {
 	defer iterator.Close()
 	for {
 		// Exit if service's context is canceled
-		if s.ctx.Err() != nil {
+		if s.Context().Err() != nil {
 			break
 		}
 		if s.isPeerAtLimit() {
@@ -336,7 +332,7 @@ func (s *Service) RefreshQNR() {
 func (s *Service) pingPeers() {
 	for _, pid := range s.Peers().Connected() {
 		go func(id peer.ID) {
-			if err := s.sy.SendPingRequest(s.ctx, id); err != nil {
+			if err := s.sy.SendPingRequest(s.Context(), id); err != nil {
 				log.Error("Failed to ping peer:id=%s  %v", id, err)
 			}
 		}(pid)
@@ -366,7 +362,7 @@ func (s *Service) Disconnect(pid peer.ID) error {
 
 // Connect to a specific peer.
 func (s *Service) Connect(pi peer.AddrInfo) error {
-	return s.host.Connect(s.ctx, pi)
+	return s.host.Connect(s.Context(), pi)
 }
 
 // QNR returns the local node's current QNR.
@@ -441,10 +437,6 @@ func (s *Service) SetNotify(notify notify.Notify) {
 
 func (s *Service) Notify() notify.Notify {
 	return s.notify
-}
-
-func (s *Service) Context() context.Context {
-	return s.ctx
 }
 
 func (s *Service) Config() *common.Config {
@@ -547,18 +539,11 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 	rand.Seed(roughtime.Now().UnixNano())
 
 	var err error
-	ctx, cancel := context.WithCancel(context.Background())
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1000,
 		MaxCost:     1000,
 		BufferItems: 64,
 	})
-
-	defer func() {
-		if err != nil {
-			cancel()
-		}
-	}()
 
 	if err != nil {
 		return nil, err
@@ -628,12 +613,12 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 			LANPeers:             lanPeers,
 			IsCircuit:            cfg.Circuit,
 		},
-		ctx:           ctx,
-		cancel:        cancel,
 		exclusionList: cache,
 		isPreGenesis:  true,
 		events:        events,
 	}
+	s.InitContext()
+
 	dv5Nodes := parseBootStrapAddrs(s.cfg.BootstrapNodeAddr)
 	s.cfg.Discv5BootStrapAddr = dv5Nodes
 
@@ -661,7 +646,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 		return nil, err
 	}
 	opts := s.buildOptions(ipAddr, s.privKey)
-	h, err := libp2p.New(s.ctx, opts...)
+	h, err := libp2p.New(s.Context(), opts...)
 	if err != nil {
 		log.Error("Failed to create p2p host")
 		return nil, err
@@ -677,7 +662,7 @@ func NewService(cfg *config.Config, events *event.Feed, param *params.Params) (*
 		pubsub.WithMessageIdFn(msgIDFunction),
 	}
 
-	gs, err := pubsub.NewGossipSub(s.ctx, s.host, psOpts...)
+	gs, err := pubsub.NewGossipSub(s.Context(), s.host, psOpts...)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to start pubsub:%v", err))
 		return nil, err

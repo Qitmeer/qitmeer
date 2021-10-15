@@ -121,7 +121,7 @@ func (s *Service) buildOptions(ip net.IP, priKey *ecdsa.PrivateKey) []libp2p.Opt
 	}
 	log.Info(fmt.Sprintf("Start Peers from:%s", dsPath))
 
-	ps, err := pstoreds.NewPeerstore(s.ctx, peerDS, pstoreds.DefaultOpts())
+	ps, err := pstoreds.NewPeerstore(s.Context(), peerDS, pstoreds.DefaultOpts())
 	if err != nil {
 		log.Error(err.Error())
 		return nil

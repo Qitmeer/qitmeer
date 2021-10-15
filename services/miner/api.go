@@ -12,11 +12,12 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/rpc"
+	"github.com/Qitmeer/qitmeer/rpc/api"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 )
 
-func (m *Miner) APIs() []rpc.API {
-	return []rpc.API{
+func (m *Miner) APIs() []api.API {
+	return []api.API{
 		{
 			NameSpace: cmds.DefaultServiceNameSpace,
 			Service:   NewPublicMinerAPI(m),
