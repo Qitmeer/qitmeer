@@ -390,7 +390,8 @@ func (m *Miner) submitBlock(block *types.SerializedBlock) (interface{}, error) {
 	for _, out := range coinbaseTxOuts {
 		coinbaseTxGenerated += uint64(out.Amount.Value)
 	}
-	return fmt.Sprintf("Block submitted accepted hash:%s order:%s height:%d amount:%d miner:%s", block.Hash(),
+	return fmt.Sprintf("Block submitted accepted hash:%s coinbaseTx:%s order:%s height:%d amount:%d miner:%s", block.Hash(),
+		block.Transactions()[0].Hash().String(),
 		blockdag.GetOrderLogStr(uint(block.Order())), block.Height(), coinbaseTxGenerated, m.worker.GetType()), nil
 }
 

@@ -7,11 +7,13 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/common/util"
 	j "github.com/Qitmeer/qitmeer/core/json"
 	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/rpc/client"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"io/ioutil"
@@ -116,6 +118,32 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Node info: %v", nodeInfo)
+	for i := 0; i < 100; i++ {
+		h, err := c.GetRemoteGBT(8)
+		if err != nil {
+			fmt.Println(err)
+		}
+		for n := uint64(0); n < 0xffffffffffff; n++ {
+			h.Pow.(*pow.MeerXKeccakV1).SetNonce(n)
+			r := hash.HashMeerXKeccakV1(h.BlockData()[:117])
+			target := "0000000000000000000000000000000000000000000000000000000000ffff7f"
+			b, _ := hex.DecodeString(target)
+			t := hash.Hash{}
+			_ = t.SetBytes(b)
+			fmt.Println(i, "===GetRemoteGBT", r.String(), t.String())
+			if pow.HashToBig(&r).Cmp(pow.HashToBig(&t)) <= 0 {
+				go func(h *types.BlockHeader, i int) {
+					txId, err := c.SubmitBlockHeader(h)
+					if err != nil {
+						fmt.Println(err)
+					}
+					fmt.Println(i, "===SubmitBlockHeader", txId)
+				}(h, i)
+
+				break
+			}
+		}
+	}
 
 	waitTime := time.Second * 300
 	log.Printf("Client shutdown in %s...\n", waitTime.String())

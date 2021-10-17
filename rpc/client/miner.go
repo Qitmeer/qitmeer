@@ -9,6 +9,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
+	"strings"
 )
 
 type FutureGetBlockTemplateResult chan *response
@@ -90,9 +91,9 @@ func (r FutureGetRemoteGBTCmdResult) Receive() (*types.BlockHeader, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	serialized, err := hex.DecodeString(string(res))
+	serialized, err := hex.DecodeString(strings.ReplaceAll(string(res), `"`, ""))
 	if err != nil {
+		fmt.Println(err.Error(), len(string(res)), string(res))
 		return nil, fmt.Errorf(err.Error())
 	}
 	var header types.BlockHeader
