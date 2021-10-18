@@ -38,14 +38,14 @@ accessible from command line.
 1. go to your 
 2. create a new config file by copying from the example config file. 
 ```bash
-$ cp example.solo.conf qitmeer-miner.conf
+$ cp example.solo.conf solo.conf
 ```
 3. edit the config file which your create, you might need to change the `mineraddress`. 
 you need to create a Qitmeer address if you don't have it. Please see [FAQ](#FAQ)  
 4. run miner with the config file
 
 ```bash
-$ ./qitmeer-miner -C pool.conf
+$ ./qitmeer-miner -C solo.conf
 ```
 
 ### Command line usage
