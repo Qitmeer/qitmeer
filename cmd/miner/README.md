@@ -2,10 +2,10 @@
 
 [![Build Status](https://travis-ci.com/Qitmeer/qitmeer/cmd/miner.svg?token=n9AoZUDqAJmhesf4MYUd&branch=master)](https://travis-ci.com/Qitmeer/qitmeer/cmd/miner)
 
-> The official GPU miner of the Qitmeer network  
+> The official CPU and Asic miner of the Qitmeer network  
 
-**Qitmeer-miner** is an GPU miner for the Qitmeer netowrk. It's the official reference implement maintained by the Qitmeer team.
-Currently it support 3 Qitmeer POW algorithms including Cuckaroo, Cuckatoo and Blake2bd.
+**Qitmeer-miner** is an CPU and Asic miner for the Qitmeer netowrk. It's the official reference implement maintained by the Qitmeer team.
+Currently it support 3 Qitmeer POW algorithms including Cuckaroo, Cuckatoo and Blake2bd,MeerXKeccak.
 
 ## Table of Contents
 * [Install](#install)
@@ -45,7 +45,7 @@ you need to create a Qitmeer address if you don't have it. Please see [FAQ](#FAQ
 4. run miner with the config file
 
 ```bash
-$ ./qitmeer-miner -C qitmeer-miner.conf
+$ ./qitmeer-miner -C pool.conf
 ```
 
 ### Command line usage
