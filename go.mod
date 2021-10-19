@@ -18,6 +18,8 @@ require (
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
 	github.com/golang/protobuf v1.4.0
 	github.com/golang/snappy v0.0.1
+	github.com/hashicorp/go-hclog v1.0.0
+	github.com/hashicorp/go-plugin v1.4.3
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/go-ds-leveldb v0.4.2
 	github.com/ipfs/go-ipfs-addr v0.0.1
@@ -54,6 +56,8 @@ require (
 	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
 	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 	gonum.org/v1/gonum v0.0.0-20190608115022-c5f01565d866
+	google.golang.org/grpc v1.27.1
+	google.golang.org/protobuf v1.23.0
 	gopkg.in/yaml.v2 v2.2.8
 )
 
