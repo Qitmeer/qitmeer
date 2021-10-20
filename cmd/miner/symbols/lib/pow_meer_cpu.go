@@ -1,4 +1,4 @@
-//+build cpu,!asic
+//+build !asic
 
 /**
 Qitmeer
