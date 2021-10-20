@@ -44,7 +44,8 @@ type ConnConfig struct {
 	// disabled.  It is recommended to always use TLS if the RPC server
 	// supports it as otherwise your username and password is sent across
 	// the wire in cleartext.
-	DisableTLS bool
+	DisableTLS         bool
+	InsecureSkipVerify bool
 
 	// Certificates are the bytes for a PEM-encoded certificate chain used
 	// for the TLS connection.  It has no effect if the DisableTLS parameter

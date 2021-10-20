@@ -103,6 +103,7 @@ func dial(config *ConnConfig) (*websocket.Conn, error) {
 			pool.AppendCertsFromPEM(config.Certificates)
 			tlsConfig.RootCAs = pool
 		}
+		tlsConfig.InsecureSkipVerify = config.InsecureSkipVerify
 		scheme = "wss"
 	}
 
