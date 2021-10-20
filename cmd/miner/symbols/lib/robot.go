@@ -252,6 +252,7 @@ func (this *QitmeerRobot) SubmitWork() {
 							this.InvalidShares++
 						}
 					}
+					this.SubmitLock.Unlock()
 				} else {
 					if !this.Pool { // solo
 						this.PendingLock.Lock()
