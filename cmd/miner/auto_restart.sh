@@ -1,11 +1,13 @@
 #!/bin/bash
- 
+
+APP_NAME=qitmeer-miner
 while true
-do 
-    procnum=`ps -ef|grep "miner"|grep -v grep|wc -l`
+do
+    procnum=`ps -ec|grep "$APP_NAME"|grep -v grep|wc -l`
    if [ $procnum -eq 0 ]; then
-        echo "./linux-miner -C solo.conf >>/tmp/miner.log 2>&1 &"
-       ./qitmeer-miner -C pool.conf >> miner.log 2>&1 &
+        echo "./build/bin/$APP_NAME -C pool.conf >> $APP_NAME.log 2>&1 &"
+       ./build/bin/$APP_NAME -C pool.conf >> $APP_NAME.log 2>&1 &
+       #./build/bin/$APP_NAME -C solo.conf >> $APP_NAME.log 2>&1 &
    fi
    sleep 1
 done
