@@ -103,6 +103,16 @@ type GetBlockTemplateResult struct {
 	CoinbaseVersion string        `json:"coinbase_version"`
 }
 
+// GetBlockTemplateResult models the data returned from the getblocktemplate
+type SubmitBlockResult struct {
+	BlockHash      string `json:"block_hash"`
+	CoinbaseTxID   string `json:"coinbase_txid"`
+	Order          string `json:"order"`
+	Height         int64  `json:"height"`
+	CoinbaseAmount uint64 `json:"coinbase_amount"`
+	MinerType      string `json:"miner_type"`
+}
+
 type MinerInfoResult struct {
 	Type          string `json:"type"`
 	Pow           string `json:"pow"`

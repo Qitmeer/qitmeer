@@ -115,17 +115,17 @@ func (c *Client) GetRemoteGBT(powType pow.PowType) (*types.BlockHeader, error) {
 
 type FutureSubmitBlockHeaderResult chan *response
 
-func (r FutureSubmitBlockHeaderResult) Receive() (string, error) {
+func (r FutureSubmitBlockHeaderResult) Receive() (*j.SubmitBlockResult, error) {
 	res, err := receiveFuture(r)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	var result string
+	var result j.SubmitBlockResult
 	err = json.Unmarshal(res, &result)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return result, nil
+	return &result, nil
 }
 
 func (c *Client) SubmitBlockHeaderAsync(header *types.BlockHeader) FutureSubmitBlockHeaderResult {
@@ -133,6 +133,6 @@ func (c *Client) SubmitBlockHeaderAsync(header *types.BlockHeader) FutureSubmitB
 	return c.sendCmd(cmd)
 }
 
-func (c *Client) SubmitBlockHeader(header *types.BlockHeader) (string, error) {
+func (c *Client) SubmitBlockHeader(header *types.BlockHeader) (*j.SubmitBlockResult, error) {
 	return c.SubmitBlockHeaderAsync(header).Receive()
 }

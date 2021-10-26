@@ -13,7 +13,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/rpc/client"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -83,14 +82,7 @@ func (this *QitmeerWork) Submit(header *types.BlockHeader, gbtID string) (string
 	defer this.Unlock()
 	this.Rpc.SubmitID++
 	id := fmt.Sprintf("miner_submit_gbtID:%s_id:%d", gbtID, this.Rpc.SubmitID)
-	fmt.Println("header", header.ParentRoot.String())
-	var res string
-	var err error
-	common.Timeout(func() {
-		res, err = this.WsClient.SubmitBlockHeader(header)
-	}, 15, func() {
-		err = errors.New("submit timeout")
-	})
+	res, err := this.WsClient.SubmitBlockHeader(header)
 	if err != nil {
 		common.MinerLoger.Error("[submit error] " + id + " " + err.Error())
 		if strings.Contains(err.Error(), "The tips of block is expired") {
@@ -101,13 +93,7 @@ func (this *QitmeerWork) Submit(header *types.BlockHeader, gbtID string) (string
 		}
 		return "", 0, errors.New("[submit data failed]" + err.Error())
 	}
-	arr := strings.Split(res, "coinbaseTx:")
-	arr = strings.Split(arr[1], " ")
-	txID := arr[0]
-	arr = strings.Split(res, "height:")
-	arr = strings.Split(arr[1], " ")
-	height, _ := strconv.Atoi(arr[0])
-	return txID, height, err
+	return res.CoinbaseTxID, int(res.Height), err
 }
 
 // pool get work

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/cmd/miner/common"
 	"github.com/Qitmeer/qitmeer/cmd/miner/core"
@@ -244,7 +245,9 @@ func (this *QitmeerRobot) SubmitWork() {
 					blockHash = header.BlockHash().String()
 					common.Timeout(func() {
 						txID, height, err = this.Work.Submit(&header, gbtID)
-					}, int64(this.Cfg.OptionConfig.Timeout), func() {})
+					}, int64(this.Cfg.OptionConfig.Timeout), func() {
+						err = errors.New("submit timeout")
+					})
 				}
 				if err != nil {
 					if err != ErrSameWork || err == ErrSameWork {
@@ -253,11 +256,6 @@ func (this *QitmeerRobot) SubmitWork() {
 						} else {
 							this.InvalidShares++
 						}
-					}
-					if !this.Pool {
-						// if submit error
-						r := this.Work.Get()
-						this.NotifyWork(r)
 					}
 					this.SubmitLock.Unlock()
 				} else {

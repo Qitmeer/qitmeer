@@ -84,7 +84,6 @@ func (this *MeerCrypto) Mine(wg *sync.WaitGroup) {
 		}
 		nonce := this.NonceStart
 		this.Started = time.Now().Unix()
-		hasSubmit := false
 		this.Update()
 		for {
 			select {
@@ -110,15 +109,11 @@ func (this *MeerCrypto) Mine(wg *sync.WaitGroup) {
 				common.MinerLoger.Debug(fmt.Sprintf("device #%d found hash : %s nonce:%d target:%064x", this.MinerId, h, nonce, this.header.TargetDiff))
 				subm := hex.EncodeToString(hData[:117])
 				if !this.Pool {
-					if hasSubmit {
-						break
-					}
 					subm += "-" + fmt.Sprintf("%d", this.Work.Block.GBTID)
 				} else {
 					subm += "-" + this.header.JobID + "-" + this.header.Exnonce2
 				}
 				this.SubmitData <- subm
-				hasSubmit = true
 			}
 		}
 	}
