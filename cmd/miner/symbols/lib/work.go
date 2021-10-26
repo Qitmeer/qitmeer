@@ -83,7 +83,14 @@ func (this *QitmeerWork) Submit(header *types.BlockHeader, gbtID string) (string
 	defer this.Unlock()
 	this.Rpc.SubmitID++
 	id := fmt.Sprintf("miner_submit_gbtID:%s_id:%d", gbtID, this.Rpc.SubmitID)
-	res, err := this.WsClient.SubmitBlockHeader(header)
+	fmt.Println("header", header.ParentRoot.String())
+	var res string
+	var err error
+	common.Timeout(func() {
+		res, err = this.WsClient.SubmitBlockHeader(header)
+	}, 15, func() {
+		err = errors.New("submit timeout")
+	})
 	if err != nil {
 		common.MinerLoger.Error("[submit error] " + id + " " + err.Error())
 		if strings.Contains(err.Error(), "The tips of block is expired") {

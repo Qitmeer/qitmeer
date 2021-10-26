@@ -242,7 +242,9 @@ func (this *QitmeerRobot) SubmitWork() {
 						continue
 					}
 					blockHash = header.BlockHash().String()
-					txID, height, err = this.Work.Submit(&header, gbtID)
+					common.Timeout(func() {
+						txID, height, err = this.Work.Submit(&header, gbtID)
+					}, int64(this.Cfg.OptionConfig.Timeout), func() {})
 				}
 				if err != nil {
 					if err != ErrSameWork || err == ErrSameWork {
@@ -251,6 +253,11 @@ func (this *QitmeerRobot) SubmitWork() {
 						} else {
 							this.InvalidShares++
 						}
+					}
+					if !this.Pool {
+						// if submit error
+						r := this.Work.Get()
+						this.NotifyWork(r)
 					}
 					this.SubmitLock.Unlock()
 				} else {
@@ -289,10 +296,10 @@ func (this *QitmeerRobot) SubmitWork() {
 						common.MinerLoger.Info(fmt.Sprintf("Submit block, block hash=%s , height=%d",
 							blockHash, height))
 						this.PendingLock.Unlock()
-						this.SubmitLock.Unlock()
 					} else {
 						this.ValidShares++
 					}
+					this.SubmitLock.Unlock()
 				}
 			}
 		}
@@ -457,7 +464,6 @@ func (this *QitmeerRobot) WsConnect() {
 		}
 		connCfg.Certificates = certs
 	}
-
 	this.WsClient, err = client.New(connCfg, &ntfnHandlers)
 	if err != nil {
 		common.MinerLoger.Error(err.Error())
