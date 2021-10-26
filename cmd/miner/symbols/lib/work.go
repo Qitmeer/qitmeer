@@ -13,7 +13,6 @@ import (
 	"github.com/Qitmeer/qitmeer/core/types"
 	"github.com/Qitmeer/qitmeer/core/types/pow"
 	"github.com/Qitmeer/qitmeer/rpc/client"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -94,13 +93,7 @@ func (this *QitmeerWork) Submit(header *types.BlockHeader, gbtID string) (string
 		}
 		return "", 0, errors.New("[submit data failed]" + err.Error())
 	}
-	arr := strings.Split(res, "coinbaseTx:")
-	arr = strings.Split(arr[1], " ")
-	txID := arr[0]
-	arr = strings.Split(res, "height:")
-	arr = strings.Split(arr[1], " ")
-	height, _ := strconv.Atoi(arr[0])
-	return txID, height, err
+	return res.CoinbaseTxID, int(res.Height), err
 }
 
 // pool get work
