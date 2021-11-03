@@ -51,6 +51,6 @@ func (a *LockAmount) GetAmount() int64 {
 	return a.amount
 }
 
-func NewShowAmount(amount int64) *LockAmount {
+func NewLockAmount(amount int64) *LockAmount {
 	return &LockAmount{amount: amount}
 }

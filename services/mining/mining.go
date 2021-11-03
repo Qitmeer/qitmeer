@@ -165,7 +165,7 @@ func createCoinbaseTx(subsidyCache *blockchain.SubsidyCache, coinbaseScript []by
 			PkScript: opReturnPkScript,
 		}
 	} else {
-		opReturnOutput = opreturn.GetOPReturnTxOutput(opreturn.NewShowAmount(int64(subsidy)))
+		opReturnOutput = opreturn.GetOPReturnTxOutput(opreturn.NewLockAmount(int64(subsidy)))
 	}
 
 	return types.NewTx(tx), taxOutput, opReturnOutput, nil
