@@ -404,7 +404,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 		}
 		return nil, nil, err
 	}
-	if _,exist:=txFees[types.MEERID];!exist {
+	if _, exist := txFees[types.MEERID]; !exist {
 		str := fmt.Sprintf("transaction %v must contain at least the utxo of base coin (MEER)", txHash)
 		return nil, nil, txRuleError(message.RejectInvalid, str)
 	}
@@ -464,7 +464,7 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	if txFee.Value < minFee {
 		str := fmt.Sprintf("transaction %v has %d(%s) fees which "+
 			"is under the required amount of %v(%s), tx size is %v bytes, policy-rate is %v/byte.", txHash,
-			txFee.Value,txFee.Id.Name(), minFee,txFee.Id.Name(), serializedSize, mp.cfg.Policy.MinRelayTxFee.Value/1000)
+			txFee.Value, txFee.Id.Name(), minFee, txFee.Id.Name(), serializedSize, mp.cfg.Policy.MinRelayTxFee.Value/1000)
 		return nil, nil, txRuleError(message.RejectInsufficientFee, str)
 	}
 

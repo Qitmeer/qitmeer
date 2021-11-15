@@ -924,12 +924,12 @@ func NewPrivateTxAPI(tm *TxManager) *PrivateTxAPI {
 }
 
 func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string, tokenPrivkeyStr *string) (interface{}, error) {
-	kdbs,pkScripts,err:=parsePrivkeyStr(privkeyStr)
+	kdbs, pkScripts, err := parsePrivkeyStr(privkeyStr)
 	if err != nil {
 		return nil, err
 	}
 	if len(kdbs) < 1 {
-		return nil,fmt.Errorf("privatekey lack")
+		return nil, fmt.Errorf("privatekey lack")
 	}
 
 	if len(rawTxStr)%2 != 0 {
@@ -1042,12 +1042,12 @@ func (api *PrivateTxAPI) TxSign(privkeyStr string, rawTxStr string, tokenPrivkey
 			var kdb txscript.KeyClosure
 			if i < len(kdbs) {
 				pks = pkScripts[i]
-			}else{
+			} else {
 				pks = pkScripts[len(pkScripts)-1]
 			}
 			if i < len(kdbs) {
 				kdb = kdbs[i]
-			}else{
+			} else {
 				kdb = kdbs[len(kdbs)-1]
 			}
 			if redeemTx.LockTime != 0 {
@@ -1250,39 +1250,38 @@ func (api *PublicTxAPI) CreateTokenRawTransaction(txtype string, coinId uint16, 
 	return mtxHex, nil
 }
 
-func parsePrivkeyStr(privkeyStr string) ([]txscript.KeyClosure,[][]byte,error) {
-	kdbs:=[]txscript.KeyClosure{}
-	pkss:=[][]byte{}
+func parsePrivkeyStr(privkeyStr string) ([]txscript.KeyClosure, [][]byte, error) {
+	kdbs := []txscript.KeyClosure{}
+	pkss := [][]byte{}
 
-	pkStrs:=strings.Split(privkeyStr,":")
+	pkStrs := strings.Split(privkeyStr, ":")
 	param := params.ActiveNetParams.Params
-	for _,pkStr:=range pkStrs {
+	for _, pkStr := range pkStrs {
 		privkeyByte, err := hex.DecodeString(pkStr)
 		if err != nil {
-			return nil,nil, err
+			return nil, nil, err
 		}
 		if len(privkeyByte) != 32 {
-			return nil,nil, fmt.Errorf("error:%d", len(privkeyByte))
+			return nil, nil, fmt.Errorf("error:%d", len(privkeyByte))
 		}
 		privateKey, pubKey := ecc.Secp256k1.PrivKeyFromBytes(privkeyByte)
 		h160 := hash.Hash160(pubKey.SerializeCompressed())
 
-
 		addr, err := address.NewPubKeyHashAddress(h160, param, ecc.ECDSA_Secp256k1)
 		if err != nil {
-			return nil,nil, err
+			return nil, nil, err
 		}
 		// Create a new script which pays to the provided address.
 		pkScript, err := txscript.PayToAddrScript(addr)
 		if err != nil {
-			return nil,nil, err
+			return nil, nil, err
 		}
 		var kdb txscript.KeyClosure = func(types.Address) (ecc.PrivateKey, bool, error) {
 			return privateKey, true, nil // compressed is true
 		}
 
-		kdbs=append(kdbs,kdb)
-		pkss = append(pkss,pkScript)
+		kdbs = append(kdbs, kdb)
+		pkss = append(pkss, pkScript)
 	}
-	return kdbs,pkss,nil
+	return kdbs, pkss, nil
 }
