@@ -257,7 +257,15 @@ func (this *QitmeerRobot) SubmitWork() {
 							this.InvalidShares++
 						}
 					}
+					r := this.Work.Get()
 					this.SubmitLock.Unlock()
+					if this.Work.Block != nil {
+						common.MinerLoger.Info("New Block Coming", "height", height)
+					}
+					this.SubmitLock.Unlock()
+					time.AfterFunc(1, func() {
+						this.NotifyWork(r)
+					})
 				} else {
 					if !this.Pool { // solo
 						this.PendingLock.Lock()
