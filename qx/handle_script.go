@@ -11,7 +11,7 @@ func ScriptDecode(rawScriptStr string) {
 	if err != nil {
 		ErrExit(err)
 	}
-	out, err:= txscript.DisasmString(scriptBytes)
+	out, err := txscript.DisasmString(scriptBytes)
 	if err != nil {
 		ErrExit(err)
 	}
@@ -23,5 +23,5 @@ func ScriptEncode(rawOps string) {
 	if err != nil {
 		ErrExit(err)
 	}
-	fmt.Printf("%x\n",bytes)
+	fmt.Printf("%x\n", bytes)
 }
