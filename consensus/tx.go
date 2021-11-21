@@ -8,9 +8,9 @@ const (
 )
 
 type Tx interface {
-	Type() types.TxType
-	From() string
-	To() string
-	Value() uint64
-	Data() []byte
+	GetType() types.TxType
+	GetFrom() string
+	GetTo() string
+	GetValue() uint64
+	GetData() []byte
 }

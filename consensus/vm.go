@@ -6,9 +6,9 @@ package consensus
 
 type VM interface {
 	GetID() string
-	Initialize(ctx *Context) error
+	Initialize(ctx Context) error
 	Bootstrapping() error
 	Bootstrapped() error
 	Shutdown() error
-	Version() (string, error)
+	Version() string
 }
