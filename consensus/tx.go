@@ -8,7 +8,7 @@ const (
 )
 
 type Tx interface {
-	GetType() types.TxType
+	GetTxType() types.TxType
 	GetFrom() string
 	GetTo() string
 	GetValue() uint64

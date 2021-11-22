@@ -18,4 +18,6 @@ type ChainVM interface {
 	ParseBlock([]byte) (Block, error)
 
 	LastAccepted() (*hash.Hash, error)
+
+	GetBalance(string) (int64, error)
 }
