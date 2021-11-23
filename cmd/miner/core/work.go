@@ -6,7 +6,7 @@ package core
 import (
 	"context"
 	"github.com/Qitmeer/qitmeer/cmd/miner/common"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/core/types"
 	"sync"
 )
 

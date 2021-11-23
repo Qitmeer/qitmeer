@@ -1,7 +1,7 @@
 package blockdag
 
 import (
-	s "github.com/Qitmeer/qitmeer/core/serialization"
+	s "github.com/Qitmeer/qng-core/core/serialization"
 	"io"
 )
 

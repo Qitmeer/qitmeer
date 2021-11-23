@@ -11,7 +11,7 @@ package blockdag
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qng-core/common/hash"
 	"testing"
 )
 

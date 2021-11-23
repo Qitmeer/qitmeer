@@ -6,9 +6,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/math"
-	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/common/math"
+	"github.com/Qitmeer/qng-core/crypto/ecc/secp256k1"
 	"math/big"
 	"os"
 )

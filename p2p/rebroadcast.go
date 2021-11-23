@@ -1,10 +1,10 @@
 package p2p
 
 import (
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/params"
 	"sync"
 	"sync/atomic"
 	"time"

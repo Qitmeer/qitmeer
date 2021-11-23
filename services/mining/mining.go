@@ -8,15 +8,15 @@ package mining
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockchain/opreturn"
+	"github.com/Qitmeer/qng-core/core/blockchain/opreturn"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/merkle"
-	s "github.com/Qitmeer/qitmeer/core/serialization"
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/core/merkle"
+	s "github.com/Qitmeer/qng-core/core/serialization"
+	"github.com/Qitmeer/qng-core/core/types"
+	"github.com/Qitmeer/qng-core/engine/txscript"
+	"github.com/Qitmeer/qng-core/params"
 	"time"
 )
 

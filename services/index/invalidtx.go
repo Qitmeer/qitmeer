@@ -2,8 +2,8 @@ package index
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 )
 

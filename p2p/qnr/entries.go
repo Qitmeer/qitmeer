@@ -9,7 +9,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/Qitmeer/qitmeer/common/encode/rlp"
+	"github.com/Qitmeer/qng-core/common/encode/rlp"
 )
 
 // Entry is implemented by known node record entry types.

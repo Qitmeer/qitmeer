@@ -7,9 +7,9 @@ package common
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/cmd/miner/common/go-flags"
-	"github.com/Qitmeer/qitmeer/core/address"
-	l "github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/core/address"
+	l "github.com/Qitmeer/qng-core/log"
+	"github.com/Qitmeer/qng-core/params"
 	"log"
 	"net"
 	"os"

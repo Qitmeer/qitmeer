@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Qitmeer/qitmeer/common/mclock"
+	"github.com/Qitmeer/qng-core/common/mclock"
 	"github.com/Qitmeer/qitmeer/p2p/netutil"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"

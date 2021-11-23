@@ -2,7 +2,7 @@ package blockdag
 
 import (
 	"container/list"
-	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 )

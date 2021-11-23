@@ -2,8 +2,8 @@ package notifymgr
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qng-core/core/types"
+	"github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qitmeer/p2p"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/libp2p/go-libp2p-core/peer"

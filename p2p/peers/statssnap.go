@@ -1,10 +1,10 @@
 package peers
 
 import (
-	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/protocol"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/core/protocol"
+	"github.com/Qitmeer/qng-core/params"
 	"github.com/libp2p/go-libp2p-core/network"
 	"time"
 )

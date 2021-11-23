@@ -3,12 +3,12 @@ package blockdag
 import (
 	"container/list"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/math"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/common/math"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
-	s "github.com/Qitmeer/qitmeer/core/serialization"
-	"github.com/Qitmeer/qitmeer/core/types"
+	s "github.com/Qitmeer/qng-core/core/serialization"
+	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
 )

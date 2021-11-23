@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
-	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/log"
+	"github.com/Qitmeer/qng-core/params"
+	"github.com/Qitmeer/qng-core/common/hash"
 	"os"
 )
 

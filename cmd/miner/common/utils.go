@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qng-core/core/types/pow"
 	"log"
 	"math"
 	"math/big"

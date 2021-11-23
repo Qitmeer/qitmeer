@@ -6,10 +6,10 @@ package main
 
 import (
 	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/json"
-	"github.com/Qitmeer/qitmeer/core/protocol"
+	"github.com/Qitmeer/qng-core/core/json"
+	"github.com/Qitmeer/qng-core/core/protocol"
 	"github.com/Qitmeer/qitmeer/node"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/params"
 	"github.com/Qitmeer/qitmeer/rpc/api"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/version"

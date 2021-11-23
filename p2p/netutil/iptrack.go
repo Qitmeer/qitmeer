@@ -7,7 +7,7 @@ package netutil
 import (
 	"time"
 
-	"github.com/Qitmeer/qitmeer/common/mclock"
+	"github.com/Qitmeer/qng-core/common/mclock"
 )
 
 // IPTracker predicts the external endpoint, i.e. IP address and port, of the local host

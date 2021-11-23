@@ -3,9 +3,9 @@ package blockdag
 import (
 	"bytes"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qng-core/common/hash"
 )
 
 // DBPutDAGBlock stores the information needed to reconstruct the provided

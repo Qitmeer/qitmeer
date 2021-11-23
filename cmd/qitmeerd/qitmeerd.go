@@ -6,11 +6,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qng-core/config"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
-	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qitmeer/node"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/params"
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/Qitmeer/qitmeer/services/index"
 	"github.com/Qitmeer/qitmeer/version"

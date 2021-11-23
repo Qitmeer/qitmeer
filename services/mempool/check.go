@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/message"
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qng-core/core/types"
+	"github.com/Qitmeer/qng-core/engine/txscript"
 	"time"
 )
 

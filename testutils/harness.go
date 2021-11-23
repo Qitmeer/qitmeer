@@ -6,8 +6,8 @@ package testutils
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/protocol"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/core/protocol"
+	"github.com/Qitmeer/qng-core/params"
 	"github.com/Qitmeer/qitmeer/rpc/client"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"io/ioutil"

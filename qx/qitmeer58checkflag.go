@@ -5,7 +5,7 @@ package qx
 
 import (
 	"encoding/hex"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/params"
 )
 
 type QitmeerBase58checkVersionFlag struct {

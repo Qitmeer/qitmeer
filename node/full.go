@@ -6,7 +6,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/coinbase"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qng-core/engine/txscript"
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/node/service"
 	"github.com/Qitmeer/qitmeer/p2p"

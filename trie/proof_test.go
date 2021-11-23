@@ -11,9 +11,9 @@ package trie
 import (
 	"bytes"
 	crand "crypto/rand"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/roughtime"
-	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/common/roughtime"
+	"github.com/Qitmeer/qng-core/common/util"
 	"github.com/Qitmeer/qitmeer/database/statedb"
 	mrand "math/rand"
 	"testing"

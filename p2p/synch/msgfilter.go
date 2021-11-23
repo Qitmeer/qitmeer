@@ -3,7 +3,7 @@ package synch
 import (
 	"context"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	libp2pcore "github.com/libp2p/go-libp2p-core"

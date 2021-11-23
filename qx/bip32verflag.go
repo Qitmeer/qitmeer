@@ -5,8 +5,8 @@ package qx
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/crypto/bip32"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/crypto/bip32"
+	"github.com/Qitmeer/qng-core/params"
 )
 
 var (

@@ -6,7 +6,7 @@ package lib
 import (
 	"encoding/hex"
 	"fmt"
-	qitmeer "github.com/Qitmeer/qitmeer/common/hash"
+	qitmeer "github.com/Qitmeer/qng-core/common/hash"
 	"testing"
 )
 

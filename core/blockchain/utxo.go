@@ -3,14 +3,14 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
-	"github.com/Qitmeer/qitmeer/core/serialization"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/core/serialization"
+	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/engine/txscript"
+	"github.com/Qitmeer/qng-core/params"
 	"sync"
 )
 

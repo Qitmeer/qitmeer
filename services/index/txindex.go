@@ -8,11 +8,11 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qng-core/log"
 )
 
 const (

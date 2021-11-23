@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qng-core/core/types/pow"
 	"sync"
 	"sync/atomic"
 )

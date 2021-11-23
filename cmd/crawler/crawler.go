@@ -4,7 +4,7 @@ import (
 	"github.com/Qitmeer/qitmeer/cmd/crawler/config"
 	"github.com/Qitmeer/qitmeer/cmd/crawler/log"
 	"github.com/Qitmeer/qitmeer/cmd/crawler/node"
-	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qng-core/common/roughtime"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
 	_ "github.com/Qitmeer/qitmeer/services/common"
 	"github.com/urfave/cli/v2"

@@ -2,7 +2,7 @@ package client
 
 import (
 	"errors"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 )
 

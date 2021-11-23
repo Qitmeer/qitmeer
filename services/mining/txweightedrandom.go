@@ -1,9 +1,9 @@
 package mining
 
 import (
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/roughtime"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/common/roughtime"
+	"github.com/Qitmeer/qng-core/core/types"
 	"math/rand"
 )
 

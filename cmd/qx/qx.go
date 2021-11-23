@@ -10,9 +10,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Qitmeer/qitmeer/core/types/pow"
-	"github.com/Qitmeer/qitmeer/crypto/seed"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/core/types/pow"
+	"github.com/Qitmeer/qng-core/crypto/seed"
+	"github.com/Qitmeer/qng-core/params"
 	"github.com/Qitmeer/qitmeer/qx"
 	ver "github.com/Qitmeer/qitmeer/version"
 	"github.com/Qitmeer/qitmeer/wallet"

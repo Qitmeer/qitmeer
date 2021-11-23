@@ -7,7 +7,7 @@ package synch
 import (
 	"context"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qng-core/common/roughtime"
 	"github.com/Qitmeer/qitmeer/p2p/common"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
 	"github.com/Qitmeer/qitmeer/p2p/runutil"

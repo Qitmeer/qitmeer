@@ -12,8 +12,8 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qitmeer/metrics"
 )
 

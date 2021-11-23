@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/encode/rlp"
+	"github.com/Qitmeer/qng-core/common/encode/rlp"
 	"io"
 	"strings"
 )

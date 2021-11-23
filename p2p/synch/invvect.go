@@ -6,8 +6,8 @@ package synch
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	s "github.com/Qitmeer/qitmeer/core/serialization"
+	"github.com/Qitmeer/qng-core/common/hash"
+	s "github.com/Qitmeer/qng-core/core/serialization"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
 	"io"
 )

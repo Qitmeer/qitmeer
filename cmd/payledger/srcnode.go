@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/log"
+	"github.com/Qitmeer/qng-core/params"
 	"path"
 )
 

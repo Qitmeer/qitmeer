@@ -5,7 +5,7 @@
 package testutils_test
 
 import (
-	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qng-core/config"
 	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/rpc"
 	"github.com/Qitmeer/qitmeer/services/mempool"
