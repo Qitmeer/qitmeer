@@ -5,9 +5,9 @@ package main
 
 import (
 	"encoding/hex"
-	"github.com/Qitmeer/qitmeer/common/encode/base58"
-	"github.com/Qitmeer/qitmeer/crypto/bip32"
-	"github.com/Qitmeer/qitmeer/crypto/bip39"
+	"github.com/Qitmeer/qng-core/common/encode/base58"
+	"github.com/Qitmeer/qng-core/crypto/bip32"
+	"github.com/Qitmeer/qng-core/crypto/bip39"
 	"github.com/Qitmeer/qitmeer/qx"
 	"github.com/stretchr/testify/assert"
 	"testing"

@@ -5,7 +5,7 @@
 package common
 
 import (
-	"github.com/Qitmeer/qitmeer/common"
+	"github.com/Qitmeer/qng-core/common"
 	"github.com/minio/highwayhash"
 )
 

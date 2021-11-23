@@ -6,9 +6,9 @@ package qx
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/encode/base58"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/Qitmeer/qng-core/common/encode/base58"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/common/util"
 	"strconv"
 )
 

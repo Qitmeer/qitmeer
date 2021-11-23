@@ -4,8 +4,8 @@ package zmq
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/config"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/config"
+	"github.com/Qitmeer/qng-core/core/types"
 )
 
 type ZMQBlockRawPublishNotifier struct {

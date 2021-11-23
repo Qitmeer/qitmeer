@@ -10,8 +10,8 @@
 package database
 
 import (
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/core/types"
 )
 
 // Cursor represents a cursor over key/value pairs and nested buckets of a

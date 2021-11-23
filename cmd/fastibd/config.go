@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/util"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/common/util"
+	"github.com/Qitmeer/qng-core/params"
 	"os"
 	"path/filepath"
 	"strings"

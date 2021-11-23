@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/crypto/bip32"
-	"github.com/Qitmeer/qitmeer/crypto/bip39"
+	"github.com/Qitmeer/qng-core/crypto/bip32"
+	"github.com/Qitmeer/qng-core/crypto/bip39"
 	"os"
 )
 

@@ -9,7 +9,7 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/params"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"github.com/Qitmeer/qitmeer/rpc/websocket"
 	"io"

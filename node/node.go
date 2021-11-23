@@ -2,13 +2,13 @@
 package node
 
 import (
-	"github.com/Qitmeer/qitmeer/common/roughtime"
-	"github.com/Qitmeer/qitmeer/common/util"
-	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qng-core/common/roughtime"
+	"github.com/Qitmeer/qng-core/common/util"
+	"github.com/Qitmeer/qng-core/config"
 	"github.com/Qitmeer/qitmeer/core/event"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/node/service"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/params"
 	"sync"
 )
 

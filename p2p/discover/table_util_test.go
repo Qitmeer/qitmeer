@@ -15,7 +15,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/Qitmeer/qitmeer/crypto"
+	"github.com/Qitmeer/qng-core/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnode"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 )

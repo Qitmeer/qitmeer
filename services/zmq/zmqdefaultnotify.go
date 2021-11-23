@@ -3,8 +3,8 @@
 package zmq
 
 import (
-	"github.com/Qitmeer/qitmeer/config"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/config"
+	"github.com/Qitmeer/qng-core/core/types"
 )
 
 // This ZeroMQ notification is default for Qitmeer

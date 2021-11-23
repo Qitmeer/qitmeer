@@ -11,7 +11,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/roughtime"
+	"github.com/Qitmeer/qng-core/common/roughtime"
 	"os"
 	"time"
 )

@@ -5,7 +5,7 @@
 package qnode
 
 import (
-	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
+	"github.com/Qitmeer/qng-core/crypto/ecc/secp256k1"
 	"math/rand"
 	"net"
 	"testing"

@@ -3,8 +3,8 @@ package blockdag
 import (
 	"container/list"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/common/util"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/golang-collections/collections/stack"
 	"io"

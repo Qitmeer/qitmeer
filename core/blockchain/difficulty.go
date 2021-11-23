@@ -8,9 +8,9 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qng-core/core/types/pow"
 	"math/big"
 	"time"
 )

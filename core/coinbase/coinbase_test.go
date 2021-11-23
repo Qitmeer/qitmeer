@@ -1,8 +1,8 @@
 package coinbase
 
 import (
-	"github.com/Qitmeer/qitmeer/engine/txscript"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/engine/txscript"
+	"github.com/Qitmeer/qng-core/params"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"

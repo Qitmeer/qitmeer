@@ -1,6 +1,6 @@
 package blockdag
 
-import "github.com/Qitmeer/qitmeer/common/hash"
+import "github.com/Qitmeer/qng-core/common/hash"
 
 // HashSlice is used to sort hash list
 type HashSlice []*hash.Hash

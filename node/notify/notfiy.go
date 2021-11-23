@@ -1,7 +1,7 @@
 package notify
 
 import (
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 

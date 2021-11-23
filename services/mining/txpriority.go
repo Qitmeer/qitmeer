@@ -2,8 +2,8 @@ package mining
 
 import (
 	"container/heap"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/core/types"
 )
 
 // txPrioItem houses a transaction along with extra information that allows the

@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/Qitmeer/qitmeer/database"
-	"github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/log"
+	"github.com/Qitmeer/qng-core/params"
 	"os"
 	"path/filepath"
 )

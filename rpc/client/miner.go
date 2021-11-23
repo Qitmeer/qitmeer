@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	j "github.com/Qitmeer/qitmeer/core/json"
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/core/types/pow"
+	j "github.com/Qitmeer/qng-core/core/json"
+	"github.com/Qitmeer/qng-core/core/types"
+	"github.com/Qitmeer/qng-core/core/types/pow"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"strings"
 )

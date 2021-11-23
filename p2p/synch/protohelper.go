@@ -7,9 +7,9 @@ package synch
 import (
 	"bytes"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/core/types"
+	"github.com/Qitmeer/qng-core/core/types"
 	pb "github.com/Qitmeer/qitmeer/p2p/proto/v1"
+	"github.com/Qitmeer/qng-core/common/hash"
 )
 
 func changePBHashsToHashs(hs []*pb.Hash) []*hash.Hash {

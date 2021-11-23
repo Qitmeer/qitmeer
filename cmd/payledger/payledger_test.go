@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/core/types"
+	"github.com/Qitmeer/qng-core/params"
 	"github.com/Qitmeer/qitmeer/testutils"
 	"testing"
 	"time"

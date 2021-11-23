@@ -8,7 +8,7 @@ import (
 	"errors"
 	"github.com/Qitmeer/qitmeer/cmd/miner/common"
 	"github.com/Qitmeer/qitmeer/cmd/miner/common/socks"
-	"github.com/Qitmeer/qitmeer/core/types/pow"
+	"github.com/Qitmeer/qng-core/core/types/pow"
 	"net"
 	"strings"
 	"sync"

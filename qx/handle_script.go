@@ -3,7 +3,7 @@ package qx
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qng-core/engine/txscript"
 )
 
 func ScriptDecode(rawScriptStr string) {

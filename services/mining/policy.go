@@ -8,7 +8,7 @@ package mining
 
 import (
 	"github.com/Qitmeer/qitmeer/core/coinbase"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qng-core/engine/txscript"
 )
 
 // Policy houses the policy (configuration parameters) which is used to control

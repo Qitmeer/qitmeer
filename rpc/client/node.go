@@ -2,7 +2,7 @@ package client
 
 import (
 	"encoding/json"
-	j "github.com/Qitmeer/qitmeer/core/json"
+	j "github.com/Qitmeer/qng-core/core/json"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 )
 

@@ -2,7 +2,7 @@
 package node
 
 import (
-	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qng-core/config"
 	"github.com/Qitmeer/qitmeer/database"
 	"github.com/Qitmeer/qitmeer/node/service"
 )

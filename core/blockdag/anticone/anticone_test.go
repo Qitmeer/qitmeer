@@ -2,7 +2,7 @@ package anticone
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/params"
 	"log"
 	"testing"
 	"time"

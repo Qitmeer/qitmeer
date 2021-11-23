@@ -6,10 +6,10 @@
 package blockchain
 
 import (
-	"github.com/Qitmeer/qitmeer/core/serialization"
-	"github.com/Qitmeer/qitmeer/core/types"
-	"github.com/Qitmeer/qitmeer/crypto/ecc/secp256k1"
-	"github.com/Qitmeer/qitmeer/engine/txscript"
+	"github.com/Qitmeer/qng-core/core/serialization"
+	"github.com/Qitmeer/qng-core/core/types"
+	"github.com/Qitmeer/qng-core/crypto/ecc/secp256k1"
+	"github.com/Qitmeer/qng-core/engine/txscript"
 )
 
 // -----------------------------------------------------------------------------

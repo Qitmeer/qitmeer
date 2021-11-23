@@ -9,9 +9,9 @@
 package trie
 
 import (
-	"github.com/Qitmeer/qitmeer/common/encode/rlp"
-	nh "github.com/Qitmeer/qitmeer/common/hash"
-	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/Qitmeer/qng-core/common/encode/rlp"
+	nh "github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/common/util"
 	hh "hash"
 	"sync"
 )

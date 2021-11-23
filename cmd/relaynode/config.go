@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/util"
-	l "github.com/Qitmeer/qitmeer/log"
-	"github.com/Qitmeer/qitmeer/params"
+	"github.com/Qitmeer/qng-core/common/util"
+	l "github.com/Qitmeer/qng-core/log"
+	"github.com/Qitmeer/qng-core/params"
 	"github.com/Qitmeer/qitmeer/services/common"
 	"github.com/urfave/cli/v2"
 	"os"

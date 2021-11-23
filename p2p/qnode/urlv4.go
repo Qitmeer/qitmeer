@@ -14,8 +14,8 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/Qitmeer/qitmeer/common/math"
-	"github.com/Qitmeer/qitmeer/crypto"
+	"github.com/Qitmeer/qng-core/common/math"
+	"github.com/Qitmeer/qng-core/crypto"
 	"github.com/Qitmeer/qitmeer/p2p/qnr"
 )
 

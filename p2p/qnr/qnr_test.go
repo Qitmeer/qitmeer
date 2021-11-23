@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Qitmeer/qitmeer/common/encode/rlp"
+	"github.com/Qitmeer/qng-core/common/encode/rlp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

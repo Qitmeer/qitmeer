@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/Qitmeer/qitmeer/log"
+	"github.com/Qitmeer/qng-core/log"
 )
 
 // log is a logger that is initialized with no output filters.  This

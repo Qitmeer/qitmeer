@@ -3,8 +3,8 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/common/hash"
-	j "github.com/Qitmeer/qitmeer/core/json"
+	"github.com/Qitmeer/qng-core/common/hash"
+	j "github.com/Qitmeer/qng-core/core/json"
 	"github.com/Qitmeer/qitmeer/rpc/client/cmds"
 	"strconv"
 )

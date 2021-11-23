@@ -7,7 +7,7 @@
 package main
 
 import (
-	"github.com/Qitmeer/qitmeer/common/util"
+	"github.com/Qitmeer/qng-core/common/util"
 	"github.com/Qitmeer/qitmeer/rpc/client"
 	"io/ioutil"
 	"log"
