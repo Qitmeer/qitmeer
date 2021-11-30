@@ -18,15 +18,15 @@ import (
 )
 
 const (
-	STANDARD_TX = 0
-	LOCK_TX     = 1
-	OTHER       = 2
+	STANDARD_TX = "standard_tx"
+	LOCK_TX     = "lock_tx"
+	OTHER       = "other_tx"
 )
 
 type SignInputData struct {
 	PrivateKey string
 	Params     interface{}
-	Type       uint
+	Type       string
 }
 
 type Amount struct {
@@ -130,7 +130,7 @@ func TxSign(signInputData []SignInputData, rawTxStr string, network string) (str
 		param = &params.MixNetParams
 	}
 	if len(rawTxStr)%2 != 0 {
-		return "", fmt.Errorf("invaild raw transaction : %s", rawTxStr)
+		rawTxStr = "0" + rawTxStr
 	}
 	serializedTx, err := hex.DecodeString(rawTxStr)
 	if err != nil {
