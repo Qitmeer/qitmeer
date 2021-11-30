@@ -129,9 +129,6 @@ func TxSign(signInputData []SignInputData, rawTxStr string, network string) (str
 	case "mixnet":
 		param = &params.MixNetParams
 	}
-	if len(rawTxStr)%2 != 0 {
-		return "", fmt.Errorf("invaild raw transaction : %s", rawTxStr)
-	}
 	serializedTx, err := hex.DecodeString(rawTxStr)
 	if err != nil {
 		return "", err
