@@ -17,7 +17,6 @@ GOTO :end
 :yes
 ECHO Create an new Qitmeer 'config.conf' file
 
-echo testnet=true > config.conf
 echo datadir=./data >> config.conf
 echo logdir=./data >> config.conf
 echo listen=0.0.0.0:18130 >> config.conf
