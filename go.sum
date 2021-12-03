@@ -15,6 +15,8 @@ github.com/Qitmeer/qng-core v0.0.0-20211123060419-6dbe3abafbb5 h1:JPu8sec1+tDOjK
 github.com/Qitmeer/qng-core v0.0.0-20211123060419-6dbe3abafbb5/go.mod h1:OXIjYsQ2jal60J5FnnkglTSykeSVgYSuTkaBYWHBfR0=
 github.com/Qitmeer/qng-core v1.0.0 h1:gzZchkpFSLq4tzmrMQg69ZyQbndWIlLuRhMFMFXm69w=
 github.com/Qitmeer/qng-core v1.0.0/go.mod h1:OXIjYsQ2jal60J5FnnkglTSykeSVgYSuTkaBYWHBfR0=
+github.com/Qitmeer/qng-core v1.0.1 h1:kvWAoOK8S8Fl11INtxgYXMaL7hfTUjJNDkYVswVhPTw=
+github.com/Qitmeer/qng-core v1.0.1/go.mod h1:OXIjYsQ2jal60J5FnnkglTSykeSVgYSuTkaBYWHBfR0=
 github.com/Shopify/sarama v1.26.1/go.mod h1:NbSGBSSndYaIhRcBtY9V0U7AyH+x71bG668AuWys/yU=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=

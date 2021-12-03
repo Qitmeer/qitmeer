@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qng-core/database"
 )
 
 type INode interface {

@@ -6,7 +6,7 @@ import (
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/common/roughtime"
 	"github.com/Qitmeer/qng-core/config"
-	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qng-core/database"
 	l "github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qng-core/params"
 	"io"

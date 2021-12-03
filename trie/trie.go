@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/log"
-	"github.com/Qitmeer/qitmeer/metrics"
+	"github.com/Qitmeer/qng-core/metrics"
 )
 
 var (

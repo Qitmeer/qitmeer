@@ -7,7 +7,7 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qng-core/config"
-	_ "github.com/Qitmeer/qitmeer/database/ffldb"
+	_ "github.com/Qitmeer/qng-core/database/ffldb"
 	"github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qitmeer/node"
 	"github.com/Qitmeer/qng-core/params"

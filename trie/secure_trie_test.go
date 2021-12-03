@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/common/util"
-	"github.com/Qitmeer/qitmeer/database/statedb"
+	"github.com/Qitmeer/qng-core/database/statedb"
 	"runtime"
 	"sync"
 	"testing"

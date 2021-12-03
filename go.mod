@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/Qitmeer/crypto v0.0.0-20200516043559-dd457edff06c // indirect
 	github.com/Qitmeer/crypto/cryptonight v0.0.0-20201028030128-6ed4040ca34a // indirect
-	github.com/Qitmeer/qng-core v1.0.0
+	github.com/Qitmeer/qng-core v1.0.1
 	github.com/aristanetworks/goarista v0.0.0-20200812190859-4cb0e71f3c0e // indirect
 	github.com/cloudflare/roughtime v0.0.0-20200829152512-a9bb6267a4f5 // indirect
 	github.com/davecgh/go-spew v1.1.1
@@ -59,3 +59,4 @@ replace (
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 => github.com/golang/net v0.0.0-20181005035420-146acd28ed58
 	golang.org/x/tools v0.0.0-20181006002542-f60d9635b16a => github.com/golang/tools v0.0.0-20181006002542-f60d9635b16a
 )
+
