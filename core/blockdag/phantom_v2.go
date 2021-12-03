@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
-	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qng-core/database"
 	"io"
 )
 

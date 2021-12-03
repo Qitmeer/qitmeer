@@ -1,7 +1,7 @@
 package blockdag
 
 import (
-	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qng-core/database"
 )
 
 // update db to new version

@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qng-core/common/encode/rlp"
 	"github.com/Qitmeer/qng-core/common/hash"
-	"github.com/Qitmeer/qitmeer/database/statedb"
+	"github.com/Qitmeer/qng-core/database/statedb"
 	"github.com/Qitmeer/qng-core/log"
 )
 

@@ -17,7 +17,7 @@ import (
 	"github.com/Qitmeer/qng-core/core/serialization"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/core/types/pow"
-	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/engine/txscript"
 	"github.com/Qitmeer/qng-core/params"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"

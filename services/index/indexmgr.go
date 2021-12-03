@@ -10,7 +10,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qng-core/core/types"
-	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qng-core/params"
 	"github.com/Qitmeer/qitmeer/services/common/progresslog"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
-	_ "github.com/Qitmeer/qitmeer/database/ffldb"
+	_ "github.com/Qitmeer/qng-core/database/ffldb"
 	"github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qng-core/params"
 	"github.com/Qitmeer/qng-core/common/hash"

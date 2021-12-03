@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
-	"github.com/Qitmeer/qitmeer/database"
+	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/common/hash"
 )
 

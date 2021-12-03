@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/Qitmeer/qng-core/common/roughtime"
-	_ "github.com/Qitmeer/qitmeer/database/ffldb"
+	_ "github.com/Qitmeer/qng-core/database/ffldb"
 	_ "github.com/Qitmeer/qitmeer/services/common"
 	"github.com/urfave/cli/v2"
 	"os"
