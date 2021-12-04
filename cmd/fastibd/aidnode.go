@@ -110,10 +110,10 @@ func (node *AidNode) Upgrade() error {
 		blockHash = nil
 		err := node.db.View(func(dbTx database.Tx) error {
 
-			block := &blockdag.Block{}
+			block := &meerdag.Block{}
 			block.SetID(i)
-			ib := &blockdag.PhantomBlock{Block: block}
-			err := blockdag.DBGetDAGBlock(dbTx, ib)
+			ib := &meerdag.PhantomBlock{Block: block}
+			err := meerdag.DBGetDAGBlock(dbTx, ib)
 			if err != nil {
 				return err
 			}

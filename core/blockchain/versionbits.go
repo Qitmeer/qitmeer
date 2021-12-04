@@ -102,7 +102,7 @@ func (c bitConditionChecker) MinerConfirmationWindow() uint32 {
 // This function MUST be called with the chain state lock held (for writes).
 //
 // This is part of the thresholdConditionChecker interface implementation.
-func (c bitConditionChecker) Condition(node blockdag.IBlock) (bool, error) {
+func (c bitConditionChecker) Condition(node meerdag.IBlock) (bool, error) {
 	bn := c.chain.GetBlockNode(node)
 	if bn == nil {
 		return false, nil
@@ -191,7 +191,7 @@ func (c deploymentChecker) MinerConfirmationWindow() uint32 {
 // associated with the checker is set.
 //
 // This is part of the thresholdConditionChecker interface implementation.
-func (c deploymentChecker) Condition(node blockdag.IBlock) (bool, error) {
+func (c deploymentChecker) Condition(node meerdag.IBlock) (bool, error) {
 	bn := c.chain.GetBlockNode(node)
 	if bn == nil {
 		return false, nil
@@ -212,7 +212,7 @@ func (c deploymentChecker) Condition(node blockdag.IBlock) (bool, error) {
 // while this function accepts any block node.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) calcNextBlockVersion(prevNode blockdag.IBlock) (uint32, error) {
+func (b *BlockChain) calcNextBlockVersion(prevNode meerdag.IBlock) (uint32, error) {
 	// Set the appropriate bits for each actively defined rule deployment
 	// that is either in the process of being voted on, or locked in for the
 	// activation at the next threshold window change.
@@ -250,7 +250,7 @@ func (b *BlockChain) CalcNextBlockVersion() (uint32, error) {
 // activated.
 //
 // This function MUST be called with the chain state lock held (for writes)
-func (b *BlockChain) warnUnknownRuleActivations(node blockdag.IBlock) error {
+func (b *BlockChain) warnUnknownRuleActivations(node meerdag.IBlock) error {
 	if node == nil {
 		return fmt.Errorf("No block:%s\n", node.GetHash())
 	}

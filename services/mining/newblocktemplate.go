@@ -108,7 +108,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		return nil, err
 	}
 
-	var mainp blockdag.IBlock
+	var mainp meerdag.IBlock
 	if parents == nil {
 		mainp = bd.GetMainChainTip()
 	} else {
@@ -218,7 +218,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	// ==== fix parents size
 	expectParents := []*hash.Hash{}
 	if parents == nil {
-		expectParents = blockManager.GetChain().GetMiningTips(blockdag.MaxPriority)
+		expectParents = blockManager.GetChain().GetMiningTips(meerdag.MaxPriority)
 	}
 	blockSize += uint32(s.VarIntSerializeSize(uint64(len(expectParents))))
 	for i := 0; i < len(expectParents); i++ {

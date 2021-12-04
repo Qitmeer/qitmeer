@@ -109,7 +109,7 @@ func (node *BINode) statistics() error {
 		}
 
 	}
-	mainTip := node.bc.BlockDAG().GetMainChainTip().(*blockdag.PhantomBlock)
+	mainTip := node.bc.BlockDAG().GetMainChainTip().(*meerdag.PhantomBlock)
 	blues := mainTip.GetBlueNum() + 1
 	reds := mainTip.GetOrder() + 1 - blues
 	unconfirmed := total - (mainTip.GetOrder() + 1)

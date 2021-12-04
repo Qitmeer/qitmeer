@@ -74,7 +74,7 @@ func main() {
 
 	if len(cfg.EndPoint) > 0 {
 		useWhole := false
-		var ib blockdag.IBlock
+		var ib meerdag.IBlock
 		var blockHash *hash.Hash
 		if cfg.EndPoint == "*" {
 			// Use the whole UTXO database directly
@@ -210,7 +210,7 @@ func buildLedger(node INode, config *Config) error {
 			continue
 		}
 		ib := node.BlockChain().GetBlock(entry.BlockHash())
-		if ib.GetOrder() == blockdag.MaxBlockOrder {
+		if ib.GetOrder() == meerdag.MaxBlockOrder {
 			continue
 		}
 		if ib.GetStatus().KnownInvalid() {

@@ -172,7 +172,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 	children := []*hash.Hash{}
 	if cs != nil && !cs.IsEmpty() {
 		for _, v := range cs.GetMap() {
-			children = append(children, v.(blockdag.IBlock).GetHash())
+			children = append(children, v.(meerdag.IBlock).GetHash())
 		}
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)
@@ -241,7 +241,7 @@ func (api *PublicBlockAPI) GetBlockV2(h hash.Hash, verbose *bool, inclTx *bool, 
 	children := []*hash.Hash{}
 	if cs != nil && !cs.IsEmpty() {
 		for _, v := range cs.GetMap() {
-			children = append(children, v.(blockdag.IBlock).GetHash())
+			children = append(children, v.(meerdag.IBlock).GetHash())
 		}
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)

@@ -107,7 +107,7 @@ func (b *BlockChain) checkBlockSanity(block *types.SerializedBlock, timeSource M
 	}
 
 	// Repeated parents
-	parentsSet := blockdag.NewHashSet()
+	parentsSet := meerdag.NewHashSet()
 	parentsSet.AddList(msgBlock.Parents)
 	if len(msgBlock.Parents) != parentsSet.Size() {
 		str := fmt.Sprintf("parents:%v", msgBlock.Parents)
@@ -542,7 +542,7 @@ func CountSigOps(tx *types.Tx) int {
 //
 // The flags are also passed to checkBlockHeaderContext.  See its documentation
 // for how the flags modify its behavior.
-func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent blockdag.IBlock, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockContext(block *types.SerializedBlock, mainParent meerdag.IBlock, flags BehaviorFlags) error {
 	// The genesis block is valid by definition.
 	if mainParent == nil {
 		return nil
@@ -712,7 +712,7 @@ func (b *BlockChain) checkBlockSubsidy(block *types.SerializedBlock) error {
 //    the checkpoints are not performed.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevNode blockdag.IBlock, flags BehaviorFlags) error {
+func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevNode meerdag.IBlock, flags BehaviorFlags) error {
 	// The genesis block is valid by definition.
 	if prevNode == nil {
 		return nil
@@ -754,7 +754,7 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 	if !b.HasCheckpoints() {
 		return nil
 	}
-	parents := blockdag.NewIdSet()
+	parents := meerdag.NewIdSet()
 	for _, v := range block.Block().Parents {
 		parents.Add(b.bd.GetBlockId(v))
 	}
@@ -803,7 +803,7 @@ func (b *BlockChain) checkBlockHeaderContext(block *types.SerializedBlock, prevN
 // the bulk of its work.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) checkConnectBlock(ib blockdag.IBlock, block *types.SerializedBlock, utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
+func (b *BlockChain) checkConnectBlock(ib meerdag.IBlock, block *types.SerializedBlock, utxoView *UtxoViewpoint, stxos *[]SpentTxOut) error {
 	// If the side chain blocks end up in the database, a call to
 	// CheckBlockSanity should be done here in case a previous version
 	// allowed a block that is no longer valid.  However, since the

@@ -596,7 +596,7 @@ func (b *BlockChain) FetchUtxoView(tx *types.Tx) (*UtxoViewpoint, error) {
 	// Request the utxos from the point of view of the end of the main
 	// chain.
 	view := NewUtxoViewpoint()
-	view.SetViewpoints(b.GetMiningTips(blockdag.MaxPriority))
+	view.SetViewpoints(b.GetMiningTips(meerdag.MaxPriority))
 	b.ChainRLock()
 	err := view.fetchUtxosMain(b.db, neededSet)
 	b.ChainRUnlock()

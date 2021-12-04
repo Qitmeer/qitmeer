@@ -394,11 +394,11 @@ func (p *Peer) userAgent() string {
 	return string(p.chainState.UserAgent)
 }
 
-func (p *Peer) graphState() *blockdag.GraphState {
+func (p *Peer) graphState() *meerdag.GraphState {
 	if p.chainState == nil {
 		return nil
 	}
-	gs := blockdag.NewGraphState()
+	gs := meerdag.NewGraphState()
 	gs.SetTotal(uint(p.chainState.GraphState.Total))
 	gs.SetLayer(uint(p.chainState.GraphState.Layer))
 	gs.SetMainHeight(uint(p.chainState.GraphState.MainHeight))
@@ -414,7 +414,7 @@ func (p *Peer) graphState() *blockdag.GraphState {
 	return gs
 }
 
-func (p *Peer) GraphState() *blockdag.GraphState {
+func (p *Peer) GraphState() *meerdag.GraphState {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 

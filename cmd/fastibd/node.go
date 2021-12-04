@@ -111,7 +111,7 @@ func (node *Node) Export() error {
 		outFile.Close()
 	}()
 
-	var endPoint blockdag.IBlock
+	var endPoint meerdag.IBlock
 	endNum := uint(0)
 	if node.cfg.ByID {
 		endNum = mainTip.GetID()
@@ -262,7 +262,7 @@ func (node *Node) Upgrade() error {
 		return fmt.Errorf("No blocks in database")
 	}
 
-	var endPoint blockdag.IBlock
+	var endPoint meerdag.IBlock
 	endNum := uint(0)
 	if node.cfg.ByID {
 		endNum = mainTip.GetID()

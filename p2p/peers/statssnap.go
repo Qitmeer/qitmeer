@@ -23,7 +23,7 @@ type StatsSnap struct {
 	Network       string
 	State         PeerConnectionState
 	Direction     network.Direction
-	GraphState    *blockdag.GraphState
+	GraphState    *meerdag.GraphState
 	GraphStateDur time.Duration
 	TimeOffset    int64
 	ConnTime      time.Duration

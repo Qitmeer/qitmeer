@@ -62,7 +62,7 @@ func (s *Sync) getBlocksHandler(ctx context.Context, msg interface{}, stream lib
 		err = fmt.Errorf("message is not type *pb.Hash")
 		return ErrMessage(err)
 	}
-	blocks, _ := s.PeerSync().dagSync.CalcSyncBlocks(nil, changePBHashsToHashs(m.Locator), blockdag.DirectMode, MaxBlockLocatorsPerMsg)
+	blocks, _ := s.PeerSync().dagSync.CalcSyncBlocks(nil, changePBHashsToHashs(m.Locator), meerdag.DirectMode, MaxBlockLocatorsPerMsg)
 	bd := &pb.DagBlocks{Blocks: changeHashsToPBHashs(blocks)}
 	e := s.EncodeResponseMsg(stream, bd)
 	if e != nil {

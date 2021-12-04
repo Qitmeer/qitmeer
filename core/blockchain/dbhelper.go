@@ -450,7 +450,7 @@ func dbFetchBlockByHash(dbTx database.Tx, hash *hash.Hash) (*types.SerializedBlo
 func (b *BlockChain) BlockOrderByHash(hash *hash.Hash) (uint64, error) {
 	ib := b.bd.GetBlock(hash)
 	if ib == nil {
-		return uint64(blockdag.MaxBlockOrder), fmt.Errorf("No block\n")
+		return uint64(meerdag.MaxBlockOrder), fmt.Errorf("No block\n")
 	}
 	return uint64(ib.GetOrder()), nil
 }

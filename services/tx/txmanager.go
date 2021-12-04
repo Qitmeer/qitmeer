@@ -38,7 +38,7 @@ type TxManager struct {
 	db database.DB
 
 	//invalidTx hash->block hash
-	invalidTx map[hash.Hash]*blockdag.HashSet
+	invalidTx map[hash.Hash]*meerdag.HashSet
 }
 
 func (tm *TxManager) Start() error {
@@ -113,6 +113,6 @@ func NewTxManager(bm *blkmgr.BlockManager, txIndex *index.TxIndex,
 		Events:           events,
 	}
 	txMemPool := mempool.New(&txC)
-	invalidTx := make(map[hash.Hash]*blockdag.HashSet)
+	invalidTx := make(map[hash.Hash]*meerdag.HashSet)
 	return &TxManager{bm: bm, txIndex: txIndex, addrIndex: addrIndex, txMemPool: txMemPool, ntmgr: ntmgr, db: db, invalidTx: invalidTx}, nil
 }

@@ -588,7 +588,7 @@ func (b *BlockManager) ChainParams() *params.Params {
 }
 
 // DAGSync
-func (b *BlockManager) DAGSync() *blockdag.DAGSync {
+func (b *BlockManager) DAGSync() *meerdag.DAGSync {
 	return nil
 }
 

@@ -82,18 +82,18 @@ func (b *BlockChain) locateBlocks(locator BlockLocator, hashStop *hash.Hash, max
 		return nil
 	}
 	endBlock := b.GetBlock(endHash)
-	hashesSet := blockdag.NewHashSet()
+	hashesSet := meerdag.NewHashSet()
 
 	// First of all, we need to make sure we have the parents of block.
 	for _, v := range endBlock.GetParents().GetMap() {
-		hashesSet.Add(v.(blockdag.IBlock).GetHash())
+		hashesSet.Add(v.(meerdag.IBlock).GetHash())
 	}
 
 	curNum := uint32(hashesSet.Size())
 
 	// Because of chain forking, a common forking point must be found.
 	// It's the real starting point.
-	var curBlock blockdag.IBlock
+	var curBlock meerdag.IBlock
 	for i := 0; i < loLen; i++ {
 		if b.bd.HasBlock(locator[i]) {
 			curBlock = b.bd.GetBlock(locator[0])
@@ -138,7 +138,7 @@ func (b *BlockChain) BlockLocatorFromHash(hash *hash.Hash) BlockLocator {
 // node can be nil in which case the block locator for the current DAG
 // associated with the view will be returned.
 // This function MUST be called with the view mutex locked (for reads).
-func (b *BlockChain) blockLocator(node blockdag.IBlock) BlockLocator {
+func (b *BlockChain) blockLocator(node meerdag.IBlock) BlockLocator {
 	// Use the current tip if requested.
 	if node == nil {
 		node := b.bd.GetMainChainTip()

@@ -279,7 +279,7 @@ func BuildGenesisTokenState() *TokenState {
 	}
 
 	return &TokenState{
-		PrevStateID: uint32(blockdag.MaxId),
+		PrevStateID: uint32(meerdag.MaxId),
 		Types:       tys,
 		Balances:    TokenBalancesMap{},
 		Updates:     []ITokenUpdate{},

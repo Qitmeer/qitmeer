@@ -107,7 +107,7 @@ type thresholdConditionChecker interface {
 	// has been met.  This typically involves checking whether or not the
 	// bit associated with the condition is set, but can be more complex as
 	// needed.
-	Condition(blockdag.IBlock) (bool, error)
+	Condition(meerdag.IBlock) (bool, error)
 }
 
 // thresholdStateCache provides a type to cache the threshold states of each
@@ -150,7 +150,7 @@ func isCheckerTimeMode(checker thresholdConditionChecker) bool {
 // threshold states for previous windows are only calculated once.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) thresholdState(prevNode blockdag.IBlock, checker thresholdConditionChecker, cache *thresholdStateCache) (ThresholdState, error) {
+func (b *BlockChain) thresholdState(prevNode meerdag.IBlock, checker thresholdConditionChecker, cache *thresholdStateCache) (ThresholdState, error) {
 	// The threshold state for the window that contains the genesis block is
 	// defined by definition.
 	confirmationWindow := int64(checker.MinerConfirmationWindow())
@@ -165,7 +165,7 @@ func (b *BlockChain) thresholdState(prevNode blockdag.IBlock, checker thresholdC
 
 	// Iterate backwards through each of the previous confirmation windows
 	// to find the most recently cached threshold state.
-	neededStates := []blockdag.IBlock{}
+	neededStates := []meerdag.IBlock{}
 	for prevNode != nil {
 		// Nothing more to do if the state of the block is already
 		// cached.
@@ -365,7 +365,7 @@ func (b *BlockChain) isDeploymentActive(deploymentID uint32) (bool, error) {
 // AFTER the passed node.
 //
 // This function MUST be called with the chain state lock held (for writes).
-func (b *BlockChain) deploymentState(prevNode blockdag.IBlock, deploymentID uint32) (ThresholdState, error) {
+func (b *BlockChain) deploymentState(prevNode meerdag.IBlock, deploymentID uint32) (ThresholdState, error) {
 	if deploymentID > uint32(len(b.params.Deployments)) {
 		return ThresholdFailed, fmt.Errorf(DeploymentError(deploymentID).Error())
 	}

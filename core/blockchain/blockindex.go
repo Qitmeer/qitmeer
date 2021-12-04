@@ -55,7 +55,7 @@ func (b *BlockChain) LookupNodeById(id uint) *BlockNode {
 	return ib.GetData().(*BlockNode)
 }
 
-func (b *BlockChain) GetBlockNode(ib blockdag.IBlock) *BlockNode {
+func (b *BlockChain) GetBlockNode(ib meerdag.IBlock) *BlockNode {
 	if ib == nil {
 		return nil
 	}
@@ -65,6 +65,6 @@ func (b *BlockChain) GetBlockNode(ib blockdag.IBlock) *BlockNode {
 	return ib.GetData().(*BlockNode)
 }
 
-func (b *BlockChain) GetBlock(h *hash.Hash) blockdag.IBlock {
+func (b *BlockChain) GetBlock(h *hash.Hash) meerdag.IBlock {
 	return b.bd.GetBlock(h)
 }

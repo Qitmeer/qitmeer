@@ -29,7 +29,7 @@ type DebugAddressNode struct {
 	bc       *blockchain.BlockChain
 	db       database.DB
 	cfg      *Config
-	endPoint blockdag.IBlock
+	endPoint meerdag.IBlock
 
 	info []DebugAddrInfo
 }
@@ -330,7 +330,7 @@ func (node *DebugAddressNode) checkUTXO(blueM *map[uint]bool) error {
 			continue
 		}
 		ib := node.bc.GetBlock(entry.BlockHash())
-		if ib.GetOrder() == blockdag.MaxBlockOrder {
+		if ib.GetOrder() == meerdag.MaxBlockOrder {
 			continue
 		}
 		_, addr, _, err := txscript.ExtractPkScriptAddrs(entry.PkScript(), par)
