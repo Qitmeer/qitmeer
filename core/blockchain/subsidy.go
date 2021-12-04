@@ -9,7 +9,7 @@
 package blockchain
 
 import (
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"sync"
 
 	"github.com/Qitmeer/qng-core/params"

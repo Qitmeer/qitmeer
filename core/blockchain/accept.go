@@ -9,7 +9,7 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/engine/txscript"

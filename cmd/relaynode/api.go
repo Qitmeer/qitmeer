@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/json"
 	"github.com/Qitmeer/qng-core/core/protocol"
 	"github.com/Qitmeer/qitmeer/node"

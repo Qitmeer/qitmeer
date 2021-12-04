@@ -12,7 +12,7 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qng-core/params"

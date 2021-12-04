@@ -5,7 +5,7 @@ import (
 	"github.com/Qitmeer/qng-core/common/bloom"
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/common/roughtime"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/protocol"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/common"
