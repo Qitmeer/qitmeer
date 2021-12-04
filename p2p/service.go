@@ -8,7 +8,7 @@ import (
 	"github.com/Qitmeer/qng-core/common/roughtime"
 	"github.com/Qitmeer/qng-core/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qng-core/core/event"
 	pv "github.com/Qitmeer/qng-core/core/protocol"
 	"github.com/Qitmeer/qitmeer/node/notify"
 	"github.com/Qitmeer/qitmeer/node/service"

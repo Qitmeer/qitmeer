@@ -3,10 +3,9 @@ package blockdag
 import (
 	"container/list"
 	"fmt"
+	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/common/math"
-	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
-	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	s "github.com/Qitmeer/qng-core/core/serialization"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/database"
@@ -794,11 +793,11 @@ func (ph *Phantom) CheckMainChainDB(dbTx database.Tx) error {
 	if cur.id != 0 {
 		return fmt.Errorf("Main chain genesis error:%d %s\n", cur.id, cur.GetHash().String())
 	}
-	bucket := dbTx.Metadata().Bucket(dbnamespace.DagMainChainBucketName)
+	bucket := dbTx.Metadata().Bucket(DagMainChainBucketName)
 	cursor := bucket.Cursor()
 	mcLen := int(0)
 	for cok := cursor.First(); cok; cok = cursor.Next() {
-		id := dbnamespace.ByteOrder.Uint32(cursor.Key())
+		id := ByteOrder.Uint32(cursor.Key())
 		_, ok := mainChainM[uint(id)]
 		if !ok {
 			return fmt.Errorf("Main chain error:invalid %d\n", id)
@@ -835,7 +834,7 @@ func (mc *MainChain) Has(id uint) bool {
 
 	mc.bd.db.View(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
-		mchBucket := meta.Bucket(dbnamespace.DagMainChainBucketName)
+		mchBucket := meta.Bucket(DagMainChainBucketName)
 		if mchBucket == nil {
 			return nil
 		}
@@ -848,9 +847,9 @@ func (mc *MainChain) Has(id uint) bool {
 func (mc *MainChain) Add(id uint) error {
 	return mc.bd.db.Update(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
-		mchBucket := meta.Bucket(dbnamespace.DagMainChainBucketName)
+		mchBucket := meta.Bucket(DagMainChainBucketName)
 		if mchBucket == nil {
-			return fmt.Errorf("no %s", string(dbnamespace.DagMainChainBucketName))
+			return fmt.Errorf("no %s", string(DagMainChainBucketName))
 		}
 		return DBPutMainChainBlock(dbTx, id)
 	})
@@ -862,9 +861,9 @@ func (mc *MainChain) Remove(id uint) error {
 	}
 	return mc.bd.db.Update(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
-		mchBucket := meta.Bucket(dbnamespace.DagMainChainBucketName)
+		mchBucket := meta.Bucket(DagMainChainBucketName)
 		if mchBucket == nil {
-			return fmt.Errorf("no %s", string(dbnamespace.DagMainChainBucketName))
+			return fmt.Errorf("no %s", string(DagMainChainBucketName))
 		}
 		return DBRemoveMainChainBlock(dbTx, id)
 	})

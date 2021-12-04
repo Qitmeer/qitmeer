@@ -7,7 +7,6 @@ import (
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
-	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qng-core/core/merkle"
 	s "github.com/Qitmeer/qng-core/core/serialization"
 	"github.com/Qitmeer/qng-core/database"
@@ -226,28 +225,28 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 
 	err := db.Update(func(dbTx database.Tx) error {
 		meta := dbTx.Metadata()
-		serializedData := meta.Get(dbnamespace.DagInfoBucketName)
+		serializedData := meta.Get(DagInfoBucketName)
 		if serializedData == nil {
 			DBPutDAGInfo(dbTx, bd)
 			// Create the bucket that houses the block index data.
-			_, err := meta.CreateBucket(dbnamespace.BlockIndexBucketName)
+			_, err := meta.CreateBucket(BlockIndexBucketName)
 			if err != nil {
 				return err
 			}
 
 			// Create the bucket that houses the chain block order to hash
 			// index.
-			_, err = meta.CreateBucket(dbnamespace.OrderIdBucketName)
+			_, err = meta.CreateBucket(OrderIdBucketName)
 			if err != nil {
 				return err
 			}
 
-			_, err = meta.CreateBucket(dbnamespace.DagMainChainBucketName)
+			_, err = meta.CreateBucket(DagMainChainBucketName)
 			if err != nil {
 				return err
 			}
 
-			_, err = meta.CreateBucket(dbnamespace.BlockIdBucketName)
+			_, err = meta.CreateBucket(BlockIdBucketName)
 			if err != nil {
 				return err
 			}
@@ -980,7 +979,7 @@ func (bd *BlockDAG) checkPriority(parents []IBlock, b IBlockData) bool {
 // Load from database
 func (bd *BlockDAG) Load(dbTx database.Tx, blockTotal uint, genesis *hash.Hash) error {
 	meta := dbTx.Metadata()
-	serializedData := meta.Get(dbnamespace.DagInfoBucketName)
+	serializedData := meta.Get(DagInfoBucketName)
 	if serializedData == nil {
 		return fmt.Errorf("dag load error")
 	}

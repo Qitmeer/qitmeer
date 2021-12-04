@@ -12,7 +12,7 @@ import (
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
 	"github.com/Qitmeer/qitmeer/core/blockdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
-	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qng-core/core/event"
 	"github.com/Qitmeer/qng-core/core/merkle"
 	"github.com/Qitmeer/qng-core/core/serialization"
 	"github.com/Qitmeer/qng-core/core/types"

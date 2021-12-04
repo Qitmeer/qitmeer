@@ -9,7 +9,7 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qng-core/common/hash"
-	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qng-core/core/event"
 	"github.com/Qitmeer/qng-core/core/types"
 )
 

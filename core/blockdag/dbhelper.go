@@ -3,17 +3,16 @@ package blockdag
 import (
 	"bytes"
 	"fmt"
-	"github.com/Qitmeer/qitmeer/core/dbnamespace"
-	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/database"
 )
 
 // DBPutDAGBlock stores the information needed to reconstruct the provided
 // block in the block index according to the format described above.
 func DBPutDAGBlock(dbTx database.Tx, block IBlock) error {
-	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIndexBucketName)
+	bucket := dbTx.Metadata().Bucket(BlockIndexBucketName)
 	var serializedID [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
+	ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
 
 	key := serializedID[:]
 
@@ -27,9 +26,9 @@ func DBPutDAGBlock(dbTx database.Tx, block IBlock) error {
 
 // DBGetDAGBlock get dag block data by resouce ID
 func DBGetDAGBlock(dbTx database.Tx, block IBlock) error {
-	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIndexBucketName)
+	bucket := dbTx.Metadata().Bucket(BlockIndexBucketName)
 	var serializedID [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
+	ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
 
 	data := bucket.Get(serializedID[:])
 	if data == nil {
@@ -52,31 +51,31 @@ func DBPutDAGInfo(dbTx database.Tx, bd *BlockDAG) error {
 	if err != nil {
 		return err
 	}
-	return dbTx.Metadata().Put(dbnamespace.DagInfoBucketName, buff.Bytes())
+	return dbTx.Metadata().Put(DagInfoBucketName, buff.Bytes())
 }
 
 func DBHasMainChainBlock(dbTx database.Tx, id uint) bool {
-	bucket := dbTx.Metadata().Bucket(dbnamespace.DagMainChainBucketName)
+	bucket := dbTx.Metadata().Bucket(DagMainChainBucketName)
 	var serializedID [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+	ByteOrder.PutUint32(serializedID[:], uint32(id))
 
 	data := bucket.Get(serializedID[:])
 	return data != nil
 }
 
 func DBPutMainChainBlock(dbTx database.Tx, id uint) error {
-	bucket := dbTx.Metadata().Bucket(dbnamespace.DagMainChainBucketName)
+	bucket := dbTx.Metadata().Bucket(DagMainChainBucketName)
 	var serializedID [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+	ByteOrder.PutUint32(serializedID[:], uint32(id))
 
 	key := serializedID[:]
 	return bucket.Put(key, []byte{0})
 }
 
 func DBRemoveMainChainBlock(dbTx database.Tx, id uint) error {
-	bucket := dbTx.Metadata().Bucket(dbnamespace.DagMainChainBucketName)
+	bucket := dbTx.Metadata().Bucket(DagMainChainBucketName)
 	var serializedID [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+	ByteOrder.PutUint32(serializedID[:], uint32(id))
 
 	key := serializedID[:]
 	return bucket.Delete(key)
@@ -96,43 +95,43 @@ func (e errNotInMainChain) Error() string {
 func DBPutBlockIdByOrder(dbTx database.Tx, order uint, id uint) error {
 	// Serialize the order for use in the index entries.
 	var serializedOrder [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedOrder[:], uint32(order))
+	ByteOrder.PutUint32(serializedOrder[:], uint32(order))
 
 	var serializedID [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+	ByteOrder.PutUint32(serializedID[:], uint32(id))
 
 	// Add the block order to id mapping to the index.
-	bucket := dbTx.Metadata().Bucket(dbnamespace.OrderIdBucketName)
+	bucket := dbTx.Metadata().Bucket(OrderIdBucketName)
 	return bucket.Put(serializedOrder[:], serializedID[:])
 }
 
 func DBGetBlockIdByOrder(dbTx database.Tx, order uint) (uint32, error) {
 	var serializedOrder [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedOrder[:], uint32(order))
+	ByteOrder.PutUint32(serializedOrder[:], uint32(order))
 
-	bucket := dbTx.Metadata().Bucket(dbnamespace.OrderIdBucketName)
+	bucket := dbTx.Metadata().Bucket(OrderIdBucketName)
 	idBytes := bucket.Get(serializedOrder[:])
 	if idBytes == nil {
 		str := fmt.Sprintf("no block at order %d exists", order)
 		return uint32(MaxId), errNotInMainChain(str)
 	}
-	return dbnamespace.ByteOrder.Uint32(idBytes), nil
+	return ByteOrder.Uint32(idBytes), nil
 }
 
 func DBPutDAGBlockIdByHash(dbTx database.Tx, block IBlock) error {
 	var serializedID [4]byte
-	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
+	ByteOrder.PutUint32(serializedID[:], uint32(block.GetID()))
 
-	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIdBucketName)
+	bucket := dbTx.Metadata().Bucket(BlockIdBucketName)
 	key := block.GetHash()[:]
 	return bucket.Put(key, serializedID[:])
 }
 
 func DBGetBlockIdByHash(dbTx database.Tx, h *hash.Hash) (uint32, error) {
-	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIdBucketName)
+	bucket := dbTx.Metadata().Bucket(BlockIdBucketName)
 	data := bucket.Get(h[:])
 	if data == nil {
 		return uint32(MaxId), fmt.Errorf("get dag block error")
 	}
-	return dbnamespace.ByteOrder.Uint32(data), nil
+	return ByteOrder.Uint32(data), nil
 }
