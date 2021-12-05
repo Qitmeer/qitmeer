@@ -48,33 +48,14 @@ var (
 	// unspent transaction output set.
 	UtxoSetBucketName = []byte("utxoset")
 
-	// BlockIndexBucketName is the name of the db bucket used to house the
-	// block which consists of metadata for all known blocks in DAG.
-	BlockIndexBucketName = []byte("blockidx")
-
 	// IndexTipsBucketName is the name of the db bucket used to house the
 	// current tip of each index.
 	IndexTipsBucketName = []byte("idxtips")
 
-	// DagInfoBucketName is the name of the db bucket used to house the
-	// dag information
-	DagInfoBucketName = []byte("daginfo")
-
 	// CacheInvalidTx is the name of the db bucket used to cache invalid tx
 	CacheInvalidTxName = []byte("cacheinvalidtx")
-
-	// DAG Main Chain Blocks
-	DagMainChainBucketName = []byte("dagmainchain")
 
 	//TokenBucketName is the name of the db bucket used to house the token balance state
 	//The balance state is updated by the TOKEN_MINT/TOKEN_UNMINT transactions.
 	TokenBucketName = []byte("token")
-
-	// OrderIdBucketName is the name of the db bucket used to house to
-	// the block order -> block DAG Id.
-	OrderIdBucketName = []byte("orderid")
-
-	// BlockIdBucketName is the name of the db bucket used to house to
-	// the block hash -> block DAG Id.
-	BlockIdBucketName = []byte("blockid")
 )

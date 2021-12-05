@@ -5,7 +5,7 @@ import (
 	"github.com/Qitmeer/qng-core/common/roughtime"
 	"github.com/Qitmeer/qng-core/common/util"
 	"github.com/Qitmeer/qng-core/config"
-	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qng-core/core/event"
 	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qitmeer/node/service"
 	"github.com/Qitmeer/qng-core/params"

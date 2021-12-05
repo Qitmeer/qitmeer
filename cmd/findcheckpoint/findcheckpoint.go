@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	_ "github.com/Qitmeer/qng-core/database/ffldb"
 	"github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qng-core/params"
@@ -139,7 +139,7 @@ func findCandidates(chain *blockchain.BlockChain, cfg *Config) ([]*params.Checkp
 			candidates = append(candidates, &checkpoint)
 		}
 
-		if block.GetMainParent() == blockdag.MaxId {
+		if block.GetMainParent() == meerdag.MaxId {
 			break
 		}
 		preblock = block
@@ -205,11 +205,11 @@ func processIsCheckpoint(chain *blockchain.BlockChain, cfg *Config) bool {
 		return true
 	}
 
-	var preblock blockdag.IBlock
+	var preblock meerdag.IBlock
 	if block.HasChildren() {
 		for k, v := range block.GetChildren().GetMap() {
 			if chain.BlockDAG().IsOnMainChain(k) {
-				preblock = v.(blockdag.IBlock)
+				preblock = v.(meerdag.IBlock)
 				break
 			}
 		}

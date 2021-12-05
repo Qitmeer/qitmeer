@@ -7,7 +7,7 @@ package synch
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/protocol"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qitmeer/p2p/peers"
@@ -32,7 +32,7 @@ type PeerSync struct {
 	syncPeer *peers.Peer
 	lastSync time.Time
 	// dag sync
-	dagSync *blockdag.DAGSync
+	dagSync *meerdag.DAGSync
 
 	started     int32
 	shutdown    int32
@@ -49,7 +49,7 @@ func (ps *PeerSync) Start() error {
 	}
 
 	log.Info("P2P PeerSync Start")
-	ps.dagSync = blockdag.NewDAGSync(ps.sy.p2p.BlockChain().BlockDAG())
+	ps.dagSync = meerdag.NewDAGSync(ps.sy.p2p.BlockChain().BlockDAG())
 	ps.longSyncMod = false
 
 	ps.wg.Add(1)

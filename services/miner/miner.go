@@ -6,8 +6,8 @@ import (
 	"github.com/Qitmeer/qng-core/common/roughtime"
 	"github.com/Qitmeer/qng-core/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qng-core/meerdag"
+	"github.com/Qitmeer/qng-core/core/event"
 	"github.com/Qitmeer/qng-core/core/json"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/core/types/pow"
@@ -256,10 +256,10 @@ func (m *Miner) updateBlockTemplate(force bool) error {
 		}
 	}
 	if !reCreate {
-		parentsSet := blockdag.NewHashSet()
-		parentsSet.AddList(m.blockManager.GetChain().GetMiningTips(blockdag.MaxPriority))
+		parentsSet := meerdag.NewHashSet()
+		parentsSet.AddList(m.blockManager.GetChain().GetMiningTips(meerdag.MaxPriority))
 
-		tparentSet := blockdag.NewHashSet()
+		tparentSet := meerdag.NewHashSet()
 		tparentSet.AddList(m.template.Block.Parents)
 		if !parentsSet.IsEqual(tparentSet) {
 			reCreate = true
@@ -393,7 +393,7 @@ func (m *Miner) submitBlock(block *types.SerializedBlock) (interface{}, error) {
 	res := &json.SubmitBlockResult{
 		BlockHash:      block.Hash().String(),
 		CoinbaseTxID:   block.Transactions()[0].Hash().String(),
-		Order:          blockdag.GetOrderLogStr(uint(block.Order())),
+		Order:          meerdag.GetOrderLogStr(uint(block.Order())),
 		Height:         int64(block.Height()),
 		CoinbaseAmount: coinbaseTxGenerated,
 		MinerType:      m.worker.GetType(),

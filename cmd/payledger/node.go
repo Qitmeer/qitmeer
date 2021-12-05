@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qng-core/params"
@@ -17,10 +17,10 @@ type Node struct {
 	bc       *blockchain.BlockChain
 	db       database.DB
 	cfg      *Config
-	endPoint blockdag.IBlock
+	endPoint meerdag.IBlock
 }
 
-func (node *Node) init(cfg *Config, srcnode *SrcNode, endPoint blockdag.IBlock) error {
+func (node *Node) init(cfg *Config, srcnode *SrcNode, endPoint meerdag.IBlock) error {
 	node.cfg = cfg
 	node.endPoint = endPoint
 	//

@@ -12,7 +12,7 @@ package main
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/log"
 	"github.com/Qitmeer/qng-core/params"
@@ -109,7 +109,7 @@ func (node *BINode) statistics() error {
 		}
 
 	}
-	mainTip := node.bc.BlockDAG().GetMainChainTip().(*blockdag.PhantomBlock)
+	mainTip := node.bc.BlockDAG().GetMainChainTip().(*meerdag.PhantomBlock)
 	blues := mainTip.GetBlueNum() + 1
 	reds := mainTip.GetOrder() + 1 - blues
 	unconfirmed := total - (mainTip.GetOrder() + 1)

@@ -9,7 +9,7 @@ import (
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/common/marshal"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/json"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/engine/txscript"
@@ -172,7 +172,7 @@ func (api *PublicBlockAPI) GetBlock(h hash.Hash, verbose *bool, inclTx *bool, fu
 	children := []*hash.Hash{}
 	if cs != nil && !cs.IsEmpty() {
 		for _, v := range cs.GetMap() {
-			children = append(children, v.(blockdag.IBlock).GetHash())
+			children = append(children, v.(meerdag.IBlock).GetHash())
 		}
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)
@@ -241,7 +241,7 @@ func (api *PublicBlockAPI) GetBlockV2(h hash.Hash, verbose *bool, inclTx *bool, 
 	children := []*hash.Hash{}
 	if cs != nil && !cs.IsEmpty() {
 		for _, v := range cs.GetMap() {
-			children = append(children, v.(blockdag.IBlock).GetHash())
+			children = append(children, v.(meerdag.IBlock).GetHash())
 		}
 	}
 	api.bm.chain.CalculateDAGDuplicateTxs(blk)

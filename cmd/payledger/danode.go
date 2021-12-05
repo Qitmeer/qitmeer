@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/database"
@@ -29,7 +29,7 @@ type DebugAddressNode struct {
 	bc       *blockchain.BlockChain
 	db       database.DB
 	cfg      *Config
-	endPoint blockdag.IBlock
+	endPoint meerdag.IBlock
 
 	info []DebugAddrInfo
 }
@@ -330,7 +330,7 @@ func (node *DebugAddressNode) checkUTXO(blueM *map[uint]bool) error {
 			continue
 		}
 		ib := node.bc.GetBlock(entry.BlockHash())
-		if ib.GetOrder() == blockdag.MaxBlockOrder {
+		if ib.GetOrder() == meerdag.MaxBlockOrder {
 			continue
 		}
 		_, addr, _, err := txscript.ExtractPkScriptAddrs(entry.PkScript(), par)

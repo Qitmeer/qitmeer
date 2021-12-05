@@ -5,7 +5,7 @@ import (
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/database"
@@ -110,10 +110,10 @@ func (node *AidNode) Upgrade() error {
 		blockHash = nil
 		err := node.db.View(func(dbTx database.Tx) error {
 
-			block := &blockdag.Block{}
+			block := &meerdag.Block{}
 			block.SetID(i)
-			ib := &blockdag.PhantomBlock{Block: block}
-			err := blockdag.DBGetDAGBlock(dbTx, ib)
+			ib := &meerdag.PhantomBlock{Block: block}
+			err := meerdag.DBGetDAGBlock(dbTx, ib)
 			if err != nil {
 				return err
 			}

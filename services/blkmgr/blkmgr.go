@@ -9,8 +9,8 @@ import (
 	"github.com/Qitmeer/qng-core/common/roughtime"
 	"github.com/Qitmeer/qng-core/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qng-core/meerdag"
+	"github.com/Qitmeer/qng-core/core/event"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/engine/txscript"
@@ -588,7 +588,7 @@ func (b *BlockManager) ChainParams() *params.Params {
 }
 
 // DAGSync
-func (b *BlockManager) DAGSync() *blockdag.DAGSync {
+func (b *BlockManager) DAGSync() *meerdag.DAGSync {
 	return nil
 }
 

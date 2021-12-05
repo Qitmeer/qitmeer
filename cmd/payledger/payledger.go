@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/database"
@@ -74,7 +74,7 @@ func main() {
 
 	if len(cfg.EndPoint) > 0 {
 		useWhole := false
-		var ib blockdag.IBlock
+		var ib meerdag.IBlock
 		var blockHash *hash.Hash
 		if cfg.EndPoint == "*" {
 			// Use the whole UTXO database directly
@@ -210,7 +210,7 @@ func buildLedger(node INode, config *Config) error {
 			continue
 		}
 		ib := node.BlockChain().GetBlock(entry.BlockHash())
-		if ib.GetOrder() == blockdag.MaxBlockOrder {
+		if ib.GetOrder() == meerdag.MaxBlockOrder {
 			continue
 		}
 		if ib.GetStatus().KnownInvalid() {

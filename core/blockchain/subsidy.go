@@ -9,7 +9,7 @@
 package blockchain
 
 import (
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"sync"
 
 	"github.com/Qitmeer/qng-core/params"
@@ -46,7 +46,7 @@ func NewSubsidyCache(blocks int64, params *params.Params) *SubsidyCache {
 		}
 
 		for i := iteration - 4; i <= iteration; i++ {
-			sc.CalcBlockSubsidy(blockdag.NewBlueInfo(uint(iteration)*uint(params.SubsidyReductionInterval), 0, 0))
+			sc.CalcBlockSubsidy(meerdag.NewBlueInfo(uint(iteration)*uint(params.SubsidyReductionInterval), 0, 0))
 		}
 	}
 
@@ -64,7 +64,7 @@ func NewSubsidyCache(blocks int64, params *params.Params) *SubsidyCache {
 // 2     subsidy /= DivSubsidy
 //
 // Safe for concurrent access.
-func (s *SubsidyCache) CalcBlockSubsidy(bi *blockdag.BlueInfo) int64 {
+func (s *SubsidyCache) CalcBlockSubsidy(bi *meerdag.BlueInfo) int64 {
 	if s.params.TargetTotalSubsidy > 0 {
 		return s.CalcTotalControlBlockSubsidy(bi)
 	}
@@ -114,7 +114,7 @@ func (s *SubsidyCache) CalcBlockSubsidy(bi *blockdag.BlueInfo) int64 {
 	return subsidy
 }
 
-func (s *SubsidyCache) CalcTotalControlBlockSubsidy(bi *blockdag.BlueInfo) int64 {
+func (s *SubsidyCache) CalcTotalControlBlockSubsidy(bi *meerdag.BlueInfo) int64 {
 	if bi.GetNum() <= 1 {
 		return s.params.BaseSubsidy
 	}
@@ -134,19 +134,19 @@ func (s *SubsidyCache) GetMode() string {
 
 // CalcBlockWorkSubsidy calculates the proof of work subsidy for a block as a
 // proportion of the total subsidy. (aka, the coinbase subsidy)
-func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, bi *blockdag.BlueInfo, params *params.Params) uint64 {
+func CalcBlockWorkSubsidy(subsidyCache *SubsidyCache, bi *meerdag.BlueInfo, params *params.Params) uint64 {
 	work, _, _ := calcBlockProportion(subsidyCache, bi, params)
 	return work
 }
 
 // CalcBlockTaxSubsidy calculates the subsidy for the organization address in the
 // coinbase.
-func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, bi *blockdag.BlueInfo, params *params.Params) uint64 {
+func CalcBlockTaxSubsidy(subsidyCache *SubsidyCache, bi *meerdag.BlueInfo, params *params.Params) uint64 {
 	_, _, tax := calcBlockProportion(subsidyCache, bi, params)
 	return tax
 }
 
-func calcBlockProportion(subsidyCache *SubsidyCache, bi *blockdag.BlueInfo, params *params.Params) (uint64, uint64, uint64) {
+func calcBlockProportion(subsidyCache *SubsidyCache, bi *meerdag.BlueInfo, params *params.Params) (uint64, uint64, uint64) {
 	subsidy := uint64(subsidyCache.CalcBlockSubsidy(bi))
 	workPro := float64(params.WorkRewardProportion)
 	stakePro := float64(params.StakeRewardProportion)

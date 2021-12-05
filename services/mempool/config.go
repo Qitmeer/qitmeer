@@ -6,14 +6,14 @@
 package mempool
 
 import (
-	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qitmeer/services/index"
+	"github.com/Qitmeer/qng-core/common/hash"
+	"github.com/Qitmeer/qng-core/consensus"
+	"github.com/Qitmeer/qng-core/core/event"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/engine/txscript"
 	"github.com/Qitmeer/qng-core/params"
-	"github.com/Qitmeer/qitmeer/services/index"
 	"time"
 )
 
@@ -76,7 +76,7 @@ type Config struct {
 	ExistsAddrIndex *index.ExistsAddrIndex
 
 	// block dag
-	BD *blockdag.BlockDAG
+	BD consensus.BlockDAG
 
 	// block chain
 	BC *blockchain.BlockChain

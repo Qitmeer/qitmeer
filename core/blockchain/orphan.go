@@ -3,7 +3,7 @@ package blockchain
 import (
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/common/roughtime"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/types"
 	"math"
 	"sort"
@@ -51,7 +51,7 @@ func (b *BlockChain) GetOrphansParents() []*hash.Hash {
 	b.orphanLock.RLock()
 	defer b.orphanLock.RUnlock()
 	//
-	result := blockdag.NewHashSet()
+	result := meerdag.NewHashSet()
 	for _, v := range b.orphans {
 		for _, h := range v.block.Block().Parents {
 			if b.bd.HasBlock(h) || b.isOrphan(h) {
@@ -74,7 +74,7 @@ func (b *BlockChain) GetRecentOrphanParents(h *hash.Hash) []*hash.Hash {
 	if ob == nil {
 		return nil
 	}
-	result := blockdag.NewHashSet()
+	result := meerdag.NewHashSet()
 	for _, h := range ob.Block().Parents {
 		if b.bd.HasBlock(h) || b.isOrphan(h) {
 			continue
@@ -97,13 +97,13 @@ func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 	b.orphanLock.RLock()
 	defer b.orphanLock.RUnlock()
 
-	result := blockdag.NewHashSet()
+	result := meerdag.NewHashSet()
 	mh := b.BestSnapshot().GraphState.GetMainHeight()
 	for _, v := range b.orphans {
 		for _, h := range v.block.Block().Parents {
 			if len(b.orphans) >= MaxOrphanBlocks {
 				dist := math.Abs(float64(v.height) - float64(mh))
-				if dist > float64(blockdag.StableConfirmations) {
+				if dist > float64(meerdag.StableConfirmations) {
 					continue
 				}
 			}
@@ -118,7 +118,7 @@ func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 }
 
 func (b *BlockChain) IsOrphanOK(serializedHeight uint64) bool {
-	dist := serializedHeight + blockdag.StableConfirmations*2
+	dist := serializedHeight + meerdag.StableConfirmations*2
 	return uint(dist) >= b.BestSnapshot().GraphState.GetMainHeight()
 }
 

@@ -5,8 +5,8 @@ import (
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
-	"github.com/Qitmeer/qitmeer/core/event"
+	"github.com/Qitmeer/qng-core/meerdag"
+	"github.com/Qitmeer/qng-core/core/event"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/engine/txscript"
@@ -38,7 +38,7 @@ type TxManager struct {
 	db database.DB
 
 	//invalidTx hash->block hash
-	invalidTx map[hash.Hash]*blockdag.HashSet
+	invalidTx map[hash.Hash]*meerdag.HashSet
 }
 
 func (tm *TxManager) Start() error {
@@ -113,6 +113,6 @@ func NewTxManager(bm *blkmgr.BlockManager, txIndex *index.TxIndex,
 		Events:           events,
 	}
 	txMemPool := mempool.New(&txC)
-	invalidTx := make(map[hash.Hash]*blockdag.HashSet)
+	invalidTx := make(map[hash.Hash]*meerdag.HashSet)
 	return &TxManager{bm: bm, txIndex: txIndex, addrIndex: addrIndex, txMemPool: txMemPool, ntmgr: ntmgr, db: db, invalidTx: invalidTx}, nil
 }

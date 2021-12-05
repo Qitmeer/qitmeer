@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/merkle"
 	s "github.com/Qitmeer/qng-core/core/serialization"
 	"github.com/Qitmeer/qng-core/core/types"
@@ -108,7 +108,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 		return nil, err
 	}
 
-	var mainp blockdag.IBlock
+	var mainp meerdag.IBlock
 	if parents == nil {
 		mainp = bd.GetMainChainTip()
 	} else {
@@ -218,7 +218,7 @@ func NewBlockTemplate(policy *Policy, params *params.Params,
 	// ==== fix parents size
 	expectParents := []*hash.Hash{}
 	if parents == nil {
-		expectParents = blockManager.GetChain().GetMiningTips(blockdag.MaxPriority)
+		expectParents = blockManager.GetChain().GetMiningTips(meerdag.MaxPriority)
 	}
 	blockSize += uint32(s.VarIntSerializeSize(uint64(len(expectParents))))
 	for i := 0; i < len(expectParents); i++ {

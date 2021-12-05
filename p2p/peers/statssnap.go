@@ -2,7 +2,7 @@ package peers
 
 import (
 	"github.com/Qitmeer/qng-core/common/hash"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/protocol"
 	"github.com/Qitmeer/qng-core/params"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -23,7 +23,7 @@ type StatsSnap struct {
 	Network       string
 	State         PeerConnectionState
 	Direction     network.Direction
-	GraphState    *blockdag.GraphState
+	GraphState    *meerdag.GraphState
 	GraphStateDur time.Duration
 	TimeOffset    int64
 	ConnTime      time.Duration

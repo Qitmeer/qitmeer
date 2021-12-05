@@ -3,20 +3,15 @@ module github.com/Qitmeer/qitmeer
 go 1.12
 
 require (
-	github.com/Qitmeer/crypto v0.0.0-20200516043559-dd457edff06c // indirect
-	github.com/Qitmeer/crypto/cryptonight v0.0.0-20201028030128-6ed4040ca34a // indirect
-	github.com/Qitmeer/qng-core v1.0.1
-	github.com/aristanetworks/goarista v0.0.0-20200812190859-4cb0e71f3c0e // indirect
-	github.com/cloudflare/roughtime v0.0.0-20200829152512-a9bb6267a4f5 // indirect
+	github.com/Qitmeer/qng-core v1.0.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/dgraph-io/ristretto v0.0.2
 	github.com/ferranbt/fastssz v0.0.0-20200514094935-99fccaf93472
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
-	github.com/golang/protobuf v1.4.0
-	github.com/golang/snappy v0.0.1
+	github.com/golang/protobuf v1.5.2
+	github.com/golang/snappy v0.0.4
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/go-ds-leveldb v0.4.2
 	github.com/ipfs/go-ipfs-addr v0.0.1
@@ -31,26 +26,22 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.3.2
 	github.com/libp2p/go-libp2p-secio v0.2.2
 	github.com/libp2p/go-sockaddr v0.1.0 // indirect
-	github.com/magiconair/properties v1.8.1 // indirect
-	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/minio/highwayhash v1.0.0
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-net v0.2.0
 	github.com/multiformats/go-multistream v0.1.2
 	github.com/prysmaticlabs/go-bitfield v0.0.0-20200618145306-2ae0807bef65
 	github.com/prysmaticlabs/go-ssz v0.0.0-20200101200214-e24db4d9e963
-	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/schollz/progressbar/v3 v3.8.3
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/zeromq/goczmq v4.1.0+incompatible
 	go.opencensus.io v0.22.4
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
-	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
-	gonum.org/v1/gonum v0.0.0-20190608115022-c5f01565d866
-	gopkg.in/yaml.v2 v2.2.8
+	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
+	golang.org/x/tools v0.1.6
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 replace (
@@ -59,4 +50,3 @@ replace (
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 => github.com/golang/net v0.0.0-20181005035420-146acd28ed58
 	golang.org/x/tools v0.0.0-20181006002542-f60d9635b16a => github.com/golang/tools v0.0.0-20181006002542-f60d9635b16a
 )
-

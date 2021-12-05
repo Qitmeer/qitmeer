@@ -9,7 +9,7 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qng-core/common/hash"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/engine/txscript"
 	"github.com/Qitmeer/qng-core/params"
@@ -92,7 +92,7 @@ func (b *BlockChain) verifyCheckpoint(layer uint64, hash *hash.Hash) bool {
 // should really only happen for blocks before the first checkpoint).
 //
 // This function MUST be called with the chain lock held (for reads).
-func (b *BlockChain) findPreviousCheckpoint() (blockdag.IBlock, error) {
+func (b *BlockChain) findPreviousCheckpoint() (meerdag.IBlock, error) {
 	if !b.HasCheckpoints() {
 		return nil, nil
 	}
@@ -206,7 +206,7 @@ func isNonstandardTransaction(tx *types.Tx) bool {
 // decision and then manually added to the list of checkpoints for a network.
 //
 // This function is safe for concurrent access.
-func (b *BlockChain) IsCheckpointCandidate(preBlock, block blockdag.IBlock) (bool, error) {
+func (b *BlockChain) IsCheckpointCandidate(preBlock, block meerdag.IBlock) (bool, error) {
 	b.ChainRLock()
 	defer b.ChainRUnlock()
 
@@ -230,7 +230,7 @@ func (b *BlockChain) IsCheckpointCandidate(preBlock, block blockdag.IBlock) (boo
 		return false, nil
 	}
 	nextBlockH := block.GetMainParent()
-	if nextBlockH == blockdag.MaxId {
+	if nextBlockH == meerdag.MaxId {
 		return false, nil
 	}
 	nextBlock := b.BlockDAG().GetBlockById(nextBlockH)

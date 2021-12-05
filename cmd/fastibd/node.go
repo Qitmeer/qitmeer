@@ -14,7 +14,7 @@ import (
 	"github.com/Qitmeer/qng-core/common/hash"
 	"github.com/Qitmeer/qng-core/config"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/database"
@@ -111,7 +111,7 @@ func (node *Node) Export() error {
 		outFile.Close()
 	}()
 
-	var endPoint blockdag.IBlock
+	var endPoint meerdag.IBlock
 	endNum := uint(0)
 	if node.cfg.ByID {
 		endNum = mainTip.GetID()
@@ -262,7 +262,7 @@ func (node *Node) Upgrade() error {
 		return fmt.Errorf("No blocks in database")
 	}
 
-	var endPoint blockdag.IBlock
+	var endPoint meerdag.IBlock
 	endNum := uint(0)
 	if node.cfg.ByID {
 		endNum = mainTip.GetID()

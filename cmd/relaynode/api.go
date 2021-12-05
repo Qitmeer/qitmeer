@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/json"
 	"github.com/Qitmeer/qng-core/core/protocol"
 	"github.com/Qitmeer/qitmeer/node"
@@ -128,7 +128,7 @@ func (api *PublicRelayAPI) GetNodeInfo() (interface{}, error) {
 		ProtocolVersion: int32(protocol.ProtocolVersion),
 		Connections:     int32(len(api.node.peerStatus.Connected())),
 		Network:         params.ActiveNetParams.Name,
-		Confirmations:   blockdag.StableConfirmations,
+		Confirmations:   meerdag.StableConfirmations,
 		Modules:         []string{cmds.DefaultServiceNameSpace},
 	}
 	hostdns := api.node.HostDNS()

@@ -9,7 +9,7 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/core/blockchain/token"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/types"
 	"github.com/Qitmeer/qng-core/database"
 	"github.com/Qitmeer/qng-core/engine/txscript"
@@ -209,7 +209,7 @@ func (b *BlockChain) FastAcceptBlock(block *types.SerializedBlock, flags Behavio
 	return b.updateBestState(ib, block, newOrders)
 }
 
-func (b *BlockChain) updateTokenState(node blockdag.IBlock, block *types.SerializedBlock, rollback bool) error {
+func (b *BlockChain) updateTokenState(node meerdag.IBlock, block *types.SerializedBlock, rollback bool) error {
 	if rollback {
 		if uint32(node.GetID()) == b.TokenTipID {
 			state := b.GetTokenState(b.TokenTipID)
@@ -246,7 +246,7 @@ func (b *BlockChain) updateTokenState(node blockdag.IBlock, block *types.Seriali
 	}
 	state := b.GetTokenState(b.TokenTipID)
 	if state == nil {
-		state = &token.TokenState{PrevStateID: uint32(blockdag.MaxId), Updates: updates}
+		state = &token.TokenState{PrevStateID: uint32(meerdag.MaxId), Updates: updates}
 	} else {
 		state.PrevStateID = b.TokenTipID
 		state.Updates = updates
@@ -325,7 +325,7 @@ func (b *BlockChain) CheckTokenState(block *types.SerializedBlock) error {
 	}
 	state := b.GetTokenState(b.TokenTipID)
 	if state == nil {
-		state = &token.TokenState{PrevStateID: uint32(blockdag.MaxId), Updates: updates}
+		state = &token.TokenState{PrevStateID: uint32(meerdag.MaxId), Updates: updates}
 	} else {
 		state.PrevStateID = b.TokenTipID
 		state.Updates = updates

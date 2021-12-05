@@ -10,7 +10,7 @@ import (
 	"github.com/Qitmeer/qng-core/common/math"
 	"github.com/Qitmeer/qng-core/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockchain"
-	"github.com/Qitmeer/qitmeer/core/blockdag"
+	"github.com/Qitmeer/qng-core/meerdag"
 	"github.com/Qitmeer/qng-core/core/json"
 	"github.com/Qitmeer/qng-core/core/protocol"
 	"github.com/Qitmeer/qng-core/core/types/pow"
@@ -69,7 +69,7 @@ func (api *PublicBlockChainAPI) GetNodeInfo() (interface{}, error) {
 			CurrentDiff: getDifficultyRatio(powNodes, api.node.node.Params, pow.MEERXKECCAKV1),
 		},
 		Network:          params.ActiveNetParams.Name,
-		Confirmations:    blockdag.StableConfirmations,
+		Confirmations:    meerdag.StableConfirmations,
 		CoinbaseMaturity: int32(api.node.node.Params.CoinbaseMaturity),
 		Modules:          []string{cmds.DefaultServiceNameSpace, cmds.MinerNameSpace, cmds.TestNameSpace, cmds.LogNameSpace},
 	}
@@ -259,7 +259,7 @@ func (api *PublicBlockChainAPI) GetRpcInfo() (interface{}, error) {
 	return jrs, nil
 }
 
-func GetGraphStateResult(gs *blockdag.GraphState) *json.GetGraphStateResult {
+func GetGraphStateResult(gs *meerdag.GraphState) *json.GetGraphStateResult {
 	if gs != nil {
 		mainTip := gs.GetMainChainTip()
 		tips := []string{mainTip.String() + " main"}
