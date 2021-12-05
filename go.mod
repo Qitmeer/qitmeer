@@ -3,7 +3,6 @@ module github.com/Qitmeer/qitmeer
 go 1.12
 
 require (
-	github.com/Qitmeer/crypto/cryptonight v0.0.0-20201028030128-6ed4040ca34a // indirect
 	github.com/Qitmeer/qng-core v1.0.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
@@ -11,14 +10,12 @@ require (
 	github.com/dgraph-io/ristretto v0.0.2
 	github.com/ferranbt/fastssz v0.0.0-20200514094935-99fccaf93472
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/go-ds-leveldb v0.4.2
 	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/jessevdk/go-flags v1.4.0
-	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/libp2p/go-libp2p v0.11.0
 	github.com/libp2p/go-libp2p-circuit v0.3.1
 	github.com/libp2p/go-libp2p-core v0.6.1
@@ -35,7 +32,6 @@ require (
 	github.com/multiformats/go-multistream v0.1.2
 	github.com/prysmaticlabs/go-bitfield v0.0.0-20200618145306-2ae0807bef65
 	github.com/prysmaticlabs/go-ssz v0.0.0-20200101200214-e24db4d9e963
-	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/schollz/progressbar/v3 v3.8.3
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
@@ -45,14 +41,7 @@ require (
 	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	golang.org/x/tools v0.1.6
-	gonum.org/v1/gonum v0.0.0-20190608115022-c5f01565d866
-	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
-	gopkg.in/jcmturner/dnsutils.v1 v1.0.1 // indirect
-	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
-	gopkg.in/jcmturner/gokrb5.v7 v7.5.0 // indirect
-	gopkg.in/jcmturner/rpc.v1 v1.1.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	roughtime.googlesource.com/roughtime.git v0.0.0-20190418172256-51f6971f5f06 // indirect
 )
 
 replace (
