@@ -46,6 +46,10 @@ func (w *GBTWorker) Start() error {
 	}
 
 	log.Info("Start GBT Worker...")
+	err := w.miner.initCoinbase()
+	if err != nil {
+		return err
+	}
 	w.miner.updateBlockTemplate(false)
 	return nil
 }
