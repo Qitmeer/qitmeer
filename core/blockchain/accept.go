@@ -148,6 +148,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	if err != nil {
 		panic(err.Error())
 	}
+	b.ChainUnlock()
 	// Notify the caller that the new block was accepted into the block
 	// chain.  The caller would typically want to react by relaying the
 	// inventory to other peers.
@@ -156,7 +157,7 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		Block:                block,
 		Flags:                flags,
 	})
-
+	b.ChainLock()
 	return nil
 }
 

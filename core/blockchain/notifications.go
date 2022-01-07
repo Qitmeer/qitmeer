@@ -87,17 +87,25 @@ type Notification struct {
 	Data interface{}
 }
 
+type NotificationCallback func(*Notification)
+
 // sendNotification sends a notification with the passed type and data if the
 // caller requested notifications by providing a callback function in the call
 // to New.
 func (b *BlockChain) sendNotification(typ NotificationType, data interface{}) {
+	// Generate and send the notification.
+	n := &Notification{Type: typ, Data: data}
+
+	b.notificationsLock.RLock()
+	for _, callback := range b.notifications {
+		callback(n)
+	}
+	b.notificationsLock.RUnlock()
 	// Ignore it if the caller didn't request notifications.
 	if b.events == nil {
 		return
 	}
 
-	// Generate and send the notification.
-	n := &Notification{Type: typ, Data: data}
 	b.CacheNotifications = append(b.CacheNotifications, n)
 }
 
@@ -110,4 +118,10 @@ func (b *BlockChain) flushNotifications() {
 		b.events.Send(event.New(n))
 	}
 	b.CacheNotifications = []*Notification{}
+}
+
+func (b *BlockChain) Subscribe(callback NotificationCallback) {
+	b.notificationsLock.Lock()
+	b.notifications = append(b.notifications, callback)
+	b.notificationsLock.Unlock()
 }

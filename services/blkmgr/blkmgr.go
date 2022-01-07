@@ -139,7 +139,7 @@ func NewBlockManager(ntmgr notify.Notify, indexManager blockchain.IndexManager, 
 
 	bm.zmqNotify = zmq.NewZMQNotification(cfg)
 
-	bm.subscribe(events)
+	bm.chain.Subscribe(bm.handleNotifyMsg)
 	return &bm, nil
 }
 
@@ -598,31 +598,6 @@ func (b *BlockManager) SetTxManager(txManager TxManager) {
 
 func (b *BlockManager) GetTxManager() TxManager {
 	return b.txManager
-}
-
-func (b *BlockManager) subscribe(events *event.Feed) {
-	ch := make(chan *event.Event)
-	sub := events.Subscribe(ch)
-	go func() {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case ev := <-ch:
-				if ev.Data != nil {
-					switch value := ev.Data.(type) {
-					case *blockchain.Notification:
-						b.handleNotifyMsg(value)
-					}
-				}
-				if ev.Ack != nil {
-					ev.Ack <- struct{}{}
-				}
-			case <-b.quit:
-				log.Info("Close BlockManager Event Subscribe")
-				return
-			}
-		}
-	}()
 }
 
 // headerNode is used as a node in a list of headers that are linked together
