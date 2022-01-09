@@ -109,6 +109,8 @@ type BlockChain struct {
 
 	// cache notification
 	CacheNotifications []*Notification
+	notificationsLock sync.RWMutex
+	notifications     []NotificationCallback
 
 	// The ID of token state tip for the chain.
 	TokenTipID uint32
@@ -994,7 +996,9 @@ func (b *BlockChain) connectBlock(node blockdag.IBlock, block *types.SerializedB
 		return err
 	}
 
+	b.ChainUnlock()
 	b.sendNotification(BlockConnected, []*types.SerializedBlock{block})
+	b.ChainLock()
 	return nil
 }
 
@@ -1037,8 +1041,9 @@ func (b *BlockChain) disconnectBlock(block *types.SerializedBlock, view *UtxoVie
 	// now that the modifications have been committed to the database.
 	view.commit()
 
+	b.ChainUnlock()
 	b.sendNotification(BlockDisconnected, block)
-
+	b.ChainLock()
 	return nil
 }
 
@@ -1066,11 +1071,13 @@ func (b *BlockChain) reorganizeChain(ib blockdag.IBlock, detachNodes *list.List,
 		oldBlocks = append(oldBlocks, ob.Block.GetHash())
 	}
 
+	b.ChainUnlock()
 	b.sendNotification(Reorganization, &ReorganizationNotifyData{
 		OldBlocks: oldBlocks,
 		NewBlock:  newBlock.Hash(),
 		NewOrder:  uint64(ib.GetOrder()),
 	})
+	b.ChainLock()
 	// Why the old order is the order that was removed by the new block, because the new block
 	// must be one of the tip of the dag.This is very important for the following understanding.
 	// In the two case, the perspective is the same.In the other words, the future can not
