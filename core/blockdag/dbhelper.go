@@ -8,6 +8,29 @@ import (
 	"github.com/Qitmeer/qitmeer/database"
 )
 
+const (
+	DAGErrorEmpty = "empty"
+)
+
+type DAGError struct {
+	err string
+}
+
+func (e *DAGError) Error() string {
+	return e.err
+}
+
+func (e *DAGError) IsEmpty() bool {
+	return e.Error() == DAGErrorEmpty
+}
+
+func NewDAGError(e error) error {
+	if e == nil {
+		return nil
+	}
+	return &DAGError{e.Error()}
+}
+
 // DBPutDAGBlock stores the information needed to reconstruct the provided
 // block in the block index according to the format described above.
 func DBPutDAGBlock(dbTx database.Tx, block IBlock) error {
@@ -33,10 +56,17 @@ func DBGetDAGBlock(dbTx database.Tx, block IBlock) error {
 
 	data := bucket.Get(serializedID[:])
 	if data == nil {
-		return fmt.Errorf("get dag block error")
+		return &DAGError{DAGErrorEmpty}
 	}
 
-	return block.Decode(bytes.NewReader(data))
+	return NewDAGError(block.Decode(bytes.NewReader(data)))
+}
+
+func DBDelDAGBlock(dbTx database.Tx, id uint) error {
+	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIndexBucketName)
+	var serializedID [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+	return bucket.Delete(serializedID[:])
 }
 
 func GetOrderLogStr(order uint) string {
@@ -84,15 +114,6 @@ func DBRemoveMainChainBlock(dbTx database.Tx, id uint) error {
 
 // block order
 
-// errNotInMainChain signifies that a block hash or height that is not in the
-// main chain was requested.
-type errNotInMainChain string
-
-// Error implements the error interface.
-func (e errNotInMainChain) Error() string {
-	return string(e)
-}
-
 func DBPutBlockIdByOrder(dbTx database.Tx, order uint, id uint) error {
 	// Serialize the order for use in the index entries.
 	var serializedOrder [4]byte
@@ -114,7 +135,7 @@ func DBGetBlockIdByOrder(dbTx database.Tx, order uint) (uint32, error) {
 	idBytes := bucket.Get(serializedOrder[:])
 	if idBytes == nil {
 		str := fmt.Sprintf("no block at order %d exists", order)
-		return uint32(MaxId), errNotInMainChain(str)
+		return uint32(MaxId), &DAGError{str}
 	}
 	return dbnamespace.ByteOrder.Uint32(idBytes), nil
 }
@@ -136,3 +157,59 @@ func DBGetBlockIdByHash(dbTx database.Tx, h *hash.Hash) (uint32, error) {
 	}
 	return dbnamespace.ByteOrder.Uint32(data), nil
 }
+
+
+func DBDelBlockIdByHash(dbTx database.Tx, h *hash.Hash) error {
+	bucket := dbTx.Metadata().Bucket(dbnamespace.BlockIdBucketName)
+	return bucket.Delete(h[:])
+}
+
+// tips
+func DBPutDAGTip(dbTx database.Tx, id uint, isMain bool) error {
+	var serializedID [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+
+	bucket := dbTx.Metadata().Bucket(dbnamespace.DAGTipsBucketName)
+	main := byte(0)
+	if isMain {
+		main = byte(1)
+	}
+	return bucket.Put(serializedID[:], []byte{main})
+}
+
+func DBGetDAGTips(dbTx database.Tx) ([]uint, error) {
+	bucket := dbTx.Metadata().Bucket(dbnamespace.DAGTipsBucketName)
+	cursor := bucket.Cursor()
+	mainTip := MaxId
+	tips := []uint{}
+	for cok := cursor.First(); cok; cok = cursor.Next() {
+		id := uint(dbnamespace.ByteOrder.Uint32(cursor.Key()))
+		main := cursor.Value()
+		if len(main) > 0 {
+			if main[0] > 0 {
+				if mainTip != MaxId {
+					return nil, fmt.Errorf("Too many main tip")
+				}
+				mainTip = id
+				continue
+			}
+		}
+		tips = append(tips, id)
+	}
+	if mainTip == MaxId {
+		return nil, fmt.Errorf("Can't find main tip")
+	}
+	result := []uint{mainTip}
+	if len(tips) > 0 {
+		result = append(result, tips...)
+	}
+	return result, nil
+}
+
+func DBDelDAGTip(dbTx database.Tx, id uint) error {
+	bucket := dbTx.Metadata().Bucket(dbnamespace.DAGTipsBucketName)
+	var serializedID [4]byte
+	dbnamespace.ByteOrder.PutUint32(serializedID[:], uint32(id))
+	return bucket.Delete(serializedID[:])
+}
+

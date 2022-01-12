@@ -107,7 +107,7 @@ func (b *BlockChain) GetRecentOrphansParents() []*hash.Hash {
 					continue
 				}
 			}
-			if b.bd.HasBlock(h) || b.isOrphan(h) {
+			if b.bd.HasBlock(h) || b.isOrphan(h) || b.HasBlockInDB(h) {
 				continue
 			}
 			result.Add(h)

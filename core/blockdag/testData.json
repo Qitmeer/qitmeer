@@ -211,13 +211,13 @@
     "out":["F","I","H","K"]
   },
   "PH_BlueSetFig2":{
-    "out":["B","D","E","F","H","I","K"]
+    "out":["H","I","E","B","C","F","K"]
   },
   "PH_BlueSetFig4":{
     "out":["M","P","E","I","D","C","U","S","T","N","H","Q","L"]
   },
   "PH_OrderFig2":{
-    "out":["A","C","D","G","B","E","J","F","I","H","K"]
+    "out":["A","D","C","G","E","B","J","F","I","H","K"]
   },
   "PH_OrderFig4":{
     "out":["Genesis","B","C","F","D","J","I","E","K","O","P","H","N","R","L","M","Q","S","T","U"]
@@ -315,10 +315,10 @@
     }
   ],
   "CO_GetMainChain":{
-    "out":["Gen","A","C","E","H"]
+    "out":["Gen","A","C","I","K"]
   },
   "CO_GetOrder":{
-    "out":["Gen","A","B","C","D","F","E","G","J","I","H","K"]
+    "out":["Gen","A","B","C","F","J","I","K","B","D","G","F"]
   },
   "SP_Blocks":[
     {
