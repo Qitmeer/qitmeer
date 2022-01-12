@@ -19,21 +19,3 @@ func Test_GetMainChain(t *testing.T) {
 		t.FailNow()
 	}
 }
-
-func Test_GetOrder(t *testing.T) {
-	ibd := InitBlockDAG(conflux, "CO_Blocks")
-	if ibd == nil {
-		t.FailNow()
-	}
-	//con:=ibd.(*Conflux)
-	fmt.Println("Conflux order ：")
-	order := []uint{}
-	var i uint
-	for i = 0; i < bd.GetBlockTotal(); i++ {
-		order = append(order, ibd.(*Conflux).order[i])
-	}
-	printBlockChainTag(order)
-	if !processResult(order, changeToIDList(testData.CO_GetOrder.Output)) {
-		t.FailNow()
-	}
-}

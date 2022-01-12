@@ -211,7 +211,7 @@
     "out":["F","I","H","K"]
   },
   "PH_BlueSetFig2":{
-    "out":["H","I","E","B","C","F","K"]
+    "out":["B","C","E","F","H","I","K"]
   },
   "PH_BlueSetFig4":{
     "out":["M","P","E","I","D","C","U","S","T","N","H","Q","L"]
@@ -316,9 +316,6 @@
   ],
   "CO_GetMainChain":{
     "out":["Gen","A","C","I","K"]
-  },
-  "CO_GetOrder":{
-    "out":["Gen","A","B","C","F","J","I","K","B","D","G","F"]
   },
   "SP_Blocks":[
     {
