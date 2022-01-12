@@ -709,14 +709,7 @@ func (ph *Phantom) IsDAG(parents []IBlock) bool {
 	} else if len(parents) == 1 {
 		return true
 	}
-	parentsSet := NewIdSet()
-
-	for _, v := range parents {
-		ib := v.(IBlock)
-		parentsSet.AddPair(v.GetID(), ib)
-	}
-
-	tp := ph.GetMainParent(parentsSet)
+	tp := parents[0]
 	ops := NewIdSet()
 	//
 	minTipLayer := uint(math.MaxUint32)
