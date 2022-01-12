@@ -24,9 +24,6 @@ const (
 	// Phantom protocol V2
 	phantom_v2 = "phantom_v2"
 
-	// The order of all transactions is solely determined by the Tree Graph (TG)
-	conflux = "conflux"
-
 	// Confirming Transactions via Recursive Elections
 	spectre = "spectre"
 )
@@ -59,8 +56,6 @@ func NewBlockDAG(dagType string) IBlockDAG {
 		return &Phantom{}
 	case phantom_v2:
 		return &Phantom_v2{}
-	case conflux:
-		return &Conflux{}
 	case spectre:
 		return &Spectre{}
 	}
@@ -73,8 +68,6 @@ func GetDAGTypeIndex(dagType string) byte {
 		return 0
 	case phantom_v2:
 		return 1
-	case conflux:
-		return 2
 	case spectre:
 		return 3
 	}
@@ -87,8 +80,6 @@ func GetDAGTypeByIndex(dagType byte) string {
 		return phantom
 	case 1:
 		return phantom_v2
-	case 2:
-		return conflux
 	case 3:
 		return spectre
 	}
