@@ -152,8 +152,6 @@ func InitBlockDAG(dagType string, graph string) IBlockDAG {
 		tbd = testData.PH_Fig2Blocks
 	} else if graph == "PH_fig4-blocks" {
 		tbd = testData.PH_Fig4Blocks
-	} else if graph == "CO_Blocks" {
-		tbd = testData.CO_Blocks
 	} else if graph == "SP_Blocks" {
 		tbd = testData.SP_Blocks
 	} else if graph == "CP_Blocks" {
