@@ -68,7 +68,7 @@ type Config struct {
 	//P2P - server ban
 	Banning bool `long:"banning" description:"Enable banning of misbehaving peers"`
 
-	DAGType     string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
+	DAGType     string `short:"G" long:"dagtype" description:"DAG type {phantom,spectre} "`
 	Cleanup     bool   `short:"L" long:"cleanup" description:"Cleanup the block database "`
 	BuildLedger bool   `long:"buildledger" description:"Generate the genesis ledger for the next qitmeer version."`
 

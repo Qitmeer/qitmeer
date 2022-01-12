@@ -8,7 +8,6 @@ import (
 	"github.com/Qitmeer/qitmeer/common/roughtime"
 	"github.com/Qitmeer/qitmeer/core/blockdag/anticone"
 	"github.com/Qitmeer/qitmeer/core/dbnamespace"
-	"github.com/Qitmeer/qitmeer/core/merkle"
 	s "github.com/Qitmeer/qitmeer/core/serialization"
 	"github.com/Qitmeer/qitmeer/database"
 	"io"
@@ -24,9 +23,6 @@ const (
 
 	// Phantom protocol V2
 	phantom_v2 = "phantom_v2"
-
-	// The order of all transactions is solely determined by the Tree Graph (TG)
-	conflux = "conflux"
 
 	// Confirming Transactions via Recursive Elections
 	spectre = "spectre"
@@ -60,8 +56,6 @@ func NewBlockDAG(dagType string) IBlockDAG {
 		return &Phantom{}
 	case phantom_v2:
 		return &Phantom_v2{}
-	case conflux:
-		return &Conflux{}
 	case spectre:
 		return &Spectre{}
 	}
@@ -74,8 +68,6 @@ func GetDAGTypeIndex(dagType string) byte {
 		return 0
 	case phantom_v2:
 		return 1
-	case conflux:
-		return 2
 	case spectre:
 		return 3
 	}
@@ -88,8 +80,6 @@ func GetDAGTypeByIndex(dagType byte) string {
 		return phantom
 	case 1:
 		return phantom_v2
-	case 2:
-		return conflux
 	case 3:
 		return spectre
 	}
@@ -169,6 +159,8 @@ type BlockDAG struct {
 	// The terminal block is in block dag,this block have not any connecting at present.
 	tips *IdSet
 
+	tipsDisLimit int64
+
 	// This is time when the last block have added
 	lastTime time.Time
 
@@ -218,6 +210,7 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 	bd.commitBlock = NewIdSet()
 	bd.lastSnapshot = NewDAGSnapshot()
 	bd.blockRate = blockRate
+	bd.tipsDisLimit = StableConfirmations
 	if bd.blockRate < 0 {
 		bd.blockRate = anticone.DefaultBlockRate
 	}
@@ -252,6 +245,11 @@ func (bd *BlockDAG) Init(dagType string, calcWeight CalcWeight, blockRate float6
 				return err
 			}
 		}
+		//
+		_, err := meta.CreateBucketIfNotExists(dbnamespace.DAGTipsBucketName)
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -271,9 +269,9 @@ func (bd *BlockDAG) AddBlock(b IBlockData) (*list.List, *list.List, IBlock, bool
 		return nil, nil, nil, false
 	}
 	// Must keep no block in outside.
-	/*	if bd.hasBlock(b.GetHash()) {
-		return nil
-	}*/
+	if bd.hasBlock(b.GetHash()) {
+		return nil, nil, nil, false
+	}
 	parents := []IBlock{}
 	if bd.blockTotal > 0 {
 		parentsIds := b.GetParents()
@@ -377,57 +375,6 @@ func (bd *BlockDAG) GetBlockTotal() uint {
 	bd.stateLock.Lock()
 	defer bd.stateLock.Unlock()
 	return bd.blockTotal
-}
-
-// return the terminal blocks, because there maybe more than one, so this is a set.
-func (bd *BlockDAG) GetTips() *HashSet {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	tips := NewHashSet()
-	for k := range bd.tips.GetMap() {
-		ib := bd.getBlockById(k)
-		tips.AddPair(ib.GetHash(), ib)
-	}
-	return tips
-}
-
-// Acquire the tips array of DAG
-func (bd *BlockDAG) GetTipsList() []IBlock {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-
-	result := bd.instance.GetTipsList()
-	if result != nil {
-		return result
-	}
-	result = []IBlock{}
-	for k := range bd.tips.GetMap() {
-		result = append(result, bd.getBlockById(k))
-	}
-	return result
-}
-
-// build merkle tree form current DAG tips
-func (bd *BlockDAG) BuildMerkleTreeStoreFromTips() []*hash.Hash {
-	parents := bd.GetTips().SortList(false)
-	return merkle.BuildParentsMerkleTreeStore(parents)
-}
-
-// Refresh the dag tip with new block,it will cause changes in tips set.
-func (bd *BlockDAG) updateTips(b IBlock) {
-	if bd.tips == nil {
-		bd.tips = NewIdSet()
-		bd.tips.AddPair(b.GetID(), b)
-		return
-	}
-	for k, v := range bd.tips.GetMap() {
-		block := v.(IBlock)
-		if block.HasChildren() {
-			bd.tips.Remove(k)
-		}
-	}
-	bd.tips.AddPair(b.GetID(), b)
 }
 
 // The last time is when add one block to DAG.
@@ -814,61 +761,6 @@ func (bd *BlockDAG) GetConfirmations(id uint) uint {
 	return 0
 }
 
-func (bd *BlockDAG) GetValidTips(expectPriority int) []*hash.Hash {
-	bd.stateLock.Lock()
-	defer bd.stateLock.Unlock()
-	tips := bd.getValidTips(true)
-
-	result := []*hash.Hash{tips[0].GetHash()}
-	epNum := expectPriority
-	for k, v := range tips {
-		if k == 0 {
-			if v.GetData().GetPriority() <= 1 {
-				epNum--
-			}
-			continue
-		}
-		if v.GetData().GetPriority() > 1 {
-			result = append(result, v.GetHash())
-			continue
-		}
-		if epNum <= 0 {
-			break
-		}
-		result = append(result, v.GetHash())
-		epNum--
-	}
-	return result
-}
-
-func (bd *BlockDAG) getValidTips(limit bool) []IBlock {
-	temp := bd.tips.Clone()
-	mainParent := bd.getMainChainTip()
-	temp.Remove(mainParent.GetID())
-	var parents []uint
-	if temp.Size() > 1 {
-		parents = temp.SortHashList(false)
-	} else {
-		parents = temp.List()
-	}
-
-	tips := []IBlock{mainParent}
-	for i := 0; i < len(parents); i++ {
-		if mainParent.GetID() == parents[i] {
-			continue
-		}
-		block := bd.getBlockById(parents[i])
-		if math.Abs(float64(block.GetLayer())-float64(mainParent.GetLayer())) > MaxTipLayerGap {
-			continue
-		}
-		tips = append(tips, block)
-		if limit && len(tips) >= bd.getMaxParents() {
-			break
-		}
-	}
-	return tips
-}
-
 // Checking the layer grap of block
 func (bd *BlockDAG) checkLayerGap(parentsNode []IBlock) bool {
 	if len(parentsNode) == 0 {
@@ -1247,6 +1139,31 @@ func (bd *BlockDAG) commit() error {
 		if err != nil {
 			return err
 		}
+		for k := range bd.tips.GetMap() {
+			if bd.lastSnapshot.tips.Has(k) &&
+				k != bd.instance.GetMainChainTipId() &&
+				k != bd.lastSnapshot.mainChainTip {
+				continue
+			}
+			err := bd.db.Update(func(dbTx database.Tx) error {
+				return DBPutDAGTip(dbTx, k, k == bd.instance.GetMainChainTipId())
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		for k := range bd.lastSnapshot.tips.GetMap() {
+			if bd.tips.Has(k) {
+				continue
+			}
+			err := bd.db.Update(func(dbTx database.Tx) error {
+				return DBDelDAGTip(dbTx, k)
+			})
+			if err != nil {
+				return err
+			}
+		}
 		bd.lastSnapshot.Clean()
 	}
 
@@ -1291,7 +1208,16 @@ func (bd *BlockDAG) commit() error {
 	if !ok {
 		return nil
 	}
-	return ph.mainChain.commit()
+	err := ph.mainChain.commit()
+	if err != nil {
+		return err
+	}
+	bd.db.Update(func(dbTx database.Tx) error {
+		bd.optimizeTips(dbTx)
+		return nil
+	})
+
+	return nil
 }
 
 func (bd *BlockDAG) rollback() error {

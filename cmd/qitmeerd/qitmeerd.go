@@ -31,6 +31,7 @@ func main() {
 
 	// Work around defer not working after os.Exit()
 	if err := qitmeerdMain(nil); err != nil {
+		log.Error(err.Error())
 		os.Exit(1)
 	}
 }

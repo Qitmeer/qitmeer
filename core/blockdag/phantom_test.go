@@ -3,7 +3,11 @@ package blockdag
 import (
 	"fmt"
 	"github.com/Qitmeer/qitmeer/common/hash"
+	"github.com/Qitmeer/qitmeer/config"
+	"github.com/Qitmeer/qitmeer/database"
 	_ "github.com/Qitmeer/qitmeer/database/ffldb"
+	"github.com/Qitmeer/qitmeer/params"
+	"path/filepath"
 	"strconv"
 	"testing"
 )
@@ -225,14 +229,10 @@ func Test_IsDAG(t *testing.T) {
 	for _, parent := range parentsTag {
 		parents = append(parents, tbMap[parent].GetHash())
 	}
-	block := buildBlock(parents)
-	l, _, ib, _ := bd.AddBlock(block)
-	if l != nil && l.Len() > 0 {
-		tbMap["L"] = ib
-	} else {
-		t.Fatalf("Error:%d  L\n", tempHash)
+	_, err := buildBlock("L", parents)
+	if err != nil {
+		t.Fatal(err)
 	}
-
 }
 
 func Test_IsHourglass(t *testing.T) {
@@ -301,6 +301,7 @@ func Test_MainChainTip(t *testing.T) {
 	}
 }
 
+
 func Test_Rollback(t *testing.T) {
 	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
 	if ibd == nil {
@@ -320,13 +321,9 @@ func Test_Rollback(t *testing.T) {
 	parents = append(parents, tbMap["I"].GetHash())
 	parents = append(parents, tbMap["G"].GetHash())
 
-	block := buildBlock(parents)
-	l, _, ib, _ := bd.AddBlock(block)
-	if l != nil && l.Len() > 0 {
-		tbMap["L"] = ib
-	} else {
-		t.Fatalf("Error:%d  L\n", tempHash)
-		return
+	_, _, err := addBlock("L", parents)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	bd.rollback()
@@ -350,3 +347,83 @@ func Test_Rollback(t *testing.T) {
 		t.Fatalf("Roll back error")
 	}
 }
+
+func Test_tips(t *testing.T) {
+	ibd := InitBlockDAG(phantom, "PH_fig2-blocks")
+	if ibd == nil {
+		t.FailNow()
+	}
+
+	//ph := ibd.(*Phantom)
+	bd.SetTipsDisLimit(1)
+
+	parents := []*hash.Hash{}
+	parents = append(parents, tbMap["J"].GetHash())
+
+	_, err := buildBlock("L", parents)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parents = []*hash.Hash{}
+	parents = append(parents, tbMap["L"].GetHash())
+
+	_, err = buildBlock("M", parents)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parents = []*hash.Hash{}
+	parents = append(parents, tbMap["M"].GetHash())
+
+	_, err = buildBlock("N", parents)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bd.db.Close()
+
+	checkLoad(t)
+}
+
+func checkLoad(t *testing.T) {
+	openBlockDB := func(cfg *config.Config) (database.DB, error) {
+		dbName := "blocks_" + cfg.DbType
+		dbPath := filepath.Join(cfg.DataDir, dbName)
+		db, err := database.Open(cfg.DbType, dbPath, params.ActiveNetParams.Net)
+		if err != nil {
+			return nil, err
+		}
+		return db, nil
+	}
+	cfg := &config.Config{DbType: "ffldb", DataDir: "."}
+	db, err := openBlockDB(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	getBlockData := func(h *hash.Hash) IBlockData {
+		tb, err := fetchBlock(h)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tb
+	}
+	bd.Init(phantom, CalcBlockWeight, -1, db, getBlockData)
+	total, err := dbGetTotal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	geneis, err := dbGetGenesis()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = db.View(func(dbTx database.Tx) error {
+		return bd.Load(dbTx, uint(total), geneis)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+

@@ -349,6 +349,7 @@ func New(config *Config) (*BlockChain, error) {
 	b.bd = &blockdag.BlockDAG{}
 	b.bd.Init(config.DAGType, b.CalcWeight,
 		1.0/float64(par.TargetTimePerBlock/time.Second), b.db, b.getBlockData)
+	b.bd.SetTipsDisLimit(int64(par.CoinbaseMaturity))
 	// Initialize the chain state from the passed database.  When the db
 	// does not yet contain any chain state, both it and the chain state
 	// will be initialized to contain only the genesis block.
@@ -498,7 +499,7 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		meta := dbTx.Metadata()
 		serializedData := meta.Get(dbnamespace.ChainStateKeyName)
 		if serializedData == nil {
-			return nil
+			return fmt.Errorf("No chain state data")
 		}
 		log.Trace("Serialized chain state: ", "serializedData", fmt.Sprintf("%x", serializedData))
 		state, err := DeserializeBestChainState(serializedData)
@@ -513,10 +514,6 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 		err = b.bd.Load(dbTx, uint(state.total), b.params.GenesisHash)
 		if err != nil {
 			return fmt.Errorf("The dag data was damaged (%s). you can cleanup your block data base by '--cleanup'.", err)
-		}
-		err = b.bd.UpgradeDB(dbTx)
-		if err != nil {
-			return err
 		}
 		if !b.bd.GetMainChainTip().GetHash().IsEqual(&state.hash) {
 			return fmt.Errorf("The dag main tip %s is not the same. %s", state.hash.String(), b.bd.GetMainChainTip().GetHash().String())
@@ -562,6 +559,20 @@ func (b *BlockChain) initChainState(interrupt <-chan struct{}) error {
 // This function is safe for concurrent access.
 func (b *BlockChain) HaveBlock(hash *hash.Hash) bool {
 	return b.bd.HasBlock(hash) || b.IsOrphan(hash)
+}
+
+func (b *BlockChain) HasBlockInDB(h *hash.Hash) bool {
+	err := b.db.View(func(dbTx database.Tx) error {
+		has,er:=dbTx.HasBlock(h)
+		if er != nil {
+			return er
+		}
+		if has {
+			return nil
+		}
+		return fmt.Errorf("no")
+	})
+	return err == nil
 }
 
 // IsCurrent returns whether or not the chain believes it is current.  Several

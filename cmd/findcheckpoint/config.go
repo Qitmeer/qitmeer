@@ -31,7 +31,7 @@ type Config struct {
 	MixNet        bool   `long:"mixnet" description:"Use the test mix pow network"`
 	PrivNet       bool   `long:"privnet" description:"Use the private network"`
 	DbType        string `long:"dbtype" description:"Database backend to use for the Block Chain"`
-	DAGType       string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
+	DAGType       string `short:"G" long:"dagtype" description:"DAG type {phantom,spectre} "`
 	NumCandidates int    `short:"n" long:"numcandidates" description:"Max num of checkpoint candidates to show {1-20}"`
 	UseGoOutput   bool   `short:"g" long:"gooutput" description:"Display the candidates using Go syntax that is ready to insert into the qitmeer checkpoint list"`
 	IsCheckPoint  string `short:"I" long:"ischeckpoint" description:"Determine if it's a check point"`
