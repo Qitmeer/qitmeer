@@ -38,7 +38,7 @@ type Config struct {
 	MixNet  bool   `long:"mixnet" description:"Use the test mix pow network"`
 	PrivNet bool   `long:"privnet" description:"Use the private network"`
 	DbType  string `long:"dbtype" description:"Database backend to use for the Block Chain"`
-	DAGType string `short:"G" long:"dagtype" description:"DAG type {phantom,conflux,spectre} "`
+	DAGType string `short:"G" long:"dagtype" description:"DAG type {phantom,spectre} "`
 
 	SrcDataDir      string `long:"srcdatadir" description:"Original directory to store data"`
 	EndPoint        string `long:"endpoint" description:"The end point block hash when building ledger"`

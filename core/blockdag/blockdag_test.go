@@ -54,9 +54,6 @@ type TestData struct {
 	PH_OrderFig4       TestInOutData
 	PH_IsOnMainChain   TestInOutData
 	PH_GetLayer        TestInOutData
-	CO_Blocks          []TestBlocksData
-	CO_GetMainChain    TestInOutData
-	CO_GetOrder        TestInOutData
 	SP_Blocks          []TestBlocksData
 	PH_LocateBlocks    TestInOutData
 	PH_LocateMaxBlocks TestInOutData

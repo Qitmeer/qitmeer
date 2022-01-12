@@ -183,7 +183,7 @@ func fastIBD() error {
 			&cli.StringFlag{
 				Name:        "dagtype",
 				Aliases:     []string{"G"},
-				Usage:       "DAG type {phantom,conflux,spectre}",
+				Usage:       "DAG type {phantom,spectre}",
 				Value:       defaultDAGType,
 				Destination: &cfg.DAGType,
 			},
