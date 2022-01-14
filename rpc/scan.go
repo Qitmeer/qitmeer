@@ -62,6 +62,14 @@ func descendantBlock(prevHash *hash.Hash, curBlock *types.SerializedBlock) error
 	return nil
 }
 
+func checkCorrectBlock(prevHash *hash.Hash, curBlock *types.SerializedBlock) *hash.Hash {
+	curHash := &curBlock.Block().Header.ParentRoot
+	if !prevHash.IsEqual(curHash) {
+		return curHash
+	}
+	return prevHash
+}
+
 // scanBlockChunks executes a rescan in chunked stages. We do this to limit the
 // amount of memory that we'll allocate to a given rescan. Every so often,
 // we'll send back a rescan progress notification to the websockets client. The
@@ -190,10 +198,8 @@ fetchRange:
 			if i == 0 && lastBlockHash != nil {
 				// Ensure the new hashList is on the same fork
 				// as the last block from the old hashList.
-				jsonErr := descendantBlock(lastBlockHash, blk)
-				if jsonErr != nil {
-					return nil, nil, nil, jsonErr
-				}
+				lastBlockHash = checkCorrectBlock(lastBlockHash, blk)
+
 			}
 
 			// A select statement is used to stop rescans if the
