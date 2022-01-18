@@ -128,7 +128,18 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	//
 	// Also, store the associated block index entry.
 	err = b.db.Update(func(dbTx database.Tx) error {
-		if err := dbMaybeStoreBlock(dbTx, block); err != nil {
+		exists, err := dbTx.HasBlock(block.Hash())
+		if err != nil {
+			return err
+		}
+		if exists {
+			return nil
+		}
+		err = dbMaybeStoreBlock(dbTx, block)
+		if err != nil {
+			if database.IsError(err, database.ErrBlockExists) {
+				return nil
+			}
 			return err
 		}
 		return nil
