@@ -48,7 +48,7 @@ func (w *GBTWorker) Start() error {
 	log.Info("Start GBT Worker...")
 	err := w.miner.initCoinbase()
 	if err != nil {
-		return err
+		log.Warn(fmt.Sprintf("You will not be allowed to use <coinbasetxn> :%s", err.Error()))
 	}
 	w.miner.updateBlockTemplate(false)
 	return nil
