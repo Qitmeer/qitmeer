@@ -74,7 +74,7 @@ func (w *GBTWorker) Update() {
 
 func (w *GBTWorker) GetRequest(request *json.TemplateRequest, reply chan *gbtResponse) {
 	if atomic.LoadInt32(&w.shutdown) != 0 {
-		reply <- &gbtResponse{nil,fmt.Errorf("GBTWorker is not running ")}
+		reply <- &gbtResponse{nil, fmt.Errorf("GBTWorker is not running ")}
 		return
 	}
 
