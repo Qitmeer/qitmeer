@@ -180,10 +180,12 @@ out:
 				}
 				worker := NewGBTWorker(m)
 				m.worker = worker
-				if m.worker.Start() != nil {
+				err:=m.worker.Start()
+				if err != nil {
+					log.Error(err.Error())
 					m.worker = nil
 					if msg.reply != nil {
-						close(msg.reply)
+						msg.reply <- &gbtResponse{nil,err}
 					}
 					continue
 				}
