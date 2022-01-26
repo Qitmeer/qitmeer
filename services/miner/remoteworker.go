@@ -58,7 +58,7 @@ func (w *RemoteWorker) Update() {
 
 func (w *RemoteWorker) GetRequest(powType pow.PowType, reply chan *gbtResponse) {
 	if atomic.LoadInt32(&w.shutdown) != 0 {
-		close(reply)
+		reply <- &gbtResponse{nil, fmt.Errorf("RemoteWorker is not running ")}
 		return
 	}
 
