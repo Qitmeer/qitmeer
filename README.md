@@ -60,7 +60,6 @@ go version go1.16 darwin/amd64
 ~ git clone https://github.com/Qitmeer/qitmeer.git
 ~ cd qitmeer
 ~ make
-~ make
 Done building.
   qitmeer version 0.9.2+dev-1f5defd (Go version go1.16))
 Run "./build/bin/qitmeer" to launch.
