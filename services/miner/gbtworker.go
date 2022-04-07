@@ -140,6 +140,9 @@ func (w *GBTWorker) getResult(useCoinbaseValue bool, submitOld *bool) (*json.Get
 	// after the template is generated, but it's important to avoid serving
 	// invalid block templates.
 	template := w.miner.template
+	if template == nil {
+		return nil, fmt.Errorf("No template")
+	}
 	msgBlock := template.Block
 	header := &msgBlock.Header
 	adjustedTime := w.miner.timeSource.AdjustedTime()
