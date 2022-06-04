@@ -191,24 +191,40 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 	blocksReady := []*hash.Hash{}
 	blockDatas := []*BlockData{}
 	blockDataM := map[hash.Hash]*BlockData{}
-
+	var point *hash.Hash
+	updateSyncPoint := func() {
+		if point != nil {
+			pe.UpdateSyncPoint(point)
+		}
+	}
+	isVerified := len(blocks) > 0
 	for _, b := range blocks {
-		if ps.sy.p2p.BlockChain().HaveBlock(b) {
+		if ps.sy.p2p.BlockChain().BlockDAG().HasBlock(b) {
+			if isVerified {
+				point = b
+			}
 			continue
 		}
-		blkd:=&BlockData{Hash:b}
-		blockDataM[*blkd.Hash]=blkd
-		blockDatas = append(blockDatas,blkd)
-		if ps.sy.p2p.BlockChain().HasBlockInDB(b) {
-			sb,err:=ps.sy.p2p.BlockChain().FetchBlockByHash(b)
+		blkd := &BlockData{Hash: b}
+		blockDataM[*blkd.Hash] = blkd
+		blockDatas = append(blockDatas, blkd)
+		if ps.sy.p2p.BlockChain().IsOrphan(b) {
+			ob := ps.sy.p2p.BlockChain().GetOrphan(b)
+			if ob != nil {
+				blkd.Block = ob
+				continue
+			}
+		} else if ps.sy.p2p.BlockChain().HasBlockInDB(b) {
+			sb, err := ps.sy.p2p.BlockChain().FetchBlockByHash(b)
 			if err == nil {
-				blkd.Block=sb
+				blkd.Block = sb
 				continue
 			}
 		}
 		blocksReady = append(blocksReady, b)
 	}
 	if len(blockDatas) <= 0 {
+		updateSyncPoint()
 		ps.continueSync(false)
 		return nil
 	}
@@ -223,17 +239,18 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 		bd, err := ps.sy.sendGetBlockDataRequest(ps.sy.p2p.Context(), pe.GetID(), &pb.GetBlockDatas{Locator: changeHashsToPBHashs(blocksReady)})
 		if err != nil {
 			log.Warn(fmt.Sprintf("getBlocks send:%v", err))
+			updateSyncPoint()
 			ps.updateSyncPeer(true)
 			return err
 		}
-		log.Trace(fmt.Sprintf("Received:Locator=%d",len(bd.Locator)))
+		log.Trace(fmt.Sprintf("Received:Locator=%d", len(bd.Locator)))
 		for _, b := range bd.Locator {
 			block, err := types.NewBlockFromBytes(b.BlockBytes)
 			if err != nil {
 				log.Warn(fmt.Sprintf("getBlocks from:%v", err))
 				break
 			}
-			bd,ok:=blockDataM[*block.Hash()]
+			bd, ok := blockDataM[*block.Hash()]
 			if ok {
 				bd.Block = block
 			}
@@ -250,9 +267,9 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 		if atomic.LoadInt32(&ps.shutdown) != 0 {
 			break
 		}
-		block:=b.Block
+		block := b.Block
 		if block == nil {
-			log.Trace(fmt.Sprintf("No block bytes:%s",b.Hash.String()))
+			log.Trace(fmt.Sprintf("No block bytes:%s", b.Hash.String()))
 			continue
 		}
 		isOrphan, err := ps.sy.p2p.BlockChain().ProcessBlock(block, behaviorFlags)
@@ -266,6 +283,9 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 		}
 		add++
 		ps.lastSync = time.Now()
+		if isVerified {
+			point = b.Hash
+		}
 	}
 	log.Debug(fmt.Sprintf("getBlockDatas:%d/%d  spend:%s", add, len(blockDatas), time.Since(lastSync).Truncate(time.Second).String()))
 
@@ -287,6 +307,7 @@ func (ps *PeerSync) processGetBlockDatas(pe *peers.Peer, blocks []*hash.Hash) er
 	} else {
 		err = fmt.Errorf("no get blocks")
 	}
+	updateSyncPoint()
 	ps.continueSync(hasOrphan)
 	return err
 }
