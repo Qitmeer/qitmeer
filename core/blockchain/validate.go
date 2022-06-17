@@ -45,6 +45,10 @@ func IsExpired(tx *types.Tx, blockHeight uint64) bool {
 	return IsExpiredTx(tx.Transaction(), blockHeight)
 }
 
+func (b *BlockChain) CheckBlockSanity(block *types.SerializedBlock, timeSource MedianTimeSource, flags BehaviorFlags, chainParams *params.Params) error {
+	return b.checkBlockSanity(block, timeSource, flags, chainParams)
+}
+
 // checkBlockSanity performs some preliminary checks on a block to ensure it is
 // sane before continuing with block processing.  These checks are context
 // free.

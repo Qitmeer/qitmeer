@@ -108,6 +108,7 @@ func (node *AidNode) Upgrade() error {
 
 	for i = uint(1); i <= endNum; i++ {
 		blockHash = nil
+		isEmpty := false
 		err := node.db.View(func(dbTx database.Tx) error {
 
 			block := &blockdag.Block{}
@@ -115,6 +116,10 @@ func (node *AidNode) Upgrade() error {
 			ib := &blockdag.PhantomBlock{Block: block}
 			err := blockdag.DBGetDAGBlock(dbTx, ib)
 			if err != nil {
+				if err.(*blockdag.DAGError).IsEmpty() {
+					isEmpty = true
+					return nil
+				}
 				return err
 			}
 			blockHash = ib.GetHash()
@@ -123,6 +128,9 @@ func (node *AidNode) Upgrade() error {
 		})
 		if err != nil {
 			return err
+		}
+		if isEmpty {
+			continue
 		}
 
 		if blockHash == nil {
@@ -211,10 +219,16 @@ func (node *AidNode) Upgrade() error {
 	}()
 
 	for _, block := range blocks {
+		err = node.bc.CheckBlockSanity(block, node.bc.TimeSource(), blockchain.BFFastAdd, params.ActiveNetParams.Params)
+		if err != nil {
+			fmt.Println()
+			log.Info(fmt.Sprintf("The block stopped because of an error:%s (%s)", block.Hash().String(), err))
+			return nil
+		}
 		err := node.bc.FastAcceptBlock(block, blockchain.BFNone)
 		if err != nil {
 			fmt.Println()
-			log.Info(fmt.Sprintf("The block stopped because of an error:%s", block.Hash().String()))
+			log.Info(fmt.Sprintf("The block stopped because of an error:%s (%s)", block.Hash().String(), err))
 			return nil
 		}
 		if bar != nil {
