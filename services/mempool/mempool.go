@@ -451,6 +451,10 @@ func (mp *TxPool) maybeAcceptTransaction(tx *types.Tx, isNew, rateLimit, allowHi
 	// Don't allow transactions with fees too low to get into a mined block.
 	serializedSize := int64(msgTx.SerializeSize())
 
+	if serializedSize >= mp.cfg.Policy.MaxTxSize {
+		return nil, nil, fmt.Errorf("serialized transaction is too big for pool - got %d, max %d", serializedSize, mp.cfg.Policy.MaxTxSize)
+	}
+
 	minFee := calcMinRequiredTxRelayFee(serializedSize,
 		mp.cfg.Policy.MinRelayTxFee)
 
