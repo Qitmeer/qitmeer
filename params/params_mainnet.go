@@ -42,7 +42,7 @@ var MainNetParams = Params{
 	},
 	LedgerParams: ledger.LedgerParams{
 		GenesisAmountUnit: 1000 * 1e8,                              // 1000 MEER every utxo
-		MaxLockHeight:     86400 / mixTargetTimePerBlock * 365 * 5, // max lock height
+		MaxLockHeight:     86400 / mainTargetTimePerBlock * 365 * 5, // max lock height
 	},
 	// Chain parameters
 	GenesisBlock: &genesisBlock,
