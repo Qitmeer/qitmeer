@@ -1,3 +1,7 @@
+
+# :tada: Notice:balloon:
+**We happily announce that The Qitmeer network has been upgraded to [QNG (Qitmeer Next Generation) network](https://github.com/Qitmeer/qng) :confetti_ball:, This repository has been archived and read-only.**
+
 # Qitmeer
 
 [![Build Status](https://github.com/Qitmeer/qitmeer/workflows/CodeQL/badge.svg?branch=0.10.6-mixnet)](https://github.com/Qitmeer/qitmeer/actions/workflows/codeql-analysis.yml)
